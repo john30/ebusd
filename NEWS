@@ -1,0 +1,77 @@
+ebus Daemon (ebusd) - NEWS
+==========================
+
+2013-11-14:
+* Initial commit on github.
+
+2013-11-06:
+* Specific vaillant data type "ulg" (unsigned long) added.
+
+2013-05-25:
+* Added ability to reopen temporary removed serial device. (thx aloz77 / KNX Forum)
+
+2013-05-16:
+* Added ability to restrict tcp connection to localhost. (thx aloz77 / KNX Forum)
+
+2013-04-27:
+* Improved csv files read in a way that ebus parts are not case sensitive.
+
+2013-04-09:
+* Extended signal handler to fit with logrotate / logging facility.
+
+2013-04-08:
+* Logging functions changed so it fits together with the behavior of logrotate.
+
+2013-03-15:
+* Improved cyc commands data handling so all parts from message could be decoded.
+
+2013-03-03:
+* Added debian init script ebusd.init to contrib.
+
+2013-03-01:
+* Added documentation and an example command csv file.
+
+2013-02-28:
+* Added loglevel as telnet command to change logging level at runtime.
+
+2013-02-27:
+* Added new config parameter print_size to adjust number of bytes at output stream.
+
+2013-02-22:
+* Changed client answer code so normal telnet client can handle it
+
+2013-02-21:
+* Improved decoding of cyc commands to all ebus message types.
+
+2013-02-19:
+* Added some usefull description of ebusd to README
+
+2013-02-17:
+* Added csv tool to print command configuration.
+* Added deconding of cyc commands.
+
+2013-02-16:
+* Structure for commands improved so only one structure for GET/SET/CYC is needed
+* Possible formats for GET / SET (asc, bcd, d1b, d1c, d2b, d2c, dat, tim)
+
+2013-02-06:
+* Fixed some malfunctions of command decode function
+* Added parameter send_retry so the daemon can try x times to send command
+
+2013-02-04:
+* Added the ability to send commands via telnet to daemon
+  (This ist just added for GET and a few ebus commands for response)
+
+2013-02-01:
+* Added functions to read ebus command files
+
+2013-01-25:
+* Added autogen.sh script in main dir
+* Logging functions changed from level to class system
+
+2013-01-24:
+* Added example daemon configuration file
+* Added functions for parsing daemon configuration file
+
+2013-01-17:
+* Prepare Source to compile with GNU Autotools

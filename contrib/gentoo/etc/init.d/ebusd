@@ -1,0 +1,21 @@
+#!/sbin/runscript
+# Copyright 1999-2013 Gentoo Foundation
+# Distributed under the terms of the GNU General Public License v2
+# $Header: $
+
+#extra_started_commands="reload"
+command="/usr/sbin/ebusd"
+command_args="${EBUSD_ARGS}"
+start_stop_daemon_args="--quiet"
+description="Daemon for ebus Communication"
+
+depend() {
+	need localmount
+	use logger
+}
+
+#reload() {
+#	ebegin "Reloading ebusd configuration"
+#	start-stop-daemon --exec $command --signal HUP
+#	eend $?
+#}
