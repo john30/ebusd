@@ -27,7 +27,7 @@ cd ebusd-build
 
 printf ">>> Checkout sources\n"
 #svn checkout https://svn.code.sf.net/p/openautomation/code/tools/ebusd
-git clone https://github.com/JuMi2006/ebusd.git
+git clone https://github.com/yuhu-/ebusd.git
 cd ebusd
 
 printf ">>> Remove hidden files\n"
