@@ -31,8 +31,8 @@ git clone https://github.com/JuMi2006/ebusd.git
 cd ebusd
 
 printf ">>> Remove hidden files\n"
-find -name .svn -delete
-find -name .gitignore -delete
+find $PWD -name .svn -print0 | xargs -0 rm -r
+find $PWD -name .gitignore -print0 | xargs -0 rm -r
 
 printf ">>> Build binarys from source\n"
 ./autogen.sh
