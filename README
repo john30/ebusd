@@ -84,20 +84,20 @@ For each different data type must defined the follow struture
 
 Different data types [decode|encode]:
 
- * [de] asc - ascii
- * [de] bcd - bcd
- * [de] d1b - data1b
- * [de] d1c - data1c
- * [de] d2b - data2b
- * [de] d2c - data2c
- * [d ] bda - date (bcd format)
- * [de] hda - date (hex format)
- * [d ] bti - time (bcd format)
- * [de] hti - time (hex format)
- * [d ] bdy - day (bcd format)
- * [de] hdy - day (hex format)
- * [d ] hex - print data only with 2-nibble hex format
-
+ * [de] x - asc - ascii
+ * [de] 1 - bcd - bcd
+ * [de] 1 - d1b - data1b
+ * [de] 1 - d1c - data1c
+ * [de] 2 - d2b - data2b
+ * [de] 2 - d2c - data2c
+ * [d ] 3 - bda - date (bcd format)
+ * [de] 3 - hda - date (hex format)
+ * [d ] 3 - bti - time (bcd format)
+ * [de] 3 - hti - time (hex format)
+ * [d ] 1 - bdy - day (bcd format)
+ * [de] 1 - hdy - day (hex format)
+ * [d ] x - hex - print data only with 2-nibble hex format
+ * [d ] 4 - ulg - unsigned long
 
 
 The author can be contacted at roland.jax@liwest.at.
