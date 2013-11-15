@@ -17,7 +17,7 @@
 # along with ebusd. If not, see http://www.gnu.org/licenses/.
 #
 
-BUILD_DIR=$PWD
+BUILD_DIR=/tmp
 VERSION='1.0'
 
 cd $BUILD_DIR
