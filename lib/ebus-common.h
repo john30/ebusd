@@ -30,33 +30,36 @@
 
 
 
-#define EBUS_SYN                0xAA
-#define EBUS_SYN_ESC_A9         0xA9
-#define EBUS_SYN_ESC_01         0x01
-#define EBUS_SYN_ESC_00         0x00
+#define EBUS_SYN                   0xAA
+#define EBUS_SYN_ESC_A9            0xA9
+#define EBUS_SYN_ESC_01            0x01
+#define EBUS_SYN_ESC_00            0x00
 
-#define EBUS_ACK                0x00
-#define EBUS_NAK                0xFF
+#define EBUS_ACK                   0x00
+#define EBUS_NAK                   0xFF
 
-#define EBUS_QQ                 0xFF
+#define EBUS_QQ                    0xFF
 
-#define EBUS_GET_RETRY          3
-#define EBUS_GET_RETRY_MAX      10
-#define EBUS_SKIP_ACK           1
-#define EBUS_MAX_WAIT           4000
-#define EBUS_SEND_RETRY         2
-#define EBUS_SEND_RETRY_MAX     10
-#define EBUS_PRINT_SIZE         30
+#define EBUS_GET_RETRY             3
+#define EBUS_GET_RETRY_MAX         10
+#define EBUS_SKIP_ACK              1
+#define EBUS_MAX_WAIT              4000
+#define EBUS_SEND_RETRY            2
+#define EBUS_SEND_RETRY_MAX        10
+#define EBUS_PRINT_SIZE            30
 
-#define EBUS_MSG_BROADCAST      1
-#define EBUS_MSG_MASTER_MASTER  2
-#define EBUS_MSG_MASTER_SLAVE   3
+#define EBUS_MSG_BROADCAST_TXT     "BR"
+#define EBUS_MSG_BROADCAST         1
+#define EBUS_MSG_MASTER_MASTER_TXT "MM"
+#define EBUS_MSG_MASTER_MASTER     2
+#define EBUS_MSG_MASTER_SLAVE_TXT  "MS"
+#define EBUS_MSG_MASTER_SLAVE      3
 
-#define SERIAL_DEVICE           "/dev/ttyUSB0"
-#define SERIAL_BAUDRATE         B2400
-#define SERIAL_BUFSIZE          100
+#define SERIAL_DEVICE              "/dev/ttyUSB0"
+#define SERIAL_BAUDRATE            B2400
+#define SERIAL_BUFSIZE             100
 
-#define CMD_DATA_SIZE           50 /* 5+16+3+16+2 = 42 || 256 */
+#define CMD_DATA_SIZE              50 /* 5+16+3+16+2 = 42 || 256 */
 
 enum enum_bool {UNSET = -1, NO, YES};
 

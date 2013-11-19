@@ -8,10 +8,10 @@ Features:
 =========
 
  * ebus - send and receive ebus commands
-   - send Broadcast (BC), Master-Master (MM) and Master-Slave (MS) messages
-   - calculate CRC for sending data and check CRC of received data
-   - not allowed byte sequences inside data will be escaped and unescaped
-   - it saved data from specified cycle messages
+   - Send Broadcast (BC), Master-Master (MM) and Master-Slave (MS) messages
+   - Calculate CRC for sent and received data
+   - Escaped and unescaped not allowed byte sequences
+   - Saved data of specified cycle messages
    
  * telnet - multi telnet session (listen on TCP port 8888)
    The available commands are different of each heating system and provider.

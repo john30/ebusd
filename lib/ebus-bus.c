@@ -901,7 +901,10 @@ eb_execute(int id, char *data, char *buf, int *buflen)
 
 	memset(msg, '\0', sizeof(msg));
 	msglen = sizeof(msg);
-	msgtype = eb_cmd_get_s_type(id);
+
+	msgtype = eb_cmd_get_s_type(id);	
+	if (msgtype < 0)
+		return;
 				
 	cycdata = NO;
 	ret = -1;
@@ -1048,8 +1051,8 @@ eb_cyc_data_process(const unsigned char *buf, int buflen)
 	id = eb_cmd_search_com_cyc(&buf[1], buflen - 1);
 	
 	if (id >= 0) {
-
 		msgtype = eb_cmd_get_s_type(id);
+		err_ret_if(msgtype < 0, -1);
 
 		/* unescape */
 		memcpy(msg, buf, buflen);

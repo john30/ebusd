@@ -69,7 +69,16 @@ eb_cmd_check_type(int id, const char *type)
 int
 eb_cmd_get_s_type(int id)
 {
-	return com[id].s_type;
+	if (strncasecmp(com[id].s_type, EBUS_MSG_BROADCAST_TXT, 2) == 0) {
+		return EBUS_MSG_BROADCAST;
+	} else if(strncasecmp(com[id].s_type, EBUS_MSG_MASTER_MASTER_TXT, 2) == 0) {
+		return EBUS_MSG_MASTER_MASTER;
+	} else if(strncasecmp(com[id].s_type, EBUS_MSG_MASTER_SLAVE_TXT, 2) == 0) {
+		return EBUS_MSG_MASTER_SLAVE;
+	} else {
+		log_print(L_ERR, "message type %s unkown", com[id].s_type);
+		return -1;
+	}
 }
 
 
@@ -119,7 +128,7 @@ eb_cmd_search_com_cyc(const unsigned char *hex, int hexlen)
 
 	for (i = 0; i < cyclen; i++) {
 		if (memcmp(hlp, cyc[i].msg, strlen((const char *) cyc[i].msg)) == 0) {
-			log_print(L_NOT, " found: %s type: %d ==> id: %d",
+			log_print(L_NOT, " found: %s type: %s ==> id: %d",
 				cyc[i].msg, com[cyc[i].id].s_type, cyc[i].id);
 					
 			return cyc[i].id;
@@ -141,7 +150,7 @@ eb_cmd_search_com_id(const char *type, const char *class, const char *cmd)
 		   && (strncasecmp(cmd, com[i].cmd, strlen(com[i].cmd)) == 0)			   
 		   && strlen(cmd) == strlen(com[i].cmd)) {
 
-			log_print(L_NOT, " found: %s%s%02X%s type: %d ==> id: %d",
+			log_print(L_NOT, " found: %s%s%02X%s type: %s ==> id: %d",
 				com[i].s_zz, com[i].s_cmd, com[i].s_len,
 				com[i].s_msg, com[i].s_type, i);
 			return i;
@@ -664,7 +673,7 @@ eb_cmd_print(const char *type, int all, int detail)
 
 		if (strncasecmp(com[i].type, type, 1) == 0 || all) {
 
-			log_print(L_INF, "[%03d] %s : %5s.%-32s\t(type: %d)" \
+			log_print(L_INF, "[%03d] %s : %22s.%-42s\t(type: %s)" \
 					 " %s%s%-10s (len: %d) [%d] ==> %s",
 				com[i].id,
 				com[i].type,
@@ -735,7 +744,8 @@ eb_cmd_fill(const char *tok)
 	
 	/* s_type */
 	tok = strtok(NULL, ";");
-	com[comlen].s_type = atoi(tok);	
+	strncpy(com[comlen].s_type, tok, strlen(tok));	
+	eb_cmd_uppercase(com[comlen].s_type);
 	
 	/* s_zz */
 	tok = strtok(NULL, ";");

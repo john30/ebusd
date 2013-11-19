@@ -40,8 +40,9 @@
 
 #define CMD_SIZE_TYPE      3
 #define CMD_SIZE_CLASS     20
-#define CMD_SIZE_CMD       30
+#define CMD_SIZE_CMD       40
 #define CMD_SIZE_COM       256
+#define CMD_SIZE_S_TYPE    2
 #define CMD_SIZE_S_ZZ      2
 #define CMD_SIZE_S_CMD     4
 #define CMD_SIZE_S_MSG     32
@@ -80,7 +81,7 @@ struct commands {
 	char class[CMD_SIZE_CLASS + 1]; /**< ci */
 	char cmd[CMD_SIZE_CMD + 1]; /**< hydraulic */
 	char com[CMD_SIZE_COM + 1]; /**< just a comment */	
-	int s_type; /**< message type */
+	char s_type[CMD_SIZE_S_TYPE + 1]; /**< message type */
 	char s_zz[CMD_SIZE_S_ZZ + 1]; /**< zz */ 
 	char s_cmd[CMD_SIZE_S_CMD + 1]; /**< pb sb */
 	int s_len; /**< number of send bytes */
@@ -126,7 +127,7 @@ int eb_cmd_check_type(int id, const char *type);
 /**
  * @brief returns s_type of given id
  * @param [in] id is index in command array
- * @return s_type of ebus command
+ * @return type of ebus command | -1 wrong message type
  */
 int eb_cmd_get_s_type(int id);
 

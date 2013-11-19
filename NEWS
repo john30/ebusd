@@ -1,6 +1,9 @@
 ebus Daemon (ebusd) - NEWS
 ==========================
 
+2013-11-19:
+* Data type of struct commands.s_type changed from integer to char[2].
+
 2013-11-14:
 * Initial commit on github.
 
