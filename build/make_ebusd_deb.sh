@@ -47,7 +47,7 @@ mkdir trunk/usr/sbin
 
 cp contrib/debian/init.d trunk/etc/init.d/ebusd
 cp -R contrib/etc/* trunk/etc
-cp src/ebusd trunk/usr/sbin
+cp src/ebusd trunk/usr/sbin/ebusd
 cp -R contrib/csv/* /etc/ebusd/
 
 cp ChangeLog trunk/DEBIAN/changelog
