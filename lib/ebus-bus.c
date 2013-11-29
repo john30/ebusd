@@ -52,6 +52,7 @@ static struct send_data send_data;
 
 static struct recv_data recv_data;
 
+static int nodevicecheck = NO;
 static int rawdump = NO;
 static int showraw = NO;
 
@@ -73,6 +74,14 @@ static struct termios oldtio;
 static FILE *rawfp = NULL;
 
 
+
+
+
+void
+eb_set_nodevicecheck(int check)
+{
+	nodevicecheck = check;	
+}
 
 void
 eb_set_rawdump(int dump)
@@ -185,7 +194,7 @@ eb_serial_valid()
 {
 	int serial;
 
-	if (ioctl(sfd, TIOCMGET, &serial) < 0) 
+	if (ioctl(sfd, TIOCMGET, &serial) < 0 && nodevicecheck == NO) 
 		return -1;
 	else
 		return 0;	

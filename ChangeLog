@@ -1,6 +1,9 @@
 ebus Daemon (ebusd) - ChangeLog
 ===============================
 
+2013-11-29:
+* New daemon option nodevicecheck added.
+
 2013-11-19:
 * Data type of struct commands.s_type changed from integer to char[2]. Possible
   data types are: BR, MM, MS. (BroadCast, MasterMaster, MasterSlave)

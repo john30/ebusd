@@ -60,6 +60,7 @@ static char extension[10];
 static int foreground = UNSET;
 static char loglevel[CFG_LINELEN];
 static char logfile[CFG_LINELEN];
+static int nodevicecheck = UNSET;
 static char pidfile[CFG_LINELEN];
 static int port = UNSET;
 static int rawdump = UNSET;
@@ -78,50 +79,52 @@ static int print_size = UNSET;
 static char options[] = "a:c:C:d:e:fl:L:P:p:rR:sStvh";
 
 static struct option opts[] = {
-	{"address",    required_argument, NULL, 'a'},
-	{"cfgfdir",    required_argument, NULL, 'c'},
-	{"cfgfile",    required_argument, NULL, 'C'},
-	{"device",     required_argument, NULL, 'd'},
-	{"extension",  required_argument, NULL, 'e'},
-	{"foreground", no_argument,       NULL, 'f'},
-	{"loglevel",   required_argument, NULL, 'l'},
-	{"logfile",    required_argument, NULL, 'L'},
-	{"pidfile",    required_argument, NULL, 'P'},
-	{"port",       required_argument, NULL, 'p'},
-	{"rawdump",    no_argument,       NULL, 'r'},
-	{"rawfile",    required_argument, NULL, 'R'},
-	{"showraw",    no_argument,       NULL, 's'},	
-	{"settings",   no_argument,       NULL, 'S'},
-	{"localhost",  no_argument,       NULL, 't'},
-	{"version",    no_argument,       NULL, 'v'},
-	{"help",       no_argument,       NULL, 'h'},
-	{NULL,         no_argument,       NULL,  0 },
+	{"address",       required_argument, NULL, 'a'},
+	{"cfgfdir",       required_argument, NULL, 'c'},
+	{"cfgfile",       required_argument, NULL, 'C'},
+	{"device",        required_argument, NULL, 'd'},
+	{"extension",     required_argument, NULL, 'e'},
+	{"foreground",    no_argument,       NULL, 'f'},
+	{"loglevel",      required_argument, NULL, 'l'},
+	{"logfile",       required_argument, NULL, 'L'},
+	{"nodevicecheck", no_argument,       NULL, 'n'},
+	{"pidfile",       required_argument, NULL, 'P'},
+	{"port",          required_argument, NULL, 'p'},
+	{"rawdump",       no_argument,       NULL, 'r'},
+	{"rawfile",       required_argument, NULL, 'R'},
+	{"showraw",       no_argument,       NULL, 's'},	
+	{"settings",      no_argument,       NULL, 'S'},
+	{"localhost",     no_argument,       NULL, 't'},
+	{"version",       no_argument,       NULL, 'v'},
+	{"help",          no_argument,       NULL, 'h'},
+	{NULL,            no_argument,       NULL,  0 },
 };
 
 static struct config cfg[] = {
 
-{"address",    STR, &address, "\tbus address (" NUMSTR(EBUS_QQ) ")"},
-{"cfgdir",     STR, &cfgdir, "\tconfiguration directory of command files (" DAEMON_CFGDIR ")"},
-{"cfgfile",    STR, &cfgfile, "\tdaemon configuration file (" DAEMON_CFGFILE ")"},
-{"device",     STR, &device, "\tserial device (" SERIAL_DEVICE ")"},
-{"extension",  STR, &extension, "extension of command files (" DAEMON_EXTENSION ")"},
-{"foreground", BOL, &foreground, "run in foreground"},
-{"loglevel",   STR, &loglevel, "\tlog level (INF | " LOGTXT ")"},
-{"logfile",    STR, &logfile, "\tlog file (" DAEMON_LOGFILE ")"},
-{"pidfile",    STR, &pidfile, "\tpid file (" DAEMON_PIDFILE ")"},
-{"port",       NUM, &port, "\tport (" NUMSTR(SOCKET_PORT) ")"},
-{"rawdump",    BOL, &rawdump, "\tdump raw ebus data to file"},
-{"rawfile",    STR, &rawfile, "\traw file (" DAEMON_RAWFILE ")"},
-{"showraw",    BOL, &showraw, "\tprint raw data"},
-{"settings",   BOL, &settings, "\tprint daemon settings"},
-{"localhost",  BOL, &localhost, "allow only connection from localhost"},
-{"get_retry",  NUM, &get_retry, NULL},
-{"skip_ack",   NUM, &skip_ack, NULL},
-{"max_wait",   NUM, &max_wait, NULL},
-{"send_retry", NUM, &send_retry, NULL},
-{"print_size", NUM, &print_size, NULL},
-{"version",    STR, NULL, "\tprint version information"},
-{"help",       STR, NULL, "\tprint this message"}
+{"address",       STR, &address, "\tbus address (" NUMSTR(EBUS_QQ) ")"},
+{"cfgdir",        STR, &cfgdir, "\tconfiguration directory of command files (" DAEMON_CFGDIR ")"},
+{"cfgfile",       STR, &cfgfile, "\tdaemon configuration file (" DAEMON_CFGFILE ")"},
+{"device",        STR, &device, "\tserial device (" SERIAL_DEVICE ")"},
+{"extension",     STR, &extension, "extension of command files (" DAEMON_EXTENSION ")"},
+{"foreground",    BOL, &foreground, "run in foreground"},
+{"loglevel",      STR, &loglevel, "\tlog level (INF | " LOGTXT ")"},
+{"logfile",       STR, &logfile, "\tlog file (" DAEMON_LOGFILE ")"},
+{"nodevicecheck", BOL, &nodevicecheck, "don't check serial device"},
+{"pidfile",       STR, &pidfile, "\tpid file (" DAEMON_PIDFILE ")"},
+{"port",          NUM, &port, "\tport (" NUMSTR(SOCKET_PORT) ")"},
+{"rawdump",       BOL, &rawdump, "\tdump raw ebus data to file"},
+{"rawfile",       STR, &rawfile, "\traw file (" DAEMON_RAWFILE ")"},
+{"showraw",       BOL, &showraw, "\tprint raw data"},
+{"settings",      BOL, &settings, "\tprint daemon settings"},
+{"localhost",     BOL, &localhost, "allow only connection from localhost"},
+{"get_retry",     NUM, &get_retry, NULL},
+{"skip_ack",      NUM, &skip_ack, NULL},
+{"max_wait",      NUM, &max_wait, NULL},
+{"send_retry",    NUM, &send_retry, NULL},
+{"print_size",    NUM, &print_size, NULL},
+{"version",       STR, NULL, "\tprint version information"},
+{"help",          STR, NULL, "\tprint this message"}
 };
 
 const int cfglen = sizeof(cfg) / sizeof(cfg[0]);
@@ -189,6 +192,9 @@ cmdline(int *argc, char ***argv)
 		case 'L':
 			strncpy(logfile, optarg, strlen(optarg));
 			break;
+		case 'n':
+			nodevicecheck = YES;
+			break;
 		case 'P':
 			strncpy(pidfile, optarg, strlen(optarg));
 			break;
@@ -249,6 +255,9 @@ set_unset(void)
 
 	if (*logfile == '\0')
 		strncpy(logfile , DAEMON_LOGFILE, strlen(DAEMON_LOGFILE));
+
+	if (nodevicecheck == UNSET)
+		nodevicecheck = NO;
 
 	if (*pidfile == '\0')
 		strncpy(pidfile , DAEMON_PIDFILE, strlen(DAEMON_PIDFILE));
@@ -669,6 +678,7 @@ main(int argc, char *argv[])
 
 	
 	/* set ebus configuration */
+	eb_set_nodevicecheck(nodevicecheck);
 	eb_set_rawdump(rawdump);
 	eb_set_showraw(showraw);
 

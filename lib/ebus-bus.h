@@ -64,6 +64,15 @@ struct recv_data {
 
 
 
+
+
+/**
+ * @brief set nodevicecheck
+ * @param [in] YES | NO
+ * @return none
+ */
+void eb_set_nodevicecheck(int check);
+
 /**
  * @brief set rawdump
  * @param [in] YES | NO
