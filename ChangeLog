@@ -1,6 +1,10 @@
 ebus Daemon (ebusd) - ChangeLog
 ===============================
 
+2013-12-01:
+* New branch "newDataTypes" created.
+* More data types (char, int, long, float) added.
+
 2013-11-29:
 * New daemon option nodevicecheck added.
 

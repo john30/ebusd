@@ -206,8 +206,6 @@ eb_cmd_decode_value(int id, int elem, unsigned char *msg, char *buf)
 	char *c1, *c2, *c3, *c4;
 	char d_pos[CMD_SIZE_D_POS + 1];
 	int ret, i, j, p1, p2, p3, p4;
-	float f;
-	unsigned long l;	
 
 	memset(d_pos, '\0', sizeof(d_pos));
 	strncpy(d_pos, com[id].elem[elem].d_pos, strlen(com[id].elem[elem].d_pos));
@@ -224,61 +222,67 @@ eb_cmd_decode_value(int id, int elem, unsigned char *msg, char *buf)
 
 	log_print(L_DBG, "id: %d elem: %d p1: %d p2: %d p3: %d p4: %d", id, elem, p1, p2, p3, p4);	
 
-	if (strncasecmp(com[id].elem[elem].d_type, "asc", 3) == 0) {
+	if (strncasecmp(com[id].elem[elem].d_type, "str", 3) == 0) {
 		sprintf(buf, "%s", &msg[1]);
 
 	} else if (strncasecmp(com[id].elem[elem].d_type, "bcd", 3) == 0) {
 		if (p1 > 0) {
-			ret = eb_bcd_to_int(msg[p1], &i);
+			int ii;
+			ret = eb_bcd_to_int(msg[p1], &ii);
 
-			i *= com[id].elem[elem].d_fac;
-			sprintf(buf, "%d", i);
+			ii *= com[id].elem[elem].d_fac;
+			sprintf(buf, "%d", ii);
 		} else {
 			goto on_error;
 		}
 				
 	} else if (strncasecmp(com[id].elem[elem].d_type, "d1b", 3) == 0) {
 		if (p1 > 0) {
-			ret = eb_d1b_to_int(msg[p1], &i);
+			int ii;
+			float ff;
+			ret = eb_d1b_to_int(msg[p1], &ii);
 
-			f = i * com[id].elem[elem].d_fac;
-			sprintf(buf, "%f", f);
+			ff = ii * com[id].elem[elem].d_fac;
+			sprintf(buf, "%f", ff);
 		} else {
 			goto on_error;
 		}
 		
 	} else if (strncasecmp(com[id].elem[elem].d_type, "d1c", 3) == 0) {
 		if (p1 > 0) {
-			ret = eb_d1c_to_float(msg[p1], &f);
+			float ff;
+			ret = eb_d1c_to_float(msg[p1], &ff);
 
-			f *= com[id].elem[elem].d_fac;
-			sprintf(buf, "%f", f);			
+			ff *= com[id].elem[elem].d_fac;
+			sprintf(buf, "%f", ff);
 		} else {
 			goto on_error;
 		}
 		
 	} else if (strncasecmp(com[id].elem[elem].d_type, "d2b", 3) == 0) {
 		if (p1 > 0 && p2 > 0) {
+			float ff;
 			if (p1 > p2)
-				ret = eb_d2b_to_float(msg[p2], msg[p1], &f);
+				ret = eb_d2b_to_float(msg[p2], msg[p1], &ff);
 			else
-				ret = eb_d2b_to_float(msg[p1], msg[p2], &f);
+				ret = eb_d2b_to_float(msg[p1], msg[p2], &ff);
 				
-			f *= com[id].elem[elem].d_fac;
-			sprintf(buf, "%f", f);		
+			ff *= com[id].elem[elem].d_fac;
+			sprintf(buf, "%f", ff);
 		} else {
 			goto on_error;
 		}
 		
 	} else if (strncasecmp(com[id].elem[elem].d_type, "d2c", 3) == 0) {
 		if (p1 > 0 && p2 > 0) {
+			float ff;
 			if (p1 > p2)
-				ret = eb_d2c_to_float(msg[p2], msg[p1], &f);
+				ret = eb_d2c_to_float(msg[p2], msg[p1], &ff);
 			else	
-				ret = eb_d2c_to_float(msg[p1], msg[p2], &f);
+				ret = eb_d2c_to_float(msg[p1], msg[p2], &ff);
 			
-			f *= com[id].elem[elem].d_fac;
-			sprintf(buf, "%f", f);
+			ff *= com[id].elem[elem].d_fac;
+			sprintf(buf, "%f", ff);
 		} else {
 			goto on_error;
 		}
@@ -364,13 +368,68 @@ eb_cmd_decode_value(int id, int elem, unsigned char *msg, char *buf)
 			goto on_error;
 		}
 
+	} else if (strncasecmp(com[id].elem[elem].d_type, "uch", 3) == 0) {
+		if (p1 > 0) {
+			unsigned char uch;
+			uch = msg[p1];
+			sprintf(buf, "%u", uch);
+		} else {
+			goto on_error;
+		}
+
+	} else if (strncasecmp(com[id].elem[elem].d_type, "sch", 3) == 0) {
+		if (p1 > 0) {
+			char sch;
+			sch = msg[p1];
+			sprintf(buf, "%d", sch);
+		} else {
+			goto on_error;
+		}
+
+	} else if (strncasecmp(com[id].elem[elem].d_type, "uin", 3) == 0) {
+		if (p1 > 0 && p2 > 0) {
+			unsigned int uin;
+			uin = msg[p1] + (msg[p2] << 8);
+			sprintf(buf, "%u", uin);
+		} else {
+			goto on_error;
+		}
+
+	} else if (strncasecmp(com[id].elem[elem].d_type, "sin", 3) == 0) {
+		if (p1 > 0 && p2 > 0) {
+			int sin;
+			sin = msg[p1] + (msg[p2] << 8);
+			sprintf(buf, "%d", sin);
+		} else {
+			goto on_error;
+		}
+
 	} else if (strncasecmp(com[id].elem[elem].d_type, "ulg", 3) == 0) {
 		if (p1 > 0 && p2 > 0 && p3 > 0 && p4 > 0) {
-			l = msg[p1] + (msg[p2] << 8) + (msg[p3] << 16) + (msg[p4] << 24);
-			sprintf(buf, "%lu", l);
+			unsigned long ulg;
+			ulg = msg[p1] + (msg[p2] << 8) + (msg[p3] << 16) + (msg[p4] << 24);
+			sprintf(buf, "%lu", ulg);
 		} else {
 			goto on_error;
 		}	
+
+	} else if (strncasecmp(com[id].elem[elem].d_type, "slg", 3) == 0) {
+		if (p1 > 0 && p2 > 0 && p3 > 0 && p4 > 0) {
+			long slg;
+			slg = msg[p1] + (msg[p2] << 8) + (msg[p3] << 16) + (msg[p4] << 24);
+			sprintf(buf, "%ld", slg);
+		} else {
+			goto on_error;
+		}
+		
+	} else if (strncasecmp(com[id].elem[elem].d_type, "flt", 3) == 0) {
+		if (p1 > 0 && p2 > 0 && p3 > 0 && p4 > 0) {
+			float ff;
+			ff = msg[p1] + (msg[p2] << 8) + (msg[p3] << 16) + (msg[p4] << 24);
+			sprintf(buf, "%f", ff);
+		} else {
+			goto on_error;
+		}
 			
 	}
 
