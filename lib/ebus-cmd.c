@@ -517,7 +517,7 @@ eb_cmd_encode_value(int id, int elem, char *data, unsigned char *msg, char *buf)
 	log_print(L_DBG, "id: %d elem: %d p1: %d p2: %d p3: %d data: %s",
 						id, elem, p1, p2, p3, data);
 					
-	if (strncasecmp(com[id].elem[elem].d_type, "asc", 3) == 0) {
+	if (strncasecmp(com[id].elem[elem].d_type, "str", 3) == 0) {
 		for (i = 0; i < strlen(data); i++)
 			sprintf((char *) &msg[i * 2], "%02x", data[i]);
 
