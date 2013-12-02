@@ -1,10 +1,14 @@
 ebus Daemon (ebusd) - ChangeLog
 ===============================
 
+2013-12-02:
+* Vaillant configuration files for VPM 30/35 W added.
+* Vaillant configuration files for VR 90/3 added.
+
 2013-12-01:
 * New branch "newDataTypes" created.
 * More data types (char, int, long, float) added.
-* Vaillant configurations files for VPM 20 S added.
+* Vaillant configuration files for VPM 20 S added.
 
 2013-11-29:
 * New daemon option nodevicecheck added.
