@@ -1,0 +1,20 @@
+# type;class;cmd;comment;msg type;ZZ;PBSB;NN;D1D2D3;elements;sub;part;position;datatype;factor;unit;valid;comment;sub;part;position;datatype;factor;unit;valid;comment;sub;part;position;datatype;factor;unit;valid;comment;sub;part;position;datatype;factor;unit;valid;comment
+get;vpm3035w;Ntc1Sensor;Ntc1Sensor;MS;0A;B509;3;0D0000;2;temp;sd;1,2;d2c;1.0;°C;-;Temperatur;sensor;sd;3;uch;-;-;-;Fühler;;;;;;;;;;;;;;;;
+get;vpm3035w;Ntc2Sensor;Ntc2Sensor;MS;0A;B509;3;0D0100;2;temp;sd;1,2;d2c;1.0;°C;-;Temperatur;sensor;sd;3;uch;-;-;-;Fühler;;;;;;;;;;;;;;;;
+get;vpm3035w;Ntc3Sensor;Ntc3Sensor;MS;0A;B509;3;0D0200;2;temp;sd;1,2;d2c;1.0;°C;-;Temperatur;sensor;sd;3;uch;-;-;-;Fühler;;;;;;;;;;;;;;;;
+get;vpm3035w;Vortex;Wirbel, Bypass?;MS;0A;B509;3;0D0300;1;-;sd;1,2;uin;-;hz;-;-;;;;;;;;;;;;;;;;;;;;;;;;
+get;vpm3035w;CircoPumpPower;Zirkulationspumpe Leistung;MS;0A;B509;3;0D0400;1;-;sd;1;uch;-;%;-;-;;;;;;;;;;;;;;;;;;;;;;;;
+get;vpm3035w;PumpDutyCycle;Pumpe Einschaltdauer;MS;0A;B509;3;0D0500;1;-;sd;1;uch;-;%;-;-;;;;;;;;;;;;;;;;;;;;;;;;
+get;vpm3035w;MixerPosition;Mischer Position max. 220 Schritte;MS;0A;B509;3;0D0600;1;-;sd;1,2;uin;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
+get;vpm3035w;ElectricHeater;Elektrische Zusatzheizung;MS;0A;B509;3;0D0800;1;-;sd;1;uch;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
+get;vpm3035w;HeatDemand;Heizanforderung;MS;0A;B509;3;0D0900;1;-;sd;1,2;d2c;1.0;°C;-;-;;;;;;;;;;;;;;;;;;;;;;;;
+get;vpm3035w;OperatingMode;Betriebsart;MS;0A;B509;3;0D0A00;1;-;sd;1;uch;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
+get;vpm3035w;TappingSetpointManual;Zapfsollwert manuell;MS;0A;B509;3;0D0B00;1;-;sd;1,2;d2c;1.0;°C;-;-;;;;;;;;;;;;;;;;;;;;;;;;
+get;vpm3035w;TappingSetpointAuto;Zapfsollwert automatisch;MS;0A;B509;3;0D0C00;1;-;sd;1,2;d2c;1.0;°C;-;-;;;;;;;;;;;;;;;;;;;;;;;;
+get;vpm3035w;TappingSetpointActual;Zapfsollwert aktuell;MS;0A;B509;3;0D0E00;1;-;sd;1,2;d2c;1.0;°C;-;-;;;;;;;;;;;;;;;;;;;;;;;;
+get;vpm3035w;LegioStartDay;LegionellenTag;MS;0A;B509;3;0D1000;1;-;sd;1;uch;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
+get;vpm3035w;LegioStartTime;LegionellenUhrzeit;MS;0A;B509;3;0D1100;1;-;sd;3,2,1;hti;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
+get;vpm3035w;StartParty;Modus Party;MS;0A;B509;3;0D1200;1;-;sd;1;uch;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
+get;vpm3035w;StartHoliday;Modus Urlaub;MS;0A;B509;3;0D1300;1;-;sd;1;uch;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
+get;vpm3035w;FlowRate;Volumenstrom;MS;0A;B509;3;0D4600;1;-;sd;1,2;d2c;1.0;l/min;-;-;;;;;;;;;;;;;;;;;;;;;;;;
+get;vpm3035w;VPMType;1=VPM20/25 2=VPM30/35;MS;0A;B509;3;0D4B00;1;-;sd;1;uch;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
