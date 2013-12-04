@@ -4,6 +4,7 @@ ebus Daemon (ebusd) - ChangeLog
 2013-12-04:
 * Vaillant configuration files for VR 60/3 added.
 * Vaillant configuration files for VR 90/3 changed.
+* Vaillant configuration files for CI (Control Interface) added.
 
 2013-12-02:
 * Vaillant configuration files for VPM 30/35 W added.
