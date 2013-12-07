@@ -1,6 +1,9 @@
 ebus Daemon (ebusd) - ChangeLog
 ===============================
 
+2013-12-07:
+* Vaillant configuration files for VWx Heat Pumps added.
+
 2013-12-04:
 * Vaillant configuration files for VR 60/3 added.
 * Vaillant configuration files for VR 90/3 changed.
