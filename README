@@ -15,10 +15,9 @@ Features:
    
  * telnet - multi telnet session (listen on TCP port 8888)
    The available commands are different of each heating system and provider.
-   This commands are defined in csv files which will be parsed on daemon startup.
    
    Commands:
-   - get        send message (BC, MM or MS) to slave and decoded received answer
+   - get        send message to slave and decoded received answer
    - set        send data to the slave with the intention to adjust this value
    - cyc        return data from collected cycle messages
    - loglevel   change loglevel at runtime
