@@ -76,7 +76,7 @@ static int print_size = UNSET;
 
 
 
-static char options[] = "a:c:C:d:e:fl:L:P:p:rR:sStvh";
+static char options[] = "a:c:C:d:e:fl:L:nP:p:rR:sStvh";
 
 static struct option opts[] = {
 	{"address",       required_argument, NULL, 'a'},

@@ -1,6 +1,9 @@
 ebus Daemon (ebusd) - ChangeLog
 ===============================
 
+2014-01-05:
+* Missing daemon option -n (nodevicecheck) fixed.
+
 2013-12-07:
 * Vaillant configuration files for VWx Heat Pumps added.
 
