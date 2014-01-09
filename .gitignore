@@ -20,3 +20,12 @@
 /aclocal.m4
 /autom4te.cache/
 /config*
+/tools/*
+*.deps/
+stamp-h1
+src/Makefile
+src/Makefile.in
+lib/Makefile
+lib/Makefile.in
+src/ebusd
+Makefile
