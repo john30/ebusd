@@ -1,6 +1,6 @@
 /INSTALL
-/Makefile
-/Makefile.in
+*Makefile
+*Makefile.in
 /aclocal.m4
 /ar-lib
 /autom4te.cache/
@@ -20,3 +20,9 @@
 *.o
 *.dirstamp
 test_*
+/compile
+*.a
+/tools/check
+/tools/csv
+/tools/ebus_send
+/src/ebusd

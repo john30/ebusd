@@ -1,6 +1,9 @@
 ebus Daemon (ebusd) - ChangeLog
 ===============================
 
+2014-01-22:
+* autogen.sh modified.
+
 2014-01-05:
 * Missing daemon option -n (nodevicecheck) fixed.
 

@@ -29,13 +29,6 @@ Build:
 ======
 
 $ ./autogen.sh
-
-This script execute the following commands in this order.
-
-$ aclocal
-$ autoconf
-$ autoheader
-$ automake
 $ ./configure
 $ make
 
