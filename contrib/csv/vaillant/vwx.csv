@@ -17,7 +17,9 @@ get;vwx;CirculationPumpState;Zirkulationspumpe Status;MS;08;B509;3;0D0C00;1;-;sd
 get;vwx;Code1;Code 1;MS;08;B509;3;0D9700;1;-;sd;1,2;uin;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;vwx;Code2;Code 2;MS;08;B509;3;0D9800;1;-;sd;1,2;uin;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;vwx;CodeValid;Code 1 und 2 gültig;MS;08;B509;3;0D2400;1;-;sd;1;uch;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
-get;vwx;CommutationState;Kompressor Kommunikationsstatus;MS;08;B509;3;0DAA00;1;-;sd;1,2,3,4;ulg;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
+get;vwx;CompressorStartsHotWater;Kompressor Starts Warmwasser;MS;08;B509;3;0DA800;1;-;sd;1,2,3,4;ulg;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
+get;vwx;CompressorStartsHeating;Kompressor Starts Heizung;MS;08;B509;3;0DA900;1;-;sd;1,2,3,4;ulg;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
+get;vwx;CompressorStarts;Kompressor Starts ;MS;08;B509;3;0DAA00;1;-;sd;1,2,3,4;ulg;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;vwx;CompressorNumberStarts;Kompressor Starts pro Stunde;MS;08;B509;3;0D7400;1;-;sd;1;uch;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;vwx;CompressorState;Kompressor Status;MS;08;B509;3;0D1D00;1;-;sd;1;uch;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;vwx;CompressorTempInput;T1 Kompressor Temperatur Eintritt;MS;08;B509;3;0D0200;2;temp;sd;1,2;d2c;1.0;°C;-;Temperatur;sensor;sd;3;uch;-;-;-;Fühler;;;;;;;;;;;;;;;;
