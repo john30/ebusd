@@ -180,7 +180,7 @@ main(int argc, char *argv[])
 					break;
 				}
 
-				if (i < sizeof(in)) {
+				if (i < (int) sizeof(in)) {
 
 					ret = eb_htoi(&byte);
 					if (ret != -1) {
@@ -231,7 +231,7 @@ main(int argc, char *argv[])
 			j = 0;
 			while (argv[k][j] != '\0') {
 				byte = argv[k][j];
-				if (i < sizeof(in)) {
+				if (i < (int) sizeof(in)) {
 
 					ret = eb_htoi(&byte);
 					if (ret != -1) {

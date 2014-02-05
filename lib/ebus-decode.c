@@ -144,9 +144,9 @@ int
 eb_day_to_str(unsigned char day, char *tgt)
 {
 	int dd;
-	
-	if (dd >= 0x00 && dd <= 0x06) {
-		eb_bcd_to_int(day, &day);
+
+	if ((day & 0x0F) >= 0x00 && (day & 0x0F) <= 0x06) {
+		eb_bcd_to_int(day, &dd);
 		sprintf(tgt, "%s", days[dd]);
 	} else {
 		return -1;
@@ -160,9 +160,9 @@ eb_day_to_str(unsigned char day, char *tgt)
 int
 eb_dat_to_str(unsigned char dd, unsigned char mm, unsigned char yy, char *tgt)
 {
-	if (dd >= 0x00 && dd <= 0x1F &&
-	    mm >= 0x00 && mm <= 0x0C &&
-	    yy >= 0x00 && yy <= 0x63 )
+	if ((dd & 0x7F) >= 0x00 && (dd & 0x7F) <= 0x1F &&
+	    (mm & 0x7F) >= 0x00 && (mm & 0x7F) <= 0x0C &&
+	    (yy & 0x7F) >= 0x00 && (yy & 0x7F) <= 0x63 )
 		sprintf(tgt, "%02d.%02d.%04d", dd, mm, yy + 2000);
 	else
 		return -1;
@@ -192,9 +192,9 @@ eb_str_to_dat(int dd, int mm, int yy, unsigned char *tgt)
 int
 eb_tim_to_str(unsigned char hh, unsigned char mm, unsigned char ss, char *tgt)
 {
-	if (hh >= 0x00 && hh <= 0x17 &&
-	    mm >= 0x00 && mm <= 0x3B &&
-	    ss >= 0x00 && ss <= 0x3B )
+	if ((hh & 0x7F) >= 0x00 && (hh & 0x7F) <= 0x17 &&
+	    (mm & 0x7F) >= 0x00 && (mm & 0x7F) <= 0x3B &&
+	    (ss & 0x7F) >= 0x00 && (ss & 0x7F) <= 0x3B )
 		sprintf(tgt, "%02d:%02d:%02d", hh, mm, ss);
 	else
 		return -1;

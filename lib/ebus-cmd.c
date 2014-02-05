@@ -518,7 +518,7 @@ eb_cmd_encode_value(int id, int elem, char *data, unsigned char *msg, char *buf)
 						id, elem, p1, p2, p3, data);
 					
 	if (strncasecmp(com[id].elem[elem].d_type, "str", 3) == 0) {
-		for (i = 0; i < strlen(data); i++)
+		for (i = 0; i < (int) strlen(data); i++)
 			sprintf((char *) &msg[i * 2], "%02x", data[i]);
 
 	} else if (strncasecmp(com[id].elem[elem].d_type, "bcd", 3) == 0) {
@@ -702,7 +702,7 @@ eb_cmd_prepare(int id, char *data, unsigned char *msg, int *msglen, char *buf)
 	
 	while (str[j] != '\0') {
 		byte = str[j];
-		if (i < sizeof(in)) {
+		if (i < (int) sizeof(in)) {
 
 			ret = eb_htoi(&byte);
 			if (ret != -1) {
@@ -975,7 +975,7 @@ eb_cmd_dir_read(const char *cfgdir, const char *extension)
 	while (i < files) {
 		ext = strrchr(dir[i]->d_name, '.');
 			if (ext != NULL) {
-				if (strlen(ext) == extlen
+				if ((int) strlen(ext) == extlen
 				    && dir[i]->d_type == DT_REG
 				    && strncasecmp(ext, extprep, extlen) == 0 ) {
 					memset(file, '\0', sizeof(file));

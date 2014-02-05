@@ -53,7 +53,7 @@ int main() {
 				break;
 			}
 			
-			if (i < sizeof(data)) {
+			if (i < (int) sizeof(data)) {
 				ret = eb_htoi(&byte);
 				if (ret != -1) {
 					data[i] = ret;

@@ -9,6 +9,9 @@ AM_INIT_AUTOMAKE
 AC_PROG_CC
 AM_PROG_CC_C_O
 
+# Compiler flags
+CFLAGS="$CFLAGS -Wall -Wextra"
+
 # Checks for libraries.
 AC_PROG_RANLIB
 
