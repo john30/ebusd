@@ -146,8 +146,8 @@ eb_day_to_str(unsigned char day, char *tgt)
 	int dd;
 	
 	if (dd >= 0x00 && dd <= 0x06) {
-		eb_bcd_to_int(day, &dd);
-		sprintf(tgt, "%s", days[day]);
+		eb_bcd_to_int(day, &day);
+		sprintf(tgt, "%s", days[dd]);
 	} else {
 		return -1;
 	}
