@@ -33,7 +33,6 @@
 #define L_NET 0x80
 
 #define LOGTXT "INF, NOT, WAR, ERR, DBG, EBH, EBS, NET, ALL"
-static const char *logtxt[] = {"INF","NOT","WAR","ERR","DBG","EBH","EBS","NET"};
 
 #define err_if(exp) \
 	if (exp) { log_print(L_ERR, "%s: %d: %s: Error %s", \

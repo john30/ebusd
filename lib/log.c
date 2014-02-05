@@ -32,6 +32,7 @@
 #include "log.h"
 
 static unsigned char loglvl = L_NUL;
+static const char *logtxt[] = {"INF","NOT","WAR","ERR","DBG","EBH","EBS","NET"};
 static int logtxtlen = sizeof(logtxt) / sizeof(char*);
 
 static FILE *logfp = NULL;
