@@ -13,7 +13,7 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
 . /lib/lsb/init-functions
 
-DAEMON=/root/ebusd/src/ebusd
+DAEMON=/usr/local/bin/ebusd
 PIDFILE=/var/run/ebusd.pid
 
 test -x $DAEMON || exit 5
