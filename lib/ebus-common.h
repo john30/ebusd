@@ -55,6 +55,9 @@
 #define EBUS_MSG_MASTER_SLAVE_TXT  "MS"
 #define EBUS_MSG_MASTER_SLAVE      3
 
+#define EBUS_MSG_MASTER_MAX_DB_LEN 12
+#define EBUS_MSG_SLAVE_MAX_DB_LEN  12
+
 #define SERIAL_DEVICE              "/dev/ttyUSB0"
 #define SERIAL_BAUDRATE            B2400
 #define SERIAL_BUFSIZE             100

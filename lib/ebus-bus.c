@@ -1071,6 +1071,11 @@ eb_cyc_data_process(const unsigned char *buf, int buflen)
 		
 		/* calc crc vom master */
 		mlen = 5 + (int) msg[4];
+
+		if (((int) msg[4]) > EBUS_MSG_MASTER_MAX_DB_LEN)
+			log_print(L_WAR, "%s", "Master DB Len Error");
+			return -2;
+		}
 		
 		memset(hlp, '\0', sizeof(hlp));
 		memcpy(hlp, msg, mlen);
@@ -1097,7 +1102,7 @@ eb_cyc_data_process(const unsigned char *buf, int buflen)
 
 			if (acks == EBUS_NAK) {
 				log_print(L_WAR, "%s", "Slave ACK Error");
-				//~ return -2;
+				return -2;
 			}
 
 			/* set len */
@@ -1109,6 +1114,11 @@ eb_cyc_data_process(const unsigned char *buf, int buflen)
 
 			/* calc crc vom slave */
 			slen = 1 + (int) msg[mlen + 2];
+
+			if (((int) msg[mlen + 2]) > EBUS_MSG_SLAVE_MAX_DB_LEN)
+				log_print(L_WAR, "%s", "Slave DB Len Error");
+				return -2;
+			}
 
 			memset(hlp, '\0', sizeof(hlp));
 			memcpy(hlp, &msg[mlen + 2], slen);
@@ -1129,7 +1139,7 @@ eb_cyc_data_process(const unsigned char *buf, int buflen)
 
 			if (ackm == EBUS_NAK) {
 				log_print(L_WAR, "%s", "Master ACK Error");
-				//~ return -2;
+				return -2;
 			}
 
 			/* set len */
