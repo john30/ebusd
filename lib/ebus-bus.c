@@ -1072,7 +1072,7 @@ eb_cyc_data_process(const unsigned char *buf, int buflen)
 		/* calc crc vom master */
 		mlen = 5 + (int) msg[4];
 
-		if (((int) msg[4]) > EBUS_MSG_MASTER_MAX_DB_LEN)
+		if (((int) msg[4]) > EBUS_MSG_MASTER_MAX_DB_LEN) {
 			log_print(L_WAR, "%s", "Master DB Len Error");
 			return -2;
 		}
@@ -1115,7 +1115,7 @@ eb_cyc_data_process(const unsigned char *buf, int buflen)
 			/* calc crc vom slave */
 			slen = 1 + (int) msg[mlen + 2];
 
-			if (((int) msg[mlen + 2]) > EBUS_MSG_SLAVE_MAX_DB_LEN)
+			if (((int) msg[mlen + 2]) > EBUS_MSG_SLAVE_MAX_DB_LEN) {
 				log_print(L_WAR, "%s", "Slave DB Len Error");
 				return -2;
 			}
