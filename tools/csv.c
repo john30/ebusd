@@ -167,7 +167,13 @@ main(int argc, char *argv[])
 //~ 
 //~ 
 	//~ char cmd[] = "cyc ms test";
-	
+
+	//~ const unsigned char tmp[] = {'\x03','\xe0','\xb5','\x21','\x05','\x00','\x05','\x07','\x00','\xe7',
+				     //~ '\x64','\x80','\x42','\x40','\x10','\x11','\xd0','\x05','\x74','\x64',
+				     //~ '\xd2','\xea','\x01','\xa9','\x10','\x08','\xb5','\x09','\x03','\x29',
+				     //~ '\xb8','\x01','\xfd','\x00','\x03','\xb8','\x01','\x00','\x70','\x00'};
+//~ 
+	//~ char cmd[] = "cyc vwl OutUnitData";
 
 	//~ Master Master
 	//~ 10 03 05 07 09 bb 06 2e 02 00 80 ff 6e ff 8f 00

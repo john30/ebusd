@@ -1073,7 +1073,8 @@ eb_cyc_data_process(const unsigned char *buf, int buflen)
 		mlen = 5 + (int) msg[4];
 
 		if (((int) msg[4]) > EBUS_MSG_MASTER_MAX_DB_LEN) {
-			log_print(L_WAR, "%s", "Master DB Len Error");
+			log_print(L_WAR, "%s (%d > %d)", "Master DB Len Error",
+				((int) msg[4]), EBUS_MSG_MASTER_MAX_DB_LEN);
 			return -2;
 		}
 		
@@ -1116,7 +1117,8 @@ eb_cyc_data_process(const unsigned char *buf, int buflen)
 			slen = 1 + (int) msg[mlen + 2];
 
 			if (((int) msg[mlen + 2]) > EBUS_MSG_SLAVE_MAX_DB_LEN) {
-				log_print(L_WAR, "%s", "Slave DB Len Error");
+				log_print(L_WAR, "%s (%d > %d)", "Slave DB Len Error",
+					((int) msg[mlen + 2]), EBUS_MSG_SLAVE_MAX_DB_LEN);
 				return -2;
 			}
 
