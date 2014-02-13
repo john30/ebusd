@@ -8,16 +8,15 @@ Features:
 =========
 
  * ebus - send and receive ebus commands
-   - Send Broadcast (BC), Master-Master (MM) and Master-Slave (MS) messages
-   - Calculate CRC for sent and received data
-   - Escaped and unescaped not allowed byte sequences
-   - Saved data of specified cycle messages
+   - send Broadcast (BC), Master-Master (MM) and Master-Slave (MS) messages
+   - calculate CRC for sent and received data
+   - escape and unescape not allowed byte sequences
+   - collect data of specified cycle messages
    
- * telnet - multi telnet session (listen on TCP port 8888)
-   The available commands are different of each heating system and provider.
+ * telnet - tcp based multi session server
    
    Commands:
-   - get        send message to slave and decoded received answer
+   - get        send message to slave and decode received answer
    - set        send data to the slave with the intention to adjust this value
    - cyc        return data from collected cycle messages
    - loglevel   change loglevel at runtime
