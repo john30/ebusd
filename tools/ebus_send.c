@@ -55,7 +55,7 @@ print_msg(const char *pre, const unsigned char *buf, int buflen,
 }
 
 void
-usage()
+usage(void)
 {
 	fprintf(stdout, "\nUsage: %s [OPTION] <ZZ PB SB NN DBx>\n\n"
 	"  <ZZ PB SB NN DBx>  spaces within message be removed.\n\n"  

@@ -101,7 +101,7 @@ log_open(const char *file, int foreground)
 }
 
 void
-log_close()
+log_close(void)
 {
 	if (logfp) {
 		fflush(logfp);

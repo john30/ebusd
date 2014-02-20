@@ -42,7 +42,7 @@ static char loglevel[] = {"ALL"};
 
 
 void
-usage()
+usage(void)
 {
 	fprintf(stdout, "\nUsage: %s [OPTION] cfgdir\n\n"
 	"  -a --all      print ALL\n"

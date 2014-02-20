@@ -1,6 +1,9 @@
 ebus Daemon (ebusd) - ChangeLog
 ===============================
 
+2014-02-20:
+* Missing void declarations in various function parameter added.
+
 2014-01-22:
 * autogen.sh modified.
 

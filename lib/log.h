@@ -49,7 +49,7 @@ void log_file(FILE *fp);
 void log_level(char *lvl);
 
 int log_open(const char *logfile, int foreground);
-void log_close();
+void log_close(void);
 
 void log_print(unsigned char lvl, const char *txt, ...);
 

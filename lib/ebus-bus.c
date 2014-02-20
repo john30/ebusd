@@ -190,7 +190,7 @@ eb_raw_file_write(const unsigned char *buf, int buflen)
 
 
 int
-eb_serial_valid()
+eb_serial_valid(void)
 {
 	int serial;
 
@@ -1164,7 +1164,7 @@ eb_cyc_data_process(const unsigned char *buf, int buflen)
 }
 
 int
-eb_cyc_data_recv()
+eb_cyc_data_recv(void)
 {
 	static unsigned char msg[SERIAL_BUFSIZE];
 	static int msglen = 0;

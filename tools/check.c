@@ -26,7 +26,7 @@
 
 #include "ebus-decode.h"
 
-int main() {
+int main(void) {
 
 	int i, j, end, ret;
 

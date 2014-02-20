@@ -169,7 +169,7 @@ int eb_raw_file_write(const unsigned char *buf,  int buflen);
  * @brief Check if serial FD is vaild.
  * @return 0 ok | -1 error
  */
-int eb_serial_valid();
+int eb_serial_valid(void);
 
 /**
  * @brief Open serial device in raw mode. 1 Byte is then minimum input length.
@@ -327,7 +327,7 @@ int eb_cyc_data_process(const unsigned char *buf, int buflen);
  * @brief handle reading cycle ebus data
  * @return 0-x length of collected msg | -1 error
  */
-int eb_cyc_data_recv();
+int eb_cyc_data_recv(void);
 
 
 
