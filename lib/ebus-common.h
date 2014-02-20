@@ -58,9 +58,13 @@
 #define EBUS_MSG_MASTER_MAX_DB_LEN 12
 #define EBUS_MSG_SLAVE_MAX_DB_LEN  12
 
+#define BUS_DEVICE_SERIAL          0
+#define BUS_DEVICE_SOCKET          1
+#define BUS_DEVICE_BUFSIZE         100
+
 #define SERIAL_DEVICE              "/dev/ttyUSB0"
 #define SERIAL_BAUDRATE            B2400
-#define SERIAL_BUFSIZE             100
+
 
 #define CMD_DATA_SIZE              50 /* 5+16+3+16+2 = 42 || 256 */
 

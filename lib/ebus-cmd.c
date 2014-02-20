@@ -685,7 +685,7 @@ eb_cmd_prepare(int id, char *data, unsigned char *msg, int *msglen, char *buf)
 	char str[CMD_SIZE_S_ZZ + CMD_SIZE_S_CMD + 2 + CMD_SIZE_S_MSG + 1];
 	char byte;
 	int ret, i, j, k;
-	int in[SERIAL_BUFSIZE];	
+	int in[BUS_DEVICE_BUFSIZE];	
 
 	/* encode msg */
 	memset(tmp, '\0', sizeof(tmp));

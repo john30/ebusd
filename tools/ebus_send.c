@@ -151,9 +151,9 @@ int
 main(int argc, char *argv[])
 {
 	int i, j, k, end, ret, val, max_argc, buslen;
-	int in[SERIAL_BUFSIZE + 1];
+	int in[BUS_DEVICE_BUFSIZE + 1];
 	char byte;
-	unsigned char msg[SERIAL_BUFSIZE + 1], bus[TMP_BUFSIZE];
+	unsigned char msg[BUS_DEVICE_BUFSIZE + 1], bus[TMP_BUFSIZE];
 
 	progname = (const char *)strrchr(argv[0], '/');
 	progname = progname ? (progname + 1) : argv[0];
@@ -202,7 +202,7 @@ main(int argc, char *argv[])
 					msg[k] = (unsigned char)
 							(in[j]*16 + in[j+1]);
 		
-				ret = eb_serial_open(device, &serialfd);
+				ret = eb_bus_open(device, &serialfd);
 				if (ret < 0)
 					fprintf(stdout, "Error open %s.\n", device);
 					
@@ -215,7 +215,7 @@ main(int argc, char *argv[])
 						
 				}
 				
-				ret = eb_serial_close();
+				ret = eb_bus_close();
 				if (ret < 0)
 					fprintf(stdout, "Error close %s.\n", device);
 
@@ -250,7 +250,7 @@ main(int argc, char *argv[])
 
 		if (k > 0) {
 
-			ret = eb_serial_open(device, &serialfd);
+			ret = eb_bus_open(device, &serialfd);
 			if (ret < 0)
 				fprintf(stdout, "Error open %s.\n", device);
 				
@@ -267,7 +267,7 @@ main(int argc, char *argv[])
 					
 			}
 			
-			ret = eb_serial_close();
+			ret = eb_bus_close();
 			if (ret < 0)
 				fprintf(stdout, "Error close %s.\n", device);
 		}

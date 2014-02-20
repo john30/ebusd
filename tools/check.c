@@ -30,7 +30,7 @@ int main(void) {
 
 	int i, j, end, ret;
 
-	int bcd, d1b, data[SERIAL_BUFSIZE + 1];
+	int bcd, d1b, data[BUS_DEVICE_BUFSIZE + 1];
 	float d1c, d2b, d2c;
 
 	char byte;

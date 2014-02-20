@@ -40,6 +40,10 @@
 #include <errno.h>
 #include <dirent.h>
 #include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 
 #include "log.h"
 #include "ebus-decode.h"
@@ -68,12 +72,11 @@ static unsigned char ack = EBUS_ACK;
 static unsigned char nak = EBUS_NAK;
 static unsigned char syn = EBUS_SYN;
 
-static int sfd;
+static int bfd;
+static int devicetype = BUS_DEVICE_SERIAL;
 static struct termios oldtio;
 
 static FILE *rawfp = NULL;
-
-
 
 
 
@@ -189,131 +192,6 @@ eb_raw_file_write(const unsigned char *buf, int buflen)
 
 
 
-int
-eb_serial_valid(void)
-{
-	int serial;
-
-	if (ioctl(sfd, TIOCMGET, &serial) < 0 && nodevicecheck == NO) 
-		return -1;
-	else
-		return 0;	
-}
-
-int
-eb_serial_open(const char *dev, int *fd)
-{
-	int ret;
-	struct termios newtio;
-
-	sfd = open(dev, O_RDWR | O_NOCTTY | O_NDELAY);
-	//~ err_ret_if(sfd < 0, -1);
-	if (sfd < 0)
-		return -1;
-
-	ret = fcntl(sfd, F_SETFL, 0);
-	err_ret_if(ret < 0, -1);
-
-	/* check if the usb device is working */
-	ret = eb_serial_valid();
-	err_ret_if(ret < 0, -2);
-
-	/* save current settings of serial port */
-	ret = tcgetattr(sfd, &oldtio);
-	err_ret_if(ret < 0, -1);
-
-	memset(&newtio, '\0', sizeof(newtio));
-
-	newtio.c_cflag = SERIAL_BAUDRATE | CS8 | CLOCAL | CREAD;
-	newtio.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
-	newtio.c_iflag = IGNPAR;
-	newtio.c_oflag &= ~OPOST;
-
-	newtio.c_cc[VMIN]  = 1;
-	newtio.c_cc[VTIME] = 0;
-
-	ret = tcflush(sfd, TCIFLUSH);
-	err_ret_if(ret < 0, -1);
-
-	/* activate new settings of serial port */
-	ret = tcsetattr(sfd, TCSANOW, &newtio);
-	err_ret_if(ret < 0, -1);
-
-	*fd = sfd;
-
-	return 0;
-}
-
-int
-eb_serial_close(void)
-{
-	int ret;
-
-	/* activate old settings of serial port */
-	ret = tcsetattr(sfd, TCSANOW, &oldtio);
-	/* Ignore this error otherwise USB port may stay unclosed */
-	/* err_ret_if(ret < 0, -1); */
-
-	/* Close file descriptor from serial device */
-	ret = close(sfd);
-	err_ret_if(ret < 0, -1);
-
-	return 0;
-}
-
-int
-eb_serial_send(const unsigned char *buf, int buflen)
-{
-	int ret, val;
-	
-	/* write msg to ebus device */
-	val = write(sfd, buf, buflen);
-	err_ret_if(val < 0, -1);
-	
-	ret = tcflush(sfd, TCIOFLUSH);
-	err_ret_if(ret < 0, -1);
-
-	return val;
-}
-
-int
-eb_serial_recv(unsigned char *buf, int *buflen)
-{
-	int ret;
-
-	/* flush deactivated - brings us an error */
-	/* tcflush(sfd, TCIOFLUSH); */
-
-	/* read msg from ebus device */
-	*buflen = read(sfd, buf, *buflen);
-	err_if(*buflen < 0);
-
-	if (*buflen < 0) {
-		log_print(L_WAR, "error read serial device");
-		return -1;
-	}
-
-	if (*buflen > SERIAL_BUFSIZE) {
-		log_print(L_WAR, "read data len > %d", SERIAL_BUFSIZE);
-		return -3;
-	}
-
-	/* print bus */
-	if (showraw == YES)
-		eb_print_hex(buf, *buflen);
-
-	/* dump raw data*/
-	if (rawdump == YES) {
-		ret = eb_raw_file_write(buf, *buflen);
-		if (ret < 0)
-			log_print(L_WAR, "can't write rawdata");
-	}
-
-	return 0;
-}
-
-
-
 void
 eb_print_result(void)
 {
@@ -364,7 +242,7 @@ eb_recv_data_get(unsigned char *buf, int *buflen)
 void
 eb_recv_data_prepare(const unsigned char *buf, int buflen)
 {
-	unsigned char tmp[SERIAL_BUFSIZE];
+	unsigned char tmp[BUS_DEVICE_BUFSIZE];
 	int tmplen, crc;
 
 	memset(tmp, '\0', sizeof(tmp));
@@ -407,7 +285,7 @@ eb_recv_data_prepare(const unsigned char *buf, int buflen)
 int
 eb_recv_data(unsigned char *buf, int *buflen)
 {
-	unsigned char tmp[SERIAL_BUFSIZE], msg[SERIAL_BUFSIZE];
+	unsigned char tmp[BUS_DEVICE_BUFSIZE], msg[BUS_DEVICE_BUFSIZE];
 	int tmplen, msglen, ret, i, esc, found;
 
 	memset(msg, '\0', sizeof(msg));
@@ -421,7 +299,7 @@ eb_recv_data(unsigned char *buf, int *buflen)
 		memset(tmp, '\0', sizeof(tmp));
 		tmplen = sizeof(tmp);
 
-		ret = eb_serial_recv(tmp, &tmplen);
+		ret = eb_bus_recv(tmp, &tmplen);
 		if (ret < 0)
 			return -1;
 		
@@ -506,7 +384,7 @@ eb_recv_data(unsigned char *buf, int *buflen)
 int
 eb_bus_wait_syn(int *skip)
 {
-	unsigned char buf[SERIAL_BUFSIZE];
+	unsigned char buf[BUS_DEVICE_BUFSIZE];
 	int buflen, ret, i, found;
 	
 	found = 99;
@@ -516,7 +394,7 @@ eb_bus_wait_syn(int *skip)
 		memset(buf, '\0', sizeof(buf));
 		buflen = sizeof(buf);
 
-		ret = eb_serial_recv(buf, &buflen);
+		ret = eb_bus_recv(buf, &buflen);
 		if (ret < 0)
 			return -1;		
 
@@ -543,7 +421,7 @@ eb_bus_wait_syn(int *skip)
 int
 eb_bus_wait(void)
 {
-	unsigned char buf[SERIAL_BUFSIZE];
+	unsigned char buf[BUS_DEVICE_BUFSIZE];
 	int buflen, ret, skip, retry;
 	struct timeval tact, tlast, tdiff;
 
@@ -559,7 +437,7 @@ eb_bus_wait(void)
 		gettimeofday(&tlast, NULL);
 
 		/* send QQ */
-		ret = eb_serial_send(&qq, 1);
+		ret = eb_bus_send(&qq, 1);
 		if (ret < 0)
 			return -1;
 
@@ -576,7 +454,7 @@ eb_bus_wait(void)
 		/* receive 1 byte - must be QQ */
 		memset(buf, '\0', sizeof(buf));
 		buflen = sizeof(buf);
-		ret = eb_serial_recv(buf, &buflen);
+		ret = eb_bus_recv(buf, &buflen);
 		if (ret < 0)
 			return -1;		
 
@@ -600,7 +478,7 @@ eb_bus_free(void)
 	ret = 0;
 	skip = 0;
 
-	ret = eb_serial_send(&syn, 1);
+	ret = eb_bus_send(&syn, 1);
 	if (ret < 0)
 		return -1;
 		
@@ -611,12 +489,187 @@ eb_bus_free(void)
 	return 0;
 }
 
+int
+eb_bus_valid(void)
+{
+	int busdevice;
+
+	if (ioctl(bfd, TIOCMGET, &busdevice) < 0 && nodevicecheck == NO) 
+		return -1;
+	else
+		return 0;	
+}
+
+void
+eb_bus_devicetype(const char *dev)
+{
+	if (strchr(dev, '/') == NULL && strchr(dev, ':') != NULL) {
+		
+		devicetype = BUS_DEVICE_SOCKET;
+	}
+}
+
+int
+eb_bus_open(const char *dev, int *fd)
+{
+	int ret;
+
+	eb_bus_devicetype(dev);
+
+	if (devicetype == BUS_DEVICE_SERIAL) {
+		struct termios newtio;
+
+		bfd = open(dev, O_RDWR | O_NOCTTY | O_NDELAY);
+		//~ err_ret_if(bfd < 0, -1);
+		if (bfd < 0)
+			return -1;
+
+		ret = fcntl(bfd, F_SETFL, 0);
+		err_ret_if(ret < 0, -1);
+
+		/* check if the serial device is working */
+		ret = eb_bus_valid();
+		err_ret_if(ret < 0, -2);
+
+		/* save current settings of serial device */
+		ret = tcgetattr(bfd, &oldtio);
+		err_ret_if(ret < 0, -1);
+
+		memset(&newtio, '\0', sizeof(newtio));
+
+		newtio.c_cflag = SERIAL_BAUDRATE | CS8 | CLOCAL | CREAD;
+		newtio.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+		newtio.c_iflag = IGNPAR;
+		newtio.c_oflag &= ~OPOST;
+
+		newtio.c_cc[VMIN]  = 1;
+		newtio.c_cc[VTIME] = 0;
+
+		ret = tcflush(bfd, TCIFLUSH);
+		err_ret_if(ret < 0, -1);
+
+		/* activate new settings of serial device */
+		ret = tcsetattr(bfd, TCSANOW, &newtio);
+		err_ret_if(ret < 0, -1);
+
+		*fd = bfd;
+	}
+
+	if (devicetype == BUS_DEVICE_SOCKET) {
+		struct sockaddr_in sock;
+		
+		memset((char *) &sock, 0, sizeof(sock));
+		
+		char *host = strtok((char *) dev, ":");
+		char *port = strtok(NULL, ":");
+		
+		if (inet_addr(host) == INADDR_NONE) {
+			struct hostent *he;
+			
+			he = gethostbyname(host);
+			err_ret_if(he == NULL, -1);
+			
+			memcpy(&sock.sin_addr, he->h_addr_list[0], he->h_length);
+		} else {
+			ret = inet_aton(host, &sock.sin_addr);
+			err_ret_if(ret == 0, -1);
+		}
+		
+		sock.sin_family = AF_INET;
+		sock.sin_port = htons(atoi(port));
+		
+		bfd = socket(AF_INET, SOCK_STREAM, 0);
+		err_ret_if(bfd < 0, -1);
+
+		ret = connect(bfd, (struct sockaddr *)&sock, sizeof(sock));
+		err_ret_if(ret < 0, -1);
+	
+		*fd = bfd;
+	}
+
+	return 0;
+}
+
+int
+eb_bus_close(void)
+{
+	int ret;
+	
+	if (devicetype == BUS_DEVICE_SERIAL) {
+		/* activate old settings of serial device */
+		ret = tcsetattr(bfd, TCSANOW, &oldtio);
+		/* Ignore this error otherwise USB port may stay unclosed */
+		/* err_ret_if(ret < 0, -1); */
+	}
+
+	/* Close file descriptor from bus device */
+	ret = close(bfd);
+	err_ret_if(ret < 0, -1);
+
+	return 0;
+}
+
+int
+eb_bus_send(const unsigned char *buf, int buflen)
+{
+	int ret, val;
+	
+	/* write msg to bus device */
+	val = write(bfd, buf, buflen);
+	err_ret_if(val < 0, -1);
+
+	if (devicetype == BUS_DEVICE_SERIAL) {
+		ret = tcflush(bfd, TCIOFLUSH);
+		err_ret_if(ret < 0, -1);
+	}
+
+	return val;
+}
+
+int
+eb_bus_recv(unsigned char *buf, int *buflen)
+{
+	int ret;
+
+	/* if (devicetype == BUS_DEVICE_SERIAL) { */
+		/* flush deactivated - brings us an error */
+		/* tcflush(bfd, TCIOFLUSH); */
+	/* } */
+
+	/* read msg from bus device */
+	*buflen = read(bfd, buf, *buflen);
+	err_if(*buflen < 0);
+
+	if (*buflen < 0) {
+		log_print(L_WAR, "error read bus device");
+		return -1;
+	}
+
+	if (*buflen > BUS_DEVICE_BUFSIZE) {
+		log_print(L_WAR, "read data len > %d", BUS_DEVICE_BUFSIZE);
+		return -3;
+	}
+
+	/* print bus */
+	if (showraw == YES)
+		eb_print_hex(buf, *buflen);
+
+	/* dump raw data*/
+	if (rawdump == YES) {
+		ret = eb_raw_file_write(buf, *buflen);
+		if (ret < 0)
+			log_print(L_WAR, "can't write rawdata");
+	}
+
+	return 0;
+}
+
 
 
 int
 eb_send_data_get_ack(unsigned char *buf, int *buflen)
 {
-	unsigned char tmp[SERIAL_BUFSIZE];
+	unsigned char tmp[BUS_DEVICE_BUFSIZE];
 	int tmplen, ret, i, j, found;
 	
 	j = 0;
@@ -627,7 +680,7 @@ eb_send_data_get_ack(unsigned char *buf, int *buflen)
 		memset(tmp, '\0', sizeof(tmp));
 		tmplen = sizeof(tmp);
 
-		ret = eb_serial_recv(tmp, &tmplen);
+		ret = eb_bus_recv(tmp, &tmplen);
 		if (ret < 0)
 			return -1;	
 		
@@ -679,7 +732,7 @@ eb_send_data_get_ack(unsigned char *buf, int *buflen)
 void
 eb_send_data_prepare(const unsigned char *buf, int buflen)
 {
-	unsigned char crc[2], tmp[SERIAL_BUFSIZE];
+	unsigned char crc[2], tmp[BUS_DEVICE_BUFSIZE];
 	int tmplen, crclen;
 
 	/* reset struct */
@@ -725,7 +778,7 @@ eb_send_data_prepare(const unsigned char *buf, int buflen)
 int
 eb_send_data(const unsigned char *buf, int buflen, int type, unsigned char *bus, int *buslen)
 {
-	unsigned char tmp[SERIAL_BUFSIZE];
+	unsigned char tmp[BUS_DEVICE_BUFSIZE];
 	int tmplen, ret, val;
 	
 	ret = 0;
@@ -741,7 +794,7 @@ eb_send_data(const unsigned char *buf, int buflen, int type, unsigned char *bus,
 	*buslen = send_data.len_esc;
 	
 	/* send message to slave */
-	ret = eb_serial_send(&send_data.msg_esc[1], send_data.len_esc - 1);
+	ret = eb_bus_send(&send_data.msg_esc[1], send_data.len_esc - 1);
 	if (ret < 0)
 		return -1;
 
@@ -780,7 +833,7 @@ eb_send_data(const unsigned char *buf, int buflen, int type, unsigned char *bus,
 		*buslen += send_data.len_esc;
 			
 		/* send message to slave */
-		ret = eb_serial_send(&send_data.msg_esc[0], send_data.len_esc);
+		ret = eb_bus_send(&send_data.msg_esc[0], send_data.len_esc);
 		if (ret < 0)
 			return -1;
 
@@ -837,7 +890,7 @@ eb_send_data(const unsigned char *buf, int buflen, int type, unsigned char *bus,
 		*buslen += 1;
 		
 		/* send message to slave */
-		ret = eb_serial_send(&nak, 1);
+		ret = eb_bus_send(&nak, 1);
 		if (ret < 0)
 			return -1;			
 
@@ -874,7 +927,7 @@ eb_send_data(const unsigned char *buf, int buflen, int type, unsigned char *bus,
 		memcpy(&bus[*buslen], &nak, 1);
 		*buslen += 1;
 		
-		ret = eb_serial_send(&nak, 1);		
+		ret = eb_bus_send(&nak, 1);		
 		if (ret < 0)
 			return -1;
 		
@@ -884,7 +937,7 @@ eb_send_data(const unsigned char *buf, int buflen, int type, unsigned char *bus,
 		memcpy(&bus[*buslen], &ack, 1);
 		*buslen += 1;
 		
-		ret = eb_serial_send(&ack, 1);
+		ret = eb_bus_send(&ack, 1);
 		if (ret < 0)
 			return -1;
 			
@@ -904,7 +957,7 @@ eb_send_data(const unsigned char *buf, int buflen, int type, unsigned char *bus,
 void
 eb_execute(int id, char *data, char *buf, int *buflen)
 {
-	unsigned char msg[SERIAL_BUFSIZE], hlp[CMD_DATA_SIZE], bus[TMP_BUFSIZE];
+	unsigned char msg[BUS_DEVICE_BUFSIZE], hlp[CMD_DATA_SIZE], bus[TMP_BUFSIZE];
 	char tmp[TMP_BUFSIZE];
 	int ret, msglen, buslen, msgtype, retry, cycdata, pos, len;
 
@@ -1166,10 +1219,10 @@ eb_cyc_data_process(const unsigned char *buf, int buflen)
 int
 eb_cyc_data_recv(void)
 {
-	static unsigned char msg[SERIAL_BUFSIZE];
+	static unsigned char msg[BUS_DEVICE_BUFSIZE];
 	static int msglen = 0;
 	
-	unsigned char buf[SERIAL_BUFSIZE];
+	unsigned char buf[BUS_DEVICE_BUFSIZE];
 	int ret, i, buflen;
 
 	char tmp[TMP_BUFSIZE];
@@ -1182,7 +1235,7 @@ eb_cyc_data_recv(void)
 		memset(msg, '\0', sizeof(msg));
 
 	/* get new data */
-	ret = eb_serial_recv(buf, &buflen);
+	ret = eb_bus_recv(buf, &buflen);
 	if (ret < 0)
 		return -1;
 

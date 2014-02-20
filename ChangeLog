@@ -3,6 +3,8 @@ ebus Daemon (ebusd) - ChangeLog
 
 2014-02-20:
 * Missing void declarations in various function parameter added.
+* New branch "socket" created.
+* Improved ebus device handling to use tcp based device too.
 
 2014-01-22:
 * autogen.sh modified.

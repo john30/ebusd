@@ -44,9 +44,9 @@
  */
 struct send_data {
 	unsigned char crc; /**< crc of escaped message */
-	unsigned char msg[SERIAL_BUFSIZE + 1]; /**< original message */
+	unsigned char msg[BUS_DEVICE_BUFSIZE + 1]; /**< original message */
 	int len; /**< length of original message */
-	unsigned char msg_esc[SERIAL_BUFSIZE + 1]; /**< esacaped message */
+	unsigned char msg_esc[BUS_DEVICE_BUFSIZE + 1]; /**< esacaped message */
 	int len_esc; /**< length of  esacaped message */
 };
 
@@ -56,9 +56,9 @@ struct send_data {
 struct recv_data {
 	unsigned char crc_recv; /**< received crc */
 	unsigned char crc_calc;	/**< calculated crc */
-	unsigned char msg[SERIAL_BUFSIZE + 1]; /**< unescaped message */
+	unsigned char msg[BUS_DEVICE_BUFSIZE + 1]; /**< unescaped message */
 	int len; /**< length of unescaped message */
-	unsigned char msg_esc[SERIAL_BUFSIZE + 1]; /**< received message */
+	unsigned char msg_esc[BUS_DEVICE_BUFSIZE + 1]; /**< received message */
 	int len_esc; /**< length of received message */
 };
 
@@ -166,44 +166,6 @@ int eb_raw_file_write(const unsigned char *buf,  int buflen);
 
 
 /**
- * @brief Check if serial FD is vaild.
- * @return 0 ok | -1 error
- */
-int eb_serial_valid(void);
-
-/**
- * @brief Open serial device in raw mode. 1 Byte is then minimum input length.
- * @param [in] *dev serial device
- * @param [out] *fd file descriptor from opened serial device
- * @return 0 ok | -1 error
- */
-int eb_serial_open(const char *dev, int *fd);
-
-/**
- * @brief close serial device and set settings to default.
- * @return 0 ok | -1 error | -2 bad file descriptor
- */
-int eb_serial_close(void);
-
-/**
- * @brief send bytes to serial device
- * @param [in] *buf pointer to a byte array
- * @param [in] buflen length of byte array
- * @return 0 ok | -1 error | -2 bad file descriptor
- */
-int eb_serial_send(const unsigned char *buf, int buflen);
-
-/**
- * @brief receive bytes from serial device
- * @param [out] *buf pointer to a byte array received bytes
- * @param [out] *buflen length of received bytes
- * @return 0 ok | -1 error | -2 bad file descriptor | -3 received data > BUFFER
- */
-int eb_serial_recv(unsigned char *buf, int *buflen);
-
-
-
-/**
  * @brief print received results in a specific format
  * @return none
  */
@@ -266,6 +228,49 @@ int eb_bus_wait(void);
  * @return 0 ok | -1 error
  */  
 int eb_bus_free(void);
+
+/**
+ * @brief check device type
+ * @param [in] *dev bus device
+ * @return none
+ */
+void eb_bus_devicetype(const char *dev);
+
+/**
+ * @brief Check if bus FD is vaild.
+ * @return 0 ok | -1 error
+ */
+int eb_bus_valid(void);
+
+/**
+ * @brief Open bus device in raw mode. 1 Byte is then minimum input length.
+ * @param [in] *dev bus device
+ * @param [out] *fd file descriptor from opened bus device
+ * @return 0 ok | -1 error
+ */
+int eb_bus_open(const char *dev, int *fd);
+
+/**
+ * @brief close bus device (and reset settings)
+ * @return 0 ok | -1 error | -2 bad file descriptor
+ */
+int eb_bus_close(void);
+
+/**
+ * @brief send bytes to bus device
+ * @param [in] *buf pointer to a byte array
+ * @param [in] buflen length of byte array
+ * @return 0 ok | -1 error | -2 bad file descriptor
+ */
+int eb_bus_send(const unsigned char *buf, int buflen);
+
+/**
+ * @brief receive bytes from bus device
+ * @param [out] *buf pointer to a byte array received bytes
+ * @param [out] *buflen length of received bytes
+ * @return 0 ok | -1 error | -2 bad file descriptor | -3 received data > BUFFER
+ */
+int eb_bus_recv(unsigned char *buf, int *buflen);
 
 
 

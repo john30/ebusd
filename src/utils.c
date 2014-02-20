@@ -316,7 +316,7 @@ sock_open(int *fd, int port, int localhost)
 	int ret, opt;
 	struct sockaddr_in sock;
 
-	*fd = socket(PF_INET, SOCK_STREAM, 0);
+	*fd = socket(AF_INET, SOCK_STREAM, 0);
 	err_ret_if(*fd < 0, -1);
 
 	/* todo: verify if this realy work */

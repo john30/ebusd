@@ -48,7 +48,7 @@ static int pidfile_locked = NO;
 static int msg_queue_on = NO;
 
 static int pidfd = UNSET; /* pidfile file descriptor */
-static int serialfd = UNSET; /* serial file descriptor */
+static int busfd = UNSET; /* bus file descriptor */
 static int socketfd = UNSET; /* socket file descriptor */
 
 
@@ -105,12 +105,12 @@ static struct config cfg[] = {
 {"address",       STR, &address, "\tbus address (" NUMSTR(EBUS_QQ) ")"},
 {"cfgdir",        STR, &cfgdir, "\tconfiguration directory of command files (" DAEMON_CFGDIR ")"},
 {"cfgfile",       STR, &cfgfile, "\tdaemon configuration file (" DAEMON_CFGFILE ")"},
-{"device",        STR, &device, "\tserial device (" SERIAL_DEVICE ")"},
+{"device",        STR, &device, "\tbus device (" SERIAL_DEVICE ")"},
 {"extension",     STR, &extension, "extension of command files (" DAEMON_EXTENSION ")"},
 {"foreground",    BOL, &foreground, "run in foreground"},
 {"loglevel",      STR, &loglevel, "\tlog level (INF | " LOGTXT ")"},
 {"logfile",       STR, &logfile, "\tlog file (" DAEMON_LOGFILE ")"},
-{"nodevicecheck", BOL, &nodevicecheck, "don't check serial device"},
+{"nodevicecheck", BOL, &nodevicecheck, "don't check bus device"},
 {"pidfile",       STR, &pidfile, "\tpid file (" DAEMON_PIDFILE ")"},
 {"port",          NUM, &port, "\tport (" NUMSTR(SOCKET_PORT) ")"},
 {"rawdump",       BOL, &rawdump, "\tdump raw ebus data to file"},
@@ -408,9 +408,9 @@ cleanup(int state)
 			log_print(L_INF, "port %d closed", port);
 	}
 
-	/* close serial device */
-	if (serialfd > 0) {
-		if (eb_serial_close() == -1)
+	/* close bus device */
+	if (busfd > 0) {
+		if (eb_bus_close() == -1)
 			log_print(L_ERR, "can't close device: %s", device);
 		else
 			log_print(L_INF, "%s closed", device);
@@ -467,14 +467,14 @@ main_loop(void)
 	timeout_reached = NO;
 
 	FD_ZERO(&listenfds);
-	FD_SET(serialfd, &listenfds);
+	FD_SET(busfd, &listenfds);
 	FD_SET(socketfd, &listenfds);
 
 	maxfd = socketfd;
 
-	/* serialfd should be always lower then socketfd */
-	if (serialfd > socketfd) {
-		log_print(L_ERR, "serialfd %d > %d socketfd", serialfd, socketfd);
+	/* busfd should be always lower then socketfd */
+	if (busfd > socketfd) {
+		log_print(L_ERR, "busfd %d > %d socketfd", busfd, socketfd);
 		cleanup(EXIT_FAILURE);
 	}
 
@@ -490,12 +490,12 @@ main_loop(void)
 		/* set readfds to inital listenfds */
 		readfds = listenfds;
 
-		/* check if the usb device is working */
-		if (eb_serial_valid() < 0 || timeout_reached == YES) {
+		/* check if the bus device is working */
+		if (eb_bus_valid() < 0 || timeout_reached == YES) {
 			timeout_reached = NO;
 				
-			if (serialfd > 0 && sfd_closed == NO) {
-				log_print(L_ERR, "serial device is invalid");
+			if (busfd > 0 && sfd_closed == NO) {
+				log_print(L_ERR, "bus device is invalid");
 				sfd_closed = YES;
 
 				/* close listing tcp socket */
@@ -506,8 +506,8 @@ main_loop(void)
 						log_print(L_INF, "port %d closed", port);
 				}
 				
-				/* close serial device */
-				if (eb_serial_close() == -1)
+				/* close bus device */
+				if (eb_bus_close() == -1)
 					log_print(L_ERR, "can't close device: %s", device);
 				else
 					log_print(L_INF, "%s closed", device);
@@ -517,8 +517,8 @@ main_loop(void)
 			/* need sleep to prevent high cpu consumption */
 			sleep(1);
 
-			/* open serial device */
-			if (eb_serial_open(device, &serialfd) == 0) {
+			/* open bus device */
+			if (eb_bus_open(device, &busfd) == 0) {
 				log_print(L_INF, "%s opened", device);
 				sfd_closed = NO;
 			}
@@ -533,7 +533,7 @@ main_loop(void)
 		ret = select(maxfd + 1, &readfds, NULL, NULL, &timeout);
 
 		/* timeout after 10 secs means that ebus is probably
-		   disconnected or USB device is dead */
+		   disconnected or BUS device is dead */
 		if (ret == 0) {
 			log_print(L_WAR, "select timeout (%d) reached", timeout.tv_sec);
 			timeout_reached = YES;
@@ -550,8 +550,8 @@ main_loop(void)
 			cleanup(EXIT_FAILURE);
 		}
 
-		/* new data from serial port? */
-		if (FD_ISSET(serialfd, &readfds)) {
+		/* new data from bus device? */
+		if (FD_ISSET(busfd, &readfds)) {
 			
 			/* get cycle message from bus */
 			ret = eb_cyc_data_recv();
@@ -717,8 +717,8 @@ main(int argc, char *argv[])
 
 	}
 
-	/* open serial device */
-	if (eb_serial_open(device, &serialfd) == -1) {
+	/* open bus device */
+	if (eb_bus_open(device, &busfd) == -1) {
 		log_print(L_ALL, "can't open device: %s", device);
 		cleanup(EXIT_FAILURE);
 	} else {
