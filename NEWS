@@ -1,6 +1,9 @@
 ebus Daemon (ebusd) - NEWS
 ==========================
 
+2014-02-21:
+* Improved ebus device handling to use tcp based device too.
+
 2013-11-19:
 * Data type of struct commands.s_type changed from integer to char[2].
 

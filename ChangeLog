@@ -1,6 +1,10 @@
 ebus Daemon (ebusd) - ChangeLog
 ===============================
 
+2014-02-21:
+* fix crash: Create a local copy of the <host:port> string. (thx Hannes Gredler)
+* Some cosmetic changes.
+
 2014-02-20:
 * Missing void declarations in various function parameter added.
 * New branch "socket" created.

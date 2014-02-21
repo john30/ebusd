@@ -105,7 +105,7 @@ static struct config cfg[] = {
 {"address",       STR, &address, "\tbus address (" NUMSTR(EBUS_QQ) ")"},
 {"cfgdir",        STR, &cfgdir, "\tconfiguration directory of command files (" DAEMON_CFGDIR ")"},
 {"cfgfile",       STR, &cfgfile, "\tdaemon configuration file (" DAEMON_CFGFILE ")"},
-{"device",        STR, &device, "\tbus device (" SERIAL_DEVICE ")"},
+{"device",        STR, &device, "\tbus device (" SERIAL_DEVICE " or host:port)"},
 {"extension",     STR, &extension, "extension of command files (" DAEMON_EXTENSION ")"},
 {"foreground",    BOL, &foreground, "run in foreground"},
 {"loglevel",      STR, &loglevel, "\tlog level (INF | " LOGTXT ")"},
@@ -413,7 +413,7 @@ cleanup(int state)
 		if (eb_bus_close() == -1)
 			log_print(L_ERR, "can't close device: %s", device);
 		else
-			log_print(L_INF, "%s closed", device);
+			log_print(L_INF, "device %s closed", device);
 	}
 
 	/* close rawfile */
@@ -510,7 +510,7 @@ main_loop(void)
 				if (eb_bus_close() == -1)
 					log_print(L_ERR, "can't close device: %s", device);
 				else
-					log_print(L_INF, "%s closed", device);
+					log_print(L_INF, "device %s closed", device);
 
 			}
 
@@ -519,7 +519,7 @@ main_loop(void)
 
 			/* open bus device */
 			if (eb_bus_open(device, &busfd) == 0) {
-				log_print(L_INF, "%s opened", device);
+				log_print(L_INF, "device %s opened", device);
 				sfd_closed = NO;
 			}
 
@@ -722,7 +722,7 @@ main(int argc, char *argv[])
 		log_print(L_ALL, "can't open device: %s", device);
 		cleanup(EXIT_FAILURE);
 	} else {
-		log_print(L_INF, "%s opened", device);
+		log_print(L_INF, "device %s opened", device);
 	}
 
 
