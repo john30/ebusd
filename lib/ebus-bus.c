@@ -557,10 +557,16 @@ eb_bus_open(const char *dev, int *fd)
 
 	if (devicetype == BUS_DEVICE_SOCKET) {
 		struct sockaddr_in sock;
+		char *hostport;
 		
 		memset((char *) &sock, 0, sizeof(sock));
-		
-		char *host = strtok((char *) dev, ":");
+
+		/*
+		 * Create a local copy of the <host:port> string
+		 * before the strtok() calls change it.
+		 */
+		hostport = strdup(dev);
+		char *host = strtok(hostport, ":");
 		char *port = strtok(NULL, ":");
 		
 		if (inet_addr(host) == INADDR_NONE) {
@@ -585,6 +591,7 @@ eb_bus_open(const char *dev, int *fd)
 		err_ret_if(ret < 0, -1);
 	
 		*fd = bfd;
+		free(hostport);
 	}
 
 	return 0;
