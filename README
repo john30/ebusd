@@ -1,7 +1,8 @@
 ebus Daemon (ebusd) - README
 ============================
 
-ebus (energy bus) is a serial communication protocoll used in heating systems. 
+ebus (energy bus) is a bus system used in heating systems.
+The 2-wire bus using a serial communication protocol.
 
 
 Features:
