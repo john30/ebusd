@@ -389,8 +389,11 @@ eb_cmd_decode_value(int id, int elem, unsigned char *msg, char *buf)
 	} else if (strncasecmp(com[id].elem[elem].d_type, "uin", 3) == 0) {
 		if (p1 > 0 && p2 > 0) {
 			unsigned int uin;
+			float ff;
 			uin = msg[p1] + (msg[p2] << 8);
-			sprintf(buf, "%u", uin);
+
+			ff = uin * com[id].elem[elem].d_fac;
+			sprintf(buf, "%f", ff);
 		} else {
 			goto on_error;
 		}
@@ -398,8 +401,11 @@ eb_cmd_decode_value(int id, int elem, unsigned char *msg, char *buf)
 	} else if (strncasecmp(com[id].elem[elem].d_type, "sin", 3) == 0) {
 		if (p1 > 0 && p2 > 0) {
 			int sin;
+			float ff;
 			sin = msg[p1] + (msg[p2] << 8);
-			sprintf(buf, "%d", sin);
+
+			ff = sin * com[id].elem[elem].d_fac;
+			sprintf(buf, "%f", ff);
 		} else {
 			goto on_error;
 		}
@@ -407,8 +413,11 @@ eb_cmd_decode_value(int id, int elem, unsigned char *msg, char *buf)
 	} else if (strncasecmp(com[id].elem[elem].d_type, "ulg", 3) == 0) {
 		if (p1 > 0 && p2 > 0 && p3 > 0 && p4 > 0) {
 			unsigned long ulg;
+			float ff;
 			ulg = msg[p1] + (msg[p2] << 8) + (msg[p3] << 16) + (msg[p4] << 24);
-			sprintf(buf, "%lu", ulg);
+
+			ff = ulg * com[id].elem[elem].d_fac;
+			sprintf(buf, "%f", ff);
 		} else {
 			goto on_error;
 		}	
@@ -416,8 +425,11 @@ eb_cmd_decode_value(int id, int elem, unsigned char *msg, char *buf)
 	} else if (strncasecmp(com[id].elem[elem].d_type, "slg", 3) == 0) {
 		if (p1 > 0 && p2 > 0 && p3 > 0 && p4 > 0) {
 			long slg;
+			float ff;
 			slg = msg[p1] + (msg[p2] << 8) + (msg[p3] << 16) + (msg[p4] << 24);
-			sprintf(buf, "%ld", slg);
+
+			ff = slg * com[id].elem[elem].d_fac;
+			sprintf(buf, "%f", ff);
 		} else {
 			goto on_error;
 		}
@@ -426,6 +438,8 @@ eb_cmd_decode_value(int id, int elem, unsigned char *msg, char *buf)
 		if (p1 > 0 && p2 > 0 && p3 > 0 && p4 > 0) {
 			float ff;
 			ff = msg[p1] + (msg[p2] << 8) + (msg[p3] << 16) + (msg[p4] << 24);
+
+			ff *= com[id].elem[elem].d_fac;
 			sprintf(buf, "%f", ff);
 		} else {
 			goto on_error;
