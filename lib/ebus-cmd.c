@@ -390,6 +390,8 @@ eb_cmd_decode_value(int id, int elem, unsigned char *msg, char *buf)
 		if (p1 > 0 && p2 > 0) {
 			unsigned int uin;
 			uin = msg[p1] + (msg[p2] << 8);
+
+			uin *= com[id].elem[elem].d_fac;
 			sprintf(buf, "%u", uin);
 		} else {
 			goto on_error;
@@ -399,6 +401,8 @@ eb_cmd_decode_value(int id, int elem, unsigned char *msg, char *buf)
 		if (p1 > 0 && p2 > 0) {
 			int sin;
 			sin = msg[p1] + (msg[p2] << 8);
+
+			sin *= com[id].elem[elem].d_fac;
 			sprintf(buf, "%d", sin);
 		} else {
 			goto on_error;
@@ -408,6 +412,8 @@ eb_cmd_decode_value(int id, int elem, unsigned char *msg, char *buf)
 		if (p1 > 0 && p2 > 0 && p3 > 0 && p4 > 0) {
 			unsigned long ulg;
 			ulg = msg[p1] + (msg[p2] << 8) + (msg[p3] << 16) + (msg[p4] << 24);
+
+			ulg *= com[id].elem[elem].d_fac;
 			sprintf(buf, "%lu", ulg);
 		} else {
 			goto on_error;
@@ -417,6 +423,8 @@ eb_cmd_decode_value(int id, int elem, unsigned char *msg, char *buf)
 		if (p1 > 0 && p2 > 0 && p3 > 0 && p4 > 0) {
 			long slg;
 			slg = msg[p1] + (msg[p2] << 8) + (msg[p3] << 16) + (msg[p4] << 24);
+
+			slg *= com[id].elem[elem].d_fac;
 			sprintf(buf, "%ld", slg);
 		} else {
 			goto on_error;
@@ -426,6 +434,8 @@ eb_cmd_decode_value(int id, int elem, unsigned char *msg, char *buf)
 		if (p1 > 0 && p2 > 0 && p3 > 0 && p4 > 0) {
 			float ff;
 			ff = msg[p1] + (msg[p2] << 8) + (msg[p3] << 16) + (msg[p4] << 24);
+
+			ff *= com[id].elem[elem].d_fac;
 			sprintf(buf, "%f", ff);
 		} else {
 			goto on_error;
