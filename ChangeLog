@@ -1,6 +1,10 @@
 ebus Daemon (ebusd) - ChangeLog
 ===============================
 
+2014-03-16:
+* Specific vaillant data type "ttm" (time table minutes) added.
+  (thx hendrikw / KNX Forum)
+
 2014-02-21:
 * fix crash: Create a local copy of the <host:port> string. (thx Hannes Gredler)
 * Some cosmetic changes.
