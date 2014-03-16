@@ -25,4 +25,4 @@ test_*
 /tools/check
 /tools/csv
 /tools/ebus_send
-/src/ebusd
+ebusd
