@@ -352,6 +352,16 @@ eb_cmd_decode_value(int id, int elem, unsigned char *msg, char *buf)
 			goto on_error;
 		}
 
+	} else if (strncasecmp(com[id].elem[elem].d_type, "ttm", 3) == 0) {
+		if (p1 > 0) {
+			int hh, mm;
+			hh = msg[p1]/6;
+			mm = msg[p1]%6*10;
+			sprintf(buf, "%02d:%02d", hh, mm);
+		} else {
+			goto on_error;
+		}
+
 	} else if (strncasecmp(com[id].elem[elem].d_type, "hex", 3) == 0) {
 		if (p1 > 0) {
 			if (p2 > msg[0])
