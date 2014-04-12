@@ -9,19 +9,18 @@ Features:
 =========
 
  * ebus - send and receive ebus commands
-   - send Broadcast (BC), Master-Master (MM) and Master-Slave (MS) messages
-   - calculate CRC for sent and received data
-   - escape and unescape not allowed byte sequences
-   - collect data of specified cycle messages
+   - supported message types are Broadcast, Master-Master and Master-Slave
+   - escape/unescape byte sequences and calculate CRC for transfer
+   - collect data of cycle messages
    
- * telnet - tcp based multi session server
+ * tcp socket based multi session server
    
    Commands:
-   - get        send message to slave and decode received answer
-   - set        send data to the slave with the intention to adjust this value
-   - cyc        return data from collected cycle messages
-   - loglevel   change loglevel at runtime
-   - quit       disconnect from daemon
+   - get        fetch data from ebus participant
+   - set        adjust data of ebus participant
+   - cyc        fetch data from collected cycle messages
+   - loglevel   change loglevel
+   - quit       close connection
    - shutdown   stop daemon
    
 
