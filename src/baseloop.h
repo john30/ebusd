@@ -1,0 +1,92 @@
+/*
+ * Copyright (C) Roland Jax 2014 <roland.jax@liwest.at>
+ *
+ * This file is part of ebus-daemon.
+ *
+ * ebus-daemon is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ebus-daemon is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with ebus-daemon. If not, see http://www.gnu.org/licenses/.
+ */
+
+#ifndef BASELOOP_H_
+#define BASELOOP_H_
+
+#include "libebus.h"
+#include "ebusloop.h"
+#include "cycdata.h"
+#include "wqueue.h"
+#include <string>
+
+using namespace libebus;
+
+class Connection;
+
+class Message
+{
+
+public:
+	Message(const std::string data, void* source = NULL) : m_data(data), m_source(source) {}
+	Message(const Message& src) : m_data(src.m_data), m_source(src.m_source) {}
+
+	std::string getData() const { return m_data.c_str(); }
+	void* getSource() const { return m_source; }
+
+private:
+	std::string m_data;
+	void* m_source; 
+
+};
+
+class BaseLoop
+{
+
+public:
+	BaseLoop(EBusLoop* ebusloop, CYCData* cycdata, Commands* commands)
+		: m_ebusloop(ebusloop), m_cycdata(cycdata), m_commands(commands) {}
+		
+	void start();
+
+	WQueue<Message*>* getQueue() { return &m_queue; }
+	void addMessage(Message* message) { m_queue.add(message); }
+
+private:
+	EBusLoop* m_ebusloop;
+	CYCData* m_cycdata;
+	Commands* m_commands;
+	WQueue<Message*> m_queue;
+
+	enum ClientCommand { 
+			     get,  // get ebus data
+			     set,  // set ebus value
+			     cyc,  // fetch cycle data
+			     dump, // change dump state
+			     log,  // change log level
+
+			     notfound
+			   };
+
+	ClientCommand getCase(const std::string& item)
+	{
+		if (item == "get") return get;
+		if (item == "set") return set;
+		if (item == "cyc") return cyc;
+		if (item == "dump") return dump;
+		if (item == "log") return log;
+
+		return notfound;
+	}
+
+	std::string decodeMessage(const std::string& data);
+
+};
+
+#endif // BASELOOP_H_
