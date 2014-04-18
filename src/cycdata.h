@@ -35,8 +35,7 @@ class CYCData : public Thread
 {
 
 public:
-	CYCData(EBusLoop* ebusloop, Commands* commands)
-		: m_ebusloop(ebusloop), m_commands(commands), m_stop(false) {}
+	CYCData(EBusLoop* ebusloop, Commands* commands);
 	~CYCData();
 	
 	void* run();
@@ -50,7 +49,9 @@ private:
 	map_t m_cycDB;
 	bool m_stop;
 
+	int findData(const std::string& data) const;
 	void storeData(int index, std::string data);
+	
 };
 
 #endif // CYCDATA_H_

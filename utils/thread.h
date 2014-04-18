@@ -26,13 +26,13 @@ class Thread
 {
    
 public:
-	Thread();
+	Thread() : m_threadid(0), m_running(false), m_detached(false) {}
 	virtual ~Thread();
 
 	int start(const char* name);
 	int join();
 	int detach();
-	pthread_t self();
+	pthread_t self() {return m_threadid; }
 
 	virtual void* run() = 0;
 

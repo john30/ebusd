@@ -82,7 +82,7 @@ void define_args()
 	A.addItem("p_dump", Appl::Param(false), "D", "dump",
 	"\tenable dump", Appl::type_bool, Appl::opt_none);
 
-	A.addItem("p_dumpfile", Appl::Param("/tmp/dump_ebusd.bin"), "", "dumpfile",
+	A.addItem("p_dumpfile", Appl::Param("/tmp/dump_ebus.bin"), "", "dumpfile",
 	"\tdump file name (/tmp/dump_ebusd.bin)", Appl::type_string, Appl::opt_mandatory);
 
 	A.addItem("p_dumpsize", Appl::Param(100), "", "dumpsize",

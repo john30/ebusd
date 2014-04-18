@@ -65,7 +65,7 @@ void* EBusLoop::run()
 			// new cyc message arrived
 			if (busResult == 2) {
 				std::string data = m_bus->getCycData();
-				//~ L.log(bus, trace, "%s", data.c_str());
+				L.log(bus, debug, "%s", data.c_str());
 				m_cycBuffer.add(data);
 			}
 

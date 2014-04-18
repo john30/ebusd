@@ -91,7 +91,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 			std::string type = m_commands->getType(index);
 			std::string cmd(A.getParam<const char*>("p_address"));
-			cmd += m_commands->getCommand(index);
+			cmd += m_commands->getEbusCommand(index);
 			std::transform(cmd.begin(), cmd.end(), cmd.begin(), tolower);
 			
 			L.log(bas, trace, " type: %s msg: %s", type.c_str(), cmd.c_str());

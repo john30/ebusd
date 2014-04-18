@@ -24,8 +24,6 @@ static void* runThread(void* arg)
 	return ((Thread *)arg)->run();
 }
 
-Thread::Thread() : m_threadid(0), m_running(false), m_detached(false) {}
-
 Thread::~Thread()
 {
 	if (m_running == true && m_detached == false)
@@ -78,7 +76,3 @@ int Thread::detach()
 	return result;
 }
 
-pthread_t Thread::self()
-{
-	return m_threadid;
-}
