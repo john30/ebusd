@@ -78,15 +78,16 @@ void* EBusLoop::run()
 
 			// send bus command
 			if (busResult == 1 && busCommandActive == true) {
-				L.log(bus, trace, " getBus success");
+				L.log(bus, event, " getBus success");
 				m_bus->sendCommand();
 				BusCommand* busCommand = m_bus->recvCommand();
+				L.log(bus, trace, " %s", busCommand->getResult().c_str());
 				m_recvBuffer.add(busCommand);
 				busCommandActive = false;
 			}
 
 			if (busResult == 0)
-				L.log(bus, trace, " getBus failure");
+				L.log(bus, event, " getBus failure");
 
 			if (busResult == -1)
 				L.log(bus, event, " getBus error");

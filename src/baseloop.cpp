@@ -57,7 +57,7 @@ void BaseLoop::start()
 std::string BaseLoop::decodeMessage(const std::string& data)
 {
 	std::ostringstream result;
-	std::string value;
+	std::string cycdata;
 	int index;
 	BusCommand* busCommand;
 	
@@ -90,17 +90,22 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		if (index >= 0) {
 
 			std::string type = m_commands->getType(index);
-			std::string cmd(A.getParam<const char*>("p_address"));
-			cmd += m_commands->getEbusCommand(index);
-			std::transform(cmd.begin(), cmd.end(), cmd.begin(), tolower);
+			std::string ebusCommand(A.getParam<const char*>("p_address"));
+			ebusCommand += m_commands->getEbusCommand(index);
+			std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
 			
-			L.log(bas, trace, " type: %s msg: %s", type.c_str(), cmd.c_str());
-			// send BusCommand
-			m_ebusloop->addBusCommand(new BusCommand(type, cmd));
+			L.log(bas, event, " type: %s msg: %s", type.c_str(), ebusCommand.c_str());
+			// send busCommand
+			m_ebusloop->addBusCommand(new BusCommand(type, ebusCommand));
 			busCommand = m_ebusloop->getBusCommand();
+
+			// decode data
+			Command* command = new Command(index, (*m_commands)[index], busCommand->getResult().c_str());
 			
-			// decode BusCommand
-			result << busCommand->getResult().c_str();
+			// return result
+			result << command->calcResult(cmd);
+			
+			delete command;
 			delete busCommand;
 
 		} else {
@@ -118,10 +123,16 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		index = m_commands->findCommand(data);
 		
 		if (index >= 0) {
-			value = m_cycdata->getData(index);
-			if (value != "") {
-				// decode CYC Data
-				result << value.c_str();
+			// get cycdata
+			cycdata = m_cycdata->getData(index);
+			if (cycdata != "") {
+				// decode data
+				Command* command = new Command(index, (*m_commands)[index], cycdata.c_str());
+
+				// return result
+				result << command->calcResult(cmd);
+				
+				delete command;
 			} else {
 				result << "no data stored";
 			}
