@@ -66,7 +66,6 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 	std::istringstream stream(data);
 	std::vector<std::string> cmd;
 	
-	// split stream
 	while (std::getline(stream, token, ' ') != 0)
 		cmd.push_back(token);
 
@@ -103,7 +102,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			Command* command = new Command(index, (*m_commands)[index], busCommand->getResult().c_str());
 			
 			// return result
-			result << command->calcResult(cmd);
+			result << command->getResult(cmd);
 			
 			delete command;
 			delete busCommand;
@@ -130,7 +129,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 				Command* command = new Command(index, (*m_commands)[index], cycdata.c_str());
 
 				// return result
-				result << command->calcResult(cmd);
+				result << command->getResult(cmd);
 				
 				delete command;
 			} else {

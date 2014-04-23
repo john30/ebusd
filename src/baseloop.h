@@ -76,11 +76,11 @@ private:
 
 	ClientCommand getCase(const std::string& item)
 	{
-		if (item == "get") return get;
-		if (item == "set") return set;
-		if (item == "cyc") return cyc;
-		if (item == "dump") return dump;
-		if (item == "log") return log;
+		if (strcasecmp(item.c_str(), "get") == 0) return get;
+		if (strcasecmp(item.c_str(), "set") == 0) return set;
+		if (strcasecmp(item.c_str(), "cyc") == 0) return cyc;
+		if (strcasecmp(item.c_str(), "dump") == 0) return dump;
+		if (strcasecmp(item.c_str(), "log") == 0) return log;
 
 		return notfound;
 	}
