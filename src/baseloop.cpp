@@ -102,7 +102,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			Command* command = new Command(index, (*m_commands)[index], busCommand->getResult().c_str());
 			
 			// return result
-			result << command->getResult(cmd);
+			result << command->calcResult(cmd);
 			
 			delete command;
 			delete busCommand;
@@ -129,7 +129,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 				Command* command = new Command(index, (*m_commands)[index], cycdata.c_str());
 
 				// return result
-				result << command->getResult(cmd);
+				result << command->calcResult(cmd);
 				
 				delete command;
 			} else {

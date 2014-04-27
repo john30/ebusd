@@ -142,13 +142,13 @@ void Appl::addParam(const char* name, const std::string arg, Datatype datatype)
 		m_params[name] = true;
 		break;
 	case type_int:	
-		m_params[name] = atoi(arg.c_str());
+		m_params[name] = strtol(arg.c_str(), NULL, 10);
 		break;
 	case type_long:	
-		m_params[name] = atol(arg.c_str());
+		m_params[name] = strtol(arg.c_str(), NULL, 10);
 		break;
 	case type_float:
-		m_params[name] = (float) atof(arg.c_str());
+		m_params[name] = static_cast<float>(strtod(arg.c_str(), NULL));
 		break;
 	case type_string:
 		m_params[name] = arg.c_str();
