@@ -51,6 +51,7 @@ get;vwx;RunTimeHeating;Kompressor Laufzeit Heizung;MS;08;B509;3;0D9B00;1;-;sd;4,
 get;vwx;RunTimeHotWater;Kompressor Laufzeit Warmwasser;MS;08;B509;3;0D9C00;1;-;sd;4,3,2,1;ulg;-;h;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;vwx;ServiceMode;Servicezeit;MS;08;B509;3;0D6600;1;-;sd;1;uch;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;vwx;SoftwareState;Software Status;MS;08;B509;3;0DCF00;1;-;sd;4,3,2,1;ulg;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
+get;vwx;HeatPumpState;Heizungspumpe Status;MS;08;B509;3;0DD000;1;-;sd;1;uch;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;vwx;SwitchValve;Umschaltventil Heizen = 0 / Warmwasser = 1;MS;08;B509;3;0D1000;1;-;sd;1;uch;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;vwx;TempOutside;Aussentemperatur;MS;08;B509;3;0D0600;2;temp;sd;1,2;d2c;1.0;°C;-;Temperatur;sensor;sd;3;uch;-;-;-;Fühler;;;;;;;;;;;;;;;;
 get;vwx;TempSpreadMax;Zulässige Temperaturspreizung T6 zu T7;MS;08;B509;3;0D6E00;1;-;sd;1,2;d2c;1.0;°C;-;-;;;;;;;;;;;;;;;;;;;;;;;;

@@ -98,13 +98,19 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			m_ebusloop->addBusCommand(new BusCommand(type, ebusCommand));
 			busCommand = m_ebusloop->getBusCommand();
 
-			// decode data
-			Command* command = new Command(index, (*m_commands)[index], busCommand->getResult().c_str());
+			if (busCommand->getResult().c_str()[0] != '-') {
+				// decode data
+				Command* command = new Command(index, (*m_commands)[index], busCommand->getResult().c_str());
+
+				// return result
+				result << command->calcResult(cmd);
+
+				delete command;
+			} else {
+				result << busCommand->getResult().c_str();
+			}
 			
-			// return result
-			result << command->calcResult(cmd);
 			
-			delete command;
 			delete busCommand;
 
 		} else {
