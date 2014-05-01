@@ -53,6 +53,6 @@ get;ci;EnergyYieldLastYear9;Energieertrag letztes Jahr Monat 9;MS;15;B509;3;0D85
 get;ci;EnergyYieldLastYear10;Energieertrag letztes Jahr Monat 10;MS;15;B509;3;0D8548;1;-;sd;1,2;uin;-;kWh;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;ci;EnergyYieldLastYear11;Energieertrag letztes Jahr Monat 11;MS;15;B509;3;0D8550;1;-;sd;1,2;uin;-;kWh;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;ci;EnergyYieldLastYear12;Energieertrag letztes Jahr Monat 12;MS;15;B509;3;0D8558;1;-;sd;1,2;uin;-;kWh;-;-;;;;;;;;;;;;;;;;;;;;;;;;
-get;ci;EnergyYieldDayTransfer;Energieertrag Tagesübertrag;MS;15;B509;3;0D8600;1;-;sd;1,2,3,4;ulg;-;kWh;-;-;;;;;;;;;;;;;;;;;;;;;;;;
-get;ci;EnergyYieldSum;Energieertrag Gesamt;MS;15;B509;3;0D8700;1;-;sd;1,2,3,4;ulg;-;kWh;-;-;;;;;;;;;;;;;;;;;;;;;;;;
+get;ci;EnergyYieldDayTransfer;Energieertrag Tagesübertrag;MS;15;B509;3;0D8600;1;-;sd;4,3,2,1;ulg;-;kWh;-;-;;;;;;;;;;;;;;;;;;;;;;;;
+get;ci;EnergyYieldSum;Energieertrag Gesamt;MS;15;B509;3;0D8700;1;-;sd;4,3,2,1;ulg;-;kWh;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;ci;SystemMode;Modus (Heizen/Kühlen/Warmwasser);MS;15;B509;3;0D9700;1;-;sd;1;uch;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
