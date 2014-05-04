@@ -25,8 +25,8 @@
 #include "thread.h"
 #include "notify.h"
 #include "baseloop.h"
-#include <unistd.h>
 #include <list>
+#include <unistd.h>
 
 class Connection : public Thread
 {

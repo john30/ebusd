@@ -16,6 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with ebus-daemon. If not, see http://www.gnu.org/licenses/.
  */
+
 #include "libebus.h"
 #include "logger.h"
 #include "daemon.h"

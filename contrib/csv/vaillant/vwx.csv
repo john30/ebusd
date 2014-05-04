@@ -95,6 +95,7 @@ get;vwxhw;TankTemp;Speichertemperatur IST;MS;08;B509;3;0D0000;2;temp;sd;1,2;d2c;
 get;vwxhw;TankTypePipe;Speichertyp ist Rohr;MS;25;B509;3;0DCD01;1;-;sd;1;uch;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;vwxmk;CoolingOperatingMode;Kühlung Betriebsart;MS;50;B509;3;0D8C01;1;-;sd;1;uch;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;vwxmk;DesiredTemp;Solltemperatur;MS;50;B509;3;0D3200;1;-;sd;1;d1c;1.0;°C;-;-;;;;;;;;;;;;;;;;;;;;;;;;
+set;vwxmk;DesiredTemp;Solltemperatur;MS;50;B509;4;0E3200;1;-;sd;1;d1c;1.0;°C;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;vwxmk;DesiredTempLow;Absenktemperatur;MS;50;B509;3;0D3300;1;-;sd;1;d1c;1.0;°C;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;vwxmk;FloorProtectionTempLimit;Fußbodenschutz Temp > VF2;MS;50;B509;3;0D7B01;1;-;sd;1;uch;-;°C;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;vwxmk;FloorScreedDryingDay;Estrichtrocknung Tag;MS;50;B509;3;0D3B00;1;-;sd;1;uch;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
