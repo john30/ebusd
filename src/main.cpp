@@ -49,48 +49,60 @@ CYCData* cycdata;
 void define_args()
 {
 	A.addItem("p_address", Appl::Param("FF"), "a", "address",
-	"\tebus device address (FF)",
-	Appl::type_string, Appl::opt_mandatory);
-	
+		  "\tebus device address (default: FF)",
+		  Appl::type_string, Appl::opt_mandatory);
+
 	A.addItem("p_device", Appl::Param("/dev/ttyUSB0"), "d", "device",
-	"\tebus device (serial or network) (/dev/ttyUSB0)",
-	Appl::type_string, Appl::opt_mandatory);
+		  "\tebus device (serial or network) (default: /dev/ttyUSB0)",
+		  Appl::type_string, Appl::opt_mandatory);
 
 	A.addItem("p_nodevicecheck", Appl::Param(false), "n", "nodevicecheck",
-	"disable valid ebus device test\n", Appl::type_bool, Appl::opt_none);
+		  "disable valid ebus device test\n",
+		  Appl::type_bool, Appl::opt_none);
 
 	A.addItem("p_ebusconfdir", Appl::Param("contrib/csv/vaillant"), "e", "ebusconfdir",
-	"directory for ebus configuration (contrib/csv/vaillant)\n",
-	Appl::type_string, Appl::opt_mandatory);
+		  "directory for ebus configuration (default: contrib/csv/vaillant)\n",
+		  Appl::type_string, Appl::opt_mandatory);
 
 	A.addItem("p_foreground", Appl::Param(false), "f", "foreground",
-	"run in foreground\n", Appl::type_bool, Appl::opt_none);
+		  "run in foreground\n",
+		  Appl::type_bool, Appl::opt_none);
 
 	A.addItem("p_port", Appl::Param(8888), "p", "port",
-	"\tlisten port (8888)", Appl::type_int, Appl::opt_mandatory);
+		  "\tlisten port (default: 8888)",
+		  Appl::type_int, Appl::opt_mandatory);
 
 	A.addItem("p_localhost", Appl::Param(false), "", "localhost",
-	"listen localhost only\n", Appl::type_bool, Appl::opt_none);
+		  "listen localhost only\n",
+		  Appl::type_bool, Appl::opt_none);
+
+	A.addItem("p_logfile", Appl::Param("/var/log/ebus-daemon.log"), "l", "logfile",
+		  "\tlog file name (default: /var/log/ebus-daemon.log)",
+		  Appl::type_string, Appl::opt_mandatory);
 
 	A.addItem("p_area", Appl::Param(all), "", "logarea",
-	"\tlogging area (bas=1, net=2, bus=4, cyc=8, all=15)",
-	Appl::type_int, Appl::opt_mandatory);
+		  "\tlogging area (bas=1, net=2, bus=4, cyc=8, default: all=15)",
+		  Appl::type_int, Appl::opt_mandatory);
 
 	A.addItem("p_level", Appl::Param(trace), "", "loglevel",
-	"\tlogging level (error=1, event=2, trace=3, debug=4)\n",
-	Appl::type_int, Appl::opt_mandatory);
+		  "\tlogging level (error=1, event=2, default: trace=3, debug=4)\n",
+		  Appl::type_int, Appl::opt_mandatory);
 
 	A.addItem("p_dump", Appl::Param(false), "D", "dump",
-	"\tenable dump", Appl::type_bool, Appl::opt_none);
+		  "\tenable dump",
+		  Appl::type_bool, Appl::opt_none);
 
-	A.addItem("p_dumpfile", Appl::Param("/tmp/dump_ebus.bin"), "", "dumpfile",
-	"\tdump file name (/tmp/dump_ebusd.bin)", Appl::type_string, Appl::opt_mandatory);
+	A.addItem("p_dumpfile", Appl::Param("/tmp/ebus_dump.bin"), "", "dumpfile",
+		  "\tdump file name (default: /tmp/ebus_dump.bin)",
+		  Appl::type_string, Appl::opt_mandatory);
 
 	A.addItem("p_dumpsize", Appl::Param(100), "", "dumpsize",
-	"\tmax size for dump file in kB (100)\n", Appl::type_long, Appl::opt_mandatory);
-	
+		  "\tmax size for dump file in kB (default: 100)\n",
+		  Appl::type_long, Appl::opt_mandatory);
+
 	A.addItem("p_help", Appl::Param(false), "h", "help",
-	"\tprint this message", Appl::type_bool, Appl::opt_none);
+		  "\tprint this message",
+		  Appl::type_bool, Appl::opt_none);
 }
 
 void shutdown()
@@ -111,7 +123,7 @@ void shutdown()
 		ebusloop->join();
 		delete ebusloop;
 	}
-	
+
 	// free Commands DB
 	if (commands != NULL)
 		delete commands;
@@ -126,7 +138,7 @@ void shutdown()
 		D.stop();
 
 	// stop Logger
-	L.log(bas, event, "ebusd stopped");
+	L.log(bas, event, "ebus-daemon stopped");
 	L.stop();
 	L.join();
 
@@ -163,21 +175,23 @@ int main(int argc, char* argv[])
 		A.printArgs();
 		exit(EXIT_FAILURE);
 	}
-	
+
 	// print Help
 	if (A.getParam<bool>("p_help") == true) {
 		A.printArgs();
 		exit(EXIT_SUCCESS);
 	}
-	
+
 	// make me Daemon
 	if (A.getParam<bool>("p_foreground") == true) {
 		L += new LogConsole(A.getParam<int>("p_area"),
-			static_cast<const Level>(A.getParam<int>("p_level")), "logConsole");
+				    static_cast<const Level>(A.getParam<int>("p_level")),
+				    "logConsole");
 	} else {
-		D.run("/var/run/ebusd.pid");
+		D.run("/var/run/ebus-daemon.pid");
 		L += new LogFile(A.getParam<int>("p_area"),
-			static_cast<const Level>(A.getParam<int>("p_level")), "logFile", "/var/log/ebusd.log");
+				 static_cast<const Level>(A.getParam<int>("p_level")),
+				 "logFile", A.getParam<const char*>("p_logfile"));
 	}
 
 	// trap Signals that we expect to receive
@@ -187,7 +201,7 @@ int main(int argc, char* argv[])
 
 	// start Logger
 	L.start("logInstance");
-	L.log(bas, event, "ebusd started");
+	L.log(bas, event, "ebus-daemon started");
 
 	// print Daemon status
 	if (D.status() == true)

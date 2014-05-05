@@ -37,14 +37,14 @@ void Daemon::run(const char* file)
 	m_status = false;
 	m_pidfile = file;
 	m_pidfd = 0;
-	
+
 	pid_t pid;
 
 	// fork off the parent process
 	pid = fork();
-	
+
 	if (pid < 0) {
-		std::cerr << "ebusd fork() failed." << std::endl;
+		std::cerr << "daemon fork() failed." << std::endl;
 		exit(EXIT_FAILURE);
 	}
 
@@ -62,14 +62,14 @@ void Daemon::run(const char* file)
 	// Create a new SID for the child process and
 	// detach the process from the parent (normally a shell)
 	if (setsid() < 0) {
-		std::cerr << "ebusd setsid() failed." << std::endl;
+		std::cerr << "daemon setsid() failed." << std::endl;
 		exit(EXIT_FAILURE);
 	}
 
 	// Change the current working directory. This prevents the current
 	// directory from being locked; hence not being able to remove it.
 	if (chdir("/tmp") < 0) {  //DAEMON_WORKDIR
-		std::cerr << "ebusd chdir() failed." << std::endl;
+		std::cerr << "daemon chdir() failed." << std::endl;
 		exit(EXIT_FAILURE);
 	}
 

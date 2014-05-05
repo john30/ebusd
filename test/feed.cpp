@@ -33,18 +33,20 @@ Appl& A = Appl::Instance();
 void define_args()
 {
 	A.addItem("p_device", Appl::Param("/dev/ttyUSB60"), "d", "device",
-	"dummy serial device (/dev/ttyUSB60)\n\t\t(socat -d -d pty,raw,echo=0 pty,raw,echo=0)",
-	Appl::type_string, Appl::opt_mandatory);
+		  "dummy serial device (default: /dev/ttyUSB60)\n\t\t(socat -d -d pty,raw,echo=0 pty,raw,echo=0)",
+		  Appl::type_string, Appl::opt_mandatory);
 
-	A.addItem("p_file", Appl::Param("test/scan_ebusd.bin"), "f", "file",
-	"dump file with raw data (test/scan_ebusd.bin)",
-	Appl::type_string, Appl::opt_mandatory);
+	A.addItem("p_file", Appl::Param("test/ebus_dump.bin"), "f", "file",
+		  "dump file with raw data (default: test/ebus_dump.bin)",
+		  Appl::type_string, Appl::opt_mandatory);
 
 	A.addItem("p_time", Appl::Param(10000), "t", "time",
-	"wait time  [ms] (10000)", Appl::type_long, Appl::opt_mandatory);
+		  "wait time  [ms] (default: 10000)",
+		  Appl::type_long, Appl::opt_mandatory);
 
 	A.addItem("p_help", Appl::Param(false), "h", "help",
-	"print this message", Appl::type_bool, Appl::opt_none);
+		  "print this message",
+		  Appl::type_bool, Appl::opt_none);
 }
 
 int main(int argc, char* argv[])
@@ -57,13 +59,12 @@ int main(int argc, char* argv[])
 		A.printArgs();
 		exit(EXIT_FAILURE);
 	}
-	
+
 	// print Help
 	if (A.getParam<bool>("p_help") == true) {
 		A.printArgs();
 		exit(EXIT_SUCCESS);
 	}
-
 
 	std::string dev(A.getParam<const char*>("p_device"));
 	Port port(dev, true);
@@ -72,11 +73,10 @@ int main(int argc, char* argv[])
 	if(port.isOpen() == true)
 		std::cout << "openPort successful." << std::endl;
 
-
 	std::fstream file(A.getParam<const char*>("p_file"), std::ios::in | std::ios::binary);
 
 	if(file.is_open() == true) {
-		
+
 		while (file.eof() == false) {
 			unsigned char byte = file.get();
 			std::cout << std::hex << std::setw(2) << std::setfill('0')
@@ -85,15 +85,14 @@ int main(int argc, char* argv[])
 			port.send(&byte, 1);
 			usleep(A.getParam<long>("p_time"));
 		}
-		
+
 		file.close();
 	}
-
 
 	port.close();
 	if(port.isOpen() == false)
 		std::cout << "closePort successful." << std::endl;
-			
+
 	return 0;
 
 }
