@@ -85,7 +85,7 @@ void define_args()
 		  Appl::type_int, Appl::opt_mandatory);
 
 	A.addItem("p_level", Appl::Param(trace), "", "loglevel",
-		  "\tlogging level (error=1, event=2, default: trace=3, debug=4)\n",
+		  "\tlogging level (error=0, event=1, default: trace=2, debug=3)\n",
 		  Appl::type_int, Appl::opt_mandatory);
 
 	A.addItem("p_dump", Appl::Param(false), "D", "dump",
@@ -99,6 +99,10 @@ void define_args()
 	A.addItem("p_dumpsize", Appl::Param(100), "", "dumpsize",
 		  "\tmax size for dump file in kB (default: 100)\n",
 		  Appl::type_long, Appl::opt_mandatory);
+
+	A.addItem("p_settings", Appl::Param(false), "", "settings",
+		  "\tprint daemon settings\n",
+		  Appl::type_bool, Appl::opt_none);
 
 	A.addItem("p_help", Appl::Param(false), "h", "help",
 		  "\tprint this message",
@@ -171,7 +175,7 @@ int main(int argc, char* argv[])
 	define_args();
 
 	// parse Arguments
-	if (A.parse(argc, argv) == false) {
+	if (A.parseArgs(argc, argv) == false) {
 		A.printArgs();
 		exit(EXIT_FAILURE);
 	}
@@ -181,6 +185,10 @@ int main(int argc, char* argv[])
 		A.printArgs();
 		exit(EXIT_SUCCESS);
 	}
+
+	// print Daemon settings
+	if (A.getParam<bool>("p_settings") == true)
+		A.printSettings();
 
 	// make me Daemon
 	if (A.getParam<bool>("p_foreground") == true) {
@@ -201,14 +209,13 @@ int main(int argc, char* argv[])
 
 	// start Logger
 	L.start("logInstance");
+	// wait for Logger be ready
+	usleep(100000);
 	L.log(bas, event, "ebus-daemon started");
-
-	// print Daemon status
-	if (D.status() == true)
-		L.log(bas, event, "change to daemon");
 
 	// create Commands DB
 	commands = ConfigCommands(A.getParam<const char*>("p_ebusconfdir"), CSV).getCommands();
+	L.log(bas, debug, "ebus configuration dir: %s", A.getParam<const char*>("p_ebusconfdir"));
 	L.log(bas, event, "commands DB with %d entries created", commands->size());
 
 	// create EBusLoop

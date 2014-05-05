@@ -27,7 +27,7 @@
 
 class Appl
 {
-	
+
 private:
 	struct Option;
 
@@ -58,7 +58,7 @@ public:
 	}
 
 	static Appl& Instance();
-	
+
 	~Appl();
 
 	void addItem(const char* name, Param param, const char* shortname,
@@ -67,13 +67,14 @@ public:
 
 	void printArgs();
 
-	bool parse(int argc, char* argv[]);
+	bool parseArgs(int argc, char* argv[]);
+	void printSettings();
 
 private:
 	Appl() {}
 	Appl(const Appl&);
 	Appl& operator= (const Appl&);
-	
+
 	struct Arg {
 		const char* name;
 		const char* shortname;
@@ -82,17 +83,17 @@ private:
 		Datatype datatype;
 		Optiontype optiontype;
 	};
-	
+
 	int m_argc;
 	std::vector<std::string> m_argv;
-	
+
 	std::vector<Arg> m_args;
 	std::vector<Arg>::const_iterator a_it;
 
 	std::map<const char*, Param> m_params;
 	std::map<const char*, Param>::iterator p_it;
 
-	bool checkArg(const std::string name, const std::string arg);
+	bool checkArg(const std::string& name, const std::string& arg);
 
 	void addParam(const char* name, Param param) { m_params[name] = param; }
 

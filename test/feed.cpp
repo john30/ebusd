@@ -55,7 +55,7 @@ int main(int argc, char* argv[])
 	define_args();
 
 	// parse Arguments
-	if (A.parse(argc, argv) == false) {
+	if (A.parseArgs(argc, argv) == false) {
 		A.printArgs();
 		exit(EXIT_FAILURE);
 	}

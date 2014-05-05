@@ -58,7 +58,7 @@ void Appl::printArgs()
 	std::cerr << std::endl << "Usage:" << std::endl << "  "
 		  << m_argv[0].substr(2) << " [Options]" << std::endl
 		  << std::endl << "Options:" << std::endl;
-	
+
 	for (a_it = m_args.begin(); a_it < m_args.end(); a_it++) {
 		const char* c = (strlen(a_it->shortname) == 1) ? a_it->shortname : " ";
 		std::cerr << ((strcmp(c, " ") == 0) ? " " : "-") << c
@@ -70,53 +70,84 @@ void Appl::printArgs()
 	std::cerr << std::endl;
 }
 
-bool Appl::parse(int argc, char* argv[])
+bool Appl::parseArgs(int argc, char* argv[])
 {
 	std::vector<std::string> _argv(argv, argv + argc);
 	m_argc = argc;
 	m_argv = _argv;
-	
+
 	for (int i = 1; i < m_argc; i++) {
-		
+
 		// find option with long format '--'
 		if (m_argv[i].rfind("--") == 0 && m_argv[i].size() > 2) {
-
 			// is next item an added argument?
-			if (i+1 < m_argc && m_argv[i+1].rfind("-") == std::string::npos) {	
+			if (i+1 < m_argc && m_argv[i+1].rfind("-", 0) == std::string::npos) {
 				if (checkArg(m_argv[i].substr(2), m_argv[i+1]) == false)
 					return false;
-			} else {				
+			} else {
 				if (checkArg(m_argv[i].substr(2), "") == false)
 					return false;
 			}
 
-		// find option with short format '-'	
+		// find option with short format '-'
 		} else if (m_argv[i].rfind("-") == 0 && m_argv[i].size() > 1) {
-			
+
 			// walk through all characters
 			for (size_t j = 1; j < m_argv[i].size(); j++) {
-				
+
 				// only last charater could have an argument
-				if (i+1 < m_argc && m_argv[i+1].rfind("-") == std::string::npos
+				if (i+1 < m_argc && m_argv[i+1].rfind("-", 0) == std::string::npos
 				&& j+1 == m_argv[i].size()) {
 					if (checkArg(m_argv[i].substr(j,1), m_argv[i+1]) == false)
 						return false;
-				} else {					
+				} else {
 					if (checkArg(m_argv[i].substr(j,1), "") == false)
 						return false;
-				}			
+				}
 			}
-		} 
-			
+		}
+
 	}
 	return true;
 }
 
-bool Appl::checkArg(const std::string name, const std::string arg)
+void Appl::printSettings()
+{
+	std::cerr << std::endl << "Settings:" << std::endl;
+
+	for (a_it = m_args.begin(); a_it < m_args.end(); a_it++) {
+		const char* c = (strlen(a_it->shortname) == 1) ? a_it->shortname : " ";
+		std::cerr << ((strcmp(c, " ") == 0) ? " " : "-") << c
+			  << " | --" << a_it->longname
+			  << " = ";
+		if (a_it->datatype == type_bool) {
+			if (getParam<bool>(a_it->name) == true)
+				std::cerr << "yes" << std::endl;
+			else
+				std::cerr << "no" << std::endl;
+		}
+		else if (a_it->datatype == type_int) {
+			std::cerr << getParam<int>(a_it->name) << std::endl;
+		}
+		else if (a_it->datatype == type_long) {
+			std::cerr << getParam<long>(a_it->name) << std::endl;
+		}
+		else if (a_it->datatype == type_float) {
+			std::cerr << getParam<float>(a_it->name) << std::endl;
+		}
+		else if (a_it->datatype == type_string) {
+			std::cerr << getParam<const char*>(a_it->name) << std::endl;
+		}
+
+	}
+
+	std::cerr << std::endl;
+}
+
+bool Appl::checkArg(const std::string& name, const std::string& arg)
 {
 	for (a_it = m_args.begin(); a_it < m_args.end(); a_it++) {
 		if (a_it->shortname == name || a_it->longname == name) {
-
 			if (a_it->optiontype == opt_mandatory && arg.size() == 0) {
 				std::cerr << std::endl << "option requires an argument '"
 					  << name << "'" << std::endl;
@@ -141,10 +172,10 @@ void Appl::addParam(const char* name, const std::string arg, Datatype datatype)
 	case type_bool:
 		m_params[name] = true;
 		break;
-	case type_int:	
+	case type_int:
 		m_params[name] = strtol(arg.c_str(), NULL, 10);
 		break;
-	case type_long:	
+	case type_long:
 		m_params[name] = strtol(arg.c_str(), NULL, 10);
 		break;
 	case type_float:
