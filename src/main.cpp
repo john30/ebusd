@@ -60,8 +60,8 @@ void define_args()
 		  "disable valid ebus device test\n",
 		  Appl::type_bool, Appl::opt_none);
 
-	A.addItem("p_ebusconfdir", Appl::Param("contrib/csv/vaillant"), "e", "ebusconfdir",
-		  "directory for ebus configuration (default: contrib/csv/vaillant)\n",
+	A.addItem("p_ebusconfdir", Appl::Param("/etc/ebus-daemon"), "e", "ebusconfdir",
+		  "directory for ebus configuration (default: /etc/ebus-daemon)\n",
 		  Appl::type_string, Appl::opt_mandatory);
 
 	A.addItem("p_foreground", Appl::Param(false), "f", "foreground",
