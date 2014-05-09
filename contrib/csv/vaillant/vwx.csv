@@ -1,7 +1,7 @@
 # type;class;cmd;comment;msg type;ZZ;PBSB;NN;D1D2D3;elements;sub;part;position;datatype;factor;unit;valid;comment;sub;part;position;datatype;factor;unit;valid;comment;sub;part;position;datatype;factor;unit;valid;comment;sub;part;position;datatype;factor;unit;valid;comment
 get;vwx;BivalentTemp;Bivalenztemperatur;MS;08;B509;3;0D6500;1;-;sd;1,2;d2c;1.0;°C;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;vwx;Bleeding;Entlüften;MS;08;B509;3;0D1300;1;-;sd;1;uch;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
-get;vwx;BrinePress;Druck Solekreis;MS;08;B509;3;0D1600;2;press;sd;2,1;flt;0.001;bar;-;Druck;sensor;sd;3;uch;-;-;-;Fühler;;;;;;;;;;;;;;;;
+get;vwx;BrinePress;Druck Solekreis;MS;08;B509;3;0D1600;2;press;sd;2,1;flt;1.0;bar;-;Druck;sensor;sd;3;uch;-;-;-;Fühler;;;;;;;;;;;;;;;;
 get;vwx;BrinePressSwitch;Soledruckschalter;MS;08;B509;3;0D2600;1;-;sd;2,1;sin;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;vwx;BrinePumpCoolingRunTime;Kühlung Laufzeit Solepumpe;MS;08;B509;3;0D7D01;1;-;sd;4,3,2,1;ulg;-;h;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;vwx;BrinePumpPower;Solepumpe Leistung;MS;08;B509;3;0DAC01;1;-;sd;1;uch;-;%;-;-;;;;;;;;;;;;;;;;;;;;;;;;
@@ -31,7 +31,7 @@ get;vwx;FlowTemp;VF2 Vorlauftemperatur IST;MS;08;B509;3;0D0300;2;temp;sd;1,2;d2c
 get;vwx;FlowTempIntern;T6 interne Vorlauftempertur IST;MS;08;B509;3;0D0900;2;temp;sd;1,2;d2c;1.0;°C;-;Temperatur;sensor;sd;3;uch;-;-;-;Fühler;;;;;;;;;;;;;;;;
 get;vwx;FrezzeProtectionTempMin;Einfrierschutz T81;MS;08;B509;3;0D7A01;1;-;sd;1;sch;-;°C;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;vwx;HeatPumpState;Heizkreispumpe Status;MS;08;B509;3;0D1700;1;-;sd;1;uch;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
-get;vwx;HeatSystemPress;Heizanlagendruck;MS;08;B509;3;0D1200;2;press;sd;2,1;flt;0.001;bar;-;Druck;sensor;sd;3;uch;-;-;-;Fühler;;;;;;;;;;;;;;;;
+get;vwx;HeatSystemPress;Heizanlagendruck;MS;08;B509;3;0D1200;2;press;sd;2,1;flt;1.0;bar;-;Druck;sensor;sd;3;uch;-;-;-;Fühler;;;;;;;;;;;;;;;;
 get;vwx;Hysteresis;Kompressor Hysterese;MS;08;B509;3;0D7D00;1;-;sd;1,2;d2c;1.0;°C;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;vwx;InitialCurrentLimitation;Anlaufstrombegrenzung;MS;08;B509;3;0D3F00;1;-;sd;1;uch;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;vwx;Integral;Energieintegral;MS;08;B509;3;0D8000;1;-;sd;2,1;sin;-;°min;-;-;;;;;;;;;;;;;;;;;;;;;;;;
@@ -57,8 +57,8 @@ get;vwx;TempOutside;Aussentemperatur;MS;08;B509;3;0D0600;2;temp;sd;1,2;d2c;1.0;�
 get;vwx;TempSpreadMax;Zulässige Temperaturspreizung T6 zu T7;MS;08;B509;3;0D6E00;1;-;sd;1,2;d2c;1.0;°C;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;vwx;Time;Uhrzeit;MS;08;B509;3;0D2800;1;-;sd;3,2,1;hti;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;vwx;Undercooling;Unterkühlung;MS;08;B509;3;0D8E00;1;-;sd;1,2;d2c;1.0;°C;-;-;;;;;;;;;;;;;;;;;;;;;;;;
-get;vwx;VaporPressHigh;Hochdruck Kältekreis;MS;08;B509;3;0D1400;2;press;sd;2,1;flt;0.001;bar;-;Druck;sensor;sd;3;uch;-;-;-;Fühler;;;;;;;;;;;;;;;;
-get;vwx;VaporPressLow;Niederdruck Kältekreis;MS;08;B509;3;0D1500;2;press;sd;2,1;flt;0.001;bar;-;Druck;sensor;sd;3;uch;-;-;-;Fühler;;;;;;;;;;;;;;;;
+get;vwx;VaporPressHigh;Hochdruck Kältekreis;MS;08;B509;3;0D1400;2;press;sd;2,1;flt;1.0;bar;-;Druck;sensor;sd;3;uch;-;-;-;Fühler;;;;;;;;;;;;;;;;
+get;vwx;VaporPressLow;Niederdruck Kältekreis;MS;08;B509;3;0D1500;2;press;sd;2,1;flt;1.0;bar;-;Druck;sensor;sd;3;uch;-;-;-;Fühler;;;;;;;;;;;;;;;;
 get;vwx;VaporPressostate;Kältekreis Über/Unterdruck Sicherheitsabschaltung;MS;08;B509;3;0D2500;1;-;sd;2,1;sin;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;vwx;Weekday;Wochentag;MS;08;B509;3;0D2A00;1;-;sd;1;uch;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;vwx;YieldEnvironmentEnergy;Energieertrag Umgebung;MS;08;B509;3;0DBC00;1;-;sd;4,3,2,1;ulg;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
