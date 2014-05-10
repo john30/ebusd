@@ -1,4 +1,4 @@
-AC_PREREQ([2.69])
+AC_PREREQ([2.65])
 AC_INIT([ebus-daemon], [0.1], [roland.jax@liwest.at], [ebus-daemon], [https://github.com/yuhu-/ebus-daemon])
 
 AM_INIT_AUTOMAKE([1.11 -Wall no-define])
