@@ -1,4 +1,38 @@
-ebusd
+ebus-daemon
+-----------
+
+The ebus-daemon provides a communication interface to the energy bus (ebus)
+which is used in various heating systems.
+
+
+Features
+--------
+
+ * send and receive ebus commands
+   - message types: Broadcast, Master-Master and Master-Slave
+   - collect data of cycle messages
+
+ * tcp socket multi session server (daemon commands)
+   - get   fetch data from ebus participant
+   - set   adjust data of ebus participant
+   - cyc   fetch data from collected cycle messages
+   - log   change loglevel
+   - dump  toggle dump on/off
+   - quit  close connection
+
+
+Build
 -----
 
-Daemon to communicate with ebus based heating systems.
+$ ./autogen.sh [--prefix=/usr]
+$ make
+$ make install
+
+
+Daemon Configuration
+--------------------
+
+See ./ebus-daemon -h
+
+
+The author can be contacted at roland.jax@liwest.at.
