@@ -91,7 +91,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			ebusCommand += m_commands->getEbusCommand(index);
 			std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
 
-			L.log(bas, event, " type: %s msg: %s", type.c_str(), ebusCommand.c_str());
+			L.log(bas, trace, " type: %s msg: %s", type.c_str(), ebusCommand.c_str());
 			// send busCommand
 			m_ebusloop->addBusCommand(new BusCommand(type, ebusCommand));
 			BusCommand* busCommand = m_ebusloop->getBusCommand();

@@ -38,7 +38,7 @@ void Connection::addResult(Message message)
 void* Connection::run()
 {
 	m_running = true;
-	
+
 	int maxfd;
 	fd_set checkfds;
 	struct timeval timeout;
@@ -46,7 +46,7 @@ void* Connection::run()
 	FD_ZERO(&checkfds);
 	FD_SET(m_notify.notifyFD(), &checkfds);
 	FD_SET(m_socket->getFD(), &checkfds);
-	
+
 	(m_notify.notifyFD() > m_socket->getFD()) ?
 		(maxfd = m_notify.notifyFD()) : (maxfd = m_socket->getFD());
 
@@ -56,7 +56,7 @@ void* Connection::run()
 
 		// set select timeout 10 secs
 		timeout.tv_sec = 10;
-		timeout.tv_usec = 0;		
+		timeout.tv_usec = 0;
 
 		// set readfds to inital checkfds
 		readfds = checkfds;
@@ -65,7 +65,7 @@ void* Connection::run()
 		if (ret == 0) {
 			continue;
 		}
-			
+
 		// new data from notify
 		if (FD_ISSET(m_notify.notifyFD(), &readfds))
 			break;
@@ -79,7 +79,7 @@ void* Connection::run()
 				datalen = m_socket->recv(data, sizeof(data)-1);
 			else
 				break;
-			
+
 			// removed closed socket
 			if (datalen <= 0 || strncasecmp(data, "quit", 4) == 0)
 				break;
@@ -94,12 +94,12 @@ void* Connection::run()
 
 			L.log(net, debug, "[%08x] result added", getID());
 			std::string result(message->getData());
-			
+
 			if (m_socket->isValid() == true)
 				m_socket->send(result.c_str(), result.size());
 			else
-				break;				
-			
+				break;
+
 			delete message;
 
 		}
@@ -108,7 +108,7 @@ void* Connection::run()
 
 	delete m_socket;
 	m_running = false;
-	L.log(net, event, "[%08x] connection closed - active connections: %d", getID(), m_count);
+	L.log(net, trace, "[%08x] connection closed - active connections: %d", getID(), m_count);
 
 	return NULL;
 }
@@ -137,10 +137,10 @@ Network::~Network()
 		connection->join();
 		delete connection;
 	}
-	
+
 	if (m_running == true)
 		stop();
-		
+
 	delete m_Listener;
 }
 
@@ -158,7 +158,7 @@ void* Network::run()
 	FD_ZERO(&checkfds);
 	FD_SET(m_notify.notifyFD(), &checkfds);
 	FD_SET(m_Listener->getFD(), &checkfds);
-	
+
 	(m_notify.notifyFD() > m_Listener->getFD()) ?
 		(maxfd = m_notify.notifyFD()) : (maxfd = m_Listener->getFD());
 
@@ -168,7 +168,7 @@ void* Network::run()
 
 		// set select timeout 1 secs
 		timeout.tv_sec = 1;
-		timeout.tv_usec = 0;		
+		timeout.tv_usec = 0;
 
 		// set readfds to inital checkfds
 		readfds = checkfds;
@@ -178,7 +178,7 @@ void* Network::run()
 			cleanConnections();
 			continue;
 		}
-			
+
 		// new data from notify
 		if (FD_ISSET(m_notify.notifyFD(), &readfds)) {
 			m_running = false;
@@ -190,14 +190,14 @@ void* Network::run()
 			TCPSocket* socket = m_Listener->newSocket();
 			if (socket == NULL)
 				continue;
-				
+
 			Connection* connection = new Connection(socket, m_queue);
 			if (connection == NULL)
 				continue;
 
 			connection->start("netConnection");
 			m_connections.push_back(connection);
-			L.log(net, event, "[%08x] connection opened %s", connection->getID(), socket->getIP().c_str());	
+			L.log(net, trace, "[%08x] connection opened %s", connection->getID(), socket->getIP().c_str());
 		}
 
 	}

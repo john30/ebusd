@@ -28,13 +28,13 @@ extern Appl& A;
 EBusLoop::EBusLoop() : m_stop(false)
 {
 	m_deviceName = A.getParam<const char*>("p_device");
-	
+
 	m_bus = new Bus(m_deviceName,
 			A.getParam<bool>("p_nodevicecheck"),
 			A.getParam<const char*>("p_dumpfile"),
 		        A.getParam<long>("p_dumpsize"),
 		        A.getParam<bool>("p_dump"));
-		        
+
 	m_bus->connect();
 
 	if (m_bus->isConnected() == false)
@@ -44,10 +44,10 @@ EBusLoop::EBusLoop() : m_stop(false)
 EBusLoop::~EBusLoop()
 {
 	m_bus->disconnect();
-	
+
 	if (m_bus->isConnected() == true)
 		L.log(bus, error, "error during disconnect.");
-		
+
 	delete m_bus;
 }
 
@@ -55,7 +55,7 @@ void* EBusLoop::run()
 {
 	int busResult;
 	bool busCommandActive = false;
-	
+
 	for (;;) {
 		if (m_bus->isConnected() == true) {
 
@@ -72,13 +72,16 @@ void* EBusLoop::run()
 			// add new bus command to send
 			if (busResult == 4 && busCommandActive == false && m_sendBuffer.size() != 0) {
 				BusCommand* busCommand = m_sendBuffer.remove();
+				L.log(bus, debug, " type: %s msg: %s",
+				      busCommand->getType().c_str(), busCommand->getCommand().c_str());
 				m_bus->addCommand(busCommand);
+				L.log(bus, debug, " addCommand success");
 				busCommandActive = true;
 			}
 
 			// send bus command
 			if (busResult == 1 && busCommandActive == true) {
-				L.log(bus, event, " getBus success");
+				L.log(bus, trace, " getBus success");
 				m_bus->sendCommand();
 				BusCommand* busCommand = m_bus->recvCommand();
 				L.log(bus, trace, " %s", busCommand->getResult().c_str());
@@ -87,21 +90,21 @@ void* EBusLoop::run()
 			}
 
 			if (busResult == 0)
-				L.log(bus, event, " getBus failure");
+				L.log(bus, trace, " getBus failure");
 
 			if (busResult == -1)
 				L.log(bus, event, " getBus error");
-	
+
 		} else {
 			sleep(10);
 			m_bus->connect();
-			
+
 			if (m_bus->isConnected() == false)
 				L.log(bus, error, "can't open %s", m_deviceName.c_str());
 		}
 
 		if (m_stop == true) {
-			m_bus->disconnect();	
+			m_bus->disconnect();
 			return NULL;
 		}
 	}
