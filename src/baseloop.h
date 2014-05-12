@@ -70,6 +70,7 @@ private:
 			     cyc,  // fetch cycle data
 			     dump, // change dump state
 			     log,  // change log level
+			     help, // print commands
 
 			     notfound
 			   };
@@ -81,6 +82,7 @@ private:
 		if (strcasecmp(item.c_str(), "cyc") == 0) return cyc;
 		if (strcasecmp(item.c_str(), "dump") == 0) return dump;
 		if (strcasecmp(item.c_str(), "log") == 0) return log;
+		if (strcasecmp(item.c_str(), "help") == 0) return help;
 
 		return notfound;
 	}

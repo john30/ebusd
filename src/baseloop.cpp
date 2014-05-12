@@ -213,6 +213,16 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		result << "done";
 		break;
 
+	case help:
+		result << " get  - fetch ebus data      [get class cmd (sub)]" << std::endl
+		       << " set  - set ebus values      [set class cmd value]" << std::endl
+		       << " cyc  - fetch cycle data     [cyc class cmd (sub)]" << std::endl
+		       << " dump - change dump state    [dump on|off]" << std::endl
+		       << " log  - change log level     [log error|event|trace|debug]" << std::endl
+		       << " quit - close connection" << std::endl
+		       << " help - print this page";
+		break;
+
 	default:
 		break;
 	}

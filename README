@@ -16,9 +16,16 @@ Features
    - get   fetch data from ebus participant
    - set   adjust data of ebus participant
    - cyc   fetch data from collected cycle messages
-   - log   change loglevel
    - dump  toggle dump on/off
+   - log   change loglevel
    - quit  close connection
+   - help  print help page
+
+
+Dependency
+----------
+ * libebus (https://github.com/yuhu-/libebus)
+ * glibc
 
 
 Build
