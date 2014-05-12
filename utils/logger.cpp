@@ -37,10 +37,10 @@ LogMessage::LogMessage(const Area area, const Level level, const std::string tex
 	struct timeval tv;
 	struct timezone tz;
 	struct tm* tm;
-	
+
 	gettimeofday(&tv, &tz);
 	tm = localtime(&tv.tv_sec);
-	
+
 	sprintf(&time[0], "%04d-%02d-%02d %02d:%02d:%02d.%03ld",
 		tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday,
 		tm->tm_hour, tm->tm_min, tm->tm_sec, tv.tv_usec/1000);
@@ -65,11 +65,11 @@ void* LogSink::run()
 				while (m_queue.size() == true) {
 					LogMessage* message = m_queue.remove();
 					write(*message);
-					delete message;		
+					delete message;
 				}
 				return NULL;
 			}
-			
+
 		write(*message);
 		delete message;
 	}
@@ -129,7 +129,7 @@ LogInstance& LogInstance::operator+= (LogSink* sink)
 
 	return (*this);
 }
-	
+
 LogInstance& LogInstance::operator-= (const LogSink* sink)
 {
 	sinkCI_t itEnd = m_sinks.end();
@@ -151,12 +151,12 @@ void LogInstance::log(const Area area, const Level level, const std::string& dat
 		char* tmp;
 		va_list ap;
 		va_start(ap, data);
-		
+
 		if (vasprintf(&tmp, data.c_str(), ap) != -1) {
 			std::string buffer(tmp);
-			m_messages.add(new LogMessage(LogMessage(area, level, buffer.c_str(), LogMessage::Run)));
+			m_messages.add(new LogMessage(LogMessage(area, level, buffer, LogMessage::Run)));
 		}
-		
+
 		va_end(ap);
 		free(tmp);
 	}
@@ -166,15 +166,15 @@ void LogInstance::log(const Area area, const Level level, const std::string& dat
 void* LogInstance::run()
 {
 	m_running = true;
-	
+
 	while (m_running == true) {
 		LogMessage* message = m_messages.remove();
 
 		sinkCI_t iter = m_sinks.begin();
-		
+
 		for (; iter != m_sinks.end(); ++iter) {
 			if (*iter != 0) {
-			
+
 				if (((*iter)->getAreas() & message->getArea()
 				&& (*iter)->getLevel() >= message->getLevel())
 				&& message->getStatus() == LogMessage::Run) {
@@ -183,10 +183,10 @@ void* LogInstance::run()
 					(*iter)->addMessage(*message);
 					m_running = false;
 				}
-					
+
 			}
 		}
-		
+
 		delete message;
 
 	}

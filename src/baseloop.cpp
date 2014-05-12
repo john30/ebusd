@@ -48,7 +48,7 @@ void BaseLoop::start()
 		// send result to client
 		result += '\n';
 		Connection* connection = static_cast<Connection*>(message->getSource());
-		connection->addResult(Message(result.c_str()));
+		connection->addResult(Message(result));
 
 		delete message;
 	}
@@ -98,7 +98,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 			if (busCommand->getResult().c_str()[0] != '-') {
 				// decode data
-				Command* command = new Command(index, (*m_commands)[index], busCommand->getResult().c_str());
+				Command* command = new Command(index, (*m_commands)[index], busCommand->getResult());
 
 				// return result
 				result << command->calcResult(cmd);
@@ -106,7 +106,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 				delete command;
 			} else {
 				L.log(bas, error, " %s", busCommand->getResult().c_str());
-				result << busCommand->getResult().c_str();
+				result << busCommand->getResult();
 			}
 
 
@@ -159,7 +159,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 			} else {
 				L.log(bas, error, " %s", busCommand->getResult().c_str());
-				result << busCommand->getResult().c_str();
+				result << busCommand->getResult();
 			}
 
 			delete busCommand;
@@ -184,7 +184,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			cycdata = m_cycdata->getData(index);
 			if (cycdata != "") {
 				// decode data
-				Command* command = new Command(index, (*m_commands)[index], cycdata.c_str());
+				Command* command = new Command(index, (*m_commands)[index], cycdata);
 
 				// return result
 				result << command->calcResult(cmd);

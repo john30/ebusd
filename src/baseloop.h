@@ -37,12 +37,12 @@ public:
 	Message(const std::string data, void* source = NULL) : m_data(data), m_source(source) {}
 	Message(const Message& src) : m_data(src.m_data), m_source(src.m_source) {}
 
-	std::string getData() const { return m_data.c_str(); }
+	std::string getData() const { return m_data; }
 	void* getSource() const { return m_source; }
 
 private:
 	std::string m_data;
-	void* m_source; 
+	void* m_source;
 
 };
 
@@ -52,7 +52,7 @@ class BaseLoop
 public:
 	BaseLoop(EBusLoop* ebusloop, CYCData* cycdata, Commands* commands)
 		: m_ebusloop(ebusloop), m_cycdata(cycdata), m_commands(commands) {}
-		
+
 	void start();
 
 	WQueue<Message*>* getQueue() { return &m_queue; }
@@ -64,7 +64,7 @@ private:
 	Commands* m_commands;
 	WQueue<Message*> m_queue;
 
-	enum ClientCommand { 
+	enum ClientCommand {
 			     get,  // get ebus data
 			     set,  // set ebus value
 			     cyc,  // fetch cycle data
