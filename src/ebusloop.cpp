@@ -35,6 +35,8 @@ EBusLoop::EBusLoop() : m_stop(false)
 		        A.getParam<long>("p_dumpsize"),
 		        A.getParam<bool>("p_dump"));
 
+	m_retries = A.getParam<int>("p_retries");
+
 	m_bus->connect();
 
 	if (m_bus->isConnected() == false)
@@ -54,6 +56,7 @@ EBusLoop::~EBusLoop()
 void* EBusLoop::run()
 {
 	int busResult;
+	int retries = 0;
 	bool busCommandActive = false;
 
 	for (;;) {
@@ -85,8 +88,17 @@ void* EBusLoop::run()
 				m_bus->sendCommand();
 				BusCommand* busCommand = m_bus->recvCommand();
 				L.log(bus, trace, " %s", busCommand->getResult().c_str());
-				m_recvBuffer.add(busCommand);
-				busCommandActive = false;
+
+				if (busCommand->getResult().c_str()[0] == '-' && retries < m_retries) {
+					retries++;
+					L.log(bus, trace, " retry number: %d", retries);
+					busCommand->setResult(std::string());
+					m_bus->addCommand(busCommand);
+				} else {
+					retries = 0;
+					m_recvBuffer.add(busCommand);
+					busCommandActive = false;
+				}
 			}
 
 			if (busResult == 0)
