@@ -78,7 +78,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 	case get:
 		if (cmd.size() < 3) {
-			result << "format: type class cmd [sub]";
+			result << "format: get class cmd (sub)";
 			break;
 		}
 
@@ -120,7 +120,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 	case set:
 		if (cmd.size() != 4) {
-			result << "format: type class cmd value";
+			result << "format: set class cmd value";
 			break;
 		}
 
@@ -173,7 +173,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 	case cyc:
 		if (cmd.size() < 3) {
-			result << "format: type class cmd [sub]";
+			result << "format: cyc class cmd (sub)";
 			break;
 		}
 
@@ -200,12 +200,22 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		break;
 
 	case dump:
+		if (cmd.size() < 2) {
+			result << "format: dump on|off";
+			break;
+		}
+
 		if (cmd[1] == "on")  m_ebusloop->dump(true);
 		if (cmd[1] == "off") m_ebusloop->dump(false);
 		result << "done";
 		break;
 
 	case log:
+		if (cmd.size() < 2) {
+			result << "format: log error|event|trace|debug";
+			break;
+		}
+
 		if (cmd[1] == "error") L.getSink(0)->setLevel(error);
 		if (cmd[1] == "event") L.getSink(0)->setLevel(event);
 		if (cmd[1] == "trace") L.getSink(0)->setLevel(trace);

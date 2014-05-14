@@ -84,11 +84,11 @@ void define_args()
 		  "\tlog file name (default: /var/log/ebus-daemon.log)",
 		  Appl::type_string, Appl::opt_mandatory);
 
-	A.addItem("p_area", Appl::Param(all), "", "logarea",
+	A.addItem("p_logarea", Appl::Param(all), "", "logarea",
 		  "\tlogging area (bas=1, net=2, bus=4, cyc=8, default: all=15)",
 		  Appl::type_int, Appl::opt_mandatory);
 
-	A.addItem("p_level", Appl::Param(trace), "", "loglevel",
+	A.addItem("p_loglevel", Appl::Param(trace), "", "loglevel",
 		  "\tlogging level (error=0, event=1, default: trace=2, debug=3)\n",
 		  Appl::type_int, Appl::opt_mandatory);
 
@@ -196,13 +196,13 @@ int main(int argc, char* argv[])
 
 	// make me Daemon
 	if (A.getParam<bool>("p_foreground") == true) {
-		L += new LogConsole(A.getParam<int>("p_area"),
-				    static_cast<const Level>(A.getParam<int>("p_level")),
+		L += new LogConsole(A.getParam<int>("p_logarea"),
+				    static_cast<const Level>(A.getParam<int>("p_loglevel")),
 				    "logConsole");
 	} else {
 		D.run("/var/run/ebus-daemon.pid");
-		L += new LogFile(A.getParam<int>("p_area"),
-				 static_cast<const Level>(A.getParam<int>("p_level")),
+		L += new LogFile(A.getParam<int>("p_logarea"),
+				 static_cast<const Level>(A.getParam<int>("p_loglevel")),
 				 "logFile", A.getParam<const char*>("p_logfile"));
 	}
 
