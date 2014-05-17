@@ -65,12 +65,13 @@ private:
 	WQueue<Message*> m_queue;
 
 	enum ClientCommand {
-			     get,  // get ebus data
-			     set,  // set ebus value
-			     cyc,  // fetch cycle data
-			     dump, // change dump state
-			     log,  // change log level
-			     help, // print commands
+			     get,       // get ebus data
+			     set,       // set ebus value
+			     cyc,       // fetch cycle data
+			     dump,      // change dump state
+			     logarea,   // change log area
+			     loglevel,  // change log level
+			     help,      // print commands
 
 			     notfound
 			   };
@@ -81,7 +82,8 @@ private:
 		if (strcasecmp(item.c_str(), "set") == 0) return set;
 		if (strcasecmp(item.c_str(), "cyc") == 0) return cyc;
 		if (strcasecmp(item.c_str(), "dump") == 0) return dump;
-		if (strcasecmp(item.c_str(), "log") == 0) return log;
+		if (strcasecmp(item.c_str(), "logarea") == 0) return logarea;
+		if (strcasecmp(item.c_str(), "loglevel") == 0) return loglevel;
 		if (strcasecmp(item.c_str(), "help") == 0) return help;
 
 		return notfound;

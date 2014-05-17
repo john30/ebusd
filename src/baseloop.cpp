@@ -78,7 +78,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 	case get:
 		if (cmd.size() < 3) {
-			result << "format: get class cmd (sub)";
+			result << "format: [get class cmd (sub)]";
 			break;
 		}
 
@@ -120,7 +120,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 	case set:
 		if (cmd.size() != 4) {
-			result << "format: set class cmd value";
+			result << "format: [set class cmd value]";
 			break;
 		}
 
@@ -173,7 +173,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 	case cyc:
 		if (cmd.size() < 3) {
-			result << "format: cyc class cmd (sub)";
+			result << "format: [cyc class cmd (sub)]";
 			break;
 		}
 
@@ -201,7 +201,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 	case dump:
 		if (cmd.size() < 2) {
-			result << "format: dump on|off";
+			result << "format: [dump state] (on|off)";
 			break;
 		}
 
@@ -210,27 +210,35 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		result << "done";
 		break;
 
-	case log:
+	case logarea:
 		if (cmd.size() < 2) {
-			result << "format: log error|event|trace|debug";
+			result << "format: [logarea area,area,..] (bas|net|bus|cyc|all)";
 			break;
 		}
 
-		if (cmd[1] == "error") L.getSink(0)->setLevel(error);
-		if (cmd[1] == "event") L.getSink(0)->setLevel(event);
-		if (cmd[1] == "trace") L.getSink(0)->setLevel(trace);
-		if (cmd[1] == "debug") L.getSink(0)->setLevel(debug);
+		L.getSink(0)->setAreas(calcArea(cmd[1]));
+		result << "done";
+		break;
+
+	case loglevel:
+		if (cmd.size() < 2) {
+			result << "format: [loglevel level] (error|event|trace|debug)";
+			break;
+		}
+
+		L.getSink(0)->setLevel(calcLevel(cmd[1]));
 		result << "done";
 		break;
 
 	case help:
-		result << " get  - fetch ebus data      [get class cmd (sub)]" << std::endl
-		       << " set  - set ebus values      [set class cmd value]" << std::endl
-		       << " cyc  - fetch cycle data     [cyc class cmd (sub)]" << std::endl
-		       << " dump - change dump state    [dump on|off]" << std::endl
-		       << " log  - change log level     [log error|event|trace|debug]" << std::endl
-		       << " quit - close connection" << std::endl
-		       << " help - print this page";
+		result << " get       - fetch ebus data      [get class cmd (sub)]" << std::endl
+		       << " set       - set ebus values      [set class cmd value]" << std::endl
+		       << " cyc       - fetch cycle data     [cyc class cmd (sub)]" << std::endl
+		       << " dump      - change dump state    [dump state] (on|off)" << std::endl
+		       << " logarea   - change log area      [logarea area,area,..] (bas|net|bus|cyc|all)" << std::endl
+		       << " loglevel  - change log level     [loglevel level] (error|event|trace|debug)" << std::endl
+		       << " quit      - close connection" << std::endl
+		       << " help      - print this page";
 		break;
 
 	default:

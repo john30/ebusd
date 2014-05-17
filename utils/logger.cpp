@@ -19,6 +19,7 @@
 
 #include "logger.h"
 #include <iostream>
+#include <sstream>
 #include <fstream>
 #include <cstdio>
 #include <cstring>
@@ -27,10 +28,45 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-static const char* AreaNames[Size_of_Area] = { "bas", "net", "bus" , "cyc" };
+static const char* AreaNames[Size_of_Area] = { "bas", "net", "bus", "cyc" };
 static const char* LevelNames[Size_of_Level] = { "error", "event", "trace", "debug" };
 
-LogMessage::LogMessage(const Area area, const Level level, const std::string text, const Status status)
+int calcArea(const std::string area)
+{
+	int m_area = 0;
+
+	// prepare data
+	std::string token;
+	std::istringstream stream(area);
+	std::vector<std::string> cmd;
+
+	while (std::getline(stream, token, ',') != 0)
+		cmd.push_back(token);
+
+	for (std::vector<std::string>::iterator it = cmd.begin() ; it != cmd.end(); ++it)
+		for (int i = 0; i < Size_of_Area; i++) {
+			if (strcasecmp("all", it->c_str()) == 0)
+				return (pow(2, (int)Size_of_Area) - 1);
+
+			if (strcasecmp(AreaNames[i], it->c_str()) == 0)
+				m_area += pow(2, i);
+		}
+
+	return m_area;
+}
+
+int calcLevel(const std::string level)
+{
+	int m_level = event;
+	for (int i = 0; i < Size_of_Level; i++)
+		if (strcasecmp(LevelNames[i], level.c_str()) == 0)
+			return i;
+
+	return m_level;
+}
+
+
+LogMessage::LogMessage(const int area, const int level, const std::string text, const Status status)
 	: m_area(area), m_level(level), m_text(text), m_status(status)
 {
 	char time[24];
@@ -145,7 +181,7 @@ LogInstance& LogInstance::operator-= (const LogSink* sink)
 	return (*this);
 }
 
-void LogInstance::log(const Area area, const Level level, const std::string& data, ...)
+void LogInstance::log(const int area, const int level, const std::string& data, ...)
 {
 	if (m_running == true) {
 		char* tmp;
