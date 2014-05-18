@@ -108,7 +108,7 @@ void* Connection::run()
 
 	delete m_socket;
 	m_running = false;
-	L.log(net, trace, "[%08x] connection closed - active connections: %d", getID(), m_count);
+	L.log(net, trace, "[%08x] connection closed", getID());
 
 	return NULL;
 }
