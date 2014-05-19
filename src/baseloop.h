@@ -68,6 +68,7 @@ private:
 			     get,       // get ebus data
 			     set,       // set ebus value
 			     cyc,       // fetch cycle data
+			     hex,       // send hex value
 			     dump,      // change dump state
 			     logarea,   // change log area
 			     loglevel,  // change log level
@@ -81,6 +82,7 @@ private:
 		if (strcasecmp(item.c_str(), "get") == 0) return get;
 		if (strcasecmp(item.c_str(), "set") == 0) return set;
 		if (strcasecmp(item.c_str(), "cyc") == 0) return cyc;
+		if (strcasecmp(item.c_str(), "hex") == 0) return hex;
 		if (strcasecmp(item.c_str(), "dump") == 0) return dump;
 		if (strcasecmp(item.c_str(), "logarea") == 0) return logarea;
 		if (strcasecmp(item.c_str(), "loglevel") == 0) return loglevel;

@@ -77,7 +77,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		break;
 
 	case get:
-		if (cmd.size() < 3) {
+		if (cmd.size() < 3 || cmd.size() > 4) {
 			result << "format: [get class cmd (sub)]";
 			break;
 		}
@@ -172,7 +172,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		break;
 
 	case cyc:
-		if (cmd.size() < 3) {
+		if (cmd.size() < 3 || cmd.size() > 4) {
 			result << "format: [cyc class cmd (sub)]";
 			break;
 		}
@@ -199,8 +199,41 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 		break;
 
+	case hex:
+		if (cmd.size() != 3) {
+			result << "format: [hex type value] (ZZ PB SB NN Dx)";
+			break;
+		}
+
+		if ((strcasecmp(cmd[1].c_str(), "MS") == 0)
+		||  (strcasecmp(cmd[1].c_str(), "MM") == 0)
+		||  (strcasecmp(cmd[1].c_str(), "BC") == 0)) {
+
+			std::string type = cmd[1];
+			std::string ebusCommand(A.getParam<const char*>("p_address"));
+			cmd[2].erase(std::remove_if(cmd[2].begin(), cmd[2].end(), isspace), cmd[2].end());
+			ebusCommand += cmd[2];
+			std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
+
+			L.log(bas, trace, " type: %s msg: %s", type.c_str(), ebusCommand.c_str());
+			// send busCommand
+			m_ebusloop->addBusCommand(new BusCommand(type, ebusCommand));
+			BusCommand* busCommand = m_ebusloop->getBusCommand();
+
+			if (busCommand->getResult().c_str()[0] == '-')
+				L.log(bas, error, " %s", busCommand->getResult().c_str());
+
+			result << busCommand->getResult();
+
+			delete busCommand;
+		} else {
+			result << "specified message type is incorrect";
+		}
+
+		break;
+
 	case dump:
-		if (cmd.size() < 2) {
+		if (cmd.size() != 2) {
 			result << "format: [dump state] (on|off)";
 			break;
 		}
@@ -211,7 +244,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		break;
 
 	case logarea:
-		if (cmd.size() < 2) {
+		if (cmd.size() != 2) {
 			result << "format: [logarea area,area,..] (bas|net|bus|cyc|all)";
 			break;
 		}
@@ -221,7 +254,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		break;
 
 	case loglevel:
-		if (cmd.size() < 2) {
+		if (cmd.size() != 2) {
 			result << "format: [loglevel level] (error|event|trace|debug)";
 			break;
 		}
@@ -231,12 +264,14 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		break;
 
 	case help:
-		result << " get       - fetch ebus data      [get class cmd (sub)]" << std::endl
-		       << " set       - set ebus values      [set class cmd value]" << std::endl
-		       << " cyc       - fetch cycle data     [cyc class cmd (sub)]" << std::endl
-		       << " dump      - change dump state    [dump state] (on|off)" << std::endl
-		       << " logarea   - change log area      [logarea area,area,..] (bas|net|bus|cyc|all)" << std::endl
-		       << " loglevel  - change log level     [loglevel level] (error|event|trace|debug)" << std::endl
+		result << std::endl
+		       << " get       - fetch ebus data       [get class cmd (sub)]" << std::endl
+		       << " set       - set ebus values       [set class cmd value]" << std::endl
+		       << " cyc       - fetch cycle data      [cyc class cmd (sub)]" << std::endl
+		       << " hex       - send given hex value  [hex type value] (ZZ PB SB NN Dx)" << std::endl
+		       << " dump      - change dump state     [dump state] (on|off)" << std::endl
+		       << " logarea   - change log area       [logarea area,area,..] (bas|net|bus|cyc|all)" << std::endl
+		       << " loglevel  - change log level      [loglevel level] (error|event|trace|debug)" << std::endl
 		       << " quit      - close connection" << std::endl
 		       << " help      - print this page";
 		break;
