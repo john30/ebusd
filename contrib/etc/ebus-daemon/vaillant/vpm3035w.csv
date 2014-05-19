@@ -1,7 +1,7 @@
 # type;class;cmd;comment;msg type;ZZ;PBSB;NN;D1D2D3;elements;sub;part;position;datatype;factor;unit;valid;comment;sub;part;position;datatype;factor;unit;valid;comment;sub;part;position;datatype;factor;unit;valid;comment;sub;part;position;datatype;factor;unit;valid;comment
-get;vpm3035w;Ntc1Sensor;Ntc1Sensor;MS;0A;B509;3;0D0000;2;temp;sd;1,2;d2c;1.0;°C;-;Temperatur;sensor;sd;3;uch;-;-;-;Fühler;;;;;;;;;;;;;;;;
-get;vpm3035w;Ntc2Sensor;Ntc2Sensor;MS;0A;B509;3;0D0100;2;temp;sd;1,2;d2c;1.0;°C;-;Temperatur;sensor;sd;3;uch;-;-;-;Fühler;;;;;;;;;;;;;;;;
-get;vpm3035w;Ntc3Sensor;Ntc3Sensor;MS;0A;B509;3;0D0200;2;temp;sd;1,2;d2c;1.0;°C;-;Temperatur;sensor;sd;3;uch;-;-;-;Fühler;;;;;;;;;;;;;;;;
+get;vpm3035w;Ntc1;Ntc1 Sensor;MS;0A;B509;3;0D0000;2;temp;sd;1,2;d2c;1.0;°C;-;Temperatur;sensor;sd;3;uch;-;-;-;Fühler;;;;;;;;;;;;;;;;
+get;vpm3035w;Ntc2;Ntc2 Sensor;MS;0A;B509;3;0D0100;2;temp;sd;1,2;d2c;1.0;°C;-;Temperatur;sensor;sd;3;uch;-;-;-;Fühler;;;;;;;;;;;;;;;;
+get;vpm3035w;Ntc3;Ntc3 Sensor;MS;0A;B509;3;0D0200;2;temp;sd;1,2;d2c;1.0;°C;-;Temperatur;sensor;sd;3;uch;-;-;-;Fühler;;;;;;;;;;;;;;;;
 get;vpm3035w;Vortex;Wirbel, Bypass?;MS;0A;B509;3;0D0300;1;-;sd;2,1;uin;-;hz;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;vpm3035w;CircoPumpPower;Zirkulationspumpe Leistung;MS;0A;B509;3;0D0400;1;-;sd;1;uch;-;%;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;vpm3035w;PumpDutyCycle;Pumpe Einschaltdauer;MS;0A;B509;3;0D0500;1;-;sd;1;uch;-;%;-;-;;;;;;;;;;;;;;;;;;;;;;;;
