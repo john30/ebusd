@@ -16,6 +16,7 @@ Features
    - get   fetch data from ebus participant
    - set   adjust data of ebus participant
    - cyc   fetch data from collected cycle messages
+   - hex   send given hex value to ebus (ZZ PB SB NN Dx)
    - dump  toggle dump on/off
    - log   change loglevel
    - quit  close connection
