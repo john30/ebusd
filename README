@@ -1,39 +1,44 @@
-ebus Daemon (ebusd) - README
-============================
+ebusd - README
+--------------
 
-ebus (energy bus) is a bus system used in heating systems.
-The 2-wire bus using a serial communication protocol.
+The ebusd provides a communication interface to the energy bus (ebus)
+which is used in various heating systems.
 
 
-Features:
-=========
+Features
+--------
 
- * ebus - send and receive ebus commands
-   - supported message types are Broadcast, Master-Master and Master-Slave
-   - escape/unescape byte sequences and calculate CRC for transfer
+ * send and receive ebus commands
+   - message types: Broadcast, Master-Master and Master-Slave
    - collect data of cycle messages
-   
- * tcp socket based multi session server
-   
-   Commands:
-   - get        fetch data from ebus participant
-   - set        adjust data of ebus participant
-   - cyc        fetch data from collected cycle messages
-   - loglevel   change loglevel
-   - quit       close connection
-   - shutdown   stop daemon
-   
 
-Build:
-======
+ * tcp socket multi session server (daemon commands)
+   - get   fetch data from ebus participant
+   - set   adjust data of ebus participant
+   - cyc   fetch data from collected cycle messages
+   - hex   send given hex value to ebus (ZZ PB SB NN Dx)
+   - dump  toggle dump on/off
+   - log   change loglevel
+   - quit  close connection
+   - help  print help page
 
-$ ./autogen.sh
-$ ./configure
+
+Dependency
+----------
+ * libebus (https://github.com/yuhu-/libebus)
+ * glibc
+
+
+Build
+-----
+
+$ ./autogen.sh [--prefix=/usr]
 $ make
+$ make install
 
 
-Daemon Configuration:
-=====================
+Daemon Configuration
+--------------------
 
 See ./ebusd -h
 

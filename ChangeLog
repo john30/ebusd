@@ -1,5 +1,16 @@
-ebus Daemon (ebusd) - ChangeLog
-===============================
+ebusd - ChangeLog
+-----------------
+
+2014-05-11  Roland Jax  <roland.jax@liwest.at>
+* ebus-daemon merged into ebusd.
+
+2014-05-11  Roland Jax  <roland.jax@liwest.at>
+* Beta-Test for ebus-daemon started.
+
+2014-01-09  Roland Jax  <roland.jax@liwest.at>
+* Initial commit.
+
+---
 
 2014-03-16:
 * Specific vaillant data type "ttm" (time table minutes) added.
