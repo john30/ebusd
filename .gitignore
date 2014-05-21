@@ -6,8 +6,8 @@
 /config.*
 /configure
 /depcomp
-/ebus-daemon
-/ebus-daemon*.tar.*
+/ebusd
+/ebusd*.tar.*
 /install-sh
 /missing
 /stamp-h?

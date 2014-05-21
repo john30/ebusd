@@ -85,11 +85,11 @@ void define_args()
 		  Appl::type_string, Appl::opt_mandatory);
 
 	A.addItem("p_logarea", Appl::Param("all"), "", "logarea",
-		  "\tlogging area - bas|net|bus|cyc|all (all)",
+		  "\tlog area  - bas|net|bus|cyc|all (all)",
 		  Appl::type_string, Appl::opt_mandatory);
 
 	A.addItem("p_loglevel", Appl::Param("trace"), "", "loglevel",
-		  "\tlogging level - error|event|trace|debug (event)\n",
+		  "\tlog level - error|event|trace|debug (event)\n",
 		  Appl::type_string, Appl::opt_mandatory);
 
 	A.addItem("p_dump", Appl::Param(false), "D", "dump",
