@@ -14,10 +14,10 @@ get;ci;pre_off_time;Vorabschaltzeit;MS;15;B509;3;0D2D00;1;-;sd;1;bcd;1.000;min;-
 get;ci;freeze_wait;Frostschutz-Verzögerung;MS;15;B509;3;0D2E00;1;-;sd;1;bcd;1.000;h;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;ci;temp_error;Temperaturfehlererkennung;MS;15;B509;3;0D3300;1;-;sd;1;bcd;1.000;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;ci;boiler;Pufferspeicher vorhanden;MS;15;B509;3;0D5C00;1;-;sd;1;bcd;1.000;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
-get;ci;yield_transfer;Mitternacht Übertragswert Energieertrag;MS;15;B509;3;0D8600;1;-;sd;1,2,3,4;ulg;1.000;kWh;-;-;;;;;;;;;;;;;;;;;;;;;;;;
+get;ci;yield_transfer;Mitternacht Übertragswert Energieertrag;MS;15;B509;3;0D8600;1;-;sd;4,3,2,1;ulg;1.000;kWh;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;ci;mode;aktueller Betriebsstatus;MS;15;B509;3;0D9700;1;-;sd;1;bcd;1.000;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 # CI-Parameter – HK Namen;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-get;ci;hk16_name;Name vom HK16;MS;15;B509;3;0D4178;1;-;sd;-;asc;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
+get;ci;hk16_name;Name vom HK16;MS;15;B509;3;0D4178;1;-;sd;-;str;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 # CI-Parameter - Energie Ertrag;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 get;ci;yield_jan_act;Energie Januar;MS;15;B509;3;0D8400;1;-;sd;1,2;d2b;256.000;kWh;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;ci;yield_jan_last;Energie Januar Vorjahr;MS;15;B509;3;0D8500;1;-;sd;1,2;d2b;256.000;kWh;-;-;;;;;;;;;;;;;;;;;;;;;;;;
@@ -94,7 +94,7 @@ get;amu;high_eff_pump_perc_heating;Pumpensollwert in% beim Heizen;MS;08;B509;3;0
 #      ;;;;;;;;;;;sd;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 get;amu;bivalentmode;Bivalenzmodus;MS;08;B509;3;0DE301;1;-;sd;1;bcd;1.000;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 # Messwerte;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-get;mv;yield_sum;Energieertrag;MS;08;B509;3;0DBC00;1;-;sd;1,2,3,4;ulg;1.000;kWh;-;-;;;;;;;;;;;;;;;;;;;;;;;;
+get;mv;yield_sum;Energieertrag;MS;08;B509;3;0DBC00;1;-;sd;4,3,2,1;ulg;1.000;kWh;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 get;mv;brine_in;Quellentemperatur;MS;08;B509;3;0D0F00;2;temp;sd;1,2;d2c;1.000;°C;-;Temperatur;stat;sd;3;bcd;1.000;-;-;Status;;;;;;;;;;;;;;;;
 get;mv;brine_out;Austrittstemperatur;MS;08;B509;3;0D0800;2;temp;sd;1,2;d2c;1.000;°C;-;Temperatur;stat;sd;3;bcd;1.000;-;-;Status;;;;;;;;;;;;;;;;
 get;mv;brine_press;Druck Wärmequelle;MS;08;B509;3;0D1600;2;press;sd;1,2;d2b;0.256;bar;-;Druck;stat;sd;3;bcd;1.000;-;-;Status;;;;;;;;;;;;;;;;

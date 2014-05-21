@@ -13,7 +13,7 @@ set;ci;boiler;Pufferspeicher vorhanden;MS;15;B509;4;0E5C00;1;-;sd;1;bcd;1.000;-;
 #set;ci;yield_transfer;MitternachtÜbertragswert Energieertrag;MS;15;B509;7;0E8600;1;-;sd;-;???;-;kWh;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 set;ci;hw_heat_time;Heizzeit max. bei WW-Anforderung;MS;15;B509;4;0E4D00;1;-;sd;1;d1b;1.000;min;-;5-40 Minuten;;;;;;;;;;;;;;;;;;;;;;;;
 # CI-Parameter – HK Namen;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-#set;ci;hk16_name;Name vom HK16;MS;15;B509;3;0E4178;1;-;sd;-;asc;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
+#set;ci;hk16_name;Name vom HK16;MS;15;B509;3;0E4178;1;-;sd;-;str;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 #AMU Zusatzheizung;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 #set;amu;zh;FIXME !!!;MS;-;-;-;-;1;-;sd;-;???;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
 set;amu;zh_bivalent;Zusatzheizung - Bivalenzpunkt;MS;08;B509;5;0E6500;1;-;sd;1,2;d2c;1.000;°C;-;-;;;;;;;;;;;;;;;;;;;;;;;;
