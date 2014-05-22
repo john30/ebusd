@@ -1,7 +1,8 @@
 AC_PREREQ([2.65])
 AC_INIT([ebusd], [0.2.0], [roland.jax@liwest.at], [ebusd], [https://github.com/yuhu-/ebusd])
 
-AM_INIT_AUTOMAKE([1.11 -Wall no-define])
+AC_CONFIG_AUX_DIR([build])
+AM_INIT_AUTOMAKE([1.11 -Wall -Werror foreign])
 
 AC_CONFIG_MACRO_DIR([m4])
 
