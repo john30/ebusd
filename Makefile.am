@@ -24,7 +24,7 @@ dist_noinst_SCRIPTS = autogen.sh
 
 noinst_PROGRAMS = feed
 
-feed_SOURCES = test/feed.cpp \
+feed_SOURCES = tools/feed.cpp \
 	       utils/appl.cpp
 
 feed_LDADD = $(LIBEBUS_LIBS)

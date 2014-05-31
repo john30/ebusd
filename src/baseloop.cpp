@@ -264,7 +264,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		break;
 
 	case help:
-		result << std::endl
+		result << "commands:" << std::endl
 		       << " get       - fetch ebus data       [get class cmd (sub)]" << std::endl
 		       << " set       - set ebus values       [set class cmd value]" << std::endl
 		       << " cyc       - fetch cycle data      [cyc class cmd (sub)]" << std::endl
