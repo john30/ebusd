@@ -58,14 +58,25 @@ int main(int argc, char* argv[])
 		exit(EXIT_SUCCESS);
 	}
 
-	std::cout << "1: " << A.getArg(1) << std::endl;
-	std::cout << "2: " << A.getArg(2) << std::endl;
-
 	TCPClient* client = new TCPClient();
 	TCPSocket* socket = client->connect(A.getParam<const char*>("p_server"), A.getParam<int>("p_port"));
 
 	if (socket != NULL) {
-		socket->send("help", 4);
+		std::string message("hex ");
+		message += A.getArg(1);
+		message += " ";
+		message += A.getArg(2);
+
+		socket->send(message.c_str(), message.size());
+
+		char data[256];
+		size_t datalen;
+
+		datalen = socket->recv(data, sizeof(data)-1);
+		data[datalen] = '\0';
+
+		std::cout << data;
+
 		delete socket;
 	}
 
