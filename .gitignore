@@ -12,4 +12,4 @@
 .deps/
 *.o
 *.dirstamp
-/feed
+/ebusd_feed

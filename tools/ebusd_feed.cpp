@@ -33,11 +33,11 @@ Appl& A = Appl::Instance();
 void define_args()
 {
 	A.addItem("p_device", Appl::Param("/dev/ttyUSB60"), "d", "device",
-		  "dummy serial device (default: /dev/ttyUSB60)\n\t\t(socat -d -d pty,raw,echo=0 pty,raw,echo=0)",
+		  "dummy serial device (default: /dev/ttyUSB60)\n\t\t(hint: socat -d -d pty,raw,echo=0 pty,raw,echo=0)",
 		  Appl::type_string, Appl::opt_mandatory);
 
-	A.addItem("p_file", Appl::Param("test/ebus_dump.bin"), "f", "file",
-		  "dump file with raw data (default: test/ebus_dump.bin)",
+	A.addItem("p_file", Appl::Param(""), "f", "file",
+		  "dump file with raw data",
 		  Appl::type_string, Appl::opt_mandatory);
 
 	A.addItem("p_time", Appl::Param(10000), "t", "time",
