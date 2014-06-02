@@ -18,8 +18,14 @@
  */
 
 #include "tcpsocket.h"
+#include <cstdlib>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <unistd.h>
 #include <fcntl.h>
+#include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netdb.h>
 #include <string.h>
 
 TCPSocket::TCPSocket(int sfd, struct sockaddr_in* address) : m_sfd(sfd)
@@ -39,7 +45,43 @@ bool TCPSocket::isValid()
 }
 
 
-int TCPListener::start()
+TCPSocket* TCPClient::connect(const std::string& server, const int& port)
+{
+	struct sockaddr_in address;
+	int ret;
+
+	memset((char*) &address, 0, sizeof(address));
+
+	if (inet_addr(server.c_str()) == INADDR_NONE) {
+		struct hostent* he;
+
+		he = gethostbyname(server.c_str());
+		if (he == NULL)
+			return NULL;
+
+		memcpy(&address.sin_addr, he->h_addr_list[0], he->h_length);
+	} else {
+		ret = inet_aton(server.c_str(), &address.sin_addr);
+		if (ret == 0)
+			return NULL;
+	}
+
+	address.sin_family = AF_INET;
+	address.sin_port = port;
+
+	int sfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (sfd < 0)
+		return NULL;
+
+	ret = ::connect(sfd, (struct sockaddr*) &address, sizeof(address));
+	if (ret < 0)
+		return NULL;
+
+	return new TCPSocket(sfd, &address);
+}
+
+
+int TCPServer::start()
 {
 	if (m_listening == true)
 		return 0;
@@ -72,7 +114,7 @@ int TCPListener::start()
 	return result;
 }
 
-TCPSocket* TCPListener::newSocket()
+TCPSocket* TCPServer::newSocket()
 {
 	if (m_listening == false)
 		return NULL;
@@ -83,7 +125,6 @@ TCPSocket* TCPListener::newSocket()
 	memset(&address, 0, sizeof(address));
 
 	int sfd = accept(m_lfd, (struct sockaddr*) &address, &len);
-
 	if (sfd < 0)
 		return NULL;
 

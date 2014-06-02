@@ -17,32 +17,22 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#include "libebus.h"
 #include "appl.h"
+#include "tcpsocket.h"
 #include <iostream>
-#include <sstream>
-#include <fstream>
-#include <iomanip>
 #include <cstdlib>
-#include <unistd.h>
-
-using namespace libebus;
 
 Appl& A = Appl::Instance();
 
 void define_args()
 {
-	A.addItem("p_device", Appl::Param("/dev/ttyUSB60"), "d", "device",
-		  "dummy serial device (/dev/ttyUSB60)\n\t\t(hint: socat -d -d pty,raw,echo=0 pty,raw,echo=0)",
+	A.addItem("p_server", Appl::Param("localhost"), "s", "server",
+		  "servername or IP (localhost)",
 		  Appl::type_string, Appl::opt_mandatory);
 
-	A.addItem("p_file", Appl::Param(""), "f", "file",
-		  "dump file with raw data",
-		  Appl::type_string, Appl::opt_mandatory);
-
-	A.addItem("p_time", Appl::Param(10000), "t", "time",
-		  "wait time  [ms] (10000)",
-		  Appl::type_long, Appl::opt_mandatory);
+	A.addItem("p_port", Appl::Param(8888), "p", "port",
+		  "\tport (8888)",
+		  Appl::type_int, Appl::opt_mandatory);
 
 	A.addItem("p_help", Appl::Param(false), "h", "help",
 		  "print this message",
@@ -66,33 +56,14 @@ int main(int argc, char* argv[])
 		exit(EXIT_SUCCESS);
 	}
 
-	std::string dev(A.getParam<const char*>("p_device"));
-	Port port(dev, true);
+	TCPClient* client = new TCPClient();
+	TCPSocket* socket = client->connect(A.getParam<const char*>("p_server"), A.getParam<int>("p_port"));
+	//~ TCPSocket* socket = client->connect(A.getParam<const char*>("p_server"), A.getParam<int>("p_port"));
 
-	port.open();
-	if(port.isOpen() == true)
-		std::cout << "openPort successful." << std::endl;
-
-	std::fstream file(A.getParam<const char*>("p_file"), std::ios::in | std::ios::binary);
-
-	if(file.is_open() == true) {
-
-		while (file.eof() == false) {
-			unsigned char byte = file.get();
-			std::cout << std::hex << std::setw(2) << std::setfill('0')
-			<< static_cast<unsigned>(byte) << std::endl;
-
-			port.send(&byte, 1);
-			usleep(A.getParam<long>("p_time"));
-		}
-
-		file.close();
-	}
-
-	port.close();
-	if(port.isOpen() == false)
-		std::cout << "closePort successful." << std::endl;
+	delete socket;
+	delete client;
 
 	return 0;
 
 }
+

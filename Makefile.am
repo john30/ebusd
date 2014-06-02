@@ -4,7 +4,9 @@ ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 
 AM_CXXFLAGS = $(LIBEBUS_CFLAGS) -I$(top_srcdir)/utils -fpic -Wall -Wextra
 
-bin_PROGRAMS = ebusd ebusd_feed
+bin_PROGRAMS = ebusd \
+	       ebusd_feed \
+	       ebusd_send
 
 ebusd_SOURCES = src/main.cpp \
 	        src/baseloop.cpp \
@@ -26,3 +28,7 @@ ebusd_feed_SOURCES = tools/ebusd_feed.cpp \
 		     utils/appl.cpp
 
 ebusd_feed_LDADD = $(LIBEBUS_LIBS)
+
+ebusd_send_SOURCES = tools/ebusd_send.cpp \
+		     utils/appl.cpp \
+		     utils/tcpsocket.cpp

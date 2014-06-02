@@ -72,7 +72,7 @@ public:
 private:
 	std::list<Connection*> m_connections;
 	WQueue<Message*>* m_queue;
-	TCPListener* m_Listener;
+	TCPServer* m_Server;
 	Notify m_notify;
 	bool m_listening;
 	bool m_running;

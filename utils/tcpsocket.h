@@ -29,7 +29,8 @@ class TCPSocket
 {
 
 public:
-	friend class TCPListener;
+	friend class TCPClient;
+	friend class TCPServer;
 
 	~TCPSocket() { close(m_sfd); }
 
@@ -47,18 +48,28 @@ private:
 	int m_port;
 	std::string  m_ip;
 
-	TCPSocket(int sd, struct sockaddr_in* address);
+	TCPSocket(int sfd, struct sockaddr_in* address);
 
 };
 
-class TCPListener
+class TCPClient
 {
 
 public:
-	TCPListener(int port, std::string address)
+	TCPSocket* connect(const std::string& server, const int& port);
+
+private:
+
+};
+
+class TCPServer
+{
+
+public:
+	TCPServer(const int port, const std::string address)
 		: m_lfd(0), m_port(port), m_address(address), m_listening(false) {}
 
-	~TCPListener() { if (m_lfd > 0) {close(m_lfd);} }
+	~TCPServer() { if (m_lfd > 0) {close(m_lfd);} }
 
 	int start();
 	TCPSocket* newSocket();

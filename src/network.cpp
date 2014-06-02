@@ -117,13 +117,12 @@ void* Connection::run()
 
 Network::Network(const bool localhost) : m_listening(false), m_running(false)
 {
-	// Start Listener
 	if (localhost == true)
-		m_Listener = new TCPListener(A.getParam<int>("p_port"), "127.0.0.1");
+		m_Server = new TCPServer(A.getParam<int>("p_port"), "127.0.0.1");
 	else
-		m_Listener = new TCPListener(A.getParam<int>("p_port"), "0.0.0.0");
+		m_Server = new TCPServer(A.getParam<int>("p_port"), "0.0.0.0");
 
-	if (m_Listener && m_Listener->start() == 0)
+	if (m_Server && m_Server->start() == 0)
 		m_listening = true;
 
 }
@@ -141,7 +140,7 @@ Network::~Network()
 	if (m_running == true)
 		stop();
 
-	delete m_Listener;
+	delete m_Server;
 }
 
 void* Network::run()
@@ -157,10 +156,10 @@ void* Network::run()
 
 	FD_ZERO(&checkfds);
 	FD_SET(m_notify.notifyFD(), &checkfds);
-	FD_SET(m_Listener->getFD(), &checkfds);
+	FD_SET(m_Server->getFD(), &checkfds);
 
-	(m_notify.notifyFD() > m_Listener->getFD()) ?
-		(maxfd = m_notify.notifyFD()) : (maxfd = m_Listener->getFD());
+	(m_notify.notifyFD() > m_Server->getFD()) ?
+		(maxfd = m_notify.notifyFD()) : (maxfd = m_Server->getFD());
 
 	for (;;) {
 		fd_set readfds;
@@ -186,8 +185,8 @@ void* Network::run()
 		}
 
 		// new data from socket
-		if (FD_ISSET(m_Listener->getFD(), &readfds)) {
-			TCPSocket* socket = m_Listener->newSocket();
+		if (FD_ISSET(m_Server->getFD(), &readfds)) {
+			TCPSocket* socket = m_Server->newSocket();
 			if (socket == NULL)
 				continue;
 
