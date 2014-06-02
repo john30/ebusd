@@ -67,7 +67,7 @@ TCPSocket* TCPClient::connect(const std::string& server, const int& port)
 	}
 
 	address.sin_family = AF_INET;
-	address.sin_port = port;
+	address.sin_port = htons(port);
 
 	int sfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sfd < 0)

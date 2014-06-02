@@ -26,12 +26,14 @@ Appl& A = Appl::Instance();
 
 void define_args()
 {
+	A.addArgs("type value", 2);
+
 	A.addItem("p_server", Appl::Param("localhost"), "s", "server",
-		  "servername or IP (localhost)",
+		  "name or ip (localhost)",
 		  Appl::type_string, Appl::opt_mandatory);
 
 	A.addItem("p_port", Appl::Param(8888), "p", "port",
-		  "\tport (8888)",
+		  "port (8888)\n",
 		  Appl::type_int, Appl::opt_mandatory);
 
 	A.addItem("p_help", Appl::Param(false), "h", "help",
@@ -56,11 +58,17 @@ int main(int argc, char* argv[])
 		exit(EXIT_SUCCESS);
 	}
 
+	std::cout << "1: " << A.getArg(1) << std::endl;
+	std::cout << "2: " << A.getArg(2) << std::endl;
+
 	TCPClient* client = new TCPClient();
 	TCPSocket* socket = client->connect(A.getParam<const char*>("p_server"), A.getParam<int>("p_port"));
-	//~ TCPSocket* socket = client->connect(A.getParam<const char*>("p_server"), A.getParam<int>("p_port"));
 
-	delete socket;
+	if (socket != NULL) {
+		socket->send("help", 4);
+		delete socket;
+	}
+
 	delete client;
 
 	return 0;

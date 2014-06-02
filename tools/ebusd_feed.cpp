@@ -32,6 +32,8 @@ Appl& A = Appl::Instance();
 
 void define_args()
 {
+	A.addArgs("", 0);
+
 	A.addItem("p_device", Appl::Param("/dev/ttyUSB60"), "d", "device",
 		  "dummy serial device (/dev/ttyUSB60)\n\t\t(hint: socat -d -d pty,raw,echo=0 pty,raw,echo=0)",
 		  Appl::type_string, Appl::opt_mandatory);
@@ -41,7 +43,7 @@ void define_args()
 		  Appl::type_string, Appl::opt_mandatory);
 
 	A.addItem("p_time", Appl::Param(10000), "t", "time",
-		  "wait time  [ms] (10000)",
+		  "wait time  [ms] (10000)\n",
 		  Appl::type_long, Appl::opt_mandatory);
 
 	A.addItem("p_help", Appl::Param(false), "h", "help",

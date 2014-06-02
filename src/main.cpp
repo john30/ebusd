@@ -48,6 +48,8 @@ CYCData* cycdata;
 
 void define_args()
 {
+	A.addArgs("", 0);
+
 	A.addItem("p_address", Appl::Param("FF"), "a", "address",
 		  "\tebus device address (FF)",
 		  Appl::type_string, Appl::opt_mandatory);

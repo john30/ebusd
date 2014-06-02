@@ -61,6 +61,9 @@ public:
 
 	~Appl();
 
+	void addArgs(const std::string argTxt, const int argNum);
+	std::string getArg(const int argNum) const { return m_argv[m_argc - 1 - m_argNum + argNum]; }
+
 	void addItem(const char* name, Param param, const char* shortname,
 		     const char* longname, const char* description,
 		     Datatype datatype, Optiontype optiontype);
@@ -83,6 +86,9 @@ private:
 		Datatype datatype;
 		Optiontype optiontype;
 	};
+
+	std::string m_argTxt;
+	int m_argNum;
 
 	int m_argc;
 	std::vector<std::string> m_argv;
