@@ -1,6 +1,11 @@
 ebusd - ChangeLog
 -----------------
 
+2014-06-03  Roland Jax  <roland.jax@liwest.at>
+* ebusd_send added.
+* class Appl: program arguments parsing improved.
+* Version changed from 0.2.0 to 0.2.1
+
 2014-05-11  Roland Jax  <roland.jax@liwest.at>
 * ebus-daemon merged into ebusd.
 
@@ -152,7 +157,7 @@ ebusd - ChangeLog
 
 2013-02-22:
 * Added <cr> too each client answer (no need of special config for putty)
-* Minor print cosmetic with cyc commands on Master Slave types 
+* Minor print cosmetic with cyc commands on Master Slave types
 
 2013-02-21:
 * Improved decoding of cyc commands to all ebus message types.
@@ -208,7 +213,7 @@ ebusd - ChangeLog
 
 2013-02-01:
 * Added functions to read ebus command files and load them into nested
-  structure. This will be used to send and decode ebus messages. 
+  structure. This will be used to send and decode ebus messages.
 * Try to read daemon configuration file at daemon directory too.
 * ebus files splitted into ebus-decode and ebus-bus part.
 * Moved log.* from src to lib directory and build liblog.a
@@ -222,7 +227,7 @@ ebusd - ChangeLog
 
 2013-01-24:
 * Added new directory contrib with daemon configuration file
-* Added functions with cfg_ prefix (utils). These parse 
+* Added functions with cfg_ prefix (utils). These parse
   the daemon configuration file and set parameters.
   Priority of given configuration by:
 	1. commandline argurments

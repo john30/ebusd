@@ -44,4 +44,13 @@ Daemon Configuration
 See ./ebusd -h
 
 
+Tools
+-----
+
+ebusd_feed - send dump files via virtual serial device for debugging purpose.
+ebusd_send - small client for sending commands (get, set, cyc and hex) to ebusd.
+
+For usage and further information take a look on help page.
+
+
 The author can be contacted at roland.jax@liwest.at.
