@@ -62,12 +62,12 @@ void Appl::addItem(const char* name, Param param, const char* shortname,
 void Appl::printArgs()
 {
 	std::cerr << std::endl << "Usage:" << std::endl << "  "
-		  << m_argv[0].substr(2) << " [Options]" ;
+		  << m_argv[0].substr(2) << " [OPTIONS...]" ;
 
 	if (m_argTxt.size() != 0)
 		std::cerr << " " << m_argTxt;
 
-	std::cerr << std::endl << std::endl << "Options:" << std::endl;
+	std::cerr << std::endl << std::endl;
 
 	for (a_it = m_args.begin(); a_it < m_args.end(); a_it++) {
 		const char* c = (strlen(a_it->shortname) == 1) ? a_it->shortname : " ";

@@ -26,12 +26,8 @@ Appl& A = Appl::Instance();
 
 void define_args()
 {
-	A.addArgs("Arg1 Arg2 Arg3 (Arg4)\n\n"
-		  "Arg1-4:\n"
-		  "  get class cmd (sub)\n"
-		  "  set class cmd value\n"
-		  "  cyc class cmd (sub)\n"
-		  "  hex type value (value: ZZ PB SB NN Dx)", 3);
+	A.addArgs("COMMAND {ARGS...}\n\n"
+		  "  send 'help' for available commands", 1);
 
 	A.addItem("p_server", Appl::Param("localhost"), "s", "server",
 		  "name or ip (localhost)",
@@ -78,7 +74,7 @@ int main(int argc, char* argv[])
 
 		socket->send(message.c_str(), message.size());
 
-		char data[256];
+		char data[1024];
 		size_t datalen;
 
 		datalen = socket->recv(data, sizeof(data)-1);
