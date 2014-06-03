@@ -2,7 +2,7 @@ ebusd - NEWS
 ------------
 
 2014-06-03  Roland Jax  <roland.jax@liwest.at>
-* ebusd_send added.
+* ebusd_send, ebusd_scan added.
 * Version changed from 0.2.0 to 0.2.1
 
 2014-05-11  Roland Jax  <roland.jax@liwest.at>

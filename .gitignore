@@ -14,3 +14,4 @@
 *.dirstamp
 /ebusd_feed
 /ebusd_send
+/ebusd_scan

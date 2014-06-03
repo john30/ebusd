@@ -6,7 +6,8 @@ AM_CXXFLAGS = $(LIBEBUS_CFLAGS) -I$(top_srcdir)/lib -fpic -Wall -Wextra
 
 bin_PROGRAMS = ebusd \
 	       ebusd_feed \
-	       ebusd_send
+	       ebusd_send \
+	       ebusd_scan
 
 ebusd_SOURCES = src/main.cpp \
 	        src/baseloop.cpp \
@@ -32,3 +33,9 @@ ebusd_feed_LDADD = $(LIBEBUS_LIBS)
 ebusd_send_SOURCES = tool/ebusd_send.cpp \
 		     lib/appl.cpp \
 		     lib/tcpsocket.cpp
+
+ebusd_scan_SOURCES = tool/ebusd_scan.cpp \
+		     lib/appl.cpp \
+		     lib/tcpsocket.cpp
+
+ebusd_scan_LDADD = $(LIBEBUS_LIBS)
