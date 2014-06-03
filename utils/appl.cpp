@@ -121,9 +121,16 @@ bool Appl::parseArgs(int argc, char* argv[])
 
 	// check args
 	if (m_argNum > 0) {
-		for (int i = 0; i <= m_argNum; i++)
-			if (m_argv[m_argc - 1 - i].rfind("-", 0) != std::string::npos)
-				return false;
+		if (m_argc < (m_argNum + 1))
+			return false;
+
+		for (int i = 1; i < m_argc; i++) {
+			if (m_argv[i].rfind("-", 0) != std::string::npos) {
+				i++;
+				continue;
+			}
+			m_argValues.push_back(m_argv[i]);
+		}
 	}
 
 	return true;

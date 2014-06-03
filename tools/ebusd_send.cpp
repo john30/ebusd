@@ -26,7 +26,12 @@ Appl& A = Appl::Instance();
 
 void define_args()
 {
-	A.addArgs("type value", 2);
+	A.addArgs("Arg1 Arg2 Arg3 (Arg4)\n\n"
+		  "Arg1-4:\n"
+		  "  get class cmd (sub)\n"
+		  "  set class cmd value\n"
+		  "  cyc class cmd (sub)\n"
+		  "  hex type value (value: ZZ PB SB NN Dx)", 3);
 
 	A.addItem("p_server", Appl::Param("localhost"), "s", "server",
 		  "name or ip (localhost)",
@@ -58,14 +63,18 @@ int main(int argc, char* argv[])
 		exit(EXIT_SUCCESS);
 	}
 
+	// build message
+	std::string message(A.getArg(0));
+	for (size_t i = 1; i < A.numArg(); i++) {
+		message += " ";
+		message += A.getArg(i);
+	}
+
 	TCPClient* client = new TCPClient();
 	TCPSocket* socket = client->connect(A.getParam<const char*>("p_server"), A.getParam<int>("p_port"));
 
 	if (socket != NULL) {
-		std::string message("hex ");
-		message += A.getArg(1);
-		message += " ";
-		message += A.getArg(2);
+
 
 		socket->send(message.c_str(), message.size());
 
