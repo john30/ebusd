@@ -107,6 +107,45 @@ void define_args()
 		  Appl::type_bool, Appl::opt_none);
 }
 
+void scanVaillant(TCPSocket* socket, const std::string address)
+{
+	std::cout << "   s/n: '";
+	std::string article;
+
+	for (int i = 24; i < 28; i++) {
+		// build message
+		std::string message("hex ms ");
+		message += address;
+		message += "b50901";
+
+		std::stringstream ss;
+		ss << i;
+		message += ss.str();
+
+		socket->send(message.c_str(), message.size());
+
+		char data[256];
+		size_t datalen;
+
+		datalen = socket->recv(data, sizeof(data)-1);
+		data[datalen] = '\0';
+
+		std::string item(data);
+
+		std::ostringstream serial;
+		Decode* help = NULL;
+
+		help = new DecodeSTR(item.substr(18,18));
+		serial << help->decode();
+		delete help;
+		if (i == 25)
+			article = serial.str();
+
+		std::cout << serial.str();
+	}
+	std::cout << "'   item: '" << article << "'";
+}
+
 int main(int argc, char* argv[])
 {
 	// define Arguments and Application variables
@@ -156,14 +195,18 @@ int main(int argc, char* argv[])
 				ident << help->decode();
 				delete help;
 
-				std::cout << s[i] << ":   Manufacturer: '" << manufacturer.find(item.substr(16,2))->second
-					  << "'   Ident: '" << std::setw(5) << std::setfill(' ') << ident.str()
-					  << "'   SW: '" << item.substr(28,2)
+				std::cout << s[i] << ": '" << manufacturer.find(item.substr(16,2))->second
+					  << "'   ident: '" << std::setw(5) << std::setfill(' ') << ident.str()
+					  << "'   sw: '" << item.substr(28,2)
 					  << "." << item.substr(30,2)
-					  << "' HW: '" << item.substr(32,2)
+					  << "' hw: '" << item.substr(32,2)
 					  << "." << item.substr(34,2)
-					  << "'" << std::endl;
+					  << "'";
 
+				if (item.substr(16,2) == "b5")
+					scanVaillant(socket, s[i]);
+
+				std::cout << std::endl;
 			}
 
 			sleep(2);
