@@ -109,8 +109,8 @@ void define_args()
 
 void scanVaillant(TCPSocket* socket, const std::string address)
 {
-	std::cout << "   s/n: '";
-	std::string article;
+	Decode* help = NULL;
+	std::ostringstream sstr;
 
 	for (int i = 24; i < 28; i++) {
 		// build message
@@ -132,18 +132,12 @@ void scanVaillant(TCPSocket* socket, const std::string address)
 
 		std::string item(data);
 
-		std::ostringstream serial;
-		Decode* help = NULL;
-
 		help = new DecodeSTR(item.substr(18,18));
-		serial << help->decode();
+		sstr << help->decode();
 		delete help;
-		if (i == 25)
-			article = serial.str();
-
-		std::cout << serial.str();
 	}
-	std::cout << "'   item: '" << article << "'";
+
+	std::cout << "   s/n: '" << sstr.str().substr(1,28) << "'   item: '" << sstr.str().substr(7,10) << "'";
 }
 
 int main(int argc, char* argv[])
@@ -195,7 +189,7 @@ int main(int argc, char* argv[])
 				ident << help->decode();
 				delete help;
 
-				std::cout << s[i] << ": '" << manufacturer.find(item.substr(16,2))->second
+				std::cout << s[i] << ":   '" << manufacturer.find(item.substr(16,2))->second
 					  << "'   ident: '" << std::setw(5) << std::setfill(' ') << ident.str()
 					  << "'   sw: '" << item.substr(28,2)
 					  << "." << item.substr(30,2)
