@@ -86,7 +86,7 @@ bool Appl::parseArgs(int argc, char* argv[])
 	m_argc = argc;
 	m_argv = _argv;
 
-	for (int i = 1; i < m_argc; i++) {
+	for (size_t i = 1; i < m_argc; i++) {
 
 		// find option with long format '--'
 		if (m_argv[i].rfind("--") == 0 && m_argv[i].size() > 2) {
@@ -124,13 +124,17 @@ bool Appl::parseArgs(int argc, char* argv[])
 		if (m_argc < (m_argNum + 1))
 			return false;
 
-		for (int i = 1; i < m_argc; i++) {
+		for (size_t i = 1; i < m_argc; i++) {
+
 			if (m_argv[i].rfind("-", 0) != std::string::npos) {
 				i++;
 				continue;
 			}
 			m_argValues.push_back(m_argv[i]);
 		}
+
+		if (m_argValues.size() < m_argNum)
+			return false;
 	}
 
 	return true;

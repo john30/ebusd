@@ -88,7 +88,7 @@ private:
 		Optiontype optiontype;
 	};
 
-	int m_argc;
+	size_t m_argc;
 	std::vector<std::string> m_argv;
 
 	std::vector<Arg> m_args;
@@ -98,7 +98,7 @@ private:
 	std::map<const char*, Param>::iterator p_it;
 
 	std::string m_argTxt;
-	int m_argNum;
+	size_t m_argNum;
 
 	std::vector<std::string> m_argValues;
 

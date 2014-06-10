@@ -78,7 +78,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 	case get:
 		if (cmd.size() < 3 || cmd.size() > 4) {
-			result << "format: [get class cmd (sub)]";
+			result << "usage: 'get class cmd (sub)'";
 			break;
 		}
 
@@ -120,7 +120,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 	case set:
 		if (cmd.size() != 4) {
-			result << "format: [set class cmd value]";
+			result << "usage: 'set class cmd value'";
 			break;
 		}
 
@@ -173,7 +173,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 	case cyc:
 		if (cmd.size() < 3 || cmd.size() > 4) {
-			result << "format: [cyc class cmd (sub)]";
+			result << "usage: 'cyc class cmd (sub)'";
 			break;
 		}
 
@@ -201,7 +201,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 	case hex:
 		if (cmd.size() != 3) {
-			result << "format: [hex type value] (ZZ PB SB NN Dx)";
+			result << "usage: 'hex type value' (value: ZZPBSBNNDx)";
 			break;
 		}
 
@@ -234,7 +234,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 	case dump:
 		if (cmd.size() != 2) {
-			result << "format: [dump state] (on|off)";
+			result << "usage: 'dump state' (state: on|off)";
 			break;
 		}
 
@@ -245,7 +245,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 	case logarea:
 		if (cmd.size() != 2) {
-			result << "format: [logarea area,area,..] (bas|net|bus|cyc|all)";
+			result << "usage: 'logarea area,area,..' (area: bas|net|bus|cyc|all)";
 			break;
 		}
 
@@ -255,7 +255,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 	case loglevel:
 		if (cmd.size() != 2) {
-			result << "format: [loglevel level] (error|event|trace|debug)";
+			result << "usage: 'loglevel level' (level: error|event|trace|debug)";
 			break;
 		}
 
@@ -265,13 +265,13 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 	case help:
 		result << "commands:" << std::endl
-		       << " get       - fetch ebus data       [get class cmd (sub)]" << std::endl
-		       << " set       - set ebus values       [set class cmd value]" << std::endl
-		       << " cyc       - fetch cycle data      [cyc class cmd (sub)]" << std::endl
-		       << " hex       - send given hex value  [hex type value] (ZZ PB SB NN Dx)" << std::endl
-		       << " dump      - change dump state     [dump state] (on|off)" << std::endl
-		       << " logarea   - change log area       [logarea area,area,..] (bas|net|bus|cyc|all)" << std::endl
-		       << " loglevel  - change log level      [loglevel level] (error|event|trace|debug)" << std::endl
+		       << " get       - fetch ebus data       'get class cmd (sub)'" << std::endl
+		       << " set       - set ebus values       'set class cmd value'" << std::endl
+		       << " cyc       - fetch cycle data      'cyc class cmd (sub)'" << std::endl
+		       << " hex       - send given hex value  'hex type value' (value: ZZPBSBNNDx)" << std::endl
+		       << " dump      - change dump state     'dump state' (state: on|off)" << std::endl
+		       << " logarea   - change log area       'logarea area,area,..' (area: bas|net|bus|cyc|all)" << std::endl
+		       << " loglevel  - change log level      'loglevel level' (level: error|event|trace|debug)" << std::endl
 		       << " quit      - close connection" << std::endl
 		       << " help      - print this page";
 		break;
