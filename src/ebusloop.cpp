@@ -31,6 +31,7 @@ EBusLoop::EBusLoop() : m_stop(false)
 
 	m_bus = new Bus(m_deviceName,
 			A.getParam<bool>("p_nodevicecheck"),
+			A.getParam<long>("p_recvtimeout"),
 			A.getParam<const char*>("p_dumpfile"),
 		        A.getParam<long>("p_dumpsize"),
 		        A.getParam<bool>("p_dump"));

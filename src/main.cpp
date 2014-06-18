@@ -63,8 +63,12 @@ void define_args()
 		  Appl::type_bool, Appl::opt_none);
 
 	A.addItem("p_retries", Appl::Param(2), "r", "retries",
-		  "\tnumber retries send ebus command (2)\n",
+		  "\tnumber retries send ebus command (2)",
 		  Appl::type_int, Appl::opt_mandatory);
+
+	A.addItem("p_recvtimeout", Appl::Param(15000), "", "recvtimeout",
+		  "receive timeout in 'us' (15000)\n",
+		  Appl::type_long, Appl::opt_mandatory);
 
 	A.addItem("p_ebusconfdir", Appl::Param("/etc/ebusd"), "e", "ebusconfdir",
 		  "directory for ebus configuration (/etc/ebusd)\n",
@@ -103,7 +107,7 @@ void define_args()
 		  Appl::type_string, Appl::opt_mandatory);
 
 	A.addItem("p_dumpsize", Appl::Param(100), "", "dumpsize",
-		  "\tmax size for dump file in kB (100)\n",
+		  "\tmax size for dump file in 'kB' (100)\n",
 		  Appl::type_long, Appl::opt_mandatory);
 
 	A.addItem("p_settings", Appl::Param(false), "", "settings",

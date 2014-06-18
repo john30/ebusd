@@ -25,16 +25,16 @@ ebusd_LDADD = $(LIBEBUS_LIBS) \
 
 dist_noinst_SCRIPTS = autogen.sh
 
-ebusd_feed_SOURCES = tool/ebusd_feed.cpp \
+ebusd_feed_SOURCES = tools/ebusd_feed.cpp \
 		     lib/appl.cpp
 
 ebusd_feed_LDADD = $(LIBEBUS_LIBS)
 
-ebusd_send_SOURCES = tool/ebusd_send.cpp \
+ebusd_send_SOURCES = tools/ebusd_send.cpp \
 		     lib/appl.cpp \
 		     lib/tcpsocket.cpp
 
-ebusd_scan_SOURCES = tool/ebusd_scan.cpp \
+ebusd_scan_SOURCES = tools/ebusd_scan.cpp \
 		     lib/appl.cpp \
 		     lib/tcpsocket.cpp
 
