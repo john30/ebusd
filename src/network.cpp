@@ -194,7 +194,7 @@ void* Network::run()
 			if (connection == NULL)
 				continue;
 
-			connection->start("netConnection");
+			connection->start("connection");
 			m_connections.push_back(connection);
 			L.log(net, trace, "[%08x] connection opened %s", connection->getID(), socket->getIP().c_str());
 		}

@@ -204,12 +204,12 @@ int main(int argc, char* argv[])
 	if (A.getParam<bool>("p_foreground") == true) {
 		L += new LogConsole(calcArea(A.getParam<const char*>("p_logarea")),
 				    calcLevel(A.getParam<const char*>("p_loglevel")),
-				    "logConsole");
+				    "logconsole");
 	} else {
 		D.run("/var/run/ebusd.pid");
 		L += new LogFile(calcArea(A.getParam<const char*>("p_logarea")),
 				 calcLevel(A.getParam<const char*>("p_loglevel")),
-				 "logFile", A.getParam<const char*>("p_logfile"));
+				 "logfile", A.getParam<const char*>("p_logfile"));
 	}
 
 	// trap Signals that we expect to receive
@@ -218,7 +218,7 @@ int main(int argc, char* argv[])
 	signal(SIGTERM, signal_handler);
 
 	// start Logger
-	L.start("logInstance");
+	L.start("logger");
 	// wait for Logger be ready
 	usleep(100000);
 	L.log(bas, event, "ebusd started");
@@ -244,7 +244,7 @@ int main(int argc, char* argv[])
 
 	// start Network
 	network->addQueue(baseloop.getQueue());
-	network->start("netListener");
+	network->start("network");
 
 	// start Baseloop
 	baseloop.start();
