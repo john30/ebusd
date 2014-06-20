@@ -1,0 +1,5 @@
+# Default settings for ebusd. This file is sourced by /bin/sh from
+# /etc/init.d/ebusd.
+
+# Options to pass to ebusd
+#EBUSD_OPTS="--recvtimeout 60000"

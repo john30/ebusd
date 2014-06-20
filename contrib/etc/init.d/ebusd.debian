@@ -11,6 +11,10 @@
 
 PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin
 
+if test -f /etc/default/ebusd; then
+    . /etc/default/ebusd
+fi
+
 . /lib/lsb/init-functions
 
 DAEMON=/usr/bin/ebusd
@@ -21,7 +25,7 @@ test -x $DAEMON || exit 5
 case $1 in
 	start)
 		log_daemon_msg "Starting ebusd" "ebusd"
-  		start-stop-daemon --start --quiet --oknodo --pidfile $PIDFILE --startas $DAEMON
+		start-stop-daemon --start --quiet --oknodo --pidfile $PIDFILE --exec $DAEMON -- $EBUSD_OPTS
 		status=$?
 		log_end_msg $status
   		;;
