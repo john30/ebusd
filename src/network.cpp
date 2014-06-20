@@ -122,7 +122,7 @@ Network::Network(const bool localhost) : m_listening(false), m_running(false)
 	else
 		m_Server = new TCPServer(A.getParam<int>("p_port"), "0.0.0.0");
 
-	if (m_Server && m_Server->start() == 0)
+	if (m_Server != NULL && m_Server->start() == 0)
 		m_listening = true;
 
 }
