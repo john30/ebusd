@@ -21,10 +21,7 @@
 #define WQUEUE_H_
 
 #include <list>
-#include <ctime>
 #include <pthread.h>
-#include <sys/time.h>
-#include <errno.h>
 
 template <typename T> class WQueue
 {
@@ -58,34 +55,6 @@ public:
 
 		while (m_queue.size() == 0)
 			pthread_cond_wait(&m_condv, &m_mutex);
-
-		T item = m_queue.front();
-		m_queue.pop_front();
-
-		pthread_mutex_unlock(&m_mutex);
-
-		return item;
-	}
-
-	T remove(const long delay)
-	{
-		struct timeval tv;
-		struct timezone tz;
-		struct timespec timeout;
-
-		int ret = 0;
-
-		pthread_mutex_lock(&m_mutex);
-
-		gettimeofday(&tv, &tz);
-		timeout.tv_sec = tv.tv_sec + delay;
-		timeout.tv_nsec = tv.tv_usec * 1000;
-
-		while (m_queue.size() == 0 && ret != ETIMEDOUT)
-			ret = pthread_cond_timedwait(&m_condv, &m_mutex, &timeout);
-
-		if (ret == ETIMEDOUT)
-			return NULL;
 
 		T item = m_queue.front();
 		m_queue.pop_front();

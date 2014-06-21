@@ -96,26 +96,21 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			m_ebusloop->addBusCommand(new BusCommand(type, ebusCommand));
 			BusCommand* busCommand = m_ebusloop->getBusCommand();
 
-			if (busCommand != NULL) {
-				if (busCommand->getResult().c_str()[0] != '-') {
-					// decode data
-					Command* command = new Command(index, (*m_commands)[index], busCommand->getResult());
+			if (busCommand->getResult().c_str()[0] != '-') {
+				// decode data
+				Command* command = new Command(index, (*m_commands)[index], busCommand->getResult());
 
-					// return result
-					result << command->calcResult(cmd);
+				// return result
+				result << command->calcResult(cmd);
 
-					delete command;
-				} else {
-					L.log(bas, error, " %s", busCommand->getResult().c_str());
-					result << busCommand->getResult();
-				}
-
-
-				delete busCommand;
+				delete command;
 			} else {
-				L.log(bas, error, " -7: receive timeout");
-				result << "-7: receive timeout";
+				L.log(bas, error, " %s", busCommand->getResult().c_str());
+				result << busCommand->getResult();
 			}
+
+
+			delete busCommand;
 
 		} else {
 			result << "ebus command not found";
@@ -155,25 +150,19 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			m_ebusloop->addBusCommand(new BusCommand(type, ebusCommand));
 			BusCommand* busCommand = m_ebusloop->getBusCommand();
 
-			if (busCommand != NULL) {
-				if (busCommand->getResult().c_str()[0] != '-') {
-					// decode result
-					if (busCommand->getResult().substr(busCommand->getResult().length()-8) == "00000000")
-						result << "done";
-					else
-						result << "error";
+			if (busCommand->getResult().c_str()[0] != '-') {
+				// decode result
+				if (busCommand->getResult().substr(busCommand->getResult().length()-8) == "00000000")
+					result << "done";
+				else
+					result << "error";
 
-				} else {
-					L.log(bas, error, " %s", busCommand->getResult().c_str());
-					result << busCommand->getResult();
-				}
-
-				delete busCommand;
 			} else {
-				L.log(bas, error, " -7: receive timeout");
-				result << "-7: receive timeout";
+				L.log(bas, error, " %s", busCommand->getResult().c_str());
+				result << busCommand->getResult();
 			}
 
+			delete busCommand;
 			delete command;
 
 		} else {
@@ -231,17 +220,12 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			m_ebusloop->addBusCommand(new BusCommand(type, ebusCommand));
 			BusCommand* busCommand = m_ebusloop->getBusCommand();
 
-			if (busCommand != NULL) {
-				if (busCommand->getResult().c_str()[0] == '-')
-					L.log(bas, error, " %s", busCommand->getResult().c_str());
+			if (busCommand->getResult().c_str()[0] == '-')
+				L.log(bas, error, " %s", busCommand->getResult().c_str());
 
-				result << busCommand->getResult();
+			result << busCommand->getResult();
 
-				delete busCommand;
-			} else {
-				L.log(bas, error, " -7: receive timeout");
-				result << "-7: receive timeout";
-			}
+			delete busCommand;
 
 		} else {
 			result << "specified message type is incorrect";

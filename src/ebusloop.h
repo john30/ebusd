@@ -40,7 +40,7 @@ public:
 	std::string getData() { return m_cycBuffer.remove(); }
 
 	void addBusCommand(BusCommand* busCommand) { m_sendBuffer.add(busCommand); }
-	BusCommand* getBusCommand() { return m_recvBuffer.remove(10); }
+	BusCommand* getBusCommand() { return m_recvBuffer.remove(); }
 
 	void dump(const bool dumpState) { m_bus->setDumpState(dumpState); }
 
