@@ -113,8 +113,8 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 				delete busCommand;
 			} else {
-				L.log(bas, error, " busCommand timeout reached");
-				result << "busCommand timeout reached";
+				L.log(bas, error, " -7: receive timeout");
+				result << "-7: receive timeout";
 			}
 
 		} else {
@@ -170,8 +170,8 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 				delete busCommand;
 			} else {
-				L.log(bas, error, " busCommand timeout reached");
-				result << "busCommand timeout reached";
+				L.log(bas, error, " -7: receive timeout");
+				result << "-7: receive timeout";
 			}
 
 			delete command;
@@ -239,8 +239,8 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 				delete busCommand;
 			} else {
-				L.log(bas, error, " busCommand timeout reached");
-				result << "busCommand timeout reached";
+				L.log(bas, error, " -7: receive timeout");
+				result << "-7: receive timeout";
 			}
 
 		} else {
