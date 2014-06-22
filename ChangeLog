@@ -1,6 +1,9 @@
 ebusd - ChangeLog
 -----------------
 
+2014-06-22  Roland Jax  <roland.jax@liwest.at>
+* 'stop' daemon command added.
+
 2014-06-03  Roland Jax  <roland.jax@liwest.at>
 * ebusd_send, ebusd_scan added.
 * class Appl: program arguments parsing improved.

@@ -20,6 +20,7 @@ Features
    - dump      toggle dump on/off
    - logarea   change log area
    - loglevel  change log level
+   - stop      stop daemon
    - quit      close connection
    - help      print help page
 

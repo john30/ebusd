@@ -61,7 +61,7 @@ void* CYCData::run()
 				tmp += (*m_commands)[index][1];
 				tmp += " ";
 				tmp += (*m_commands)[index][2];
-				L.log(cyc, trace, " [%d] %s", index, tmp.c_str());
+				L.log(cyc, event, " [%d] %s", index, tmp.c_str());
 				storeData(index, data);
 			}
 		}

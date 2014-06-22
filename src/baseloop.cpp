@@ -31,6 +31,8 @@ extern Appl& A;
 void BaseLoop::start()
 {
 	for (;;) {
+		std::string result;
+
 		// recv new message from client
 		Message* message = m_queue.remove();
 		std::string data = message->getData();
@@ -41,7 +43,10 @@ void BaseLoop::start()
 		L.log(bas, event, ">>> %s", data.c_str());
 
 		// decode message
-		std::string result(decodeMessage(data));
+		if (strcasecmp(data.c_str(), "stop") != 0)
+			result = decodeMessage(data);
+		else
+			result = "done";
 
 		L.log(bas, event, "<<< %s", result.c_str());
 
@@ -51,6 +56,10 @@ void BaseLoop::start()
 		connection->addResult(Message(result));
 
 		delete message;
+
+		// stop daemon
+		if (strcasecmp(data.c_str(), "stop") == 0)
+			return;
 	}
 }
 
@@ -273,6 +282,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		       << " dump      - change dump state     'dump state' (state: on|off)" << std::endl
 		       << " logarea   - change log area       'logarea area,area,..' (area: bas|net|bus|cyc|all)" << std::endl
 		       << " loglevel  - change log level      'loglevel level' (level: error|event|trace|debug)" << std::endl
+		       << " stop      - stop daemon" << std::endl
 		       << " quit      - close connection" << std::endl
 		       << " help      - print this page";
 		break;
