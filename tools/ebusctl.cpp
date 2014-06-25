@@ -29,6 +29,28 @@ using namespace libebus;
 
 Appl& A = Appl::Instance();
 
+void define_args()
+{
+	A.addArgs("COMMAND {ARGS...}\n\n"
+		  " local commands:\n"
+		  "  'scan' scans the bus and identifies the participant\n\n"
+		  " remote commands:\n"
+		  "   send 'help' to server", 1);
+
+	A.addItem("p_server", Appl::Param("localhost"), "s", "server",
+		  "name or ip (localhost)",
+		  Appl::type_string, Appl::opt_mandatory);
+
+	A.addItem("p_port", Appl::Param(8888), "p", "port",
+		  "port (8888)\n",
+		  Appl::type_int, Appl::opt_mandatory);
+
+	A.addItem("p_help", Appl::Param(false), "h", "help",
+		  "print this message",
+		  Appl::type_bool, Appl::opt_none);
+}
+
+
 template<typename T, size_t N>T * end(T (&ra)[N]) { return ra + N; }
 
 const char *sinit[] = {"02", "04", "05", "06", "08", "09", "0A", "0B", "0C",
@@ -90,23 +112,6 @@ static void addManufacturer()
 	manufacturer.insert(std::make_pair("b5", "Joh. Vaillant GmbH & Co."));
 }
 
-void define_args()
-{
-	A.addArgs("", 0);
-
-	A.addItem("p_server", Appl::Param("localhost"), "s", "server",
-		  "name or ip (localhost)",
-		  Appl::type_string, Appl::opt_mandatory);
-
-	A.addItem("p_port", Appl::Param(8888), "p", "port",
-		  "port (8888)\n",
-		  Appl::type_int, Appl::opt_mandatory);
-
-	A.addItem("p_help", Appl::Param(false), "h", "help",
-		  "print this message",
-		  Appl::type_bool, Appl::opt_none);
-}
-
 void scanVaillant(TCPSocket* socket, const std::string address)
 {
 	Decode* help = NULL;
@@ -140,6 +145,7 @@ void scanVaillant(TCPSocket* socket, const std::string address)
 	std::cout << "   s/n: '" << sstr.str().substr(1,28) << "'   item: '" << sstr.str().substr(7,10) << "'";
 }
 
+
 int main(int argc, char* argv[])
 {
 	// define Arguments and Application variables
@@ -163,47 +169,66 @@ int main(int argc, char* argv[])
 	TCPSocket* socket = client->connect(A.getParam<const char*>("p_server"), A.getParam<int>("p_port"));
 
 	if (socket != NULL) {
-		// send command to all slaves
-		for (size_t i = 0; i < s.size(); i++) {
+		if (strcasecmp(A.getArg(0).c_str(), "scan") != 0) {
 			// build message
-			std::string message("hex ms ");
-			message += s[i];
-			message += "070400";
+			std::string message(A.getArg(0));
+			for (size_t i = 1; i < A.numArg(); i++) {
+				message += " ";
+				message += A.getArg(i);
+			}
 
 			socket->send(message.c_str(), message.size());
 
-			char data[256];
+			char data[1024];
 			size_t datalen;
 
 			datalen = socket->recv(data, sizeof(data)-1);
 			data[datalen] = '\0';
 
-			// decode answer
-			if (strncmp(&data[0], "-", 1) != 0) {
-				std::string item(data);
+			std::cout << data;
+		} else {
+			// send command to all slaves
+			for (size_t i = 0; i < s.size(); i++) {
+				// build message
+				std::string message("hex ms ");
+				message += s[i];
+				message += "070400";
 
-				std::ostringstream ident;
-				Decode* help = NULL;
+				socket->send(message.c_str(), message.size());
 
-				help = new DecodeSTR(item.substr(18,10));
-				ident << help->decode();
-				delete help;
+				char data[256];
+				size_t datalen;
 
-				std::cout << s[i] << ":   '" << manufacturer.find(item.substr(16,2))->second
-					  << "'   ident: '" << std::setw(5) << std::setfill(' ') << ident.str()
-					  << "'   sw: '" << item.substr(28,2)
-					  << "." << item.substr(30,2)
-					  << "' hw: '" << item.substr(32,2)
-					  << "." << item.substr(34,2)
-					  << "'";
+				datalen = socket->recv(data, sizeof(data)-1);
+				data[datalen] = '\0';
 
-				if (item.substr(16,2) == "b5")
-					scanVaillant(socket, s[i]);
+				// decode answer
+				if (strncmp(&data[0], "-", 1) != 0) {
+					std::string item(data);
 
-				std::cout << std::endl;
+					std::ostringstream ident;
+					Decode* help = NULL;
+
+					help = new DecodeSTR(item.substr(18,10));
+					ident << help->decode();
+					delete help;
+
+					std::cout << s[i] << ":   '" << manufacturer.find(item.substr(16,2))->second
+						  << "'   ident: '" << std::setw(5) << std::setfill(' ') << ident.str()
+						  << "'   sw: '" << item.substr(28,2)
+						  << "." << item.substr(30,2)
+						  << "' hw: '" << item.substr(32,2)
+						  << "." << item.substr(34,2)
+						  << "'";
+
+					if (item.substr(16,2) == "b5")
+						scanVaillant(socket, s[i]);
+
+					std::cout << std::endl;
+				}
+
+				sleep(2);
 			}
-
-			sleep(2);
 		}
 
 		delete socket;

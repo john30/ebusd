@@ -12,6 +12,5 @@
 .deps/
 *.o
 *.dirstamp
-/ebusd_feed
-/ebusd_send
-/ebusd_scan
+/ebusctl
+/ebusdump

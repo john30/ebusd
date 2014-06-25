@@ -5,9 +5,8 @@ ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 AM_CXXFLAGS = $(LIBEBUS_CFLAGS) -I$(top_srcdir)/lib -fpic -Wall -Wextra
 
 bin_PROGRAMS = ebusd \
-	       ebusd_feed \
-	       ebusd_send \
-	       ebusd_scan
+	       ebusctl \
+	       ebusdump
 
 ebusd_SOURCES = src/main.cpp \
 	        src/baseloop.cpp \
@@ -25,17 +24,16 @@ ebusd_LDADD = $(LIBEBUS_LIBS) \
 
 dist_noinst_SCRIPTS = autogen.sh
 
-ebusd_feed_SOURCES = tools/ebusd_feed.cpp \
-		     lib/appl.cpp
 
-ebusd_feed_LDADD = $(LIBEBUS_LIBS)
+ebusctl_SOURCES = tools/ebusctl.cpp \
+		  lib/appl.cpp \
+		  lib/tcpsocket.cpp
 
-ebusd_send_SOURCES = tools/ebusd_send.cpp \
-		     lib/appl.cpp \
-		     lib/tcpsocket.cpp
+ebusctl_LDADD = $(LIBEBUS_LIBS)
 
-ebusd_scan_SOURCES = tools/ebusd_scan.cpp \
-		     lib/appl.cpp \
-		     lib/tcpsocket.cpp
 
-ebusd_scan_LDADD = $(LIBEBUS_LIBS)
+ebusdump_SOURCES = tools/ebusdump.cpp \
+		   lib/appl.cpp
+
+ebusdump_LDADD = $(LIBEBUS_LIBS)
+

@@ -48,9 +48,9 @@ See ./ebusd -h
 Tools
 -----
 
-ebusd_feed - send dump files via virtual serial device for debugging purpose.
-ebusd_send - small client for sending commands to ebusd.
-ebusd_scan - scans the bus and identifies the participant.
+ebusctl  - client for ebusd.
+ebusdump - send dump files (virtual serial device) to server for development.
+
 
 For usage and further information take a look on help page.
 
