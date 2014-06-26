@@ -13,4 +13,3 @@
 *.o
 *.dirstamp
 /ebusctl
-/ebusdump

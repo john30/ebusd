@@ -5,8 +5,7 @@ ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 AM_CXXFLAGS = $(LIBEBUS_CFLAGS) -I$(top_srcdir)/lib -fpic -Wall -Wextra
 
 bin_PROGRAMS = ebusd \
-	       ebusctl \
-	       ebusdump
+	       ebusctl
 
 ebusd_SOURCES = src/main.cpp \
 	        src/baseloop.cpp \
@@ -30,10 +29,4 @@ ebusctl_SOURCES = tools/ebusctl.cpp \
 		  lib/tcpsocket.cpp
 
 ebusctl_LDADD = $(LIBEBUS_LIBS)
-
-
-ebusdump_SOURCES = tools/ebusdump.cpp \
-		   lib/appl.cpp
-
-ebusdump_LDADD = $(LIBEBUS_LIBS)
 

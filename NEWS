@@ -1,8 +1,9 @@
 ebusd - NEWS
 ------------
 
-2014-06-25  Roland Jax  <roland.jax@liwest.at>
+2014-06-26  Roland Jax  <roland.jax@liwest.at>
 * ebusctl added (includes ebusd_scan and ebusd_send)
+* ebusdump merged into ebusctl.
 * Version changed from 0.2.1 to 0.3.0
 
 2014-06-03  Roland Jax  <roland.jax@liwest.at>

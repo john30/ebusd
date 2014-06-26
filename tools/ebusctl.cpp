@@ -21,9 +21,12 @@
 #include "appl.h"
 #include "tcpsocket.h"
 #include <iostream>
+#include <sstream>
+#include <fstream>
 #include <iomanip>
 #include <cstdlib>
 #include <utility>
+#include <unistd.h>
 
 using namespace libebus;
 
@@ -33,9 +36,23 @@ void define_args()
 {
 	A.addArgs("COMMAND {ARGS...}\n\n"
 		  " local commands:\n"
-		  "  'scan' scans the bus and identifies the participant\n\n"
+		  "  'scan' scans the bus and identifies the participants\n\n"
+		  "  'feed' sends a dump file to a local virtual serial device\n"
+		  "        (hint: socat -d -d pty,raw,echo=0 pty,raw,echo=0)\n\n"
 		  " remote commands:\n"
 		  "   send 'help' to server", 1);
+
+	A.addItem("p_device", Appl::Param("/dev/ttyUSB60"), "d", "device",
+		  "virtual serial device (/dev/ttyUSB60)",
+		  Appl::type_string, Appl::opt_mandatory);
+
+	A.addItem("p_file", Appl::Param(""), "f", "file",
+		  "dump file with raw data",
+		  Appl::type_string, Appl::opt_mandatory);
+
+	A.addItem("p_time", Appl::Param(10000), "t", "time",
+		  "delay between 2 bytes in 'us' (10000)\n",
+		  Appl::type_long, Appl::opt_mandatory);
 
 	A.addItem("p_server", Appl::Param("localhost"), "s", "server",
 		  "name or ip (localhost)",
@@ -163,78 +180,111 @@ int main(int argc, char* argv[])
 		exit(EXIT_SUCCESS);
 	}
 
-	addManufacturer();
+	if (strcasecmp(A.getArg(0).c_str(), "feed") == 0) {
+		std::string dev(A.getParam<const char*>("p_device"));
+		Port port(dev, true);
 
-	TCPClient* client = new TCPClient();
-	TCPSocket* socket = client->connect(A.getParam<const char*>("p_server"), A.getParam<int>("p_port"));
+		port.open();
+		if(port.isOpen() == true)
+			std::cout << "openPort successful." << std::endl;
 
-	if (socket != NULL) {
-		if (strcasecmp(A.getArg(0).c_str(), "scan") != 0) {
-			// build message
-			std::string message(A.getArg(0));
-			for (size_t i = 1; i < A.numArg(); i++) {
-				message += " ";
-				message += A.getArg(i);
+		std::fstream file(A.getParam<const char*>("p_file"), std::ios::in | std::ios::binary);
+
+		if(file.is_open() == true) {
+
+			while (file.eof() == false) {
+				unsigned char byte = file.get();
+				std::cout << std::hex << std::setw(2) << std::setfill('0')
+				<< static_cast<unsigned>(byte) << std::endl;
+
+				port.send(&byte, 1);
+				usleep(A.getParam<long>("p_time"));
 			}
 
-			socket->send(message.c_str(), message.size());
+			file.close();
+		}
 
-			char data[1024];
-			size_t datalen;
+		port.close();
+		if(port.isOpen() == false)
+			std::cout << "closePort successful." << std::endl;
 
-			datalen = socket->recv(data, sizeof(data)-1);
-			data[datalen] = '\0';
+	} else {
 
-			std::cout << data;
-		} else {
-			// send command to all slaves
-			for (size_t i = 0; i < s.size(); i++) {
+		TCPClient* client = new TCPClient();
+		TCPSocket* socket = client->connect(A.getParam<const char*>("p_server"), A.getParam<int>("p_port"));
+
+		if (socket != NULL) {
+
+			if (strcasecmp(A.getArg(0).c_str(), "scan") == 0) {
+				addManufacturer();
+
+				// send command to all slaves
+				for (size_t i = 0; i < s.size(); i++) {
+					// build message
+					std::string message("hex ms ");
+					message += s[i];
+					message += "070400";
+
+					socket->send(message.c_str(), message.size());
+
+					char data[1024];
+					size_t datalen;
+
+					datalen = socket->recv(data, sizeof(data)-1);
+					data[datalen] = '\0';
+
+					// decode answer
+					if (strncmp(&data[0], "-", 1) != 0) {
+						std::string item(data);
+
+						std::ostringstream ident;
+						Decode* help = NULL;
+
+						help = new DecodeSTR(item.substr(18,10));
+						ident << help->decode();
+						delete help;
+
+						std::cout << s[i] << ":   '" << manufacturer.find(item.substr(16,2))->second
+							  << "'   ident: '" << std::setw(5) << std::setfill(' ') << ident.str()
+							  << "'   sw: '" << item.substr(28,2)
+							  << "." << item.substr(30,2)
+							  << "' hw: '" << item.substr(32,2)
+							  << "." << item.substr(34,2)
+							  << "'";
+
+						if (item.substr(16,2) == "b5")
+							scanVaillant(socket, s[i]);
+
+						std::cout << std::endl;
+					}
+
+					sleep(2);
+				}
+			} else {
 				// build message
-				std::string message("hex ms ");
-				message += s[i];
-				message += "070400";
+				std::string message(A.getArg(0));
+				for (size_t i = 1; i < A.numArg(); i++) {
+					message += " ";
+					message += A.getArg(i);
+				}
 
 				socket->send(message.c_str(), message.size());
 
-				char data[256];
+				char data[1024];
 				size_t datalen;
 
 				datalen = socket->recv(data, sizeof(data)-1);
 				data[datalen] = '\0';
 
-				// decode answer
-				if (strncmp(&data[0], "-", 1) != 0) {
-					std::string item(data);
-
-					std::ostringstream ident;
-					Decode* help = NULL;
-
-					help = new DecodeSTR(item.substr(18,10));
-					ident << help->decode();
-					delete help;
-
-					std::cout << s[i] << ":   '" << manufacturer.find(item.substr(16,2))->second
-						  << "'   ident: '" << std::setw(5) << std::setfill(' ') << ident.str()
-						  << "'   sw: '" << item.substr(28,2)
-						  << "." << item.substr(30,2)
-						  << "' hw: '" << item.substr(32,2)
-						  << "." << item.substr(34,2)
-						  << "'";
-
-					if (item.substr(16,2) == "b5")
-						scanVaillant(socket, s[i]);
-
-					std::cout << std::endl;
-				}
-
-				sleep(2);
+				std::cout << data;
 			}
+
+			delete socket;
 		}
 
-		delete socket;
-	}
+		delete client;
 
-	delete client;
+	}
 
 	return 0;
 

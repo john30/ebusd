@@ -48,8 +48,7 @@ See ./ebusd -h
 Tools
 -----
 
-ebusctl  - client for ebusd.
-ebusdump - send dump files (virtual serial device) to server for development.
+ebusctl  - client program for ebusd.
 
 
 For usage and further information take a look on help page.
