@@ -45,6 +45,12 @@ Daemon Configuration
 See ./ebusd -h
 
 
+Vendor specific configuration files
+-----------------------------------
+
+See https://github.com/yuhu-/ebusd_config
+
+
 Tools
 -----
 

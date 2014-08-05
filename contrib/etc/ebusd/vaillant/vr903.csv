@@ -1,6 +1,0 @@
-# type;class;cmd;comment;msg type;ZZ;PBSB;NN;D1D2D3;elements;sub;part;position;datatype;factor;unit;valid;comment;sub;part;position;datatype;factor;unit;valid;comment;sub;part;position;datatype;factor;unit;valid;comment;sub;part;position;datatype;factor;unit;valid;comment
-get;vr903;RoomTempAct;Raumisttemperatur;MS;1C;B509;3;0D0000;2;temp;sd;1,2;d2c;1.0;°C;-;Temperatur;sensor;sd;3;uch;-;-;-;Fühler;;;;;;;;;;;;;;;;
-get;vr903;RoomTempActOffset;Raumisttemperatur Offset;MS;1C;B509;3;0D1F00;1;-;sd;1,2;d2c;1.0;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
-get;vr903;HolidayPeriod;Ferien Zeitraum;MS;1C;B509;3;0D4300;4;start1;sd;1,2,3;hda;-;-;-;Start 1;start2;sd;5,6,4;hda;-;-;-;Start 2;end1;sd;7,8,9;hda;-;-;-;Ende 1;end2;sd;11,12,10;hda;-;-;-;Ende 2
-get;vr903;RoomSetTempHoliday;Ferien Solltemperatur;MS;1C;B509;3;0D2200;1;-;sd;1,2;d2c;1.0;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
-get;vr903;LcdContrast;Kontrast Display;MS;1C;B509;3;0D3600;1;-;sd;1;uch;-;-;-;-;;;;;;;;;;;;;;;;;;;;;;;;
