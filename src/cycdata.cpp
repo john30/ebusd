@@ -94,7 +94,7 @@ int CYCData::findData(const std::string& data) const
 	if (data.length() < 10)
 		return -3;
 
-	// preapre string for searching command
+	// prepare string for searching command
 	std::string search(data.substr(2, 8 + strtol(data.substr(8,2).c_str(), NULL, 16) * 2));
 
 	std::size_t index;

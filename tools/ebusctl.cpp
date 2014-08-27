@@ -185,28 +185,33 @@ int main(int argc, char* argv[])
 		Port port(dev, true);
 
 		port.open();
-		if(port.isOpen() == true)
+		if(port.isOpen() == true) {
 			std::cout << "openPort successful." << std::endl;
 
-		std::fstream file(A.getParam<const char*>("p_file"), std::ios::in | std::ios::binary);
+			std::fstream file(A.getParam<const char*>("p_file"), std::ios::in | std::ios::binary);
 
-		if(file.is_open() == true) {
+			if(file.is_open() == true) {
 
-			while (file.eof() == false) {
-				unsigned char byte = file.get();
-				std::cout << std::hex << std::setw(2) << std::setfill('0')
-				<< static_cast<unsigned>(byte) << std::endl;
+				while (file.eof() == false) {
+					unsigned char byte = file.get();
+					std::cout << std::hex << std::setw(2) << std::setfill('0')
+					<< static_cast<unsigned>(byte) << std::endl;
 
-				port.send(&byte, 1);
-				usleep(A.getParam<long>("p_time"));
+					port.send(&byte, 1);
+					usleep(A.getParam<long>("p_time"));
+				}
+
+				file.close();
+			} else {
+				std::cout << "error opening file " << A.getParam<const char*>("p_file") << std::endl;
 			}
 
-			file.close();
+			port.close();
+			if(port.isOpen() == false)
+				std::cout << "closePort successful." << std::endl;
+		} else {
+			std::cout << "error opening device " << A.getParam<const char*>("p_device") << std::endl;
 		}
-
-		port.close();
-		if(port.isOpen() == false)
-			std::cout << "closePort successful." << std::endl;
 
 	} else {
 
@@ -280,6 +285,9 @@ int main(int argc, char* argv[])
 			}
 
 			delete socket;
+		} else {
+			std::cout << "error connecting to " << A.getParam<const char*>("p_server")
+				  << ":" << A.getParam<int>("p_port") << std::endl;
 		}
 
 		delete client;
