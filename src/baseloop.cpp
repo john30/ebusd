@@ -161,7 +161,9 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 			if (busCommand->getResult().c_str()[0] != '-') {
 				// decode result
-				if (busCommand->getResult().substr(busCommand->getResult().length()-8) == "00000000")
+				if (strcasecmp(type.c_str(), "BC") == 0)
+					result << "done";
+				else if (busCommand->getResult().substr(busCommand->getResult().length()-8) == "00000000")
 					result << "done";
 				else
 					result << "error";
