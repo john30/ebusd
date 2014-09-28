@@ -27,13 +27,7 @@ extern LogInstance& L;
 CYCData::CYCData(EBusLoop* ebusloop, Commands* commands)
 	: m_ebusloop(ebusloop), m_commands(commands), m_stop(false)
 {
-	for (size_t index = 0; index < commands->size(); index++) {
-		if (strcasecmp((*m_commands)[index][0].c_str(),"cyc") == 0) {
-			Command* cmd = new Command(index, (*m_commands)[index]);
-			m_cycDB.insert(pair_t(index, cmd));
-		}
-	}
-
+	addCommands(m_commands);
 }
 
 CYCData::~CYCData()
@@ -137,5 +131,17 @@ void CYCData::storeData(int index, std::string data)
 		iter->second->setData(data);
 		L.log(cyc, debug, " [%d] data saved", index);
 	}
+}
+
+void CYCData::addCommands(Commands* commands)
+{
+	for (size_t index = 0; index < commands->size(); index++) {
+		if (strcasecmp((*m_commands)[index][0].c_str(),"cyc") == 0) {
+			Command* cmd = new Command(index, (*m_commands)[index]);
+			m_cycDB.insert(pair_t(index, cmd));
+		}
+	}
+
+	L.log(cyc, trace, "%d cycle commands added", m_cycDB.size());
 }
 

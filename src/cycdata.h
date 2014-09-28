@@ -43,6 +43,8 @@ public:
 
 	std::string getData(int index);
 
+	void addCommands(Commands* commands);
+
 private:
 	EBusLoop* m_ebusloop;
 	Commands* m_commands;
