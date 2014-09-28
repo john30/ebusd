@@ -86,13 +86,17 @@ std::string CYCData::getData(int index)
 
 int CYCData::findData(const std::string& data) const
 {
-	// no commands definend
-	if (m_cycDB.size() == 0)
+	// no commands defined
+	if (m_cycDB.size() == 0) {
+		L.log(cyc, debug, " no commands defined");
 		return -2;
+	}
 
-	// skip to small search string length
-	if (data.length() < 10)
+	// search skipped - string too short
+	if (data.length() < 10) {
+		L.log(cyc, debug, " search skipped - string too short");
 		return -3;
+	}
 
 	// prepare string for searching command
 	std::string search(data.substr(2, 8 + strtol(data.substr(8,2).c_str(), NULL, 16) * 2));
@@ -121,6 +125,7 @@ int CYCData::findData(const std::string& data) const
 	}
 
 	// command not found
+	L.log(cyc, debug, " command not found");
 	return -1;
 }
 
