@@ -24,18 +24,6 @@
 
 extern LogInstance& L;
 
-CYCData::CYCData(EBusLoop* ebusloop, Commands* commands)
-	: m_ebusloop(ebusloop), m_commands(commands), m_stop(false)
-{
-	addCommands(m_commands);
-}
-
-CYCData::~CYCData()
-{
-	for (mapCI_t iter = m_cycDB.begin(); iter != m_cycDB.end(); ++iter)
-		delete iter->second;
-}
-
 void* CYCData::run()
 {
 	bool skipfirst = false;
@@ -143,5 +131,11 @@ void CYCData::addCommands(Commands* commands)
 	}
 
 	L.log(cyc, trace, "%d cycle commands added", m_cycDB.size());
+}
+
+void CYCData::delCommands()
+{
+	for (mapCI_t iter = m_cycDB.begin(); iter != m_cycDB.end(); ++iter)
+		delete iter->second;
 }
 

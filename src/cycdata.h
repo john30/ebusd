@@ -35,8 +35,10 @@ class CYCData : public Thread
 {
 
 public:
-	CYCData(EBusLoop* ebusloop, Commands* commands);
-	~CYCData();
+	CYCData(EBusLoop* ebusloop, Commands* commands)
+		: m_ebusloop(ebusloop), m_commands(commands), m_stop(false)
+		{ addCommands(m_commands); }
+	~CYCData() { delCommands(); }
 
 	void* run();
 	void stop() { m_stop = true; }
@@ -44,6 +46,7 @@ public:
 	std::string getData(int index);
 
 	void addCommands(Commands* commands);
+	void delCommands();
 
 private:
 	EBusLoop* m_ebusloop;
