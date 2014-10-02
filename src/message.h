@@ -17,33 +17,27 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef NETWORK_H_
-#define NETWORK_H_
+#ifndef MESSAGE_H_
+#define MESSAGE_H_
 
-#include "connection.h"
+#include <string>
 
-class Network : public Thread
+
+class Message
 {
 
 public:
-	Network(const bool localhost);
-	~Network();
+	Message(const std::string data, void* source = NULL) : m_data(data), m_source(source) {}
+	Message(const Message& src) : m_data(src.m_data), m_source(src.m_source) {}
 
-	void addQueue(WQueue<Message*>* queue) { m_queue = queue; }
-
-	void* run();
-	void stop() const { m_notify.notify(); usleep(100000); }
+	std::string getData() const { return m_data; }
+	void* getSource() const { return m_source; }
 
 private:
-	std::list<Connection*> m_connections;
-	WQueue<Message*>* m_queue;
-	TCPServer* m_Server;
-	Notify m_notify;
-	bool m_listening;
-	bool m_running;
-
-	void cleanConnections();
+	std::string m_data;
+	void* m_source;
 
 };
 
-#endif // NETWORK_H_
+
+#endif // MESSAGE_H_

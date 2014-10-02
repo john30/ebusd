@@ -21,19 +21,8 @@
 #include "logger.h"
 #include "daemon.h"
 #include "appl.h"
-#include "network.h"
-#include "ebusloop.h"
-#include "cycdata.h"
 #include "baseloop.h"
-#include <iostream>
-#include <memory>
 #include <csignal>
-#include <cstring>
-#include <cstdio>
-#include <sstream>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 
 using namespace libebus;
 
@@ -41,10 +30,7 @@ Appl& A = Appl::Instance();
 Daemon& D = Daemon::Instance();
 LogInstance& L = LogInstance::Instance();
 
-Network* network;
-Commands* commands;
-EBusLoop* ebusloop;
-CYCData* cycdata;
+BaseLoop* baseloop;
 
 void define_args()
 {
@@ -121,26 +107,8 @@ void define_args()
 
 void shutdown()
 {
-	// free Network
-	if (network != NULL)
-		delete network;
-
-	// free CYCData
-	if (cycdata != NULL) {
-		cycdata->stop();
-		delete cycdata;
-	}
-
-	// free EBusLoop
-	if (ebusloop != NULL) {
-		ebusloop->stop();
-		ebusloop->join();
-		delete ebusloop;
-	}
-
-	// free Commands DB
-	if (commands != NULL)
-		delete commands;
+	// stop threads
+	delete baseloop;
 
 	// reset all signal handlers to default
 	signal(SIGHUP, SIG_DFL);
@@ -223,32 +191,11 @@ int main(int argc, char* argv[])
 	usleep(100000);
 	L.log(bas, event, "ebusd started");
 
-	// create Commands DB
-	commands = ConfigCommands(A.getParam<const char*>("p_ebusconfdir"), CSV).getCommands();
-	L.log(bas, debug, "ebus configuration dir: %s", A.getParam<const char*>("p_ebusconfdir"));
-	L.log(bas, event, "commands DB with %d entries created", commands->size());
-
-	// create EBusLoop
-	ebusloop = new EBusLoop();
-	ebusloop->start("ebusloop");
-
-	// create CYCData
-	cycdata = new CYCData(ebusloop, commands);
-	cycdata->start("cycdata");
-
-	// create Network
-	network = new Network(A.getParam<bool>("p_localhost"));
-
 	// create BaseLoop
-	BaseLoop baseloop(ebusloop, cycdata, commands);
+	baseloop = new BaseLoop();
+	baseloop->start();
 
-	// start Network
-	network->addQueue(baseloop.getQueue());
-	network->start("network");
-
-	// start Baseloop
-	baseloop.start();
-
+	// shutdown
 	shutdown();
 }
 

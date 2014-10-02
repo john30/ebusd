@@ -22,10 +22,9 @@
 
 #include "libebus.h"
 #include "ebusloop.h"
-#include "thread.h"
-#include <string>
 
 using namespace libebus;
+
 
 typedef std::map<int, Command*> map_t;
 typedef map_t::const_iterator mapCI_t;

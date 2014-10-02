@@ -20,13 +20,54 @@
 #include "baseloop.h"
 #include "logger.h"
 #include "appl.h"
-#include "network.h"
-#include <algorithm>
-#include <sstream>
-#include <unistd.h>
 
 extern LogInstance& L;
 extern Appl& A;
+
+BaseLoop::BaseLoop()
+{
+	// create Commands DB
+	m_commands = ConfigCommands(A.getParam<const char*>("p_ebusconfdir"), CSV).getCommands();
+	L.log(bas, debug, "ebus configuration dir: %s", A.getParam<const char*>("p_ebusconfdir"));
+	L.log(bas, event, "commands DB with %d entries created", m_commands->size());
+
+	// create EBusLoop
+	m_ebusloop = new EBusLoop();
+	m_ebusloop->start("ebusloop");
+
+	// create CYCData
+	m_cycdata = new CYCData(m_ebusloop, m_commands);
+	m_cycdata->start("cycdata");
+
+	// create Network
+	m_network = new Network(A.getParam<bool>("p_localhost"));
+	m_network->addQueue(&m_queue);
+	m_network->start("network");
+}
+
+BaseLoop::~BaseLoop()
+{
+	// free Network
+	if (m_network != NULL)
+		delete m_network;
+
+	// free CYCData
+	if (m_cycdata != NULL) {
+		m_cycdata->stop();
+		delete m_cycdata;
+	}
+
+	// free EBusLoop
+	if (m_ebusloop != NULL) {
+		m_ebusloop->stop();
+		m_ebusloop->join();
+		delete m_ebusloop;
+	}
+
+	// free Commands DB
+	if (m_commands != NULL)
+		delete m_commands;
+}
 
 void BaseLoop::start()
 {
@@ -117,7 +158,6 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 				L.log(bas, error, " %s", busCommand->getResult().c_str());
 				result << busCommand->getResult();
 			}
-
 
 			delete busCommand;
 
@@ -275,17 +315,53 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		result << "done";
 		break;
 
+	//~ case cfgreload:
+
+		// free CYCData
+		//~ if (m_cycdata != NULL) {
+			//~ m_cycdata->stop();
+			//~ delete m_cycdata;
+		//~ }
+
+		// free EBusLoop
+		//~ if (m_ebusloop != NULL) {
+			//~ m_ebusloop->stop();
+			//~ m_ebusloop->join();
+			//~ delete m_ebusloop;
+		//~ }
+
+		// free Commands DB
+		//~ if (m_commands != NULL)
+			//~ delete m_commands;
+
+		// create Commands DB
+		//~ m_commands = ConfigCommands(A.getParam<const char*>("p_ebusconfdir"), CSV).getCommands();
+		//~ L.log(bas, debug, "ebus configuration dir: %s", A.getParam<const char*>("p_ebusconfdir"));
+		//~ L.log(bas, event, "commands DB with %d entries created", m_commands->size());
+
+		// create EBusLoop
+		//~ m_ebusloop = new EBusLoop();
+		//~ m_ebusloop->start("ebusloop");
+
+		// create CYCData
+		//~ m_cycdata = new CYCData(m_ebusloop, m_commands);
+		//~ m_cycdata->start("cycdata");
+
+		//~ result << "done";
+		//~ break;
+
 	case help:
 		result << "commands:" << std::endl
 		       << " get       - fetch ebus data       'get class cmd (sub)'" << std::endl
 		       << " set       - set ebus values       'set class cmd value'" << std::endl
 		       << " cyc       - fetch cycle data      'cyc class cmd (sub)'" << std::endl
-		       << " hex       - send given hex value  'hex type value' (value: ZZPBSBNNDx)" << std::endl
-		       << " dump      - change dump state     'dump state' (state: on|off)" << std::endl
+		       << " hex       - send given hex value  'hex type value' (value: ZZPBSBNNDx)" << std::endl << std::endl
+		       << " dump      - change dump state     'dump state' (state: on|off)" << std::endl << std::endl
 		       << " logarea   - change log area       'logarea area,area,..' (area: bas|net|bus|cyc|all)" << std::endl
-		       << " loglevel  - change log level      'loglevel level' (level: error|event|trace|debug)" << std::endl
+		       << " loglevel  - change log level      'loglevel level' (level: error|event|trace|debug)" << std::endl << std::endl
+		       //~ << " cfgreload - reload ebus configuration" << std::endl << std::endl
 		       << " stop      - stop daemon" << std::endl
-		       << " quit      - close connection" << std::endl
+		       << " quit      - close connection" << std::endl << std::endl
 		       << " help      - print this page";
 		break;
 

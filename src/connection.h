@@ -17,33 +17,42 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef NETWORK_H_
-#define NETWORK_H_
+#ifndef CONNECTION_H_
+#define CONNECTION_H_
 
-#include "connection.h"
+#include "tcpsocket.h"
+#include "wqueue.h"
+#include "message.h"
+#include "notify.h"
+#include "thread.h"
 
-class Network : public Thread
+class Connection : public Thread
 {
 
 public:
-	Network(const bool localhost);
-	~Network();
+	Connection(TCPSocket* socket, WQueue<Message*>* data)
+		: m_socket(socket), m_data(data), m_running(false) { m_count++; }
 
-	void addQueue(WQueue<Message*>* queue) { m_queue = queue; }
+	~Connection() { m_count--; }
+
+	void addResult(Message message);
 
 	void* run();
-	void stop() const { m_notify.notify(); usleep(100000); }
+	void stop() const { m_notify.notify(); }
+	bool isRunning() const { return m_running; }
+
+	pthread_t getID() { return this->self(); }
+	int numConnections() const { return m_count; }
 
 private:
-	std::list<Connection*> m_connections;
-	WQueue<Message*>* m_queue;
-	TCPServer* m_Server;
+	TCPSocket* m_socket;
+	WQueue<Message*>* m_data;
+	WQueue<Message*> m_result;
 	Notify m_notify;
-	bool m_listening;
 	bool m_running;
 
-	void cleanConnections();
+	static int m_count;
 
 };
 
-#endif // NETWORK_H_
+#endif // CONNECTION_H_

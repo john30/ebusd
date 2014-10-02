@@ -21,47 +21,30 @@
 #define BASELOOP_H_
 
 #include "libebus.h"
+#include "network.h"
 #include "ebusloop.h"
 #include "cycdata.h"
-#include "wqueue.h"
-#include <string>
 
 using namespace libebus;
 
-class Connection;
-
-class Message
-{
-
-public:
-	Message(const std::string data, void* source = NULL) : m_data(data), m_source(source) {}
-	Message(const Message& src) : m_data(src.m_data), m_source(src.m_source) {}
-
-	std::string getData() const { return m_data; }
-	void* getSource() const { return m_source; }
-
-private:
-	std::string m_data;
-	void* m_source;
-
-};
 
 class BaseLoop
 {
 
 public:
-	BaseLoop(EBusLoop* ebusloop, CYCData* cycdata, Commands* commands)
-		: m_ebusloop(ebusloop), m_cycdata(cycdata), m_commands(commands) {}
+	BaseLoop();
+	~BaseLoop();
 
 	void start();
 
-	WQueue<Message*>* getQueue() { return &m_queue; }
 	void addMessage(Message* message) { m_queue.add(message); }
 
 private:
-	EBusLoop* m_ebusloop;
-	CYCData* m_cycdata;
 	Commands* m_commands;
+	CYCData* m_cycdata;
+	EBusLoop* m_ebusloop;
+	Network* m_network;
+
 	WQueue<Message*> m_queue;
 
 	enum ClientCommand {
@@ -72,8 +55,8 @@ private:
 			     dump,      // change dump state
 			     logarea,   // change log area
 			     loglevel,  // change log level
+			     //~ cfgreload, // reload ebus configuration
 			     help,      // print commands
-
 			     notfound
 			   };
 
@@ -86,6 +69,7 @@ private:
 		if (strcasecmp(item.c_str(), "dump") == 0) return dump;
 		if (strcasecmp(item.c_str(), "logarea") == 0) return logarea;
 		if (strcasecmp(item.c_str(), "loglevel") == 0) return loglevel;
+		//~ if (strcasecmp(item.c_str(), "cfgreload") == 0) return cfgreload;
 		if (strcasecmp(item.c_str(), "help") == 0) return help;
 
 		return notfound;

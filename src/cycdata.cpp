@@ -19,7 +19,6 @@
 
 #include "cycdata.h"
 #include "logger.h"
-#include <sstream>
 #include <iomanip>
 
 extern LogInstance& L;

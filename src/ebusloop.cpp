@@ -20,7 +20,6 @@
 #include "ebusloop.h"
 #include "logger.h"
 #include "appl.h"
-#include <iostream>
 
 extern LogInstance& L;
 extern Appl& A;
