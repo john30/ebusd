@@ -290,29 +290,31 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			break;
 		}
 
-		if (cmd[1] == "on")  m_ebusloop->dump(true);
-		if (cmd[1] == "off") m_ebusloop->dump(false);
+		if (strcasecmp(cmd[1].c_str(), "on") == 0)  m_ebusloop->dump(true);
+		if (strcasecmp(cmd[1].c_str(), "off") == 0) m_ebusloop->dump(false);
 		result << "done";
 		break;
 
-	case logarea:
-		if (cmd.size() != 2) {
-			result << "usage: 'logarea area,area,..' (area: bas|net|bus|cyc|all)";
+	case log:
+		if (cmd.size () != 3 ) {
+			result << "usage: 'log areas area,area,..' (areas: bas|net|bus|cyc|all)" << std::endl
+			       << "       'log level level'        (level: error|event|trace|debug)";
 			break;
 		}
 
-		L.getSink(0)->setAreas(calcArea(cmd[1]));
-		result << "done";
-		break;
-
-	case loglevel:
-		if (cmd.size() != 2) {
-			result << "usage: 'loglevel level' (level: error|event|trace|debug)";
+		// ToDo: check for possible areas
+		if (strcasecmp(cmd[1].c_str(), "areas") == 0) {
+			L.getSink(0)->setAreas(calcArea(cmd[2]));
+			result << "done";
 			break;
 		}
 
-		L.getSink(0)->setLevel(calcLevel(cmd[1]));
-		result << "done";
+		if (strcasecmp(cmd[1].c_str(), "level") == 0) {
+			L.getSink(0)->setLevel(calcLevel(cmd[2]));
+			result << "done";
+			break;
+		}
+
 		break;
 
 	//~ case cfgreload:
@@ -357,8 +359,8 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		       << " cyc       - fetch cycle data      'cyc class cmd (sub)'" << std::endl
 		       << " hex       - send given hex value  'hex type value' (value: ZZPBSBNNDx)" << std::endl << std::endl
 		       << " dump      - change dump state     'dump state' (state: on|off)" << std::endl << std::endl
-		       << " logarea   - change log area       'logarea area,area,..' (area: bas|net|bus|cyc|all)" << std::endl
-		       << " loglevel  - change log level      'loglevel level' (level: error|event|trace|debug)" << std::endl << std::endl
+		       << " log areas - change log areas      'log areas area,area,..' (areas: bas|net|bus|cyc|all)" << std::endl
+		       << " log level - change log level      'log level level'        (level: error|event|trace|debug)" << std::endl << std::endl
 		       //~ << " cfgreload - reload ebus configuration" << std::endl << std::endl
 		       << " stop      - stop daemon" << std::endl
 		       << " quit      - close connection" << std::endl << std::endl

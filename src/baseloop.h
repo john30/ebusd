@@ -53,8 +53,7 @@ private:
 			     cyc,       // fetch cycle data
 			     hex,       // send hex value
 			     dump,      // change dump state
-			     logarea,   // change log area
-			     loglevel,  // change log level
+			     log,	// change loggins settings
 			     //~ cfgreload, // reload ebus configuration
 			     help,      // print commands
 			     notfound
@@ -67,8 +66,7 @@ private:
 		if (strcasecmp(item.c_str(), "cyc") == 0) return cyc;
 		if (strcasecmp(item.c_str(), "hex") == 0) return hex;
 		if (strcasecmp(item.c_str(), "dump") == 0) return dump;
-		if (strcasecmp(item.c_str(), "logarea") == 0) return logarea;
-		if (strcasecmp(item.c_str(), "loglevel") == 0) return loglevel;
+		if (strcasecmp(item.c_str(), "log") == 0) return log;
 		//~ if (strcasecmp(item.c_str(), "cfgreload") == 0) return cfgreload;
 		if (strcasecmp(item.c_str(), "help") == 0) return help;
 

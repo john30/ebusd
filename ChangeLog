@@ -1,11 +1,12 @@
 ebusd - ChangeLog
 -----------------
 
-2014-10-09  Roland Jax  <roland.jax@liwest.at>
+2014-10-02  Roland Jax  <roland.jax@liwest.at>
 * class Network splitted into classes Network and Connection.
 * class Message separated from class Baseloop.
 * global Objects (network, commands, ebusloop, cycdata) relocated into
   new global Object baseloop.
+* daemon log option reworked (logarea -> logareas; loglevel -> log level).
 
 2014-06-26  Roland Jax  <roland.jax@liwest.at>
 * ebusdump merged into ebusctl.
