@@ -28,31 +28,31 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-static const char* AreaNames[Size_of_Area] = { "bas", "net", "bus", "cyc" };
+static const char* AreaNames[Size_of_Areas] = { "bas", "net", "bus", "cyc" };
 static const char* LevelNames[Size_of_Level] = { "error", "event", "trace", "debug" };
 
-int calcArea(const std::string area)
+int calcAreas(const std::string areas)
 {
-	int m_area = 0;
+	int m_areas = 0;
 
 	// prepare data
 	std::string token;
-	std::istringstream stream(area);
+	std::istringstream stream(areas);
 	std::vector<std::string> cmd;
 
 	while (std::getline(stream, token, ',') != 0)
 		cmd.push_back(token);
 
 	for (std::vector<std::string>::iterator it = cmd.begin() ; it != cmd.end(); ++it)
-		for (int i = 0; i < Size_of_Area; i++) {
+		for (int i = 0; i < Size_of_Areas; i++) {
 			if (strcasecmp("all", it->c_str()) == 0)
-				return (pow(2, (int)Size_of_Area) - 1);
+				return (pow(2, (int)Size_of_Areas) - 1);
 
 			if (strcasecmp(AreaNames[i], it->c_str()) == 0)
-				m_area += pow(2, i);
+				m_areas += pow(2, i);
 		}
 
-	return m_area;
+	return m_areas;
 }
 
 int calcLevel(const std::string level)

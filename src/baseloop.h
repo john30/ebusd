@@ -53,8 +53,8 @@ private:
 			     cyc,       // fetch cycle data
 			     hex,       // send hex value
 			     dump,      // change dump state
-			     log,	// change loggins settings
-			     //~ cfgreload, // reload ebus configuration
+			     log,	// logger settings
+			     config,    // ebus configuration
 			     help,      // print commands
 			     notfound
 			   };
@@ -67,7 +67,7 @@ private:
 		if (strcasecmp(item.c_str(), "hex") == 0) return hex;
 		if (strcasecmp(item.c_str(), "dump") == 0) return dump;
 		if (strcasecmp(item.c_str(), "log") == 0) return log;
-		//~ if (strcasecmp(item.c_str(), "cfgreload") == 0) return cfgreload;
+		if (strcasecmp(item.c_str(), "config") == 0) return config;
 		if (strcasecmp(item.c_str(), "help") == 0) return help;
 
 		return notfound;

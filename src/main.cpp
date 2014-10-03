@@ -76,8 +76,8 @@ void define_args()
 		  "\tlog file name (/var/log/ebusd.log)",
 		  Appl::type_string, Appl::opt_mandatory);
 
-	A.addItem("p_logarea", Appl::Param("all"), "", "logarea",
-		  "\tlog area  - bas|net|bus|cyc|all (all)",
+	A.addItem("p_logareas", Appl::Param("all"), "", "logareas",
+		  "\tlog areas - bas|net|bus|cyc|all (all)",
 		  Appl::type_string, Appl::opt_mandatory);
 
 	A.addItem("p_loglevel", Appl::Param("trace"), "", "loglevel",
@@ -170,12 +170,12 @@ int main(int argc, char* argv[])
 
 	// make me Daemon
 	if (A.getParam<bool>("p_foreground") == true) {
-		L += new LogConsole(calcArea(A.getParam<const char*>("p_logarea")),
+		L += new LogConsole(calcAreas(A.getParam<const char*>("p_logareas")),
 				    calcLevel(A.getParam<const char*>("p_loglevel")),
 				    "logconsole");
 	} else {
 		D.run("/var/run/ebusd.pid");
-		L += new LogFile(calcArea(A.getParam<const char*>("p_logarea")),
+		L += new LogFile(calcAreas(A.getParam<const char*>("p_logareas")),
 				 calcLevel(A.getParam<const char*>("p_loglevel")),
 				 "logfile", A.getParam<const char*>("p_logfile"));
 	}

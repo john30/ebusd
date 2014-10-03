@@ -302,9 +302,9 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			break;
 		}
 
-		// ToDo: check for possible areas
+		// ToDo: check for possible areas and level
 		if (strcasecmp(cmd[1].c_str(), "areas") == 0) {
-			L.getSink(0)->setAreas(calcArea(cmd[2]));
+			L.getSink(0)->setAreas(calcAreas(cmd[2]));
 			result << "done";
 			break;
 		}
@@ -315,53 +315,56 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			break;
 		}
 
+		result << "usage: 'log areas area,area,..' (areas: bas|net|bus|cyc|all)" << std::endl
+		       << "       'log level level'        (level: error|event|trace|debug)";
+
 		break;
 
-	//~ case cfgreload:
+	case config:
+		if (cmd.size() != 2) {
+			result << "usage: 'config list'"  << std::endl
+			       << "       'config reload'";
+			break;
+		}
 
-		// free CYCData
-		//~ if (m_cycdata != NULL) {
-			//~ m_cycdata->stop();
-			//~ delete m_cycdata;
-		//~ }
+		// ToDo: ...
+		if (strcasecmp(cmd[1].c_str(), "list") == 0) {
+			result << "done";
+			break;
+		}
 
-		// free EBusLoop
-		//~ if (m_ebusloop != NULL) {
-			//~ m_ebusloop->stop();
-			//~ m_ebusloop->join();
-			//~ delete m_ebusloop;
-		//~ }
+		if (strcasecmp(cmd[1].c_str(), "reload") == 0) {
 
-		// free Commands DB
-		//~ if (m_commands != NULL)
-			//~ delete m_commands;
+			m_cycdata->delCommands();
+			delete m_commands;
 
-		// create Commands DB
-		//~ m_commands = ConfigCommands(A.getParam<const char*>("p_ebusconfdir"), CSV).getCommands();
-		//~ L.log(bas, debug, "ebus configuration dir: %s", A.getParam<const char*>("p_ebusconfdir"));
-		//~ L.log(bas, event, "commands DB with %d entries created", m_commands->size());
+			// create Commands DB
+			m_commands = ConfigCommands(A.getParam<const char*>("p_ebusconfdir"), CSV).getCommands();
+			L.log(bas, debug, "ebus configuration dir: %s", A.getParam<const char*>("p_ebusconfdir"));
+			L.log(bas, event, "commands DB with %d entries created", m_commands->size());
 
-		// create EBusLoop
-		//~ m_ebusloop = new EBusLoop();
-		//~ m_ebusloop->start("ebusloop");
+			// add commands to cycDB
+			m_cycdata->addCommands(m_commands);
 
-		// create CYCData
-		//~ m_cycdata = new CYCData(m_ebusloop, m_commands);
-		//~ m_cycdata->start("cycdata");
+			result << "done";
+			break;
+		}
 
-		//~ result << "done";
-		//~ break;
+		result << "usage: 'config list'"  << std::endl
+		       << "       'config reload'";
+		break;
 
 	case help:
 		result << "commands:" << std::endl
-		       << " get       - fetch ebus data       'get class cmd (sub)'" << std::endl
-		       << " set       - set ebus values       'set class cmd value'" << std::endl
-		       << " cyc       - fetch cycle data      'cyc class cmd (sub)'" << std::endl
-		       << " hex       - send given hex value  'hex type value' (value: ZZPBSBNNDx)" << std::endl << std::endl
-		       << " dump      - change dump state     'dump state' (state: on|off)" << std::endl << std::endl
-		       << " log areas - change log areas      'log areas area,area,..' (areas: bas|net|bus|cyc|all)" << std::endl
-		       << " log level - change log level      'log level level'        (level: error|event|trace|debug)" << std::endl << std::endl
-		       //~ << " cfgreload - reload ebus configuration" << std::endl << std::endl
+		       << " get       - fetch ebus data           'get class cmd (sub)'" << std::endl
+		       << " set       - set ebus values           'set class cmd value'" << std::endl
+		       << " cyc       - fetch cycle data          'cyc class cmd (sub)'" << std::endl
+		       << " hex       - send given hex value      'hex type value' (value: ZZPBSBNNDx)" << std::endl << std::endl
+		       << " dump      - change dump state         'dump state' (state: on|off)" << std::endl << std::endl
+		       << " log       - change log areas          'log areas area,area,..' (areas: bas|net|bus|cyc|all)" << std::endl
+		       << "           - change log level          'log level level'        (level: error|event|trace|debug)" << std::endl << std::endl
+		       << " config    - list ebus configuration   'config list'" << std::endl
+		       << "           - reload ebus configuration 'config reload'" << std::endl << std::endl
 		       << " stop      - stop daemon" << std::endl
 		       << " quit      - close connection" << std::endl << std::endl
 		       << " help      - print this page";

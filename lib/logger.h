@@ -28,10 +28,10 @@
 #include <vector>
 #include <cstdarg>
 
-enum Area  { bas=1, net=2, bus=4, cyc=8, all=15, Size_of_Area=4 };
+enum Areas  { bas=1, net=2, bus=4, cyc=8, all=15, Size_of_Areas=4 };
 enum Level { error=0, event, trace, debug, Size_of_Level };
 
-int calcArea(const std::string area);
+int calcAreas(const std::string areas);
 int calcLevel(const std::string level);
 
 

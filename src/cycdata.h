@@ -22,6 +22,7 @@
 
 #include "libebus.h"
 #include "ebusloop.h"
+#include <map>
 
 using namespace libebus;
 
@@ -35,8 +36,8 @@ class CYCData : public Thread
 
 public:
 	CYCData(EBusLoop* ebusloop, Commands* commands)
-		: m_ebusloop(ebusloop), m_commands(commands), m_stop(false)
-		{ addCommands(m_commands); }
+		: m_ebusloop(ebusloop), m_stop(false)
+		{ addCommands(commands); }
 	~CYCData() { delCommands(); }
 
 	void* run();

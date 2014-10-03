@@ -122,6 +122,8 @@ void CYCData::storeData(int index, std::string data)
 
 void CYCData::addCommands(Commands* commands)
 {
+	m_commands = commands;
+
 	for (size_t index = 0; index < commands->size(); index++) {
 		if (strcasecmp((*m_commands)[index][0].c_str(),"cyc") == 0) {
 			Command* cmd = new Command(index, (*m_commands)[index]);
@@ -136,5 +138,7 @@ void CYCData::delCommands()
 {
 	for (mapCI_t iter = m_cycDB.begin(); iter != m_cycDB.end(); ++iter)
 		delete iter->second;
+
+	m_cycDB.clear();
 }
 
