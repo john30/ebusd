@@ -28,7 +28,7 @@
 #include <vector>
 #include <cstdarg>
 
-enum Areas  { bas=1, net=2, bus=4, cyc=8, all=15, Size_of_Areas=4 };
+enum Areas  { bas=1, net=2, bus=4, all=7, Size_of_Areas=3 };
 enum Level { error=0, event, trace, debug, Size_of_Level };
 
 int calcAreas(const std::string areas);

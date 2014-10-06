@@ -23,7 +23,6 @@
 #include "libebus.h"
 #include "network.h"
 #include "ebusloop.h"
-#include "cycdata.h"
 
 using namespace libebus;
 
@@ -41,7 +40,6 @@ public:
 
 private:
 	Commands* m_commands;
-	CYCData* m_cycdata;
 	EBusLoop* m_ebusloop;
 	Network* m_network;
 

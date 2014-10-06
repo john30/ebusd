@@ -15,7 +15,6 @@ ebusd_SOURCES = lib/appl.cpp \
 		src/connection.cpp \
 		src/network.cpp \
 		src/ebusloop.cpp \
-		src/cycdata.cpp \
 		src/baseloop.cpp \
 		src/main.cpp
 

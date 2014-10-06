@@ -24,7 +24,7 @@
 extern LogInstance& L;
 extern Appl& A;
 
-EBusLoop::EBusLoop() : m_stop(false)
+EBusLoop::EBusLoop(Commands* commands) : m_commands(commands), m_stop(false)
 {
 	m_deviceName = A.getParam<const char*>("p_device");
 
@@ -68,8 +68,29 @@ void* EBusLoop::run()
 			// new cyc message arrived
 			if (busResult == 2) {
 				std::string data = m_bus->getCycData();
-				L.log(bus, debug, "%s", data.c_str());
-				m_cycBuffer.add(data);
+				L.log(bus, trace, "%s", data.c_str());
+
+				int index = m_commands->storeData(data);
+
+				if (index == -1) {
+					L.log(bus, debug, " command not found");
+
+				} else if (index == -2) {
+					L.log(bus, debug, " no commands defined");
+
+				} else if (index == -3) {
+					L.log(bus, debug, " search skipped - string too short");
+
+				} else {
+					std::string tmp;
+					tmp += (*m_commands)[index][0];
+					tmp += " ";
+					tmp += (*m_commands)[index][1];
+					tmp += " ";
+					tmp += (*m_commands)[index][2];
+					L.log(bus, event, " [%d] %s", index, tmp.c_str());
+				}
+
 			}
 
 			// add new bus command to send

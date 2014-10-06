@@ -1,6 +1,9 @@
 ebusd - ChangeLog
 -----------------
 
+2014-10-06  Roland Jax  <roland.jax@liwest.at>
+* class CYCData deleted; functionality is moved into libebus.
+
 2014-10-03  Roland Jax  <roland.jax@liwest.at>
 * class Logger: minor name changes.
 * class CYCData: delCommands fixed.

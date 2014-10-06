@@ -28,7 +28,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-static const char* AreaNames[Size_of_Areas] = { "bas", "net", "bus", "cyc" };
+static const char* AreaNames[Size_of_Areas] = { "bas", "net", "bus", };
 static const char* LevelNames[Size_of_Level] = { "error", "event", "trace", "debug" };
 
 int calcAreas(const std::string areas)
@@ -232,6 +232,5 @@ void* LogInstance::run()
 void LogInstance::stop()
 {
 	m_messages.add(new LogMessage(LogMessage(bas, error, "", LogMessage::End)));
-	// TODO: Improve this method
 	usleep(100000);
 }

@@ -29,15 +29,12 @@ BaseLoop::BaseLoop()
 	// create Commands DB
 	m_commands = ConfigCommands(A.getParam<const char*>("p_ebusconfdir"), CSV).getCommands();
 	L.log(bas, debug, "ebus configuration dir: %s", A.getParam<const char*>("p_ebusconfdir"));
-	L.log(bas, event, "commands DB with %d entries created", m_commands->size());
+	L.log(bas, event, "commands DB with %d entries created", m_commands->sizeCmd());
+	L.log(bas, event, "    data DB with %d entries created", m_commands->sizeData());
 
 	// create EBusLoop
-	m_ebusloop = new EBusLoop();
+	m_ebusloop = new EBusLoop(m_commands);
 	m_ebusloop->start("ebusloop");
-
-	// create CYCData
-	m_cycdata = new CYCData(m_ebusloop, m_commands);
-	m_cycdata->start("cycdata");
 
 	// create Network
 	m_network = new Network(A.getParam<bool>("p_localhost"));
@@ -50,12 +47,6 @@ BaseLoop::~BaseLoop()
 	// free Network
 	if (m_network != NULL)
 		delete m_network;
-
-	// free CYCData
-	if (m_cycdata != NULL) {
-		m_cycdata->stop();
-		delete m_cycdata;
-	}
 
 	// free EBusLoop
 	if (m_ebusloop != NULL) {
@@ -232,7 +223,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 		if (index >= 0) {
 			// get cycdata
-			cycdata = m_cycdata->getData(index);
+			cycdata = m_commands->getData(index);
 			if (cycdata != "") {
 				// decode data
 				Command* command = new Command(index, (*m_commands)[index], cycdata);
@@ -329,22 +320,21 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 		// ToDo: ...
 		if (strcasecmp(cmd[1].c_str(), "list") == 0) {
-			result << "done";
+			result << "not implemented yet";
 			break;
 		}
 
 		if (strcasecmp(cmd[1].c_str(), "reload") == 0) {
 
-			m_cycdata->delCommands();
 			delete m_commands;
 
 			// create Commands DB
 			m_commands = ConfigCommands(A.getParam<const char*>("p_ebusconfdir"), CSV).getCommands();
 			L.log(bas, debug, "ebus configuration dir: %s", A.getParam<const char*>("p_ebusconfdir"));
-			L.log(bas, event, "commands DB with %d entries created", m_commands->size());
+			L.log(bas, event, "commands DB with %d entries created", m_commands->sizeCmd());
+			L.log(bas, event, "    data DB with %d entries created", m_commands->sizeData());
 
-			// add commands to cycDB
-			m_cycdata->addCommands(m_commands);
+			m_ebusloop->newCommands(m_commands);
 
 			result << "done";
 			break;
@@ -359,8 +349,8 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		       << " get       - fetch ebus data           'get class cmd (sub)'" << std::endl
 		       << " set       - set ebus values           'set class cmd value'" << std::endl
 		       << " cyc       - fetch cycle data          'cyc class cmd (sub)'" << std::endl
-		       << " hex       - send given hex value      'hex type value' (value: ZZPBSBNNDx)" << std::endl << std::endl
-		       << " dump      - change dump state         'dump state' (state: on|off)" << std::endl << std::endl
+		       << " hex       - send given hex value      'hex type value'         (value: ZZPBSBNNDx)" << std::endl << std::endl
+		       << " dump      - change dump state         'dump state'             (state: on|off)" << std::endl << std::endl
 		       << " log       - change log areas          'log areas area,area,..' (areas: bas|net|bus|cyc|all)" << std::endl
 		       << "           - change log level          'log level level'        (level: error|event|trace|debug)" << std::endl << std::endl
 		       << " config    - list ebus configuration   'config list'" << std::endl

@@ -31,23 +31,23 @@ class EBusLoop : public Thread
 {
 
 public:
-	EBusLoop();
+	EBusLoop(Commands* commands);
 	~EBusLoop();
 
 	void* run();
 	void stop() { m_stop = true; }
-
-	std::string getData() { return m_cycBuffer.remove(); }
 
 	void addBusCommand(BusCommand* busCommand) { m_sendBuffer.add(busCommand); }
 	BusCommand* getBusCommand() { return m_recvBuffer.remove(); }
 
 	void dump(const bool dumpState) { m_bus->setDumpState(dumpState); }
 
+	void newCommands(Commands* commands) { m_commands = commands; }
+
 private:
+	Commands* m_commands;
 	std::string m_deviceName;
 	Bus* m_bus;
-	WQueue<std::string> m_cycBuffer;
 	bool m_stop;
 	WQueue<BusCommand*> m_sendBuffer;
 	WQueue<BusCommand*> m_recvBuffer;

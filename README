@@ -13,16 +13,18 @@ Features
    - collect data of cycle messages
 
  * tcp socket multi session server (daemon commands)
-   - get       fetch data from ebus participant
-   - set       adjust data of ebus participant
-   - cyc       fetch data from collected cycle messages
-   - hex       send given hex value to ebus (ZZ PB SB NN Dx)
-   - dump      toggle dump on/off
-   - logarea   change log area
-   - loglevel  change log level
-   - stop      stop daemon
-   - quit      close connection
-   - help      print help page
+   - get            fetch data from ebus participant
+   - set            adjust data of ebus participant
+   - cyc            fetch data from collected cycle messages
+   - hex            send given hex value to ebus (ZZ PB SB NN Dx)
+   - dump           toggle dump on/off
+   - log areas      change log areas
+   - log level      change log level
+   - config list    not implemented yes
+   - config reload  reload ebus configuration
+   - stop           stop daemon
+   - quit           close connection
+   - help           print help page
 
 
 Dependency
