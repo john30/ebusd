@@ -325,15 +325,14 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		}
 
 		if (strcasecmp(cmd[1].c_str(), "reload") == 0) {
+			// create Commands DB
+			Commands* commands = ConfigCommands(A.getParam<const char*>("p_ebusconfdir"), CSV).getCommands();
+			L.log(bas, debug, "ebus configuration dir: %s", A.getParam<const char*>("p_ebusconfdir"));
+			L.log(bas, event, "commands DB with %d entries created", commands->sizeCmd());
+			L.log(bas, event, "    data DB with %d entries created", commands->sizeData());
 
 			delete m_commands;
-
-			// create Commands DB
-			m_commands = ConfigCommands(A.getParam<const char*>("p_ebusconfdir"), CSV).getCommands();
-			L.log(bas, debug, "ebus configuration dir: %s", A.getParam<const char*>("p_ebusconfdir"));
-			L.log(bas, event, "commands DB with %d entries created", m_commands->sizeCmd());
-			L.log(bas, event, "    data DB with %d entries created", m_commands->sizeData());
-
+			m_commands = commands;
 			m_ebusloop->newCommands(m_commands);
 
 			result << "done";

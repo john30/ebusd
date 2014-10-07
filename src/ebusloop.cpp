@@ -37,6 +37,8 @@ EBusLoop::EBusLoop(Commands* commands) : m_commands(commands), m_stop(false)
 
 	m_retries = A.getParam<int>("p_retries");
 
+	m_pollInterval = 5.0;
+
 	m_bus->connect();
 
 	if (m_bus->isConnected() == false)
@@ -58,6 +60,9 @@ void* EBusLoop::run()
 	int busResult;
 	int retries = 0;
 	bool busCommandActive = false;
+	time_t start, end;
+	time(&start);
+	double pollDelta = 0.0;
 
 	for (;;) {
 		if (m_bus->isConnected() == true) {
@@ -103,6 +108,26 @@ void* EBusLoop::run()
 				busCommandActive = true;
 			}
 
+			// check polling delta
+			time(&end);
+			pollDelta = difftime(end, start);
+
+			// add new polling command to send
+			if (busResult == 4 && busCommandActive == false && pollDelta >= m_pollInterval) {
+				L.log(bus, trace, "%.f seconds elapsed - polling next value", pollDelta);
+
+				//~ BusCommand* busCommand = m_sendBuffer.remove();
+				// fetch new polling command
+
+				//~ L.log(bus, debug, " type: %s msg: %s",
+				      //~ busCommand->getType().c_str(), busCommand->getCommand().c_str());
+				//~ m_bus->addCommand(busCommand);
+				//~ L.log(bus, debug, " addCommand success");
+				//~ busCommandActive = true;
+
+				time(&start);
+			}
+
 			// send bus command
 			if (busResult == 1 && busCommandActive == true) {
 				L.log(bus, trace, " getBus success");
@@ -117,6 +142,7 @@ void* EBusLoop::run()
 					m_bus->addCommand(busCommand);
 				} else {
 					retries = 0;
+					// ToDo: check for poll event
 					m_recvBuffer.add(busCommand);
 					busCommandActive = false;
 				}
