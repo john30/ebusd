@@ -59,14 +59,14 @@ private:
 
 	ClientCommand getCase(const std::string& item)
 	{
-		if (strcasecmp(item.c_str(), "get") == 0) return get;
-		if (strcasecmp(item.c_str(), "set") == 0) return set;
-		if (strcasecmp(item.c_str(), "cyc") == 0) return cyc;
-		if (strcasecmp(item.c_str(), "hex") == 0) return hex;
-		if (strcasecmp(item.c_str(), "dump") == 0) return dump;
-		if (strcasecmp(item.c_str(), "log") == 0) return log;
-		if (strcasecmp(item.c_str(), "config") == 0) return config;
-		if (strcasecmp(item.c_str(), "help") == 0) return help;
+		if (strcasecmp(item.c_str(), "GET") == 0) return get;
+		if (strcasecmp(item.c_str(), "SET") == 0) return set;
+		if (strcasecmp(item.c_str(), "CYC") == 0) return cyc;
+		if (strcasecmp(item.c_str(), "HEX") == 0) return hex;
+		if (strcasecmp(item.c_str(), "DUMP") == 0) return dump;
+		if (strcasecmp(item.c_str(), "LOG") == 0) return log;
+		if (strcasecmp(item.c_str(), "CONFIG") == 0) return config;
+		if (strcasecmp(item.c_str(), "HELP") == 0) return help;
 
 		return notfound;
 	}

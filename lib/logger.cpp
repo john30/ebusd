@@ -45,7 +45,7 @@ int calcAreas(const std::string areas)
 
 	for (std::vector<std::string>::iterator it = cmd.begin() ; it != cmd.end(); ++it)
 		for (int i = 0; i < Size_of_Areas; i++) {
-			if (strcasecmp("all", it->c_str()) == 0)
+			if (strcasecmp("ALL", it->c_str()) == 0)
 				return (pow(2, (int)Size_of_Areas) - 1);
 
 			if (strcasecmp(AreaNames[i], it->c_str()) == 0)

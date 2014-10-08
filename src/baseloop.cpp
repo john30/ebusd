@@ -75,7 +75,7 @@ void BaseLoop::start()
 		L.log(bas, event, ">>> %s", data.c_str());
 
 		// decode message
-		if (strcasecmp(data.c_str(), "stop") != 0)
+		if (strcasecmp(data.c_str(), "STOP") != 0)
 			result = decodeMessage(data);
 		else
 			result = "done";
@@ -90,7 +90,7 @@ void BaseLoop::start()
 		delete message;
 
 		// stop daemon
-		if (strcasecmp(data.c_str(), "stop") == 0)
+		if (strcasecmp(data.c_str(), "STOP") == 0)
 			return;
 	}
 }
@@ -281,8 +281,8 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			break;
 		}
 
-		if (strcasecmp(cmd[1].c_str(), "on") == 0)  m_ebusloop->dump(true);
-		if (strcasecmp(cmd[1].c_str(), "off") == 0) m_ebusloop->dump(false);
+		if (strcasecmp(cmd[1].c_str(), "ON") == 0)  m_ebusloop->dump(true);
+		if (strcasecmp(cmd[1].c_str(), "OFF") == 0) m_ebusloop->dump(false);
 		result << "done";
 		break;
 
@@ -294,13 +294,13 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		}
 
 		// ToDo: check for possible areas and level
-		if (strcasecmp(cmd[1].c_str(), "areas") == 0) {
+		if (strcasecmp(cmd[1].c_str(), "AREAS") == 0) {
 			L.getSink(0)->setAreas(calcAreas(cmd[2]));
 			result << "done";
 			break;
 		}
 
-		if (strcasecmp(cmd[1].c_str(), "level") == 0) {
+		if (strcasecmp(cmd[1].c_str(), "LEVEL") == 0) {
 			L.getSink(0)->setLevel(calcLevel(cmd[2]));
 			result << "done";
 			break;
@@ -319,12 +319,12 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		}
 
 		// ToDo: ...
-		if (strcasecmp(cmd[1].c_str(), "list") == 0) {
+		if (strcasecmp(cmd[1].c_str(), "LIST") == 0) {
 			result << "not implemented yet";
 			break;
 		}
 
-		if (strcasecmp(cmd[1].c_str(), "reload") == 0) {
+		if (strcasecmp(cmd[1].c_str(), "RELOAD") == 0) {
 			// create Commands DB
 			Commands* commands = ConfigCommands(A.getParam<const char*>("p_ebusconfdir"), CSV).getCommands();
 			L.log(bas, debug, "ebus configuration dir: %s", A.getParam<const char*>("p_ebusconfdir"));
