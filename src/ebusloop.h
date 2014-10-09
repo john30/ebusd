@@ -52,6 +52,7 @@ private:
 	WQueue<BusCommand*> m_sendBuffer;
 	WQueue<BusCommand*> m_recvBuffer;
 	int m_retries;
+	int m_lookbusretries;
 	double m_pollInterval;
 
 };

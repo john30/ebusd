@@ -37,6 +37,8 @@ EBusLoop::EBusLoop(Commands* commands) : m_commands(commands), m_stop(false)
 
 	m_retries = A.getParam<int>("p_retries");
 
+	m_lookbusretries = A.getParam<int>("p_lookbusretries");
+
 	m_pollInterval = A.getParam<int>("p_pollinterval");
 
 	m_bus->connect();
@@ -59,6 +61,7 @@ void* EBusLoop::run()
 {
 	int busResult;
 	int retries = 0;
+	int lookbusretries = 0;
 	bool busCommandActive = false;
 	time_t start, end;
 	time(&start);
@@ -151,6 +154,7 @@ void* EBusLoop::run()
 			// send bus command
 			if (busResult == 1 && busCommandActive == true) {
 				L.log(bus, trace, " getBus success");
+				lookbusretries = 0;
 				m_bus->sendCommand();
 				BusCommand* busCommand = m_bus->recvCommand();
 				L.log(bus, trace, " %s", busCommand->getResult().c_str());
@@ -174,8 +178,16 @@ void* EBusLoop::run()
 				}
 			}
 
-			if (busResult == 0)
+			if (busResult == 0) {
 				L.log(bus, trace, " getBus failure");
+				if (lookbusretries >= m_lookbusretries) {
+					L.log(bus, event, " getBus failed - command deleted");
+					m_bus->delCommand();
+					lookbusretries = 0;
+				}else {
+					lookbusretries++;
+				}
+			}
 
 			if (busResult == -1)
 				L.log(bus, event, " getBus error");
