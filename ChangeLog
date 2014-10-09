@@ -1,6 +1,10 @@
 ebusd - ChangeLog
 -----------------
 
+2014-10-09  Roland Jax  <roland.jax@liwest.at>
+* class BaseLoop, EBusLoop: polling functionality implemented.
+* Version changed from 0.3.0 to 0.4.0
+
 2014-10-06  Roland Jax  <roland.jax@liwest.at>
 * class CYCData deleted; functionality is moved into libebus.
 

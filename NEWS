@@ -1,6 +1,11 @@
 ebusd - NEWS
 ------------
 
+2014-10-09  Roland Jax  <roland.jax@liwest.at>
+* Polling ability implemented.
+* Reload function for ebus configuration added.
+* Version changed from 0.3.0 to 0.4.0
+
 2014-08-05  Roland Jax  <roland.jax@liwest.at>
 * Vendor specific configuration files removed.
 
