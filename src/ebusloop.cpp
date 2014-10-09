@@ -37,7 +37,7 @@ EBusLoop::EBusLoop(Commands* commands) : m_commands(commands), m_stop(false)
 
 	m_retries = A.getParam<int>("p_retries");
 
-	m_pollInterval = 5.0;
+	m_pollInterval = A.getParam<int>("p_pollinterval");
 
 	m_bus->connect();
 
@@ -63,6 +63,7 @@ void* EBusLoop::run()
 	time_t start, end;
 	time(&start);
 	double pollDelta = 0.0;
+	bool pollCommandActive = false;
 
 	for (;;) {
 		if (m_bus->isConnected() == true) {
@@ -75,7 +76,7 @@ void* EBusLoop::run()
 				std::string data = m_bus->getCycData();
 				L.log(bus, trace, "%s", data.c_str());
 
-				int index = m_commands->storeData(data);
+				int index = m_commands->storeCycData(data);
 
 				if (index == -1) {
 					L.log(bus, debug, " command not found");
@@ -88,12 +89,10 @@ void* EBusLoop::run()
 
 				} else {
 					std::string tmp;
-					tmp += (*m_commands)[index][0];
-					tmp += " ";
 					tmp += (*m_commands)[index][1];
 					tmp += " ";
 					tmp += (*m_commands)[index][2];
-					L.log(bus, event, " [%d] %s", index, tmp.c_str());
+					L.log(bus, event, " cycle   [%d] %s", index, tmp.c_str());
 				}
 
 			}
@@ -108,24 +107,45 @@ void* EBusLoop::run()
 				busCommandActive = true;
 			}
 
-			// check polling delta
-			time(&end);
-			pollDelta = difftime(end, start);
+			// add new polling command
+			if (m_commands->sizePolDB() > 0) {
+				// check polling delta
+				time(&end);
+				pollDelta = difftime(end, start);
 
-			// add new polling command to send
-			if (busResult == 4 && busCommandActive == false && pollDelta >= m_pollInterval) {
-				L.log(bus, trace, "%.f seconds elapsed - polling next value", pollDelta);
+				// add new polling command to send
+				if (busResult == 4 && busCommandActive == false && pollDelta >= m_pollInterval) {
+					L.log(bus, trace, "polling Intervall reached");
 
-				//~ BusCommand* busCommand = m_sendBuffer.remove();
-				// fetch new polling command
+					int index = m_commands->nextPolCommand();
+					if (index < 0) {
+						L.log(bus, error, "polling index out of range");
+						time(&start);
+						continue;
+					}
 
-				//~ L.log(bus, debug, " type: %s msg: %s",
-				      //~ busCommand->getType().c_str(), busCommand->getCommand().c_str());
-				//~ m_bus->addCommand(busCommand);
-				//~ L.log(bus, debug, " addCommand success");
-				//~ busCommandActive = true;
+					std::string tmp;
+					tmp += (*m_commands)[index][1];
+					tmp += " ";
+					tmp += (*m_commands)[index][2];
+					L.log(bus, event, " polling [%d] %s", index, tmp.c_str());
 
-				time(&start);
+					std::string type = m_commands->getEbusType(index);
+					std::string ebusCommand(A.getParam<const char*>("p_address"));
+					ebusCommand += m_commands->getEbusCommand(index);
+					std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
+
+					L.log(bus, trace, " type: %s msg: %s", type.c_str(), ebusCommand.c_str());
+
+					BusCommand* busCommand = new BusCommand(type, ebusCommand);
+					m_bus->addCommand(busCommand);
+					L.log(bus, debug, " addCommand success");
+					busCommandActive = true;
+					pollCommandActive = true;
+
+					time(&start);
+				}
+
 			}
 
 			// send bus command
@@ -142,8 +162,14 @@ void* EBusLoop::run()
 					m_bus->addCommand(busCommand);
 				} else {
 					retries = 0;
-					// ToDo: check for poll event
-					m_recvBuffer.add(busCommand);
+					if (pollCommandActive == true) {
+						m_commands->storePolData(busCommand->getResult().c_str());
+						delete busCommand;
+						pollCommandActive = false;
+					} else {
+						m_recvBuffer.add(busCommand);
+					}
+
 					busCommandActive = false;
 				}
 			}

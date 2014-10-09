@@ -28,9 +28,10 @@ BaseLoop::BaseLoop()
 {
 	// create Commands DB
 	m_commands = ConfigCommands(A.getParam<const char*>("p_ebusconfdir"), CSV).getCommands();
-	L.log(bas, debug, "ebus configuration dir: %s", A.getParam<const char*>("p_ebusconfdir"));
-	L.log(bas, event, "commands DB with %d entries created", m_commands->sizeCmd());
-	L.log(bas, event, "    data DB with %d entries created", m_commands->sizeData());
+	L.log(bas, trace, "ebus configuration dir: %s", A.getParam<const char*>("p_ebusconfdir"));
+	L.log(bas, event, "commands DB: %d ", m_commands->sizeCmdDB());
+	L.log(bas, event, "   cycle DB: %d ", m_commands->sizeCycDB());
+	L.log(bas, event, " polling DB: %d ", m_commands->sizePolDB());
 
 	// create EBusLoop
 	m_ebusloop = new EBusLoop(m_commands);
@@ -98,7 +99,7 @@ void BaseLoop::start()
 std::string BaseLoop::decodeMessage(const std::string& data)
 {
 	std::ostringstream result;
-	std::string cycdata;
+	std::string cycdata, polldata;
 	int index;
 
 	// prepare data
@@ -127,7 +128,26 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 		if (index >= 0) {
 
-			std::string type = m_commands->getType(index);
+			// polling data
+			if (strcasecmp(m_commands->getCmdType(index).c_str(), "P") == 0) {
+				// get polldata
+				polldata = m_commands->getPolData(index);
+				if (polldata != "") {
+					// decode data
+					Command* command = new Command(index, (*m_commands)[index], polldata);
+
+					// return result
+					result << command->calcResult(cmd);
+
+					delete command;
+				} else {
+					result << "no data stored";
+				}
+
+				break;
+			}
+
+			std::string type = m_commands->getEbusType(index);
 			std::string ebusCommand(A.getParam<const char*>("p_address"));
 			ebusCommand += m_commands->getEbusCommand(index);
 			std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
@@ -168,7 +188,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 		if (index >= 0) {
 
-			std::string type = m_commands->getType(index);
+			std::string type = m_commands->getEbusType(index);
 			std::string ebusCommand(A.getParam<const char*>("p_address"));
 			ebusCommand += m_commands->getEbusCommand(index);
 
@@ -223,7 +243,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 		if (index >= 0) {
 			// get cycdata
-			cycdata = m_commands->getData(index);
+			cycdata = m_commands->getCycData(index);
 			if (cycdata != "") {
 				// decode data
 				Command* command = new Command(index, (*m_commands)[index], cycdata);
@@ -327,9 +347,10 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		if (strcasecmp(cmd[1].c_str(), "RELOAD") == 0) {
 			// create Commands DB
 			Commands* commands = ConfigCommands(A.getParam<const char*>("p_ebusconfdir"), CSV).getCommands();
-			L.log(bas, debug, "ebus configuration dir: %s", A.getParam<const char*>("p_ebusconfdir"));
-			L.log(bas, event, "commands DB with %d entries created", commands->sizeCmd());
-			L.log(bas, event, "    data DB with %d entries created", commands->sizeData());
+			L.log(bas, trace, "ebus configuration dir: %s", A.getParam<const char*>("p_ebusconfdir"));
+			L.log(bas, event, "commands DB: %d ", m_commands->sizeCmdDB());
+			L.log(bas, event, "   cycle DB: %d ", m_commands->sizeCycDB());
+			L.log(bas, event, " polling DB: %d ", m_commands->sizePolDB());
 
 			delete m_commands;
 			m_commands = commands;

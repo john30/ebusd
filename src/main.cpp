@@ -56,6 +56,10 @@ void define_args()
 		  "receive timeout in 'us' (15000)\n",
 		  Appl::type_long, Appl::opt_mandatory);
 
+	A.addItem("p_pollinterval", Appl::Param(5), "", "pollinterval",
+		  "polling interval in 's' (5)\n",
+		  Appl::type_int, Appl::opt_mandatory);
+
 	A.addItem("p_ebusconfdir", Appl::Param("/etc/ebusd"), "e", "ebusconfdir",
 		  "directory for ebus configuration (/etc/ebusd)\n",
 		  Appl::type_string, Appl::opt_mandatory);
