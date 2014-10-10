@@ -167,7 +167,10 @@ void* EBusLoop::run()
 				} else {
 					retries = 0;
 					if (pollCommandActive == true) {
-						m_commands->storePolData(busCommand->getResult().c_str());
+						// only save correct results
+						if (busCommand->getResult().c_str()[0] != '-')
+							m_commands->storePolData(busCommand->getResult().c_str());
+
 						delete busCommand;
 						pollCommandActive = false;
 					} else {
