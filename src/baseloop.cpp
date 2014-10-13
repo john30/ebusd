@@ -147,17 +147,17 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 				break;
 			}
 
-			std::string type = m_commands->getEbusType(index);
 			std::string ebusCommand(A.getParam<const char*>("p_address"));
 			ebusCommand += m_commands->getEbusCommand(index);
 			std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
 
-			L.log(bas, trace, " type: %s msg: %s", type.c_str(), ebusCommand.c_str());
+			BusCommand* busCommand = new BusCommand(ebusCommand);
+			L.log(bas, trace, " type: %s msg: %s", busCommand->getTypeCStr(), ebusCommand.c_str());
 			// send busCommand
-			m_ebusloop->addBusCommand(new BusCommand(type, ebusCommand));
-			BusCommand* busCommand = m_ebusloop->getBusCommand();
+			m_ebusloop->addBusCommand(busCommand);
+			busCommand = m_ebusloop->getBusCommand();
 
-			if (busCommand->getResult().c_str()[0] != '-') {
+			if (!busCommand->isErrorResult()) {
 				// decode data
 				Command* command = new Command(index, (*m_commands)[index], busCommand->getResult());
 
@@ -166,8 +166,8 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 				delete command;
 			} else {
-				L.log(bas, error, " %s", busCommand->getResult().c_str());
-				result << busCommand->getResult();
+				L.log(bas, error, " %s", busCommand->getResultCodeCStr());
+				result << busCommand->getResultCodeCStr();
 			}
 
 			delete busCommand;
@@ -188,7 +188,6 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 		if (index >= 0) {
 
-			std::string type = m_commands->getEbusType(index);
 			std::string ebusCommand(A.getParam<const char*>("p_address"));
 			ebusCommand += m_commands->getEbusCommand(index);
 
@@ -205,14 +204,15 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 			std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
 
-			L.log(bas, event, " type: %s msg: %s", type.c_str(), ebusCommand.c_str());
+			BusCommand* busCommand = new BusCommand(ebusCommand);
+			L.log(bas, event, " type: %s msg: %s", busCommand->getTypeCStr(), ebusCommand.c_str());
 			// send busCommand
-			m_ebusloop->addBusCommand(new BusCommand(type, ebusCommand));
-			BusCommand* busCommand = m_ebusloop->getBusCommand();
+			m_ebusloop->addBusCommand(busCommand);
+			busCommand = m_ebusloop->getBusCommand();
 
-			if (busCommand->getResult().c_str()[0] != '-') {
+			if (!busCommand->isErrorResult()) {
 				// decode result
-				if (strcasecmp(type.c_str(), "BC") == 0)
+				if (busCommand->getType()==broadcast)
 					result << "done";
 				else if (busCommand->getResult().substr(busCommand->getResult().length()-8) == "00000000")
 					result << "done";
@@ -220,8 +220,8 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 					result << "error";
 
 			} else {
-				L.log(bas, error, " %s", busCommand->getResult().c_str());
-				result << busCommand->getResult();
+				L.log(bas, error, " %s", busCommand->getResultCodeCStr());
+				result << busCommand->getResultCodeCStr();
 			}
 
 			delete busCommand;
@@ -271,21 +271,23 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		||  (strcasecmp(cmd[1].c_str(), "MM") == 0)
 		||  (strcasecmp(cmd[1].c_str(), "BC") == 0)) {
 
-			std::string type = cmd[1];
 			std::string ebusCommand(A.getParam<const char*>("p_address"));
 			cmd[2].erase(std::remove_if(cmd[2].begin(), cmd[2].end(), isspace), cmd[2].end());
 			ebusCommand += cmd[2];
 			std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
 
-			L.log(bas, trace, " type: %s msg: %s", type.c_str(), ebusCommand.c_str());
+			BusCommand* busCommand = new BusCommand(ebusCommand);
+			L.log(bas, trace, " type: %s msg: %s", busCommand->getTypeCStr(), ebusCommand.c_str());
 			// send busCommand
-			m_ebusloop->addBusCommand(new BusCommand(type, ebusCommand));
-			BusCommand* busCommand = m_ebusloop->getBusCommand();
+			m_ebusloop->addBusCommand(busCommand);
+			busCommand = m_ebusloop->getBusCommand();
 
-			if (busCommand->getResult().c_str()[0] == '-')
-				L.log(bas, error, " %s", busCommand->getResult().c_str());
-
-			result << busCommand->getResult();
+			if (busCommand->isErrorResult()) {
+				L.log(bas, error, " %s", busCommand->getResultCodeCStr());
+				result << busCommand->getResultCodeCStr();
+			} else {
+				result << busCommand->getResult();
+			}
 
 			delete busCommand;
 
