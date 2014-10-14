@@ -54,6 +54,7 @@ private:
 	int m_retries;
 	int m_lookbusretries;
 	double m_pollInterval;
+	bool m_logAutoSyn;
 
 };
 
