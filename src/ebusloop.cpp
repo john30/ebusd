@@ -202,6 +202,8 @@ void* EBusLoop::run()
 					L.log(bus, event, " getBus failed - command deleted");
 					m_bus->delCommand();
 					lookbusretries = 0;
+					busCommandActive = false;
+					pollCommandActive = false;
 				}else {
 					lookbusretries++;
 				}
