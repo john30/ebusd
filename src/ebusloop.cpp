@@ -41,6 +41,8 @@ EBusLoop::EBusLoop(Commands* commands) : m_commands(commands), m_stop(false)
 
 	m_pollInterval = A.getParam<int>("p_pollinterval");
 
+	m_logAutoSyn = A.getParam<bool>("p_logautosyn");
+
 	m_bus->connect();
 
 	if (m_bus->isConnected() == false)
@@ -63,8 +65,10 @@ void* EBusLoop::run()
 	int retries = 0;
 	int lookbusretries = 0;
 	bool busCommandActive = false;
-	time_t start, end;
-	time(&start);
+
+	// polling
+	time_t pollStart, pollEnd;
+	time(&pollStart);
 	double pollDelta = 0.0;
 	bool pollCommandActive = false;
 
@@ -75,33 +79,41 @@ void* EBusLoop::run()
 			busResult = m_bus->proceed();
 
 			// new cyc message arrived
-			if (busResult == RESULT_SYN) {
+			if (busResult == RESULT_SYN || busResult == RESULT_BUS_LOCKED) {
 				std::string data = m_bus->getCycData();
-				L.log(bus, trace, "%s", data.c_str());
 
-				int index = m_commands->storeCycData(data);
+				if (data.size() == 0 && m_logAutoSyn == true)
+					L.log(bus, trace, "%s", "aa");
 
-				if (index == -1) {
-					L.log(bus, debug, " command not found");
+				if (data.size() != 0) {
+					L.log(bus, trace, "%s", data.c_str());
 
-				} else if (index == -2) {
-					L.log(bus, debug, " no commands defined");
+					int index = m_commands->storeCycData(data);
 
-				} else if (index == -3) {
-					L.log(bus, debug, " search skipped - string too short");
+					if (index == -1) {
+						L.log(bus, debug, " command not found");
 
-				} else {
-					std::string tmp;
-					tmp += (*m_commands)[index][1];
-					tmp += " ";
-					tmp += (*m_commands)[index][2];
-					L.log(bus, event, " cycle   [%d] %s", index, tmp.c_str());
+					} else if (index == -2) {
+						L.log(bus, debug, " no commands defined");
+
+					} else if (index == -3) {
+						L.log(bus, debug, " search skipped - string too short");
+
+					} else {
+						std::string tmp;
+						tmp += (*m_commands)[index][1];
+						tmp += " ";
+						tmp += (*m_commands)[index][2];
+						L.log(bus, event, " cycle   [%d] %s", index, tmp.c_str());
+					}
 				}
 
+				if (busResult == RESULT_BUS_LOCKED)
+					L.log(bus, trace, "bus locked");
 			}
 
 			// add new bus command to send
-			if (busResult == RESULT_AUTO_SYN && busCommandActive == false && m_sendBuffer.size() != 0) {
+			if (busResult == RESULT_SYN && busCommandActive == false && m_sendBuffer.size() != 0) {
 				BusCommand* busCommand = m_sendBuffer.remove();
 				L.log(bus, debug, " type: %s msg: %s",
 				      busCommand->getTypeCStr(), busCommand->getCommand().c_str());
@@ -113,17 +125,17 @@ void* EBusLoop::run()
 			// add new polling command
 			if (m_commands->sizePolDB() > 0) {
 				// check polling delta
-				time(&end);
-				pollDelta = difftime(end, start);
+				time(&pollEnd);
+				pollDelta = difftime(pollEnd, pollStart);
 
 				// add new polling command to send
-				if (busResult == RESULT_AUTO_SYN && busCommandActive == false && pollDelta >= m_pollInterval) {
+				if (busResult == RESULT_SYN && busCommandActive == false && pollDelta >= m_pollInterval) {
 					L.log(bus, trace, "polling Intervall reached");
 
 					int index = m_commands->nextPolCommand();
 					if (index < 0) {
 						L.log(bus, error, "polling index out of range");
-						time(&start);
+						time(&pollStart);
 						continue;
 					}
 
@@ -145,7 +157,7 @@ void* EBusLoop::run()
 					busCommandActive = true;
 					pollCommandActive = true;
 
-					time(&start);
+					time(&pollStart);
 				}
 
 			}
@@ -192,7 +204,7 @@ void* EBusLoop::run()
 			}
 
 			if (busResult == RESULT_ERR_SEND)
-				L.log(bus, event, " getBus error");
+				L.log(bus, event, " getBus send error");
 
 		} else {
 			sleep(10);

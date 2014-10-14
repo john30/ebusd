@@ -89,8 +89,12 @@ void define_args()
 		  Appl::type_string, Appl::opt_mandatory);
 
 	A.addItem("p_loglevel", Appl::Param("trace"), "", "loglevel",
-		  "\tlog level - error|event|trace|debug (event)\n",
+		  "\tlog level - error|event|trace|debug (event)",
 		  Appl::type_string, Appl::opt_mandatory);
+
+	A.addItem("p_logautosyn", Appl::Param(false), "", "logautosyn",
+		  "log AUTO-SYN bytes\n",
+		  Appl::type_bool, Appl::opt_none);
 
 	A.addItem("p_dump", Appl::Param(false), "D", "dump",
 		  "\tenable dump",
