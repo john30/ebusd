@@ -192,6 +192,10 @@ void* EBusLoop::run()
 				}
 			}
 
+			// get bus retry
+			if (busResult == RESULT_BUS_PRIOR_RETRY)
+				L.log(bus, trace, " getBus prior retry");
+
 			if (busResult == RESULT_ERR_BUS_LOST) {
 				L.log(bus, trace, " getBus failure");
 				if (lookbusretries >= m_lookbusretries) {

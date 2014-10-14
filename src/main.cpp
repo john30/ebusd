@@ -52,8 +52,8 @@ void define_args()
 		  "\tnumber retries send ebus command (2)",
 		  Appl::type_int, Appl::opt_mandatory);
 
-	A.addItem("p_lookbusretries", Appl::Param(5), "", "lookbusretries",
-		  "number retries to look ebus (5)",
+	A.addItem("p_lookbusretries", Appl::Param(2), "", "lookbusretries",
+		  "number retries to look ebus (2)",
 		  Appl::type_int, Appl::opt_mandatory);
 
 	A.addItem("p_recvtimeout", Appl::Param(15000), "", "recvtimeout",
