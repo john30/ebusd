@@ -152,7 +152,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
 
 			BusCommand* busCommand = new BusCommand(ebusCommand);
-			L.log(bas, trace, " type: %s msg: %s", busCommand->getTypeCStr(), ebusCommand.c_str());
+			L.log(bas, trace, " msg: %s", ebusCommand.c_str());
 			// send busCommand
 			m_ebusloop->addBusCommand(busCommand);
 			busCommand = m_ebusloop->getBusCommand();
@@ -205,7 +205,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
 
 			BusCommand* busCommand = new BusCommand(ebusCommand);
-			L.log(bas, event, " type: %s msg: %s", busCommand->getTypeCStr(), ebusCommand.c_str());
+			L.log(bas, event, " msg: %s", ebusCommand.c_str());
 			// send busCommand
 			m_ebusloop->addBusCommand(busCommand);
 			busCommand = m_ebusloop->getBusCommand();
@@ -262,22 +262,19 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		break;
 
 	case hex:
-		if (cmd.size() != 3) {
-			result << "usage: 'hex type value' (value: ZZPBSBNNDx)";
+		if (cmd.size() != 2) {
+			result << "usage: 'hex value' (value: ZZPBSBNNDx)";
 			break;
 		}
 
-		if ((strcasecmp(cmd[1].c_str(), "MS") == 0)
-		||  (strcasecmp(cmd[1].c_str(), "MM") == 0)
-		||  (strcasecmp(cmd[1].c_str(), "BC") == 0)) {
-
+		{
 			std::string ebusCommand(A.getParam<const char*>("p_address"));
-			cmd[2].erase(std::remove_if(cmd[2].begin(), cmd[2].end(), isspace), cmd[2].end());
-			ebusCommand += cmd[2];
+			cmd[1].erase(std::remove_if(cmd[1].begin(), cmd[1].end(), isspace), cmd[1].end());
+			ebusCommand += cmd[1];
 			std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
 
 			BusCommand* busCommand = new BusCommand(ebusCommand);
-			L.log(bas, trace, " type: %s msg: %s", busCommand->getTypeCStr(), ebusCommand.c_str());
+			L.log(bas, trace, " msg: %s", ebusCommand.c_str());
 			// send busCommand
 			m_ebusloop->addBusCommand(busCommand);
 			busCommand = m_ebusloop->getBusCommand();
@@ -290,9 +287,6 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			}
 
 			delete busCommand;
-
-		} else {
-			result << "specified message type is incorrect";
 		}
 
 		break;
