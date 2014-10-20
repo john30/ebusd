@@ -159,7 +159,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 			if (!busCommand->isErrorResult()) {
 				// decode data
-				Command* command = new Command(index, (*m_commands)[index], busCommand->getResult());
+				Command* command = new Command(index, (*m_commands)[index], busCommand->getResultStr()); // TODO use getResult()
 
 				// return result
 				result << command->calcResult(cmd);
@@ -214,7 +214,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 				// decode result
 				if (busCommand->getType()==broadcast)
 					result << "done";
-				else if (busCommand->getResult().substr(busCommand->getResult().length()-8) == "00000000")
+				else if (busCommand->getResultStr().substr(busCommand->getResultStr().length()-8) == "00000000") // TODO use getResult()
 					result << "done";
 				else
 					result << "error";
@@ -286,7 +286,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 				L.log(bas, error, " %s", busCommand->getResultCodeCStr());
 				result << busCommand->getResultCodeCStr();
 			} else {
-				result << busCommand->getResult();
+				result << busCommand->getResultStr(); // TODO use getResult()
 			}
 
 			delete busCommand;

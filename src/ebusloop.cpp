@@ -80,15 +80,15 @@ void* EBusLoop::run()
 
 			// new cyc message arrived
 			if (busResult == RESULT_SYN || busResult == RESULT_BUS_LOCKED) {
-				std::string data = m_bus->getCycData();
+				SymbolString data = m_bus->getCycData();
 
 				if (data.size() == 0 && m_logAutoSyn == true)
-					L.log(bus, trace, "%s", "aa");
+					L.log(bus, trace, "aa");
 
 				if (data.size() != 0) {
-					L.log(bus, trace, "%s", data.c_str());
+					L.log(bus, trace, "%s", data.getDataStr().c_str());
 
-					int index = m_commands->storeCycData(data);
+					int index = m_commands->storeCycData(data.getDataStr());
 
 					if (index == -1) {
 						L.log(bus, debug, " command not found");
@@ -116,7 +116,7 @@ void* EBusLoop::run()
 			if (busResult == RESULT_SYN && busCommandActive == false && m_sendBuffer.size() != 0) {
 				BusCommand* busCommand = m_sendBuffer.remove();
 				L.log(bus, debug, " type: %s msg: %s",
-				      busCommand->getTypeCStr(), busCommand->getCommand().c_str());
+				      busCommand->getTypeCStr(), busCommand->getCommandStr().c_str());
 				m_bus->addCommand(busCommand);
 				L.log(bus, debug, " addCommand success");
 				busCommandActive = true;
@@ -168,7 +168,7 @@ void* EBusLoop::run()
 				lookbusretries = 0;
 				m_bus->sendCommand();
 				BusCommand* busCommand = m_bus->recvCommand();
-				L.log(bus, trace, " %s", busCommand->getResult().c_str());
+				L.log(bus, trace, " %s", busCommand->getResultStr().c_str());
 
 				if (busCommand->isErrorResult() && retries < m_retries) {
 					retries++;
@@ -180,7 +180,7 @@ void* EBusLoop::run()
 					if (pollCommandActive == true) {
 						// only save correct results
 						if (!busCommand->isErrorResult())
-							m_commands->storePolData(busCommand->getResult().c_str());
+							m_commands->storePolData(busCommand->getResultStr().c_str()); // TODO use getResult()
 
 						delete busCommand;
 						pollCommandActive = false;
