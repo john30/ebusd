@@ -115,8 +115,7 @@ void* EBusLoop::run()
 			// add new bus command to send
 			if (busResult == RESULT_SYN && busCommandActive == false && m_sendBuffer.size() != 0) {
 				BusCommand* busCommand = m_sendBuffer.remove();
-				L.log(bus, debug, " type: %s msg: %s",
-				      busCommand->getTypeCStr(), busCommand->getCommandStr().c_str());
+				L.log(bus, debug, " msg: %s", busCommand->getCommandStr().c_str());
 				m_bus->addCommand(busCommand);
 				L.log(bus, debug, " addCommand success");
 				busCommandActive = true;
@@ -150,7 +149,7 @@ void* EBusLoop::run()
 					std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
 
 					BusCommand* busCommand = new BusCommand(ebusCommand);
-					L.log(bus, trace, " type: %s msg: %s", busCommand->getTypeCStr(), ebusCommand.c_str());
+					L.log(bus, trace, " msg: %s", ebusCommand.c_str());
 
 					m_bus->addCommand(busCommand);
 					L.log(bus, debug, " addCommand success");
@@ -170,7 +169,7 @@ void* EBusLoop::run()
 				BusCommand* busCommand = m_bus->recvCommand();
 				L.log(bus, trace, " %s", busCommand->getResultStr().c_str());
 
-				if (busCommand->isErrorResult() && retries < m_retries) {
+				if (busCommand->isErrorResult() == true && retries < m_retries) {
 					retries++;
 					L.log(bus, trace, " retry number: %d", retries);
 					busCommand->setResult(std::string(), RESULT_OK);
@@ -179,7 +178,7 @@ void* EBusLoop::run()
 					retries = 0;
 					if (pollCommandActive == true) {
 						// only save correct results
-						if (!busCommand->isErrorResult())
+						if (busCommand->isErrorResult() == false)
 							m_commands->storePolData(busCommand->getResultStr().c_str()); // TODO use getResult()
 
 						delete busCommand;
