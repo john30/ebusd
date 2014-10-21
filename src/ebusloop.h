@@ -38,7 +38,6 @@ public:
 	void stop() { m_stop = true; }
 
 	void addBusCommand(BusCommand* busCommand) { m_sendBuffer.add(busCommand); }
-	BusCommand* getBusCommand() { return m_recvBuffer.remove(); }
 
 	void dump(const bool dumpState) { m_bus->setDumpState(dumpState); }
 
@@ -50,7 +49,6 @@ private:
 	Bus* m_bus;
 	bool m_stop;
 	WQueue<BusCommand*> m_sendBuffer;
-	WQueue<BusCommand*> m_recvBuffer;
 	int m_retries;
 	int m_lookbusretries;
 	double m_pollInterval;

@@ -165,8 +165,7 @@ void* EBusLoop::run()
 			if (busResult == RESULT_BUS_ACQUIRED && busCommandActive == true) {
 				L.log(bus, trace, " getBus success");
 				lookbusretries = 0;
-				m_bus->sendCommand();
-				BusCommand* busCommand = m_bus->recvCommand();
+				BusCommand* busCommand = m_bus->sendCommand();
 				L.log(bus, trace, " %s", busCommand->getResult().c_str());
 
 				if (busCommand->isErrorResult() == true && retries < m_retries) {
@@ -184,7 +183,7 @@ void* EBusLoop::run()
 						delete busCommand;
 						pollCommandActive = false;
 					} else {
-						m_recvBuffer.add(busCommand);
+						busCommand->sendSignal();
 					}
 
 					busCommandActive = false;

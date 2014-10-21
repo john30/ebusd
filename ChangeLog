@@ -1,6 +1,9 @@
 ebusd - ChangeLog
 -----------------
 
+2014-10-21  Roland Jax  <roland.jax@liwest.at>
+* class EBusLoop: recvBuffer removed.
+
 2014-10-09  Roland Jax  <roland.jax@liwest.at>
 * class BaseLoop, EBusLoop: polling functionality implemented.
 * Version changed from 0.3.0 to 0.4.0

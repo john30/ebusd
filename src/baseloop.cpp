@@ -155,7 +155,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			L.log(bas, trace, " msg: %s", ebusCommand.c_str());
 			// send busCommand
 			m_ebusloop->addBusCommand(busCommand);
-			busCommand = m_ebusloop->getBusCommand();
+			busCommand->waitSignal();
 
 			if (!busCommand->isErrorResult()) {
 				// decode data
@@ -208,7 +208,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			L.log(bas, event, " msg: %s", ebusCommand.c_str());
 			// send busCommand
 			m_ebusloop->addBusCommand(busCommand);
-			busCommand = m_ebusloop->getBusCommand();
+			busCommand->waitSignal();
 
 			if (!busCommand->isErrorResult()) {
 				// decode result
@@ -277,7 +277,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			L.log(bas, trace, " msg: %s", ebusCommand.c_str());
 			// send busCommand
 			m_ebusloop->addBusCommand(busCommand);
-			busCommand = m_ebusloop->getBusCommand();
+			busCommand->waitSignal();
 
 			if (busCommand->isErrorResult()) {
 				L.log(bas, error, " %s", busCommand->getResultCodeCStr());
