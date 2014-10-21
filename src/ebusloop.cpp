@@ -115,7 +115,7 @@ void* EBusLoop::run()
 			// add new bus command to send
 			if (busResult == RESULT_SYN && busCommandActive == false && m_sendBuffer.size() != 0) {
 				BusCommand* busCommand = m_sendBuffer.remove();
-				L.log(bus, debug, " msg: %s", busCommand->getCommandStr().c_str());
+				L.log(bus, debug, " msg: %s", busCommand->getCommand().getDataStr(true).c_str());
 				m_bus->addCommand(busCommand);
 				L.log(bus, debug, " addCommand success");
 				busCommandActive = true;
@@ -167,7 +167,7 @@ void* EBusLoop::run()
 				lookbusretries = 0;
 				m_bus->sendCommand();
 				BusCommand* busCommand = m_bus->recvCommand();
-				L.log(bus, trace, " %s", busCommand->getResultStr().c_str());
+				L.log(bus, trace, " %s", busCommand->getMessageStr().c_str());
 
 				if (busCommand->isErrorResult() == true && retries < m_retries) {
 					retries++;
@@ -179,7 +179,7 @@ void* EBusLoop::run()
 					if (pollCommandActive == true) {
 						// only save correct results
 						if (busCommand->isErrorResult() == false)
-							m_commands->storePolData(busCommand->getResultStr().c_str()); // TODO use getResult()
+							m_commands->storePolData(busCommand->getMessageStr().c_str()); // TODO use getResult()
 
 						delete busCommand;
 						pollCommandActive = false;
