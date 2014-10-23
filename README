@@ -31,6 +31,7 @@ Dependency
 ----------
  * libebus (https://github.com/yuhu-/libebus)
  * glibc
+ * pkgconfig
 
 
 Build

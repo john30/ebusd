@@ -30,13 +30,13 @@ public:
 	WQueue()
 	{
 		pthread_mutex_init(&m_mutex, NULL);
-		pthread_cond_init(&m_condv, NULL);
+		pthread_cond_init(&m_cond, NULL);
 	}
 
 	~WQueue()
 	{
 		pthread_mutex_destroy(&m_mutex);
-		pthread_cond_destroy(&m_condv);
+		pthread_cond_destroy(&m_cond);
 	}
 
 	void add(T item)
@@ -45,7 +45,7 @@ public:
 
 		m_queue.push_back(item);
 
-		pthread_cond_signal(&m_condv);
+		pthread_cond_signal(&m_cond);
 		pthread_mutex_unlock(&m_mutex);
 	}
 
@@ -54,7 +54,7 @@ public:
 		pthread_mutex_lock(&m_mutex);
 
 		while (m_queue.size() == 0)
-			pthread_cond_wait(&m_condv, &m_mutex);
+			pthread_cond_wait(&m_cond, &m_mutex);
 
 		T item = m_queue.front();
 		m_queue.pop_front();
@@ -78,7 +78,7 @@ public:
 private:
 	std::list<T> m_queue;
 	pthread_mutex_t m_mutex;
-	pthread_cond_t m_condv;
+	pthread_cond_t m_cond;
 
 };
 
