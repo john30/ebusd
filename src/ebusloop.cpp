@@ -80,15 +80,15 @@ void* EBusLoop::run()
 
 			// new cyc message arrived
 			if (busResult == RESULT_SYN || busResult == RESULT_BUS_LOCKED) {
-				std::string data = m_bus->getCycData();
+				SymbolString data = m_bus->getCycData();
 
 				if (data.size() == 0 && m_logAutoSyn == true)
-					L.log(bus, trace, "%s", "aa");
+					L.log(bus, trace, "aa");
 
 				if (data.size() != 0) {
-					L.log(bus, trace, "%s", data.c_str());
+					L.log(bus, trace, "%s", data.getDataStr().c_str());
 
-					int index = m_commands->storeCycData(data);
+					int index = m_commands->storeCycData(data.getDataStr());
 
 					if (index == -1) {
 						L.log(bus, debug, " command not found");
@@ -115,7 +115,7 @@ void* EBusLoop::run()
 			// add new bus command to send
 			if (busResult == RESULT_SYN && busCommandActive == false && m_sendBuffer.size() != 0) {
 				BusCommand* busCommand = m_sendBuffer.remove();
-				L.log(bus, debug, " msg: %s", busCommand->getCommand().c_str());
+				L.log(bus, debug, " msg: %s", busCommand->getCommand().getDataStr(true).c_str());
 				m_bus->addCommand(busCommand);
 				L.log(bus, debug, " addCommand success");
 				busCommandActive = true;
@@ -148,7 +148,7 @@ void* EBusLoop::run()
 					ebusCommand += m_commands->getEbusCommand(index);
 					std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
 
-					BusCommand* busCommand = new BusCommand(ebusCommand);
+					BusCommand* busCommand = new BusCommand(ebusCommand, true);
 					L.log(bus, trace, " msg: %s", ebusCommand.c_str());
 
 					m_bus->addCommand(busCommand);
@@ -166,7 +166,7 @@ void* EBusLoop::run()
 				L.log(bus, trace, " getBus success");
 				lookbusretries = 0;
 				BusCommand* busCommand = m_bus->sendCommand();
-				L.log(bus, trace, " %s", busCommand->getResult().c_str());
+				L.log(bus, trace, " %s", busCommand->getMessageStr().c_str());
 
 				if (busCommand->isErrorResult() == true && retries < m_retries) {
 					retries++;
@@ -175,10 +175,10 @@ void* EBusLoop::run()
 					m_bus->addCommand(busCommand);
 				} else {
 					retries = 0;
-					if (pollCommandActive == true) {
+					if (busCommand->isPoll() == true) {
 						// only save correct results
 						if (busCommand->isErrorResult() == false)
-							m_commands->storePolData(busCommand->getResult().c_str());
+							m_commands->storePolData(busCommand->getMessageStr().c_str()); // TODO use getResult()
 
 						delete busCommand;
 						pollCommandActive = false;
@@ -198,7 +198,12 @@ void* EBusLoop::run()
 				L.log(bus, trace, " getBus failure");
 				if (lookbusretries >= m_lookbusretries) {
 					L.log(bus, event, " getBus failed - command deleted");
-					m_bus->delCommand();
+					BusCommand* busCommand = m_bus->delCommand();
+					if (busCommand->isPoll() == true) {
+						delete busCommand;
+					} else {
+						busCommand->sendSignal();
+					}
 					lookbusretries = 0;
 					busCommandActive = false;
 					pollCommandActive = false;
