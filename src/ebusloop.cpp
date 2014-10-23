@@ -148,7 +148,7 @@ void* EBusLoop::run()
 					ebusCommand += m_commands->getEbusCommand(index);
 					std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
 
-					BusCommand* busCommand = new BusCommand(ebusCommand);
+					BusCommand* busCommand = new BusCommand(ebusCommand, true);
 					L.log(bus, trace, " msg: %s", ebusCommand.c_str());
 
 					m_bus->addCommand(busCommand);
@@ -165,8 +165,7 @@ void* EBusLoop::run()
 			if (busResult == RESULT_BUS_ACQUIRED && busCommandActive == true) {
 				L.log(bus, trace, " getBus success");
 				lookbusretries = 0;
-				m_bus->sendCommand();
-				BusCommand* busCommand = m_bus->recvCommand();
+				BusCommand* busCommand = m_bus->sendCommand();
 				L.log(bus, trace, " %s", busCommand->getMessageStr().c_str());
 
 				if (busCommand->isErrorResult() == true && retries < m_retries) {
@@ -176,7 +175,7 @@ void* EBusLoop::run()
 					m_bus->addCommand(busCommand);
 				} else {
 					retries = 0;
-					if (pollCommandActive == true) {
+					if (busCommand->isPoll() == true) {
 						// only save correct results
 						if (busCommand->isErrorResult() == false)
 							m_commands->storePolData(busCommand->getMessageStr().c_str()); // TODO use getResult()
@@ -184,7 +183,7 @@ void* EBusLoop::run()
 						delete busCommand;
 						pollCommandActive = false;
 					} else {
-						m_recvBuffer.add(busCommand);
+						busCommand->sendSignal();
 					}
 
 					busCommandActive = false;
@@ -199,7 +198,12 @@ void* EBusLoop::run()
 				L.log(bus, trace, " getBus failure");
 				if (lookbusretries >= m_lookbusretries) {
 					L.log(bus, event, " getBus failed - command deleted");
-					m_bus->delCommand();
+					BusCommand* busCommand = m_bus->delCommand();
+					if (busCommand->isPoll() == true) {
+						delete busCommand;
+					} else {
+						busCommand->sendSignal();
+					}
 					lookbusretries = 0;
 					busCommandActive = false;
 					pollCommandActive = false;

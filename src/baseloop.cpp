@@ -151,11 +151,11 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			ebusCommand += m_commands->getEbusCommand(index);
 			std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
 
-			BusCommand* busCommand = new BusCommand(ebusCommand);
+			BusCommand* busCommand = new BusCommand(ebusCommand, false);
 			L.log(bas, trace, " msg: %s", ebusCommand.c_str());
 			// send busCommand
 			m_ebusloop->addBusCommand(busCommand);
-			busCommand = m_ebusloop->getBusCommand();
+			busCommand->waitSignal();
 
 			if (!busCommand->isErrorResult()) {
 				// decode data
@@ -204,11 +204,11 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 			std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
 
-			BusCommand* busCommand = new BusCommand(ebusCommand);
+			BusCommand* busCommand = new BusCommand(ebusCommand, false);
 			L.log(bas, event, " msg: %s", ebusCommand.c_str());
 			// send busCommand
 			m_ebusloop->addBusCommand(busCommand);
-			busCommand = m_ebusloop->getBusCommand();
+			busCommand->waitSignal();
 
 			if (!busCommand->isErrorResult()) {
 				// decode result
@@ -273,11 +273,11 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			ebusCommand += cmd[1];
 			std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
 
-			BusCommand* busCommand = new BusCommand(ebusCommand);
+			BusCommand* busCommand = new BusCommand(ebusCommand, false);
 			L.log(bas, trace, " msg: %s", ebusCommand.c_str());
 			// send busCommand
 			m_ebusloop->addBusCommand(busCommand);
-			busCommand = m_ebusloop->getBusCommand();
+			busCommand->waitSignal();
 
 			if (busCommand->isErrorResult()) {
 				L.log(bas, error, " %s", busCommand->getResultCodeCStr());
