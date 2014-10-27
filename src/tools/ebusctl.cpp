@@ -17,7 +17,8 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#include "libebus.h"
+#include "port.h"
+#include "decode.h"
 #include "appl.h"
 #include "tcpsocket.h"
 #include <iostream>

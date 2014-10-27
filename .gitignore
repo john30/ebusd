@@ -1,6 +1,6 @@
 /INSTALL
-/Makefile
-/Makefile.in
+Makefile
+Makefile.in
 /build/*
 /aclocal.m4
 /autom4te.cache/

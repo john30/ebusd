@@ -22,9 +22,9 @@
 
 #include "tcpsocket.h"
 #include "wqueue.h"
-#include "message.h"
 #include "notify.h"
 #include "thread.h"
+#include "message.h"
 
 class Connection : public Thread
 {

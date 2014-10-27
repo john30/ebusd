@@ -20,7 +20,7 @@
 #ifndef BASELOOP_H_
 #define BASELOOP_H_
 
-#include "libebus.h"
+#include "commands.h"
 #include "network.h"
 #include "ebusloop.h"
 

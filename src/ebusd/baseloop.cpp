@@ -18,6 +18,7 @@
  */
 
 #include "baseloop.h"
+#include "configfile.h"
 #include "logger.h"
 #include "appl.h"
 

@@ -20,7 +20,8 @@
 #ifndef EBUSLOOP_H_
 #define EBUSLOOP_H_
 
-#include "libebus.h"
+#include "bus.h"
+#include "commands.h"
 #include "wqueue.h"
 #include "thread.h"
 
