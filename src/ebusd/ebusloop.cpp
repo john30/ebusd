@@ -1,5 +1,5 @@
 /*
- * Copyright (C) Roland Jax 2012-2014 <roland.jax@liwest.at>
+ * Copyright (C) Roland Jax 2012-2014 <ebusd@liwest.at>
  *
  * This file is part of ebusd.
  *
@@ -70,7 +70,6 @@ void* EBusLoop::run()
 	time_t pollStart, pollEnd;
 	time(&pollStart);
 	double pollDelta = 0.0;
-	bool pollCommandActive = false;
 
 	for (;;) {
 		if (m_bus->isConnected() == true) {
@@ -154,7 +153,6 @@ void* EBusLoop::run()
 					m_bus->addCommand(busCommand);
 					L.log(bus, debug, " addCommand success");
 					busCommandActive = true;
-					pollCommandActive = true;
 
 					time(&pollStart);
 				}
@@ -181,7 +179,6 @@ void* EBusLoop::run()
 							m_commands->storePolData(busCommand->getMessageStr().c_str()); // TODO use getResult()
 
 						delete busCommand;
-						pollCommandActive = false;
 					} else {
 						busCommand->sendSignal();
 					}
@@ -206,7 +203,6 @@ void* EBusLoop::run()
 					}
 					lookbusretries = 0;
 					busCommandActive = false;
-					pollCommandActive = false;
 				}else {
 					lookbusretries++;
 				}

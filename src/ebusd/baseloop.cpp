@@ -1,5 +1,5 @@
 /*
- * Copyright (C) Roland Jax 2012-2014 <roland.jax@liwest.at>
+ * Copyright (C) Roland Jax 2012-2014 <ebusd@liwest.at>
  *
  * This file is part of ebusd.
  *
@@ -359,8 +359,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		       << " dump      - change dump state         'dump state'             (state: on|off)" << std::endl << std::endl
 		       << " log       - change log areas          'log areas area,area,..' (areas: bas|net|bus|cyc|all)" << std::endl
 		       << "           - change log level          'log level level'        (level: error|event|trace|debug)" << std::endl << std::endl
-		       << " config    - list ebus configuration   'config list'" << std::endl
-		       << "           - reload ebus configuration 'config reload'" << std::endl << std::endl
+		       << " reload    - reload ebus configuration" << std::endl << std::endl
 		       << " stop      - stop daemon" << std::endl
 		       << " quit      - close connection" << std::endl << std::endl
 		       << " help      - print this page";

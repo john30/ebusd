@@ -1,5 +1,5 @@
 /*
- * Copyright (C) Roland Jax 2012-2014 <roland.jax@liwest.at>
+ * Copyright (C) Roland Jax 2012-2014 <ebusd@liwest.at>
  *
  * This file is part of ebusd.
  *
@@ -17,8 +17,8 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef LOGGER_H_
-#define LOGGER_H_
+#ifndef LIBCORE_LOGGER_H_
+#define LIBCORE_LOGGER_H_
 
 #include "wqueue.h"
 #include "thread.h"
@@ -178,4 +178,4 @@ private:
 
 };
 
-#endif // LOGGER_H_
+#endif // LIBCORE_LOGGER_H_

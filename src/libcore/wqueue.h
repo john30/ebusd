@@ -1,5 +1,5 @@
 /*
- * Copyright (C) Roland Jax 2012-2014 <roland.jax@liwest.at>
+ * Copyright (C) Roland Jax 2012-2014 <ebusd@liwest.at>
  *
  * This file is part of ebusd.
  *
@@ -17,8 +17,8 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef WQUEUE_H_
-#define WQUEUE_H_
+#ifndef LIBCORE_WQUEUE_H_
+#define LIBCORE_WQUEUE_H_
 
 #include <list>
 #include <pthread.h>
@@ -82,4 +82,4 @@ private:
 
 };
 
-#endif // WQUEUE_H_
+#endif // LIBCORE_WQUEUE_H_

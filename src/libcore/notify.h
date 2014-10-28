@@ -1,5 +1,5 @@
 /*
- * Copyright (C) Roland Jax 2012-2014 <roland.jax@liwest.at>
+ * Copyright (C) Roland Jax 2012-2014 <ebusd@liwest.at>
  *
  * This file is part of ebusd.
  *
@@ -17,8 +17,8 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef NOTIFY_H_
-#define NOTIFY_H_
+#ifndef LIBCORE_NOTIFY_H_
+#define LIBCORE_NOTIFY_H_
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -51,6 +51,6 @@ private:
 
 };
 
-#endif // NOTIFY_H_
+#endif // LIBCORE_NOTIFY_H_
 
 

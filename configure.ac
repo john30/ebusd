@@ -1,5 +1,5 @@
 AC_PREREQ([2.65])
-AC_INIT([ebusd], [0.4.0], [roland.jax@liwest.at], [ebusd], [https://github.com/yuhu-/ebusd])
+AC_INIT([ebusd], [0.5.0], [ebusd@liwest.at], [ebusd], [https://github.com/yuhu-/ebusd])
 
 AC_PROG_CXX
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) Roland Jax 2012-2014 <roland.jax@liwest.at>
+ * Copyright (C) Roland Jax 2012-2014 <ebusd@liwest.at>
  *
  * This file is part of ebusd.
  *
@@ -17,8 +17,8 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef THREAD_H_
-#define THREAD_H_
+#ifndef LIBCORE_THREAD_H_
+#define LIBCORE_THREAD_H_
 
 #include <pthread.h>
 
@@ -43,4 +43,4 @@ private:
 
 };
 
-#endif // THREAD_H_
+#endif // LIBCORE_THREAD_H_

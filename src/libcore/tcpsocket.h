@@ -1,5 +1,5 @@
 /*
- * Copyright (C) Roland Jax 2012-2014 <roland.jax@liwest.at>
+ * Copyright (C) Roland Jax 2012-2014 <ebusd@liwest.at>
  *
  * This file is part of ebusd.
  *
@@ -17,8 +17,8 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef TCPSOCKET_H_
-#define TCPSOCKET_H_
+#ifndef LIBCORE_TCPSOCKET_H_
+#define LIBCORE_TCPSOCKET_H_
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -84,5 +84,5 @@ private:
 
 };
 
-#endif // TCPSOCKET_H_
+#endif // LIBCORE_TCPSOCKET_H_
 

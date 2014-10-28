@@ -1,5 +1,5 @@
 /*
- * Copyright (C) Roland Jax 2012-2014 <roland.jax@liwest.at>
+ * Copyright (C) Roland Jax 2012-2014 <ebusd@liwest.at>
  *
  * This file is part of ebusd.
  *
@@ -17,8 +17,8 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef DAEMON_H_
-#define DAEMON_H_
+#ifndef LIBCORE_DAEMON_H_
+#define LIBCORE_DAEMON_H_
 
 class Daemon
 {
@@ -45,4 +45,4 @@ private:
 
 };
 
-#endif // DAEMON_H_
+#endif // LIBCORE_DAEMON_H_

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) Roland Jax 2012-2014 <roland.jax@liwest.at>
+ * Copyright (C) Roland Jax 2012-2014 <ebusd@liwest.at>
  *
  * This file is part of ebusd.
  *
@@ -17,8 +17,8 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef APPL_H_
-#define APPL_H_
+#ifndef LIBCORE_APPL_H_
+#define LIBCORE_APPL_H_
 
 #include <string>
 #include <cstring>
@@ -109,4 +109,4 @@ private:
 	void addParam(const char* name, const std::string arg, Datatype datatype);
 };
 
-#endif // APPL_H_
+#endif // LIBCORE_APPL_H_
