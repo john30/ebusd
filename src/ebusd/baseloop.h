@@ -52,7 +52,7 @@ private:
 			     hex,       // send hex value
 			     dump,      // change dump state
 			     log,	// logger settings
-			     config,    // ebus configuration
+			     reload,    // reload ebus configuration
 			     help,      // print commands
 			     notfound
 			   };
@@ -65,7 +65,7 @@ private:
 		if (strcasecmp(item.c_str(), "HEX") == 0) return hex;
 		if (strcasecmp(item.c_str(), "DUMP") == 0) return dump;
 		if (strcasecmp(item.c_str(), "LOG") == 0) return log;
-		if (strcasecmp(item.c_str(), "CONFIG") == 0) return config;
+		if (strcasecmp(item.c_str(), "RELOAD") == 0) return reload;
 		if (strcasecmp(item.c_str(), "HELP") == 0) return help;
 
 		return notfound;

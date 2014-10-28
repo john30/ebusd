@@ -328,20 +328,13 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 		break;
 
-	case config:
-		if (cmd.size() != 2) {
-			result << "usage: 'config list'"  << std::endl
-			       << "       'config reload'";
+	case reload:
+		if (cmd.size() != 1) {
+			result << "usage: 'reload'";
 			break;
 		}
 
-		// ToDo: ...
-		if (strcasecmp(cmd[1].c_str(), "LIST") == 0) {
-			result << "not implemented yet";
-			break;
-		}
-
-		if (strcasecmp(cmd[1].c_str(), "RELOAD") == 0) {
+		{
 			// create Commands DB
 			Commands* commands = ConfigCommands(A.getParam<const char*>("p_ebusconfdir"), CSV).getCommands();
 			L.log(bas, trace, "ebus configuration dir: %s", A.getParam<const char*>("p_ebusconfdir"));
@@ -356,10 +349,6 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			result << "done";
 			break;
 		}
-
-		result << "usage: 'config list'"  << std::endl
-		       << "       'config reload'";
-		break;
 
 	case help:
 		result << "commands:" << std::endl

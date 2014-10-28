@@ -17,21 +17,24 @@ Features
    - set            adjust data of ebus participant
    - cyc            fetch data from collected cycle messages
    - hex            send given hex value to ebus (ZZ PB SB NN Dx)
+
    - dump           toggle dump on/off
+
    - log areas      change log areas
    - log level      change log level
-   - config list    not implemented yes
-   - config reload  reload ebus configuration
+
+   - reload         reload ebus configuration
+
    - stop           stop daemon
+
    - quit           close connection
+
    - help           print help page
 
 
 Dependency
 ----------
- * libebus (https://github.com/yuhu-/libebus)
  * glibc
- * pkgconfig
 
 
 Build
@@ -51,7 +54,7 @@ See ./ebusd -h
 Vendor specific configuration files
 -----------------------------------
 
-See https://github.com/yuhu-/ebusd_config
+See https://github.com/yuhu-/ebus-configuration
 
 
 Tools
