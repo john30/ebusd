@@ -1,0 +1,4 @@
+# type;class;cmd;comment;QQ;ZZ;PBSB;NN;D1D2D3;elements;sub;part;position;datatype;factor;unit;valid;comment;sub;part;position;datatype;factor;unit;valid;comment;sub;part;position;datatype;factor;unit;valid;comment;sub;part;position;datatype;factor;unit;valid;comment
+c;broad;date_time_temp;Datum, Uhrzeit und Aussentempertur;;FE;0700;9;-;4;temp;md;1,2;d2b;1.0;°C;-;Temperatur;day;md;8;bdy;-;-;-;Wochentag;date;md;6,7,9;bda;-;-;-;Datum;time;md;5,4,3;bti;-;-;-;Uhrzeit
+g;ci;Password;Kennwort;;15;B509;3;0D2C00;4;pin1;sd;1;uch;-;-;-;Pin 1;pin2;sd;2;uch;-;-;-;Pin 2;pin3;sd;3;uch;-;-;-;Pin 3;pin4;sd;4;uch;-;-;-;Pin 4
+s;vwxmk;DesiredTemp;Solltemperatur;;50;B509;4;0E3200;1;-;sd;1;d1c;1.0;°C;-;-;;;;;;;;;;;;;;;;;;;;;;;;

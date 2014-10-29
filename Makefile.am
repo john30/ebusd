@@ -1,32 +1,9 @@
-AUTOMAKE_OPTIONS = subdir-objects
+SUBDIRS = src/libebus src/test src/libcore src/ebusd src/tools
 
-ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
-
-AM_CXXFLAGS = $(LIBEBUS_CFLAGS) -I$(top_srcdir)/lib -fpic -Wall -Wextra
-
-bin_PROGRAMS = ebusd \
-	       ebusctl
-
-ebusd_SOURCES = lib/appl.cpp \
-		lib/daemon.cpp \
-		lib/tcpsocket.cpp \
-		lib/thread.cpp \
-		lib/logger.cpp \
-		src/connection.cpp \
-		src/network.cpp \
-		src/ebusloop.cpp \
-		src/baseloop.cpp \
-		src/main.cpp
-
-ebusd_LDADD = $(LIBEBUS_LIBS) \
-	      -lpthread
-
-dist_noinst_SCRIPTS = autogen.sh
-
-
-ebusctl_SOURCES = lib/appl.cpp \
-		  lib/tcpsocket.cpp \
-		  tools/ebusctl.cpp
-
-ebusctl_LDADD = $(LIBEBUS_LIBS)
-
+distclean-local:
+	-rm -rf autom4te.cache
+	-rm -f aclocal.m4
+	-rm -f config.h.in
+	-rm -f configure
+	-rm -f Makefile.in
+	-rm -rf build

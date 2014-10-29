@@ -1,6 +1,9 @@
 ebusd - ChangeLog
 -----------------
 
+2014-10-28  Roland Jax  <roland.jax@liwest.at>
+* libebus project merged into ebusd project.
+
 2014-10-21  Roland Jax  <roland.jax@liwest.at>
 * class EBusLoop: recvBuffer removed.
 
