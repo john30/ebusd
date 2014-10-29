@@ -31,6 +31,7 @@ static const int RESULT_DATA = 2;              // some data received
 static const int RESULT_SYN = 3;               // regular SYN after message received
 static const int RESULT_BUS_LOCKED = 4;        // bus is locked for access
 static const int RESULT_BUS_PRIOR_RETRY = 5;   // retry to access bus
+static const int RESULT_IN_ESC = 6;            // start of escape sequence received
 
 static const int RESULT_ERR_SEND = -1;         // send error
 static const int RESULT_ERR_EXTRA_DATA = -2;   // received bytes > sent bytes
