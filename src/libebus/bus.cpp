@@ -25,53 +25,6 @@ namespace libebus
 {
 
 
-BusCommand::BusCommand(const std::string commandStr, const bool isPoll)
-	: m_isPoll(isPoll), m_command(commandStr), m_resultCode(RESULT_OK)
-{
-	unsigned char dstAddress = m_command[1];
-
-	if (dstAddress == BROADCAST)
-		m_type = broadcast;
-	else if (isMaster(dstAddress) == true)
-		m_type = masterMaster;
-	else
-		m_type = masterSlave;
-	pthread_mutex_init(&m_mutex, NULL);
-	pthread_cond_init(&m_cond, NULL);
-}
-
-BusCommand::~BusCommand()
-{
-	pthread_mutex_destroy(&m_mutex);
-	pthread_cond_destroy(&m_cond);
-}
-
-const char* BusCommand::getResultCodeCStr()
-{
-	return libebus::getResultCodeCStr(m_resultCode);
-}
-
-const std::string BusCommand::getMessageStr()
-{
-	std::string result;
-
-	if (m_resultCode >= 0) {
-		if (m_type == masterSlave) {
-			result = m_command.getDataStr(true);
-			result += "00";
-			result += m_result.getDataStr();
-			result += "00";
-		} else {
-			result = "success";
-		}
-	}
-	else
-		result = "error";
-
-	return result;
-}
-
-
 Bus::Bus(const std::string deviceName, const bool noDeviceCheck, const long recvTimeout,
 	const std::string dumpFile, const long dumpSize, const bool dumpState)
 	: m_previousEscape(false), m_recvTimeout(recvTimeout), m_dumpState(dumpState),
