@@ -8,6 +8,8 @@ libebus_a_SOURCES = result.cpp \
 		    result.h \
 		    symbol.cpp \
 		    symbol.h \
+		    data.cpp \
+		    data.h \
 		    port.cpp \
 		    port.h \
 		    buscommand.cpp \
