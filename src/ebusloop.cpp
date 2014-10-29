@@ -70,7 +70,6 @@ void* EBusLoop::run()
 	time_t pollStart, pollEnd;
 	time(&pollStart);
 	double pollDelta = 0.0;
-	bool pollCommandActive = false;
 
 	for (;;) {
 		if (m_bus->isConnected() == true) {
@@ -115,7 +114,7 @@ void* EBusLoop::run()
 			// add new bus command to send
 			if (busResult == RESULT_SYN && busCommandActive == false && m_sendBuffer.size() != 0) {
 				BusCommand* busCommand = m_sendBuffer.remove();
-				L.log(bus, debug, " msg: %s", busCommand->getCommand().getDataStr(true).c_str());
+				L.log(bus, debug, " msg: %s", busCommand->getCommand().getDataStr().c_str());
 				m_bus->addCommand(busCommand);
 				L.log(bus, debug, " addCommand success");
 				busCommandActive = true;
@@ -154,7 +153,6 @@ void* EBusLoop::run()
 					m_bus->addCommand(busCommand);
 					L.log(bus, debug, " addCommand success");
 					busCommandActive = true;
-					pollCommandActive = true;
 
 					time(&pollStart);
 				}
@@ -181,7 +179,6 @@ void* EBusLoop::run()
 							m_commands->storePolData(busCommand->getMessageStr().c_str()); // TODO use getResult()
 
 						delete busCommand;
-						pollCommandActive = false;
 					} else {
 						busCommand->sendSignal();
 					}
@@ -206,7 +203,6 @@ void* EBusLoop::run()
 					}
 					lookbusretries = 0;
 					busCommandActive = false;
-					pollCommandActive = false;
 				}else {
 					lookbusretries++;
 				}
