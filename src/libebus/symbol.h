@@ -1,5 +1,5 @@
 /*
- * Copyright (C) John Baier 2012-2014 <ebusd@johnm.de>
+ * Copyright (C) John Baier 2014 <ebusd@johnm.de>
  *
  * This file is part of ebusd.
  *
@@ -41,6 +41,7 @@ static const unsigned char BROADCAST = 0xFE; // the broadcast destination addres
  */
 class SymbolString
 {
+
 public:
 	/**
 	 * @brief Creates a new empty SymbolString.
