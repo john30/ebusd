@@ -245,7 +245,7 @@ public:
 private:
 	/** the device name */
 	std::string m_deviceName;
-	/** pointer to device instance */
+	/** the device instance */
 	Device* m_device;
 	/** true if device check is disabled */
 	bool m_noDeviceCheck;
