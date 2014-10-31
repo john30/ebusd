@@ -86,4 +86,4 @@ private:
 
 } //namespace
 
-#endif // LIBEBUS_BUS_HPP_
+#endif // LIBEBUS_BUS_H_

@@ -358,10 +358,10 @@ int Bus::recvSlaveDataAndCRC(SymbolString& result)
 
 		byte_recv = recvByte();
 		retval = result.push_back(byte_recv, true, updateCrc);
-		if (retval<0)
+		if (retval < 0)
 			return retval;
 
-		if (retval==RESULT_IN_ESC)
+		if (retval == RESULT_IN_ESC)
 			needed++;
 		else if (result.size() == 1) { // NN received
 			NN = result[0];
@@ -374,7 +374,7 @@ int Bus::recvSlaveDataAndCRC(SymbolString& result)
 		}
 	}
 
-	if (retval==RESULT_IN_ESC)
+	if (retval == RESULT_IN_ESC)
 		return RESULT_ERR_ESC;
 
 	if (updateCrc || crc_calc != result[result.size()-1])
