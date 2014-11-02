@@ -23,6 +23,7 @@
 #include "symbol.h"
 #include <string>
 #include <vector>
+#include <map>
 
 namespace libebus
 {
@@ -30,33 +31,39 @@ namespace libebus
 
 /** the message part in which a data field is stored. */
 enum PartType {
-			pt_masterData, // stored in master data
-			//pt_slaveAck,   // stored in slave acknowledge // TODO implement if reasonable
-			pt_slaveData,  // stored in slave data
-			//pt_masterAck   // stored in master acknowledge // TODO implement if reasonable
-			};
+	pt_masterData, // stored in master data
+	pt_slaveData,  // stored in slave data
+	};
 
-/** the available data types. */
-enum DataType {
-			dt_string, // string of characters with fixed length>0, filled up with space
-			dt_hex,    // string of hex digits with fixed length>0, separated by space
-			dt_bcd,    // length: 1 byte, binary coded number, string format: "%d"
-			dt_uchar,
-			dt_schar,
-			dt_uint,
-			dt_sint,
-			dt_ulong,
-			dt_slong,
-			dt_float,
-			dt_d1b,
-			dt_d1c,
-			dt_d2b,
-			dt_d2c,
-			dt_date,  // length: 4 bytes (with skipped weekday) or 3 bytes (without weekday), string format: "dd.mm.yyyy"
-			dt_day,   // length: 1 byte, string format: "www" (3 character weekday name)
-			dt_time,  // length: 3 bytes, string format: "hh:mm"
-			dt_tTime  // length: 1 byte, string format: "hh:mm"
-			};
+/** the available base data types. */
+enum BaseType {
+	bt_str,    // text string in a StringDataField
+	bt_hexstr, // hex digit string in a StringDataField
+	bt_date,   // date in a StringDataField
+	bt_time,   // time in a StringDataField
+	bt_list,   // numeric list value in a ValueListDataField
+	bt_number  // number value in a NumberDataField
+};
+
+/** flags for dataType_t. */
+const unsigned int ADJ = 0x01; // adjustable length, numBytes is maximum length
+const unsigned int BCD = 0x02; // binary representation is BCD
+const unsigned int REV = 0x04; // reverted binary representation (most significant byte first)
+const unsigned int SIG = 0x08; // signed value
+const unsigned int LST = 0x10; // value list is possible (without applied factor)
+const unsigned int DAY = 0x20; // default value list is week days
+
+/** the structure for defining field types with their properties. */
+typedef struct {
+	const char* name;                    // field identifier
+	const unsigned int numBytes;         // number of bytes (maximum length if ADJ flag is set)
+	const BaseType type;                 // base data type
+	const unsigned int flags;            // flags (e.g. BCD)
+	const unsigned int replacement;      // replacement value (fill-up value for bt_str/bt_hexstr)
+	const unsigned int minValueOrLength; // minimum binary value (minimum length of string for StringDataField)
+	const unsigned int maxValueOrLength; // maximum binary value (maximum length of string for StringDataField)
+	const unsigned int divisor;          // divisor for bt_number values (or 0 for non-numeric)
+} dataType_t;
 
 
 /**
@@ -71,13 +78,13 @@ public:
 	 * @param partType the message part in which the field is stored.
 	 * @param offset the offset to the first symbol in the message part in which the field is stored.
 	 * @param length the number of symbols in the message part in which the field is stored.
-	 * @param dataType the data type.
+	 * @param dataType the data type definition.
 	 * @param unit the value unit.
 	 * @param comment the field comment.
 	 */
 	DataField(const std::string name, const PartType partType,
 			const unsigned char offset, const unsigned char length,
-			const DataType dataType, const std::string unit,
+			const dataType_t dataType, const std::string unit,
 			const std::string comment)
 		: m_name(name), m_partType(partType), m_offset(offset),
 		  m_length(length), m_dataType(dataType), m_unit(unit),
@@ -98,35 +105,35 @@ public:
 			std::vector<std::string>::iterator& it, const std::vector<std::string>::iterator end);
 
 	/**
-	 * @brief Parses the value from the master or slave @a SymbolString.
-	 * @param masterData the unescaped master data @a SymbolString to parse from.
-	 * @param slaveData the unescaped slave data @a SymbolString to parse from.
-	 * @return the parsed value as string.
+	 * @brief Reads the value from the master or slave @a SymbolString.
+	 * @param masterData the unescaped master data @a SymbolString for reading binary data.
+	 * @param slaveData the unescaped slave data @a SymbolString for reading binary data.
+	 * @return the formatted value as string.
 	 */
-	const std::string parseSymbols(SymbolString& masterData, SymbolString& slaveData, bool verbose=false);
+	const std::string read(SymbolString& masterData, SymbolString& slaveData, bool verbose=false);
 	/**
-	 * @brief Formats the value to the master or slave @a SymbolString.
-	 * @param masterData the unescaped master data @a SymbolString to format to.
-	 * @param slaveData the unescaped slave data @a SymbolString to format to.
-	 * @param value the value as string.
+	 * @brief Writes the value to the master or slave @a SymbolString.
+	 * @param masterData the unescaped master data @a SymbolString for writing binary data.
+	 * @param slaveData the unescaped slave data @a SymbolString for writing binary data.
+	 * @param value the formatted value as string.
 	 */
-	bool formatSymbols(const std::string& value, SymbolString& masterData, SymbolString& slaveData);
+	bool write(const std::string& value, SymbolString& masterData, SymbolString& slaveData);
 
 protected:
 	/**
-	 * @brief Internal method doing the actual parse for the individual data type.
-	 * @param data the unescaped data SymbolString to parse from.
-	 * @param output the ostringstream to append to.
+	 * @brief Internal method for reading the field from a @a SymbolString.
+	 * @param input the unescaped @a SymbolString to read the binary value from.
+	 * @param output the ostringstream to append the formatted value to.
 	 * @return true if the value was parsed successfully.
 	 */
-	virtual bool parse(SymbolString& data, std::ostringstream& output) = 0;
+	virtual bool readSymbols(SymbolString& input, std::ostringstream& output) = 0;
 	/**
-	 * @brief Internal method doing the actual format for the individual data type.
-	 * @param data the unescaped data SymbolString to format to.
-	 * @param input the istringstream to interpret.
+	 * @brief Internal method for writing the field to a @a SymbolString.
+	 * @param input the istringstream to parse the formatted value from.
+	 * @param output the unescaped @a SymbolString to write the binary value to.
 	 * @return true if the value was formatted successfully.
 	 */
-	virtual bool format(SymbolString& data, std::istringstream& input) = 0;
+	virtual bool writeSymbols(std::istringstream& input, SymbolString& output) = 0;
 
 	/** the field name. */
 	const std::string m_name;
@@ -136,9 +143,8 @@ protected:
 	const unsigned char m_offset;
 	/** the number of symbols in the message part in which the field is stored. */
 	const unsigned char m_length;
-	/** the data type. */
-	const DataType m_dataType;
-	//std::vector<std::string> m_valid;//TODO add list of possible values
+	/** the data type definition. */
+	const dataType_t m_dataType;
 	/** the value unit. */
 	const std::string m_unit;
 	/** the field comment. */
@@ -158,13 +164,13 @@ public:
 	 * @param partType the message part in which the field is stored.
 	 * @param offset the offset to the first symbol in the message part in which the field is stored.
 	 * @param length the number of symbols in the message part in which the field is stored.
-	 * @param dataType the data type.
+	 * @param dataType the data type definition.
 	 * @param unit the value unit.
 	 * @param comment the field comment.
 	 */
 	StringDataField(const std::string name, const PartType partType,
 			const unsigned char offset, const unsigned char length,
-			const DataType dataType, const std::string unit,
+			const dataType_t dataType, const std::string unit,
 			const std::string comment)
 		: DataField(name, partType, offset, length, dataType, unit, comment) {}
 	/**
@@ -173,8 +179,8 @@ public:
 	virtual ~StringDataField() {}
 
 protected:
-	virtual bool parse(SymbolString& data, std::ostringstream& output);
-	virtual bool format(SymbolString& data, std::istringstream& input);
+	virtual bool readSymbols(SymbolString& input, std::ostringstream& output);
+	virtual bool writeSymbols(std::istringstream& input, SymbolString& output);
 
 };
 
@@ -191,32 +197,113 @@ public:
 	 * @param partType the message part in which the field is stored.
 	 * @param offset the offset to the first symbol in the message part in which the field is stored.
 	 * @param length the number of symbols in the message part in which the field is stored.
-	 * @param dataType the data type.
+	 * @param dataType the data type definition.
 	 * @param comment the field comment.
 	 * @param unit the value unit.
-	 * @param factor the factor to apply on the value.
 	 * @param replacement the (binary) replacement value to use if the value is not set.
 	 */
 	NumericDataField(const std::string name, const PartType partType,
 			const unsigned char offset, const unsigned char length,
-			const DataType dataType, const std::string unit,
-			const std::string comment, const float factor,
-			const unsigned int replacement)
-		: DataField(name, partType, offset, length, dataType, unit, comment),
-		  m_factor(factor), m_replacement(replacement) {}
+			const dataType_t dataType, const std::string unit,
+			const std::string comment)
+		: DataField(name, partType, offset, length, dataType, unit, comment) {}
 	/**
 	 * @brief Destructor.
 	 */
 	virtual ~NumericDataField() {}
 
 protected:
-	virtual bool parse(SymbolString& data, std::ostringstream& output);
-	virtual bool format(SymbolString& data, std::istringstream& input);
+	/**
+	 * @brief Internal method for reading the raw value from a @a SymbolString.
+	 * @param input the unescaped @a SymbolString to read the binary value from.
+	 * @param value the variable in which to store the raw value.
+	 * @return true if the value was read successfully.
+	 */
+	bool readRawValue(SymbolString& input, unsigned int& value);
+	/**
+	 * @brief Internal method for writing the raw value to a @a SymbolString.
+	 * @param value the raw value to write.
+	 * @param output the unescaped @a SymbolString to write the binary value to.
+	 * @return true if the value was written successfully.
+	 */
+	bool writeRawValue(unsigned int value, SymbolString& output);
+
+};
+
+/**
+ * @brief Base class for all numeric data fields with a number representation.
+ */
+class NumberDataField : public NumericDataField
+{
+public:
+	/**
+	 * @brief Constructs a new instance.
+	 * @param name the field name.
+	 * @param partType the message part in which the field is stored.
+	 * @param offset the offset to the first symbol in the message part in which the field is stored.
+	 * @param length the number of symbols in the message part in which the field is stored.
+	 * @param dataType the data type definition.
+	 * @param comment the field comment.
+	 * @param unit the value unit.
+	 * @param replacement the (binary) replacement value to use if the value is not set.
+	 * @param factor the factor to apply on the value.
+	 */
+	NumberDataField(const std::string name, const PartType partType,
+			const unsigned char offset, const unsigned char length,
+			const dataType_t dataType, const std::string unit,
+			const std::string comment, const float factor)
+		: NumericDataField(name, partType, offset, length, dataType, unit, comment),
+		  m_factor(factor / dataType.divisor) {}
+	/**
+	 * @brief Destructor.
+	 */
+	virtual ~NumberDataField() {}
+
+protected:
+	virtual bool readSymbols(SymbolString& input, std::ostringstream& output);
+	virtual bool writeSymbols(std::istringstream& input, SymbolString& output);
 
 	/** the factor to apply on the value. */
 	const float m_factor;
-	/** the (binary) replacement value to use if the value is not set. */
-	const unsigned int m_replacement;
+
+};
+
+/**
+ * @brief A numeric data field with a list of value=text assignments and a string representation.
+ */
+class ValueListDataField : public NumericDataField
+{
+public:
+	/**
+	 * @brief Constructs a new instance.
+	 * @param name the field name.
+	 * @param partType the message part in which the field is stored.
+	 * @param offset the offset to the first symbol in the message part in which the field is stored.
+	 * @param length the number of symbols in the message part in which the field is stored.
+	 * @param dataType the data type definition.
+	 * @param comment the field comment.
+	 * @param unit the value unit.
+	 * @param factor the factor to apply on the value.
+	 * @param replacement the (binary) replacement value to use if the value is not set.
+	 * @param values the value=text assignments.
+	 */
+	ValueListDataField(const std::string name, const PartType partType,
+			const unsigned char offset, const unsigned char length,
+			const dataType_t dataType, const std::string unit,
+			const std::string comment, const std::map<unsigned int, std::string> values)
+		: NumericDataField(name, partType, offset, length, dataType, unit, comment),
+		  m_values(values) {}
+	/**
+	 * @brief Destructor.
+	 */
+	virtual ~ValueListDataField() {}
+
+protected:
+	virtual bool readSymbols(SymbolString& input, std::ostringstream& output);
+	virtual bool writeSymbols(std::istringstream& input, SymbolString& output);
+
+	/** the value=text assignments. */
+	std::map<unsigned int, std::string> m_values;
 
 };
 
