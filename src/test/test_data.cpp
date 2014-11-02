@@ -25,9 +25,6 @@ using namespace libebus;
 
 int main ()
 {
-	//TODO dt_d1b,
-	//TODO dt_d1c,
-	//TODO dt_d2c,
 	std::string checks[][4] = {
 		//name;position(s);type;factor;unit;comment
 //		{"temp;1;d2b;;°C;Aussentemperatur","temp=18.004 °C [Aussentemperatur]","10fe070009019258042126100714cc", "00"},
@@ -39,12 +36,14 @@ int main ()
 		{"x;1;hdy","Sun","10fe07000307", "00"},
 		{"x;1;bdy","Sun","10fe07000306", "00"},
 		{"x;1;d2b","18.004","10fe0700090112", "00"},
+		{"x;1;d2c","288.062","10fe0700090112", "00"},
 		{"x;1;ttm","22:40","10feffff0188", "00"},
 		{"x;1;bcd","26","10feffff0126", "00"},
 		{"x;1;bcd","-","10feffff01ff", "00"},
 		{"x;1;uch","38","10feffff0126", "00"},
 		{"x;1;sch","-90","10feffff01a6", "00"},
 		{"x;1;d1b","-90","10feffff01a6", "00"},
+		{"x;1;d1c","19.500","10feffff0127", "00"},
 		{"x;1;uin","38","10feffff022600", "00"},
 		{"x;1;sin","-90","10feffff02a6ff", "00"},
 		{"x;1;ulg","38","10feffff0426000000", "00"},
@@ -52,6 +51,7 @@ int main ()
 		{"x;1;flt","-0.090","10feffff02a6ff", "00"},
 		{"x;1-9;str","hallo Du!","10feffff0868616c6c6f20447521", "00"},
 		{"x;1-9;str","hallo Du ","10feffff0868616c6c6f20447520", "00"},
+		{"new;1;uch;1=test,2=high,3=off,4=on","on","10feffff0104", "00"},
 	};
 	for (size_t i = 0; i < sizeof(checks)/sizeof(checks[0]); i++) {
 		std::istringstream isstr(checks[i][0]);
@@ -77,20 +77,20 @@ int main ()
 		std::string gotStr = field->read(mstr, sstr);
 
 		if (strcasecmp(gotStr.c_str(), expectStr.c_str()) == 0)
-			std::cout << "parse successful: " << gotStr << std::endl;
+			std::cout << "read successful: " << gotStr << std::endl;
 		else
-			std::cout << "parse invalid: got " << gotStr
+			std::cout << "read invalid: got " << gotStr
 				<< ", expected " << expectStr << std::endl;
 
 		SymbolString writeMstr = SymbolString(mstr.getDataStr().substr(0, 10), false);
 		SymbolString writeSstr = SymbolString(sstr.getDataStr().substr(0, 2), false);
 		if (field->write(gotStr, writeMstr, writeSstr) == false)
-			std::cout << "format failed" << std::endl;
+			std::cout << "write failed" << std::endl;
 		else {
 			if (mstr == writeMstr && sstr == writeSstr)
-				std::cout << "format successful" << std::endl;
+				std::cout << "write successful" << std::endl;
 			else {
-				std::cout << "format invalid: ";
+				std::cout << "write invalid: ";
 				if (mstr == writeMstr)
 					std::cout << "master OK";
 				else

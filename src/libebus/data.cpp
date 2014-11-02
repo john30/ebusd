@@ -36,12 +36,12 @@ static const dataType_t dataTypes[] = {
 	{"HEX",16, bt_hexstr,ADJ,  0,           2,         47,     0}, // >= 1 byte hex digit string, usually separated by space, e.g. 0a 1b 2c 3d
 	{"BDA", 4, bt_date,  BCD,  0,          10,         10,     0}, // date in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is ignored weekday)
 	{"BDA", 3, bt_date,  BCD,  0,          10,         10,     0}, // date in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99)
-	//{"HDA", 3, bt_date,    0,  0,          10,         10,     0}, // date, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99)
-	//{"HDA", 4, bt_date,    0,  0,          10,         10,     0}, // date, 01.01.2000 - 31.12.2099 (0x0101WW00 - 0x3112WW99, WW is ignored weekday)
+	{"HDA", 4, bt_date,    0,  0,          10,         10,     0}, // date, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is ignored weekday) // TODO remove duplicate of BDA
+	{"HDA", 3, bt_date,    0,  0,          10,         10,     0}, // date, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99) // TODO remove duplicate of BDA
 	{"BTI", 3, bt_time,BCD|REV,0,           8,          8,     0}, // time in BCD, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x59,0x59,0x23)
 	{"TTM", 1, bt_time,    0,  0,           5,          5,     0}, // truncated time (only multiple of 10 minutes), 00:00 - 24:00 (minutes div 10 + hour * 6 as integer)
 	{"BDY", 1, bt_list,BCD|DAY,0,           0,          6,     0}, // weekday, "Mon" - "Sun"
-	{"HDY", 1, bt_list,BCD|DAY,0,           1,          7,     0}, // weekday, "Mon" - "Sun" // TODO different range
+	{"HDY", 1, bt_list,BCD|DAY,0,           1,          7,     0}, // weekday, "Mon" - "Sun"
 	{"BCD", 1, bt_number,BCD|LST,0xff,      0,       0x99,     1}, // unsigned decimal in BCD, 0 - 99
 	{"UCH", 1, bt_number, LST, 0xff,        0,       0xff,     1}, // unsigned integer, 0 - 255
 	{"SCH", 1, bt_number, SIG, 0x80,     0x80,       0x7f,     1}, // signed integer, -128 - +127
@@ -54,7 +54,7 @@ static const dataType_t dataTypes[] = {
 	{"D2C", 2, bt_number, SIG, 0x8000, 0x8001,     0x7fff,    16}, // signed number (fraction 1/16), -2047.9 - +2047.9
 	{"ULG", 4, bt_number, LST, 0xffffffff,          0, 0xffffffff, 1}, // unsigned integer, 0 - 4294967295
 	{"SLG", 4, bt_number, SIG, 0x80000000, 0x80000000, 0xffffffff, 1}, // signed integer, -2147483648 - +2147483647
-};
+}; // TODO check value range for numberdf
 
 /** the week day names. */
 static const char* dayNames[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
@@ -118,14 +118,27 @@ DataField* DataField::create(const unsigned char dstAddress, const bool isSetMes
 
 	const char* typeStr = (*it++).c_str();
 
+	std::map<unsigned int, std::string> values;
 	if (it == end)
 		factor = 1.0;
 	else {
 		std::string factorStr = *it++;
-		if (factorStr.length() > 0 && factorStr.find_first_not_of("0123456789.") == std::string::npos)
-			factor = static_cast<float>(strtod(factorStr.c_str(), NULL));
-		else
+		if (factorStr.empty())
 			factor = 1.0;
+		else if (factorStr.find_first_not_of("0123456789.") == std::string::npos)
+			factor = static_cast<float>(strtod(factorStr.c_str(), NULL));
+		else {
+			factor = 1.0;
+			std::istringstream stream(factorStr);
+			while (std::getline(stream, token, ',') != 0) {
+				const char* start = token.c_str();
+				char* end = NULL;
+				unsigned int id = strtoul(start, &end, 10);
+				if (end == NULL || end == start || *end != '=')
+					return NULL; // TODO error code: invalid values definition
+				values[id] = std::string(end+1);
+			}
+		}
 	}
 
 	if (it == end)
@@ -143,19 +156,6 @@ DataField* DataField::create(const unsigned char dstAddress, const bool isSetMes
 		comment = *it++;
 		if (comment.length() == 1 && comment[0] == '-')
 			comment.clear();
-	}
-
-	std::map<unsigned int, std::string> values;
-	if (it != end) {
-		std::istringstream stream(*it++);
-		while (std::getline(stream, token, ',') != 0) {
-			const char* start = token.c_str();
-			char* end = NULL;
-			unsigned int id = strtoul(start, &end, 10)-1; // 1-based
-			if (end == NULL || end == start || *end != '=')
-				return NULL; // TODO error code: invalid values definition
-			values[id] = std::string(end+1);
-		}
 	}
 
 	for (size_t i = 0; i < sizeof(dataTypes)/sizeof(dataTypes[0]); i++) {
@@ -541,7 +541,7 @@ bool NumberDataField::writeSymbols(std::istringstream& input, SymbolString& outp
 			double dvalue = strtod(str, &strEnd);
 			if (strEnd != str+strlen(str))
 				return false; // TODO error code: invalid value
-			dvalue /= m_factor;
+			dvalue = dvalue / m_factor + 0.5; // round
 			if ((m_dataType.flags&SIG) != 0) {
 				if (dvalue < -(1LL<<(8*m_length)) || dvalue >= (1LL<<(8*m_length)))
 					return false; // TODO error code: invalid value
