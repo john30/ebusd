@@ -23,8 +23,8 @@ namespace libebus
 {
 
 
-BusCommand::BusCommand(const std::string commandStr, const bool isPoll)
-	: m_isPoll(isPoll), m_command(commandStr), m_resultCode(RESULT_OK)
+BusCommand::BusCommand(const std::string command, const bool isPoll)
+	: m_isPoll(isPoll), m_command(command), m_resultCode(RESULT_OK)
 {
 	unsigned char dstAddress = m_command[1];
 
@@ -34,6 +34,7 @@ BusCommand::BusCommand(const std::string commandStr, const bool isPoll)
 		m_type = masterMaster;
 	else
 		m_type = masterSlave;
+
 	pthread_mutex_init(&m_mutex, NULL);
 	pthread_cond_init(&m_cond, NULL);
 }
@@ -42,11 +43,6 @@ BusCommand::~BusCommand()
 {
 	pthread_mutex_destroy(&m_mutex);
 	pthread_cond_destroy(&m_cond);
-}
-
-const char* BusCommand::getResultCodeCStr()
-{
-	return libebus::getResultCodeCStr(m_resultCode);
 }
 
 const std::string BusCommand::getMessageStr()
@@ -62,9 +58,9 @@ const std::string BusCommand::getMessageStr()
 		} else {
 			result = "success";
 		}
-	}
-	else
+	} else {
 		result = "error";
+	}
 
 	return result;
 }

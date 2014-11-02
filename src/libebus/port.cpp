@@ -86,18 +86,16 @@ ssize_t Device::recvBytes(const long timeout, size_t maxCount)
 			return -2; // TODO RESULT_ERR_TIMEOUT
 	}
 
-	ssize_t bytes_read = sizeof(m_buffer);
 	if (maxCount > sizeof(m_buffer))
 		maxCount = sizeof(m_buffer);
 
-
 	// read bytes from device
-	bytes_read = read(m_fd, m_buffer, maxCount);
+	ssize_t nbytes = read(m_fd, m_buffer, maxCount);
 
-	for (int i = 0; i < bytes_read; i++)
+	for (int i = 0; i < nbytes; i++)
 		m_recvBuffer.push(m_buffer[i]);
 
-	return bytes_read;
+	return nbytes;
 }
 
 unsigned char Device::getByte()

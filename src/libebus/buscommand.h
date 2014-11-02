@@ -34,17 +34,22 @@ class BusCommand
 {
 
 public:
-	BusCommand(const std::string commandStr, const bool isPoll);
+	BusCommand(const std::string command, const bool isPoll);
 	~BusCommand();
 
 	CommandType getType() const { return m_type; }
 	bool isPoll() const { return m_isPoll; }
+
 	SymbolString getCommand() const { return m_command; }
-	bool isErrorResult() const { return m_resultCode < 0; }
-	const char* getResultCodeCStr();
 	SymbolString getResult() const { return m_result; }
-	void setResult(const SymbolString result, const int resultCode) { m_result = result; m_resultCode = resultCode; }
+
+	bool isErrorResult() const { return m_resultCode < 0; }
+	const char* getResultCodeCStr() const { return libebus::getResultCodeCStr(m_resultCode); }
+	void setResult(const SymbolString result, const int resultCode)
+		{ m_result = result; m_resultCode = resultCode; }
+
 	const std::string getMessageStr();
+
 	void waitSignal() { pthread_cond_wait(&m_cond, &m_mutex); } // TODO timeout
 	void sendSignal() { pthread_cond_signal(&m_cond); }
 

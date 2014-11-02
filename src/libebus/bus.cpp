@@ -61,8 +61,8 @@ void Bus::printBytes() const
 
 int Bus::proceed()
 {
-	unsigned char byte_recv;
-	ssize_t bytes_recv;
+	unsigned char byte;
+	ssize_t nbytes;
 
 	// fetch new message and get bus
 	if (m_sendBuffer.size() != 0 && m_sstr.size() == 0) {
@@ -71,18 +71,18 @@ int Bus::proceed()
 	}
 
 	// wait for new data
-	bytes_recv = m_port->recv(0);
+	nbytes = m_port->recv(0);
 
-	if (bytes_recv < 0)
+	if (nbytes < 0)
 		return RESULT_ERR_DEVICE;
 
-	for (int i = 0; i < bytes_recv; i++) {
+	for (int i = 0; i < nbytes; i++) {
 
 		// fetch next byte
-		byte_recv = recvByte();
+		byte = recvByte();
 
 		// store byte
-		return proceedCycData(byte_recv); // TODO what if more than one byte was received?
+		return proceedCycData(byte); // TODO what if more than one byte was received?
 	}
 
 	return RESULT_SYN;
