@@ -69,7 +69,7 @@ public:
 	 * @param index the index of the symbol to return.
 	 * @return the reference to the symbol at the specified index.
 	 */
-	unsigned char& operator[](const size_t index) { if (index >= m_data.size()) m_data.resize(index+1); return m_data[index]; }
+	unsigned char& operator[](const size_t index) { if (index >= m_data.size()) m_data.resize(index+1, 0); return m_data[index]; }
 	/**
 	 * @brief Returns the symbol at the specified index.
 	 * @param index the index of the symbol to return.
