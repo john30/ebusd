@@ -18,6 +18,7 @@
  */
 
 #include "symbol.h"
+#include "result.h"
 #include <iostream>
 #include <iomanip>
 
@@ -27,7 +28,7 @@ namespace libebus
 /**
  * @brief CRC8 lookup table for the polynom 0x9b = x^8 + x^7 + x^4 + x^3 + x^1 + 1.
  */
-static const unsigned char CRC_LOOKUP_TABLE[]
+static const unsigned char CRC_LOOKUP_TABLE[] =
 {
 	0x00, 0x9b, 0xad, 0x36, 0xc1, 0x5a, 0x6c, 0xf7, 0x19, 0x82, 0xb4, 0x2f, 0xd8, 0x43, 0x75, 0xee,
 	0x32, 0xa9, 0x9f, 0x04, 0xf3, 0x68, 0x5e, 0xc5, 0x2b, 0xb0, 0x86, 0x1d, 0xea, 0x71, 0x47, 0xdc,
@@ -49,41 +50,35 @@ static const unsigned char CRC_LOOKUP_TABLE[]
 
 
 SymbolString::SymbolString(const std::string str)
-	: m_crc(0)
+	: m_unescapeState(0), m_crc(0)
 {
 	// parse + escape
 	for (size_t i = 0; i+1 < str.size(); i += 2) {
-		unsigned long value = strtoul(str.substr(i, 2).c_str(), NULL, 16);
-		push_back_escape((unsigned char)value);
+		unsigned long value = strtoul(str.substr(i, 2).c_str(), NULL, 16); // TODO check
+		push_back((unsigned char)value, false, true);
 	}
 	// add CRC + escape
-	push_back_escape(m_crc, false);
+	push_back(m_crc, false, false);
 }
 
-SymbolString::SymbolString(const std::string str, bool escaped)
-	: m_crc(0)
+SymbolString::SymbolString(const std::string str, bool isEscaped)
+	: m_unescapeState(1), m_crc(0)
 {
-	bool previousEscape = false;
-
 	// parse + optionally unescape
 	for (size_t i = 0; i+1 < str.size(); i += 2) {
-		unsigned long value = strtoul(str.substr(i, 2).c_str(), NULL, 16);
-		if (escaped == true) {
-			push_back_unescape((unsigned char)value, previousEscape, false);
-		}
-		else
-			m_data.push_back((unsigned char)value);
+		unsigned long value = strtoul(str.substr(i, 2).c_str(), NULL, 16); // TODO check
+		push_back((unsigned char)value, isEscaped, false);
 	}
 }
 
-const std::string SymbolString::getDataStr(bool unescape)
+const std::string SymbolString::getDataStr(const bool unescape)
 {
 	std::stringstream sstr;
 	bool previousEscape = false;
 
-	for (size_t i = 0; i < size(); i++) {
-		unsigned char value = at(i);
-		if (unescape == true && previousEscape == true) {
+	for (size_t i = 0; i < m_data.size(); i++) {
+		unsigned char value = m_data[i];
+		if (m_unescapeState == 0 && unescape == true && previousEscape == true) {
 			if (value == 0x00) {
 				sstr << "a9"; // ESC
 			}
@@ -95,7 +90,7 @@ const std::string SymbolString::getDataStr(bool unescape)
 			}
 			previousEscape = false;
 		}
-		else if (unescape == true && value == ESC) {
+		else if (m_unescapeState == 0 && unescape == true && value == ESC) {
 			previousEscape = true; // escape sequence not yet finished
 		}
 		else {
@@ -107,56 +102,80 @@ const std::string SymbolString::getDataStr(bool unescape)
 	return sstr.str();
 }
 
-void SymbolString::push_back_escape(const unsigned char value, bool updateCRC)
+int SymbolString::push_back(const unsigned char value, const bool isEscaped, const bool updateCRC)
 {
-	if (value == ESC) {
-		m_data.push_back(ESC);
-		m_data.push_back(0x00);
-		if (updateCRC) {
-			addCRC(ESC);
-			addCRC(0x00);
+	if (m_unescapeState == 0) { // store escaped data
+		if (isEscaped == false && value == ESC) {
+			m_data.push_back(ESC);
+			m_data.push_back(0x00);
+			if (updateCRC) {
+				addCRC(ESC);
+				addCRC(0x00);
+			}
 		}
-	}
-	else if (value == SYN) {
-		m_data.push_back(ESC);
-		m_data.push_back(0x01);
-		if (updateCRC) {
-			addCRC(ESC);
-			addCRC(0x01);
+		else if (isEscaped == false && value == SYN) {
+			m_data.push_back(ESC);
+			m_data.push_back(0x01);
+			if (updateCRC) {
+				addCRC(ESC);
+				addCRC(0x01);
+			}
 		}
+		else {
+			m_data.push_back(value);
+			if (updateCRC) {
+				addCRC(value);
+			}
+		}
+		return RESULT_OK;
 	}
-	else {
+	else if (isEscaped == false) {
+		if (m_unescapeState != 1)
+			return RESULT_ERR_ESC; // invalid unescape state
 		m_data.push_back(value);
+		if (updateCRC) {
+			if (value == ESC) {
+				addCRC(ESC);
+				addCRC(0x00);
+			}
+			else if (value == SYN) {
+				addCRC(ESC);
+				addCRC(0x01);
+			}
+			else {
+				addCRC(value);
+			}
+		}
+		return RESULT_OK;
+	}
+	else if (m_unescapeState != 1) {
 		if (updateCRC) {
 			addCRC(value);
 		}
-	}
-}
-
-unsigned char SymbolString::push_back_unescape(const unsigned char value, bool& previousEscape, bool updateCRC)
-{
-	if (updateCRC) {
-		addCRC(value);
-	}
-	if (previousEscape == true) {
 		if (value == 0x00) {
 			m_data.push_back(ESC);
-			previousEscape = false;
-			return ESC;
+			m_unescapeState = 1;
+			return RESULT_OK;
 		}
 		if (value == 0x01) {
 			m_data.push_back(SYN);
-			previousEscape = false;
-			return SYN;
+			m_unescapeState = 1;
+			return RESULT_OK;
 		}
-		return 0; // invalid escape sequence
+		return RESULT_ERR_ESC; // invalid escape sequence
 	}
-	if (value == ESC) {
-		previousEscape = true;
-		return 1; // escape sequence not yet finished
+	else if (value == ESC) {
+		if (updateCRC) {
+			addCRC(value);
+		}
+		m_unescapeState = 2;
+		return RESULT_IN_ESC;
+	}
+	if (updateCRC) {
+		addCRC(value);
 	}
 	m_data.push_back(value);
-	return value;
+	return RESULT_OK;
 }
 
 void SymbolString::addCRC(const unsigned char value) {

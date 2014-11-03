@@ -64,7 +64,6 @@ public:
 
 private:
 	Port* m_port;
-	bool m_previousEscape;
 	SymbolString m_sstr;
 	std::queue<SymbolString> m_cycBuffer;
 	std::queue<BusCommand*> m_sendBuffer;

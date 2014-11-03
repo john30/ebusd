@@ -22,9 +22,8 @@
 namespace libebus
 {
 
-
-BusCommand::BusCommand(const std::string command, const bool isPoll)
-	: m_isPoll(isPoll), m_command(command), m_resultCode(RESULT_OK)
+BusCommand::BusCommand(const std::string commandStr, const bool isPoll)
+	: m_isPoll(isPoll), m_command(commandStr), m_result(), m_resultCode(RESULT_OK)
 {
 	unsigned char dstAddress = m_command[1];
 
@@ -51,16 +50,16 @@ const std::string BusCommand::getMessageStr()
 
 	if (m_resultCode >= 0) {
 		if (m_type == masterSlave) {
-			result = m_command.getDataStr(true);
+			result = m_command.getDataStr();
 			result += "00";
 			result += m_result.getDataStr();
 			result += "00";
 		} else {
 			result = "success";
 		}
-	} else {
-		result = "error";
 	}
+	else
+		result = "error: "+std::string(getResultCodeCStr());
 
 	return result;
 }

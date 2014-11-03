@@ -25,15 +25,9 @@ using namespace libebus;
 
 int main ()
 {
-	SymbolString sstr("10feb5050427a915aa");
+	SymbolString sstr = SymbolString("10feb5050427a915aa");
 
-	std::stringstream out;
-	for (size_t i = 0; i<sstr.size(); i++) {
-		out << std::nouppercase << std::setw(2) << std::hex
-			<< std::setfill('0') << static_cast<unsigned>(sstr[i]);
-	}
-
-	std::string gotStr = out.str(), expectStr = "10feb5050427a90015a90177";
+	std::string gotStr = sstr.getDataStr(false), expectStr = "10feb5050427a90015a90177";
 
 	if (strcasecmp(gotStr.c_str(), expectStr.c_str()) == 0)
 		std::cout << "ctor escaped successful." << std::endl;
@@ -54,7 +48,7 @@ int main ()
 			<< std::setfill('0') << static_cast<unsigned>(expectCrc)
 			<< std::endl;
 
-	gotStr = sstr.getDataStr(true), expectStr = "10feb5050427a915aa77";
+	gotStr = sstr.getDataStr(), expectStr = "10feb5050427a915aa77";
 
 	if (strcasecmp(gotStr.c_str(), expectStr.c_str()) == 0)
 		std::cout << "unescape successful." << std::endl;
@@ -63,7 +57,9 @@ int main ()
 			<< ", expected " << expectStr << std::endl;
 
 	sstr = SymbolString("10feb5050427a90015a90177", true);
-	gotStr = sstr.getDataStr(false);
+
+	gotStr = sstr.getDataStr();
+
 	if (strcasecmp(gotStr.c_str(), expectStr.c_str()) == 0)
 		std::cout << "ctor unescaped successful." << std::endl;
 	else

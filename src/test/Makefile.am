@@ -5,6 +5,7 @@ AM_CXXFLAGS = -fpic \
 
 noinst_PROGRAMS = test_port \
 		  test_symbol \
+		  test_data \
 		  test_bus \
 		  test_commands \
 		  test_configfile \
@@ -16,6 +17,9 @@ test_port_LDADD = $(top_srcdir)/src/libebus/libebus.a
 
 test_symbol_SOURCES = test_symbol.cpp
 test_symbol_LDADD = $(top_srcdir)/src/libebus/libebus.a
+
+test_data_SOURCES = test_data.cpp
+test_data_LDADD = $(top_srcdir)/src/libebus/libebus.a
 
 test_bus_SOURCES = test_bus.cpp
 test_bus_LDADD = $(top_srcdir)/src/libebus/libebus.a

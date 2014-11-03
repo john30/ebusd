@@ -114,7 +114,7 @@ void* EBusLoop::run()
 			// add new bus command to send
 			if (busResult == RESULT_SYN && busCommandActive == false && m_sendBuffer.size() != 0) {
 				BusCommand* busCommand = m_sendBuffer.remove();
-				L.log(bus, debug, " msg: %s", busCommand->getCommand().getDataStr(true).c_str());
+				L.log(bus, debug, " msg: %s", busCommand->getCommand().getDataStr().c_str());
 				m_bus->addCommand(busCommand);
 				L.log(bus, debug, " addCommand success");
 				busCommandActive = true;

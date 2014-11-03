@@ -37,72 +37,62 @@ static const unsigned char BROADCAST = 0xFE; // the broadcast destination addres
 
 
 /**
- * @brief A string of bus symbols.
+ * @brief A string of escaped or unescaped bus symbols.
  */
 class SymbolString
 {
 
 public:
 	/**
-	 * @brief Creates a new empty SymbolString.
+	 * @brief Creates a new unescaped empty instance.
+	 * @param escaped whether to create an escaped instance.
 	 */
-	SymbolString() : m_crc(0) {}
+	SymbolString() : m_unescapeState(1), m_crc(0) {}
 	/**
-	 * @brief Creates a new escaped SymbolString from an unescaped hex string and adds the calculated CRC.
+	 * @brief Creates a new escaped instance from an unescaped hex string and adds the calculated CRC.
 	 * @param str the unescaped hex string.
 	 */
 	SymbolString(const std::string str);
 	/**
-	 * @brief Creates a new unescaped SymbolString from a hex string.
-	 * @param escaped whether the hex string is escaped and shall be unescaped.
+	 * @brief Creates a new unescaped instance from a hex string.
+	 * @param isEscaped whether the hex string is escaped and shall be unescaped.
 	 * @param str the hex string.
 	 */
-	SymbolString(const std::string str, bool escaped);
+	SymbolString(const std::string str, const bool isEscaped);
 	/**
 	 * @brief Returns the symbols as hex string.
-	 * @param escaped whether to unescape the symbols.
+	 * @param unescape whether to unescape an escaped instance.
 	 * @return the symbols as hex string.
 	 */
-	const std::string getDataStr(bool unescape=false);
+	const std::string getDataStr(const bool unescape=true);
 	/**
-	 * @brief Returns the symbol at the specified index.
+	 * @brief Returns a reference to the symbol at the specified index.
 	 * @param index the index of the symbol to return.
-	 * @return the symbol at the specified index.
-	 * @throw std::out_of_range if @a index is invalid.
+	 * @return the reference to the symbol at the specified index.
 	 */
-	unsigned char at(const size_t index) { return m_data.at(index); }
-	/**
-	 * @brief Returns the symbol at the specified index.
-	 * @param index the index of the symbol to return.
-	 * @return the symbol at the specified index.
-	 */
-	unsigned char operator[](const size_t index) { return m_data[index]; }
+	unsigned char& operator[](const size_t index) { if (index >= m_data.size()) m_data.resize(index+1, 0); return m_data[index]; }
 	/**
 	 * @brief Returns the symbol at the specified index.
 	 * @param index the index of the symbol to return.
 	 * @return the symbol at the specified index.
 	 */
-	unsigned char operator[](const size_t index) const { return m_data[index]; }
+	const unsigned char& operator[](const size_t index) const { return m_data[index]; }
 	/**
-	 * @brief Inserts a the symbol at the specified index.
-	 * @param index the index at which to insert the symbol.
-	 * @param value the symbol to insert.
+	 * @brief Returns whether this instance is equal to the other instance.
+	 * @param other the other instance.
+	 * @return true if this instance is equal to the other instance (i.e. both escaped or both unescaped and same symbols).
 	 */
-	void insert(const size_t index, const unsigned char value) { m_data.insert(m_data.begin()+index, value); }
+	bool operator==(SymbolString other) { return (m_unescapeState==0)==(m_unescapeState==0) && m_data==other.m_data; }
 	/**
-	 * @brief Appends a the symbol to the end of the symbol string and escapes it if necessary.
+	 * @brief Appends a the symbol to the end of the symbol string and escapes/unescapes it if necessary.
 	 * @param value the symbol to append.
+	 * @param isEscaped whether the symbol is escaped.
 	 * @param updateCrc whether to update the calculated CRC in @a m_crc.
+	 * @return RESULT_OK if another symbol was appended,
+	 * RESULT_IN_ESC if this is an unescaped instance and the symbol is escaped and the start of the escape sequence was received,
+	 * RESULT_ERR_ESC if this is an unescaped instance and an invalid escaped sequence was detected.
 	 */
-	void push_back_escape(const unsigned char value, bool updateCRC=true);
-	/**
-	 * @brief Appends a the symbol to the end of the symbol string and unescapes it.
-	 * @param value the symbol to append.
-	 * @param previousEscape whether the previous value was the escape symbol (set to false for the initial call).
-	 * @param updateCrc whether to update the calculated CRC in @a m_crc.
-	 * @return if previousEscape is false on return: the unescaped symbol. otherwise: zero if the escape sequence was invalid, one if the escape sequence is not yet finished.
-	 */
-	unsigned char push_back_unescape(const unsigned char value, bool& previousEscape, bool updateCRC=true);
+	int push_back(const unsigned char value, const bool isEscaped, const bool updateCRC=true);
 	/**
 	 * @brief Returns the number of symbols in this symbol string.
 	 * @return the number of available symbols.
@@ -116,7 +106,7 @@ public:
 	/**
 	 * @brief Clears the symbols.
 	 */
-	void clear() { m_crc=0; m_data.clear(); }
+	void clear() { m_data.clear(); m_unescapeState = m_unescapeState==0 ? 0 : 1; m_crc = 0; }
 
 private:
 	/**
@@ -129,6 +119,12 @@ private:
 	 * @brief the string of bus symbols.
 	 */
 	std::vector<unsigned char> m_data;
+	/**
+	 * @brief 0 if the symbols in @a m_data are escaped,
+	 * 1 if the symbols in @a m_data are unescaped and the last symbol passed to @a push_back was a normal symbol,
+	 * 2 if the symbols in @a m_data are unescaped and the last symbol passed to @a push_back was the escape symbol.
+	 */
+	int m_unescapeState;
 	/**
 	 * @brief the calculated CRC.
 	 */
