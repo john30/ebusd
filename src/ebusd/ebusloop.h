@@ -20,8 +20,11 @@
 #ifndef EBUSLOOP_H_
 #define EBUSLOOP_H_
 
-#include "bus.h"
+//~ #include "bus.h"
 #include "commands.h"
+#include "port.h"
+#include "dump.h"
+#include "buscommand.h"
 #include "wqueue.h"
 #include "thread.h"
 
@@ -40,20 +43,35 @@ public:
 
 	void addBusCommand(BusCommand* busCommand) { m_sendBuffer.add(busCommand); }
 
-	void dump(const bool dumpState) { m_bus->setDumpState(dumpState); }
+	//~ void dump(const bool dumpState) { m_bus->setDumpState(dumpState); }
+	void dump(const bool dumpState) { m_dumpState = dumpState; }
 
 	void newCommands(Commands* commands) { m_commands = commands; }
 
 private:
 	Commands* m_commands;
-	std::string m_deviceName;
-	Bus* m_bus;
+	Port* m_port;
+
+	Dump* m_dump;
+	bool m_dumpState;
+
+	bool m_logRawData;
+
 	bool m_stop;
+
+	SymbolString m_sstr;
+
+	//~ std::string m_deviceName;
+	//~ bool m_noDeviceCheck;
+	//~ Bus* m_bus;
+
 	WQueue<BusCommand*> m_sendBuffer;
-	int m_retries;
-	int m_lookbusretries;
-	double m_pollInterval;
-	bool m_logAutoSyn;
+	//~ int m_retries;
+	//~ int m_lookbusretries;
+	//~ double m_pollInterval;
+
+	unsigned char recvByte();
+	void analyseCycData(SymbolString data) const;
 
 };
 

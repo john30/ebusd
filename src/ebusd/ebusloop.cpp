@@ -26,39 +26,179 @@ extern Appl& A;
 
 EBusLoop::EBusLoop(Commands* commands) : m_commands(commands), m_stop(false)
 {
-	m_deviceName = A.getParam<const char*>("p_device");
+	m_port = new Port(A.getParam<const char*>("p_device"), A.getParam<bool>("p_nodevicecheck"));
 
-	m_bus = new Bus(m_deviceName,
-			A.getParam<bool>("p_nodevicecheck"),
-			A.getParam<long>("p_recvtimeout"),
-			A.getParam<const char*>("p_dumpfile"),
-		        A.getParam<long>("p_dumpsize"),
-		        A.getParam<bool>("p_dump"));
+	m_port->open();
 
-	m_retries = A.getParam<int>("p_retries");
+	if (m_port->isOpen() == false)
+		L.log(bus, error, "can't open %s", A.getParam<const char*>("p_device"));
 
-	m_lookbusretries = A.getParam<int>("p_lookbusretries");
 
-	m_pollInterval = A.getParam<int>("p_pollinterval");
+	m_dump = new Dump(A.getParam<const char*>("p_dumpfile"), A.getParam<long>("p_dumpsize"));
 
-	m_logAutoSyn = A.getParam<bool>("p_logautosyn");
+	m_dumpState = A.getParam<bool>("p_dump");
 
-	m_bus->connect();
+	m_logRawData = A.getParam<bool>("p_lograwdata");
 
-	if (m_bus->isConnected() == false)
-		L.log(bus, error, "can't open %s", m_deviceName.c_str());
+	//~ m_deviceName = A.getParam<const char*>("p_device");
+
+	//~ m_bus = new Bus(m_deviceName,
+			//~ A.getParam<bool>("p_nodevicecheck"),
+			//~ A.getParam<long>("p_recvtimeout"),
+			//~ A.getParam<const char*>("p_dumpfile"),
+		        //~ A.getParam<long>("p_dumpsize"),
+		        //~ A.getParam<bool>("p_dump"));
+
+	//~ m_retries = A.getParam<int>("p_retries");
+//~
+	//~ m_lookbusretries = A.getParam<int>("p_lookbusretries");
+//~
+	//~ m_pollInterval = A.getParam<int>("p_pollinterval");
+//~
+
+
+	//~ m_bus->connect();
+
+	//~ if (m_bus->isConnected() == false)
+		//~ L.log(bus, error, "can't open %s", m_deviceName.c_str());
 }
 
 EBusLoop::~EBusLoop()
 {
-	m_bus->disconnect();
+	if (m_port->isOpen() == true)
+		m_port->close();
 
-	if (m_bus->isConnected() == true)
-		L.log(bus, error, "error during disconnect.");
-
-	delete m_bus;
+	delete m_port;
+	delete m_dump;
+	//~ m_bus->disconnect();
+//~
+	//~ if (m_bus->isConnected() == true)
+		//~ L.log(bus, error, "error during disconnect.");
+//~
+	//~ delete m_bus;
 }
 
+void* EBusLoop::run()
+{
+	bool busLock = false;
+
+	for (;;) {
+		if (m_port->isOpen() == true) {
+			unsigned char byte;
+			ssize_t numBytes;
+
+			// read device - no timeout needed (AUTO-SYN)
+			numBytes = m_port->recv(0);
+
+			if (numBytes < 0) {
+				L.log(bus, error, " ERR_DEVICE: generic device error");
+				continue;
+			}
+
+			for (int i = 0; i < numBytes; i++) {
+
+				// fetch byte
+				byte = recvByte();
+
+				// collect cycle data
+				if (byte != SYN)
+					m_sstr.push_back(byte, true, false);
+
+				// unlock bus
+				if (byte == SYN && busLock == true) {
+					busLock = false;
+					L.log(bus, trace, " bus unlocked");
+				}
+
+				// analyse cycle data
+				if (byte == SYN && m_sstr.size() > 0) {
+
+					analyseCycData(m_sstr);
+
+					if (m_sstr.size() == 1) {
+						busLock = true;
+						L.log(bus, trace, " bus locked");
+					}
+
+					m_sstr.clear();
+				}
+			}
+
+			// send command
+			if (m_sstr.size() == 0 && busLock == false
+			&& m_sendBuffer.size() > 0) {
+				// TODO: sendCommand....
+			}
+
+			// poll command - timer reached
+			if (m_sstr.size() == 0 && busLock == false
+			&& m_sendBuffer.size() > 0) {
+				// TODO: pollCommand....
+			}
+		}
+		else {
+			// TODO: define max reopen
+			sleep(10);
+			m_port->open();
+
+			if (m_port->isOpen() == false)
+				L.log(bus, error, "can't open %s", A.getParam<const char*>("p_device"));
+
+		}
+
+		if (m_stop == true) {
+			if (m_port->isOpen() == true)
+				m_port->close();
+
+			return NULL;
+		}
+
+	}
+
+	return NULL;
+}
+
+unsigned char EBusLoop::recvByte()
+{
+	unsigned char byte;
+
+	// fetch byte
+	byte = m_port->byte();
+
+	if (m_dumpState == true)
+		m_dump->write((const char*) &byte);
+
+	if (m_logRawData == true)
+		L.log(bus, event, "%02x", byte);
+
+	return byte;
+}
+
+void EBusLoop::analyseCycData(SymbolString data) const
+{
+	L.log(bus, trace, "%s", data.getDataStr().c_str());
+
+	int index = m_commands->storeCycData(data.getDataStr());
+
+	if (index == -1) {
+		L.log(bus, debug, " command not found");
+	}
+	else if (index == -2) {
+		L.log(bus, debug, " no commands defined");
+	}
+	else if (index == -3) {
+		L.log(bus, debug, " search skipped - string too short");
+	}
+	else {
+		std::string tmp;
+		tmp += (*m_commands)[index][1];
+		tmp += " ";
+		tmp += (*m_commands)[index][2];
+		L.log(bus, event, " cycle   [%d] %s", index, tmp.c_str());
+	}
+}
+
+/*
 void* EBusLoop::run()
 {
 	int busResult;
@@ -228,3 +368,4 @@ void* EBusLoop::run()
 	return NULL;
 }
 
+*/
