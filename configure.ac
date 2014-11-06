@@ -7,11 +7,11 @@ AC_CONFIG_AUX_DIR([build])
 AC_CONFIG_SRCDIR([src/ebusd/main.cpp])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile
-		 src/libebus/Makefile
-		 src/test/Makefile
-		 src/libcore/Makefile
+		 src/lib/ebus/Makefile
+		 src/lib/ebus/test/Makefile
+		 src/lib/utils/Makefile
 		 src/ebusd/Makefile
-		 src/tools/Makefile])
+		 src/ebusctl/Makefile])
 
 AM_INIT_AUTOMAKE([1.11 -Wall -Werror foreign])
 
