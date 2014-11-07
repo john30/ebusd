@@ -6,7 +6,6 @@ AM_CXXFLAGS = -fpic \
 noinst_PROGRAMS = test_port \
 		  test_symbol \
 		  test_data \
-		  test_bus \
 		  test_commands \
 		  test_configfile \
 		  test_decode \
@@ -20,9 +19,6 @@ test_symbol_LDADD = $(top_srcdir)/src/lib/ebus/libebus.a
 
 test_data_SOURCES = test_data.cpp
 test_data_LDADD = $(top_srcdir)/src/lib/ebus/libebus.a
-
-test_bus_SOURCES = test_bus.cpp
-test_bus_LDADD = $(top_srcdir)/src/lib/ebus/libebus.a
 
 test_commands_SOURCES = test_commands.cpp
 test_commands_LDADD = $(top_srcdir)/src/lib/ebus/libebus.a
