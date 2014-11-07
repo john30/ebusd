@@ -128,6 +128,7 @@ void* EBusLoop::run()
 							busCommand->sendSignal();
 					}
 
+					lockRetries = 0;
 				}
 				else {
 					L.log(bus, trace, " acquire bus failed");
@@ -141,8 +142,10 @@ void* EBusLoop::run()
 
 						lockRetries = 0;
 					}
-					else
+					else {
 						lockRetries++;
+						L.log(bus, trace, " lock retry %d", lockRetries);
+					}
 
 				}
 
