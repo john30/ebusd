@@ -54,9 +54,9 @@ const std::string BusCommand::getMessageStr()
 			result += "00";
 			result += m_result.getDataStr();
 			result += "00";
-		} else {
-			result = "success";
 		}
+		else
+			result = "success";
 	}
 	else
 		result = "error: "+std::string(getResultCodeCStr());

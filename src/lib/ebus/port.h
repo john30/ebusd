@@ -31,6 +31,9 @@ namespace libebus
 /** available device types. */
 enum DeviceType { SERIAL, NETWORK };
 
+/** max bytes write to bus. */
+#define MAX_WRITE_SIZE 1
+
 /** max size of receive buffer. */
 #define MAX_READ_SIZE 100
 
@@ -218,7 +221,7 @@ public:
 	 * @param nbytes number of bytes to send.
 	 * @return number of written bytes or -1 if an error has occured.
 	 */
-	ssize_t send(const unsigned char* buffer, size_t nbytes)
+	ssize_t send(const unsigned char* buffer, size_t nbytes = MAX_WRITE_SIZE)
 		{ return m_device->sendBytes(buffer, nbytes); }
 
 	/**

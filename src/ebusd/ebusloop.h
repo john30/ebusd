@@ -20,13 +20,15 @@
 #ifndef EBUSLOOP_H_
 #define EBUSLOOP_H_
 
-//~ #include "bus.h"
 #include "commands.h"
 #include "port.h"
 #include "dump.h"
 #include "buscommand.h"
 #include "wqueue.h"
 #include "thread.h"
+
+/** the maximum time [us] allowed for retrieving a byte from an addressed slave */
+#define RECV_TIMEOUT 10000
 
 using namespace libebus;
 
@@ -43,7 +45,6 @@ public:
 
 	void addBusCommand(BusCommand* busCommand) { m_sendBuffer.add(busCommand); }
 
-	//~ void dump(const bool dumpState) { m_bus->setDumpState(dumpState); }
 	void dump(const bool dumpState) { m_dumpState = dumpState; }
 
 	void newCommands(Commands* commands) { m_commands = commands; }
@@ -59,19 +60,26 @@ private:
 
 	bool m_stop;
 
-	SymbolString m_sstr;
-
-	//~ std::string m_deviceName;
-	//~ bool m_noDeviceCheck;
-	//~ Bus* m_bus;
+	bool m_busLocked;
+	bool m_priorRetry;
 
 	WQueue<BusCommand*> m_sendBuffer;
-	//~ int m_retries;
-	//~ int m_lookbusretries;
-	//~ double m_pollInterval;
+	SymbolString m_sstr;
 
-	unsigned char recvByte();
-	void analyseCycData(SymbolString data) const;
+	double m_pollInterval;
+	long m_recvTimeout;
+	int m_sendRetries;
+	int m_lockRetries;
+
+	unsigned char fetchByte();
+	void collectCycData(const int numRecv);
+	void analyseCycData();
+	void addPollCommand();
+	int acquireBus();
+	BusCommand* sendCommand();
+	int sendByte(const unsigned char sendByte);
+	int recvSlaveAck(unsigned char& recvByte);
+	int recvSlaveData(SymbolString& result);
 
 };
 

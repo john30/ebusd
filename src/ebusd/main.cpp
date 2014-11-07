@@ -47,12 +47,12 @@ void define_args()
 		  "disable valid ebus device test\n",
 		  Appl::type_bool, Appl::opt_none);
 
-	A.addItem("p_retries", Appl::Param(2), "r", "retries",
-		  "\tnumber retries send ebus command (2)",
+	A.addItem("p_sendretries", Appl::Param(2), "s", "sendretries",
+		  "number retries send ebus command (2)",
 		  Appl::type_int, Appl::opt_mandatory);
 
-	A.addItem("p_lookbusretries", Appl::Param(2), "", "lookbusretries",
-		  "number retries to look ebus (2)",
+	A.addItem("p_lockretries", Appl::Param(2), "", "lockretries",
+		  "number retries to lock ebus (2)",
 		  Appl::type_int, Appl::opt_mandatory);
 
 	A.addItem("p_recvtimeout", Appl::Param(15000), "", "recvtimeout",
