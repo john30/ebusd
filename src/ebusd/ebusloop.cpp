@@ -247,7 +247,7 @@ void EBusLoop::analyseCycData()
 		tmp += (*m_commands)[index][1];
 		tmp += " ";
 		tmp += (*m_commands)[index][2];
-		L.log(bus, event, " cycle   [%d] %s", index, tmp.c_str());
+		L.log(bus, event, " cycle   [%4d] %s", index, tmp.c_str());
 	}
 }
 
@@ -263,7 +263,7 @@ void EBusLoop::addPollCommand()
 		tmp += (*m_commands)[index][1];
 		tmp += " ";
 		tmp += (*m_commands)[index][2];
-		L.log(bus, event, " polling [%d] %s", index, tmp.c_str());
+		L.log(bus, event, " polling [%4d] %s", index, tmp.c_str());
 
 		std::string ebusCommand(A.getParam<const char*>("p_address"));
 		ebusCommand += m_commands->getEbusCommand(index);
@@ -286,7 +286,7 @@ int EBusLoop::acquireBus()
 	// send QQ
 	numSend = m_port->send(&sendByte);
 	if (numSend <= 0) {
-		L.log(bus, trace, " ERR_SEND: send error");
+		L.log(bus, error, " ERR_SEND: send error");
 		return RESULT_ERR_SEND;
 	}
 
@@ -294,7 +294,7 @@ int EBusLoop::acquireBus()
 	numRecv = m_port->recv(0);
 
 	if (numRecv < 0) {
-		L.log(bus, trace, " ERR_DEVICE: generic device error");
+		L.log(bus, error, " ERR_DEVICE: generic device error");
 		return RESULT_ERR_DEVICE;
 	}
 
@@ -319,15 +319,15 @@ int EBusLoop::acquireBus()
 			return RESULT_BUS_PRIOR_RETRY;
 		}
 
-		L.log(bus, trace, " ERR_BUS_LOST: lost bus arbitration");
+		L.log(bus, error, " ERR_BUS_LOST: lost bus arbitration");
 		return RESULT_ERR_BUS_LOST;
   	}
 
   	// cycle bytes
 	collectCycData(numRecv);
 
-	L.log(bus, trace, " ERR_BUS_LOST: lost bus arbitration");
-	return RESULT_ERR_BUS_LOST;
+	L.log(bus, error, " ERR_EXTRA_DATA: received bytes > sent bytes");
+	return RESULT_ERR_EXTRA_DATA;
 }
 
 BusCommand* EBusLoop::sendCommand()
@@ -376,7 +376,7 @@ BusCommand* EBusLoop::sendCommand()
 		// is slave ACK negative?
 		if (recvByte == NAK) {
 			sendByte(SYN);
-			L.log(bus, trace, " ERR_NAK: NAK received");
+			L.log(bus, error, " ERR_NAK: NAK received");
 			retval = RESULT_ERR_NAK;
 			goto on_exit;
 		}
@@ -419,7 +419,7 @@ BusCommand* EBusLoop::sendCommand()
 	// send ACK
 	retval = sendByte(ACK);
 	if (retval == -1) {
-		L.log(bus, trace, " ERR_ACK: ACK error");
+		L.log(bus, error, " ERR_ACK: ACK error");
 		retval = RESULT_ERR_ACK;
 		goto on_exit;
 	}
@@ -453,14 +453,14 @@ int EBusLoop::sendByte(const unsigned char sendByte)
 	numRecv = m_port->recv(RECV_TIMEOUT);
 
 	if (numSend != numRecv) {
-		L.log(bus, trace, " ERR_EXTRA_DATA: received bytes > sent bytes");
+		L.log(bus, error, " ERR_EXTRA_DATA: received bytes > sent bytes");
 		return RESULT_ERR_EXTRA_DATA;
 	}
 
 	recvByte = fetchByte();
 
 	if (sendByte != recvByte) {
-		L.log(bus, trace, " ERR_SEND: send error");
+		L.log(bus, error, " ERR_SEND: send error");
 		return RESULT_ERR_SEND;
 	}
 
@@ -475,11 +475,11 @@ int EBusLoop::recvSlaveAck(unsigned char& recvByte)
 	numRecv = m_port->recv(m_recvTimeout);
 
 	if (numRecv > 1) {
-		L.log(bus, trace, " ERR_EXTRA_DATA: received bytes > sent bytes");
+		L.log(bus, error, " ERR_EXTRA_DATA: received bytes > sent bytes");
 		return RESULT_ERR_EXTRA_DATA;
 	}
 	else if (numRecv < 0) {
-		L.log(bus, trace, " ERR_TIMEOUT: read timeout");
+		L.log(bus, error, " ERR_TIMEOUT: read timeout");
 		return RESULT_ERR_TIMEOUT;
 	}
 
@@ -487,7 +487,7 @@ int EBusLoop::recvSlaveAck(unsigned char& recvByte)
 
 	// is received byte SYN?
 	if (recvByte == SYN) {
-		L.log(bus, trace, " ERR_SYN: SYN received");
+		L.log(bus, error, " ERR_SYN: SYN received");
 		return RESULT_ERR_SYN;
 	}
 
@@ -505,7 +505,7 @@ int EBusLoop::recvSlaveData(SymbolString& result)
 	for (size_t i = 0, needed = 1; i < needed; i++) {
 		numRecv = m_port->recv(RECV_TIMEOUT);
 		if (numRecv < 0) {
-			L.log(bus, trace, " ERR_TIMEOUT: read timeout");
+			L.log(bus, error, " ERR_TIMEOUT: read timeout");
 			return RESULT_ERR_TIMEOUT;
 		}
 
@@ -528,12 +528,12 @@ int EBusLoop::recvSlaveData(SymbolString& result)
 	}
 
 	if (retval == RESULT_IN_ESC) {
-		L.log(bus, trace, " ERR_ESC: invalid escape sequence received");
+		L.log(bus, error, " ERR_ESC: invalid escape sequence received");
 		return RESULT_ERR_ESC;
 	}
 
 	if (updateCrc == true || calcCrc != result[result.size()-1]) {
-		L.log(bus, trace, " ERR_CRC: CRC error");
+		L.log(bus, error, " ERR_CRC: CRC error");
 		return RESULT_ERR_CRC;
 	}
 
