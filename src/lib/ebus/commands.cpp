@@ -127,13 +127,13 @@ int Commands::findCommand(const std::string& data) const
 	return -1;
 }
 
-std::string Commands::getEbusCommand(const int index, const bool cycle) const
+std::string Commands::getEbusCommand(const int index) const
 {
 	cmd_t command = m_cmdDB.at(index);
 	std::string cmd;
 	std::stringstream sstr;
 
-	if (cycle == true)
+	if (strcasecmp(command[0].c_str(), "C") == 0)
 		cmd += command[4]; // QQ
 
 	cmd += command[5]; // ZZ
@@ -163,7 +163,7 @@ int Commands::storeCycData(const std::string& data) const
 	// walk through commands
 	for (; iter != m_cycDB.end(); iter++) {
 
-		std::string command = getEbusCommand(iter->first, true);
+		std::string command = getEbusCommand(iter->first);
 
 		// skip wrong search string length
 		if (command.length() > search.length())
@@ -216,7 +216,7 @@ void Commands::storePolData(const std::string& data) const
 	// walk through commands
 	for (; iter != m_polDB.end(); iter++) {
 
-		std::string command = getEbusCommand(iter->first, false);
+		std::string command = getEbusCommand(iter->first);
 
 		// skip wrong search string length
 		if (command.length() > search.length())
