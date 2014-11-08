@@ -127,15 +127,20 @@ int Commands::findCommand(const std::string& data) const
 	return -1;
 }
 
-std::string Commands::getEbusCommand(const int index) const
+std::string Commands::getEbusCommand(const int index, const bool cycle) const
 {
 	cmd_t command = m_cmdDB.at(index);
-	std::string cmd(command[5]);
-	cmd += command[6];
+	std::string cmd;
 	std::stringstream sstr;
+
+	if (cycle == true)
+		cmd += command[4]; // QQ
+
+	cmd += command[5]; // ZZ
+	cmd += command[6]; // PBSB
 	sstr << std::setw(2) << std::hex << std::setfill('0') << command[7];
-	cmd += sstr.str();
-	cmd += command[8];
+	cmd += sstr.str(); // NN
+	cmd += command[8]; // Dx
 
 	return cmd;
 }
@@ -158,7 +163,7 @@ int Commands::storeCycData(const std::string& data) const
 	// walk through commands
 	for (; iter != m_cycDB.end(); iter++) {
 
-		std::string command = getEbusCommand(iter->first);
+		std::string command = getEbusCommand(iter->first, true);
 
 		// skip wrong search string length
 		if (command.length() > search.length())
@@ -211,7 +216,7 @@ void Commands::storePolData(const std::string& data) const
 	// walk through commands
 	for (; iter != m_polDB.end(); iter++) {
 
-		std::string command = getEbusCommand(iter->first);
+		std::string command = getEbusCommand(iter->first, false);
 
 		// skip wrong search string length
 		if (command.length() > search.length())

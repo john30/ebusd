@@ -24,207 +24,520 @@
 extern LogInstance& L;
 extern Appl& A;
 
-EBusLoop::EBusLoop(Commands* commands) : m_commands(commands), m_stop(false)
+EBusLoop::EBusLoop(Commands* commands)
+	: m_commands(commands), m_stop(false), m_lockCounter(0), m_priorRetry(false)
 {
-	m_deviceName = A.getParam<const char*>("p_device");
+	m_port = new Port(A.getParam<const char*>("p_device"), A.getParam<bool>("p_nodevicecheck"));
+	m_port->open();
 
-	m_bus = new Bus(m_deviceName,
-			A.getParam<bool>("p_nodevicecheck"),
-			A.getParam<long>("p_recvtimeout"),
-			A.getParam<const char*>("p_dumpfile"),
-		        A.getParam<long>("p_dumpsize"),
-		        A.getParam<bool>("p_dump"));
+	if (m_port->isOpen() == false)
+		L.log(bus, error, "can't open %s", A.getParam<const char*>("p_device"));
 
-	m_retries = A.getParam<int>("p_retries");
+	m_dump = new Dump(A.getParam<const char*>("p_dumpfile"), A.getParam<long>("p_dumpsize"));
+	m_dumpState = A.getParam<bool>("p_dump");
 
-	m_lookbusretries = A.getParam<int>("p_lookbusretries");
+	m_logRawData = A.getParam<bool>("p_lograwdata");
 
 	m_pollInterval = A.getParam<int>("p_pollinterval");
 
-	m_logAutoSyn = A.getParam<bool>("p_logautosyn");
+	m_recvTimeout = A.getParam<long>("p_recvtimeout");
 
-	m_bus->connect();
+	m_sendRetries = A.getParam<int>("p_sendretries");
 
-	if (m_bus->isConnected() == false)
-		L.log(bus, error, "can't open %s", m_deviceName.c_str());
+	m_lockRetries = A.getParam<int>("p_lockretries");
 }
 
 EBusLoop::~EBusLoop()
 {
-	m_bus->disconnect();
+	if (m_port->isOpen() == true)
+		m_port->close();
 
-	if (m_bus->isConnected() == true)
-		L.log(bus, error, "error during disconnect.");
-
-	delete m_bus;
+	delete m_port;
+	delete m_dump;
 }
 
 void* EBusLoop::run()
 {
-	int busResult;
-	int retries = 0;
-	int lookbusretries = 0;
-	bool busCommandActive = false;
+	int sendRetries = 0;
+	int lockRetries = 0;
 
 	// polling
 	time_t pollStart, pollEnd;
 	time(&pollStart);
-	double pollDelta = 0.0;
+	double pollDelta;
 
 	for (;;) {
-		if (m_bus->isConnected() == true) {
+		if (m_port->isOpen() == true) {
+			ssize_t numBytes;
 
-			// work on bus
-			busResult = m_bus->proceed();
-
-			// new cyc message arrived
-			if (busResult == RESULT_SYN || busResult == RESULT_BUS_LOCKED) {
-				SymbolString data = m_bus->getCycData();
-
-				if (data.size() == 0 && m_logAutoSyn == true)
-					L.log(bus, trace, "aa");
-
-				if (data.size() != 0) {
-					L.log(bus, trace, "%s", data.getDataStr().c_str());
-
-					int index = m_commands->storeCycData(data.getDataStr());
-
-					if (index == -1) {
-						L.log(bus, debug, " command not found");
-
-					} else if (index == -2) {
-						L.log(bus, debug, " no commands defined");
-
-					} else if (index == -3) {
-						L.log(bus, debug, " search skipped - string too short");
-
-					} else {
-						std::string tmp;
-						tmp += (*m_commands)[index][1];
-						tmp += " ";
-						tmp += (*m_commands)[index][2];
-						L.log(bus, event, " cycle   [%d] %s", index, tmp.c_str());
-					}
-				}
-
-				if (busResult == RESULT_BUS_LOCKED)
-					L.log(bus, trace, "bus locked");
-			}
-
-			// add new bus command to send
-			if (busResult == RESULT_SYN && busCommandActive == false && m_sendBuffer.size() != 0) {
-				BusCommand* busCommand = m_sendBuffer.remove();
-				L.log(bus, debug, " msg: %s", busCommand->getCommand().getDataStr().c_str());
-				m_bus->addCommand(busCommand);
-				L.log(bus, debug, " addCommand success");
-				busCommandActive = true;
-			}
-
-			// add new polling command
+			// add poll command
 			if (m_commands->sizePolDB() > 0) {
 				// check polling delta
 				time(&pollEnd);
 				pollDelta = difftime(pollEnd, pollStart);
 
 				// add new polling command to send
-				if (busResult == RESULT_SYN && busCommandActive == false && pollDelta >= m_pollInterval) {
-					L.log(bus, trace, "polling Intervall reached");
-
-					int index = m_commands->nextPolCommand();
-					if (index < 0) {
-						L.log(bus, error, "polling index out of range");
-						time(&pollStart);
-						continue;
-					}
-
-					std::string tmp;
-					tmp += (*m_commands)[index][1];
-					tmp += " ";
-					tmp += (*m_commands)[index][2];
-					L.log(bus, event, " polling [%d] %s", index, tmp.c_str());
-
-					std::string ebusCommand(A.getParam<const char*>("p_address"));
-					ebusCommand += m_commands->getEbusCommand(index);
-					std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
-
-					BusCommand* busCommand = new BusCommand(ebusCommand, true);
-					L.log(bus, trace, " msg: %s", ebusCommand.c_str());
-
-					m_bus->addCommand(busCommand);
-					L.log(bus, debug, " addCommand success");
-					busCommandActive = true;
-
+				if (pollDelta >= m_pollInterval) {
+					addPollCommand();
 					time(&pollStart);
 				}
-
 			}
 
-			// send bus command
-			if (busResult == RESULT_BUS_ACQUIRED && busCommandActive == true) {
-				L.log(bus, trace, " getBus success");
-				lookbusretries = 0;
-				BusCommand* busCommand = m_bus->sendCommand();
-				L.log(bus, trace, " %s", busCommand->getMessageStr().c_str());
+			// read device - no timeout needed (AUTO-SYN)
+			numBytes = m_port->recv(0);
 
-				if (busCommand->isErrorResult() == true && retries < m_retries) {
-					retries++;
-					L.log(bus, trace, " retry number: %d", retries);
-					busCommand->setResult(std::string(), RESULT_OK);
-					m_bus->addCommand(busCommand);
-				} else {
-					retries = 0;
-					if (busCommand->isPoll() == true) {
-						// only save correct results
-						if (busCommand->isErrorResult() == false)
+			if (numBytes < 0) {
+				L.log(bus, error, " ERR_DEVICE: generic device error");
+				continue;
+			}
+
+			// cycle bytes
+			collectCycData(numBytes);
+
+			// send command
+			if (m_sstr.size() == 0 && m_lockCounter == 0 && m_sendBuffer.size() > 0) {
+				// acquire Bus
+				int busResult = acquireBus();
+
+				// send bus command
+				if (busResult == RESULT_BUS_ACQUIRED) {
+					BusCommand* busCommand = sendCommand();
+					L.log(bus, trace, " %s", busCommand->getMessageStr().c_str());
+
+					if (busCommand->isErrorResult() == true) {
+						if (sendRetries < m_sendRetries) {
+							sendRetries++;
+							L.log(bus, trace, " send retry %d", sendRetries);
+							busCommand->setResult(std::string(), RESULT_OK);
+						}
+						else {
+							sendRetries = 0;
+							if (busCommand->isPoll() == true)
+								delete m_sendBuffer.remove();
+							else
+								busCommand->sendSignal();
+						}
+					}
+					else {
+						sendRetries = 0;
+						if (busCommand->isPoll() == true) {
 							m_commands->storePolData(busCommand->getMessageStr().c_str()); // TODO use getResult()
-
-						delete busCommand;
-					} else {
-						busCommand->sendSignal();
+							delete busCommand;
+						}
+						else
+							busCommand->sendSignal();
 					}
 
-					busCommandActive = false;
+					lockRetries = 0;
+					m_lockCounter = A.getParam<int>("p_lockcounter");
 				}
-			}
+				else if (busResult == RESULT_ERR_BUS_LOST) {
+					L.log(bus, trace, " acquire bus failed");
 
-			// get bus retry
-			if (busResult == RESULT_BUS_PRIOR_RETRY)
-				L.log(bus, trace, " getBus prior retry");
+					if (lockRetries >= m_lockRetries) {
+						L.log(bus, event, " lock bus failed");
+						BusCommand* busCommand = m_sendBuffer.remove();
+						if (busCommand->isPoll() == true)
+							delete busCommand;
+						else
+							busCommand->sendSignal();
 
-			if (busResult == RESULT_ERR_BUS_LOST) {
-				L.log(bus, trace, " getBus failure");
-				if (lookbusretries >= m_lookbusretries) {
-					L.log(bus, event, " getBus failed - command deleted");
-					BusCommand* busCommand = m_bus->delCommand();
-					if (busCommand->isPoll() == true) {
-						delete busCommand;
-					} else {
-						busCommand->sendSignal();
+						lockRetries = 0;
 					}
-					lookbusretries = 0;
-					busCommandActive = false;
-				}else {
-					lookbusretries++;
+					else {
+						lockRetries++;
+						L.log(bus, trace, " lock retry %d", lockRetries);
+					}
+
+					m_lockCounter = A.getParam<int>("p_lockcounter");
 				}
+
 			}
 
-			if (busResult == RESULT_ERR_SEND)
-				L.log(bus, event, " getBus send error");
-
-		} else {
+		}
+		else {
+			// TODO: define max reopen
 			sleep(10);
-			m_bus->connect();
+			m_port->open();
 
-			if (m_bus->isConnected() == false)
-				L.log(bus, error, "can't open %s", m_deviceName.c_str());
+			if (m_port->isOpen() == false)
+				L.log(bus, error, "can't open %s", A.getParam<const char*>("p_device"));
+
 		}
 
 		if (m_stop == true) {
-			m_bus->disconnect();
+			if (m_port->isOpen() == true)
+				m_port->close();
+
 			return NULL;
 		}
+
 	}
 
 	return NULL;
+}
+
+unsigned char EBusLoop::fetchByte()
+{
+	unsigned char byte;
+
+	// fetch byte
+	byte = m_port->byte();
+
+	if (m_dumpState == true)
+		m_dump->write((const char*) &byte);
+
+	if (m_logRawData == true)
+		L.log(bus, event, "%02x", byte);
+
+	return byte;
+}
+
+void EBusLoop::collectCycData(const int numRecv)
+{
+	// cycle bytes
+	for (int i = 0; i < numRecv; i++) {
+
+		// fetch byte
+		unsigned char byte = fetchByte();
+
+		if (byte == SYN) {
+
+			// analyse cycle data
+			if (m_sstr.size() > 0) {
+
+				analyseCycData();
+
+				if (m_sstr.size() == 1 && m_lockCounter == 0 && m_priorRetry == false)
+					m_lockCounter++;
+
+				else if (m_lockCounter > 0)
+					m_lockCounter--;
+
+				m_sstr.clear();
+			}
+
+			else if (m_lockCounter > 0)
+				m_lockCounter--;
+
+		}
+
+		// collect cycle data
+		else
+			m_sstr.push_back(byte, true, false);
+	}
+}
+
+void EBusLoop::analyseCycData()
+{
+	L.log(bus, trace, "%s", m_sstr.getDataStr().c_str());
+
+	int index = m_commands->storeCycData(m_sstr.getDataStr());
+
+	if (index == -1) {
+		L.log(bus, debug, " command not found");
+	}
+	else if (index == -2) {
+		L.log(bus, debug, " no commands defined");
+	}
+	else if (index == -3) {
+		L.log(bus, debug, " search skipped - string too short");
+	}
+	else {
+		std::string tmp;
+		tmp += (*m_commands)[index][1];
+		tmp += " ";
+		tmp += (*m_commands)[index][2];
+		L.log(bus, event, " cycle   [%4d] %s", index, tmp.c_str());
+	}
+}
+
+void EBusLoop::addPollCommand()
+{
+	int index = m_commands->nextPolCommand();
+	if (index < 0) {
+		L.log(bus, error, "polling index out of range");
+	}
+	else {
+		// TODO: implement as methode from class commands?
+		std::string tmp;
+		tmp += (*m_commands)[index][1];
+		tmp += " ";
+		tmp += (*m_commands)[index][2];
+		L.log(bus, event, " polling [%4d] %s", index, tmp.c_str());
+
+		std::string ebusCommand(A.getParam<const char*>("p_address"));
+		ebusCommand += m_commands->getEbusCommand(index, false);
+		std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
+
+		BusCommand* busCommand = new BusCommand(ebusCommand, true);
+		L.log(bus, trace, " msg: %s", ebusCommand.c_str());
+
+		addBusCommand(busCommand);
+	}
+}
+
+int EBusLoop::acquireBus()
+{
+	unsigned char recvByte, sendByte;
+	ssize_t numRecv, numSend;
+
+	sendByte = m_sendBuffer.next()->getCommand()[0];
+
+	// send QQ
+	numSend = m_port->send(&sendByte);
+	if (numSend <= 0) {
+		L.log(bus, error, " ERR_SEND: send error");
+		return RESULT_ERR_SEND;
+	}
+
+	// receive 1 byte - must be QQ
+	numRecv = m_port->recv(0);
+
+	if (numRecv < 0) {
+		L.log(bus, error, " ERR_DEVICE: generic device error");
+		return RESULT_ERR_DEVICE;
+	}
+
+	if (numRecv == 1) {
+		// fetch byte
+		recvByte = fetchByte();
+
+		// compare sent and received byte
+		if (sendByte == recvByte) {
+			L.log(bus, trace, " bus acquired");
+			return RESULT_BUS_ACQUIRED;
+		}
+
+		// collect cycle data
+		if (recvByte != SYN)
+			m_sstr.push_back(recvByte, true, false);
+
+		// compare prior nibble for retry
+		if ((sendByte & 0x0F) == (recvByte & 0x0F)) {
+			m_priorRetry = true;
+			L.log(bus, trace, " bus prior retry");
+			return RESULT_BUS_PRIOR_RETRY;
+		}
+
+		L.log(bus, error, " ERR_BUS_LOST: lost bus arbitration");
+		return RESULT_ERR_BUS_LOST;
+  	}
+
+  	// cycle bytes
+	collectCycData(numRecv);
+
+	L.log(bus, error, " ERR_EXTRA_DATA: received bytes > sent bytes");
+	return RESULT_ERR_EXTRA_DATA;
+}
+
+BusCommand* EBusLoop::sendCommand()
+{
+	unsigned char recvByte;
+	std::string result;
+	SymbolString slaveData;
+	int retval = RESULT_OK;
+
+	BusCommand* busCommand = m_sendBuffer.next();
+
+	// send ZZ PB SB NN Dx CRC
+	SymbolString command = busCommand->getCommand();
+	for (size_t i = 1; i < command.size(); i++) {
+		retval = sendByte(command[i]);
+		if (retval < 0)
+			goto on_exit;
+	}
+
+	// BC -> send SYN
+	if (busCommand->getType() == broadcast) {
+		sendByte(SYN);
+		goto on_exit;
+	}
+
+	// receive ACK
+	retval = recvSlaveAck(recvByte);
+	if (retval < 0)
+		goto on_exit;
+
+	// is slave ACK negative?
+	if (recvByte == NAK) {
+
+		// send QQ ZZ PB SB NN Dx CRC again
+		for (size_t i = 0; i < command.size(); i++) {
+			retval = sendByte(command[i]);
+			if (retval < 0)
+				goto on_exit;
+		}
+
+		// receive ACK
+		retval = recvSlaveAck(recvByte);
+		if (retval < 0)
+			goto on_exit;
+
+		// is slave ACK negative?
+		if (recvByte == NAK) {
+			sendByte(SYN);
+			L.log(bus, error, " ERR_NAK: NAK received");
+			retval = RESULT_ERR_NAK;
+			goto on_exit;
+		}
+	}
+
+	// MM -> send SYN
+	if (busCommand->getType() == masterMaster) {
+		sendByte(SYN);
+		goto on_exit;
+	}
+
+	// receive NN, Dx, CRC
+	retval = recvSlaveData(slaveData);
+
+	// are calculated and received CRC equal?
+	if (retval == RESULT_ERR_CRC) {
+
+		// send NAK
+		retval = sendByte(NAK);
+		if (retval < 0)
+			goto on_exit;
+
+		// receive NN, Dx, CRC
+		slaveData.clear();
+		retval = recvSlaveData(slaveData);
+
+		// are calculated and received CRC equal?
+		if (retval == RESULT_ERR_CRC) {
+
+			// send NAK
+			retval = sendByte(NAK);
+			if (retval >= 0)
+				retval = RESULT_ERR_CRC;
+		}
+	}
+
+	if (retval < 0)
+		goto on_exit;
+
+	// send ACK
+	retval = sendByte(ACK);
+	if (retval == -1) {
+		L.log(bus, error, " ERR_ACK: ACK error");
+		retval = RESULT_ERR_ACK;
+		goto on_exit;
+	}
+
+	// MS -> send SYN
+	sendByte(SYN);
+
+on_exit:
+
+	// empty receive buffer
+	while (m_port->size() != 0)
+		recvByte = fetchByte();
+
+	busCommand->setResult(slaveData, retval);
+
+	if (retval == RESULT_OK)
+		return m_sendBuffer.remove();
+	else
+		return busCommand;
+
+}
+
+int EBusLoop::sendByte(const unsigned char sendByte)
+{
+	unsigned char recvByte;
+	ssize_t numRecv, numSend;
+
+	numSend = m_port->send(&sendByte);
+
+	// receive 1 byte - must be equal
+	numRecv = m_port->recv(RECV_TIMEOUT);
+
+	if (numSend != numRecv) {
+		L.log(bus, error, " ERR_EXTRA_DATA: received bytes > sent bytes");
+		return RESULT_ERR_EXTRA_DATA;
+	}
+
+	recvByte = fetchByte();
+
+	if (sendByte != recvByte) {
+		L.log(bus, error, " ERR_SEND: send error");
+		return RESULT_ERR_SEND;
+	}
+
+	return RESULT_OK;
+}
+
+int EBusLoop::recvSlaveAck(unsigned char& recvByte)
+{
+	ssize_t numRecv;
+
+	// receive ACK
+	numRecv = m_port->recv(m_recvTimeout);
+
+	if (numRecv > 1) {
+		L.log(bus, error, " ERR_EXTRA_DATA: received bytes > sent bytes");
+		return RESULT_ERR_EXTRA_DATA;
+	}
+	else if (numRecv < 0) {
+		L.log(bus, error, " ERR_TIMEOUT: read timeout");
+		return RESULT_ERR_TIMEOUT;
+	}
+
+	recvByte = fetchByte();
+
+	// is received byte SYN?
+	if (recvByte == SYN) {
+		L.log(bus, error, " ERR_SYN: SYN received");
+		return RESULT_ERR_SYN;
+	}
+
+	return RESULT_OK;
+}
+
+int EBusLoop::recvSlaveData(SymbolString& result)
+{
+	unsigned char recvByte, calcCrc = 0;
+	ssize_t numRecv;
+	size_t NN = 0;
+	bool updateCrc = true;
+	int retval = 0;
+
+	for (size_t i = 0, needed = 1; i < needed; i++) {
+		numRecv = m_port->recv(RECV_TIMEOUT);
+		if (numRecv < 0) {
+			L.log(bus, error, " ERR_TIMEOUT: read timeout");
+			return RESULT_ERR_TIMEOUT;
+		}
+
+		recvByte = fetchByte();
+		retval = result.push_back(recvByte, true, updateCrc);
+		if (retval < 0)
+			return retval;
+
+		if (retval == RESULT_IN_ESC)
+			needed++;
+		else if (result.size() == 1) { // NN received
+			NN = result[0];
+			needed += NN;
+		}
+		else if (NN > 0 && result.size() == 1+NN) {// all data received
+			updateCrc = false;
+			calcCrc = result.getCRC();
+			needed++;
+		}
+	}
+
+	if (retval == RESULT_IN_ESC) {
+		L.log(bus, error, " ERR_ESC: invalid escape sequence received");
+		return RESULT_ERR_ESC;
+	}
+
+	if (updateCrc == true || calcCrc != result[result.size()-1]) {
+		L.log(bus, error, " ERR_CRC: CRC error");
+		return RESULT_ERR_CRC;
+	}
+
+	return RESULT_OK;
 }
 

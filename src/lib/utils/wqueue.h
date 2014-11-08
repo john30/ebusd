@@ -64,6 +64,20 @@ public:
 		return item;
 	}
 
+	T next()
+	{
+		pthread_mutex_lock(&m_mutex);
+
+		while (m_queue.size() == 0)
+			pthread_cond_wait(&m_cond, &m_mutex);
+
+		T item = m_queue.front();
+
+		pthread_mutex_unlock(&m_mutex);
+
+		return item;
+	}
+
 	int size()
 	{
 		pthread_mutex_lock(&m_mutex);

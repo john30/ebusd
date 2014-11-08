@@ -14,8 +14,6 @@ libebus_a_SOURCES = result.cpp \
 		    port.h \
 		    buscommand.cpp \
 		    buscommand.h \
-		    bus.cpp \
-		    bus.h \
 		    command.cpp \
 		    command.h \
 		    commands.cpp \

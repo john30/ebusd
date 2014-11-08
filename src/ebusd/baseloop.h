@@ -46,16 +46,17 @@ private:
 	WQueue<Message*> m_queue;
 
 	enum ClientCommand {
-			     get,       // get ebus data
-			     set,       // set ebus value
-			     cyc,       // fetch cycle data
-			     hex,       // send hex value
-			     dump,      // change dump state
-			     log,	// logger settings
-			     reload,    // reload ebus configuration
-			     help,      // print commands
-			     notfound
-			   };
+	     get,       // get ebus data
+	     set,       // set ebus value
+	     cyc,       // fetch cycle data
+	     hex,       // send hex value
+	     log,	// logger settings
+	     raw,       // toggle log raw data
+	     dump,      // toggle dump state
+	     reload,    // reload ebus configuration
+	     help,      // print commands
+	     notfound
+	};
 
 	ClientCommand getCase(const std::string& item)
 	{
@@ -63,8 +64,9 @@ private:
 		if (strcasecmp(item.c_str(), "SET") == 0) return set;
 		if (strcasecmp(item.c_str(), "CYC") == 0) return cyc;
 		if (strcasecmp(item.c_str(), "HEX") == 0) return hex;
-		if (strcasecmp(item.c_str(), "DUMP") == 0) return dump;
 		if (strcasecmp(item.c_str(), "LOG") == 0) return log;
+		if (strcasecmp(item.c_str(), "RAW") == 0) return raw;
+		if (strcasecmp(item.c_str(), "DUMP") == 0) return dump;
 		if (strcasecmp(item.c_str(), "RELOAD") == 0) return reload;
 		if (strcasecmp(item.c_str(), "HELP") == 0) return help;
 

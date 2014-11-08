@@ -1,8 +1,8 @@
 AM_CXXFLAGS = -fpic \
 	      -Wall \
 	      -Wextra \
-	      -I$(top_srcdir)/src/libcore \
-	      -I$(top_srcdir)/src/libebus
+	      -I$(top_srcdir)/src/lib/utils \
+	      -I$(top_srcdir)/src/lib/ebus
 
 bin_PROGRAMS = ebusd
 
@@ -17,8 +17,8 @@ ebusd_SOURCES = message.h \
 		baseloop.h \
 		main.cpp
 
-ebusd_LDADD = $(top_srcdir)/src/libcore/libcore.a \
-              $(top_srcdir)/src/libebus/libebus.a \
+ebusd_LDADD = $(top_srcdir)/src/lib/utils/libutils.a \
+              $(top_srcdir)/src/lib/ebus/libebus.a \
 	      -lpthread
 
 distclean-local:

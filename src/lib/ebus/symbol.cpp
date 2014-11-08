@@ -1,5 +1,5 @@
 /*
- * Copyright (C) John Baier 2012-2014 <ebusd@johnm.de>
+ * Copyright (C) John Baier 2014 <ebusd@johnm.de>
  *
  * This file is part of ebusd.
  *
@@ -79,15 +79,13 @@ const std::string SymbolString::getDataStr(const bool unescape)
 	for (size_t i = 0; i < m_data.size(); i++) {
 		unsigned char value = m_data[i];
 		if (m_unescapeState == 0 && unescape == true && previousEscape == true) {
-			if (value == 0x00) {
+			if (value == 0x00)
 				sstr << "a9"; // ESC
-			}
-			else if (value == 0x01) {
+			else if (value == 0x01)
 				sstr << "aa"; // SYN
-			}
-			else  {
+			else
 				sstr << "XX"; // invalid escape sequence
-			}
+
 			previousEscape = false;
 		}
 		else if (m_unescapeState == 0 && unescape == true && value == ESC) {
@@ -123,9 +121,9 @@ int SymbolString::push_back(const unsigned char value, const bool isEscaped, con
 		}
 		else {
 			m_data.push_back(value);
-			if (updateCRC) {
+			if (updateCRC)
 				addCRC(value);
-			}
+
 		}
 		return RESULT_OK;
 	}
@@ -149,9 +147,9 @@ int SymbolString::push_back(const unsigned char value, const bool isEscaped, con
 		return RESULT_OK;
 	}
 	else if (m_unescapeState != 1) {
-		if (updateCRC) {
+		if (updateCRC)
 			addCRC(value);
-		}
+
 		if (value == 0x00) {
 			m_data.push_back(ESC);
 			m_unescapeState = 1;
@@ -165,15 +163,15 @@ int SymbolString::push_back(const unsigned char value, const bool isEscaped, con
 		return RESULT_ERR_ESC; // invalid escape sequence
 	}
 	else if (value == ESC) {
-		if (updateCRC) {
+		if (updateCRC)
 			addCRC(value);
-		}
+
 		m_unescapeState = 2;
 		return RESULT_IN_ESC;
 	}
-	if (updateCRC) {
+	if (updateCRC)
 		addCRC(value);
-	}
+
 	m_data.push_back(value);
 	return RESULT_OK;
 }

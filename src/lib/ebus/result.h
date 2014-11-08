@@ -1,5 +1,5 @@
 /*
- * Copyright (C) John Baier 2012-2014 <ebusd@johnm.de>
+ * Copyright (C) John Baier 2014 <ebusd@johnm.de>
  *
  * This file is part of ebusd.
  *

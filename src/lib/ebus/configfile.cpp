@@ -26,7 +26,7 @@ namespace libebus
 {
 
 
-void ConfigFileCSV::readFile(std::istream& is, Commands& commands)
+void ConfigFileCSV::parse(std::istream& is, Commands& commands)
 {
 	std::string line;
 
@@ -50,9 +50,9 @@ void ConfigFileCSV::readFile(std::istream& is, Commands& commands)
 };
 
 
-void ConfigFileXML::readFile(std::istream& is, Commands& commands)
+void ConfigFileXML::parse(std::istream& is, Commands& commands)
 {
-	;	// ToDo: Implamantion for xml files
+	;	// ToDo: Implementation for xml files
 }
 
 
@@ -91,7 +91,7 @@ Commands* ConfigCommands::getCommands()
 		std::fstream file((*i).c_str(), std::ios::in);
 
 		if(file.is_open() == true) {
-			m_configfile->readFile(file, *commands);
+			m_configfile->parse(file, *commands);
 			file.close();
 		}
 	}

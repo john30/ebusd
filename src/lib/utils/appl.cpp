@@ -62,7 +62,7 @@ void Appl::addItem(const char* name, Param param, const char* shortname,
 void Appl::printArgs()
 {
 	std::cerr << std::endl << "Usage:" << std::endl << "  "
-		  << m_argv[0].substr(2) << " [OPTIONS...]" ;
+		  << m_argv[0].substr(m_argv[0].find_last_of("/\\") + 1) << " [OPTIONS...]" ;
 
 	if (m_argTxt.size() != 0)
 		std::cerr << " " << m_argTxt;

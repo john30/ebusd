@@ -149,7 +149,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			}
 
 			std::string ebusCommand(A.getParam<const char*>("p_address"));
-			ebusCommand += m_commands->getEbusCommand(index);
+			ebusCommand += m_commands->getEbusCommand(index, false);
 			std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
 
 			BusCommand* busCommand = new BusCommand(ebusCommand, false);
@@ -190,7 +190,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		if (index >= 0) {
 
 			std::string ebusCommand(A.getParam<const char*>("p_address"));
-			ebusCommand += m_commands->getEbusCommand(index);
+			ebusCommand += m_commands->getEbusCommand(index, false);
 
 			// encode data
 			Command* command = new Command(index, (*m_commands)[index], cmd[3]);
@@ -292,17 +292,6 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 		break;
 
-	case dump:
-		if (cmd.size() != 2) {
-			result << "usage: 'dump state' (state: on|off)";
-			break;
-		}
-
-		if (strcasecmp(cmd[1].c_str(), "ON") == 0)  m_ebusloop->dump(true);
-		if (strcasecmp(cmd[1].c_str(), "OFF") == 0) m_ebusloop->dump(false);
-		result << "done";
-		break;
-
 	case log:
 		if (cmd.size () != 3 ) {
 			result << "usage: 'log areas area,area,..' (areas: bas|net|bus|cyc|all)" << std::endl
@@ -326,6 +315,26 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		result << "usage: 'log areas area,area,..' (areas: bas|net|bus|cyc|all)" << std::endl
 		       << "       'log level level'        (level: error|event|trace|debug)";
 
+		break;
+
+	case raw:
+		if (cmd.size() != 1) {
+			result << "usage: 'raw'";
+			break;
+		}
+
+		m_ebusloop->raw();
+		result << "done";
+		break;
+
+	case dump:
+		if (cmd.size() != 1) {
+			result << "usage: 'dump'";
+			break;
+		}
+
+		m_ebusloop->dump();
+		result << "done";
 		break;
 
 	case reload:
@@ -356,9 +365,10 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		       << " set       - set ebus values           'set class cmd value'" << std::endl
 		       << " cyc       - fetch cycle data          'cyc class cmd (sub)'" << std::endl
 		       << " hex       - send given hex value      'hex type value'         (value: ZZPBSBNNDx)" << std::endl << std::endl
-		       << " dump      - change dump state         'dump state'             (state: on|off)" << std::endl << std::endl
 		       << " log       - change log areas          'log areas area,area,..' (areas: bas|net|bus|cyc|all)" << std::endl
 		       << "           - change log level          'log level level'        (level: error|event|trace|debug)" << std::endl << std::endl
+		       << " raw       - toggle log raw data" << std::endl
+		       << " dump      - toggle dump state" << std::endl << std::endl
 		       << " reload    - reload ebus configuration" << std::endl << std::endl
 		       << " stop      - stop daemon" << std::endl
 		       << " quit      - close connection" << std::endl << std::endl
