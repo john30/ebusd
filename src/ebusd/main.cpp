@@ -55,6 +55,10 @@ void define_args()
 		  "number retries to lock ebus (2)",
 		  Appl::type_int, Appl::opt_mandatory);
 
+	A.addItem("p_lockcounter", Appl::Param(5), "", "lockcounter",
+		  "number of SYN to unlock send function (5)",
+		  Appl::type_int, Appl::opt_mandatory);
+
 	A.addItem("p_recvtimeout", Appl::Param(15000), "", "recvtimeout",
 		  "receive timeout in 'us' (15000)\n",
 		  Appl::type_long, Appl::opt_mandatory);

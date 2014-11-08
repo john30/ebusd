@@ -60,7 +60,7 @@ bool Device::isValid()
 ssize_t Device::sendBytes(const unsigned char* buffer, size_t nbytes)
 {
 	if (isValid() == false)
-		return -1;
+		return -1; // TODO RESULT_ERR_DEVICE
 
 	// write bytes to device
 	return write(m_fd, buffer, nbytes);

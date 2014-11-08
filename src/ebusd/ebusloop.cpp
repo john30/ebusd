@@ -25,7 +25,7 @@ extern LogInstance& L;
 extern Appl& A;
 
 EBusLoop::EBusLoop(Commands* commands)
-	: m_commands(commands), m_stop(false), m_busLocked(false), m_priorRetry(false)
+	: m_commands(commands), m_stop(false), m_lockCounter(0), m_priorRetry(false)
 {
 	m_port = new Port(A.getParam<const char*>("p_device"), A.getParam<bool>("p_nodevicecheck"));
 	m_port->open();
@@ -70,7 +70,7 @@ void* EBusLoop::run()
 		if (m_port->isOpen() == true) {
 			ssize_t numBytes;
 
-			// add poll command - timer reached
+			// add poll command
 			if (m_commands->sizePolDB() > 0) {
 				// check polling delta
 				time(&pollEnd);
@@ -95,7 +95,7 @@ void* EBusLoop::run()
 			collectCycData(numBytes);
 
 			// send command
-			if (m_sstr.size() == 0 && m_busLocked == false && m_sendBuffer.size() > 0) {
+			if (m_sstr.size() == 0 && m_lockCounter == 0 && m_sendBuffer.size() > 0) {
 				// acquire Bus
 				int busResult = acquireBus();
 
@@ -129,9 +129,11 @@ void* EBusLoop::run()
 					}
 
 					lockRetries = 0;
+					m_lockCounter = A.getParam<int>("p_lockcounter");
 				}
-				else {
+				else if (busResult == RESULT_ERR_BUS_LOST) {
 					L.log(bus, trace, " acquire bus failed");
+
 					if (lockRetries >= m_lockRetries) {
 						L.log(bus, event, " lock bus failed");
 						BusCommand* busCommand = m_sendBuffer.remove();
@@ -147,6 +149,7 @@ void* EBusLoop::run()
 						L.log(bus, trace, " lock retry %d", lockRetries);
 					}
 
+					m_lockCounter = A.getParam<int>("p_lockcounter");
 				}
 
 			}
@@ -198,32 +201,30 @@ void EBusLoop::collectCycData(const int numRecv)
 		// fetch byte
 		unsigned char byte = fetchByte();
 
-		// collect cycle data
-		if (byte != SYN)
-			m_sstr.push_back(byte, true, false);
+		if (byte == SYN) {
 
-		// unlock bus
-		if (byte == SYN && m_busLocked == true) {
-			m_busLocked = false;
-			L.log(bus, trace, " bus unlocked");
-		}
+			// analyse cycle data
+			if (m_sstr.size() > 0) {
 
-		// analyse cycle data
-		if (byte == SYN && m_sstr.size() > 0) {
+				analyseCycData();
 
-			analyseCycData();
+				if (m_sstr.size() == 1 && m_lockCounter == 0 && m_priorRetry == false)
+					m_lockCounter++;
 
-			if (m_sstr.size() == 1) {
-				if (m_priorRetry == true)
-					m_priorRetry = false;
-				else {
-					m_busLocked = true;
-					L.log(bus, trace, " bus locked");
-				}
+				else if (m_lockCounter > 0)
+					m_lockCounter--;
+
+				m_sstr.clear();
 			}
 
-			m_sstr.clear();
+			else if (m_lockCounter > 0)
+				m_lockCounter--;
+
 		}
+
+		// collect cycle data
+		else
+			m_sstr.push_back(byte, true, false);
 	}
 }
 

@@ -61,7 +61,7 @@ private:
 
 	bool m_stop;
 
-	bool m_busLocked;
+	int m_lockCounter;
 	bool m_priorRetry;
 
 	WQueue<BusCommand*> m_sendBuffer;
