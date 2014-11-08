@@ -149,7 +149,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			}
 
 			std::string ebusCommand(A.getParam<const char*>("p_address"));
-			ebusCommand += m_commands->getEbusCommand(index);
+			ebusCommand += m_commands->getEbusCommand(index, false);
 			std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
 
 			BusCommand* busCommand = new BusCommand(ebusCommand, false);
@@ -190,7 +190,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		if (index >= 0) {
 
 			std::string ebusCommand(A.getParam<const char*>("p_address"));
-			ebusCommand += m_commands->getEbusCommand(index);
+			ebusCommand += m_commands->getEbusCommand(index, false);
 
 			// encode data
 			Command* command = new Command(index, (*m_commands)[index], cmd[3]);

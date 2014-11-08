@@ -267,7 +267,7 @@ void EBusLoop::addPollCommand()
 		L.log(bus, event, " polling [%4d] %s", index, tmp.c_str());
 
 		std::string ebusCommand(A.getParam<const char*>("p_address"));
-		ebusCommand += m_commands->getEbusCommand(index);
+		ebusCommand += m_commands->getEbusCommand(index, false);
 		std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
 
 		BusCommand* busCommand = new BusCommand(ebusCommand, true);
