@@ -30,29 +30,32 @@ int main ()
 //		{"temp;1;d2b;;°C;Aussentemperatur","temp=18.004 °C [Aussentemperatur]","10fe070009019258042126100714cc", "00"},
 //		{"zeit;1;ttm;2;Uhr;","zeit=22:40 Uhr","10feffff0188", "00"},
 		{"x;1-10;hex","53 70 65 69 63 68 65 72 20 20", "10fe07000a53706569636865722020", "00"},
-		{"x;1;bti","21:04:58","10fe070009580421", "00"},
-		{"x;1;bda","26.10.2014","10fe07000926100714", "00"},
+		{"x;;bti","21:04:58","10fe070009580421", "00"},
+		{"x;;bda","26.10.2014","10fe07000926100714", "00"},
 		{"x;1-3;bda","26.10.2014","10fe070003261014", "00"},
-		{"x;1;hdy","Sun","10fe07000307", "00"},
-		{"x;1;bdy","Sun","10fe07000306", "00"},
-		{"x;1;d2b","18.004","10fe0700090112", "00"},
-		{"x;1;d2c","288.062","10fe0700090112", "00"},
-		{"x;1;ttm","22:40","10feffff0188", "00"},
-		{"x;1;bcd","26","10feffff0126", "00"},
-		{"x;1;bcd","-","10feffff01ff", "00"},
-		{"x;1;uch","38","10feffff0126", "00"},
-		{"x;1;sch","-90","10feffff01a6", "00"},
-		{"x;1;d1b","-90","10feffff01a6", "00"},
-		{"x;1;d1c","19.500","10feffff0127", "00"},
-		{"x;1;uin","38","10feffff022600", "00"},
-		{"x;1;sin","-90","10feffff02a6ff", "00"},
-		{"x;1;ulg","38","10feffff0426000000", "00"},
-		{"x;1;slg","-90","10feffff04a6ffffff", "00"},
-		{"x;1;flt","-0.090","10feffff02a6ff", "00"},
+		{"x;;hdy","Sun","10fe07000307", "00"},
+		{"x;;bdy","Sun","10fe07000306", "00"},
+		{"x;;d2b","18.004","10fe0700090112", "00"},
+		{"x;;d2c","288.062","10fe0700090112", "00"},
+		{"x;;ttm","22:40","10feffff0188", "00"},
+		{"x;;bcd","26","10feffff0126", "00"},
+		{"x;;bcd","-","10feffff01ff", "00"},
+		{"x;;uch","38","10feffff0126", "00"},
+		{"x;;sch","-90","10feffff01a6", "00"},
+		{"x;;d1b","-90","10feffff01a6", "00"},
+		{"x;;d1c","19.500","10feffff0127", "00"},
+		{"x;;uin","38","10feffff022600", "00"},
+		{"x;;sin","-90","10feffff02a6ff", "00"},
+		{"x;;ulg","38","10feffff0426000000", "00"},
+		{"x;;slg","-90","10feffff04a6ffffff", "00"},
+		{"x;;flt","-0.090","10feffff02a6ff", "00"},
 		{"x;1-9;str","hallo Du!","10feffff0868616c6c6f20447521", "00"},
 		{"x;1-9;str","hallo Du ","10feffff0868616c6c6f20447520", "00"},
 		{"new;1;uch;1=test,2=high,3=off,4=on","on","10feffff0104", "00"},
 	};
+	std::map<std::string, DataField*> predefined;
+	std::vector<DataField*> fields;
+	unsigned char nextPos;
 	for (size_t i = 0; i < sizeof(checks)/sizeof(checks[0]); i++) {
 		std::istringstream isstr(checks[i][0]);
 		std::string expectStr = checks[i][1];
@@ -65,45 +68,70 @@ int main ()
 			entries.push_back(item);
 
 		std::vector<std::string>::iterator it = entries.begin();
-		DataField* field = DataField::create(mstr[1], false, it, entries.end());
+		nextPos = 0;
+		result_t result = DataField::create(mstr[1], false, it, entries.end(), predefined, fields, nextPos);
 
-		if (field == NULL) {
-			std::cout << "create \"" << checks[i][0] << "\" invalid: null" << std::endl;
-			return 1;
+		if (result != RESULT_OK) {
+			std::cout << "create \"" << checks[i][0] << "\" failed: " << getResultCodeCStr(result) << std::endl;
+			continue;
+		}
+		if (fields.empty() == true) {
+			std::cout << "create \"" << checks[i][0] << "\" failed: empty" << std::endl;
+			continue;
 		}
 		std::cout << "create \"" << checks[i][0] << "\" successful" << std::endl;
 
-
-		std::string gotStr = field->read(mstr, sstr);
-
-		if (strcasecmp(gotStr.c_str(), expectStr.c_str()) == 0)
-			std::cout << "read successful: " << gotStr << std::endl;
-		else
-			std::cout << "read invalid: got " << gotStr
-				<< ", expected " << expectStr << std::endl;
-
-		SymbolString writeMstr = SymbolString(mstr.getDataStr().substr(0, 10), false);
-		SymbolString writeSstr = SymbolString(sstr.getDataStr().substr(0, 2), false);
-		if (field->write(gotStr, writeMstr, writeSstr) == false)
-			std::cout << "write failed" << std::endl;
+		DataField* field = fields.back();
+		fields.pop_back();
+		std::ostringstream output;
+		result = field->read(mstr, sstr, output);
+		if (result != RESULT_OK) {
+			std::cout << "read \"" << checks[i][0] << "\" failed: " << getResultCodeCStr(result) << std::endl;
+		}
 		else {
-			if (mstr == writeMstr && sstr == writeSstr)
-				std::cout << "write successful" << std::endl;
-			else {
-				std::cout << "write invalid: ";
-				if (mstr == writeMstr)
-					std::cout << "master OK";
-				else
-					std::cout << "master got " << writeMstr.getDataStr() << ", expected " << mstr.getDataStr();
+			std::string gotStr = output.str();
 
-				if (sstr == writeSstr)
-					std::cout << ", slave OK";
-				else
-					std::cout << ", slave got " << writeSstr.getDataStr() << ", expected " << sstr.getDataStr();
-				std::cout << std::endl;
+			if (strcasecmp(gotStr.c_str(), expectStr.c_str()) == 0)
+				std::cout << "read successful: " << gotStr << std::endl;
+			else
+				std::cout << "read invalid: got " << gotStr
+					<< ", expected " << expectStr << std::endl;
+
+			SymbolString writeMstr = SymbolString(mstr.getDataStr().substr(0, 10), false);
+			SymbolString writeSstr = SymbolString(sstr.getDataStr().substr(0, 2), false);
+
+			if (result != RESULT_OK) {
+				std::cout << "create \"" << checks[i][0] << "\" failed: " << getResultCodeCStr(result) << std::endl;
+				return 1;
+			}
+			result = field->write(gotStr, writeMstr, writeSstr);
+			if (result != RESULT_OK) {
+				std::cout << "write \"" << checks[i][0] << "\" failed: " << getResultCodeCStr(result) << std::endl;
+			}
+			else {
+				if (mstr == writeMstr && sstr == writeSstr)
+					std::cout << "write successful" << std::endl;
+				else {
+					std::cout << "write invalid: ";
+					if (mstr == writeMstr)
+						std::cout << "master OK";
+					else
+						std::cout << "master got " << writeMstr.getDataStr() << ", expected " << mstr.getDataStr();
+
+					if (sstr == writeSstr)
+						std::cout << ", slave OK";
+					else
+						std::cout << ", slave got " << writeSstr.getDataStr() << ", expected " << sstr.getDataStr();
+					std::cout << std::endl;
+				}
 			}
 		}
 		delete field;
+		while (fields.empty() == false) {
+			field = fields.back();
+			fields.pop_back();
+			delete field; // TODO use me
+		}
 	}
 	return 0;
 
