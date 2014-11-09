@@ -71,6 +71,7 @@ private:
 	long m_recvTimeout;
 	int m_sendRetries;
 	int m_lockRetries;
+	long m_acquireTime;
 
 	unsigned char fetchByte();
 	void collectCycData(const int numRecv);

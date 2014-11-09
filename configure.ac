@@ -4,7 +4,7 @@ AC_INIT([ebusd], [0.5.0], [ebusd@liwest.at], [ebusd], [https://github.com/yuhu-/
 AC_PROG_CXX
 
 AC_CONFIG_AUX_DIR([build])
-AC_CONFIG_SRCDIR([src/ebusd/main.cpp])
+AC_CONFIG_SRCDIR([src/ebusd/ebusd.cpp])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile
 		 src/lib/ebus/Makefile

@@ -60,7 +60,11 @@ void define_args()
 		  Appl::type_int, Appl::opt_mandatory);
 
 	A.addItem("p_recvtimeout", Appl::Param(15000), "", "recvtimeout",
-		  "receive timeout in 'us' (15000)\n",
+		  "receive timeout in 'us' (15000)",
+		  Appl::type_long, Appl::opt_mandatory);
+
+	A.addItem("p_acquiretime", Appl::Param(4200), "", "acquiretime",
+		  "waiting time for bus acquire in 'us' (4200)\n",
 		  Appl::type_long, Appl::opt_mandatory);
 
 	A.addItem("p_pollinterval", Appl::Param(5), "", "pollinterval",

@@ -45,6 +45,8 @@ EBusLoop::EBusLoop(Commands* commands)
 	m_sendRetries = A.getParam<int>("p_sendretries");
 
 	m_lockRetries = A.getParam<int>("p_lockretries");
+
+	m_acquireTime = A.getParam<long>("p_acquiretime");
 }
 
 EBusLoop::~EBusLoop()
@@ -111,18 +113,18 @@ void* EBusLoop::run()
 							busCommand->setResult(std::string(), RESULT_OK);
 						}
 						else {
+							sendRetries = 0;
 							L.log(bus, event, " send retry failed", sendRetries);
 
 							if (busCommand->isPoll() == true)
 								delete m_sendBuffer.remove();
 							else
 								busCommand->sendSignal();
-
-							sendRetries = 0;
 						}
 					}
 					else {
 						sendRetries = 0;
+
 						if (busCommand->isPoll() == true) {
 							m_commands->storePolData(busCommand->getMessageStr().c_str()); // TODO use getResult()
 							delete busCommand;
@@ -138,14 +140,14 @@ void* EBusLoop::run()
 					L.log(bus, trace, " acquire bus failed");
 
 					if (lockRetries >= m_lockRetries) {
+						lockRetries = 0;
 						L.log(bus, event, " lock bus failed");
+
 						BusCommand* busCommand = m_sendBuffer.remove();
 						if (busCommand->isPoll() == true)
 							delete busCommand;
 						else
 							busCommand->sendSignal();
-
-						lockRetries = 0;
 					}
 					else {
 						lockRetries++;
@@ -293,6 +295,9 @@ int EBusLoop::acquireBus()
 		L.log(bus, error, " ERR_SEND: send error");
 		return RESULT_ERR_SEND;
 	}
+
+	// wait ~4200 usec for receive
+	usleep(m_acquireTime);
 
 	// receive 1 byte - must be QQ
 	numRecv = m_port->recv(0);

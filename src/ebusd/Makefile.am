@@ -15,7 +15,7 @@ ebusd_SOURCES = message.h \
 		ebusloop.h \
 		baseloop.cpp \
 		baseloop.h \
-		main.cpp
+		ebusd.cpp
 
 ebusd_LDADD = $(top_srcdir)/src/lib/utils/libutils.a \
               $(top_srcdir)/src/lib/ebus/libebus.a \
