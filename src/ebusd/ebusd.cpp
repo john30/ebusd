@@ -17,11 +17,13 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
+#include "config.h"
 #include "logger.h"
 #include "daemon.h"
 #include "appl.h"
 #include "baseloop.h"
 #include <csignal>
+#include <iostream>
 
 using namespace libebus;
 
@@ -119,6 +121,10 @@ void define_args()
 		  "\tprint daemon settings\n",
 		  Appl::type_bool, Appl::opt_none);
 
+	A.addItem("p_version", Appl::Param(false), "v", "version",
+		  "\tprint ebusd version\n",
+		  Appl::type_bool, Appl::opt_none);
+
 	A.addItem("p_help", Appl::Param(false), "h", "help",
 		  "\tprint this message",
 		  Appl::type_bool, Appl::opt_none);
@@ -177,17 +183,23 @@ int main(int argc, char* argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	// print Help
+	// print version
+	if (A.getParam<bool>("p_version") == true) {
+		std::cerr << PACKAGE_STRING << std::endl;
+		exit(EXIT_SUCCESS);
+	}
+
+	// print help
 	if (A.getParam<bool>("p_help") == true) {
 		A.printArgs();
 		exit(EXIT_SUCCESS);
 	}
 
-	// print Daemon settings
+	// print daemon settings
 	if (A.getParam<bool>("p_settings") == true)
 		A.printSettings();
 
-	// make me Daemon
+	// make me daemon
 	if (A.getParam<bool>("p_foreground") == true) {
 		L += new LogConsole(calcAreas(A.getParam<const char*>("p_logareas")),
 				    calcLevel(A.getParam<const char*>("p_loglevel")),

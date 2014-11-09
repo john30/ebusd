@@ -17,8 +17,8 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef LIBCORE_NOTIFY_H_
-#define LIBCORE_NOTIFY_H_
+#ifndef LIBUTILS_NOTIFY_H_
+#define LIBUTILS_NOTIFY_H_
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -51,6 +51,6 @@ private:
 
 };
 
-#endif // LIBCORE_NOTIFY_H_
+#endif // LIBUTILS_NOTIFY_H_
 
 

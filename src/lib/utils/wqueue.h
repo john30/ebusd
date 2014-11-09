@@ -17,8 +17,8 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef LIBCORE_WQUEUE_H_
-#define LIBCORE_WQUEUE_H_
+#ifndef LIBUTILS_WQUEUE_H_
+#define LIBUTILS_WQUEUE_H_
 
 #include <list>
 #include <pthread.h>
@@ -96,4 +96,4 @@ private:
 
 };
 
-#endif // LIBCORE_WQUEUE_H_
+#endif // LIBUTILS_WQUEUE_H_

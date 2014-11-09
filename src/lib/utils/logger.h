@@ -17,8 +17,8 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef LIBCORE_LOGGER_H_
-#define LIBCORE_LOGGER_H_
+#ifndef LIBUTILS_LOGGER_H_
+#define LIBUTILS_LOGGER_H_
 
 #include "wqueue.h"
 #include "thread.h"
@@ -178,4 +178,4 @@ private:
 
 };
 
-#endif // LIBCORE_LOGGER_H_
+#endif // LIBUTILS_LOGGER_H_

@@ -17,8 +17,8 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef LIBCORE_DAEMON_H_
-#define LIBCORE_DAEMON_H_
+#ifndef LIBUTILS_DAEMON_H_
+#define LIBUTILS_DAEMON_H_
 
 class Daemon
 {
@@ -45,4 +45,4 @@ private:
 
 };
 
-#endif // LIBCORE_DAEMON_H_
+#endif // LIBUTILS_DAEMON_H_

@@ -17,8 +17,8 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef LIBCORE_APPL_H_
-#define LIBCORE_APPL_H_
+#ifndef LIBUTILS_APPL_H_
+#define LIBUTILS_APPL_H_
 
 #include <string>
 #include <cstring>
@@ -109,4 +109,4 @@ private:
 	void addParam(const char* name, const std::string arg, Datatype datatype);
 };
 
-#endif // LIBCORE_APPL_H_
+#endif // LIBUTILS_APPL_H_

@@ -17,8 +17,8 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef LIBCORE_TCPSOCKET_H_
-#define LIBCORE_TCPSOCKET_H_
+#ifndef LIBUTILS_TCPSOCKET_H_
+#define LIBUTILS_TCPSOCKET_H_
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -84,5 +84,5 @@ private:
 
 };
 
-#endif // LIBCORE_TCPSOCKET_H_
+#endif // LIBUTILS_TCPSOCKET_H_
 

@@ -17,8 +17,8 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef LIBCORE_THREAD_H_
-#define LIBCORE_THREAD_H_
+#ifndef LIBUTILS_THREAD_H_
+#define LIBUTILS_THREAD_H_
 
 #include <pthread.h>
 
@@ -43,4 +43,4 @@ private:
 
 };
 
-#endif // LIBCORE_THREAD_H_
+#endif // LIBUTILS_THREAD_H_
