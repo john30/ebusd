@@ -44,14 +44,17 @@ static const int RESULT_ERR_BUS_LOST = -8;     // arbitration lost
 static const int RESULT_ERR_ESC = -9;          // invalid escape sequence received
 static const int RESULT_ERR_INVALID_ARG = -10; // invalid argument
 static const int RESULT_ERR_DEVICE = -11;      // generic device error (usually fatal)
+static const int RESULT_ERR_EOF = -12;         // end of input reached
 
+/** type for result code. */
+typedef int result_t;
 
 /**
  * @brief Return the string corresponding to the result code.
  * @param resultCode the result code (see RESULT_ constants).
  * @return the string corresponding to the result code.
  */
-const char* getResultCodeCStr(int resultCode);
+const char* getResultCodeCStr(result_t resultCode);
 
 
 } //namespace

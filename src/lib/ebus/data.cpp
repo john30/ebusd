@@ -32,110 +32,157 @@ namespace libebus
 
 /** the known data field types. */
 static const dataType_t dataTypes[] = {
-	{"STR",16, bt_str,   ADJ,' ',           1,         16,     0}, // >= 1 byte character string filled up with space
-	{"HEX",16, bt_hexstr,ADJ,  0,           2,         47,     0}, // >= 1 byte hex digit string, usually separated by space, e.g. 0a 1b 2c 3d
-	{"BDA", 4, bt_date,  BCD,  0,          10,         10,     0}, // date in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is ignored weekday)
-	{"BDA", 3, bt_date,  BCD,  0,          10,         10,     0}, // date in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99)
-	{"HDA", 4, bt_date,    0,  0,          10,         10,     0}, // date, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is ignored weekday) // TODO remove duplicate of BDA
-	{"HDA", 3, bt_date,    0,  0,          10,         10,     0}, // date, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99) // TODO remove duplicate of BDA
-	{"BTI", 3, bt_time,BCD|REV,0,           8,          8,     0}, // time in BCD, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x59,0x59,0x23)
-	{"TTM", 1, bt_time,    0,  0,           5,          5,     0}, // truncated time (only multiple of 10 minutes), 00:00 - 24:00 (minutes div 10 + hour * 6 as integer)
-	{"BDY", 1, bt_list,BCD|DAY,0,           0,          6,     0}, // weekday, "Mon" - "Sun"
-	{"HDY", 1, bt_list,BCD|DAY,0,           1,          7,     0}, // weekday, "Mon" - "Sun"
-	{"BCD", 1, bt_number,BCD|LST,0xff,      0,       0x99,     1}, // unsigned decimal in BCD, 0 - 99
-	{"UCH", 1, bt_number, LST, 0xff,        0,       0xff,     1}, // unsigned integer, 0 - 255
-	{"SCH", 1, bt_number, SIG, 0x80,     0x80,       0x7f,     1}, // signed integer, -128 - +127
-	{"D1B", 1, bt_number, SIG, 0x80,     0x81,       0x7f,     1}, // signed integer, -127 - +127
-	{"D1C", 1, bt_number,   0, 0xff,     0x00,       0xc8,     2}, // unsigned number (fraction 1/2), 0 - 100 (0x00 - 0xc8, replacement 0xff)
-	{"UIN", 2, bt_number, LST, 0xffff,      0,     0xffff,     1}, // unsigned integer, 0 - 65535
-	{"SIN", 2, bt_number, SIG, 0x8000, 0x8000,     0x7fff,     1}, // signed integer, -32768 - +32767
-	{"FLT", 2, bt_number, SIG, 0x8000, 0x8000,     0x7fff,  1000}, // signed number (fraction 1/1000), -32.768 - +32.767
-	{"D2B", 2, bt_number, SIG, 0x8000, 0x8001,     0x7fff,   256}, // signed number (fraction 1/256), -127.99 - +127.99
-	{"D2C", 2, bt_number, SIG, 0x8000, 0x8001,     0x7fff,    16}, // signed number (fraction 1/16), -2047.9 - +2047.9
-	{"ULG", 4, bt_number, LST, 0xffffffff,          0, 0xffffffff, 1}, // unsigned integer, 0 - 4294967295
-	{"SLG", 4, bt_number, SIG, 0x80000000, 0x80000000, 0xffffffff, 1}, // signed integer, -2147483648 - +2147483647
-}; // TODO check value range for numberdf
+	{"STR", 16, bt_str,     ADJ,        ' ',          1,         16,    0}, // >= 1 byte character string filled up with space
+	{"HEX", 16, bt_hexstr,  ADJ,          0,          2,         47,    0}, // >= 1 byte hex digit string, usually separated by space, e.g. 0a 1b 2c 3d
+	{"BDA",  4, bt_dat,     BCD,          0,         10,         10,    0}, // date in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is ignored weekday)
+	{"BDA",  3, bt_dat,     BCD,          0,         10,         10,    0}, // date in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99)
+	{"HDA",  4, bt_dat,       0,          0,         10,         10,    0}, // date, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is ignored weekday) // TODO remove duplicate of BDA
+	{"HDA",  3, bt_dat,       0,          0,         10,         10,    0}, // date, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99) // TODO remove duplicate of BDA
+	{"BTI",  3, bt_tim, BCD|REV,          0,          8,          8,    0}, // time in BCD, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x59,0x59,0x23)
+	{"TTM",  1, bt_tim,       0,          0,          5,          5,    0}, // truncated time (only multiple of 10 minutes), 00:00 - 24:00 (minutes div 10 + hour * 6 as integer)
+	{"BDY",  1, bt_num, DAY|LST,          0,          0,          6,    1}, // weekday, "Mon" - "Sun"
+	{"HDY",  1, bt_num, DAY|LST,          0,          1,          7,    1}, // weekday, "Mon" - "Sun"
+	{"BCD",  1, bt_num, BCD|LST,       0xff,          0,       0x99,    1}, // unsigned decimal in BCD, 0 - 99
+	{"UCH",  1, bt_num,     LST,       0xff,          0,       0xff,    1}, // unsigned integer, 0 - 255
+	{"SCH",  1, bt_num,     SIG,       0x80,       0x80,       0x7f,    1}, // signed integer, -128 - +127
+	{"D1B",  1, bt_num,     SIG,       0x80,       0x81,       0x7f,    1}, // signed integer, -127 - +127
+	{"D1C",  1, bt_num,       0,       0xff,       0x00,       0xc8,    2}, // unsigned number (fraction 1/2), 0 - 100 (0x00 - 0xc8, replacement 0xff)
+	{"UIN",  2, bt_num,     LST,     0xffff,          0,     0xffff,    1}, // unsigned integer, 0 - 65535
+	{"SIN",  2, bt_num,     SIG,     0x8000,     0x8000,     0x7fff,    1}, // signed integer, -32768 - +32767
+	{"FLT",  2, bt_num,     SIG,     0x8000,     0x8000,     0x7fff, 1000}, // signed number (fraction 1/1000), -32.768 - +32.767
+	{"D2B",  2, bt_num,     SIG,     0x8000,     0x8001,     0x7fff,  256}, // signed number (fraction 1/256), -127.99 - +127.99
+	{"D2C",  2, bt_num,     SIG,     0x8000,     0x8001,     0x7fff,   16}, // signed number (fraction 1/16), -2047.9 - +2047.9
+	{"ULG",  4, bt_num,     LST, 0xffffffff,          0, 0xffffffff,    1}, // unsigned integer, 0 - 4294967295
+	{"SLG",  4, bt_num,     SIG, 0x80000000, 0x80000000, 0xffffffff,    1}, // signed integer, -2147483648 - +2147483647
+};
 
 /** the week day names. */
 static const char* dayNames[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
 
+#define FIELD_SEPARATOR ';'
+#define VALUE_SEPARATOR ','
+#define NULL_VALUE "-"
 
-DataField* DataField::create(const unsigned char dstAddress, const bool isSetMessage,
-		std::vector<std::string>::iterator& it, const std::vector<std::string>::iterator end) {
+result_t DataField::create(const unsigned char dstAddress, const bool isSetMessage,
+		std::vector<std::string>::iterator& it, const std::vector<std::string>::iterator end,
+		const std::map<std::string, DataField*> predefined, std::vector<DataField*>& fields,
+		unsigned char& nextPos) {
 	std::string name, unit, comment;
 	PartType partType;
-	float factor;
-	size_t baseOffset = 0, offset = 0, length = 0, maxPos = 16, offsetCnt = 0;
+	unsigned int divisor;
+	unsigned char baseOffset, offset, length, maxPos = 16, offsetCnt = 0;
+	std::string token;
 
 	if (it == end)
-		return NULL;
+		return RESULT_ERR_EOF;
+
 	name = *it++;
-	if (it == end || name.size() == 0)
-		return NULL;
+	if (it == end || name.empty() == true)
+		return RESULT_ERR_EOF;
+
 	const char* posStr = (*it++).c_str();
-	if (it == end)
-		return NULL;
+	if (it == end)  {
+		// no more input: check for reference to predefined type
+		if (posStr[0] == 0)
+			return RESULT_ERR_EOF;
+
+		std::map<std::string, DataField*>::const_iterator ref = predefined.find(name);
+		if (ref != predefined.end()) {
+			fields.push_back(ref->second);
+			return RESULT_OK;
+		}
+		// check for sequence of reference to predefined type
+		std::istringstream stream(name);
+		while (std::getline(stream, token, VALUE_SEPARATOR) != 0) {
+			ref = predefined.find(token);
+			if (ref == predefined.end())
+				return RESULT_ERR_INVALID_ARG;
+
+			fields.push_back(ref->second);
+		}
+		return RESULT_OK;
+	}
 	if (dstAddress == BROADCAST
 	|| isMaster(dstAddress)
 	|| (isSetMessage == true && posStr[0] <= '9')
 	|| posStr[0] == 'm') { // master data
 		partType = pt_masterData;
 		baseOffset = 5; // skip QQ ZZ PB SB NN
-		//len = command.getMasterDataLength();
 		if (posStr[0] == 'm')
 			posStr++;
 	} else if ((isSetMessage == false && posStr[0] <= '9')
 	|| posStr[0] == 's') { // slave data
+		partType = pt_slaveData;
 		baseOffset = 1;
-		//offset = 5+command.getMasterDataLength()+3; // skip QQ ZZ PB SB NN Dx CRC ACK NN
-		//len = command.getSlaveDataLength();
 		if (posStr[0] == 's')
 			posStr++;
+	} else
+		return RESULT_ERR_INVALID_ARG;
+
+	if (posStr[0] == 0) {
+		if (nextPos == 0)
+			offset = baseOffset;
+		else if (nextPos < baseOffset)
+			return RESULT_ERR_INVALID_ARG; // missing pos definition
+		else
+			offset = nextPos;
+		length = 0;
 	} else {
-		return NULL; // TODO error code: invalid pos definition
-	}
-	std::string token;
-	std::istringstream stream(posStr);
-	while (std::getline(stream, token, '-') != 0) {
-		if (++offsetCnt > 2)
-			return NULL; // TODO error code: invalid pos definition
-		const char* start = token.c_str();
-		char* end = NULL;
-		unsigned int pos = strtoul(start, &end, 10)-1; // 1-based
-		if (end != start+strlen(start))
-			return NULL; // TODO error code: invalid pos definition
-		if (baseOffset+pos > maxPos)
-			return NULL; // TODO error code: invalid pos definition
-		else if (offsetCnt==1)
-			offset = baseOffset+pos;
-		else if (baseOffset+pos >= offset)
-			length = baseOffset+pos+1-offset;
-		else { // wrong order e.g. 4-3
-			length = offset-(baseOffset+pos+1);
-			offset = baseOffset+pos;
+		offset = 0;
+		length = 0;
+		std::istringstream stream(posStr);
+		while (std::getline(stream, token, '-') != 0) {
+			if (++offsetCnt > 2)
+				return RESULT_ERR_INVALID_ARG; //invalid pos definition
+
+			const char* start = token.c_str();
+			char* end = NULL;
+			unsigned int pos = strtoul(start, &end, 10)-1; // 1-based
+			if (end != start+strlen(start))
+				return RESULT_ERR_INVALID_ARG; // invalid pos definition
+
+			if (baseOffset+pos > maxPos)
+				return RESULT_ERR_INVALID_ARG; // invalid pos definition
+
+			if (offsetCnt==1)
+				offset = baseOffset+pos;
+			else if (baseOffset+pos >= offset)
+				length = baseOffset+pos+1-offset;
+			else { // wrong order e.g. 4-3
+				length = offset-(baseOffset+pos+1);
+				offset = baseOffset+pos;
+			}
 		}
+		if (offset < baseOffset)
+			return RESULT_ERR_INVALID_ARG; //invalid pos definition
 	}
 
 	const char* typeStr = (*it++).c_str();
 
 	std::map<unsigned int, std::string> values;
 	if (it == end)
-		factor = 1.0;
+		divisor = 1;
 	else {
-		std::string factorStr = *it++;
-		if (factorStr.empty())
-			factor = 1.0;
-		else if (factorStr.find_first_not_of("0123456789.") == std::string::npos)
-			factor = static_cast<float>(strtod(factorStr.c_str(), NULL));
+		std::string divisorStr = *it++;
+		if (divisorStr.empty() == true)
+			divisor = 1;
+		else if (divisorStr.find_first_not_of("0123456789") == std::string::npos) {
+			const char* start = divisorStr.c_str();
+			char* end = NULL;
+			divisor = strtoul(start, &end, 10);
+			if (end != start+strlen(start))
+				return RESULT_ERR_INVALID_ARG;
+		}
 		else {
-			factor = 1.0;
-			std::istringstream stream(factorStr);
-			while (std::getline(stream, token, ',') != 0) {
+			divisor = 1;
+			std::istringstream stream(divisorStr);
+			while (std::getline(stream, token, VALUE_SEPARATOR) != 0) {
 				const char* start = token.c_str();
 				char* end = NULL;
 				unsigned int id = strtoul(start, &end, 10);
 				if (end == NULL || end == start || *end != '=')
-					return NULL; // TODO error code: invalid values definition
+					return RESULT_ERR_INVALID_ARG;
+
 				values[id] = std::string(end+1);
 			}
 		}
@@ -157,7 +204,7 @@ DataField* DataField::create(const unsigned char dstAddress, const bool isSetMes
 		if (comment.length() == 1 && comment[0] == '-')
 			comment.clear();
 	}
-
+//TODO derive more specific subtypes
 	for (size_t i = 0; i < sizeof(dataTypes)/sizeof(dataTypes[0]); i++) {
 		dataType_t dataType = dataTypes[i];
 		if (strcasecmp(typeStr, dataType.name) == 0) {
@@ -165,7 +212,7 @@ DataField* DataField::create(const unsigned char dstAddress, const bool isSetMes
 				if (length == 0)
 					length = 1; // minimum length defaults to 1
 				else if (length > dataType.numBytes)
-					return NULL; // invalid length
+					return RESULT_ERR_INVALID_ARG; // invalid length
 			}
 			else if (length == 0)
 				length = dataType.numBytes;
@@ -175,34 +222,37 @@ DataField* DataField::create(const unsigned char dstAddress, const bool isSetMes
 			switch (dataType.type) {
 			case bt_str:
 			case bt_hexstr:
-			case bt_date: // TODO better numeric?
-			case bt_time: // TODO better numeric?
-				return new StringDataField(name, partType, offset, length, dataType, unit, comment);
-			case bt_list:
-				if (values.empty() == false) {
-					if (values.begin()->first < dataType.minValueOrLength)
-						return NULL; // invalid value id
-					std::map<unsigned int, std::string>::iterator end = values.end();
-					end--;
-					if (end->first > dataType.maxValueOrLength)
-						return NULL; // invalid value id
-				}
-				else if ((dataType.flags&DAY) != 0) {
+			case bt_dat:
+			case bt_tim:
+				fields.push_back(new StringDataField(name, partType, offset, length, dataType, unit, comment));
+				nextPos = offset+length;
+				return RESULT_OK;
+			case bt_num:
+				if (values.empty() == true && (dataType.flags&DAY) != 0) {
 					for (unsigned int i=0; i<sizeof(dayNames)/sizeof(dayNames[0]); i++)
 						values[dataType.minValueOrLength + i] = dayNames[i];
 				}
-				return new ValueListDataField(name, partType, offset, length, dataType, unit, comment, values);
-			case bt_number:
-				if (values.empty() || (dataType.flags&LST) == 0)
-					return new NumberDataField(name, partType, offset, length, dataType, unit, comment, factor);
-				return new ValueListDataField(name, partType, offset, length, dataType, unit, comment, values);
+				if (values.empty() == true || (dataType.flags&LST) == 0) {
+					fields.push_back(new NumberDataField(name, partType, offset, length, dataType, unit, comment, divisor));
+					nextPos = offset+length;
+					return RESULT_OK;
+				}
+				if (values.begin()->first < dataType.minValueOrLength)
+					return RESULT_ERR_INVALID_ARG;
+				std::map<unsigned int, std::string>::iterator end = values.end();
+				end--;
+				if (end->first > dataType.maxValueOrLength)
+					return RESULT_ERR_INVALID_ARG;
+				fields.push_back(new ValueListDataField(name, partType, offset, length, dataType, unit, comment, values));
+				nextPos = offset+length;
+				return RESULT_OK;
 			}
 		}
 	}
-	return NULL; // TODO error code: invalid type definition
+	return RESULT_ERR_INVALID_ARG;
 }
 
-const std::string DataField::read(SymbolString& masterData, SymbolString& slaveData, bool verbose)
+result_t DataField::read(SymbolString& masterData, SymbolString& slaveData, std::ostringstream& output, bool verbose)
 {
 	SymbolString& input = m_partType == pt_masterData ? masterData : slaveData;
 	switch (m_partType) {
@@ -211,23 +261,24 @@ const std::string DataField::read(SymbolString& masterData, SymbolString& slaveD
 	case pt_slaveData:
 		break;
 	default:
-		return "invalid part type";
+		return RESULT_ERR_INVALID_ARG; // invalid part type
 	}
-	std::ostringstream output;
 	if (verbose)
 		output << m_name << "=";
 
-	if (readSymbols(input, output) == false)
-		return "unable to parse";
+	result_t result = readSymbols(input, output);
+	if (result != RESULT_OK)
+		return result;
 
 	if (verbose && m_unit.length() > 0)
 		output << " " << m_unit;
 	if (verbose && m_comment.length() > 0)
 		output << " [" << m_comment << "]";
-	return output.str();
+
+	return RESULT_OK;
 }
 
-bool DataField::write(const std::string& value, SymbolString& masterData, SymbolString& slaveData)
+result_t DataField::write(const std::string& value, SymbolString& masterData, SymbolString& slaveData)
 {
 	SymbolString& output = m_partType == pt_masterData ? masterData : slaveData;
 	switch (m_partType) {
@@ -235,24 +286,22 @@ bool DataField::write(const std::string& value, SymbolString& masterData, Symbol
 	case pt_slaveData:
 		break;
 	default:
-		return false; // TODO error code
+		return RESULT_ERR_INVALID_ARG;
 	}
 	std::istringstream input(value);
-	if (writeSymbols(input, output) == false)
-		return false; // TODO error code
-	return true;
+	return writeSymbols(input, output);
 }
 
 
 
-bool StringDataField::readSymbols(SymbolString& input, std::ostringstream& output)
+result_t StringDataField::readSymbols(SymbolString& input, std::ostringstream& output)
 {
 	size_t start = m_offset, end = m_offset + m_length;
 	int incr = 1;
 	unsigned char ch;
 
 	if (end > input.size())
-		return false; // TODO error not enough data available
+		return RESULT_ERR_INVALID_ARG;
 
 	if ((m_dataType.flags&REV) != 0) { // reverted binary representation (most significant byte first)
 		end = start - 1;
@@ -261,12 +310,12 @@ bool StringDataField::readSymbols(SymbolString& input, std::ostringstream& outpu
 	}
 
 	for (size_t pos = start, i = 0; pos != end; pos += incr, i++) {
-		if (m_length == 4 && i == 2 && m_dataType.type == bt_date)
+		if (m_length == 4 && i == 2 && m_dataType.type == bt_dat)
 			continue; // skip weekday in between
 		ch = input[pos];
 		if ((m_dataType.flags & BCD) != 0) {
 			if ((ch & 0xf0) > 0x90 || (ch & 0x0f) > 0x09)
-				return false; // invalid BCD
+				return RESULT_ERR_INVALID_ARG; // invalid BCD
 			ch = (ch >> 4) * 10 + (ch & 0x0f);
 		}
 		switch (m_dataType.type) {
@@ -276,26 +325,27 @@ bool StringDataField::readSymbols(SymbolString& input, std::ostringstream& outpu
 			output << std::nouppercase << std::setw(2) << std::hex
 			       << std::setfill('0') << static_cast<unsigned>(ch);
 			break;
-		case bt_date:
+		case bt_dat:
 			if (i + 1 == m_length)
 				output << (2000+ch);
 			else if (ch < 1 || (i == 0 && ch > 31) || (i == 1 && ch > 12))
-				return false; // invalid date
+				return RESULT_ERR_INVALID_ARG; // invalid date
 			else
 				output << std::setw(2) << std::setfill('0') << static_cast<unsigned>(ch) << ".";
 			break;
-		case bt_time:
+		case bt_tim:
 			if (m_length == 1) { // truncated time
-				if (ch > 24*6)
-					return false; // invalid time
-				output << std::setw(2) << std::setfill('0') << static_cast<unsigned>(ch/6) << ":"
-				       << std::setw(2) << std::setfill('0') << static_cast<unsigned>((ch%6)*10);
-				break;
+				if (i == 0) {
+					ch /= 6; // hours
+					pos -= incr; // repeat for minutes
+				}
+				else
+					ch = (ch%6) * 10; // minutes
 			}
+			if ((i == 0 && ch > 23) || (i > 0 && ch > 59))
+				return RESULT_ERR_INVALID_ARG; // invalid time
 			if (i > 0)
 				output << ":";
-			if ((i == 0 && ch > 23) || (i > 0 && ch > 59))
-				return false; // invalid time
 			output << std::setw(2) << std::setfill('0') << static_cast<unsigned>(ch);
 			break;
 		default:
@@ -306,16 +356,16 @@ bool StringDataField::readSymbols(SymbolString& input, std::ostringstream& outpu
 		}
 	}
 
-	return true;
+	return RESULT_OK;
 }
 
-bool StringDataField::writeSymbols(std::istringstream& input, SymbolString& output)
+result_t StringDataField::writeSymbols(std::istringstream& input, SymbolString& output)
 {
 	size_t start = m_offset, end = m_offset + m_length;
 	int incr = 1;
 	const char* str;
 	char* strEnd;
-	unsigned long int value = 0, minutes = 0;
+	unsigned long int value = 0, hours = 0;
 	std::string token;
 
 	if ((m_dataType.flags&REV) != 0) { // reverted binary representation (most significant byte first)
@@ -329,60 +379,61 @@ bool StringDataField::writeSymbols(std::istringstream& input, SymbolString& outp
 		case bt_hexstr:
 			while (input.peek()==' ')
 				input.get();
-			token.clear();
-			token.push_back(input.get());
-			if (input.eof() == true)
-				return false; // TODO error code: invalid value
-			token.push_back(input.get());
-			if (input.eof() == true)
-				return false; // TODO error code: invalid value
+			if (input.eof() == true) // no more digits
+				value = m_dataType.replacement; // fill up with replacement
+			else {
+				token.clear();
+				token.push_back(input.get());
+				if (input.eof() == true)
+					return RESULT_ERR_INVALID_ARG;
+				token.push_back(input.get());
+				if (input.eof() == true)
+					return RESULT_ERR_INVALID_ARG; // invalid hex value
 
-			str = token.c_str();
-			strEnd = NULL;
-			value = strtoul(str, &strEnd, 16);
-			if (strEnd != str+strlen(str))
-				return false; // TODO error code: invalid value
+				str = token.c_str();
+				strEnd = NULL;
+				value = strtoul(str, &strEnd, 16);
+				if (strEnd != str+strlen(str))
+					return RESULT_ERR_INVALID_ARG; // invalid hex value
+			}
 			break;
-		case bt_date:
+		case bt_dat:
 			if (m_length == 4 && i == 2)
 				continue; // skip weekday in between
 			if (std::getline(input, token, '.') == 0)
-				return false;
+				return RESULT_ERR_INVALID_ARG; // incomplete
 			str = token.c_str();
 			strEnd = NULL;
 			value = strtoul(str, &strEnd, 10);
 			if (strEnd != str+strlen(str))
-				return false; // TODO error code: invalid value
+				return RESULT_ERR_INVALID_ARG; // invalid date part
 			if (i + 1 == m_length && value >= 2000)
 				value -= 2000;
 			else if (value < 1 || (i == 0 && value > 31) || (i == 1 && value > 12))
-				return false; // invalid date
+				return RESULT_ERR_INVALID_ARG; // invalid date part
 			break;
-		case bt_time:
+		case bt_tim:
 			if (std::getline(input, token, ':') == 0)
-				return false;
+				return RESULT_ERR_INVALID_ARG; // incomplete
 			str = token.c_str();
 			strEnd = NULL;
 			value = strtoul(str, &strEnd, 10);
 			if (strEnd != str+strlen(str))
-				return false; // TODO error code: invalid value
-			if (m_length == 1) { // truncated time
-				if (std::getline(input, token, ':') == 0)
-					return false;
-				str = token.c_str();
-				strEnd = NULL;
-				minutes = strtoul(str, &strEnd, 10);
-				if (strEnd != str+strlen(str))
-					return false; // TODO error code: invalid value
-				if ((minutes % 10) != 0)
-					return false; // invalid time
-				value = value*6 + (minutes / 10);
-				if (value > 24*6)
-					return false; // invalid time
-				break;
-			}
+				return RESULT_ERR_INVALID_ARG; // invalid time part
 			if ((i == 0 && value > 23) || (i > 0 && value > 59))
-				return false; // invalid time
+				return RESULT_ERR_INVALID_ARG; // invalid time part
+			if (m_length == 1) { // truncated time
+				if (i == 0) {
+					pos -= incr; // repeat for minutes
+					hours = value;
+					continue;
+				}
+				if ((value % 10) != 0)
+					return RESULT_ERR_INVALID_ARG; // invalid truncated time minutes
+				value = hours*6 + (value / 10);
+				if (value > 24*6)
+					return RESULT_ERR_INVALID_ARG; // invalid time
+			}
 			break;
 		default:
 			value = input.get();
@@ -392,26 +443,26 @@ bool StringDataField::writeSymbols(std::istringstream& input, SymbolString& outp
 		}
 		if ((m_dataType.flags & BCD) != 0) {
 			if (value > 99)
-				return false; // invalid BCD
+				return RESULT_ERR_INVALID_ARG; // invalid BCD
 			value = (value/10)<<4 | (value%10);
 		}
 		if (value > 0xff)
-			return false;
+			return RESULT_ERR_INVALID_ARG; // value out of range
 		output[pos] = (unsigned char)value;
 	}
 
-	return true;
+	return RESULT_OK;
 }
 
 
-bool NumericDataField::readRawValue(SymbolString& input, unsigned int& value)
+result_t NumericDataField::readRawValue(SymbolString& input, unsigned int& value)
 {
 	size_t start = m_offset, end = m_offset + m_length;
 	int incr = 1;
 	unsigned char ch;
 
 	if (end > input.size())
-		return false; // TODO error not enough data available
+		return RESULT_ERR_INVALID_ARG; // not enough data available
 
 	if ((m_dataType.flags&REV) != 0) { // reverted binary representation (most significant byte first)
 		end = start - 1;
@@ -425,10 +476,10 @@ bool NumericDataField::readRawValue(SymbolString& input, unsigned int& value)
 		if ((m_dataType.flags & BCD) != 0) {
 			if (ch == m_dataType.replacement) {
 				value = m_dataType.replacement;
-				return true;
+				return RESULT_OK;
 			}
 			if ((ch & 0xf0) > 0x90 || (ch & 0x0f) > 0x09)
-				return false; // invalid BCD
+				return RESULT_ERR_INVALID_ARG; // invalid BCD
 
 			ch = (ch >> 4) * 10 + (ch & 0x0f);
 			value += ch*exp;
@@ -439,10 +490,10 @@ bool NumericDataField::readRawValue(SymbolString& input, unsigned int& value)
 			exp = exp<<8;
 		}
 	}
-	return true;
+	return RESULT_OK;
 }
 
-bool NumericDataField::writeRawValue(unsigned int value, SymbolString& output)
+result_t NumericDataField::writeRawValue(unsigned int value, SymbolString& output)
 {
 	size_t start = m_offset, end = m_offset + m_length;
 	int incr = 1;
@@ -471,59 +522,59 @@ bool NumericDataField::writeRawValue(unsigned int value, SymbolString& output)
 		output[pos] = ch;
 	}
 
-	return true;
+	return RESULT_OK;
 }
 
 
-bool NumberDataField::readSymbols(SymbolString& input, std::ostringstream& output)
+result_t NumberDataField::readSymbols(SymbolString& input, std::ostringstream& output)
 {
 	unsigned int value = 0;
 	int signedValue;
 
-	if (readRawValue(input, value) == false)
-		return false;
+	result_t result = readRawValue(input, value);
+	if (result != RESULT_OK)
+		return result;
 
 	if (value == m_dataType.replacement) {
-		output << "-";
-		return true;
+		output << NULL_VALUE;
+		return RESULT_OK;
 	}
-
-	if ((m_dataType.flags&SIG) != 0 && (value & (1 << (m_dataType.numBytes*8 - 1))) != 0) // negative signed value
-		if (m_dataType.numBytes == 4)
-			signedValue = (int)value;
-		else
-			signedValue = (int)value - (1 << (m_dataType.numBytes*8));
-	else {
-		if (m_dataType.numBytes == 4) {
-			if (m_factor == 1.0)
+	bool negative = (m_dataType.flags&SIG) != 0 && (value & (1 << (m_dataType.numBytes*8 - 1))) != 0;
+	if (m_dataType.numBytes == 4) {
+		if (negative == false) {
+			if (m_divisor <= 1)
 				output << static_cast<unsigned>(value);
 			else
-				output << std::setprecision(3) << std::fixed << static_cast<float>(value * m_factor);
-			return true;
+				output << std::setprecision(3) << std::fixed << static_cast<float>(value / (float)m_divisor);
+			return RESULT_OK;
 		}
-
-		signedValue = (int)value;
+		signedValue = (int)value; // negative signed value
 	}
+	else
+		if (negative) // negative signed value
+			signedValue = (int)value - (1 << (m_dataType.numBytes*8));
+		else
+			signedValue = (int)value;
 
-	if (m_factor == 1.0)
+	if (m_divisor <= 1)
 		output << static_cast<int>(signedValue);
 	else
-		output << std::setprecision(3) << std::fixed << static_cast<float>(signedValue * m_factor);
+		output << std::setprecision(3) << std::fixed << static_cast<float>(signedValue / (float)m_divisor);
 
-	return true;
+	return RESULT_OK;
 }
 
-bool NumberDataField::writeSymbols(std::istringstream& input, SymbolString& output)
+result_t NumberDataField::writeSymbols(std::istringstream& input, SymbolString& output)
 {
 	unsigned int value;
 
 	const char* str = input.str().c_str();
-	if (strcasecmp(str, "-") == 0)
+	if (strcasecmp(str, NULL_VALUE) == 0)
 		// replacement value
 		value = m_dataType.replacement;
 	else {
 		char* strEnd = NULL;
-		if (m_factor == 1.0) {
+		if (m_divisor <= 1) {
 			if ((m_dataType.flags&SIG) != 0) {
 				int signedValue = strtol(str, &strEnd, 10);
 				if (signedValue < 0 && m_dataType.numBytes != 4)
@@ -534,17 +585,17 @@ bool NumberDataField::writeSymbols(std::istringstream& input, SymbolString& outp
 			else
 				value = strtoul(str, &strEnd, 10);
 			if (strEnd != str+strlen(str))
-				return false; // TODO error code: invalid value
+				return RESULT_ERR_INVALID_ARG; // invalid value
 		}
 		else {
 			char* strEnd = NULL;
 			double dvalue = strtod(str, &strEnd);
 			if (strEnd != str+strlen(str))
-				return false; // TODO error code: invalid value
-			dvalue = dvalue / m_factor + 0.5; // round
+				return RESULT_ERR_INVALID_ARG; // invalid value
+			dvalue = dvalue * m_divisor + 0.5; // round
 			if ((m_dataType.flags&SIG) != 0) {
 				if (dvalue < -(1LL<<(8*m_length)) || dvalue >= (1LL<<(8*m_length)))
-					return false; // TODO error code: invalid value
+					return RESULT_ERR_INVALID_ARG; // value out of range
 				if (dvalue < 0 && m_dataType.numBytes != 4)
 					value = (unsigned int)(dvalue + (1<<(m_dataType.numBytes*8)));
 				else
@@ -552,37 +603,50 @@ bool NumberDataField::writeSymbols(std::istringstream& input, SymbolString& outp
 			}
 			else {
 				if (dvalue < 0.0 || dvalue >= (1LL<<(8*m_length)))
-					return false; // TODO error code: invalid value
+					return RESULT_ERR_INVALID_ARG; // value out of range
 				value = (unsigned int)dvalue;
 			}
 		}
+
+		if ((m_dataType.flags&SIG) != 0) { // signed value
+			if ((value & (1 << (m_dataType.numBytes*8 - 1))) != 0) { // negative signed value
+				if (value < m_dataType.minValueOrLength)
+						return RESULT_ERR_INVALID_ARG; // value out of range
+			}
+			else if (value > m_dataType.maxValueOrLength)
+					return RESULT_ERR_INVALID_ARG; // value out of range
+		}
+		else if (value < m_dataType.minValueOrLength || value > m_dataType.maxValueOrLength)
+			return RESULT_ERR_INVALID_ARG; // value out of range
 	}
+
 
 	return writeRawValue(value, output);
 }
 
 
-bool ValueListDataField::readSymbols(SymbolString& input, std::ostringstream& output)
+result_t ValueListDataField::readSymbols(SymbolString& input, std::ostringstream& output)
 {
 	unsigned int value = 0;
 
-	if (readRawValue(input, value) == false)
-		return false;
+	result_t result = readRawValue(input, value);
+	if (result != RESULT_OK)
+		return result;
 
 	if (value == m_dataType.replacement) {
-		output << "-";
-		return true;
+		output << NULL_VALUE;
+		return RESULT_OK;
 	}
 
 	std::map<unsigned int, std::string>::iterator it = m_values.find(value);
 	if (it == m_values.end())
-		return false;
+		return RESULT_ERR_INVALID_ARG; // value assignment not found
 
 	output << it->second;
-	return true;
+	return RESULT_OK;
 }
 
-bool ValueListDataField::writeSymbols(std::istringstream& input, SymbolString& output)
+result_t ValueListDataField::writeSymbols(std::istringstream& input, SymbolString& output)
 {
 	std::string str;
 	input >> str;
@@ -591,7 +655,7 @@ bool ValueListDataField::writeSymbols(std::istringstream& input, SymbolString& o
 		if (it->second.compare(str) == 0)
 			return writeRawValue(it->first, output);
 
-	return false;
+	return RESULT_ERR_INVALID_ARG; // value assignment not found
 }
 
 

@@ -22,7 +22,7 @@
 namespace libebus
 {
 
-const char* getResultCodeCStr(int resultCode) {
+const char* getResultCodeCStr(result_t resultCode) {
 	switch (resultCode) {
 		case RESULT_ERR_SEND: return "ERR_SEND: send error";
 		case RESULT_ERR_EXTRA_DATA: return "ERR_EXTRA_DATA: received bytes > sent bytes";
@@ -35,7 +35,11 @@ const char* getResultCodeCStr(int resultCode) {
 		case RESULT_ERR_ESC: return "ERR_ESC: invalid escape sequence received";
 		case RESULT_ERR_INVALID_ARG: return "ERR_INVALID_ARG: invalid argument specified";
 		case RESULT_ERR_DEVICE: return "ERR_DEVICE: generic device error";
-		default: return "success";
+		case RESULT_ERR_EOF: return "ERR_EOF: end of input reached";
+		default:
+			if (resultCode >= 0)
+				return "success";
+			return "ERR: unknown error code";
 	}
 }
 
