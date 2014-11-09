@@ -61,6 +61,7 @@ static const char* dayNames[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"
 
 #define FIELD_SEPARATOR ';'
 #define VALUE_SEPARATOR ','
+#define NULL_VALUE "-"
 
 result_t DataField::create(const unsigned char dstAddress, const bool isSetMessage,
 		std::vector<std::string>::iterator& it, const std::vector<std::string>::iterator end,
@@ -535,7 +536,7 @@ result_t NumberDataField::readSymbols(SymbolString& input, std::ostringstream& o
 		return result;
 
 	if (value == m_dataType.replacement) {
-		output << "-";
+		output << NULL_VALUE;
 		return RESULT_OK;
 	}
 	bool negative = (m_dataType.flags&SIG) != 0 && (value & (1 << (m_dataType.numBytes*8 - 1))) != 0;
@@ -568,7 +569,7 @@ result_t NumberDataField::writeSymbols(std::istringstream& input, SymbolString& 
 	unsigned int value;
 
 	const char* str = input.str().c_str();
-	if (strcasecmp(str, "-") == 0)
+	if (strcasecmp(str, NULL_VALUE) == 0)
 		// replacement value
 		value = m_dataType.replacement;
 	else {
@@ -633,7 +634,7 @@ result_t ValueListDataField::readSymbols(SymbolString& input, std::ostringstream
 		return result;
 
 	if (value == m_dataType.replacement) {
-		output << "-";
+		output << NULL_VALUE;
 		return RESULT_OK;
 	}
 
