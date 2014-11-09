@@ -111,11 +111,14 @@ void* EBusLoop::run()
 							busCommand->setResult(std::string(), RESULT_OK);
 						}
 						else {
-							sendRetries = 0;
+							L.log(bus, event, " send retry failed", sendRetries);
+
 							if (busCommand->isPoll() == true)
 								delete m_sendBuffer.remove();
 							else
 								busCommand->sendSignal();
+
+							sendRetries = 0;
 						}
 					}
 					else {
@@ -267,7 +270,7 @@ void EBusLoop::addPollCommand()
 		L.log(bus, event, " polling [%4d] %s", index, tmp.c_str());
 
 		std::string ebusCommand(A.getParam<const char*>("p_address"));
-		ebusCommand += m_commands->getEbusCommand(index, false);
+		ebusCommand += m_commands->getEbusCommand(index);
 		std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
 
 		BusCommand* busCommand = new BusCommand(ebusCommand, true);

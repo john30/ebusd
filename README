@@ -8,20 +8,23 @@ which is used in various heating systems.
 Features
 --------
 
- * send and receive ebus commands
-   - message types: Broadcast, Master-Master and Master-Slave
-   - collect data of cycle messages
+ * send and receive ebus commands for all ebus message types
+   (message types are: Broadcast, Master-Master and Master-Slave)
+ * collect data of cycle messages
+ * poll messages and collect received data
+ * write raw data into dump files (for debugging purpose)
 
- * tcp socket multi session server (daemon commands)
+ * available daemon commands:
    - get            fetch data from ebus participant
    - set            adjust data of ebus participant
    - cyc            fetch data from collected cycle messages
-   - hex            send given hex value to ebus (ZZ PB SB NN Dx)
-
-   - dump           toggle dump on/off
+   - hex            send given hex value to ebus (ZZPBSBNNDx)
 
    - log areas      change log areas
    - log level      change log level
+
+   - raw            toggle raw data logging
+   - dump           toggle raw data dumping
 
    - reload         reload ebus configuration
 
@@ -61,6 +64,15 @@ Tools
 -----
 
 ebusctl  - client program for ebusd.
+
+local commands:
+ * 'feed' ebusd with raw data from dump files (or telnet) to ebusd
+ * 'scan' ebus and identifies the participants
+
+remote commands:
+ * connect to ebusd (socket) and execute server commands (see above)
+
+See ./ebusctl -h
 
 
 For usage and further information take a look on help page.

@@ -55,8 +55,7 @@ public:
 	int findCommand(const std::string& data) const;
 
 	std::string getCmdType(const int index) const { return std::string(m_cmdDB.at(index)[0]); }
-	std::string getEbusType(const int index) const { return std::string(m_cmdDB.at(index)[4]); }
-	std::string getEbusCommand(const int index, const bool cycle) const;
+	std::string getEbusCommand(const int index) const;
 
 	int storeCycData(const std::string& data) const;
 	std::string getCycData(int index) const;
