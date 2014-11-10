@@ -59,7 +59,18 @@ void Appl::addItem(const char* name, Param param, const char* shortname,
 	}
 }
 
-void Appl::printArgs()
+void Appl::addVersion(const char* version)
+{
+	m_version = version;
+}
+
+void Appl::printVersion()
+{
+	std::cerr << m_version << std::endl;
+	exit(EXIT_SUCCESS);
+}
+
+void Appl::printHelp()
 {
 	std::cerr << std::endl << "Usage:" << std::endl << "  "
 		  << m_argv[0].substr(m_argv[0].find_last_of("/\\") + 1) << " [OPTIONS...]" ;
@@ -77,10 +88,11 @@ void Appl::printArgs()
 			  << std::endl;
 	}
 
-	std::cerr << std::endl;
+	std::cerr << "-v | --version\n-h | --help" << std::endl << std::endl;
+	exit(EXIT_SUCCESS);
 }
 
-bool Appl::parseArgs(int argc, char* argv[])
+void Appl::parseArgs(int argc, char* argv[])
 {
 	std::vector<std::string> _argv(argv, argv + argc);
 	m_argc = argc;
@@ -93,10 +105,10 @@ bool Appl::parseArgs(int argc, char* argv[])
 			// is next item an added argument?
 			if (i+1 < m_argc && m_argv[i+1].rfind("-", 0) == std::string::npos) {
 				if (checkArg(m_argv[i].substr(2), m_argv[i+1]) == false)
-					return false;
+					printHelp();
 			} else {
 				if (checkArg(m_argv[i].substr(2), "") == false)
-					return false;
+					printHelp();
 			}
 
 		// find option with short format '-'
@@ -109,10 +121,10 @@ bool Appl::parseArgs(int argc, char* argv[])
 				if (i+1 < m_argc && m_argv[i+1].rfind("-", 0) == std::string::npos
 				&& j+1 == m_argv[i].size()) {
 					if (checkArg(m_argv[i].substr(j,1), m_argv[i+1]) == false)
-						return false;
+						printHelp();
 				} else {
 					if (checkArg(m_argv[i].substr(j,1), "") == false)
-						return false;
+						printHelp();
 				}
 			}
 		}
@@ -122,7 +134,7 @@ bool Appl::parseArgs(int argc, char* argv[])
 	// check args
 	if (m_argNum > 0) {
 		if (m_argc < (m_argNum + 1))
-			return false;
+			printHelp();
 
 		for (size_t i = 1; i < m_argc; i++) {
 
@@ -134,10 +146,8 @@ bool Appl::parseArgs(int argc, char* argv[])
 		}
 
 		if (m_argValues.size() < m_argNum)
-			return false;
+			printHelp();
 	}
-
-	return true;
 }
 
 void Appl::printSettings()
@@ -175,6 +185,12 @@ void Appl::printSettings()
 
 bool Appl::checkArg(const std::string& name, const std::string& arg)
 {
+	if (strcmp(name.c_str(), "v") == 0 || strcmp(name.c_str(), "version") == 0)
+		printVersion();
+
+	if (strcmp(name.c_str(), "h") == 0 || strcmp(name.c_str(), "help") == 0)
+		printHelp();
+
 	for (a_it = m_args.begin(); a_it < m_args.end(); a_it++) {
 		if (a_it->shortname == name || a_it->longname == name) {
 			if (a_it->optiontype == opt_mandatory && arg.size() == 0) {
@@ -191,7 +207,7 @@ bool Appl::checkArg(const std::string& name, const std::string& arg)
 		}
 	}
 
-	std::cerr << m_argv[0].substr(2) << ": Unknown Option -- " << name << std::endl;
+	std::cerr << std::endl << "unknown option '" << name << "'" << std::endl;
 	return false;
 }
 

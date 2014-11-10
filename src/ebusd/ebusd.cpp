@@ -121,13 +121,7 @@ void define_args()
 		  "\tprint daemon settings\n",
 		  Appl::type_bool, Appl::opt_none);
 
-	A.addItem("p_version", Appl::Param(false), "v", "version",
-		  "\tprint ebusd version\n",
-		  Appl::type_bool, Appl::opt_none);
-
-	A.addItem("p_help", Appl::Param(false), "h", "help",
-		  "\tprint this message",
-		  Appl::type_bool, Appl::opt_none);
+	A.addVersion(""PACKAGE_STRING"");
 }
 
 void shutdown()
@@ -140,11 +134,11 @@ void shutdown()
 	signal(SIGINT, SIG_DFL);
 	signal(SIGTERM, SIG_DFL);
 
-	// delete Daemon pid file
+	// delete daemon pid file
 	if (D.status() == true)
 		D.stop();
 
-	// stop Logger
+	// stop logger
 	L.log(bas, event, "ebusd stopped");
 	L.stop();
 	L.join();
@@ -174,26 +168,11 @@ void signal_handler(int sig)
 
 int main(int argc, char* argv[])
 {
-	// define Arguments and Application variables
+	// define arguments and application variables
 	define_args();
 
-	// parse Arguments
-	if (A.parseArgs(argc, argv) == false) {
-		A.printArgs();
-		exit(EXIT_FAILURE);
-	}
-
-	// print version
-	if (A.getParam<bool>("p_version") == true) {
-		std::cerr << PACKAGE_STRING << std::endl;
-		exit(EXIT_SUCCESS);
-	}
-
-	// print help
-	if (A.getParam<bool>("p_help") == true) {
-		A.printArgs();
-		exit(EXIT_SUCCESS);
-	}
+	// parse arguments
+	A.parseArgs(argc, argv);
 
 	// print daemon settings
 	if (A.getParam<bool>("p_settings") == true)
@@ -211,18 +190,18 @@ int main(int argc, char* argv[])
 				 "logfile", A.getParam<const char*>("p_logfile"));
 	}
 
-	// trap Signals that we expect to receive
+	// trap signals that we expect to receive
 	signal(SIGHUP, signal_handler);
 	signal(SIGINT, signal_handler);
 	signal(SIGTERM, signal_handler);
 
-	// start Logger
+	// start logger
 	L.start("logger");
-	// wait for Logger be ready
+	// wait for logger be ready
 	usleep(100000);
 	L.log(bas, event, "ebusd started");
 
-	// create BaseLoop
+	// create baseloop
 	baseloop = new BaseLoop();
 	baseloop->start();
 

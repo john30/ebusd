@@ -69,9 +69,9 @@ public:
 		     const char* longname, const char* description,
 		     Datatype datatype, Optiontype optiontype);
 
-	void printArgs();
+	void addVersion(const char* version);
 
-	bool parseArgs(int argc, char* argv[]);
+	void parseArgs(int argc, char* argv[]);
 	void printSettings();
 
 private:
@@ -100,6 +100,8 @@ private:
 	std::string m_argTxt;
 	size_t m_argNum;
 
+	const char* m_version;
+
 	std::vector<std::string> m_argValues;
 
 	bool checkArg(const std::string& name, const std::string& arg);
@@ -107,6 +109,9 @@ private:
 	void addParam(const char* name, Param param) { m_params[name] = param; }
 
 	void addParam(const char* name, const std::string arg, Datatype datatype);
+
+	void printVersion();
+	void printHelp();
 };
 
 #endif // LIBUTILS_APPL_H_

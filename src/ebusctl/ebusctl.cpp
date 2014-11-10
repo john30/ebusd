@@ -17,9 +17,10 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
+#include "config.h"
+#include "appl.h"
 #include "port.h"
 #include "decode.h"
-#include "appl.h"
 #include "tcpsocket.h"
 #include <iostream>
 #include <sstream>
@@ -63,9 +64,7 @@ void define_args()
 		  "port (8888)\n",
 		  Appl::type_int, Appl::opt_mandatory);
 
-	A.addItem("p_help", Appl::Param(false), "h", "help",
-		  "print this message",
-		  Appl::type_bool, Appl::opt_none);
+	A.addVersion("ebusctl is part of """PACKAGE_STRING"");
 }
 
 
@@ -166,20 +165,11 @@ void scanVaillant(TCPSocket* socket, const std::string address)
 
 int main(int argc, char* argv[])
 {
-	// define Arguments and Application variables
+	// define arguments and application variables
 	define_args();
 
-	// parse Arguments
-	if (A.parseArgs(argc, argv) == false) {
-		A.printArgs();
-		exit(EXIT_FAILURE);
-	}
-
-	// print Help
-	if (A.getParam<bool>("p_help") == true) {
-		A.printArgs();
-		exit(EXIT_SUCCESS);
-	}
+	// parse arguments
+	A.parseArgs(argc, argv);
 
 	if (strcasecmp(A.getArg(0).c_str(), "feed") == 0) {
 		std::string dev(A.getParam<const char*>("p_device"));
