@@ -35,11 +35,6 @@ Features
    - help           print help page
 
 
-Dependency
-----------
- * glibc
-
-
 Build
 -----
 
