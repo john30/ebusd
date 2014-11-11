@@ -77,7 +77,7 @@ void* Connection::run()
 				break;
 
 			// removed closed socket
-			if (datalen <= 0 || strncasecmp(data, "quit", 4) == 0)
+			if (datalen <= 0 || strcasecmp(data, "QUIT") == 0)
 				break;
 
 			// send data

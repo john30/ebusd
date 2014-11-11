@@ -85,7 +85,7 @@ void BaseLoop::start()
 
 		// send result to client
 		result += '\n';
-		Connection* connection = static_cast<Connection*>(message->getSource());
+		Connection* connection = message->getConnection();
 		connection->addResult(Message(result));
 
 		delete message;

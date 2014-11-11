@@ -22,20 +22,47 @@
 
 #include <string>
 
+/** forward declaration for class Connection */
+class Connection;
 
+/**
+ * @brief class for data/message transfer between connection and baseloop
+ */
 class Message
 {
 
 public:
-	Message(const std::string data, void* source = NULL) : m_data(data), m_source(source) {}
-	Message(const Message& src) : m_data(src.m_data), m_source(src.m_source) {}
+	/**
+	 * @brief constructs a new instance with message and source client address
+	 * @param data from client
+	 * @param connection to return result to correct client
+	 */
+	Message(const std::string data, Connection* connection=NULL)
+		: m_data(data), m_connection(connection) {}
 
+	/**
+	 * @brief copy constructor.
+	 * @param src message object for copy
+	 */
+	Message(const Message& src) : m_data(src.m_data), m_connection(src.m_connection) {}
+
+	/**
+	 * @brief data from client
+	 * @return data string
+	 */
 	std::string getData() const { return m_data; }
-	void* getSource() const { return m_source; }
+
+	/**
+	 * @brief original connection
+	 * @return pointer to connection
+	 */
+	Connection* getConnection() const { return m_connection; }
 
 private:
+	/** the data/message string */
 	std::string m_data;
-	void* m_source;
+	/** the source connection */
+	Connection* m_connection;
 
 };
 
