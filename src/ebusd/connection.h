@@ -31,9 +31,7 @@ class Connection : public Thread
 
 public:
 	Connection(TCPSocket* socket, WQueue<Message*>* data)
-		: m_socket(socket), m_data(data), m_running(false) { m_count++; }
-
-	~Connection() { m_count--; }
+		: m_socket(socket), m_data(data), m_running(false) { m_sum++; m_id = m_sum;}
 
 	void addResult(Message message);
 
@@ -41,8 +39,7 @@ public:
 	void stop() const { m_notify.notify(); }
 	bool isRunning() const { return m_running; }
 
-	pthread_t getID() { return this->self(); }
-	int numConnections() const { return m_count; }
+	int getID() { return m_id; }
 
 private:
 	TCPSocket* m_socket;
@@ -50,8 +47,9 @@ private:
 	WQueue<Message*> m_result;
 	Notify m_notify;
 	bool m_running;
+	int m_id;
 
-	static int m_count;
+	static int m_sum;
 
 };
 

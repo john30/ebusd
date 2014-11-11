@@ -23,7 +23,7 @@
 
 extern LogInstance& L;
 
-int Connection::m_count = -1;
+int Connection::m_sum = 0;
 
 void Connection::addResult(Message message)
 {
@@ -85,10 +85,10 @@ void* Connection::run()
 			m_data->add(new Message(data, this));
 
 			// wait for result
-			L.log(net, debug, "[%08x] wait for result", getID());
+			L.log(net, debug, "[%05d] wait for result", getID());
 			Message* message = m_result.remove();
 
-			L.log(net, debug, "[%08x] result added", getID());
+			L.log(net, debug, "[%05d] result added", getID());
 			std::string result(message->getData());
 
 			if (m_socket->isValid() == true)
@@ -104,7 +104,7 @@ void* Connection::run()
 
 	delete m_socket;
 	m_running = false;
-	L.log(net, trace, "[%08x] connection closed", getID());
+	L.log(net, trace, "[%05d] connection closed", getID());
 
 	return NULL;
 }
