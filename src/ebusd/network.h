@@ -35,7 +35,7 @@ public:
 private:
 	std::list<Connection*> m_connections;
 	WQueue<Message*>* m_msgQueue;
-	TCPServer* m_Server;
+	TCPServer* m_tcpServer;
 	Notify m_notify;
 	bool m_listening;
 	bool m_running;

@@ -29,11 +29,11 @@ Network::Network(const bool localhost, WQueue<Message*>* msgQueue)
 	: m_msgQueue(msgQueue), m_listening(false), m_running(false)
 {
 	if (localhost == true)
-		m_Server = new TCPServer(A.getParam<int>("p_port"), "127.0.0.1");
+		m_tcpServer = new TCPServer(A.getParam<int>("p_port"), "127.0.0.1");
 	else
-		m_Server = new TCPServer(A.getParam<int>("p_port"), "0.0.0.0");
+		m_tcpServer = new TCPServer(A.getParam<int>("p_port"), "0.0.0.0");
 
-	if (m_Server != NULL && m_Server->start() == 0)
+	if (m_tcpServer != NULL && m_tcpServer->start() == 0)
 		m_listening = true;
 
 }
@@ -51,7 +51,7 @@ Network::~Network()
 	if (m_running == true)
 		stop();
 
-	delete m_Server;
+	delete m_tcpServer;
 }
 
 void* Network::run()
@@ -67,10 +67,10 @@ void* Network::run()
 
 	FD_ZERO(&checkfds);
 	FD_SET(m_notify.notifyFD(), &checkfds);
-	FD_SET(m_Server->getFD(), &checkfds);
+	FD_SET(m_tcpServer->getFD(), &checkfds);
 
-	(m_notify.notifyFD() > m_Server->getFD()) ?
-		(maxfd = m_notify.notifyFD()) : (maxfd = m_Server->getFD());
+	(m_notify.notifyFD() > m_tcpServer->getFD()) ?
+		(maxfd = m_notify.notifyFD()) : (maxfd = m_tcpServer->getFD());
 
 	for (;;) {
 		fd_set readfds;
@@ -96,8 +96,8 @@ void* Network::run()
 		}
 
 		// new data from socket
-		if (FD_ISSET(m_Server->getFD(), &readfds)) {
-			TCPSocket* socket = m_Server->newSocket();
+		if (FD_ISSET(m_tcpServer->getFD(), &readfds)) {
+			TCPSocket* socket = m_tcpServer->newSocket();
 			if (socket == NULL)
 				continue;
 
