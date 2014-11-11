@@ -48,7 +48,7 @@ public:
 	void dump() { m_dumpState == true ? m_dumpState = false :  m_dumpState = true ; }
 	void raw() { m_logRawData == true ? m_logRawData = false :  m_logRawData = true ; }
 
-	void newCommands(Commands* commands) { m_commands = commands; }
+	void reload(Commands* commands) { m_commands = commands; }
 
 private:
 	Commands* m_commands;

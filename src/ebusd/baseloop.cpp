@@ -353,7 +353,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 			delete m_commands;
 			m_commands = commands;
-			m_ebusloop->newCommands(m_commands);
+			m_ebusloop->reload(m_commands);
 
 			result << "done";
 			break;
