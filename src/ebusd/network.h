@@ -26,17 +26,15 @@ class Network : public Thread
 {
 
 public:
-	Network(const bool localhost);
+	Network(const bool localhost, WQueue<Message*>* msgQueue);
 	~Network();
-
-	void addQueue(WQueue<Message*>* queue) { m_queue = queue; }
 
 	void* run();
 	void stop() const { m_notify.notify(); usleep(100000); }
 
 private:
 	std::list<Connection*> m_connections;
-	WQueue<Message*>* m_queue;
+	WQueue<Message*>* m_msgQueue;
 	TCPServer* m_Server;
 	Notify m_notify;
 	bool m_listening;

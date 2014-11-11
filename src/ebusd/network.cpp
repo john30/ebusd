@@ -25,7 +25,8 @@ extern LogInstance& L;
 extern Appl& A;
 
 
-Network::Network(const bool localhost) : m_listening(false), m_running(false)
+Network::Network(const bool localhost, WQueue<Message*>* msgQueue)
+	: m_msgQueue(msgQueue), m_listening(false), m_running(false)
 {
 	if (localhost == true)
 		m_Server = new TCPServer(A.getParam<int>("p_port"), "127.0.0.1");
@@ -100,7 +101,7 @@ void* Network::run()
 			if (socket == NULL)
 				continue;
 
-			Connection* connection = new Connection(socket, m_queue);
+			Connection* connection = new Connection(socket, m_msgQueue);
 			if (connection == NULL)
 				continue;
 

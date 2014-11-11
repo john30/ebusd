@@ -39,8 +39,7 @@ BaseLoop::BaseLoop()
 	m_ebusloop->start("ebusloop");
 
 	// create Network
-	m_network = new Network(A.getParam<bool>("p_localhost"));
-	m_network->addQueue(&m_queue);
+	m_network = new Network(A.getParam<bool>("p_localhost"), &m_msgQueue);
 	m_network->start("network");
 }
 
@@ -68,7 +67,7 @@ void BaseLoop::start()
 		std::string result;
 
 		// recv new message from client
-		Message* message = m_queue.remove();
+		Message* message = m_msgQueue.remove();
 		std::string data = message->getData();
 
 		data.erase(std::remove(data.begin(), data.end(), '\r'), data.end());

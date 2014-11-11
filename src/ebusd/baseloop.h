@@ -36,14 +36,14 @@ public:
 
 	void start();
 
-	void addMessage(Message* message) { m_queue.add(message); }
+	void addMessage(Message* message) { m_msgQueue.add(message); }
 
 private:
 	Commands* m_commands;
 	EBusLoop* m_ebusloop;
 	Network* m_network;
 
-	WQueue<Message*> m_queue;
+	WQueue<Message*> m_msgQueue;
 
 	enum ClientCommand {
 	     get,       // get ebus data
