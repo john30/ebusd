@@ -27,36 +27,36 @@ extern Appl& A;
 
 BaseLoop::BaseLoop()
 {
-	// create Commands DB
+	// create commands DB
 	m_commands = ConfigCommands(A.getParam<const char*>("p_ebusconfdir"), CSV).getCommands();
 	L.log(bas, trace, "ebus configuration dir: %s", A.getParam<const char*>("p_ebusconfdir"));
 	L.log(bas, event, "commands DB: %d ", m_commands->sizeCmdDB());
 	L.log(bas, event, "   cycle DB: %d ", m_commands->sizeCycDB());
 	L.log(bas, event, " polling DB: %d ", m_commands->sizePolDB());
 
-	// create EBusLoop
+	// create ebusloop
 	m_ebusloop = new EBusLoop(m_commands);
 	m_ebusloop->start("ebusloop");
 
-	// create Network
+	// create network
 	m_network = new Network(A.getParam<bool>("p_localhost"), &m_msgQueue);
 	m_network->start("network");
 }
 
 BaseLoop::~BaseLoop()
 {
-	// free Network
+	// free network
 	if (m_network != NULL)
 		delete m_network;
 
-	// free EBusLoop
+	// free ebusloop
 	if (m_ebusloop != NULL) {
 		m_ebusloop->stop();
 		m_ebusloop->join();
 		delete m_ebusloop;
 	}
 
-	// free Commands DB
+	// free commands DB
 	if (m_commands != NULL)
 		delete m_commands;
 }
@@ -343,7 +343,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		}
 
 		{
-			// create Commands DB
+			// create commands DB
 			Commands* commands = ConfigCommands(A.getParam<const char*>("p_ebusconfdir"), CSV).getCommands();
 			L.log(bas, trace, "ebus configuration dir: %s", A.getParam<const char*>("p_ebusconfdir"));
 			L.log(bas, event, "commands DB: %d ", m_commands->sizeCmdDB());
