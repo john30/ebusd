@@ -83,7 +83,7 @@ public:
 
 	/**
 	 * @brief recvBytes read bytes from opened file descriptor.
-	 * @param timeout max time out for new input data.
+	 * @param timeoutmax time for new input data [usec].
 	 * @param maxCount max size of receive buffer.
 	 * @return number of read bytes or -1 if an error has occured.
 	 */

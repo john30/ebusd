@@ -20,6 +20,7 @@
 #include "network.h"
 #include "logger.h"
 #include "appl.h"
+#include <poll.h>
 
 extern LogInstance& L;
 extern Appl& A;
@@ -61,42 +62,39 @@ void* Network::run()
 
 	m_running = true;
 
-	int maxfd;
-	fd_set checkfds;
-	struct timeval timeout;
+	int ret, nfds = 2;
+	struct pollfd fds[nfds];
+	struct timespec tdiff;
 
-	FD_ZERO(&checkfds);
-	FD_SET(m_notify.notifyFD(), &checkfds);
-	FD_SET(m_tcpServer->getFD(), &checkfds);
+	// set select timeout 1 secs
+	tdiff.tv_sec = 1;
+	tdiff.tv_nsec = 0;
 
-	(m_notify.notifyFD() > m_tcpServer->getFD()) ?
-		(maxfd = m_notify.notifyFD()) : (maxfd = m_tcpServer->getFD());
+	memset(fds, 0, sizeof(fds));
+
+	fds[0].fd = m_notify.notifyFD();
+	fds[0].events = POLLIN;
+
+	fds[1].fd = m_tcpServer->getFD();
+	fds[1].events = POLLIN;
 
 	for (;;) {
-		fd_set readfds;
-		int ret;
+		// wait for new fd event
+		ret = ppoll(fds, nfds, &tdiff, NULL);
 
-		// set select timeout 1 secs
-		timeout.tv_sec = 1;
-		timeout.tv_usec = 0;
-
-		// set readfds to inital checkfds
-		readfds = checkfds;
-
-		ret = select(maxfd + 1, &readfds, NULL, NULL, &timeout);
 		if (ret == 0) {
 			cleanConnections();
 			continue;
 		}
 
 		// new data from notify
-		if (FD_ISSET(m_notify.notifyFD(), &readfds)) {
+		if (fds[0].revents & POLLIN) {
 			m_running = false;
 			break;
 		}
 
 		// new data from socket
-		if (FD_ISSET(m_tcpServer->getFD(), &readfds)) {
+		if (fds[1].revents & POLLIN) {
 			TCPSocket* socket = m_tcpServer->newSocket();
 			if (socket == NULL)
 				continue;

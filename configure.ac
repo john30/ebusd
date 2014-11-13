@@ -7,6 +7,7 @@ AC_CHECK_HEADERS([arpa/inet.h \
 		  dirent.h \
 		  fcntl.h \
 		  netdb.h \
+		  poll.h \
 		  pthread.h \
 		  sys/ioctl.h \
 		  termios.h])

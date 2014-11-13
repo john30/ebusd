@@ -20,6 +20,7 @@
 #include "connection.h"
 #include "logger.h"
 #include <cstring>
+#include <poll.h>
 
 extern LogInstance& L;
 
@@ -35,39 +36,36 @@ void* Connection::run()
 {
 	m_running = true;
 
-	int maxfd;
-	fd_set checkfds;
-	struct timeval timeout;
+	int ret, nfds = 2;
+	struct pollfd fds[nfds];
+	struct timespec tdiff;
 
-	FD_ZERO(&checkfds);
-	FD_SET(m_notify.notifyFD(), &checkfds);
-	FD_SET(m_socket->getFD(), &checkfds);
+	// set select timeout 10 secs
+	tdiff.tv_sec = 10;
+	tdiff.tv_nsec = 0;
 
-	(m_notify.notifyFD() > m_socket->getFD()) ?
-		(maxfd = m_notify.notifyFD()) : (maxfd = m_socket->getFD());
+	memset(fds, 0, sizeof(fds));
+
+	fds[0].fd = m_notify.notifyFD();
+	fds[0].events = POLLIN;
+
+	fds[1].fd = m_socket->getFD();
+	fds[1].events = POLLIN;
 
 	for (;;) {
-		fd_set readfds;
-		int ret;
+		// wait for new fd event
+		ret = ppoll(fds, nfds, &tdiff, NULL);
 
-		// set select timeout 10 secs
-		timeout.tv_sec = 10;
-		timeout.tv_usec = 0;
-
-		// set readfds to inital checkfds
-		readfds = checkfds;
-
-		ret = select(maxfd + 1, &readfds, NULL, NULL, &timeout);
 		if (ret == 0) {
 			continue;
 		}
 
 		// new data from notify
-		if (FD_ISSET(m_notify.notifyFD(), &readfds))
+		if (fds[0].revents & POLLIN)
 			break;
 
 		// new data from socket
-		if (FD_ISSET(m_socket->getFD(), &readfds)) {
+		if (fds[1].revents & POLLIN) {
 			char data[256];
 			size_t datalen;
 
