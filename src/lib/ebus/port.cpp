@@ -141,7 +141,7 @@ void DeviceSerial::openDevice(const std::string deviceName, const bool noDeviceC
 	newSettings.c_cc[VTIME] = 0;
 
 	// empty device buffer
-	tcflush(m_fd, TCIOFLUSH);
+	tcflush(m_fd, TCIFLUSH);
 
 	// activate new settings of serial device
 	tcsetattr(m_fd, TCSANOW, &newSettings);

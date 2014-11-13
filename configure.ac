@@ -3,6 +3,16 @@ AC_INIT([ebusd], [0.5.0], [ebusd@liwest.at], [ebusd], [https://github.com/yuhu-/
 
 AC_PROG_CXX
 
+AC_CHECK_HEADERS([arpa/inet.h \
+		  dirent.h \
+		  fcntl.h \
+		  netdb.h \
+		  netinet/in.h \
+		  pthread.h \
+		  sys/ioctl.h \
+		  sys/socket.h \
+		  termios.h])
+
 AC_CONFIG_AUX_DIR([build])
 AC_CONFIG_SRCDIR([src/ebusd/ebusd.cpp])
 AC_CONFIG_HEADERS([config.h])
