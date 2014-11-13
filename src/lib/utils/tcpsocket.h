@@ -20,8 +20,6 @@
 #ifndef LIBUTILS_TCPSOCKET_H_
 #define LIBUTILS_TCPSOCKET_H_
 
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <unistd.h>
 #include <string>
 

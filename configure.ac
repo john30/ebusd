@@ -7,10 +7,8 @@ AC_CHECK_HEADERS([arpa/inet.h \
 		  dirent.h \
 		  fcntl.h \
 		  netdb.h \
-		  netinet/in.h \
 		  pthread.h \
 		  sys/ioctl.h \
-		  sys/socket.h \
 		  termios.h])
 
 AC_CONFIG_AUX_DIR([build])
