@@ -17,7 +17,10 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#include "config.h"
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include "appl.h"
 #include "port.h"
 #include "decode.h"
