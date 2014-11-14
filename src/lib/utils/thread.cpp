@@ -17,6 +17,7 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
+#include "config.h"
 #include "thread.h"
 
 static void* runThread(void* arg)
@@ -39,7 +40,11 @@ int Thread::start(const char* name)
 	int result = pthread_create(&m_threadid, NULL, runThread, this);
 
 	if (result == 0) {
+
+#ifdef HAVE_PTHREAD_SETNAME_NP
 		pthread_setname_np(m_threadid, name);
+#endif
+
 		m_running = true;
 	}
 
