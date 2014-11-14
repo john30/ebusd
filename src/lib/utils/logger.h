@@ -39,31 +39,27 @@ class LogMessage
 {
 
 public:
-	enum Status { Run, End };
-
-	LogMessage(const int area, const int level, const std::string text, const Status status);
-
-	~LogMessage() {}
+	LogMessage(const int area, const int level, const std::string text, const bool run=true);
 
 	LogMessage(const LogMessage& src)
 		: m_area(src.m_area), m_level(src.m_level), m_text(src.m_text),
-		  m_status(src.m_status), m_time(src.m_time) {}
+		  m_run(src.m_run), m_time(src.m_time) {}
 
 	void operator= (const LogMessage& src)
 		{ m_area = src.m_area; m_level = src.m_level; m_text = src.m_text;
-		  m_status = src.m_status; m_time = src.m_time; }
+		  m_run = src.m_run; m_time = src.m_time; }
 
 	int getArea() const { return (m_area); }
 	int getLevel() const { return(m_level); }
 	std::string getText() const { return (m_text.c_str()); }
-	Status getStatus() const { return (m_status); }
+	bool isRunning() const { return (m_run); }
 	std::string getTime() const { return (m_time.c_str()); }
 
 private:
 	int m_area;
 	int m_level;
 	std::string m_text;
-	Status m_status;
+	bool m_run;
 	std::string m_time;
 
 };
@@ -76,8 +72,6 @@ class LogSink : public Thread
 public:
 	LogSink(const int areas, const int level, const Type type, const char* name)
 		: m_areas(areas), m_level(level), m_type(type), m_name(name) {}
-
-	virtual ~LogSink() {}
 
 	void addMessage(const LogMessage& message);
 
@@ -113,8 +107,6 @@ public:
 		: LogSink(areas, level, Console, name), m_instance(++m_numInstance)
 		{ this->start(name); }
 
-	~LogConsole() {}
-
 private:
 	const int m_instance;
 	static int m_numInstance;
@@ -130,8 +122,6 @@ public:
 	LogFile(const int areas, const int level, const char* name, const char* filename)
 		: LogSink(areas, level, Logfile, name), m_filename(filename), m_instance(++m_numInstance)
 		{ this->start(name); }
-
-	~LogFile() {}
 
 private:
 	std::string m_filename;

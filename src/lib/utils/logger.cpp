@@ -66,8 +66,8 @@ int calcLevel(const std::string level)
 }
 
 
-LogMessage::LogMessage(const int area, const int level, const std::string text, const Status status)
-	: m_area(area), m_level(level), m_text(text), m_status(status)
+LogMessage::LogMessage(const int area, const int level, const std::string text, const bool run)
+	: m_area(area), m_level(level), m_text(text), m_run(run)
 {
 	char time[24];
 	struct timeval tv;
@@ -96,7 +96,7 @@ void* LogSink::run()
 {
 	while (1) {
 		LogMessage* message = m_queue.remove();
-			if (message->getStatus() == LogMessage::End) {
+			if (message->isRunning() == false) {
 				delete message;
 				while (m_queue.size() == true) {
 					LogMessage* message = m_queue.remove();
@@ -190,7 +190,7 @@ void LogInstance::log(const int area, const int level, const std::string& data, 
 
 		if (vasprintf(&tmp, data.c_str(), ap) != -1) {
 			std::string buffer(tmp);
-			m_messages.add(new LogMessage(LogMessage(area, level, buffer, LogMessage::Run)));
+			m_messages.add(new LogMessage(LogMessage(area, level, buffer)));
 		}
 
 		va_end(ap);
@@ -213,9 +213,9 @@ void* LogInstance::run()
 
 				if (((*iter)->getAreas() & message->getArea()
 				&& (*iter)->getLevel() >= message->getLevel())
-				&& message->getStatus() == LogMessage::Run) {
+				&& message->isRunning() == true) {
 					(*iter)->addMessage(*message);
-				} else if (message->getStatus() == LogMessage::End) {
+				} else if (message->isRunning() == false) {
 					(*iter)->addMessage(*message);
 					m_running = false;
 				}
@@ -231,6 +231,6 @@ void* LogInstance::run()
 
 void LogInstance::stop()
 {
-	m_messages.add(new LogMessage(LogMessage(bas, error, "", LogMessage::End)));
+	m_messages.add(new LogMessage(LogMessage(bas, error, "", false)));
 	usleep(100000);
 }
