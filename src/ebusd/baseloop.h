@@ -50,6 +50,7 @@ private:
 	     set,       // set ebus value
 	     cyc,       // fetch cycle data
 	     hex,       // send hex value
+	     scan,      // scan ebus
 	     log,	// logger settings
 	     raw,       // toggle log raw data
 	     dump,      // toggle dump state
@@ -64,6 +65,7 @@ private:
 		if (strcasecmp(item.c_str(), "SET") == 0) return set;
 		if (strcasecmp(item.c_str(), "CYC") == 0) return cyc;
 		if (strcasecmp(item.c_str(), "HEX") == 0) return hex;
+		if (strcasecmp(item.c_str(), "SCAN") == 0) return scan;
 		if (strcasecmp(item.c_str(), "LOG") == 0) return log;
 		if (strcasecmp(item.c_str(), "RAW") == 0) return raw;
 		if (strcasecmp(item.c_str(), "DUMP") == 0) return dump;

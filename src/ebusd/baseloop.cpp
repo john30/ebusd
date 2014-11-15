@@ -291,8 +291,22 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 		break;
 
+	case scan:
+		if (cmd.size() < 1 || cmd.size() > 2) {
+			result << "usage: 'scan'" << std::endl
+			       << "       'scan full'";
+			break;
+		}
+
+		//~ if (strcasecmp(cmd[1].c_str(), "FULL") == 0)
+			//~ // scan(FULL);
+		//~ else
+			//~ // scan();
+
+		break;
+
 	case log:
-		if (cmd.size () != 3 ) {
+		if (cmd.size() != 3 ) {
 			result << "usage: 'log areas area,area,..' (areas: bas|net|bus|cyc|all)" << std::endl
 			       << "       'log level level'        (level: error|event|trace|debug)";
 			break;
@@ -360,18 +374,20 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 	case help:
 		result << "commands:" << std::endl
-		       << " get       - fetch ebus data           'get class cmd (sub)'" << std::endl
-		       << " set       - set ebus values           'set class cmd value'" << std::endl
-		       << " cyc       - fetch cycle data          'cyc class cmd (sub)'" << std::endl
-		       << " hex       - send given hex value      'hex type value'         (value: ZZPBSBNNDx)" << std::endl << std::endl
-		       << " log       - change log areas          'log areas area,area,..' (areas: bas|net|bus|cyc|all)" << std::endl
-		       << "           - change log level          'log level level'        (level: error|event|trace|debug)" << std::endl << std::endl
-		       << " raw       - toggle log raw data" << std::endl
-		       << " dump      - toggle dump state" << std::endl << std::endl
-		       << " reload    - reload ebus configuration" << std::endl << std::endl
-		       << " stop      - stop daemon" << std::endl
-		       << " quit      - close connection" << std::endl << std::endl
-		       << " help      - print this page";
+		       << " get       - fetch ebus data             'get class cmd (sub)'" << std::endl
+		       << " set       - set ebus values             'set class cmd value'" << std::endl
+		       << " cyc       - fetch cycle data            'cyc class cmd (sub)'" << std::endl
+		       << " hex       - send given hex value        'hex type value'         (value: ZZPBSBNNDx)" << std::endl << std::endl
+		       << " scan      - scan ebus kown addresses    'scan'" << std::endl
+		       << "           - scan ebus all addresses     'scan full'" << std::endl << std::endl
+ 		       << " log       - change log areas            'log areas area,area,..' (areas: bas|net|bus|cyc|all)" << std::endl
+		       << "           - change log level            'log level level'        (level: error|event|trace|debug)" << std::endl << std::endl
+		       << " raw       - toggle log raw data         'raw'" << std::endl
+		       << " dump      - toggle dump state           'dump'" << std::endl << std::endl
+		       << " reload    - reload ebus configuration   'reload'" << std::endl << std::endl
+		       << " stop      - stop daemon                 'stop'" << std::endl
+		       << " quit      - close connection            'quit'" << std::endl << std::endl
+		       << " help      - print this page             'help";
 		break;
 
 	default:

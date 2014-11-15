@@ -208,14 +208,14 @@ int main(int argc, char* argv[])
 		TCPSocket* socket = client->connect(A.getOptVal<const char*>("server"), A.getOptVal<int>("port"));
 
 		if (socket != NULL) {
-
+/*
 			if (strcasecmp(A.getArg(0).c_str(), "scan") == 0) {
 				addManufacturer();
 
 				// send command to all slaves
 				for (size_t i = 0; i < s.size(); i++) {
 					// build message
-					std::string message("hex ms ");
+					std::string message("hex ");
 					message += s[i];
 					message += "070400";
 
@@ -255,6 +255,7 @@ int main(int argc, char* argv[])
 					sleep(2);
 				}
 			} else {
+*/
 				// build message
 				std::string message(A.getArg(0));
 				for (int i = 1; i < A.numArgs(); i++) {
@@ -271,7 +272,7 @@ int main(int argc, char* argv[])
 				data[datalen] = '\0';
 
 				std::cout << data;
-			}
+			//~ }
 
 			delete socket;
 		} else {
