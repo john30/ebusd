@@ -35,39 +35,34 @@
 
 using namespace libebus;
 
-Appl& A = Appl::Instance();
+Appl& A = Appl::Instance(true);
 
 void define_args()
 {
-	A.addArgs("COMMAND {ARGS...}\n\n"
-		  " local commands:\n"
+	A.setVersion("ebusctl is part of """PACKAGE_STRING"");
+
+	A.addText(" local commands:\n"
 		  "  'scan' scans the bus and identifies the participants\n\n"
 		  "  'feed' sends a dump file to a local virtual serial device\n"
 		  "        (hint: socat -d -d pty,raw,echo=0 pty,raw,echo=0)\n\n"
 		  " remote commands:\n"
-		  "   send 'help' to server", 1);
+		  "   send 'help' to server\n\n"
+		  " Options:\n");
 
-	A.addItem("p_device", Appl::Param("/dev/ttyUSB60"), "d", "device",
-		  "virtual serial device (/dev/ttyUSB60)",
-		  Appl::type_string, Appl::opt_mandatory);
+	A.addOption("device", "d", OptVal("/dev/ttyUSB60"), dt_string, ot_mandatory,
+		    "virtual serial device (/dev/ttyUSB60)");
 
-	A.addItem("p_file", Appl::Param(""), "f", "file",
-		  "dump file with raw data",
-		  Appl::type_string, Appl::opt_mandatory);
+	A.addOption("file", "f", OptVal("/tmp/ebus_dump.bin"),dt_string, ot_mandatory,
+		    "dump file name (/tmp/ebus_dump.bin)");
 
-	A.addItem("p_time", Appl::Param(10000), "t", "time",
-		  "delay between 2 bytes in 'us' (10000)\n",
-		  Appl::type_long, Appl::opt_mandatory);
+	A.addOption("time", "t", OptVal(10000), dt_long, ot_mandatory,
+		    "delay between 2 bytes in 'us' (10000)\n");
 
-	A.addItem("p_server", Appl::Param("localhost"), "s", "server",
-		  "name or ip (localhost)",
-		  Appl::type_string, Appl::opt_mandatory);
+	A.addOption("server", "s", OptVal("localhost"), dt_string, ot_mandatory,
+		    "name or ip (localhost)");
 
-	A.addItem("p_port", Appl::Param(8888), "p", "port",
-		  "port (8888)\n",
-		  Appl::type_int, Appl::opt_mandatory);
-
-	A.addVersion("ebusctl is part of """PACKAGE_STRING"");
+	A.addOption("port", "p", OptVal(8888), dt_int, ot_mandatory,
+		    "port (8888)\n");
 }
 
 
@@ -175,14 +170,14 @@ int main(int argc, char* argv[])
 	A.parseArgs(argc, argv);
 
 	if (strcasecmp(A.getArg(0).c_str(), "feed") == 0) {
-		std::string dev(A.getParam<const char*>("p_device"));
+		std::string dev(A.getOptVal<const char*>("device"));
 		Port port(dev, true);
 
 		port.open();
 		if(port.isOpen() == true) {
 			std::cout << "openPort successful." << std::endl;
 
-			std::fstream file(A.getParam<const char*>("p_file"), std::ios::in | std::ios::binary);
+			std::fstream file(A.getOptVal<const char*>("file"), std::ios::in | std::ios::binary);
 
 			if(file.is_open() == true) {
 
@@ -192,25 +187,25 @@ int main(int argc, char* argv[])
 					<< static_cast<unsigned>(byte) << std::endl;
 
 					port.send(&byte, 1);
-					usleep(A.getParam<long>("p_time"));
+					usleep(A.getOptVal<long>("time"));
 				}
 
 				file.close();
 			} else {
-				std::cout << "error opening file " << A.getParam<const char*>("p_file") << std::endl;
+				std::cout << "error opening file " << A.getOptVal<const char*>("file") << std::endl;
 			}
 
 			port.close();
 			if(port.isOpen() == false)
 				std::cout << "closePort successful." << std::endl;
 		} else {
-			std::cout << "error opening device " << A.getParam<const char*>("p_device") << std::endl;
+			std::cout << "error opening device " << A.getOptVal<const char*>("device") << std::endl;
 		}
 
 	} else {
 
 		TCPClient* client = new TCPClient();
-		TCPSocket* socket = client->connect(A.getParam<const char*>("p_server"), A.getParam<int>("p_port"));
+		TCPSocket* socket = client->connect(A.getOptVal<const char*>("server"), A.getOptVal<int>("port"));
 
 		if (socket != NULL) {
 
@@ -262,7 +257,7 @@ int main(int argc, char* argv[])
 			} else {
 				// build message
 				std::string message(A.getArg(0));
-				for (size_t i = 1; i < A.numArg(); i++) {
+				for (int i = 1; i < A.numArgs(); i++) {
 					message += " ";
 					message += A.getArg(i);
 				}
@@ -280,8 +275,8 @@ int main(int argc, char* argv[])
 
 			delete socket;
 		} else {
-			std::cout << "error connecting to " << A.getParam<const char*>("p_server")
-				  << ":" << A.getParam<int>("p_port") << std::endl;
+			std::cout << "error connecting to " << A.getOptVal<const char*>("server")
+				  << ":" << A.getOptVal<int>("port") << std::endl;
 		}
 
 		delete client;

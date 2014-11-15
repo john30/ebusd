@@ -28,8 +28,8 @@ extern Appl& A;
 BaseLoop::BaseLoop()
 {
 	// create commands DB
-	m_commands = ConfigCommands(A.getParam<const char*>("p_ebusconfdir"), CSV).getCommands();
-	L.log(bas, trace, "ebus configuration dir: %s", A.getParam<const char*>("p_ebusconfdir"));
+	m_commands = ConfigCommands(A.getOptVal<const char*>("ebusconfdir"), CSV).getCommands();
+	L.log(bas, trace, "ebus configuration dir: %s", A.getOptVal<const char*>("ebusconfdir"));
 	L.log(bas, event, "commands DB: %d ", m_commands->sizeCmdDB());
 	L.log(bas, event, "   cycle DB: %d ", m_commands->sizeCycDB());
 	L.log(bas, event, " polling DB: %d ", m_commands->sizePolDB());
@@ -39,7 +39,7 @@ BaseLoop::BaseLoop()
 	m_ebusloop->start("ebusloop");
 
 	// create network
-	m_network = new Network(A.getParam<bool>("p_localhost"), &m_msgQueue);
+	m_network = new Network(A.getOptVal<bool>("localhost"), &m_msgQueue);
 	m_network->start("network");
 }
 
@@ -147,7 +147,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 				break;
 			}
 
-			std::string ebusCommand(A.getParam<const char*>("p_address"));
+			std::string ebusCommand(A.getOptVal<const char*>("address"));
 			ebusCommand += m_commands->getEbusCommand(index);
 			std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
 
@@ -188,7 +188,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 		if (index >= 0) {
 
-			std::string ebusCommand(A.getParam<const char*>("p_address"));
+			std::string ebusCommand(A.getOptVal<const char*>("address"));
 			ebusCommand += m_commands->getEbusCommand(index);
 
 			// encode data
@@ -268,7 +268,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		}
 
 		{
-			std::string ebusCommand(A.getParam<const char*>("p_address"));
+			std::string ebusCommand(A.getOptVal<const char*>("address"));
 			cmd[1].erase(std::remove_if(cmd[1].begin(), cmd[1].end(), isspace), cmd[1].end());
 			ebusCommand += cmd[1];
 			std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
@@ -344,8 +344,8 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 		{
 			// create commands DB
-			Commands* commands = ConfigCommands(A.getParam<const char*>("p_ebusconfdir"), CSV).getCommands();
-			L.log(bas, trace, "ebus configuration dir: %s", A.getParam<const char*>("p_ebusconfdir"));
+			Commands* commands = ConfigCommands(A.getOptVal<const char*>("ebusconfdir"), CSV).getCommands();
+			L.log(bas, trace, "ebus configuration dir: %s", A.getOptVal<const char*>("ebusconfdir"));
 			L.log(bas, event, "commands DB: %d ", m_commands->sizeCmdDB());
 			L.log(bas, event, "   cycle DB: %d ", m_commands->sizeCycDB());
 			L.log(bas, event, " polling DB: %d ", m_commands->sizePolDB());

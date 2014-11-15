@@ -27,26 +27,26 @@ extern Appl& A;
 EBusLoop::EBusLoop(Commands* commands)
 	: m_commands(commands), m_stop(false), m_lockCounter(0), m_priorRetry(false)
 {
-	m_port = new Port(A.getParam<const char*>("p_device"), A.getParam<bool>("p_nodevicecheck"));
+	m_port = new Port(A.getOptVal<const char*>("device"), A.getOptVal<bool>("nodevicecheck"));
 	m_port->open();
 
 	if (m_port->isOpen() == false)
-		L.log(bus, error, "can't open %s", A.getParam<const char*>("p_device"));
+		L.log(bus, error, "can't open %s", A.getOptVal<const char*>("device"));
 
-	m_dump = new Dump(A.getParam<const char*>("p_dumpfile"), A.getParam<long>("p_dumpsize"));
-	m_dumpState = A.getParam<bool>("p_dump");
+	m_dump = new Dump(A.getOptVal<const char*>("dumpfile"), A.getOptVal<long>("dumpsize"));
+	m_dumpState = A.getOptVal<bool>("dump");
 
-	m_logRawData = A.getParam<bool>("p_lograwdata");
+	m_logRawData = A.getOptVal<bool>("lograwdata");
 
-	m_pollInterval = A.getParam<int>("p_pollinterval");
+	m_pollInterval = A.getOptVal<int>("pollinterval");
 
-	m_recvTimeout = A.getParam<long>("p_recvtimeout");
+	m_recvTimeout = A.getOptVal<long>("recvtimeout");
 
-	m_sendRetries = A.getParam<int>("p_sendretries");
+	m_sendRetries = A.getOptVal<int>("sendretries");
 
-	m_lockRetries = A.getParam<int>("p_lockretries");
+	m_lockRetries = A.getOptVal<int>("lockretries");
 
-	m_acquireTime = A.getParam<long>("p_acquiretime");
+	m_acquireTime = A.getOptVal<long>("acquiretime");
 }
 
 EBusLoop::~EBusLoop()
@@ -134,7 +134,7 @@ void* EBusLoop::run()
 					}
 
 					lockRetries = 0;
-					m_lockCounter = A.getParam<int>("p_lockcounter");
+					m_lockCounter = A.getOptVal<int>("lockcounter");
 				}
 				else if (busResult == RESULT_ERR_BUS_LOST) {
 					L.log(bus, trace, " acquire bus failed");
@@ -154,7 +154,7 @@ void* EBusLoop::run()
 						L.log(bus, trace, " lock retry %d", lockRetries);
 					}
 
-					m_lockCounter = A.getParam<int>("p_lockcounter");
+					m_lockCounter = A.getOptVal<int>("lockcounter");
 				}
 
 			}
@@ -166,7 +166,7 @@ void* EBusLoop::run()
 			m_port->open();
 
 			if (m_port->isOpen() == false)
-				L.log(bus, error, "can't open %s", A.getParam<const char*>("p_device"));
+				L.log(bus, error, "can't open %s", A.getOptVal<const char*>("device"));
 
 		}
 
@@ -271,7 +271,7 @@ void EBusLoop::addPollCommand()
 		tmp += (*m_commands)[index][2];
 		L.log(bus, event, " polling [%4d] %s", index, tmp.c_str());
 
-		std::string ebusCommand(A.getParam<const char*>("p_address"));
+		std::string ebusCommand(A.getOptVal<const char*>("address"));
 		ebusCommand += m_commands->getEbusCommand(index);
 		std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
 

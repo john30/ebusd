@@ -30,9 +30,9 @@ Network::Network(const bool localhost, WQueue<Message*>* msgQueue)
 	: m_msgQueue(msgQueue), m_listening(false), m_running(false)
 {
 	if (localhost == true)
-		m_tcpServer = new TCPServer(A.getParam<int>("p_port"), "127.0.0.1");
+		m_tcpServer = new TCPServer(A.getOptVal<int>("port"), "127.0.0.1");
 	else
-		m_tcpServer = new TCPServer(A.getParam<int>("p_port"), "0.0.0.0");
+		m_tcpServer = new TCPServer(A.getOptVal<int>("port"), "0.0.0.0");
 
 	if (m_tcpServer != NULL && m_tcpServer->start() == 0)
 		m_listening = true;
