@@ -23,20 +23,25 @@
 
 using namespace libebus;
 
-void verify(bool expectFailMatch, std::string type, std::string input, bool match, std::string expectStr, std::string gotStr) {
+void verify(bool expectFailMatch, std::string type, std::string input,
+		bool match, std::string expectStr, std::string gotStr)
+{
 	if (expectFailMatch == true) {
 		if (match == true)
-			std::cout << "  failed " << type << " match >" << input << "< error: unexpectedly succeeded" << std::endl;
+			std::cout << "  failed " << type << " match >" << input
+			          << "< error: unexpectedly succeeded" << std::endl;
 		else
-			std::cout << "  failed " << type << " match >" << input << "< OK" << std::endl;
-	} else if (match == true)
+			std::cout << "  failed " << type << " match >" << input << "< OK"
+			          << std::endl;
+	}
+	else if (match == true)
 		std::cout << "  " << type << " >" << input << "< OK" << std::endl;
 	else
 		std::cout << "  " << type << " >" << input << "< error: got >" << gotStr
-			<< "<, expected >" << expectStr << "<" << std::endl;
+		          << "<, expected >" << expectStr << "<" << std::endl;
 }
 
-int main ()
+int main()
 {
 	std::string checks[][5] = {
 		//name;[pos];type[;[divisor|values][;[unit][;[comment]]]], decoded value, master, slave, flags
@@ -167,7 +172,7 @@ int main ()
 	};
 	std::map<std::string, DataField*> templates;
 	std::vector<DataField*> fields;
-	for (size_t i = 0; i < sizeof(checks)/sizeof(checks[0]); i++) {
+	for (size_t i = 0; i < sizeof(checks) / sizeof(checks[0]); i++) {
 		std::string check[5] = checks[i];
 		std::istringstream isstr(check[0]);
 		std::string expectStr = check[1];
@@ -199,7 +204,8 @@ int main ()
 		} while (result == RESULT_OK && it != entries.end());
 
 		if (result != RESULT_OK) {
-			std::cout << "\"" << check[0] << "\": create error: " << getResultCodeCStr(result) << std::endl;
+			std::cout << "\"" << check[0] << "\": create error: "
+			          << getResultCodeCStr(result) << std::endl;
 			continue;
 		}
 		if (fields.empty() == true) {
@@ -237,11 +243,14 @@ int main ()
 			result = field->read(mstr, sstr, output, verbose);
 			if (failedRead == true)
 				if (result == RESULT_OK)
-					std::cout << "  failed read " << field->getName() << " >" << check[2] << "< error: unexpectedly succeeded" << std::endl;
+					std::cout << "  failed read " << field->getName() << " >"
+					          << check[2] << "< error: unexpectedly succeeded" << std::endl;
 				else
-					std::cout << "  failed read " << field->getName() << " >" << check[2] << "< OK" << std::endl;
+					std::cout << "  failed read " << field->getName() << " >"
+					          << check[2] << "< OK" << std::endl;
 			else if (result != RESULT_OK) {
-				std::cout << "  read " << field->getName() << " >" << check[2] << "< error: " << getResultCodeCStr(result) << std::endl;
+				std::cout << "  read " << field->getName() << " >" << check[2] << "< error: "
+				          << getResultCodeCStr(result) << std::endl;
 				failed = true;
 			}
 			else if (combinedValue == false) {
@@ -257,12 +266,15 @@ int main ()
 				result = field->write(tokeninput, writeMstr, writeSstr);
 				if (failedWrite == true) {
 					if (result == RESULT_OK)
-						std::cout << "  failed write " << field->getName() << " >" << expectStr << "< error: unexpectedly succeeded" << std::endl;
+						std::cout << "  failed write " << field->getName() << " >"
+						          << expectStr << "< error: unexpectedly succeeded" << std::endl;
 					else
-						std::cout << "  failed write " << field->getName() << " >" << expectStr << "< OK" << std::endl;
+						std::cout << "  failed write " << field->getName() << " >"
+						          << expectStr << "< OK" << std::endl;
 				}
 				else if (result != RESULT_OK) {
-					std::cout << "  write " << field->getName() << " >" << expectStr << "< error: " << getResultCodeCStr(result) << std::endl;
+					std::cout << "  write " << field->getName() << " >"
+					          << expectStr << "< error: " << getResultCodeCStr(result) << std::endl;
 					failed = true;
 				}
 			}
@@ -283,7 +295,7 @@ int main ()
 		delete fields.back();
 		fields.pop_back();
 	}
-	for (std::map<std::string, DataField*>::iterator it = templates.begin(); it!=templates.end(); it++)
+	for (std::map<std::string, DataField*>::iterator it = templates.begin(); it != templates.end(); it++)
 		delete it->second;
 
 	return 0;
