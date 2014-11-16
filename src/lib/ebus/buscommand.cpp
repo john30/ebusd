@@ -22,8 +22,8 @@
 namespace libebus
 {
 
-BusCommand::BusCommand(const std::string commandStr, const bool isPoll)
-	: m_isPoll(isPoll), m_command(commandStr), m_result(), m_resultCode(RESULT_OK)
+BusCommand::BusCommand(const std::string commandStr, const bool poll, const bool scan)
+	: m_poll(poll), m_scan(scan), m_command(commandStr), m_result(), m_resultCode(RESULT_OK)
 {
 	unsigned char dstAddress = m_command[1];
 

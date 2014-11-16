@@ -32,7 +32,7 @@ BaseLoop::BaseLoop()
 	L.log(bas, trace, "ebus configuration dir: %s", A.getOptVal<const char*>("ebusconfdir"));
 	L.log(bas, event, "commands DB: %d ", m_commands->sizeCmdDB());
 	L.log(bas, event, "   cycle DB: %d ", m_commands->sizeCycDB());
-	L.log(bas, event, " polling DB: %d ", m_commands->sizePolDB());
+	L.log(bas, event, " polling DB: %d ", m_commands->sizePollDB());
 
 	// create ebusloop
 	m_ebusloop = new EBusLoop(m_commands);
@@ -131,7 +131,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			// polling data
 			if (strcasecmp(m_commands->getCmdType(index).c_str(), "P") == 0) {
 				// get polldata
-				polldata = m_commands->getPolData(index);
+				polldata = m_commands->getPollData(index);
 				if (polldata != "") {
 					// decode data
 					Command* command = new Command(index, (*m_commands)[index], polldata);
@@ -151,7 +151,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			ebusCommand += m_commands->getEbusCommand(index);
 			std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
 
-			BusCommand* busCommand = new BusCommand(ebusCommand, false);
+			BusCommand* busCommand = new BusCommand(ebusCommand, false, false);
 			L.log(bas, trace, " msg: %s", ebusCommand.c_str());
 			// send busCommand
 			m_ebusloop->addBusCommand(busCommand);
@@ -204,7 +204,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 			std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
 
-			BusCommand* busCommand = new BusCommand(ebusCommand, false);
+			BusCommand* busCommand = new BusCommand(ebusCommand, false, false);
 			L.log(bas, event, " msg: %s", ebusCommand.c_str());
 			// send busCommand
 			m_ebusloop->addBusCommand(busCommand);
@@ -273,7 +273,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			ebusCommand += cmd[1];
 			std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
 
-			BusCommand* busCommand = new BusCommand(ebusCommand, false);
+			BusCommand* busCommand = new BusCommand(ebusCommand, false, false);
 			L.log(bas, trace, " msg: %s", ebusCommand.c_str());
 			// send busCommand
 			m_ebusloop->addBusCommand(busCommand);
@@ -294,15 +294,25 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 	case scan:
 		if (cmd.size() < 1 || cmd.size() > 2) {
 			result << "usage: 'scan'" << std::endl
-			       << "       'scan full'";
+			       << "       'scan full'" << std::endl
+			       << "       'scan result'";
 			break;
 		}
 
-		//~ if (strcasecmp(cmd[1].c_str(), "FULL") == 0)
-			//~ // scan(FULL);
-		//~ else
-			//~ // scan();
+		if (strcasecmp(cmd[1].c_str(), "RESULT") == 0) {
+			//~ m_ebusloop->scan(true);
+			result << "TODO show result";
+			break;
+		}
 
+		if (strcasecmp(cmd[1].c_str(), "FULL") == 0) {
+			m_ebusloop->scan(true);
+			result << "done";
+			break;
+		}
+
+		m_ebusloop->scan();
+		result << "done";
 		break;
 
 	case log:
@@ -362,7 +372,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			L.log(bas, trace, "ebus configuration dir: %s", A.getOptVal<const char*>("ebusconfdir"));
 			L.log(bas, event, "commands DB: %d ", m_commands->sizeCmdDB());
 			L.log(bas, event, "   cycle DB: %d ", m_commands->sizeCycDB());
-			L.log(bas, event, " polling DB: %d ", m_commands->sizePolDB());
+			L.log(bas, event, " polling DB: %d ", m_commands->sizePollDB());
 
 			delete m_commands;
 			m_commands = commands;
@@ -379,7 +389,8 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		       << " cyc       - fetch cycle data            'cyc class cmd (sub)'" << std::endl
 		       << " hex       - send given hex value        'hex type value'         (value: ZZPBSBNNDx)" << std::endl << std::endl
 		       << " scan      - scan ebus kown addresses    'scan'" << std::endl
-		       << "           - scan ebus all addresses     'scan full'" << std::endl << std::endl
+		       << "           - scan ebus all addresses     'scan full'" << std::endl
+		       << "           - scan show results           'scan result'" << std::endl << std::endl
  		       << " log       - change log areas            'log areas area,area,..' (areas: bas|net|bus|cyc|all)" << std::endl
 		       << "           - change log level            'log level level'        (level: error|event|trace|debug)" << std::endl << std::endl
 		       << " raw       - toggle log raw data         'raw'" << std::endl

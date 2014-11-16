@@ -34,11 +34,12 @@ class BusCommand
 {
 
 public:
-	BusCommand(const std::string command, const bool isPoll);
+	BusCommand(const std::string command, const bool poll, const bool scan);
 	~BusCommand();
 
 	CommandType getType() const { return m_type; }
-	bool isPoll() const { return m_isPoll; }
+	bool isPoll() const { return m_poll; }
+	bool isScan() const { return m_scan; }
 
 	SymbolString getCommand() const { return m_command; }
 	SymbolString getResult() const { return m_result; }
@@ -55,7 +56,8 @@ public:
 
 private:
 	CommandType m_type;
-	bool m_isPoll;
+	bool m_poll;
+	bool m_scan;
 	SymbolString m_command;
 	SymbolString m_result;
 	int m_resultCode;

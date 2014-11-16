@@ -50,6 +50,8 @@ public:
 
 	void reload(Commands* commands) { m_commands = commands; }
 
+	void scan(const bool full=false) { m_scan = true; m_scanFull = full; }
+
 private:
 	Commands* m_commands;
 	Port* m_port;
@@ -73,6 +75,11 @@ private:
 	int m_lockRetries;
 	long m_acquireTime;
 
+	std::vector<unsigned char> m_slave;
+
+	bool m_scan;
+	bool m_scanFull;
+
 	unsigned char fetchByte();
 	void collectCycData(const int numRecv);
 	void analyseCycData();
@@ -82,6 +89,8 @@ private:
 	int sendByte(const unsigned char sendByte);
 	int recvSlaveAck(unsigned char& recvByte);
 	int recvSlaveData(SymbolString& result);
+	void collectSlave();
+	void addScanCommand();
 
 };
 

@@ -31,10 +31,10 @@ namespace libebus
 
 Commands::~Commands()
 {
-	for (mapCI_t iter = m_polDB.begin(); iter != m_polDB.end(); ++iter)
+	for (mapCI_t iter = m_pollDB.begin(); iter != m_pollDB.end(); ++iter)
 		delete iter->second;
 
-	m_polDB.clear();
+	m_pollDB.clear();
 
 	for (mapCI_t iter = m_cycDB.begin(); iter != m_cycDB.end(); ++iter)
 		delete iter->second;
@@ -55,7 +55,7 @@ void Commands::addCommand(const cmd_t& command)
 
 	if (strcasecmp(command[0].c_str(),"P") == 0) {
 		Command* cmd = new Command(m_cmdDB.size()-1, command);
-		m_polDB.insert(pair_t(m_cmdDB.size()-1, cmd));
+		m_pollDB.insert(pair_t(m_cmdDB.size()-1, cmd));
 	}
 }
 
@@ -188,33 +188,33 @@ std::string Commands::getCycData(int index) const
 		return "";
 }
 
-int Commands::nextPolCommand()
+int Commands::nextPollCommand()
 {
 	size_t index = 0;
 
-	m_polIndex++;
+	m_pollIndex++;
 
-	if (m_polIndex == m_polDB.size())
-		m_polIndex = 0;
+	if (m_pollIndex == m_pollDB.size())
+		m_pollIndex = 0;
 
-	mapCI_t iter = m_polDB.begin();
+	mapCI_t iter = m_pollDB.begin();
 
-	for (; iter != m_polDB.end(); iter++, index++)
-		if (index == m_polIndex)
+	for (; iter != m_pollDB.end(); iter++, index++)
+		if (index == m_pollIndex)
 			return iter->first;
 
 	return -1;
 }
 
-void Commands::storePolData(const std::string& data) const
+void Commands::storePollData(const std::string& data) const
 {
 	// prepare string for searching command
 	std::string search(data.substr(2, 8 + strtol(data.substr(8,2).c_str(), NULL, 16) * 2));
 
-	mapCI_t iter = m_polDB.begin();
+	mapCI_t iter = m_pollDB.begin();
 
 	// walk through commands
-	for (; iter != m_polDB.end(); iter++) {
+	for (; iter != m_pollDB.end(); iter++) {
 
 		std::string command = getEbusCommand(iter->first);
 
@@ -228,14 +228,29 @@ void Commands::storePolData(const std::string& data) const
 	}
 }
 
-std::string Commands::getPolData(int index) const
+std::string Commands::getPollData(const int index) const
 {
-	mapCI_t iter = m_polDB.find(index);
-	if (iter != m_polDB.end())
+	mapCI_t iter = m_pollDB.find(index);
+	if (iter != m_pollDB.end())
 		return iter->second->getData();
 	else
 		return "";
 }
+
+void Commands::storeScanData(const std::string& data)
+{
+	std::vector<std::string>::const_iterator iter = m_scanDB.begin();
+	bool found = false;
+
+	// walk through scan data
+	for (; iter != m_scanDB.end(); iter++)
+		if (data == (*iter))
+			found = true;
+
+	if (found == false)
+		m_scanDB.push_back(data);
+}
+
 
 void Commands::printCommand(const cmd_t& command) const
 {

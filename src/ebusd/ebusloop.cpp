@@ -25,7 +25,8 @@ extern LogInstance& L;
 extern Appl& A;
 
 EBusLoop::EBusLoop(Commands* commands)
-	: m_commands(commands), m_stop(false), m_lockCounter(0), m_priorRetry(false)
+	: m_commands(commands), m_stop(false), m_lockCounter(0),
+	  m_priorRetry(false), m_scan(false), m_scanFull(false)
 {
 	m_port = new Port(A.getOptVal<const char*>("device"), A.getOptVal<bool>("nodevicecheck"));
 	m_port->open();
@@ -72,15 +73,19 @@ void* EBusLoop::run()
 		if (m_port->isOpen() == true) {
 			ssize_t numBytes;
 
-			// add poll command
-			if (m_commands->sizePolDB() > 0) {
+			// add poll or scan command
+			if (m_commands->sizePollDB() > 0 || m_scan == true) {
 				// check polling delta
 				time(&pollEnd);
 				pollDelta = difftime(pollEnd, pollStart);
 
 				// add new polling command to send
 				if (pollDelta >= m_pollInterval) {
-					addPollCommand();
+					if (m_scan == true)
+						addScanCommand();
+					else
+						addPollCommand();
+
 					time(&pollStart);
 				}
 			}
@@ -126,7 +131,10 @@ void* EBusLoop::run()
 						sendRetries = 0;
 
 						if (busCommand->isPoll() == true) {
-							m_commands->storePolData(busCommand->getMessageStr().c_str()); // TODO use getResult()
+							if (busCommand->isScan() == true)
+								m_commands->storeScanData(busCommand->getMessageStr().c_str());
+							else
+								m_commands->storePollData(busCommand->getMessageStr().c_str()); // TODO use getResult()
 							delete busCommand;
 						}
 						else
@@ -255,11 +263,15 @@ void EBusLoop::analyseCycData()
 		tmp += (*m_commands)[index][2];
 		L.log(bus, event, " cycle   [%4d] %s", index, tmp.c_str());
 	}
+
+	// collect Slave address
+	if (index != -3)
+		collectSlave();
 }
 
 void EBusLoop::addPollCommand()
 {
-	int index = m_commands->nextPolCommand();
+	int index = m_commands->nextPollCommand();
 	if (index < 0) {
 		L.log(bus, error, "polling index out of range");
 	}
@@ -275,7 +287,7 @@ void EBusLoop::addPollCommand()
 		ebusCommand += m_commands->getEbusCommand(index);
 		std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
 
-		BusCommand* busCommand = new BusCommand(ebusCommand, true);
+		BusCommand* busCommand = new BusCommand(ebusCommand, true, false);
 		L.log(bus, trace, " msg: %s", ebusCommand.c_str());
 
 		addBusCommand(busCommand);
@@ -549,3 +561,68 @@ int EBusLoop::recvSlaveData(SymbolString& result)
 	return RESULT_OK;
 }
 
+void EBusLoop::collectSlave()
+{
+	std::vector<unsigned char>::iterator it;
+
+	for (int i = 0; i < 2; i++) {
+		bool found = false;
+		unsigned char mm = m_sstr[i];
+
+		if (i == 0) {
+			if (mm == 0xff)
+				mm = 0x04;
+			else
+				mm += 0x05;
+		}
+
+		for (it = m_slave.begin(); it != m_slave.end(); it++)
+			if ((*it) == mm)
+				found = true;
+
+		if (found == false && isMaster(mm) == false && mm != BROADCAST) {
+			m_slave.push_back(mm);
+			L.log(bus, event, " new slave: %d %02x", m_slave.size(), m_slave.back());
+		}
+	}
+}
+
+void EBusLoop::addScanCommand()
+{
+	//~ static int index = 0;
+//~
+	//~ if (m_scanFull == true) {
+//~
+	//~ }
+	//~ else {
+		//~ m_slave[index]
+	//~ }
+	// TODO create next scan Command
+	// loop over
+	//   scan -> from collected master and slave data
+	//   full -> loop 0x00 -> 0xff (without master and broadcast)
+	// after loop reset state -> m_scan == false; m_scanFull == false;
+
+
+	//~ int index = m_commands->nextPollCommand();
+	//~ if (index < 0) {
+		//~ L.log(bus, error, "polling index out of range");
+	//~ }
+	//~ else {
+		//~ // TODO: implement as methode from class commands?
+		//~ std::string tmp;
+		//~ tmp += (*m_commands)[index][1];
+		//~ tmp += " ";
+		//~ tmp += (*m_commands)[index][2];
+		//~ L.log(bus, event, " polling [%4d] %s", index, tmp.c_str());
+//~
+		//~ std::string ebusCommand(A.getOptVal<const char*>("address"));
+		//~ ebusCommand += m_commands->getEbusCommand(index);
+		//~ std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
+//~
+		//~ BusCommand* busCommand = new BusCommand(ebusCommand, true, true);
+		//~ L.log(bus, trace, " msg: %s", ebusCommand.c_str());
+//~
+		//~ addBusCommand(busCommand);
+	//~ }
+}
