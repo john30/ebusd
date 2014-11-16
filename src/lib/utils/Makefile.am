@@ -4,18 +4,20 @@ AM_CXXFLAGS = -fpic \
 
 noinst_LIBRARIES = libutils.a
 
-libutils_a_SOURCES = wqueue.h \
-		     notify.h \
-		     appl.cpp \
+libutils_a_SOURCES = appl.cpp \
 		     appl.h \
 		     daemon.cpp \
 		     daemon.h \
 		     logger.cpp \
 		     logger.h \
+		     notify.cpp \
+		     notify.h \
+		     tcpsocket.cpp \
+		     tcpsocket.h \
 		     thread.cpp \
 		     thread.h \
-		     tcpsocket.cpp \
-		     tcpsocket.h
+		     wqueue.h
+
 
 distclean-local:
 	-rm -f Makefile.in
