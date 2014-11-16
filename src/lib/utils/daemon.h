@@ -20,27 +20,59 @@
 #ifndef LIBUTILS_DAEMON_H_
 #define LIBUTILS_DAEMON_H_
 
+/**
+ * @brief class to daemonize a process.
+ */
 class Daemon
 {
 
 public:
+	/**
+	 * @brief create an daemon instance and return the reference.
+	 * @return the reference to instance.
+	 */
 	static Daemon& Instance();
-	~Daemon() {}
 
-	void run(const char* file);
+	/**
+	 * @brief daemonize act process.
+	 * @param pidfile the name of the pid file.
+	 */
+	void run(const char* pidfile);
+
+	/**
+	 * @brief stop daemon and delete the pid file.
+	 */
 	void stop() { pidfile_close(); }
+
+	/**
+	 * @brief show actual status if daemonize.
+	 * @return true if process is a daemon.
+	 */
 	bool status() { return m_status; }
 
 private:
-	bool m_status;
-	const char* m_pidfile;
-	int m_pidfd;
-
+	/** private constructor - singleton pattern */
 	Daemon() {}
 	Daemon(const Daemon&);
-	Daemon& operator= (const Daemon&);
+	Daemon& operator=(const Daemon&);
 
+	/** status of process; true if we are a daemon */
+	bool m_status;
+	/** name of the pid file*/
+	const char* m_pidfile;
+	/** file descriptor of the pid file */
+	int m_pidfd;
+
+	/**
+	 * @brief creates a pid file for process.
+	 * @return true if success.
+	 */
 	bool pidfile_open();
+
+	/**
+	 * @brief close and delete the pid file.
+	 * @return true if success.
+	 */
 	bool pidfile_close();
 
 };

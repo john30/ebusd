@@ -155,7 +155,7 @@ public:
 private:
 	LogInstance() {}
 	LogInstance(const LogInstance&);
-	LogInstance& operator= (const LogInstance&);
+	LogInstance& operator=(const LogInstance&);
 
 	typedef std::vector<LogSink*> sink_t;
 	typedef std::vector<LogSink*>::iterator sinkCI_t;
