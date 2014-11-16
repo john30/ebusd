@@ -136,7 +136,19 @@ public:
 	 * @return the field name.
 	 */
 	const std::string getName() { return m_name; }
-	//TODO add getter for all fields
+
+	/**
+	 * @brief Get the value unit.
+	 * @return the value unit.
+	 */
+	const std::string getUnit() { return m_unit; }
+
+	/**
+	 * @brief Get the field comment.
+	 * @return the field comment.
+	 */
+	const std::string getComment() { return m_comment; }
+
 protected:
 	virtual DataField* derive(std::string name, PartType partType, unsigned char offset, std::string unit,
 			std::string comment, unsigned int divisor, std::map<unsigned int, std::string> values) = 0;
