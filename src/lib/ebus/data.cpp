@@ -239,8 +239,6 @@ result_t DataField::create(std::vector<std::string>::iterator& it, const std::ve
 			}
 			found = true;
 			DataField* templ = ref->second;
-			dataType_t dataType = templ->m_dataType;
-			unsigned char numBytes = (dataType.numBits+7)/8;
 			if (length != 0 && length != templ->m_length)
 				return RESULT_ERR_INVALID_ARG; // different length not possible for derivation
 			unsigned char deriveOffset = offset == 0 ? templ->m_offset : offset;
