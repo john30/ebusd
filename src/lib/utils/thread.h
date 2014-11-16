@@ -22,23 +22,60 @@
 
 #include <pthread.h>
 
+/**
+ * @brief wrapper class for pthread.
+ */
 class Thread
 {
 
 public:
+	/**
+	 * @brief constructor.
+	 */
 	Thread() : m_threadid(0), m_running(false), m_detached(false) {}
+
+	/**
+	 * @brief virtual destructor.
+	 */
 	virtual ~Thread();
 
+	/**
+	 * @brief create the thread and set name for process list.
+	 * @param name the thread name which show in process list.
+	 * @return value of thread creating.
+	 */
 	int start(const char* name);
+
+	/**
+	 * @brief join the thread.
+	 * @return value of thread joining.
+	 */
 	int join();
+
+	/**
+	 * @brief detach the thread.
+	 * @return value of thread detaching.
+	 */
 	int detach();
+
+	/**
+	 * @brief return the thread id.
+	 * @return own thread id.
+	 */
 	pthread_t self() {return m_threadid; }
 
+	/**
+	 * @brief virtul function which must be implented in derived class.
+	 * @return void pointer.
+	 */
 	virtual void* run() = 0;
 
 private:
+	/** own thread id */
 	pthread_t m_threadid;
+	/** true if thread is running */
 	bool m_running;
+	/** true if thread is detached */
 	bool m_detached;
 
 };

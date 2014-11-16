@@ -23,9 +23,13 @@
 
 #include "thread.h"
 
+/**
+ * @brief static function which will be called on thread startup.
+ * @return void pointer.
+ */
 static void* runThread(void* arg)
 {
-	return ((Thread *)arg)->run();
+	return ((Thread*)arg)->run();
 }
 
 Thread::~Thread()

@@ -76,7 +76,7 @@ class Appl
 
 public:
 	/**
-	 * @brief create an Appl instance and return the reference.
+	 * @brief create an appl instance and return the reference.
 	 * @param command is true if an command is needed.
 	 * @return the reference to instance.
 	 */
