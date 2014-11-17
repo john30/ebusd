@@ -251,7 +251,6 @@ void Commands::storeScanData(const std::string& data)
 		m_scanDB.push_back(data);
 }
 
-
 void Commands::printCommand(const cmd_t& command) const
 {
 	if (command.size() == 0)

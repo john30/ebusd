@@ -305,8 +305,10 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		}
 
 		if (strcasecmp(cmd[1].c_str(), "RESULT") == 0) {
-			//~ m_ebusloop->scan(true);
-			result << "TODO show result";
+			// TODO format scan results
+			for (size_t i = 0; i < m_commands->sizeScanDB(); i++)
+				result << m_commands->getScanData(i) << std::endl;
+
 			break;
 		}
 
