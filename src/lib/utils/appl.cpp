@@ -198,7 +198,7 @@ void Appl::printHelp()
 
 	for (o_it = m_opts.begin(); o_it < m_opts.end(); o_it++) {
 		if (strcmp(o_it->name, "__text_only__") == 0)
-			continue;
+			std::cerr << o_it->description << std::endl;
 		else {
 			const char* c = (strlen(o_it->shortname) == 1) ? o_it->shortname : " ";
 			std::cerr << ((strcmp(c, " ") == 0) ? " " : "-") << c

@@ -244,30 +244,36 @@ void EBusLoop::collectCycData(const int numRecv)
 
 void EBusLoop::analyseCycData()
 {
-	L.log(bus, trace, "%s", m_sstr.getDataStr().c_str());
+	static bool skipfirst = false;
 
-	int index = m_commands->storeCycData(m_sstr.getDataStr());
+	if (skipfirst == true) {
+		L.log(bus, trace, "%s", m_sstr.getDataStr().c_str());
 
-	if (index == -1) {
-		L.log(bus, debug, " command not found");
-	}
-	else if (index == -2) {
-		L.log(bus, debug, " no commands defined");
-	}
-	else if (index == -3) {
-		L.log(bus, debug, " search skipped - string too short");
-	}
-	else {
-		std::string tmp;
-		tmp += (*m_commands)[index][1];
-		tmp += " ";
-		tmp += (*m_commands)[index][2];
-		L.log(bus, event, " cycle   [%4d] %s", index, tmp.c_str());
-	}
+		int index = m_commands->storeCycData(m_sstr.getDataStr());
 
-	// collect Slave address
-	if (index != -3)
-		collectSlave();
+		if (index == -1) {
+			L.log(bus, debug, " command not found");
+		}
+		else if (index == -2) {
+			L.log(bus, debug, " no commands defined");
+		}
+		else if (index == -3) {
+			L.log(bus, debug, " search skipped - string too short");
+		}
+		else {
+			std::string tmp;
+			tmp += (*m_commands)[index][1];
+			tmp += " ";
+			tmp += (*m_commands)[index][2];
+			L.log(bus, event, " cycle   [%4d] %s", index, tmp.c_str());
+		}
+
+		// collect Slave address
+		if (index != -3)
+			collectSlave();
+	}
+	else
+		skipfirst = true;
 }
 
 void EBusLoop::addPollCommand()
@@ -571,7 +577,7 @@ void EBusLoop::collectSlave()
 		unsigned char mm = m_sstr[i];
 
 		if (i == 0) {
-			if (mm == 0xff)
+			if (mm == 0xFF)
 				mm = 0x04;
 			else
 				mm += 0x05;
@@ -594,7 +600,7 @@ void EBusLoop::addScanCommand()
 	std::stringstream sstr;
 
 	if (m_scanFull == true) {
-		for (; m_scanIndex <= 0xff; m_scanIndex++) {
+		for (; m_scanIndex <= 0xFF; m_scanIndex++) {
 			if (isMaster(m_scanIndex) == false && m_scanIndex != SYN
 			&& m_scanIndex != ESC && m_scanIndex != BROADCAST) {
 				sstr << std::nouppercase << std::setw(2) << std::setfill('0')
@@ -602,9 +608,6 @@ void EBusLoop::addScanCommand()
 				break;
 			}
 		}
-
-		if (m_scanIndex == 0xff)
-			m_scan = false;
 	}
 	else {
 		sstr << std::nouppercase << std::setw(2) << std::setfill('0')
@@ -614,19 +617,21 @@ void EBusLoop::addScanCommand()
 			m_scan = false;
 	}
 
-	m_scanIndex++;
+	if (m_scanIndex > 0xFF)
+		m_scan = false;
+	else {
+		m_scanIndex++;
 
-	ebusCommand += sstr.str();
-	ebusCommand += "070400";
-	std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
+		ebusCommand += sstr.str();
+		ebusCommand += "070400";
+		std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
 
-	L.log(bus, event, " scanning address %s", sstr.str().c_str());
-
-
-	BusCommand* busCommand = new BusCommand(ebusCommand, true, true);
-	L.log(bus, trace, " msg: %s", ebusCommand.c_str());
-
-	addBusCommand(busCommand);
+		L.log(bus, event, " scanning address %s", sstr.str().c_str());
 
 
+		BusCommand* busCommand = new BusCommand(ebusCommand, true, true);
+		L.log(bus, trace, " msg: %s", ebusCommand.c_str());
+
+		addBusCommand(busCommand);
+	}
 }

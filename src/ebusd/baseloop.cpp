@@ -322,7 +322,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			break;
 		}
 
-		// ToDo: check for possible areas and level
+		// TODO: check for possible areas and level
 		if (strcasecmp(cmd[1].c_str(), "AREAS") == 0) {
 			L.getSink(0)->setAreas(calcAreas(cmd[2]));
 			result << "done";
