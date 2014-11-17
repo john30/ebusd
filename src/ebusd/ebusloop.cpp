@@ -20,13 +20,14 @@
 #include "ebusloop.h"
 #include "logger.h"
 #include "appl.h"
+#include <iomanip>
 
 extern LogInstance& L;
 extern Appl& A;
 
 EBusLoop::EBusLoop(Commands* commands)
 	: m_commands(commands), m_stop(false), m_lockCounter(0),
-	  m_priorRetry(false), m_scan(false), m_scanFull(false)
+	  m_priorRetry(false), m_scan(false), m_scanFull(false), m_scanIndex(0)
 {
 	m_port = new Port(A.getOptVal<const char*>("device"), A.getOptVal<bool>("nodevicecheck"));
 	m_port->open();
@@ -589,40 +590,43 @@ void EBusLoop::collectSlave()
 
 void EBusLoop::addScanCommand()
 {
-	//~ static int index = 0;
-//~
-	//~ if (m_scanFull == true) {
-//~
-	//~ }
-	//~ else {
-		//~ m_slave[index]
-	//~ }
-	// TODO create next scan Command
-	// loop over
-	//   scan -> from collected master and slave data
-	//   full -> loop 0x00 -> 0xff (without master and broadcast)
-	// after loop reset state -> m_scan == false; m_scanFull == false;
+	std::string ebusCommand(A.getOptVal<const char*>("address"));
+	std::stringstream sstr;
+
+	if (m_scanFull == true) {
+		for (; m_scanIndex <= 0xff; m_scanIndex++) {
+			if (isMaster(m_scanIndex) == false && m_scanIndex != SYN
+			&& m_scanIndex != ESC && m_scanIndex != BROADCAST) {
+				sstr << std::nouppercase << std::setw(2) << std::setfill('0')
+				<< std::hex << m_scanIndex;
+				break;
+			}
+		}
+
+		if (m_scanIndex == 0xff)
+			m_scan = false;
+	}
+	else {
+		sstr << std::nouppercase << std::setw(2) << std::setfill('0')
+		     << std::hex << static_cast<unsigned>(m_slave[m_scanIndex]);
+
+		if (m_scanIndex+1 >= m_slave.size())
+			m_scan = false;
+	}
+
+	m_scanIndex++;
+
+	ebusCommand += sstr.str();
+	ebusCommand += "070400";
+	std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
+
+	L.log(bus, event, " scanning address %s", sstr.str().c_str());
 
 
-	//~ int index = m_commands->nextPollCommand();
-	//~ if (index < 0) {
-		//~ L.log(bus, error, "polling index out of range");
-	//~ }
-	//~ else {
-		//~ // TODO: implement as methode from class commands?
-		//~ std::string tmp;
-		//~ tmp += (*m_commands)[index][1];
-		//~ tmp += " ";
-		//~ tmp += (*m_commands)[index][2];
-		//~ L.log(bus, event, " polling [%4d] %s", index, tmp.c_str());
-//~
-		//~ std::string ebusCommand(A.getOptVal<const char*>("address"));
-		//~ ebusCommand += m_commands->getEbusCommand(index);
-		//~ std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
-//~
-		//~ BusCommand* busCommand = new BusCommand(ebusCommand, true, true);
-		//~ L.log(bus, trace, " msg: %s", ebusCommand.c_str());
-//~
-		//~ addBusCommand(busCommand);
-	//~ }
+	BusCommand* busCommand = new BusCommand(ebusCommand, true, true);
+	L.log(bus, trace, " msg: %s", ebusCommand.c_str());
+
+	addBusCommand(busCommand);
+
+
 }

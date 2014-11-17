@@ -50,7 +50,7 @@ public:
 
 	void reload(Commands* commands) { m_commands = commands; }
 
-	void scan(const bool full=false) { m_scan = true; m_scanFull = full; }
+	void scan(const bool full=false) { m_scan = true; m_scanFull = full; m_scanIndex = 0; }
 
 private:
 	Commands* m_commands;
@@ -79,6 +79,7 @@ private:
 
 	bool m_scan;
 	bool m_scanFull;
+	size_t m_scanIndex;
 
 	unsigned char fetchByte();
 	void collectCycData(const int numRecv);
