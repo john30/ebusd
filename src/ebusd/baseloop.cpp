@@ -292,16 +292,9 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		break;
 
 	case scan:
-		if (cmd.size() < 1 || cmd.size() > 2) {
-			result << "usage: 'scan'" << std::endl
-			       << "       'scan full'" << std::endl
-			       << "       'scan result'";
-			break;
-		}
-
-		if (strcasecmp(cmd[1].c_str(), "RESULT") == 0) {
-			//~ m_ebusloop->scan(true);
-			result << "TODO show result";
+		if (cmd.size() == 1) {
+			m_ebusloop->scan();
+			result << "done";
 			break;
 		}
 
@@ -311,8 +304,15 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			break;
 		}
 
-		m_ebusloop->scan();
-		result << "done";
+		if (strcasecmp(cmd[1].c_str(), "RESULT") == 0) {
+			//~ m_ebusloop->scan(true);
+			result << "TODO show result";
+			break;
+		}
+
+		result << "usage: 'scan'" << std::endl
+		       << "       'scan full'" << std::endl
+		       << "       'scan result'";
 		break;
 
 	case log:
@@ -390,7 +390,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		       << " hex       - send given hex value        'hex type value'         (value: ZZPBSBNNDx)" << std::endl << std::endl
 		       << " scan      - scan ebus kown addresses    'scan'" << std::endl
 		       << "           - scan ebus all addresses     'scan full'" << std::endl
-		       << "           - scan show results           'scan result'" << std::endl << std::endl
+		       << "           - show results                'scan result'" << std::endl << std::endl
  		       << " log       - change log areas            'log areas area,area,..' (areas: bas|net|bus|cyc|all)" << std::endl
 		       << "           - change log level            'log level level'        (level: error|event|trace|debug)" << std::endl << std::endl
 		       << " raw       - toggle log raw data         'raw'" << std::endl

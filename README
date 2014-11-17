@@ -13,12 +13,17 @@ Features
  * collect data of cycle messages
  * poll messages and collect received data
  * write raw data into dump files (for debugging purpose)
+ * scan ebus to identifies bus participants
 
  * available daemon commands:
    - get            fetch data from ebus participant
    - set            adjust data of ebus participant
    - cyc            fetch data from collected cycle messages
    - hex            send given hex value to ebus (ZZPBSBNNDx)
+
+   - scan           scan kown slave addresses (collected)
+   - scan full      scan all possible slave addresses
+   - scan result    show scanning results
 
    - log areas      change log areas
    - log level      change log level
@@ -29,10 +34,27 @@ Features
    - reload         reload ebus configuration
 
    - stop           stop daemon
-
    - quit           close connection
 
    - help           print help page
+
+
+vendor specific configuration files for ebusd
+---------------------------------------------
+
+See https://github.com/yuhu-/ebus-configuration
+
+
+
+ebusctl - client program for ebusd
+----------------------------------
+
+server commands:
+ * connect to ebusd (socket) and execute server commands (commands see above)
+
+local commands:
+ * 'feed' ebusd with raw data from dump files (or telnet) to ebusd
+
 
 
 Build
@@ -42,32 +64,6 @@ $ ./autogen.sh [--prefix=/usr]
 $ make
 $ make install
 
-
-Daemon Configuration
---------------------
-
-See ./ebusd -h
-
-
-Vendor specific configuration files
------------------------------------
-
-See https://github.com/yuhu-/ebus-configuration
-
-
-Tools
------
-
-ebusctl  - client program for ebusd.
-
-local commands:
- * 'feed' ebusd with raw data from dump files (or telnet) to ebusd
- * 'scan' ebus and identifies the participants
-
-remote commands:
- * connect to ebusd (socket) and execute server commands (see above)
-
-See ./ebusctl -h
 
 
 For usage and further information take a look on help page.
