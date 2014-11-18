@@ -41,6 +41,8 @@ void define_args()
 
 	A.setVersion(""PACKAGE_STRING"");
 
+	A.addText("Options:\n");
+
 	A.addOption("address", "a", OptVal("FF"),  dt_string, ot_mandatory,
 		    "\tebus device address (FF)");
 

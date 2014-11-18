@@ -41,7 +41,7 @@ void define_args()
 	A.addText(" 'help' show server commands\n\n"
 		  " 'feed' sends a dump file to a local serial device (pts)\n"
 		  "       (hint: socat -d -d pty,raw,echo=0 pty,raw,echo=0)\n\n"
-		  " Options:\n");
+		  "Options:\n");
 
 	A.addOption("device", "d", OptVal("/dev/ttyUSB60"), dt_string, ot_mandatory,
 		    "virtual serial device (/dev/ttyUSB60)");
@@ -124,10 +124,9 @@ int main(int argc, char* argv[])
 
 			delete socket;
 		}
-		else {
+		else
 			std::cout << "error connecting to " << A.getOptVal<const char*>("server")
 				  << ":" << A.getOptVal<int>("port") << std::endl;
-		}
 
 		delete client;
 	}

@@ -113,7 +113,7 @@ public:
 
 	/**
 	 * @brief returns the value of the interested option
-	 * @param the interested option
+	 * @param name the interested option
 	 * @return casted value
 	 */
 	template <typename T>

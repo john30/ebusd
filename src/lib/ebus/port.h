@@ -74,7 +74,7 @@ public:
 	bool isOpen();
 
 	/**
-	 * @brief sendBytes write bytes into opened file descriptor.
+	 * @brief sendBytes write bytes to opened file descriptor.
 	 * @param buffer data to send.
 	 * @param nbytes number of bytes to send.
 	 * @return number of written bytes or -1 if an error has occured.
