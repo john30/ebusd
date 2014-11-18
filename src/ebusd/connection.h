@@ -30,8 +30,8 @@ class Connection : public Thread
 {
 
 public:
-	Connection(TCPSocket* socket, WQueue<NetMessage*>* data)
-		: m_socket(socket), m_data(data), m_running(false) { m_sum++; m_id = m_sum;}
+	Connection(TCPSocket* socket, WQueue<NetMessage*>* netQueue)
+		: m_socket(socket), m_netQueueData(netQueue), m_running(false) { m_sum++; m_id = m_sum;}
 
 	void addResult(NetMessage message);
 
@@ -43,8 +43,8 @@ public:
 
 private:
 	TCPSocket* m_socket;
-	WQueue<NetMessage*>* m_data;
-	WQueue<NetMessage*> m_result;
+	WQueue<NetMessage*>* m_netQueueData;
+	WQueue<NetMessage*> m_netQueueResult;
 	Notify m_notify;
 	bool m_running;
 	int m_id;

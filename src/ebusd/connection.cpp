@@ -29,7 +29,7 @@ int Connection::m_sum = 0;
 void Connection::addResult(NetMessage message)
 {
 	NetMessage* tmp = new NetMessage(NetMessage(message));
-	m_result.add(tmp);
+	m_netQueueResult.add(tmp);
 }
 
 void* Connection::run()
@@ -80,11 +80,11 @@ void* Connection::run()
 
 			// send data
 			data[datalen] = '\0';
-			m_data->add(new NetMessage(data, this));
+			m_netQueueData->add(new NetMessage(data, this));
 
 			// wait for result
 			L.log(net, debug, "[%05d] wait for result", getID());
-			NetMessage* message = m_result.remove();
+			NetMessage* message = m_netQueueResult.remove();
 
 			L.log(net, debug, "[%05d] result added", getID());
 			std::string result(message->getData());

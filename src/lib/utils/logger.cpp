@@ -28,10 +28,10 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-/** */
+/** static char array with logging area names */
 static const char* AreaNames[Size_of_Areas] = { "bas", "net", "bus" };
 
-/** */
+/** static char array with logging level names */
 static const char* LevelNames[Size_of_Level] = { "error", "event", "trace", "debug" };
 
 int calcAreas(const std::string areas)
@@ -92,17 +92,17 @@ LogMessage::LogMessage(const int area, const int level, const std::string text, 
 void LogSink::addMessage(const LogMessage& message)
 {
 	LogMessage* tmp = new LogMessage(LogMessage(message));
-	m_logMessages.add((tmp));
+	m_logQueue.add((tmp));
 }
 
 void* LogSink::run()
 {
 	while (1) {
-		LogMessage* message = m_logMessages.remove();
+		LogMessage* message = m_logQueue.remove();
 			if (message->isRunning() == false) {
 				delete message;
-				while (m_logMessages.size() == true) {
-					LogMessage* message = m_logMessages.remove();
+				while (m_logQueue.size() == true) {
+					LogMessage* message = m_logQueue.remove();
 					write(*message);
 					delete message;
 				}
@@ -189,7 +189,7 @@ void Logger::log(const int area, const int level, const std::string& data, ...)
 
 		if (vasprintf(&tmp, data.c_str(), ap) != -1) {
 			std::string buffer(tmp);
-			m_logMessages.add(new LogMessage(LogMessage(area, level, buffer)));
+			m_logQueue.add(new LogMessage(LogMessage(area, level, buffer)));
 		}
 
 		va_end(ap);
@@ -203,7 +203,7 @@ void* Logger::run()
 	m_running = true;
 
 	while (m_running == true) {
-		LogMessage* message = m_logMessages.remove();
+		LogMessage* message = m_logQueue.remove();
 
 		sinkCI_t iter = m_sinks.begin();
 
@@ -212,12 +212,13 @@ void* Logger::run()
 
 				if (((*iter)->getAreas() & message->getArea()
 				&& (*iter)->getLevel() >= message->getLevel())
-				&& message->isRunning() == true)
+				&& message->isRunning() == true) {
 					(*iter)->addMessage(*message);
-
-				else if (message->isRunning() == false)
+				}
+				else if (message->isRunning() == false) {
 					(*iter)->addMessage(*message);
 					m_running = false;
+				}
 
 
 			}
@@ -231,6 +232,6 @@ void* Logger::run()
 
 void Logger::stop()
 {
-	m_logMessages.add(new LogMessage(LogMessage(bas, error, "", false)));
+	m_logQueue.add(new LogMessage(LogMessage(bas, error, "", false)));
 	usleep(100000);
 }

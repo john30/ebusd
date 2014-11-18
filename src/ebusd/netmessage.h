@@ -26,35 +26,35 @@
 class Connection;
 
 /**
- * @brief class for data/message transfer between connection and baseloop
+ * @brief class for data/message transfer between connection and baseloop.
  */
 class NetMessage
 {
 
 public:
 	/**
-	 * @brief constructs a new instance with message and source client address
-	 * @param data from client
-	 * @param connection to return result to correct client
+	 * @brief constructs a new instance with message and source client address.
+	 * @param data from client.
+	 * @param connection to return result to correct client.
 	 */
 	NetMessage(const std::string data, Connection* connection=NULL)
 		: m_data(data), m_connection(connection) {}
 
 	/**
 	 * @brief copy constructor.
-	 * @param src message object for copy
+	 * @param src message object for copy.
 	 */
 	NetMessage(const NetMessage& src) : m_data(src.m_data), m_connection(src.m_connection) {}
 
 	/**
-	 * @brief data from client
-	 * @return data string
+	 * @brief get the data string.
+	 * @return the data string.
 	 */
 	std::string getData() const { return m_data; }
 
 	/**
-	 * @brief original connection
-	 * @return pointer to connection
+	 * @brief original connection.
+	 * @return pointer to connection.
 	 */
 	Connection* getConnection() const { return m_connection; }
 

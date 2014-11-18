@@ -26,8 +26,8 @@ extern Logger& L;
 extern Appl& A;
 
 
-Network::Network(const bool localhost, WQueue<NetMessage*>* msgQueue)
-	: m_msgQueue(msgQueue), m_listening(false), m_running(false)
+Network::Network(const bool localhost, WQueue<NetMessage*>* netQueue)
+	: m_netQueue(netQueue), m_listening(false), m_running(false)
 {
 	if (localhost == true)
 		m_tcpServer = new TCPServer(A.getOptVal<int>("port"), "127.0.0.1");
@@ -99,7 +99,7 @@ void* Network::run()
 			if (socket == NULL)
 				continue;
 
-			Connection* connection = new Connection(socket, m_msgQueue);
+			Connection* connection = new Connection(socket, m_netQueue);
 			if (connection == NULL)
 				continue;
 

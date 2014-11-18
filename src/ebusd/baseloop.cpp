@@ -39,7 +39,7 @@ BaseLoop::BaseLoop()
 	m_ebusloop->start("ebusloop");
 
 	// create network
-	m_network = new Network(A.getOptVal<bool>("localhost"), &m_msgQueue);
+	m_network = new Network(A.getOptVal<bool>("localhost"), &m_netQueue);
 	m_network->start("network");
 }
 
@@ -67,7 +67,7 @@ void BaseLoop::start()
 		std::string result;
 
 		// recv new message from client
-		NetMessage* message = m_msgQueue.remove();
+		NetMessage* message = m_netQueue.remove();
 		std::string data = message->getData();
 
 		data.erase(std::remove(data.begin(), data.end(), '\r'), data.end());
@@ -400,7 +400,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		       << " reload    - reload ebus configuration   'reload'" << std::endl << std::endl
 		       << " stop      - stop daemon                 'stop'" << std::endl
 		       << " quit      - close connection            'quit'" << std::endl << std::endl
-		       << " help      - print this page             'help";
+		       << " help      - print this page             'help'";
 		break;
 
 	default:

@@ -184,7 +184,7 @@ public:
 
 protected:
 	/** queue for logging messages */
-	WQueue<LogMessage*> m_logMessages;
+	WQueue<LogMessage*> m_logQueue;
 
 private:
 	/** the logging areas */
@@ -328,7 +328,7 @@ private:
 	sink_t m_sinks;
 
 	/** queue for logging messages */
-	WQueue<LogMessage*> m_logMessages;
+	WQueue<LogMessage*> m_logQueue;
 
 	/** true if this instance is running */
 	bool m_running;
