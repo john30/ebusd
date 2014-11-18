@@ -22,11 +22,11 @@
 #include "appl.h"
 #include <poll.h>
 
-extern LogInstance& L;
+extern Logger& L;
 extern Appl& A;
 
 
-Network::Network(const bool localhost, WQueue<Message*>* msgQueue)
+Network::Network(const bool localhost, WQueue<NetMessage*>* msgQueue)
 	: m_msgQueue(msgQueue), m_listening(false), m_running(false)
 {
 	if (localhost == true)

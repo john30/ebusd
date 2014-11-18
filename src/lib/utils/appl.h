@@ -76,7 +76,7 @@ class Appl
 
 public:
 	/**
-	 * @brief create an appl instance and return the reference.
+	 * @brief create an instance and return the reference.
 	 * @param command is true if an command is needed.
 	 * @return the reference to instance.
 	 */
@@ -89,32 +89,32 @@ public:
 
 	/**
 	 * @brief save application version string.
-	 * @param version string
+	 * @param version string.
 	 */
 	void setVersion(const char* version) { m_version = version; }
 
 	/**
 	 * @brief create new entry of application option only for help page.
-	 * @param text string to print
+	 * @param text string to print.
 	 */
 	void addText(const char* text);
 
 	/**
 	 * @brief create new entry of application option.
-	 * @param name the long name
-	 * @param shortname optional short name
-	 * @param optval value of option
-	 * @param datatype data type of option value
-	 * @param optiontype type of given option
-	 * @param description hint text for help page
+	 * @param name the long name.
+	 * @param shortname optional short name.
+	 * @param optval value of option.
+	 * @param datatype data type of option value.
+	 * @param optiontype type of given option.
+	 * @param description hint text for help page.
 	 */
 	void addOption(const char* name, const char* shortname, OptVal optval,
 		       DataType datatype, OptionType optiontype, const char* description);
 
 	/**
-	 * @brief returns the value of the interested option
-	 * @param name the interested option
-	 * @return casted value
+	 * @brief returns the value of the interested option.
+	 * @param name the interested option.
+	 * @return casted value.
 	 */
 	template <typename T>
 	T getOptVal(const char* name)
@@ -125,26 +125,26 @@ public:
 
 	/**
 	 * @brief parse application arguments.
-	 * @param argc the number of options
-	 * @param argv the given options
+	 * @param argc the number of options.
+	 * @param argv the given options.
 	 */
 	void parseArgs(int argc, char* argv[]);
 
 	/**
-	 * @brief returns the number of saved commands and arguments
-	 * @return number of commands and arguments
+	 * @brief returns the number of saved commands and arguments.
+	 * @return number of commands and arguments.
 	 */
 	int numArgs() const { return m_arguments.size(); }
 
 	/**
-	 * @brief returns the string of an interested argument (0 = command)
-	 * @param num number of interested argument
-	 * @return string value
+	 * @brief returns the string of an interested argument (0 = command).
+	 * @param num number of interested argument.
+	 * @return string value.
 	 */
 	std::string getArg(const int num) const { return m_arguments[num]; }
 
 private:
-	/** private constructor - singleton pattern*/
+	/** private constructor - singleton pattern */
 	Appl(const bool command) : m_needCommand(command) {}
 	Appl(const Appl&);
 	Appl& operator=(const Appl&);
@@ -171,16 +171,16 @@ private:
 
 	/**
 	 * @brief checks the passed parameter if this is a valid option.
-	 * @param option to check
-	 * @param value to save if paramter is a valid option
+	 * @param option to check.
+	 * @param value to save if paramter is a valid option.
 	 */
 	bool checkOption(const std::string& option, const std::string& value);
 
 	/**
 	 * @brief save the passed value to option.
-	 * @param option name
-	 * @param value to save
-	 * @param datatype of given option
+	 * @param option name.
+	 * @param value to save.
+	 * @param datatype of given option.
 	 */
 	void setOptVal(const char* option, const std::string value, DataType datatype);
 

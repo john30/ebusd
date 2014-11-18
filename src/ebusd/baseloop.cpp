@@ -22,7 +22,7 @@
 #include "logger.h"
 #include "appl.h"
 
-extern LogInstance& L;
+extern Logger& L;
 extern Appl& A;
 
 BaseLoop::BaseLoop()
@@ -67,7 +67,7 @@ void BaseLoop::start()
 		std::string result;
 
 		// recv new message from client
-		Message* message = m_msgQueue.remove();
+		NetMessage* message = m_msgQueue.remove();
 		std::string data = message->getData();
 
 		data.erase(std::remove(data.begin(), data.end(), '\r'), data.end());
@@ -86,7 +86,7 @@ void BaseLoop::start()
 		// send result to client
 		result += '\n';
 		Connection* connection = message->getConnection();
-		connection->addResult(Message(result));
+		connection->addResult(NetMessage(result));
 
 		delete message;
 

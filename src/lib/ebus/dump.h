@@ -62,6 +62,7 @@ public:
 private:
 	/** the name of dump file*/
 	std::string m_filename;
+
 	/** max. size of dump file */
 	long m_filesize;
 

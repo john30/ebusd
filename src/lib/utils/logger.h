@@ -28,142 +28,309 @@
 #include <vector>
 #include <cstdarg>
 
-enum Areas  { bas=1, net=2, bus=4, all=7, Size_of_Areas=3 };
-enum Level { error=0, event, trace, debug, Size_of_Level };
+/** available types for all subsystems */
+enum AreasType {
+	bas=1,           // basis
+	net=2,           // network
+	bus=4,           // ebus
+	all=7,           // type for all subsystems
+	Size_of_Areas=3, // number of possible areas
+};
 
+/** available logging levels */
+enum LevelType {
+	error=0,       //
+	event,         //
+	trace,         //
+	debug,         //
+	Size_of_Level, // number of possible levels
+};
+
+/** global function to get calculate logging areas */
 int calcAreas(const std::string areas);
+
+/** global function to get calculate logging level */
 int calcLevel(const std::string level);
 
-
+/**
+ * @brief class which describes a logging message itself.
+ */
 class LogMessage
 {
 
 public:
-	LogMessage(const int area, const int level, const std::string text, const bool run=true);
+	/**
+	 * @brief creates a new logging message.
+	 * @param area the logging area of the message.
+	 * @param level the logging level of the message.
+	 * @param text the logging message.
+	 * @param running the status of logging subsystem.
+	 */
+	LogMessage(const int area, const int level, const std::string text, const bool running=true);
 
+	/**
+	 * @brief copy constructor to duplicate a logging message.
+	 * @param src a reference to logging message.
+	 */
 	LogMessage(const LogMessage& src)
 		: m_area(src.m_area), m_level(src.m_level), m_text(src.m_text),
-		  m_run(src.m_run), m_time(src.m_time) {}
+		  m_running(src.m_running), m_time(src.m_time) {}
 
-	void operator= (const LogMessage& src)
+	/**
+	 * @brief copy operator to duplicate a logging message.
+	 * @param src a reference to logging message.
+	 */
+	void operator=(const LogMessage& src)
 		{ m_area = src.m_area; m_level = src.m_level; m_text = src.m_text;
-		  m_run = src.m_run; m_time = src.m_time; }
+		  m_running = src.m_running; m_time = src.m_time; }
 
+	/**
+	 * @brief get the logging area.
+	 * @return the logging area.
+	 */
 	int getArea() const { return (m_area); }
+
+	/**
+	 * @brief get the logging level.
+	 * @return the logging level.
+	 */
 	int getLevel() const { return(m_level); }
+
+	/**
+	 * @brief get the logging text.
+	 * @return the logging text.
+	 */
 	std::string getText() const { return (m_text.c_str()); }
-	bool isRunning() const { return (m_run); }
+
+	/**
+	 * @brief status of logging subsystem.
+	 * @return false if logging subsystem is going down.
+	 */
+	bool isRunning() const { return m_running; }
+
+	/**
+	 * @brief get the logging timestamp.
+	 * @return the logging timestamp.
+	 */
 	std::string getTime() const { return (m_time.c_str()); }
 
 private:
+	/** the logging area */
 	int m_area;
+
+	/** the logging level */
 	int m_level;
+
+	/** the logging message */
 	std::string m_text;
-	bool m_run;
+
+	/** true if this instance is running */
+	bool m_running;
+
+	/** the logging timestamp */
 	std::string m_time;
 
 };
 
-enum Type { Console, Logfile };
-
+/**
+ * @brief base class for all type of logging sinks.
+ */
 class LogSink : public Thread
 {
 
 public:
-	LogSink(const int areas, const int level, const Type type, const char* name)
-		: m_areas(areas), m_level(level), m_type(type), m_name(name) {}
+	/**
+	 * @brief creates a virtual logging sink.
+	 * @param areas the logging areas.
+	 * @param level the logging level.
+	 */
+	LogSink(const int areas, const int level) : m_areas(areas), m_level(level) {}
 
+	/**
+	 * @brief adds the logging message to internal message queue.
+	 * @param message a reference to logging message.
+	 */
 	void addMessage(const LogMessage& message);
 
+	/**
+	 * @brief endless loop for logging sink instance.
+	 * @return void pointer.
+	 */
 	void* run();
 
+	/**
+	 * @brief get the logging areas.
+	 * @return the logging areas.
+	 */
 	int getAreas() const { return (m_areas); }
+
+	/**
+	 * @brief set the logging areas.
+	 * @param areas the logging areas.
+	 */
 	void setAreas(const int& areas) { m_areas = areas; }
 
+	/**
+	 * @brief get the logging level.
+	 * @return the logging level.
+	 */
 	int getLevel() const { return (m_level); }
+
+	/**
+	 * @brief set the logging level.
+	 * @param level the logging level.
+	 */
 	void setLevel(const int& level) { m_level = level; }
 
-	Type getType() const { return (m_type); }
-	const char* getName() const { return (m_name.c_str()); }
-
 protected:
-	WQueue<LogMessage*> m_queue;
+	/** queue for logging messages */
+	WQueue<LogMessage*> m_logMessages;
 
 private:
+	/** the logging areas */
 	int m_areas;
-	int m_level;
-	Type m_type;
-	std::string m_name;
 
+	/** the logging level */
+	int m_level;
+
+	/**
+	 * @brief virtual function for writing the logging message.
+	 * @param message the logging message.
+	 */
 	virtual void write(const LogMessage& message) const = 0;
 
 };
 
+/**
+ * @brief class for console logging sink type.
+ */
 class LogConsole : public LogSink
 {
 
 public:
+	/**
+	 * @brief creates a console logging sink.
+	 * @param areas the logging areas.
+	 * @param level the logging level.
+	 * @param name the thread name for logging sink.
+	 */
 	LogConsole(const int areas, const int level, const char* name)
-		: LogSink(areas, level, Console, name), m_instance(++m_numInstance)
-		{ this->start(name); }
+		: LogSink(areas, level) { this->start(name); }
 
 private:
-	const int m_instance;
-	static int m_numInstance;
-
+	/**
+	 * @brief write the logging message to stdout.
+	 * @param message the logging message.
+	 */
 	void write(const LogMessage& message) const;
 
 };
 
+/**
+ * @brief class for logfile logging sink type.
+ */
 class LogFile : public LogSink
 {
 
 public:
-	LogFile(const int areas, const int level, const char* name, const char* filename)
-		: LogSink(areas, level, Logfile, name), m_filename(filename), m_instance(++m_numInstance)
-		{ this->start(name); }
+	/**
+	 * @brief creates a log file logging sink.
+	 * @param areas the logging areas.
+	 * @param level the logging level.
+	 * @param name the thread name for logging sink.
+	 * @param file the log file.
+	 */
+	LogFile(const int areas, const int level, const char* name, const char* file)
+		: LogSink(areas, level), m_file(file) { this->start(name); }
 
 private:
-	std::string m_filename;
-	const int m_instance;
-	static int m_numInstance;
+	/** the logging file */
+	std::string m_file;
 
+	/**
+	 * @brief write the logging message to specific log file.
+	 * @param message the logging message.
+	 */
 	void write(const LogMessage& message) const;
 
 };
 
-class LogInstance : public Thread
+/**
+ * @brief logger base class which provide the logging interface.
+ */
+class Logger : public Thread
 {
 
 public:
-	static LogInstance& Instance();
+	/**
+	 * @brief create an instance and return the reference.
+	 * @return the reference to instance.
+	 */
+	static Logger& Instance();
 
-	~LogInstance();
+	/**
+	 * @brief destructor.
+	 */
+	~Logger();
 
-	LogInstance& operator+= (LogSink* sink);
-	LogInstance& operator-= (const LogSink* sink);
+	/**
+	 * @brief adds a logging sink and returns the reference to logger.
+	 * @param pointer of logging sink.
+	 * @return the reference to logger.
+	 */
+	Logger& operator+=(LogSink* sink);
 
+	/**
+	 * @brief removes a logging sink and returns the reference to logger.
+	 * @param pointer of logging sink.
+	 * @return the reference to logger.
+	 */
+	Logger& operator-=(const LogSink* sink);
+
+	/**
+	 * @brief creates a logging message and add them to internal message queue.
+	 * @param area the logging area of the message.
+	 * @param level the logging level of the message.
+	 * @param text the logging message.
+	 * @param ... possible 'variable argument lists'.
+	 */
 	void log(const int area, const int level, const std::string& text, ...);
 
-	int getNumberOfSinks() const { return(m_sinks.size()); }
-	LogSink* getSink(const int Index) const { return(m_sinks[Index]); }
+	/**
+	 * @brief returns the sink at the specified index.
+	 * @param index the index of the sink to return.
+	 * @return the sink at the specified index.
+	 */
+	LogSink* getSink(const int index) const { return(m_sinks[index]); }
 
+	/**
+	 * @brief endless loop for logger instance.
+	 * @return void pointer.
+	 */
 	void* run();
 
+	/**
+	 * @brief shutdown logger subsystem.
+	 */
 	void stop();
 
 private:
-	LogInstance() {}
-	LogInstance(const LogInstance&);
-	LogInstance& operator=(const LogInstance&);
+	/** private constructor - singleton pattern */
+	Logger() {}
+	Logger(const Logger&);
+	Logger& operator=(const Logger&);
 
+	/** typedefs for a vector of type LogSink* */
 	typedef std::vector<LogSink*> sink_t;
 	typedef std::vector<LogSink*>::iterator sinkCI_t;
 
+	/** vector of available logging sinks */
 	sink_t m_sinks;
 
-	WQueue<LogMessage*> m_messages;
+	/** queue for logging messages */
+	WQueue<LogMessage*> m_logMessages;
 
+	/** true if this instance is running */
 	bool m_running;
 
 };

@@ -24,7 +24,7 @@
 #include <string>
 
 /**
- * @brief class for low level tcp socket operations. (open, close, send, receive)
+ * @brief class for low level tcp socket operations. (open, close, send, receive).
  */
 class TCPSocket
 {
@@ -82,8 +82,10 @@ public:
 private:
 	/** file descriptor from tcp socket */
 	int m_sfd;
+
 	/** port of tcp socket */
 	int m_port;
+
 	/** ip address of tcp socket */
 	std::string  m_ip;
 
@@ -122,8 +124,8 @@ class TCPServer
 public:
 	/**
 	 * @brief creates a new instance of a listening tcp server.
-	 * @param port the tcp port
-	 * @param address the ip address
+	 * @param port the tcp port.
+	 * @param address the ip address.
 	 */
 	TCPServer(const int port, const std::string address)
 		: m_lfd(0), m_port(port), m_address(address), m_listening(false) {}
@@ -153,10 +155,13 @@ public:
 private:
 	/** file descriptor from listening tcp socket */
 	int m_lfd;
+
 	/** listening tcp port */
 	int m_port;
+
 	/** listening tcp socket ip address */
 	std::string m_address;
+
 	/** true if object is already listening */
 	bool m_listening;
 

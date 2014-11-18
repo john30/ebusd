@@ -28,7 +28,7 @@ class Daemon
 
 public:
 	/**
-	 * @brief create an daemon instance and return the reference.
+	 * @brief create an instance and return the reference.
 	 * @return the reference to instance.
 	 */
 	static Daemon& Instance();
@@ -58,8 +58,10 @@ private:
 
 	/** status of process; true if we are a daemon */
 	bool m_status;
+
 	/** name of the pid file*/
 	const char* m_pidfile;
+
 	/** file descriptor of the pid file */
 	int m_pidfd;
 

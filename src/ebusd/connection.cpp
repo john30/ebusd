@@ -22,13 +22,13 @@
 #include <cstring>
 #include <poll.h>
 
-extern LogInstance& L;
+extern Logger& L;
 
 int Connection::m_sum = 0;
 
-void Connection::addResult(Message message)
+void Connection::addResult(NetMessage message)
 {
-	Message* tmp = new Message(Message(message));
+	NetMessage* tmp = new NetMessage(NetMessage(message));
 	m_result.add(tmp);
 }
 
@@ -80,11 +80,11 @@ void* Connection::run()
 
 			// send data
 			data[datalen] = '\0';
-			m_data->add(new Message(data, this));
+			m_data->add(new NetMessage(data, this));
 
 			// wait for result
 			L.log(net, debug, "[%05d] wait for result", getID());
-			Message* message = m_result.remove();
+			NetMessage* message = m_result.remove();
 
 			L.log(net, debug, "[%05d] result added", getID());
 			std::string result(message->getData());

@@ -32,7 +32,7 @@ using namespace libebus;
 
 Appl& A = Appl::Instance();
 Daemon& D = Daemon::Instance();
-LogInstance& L = LogInstance::Instance();
+Logger& L = Logger::Instance();
 
 BaseLoop* baseloop;
 

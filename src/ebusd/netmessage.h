@@ -17,8 +17,8 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef MESSAGE_H_
-#define MESSAGE_H_
+#ifndef NETMESSAGE_H_
+#define NETMESSAGE_H_
 
 #include <string>
 
@@ -28,7 +28,7 @@ class Connection;
 /**
  * @brief class for data/message transfer between connection and baseloop
  */
-class Message
+class NetMessage
 {
 
 public:
@@ -37,14 +37,14 @@ public:
 	 * @param data from client
 	 * @param connection to return result to correct client
 	 */
-	Message(const std::string data, Connection* connection=NULL)
+	NetMessage(const std::string data, Connection* connection=NULL)
 		: m_data(data), m_connection(connection) {}
 
 	/**
 	 * @brief copy constructor.
 	 * @param src message object for copy
 	 */
-	Message(const Message& src) : m_data(src.m_data), m_connection(src.m_connection) {}
+	NetMessage(const NetMessage& src) : m_data(src.m_data), m_connection(src.m_connection) {}
 
 	/**
 	 * @brief data from client
@@ -61,10 +61,11 @@ public:
 private:
 	/** the data/message string */
 	std::string m_data;
+
 	/** the source connection */
 	Connection* m_connection;
 
 };
 
 
-#endif // MESSAGE_H_
+#endif // NETMESSAGE_H_

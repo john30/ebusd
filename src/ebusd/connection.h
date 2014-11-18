@@ -24,16 +24,16 @@
 #include "wqueue.h"
 #include "notify.h"
 #include "thread.h"
-#include "message.h"
+#include "netmessage.h"
 
 class Connection : public Thread
 {
 
 public:
-	Connection(TCPSocket* socket, WQueue<Message*>* data)
+	Connection(TCPSocket* socket, WQueue<NetMessage*>* data)
 		: m_socket(socket), m_data(data), m_running(false) { m_sum++; m_id = m_sum;}
 
-	void addResult(Message message);
+	void addResult(NetMessage message);
 
 	void* run();
 	void stop() const { m_notify.notify(); }
@@ -43,8 +43,8 @@ public:
 
 private:
 	TCPSocket* m_socket;
-	WQueue<Message*>* m_data;
-	WQueue<Message*> m_result;
+	WQueue<NetMessage*>* m_data;
+	WQueue<NetMessage*> m_result;
 	Notify m_notify;
 	bool m_running;
 	int m_id;

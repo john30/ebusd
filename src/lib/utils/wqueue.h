@@ -51,7 +51,7 @@ public:
 
 	/**
 	 * @brief add a new item to the end of queue.
-	 * @param item
+	 * @param item to add.
 	 */
 	void add(T item)
 	{
@@ -65,7 +65,7 @@ public:
 
 	/**
 	 * @brief remove the first item from queue.
-	 * @return the item
+	 * @return the item.
 	 */
 	T remove()
 	{
@@ -84,7 +84,7 @@ public:
 
 	/**
 	 * @brief return the first item from queue without remove.
-	 * @return the item
+	 * @return the item.
 	 */
 	T next()
 	{
@@ -102,7 +102,7 @@ public:
 
 	/**
 	 * @brief the number of entries inside queue.
-	 * @return the size
+	 * @return the size.
 	 */
 	int size()
 	{
@@ -118,8 +118,10 @@ public:
 private:
 	/** the queue itself */
 	std::list<T> m_queue;
+
 	/** mutex variable for exclusive lock */
 	pthread_mutex_t m_mutex;
+
 	/** condition variable for exclusive lock */
 	pthread_cond_t m_cond;
 

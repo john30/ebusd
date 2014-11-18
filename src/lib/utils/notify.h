@@ -42,21 +42,22 @@ public:
 
 	/**
 	 * @brief file descriptor to watch for notify event.
-	 * @return the notification value
+	 * @return the notification value.
 	 */
 	int notifyFD() { return m_recvfd; }
 
 	/**
 	 * @brief write notify event to file descriptor.
-	 * @return result of writing notification
+	 * @return result of writing notification.
 	 */
 	int notify() const { return write(m_sendfd,"1",1); }
 
 private:
 	/** file descriptor to watch */
-        int m_recvfd;
-        /** file descriptor to notify */
-        int m_sendfd;
+	int m_recvfd;
+
+	/** file descriptor to notify */
+	int m_sendfd;
 
 };
 

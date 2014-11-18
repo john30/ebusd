@@ -22,7 +22,7 @@
 #include "appl.h"
 #include <iomanip>
 
-extern LogInstance& L;
+extern Logger& L;
 extern Appl& A;
 
 EBusLoop::EBusLoop(Commands* commands)

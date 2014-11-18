@@ -65,7 +65,7 @@ public:
 	pthread_t self() {return m_threadid; }
 
 	/**
-	 * @brief virtul function which must be implented in derived class.
+	 * @brief virtul function which must be implemented in derived class.
 	 * @return void pointer.
 	 */
 	virtual void* run() = 0;
@@ -73,8 +73,10 @@ public:
 private:
 	/** own thread id */
 	pthread_t m_threadid;
+
 	/** true if thread is running */
 	bool m_running;
+
 	/** true if thread is detached */
 	bool m_detached;
 
