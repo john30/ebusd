@@ -340,7 +340,7 @@ void BusLoop::addPollMessage()
 		BusMessage* message = new BusMessage(busCommand, true, false);
 		L.log(bus, trace, " msg: %s", busCommand.c_str());
 
-		addBusMessage(message);
+		addMessage(message);
 	}
 }
 
@@ -675,6 +675,6 @@ void BusLoop::addScanMessage()
 		BusMessage* message = new BusMessage(busCommand, true, true);
 		L.log(bus, trace, " msg: %s", busCommand.c_str());
 
-		addBusMessage(message);
+		addMessage(message);
 	}
 }

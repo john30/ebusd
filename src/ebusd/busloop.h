@@ -80,7 +80,7 @@ public:
 	void* run();
 	void stop() { m_stop = true; }
 
-	void addBusMessage(BusMessage* message) { m_busQueue.add(message); }
+	void addMessage(BusMessage* message) { m_busQueue.add(message); }
 
 	void dump() { m_dumpState == true ? m_dumpState = false :  m_dumpState = true ; }
 	void raw() { m_logRawData == true ? m_logRawData = false :  m_logRawData = true ; }
