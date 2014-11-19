@@ -31,9 +31,7 @@ class Connection : public Thread
 
 public:
 	Connection(TCPSocket* socket, WQueue<NetMessage*>* netQueue)
-		: m_socket(socket), m_netQueueData(netQueue), m_running(false) { m_sum++; m_id = m_sum;}
-
-	void addResult(NetMessage message);
+		: m_socket(socket), m_netQueue(netQueue), m_running(false) { m_sum++; m_id = m_sum;}
 
 	void* run();
 	void stop() const { m_notify.notify(); }
@@ -43,8 +41,7 @@ public:
 
 private:
 	TCPSocket* m_socket;
-	WQueue<NetMessage*>* m_netQueueData;
-	WQueue<NetMessage*> m_netQueueResult;
+	WQueue<NetMessage*>* m_netQueue;
 	Notify m_notify;
 	bool m_running;
 	int m_id;

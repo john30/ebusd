@@ -35,16 +35,27 @@ public:
 	/**
 	 * @brief constructs a new instance with message and source client address.
 	 * @param data from client.
-	 * @param connection to return result to correct client.
 	 */
-	NetMessage(const std::string data, Connection* connection=NULL)
-		: m_data(data), m_connection(connection) {}
+	NetMessage(const std::string data) : m_data(data)
+	{
+		pthread_mutex_init(&m_mutex, NULL);
+		pthread_cond_init(&m_cond, NULL);
+	}
+
+	/**
+	 * @brief destructor.
+	 */
+	~NetMessage()
+	{
+		pthread_mutex_destroy(&m_mutex);
+		pthread_cond_destroy(&m_cond);
+	}
 
 	/**
 	 * @brief copy constructor.
 	 * @param src message object for copy.
 	 */
-	NetMessage(const NetMessage& src) : m_data(src.m_data), m_connection(src.m_connection) {}
+	NetMessage(const NetMessage& src) : m_data(src.m_data) {}
 
 	/**
 	 * @brief get the data string.
@@ -53,17 +64,52 @@ public:
 	std::string getData() const { return m_data; }
 
 	/**
-	 * @brief original connection.
-	 * @return pointer to connection.
+	 * @brief get the result string.
+	 * @return the result string.
 	 */
-	Connection* getConnection() const { return m_connection; }
+	std::string getResult() const { return m_result; }
+
+	/**
+	 * @brief set the result string.
+	 * @return the result string.
+	 */
+	void setResult(const std::string result) { m_result = result; }
+
+	/**
+	 * @brief wait on notification.
+	 */
+	void waitSignal()
+	{
+		pthread_mutex_lock(&m_mutex);
+
+		while (m_result.size() == 0)
+			pthread_cond_wait(&m_cond, &m_mutex);
+
+		pthread_mutex_unlock(&m_mutex);
+	}
+
+	/**
+	 * @brief send notification.
+	 */
+	void sendSignal()
+	{
+		pthread_mutex_lock(&m_mutex);
+		pthread_cond_signal(&m_cond);
+		pthread_mutex_unlock(&m_mutex);
+	}
 
 private:
-	/** the data/message string */
+	/** the data string */
 	std::string m_data;
 
-	/** the source connection */
-	Connection* m_connection;
+	/** the result string */
+	std::string m_result;
+
+	/** mutex variable for exclusive lock */
+	pthread_mutex_t m_mutex;
+
+	/** condition variable for exclusive lock */
+	pthread_cond_t m_cond;
 
 };
 

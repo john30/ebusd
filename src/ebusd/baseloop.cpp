@@ -85,10 +85,8 @@ void BaseLoop::start()
 
 		// send result to client
 		result += '\n';
-		Connection* connection = message->getConnection();
-		connection->addResult(NetMessage(result));
-
-		delete message;
+		message->setResult(result);
+		message->sendSignal();
 
 		// stop daemon
 		if (strcasecmp(data.c_str(), "STOP") == 0)

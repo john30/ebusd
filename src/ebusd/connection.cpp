@@ -26,12 +26,6 @@ extern Logger& L;
 
 int Connection::m_sum = 0;
 
-void Connection::addResult(NetMessage message)
-{
-	NetMessage* tmp = new NetMessage(NetMessage(message));
-	m_netQueueResult.add(tmp);
-}
-
 void* Connection::run()
 {
 	m_running = true;
@@ -80,21 +74,20 @@ void* Connection::run()
 
 			// send data
 			data[datalen] = '\0';
-			m_netQueueData->add(new NetMessage(data, this));
+			NetMessage message(data);
+			m_netQueue->add(&message);
 
 			// wait for result
 			L.log(net, debug, "[%05d] wait for result", getID());
-			NetMessage* message = m_netQueueResult.remove();
+			message.waitSignal();
 
 			L.log(net, debug, "[%05d] result added", getID());
-			std::string result(message->getData());
+			std::string result = message.getResult();
 
 			if (m_socket->isValid() == true)
 				m_socket->send(result.c_str(), result.size());
 			else
 				break;
-
-			delete message;
 
 		}
 
