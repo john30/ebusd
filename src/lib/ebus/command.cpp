@@ -27,10 +27,6 @@
 #include <vector>
 #include <cstring>
 
-namespace libebus
-{
-
-
 std::string Command::calcData()
 {
 	// encode - only first entry will be encoded
@@ -339,7 +335,4 @@ void Command::encode(const std::string& data, const std::string& type,
 
 	delete help;
 }
-
-
-} //namespace
 

@@ -22,9 +22,6 @@
 
 #include <string>
 
-namespace libebus
-{
-
 /**
  * @brief Class for writing raw bytes to binary file.
  */
@@ -67,8 +64,5 @@ private:
 	long m_filesize;
 
 };
-
-
-} //namespace
 
 #endif // LIBEBUS_DUMP_H_

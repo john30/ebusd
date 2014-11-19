@@ -19,9 +19,6 @@
 
 #include "buscommand.h"
 
-namespace libebus
-{
-
 BusCommand::BusCommand(const std::string commandStr, const bool poll, const bool scan)
 	: m_poll(poll), m_scan(scan), m_command(commandStr), m_result(), m_resultCode(RESULT_OK)
 {
@@ -63,7 +60,4 @@ const std::string BusCommand::getMessageStr()
 
 	return result;
 }
-
-
-} //namespace
 

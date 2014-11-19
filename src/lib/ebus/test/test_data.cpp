@@ -21,8 +21,6 @@
 #include <iostream>
 #include <iomanip>
 
-using namespace libebus;
-
 int main ()
 {
 	std::string checks[][4] = {
@@ -72,7 +70,7 @@ int main ()
 		result_t result = DataField::create(mstr[1], false, it, entries.end(), predefined, fields, nextPos);
 
 		if (result != RESULT_OK) {
-			std::cout << "create \"" << checks[i][0] << "\" failed: " << getResultCodeCStr(result) << std::endl;
+			std::cout << "create \"" << checks[i][0] << "\" failed: " << getResultCode(result) << std::endl;
 			continue;
 		}
 		if (fields.empty() == true) {
@@ -86,7 +84,7 @@ int main ()
 		std::ostringstream output;
 		result = field->read(mstr, sstr, output);
 		if (result != RESULT_OK) {
-			std::cout << "read \"" << checks[i][0] << "\" failed: " << getResultCodeCStr(result) << std::endl;
+			std::cout << "read \"" << checks[i][0] << "\" failed: " << getResultCode(result) << std::endl;
 		}
 		else {
 			std::string gotStr = output.str();
@@ -101,12 +99,12 @@ int main ()
 			SymbolString writeSstr = SymbolString(sstr.getDataStr().substr(0, 2), false);
 
 			if (result != RESULT_OK) {
-				std::cout << "create \"" << checks[i][0] << "\" failed: " << getResultCodeCStr(result) << std::endl;
+				std::cout << "create \"" << checks[i][0] << "\" failed: " << getResultCode(result) << std::endl;
 				return 1;
 			}
 			result = field->write(gotStr, writeMstr, writeSstr);
 			if (result != RESULT_OK) {
-				std::cout << "write \"" << checks[i][0] << "\" failed: " << getResultCodeCStr(result) << std::endl;
+				std::cout << "write \"" << checks[i][0] << "\" failed: " << getResultCode(result) << std::endl;
 			}
 			else {
 				if (mstr == writeMstr && sstr == writeSstr)

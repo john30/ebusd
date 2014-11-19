@@ -21,10 +21,6 @@
 #include <iostream>
 #include <iomanip>
 
-
-using namespace libebus;
-
-
 int main()
 {
 	Decode* help_dec = NULL;

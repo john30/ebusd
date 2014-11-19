@@ -23,11 +23,6 @@
 #include "symbol.h"
 #include "result.h"
 
-
-namespace libebus
-{
-
-
 enum CommandType { invalid, broadcast, masterMaster, masterSlave };
 
 class BusCommand
@@ -45,7 +40,7 @@ public:
 	SymbolString getResult() const { return m_result; }
 
 	bool isErrorResult() const { return m_resultCode < 0; }
-	const char* getResultCodeCStr() const { return libebus::getResultCodeCStr(m_resultCode); }
+	const char* getResultCodeCStr() const { return getResultCode(m_resultCode); }
 	void setResult(const SymbolString result, const int resultCode)
 		{ m_result = result; m_resultCode = resultCode; }
 
@@ -66,7 +61,5 @@ private:
 	pthread_cond_t m_cond;
 };
 
-
-} //namespace
-
 #endif // LIBEBUS_BUSCOMMAND_H_
+

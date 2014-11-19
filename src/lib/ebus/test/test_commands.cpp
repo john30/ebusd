@@ -25,8 +25,6 @@
 #include <sstream>
 #include <vector>
 
-using namespace libebus;
-
 // will be part of cfg csv class
 void readCSV(std::istream& is, Commands& commands){
 	std::string line;

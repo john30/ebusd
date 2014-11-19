@@ -25,10 +25,6 @@
 #include <sstream>
 #include <queue>
 
-namespace libebus
-{
-
-
 static const unsigned char ESC = 0xA9;       // escape symbol, either followed by 0x00 for the value 0xA9, or 0x01 for the value 0xAA
 static const unsigned char SYN = 0xAA;       // synchronization symbol
 static const unsigned char ACK = 0x00;       // positive acknowledge
@@ -138,8 +134,5 @@ private:
  * @return <code>true</code> if the specified address is a master address.
  */
 bool isMaster(unsigned char addr);
-
-
-} //namespace
 
 #endif // LIBEBUS_SYMBOL_H_

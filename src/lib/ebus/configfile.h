@@ -24,9 +24,6 @@
 #include <string>
 #include <vector>
 
-namespace libebus
-{
-
 /** available file endings / types. */
 enum FileType { CSV, XML };
 
@@ -147,7 +144,5 @@ private:
 
 };
 
-
-} //namespace
-
 #endif // LIBEBUS_CONFIGFILE_H_
+

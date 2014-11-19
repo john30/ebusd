@@ -21,8 +21,6 @@
 #include <iostream>
 #include <iomanip>
 
-using namespace libebus;
-
 int main ()
 {
 	SymbolString sstr = SymbolString("10feb5050427a915aa");

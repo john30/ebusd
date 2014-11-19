@@ -30,8 +30,6 @@
 #include <iomanip>
 #include <unistd.h>
 
-using namespace libebus;
-
 Appl& A = Appl::Instance(true);
 
 void define_args()

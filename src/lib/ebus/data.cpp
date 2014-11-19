@@ -27,9 +27,6 @@
 #include <vector>
 #include <cstring>
 
-namespace libebus
-{
-
 /** the known data field types. */
 static const dataType_t dataTypes[] = {
 	{"STR", 16, bt_str,     ADJ,        ' ',          1,         16,    0}, // >= 1 byte character string filled up with space
@@ -657,7 +654,4 @@ result_t ValueListDataField::writeSymbols(std::istringstream& input, SymbolStrin
 
 	return RESULT_ERR_INVALID_ARG; // value assignment not found
 }
-
-
-} //namespace
 

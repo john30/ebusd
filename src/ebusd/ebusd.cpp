@@ -28,8 +28,6 @@
 #include <csignal>
 #include <iostream>
 
-using namespace libebus;
-
 Appl& A = Appl::Instance();
 Daemon& D = Daemon::Instance();
 Logger& L = Logger::Instance();

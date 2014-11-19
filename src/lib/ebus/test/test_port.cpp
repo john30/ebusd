@@ -21,8 +21,6 @@
 #include <iostream>
 #include <iomanip>
 
-using namespace libebus;
-
 int main ()
 {
 	std::string dev("/dev/ttyUSB20");

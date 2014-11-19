@@ -26,10 +26,6 @@
 #include <vector>
 #include <cstring>
 
-namespace libebus
-{
-
-
 Decode::Decode(const std::string& data, const std::string& factor)
 	: m_data(data)
 {
@@ -346,7 +342,4 @@ std::string DecodeTTM::decode()
 
 	return result.str();
 }
-
-
-} //namespace
 

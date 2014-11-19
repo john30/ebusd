@@ -25,10 +25,6 @@
 #include <vector>
 #include <map>
 
-namespace libebus
-{
-
-
 typedef std::vector<cmd_t> cmdDB_t;
 typedef cmdDB_t::const_iterator cmdDBCI_t;
 
@@ -79,7 +75,5 @@ private:
 
 };
 
-
-} //namespace
-
 #endif // LIBEBUS_COMMANDS_H_
+

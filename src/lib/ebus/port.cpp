@@ -26,11 +26,6 @@
 #include <netdb.h>
 #include <poll.h>
 
-
-namespace libebus
-{
-
-
 bool Device::isOpen()
 {
 	if (isValid() == false)
@@ -256,9 +251,4 @@ void Port::setType(const DeviceType type)
 		break;
 	};
 };
-
-
-} //namespace
-
-
 

@@ -22,10 +22,6 @@
 #include <fstream>
 #include <dirent.h>
 
-namespace libebus
-{
-
-
 void ConfigFileCSV::parse(std::istream& is, Commands& commands)
 {
 	std::string line;
@@ -131,7 +127,4 @@ void ConfigCommands::addFiles(const std::string path, const std::string extensio
 
         closedir(dir);
 };
-
-
-} //namespace
 

@@ -21,10 +21,6 @@
 #include <iostream>
 #include <iomanip>
 
-
-using namespace libebus;
-
-
 int main()
 {
 	Encode* help_enc = NULL;

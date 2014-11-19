@@ -19,10 +19,7 @@
 
 #include "result.h"
 
-namespace libebus
-{
-
-const char* getResultCodeCStr(result_t resultCode) {
+const char* getResultCode(result_t resultCode) {
 	switch (resultCode) {
 		case RESULT_ERR_SEND: return "ERR_SEND: send error";
 		case RESULT_ERR_EXTRA_DATA: return "ERR_EXTRA_DATA: received bytes > sent bytes";
@@ -43,5 +40,3 @@ const char* getResultCodeCStr(result_t resultCode) {
 	}
 }
 
-
-} //namespace

@@ -21,9 +21,6 @@
 #include <fstream>
 #include <cstdio>
 
-namespace libebus
-{
-
 int Dump::write(const char* byte)
 {
 	int ret = 0;
@@ -46,8 +43,4 @@ int Dump::write(const char* byte)
 
 	return ret;
 }
-
-
-
-} //namespace
 

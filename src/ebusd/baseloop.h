@@ -24,9 +24,6 @@
 #include "network.h"
 #include "ebusloop.h"
 
-using namespace libebus;
-
-
 class BaseLoop
 {
 

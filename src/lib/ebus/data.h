@@ -26,10 +26,6 @@
 #include <vector>
 #include <map>
 
-namespace libebus
-{
-
-
 /** the message part in which a data field is stored. */
 enum PartType {
 	pt_masterData, // stored in master data
@@ -314,8 +310,5 @@ protected:
 	std::map<unsigned int, std::string> m_values;
 
 };
-
-
-} //namespace
 
 #endif // LIBEBUS_DATA_H_

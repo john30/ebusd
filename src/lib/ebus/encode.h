@@ -22,10 +22,6 @@
 
 #include <string>
 
-namespace libebus
-{
-
-
 class Encode
 {
 
@@ -284,8 +280,5 @@ public:
 	std::string encode();
 
 };
-
-
-} //namespace
 
 #endif // LIBEBUS_ENCODE_H_

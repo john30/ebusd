@@ -30,9 +30,6 @@
 /** the maximum time [us] allowed for retrieving a byte from an addressed slave */
 #define RECV_TIMEOUT 10000
 
-using namespace libebus;
-
-
 class EBusLoop : public Thread
 {
 

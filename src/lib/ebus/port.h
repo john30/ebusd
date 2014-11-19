@@ -25,9 +25,6 @@
 #include <termios.h>
 #include <unistd.h>
 
-namespace libebus
-{
-
 /** available device types. */
 enum DeviceType { SERIAL, NETWORK };
 
@@ -266,8 +263,5 @@ private:
 	void setType(const DeviceType type);
 
 };
-
-
-} //namespace
 
 #endif // LIBEBUS_PORT_H_

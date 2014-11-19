@@ -25,10 +25,6 @@
 #include <vector>
 #include <cstring>
 
-namespace libebus
-{
-
-
 Commands::~Commands()
 {
 	for (mapCI_t iter = m_pollDB.begin(); iter != m_pollDB.end(); ++iter)
@@ -259,7 +255,4 @@ void Commands::printCommand(const cmd_t& command) const
 	for (cmdCI_t i = command.begin(); i != command.end(); i++)
 		std::cout << *i << ';';
 }
-
-
-} //namespace
 
