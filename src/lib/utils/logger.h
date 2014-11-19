@@ -69,22 +69,6 @@ public:
 	LogMessage(const int area, const int level, const std::string text, const bool running=true);
 
 	/**
-	 * @brief copy constructor to duplicate a logging message.
-	 * @param src a reference to logging message.
-	 */
-	LogMessage(const LogMessage& src)
-		: m_area(src.m_area), m_level(src.m_level), m_text(src.m_text),
-		  m_running(src.m_running), m_time(src.m_time) {}
-
-	/**
-	 * @brief copy operator to duplicate a logging message.
-	 * @param src a reference to logging message.
-	 */
-	void operator=(const LogMessage& src)
-		{ m_area = src.m_area; m_level = src.m_level; m_text = src.m_text;
-		  m_running = src.m_running; m_time = src.m_time; }
-
-	/**
 	 * @brief get the logging area.
 	 * @return the logging area.
 	 */

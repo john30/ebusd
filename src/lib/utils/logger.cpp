@@ -189,7 +189,7 @@ void Logger::log(const int area, const int level, const std::string& data, ...)
 
 		if (vasprintf(&tmp, data.c_str(), ap) != -1) {
 			std::string buffer(tmp);
-			m_logQueue.add(new LogMessage(LogMessage(area, level, buffer)));
+			m_logQueue.add(new LogMessage(area, level, buffer));
 		}
 
 		va_end(ap);
