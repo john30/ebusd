@@ -17,8 +17,8 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef EBUSLOOP_H_
-#define EBUSLOOP_H_
+#ifndef BUSLOOP_H_
+#define BUSLOOP_H_
 
 #include "commands.h"
 #include "port.h"
@@ -30,12 +30,12 @@
 /** the maximum time [us] allowed for retrieving a byte from an addressed slave */
 #define RECV_TIMEOUT 10000
 
-class EBusLoop : public Thread
+class BusLoop : public Thread
 {
 
 public:
-	EBusLoop(Commands* commands);
-	~EBusLoop();
+	BusLoop(Commands* commands);
+	~BusLoop();
 
 	void* run();
 	void stop() { m_stop = true; }
@@ -92,4 +92,4 @@ private:
 
 };
 
-#endif // EBUSLOOP_H_
+#endif // BUSLOOP_H_

@@ -23,19 +23,19 @@
 #include <string>
 
 /**
- * @brief Class for writing raw bytes to binary file.
+ * @brief class for writing raw bytes to binary file.
  */
 class Dump
 {
 
 public:
 	/**
-	 * @brief Create a new instance to write dump files.
-	 * @param filename which will be used for dumping raw bytes.
-	 * @param filesize max. Size of the dump file, before switching.
+	 * @brief create a new instance to write dump files.
+	 * @param name the file name of dump file.
+	 * @param size the max. size of the dump file, before switching.
 	 */
-	Dump(std::string filename, long filesize)
-		: m_filename(filename), m_filesize(filesize) {}
+	Dump(std::string name, long size)
+		: m_name(name), m_size(size) {}
 
 	/**
 	 * @brief write byte to dump file.
@@ -45,23 +45,23 @@ public:
 	int write(const char* byte);
 
 	/**
-	 * @brief setter for dump file name.
-	 * @param filename which will be used for dumping raw bytes.
+	 * @brief set the name of dump file.
+	 * @param name the file name of dump file.
 	 */
-	void setFilename(const std::string& filename) { m_filename = filename; }
+	void setName(const std::string& name) { m_name = name; }
 
 	/**
-	 * @brief setter for max size of dump file.
-	 * @param filesize max. Size of the dump file, before switching.
+	 * @brief set the max size of dump file.
+	 * @param size the max. size of the dump file, before switching.
 	 */
-	void setFilesize(const long filesize) { m_filesize = filesize; }
+	void setSize(const long size) { m_size = size; }
 
 private:
 	/** the name of dump file*/
-	std::string m_filename;
+	std::string m_name;
 
 	/** max. size of dump file */
-	long m_filesize;
+	long m_size;
 
 };
 

@@ -17,7 +17,7 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#include "ebusloop.h"
+#include "busloop.h"
 #include "logger.h"
 #include "appl.h"
 #include <iomanip>
@@ -25,7 +25,7 @@
 extern Logger& L;
 extern Appl& A;
 
-EBusLoop::EBusLoop(Commands* commands)
+BusLoop::BusLoop(Commands* commands)
 	: m_commands(commands), m_stop(false), m_lockCounter(0),
 	  m_priorRetry(false), m_scan(false), m_scanFull(false), m_scanIndex(0)
 {
@@ -51,7 +51,7 @@ EBusLoop::EBusLoop(Commands* commands)
 	m_acquireTime = A.getOptVal<long>("acquiretime");
 }
 
-EBusLoop::~EBusLoop()
+BusLoop::~BusLoop()
 {
 	if (m_port->isOpen() == true)
 		m_port->close();
@@ -60,7 +60,7 @@ EBusLoop::~EBusLoop()
 	delete m_dump;
 }
 
-void* EBusLoop::run()
+void* BusLoop::run()
 {
 	int sendRetries = 0;
 	int lockRetries = 0;
@@ -191,7 +191,7 @@ void* EBusLoop::run()
 	return NULL;
 }
 
-unsigned char EBusLoop::fetchByte()
+unsigned char BusLoop::fetchByte()
 {
 	unsigned char byte;
 
@@ -207,7 +207,7 @@ unsigned char EBusLoop::fetchByte()
 	return byte;
 }
 
-void EBusLoop::collectCycData(const int numRecv)
+void BusLoop::collectCycData(const int numRecv)
 {
 	// cycle bytes
 	for (int i = 0; i < numRecv; i++) {
@@ -242,7 +242,7 @@ void EBusLoop::collectCycData(const int numRecv)
 	}
 }
 
-void EBusLoop::analyseCycData()
+void BusLoop::analyseCycData()
 {
 	static bool skipfirst = false;
 
@@ -276,7 +276,7 @@ void EBusLoop::analyseCycData()
 		skipfirst = true;
 }
 
-void EBusLoop::addPollCommand()
+void BusLoop::addPollCommand()
 {
 	int index = m_commands->nextPollCommand();
 	if (index < 0) {
@@ -301,7 +301,7 @@ void EBusLoop::addPollCommand()
 	}
 }
 
-int EBusLoop::acquireBus()
+int BusLoop::acquireBus()
 {
 	unsigned char recvByte, sendByte;
 	ssize_t numRecv, numSend;
@@ -358,7 +358,7 @@ int EBusLoop::acquireBus()
 	return RESULT_ERR_EXTRA_DATA;
 }
 
-BusCommand* EBusLoop::sendCommand()
+BusCommand* BusLoop::sendCommand()
 {
 	unsigned char recvByte;
 	std::string result;
@@ -470,7 +470,7 @@ on_exit:
 
 }
 
-int EBusLoop::sendByte(const unsigned char sendByte)
+int BusLoop::sendByte(const unsigned char sendByte)
 {
 	unsigned char recvByte;
 	ssize_t numRecv, numSend;
@@ -495,7 +495,7 @@ int EBusLoop::sendByte(const unsigned char sendByte)
 	return RESULT_OK;
 }
 
-int EBusLoop::recvSlaveAck(unsigned char& recvByte)
+int BusLoop::recvSlaveAck(unsigned char& recvByte)
 {
 	ssize_t numRecv;
 
@@ -522,7 +522,7 @@ int EBusLoop::recvSlaveAck(unsigned char& recvByte)
 	return RESULT_OK;
 }
 
-int EBusLoop::recvSlaveData(SymbolString& result)
+int BusLoop::recvSlaveData(SymbolString& result)
 {
 	unsigned char recvByte, calcCrc = 0;
 	ssize_t numRecv;
@@ -568,7 +568,7 @@ int EBusLoop::recvSlaveData(SymbolString& result)
 	return RESULT_OK;
 }
 
-void EBusLoop::collectSlave()
+void BusLoop::collectSlave()
 {
 	std::vector<unsigned char>::iterator it;
 
@@ -594,7 +594,7 @@ void EBusLoop::collectSlave()
 	}
 }
 
-void EBusLoop::addScanCommand()
+void BusLoop::addScanCommand()
 {
 	std::string ebusCommand(A.getOptVal<const char*>("address"));
 	std::stringstream sstr;

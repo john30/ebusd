@@ -25,18 +25,18 @@ int Dump::write(const char* byte)
 {
 	int ret = 0;
 
-	std::ofstream fs(m_filename.c_str(), std::ios::out | std::ios::binary | std::ios::app);
+	std::ofstream fs(m_name.c_str(), std::ios::out | std::ios::binary | std::ios::app);
 
 	if (fs == 0)
 		return -1;
 
 	fs.write(byte, 1);
 
-	if (fs.tellp() >= m_filesize * 1024) {
+	if (fs.tellp() >= m_size * 1024) {
 		std::string oldfile;
-		oldfile += m_filename;
+		oldfile += m_name;
 		oldfile += ".old";
-		ret = rename(m_filename.c_str(), oldfile.c_str());
+		ret = rename(m_name.c_str(), oldfile.c_str());
 	}
 
 	fs.close();

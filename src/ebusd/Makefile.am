@@ -6,14 +6,14 @@ AM_CXXFLAGS = -fpic \
 
 bin_PROGRAMS = ebusd
 
-ebusd_SOURCES = network.cpp \
-		network.h \
-		dump.cpp \
+ebusd_SOURCES = dump.cpp \
 		dump.h \
 		buscommand.cpp \
 		buscommand.h \
-		ebusloop.cpp \
-		ebusloop.h \
+		busloop.cpp \
+		busloop.h \
+		network.cpp \
+		network.h \
 		baseloop.cpp \
 		baseloop.h \
 		ebusd.cpp

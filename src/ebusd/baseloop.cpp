@@ -34,9 +34,9 @@ BaseLoop::BaseLoop()
 	L.log(bas, event, "   cycle DB: %d ", m_commands->sizeCycDB());
 	L.log(bas, event, " polling DB: %d ", m_commands->sizePollDB());
 
-	// create ebusloop
-	m_ebusloop = new EBusLoop(m_commands);
-	m_ebusloop->start("ebusloop");
+	// create busloop
+	m_busloop = new BusLoop(m_commands);
+	m_busloop->start("busloop");
 
 	// create network
 	m_network = new Network(A.getOptVal<bool>("localhost"), &m_netQueue);
@@ -49,11 +49,11 @@ BaseLoop::~BaseLoop()
 	if (m_network != NULL)
 		delete m_network;
 
-	// free ebusloop
-	if (m_ebusloop != NULL) {
-		m_ebusloop->stop();
-		m_ebusloop->join();
-		delete m_ebusloop;
+	// free busloop
+	if (m_busloop != NULL) {
+		m_busloop->stop();
+		m_busloop->join();
+		delete m_busloop;
 	}
 
 	// free commands DB
@@ -152,7 +152,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			BusCommand* busCommand = new BusCommand(ebusCommand, false, false);
 			L.log(bas, trace, " msg: %s", ebusCommand.c_str());
 			// send busCommand
-			m_ebusloop->addBusCommand(busCommand);
+			m_busloop->addBusCommand(busCommand);
 			busCommand->waitSignal();
 
 			if (!busCommand->isErrorResult()) {
@@ -205,7 +205,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			BusCommand* busCommand = new BusCommand(ebusCommand, false, false);
 			L.log(bas, event, " msg: %s", ebusCommand.c_str());
 			// send busCommand
-			m_ebusloop->addBusCommand(busCommand);
+			m_busloop->addBusCommand(busCommand);
 			busCommand->waitSignal();
 
 			if (!busCommand->isErrorResult()) {
@@ -274,7 +274,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			BusCommand* busCommand = new BusCommand(ebusCommand, false, false);
 			L.log(bas, trace, " msg: %s", ebusCommand.c_str());
 			// send busCommand
-			m_ebusloop->addBusCommand(busCommand);
+			m_busloop->addBusCommand(busCommand);
 			busCommand->waitSignal();
 
 			if (busCommand->isErrorResult()) {
@@ -291,13 +291,13 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 	case scan:
 		if (cmd.size() == 1) {
-			m_ebusloop->scan();
+			m_busloop->scan();
 			result << "done";
 			break;
 		}
 
 		if (strcasecmp(cmd[1].c_str(), "FULL") == 0) {
-			m_ebusloop->scan(true);
+			m_busloop->scan(true);
 			result << "done";
 			break;
 		}
@@ -346,7 +346,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			break;
 		}
 
-		m_ebusloop->raw();
+		m_busloop->raw();
 		result << "done";
 		break;
 
@@ -356,7 +356,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			break;
 		}
 
-		m_ebusloop->dump();
+		m_busloop->dump();
 		result << "done";
 		break;
 
@@ -376,7 +376,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 			delete m_commands;
 			m_commands = commands;
-			m_ebusloop->reload(m_commands);
+			m_busloop->reload(m_commands);
 
 			result << "done";
 			break;

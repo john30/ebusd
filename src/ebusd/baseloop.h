@@ -22,7 +22,7 @@
 
 #include "commands.h"
 #include "network.h"
-#include "ebusloop.h"
+#include "busloop.h"
 
 class BaseLoop
 {
@@ -37,7 +37,7 @@ public:
 
 private:
 	Commands* m_commands;
-	EBusLoop* m_ebusloop;
+	BusLoop* m_busloop;
 	Network* m_network;
 
 	WQueue<NetMessage*> m_netQueue;
