@@ -23,12 +23,52 @@
 #include "commands.h"
 #include "port.h"
 #include "dump.h"
-#include "buscommand.h"
 #include "wqueue.h"
 #include "thread.h"
+#include "symbol.h"
+#include "result.h"
 
 /** the maximum time [us] allowed for retrieving a byte from an addressed slave */
 #define RECV_TIMEOUT 10000
+
+enum CommandType { invalid, broadcast, masterMaster, masterSlave };
+
+class BusCommand
+{
+
+public:
+	BusCommand(const std::string command, const bool poll, const bool scan);
+	~BusCommand();
+
+	CommandType getType() const { return m_type; }
+	bool isPoll() const { return m_poll; }
+	bool isScan() const { return m_scan; }
+
+	SymbolString getCommand() const { return m_command; }
+	SymbolString getResult() const { return m_result; }
+
+	bool isErrorResult() const { return m_resultCode < 0; }
+	const char* getResultCodeCStr() const { return getResultCode(m_resultCode); }
+	void setResult(const SymbolString result, const int resultCode)
+		{ m_result = result; m_resultCode = resultCode; }
+
+	const std::string getMessageStr();
+
+	void waitSignal() { pthread_cond_wait(&m_cond, &m_mutex); } // TODO timeout
+	void sendSignal() { pthread_cond_signal(&m_cond); }
+
+private:
+	CommandType m_type;
+	bool m_poll;
+	bool m_scan;
+	SymbolString m_command;
+	SymbolString m_result;
+	int m_resultCode;
+
+	pthread_mutex_t m_mutex;
+	pthread_cond_t m_cond;
+};
+
 
 class BusLoop : public Thread
 {
