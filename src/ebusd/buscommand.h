@@ -17,8 +17,8 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef LIBEBUS_BUSCOMMAND_H_
-#define LIBEBUS_BUSCOMMAND_H_
+#ifndef BUSCOMMAND_H_
+#define BUSCOMMAND_H_
 
 #include "symbol.h"
 #include "result.h"
@@ -61,5 +61,5 @@ private:
 	pthread_cond_t m_cond;
 };
 
-#endif // LIBEBUS_BUSCOMMAND_H_
+#endif // BUSCOMMAND_H_
 

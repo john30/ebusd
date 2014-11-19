@@ -17,8 +17,8 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef LIBEBUS_DUMP_H_
-#define LIBEBUS_DUMP_H_
+#ifndef DUMP_H_
+#define DUMP_H_
 
 #include <string>
 
@@ -65,4 +65,4 @@ private:
 
 };
 
-#endif // LIBEBUS_DUMP_H_
+#endif // DUMP_H_

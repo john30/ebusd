@@ -12,16 +12,12 @@ libebus_a_SOURCES = result.cpp \
 		    data.h \
 		    port.cpp \
 		    port.h \
-		    buscommand.cpp \
-		    buscommand.h \
 		    command.cpp \
 		    command.h \
 		    commands.cpp \
 		    commands.h \
 		    configfile.cpp \
 		    configfile.h \
-		    dump.cpp \
-		    dump.h \
 		    decode.cpp \
 		    decode.h \
 		    encode.cpp \

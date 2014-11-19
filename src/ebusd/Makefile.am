@@ -8,6 +8,10 @@ bin_PROGRAMS = ebusd
 
 ebusd_SOURCES = network.cpp \
 		network.h \
+		dump.cpp \
+		dump.h \
+		buscommand.cpp \
+		buscommand.h \
 		ebusloop.cpp \
 		ebusloop.h \
 		baseloop.cpp \
