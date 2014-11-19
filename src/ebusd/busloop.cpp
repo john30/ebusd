@@ -25,8 +25,8 @@
 extern Logger& L;
 extern Appl& A;
 
-BusCommand::BusCommand(const std::string commandStr, const bool poll, const bool scan)
-	: m_poll(poll), m_scan(scan), m_command(commandStr), m_result(), m_resultCode(RESULT_OK)
+BusMessage::BusMessage(const std::string command, const bool poll, const bool scan)
+	: m_poll(poll), m_scan(scan), m_command(command), m_result(), m_resultCode(RESULT_OK)
 {
 	unsigned char dstAddress = m_command[1];
 
@@ -41,13 +41,13 @@ BusCommand::BusCommand(const std::string commandStr, const bool poll, const bool
 	pthread_cond_init(&m_cond, NULL);
 }
 
-BusCommand::~BusCommand()
+BusMessage::~BusMessage()
 {
 	pthread_mutex_destroy(&m_mutex);
 	pthread_cond_destroy(&m_cond);
 }
 
-const std::string BusCommand::getMessageStr()
+const std::string BusMessage::getMessageStr()
 {
 	std::string result;
 
@@ -126,9 +126,9 @@ void* BusLoop::run()
 				// add new polling command to send
 				if (pollDelta >= m_pollInterval) {
 					if (m_scan == true)
-						addScanCommand();
+						addScanMessage();
 					else
-						addPollCommand();
+						addPollMessage();
 
 					time(&pollStart);
 				}
@@ -146,43 +146,43 @@ void* BusLoop::run()
 			collectCycData(numBytes);
 
 			// send command
-			if (m_sstr.size() == 0 && m_lockCounter == 0 && m_sendBuffer.size() > 0) {
+			if (m_sstr.size() == 0 && m_lockCounter == 0 && m_busQueue.size() > 0) {
 				// acquire Bus
 				int busResult = acquireBus();
 
 				// send bus command
 				if (busResult == RESULT_BUS_ACQUIRED) {
-					BusCommand* busCommand = sendCommand();
-					L.log(bus, trace, " %s", busCommand->getMessageStr().c_str());
+					BusMessage* message = sendCommand();
+					L.log(bus, trace, " %s", message->getMessageStr().c_str());
 
-					if (busCommand->isErrorResult() == true) {
+					if (message->isErrorResult() == true) {
 						if (sendRetries < m_sendRetries) {
 							sendRetries++;
 							L.log(bus, trace, " send retry %d", sendRetries);
-							busCommand->setResult(std::string(), RESULT_OK);
+							message->setResult(std::string(), RESULT_OK);
 						}
 						else {
 							sendRetries = 0;
 							L.log(bus, event, " send retry failed", sendRetries);
 
-							if (busCommand->isPoll() == true)
-								delete m_sendBuffer.remove();
+							if (message->isPoll() == true)
+								delete m_busQueue.remove();
 							else
-								busCommand->sendSignal();
+								message->sendSignal();
 						}
 					}
 					else {
 						sendRetries = 0;
 
-						if (busCommand->isPoll() == true) {
-							if (busCommand->isScan() == true)
-								m_commands->storeScanData(busCommand->getMessageStr().c_str());
+						if (message->isPoll() == true) {
+							if (message->isScan() == true)
+								m_commands->storeScanData(message->getMessageStr().c_str());
 							else
-								m_commands->storePollData(busCommand->getMessageStr().c_str()); // TODO use getResult()
-							delete busCommand;
+								m_commands->storePollData(message->getMessageStr().c_str()); // TODO use getResult()
+							delete message;
 						}
 						else
-							busCommand->sendSignal();
+							message->sendSignal();
 					}
 
 					lockRetries = 0;
@@ -195,11 +195,11 @@ void* BusLoop::run()
 						lockRetries = 0;
 						L.log(bus, event, " lock bus failed");
 
-						BusCommand* busCommand = m_sendBuffer.remove();
-						if (busCommand->isPoll() == true)
-							delete busCommand;
+						BusMessage* message = m_busQueue.remove();
+						if (message->isPoll() == true)
+							delete message;
 						else
-							busCommand->sendSignal();
+							message->sendSignal();
 					}
 					else {
 						lockRetries++;
@@ -319,7 +319,7 @@ void BusLoop::analyseCycData()
 		skipfirst = true;
 }
 
-void BusLoop::addPollCommand()
+void BusLoop::addPollMessage()
 {
 	int index = m_commands->nextPollCommand();
 	if (index < 0) {
@@ -333,14 +333,14 @@ void BusLoop::addPollCommand()
 		tmp += (*m_commands)[index][2];
 		L.log(bus, event, " polling [%4d] %s", index, tmp.c_str());
 
-		std::string ebusCommand(A.getOptVal<const char*>("address"));
-		ebusCommand += m_commands->getEbusCommand(index);
-		std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
+		std::string busCommand(A.getOptVal<const char*>("address"));
+		busCommand += m_commands->getBusCommand(index);
+		std::transform(busCommand.begin(), busCommand.end(), busCommand.begin(), tolower);
 
-		BusCommand* busCommand = new BusCommand(ebusCommand, true, false);
-		L.log(bus, trace, " msg: %s", ebusCommand.c_str());
+		BusMessage* message = new BusMessage(busCommand, true, false);
+		L.log(bus, trace, " msg: %s", busCommand.c_str());
 
-		addBusCommand(busCommand);
+		addBusMessage(message);
 	}
 }
 
@@ -349,7 +349,7 @@ int BusLoop::acquireBus()
 	unsigned char recvByte, sendByte;
 	ssize_t numRecv, numSend;
 
-	sendByte = m_sendBuffer.next()->getCommand()[0];
+	sendByte = m_busQueue.next()->getCommand()[0];
 
 	// send QQ
 	numSend = m_port->send(&sendByte);
@@ -401,17 +401,17 @@ int BusLoop::acquireBus()
 	return RESULT_ERR_EXTRA_DATA;
 }
 
-BusCommand* BusLoop::sendCommand()
+BusMessage* BusLoop::sendCommand()
 {
 	unsigned char recvByte;
 	std::string result;
 	SymbolString slaveData;
 	int retval = RESULT_OK;
 
-	BusCommand* busCommand = m_sendBuffer.next();
+	BusMessage* message = m_busQueue.next();
 
 	// send ZZ PB SB NN Dx CRC
-	SymbolString command = busCommand->getCommand();
+	SymbolString command = message->getCommand();
 	for (size_t i = 1; i < command.size(); i++) {
 		retval = sendByte(command[i]);
 		if (retval < 0)
@@ -419,7 +419,7 @@ BusCommand* BusLoop::sendCommand()
 	}
 
 	// BC -> send SYN
-	if (busCommand->getType() == broadcast) {
+	if (message->getType() == broadcast) {
 		sendByte(SYN);
 		goto on_exit;
 	}
@@ -454,7 +454,7 @@ BusCommand* BusLoop::sendCommand()
 	}
 
 	// MM -> send SYN
-	if (busCommand->getType() == masterMaster) {
+	if (message->getType() == masterMaster) {
 		sendByte(SYN);
 		goto on_exit;
 	}
@@ -504,12 +504,12 @@ on_exit:
 	while (m_port->size() != 0)
 		recvByte = fetchByte();
 
-	busCommand->setResult(slaveData, retval);
+	message->setResult(slaveData, retval);
 
 	if (retval == RESULT_OK)
-		return m_sendBuffer.remove();
+		return m_busQueue.remove();
 	else
-		return busCommand;
+		return message;
 
 }
 
@@ -637,9 +637,9 @@ void BusLoop::collectSlave()
 	}
 }
 
-void BusLoop::addScanCommand()
+void BusLoop::addScanMessage()
 {
-	std::string ebusCommand(A.getOptVal<const char*>("address"));
+	std::string busCommand(A.getOptVal<const char*>("address"));
 	std::stringstream sstr;
 
 	if (m_scanFull == true) {
@@ -665,16 +665,16 @@ void BusLoop::addScanCommand()
 	else {
 		m_scanIndex++;
 
-		ebusCommand += sstr.str();
-		ebusCommand += "070400";
-		std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
+		busCommand += sstr.str();
+		busCommand += "070400";
+		std::transform(busCommand.begin(), busCommand.end(), busCommand.begin(), tolower);
 
 		L.log(bus, event, " scanning address %s", sstr.str().c_str());
 
 
-		BusCommand* busCommand = new BusCommand(ebusCommand, true, true);
-		L.log(bus, trace, " msg: %s", ebusCommand.c_str());
+		BusMessage* message = new BusMessage(busCommand, true, true);
+		L.log(bus, trace, " msg: %s", busCommand.c_str());
 
-		addBusCommand(busCommand);
+		addBusMessage(message);
 	}
 }

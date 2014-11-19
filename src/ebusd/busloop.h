@@ -31,16 +31,16 @@
 /** the maximum time [us] allowed for retrieving a byte from an addressed slave */
 #define RECV_TIMEOUT 10000
 
-enum CommandType { invalid, broadcast, masterMaster, masterSlave };
+enum MessageType { invalid, broadcast, masterMaster, masterSlave };
 
-class BusCommand
+class BusMessage
 {
 
 public:
-	BusCommand(const std::string command, const bool poll, const bool scan);
-	~BusCommand();
+	BusMessage(const std::string command, const bool poll, const bool scan);
+	~BusMessage();
 
-	CommandType getType() const { return m_type; }
+	MessageType getType() const { return m_type; }
 	bool isPoll() const { return m_poll; }
 	bool isScan() const { return m_scan; }
 
@@ -58,7 +58,7 @@ public:
 	void sendSignal() { pthread_cond_signal(&m_cond); }
 
 private:
-	CommandType m_type;
+	MessageType m_type;
 	bool m_poll;
 	bool m_scan;
 	SymbolString m_command;
@@ -80,7 +80,7 @@ public:
 	void* run();
 	void stop() { m_stop = true; }
 
-	void addBusCommand(BusCommand* busCommand) { m_sendBuffer.add(busCommand); }
+	void addBusMessage(BusMessage* message) { m_busQueue.add(message); }
 
 	void dump() { m_dumpState == true ? m_dumpState = false :  m_dumpState = true ; }
 	void raw() { m_logRawData == true ? m_logRawData = false :  m_logRawData = true ; }
@@ -103,7 +103,7 @@ private:
 	int m_lockCounter;
 	bool m_priorRetry;
 
-	WQueue<BusCommand*> m_sendBuffer;
+	WQueue<BusMessage*> m_busQueue;
 	SymbolString m_sstr;
 
 	double m_pollInterval;
@@ -121,14 +121,14 @@ private:
 	unsigned char fetchByte();
 	void collectCycData(const int numRecv);
 	void analyseCycData();
-	void addPollCommand();
+	void addPollMessage();
 	int acquireBus();
-	BusCommand* sendCommand();
+	BusMessage* sendCommand();
 	int sendByte(const unsigned char sendByte);
 	int recvSlaveAck(unsigned char& recvByte);
 	int recvSlaveData(SymbolString& result);
 	void collectSlave();
-	void addScanCommand();
+	void addScanMessage();
 
 };
 

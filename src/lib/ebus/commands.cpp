@@ -123,7 +123,7 @@ int Commands::findCommand(const std::string& data) const
 	return -1;
 }
 
-std::string Commands::getEbusCommand(const int index) const
+std::string Commands::getBusCommand(const int index) const
 {
 	cmd_t command = m_cmdDB.at(index);
 	std::string cmd;
@@ -159,7 +159,7 @@ int Commands::storeCycData(const std::string& data) const
 	// walk through commands
 	for (; iter != m_cycDB.end(); iter++) {
 
-		std::string command = getEbusCommand(iter->first);
+		std::string command = getBusCommand(iter->first);
 
 		// skip wrong search string length
 		if (command.length() > search.length())
@@ -212,7 +212,7 @@ void Commands::storePollData(const std::string& data) const
 	// walk through commands
 	for (; iter != m_pollDB.end(); iter++) {
 
-		std::string command = getEbusCommand(iter->first);
+		std::string command = getBusCommand(iter->first);
 
 		// skip wrong search string length
 		if (command.length() > search.length())

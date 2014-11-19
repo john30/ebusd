@@ -145,30 +145,30 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 				break;
 			}
 
-			std::string ebusCommand(A.getOptVal<const char*>("address"));
-			ebusCommand += m_commands->getEbusCommand(index);
-			std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
+			std::string busCommand(A.getOptVal<const char*>("address"));
+			busCommand += m_commands->getBusCommand(index);
+			std::transform(busCommand.begin(), busCommand.end(), busCommand.begin(), tolower);
 
-			BusCommand* busCommand = new BusCommand(ebusCommand, false, false);
-			L.log(bas, trace, " msg: %s", ebusCommand.c_str());
-			// send busCommand
-			m_busloop->addBusCommand(busCommand);
-			busCommand->waitSignal();
+			BusMessage* message = new BusMessage(busCommand, false, false);
+			L.log(bas, trace, " msg: %s", busCommand.c_str());
+			// send message
+			m_busloop->addBusMessage(message);
+			message->waitSignal();
 
-			if (!busCommand->isErrorResult()) {
+			if (!message->isErrorResult()) {
 				// decode data
-				Command* command = new Command(index, (*m_commands)[index], busCommand->getMessageStr()); // TODO use getCommand()+getResult()
+				Command* command = new Command(index, (*m_commands)[index], message->getMessageStr()); // TODO use getCommand()+getResult()
 
 				// return result
 				result << command->calcResult(cmd);
 
 				delete command;
 			} else {
-				L.log(bas, error, " %s", busCommand->getResultCodeCStr());
-				result << busCommand->getResultCodeCStr();
+				L.log(bas, error, " %s", message->getResultCodeCStr());
+				result << message->getResultCodeCStr();
 			}
 
-			delete busCommand;
+			delete message;
 
 		} else {
 			result << "ebus command not found";
@@ -186,43 +186,43 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 		if (index >= 0) {
 
-			std::string ebusCommand(A.getOptVal<const char*>("address"));
-			ebusCommand += m_commands->getEbusCommand(index);
+			std::string busCommand(A.getOptVal<const char*>("address"));
+			busCommand += m_commands->getBusCommand(index);
 
 			// encode data
 			Command* command = new Command(index, (*m_commands)[index], cmd[3]);
 			std::string value = command->calcData();
 			if (value[0] != '-') {
-				ebusCommand += value;
+				busCommand += value;
 			} else {
 				L.log(bas, error, " %s", value.c_str());
 				delete command;
 				break;
 			}
 
-			std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
+			std::transform(busCommand.begin(), busCommand.end(), busCommand.begin(), tolower);
 
-			BusCommand* busCommand = new BusCommand(ebusCommand, false, false);
-			L.log(bas, event, " msg: %s", ebusCommand.c_str());
-			// send busCommand
-			m_busloop->addBusCommand(busCommand);
-			busCommand->waitSignal();
+			BusMessage* message = new BusMessage(busCommand, false, false);
+			L.log(bas, event, " msg: %s", busCommand.c_str());
+			// send message
+			m_busloop->addBusMessage(message);
+			message->waitSignal();
 
-			if (!busCommand->isErrorResult()) {
+			if (!message->isErrorResult()) {
 				// decode result
-				if (busCommand->getType()==broadcast)
+				if (message->getType()==broadcast)
 					result << "done";
-				else if (busCommand->getMessageStr().substr(busCommand->getMessageStr().length()-8) == "00000000") // TODO use getResult()
+				else if (message->getMessageStr().substr(message->getMessageStr().length()-8) == "00000000") // TODO use getResult()
 					result << "done";
 				else
 					result << "error";
 
 			} else {
-				L.log(bas, error, " %s", busCommand->getResultCodeCStr());
-				result << busCommand->getResultCodeCStr();
+				L.log(bas, error, " %s", message->getResultCodeCStr());
+				result << message->getResultCodeCStr();
 			}
 
-			delete busCommand;
+			delete message;
 			delete command;
 
 		} else {
@@ -266,25 +266,25 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		}
 
 		{
-			std::string ebusCommand(A.getOptVal<const char*>("address"));
+			std::string busCommand(A.getOptVal<const char*>("address"));
 			cmd[1].erase(std::remove_if(cmd[1].begin(), cmd[1].end(), isspace), cmd[1].end());
-			ebusCommand += cmd[1];
-			std::transform(ebusCommand.begin(), ebusCommand.end(), ebusCommand.begin(), tolower);
+			busCommand += cmd[1];
+			std::transform(busCommand.begin(), busCommand.end(), busCommand.begin(), tolower);
 
-			BusCommand* busCommand = new BusCommand(ebusCommand, false, false);
-			L.log(bas, trace, " msg: %s", ebusCommand.c_str());
-			// send busCommand
-			m_busloop->addBusCommand(busCommand);
-			busCommand->waitSignal();
+			BusMessage* message = new BusMessage(busCommand, false, false);
+			L.log(bas, trace, " msg: %s", busCommand.c_str());
+			// send message
+			m_busloop->addBusMessage(message);
+			message->waitSignal();
 
-			if (busCommand->isErrorResult()) {
-				L.log(bas, error, " %s", busCommand->getResultCodeCStr());
-				result << busCommand->getResultCodeCStr();
+			if (message->isErrorResult()) {
+				L.log(bas, error, " %s", message->getResultCodeCStr());
+				result << message->getResultCodeCStr();
 			} else {
-				result << busCommand->getMessageStr(); // TODO use getCommand()+getResult()
+				result << message->getMessageStr(); // TODO use getCommand()+getResult()
 			}
 
-			delete busCommand;
+			delete message;
 		}
 
 		break;
