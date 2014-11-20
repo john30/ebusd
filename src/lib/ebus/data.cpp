@@ -360,6 +360,7 @@ unsigned char SingleDataField::getNextOffset()
 result_t SingleDataField::read(SymbolString& masterData, SymbolString& slaveData,
 		std::ostringstream& output, bool verbose, char separator)
 {
+	unsigned char maxPos = 16;
 	SymbolString& input = m_partType == pt_masterData ? masterData : slaveData;
 	unsigned char baseOffset;
 	switch (m_partType)
@@ -374,6 +375,9 @@ result_t SingleDataField::read(SymbolString& masterData, SymbolString& slaveData
 		return RESULT_ERR_INVALID_ARG; // invalid part type
 	}
 
+	if (m_offset + m_length > maxPos) {
+		return RESULT_ERR_INVALID_ARG; // invalid pos definition
+	}
 	if (verbose)
 		output << m_name << "=";
 
