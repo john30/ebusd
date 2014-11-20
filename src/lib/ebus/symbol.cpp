@@ -187,3 +187,7 @@ bool isMaster(unsigned char addr) {
 	    && ((addrLo == 0x0) || (addrLo == 0x1) || (addrLo == 0x3) || (addrLo == 0x7) || (addrLo == 0xF));
 }
 
+bool isValidAddress(unsigned char addr, bool allowBroadcast) {
+	return addr != SYN && addr != ESC && (allowBroadcast == true || addr != BROADCAST);
+}
+
