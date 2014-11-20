@@ -84,6 +84,11 @@ int main()
 		{"x;;bcd", "99",    "10feffff0199", "00", ""},
 		{"x;;bcd", "-",     "10feffff01ff", "00", ""},
 		{"x;;bcd", "",      "10feffff019a", "00", "rw"},
+		{"x;16;uch", "15",    "10feffff11000102030405060708090a0b0c0d0e0f10", "00", "W"},
+		{"x;17;uch", "",    "10feffff00", "00", "c"},
+		{"x;s3;uch", "2",    "1025ffff0310111213", "0300010203", "W"},
+		{"x;s3;uch", "2",    "1025ffff00", "00000002", ""},
+		{"x;s3;uch;;;;y;m2;uch", "2;3","1025ffff020003", "00000002", ""},
 		{"x;;uch", "38",    "10feffff0126", "00", ""},
 		{"x;;uch", "0",     "10feffff0100", "00", ""},
 		{"x;;uch", "254",   "10feffff01fe", "00", ""},
@@ -194,6 +199,7 @@ int main()
 		SymbolString sstr = SymbolString(check[3], false);
 		std::string flags = check[4];
 		bool isSet = flags.find('s') != std::string::npos;
+		bool failedCreate = flags.find('c') != std::string::npos;
 		bool failedRead = flags.find('r') != std::string::npos;
 		bool failedReadMatch = flags.find('R') != std::string::npos;
 		bool failedWrite = flags.find('w') != std::string::npos;
@@ -213,9 +219,15 @@ int main()
 		std::vector<std::string>::iterator it = entries.begin();
 		result_t result = DataField::create(it, entries.end(), templates, fields, isSet, isTemplate ? SYN : mstr[1]);
 
-		if (result != RESULT_OK) {
+		if (failedCreate == true) {
+			if (result == RESULT_OK)
+				std::cout << "\"" << check[0] << "\": failed create error: unexpectedly succeeded" << std::endl;
+			else
+				std::cout << "\"" << check[0] << "\": failed create OK" << std::endl;
+			continue;
+		} else if (result != RESULT_OK) {
 			std::cout << "\"" << check[0] << "\": create error: "
-			          << getResultCode(result) << std::endl;
+					  << getResultCode(result) << std::endl;
 			continue;
 		}
 		if (fields == NULL) {
