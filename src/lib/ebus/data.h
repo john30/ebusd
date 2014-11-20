@@ -26,10 +26,6 @@
 #include <vector>
 #include <map>
 
-namespace libebus
-{
-
-
 /** the message part in which a data field is stored. */
 enum PartType {
 	pt_template,   // special part type for templates (relative offset)
@@ -500,7 +496,5 @@ protected:
 
 };
 
-
-} //namespace
 
 #endif // LIBEBUS_DATA_H_

@@ -22,200 +22,229 @@
 #include <iomanip>
 #include <cstdlib>
 
-Appl& Appl::Instance()
+Appl& Appl::Instance(const bool command)
 {
-	static Appl instance;
+	static Appl instance(command);
 	return instance;
 }
 
 Appl::~Appl()
 {
-	m_args.clear();
-	m_params.clear();
+	m_opts.clear();
+	m_optvals.clear();
 }
 
-void Appl::addArgs(const std::string argTxt, const int argNum)
+void Appl::addText(const char* text)
 {
-	m_argTxt = argTxt;
-	m_argNum = argNum;
+	opt_t opt;
+	opt.name = "__text_only__";
+	opt.shortname = "";
+	opt.datatype = dt_none;
+	opt.optiontype = ot_none;
+	opt.description = text;
+	m_opts.push_back(opt);
 }
 
-void Appl::addItem(const char* name, Param param, const char* shortname,
-	     const char* longname, const char* description,
-	     Datatype datatype, Optiontype optiontype)
+void Appl::addOption(const char* name, const char* shortname, OptVal optval,
+		     DataType datatype, OptionType optiontype, const char* description)
 {
-	if (strlen(name) != 0)
-		m_params[name] = param;
+	if (strlen(name) != 0) {
 
-	if (strlen(longname) != 0) {
-		Arg arg;
-		arg.name = name;
-		arg.shortname = shortname;
-		arg.longname = longname;
-		arg.description = description;
-		arg.datatype = datatype;
-		arg.optiontype = optiontype;
-		m_args.push_back(arg);
+		m_optvals[name] = optval;
+
+		opt_t opt;
+		opt.name = name;
+		opt.shortname = shortname;
+		opt.datatype = datatype;
+		opt.optiontype = optiontype;
+		opt.description = description;
+		m_opts.push_back(opt);
 	}
 }
 
-void Appl::printArgs()
-{
-	std::cerr << std::endl << "Usage:" << std::endl << "  "
-		  << m_argv[0].substr(m_argv[0].find_last_of("/\\") + 1) << " [OPTIONS...]" ;
-
-	if (m_argTxt.size() != 0)
-		std::cerr << " " << m_argTxt;
-
-	std::cerr << std::endl << std::endl << "Options:" << std::endl << std::endl;
-
-	for (a_it = m_args.begin(); a_it < m_args.end(); a_it++) {
-		const char* c = (strlen(a_it->shortname) == 1) ? a_it->shortname : " ";
-		std::cerr << ((strcmp(c, " ") == 0) ? " " : "-") << c
-			  << " | --" << a_it->longname
-			  << "\t" << a_it->description
-			  << std::endl;
-	}
-
-	std::cerr << std::endl;
-}
-
-bool Appl::parseArgs(int argc, char* argv[])
+void Appl::parseArgs(int argc, char* argv[])
 {
 	std::vector<std::string> _argv(argv, argv + argc);
-	m_argc = argc;
 	m_argv = _argv;
 
-	for (size_t i = 1; i < m_argc; i++) {
+	// walk through all arguments
+	for (int i = 1; i < argc; i++) {
 
 		// find option with long format '--'
-		if (m_argv[i].rfind("--") == 0 && m_argv[i].size() > 2) {
+		if (_argv[i].rfind("--") == 0 && _argv[i].size() > 2) {
+
 			// is next item an added argument?
-			if (i+1 < m_argc && m_argv[i+1].rfind("-", 0) == std::string::npos) {
-				if (checkArg(m_argv[i].substr(2), m_argv[i+1]) == false)
-					return false;
-			} else {
-				if (checkArg(m_argv[i].substr(2), "") == false)
-					return false;
+			if (i+1 < argc && _argv[i+1].rfind("-", 0) == std::string::npos) {
+				if (checkOption(_argv[i].substr(2), _argv[i+1]) == false)
+					printHelp();
+			}
+			else {
+				if (checkOption(_argv[i].substr(2), "") == false)
+					printHelp();
 			}
 
 		// find option with short format '-'
-		} else if (m_argv[i].rfind("-") == 0 && m_argv[i].size() > 1) {
+		} else if (_argv[i].rfind("-") == 0 && _argv[i].size() > 1) {
 
 			// walk through all characters
-			for (size_t j = 1; j < m_argv[i].size(); j++) {
+			for (size_t j = 1; j < _argv[i].size(); j++) {
 
 				// only last charater could have an argument
-				if (i+1 < m_argc && m_argv[i+1].rfind("-", 0) == std::string::npos
-				&& j+1 == m_argv[i].size()) {
-					if (checkArg(m_argv[i].substr(j,1), m_argv[i+1]) == false)
-						return false;
-				} else {
-					if (checkArg(m_argv[i].substr(j,1), "") == false)
-						return false;
+				if (i+1 < argc && _argv[i+1].rfind("-", 0) == std::string::npos
+				&& j+1 == _argv[i].size()) {
+					if (checkOption(_argv[i].substr(j,1), _argv[i+1]) == false)
+						printHelp();
+				}
+				else {
+					if (checkOption(_argv[i].substr(j,1), "") == false)
+						printHelp();
 				}
 			}
 		}
 
 	}
 
-	// check args
-	if (m_argNum > 0) {
-		if (m_argc < (m_argNum + 1))
-			return false;
+	// check command
+	if (m_needCommand == true) {
+		for (int i = 1; i < argc; i++) {
 
-		for (size_t i = 1; i < m_argc; i++) {
-
-			if (m_argv[i].rfind("-", 0) != std::string::npos) {
+			if (_argv[i].rfind("-", 0) != std::string::npos) {
 				i++;
 				continue;
 			}
-			m_argValues.push_back(m_argv[i]);
+			m_arguments.push_back(_argv[i]);
 		}
 
-		if (m_argValues.size() < m_argNum)
-			return false;
+		if (m_arguments.size() == 0) {
+			std::cerr << std::endl << "command needed" << std::endl;
+			printHelp();
+		}
 	}
 
-	return true;
 }
 
-void Appl::printSettings()
+bool Appl::checkOption(const std::string& option, const std::string& value)
 {
-	std::cerr << std::endl << "Settings:" << std::endl;
+	if (strcmp(option.c_str(), "settings") == 0)
+		printSettings();
 
-	for (a_it = m_args.begin(); a_it < m_args.end(); a_it++) {
-		const char* c = (strlen(a_it->shortname) == 1) ? a_it->shortname : " ";
-		std::cerr << ((strcmp(c, " ") == 0) ? " " : "-") << c
-			  << " | --" << a_it->longname
-			  << " = ";
-		if (a_it->datatype == type_bool) {
-			if (getParam<bool>(a_it->name) == true)
-				std::cerr << "yes" << std::endl;
-			else
-				std::cerr << "no" << std::endl;
-		}
-		else if (a_it->datatype == type_int) {
-			std::cerr << getParam<int>(a_it->name) << std::endl;
-		}
-		else if (a_it->datatype == type_long) {
-			std::cerr << getParam<long>(a_it->name) << std::endl;
-		}
-		else if (a_it->datatype == type_float) {
-			std::cerr << getParam<float>(a_it->name) << std::endl;
-		}
-		else if (a_it->datatype == type_string) {
-			std::cerr << getParam<const char*>(a_it->name) << std::endl;
-		}
+	if (strcmp(option.c_str(), "v") == 0 || strcmp(option.c_str(), "version") == 0)
+		printVersion();
 
-	}
+	if (strcmp(option.c_str(), "h") == 0 || strcmp(option.c_str(), "help") == 0)
+		printHelp();
 
-	std::cerr << std::endl;
-}
+	for (o_it = m_opts.begin(); o_it < m_opts.end(); o_it++) {
+		if (o_it->shortname == option || o_it->name == option) {
 
-bool Appl::checkArg(const std::string& name, const std::string& arg)
-{
-	for (a_it = m_args.begin(); a_it < m_args.end(); a_it++) {
-		if (a_it->shortname == name || a_it->longname == name) {
-			if (a_it->optiontype == opt_mandatory && arg.size() == 0) {
+			// need this option and argument?
+			if (o_it->optiontype == ot_mandatory && value.size() == 0) {
 				std::cerr << std::endl << "option requires an argument '"
-					  << name << "'" << std::endl;
+					  << option << "'" << std::endl;
 				return false;
 			}
 
-			if ((a_it->optiontype == opt_optional && arg.size() != 0)
-			|| a_it->optiontype != opt_optional)
-				addParam(a_it->name, arg, a_it->datatype);
+			// add given value to option
+			if ((o_it->optiontype == ot_optional && value.size() != 0)
+			|| o_it->optiontype != ot_optional)
+				setOptVal(o_it->name, value, o_it->datatype);
 
 			return true;
 		}
 	}
 
-	std::cerr << m_argv[0].substr(2) << ": Unknown Option -- " << name << std::endl;
+	std::cerr << std::endl << "unknown option '" << option << "'" << std::endl;
 	return false;
 }
 
-void Appl::addParam(const char* name, const std::string arg, Datatype datatype)
+void Appl::setOptVal(const char* option, const std::string value, DataType datatype)
 {
 	switch (datatype) {
-	case type_bool:
-		m_params[name] = true;
+	case dt_bool:
+		m_optvals[option] = true;
 		break;
-	case type_int:
-		m_params[name] = strtol(arg.c_str(), NULL, 10);
+	case dt_int:
+		m_optvals[option] = strtol(value.c_str(), NULL, 10);
 		break;
-	case type_long:
-		m_params[name] = strtol(arg.c_str(), NULL, 10);
+	case dt_long:
+		m_optvals[option] = strtol(value.c_str(), NULL, 10);
 		break;
-	case type_float:
-		m_params[name] = static_cast<float>(strtod(arg.c_str(), NULL));
+	case dt_float:
+		m_optvals[option] = static_cast<float>(strtod(value.c_str(), NULL));
 		break;
-	case type_string:
-		m_params[name] = arg.c_str();
+	case dt_string:
+		m_optvals[option] = value.c_str();
 		break;
 	default:
 		break;
 	}
 }
 
+void Appl::printVersion()
+{
+	std::cerr << m_version << std::endl;
+	exit(EXIT_SUCCESS);
+}
 
+void Appl::printHelp()
+{
+	std::cerr << std::endl << "Usage:" << std::endl << "  "
+		  << m_argv[0].substr(m_argv[0].find_last_of("/\\") + 1) << " [OPTIONS...]" ;
+
+	if (m_needCommand == true)
+		std::cerr << " COMMAND {ARGS...}" << std::endl << std::endl;
+	else
+		std::cerr << std::endl << std::endl;
+
+	for (o_it = m_opts.begin(); o_it < m_opts.end(); o_it++) {
+		if (strcmp(o_it->name, "__text_only__") == 0)
+			std::cerr << o_it->description << std::endl;
+		else {
+			const char* c = (strlen(o_it->shortname) == 1) ? o_it->shortname : " ";
+			std::cerr << ((strcmp(c, " ") == 0) ? " " : "-") << c
+				  << " | --" << o_it->name
+				  << "\t" << o_it->description
+				  << std::endl;
+		}
+	}
+
+	std::cerr << "   | --settings\n-v | --version\n-h | --help" << std::endl << std::endl;
+	exit(EXIT_SUCCESS);
+}
+
+void Appl::printSettings()
+{
+	std::cerr << std::endl << "Settings:" << std::endl << std::endl;
+
+	for (o_it = m_opts.begin(); o_it < m_opts.end(); o_it++) {
+		if (strcmp(o_it->name, "__text_only__") == 0)
+			continue;
+
+		const char* c = (strlen(o_it->shortname) == 1) ? o_it->shortname : " ";
+		std::cerr << ((strcmp(c, " ") == 0) ? " " : "-") << c
+			  << " | --" << o_it->name
+			  << " = ";
+		if (o_it->datatype == dt_bool) {
+			if (getOptVal<bool>(o_it->name) == true)
+				std::cerr << "yes" << std::endl;
+			else
+				std::cerr << "no" << std::endl;
+		}
+		else if (o_it->datatype == dt_int) {
+			std::cerr << getOptVal<int>(o_it->name) << std::endl;
+		}
+		else if (o_it->datatype == dt_long) {
+			std::cerr << getOptVal<long>(o_it->name) << std::endl;
+		}
+		else if (o_it->datatype == dt_float) {
+			std::cerr << getOptVal<float>(o_it->name) << std::endl;
+		}
+		else if (o_it->datatype == dt_string) {
+			std::cerr << getOptVal<const char*>(o_it->name) << std::endl;
+		}
+
+	}
+
+	std::cerr << std::endl;
+	exit(EXIT_SUCCESS);
+}

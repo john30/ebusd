@@ -20,10 +20,6 @@
 #ifndef LIBEBUS_RESULT_H_
 #define LIBEBUS_RESULT_H_
 
-namespace libebus
-{
-
-
 static const int RESULT_OK = 0;
 
 static const int RESULT_BUS_ACQUIRED = 1;      // bus successfully acquired
@@ -54,9 +50,6 @@ typedef int result_t;
  * @param resultCode the result code (see RESULT_ constants).
  * @return the string corresponding to the result code.
  */
-const char* getResultCodeCStr(result_t resultCode);
-
-
-} //namespace
+const char* getResultCode(result_t resultCode);
 
 #endif // LIBEBUS_RESULT_H_

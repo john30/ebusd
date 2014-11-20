@@ -22,9 +22,6 @@
 #include <iostream>
 #include <iomanip>
 
-namespace libebus
-{
-
 /**
  * @brief CRC8 lookup table for the polynom 0x9b = x^8 + x^7 + x^4 + x^3 + x^1 + 1.
  */
@@ -190,4 +187,3 @@ bool isMaster(unsigned char addr) {
 	    && ((addrLo == 0x0) || (addrLo == 0x1) || (addrLo == 0x3) || (addrLo == 0x7) || (addrLo == 0xF));
 }
 
-} //namespace

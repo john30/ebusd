@@ -17,11 +17,19 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include "thread.h"
 
+/**
+ * @brief static function which will be called on thread startup.
+ * @return void pointer.
+ */
 static void* runThread(void* arg)
 {
-	return ((Thread *)arg)->run();
+	return ((Thread*)arg)->run();
 }
 
 Thread::~Thread()
@@ -39,7 +47,11 @@ int Thread::start(const char* name)
 	int result = pthread_create(&m_threadid, NULL, runThread, this);
 
 	if (result == 0) {
+
+#ifdef HAVE_PTHREAD_SETNAME_NP
 		pthread_setname_np(m_threadid, name);
+#endif
+
 		m_running = true;
 	}
 

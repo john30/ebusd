@@ -22,10 +22,6 @@
 
 #include <string>
 
-namespace libebus
-{
-
-
 class Decode
 {
 
@@ -284,8 +280,5 @@ public:
 	std::string decode();
 
 };
-
-
-} //namespace
 
 #endif // LIBEBUS_DECODE_H_

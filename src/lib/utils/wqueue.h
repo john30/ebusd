@@ -17,28 +17,42 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef LIBCORE_WQUEUE_H_
-#define LIBCORE_WQUEUE_H_
+#ifndef LIBUTILS_WQUEUE_H_
+#define LIBUTILS_WQUEUE_H_
 
 #include <list>
 #include <pthread.h>
 
-template <typename T> class WQueue
+/**
+ * @brief queue class template for all kinds data types with exclusiv lock.
+ */
+template <typename T>
+class WQueue
 {
 
 public:
+	/**
+	 * @brief constructs a new instance.
+	 */
 	WQueue()
 	{
 		pthread_mutex_init(&m_mutex, NULL);
 		pthread_cond_init(&m_cond, NULL);
 	}
 
+	/**
+	 * @brief destructor.
+	 */
 	~WQueue()
 	{
 		pthread_mutex_destroy(&m_mutex);
 		pthread_cond_destroy(&m_cond);
 	}
 
+	/**
+	 * @brief add a new item to the end of queue.
+	 * @param item to add.
+	 */
 	void add(T item)
 	{
 		pthread_mutex_lock(&m_mutex);
@@ -49,6 +63,10 @@ public:
 		pthread_mutex_unlock(&m_mutex);
 	}
 
+	/**
+	 * @brief remove the first item from queue.
+	 * @return the item.
+	 */
 	T remove()
 	{
 		pthread_mutex_lock(&m_mutex);
@@ -64,6 +82,10 @@ public:
 		return item;
 	}
 
+	/**
+	 * @brief return the first item from queue without remove.
+	 * @return the item.
+	 */
 	T next()
 	{
 		pthread_mutex_lock(&m_mutex);
@@ -78,6 +100,10 @@ public:
 		return item;
 	}
 
+	/**
+	 * @brief the number of entries inside queue.
+	 * @return the size.
+	 */
 	int size()
 	{
 		pthread_mutex_lock(&m_mutex);
@@ -90,10 +116,15 @@ public:
 	}
 
 private:
+	/** the queue itself */
 	std::list<T> m_queue;
+
+	/** mutex variable for exclusive lock */
 	pthread_mutex_t m_mutex;
+
+	/** condition variable for exclusive lock */
 	pthread_cond_t m_cond;
 
 };
 
-#endif // LIBCORE_WQUEUE_H_
+#endif // LIBUTILS_WQUEUE_H_

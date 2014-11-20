@@ -25,10 +25,6 @@
 #include <vector>
 #include <map>
 
-namespace libebus
-{
-
-
 typedef std::vector<cmd_t> cmdDB_t;
 typedef cmdDB_t::const_iterator cmdDBCI_t;
 
@@ -40,7 +36,7 @@ class Commands
 {
 
 public:
-	Commands() : m_polIndex(-1) {}
+	Commands() : m_pollIndex(-1) {}
 	~Commands();
 
 	void addCommand(const cmd_t& command);
@@ -48,33 +44,36 @@ public:
 
 	std::size_t sizeCmdDB() const { return m_cmdDB.size(); }
 	std::size_t sizeCycDB() const { return m_cycDB.size(); }
-	std::size_t sizePolDB() const { return m_polDB.size(); }
+	std::size_t sizePollDB() const { return m_pollDB.size(); }
+	std::size_t sizeScanDB() const { return m_scanDB.size(); }
 
 	cmd_t const& operator[](const std::size_t& index) const { return m_cmdDB[index]; }
 
 	int findCommand(const std::string& data) const;
 
 	std::string getCmdType(const int index) const { return std::string(m_cmdDB.at(index)[0]); }
-	std::string getEbusCommand(const int index) const;
+	std::string getBusCommand(const int index) const;
 
 	int storeCycData(const std::string& data) const;
 	std::string getCycData(int index) const;
 
-	int nextPolCommand();
-	void storePolData(const std::string& data) const;
-	std::string getPolData(int index) const;
+	int nextPollCommand();
+	void storePollData(const std::string& data) const;
+	std::string getPollData(const int index) const;
+
+	void storeScanData(const std::string& data);
+	std::string getScanData(const int index) const { return m_scanDB[index]; }
 
 private:
 	cmdDB_t m_cmdDB;
 	map_t m_cycDB;
-	map_t m_polDB;
-	size_t m_polIndex;
+	map_t m_pollDB;
+	size_t m_pollIndex;
+	std::vector<std::string> m_scanDB;
 
 	void printCommand(const cmd_t& command) const;
 
 };
 
-
-} //namespace
-
 #endif // LIBEBUS_COMMANDS_H_
+

@@ -20,19 +20,11 @@
 #include "port.h"
 #include <cstdlib>
 #include <cstring>
-#include <termios.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#include <unistd.h>
-
-
-namespace libebus
-{
-
+#include <poll.h>
 
 bool Device::isOpen()
 {
@@ -72,18 +64,23 @@ ssize_t Device::recvBytes(const long timeout, size_t maxCount)
 		return -1; // TODO RESULT_ERR_DEVICE
 
 	if (timeout > 0) {
-		fd_set readfds;
-		struct timeval tdiff;
+		int ret, nfds = 1;
+		struct pollfd fds[nfds];
+		struct timespec tdiff;
 
 		// set select timeout
 		tdiff.tv_sec = 0;
-		tdiff.tv_usec = timeout;
+		tdiff.tv_nsec = timeout*1000;
 
-		FD_ZERO(&readfds);
-		FD_SET(m_fd, &readfds);
+		memset(fds, 0, sizeof(fds));
 
-		if (select(m_fd + 1, &readfds, NULL, NULL, &tdiff) != 1)
-			return -2; // TODO RESULT_ERR_TIMEOUT
+		fds[0].fd = m_fd;
+		fds[0].events = POLLIN;
+
+		ret = ppoll(fds, nfds, &tdiff, NULL);
+
+		if (ret == -1) return -1; // TODO RESULT_ERR_DEVICE
+		if (ret == 0) return -2; // TODO RESULT_ERR_TIMEOUT
 	}
 
 	if (maxCount > sizeof(m_buffer))
@@ -141,7 +138,7 @@ void DeviceSerial::openDevice(const std::string deviceName, const bool noDeviceC
 	newSettings.c_cc[VTIME] = 0;
 
 	// empty device buffer
-	tcflush(m_fd, TCIOFLUSH);
+	tcflush(m_fd, TCIFLUSH);
 
 	// activate new settings of serial device
 	tcsetattr(m_fd, TCSANOW, &newSettings);
@@ -254,9 +251,4 @@ void Port::setType(const DeviceType type)
 		break;
 	};
 };
-
-
-} //namespace
-
-
 

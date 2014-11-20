@@ -24,21 +24,18 @@
 #include <string>
 #include <vector>
 
-namespace libebus
-{
-
 /** available file endings / types. */
 enum FileType { CSV, XML };
 
 /**
- * @brief Base class for config files.
+ * @brief base class for config files.
  */
 class ConfigFile
 {
 
 public:
 	/**
-	 * @brief Destructor.
+	 * @brief destructor.
 	 */
 	virtual ~ConfigFile() {}
 
@@ -52,14 +49,14 @@ public:
 };
 
 /**
- * @brief Class for CSV config files.
+ * @brief class for CSV config files.
  */
 class ConfigFileCSV : public ConfigFile
 {
 
 public:
 	/**
-	 * @brief Destructor.
+	 * @brief destructor.
 	 */
 	~ConfigFileCSV() {}
 
@@ -73,14 +70,14 @@ public:
 };
 
 /**
- * @brief Class for XML config files.
+ * @brief class for XML config files.
  */
 class ConfigFileXML : public ConfigFile
 {
 
 public:
 	/**
-	 * @brief Destructor.
+	 * @brief destructor.
 	 */
 	~ConfigFileXML() {}
 
@@ -95,32 +92,32 @@ public:
 
 
 /**
- * @brief Class for class Device.
+ * @brief class for class device.
  */
 class ConfigCommands
 {
 
 public:
 	/**
-	 * @brief Set file type and add recursive files from given path.
+	 * @brief set file type and add recursive files from given path.
 	 * @param path to configuration files.
-	 * @param Filetype to parse.
+	 * @param filetype to parse.
 	 */
 	ConfigCommands(const std::string path, const FileType type);
 
 	/**
-	 * @brief Destructor.
+	 * @brief destructor.
 	 */
 	~ConfigCommands() { delete m_configfile; }
 
 	/**
 	 * @brief setter for file type.
-	 * @param FileType of files.
+	 * @param filetype of files.
 	 */
 	void setType(const FileType type);
 
 	/**
-	 * @brief Parse files for commands and store them into commands instance.
+	 * @brief parse files for commands and store them into commands instance.
 	 * @return a commands instance
 	 */
 	Commands* getCommands();
@@ -128,10 +125,13 @@ public:
 private:
 	/** the configfile instance */
 	ConfigFile* m_configfile;
+
 	/** main path for configuration files */
 	std::string m_path;
+
 	/** valid file extension */
 	std::string m_extension;
+
 	/** vector of configuration files */
 	std::vector<std::string> m_files;
 
@@ -144,7 +144,5 @@ private:
 
 };
 
-
-} //namespace
-
 #endif // LIBEBUS_CONFIGFILE_H_
+

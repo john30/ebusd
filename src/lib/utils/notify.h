@@ -17,40 +17,50 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef LIBCORE_NOTIFY_H_
-#define LIBCORE_NOTIFY_H_
+#ifndef LIBUTILS_NOTIFY_H_
+#define LIBUTILS_NOTIFY_H_
 
 #include <unistd.h>
 #include <fcntl.h>
 
+/**
+ * @brief class to notify other thread per pipe.
+ */
 class Notify
 {
 
 public:
-	Notify()
-	{
-		int pipefd[2];
-		int ret = pipe(pipefd);
+	/**
+	 * @brief constructs a new instance and do notifying.
+	 */
+	Notify();
 
-		if (ret == 0) {
-			m_recvfd = pipefd[0];
-			m_sendfd = pipefd[1];
+	/**
+	 * @brief destructor.
+	 */
+	~Notify();
 
-			fcntl(m_sendfd, F_SETFL, O_NONBLOCK);
-		}
+	/**
+	 * @brief file descriptor to watch for notify event.
+	 * @return the notification value.
+	 */
+	int notifyFD() { return m_recvfd; }
 
-	}
-	virtual ~Notify() { close(m_sendfd); close(m_recvfd); }
-
-	int notifyFD() const { return m_recvfd; }
+	/**
+	 * @brief write notify event to file descriptor.
+	 * @return result of writing notification.
+	 */
 	int notify() const { return write(m_sendfd,"1",1); }
 
 private:
-        int m_recvfd;
-        int m_sendfd;
+	/** file descriptor to watch */
+	int m_recvfd;
+
+	/** file descriptor to notify */
+	int m_sendfd;
 
 };
 
-#endif // LIBCORE_NOTIFY_H_
+#endif // LIBUTILS_NOTIFY_H_
 
 

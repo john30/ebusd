@@ -26,10 +26,6 @@
 #include <vector>
 #include <cstring>
 
-namespace libebus
-{
-
-
 Encode::Encode(const std::string& data, const std::string& factor)
 	: m_data(data)
 {
@@ -363,7 +359,4 @@ std::string EncodeTTM::encode()
 
 	return result.str();
 }
-
-
-} //namespace
 

@@ -23,10 +23,6 @@
 #include <string>
 #include <vector>
 
-namespace libebus
-{
-
-
 typedef std::vector<std::string> cmd_t;
 typedef cmd_t::const_iterator cmdCI_t;
 
@@ -62,8 +58,5 @@ private:
 		    const std::string& factor);
 
 };
-
-
-} //namespace
 
 #endif // LIBEBUS_COMMAND_H_

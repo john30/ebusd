@@ -32,10 +32,10 @@ Daemon& Daemon::Instance()
 	return instance;
 }
 
-void Daemon::run(const char* file)
+void Daemon::run(const char* pidfile)
 {
 	m_status = false;
-	m_pidfile = file;
+	m_pidfile = pidfile;
 	m_pidfd = 0;
 
 	pid_t pid;

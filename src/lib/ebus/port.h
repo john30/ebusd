@@ -25,9 +25,6 @@
 #include <termios.h>
 #include <unistd.h>
 
-namespace libebus
-{
-
 /** available device types. */
 enum DeviceType { SERIAL, NETWORK };
 
@@ -39,19 +36,19 @@ enum DeviceType { SERIAL, NETWORK };
 
 
 /**
- * @brief Base class for input devices.
+ * @brief base class for input devices.
  */
 class Device
 {
 
 public:
 	/**
-	 * @brief Constructs a new instance.
+	 * @brief constructs a new instance.
 	 */
 	Device() : m_fd(-1), m_open(false), m_noDeviceCheck(false) {}
 
 	/**
-	 * @brief Destructor.
+	 * @brief destructor.
 	 */
 	virtual ~Device() {}
 
@@ -74,7 +71,7 @@ public:
 	bool isOpen();
 
 	/**
-	 * @brief sendBytes write bytes into opened file descriptor.
+	 * @brief sendBytes write bytes to opened file descriptor.
 	 * @param buffer data to send.
 	 * @param nbytes number of bytes to send.
 	 * @return number of written bytes or -1 if an error has occured.
@@ -83,7 +80,7 @@ public:
 
 	/**
 	 * @brief recvBytes read bytes from opened file descriptor.
-	 * @param timeout max time out for new input data.
+	 * @param timeoutmax time for new input data [usec].
 	 * @param maxCount max size of receive buffer.
 	 * @return number of read bytes or -1 if an error has occured.
 	 */
@@ -104,12 +101,16 @@ public:
 protected:
 	/** if of file descriptor */
 	int m_fd;
+
 	/** state of device*/
 	bool m_open;
+
 	/** state of device check */
 	bool m_noDeviceCheck;
+
 	/** queue for received bytes */
 	std::queue<unsigned char> m_recvBuffer;
+
 	/** receive buffer */
 	unsigned char m_buffer[MAX_READ_SIZE];
 
@@ -123,14 +124,14 @@ private:
 };
 
 /**
- * @brief Class for serial input device.
+ * @brief class for serial input device.
  */
 class DeviceSerial : public Device
 {
 
 public:
 	/**
-	 * @brief Destructor.
+	 * @brief destructor.
 	 */
 	~DeviceSerial() { closeDevice(); }
 
@@ -153,14 +154,14 @@ private:
 };
 
 /**
- * @brief Class for network input device.
+ * @brief class for network input device.
  */
 class DeviceNetwork : public Device
 {
 
 public:
 	/**
-	 * @brief Destructor.
+	 * @brief destructor.
 	 */
 	~DeviceNetwork() { closeDevice(); }
 
@@ -181,21 +182,21 @@ private:
 };
 
 /**
- * @brief Wrapper class for class Device.
+ * @brief wrapper class for class device.
  */
 class Port
 {
 
 public:
 	/**
-	 * @brief Constructs a new instance and determine device type.
+	 * @brief constructs a new instance and determine device type.
 	 * @param deviceName to determine device type.
 	 * @param noDeviceCheck en-/disable device check.
 	 */
 	Port(const std::string deviceName, const bool noDeviceCheck);
 
 	/**
-	 * @brief Destructor.
+	 * @brief destructor.
 	 */
 	~Port() { delete m_device; }
 
@@ -248,8 +249,10 @@ public:
 private:
 	/** the device name */
 	std::string m_deviceName;
+
 	/** the device instance */
 	Device* m_device;
+
 	/** true if device check is disabled */
 	bool m_noDeviceCheck;
 
@@ -260,8 +263,5 @@ private:
 	void setType(const DeviceType type);
 
 };
-
-
-} //namespace
 
 #endif // LIBEBUS_PORT_H_

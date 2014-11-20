@@ -6,16 +6,15 @@ AM_CXXFLAGS = -fpic \
 
 bin_PROGRAMS = ebusd
 
-ebusd_SOURCES = message.h \
-	        connection.cpp \
-	        connection.h \
+ebusd_SOURCES = dump.cpp \
+		dump.h \
+		busloop.cpp \
+		busloop.h \
 		network.cpp \
 		network.h \
-		ebusloop.cpp \
-		ebusloop.h \
 		baseloop.cpp \
 		baseloop.h \
-		main.cpp
+		ebusd.cpp
 
 ebusd_LDADD = $(top_srcdir)/src/lib/utils/libutils.a \
               $(top_srcdir)/src/lib/ebus/libebus.a \

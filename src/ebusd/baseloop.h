@@ -22,10 +22,7 @@
 
 #include "commands.h"
 #include "network.h"
-#include "ebusloop.h"
-
-using namespace libebus;
-
+#include "busloop.h"
 
 class BaseLoop
 {
@@ -36,20 +33,21 @@ public:
 
 	void start();
 
-	void addMessage(Message* message) { m_queue.add(message); }
+	void addMessage(NetMessage* message) { m_netQueue.add(message); }
 
 private:
 	Commands* m_commands;
-	EBusLoop* m_ebusloop;
+	BusLoop* m_busloop;
 	Network* m_network;
 
-	WQueue<Message*> m_queue;
+	WQueue<NetMessage*> m_netQueue;
 
 	enum ClientCommand {
 	     get,       // get ebus data
 	     set,       // set ebus value
 	     cyc,       // fetch cycle data
 	     hex,       // send hex value
+	     scan,      // scan ebus
 	     log,	// logger settings
 	     raw,       // toggle log raw data
 	     dump,      // toggle dump state
@@ -64,6 +62,7 @@ private:
 		if (strcasecmp(item.c_str(), "SET") == 0) return set;
 		if (strcasecmp(item.c_str(), "CYC") == 0) return cyc;
 		if (strcasecmp(item.c_str(), "HEX") == 0) return hex;
+		if (strcasecmp(item.c_str(), "SCAN") == 0) return scan;
 		if (strcasecmp(item.c_str(), "LOG") == 0) return log;
 		if (strcasecmp(item.c_str(), "RAW") == 0) return raw;
 		if (strcasecmp(item.c_str(), "DUMP") == 0) return dump;

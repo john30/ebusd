@@ -17,42 +17,26 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef CONNECTION_H_
-#define CONNECTION_H_
-
-#include "tcpsocket.h"
-#include "wqueue.h"
 #include "notify.h"
-#include "thread.h"
-#include "message.h"
 
-class Connection : public Thread
+Notify::Notify()
 {
+	int pipefd[2];
+	int ret = pipe(pipefd);
 
-public:
-	Connection(TCPSocket* socket, WQueue<Message*>* data)
-		: m_socket(socket), m_data(data), m_running(false) { m_count++; }
+	if (ret == 0) {
+		m_recvfd = pipefd[0];
+		m_sendfd = pipefd[1];
 
-	~Connection() { m_count--; }
+		fcntl(m_sendfd, F_SETFL, O_NONBLOCK);
+	}
 
-	void addResult(Message message);
+}
 
-	void* run();
-	void stop() const { m_notify.notify(); }
-	bool isRunning() const { return m_running; }
+Notify::~Notify()
+{
+	close(m_sendfd);
+	close(m_recvfd);
+}
 
-	pthread_t getID() { return this->self(); }
-	int numConnections() const { return m_count; }
 
-private:
-	TCPSocket* m_socket;
-	WQueue<Message*>* m_data;
-	WQueue<Message*> m_result;
-	Notify m_notify;
-	bool m_running;
-
-	static int m_count;
-
-};
-
-#endif // CONNECTION_H_

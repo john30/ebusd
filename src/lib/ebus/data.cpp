@@ -29,9 +29,6 @@
 #include <typeinfo>
 #include <math.h>
 
-namespace libebus
-{
-
 /** the known data field types. */
 static const dataType_t dataTypes[] = {
 	{"STR",16*8,bt_str,     ADJ,        ' ',          1,         16,    0, 0}, // >= 1 byte character string filled up with space
@@ -895,7 +892,6 @@ result_t ValueListDataField::writeSymbols(std::istringstream& input,
 	return RESULT_ERR_INVALID_ARG; // value assignment not found
 }
 
-
 DataFieldSet::~DataFieldSet()
 {
 	while (m_fields.empty() == false) {
@@ -976,6 +972,3 @@ result_t DataFieldSet::write(std::istringstream& input, SymbolString& masterData
 
 	return RESULT_OK;
 }
-
-
-} //namespace

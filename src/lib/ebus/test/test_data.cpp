@@ -21,8 +21,6 @@
 #include <iostream>
 #include <iomanip>
 
-using namespace libebus;
-
 void verify(bool expectFailMatch, std::string type, std::string input,
 		bool match, std::string expectStr, std::string gotStr)
 {
@@ -217,7 +215,7 @@ int main()
 
 		if (result != RESULT_OK) {
 			std::cout << "\"" << check[0] << "\": create error: "
-			          << getResultCodeCStr(result) << std::endl;
+			          << getResultCode(result) << std::endl;
 			continue;
 		}
 		if (fields == NULL) {
@@ -256,7 +254,7 @@ int main()
 						  << check[2] << "< OK" << std::endl;
 		else if (result != RESULT_OK) {
 			std::cout << "  read " << fields->getName() << " >" << check[2] << "< error: "
-					  << getResultCodeCStr(result) << std::endl;
+					  << getResultCode(result) << std::endl;
 		}
 		else {
 			bool match = strcasecmp(output.str().c_str(), expectStr.c_str()) == 0;
@@ -276,7 +274,7 @@ int main()
 			}
 			else if (result != RESULT_OK) {
 				std::cout << "  write " << fields->getName() << " >"
-						  << expectStr << "< error: " << getResultCodeCStr(result) << std::endl;
+						  << expectStr << "< error: " << getResultCode(result) << std::endl;
 			}
 			else {
 				bool match = mstr == writeMstr && sstr == writeSstr;

@@ -24,9 +24,6 @@
 #include <sstream>
 #include <vector>
 
-using namespace libebus;
-
-
 int main() {
 
 	std::string dir("test");
