@@ -22,7 +22,6 @@
 
 #include "commands.h"
 #include "port.h"
-#include "dump.h"
 #include "wqueue.h"
 #include "thread.h"
 #include "symbol.h"
@@ -31,7 +30,7 @@
 /** the maximum time [us] allowed for retrieving a byte from an addressed slave */
 #define RECV_TIMEOUT 10000
 
-enum MessageType { invalid, broadcast, masterMaster, masterSlave };
+enum CommandType { invalid, broadcast, masterMaster, masterSlave };
 
 class BusMessage
 {
@@ -40,7 +39,7 @@ public:
 	BusMessage(const std::string command, const bool poll, const bool scan);
 	~BusMessage();
 
-	MessageType getType() const { return m_type; }
+	CommandType getType() const { return m_type; }
 	bool isPoll() const { return m_poll; }
 	bool isScan() const { return m_scan; }
 
@@ -58,7 +57,7 @@ public:
 	void sendSignal() { pthread_cond_signal(&m_cond); }
 
 private:
-	MessageType m_type;
+	CommandType m_type;
 	bool m_poll;
 	bool m_scan;
 	SymbolString m_command;
@@ -82,19 +81,37 @@ public:
 
 	void addMessage(BusMessage* message) { m_busQueue.add(message); }
 
-	void dump() { m_dumpState == true ? m_dumpState = false :  m_dumpState = true ; }
-	void raw() { m_logRawData == true ? m_logRawData = false :  m_logRawData = true ; }
-
 	void reload(Commands* commands) { m_commands = commands; }
 
 	void scan(const bool full=false) { m_scan = true; m_scanFull = full; m_scanIndex = 0; }
+
+	void raw() { m_logRawData == true ? m_logRawData = false :  m_logRawData = true ; }
+
+	/**
+	 * @brief set the name of dump file.
+	 * @param name the file name of dump file.
+	 */
+	void setDumpFile(const std::string& dumpFile) { m_dumpFile = dumpFile; }
+
+	/**
+	 * @brief set the max size of dump file.
+	 * @param size the max. size of the dump file, before switching.
+	 */
+	void setDumpSize(const long dumpSize) { m_dumpSize = dumpSize; }
+
+	void dump() { m_dumping == true ? m_dumping = false :  m_dumping = true ; }
 
 private:
 	Commands* m_commands;
 	Port* m_port;
 
-	Dump* m_dump;
-	bool m_dumpState;
+	/** the name of dump file*/
+	std::string m_dumpFile;
+
+	/** max. size of dump file */
+	long m_dumpSize;
+
+	bool m_dumping;
 
 	bool m_logRawData;
 
@@ -117,6 +134,13 @@ private:
 	bool m_scan;
 	bool m_scanFull;
 	size_t m_scanIndex;
+
+	/**
+	 * @brief write byte to dump file.
+	 * @param byte to write
+	 * @return -1 if dump file cannot opened or renaming of dump file failed.
+	 */
+	int writeDumpFile(const char* byte);
 
 	unsigned char fetchByte();
 	void collectCycData(const int numRecv);

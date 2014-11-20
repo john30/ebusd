@@ -20,6 +20,7 @@
 #include "busloop.h"
 #include "logger.h"
 #include "appl.h"
+#include <fstream>
 #include <iomanip>
 
 extern Logger& L;
@@ -78,8 +79,9 @@ BusLoop::BusLoop(Commands* commands)
 	if (m_port->isOpen() == false)
 		L.log(bus, error, "can't open %s", A.getOptVal<const char*>("device"));
 
-	m_dump = new Dump(A.getOptVal<const char*>("dumpfile"), A.getOptVal<long>("dumpsize"));
-	m_dumpState = A.getOptVal<bool>("dump");
+	m_dumpFile = A.getOptVal<const char*>("dumpfile");
+	m_dumpSize = A.getOptVal<long>("dumpsize");
+	m_dumping = A.getOptVal<bool>("dump");
 
 	m_logRawData = A.getOptVal<bool>("lograwdata");
 
@@ -100,7 +102,6 @@ BusLoop::~BusLoop()
 		m_port->close();
 
 	delete m_port;
-	delete m_dump;
 }
 
 void* BusLoop::run()
@@ -234,6 +235,29 @@ void* BusLoop::run()
 	return NULL;
 }
 
+int BusLoop::writeDumpFile(const char* byte)
+{
+	int ret = 0;
+
+	std::ofstream fs(m_dumpFile.c_str(), std::ios::out | std::ios::binary | std::ios::app);
+
+	if (fs == 0)
+		return -1;
+
+	fs.write(byte, 1);
+
+	if (fs.tellp() >= m_dumpSize * 1024) {
+		std::string oldfile;
+		oldfile += m_dumpFile;
+		oldfile += ".old";
+		ret = rename(m_dumpFile.c_str(), oldfile.c_str());
+	}
+
+	fs.close();
+
+	return ret;
+}
+
 unsigned char BusLoop::fetchByte()
 {
 	unsigned char byte;
@@ -241,8 +265,8 @@ unsigned char BusLoop::fetchByte()
 	// fetch byte
 	byte = m_port->byte();
 
-	if (m_dumpState == true)
-		m_dump->write((const char*) &byte);
+	if (m_dumping == true)
+		writeDumpFile((const char*) &byte);
 
 	if (m_logRawData == true)
 		L.log(bus, event, "%02x", byte);
