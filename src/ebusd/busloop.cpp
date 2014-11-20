@@ -42,12 +42,6 @@ BusMessage::BusMessage(const std::string command, const bool poll, const bool sc
 	pthread_cond_init(&m_cond, NULL);
 }
 
-BusMessage::~BusMessage()
-{
-	pthread_mutex_destroy(&m_mutex);
-	pthread_cond_destroy(&m_cond);
-}
-
 const std::string BusMessage::getMessageStr()
 {
 	std::string result;
@@ -70,7 +64,7 @@ const std::string BusMessage::getMessageStr()
 
 
 BusLoop::BusLoop(Commands* commands)
-	: m_commands(commands), m_stop(false), m_lockCounter(0),
+	: m_commands(commands), m_running(true), m_lockCounter(0),
 	  m_priorRetry(false), m_scan(false), m_scanFull(false), m_scanIndex(0)
 {
 	m_port = new Port(A.getOptVal<const char*>("device"), A.getOptVal<bool>("nodevicecheck"));
@@ -223,7 +217,7 @@ void* BusLoop::run()
 
 		}
 
-		if (m_stop == true) {
+		if (m_running == false) {
 			if (m_port->isOpen() == true)
 				m_port->close();
 
@@ -343,28 +337,29 @@ void BusLoop::analyseCycData()
 		skipfirst = true;
 }
 
-void BusLoop::addPollMessage()
+void BusLoop::collectSlave()
 {
-	int index = m_commands->nextPollCommand();
-	if (index < 0) {
-		L.log(bus, error, "polling index out of range");
-	}
-	else {
-		// TODO: implement as methode from class commands?
-		std::string tmp;
-		tmp += (*m_commands)[index][1];
-		tmp += " ";
-		tmp += (*m_commands)[index][2];
-		L.log(bus, event, " polling [%4d] %s", index, tmp.c_str());
+	std::vector<unsigned char>::iterator it;
 
-		std::string busCommand(A.getOptVal<const char*>("address"));
-		busCommand += m_commands->getBusCommand(index);
-		std::transform(busCommand.begin(), busCommand.end(), busCommand.begin(), tolower);
+	for (int i = 0; i < 2; i++) {
+		bool found = false;
+		unsigned char mm = m_sstr[i];
 
-		BusMessage* message = new BusMessage(busCommand, true, false);
-		L.log(bus, trace, " msg: %s", busCommand.c_str());
+		if (i == 0) {
+			if (mm == 0xFF)
+				mm = 0x04;
+			else
+				mm += 0x05;
+		}
 
-		addMessage(message);
+		for (it = m_slave.begin(); it != m_slave.end(); it++)
+			if ((*it) == mm)
+				found = true;
+
+		if (found == false && isMaster(mm) == false && mm != BROADCAST) {
+			m_slave.push_back(mm);
+			L.log(bus, event, " new slave: %d %02x", m_slave.size(), m_slave.back());
+		}
 	}
 }
 
@@ -635,29 +630,28 @@ int BusLoop::recvSlaveData(SymbolString& result)
 	return RESULT_OK;
 }
 
-void BusLoop::collectSlave()
+void BusLoop::addPollMessage()
 {
-	std::vector<unsigned char>::iterator it;
+	int index = m_commands->nextPollCommand();
+	if (index < 0) {
+		L.log(bus, error, "polling index out of range");
+	}
+	else {
+		// TODO: implement as methode from class commands?
+		std::string tmp;
+		tmp += (*m_commands)[index][1];
+		tmp += " ";
+		tmp += (*m_commands)[index][2];
+		L.log(bus, event, " polling [%4d] %s", index, tmp.c_str());
 
-	for (int i = 0; i < 2; i++) {
-		bool found = false;
-		unsigned char mm = m_sstr[i];
+		std::string busCommand(A.getOptVal<const char*>("address"));
+		busCommand += m_commands->getBusCommand(index);
+		std::transform(busCommand.begin(), busCommand.end(), busCommand.begin(), tolower);
 
-		if (i == 0) {
-			if (mm == 0xFF)
-				mm = 0x04;
-			else
-				mm += 0x05;
-		}
+		BusMessage* message = new BusMessage(busCommand, true, false);
+		L.log(bus, trace, " msg: %s", busCommand.c_str());
 
-		for (it = m_slave.begin(); it != m_slave.end(); it++)
-			if ((*it) == mm)
-				found = true;
-
-		if (found == false && isMaster(mm) == false && mm != BROADCAST) {
-			m_slave.push_back(mm);
-			L.log(bus, event, " new slave: %d %02x", m_slave.size(), m_slave.back());
-		}
+		addMessage(message);
 	}
 }
 

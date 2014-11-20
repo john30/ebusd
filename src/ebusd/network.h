@@ -140,7 +140,7 @@ public:
 	void* run();
 
 	/**
-	 * @brief closs active connection.
+	 * @brief close active connection.
 	 */
 	void stop() const { m_notify.notify(); }
 
@@ -185,7 +185,7 @@ class Network : public Thread
 
 public:
 	/**
-	 * @brief create a new network instance and listening for incoming connections.
+	 * @brief create a network instance and listening for incoming connections.
 	 * @param local true to accept connections only for local host.
 	 * @param netQueue the remote queue for network messages.
 	 */
