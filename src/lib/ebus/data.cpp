@@ -175,7 +175,7 @@ result_t DataField::create(std::vector<std::string>::iterator& it,
 					break;
 				}
 
-				if (pos > maxPos) { // TODO check this in real offset as well
+				if (pos > maxPos) {
 					result = RESULT_ERR_INVALID_ARG; // invalid pos definition
 					break;
 				}
