@@ -100,6 +100,31 @@ static const char* dayNames[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"
 #define NULL_VALUE "-"
 #define MAX_POS 16
 
+/**
+ * @brief Parse an unsigned int value.
+ * @param str the string to parse.
+ * @param base the numerical base.
+ * @param minValue the minimum resulting value.
+ * @param maxValue the maximum resulting value.
+ * @param result the variable in which to store an error code when parsing failed or the value is out of bounds.
+ */
+unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result) {
+	char* strEnd = NULL;
+
+	unsigned int ret = strtoul(str, &strEnd, base);
+
+	if (strEnd == NULL || *strEnd != 0) {
+		result = RESULT_ERR_INVALID_ARG; // invalid value
+		return 0;
+	}
+
+	if (ret < minValue || ret > maxValue) {
+		result = RESULT_ERR_INVALID_ARG; // invalid value
+		return 0;
+	}
+	return ret;
+}
+
 result_t DataField::create(std::vector<std::string>::iterator& it,
 		const std::vector<std::string>::iterator end,
 		const std::map< std::string, DataField*> templates,
@@ -168,18 +193,9 @@ result_t DataField::create(std::vector<std::string>::iterator& it,
 				if (++offsetCnt > 2)
 					return RESULT_ERR_INVALID_ARG; //invalid pos definition
 
-				const char* start = token.c_str();
-				char* end = NULL;
-				unsigned int pos = strtoul(start, &end, 10) - 1; // 1-based
-				if (end != start + strlen(start)) {
-					result = RESULT_ERR_INVALID_ARG; // invalid pos definition
+				unsigned int pos = parseInt(token.c_str(), 10, 1, MAX_POS + 1, result) - 1; // input is 1-based
+				if (result != RESULT_OK)
 					break;
-				}
-
-				if (pos > MAX_POS) {
-					result = RESULT_ERR_INVALID_ARG; // invalid pos definition
-					break;
-				}
 
 				if (offsetCnt == 1)
 					offset = pos;
@@ -204,26 +220,22 @@ result_t DataField::create(std::vector<std::string>::iterator& it,
 			std::string divisorStr = *it++;
 			if (divisorStr.empty() == false) {
 				if (divisorStr.find_first_not_of("0123456789") == std::string::npos) {
-					const char* start = divisorStr.c_str();
-					char* end = NULL;
-					divisor = strtoul(start, &end, 10);
-					if (end != start + strlen(start)) {
-						result = RESULT_ERR_INVALID_ARG;
+					divisor = parseInt(divisorStr.c_str(), 10, 1, 10000, result);
+					if (result != RESULT_OK)
 						break;
-					}
 				}
 				else {
 					std::istringstream stream(divisorStr);
 					while (std::getline(stream, token, VALUE_SEPARATOR) != 0) {
-						const char* start = token.c_str();
-						char* end = NULL;
-						unsigned int id = strtoul(start, &end, 10);
-						if (end == NULL || end == start || *end != '=') {
+						const char* str = token.c_str();
+						char* strEnd = NULL;
+						unsigned int id = strtoul(str, &strEnd, 10);
+						if (strEnd == NULL || strEnd == str || *strEnd != '=') {
 							result = RESULT_ERR_INVALID_ARG;
 							break;
 						}
 
-						values[id] = std::string(end + 1);
+						values[id] = std::string(strEnd + 1);
 					}
 					if (result != RESULT_OK)
 						break;
@@ -524,6 +536,7 @@ result_t StringDataField::writeSymbols(std::istringstream& input,
 		incr = -1;
 	}
 
+	result_t result;
 	size_t i = 0;
 	for (size_t offset = start; offset != end; offset += incr, i++) {
 		switch (m_dataType.type)
@@ -542,11 +555,10 @@ result_t StringDataField::writeSymbols(std::istringstream& input,
 				if (input.eof() == true)
 					return RESULT_ERR_INVALID_ARG; // invalid hex value
 
-				str = token.c_str();
-				strEnd = NULL;
-				value = strtoul(str, &strEnd, 16);
-				if (strEnd != str + strlen(str))
-					return RESULT_ERR_INVALID_ARG; // invalid hex value
+				result_t result;
+				value = parseInt(token.c_str(), 16, 0, 0xff, result);
+				if (result != RESULT_OK)
+					return result; // invalid hex value
 			}
 			break;
 		case bt_dat:
@@ -554,11 +566,9 @@ result_t StringDataField::writeSymbols(std::istringstream& input,
 				continue; // skip weekday in between
 			if (std::getline(input, token, '.') == 0)
 				return RESULT_ERR_INVALID_ARG; // incomplete
-			str = token.c_str();
-			strEnd = NULL;
-			value = strtoul(str, &strEnd, 10);
-			if (strEnd != str + strlen(str))
-				return RESULT_ERR_INVALID_ARG; // invalid date part
+			value = parseInt(token.c_str(), 10, 0, 9999, result);
+			if (result != RESULT_OK)
+				return result; // invalid date part
 			if (i + 1 == m_length && value >= 2000)
 				value -= 2000;
 			else if (value < 1 || (i == 0 && value > 31) || (i == 1 && value > 12))
@@ -567,12 +577,10 @@ result_t StringDataField::writeSymbols(std::istringstream& input,
 		case bt_tim:
 			if (std::getline(input, token, ':') == 0)
 				return RESULT_ERR_INVALID_ARG; // incomplete
-			str = token.c_str();
-			strEnd = NULL;
-			value = strtoul(str, &strEnd, 10);
-			if (strEnd != str + strlen(str))
-				return RESULT_ERR_INVALID_ARG; // invalid time part
-			if ((i == 0 && value > 24) || (i > 0 && (value > 59 || ( last == 24 && value > 0) )))
+			value = parseInt(token.c_str(), 10, 0, 59, result);
+			if (result != RESULT_OK)
+				return result; // invalid time part
+			if ((i == 0 && value > 24) || (i > 0 && ( last == 24 && value > 0) ))
 				return RESULT_ERR_INVALID_ARG; // invalid time part
 			if (m_length == 1) { // truncated time
 				if (i == 0) {
@@ -775,11 +783,10 @@ result_t NumberDataField::writeSymbols(std::istringstream& input,
 	unsigned int value;
 
 	const char* str = input.str().c_str();
-	size_t len = strlen(str);
 	if (strcasecmp(str, NULL_VALUE) == 0)
 		// replacement value
 		value = m_dataType.replacement;
-	else if (len == 0)
+	else if (str == NULL || *str == 0)
 		return RESULT_ERR_INVALID_ARG; // input too short
 	else {
 		char* strEnd = NULL;
@@ -793,13 +800,13 @@ result_t NumberDataField::writeSymbols(std::istringstream& input,
 			}
 			else
 				value = strtoul(str, &strEnd, 10);
-			if (strEnd != str + len)
+			if (strEnd == NULL || *strEnd != 0)
 				return RESULT_ERR_INVALID_ARG; // invalid value
 		}
 		else {
 			char* strEnd = NULL;
 			double dvalue = strtod(str, &strEnd);
-			if (strEnd != str + len)
+			if (strEnd == NULL || strEnd != 0)
 				return RESULT_ERR_INVALID_ARG; // invalid value
 			dvalue = round(dvalue * m_divisor);
 			if ((m_dataType.flags & SIG) != 0) {
