@@ -98,6 +98,7 @@ static const char* dayNames[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"
 #define FIELD_SEPARATOR ';'
 #define VALUE_SEPARATOR ','
 #define NULL_VALUE "-"
+#define MAX_POS 16
 
 result_t DataField::create(std::vector<std::string>::iterator& it,
 		const std::vector<std::string>::iterator end,
@@ -112,7 +113,7 @@ result_t DataField::create(std::vector<std::string>::iterator& it,
 		std::string unit, comment;
 		PartType partType;
 		unsigned int divisor = 0;
-		unsigned char offset, length, maxPos = 16, offsetCnt = 0;
+		unsigned char offset, length, offsetCnt = 0;
 		const bool isTemplate = dstAddress == SYN;
 		std::string token;
 		if (it == end)
@@ -175,7 +176,7 @@ result_t DataField::create(std::vector<std::string>::iterator& it,
 					break;
 				}
 
-				if (pos > maxPos) {
+				if (pos > MAX_POS) {
 					result = RESULT_ERR_INVALID_ARG; // invalid pos definition
 					break;
 				}
@@ -269,6 +270,10 @@ result_t DataField::create(std::vector<std::string>::iterator& it,
 					break;
 				offset = fields.back()->getNextOffset();
 			}
+			if (offset > MAX_POS) {
+				result = RESULT_ERR_INVALID_ARG; // invalid pos definition
+				break;
+			}
 			if (found == true || result != RESULT_OK)
 				break;
 		}
@@ -290,6 +295,10 @@ result_t DataField::create(std::vector<std::string>::iterator& it,
 					useLength = numBytes;
 				else if (useLength != numBytes)
 					continue; // check for another one with same name but different length
+				if (offset + useLength > MAX_POS) {
+					result = RESULT_ERR_INVALID_ARG; // invalid pos definition
+					break;
+				}
 
 				switch (dataType.type)
 				{
@@ -360,7 +369,6 @@ unsigned char SingleDataField::getNextOffset()
 result_t SingleDataField::read(SymbolString& masterData, SymbolString& slaveData,
 		std::ostringstream& output, bool verbose, char separator)
 {
-	unsigned char maxPos = 16;
 	SymbolString& input = m_partType == pt_masterData ? masterData : slaveData;
 	unsigned char baseOffset;
 	switch (m_partType)
@@ -375,9 +383,6 @@ result_t SingleDataField::read(SymbolString& masterData, SymbolString& slaveData
 		return RESULT_ERR_INVALID_ARG; // invalid part type
 	}
 
-	if (m_offset + m_length > maxPos) {
-		return RESULT_ERR_INVALID_ARG; // invalid pos definition
-	}
 	if (verbose)
 		output << m_name << "=";
 
