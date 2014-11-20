@@ -135,4 +135,12 @@ private:
  */
 bool isMaster(unsigned char addr);
 
+/**
+ * Returns whether the address is a valid bus address.
+ * @param addr the address to check.
+ * @param allowBroadcast whether to also allow @a addr to be the broadcast address (default true).
+ * @return <code>true</code> if the specified address is a valid bus address.
+ */
+bool isValidAddress(unsigned char addr, bool allowBroadcast=true);
+
 #endif // LIBEBUS_SYMBOL_H_

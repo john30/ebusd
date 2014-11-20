@@ -64,6 +64,17 @@ typedef struct {
 } dataType_t;
 
 
+/**
+ * @brief Parse an unsigned int value.
+ * @param str the string to parse.
+ * @param base the numerical base.
+ * @param minValue the minimum resulting value.
+ * @param maxValue the maximum resulting value.
+ * @param result the variable in which to store an error code when parsing failed or the value is out of bounds.
+ */
+unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result);
+
+
 class SingleDataField;
 
 /**
@@ -88,11 +99,11 @@ public:
 	 * @brief Factory method for creating new instances.
 	 * @param it the iterator to traverse for the definition parts.
 	 * @param end the iterator pointing to the end of the definition parts.
-	 * @param templates a map of DataField templates to be referenced by name.
+	 * @param templates a map of @a DataField templates to be referenced by name.
 	 * @param returnField the variable in which to store the created instance.
 	 * @param isSetMessage whether the field is part of a set message (default false).
 	 * @param dstAddress the destination bus address (default @a SYN for creating a template @a DataField).
-	 * @return @a RESULT_OK on success, @a RESULT_ERR_EOF if the iterator is empty, or an error code.
+	 * @return @a RESULT_OK on success, or an error code.
 	 * Note: the caller needs to free the created instance.
 	 */
 	static result_t create(std::vector<std::string>::iterator& it, const std::vector<std::string>::iterator end,
