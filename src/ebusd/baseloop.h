@@ -24,54 +24,88 @@
 #include "network.h"
 #include "busloop.h"
 
+/** possible client commands */
+enum CommandType {
+     ct_get,       // get ebus data
+     ct_set,       // set ebus value
+     ct_cyc,       // fetch cycle data
+     ct_hex,       // send hex value
+     ct_scan,      // scan ebus
+     ct_log,       // logger settings
+     ct_raw,       // toggle log raw data
+     ct_dump,      // toggle dump state
+     ct_reload,    // reload ebus configuration
+     ct_help,      // print commands
+     ct_invalid,   // invalid
+};
+
+/**
+ * @brief class baseloop which handle client messages.
+ */
 class BaseLoop
 {
 
 public:
+	/**
+	 * @brief construct the baseloop and creates commads, network and busloop subsystems.
+	 */
 	BaseLoop();
+
+	/**
+	 * @brief destructor.
+	 */
 	~BaseLoop();
 
+	/**
+	 * @brief start baseloop instance.
+	 */
 	void start();
 
+	/**
+	 * @brief add a new network message to internal message queue.
+	 * @param message the network message.
+	 */
 	void addMessage(NetMessage* message) { m_netQueue.add(message); }
 
 private:
+	/** the commands instance */
 	Commands* m_commands;
+
+	/** the busloop instance */
 	BusLoop* m_busloop;
+
+	/** the network instance */
 	Network* m_network;
 
+	/** queue for network messages */
 	WQueue<NetMessage*> m_netQueue;
 
-	enum ClientCommand {
-	     get,       // get ebus data
-	     set,       // set ebus value
-	     cyc,       // fetch cycle data
-	     hex,       // send hex value
-	     scan,      // scan ebus
-	     log,	// logger settings
-	     raw,       // toggle log raw data
-	     dump,      // toggle dump state
-	     reload,    // reload ebus configuration
-	     help,      // print commands
-	     notfound
-	};
-
-	ClientCommand getCase(const std::string& item)
+	/**
+	 * @brief compare client command with defined.
+	 * @param item the client command to compare.
+	 * @return the founded client command type.
+	 */
+	CommandType getCase(const std::string& item)
 	{
-		if (strcasecmp(item.c_str(), "GET") == 0) return get;
-		if (strcasecmp(item.c_str(), "SET") == 0) return set;
-		if (strcasecmp(item.c_str(), "CYC") == 0) return cyc;
-		if (strcasecmp(item.c_str(), "HEX") == 0) return hex;
-		if (strcasecmp(item.c_str(), "SCAN") == 0) return scan;
-		if (strcasecmp(item.c_str(), "LOG") == 0) return log;
-		if (strcasecmp(item.c_str(), "RAW") == 0) return raw;
-		if (strcasecmp(item.c_str(), "DUMP") == 0) return dump;
-		if (strcasecmp(item.c_str(), "RELOAD") == 0) return reload;
-		if (strcasecmp(item.c_str(), "HELP") == 0) return help;
+		if (strcasecmp(item.c_str(), "GET") == 0) return ct_get;
+		if (strcasecmp(item.c_str(), "SET") == 0) return ct_set;
+		if (strcasecmp(item.c_str(), "CYC") == 0) return ct_cyc;
+		if (strcasecmp(item.c_str(), "HEX") == 0) return ct_hex;
+		if (strcasecmp(item.c_str(), "SCAN") == 0) return ct_scan;
+		if (strcasecmp(item.c_str(), "LOG") == 0) return ct_log;
+		if (strcasecmp(item.c_str(), "RAW") == 0) return ct_raw;
+		if (strcasecmp(item.c_str(), "DUMP") == 0) return ct_dump;
+		if (strcasecmp(item.c_str(), "RELOAD") == 0) return ct_reload;
+		if (strcasecmp(item.c_str(), "HELP") == 0) return ct_help;
 
-		return notfound;
+		return ct_invalid;
 	}
 
+	/**
+	 * @brief decode and execute client message
+	 * @param data the data string to decode
+	 * @return result string to send back to client
+	 */
 	std::string decodeMessage(const std::string& data);
 
 };

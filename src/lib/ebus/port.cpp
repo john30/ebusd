@@ -232,9 +232,9 @@ Port::Port(const std::string deviceName, const bool noDeviceCheck)
 
 	if (strchr(deviceName.c_str(), '/') == NULL &&
 	    strchr(deviceName.c_str(), ':') != NULL)
-		setType(NETWORK);
+		setType(dt_network);
 	else
-		setType(SERIAL);
+		setType(dt_serial);
 }
 
 void Port::setType(const DeviceType type)
@@ -243,10 +243,10 @@ void Port::setType(const DeviceType type)
 		delete m_device;
 
 	switch (type) {
-	case SERIAL:
+	case dt_serial:
 		m_device = new DeviceSerial();
 		break;
-	case NETWORK:
+	case dt_network:
 		m_device = new DeviceNetwork();
 		break;
 	};

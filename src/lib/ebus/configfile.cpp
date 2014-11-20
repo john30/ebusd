@@ -60,7 +60,7 @@ void ConfigCommands::setType(const FileType type)
 		delete m_configfile;
 
 	switch (type) {
-	case CSV:
+	case ft_csv:
 		m_configfile = new ConfigFileCSV();
 		m_extension = "csv";
 		break;

@@ -27,7 +27,7 @@
 int main() {
 
 	std::string dir("test");
-	ConfigCommands config(dir, CSV);
+	ConfigCommands config(dir, ft_csv);
 
 	Commands* commands = config.getCommands();
 
