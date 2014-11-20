@@ -35,11 +35,11 @@ enum PartType {
 
 /** the available base data types. */
 enum BaseType {
-	bt_str,    // text string in a StringDataField
-	bt_hexstr, // hex digit string in a StringDataField
-	bt_dat,    // date in a StringDataField
-	bt_tim,    // time in a StringDataField
-	bt_num,    // numeric value in a NumericDataField
+	bt_str,    // text string in a @a StringDataField
+	bt_hexstr, // hex digit string in a @a StringDataField
+	bt_dat,    // date in a @a StringDataField
+	bt_tim,    // time in a @a StringDataField
+	bt_num,    // numeric value in a @a NumericDataField
 };
 
 /** flags for dataType_t. */
@@ -53,14 +53,14 @@ const unsigned int DAY = 0x20; // forced value list defaulting to week days
 /** the structure for defining field types with their properties. */
 typedef struct {
 	const char* name;                        // field identifier
-	const unsigned int numBits;              // number of bits (maximum length if ADJ flag is set, must be multiple of 8 with flag BCD)
+	const unsigned int numBits;              // number of bits (maximum length if @a ADJ flag is set, must be multiple of 8 with flag BCD)
 	const BaseType type;                     // base data type
-	const unsigned int flags;                // flags (e.g. BCD)
-	const unsigned int replacement;          // replacement value (fill-up value for bt_str/bt_hexstr, no replacement if equal to minValueOrLength for bt_num)
-	const unsigned int minValueOrLength;     // minimum binary value (minimum length of string for StringDataField)
-	const unsigned int maxValueOrLength;     // maximum binary value (maximum length of string for StringDataField)
-	const unsigned int divisor;              // bt_number: divisor
-	const unsigned char precisionOrFirstBit; // bt_number: precision for formatting or offset to first bit if (numBits%8)!=0
+	const unsigned int flags;                // flags (e.g. @a BCD)
+	const unsigned int replacement;          // replacement value (fill-up value for @a bt_str / @a bt_hexstr, no replacement if equal to @a minValueOrLength for @a bt_num)
+	const unsigned int minValueOrLength;     // minimum binary value (minimum length of string for @a StringDataField)
+	const unsigned int maxValueOrLength;     // maximum binary value (maximum length of string for @a StringDataField)
+	const unsigned int divisor;              // @a bt_number: divisor
+	const unsigned char precisionOrFirstBit; // @a bt_number: precision for formatting or offset to first bit if (@a numBits%8)!=0
 } dataType_t;
 
 
@@ -89,14 +89,14 @@ public:
 	 * @param it the iterator to traverse for the definition parts.
 	 * @param end the iterator pointing to the end of the definition parts.
 	 * @param templates a map of DataField templates to be referenced by name.
-	 * @param fields the vector to which created instances are added.
+	 * @param returnField the variable in which to store the created instance.
 	 * @param isSetMessage whether the field is part of a set message (default false).
-	 * @param dstAddress the destination bus address (default @a SYN for creating a template DataFields).
-	 * @return RESULT_OK on success, RESULT_ERR_EOF if the iterator is empty, or an error code.
-	 * Note: the caller needs to cleanup created instances.
+	 * @param dstAddress the destination bus address (default @a SYN for creating a template @a DataField).
+	 * @return @a RESULT_OK on success, @a RESULT_ERR_EOF if the iterator is empty, or an error code.
+	 * Note: the caller needs to free the created instance.
 	 */
 	static result_t create(std::vector<std::string>::iterator& it, const std::vector<std::string>::iterator end,
-			const std::map< std::string, DataField*> templates, DataField*& fields,
+			const std::map<std::string, DataField*> templates, DataField*& returnField,
 			const bool isSetMessage=false, const unsigned char dstAddress=SYN);
 	/**
 	 * @brief Returns the offset to the first symbol in the message part for a field following this field.
@@ -112,6 +112,7 @@ public:
 	 * @param offset the (additional) offset to the first symbol in the message part in which the field is stored.
 	 * @param divisor the extra divisor to apply on the value, or 1 for none (if applicable).
 	 * @param values the value=text assignments, or empty to use this fields assignments (if applicable).
+	 * @param fields the @a std::vector to which created @a SingleDataField instances shall be added.
 	 */
 	virtual result_t derive(std::string name, std::string comment,
 			std::string unit, const PartType partType, unsigned char offset,
@@ -131,21 +132,21 @@ public:
 	 * @brief Reads the value from the master or slave @a SymbolString.
 	 * @param masterData the unescaped master data @a SymbolString for reading binary data.
 	 * @param slaveData the unescaped slave data @a SymbolString for reading binary data.
-	 * @param output the ostringstream to append the formatted value to.
+	 * @param output the @a std::ostringstream to append the formatted value to.
 	 * @param verbose whether to prepend the name, append the unit (if present), and append
 	 * the comment in square brackets (if present).
 	 * @param separator the separator character between multiple fields.
-	 * @return RESULT_OK on success, or an error code.
+	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	virtual result_t read(SymbolString& masterData, SymbolString& slaveData, std::ostringstream& output,
 			bool verbose=false, char separator=';') = 0;
 	/**
 	 * @brief Writes the value to the master or slave @a SymbolString.
-	 * @param input the istringstream to parse the formatted value from.
+	 * @param input the @a std::istringstream to parse the formatted value from.
 	 * @param masterData the unescaped master data @a SymbolString for writing binary data.
 	 * @param slaveData the unescaped slave data @a SymbolString for writing binary data.
 	 * @param separator the separator character between multiple fields.
-	 * @return RESULT_OK on success, or an error code.
+	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	virtual result_t write(std::istringstream& input, SymbolString& masterData, SymbolString& slaveData,
 			char separator=';') = 0;
@@ -192,24 +193,25 @@ public:
 	 * @return the value unit.
 	 */
 	const std::string getUnit() { return m_unit; }
+	// @copydoc
 	virtual unsigned char getNextOffset();
 	/**
 	 * @brief Reads the value from the master or slave @a SymbolString.
 	 * @param masterData the unescaped master data @a SymbolString for reading binary data.
 	 * @param slaveData the unescaped slave data @a SymbolString for reading binary data.
 	 * @param output the ostringstream to append the formatted value to.
-	 * @param vervose whether to prepend the name, append the unit (if present), and append
+	 * @param verbose whether to prepend the name, append the unit (if present), and append
 	 * the comment in square brackets (if present).
-	 * @return RESULT_OK on success, or an error code.
+	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	virtual result_t read(SymbolString& masterData, SymbolString& slaveData, std::ostringstream& output,
 			bool verbose=false, char separator=';');
 	/**
 	 * @brief Writes the value to the master or slave @a SymbolString.
-	 * @param input the istringstream to parse the formatted value from.
+	 * @param input the @a std::istringstream to parse the formatted value from.
 	 * @param masterData the unescaped master data @a SymbolString for writing binary data.
 	 * @param slaveData the unescaped slave data @a SymbolString for writing binary data.
-	 * @return RESULT_OK on success, or an error code.
+	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	virtual result_t write(std::istringstream& input, SymbolString& masterData, SymbolString& slaveData,
 			char separator=';');
@@ -220,14 +222,14 @@ protected:
 	 * @brief Internal method for reading the field from a @a SymbolString.
 	 * @param input the unescaped @a SymbolString to read the binary value from.
 	 * @param output the ostringstream to append the formatted value to.
-	 * @return RESULT_OK on success, or an error code.
+	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	virtual result_t readSymbols(SymbolString& input, unsigned char baseOffset, std::ostringstream& output) = 0;
 	/**
 	 * @brief Internal method for writing the field to a @a SymbolString.
-	 * @param input the istringstream to parse the formatted value from.
+	 * @param input the @a std::istringstream to parse the formatted value from.
 	 * @param output the unescaped @a SymbolString to write the binary value to.
-	 * @return RESULT_OK on success, or an error code.
+	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	virtual result_t writeSymbols(std::istringstream& input, unsigned char baseOffset, SymbolString& output) = 0;
 
@@ -270,6 +272,7 @@ public:
 	 * @brief Destructor.
 	 */
 	virtual ~StringDataField() {}
+	// @copydoc
 	virtual result_t derive(std::string name, std::string comment,
 			std::string unit, const PartType partType, unsigned char offset,
 			unsigned int divisor, std::map<unsigned int, std::string> values,
@@ -277,7 +280,9 @@ public:
 
 protected:
 
+	// @copydoc
 	virtual result_t readSymbols(SymbolString& input, unsigned char baseOffset, std::ostringstream& output);
+	// @copydoc
 	virtual result_t writeSymbols(std::istringstream& input, unsigned char baseOffset, SymbolString& output);
 
 };
@@ -318,14 +323,14 @@ protected:
 	 * @brief Internal method for reading the raw value from a @a SymbolString.
 	 * @param input the unescaped @a SymbolString to read the binary value from.
 	 * @param value the variable in which to store the raw value.
-	 * @return RESULT_OK on success, or an error code.
+	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	result_t readRawValue(SymbolString& input, unsigned char baseOffset, unsigned int& value);
 	/**
 	 * @brief Internal method for writing the raw value to a @a SymbolString.
 	 * @param value the raw value to write.
 	 * @param output the unescaped @a SymbolString to write the binary value to.
-	 * @return RESULT_OK on success, or an error code.
+	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	result_t writeRawValue(unsigned int value, unsigned char baseOffset, SymbolString& output);
 
@@ -367,11 +372,14 @@ public:
 
 protected:
 
+	// @copydoc
 	virtual result_t derive(std::string name, std::string comment,
 			std::string unit, const PartType partType, unsigned char offset,
 			unsigned int divisor, std::map<unsigned int, std::string> values,
 			std::vector<SingleDataField*>& fields);
+	// @copydoc
 	virtual result_t readSymbols(SymbolString& input, unsigned char baseOffset, std::ostringstream& output);
+	// @copydoc
 	virtual result_t writeSymbols(std::istringstream& input, unsigned char baseOffset, SymbolString& output);
 
 	/** the combined divisor to apply on the value, or 1 for none. */
@@ -412,11 +420,14 @@ public:
 
 protected:
 
+	// @copydoc
 	virtual result_t derive(std::string name, std::string comment,
 			std::string unit, const PartType partType, unsigned char offset,
 			unsigned int divisor, std::map<unsigned int, std::string> values,
 			std::vector<SingleDataField*>& fields);
+	// @copydoc
 	virtual result_t readSymbols(SymbolString& input, unsigned char baseOffset, std::ostringstream& output);
+	// @copydoc
 	virtual result_t writeSymbols(std::istringstream& input, unsigned char baseOffset, SymbolString& output);
 
 	/** the value=text assignments. */
@@ -436,7 +447,7 @@ public:
 	 * @brief Constructs a new instance.
 	 * @param name the field name.
 	 * @param comment the field comment.
-	 * @param fields the list of SingleDataFields part of this set.
+	 * @param fields the @a std::vector of @a SingleDataField instances part of this set.
 	 */
 	DataFieldSet(const std::string name, const std::string comment,
 			const std::vector<SingleDataField*> fields)
@@ -446,52 +457,54 @@ public:
 	 * @brief Destructor.
 	 */
 	virtual ~DataFieldSet();
+	// @copydoc
 	virtual unsigned char getNextOffset();
+	// @copydoc
 	virtual result_t derive(std::string name, std::string comment,
 			std::string unit, const PartType partType, unsigned char offset,
 			unsigned int divisor, std::map<unsigned int, std::string> values,
 			std::vector<SingleDataField*>& fields);
 	/**
-	 * @brief Returns the SingleDataField at the specified index.
-	 * @param index the index of the SingleDataField to return.
-	 * @return the SingleDataField at the specified index, or NULL.
+	 * @brief Returns the @a SingleDataField at the specified index.
+	 * @param index the index of the @a SingleDataField to return.
+	 * @return the @a SingleDataField at the specified index, or NULL.
 	 */
 	SingleDataField* operator[](const size_t index) { if (index >= m_fields.size()) return NULL; return m_fields[index]; }
 	/**
-	 * @brief Returns the SingleDataField at the specified index.
-	 * @param index the index of the SingleDataField to return.
-	 * @return the SingleDataField at the specified index, or NULL.
+	 * @brief Returns the @a SingleDataField at the specified index.
+	 * @param index the index of the @a SingleDataField to return.
+	 * @return the @a SingleDataField at the specified index, or NULL.
 	 */
 	const SingleDataField* operator[](const size_t index) const { if (index >= m_fields.size()) return NULL; return m_fields[index]; }
 	/**
-	 * @brief Returns the number of SingleDataFields in this set.
-	 * @return the number of available SingleDataField.
+	 * @brief Returns the number of @a SingleDataFields instances in this set.
+	 * @return the number of available @a SingleDataField instances.
 	 */
 	size_t size() const { return m_fields.size(); }
 	/**
 	 * @brief Reads the values from the master and/or slave @a SymbolString.
 	 * @param masterData the unescaped master data @a SymbolString for reading binary data.
 	 * @param slaveData the unescaped slave data @a SymbolString for reading binary data.
-	 * @param output the ostringstream to append the formatted value to.
+	 * @param output the @a std::ostringstream to append the formatted value to.
 	 * @param vervose whether to prepend the name, append the unit (if present), and append
 	 * the comment in square brackets (if present).
-	 * @return RESULT_OK on success, or an error code.
+	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	virtual result_t read(SymbolString& masterData, SymbolString& slaveData, std::ostringstream& output,
 			bool verbose=false, char separator=';');
 	/**
 	 * @brief Writes the values to the master and/or slave @a SymbolString.
-	 * @param input the istringstream to parse the formatted value from.
+	 * @param input the @a std::istringstream to parse the formatted value from.
 	 * @param masterData the unescaped master data @a SymbolString for writing binary data.
 	 * @param slaveData the unescaped slave data @a SymbolString for writing binary data.
-	 * @return RESULT_OK on success, or an error code.
+	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	virtual result_t write(std::istringstream& input, SymbolString& masterData, SymbolString& slaveData,
 			char separator=';');
 
 protected:
 
-	/** the list of SingleDataFields part of this set. */
+	/** the @a std::vector of @a SingleDataField instances part of this set. */
 	std::vector<SingleDataField*> m_fields;
 
 };
