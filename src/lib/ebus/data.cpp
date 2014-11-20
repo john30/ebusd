@@ -100,14 +100,6 @@ static const char* dayNames[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"
 #define NULL_VALUE "-"
 #define MAX_POS 16
 
-/**
- * @brief Parse an unsigned int value.
- * @param str the string to parse.
- * @param base the numerical base.
- * @param minValue the minimum resulting value.
- * @param maxValue the maximum resulting value.
- * @param result the variable in which to store an error code when parsing failed or the value is out of bounds.
- */
 unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result) {
 	char* strEnd = NULL;
 
