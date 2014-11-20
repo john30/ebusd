@@ -67,13 +67,14 @@ int main()
 		{"x;;htm", "21:04", "10fe0700021504", "00", ""},
 		{"x;;htm", "00:00", "10fe0700020000", "00", ""},
 		{"x;;htm", "23:59", "10fe070002173b", "00", ""},
+		{"x;;htm", "24:00", "10fe0700021800", "00", ""},
 		{"x;;htm", "",      "10fe070002183b", "00", "rw"},
-		{"x;;htm", "24:00", "10fe070002173b", "00", "Rw"},
+		{"x;;htm", "24:01", "10fe0700021801", "00", "rw"},
 		{"x;;ttm", "22:40", "10fe07000188",   "00", ""},
 		{"x;;ttm", "00:00", "10fe07000100",   "00", ""},
 		{"x;;ttm", "23:50", "10fe0700018f",   "00", ""},
-		{"x;;ttm", "24:00", "10fe07000190",   "00", "rw"}, // TODO check range
-		{"x;;ttm", "",      "10fe07000191",   "00", "rw"}, // TODO check range
+		{"x;;ttm", "24:00", "10fe07000190",   "00", ""},
+		{"x;;ttm", "",      "10fe07000191",   "00", "rw"},
 		{"x;;bdy", "Mon",   "10fe07000300",   "00", ""},
 		{"x;;bdy", "Sun",   "10fe07000306",   "00", ""},
 		{"x;;bdy", "",      "10fe07000308",   "00", "rw"},
@@ -156,22 +157,37 @@ int main()
 		{"x;s3;uch","3","1050ffff00", "03000003", ""},
 		{"x;s3;uch","3","1050ffff00", "020000", "rW"},
 		{"x;;d2b;;°C;Aussentemperatur","x=18.004 °C [Aussentemperatur]","10fe0700090112", "00", "v"},
-		{"x;;bti;;;;y;;bda;;;;z;6;bdy", "21:04:58;26.10.2014;Sun","10fe07000758042126100614", "00", "c"},
-		//TODO test bit combinations
-		{"temprel;;d2b;;°C;Aussentemperatur","","", "", "p"}, // predefined type with relative pos
-		{"tempabs;1;d2b;;°C;Aussentemperatur","","", "", "p"},// predefined type with absolute pos
-		{"strucrelrel;;d2b;;;;y;;d1c","","", "", "p"},   // predefined combined type with relative pos
-		{"strucrelabs;;d2b;;;;y;1;d1c","","", "", "p"},  // predefined combined type with relative pos
-		{"strucabsrel;1;d2b;;;;y;;d1c","","", "", "p"},  // predefined combined type with relative pos
-		{"strucabsabs;2;d2b;;;;y;1;d1c","","", "", "p"}, // predefined combined type with absolute pos
-		{"x;;temprel","18.004","10fe0700090112", "00", ""}, // reference predefined type
-		{"strucrelrel;;temprel,temprel","","", "", "p"},   // predefined combined type with relative pos
-		{"strucrelabs;;temprel,tempabs","","", "", "p"},  // predefined combined type with relative pos
-		{"strucabsrel;1;tempabs,temprel","","", "", "p"},  // predefined combined type with relative pos
-		{"strucabs;2;tempabs","","", "", "p"}, // predefined combined type with absolute pos
+		{"x;;bti;;;;y;;bda;;;;z;6;bdy", "21:04:58;26.10.2014;Sun","10fe07000758042126100614", "00", ""}, // combination
+		{"x;;bi3;;;;y;;bi5", "1;-",            "10feffff0108", "00", ""}, // bit combination
+		{"x;;bi3;;;;y;;bi5", "1;1",            "10feffff0128", "00", ""}, // bit combination
+		{"x;;bi3;;;;y;;bi5", "-;1",            "10feffff0120", "00", ""}, // bit combination
+		{"x;;bi3;;;;y;;bi5", "-;-",            "10feffff0100", "00", ""}, // bit combination
+		{"x;;bi3;;;;y;;bi7;;;;t;;uch", "-;-;9","10feffff020009", "00", ""}, // bit combination, auto pos incr
+		{"x;;bi3;;;;y;;bi5;;;;t;;uch", "-;-;9","10feffff020009", "00", "RW"}, // bit combination
+		{"temp;;d2b;;°C;Aussentemperatur","","", "", "t"}, // template with relative pos
+		{"x;;temp","18.004","10fe0700020112", "00", ""}, // reference to template
+		{"tempoff;2;d2b;;°C;Aussentemperatur","","", "", "t"},// template with offset pos
+		{"x;;tempoff","18.004","10fe070002ff0112", "00", "W"}, // reference to template
+		{"relrel;;d2b;;;;y;;d1c","","", "", "t"},   // template struct with relative pos
+		{"x;2;relrel","18.004;9.5","10fe070004ff011213", "00", "W"}, // reference to template struct
+		{"reloff;;d2b;;;;y;1;d1c","","", "", "t"},  // template struct with relative+offset pos
+		{"x;2;reloff","18.004;0.5","10fe070003130112", "00", "W"}, // reference to template struct
+		{"offrel;2;d2b;;;;y;;d1c","","", "", "t"},  // template struct with offset+relative pos
+		{"x;2;offrel","18.004;9.5","10fe070005fffe011213", "00", "W"}, // reference to template struct
+		{"offoff;2;d2b;;;;y;1;d1c","","", "", "t"}, // template struct with offset pos
+		{"x;2;offoff","18.004;9.5","10fe070004ff130112", "00", "W"}, // reference to template struct
+		{"trelrel;;temp,temp","","", "", "t"},   // template struct with relative pos and ref to templates
+		{"x;;trelrel","18.004;19.008","10fe07000401120213", "00", ""}, // reference to template struct
+		{"x;2;trelrel","18.004;19.008","10fe070005ff01120213", "00", "W"}, // reference to template struct
+		{"treloff;;temp,tempoff","","", "", "t"},  // template struct with relative+offset pos
+		{"x;2;treloff","18.004;19.008","10fe070006ff0112fe0213", "00", "W"}, // reference to template struct
+		{"toffrel;1;tempoff,temp","","", "", "t"},  // template struct with offset+relative pos
+		{"x;2;toffrel","18.004;19.008","10fe070003fffe01120213", "00", "W"}, // reference to template struct
+		{"toffoff;1;tempoff,tempoff","","", "", "t"},  // template struct with offset pos
+		{"x;2;toffoff","18.004;19.008","10fe070003fffe0112fd0213", "00", "W"}, // reference to template struct
 	};
 	std::map<std::string, DataField*> templates;
-	std::vector<DataField*> fields;
+	DataField* fields = NULL;
 	for (size_t i = 0; i < sizeof(checks) / sizeof(checks[0]); i++) {
 		std::string check[5] = checks[i];
 		std::istringstream isstr(check[0]);
@@ -185,116 +201,92 @@ int main()
 		bool failedWrite = flags.find('w') != std::string::npos;
 		bool failedWriteMatch = flags.find('W') != std::string::npos;
 		bool verbose = flags.find('v') != std::string::npos;
-		bool combinedValue = flags.find('c') != std::string::npos;
-		bool isPredefine = flags.find('p') != std::string::npos;
+		bool isTemplate = flags.find('t') != std::string::npos;
 		std::string item;
 		std::vector<std::string> entries;
 
-		while (fields.empty() == false) {
-			delete fields.back();
-			fields.pop_back();
-		}
 		while (std::getline(isstr, item, ';') != 0)
 			entries.push_back(item);
 
+		if (fields != NULL) {
+			delete fields;
+			fields = NULL;
+		}
 		std::vector<std::string>::iterator it = entries.begin();
-		result_t result;
-		do {
-			result = DataField::create(it, entries.end(), templates, fields, isSet, isPredefine ? SYN : mstr[1]);
-		} while (result == RESULT_OK && it != entries.end());
+		result_t result = DataField::create(it, entries.end(), templates, fields, isSet, isTemplate ? SYN : mstr[1]);
 
 		if (result != RESULT_OK) {
 			std::cout << "\"" << check[0] << "\": create error: "
 			          << getResultCodeCStr(result) << std::endl;
 			continue;
 		}
-		if (fields.empty() == true) {
+		if (fields == NULL) {
 			std::cout << "\"" << check[0] << "\": create error: empty" << std::endl;
 			continue;
 		}
+		if (it != entries.end()) {
+			std::cout << "\"" << check[0] << "\": create error: non-empty" << std::endl;
+			continue;
+		}
 		std::cout << "\"" << check[0] << "\": create OK" << std::endl;
-		if (isPredefine) {
+		if (isTemplate) {
 			// store new template
-			while (fields.empty() == false) {
-				DataField* field = fields.front();
-				fields.erase(fields.begin());
-				std::map<std::string, DataField*>::iterator current = templates.find(field->getName());
-				if (current == templates.end())
-					templates[field->getName()] = field;
-				else {
-					delete current->second;
-					current->second = field;
-				}
+			std::string name = fields->getName();
+			std::map<std::string, DataField*>::iterator current = templates.find(name);
+			if (current == templates.end()) {
+				templates[name] = fields;
+			} else {
+				delete current->second;
+				current->second = fields;
 			}
+			fields = NULL;
 			continue;
 		}
 
 		std::ostringstream output;
-		std::istringstream input(expectStr);
 		SymbolString writeMstr = SymbolString(mstr.getDataStr().substr(0, 10), false);
 		SymbolString writeSstr = SymbolString(sstr.getDataStr().substr(0, 2), false);
-		bool first = true, failed = false;
-		while (fields.empty() == false) {
-			DataField* field = fields.front();
-			fields.erase(fields.begin());
-			if (first == false)
-				output << ";";
-
-			result = field->read(mstr, sstr, output, verbose);
-			if (failedRead == true)
-				if (result == RESULT_OK)
-					std::cout << "  failed read " << field->getName() << " >"
-					          << check[2] << "< error: unexpectedly succeeded" << std::endl;
-				else
-					std::cout << "  failed read " << field->getName() << " >"
-					          << check[2] << "< OK" << std::endl;
-			else if (result != RESULT_OK) {
-				std::cout << "  read " << field->getName() << " >" << check[2] << "< error: "
-				          << getResultCodeCStr(result) << std::endl;
-				failed = true;
-			}
-			else if (combinedValue == false) {
-				bool match = strcasecmp(output.str().c_str(), expectStr.c_str()) == 0;
-				verify(failedReadMatch, "read", check[2], match, expectStr, output.str());
-			}
-
-			if (verbose == false) {
-				std::string token;
-				std::getline(input, token, ';');
-				std::istringstream tokeninput(token);
-
-				result = field->write(tokeninput, writeMstr, writeSstr);
-				if (failedWrite == true) {
-					if (result == RESULT_OK)
-						std::cout << "  failed write " << field->getName() << " >"
-						          << expectStr << "< error: unexpectedly succeeded" << std::endl;
-					else
-						std::cout << "  failed write " << field->getName() << " >"
-						          << expectStr << "< OK" << std::endl;
-				}
-				else if (result != RESULT_OK) {
-					std::cout << "  write " << field->getName() << " >"
-					          << expectStr << "< error: " << getResultCodeCStr(result) << std::endl;
-					failed = true;
-				}
-			}
-			first = false;
+		result = fields->read(mstr, sstr, output, verbose);
+		if (failedRead == true)
+			if (result == RESULT_OK)
+				std::cout << "  failed read " << fields->getName() << " >"
+						  << check[2] << "< error: unexpectedly succeeded" << std::endl;
+			else
+				std::cout << "  failed read " << fields->getName() << " >"
+						  << check[2] << "< OK" << std::endl;
+		else if (result != RESULT_OK) {
+			std::cout << "  read " << fields->getName() << " >" << check[2] << "< error: "
+					  << getResultCodeCStr(result) << std::endl;
 		}
-
-		if (combinedValue == true && failedRead == false && failed == false) {
+		else {
 			bool match = strcasecmp(output.str().c_str(), expectStr.c_str()) == 0;
 			verify(failedReadMatch, "read", check[2], match, expectStr, output.str());
 		}
-		if (verbose == false && failedWrite == false && failed == false) {
-			bool match = mstr == writeMstr && sstr == writeSstr;
-			verify(failedWriteMatch, "write", expectStr, match, mstr.getDataStr() + " " + sstr.getDataStr(), writeMstr.getDataStr() + " " + writeSstr.getDataStr());
+
+		if (verbose == false) {
+			std::istringstream input(expectStr);
+			result = fields->write(input, writeMstr, writeSstr);
+			if (failedWrite == true) {
+				if (result == RESULT_OK)
+					std::cout << "  failed write " << fields->getName() << " >"
+							  << expectStr << "< error: unexpectedly succeeded" << std::endl;
+				else
+					std::cout << "  failed write " << fields->getName() << " >"
+							  << expectStr << "< OK" << std::endl;
+			}
+			else if (result != RESULT_OK) {
+				std::cout << "  write " << fields->getName() << " >"
+						  << expectStr << "< error: " << getResultCodeCStr(result) << std::endl;
+			}
+			else {
+				bool match = mstr == writeMstr && sstr == writeSstr;
+				verify(failedWriteMatch, "write", expectStr, match, mstr.getDataStr() + " " + sstr.getDataStr(), writeMstr.getDataStr() + " " + writeSstr.getDataStr());
+			}
 		}
+		delete fields;
+		fields = NULL;
 	}
 
-	while (fields.empty() == false) {
-		delete fields.back();
-		fields.pop_back();
-	}
 	for (std::map<std::string, DataField*>::iterator it = templates.begin(); it != templates.end(); it++)
 		delete it->second;
 
