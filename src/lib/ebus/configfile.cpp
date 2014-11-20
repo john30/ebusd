@@ -46,13 +46,6 @@ void ConfigFileCSV::parse(std::istream& is, Commands& commands)
 };
 
 
-void ConfigFileXML::parse(std::istream& is, Commands& commands)
-{
-	;	// ToDo: Implementation for xml files
-}
-
-
-
 ConfigCommands::ConfigCommands(const std::string path, const FileType type)
 {
 	m_path = path;
@@ -70,10 +63,6 @@ void ConfigCommands::setType(const FileType type)
 	case CSV:
 		m_configfile = new ConfigFileCSV();
 		m_extension = "csv";
-		break;
-	case XML:
-		m_configfile = new ConfigFileXML();
-		m_extension = "xml";
 		break;
 	};
 };

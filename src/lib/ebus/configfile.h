@@ -25,7 +25,7 @@
 #include <vector>
 
 /** available file endings / types. */
-enum FileType { CSV, XML };
+enum FileType { CSV };
 
 /**
  * @brief base class for config files.
@@ -68,28 +68,6 @@ public:
 	void parse(std::istream& is, Commands& commands);
 
 };
-
-/**
- * @brief class for XML config files.
- */
-class ConfigFileXML : public ConfigFile
-{
-
-public:
-	/**
-	 * @brief destructor.
-	 */
-	~ConfigFileXML() {}
-
-	/**
-	 * @brief read input stream and stored data into commands
-	 * @param is open input stream for reading.
-	 * @param commands object as datastore.
-	 */
-	void parse(std::istream& is, Commands& commands);
-
-};
-
 
 /**
  * @brief class for class device.
