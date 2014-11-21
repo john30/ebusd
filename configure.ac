@@ -24,12 +24,12 @@ AC_CONFIG_AUX_DIR([build])
 AC_CONFIG_SRCDIR([src/ebusd/ebusd.cpp])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile
+		 docs/Makefile
 		 src/lib/utils/Makefile
 		 src/lib/ebus/Makefile
 		 src/lib/ebus/test/Makefile
 		 src/ebusd/Makefile
-		 src/ebusctl/Makefile
-		 docs/Makefile])
+		 src/ebusctl/Makefile])
 
 AC_CHECK_PROGS([HAVE_DOXYGEN], [doxygen])
 if test -z "$HAVE_DOXYGEN";
