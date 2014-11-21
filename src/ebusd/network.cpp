@@ -17,11 +17,19 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include "network.h"
 #include "logger.h"
 #include "appl.h"
 #include <cstring>
+
+#ifdef HAVE_PPOLL
 #include <poll.h>
+#endif
+
 
 extern Logger& L;
 extern Appl& A;
@@ -32,13 +40,16 @@ void* Connection::run()
 {
 	m_running = true;
 
-	int ret, nfds = 2;
-	struct pollfd fds[nfds];
+	int ret;
 	struct timespec tdiff;
 
 	// set select timeout 10 secs
 	tdiff.tv_sec = 10;
 	tdiff.tv_nsec = 0;
+
+#ifdef HAVE_PPOLL
+	int nfds = 2;
+	struct pollfd fds[nfds];
 
 	memset(fds, 0, sizeof(fds));
 
@@ -47,21 +58,55 @@ void* Connection::run()
 
 	fds[1].fd = m_socket->getFD();
 	fds[1].events = POLLIN;
+#else
+#ifdef HAVE_PSELECT
+	int maxfd;
+	fd_set checkfds;
+
+	FD_ZERO(&checkfds);
+	FD_SET(m_notify.notifyFD(), &checkfds);
+	FD_SET(m_socket->getFD(), &checkfds);
+
+	(m_notify.notifyFD() > m_socket->getFD()) ?
+		(maxfd = m_notify.notifyFD()) : (maxfd = m_socket->getFD());
+#endif
+#endif
 
 	for (;;) {
+
+#ifdef HAVE_PPOLL
 		// wait for new fd event
 		ret = ppoll(fds, nfds, &tdiff, NULL);
+#else
+#ifdef HAVE_PSELECT
+		// set readfds to inital checkfds
+		fd_set readfds = checkfds;
+		// wait for new fd event
+		ret = pselect(maxfd + 1, &readfds, NULL, NULL, &tdiff, NULL);
+#endif
+#endif
 
-		if (ret == 0) {
+		if (ret == 0)
 			continue;
-		}
 
+#ifdef HAVE_PPOLL
 		// new data from notify
 		if (fds[0].revents & POLLIN)
 			break;
 
 		// new data from socket
 		if (fds[1].revents & POLLIN) {
+#else
+#ifdef HAVE_PSELECT
+		// new data from notify
+		if (FD_ISSET(m_notify.notifyFD(), &readfds))
+			break;
+
+		// new data from socket
+		if (FD_ISSET(m_socket->getFD(), &readfds)) {
+#endif
+#endif
+
 			char data[256];
 			size_t datalen;
 
@@ -139,13 +184,16 @@ void* Network::run()
 
 	m_running = true;
 
-	int ret, nfds = 2;
-	struct pollfd fds[nfds];
+	int ret;
 	struct timespec tdiff;
 
 	// set select timeout 1 secs
 	tdiff.tv_sec = 1;
 	tdiff.tv_nsec = 0;
+
+#ifdef HAVE_PPOLL
+	int nfds = 2;
+	struct pollfd fds[nfds];
 
 	memset(fds, 0, sizeof(fds));
 
@@ -154,16 +202,40 @@ void* Network::run()
 
 	fds[1].fd = m_tcpServer->getFD();
 	fds[1].events = POLLIN;
+#else
+#ifdef HAVE_PSELECT
+	int maxfd;
+	fd_set checkfds;
+
+	FD_ZERO(&checkfds);
+	FD_SET(m_notify.notifyFD(), &checkfds);
+	FD_SET(m_tcpServer->getFD(), &checkfds);
+
+	(m_notify.notifyFD() > m_tcpServer->getFD()) ?
+		(maxfd = m_notify.notifyFD()) : (maxfd = m_tcpServer->getFD());
+#endif
+#endif
 
 	for (;;) {
+
+#ifdef HAVE_PPOLL
 		// wait for new fd event
 		ret = ppoll(fds, nfds, &tdiff, NULL);
+#else
+#ifdef HAVE_PSELECT
+		// set readfds to inital checkfds
+		fd_set readfds = checkfds;
+		// wait for new fd event
+		ret = pselect(maxfd + 1, &readfds, NULL, NULL, &tdiff, NULL);
+#endif
+#endif
 
 		if (ret == 0) {
 			cleanConnections();
 			continue;
 		}
 
+#ifdef HAVE_PPOLL
 		// new data from notify
 		if (fds[0].revents & POLLIN) {
 			m_running = false;
@@ -172,6 +244,19 @@ void* Network::run()
 
 		// new data from socket
 		if (fds[1].revents & POLLIN) {
+#else
+#ifdef HAVE_PSELECT
+		// new data from notify
+		if (FD_ISSET(m_notify.notifyFD(), &readfds)) {
+			m_running = false;
+			break;
+		}
+
+		// new data from socket
+		if (FD_ISSET(m_tcpServer->getFD(), &readfds)) {
+#endif
+#endif
+
 			TCPSocket* socket = m_tcpServer->newSocket();
 			if (socket == NULL)
 				continue;
