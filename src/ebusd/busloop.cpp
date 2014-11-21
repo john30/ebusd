@@ -308,25 +308,25 @@ void BusLoop::analyseCycData()
 	static bool skipfirst = false;
 
 	if (skipfirst == true) {
-		L.log(bus, trace, "%s", m_sstr.getDataStr().c_str());
+		L.log(cyc, trace, "%s", m_sstr.getDataStr().c_str());
 
 		int index = m_commands->storeCycData(m_sstr.getDataStr());
 
 		if (index == -1) {
-			L.log(bus, debug, " command not found");
+			L.log(cyc, debug, " command not found");
 		}
 		else if (index == -2) {
-			L.log(bus, debug, " no commands defined");
+			L.log(cyc, debug, " no commands defined");
 		}
 		else if (index == -3) {
-			L.log(bus, debug, " search skipped - string too short");
+			L.log(cyc, debug, " search skipped - string too short");
 		}
 		else {
 			std::string tmp;
 			tmp += (*m_commands)[index][1];
 			tmp += " ";
 			tmp += (*m_commands)[index][2];
-			L.log(bus, event, " cycle   [%4d] %s", index, tmp.c_str());
+			L.log(cyc, event, " cycle   [%4d] %s", index, tmp.c_str());
 		}
 
 		// collect Slave address
