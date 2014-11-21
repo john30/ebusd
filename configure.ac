@@ -28,7 +28,16 @@ AC_CONFIG_FILES([Makefile
 		 src/lib/ebus/Makefile
 		 src/lib/ebus/test/Makefile
 		 src/ebusd/Makefile
-		 src/ebusctl/Makefile])
+		 src/ebusctl/Makefile
+		 docs/Makefile])
+
+AC_CHECK_PROGS([HAVE_DOXYGEN], [doxygen])
+if test -z "$HAVE_DOXYGEN";
+	then AC_MSG_WARN([Doxygen not found - continuing without Doxygen support.])
+fi
+
+AM_CONDITIONAL([HAVE_DOXYGEN], [test -n "$HAVE_DOXYGEN"])
+	AM_COND_IF([HAVE_DOXYGEN], [AC_CONFIG_FILES([docs/Doxyfile])])
 
 AM_INIT_AUTOMAKE([1.11 -Wall -Werror foreign])
 

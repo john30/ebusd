@@ -1,4 +1,4 @@
-SUBDIRS = src/lib/utils src/lib/ebus src/lib/ebus/test src/ebusd src/ebusctl
+SUBDIRS = src/lib/utils src/lib/ebus src/lib/ebus/test src/ebusd src/ebusctl docs
 
 distclean-local:
 	-rm -rf autom4te.cache
