@@ -71,8 +71,8 @@ int main()
 	// field=   name;[pos];type[;[divisor|values][;[unit][;[comment]]]]
 	string checks[][5] = {
 		// "message", "flags"
-		{";;first;;;fe;0700;x;;bda", "26.10.2014", "fffe0700042610001451", "00", ""},
-		{"w;;first;;;15;b5090400;date;;bda", "26.10.2014", "ff15b5090604002610001445", "00", ""},
+		{";;first;;;fe;0700;x;;bda", "26.10.2014", "fffe0700042610061451", "00", ""},
+		{"w;;first;;;15;b5090400;date;;bda", "26.10.2014", "ff15b5090604002610061445", "00", ""},
 	};
 	map<string, DataField*> templates;
 	Message* message = NULL;
