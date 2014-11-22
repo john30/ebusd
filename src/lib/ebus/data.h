@@ -71,8 +71,9 @@ typedef struct {
  * @param minValue the minimum resulting value.
  * @param maxValue the maximum resulting value.
  * @param result the variable in which to store an error code when parsing failed or the value is out of bounds.
+ * @param length the optional variable in which to store the number of read characters.
  */
-unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result);
+unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result, unsigned int* length=NULL);
 
 
 class SingleDataField;

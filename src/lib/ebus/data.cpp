@@ -18,8 +18,6 @@
  */
 
 #include "data.h"
-#include "decode.h"
-#include "encode.h"
 #include <iostream>
 #include <algorithm>
 #include <sstream>
@@ -100,7 +98,7 @@ static const char* dayNames[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"
 #define NULL_VALUE "-"
 #define MAX_POS 16
 
-unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result) {
+unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result, unsigned int* length) {
 	char* strEnd = NULL;
 
 	unsigned int ret = strtoul(str, &strEnd, base);
@@ -114,6 +112,10 @@ unsigned int parseInt(const char* str, int base, const unsigned int minValue, co
 		result = RESULT_ERR_INVALID_ARG; // invalid value
 		return 0;
 	}
+	if (length != NULL)
+		*length = strEnd - str;
+
+	result = RESULT_OK;
 	return ret;
 }
 
@@ -429,8 +431,8 @@ result_t StringDataField::derive(std::string name, std::string comment,
 {
 	if (m_partType != pt_template && partType == pt_template)
 		return RESULT_ERR_INVALID_ARG; // cannot create a template from a concrete instance
-	if (values.empty() == false)
-		return RESULT_ERR_INVALID_ARG; // cannot set values for string field
+	if (divisor != 0 || values.empty() == false)
+		return RESULT_ERR_INVALID_ARG; // cannot set divisor or values for string field
 	if (name.empty() == true)
 		name = m_name;
 	if (comment.empty() == true)
@@ -517,8 +519,6 @@ result_t StringDataField::writeSymbols(std::istringstream& input,
 {
 	size_t start = m_offset, end = m_offset + m_length;
 	int incr = 1;
-	const char* str;
-	char* strEnd;
 	unsigned long int value = 0, last = 0;
 	std::string token;
 
@@ -534,7 +534,7 @@ result_t StringDataField::writeSymbols(std::istringstream& input,
 		switch (m_dataType.type)
 		{
 		case bt_hexstr:
-			while (input.peek() == ' ')
+			while (input.eof() == false && input.peek() == ' ')
 				input.get();
 			if (input.eof() == true) // no more digits
 				value = m_dataType.replacement; // fill up with replacement
@@ -542,12 +542,11 @@ result_t StringDataField::writeSymbols(std::istringstream& input,
 				token.clear();
 				token.push_back(input.get());
 				if (input.eof() == true)
-					return RESULT_ERR_INVALID_ARG;
+					return RESULT_ERR_INVALID_ARG; // too short hex value
 				token.push_back(input.get());
 				if (input.eof() == true)
-					return RESULT_ERR_INVALID_ARG; // invalid hex value
+					return RESULT_ERR_INVALID_ARG; // too short hex value
 
-				result_t result;
 				value = parseInt(token.c_str(), 16, 0, 0xff, result);
 				if (result != RESULT_OK)
 					return result; // invalid hex value
@@ -556,7 +555,7 @@ result_t StringDataField::writeSymbols(std::istringstream& input,
 		case bt_dat:
 			if (m_length == 4 && i == 2)
 				continue; // skip weekday in between
-			if (std::getline(input, token, '.') == 0)
+			if (input.eof() == true || std::getline(input, token, '.') == 0)
 				return RESULT_ERR_INVALID_ARG; // incomplete
 			value = parseInt(token.c_str(), 10, 0, 9999, result);
 			if (result != RESULT_OK)
@@ -567,7 +566,7 @@ result_t StringDataField::writeSymbols(std::istringstream& input,
 				return RESULT_ERR_INVALID_ARG; // invalid date part
 			break;
 		case bt_tim:
-			if (std::getline(input, token, ':') == 0)
+			if (input.eof() == true || std::getline(input, token, ':') == 0)
 				return RESULT_ERR_INVALID_ARG; // incomplete
 			value = parseInt(token.c_str(), 10, 0, 59, result);
 			if (result != RESULT_OK)
@@ -588,9 +587,13 @@ result_t StringDataField::writeSymbols(std::istringstream& input,
 			}
 			break;
 		default:
-			value = input.get();
-			if (input.eof() == true || value < 0x20)
+			if (input.eof() == true)
 				value = m_dataType.replacement;
+			else {
+				value = input.get();
+				if (input.eof() == true || value < 0x20)
+					value = m_dataType.replacement;
+			}
 			break;
 		}
 		if ((m_dataType.flags & BCD) != 0) {
@@ -798,7 +801,7 @@ result_t NumberDataField::writeSymbols(std::istringstream& input,
 		else {
 			char* strEnd = NULL;
 			double dvalue = strtod(str, &strEnd);
-			if (strEnd == NULL || strEnd != 0)
+			if (strEnd == NULL || *strEnd != 0)
 				return RESULT_ERR_INVALID_ARG; // invalid value
 			dvalue = round(dvalue * m_divisor);
 			if ((m_dataType.flags & SIG) != 0) {
