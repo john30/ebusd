@@ -24,8 +24,9 @@
 #include <iomanip>
 #include <vector>
 #include <cstring>
-//include <typeinfo>
 #include <math.h>
+
+using namespace std;
 
 /** the known data field types. */
 static const dataType_t dataTypes[] = {
@@ -94,26 +95,26 @@ unsigned int parseInt(const char* str, int base, const unsigned int minValue, co
 	return ret;
 }
 
-result_t DataField::create(std::vector<std::string>::iterator& it,
-		const std::vector<std::string>::iterator end,
-		const std::map< std::string, DataField*> templates,
+result_t DataField::create(vector<string>::iterator& it,
+		const vector<string>::iterator end,
+		const map< string, DataField*> templates,
 		DataField*& returnField, const bool isSetMessage,
 		const unsigned char dstAddress)
 {
-	std::vector<SingleDataField*> fields;
-	std::string firstName, firstComment;
+	vector<SingleDataField*> fields;
+	string firstName, firstComment;
 	result_t result = RESULT_OK;
 	while (it != end && result == RESULT_OK) {
-		std::string unit, comment;
+		string unit, comment;
 		PartType partType;
 		unsigned int divisor = 0;
 		const bool isTemplate = dstAddress == SYN;
-		std::string token;
+		string token;
 		if (it == end)
 			break;
 
 		// name;part;type[:len][;[divisor|values][;[unit][;[comment]]]]
-		const std::string name = *it++;
+		const string name = *it++;
 		if (it == end)
 			break;
 
@@ -145,25 +146,25 @@ result_t DataField::create(std::vector<std::string>::iterator& it,
 			break;
 		}
 
-		std::string typeStr = *it++;
+		string typeStr = *it++;
 		if (typeStr.empty() == true) {
 			if (name.empty() == false || partStr[0] != 0)
 				result = RESULT_ERR_INVALID_ARG;
 			break;
 		}
 
-		std::map<unsigned int, std::string> values;
+		map<unsigned int, string> values;
 		if (it != end) {
-			std::string divisorStr = *it++;
+			string divisorStr = *it++;
 			if (divisorStr.empty() == false) {
-				if (divisorStr.find('=') == std::string::npos) {
+				if (divisorStr.find('=') == string::npos) {
 					divisor = parseInt(divisorStr.c_str(), 10, 1, 10000, result);
 					if (result != RESULT_OK)
 						break;
 				}
 				else {
-					std::istringstream stream(divisorStr);
-					while (std::getline(stream, token, VALUE_SEPARATOR) != 0) {
+					istringstream stream(divisorStr);
+					while (getline(stream, token, VALUE_SEPARATOR) != 0) {
 						const char* str = token.c_str();
 						char* strEnd = NULL;
 						unsigned int id = strtoul(str, &strEnd, 10);
@@ -172,7 +173,7 @@ result_t DataField::create(std::vector<std::string>::iterator& it,
 							break;
 						}
 
-						values[id] = std::string(strEnd + 1);
+						values[id] = string(strEnd + 1);
 					}
 					if (result != RESULT_OK)
 						break;
@@ -198,15 +199,15 @@ result_t DataField::create(std::vector<std::string>::iterator& it,
 
 		size_t pos = typeStr.find(LENGTH_SEPARATOR);
 		unsigned char length;
-		if (pos == std::string::npos) {
+		if (pos == string::npos) {
 			length = 0;
 			// check for reference(s) to templates
 			if (templates.empty() == false) {
-				std::istringstream stream(typeStr);
+				istringstream stream(typeStr);
 				bool found = false;
-				std::string lengthStr;
-				while (std::getline(stream, token, VALUE_SEPARATOR) != 0) {
-					std::map<std::string, DataField*>::const_iterator ref = templates.find(token);
+				string lengthStr;
+				while (getline(stream, token, VALUE_SEPARATOR) != 0) {
+					map<string, DataField*>::const_iterator ref = templates.find(token);
 					if (ref == templates.end()) {
 						if (found == false)
 							break; // fallback to direct definition
@@ -325,7 +326,7 @@ result_t DataField::create(std::vector<std::string>::iterator& it,
 
 result_t SingleDataField::read(SymbolString& masterData, unsigned char masterOffset,
 		SymbolString& slaveData, unsigned char slaveOffset,
-		std::ostringstream& output,
+		ostringstream& output,
 		bool verbose, char separator)
 {
 	SymbolString& input = m_partType != pt_slaveData ? masterData : slaveData;
@@ -365,7 +366,7 @@ result_t SingleDataField::read(SymbolString& masterData, unsigned char masterOff
 	return RESULT_OK;
 }
 
-result_t SingleDataField::write(std::istringstream& input,
+result_t SingleDataField::write(istringstream& input,
 		SymbolString& masterData, unsigned char masterOffset,
 		SymbolString& slaveData, unsigned char slaveOffset,
 		char separator)
@@ -388,10 +389,10 @@ result_t SingleDataField::write(std::istringstream& input,
 }
 
 
-result_t StringDataField::derive(std::string name, std::string comment,
-		std::string unit, const PartType partType,
-		unsigned int divisor, std::map<unsigned int, std::string> values,
-		std::vector<SingleDataField*>& fields)
+result_t StringDataField::derive(string name, string comment,
+		string unit, const PartType partType,
+		unsigned int divisor, map<unsigned int, string> values,
+		vector<SingleDataField*>& fields)
 {
 	if (m_partType != pt_any && partType == pt_any)
 		return RESULT_ERR_INVALID_ARG; // cannot create a template from a concrete instance
@@ -410,7 +411,7 @@ result_t StringDataField::derive(std::string name, std::string comment,
 }
 
 result_t StringDataField::readSymbols(SymbolString& input,
-		unsigned char baseOffset, std::ostringstream& output)
+		unsigned char baseOffset, ostringstream& output)
 {
 	size_t start = 0, count = m_length;
 	int incr = 1;
@@ -439,8 +440,8 @@ result_t StringDataField::readSymbols(SymbolString& input,
 		case bt_hexstr:
 			if (i > 0)
 				output << ' ';
-			output << std::nouppercase << std::setw(2) << std::hex
-			       << std::setfill('0') << static_cast<unsigned>(ch);
+			output << nouppercase << setw(2) << hex << setfill('0')
+			        << static_cast<unsigned>(ch);
 			break;
 		case bt_dat:
 			if (i + 1 == m_length)
@@ -448,7 +449,7 @@ result_t StringDataField::readSymbols(SymbolString& input,
 			else if (ch < 1 || (i == 0 && ch > 31) || (i == 1 && ch > 12))
 				return RESULT_ERR_INVALID_ARG; // invalid date
 			else
-				output << std::setw(2) << std::setfill('0') << static_cast<unsigned>(ch) << ".";
+				output << setw(2) << setfill('0') << static_cast<unsigned>(ch) << ".";
 			break;
 		case bt_tim:
 			if (m_length == 1) { // truncated time
@@ -464,7 +465,7 @@ result_t StringDataField::readSymbols(SymbolString& input,
 				return RESULT_ERR_INVALID_ARG; // invalid time
 			if (i > 0)
 				output << ":";
-			output << std::setw(2) << std::setfill('0') << static_cast<unsigned>(ch);
+			output << setw(2) << setfill('0') << static_cast<unsigned>(ch);
 			break;
 		default:
 			if (ch < 0x20)
@@ -478,13 +479,13 @@ result_t StringDataField::readSymbols(SymbolString& input,
 	return RESULT_OK;
 }
 
-result_t StringDataField::writeSymbols(std::istringstream& input,
+result_t StringDataField::writeSymbols(istringstream& input,
 		unsigned char baseOffset, SymbolString& output)
 {
 	size_t start = 0, count = m_length;
 	int incr = 1;
 	unsigned long int value = 0, last = 0, lastLast = 0;
-	std::string token;
+	string token;
 
 	if ((m_dataType.flags & REV) != 0) { // reverted binary representation (most significant byte first)
 		start = m_length - 1;
@@ -524,7 +525,7 @@ result_t StringDataField::writeSymbols(std::istringstream& input,
 		case bt_dat:
 			if (m_length == 4 && i == 2)
 				continue; // skip weekday in between
-			if (input.eof() == true || std::getline(input, token, '.') == 0)
+			if (input.eof() == true || getline(input, token, '.') == 0)
 				return RESULT_ERR_INVALID_ARG; // incomplete
 			value = parseInt(token.c_str(), 10, 0, 2099, result);
 			if (result != RESULT_OK)
@@ -555,7 +556,7 @@ result_t StringDataField::writeSymbols(std::istringstream& input,
 				return RESULT_ERR_INVALID_ARG; // invalid date part
 			break;
 		case bt_tim:
-			if (input.eof() == true || std::getline(input, token, LENGTH_SEPARATOR) == 0)
+			if (input.eof() == true || getline(input, token, LENGTH_SEPARATOR) == 0)
 				return RESULT_ERR_INVALID_ARG; // incomplete
 			value = parseInt(token.c_str(), 10, 0, 59, result);
 			if (result != RESULT_OK)
@@ -698,10 +699,10 @@ result_t NumericDataField::writeRawValue(unsigned int value,
 }
 
 
-result_t NumberDataField::derive(std::string name, std::string comment,
-		std::string unit, const PartType partType,
-		unsigned int divisor, std::map<unsigned int, std::string> values,
-		std::vector<SingleDataField*>& fields)
+result_t NumberDataField::derive(string name, string comment,
+		string unit, const PartType partType,
+		unsigned int divisor, map<unsigned int, string> values,
+		vector<SingleDataField*>& fields)
 {
 	if (m_partType != pt_any && partType == pt_any)
 		return RESULT_ERR_INVALID_ARG; // cannot create a template from a concrete instance
@@ -728,7 +729,7 @@ result_t NumberDataField::derive(std::string name, std::string comment,
 }
 
 result_t NumberDataField::readSymbols(SymbolString& input,
-		unsigned char baseOffset, std::ostringstream& output)
+		unsigned char baseOffset, ostringstream& output)
 {
 	unsigned int value = 0;
 	int signedValue;
@@ -748,8 +749,8 @@ result_t NumberDataField::readSymbols(SymbolString& input,
 			if (m_divisor <= 1)
 				output << static_cast<unsigned>(value);
 			else
-				output << std::setprecision((m_bitCount % 8) == 0 ? m_dataType.precisionOrFirstBit : 0)
-				       << std::fixed << static_cast<float>(value / (float) m_divisor);
+				output << setprecision((m_bitCount % 8) == 0 ? m_dataType.precisionOrFirstBit : 0)
+				       << fixed << static_cast<float>(value / (float) m_divisor);
 			return RESULT_OK;
 		}
 		signedValue = (int) value; // negative signed value
@@ -762,13 +763,13 @@ result_t NumberDataField::readSymbols(SymbolString& input,
 	if (m_divisor <= 1)
 		output << static_cast<int>(signedValue);
 	else
-		output << std::setprecision((m_bitCount % 8) == 0 ? m_dataType.precisionOrFirstBit : 0)
-		       << std::fixed << static_cast<float>(signedValue / (float) m_divisor);
+		output << setprecision((m_bitCount % 8) == 0 ? m_dataType.precisionOrFirstBit : 0)
+		       << fixed << static_cast<float>(signedValue / (float) m_divisor);
 
 	return RESULT_OK;
 }
 
-result_t NumberDataField::writeSymbols(std::istringstream& input,
+result_t NumberDataField::writeSymbols(istringstream& input,
 		unsigned char baseOffset, SymbolString& output)
 {
 	unsigned int value;
@@ -830,10 +831,10 @@ result_t NumberDataField::writeSymbols(std::istringstream& input,
 }
 
 
-result_t ValueListDataField::derive(std::string name, std::string comment,
-		std::string unit, const PartType partType,
-		unsigned int divisor, std::map<unsigned int, std::string> values,
-		std::vector<SingleDataField*>& fields)
+result_t ValueListDataField::derive(string name, string comment,
+		string unit, const PartType partType,
+		unsigned int divisor, map<unsigned int, string> values,
+		vector<SingleDataField*>& fields)
 {
 	if (m_partType != pt_any && partType == pt_any)
 		return RESULT_ERR_INVALID_ARG; // cannot create a template from a concrete instance
@@ -860,7 +861,7 @@ result_t ValueListDataField::derive(std::string name, std::string comment,
 }
 
 result_t ValueListDataField::readSymbols(SymbolString& input,
-		unsigned char baseOffset, std::ostringstream& output)
+		unsigned char baseOffset, ostringstream& output)
 {
 	unsigned int value = 0;
 
@@ -868,7 +869,7 @@ result_t ValueListDataField::readSymbols(SymbolString& input,
 	if (result != RESULT_OK)
 		return result;
 
-	std::map<unsigned int, std::string>::iterator it = m_values.find(value);
+	map<unsigned int, string>::iterator it = m_values.find(value);
 	if (it != m_values.end()) {
 		output << it->second;
 		return RESULT_OK;
@@ -882,7 +883,7 @@ result_t ValueListDataField::readSymbols(SymbolString& input,
 	return RESULT_ERR_INVALID_ARG; // value assignment not found
 }
 
-result_t ValueListDataField::writeSymbols(std::istringstream& input,
+result_t ValueListDataField::writeSymbols(istringstream& input,
 		unsigned char baseOffset, SymbolString& output)
 {
 	if (isIgnored() == true)
@@ -890,7 +891,7 @@ result_t ValueListDataField::writeSymbols(std::istringstream& input,
 
 	const char* str = input.str().c_str();
 
-	for (std::map<unsigned int, std::string>::iterator it = m_values.begin(); it != m_values.end(); it++)
+	for (map<unsigned int, string>::iterator it = m_values.begin(); it != m_values.end(); it++)
 		if (it->second.compare(str) == 0)
 			return writeRawValue(it->first, baseOffset, output);
 
@@ -914,7 +915,7 @@ unsigned char DataFieldSet::getLength(PartType partType)
 
 	bool previousFullByteOffset[] = { true, true, true, true };
 
-	for (std::vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
+	for (vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
 		SingleDataField* field = *it;
 		if (field->getPartType() == partType) {
 			if (previousFullByteOffset[partType] == false && field->hasFullByteOffset(false) == false)
@@ -929,15 +930,15 @@ unsigned char DataFieldSet::getLength(PartType partType)
 	return length;
 }
 
-result_t DataFieldSet::derive(std::string name, std::string comment,
-		std::string unit, const PartType partType,
-		unsigned int divisor, std::map<unsigned int, std::string> values,
-		std::vector<SingleDataField*>& fields)
+result_t DataFieldSet::derive(string name, string comment,
+		string unit, const PartType partType,
+		unsigned int divisor, map<unsigned int, string> values,
+		vector<SingleDataField*>& fields)
 {
 	if (values.empty() == false)
 		return RESULT_ERR_INVALID_ARG; // value list not allowed in set derive
 
-	for (std::vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
+	for (vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
 		result_t result = (*it)->derive("", "", "", partType,  divisor, values, fields);
 		if (result != RESULT_OK)
 			return result;
@@ -948,7 +949,7 @@ result_t DataFieldSet::derive(std::string name, std::string comment,
 
 result_t DataFieldSet::read(SymbolString& masterData, unsigned char masterOffset,
 		SymbolString& slaveData, unsigned char slaveOffset,
-		std::ostringstream& output, bool verbose, char separator)
+		ostringstream& output, bool verbose, char separator)
 {
 	if (verbose)
 		output << m_name << "={ ";
@@ -959,7 +960,7 @@ result_t DataFieldSet::read(SymbolString& masterData, unsigned char masterOffset
 	offsets[pt_masterData] = masterOffset;
 	offsets[pt_slaveData] = slaveOffset;
 	bool previousFullByteOffset[] = { true, true, true, true };
-	for (std::vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
+	for (vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
 		SingleDataField* field = *it;
 		bool ignored = field->isIgnored();
 		PartType partType = field->getPartType();
@@ -994,19 +995,19 @@ result_t DataFieldSet::read(SymbolString& masterData, unsigned char masterOffset
 	return RESULT_OK;
 }
 
-result_t DataFieldSet::write(std::istringstream& input,
+result_t DataFieldSet::write(istringstream& input,
 		SymbolString& masterData, unsigned char masterOffset,
 		SymbolString& slaveData, unsigned char slaveOffset,
 		char separator)
 {
-	std::string token;
+	string token;
 
 	unsigned char offsets[4];
 	memset(offsets, 0, sizeof(offsets));
 	offsets[pt_masterData] = masterOffset;
 	offsets[pt_slaveData] = slaveOffset;
 	bool previousFullByteOffset[] = { true, true, true, true };
-	for (std::vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
+	for (vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
 		SingleDataField* field = *it;
 		bool ignored = field->isIgnored();
 		PartType partType = field->getPartType();
@@ -1020,10 +1021,10 @@ result_t DataFieldSet::write(std::istringstream& input,
 		if (m_fields.size() > 1) {
 			if (ignored == true)
 				token.clear();
-			else if (std::getline(input, token, separator) == 0)
+			else if (getline(input, token, separator) == 0)
 				return RESULT_ERR_INVALID_ARG; // incomplete
 
-			std::istringstream single(token);
+			istringstream single(token);
 			result = (*it)->write(single, masterData, offsets[pt_masterData], slaveData, offsets[pt_slaveData], separator);
 		}
 		else

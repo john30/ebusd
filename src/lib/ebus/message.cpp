@@ -25,8 +25,10 @@
 #include <vector>
 #include <cstring>
 
-result_t Message::create(std::vector<std::string>::iterator& it, const std::vector<std::string>::iterator end,
-		const std::map<std::string, DataField*> templates, Message*& returnValue)
+using namespace std;
+
+result_t Message::create(vector<string>::iterator& it, const vector<string>::iterator end,
+		const map<string, DataField*> templates, Message*& returnValue)
 {
 	result_t result;
 	// [type];class;name;[comment];[QQ];ZZ;id;fields...
@@ -60,17 +62,17 @@ result_t Message::create(std::vector<std::string>::iterator& it, const std::vect
 		isSetMessage = false;
 	}
 
-	std::string clazz = *it++;
+	string clazz = *it++;
 	if (it == end)
 		return RESULT_ERR_EOF;
 
-	std::string name = *it++;
+	string name = *it++;
 	if (it == end)
 		return RESULT_ERR_EOF;
 	if (name.length() == 0)
 		return RESULT_ERR_INVALID_ARG; // empty name
 
-	std::string comment = *it++;
+	string comment = *it++;
 	if (it == end)
 		return RESULT_ERR_EOF;
 
@@ -98,9 +100,9 @@ result_t Message::create(std::vector<std::string>::iterator& it, const std::vect
 	if (isValidAddress(dstAddress) == false)
 		return RESULT_ERR_INVALID_ARG;
 
-	std::istringstream input(*it++); // message id (PBSB + optional master data)
-	std::vector<unsigned char> id;
-	std::string token;
+	istringstream input(*it++); // message id (PBSB + optional master data)
+	vector<unsigned char> id;
+	string token;
 	if (it == end)
 		return RESULT_ERR_EOF;
 	while (input.eof() == false) {
@@ -131,7 +133,7 @@ result_t Message::create(std::vector<std::string>::iterator& it, const std::vect
 	return RESULT_OK;
 }
 
-result_t Message::prepare(const unsigned char srcAddress, SymbolString& masterData, std::istringstream& input, char separator)
+result_t Message::prepare(const unsigned char srcAddress, SymbolString& masterData, istringstream& input, char separator)
 {
 	if (m_isActiveMessage == true) {
 		masterData.clear();
@@ -153,7 +155,7 @@ result_t Message::prepare(const unsigned char srcAddress, SymbolString& masterDa
 }
 
 result_t Message::handle(SymbolString& masterData, SymbolString& slaveData,
-		std::ostringstream& output, char separator, bool answer)
+		ostringstream& output, char separator, bool answer)
 {
 	if (m_isActiveMessage == true) {
 		result_t result = m_data->read(masterData, m_id.size() - 2, slaveData, 0, output, false, separator);
@@ -161,7 +163,7 @@ result_t Message::handle(SymbolString& masterData, SymbolString& slaveData,
 			return result;
 	}
 	else if (answer == true) {
-		std::istringstream input; // TODO create input from database of internal variables
+		istringstream input; // TODO create input from database of internal variables
 		result_t result = m_data->write(input, masterData, m_id.size() - 2, slaveData, 0, separator);
 		if (result != RESULT_OK)
 			return result;

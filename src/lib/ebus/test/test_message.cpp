@@ -21,27 +21,28 @@
 #include <iostream>
 #include <iomanip>
 
-void verify(bool expectFailMatch, std::string type, std::string input,
-		bool match, std::string expectStr, std::string gotStr)
+using namespace std;
+
+void verify(bool expectFailMatch, string type, string input,
+		bool match, string expectStr, string gotStr)
 {
 	if (expectFailMatch == true) {
 		if (match == true)
-			std::cout << "  failed " << type << " match >" << input
-			          << "< error: unexpectedly succeeded" << std::endl;
+			cout << "  failed " << type << " match >" << input
+			        << "< error: unexpectedly succeeded" << endl;
 		else
-			std::cout << "  failed " << type << " match >" << input << "< OK"
-			          << std::endl;
+			cout << "  failed " << type << " match >" << input << "< OK" << endl;
 	}
 	else if (match == true)
-		std::cout << "  " << type << " match >" << input << "< OK" << std::endl;
+		cout << "  " << type << " match >" << input << "< OK" << endl;
 	else
-		std::cout << "  " << type << " match >" << input << "< error: got >" << gotStr
-		          << "<, expected >" << expectStr << "<" << std::endl;
+		cout << "  " << type << " match >" << input << "< error: got >"
+		        << gotStr << "<, expected >" << expectStr << "<" << endl;
 }
 
-void printErrorPos(std::vector<std::string>::iterator it, const std::vector<std::string>::iterator end, std::vector<std::string>::iterator pos)
+void printErrorPos(vector<string>::iterator it, const vector<string>::iterator end, vector<string>::iterator pos)
 {
-	std::cout << "Errroneous item is here:" << std::endl;
+	cout << "Errroneous item is here:" << endl;
 	bool first = true;
 	int cnt = 0;
 	if (pos > it)
@@ -50,7 +51,7 @@ void printErrorPos(std::vector<std::string>::iterator it, const std::vector<std:
 		if (first == true)
 			first = false;
 		else {
-			std::cout << ';';
+			cout << ';';
 			if (it <= pos) {
 				cnt++;
 			}
@@ -58,86 +59,86 @@ void printErrorPos(std::vector<std::string>::iterator it, const std::vector<std:
 		if (it < pos) {
 			cnt += (*it).length();
 		}
-		std::cout << (*it++);
+		cout << (*it++);
 	}
-	std::cout << std::endl;
-	std::cout << std::setw(cnt) << " " << std::setw(0) << "^" << std::endl;
+	cout << endl;
+	cout << setw(cnt) << " " << setw(0) << "^" << endl;
 }
 
 int main()
 {
 	// message= [type];class;name;[comment];[QQ];ZZ;PBSB;fields...
 	// field=   name;[pos];type[;[divisor|values][;[unit][;[comment]]]]
-	std::string checks[][5] = {
+	string checks[][5] = {
 		// "message", "flags"
 		{";;first;;;fe;0700;x;;bda", "26.10.2014", "fffe0700042610001451", "00", ""},
 		{"w;;first;;;15;b5090400;date;;bda", "26.10.2014", "ff15b5090604002610001445", "00", ""},
 	};
-	std::map<std::string, DataField*> templates;
+	map<string, DataField*> templates;
 	Message* message = NULL;
 	for (size_t i = 0; i < sizeof(checks) / sizeof(checks[0]); i++) {
-		std::string check[5] = checks[i];
-		std::istringstream isstr(check[0]);
-		std::string inputStr = check[1];
+		string check[5] = checks[i];
+		istringstream isstr(check[0]);
+		string inputStr = check[1];
 		SymbolString mstr = SymbolString(check[2], false);
 		SymbolString sstr = SymbolString(check[3], false);
-		std::string flags = check[4];
-		bool failedCreate = flags.find('c') != std::string::npos;
-		bool failedPrepare = flags.find('p') != std::string::npos;
-		bool failedPrepareMatch = flags.find('P') != std::string::npos;
-		std::string item;
-		std::vector<std::string> entries;
+		string flags = check[4];
+		bool failedCreate = flags.find('c') != string::npos;
+		bool failedPrepare = flags.find('p') != string::npos;
+		bool failedPrepareMatch = flags.find('P') != string::npos;
+		string item;
+		vector<string> entries;
 
-		while (std::getline(isstr, item, ';') != 0)
+		while (getline(isstr, item, ';') != 0)
 			entries.push_back(item);
 
 		if (message != NULL) {
 			delete message;
 			message = NULL;
 		}
-		std::vector<std::string>::iterator it = entries.begin();
+		vector<string>::iterator it = entries.begin();
 		result_t result = Message::create(it, entries.end(), templates, message);
 
 		if (failedCreate == true) {
 			if (result == RESULT_OK)
-				std::cout << "\"" << check[0] << "\": failed create error: unexpectedly succeeded" << std::endl;
+				cout << "\"" << check[0] << "\": failed create error: unexpectedly succeeded" << endl;
 			else
-				std::cout << "\"" << check[0] << "\": failed create OK" << std::endl;
+				cout << "\"" << check[0] << "\": failed create OK" << endl;
 			continue;
 		}
 		if (result != RESULT_OK) {
-			std::cout << "\"" << check[0] << "\": create error: "
-					  << getResultCode(result) << std::endl;
+			cout << "\"" << check[0] << "\": create error: "
+			        << getResultCode(result) << endl;
 			printErrorPos(entries.begin(), entries.end(), it);
 			continue;
 		}
 		if (message == NULL) {
-			std::cout << "\"" << check[0] << "\": create error: NULL" << std::endl;
+			cout << "\"" << check[0] << "\": create error: NULL" << endl;
 			continue;
 		}
 		if (it != entries.end()) {
-			std::cout << "\"" << check[0] << "\": create error: trailing input" << std::endl;
+			cout << "\"" << check[0] << "\": create error: trailing input" << endl;
 			continue;
 		}
-		std::cout << "\"" << check[0] << "\": create OK" << std::endl;
+		cout << "\"" << check[0] << "\": create OK" << endl;
 
-		std::istringstream input(inputStr);
+		istringstream input(inputStr);
 		SymbolString writeMstr = SymbolString();
 		result = message->prepare(0xff, writeMstr, input);
 		if (failedPrepare == true) {
 			if (result == RESULT_OK)
-				std::cout << "\"" << check[0] << "\": failed prepare error: unexpectedly succeeded" << std::endl;
+				cout << "\"" << check[0] << "\": failed prepare error: unexpectedly succeeded" << endl;
 			else
-				std::cout << "\"" << check[0] << "\": failed prepare OK" << std::endl;
+				cout << "\"" << check[0] << "\": failed prepare OK" << endl;
 			continue;
 		}
 
 		if (result != RESULT_OK) {
-			std::cout << "  prepare >" << inputStr << "< error: "
-					  << getResultCode(result) << std::endl;
+			cout << "  prepare >" << inputStr << "< error: "
+			        << getResultCode(result) << endl;
 			continue;
 		}
-		std::cout << "  prepare >" << inputStr << "< OK" << std::endl;
+		cout << "  prepare >" << inputStr << "< OK" << endl;
 
 		bool match = writeMstr==mstr;
 		verify(failedPrepareMatch, "prepare", inputStr, match, mstr.getDataStr(), writeMstr.getDataStr());
@@ -146,7 +147,7 @@ int main()
 		message = NULL;
 	}
 
-	for (std::map<std::string, DataField*>::iterator it = templates.begin(); it != templates.end(); it++)
+	for (map<string, DataField*>::iterator it = templates.begin(); it != templates.end(); it++)
 		delete it->second;
 
 	return 0;

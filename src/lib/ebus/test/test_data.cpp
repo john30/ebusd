@@ -21,27 +21,28 @@
 #include <iostream>
 #include <iomanip>
 
-void verify(bool expectFailMatch, std::string type, std::string input,
-		bool match, std::string expectStr, std::string gotStr)
+using namespace std;
+
+void verify(bool expectFailMatch, string type, string input,
+		bool match, string expectStr, string gotStr)
 {
 	if (expectFailMatch == true) {
 		if (match == true)
-			std::cout << "  failed " << type << " match >" << input
-			          << "< error: unexpectedly succeeded" << std::endl;
+			cout << "  failed " << type << " match >" << input
+			        << "< error: unexpectedly succeeded" << endl;
 		else
-			std::cout << "  failed " << type << " match >" << input << "< OK"
-			          << std::endl;
+			cout << "  failed " << type << " match >" << input << "< OK" << endl;
 	}
 	else if (match == true)
-		std::cout << "  " << type << " match >" << input << "< OK" << std::endl;
+		cout << "  " << type << " match >" << input << "< OK" << endl;
 	else
-		std::cout << "  " << type << " match >" << input << "< error: got >" << gotStr
-		          << "<, expected >" << expectStr << "<" << std::endl;
+		cout << "  " << type << " match >" << input << "< error: got >"
+		        << gotStr << "<, expected >" << expectStr << "<" << endl;
 }
 
 int main()
 {
-	std::string checks[][5] = {
+	string checks[][5] = {
 		//name;[len];type[;[divisor|values][;[unit][;[comment]]]], decoded value, master, slave, flags
 		{"x;;ign:10",  "",                              "10fe07000a00000000000000000000", "00", ""},
 		{"x;;str:10",  "Hallo, Du!",                    "10fe07000a48616c6c6f2c20447521", "00", ""},
@@ -180,60 +181,59 @@ int main()
 		{"x;;trelrel","18.004;19.008","10fe07000401120213", "00", ""}, // reference to template struct
 		{"x;;temp;;;;y;;d1c","18.004;9.5","10fe070003011213", "00", ""}, // reference to template, normal def
 	};
-	std::map<std::string, DataField*> templates;
+	map<string, DataField*> templates;
 	DataField* fields = NULL;
 	for (size_t i = 0; i < sizeof(checks) / sizeof(checks[0]); i++) {
-		std::string check[5] = checks[i];
-		std::istringstream isstr(check[0]);
-		std::string expectStr = check[1];
+		string check[5] = checks[i];
+		istringstream isstr(check[0]);
+		string expectStr = check[1];
 		SymbolString mstr = SymbolString(check[2], false);
 		SymbolString sstr = SymbolString(check[3], false);
-		std::string flags = check[4];
-		bool isSet = flags.find('s') != std::string::npos;
-		bool failedCreate = flags.find('c') != std::string::npos;
-		bool failedRead = flags.find('r') != std::string::npos;
-		bool failedReadMatch = flags.find('R') != std::string::npos;
-		bool failedWrite = flags.find('w') != std::string::npos;
-		bool failedWriteMatch = flags.find('W') != std::string::npos;
-		bool verbose = flags.find('v') != std::string::npos;
-		bool isTemplate = flags.find('t') != std::string::npos;
-		std::string item;
-		std::vector<std::string> entries;
+		string flags = check[4];
+		bool isSet = flags.find('s') != string::npos;
+		bool failedCreate = flags.find('c') != string::npos;
+		bool failedRead = flags.find('r') != string::npos;
+		bool failedReadMatch = flags.find('R') != string::npos;
+		bool failedWrite = flags.find('w') != string::npos;
+		bool failedWriteMatch = flags.find('W') != string::npos;
+		bool verbose = flags.find('v') != string::npos;
+		bool isTemplate = flags.find('t') != string::npos;
+		string item;
+		vector<string> entries;
 
-		while (std::getline(isstr, item, ';') != 0)
+		while (getline(isstr, item, ';') != 0)
 			entries.push_back(item);
 
 		if (fields != NULL) {
 			delete fields;
 			fields = NULL;
 		}
-		std::vector<std::string>::iterator it = entries.begin();
+		vector<string>::iterator it = entries.begin();
 		result_t result = DataField::create(it, entries.end(), templates, fields, isSet, isTemplate ? SYN : mstr[1]);
 		if (failedCreate == true) {
 			if (result == RESULT_OK)
-				std::cout << "\"" << check[0] << "\": failed create error: unexpectedly succeeded" << std::endl;
+				cout << "\"" << check[0] << "\": failed create error: unexpectedly succeeded" << endl;
 			else
-				std::cout << "\"" << check[0] << "\": failed create OK" << std::endl;
+				cout << "\"" << check[0] << "\": failed create OK" << endl;
 			continue;
 		}
 		if (result != RESULT_OK) {
-			std::cout << "\"" << check[0] << "\": create error: "
-					  << getResultCode(result) << std::endl;
+			cout << "\"" << check[0] << "\": create error: " << getResultCode(result) << endl;
 			continue;
 		}
 		if (fields == NULL) {
-			std::cout << "\"" << check[0] << "\": create error: NULL" << std::endl;
+			cout << "\"" << check[0] << "\": create error: NULL" << endl;
 			continue;
 		}
 		if (it != entries.end()) {
-			std::cout << "\"" << check[0] << "\": create error: trailing input" << std::endl;
+			cout << "\"" << check[0] << "\": create error: trailing input" << endl;
 			continue;
 		}
-		std::cout << "\"" << check[0] << "\": create OK" << std::endl;
+		cout << "\"" << check[0] << "\": create OK" << endl;
 		if (isTemplate) {
 			// store new template
-			std::string name = fields->getName();
-			std::map<std::string, DataField*>::iterator current = templates.find(name);
+			string name = fields->getName();
+			map<string, DataField*>::iterator current = templates.find(name);
 			if (current == templates.end()) {
 				templates[name] = fields;
 			} else {
@@ -244,20 +244,20 @@ int main()
 			continue;
 		}
 
-		std::ostringstream output;
+		ostringstream output;
 		SymbolString writeMstr = SymbolString(mstr.getDataStr().substr(0, 10), false);
 		SymbolString writeSstr = SymbolString(sstr.getDataStr().substr(0, 2), false);
 		result = fields->read(mstr, 0, sstr, 0, output, verbose);
 		if (failedRead == true)
 			if (result == RESULT_OK)
-				std::cout << "  failed read " << fields->getName() << " >"
-						  << check[2] << "< error: unexpectedly succeeded" << std::endl;
+				cout << "  failed read " << fields->getName() << " >"
+				        << check[2] << "< error: unexpectedly succeeded" << endl;
 			else
-				std::cout << "  failed read " << fields->getName() << " >"
-						  << check[2] << "< OK" << std::endl;
+				cout << "  failed read " << fields->getName() << " >"
+				        << check[2] << "< OK" << endl;
 		else if (result != RESULT_OK) {
-			std::cout << "  read " << fields->getName() << " >" << check[2] << "< error: "
-					  << getResultCode(result) << std::endl;
+			cout << "  read " << fields->getName() << " >" << check[2]
+			        << "< error: " << getResultCode(result) << endl;
 		}
 		else {
 			bool match = strcasecmp(output.str().c_str(), expectStr.c_str()) == 0;
@@ -265,19 +265,19 @@ int main()
 		}
 
 		if (verbose == false) {
-			std::istringstream input(expectStr);
+			istringstream input(expectStr);
 			result = fields->write(input, writeMstr, 0, writeSstr, 0);
 			if (failedWrite == true) {
 				if (result == RESULT_OK)
-					std::cout << "  failed write " << fields->getName() << " >"
-							  << expectStr << "< error: unexpectedly succeeded" << std::endl;
+					cout << "  failed write " << fields->getName() << " >"
+					        << expectStr << "< error: unexpectedly succeeded" << endl;
 				else
-					std::cout << "  failed write " << fields->getName() << " >"
-							  << expectStr << "< OK" << std::endl;
+					cout << "  failed write " << fields->getName() << " >"
+					        << expectStr << "< OK" << endl;
 			}
 			else if (result != RESULT_OK) {
-				std::cout << "  write " << fields->getName() << " >"
-						  << expectStr << "< error: " << getResultCode(result) << std::endl;
+				cout << "  write " << fields->getName() << " >" << expectStr
+				        << "< error: " << getResultCode(result) << endl;
 			}
 			else {
 				bool match = mstr == writeMstr && sstr == writeSstr;
@@ -288,7 +288,7 @@ int main()
 		fields = NULL;
 	}
 
-	for (std::map<std::string, DataField*>::iterator it = templates.begin(); it != templates.end(); it++)
+	for (map<string, DataField*>::iterator it = templates.begin(); it != templates.end(); it++)
 		delete it->second;
 
 	return 0;
