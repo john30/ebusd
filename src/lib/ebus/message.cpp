@@ -139,11 +139,12 @@ result_t Message::prepare(const unsigned char srcAddress, SymbolString& masterDa
 		masterData.push_back(m_dstAddress, false);
 		masterData.push_back(m_id[0], false);
 		masterData.push_back(m_id[1], false);
-		masterData.push_back(m_id.size() - 2, false); // TODO adjust length
+		unsigned char addData = m_data->getNextOffset(pt_masterData);
+		masterData.push_back(m_id.size() - 2 + addData, false);
 		for (size_t i=2; i<m_id.size(); i++)
 			masterData.push_back(m_id[i], false);
 		SymbolString slaveData;
-		result_t result = m_data->write(input, masterData, slaveData, separator);
+		result_t result = m_data->write(input, masterData, slaveData, separator); // TODO m_id.size() - 2
 		if (result != RESULT_OK)
 			return result;
 		masterData.push_back(masterData.getCRC(), false, false);
