@@ -30,8 +30,13 @@
 /** the maximum time [us] allowed for retrieving a byte from an addressed slave */
 #define RECV_TIMEOUT 10000
 
-/** possible command types */
-enum CommandType { invalid, broadcast, masterMaster, masterSlave };
+/** possible bus command types */
+enum BusCommandType {
+	invalid,      // invalid command type
+	broadcast,    // broadcast
+	masterMaster, // master - master
+	masterSlave,  // master - slave
+};
 
 /**
  * @brief class for data/message transfer between baseloop and busloop.
@@ -41,7 +46,7 @@ class BusMessage
 
 public:
 	/**
-	 * @brief constructs a new bus message instance and determine command type.
+	 * @brief construct a new bus message instance and determine command type.
 	 * @param command the command data to write on bus.
 	 * @param poll true if message type is polling.
 	 * @param scan true if message type is scanning.
@@ -58,10 +63,10 @@ public:
 	}
 
 	/**
-	 * @brief get the command type.
-	 * @return the command type.
+	 * @brief get the bus command type.
+	 * @return the bus command type.
 	 */
-	CommandType getType() const { return m_type; }
+	BusCommandType getType() const { return m_type; }
 
 	/**
 	 * @brief get the command string.
@@ -124,8 +129,8 @@ public:
 	void sendSignal() { pthread_cond_signal(&m_cond); }
 
 private:
-	/** the command type */
-	CommandType m_type;
+	/** the bus command type */
+	BusCommandType m_type;
 
 	/** true if message is of type polling */
 	bool m_poll;

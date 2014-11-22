@@ -25,7 +25,9 @@
 #include <vector>
 
 /** available file endings / types. */
-enum FileType { CSV };
+enum FileType {
+	ft_csv
+};
 
 /**
  * @brief base class for config files.

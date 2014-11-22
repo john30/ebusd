@@ -51,7 +51,7 @@ void readCSV(std::istream& is, Commands& commands){
 
 int main()
 {
-	Commands* commands = ConfigCommands("test", CSV).getCommands();
+	Commands* commands = ConfigCommands("test", ft_csv).getCommands();
 	std::cout << "Commands: " << commands->sizeCmdDB() << std::endl;
 
 	//~ std::string data("g ci password pin1");

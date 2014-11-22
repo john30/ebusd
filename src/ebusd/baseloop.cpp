@@ -28,7 +28,7 @@ extern Appl& A;
 BaseLoop::BaseLoop()
 {
 	// create commands DB
-	m_commands = ConfigCommands(A.getOptVal<const char*>("ebusconfdir"), CSV).getCommands();
+	m_commands = ConfigCommands(A.getOptVal<const char*>("ebusconfdir"), ft_csv).getCommands();
 	L.log(bas, trace, "ebus configuration dir: %s", A.getOptVal<const char*>("ebusconfdir"));
 	L.log(bas, event, "commands DB: %d ", m_commands->sizeCmdDB());
 	L.log(bas, event, "   cycle DB: %d ", m_commands->sizeCycDB());
@@ -112,11 +112,11 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		return "command missing";
 
 	switch (getCase(cmd[0])) {
-	case notfound:
+	case ct_invalid:
 		result << "command not found";
 		break;
 
-	case get:
+	case ct_get:
 		if (cmd.size() < 3 || cmd.size() > 4) {
 			result << "usage: 'get class cmd (sub)'";
 			break;
@@ -176,7 +176,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 		break;
 
-	case set:
+	case ct_set:
 		if (cmd.size() != 4) {
 			result << "usage: 'set class cmd value'";
 			break;
@@ -231,7 +231,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 		break;
 
-	case cyc:
+	case ct_cyc:
 		if (cmd.size() < 3 || cmd.size() > 4) {
 			result << "usage: 'cyc class cmd (sub)'";
 			break;
@@ -259,7 +259,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 		break;
 
-	case hex:
+	case ct_hex:
 		if (cmd.size() != 2) {
 			result << "usage: 'hex value' (value: ZZPBSBNNDx)";
 			break;
@@ -289,7 +289,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 		break;
 
-	case scan:
+	case ct_scan:
 		if (cmd.size() == 1) {
 			m_busloop->scan();
 			result << "done";
@@ -315,7 +315,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		       << "       'scan result'";
 		break;
 
-	case log:
+	case ct_log:
 		if (cmd.size() != 3 ) {
 			result << "usage: 'log areas area,area,..' (areas: bas|net|bus|cyc|all)" << std::endl
 			       << "       'log level level'        (level: error|event|trace|debug)";
@@ -340,7 +340,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 		break;
 
-	case raw:
+	case ct_raw:
 		if (cmd.size() != 1) {
 			result << "usage: 'raw'";
 			break;
@@ -350,7 +350,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		result << "done";
 		break;
 
-	case dump:
+	case ct_dump:
 		if (cmd.size() != 1) {
 			result << "usage: 'dump'";
 			break;
@@ -360,7 +360,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		result << "done";
 		break;
 
-	case reload:
+	case ct_reload:
 		if (cmd.size() != 1) {
 			result << "usage: 'reload'";
 			break;
@@ -368,7 +368,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 		{
 			// create commands DB
-			Commands* commands = ConfigCommands(A.getOptVal<const char*>("ebusconfdir"), CSV).getCommands();
+			Commands* commands = ConfigCommands(A.getOptVal<const char*>("ebusconfdir"), ft_csv).getCommands();
 			L.log(bas, trace, "ebus configuration dir: %s", A.getOptVal<const char*>("ebusconfdir"));
 			L.log(bas, event, "commands DB: %d ", m_commands->sizeCmdDB());
 			L.log(bas, event, "   cycle DB: %d ", m_commands->sizeCycDB());
@@ -382,7 +382,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			break;
 		}
 
-	case help:
+	case ct_help:
 		result << "commands:" << std::endl
 		       << " get       - fetch ebus data             'get class cmd (sub)'" << std::endl
 		       << " set       - set ebus values             'set class cmd value'" << std::endl

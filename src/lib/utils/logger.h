@@ -33,8 +33,9 @@ enum AreasType {
 	bas=1,           // basis
 	net=2,           // network
 	bus=4,           // ebus
-	all=7,           // type for all subsystems
-	Size_of_Areas=3, // number of possible areas
+	cyc=8,           // cycle
+	all=15,          // type for all subsystems
+	Size_of_Areas=4, // number of possible areas
 };
 
 /** available logging levels */

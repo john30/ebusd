@@ -29,10 +29,13 @@
 #include <unistd.h>
 
 /** static char array with logging area names */
-static const char* AreaNames[Size_of_Areas] = { "bas", "net", "bus" };
+static const char* AreaNames[Size_of_Areas] = { "bas", "net", "bus", "cyc" };
 
 /** static char array with logging level names */
 static const char* LevelNames[Size_of_Level] = { "error", "event", "trace", "debug" };
+
+/** inline function of log2 */
+inline double Log2(double n) { return log(n) / log(2); }
 
 int calcAreas(const std::string areas)
 {
@@ -120,7 +123,7 @@ void* LogSink::run()
 void LogConsole::write(const LogMessage& message) const
 {
 	std::cout << message.getTime() << " ["
-		  << AreaNames[(int)log2(message.getArea())] << " "
+		  << AreaNames[(int)Log2(message.getArea())] << " "
 		  << LevelNames[message.getLevel()] << "] "
 		  << message.getText() << std::endl;
 }
@@ -133,7 +136,7 @@ void LogFile::write(const LogMessage& message) const
 
 	if (file.is_open() == true) {
 		file << message.getTime() << " ["
-		     << AreaNames[(int)log2(message.getArea())] << " "
+		     << AreaNames[(int)Log2(message.getArea())] << " "
 		     << LevelNames[message.getLevel()] << "] "
 		     << message.getText() << std::endl;
 		file.close();

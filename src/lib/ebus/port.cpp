@@ -17,6 +17,10 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include "port.h"
 #include <cstdlib>
 #include <cstring>
@@ -24,7 +28,10 @@
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+
+#ifdef HAVE_PPOLL
 #include <poll.h>
+#endif
 
 bool Device::isOpen()
 {
@@ -64,13 +71,16 @@ ssize_t Device::recvBytes(const long timeout, size_t maxCount)
 		return -1; // TODO RESULT_ERR_DEVICE
 
 	if (timeout > 0) {
-		int ret, nfds = 1;
-		struct pollfd fds[nfds];
+		int ret;
 		struct timespec tdiff;
 
 		// set select timeout
 		tdiff.tv_sec = 0;
 		tdiff.tv_nsec = timeout*1000;
+
+#ifdef HAVE_PPOLL
+		int nfds = 1;
+		struct pollfd fds[nfds];
 
 		memset(fds, 0, sizeof(fds));
 
@@ -78,6 +88,16 @@ ssize_t Device::recvBytes(const long timeout, size_t maxCount)
 		fds[0].events = POLLIN;
 
 		ret = ppoll(fds, nfds, &tdiff, NULL);
+#else
+#ifdef HAVE_PSELECT
+		fd_set readfds;
+
+		FD_ZERO(&readfds);
+		FD_SET(m_fd, &readfds);
+
+		ret = pselect(m_fd + 1, &readfds, NULL, NULL, &tdiff, NULL);
+#endif
+#endif
 
 		if (ret == -1) return -1; // TODO RESULT_ERR_DEVICE
 		if (ret == 0) return -2; // TODO RESULT_ERR_TIMEOUT
@@ -232,9 +252,9 @@ Port::Port(const std::string deviceName, const bool noDeviceCheck)
 
 	if (strchr(deviceName.c_str(), '/') == NULL &&
 	    strchr(deviceName.c_str(), ':') != NULL)
-		setType(NETWORK);
+		setType(dt_network);
 	else
-		setType(SERIAL);
+		setType(dt_serial);
 }
 
 void Port::setType(const DeviceType type)
@@ -243,10 +263,10 @@ void Port::setType(const DeviceType type)
 		delete m_device;
 
 	switch (type) {
-	case SERIAL:
+	case dt_serial:
 		m_device = new DeviceSerial();
 		break;
-	case NETWORK:
+	case dt_network:
 		m_device = new DeviceNetwork();
 		break;
 	};

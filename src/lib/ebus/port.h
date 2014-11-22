@@ -26,7 +26,10 @@
 #include <unistd.h>
 
 /** available device types. */
-enum DeviceType { SERIAL, NETWORK };
+enum DeviceType {
+	dt_serial,
+	dt_network,
+};
 
 /** max bytes write to bus. */
 #define MAX_WRITE_SIZE 1

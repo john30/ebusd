@@ -137,6 +137,7 @@ public:
 
 	/**
 	 * @brief start listening of tcp socket.
+	 * @return result of low level functions.
 	 */
 	int start();
 
