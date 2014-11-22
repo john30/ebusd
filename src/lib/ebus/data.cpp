@@ -165,7 +165,7 @@ result_t DataField::create(std::vector<std::string>::iterator& it,
 				posStr++;
 		}
 		else if (isTemplate) {
-			partType = pt_template;
+			partType = pt_any;
 		}
 		else {
 			result = RESULT_ERR_INVALID_ARG;
@@ -174,7 +174,7 @@ result_t DataField::create(std::vector<std::string>::iterator& it,
 
 		if (posStr[0] == 0) {
 			if (fields.empty() == false)
-				offset = fields.back()->getNextOffset();
+				offset = fields.back()->getNextOffset(partType);
 			else
 				offset = 0;
 			length = 0;
@@ -274,7 +274,7 @@ result_t DataField::create(std::vector<std::string>::iterator& it,
 				result = ref->second->derive(name, comment, unit, partType, offset, divisor, values, fields);
 				if (result != RESULT_OK)
 					break;
-				offset = fields.back()->getNextOffset();
+				offset = fields.back()->getNextOffset(partType);
 			}
 			if (offset > MAX_POS) {
 				result = RESULT_ERR_INVALID_ARG; // invalid pos definition
@@ -362,8 +362,11 @@ result_t DataField::create(std::vector<std::string>::iterator& it,
 }
 
 
-unsigned char SingleDataField::getNextOffset()
+unsigned char SingleDataField::getNextOffset(PartType partType)
 {
+	if (partType != pt_any && partType != m_partType)
+		return 0;
+
 	unsigned char offset = m_offset + m_length;
 	if ((m_dataType.numBits % 8) != 0
 			&& m_dataType.precisionOrFirstBit + (m_dataType.numBits % 8) < 8)
@@ -429,7 +432,7 @@ result_t StringDataField::derive(std::string name, std::string comment,
 		unsigned int divisor, std::map<unsigned int, std::string> values,
 		std::vector<SingleDataField*>& fields)
 {
-	if (m_partType != pt_template && partType == pt_template)
+	if (m_partType != pt_any && partType == pt_any)
 		return RESULT_ERR_INVALID_ARG; // cannot create a template from a concrete instance
 	if (divisor != 0 || values.empty() == false)
 		return RESULT_ERR_INVALID_ARG; // cannot set divisor or values for string field
@@ -706,7 +709,7 @@ result_t NumberDataField::derive(std::string name, std::string comment,
 		unsigned int divisor, std::map<unsigned int, std::string> values,
 		std::vector<SingleDataField*>& fields)
 {
-	if (m_partType != pt_template && partType == pt_template)
+	if (m_partType != pt_any && partType == pt_any)
 		return RESULT_ERR_INVALID_ARG; // cannot create a template from a concrete instance
 	if (name.empty() == true)
 		name = m_name;
@@ -840,7 +843,7 @@ result_t ValueListDataField::derive(std::string name, std::string comment,
 		unsigned int divisor, std::map<unsigned int, std::string> values,
 		std::vector<SingleDataField*>& fields)
 {
-	if (m_partType != pt_template && partType == pt_template)
+	if (m_partType != pt_any && partType == pt_any)
 		return RESULT_ERR_INVALID_ARG; // cannot create a template from a concrete instance
 	if (name.empty() == true)
 		name = m_name;
@@ -911,9 +914,17 @@ DataFieldSet::~DataFieldSet()
 	}
 }
 
-unsigned char DataFieldSet::getNextOffset()
+unsigned char DataFieldSet::getNextOffset(PartType partType)
 {
-	return m_fields.back()->getNextOffset();
+		return 0;
+
+	for (std::vector<SingleDataField*>::reverse_iterator it = m_fields.rbegin(); it < m_fields.rend(); it++) {
+		SingleDataField* field = *it;
+		if (partType == pt_any || partType == field->getPartType())
+			return field->getNextOffset(partType);
+	}
+
+	return 0;
 }
 
 result_t DataFieldSet::derive(std::string name, std::string comment,

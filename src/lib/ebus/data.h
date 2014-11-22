@@ -28,7 +28,7 @@
 
 /** the message part in which a data field is stored. */
 enum PartType {
-	pt_template,   // special part type for templates (relative offset)
+	pt_any,        // stored in any data (master or slave, relative offset)
 	pt_masterData, // stored in master data
 	pt_slaveData,  // stored in slave data
 	};
@@ -112,9 +112,10 @@ public:
 			const bool isSetMessage=false, const unsigned char dstAddress=SYN);
 	/**
 	 * @brief Returns the offset to the first symbol in the message part for a field following this field.
+	 * @param partType the message part for which to get the offset, or @a pt_any for any.
 	 * @return the offset to the first symbol in the message part for a field following this field.
 	 */
-	virtual unsigned char getNextOffset() = 0;
+	virtual unsigned char getNextOffset(PartType partType=pt_any) = 0;
 	/**
 	 * @brief Derives a new DataField from this field.
 	 * @param name the field name.
@@ -134,12 +135,12 @@ public:
 	 * @brief Get the field name.
 	 * @return the field name.
 	 */
-	const std::string getName() { return m_name; }
+	std::string getName() const { return m_name; }
 	/**
 	 * @brief Get the field comment.
 	 * @return the field comment.
 	 */
-	const std::string getComment() { return m_comment; }
+	std::string getComment() const { return m_comment; }
 	/**
 	 * @brief Reads the value from the master or slave @a SymbolString.
 	 * @param masterData the unescaped master data @a SymbolString for reading binary data.
@@ -204,9 +205,14 @@ public:
 	 * @brief Get the value unit.
 	 * @return the value unit.
 	 */
-	const std::string getUnit() { return m_unit; }
+	std::string getUnit() const { return m_unit; }
+	/**
+	 * @brief Get the message part in which the field is stored.
+	 * @return the message part in which the field is stored.
+	 */
+	PartType getPartType() const { return m_partType; }
 	// @copydoc
-	virtual unsigned char getNextOffset();
+	virtual unsigned char getNextOffset(PartType partType=pt_any);
 	/**
 	 * @brief Reads the value from the master or slave @a SymbolString.
 	 * @param masterData the unescaped master data @a SymbolString for reading binary data.
@@ -470,7 +476,7 @@ public:
 	 */
 	virtual ~DataFieldSet();
 	// @copydoc
-	virtual unsigned char getNextOffset();
+	virtual unsigned char getNextOffset(PartType partType=pt_any);
 	// @copydoc
 	virtual result_t derive(std::string name, std::string comment,
 			std::string unit, const PartType partType, unsigned char offset,
