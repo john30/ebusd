@@ -33,9 +33,9 @@ void verify(bool expectFailMatch, std::string type, std::string input,
 			          << std::endl;
 	}
 	else if (match == true)
-		std::cout << "  " << type << " >" << input << "< OK" << std::endl;
+		std::cout << "  " << type << " match >" << input << "< OK" << std::endl;
 	else
-		std::cout << "  " << type << " >" << input << "< error: got >" << gotStr
+		std::cout << "  " << type << " match >" << input << "< error: got >" << gotStr
 		          << "<, expected >" << expectStr << "<" << std::endl;
 }
 
