@@ -139,12 +139,12 @@ result_t Message::prepare(const unsigned char srcAddress, SymbolString& masterDa
 		masterData.push_back(m_dstAddress, false);
 		masterData.push_back(m_id[0], false);
 		masterData.push_back(m_id[1], false);
-		unsigned char addData = m_data->getNextOffset(pt_masterData);
+		unsigned char addData = m_data->getLength(pt_masterData);
 		masterData.push_back(m_id.size() - 2 + addData, false);
 		for (size_t i=2; i<m_id.size(); i++)
 			masterData.push_back(m_id[i], false);
 		SymbolString slaveData;
-		result_t result = m_data->write(input, masterData, slaveData, separator); // TODO m_id.size() - 2
+		result_t result = m_data->write(input, masterData, m_id.size() - 2, slaveData, 0, separator);
 		if (result != RESULT_OK)
 			return result;
 		masterData.push_back(masterData.getCRC(), false, false);
@@ -156,13 +156,13 @@ result_t Message::handle(SymbolString& masterData, SymbolString& slaveData,
 		std::ostringstream& output, char separator, bool answer)
 {
 	if (m_isActiveMessage == true) {
-		result_t result = m_data->read(masterData, slaveData, output, false, separator);
+		result_t result = m_data->read(masterData, m_id.size() - 2, slaveData, 0, output, false, separator);
 		if (result != RESULT_OK)
 			return result;
 	}
 	else if (answer == true) {
 		std::istringstream input; // TODO create input from database of internal variables
-		result_t result = m_data->write(input, masterData, slaveData, separator);
+		result_t result = m_data->write(input, masterData, m_id.size() - 2, slaveData, 0, separator);
 		if (result != RESULT_OK)
 			return result;
 	}

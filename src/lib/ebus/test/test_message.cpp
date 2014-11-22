@@ -66,12 +66,12 @@ void printErrorPos(std::vector<std::string>::iterator it, const std::vector<std:
 
 int main()
 {
-	// message= [type];class;name;[comment];[QQ];ZZ;id;fields...
+	// message= [type];class;name;[comment];[QQ];ZZ;PBSB;fields...
 	// field=   name;[pos];type[;[divisor|values][;[unit][;[comment]]]]
 	std::string checks[][5] = {
 		// "message", "flags"
 		{";;first;;;fe;0700;x;;bda", "26.10.2014", "fffe0700042610001451", "00", ""},
-		{";;first;;;15;b5090400;date;1;bda", "26.10.2014", "ff15b50904040026100014cc", "00", ""},
+		{"w;;first;;;15;b5090400;date;;bda", "26.10.2014", "ff15b5090604002610001445", "00", ""},
 	};
 	std::map<std::string, DataField*> templates;
 	Message* message = NULL;
