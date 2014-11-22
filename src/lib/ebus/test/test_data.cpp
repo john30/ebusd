@@ -43,21 +43,23 @@ int main()
 {
 	std::string checks[][5] = {
 		//name;[len];type[;[divisor|values][;[unit][;[comment]]]], decoded value, master, slave, flags
-		{"x;10;str",  "Hallo, Du!",                    "10fe07000a48616c6c6f2c20447521", "00", ""},
-		{"x;10;str",  "Hallo, Du ",                    "10fe07000a48616c6c6f2c20447520", "00", ""},
-		{"x;10;str",  "          ",                    "10fe07000a20202020202020202020", "00", ""},
-		{"x;11;str",  "",                              "10fe07000a20202020202020202020", "00", "rW"},
+		{"x;;ign:10",  "",                              "10fe07000a00000000000000000000", "00", ""},
+		{"x;;str:10",  "Hallo, Du!",                    "10fe07000a48616c6c6f2c20447521", "00", ""},
+		{"x;;str:10",  "Hallo, Du!",                    "10fe07000a48616c6c6f2c20447521", "00", ""},
+		{"x;;str:10",  "Hallo, Du ",                    "10fe07000a48616c6c6f2c20447520", "00", ""},
+		{"x;;str:10",  "          ",                    "10fe07000a20202020202020202020", "00", ""},
+		{"x;;str:11",  "",                              "10fe07000a20202020202020202020", "00", "rW"},
 		{"x;;hex",      "20",                            "10fe07000120",                   "00", ""},
-		{"x;10;hex",  "48 61 6c 6c 6f 2c 20 44 75 21", "10fe07000a48616c6c6f2c20447521", "00", ""},
-		{"x;11;hex",  "",                              "10fe07000a48616c6c6f2c20447521", "00", "rW"},
+		{"x;;hex:10",  "48 61 6c 6c 6f 2c 20 44 75 21", "10fe07000a48616c6c6f2c20447521", "00", ""},
+		{"x;;hex:11",  "",                              "10fe07000a48616c6c6f2c20447521", "00", "rW"},
 		{"x;;bda",   "26.10.2014","10fe07000426100014", "00", ""},
 		{"x;;bda",   "01.01.2000","10fe07000401010000", "00", ""},
 		{"x;;bda",   "31.12.2099","10fe07000431120099", "00", ""},
 		{"x;;bda",   "",          "10fe07000432100014", "00", "rw"},
-		{"x;3;bda","26.10.2014","10fe070003261014",   "00", ""},
-		{"x;3;bda","01.01.2000","10fe070003010100",   "00", ""},
-		{"x;3;bda","31.12.2099","10fe070003311299",   "00", ""},
-		{"x;3;bda","",          "10fe070003321299",   "00", "rw"},
+		{"x;;bda:3","26.10.2014","10fe070003261014",   "00", ""},
+		{"x;;bda:3","01.01.2000","10fe070003010100",   "00", ""},
+		{"x;;bda:3","31.12.2099","10fe070003311299",   "00", ""},
+		{"x;;bda:3","",          "10fe070003321299",   "00", "rw"},
 		{"x;;bti",   "21:04:58",  "10fe070003580421",   "00", ""},
 		{"x;;bti",   "00:00:00",  "10fe070003000000",   "00", ""},
 		{"x;;bti",   "23:59:59",  "10fe070003595923",   "00", ""},
@@ -84,8 +86,8 @@ int main()
 		{"x;;bcd", "99",    "10feffff0199", "00", ""},
 		{"x;;bcd", "-",     "10feffff01ff", "00", ""},
 		{"x;;bcd", "",      "10feffff019a", "00", "rw"},
-		{"x;16;str", "0123456789ABCDEF",  "10feffff1130313233343536373839414243444546", "00", ""},
-		{"x;17;uch", "",    "10feffff00", "00", "c"},
+		{"x;;str:16", "0123456789ABCDEF",  "10feffff1130313233343536373839414243444546", "00", ""},
+		{"x;;uch:17", "",    "10feffff00", "00", "c"},
 		{"x;s;uch", "0",   "1025ffff0310111213", "0300010203", "W"},
 		{"x;s;uch", "0",   "1025ffff00", "0100", ""},
 		{"x;s;uch;;;;y;m;uch", "2;3","1025ffff0103", "0102", ""},
@@ -148,14 +150,15 @@ int main()
 		{"x;;bi3", "-",            "10feffff0100", "00", ""},
 		{"x;;bi3;0=off,1=on","on", "10feffff0108", "00", ""},
 		{"x;;bi3;0=off,1=on","off","10feffff0100", "00", ""},
-		{"x;;b34", "1",            "10feffff0108", "00", ""},
-		{"x;;b34", "-",            "10feffff0100", "00", ""},
-		{"x;;b34", "3",            "10feffff0118", "00", ""},
-		{"x;;b34;1=on","on",       "10feffff0108", "00", ""},
-		{"x;;b34;1=on","-",        "10feffff0100", "00", ""},
-		{"x;;b34;0=off,1=on,2=auto,3=eco","auto", "10feffff0110", "00", ""},
-		{"x;;b34;0=off,1=on","on", "10feffff0108", "00", ""},
-		{"x;;b34;0=off,1=on","off","10feffff0100", "00", ""},
+		{"x;;bi3:2", "1",            "10feffff0108", "00", ""},
+		{"x;;bi3:2", "1",            "10feffff01ef", "00", "W"},
+		{"x;;bi3:2", "-",            "10feffff0100", "00", ""},
+		{"x;;bi3:2", "3",            "10feffff0118", "00", ""},
+		{"x;;bi3:2;1=on","on",       "10feffff0108", "00", ""},
+		{"x;;bi3:2;1=on","-",        "10feffff0100", "00", ""},
+		{"x;;bi3:2;0=off,1=on,2=auto,3=eco","auto", "10feffff0110", "00", ""},
+		{"x;;bi3:2;0=off,1=on","on", "10feffff0108", "00", ""},
+		{"x;;bi3:2;0=off,1=on","off","10feffff0100", "00", ""},
 		{"x;;uch;1=test,2=high,3=off,4=on","on","10feffff0104", "00", ""},
 		{"x;s;uch","3","1050ffff00", "0103", ""},
 		{"x;;d2b;;°C;Aussentemperatur","x=18.004 °C [Aussentemperatur]","10fe0700090112", "00", "v"},
@@ -164,8 +167,8 @@ int main()
 		{"x;;bi3;;;;y;;bi5", "1;1",            "10feffff0128", "00", ""}, // bit combination
 		{"x;;bi3;;;;y;;bi5", "-;1",            "10feffff0120", "00", ""}, // bit combination
 		{"x;;bi3;;;;y;;bi5", "-;-",            "10feffff0100", "00", ""}, // bit combination
-		{"x;;bi3;;;;y;;bi7;;;;t;;uch", "-;-;9","10feffff020009", "00", ""}, // bit combination, auto pos incr
-		{"x;;bi3;;;;y;;bi5;;;;t;;uch", "-;-;9","10feffff020009", "00", "RW"}, // bit combination
+		{"x;;bi3;;;;y;;bi7;;;;t;;uch", "-;-;9","10feffff020009", "00", ""}, // bit combination
+		{"x;;bi6:2;;;;y;;bi0:2;;;;t;;uch", "2;1;9","10feffff03800109", "00", ""}, // bit combination
 		{"temp;;d2b;;°C;Aussentemperatur","","", "", "t"}, // template with relative pos
 		{"x;;temp","18.004","10fe0700020112", "00", ""}, // reference to template
 		{"relrel;;d2b;;;;y;;d1c","","", "", "t"},   // template struct with relative pos
@@ -202,7 +205,6 @@ int main()
 		}
 		std::vector<std::string>::iterator it = entries.begin();
 		result_t result = DataField::create(it, entries.end(), templates, fields, isSet, isTemplate ? SYN : mstr[1]);
-
 		if (failedCreate == true) {
 			if (result == RESULT_OK)
 				std::cout << "\"" << check[0] << "\": failed create error: unexpectedly succeeded" << std::endl;

@@ -29,11 +29,12 @@
 
 /** the known data field types. */
 static const dataType_t dataTypes[] = {
+	{"IGN",16*8,bt_str, IGN|ADJ,          0,          1,         16,    0, 0}, // >= 1 byte ignored data
 	{"STR",16*8,bt_str,     ADJ,        ' ',          1,         16,    0, 0}, // >= 1 byte character string filled up with space
 	{"HEX",16*8,bt_hexstr,  ADJ,          0,          2,         47,    0, 0}, // >= 1 byte hex digit string, usually separated by space, e.g. 0a 1b 2c 3d
-	{"BDA", 32, bt_dat,     BCD,          0,         10,         10,    0, 0}, // date in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is ignored weekday)
+	{"BDA", 32, bt_dat,     BCD,          0,         10,         10,    0, 0}, // date with weekday in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is weekday)
 	{"BDA", 24, bt_dat,     BCD,          0,         10,         10,    0, 0}, // date in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99)
-	{"HDA", 32, bt_dat,       0,          0,         10,         10,    0, 0}, // date, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is ignored weekday) // TODO remove duplicate of BDA
+	{"HDA", 32, bt_dat,       0,          0,         10,         10,    0, 0}, // date with weekday, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is weekday) // TODO remove duplicate of BDA
 	{"HDA", 24, bt_dat,       0,          0,         10,         10,    0, 0}, // date, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99) // TODO remove duplicate of BDA
 	{"BTI", 24, bt_tim, BCD|REV,          0,          8,          8,    0, 0}, // time in BCD, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x59,0x59,0x23)
 	{"HTM", 16, bt_tim,       0,          0,          5,          5,    0, 0}, // time as hh:mm, 00:00 - 23:59 (0x00,0x00 - 0x17,0x3b)
@@ -52,41 +53,14 @@ static const dataType_t dataTypes[] = {
 	{"D2C", 16, bt_num,     SIG,     0x8000,     0x8001,     0x7fff,   16, 2}, // signed number (fraction 1/16), -2047.9 - +2047.9
 	{"ULG", 32, bt_num,     LST, 0xffffffff,          0, 0xfffffffe,    1, 0}, // unsigned integer, 0 - 4294967294
 	{"SLG", 32, bt_num,     SIG, 0x80000000, 0x80000001, 0xffffffff,    1, 0}, // signed integer, -2147483647 - +2147483647
-	{"BI0",  1, bt_num,     LST,          0,          0,        0x1,    1, 0}, // single bit 0
-	{"BI1",  1, bt_num,     LST,          0,          0,        0x1,    1, 1}, // single bit 1
-	{"BI2",  1, bt_num,     LST,          0,          0,        0x1,    1, 2}, // single bit 2
-	{"BI3",  1, bt_num,     LST,          0,          0,        0x1,    1, 3}, // single bit 3
-	{"BI4",  1, bt_num,     LST,          0,          0,        0x1,    1, 4}, // single bit 4
-	{"BI5",  1, bt_num,     LST,          0,          0,        0x1,    1, 5}, // single bit 5
-	{"BI6",  1, bt_num,     LST,          0,          0,        0x1,    1, 6}, // single bit 6
-	{"BI7",  1, bt_num,     LST,          0,          0,        0x1,    1, 7}, // single bit 7
-	{"B01",  2, bt_num,     LST,          0,          0,        0x3,    1, 0}, // two bits 0-1
-	{"B12",  2, bt_num,     LST,          0,          0,        0x3,    1, 1}, // two bits 1-2
-	{"B23",  2, bt_num,     LST,          0,          0,        0x3,    1, 2}, // two bits 2-3
-	{"B34",  2, bt_num,     LST,          0,          0,        0x3,    1, 3}, // two bits 3-4
-	{"B45",  2, bt_num,     LST,          0,          0,        0x3,    1, 4}, // two bits 4-5
-	{"B56",  2, bt_num,     LST,          0,          0,        0x3,    1, 5}, // two bits 5-6
-	{"B67",  2, bt_num,     LST,          0,          0,        0x3,    1, 6}, // two bits 6-7
-	{"B02",  3, bt_num,     LST,          0,          0,        0x7,    1, 0}, // three bits 0-2
-	{"B13",  3, bt_num,     LST,          0,          0,        0x7,    1, 1}, // three bits 1-3
-	{"B24",  3, bt_num,     LST,          0,          0,        0x7,    1, 2}, // three bits 2-4
-	{"B35",  3, bt_num,     LST,          0,          0,        0x7,    1, 3}, // three bits 3-5
-	{"B46",  3, bt_num,     LST,          0,          0,        0x7,    1, 4}, // three bits 4-6
-	{"B57",  3, bt_num,     LST,          0,          0,        0x7,    1, 5}, // three bits 5-7
-	{"B03",  4, bt_num,     LST,          0,          0,        0xf,    1, 0}, // four bits 0-3
-	{"B14",  4, bt_num,     LST,          0,          0,        0xf,    1, 1}, // four bits 1-4
-	{"B25",  4, bt_num,     LST,          0,          0,        0xf,    1, 2}, // four bits 2-5
-	{"B36",  4, bt_num,     LST,          0,          0,        0xf,    1, 3}, // four bits 3-6
-	{"B47",  4, bt_num,     LST,          0,          0,        0xf,    1, 4}, // four bits 4-7
-	{"B04",  5, bt_num,     LST,          0,          0,       0x1f,    1, 0}, // five bits 0-4
-	{"B15",  5, bt_num,     LST,          0,          0,       0x1f,    1, 1}, // five bits 1-5
-	{"B26",  5, bt_num,     LST,          0,          0,       0x1f,    1, 2}, // five bits 2-6
-	{"B37",  5, bt_num,     LST,          0,          0,       0x1f,    1, 3}, // five bits 3-7
-	{"B05",  6, bt_num,     LST,          0,          0,       0x3f,    1, 0}, // six bits 0-5
-	{"B16",  6, bt_num,     LST,          0,          0,       0x3f,    1, 1}, // six bits 1-6
-	{"B27",  6, bt_num,     LST,          0,          0,       0x3f,    1, 2}, // six bits 2-7
-	{"B06",  7, bt_num,     LST,          0,          0,       0x7f,    1, 0}, // seven bits 0-6
-	{"B17",  7, bt_num,     LST,          0,          0,       0x7f,    1, 1}, // seven bits 1-7
+	{"BI0",  7, bt_num, ADJ|LST,          0,          0,       0xef,    1, 0}, // bit 0 (up to 7 bits until bit 6)
+	{"BI1",  7, bt_num, ADJ|LST,          0,          0,       0x7f,    1, 1}, // bit 1 (up to 7 bits until bit 7)
+	{"BI2",  6, bt_num, ADJ|LST,          0,          0,       0x3f,    1, 2}, // bit 2 (up to 6 bits until bit 7)
+	{"BI3",  5, bt_num, ADJ|LST,          0,          0,       0x1f,    1, 3}, // bit 3 (up to 5 bits until bit 7)
+	{"BI4",  4, bt_num, ADJ|LST,          0,          0,       0x0f,    1, 4}, // bit 4 (up to 4 bits until bit 7)
+	{"BI5",  3, bt_num, ADJ|LST,          0,          0,       0x07,    1, 5}, // bit 5 (up to 3 bits until bit 7)
+	{"BI6",  2, bt_num, ADJ|LST,          0,          0,       0x03,    1, 6}, // bit 6 (up to 2 bits until bit 7)
+	{"BI7",  1, bt_num, ADJ|LST,          0,          0,       0x01,    1, 7}, // bit 7
 };
 
 
@@ -132,18 +106,17 @@ result_t DataField::create(std::vector<std::string>::iterator& it,
 		std::string unit, comment;
 		PartType partType;
 		unsigned int divisor = 0;
-		unsigned char length;
 		const bool isTemplate = dstAddress == SYN;
 		std::string token;
 		if (it == end)
 			break;
 
-		// name;[m|s][len];type[;[divisor|values][;[unit][;[comment]]]]
+		// name;part;type[:len][;[divisor|values][;[unit][;[comment]]]]
 		const std::string name = *it++;
 		if (it == end)
 			break;
 
-		const char* posStr = (*it++).c_str();
+		const char* partStr = (*it++).c_str();
 		if (it == end)
 			break;
 
@@ -151,18 +124,17 @@ result_t DataField::create(std::vector<std::string>::iterator& it,
 			firstName = name;
 			firstComment = comment;
 		}
-		if (dstAddress == BROADCAST || isMaster(dstAddress)
-			|| (isTemplate == false && isSetMessage == true && (posStr[0] == 0 || posStr[0] <= '9'))
-			|| posStr[0] == 'm') { // master data
-			partType = pt_masterData;
-			if (posStr[0] == 'm')
-				posStr++;
+		if (isTemplate == false && strcasecmp(partStr, "I") == 0) {
+			partType = pt_masterDataID;
 		}
-		else if ((isTemplate == false && isSetMessage == false && (posStr[0] == 0 || posStr[0] <= '9'))
-			|| posStr[0] == 's') { // slave data
+		else if (dstAddress == BROADCAST || isMaster(dstAddress)
+			|| (isTemplate == false && isSetMessage == true && partStr[0] == 0)
+			|| strcasecmp(partStr, "M") == 0) { // master data
+			partType = pt_masterData;
+		}
+		else if ((isTemplate == false && isSetMessage == false && partStr[0] == 0)
+			|| strcasecmp(partStr, "S") == 0) { // slave data
 			partType = pt_slaveData;
-			if (posStr[0] == 's')
-				posStr++;
 		}
 		else if (isTemplate) {
 			partType = pt_any;
@@ -172,17 +144,10 @@ result_t DataField::create(std::vector<std::string>::iterator& it,
 			break;
 		}
 
-		if (posStr[0] == 0) {
-			length = 0;
-		}
-		else {
-			length = parseInt(posStr, 10, 1, MAX_POS, result);
-			if (result != RESULT_OK)
-				break;
-		}
-
-		const char* typeStr = (*it++).c_str();
-		if (typeStr[0] == 0) {
+		std::string typeStr = *it++;
+		if (typeStr.empty() == true) {
+			if (name.empty() == false || partStr[0] != 0)
+				result = RESULT_ERR_INVALID_ARG;
 			break;
 		}
 
@@ -190,7 +155,7 @@ result_t DataField::create(std::vector<std::string>::iterator& it,
 		if (it != end) {
 			std::string divisorStr = *it++;
 			if (divisorStr.empty() == false) {
-				if (divisorStr.find_first_not_of("0123456789") == std::string::npos) {
+				if (divisorStr.find('=') == std::string::npos) {
 					divisor = parseInt(divisorStr.c_str(), 10, 1, 10000, result);
 					if (result != RESULT_OK)
 						break;
@@ -231,47 +196,73 @@ result_t DataField::create(std::vector<std::string>::iterator& it,
 				comment.clear();
 		}
 
-		// check for reference(s) to templates
-		if (templates.empty() == false) {
-			std::istringstream stream(typeStr);
-			bool found = false;
-			while (std::getline(stream, token, VALUE_SEPARATOR) != 0) {
-				std::map< std::string, DataField*>::const_iterator ref = templates.find(token);
-				if (ref == templates.end()) {
-					if (found == false)
-						break; // fallback to direct definition
-					result = RESULT_ERR_INVALID_ARG; // cannot mix reference and direct definition
-					break;
+		size_t pos = typeStr.find(':');
+		unsigned char length;
+		if (pos == std::string::npos) {
+			length = 0;
+			// check for reference(s) to templates
+			if (templates.empty() == false) {
+				std::istringstream stream(typeStr);
+				bool found = false;
+				std::string lengthStr;
+				while (std::getline(stream, token, VALUE_SEPARATOR) != 0) {
+					std::map<std::string, DataField*>::const_iterator ref = templates.find(token);
+					if (ref == templates.end()) {
+						if (found == false)
+							break; // fallback to direct definition
+						result = RESULT_ERR_INVALID_ARG; // cannot mix reference and direct definition
+						break;
+					}
+					found = true;
+					result = ref->second->derive(name, comment, unit, partType, divisor, values, fields);
+					if (result != RESULT_OK)
+						break;
 				}
-				if (length > 1) {
-					result = RESULT_ERR_INVALID_ARG; // different length not possible for derivation
-					break;
-				}
-				found = true;
-				result = ref->second->derive(name, comment, unit, partType, divisor, values, fields);
-				if (result != RESULT_OK)
-					break;
+				if (found == true || result != RESULT_OK)
+					break; // TODO check for found == true
 			}
-			if (found == true || result != RESULT_OK)
-				break;
 		}
+		else {
+			length = parseInt(typeStr.substr(pos+1).c_str(), 10, 1, MAX_POS, result);
+			if (result != RESULT_OK)
+				break;
+			typeStr = typeStr.substr(0, pos);
+		}
+
 		SingleDataField* add = NULL;
+		const char* typeName = typeStr.c_str();
 		for (size_t i = 0; result == RESULT_OK && add == NULL && i < sizeof(dataTypes) / sizeof(dataTypes[0]); i++) {
 			dataType_t dataType = dataTypes[i];
-			if (strcasecmp(typeStr, dataType.name) == 0) {
-				unsigned char numBytes = (dataType.numBits + 7) / 8;
-				unsigned char useLength = length;
-				if ((dataType.flags & ADJ) != 0) {
-					if (useLength == 0)
-						useLength = 1; // minimum length defaults to 1
-					else if (useLength > numBytes) {
+			if (strcasecmp(typeName, dataType.name) == 0) {
+				unsigned char bitCount = dataType.maxBits;
+				unsigned char useLength = (bitCount + 7) / 8;
+				if ((dataType.flags & ADJ) != 0) { // adjustable length
+					if ((bitCount % 8) != 0) {
+						if (length == 0) {
+							useLength = 1; // default length: 1 byte
+							bitCount = 1; // default count: 1 bit
+						}
+						else if (length > bitCount) {
+							result = RESULT_ERR_INVALID_ARG; // invalid length
+							break;
+						}
+						else {
+							bitCount = length;
+							useLength = (length + 7) / 8;
+						}
+					}
+					else if (length == 0) {
+						useLength = 1; // default length: 1 byte
+					}
+					else if (length <= useLength) {
+						useLength = length;
+					}
+					else {
 						result = RESULT_ERR_INVALID_ARG; // invalid length
 						break;
 					}
 				}
-				else if (useLength == 0)
-					useLength = numBytes;
-				else if (useLength != numBytes)
+				else if (length > 0 && length != useLength)
 					continue; // check for another one with same name but different length
 
 				switch (dataType.type)
@@ -294,7 +285,7 @@ result_t DataField::create(std::vector<std::string>::iterator& it,
 						else
 							divisor *= dataType.divisor;
 
-						add = new NumberDataField(name, comment, unit, dataType, partType, useLength, divisor);
+						add = new NumberDataField(name, comment, unit, dataType, partType, useLength, bitCount, divisor);
 						break;
 					}
 					if (values.begin()->first < dataType.minValueOrLength
@@ -303,7 +294,7 @@ result_t DataField::create(std::vector<std::string>::iterator& it,
 						break;
 					}
 
-					add = new ValueListDataField(name, comment, unit, dataType, partType, useLength, values);
+					add = new ValueListDataField(name, comment, unit, dataType, partType, useLength, bitCount, values);
 					break;
 				}
 			}
@@ -330,22 +321,17 @@ result_t DataField::create(std::vector<std::string>::iterator& it,
 }
 
 
-bool SingleDataField::hasFullByteOffset()
-{
-	return m_length > 1 || (m_dataType.numBits % 8) == 0
-			|| m_dataType.precisionOrFirstBit + (m_dataType.numBits % 8) >= 8;
-}
-
 result_t SingleDataField::read(SymbolString& masterData, unsigned char masterOffset,
 		SymbolString& slaveData, unsigned char slaveOffset,
 		std::ostringstream& output,
 		bool verbose, char separator)
 {
-	SymbolString& input = m_partType == pt_masterData ? masterData : slaveData;
+	SymbolString& input = m_partType != pt_slaveData ? masterData : slaveData;
 	unsigned char offset;
 	switch (m_partType)
 	{
 	case pt_masterData:
+	case pt_masterDataID:
 		offset = 5 + masterOffset; // skip QQ ZZ PB SB NN
 		break;
 	case pt_slaveData:
@@ -355,7 +341,14 @@ result_t SingleDataField::read(SymbolString& masterData, unsigned char masterOff
 		return RESULT_ERR_INVALID_ARG; // invalid part type
 	}
 
-	if (verbose)
+	if (isIgnored() == true) {
+		if (offset + m_length > input.size()) {
+			return RESULT_ERR_INVALID_ARG;
+		}
+		return RESULT_OK;
+	}
+
+	if (verbose == true)
 		output << m_name << "=";
 
 	result_t result = readSymbols(input, offset, output);
@@ -375,11 +368,12 @@ result_t SingleDataField::write(std::istringstream& input,
 		SymbolString& slaveData, unsigned char slaveOffset,
 		char separator)
 {
-	SymbolString& output = m_partType == pt_masterData ? masterData : slaveData;
+	SymbolString& output = m_partType != pt_slaveData ? masterData : slaveData;
 	unsigned char offset;
 	switch (m_partType)
 	{
 	case pt_masterData:
+	case pt_masterDataID:
 		offset = 5 + masterOffset; // skip QQ ZZ PB SB NN
 		break;
 	case pt_slaveData:
@@ -423,6 +417,7 @@ result_t StringDataField::readSymbols(SymbolString& input,
 	if (baseOffset + m_length > input.size()) {
 		return RESULT_ERR_INVALID_ARG;
 	}
+
 	if ((m_dataType.flags & REV) != 0) { // reverted binary representation (most significant byte first)
 		start = m_length - 1;
 		incr = -1;
@@ -494,6 +489,12 @@ result_t StringDataField::writeSymbols(std::istringstream& input,
 		incr = -1;
 	}
 
+	if (isIgnored() == true) {
+		for (size_t offset = start, i = 0; i < count; offset += incr, i++) {
+			output[baseOffset + offset] = m_dataType.replacement; // fill up with replacement
+		}
+		return RESULT_OK;
+	}
 	result_t result;
 	size_t i = 0;
 	for (size_t offset = start; i < count; offset += incr, i++) {
@@ -581,6 +582,12 @@ result_t StringDataField::writeSymbols(std::istringstream& input,
 }
 
 
+bool NumericDataField::hasFullByteOffset(bool after)
+{
+	return m_length > 1 || (m_bitCount % 8) == 0
+		|| (after == true && m_bitOffset + (m_bitCount % 8) >= 8);
+}
+
 result_t NumericDataField::readRawValue(SymbolString& input,
 		unsigned char baseOffset, unsigned int& value)
 {
@@ -619,9 +626,10 @@ result_t NumericDataField::readRawValue(SymbolString& input,
 
 	if ((m_dataType.flags & BCD) == 0) {
 		value >>= m_bitOffset;
-		if ((m_dataType.numBits % 8) != 0)
-			value &= (1 << m_dataType.numBits) - 1;
+		if ((m_bitCount % 8) != 0)
+			value &= (1 << m_bitCount) - 1;
 	}
+
 	return RESULT_OK;
 }
 
@@ -638,8 +646,9 @@ result_t NumericDataField::writeRawValue(unsigned int value,
 	}
 
 	if ((m_dataType.flags & BCD) == 0) {
-		if ((m_dataType.numBits % 8) != 0)
-			value &= (1 << m_dataType.numBits) - 1;
+		if ((m_bitCount % 8) != 0 && (value & ~((1 << m_bitCount) - 1)) != 0)
+			return RESULT_ERR_INVALID_ARG;
+
 		value <<= m_bitOffset;
 	}
 	for (size_t offset = start, i = 0, exp = 1; i < count; offset += incr, i++) {
@@ -656,7 +665,7 @@ result_t NumericDataField::writeRawValue(unsigned int value,
 			ch = (value / exp) & 0xff;
 			exp = exp << 8;
 		}
-		if (offset == start && (m_dataType.numBits % 8) != 0 && baseOffset + offset < output.size())
+		if (offset == start && (m_bitCount % 8) != 0 && baseOffset + offset < output.size())
 			output[baseOffset + offset] |= ch;
 		else
 			output[baseOffset + offset] = ch;
@@ -687,10 +696,10 @@ result_t NumberDataField::derive(std::string name, std::string comment,
 		if (divisor != 1)
 			return RESULT_ERR_INVALID_ARG; // cannot use divisor != 1 for value list field
 
-		fields.push_back(new ValueListDataField(name, comment, unit, m_dataType, partType, m_length, values));
+		fields.push_back(new ValueListDataField(name, comment, unit, m_dataType, partType, m_length, m_bitCount, values));
 	}
 	else
-		fields.push_back(new NumberDataField(name, comment, unit, m_dataType, partType, m_length, divisor));
+		fields.push_back(new NumberDataField(name, comment, unit, m_dataType, partType, m_length, m_bitCount, divisor));
 
 	return RESULT_OK;
 }
@@ -710,27 +719,27 @@ result_t NumberDataField::readSymbols(SymbolString& input,
 		return RESULT_OK;
 	}
 
-	bool negative = (m_dataType.flags & SIG) != 0 && (value & (1 << (m_dataType.numBits - 1))) != 0;
-	if (m_dataType.numBits == 32) {
+	bool negative = (m_dataType.flags & SIG) != 0 && (value & (1 << (m_bitCount - 1))) != 0;
+	if (m_bitCount == 32) {
 		if (negative == false) {
 			if (m_divisor <= 1)
 				output << static_cast<unsigned>(value);
 			else
-				output << std::setprecision((m_dataType.numBits % 8) == 0 ? m_dataType.precisionOrFirstBit : 0)
+				output << std::setprecision((m_bitCount % 8) == 0 ? m_dataType.precisionOrFirstBit : 0)
 				       << std::fixed << static_cast<float>(value / (float) m_divisor);
 			return RESULT_OK;
 		}
 		signedValue = (int) value; // negative signed value
 	}
 	else if (negative) // negative signed value
-		signedValue = (int) value - (1 << m_dataType.numBits);
+		signedValue = (int) value - (1 << m_bitCount);
 	else
 		signedValue = (int) value;
 
 	if (m_divisor <= 1)
 		output << static_cast<int>(signedValue);
 	else
-		output << std::setprecision((m_dataType.numBits % 8) == 0 ? m_dataType.precisionOrFirstBit : 0)
+		output << std::setprecision((m_bitCount % 8) == 0 ? m_dataType.precisionOrFirstBit : 0)
 		       << std::fixed << static_cast<float>(signedValue / (float) m_divisor);
 
 	return RESULT_OK;
@@ -742,18 +751,17 @@ result_t NumberDataField::writeSymbols(std::istringstream& input,
 	unsigned int value;
 
 	const char* str = input.str().c_str();
-	if (strcasecmp(str, NULL_VALUE) == 0)
-		// replacement value
-		value = m_dataType.replacement;
+	if (isIgnored() == true || strcasecmp(str, NULL_VALUE) == 0)
+		value = m_dataType.replacement; // replacement value
 	else if (str == NULL || *str == 0)
-		return RESULT_ERR_INVALID_ARG; // input too short
+		return RESULT_ERR_INVALID_ARG; // input too short//TODO LENGTH_SEPARATOR
 	else {
 		char* strEnd = NULL;
 		if (m_divisor <= 1) {
 			if ((m_dataType.flags & SIG) != 0) {
 				int signedValue = strtol(str, &strEnd, 10);
-				if (signedValue < 0 && m_dataType.numBits != 32)
-					value = (unsigned int) (signedValue + (1 << m_dataType.numBits));
+				if (signedValue < 0 && m_bitCount != 32)
+					value = (unsigned int) (signedValue + (1 << m_bitCount));
 				else
 					value = (unsigned int) signedValue;
 			}
@@ -771,8 +779,8 @@ result_t NumberDataField::writeSymbols(std::istringstream& input,
 			if ((m_dataType.flags & SIG) != 0) {
 				if (dvalue < -(1LL << (8 * m_length)) || dvalue >= (1LL << (8 * m_length)))
 					return RESULT_ERR_INVALID_ARG; // value out of range
-				if (dvalue < 0 && m_dataType.numBits != 32)
-					value = (unsigned int) (dvalue + (1 << m_dataType.numBits));
+				if (dvalue < 0 && m_bitCount != 32)
+					value = (unsigned int) (dvalue + (1 << m_bitCount));
 				else
 					value = (unsigned int) dvalue;
 			}
@@ -784,7 +792,7 @@ result_t NumberDataField::writeSymbols(std::istringstream& input,
 		}
 
 		if ((m_dataType.flags & SIG) != 0) { // signed value
-			if ((value & (1 << (m_dataType.numBits - 1))) != 0) { // negative signed value
+			if ((value & (1 << (m_bitCount - 1))) != 0) { // negative signed value
 				if (value < m_dataType.minValueOrLength)
 					return RESULT_ERR_INVALID_ARG; // value out of range
 			}
@@ -823,7 +831,7 @@ result_t ValueListDataField::derive(std::string name, std::string comment,
 	else
 		values = m_values;
 
-	fields.push_back(new ValueListDataField(name, comment, unit, m_dataType, partType, m_length, values));
+	fields.push_back(new ValueListDataField(name, comment, unit, m_dataType, partType, m_length, m_bitCount, values));
 
 	return RESULT_OK;
 }
@@ -854,14 +862,17 @@ result_t ValueListDataField::readSymbols(SymbolString& input,
 result_t ValueListDataField::writeSymbols(std::istringstream& input,
 		unsigned char baseOffset, SymbolString& output)
 {
+	if (isIgnored() == true)
+		return writeRawValue(m_dataType.replacement, baseOffset, output); // replacement value
+
 	const char* str = input.str().c_str();
 
 	for (std::map<unsigned int, std::string>::iterator it = m_values.begin(); it != m_values.end(); it++)
 		if (it->second.compare(str) == 0)
 			return writeRawValue(it->first, baseOffset, output);
 
-	if (strcasecmp(str, NULL_VALUE) == 0) // replacement value
-		return writeRawValue(m_dataType.replacement, baseOffset, output);
+	if (strcasecmp(str, NULL_VALUE) == 0)
+		return writeRawValue(m_dataType.replacement, baseOffset, output); // replacement value
 
 	return RESULT_ERR_INVALID_ARG; // value assignment not found
 }
@@ -878,15 +889,17 @@ unsigned char DataFieldSet::getLength(PartType partType)
 {
 	unsigned char length = 0;
 
-	bool previousFullByteOffset[] = { true, true, true };
+	bool previousFullByteOffset[] = { true, true, true, true };
+
 	for (std::vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
 		SingleDataField* field = *it;
 		if (field->getPartType() == partType) {
-			length += field->getLength(partType);
-			if (previousFullByteOffset[partType] == false) {
+			if (previousFullByteOffset[partType] == false && field->hasFullByteOffset(false) == false)
 				length--;
-			}
-			previousFullByteOffset[partType] = field->hasFullByteOffset();
+
+			length += field->getLength(partType);
+
+			previousFullByteOffset[partType] = field->hasFullByteOffset(true);
 		}
 	}
 
@@ -918,29 +931,38 @@ result_t DataFieldSet::read(SymbolString& masterData, unsigned char masterOffset
 		output << m_name << "={ ";
 
 	bool first = true;
-	unsigned char offsets[] = { 0, masterOffset, slaveOffset };
-	bool previousFullByteOffset[] = { true, true, true };
+	unsigned char offsets[4];
+	memset(offsets, 0, sizeof(offsets));
+	offsets[pt_masterData] = masterOffset;
+	offsets[pt_slaveData] = slaveOffset;
+	bool previousFullByteOffset[] = { true, true, true, true };
 	for (std::vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
-		if (first)
-			first = false;
-		else
-			output << separator;
-
 		SingleDataField* field = *it;
+		bool ignored = field->isIgnored();
 		PartType partType = field->getPartType();
-		if (previousFullByteOffset[partType] == false) {
-			offsets[partType]--;
+
+		if (ignored == false) {
+			if (first)
+				first = false;
+			else
+				output << separator;
 		}
+		if (partType == pt_masterDataID)
+			partType = pt_masterData;
+		if (previousFullByteOffset[partType] == false && field->hasFullByteOffset(false) == false)
+			offsets[partType]--;
+
 		result_t result = field->read(masterData, offsets[pt_masterData], slaveData, offsets[pt_slaveData], output, verbose, separator);
 
 		if (result != RESULT_OK)
 			return result;
 
 		offsets[partType] += field->getLength(partType);
-		previousFullByteOffset[partType] = field->hasFullByteOffset();
+
+		previousFullByteOffset[partType] = field->hasFullByteOffset(true);
 	}
 
-	if (verbose) {
+	if (verbose == true) {
 		if (m_comment.length() > 0)
 			output << " [" << m_comment << "]";
 		output << "}";
@@ -956,18 +978,28 @@ result_t DataFieldSet::write(std::istringstream& input,
 {
 	std::string token;
 
-	unsigned char offsets[] = { 0, masterOffset, slaveOffset };
-	bool previousFullByteOffset[] = { true, true, true };
+	unsigned char offsets[4];
+	memset(offsets, 0, sizeof(offsets));
+	offsets[pt_masterData] = masterOffset;
+	offsets[pt_slaveData] = slaveOffset;
+	bool previousFullByteOffset[] = { true, true, true, true };
 	for (std::vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
 		SingleDataField* field = *it;
+		bool ignored = field->isIgnored();
 		PartType partType = field->getPartType();
-		if (previousFullByteOffset[partType] == false) {
+
+		if (partType == pt_masterDataID)
+			partType = pt_masterData;
+		if (previousFullByteOffset[partType] == false && field->hasFullByteOffset(false) == false)
 			offsets[partType]--;
-		}
+
 		result_t result;
 		if (m_fields.size() > 1) {
-			if (std::getline(input, token, separator) == 0)
+			if (ignored == true)
+				token.clear();
+			else if (std::getline(input, token, separator) == 0)
 				return RESULT_ERR_INVALID_ARG; // incomplete
+
 			std::istringstream single(token);
 			result = (*it)->write(single, masterData, offsets[pt_masterData], slaveData, offsets[pt_slaveData], separator);
 		}
@@ -978,7 +1010,7 @@ result_t DataFieldSet::write(std::istringstream& input,
 			return result;
 
 		offsets[partType] += field->getLength(partType);
-		previousFullByteOffset[partType] = field->hasFullByteOffset();
+		previousFullByteOffset[partType] = field->hasFullByteOffset(true);
 	}
 
 	return RESULT_OK;

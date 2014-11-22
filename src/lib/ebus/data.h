@@ -28,9 +28,10 @@
 
 /** the message part in which a data field is stored. */
 enum PartType {
-	pt_any,        // stored in any data (master or slave)
-	pt_masterData, // stored in master data
-	pt_slaveData,  // stored in slave data
+	pt_any,          // stored in any data (master or slave)
+	pt_masterData,   // stored in master data
+	pt_masterDataID, // stored in master data and also used as message ID part
+	pt_slaveData,    // stored in slave data
 	};
 
 /** the available base data types. */
@@ -49,11 +50,12 @@ const unsigned int REV = 0x04; // reverted binary representation (most significa
 const unsigned int SIG = 0x08; // signed value
 const unsigned int LST = 0x10; // value list is possible (without applied divisor)
 const unsigned int DAY = 0x20; // forced value list defaulting to week days
+const unsigned int IGN = 0x40; // ignore value during read and write
 
 /** the structure for defining field types with their properties. */
 typedef struct {
 	const char* name;                        // field identifier
-	const unsigned int numBits;              // number of bits (maximum length if @a ADJ flag is set, must be multiple of 8 with flag @a BCD)
+	const unsigned int maxBits;              // number of bits (maximum length if @a ADJ flag is set, must be multiple of 8 with flag @a BCD)
 	const BaseType type;                     // base data type
 	const unsigned int flags;                // flags (e.g. @a BCD)
 	const unsigned int replacement;          // replacement value (fill-up value for @a bt_str / @a bt_hexstr, no replacement if equal to @a minValueOrLength for @a bt_num)
@@ -209,6 +211,11 @@ public:
 	 */
 	std::string getUnit() const { return m_unit; }
 	/**
+	 * @brief Get whether this field is ignored.
+	 * @return whether this field is ignored.
+	 */
+	bool isIgnored() const { return (m_dataType.flags & IGN) != 0; }
+	/**
 	 * @brief Get the message part in which the field is stored.
 	 * @return the message part in which the field is stored.
 	 */
@@ -218,10 +225,11 @@ public:
 	// re-use same position as previous field as not all bits of fully consumed yet
 	/**
 	 * @brief Get whether this field uses a full byte offset.
+	 * @param after @p true to check after consuming the bits, false to check before.
 	 * @return true if this field uses a full byte offset, false if this field
 	 * only consumes a part of a byte and a subsequent field may re-use the same offset.
 	 */
-	bool hasFullByteOffset();
+	virtual bool hasFullByteOffset(bool after) { return true; }
 	/**
 	 * @brief Reads the value from the master or slave @a SymbolString.
 	 * @param masterData the unescaped master data @a SymbolString for reading binary data.
@@ -337,17 +345,20 @@ public:
 	 * @param dataType the data type definition.
 	 * @param partType the message part in which the field is stored.
 	 * @param length the number of symbols in the message part in which the field is stored.
+	 * @param bitCount the number of bits in the binary value.
 	 * @param bitOffset the offset to the first bit in the binary value.
 	 */
 	NumericDataField(const std::string name, const std::string comment,
 			const std::string unit, const dataType_t dataType, const PartType partType,
-			const unsigned char length, const unsigned char bitOffset)
+			const unsigned char length, const unsigned char bitCount, const unsigned char bitOffset)
 		: SingleDataField(name, comment, unit, dataType, partType, length),
-  		  m_bitOffset(bitOffset) {}
+		  m_bitCount(bitCount), m_bitOffset(bitOffset) {}
 	/**
 	 * @brief Destructor.
 	 */
 	virtual ~NumericDataField() {}
+	// @copydoc
+	virtual bool hasFullByteOffset(bool after);
 
 protected:
 
@@ -368,8 +379,12 @@ protected:
 	 */
 	result_t writeRawValue(unsigned int value, const unsigned char offset, SymbolString& output);
 
+	/** the number of bits in the binary value. */
+	const unsigned char m_bitCount;
+
 	/** the offset to the first bit in the binary value. */
 	const unsigned char m_bitOffset;
+
 
 };
 
@@ -393,9 +408,10 @@ public:
 	 */
 	NumberDataField(const std::string name, const std::string comment,
 			const std::string unit, const dataType_t dataType, const PartType partType,
-			const unsigned char length, const unsigned int divisor)
-		: NumericDataField(name, comment, unit, dataType, partType, length,
-				(dataType.numBits%8) != 0 ? dataType.precisionOrFirstBit : 0),
+			const unsigned char length, const unsigned char bitCount,
+			const unsigned int divisor)
+		: NumericDataField(name, comment, unit, dataType, partType, length, bitCount,
+				(dataType.maxBits < 8) ? dataType.precisionOrFirstBit : 0),
 		m_divisor(divisor) {}
 	/**
 	 * @brief Destructor.
@@ -439,9 +455,10 @@ public:
 	 */
 	ValueListDataField(const std::string name, const std::string comment,
 			const std::string unit, const dataType_t dataType, const PartType partType,
-			const unsigned char length, const std::map<unsigned int, std::string> values)
-		: NumericDataField(name, comment, unit, dataType, partType, length,
-				(dataType.numBits%8) != 0 ? dataType.precisionOrFirstBit : 0),
+			const unsigned char length, const unsigned char bitCount,
+			const std::map<unsigned int, std::string> values)
+		: NumericDataField(name, comment, unit, dataType, partType, length, bitCount,
+				(dataType.maxBits < 8) ? dataType.precisionOrFirstBit : 0),
 		m_values(values) {}
 	/**
 	 * @brief Destructor.
