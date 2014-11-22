@@ -22,6 +22,8 @@
 #include <iostream>
 #include <iomanip>
 
+using namespace std;
+
 /**
  * @brief CRC8 lookup table for the polynom 0x9b = x^8 + x^7 + x^4 + x^3 + x^1 + 1.
  */
@@ -46,7 +48,7 @@ static const unsigned char CRC_LOOKUP_TABLE[] =
 };
 
 
-SymbolString::SymbolString(const std::string str)
+SymbolString::SymbolString(const string str)
 	: m_unescapeState(0), m_crc(0)
 {
 	// parse + escape
@@ -58,7 +60,7 @@ SymbolString::SymbolString(const std::string str)
 	push_back(m_crc, false, false);
 }
 
-SymbolString::SymbolString(const std::string str, bool isEscaped)
+SymbolString::SymbolString(const string str, bool isEscaped)
 	: m_unescapeState(1), m_crc(0)
 {
 	// parse + optionally unescape
@@ -68,9 +70,9 @@ SymbolString::SymbolString(const std::string str, bool isEscaped)
 	}
 }
 
-const std::string SymbolString::getDataStr(const bool unescape)
+const string SymbolString::getDataStr(const bool unescape)
 {
-	std::stringstream sstr;
+	stringstream sstr;
 	bool previousEscape = false;
 
 	for (size_t i = 0; i < m_data.size(); i++) {
@@ -89,8 +91,8 @@ const std::string SymbolString::getDataStr(const bool unescape)
 			previousEscape = true; // escape sequence not yet finished
 		}
 		else {
-			sstr << std::nouppercase << std::setw(2) << std::hex
-				 << std::setfill('0') << static_cast<unsigned>(value);
+			sstr << nouppercase << setw(2) << hex
+					<< setfill('0') << static_cast<unsigned>(value);
 		}
 	}
 

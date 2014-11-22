@@ -25,6 +25,8 @@
 #include <sstream>
 #include <queue>
 
+using namespace std;
+
 static const unsigned char ESC = 0xA9;       // escape symbol, either followed by 0x00 for the value 0xA9, or 0x01 for the value 0xAA
 static const unsigned char SYN = 0xAA;       // synchronization symbol
 static const unsigned char ACK = 0x00;       // positive acknowledge
@@ -48,19 +50,19 @@ public:
 	 * @brief Creates a new escaped instance from an unescaped hex string and adds the calculated CRC.
 	 * @param str the unescaped hex string.
 	 */
-	SymbolString(const std::string str);
+	SymbolString(const string str);
 	/**
 	 * @brief Creates a new unescaped instance from a hex string.
 	 * @param isEscaped whether the hex string is escaped and shall be unescaped.
 	 * @param str the hex string.
 	 */
-	SymbolString(const std::string str, const bool isEscaped);
+	SymbolString(const string str, const bool isEscaped);
 	/**
 	 * @brief Returns the symbols as hex string.
 	 * @param unescape whether to unescape an escaped instance.
 	 * @return the symbols as hex string.
 	 */
-	const std::string getDataStr(const bool unescape=true);
+	const string getDataStr(const bool unescape=true);
 	/**
 	 * @brief Returns a reference to the symbol at the specified index.
 	 * @param index the index of the symbol to return.
@@ -114,7 +116,7 @@ private:
 	/**
 	 * @brief the string of bus symbols.
 	 */
-	std::vector<unsigned char> m_data;
+	vector<unsigned char> m_data;
 	/**
 	 * @brief 0 if the symbols in @a m_data are escaped,
 	 * 1 if the symbols in @a m_data are unescaped and the last symbol passed to @a push_back was a normal symbol,

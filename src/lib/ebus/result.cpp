@@ -18,8 +18,12 @@
  */
 
 #include "result.h"
+#include <iostream>
+
+using namespace std;
 
 const char* getResultCode(result_t resultCode) {
+cout << "DEBUG error code: " << static_cast<signed>(resultCode) << endl;
 	switch (resultCode) {
 		case RESULT_ERR_SEND: return "ERR_SEND: send error";
 		case RESULT_ERR_EXTRA_DATA: return "ERR_EXTRA_DATA: received bytes > sent bytes";
