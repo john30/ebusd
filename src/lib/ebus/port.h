@@ -27,8 +27,8 @@
 
 /** available device types. */
 enum DeviceType {
-	dt_serial,
-	dt_network,
+	dt_serial,  // serial device
+	dt_network  // network device
 };
 
 /** max bytes write to bus. */
@@ -83,7 +83,7 @@ public:
 
 	/**
 	 * @brief recvBytes read bytes from opened file descriptor.
-	 * @param timeoutmax time for new input data [usec].
+	 * @param timeout time for new input data [usec].
 	 * @param maxCount max size of receive buffer.
 	 * @return number of read bytes or -1 if an error has occured.
 	 */

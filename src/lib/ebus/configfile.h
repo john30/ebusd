@@ -26,7 +26,7 @@
 
 /** available file endings / types. */
 enum FileType {
-	ft_csv
+	ft_csv  // CSV
 };
 
 /**
@@ -51,7 +51,7 @@ public:
 };
 
 /**
- * @brief class for CSV config files.
+ * @brief derived class for CSV config files.
  */
 class ConfigFileCSV : public ConfigFile
 {
@@ -72,7 +72,7 @@ public:
 };
 
 /**
- * @brief class for class device.
+ * @brief class to parse configuration files and store into commands instance.
  */
 class ConfigCommands
 {
@@ -81,7 +81,7 @@ public:
 	/**
 	 * @brief set file type and add recursive files from given path.
 	 * @param path to configuration files.
-	 * @param filetype to parse.
+	 * @param type to parse.
 	 */
 	ConfigCommands(const std::string path, const FileType type);
 
@@ -92,7 +92,7 @@ public:
 
 	/**
 	 * @brief setter for file type.
-	 * @param filetype of files.
+	 * @param type of files.
 	 */
 	void setType(const FileType type);
 

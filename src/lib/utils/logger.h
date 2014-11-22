@@ -35,16 +35,16 @@ enum AreasType {
 	bus=4,           // ebus
 	cyc=8,           // cycle
 	all=15,          // type for all subsystems
-	Size_of_Areas=4, // number of possible areas
+	Size_of_Areas=4  // number of possible areas
 };
 
 /** available logging levels */
 enum LevelType {
-	error=0,       //
-	event,         //
-	trace,         //
-	debug,         //
-	Size_of_Level, // number of possible levels
+	error=0,       // silent run, only errors will be printed
+	event,         // only interesting message for normal use
+	trace,         // most of the information for normal use
+	debug,         // print internal states too
+	Size_of_Level  // number of possible levels
 };
 
 /** global function to get calculate logging areas */
@@ -260,14 +260,14 @@ public:
 
 	/**
 	 * @brief adds a logging sink and returns the reference to logger.
-	 * @param pointer of logging sink.
+	 * @param sink the used logging sink.
 	 * @return the reference to logger.
 	 */
 	Logger& operator+=(LogSink* sink);
 
 	/**
 	 * @brief removes a logging sink and returns the reference to logger.
-	 * @param pointer of logging sink.
+	 * @param sink the used logging sink.
 	 * @return the reference to logger.
 	 */
 	Logger& operator-=(const LogSink* sink);
