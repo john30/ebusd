@@ -42,22 +42,22 @@ void verify(bool expectFailMatch, std::string type, std::string input,
 int main()
 {
 	std::string checks[][5] = {
-		//name;[pos];type[;[divisor|values][;[unit][;[comment]]]], decoded value, master, slave, flags
-		{"x;1-10;str",  "Hallo, Du!",                    "10fe07000a48616c6c6f2c20447521", "00", ""},
-		{"x;1-10;str",  "Hallo, Du ",                    "10fe07000a48616c6c6f2c20447520", "00", ""},
-		{"x;1-10;str",  "          ",                    "10fe07000a20202020202020202020", "00", ""},
-		{"x;1-11;str",  "",                              "10fe07000a20202020202020202020", "00", "rW"},
+		//name;[len];type[;[divisor|values][;[unit][;[comment]]]], decoded value, master, slave, flags
+		{"x;10;str",  "Hallo, Du!",                    "10fe07000a48616c6c6f2c20447521", "00", ""},
+		{"x;10;str",  "Hallo, Du ",                    "10fe07000a48616c6c6f2c20447520", "00", ""},
+		{"x;10;str",  "          ",                    "10fe07000a20202020202020202020", "00", ""},
+		{"x;11;str",  "",                              "10fe07000a20202020202020202020", "00", "rW"},
 		{"x;;hex",      "20",                            "10fe07000120",                   "00", ""},
-		{"x;1-10;hex",  "48 61 6c 6c 6f 2c 20 44 75 21", "10fe07000a48616c6c6f2c20447521", "00", ""},
-		{"x;1-11;hex",  "",                              "10fe07000a48616c6c6f2c20447521", "00", "rW"},
+		{"x;10;hex",  "48 61 6c 6c 6f 2c 20 44 75 21", "10fe07000a48616c6c6f2c20447521", "00", ""},
+		{"x;11;hex",  "",                              "10fe07000a48616c6c6f2c20447521", "00", "rW"},
 		{"x;;bda",   "26.10.2014","10fe07000426100014", "00", ""},
 		{"x;;bda",   "01.01.2000","10fe07000401010000", "00", ""},
 		{"x;;bda",   "31.12.2099","10fe07000431120099", "00", ""},
 		{"x;;bda",   "",          "10fe07000432100014", "00", "rw"},
-		{"x;1-3;bda","26.10.2014","10fe070003261014",   "00", ""},
-		{"x;1-3;bda","01.01.2000","10fe070003010100",   "00", ""},
-		{"x;1-3;bda","31.12.2099","10fe070003311299",   "00", ""},
-		{"x;1-3;bda","",          "10fe070003321299",   "00", "rw"},
+		{"x;3;bda","26.10.2014","10fe070003261014",   "00", ""},
+		{"x;3;bda","01.01.2000","10fe070003010100",   "00", ""},
+		{"x;3;bda","31.12.2099","10fe070003311299",   "00", ""},
+		{"x;3;bda","",          "10fe070003321299",   "00", "rw"},
 		{"x;;bti",   "21:04:58",  "10fe070003580421",   "00", ""},
 		{"x;;bti",   "00:00:00",  "10fe070003000000",   "00", ""},
 		{"x;;bti",   "23:59:59",  "10fe070003595923",   "00", ""},
@@ -84,15 +84,11 @@ int main()
 		{"x;;bcd", "99",    "10feffff0199", "00", ""},
 		{"x;;bcd", "-",     "10feffff01ff", "00", ""},
 		{"x;;bcd", "",      "10feffff019a", "00", "rw"},
-		{"x;16;uch", "15",  "10feffff11000102030405060708090a0b0c0d0e0f10", "00", "W"},
+		{"x;16;str", "0123456789ABCDEF",  "10feffff1130313233343536373839414243444546", "00", ""},
 		{"x;17;uch", "",    "10feffff00", "00", "c"},
-		{"x;s3;uch", "2",   "1025ffff0310111213", "0300010203", "W"},
-		{"x;s3;uch", "2",   "1025ffff00", "03000002", ""},
-		{"x;3;uch", "2",    "1025ffff03010101", "03000002", "W"},
-		{"x;3;uch", "1",    "1025ffff03010101", "03000002", "sW"},
-		{"x;1;uch", "2",    "1025ffff00", "0102", ""},
-		{"x;1;uch", "1",    "1025ffff0101", "00", "s"},
-		{"x;s3;uch;;;;y;m2;uch", "2;3","1025ffff020003", "03000002", ""},
+		{"x;s;uch", "0",   "1025ffff0310111213", "0300010203", "W"},
+		{"x;s;uch", "0",   "1025ffff00", "0100", ""},
+		{"x;s;uch;;;;y;m;uch", "2;3","1025ffff0103", "0102", ""},
 		{"x;;uch", "38",    "10feffff0126", "00", ""},
 		{"x;;uch", "0",     "10feffff0100", "00", ""},
 		{"x;;uch", "254",   "10feffff01fe", "00", ""},
@@ -161,10 +157,9 @@ int main()
 		{"x;;b34;0=off,1=on","on", "10feffff0108", "00", ""},
 		{"x;;b34;0=off,1=on","off","10feffff0100", "00", ""},
 		{"x;;uch;1=test,2=high,3=off,4=on","on","10feffff0104", "00", ""},
-		{"x;s3;uch","3","1050ffff00", "03000003", ""},
-		{"x;s3;uch","3","1050ffff00", "020000", "rW"},
+		{"x;s;uch","3","1050ffff00", "0103", ""},
 		{"x;;d2b;;°C;Aussentemperatur","x=18.004 °C [Aussentemperatur]","10fe0700090112", "00", "v"},
-		{"x;;bti;;;;y;;bda;;;;z;6;bdy", "21:04:58;26.10.2014;Sun","10fe07000758042126100614", "00", ""}, // combination
+		{"x;;bti;;;;y;;bda;;;;z;;bdy", "21:04:58;26.10.2014;Sun","10fe0700085804212610001406", "00", ""}, // combination
 		{"x;;bi3;;;;y;;bi5", "1;-",            "10feffff0108", "00", ""}, // bit combination
 		{"x;;bi3;;;;y;;bi5", "1;1",            "10feffff0128", "00", ""}, // bit combination
 		{"x;;bi3;;;;y;;bi5", "-;1",            "10feffff0120", "00", ""}, // bit combination
@@ -173,25 +168,10 @@ int main()
 		{"x;;bi3;;;;y;;bi5;;;;t;;uch", "-;-;9","10feffff020009", "00", "RW"}, // bit combination
 		{"temp;;d2b;;°C;Aussentemperatur","","", "", "t"}, // template with relative pos
 		{"x;;temp","18.004","10fe0700020112", "00", ""}, // reference to template
-		{"tempoff;2;d2b;;°C;Aussentemperatur","","", "", "t"},// template with offset pos
-		{"x;;tempoff","18.004","10fe070002ff0112", "00", "W"}, // reference to template
 		{"relrel;;d2b;;;;y;;d1c","","", "", "t"},   // template struct with relative pos
-		{"x;2;relrel","18.004;9.5","10fe070004ff011213", "00", "W"}, // reference to template struct
-		{"reloff;;d2b;;;;y;1;d1c","","", "", "t"},  // template struct with relative+offset pos
-		{"x;2;reloff","18.004;0.5","10fe070003130112", "00", "W"}, // reference to template struct
-		{"offrel;2;d2b;;;;y;;d1c","","", "", "t"},  // template struct with offset+relative pos
-		{"x;2;offrel","18.004;9.5","10fe070005fffe011213", "00", "W"}, // reference to template struct
-		{"offoff;2;d2b;;;;y;1;d1c","","", "", "t"}, // template struct with offset pos
-		{"x;2;offoff","18.004;9.5","10fe070004ff130112", "00", "W"}, // reference to template struct
+		{"x;;relrel","18.004;9.5","10fe070003011213", "00", ""}, // reference to template struct
 		{"trelrel;;temp,temp","","", "", "t"},   // template struct with relative pos and ref to templates
 		{"x;;trelrel","18.004;19.008","10fe07000401120213", "00", ""}, // reference to template struct
-		{"x;2;trelrel","18.004;19.008","10fe070005ff01120213", "00", "W"}, // reference to template struct
-		{"treloff;;temp,tempoff","","", "", "t"},  // template struct with relative+offset pos
-		{"x;2;treloff","18.004;19.008","10fe070006ff0112fe0213", "00", "W"}, // reference to template struct
-		{"toffrel;1;tempoff,temp","","", "", "t"},  // template struct with offset+relative pos
-		{"x;2;toffrel","18.004;19.008","10fe070003fffe01120213", "00", "W"}, // reference to template struct
-		{"toffoff;1;tempoff,tempoff","","", "", "t"},  // template struct with offset pos
-		{"x;2;toffoff","18.004;19.008","10fe070003fffe0112fd0213", "00", "W"}, // reference to template struct
 	};
 	std::map<std::string, DataField*> templates;
 	DataField* fields = NULL;
@@ -261,7 +241,7 @@ int main()
 		std::ostringstream output;
 		SymbolString writeMstr = SymbolString(mstr.getDataStr().substr(0, 10), false);
 		SymbolString writeSstr = SymbolString(sstr.getDataStr().substr(0, 2), false);
-		result = fields->read(mstr, sstr, output, verbose);
+		result = fields->read(mstr, 0, sstr, 0, output, verbose);
 		if (failedRead == true)
 			if (result == RESULT_OK)
 				std::cout << "  failed read " << fields->getName() << " >"
@@ -280,7 +260,7 @@ int main()
 
 		if (verbose == false) {
 			std::istringstream input(expectStr);
-			result = fields->write(input, writeMstr, writeSstr);
+			result = fields->write(input, writeMstr, 0, writeSstr, 0);
 			if (failedWrite == true) {
 				if (result == RESULT_OK)
 					std::cout << "  failed write " << fields->getName() << " >"
