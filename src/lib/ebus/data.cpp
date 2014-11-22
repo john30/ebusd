@@ -24,7 +24,7 @@
 #include <iomanip>
 #include <vector>
 #include <cstring>
-#include <typeinfo>
+//include <typeinfo>
 #include <math.h>
 
 /** the known data field types. */
@@ -32,15 +32,15 @@ static const dataType_t dataTypes[] = {
 	{"IGN",16*8,bt_str, IGN|ADJ,          0,          1,         16,    0, 0}, // >= 1 byte ignored data
 	{"STR",16*8,bt_str,     ADJ,        ' ',          1,         16,    0, 0}, // >= 1 byte character string filled up with space
 	{"HEX",16*8,bt_hexstr,  ADJ,          0,          2,         47,    0, 0}, // >= 1 byte hex digit string, usually separated by space, e.g. 0a 1b 2c 3d
-	{"BDA", 32, bt_dat,     BCD,          0,         10,         10,    0, 0}, // date with weekday in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is weekday)
+	{"BDA", 32, bt_dat,     BCD,          0,         10,         10,    0, 0}, // date with weekday in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is weekday Mon=0x00 - Sun=0x06)
 	{"BDA", 24, bt_dat,     BCD,          0,         10,         10,    0, 0}, // date in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99)
-	{"HDA", 32, bt_dat,       0,          0,         10,         10,    0, 0}, // date with weekday, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is weekday) // TODO remove duplicate of BDA
+	{"HDA", 32, bt_dat,       0,          0,         10,         10,    0, 0}, // date with weekday, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is weekday Mon=0x01 - Sun=0x07))
 	{"HDA", 24, bt_dat,       0,          0,         10,         10,    0, 0}, // date, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99) // TODO remove duplicate of BDA
 	{"BTI", 24, bt_tim, BCD|REV,          0,          8,          8,    0, 0}, // time in BCD, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x59,0x59,0x23)
 	{"HTM", 16, bt_tim,       0,          0,          5,          5,    0, 0}, // time as hh:mm, 00:00 - 23:59 (0x00,0x00 - 0x17,0x3b)
 	{"TTM",  8, bt_tim,       0,       0x90,          5,          5,    0, 0}, // truncated time (only multiple of 10 minutes), 00:00 - 24:00 (minutes div 10 + hour * 6 as integer)
-	{"BDY",  8, bt_num, DAY|LST,       0x07,          0,          6,    1, 0}, // weekday, "Mon" - "Sun"
-	{"HDY",  8, bt_num, DAY|LST,       0x00,          1,          7,    1, 0}, // weekday, "Mon" - "Sun"
+	{"BDY",  8, bt_num, DAY|LST,       0x07,          0,          6,    1, 0}, // weekday, "Mon" - "Sun" (0x00 - 0x06) [ebus type]
+	{"HDY",  8, bt_num, DAY|LST,       0x00,          1,          7,    1, 0}, // weekday, "Mon" - "Sun" (0x01 - 0x07) [Vaillant type]
 	{"BCD",  8, bt_num, BCD|LST,       0xff,          0,       0x99,    1, 0}, // unsigned decimal in BCD, 0 - 99
 	{"UCH",  8, bt_num,     LST,       0xff,          0,       0xfe,    1, 0}, // unsigned integer, 0 - 254
 	{"SCH",  8, bt_num,     SIG,       0x80,       0x81,       0x7f,    1, 0}, // signed integer, -127 - +127
@@ -69,6 +69,7 @@ static const char* dayNames[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"
 
 #define FIELD_SEPARATOR ';'
 #define VALUE_SEPARATOR ','
+#define LENGTH_SEPARATOR ':'
 #define NULL_VALUE "-"
 #define MAX_POS 16
 
@@ -183,8 +184,7 @@ result_t DataField::create(std::vector<std::string>::iterator& it,
 			unit = "";
 		else {
 			unit = *it++;
-
-			if (unit.length() == 1 && unit[0] == '-')
+			if (strcasecmp(unit.c_str(), NULL_VALUE) == 0)
 				unit.clear();
 		}
 
@@ -192,11 +192,11 @@ result_t DataField::create(std::vector<std::string>::iterator& it,
 			comment = "";
 		else {
 			comment = *it++;
-			if (comment.length() == 1 && comment[0] == '-')
+			if (strcasecmp(comment.c_str(), NULL_VALUE) == 0)
 				comment.clear();
 		}
 
-		size_t pos = typeStr.find(':');
+		size_t pos = typeStr.find(LENGTH_SEPARATOR);
 		unsigned char length;
 		if (pos == std::string::npos) {
 			length = 0;
@@ -218,8 +218,10 @@ result_t DataField::create(std::vector<std::string>::iterator& it,
 					if (result != RESULT_OK)
 						break;
 				}
-				if (found == true || result != RESULT_OK)
-					break; // TODO check for found == true
+				if (result != RESULT_OK)
+					break;
+				if (found == true)
+					continue; // go to next definition
 			}
 		}
 		else {
@@ -427,7 +429,7 @@ result_t StringDataField::readSymbols(SymbolString& input,
 		if (m_length == 4 && i == 2 && m_dataType.type == bt_dat)
 			continue; // skip weekday in between
 		ch = input[baseOffset + offset];
-		if ((m_dataType.flags & BCD) != 0) {
+		if ((m_dataType.flags & BCD) != 0 || m_dataType.type == bt_dat || (m_dataType.type == bt_tim && m_length > 2)) {
 			if ((ch & 0xf0) > 0x90 || (ch & 0x0f) > 0x09)
 				return RESULT_ERR_INVALID_ARG; // invalid BCD
 			ch = (ch >> 4) * 10 + (ch & 0x0f);
@@ -481,7 +483,7 @@ result_t StringDataField::writeSymbols(std::istringstream& input,
 {
 	size_t start = 0, count = m_length;
 	int incr = 1;
-	unsigned long int value = 0, last = 0;
+	unsigned long int value = 0, last = 0, lastLast = 0;
 	std::string token;
 
 	if ((m_dataType.flags & REV) != 0) { // reverted binary representation (most significant byte first)
@@ -524,21 +526,41 @@ result_t StringDataField::writeSymbols(std::istringstream& input,
 				continue; // skip weekday in between
 			if (input.eof() == true || std::getline(input, token, '.') == 0)
 				return RESULT_ERR_INVALID_ARG; // incomplete
-			value = parseInt(token.c_str(), 10, 0, 9999, result);
+			value = parseInt(token.c_str(), 10, 0, 2099, result);
 			if (result != RESULT_OK)
 				return result; // invalid date part
-			if (i + 1 == m_length && value >= 2000)
-				value -= 2000;
-			else if (value < 1 || (i == 0 && value > 31) || (i == 1 && value > 12))
+			if (i + 1 == m_length) {
+				if (m_length == 4) {
+					// calculate local week day
+					struct tm t;
+					t.tm_min = t.tm_sec = 0;
+					t.tm_hour = 12;
+					t.tm_mday = lastLast;
+					t.tm_mon = last-1; // January=0
+					t.tm_year = (value < 100 ? value + 2000 : value) - 1900;
+					t.tm_isdst = 0; // automatic
+					if (mktime(&t) < 0)
+						return RESULT_ERR_INVALID_ARG; // invalid date
+					unsigned char daysSinceSunday = (unsigned char)t.tm_wday; // Sun=0
+					if ((m_dataType.flags & BCD) != 0)
+						output[baseOffset + offset - incr] = (6+daysSinceSunday) % 7; // Sun=0x06
+					else
+						output[baseOffset + offset - incr] = (daysSinceSunday==0 ? 7 : daysSinceSunday); // Sun=0x07
+				}
+				if (value >= 2000)
+					value -= 2000;
+				else if (value > 99)
+					return RESULT_ERR_INVALID_ARG; // invalid year
+			} else if (value < 1 || (i == 0 && value > 31) || (i == 1 && value > 12))
 				return RESULT_ERR_INVALID_ARG; // invalid date part
 			break;
 		case bt_tim:
-			if (input.eof() == true || std::getline(input, token, ':') == 0)
+			if (input.eof() == true || std::getline(input, token, LENGTH_SEPARATOR) == 0)
 				return RESULT_ERR_INVALID_ARG; // incomplete
 			value = parseInt(token.c_str(), 10, 0, 59, result);
 			if (result != RESULT_OK)
 				return result; // invalid time part
-			if ((i == 0 && value > 24) || (i > 0 && ( last == 24 && value > 0) ))
+			if ((i == 0 && value > 24) || (i > 0 && (last == 24 && value > 0) ))
 				return RESULT_ERR_INVALID_ARG; // invalid time part
 			if (m_length == 1) { // truncated time
 				if (i == 0) {
@@ -564,15 +586,16 @@ result_t StringDataField::writeSymbols(std::istringstream& input,
 			}
 			break;
 		}
-		if ((m_dataType.flags & BCD) != 0) {
+		lastLast = last;
+		last = value;
+		if ((m_dataType.flags & BCD) != 0 || m_dataType.type == bt_dat || (m_dataType.type == bt_tim && m_length > 2)) {
 			if (value > 99)
 				return RESULT_ERR_INVALID_ARG; // invalid BCD
-			value = (value / 10) << 4 | (value % 10);
+			value = ((value / 10) << 4) | (value % 10);
 		}
 		if (value > 0xff)
 			return RESULT_ERR_INVALID_ARG; // value out of range
 		output[baseOffset + offset] = (unsigned char)value;
-		last = value;
 	}
 
 	if (i < m_length)
@@ -754,7 +777,7 @@ result_t NumberDataField::writeSymbols(std::istringstream& input,
 	if (isIgnored() == true || strcasecmp(str, NULL_VALUE) == 0)
 		value = m_dataType.replacement; // replacement value
 	else if (str == NULL || *str == 0)
-		return RESULT_ERR_INVALID_ARG; // input too short//TODO LENGTH_SEPARATOR
+		return RESULT_ERR_INVALID_ARG; // input too short
 	else {
 		char* strEnd = NULL;
 		if (m_divisor <= 1) {
