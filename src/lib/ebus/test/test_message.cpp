@@ -33,10 +33,35 @@ void verify(bool expectFailMatch, std::string type, std::string input,
 			          << std::endl;
 	}
 	else if (match == true)
-		std::cout << "  " << type << " >" << input << "< OK" << std::endl;
+		std::cout << "  " << type << " match >" << input << "< OK" << std::endl;
 	else
-		std::cout << "  " << type << " >" << input << "< error: got >" << gotStr
+		std::cout << "  " << type << " match >" << input << "< error: got >" << gotStr
 		          << "<, expected >" << expectStr << "<" << std::endl;
+}
+
+void printErrorPos(std::vector<std::string>::iterator it, const std::vector<std::string>::iterator end, std::vector<std::string>::iterator pos)
+{
+	std::cout << "Errroneous item is here:" << std::endl;
+	bool first = true;
+	int cnt = 0;
+	if (pos > it)
+		pos--;
+	while (it != end) {
+		if (first == true)
+			first = false;
+		else {
+			std::cout << ';';
+			if (it <= pos) {
+				cnt++;
+			}
+		}
+		if (it < pos) {
+			cnt += (*it).length();
+		}
+		std::cout << (*it++);
+	}
+	std::cout << std::endl;
+	std::cout << std::setw(cnt) << " " << std::setw(0) << "^" << std::endl;
 }
 
 int main()
@@ -45,19 +70,21 @@ int main()
 	// field=   name;[pos];type[;[divisor|values][;[unit][;[comment]]]]
 	std::string checks[][5] = {
 		// "message", "flags"
-		{";;first;;;fe;0700;x;;bda", "26.10.2014", "10fe07000426100014", "00", ""},
-		{";;first;;;15;b509;id;x;;bda", "26.10.2014", "10fe07000426100014", "00", ""},
+		{";;first;;;fe;0700;x;;bda", "26.10.2014", "fffe0700042610001451", "00", ""},
+		{";;first;;;15;b5090400;date;1;bda", "26.10.2014", "ff15b50904040026100014cc", "00", ""},
 	};
 	std::map<std::string, DataField*> templates;
 	Message* message = NULL;
 	for (size_t i = 0; i < sizeof(checks) / sizeof(checks[0]); i++) {
 		std::string check[5] = checks[i];
 		std::istringstream isstr(check[0]);
-		std::string expectStr = check[1];
+		std::string inputStr = check[1];
 		SymbolString mstr = SymbolString(check[2], false);
 		SymbolString sstr = SymbolString(check[3], false);
 		std::string flags = check[4];
 		bool failedCreate = flags.find('c') != std::string::npos;
+		bool failedPrepare = flags.find('p') != std::string::npos;
+		bool failedPrepareMatch = flags.find('P') != std::string::npos;
 		std::string item;
 		std::vector<std::string> entries;
 
@@ -81,6 +108,7 @@ int main()
 		if (result != RESULT_OK) {
 			std::cout << "\"" << check[0] << "\": create error: "
 					  << getResultCode(result) << std::endl;
+			printErrorPos(entries.begin(), entries.end(), it);
 			continue;
 		}
 		if (message == NULL) {
@@ -93,11 +121,26 @@ int main()
 		}
 		std::cout << "\"" << check[0] << "\": create OK" << std::endl;
 
-		std::istringstream input(expectStr);
-		result = message->prepare(SYN, mstr, input);
-		if (result != RESULT_OK)
-			std::cout << "  prepare >" << expectStr << "< error: "
+		std::istringstream input(inputStr);
+		SymbolString writeMstr = SymbolString();
+		result = message->prepare(0xff, writeMstr, input);
+		if (failedPrepare == true) {
+			if (result == RESULT_OK)
+				std::cout << "\"" << check[0] << "\": failed prepare error: unexpectedly succeeded" << std::endl;
+			else
+				std::cout << "\"" << check[0] << "\": failed prepare OK" << std::endl;
+			continue;
+		}
+
+		if (result != RESULT_OK) {
+			std::cout << "  prepare >" << inputStr << "< error: "
 					  << getResultCode(result) << std::endl;
+			continue;
+		}
+		std::cout << "  prepare >" << inputStr << "< OK" << std::endl;
+
+		bool match = writeMstr==mstr;
+		verify(failedPrepareMatch, "prepare", inputStr, match, mstr.getDataStr(), writeMstr.getDataStr());
 
 		delete message;
 		message = NULL;
