@@ -26,6 +26,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+using namespace std;
+
 Daemon& Daemon::Instance()
 {
 	static Daemon instance;
@@ -44,7 +46,7 @@ void Daemon::run(const char* pidfile)
 	pid = fork();
 
 	if (pid < 0) {
-		std::cerr << "daemon fork() failed." << std::endl;
+		cerr << "daemon fork() failed." << endl;
 		exit(EXIT_FAILURE);
 	}
 
@@ -62,14 +64,14 @@ void Daemon::run(const char* pidfile)
 	// Create a new SID for the child process and
 	// detach the process from the parent (normally a shell)
 	if (setsid() < 0) {
-		std::cerr << "daemon setsid() failed." << std::endl;
+		cerr << "daemon setsid() failed." << endl;
 		exit(EXIT_FAILURE);
 	}
 
 	// Change the current working directory. This prevents the current
 	// directory from being locked; hence not being able to remove it.
 	if (chdir("/tmp") < 0) {  //DAEMON_WORKDIR
-		std::cerr << "daemon chdir() failed." << std::endl;
+		cerr << "daemon chdir() failed." << endl;
 		exit(EXIT_FAILURE);
 	}
 
@@ -80,7 +82,7 @@ void Daemon::run(const char* pidfile)
 
 	// write pidfile and try to lock it
 	if (pidfile_open() == false) {
-		std::cerr << "can't open pidfile: %s" << m_pidfile << std::endl;
+		cerr << "can't open pidfile: %s" << m_pidfile << endl;
 		exit(EXIT_FAILURE);
 	}
 

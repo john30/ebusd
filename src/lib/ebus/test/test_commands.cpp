@@ -25,22 +25,24 @@
 #include <sstream>
 #include <vector>
 
+using namespace std;
+
 // will be part of cfg csv class
-void readCSV(std::istream& is, Commands& commands){
-	std::string line;
+void readCSV(istream& is, Commands& commands){
+	string line;
 
 	// read lines
-	while (std::getline(is, line) != 0) {
-		std::vector<std::string> row;
-		std::string column;
+	while (getline(is, line) != 0) {
+		vector<string> row;
+		string column;
 		int count;
 
 		count = 0;
 
-		std::istringstream stream(line);
+		istringstream stream(line);
 
 		// walk through columns
-		while (std::getline(stream, column, ';') != 0) {
+		while (getline(stream, column, ';') != 0) {
 			row.push_back(column);
 			count++;
 		}
@@ -52,29 +54,29 @@ void readCSV(std::istream& is, Commands& commands){
 int main()
 {
 	Commands* commands = ConfigCommands("test", ft_csv).getCommands();
-	std::cout << "Commands: " << commands->sizeCmdDB() << std::endl;
+	cout << "Commands: " << commands->sizeCmdDB() << endl;
 
-	//~ std::string data("g ci password pin1");
-	std::string data("s vwxmk DesiredTemp");
+	//~ string data("g ci password pin1");
+	string data("s vwxmk DesiredTemp");
 
 	int index = commands->findCommand(data);
-	std::cout << "found at index: " << index << std::endl;
+	cout << "found at index: " << index << endl;
 
 	// prepare data
-	std::string token;
-	std::istringstream stream(data);
-	std::vector<std::string> cmd;
+	string token;
+	istringstream stream(data);
+	vector<string> cmd;
 
 	// split stream
-	while (std::getline(stream, token, ' ') != 0)
+	while (getline(stream, token, ' ') != 0)
 		cmd.push_back(token);
 
 	//~ Command* command = new Command(index, (*commands)[index], "ff15b509030d2c0035000401000000cf00");
 	Command* command = new Command(index, (*commands)[index], "19.0");
 
-	//~ std::string result = command->calcResult(cmd);
-	std::string result = command->calcData();
-	std::cout << "result: " << result << std::endl;
+	//~ string result = command->calcResult(cmd);
+	string result = command->calcData();
+	cout << "result: " << result << endl;
 
 	delete command;
 

@@ -25,6 +25,8 @@
 #include <vector>
 #include <cstring>
 
+using namespace std;
+
 Commands::~Commands()
 {
 	for (mapCI_t iter = m_pollDB.begin(); iter != m_pollDB.end(); ++iter)
@@ -62,26 +64,26 @@ void Commands::printCommands() const
 
 	for (cmdDBCI_t i = m_cmdDB.begin(); i != m_cmdDB.end(); i++) {
 		printCommand(*i);
-		std::cout << std::endl;
+		cout << endl;
 	}
 }
 
-int Commands::findCommand(const std::string& data) const
+int Commands::findCommand(const string& data) const
 {
 	// no commands definend
 	if (m_cmdDB.size() == 0)
 		return -2;
 
 	// preapre string for searching command
-	std::string token;
-	std::istringstream isstr(data);
-	std::vector<std::string> cmd;
+	string token;
+	istringstream isstr(data);
+	vector<string> cmd;
 
 	// split stream
-	while (std::getline(isstr, token, ' ') != 0)
+	while (getline(isstr, token, ' ') != 0)
 		cmd.push_back(token);
 
-	std::size_t index;
+	size_t index;
 	cmdDBCI_t i = m_cmdDB.begin();
 
 	// walk through commands - GET
@@ -123,25 +125,25 @@ int Commands::findCommand(const std::string& data) const
 	return -1;
 }
 
-std::string Commands::getBusCommand(const int index) const
+string Commands::getBusCommand(const int index) const
 {
 	cmd_t command = m_cmdDB.at(index);
-	std::string cmd;
-	std::stringstream sstr;
+	string cmd;
+	stringstream sstr;
 
 	if (strcasecmp(command[0].c_str(), "C") == 0)
 		cmd += command[4]; // QQ
 
 	cmd += command[5]; // ZZ
 	cmd += command[6]; // PBSB
-	sstr << std::setw(2) << std::hex << std::setfill('0') << command[7];
+	sstr << setw(2) << hex << setfill('0') << command[7];
 	cmd += sstr.str(); // NN
 	cmd += command[8]; // Dx
 
 	return cmd;
 }
 
-int Commands::storeCycData(const std::string& data) const
+int Commands::storeCycData(const string& data) const
 {
 	// no commands defined
 	if (m_cycDB.size() == 0)
@@ -152,14 +154,14 @@ int Commands::storeCycData(const std::string& data) const
 		return -3;
 
 	// prepare string for searching command
-	std::string search(data.substr(2, 8 + strtol(data.substr(8,2).c_str(), NULL, 16) * 2));
+	string search(data.substr(2, 8 + strtol(data.substr(8,2).c_str(), NULL, 16) * 2));
 
 	mapCI_t iter = m_cycDB.begin();
 
 	// walk through commands
 	for (; iter != m_cycDB.end(); iter++) {
 
-		std::string command = getBusCommand(iter->first);
+		string command = getBusCommand(iter->first);
 
 		// skip wrong search string length
 		if (command.length() > search.length())
@@ -175,7 +177,7 @@ int Commands::storeCycData(const std::string& data) const
 	return -1;
 }
 
-std::string Commands::getCycData(int index) const
+string Commands::getCycData(int index) const
 {
 	mapCI_t iter = m_cycDB.find(index);
 	if (iter != m_cycDB.end())
@@ -202,17 +204,17 @@ int Commands::nextPollCommand()
 	return -1;
 }
 
-void Commands::storePollData(const std::string& data) const
+void Commands::storePollData(const string& data) const
 {
 	// prepare string for searching command
-	std::string search(data.substr(2, 8 + strtol(data.substr(8,2).c_str(), NULL, 16) * 2));
+	string search(data.substr(2, 8 + strtol(data.substr(8,2).c_str(), NULL, 16) * 2));
 
 	mapCI_t iter = m_pollDB.begin();
 
 	// walk through commands
 	for (; iter != m_pollDB.end(); iter++) {
 
-		std::string command = getBusCommand(iter->first);
+		string command = getBusCommand(iter->first);
 
 		// skip wrong search string length
 		if (command.length() > search.length())
@@ -224,7 +226,7 @@ void Commands::storePollData(const std::string& data) const
 	}
 }
 
-std::string Commands::getPollData(const int index) const
+string Commands::getPollData(const int index) const
 {
 	mapCI_t iter = m_pollDB.find(index);
 	if (iter != m_pollDB.end())
@@ -233,9 +235,9 @@ std::string Commands::getPollData(const int index) const
 		return "";
 }
 
-void Commands::storeScanData(const std::string& data)
+void Commands::storeScanData(const string& data)
 {
-	std::vector<std::string>::const_iterator iter = m_scanDB.begin();
+	vector<string>::const_iterator iter = m_scanDB.begin();
 	bool found = false;
 
 	// walk through scan data
@@ -253,6 +255,6 @@ void Commands::printCommand(const cmd_t& command) const
 		return;
 
 	for (cmdCI_t i = command.begin(); i != command.end(); i++)
-		std::cout << *i << ';';
+		cout << *i << ';';
 }
 

@@ -28,6 +28,8 @@
 #include <vector>
 #include <cstdarg>
 
+using namespace std;
+
 /** \file logger.h */
 
 /** available types for all subsystems */
@@ -50,10 +52,10 @@ enum LevelType {
 };
 
 /** global function to get calculate logging areas */
-int calcAreas(const std::string areas);
+int calcAreas(const string areas);
 
 /** global function to get calculate logging level */
-int calcLevel(const std::string level);
+int calcLevel(const string level);
 
 /**
  * @brief class which describes a logging message itself.
@@ -69,7 +71,7 @@ public:
 	 * @param text the logging message.
 	 * @param running the status of logging subsystem.
 	 */
-	LogMessage(const int area, const int level, const std::string text, const bool running=true);
+	LogMessage(const int area, const int level, const string text, const bool running=true);
 
 	/**
 	 * @brief get the logging area.
@@ -87,7 +89,7 @@ public:
 	 * @brief get the logging text.
 	 * @return the logging text.
 	 */
-	std::string getText() const { return (m_text.c_str()); }
+	string getText() const { return (m_text.c_str()); }
 
 	/**
 	 * @brief status of logging subsystem.
@@ -99,7 +101,7 @@ public:
 	 * @brief get the logging timestamp.
 	 * @return the logging timestamp.
 	 */
-	std::string getTime() const { return (m_time.c_str()); }
+	string getTime() const { return (m_time.c_str()); }
 
 private:
 	/** the logging area */
@@ -109,13 +111,13 @@ private:
 	int m_level;
 
 	/** the logging message */
-	std::string m_text;
+	string m_text;
 
 	/** true if this instance is running */
 	bool m_running;
 
 	/** the logging timestamp */
-	std::string m_time;
+	string m_time;
 
 };
 
@@ -232,7 +234,7 @@ public:
 
 private:
 	/** the logging file */
-	std::string m_file;
+	string m_file;
 
 	/**
 	 * @brief write the logging message to specific log file.
@@ -281,7 +283,7 @@ public:
 	 * @param text the logging message.
 	 * @param ... possible 'variable argument lists'.
 	 */
-	void log(const int area, const int level, const std::string& text, ...);
+	void log(const int area, const int level, const string& text, ...);
 
 	/**
 	 * @brief returns the sink at the specified index.
@@ -308,8 +310,8 @@ private:
 	Logger& operator=(const Logger&);
 
 	/** typedefs for a vector of type LogSink* */
-	typedef std::vector<LogSink*> sink_t;
-	typedef std::vector<LogSink*>::iterator sinkCI_t;
+	typedef vector<LogSink*> sink_t;
+	typedef vector<LogSink*>::iterator sinkCI_t;
 
 	/** vector of available logging sinks */
 	sink_t m_sinks;

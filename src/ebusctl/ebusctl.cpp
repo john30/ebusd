@@ -30,6 +30,8 @@
 #include <iomanip>
 #include <unistd.h>
 
+using namespace std;
+
 Appl& A = Appl::Instance(true);
 
 void define_args()
@@ -66,21 +68,21 @@ int main(int argc, char* argv[])
 	A.parseArgs(argc, argv);
 
 	if (strcasecmp(A.getArg(0).c_str(), "feed") == 0) {
-		std::string dev(A.getOptVal<const char*>("device"));
+		string dev(A.getOptVal<const char*>("device"));
 		Port port(dev, true);
 
 		port.open();
 		if(port.isOpen() == true) {
-			std::cout << "openPort successful." << std::endl;
+			cout << "openPort successful." << endl;
 
-			std::fstream file(A.getOptVal<const char*>("file"), std::ios::in | std::ios::binary);
+			fstream file(A.getOptVal<const char*>("file"), ios::in | ios::binary);
 
-			if(file.is_open() == true) {
+			if (file.is_open() == true) {
 
 				while (file.eof() == false) {
 					unsigned char byte = file.get();
-					std::cout << std::hex << std::setw(2) << std::setfill('0')
-					<< static_cast<unsigned>(byte) << std::endl;
+					cout << hex << setw(2) << setfill('0')
+					     << static_cast<unsigned>(byte) << endl;
 
 					port.send(&byte, 1);
 					usleep(A.getOptVal<long>("time"));
@@ -89,13 +91,13 @@ int main(int argc, char* argv[])
 				file.close();
 			}
 			else
-				std::cout << "error opening file " << A.getOptVal<const char*>("file") << std::endl;
+				cout << "error opening file " << A.getOptVal<const char*>("file") << endl;
 
 			port.close();
 			if(port.isOpen() == false)
-				std::cout << "closePort successful." << std::endl;
+				cout << "closePort successful." << endl;
 		} else
-			std::cout << "error opening device " << A.getOptVal<const char*>("device") << std::endl;
+			cout << "error opening device " << A.getOptVal<const char*>("device") << endl;
 	}
 	else {
 
@@ -104,7 +106,7 @@ int main(int argc, char* argv[])
 
 		if (socket != NULL) {
 			// build message
-			std::string message(A.getArg(0));
+			string message(A.getArg(0));
 			for (int i = 1; i < A.numArgs(); i++) {
 				message += " ";
 				message += A.getArg(i);
@@ -118,13 +120,13 @@ int main(int argc, char* argv[])
 			datalen = socket->recv(data, sizeof(data)-1);
 			data[datalen] = '\0';
 
-			std::cout << data;
+			cout << data;
 
 			delete socket;
 		}
 		else
-			std::cout << "error connecting to " << A.getOptVal<const char*>("server")
-				  << ":" << A.getOptVal<int>("port") << std::endl;
+			cout << "error connecting to " << A.getOptVal<const char*>("server")
+			     << ":" << A.getOptVal<int>("port") << endl;
 
 		delete client;
 	}

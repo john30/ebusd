@@ -24,6 +24,8 @@
 #include <string>
 #include <vector>
 
+using namespace std;
+
 /** \file configfile.h */
 
 /** available file endings / types. */
@@ -48,7 +50,7 @@ public:
 	 * @param is open input stream for reading.
 	 * @param commands object as datastore.
 	 */
-	virtual void parse(std::istream& is, Commands& commands) = 0;
+	virtual void parse(istream& is, Commands& commands) = 0;
 
 };
 
@@ -69,7 +71,7 @@ public:
 	 * @param is open input stream for reading.
 	 * @param commands object as datastore.
 	 */
-	void parse(std::istream& is, Commands& commands);
+	void parse(istream& is, Commands& commands);
 
 };
 
@@ -85,7 +87,7 @@ public:
 	 * @param path to configuration files.
 	 * @param type to parse.
 	 */
-	ConfigCommands(const std::string path, const FileType type);
+	ConfigCommands(const string path, const FileType type);
 
 	/**
 	 * @brief destructor.
@@ -109,20 +111,20 @@ private:
 	ConfigFile* m_configfile;
 
 	/** main path for configuration files */
-	std::string m_path;
+	string m_path;
 
 	/** valid file extension */
-	std::string m_extension;
+	string m_extension;
 
 	/** vector of configuration files */
-	std::vector<std::string> m_files;
+	vector<string> m_files;
 
 	/**
 	 * @brief parse path for given file extension.
 	 * @param path to configuration files.
 	 * @param extension with file type.
 	 */
-	void addFiles(const std::string path, const std::string extension);
+	void addFiles(const string path, const string extension);
 
 };
 

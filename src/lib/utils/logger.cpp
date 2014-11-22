@@ -28,6 +28,8 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+using namespace std;
+
 /** static char array with logging area names */
 static const char* AreaNames[Size_of_Areas] = { "bas", "net", "bus", "cyc" };
 
@@ -37,19 +39,19 @@ static const char* LevelNames[Size_of_Level] = { "error", "event", "trace", "deb
 /** inline function of log2 */
 inline double Log2(double n) { return log(n) / log(2); }
 
-int calcAreas(const std::string areas)
+int calcAreas(const string areas)
 {
 	int m_areas = 0;
 
 	// prepare data
-	std::string token;
-	std::istringstream stream(areas);
-	std::vector<std::string> cmd;
+	string token;
+	istringstream stream(areas);
+	vector<string> cmd;
 
-	while (std::getline(stream, token, ',') != 0)
+	while (getline(stream, token, ',') != 0)
 		cmd.push_back(token);
 
-	for (std::vector<std::string>::iterator it = cmd.begin() ; it != cmd.end(); ++it)
+	for (vector<string>::iterator it = cmd.begin() ; it != cmd.end(); ++it)
 		for (int i = 0; i < Size_of_Areas; i++) {
 			if (strcasecmp("ALL", it->c_str()) == 0)
 				return (pow(2, (int)Size_of_Areas) - 1);
@@ -61,7 +63,7 @@ int calcAreas(const std::string areas)
 	return m_areas;
 }
 
-int calcLevel(const std::string level)
+int calcLevel(const string level)
 {
 	int m_level = event;
 	for (int i = 0; i < Size_of_Level; i++)
@@ -72,7 +74,7 @@ int calcLevel(const std::string level)
 }
 
 
-LogMessage::LogMessage(const int area, const int level, const std::string text, const bool running)
+LogMessage::LogMessage(const int area, const int level, const string text, const bool running)
 	: m_area(area), m_level(level), m_text(text), m_running(running)
 {
 	char time[24];
@@ -87,7 +89,7 @@ LogMessage::LogMessage(const int area, const int level, const std::string text, 
 		tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday,
 		tm->tm_hour, tm->tm_min, tm->tm_sec, tv.tv_usec/1000);
 
-	m_time = std::string(time);
+	m_time = string(time);
 }
 
 
@@ -122,23 +124,23 @@ void* LogSink::run()
 
 void LogConsole::write(const LogMessage& message) const
 {
-	std::cout << message.getTime() << " ["
+	cout << message.getTime() << " ["
 		  << AreaNames[(int)Log2(message.getArea())] << " "
 		  << LevelNames[message.getLevel()] << "] "
-		  << message.getText() << std::endl;
+		  << message.getText() << endl;
 }
 
 
 
 void LogFile::write(const LogMessage& message) const
 {
-	std::fstream file(m_file.c_str(), std::ios::out | std::ios::app);
+	fstream file(m_file.c_str(), ios::out | ios::app);
 
 	if (file.is_open() == true) {
 		file << message.getTime() << " ["
 		     << AreaNames[(int)Log2(message.getArea())] << " "
 		     << LevelNames[message.getLevel()] << "] "
-		     << message.getText() << std::endl;
+		     << message.getText() << endl;
 		file.close();
 	}
 }
@@ -160,7 +162,7 @@ Logger::~Logger()
 Logger& Logger::operator+=(LogSink* sink)
 {
 	sinkCI_t itEnd = m_sinks.end();
-	sinkCI_t it = std::find(m_sinks.begin(), itEnd, sink);
+	sinkCI_t it = find(m_sinks.begin(), itEnd, sink);
 
 	if (it == itEnd)
 		m_sinks.push_back(sink);
@@ -171,7 +173,7 @@ Logger& Logger::operator+=(LogSink* sink)
 Logger& Logger::operator-=(const LogSink* sink)
 {
 	sinkCI_t itEnd = m_sinks.end();
-	sinkCI_t it = std::find(m_sinks.begin(), itEnd, sink);
+	sinkCI_t it = find(m_sinks.begin(), itEnd, sink);
 
 	if (it == itEnd)
 		return (*this);
@@ -183,7 +185,7 @@ Logger& Logger::operator-=(const LogSink* sink)
 	return (*this);
 }
 
-void Logger::log(const int area, const int level, const std::string& data, ...)
+void Logger::log(const int area, const int level, const string& data, ...)
 {
 	if (m_running == true) {
 		char* tmp;
@@ -191,7 +193,7 @@ void Logger::log(const int area, const int level, const std::string& data, ...)
 		va_start(ap, data);
 
 		if (vasprintf(&tmp, data.c_str(), ap) != -1) {
-			std::string buffer(tmp);
+			string buffer(tmp);
 			m_logQueue.add(new LogMessage(area, level, buffer));
 		}
 

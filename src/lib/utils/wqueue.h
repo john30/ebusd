@@ -23,6 +23,8 @@
 #include <list>
 #include <pthread.h>
 
+using namespace std;
+
 /**
  * @brief queue class template for all kinds data types with exclusiv lock.
  */
@@ -117,7 +119,7 @@ public:
 
 private:
 	/** the queue itself */
-	std::list<T> m_queue;
+	list<T> m_queue;
 
 	/** mutex variable for exclusive lock */
 	pthread_mutex_t m_mutex;

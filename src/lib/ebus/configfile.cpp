@@ -22,19 +22,21 @@
 #include <fstream>
 #include <dirent.h>
 
-void ConfigFileCSV::parse(std::istream& is, Commands& commands)
+using namespace std;
+
+void ConfigFileCSV::parse(istream& is, Commands& commands)
 {
-	std::string line;
+	string line;
 
 	// read lines
-	while (std::getline(is, line) != 0) {
+	while (getline(is, line) != 0) {
 		cmd_t row;
-		std::string column;
+		string column;
 
-		std::istringstream isstr(line);
+		istringstream isstr(line);
 
 		// walk through columns
-		while (std::getline(isstr, column, ';') != 0)
+		while (getline(isstr, column, ';') != 0)
 			row.push_back(column);
 
 		// skip empty and commented rows
@@ -46,7 +48,7 @@ void ConfigFileCSV::parse(std::istream& is, Commands& commands)
 };
 
 
-ConfigCommands::ConfigCommands(const std::string path, const FileType type)
+ConfigCommands::ConfigCommands(const string path, const FileType type)
 {
 	m_path = path;
 	m_configfile = NULL;
@@ -70,10 +72,10 @@ void ConfigCommands::setType(const FileType type)
 Commands* ConfigCommands::getCommands()
 {
 	Commands* commands = new Commands();
-	std::vector<std::string>::const_iterator i = m_files.begin();
+	vector<string>::const_iterator i = m_files.begin();
 
 	for(; i != m_files.end(); i++) {
-		std::fstream file((*i).c_str(), std::ios::in);
+		fstream file((*i).c_str(), ios::in);
 
 		if(file.is_open() == true) {
 			m_configfile->parse(file, *commands);
@@ -83,7 +85,7 @@ Commands* ConfigCommands::getCommands()
 	return commands;
 };
 
-void ConfigCommands::addFiles(const std::string path, const std::string extension)
+void ConfigCommands::addFiles(const string path, const string extension)
 {
         DIR* dir = opendir(path.c_str());
 
@@ -95,18 +97,18 @@ void ConfigCommands::addFiles(const std::string path, const std::string extensio
         while (d != NULL) {
 
                 if (d->d_type == DT_DIR) {
-                        std::string fn = d->d_name;
+                        string fn = d->d_name;
 
                         if (fn != "." && fn != "..") {
-				const std::string p = path + "/" + d->d_name;
+				const string p = path + "/" + d->d_name;
                                 addFiles(p, extension);
 			}
 
                 } else if (d->d_type == DT_REG) {
-                        std::string fn = d->d_name;
+                        string fn = d->d_name;
 
-                        if (fn.find(extension, (fn.length() - extension.length())) != std::string::npos) {
-				const std::string p = path + "/" + d->d_name;
+                        if (fn.find(extension, (fn.length() - extension.length())) != string::npos) {
+				const string p = path + "/" + d->d_name;
                                 m_files.push_back(p);
 			}
                 }

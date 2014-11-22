@@ -22,6 +22,8 @@
 #include "logger.h"
 #include "appl.h"
 
+using namespace std;
+
 extern Logger& L;
 extern Appl& A;
 
@@ -64,14 +66,14 @@ BaseLoop::~BaseLoop()
 void BaseLoop::start()
 {
 	for (;;) {
-		std::string result;
+		string result;
 
 		// recv new message from client
 		NetMessage* message = m_netQueue.remove();
-		std::string data = message->getData();
+		string data = message->getData();
 
-		data.erase(std::remove(data.begin(), data.end(), '\r'), data.end());
-		data.erase(std::remove(data.begin(), data.end(), '\n'), data.end());
+		data.erase(remove(data.begin(), data.end(), '\r'), data.end());
+		data.erase(remove(data.begin(), data.end(), '\n'), data.end());
 
 		L.log(bas, event, ">>> %s", data.c_str());
 
@@ -94,18 +96,18 @@ void BaseLoop::start()
 	}
 }
 
-std::string BaseLoop::decodeMessage(const std::string& data)
+string BaseLoop::decodeMessage(const string& data)
 {
-	std::ostringstream result;
-	std::string cycdata, polldata;
+	ostringstream result;
+	string cycdata, polldata;
 	int index;
 
 	// prepare data
-	std::string token;
-	std::istringstream stream(data);
-	std::vector<std::string> cmd;
+	string token;
+	istringstream stream(data);
+	vector<string> cmd;
 
-	while (std::getline(stream, token, ' ') != 0)
+	while (getline(stream, token, ' ') != 0)
 		cmd.push_back(token);
 
 	if (cmd.size() == 0)
@@ -145,9 +147,9 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 				break;
 			}
 
-			std::string busCommand(A.getOptVal<const char*>("address"));
+			string busCommand(A.getOptVal<const char*>("address"));
 			busCommand += m_commands->getBusCommand(index);
-			std::transform(busCommand.begin(), busCommand.end(), busCommand.begin(), tolower);
+			transform(busCommand.begin(), busCommand.end(), busCommand.begin(), ::tolower);
 
 			BusMessage* message = new BusMessage(busCommand, false, false);
 			L.log(bas, trace, " msg: %s", busCommand.c_str());
@@ -186,12 +188,12 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 
 		if (index >= 0) {
 
-			std::string busCommand(A.getOptVal<const char*>("address"));
+			string busCommand(A.getOptVal<const char*>("address"));
 			busCommand += m_commands->getBusCommand(index);
 
 			// encode data
 			Command* command = new Command(index, (*m_commands)[index], cmd[3]);
-			std::string value = command->calcData();
+			string value = command->calcData();
 			if (value[0] != '-') {
 				busCommand += value;
 			} else {
@@ -200,7 +202,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 				break;
 			}
 
-			std::transform(busCommand.begin(), busCommand.end(), busCommand.begin(), tolower);
+			transform(busCommand.begin(), busCommand.end(), busCommand.begin(), ::tolower);
 
 			BusMessage* message = new BusMessage(busCommand, false, false);
 			L.log(bas, event, " msg: %s", busCommand.c_str());
@@ -266,10 +268,10 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		}
 
 		{
-			std::string busCommand(A.getOptVal<const char*>("address"));
-			cmd[1].erase(std::remove_if(cmd[1].begin(), cmd[1].end(), isspace), cmd[1].end());
+			string busCommand(A.getOptVal<const char*>("address"));
+			cmd[1].erase(remove_if(cmd[1].begin(), cmd[1].end(), ::isspace), cmd[1].end());
 			busCommand += cmd[1];
-			std::transform(busCommand.begin(), busCommand.end(), busCommand.begin(), tolower);
+			transform(busCommand.begin(), busCommand.end(), busCommand.begin(), ::tolower);
 
 			BusMessage* message = new BusMessage(busCommand, false, false);
 			L.log(bas, trace, " msg: %s", busCommand.c_str());
@@ -305,19 +307,19 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		if (strcasecmp(cmd[1].c_str(), "RESULT") == 0) {
 			// TODO format scan results
 			for (size_t i = 0; i < m_commands->sizeScanDB(); i++)
-				result << m_commands->getScanData(i) << std::endl;
+				result << m_commands->getScanData(i) << endl;
 
 			break;
 		}
 
-		result << "usage: 'scan'" << std::endl
-		       << "       'scan full'" << std::endl
+		result << "usage: 'scan'" << endl
+		       << "       'scan full'" << endl
 		       << "       'scan result'";
 		break;
 
 	case ct_log:
 		if (cmd.size() != 3 ) {
-			result << "usage: 'log areas area,area,..' (areas: bas|net|bus|cyc|all)" << std::endl
+			result << "usage: 'log areas area,area,..' (areas: bas|net|bus|cyc|all)" << endl
 			       << "       'log level level'        (level: error|event|trace|debug)";
 			break;
 		}
@@ -335,7 +337,7 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 			break;
 		}
 
-		result << "usage: 'log areas area,area,..' (areas: bas|net|bus|cyc|all)" << std::endl
+		result << "usage: 'log areas area,area,..' (areas: bas|net|bus|cyc|all)" << endl
 		       << "       'log level level'        (level: error|event|trace|debug)";
 
 		break;
@@ -383,21 +385,21 @@ std::string BaseLoop::decodeMessage(const std::string& data)
 		}
 
 	case ct_help:
-		result << "commands:" << std::endl
-		       << " get       - fetch ebus data             'get class cmd (sub)'" << std::endl
-		       << " set       - set ebus values             'set class cmd value'" << std::endl
-		       << " cyc       - fetch cycle data            'cyc class cmd (sub)'" << std::endl
-		       << " hex       - send given hex value        'hex type value'         (value: ZZPBSBNNDx)" << std::endl << std::endl
-		       << " scan      - scan ebus kown addresses    'scan'" << std::endl
-		       << "           - scan ebus all addresses     'scan full'" << std::endl
-		       << "           - show results                'scan result'" << std::endl << std::endl
- 		       << " log       - change log areas            'log areas area,area,..' (areas: bas|net|bus|cyc|all)" << std::endl
-		       << "           - change log level            'log level level'        (level: error|event|trace|debug)" << std::endl << std::endl
-		       << " raw       - toggle log raw data         'raw'" << std::endl
-		       << " dump      - toggle dump state           'dump'" << std::endl << std::endl
-		       << " reload    - reload ebus configuration   'reload'" << std::endl << std::endl
-		       << " stop      - stop daemon                 'stop'" << std::endl
-		       << " quit      - close connection            'quit'" << std::endl << std::endl
+		result << "commands:" << endl
+		       << " get       - fetch ebus data             'get class cmd (sub)'" << endl
+		       << " set       - set ebus values             'set class cmd value'" << endl
+		       << " cyc       - fetch cycle data            'cyc class cmd (sub)'" << endl
+		       << " hex       - send given hex value        'hex type value'         (value: ZZPBSBNNDx)" << endl << endl
+		       << " scan      - scan ebus kown addresses    'scan'" << endl
+		       << "           - scan ebus all addresses     'scan full'" << endl
+		       << "           - show results                'scan result'" << endl << endl
+ 		       << " log       - change log areas            'log areas area,area,..' (areas: bas|net|bus|cyc|all)" << endl
+		       << "           - change log level            'log level level'        (level: error|event|trace|debug)" << endl << endl
+		       << " raw       - toggle log raw data         'raw'" << endl
+		       << " dump      - toggle dump state           'dump'" << endl << endl
+		       << " reload    - reload ebus configuration   'reload'" << endl << endl
+		       << " stop      - stop daemon                 'stop'" << endl
+		       << " quit      - close connection            'quit'" << endl << endl
 		       << " help      - print this page             'help'";
 		break;
 

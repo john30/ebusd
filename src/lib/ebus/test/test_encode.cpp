@@ -21,23 +21,25 @@
 #include <iostream>
 #include <iomanip>
 
+using namespace std;
+
 int main()
 {
 	Encode* help_enc = NULL;
 
-	std::cout << std::endl;
+	cout << endl;
 
 	// HEX
 	{
 		const char* hex[] = {"53 70 65 69 63 68 65 72 20 20"};
 		for (size_t i = 0; i < sizeof(hex)/sizeof(hex[0]); i++) {
 			help_enc = new EncodeHEX(hex[i]);
-			std::cout << "EncodeHEX: " << std::setw(20) << hex[i] << " = " << help_enc->encode() << std::endl;
+			cout << "EncodeHEX: " << setw(20) << hex[i] << " = " << help_enc->encode() << endl;
 
 			delete help_enc;
 		}
 
-		std::cout << std::endl;
+		cout << endl;
 	}
 
 	// UCH
@@ -45,12 +47,12 @@ int main()
 		const char* uch[] = {"0", "1", "127", "128", "254", "255", "161"};
 		for (size_t i = 0; i < sizeof(uch)/sizeof(uch[0]); i++) {
 			help_enc = new EncodeUCH(uch[i], "1.0");
-			std::cout << "EncodeUCH: " << std::setw(20) << uch[i] << " = " << help_enc->encode() << std::endl;
+			cout << "EncodeUCH: " << setw(20) << uch[i] << " = " << help_enc->encode() << endl;
 
 			delete help_enc;
 		}
 
-		std::cout << std::endl;
+		cout << endl;
 	}
 
 	// SCH
@@ -58,12 +60,12 @@ int main()
 		const char* sch[] = {"0", "1", "127", "-128", "-2", "-1", "-95"};
 		for (size_t i = 0; i < sizeof(sch)/sizeof(sch[0]); i++) {
 			help_enc = new EncodeSCH(sch[i], "1.0");
-			std::cout << "EncodeSCH: " << std::setw(20) << sch[i] << " = " << help_enc->encode() << std::endl;
+			cout << "EncodeSCH: " << setw(20) << sch[i] << " = " << help_enc->encode() << endl;
 
 			delete help_enc;
 		}
 
-		std::cout << std::endl;
+		cout << endl;
 	}
 
 	// UIN
@@ -71,12 +73,12 @@ int main()
 		const char* uin[] = {"0", "1", "32767", "32768", "65534", "65535", "41394"};
 		for (size_t i = 0; i < sizeof(uin)/sizeof(uin[0]); i++) {
 			help_enc = new EncodeUIN(uin[i], "1.0");
-			std::cout << "EncodeUIN: " << std::setw(20) << uin[i] << " = " << help_enc->encode() << std::endl;
+			cout << "EncodeUIN: " << setw(20) << uin[i] << " = " << help_enc->encode() << endl;
 
 			delete help_enc;
 		}
 
-		std::cout << std::endl;
+		cout << endl;
 	}
 
 	// SIN
@@ -84,12 +86,12 @@ int main()
 		const char* sin[] = {"0", "1", "32767", "-32768", "-2", "-1", "-24142"};
 		for (size_t i = 0; i < sizeof(sin)/sizeof(sin[0]); i++) {
 			help_enc = new EncodeSIN(sin[i], "1.0");
-			std::cout << "EncodeSIN: " << std::setw(20) << sin[i] << " = " << help_enc->encode() << std::endl;
+			cout << "EncodeSIN: " << setw(20) << sin[i] << " = " << help_enc->encode() << endl;
 
 			delete help_enc;
 		}
 
-		std::cout << std::endl;
+		cout << endl;
 	}
 
 	// ULG
@@ -97,12 +99,12 @@ int main()
 		const char* ulg[] = {"0", "1", "2147483647", "2147483648", "4294967294", "4294967295", "2712847316"};
 		for (size_t i = 0; i < sizeof(ulg)/sizeof(ulg[0]); i++) {
 			help_enc = new EncodeULG(ulg[i], "1.0");
-			std::cout << "EncodeULG: " << std::setw(20) << ulg[i] << " = " << help_enc->encode() << std::endl;
+			cout << "EncodeULG: " << setw(20) << ulg[i] << " = " << help_enc->encode() << endl;
 
 			delete help_enc;
 		}
 
-		std::cout << std::endl;
+		cout << endl;
 	}
 
 	// SLG
@@ -110,12 +112,12 @@ int main()
 		const char* slg[] = {"0", "1", "2147483647", "-2147483648", "-2", "-1", "-1582119980"};
 		for (size_t i = 0; i < sizeof(slg)/sizeof(slg[0]); i++) {
 			help_enc = new EncodeSLG(slg[i], "1.0");
-			std::cout << "EncodeSLG: " << std::setw(20) << slg[i] << " = " << help_enc->encode() << std::endl;
+			cout << "EncodeSLG: " << setw(20) << slg[i] << " = " << help_enc->encode() << endl;
 
 			delete help_enc;
 		}
 
-		std::cout << std::endl;
+		cout << endl;
 	}
 
 	// FLT
@@ -123,12 +125,12 @@ int main()
 		const char* flt[] = {"0.000", "2.075", "9.522", "9.865", "2.129"};
 		for (size_t i = 0; i < sizeof(flt)/sizeof(flt[0]); i++) {
 			help_enc = new EncodeFLT(flt[i], "1.0");
-			std::cout << "EncodeFLT: " << std::setw(20) << flt[i] << " = " << help_enc->encode() << std::endl;
+			cout << "EncodeFLT: " << setw(20) << flt[i] << " = " << help_enc->encode() << endl;
 
 			delete help_enc;
 		}
 
-		std::cout << std::endl;
+		cout << endl;
 	}
 
 	// STR
@@ -136,12 +138,12 @@ int main()
 		const char* str[] = {"Speicher  ", "VD600" };
 		for (size_t i = 0; i < sizeof(str)/sizeof(str[0]); i++) {
 			help_enc = new EncodeSTR(str[i]);
-			std::cout << "EncodeSTR: " << std::setw(20) << str[i] << " = " << help_enc->encode() << std::endl;
+			cout << "EncodeSTR: " << setw(20) << str[i] << " = " << help_enc->encode() << endl;
 
 			delete help_enc;
 		}
 
-		std::cout << std::endl;
+		cout << endl;
 	}
 
 	// BCD
@@ -149,12 +151,12 @@ int main()
 		const char* bcd[] = {"0", "1", "2", "3", "12", "99"};
 		for (size_t i = 0; i < sizeof(bcd)/sizeof(bcd[0]); i++) {
 			help_enc = new EncodeBCD(bcd[i], "1.0");
-			std::cout << "EncodeBCD: " << std::setw(20) << bcd[i] << " = " << help_enc->encode() << std::endl;
+			cout << "EncodeBCD: " << setw(20) << bcd[i] << " = " << help_enc->encode() << endl;
 
 			delete help_enc;
 		}
 
-		std::cout << std::endl;
+		cout << endl;
 	}
 
 	// D1B
@@ -162,12 +164,12 @@ int main()
 		const char* d1b[] = {"00", "01", "127", "-127", "-128"};
 		for (size_t i = 0; i < sizeof(d1b)/sizeof(d1b[0]); i++) {
 			help_enc = new EncodeD1B(d1b[i], "1.0");
-			std::cout << "EncodeD1B: " << std::setw(20) << d1b[i] << " = " << help_enc->encode() << std::endl;
+			cout << "EncodeD1B: " << setw(20) << d1b[i] << " = " << help_enc->encode() << endl;
 
 			delete help_enc;
 		}
 
-		std::cout << std::endl;
+		cout << endl;
 	}
 
 	// D1C
@@ -175,12 +177,12 @@ int main()
 		const char* d1c[] = {"0", "50", "100"};
 		for (size_t i = 0; i < sizeof(d1c)/sizeof(d1c[0]); i++) {
 			help_enc = new EncodeD1C(d1c[i], "1.0");
-			std::cout << "EncodeD1C: " << std::setw(20) << d1c[i] << " = " << help_enc->encode() << std::endl;
+			cout << "EncodeD1C: " << setw(20) << d1c[i] << " = " << help_enc->encode() << endl;
 
 			delete help_enc;
 		}
 
-		std::cout << std::endl;
+		cout << endl;
 	}
 
 	// D2B
@@ -188,12 +190,12 @@ int main()
 		const char* d2b[] = {"0", "0.00390625", "-0.00390625", "-1", "-128", "-127.99609375", "127.99609375"};
 		for (size_t i = 0; i < sizeof(d2b)/sizeof(d2b[0]); i++) {
 			help_enc = new EncodeD2B(d2b[i], "1.0");
-			std::cout << "EncodeD2B: " << std::setw(20) << d2b[i] << " = " << help_enc->encode() << std::endl;
+			cout << "EncodeD2B: " << setw(20) << d2b[i] << " = " << help_enc->encode() << endl;
 
 			delete help_enc;
 		}
 
-		std::cout << std::endl;
+		cout << endl;
 	}
 
 	// D2C
@@ -201,12 +203,12 @@ int main()
 		const char* d2c[] = {"0", "0.0625", "-0.0625", "-1", "-2048", "-2047.9375", "2047.9375"};
 		for (size_t i = 0; i < sizeof(d2c)/sizeof(d2c[0]); i++) {
 			help_enc = new EncodeD2C(d2c[i], "1.0");
-			std::cout << "EncodeD2C: " << std::setw(20) << d2c[i] << " = " << help_enc->encode() << std::endl;
+			cout << "EncodeD2C: " << setw(20) << d2c[i] << " = " << help_enc->encode() << endl;
 
 			delete help_enc;
 		}
 
-		std::cout << std::endl;
+		cout << endl;
 	}
 
 	// BDA
@@ -214,12 +216,12 @@ int main()
 		const char* bda[] = {"17.11.2013", "22.09.2001"};
 		for (size_t i = 0; i < sizeof(bda)/sizeof(bda[0]); i++) {
 			help_enc = new EncodeBDA(bda[i]);
-			std::cout << "EncodeBDA: " << std::setw(20) << bda[i] << " = " << help_enc->encode() << std::endl;
+			cout << "EncodeBDA: " << setw(20) << bda[i] << " = " << help_enc->encode() << endl;
 
 			delete help_enc;
 		}
 
-		std::cout << std::endl;
+		cout << endl;
 	}
 
 	// HDA
@@ -227,12 +229,12 @@ int main()
 		const char* hda[] = {"01.01.2001", "31.12.2027"};
 		for (size_t i = 0; i < sizeof(hda)/sizeof(hda[0]); i++) {
 			help_enc = new EncodeHDA(hda[i]);
-			std::cout << "EncodeHDA: " << std::setw(20) << hda[i] << " = " << help_enc->encode() << std::endl;
+			cout << "EncodeHDA: " << setw(20) << hda[i] << " = " << help_enc->encode() << endl;
 
 			delete help_enc;
 		}
 
-		std::cout << std::endl;
+		cout << endl;
 	}
 
 	// BTI
@@ -240,12 +242,12 @@ int main()
 		const char* bti[] = {"01:01:01", "17:42:09", "23:59:59"};
 		for (size_t i = 0; i < sizeof(bti)/sizeof(bti[0]); i++) {
 			help_enc = new EncodeBTI(bti[i]);
-			std::cout << "EncodeBTI: " << std::setw(20) << bti[i] << " = " << help_enc->encode() << std::endl;
+			cout << "EncodeBTI: " << setw(20) << bti[i] << " = " << help_enc->encode() << endl;
 
 			delete help_enc;
 		}
 
-		std::cout << std::endl;
+		cout << endl;
 	}
 
 	// HTI
@@ -253,12 +255,12 @@ int main()
 		const char* hti[] = {"01:01:01", "17:42:09", "23:59:59"};
 		for (size_t i = 0; i < sizeof(hti)/sizeof(hti[0]); i++) {
 			help_enc = new EncodeHTI(hti[i]);
-			std::cout << "EncodeHTI: " << std::setw(20) << hti[i] << " = " << help_enc->encode() << std::endl;
+			cout << "EncodeHTI: " << setw(20) << hti[i] << " = " << help_enc->encode() << endl;
 
 			delete help_enc;
 		}
 
-		std::cout << std::endl;
+		cout << endl;
 	}
 
 	// BDY
@@ -266,12 +268,12 @@ int main()
 		const char* bdy[] = {"Tue", "Thu", "Sun", "Err"};
 		for (size_t i = 0; i < sizeof(bdy)/sizeof(bdy[0]); i++) {
 			help_enc = new EncodeBDY(bdy[i]);
-			std::cout << "EncodeBDY: " << std::setw(20) << bdy[i] << " = " << help_enc->encode() << std::endl;
+			cout << "EncodeBDY: " << setw(20) << bdy[i] << " = " << help_enc->encode() << endl;
 
 			delete help_enc;
 		}
 
-		std::cout << std::endl;
+		cout << endl;
 	}
 
 
@@ -280,12 +282,12 @@ int main()
 		const char* hdy[] = {"Mon", "Wed", "Sun", "Err"};
 		for (size_t i = 0; i < sizeof(hdy)/sizeof(hdy[0]); i++) {
 			help_enc = new EncodeHDY(hdy[i]);
-			std::cout << "EncodeHDY: " << std::setw(20) << hdy[i] << " = " << help_enc->encode() << std::endl;
+			cout << "EncodeHDY: " << setw(20) << hdy[i] << " = " << help_enc->encode() << endl;
 
 			delete help_enc;
 		}
 
-		std::cout << std::endl;
+		cout << endl;
 	}
 
 	// TTM
@@ -293,12 +295,12 @@ int main()
 		const char* ttm[] = {"00:00", "05:50", "13:10", "24:00"};
 		for (size_t i = 0; i < sizeof(ttm)/sizeof(ttm[0]); i++) {
 			help_enc = new EncodeTTM(ttm[i]);
-			std::cout << "EncodeTTM: " << std::setw(20) << ttm[i] << " = " << help_enc->encode() << std::endl;
+			cout << "EncodeTTM: " << setw(20) << ttm[i] << " = " << help_enc->encode() << endl;
 
 			delete help_enc;
 		}
 
-		std::cout << std::endl;
+		cout << endl;
 	}
 
 	return 0;

@@ -23,6 +23,8 @@
 #include <unistd.h>
 #include <string>
 
+using namespace std;
+
 /**
  * @brief class for low level tcp socket operations. (open, close, send, receive).
  */
@@ -65,7 +67,7 @@ public:
 	 * @brief returns the ip address.
 	 * @return the ip address.
 	 */
-	std::string getIP() const { return m_ip; }
+	string getIP() const { return m_ip; }
 
 	/**
 	 * @brief returns the file descriptor.
@@ -87,7 +89,7 @@ private:
 	int m_port;
 
 	/** ip address of tcp socket */
-	std::string  m_ip;
+	string  m_ip;
 
 	/**
 	 * @brief private constructor, limited access only for friend classes.
@@ -111,7 +113,7 @@ public:
 	 * @param port the tcp port.
 	 * @return pointer to an opened tcp socket.
 	 */
-	TCPSocket* connect(const std::string& server, const int& port);
+	TCPSocket* connect(const string& server, const int& port);
 
 };
 
@@ -127,7 +129,7 @@ public:
 	 * @param port the tcp port.
 	 * @param address the ip address.
 	 */
-	TCPServer(const int port, const std::string address)
+	TCPServer(const int port, const string address)
 		: m_lfd(0), m_port(port), m_address(address), m_listening(false) {}
 
 	/**
@@ -161,7 +163,7 @@ private:
 	int m_port;
 
 	/** listening tcp socket ip address */
-	std::string m_address;
+	string m_address;
 
 	/** true if object is already listening */
 	bool m_listening;

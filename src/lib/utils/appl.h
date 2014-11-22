@@ -25,6 +25,8 @@
 #include <map>
 #include <vector>
 
+using namespace std;
+
 /** \file appl.h */
 
 /** the available data types. */
@@ -178,7 +180,7 @@ public:
 	 * @param num number of interested argument.
 	 * @return string value.
 	 */
-	std::string getArg(const int num) const { return m_arguments[num]; }
+	string getArg(const int num) const { return m_arguments[num]; }
 
 private:
 	/** private constructor - singleton pattern */
@@ -187,15 +189,15 @@ private:
 	Appl& operator=(const Appl&);
 
 	/** application options */
-	std::vector<opt_t> m_opts;
-	std::vector<opt_t>::const_iterator o_it;
+	vector<opt_t> m_opts;
+	vector<opt_t>::const_iterator o_it;
 
 	/** map option - value */
-	std::map<const char*, OptVal> m_optvals;
-	std::map<const char*, OptVal>::iterator ov_it;
+	map<const char*, OptVal> m_optvals;
+	map<const char*, OptVal>::iterator ov_it;
 
 	/** given arguments */
-	std::vector<std::string> m_argv;
+	vector<string> m_argv;
 
 	/** application version string */
 	const char* m_version;
@@ -204,14 +206,14 @@ private:
 	bool m_needCommand;
 
 	/** arguments (argument 0 = command) string */
-	std::vector<std::string> m_arguments;
+	vector<string> m_arguments;
 
 	/**
 	 * @brief checks the passed parameter if this is a valid option.
 	 * @param option to check.
 	 * @param value to save if paramter is a valid option.
 	 */
-	bool checkOption(const std::string& option, const std::string& value);
+	bool checkOption(const string& option, const string& value);
 
 	/**
 	 * @brief save the passed value to option.
@@ -219,7 +221,7 @@ private:
 	 * @param value to save.
 	 * @param datatype of given option.
 	 */
-	void setOptVal(const char* option, const std::string value, DataType datatype);
+	void setOptVal(const char* option, const string value, DataType datatype);
 
 	/**
 	 * @brief print application version.

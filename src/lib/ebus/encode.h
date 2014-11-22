@@ -22,17 +22,19 @@
 
 #include <string>
 
+using namespace std;
+
 class Encode
 {
 
 public:
-	Encode(const std::string& data, const std::string& factor = "");
+	Encode(const string& data, const string& factor = "");
 	virtual ~Encode() {}
 
-	virtual std::string encode() = 0;
+	virtual string encode() = 0;
 
 protected:
-	std::string m_data;
+	string m_data;
 	float m_factor;
 
 };
@@ -42,10 +44,10 @@ class EncodeHEX : public Encode
 {
 
 public:
-	EncodeHEX(const std::string& data) : Encode(data) {}
+	EncodeHEX(const string& data) : Encode(data) {}
 	~EncodeHEX() {}
 
-	std::string encode();
+	string encode();
 
 };
 
@@ -53,11 +55,11 @@ class EncodeUCH : public Encode
 {
 
 public:
-	EncodeUCH(const std::string& data, const std::string& factor)
+	EncodeUCH(const string& data, const string& factor)
 		: Encode(data, factor) {}
 	~EncodeUCH() {}
 
-	std::string encode();
+	string encode();
 
 };
 
@@ -65,11 +67,11 @@ class EncodeSCH : public Encode
 {
 
 public:
-	EncodeSCH(const std::string& data, const std::string& factor)
+	EncodeSCH(const string& data, const string& factor)
 		: Encode(data, factor) {}
 	~EncodeSCH() {}
 
-	std::string encode();
+	string encode();
 
 };
 
@@ -77,11 +79,11 @@ class EncodeUIN : public Encode
 {
 
 public:
-	EncodeUIN(const std::string& data, const std::string& factor)
+	EncodeUIN(const string& data, const string& factor)
 		: Encode(data, factor) {}
 	~EncodeUIN() {}
 
-	std::string encode();
+	string encode();
 
 };
 
@@ -89,11 +91,11 @@ class EncodeSIN : public Encode
 {
 
 public:
-	EncodeSIN(const std::string& data, const std::string& factor)
+	EncodeSIN(const string& data, const string& factor)
 		: Encode(data, factor) {}
 	~EncodeSIN() {}
 
-	std::string encode();
+	string encode();
 
 };
 
@@ -101,11 +103,11 @@ class EncodeULG : public Encode
 {
 
 public:
-	EncodeULG(const std::string& data, const std::string& factor)
+	EncodeULG(const string& data, const string& factor)
 		: Encode(data, factor) {}
 	~EncodeULG() {}
 
-	std::string encode();
+	string encode();
 
 };
 
@@ -113,11 +115,11 @@ class EncodeSLG : public Encode
 {
 
 public:
-	EncodeSLG(const std::string& data, const std::string& factor)
+	EncodeSLG(const string& data, const string& factor)
 		: Encode(data, factor) {}
 	~EncodeSLG() {}
 
-	std::string encode();
+	string encode();
 
 };
 
@@ -125,11 +127,11 @@ class EncodeFLT : public Encode
 {
 
 public:
-	EncodeFLT(const std::string& data, const std::string& factor)
+	EncodeFLT(const string& data, const string& factor)
 		: Encode(data, factor) {}
 	~EncodeFLT() {}
 
-	std::string encode();
+	string encode();
 
 };
 
@@ -137,10 +139,10 @@ class EncodeSTR : public Encode
 {
 
 public:
-	EncodeSTR(const std::string& data) : Encode(data) {}
+	EncodeSTR(const string& data) : Encode(data) {}
 	~EncodeSTR() {}
 
-	std::string encode();
+	string encode();
 
 };
 
@@ -148,11 +150,11 @@ class EncodeBCD : public Encode
 {
 
 public:
-	EncodeBCD(const std::string& data, const std::string& factor)
+	EncodeBCD(const string& data, const string& factor)
 		: Encode(data, factor) {}
 	~EncodeBCD() {}
 
-	std::string encode();
+	string encode();
 
 };
 
@@ -160,11 +162,11 @@ class EncodeD1B : public Encode
 {
 
 public:
-	EncodeD1B(const std::string& data, const std::string& factor)
+	EncodeD1B(const string& data, const string& factor)
 		: Encode(data, factor) {}
 	~EncodeD1B() {}
 
-	std::string encode();
+	string encode();
 
 };
 
@@ -172,11 +174,11 @@ class EncodeD1C : public Encode
 {
 
 public:
-	EncodeD1C(const std::string& data, const std::string& factor)
+	EncodeD1C(const string& data, const string& factor)
 		: Encode(data, factor) {}
 	~EncodeD1C() {}
 
-	std::string encode();
+	string encode();
 
 };
 
@@ -184,11 +186,11 @@ class EncodeD2B : public Encode
 {
 
 public:
-	EncodeD2B(const std::string& data, const std::string& factor)
+	EncodeD2B(const string& data, const string& factor)
 		: Encode(data, factor) {}
 	~EncodeD2B() {}
 
-	std::string encode();
+	string encode();
 
 };
 
@@ -196,11 +198,11 @@ class EncodeD2C : public Encode
 {
 
 public:
-	EncodeD2C(const std::string& data, const std::string& factor)
+	EncodeD2C(const string& data, const string& factor)
 		: Encode(data, factor) {}
 	~EncodeD2C() {}
 
-	std::string encode();
+	string encode();
 
 };
 
@@ -208,10 +210,10 @@ class EncodeBDA : public Encode
 {
 
 public:
-	EncodeBDA(const std::string& data) : Encode(data) {}
+	EncodeBDA(const string& data) : Encode(data) {}
 	~EncodeBDA() {}
 
-	std::string encode();
+	string encode();
 
 };
 
@@ -219,10 +221,10 @@ class EncodeHDA : public Encode
 {
 
 public:
-	EncodeHDA(const std::string& data) : Encode(data) {}
+	EncodeHDA(const string& data) : Encode(data) {}
 	~EncodeHDA() {}
 
-	std::string encode();
+	string encode();
 
 };
 
@@ -230,10 +232,10 @@ class EncodeBTI : public Encode
 {
 
 public:
-	EncodeBTI(const std::string& data) : Encode(data) {}
+	EncodeBTI(const string& data) : Encode(data) {}
 	~EncodeBTI() {}
 
-	std::string encode();
+	string encode();
 
 };
 
@@ -241,10 +243,10 @@ class EncodeHTI : public Encode
 {
 
 public:
-	EncodeHTI(const std::string& data) : Encode(data) {}
+	EncodeHTI(const string& data) : Encode(data) {}
 	~EncodeHTI() {}
 
-	std::string encode();
+	string encode();
 
 };
 
@@ -252,10 +254,10 @@ class EncodeBDY : public Encode
 {
 
 public:
-	EncodeBDY(const std::string& data) : Encode(data) {}
+	EncodeBDY(const string& data) : Encode(data) {}
 	~EncodeBDY() {}
 
-	std::string encode();
+	string encode();
 
 };
 
@@ -263,10 +265,10 @@ class EncodeHDY : public Encode
 {
 
 public:
-	EncodeHDY(const std::string& data) : Encode(data) {}
+	EncodeHDY(const string& data) : Encode(data) {}
 	~EncodeHDY() {}
 
-	std::string encode();
+	string encode();
 
 };
 
@@ -274,10 +276,10 @@ class EncodeTTM : public Encode
 {
 
 public:
-	EncodeTTM(const std::string& data) : Encode(data) {}
+	EncodeTTM(const string& data) : Encode(data) {}
 	~EncodeTTM() {}
 
-	std::string encode();
+	string encode();
 
 };
 

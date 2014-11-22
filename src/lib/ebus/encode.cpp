@@ -26,158 +26,160 @@
 #include <vector>
 #include <cstring>
 
-Encode::Encode(const std::string& data, const std::string& factor)
+using namespace std;
+
+Encode::Encode(const string& data, const string& factor)
 	: m_data(data)
 {
-	if ((factor.find_first_not_of("0123456789.") == std::string::npos) == true)
+	if ((factor.find_first_not_of("0123456789.") == string::npos) == true)
 		m_factor = static_cast<float>(strtod(factor.c_str(), NULL));
 	else
 		m_factor = 1.0;
 }
 
 
-std::string EncodeHEX::encode()
+string EncodeHEX::encode()
 {
-	m_data.erase(std::remove_if(m_data.begin(), m_data.end(), isspace), m_data.end());
+	m_data.erase(remove_if(m_data.begin(), m_data.end(), ::isspace), m_data.end());
 
 	return m_data;
 }
 
-std::string EncodeUCH::encode()
+string EncodeUCH::encode()
 {
-	std::ostringstream result;
+	ostringstream result;
 	unsigned short src = static_cast<unsigned short>(strtod(m_data.c_str(), NULL) / m_factor);
-	result << std::setw(2) << std::hex << std::setfill('0') << src;
+	result << setw(2) << hex << setfill('0') << src;
 
 	return result.str().substr(result.str().length()-2,2);
 }
 
-std::string EncodeSCH::encode()
+string EncodeSCH::encode()
 {
-	std::ostringstream result;
+	ostringstream result;
 	short src = static_cast<short>(strtod(m_data.c_str(), NULL) / m_factor);
 
 	if (src < -127 || src > 127)
-		result << std::setw(2) << std::hex << std::setfill('0')
+		result << setw(2) << hex << setfill('0')
 		       << static_cast<unsigned>(0x80);
 	else
-		result << std::setw(2) << std::hex << std::setfill('0')
+		result << setw(2) << hex << setfill('0')
 		       << static_cast<unsigned>(src);
 
 	return result.str().substr(result.str().length()-2,2);
 }
 
-std::string EncodeUIN::encode()
+string EncodeUIN::encode()
 {
-	std::ostringstream result;
+	ostringstream result;
 	unsigned short src = static_cast<unsigned short>(strtod(m_data.c_str(), NULL) / m_factor);
-	result << std::setw(4) << std::hex << std::setfill('0') << src;
+	result << setw(4) << hex << setfill('0') << src;
 
 	return result.str().substr(2,2) + result.str().substr(0,2);
 }
 
-std::string EncodeSIN::encode()
+string EncodeSIN::encode()
 {
-	std::ostringstream result;
+	ostringstream result;
 	short src = static_cast<short>(strtod(m_data.c_str(), NULL) / m_factor);
-	result << std::setw(4) << std::hex << std::setfill('0') << src;
+	result << setw(4) << hex << setfill('0') << src;
 
 	return result.str().substr(2,2) + result.str().substr(0,2);
 }
 
-std::string EncodeULG::encode()
+string EncodeULG::encode()
 {
-	std::ostringstream result;
+	ostringstream result;
 	unsigned long src = static_cast<unsigned long>(strtod(m_data.c_str(), NULL) / m_factor);
-	result << std::setw(8) << std::hex << std::setfill('0') << src;
+	result << setw(8) << hex << setfill('0') << src;
 
 	return result.str().substr(6,2) + result.str().substr(4,2) +
 	       result.str().substr(2,2) + result.str().substr(0,2);
 }
 
-std::string EncodeSLG::encode()
+string EncodeSLG::encode()
 {
-	std::ostringstream result;
+	ostringstream result;
 	int src = static_cast<int>(strtod(m_data.c_str(), NULL) / m_factor);
-	result << std::setw(8) << std::hex << std::setfill('0') << src;
+	result << setw(8) << hex << setfill('0') << src;
 
 	return result.str().substr(6,2) + result.str().substr(4,2) +
 	       result.str().substr(2,2) + result.str().substr(0,2);
 }
 
-std::string EncodeFLT::encode()
+string EncodeFLT::encode()
 {
-	std::ostringstream result;
+	ostringstream result;
 	short src = static_cast<short>(strtod(m_data.c_str(), NULL) * 1000.0 / m_factor);
-	result << std::setw(4) << std::hex << std::setfill('0') << src;
+	result << setw(4) << hex << setfill('0') << src;
 
 	return result.str().substr(2,2) + result.str().substr(0,2);
 }
 
-std::string EncodeSTR::encode()
+string EncodeSTR::encode()
 {
-	std::ostringstream result;
+	ostringstream result;
 
 	for (size_t i = 0; i < m_data.length(); i++)
-		result << std::setw(2) << std::hex << std::setfill('0') << static_cast<short>(m_data[i]);
+		result << setw(2) << hex << setfill('0') << static_cast<short>(m_data[i]);
 
 	return result.str();
 }
 
-std::string EncodeBCD::encode()
+string EncodeBCD::encode()
 {
-	std::ostringstream result;
+	ostringstream result;
 	short src = static_cast<short>(strtod(m_data.c_str(), NULL) / m_factor);
 
 	if (src > 99)
-		result << std::setw(2) << std::hex << std::setfill('0')
+		result << setw(2) << hex << setfill('0')
 		       << static_cast<unsigned>(0xFF);
 	else
-		result << std::setw(2) << std::hex << std::setfill('0')
+		result << setw(2) << hex << setfill('0')
 		       << static_cast<unsigned>( ((src / 10) << 4) | (src % 10) );
 
 	return result.str().substr(result.str().length()-2,2);
 }
 
-std::string EncodeD1B::encode()
+string EncodeD1B::encode()
 {
-	std::ostringstream result;
+	ostringstream result;
 	short src = static_cast<short>(strtod(m_data.c_str(), NULL) / m_factor);
 
 	if (src < -127 || src > 127)
-		result << std::setw(2) << std::hex << std::setfill('0')
+		result << setw(2) << hex << setfill('0')
 		       << static_cast<unsigned>(0x80);
 	else
-		result << std::setw(2) << std::hex << std::setfill('0')
+		result << setw(2) << hex << setfill('0')
 		       << static_cast<unsigned>(src);
 
 	return result.str().substr(result.str().length()-2,2);
 }
 
-std::string EncodeD1C::encode()
+string EncodeD1C::encode()
 {
-	std::ostringstream result;
+	ostringstream result;
 	float src = static_cast<float>(strtod(m_data.c_str(), NULL) / m_factor);
 
 	if (src < 0.0 || src > 100.0)
-		result << std::setw(2) << std::hex << std::setfill('0')
+		result << setw(2) << hex << setfill('0')
 		       << static_cast<unsigned>(0xFF);
 	else
-		result << std::setw(2) << std::hex << std::setfill('0')
+		result << setw(2) << hex << setfill('0')
 		       << static_cast<unsigned>(src * 2.0);
 
 	return result.str();
 }
 
-std::string EncodeD2B::encode()
+string EncodeD2B::encode()
 {
-	std::ostringstream result;
+	ostringstream result;
 	float src = static_cast<float>(strtod(m_data.c_str(), NULL) / m_factor);
 
 	if (src < -127.999 || src > 127.999) {
-		result << std::setw(2) << std::hex << std::setfill('0')
+		result << setw(2) << hex << setfill('0')
 		       << static_cast<unsigned>(0x80)
-		       << std::setw(2) << std::hex << std::setfill('0')
+		       << setw(2) << hex << setfill('0')
 		       << static_cast<unsigned>(0x00);
 	} else {
 		unsigned char tgt_lsb = static_cast<unsigned>((src - ((short) src)) * 256.0);
@@ -188,24 +190,24 @@ std::string EncodeD2B::encode()
 		else
 			tgt_msb = static_cast<unsigned>((short) src);
 
-		result << std::setw(2) << std::hex << std::setfill('0')
+		result << setw(2) << hex << setfill('0')
 		       << static_cast<unsigned>(tgt_msb)
-		       << std::setw(2) << std::hex << std::setfill('0')
+		       << setw(2) << hex << setfill('0')
 		       << static_cast<unsigned>(tgt_lsb);
 	}
 
 	return result.str();
 }
 
-std::string EncodeD2C::encode()
+string EncodeD2C::encode()
 {
-	std::ostringstream result;
+	ostringstream result;
 	float src = static_cast<float>(strtod(m_data.c_str(), NULL) / m_factor);
 
 	if (src < -2047.999 || src > 2047.999) {
-		result << std::setw(2) << std::hex << std::setfill('0')
+		result << setw(2) << hex << setfill('0')
 		       << static_cast<unsigned>(0x80)
-		       << std::setw(2) << std::hex << std::setfill('0')
+		       << setw(2) << hex << setfill('0')
 		       << static_cast<unsigned>(0x00);
 	} else {
 		unsigned char tgt_lsb = static_cast<unsigned>(
@@ -219,100 +221,100 @@ std::string EncodeD2C::encode()
 		else
 			tgt_msb = static_cast<unsigned>((short) src / 16.0);
 
-		result << std::setw(2) << std::hex << std::setfill('0')
+		result << setw(2) << hex << setfill('0')
 		       << static_cast<unsigned>(tgt_msb)
-		       << std::setw(2) << std::hex << std::setfill('0')
+		       << setw(2) << hex << setfill('0')
 		       << static_cast<unsigned>(tgt_lsb);
 	}
 
 	return result.str();
 }
 
-std::string EncodeBDA::encode()
+string EncodeBDA::encode()
 {
 	// prepare data
-	std::string token;
-	std::istringstream stream(m_data);
-	std::vector<std::string> data;
+	string token;
+	istringstream stream(m_data);
+	vector<string> data;
 
-	while (std::getline(stream, token, '.') != 0)
+	while (getline(stream, token, '.') != 0)
 		data.push_back(token);
 
-	std::ostringstream result;
-	result << std::setw(2) << std::dec << std::setfill('0')
+	ostringstream result;
+	result << setw(2) << dec << setfill('0')
 	       << static_cast<short>(strtod(data[0].c_str(), NULL))
-	       << std::setw(2) << std::dec << std::setfill('0')
+	       << setw(2) << dec << setfill('0')
 	       << static_cast<short>(strtod(data[1].c_str(), NULL))
-	       << std::setw(2) << std::dec << std::setfill('0')
+	       << setw(2) << dec << setfill('0')
 	       << static_cast<short>(strtod(data[2].c_str(), NULL) - 2000);
 
 	return result.str();
 }
 
-std::string EncodeHDA::encode()
+string EncodeHDA::encode()
 {
 	// prepare data
-	std::string token;
-	std::istringstream stream(m_data);
-	std::vector<std::string> data;
+	string token;
+	istringstream stream(m_data);
+	vector<string> data;
 
-	while (std::getline(stream, token, '.') != 0)
+	while (getline(stream, token, '.') != 0)
 		data.push_back(token);
 
-	std::ostringstream result;
-	result << std::setw(2) << std::hex << std::setfill('0')
+	ostringstream result;
+	result << setw(2) << hex << setfill('0')
 	       << static_cast<short>(strtod(data[0].c_str(), NULL))
-	       << std::setw(2) << std::hex << std::setfill('0')
+	       << setw(2) << hex << setfill('0')
 	       << static_cast<short>(strtod(data[1].c_str(), NULL))
-	       << std::setw(2) << std::hex << std::setfill('0')
+	       << setw(2) << hex << setfill('0')
 	       << static_cast<short>(strtod(data[2].c_str(), NULL) - 2000);
 
 	return result.str();
 }
 
-std::string EncodeBTI::encode()
+string EncodeBTI::encode()
 {
 	// prepare data
-	std::string token;
-	std::istringstream stream(m_data);
-	std::vector<std::string> data;
+	string token;
+	istringstream stream(m_data);
+	vector<string> data;
 
-	while (std::getline(stream, token, ':') != 0)
+	while (getline(stream, token, ':') != 0)
 		data.push_back(token);
 
-	std::ostringstream result;
-	result << std::setw(2) << std::dec << std::setfill('0')
+	ostringstream result;
+	result << setw(2) << dec << setfill('0')
 	       << static_cast<short>(strtod(data[0].c_str(), NULL))
-	       << std::setw(2) << std::dec << std::setfill('0')
+	       << setw(2) << dec << setfill('0')
 	       << static_cast<short>(strtod(data[1].c_str(), NULL))
-	       << std::setw(2) << std::dec << std::setfill('0')
+	       << setw(2) << dec << setfill('0')
 	       << static_cast<short>(strtod(data[2].c_str(), NULL));
 
 	return result.str();
 }
 
-std::string EncodeHTI::encode()
+string EncodeHTI::encode()
 {
 	// prepare data
-	std::string token;
-	std::istringstream stream(m_data);
-	std::vector<std::string> data;
+	string token;
+	istringstream stream(m_data);
+	vector<string> data;
 
-	while (std::getline(stream, token, ':') != 0)
+	while (getline(stream, token, ':') != 0)
 		data.push_back(token);
 
-	std::ostringstream result;
-	result << std::setw(2) << std::hex << std::setfill('0')
+	ostringstream result;
+	result << setw(2) << hex << setfill('0')
 	       << static_cast<short>(strtod(data[0].c_str(), NULL))
-	       << std::setw(2) << std::hex << std::setfill('0')
+	       << setw(2) << hex << setfill('0')
 	       << static_cast<short>(strtod(data[1].c_str(), NULL))
-	       << std::setw(2) << std::hex << std::setfill('0')
+	       << setw(2) << hex << setfill('0')
 	       << static_cast<short>(strtod(data[2].c_str(), NULL));
 
 	return result.str();
 }
 
-std::string EncodeBDY::encode()
+string EncodeBDY::encode()
 {
 	const char *days[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Err"};
 	short day = 7;
@@ -321,13 +323,13 @@ std::string EncodeBDY::encode()
 		if (strcasecmp(days[i], m_data.c_str()) == 0)
 			day = i;
 
-	std::ostringstream result;
-	result << std::setw(2) << std::hex << std::setfill('0') << day;
+	ostringstream result;
+	result << setw(2) << hex << setfill('0') << day;
 
 	return result.str();
 }
 
-std::string EncodeHDY::encode()
+string EncodeHDY::encode()
 {
 	const char *days[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Err"};
 	short day = 8;
@@ -336,24 +338,24 @@ std::string EncodeHDY::encode()
 		if (strcasecmp(days[i], m_data.c_str()) == 0)
 			day = i + 1;
 
-	std::ostringstream result;
-	result << std::setw(2) << std::hex << std::setfill('0') << day;
+	ostringstream result;
+	result << setw(2) << hex << setfill('0') << day;
 
 	return result.str();
 }
 
-std::string EncodeTTM::encode()
+string EncodeTTM::encode()
 {
 	// prepare data
-	std::string token;
-	std::istringstream stream(m_data);
-	std::vector<std::string> data;
+	string token;
+	istringstream stream(m_data);
+	vector<string> data;
 
-	while (std::getline(stream, token, ':') != 0)
+	while (getline(stream, token, ':') != 0)
 		data.push_back(token);
 
-	std::ostringstream result;
-	result << std::setw(2) << std::hex << std::setfill('0')
+	ostringstream result;
+	result << setw(2) << hex << setfill('0')
 	       << static_cast<short>( (strtod(data[0].c_str(), NULL) * 6)
 				    + (strtod(data[1].c_str(), NULL) / 10) );
 

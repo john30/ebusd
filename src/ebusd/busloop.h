@@ -27,6 +27,8 @@
 #include "symbol.h"
 #include "result.h"
 
+using namespace std;
+
 /** \file busloop.h */
 
 /** the maximum time [us] allowed for retrieving a byte from an addressed slave */
@@ -53,7 +55,7 @@ public:
 	 * @param poll true if message type is polling.
 	 * @param scan true if message type is scanning.
 	 */
-	BusMessage(const std::string command, const bool poll, const bool scan);
+	BusMessage(const string command, const bool poll, const bool scan);
 
 	/**
 	 * @brief destructor.
@@ -106,7 +108,7 @@ public:
 	 * @brief return the message string or error result string.
 	 * @return the message string or error result string.
 	 */
-	const std::string getMessageStr();
+	const string getMessageStr();
 
 	/**
 	 * @brief return polling flag of message type.
@@ -213,7 +215,7 @@ public:
 	 * @brief set the name of dump file.
 	 * @param dumpFile the file name of dump file.
 	 */
-	void setDumpFile(const std::string& dumpFile) { m_dumpFile = dumpFile; }
+	void setDumpFile(const string& dumpFile) { m_dumpFile = dumpFile; }
 
 	/**
 	 * @brief set the max size of dump file.
@@ -234,7 +236,7 @@ private:
 	Port* m_port;
 
 	/** the name of dump file*/
-	std::string m_dumpFile;
+	string m_dumpFile;
 
 	/** max. size of dump file */
 	long m_dumpSize;
@@ -278,7 +280,7 @@ private:
 	double m_pollInterval;
 
 	/** vector with collected slave addresses */
-	std::vector<unsigned char> m_slave;
+	vector<unsigned char> m_slave;
 
 	/** true if bus scanning for collected slave addresses is active */
 	bool m_scan;
