@@ -24,19 +24,21 @@
 #include "network.h"
 #include "busloop.h"
 
+/** \file baseloop.h */
+
 /** possible client commands */
 enum CommandType {
-     ct_get,       // get ebus data
-     ct_set,       // set ebus value
-     ct_cyc,       // fetch cycle data
-     ct_hex,       // send hex value
-     ct_scan,      // scan ebus
-     ct_log,       // logger settings
-     ct_raw,       // toggle log raw data
-     ct_dump,      // toggle dump state
-     ct_reload,    // reload ebus configuration
-     ct_help,      // print commands
-     ct_invalid,   // invalid
+     ct_get,       /*!< get ebus data */
+     ct_set,       /*!< set ebus value */
+     ct_cyc,       /*!< fetch cycle data */
+     ct_hex,       /*!< send hex value */
+     ct_scan,      /*!< scan ebus */
+     ct_log,       /*!< logger settings */
+     ct_raw,       /*!< toggle log raw data */
+     ct_dump,      /*!< toggle dump state */
+     ct_reload,    /*!< reload ebus configuration */
+     ct_help,      /*!< print commands */
+     ct_invalid    /*!< invalid */
 };
 
 /**

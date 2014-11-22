@@ -24,9 +24,11 @@
 #include <string>
 #include <vector>
 
+/** \file configfile.h */
+
 /** available file endings / types. */
 enum FileType {
-	ft_csv  // CSV
+	ft_csv  /*!< CSV */
 };
 
 /**

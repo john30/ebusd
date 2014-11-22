@@ -25,21 +25,23 @@
 #include <map>
 #include <vector>
 
+/** \file appl.h */
+
 /** the available data types. */
 enum DataType {
-	dt_none,    // default for __text_only__
-	dt_bool,    // boolean
-	dt_int,     // integer
-	dt_long,    // long
-	dt_float,   // float
-	dt_string   // string
+	dt_none,    /*!< default for __text_only__ */
+	dt_bool,    /*!< boolean */
+	dt_int,     /*!< integer */
+	dt_long,    /*!< long */
+	dt_float,   /*!< float */
+	dt_string   /*!< string */
 };
 
 /** option types. */
 enum OptionType {
-	ot_none,      // no option type is needed
-	ot_optional,  // a value is optional
-	ot_mandatory  // a value is mandatory
+	ot_none,      /*!< no option type is needed */
+	ot_optional,  /*!< a value is optional */
+	ot_mandatory  /*!< a value is mandatory */
 };
 
 /** structure for defining application options */

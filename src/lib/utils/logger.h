@@ -28,23 +28,25 @@
 #include <vector>
 #include <cstdarg>
 
+/** \file logger.h */
+
 /** available types for all subsystems */
 enum AreasType {
-	bas=1,           // basis
-	net=2,           // network
-	bus=4,           // ebus
-	cyc=8,           // cycle
-	all=15,          // type for all subsystems
-	Size_of_Areas=4  // number of possible areas
+	bas=1,           /*!< basis */
+	net=2,           /*!< network */
+	bus=4,           /*!< ebus */
+	cyc=8,           /*!< cycle */
+	all=15,          /*!< type for all subsystems */
+	Size_of_Areas=4  /*!< number of possible areas */
 };
 
 /** available logging levels */
 enum LevelType {
-	error=0,       // silent run, only errors will be printed
-	event,         // only interesting message for normal use
-	trace,         // most of the information for normal use
-	debug,         // print internal states too
-	Size_of_Level  // number of possible levels
+	error=0,       /*!< silent run, only errors will be printed */
+	event,         /*!< only interesting message for normal use */
+	trace,         /*!< most of the information for normal use */
+	debug,         /*!< print internal states too */
+	Size_of_Level  /*!< number of possible levels */
 };
 
 /** global function to get calculate logging areas */

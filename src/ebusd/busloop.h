@@ -27,15 +27,17 @@
 #include "symbol.h"
 #include "result.h"
 
+/** \file busloop.h */
+
 /** the maximum time [us] allowed for retrieving a byte from an addressed slave */
 #define RECV_TIMEOUT 10000
 
 /** possible bus command types */
 enum BusCommandType {
-	invalid,      // invalid command type
-	broadcast,    // broadcast
-	masterMaster, // master - master
-	masterSlave,  // master - slave
+	invalid,      /*!< invalid command type */
+	broadcast,    /*!< broadcast */
+	masterMaster, /*!< master - master */
+	masterSlave   /*!< master - slave */
 };
 
 /**

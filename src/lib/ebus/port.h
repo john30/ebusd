@@ -25,10 +25,12 @@
 #include <termios.h>
 #include <unistd.h>
 
+/** \file port.h */
+
 /** available device types. */
 enum DeviceType {
-	dt_serial,  // serial device
-	dt_network  // network device
+	dt_serial,  /*!< serial device */
+	dt_network  /*!< network device */
 };
 
 /** max bytes write to bus. */
