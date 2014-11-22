@@ -25,10 +25,14 @@
 #include <termios.h>
 #include <unistd.h>
 
+using namespace std;
+
+/** \file port.h */
+
 /** available device types. */
 enum DeviceType {
-	dt_serial,
-	dt_network,
+	dt_serial,  /*!< serial device */
+	dt_network  /*!< network device */
 };
 
 /** max bytes write to bus. */
@@ -60,7 +64,7 @@ public:
 	 * @param deviceName to determine device type.
 	 * @param noDeviceCheck en-/disable device check.
 	 */
-	virtual void openDevice(const std::string deviceName, const bool noDeviceCheck) = 0;
+	virtual void openDevice(const string deviceName, const bool noDeviceCheck) = 0;
 
 	/**
 	 * @brief virtual close function for closing opened file descriptor
@@ -83,7 +87,7 @@ public:
 
 	/**
 	 * @brief recvBytes read bytes from opened file descriptor.
-	 * @param timeoutmax time for new input data [usec].
+	 * @param timeout time for new input data [usec].
 	 * @param maxCount max size of receive buffer.
 	 * @return number of read bytes or -1 if an error has occured.
 	 */
@@ -112,7 +116,7 @@ protected:
 	bool m_noDeviceCheck;
 
 	/** queue for received bytes */
-	std::queue<unsigned char> m_recvBuffer;
+	queue<unsigned char> m_recvBuffer;
 
 	/** receive buffer */
 	unsigned char m_buffer[MAX_READ_SIZE];
@@ -143,7 +147,7 @@ public:
 	 * @param deviceName to determine device type.
 	 * @param noDeviceCheck en-/disable device check.
 	 */
-	void openDevice(const std::string deviceName, const bool noDeviceCheck);
+	void openDevice(const string deviceName, const bool noDeviceCheck);
 
 	/**
 	 * @brief close function for closing opened file descriptor
@@ -173,7 +177,7 @@ public:
 	 * @param deviceName to determine device type.
 	 * @param noDeviceCheck en-/disable device check.
 	 */
-	void openDevice(const std::string deviceName, const bool noDeviceCheck);
+	void openDevice(const string deviceName, const bool noDeviceCheck);
 
 	/**
 	 * @brief close opened file descriptor
@@ -196,7 +200,7 @@ public:
 	 * @param deviceName to determine device type.
 	 * @param noDeviceCheck en-/disable device check.
 	 */
-	Port(const std::string deviceName, const bool noDeviceCheck);
+	Port(const string deviceName, const bool noDeviceCheck);
 
 	/**
 	 * @brief destructor.
@@ -251,7 +255,7 @@ public:
 
 private:
 	/** the device name */
-	std::string m_deviceName;
+	string m_deviceName;
 
 	/** the device instance */
 	Device* m_device;

@@ -28,6 +28,8 @@
 #include <csignal>
 #include <iostream>
 
+using namespace std;
+
 Appl& A = Appl::Instance();
 Daemon& D = Daemon::Instance();
 Logger& L = Logger::Instance();

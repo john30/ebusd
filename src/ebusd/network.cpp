@@ -30,6 +30,7 @@
 #include <poll.h>
 #endif
 
+using namespace std;
 
 extern Logger& L;
 extern Appl& A;
@@ -129,7 +130,7 @@ void* Connection::run()
 			message.waitSignal();
 
 			L.log(net, debug, "[%05d] result added", getID());
-			std::string result = message.getResult();
+			string result = message.getResult();
 
 			if (m_socket->isValid() == true)
 				m_socket->send(result.c_str(), result.size());
@@ -277,7 +278,7 @@ void* Network::run()
 
 void Network::cleanConnections()
 {
-	std::list<Connection*>::iterator c_it;
+	list<Connection*>::iterator c_it;
 	for (c_it = m_connections.begin(); c_it != m_connections.end(); c_it++) {
 		if ((*c_it)->isRunning() == false) {
 			Connection* connection = *c_it;

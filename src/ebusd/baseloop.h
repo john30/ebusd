@@ -24,19 +24,23 @@
 #include "network.h"
 #include "busloop.h"
 
+using namespace std;
+
+/** \file baseloop.h */
+
 /** possible client commands */
 enum CommandType {
-     ct_get,       // get ebus data
-     ct_set,       // set ebus value
-     ct_cyc,       // fetch cycle data
-     ct_hex,       // send hex value
-     ct_scan,      // scan ebus
-     ct_log,       // logger settings
-     ct_raw,       // toggle log raw data
-     ct_dump,      // toggle dump state
-     ct_reload,    // reload ebus configuration
-     ct_help,      // print commands
-     ct_invalid,   // invalid
+     ct_get,       /*!< get ebus data */
+     ct_set,       /*!< set ebus value */
+     ct_cyc,       /*!< fetch cycle data */
+     ct_hex,       /*!< send hex value */
+     ct_scan,      /*!< scan ebus */
+     ct_log,       /*!< logger settings */
+     ct_raw,       /*!< toggle log raw data */
+     ct_dump,      /*!< toggle dump state */
+     ct_reload,    /*!< reload ebus configuration */
+     ct_help,      /*!< print commands */
+     ct_invalid    /*!< invalid */
 };
 
 /**
@@ -85,7 +89,7 @@ private:
 	 * @param item the client command to compare.
 	 * @return the founded client command type.
 	 */
-	CommandType getCase(const std::string& item)
+	CommandType getCase(const string& item)
 	{
 		if (strcasecmp(item.c_str(), "GET") == 0) return ct_get;
 		if (strcasecmp(item.c_str(), "SET") == 0) return ct_set;
@@ -106,7 +110,7 @@ private:
 	 * @param data the data string to decode
 	 * @return result string to send back to client
 	 */
-	std::string decodeMessage(const std::string& data);
+	string decodeMessage(const string& data);
 
 };
 

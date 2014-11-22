@@ -24,6 +24,8 @@
 #include <netdb.h>
 #include <string.h>
 
+using namespace std;
+
 TCPSocket::TCPSocket(int sfd, struct sockaddr_in* address) : m_sfd(sfd)
 {
 	char ip[17];
@@ -41,7 +43,7 @@ bool TCPSocket::isValid()
 }
 
 
-TCPSocket* TCPClient::connect(const std::string& server, const int& port)
+TCPSocket* TCPClient::connect(const string& server, const int& port)
 {
 	struct sockaddr_in address;
 	int ret;

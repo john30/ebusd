@@ -27,7 +27,7 @@
 #include <vector>
 #include <cstring>
 
-std::string Command::calcData()
+string Command::calcData()
 {
 	// encode - only first entry will be encoded
 	// ToDo: if more parts are needed, they will be implemented
@@ -39,7 +39,7 @@ std::string Command::calcData()
 	return m_result;
 }
 
-std::string Command::calcResult(const cmd_t& cmd)
+string Command::calcResult(const cmd_t& cmd)
 {
 	int elements = strtol(m_command[9].c_str(), NULL, 10);
 
@@ -81,10 +81,10 @@ std::string Command::calcResult(const cmd_t& cmd)
 	return m_result;
 }
 
-void Command::calcSub(const std::string& part, const std::string& position,
-		      const std::string& type, const std::string& factor)
+void Command::calcSub(const string& part, const string& position,
+		      const string& type, const string& factor)
 {
-	std::string data;
+	string data;
 
 	// Master Data
 	if (strcasecmp(part.c_str(), "MD") == 0) {
@@ -121,18 +121,18 @@ void Command::calcSub(const std::string& part, const std::string& position,
 	decode(data, position, type, factor);
 }
 
-void Command::decode(const std::string& data, const std::string& position,
-		     const std::string& type, const std::string& factor)
+void Command::decode(const string& data, const string& position,
+		     const string& type, const string& factor)
 {
-	std::ostringstream result, value;
+	ostringstream result, value;
 	Decode* help = NULL;
 
 	// prepare position
-	std::string token;
-	std::istringstream stream(position);
-	std::vector<int> pos;
+	string token;
+	istringstream stream(position);
+	vector<int> pos;
 
-	while (std::getline(stream, token, ',') != 0)
+	while (getline(stream, token, ',') != 0)
 		pos.push_back(strtol(token.c_str(), NULL, 10));
 
 	if (strcasecmp(type.c_str(), "HEX") == 0) {
@@ -251,10 +251,10 @@ void Command::decode(const std::string& data, const std::string& position,
 	delete help;
 }
 
-void Command::encode(const std::string& data, const std::string& type,
-		     const std::string& factor)
+void Command::encode(const string& data, const string& type,
+		     const string& factor)
 {
-	std::ostringstream result;
+	ostringstream result;
 	Encode* help = NULL;
 
 	if (strcasecmp(type.c_str(), "HEX") == 0) {

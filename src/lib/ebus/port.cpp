@@ -33,6 +33,8 @@
 #include <poll.h>
 #endif
 
+using namespace std;
+
 bool Device::isOpen()
 {
 	if (isValid() == false)
@@ -130,7 +132,7 @@ unsigned char Device::getByte()
 }
 
 
-void DeviceSerial::openDevice(const std::string deviceName, const bool noDeviceCheck)
+void DeviceSerial::openDevice(const string deviceName, const bool noDeviceCheck)
 {
 	m_noDeviceCheck = noDeviceCheck;
 
@@ -188,7 +190,7 @@ void DeviceSerial::closeDevice()
 }
 
 
-void DeviceNetwork::openDevice(const std::string deviceName, const bool noDeviceCheck)
+void DeviceNetwork::openDevice(const string deviceName, const bool noDeviceCheck)
 {
 	m_noDeviceCheck = noDeviceCheck;
 
@@ -245,7 +247,7 @@ void DeviceNetwork::closeDevice()
 }
 
 
-Port::Port(const std::string deviceName, const bool noDeviceCheck)
+Port::Port(const string deviceName, const bool noDeviceCheck)
 	: m_deviceName(deviceName), m_noDeviceCheck(noDeviceCheck)
 {
 	m_device = NULL;

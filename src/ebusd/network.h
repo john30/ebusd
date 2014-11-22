@@ -26,6 +26,8 @@
 #include "thread.h"
 #include <string>
 
+using namespace std;
+
 /** forward declaration for class connection */
 class Connection;
 
@@ -40,7 +42,7 @@ public:
 	 * @brief constructs a new instance with message and source client address.
 	 * @param data from client.
 	 */
-	NetMessage(const std::string data) : m_data(data)
+	NetMessage(const string data) : m_data(data)
 	{
 		pthread_mutex_init(&m_mutex, NULL);
 		pthread_cond_init(&m_cond, NULL);
@@ -65,19 +67,19 @@ public:
 	 * @brief get the data string.
 	 * @return the data string.
 	 */
-	std::string getData() const { return m_data; }
+	string getData() const { return m_data; }
 
 	/**
 	 * @brief get the result string.
 	 * @return the result string.
 	 */
-	std::string getResult() const { return m_result; }
+	string getResult() const { return m_result; }
 
 	/**
 	 * @brief set the result string.
 	 * @return the result string.
 	 */
-	void setResult(const std::string result) { m_result = result; }
+	void setResult(const string result) { m_result = result; }
 
 	/**
 	 * @brief wait on notification.
@@ -104,10 +106,10 @@ public:
 
 private:
 	/** the data string */
-	std::string m_data;
+	string m_data;
 
 	/** the result string */
-	std::string m_result;
+	string m_result;
 
 	/** mutex variable for exclusive lock */
 	pthread_mutex_t m_mutex;
@@ -209,7 +211,7 @@ public:
 
 private:
 	/** container for active connections */
-	std::list<Connection*> m_connections;
+	list<Connection*> m_connections;
 
 	/** remote queue for network messages */
 	WQueue<NetMessage*>* m_netQueue;

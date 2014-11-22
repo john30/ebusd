@@ -24,9 +24,13 @@
 #include <string>
 #include <vector>
 
+using namespace std;
+
+/** \file configfile.h */
+
 /** available file endings / types. */
 enum FileType {
-	ft_csv
+	ft_csv  /*!< CSV */
 };
 
 /**
@@ -46,12 +50,12 @@ public:
 	 * @param is open input stream for reading.
 	 * @param commands object as datastore.
 	 */
-	virtual void parse(std::istream& is, Commands& commands) = 0;
+	virtual void parse(istream& is, Commands& commands) = 0;
 
 };
 
 /**
- * @brief class for CSV config files.
+ * @brief derived class for CSV config files.
  */
 class ConfigFileCSV : public ConfigFile
 {
@@ -67,12 +71,12 @@ public:
 	 * @param is open input stream for reading.
 	 * @param commands object as datastore.
 	 */
-	void parse(std::istream& is, Commands& commands);
+	void parse(istream& is, Commands& commands);
 
 };
 
 /**
- * @brief class for class device.
+ * @brief class to parse configuration files and store into commands instance.
  */
 class ConfigCommands
 {
@@ -81,9 +85,9 @@ public:
 	/**
 	 * @brief set file type and add recursive files from given path.
 	 * @param path to configuration files.
-	 * @param filetype to parse.
+	 * @param type to parse.
 	 */
-	ConfigCommands(const std::string path, const FileType type);
+	ConfigCommands(const string path, const FileType type);
 
 	/**
 	 * @brief destructor.
@@ -92,7 +96,7 @@ public:
 
 	/**
 	 * @brief setter for file type.
-	 * @param filetype of files.
+	 * @param type of files.
 	 */
 	void setType(const FileType type);
 
@@ -107,20 +111,20 @@ private:
 	ConfigFile* m_configfile;
 
 	/** main path for configuration files */
-	std::string m_path;
+	string m_path;
 
 	/** valid file extension */
-	std::string m_extension;
+	string m_extension;
 
 	/** vector of configuration files */
-	std::vector<std::string> m_files;
+	vector<string> m_files;
 
 	/**
 	 * @brief parse path for given file extension.
 	 * @param path to configuration files.
 	 * @param extension with file type.
 	 */
-	void addFiles(const std::string path, const std::string extension);
+	void addFiles(const string path, const string extension);
 
 };
 

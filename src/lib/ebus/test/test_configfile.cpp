@@ -24,18 +24,20 @@
 #include <sstream>
 #include <vector>
 
+using namespace std;
+
 int main() {
 
-	std::string dir("test");
+	string dir("test");
 	ConfigCommands config(dir, ft_csv);
 
 	Commands* commands = config.getCommands();
 
-	std::cout << "size: " << commands->sizeCmdDB() << std::endl;
+	cout << "size: " << commands->sizeCmdDB() << endl;
 
 	commands->findCommand("g ci Password");
 
-	std::cout << (*commands)[0][0] << std::endl;
+	cout << (*commands)[0][0] << endl;
 
 	delete commands;
 

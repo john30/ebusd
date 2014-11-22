@@ -23,10 +23,12 @@
 #include <fstream>
 #include <iomanip>
 
+using namespace std;
+
 extern Logger& L;
 extern Appl& A;
 
-BusMessage::BusMessage(const std::string command, const bool poll, const bool scan)
+BusMessage::BusMessage(const string command, const bool poll, const bool scan)
 	: m_poll(poll), m_scan(scan), m_command(command), m_result(), m_resultCode(RESULT_OK)
 {
 	unsigned char dstAddress = m_command[1];
@@ -42,9 +44,9 @@ BusMessage::BusMessage(const std::string command, const bool poll, const bool sc
 	pthread_cond_init(&m_cond, NULL);
 }
 
-const std::string BusMessage::getMessageStr()
+const string BusMessage::getMessageStr()
 {
-	std::string result;
+	string result;
 
 	if (m_resultCode >= 0) {
 		if (m_type == masterSlave) {
@@ -57,7 +59,7 @@ const std::string BusMessage::getMessageStr()
 			result = "success";
 	}
 	else
-		result = "error: "+std::string(getResultCodeCStr());
+		result = "error: "+string(getResultCodeCStr());
 
 	return result;
 }
@@ -154,7 +156,7 @@ void* BusLoop::run()
 						if (sendRetries < m_sendRetries) {
 							sendRetries++;
 							L.log(bus, trace, " send retry %d", sendRetries);
-							message->setResult(std::string(), RESULT_OK);
+							message->setResult(string(), RESULT_OK);
 						}
 						else {
 							sendRetries = 0;
@@ -233,7 +235,7 @@ int BusLoop::writeDumpFile(const char* byte)
 {
 	int ret = 0;
 
-	std::ofstream fs(m_dumpFile.c_str(), std::ios::out | std::ios::binary | std::ios::app);
+	ofstream fs(m_dumpFile.c_str(), ios::out | ios::binary | ios::app);
 
 	if (fs == 0)
 		return -1;
@@ -241,7 +243,7 @@ int BusLoop::writeDumpFile(const char* byte)
 	fs.write(byte, 1);
 
 	if (fs.tellp() >= m_dumpSize * 1024) {
-		std::string oldfile;
+		string oldfile;
 		oldfile += m_dumpFile;
 		oldfile += ".old";
 		ret = rename(m_dumpFile.c_str(), oldfile.c_str());
@@ -322,7 +324,7 @@ void BusLoop::analyseCycData()
 			L.log(cyc, debug, " search skipped - string too short");
 		}
 		else {
-			std::string tmp;
+			string tmp;
 			tmp += (*m_commands)[index][1];
 			tmp += " ";
 			tmp += (*m_commands)[index][2];
@@ -339,7 +341,7 @@ void BusLoop::analyseCycData()
 
 void BusLoop::collectSlave()
 {
-	std::vector<unsigned char>::iterator it;
+	vector<unsigned char>::iterator it;
 
 	for (int i = 0; i < 2; i++) {
 		bool found = false;
@@ -423,7 +425,7 @@ int BusLoop::acquireBus()
 BusMessage* BusLoop::sendCommand()
 {
 	unsigned char recvByte;
-	std::string result;
+	string result;
 	SymbolString slaveData;
 	int retval = RESULT_OK;
 
@@ -638,15 +640,15 @@ void BusLoop::addPollMessage()
 	}
 	else {
 		// TODO: implement as methode from class commands?
-		std::string tmp;
+		string tmp;
 		tmp += (*m_commands)[index][1];
 		tmp += " ";
 		tmp += (*m_commands)[index][2];
 		L.log(bus, event, " polling [%4d] %s", index, tmp.c_str());
 
-		std::string busCommand(A.getOptVal<const char*>("address"));
+		string busCommand(A.getOptVal<const char*>("address"));
 		busCommand += m_commands->getBusCommand(index);
-		std::transform(busCommand.begin(), busCommand.end(), busCommand.begin(), tolower);
+		transform(busCommand.begin(), busCommand.end(), busCommand.begin(), ::tolower);
 
 		BusMessage* message = new BusMessage(busCommand, true, false);
 		L.log(bus, trace, " msg: %s", busCommand.c_str());
@@ -657,22 +659,22 @@ void BusLoop::addPollMessage()
 
 void BusLoop::addScanMessage()
 {
-	std::string busCommand(A.getOptVal<const char*>("address"));
-	std::stringstream sstr;
+	string busCommand(A.getOptVal<const char*>("address"));
+	stringstream sstr;
 
 	if (m_scanFull == true) {
 		for (; m_scanIndex <= 0xFF; m_scanIndex++) {
 			if (isMaster(m_scanIndex) == false && m_scanIndex != SYN
 			&& m_scanIndex != ESC && m_scanIndex != BROADCAST) {
-				sstr << std::nouppercase << std::setw(2) << std::setfill('0')
-				<< std::hex << m_scanIndex;
+				sstr << nouppercase << setw(2) << setfill('0')
+				     << hex << m_scanIndex;
 				break;
 			}
 		}
 	}
 	else {
-		sstr << std::nouppercase << std::setw(2) << std::setfill('0')
-		     << std::hex << static_cast<unsigned>(m_slave[m_scanIndex]);
+		sstr << nouppercase << setw(2) << setfill('0')
+		     << hex << static_cast<unsigned>(m_slave[m_scanIndex]);
 
 		if (m_scanIndex+1 >= m_slave.size())
 			m_scan = false;
@@ -685,7 +687,7 @@ void BusLoop::addScanMessage()
 
 		busCommand += sstr.str();
 		busCommand += "070400";
-		std::transform(busCommand.begin(), busCommand.end(), busCommand.begin(), tolower);
+		transform(busCommand.begin(), busCommand.end(), busCommand.begin(), ::tolower);
 
 		L.log(bus, event, " scanning address %s", sstr.str().c_str());
 

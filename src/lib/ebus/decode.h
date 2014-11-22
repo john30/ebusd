@@ -22,17 +22,19 @@
 
 #include <string>
 
+using namespace std;
+
 class Decode
 {
 
 public:
-	Decode(const std::string& data, const std::string& factor = "");
+	Decode(const string& data, const string& factor = "");
 	virtual ~Decode() {}
 
-	virtual std::string decode() = 0;
+	virtual string decode() = 0;
 
 protected:
-	std::string m_data;
+	string m_data;
 	float m_factor;
 
 };
@@ -42,10 +44,10 @@ class DecodeHEX : public Decode
 {
 
 public:
-	DecodeHEX(const std::string& data) : Decode(data) {}
+	DecodeHEX(const string& data) : Decode(data) {}
 	~DecodeHEX() {}
 
-	std::string decode();
+	string decode();
 
 };
 
@@ -53,11 +55,11 @@ class DecodeUCH : public Decode
 {
 
 public:
-	DecodeUCH(const std::string& data, const std::string& factor)
+	DecodeUCH(const string& data, const string& factor)
 		: Decode(data, factor) {}
 	~DecodeUCH() {}
 
-	std::string decode();
+	string decode();
 
 };
 
@@ -65,11 +67,11 @@ class DecodeSCH : public Decode
 {
 
 public:
-	DecodeSCH(const std::string& data, const std::string& factor)
+	DecodeSCH(const string& data, const string& factor)
 		: Decode(data, factor) {}
 	~DecodeSCH() {}
 
-	std::string decode();
+	string decode();
 
 };
 
@@ -77,11 +79,11 @@ class DecodeUIN : public Decode
 {
 
 public:
-	DecodeUIN(const std::string& data, const std::string& factor)
+	DecodeUIN(const string& data, const string& factor)
 		: Decode(data, factor) {}
 	~DecodeUIN() {}
 
-	std::string decode();
+	string decode();
 
 };
 
@@ -89,11 +91,11 @@ class DecodeSIN : public Decode
 {
 
 public:
-	DecodeSIN(const std::string& data, const std::string& factor)
+	DecodeSIN(const string& data, const string& factor)
 		: Decode(data, factor) {}
 	~DecodeSIN() {}
 
-	std::string decode();
+	string decode();
 
 };
 
@@ -101,11 +103,11 @@ class DecodeULG : public Decode
 {
 
 public:
-	DecodeULG(const std::string& data, const std::string& factor)
+	DecodeULG(const string& data, const string& factor)
 		: Decode(data, factor) {}
 	~DecodeULG() {}
 
-	std::string decode();
+	string decode();
 
 };
 
@@ -113,11 +115,11 @@ class DecodeSLG : public Decode
 {
 
 public:
-	DecodeSLG(const std::string& data, const std::string& factor)
+	DecodeSLG(const string& data, const string& factor)
 		: Decode(data, factor) {}
 	~DecodeSLG() {}
 
-	std::string decode();
+	string decode();
 
 };
 
@@ -125,11 +127,11 @@ class DecodeFLT : public Decode
 {
 
 public:
-	DecodeFLT(const std::string& data, const std::string& factor)
+	DecodeFLT(const string& data, const string& factor)
 		: Decode(data, factor) {}
 	~DecodeFLT() {}
 
-	std::string decode();
+	string decode();
 
 };
 
@@ -137,10 +139,10 @@ class DecodeSTR : public Decode
 {
 
 public:
-	DecodeSTR(std::string data) : Decode(data) {}
+	DecodeSTR(string data) : Decode(data) {}
 	~DecodeSTR() {}
 
-	std::string decode();
+	string decode();
 
 };
 
@@ -148,11 +150,11 @@ class DecodeBCD : public Decode
 {
 
 public:
-	DecodeBCD(const std::string& data, const std::string& factor)
+	DecodeBCD(const string& data, const string& factor)
 		: Decode(data, factor) {}
 	~DecodeBCD() {}
 
-	std::string decode();
+	string decode();
 
 };
 
@@ -160,11 +162,11 @@ class DecodeD1B : public Decode
 {
 
 public:
-	DecodeD1B(const std::string& data, const std::string& factor)
+	DecodeD1B(const string& data, const string& factor)
 		: Decode(data, factor) {}
 	~DecodeD1B() {}
 
-	std::string decode();
+	string decode();
 
 };
 
@@ -172,11 +174,11 @@ class DecodeD1C : public Decode
 {
 
 public:
-	DecodeD1C(const std::string& data, const std::string& factor)
+	DecodeD1C(const string& data, const string& factor)
 		: Decode(data, factor) {}
 	~DecodeD1C() {}
 
-	std::string decode();
+	string decode();
 
 };
 
@@ -184,11 +186,11 @@ class DecodeD2B : public Decode
 {
 
 public:
-	DecodeD2B(const std::string& data, const std::string& factor)
+	DecodeD2B(const string& data, const string& factor)
 		: Decode(data, factor) {}
 	~DecodeD2B() {}
 
-	std::string decode();
+	string decode();
 
 };
 
@@ -196,11 +198,11 @@ class DecodeD2C : public Decode
 {
 
 public:
-	DecodeD2C(const std::string& data, const std::string& factor)
+	DecodeD2C(const string& data, const string& factor)
 		: Decode(data, factor) {}
 	~DecodeD2C() {}
 
-	std::string decode();
+	string decode();
 
 };
 
@@ -208,10 +210,10 @@ class DecodeBDA : public Decode
 {
 
 public:
-	DecodeBDA(const std::string& data) : Decode(data) {}
+	DecodeBDA(const string& data) : Decode(data) {}
 	~DecodeBDA() {}
 
-	std::string decode();
+	string decode();
 
 };
 
@@ -219,10 +221,10 @@ class DecodeHDA : public Decode
 {
 
 public:
-	DecodeHDA(const std::string& data) : Decode(data) {}
+	DecodeHDA(const string& data) : Decode(data) {}
 	~DecodeHDA() {}
 
-	std::string decode();
+	string decode();
 
 };
 
@@ -230,10 +232,10 @@ class DecodeBTI : public Decode
 {
 
 public:
-	DecodeBTI(const std::string& data) : Decode(data) {}
+	DecodeBTI(const string& data) : Decode(data) {}
 	~DecodeBTI() {}
 
-	std::string decode();
+	string decode();
 
 };
 
@@ -241,10 +243,10 @@ class DecodeHTI : public Decode
 {
 
 public:
-	DecodeHTI(const std::string& data) : Decode(data) {}
+	DecodeHTI(const string& data) : Decode(data) {}
 	~DecodeHTI() {}
 
-	std::string decode();
+	string decode();
 
 };
 
@@ -252,10 +254,10 @@ class DecodeBDY : public Decode
 {
 
 public:
-	DecodeBDY(const std::string& data) : Decode(data) {}
+	DecodeBDY(const string& data) : Decode(data) {}
 	~DecodeBDY() {}
 
-	std::string decode();
+	string decode();
 
 };
 
@@ -263,10 +265,10 @@ class DecodeHDY : public Decode
 {
 
 public:
-	DecodeHDY(const std::string& data) : Decode(data) {}
+	DecodeHDY(const string& data) : Decode(data) {}
 	~DecodeHDY() {}
 
-	std::string decode();
+	string decode();
 
 };
 
@@ -274,10 +276,10 @@ class DecodeTTM : public Decode
 {
 
 public:
-	DecodeTTM(const std::string& data) : Decode(data) {}
+	DecodeTTM(const string& data) : Decode(data) {}
 	~DecodeTTM() {}
 
-	std::string decode();
+	string decode();
 
 };
 

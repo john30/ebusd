@@ -25,12 +25,14 @@
 #include <vector>
 #include <map>
 
-typedef std::vector<cmd_t> cmdDB_t;
+using namespace std;
+
+typedef vector<cmd_t> cmdDB_t;
 typedef cmdDB_t::const_iterator cmdDBCI_t;
 
-typedef std::map<int, Command*> map_t;
+typedef map<int, Command*> map_t;
 typedef map_t::const_iterator mapCI_t;
-typedef std::pair<int, Command*> pair_t;
+typedef pair<int, Command*> pair_t;
 
 class Commands
 {
@@ -42,34 +44,34 @@ public:
 	void addCommand(const cmd_t& command);
 	void printCommands() const;
 
-	std::size_t sizeCmdDB() const { return m_cmdDB.size(); }
-	std::size_t sizeCycDB() const { return m_cycDB.size(); }
-	std::size_t sizePollDB() const { return m_pollDB.size(); }
-	std::size_t sizeScanDB() const { return m_scanDB.size(); }
+	size_t sizeCmdDB() const { return m_cmdDB.size(); }
+	size_t sizeCycDB() const { return m_cycDB.size(); }
+	size_t sizePollDB() const { return m_pollDB.size(); }
+	size_t sizeScanDB() const { return m_scanDB.size(); }
 
-	cmd_t const& operator[](const std::size_t& index) const { return m_cmdDB[index]; }
+	cmd_t const& operator[](const size_t& index) const { return m_cmdDB[index]; }
 
-	int findCommand(const std::string& data) const;
+	int findCommand(const string& data) const;
 
-	std::string getCmdType(const int index) const { return std::string(m_cmdDB.at(index)[0]); }
-	std::string getBusCommand(const int index) const;
+	string getCmdType(const int index) const { return string(m_cmdDB.at(index)[0]); }
+	string getBusCommand(const int index) const;
 
-	int storeCycData(const std::string& data) const;
-	std::string getCycData(int index) const;
+	int storeCycData(const string& data) const;
+	string getCycData(int index) const;
 
 	int nextPollCommand();
-	void storePollData(const std::string& data) const;
-	std::string getPollData(const int index) const;
+	void storePollData(const string& data) const;
+	string getPollData(const int index) const;
 
-	void storeScanData(const std::string& data);
-	std::string getScanData(const int index) const { return m_scanDB[index]; }
+	void storeScanData(const string& data);
+	string getScanData(const int index) const { return m_scanDB[index]; }
 
 private:
 	cmdDB_t m_cmdDB;
 	map_t m_cycDB;
 	map_t m_pollDB;
 	size_t m_pollIndex;
-	std::vector<std::string> m_scanDB;
+	vector<string> m_scanDB;
 
 	void printCommand(const cmd_t& command) const;
 

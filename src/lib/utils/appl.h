@@ -25,45 +25,84 @@
 #include <map>
 #include <vector>
 
+using namespace std;
+
+/** \file appl.h */
+
 /** the available data types. */
 enum DataType {
-	dt_none,       // default value
-	dt_bool,       //
-	dt_int,        //
-	dt_long,       //
-	dt_float,      //
-	dt_string,     //
+	dt_none,    /*!< default for __text_only__ */
+	dt_bool,    /*!< boolean */
+	dt_int,     /*!< integer */
+	dt_long,    /*!< long */
+	dt_float,   /*!< float */
+	dt_string   /*!< string */
 };
 
 /** option types. */
 enum OptionType {
-	ot_none,       // default value
-	ot_optional,   // a value is optional
-	ot_mandatory,  // a value is mandatory
+	ot_none,      /*!< no option type is needed */
+	ot_optional,  /*!< a value is optional */
+	ot_mandatory  /*!< a value is mandatory */
 };
 
 /** structure for defining application options */
-typedef struct opt {
+typedef struct {
+	/** long option name */
 	const char* name;
+	/** short option name */
 	const char* shortname;
+	/** description for this option */
 	const char* description;
+	/** data type for this option */
 	DataType datatype;
+	/** indicates whether an option takes an argument */
 	OptionType optiontype;
 } opt_t;
 
-/** union for option values */
+/**
+ * @brief union for option values
+ */
 union OptVal {
+	/** boolean */
 	bool b;
+	/** integer */
 	int i;
+	/** long */
 	long l;
+	/** float */
 	float f;
+	/** string */
 	const char* c;
 
+	/**
+	 * @brief clear memory
+	 */
 	OptVal() { memset(this, 0, sizeof(OptVal)); }
+	/**
+	 * @brief create boolean type
+	 * @param _b the boolean
+	 */
 	OptVal(bool _b) : b(_b) {}
+	/**
+	 * @brief create integer type
+	 * @param _i the integer
+	 */
 	OptVal(int _i) : i(_i) {}
+	/**
+	 * @brief create long type
+	 * @param _l the long
+	 */
 	OptVal(long _l) : l(_l) {}
+	/**
+	 * @brief create float type
+	 * @param _f the float
+	 */
 	OptVal(float _f) : f(_f) {}
+	/**
+	 * @brief create string type
+	 * @param _c the string
+	 */
 	OptVal(const char* _c) : c(_c) {}
 };
 
@@ -141,7 +180,7 @@ public:
 	 * @param num number of interested argument.
 	 * @return string value.
 	 */
-	std::string getArg(const int num) const { return m_arguments[num]; }
+	string getArg(const int num) const { return m_arguments[num]; }
 
 private:
 	/** private constructor - singleton pattern */
@@ -150,15 +189,15 @@ private:
 	Appl& operator=(const Appl&);
 
 	/** application options */
-	std::vector<opt_t> m_opts;
-	std::vector<opt_t>::const_iterator o_it;
+	vector<opt_t> m_opts;
+	vector<opt_t>::const_iterator o_it;
 
 	/** map option - value */
-	std::map<const char*, OptVal> m_optvals;
-	std::map<const char*, OptVal>::iterator ov_it;
+	map<const char*, OptVal> m_optvals;
+	map<const char*, OptVal>::iterator ov_it;
 
 	/** given arguments */
-	std::vector<std::string> m_argv;
+	vector<string> m_argv;
 
 	/** application version string */
 	const char* m_version;
@@ -167,14 +206,14 @@ private:
 	bool m_needCommand;
 
 	/** arguments (argument 0 = command) string */
-	std::vector<std::string> m_arguments;
+	vector<string> m_arguments;
 
 	/**
 	 * @brief checks the passed parameter if this is a valid option.
 	 * @param option to check.
 	 * @param value to save if paramter is a valid option.
 	 */
-	bool checkOption(const std::string& option, const std::string& value);
+	bool checkOption(const string& option, const string& value);
 
 	/**
 	 * @brief save the passed value to option.
@@ -182,7 +221,7 @@ private:
 	 * @param value to save.
 	 * @param datatype of given option.
 	 */
-	void setOptVal(const char* option, const std::string value, DataType datatype);
+	void setOptVal(const char* option, const string value, DataType datatype);
 
 	/**
 	 * @brief print application version.

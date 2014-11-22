@@ -21,15 +21,17 @@
 #include <iostream>
 #include <iomanip>
 
+using namespace std;
+
 int main ()
 {
-	std::string dev("/dev/ttyUSB20");
+	string dev("/dev/ttyUSB20");
 	Port port(dev, true);
 
 	port.open();
 
 	if(port.isOpen() == true)
-		std::cout << "openPort successful." << std::endl;
+		cout << "openPort successful." << endl;
 
 	int count = 0;
 
@@ -40,8 +42,8 @@ int main ()
 
 		for (int i = 0; i < bytes_read; i++)
 			byte = port.byte();
-			std::cout << std::hex << std::setw(2) << std::setfill('0')
-			<< static_cast<unsigned>(byte) << std::endl;
+			cout << hex << setw(2) << setfill('0')
+			<< static_cast<unsigned>(byte) << endl;
 
 		bytes_read = 0;
 
@@ -51,7 +53,7 @@ int main ()
 	port.close();
 
 	if(port.isOpen() == false)
-		std::cout << "closePort successful." << std::endl;
+		cout << "closePort successful." << endl;
 
 	return 0;
 
