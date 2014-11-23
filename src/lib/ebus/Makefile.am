@@ -12,6 +12,8 @@ libebus_a_SOURCES = result.cpp \
 		    data.h \
 		    port.cpp \
 		    port.h \
+		    message.cpp \
+		    message.h \
 		    command.cpp \
 		    command.h \
 		    commands.cpp \
