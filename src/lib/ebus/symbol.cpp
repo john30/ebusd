@@ -99,7 +99,7 @@ const string SymbolString::getDataStr(const bool unescape)
 	return sstr.str();
 }
 
-int SymbolString::push_back(const unsigned char value, const bool isEscaped, const bool updateCRC)
+result_t SymbolString::push_back(const unsigned char value, const bool isEscaped, const bool updateCRC)
 {
 	if (m_unescapeState == 0) { // store escaped data
 		if (isEscaped == false && value == ESC) {
@@ -187,6 +187,49 @@ bool isMaster(unsigned char addr) {
 
 	return ((addrHi == 0x0) || (addrHi == 0x1) || (addrHi == 0x3) || (addrHi == 0x7) || (addrHi == 0xF))
 	    && ((addrLo == 0x0) || (addrLo == 0x1) || (addrLo == 0x3) || (addrLo == 0x7) || (addrLo == 0xF));
+}
+
+unsigned char getMasterNumber(unsigned char addr) {
+	unsigned char addrHi = (addr & 0xF0) >> 4;
+	unsigned char addrLo = (addr & 0x0F);
+
+	unsigned char index;
+	switch (addrHi)
+	{
+	case 0x0:
+		index = 0;
+		break;
+	case 0x1:
+		index = 1;
+		break;
+	case 0x3:
+		index = 2;
+		break;
+	case 0x7:
+		index = 3;
+		break;
+	case 0xF:
+		index = 4;
+		break;
+	default:
+		return 0;
+	}
+
+	switch (addrLo)
+	{
+	case 0x0:
+		return 5*index + 1;
+	case 0x1:
+		return 5*index + 2;
+	case 0x3:
+		return 5*index + 3;
+	case 0x7:
+		return 5*index + 4;
+	case 0xF:
+		return 5*index + 5;
+	default:
+		return 0;
+	}
 }
 
 bool isValidAddress(unsigned char addr, bool allowBroadcast) {
