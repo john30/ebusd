@@ -13,17 +13,7 @@ libebus_a_SOURCES = result.cpp \
 		    port.cpp \
 		    port.h \
 		    message.cpp \
-		    message.h \
-		    command.cpp \
-		    command.h \
-		    commands.cpp \
-		    commands.h \
-		    configfile.cpp \
-		    configfile.h \
-		    decode.cpp \
-		    decode.h \
-		    encode.cpp \
-		    encode.h
+		    message.h
 
 distclean-local:
 	-rm -f Makefile.in

@@ -6,11 +6,7 @@ AM_CXXFLAGS = -fpic \
 noinst_PROGRAMS = test_port \
 		  test_symbol \
 		  test_data \
-		  test_message \
-		  test_commands \
-		  test_configfile \
-		  test_decode \
-		  test_encode
+		  test_message
 
 test_port_SOURCES = test_port.cpp
 test_port_LDADD = $(top_srcdir)/src/lib/ebus/libebus.a
@@ -23,18 +19,6 @@ test_data_LDADD = $(top_srcdir)/src/lib/ebus/libebus.a
 
 test_message_SOURCES = test_message.cpp
 test_message_LDADD = $(top_srcdir)/src/lib/ebus/libebus.a
-
-test_commands_SOURCES = test_commands.cpp
-test_commands_LDADD = $(top_srcdir)/src/lib/ebus/libebus.a
-
-test_configfile_SOURCES = test_configfile.cpp
-test_configfile_LDADD = $(top_srcdir)/src/lib/ebus/libebus.a
-
-test_decode_SOURCES = test_decode.cpp
-test_decode_LDADD = $(top_srcdir)/src/lib/ebus/libebus.a
-
-test_encode_SOURCES = test_encode.cpp
-test_encode_LDADD = $(top_srcdir)/src/lib/ebus/libebus.a
 
 distclean-local:
 	-rm -f Makefile.in
