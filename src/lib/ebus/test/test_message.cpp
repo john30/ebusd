@@ -42,7 +42,7 @@ void verify(bool expectFailMatch, string type, string input,
 
 void printErrorPos(vector<string>::iterator it, const vector<string>::iterator end, vector<string>::iterator pos)
 {
-	cout << "Errroneous item is here:" << endl;
+	cout << "Erroneous item is here:" << endl;
 	bool first = true;
 	int cnt = 0;
 	if (pos > it)
@@ -71,11 +71,13 @@ int main()
 	// field=   name;[pos];type[;[divisor|values][;[unit][;[comment]]]]
 	string checks[][5] = {
 		// "message", "flags"
-		{";;first;;;fe;0700;x;;bda", "26.10.2014", "fffe0700042610061451", "00", ""},
+		{"c;;first;;;fe;0700;x;;bda", "26.10.2014", "fffe0700042610061451", "00", ""},
 		{"w;;first;;;15;b5090400;date;;bda", "26.10.2014", "ff15b5090604002610061445", "00", ""},
 	};
 	map<string, DataField*> templates;
-	Message* message = NULL;
+	Message *message = NULL;
+	Message* deleteMessage = NULL;
+	MessageMap* messages = new MessageMap();
 	for (size_t i = 0; i < sizeof(checks) / sizeof(checks[0]); i++) {
 		string check[5] = checks[i];
 		istringstream isstr(check[0]);
@@ -83,6 +85,7 @@ int main()
 		SymbolString mstr = SymbolString(check[2], false);
 		SymbolString sstr = SymbolString(check[3], false);
 		string flags = check[4];
+		bool dontMap = flags.find('m') != string::npos;
 		bool failedCreate = flags.find('c') != string::npos;
 		bool failedPrepare = flags.find('p') != string::npos;
 		bool failedPrepareMatch = flags.find('P') != string::npos;
@@ -92,12 +95,12 @@ int main()
 		while (getline(isstr, item, ';') != 0)
 			entries.push_back(item);
 
-		if (message != NULL) {
-			delete message;
-			message = NULL;
+		if (deleteMessage != NULL) {
+			delete deleteMessage;
+			deleteMessage = NULL;
 		}
 		vector<string>::iterator it = entries.begin();
-		result_t result = Message::create(it, entries.end(), templates, message);
+		result_t result = Message::create(it, entries.end(), templates, deleteMessage);
 
 		if (failedCreate == true) {
 			if (result == RESULT_OK)
@@ -112,7 +115,7 @@ int main()
 			printErrorPos(entries.begin(), entries.end(), it);
 			continue;
 		}
-		if (message == NULL) {
+		if (deleteMessage == NULL) {
 			cout << "\"" << check[0] << "\": create error: NULL" << endl;
 			continue;
 		}
@@ -122,6 +125,23 @@ int main()
 		}
 		cout << "\"" << check[0] << "\": create OK" << endl;
 
+		if (dontMap == false) {
+			result = messages->add(deleteMessage);
+			if (result != RESULT_OK) {
+				cout << "\"" << check[0] << "\": add error: "
+						<< getResultCode(result) << endl;
+				continue;
+			}
+			cout << "  map OK" << endl;
+			message = deleteMessage;
+			deleteMessage = NULL;
+			if (messages->find(mstr) == message)
+				cout << "  find OK" << endl;
+			else
+				cout << "  find error: NULL" << endl;
+		}
+		else
+			message = deleteMessage;
 		istringstream input(inputStr);
 		SymbolString writeMstr = SymbolString();
 		result = message->prepare(0xff, writeMstr, input);
@@ -142,13 +162,17 @@ int main()
 
 		bool match = writeMstr==mstr;
 		verify(failedPrepareMatch, "prepare", inputStr, match, mstr.getDataStr(), writeMstr.getDataStr());
+	}
 
-		delete message;
-		message = NULL;
+	if (deleteMessage != NULL) {
+		delete deleteMessage;
+		deleteMessage = NULL;
 	}
 
 	for (map<string, DataField*>::iterator it = templates.begin(); it != templates.end(); it++)
 		delete it->second;
+
+	delete messages;
 
 	return 0;
 

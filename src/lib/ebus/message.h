@@ -25,11 +25,12 @@
 #include "symbol.h"
 #include <string>
 #include <vector>
+#include <map>
 
 using namespace std;
 
 /**
- * @brief Base class for all kinds of bus messages.
+ * @brief Defines parameters of a message sent or received on the bus.
  */
 class Message
 {
@@ -39,8 +40,8 @@ public:
 	 * @brief Constructs a new instance.
 	 * @param class the optional device class.
 	 * @param name the message name (unique within the same class and type).
-	 * @param isSetMessage whether this is a set message.
-	 * @param isActiveMessage true if message can be initiated by the daemon
+	 * @param isSet whether this is a set message.
+	 * @param isActive true if message can be initiated by the daemon
 	 * itself any any other participant, false if message can only be initiated
 	 * by a participant other than the daemon.
 	 * @param comment the comment.
@@ -50,15 +51,11 @@ public:
 	 * @param data the @a DataField for encoding/decoding the message.
 	 * @param pollPriority the priority for polling, or 0 for no polling at all.
 	 */
-	Message(const string clazz, const string name, const bool isSetMessage,
-			const bool isActiveMessage, const string comment,
+	Message(const string clazz, const string name, const bool isSet,
+			const bool isActive, const string comment,
 			const unsigned char srcAddress, const unsigned char dstAddress,
 			const vector<unsigned char> id, DataField* data,
-			const unsigned int pollPriority)
-		: m_class(clazz), m_name(name), m_isSetMessage(isSetMessage),
-		  m_isActiveMessage(isActiveMessage), m_comment(comment),
-		  m_srcAddress(srcAddress), m_dstAddress(dstAddress),
-		  m_id(id), m_data(data), m_pollPriority(pollPriority) {}
+			const unsigned int pollPriority);
 	/**
 	 * @brief Destructor.
 	 */
@@ -88,7 +85,7 @@ public:
 	 * @brief Get whether this is a set message.
 	 * @return whether this is a set message.
 	 */
-	bool isSetMessage() const { return m_isSetMessage; }
+	bool isSet() const { return m_isSet; }
 	/**
 	 * @brief Get whether message can be initiated by the daemon itself and any other
 	 * participant.
@@ -96,7 +93,7 @@ public:
 	 * participant, false if message can only be initiated by a participant
 	 * other than the daemon.
 	 */
-	bool isActiveMessage() const { return m_isActiveMessage; }
+	bool isActive() const { return m_isActive; }
 	/**
 	 * @brief Get the comment.
 	 * @return the comment.
@@ -117,6 +114,11 @@ public:
 	 * @return the primary, secondary, and optionally further command ID bytes.
 	 */
 	vector<unsigned char> getId() const { return m_id; }
+	/**
+	 * @brief Returns the key for storing in @a MessageSet.
+	 * @return the key for storing in @a MessageSet.
+	 */
+	unsigned long long getKey() { return m_key; }
 	/**
 	 * @brief Reads the value from the master or slave @a SymbolString.
 	 * @param masterData the unescaped master data @a SymbolString for reading binary data.
@@ -142,7 +144,6 @@ public:
 	result_t handle(SymbolString& masterData, SymbolString& slaveData,
 			ostringstream& output, char separator=';', bool answer=false);
 
-
 private:
 
 	 /** the optional device class. */
@@ -150,11 +151,11 @@ private:
 	/** the message name (unique within the same class and type). */
 	const string m_name;
 	/** whether this is a set message. */
-	const bool m_isSetMessage;
+	const bool m_isSet;
 	/** true if message can be initiated by the daemon itself and any other
 	 * participant, false if message can only be initiated by a participant
 	 * other than the daemon. */
-	const bool m_isActiveMessage;
+	const bool m_isActive;
 	/** the comment. */
 	const string m_comment;
 	/** the source address (optional if passive), or @a SYN for any. */
@@ -163,10 +164,66 @@ private:
 	const unsigned char m_dstAddress;
 	/** the primary, secondary, and optionally further command ID bytes. */
 	const vector<unsigned char> m_id;
+	/** the key for storing in @a MessageSet. */
+	unsigned long long m_key;
 	/** the @a DataField for encoding/decoding the message. */
 	DataField* m_data;
 	/** the priority for polling, or 0 for no polling at all. */
 	const unsigned char m_pollPriority;
+
+};
+
+/**
+ * @brief Holds a map of all known @a Message instances.
+ */
+class MessageMap
+{
+public:
+
+	/**
+	 * @brief Constructs a new instance.
+	 */
+	MessageMap() : m_maxIdLength(0) {}
+	/**
+	 * @brief Destructor.
+	 */
+	virtual ~MessageMap() { clear(); }
+	/**
+	 * @brief Adds a @a Message instance to this set.
+	 * @param message the @a Message instance to add.
+	 * @return @a RESULT_OK on success, or an error code.
+	 * Note: the caller may not free the created instance on success.
+	 */
+	result_t add(Message* message);
+	/**
+	 * @brief Finds the @a Message instance for the specified class and name.
+	 * @param master the master @a SymbolString for identifying the @a Message.
+	 * @return the @a Message instance, or NULL.
+	 * Note: the caller may not free the returned instance.
+	 */
+	Message* find(const string clazz, const string name, const bool isActive, const bool isSet);
+	/**
+	 * @brief Finds the @a Message instance for the specified master data.
+	 * @param master the master @a SymbolString for identifying the @a Message.
+	 * @return the @a Message instance, or NULL.
+	 * Note: the caller may not free the returned instance.
+	 */
+	Message* find(SymbolString master);
+	/**
+	 * @brief Removes all @a Message instances.
+	 */
+	void clear();
+
+private:
+
+	/** the maximum ID length used by any of the known @a Message instances. */
+	unsigned char m_maxIdLength;
+
+	/** the known @a Message instances by class and name. */
+	map<string, Message*> m_messagesByName;
+
+	/** the known passive @a Message instances by key. */
+	map<unsigned long long, Message*> m_passiveMessagesByKey;
 
 };
 
