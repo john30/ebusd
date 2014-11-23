@@ -32,7 +32,6 @@ using namespace std;
 enum PartType {
 	pt_any,          // stored in any data (master or slave)
 	pt_masterData,   // stored in master data
-	pt_masterDataID, // stored in master data and also used as message ID part
 	pt_slaveData,    // stored in slave data
 	};
 

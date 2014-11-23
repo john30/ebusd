@@ -126,10 +126,7 @@ result_t DataField::create(vector<string>::iterator& it,
 			firstName = name;
 			firstComment = comment;
 		}
-		if (isTemplate == false && strcasecmp(partStr, "I") == 0) {
-			partType = pt_masterDataID;
-		}
-		else if (dstAddress == BROADCAST || isMaster(dstAddress)
+		if (dstAddress == BROADCAST || isMaster(dstAddress)
 			|| (isTemplate == false && isSetMessage == true && partStr[0] == 0)
 			|| strcasecmp(partStr, "M") == 0) { // master data
 			partType = pt_masterData;
@@ -334,7 +331,6 @@ result_t SingleDataField::read(SymbolString& masterData, unsigned char masterOff
 	switch (m_partType)
 	{
 	case pt_masterData:
-	case pt_masterDataID:
 		offset = 5 + masterOffset; // skip QQ ZZ PB SB NN
 		break;
 	case pt_slaveData:
@@ -376,7 +372,6 @@ result_t SingleDataField::write(istringstream& input,
 	switch (m_partType)
 	{
 	case pt_masterData:
-	case pt_masterDataID:
 		offset = 5 + masterOffset; // skip QQ ZZ PB SB NN
 		break;
 	case pt_slaveData:
@@ -955,11 +950,11 @@ result_t DataFieldSet::read(SymbolString& masterData, unsigned char masterOffset
 		output << m_name << "={ ";
 
 	bool first = true;
-	unsigned char offsets[4];
+	unsigned char offsets[3];
 	memset(offsets, 0, sizeof(offsets));
 	offsets[pt_masterData] = masterOffset;
 	offsets[pt_slaveData] = slaveOffset;
-	bool previousFullByteOffset[] = { true, true, true, true };
+	bool previousFullByteOffset[] = { true, true, true };
 	for (vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
 		SingleDataField* field = *it;
 		bool ignored = field->isIgnored();
@@ -971,8 +966,6 @@ result_t DataFieldSet::read(SymbolString& masterData, unsigned char masterOffset
 			else
 				output << separator;
 		}
-		if (partType == pt_masterDataID)
-			partType = pt_masterData;
 		if (previousFullByteOffset[partType] == false && field->hasFullByteOffset(false) == false)
 			offsets[partType]--;
 
@@ -1002,18 +995,16 @@ result_t DataFieldSet::write(istringstream& input,
 {
 	string token;
 
-	unsigned char offsets[4];
+	unsigned char offsets[3];
 	memset(offsets, 0, sizeof(offsets));
 	offsets[pt_masterData] = masterOffset;
 	offsets[pt_slaveData] = slaveOffset;
-	bool previousFullByteOffset[] = { true, true, true, true };
+	bool previousFullByteOffset[] = { true, true, true };
 	for (vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
 		SingleDataField* field = *it;
 		bool ignored = field->isIgnored();
 		PartType partType = field->getPartType();
 
-		if (partType == pt_masterDataID)
-			partType = pt_masterData;
 		if (previousFullByteOffset[partType] == false && field->hasFullByteOffset(false) == false)
 			offsets[partType]--;
 
