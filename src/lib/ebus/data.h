@@ -79,6 +79,7 @@ typedef struct {
 unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result, unsigned int* length=NULL);
 
 
+class DataFieldTemplates;
 class SingleDataField;
 
 /**
@@ -103,7 +104,7 @@ public:
 	 * @brief Factory method for creating new instances.
 	 * @param it the iterator to traverse for the definition parts.
 	 * @param end the iterator pointing to the end of the definition parts.
-	 * @param templates a map of @a DataField templates to be referenced by name.
+	 * @param templates the @a DataFieldTemplates to be referenced by name, or NULL.
 	 * @param returnField the variable in which to store the created instance.
 	 * @param isSetMessage whether the field is part of a set message (default false).
 	 * @param dstAddress the destination bus address (default @a SYN for creating a template @a DataField).
@@ -111,7 +112,7 @@ public:
 	 * Note: the caller needs to free the created instance.
 	 */
 	static result_t create(vector<string>::iterator& it, const vector<string>::iterator end,
-			const map<string, DataField*> templates, DataField*& returnField,
+			DataFieldTemplates* templates, DataField*& returnField,
 			const bool isSetMessage=false, const unsigned char dstAddress=SYN);
 	/**
 	 * @brief Returns the length of this field (or contained fields) in bytes.
@@ -279,6 +280,8 @@ protected:
 	 */
 	virtual result_t writeSymbols(istringstream& input, const unsigned char offset, SymbolString& output) = 0;
 
+protected:
+
 	/** the value unit. */
 	const string m_unit;
 	/** the data type definition. */
@@ -386,7 +389,6 @@ protected:
 	/** the offset to the first bit in the binary value. */
 	const unsigned char m_bitOffset;
 
-
 };
 
 
@@ -430,6 +432,8 @@ protected:
 	virtual result_t readSymbols(SymbolString& input, const unsigned char offset, ostringstream& output);
 	// @copydoc
 	virtual result_t writeSymbols(istringstream& input, const unsigned char offset, SymbolString& output);
+
+private:
 
 	/** the combined divisor to apply on the value, or 1 for none. */
 	const unsigned int m_divisor;
@@ -477,6 +481,8 @@ protected:
 	virtual result_t readSymbols(SymbolString& input, const unsigned char offset, ostringstream& output);
 	// @copydoc
 	virtual result_t writeSymbols(istringstream& input, const unsigned char offset, SymbolString& output);
+
+private:
 
 	/** the value=text assignments. */
 	map<unsigned int, string> m_values;
@@ -540,12 +546,53 @@ public:
 			SymbolString& slaveData, unsigned char slaveOffset,
 			char separator);
 
-protected:
+private:
 
 	/** the @a vector of @a SingleDataField instances part of this set. */
 	vector<SingleDataField*> m_fields;
 
 };
 
+
+/**
+ * @brief A map of template @a DataField instances.
+ */
+class DataFieldTemplates
+{
+public:
+
+	/**
+	 * @brief Constructs a new instance.
+	 */
+	DataFieldTemplates() {}
+	/**
+	 * @brief Destructor.
+	 */
+	virtual ~DataFieldTemplates() { clear(); }
+	/**
+	 * @brief Removes all @a DataField instances.
+	 */
+	void clear();
+	/**
+	 * @brief Adds a template @a DataField instance to this map.
+	 * @param field the @a DataField instance to add.
+	 * @param replace whether replacing an already stored instance is allowed.
+	 * @return @a RESULT_OK on success, or an error code.
+	 * Note: the caller may not free the added instance on success.
+	 */
+	result_t add(DataField* message, bool replace=false);
+	/**
+	 * @brief Gets the template @a DataField instance with the specified name.
+	 * @return the template @a DataField instance, or NULL.
+	 * Note: the caller may not free the returned instance.
+	 */
+	DataField* get(string name);
+
+private:
+
+	/** the known template @a DataField instances by name. */
+	map<string, DataField*> m_fieldsByName;
+
+};
 
 #endif // LIBEBUS_DATA_H_

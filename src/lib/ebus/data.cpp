@@ -38,6 +38,7 @@ static const dataType_t dataTypes[] = {
 	{"HDA", 32, bt_dat,       0,          0,         10,         10,    0, 0}, // date with weekday, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is weekday Mon=0x01 - Sun=0x07))
 	{"HDA", 24, bt_dat,       0,          0,         10,         10,    0, 0}, // date, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99) // TODO remove duplicate of BDA
 	{"BTI", 24, bt_tim, BCD|REV,          0,          8,          8,    0, 0}, // time in BCD, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x59,0x59,0x23)
+	{"HTI", 24, bt_tim,       0,          0,          5,          5,    0, 0}, // time, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x17,0x3b,0x3b)
 	{"HTM", 16, bt_tim,       0,          0,          5,          5,    0, 0}, // time as hh:mm, 00:00 - 23:59 (0x00,0x00 - 0x17,0x3b)
 	{"TTM",  8, bt_tim,       0,       0x90,          5,          5,    0, 0}, // truncated time (only multiple of 10 minutes), 00:00 - 24:00 (minutes div 10 + hour * 6 as integer)
 	{"BDY",  8, bt_num, DAY|LST,       0x07,          0,          6,    1, 0}, // weekday, "Mon" - "Sun" (0x00 - 0x06) [ebus type]
@@ -97,7 +98,7 @@ unsigned int parseInt(const char* str, int base, const unsigned int minValue, co
 
 result_t DataField::create(vector<string>::iterator& it,
 		const vector<string>::iterator end,
-		const map< string, DataField*> templates,
+		DataFieldTemplates* templates,
 		DataField*& returnField, const bool isSetMessage,
 		const unsigned char dstAddress)
 {
@@ -199,20 +200,20 @@ result_t DataField::create(vector<string>::iterator& it,
 		if (pos == string::npos) {
 			length = 0;
 			// check for reference(s) to templates
-			if (templates.empty() == false) {
+			if (templates != NULL) {
 				istringstream stream(typeStr);
 				bool found = false;
 				string lengthStr;
 				while (getline(stream, token, VALUE_SEPARATOR) != 0) {
-					map<string, DataField*>::const_iterator ref = templates.find(token);
-					if (ref == templates.end()) {
+					DataField* templ = templates->get(token);
+					if (templ == NULL) {
 						if (found == false)
 							break; // fallback to direct definition
 						result = RESULT_ERR_INVALID_ARG; // cannot mix reference and direct definition
 						break;
 					}
 					found = true;
-					result = ref->second->derive(name, comment, unit, partType, divisor, values, fields);
+					result = templ->derive(name, comment, unit, partType, divisor, values, fields);
 					if (result != RESULT_OK)
 						break;
 				}
@@ -1029,4 +1030,42 @@ result_t DataFieldSet::write(istringstream& input,
 	}
 
 	return RESULT_OK;
+}
+
+
+void DataFieldTemplates::clear()
+{
+	for (map<string, DataField*>::iterator it=m_fieldsByName.begin(); it!=m_fieldsByName.end(); it++) {
+		delete it->second;
+		it->second = NULL;
+	}
+	m_fieldsByName.clear();
+}
+
+result_t DataFieldTemplates::add(DataField* field, bool replace)
+{
+	string name = field->getName();
+	map<string, DataField*>::iterator it = m_fieldsByName.find(name);
+	if (it != m_fieldsByName.end()) {
+		if (replace == false)
+			return RESULT_ERR_INVALID_ARG; // duplicate key
+
+		delete it->second;
+		it->second = field;
+
+		return RESULT_OK;
+	}
+
+	m_fieldsByName[name] = field;
+
+	return RESULT_OK;
+}
+
+DataField* DataFieldTemplates::get(const string name)
+{
+	map<string, DataField*>::const_iterator ref = m_fieldsByName.find(name);
+	if (ref == m_fieldsByName.end())
+		return NULL;
+
+	return ref->second;
 }
