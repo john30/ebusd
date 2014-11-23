@@ -305,7 +305,7 @@ public:
 
 private:
 	/** private constructor - singleton pattern */
-	Logger() {}
+	Logger() : m_running(false) {}
 	Logger(const Logger&);
 	Logger& operator=(const Logger&);
 
