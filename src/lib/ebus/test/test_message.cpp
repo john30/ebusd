@@ -19,6 +19,7 @@
 
 #include "message.h"
 #include <iostream>
+#include <fstream>
 #include <iomanip>
 
 using namespace std;
@@ -65,6 +66,51 @@ void printErrorPos(vector<string>::iterator it, const vector<string>::iterator e
 	cout << setw(cnt) << " " << setw(0) << "^" << endl;
 }
 
+bool readTemplates(string filename, DataFieldTemplates* templates)
+{
+	ifstream ifs;
+	ifs.open(filename.c_str(), ifstream::in);
+	if (ifs.is_open() == false) {
+		cerr << "error reading \"" << filename << endl;
+		return false;
+	}
+
+	string line;
+	unsigned int lineNo = 0;
+	vector<string> row;
+	string token;
+	while (getline(ifs, line) != 0) {
+		lineNo++;
+		istringstream isstr(line);
+		row.clear();
+		while (getline(isstr, token, ';') != 0)
+			row.push_back(token);
+
+		// skip empty and commented rows
+		if (row.empty() == true || row[0][0] == '#')
+			continue;
+
+		DataField* field = NULL;
+		vector<string>::iterator it = row.begin();
+		result_t result = DataField::create(it, row.end(), templates, field);
+		if (result != RESULT_OK) {
+			cerr << "error reading \"" << filename << "\" line " << static_cast<unsigned>(lineNo) << ": " << getResultCode(result) << endl;
+			printErrorPos(row.begin(), row.end(), it);
+		} else if (it != row.end())
+			cout << "extra data in \"" << filename << "\" line " << static_cast<unsigned>(lineNo) << endl;
+		else {
+			result = templates->add(field, true);
+			if (result != RESULT_OK) {
+				cerr << "error adding template \"" << field->getName() << "\": " << getResultCode(result) << endl;
+				delete field;
+			}
+		}
+	}
+
+	ifs.close();
+	return true;
+}
+
 int main()
 {
 	// message= [type];class;name;[comment];[QQ];ZZ;PBSB;fields...
@@ -74,7 +120,9 @@ int main()
 		{"c;;first;;;fe;0700;x;;bda", "26.10.2014", "fffe0700042610061451", "00", ""},
 		{"w;;first;;;15;b5090400;date;;bda", "26.10.2014", "ff15b5090604002610061445", "00", ""},
 	};
-	map<string, DataField*> templates;
+	DataFieldTemplates* templates = new DataFieldTemplates();
+	readTemplates("_types.csv", templates);
+
 	Message *message = NULL;
 	Message* deleteMessage = NULL;
 	MessageMap* messages = new MessageMap();
@@ -169,9 +217,7 @@ int main()
 		deleteMessage = NULL;
 	}
 
-	for (map<string, DataField*>::iterator it = templates.begin(); it != templates.end(); it++)
-		delete it->second;
-
+	delete templates;
 	delete messages;
 
 	return 0;
