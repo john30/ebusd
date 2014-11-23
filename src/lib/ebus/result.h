@@ -41,6 +41,8 @@ static const int RESULT_ERR_ESC = -9;          // invalid escape sequence receiv
 static const int RESULT_ERR_INVALID_ARG = -10; // invalid argument
 static const int RESULT_ERR_DEVICE = -11;      // generic device error (usually fatal)
 static const int RESULT_ERR_EOF = -12;         // end of input reached
+static const int RESULT_ERR_FILENOTFOUND = -13;// file not found or not readable
+static const int RESULT_ERR_DUPLICATE = -14;   // duplicate entry
 
 /** type for result code. */
 typedef int result_t;

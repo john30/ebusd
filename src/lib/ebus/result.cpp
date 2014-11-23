@@ -23,7 +23,6 @@
 using namespace std;
 
 const char* getResultCode(result_t resultCode) {
-cout << "DEBUG error code: " << static_cast<signed>(resultCode) << endl;
 	switch (resultCode) {
 		case RESULT_ERR_SEND: return "ERR_SEND: send error";
 		case RESULT_ERR_EXTRA_DATA: return "ERR_EXTRA_DATA: received bytes > sent bytes";
@@ -37,6 +36,8 @@ cout << "DEBUG error code: " << static_cast<signed>(resultCode) << endl;
 		case RESULT_ERR_INVALID_ARG: return "ERR_INVALID_ARG: invalid argument specified";
 		case RESULT_ERR_DEVICE: return "ERR_DEVICE: generic device error";
 		case RESULT_ERR_EOF: return "ERR_EOF: end of input reached";
+		case RESULT_ERR_FILENOTFOUND: return "ERR_FILENOTFOUND: file not found or not readable";
+		case RESULT_ERR_DUPLICATE: return "ERR_DUPLICATE: duplicate entry";
 		default:
 			if (resultCode >= 0)
 				return "success";
