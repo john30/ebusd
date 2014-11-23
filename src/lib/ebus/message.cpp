@@ -172,8 +172,9 @@ result_t Message::prepare(const unsigned char srcAddress, SymbolString& masterDa
 		if (result != RESULT_OK)
 			return result;
 		masterData.push_back(masterData.getCRC(), false, false);
+		return RESULT_OK;
 	}
-	return RESULT_OK;
+	return RESULT_ERR_INVALID_ARG; // prepare not possible
 }
 
 result_t Message::handle(SymbolString& masterData, SymbolString& slaveData,
