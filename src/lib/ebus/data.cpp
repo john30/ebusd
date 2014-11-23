@@ -38,7 +38,7 @@ static const dataType_t dataTypes[] = {
 	{"HDA", 32, bt_dat,       0,          0,         10,         10,    0, 0}, // date with weekday, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is weekday Mon=0x01 - Sun=0x07))
 	{"HDA", 24, bt_dat,       0,          0,         10,         10,    0, 0}, // date, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99) // TODO remove duplicate of BDA
 	{"BTI", 24, bt_tim, BCD|REV,          0,          8,          8,    0, 0}, // time in BCD, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x59,0x59,0x23)
-	{"HTI", 24, bt_tim,       0,          0,          5,          5,    0, 0}, // time, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x17,0x3b,0x3b)
+	{"HTI", 24, bt_tim,       0,          0,          8,          8,    0, 0}, // time, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x17,0x3b,0x3b)
 	{"HTM", 16, bt_tim,       0,          0,          5,          5,    0, 0}, // time as hh:mm, 00:00 - 23:59 (0x00,0x00 - 0x17,0x3b)
 	{"TTM",  8, bt_tim,       0,       0x90,          5,          5,    0, 0}, // truncated time (only multiple of 10 minutes), 00:00 - 24:00 (minutes div 10 + hour * 6 as integer)
 	{"BDY",  8, bt_num, DAY|LST,       0x07,          0,          6,    1, 0}, // weekday, "Mon" - "Sun" (0x00 - 0x06) [ebus type]
@@ -426,7 +426,7 @@ result_t StringDataField::readSymbols(SymbolString& input,
 		if (m_length == 4 && i == 2 && m_dataType.type == bt_dat)
 			continue; // skip weekday in between
 		ch = input[baseOffset + offset];
-		if ((m_dataType.flags & BCD) != 0 || m_dataType.type == bt_dat || (m_dataType.type == bt_tim && m_length > 2)) {
+		if ((m_dataType.flags & BCD) != 0 || m_dataType.type == bt_dat) {
 			if ((ch & 0xf0) > 0x90 || (ch & 0x0f) > 0x09)
 				return RESULT_ERR_INVALID_ARG; // invalid BCD
 			ch = (ch >> 4) * 10 + (ch & 0x0f);
@@ -585,7 +585,7 @@ result_t StringDataField::writeSymbols(istringstream& input,
 		}
 		lastLast = last;
 		last = value;
-		if ((m_dataType.flags & BCD) != 0 || m_dataType.type == bt_dat || (m_dataType.type == bt_tim && m_length > 2)) {
+		if ((m_dataType.flags & BCD) != 0 || m_dataType.type == bt_dat) {
 			if (value > 99)
 				return RESULT_ERR_INVALID_ARG; // invalid BCD
 			value = ((value / 10) << 4) | (value % 10);
