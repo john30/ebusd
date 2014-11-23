@@ -66,51 +66,6 @@ void printErrorPos(vector<string>::iterator it, const vector<string>::iterator e
 	cout << setw(cnt) << " " << setw(0) << "^" << endl;
 }
 
-bool readTemplates(string filename, DataFieldTemplates* templates)
-{
-	ifstream ifs;
-	ifs.open(filename.c_str(), ifstream::in);
-	if (ifs.is_open() == false) {
-		cerr << "error reading \"" << filename << endl;
-		return false;
-	}
-
-	string line;
-	unsigned int lineNo = 0;
-	vector<string> row;
-	string token;
-	while (getline(ifs, line) != 0) {
-		lineNo++;
-		istringstream isstr(line);
-		row.clear();
-		while (getline(isstr, token, ';') != 0)
-			row.push_back(token);
-
-		// skip empty and commented rows
-		if (row.empty() == true || row[0][0] == '#')
-			continue;
-
-		DataField* field = NULL;
-		vector<string>::iterator it = row.begin();
-		result_t result = DataField::create(it, row.end(), templates, field);
-		if (result != RESULT_OK) {
-			cerr << "error reading \"" << filename << "\" line " << static_cast<unsigned>(lineNo) << ": " << getResultCode(result) << endl;
-			printErrorPos(row.begin(), row.end(), it);
-		} else if (it != row.end())
-			cout << "extra data in \"" << filename << "\" line " << static_cast<unsigned>(lineNo) << endl;
-		else {
-			result = templates->add(field, true);
-			if (result != RESULT_OK) {
-				cerr << "error adding template \"" << field->getName() << "\": " << getResultCode(result) << endl;
-				delete field;
-			}
-		}
-	}
-
-	ifs.close();
-	return true;
-}
-
 int main()
 {
 	// message= [type];class;name;[comment];[QQ];ZZ;PBSB;fields...
@@ -124,11 +79,21 @@ int main()
 		{"c;ehp;ActualEnvironmentPower;Energiebezug;;08;B50929BA00;;s;IGN:2;;;;;s;power", "8", "1008b5090329ba00", "03ba0008", "p"},
 	};
 	DataFieldTemplates* templates = new DataFieldTemplates();
-	readTemplates("_types.csv", templates);
+	result_t result = templates->readFromFile("_types.csv");
+	if (result == RESULT_OK)
+		cout << "read templates OK" << endl;
+	else
+		cout << "read templates error: " << getResultCode(result) << endl;
+
+	MessageMap* messages = new MessageMap();
+	result = messages->readFromFile("ehp00.csv", templates);
+	if (result == RESULT_OK)
+		cout << "read messages OK" << endl;
+	else
+		cout << "read messages error: " << getResultCode(result) << endl;
 
 	Message *message = NULL;
 	Message* deleteMessage = NULL;
-	MessageMap* messages = new MessageMap();
 	for (size_t i = 0; i < sizeof(checks) / sizeof(checks[0]); i++) {
 		string check[5] = checks[i];
 		istringstream isstr(check[0]);

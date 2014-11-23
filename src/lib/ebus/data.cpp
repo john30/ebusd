@@ -69,7 +69,6 @@ static const dataType_t dataTypes[] = {
 /** the week day names. */
 static const char* dayNames[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
 
-#define FIELD_SEPARATOR ';'
 #define VALUE_SEPARATOR ','
 #define LENGTH_SEPARATOR ':'
 #define NULL_VALUE "-"
@@ -1048,7 +1047,7 @@ result_t DataFieldTemplates::add(DataField* field, bool replace)
 	map<string, DataField*>::iterator it = m_fieldsByName.find(name);
 	if (it != m_fieldsByName.end()) {
 		if (replace == false)
-			return RESULT_ERR_INVALID_ARG; // duplicate key
+			return RESULT_ERR_DUPLICATE; // duplicate key
 
 		delete it->second;
 		it->second = field;
@@ -1061,6 +1060,21 @@ result_t DataFieldTemplates::add(DataField* field, bool replace)
 	return RESULT_OK;
 }
 
+result_t DataFieldTemplates::addFromFile(vector<string>& row, void* arg)
+{
+	DataField* field = NULL;
+	vector<string>::iterator it = row.begin();
+	result_t result = DataField::create(it, row.end(), this, field);
+	if (result != RESULT_OK)
+		return result;
+
+	result = add(field);
+	if (result != RESULT_OK)
+		delete field;
+
+	return result;
+}
+
 DataField* DataFieldTemplates::get(const string name)
 {
 	map<string, DataField*>::const_iterator ref = m_fieldsByName.find(name);
@@ -1069,3 +1083,4 @@ DataField* DataFieldTemplates::get(const string name)
 
 	return ref->second;
 }
+

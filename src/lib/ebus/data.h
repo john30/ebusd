@@ -23,10 +23,15 @@
 #include "symbol.h"
 #include "result.h"
 #include <string>
+#include <iostream>
+#include <sstream>
+#include <fstream>
 #include <vector>
 #include <map>
 
 using namespace std;
+
+#define FIELD_SEPARATOR ';'
 
 /** the message part in which a data field is stored. */
 enum PartType {
@@ -555,9 +560,72 @@ private:
 
 
 /**
+ * @brief An abstract class that support reading definitions from a file.
+ */
+template<typename T>
+class FileReader
+{
+public:
+
+	/**
+	 * @brief Constructs a new instance.
+	 */
+	FileReader() {}
+	/**
+	 * @brief Destructor.
+	 */
+	virtual ~FileReader() {}
+	/**
+	 * @brief Reads the definitions from a file.
+	 * @param filename the name (and path) of the file to read.
+	 * @return @a RESULT_OK on success, or an error code.
+	 */
+	virtual result_t readFromFile(string filename, T arg=NULL)
+	{
+		ifstream ifs;
+		ifs.open(filename.c_str(), ifstream::in);
+		if (ifs.is_open() == false)
+			return RESULT_ERR_FILENOTFOUND;
+
+		string line;
+		unsigned int lineNo = 0;
+		vector<string> row;
+		string token;
+		while (getline(ifs, line) != 0) {
+			lineNo++;
+			// skip empty lines and comments
+			if (line.length() == 0 || line.substr(0, 1) == "#" || line.substr(0, 2) == "//")
+				continue;
+			istringstream isstr(line);
+			row.clear();
+			while (getline(isstr, token, FIELD_SEPARATOR) != 0)
+				row.push_back(token);
+
+			result_t result = addFromFile(row, arg);
+			if (result != RESULT_OK) {
+				cerr << "error reading \"" << filename << "\" line " << static_cast<unsigned>(lineNo) << ": " << getResultCode(result) << endl;
+				ifs.close();
+				return result;
+			}
+		}
+
+		ifs.close();
+		return RESULT_OK;
+	}
+	/**
+	 * @brief Adds a definition that was read from a file.
+	 * @param row the definition row read from the file.
+	 * @return @a RESULT_OK on success, or an error code.
+	 */
+	virtual result_t addFromFile(vector<string>& row, T arg) = 0;
+
+};
+
+
+/**
  * @brief A map of template @a DataField instances.
  */
-class DataFieldTemplates
+class DataFieldTemplates : public FileReader<void*>
 {
 public:
 
@@ -581,6 +649,8 @@ public:
 	 * Note: the caller may not free the added instance on success.
 	 */
 	result_t add(DataField* message, bool replace=false);
+	// @copydoc
+	virtual result_t addFromFile(vector<string>& row, void* arg);
 	/**
 	 * @brief Gets the template @a DataField instance with the specified name.
 	 * @return the template @a DataField instance, or NULL.

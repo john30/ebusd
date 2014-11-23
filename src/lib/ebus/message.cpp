@@ -210,7 +210,7 @@ result_t MessageMap::add(Message* message)
 		unsigned long long pkey = message->getKey();
 		map<unsigned long long, Message*>::iterator keyIt = m_passiveMessagesByKey.find(pkey);
 		if (keyIt != m_passiveMessagesByKey.end())
-			return RESULT_ERR_INVALID_ARG; // duplicate key
+			return RESULT_ERR_DUPLICATE; // duplicate key
 
 		unsigned char idLength = message->getId().size() - 2;
 		if (idLength > m_maxIdLength)
@@ -221,6 +221,21 @@ result_t MessageMap::add(Message* message)
 	m_messagesByName[key] = message;
 
 	return RESULT_OK;
+}
+
+result_t MessageMap::addFromFile(vector<string>& row, DataFieldTemplates* arg)
+{
+	Message* message = NULL;
+	vector<string>::iterator it = row.begin();
+	result_t result = Message::create(it, row.end(), arg, message);
+	if (result != RESULT_OK)
+		return result;
+
+	result = add(message);
+	if (result != RESULT_OK)
+		delete message;
+
+	return result;
 }
 
 Message* MessageMap::find(const string clazz, const string name, const bool isActive, const bool isSet)

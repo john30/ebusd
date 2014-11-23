@@ -176,7 +176,7 @@ private:
 /**
  * @brief Holds a map of all known @a Message instances.
  */
-class MessageMap
+class MessageMap : public FileReader<DataFieldTemplates*>
 {
 public:
 
@@ -195,6 +195,8 @@ public:
 	 * Note: the caller may not free the added instance on success.
 	 */
 	result_t add(Message* message);
+	// @copydoc
+	virtual result_t addFromFile(vector<string>& row, DataFieldTemplates* arg);
 	/**
 	 * @brief Finds the @a Message instance for the specified class and name.
 	 * @param master the master @a SymbolString for identifying the @a Message.
@@ -213,6 +215,7 @@ public:
 	 * @brief Removes all @a Message instances.
 	 */
 	void clear();
+
 
 private:
 
