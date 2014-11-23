@@ -64,13 +64,13 @@ public:
 	 * @brief Factory method for creating a new instance.
 	 * @param it the iterator to traverse for the definition parts.
 	 * @param end the iterator pointing to the end of the definition parts.
-	 * @param templates a map of @a DataField templates to be referenced by name.
+	 * @param templates the @a DataFieldTemplates to be referenced by name, or NULL.
 	 * @param returnValue the variable in which to store the created instance.
 	 * @return @a RESULT_OK on success, or an error code.
 	 * Note: the caller needs to free the created instance.
 	 */
 	static result_t create(vector<string>::iterator& it, const vector<string>::iterator end,
-			const map<string, DataField*> templates, Message*& returnValue);
+			DataFieldTemplates*, Message*& returnValue);
 	/**
 	 * @brief Get the optional device class.
 	 * @return the optional device class.
@@ -192,7 +192,7 @@ public:
 	 * @brief Adds a @a Message instance to this set.
 	 * @param message the @a Message instance to add.
 	 * @return @a RESULT_OK on success, or an error code.
-	 * Note: the caller may not free the created instance on success.
+	 * Note: the caller may not free the added instance on success.
 	 */
 	result_t add(Message* message);
 	/**

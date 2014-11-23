@@ -50,7 +50,7 @@ Message::Message(const string clazz, const string name, const bool isSet,
 }
 
 result_t Message::create(vector<string>::iterator& it, const vector<string>::iterator end,
-		const map<string, DataField*> templates, Message*& returnValue)
+		DataFieldTemplates* templates, Message*& returnValue)
 {
 	// [type];[class];name;[comment];[QQ];ZZ;id;fields...
 	result_t result;
