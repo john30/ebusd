@@ -117,8 +117,11 @@ int main()
 	// field=   name;[pos];type[;[divisor|values][;[unit][;[comment]]]]
 	string checks[][5] = {
 		// "message", "flags"
-		{"c;;first;;;fe;0700;x;;bda", "26.10.2014", "fffe0700042610061451", "00", "P"},
+		{"c;;first;;;fe;0700;x;;bda", "26.10.2014", "fffe0700042610061451", "00", "p"},
 		{"w;;first;;;15;b5090400;date;;bda", "26.10.2014", "ff15b5090604002610061445", "00", "m"},
+		{"r;ehp;time;;;08;b5090d2800;;;time", "15:00:17", "ff08b509030d2800ea", "0311000f00", "m"},
+		{"r;ehp;date;;;08;b5090d2900;;;hda:3", "23.11.2014", "ff08b509030d290071", "03170b0e5a", "m"},
+		{"c;ehp;ActualEnvironmentPower;Energiebezug;;08;B50929BA00;;s;IGN:2;;;;;s;power", "8", "1008b5090329ba00", "03ba0008", "p"},
 	};
 	DataFieldTemplates* templates = new DataFieldTemplates();
 	readTemplates("_types.csv", templates);
@@ -195,18 +198,18 @@ int main()
 		result = message->prepare(0xff, writeMstr, input);
 		if (failedPrepare == true) {
 			if (result == RESULT_OK)
-				cout << "\"" << check[0] << "\": failed prepare error: unexpectedly succeeded" << endl;
+				cout << "  \"" << inputStr << "\": failed prepare error: unexpectedly succeeded" << endl;
 			else
-				cout << "\"" << check[0] << "\": failed prepare OK" << endl;
+				cout << "  \"" << inputStr << "\": failed prepare OK" << endl;
 			continue;
 		}
 
 		if (result != RESULT_OK) {
-			cout << "  prepare >" << inputStr << "< error: "
+			cout << "  \"" << inputStr << "\": prepare error: "
 			        << getResultCode(result) << endl;
 			continue;
 		}
-		cout << "  prepare >" << inputStr << "< OK" << endl;
+		cout << "  \"" << inputStr << "\": prepare OK" << endl;
 
 		bool match = writeMstr==mstr;
 		verify(failedPrepareMatch, "prepare", inputStr, match, mstr.getDataStr(), writeMstr.getDataStr());
