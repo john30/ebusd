@@ -175,6 +175,12 @@ public:
 	 * @return number of commands and arguments.
 	 */
 	int numArgs() const { return m_arguments.size(); }
+	/**
+	 * @brief returns the string of an interested argument.
+	 * @param num number of interested argument.
+	 * @return the argument string.
+	 */
+	string getArg(const int num) const { return m_arguments[num]; }
 
 	/**
 	 * @brief returns the string of given command.
@@ -183,11 +189,10 @@ public:
 	string getCommand() const { return m_command; }
 
 	/**
-	 * @brief returns the string of an interested argument.
-	 * @param num number of interested argument.
-	 * @return the argument string.
+	 * @brief returns the string of given command.
+	 * @return the command string.
 	 */
-	string getArg(const int num) const { return m_arguments[num]; }
+	bool missingCommand() const { return (m_command.size() == 0 ? true : false); }
 
 private:
 	/** private constructor - singleton pattern */
@@ -197,7 +202,7 @@ private:
 	 * @param argument is true if command could have an argument.
 	 */
 	Appl(const bool command, const bool argument)
-		: m_needCommand(command), m_withArgument(argument) {}
+		: m_withCommand(command), m_withArgument(argument) {}
 
 	/**
 	 * @brief private copy construtor.
@@ -229,10 +234,10 @@ private:
 	/** application version string */
 	const char* m_version;
 
-	/** true if the application need a command */
-	bool m_needCommand;
+	/** true if the application could have a command */
+	bool m_withCommand;
 
-	/** true if the needed command could have an argument */
+	/** true if the command could have an argument */
 	bool m_withArgument;
 
 	/** command (argument 0 = command) string */

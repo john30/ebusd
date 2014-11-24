@@ -22,13 +22,9 @@
 #endif
 
 #include "appl.h"
-#include "port.h"
-#include "decode.h"
 #include "tcpsocket.h"
 #include <iostream>
-#include <fstream>
-#include <iomanip>
-#include <unistd.h>
+#include <cstdlib>
 
 using namespace std;
 
@@ -57,6 +53,11 @@ int main(int argc, char* argv[])
 
 	// parse arguments
 	A.parseArgs(argc, argv);
+
+	if (A.missingCommand() == true) {
+		cout << "interactive mode started." << endl;
+		exit(EXIT_FAILURE);
+	}
 
 	TCPClient* client = new TCPClient();
 	TCPSocket* socket = client->connect(A.getOptVal<const char*>("server"), A.getOptVal<int>("port"));
@@ -87,6 +88,6 @@ int main(int argc, char* argv[])
 
 	delete client;
 
-	return 0;
+	exit(EXIT_SUCCESS);
 }
 

@@ -23,12 +23,10 @@
 
 #include "appl.h"
 #include "port.h"
-#include "decode.h"
-#include "tcpsocket.h"
 #include <iostream>
+#include <cstdlib>
 #include <fstream>
 #include <iomanip>
-#include <unistd.h>
 
 using namespace std;
 
@@ -96,6 +94,6 @@ int main(int argc, char* argv[])
 		cout << "error opening device " << A.getOptVal<const char*>("device") << endl;
 
 
-	return 0;
+	exit(EXIT_SUCCESS);
 }
 

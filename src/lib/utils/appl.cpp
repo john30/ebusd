@@ -107,25 +107,17 @@ void Appl::parseArgs(int argc, char* argv[])
 	}
 
 	// check command
-	if (m_needCommand == true) {
-		for (int i = 1; i < argc; i++) {
+	for (int i = 1; i < argc; i++) {
 
-			if (_argv[i].rfind("-", 0) != string::npos) {
-				i++;
-				continue;
-			}
-			if (m_command.size() == 0)
-				m_command = _argv[i];
-			else
-				m_arguments.push_back(_argv[i]);
+		if (_argv[i].rfind("-", 0) != string::npos) {
+			i++;
+			continue;
 		}
-
-		if (m_command.size() == 0) {
-			cerr << endl << "command needed" << endl;
-			printHelp();
-		}
+		if (m_command.size() == 0)
+			m_command = _argv[i];
+		else
+			m_arguments.push_back(_argv[i]);
 	}
-
 }
 
 bool Appl::checkOption(const string& option, const string& value)
@@ -196,7 +188,7 @@ void Appl::printHelp()
 	cerr << endl << "Usage:" << endl << "  "
 		  << m_argv[0].substr(m_argv[0].find_last_of("/\\") + 1) << " [OPTIONS...]" ;
 
-	if (m_needCommand == true)
+	if (m_withCommand == true)
 		if (m_withArgument == true)
 			cerr << " COMMAND {ARGS...}" << endl << endl;
 		else
