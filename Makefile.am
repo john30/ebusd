@@ -3,7 +3,7 @@ SUBDIRS = docs \
 	  src/lib/ebus \
 	  src/lib/ebus/test \
 	  src/ebusd \
-	  src/ebusctl
+	  src/tools
 
 distclean-local:
 	-rm -rf autom4te.cache

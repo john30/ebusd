@@ -24,9 +24,9 @@
 
 using namespace std;
 
-Appl& Appl::Instance(const bool command)
+Appl& Appl::Instance(const bool command, const bool argument)
 {
-	static Appl instance(command);
+	static Appl instance(command, argument);
 	return instance;
 }
 
@@ -114,10 +114,13 @@ void Appl::parseArgs(int argc, char* argv[])
 				i++;
 				continue;
 			}
-			m_arguments.push_back(_argv[i]);
+			if (m_command.size() == 0)
+				m_command = _argv[i];
+			else
+				m_arguments.push_back(_argv[i]);
 		}
 
-		if (m_arguments.size() == 0) {
+		if (m_command.size() == 0) {
 			cerr << endl << "command needed" << endl;
 			printHelp();
 		}
@@ -130,7 +133,7 @@ bool Appl::checkOption(const string& option, const string& value)
 	if (strcmp(option.c_str(), "settings") == 0)
 		printSettings();
 
-	if (strcmp(option.c_str(), "v") == 0 || strcmp(option.c_str(), "version") == 0)
+	if (strcmp(option.c_str(), "version") == 0)
 		printVersion();
 
 	if (strcmp(option.c_str(), "h") == 0 || strcmp(option.c_str(), "help") == 0)
@@ -194,7 +197,10 @@ void Appl::printHelp()
 		  << m_argv[0].substr(m_argv[0].find_last_of("/\\") + 1) << " [OPTIONS...]" ;
 
 	if (m_needCommand == true)
-		cerr << " COMMAND {ARGS...}" << endl << endl;
+		if (m_withArgument == true)
+			cerr << " COMMAND {ARGS...}" << endl << endl;
+		else
+			cerr << " COMMAND" << endl << endl;
 	else
 		cerr << endl << endl;
 
@@ -210,7 +216,7 @@ void Appl::printHelp()
 		}
 	}
 
-	cerr << "   | --settings\n-v | --version\n-h | --help" << endl << endl;
+	cerr << endl << "   | --settings\n   | --version\n-h | --help" << endl << endl;
 	exit(EXIT_SUCCESS);
 }
 

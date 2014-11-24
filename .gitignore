@@ -12,7 +12,8 @@ Makefile.in
 *.o
 *.dirstamp
 /src/ebusd/ebusd
-/src/ebusctl/ebusctl
+/src/tools/ebusctl
+/src/tools/ebusfeed
 /src/lib/utils/libutils.a
 /src/lib/ebus/libebus.a
 /src/lib/ebus/test/test_bus

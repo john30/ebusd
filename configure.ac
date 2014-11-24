@@ -29,7 +29,7 @@ AC_CONFIG_FILES([Makefile
 		 src/lib/ebus/Makefile
 		 src/lib/ebus/test/Makefile
 		 src/ebusd/Makefile
-		 src/ebusctl/Makefile])
+		 src/tools/Makefile])
 
 AC_CHECK_PROGS([HAVE_DOXYGEN], [doxygen])
 if test -z "$HAVE_DOXYGEN";
