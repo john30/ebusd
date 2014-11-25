@@ -75,7 +75,7 @@ bool connect(const char* host, int port, bool once=true)
 			string message;
 
 			if (once == false) {
-				cout << "online: ";
+				cout << host << ": ";
 				getline(cin, message);
 			}
 			else {
@@ -98,6 +98,7 @@ bool connect(const char* host, int port, bool once=true)
 
 				cout << data;
 			}
+			else
 				break;
 
 		} while (once == false);
