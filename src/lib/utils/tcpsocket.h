@@ -32,8 +32,10 @@ class TCPSocket
 {
 
 public:
-	/** grant access for friend classes */
+	/** grant access for friend class TCPClient */
 	friend class TCPClient;
+
+	/** grant access for friend class TCPServer */
 	friend class TCPServer;
 
 	/**

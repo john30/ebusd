@@ -195,7 +195,6 @@ public:
 	bool missingCommand() const { return (m_command.size() == 0 ? true : false); }
 
 private:
-	/** private constructor - singleton pattern */
 	/**
 	 * @brief private construtor.
 	 * @param command is true if an command is needed.
@@ -213,6 +212,7 @@ private:
 	/**
 	 * @brief private = operator.
 	 * @param reference to an instance.
+	 * @return reference to instance.
 	 */
 	Appl& operator=(const Appl&);
 

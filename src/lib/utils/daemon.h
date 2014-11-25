@@ -51,9 +51,22 @@ public:
 	bool status() { return m_status; }
 
 private:
-	/** private constructor - singleton pattern */
+	/**
+	 * @brief private construtor.
+	 */
 	Daemon() {}
+
+	/**
+	 * @brief private copy construtor.
+	 * @param reference to an instance.
+	 */
 	Daemon(const Daemon&);
+
+	/**
+	 * @brief private = operator.
+	 * @param reference to an instance.
+	 * @return reference to instance.
+	 */
 	Daemon& operator=(const Daemon&);
 
 	/** status of process; true if we are a daemon */
