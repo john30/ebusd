@@ -307,6 +307,8 @@ void BusLoop::collectCycData(const int numRecv)
 
 void BusLoop::analyseCycData()
 {
+	//TODO check the input data for validity
+
 	static bool skipfirst = false;
 
 	if (skipfirst == true) {
