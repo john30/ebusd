@@ -18,9 +18,9 @@
  */
 
 #include "baseloop.h"
-#include "configfile.h"
 #include "logger.h"
 #include "appl.h"
+#include <dirent.h>
 
 using namespace std;
 
@@ -30,15 +30,42 @@ extern Appl& A;
 BaseLoop::BaseLoop()
 {
 	// create commands DB
-	m_commands = ConfigCommands(A.getOptVal<const char*>("ebusconfdir"), ft_csv).getCommands();
-	L.log(bas, trace, "ebus configuration dir: %s", A.getOptVal<const char*>("ebusconfdir"));
-	L.log(bas, event, "commands DB: %d ", m_commands->sizeCmdDB());
-	L.log(bas, event, "   cycle DB: %d ", m_commands->sizeCycDB());
-	L.log(bas, event, " polling DB: %d ", m_commands->sizePollDB());
+	m_templates = new DataFieldTemplates();
+	m_messages = new MessageMap();
 
-	// create busloop
-	m_busloop = new BusLoop(m_commands);
-	m_busloop->start("busloop");
+	string confdir = A.getOptVal<const char*>("ebusconfdir");
+	L.log(bas, trace, "ebus configuration dir: %s", confdir.c_str());
+	result_t result = m_templates->readFromFile(confdir+"/_types.csv");
+	if (result == RESULT_OK)
+		L.log(bas, trace, "read templates");
+	else
+		L.log(bas, error, "error reading templates: %s", getResultCode(result));
+	result = readConfigFiles(confdir, ".csv");
+	if (result == RESULT_OK)
+		L.log(bas, trace, "read config files");
+	else
+		L.log(bas, error, "error reading config files: %s", getResultCode(result));
+
+	/*L.log(bas, event, "commands DB: %d ", m_commands->sizeCmdDB());
+	L.log(bas, event, "   cycle DB: %d ", m_commands->sizeCycDB());
+	L.log(bas, event, " polling DB: %d ", m_commands->sizePollDB());*/
+
+	const bool logRaw = A.getOptVal<bool>("lograwdata");
+
+	const bool dumpRaw = A.getOptVal<bool>("dump");
+	const char* dumpRawFile = A.getOptVal<const char*>("dumpfile");
+	const long dumpRawMaxSize = A.getOptVal<long>("dumpsize");
+
+	// create Port
+	m_port = new Port(A.getOptVal<const char*>("device"), A.getOptVal<bool>("nodevicecheck"), logRaw, &L, dumpRaw, dumpRawFile, dumpRawMaxSize);
+	m_port->open();
+
+	if (m_port->isOpen() == false)
+		L.log(bus, error, "can't open %s", A.getOptVal<const char*>("device"));
+
+	// create BusHandler
+	m_busHandler = new BusHandler(m_port, m_messages, SYN, SYN); // TODO
+	m_busHandler->start("bushandler");
 
 	// create network
 	m_network = new Network(A.getOptVal<bool>("localhost"), &m_netQueue);
@@ -47,21 +74,62 @@ BaseLoop::BaseLoop()
 
 BaseLoop::~BaseLoop()
 {
-	// free network
 	if (m_network != NULL)
 		delete m_network;
 
-	// free busloop
-	if (m_busloop != NULL) {
-		m_busloop->stop();
-		m_busloop->join();
-		delete m_busloop;
+	if (m_busHandler != NULL) {
+		m_busHandler->stop();
+		m_busHandler->join();
+		delete m_busHandler;
 	}
 
-	// free commands DB
-	if (m_commands != NULL)
-		delete m_commands;
+	if (m_port != NULL)
+		delete m_port;
+
+	if (m_messages != NULL)
+		delete m_messages;
+
+	if (m_templates != NULL)
+		delete m_templates;
 }
+
+result_t BaseLoop::readConfigFiles(const string path, const string extension)
+{
+	DIR* dir = opendir(path.c_str());
+
+	if (dir == NULL)
+		return RESULT_ERR_FILENOTFOUND;
+
+	dirent* d = readdir(dir);
+
+	while (d != NULL) {
+		if (d->d_type == DT_DIR) {
+			string fn = d->d_name;
+//std::cout << "found dir " << fn << endl;
+			if (fn != "." && fn != "..") {
+				const string p = path + "/" + d->d_name;
+				result_t result = readConfigFiles(p, extension);
+				if (result != RESULT_OK)
+					return result;
+			}
+		} else if (d->d_type == DT_REG) {
+			string fn = d->d_name;
+//std::cout << "found file " << fn << endl;
+			if (fn.find(extension, (fn.length() - extension.length())) != string::npos
+				&& fn != "_types" + extension) {
+				const string p = path + "/" + d->d_name;
+				result_t result = m_messages->readFromFile(p, m_templates);
+				if (result != RESULT_OK)
+					return result;
+			}
+		}
+
+		d = readdir(dir);
+	}
+	closedir(dir);
+
+	return RESULT_OK;
+};
 
 void BaseLoop::start()
 {
@@ -100,7 +168,7 @@ string BaseLoop::decodeMessage(const string& data)
 {
 	ostringstream result;
 	string cycdata, polldata;
-	int index;
+	Message* message;
 
 	// prepare data
 	string token;
@@ -118,15 +186,15 @@ string BaseLoop::decodeMessage(const string& data)
 		result << "command not found";
 		break;
 
-	case ct_get:
+	/*case ct_get:
 		if (cmd.size() < 3 || cmd.size() > 4) {
 			result << "usage: 'get class cmd (sub)'";
 			break;
 		}
 
-		index = m_commands->findCommand(data);
+		message = m_messages->find(cmd[1], cmd[2], true, false);
 
-		if (index >= 0) {
+		if (message != NULL) {
 
 			// polling data
 			if (strcasecmp(m_commands->getCmdType(index).c_str(), "P") == 0) {
@@ -176,9 +244,9 @@ string BaseLoop::decodeMessage(const string& data)
 			result << "ebus command not found";
 		}
 
-		break;
+		break;*/
 
-	case ct_set:
+	/*case ct_set:
 		if (cmd.size() != 4) {
 			result << "usage: 'set class cmd value'";
 			break;
@@ -231,9 +299,9 @@ string BaseLoop::decodeMessage(const string& data)
 			result << "ebus command not found";
 		}
 
-		break;
+		break;*/
 
-	case ct_cyc:
+	/*case ct_cyc:
 		if (cmd.size() < 3 || cmd.size() > 4) {
 			result << "usage: 'cyc class cmd (sub)'";
 			break;
@@ -259,9 +327,9 @@ string BaseLoop::decodeMessage(const string& data)
 			result << "ebus command not found";
 		}
 
-		break;
+		break;*/
 
-	case ct_hex:
+	/*case ct_hex:
 		if (cmd.size() != 2) {
 			result << "usage: 'hex value' (value: ZZPBSBNNDx)";
 			break;
@@ -289,9 +357,9 @@ string BaseLoop::decodeMessage(const string& data)
 			delete message;
 		}
 
-		break;
+		break;*/
 
-	case ct_scan:
+	/*case ct_scan:
 		if (cmd.size() == 1) {
 			m_busloop->scan();
 			result << "done";
@@ -315,7 +383,7 @@ string BaseLoop::decodeMessage(const string& data)
 		result << "usage: 'scan'" << endl
 		       << "       'scan full'" << endl
 		       << "       'scan result'";
-		break;
+		break;*/
 
 	case ct_log:
 		if (cmd.size() != 3 ) {
@@ -348,7 +416,7 @@ string BaseLoop::decodeMessage(const string& data)
 			break;
 		}
 
-		m_busloop->raw();
+		m_port->setLogRaw(!m_port->getLogRaw());
 		result << "done";
 		break;
 
@@ -358,11 +426,11 @@ string BaseLoop::decodeMessage(const string& data)
 			break;
 		}
 
-		m_busloop->dump();
+		m_port->setDumpRaw(!m_port->getDumpRaw());
 		result << "done";
 		break;
 
-	case ct_reload:
+	/*case ct_reload:
 		if (cmd.size() != 1) {
 			result << "usage: 'reload'";
 			break;
@@ -382,7 +450,7 @@ string BaseLoop::decodeMessage(const string& data)
 
 			result << "done";
 			break;
-		}
+		}*/
 
 	case ct_help:
 		result << "commands:" << endl

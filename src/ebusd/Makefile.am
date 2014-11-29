@@ -6,8 +6,8 @@ AM_CXXFLAGS = -fpic \
 
 bin_PROGRAMS = ebusd
 
-ebusd_SOURCES = busloop.cpp \
-		busloop.h \
+ebusd_SOURCES = bushandler.cpp \
+		bushandler.h \
 		network.cpp \
 		network.h \
 		baseloop.cpp \

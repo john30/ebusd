@@ -20,9 +20,9 @@
 #ifndef BASELOOP_H_
 #define BASELOOP_H_
 
-#include "commands.h"
+#include "message.h"
 #include "network.h"
-#include "busloop.h"
+#include "bushandler.h"
 
 using namespace std;
 
@@ -51,7 +51,7 @@ class BaseLoop
 
 public:
 	/**
-	 * @brief construct the baseloop and creates commads, network and busloop subsystems.
+	 * @brief construct the baseloop and creates messaging, network and busloop subsystems.
 	 */
 	BaseLoop();
 
@@ -60,6 +60,7 @@ public:
 	 */
 	~BaseLoop();
 
+	result_t readConfigFiles(const string path, const string extension);
 	/**
 	 * @brief start baseloop instance.
 	 */
@@ -72,13 +73,20 @@ public:
 	void addMessage(NetMessage* message) { m_netQueue.add(message); }
 
 private:
-	/** the commands instance */
-	Commands* m_commands;
 
-	/** the busloop instance */
-	BusLoop* m_busloop;
+	/** the @a DataFieldTemplates instance. */
+	DataFieldTemplates* m_templates;
 
-	/** the network instance */
+	/** the @a MessageMap instance. */
+	MessageMap* m_messages;
+
+	/** the @a Port instance. */
+	Port* m_port;
+
+	/** the @a BusHandler instance. */
+	BusHandler* m_busHandler;
+
+	/** the @a Network instance. */
 	Network* m_network;
 
 	/** queue for network messages */
