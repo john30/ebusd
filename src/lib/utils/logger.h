@@ -143,9 +143,8 @@ public:
 
 	/**
 	 * @brief endless loop for logging sink instance.
-	 * @return void pointer.
 	 */
-	void* run();
+	void run();
 
 	/**
 	 * @brief get the logging areas.
@@ -294,18 +293,17 @@ public:
 
 	/**
 	 * @brief endless loop for logger instance.
-	 * @return void pointer.
 	 */
-	void* run();
+	virtual void run();
 
 	/**
 	 * @brief shutdown logger subsystem.
 	 */
-	void stop();
+	virtual void stop();
 
 private:
 	/** private constructor - singleton pattern */
-	Logger() : m_running(false) {}
+	Logger() {}
 	Logger(const Logger&);
 	Logger& operator=(const Logger&);
 
@@ -318,9 +316,6 @@ private:
 
 	/** queue for logging messages */
 	WQueue<LogMessage*> m_logQueue;
-
-	/** true if this instance is running */
-	bool m_running;
 
 };
 

@@ -132,25 +132,18 @@ public:
 	 * @param netQueue the remote queue for network messages.
 	 */
 	Connection(TCPSocket* socket, WQueue<NetMessage*>* netQueue)
-		: m_socket(socket), m_netQueue(netQueue), m_running(false)
+		: m_socket(socket), m_netQueue(netQueue)
 		{ m_id = ++m_ids; }
 
 	/**
 	 * @brief endless loop for connection instance.
-	 * @return void pointer.
 	 */
-	void* run();
+	virtual void run();
 
 	/**
 	 * @brief close active connection.
 	 */
-	void stop() const { m_notify.notify(); }
-
-	/**
-	 * @brief status of connection instance.
-	 * @return true if connection is running.
-	 */
-	bool isRunning() const { return m_running; }
+	virtual void stop() { m_notify.notify(); Thread::stop(); }
 
 	/**
 	 * @brief return own connection id.
@@ -167,9 +160,6 @@ private:
 
 	/** notification object for shutdown procedure */
 	Notify m_notify;
-
-	/** true if this instance is running */
-	bool m_running;
 
 	/** id of current connection*/
 	int m_id;
@@ -200,9 +190,8 @@ public:
 
 	/**
 	 * @brief endless loop for network instance.
-	 * @return void pointer.
 	 */
-	void* run();
+	virtual void run();
 
 	/**
 	 * @brief shutdown network subsystem.
@@ -224,9 +213,6 @@ private:
 
 	/** true if this instance is listening */
 	bool m_listening;
-
-	/** true if this instance is running */
-	bool m_running;
 
 	/**
 	 * @brief clean inactive connections from container.
