@@ -90,7 +90,7 @@ public:
 	 * RESULT_IN_ESC if this is an unescaped instance and the symbol is escaped and the start of the escape sequence was received,
 	 * RESULT_ERR_ESC if this is an unescaped instance and an invalid escaped sequence was detected.
 	 */
-	result_t push_back(const unsigned char value, const bool isEscaped, const bool updateCRC=true);
+	result_t push_back(const unsigned char value, const bool isEscaped=true, const bool updateCRC=true);
 	/**
 	 * @brief Returns the number of symbols in this symbol string.
 	 * @return the number of available symbols.
