@@ -283,6 +283,8 @@ void BusLoop::collectCycData(const int numRecv)
 			// analyse cycle data
 			if (m_sstr.size() > 0) {
 
+				L.log(cyc, trace, "%s", m_sstr.getDataStr().c_str());
+
 				analyseCycData();
 
 				if (m_sstr.size() == 1 && m_lockCounter == 0 && m_priorRetry == false)
@@ -307,33 +309,39 @@ void BusLoop::collectCycData(const int numRecv)
 
 void BusLoop::analyseCycData()
 {
+	// check minimum length
+	if (m_sstr.size() < 6) {
+		L.log(cyc, trace, "ERR_CYC_LEN: message too short");
+		return;
+	}
+
+	// check master crc
 	int lenMaster = m_sstr[4];
 	SymbolString master;
 
 	for (int i = 0; i < 5+lenMaster; i++)
-		master.push_back(m_sstr[i], true , true);
+		master.push_back(m_sstr[i], false , true);
 
 	if (m_sstr[5+lenMaster] != master.getCRC()) {
-		L.log(cyc, trace, "ERR_CYC_CRC_M %s - %02x %02x", master.getDataStr().c_str(), m_sstr[5+lenMaster], master.getCRC());
+		L.log(cyc, trace, "ERR_CYC_CRC_M: %s - %02x %02x", master.getDataStr().c_str(), m_sstr[5+lenMaster], master.getCRC());
 		return;
 	}
 
+	// check slave crc
 	if (m_sstr[1] != BROADCAST || isMaster(m_sstr[1]) == false) {
 		int lenSlave = m_sstr[5+lenMaster+2];
 		SymbolString slave;
 
 		for (int i = 5+lenMaster+2; i < 5+lenMaster+3+lenSlave; i++)
-			slave.push_back(m_sstr[i], true , true);
+			slave.push_back(m_sstr[i], false , true);
 
 		if (m_sstr[5+lenMaster+3+lenSlave] != slave.getCRC()) {
-			L.log(cyc, trace, "ERR_CYC_CRC_S %s - %02x %02x", slave.getDataStr().c_str(), m_sstr[5+lenMaster+3+lenSlave], slave.getCRC());
+			L.log(cyc, trace, "ERR_CYC_CRC_S: %s - %02x %02x", slave.getDataStr().c_str(), m_sstr[5+lenMaster+3+lenSlave], slave.getCRC());
 			return;
 		}
 	}
 
-
-	L.log(cyc, trace, "%s", m_sstr.getDataStr().c_str());
-
+	// store valid data
 	int index = m_commands->storeCycData(m_sstr.getDataStr());
 
 	if (index == -1) {
