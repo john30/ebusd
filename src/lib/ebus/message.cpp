@@ -177,15 +177,13 @@ result_t Message::prepare(const unsigned char srcAddress, SymbolString& masterDa
 	return RESULT_ERR_INVALID_ARG; // prepare not possible
 }
 
-result_t Message::handle(SymbolString& masterData, SymbolString& slaveData,
+result_t Message::decode(SymbolString& masterData, SymbolString& slaveData,
 		ostringstream& output, char separator, bool answer)
 {
-	if (m_isActive == true) {
-		result_t result = m_data->read(masterData, m_id.size() - 2, slaveData, 0, output, false, separator);
-		if (result != RESULT_OK)
-			return result;
-	}
-	else if (answer == true) {
+	result_t result = m_data->read(masterData, m_id.size() - 2, slaveData, 0, output, false, separator);
+	if (result != RESULT_OK)
+		return result;
+	if (m_isActive == true && answer == true) {
 		istringstream input; // TODO create input from database of internal variables
 		result_t result = m_data->write(input, masterData, m_id.size() - 2, slaveData, 0, separator);
 		if (result != RESULT_OK)
@@ -238,7 +236,7 @@ result_t MessageMap::addFromFile(vector<string>& row, DataFieldTemplates* arg)
 	return result;
 }
 
-Message* MessageMap::find(const string clazz, const string name, const bool isActive, const bool isSet)
+Message* MessageMap::find(const string& clazz, const string& name, const bool isActive, const bool isSet)
 {
 	string key = clazz;
 	for (int i=0; i<2; i++) {
@@ -256,7 +254,7 @@ Message* MessageMap::find(const string clazz, const string name, const bool isAc
 	return NULL;
 }
 
-Message* MessageMap::find(SymbolString master) {
+Message* MessageMap::find(SymbolString& master) {
 	if (master.size() < 5)
 		return NULL;
 	unsigned char maxIdLength =  master[4];

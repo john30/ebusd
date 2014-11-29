@@ -141,7 +141,7 @@ public:
 	 */
 	result_t prepare(const unsigned char srcAddress, SymbolString& masterData,
 			istringstream& input, char separator=';');
-	result_t handle(SymbolString& masterData, SymbolString& slaveData,
+	result_t decode(SymbolString& masterData, SymbolString& slaveData,
 			ostringstream& output, char separator=';', bool answer=false);
 
 private:
@@ -203,14 +203,14 @@ public:
 	 * @return the @a Message instance, or NULL.
 	 * Note: the caller may not free the returned instance.
 	 */
-	Message* find(const string clazz, const string name, const bool isActive, const bool isSet);
+	Message* find(const string& clazz, const string& name, const bool isActive, const bool isSet);
 	/**
 	 * @brief Finds the @a Message instance for the specified master data.
 	 * @param master the master @a SymbolString for identifying the @a Message.
 	 * @return the @a Message instance, or NULL.
 	 * Note: the caller may not free the returned instance.
 	 */
-	Message* find(SymbolString master);
+	Message* find(SymbolString& master);
 	/**
 	 * @brief Removes all @a Message instances.
 	 */
