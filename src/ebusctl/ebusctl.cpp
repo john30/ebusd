@@ -23,7 +23,7 @@
 
 #include "appl.h"
 #include "port.h"
-#include "decode.h"
+#include "data.h"
 #include "tcpsocket.h"
 #include <iostream>
 #include <fstream>
@@ -69,7 +69,7 @@ int main(int argc, char* argv[])
 
 	if (strcasecmp(A.getArg(0).c_str(), "feed") == 0) {
 		string dev(A.getOptVal<const char*>("device"));
-		Port port(dev, true);
+		Port port(dev, true, false, NULL, false, "", 1);
 
 		port.open();
 		if(port.isOpen() == true) {
