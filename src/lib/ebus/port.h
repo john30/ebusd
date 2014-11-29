@@ -24,6 +24,10 @@
 #include <queue>
 #include <termios.h>
 #include <unistd.h>
+#include <iostream>
+#include <fstream>
+#include "logger.h"
+#include "result.h"
 
 using namespace std;
 
@@ -64,7 +68,7 @@ public:
 	 * @param deviceName to determine device type.
 	 * @param noDeviceCheck en-/disable device check.
 	 */
-	virtual void openDevice(const string deviceName, const bool noDeviceCheck) = 0;
+	virtual result_t openDevice(const string deviceName, const bool noDeviceCheck) = 0;
 
 	/**
 	 * @brief virtual close function for closing opened file descriptor
@@ -147,7 +151,7 @@ public:
 	 * @param deviceName to determine device type.
 	 * @param noDeviceCheck en-/disable device check.
 	 */
-	void openDevice(const string deviceName, const bool noDeviceCheck);
+	virtual result_t openDevice(const string deviceName, const bool noDeviceCheck);
 
 	/**
 	 * @brief close function for closing opened file descriptor
@@ -177,7 +181,7 @@ public:
 	 * @param deviceName to determine device type.
 	 * @param noDeviceCheck en-/disable device check.
 	 */
-	void openDevice(const string deviceName, const bool noDeviceCheck);
+	virtual result_t openDevice(const string deviceName, const bool noDeviceCheck);
 
 	/**
 	 * @brief close opened file descriptor
@@ -200,17 +204,18 @@ public:
 	 * @param deviceName to determine device type.
 	 * @param noDeviceCheck en-/disable device check.
 	 */
-	Port(const string deviceName, const bool noDeviceCheck);
+	Port(const string deviceName, const bool noDeviceCheck, const bool logRaw, Logger* loggerRaw,
+		const bool dumpRaw, const char* dumpRawFile, const long dumpRawMaxSize);
 
 	/**
 	 * @brief destructor.
 	 */
-	~Port() { delete m_device; }
+	~Port() { delete m_device; m_dumpRawStream.close(); }
 
 	/**
 	 * @brief open device
 	 */
-	void open() { m_device->openDevice(m_deviceName, m_noDeviceCheck); }
+	result_t open() { return m_device->openDevice(m_deviceName, m_noDeviceCheck); }
 
 	/**
 	 * @brief close device
@@ -234,7 +239,7 @@ public:
 
 	/**
 	 * @brief recv read bytes from opened file descriptor.
-	 * @param timeout max time out for new input data.
+	 * @param timeout max time out for new input data [usec].
 	 * @param maxCount max size of receive buffer.
 	 * @return number of read bytes or -1 if an error has occured.
 	 */
@@ -245,7 +250,7 @@ public:
 	 * @brief fetch first byte from receive buffer.
 	 * @return first byte (raw)
 	 */
-	unsigned char byte() { return m_device->getByte(); }
+	unsigned char byte();
 
 	/**
 	 * @brief get current size (bytes) of the receive buffer.
@@ -253,15 +258,69 @@ public:
 	 */
 	ssize_t size() const { return m_device->sizeRecvBuffer(); }
 
+	/**
+	 * @brief Get whether logging of raw data is enabled.
+	 * @return whether logging of raw data is enabled.
+	 */
+	bool getLogRaw() { return m_logRaw; }
+
+	/**
+	 * @brief Enable or disable logging of raw data.
+	 * @param logRawData true to enable logging of raw data, false to disable it.
+	 */
+	void setLogRaw(bool logRaw=true) { m_logRaw = logRaw; }
+
+	/**
+	 * @brief Get whether dumping of raw data to a file is enabled.
+	 * @return whether dumping of raw data to a file is enabled.
+	 */
+	bool getDumpRaw() { return m_dumpRaw; }
+
+	/**
+	 * @brief Enable or disable dumping of raw data to a file.
+	 * @param dumpRaw true to enable dumping of raw data to a file, false to disable it.
+	 */
+	void setDumpRaw(bool dumpRaw=true);
+
+	/**
+	 * @brief Set the name of the file to dump raw data to.
+	 * @param dumpFile the name of the file to dump raw data to.
+	 */
+	void setDumpRawFile(const string& dumpFile);
+
+	/**
+	 * @brief Set the maximum size of a file to dump raw data to.
+	 * @param maxSize the maximum size of a file to dump raw data to.
+	 */
+	void setDumpRawMaxSize(const long maxSize) { m_dumpRawMaxSize = maxSize; }
+
 private:
 	/** the device name */
-	string m_deviceName;
+	const string m_deviceName;
 
 	/** the device instance */
 	Device* m_device;
 
 	/** true if device check is disabled */
 	bool m_noDeviceCheck;
+
+	/** whether logging of raw data is enabled. */
+	bool m_logRaw;
+
+	/** the @a Logger used for logging of raw data, or NULL. */
+	Logger* m_loggerRaw;
+
+	/** whether dumping of raw data to a file is enabled. */
+	bool m_dumpRaw;
+
+	/** the name of the file to dump raw data to. */
+	string m_dumpRawFile;
+
+	/** the maximum size of @a m_dumpFile. */
+	long m_dumpRawMaxSize;
+
+	/** the @a ofstream for dumping raw data to. */
+	ofstream m_dumpRawStream;
 
 	/**
 	 * @brief internal setter for device type.

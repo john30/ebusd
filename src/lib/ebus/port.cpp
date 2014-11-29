@@ -22,12 +22,15 @@
 #endif
 
 #include "port.h"
+#include "result.h"
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
+#include <fstream>
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include "logger.h"
 
 #ifdef HAVE_PPOLL
 #include <poll.h>
@@ -101,8 +104,8 @@ ssize_t Device::recvBytes(const long timeout, size_t maxCount)
 #endif
 #endif
 
-		if (ret == -1) return -1; // TODO RESULT_ERR_DEVICE
-		if (ret == 0) return -2; // TODO RESULT_ERR_TIMEOUT
+		if (ret == -1) return RESULT_ERR_DEVICE;
+		if (ret == 0) return RESULT_ERR_TIMEOUT;
 	}
 
 	if (maxCount > sizeof(m_buffer))
@@ -132,7 +135,7 @@ unsigned char Device::getByte()
 }
 
 
-void DeviceSerial::openDevice(const string deviceName, const bool noDeviceCheck)
+result_t DeviceSerial::openDevice(const string deviceName, const bool noDeviceCheck)
 {
 	m_noDeviceCheck = noDeviceCheck;
 
@@ -144,7 +147,7 @@ void DeviceSerial::openDevice(const string deviceName, const bool noDeviceCheck)
 	m_fd = open(deviceName.c_str(), O_RDWR | O_NOCTTY);
 
 	if (m_fd < 0)
-		return;
+		return RESULT_ERR_FILENOTFOUND;
 
 	// save current settings of serial device
 	tcgetattr(m_fd, &m_oldSettings);
@@ -169,7 +172,7 @@ void DeviceSerial::openDevice(const string deviceName, const bool noDeviceCheck)
 	fcntl(m_fd, F_SETFL, fcntl(m_fd, F_GETFL) & ~O_NONBLOCK);
 
 	m_open = true;
-
+	return RESULT_OK;
 }
 
 void DeviceSerial::closeDevice()
@@ -190,7 +193,7 @@ void DeviceSerial::closeDevice()
 }
 
 
-void DeviceNetwork::openDevice(const string deviceName, const bool noDeviceCheck)
+result_t DeviceNetwork::openDevice(const string deviceName, const bool noDeviceCheck)
 {
 	m_noDeviceCheck = noDeviceCheck;
 
@@ -211,13 +214,13 @@ void DeviceNetwork::openDevice(const string deviceName, const bool noDeviceCheck
 
 		he = gethostbyname(host);
 		if (he == NULL)
-			return;
+			return RESULT_ERR_FILENOTFOUND;
 
 		memcpy(&sock.sin_addr, he->h_addr_list[0], he->h_length);
 	} else {
 		ret = inet_aton(host, &sock.sin_addr);
 		if (ret == 0)
-			return;
+			return RESULT_ERR_FILENOTFOUND;
 	}
 
 	sock.sin_family = AF_INET;
@@ -225,14 +228,16 @@ void DeviceNetwork::openDevice(const string deviceName, const bool noDeviceCheck
 
 	m_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (m_fd < 0)
-		return;
+		return RESULT_ERR_INVALID_ARG;
 
 	ret = connect(m_fd, (struct sockaddr*) &sock, sizeof(sock));
 	if (ret < 0)
-		return;
+		return RESULT_ERR_INVALID_ARG;
 
 	free(hostport);
 	m_open = true;
+
+	return RESULT_OK;
 }
 
 void DeviceNetwork::closeDevice()
@@ -247,8 +252,11 @@ void DeviceNetwork::closeDevice()
 }
 
 
-Port::Port(const string deviceName, const bool noDeviceCheck)
-	: m_deviceName(deviceName), m_noDeviceCheck(noDeviceCheck)
+Port::Port(const string deviceName, const bool noDeviceCheck, const bool logRaw, Logger* loggerRaw,
+		const bool dumpRaw, const char* dumpRawFile, const long dumpRawMaxSize)
+	: m_deviceName(deviceName), m_noDeviceCheck(noDeviceCheck),
+	  m_logRaw(logRaw), m_loggerRaw(loggerRaw),
+	  m_dumpRawFile(dumpRawFile), m_dumpRawMaxSize(dumpRawMaxSize)
 {
 	m_device = NULL;
 
@@ -257,6 +265,56 @@ Port::Port(const string deviceName, const bool noDeviceCheck)
 		setType(dt_network);
 	else
 		setType(dt_serial);
+
+	m_dumpRaw = false;
+
+	setDumpRaw(dumpRaw); // open fstream if necessary
+}
+
+unsigned char Port::byte()
+{
+	unsigned char byte = m_device->getByte();
+
+	if (m_logRaw == true && m_loggerRaw != NULL)
+		m_loggerRaw->log(bus, event, "%02x", byte);
+
+	if (m_dumpRaw == true && m_dumpRawStream.is_open() == true) {
+		m_dumpRawStream.write((char*)&byte, 1);
+
+		if (m_dumpRawStream.tellp() >= m_dumpRawMaxSize * 1024) {
+			string oldfile = m_dumpRawFile + ".old";
+			if (rename(m_dumpRawFile.c_str(), oldfile.c_str()) == 0) {
+				m_dumpRawStream.close();
+				m_dumpRawStream.open(m_dumpRawFile.c_str(), ios::out | ios::binary | ios::app);
+			}
+		}
+	}
+
+	return byte;
+}
+
+void Port::setDumpRaw(bool dumpRaw)
+{
+	if (dumpRaw == m_dumpRaw)
+		return;
+
+	m_dumpRaw = dumpRaw;
+
+	if (dumpRaw == false)
+		m_dumpRawStream.close();
+	else
+		m_dumpRawStream.open(m_dumpRawFile.c_str(), ios::out | ios::binary | ios::app);
+}
+
+void Port::setDumpRawFile(const string& dumpFile) {
+	if (dumpFile == m_dumpRawFile)
+		return;
+
+	m_dumpRawStream.close();
+	m_dumpRawFile = dumpFile;
+
+	if (m_dumpRaw == true)
+		m_dumpRawStream.open(m_dumpRawFile.c_str(), ios::out | ios::binary | ios::app);
 }
 
 void Port::setType(const DeviceType type)
