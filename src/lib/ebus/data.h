@@ -83,6 +83,15 @@ typedef struct {
  */
 unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result, unsigned int* length=NULL);
 
+/**
+ * @brief Print the error position of the iterator to stdout.
+ * @param begin the iterator to the beginning of the items.
+ * @param end the iterator to the end of the items.
+ * @param pos the iterator with the erroneous position.
+ * @param separator the character to place between items.
+ */
+void printErrorPos(vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, char separator=';');
+
 
 class DataFieldTemplates;
 class SingleDataField;
@@ -152,7 +161,9 @@ public:
 	/**
 	 * @brief Reads the value from the master or slave @a SymbolString.
 	 * @param masterData the unescaped master data @a SymbolString for reading binary data.
+	 * @param masterOffset the additional offset to add for reading the master data.
 	 * @param slaveData the unescaped slave data @a SymbolString for reading binary data.
+	 * @param slaveOffset the additional offset to add for reading the slave data.
 	 * @param output the @a ostringstream to append the formatted value to.
 	 * @param verbose whether to prepend the name, append the unit (if present), and append
 	 * the comment in square brackets (if present).
@@ -570,7 +581,8 @@ public:
 	/**
 	 * @brief Constructs a new instance.
 	 */
-	FileReader() {}
+	FileReader(bool supportsDefaults)
+			: m_supportsDefaults(supportsDefaults) {}
 	/**
 	 * @brief Destructor.
 	 */
@@ -591,6 +603,7 @@ public:
 		unsigned int lineNo = 0;
 		vector<string> row;
 		string token;
+		vector< vector<string> > defaults;
 		while (getline(ifs, line) != 0) {
 			lineNo++;
 			// skip empty lines and comments
@@ -601,7 +614,12 @@ public:
 			while (getline(isstr, token, FIELD_SEPARATOR) != 0)
 				row.push_back(token);
 
-			result_t result = addFromFile(row, arg);
+			if (m_supportsDefaults == true && line.substr(0, 1) == "*") {
+				row[0] = row[0].substr(1);
+				defaults.push_back(row);
+				continue;
+			}
+			result_t result = addFromFile(row, arg, m_supportsDefaults == true ? &defaults : NULL);
 			if (result != RESULT_OK) {
 				cerr << "error reading \"" << filename << "\" line " << static_cast<unsigned>(lineNo) << ": " << getResultCode(result) << endl;
 				ifs.close();
@@ -615,9 +633,14 @@ public:
 	/**
 	 * @brief Adds a definition that was read from a file.
 	 * @param row the definition row read from the file.
+	 * @param defaults all previously read default rows (initial star char removed), or NULL if not supported.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	virtual result_t addFromFile(vector<string>& row, T arg) = 0;
+	virtual result_t addFromFile(vector<string>& row, T arg, vector< vector<string> >* defaults) = 0;
+
+private:
+	/** whether this instance supports rows with defaults (starting with a star). */
+	bool m_supportsDefaults;
 
 };
 
@@ -632,7 +655,7 @@ public:
 	/**
 	 * @brief Constructs a new instance.
 	 */
-	DataFieldTemplates() {}
+	DataFieldTemplates() : FileReader(false) {}
 	/**
 	 * @brief Destructor.
 	 */
@@ -650,7 +673,7 @@ public:
 	 */
 	result_t add(DataField* message, bool replace=false);
 	// @copydoc
-	virtual result_t addFromFile(vector<string>& row, void* arg);
+	virtual result_t addFromFile(vector<string>& row, void* arg, vector< vector<string> >* defaults);
 	/**
 	 * @brief Gets the template @a DataField instance with the specified name.
 	 * @return the template @a DataField instance, or NULL.

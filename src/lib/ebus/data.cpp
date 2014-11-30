@@ -95,6 +95,32 @@ unsigned int parseInt(const char* str, int base, const unsigned int minValue, co
 	return ret;
 }
 
+void printErrorPos(vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, char separator)
+{
+	cout << "Erroneous item is here:" << endl;
+	bool first = true;
+	int cnt = 0;
+	if (pos > begin)
+		pos--;
+	while (begin != end) {
+		if (first == true)
+			first = false;
+		else {
+			cout << separator;
+			if (begin <= pos) {
+				cnt++;
+			}
+		}
+		if (begin < pos) {
+			cnt += (*begin).length();
+		}
+		cout << (*begin++);
+	}
+	cout << endl;
+	cout << setw(cnt) << " " << setw(0) << "^" << endl;
+}
+
+
 result_t DataField::create(vector<string>::iterator& it,
 		const vector<string>::iterator end,
 		DataFieldTemplates* templates,
@@ -1060,7 +1086,7 @@ result_t DataFieldTemplates::add(DataField* field, bool replace)
 	return RESULT_OK;
 }
 
-result_t DataFieldTemplates::addFromFile(vector<string>& row, void* arg)
+result_t DataFieldTemplates::addFromFile(vector<string>& row, void* arg, vector< vector<string> >* defaults)
 {
 	DataField* field = NULL;
 	vector<string>::iterator it = row.begin();
