@@ -17,8 +17,8 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef LIBEBUS_BUSHANDLER_H_
-#define LIBEBUS_BUSHANDLER_H_
+#ifndef BUSHANDLER_H_
+#define BUSHANDLER_H_
 
 #include "message.h"
 #include "data.h"
@@ -160,4 +160,4 @@ private:
 };
 
 
-#endif // LIBEBUS_BUSHANDLER_H_
+#endif // BUSHANDLER_H_
