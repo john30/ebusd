@@ -193,40 +193,40 @@ unsigned char getMasterNumber(unsigned char addr) {
 	unsigned char addrHi = (addr & 0xF0) >> 4;
 	unsigned char addrLo = (addr & 0x0F);
 
-	unsigned char index;
-	switch (addrHi)
+	unsigned char priority;
+	switch (addrLo)
 	{
 	case 0x0:
-		index = 0;
+		priority = 0;
 		break;
 	case 0x1:
-		index = 1;
+		priority = 1;
 		break;
 	case 0x3:
-		index = 2;
+		priority = 2;
 		break;
 	case 0x7:
-		index = 3;
+		priority = 3;
 		break;
 	case 0xF:
-		index = 4;
+		priority = 4;
 		break;
 	default:
 		return 0;
 	}
 
-	switch (addrLo)
+	switch (addrHi)
 	{
 	case 0x0:
-		return 5*index + 1;
+		return 5*0 + priority + 1;
 	case 0x1:
-		return 5*index + 2;
+		return 5*1 + priority + 2;
 	case 0x3:
-		return 5*index + 3;
+		return 5*2 + priority + 3;
 	case 0x7:
-		return 5*index + 4;
+		return 5*3 + priority + 4;
 	case 0xF:
-		return 5*index + 5;
+		return 5*4 + priority + 5;
 	default:
 		return 0;
 	}
