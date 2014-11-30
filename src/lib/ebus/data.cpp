@@ -136,8 +136,6 @@ result_t DataField::create(vector<string>::iterator& it,
 		unsigned int divisor = 0;
 		const bool isTemplate = dstAddress == SYN;
 		string token;
-		if (it == end)
-			break;
 
 		// name;part;type[:len][;[divisor|values][;[unit][;[comment]]]]
 		const string name = *it++;
@@ -152,7 +150,7 @@ result_t DataField::create(vector<string>::iterator& it,
 			firstName = name;
 			firstComment = comment;
 		}
-		if (dstAddress == BROADCAST || isMaster(dstAddress)
+		if (dstAddress == BROADCAST || isMaster(dstAddress) == true
 			|| (isTemplate == false && isSetMessage == true && partStr[0] == 0)
 			|| strcasecmp(partStr, "M") == 0) { // master data
 			partType = pt_masterData;
@@ -238,7 +236,7 @@ result_t DataField::create(vector<string>::iterator& it,
 						break;
 					}
 					found = true;
-					result = templ->derive(name, comment, unit, partType, divisor, values, fields);
+					result = templ->derive("", "", "", partType, divisor, values, fields);
 					if (result != RESULT_OK)
 						break;
 				}
@@ -347,6 +345,16 @@ result_t DataField::create(vector<string>::iterator& it,
 }
 
 
+void SingleDataField::dump(ostream& output)
+{
+	output << m_name << FIELD_SEPARATOR;
+	if (m_partType == pt_masterData)
+		output << "m";
+	else if (m_partType == pt_slaveData)
+		output << "s";
+	output << FIELD_SEPARATOR << m_dataType.name;
+}
+
 result_t SingleDataField::read(SymbolString& masterData, unsigned char masterOffset,
 		SymbolString& slaveData, unsigned char slaveOffset,
 		ostringstream& output,
@@ -365,7 +373,6 @@ result_t SingleDataField::read(SymbolString& masterData, unsigned char masterOff
 	default:
 		return RESULT_ERR_INVALID_ARG; // invalid part type
 	}
-
 	if (isIgnored() == true) {
 		if (offset + m_length > input.size()) {
 			return RESULT_ERR_INVALID_ARG;
@@ -429,6 +436,15 @@ result_t StringDataField::derive(string name, string comment,
 	fields.push_back(new StringDataField(name, comment, unit, m_dataType, partType, m_length));
 
 	return RESULT_OK;
+}
+
+void StringDataField::dump(ostream& output)
+{
+	SingleDataField::dump(output);
+	if ((m_dataType.flags & ADJ) != 0)
+		output << ":" << static_cast<unsigned>(m_length);
+	output << FIELD_SEPARATOR << FIELD_SEPARATOR; // no value list, no divisor
+	output << m_unit << FIELD_SEPARATOR << m_comment << FIELD_SEPARATOR;
 }
 
 result_t StringDataField::readSymbols(SymbolString& input,
@@ -633,6 +649,18 @@ bool NumericDataField::hasFullByteOffset(bool after)
 		|| (after == true && m_bitOffset + (m_bitCount % 8) >= 8);
 }
 
+void NumericDataField::dump(ostream& output)
+{
+	SingleDataField::dump(output);
+	if ((m_dataType.flags & ADJ) != 0) {
+		if ((m_dataType.maxBits % 8) != 0)
+			output << ":" << static_cast<unsigned>(m_bitCount);
+		else
+			output << ":" << static_cast<unsigned>(m_length);
+	}
+	output << FIELD_SEPARATOR;
+}
+
 result_t NumericDataField::readRawValue(SymbolString& input,
 		unsigned char baseOffset, unsigned int& value)
 {
@@ -747,6 +775,13 @@ result_t NumberDataField::derive(string name, string comment,
 		fields.push_back(new NumberDataField(name, comment, unit, m_dataType, partType, m_length, m_bitCount, divisor));
 
 	return RESULT_OK;
+}
+
+void NumberDataField::dump(ostream& output)
+{
+	NumericDataField::dump(output);
+	output << static_cast<unsigned>(m_divisor) << FIELD_SEPARATOR;
+	output << m_unit << FIELD_SEPARATOR << m_comment << FIELD_SEPARATOR;
 }
 
 result_t NumberDataField::readSymbols(SymbolString& input,
@@ -881,6 +916,21 @@ result_t ValueListDataField::derive(string name, string comment,
 	return RESULT_OK;
 }
 
+void ValueListDataField::dump(ostream& output)
+{
+	NumericDataField::dump(output);
+	bool first = true;
+	for (map<unsigned int, string>::iterator it = m_values.begin(); it != m_values.end(); it++) {
+		if (first == true)
+			first = false;
+		else
+			output << VALUE_SEPARATOR;
+		output << static_cast<unsigned>(it->first) << "=" << it->second;
+	}
+	output << FIELD_SEPARATOR;
+	output << m_unit << FIELD_SEPARATOR << m_comment << FIELD_SEPARATOR;
+}
+
 result_t ValueListDataField::readSymbols(SymbolString& input,
 		unsigned char baseOffset, ostringstream& output)
 {
@@ -966,6 +1016,12 @@ result_t DataFieldSet::derive(string name, string comment,
 	}
 
 	return RESULT_OK;
+}
+
+void DataFieldSet::dump(ostream& output)
+{
+	for (vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++)
+		(*it)->dump(output);
 }
 
 result_t DataFieldSet::read(SymbolString& masterData, unsigned char masterOffset,

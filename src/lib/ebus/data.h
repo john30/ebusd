@@ -159,6 +159,11 @@ public:
 	 */
 	string getComment() const { return m_comment; }
 	/**
+	 * @brief Dump the field settings to the output.
+	 * @param output the @a ostream to dump to.
+	 */
+	virtual void dump(ostream& output) = 0;
+	/**
 	 * @brief Reads the value from the master or slave @a SymbolString.
 	 * @param masterData the unescaped master data @a SymbolString for reading binary data.
 	 * @param masterOffset the additional offset to add for reading the master data.
@@ -248,6 +253,8 @@ public:
 	 * only consumes a part of a byte and a subsequent field may re-use the same offset.
 	 */
 	virtual bool hasFullByteOffset(bool after) { return true; }
+	// @copydoc
+	virtual void dump(ostream& output);
 	/**
 	 * @brief Reads the value from the master or slave @a SymbolString.
 	 * @param masterData the unescaped master data @a SymbolString for reading binary data.
@@ -339,6 +346,8 @@ public:
 			string unit, const PartType partType,
 			unsigned int divisor, map<unsigned int, string> values,
 			vector<SingleDataField*>& fields);
+	// @copydoc
+	virtual void dump(ostream& output);
 
 protected:
 
@@ -379,6 +388,8 @@ public:
 	virtual ~NumericDataField() {}
 	// @copydoc
 	virtual bool hasFullByteOffset(bool after);
+	// @copydoc
+	virtual void dump(ostream& output);
 
 protected:
 
@@ -441,6 +452,8 @@ public:
 			string unit, const PartType partType,
 			unsigned int divisor, map<unsigned int, string> values,
 			vector<SingleDataField*>& fields);
+	// @copydoc
+	virtual void dump(ostream& output);
 
 protected:
 
@@ -490,6 +503,8 @@ public:
 			string unit, const PartType partType, unsigned int divisor,
 			map<unsigned int, string> values,
 			vector<SingleDataField*>& fields);
+	// @copydoc
+	virtual void dump(ostream& output);
 
 protected:
 
@@ -551,6 +566,8 @@ public:
 	 * @return the number of available @a SingleDataField instances.
 	 */
 	size_t size() const { return m_fields.size(); }
+	// @copydoc
+	virtual void dump(ostream& output);
 	// @copydoc
 	virtual result_t read(SymbolString& masterData, unsigned char masterOffset,
 			SymbolString& slaveData, unsigned char slaveOffset,
