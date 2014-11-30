@@ -105,7 +105,7 @@ result_t BaseLoop::readConfigFiles(const string path, const string extension)
 	while (d != NULL) {
 		if (d->d_type == DT_DIR) {
 			string fn = d->d_name;
-//std::cout << "found dir " << fn << endl;
+
 			if (fn != "." && fn != "..") {
 				const string p = path + "/" + d->d_name;
 				result_t result = readConfigFiles(p, extension);
@@ -114,7 +114,7 @@ result_t BaseLoop::readConfigFiles(const string path, const string extension)
 			}
 		} else if (d->d_type == DT_REG) {
 			string fn = d->d_name;
-//std::cout << "found file " << fn << endl;
+
 			if (fn.find(extension, (fn.length() - extension.length())) != string::npos
 				&& fn != "_types" + extension) {
 				const string p = path + "/" + d->d_name;
