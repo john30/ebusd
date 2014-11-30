@@ -119,6 +119,11 @@ public:
 	 */
 	unsigned long long getKey() { return m_key; }
 	/**
+	 * @brief Get the polling priority, or 0 for no polling at all.
+	 * @return the polling priority, or 0 for no polling at all.
+	 */
+	unsigned char getPollPriority() const { return m_pollPriority; }
+	/**
 	 * @brief Reads the value from the master or slave @a SymbolString.
 	 * @param masterData the unescaped master data @a SymbolString for reading binary data.
 	 * @param slaveData the unescaped slave data @a SymbolString for reading binary data.
