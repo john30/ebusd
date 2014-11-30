@@ -49,13 +49,31 @@ Message::Message(const string clazz, const string name, const bool isSet,
 	m_key = key;
 }
 
+/**
+ * @brief Helper method for getting a default if the value is empty.
+ * @param value the value to check.
+ * @param defaults a @a verctor of defaults, or NULL.
+ * @param pos the position in defaults.
+ * @return the default if available and value is empty, or the value.
+ */
+string getDefault(string value, vector<string>* defaults, size_t pos)
+{
+	if (value.length() > 0 || defaults == NULL || pos > defaults->size()) {
+		return value;
+	}
+
+	string ret = defaults->at(pos);
+	return ret;
+}
+
 result_t Message::create(vector<string>::iterator& it, const vector<string>::iterator end,
-		DataFieldTemplates* templates, Message*& returnValue)
+		vector<string>* defaults, DataFieldTemplates* templates, Message*& returnValue)
 {
 	// [type];[class];name;[comment];[QQ];ZZ;id;fields...
 	result_t result;
 	bool isSet, isActive;
 	unsigned int pollPriority = 0;
+	size_t defaultPos = 1;
 	if (it == end)
 		return RESULT_ERR_EOF;
 
@@ -68,7 +86,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	} else if (str[0] == 'C' || str[0] == 'c') {
 		isActive = false;
 		isSet = str[1] == 'W' || str[1] == 'w';
-	} else if (str[0] == 'P' || str[0] == 'p') {
+	} else if (str[0] == 'P' || str[0] == 'p') { // poll priority
 		isActive = true;
 		isSet = false;
 		if (str[1] == 0)
@@ -79,12 +97,19 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 			if (result != RESULT_OK)
 				return result;
 		}
-	} else {
+	} else if (str[0] >= '0' && str[0] <= '9') { // poll priority
+		isActive = true;
+		isSet = false;
+		result_t result;
+		pollPriority = parseInt(str, 10, 1, 9, result);
+		if (result != RESULT_OK)
+			return result;
+	} else { // default "r"
 		isActive = true;
 		isSet = false;
 	}
 
-	string clazz = *it++;
+	string clazz = getDefault(*it++, defaults, defaultPos++);
 	if (it == end)
 		return RESULT_ERR_EOF;
 
@@ -93,17 +118,18 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 		return RESULT_ERR_EOF;
 	if (name.length() == 0)
 		return RESULT_ERR_INVALID_ARG; // empty name
+	defaultPos++;
 
-	string comment = *it++;
+	string comment = getDefault(*it++, defaults, defaultPos++);
 	if (it == end)
 		return RESULT_ERR_EOF;
 
-	str = (*it++).c_str();
+	str = getDefault(*it++, defaults, defaultPos++).c_str();
 	if (it == end)
 		return RESULT_ERR_EOF;
 	unsigned char srcAddress;
-	if (*str == 0 || isActive == true)
-		srcAddress = SYN; // no specific source defined, or ignore for active message
+	if (*str == 0)
+		srcAddress = SYN; // no specific source defined
 	else {
 		srcAddress = parseInt(str, 16, 0, 0xff, result);
 		if (result != RESULT_OK)
@@ -112,7 +138,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 			return RESULT_ERR_INVALID_ARG;
 	}
 
-	str = (*it++).c_str();
+	str = getDefault(*it++, defaults, defaultPos++).c_str();
 	if (it == end)
 		return RESULT_ERR_EOF;
 
@@ -122,35 +148,74 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	if (isValidAddress(dstAddress) == false)
 		return RESULT_ERR_INVALID_ARG;
 
-	istringstream input(*it++); // message id (PBSB + optional master data)
 	vector<unsigned char> id;
-	string token;
-	if (it == end)
-		return RESULT_ERR_EOF;
-	while (input.eof() == false) {
-		while (input.peek() == ' ')
-			input.get();
-		if (input.eof() == true) // no more digits
-			break;
-		token.clear();
-		token.push_back(input.get());
-		if (input.eof() == true)
-			return RESULT_ERR_INVALID_ARG; // too short hex
-		token.push_back(input.get());
+	for (int pos=0, useDefaults=1; pos<2; pos++) { // message id (PBSB, optional master data)
+		string token = *it++;
+		if (useDefaults == 1) {
+			if (pos == 0 && token.size() > 0) {
+				useDefaults = false;
+			} else {
+				token.append(getDefault("", defaults, defaultPos));
+			}
+		}
+		istringstream input(token);
+		if (it == end)
+			return RESULT_ERR_EOF;
+		while (input.eof() == false) {
+			while (input.peek() == ' ')
+				input.get();
+			if (input.eof() == true) // no more digits
+				break;
+			token.clear();
+			token.push_back(input.get());
+			if (input.eof() == true) {
+				return RESULT_ERR_INVALID_ARG; // too short hex
+			}
+			token.push_back(input.get());
 
-		unsigned char value = parseInt(token.c_str(), 16, 0, 0xff, result);
-		if (result != RESULT_OK)
-			return result; // invalid hex value
-		id.push_back(value);
+			unsigned char value = parseInt(token.c_str(), 16, 0, 0xff, result);
+			if (result != RESULT_OK) {
+				return result; // invalid hex value
+			}
+			id.push_back(value);
+		}
+		if (pos == 0 && id.size() != 2) {
+			return RESULT_ERR_INVALID_ARG; // missing/too short/too PBSB
+		}
+		defaultPos++;
 	}
-	if (id.size() < 2 || id.size() > 6)
+	if (id.size() < 2 || id.size() > 6) {
 		return RESULT_ERR_INVALID_ARG; // missing/too short/too long ID
+	}
 
+	vector<string>::iterator realEnd = end;
+	if (defaults!=NULL && defaults->size() > defaultPos + 3) { // need at least "[name];[part];type" (optional: "[divisor|values][;[unit][;[comment]]]]")
+		vector<string> newTypes;
+		while (defaults->at(defaultPos + 3).size() > 0) {
+			for (size_t i = 0; i < 6; i++) {
+				if (defaults->size() > defaultPos)
+					newTypes.push_back(defaults->at(defaultPos));
+				else
+					newTypes.push_back("");
+
+				defaultPos++;
+			}
+			if (defaults->size() <= defaultPos + 3)
+				break;
+		}
+		if (newTypes.size() > 0) {
+			while (it != end) {
+				newTypes.push_back(*it++);
+			}
+			it = newTypes.begin();
+			realEnd = newTypes.end();
+		}
+	}
 	DataField* data = NULL;
-	result = DataField::create(it, end, templates, data, isSet, dstAddress);
-	if (result != RESULT_OK)
+	result = DataField::create(it, realEnd, templates, data, isSet, dstAddress);
+	if (result != RESULT_OK) {
 		return result;
-
+	}
 	returnValue = new Message(clazz, name, isSet, isActive, comment, srcAddress, dstAddress, id, data, pollPriority);
 	return RESULT_OK;
 }
@@ -201,14 +266,16 @@ result_t MessageMap::add(Message* message)
 	else
 		key.append(";C");
 	map<string, Message*>::iterator nameIt = m_messagesByName.find(key);
-	if (nameIt != m_messagesByName.end())
-		return RESULT_ERR_INVALID_ARG; // duplicate key
+	if (nameIt != m_messagesByName.end()) {
+		return RESULT_ERR_DUPLICATE; // duplicate key
+	}
 
 	if (message->isActive() == false) {
 		unsigned long long pkey = message->getKey();
 		map<unsigned long long, Message*>::iterator keyIt = m_passiveMessagesByKey.find(pkey);
-		if (keyIt != m_passiveMessagesByKey.end())
+		if (keyIt != m_passiveMessagesByKey.end()) {
 			return RESULT_ERR_DUPLICATE; // duplicate key
+		}
 
 		unsigned char idLength = message->getId().size() - 2;
 		if (idLength > m_maxIdLength)
@@ -221,18 +288,36 @@ result_t MessageMap::add(Message* message)
 	return RESULT_OK;
 }
 
-result_t MessageMap::addFromFile(vector<string>& row, DataFieldTemplates* arg)
+result_t MessageMap::addFromFile(vector<string>& row, DataFieldTemplates* arg, vector< vector<string> >* defaults)
 {
 	Message* message = NULL;
-	vector<string>::iterator it = row.begin();
-	result_t result = Message::create(it, row.end(), arg, message);
-	if (result != RESULT_OK)
-		return result;
+	string types = row[0];
+	if (types.length() == 0)
+		types.append("r");
+	result_t result = RESULT_ERR_EOF;
 
-	result = add(message);
-	if (result != RESULT_OK)
-		delete message;
-
+	for (size_t i=0; i<types.length(); i++) {
+		string type = types.substr(i, 1);
+		vector<string>* defaultRow = NULL;
+		if (defaults != NULL && defaults->size() > 0) {
+			for (vector< vector<string> >::reverse_iterator it = defaults->rbegin(); it != defaults->rend(); it++) {
+				if ((*it)[0] == type || (type[0] >= '0' && type[0] <= '9' && ((*it)[0][0] == 'r' && (*it)[0][0] == 'R'))) {
+					defaultRow = &(*it);
+					break;
+				}
+			}
+		}
+		vector<string>::iterator it = row.begin();
+		result = Message::create(it, row.end(), defaultRow, arg, message);
+		if (result != RESULT_OK) {
+			printErrorPos(row.begin(), row.end(), it);
+			return result;
+		}
+		result = add(message);
+		if (result != RESULT_OK) {
+			delete message;
+		}
+	}
 	return result;
 }
 

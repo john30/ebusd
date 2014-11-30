@@ -64,12 +64,14 @@ public:
 	 * @brief Factory method for creating a new instance.
 	 * @param it the iterator to traverse for the definition parts.
 	 * @param end the iterator pointing to the end of the definition parts.
+	 * @param defaults a @a vector with known default values, or NULL.
 	 * @param templates the @a DataFieldTemplates to be referenced by name, or NULL.
 	 * @param returnValue the variable in which to store the created instance.
 	 * @return @a RESULT_OK on success, or an error code.
 	 * Note: the caller needs to free the created instance.
 	 */
 	static result_t create(vector<string>::iterator& it, const vector<string>::iterator end,
+			vector<string>* defaults,
 			DataFieldTemplates*, Message*& returnValue);
 	/**
 	 * @brief Get the optional device class.
@@ -183,7 +185,7 @@ public:
 	/**
 	 * @brief Constructs a new instance.
 	 */
-	MessageMap() : m_maxIdLength(0) {}
+	MessageMap() : FileReader(true), m_maxIdLength(0) {}
 	/**
 	 * @brief Destructor.
 	 */
@@ -196,7 +198,7 @@ public:
 	 */
 	result_t add(Message* message);
 	// @copydoc
-	virtual result_t addFromFile(vector<string>& row, DataFieldTemplates* arg);
+	virtual result_t addFromFile(vector<string>& row, DataFieldTemplates* arg,  vector< vector<string> >* defaults);
 	/**
 	 * @brief Finds the @a Message instance for the specified class and name.
 	 * @param master the master @a SymbolString for identifying the @a Message.

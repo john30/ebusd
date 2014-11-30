@@ -41,42 +41,17 @@ void verify(bool expectFailMatch, string type, string input,
 		        << gotStr << "<, expected >" << expectStr << "<" << endl;
 }
 
-void printErrorPos(vector<string>::iterator it, const vector<string>::iterator end, vector<string>::iterator pos)
-{
-	cout << "Erroneous item is here:" << endl;
-	bool first = true;
-	int cnt = 0;
-	if (pos > it)
-		pos--;
-	while (it != end) {
-		if (first == true)
-			first = false;
-		else {
-			cout << ';';
-			if (it <= pos) {
-				cnt++;
-			}
-		}
-		if (it < pos) {
-			cnt += (*it).length();
-		}
-		cout << (*it++);
-	}
-	cout << endl;
-	cout << setw(cnt) << " " << setw(0) << "^" << endl;
-}
-
 int main()
 {
 	// message= [type];class;name;[comment];[QQ];ZZ;PBSB;fields...
 	// field=   name;[pos];type[;[divisor|values][;[unit][;[comment]]]]
 	string checks[][5] = {
 		// "message", "flags"
-		{"c;;first;;;fe;0700;x;;bda", "26.10.2014", "fffe0700042610061451", "00", "p"},
-		{"w;;first;;;15;b5090400;date;;bda", "26.10.2014", "ff15b5090604002610061445", "00", "m"},
-		{"r;ehp;time;;;08;b5090d2800;;;time", "15:00:17", "ff08b509030d2800ea", "0311000f00", "m"},
-		{"r;ehp;date;;;08;b5090d2900;;;hda:3", "23.11.2014", "ff08b509030d290071", "03170b0e5a", "m"},
-		{"c;ehp;ActualEnvironmentPower;Energiebezug;;08;B50929BA00;;s;IGN:2;;;;;s;power", "8", "1008b5090329ba00", "03ba0008", "p"},
+		{"c;;first;;;fe;0700;;x;;bda", "26.10.2014", "fffe0700042610061451", "00", "p"},
+		{"w;;first;;;15;b509;0400;date;;bda", "26.10.2014", "ff15b5090604002610061445", "00", "m"},
+		{"r;ehp;time;;;08;b509;0d2800;;;time", "15:00:17", "ff08b509030d2800ea", "0311000f00", "m"},
+		{"r;ehp;date;;;08;b509;0d2900;;;hda:3", "23.11.2014", "ff08b509030d290071", "03170b0e5a", "m"},
+		{"c;ehp;ActualEnvironmentPower;Energiebezug;;08;B509;29BA00;;s;IGN:2;;;;;s;power", "8", "1008b5090329ba00", "03ba0008", "p"},
 	};
 	DataFieldTemplates* templates = new DataFieldTemplates();
 	result_t result = templates->readFromFile("_types.csv");
@@ -86,13 +61,13 @@ int main()
 		cout << "read templates error: " << getResultCode(result) << endl;
 
 	MessageMap* messages = new MessageMap();
-	result = messages->readFromFile("ehp00.csv", templates);
+	result = messages->readFromFile("neu-ehp00.csv", templates);
 	if (result == RESULT_OK)
 		cout << "read messages OK" << endl;
 	else
 		cout << "read messages error: " << getResultCode(result) << endl;
 
-	Message *message = NULL;
+	Message* message = NULL;
 	Message* deleteMessage = NULL;
 	for (size_t i = 0; i < sizeof(checks) / sizeof(checks[0]); i++) {
 		string check[5] = checks[i];
@@ -116,7 +91,7 @@ int main()
 			deleteMessage = NULL;
 		}
 		vector<string>::iterator it = entries.begin();
-		result_t result = Message::create(it, entries.end(), templates, deleteMessage);
+		result_t result = Message::create(it, entries.end(), NULL, templates, deleteMessage);
 
 		if (failedCreate == true) {
 			if (result == RESULT_OK)
