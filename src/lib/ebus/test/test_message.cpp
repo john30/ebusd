@@ -47,11 +47,13 @@ int main()
 	// field=   name;[pos];type[;[divisor|values][;[unit][;[comment]]]]
 	string checks[][5] = {
 		// "message", "flags"
-		{"c;;first;;;fe;0700;;x;;bda", "26.10.2014", "fffe0700042610061451", "00", "p"},
+		{"u;;first;;;fe;0700;;x;;bda", "26.10.2014", "fffe0700042610061451", "00", "p"},
 		{"w;;first;;;15;b509;0400;date;;bda", "26.10.2014", "ff15b5090604002610061445", "00", "m"},
 		{"r;ehp;time;;;08;b509;0d2800;;;time", "15:00:17", "ff08b509030d2800ea", "0311000f00", "m"},
 		{"r;ehp;date;;;08;b509;0d2900;;;hda:3", "23.11.2014", "ff08b509030d290071", "03170b0e5a", "m"},
-		{"c;ehp;ActualEnvironmentPower;Energiebezug;;08;B509;29BA00;;s;IGN:2;;;;;s;power", "8", "1008b5090329ba00", "03ba0008", "p"},
+		{"u;ehp;ActualEnvironmentPower;Energiebezug;;08;B509;29BA00;;s;IGN:2;;;;;s;power", "8", "1008b5090329ba00", "03ba0008", "pm"},
+		{"","55.50;ok","1025b50903290000","050000780300",""},
+
 	};
 	DataFieldTemplates* templates = new DataFieldTemplates();
 	result_t result = templates->readFromFile("_types.csv");
@@ -90,69 +92,90 @@ int main()
 			delete deleteMessage;
 			deleteMessage = NULL;
 		}
-		vector<string>::iterator it = entries.begin();
-		result_t result = Message::create(it, entries.end(), NULL, templates, deleteMessage);
-
-		if (failedCreate == true) {
-			if (result == RESULT_OK)
-				cout << "\"" << check[0] << "\": failed create error: unexpectedly succeeded" << endl;
-			else
-				cout << "\"" << check[0] << "\": failed create OK" << endl;
-			continue;
-		}
-		if (result != RESULT_OK) {
-			cout << "\"" << check[0] << "\": create error: "
-			        << getResultCode(result) << endl;
-			printErrorPos(entries.begin(), entries.end(), it);
-			continue;
-		}
-		if (deleteMessage == NULL) {
-			cout << "\"" << check[0] << "\": create error: NULL" << endl;
-			continue;
-		}
-		if (it != entries.end()) {
-			cout << "\"" << check[0] << "\": create error: trailing input" << endl;
-			continue;
-		}
-		cout << "\"" << check[0] << "\": create OK" << endl;
-
-		if (dontMap == false) {
-			result = messages->add(deleteMessage);
+		if (entries.size() == 0) {
+			message = messages->find(mstr);
+			if (message == NULL) {
+				cout << "  find error: NULL" << endl;
+				continue;
+			}
+			cout << "  find OK" << endl;
+		} else {
+			vector<string>::iterator it = entries.begin();
+			result = Message::create(it, entries.end(), NULL, templates, deleteMessage);
+			if (failedCreate == true) {
+				if (result == RESULT_OK)
+					cout << "\"" << check[0] << "\": failed create error: unexpectedly succeeded" << endl;
+				else
+					cout << "\"" << check[0] << "\": failed create OK" << endl;
+				continue;
+			}
 			if (result != RESULT_OK) {
-				cout << "\"" << check[0] << "\": add error: "
+				cout << "\"" << check[0] << "\": create error: "
+						<< getResultCode(result) << endl;
+				printErrorPos(entries.begin(), entries.end(), it);
+				continue;
+			}
+			if (deleteMessage == NULL) {
+				cout << "\"" << check[0] << "\": create error: NULL" << endl;
+				continue;
+			}
+			if (it != entries.end()) {
+				cout << "\"" << check[0] << "\": create error: trailing input" << endl;
+				continue;
+			}
+			cout << "\"" << check[0] << "\": create OK" << endl;
+			if (dontMap == false) {
+				result_t result = messages->add(deleteMessage);
+				if (result != RESULT_OK) {
+					cout << "\"" << check[0] << "\": add error: "
+							<< getResultCode(result) << endl;
+					continue;
+				}
+				cout << "  map OK" << endl;
+				message = deleteMessage;
+				deleteMessage = NULL;
+				if (messages->find(mstr) == message)
+					cout << "  find OK" << endl;
+				else
+					cout << "  find error: NULL" << endl;
+			}
+			else
+				message = deleteMessage;
+		}
+		istringstream input(inputStr);
+		SymbolString writeMstr = SymbolString();
+		if (message->isPassive() == true) {
+			ostringstream output;
+			result = message->decode(mstr, sstr, output);
+			if (result != RESULT_OK) {
+				cout << "  \"" << inputStr << "\": decode error: "
 						<< getResultCode(result) << endl;
 				continue;
 			}
-			cout << "  map OK" << endl;
-			message = deleteMessage;
-			deleteMessage = NULL;
-			if (messages->find(mstr) == message)
-				cout << "  find OK" << endl;
-			else
-				cout << "  find error: NULL" << endl;
-		}
-		else
-			message = deleteMessage;
-		istringstream input(inputStr);
-		SymbolString writeMstr = SymbolString();
-		result = message->prepare(0xff, writeMstr, input);
-		if (failedPrepare == true) {
-			if (result == RESULT_OK)
-				cout << "  \"" << inputStr << "\": failed prepare error: unexpectedly succeeded" << endl;
-			else
-				cout << "  \"" << inputStr << "\": failed prepare OK" << endl;
-			continue;
-		}
+			cout << "  \"" << inputStr << "\": decode OK" << endl;
 
-		if (result != RESULT_OK) {
-			cout << "  \"" << inputStr << "\": prepare error: "
-			        << getResultCode(result) << endl;
-			continue;
-		}
-		cout << "  \"" << inputStr << "\": prepare OK" << endl;
+			bool match = inputStr == output.str();
+			verify(false, "decode", check[2] + "/" + check[3], match, inputStr, output.str());
+		} else {
+			result = message->prepareMaster(0xff, writeMstr, input);
+			if (failedPrepare == true) {
+				if (result == RESULT_OK)
+					cout << "  \"" << inputStr << "\": failed prepare error: unexpectedly succeeded" << endl;
+				else
+					cout << "  \"" << inputStr << "\": failed prepare OK" << endl;
+				continue;
+			}
 
-		bool match = writeMstr==mstr;
-		verify(failedPrepareMatch, "prepare", inputStr, match, mstr.getDataStr(), writeMstr.getDataStr());
+			if (result != RESULT_OK) {
+				cout << "  \"" << inputStr << "\": prepare error: "
+						<< getResultCode(result) << endl;
+				continue;
+			}
+			cout << "  \"" << inputStr << "\": prepare OK" << endl;
+
+			bool match = writeMstr==mstr;
+			verify(failedPrepareMatch, "prepare", inputStr, match, mstr.getDataStr(), writeMstr.getDataStr());
+		}
 	}
 
 	if (deleteMessage != NULL) {
