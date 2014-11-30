@@ -28,21 +28,21 @@
 using namespace std;
 
 Message::Message(const string clazz, const string name, const bool isSet,
-			const bool isActive, const string comment,
+			const bool isPassive, const string comment,
 			const unsigned char srcAddress, const unsigned char dstAddress,
 			const vector<unsigned char> id, DataField* data,
 			const unsigned int pollPriority)
 		: m_class(clazz), m_name(name), m_isSet(isSet),
-		  m_isActive(isActive), m_comment(comment),
+		  m_isPassive(isPassive), m_comment(comment),
 		  m_srcAddress(srcAddress), m_dstAddress(dstAddress),
 		  m_id(id), m_data(data), m_pollPriority(pollPriority)
 {
 	int exp = 7;
 	unsigned long long key = (unsigned long long)(id.size()-2) << (8 * exp + 5);
-	if (isActive == true)
-		key |= 0x1fLL << (8 * exp--);
+	if (isPassive == true)
+		key |= (unsigned long long)getMasterNumber(srcAddress) << (8 * exp--); // 0..25
 	else
-		key |= (unsigned long long)getMasterNumber(srcAddress) << (8 * exp--);
+		key |= 0x1fLL << (8 * exp--); // special value for active
 	key |= (unsigned long long)dstAddress << (8 * exp--);
 	for (vector<unsigned char>::const_iterator it=id.begin(); it<id.end(); it++)
 		key |= (unsigned long long)(*it) << (8 * exp--);
@@ -52,26 +52,36 @@ Message::Message(const string clazz, const string name, const bool isSet,
 /**
  * @brief Helper method for getting a default if the value is empty.
  * @param value the value to check.
- * @param defaults a @a verctor of defaults, or NULL.
+ * @param defaults a @a vector of defaults, or NULL.
  * @param pos the position in defaults.
  * @return the default if available and value is empty, or the value.
  */
 string getDefault(string value, vector<string>* defaults, size_t pos)
 {
+/*cout<<"getDefault("<<value<<",";
+if (defaults==NULL)
+	cout<<"NULL";
+else
+	cout<<static_cast<unsigned>(defaults->size());
+cout<<","<<static_cast<unsigned>(pos)<<"=";*/
 	if (value.length() > 0 || defaults == NULL || pos > defaults->size()) {
+//cout<<value<<endl;
 		return value;
 	}
 
-	string ret = defaults->at(pos);
-	return ret;
+	value = defaults->at(pos);
+//cout<<value<<endl;
+	return value;
 }
 
 result_t Message::create(vector<string>::iterator& it, const vector<string>::iterator end,
-		vector<string>* defaults, DataFieldTemplates* templates, Message*& returnValue)
+		vector< vector<string> >* defaultsRows,
+		DataFieldTemplates* templates, Message*& returnValue)
 {
 	// [type];[class];name;[comment];[QQ];ZZ;id;fields...
 	result_t result;
-	bool isSet, isActive;
+	bool isSet = false, isPassive = true;
+	char defaultsChar;
 	unsigned int pollPriority = 0;
 	size_t defaultPos = 1;
 	if (it == end)
@@ -80,15 +90,15 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	const char* str = (*it++).c_str();
 	if (it == end)
 		return RESULT_ERR_EOF;
-	if (strcasecmp(str, "W") == 0) {
-		isActive = true;
+	if (str[0] == 0 || strcasecmp(str, "R") == 0) { // default: active get
+		isPassive = false;
+		defaultsChar = 'r';
+	} else if (strcasecmp(str, "W") == 0) { // active set
+		isPassive = false;
 		isSet = true;
-	} else if (str[0] == 'C' || str[0] == 'c') {
-		isActive = false;
-		isSet = str[1] == 'W' || str[1] == 'w';
-	} else if (str[0] == 'P' || str[0] == 'p') { // poll priority
-		isActive = true;
-		isSet = false;
+		defaultsChar = 'w';
+	} else if (str[0] == 'P' || str[0] == 'p') { // poll (=active get)
+		isPassive = false;
 		if (str[1] == 0)
 			pollPriority = 1;
 		else {
@@ -97,16 +107,28 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 			if (result != RESULT_OK)
 				return result;
 		}
-	} else if (str[0] >= '0' && str[0] <= '9') { // poll priority
-		isActive = true;
-		isSet = false;
+		defaultsChar = 'r';
+	} else if (str[0] >= '0' && str[0] <= '9') { // poll priority (=active get)
+		isPassive = false;
 		result_t result;
 		pollPriority = parseInt(str, 10, 1, 9, result);
 		if (result != RESULT_OK)
 			return result;
-	} else { // default "r"
-		isActive = true;
-		isSet = false;
+		defaultsChar = 'r';
+	} else { // any other: passive set/get
+		isSet = str[1] == 'W' || str[1] == 'w';
+		defaultsChar = str[0];
+	}
+
+	vector<string>* defaults = NULL;
+	if (defaultsRows != NULL && defaultsRows->size() > 0) {
+		for (vector< vector<string> >::reverse_iterator it = defaultsRows->rbegin(); it != defaultsRows->rend(); it++) {
+			string check = (*it)[0];
+			if (check[0] == defaultsChar) {
+				defaults = &(*it);
+				break;
+			}
+		}
 	}
 
 	string clazz = getDefault(*it++, defaults, defaultPos++);
@@ -153,9 +175,9 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 		string token = *it++;
 		if (useDefaults == 1) {
 			if (pos == 0 && token.size() > 0) {
-				useDefaults = false;
+				useDefaults = 0;
 			} else {
-				token.append(getDefault("", defaults, defaultPos));
+				token = getDefault("", defaults, defaultPos).append(token);
 			}
 		}
 		istringstream input(token);
@@ -189,9 +211,9 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	}
 
 	vector<string>::iterator realEnd = end;
-	if (defaults!=NULL && defaults->size() > defaultPos + 3) { // need at least "[name];[part];type" (optional: "[divisor|values][;[unit][;[comment]]]]")
-		vector<string> newTypes;
-		while (defaults->at(defaultPos + 3).size() > 0) {
+	vector<string> newTypes;
+	if (defaults!=NULL && defaults->size() > defaultPos + 2) { // need at least "[name];[part];type" (optional: "[divisor|values][;[unit][;[comment]]]]")
+		while (defaults->size() > defaultPos + 2 && defaults->at(defaultPos + 2).size() > 0) {
 			for (size_t i = 0; i < 6; i++) {
 				if (defaults->size() > defaultPos)
 					newTypes.push_back(defaults->at(defaultPos));
@@ -200,8 +222,6 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 
 				defaultPos++;
 			}
-			if (defaults->size() <= defaultPos + 3)
-				break;
 		}
 		if (newTypes.size() > 0) {
 			while (it != end) {
@@ -216,74 +236,77 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	if (result != RESULT_OK) {
 		return result;
 	}
-	returnValue = new Message(clazz, name, isSet, isActive, comment, srcAddress, dstAddress, id, data, pollPriority);
+	returnValue = new Message(clazz, name, isSet, isPassive, comment, srcAddress, dstAddress, id, data, pollPriority);
 	return RESULT_OK;
 }
 
-result_t Message::prepare(const unsigned char srcAddress, SymbolString& masterData, istringstream& input, char separator)
+result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& masterData, istringstream& input, char separator)
 {
-	if (m_isActive == true) {
-		masterData.clear();
-		masterData.push_back(srcAddress, false);
-		masterData.push_back(m_dstAddress, false);
-		masterData.push_back(m_id[0], false);
-		masterData.push_back(m_id[1], false);
-		unsigned char addData = m_data->getLength(pt_masterData);
-		masterData.push_back(m_id.size() - 2 + addData, false);
-		for (size_t i=2; i<m_id.size(); i++)
-			masterData.push_back(m_id[i], false);
-		SymbolString slaveData;
-		result_t result = m_data->write(input, masterData, m_id.size() - 2, slaveData, 0, separator);
-		if (result != RESULT_OK)
-			return result;
-		masterData.push_back(masterData.getCRC(), false, false);
-		return RESULT_OK;
-	}
-	return RESULT_ERR_INVALID_ARG; // prepare not possible
+	if (m_isPassive == true)
+		return RESULT_ERR_INVALID_ARG; // prepare not possible
+
+	masterData.clear();
+	masterData.push_back(srcAddress, false);
+	masterData.push_back(m_dstAddress, false);
+	masterData.push_back(m_id[0], false);
+	masterData.push_back(m_id[1], false);
+	unsigned char addData = m_data->getLength(pt_masterData);
+	masterData.push_back(m_id.size() - 2 + addData, false);
+	for (size_t i=2; i<m_id.size(); i++)
+		masterData.push_back(m_id[i], false);
+	SymbolString slaveData;
+	result_t result = m_data->write(input, masterData, m_id.size() - 2, slaveData, 0, separator);
+	if (result != RESULT_OK)
+		return result;
+	masterData.push_back(masterData.getCRC(), false, false);
+	/*if (slaveData.size() > 0) {
+		return RESULT_ERR_INVALID_ARG; // TODO support answering MS queries (set slave length, calc crc)
+	}*/
+	return RESULT_OK;
 }
 
 result_t Message::decode(SymbolString& masterData, SymbolString& slaveData,
-		ostringstream& output, char separator, bool answer)
+		ostringstream& output, char separator)
 {
 	result_t result = m_data->read(masterData, m_id.size() - 2, slaveData, 0, output, false, separator);
 	if (result != RESULT_OK)
 		return result;
-	if (m_isActive == true && answer == true) {
+	/*if (m_isPassive == false && answer == true) {
 		istringstream input; // TODO create input from database of internal variables
 		result_t result = m_data->write(input, masterData, m_id.size() - 2, slaveData, 0, separator);
 		if (result != RESULT_OK)
 			return result;
-	}
+	}*/
 	return RESULT_OK;
 }
 
 
 result_t MessageMap::add(Message* message)
 {
-	string key = message->getClass().append(";").append(message->getName());
-	if (message->isActive() == true)
+	if (message->isPassive() == false) {
+		string key = message->getClass().append(";").append(message->getName());
 		key.append(message->isSet() ? ";W" : ";R");
-	else
-		key.append(";C");
-	map<string, Message*>::iterator nameIt = m_messagesByName.find(key);
-	if (nameIt != m_messagesByName.end()) {
-		return RESULT_ERR_DUPLICATE; // duplicate key
-	}
-
-	if (message->isActive() == false) {
-		unsigned long long pkey = message->getKey();
-		map<unsigned long long, Message*>::iterator keyIt = m_passiveMessagesByKey.find(pkey);
-		if (keyIt != m_passiveMessagesByKey.end()) {
+		map<string, Message*>::iterator nameIt = m_messagesByName.find(key);
+		if (nameIt != m_messagesByName.end()) {
 			return RESULT_ERR_DUPLICATE; // duplicate key
 		}
 
-		unsigned char idLength = message->getId().size() - 2;
-		if (idLength > m_maxIdLength)
-			m_maxIdLength = idLength;
-		m_passiveMessagesByKey[pkey] = message;
+		m_messagesByName[key] = message;
+		return RESULT_OK;
 	}
 
-	m_messagesByName[key] = message;
+	unsigned long long key = message->getKey();
+	map<unsigned long long, Message*>::iterator keyIt = m_passiveMessagesByKey.find(key);
+	if (keyIt != m_passiveMessagesByKey.end()) {
+		return RESULT_ERR_DUPLICATE; // duplicate key
+	}
+
+	unsigned char idLength = message->getId().size() - 2;
+	if (idLength < m_minIdLength)
+		m_minIdLength = idLength;
+	if (idLength > m_maxIdLength)
+		m_maxIdLength = idLength;
+	m_passiveMessagesByKey[key] = message;
 
 	return RESULT_OK;
 }
@@ -296,19 +319,12 @@ result_t MessageMap::addFromFile(vector<string>& row, DataFieldTemplates* arg, v
 		types.append("r");
 	result_t result = RESULT_ERR_EOF;
 
-	for (size_t i=0; i<types.length(); i++) {
-		string type = types.substr(i, 1);
-		vector<string>* defaultRow = NULL;
-		if (defaults != NULL && defaults->size() > 0) {
-			for (vector< vector<string> >::reverse_iterator it = defaults->rbegin(); it != defaults->rend(); it++) {
-				if ((*it)[0] == type || (type[0] >= '0' && type[0] <= '9' && ((*it)[0][0] == 'r' && (*it)[0][0] == 'R'))) {
-					defaultRow = &(*it);
-					break;
-				}
-			}
-		}
+	istringstream stream(types);
+	string type;
+	while (getline(stream, type, ',') != 0) {
+		row[0] = type;
 		vector<string>::iterator it = row.begin();
-		result = Message::create(it, row.end(), defaultRow, arg, message);
+		result = Message::create(it, row.end(), defaults, arg, message);
 		if (result != RESULT_OK) {
 			printErrorPos(row.begin(), row.end(), it);
 			return result;
@@ -321,15 +337,11 @@ result_t MessageMap::addFromFile(vector<string>& row, DataFieldTemplates* arg, v
 	return result;
 }
 
-Message* MessageMap::find(const string& clazz, const string& name, const bool isActive, const bool isSet)
+Message* MessageMap::find(const string& clazz, const string& name, const bool isSet)
 {
 	string key = clazz;
 	for (int i=0; i<2; i++) {
-		key.append(";").append(name);
-		if (isActive == true)
-			key.append(isSet ? ";W" : ";R");
-		else
-			key.append(";C");
+		key.append(";").append(name).append(isSet ? ";W" : ";R");
 		map<string, Message*>::iterator it = m_messagesByName.find(key);
 		if (it != m_messagesByName.end())
 			return it->second;
@@ -339,17 +351,20 @@ Message* MessageMap::find(const string& clazz, const string& name, const bool is
 	return NULL;
 }
 
-Message* MessageMap::find(SymbolString& master) {
+Message* MessageMap::find(SymbolString& master)
+{
 	if (master.size() < 5)
 		return NULL;
-	unsigned char maxIdLength =  master[4];
+	unsigned char maxIdLength = master[4];
+	if (maxIdLength < m_minIdLength)
+		return NULL;
 	if (maxIdLength > m_maxIdLength)
 		maxIdLength = m_maxIdLength;
 	if (master.size() < 5+maxIdLength)
 		return NULL;
 
 	unsigned long long sourceMask = 0x1fLL << (8 * 7);
-	for (int idLength=maxIdLength; idLength>=0; idLength--) {
+	for (int idLength=maxIdLength; idLength>=m_maxIdLength; idLength--) {
 		int exp = 7;
 		unsigned long long key = (unsigned long long)idLength << (8 * exp + 5);
 		key |= (unsigned long long)getMasterNumber(master[0]) << (8 * exp--);
