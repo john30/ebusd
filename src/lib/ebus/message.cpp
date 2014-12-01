@@ -284,13 +284,18 @@ result_t Message::decode(SymbolString& masterData, SymbolString& slaveData,
 result_t MessageMap::add(Message* message)
 {
 	if (message->isPassive() == false) {
-		string key = message->getClass().append(";").append(message->getName());
-		key.append(message->isSet() ? ";W" : ";R");
+		bool isSet = message->isSet();
+		string clazz = message->getClass();
+		string name = message->getName();
+		string key = string(isSet ? "W" : "R") + clazz + ";" + name;
 		map<string, Message*>::iterator nameIt = m_messagesByName.find(key);
 		if (nameIt != m_messagesByName.end()) {
 			return RESULT_ERR_DUPLICATE; // duplicate key
 		}
 
+		m_messagesByName[key] = message;
+
+		key = string(isSet ? "-W" : "-R") + name; // also store without class
 		m_messagesByName[key] = message;
 		return RESULT_OK;
 	}
@@ -339,13 +344,15 @@ result_t MessageMap::addFromFile(vector<string>& row, DataFieldTemplates* arg, v
 
 Message* MessageMap::find(const string& clazz, const string& name, const bool isSet)
 {
-	string key = clazz;
+	string key;
 	for (int i=0; i<2; i++) {
-		key.append(";").append(name).append(isSet ? ";W" : ";R");
+		if (i==0)
+			key = string(isSet ? "W" : "R") + clazz + ";" + name;
+		else
+			key = string(isSet ? "-W" : "-R") + name; // second try: without class
 		map<string, Message*>::iterator it = m_messagesByName.find(key);
 		if (it != m_messagesByName.end())
 			return it->second;
-		key.clear(); // try again without class name
 	}
 
 	return NULL;
@@ -392,7 +399,8 @@ Message* MessageMap::find(SymbolString& master)
 void MessageMap::clear()
 {
 	for (map<string, Message*>::iterator it=m_messagesByName.begin(); it!=m_messagesByName.end(); it++) {
-		delete it->second;
+		if (it->first[0] != '-') // avoid double free
+			delete it->second;
 		it->second = NULL;
 	}
 	m_messagesByName.clear();
