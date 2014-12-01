@@ -57,7 +57,7 @@ BaseLoop::BaseLoop()
 	const long dumpRawMaxSize = A.getOptVal<long>("dumpsize");
 
 	// create Port
-	m_port = new Port(A.getOptVal<const char*>("device"), A.getOptVal<bool>("nodevicecheck"), logRaw, &L, dumpRaw, dumpRawFile, dumpRawMaxSize);
+	m_port = new Port(A.getOptVal<const char*>("device"), A.getOptVal<bool>("nodevicecheck"), logRaw, &BaseLoop::logRaw, dumpRaw, dumpRawFile, dumpRawMaxSize);
 	m_port->open();
 
 	if (m_port->isOpen() == false)
@@ -164,6 +164,10 @@ void BaseLoop::start()
 	}
 }
 
+void BaseLoop::logRaw(const unsigned char byte) {
+	L.log(bus, event, "%02x", byte);
+}
+
 string BaseLoop::decodeMessage(const string& data)
 {
 	ostringstream result;
@@ -186,18 +190,20 @@ string BaseLoop::decodeMessage(const string& data)
 		result << "command not found";
 		break;
 
-	/*case ct_get:
-		if (cmd.size() < 3 || cmd.size() > 4) {
-			result << "usage: 'get class cmd (sub)'";
+	case ct_get:
+		if (cmd.size() < 2 || cmd.size() > 4) {
+			result << "usage: 'get [class] cmd' or 'get class cmd sub'";
 			break;
 		}
 
-		message = m_messages->find(cmd[1], cmd[2], true, false);
+		if (cmd.size() == 2)
+			message = m_messages->find("", cmd[1], false);
+		else
+			message = m_messages->find(cmd[1], cmd[2], false);
 
 		if (message != NULL) {
 
-			// polling data
-			if (strcasecmp(m_commands->getCmdType(index).c_str(), "P") == 0) {
+			/*if (message->getPollPriority() > 0)
 				// get polldata
 				polldata = m_commands->getPollData(index);
 				if (polldata != "") {
@@ -213,12 +219,12 @@ string BaseLoop::decodeMessage(const string& data)
 				}
 
 				break;
-			}
+			}*/
 
-			string busCommand(A.getOptVal<const char*>("address"));
+			/*string busCommand(A.getOptVal<const char*>("address"));
 			busCommand += m_commands->getBusCommand(index);
 			transform(busCommand.begin(), busCommand.end(), busCommand.begin(), ::tolower);
-
+			m_busHandler->
 			BusMessage* message = new BusMessage(busCommand, false, false);
 			L.log(bas, trace, " msg: %s", busCommand.c_str());
 			// send message
@@ -238,13 +244,13 @@ string BaseLoop::decodeMessage(const string& data)
 				result << message->getResultCodeCStr();
 			}
 
-			delete message;
+			delete message;*/
 
 		} else {
 			result << "ebus command not found";
 		}
 
-		break;*/
+		break;
 
 	/*case ct_set:
 		if (cmd.size() != 4) {

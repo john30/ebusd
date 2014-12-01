@@ -30,7 +30,6 @@
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#include "logger.h"
 
 #ifdef HAVE_PPOLL
 #include <poll.h>
@@ -252,10 +251,10 @@ void DeviceNetwork::closeDevice()
 }
 
 
-Port::Port(const string deviceName, const bool noDeviceCheck, const bool logRaw, Logger* loggerRaw,
+Port::Port(const string deviceName, const bool noDeviceCheck, const bool logRaw, void (*logRawFunc)(const unsigned char byte),
 		const bool dumpRaw, const char* dumpRawFile, const long dumpRawMaxSize)
 	: m_deviceName(deviceName), m_noDeviceCheck(noDeviceCheck),
-	  m_logRaw(logRaw), m_loggerRaw(loggerRaw),
+	  m_logRaw(logRaw), m_logRawFunc(logRawFunc),
 	  m_dumpRawFile(dumpRawFile), m_dumpRawMaxSize(dumpRawMaxSize)
 {
 	m_device = NULL;
@@ -275,8 +274,8 @@ unsigned char Port::byte()
 {
 	unsigned char byte = m_device->getByte();
 
-	if (m_logRaw == true && m_loggerRaw != NULL)
-		m_loggerRaw->log(bus, event, "%02x", byte);
+	if (m_logRaw == true && m_logRawFunc != NULL)
+		(*m_logRawFunc)(byte);
 
 	if (m_dumpRaw == true && m_dumpRawStream.is_open() == true) {
 		m_dumpRawStream.write((char*)&byte, 1);

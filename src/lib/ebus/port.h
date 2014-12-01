@@ -26,7 +26,6 @@
 #include <unistd.h>
 #include <iostream>
 #include <fstream>
-#include "logger.h"
 #include "result.h"
 
 using namespace std;
@@ -203,8 +202,13 @@ public:
 	 * @brief constructs a new instance and determine device type.
 	 * @param deviceName to determine device type.
 	 * @param noDeviceCheck en-/disable device check.
+	 * @param logRaw whether logging of raw data is enabled.
+	 * @param logRawFunc a function to call for logging raw data, or NULL.
+	 * @param dumpRaw whether dumping of raw data to a file is enabled.
+	 * @param dumpRawFile the name of the file to dump raw data to.
+	 * @param dumpRawMaxSize the maximum size of @a m_dumpFile.
 	 */
-	Port(const string deviceName, const bool noDeviceCheck, const bool logRaw, Logger* loggerRaw,
+	Port(const string deviceName, const bool noDeviceCheck, const bool logRaw, void (*logRawFunc)(const unsigned char byte),
 		const bool dumpRaw, const char* dumpRawFile, const long dumpRawMaxSize);
 
 	/**
@@ -307,8 +311,8 @@ private:
 	/** whether logging of raw data is enabled. */
 	bool m_logRaw;
 
-	/** the @a Logger used for logging of raw data, or NULL. */
-	Logger* m_loggerRaw;
+	/** a function to call for logging raw data, or NULL. */
+	void (*m_logRawFunc)(const unsigned char byte);
 
 	/** whether dumping of raw data to a file is enabled. */
 	bool m_dumpRaw;

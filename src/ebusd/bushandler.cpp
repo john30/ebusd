@@ -22,6 +22,7 @@
 #include "data.h"
 #include "result.h"
 #include "symbol.h"
+#include "logger.h"
 #include "appl.h"
 #include <string>
 #include <vector>

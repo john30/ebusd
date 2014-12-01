@@ -51,16 +51,22 @@ class BaseLoop
 
 public:
 	/**
-	 * @brief construct the baseloop and creates messaging, network and busloop subsystems.
+	 * @brief Construct the base loop and create messaging, network and bus handling subsystems.
 	 */
 	BaseLoop();
 
 	/**
-	 * @brief destructor.
+	 * @brief Destructor.
 	 */
 	~BaseLoop();
 
+	/**
+	 * @brief Read the configuration files from the specified path.
+	 * @param path the path from which to read the files.
+	 * @param extension the filename extension of the files to read.
+	 */
 	result_t readConfigFiles(const string path, const string extension);
+
 	/**
 	 * @brief start baseloop instance.
 	 */
@@ -71,6 +77,12 @@ public:
 	 * @param message the network message.
 	 */
 	void addMessage(NetMessage* message) { m_netQueue.add(message); }
+
+	/**
+	 * @brief Create a log message for a retrieved raw data byte.
+	 * @param param byte the retrieved raw data byte.
+	 */
+	static void logRaw(const unsigned char byte);
 
 private:
 
