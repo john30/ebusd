@@ -135,7 +135,7 @@ unsigned char Device::getByte()
 void DeviceSerial::openDevice(const string deviceName, const bool noDeviceCheck)
 {
 	m_noDeviceCheck = noDeviceCheck;
-	struct termios settings;
+	struct termios newSettings;
 	m_open = false;
 
 	// open file descriptor
@@ -147,22 +147,22 @@ void DeviceSerial::openDevice(const string deviceName, const bool noDeviceCheck)
 	// save current settings
 	tcgetattr(m_fd, &m_oldSettings);
 
-	// modify current settings
-	tcgetattr(m_fd, &settings);
+	// create new settings
+	memset(&newSettings, '\0', sizeof(newSettings));
 
-	settings.c_cflag |= (B2400 | CS8 | CLOCAL | CREAD);
-	settings.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
-	settings.c_iflag |= IGNPAR;
-	settings.c_oflag &= ~OPOST;
+	newSettings.c_cflag |= (B2400 | CS8 | CLOCAL | CREAD);
+	newSettings.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+	newSettings.c_iflag |= IGNPAR;
+	newSettings.c_oflag &= ~OPOST;
 
-	settings.c_cc[VMIN]  = 1;
-	settings.c_cc[VTIME] = 0;
+	newSettings.c_cc[VMIN]  = 1;
+	newSettings.c_cc[VTIME] = 0;
 
 	// empty device buffer
 	tcflush(m_fd, TCIFLUSH);
 
 	// activate new settings of serial device
-	tcsetattr(m_fd, TCSAFLUSH, &settings);
+	tcsetattr(m_fd, TCSAFLUSH, &newSettings);
 
 	// set serial device into blocking mode
 	fcntl(m_fd, F_SETFL, fcntl(m_fd, F_GETFL) & ~O_NONBLOCK);
