@@ -21,6 +21,7 @@
 #include "logger.h"
 #include "appl.h"
 #include <dirent.h>
+#include <iomanip>
 
 using namespace std;
 
@@ -50,6 +51,9 @@ BaseLoop::BaseLoop()
 	L.log(bas, event, "   cycle DB: %d ", m_commands->sizeCycDB());
 	L.log(bas, event, " polling DB: %d ", m_commands->sizePollDB());*/
 
+	m_ownAddress = A.getOptVal<int>("address") & 0xff;
+	bool answer = A.getOptVal<bool>("answer");
+
 	const bool logRaw = A.getOptVal<bool>("lograwdata");
 
 	const bool dumpRaw = A.getOptVal<bool>("dump");
@@ -64,7 +68,7 @@ BaseLoop::BaseLoop()
 		L.log(bus, error, "can't open %s", A.getOptVal<const char*>("device"));
 
 	// create BusHandler
-	m_busHandler = new BusHandler(m_port, m_messages, SYN, SYN); // TODO
+	m_busHandler = new BusHandler(m_port, m_messages, answer ? m_ownAddress : SYN, answer ? (m_ownAddress+5)&0xff : SYN);
 	m_busHandler->start("bushandler");
 
 	// create network
@@ -172,7 +176,6 @@ string BaseLoop::decodeMessage(const string& data)
 {
 	ostringstream result;
 	string cycdata, polldata;
-	Message* message;
 
 	// prepare data
 	string token;
@@ -196,60 +199,57 @@ string BaseLoop::decodeMessage(const string& data)
 			break;
 		}
 
-		if (cmd.size() == 2)
-			message = m_messages->find("", cmd[1], false);
-		else
-			message = m_messages->find(cmd[1], cmd[2], false);
+		{
+			Message* message;
+			if (cmd.size() == 2)
+				message = m_messages->find("", cmd[1], false);
+			else
+				message = m_messages->find(cmd[1], cmd[2], false);
 
-		if (message != NULL) {
+			if (message != NULL) {
 
-			/*if (message->getPollPriority() > 0)
-				// get polldata
-				polldata = m_commands->getPollData(index);
-				if (polldata != "") {
+				/*if (message->getPollPriority() > 0)
+					// get polldata
+					polldata = m_commands->getPollData(index);
+					if (polldata != "") {
+						// decode data
+						Command* command = new Command(index, (*m_commands)[index], polldata);
+
+						// return result
+						result << command->calcResult(cmd);
+
+						delete command;
+					} else {
+						result << "no data stored";
+					}
+
+					break;
+				}*/
+
+				SymbolString master;
+				istringstream input;
+				message->prepareMaster(m_ownAddress, master, input);
+				L.log(bas, trace, " msg: %s", master.getDataStr().c_str());
+
+				// send message
+				SymbolString slave;
+				result_t ret = m_busHandler->sendAndWait(master, slave);
+
+				if (ret == RESULT_OK)
 					// decode data
-					Command* command = new Command(index, (*m_commands)[index], polldata);
+					ret = message->decode(master, slave, result);
 
-					// return result
-					result << command->calcResult(cmd);
-
-					delete command;
-				} else {
-					result << "no data stored";
+				if (ret != RESULT_OK) {
+					L.log(bas, error, " %s", getResultCode(ret));
+					result << getResultCode(ret);
 				}
+				else
+					result << result.str(); // TODO reduce to requested variable only
 
-				break;
-			}*/
-
-			/*string busCommand(A.getOptVal<const char*>("address"));
-			busCommand += m_commands->getBusCommand(index);
-			transform(busCommand.begin(), busCommand.end(), busCommand.begin(), ::tolower);
-			m_busHandler->
-			BusMessage* message = new BusMessage(busCommand, false, false);
-			L.log(bas, trace, " msg: %s", busCommand.c_str());
-			// send message
-			m_busloop->addMessage(message);
-			message->waitSignal();
-
-			if (!message->isErrorResult()) {
-				// decode data
-				Command* command = new Command(index, (*m_commands)[index], message->getMessageStr()); // TODO use getCommand()+getResult()
-
-				// return result
-				result << command->calcResult(cmd);
-
-				delete command;
 			} else {
-				L.log(bas, error, " %s", message->getResultCodeCStr());
-				result << message->getResultCodeCStr();
+				result << "ebus command not found";
 			}
-
-			delete message;*/
-
-		} else {
-			result << "ebus command not found";
 		}
-
 		break;
 
 	/*case ct_set:
@@ -335,35 +335,38 @@ string BaseLoop::decodeMessage(const string& data)
 
 		break;*/
 
-	/*case ct_hex:
+	case ct_hex:
 		if (cmd.size() != 2) {
 			result << "usage: 'hex value' (value: ZZPBSBNNDx)";
 			break;
 		}
 
 		{
-			string busCommand(A.getOptVal<const char*>("address"));
 			cmd[1].erase(remove_if(cmd[1].begin(), cmd[1].end(), ::isspace), cmd[1].end());
-			busCommand += cmd[1];
-			transform(busCommand.begin(), busCommand.end(), busCommand.begin(), ::tolower);
+			string src;
+			ostringstream msg;
+			msg << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_ownAddress);
+			msg << cmd[1];
+			SymbolString master(cmd[1]);
+			L.log(bas, trace, " msg: %s", master.getDataStr().c_str());
 
-			BusMessage* message = new BusMessage(busCommand, false, false);
-			L.log(bas, trace, " msg: %s", busCommand.c_str());
 			// send message
-			m_busloop->addMessage(message);
-			message->waitSignal();
+			SymbolString slave;
+			result_t ret = m_busHandler->sendAndWait(master, slave);
 
-			if (message->isErrorResult()) {
-				L.log(bas, error, " %s", message->getResultCodeCStr());
-				result << message->getResultCodeCStr();
-			} else {
-				result << message->getMessageStr(); // TODO use getCommand()+getResult()
+			if (ret == RESULT_OK)
+				// decode data
+				result << slave.getDataStr(); // TODO find suitable message?, message->decode(master, slave, result);
+
+			if (ret != RESULT_OK) {
+				L.log(bas, error, " %s", getResultCode(ret));
+				result << getResultCode(ret);
 			}
-
-			delete message;
+			else
+				result << result.str(); // TODO reduce to requested variable only
 		}
 
-		break;*/
+		break;
 
 	/*case ct_scan:
 		if (cmd.size() == 1) {
