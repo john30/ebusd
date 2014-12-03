@@ -67,17 +67,25 @@ public:
 
 	/**
 	 * @brief remove the first item from queue.
-	 * @return the item.
+	 * @param wait true to wait for an item to be added to the queue, false to return NULL if no item is available.
+	 * @return the item, or NULL if no item is available and wait was false.
 	 */
-	T remove()
+	T remove(bool wait=true)
 	{
 		pthread_mutex_lock(&m_mutex);
 
-		while (m_queue.size() == 0)
-			pthread_cond_wait(&m_cond, &m_mutex);
-
-		T item = m_queue.front();
-		m_queue.pop_front();
+		T item;
+		if (wait) {
+			while (m_queue.size() == 0)
+				pthread_cond_wait(&m_cond, &m_mutex);
+			item = m_queue.front();
+			m_queue.pop_front();
+		}
+		else if (m_queue.size() > 0) {
+			item = m_queue.front();
+			m_queue.pop_front();
+		} else
+			item = NULL;
 
 		pthread_mutex_unlock(&m_mutex);
 
@@ -85,17 +93,39 @@ public:
 	}
 
 	/**
-	 * @brief return the first item from queue without remove.
-	 * @return the item.
+	 * @brief Remove the specified item from queue.
+	 * @param item the item to remove.
+	 * @return whether the item was removed.
 	 */
-	T next()
+	bool remove(T item)
+	{
+		pthread_mutex_lock(&m_mutex);
+		int oldSize = m_queue.size();
+		if (oldSize > 0)
+			m_queue.remove(item);
+		int newSize = m_queue.size();
+		pthread_mutex_unlock(&m_mutex);
+		return newSize != oldSize;
+	}
+
+	/**
+	 * @brief return the first item from queue without remove.
+	 * @return the item, or NULL if no item is available and wait was false.
+	 */
+	T next(bool wait=true)
 	{
 		pthread_mutex_lock(&m_mutex);
 
-		while (m_queue.size() == 0)
-			pthread_cond_wait(&m_cond, &m_mutex);
-
-		T item = m_queue.front();
+		T item;
+		if (wait) {
+			while (m_queue.size() == 0)
+				pthread_cond_wait(&m_cond, &m_mutex);
+			item = m_queue.front();
+		}
+		else if (m_queue.size() > 0)
+			item = m_queue.front();
+		else
+			item = NULL;
 
 		pthread_mutex_unlock(&m_mutex);
 
