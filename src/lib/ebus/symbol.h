@@ -50,13 +50,18 @@ public:
 	 * @brief Creates a new escaped instance from an unescaped hex string and adds the calculated CRC.
 	 * @param str the unescaped hex string.
 	 */
-	SymbolString(const string str);
+	SymbolString(const string& str);
+	/**
+	 * @brief Creates a new escaped instance from an unescaped @a SymbolString and adds the calculated CRC.
+	 * @param str the unescaped SymbolString.
+	 */
+	SymbolString(const SymbolString& str);
 	/**
 	 * @brief Creates a new unescaped instance from a hex string.
 	 * @param isEscaped whether the hex string is escaped and shall be unescaped.
 	 * @param str the hex string.
 	 */
-	SymbolString(const string str, const bool isEscaped);
+	SymbolString(const string& str, const bool isEscaped);
 	/**
 	 * @brief Returns the symbols as hex string.
 	 * @param unescape whether to unescape an escaped instance.

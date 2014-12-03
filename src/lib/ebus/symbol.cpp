@@ -48,7 +48,7 @@ static const unsigned char CRC_LOOKUP_TABLE[] =
 };
 
 
-SymbolString::SymbolString(const string str)
+SymbolString::SymbolString(const string& str)
 	: m_unescapeState(0), m_crc(0)
 {
 	// parse + escape
@@ -60,7 +60,18 @@ SymbolString::SymbolString(const string str)
 	push_back(m_crc, false, false);
 }
 
-SymbolString::SymbolString(const string str, bool isEscaped)
+SymbolString::SymbolString(const SymbolString& str)
+	: m_unescapeState(0), m_crc(0)
+{
+	// escape
+	for (size_t i = 0; i < str.size(); i++) {
+		push_back(str[i], false, true);
+	}
+	// add CRC + escape
+	push_back(m_crc, false, false);
+}
+
+SymbolString::SymbolString(const string& str, bool isEscaped)
 	: m_unescapeState(1), m_crc(0)
 {
 	// parse + optionally unescape
