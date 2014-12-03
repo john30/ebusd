@@ -165,6 +165,9 @@ void Appl::setOptVal(const char* option, const string value, DataType datatype)
 	case dt_bool:
 		m_optvals[option] = true;
 		break;
+	case dt_hex:
+		m_optvals[option] = strtol(value.c_str(), NULL, 16);
+		break;
 	case dt_int:
 		m_optvals[option] = strtol(value.c_str(), NULL, 10);
 		break;
