@@ -27,6 +27,7 @@
 #include <string>
 #include <vector>
 #include <cstring>
+#include <time.h>
 
 using namespace std;
 
@@ -53,6 +54,62 @@ const char* getStateCode(BusState state, int sendPos) {
 	}
 }
 
+
+BusRequest::BusRequest(SymbolString& master, SymbolString& slave)
+	: m_master(master), m_slave(slave), m_finished(false)
+{
+	pthread_mutex_init(&m_mutex, NULL);
+	pthread_cond_init(&m_cond, NULL);
+}
+
+BusRequest::~BusRequest()
+{
+	pthread_mutex_destroy(&m_mutex);
+	pthread_cond_destroy(&m_cond);
+}
+
+bool BusRequest::wait(int timeout)
+{
+	struct timespec t;
+	clock_gettime(CLOCK_REALTIME, &t);
+	t.tv_sec += timeout;
+	int result = 0;
+
+	pthread_mutex_lock(&m_mutex);
+
+	while (m_finished == false && result == 0)
+		result = pthread_cond_timedwait(&m_cond, &m_mutex, &t);
+
+	if (result == 0 && m_finished == false)
+		result = 1;
+
+	pthread_mutex_unlock(&m_mutex);
+
+	return result == 0;
+}
+
+void BusRequest::notify(bool finished)
+{
+	pthread_mutex_lock(&m_mutex);
+
+	m_finished = finished;
+
+	pthread_mutex_unlock(&m_mutex);
+}
+
+
+result_t BusHandler::sendAndWait(SymbolString& master, SymbolString& slave)
+{
+	BusRequest* request = new BusRequest(master, slave);
+
+	m_requests.add(request);
+	bool result = request->wait(5);
+	if (result == false)
+		m_requests.remove(request);
+	delete request;
+
+	return result == true ? RESULT_OK : RESULT_ERR_TIMEOUT;
+}
 
 void BusHandler::run()
 {
@@ -82,14 +139,37 @@ result_t BusHandler::receiveSymbol()
 {
 	long timeout;
 	ssize_t count;
+	unsigned char sentSymbol = SYN;
+	BusRequest* startRequest = NULL;
 	if (m_state == bs_skip)
 		timeout = 0;
-	else if (m_state == bs_ready)
-		timeout = SYN_TIMEOUT;
-	else if (m_sendPos >= 0)
+	else if (m_sendPos >= 0) {
 		timeout = SLAVE_RECV_TIMEOUT;
-	else
+		if (m_sendPos+1 < m_request->m_master.size()) {
+			m_sendPos++;
+			sentSymbol = m_request->m_master[m_sendPos];
+			if (m_port->send(&sentSymbol) != 1) {
+				sentSymbol = SYN; // try again later // TODO error: send failed, abort send
+				m_request->notify(false);
+				m_request = NULL;
+				m_sendPos = -1;
+			}
+		}
+	}
+	else {
 		timeout = SYN_TIMEOUT;
+		if (m_state == bs_ready && m_request == NULL) {
+			startRequest = m_requests.next(false);
+			if (startRequest != NULL) {
+				// initiate arbitration
+				sentSymbol = startRequest->m_master[0];
+				if (m_port->send(&sentSymbol) != 1) {
+					sentSymbol = SYN; // try again later // TODO error: send failed
+					startRequest = NULL;
+				}
+			}
+		}
+	}
 
 	count = m_port->recv(timeout, 1);
 
@@ -119,12 +199,24 @@ result_t BusHandler::receiveSymbol()
 	case bs_ready:
 		if (symbol == ESC)
 			return setState(bs_skip, RESULT_ERR_ESC);
-
+		if (m_sendPos < 0 && sentSymbol != SYN) {
+			// check arbitration
+			if (symbol == sentSymbol) { // arbitration successful
+				if (m_requests.remove(startRequest) == false) {
+					sentSymbol = SYN; // try again later // TODO error: send failed, abort send
+				} else {
+					m_request = startRequest;
+					m_sendPos = 0;
+				}
+			} else { // arbitration lost
+				sentSymbol = SYN; // try again later // TODO error: lost arbitration
+			}
+		}
 		result = m_command.push_back(symbol);
 		if (result < RESULT_OK)
 			return setState(bs_skip, result);
 
-		return setState(bs_command, result);
+		return setState(bs_command, RESULT_OK);
 
 	case bs_command:
 		headerLen = 4;
@@ -152,7 +244,7 @@ result_t BusHandler::receiveSymbol()
 			}*/
 			return setState(bs_commandAck, RESULT_OK);
 		}
-		return result;
+		return RESULT_OK;
 
 	case bs_commandAck:
 		if (symbol == ESC)
@@ -201,7 +293,7 @@ result_t BusHandler::receiveSymbol()
 			}*/
 			return setState(bs_responseAck, RESULT_OK);
 		}
-		return result;
+		return RESULT_OK;
 
 	case bs_responseAck:
 		if (symbol == ESC)

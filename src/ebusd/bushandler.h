@@ -25,10 +25,12 @@
 #include "symbol.h"
 #include "result.h"
 #include "port.h"
+#include "wqueue.h"
 #include "thread.h"
 #include <string>
 #include <vector>
 #include <map>
+#include <pthread.h>
 
 using namespace std;
 
@@ -68,6 +70,50 @@ enum MessageDirection {
 	md_undefined,
 };
 
+class BusHandler;
+
+class BusRequest
+{
+	friend class BusHandler;
+public:
+
+	/**
+	 * @brief Constructor.
+	 */
+	BusRequest(SymbolString& master, SymbolString& slave);
+
+	/**
+	 * @brief Destructor.
+	 */
+	virtual ~BusRequest();
+
+	/**
+	 * @brief Wait for notification.
+	 * @return the result code.
+	 */
+	bool wait(int timeout);
+
+	/**
+	 * @brief Notify all waiting threads.
+	 */
+	void notify(bool finished);
+
+private:
+
+	SymbolString& m_master;
+
+	SymbolString& m_slave;
+
+	bool m_finished;
+
+	/** a mutex for wait/notify. */
+	pthread_mutex_t m_mutex;
+
+	/** a mutex condition for wait/notify. */
+	pthread_cond_t m_cond;
+
+};
+
 
 /**
  * @brief Handles input from and output to the bus with respect to the ebus protocol.
@@ -87,12 +133,19 @@ public:
 			unsigned char ownSlaveAddress)
 		: m_port(port), m_messages(messages), m_ownMasterAddress(ownMasterAddress),
 		  m_ownSlaveAddress(ownSlaveAddress), m_state(bs_skip), m_repeat(false),
-		  m_sendPos(-1), m_commandCrcValid(false), m_responseCrcValid(false) {}
+		  m_sendPos(-1), m_commandCrcValid(false), m_responseCrcValid(false), m_request(NULL) {}
 
 	/**
 	 * @brief Destructor.
 	 */
 	virtual ~BusHandler() {}
+
+	/**
+	 * @brief Send a message on the bus and wait for the answer.
+	 * @param master the @a SymbolString with the master data to send.
+	 * @param slave the @a SymbolString that will be filled with retrieved slave data.
+	 */
+	result_t sendAndWait(SymbolString& master, SymbolString& slave);
 
 	/**
 	 * @brief Main thread entry.
@@ -156,6 +209,10 @@ private:
 
 	/** whether the response CRC is valid. */
 	bool m_responseCrcValid;
+
+	WQueue<BusRequest*> m_requests;
+
+	BusRequest* m_request;
 
 };
 
