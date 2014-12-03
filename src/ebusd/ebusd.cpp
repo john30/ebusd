@@ -43,8 +43,11 @@ void define_args()
 
 	A.addText("Options:\n");
 
-	A.addOption("address", "a", OptVal("FF"),  dt_string, ot_mandatory,
+	A.addOption("address", "a", OptVal(0xff), dt_hex, ot_mandatory,
 		    "\tebus device address (FF)");
+
+	A.addOption("answer", "", OptVal(false), dt_bool, ot_none,
+		    "\tanswers to requests from other devices");
 
 	A.addOption("device", "d", OptVal("/dev/ttyUSB0"), dt_string, ot_mandatory,
 		    "\tebus device (serial or network) (/dev/ttyUSB0)");
