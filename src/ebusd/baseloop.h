@@ -79,10 +79,11 @@ public:
 	void addMessage(NetMessage* message) { m_netQueue.add(message); }
 
 	/**
-	 * @brief Create a log message for a retrieved raw data byte.
-	 * @param param byte the retrieved raw data byte.
+	 * @brief Create a log message for a received/sent raw data byte.
+	 * @param param byte the raw data byte.
+	 * @param received true if the byte was received, false if it was sent.
 	 */
-	static void logRaw(const unsigned char byte);
+	static void logRaw(const unsigned char byte, bool received);
 
 private:
 

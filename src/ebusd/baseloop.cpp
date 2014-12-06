@@ -52,13 +52,19 @@ BaseLoop::BaseLoop()
 	L.log(bas, event, " polling DB: %d ", m_commands->sizePollDB());*/
 
 	m_ownAddress = A.getOptVal<int>("address") & 0xff;
-	bool answer = A.getOptVal<bool>("answer");
+	const bool answer = A.getOptVal<bool>("answer");
 
 	const bool logRaw = A.getOptVal<bool>("lograwdata");
 
 	const bool dumpRaw = A.getOptVal<bool>("dump");
 	const char* dumpRawFile = A.getOptVal<const char*>("dumpfile");
 	const long dumpRawMaxSize = A.getOptVal<long>("dumpsize");
+
+	const unsigned int busLostRetries = A.getOptVal<unsigned int>("lockretries");
+	const unsigned int failedSendRetries = A.getOptVal<unsigned int>("sendretries");
+	const unsigned int busAcquireWaitTime = A.getOptVal<unsigned int>("acquiretimeout");
+	const unsigned int slaveRecvTimeout = A.getOptVal<unsigned int>("recvtimeout");
+	const unsigned int lockCount = A.getOptVal<unsigned int>("lockcounter");
 
 	// create Port
 	m_port = new Port(A.getOptVal<const char*>("device"), A.getOptVal<bool>("nodevicecheck"), logRaw, &BaseLoop::logRaw, dumpRaw, dumpRawFile, dumpRawMaxSize);
@@ -68,7 +74,11 @@ BaseLoop::BaseLoop()
 		L.log(bus, error, "can't open %s", A.getOptVal<const char*>("device"));
 
 	// create BusHandler
-	m_busHandler = new BusHandler(m_port, m_messages, answer ? m_ownAddress : SYN, answer ? (m_ownAddress+5)&0xff : SYN);
+	m_busHandler = new BusHandler(m_port, m_messages,
+			answer ? m_ownAddress : SYN, answer ? (m_ownAddress+5)&0xff : SYN,
+			busLostRetries, failedSendRetries,
+			busAcquireWaitTime, slaveRecvTimeout,
+			lockCount);
 	m_busHandler->start("bushandler");
 
 	// create network
@@ -167,9 +177,17 @@ void BaseLoop::start()
 			return;
 	}
 }
+static unsigned char _lastRecvSymbol = SYN;
 
-void BaseLoop::logRaw(const unsigned char byte) {
-	L.log(bus, event, "%02x", byte);
+void BaseLoop::logRaw(const unsigned char byte, bool received) {
+	if (received == true) {
+		if (byte != SYN || byte !=_lastRecvSymbol)
+			L.log(bus, event, "<%02x", byte);
+		_lastRecvSymbol = byte;
+	} else {
+		L.log(bus, event, ">%02x", byte);
+		_lastRecvSymbol = ESC;
+	}
 }
 
 string BaseLoop::decodeMessage(const string& data)

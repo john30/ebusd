@@ -35,13 +35,13 @@
 using namespace std;
 
 /** the maximum allowed time [us] for retrieving a symbol from an addressed slave. */
-#define SLAVE_RECV_TIMEOUT 10000
-/** the maximum allowed time [us] for retrieving the AUTO-SYN symbol (should be generated in <45ms). */
-#define SYN_TIMEOUT 50000
-/** the maximum duration [us] of a single symbol. */
-#define SYMBOL_DURATION 5100
-/** the maximum allowed time [us] for retrieving back a sent symbol. */
-#define SEND_TIMEOUT 6000
+//#define SLAVE_RECV_TIMEOUT 10000
+/** the maximum allowed time [us] for retrieving the AUTO-SYN symbol (45ms + 2*1,2% + 1 Symbol). */
+#define SYN_TIMEOUT 50800
+/** the maximum duration [us] of a single symbol (Start+8Bit+Stop+Extra @ 2400Bd-2*1,2%). */
+#define SYMBOL_DURATION 4700
+/** the maximum allowed time [us] for retrieving back a sent symbol (2x symbol duration). */
+#define SEND_TIMEOUT (2*SYMBOL_DURATION)
 
 /** the possible bus states. */
 enum BusState {
@@ -56,13 +56,6 @@ enum BusState {
 //	bs_sendRes,     // send response (slave data) [passive get] // TODO implement
 //	bs_sendCmdAck,  // send command ACK/NACK [passive get] // TODO implement
 	bs_sendSyn,     // send SYN for completed transfer [active set+get]
-};
-
-/** the possible message transfer types. */
-enum TransferType {
-	tt_broadcast,    // broadcast transfer
-	tt_masterMaster, // master to master transfer
-	tt_masterSlave   // master to slave transfer
 };
 
 /** the possible combinations of participants in a single message exchange. */
@@ -147,11 +140,23 @@ public:
 	 * @param messages the @a MessageMap instance with all known @a Message instances.
 	 * @param ownMasterAddress the own master address to react on master-master messages, or @a SYN to ignore.
 	 * @param ownSlaveAddress the own slave address to react on master-slave messages, or @a SYN to ignore.
+	 * @param busLostRetries the number of times a send is repeated due to lost arbitration.
+	 * @param failedSendRetries the number of times a failed send is repeated (other than lost arbitration).
+	 * @param slaveRecvTimeout the maximum time in microseconds an addressed slave is expected to acknowledge.
+	 * @param busAcquireTimeout the maximum time in microseconds for bus acquisition.
+	 * @param lockCount the number of AUTO-SYN symbols before sending is allowed after lost arbitration.
 	 */
-	BusHandler(Port* port, MessageMap* messages, unsigned char ownMasterAddress,
-			unsigned char ownSlaveAddress)
-		: m_port(port), m_messages(messages), m_ownMasterAddress(ownMasterAddress),
-		  m_ownSlaveAddress(ownSlaveAddress), m_request(NULL), m_nextSendPos(0),
+	BusHandler(Port* port, MessageMap* messages,
+			const unsigned char ownMasterAddress, const unsigned char ownSlaveAddress,
+			const unsigned int busLostRetries, const unsigned int failedSendRetries,
+			const unsigned int busAcquireTimeout, const unsigned int slaveRecvTimeout,
+			const unsigned int lockCount)
+		: m_port(port), m_messages(messages),
+		  m_ownMasterAddress(ownMasterAddress), m_ownSlaveAddress(ownSlaveAddress),
+		  m_busLostRetries(busLostRetries), m_failedSendRetries(failedSendRetries),
+		  m_busAcquireTimeout(busAcquireTimeout), m_slaveRecvTimeout(slaveRecvTimeout),
+		  m_lockCount(lockCount), m_remainLockCount(lockCount),
+		  m_request(NULL), m_nextSendPos(0),
 		  m_state(bs_skip), m_repeat(false),
 		  m_commandCrcValid(false), m_responseCrcValid(false) {}
 
@@ -189,10 +194,9 @@ private:
 	result_t setState(BusState state, result_t result);
 
 	/**
-	 * @brief Called when a transfer was successfully completed.
-	 * @param type the @a TransferType.
+	 * @brief Called when a passive reception was successfully completed.
 	 */
-	void transferCompleted(TransferType type);
+	void receiveCompleted();
 
 	/** the @a Port instance for accessing the bus. */
 	Port* m_port;
@@ -201,10 +205,28 @@ private:
 	MessageMap* m_messages;
 
 	/** the own master address to react on master-master messages, or @a SYN to ignore. */
-	unsigned char m_ownMasterAddress;
+	const unsigned char m_ownMasterAddress;
 
 	/** the own slave address to react on master-slave messages, or @a SYN to ignore. */
-	unsigned char m_ownSlaveAddress;
+	const unsigned char m_ownSlaveAddress;
+
+	/** the number of times a send is repeated due to lost arbitration. */
+	const unsigned int m_busLostRetries;
+
+	/** the number of times a failed send is repeated (other than lost arbitration). */
+	const unsigned int m_failedSendRetries;
+
+	/** the maximum time in microseconds for bus acquisition. */
+	const unsigned int m_busAcquireTimeout;
+
+	/** the maximum time in microseconds an addressed slave is expected to acknowledge. */
+	const unsigned int m_slaveRecvTimeout;
+
+	/** the number of AUTO-SYN symbols before sending is allowed after lost arbitration. */
+	const unsigned int m_lockCount;
+
+	/** the remaining number of AUTO-SYN symbols before sending is allowed again. */
+	unsigned int m_remainLockCount;
 
 	/** the queue of @a BusRequests that shall be handled. */
 	WQueue<BusRequest*> m_requests;
