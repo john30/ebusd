@@ -36,18 +36,22 @@ using namespace std;
 
 /** the maximum allowed time [us] for retrieval of a single symbol from an addressed slave. */
 #define SLAVE_RECV_TIMEOUT 10000
-/** the maximum allowed time [us] for retrieval of an AUTO-SYN symbol. */
+/** the maximum allowed time [us] for retrieval of an AUTO-SYN symbol (should be generated in <45ms). */
 #define SYN_TIMEOUT 50000
 
 /** the possible bus states. */
 enum BusState {
-	bs_skip,         // skip all symbols until next @a SYN
-	bs_ready,        // ready for next master (after @a SYN symbol, send/receive QQ)
-	bs_command,      // receive/send command (ZZ, PBSB, master data)
-	bs_commandAck,   // receive/send command ACK/NACK
-	bs_response,     // receive/send response (slave data)
-	bs_responseAck,  // receive/send response ACK/NACK
-	//bs_validTransfer,// completed a valid message transfer
+	bs_skip,        // skip all symbols until next @a SYN
+	bs_ready,       // ready for next master (after @a SYN symbol, send/receive QQ)
+	bs_recvCmd,     // receive command (ZZ, PBSB, master data) [passive set]
+	bs_recvCmdAck,  // receive command ACK/NACK [passive set + active set+get]
+	bs_recvRes,     // receive response (slave data) [passive set + active get]
+	bs_recvResAck,  // receive response ACK/NACK [passive set]
+	bs_sendCmd,     // send command (ZZ, PBSB, master data) [active set+get]
+	bs_sendResAck,  // send response ACK/NACK [active get]
+//	bs_sendRes,     // send response (slave data) [passive get] // TODO implement
+//	bs_sendCmdAck,  // send command ACK/NACK [passive get] // TODO implement
+	bs_sendSyn,     // send SYN for completed transfer [active set+get]
 };
 
 /** the possible message transfer types. */
@@ -62,9 +66,9 @@ enum MessageDirection {
 	md_thisToAll,         // message from us to all (broadcast)
 	md_thisToMaster,      // message from us to another master
 	md_thisToSlave,       // message from us to another slave
-	md_otherToAll,        // message from a master (other than us) to all (broadcast): @a bs_ready, @a bs_recvCmd
-	md_otherToMaster,     // message from a master (other than us) to another master (other than us): @a bs_ready, @a bs_recvCmd, @a bs_recvAck
-	md_otherToSlave,      // message from a master (other than us) to another slave (other than us): @a bs_ready, @a bs_recvCmd, @a bs_recvAck, @a bs_recvResp, @a bs_recvAck
+	md_otherToAll,        // message from a master (other than us) to all (broadcast)
+	md_otherToMaster,     // message from a master (other than us) to another master (other than us)
+	md_otherToSlave,      // message from a master (other than us) to another slave (other than us)
 	md_otherToThisMaster, // message from a master (other than us) to us (as master)
 	md_otherToThisSlave,  // message from a master (other than us) to us (as slave)
 	md_undefined,
@@ -72,6 +76,9 @@ enum MessageDirection {
 
 class BusHandler;
 
+/**
+ * @brief Handles input from and output to the bus with respect to the ebus protocol.
+ */
 class BusRequest
 {
 	friend class BusHandler;
@@ -79,6 +86,8 @@ public:
 
 	/**
 	 * @brief Constructor.
+	 * @param master the master data @a SymbolString to send.
+	 * @param slave the slave data @a SymbolString received.
 	 */
 	BusRequest(SymbolString& master, SymbolString& slave);
 
@@ -96,15 +105,21 @@ public:
 	/**
 	 * @brief Notify all waiting threads.
 	 */
-	void notify(bool finished);
+	void notify(result_t result);
 
 private:
 
+	/** the master data @a SymbolString to send. */
 	SymbolString& m_master;
 
+	/** the slave data @a SymbolString received. */
 	SymbolString& m_slave;
 
+	/** true once the request is finished. */
 	bool m_finished;
+
+	/** the result of handling the request. */
+	result_t m_result;
 
 	/** a mutex for wait/notify. */
 	pthread_mutex_t m_mutex;
@@ -132,8 +147,9 @@ public:
 	BusHandler(Port* port, MessageMap* messages, unsigned char ownMasterAddress,
 			unsigned char ownSlaveAddress)
 		: m_port(port), m_messages(messages), m_ownMasterAddress(ownMasterAddress),
-		  m_ownSlaveAddress(ownSlaveAddress), m_state(bs_skip), m_repeat(false),
-		  m_sendPos(-1), m_commandCrcValid(false), m_responseCrcValid(false), m_request(NULL) {}
+		  m_ownSlaveAddress(ownSlaveAddress), m_request(NULL), m_nextSendPos(0),
+		  m_state(bs_skip), m_repeat(false),
+		  m_commandCrcValid(false), m_responseCrcValid(false) {}
 
 	/**
 	 * @brief Destructor.
@@ -155,10 +171,10 @@ public:
 private:
 
 	/**
-	 * @brief Receive another symbol from the bus.
+	 * @brief Handle the next symbol on the bus.
 	 * @return RESULT_OK on success, or an error code.
 	 */
-	result_t receiveSymbol();
+	result_t handleSymbol();
 
 	/**
 	 * @brief Set a new @a BusState and add a log message if necessary.
@@ -186,17 +202,21 @@ private:
 	/** the own slave address to react on master-slave messages, or @a SYN to ignore. */
 	unsigned char m_ownSlaveAddress;
 
+	/** the queue of @a BusRequests that shall be handled. */
+	WQueue<BusRequest*> m_requests;
+
+	/** the currently handled BusRequest, or NULL. */
+	BusRequest* m_request;
+
+	/** the offset of the next symbol that needs to be sent from the command or response,
+	 * (only relevant if m_request is set and state is bs_command or bs_response). */
+	unsigned char m_nextSendPos;
+
 	/** the current @a BusState. */
 	BusState m_state;
 
 	/** whether the current message part is being repeated. */
 	bool m_repeat;
-
-	/*
-	 * the offset of the last sent symbol while sending command/response,
-	 * or 0 while sending ACK/NACK, or -1 if not sending.
-	 */
-	int m_sendPos;
 
 	/** the received/sent command. */
 	SymbolString m_command;
@@ -209,10 +229,6 @@ private:
 
 	/** whether the response CRC is valid. */
 	bool m_responseCrcValid;
-
-	WQueue<BusRequest*> m_requests;
-
-	BusRequest* m_request;
 
 };
 

@@ -35,28 +35,31 @@ extern Logger& L;
 extern Appl& A;
 
 /**
- * @brief Return the string corresponding to the @a BusState and send position.
+ * @brief Return the string corresponding to the @a BusState.
  * @param state the @a BusState.
- * @param sendPos >=0 while sending data, -1 while receiving data.
  * @return the string corresponding to the @a BusState.
  */
-const char* getStateCode(BusState state, int sendPos) {
+const char* getStateCode(BusState state) {
 	switch (state)
 	{
-	case bs_skip: return "skip";
-	case bs_ready: return "ready";
-	case bs_command: return sendPos < 0 ? "receive command" : "send command";
-	case bs_commandAck: return sendPos < 0 ? "receive command ACK" : "send command ACK";
-	case bs_response: return sendPos < 0 ? "receive response" : "send response";
-	case bs_responseAck: return sendPos < 0 ? "receive response ACK" : "send response ACK";
-	//case bs_validTransfer: return sendPos < 0 ? "after complete receive" : "after complete send";
-	default: return "unknown state";
+	case bs_skip:       return "skip";
+	case bs_ready:      return "ready";
+	case bs_sendCmd:    return "send command";
+	case bs_recvCmdAck: return "receive command ACK";
+	case bs_recvRes:    return "receive response";
+	case bs_sendResAck: return "send response ACK";
+	case bs_recvCmd:    return "receive command";
+	case bs_recvResAck: return "receive response ACK";
+//	case bs_sendRes:    return "send response";
+//	case bs_sendCmdAck: return "send command ACK";
+	case bs_sendSyn:    return "send SYN";
+	default:            return "unknown";
 	}
 }
 
 
 BusRequest::BusRequest(SymbolString& master, SymbolString& slave)
-	: m_master(master), m_slave(slave), m_finished(false)
+	: m_master(master), m_slave(slave), m_finished(false), m_result(RESULT_SYN)
 {
 	pthread_mutex_init(&m_mutex, NULL);
 	pthread_cond_init(&m_cond, NULL);
@@ -88,11 +91,12 @@ bool BusRequest::wait(int timeout)
 	return result == 0;
 }
 
-void BusRequest::notify(bool finished)
+void BusRequest::notify(result_t result)
 {
 	pthread_mutex_lock(&m_mutex);
 
-	m_finished = finished;
+	m_result = result;
+	m_finished = true;
 
 	pthread_mutex_unlock(&m_mutex);
 }
@@ -103,29 +107,24 @@ result_t BusHandler::sendAndWait(SymbolString& master, SymbolString& slave)
 	BusRequest* request = new BusRequest(master, slave);
 
 	m_requests.add(request);
-	bool result = request->wait(5);
-	if (result == false)
+	bool success = request->wait(5);
+	if (success == false)
 		m_requests.remove(request);
+	result_t result = request->m_result;
 	delete request;
 
-	return result == true ? RESULT_OK : RESULT_ERR_TIMEOUT;
+	return success == true ? result : RESULT_ERR_TIMEOUT;
 }
 
 void BusHandler::run()
 {
-	result_t result = RESULT_OK;
 	do {
-		if (m_port->isOpen() == true) {
-			result = receiveSymbol();
-
-			if (result != RESULT_OK)
-				L.log(bus, error, " %s", getResultCode(result));
-
-		}
+		if (m_port->isOpen() == true)
+			handleSymbol();
 		else {
 			// TODO: define max reopen
 			sleep(10);
-			result = m_port->open();
+			result_t result = m_port->open();
 
 			if (result != RESULT_OK)
 				L.log(bus, error, "can't open %s", A.getOptVal<const char*>("device"));
@@ -135,46 +134,72 @@ void BusHandler::run()
 	} while (isRunning() == true);
 }
 
-result_t BusHandler::receiveSymbol()
+#define RECV_TIMEOUT 4500
+
+result_t BusHandler::handleSymbol()
 {
-	long timeout;
-	ssize_t count;
-	unsigned char sentSymbol = SYN;
-	BusRequest* startRequest = NULL;
-	if (m_state == bs_skip)
-		timeout = 0;
-	else if (m_sendPos >= 0) {
-		timeout = SLAVE_RECV_TIMEOUT;
-		if (m_sendPos+1 < m_request->m_master.size()) {
-			m_sendPos++;
-			sentSymbol = m_request->m_master[m_sendPos];
-			if (m_port->send(&sentSymbol) != 1) {
-				sentSymbol = SYN; // try again later // TODO error: send failed, abort send
-				m_request->notify(false);
-				m_request = NULL;
-				m_sendPos = -1;
-			}
+	long timeout = SYN_TIMEOUT;
+	unsigned char sendSymbol = ESC;
+	bool sending = false;
+
+	// check if another symbol has to be sent and determine timeout for receive
+	switch (m_state)
+	{
+	case bs_skip:
+		timeout = 0; // endless
+		break;
+
+	case bs_ready:
+		m_request = m_requests.next(false);
+		if (m_request != NULL) { // initiate arbitration
+			sendSymbol = m_request->m_master[0];
+			sending = true;
 		}
+		break;
+
+	case bs_recvCmd:
+	case bs_recvCmdAck:
+	case bs_recvRes:
+	case bs_recvResAck:
+		timeout = SLAVE_RECV_TIMEOUT;
+		break;
+
+	case bs_sendCmd:
+		if (m_request != NULL) {
+			sendSymbol = m_request->m_master[m_nextSendPos];
+			sending = true;
+		}
+		break;
+
+	case bs_sendResAck:
+		if (m_request != NULL) {
+			sendSymbol = m_responseCrcValid ? ACK : NAK;
+			sending = true;
+		}
+		break;
+
+	case bs_sendSyn:
+		sendSymbol = SYN;
+		sending = true;
+		break;
 	}
-	else {
-		timeout = SYN_TIMEOUT;
-		if (m_state == bs_ready && m_request == NULL) {
-			startRequest = m_requests.next(false);
-			if (startRequest != NULL) {
-				// initiate arbitration
-				sentSymbol = startRequest->m_master[0];
-				if (m_port->send(&sentSymbol) != 1) {
-					sentSymbol = SYN; // try again later // TODO error: send failed
-					startRequest = NULL;
-				}
-			}
+
+	// send symbol if necessary
+	if (sending == true) {
+		if (m_port->send(&sendSymbol, 1) == 1)
+			timeout = RECV_TIMEOUT;
+		else {
+			sending = false;
+			timeout = 0;
+			setState(bs_skip, RESULT_ERR_SEND);
 		}
 	}
 
-	count = m_port->recv(timeout, 1);
+	// receive next symbol (optionally check reception of sent symbol)
+	ssize_t count = m_port->recv(timeout, 1);
 
 	if (count < 0)
-		return setState(bs_skip, RESULT_ERR_DEVICE);
+		return setState(bs_skip, count);
 
 	if (count == 0) {
 		if (m_state == bs_ready)
@@ -182,11 +207,9 @@ result_t BusHandler::receiveSymbol()
 		return setState(bs_skip, RESULT_ERR_TIMEOUT);
 	}
 
-	unsigned char symbol = m_port->byte();
-	if (symbol == SYN) {
-		m_repeat = false;
-		return setState(bs_ready, RESULT_OK);
-	}
+	unsigned char recvSymbol = m_port->byte();
+	if (recvSymbol == SYN)
+		return setState(bs_ready, RESULT_SYN);
 
 	unsigned char headerLen, crcPos;
 	result_t result;
@@ -197,128 +220,185 @@ result_t BusHandler::receiveSymbol()
 		return RESULT_OK;
 
 	case bs_ready:
-		if (symbol == ESC)
-			return setState(bs_skip, RESULT_ERR_ESC);
-		if (m_sendPos < 0 && sentSymbol != SYN) {
+		if (m_request != NULL && sending == true) {
 			// check arbitration
-			if (symbol == sentSymbol) { // arbitration successful
-				if (m_requests.remove(startRequest) == false) {
-					sentSymbol = SYN; // try again later // TODO error: send failed, abort send
-				} else {
-					m_request = startRequest;
-					m_sendPos = 0;
+			if (recvSymbol == sendSymbol) { // arbitration successful
+				if (m_requests.remove(m_request) == false) {
+					// request already timed out
+					m_request = NULL;
+					return setState(bs_sendSyn, RESULT_ERR_TIMEOUT);
 				}
-			} else { // arbitration lost
-				sentSymbol = SYN; // try again later // TODO error: lost arbitration
+				m_nextSendPos = 1;
+				m_repeat = false;
+				return setState(bs_sendCmd, RESULT_OK);
 			}
+			// arbitration lost
+			setState(m_state, RESULT_ERR_BUS_LOST); // try again later
 		}
-		result = m_command.push_back(symbol);
+		result = m_command.push_back(recvSymbol, false); // expect no escaping for master address
 		if (result < RESULT_OK)
 			return setState(bs_skip, result);
 
-		return setState(bs_command, RESULT_OK);
+		m_repeat = false;
+		return setState(bs_recvCmd, RESULT_OK);
 
-	case bs_command:
+	case bs_recvCmd:
 		headerLen = 4;
 		crcPos = m_command.size() > headerLen ? headerLen + 1 + m_command[headerLen] : 0xff;
-		result = m_command.push_back(symbol, true, m_command.size() < crcPos);
+		result = m_command.push_back(recvSymbol, true, m_command.size() < crcPos);
 		if (result < RESULT_OK)
 			return setState(bs_skip, result);
 
-		if (result == RESULT_OK && m_command.size() == crcPos + 1) { // CRC received
+		if (result == RESULT_OK && crcPos != 0xff && m_command.size() == crcPos + 1) { // CRC received
+			unsigned char dstAddress = m_command[1];
+			//if (isValidAddress(dstAddress) == false || isMaster(m_command[0]) == false)
+			//	return setState(bs_skip, RESULT_ERR_INVALID_ADDR);
+
 			m_commandCrcValid = m_command[headerLen + 1 + m_command[headerLen]] == m_command.getCRC();
-			if (m_command[1] == BROADCAST) {
-				if (m_commandCrcValid) {
+			if (m_commandCrcValid) {
+				if (dstAddress == BROADCAST) {
 					transferCompleted(tt_broadcast);
 					return setState(bs_skip, RESULT_OK);
 				}
+				//if (dstAddress == m_ownMasterAddress || dstAddress == m_ownSlaveAddress)
+				//	return setState(bs_sendCmdAck, RESULT_OK);
 
-				return setState(bs_skip, RESULT_ERR_CRC);
+				return setState(bs_recvCmdAck, RESULT_OK);
 			}
-			/*if (m_command[1] == m_ownSlaveAddress || m_command[1] == m_ownMasterAddress) {
-				setState(bs_commandAck, RESULT_OK);
-				m_sendPos = 0;
-				symbol = m_commandCrcValid ? ACK : NAK;
-				if (m_port->send(&symbol) <= 0)
-					return setState(bs_skip, RESULT_ERR_SEND);
-			}*/
-			return setState(bs_commandAck, RESULT_OK);
+			if (dstAddress == BROADCAST)
+				return setState(bs_skip, RESULT_OK);
+
+			//if (dstAddress == m_ownMasterAddress || dstAddress == m_ownSlaveAddress)
+			//	return setState(bs_sendCmdAck, RESULT_ERR_CRC);
+			if (m_repeat == true)
+				return setState(bs_skip, RESULT_ERR_CRC);
+			return setState(bs_recvCmdAck, RESULT_ERR_CRC);
 		}
 		return RESULT_OK;
 
-	case bs_commandAck:
-		if (symbol == ESC)
-			return setState(bs_skip, RESULT_ERR_ESC);
-		/*if (m_sendPos >= 0) {
-			if (symbol == ACK && m_commandCrcValid == true)
-				return setState();
-
-			return setState()
-		}*/
-		if (symbol == ACK) {
+	case bs_recvCmdAck:
+		if (recvSymbol == ACK) {
 			if (m_commandCrcValid == false)
 				return setState(bs_skip, RESULT_ERR_ACK);
 
-			if (isMaster(m_command[1]) == true) {
+			if (m_request != NULL) {
+				if (isMaster(m_request->m_master[1]) == true) {
+					transferCompleted(tt_masterMaster);
+					return setState(bs_sendSyn, RESULT_OK);
+				}
+			} else if (isMaster(m_command[1]) == true) {
 				transferCompleted(tt_masterMaster);
 				return setState(bs_skip, RESULT_OK);
 			}
 
-			return setState(bs_response, RESULT_OK);
+			m_repeat = false;
+			return setState(bs_recvRes, RESULT_OK);
 		}
-		if (symbol == NAK) {
+		if (recvSymbol == NAK) {
 			if (m_repeat == false) {
 				m_repeat = true;
-				return setState(bs_ready, RESULT_ERR_NAK);
+				m_nextSendPos = 0;
+				m_command.clear();
+				if (m_request != NULL)
+					return setState(bs_sendCmd, RESULT_ERR_NAK);
+
+				return setState(bs_recvCmd, RESULT_ERR_NAK);
 			}
+			if (m_request != NULL)
+				return setState(bs_sendSyn, RESULT_ERR_NAK);
+
 			return setState(bs_skip, RESULT_ERR_NAK);
 		}
+		if (m_request != NULL)
+			return setState(bs_sendSyn, RESULT_ERR_ACK);
+
 		return setState(bs_skip, RESULT_ERR_ACK);
 
-	case bs_response:
+	case bs_recvRes:
 		headerLen = 0;
 		crcPos = m_response.size() > headerLen ? headerLen + 1 + m_response[headerLen] : 0xff;
-		result = m_response.push_back(symbol, true, m_response.size() < crcPos);
-		if (result < RESULT_OK)
-			return setState(bs_skip, result);
+		result = m_response.push_back(recvSymbol, true, m_response.size() < crcPos);
+		if (result < RESULT_OK) {
+			if (m_request != NULL)
+				return setState(bs_sendSyn, result);
 
-		if (result == RESULT_OK && m_response.size() == crcPos + 1) { // CRC received
+			return setState(bs_skip, result);
+		}
+		if (result == RESULT_OK && crcPos != 0xff && m_response.size() == crcPos + 1) { // CRC received
 			m_responseCrcValid = m_response[headerLen + 1 + m_response[headerLen]] == m_response.getCRC();
-			/*if (m_command[1] == m_ownSlaveAddress || m_command[1] == m_ownMasterAddress) {
-				setState(bs_responseAck, RESULT_OK);
-				m_sendPos = 0;
-				symbol = m_responseCrcValid ? ACK : NAK;
-				if (m_port->send(&symbol) <= 0)
-					return setState(bs_skip, RESULT_ERR_SEND);
-			}*/
-			return setState(bs_responseAck, RESULT_OK);
+			if (m_responseCrcValid) {
+				if (m_request != NULL)
+					return setState(bs_sendResAck, RESULT_OK);
+
+				return setState(bs_recvResAck, RESULT_OK);
+			}
+			if (m_repeat == true) {
+				if (m_request != NULL)
+					return setState(bs_sendSyn, RESULT_ERR_CRC);
+
+				return setState(bs_skip, RESULT_ERR_CRC);
+			}
+			if (m_request != NULL)
+				return setState(bs_sendResAck, RESULT_ERR_CRC);
+
+			return setState(bs_recvResAck, RESULT_ERR_CRC);
 		}
 		return RESULT_OK;
 
-	case bs_responseAck:
-		if (symbol == ESC)
-			return setState(bs_skip, RESULT_ERR_ESC);
-		/*if (m_sendPos >= 0) {
-			if (symbol == ACK && m_responseCrcValid == true)
-				return setState();
-
-			return setState()
-		}*/
-		if (symbol == ACK) {
+	case bs_recvResAck:
+		if (recvSymbol == ACK) {
 			if (m_responseCrcValid == false)
 				return setState(bs_skip, RESULT_ERR_ACK);
 
 			transferCompleted(tt_masterSlave);
 			return setState(bs_skip, RESULT_OK);
 		}
-		if (symbol == NAK) {
+		if (recvSymbol == NAK) {
 			if (m_repeat == false) {
 				m_repeat = true;
-				return setState(bs_response, RESULT_ERR_NAK);
+				m_response.clear();
+				return setState(bs_recvRes, RESULT_ERR_NAK);
 			}
 			return setState(bs_skip, RESULT_ERR_NAK);
 		}
 		return setState(bs_skip, RESULT_ERR_ACK);
+
+	case bs_sendCmd:
+		if (m_request != NULL && sending == true) {
+			if (recvSymbol == sendSymbol) {
+				// successfully sent
+				m_nextSendPos++;
+				if (m_nextSendPos >= m_request->m_master.size()) {
+					// master data completely sent
+					if (m_request->m_master[1] == BROADCAST)
+						return setState(bs_sendSyn, RESULT_OK);
+
+					m_commandCrcValid = true;
+					return setState(bs_recvCmdAck, RESULT_OK);
+				}
+				return RESULT_OK;
+			}
+		}
+		return setState(bs_sendSyn, RESULT_ERR_INVALID_ARG);
+
+	case bs_sendResAck:
+		if (m_request != NULL && sending == true) {
+			if (recvSymbol == sendSymbol) {
+				// successfully sent
+				return setState(bs_sendSyn, RESULT_OK);
+			}
+		}
+		return setState(bs_sendSyn, RESULT_ERR_INVALID_ARG);
+
+	case bs_sendSyn:
+		if (sending == true) {
+			if (recvSymbol == sendSymbol) {
+				// successfully sent
+				return setState(bs_skip, RESULT_OK);
+			}
+		}
+		return setState(bs_skip, RESULT_ERR_INVALID_ARG);
+
 	}
 
 	return RESULT_OK;
@@ -330,18 +410,27 @@ result_t BusHandler::setState(BusState state, result_t result)
 		return result;
 
 	if (result < RESULT_OK || (result != RESULT_OK && state == bs_skip))
-		L.log(bus, error, " %s during %s, switching to %s", getResultCode(result), getStateCode(m_state, m_sendPos), getStateCode(state, m_sendPos));
+		L.log(bus, error, " %s during %s, switching to %s", getResultCode(result), getStateCode(m_state), getStateCode(state));
 
 	m_state = state;
+	if (m_request != NULL) {
+		if (state == bs_sendSyn) {
+			m_request->m_slave = m_response; // TODO nicer
+			m_request->notify(result);
+			m_request = NULL;
+		} else if (result != RESULT_OK) {
+			m_request->notify(result);
+			m_request = NULL;
+		}
+	}
+
 	if (state == bs_ready || state == bs_skip) {
 		m_command.clear();
 		m_commandCrcValid = false;
 		m_response.clear();
 		m_responseCrcValid = false;
-		m_sendPos = -1;
+		m_nextSendPos = 0;
 	}
-	if (state == bs_skip)
-		m_repeat = false;
 
 	return result;
 }
@@ -367,7 +456,7 @@ void BusHandler::transferCompleted(TransferType type)
 		ostringstream output;
 		result_t result = msg->decode(m_command, m_response, output);
 		if (result != RESULT_OK)
-			L.log(bus, error, "unable to parse %s %s: %s", msg->getClass().c_str(), msg->getName().c_str(), getResultCode(result));
+			L.log(bus, error, "unable to parse %s %s from %s / %s: %s", msg->getClass().c_str(), msg->getName().c_str(), m_command.getDataStr().c_str(), m_response.getDataStr().c_str(), getResultCode(result));
 		else
 			L.log(bus, trace, "%s %s: %s", msg->getClass().c_str(), msg->getName().c_str(), output.str().c_str());
 	}
