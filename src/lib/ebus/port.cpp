@@ -146,7 +146,7 @@ result_t DeviceSerial::openDevice(const string deviceName, const bool noDeviceCh
 	m_fd = open(deviceName.c_str(), O_RDWR | O_NOCTTY);
 
 	if (m_fd < 0)
-		return RESULT_ERR_FILENOTFOUND;
+		return RESULT_ERR_NOTFOUND;
 
 	// save current settings of serial device
 	tcgetattr(m_fd, &m_oldSettings);
@@ -213,13 +213,13 @@ result_t DeviceNetwork::openDevice(const string deviceName, const bool noDeviceC
 
 		he = gethostbyname(host);
 		if (he == NULL)
-			return RESULT_ERR_FILENOTFOUND;
+			return RESULT_ERR_NOTFOUND;
 
 		memcpy(&sock.sin_addr, he->h_addr_list[0], he->h_length);
 	} else {
 		ret = inet_aton(host, &sock.sin_addr);
 		if (ret == 0)
-			return RESULT_ERR_FILENOTFOUND;
+			return RESULT_ERR_NOTFOUND;
 	}
 
 	sock.sin_family = AF_INET;
@@ -227,11 +227,11 @@ result_t DeviceNetwork::openDevice(const string deviceName, const bool noDeviceC
 
 	m_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (m_fd < 0)
-		return RESULT_ERR_INVALID_ARG;
+		return RESULT_ERR_GENERIC_IO;
 
 	ret = connect(m_fd, (struct sockaddr*) &sock, sizeof(sock));
 	if (ret < 0)
-		return RESULT_ERR_INVALID_ARG;
+		return RESULT_ERR_GENERIC_IO;
 
 	free(hostport);
 	m_open = true;
