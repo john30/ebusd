@@ -112,7 +112,7 @@ result_t BusHandler::sendAndWait(SymbolString& master, SymbolString& slave)
 
 	for (int sendRetries=m_failedSendRetries+1, lostRetries=m_busLostRetries+1; sendRetries>=0; sendRetries--) {
 		m_requests.add(request);
-		bool success = request->wait(5);
+		bool success = request->wait(1); // 1 second is still 3 times the theoretical worst-case request duration
 		if (success == false)
 			m_requests.remove(request);
 		result = success == true ? request->m_result : RESULT_ERR_TIMEOUT;
@@ -326,7 +326,7 @@ result_t BusHandler::handleSymbol()
 				m_nextSendPos = 0;
 				m_command.clear();
 				if (m_request != NULL)
-					return setState(bs_sendCmd, RESULT_ERR_NAK);
+					return setState(bs_sendCmd, RESULT_ERR_NAK, true);
 
 				return setState(bs_recvCmd, RESULT_ERR_NAK);
 			}
@@ -383,7 +383,7 @@ result_t BusHandler::handleSymbol()
 			if (m_repeat == false) {
 				m_repeat = true;
 				m_response.clear();
-				return setState(bs_recvRes, RESULT_ERR_NAK);
+				return setState(bs_recvRes, RESULT_ERR_NAK, true);
 			}
 			return setState(bs_skip, RESULT_ERR_NAK);
 		}
@@ -430,15 +430,11 @@ result_t BusHandler::handleSymbol()
 	return RESULT_OK;
 }
 
-result_t BusHandler::setState(BusState state, result_t result)
+result_t BusHandler::setState(BusState state, result_t result, bool firstRepetition)
 {
 	if (m_request != NULL) {
-		if (result != RESULT_OK) {
+		if (state == bs_sendSyn || (result != RESULT_OK && firstRepetition == false)) {
 			L.log(bus, debug, "notify request: %s", getResultCode(result));
-			m_request->notify(result);
-			m_request = NULL;
-		} else if (state == bs_sendSyn) {
-			L.log(bus, debug, "notify request (syn): %s", getResultCode(result));
 			m_request->m_slave = m_response; // TODO nicer
 			m_request->notify(result);
 			m_request = NULL;

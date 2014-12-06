@@ -95,6 +95,7 @@ public:
 
 	/**
 	 * @brief Wait for notification.
+	 * @param timeout the maximum time to wait in seconds.
 	 * @return the result code.
 	 */
 	bool wait(int timeout);
@@ -189,9 +190,10 @@ private:
 	 * @brief Set a new @a BusState and add a log message if necessary.
 	 * @param state the new @a BusState.
 	 * @param result the result code.
+	 * @param firstRepetition true if the first repetition of a message part is being started.
 	 * @return the result code.
 	 */
-	result_t setState(BusState state, result_t result);
+	result_t setState(BusState state, result_t result, bool firstRepetition=false);
 
 	/**
 	 * @brief Called when a passive reception was successfully completed.
