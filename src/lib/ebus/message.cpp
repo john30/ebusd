@@ -243,23 +243,33 @@ result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& ma
 		return RESULT_ERR_INVALID_ARG; // prepare not possible
 
 	masterData.clear();
-	masterData.push_back(srcAddress, false);
-	masterData.push_back(m_dstAddress, false);
-	masterData.push_back(m_id[0], false);
-	masterData.push_back(m_id[1], false);
-	unsigned char addData = m_data->getLength(pt_masterData);
-	masterData.push_back(m_id.size() - 2 + addData, false);
-	for (size_t i=2; i<m_id.size(); i++)
-		masterData.push_back(m_id[i], false);
-	SymbolString slaveData;
-	result_t result = m_data->write(input, masterData, m_id.size() - 2, slaveData, 0, separator);
+	result_t result = masterData.push_back(srcAddress, false);
 	if (result != RESULT_OK)
 		return result;
-	masterData.push_back(masterData.getCRC(), false, false);
-	/*if (slaveData.size() > 0) {
-		return RESULT_ERR_INVALID_ARG; // TODO support answering MS queries (set slave length, calc crc)
-	}*/
-	return RESULT_OK;
+	result = masterData.push_back(m_dstAddress, false);
+	if (result != RESULT_OK)
+		return result;
+	result = masterData.push_back(m_id[0], false);
+	if (result != RESULT_OK)
+		return result;
+	result = masterData.push_back(m_id[1], false);
+	if (result != RESULT_OK)
+		return result;
+	unsigned char addData = m_data->getLength(pt_masterData);
+	result = masterData.push_back(m_id.size() - 2 + addData, false);
+	if (result != RESULT_OK)
+		return result;
+	for (size_t i=2; i<m_id.size(); i++) {
+		result = masterData.push_back(m_id[i], false);
+		if (result != RESULT_OK)
+			return result;
+	}
+	SymbolString slaveData;
+	result = m_data->write(input, masterData, m_id.size() - 2, slaveData, 0, separator);
+	if (result != RESULT_OK)
+		return result;
+	result = masterData.push_back(masterData.getCRC(), false, false); //
+	return result;
 }
 
 result_t Message::decode(SymbolString& masterData, SymbolString& slaveData,
