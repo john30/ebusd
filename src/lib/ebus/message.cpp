@@ -45,7 +45,7 @@ Message::Message(const string clazz, const string name, const bool isSet,
 		key |= 0x1fLL << (8 * exp--); // special value for active
 	key |= (unsigned long long)dstAddress << (8 * exp--);
 	for (vector<unsigned char>::const_iterator it=id.begin(); it<id.end(); it++)
-		key |= (unsigned long long)(*it) << (8 * exp--);
+		key |= (unsigned long long)*it << (8 * exp--);
 	m_key = key;
 }
 
@@ -368,7 +368,7 @@ Message* MessageMap::find(SymbolString& master)
 		return NULL;
 
 	unsigned long long sourceMask = 0x1fLL << (8 * 7);
-	for (int idLength=maxIdLength; idLength>=m_maxIdLength; idLength--) {
+	for (int idLength=maxIdLength; idLength>=m_minIdLength; idLength--) {
 		int exp = 7;
 		unsigned long long key = (unsigned long long)idLength << (8 * exp + 5);
 		key |= (unsigned long long)getMasterNumber(master[0]) << (8 * exp--);
