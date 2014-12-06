@@ -177,16 +177,12 @@ void BaseLoop::start()
 			return;
 	}
 }
-static unsigned char _lastRecvSymbol = SYN;
 
 void BaseLoop::logRaw(const unsigned char byte, bool received) {
 	if (received == true) {
-		if (byte != SYN || byte !=_lastRecvSymbol)
-			L.log(bus, event, "<%02x", byte);
-		_lastRecvSymbol = byte;
+		L.log(bus, event, "<%02x", byte);
 	} else {
 		L.log(bus, event, ">%02x", byte);
-		_lastRecvSymbol = ESC;
 	}
 }
 
