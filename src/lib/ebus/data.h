@@ -614,7 +614,7 @@ public:
 		ifstream ifs;
 		ifs.open(filename.c_str(), ifstream::in);
 		if (ifs.is_open() == false)
-			return RESULT_ERR_FILENOTFOUND;
+			return RESULT_ERR_NOTFOUND;
 
 		string line;
 		unsigned int lineNo = 0;

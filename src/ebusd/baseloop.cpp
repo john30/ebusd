@@ -102,7 +102,7 @@ result_t BaseLoop::readConfigFiles(const string path, const string extension)
 	DIR* dir = opendir(path.c_str());
 
 	if (dir == NULL)
-		return RESULT_ERR_FILENOTFOUND;
+		return RESULT_ERR_NOTFOUND;
 
 	dirent* d = readdir(dir);
 

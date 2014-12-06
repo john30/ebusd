@@ -24,24 +24,31 @@ using namespace std;
 
 const char* getResultCode(result_t resultCode) {
 	switch (resultCode) {
-		case RESULT_ERR_SEND: return "ERR_SEND: send error";
-		case RESULT_ERR_EXTRA_DATA: return "ERR_EXTRA_DATA: received bytes > sent bytes";
-		case RESULT_ERR_NAK: return "ERR_NAK: NAK received";
-		case RESULT_ERR_CRC: return "ERR_CRC: CRC error";
-		case RESULT_ERR_ACK: return "ERR_ACK: ACK error";
-		case RESULT_ERR_TIMEOUT: return "ERR_TIMEOUT: read timeout";
-		case RESULT_ERR_SYN: return "ERR_SYN: SYN received";
-		case RESULT_ERR_BUS_LOST: return "ERR_BUS_LOST: lost bus arbitration";
-		case RESULT_ERR_ESC: return "ERR_ESC: invalid escape sequence received";
-		case RESULT_ERR_INVALID_ARG: return "ERR_INVALID_ARG: invalid argument specified";
-		case RESULT_ERR_DEVICE: return "ERR_DEVICE: generic device error";
-		case RESULT_ERR_EOF: return "ERR_EOF: end of input reached";
-		case RESULT_ERR_FILENOTFOUND: return "ERR_FILENOTFOUND: file not found or not readable";
-		case RESULT_ERR_DUPLICATE: return "ERR_DUPLICATE: duplicate entry";
+		case RESULT_IN_ESC:           return "success: escape sequence received";
+		case RESULT_SYN:              return "success: SYN received";
+		case RESULT_ERR_GENERIC_IO:   return "ERR: generic I/O error";
+		case RESULT_ERR_DEVICE:       return "ERR: generic device error";
+		case RESULT_ERR_SEND:         return "ERR: send error";
+		case RESULT_ERR_ESC:          return "ERR: invalid escape sequence";
+		case RESULT_ERR_TIMEOUT:      return "ERR: read timeout";
+		case RESULT_ERR_NOTFOUND:     return "ERR: file/element not found or not readable";
+		case RESULT_ERR_EOF:          return "ERR: end of input reached";
+		case RESULT_ERR_INVALID_ARG:  return "ERR: invalid argument";
+		case RESULT_ERR_INVALID_NUM:  return "ERR: invalid numeric argument";
+		case RESULT_ERR_INVALID_POS:  return "ERR: invalid position";
+		case RESULT_ERR_OUT_OF_RANGE: return "ERR: argument value out of valid range";
+		case RESULT_ERR_INVALID_PART: return "ERR: invalid part type value";
+		case RESULT_ERR_MISSING_TYPE: return "ERR: missing data type";
+		case RESULT_ERR_INVALID_LIST: return "ERR: invalid value list";
+		case RESULT_ERR_DUPLICATE:    return "ERR: duplicate entry";
+		case RESULT_ERR_BUS_LOST:     return "ERR: arbitration lost";
+		case RESULT_ERR_CRC:          return "ERR: CRC error";
+		case RESULT_ERR_ACK:          return "ERR: ACK error";
+		case RESULT_ERR_NAK:          return "ERR: NAK received";
 		default:
 			if (resultCode >= 0)
-				return "success";
-			return "ERR: unknown error code";
+				return "success: unknown result code";
+			return "ERR: unknown result code";
 	}
 }
 
