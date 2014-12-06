@@ -199,6 +199,7 @@ string BaseLoop::decodeMessage(const string& data)
 	string token;
 	istringstream stream(data);
 	vector<string> cmd;
+	Message* message;
 
 	while (getline(stream, token, ' ') != 0)
 		cmd.push_back(token);
@@ -217,116 +218,99 @@ string BaseLoop::decodeMessage(const string& data)
 			break;
 		}
 
-		{
-			Message* message;
-			if (cmd.size() == 2)
-				message = m_messages->find("", cmd[1], false);
-			else
-				message = m_messages->find(cmd[1], cmd[2], false);
+		if (cmd.size() == 2)
+			message = m_messages->find("", cmd[1], false);
+		else
+			message = m_messages->find(cmd[1], cmd[2], false);
 
-			if (message != NULL) {
+		if (message != NULL) {
 
-				/*if (message->getPollPriority() > 0)
-					// get polldata
-					polldata = m_commands->getPollData(index);
-					if (polldata != "") {
-						// decode data
-						Command* command = new Command(index, (*m_commands)[index], polldata);
-
-						// return result
-						result << command->calcResult(cmd);
-
-						delete command;
-					} else {
-						result << "no data stored";
-					}
-
-					break;
-				}*/
-
-				SymbolString master;
-				istringstream input;
-				result_t ret = message->prepareMaster(m_ownAddress, master, input);
-				if (ret != RESULT_OK) {
-					L.log(bas, error, " prepare message: %s", getResultCode(ret));
-					result << getResultCode(ret);
-					break;
-				}
-				L.log(bas, trace, " msg: %s", master.getDataStr().c_str());
-
-				// send message
-				SymbolString slave;
-				ret = m_busHandler->sendAndWait(master, slave);
-
-				if (ret == RESULT_OK)
+			/*if (message->getPollPriority() > 0)
+				// get polldata
+				polldata = m_commands->getPollData(index);
+				if (polldata != "") {
 					// decode data
-					ret = message->decode(pt_slaveData, slave, result);// TODO reduce to requested variable only
+					Command* command = new Command(index, (*m_commands)[index], polldata);
 
-				if (ret != RESULT_OK) {
-					L.log(bas, error, " %s", getResultCode(ret));
-					result << getResultCode(ret);
+					// return result
+					result << command->calcResult(cmd);
+
+					delete command;
+				} else {
+					result << "no data stored";
 				}
 
-			} else {
-				result << "ebus command not found";
+				break;
+			}*/
+
+			SymbolString master;
+			istringstream input;
+			result_t ret = message->prepareMaster(m_ownAddress, master, input);
+			if (ret != RESULT_OK) {
+				L.log(bas, error, " prepare message: %s", getResultCode(ret));
+				result << getResultCode(ret);
+				break;
 			}
+			L.log(bas, event, " msg: %s", master.getDataStr().c_str());
+
+			// send message
+			SymbolString slave;
+			ret = m_busHandler->sendAndWait(master, slave);
+
+			if (ret == RESULT_OK) {
+				// TODO reduce to requested variable only
+				ret = message->decode(pt_slaveData, slave, result); // decode data
+			}
+			if (ret != RESULT_OK) {
+				L.log(bas, error, " %s", getResultCode(ret));
+				result << getResultCode(ret);
+			}
+
+		} else {
+			result << "ebus command not found";
 		}
 		break;
 
-	/*case ct_set:
+	case ct_set:
 		if (cmd.size() != 4) {
 			result << "usage: 'set class cmd value'";
 			break;
 		}
 
-		index = m_commands->findCommand(data.substr(0, data.find(cmd[3])-1));
+		message = m_messages->find(cmd[1], cmd[2], true);
 
-		if (index >= 0) {
+		if (message != NULL) {
 
-			string busCommand(A.getOptVal<const char*>("address"));
-			busCommand += m_commands->getBusCommand(index);
-
-			// encode data
-			Command* command = new Command(index, (*m_commands)[index], cmd[3]);
-			string value = command->calcData();
-			if (value[0] != '-') {
-				busCommand += value;
-			} else {
-				L.log(bas, error, " %s", value.c_str());
-				delete command;
+			SymbolString master;
+			istringstream input(cmd[3]);
+			result_t ret = message->prepareMaster(m_ownAddress, master, input);
+			if (ret != RESULT_OK) {
+				L.log(bas, error, " prepare message: %s", getResultCode(ret));
+				result << getResultCode(ret);
 				break;
 			}
+			L.log(bas, event, " msg: %s", master.getDataStr().c_str());
 
-			transform(busCommand.begin(), busCommand.end(), busCommand.begin(), ::tolower);
-
-			BusMessage* message = new BusMessage(busCommand, false, false);
-			L.log(bas, event, " msg: %s", busCommand.c_str());
 			// send message
-			m_busloop->addMessage(message);
-			message->waitSignal();
+			SymbolString slave;
+			ret = m_busHandler->sendAndWait(master, slave);
 
-			if (!message->isErrorResult()) {
-				// decode result
-				if (message->getType()==broadcast)
-					result << "done";
-				else if (message->getMessageStr().substr(message->getMessageStr().length()-8) == "00000000") // TODO use getResult()
+			if (ret == RESULT_OK) {
+				if (master[1] == BROADCAST || isMaster(master[1]))
 					result << "done";
 				else
-					result << "error";
-
-			} else {
-				L.log(bas, error, " %s", message->getResultCodeCStr());
-				result << message->getResultCodeCStr();
+					ret = message->decode(pt_slaveData, slave, result); // decode data
 			}
-
-			delete message;
-			delete command;
+			if (ret != RESULT_OK) {
+				L.log(bas, error, " %s", getResultCode(ret));
+				result << getResultCode(ret);
+			}
 
 		} else {
 			result << "ebus command not found";
 		}
 
-		break;*/
+		break;
 
 	/*case ct_cyc:
 		if (cmd.size() < 3 || cmd.size() > 4) {
@@ -369,7 +353,7 @@ string BaseLoop::decodeMessage(const string& data)
 			msg << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_ownAddress);
 			msg << cmd[1];
 			SymbolString master(msg.str());
-			L.log(bas, trace, " msg: %s", master.getDataStr().c_str());
+			L.log(bas, event, " msg: %s", master.getDataStr().c_str());
 
 			// send message
 			SymbolString slave;
@@ -377,7 +361,7 @@ string BaseLoop::decodeMessage(const string& data)
 
 			if (ret == RESULT_OK)
 				// decode data
-				result << slave.getDataStr(); // TODO find suitable message?, message->decode(master, slave, result);
+				result << slave.getDataStr();
 
 			if (ret != RESULT_OK) {
 				L.log(bas, error, " %s", getResultCode(ret));
