@@ -228,23 +228,26 @@ string BaseLoop::decodeMessage(const string& data)
 
 				SymbolString master;
 				istringstream input;
-				message->prepareMaster(m_ownAddress, master, input);
+				result_t ret = message->prepareMaster(m_ownAddress, master, input);
+				if (ret != RESULT_OK) {
+					L.log(bas, error, " prepare message: %s", getResultCode(ret));
+					result << getResultCode(ret);
+					break;
+				}
 				L.log(bas, trace, " msg: %s", master.getDataStr().c_str());
 
 				// send message
 				SymbolString slave;
-				result_t ret = m_busHandler->sendAndWait(master, slave);
+				ret = m_busHandler->sendAndWait(master, slave);
 
 				if (ret == RESULT_OK)
 					// decode data
-					ret = message->decode(master, slave, result);
+					ret = message->decode(pt_slaveData, slave, result);// TODO reduce to requested variable only
 
 				if (ret != RESULT_OK) {
 					L.log(bas, error, " %s", getResultCode(ret));
 					result << getResultCode(ret);
 				}
-				else
-					result << result.str(); // TODO reduce to requested variable only
 
 			} else {
 				result << "ebus command not found";
@@ -347,7 +350,7 @@ string BaseLoop::decodeMessage(const string& data)
 			ostringstream msg;
 			msg << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_ownAddress);
 			msg << cmd[1];
-			SymbolString master(cmd[1]);
+			SymbolString master(msg.str());
 			L.log(bas, trace, " msg: %s", master.getDataStr().c_str());
 
 			// send message
@@ -362,8 +365,7 @@ string BaseLoop::decodeMessage(const string& data)
 				L.log(bas, error, " %s", getResultCode(ret));
 				result << getResultCode(ret);
 			}
-			else
-				result << result.str(); // TODO reduce to requested variable only
+
 		}
 
 		break;
