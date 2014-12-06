@@ -72,7 +72,7 @@ ssize_t Device::sendBytes(const unsigned char* buffer, size_t nbytes)
 ssize_t Device::recvBytes(const long timeout, size_t maxCount)
 {
 	if (isValid() == false)
-		return -1; // TODO RESULT_ERR_DEVICE
+		return RESULT_ERR_DEVICE;
 
 	if (timeout > 0) {
 		int ret;
