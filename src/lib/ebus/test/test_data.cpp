@@ -97,7 +97,7 @@ int main()
 		{"x;;uch:17", "",    "10feffff00", "00", "c"},
 		{"x;s;uch", "0",   "1025ffff0310111213", "0300010203", "W"},
 		{"x;s;uch", "0",   "1025ffff00", "0100", ""},
-		{"x;s;uch;;;;y;m;uch", "2;3","1025ffff0103", "0102", ""},
+		{"x;s;uch;;;;y;m;uch", "3;2","1025ffff0103", "0102", ""},
 		{"x;;uch", "38",    "10feffff0126", "00", ""},
 		{"x;;uch", "0",     "10feffff0100", "00", ""},
 		{"x;;uch", "254",   "10feffff01fe", "00", ""},
@@ -249,7 +249,10 @@ int main()
 		ostringstream output;
 		SymbolString writeMstr = SymbolString(mstr.getDataStr().substr(0, 10), false);
 		SymbolString writeSstr = SymbolString(sstr.getDataStr().substr(0, 2), false);
-		result = fields->read(mstr, 0, sstr, 0, output, verbose);
+		result = fields->read(pt_masterData, mstr, 0, output, false, verbose);
+		if (result == RESULT_OK) {
+			result = fields->read(pt_slaveData, sstr, 0, output, output.str().empty() == false, verbose);
+		}
 		if (failedRead == true)
 			if (result == RESULT_OK)
 				cout << "  failed read " << fields->getName() << " >"
@@ -268,7 +271,9 @@ int main()
 
 		if (verbose == false) {
 			istringstream input(expectStr);
-			result = fields->write(input, writeMstr, 0, writeSstr, 0);
+			result = fields->write(input, pt_masterData, writeMstr, 0);
+			if (result == RESULT_OK)
+				result = fields->write(input, pt_slaveData, writeSstr, 0);
 			if (failedWrite == true) {
 				if (result == RESULT_OK)
 					cout << "  failed write " << fields->getName() << " >"

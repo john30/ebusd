@@ -146,13 +146,13 @@ public:
 			istringstream& input, char separator=';');
 	/**
 	 * @brief Decode a received message.
-	 * @param masterData the unescaped received master @a SymbolString.
-	 * @param slaveData the unescaped received slave @a SymbolString.
+	 * @param partType the @a PartType of the data.
+	 * @param data the unescaped data @a SymbolString for reading binary data.
 	 * @param output the @a ostringstream to append the formatted value to.
 	 * @param separator the separator character between multiple fields.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	result_t decode(SymbolString& masterData, SymbolString& slaveData,
+	result_t decode(const PartType partType, SymbolString& data,
 			ostringstream& output, char separator=';');
 
 private:

@@ -357,35 +357,39 @@ void SingleDataField::dump(ostream& output)
 	output << FIELD_SEPARATOR << m_dataType.name;
 }
 
-result_t SingleDataField::read(SymbolString& masterData, unsigned char masterOffset,
-		SymbolString& slaveData, unsigned char slaveOffset,
-		ostringstream& output,
+result_t SingleDataField::read(const PartType partType,
+		SymbolString& data, unsigned char offset,
+		ostringstream& output, bool leadingSeparator,
 		bool verbose, char separator)
 {
-	SymbolString& input = m_partType != pt_slaveData ? masterData : slaveData;
-	unsigned char offset;
+	if (partType != m_partType)
+		return RESULT_OK;
+
 	switch (m_partType)
 	{
 	case pt_masterData:
-		offset = 5 + masterOffset; // skip QQ ZZ PB SB NN
+		offset += 5; // skip QQ ZZ PB SB NN
 		break;
 	case pt_slaveData:
-		offset = 1 + slaveOffset; // skip NN
+		offset += 1; // skip NN
 		break;
 	default:
 		return RESULT_ERR_INVALID_PART;
 	}
 	if (isIgnored() == true) {
-		if (offset + m_length > input.size()) {
+		if (offset + m_length > data.size()) {
 			return RESULT_ERR_INVALID_POS;
 		}
 		return RESULT_OK;
 	}
 
+	if (leadingSeparator == true)
+		output << separator;
+
 	if (verbose == true)
 		output << m_name << "=";
 
-	result_t result = readSymbols(input, offset, output);
+	result_t result = readSymbols(data, offset, output);
 	if (result != RESULT_OK)
 		return result;
 
@@ -398,24 +402,24 @@ result_t SingleDataField::read(SymbolString& masterData, unsigned char masterOff
 }
 
 result_t SingleDataField::write(istringstream& input,
-		SymbolString& masterData, unsigned char masterOffset,
-		SymbolString& slaveData, unsigned char slaveOffset,
-		char separator)
+		const PartType partType, SymbolString& data,
+		unsigned char offset, char separator)
 {
-	SymbolString& output = m_partType != pt_slaveData ? masterData : slaveData;
-	unsigned char offset;
+	if (partType != m_partType)
+		return RESULT_OK;
+
 	switch (m_partType)
 	{
 	case pt_masterData:
-		offset = 5 + masterOffset; // skip QQ ZZ PB SB NN
+		offset += 5; // skip QQ ZZ PB SB NN
 		break;
 	case pt_slaveData:
-		offset = 1 + slaveOffset; // skip NN
+		offset += 1; // skip NN
 		break;
 	default:
 		return RESULT_ERR_INVALID_PART;
 	}
-	return writeSymbols(input, offset, output);
+	return writeSymbols(input, offset, data);
 }
 
 
@@ -1050,41 +1054,32 @@ void DataFieldSet::dump(ostream& output)
 		(*it)->dump(output);
 }
 
-result_t DataFieldSet::read(SymbolString& masterData, unsigned char masterOffset,
-		SymbolString& slaveData, unsigned char slaveOffset,
-		ostringstream& output, bool verbose, char separator)
+result_t DataFieldSet::read(const PartType partType,
+		SymbolString& data, unsigned char offset,
+		ostringstream& output, bool leadingSeparator,
+		bool verbose, char separator)
 {
 	if (verbose)
 		output << m_name << "={ ";
 
-	bool first = true;
-	unsigned char offsets[3];
-	memset(offsets, 0, sizeof(offsets));
-	offsets[pt_masterData] = masterOffset;
-	offsets[pt_slaveData] = slaveOffset;
-	bool previousFullByteOffset[] = { true, true, true };
+	bool previousFullByteOffset = true;
 	for (vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
 		SingleDataField* field = *it;
-		bool ignored = field->isIgnored();
-		PartType partType = field->getPartType();
+		if (partType != pt_any && field->getPartType() != partType)
+			continue;
 
-		if (ignored == false) {
-			if (first)
-				first = false;
-			else
-				output << separator;
-		}
-		if (previousFullByteOffset[partType] == false && field->hasFullByteOffset(false) == false)
-			offsets[partType]--;
+		if (previousFullByteOffset == false && field->hasFullByteOffset(false) == false)
+			offset--;
 
-		result_t result = field->read(masterData, offsets[pt_masterData], slaveData, offsets[pt_slaveData], output, verbose, separator);
+//cout<<"read "<<field->getName().c_str()<<" in part "<<static_cast<unsigned>(field->getPartType())<<" offset "<<static_cast<unsigned>(offsets[field->getPartType()])<<endl;
+		result_t result = field->read(partType, data, offset, output, leadingSeparator, verbose, separator);
 
 		if (result != RESULT_OK)
 			return result;
 
-		offsets[partType] += field->getLength(partType);
-
-		previousFullByteOffset[partType] = field->hasFullByteOffset(true);
+		offset += field->getLength(partType);
+		previousFullByteOffset = field->hasFullByteOffset(true);
+		leadingSeparator |= field->isIgnored() == false;
 	}
 
 	if (verbose == true) {
@@ -1097,43 +1092,38 @@ result_t DataFieldSet::read(SymbolString& masterData, unsigned char masterOffset
 }
 
 result_t DataFieldSet::write(istringstream& input,
-		SymbolString& masterData, unsigned char masterOffset,
-		SymbolString& slaveData, unsigned char slaveOffset,
-		char separator)
+		const PartType partType, SymbolString& data,
+		unsigned char offset, char separator)
 {
 	string token;
 
-	unsigned char offsets[3];
-	memset(offsets, 0, sizeof(offsets));
-	offsets[pt_masterData] = masterOffset;
-	offsets[pt_slaveData] = slaveOffset;
-	bool previousFullByteOffset[] = { true, true, true };
+	bool previousFullByteOffset = true;
 	for (vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
 		SingleDataField* field = *it;
-		bool ignored = field->isIgnored();
-		PartType partType = field->getPartType();
+		if (partType != pt_any && field->getPartType() != partType)
+			continue;
 
-		if (previousFullByteOffset[partType] == false && field->hasFullByteOffset(false) == false)
-			offsets[partType]--;
+		if (previousFullByteOffset == false && field->hasFullByteOffset(false) == false)
+			offset--;
 
 		result_t result;
 		if (m_fields.size() > 1) {
-			if (ignored == true)
+			if (field->isIgnored() == true)
 				token.clear();
 			else if (getline(input, token, separator) == 0)
-				return RESULT_ERR_EOF; // incomplete
+				token.clear();
 
 			istringstream single(token);
-			result = (*it)->write(single, masterData, offsets[pt_masterData], slaveData, offsets[pt_slaveData], separator);
+			result = (*it)->write(single, partType, data, offset, separator);
 		}
 		else
-			result = (*it)->write(input, masterData, offsets[pt_masterData], slaveData, offsets[pt_slaveData], separator);
+			result = (*it)->write(input, partType, data, offset, separator);
 
 		if (result != RESULT_OK)
 			return result;
 
-		offsets[partType] += field->getLength(partType);
-		previousFullByteOffset[partType] = field->hasFullByteOffset(true);
+		offset += field->getLength(partType);
+		previousFullByteOffset = field->hasFullByteOffset(true);
 	}
 
 	return RESULT_OK;

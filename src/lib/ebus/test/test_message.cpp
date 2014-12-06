@@ -149,7 +149,9 @@ int main()
 		SymbolString writeMstr = SymbolString();
 		if (message->isPassive() == true) {
 			ostringstream output;
-			result = message->decode(mstr, sstr, output);
+			result = message->decode(pt_masterData, mstr, output);
+			if (result == RESULT_OK)
+				result = message->decode(pt_slaveData, sstr, output);
 			if (result != RESULT_OK) {
 				cout << "  \"" << inputStr << "\": decode error: "
 						<< getResultCode(result) << endl;

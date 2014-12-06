@@ -164,33 +164,33 @@ public:
 	 */
 	virtual void dump(ostream& output) = 0;
 	/**
-	 * @brief Reads the value from the master or slave @a SymbolString.
-	 * @param masterData the unescaped master data @a SymbolString for reading binary data.
-	 * @param masterOffset the additional offset to add for reading the master data.
-	 * @param slaveData the unescaped slave data @a SymbolString for reading binary data.
-	 * @param slaveOffset the additional offset to add for reading the slave data.
+	 * @brief Reads the value from the @a SymbolString.
+	 * @param partType the @a PartType of the data.
+	 * @param data the unescaped data @a SymbolString for reading binary data.
+	 * @param offset the additional offset to add for reading binary data.
 	 * @param output the @a ostringstream to append the formatted value to.
+	 * @param leadingSeparator whether to prepend a separator before the formatted value.
 	 * @param verbose whether to prepend the name, append the unit (if present), and append
 	 * the comment in square brackets (if present).
 	 * @param separator the separator character between multiple fields.
-	 * @return @a RESULT_OK on success, or an error code.
+	 * @return @a RESULT_OK on success (or if the partType does not match), or an error code.
 	 */
-	virtual result_t read(SymbolString& masterData, unsigned char masterOffset,
-			SymbolString& slaveData, unsigned char slaveOffset,
-			ostringstream& output,
+	virtual result_t read(const PartType partType,
+			SymbolString& data, unsigned char offset,
+			ostringstream& output, bool leadingSeparator=false,
 			bool verbose=false, char separator=';') = 0;
 	/**
 	 * @brief Writes the value to the master or slave @a SymbolString.
 	 * @param input the @a istringstream to parse the formatted value from.
-	 * @param masterData the unescaped master data @a SymbolString for writing binary data.
-	 * @param slaveData the unescaped slave data @a SymbolString for writing binary data.
+	 * @param partType the @a PartType of the data.
+	 * @param data the unescaped data @a SymbolString for writing binary data.
+	 * @param offset the additional offset to add for writing binary data.
 	 * @param separator the separator character between multiple fields.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	virtual result_t write(istringstream& input,
-			SymbolString& masterData, unsigned char masterOffset,
-			SymbolString& slaveData, unsigned char slaveOffset,
-			char separator=';') = 0;
+			const PartType partType, SymbolString& data,
+			unsigned char offset, char separator=';') = 0;
 
 protected:
 
@@ -255,34 +255,15 @@ public:
 	virtual bool hasFullByteOffset(bool after) { return true; }
 	// @copydoc
 	virtual void dump(ostream& output);
-	/**
-	 * @brief Reads the value from the master or slave @a SymbolString.
-	 * @param masterData the unescaped master data @a SymbolString for reading binary data.
-	 * @param masterOffset the extra offset for reading master data.
-	 * @param slaveData the unescaped slave data @a SymbolString for reading binary data.
-	 * @param slaveOffset the extra offset for reading slave data.
-	 * @param output the ostringstream to append the formatted value to.
-	 * @param verbose whether to prepend the name, append the unit (if present), and append
-	 * the comment in square brackets (if present).
-	 * @return @a RESULT_OK on success, or an error code.
-	 */
-	virtual result_t read(SymbolString& masterData, unsigned char masterOffset,
-			SymbolString& slaveData, unsigned char slaveOffset,
-			ostringstream& output,
-			bool verbose, char separator);
-	/**
-	 * @brief Writes the value to the master or slave @a SymbolString.
-	 * @param input the @a istringstream to parse the formatted value from.
-	 * @param masterData the unescaped master data @a SymbolString for writing binary data.
-	 * @param masterOffset the extra offset for writing master data.
-	 * @param slaveData the unescaped slave data @a SymbolString for writing binary data.
-	 * @param slaveOffset the extra offset for writing slave data.
-	 * @return @a RESULT_OK on success, or an error code.
-	 */
+	// @copydoc
+	virtual result_t read(const PartType partType,
+			SymbolString& data, unsigned char offset,
+			ostringstream& output, bool leadingSeparator=false,
+			bool verbose=false, char separator=';');
+	// @copydoc
 	virtual result_t write(istringstream& input,
-			SymbolString& masterData, unsigned char masterOffset,
-			SymbolString& slaveData, unsigned char slaveOffset,
-			char separator);
+			const PartType partType, SymbolString& data,
+			unsigned char offset, char separator=';');//TODO replace
 
 protected:
 
@@ -569,15 +550,14 @@ public:
 	// @copydoc
 	virtual void dump(ostream& output);
 	// @copydoc
-	virtual result_t read(SymbolString& masterData, unsigned char masterOffset,
-			SymbolString& slaveData, unsigned char slaveOffset,
-			ostringstream& output,
-			bool verbose, char separator);
+	virtual result_t read(const PartType partType,
+			SymbolString& data, unsigned char offset,
+			ostringstream& output, bool leadingSeparator=false,
+			bool verbose=false, char separator=';');
 	// @copydoc
 	virtual result_t write(istringstream& input,
-			SymbolString& masterData, unsigned char masterOffset,
-			SymbolString& slaveData, unsigned char slaveOffset,
-			char separator);
+			const PartType partType, SymbolString& data,
+			unsigned char offset, char separator=';');
 
 private:
 

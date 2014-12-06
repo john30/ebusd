@@ -264,18 +264,22 @@ result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& ma
 		if (result != RESULT_OK)
 			return result;
 	}
-	SymbolString slaveData;
-	result = m_data->write(input, masterData, m_id.size() - 2, slaveData, 0, separator);
+	result = m_data->write(input, pt_masterData, masterData, m_id.size() - 2, separator);
 	if (result != RESULT_OK)
 		return result;
-	result = masterData.push_back(masterData.getCRC(), false, false); //
+	result = masterData.push_back(masterData.getCRC(), false, false); // TODO only if calculated
 	return result;
 }
 
-result_t Message::decode(SymbolString& masterData, SymbolString& slaveData,
+result_t Message::decode(const PartType partType, SymbolString& data,
 		ostringstream& output, char separator)
 {
-	result_t result = m_data->read(masterData, m_id.size() - 2, slaveData, 0, output, false, separator);
+	unsigned char offset;
+	if (partType == pt_masterData)
+		offset = m_id.size() - 2;
+	else
+		offset = 0;
+	result_t result = m_data->read(partType, data, offset, output, false, false, separator);
 	if (result != RESULT_OK)
 		return result;
 	/*if (m_isPassive == false && answer == true) {
