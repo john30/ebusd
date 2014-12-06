@@ -124,18 +124,6 @@ public:
 	 */
 	unsigned char getPollPriority() const { return m_pollPriority; }
 	/**
-	 * @brief Reads the value from the master or slave @a SymbolString.
-	 * @param masterData the unescaped master data @a SymbolString for reading binary data.
-	 * @param slaveData the unescaped slave data @a SymbolString for reading binary data.
-	 * @param output the @a ostringstream to append the formatted value to.
-	 * @param verbose whether to prepend the name, append the unit (if present), and append
-	 * the comment in square brackets (if present).
-	 * @param separator the separator character between multiple fields.
-	 * @return @a RESULT_OK on success, or an error code.
-	 */
-	//result_t read(SymbolString& masterData, SymbolString& slaveData, ostringstream& output,
-	//		bool verbose=false, char separator=';') = 0;
-	/**
 	 * @brief Prepare master @a SymbolString for sending to the bus.
 	 * @param masterData the master data @a SymbolString for writing symbols to.
 	 * @param input the @a istringstream to parse the formatted value(s) from.
