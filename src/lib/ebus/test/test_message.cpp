@@ -52,6 +52,7 @@ int main()
 		{"r;ehp;time;;;08;b509;0d2800;;;time", "15:00:17", "ff08b509030d2800ea", "0311000f00", "m"},
 		{"r;ehp;date;;;08;b509;0d2900;;;hda:3", "23.11.2014", "ff08b509030d290071", "03170b0e5a", "m"},
 		{"u;ehp;ActualEnvironmentPower;Energiebezug;;08;B509;29BA00;;s;IGN:2;;;;;s;power", "8", "1008b5090329ba00", "03ba0008", "pm"},
+		{"uw;ehp;test;Test;;08;B5de;ab;;;power;;;;;s;hex:1", "8;39", "1008b5de02ab08", "0139", "pm"},
 		{"","55.50;ok","1025b50903290000","050000780300",""},
 		{"","no;25","10feb505042700190023","",""},
 	};
@@ -151,7 +152,7 @@ int main()
 			ostringstream output;
 			result = message->decode(pt_masterData, mstr, output);
 			if (result == RESULT_OK)
-				result = message->decode(pt_slaveData, sstr, output);
+				result = message->decode(pt_slaveData, sstr, output, output.str().empty() == false);
 			if (result != RESULT_OK) {
 				cout << "  \"" << inputStr << "\": decode error: "
 						<< getResultCode(result) << endl;

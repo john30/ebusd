@@ -137,11 +137,12 @@ public:
 	 * @param partType the @a PartType of the data.
 	 * @param data the unescaped data @a SymbolString for reading binary data.
 	 * @param output the @a ostringstream to append the formatted value to.
+	 * @param leadingSeparator whether to prepend a separator before the formatted value.
 	 * @param separator the separator character between multiple fields.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	result_t decode(const PartType partType, SymbolString& data,
-			ostringstream& output, char separator=';');
+			ostringstream& output, bool leadingSeparator=false, char separator=';');
 
 private:
 
@@ -200,10 +201,11 @@ public:
 	 * @param class the optional device class.
 	 * @param name the message name.
 	 * @param isSet whether this is a set message.
+	 * @param isPassive whether this is a passive message.
 	 * @return the @a Message instance, or NULL.
 	 * Note: the caller may not free the returned instance.
 	 */
-	Message* find(const string& clazz, const string& name, const bool isSet);
+	Message* find(const string& clazz, const string& name, const bool isSet, const bool isPassive=false);
 	/**
 	 * @brief Find the @a Message instance for the specified master data.
 	 * @param master the master @a SymbolString for identifying the @a Message.

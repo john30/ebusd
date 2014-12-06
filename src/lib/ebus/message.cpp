@@ -113,7 +113,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 		defaultsChar = 'r';
 	} else { // any other: passive set/get
 		isPassive = true;
-		isSet = strncasecmp(str+1, "R", 1) == 0;
+		isSet = strncasecmp(str+1, "W", 1) == 0;
 		defaultsChar = str[0];
 	}
 
@@ -272,14 +272,14 @@ result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& ma
 }
 
 result_t Message::decode(const PartType partType, SymbolString& data,
-		ostringstream& output, char separator)
+		ostringstream& output, bool leadingSeparator, char separator)
 {
 	unsigned char offset;
 	if (partType == pt_masterData)
 		offset = m_id.size() - 2;
 	else
 		offset = 0;
-	result_t result = m_data->read(partType, data, offset, output, false, false, separator);
+	result_t result = m_data->read(partType, data, offset, output, leadingSeparator, false, separator);
 	if (result != RESULT_OK)
 		return result;
 	/*if (m_isPassive == false && answer == true) {
@@ -294,35 +294,36 @@ result_t Message::decode(const PartType partType, SymbolString& data,
 
 result_t MessageMap::add(Message* message)
 {
-	if (message->isPassive() == false) {
-		bool isSet = message->isSet();
-		string clazz = message->getClass();
-		string name = message->getName();
-		string key = string(isSet ? "W" : "R") + clazz + ";" + name;
-		map<string, Message*>::iterator nameIt = m_messagesByName.find(key);
-		if (nameIt != m_messagesByName.end()) {
+	unsigned long long pkey = message->getKey();
+	bool isPassive = message->isPassive();
+	if (isPassive == true) {
+		map<unsigned long long, Message*>::iterator keyIt = m_passiveMessagesByKey.find(pkey);
+		if (keyIt != m_passiveMessagesByKey.end()) {
 			return RESULT_ERR_DUPLICATE; // duplicate key
 		}
-
-		m_messagesByName[key] = message;
-
-		key = string(isSet ? "-W" : "-R") + name; // also store without class
-		m_messagesByName[key] = message;
-		return RESULT_OK;
 	}
-
-	unsigned long long key = message->getKey();
-	map<unsigned long long, Message*>::iterator keyIt = m_passiveMessagesByKey.find(key);
-	if (keyIt != m_passiveMessagesByKey.end()) {
+	bool isSet = message->isSet();
+	string clazz = message->getClass();
+	string name = message->getName();
+	string key = string(isPassive ? "P" : (isSet ? "W" : "R")) + clazz + ";" + name;
+	map<string, Message*>::iterator nameIt = m_messagesByName.find(key);
+	if (nameIt != m_messagesByName.end()) {
 		return RESULT_ERR_DUPLICATE; // duplicate key
 	}
 
-	unsigned char idLength = message->getId().size() - 2;
-	if (idLength < m_minIdLength)
-		m_minIdLength = idLength;
-	if (idLength > m_maxIdLength)
-		m_maxIdLength = idLength;
-	m_passiveMessagesByKey[key] = message;
+	m_messagesByName[key] = message;
+
+	key = string(isPassive ? "-P;" : (isSet ? "-W;" : "-R;")) + name; // also store without class
+	m_messagesByName[key] = message; // last key without class overrides previous
+
+	if (message->isPassive() == true) {
+		unsigned char idLength = message->getId().size() - 2;
+		if (idLength < m_minIdLength)
+			m_minIdLength = idLength;
+		if (idLength > m_maxIdLength)
+			m_maxIdLength = idLength;
+		m_passiveMessagesByKey[pkey] = message;
+	}
 
 	return RESULT_OK;
 }
@@ -353,14 +354,14 @@ result_t MessageMap::addFromFile(vector<string>& row, DataFieldTemplates* arg, v
 	return result;
 }
 
-Message* MessageMap::find(const string& clazz, const string& name, const bool isSet)
+Message* MessageMap::find(const string& clazz, const string& name, const bool isSet,const bool isPassive)
 {
-	string key;
 	for (int i=0; i<2; i++) {
+		string key;
 		if (i==0)
-			key = string(isSet ? "W" : "R") + clazz + ";" + name;
+			key = string(isPassive ? "P" : (isSet ? "W" : "R")) + clazz + ";" + name;
 		else
-			key = string(isSet ? "-W" : "-R") + name; // second try: without class
+			key = string(isPassive ? "-P;" : (isSet ? "-W;" : "-R;")) + name; // second try: without class
 		map<string, Message*>::iterator it = m_messagesByName.find(key);
 		if (it != m_messagesByName.end())
 			return it->second;
