@@ -53,7 +53,7 @@ int main()
 		{"r;ehp;date;;;08;b509;0d2900;;;hda:3", "23.11.2014", "ff08b509030d290071", "03170b0e5a", "m"},
 		{"u;ehp;ActualEnvironmentPower;Energiebezug;;08;B509;29BA00;;s;IGN:2;;;;;s;power", "8", "1008b5090329ba00", "03ba0008", "pm"},
 		{"","55.50;ok","1025b50903290000","050000780300",""},
-
+		{"","no;25","10feb505042700190023","",""},
 	};
 	DataFieldTemplates* templates = new DataFieldTemplates();
 	result_t result = templates->readFromFile("_types.csv");
@@ -95,10 +95,10 @@ int main()
 		if (entries.size() == 0) {
 			message = messages->find(mstr);
 			if (message == NULL) {
-				cout << "  find error: NULL" << endl;
+				cout << "\"" << check[2] << "\": find error: NULL" << endl;
 				continue;
 			}
-			cout << "  find OK" << endl;
+			cout << "\"" << check[2] << "\": find OK" << endl;
 		} else {
 			vector<string>::iterator it = entries.begin();
 			result = Message::create(it, entries.end(), NULL, templates, deleteMessage);
@@ -134,10 +134,13 @@ int main()
 				cout << "  map OK" << endl;
 				message = deleteMessage;
 				deleteMessage = NULL;
-				if (messages->find(mstr) == message)
+				Message* foundMessage = messages->find(mstr);
+				if (foundMessage == message)
 					cout << "  find OK" << endl;
-				else
+				else if (foundMessage == NULL)
 					cout << "  find error: NULL" << endl;
+				else
+					cout << "  find error: different" << endl;
 			}
 			else
 				message = deleteMessage;
