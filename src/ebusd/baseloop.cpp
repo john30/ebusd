@@ -312,25 +312,21 @@ string BaseLoop::decodeMessage(const string& data)
 
 		break;
 
-	/*case ct_cyc:
-		if (cmd.size() < 3 || cmd.size() > 4) {
-			result << "usage: 'cyc class cmd (sub)'";
+	case ct_cyc:
+		if (cmd.size() < 2 || cmd.size() > 3) {
+			result << "usage: 'cyc [class] cmd'";
 			break;
 		}
 
-		index = m_commands->findCommand(data);
+		if (cmd.size() == 2)
+			message = m_messages->find("", cmd[1], false, true);
+		else
+			message = m_messages->find(cmd[1], cmd[2], false, true);
 
-		if (index >= 0) {
-			// get cycdata
-			cycdata = m_commands->getCycData(index);
-			if (cycdata != "") {
-				// decode data
-				Command* command = new Command(index, (*m_commands)[index], cycdata);
-
-				// return result
-				result << command->calcResult(cmd);
-
-				delete command;
+		if (message != NULL) {
+			token = m_busHandler->getReceivedData(message);
+			if (token.empty() == false) {
+				result << token;
 			} else {
 				result << "no data stored";
 			}
@@ -338,7 +334,7 @@ string BaseLoop::decodeMessage(const string& data)
 			result << "ebus command not found";
 		}
 
-		break;*/
+		break;
 
 	case ct_hex:
 		if (cmd.size() != 2) {
