@@ -80,7 +80,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 {
 	// [type];[class];name;[comment];[QQ];ZZ;id;fields...
 	result_t result;
-	bool isSet = false, isPassive = true;
+	bool isSet = false, isPassive = false;
 	char defaultsChar;
 	unsigned int pollPriority = 0;
 	size_t defaultPos = 1;
@@ -90,15 +90,12 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	const char* str = (*it++).c_str();
 	if (it == end)
 		return RESULT_ERR_EOF;
-	if (str[0] == 0 || strcasecmp(str, "R") == 0) { // default: active get
-		isPassive = false;
+	if (str[0] == 0 || strncasecmp(str, "R", 1) == 0) { // default: active get
 		defaultsChar = 'r';
-	} else if (strcasecmp(str, "W") == 0) { // active set
-		isPassive = false;
+	} else if (strncasecmp(str, "W", 1) == 0) { // active set
 		isSet = true;
 		defaultsChar = 'w';
-	} else if (str[0] == 'P' || str[0] == 'p') { // poll (=active get)
-		isPassive = false;
+	} else if (strncasecmp(str, "P", 1) == 0) { // poll (=active get)
 		if (str[1] == 0)
 			pollPriority = 1;
 		else {
@@ -109,14 +106,14 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 		}
 		defaultsChar = 'r';
 	} else if (str[0] >= '0' && str[0] <= '9') { // poll priority (=active get)
-		isPassive = false;
 		result_t result;
 		pollPriority = parseInt(str, 10, 1, 9, result);
 		if (result != RESULT_OK)
 			return result;
 		defaultsChar = 'r';
 	} else { // any other: passive set/get
-		isSet = str[1] == 'W' || str[1] == 'w';
+		isPassive = true;
+		isSet = strncasecmp(str+1, "R", 1) == 0;
 		defaultsChar = str[0];
 	}
 
