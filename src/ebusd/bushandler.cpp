@@ -97,6 +97,7 @@ void BusRequest::notify(result_t result)
 
 	m_result = result;
 	m_finished = true;
+	pthread_cond_signal(&m_cond);
 
 	pthread_mutex_unlock(&m_mutex);
 }
@@ -133,8 +134,6 @@ void BusHandler::run()
 
 	} while (isRunning() == true);
 }
-
-#define RECV_TIMEOUT 4500
 
 result_t BusHandler::handleSymbol()
 {
@@ -187,7 +186,7 @@ result_t BusHandler::handleSymbol()
 	// send symbol if necessary
 	if (sending == true) {
 		if (m_port->send(&sendSymbol, 1) == 1)
-			timeout = RECV_TIMEOUT;
+			timeout = SEND_TIMEOUT;
 		else {
 			sending = false;
 			timeout = 0;
@@ -198,12 +197,18 @@ result_t BusHandler::handleSymbol()
 	// receive next symbol (optionally check reception of sent symbol)
 	ssize_t count = m_port->recv(timeout, 1);
 
-	if (count < 0)
+	if (count <= 0 && m_state == bs_ready && sending == false)
+		return RESULT_OK; // TODO keep "no signal" within auto-syn state
+
+	if (count < 0) { // count < 0 is a RESULT_ERR_ code
+		if (m_request != NULL)
+			return setState(bs_sendSyn, count);
 		return setState(bs_skip, count);
+	}
 
 	if (count == 0) {
-		if (m_state == bs_ready)
-			return RESULT_OK; // TODO keep "no signal" within auto-syn state
+		if (m_request != NULL)
+			return setState(bs_sendSyn, RESULT_ERR_TIMEOUT);
 		return setState(bs_skip, RESULT_ERR_TIMEOUT);
 	}
 
@@ -221,18 +226,19 @@ result_t BusHandler::handleSymbol()
 
 	case bs_ready:
 		if (m_request != NULL && sending == true) {
+			if (m_requests.remove(m_request) == false) {
+				// request already timed out
+				m_request = NULL;
+				return setState(bs_sendSyn, RESULT_ERR_TIMEOUT);
+			}
 			// check arbitration
 			if (recvSymbol == sendSymbol) { // arbitration successful
-				if (m_requests.remove(m_request) == false) {
-					// request already timed out
-					m_request = NULL;
-					return setState(bs_sendSyn, RESULT_ERR_TIMEOUT);
-				}
 				m_nextSendPos = 1;
 				m_repeat = false;
 				return setState(bs_sendCmd, RESULT_OK);
 			}
 			// arbitration lost
+			m_request = NULL;
 			setState(m_state, RESULT_ERR_BUS_LOST); // try again later
 		}
 		result = m_command.push_back(recvSymbol, false); // expect no escaping for master address
@@ -411,18 +417,21 @@ result_t BusHandler::setState(BusState state, result_t result)
 
 	if (result < RESULT_OK || (result != RESULT_OK && state == bs_skip))
 		L.log(bus, error, " %s during %s, switching to %s", getResultCode(result), getStateCode(m_state), getStateCode(state));
-
-	m_state = state;
+	else if (m_request != NULL || state == bs_sendCmd || state==bs_sendResAck || state==bs_sendSyn)
+		L.log(bus, trace, " switching from %s to %s", getStateCode(m_state), getStateCode(state));
 	if (m_request != NULL) {
 		if (state == bs_sendSyn) {
+//			L.log(bus, trace, "notify request (syn): %s", getResultCode(result));
 			m_request->m_slave = m_response; // TODO nicer
 			m_request->notify(result);
 			m_request = NULL;
 		} else if (result != RESULT_OK) {
+//			L.log(bus, trace, "notify request: %s", getResultCode(result));
 			m_request->notify(result);
 			m_request = NULL;
 		}
 	}
+	m_state = state;
 
 	if (state == bs_ready || state == bs_skip) {
 		m_command.clear();
@@ -437,6 +446,18 @@ result_t BusHandler::setState(BusState state, result_t result)
 
 void BusHandler::transferCompleted(TransferType type)
 {
+	Message* msg = m_messages->find(m_command);
+	if (msg != NULL) {
+		ostringstream output;
+		result_t result = msg->decode(pt_masterData, m_command, output);
+		if (result == RESULT_OK)
+			result = msg->decode(pt_slaveData, m_response, output);
+		if (result != RESULT_OK)
+			L.log(bus, error, "unable to parse %s %s from %s / %s: %s", msg->getClass().c_str(), msg->getName().c_str(), m_command.getDataStr().c_str(), m_response.getDataStr().c_str(), getResultCode(result));
+		else
+			L.log(bus, trace, "%s %s: %s", msg->getClass().c_str(), msg->getName().c_str(), output.str().c_str());
+		return;
+	}
 	switch (type)
 	{
 	case tt_broadcast:
@@ -448,16 +469,5 @@ void BusHandler::transferCompleted(TransferType type)
 	case tt_masterSlave:
 		L.log(bus, trace, "received master %s, slave %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
 		break;
-	default:
-		return;
-	}
-	Message* msg = m_messages->find(m_command);
-	if (msg != NULL) {
-		ostringstream output;
-		result_t result = msg->decode(m_command, m_response, output);
-		if (result != RESULT_OK)
-			L.log(bus, error, "unable to parse %s %s from %s / %s: %s", msg->getClass().c_str(), msg->getName().c_str(), m_command.getDataStr().c_str(), m_response.getDataStr().c_str(), getResultCode(result));
-		else
-			L.log(bus, trace, "%s %s: %s", msg->getClass().c_str(), msg->getName().c_str(), output.str().c_str());
 	}
 }

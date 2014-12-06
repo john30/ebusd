@@ -34,10 +34,14 @@
 
 using namespace std;
 
-/** the maximum allowed time [us] for retrieval of a single symbol from an addressed slave. */
+/** the maximum allowed time [us] for retrieving a symbol from an addressed slave. */
 #define SLAVE_RECV_TIMEOUT 10000
-/** the maximum allowed time [us] for retrieval of an AUTO-SYN symbol (should be generated in <45ms). */
+/** the maximum allowed time [us] for retrieving the AUTO-SYN symbol (should be generated in <45ms). */
 #define SYN_TIMEOUT 50000
+/** the maximum duration [us] of a single symbol. */
+#define SYMBOL_DURATION 5100
+/** the maximum allowed time [us] for retrieving back a sent symbol. */
+#define SEND_TIMEOUT 6000
 
 /** the possible bus states. */
 enum BusState {
