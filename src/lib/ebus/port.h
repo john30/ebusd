@@ -92,9 +92,10 @@ public:
 	 * @brief recvBytes read bytes from opened file descriptor.
 	 * @param timeout time for new input data [usec].
 	 * @param maxCount max size of receive buffer.
+	 * @param buffer optional direct buffer to write to (instead of queuing the data).
 	 * @return number of read bytes or -1 if an error has occured.
 	 */
-	ssize_t recvBytes(const long timeout, size_t maxCount);
+	ssize_t recvBytes(const long timeout, size_t maxCount, unsigned char* buffer=NULL);
 
 	/**
 	 * @brief fetch first byte from receive buffer.
@@ -208,7 +209,8 @@ public:
 	 * @param dumpRawFile the name of the file to dump raw data to.
 	 * @param dumpRawMaxSize the maximum size of @a m_dumpFile.
 	 */
-	Port(const string deviceName, const bool noDeviceCheck, const bool logRaw, void (*logRawFunc)(const unsigned char byte),
+	Port(const string deviceName, const bool noDeviceCheck,
+		const bool logRaw, void (*logRawFunc)(const unsigned char byte, bool received),
 		const bool dumpRaw, const char* dumpRawFile, const long dumpRawMaxSize);
 
 	/**
@@ -239,16 +241,27 @@ public:
 	 * @return number of written bytes or -1 if an error has occured.
 	 */
 	ssize_t send(const unsigned char* buffer, size_t nbytes = MAX_WRITE_SIZE)
-		{ return m_device->sendBytes(buffer, nbytes); }
+	{
+		ssize_t ret = m_device->sendBytes(buffer, nbytes);
+		if (ret>0 && m_logRaw == true && m_logRawFunc != NULL)
+			(*m_logRawFunc)(buffer[0], false);
+		return ret;
+	}
 
 	/**
 	 * @brief recv read bytes from opened file descriptor.
-	 * @param timeout max time out for new input data [usec].
+	 * @param timeout max time out for new input data [usec], or 0 for infinite.
 	 * @param maxCount max size of receive buffer.
-	 * @return number of read bytes or -1 if an error has occured.
+	 * @param buffer optional direct buffer to write to (instead of queuing the data).
+	 * @return number of read bytes (never 0) or a negative result_t code.
 	 */
-	ssize_t recv(const long timeout, size_t maxCount = MAX_READ_SIZE)
-		{ return m_device->recvBytes(timeout, maxCount); }
+	ssize_t recv(const long timeout, size_t maxCount = MAX_READ_SIZE, unsigned char* buffer=NULL)
+	{
+		ssize_t ret = m_device->recvBytes(timeout, maxCount, buffer);
+		if (buffer && ret>0 && m_logRaw == true && m_logRawFunc != NULL)
+			(*m_logRawFunc)(buffer[0], true);
+		return ret;
+	}
 
 	/**
 	 * @brief fetch first byte from receive buffer.
@@ -312,7 +325,7 @@ private:
 	bool m_logRaw;
 
 	/** a function to call for logging raw data, or NULL. */
-	void (*m_logRawFunc)(const unsigned char byte);
+	void (*m_logRawFunc)(const unsigned char byte, bool received);
 
 	/** whether dumping of raw data to a file is enabled. */
 	bool m_dumpRaw;

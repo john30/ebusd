@@ -69,7 +69,7 @@ ssize_t Device::sendBytes(const unsigned char* buffer, size_t nbytes)
 	return write(m_fd, buffer, nbytes);
 }
 
-ssize_t Device::recvBytes(const long timeout, size_t maxCount)
+ssize_t Device::recvBytes(const long timeout, size_t maxCount, unsigned char* buffer)
 {
 	if (isValid() == false)
 		return RESULT_ERR_DEVICE;
@@ -102,16 +102,26 @@ ssize_t Device::recvBytes(const long timeout, size_t maxCount)
 		ret = pselect(m_fd + 1, &readfds, NULL, NULL, &tdiff, NULL);
 #endif
 #endif
-
 		if (ret == -1) return RESULT_ERR_DEVICE;
 		if (ret == 0) return RESULT_ERR_TIMEOUT;
+	}
+
+	if (buffer != NULL) {
+		// read bytes from device directly into provided buffer
+		ssize_t nbytes = read(m_fd, buffer, maxCount);
+		if (nbytes == 0)
+			return RESULT_ERR_EOF;
+
+		return nbytes;
 	}
 
 	if (maxCount > sizeof(m_buffer))
 		maxCount = sizeof(m_buffer);
 
-	// read bytes from device
+	// read bytes from device into temporary buffer
 	ssize_t nbytes = read(m_fd, m_buffer, maxCount);
+	if (nbytes == 0)
+		return RESULT_ERR_EOF;
 
 	for (int i = 0; i < nbytes; i++)
 		m_recvBuffer.push(m_buffer[i]);
@@ -154,10 +164,11 @@ result_t DeviceSerial::openDevice(const string deviceName, const bool noDeviceCh
 	memset(&newSettings, '\0', sizeof(newSettings));
 
 	newSettings.c_cflag |= (B2400 | CS8 | CLOCAL | CREAD);
-	newSettings.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
-	newSettings.c_iflag |= IGNPAR;
+	newSettings.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG); // non-canonical mode
+	newSettings.c_iflag |= IGNPAR; // ignore parity errors
 	newSettings.c_oflag &= ~OPOST;
 
+	// non-canonical mode: read() blocks until at least one byte is available
 	newSettings.c_cc[VMIN]  = 1;
 	newSettings.c_cc[VTIME] = 0;
 
@@ -251,7 +262,8 @@ void DeviceNetwork::closeDevice()
 }
 
 
-Port::Port(const string deviceName, const bool noDeviceCheck, const bool logRaw, void (*logRawFunc)(const unsigned char byte),
+Port::Port(const string deviceName, const bool noDeviceCheck,
+		const bool logRaw, void (*logRawFunc)(const unsigned char byte, bool received),
 		const bool dumpRaw, const char* dumpRawFile, const long dumpRawMaxSize)
 	: m_deviceName(deviceName), m_noDeviceCheck(noDeviceCheck),
 	  m_logRaw(logRaw), m_logRawFunc(logRawFunc),
@@ -275,7 +287,7 @@ unsigned char Port::byte()
 	unsigned char byte = m_device->getByte();
 
 	if (m_logRaw == true && m_logRawFunc != NULL)
-		(*m_logRawFunc)(byte);
+		(*m_logRawFunc)(byte, true);
 
 	if (m_dumpRaw == true && m_dumpRawStream.is_open() == true) {
 		m_dumpRawStream.write((char*)&byte, 1);
