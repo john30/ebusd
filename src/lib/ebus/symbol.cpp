@@ -48,7 +48,7 @@ static const unsigned char CRC_LOOKUP_TABLE[] =
 };
 
 
-SymbolString::SymbolString(const string& str)
+SymbolString::SymbolString(const string& str) //TODO use a factory method instead
 	: m_unescapeState(0), m_crc(0)
 {
 	// parse + escape

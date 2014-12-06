@@ -85,7 +85,20 @@ public:
 	 * @param other the other instance.
 	 * @return true if this instance is equal to the other instance (i.e. both escaped or both unescaped and same symbols).
 	 */
-	bool operator==(SymbolString other) { return m_unescapeState==other.m_unescapeState && m_data==other.m_data; }
+	bool operator==(SymbolString& other) {
+		return m_unescapeState==other.m_unescapeState && m_data==other.m_data;
+		/*bool ret = m_unescapeState==other.m_unescapeState && m_data==other.m_data;
+		for (int i=0; i<m_data.size(); i++) {
+			cout<<setw(2)<<setfill('0')<<hex<<static_cast<unsigned>(m_data[i])<<" ";
+		}
+		cout<<"["<<static_cast<unsigned>(m_unescapeState)<<"]";
+		cout<<(ret?" == ":" != ");
+		for (int i=0; i<other.m_data.size(); i++) {
+			cout<<setw(2)<<setfill('0')<<hex<<static_cast<unsigned>(other.m_data[i])<<" ";
+		}
+		cout<<"["<<static_cast<unsigned>(other.m_unescapeState)<<"]"<<endl;
+		return ret;*/
+	}
 	/**
 	 * @brief Appends a the symbol to the end of the symbol string and escapes/unescapes it if necessary.
 	 * @param value the symbol to append.
