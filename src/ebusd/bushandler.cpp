@@ -463,16 +463,21 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 
 void BusHandler::receiveCompleted()
 {
-	Message* msg = m_messages->find(m_command);
-	if (msg != NULL) {
+	Message* message = m_messages->find(m_command);
+	if (message != NULL) {
+		string clazz = message->getClass();
+		string name = message->getName();
 		ostringstream output;
-		result_t result = msg->decode(pt_masterData, m_command, output);
+		result_t result = message->decode(pt_masterData, m_command, output);
 		if (result == RESULT_OK)
-			result = msg->decode(pt_slaveData, m_response, output);
+			result = message->decode(pt_slaveData, m_response, output, output.str().empty() == false);
 		if (result != RESULT_OK)
-			L.log(bus, error, "unable to parse %s %s from %s / %s: %s", msg->getClass().c_str(), msg->getName().c_str(), m_command.getDataStr().c_str(), m_response.getDataStr().c_str(), getResultCode(result));
-		else
-			L.log(bus, trace, "%s %s: %s", msg->getClass().c_str(), msg->getName().c_str(), output.str().c_str());
+			L.log(bus, error, "unable to parse %s %s from %s / %s: %s", clazz.c_str(), name.c_str(), m_command.getDataStr().c_str(), m_response.getDataStr().c_str(), getResultCode(result));
+		else {
+			string data = output.str();
+			L.log(bus, trace, "%s %s: %s", clazz.c_str(), name.c_str(), data.c_str());
+			m_receivedData[clazz+";"+name] = data;
+		}
 		return;
 	}
 	if (m_command[1] == BROADCAST)
@@ -481,4 +486,15 @@ void BusHandler::receiveCompleted()
 		L.log(bus, trace, "received master-master %s", m_command.getDataStr().c_str());
 	else
 		L.log(bus, trace, "received master-slave %s / %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
+}
+
+string BusHandler::getReceivedData(Message* message) {
+	if (message == NULL)
+		return NULL;
+	string clazz = message->getClass();
+	string name = message->getName();
+	map<string, string>::iterator it = m_receivedData.find(clazz+";"+name);
+	if (it == m_receivedData.end())
+		return NULL;
+	return it->second;
 }

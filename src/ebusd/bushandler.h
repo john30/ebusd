@@ -178,6 +178,13 @@ public:
 	 */
 	virtual void run();
 
+	/**
+	 * @brief Get the last received data for the @a Message.
+	 * @param message the @a Message instance.
+	 * @return the last received data for the @a Message, or the empty string if not available.
+	 */
+	string getReceivedData(Message* message);
+
 private:
 
 	/**
@@ -257,6 +264,9 @@ private:
 
 	/** whether the response CRC is valid. */
 	bool m_responseCrcValid;
+
+	/** the last received data by "class;name". */
+	map<string, string> m_receivedData;
 
 };
 
