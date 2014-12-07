@@ -265,9 +265,6 @@ private:
 	/** whether the response CRC is valid. */
 	bool m_responseCrcValid;
 
-	/** the last received data by "class;name". */
-	map<string, string> m_receivedData;
-
 };
 
 

@@ -476,7 +476,6 @@ void BusHandler::receiveCompleted()
 		else {
 			string data = output.str();
 			L.log(bus, trace, "%s %s: %s", clazz.c_str(), name.c_str(), data.c_str());
-			m_receivedData[clazz+";"+name] = data;
 		}
 		return;
 	}
@@ -486,15 +485,4 @@ void BusHandler::receiveCompleted()
 		L.log(bus, trace, "received master-master %s", m_command.getDataStr().c_str());
 	else
 		L.log(bus, trace, "received master-slave %s / %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
-}
-
-string BusHandler::getReceivedData(Message* message) {
-	if (message == NULL)
-		return NULL;
-	string clazz = message->getClass();
-	string name = message->getName();
-	map<string, string>::iterator it = m_receivedData.find(clazz+";"+name);
-	if (it == m_receivedData.end())
-		return NULL;
-	return it->second;
 }
