@@ -36,7 +36,7 @@ Message::Message(const string clazz, const string name, const bool isSet,
 		  m_isPassive(isPassive), m_comment(comment),
 		  m_srcAddress(srcAddress), m_dstAddress(dstAddress),
 		  m_id(id), m_data(data), m_pollPriority(pollPriority),
-		  m_lastUpdateTime(0)
+		  m_lastUpdateTime(0), m_pollCount(0), m_lastPollTime(0)
 {
 	int exp = 7;
 	unsigned long long key = (unsigned long long)(id.size()-2) << (8 * exp + 5);
@@ -269,7 +269,7 @@ result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& ma
 	result = m_data->write(input, pt_masterData, master, m_id.size() - 2, separator);
 	if (result != RESULT_OK)
 		return result;
-	masterData = SymbolString(master);
+	masterData = SymbolString(master, true);
 	return result;
 }
 
@@ -298,6 +298,18 @@ result_t Message::decode(const PartType partType, SymbolString& data,
 	return RESULT_OK;
 }
 
+bool Message::isLessPollWeight(Message* other) {
+	if (m_pollPriority * m_pollCount < other->m_pollPriority * other->m_pollCount)
+		return true;
+	if (m_pollPriority < other->m_pollPriority)
+		return true;
+	if (m_lastPollTime < other->m_lastPollTime)
+		return true;
+
+	return false;
+}
+
+
 result_t MessageMap::add(Message* message)
 {
 	unsigned long long pkey = message->getKey();
@@ -318,6 +330,7 @@ result_t MessageMap::add(Message* message)
 	}
 
 	m_messagesByName[key] = message;
+	m_messageCount++;
 
 	key = string(isPassive ? "-P;" : (isSet ? "-W;" : "-R;")) + name; // also store without class
 	m_messagesByName[key] = message; // last key without class overrides previous
@@ -331,7 +344,8 @@ result_t MessageMap::add(Message* message)
 		m_passiveMessagesByKey[pkey] = message;
 	}
 
-	//m_pollMessages.push()
+	if (message->getPollPriority() > 0)
+		m_pollMessages.push(message);
 
 	return RESULT_OK;
 }
@@ -418,12 +432,34 @@ Message* MessageMap::find(SymbolString& master)
 
 void MessageMap::clear()
 {
+	// clear poll messages
+	while (m_pollMessages.empty() == false) {
+		m_pollMessages.top();
+		m_pollMessages.pop();
+	}
+	// free message instances
 	for (map<string, Message*>::iterator it=m_messagesByName.begin(); it!=m_messagesByName.end(); it++) {
 		if (it->first[0] != '-') // avoid double free
 			delete it->second;
 		it->second = NULL;
 	}
+	// clear messages by name
+	m_messageCount = 0;
 	m_messagesByName.clear();
+	// clear messages by key
 	m_passiveMessagesByKey.clear();
+	m_minIdLength = 4;
 	m_maxIdLength = 0;
+}
+
+Message* MessageMap::getNextPoll()
+{
+	if (m_pollMessages.empty() == true)
+		return NULL;
+	Message* ret = m_pollMessages.top();
+	m_pollMessages.pop();
+	ret->m_pollCount++;
+	time(&(ret->m_lastPollTime));
+	m_pollMessages.push(ret); // re-insert at new position
+	return ret;
 }
