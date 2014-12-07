@@ -58,23 +58,10 @@ enum BusState {
 	bs_sendSyn,     // send SYN for completed transfer [active set+get]
 };
 
-/** the possible combinations of participants in a single message exchange. */
-enum MessageDirection {
-	md_thisToAll,         // message from us to all (broadcast)
-	md_thisToMaster,      // message from us to another master
-	md_thisToSlave,       // message from us to another slave
-	md_otherToAll,        // message from a master (other than us) to all (broadcast)
-	md_otherToMaster,     // message from a master (other than us) to another master (other than us)
-	md_otherToSlave,      // message from a master (other than us) to another slave (other than us)
-	md_otherToThisMaster, // message from a master (other than us) to us (as master)
-	md_otherToThisSlave,  // message from a master (other than us) to us (as slave)
-	md_undefined,
-};
-
 class BusHandler;
 
 /**
- * @brief Handles input from and output to the bus with respect to the ebus protocol.
+ * @brief Generic request for sending to and receiving from the bus.
  */
 class BusRequest
 {
@@ -85,13 +72,97 @@ public:
 	 * @brief Constructor.
 	 * @param master the master data @a SymbolString to send.
 	 * @param slave the slave data @a SymbolString received.
+	 * @param isPoll whether this is a poll request.
 	 */
-	BusRequest(SymbolString& master, SymbolString& slave);
+	BusRequest(SymbolString& master, SymbolString& slave, bool isPoll)
+		: m_master(master), m_slave(slave), m_isPoll(isPoll) {}
 
 	/**
 	 * @brief Destructor.
 	 */
-	virtual ~BusRequest();
+	virtual ~BusRequest() {}
+
+	/**
+	 * @brief Notify the request of the specified result.
+	 * @param result the result of the request.
+	 */
+	virtual void notify(result_t result) = 0;
+
+protected:
+
+	/** the master data @a SymbolString to send. */
+	SymbolString& m_master;
+
+	/** the slave data @a SymbolString received. */
+	SymbolString& m_slave;
+
+	/** whether this is a poll request. */
+	bool m_isPoll;
+
+};
+
+
+/**
+ * @brief A poll @a BusRequest handled by @a BusHandler itself.
+ */
+class PollRequest : public BusRequest
+{
+	friend class BusHandler;
+public:
+
+	/**
+	 * @brief Constructor.
+	 * @param slave the slave data @a SymbolString received.
+	 * @param message the associated @a Message.
+	 */
+	PollRequest(SymbolString& slave, Message* message)
+		: BusRequest(m_master, slave, true), m_message(message) {}
+
+	/**
+	 * @brief Destructor.
+	 */
+	virtual ~PollRequest() {}
+
+	/**
+	 * @brief Prepare the master data.
+	 * @param masterAddress the master bus address to use.
+	 * @return the result code.
+	 */
+	result_t prepare(unsigned char masterAddress);
+
+	// @copydoc
+	virtual void notify(result_t result);
+
+private:
+
+	/** the master data @a SymbolString. */
+	SymbolString m_master;
+
+	/** the associated @a Message. */
+	Message* m_message;
+
+};
+
+
+/**
+ * @brief An active @a BusRequest that can be waited for.
+ */
+class ActiveBusRequest : public BusRequest
+{
+	friend class BusHandler;
+public:
+
+	/**
+	 * @brief Constructor.
+	 * @param master the master data @a SymbolString to send.
+	 * @param slave the slave data @a SymbolString received.
+	 */
+	ActiveBusRequest(SymbolString& master, SymbolString& slave);
+
+	/**
+	 * @brief Destructor.
+	 */
+	virtual ~ActiveBusRequest();
 
 	/**
 	 * @brief Wait for notification.
@@ -100,18 +171,10 @@ public:
 	 */
 	bool wait(int timeout);
 
-	/**
-	 * @brief Notify all waiting threads.
-	 */
-	void notify(result_t result);
+	// @copydoc
+	virtual void notify(result_t result);
 
 private:
-
-	/** the master data @a SymbolString to send. */
-	SymbolString& m_master;
-
-	/** the slave data @a SymbolString received. */
-	SymbolString& m_slave;
 
 	/** true once the request is finished. */
 	bool m_finished;
@@ -139,24 +202,26 @@ public:
 	 * @brief Construct a new instance.
 	 * @param port the @a Port instance for accessing the bus.
 	 * @param messages the @a MessageMap instance with all known @a Message instances.
-	 * @param ownMasterAddress the own master address to react on master-master messages, or @a SYN to ignore.
-	 * @param ownSlaveAddress the own slave address to react on master-slave messages, or @a SYN to ignore.
+	 * @param ownAddress the own master address.
+	 * @param answer whether to answer queries for the own master/slave address.
 	 * @param busLostRetries the number of times a send is repeated due to lost arbitration.
 	 * @param failedSendRetries the number of times a failed send is repeated (other than lost arbitration).
 	 * @param slaveRecvTimeout the maximum time in microseconds an addressed slave is expected to acknowledge.
 	 * @param busAcquireTimeout the maximum time in microseconds for bus acquisition.
 	 * @param lockCount the number of AUTO-SYN symbols before sending is allowed after lost arbitration.
+	 * @param pollInterval the interval in seconds in which poll messages are cycled, or 0 if disabled.
 	 */
 	BusHandler(Port* port, MessageMap* messages,
-			const unsigned char ownMasterAddress, const unsigned char ownSlaveAddress,
+			const unsigned char ownAddress, const bool answer,
 			const unsigned int busLostRetries, const unsigned int failedSendRetries,
 			const unsigned int busAcquireTimeout, const unsigned int slaveRecvTimeout,
-			const unsigned int lockCount)
+			const unsigned int lockCount, const unsigned int pollInterval)
 		: m_port(port), m_messages(messages),
-		  m_ownMasterAddress(ownMasterAddress), m_ownSlaveAddress(ownSlaveAddress),
+		  m_ownMasterAddress(ownAddress), m_ownSlaveAddress((ownAddress+5)&0xff), m_answer(answer),
 		  m_busLostRetries(busLostRetries), m_failedSendRetries(failedSendRetries),
 		  m_busAcquireTimeout(busAcquireTimeout), m_slaveRecvTimeout(slaveRecvTimeout),
 		  m_lockCount(lockCount), m_remainLockCount(lockCount),
+		  m_pollInterval(pollInterval), m_lastPoll(0),
 		  m_request(NULL), m_nextSendPos(0),
 		  m_state(bs_skip), m_repeat(false),
 		  m_commandCrcValid(false), m_responseCrcValid(false) {}
@@ -213,11 +278,14 @@ private:
 	/** the @a MessageMap instance with all known @a Message instances. */
 	MessageMap* m_messages;
 
-	/** the own master address to react on master-master messages, or @a SYN to ignore. */
+	/** the own master address. */
 	const unsigned char m_ownMasterAddress;
 
-	/** the own slave address to react on master-slave messages, or @a SYN to ignore. */
+	/** the own slave address. */
 	const unsigned char m_ownSlaveAddress;
+
+	/** whether to answer queries for the own master/slave address. */
+	const bool m_answer;
 
 	/** the number of times a send is repeated due to lost arbitration. */
 	const unsigned int m_busLostRetries;
@@ -236,6 +304,12 @@ private:
 
 	/** the remaining number of AUTO-SYN symbols before sending is allowed again. */
 	unsigned int m_remainLockCount;
+
+	/** the interval in seconds in which poll messages are cycled, or 0 if disabled. */
+	const unsigned int m_pollInterval;
+
+	/** the time of the last poll, or 0 for never. */
+	time_t m_lastPoll;
 
 	/** the queue of @a BusRequests that shall be handled. */
 	WQueue<BusRequest*> m_requests;

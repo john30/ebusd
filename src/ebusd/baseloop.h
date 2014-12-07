@@ -96,6 +96,9 @@ private:
 	/** the own master address for sending on the bus. */
 	unsigned char m_ownAddress;
 
+	/** whether polling the messages is active. */
+	bool m_pollActive;
+
 	/** the @a Port instance. */
 	Port* m_port;
 

@@ -190,8 +190,8 @@ int main()
 		string check[5] = checks[i];
 		istringstream isstr(check[0]);
 		string expectStr = check[1];
-		SymbolString mstr = SymbolString(check[2], false);
-		SymbolString sstr = SymbolString(check[3], false);
+		SymbolString mstr(check[2], false);
+		SymbolString sstr(check[3], false);
 		string flags = check[4];
 		bool isSet = flags.find('s') != string::npos;
 		bool failedCreate = flags.find('c') != string::npos;
@@ -247,8 +247,8 @@ int main()
 		}
 
 		ostringstream output;
-		SymbolString writeMstr = SymbolString(mstr.getDataStr().substr(0, 10), false);
-		SymbolString writeSstr = SymbolString(sstr.getDataStr().substr(0, 2), false);
+		SymbolString writeMstr(mstr.getDataStr().substr(0, 10), false);
+		SymbolString writeSstr(sstr.getDataStr().substr(0, 2), false);
 		result = fields->read(pt_masterData, mstr, 0, output, false, verbose);
 		if (result == RESULT_OK) {
 			result = fields->read(pt_slaveData, sstr, 0, output, output.str().empty() == false, verbose);

@@ -58,20 +58,41 @@ const char* getStateCode(BusState state) {
 }
 
 
-BusRequest::BusRequest(SymbolString& master, SymbolString& slave)
-	: m_master(master), m_slave(slave), m_finished(false), m_result(RESULT_SYN)
+result_t PollRequest::prepare(unsigned char ownMasterAddress)
+{
+	istringstream input;
+	result_t result = m_message->prepareMaster(ownMasterAddress, m_master, input);
+	if (result == RESULT_OK)
+		L.log(bus, event, " poll msg: %s", m_master.getDataStr().c_str());
+	return result;
+}
+
+void PollRequest::notify(result_t result)
+{
+	ostringstream output;
+	if (result == RESULT_OK) {
+		result = m_message->decode(pt_slaveData, m_slave, output); // decode data
+	}
+	if (result != RESULT_OK)
+		L.log(bus, error, "poll %s failed: %s", m_message->getName().c_str(), getResultCode(result));
+	else
+		L.log(bus, event, "poll %s: %s", m_message->getName().c_str(), output.str().c_str());
+}
+
+ActiveBusRequest::ActiveBusRequest(SymbolString& master, SymbolString& slave)
+	: BusRequest(master, slave, false), m_finished(false), m_result(RESULT_SYN)
 {
 	pthread_mutex_init(&m_mutex, NULL);
 	pthread_cond_init(&m_cond, NULL);
 }
 
-BusRequest::~BusRequest()
+ActiveBusRequest::~ActiveBusRequest()
 {
 	pthread_mutex_destroy(&m_mutex);
 	pthread_cond_destroy(&m_cond);
 }
 
-bool BusRequest::wait(int timeout)
+bool ActiveBusRequest::wait(int timeout)
 {
 	m_finished = false;
 	m_result = RESULT_SYN;
@@ -93,7 +114,7 @@ bool BusRequest::wait(int timeout)
 	return result == 0;
 }
 
-void BusRequest::notify(result_t result)
+void ActiveBusRequest::notify(result_t result)
 {
 	pthread_mutex_lock(&m_mutex);
 
@@ -108,7 +129,7 @@ void BusRequest::notify(result_t result)
 result_t BusHandler::sendAndWait(SymbolString& master, SymbolString& slave)
 {
 	result_t result = RESULT_SYN;
-	BusRequest* request = new BusRequest(master, slave);
+	ActiveBusRequest* request = new ActiveBusRequest(master, slave);
 
 	for (int sendRetries=m_failedSendRetries+1, lostRetries=m_busLostRetries+1; sendRetries>=0; sendRetries--) {
 		m_requests.add(request);
@@ -172,6 +193,26 @@ result_t BusHandler::handleSymbol()
 			setState(bs_ready, RESULT_ERR_TIMEOUT); // just to be sure an old BusRequest is cleaned up
 		if (m_remainLockCount == 0) {
 			m_request = m_requests.next(false);
+			if (m_request == NULL && m_pollInterval > 0) { // check for poll/scan
+				time_t now;
+				time(&now);
+				if (m_lastPoll == 0 || difftime(now, m_lastPoll) > m_pollInterval) {
+					Message* message = m_messages->getNextPoll();
+					if (message != NULL) {
+						m_lastPoll = now;
+						PollRequest* request = new PollRequest(m_response, message);
+						result_t ret = request->prepare(m_ownMasterAddress);
+						if (ret != RESULT_OK) {
+							L.log(bus, error, " prepare poll message: %s", getResultCode(ret));
+							delete request;
+						}
+						else {
+							m_request = request;
+							m_requests.add(request);
+						}
+					}
+				}
+			}
 			if (m_request != NULL) { // initiate arbitration
 				sendSymbol = m_request->m_master[0];
 				sending = true;
@@ -435,8 +476,10 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 	if (m_request != NULL) {
 		if (state == bs_sendSyn || (result != RESULT_OK && firstRepetition == false)) {
 			L.log(bus, debug, "notify request: %s", getResultCode(result));
-			m_request->m_slave = m_response; // TODO nicer
+			m_request->m_slave = SymbolString(m_response, false, false);
 			m_request->notify(result);
+			if (m_request->m_isPoll == true)
+				delete m_request;
 			m_request = NULL;
 		}
 	}

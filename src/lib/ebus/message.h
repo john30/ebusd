@@ -29,11 +29,14 @@
 
 using namespace std;
 
+class MessageMap;
+
 /**
  * @brief Defines parameters of a message sent or received on the bus.
  */
 class Message
 {
+	friend class MessageMap;
 public:
 
 	/**
@@ -151,10 +154,23 @@ public:
 	string getLastValue() { return m_lastValue; }
 
 	/**
-	 * @brief Get the system time when @a m_lastValue was updated.
-	 * @return the system time when @a m_lastValue was updated, or 0 if this message was not decoded yet.
+	 * @brief Get the time when @a m_lastValue was updated.
+	 * @return the time when @a m_lastValue was updated, or 0 if this message was not decoded yet.
 	 */
 	time_t getLastUpdateTime() { return m_lastUpdateTime; }
+
+	/**
+	 * @brief Get the time when this message was last polled for.
+	 * @return the time when this message was last polled for, or 0 for never.
+	 */
+	time_t getLastPollTime() { return m_lastPollTime; }
+
+	/**
+	 * @brief Return whether this @a Message needs to be polled before the other one.
+	 * @param other the other @a Message to compare with.
+	 * @return true if this @a Message needs to be polled before the other one.
+	 */
+	bool isLessPollWeight(Message* other);
 
 private:
 
@@ -183,9 +199,23 @@ private:
 	const unsigned char m_pollPriority;
 	/** the last decoded value. */
 	string m_lastValue;
-	/** the system time when @a m_lastValue was updated. */
+	/** the system time when @a m_lastValue was updated, 0 for never. */
 	time_t m_lastUpdateTime;
+	/** the number of times this messages was already polled for. */
+	unsigned int m_pollCount;
+	/** the system time when this message was last polled for, 0 for never. */
+	time_t m_lastPollTime;
+
 };
+
+
+/**
+ * @brief A function that compares the poll priority of two @a Message instances.
+ */
+struct compareMessagePriority : binary_function <Message*,Message*,bool> {
+	bool operator() (Message* x, Message* y) const { return x->isLessPollWeight(y) == false; };
+};
+
 
 /**
  * @brief Holds a map of all known @a Message instances.
@@ -197,7 +227,7 @@ public:
 	/**
 	 * @brief Construct a new instance.
 	 */
-	MessageMap() : FileReader(true), m_minIdLength(4), m_maxIdLength(0) {}
+	MessageMap() : FileReader(true), m_minIdLength(4), m_maxIdLength(0), m_messageCount(0) {}
 	/**
 	 * @brief Destructor.
 	 */
@@ -232,6 +262,23 @@ public:
 	 * @brief Removes all @a Message instances.
 	 */
 	void clear();
+	/**
+	 * @brief Get the number of stored @a Message instances.
+	 * @param passiveOnly true to count only passive messages, false to count all messages.
+	 * @return the the number of stored @a Message instances.
+	 */
+	int size(const bool passiveOnly=false) { return passiveOnly ? m_passiveMessagesByKey.size() : m_messageCount; }
+	/**
+	 * @brief Get the number of stored @a Message instances with a poll priority.
+	 * @return the the number of stored @a Message instances with a poll priority.
+	 */
+	int sizePoll() { return m_pollMessages.size(); }
+	/**
+	 * @brief Get the next @a Message to poll.
+	 * @return the next @a Message to poll, or NULL.
+	 * Note: the caller may not free the returned instance.
+	 */
+	Message* getNextPoll();
 
 private:
 
@@ -241,11 +288,17 @@ private:
 	/** the maximum ID length used by any of the known @a Message instances. */
 	unsigned char m_maxIdLength;
 
+	/** the number of distinct @a Message instances stored in @a m_messagesByName. */
+	int m_messageCount;
+
 	/** the known @a Message instances by class and name. */
 	map<string, Message*> m_messagesByName;
 
 	/** the known passive @a Message instances by key. */
 	map<unsigned long long, Message*> m_passiveMessagesByKey;
+
+	/** the known @a Message instances to poll, by priority. */
+	priority_queue<Message*, vector<Message*>, compareMessagePriority> m_pollMessages;
 
 };
 

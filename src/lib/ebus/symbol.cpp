@@ -60,15 +60,15 @@ SymbolString::SymbolString(const string& str) //TODO use a factory method instea
 	push_back(m_crc, false, false);
 }
 
-SymbolString::SymbolString(const SymbolString& str)
-	: m_unescapeState(0), m_crc(0)
+SymbolString::SymbolString(const SymbolString& str, const bool escape, const bool addCrc)
+	: m_unescapeState(escape == true ? 0 : 1), m_crc(0)
 {
-	// escape
 	for (size_t i = 0; i < str.size(); i++) {
-		push_back(str[i], false, true);
+		push_back(str[i], str.m_unescapeState == 0, true);
 	}
-	// add CRC + escape
-	push_back(m_crc, false, false);
+	if (addCrc == true)
+		// add CRC
+		push_back(m_crc, false, false);
 }
 
 SymbolString::SymbolString(const string& str, bool isEscaped)

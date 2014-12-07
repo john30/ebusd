@@ -52,10 +52,10 @@ public:
 	 */
 	SymbolString(const string& str);
 	/**
-	 * @brief Creates a new escaped instance from an unescaped @a SymbolString and adds the calculated CRC.
-	 * @param str the unescaped SymbolString.
+	 * @brief Creates a new escaped or unescaped instance from another @a SymbolString and adds the calculated CRC.
+	 * @param str the @a SymbolString top copy from.
 	 */
-	SymbolString(const SymbolString& str);
+	SymbolString(const SymbolString& str, const bool escape, const bool addCrc=true);
 	/**
 	 * @brief Creates a new unescaped instance from a hex string.
 	 * @param isEscaped whether the hex string is escaped and shall be unescaped.
@@ -125,6 +125,14 @@ public:
 	void clear() { m_data.clear(); m_unescapeState = m_unescapeState==0 ? 0 : 1; m_crc = 0; }
 
 private:
+
+	/**
+	 * @brief Hidden copy constructor.
+	 * @param str the @a SymbolString to copy from.
+	 */
+	SymbolString(const SymbolString& str)
+		: m_data(str.m_data), m_unescapeState(str.m_unescapeState), m_crc(str.m_crc) {}
+
 	/**
 	 * @brief Updates the calculated CRC in @a m_crc by adding a value.
 	 * @param value the (escaped) value to add to the calculated CRC in @a m_crc.
