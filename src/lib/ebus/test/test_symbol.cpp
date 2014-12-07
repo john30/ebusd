@@ -25,7 +25,7 @@ using namespace std;
 
 int main ()
 {
-	SymbolString sstr = SymbolString("10feb5050427a915aa");
+	SymbolString sstr("10feb5050427a915aa");
 
 	std::string gotStr = sstr.getDataStr(false), expectStr = "10feb5050427a90015a90177";
 
