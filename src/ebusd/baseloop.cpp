@@ -320,7 +320,7 @@ string BaseLoop::decodeMessage(const string& data)
 			message = m_messages->find(cmd[1], cmd[2], false, true);
 
 		if (message != NULL) {
-			token = m_busHandler->getReceivedData(message);
+			token = message->getLastValue();
 			if (token.empty() == false) {
 				result << token;
 			} else {

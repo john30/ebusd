@@ -144,6 +144,18 @@ public:
 	result_t decode(const PartType partType, SymbolString& data,
 			ostringstream& output, bool leadingSeparator=false, char separator=';');
 
+	/**
+	 * @brief Get the last decoded value.
+	 * @return the last decoded value, or the empty string if it was not successful.
+	 */
+	string getLastValue() { return m_lastValue; }
+
+	/**
+	 * @brief Get the system time when @a m_lastValue was updated.
+	 * @return the system time when @a m_lastValue was updated, or 0 if this message was not decoded yet.
+	 */
+	time_t getLastUpdateTime() { return m_lastUpdateTime; }
+
 private:
 
 	 /** the optional device class. */
@@ -169,7 +181,10 @@ private:
 	DataField* m_data;
 	/** the priority for polling, or 0 for no polling at all. */
 	const unsigned char m_pollPriority;
-
+	/** the last decoded value. */
+	string m_lastValue;
+	/** the system time when @a m_lastValue was updated. */
+	time_t m_lastUpdateTime;
 };
 
 /**
@@ -217,7 +232,6 @@ public:
 	 * @brief Removes all @a Message instances.
 	 */
 	void clear();
-
 
 private:
 

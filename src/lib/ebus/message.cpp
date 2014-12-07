@@ -35,7 +35,8 @@ Message::Message(const string clazz, const string name, const bool isSet,
 		: m_class(clazz), m_name(name), m_isSet(isSet),
 		  m_isPassive(isPassive), m_comment(comment),
 		  m_srcAddress(srcAddress), m_dstAddress(dstAddress),
-		  m_id(id), m_data(data), m_pollPriority(pollPriority)
+		  m_id(id), m_data(data), m_pollPriority(pollPriority),
+		  m_lastUpdateTime(0)
 {
 	int exp = 7;
 	unsigned long long key = (unsigned long long)(id.size()-2) << (8 * exp + 5);
@@ -280,9 +281,14 @@ result_t Message::decode(const PartType partType, SymbolString& data,
 		offset = m_id.size() - 2;
 	else
 		offset = 0;
+	int startPos = output.str().length();
 	result_t result = m_data->read(partType, data, offset, output, leadingSeparator, false, separator);
-	if (result != RESULT_OK)
+	time(&m_lastUpdateTime);
+	if (result != RESULT_OK) {
+		m_lastValue.clear();
 		return result;
+	}
+	m_lastValue = output.str().substr(startPos);
 	/*if (m_isPassive == false && answer == true) {
 		istringstream input; // TODO create input from database of internal variables
 		result_t result = m_data->write(input, masterData, m_id.size() - 2, slaveData, 0, separator);
@@ -291,7 +297,6 @@ result_t Message::decode(const PartType partType, SymbolString& data,
 	}*/
 	return RESULT_OK;
 }
-
 
 result_t MessageMap::add(Message* message)
 {
@@ -422,4 +427,3 @@ void MessageMap::clear()
 	m_passiveMessagesByKey.clear();
 	m_maxIdLength = 0;
 }
-
