@@ -83,7 +83,8 @@ public:
 	virtual ~BusRequest() {}
 
 	/**
-	 * @brief Notify all waiting threads.
+	 * @brief Notify the request of the specified result.
+	 * @param result the result of the request.
 	 */
 	virtual void notify(result_t result) = 0;
 
