@@ -16,7 +16,7 @@ ebusd_SOURCES = bushandler.cpp \
 
 ebusd_LDADD = $(top_srcdir)/src/lib/utils/libutils.a \
               $(top_srcdir)/src/lib/ebus/libebus.a \
-	      -lpthread
+	      -lpthread \
 	      -lrt
 
 distclean-local:
