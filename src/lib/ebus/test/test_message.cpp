@@ -76,8 +76,8 @@ int main()
 		string check[5] = checks[i];
 		istringstream isstr(check[0]);
 		string inputStr = check[1];
-		SymbolString mstr = SymbolString(check[2], false);
-		SymbolString sstr = SymbolString(check[3], false);
+		SymbolString mstr(check[2], false);
+		SymbolString sstr(check[3], false);
 		string flags = check[4];
 		bool dontMap = flags.find('m') != string::npos;
 		bool failedCreate = flags.find('c') != string::npos;
@@ -147,7 +147,7 @@ int main()
 				message = deleteMessage;
 		}
 		istringstream input(inputStr);
-		SymbolString writeMstr = SymbolString();
+		SymbolString writeMstr;
 		if (message->isPassive() == true) {
 			ostringstream output;
 			result = message->decode(pt_masterData, mstr, output);
