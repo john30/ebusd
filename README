@@ -1,5 +1,5 @@
-ebusd - README
---------------
+ebusd
+-----
 
 The ebusd provides a communication interface to the energy bus (ebus)
 which is used in various heating systems.
@@ -8,12 +8,11 @@ which is used in various heating systems.
 Features
 --------
 
- * send and receive ebus commands for all ebus message types
-   (message types are: Broadcast, Master-Master and Master-Slave)
- * collect data of cycle messages
- * poll messages and collect received data
- * write raw data into dump files (for debugging purpose)
+ * send and receive ebus commands
+ * collect data of cycle commands
+ * poll commands and collect received data
  * scan ebus to identifies bus participants
+ * dump raw data into binary files
 
  * available daemon commands:
    - get            fetch data from ebus participant
@@ -45,16 +44,11 @@ vendor specific configuration files for ebusd
 See https://github.com/yuhu-/ebus-configuration
 
 
+Tools
+-----
 
-ebusctl - client program for ebusd
-----------------------------------
-
-server commands:
- * connect to ebusd (socket) and execute server commands (commands see above)
-
-local commands:
- * 'feed' ebusd with raw data from dump files (or telnet) to ebusd
-
+ * 'ebusctl' is a tcp socket client for ebusd.
+ * 'ebusfeed' is a tool to feed ebusd with raw data from dump files.
 
 
 Build

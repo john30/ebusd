@@ -147,20 +147,19 @@ unsigned char Device::getByte()
 result_t DeviceSerial::openDevice(const string deviceName, const bool noDeviceCheck)
 {
 	m_noDeviceCheck = noDeviceCheck;
-
-	termios newSettings;
-
+	struct termios newSettings;
 	m_open = false;
 
-	// open file descriptor from serial device
+	// open file descriptor
 	m_fd = open(deviceName.c_str(), O_RDWR | O_NOCTTY);
 
-	if (m_fd < 0)
+	if (m_fd < 0 || isatty(m_fd) == 0)
 		return RESULT_ERR_NOTFOUND;
 
-	// save current settings of serial device
+	// save current settings
 	tcgetattr(m_fd, &m_oldSettings);
 
+	// create new settings
 	memset(&newSettings, '\0', sizeof(newSettings));
 
 	newSettings.c_cflag |= (B2400 | CS8 | CLOCAL | CREAD);
@@ -176,7 +175,7 @@ result_t DeviceSerial::openDevice(const string deviceName, const bool noDeviceCh
 	tcflush(m_fd, TCIFLUSH);
 
 	// activate new settings of serial device
-	tcsetattr(m_fd, TCSANOW, &newSettings);
+	tcsetattr(m_fd, TCSAFLUSH, &newSettings);
 
 	// set serial device into blocking mode
 	fcntl(m_fd, F_SETFL, fcntl(m_fd, F_GETFL) & ~O_NONBLOCK);

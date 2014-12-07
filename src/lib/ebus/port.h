@@ -110,13 +110,13 @@ public:
 	ssize_t sizeRecvBuffer() const { return m_recvBuffer.size(); }
 
 protected:
-	/** if of file descriptor */
+	/** file descriptor from input device */
 	int m_fd;
 
-	/** state of device*/
+	/** true if device is opened */
 	bool m_open;
 
-	/** state of device check */
+	/** true if device check is disabled */
 	bool m_noDeviceCheck;
 
 	/** queue for received bytes */

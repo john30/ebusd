@@ -302,13 +302,28 @@ public:
 	virtual void stop();
 
 private:
-	/** private constructor - singleton pattern */
+	/**
+	 * @brief private construtor.
+	 */
 	Logger() {}
+
+	/**
+	 * @brief private copy construtor.
+	 * @param reference to an instance.
+	 */
 	Logger(const Logger&);
+
+	/**
+	 * @brief private = operator.
+	 * @param reference to an instance.
+	 * @return reference to instance.
+	 */
 	Logger& operator=(const Logger&);
 
 	/** typedefs for a vector of type LogSink* */
 	typedef vector<LogSink*> sink_t;
+
+	/** typedefs for a vector of type LogSink* iterator */
 	typedef vector<LogSink*>::iterator sinkCI_t;
 
 	/** vector of available logging sinks */

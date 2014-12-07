@@ -118,9 +118,10 @@ public:
 	/**
 	 * @brief create an instance and return the reference.
 	 * @param command is true if an command is needed.
+	 * @param argument is true if command could have an argument.
 	 * @return the reference to instance.
 	 */
-	static Appl& Instance(const bool command=false);
+	static Appl& Instance(const bool command=false, const bool argument=false);
 
 	/**
 	 * @brief destructor.
@@ -175,26 +176,57 @@ public:
 	 * @return number of commands and arguments.
 	 */
 	int numArgs() const { return m_arguments.size(); }
-
 	/**
-	 * @brief returns the string of an interested argument (0 = command).
+	 * @brief returns the string of an interested argument.
 	 * @param num number of interested argument.
-	 * @return string value.
+	 * @return the argument string.
 	 */
 	string getArg(const int num) const { return m_arguments[num]; }
 
+	/**
+	 * @brief returns the string of given command.
+	 * @return the command string.
+	 */
+	string getCommand() const { return m_command; }
+
+	/**
+	 * @brief returns the string of given command.
+	 * @return the command string.
+	 */
+	bool missingCommand() const { return (m_command.size() == 0 ? true : false); }
+
 private:
-	/** private constructor - singleton pattern */
-	Appl(const bool command) : m_needCommand(command) {}
+	/**
+	 * @brief private construtor.
+	 * @param command is true if an command is needed.
+	 * @param argument is true if command could have an argument.
+	 */
+	Appl(const bool command, const bool argument)
+		: m_withCommand(command), m_withArgument(argument) {}
+
+	/**
+	 * @brief private copy construtor.
+	 * @param reference to an instance.
+	 */
 	Appl(const Appl&);
+
+	/**
+	 * @brief private = operator.
+	 * @param reference to an instance.
+	 * @return reference to instance.
+	 */
 	Appl& operator=(const Appl&);
 
 	/** application options */
 	vector<opt_t> m_opts;
+
+	/** application options iterator */
 	vector<opt_t>::const_iterator o_it;
 
 	/** map option - value */
 	map<const char*, OptVal> m_optvals;
+
+	/** map option - value iterator */
 	map<const char*, OptVal>::iterator ov_it;
 
 	/** given arguments */
@@ -203,10 +235,16 @@ private:
 	/** application version string */
 	const char* m_version;
 
-	/** true if the application need a command */
-	bool m_needCommand;
+	/** true if the application could have a command */
+	bool m_withCommand;
 
-	/** arguments (argument 0 = command) string */
+	/** true if the command could have an argument */
+	bool m_withArgument;
+
+	/** command (argument 0 = command) string */
+	string m_command;
+
+	/** arguments (argument >= 1) string */
 	vector<string> m_arguments;
 
 	/**

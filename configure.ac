@@ -29,7 +29,7 @@ AC_CONFIG_FILES([Makefile
 		 src/lib/ebus/Makefile
 		 src/lib/ebus/test/Makefile
 		 src/ebusd/Makefile
-		 src/ebusctl/Makefile])
+		 src/tools/Makefile])
 
 AC_CHECK_PROGS([HAVE_DOXYGEN], [doxygen])
 if test -z "$HAVE_DOXYGEN";
@@ -41,7 +41,7 @@ AM_CONDITIONAL([HAVE_DOXYGEN], [test -n "$HAVE_DOXYGEN"])
 
 AM_INIT_AUTOMAKE([1.11 -Wall -Werror foreign])
 
-AM_PROG_AR
+m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 AC_PROG_RANLIB
 
 AC_OUTPUT
