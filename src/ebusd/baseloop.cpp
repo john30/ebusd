@@ -47,9 +47,9 @@ BaseLoop::BaseLoop()
 	else
 		L.log(bas, error, "error reading config files: %s", getResultCode(result));
 
-	/*L.log(bas, event, "commands DB: %d ", m_commands->sizeCmdDB());
-	L.log(bas, event, "   cycle DB: %d ", m_commands->sizeCycDB());
-	L.log(bas, event, " polling DB: %d ", m_commands->sizePollDB());*/
+	L.log(bas, event, "commands DB: %d ", m_messages->size());
+	L.log(bas, event, "   cycle DB: %d ", m_messages->size(true));
+	L.log(bas, event, " polling DB: %d ", m_messages->sizePoll());
 
 	m_ownAddress = A.getOptVal<int>("address") & 0xff;
 	const bool answer = A.getOptVal<bool>("answer");
@@ -65,6 +65,12 @@ BaseLoop::BaseLoop()
 	const unsigned int busAcquireWaitTime = A.getOptVal<unsigned int>("acquiretimeout");
 	const unsigned int slaveRecvTimeout = A.getOptVal<unsigned int>("recvtimeout");
 	const unsigned int lockCount = A.getOptVal<unsigned int>("lockcounter");
+	int pollInterval = A.getOptVal<unsigned int>("pollinterval");
+	if (pollInterval <= 0) {
+		m_pollActive = false;
+		pollInterval = 0;
+	} else
+		m_pollActive = true;
 
 	// create Port
 	m_port = new Port(A.getOptVal<const char*>("device"), A.getOptVal<bool>("nodevicecheck"), logRaw, &BaseLoop::logRaw, dumpRaw, dumpRawFile, dumpRawMaxSize);
@@ -75,10 +81,10 @@ BaseLoop::BaseLoop()
 
 	// create BusHandler
 	m_busHandler = new BusHandler(m_port, m_messages,
-			answer ? m_ownAddress : SYN, answer ? (m_ownAddress+5)&0xff : SYN,
+			m_ownAddress, answer,
 			busLostRetries, failedSendRetries,
 			busAcquireWaitTime, slaveRecvTimeout,
-			lockCount);
+			lockCount, pollInterval);
 	m_busHandler->start("bushandler");
 
 	// create network
@@ -221,23 +227,16 @@ string BaseLoop::decodeMessage(const string& data)
 
 		if (message != NULL) {
 
-			/*if (message->getPollPriority() > 0)
+			if (m_pollActive == true && message->getPollPriority() > 0) {
 				// get polldata
-				polldata = m_commands->getPollData(index);
-				if (polldata != "") {
-					// decode data
-					Command* command = new Command(index, (*m_commands)[index], polldata);
-
-					// return result
-					result << command->calcResult(cmd);
-
-					delete command;
+				token = message->getLastValue();
+				if (token.empty() == false) {
+					result << token;
 				} else {
 					result << "no data stored";
 				}
-
 				break;
-			}*/
+			}
 
 			SymbolString master;
 			istringstream input;
