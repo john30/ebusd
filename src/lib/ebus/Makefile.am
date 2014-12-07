@@ -1,6 +1,7 @@
 AM_CXXFLAGS = -fpic \
 	      -Wall \
-	      -Wextra
+	      -Wextra \
+	      -I$(top_srcdir)/src/lib/utils
 
 noinst_LIBRARIES = libebus.a
 
@@ -12,16 +13,8 @@ libebus_a_SOURCES = result.cpp \
 		    data.h \
 		    port.cpp \
 		    port.h \
-		    command.cpp \
-		    command.h \
-		    commands.cpp \
-		    commands.h \
-		    configfile.cpp \
-		    configfile.h \
-		    decode.cpp \
-		    decode.h \
-		    encode.cpp \
-		    encode.h
+		    message.cpp \
+		    message.h
 
 distclean-local:
 	-rm -f Makefile.in

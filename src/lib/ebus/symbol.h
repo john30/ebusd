@@ -20,6 +20,7 @@
 #ifndef LIBEBUS_SYMBOL_H_
 #define LIBEBUS_SYMBOL_H_
 
+#include "result.h"
 #include <cstring>
 #include <cstdlib>
 #include <sstream>
@@ -43,20 +44,24 @@ class SymbolString
 public:
 	/**
 	 * @brief Creates a new unescaped empty instance.
-	 * @param escaped whether to create an escaped instance.
 	 */
 	SymbolString() : m_unescapeState(1), m_crc(0) {}
 	/**
 	 * @brief Creates a new escaped instance from an unescaped hex string and adds the calculated CRC.
 	 * @param str the unescaped hex string.
 	 */
-	SymbolString(const string str);
+	SymbolString(const string& str);
+	/**
+	 * @brief Creates a new escaped instance from an unescaped @a SymbolString and adds the calculated CRC.
+	 * @param str the unescaped SymbolString.
+	 */
+	SymbolString(const SymbolString& str);
 	/**
 	 * @brief Creates a new unescaped instance from a hex string.
 	 * @param isEscaped whether the hex string is escaped and shall be unescaped.
 	 * @param str the hex string.
 	 */
-	SymbolString(const string str, const bool isEscaped);
+	SymbolString(const string& str, const bool isEscaped);
 	/**
 	 * @brief Returns the symbols as hex string.
 	 * @param unescape whether to unescape an escaped instance.
@@ -80,7 +85,20 @@ public:
 	 * @param other the other instance.
 	 * @return true if this instance is equal to the other instance (i.e. both escaped or both unescaped and same symbols).
 	 */
-	bool operator==(SymbolString other) { return m_unescapeState==other.m_unescapeState && m_data==other.m_data; }
+	bool operator==(SymbolString& other) {
+		return m_unescapeState==other.m_unescapeState && m_data==other.m_data;
+		/*bool ret = m_unescapeState==other.m_unescapeState && m_data==other.m_data;
+		for (int i=0; i<m_data.size(); i++) {
+			cout<<setw(2)<<setfill('0')<<hex<<static_cast<unsigned>(m_data[i])<<" ";
+		}
+		cout<<"["<<static_cast<unsigned>(m_unescapeState)<<"]";
+		cout<<(ret?" == ":" != ");
+		for (int i=0; i<other.m_data.size(); i++) {
+			cout<<setw(2)<<setfill('0')<<hex<<static_cast<unsigned>(other.m_data[i])<<" ";
+		}
+		cout<<"["<<static_cast<unsigned>(other.m_unescapeState)<<"]"<<endl;
+		return ret;*/
+	}
 	/**
 	 * @brief Appends a the symbol to the end of the symbol string and escapes/unescapes it if necessary.
 	 * @param value the symbol to append.
@@ -90,12 +108,12 @@ public:
 	 * RESULT_IN_ESC if this is an unescaped instance and the symbol is escaped and the start of the escape sequence was received,
 	 * RESULT_ERR_ESC if this is an unescaped instance and an invalid escaped sequence was detected.
 	 */
-	int push_back(const unsigned char value, const bool isEscaped, const bool updateCRC=true);
+	result_t push_back(const unsigned char value, const bool isEscaped=true, const bool updateCRC=true);
 	/**
 	 * @brief Returns the number of symbols in this symbol string.
 	 * @return the number of available symbols.
 	 */
-	size_t size() const { return m_data.size(); }
+	unsigned char size() const { return (unsigned char)m_data.size(); }
 	/**
 	 * @brief Returns the calculated CRC.
 	 * @return the calculated CRC.
@@ -131,14 +149,21 @@ private:
 
 
 /**
- * Returns whether the address is one of the 25 master addresses.
+ * @brief Returns whether the address is one of the 25 master addresses.
  * @param addr the address to check.
  * @return <code>true</code> if the specified address is a master address.
  */
 bool isMaster(unsigned char addr);
 
 /**
- * Returns whether the address is a valid bus address.
+ * @brief Returns the number of the master if the address is a valid bus address.
+ * @param addr the bus address.
+ * @return the number of the master if the address is a valid bus address (1 to 25), or 0.
+ */
+unsigned char getMasterNumber(unsigned char addr);
+
+/**
+ * @brief Returns whether the address is a valid bus address.
  * @param addr the address to check.
  * @param allowBroadcast whether to also allow @a addr to be the broadcast address (default true).
  * @return <code>true</code> if the specified address is a valid bus address.

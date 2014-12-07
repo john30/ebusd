@@ -100,7 +100,7 @@ void LogSink::addMessage(const LogMessage& message)
 	m_logQueue.add((tmp));
 }
 
-void* LogSink::run()
+void LogSink::run()
 {
 	while (1) {
 		LogMessage* message = m_logQueue.remove();
@@ -111,13 +111,12 @@ void* LogSink::run()
 					write(*message);
 					delete message;
 				}
-				return NULL;
+				return;
 			}
 
 		write(*message);
 		delete message;
 	}
-	return NULL;
 }
 
 
@@ -187,7 +186,7 @@ Logger& Logger::operator-=(const LogSink* sink)
 
 void Logger::log(const int area, const int level, const string& data, ...)
 {
-	if (m_running == true) {
+	if (isRunning() == true) {
 		char* tmp;
 		va_list ap;
 		va_start(ap, data);
@@ -203,11 +202,11 @@ void Logger::log(const int area, const int level, const string& data, ...)
 
 }
 
-void* Logger::run()
+void Logger::run()
 {
-	m_running = true;
+	bool running = true;
 
-	while (m_running == true) {
+	do {
 		LogMessage* message = m_logQueue.remove();
 
 		sinkCI_t iter = m_sinks.begin();
@@ -215,28 +214,27 @@ void* Logger::run()
 		for (; iter != m_sinks.end(); ++iter) {
 			if (*iter != 0) {
 
-				if (((*iter)->getAreas() & message->getArea()
+				if ((((*iter)->getAreas() & message->getArea()) != 0
 				&& (*iter)->getLevel() >= message->getLevel())
 				&& message->isRunning() == true) {
 					(*iter)->addMessage(*message);
 				}
 				else if (message->isRunning() == false) {
 					(*iter)->addMessage(*message);
-					m_running = false;
+					running = false;
 				}
-
 
 			}
 		}
 
 		delete message;
 
-	}
-	return NULL;
+	} while (running == true);
 }
 
 void Logger::stop()
 {
 	m_logQueue.add(new LogMessage(LogMessage(bas, error, "", false)));
 	usleep(100000);
+	Thread::stop();
 }

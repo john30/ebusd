@@ -18,9 +18,10 @@
  */
 
 #include "baseloop.h"
-#include "configfile.h"
 #include "logger.h"
 #include "appl.h"
+#include <dirent.h>
+#include <iomanip>
 
 using namespace std;
 
@@ -30,15 +31,55 @@ extern Appl& A;
 BaseLoop::BaseLoop()
 {
 	// create commands DB
-	m_commands = ConfigCommands(A.getOptVal<const char*>("ebusconfdir"), ft_csv).getCommands();
-	L.log(bas, trace, "ebus configuration dir: %s", A.getOptVal<const char*>("ebusconfdir"));
-	L.log(bas, event, "commands DB: %d ", m_commands->sizeCmdDB());
-	L.log(bas, event, "   cycle DB: %d ", m_commands->sizeCycDB());
-	L.log(bas, event, " polling DB: %d ", m_commands->sizePollDB());
+	m_templates = new DataFieldTemplates();
+	m_messages = new MessageMap();
 
-	// create busloop
-	m_busloop = new BusLoop(m_commands);
-	m_busloop->start("busloop");
+	string confdir = A.getOptVal<const char*>("ebusconfdir");
+	L.log(bas, trace, "ebus configuration dir: %s", confdir.c_str());
+	result_t result = m_templates->readFromFile(confdir+"/_types.csv");
+	if (result == RESULT_OK)
+		L.log(bas, trace, "read templates");
+	else
+		L.log(bas, error, "error reading templates: %s", getResultCode(result));
+	result = readConfigFiles(confdir, ".csv");
+	if (result == RESULT_OK)
+		L.log(bas, trace, "read config files");
+	else
+		L.log(bas, error, "error reading config files: %s", getResultCode(result));
+
+	/*L.log(bas, event, "commands DB: %d ", m_commands->sizeCmdDB());
+	L.log(bas, event, "   cycle DB: %d ", m_commands->sizeCycDB());
+	L.log(bas, event, " polling DB: %d ", m_commands->sizePollDB());*/
+
+	m_ownAddress = A.getOptVal<int>("address") & 0xff;
+	const bool answer = A.getOptVal<bool>("answer");
+
+	const bool logRaw = A.getOptVal<bool>("lograwdata");
+
+	const bool dumpRaw = A.getOptVal<bool>("dump");
+	const char* dumpRawFile = A.getOptVal<const char*>("dumpfile");
+	const long dumpRawMaxSize = A.getOptVal<long>("dumpsize");
+
+	const unsigned int busLostRetries = A.getOptVal<unsigned int>("lockretries");
+	const unsigned int failedSendRetries = A.getOptVal<unsigned int>("sendretries");
+	const unsigned int busAcquireWaitTime = A.getOptVal<unsigned int>("acquiretimeout");
+	const unsigned int slaveRecvTimeout = A.getOptVal<unsigned int>("recvtimeout");
+	const unsigned int lockCount = A.getOptVal<unsigned int>("lockcounter");
+
+	// create Port
+	m_port = new Port(A.getOptVal<const char*>("device"), A.getOptVal<bool>("nodevicecheck"), logRaw, &BaseLoop::logRaw, dumpRaw, dumpRawFile, dumpRawMaxSize);
+	m_port->open();
+
+	if (m_port->isOpen() == false)
+		L.log(bus, error, "can't open %s", A.getOptVal<const char*>("device"));
+
+	// create BusHandler
+	m_busHandler = new BusHandler(m_port, m_messages,
+			answer ? m_ownAddress : SYN, answer ? (m_ownAddress+5)&0xff : SYN,
+			busLostRetries, failedSendRetries,
+			busAcquireWaitTime, slaveRecvTimeout,
+			lockCount);
+	m_busHandler->start("bushandler");
 
 	// create network
 	m_network = new Network(A.getOptVal<bool>("localhost"), &m_netQueue);
@@ -47,21 +88,62 @@ BaseLoop::BaseLoop()
 
 BaseLoop::~BaseLoop()
 {
-	// free network
 	if (m_network != NULL)
 		delete m_network;
 
-	// free busloop
-	if (m_busloop != NULL) {
-		m_busloop->stop();
-		m_busloop->join();
-		delete m_busloop;
+	if (m_busHandler != NULL) {
+		m_busHandler->stop();
+		m_busHandler->join();
+		delete m_busHandler;
 	}
 
-	// free commands DB
-	if (m_commands != NULL)
-		delete m_commands;
+	if (m_port != NULL)
+		delete m_port;
+
+	if (m_messages != NULL)
+		delete m_messages;
+
+	if (m_templates != NULL)
+		delete m_templates;
 }
+
+result_t BaseLoop::readConfigFiles(const string path, const string extension)
+{
+	DIR* dir = opendir(path.c_str());
+
+	if (dir == NULL)
+		return RESULT_ERR_NOTFOUND;
+
+	dirent* d = readdir(dir);
+
+	while (d != NULL) {
+		if (d->d_type == DT_DIR) {
+			string fn = d->d_name;
+
+			if (fn != "." && fn != "..") {
+				const string p = path + "/" + d->d_name;
+				result_t result = readConfigFiles(p, extension);
+				if (result != RESULT_OK)
+					return result;
+			}
+		} else if (d->d_type == DT_REG) {
+			string fn = d->d_name;
+
+			if (fn.find(extension, (fn.length() - extension.length())) != string::npos
+				&& fn != "_types" + extension) {
+				const string p = path + "/" + d->d_name;
+				result_t result = m_messages->readFromFile(p, m_templates);
+				if (result != RESULT_OK)
+					return result;
+			}
+		}
+
+		d = readdir(dir);
+	}
+	closedir(dir);
+
+	return RESULT_OK;
+};
 
 void BaseLoop::start()
 {
@@ -96,16 +178,24 @@ void BaseLoop::start()
 	}
 }
 
+void BaseLoop::logRaw(const unsigned char byte, bool received) {
+	if (received == true) {
+		L.log(bus, event, "<%02x", byte);
+	} else {
+		L.log(bus, event, ">%02x", byte);
+	}
+}
+
 string BaseLoop::decodeMessage(const string& data)
 {
 	ostringstream result;
 	string cycdata, polldata;
-	int index;
 
 	// prepare data
 	string token;
 	istringstream stream(data);
 	vector<string> cmd;
+	Message* message;
 
 	while (getline(stream, token, ' ') != 0)
 		cmd.push_back(token);
@@ -119,17 +209,19 @@ string BaseLoop::decodeMessage(const string& data)
 		break;
 
 	case ct_get:
-		if (cmd.size() < 3 || cmd.size() > 4) {
-			result << "usage: 'get class cmd (sub)'";
+		if (cmd.size() < 2 || cmd.size() > 4) {
+			result << "usage: 'get [class] cmd' or 'get class cmd sub'";
 			break;
 		}
 
-		index = m_commands->findCommand(data);
+		if (cmd.size() == 2)
+			message = m_messages->find("", cmd[1], false);
+		else
+			message = m_messages->find(cmd[1], cmd[2], false);
 
-		if (index >= 0) {
+		if (message != NULL) {
 
-			// polling data
-			if (strcasecmp(m_commands->getCmdType(index).c_str(), "P") == 0) {
+			/*if (message->getPollPriority() > 0)
 				// get polldata
 				polldata = m_commands->getPollData(index);
 				if (polldata != "") {
@@ -145,37 +237,34 @@ string BaseLoop::decodeMessage(const string& data)
 				}
 
 				break;
+			}*/
+
+			SymbolString master;
+			istringstream input;
+			result_t ret = message->prepareMaster(m_ownAddress, master, input);
+			if (ret != RESULT_OK) {
+				L.log(bas, error, " prepare message: %s", getResultCode(ret));
+				result << getResultCode(ret);
+				break;
 			}
+			L.log(bas, event, " msg: %s", master.getDataStr().c_str());
 
-			string busCommand(A.getOptVal<const char*>("address"));
-			busCommand += m_commands->getBusCommand(index);
-			transform(busCommand.begin(), busCommand.end(), busCommand.begin(), ::tolower);
-
-			BusMessage* message = new BusMessage(busCommand, false, false);
-			L.log(bas, trace, " msg: %s", busCommand.c_str());
 			// send message
-			m_busloop->addMessage(message);
-			message->waitSignal();
+			SymbolString slave;
+			ret = m_busHandler->sendAndWait(master, slave);
 
-			if (!message->isErrorResult()) {
-				// decode data
-				Command* command = new Command(index, (*m_commands)[index], message->getMessageStr()); // TODO use getCommand()+getResult()
-
-				// return result
-				result << command->calcResult(cmd);
-
-				delete command;
-			} else {
-				L.log(bas, error, " %s", message->getResultCodeCStr());
-				result << message->getResultCodeCStr();
+			if (ret == RESULT_OK) {
+				// TODO reduce to requested variable only
+				ret = message->decode(pt_slaveData, slave, result); // decode data
 			}
-
-			delete message;
+			if (ret != RESULT_OK) {
+				L.log(bas, error, " %s", getResultCode(ret));
+				result << getResultCode(ret);
+			}
 
 		} else {
 			result << "ebus command not found";
 		}
-
 		break;
 
 	case ct_set:
@@ -184,48 +273,34 @@ string BaseLoop::decodeMessage(const string& data)
 			break;
 		}
 
-		index = m_commands->findCommand(data.substr(0, data.find(cmd[3])-1));
+		message = m_messages->find(cmd[1], cmd[2], true);
 
-		if (index >= 0) {
+		if (message != NULL) {
 
-			string busCommand(A.getOptVal<const char*>("address"));
-			busCommand += m_commands->getBusCommand(index);
-
-			// encode data
-			Command* command = new Command(index, (*m_commands)[index], cmd[3]);
-			string value = command->calcData();
-			if (value[0] != '-') {
-				busCommand += value;
-			} else {
-				L.log(bas, error, " %s", value.c_str());
-				delete command;
+			SymbolString master;
+			istringstream input(cmd[3]);
+			result_t ret = message->prepareMaster(m_ownAddress, master, input);
+			if (ret != RESULT_OK) {
+				L.log(bas, error, " prepare message: %s", getResultCode(ret));
+				result << getResultCode(ret);
 				break;
 			}
+			L.log(bas, event, " msg: %s", master.getDataStr().c_str());
 
-			transform(busCommand.begin(), busCommand.end(), busCommand.begin(), ::tolower);
-
-			BusMessage* message = new BusMessage(busCommand, false, false);
-			L.log(bas, event, " msg: %s", busCommand.c_str());
 			// send message
-			m_busloop->addMessage(message);
-			message->waitSignal();
+			SymbolString slave;
+			ret = m_busHandler->sendAndWait(master, slave);
 
-			if (!message->isErrorResult()) {
-				// decode result
-				if (message->getType()==broadcast)
-					result << "done";
-				else if (message->getMessageStr().substr(message->getMessageStr().length()-8) == "00000000") // TODO use getResult()
+			if (ret == RESULT_OK) {
+				if (master[1] == BROADCAST || isMaster(master[1]))
 					result << "done";
 				else
-					result << "error";
-
-			} else {
-				L.log(bas, error, " %s", message->getResultCodeCStr());
-				result << message->getResultCodeCStr();
+					ret = message->decode(pt_slaveData, slave, result); // decode data
 			}
-
-			delete message;
-			delete command;
+			if (ret != RESULT_OK) {
+				L.log(bas, error, " %s", getResultCode(ret));
+				result << getResultCode(ret);
+			}
 
 		} else {
 			result << "ebus command not found";
@@ -234,24 +309,20 @@ string BaseLoop::decodeMessage(const string& data)
 		break;
 
 	case ct_cyc:
-		if (cmd.size() < 3 || cmd.size() > 4) {
-			result << "usage: 'cyc class cmd (sub)'";
+		if (cmd.size() < 2 || cmd.size() > 3) {
+			result << "usage: 'cyc [class] cmd'";
 			break;
 		}
 
-		index = m_commands->findCommand(data);
+		if (cmd.size() == 2)
+			message = m_messages->find("", cmd[1], false, true);
+		else
+			message = m_messages->find(cmd[1], cmd[2], false, true);
 
-		if (index >= 0) {
-			// get cycdata
-			cycdata = m_commands->getCycData(index);
-			if (cycdata != "") {
-				// decode data
-				Command* command = new Command(index, (*m_commands)[index], cycdata);
-
-				// return result
-				result << command->calcResult(cmd);
-
-				delete command;
+		if (message != NULL) {
+			token = message->getLastValue();
+			if (token.empty() == false) {
+				result << token;
 			} else {
 				result << "no data stored";
 			}
@@ -268,30 +339,32 @@ string BaseLoop::decodeMessage(const string& data)
 		}
 
 		{
-			string busCommand(A.getOptVal<const char*>("address"));
 			cmd[1].erase(remove_if(cmd[1].begin(), cmd[1].end(), ::isspace), cmd[1].end());
-			busCommand += cmd[1];
-			transform(busCommand.begin(), busCommand.end(), busCommand.begin(), ::tolower);
+			string src;
+			ostringstream msg;
+			msg << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_ownAddress);
+			msg << cmd[1];
+			SymbolString master(msg.str());
+			L.log(bas, event, " msg: %s", master.getDataStr().c_str());
 
-			BusMessage* message = new BusMessage(busCommand, false, false);
-			L.log(bas, trace, " msg: %s", busCommand.c_str());
 			// send message
-			m_busloop->addMessage(message);
-			message->waitSignal();
+			SymbolString slave;
+			result_t ret = m_busHandler->sendAndWait(master, slave);
 
-			if (message->isErrorResult()) {
-				L.log(bas, error, " %s", message->getResultCodeCStr());
-				result << message->getResultCodeCStr();
-			} else {
-				result << message->getMessageStr(); // TODO use getCommand()+getResult()
+			if (ret == RESULT_OK)
+				// decode data
+				result << slave.getDataStr();
+
+			if (ret != RESULT_OK) {
+				L.log(bas, error, " %s", getResultCode(ret));
+				result << getResultCode(ret);
 			}
 
-			delete message;
 		}
 
 		break;
 
-	case ct_scan:
+	/*case ct_scan:
 		if (cmd.size() == 1) {
 			m_busloop->scan();
 			result << "done";
@@ -315,7 +388,7 @@ string BaseLoop::decodeMessage(const string& data)
 		result << "usage: 'scan'" << endl
 		       << "       'scan full'" << endl
 		       << "       'scan result'";
-		break;
+		break;*/
 
 	case ct_log:
 		if (cmd.size() != 3 ) {
@@ -348,7 +421,7 @@ string BaseLoop::decodeMessage(const string& data)
 			break;
 		}
 
-		m_busloop->raw();
+		m_port->setLogRaw(!m_port->getLogRaw());
 		result << "done";
 		break;
 
@@ -358,11 +431,11 @@ string BaseLoop::decodeMessage(const string& data)
 			break;
 		}
 
-		m_busloop->dump();
+		m_port->setDumpRaw(!m_port->getDumpRaw());
 		result << "done";
 		break;
 
-	case ct_reload:
+	/*case ct_reload:
 		if (cmd.size() != 1) {
 			result << "usage: 'reload'";
 			break;
@@ -382,7 +455,7 @@ string BaseLoop::decodeMessage(const string& data)
 
 			result << "done";
 			break;
-		}
+		}*/
 
 	case ct_help:
 		result << "commands:" << endl

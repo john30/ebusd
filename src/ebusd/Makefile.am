@@ -6,8 +6,8 @@ AM_CXXFLAGS = -fpic \
 
 bin_PROGRAMS = ebusd
 
-ebusd_SOURCES = busloop.cpp \
-		busloop.h \
+ebusd_SOURCES = bushandler.cpp \
+		bushandler.h \
 		network.cpp \
 		network.h \
 		baseloop.cpp \
@@ -16,7 +16,7 @@ ebusd_SOURCES = busloop.cpp \
 
 ebusd_LDADD = $(top_srcdir)/src/lib/utils/libutils.a \
               $(top_srcdir)/src/lib/ebus/libebus.a \
-	      -lpthread
+	      -lpthread -lrt
 
 distclean-local:
 	-rm -f Makefile.in

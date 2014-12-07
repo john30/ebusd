@@ -26,7 +26,7 @@ using namespace std;
 int main ()
 {
 	string dev("/dev/ttyUSB20");
-	Port port(dev, true);
+	Port port(dev, true, false, NULL, false, "", 1);
 
 	port.open();
 

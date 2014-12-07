@@ -23,25 +23,22 @@
 
 #include "thread.h"
 
-/**
- * @brief static function which will be called on thread startup.
- * @return void pointer.
- */
-static void* runThread(void* arg)
+void* Thread::runThread(void* arg)
 {
-	return ((Thread*)arg)->run();
+	((Thread*)arg)->enter();
+	return NULL;
 }
 
 Thread::~Thread()
 {
-	if (m_running == true && m_detached == false)
+	if (m_started == true && m_detached == false)
 		pthread_detach(m_threadid);
 
-	if (m_running == true)
+	if (m_started == true)
 		pthread_cancel(m_threadid);
 }
 
-int Thread::start(const char* name)
+bool Thread::start(const char* name)
 {
 
 	int result = pthread_create(&m_threadid, NULL, runThread, this);
@@ -52,32 +49,36 @@ int Thread::start(const char* name)
 		pthread_setname_np(m_threadid, name);
 #endif
 
-		m_running = true;
+		m_started = true;
+
+		return true;
 	}
 
-	return result;
+	return false;
 }
 
-int Thread::join()
+bool Thread::join()
 {
 	int result = -1;
 
-	if (m_running == true) {
+	if (m_started == true) {
+		m_stopped = true;
 		result = pthread_join(m_threadid, NULL);
 
-		if (result == 0)
+		if (result == 0) {
 			m_detached = false;
-
+			m_started = false;
+		}
 	}
 
-	return result;
+	return result == 0;
 }
 
-int Thread::detach()
+bool Thread::detach()
 {
 	int result = -1;
 
-	if (m_running == true && m_detached == false) {
+	if (m_started == true && m_detached == false) {
 		result = pthread_detach(m_threadid);
 
 		if (result == 0)
@@ -85,6 +86,11 @@ int Thread::detach()
 
 	}
 
-	return result;
+	return result == 0;
 }
 
+void Thread::enter() {
+	m_running = true;
+	run();
+	m_running = false;
+}

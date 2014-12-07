@@ -30,17 +30,17 @@ int main ()
 	std::string gotStr = sstr.getDataStr(false), expectStr = "10feb5050427a90015a90177";
 
 	if (strcasecmp(gotStr.c_str(), expectStr.c_str()) == 0)
-		std::cout << "ctor escaped successful." << std::endl;
+		std::cout << "ctor escaped OK" << std::endl;
 	else
-		std::cout << "ctor escaped invalid: got " << gotStr << ", expected "
+		std::cout << "ctor escaped error: got " << gotStr << ", expected "
 		        << expectStr << std::endl;
 
 	unsigned char gotCrc = sstr.getCRC(), expectCrc = 0x77;
 
 	if (gotCrc == expectCrc)
-		std::cout << "CRC successful." << std::endl;
+		std::cout << "CRC OK" << std::endl;
 	else
-		std::cout << "CRC invalid: got 0x" << std::nouppercase << std::setw(2)
+		std::cout << "CRC error: got 0x" << std::nouppercase << std::setw(2)
 		        << std::hex << std::setfill('0')
 		        << static_cast<unsigned>(gotCrc) << ", expected 0x"
 		        << std::nouppercase << std::setw(2) << std::hex
@@ -50,9 +50,9 @@ int main ()
 	gotStr = sstr.getDataStr(), expectStr = "10feb5050427a915aa77";
 
 	if (strcasecmp(gotStr.c_str(), expectStr.c_str()) == 0)
-		std::cout << "unescape successful." << std::endl;
+		std::cout << "unescape OK" << std::endl;
 	else
-		std::cout << "unescape invalid: got " << gotStr << ", expected "
+		std::cout << "unescape error: got " << gotStr << ", expected "
 		        << expectStr << std::endl;
 
 	sstr = SymbolString("10feb5050427a90015a90177", true);
@@ -60,9 +60,9 @@ int main ()
 	gotStr = sstr.getDataStr();
 
 	if (strcasecmp(gotStr.c_str(), expectStr.c_str()) == 0)
-		std::cout << "ctor unescaped successful." << std::endl;
+		std::cout << "ctor unescaped OK" << std::endl;
 	else
-		std::cout << "ctor unescaped invalid: got " << gotStr << ", expected "
+		std::cout << "ctor unescaped error: got " << gotStr << ", expected "
 		        << expectStr << std::endl;
 
 	return 0;

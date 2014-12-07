@@ -43,8 +43,11 @@ void define_args()
 
 	A.addText("Options:\n");
 
-	A.addOption("address", "a", OptVal("FF"),  dt_string, ot_mandatory,
+	A.addOption("address", "a", OptVal(0xff), dt_hex, ot_mandatory,
 		    "\tebus device address (FF)");
+
+	A.addOption("answer", "", OptVal(false), dt_bool, ot_none,
+		    "\tanswers to requests from other devices");
 
 	A.addOption("device", "d", OptVal("/dev/ttyUSB0"), dt_string, ot_mandatory,
 		    "\tebus device (serial or network) (/dev/ttyUSB0)");
@@ -64,8 +67,8 @@ void define_args()
 	A.addOption("recvtimeout", "", OptVal(15000), dt_long, ot_mandatory,
 		    "receive timeout in 'us' (15000)");
 
-	A.addOption("acquiretime", "", OptVal(4200), dt_long, ot_mandatory,
-		    "waiting time for bus acquire in 'us' (4200)\n");
+	A.addOption("acquiretimeout", "", OptVal(9400), dt_long, ot_mandatory,
+		    "bus acquisition timeout in 'us' (9400)\n");
 
 	A.addOption("pollinterval", "", OptVal(5), dt_int, ot_mandatory,
 		    "polling interval in 's' (5)\n");

@@ -22,9 +22,11 @@
 #endif
 
 #include "port.h"
+#include "result.h"
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
+#include <fstream>
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -61,16 +63,16 @@ bool Device::isValid()
 ssize_t Device::sendBytes(const unsigned char* buffer, size_t nbytes)
 {
 	if (isValid() == false)
-		return -1; // TODO RESULT_ERR_DEVICE
+		return RESULT_ERR_DEVICE;
 
 	// write bytes to device
 	return write(m_fd, buffer, nbytes);
 }
 
-ssize_t Device::recvBytes(const long timeout, size_t maxCount)
+ssize_t Device::recvBytes(const long timeout, size_t maxCount, unsigned char* buffer)
 {
 	if (isValid() == false)
-		return -1; // TODO RESULT_ERR_DEVICE
+		return RESULT_ERR_DEVICE;
 
 	if (timeout > 0) {
 		int ret;
@@ -100,16 +102,26 @@ ssize_t Device::recvBytes(const long timeout, size_t maxCount)
 		ret = pselect(m_fd + 1, &readfds, NULL, NULL, &tdiff, NULL);
 #endif
 #endif
+		if (ret == -1) return RESULT_ERR_DEVICE;
+		if (ret == 0) return RESULT_ERR_TIMEOUT;
+	}
 
-		if (ret == -1) return -1; // TODO RESULT_ERR_DEVICE
-		if (ret == 0) return -2; // TODO RESULT_ERR_TIMEOUT
+	if (buffer != NULL) {
+		// read bytes from device directly into provided buffer
+		ssize_t nbytes = read(m_fd, buffer, maxCount);
+		if (nbytes == 0)
+			return RESULT_ERR_EOF;
+
+		return nbytes;
 	}
 
 	if (maxCount > sizeof(m_buffer))
 		maxCount = sizeof(m_buffer);
 
-	// read bytes from device
+	// read bytes from device into temporary buffer
 	ssize_t nbytes = read(m_fd, m_buffer, maxCount);
+	if (nbytes == 0)
+		return RESULT_ERR_EOF;
 
 	for (int i = 0; i < nbytes; i++)
 		m_recvBuffer.push(m_buffer[i]);
@@ -132,7 +144,7 @@ unsigned char Device::getByte()
 }
 
 
-void DeviceSerial::openDevice(const string deviceName, const bool noDeviceCheck)
+result_t DeviceSerial::openDevice(const string deviceName, const bool noDeviceCheck)
 {
 	m_noDeviceCheck = noDeviceCheck;
 	struct termios newSettings;
@@ -142,7 +154,7 @@ void DeviceSerial::openDevice(const string deviceName, const bool noDeviceCheck)
 	m_fd = open(deviceName.c_str(), O_RDWR | O_NOCTTY);
 
 	if (m_fd < 0 || isatty(m_fd) == 0)
-		return;
+		return RESULT_ERR_NOTFOUND;
 
 	// save current settings
 	tcgetattr(m_fd, &m_oldSettings);
@@ -151,10 +163,11 @@ void DeviceSerial::openDevice(const string deviceName, const bool noDeviceCheck)
 	memset(&newSettings, '\0', sizeof(newSettings));
 
 	newSettings.c_cflag |= (B2400 | CS8 | CLOCAL | CREAD);
-	newSettings.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
-	newSettings.c_iflag |= IGNPAR;
+	newSettings.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG); // non-canonical mode
+	newSettings.c_iflag |= IGNPAR; // ignore parity errors
 	newSettings.c_oflag &= ~OPOST;
 
+	// non-canonical mode: read() blocks until at least one byte is available
 	newSettings.c_cc[VMIN]  = 1;
 	newSettings.c_cc[VTIME] = 0;
 
@@ -168,7 +181,7 @@ void DeviceSerial::openDevice(const string deviceName, const bool noDeviceCheck)
 	fcntl(m_fd, F_SETFL, fcntl(m_fd, F_GETFL) & ~O_NONBLOCK);
 
 	m_open = true;
-
+	return RESULT_OK;
 }
 
 void DeviceSerial::closeDevice()
@@ -189,7 +202,7 @@ void DeviceSerial::closeDevice()
 }
 
 
-void DeviceNetwork::openDevice(const string deviceName, const bool noDeviceCheck)
+result_t DeviceNetwork::openDevice(const string deviceName, const bool noDeviceCheck)
 {
 	m_noDeviceCheck = noDeviceCheck;
 
@@ -210,13 +223,13 @@ void DeviceNetwork::openDevice(const string deviceName, const bool noDeviceCheck
 
 		he = gethostbyname(host);
 		if (he == NULL)
-			return;
+			return RESULT_ERR_NOTFOUND;
 
 		memcpy(&sock.sin_addr, he->h_addr_list[0], he->h_length);
 	} else {
 		ret = inet_aton(host, &sock.sin_addr);
 		if (ret == 0)
-			return;
+			return RESULT_ERR_NOTFOUND;
 	}
 
 	sock.sin_family = AF_INET;
@@ -224,14 +237,16 @@ void DeviceNetwork::openDevice(const string deviceName, const bool noDeviceCheck
 
 	m_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (m_fd < 0)
-		return;
+		return RESULT_ERR_GENERIC_IO;
 
 	ret = connect(m_fd, (struct sockaddr*) &sock, sizeof(sock));
 	if (ret < 0)
-		return;
+		return RESULT_ERR_GENERIC_IO;
 
 	free(hostport);
 	m_open = true;
+
+	return RESULT_OK;
 }
 
 void DeviceNetwork::closeDevice()
@@ -246,8 +261,12 @@ void DeviceNetwork::closeDevice()
 }
 
 
-Port::Port(const string deviceName, const bool noDeviceCheck)
-	: m_deviceName(deviceName), m_noDeviceCheck(noDeviceCheck)
+Port::Port(const string deviceName, const bool noDeviceCheck,
+		const bool logRaw, void (*logRawFunc)(const unsigned char byte, bool received),
+		const bool dumpRaw, const char* dumpRawFile, const long dumpRawMaxSize)
+	: m_deviceName(deviceName), m_noDeviceCheck(noDeviceCheck),
+	  m_logRaw(logRaw), m_logRawFunc(logRawFunc),
+	  m_dumpRawFile(dumpRawFile), m_dumpRawMaxSize(dumpRawMaxSize)
 {
 	m_device = NULL;
 
@@ -256,6 +275,56 @@ Port::Port(const string deviceName, const bool noDeviceCheck)
 		setType(dt_network);
 	else
 		setType(dt_serial);
+
+	m_dumpRaw = false;
+
+	setDumpRaw(dumpRaw); // open fstream if necessary
+}
+
+unsigned char Port::byte()
+{
+	unsigned char byte = m_device->getByte();
+
+	if (m_logRaw == true && m_logRawFunc != NULL)
+		(*m_logRawFunc)(byte, true);
+
+	if (m_dumpRaw == true && m_dumpRawStream.is_open() == true) {
+		m_dumpRawStream.write((char*)&byte, 1);
+
+		if (m_dumpRawStream.tellp() >= m_dumpRawMaxSize * 1024) {
+			string oldfile = m_dumpRawFile + ".old";
+			if (rename(m_dumpRawFile.c_str(), oldfile.c_str()) == 0) {
+				m_dumpRawStream.close();
+				m_dumpRawStream.open(m_dumpRawFile.c_str(), ios::out | ios::binary | ios::app);
+			}
+		}
+	}
+
+	return byte;
+}
+
+void Port::setDumpRaw(bool dumpRaw)
+{
+	if (dumpRaw == m_dumpRaw)
+		return;
+
+	m_dumpRaw = dumpRaw;
+
+	if (dumpRaw == false)
+		m_dumpRawStream.close();
+	else
+		m_dumpRawStream.open(m_dumpRawFile.c_str(), ios::out | ios::binary | ios::app);
+}
+
+void Port::setDumpRawFile(const string& dumpFile) {
+	if (dumpFile == m_dumpRawFile)
+		return;
+
+	m_dumpRawStream.close();
+	m_dumpRawFile = dumpFile;
+
+	if (m_dumpRaw == true)
+		m_dumpRawStream.open(m_dumpRawFile.c_str(), ios::out | ios::binary | ios::app);
 }
 
 void Port::setType(const DeviceType type)

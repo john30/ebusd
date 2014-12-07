@@ -37,10 +37,8 @@ extern Appl& A;
 
 int Connection::m_ids = 0;
 
-void* Connection::run()
+void Connection::run()
 {
-	m_running = true;
-
 	int ret;
 	struct timespec tdiff;
 
@@ -142,15 +140,12 @@ void* Connection::run()
 	}
 
 	delete m_socket;
-	m_running = false;
 	L.log(net, trace, "[%05d] connection closed", getID());
-
-	return NULL;
 }
 
 
 Network::Network(const bool local, WQueue<NetMessage*>* netQueue)
-	: m_netQueue(netQueue), m_listening(false), m_running(false)
+	: m_netQueue(netQueue), m_listening(false)
 {
 	if (local == true)
 		m_tcpServer = new TCPServer(A.getOptVal<int>("port"), "127.0.0.1");
@@ -172,18 +167,16 @@ Network::~Network()
 		delete connection;
 	}
 
-	if (m_running == true)
-		stop();
+	stop();
+	join();
 
 	delete m_tcpServer;
 }
 
-void* Network::run()
+void Network::run()
 {
 	if (m_listening == false)
-		return NULL;
-
-	m_running = true;
+		return;
 
 	int ret;
 	struct timespec tdiff;
@@ -239,8 +232,7 @@ void* Network::run()
 #ifdef HAVE_PPOLL
 		// new data from notify
 		if (fds[0].revents & POLLIN) {
-			m_running = false;
-			break;
+			return;
 		}
 
 		// new data from socket
@@ -249,8 +241,7 @@ void* Network::run()
 #ifdef HAVE_PSELECT
 		// new data from notify
 		if (FD_ISSET(m_notify.notifyFD(), &readfds)) {
-			m_running = false;
-			break;
+			return;
 		}
 
 		// new data from socket
@@ -272,8 +263,6 @@ void* Network::run()
 		}
 
 	}
-
-	return NULL;
 }
 
 void Network::cleanConnections()

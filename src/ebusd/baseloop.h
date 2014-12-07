@@ -20,9 +20,9 @@
 #ifndef BASELOOP_H_
 #define BASELOOP_H_
 
-#include "commands.h"
+#include "message.h"
 #include "network.h"
-#include "busloop.h"
+#include "bushandler.h"
 
 using namespace std;
 
@@ -51,14 +51,21 @@ class BaseLoop
 
 public:
 	/**
-	 * @brief construct the baseloop and creates commads, network and busloop subsystems.
+	 * @brief Construct the base loop and create messaging, network and bus handling subsystems.
 	 */
 	BaseLoop();
 
 	/**
-	 * @brief destructor.
+	 * @brief Destructor.
 	 */
 	~BaseLoop();
+
+	/**
+	 * @brief Read the configuration files from the specified path.
+	 * @param path the path from which to read the files.
+	 * @param extension the filename extension of the files to read.
+	 */
+	result_t readConfigFiles(const string path, const string extension);
 
 	/**
 	 * @brief start baseloop instance.
@@ -71,14 +78,31 @@ public:
 	 */
 	void addMessage(NetMessage* message) { m_netQueue.add(message); }
 
+	/**
+	 * @brief Create a log message for a received/sent raw data byte.
+	 * @param param byte the raw data byte.
+	 * @param received true if the byte was received, false if it was sent.
+	 */
+	static void logRaw(const unsigned char byte, bool received);
+
 private:
-	/** the commands instance */
-	Commands* m_commands;
 
-	/** the busloop instance */
-	BusLoop* m_busloop;
+	/** the @a DataFieldTemplates instance. */
+	DataFieldTemplates* m_templates;
 
-	/** the network instance */
+	/** the @a MessageMap instance. */
+	MessageMap* m_messages;
+
+	/** the own master address for sending on the bus. */
+	unsigned char m_ownAddress;
+
+	/** the @a Port instance. */
+	Port* m_port;
+
+	/** the @a BusHandler instance. */
+	BusHandler* m_busHandler;
+
+	/** the @a Network instance. */
 	Network* m_network;
 
 	/** queue for network messages */

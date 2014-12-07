@@ -32,7 +32,7 @@ public:
 	/**
 	 * @brief constructor.
 	 */
-	Thread() : m_threadid(0), m_running(false), m_detached(false) {}
+	Thread() : m_threadid(0), m_started(false), m_running(false), m_stopped(false), m_detached(false) {}
 
 	/**
 	 * @brief virtual destructor.
@@ -40,44 +40,73 @@ public:
 	virtual ~Thread();
 
 	/**
-	 * @brief create the thread and set name for process list.
-	 * @param name the thread name which show in process list.
-	 * @return value of thread creating.
+	 * @brief Thread entry helper for pthread_create.
+	 * @param arg pointer to the @a Thread.
+	 * @return NULL.
 	 */
-	int start(const char* name);
+	static void* runThread(void* arg);
 
 	/**
-	 * @brief join the thread.
-	 * @return value of thread joining.
+	 * @brief Return whether this @a Thread is still running and not yet stopped.
+	 * @return true if this @a Thread is till running and not yet stopped.
 	 */
-	int join();
+	virtual bool isRunning() { return m_running == true && m_stopped == false; }
 
 	/**
-	 * @brief detach the thread.
-	 * @return value of thread detaching.
+	 * @brief Create the native thread and set its name.
+	 * @param name the thread name to show in the process list.
+	 * @return whether the thread was started.
 	 */
-	int detach();
+	virtual bool start(const char* name);
 
 	/**
-	 * @brief return the thread id.
-	 * @return own thread id.
+	 * @brief Notify the thread that it shall stop.
+	 */
+	virtual void stop() { m_stopped = true; }
+
+	/**
+	 * @brief Join the thread.
+	 * @return whether the thread was joined.
+	 */
+	virtual bool join();
+
+	/**
+	 * @brief Detach the thread.
+	 * @return whether the thread was detached.
+	 */
+	virtual bool detach();
+
+	/**
+	 * @brief Get the thread id.
+	 * @return the thread id.
 	 */
 	pthread_t self() {return m_threadid; }
 
 	/**
-	 * @brief virtul function which must be implemented in derived class.
-	 * @return void pointer.
+	 * @brief Thread entry method to be overridden by derived class.
 	 */
-	virtual void* run() = 0;
+	virtual void run() = 0;
 
 private:
+
+	/**
+	 * @brief Enter the Thread loop by calling run().
+	 */
+	void enter();
+
 	/** own thread id */
 	pthread_t m_threadid;
 
-	/** true if thread is running */
+	/** Whether the thread was started. */
+	bool m_started;
+
+	/** Whether the thread is still running (i.e. in @a run() ). */
 	bool m_running;
 
-	/** true if thread is detached */
+	/** Whether the thread was stopped by @a stop() or @a join(). */
+	bool m_stopped;
+
+	/** Whether the thread was detached */
 	bool m_detached;
 
 };

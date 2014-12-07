@@ -33,7 +33,8 @@ using namespace std;
 enum DataType {
 	dt_none,    /*!< default for __text_only__ */
 	dt_bool,    /*!< boolean */
-	dt_int,     /*!< integer */
+	dt_hex,     /*!< hex integer */
+	dt_int,     /*!< dec integer */
 	dt_long,    /*!< long */
 	dt_float,   /*!< float */
 	dt_string   /*!< string */

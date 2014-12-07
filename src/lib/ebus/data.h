@@ -23,16 +23,20 @@
 #include "symbol.h"
 #include "result.h"
 #include <string>
+#include <iostream>
+#include <sstream>
+#include <fstream>
 #include <vector>
 #include <map>
 
 using namespace std;
 
+#define FIELD_SEPARATOR ';'
+
 /** the message part in which a data field is stored. */
 enum PartType {
 	pt_any,          // stored in any data (master or slave)
 	pt_masterData,   // stored in master data
-	pt_masterDataID, // stored in master data and also used as message ID part
 	pt_slaveData,    // stored in slave data
 	};
 
@@ -79,7 +83,17 @@ typedef struct {
  */
 unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result, unsigned int* length=NULL);
 
+/**
+ * @brief Print the error position of the iterator to stdout.
+ * @param begin the iterator to the beginning of the items.
+ * @param end the iterator to the end of the items.
+ * @param pos the iterator with the erroneous position.
+ * @param separator the character to place between items.
+ */
+void printErrorPos(vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, char separator=';');
 
+
+class DataFieldTemplates;
 class SingleDataField;
 
 /**
@@ -104,7 +118,7 @@ public:
 	 * @brief Factory method for creating new instances.
 	 * @param it the iterator to traverse for the definition parts.
 	 * @param end the iterator pointing to the end of the definition parts.
-	 * @param templates a map of @a DataField templates to be referenced by name.
+	 * @param templates the @a DataFieldTemplates to be referenced by name, or NULL.
 	 * @param returnField the variable in which to store the created instance.
 	 * @param isSetMessage whether the field is part of a set message (default false).
 	 * @param dstAddress the destination bus address (default @a SYN for creating a template @a DataField).
@@ -112,7 +126,7 @@ public:
 	 * Note: the caller needs to free the created instance.
 	 */
 	static result_t create(vector<string>::iterator& it, const vector<string>::iterator end,
-			const map<string, DataField*> templates, DataField*& returnField,
+			DataFieldTemplates* templates, DataField*& returnField,
 			const bool isSetMessage=false, const unsigned char dstAddress=SYN);
 	/**
 	 * @brief Returns the length of this field (or contained fields) in bytes.
@@ -145,31 +159,38 @@ public:
 	 */
 	string getComment() const { return m_comment; }
 	/**
-	 * @brief Reads the value from the master or slave @a SymbolString.
-	 * @param masterData the unescaped master data @a SymbolString for reading binary data.
-	 * @param slaveData the unescaped slave data @a SymbolString for reading binary data.
+	 * @brief Dump the field settings to the output.
+	 * @param output the @a ostream to dump to.
+	 */
+	virtual void dump(ostream& output) = 0;
+	/**
+	 * @brief Reads the value from the @a SymbolString.
+	 * @param partType the @a PartType of the data.
+	 * @param data the unescaped data @a SymbolString for reading binary data.
+	 * @param offset the additional offset to add for reading binary data.
 	 * @param output the @a ostringstream to append the formatted value to.
+	 * @param leadingSeparator whether to prepend a separator before the formatted value.
 	 * @param verbose whether to prepend the name, append the unit (if present), and append
 	 * the comment in square brackets (if present).
 	 * @param separator the separator character between multiple fields.
-	 * @return @a RESULT_OK on success, or an error code.
+	 * @return @a RESULT_OK on success (or if the partType does not match), or an error code.
 	 */
-	virtual result_t read(SymbolString& masterData, unsigned char masterOffset,
-			SymbolString& slaveData, unsigned char slaveOffset,
-			ostringstream& output,
+	virtual result_t read(const PartType partType,
+			SymbolString& data, unsigned char offset,
+			ostringstream& output, bool leadingSeparator=false,
 			bool verbose=false, char separator=';') = 0;
 	/**
 	 * @brief Writes the value to the master or slave @a SymbolString.
 	 * @param input the @a istringstream to parse the formatted value from.
-	 * @param masterData the unescaped master data @a SymbolString for writing binary data.
-	 * @param slaveData the unescaped slave data @a SymbolString for writing binary data.
+	 * @param partType the @a PartType of the data.
+	 * @param data the unescaped data @a SymbolString for writing binary data.
+	 * @param offset the additional offset to add for writing binary data.
 	 * @param separator the separator character between multiple fields.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	virtual result_t write(istringstream& input,
-			SymbolString& masterData, unsigned char masterOffset,
-			SymbolString& slaveData, unsigned char slaveOffset,
-			char separator=';') = 0;
+			const PartType partType, SymbolString& data,
+			unsigned char offset, char separator=';') = 0;
 
 protected:
 
@@ -232,34 +253,17 @@ public:
 	 * only consumes a part of a byte and a subsequent field may re-use the same offset.
 	 */
 	virtual bool hasFullByteOffset(bool after) { return true; }
-	/**
-	 * @brief Reads the value from the master or slave @a SymbolString.
-	 * @param masterData the unescaped master data @a SymbolString for reading binary data.
-	 * @param masterOffset the extra offset for reading master data.
-	 * @param slaveData the unescaped slave data @a SymbolString for reading binary data.
-	 * @param slaveOffset the extra offset for reading slave data.
-	 * @param output the ostringstream to append the formatted value to.
-	 * @param verbose whether to prepend the name, append the unit (if present), and append
-	 * the comment in square brackets (if present).
-	 * @return @a RESULT_OK on success, or an error code.
-	 */
-	virtual result_t read(SymbolString& masterData, unsigned char masterOffset,
-			SymbolString& slaveData, unsigned char slaveOffset,
-			ostringstream& output,
-			bool verbose, char separator);
-	/**
-	 * @brief Writes the value to the master or slave @a SymbolString.
-	 * @param input the @a istringstream to parse the formatted value from.
-	 * @param masterData the unescaped master data @a SymbolString for writing binary data.
-	 * @param masterOffset the extra offset for writing master data.
-	 * @param slaveData the unescaped slave data @a SymbolString for writing binary data.
-	 * @param slaveOffset the extra offset for writing slave data.
-	 * @return @a RESULT_OK on success, or an error code.
-	 */
+	// @copydoc
+	virtual void dump(ostream& output);
+	// @copydoc
+	virtual result_t read(const PartType partType,
+			SymbolString& data, unsigned char offset,
+			ostringstream& output, bool leadingSeparator=false,
+			bool verbose=false, char separator=';');
+	// @copydoc
 	virtual result_t write(istringstream& input,
-			SymbolString& masterData, unsigned char masterOffset,
-			SymbolString& slaveData, unsigned char slaveOffset,
-			char separator);
+			const PartType partType, SymbolString& data,
+			unsigned char offset, char separator=';');//TODO replace
 
 protected:
 
@@ -279,6 +283,8 @@ protected:
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	virtual result_t writeSymbols(istringstream& input, const unsigned char offset, SymbolString& output) = 0;
+
+protected:
 
 	/** the value unit. */
 	const string m_unit;
@@ -321,6 +327,8 @@ public:
 			string unit, const PartType partType,
 			unsigned int divisor, map<unsigned int, string> values,
 			vector<SingleDataField*>& fields);
+	// @copydoc
+	virtual void dump(ostream& output);
 
 protected:
 
@@ -361,6 +369,8 @@ public:
 	virtual ~NumericDataField() {}
 	// @copydoc
 	virtual bool hasFullByteOffset(bool after);
+	// @copydoc
+	virtual void dump(ostream& output);
 
 protected:
 
@@ -386,7 +396,6 @@ protected:
 
 	/** the offset to the first bit in the binary value. */
 	const unsigned char m_bitOffset;
-
 
 };
 
@@ -424,6 +433,8 @@ public:
 			string unit, const PartType partType,
 			unsigned int divisor, map<unsigned int, string> values,
 			vector<SingleDataField*>& fields);
+	// @copydoc
+	virtual void dump(ostream& output);
 
 protected:
 
@@ -431,6 +442,8 @@ protected:
 	virtual result_t readSymbols(SymbolString& input, const unsigned char offset, ostringstream& output);
 	// @copydoc
 	virtual result_t writeSymbols(istringstream& input, const unsigned char offset, SymbolString& output);
+
+private:
 
 	/** the combined divisor to apply on the value, or 1 for none. */
 	const unsigned int m_divisor;
@@ -471,6 +484,8 @@ public:
 			string unit, const PartType partType, unsigned int divisor,
 			map<unsigned int, string> values,
 			vector<SingleDataField*>& fields);
+	// @copydoc
+	virtual void dump(ostream& output);
 
 protected:
 
@@ -478,6 +493,8 @@ protected:
 	virtual result_t readSymbols(SymbolString& input, const unsigned char offset, ostringstream& output);
 	// @copydoc
 	virtual result_t writeSymbols(istringstream& input, const unsigned char offset, SymbolString& output);
+
+private:
 
 	/** the value=text assignments. */
 	map<unsigned int, string> m_values;
@@ -531,22 +548,141 @@ public:
 	 */
 	size_t size() const { return m_fields.size(); }
 	// @copydoc
-	virtual result_t read(SymbolString& masterData, unsigned char masterOffset,
-			SymbolString& slaveData, unsigned char slaveOffset,
-			ostringstream& output,
-			bool verbose, char separator);
+	virtual void dump(ostream& output);
+	// @copydoc
+	virtual result_t read(const PartType partType,
+			SymbolString& data, unsigned char offset,
+			ostringstream& output, bool leadingSeparator=false,
+			bool verbose=false, char separator=';');
 	// @copydoc
 	virtual result_t write(istringstream& input,
-			SymbolString& masterData, unsigned char masterOffset,
-			SymbolString& slaveData, unsigned char slaveOffset,
-			char separator);
+			const PartType partType, SymbolString& data,
+			unsigned char offset, char separator=';');
 
-protected:
+private:
 
 	/** the @a vector of @a SingleDataField instances part of this set. */
 	vector<SingleDataField*> m_fields;
 
 };
 
+
+/**
+ * @brief An abstract class that support reading definitions from a file.
+ */
+template<typename T>
+class FileReader
+{
+public:
+
+	/**
+	 * @brief Constructs a new instance.
+	 */
+	FileReader(bool supportsDefaults)
+			: m_supportsDefaults(supportsDefaults) {}
+	/**
+	 * @brief Destructor.
+	 */
+	virtual ~FileReader() {}
+	/**
+	 * @brief Reads the definitions from a file.
+	 * @param filename the name (and path) of the file to read.
+	 * @return @a RESULT_OK on success, or an error code.
+	 */
+	virtual result_t readFromFile(string filename, T arg=NULL)
+	{
+		ifstream ifs;
+		ifs.open(filename.c_str(), ifstream::in);
+		if (ifs.is_open() == false)
+			return RESULT_ERR_NOTFOUND;
+
+		string line;
+		unsigned int lineNo = 0;
+		vector<string> row;
+		string token;
+		vector< vector<string> > defaults;
+		while (getline(ifs, line) != 0) {
+			lineNo++;
+			// skip empty lines and comments
+			if (line.length() == 0 || line.substr(0, 1) == "#" || line.substr(0, 2) == "//")
+				continue;
+			istringstream isstr(line);
+			row.clear();
+			while (getline(isstr, token, FIELD_SEPARATOR) != 0)
+				row.push_back(token);
+
+			if (m_supportsDefaults == true && line.substr(0, 1) == "*") {
+				row[0] = row[0].substr(1);
+				defaults.push_back(row);
+				continue;
+			}
+			result_t result = addFromFile(row, arg, m_supportsDefaults == true ? &defaults : NULL);
+			if (result != RESULT_OK) {
+				cerr << "error reading \"" << filename << "\" line " << static_cast<unsigned>(lineNo) << ": " << getResultCode(result) << endl;
+				ifs.close();
+				return result;
+			}
+		}
+
+		ifs.close();
+		return RESULT_OK;
+	}
+	/**
+	 * @brief Adds a definition that was read from a file.
+	 * @param row the definition row read from the file.
+	 * @param defaults all previously read default rows (initial star char removed), or NULL if not supported.
+	 * @return @a RESULT_OK on success, or an error code.
+	 */
+	virtual result_t addFromFile(vector<string>& row, T arg, vector< vector<string> >* defaults) = 0;
+
+private:
+	/** whether this instance supports rows with defaults (starting with a star). */
+	bool m_supportsDefaults;
+
+};
+
+
+/**
+ * @brief A map of template @a DataField instances.
+ */
+class DataFieldTemplates : public FileReader<void*>
+{
+public:
+
+	/**
+	 * @brief Constructs a new instance.
+	 */
+	DataFieldTemplates() : FileReader(false) {}
+	/**
+	 * @brief Destructor.
+	 */
+	virtual ~DataFieldTemplates() { clear(); }
+	/**
+	 * @brief Removes all @a DataField instances.
+	 */
+	void clear();
+	/**
+	 * @brief Adds a template @a DataField instance to this map.
+	 * @param field the @a DataField instance to add.
+	 * @param replace whether replacing an already stored instance is allowed.
+	 * @return @a RESULT_OK on success, or an error code.
+	 * Note: the caller may not free the added instance on success.
+	 */
+	result_t add(DataField* message, bool replace=false);
+	// @copydoc
+	virtual result_t addFromFile(vector<string>& row, void* arg, vector< vector<string> >* defaults);
+	/**
+	 * @brief Gets the template @a DataField instance with the specified name.
+	 * @return the template @a DataField instance, or NULL.
+	 * Note: the caller may not free the returned instance.
+	 */
+	DataField* get(string name);
+
+private:
+
+	/** the known template @a DataField instances by name. */
+	map<string, DataField*> m_fieldsByName;
+
+};
 
 #endif // LIBEBUS_DATA_H_

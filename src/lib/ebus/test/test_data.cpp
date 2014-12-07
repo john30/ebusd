@@ -68,6 +68,9 @@ int main()
 		{"x;;bti",   "00:00:00",  "10fe070003000000",   "00", ""},
 		{"x;;bti",   "23:59:59",  "10fe070003595923",   "00", ""},
 		{"x;;bti",   "",          "10fe070003605923",   "00", "rw"},
+		{"x;;hti",   "21:04:58",  "10fe07000315043a",   "00", ""},
+		{"x;;vti",   "21:04:58",  "10fe0700033a0415",   "00", ""},
+		{"x;;vti",   "-:-:-",     "10fe070003636363",   "00", ""},
 		{"x;;htm", "21:04", "10fe0700021504", "00", ""},
 		{"x;;htm", "00:00", "10fe0700020000", "00", ""},
 		{"x;;htm", "23:59", "10fe070002173b", "00", ""},
@@ -77,7 +80,7 @@ int main()
 		{"x;;ttm", "22:40", "10fe07000188",   "00", ""},
 		{"x;;ttm", "00:00", "10fe07000100",   "00", ""},
 		{"x;;ttm", "23:50", "10fe0700018f",   "00", ""},
-		{"x;;ttm", "24:00", "10fe07000190",   "00", ""},
+		{"x;;ttm", "-:-",   "10fe07000190",   "00", ""},
 		{"x;;ttm", "",      "10fe07000191",   "00", "rw"},
 		{"x;;bdy", "Mon",   "10fe07000300",   "00", ""},
 		{"x;;bdy", "Sun",   "10fe07000306",   "00", ""},
@@ -94,7 +97,7 @@ int main()
 		{"x;;uch:17", "",    "10feffff00", "00", "c"},
 		{"x;s;uch", "0",   "1025ffff0310111213", "0300010203", "W"},
 		{"x;s;uch", "0",   "1025ffff00", "0100", ""},
-		{"x;s;uch;;;;y;m;uch", "2;3","1025ffff0103", "0102", ""},
+		{"x;s;uch;;;;y;m;uch", "3;2","1025ffff0103", "0102", ""},
 		{"x;;uch", "38",    "10feffff0126", "00", ""},
 		{"x;;uch", "0",     "10feffff0100", "00", ""},
 		{"x;;uch", "254",   "10feffff01fe", "00", ""},
@@ -165,7 +168,7 @@ int main()
 		{"x;;bi3:2;0=off,1=on","off","10feffff0100", "00", ""},
 		{"x;;uch;1=test,2=high,3=off,4=on","on","10feffff0104", "00", ""},
 		{"x;s;uch","3","1050ffff00", "0103", ""},
-		{"x;;d2b;;°C;Aussentemperatur","x=18.004 °C [Aussentemperatur]","10fe0700090112", "00", "v"},
+		{"x;;d2b;;ï¿½C;Aussentemperatur","x=18.004 ï¿½C [Aussentemperatur]","10fe0700090112", "00", "v"},
 		{"x;;bti;;;;y;;bda;;;;z;;bdy", "21:04:58;26.10.2014;Sun","10fe0700085804212610061406", "00", ""}, // combination
 		{"x;;bi3;;;;y;;bi5", "1;-",            "10feffff0108", "00", ""}, // bit combination
 		{"x;;bi3;;;;y;;bi5", "1;1",            "10feffff0128", "00", ""}, // bit combination
@@ -173,7 +176,7 @@ int main()
 		{"x;;bi3;;;;y;;bi5", "-;-",            "10feffff0100", "00", ""}, // bit combination
 		{"x;;bi3;;;;y;;bi7;;;;t;;uch", "-;-;9","10feffff020009", "00", ""}, // bit combination
 		{"x;;bi6:2;;;;y;;bi0:2;;;;t;;uch", "2;1;9","10feffff03800109", "00", ""}, // bit combination
-		{"temp;;d2b;;°C;Aussentemperatur","","", "", "t"}, // template with relative pos
+		{"temp;;d2b;;ï¿½C;Aussentemperatur","","", "", "t"}, // template with relative pos
 		{"x;;temp","18.004","10fe0700020112", "00", ""}, // reference to template
 		{"relrel;;d2b;;;;y;;d1c","","", "", "t"},   // template struct with relative pos
 		{"x;;relrel","18.004;9.5","10fe070003011213", "00", ""}, // reference to template struct
@@ -181,7 +184,7 @@ int main()
 		{"x;;trelrel","18.004;19.008","10fe07000401120213", "00", ""}, // reference to template struct
 		{"x;;temp;;;;y;;d1c","18.004;9.5","10fe070003011213", "00", ""}, // reference to template, normal def
 	};
-	map<string, DataField*> templates;
+	DataFieldTemplates* templates = new DataFieldTemplates();
 	DataField* fields = NULL;
 	for (size_t i = 0; i < sizeof(checks) / sizeof(checks[0]); i++) {
 		string check[5] = checks[i];
@@ -233,21 +236,23 @@ int main()
 		if (isTemplate) {
 			// store new template
 			string name = fields->getName();
-			map<string, DataField*>::iterator current = templates.find(name);
-			if (current == templates.end()) {
-				templates[name] = fields;
-			} else {
-				delete current->second;
-				current->second = fields;
+			result = templates->add(fields, true);
+			if (result == RESULT_OK) {
+				fields = NULL;
+				cout << "  store template OK" << endl;
 			}
-			fields = NULL;
+			else
+				cout << "  store template error: " << getResultCode(result) << endl;
 			continue;
 		}
 
 		ostringstream output;
 		SymbolString writeMstr = SymbolString(mstr.getDataStr().substr(0, 10), false);
 		SymbolString writeSstr = SymbolString(sstr.getDataStr().substr(0, 2), false);
-		result = fields->read(mstr, 0, sstr, 0, output, verbose);
+		result = fields->read(pt_masterData, mstr, 0, output, false, verbose);
+		if (result == RESULT_OK) {
+			result = fields->read(pt_slaveData, sstr, 0, output, output.str().empty() == false, verbose);
+		}
 		if (failedRead == true)
 			if (result == RESULT_OK)
 				cout << "  failed read " << fields->getName() << " >"
@@ -266,7 +271,9 @@ int main()
 
 		if (verbose == false) {
 			istringstream input(expectStr);
-			result = fields->write(input, writeMstr, 0, writeSstr, 0);
+			result = fields->write(input, pt_masterData, writeMstr, 0);
+			if (result == RESULT_OK)
+				result = fields->write(input, pt_slaveData, writeSstr, 0);
 			if (failedWrite == true) {
 				if (result == RESULT_OK)
 					cout << "  failed write " << fields->getName() << " >"
@@ -288,8 +295,7 @@ int main()
 		fields = NULL;
 	}
 
-	for (map<string, DataField*>::iterator it = templates.begin(); it != templates.end(); it++)
-		delete it->second;
+	delete templates;
 
 	return 0;
 

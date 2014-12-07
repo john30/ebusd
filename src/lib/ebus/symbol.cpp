@@ -48,7 +48,7 @@ static const unsigned char CRC_LOOKUP_TABLE[] =
 };
 
 
-SymbolString::SymbolString(const string str)
+SymbolString::SymbolString(const string& str) //TODO use a factory method instead
 	: m_unescapeState(0), m_crc(0)
 {
 	// parse + escape
@@ -60,7 +60,18 @@ SymbolString::SymbolString(const string str)
 	push_back(m_crc, false, false);
 }
 
-SymbolString::SymbolString(const string str, bool isEscaped)
+SymbolString::SymbolString(const SymbolString& str)
+	: m_unescapeState(0), m_crc(0)
+{
+	// escape
+	for (size_t i = 0; i < str.size(); i++) {
+		push_back(str[i], false, true);
+	}
+	// add CRC + escape
+	push_back(m_crc, false, false);
+}
+
+SymbolString::SymbolString(const string& str, bool isEscaped)
 	: m_unescapeState(1), m_crc(0)
 {
 	// parse + optionally unescape
@@ -99,7 +110,7 @@ const string SymbolString::getDataStr(const bool unescape)
 	return sstr.str();
 }
 
-int SymbolString::push_back(const unsigned char value, const bool isEscaped, const bool updateCRC)
+result_t SymbolString::push_back(const unsigned char value, const bool isEscaped, const bool updateCRC)
 {
 	if (m_unescapeState == 0) { // store escaped data
 		if (isEscaped == false && value == ESC) {
@@ -187,6 +198,49 @@ bool isMaster(unsigned char addr) {
 
 	return ((addrHi == 0x0) || (addrHi == 0x1) || (addrHi == 0x3) || (addrHi == 0x7) || (addrHi == 0xF))
 	    && ((addrLo == 0x0) || (addrLo == 0x1) || (addrLo == 0x3) || (addrLo == 0x7) || (addrLo == 0xF));
+}
+
+unsigned char getMasterNumber(unsigned char addr) {
+	unsigned char addrHi = (addr & 0xF0) >> 4;
+	unsigned char addrLo = (addr & 0x0F);
+
+	unsigned char priority;
+	switch (addrLo)
+	{
+	case 0x0:
+		priority = 0;
+		break;
+	case 0x1:
+		priority = 1;
+		break;
+	case 0x3:
+		priority = 2;
+		break;
+	case 0x7:
+		priority = 3;
+		break;
+	case 0xF:
+		priority = 4;
+		break;
+	default:
+		return 0;
+	}
+
+	switch (addrHi)
+	{
+	case 0x0:
+		return 5*0 + priority + 1;
+	case 0x1:
+		return 5*1 + priority + 2;
+	case 0x3:
+		return 5*2 + priority + 3;
+	case 0x7:
+		return 5*3 + priority + 4;
+	case 0xF:
+		return 5*4 + priority + 5;
+	default:
+		return 0;
+	}
 }
 
 bool isValidAddress(unsigned char addr, bool allowBroadcast) {
