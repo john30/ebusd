@@ -242,32 +242,33 @@ result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& ma
 	if (m_isPassive == true)
 		return RESULT_ERR_INVALID_ARG; // prepare not possible
 
-	masterData.clear();
-	result_t result = masterData.push_back(srcAddress, false);
+	SymbolString master;
+	master.clear();
+	result_t result = master.push_back(srcAddress, false, false);
 	if (result != RESULT_OK)
 		return result;
-	result = masterData.push_back(m_dstAddress, false);
+	result = master.push_back(m_dstAddress, false, false);
 	if (result != RESULT_OK)
 		return result;
-	result = masterData.push_back(m_id[0], false);
+	result = master.push_back(m_id[0], false, false);
 	if (result != RESULT_OK)
 		return result;
-	result = masterData.push_back(m_id[1], false);
+	result = master.push_back(m_id[1], false, false);
 	if (result != RESULT_OK)
 		return result;
 	unsigned char addData = m_data->getLength(pt_masterData);
-	result = masterData.push_back(m_id.size() - 2 + addData, false);
+	result = master.push_back(m_id.size() - 2 + addData, false, false);
 	if (result != RESULT_OK)
 		return result;
 	for (size_t i=2; i<m_id.size(); i++) {
-		result = masterData.push_back(m_id[i], false);
+		result = master.push_back(m_id[i], false, false);
 		if (result != RESULT_OK)
 			return result;
 	}
-	result = m_data->write(input, pt_masterData, masterData, m_id.size() - 2, separator);
+	result = m_data->write(input, pt_masterData, master, m_id.size() - 2, separator);
 	if (result != RESULT_OK)
 		return result;
-	result = masterData.push_back(masterData.getCRC(), false, false); // TODO only if calculated
+	masterData = SymbolString(master);
 	return result;
 }
 
@@ -324,6 +325,8 @@ result_t MessageMap::add(Message* message)
 			m_maxIdLength = idLength;
 		m_passiveMessagesByKey[pkey] = message;
 	}
+
+	//m_pollMessages.push()
 
 	return RESULT_OK;
 }
