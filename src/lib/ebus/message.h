@@ -135,7 +135,7 @@ public:
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	result_t prepareMaster(const unsigned char srcAddress, SymbolString& masterData,
-			istringstream& input, char separator=';');
+			istringstream& input, char separator=UI_FIELD_SEPARATOR);
 
 	/**
 	 * @brief Prepare the slave @a SymbolString for sending an answer to the bus.
@@ -154,7 +154,7 @@ public:
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	result_t decode(const PartType partType, SymbolString& data,
-			ostringstream& output, bool leadingSeparator=false, char separator=';');
+			ostringstream& output, bool leadingSeparator=false, char separator=UI_FIELD_SEPARATOR);
 
 	/**
 	 * @brief Get the last decoded value.

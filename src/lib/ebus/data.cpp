@@ -70,9 +70,6 @@ static const dataType_t dataTypes[] = {
 /** the week day names. */
 static const char* dayNames[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
 
-#define VALUE_SEPARATOR ','
-#define LENGTH_SEPARATOR ':'
-#define NULL_VALUE "-"
 #define MAX_POS 16
 
 unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result, unsigned int* length) {
@@ -96,7 +93,7 @@ unsigned int parseInt(const char* str, int base, const unsigned int minValue, co
 	return ret;
 }
 
-void printErrorPos(vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, char separator)
+void printErrorPos(vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos)
 {
 	cout << "Erroneous item is here:" << endl;
 	bool first = true;
@@ -107,7 +104,7 @@ void printErrorPos(vector<string>::iterator begin, const vector<string>::iterato
 		if (first == true)
 			first = false;
 		else {
-			cout << separator;
+			cout << FIELD_SEPARATOR;
 			if (begin <= pos) {
 				cnt++;
 			}
@@ -141,7 +138,7 @@ result_t DataField::create(vector<string>::iterator& it,
 		const bool isTemplate = dstAddress == SYN;
 		string token;
 
-		// name;part;type[:len][;[divisor|values][;[unit][;[comment]]]]
+		// name,part,type[:len][,[divisor|values][,[unit][,[comment]]]]
 		const string name = *it++;
 		if (it == end)
 			break;
@@ -317,7 +314,7 @@ result_t DataField::create(vector<string>::iterator& it,
 						result = RESULT_ERR_OUT_OF_RANGE;
 						break;
 					}
-
+					//TODO add special field for fixed values (exactly one value in the list of values)
 					add = new ValueListDataField(name, comment, unit, dataType, partType, useLength, bitCount, values);
 					break;
 				}
