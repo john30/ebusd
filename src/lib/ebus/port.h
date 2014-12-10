@@ -240,13 +240,7 @@ public:
 	 * @param nbytes number of bytes to send.
 	 * @return number of written bytes or -1 if an error has occured.
 	 */
-	ssize_t send(const unsigned char* buffer, size_t nbytes = MAX_WRITE_SIZE)
-	{
-		ssize_t ret = m_device->sendBytes(buffer, nbytes);
-		if (ret>0 && m_logRaw == true && m_logRawFunc != NULL)
-			(*m_logRawFunc)(buffer[0], false);
-		return ret;
-	}
+	ssize_t send(const unsigned char* buffer, size_t nbytes = MAX_WRITE_SIZE);
 
 	/**
 	 * @brief recv read bytes from opened file descriptor.
@@ -255,13 +249,7 @@ public:
 	 * @param buffer optional direct buffer to write to (instead of queuing the data).
 	 * @return number of read bytes (never 0) or a negative result_t code.
 	 */
-	ssize_t recv(const long timeout, size_t maxCount = MAX_READ_SIZE, unsigned char* buffer=NULL)
-	{
-		ssize_t ret = m_device->recvBytes(timeout, maxCount, buffer);
-		if (buffer && ret>0 && m_logRaw == true && m_logRawFunc != NULL)
-			(*m_logRawFunc)(buffer[0], true);
-		return ret;
-	}
+	ssize_t recv(const long timeout, size_t maxCount = MAX_READ_SIZE, unsigned char* buffer = NULL);
 
 	/**
 	 * @brief fetch first byte from receive buffer.
