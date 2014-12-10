@@ -47,9 +47,9 @@ BaseLoop::BaseLoop()
 	else
 		L.log(bas, error, "error reading config files: %s", getResultCode(result));
 
-	L.log(bas, event, "commands DB: %d ", m_messages->size());
-	L.log(bas, event, "   cycle DB: %d ", m_messages->size(true));
-	L.log(bas, event, " polling DB: %d ", m_messages->sizePoll());
+	L.log(bas, event, "message DB: %d ", m_messages->size());
+	L.log(bas, event, "updates DB: %d ", m_messages->size(true));
+	L.log(bas, event, "polling DB: %d ", m_messages->sizePoll());
 
 	m_ownAddress = A.getOptVal<int>("address") & 0xff;
 	const bool answer = A.getOptVal<bool>("answer");
@@ -262,7 +262,7 @@ string BaseLoop::decodeMessage(const string& data)
 			}
 
 		} else {
-			result << "ebus command not found";
+			result << "get command not found";
 		}
 		break;
 
@@ -293,8 +293,11 @@ string BaseLoop::decodeMessage(const string& data)
 			if (ret == RESULT_OK) {
 				if (master[1] == BROADCAST || isMaster(master[1]))
 					result << "done";
-				else
+				else {
 					ret = message->decode(pt_slaveData, slave, result); // decode data
+					if (ret == RESULT_OK && result.str().empty() == true)
+						result << "done";
+				}
 			}
 			if (ret != RESULT_OK) {
 				L.log(bas, error, " %s", getResultCode(ret));
@@ -302,7 +305,7 @@ string BaseLoop::decodeMessage(const string& data)
 			}
 
 		} else {
-			result << "ebus command not found";
+			result << "set command not found";
 		}
 
 		break;
@@ -326,7 +329,7 @@ string BaseLoop::decodeMessage(const string& data)
 				result << "no data stored";
 			}
 		} else {
-			result << "ebus command not found";
+			result << "cyc command not found";
 		}
 
 		break;
@@ -460,9 +463,9 @@ string BaseLoop::decodeMessage(const string& data)
 
 	case ct_help:
 		result << "commands:" << endl
-		       << " get       - fetch ebus data             'get class cmd (sub)'" << endl
+		       << " get       - fetch ebus data             'get [class] cmd (sub)'" << endl
 		       << " set       - set ebus values             'set class cmd value'" << endl
-		       << " cyc       - fetch cycle data            'cyc class cmd (sub)'" << endl
+		       << " cyc       - fetch cycle data            'cyc [class] cmd (sub)'" << endl
 		       << " hex       - send given hex value        'hex type value'         (value: ZZPBSBNNDx)" << endl << endl
 		       << " scan      - scan ebus kown addresses    'scan'" << endl
 		       << "           - scan ebus all addresses     'scan full'" << endl
