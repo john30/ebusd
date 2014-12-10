@@ -53,8 +53,8 @@ enum BusState {
 	bs_recvResAck,  // receive response ACK/NACK [passive set]
 	bs_sendCmd,     // send command (ZZ, PBSB, master data) [active set+get]
 	bs_sendResAck,  // send response ACK/NACK [active get]
-//	bs_sendRes,     // send response (slave data) [passive get] // TODO implement
-//	bs_sendCmdAck,  // send command ACK/NACK [passive get] // TODO implement
+	bs_sendCmdAck,  // send command ACK/NACK [passive get]
+	bs_sendRes,     // send response (slave data) [passive get]
 	bs_sendSyn,     // send SYN for completed transfer [active set+get]
 };
 

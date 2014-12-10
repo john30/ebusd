@@ -241,6 +241,20 @@ result_t BusHandler::handleSymbol()
 		}
 		break;
 
+	case bs_sendCmdAck:
+		if (m_request != NULL) {
+			sendSymbol = m_commandCrcValid ? ACK : NAK;
+			sending = true;
+		}
+		break;
+
+	case bs_sendRes:
+		if (m_request != NULL) {
+			sendSymbol = m_response[m_nextSendPos];
+			sending = true;
+		}
+		break;
+
 	case bs_sendSyn:
 		sendSymbol = SYN;
 		sending = true;
@@ -319,25 +333,25 @@ result_t BusHandler::handleSymbol()
 
 		if (result == RESULT_OK && crcPos != 0xff && m_command.size() == crcPos + 1) { // CRC received
 			unsigned char dstAddress = m_command[1];
-			//if (isValidAddress(dstAddress) == false || isMaster(m_command[0]) == false)
-			//	return setState(bs_skip, RESULT_ERR_INVALID_ADDR);
-
 			m_commandCrcValid = m_command[headerLen + 1 + m_command[headerLen]] == m_command.getCRC();
 			if (m_commandCrcValid) {
 				if (dstAddress == BROADCAST) {
 					receiveCompleted();
 					return setState(bs_skip, RESULT_OK);
 				}
-				//if (dstAddress == m_ownMasterAddress || dstAddress == m_ownSlaveAddress)
-				//	return setState(bs_sendCmdAck, RESULT_OK);
+				if (m_answer == true
+				        && (dstAddress == m_ownMasterAddress || dstAddress == m_ownSlaveAddress))
+					return setState(bs_sendCmdAck, RESULT_OK);
 
 				return setState(bs_recvCmdAck, RESULT_OK);
 			}
 			if (dstAddress == BROADCAST)
-				return setState(bs_skip, RESULT_OK);
+				return setState(bs_skip, RESULT_ERR_CRC);
 
-			//if (dstAddress == m_ownMasterAddress || dstAddress == m_ownSlaveAddress)
-			//	return setState(bs_sendCmdAck, RESULT_ERR_CRC);
+			if (m_answer == true
+			        && (dstAddress == m_ownMasterAddress || dstAddress == m_ownSlaveAddress)) {
+				return setState(bs_sendCmdAck, RESULT_ERR_CRC);
+			}
 			if (m_repeat == true)
 				return setState(bs_skip, RESULT_ERR_CRC);
 			return setState(bs_recvCmdAck, RESULT_ERR_CRC);
@@ -401,7 +415,7 @@ result_t BusHandler::handleSymbol()
 			}
 			if (m_repeat == true) {
 				if (m_request != NULL)
-					return setState(bs_skip, RESULT_ERR_CRC);
+					return setState(bs_sendSyn, RESULT_ERR_CRC);
 
 				return setState(bs_skip, RESULT_ERR_CRC);
 			}
@@ -452,7 +466,60 @@ result_t BusHandler::handleSymbol()
 		if (m_request != NULL && sending == true) {
 			if (recvSymbol == sendSymbol) {
 				// successfully sent
+				if (m_responseCrcValid == false) {
+					if (m_repeat == false) {
+						m_repeat = true;
+						m_response.clear();
+						return setState(bs_recvRes, RESULT_ERR_NAK, true);
+					}
+					return setState(bs_sendSyn, RESULT_ERR_ACK);
+				}
 				return setState(bs_sendSyn, RESULT_OK);
+			}
+		}
+		return setState(bs_skip, RESULT_ERR_INVALID_ARG);
+
+	case bs_sendCmdAck:
+		if (sending == true && m_answer == true) {
+			if (recvSymbol == sendSymbol) {
+				// successfully sent
+				if (m_commandCrcValid == false) {
+					if (m_repeat == false) {
+						m_repeat = true;
+						m_command.clear();
+						return setState(bs_recvCmd, RESULT_ERR_NAK, true);
+					}
+					return setState(bs_skip, RESULT_ERR_ACK);
+				}
+				if (isMaster(m_command[1]) == true)
+					receiveCompleted(); // decode command and store value
+					return setState(bs_skip, RESULT_OK);
+
+				m_nextSendPos = 0;
+				m_repeat = false;
+				Message* message = m_messages->find(m_command);
+				if (message == NULL || message->isPassive() == false || message->isSet() == true)
+					return setState(bs_skip, RESULT_ERR_INVALID_ARG); // don't know this request or definition has wrong direction, deny
+
+				// build response and store in m_response for sending back to requesting master
+				result = message->prepareSlave(m_response);
+				if (result != RESULT_OK)
+					return setState(bs_skip, result);
+				return setState(bs_sendRes, RESULT_OK);
+			}
+		}
+		return setState(bs_skip, RESULT_ERR_INVALID_ARG);
+
+	case bs_sendRes:
+		if (sending == true && m_answer == true) {
+			if (recvSymbol == sendSymbol) {
+				// successfully sent
+				m_nextSendPos++;
+				if (m_nextSendPos >= m_response.size()) {
+					// slave data completely sent
+					return setState(bs_recvResAck, RESULT_OK);
+				}
+				return RESULT_OK;
 			}
 		}
 		return setState(bs_skip, RESULT_ERR_INVALID_ARG);
@@ -506,26 +573,29 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 
 void BusHandler::receiveCompleted()
 {
+	unsigned char dstAddress = m_command[1];
+	bool master = isMaster(dstAddress);
+
+	if (dstAddress == BROADCAST)
+		L.log(bus, trace, "received BC %s", m_command.getDataStr().c_str());
+	else if (master == true)
+		L.log(bus, trace, "received MM %s", m_command.getDataStr().c_str());
+	else
+		L.log(bus, trace, "received MS %s / %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
+
 	Message* message = m_messages->find(m_command);
 	if (message != NULL) {
 		string clazz = message->getClass();
 		string name = message->getName();
 		ostringstream output;
 		result_t result = message->decode(pt_masterData, m_command, output);
-		if (result == RESULT_OK)
+		if (result == RESULT_OK && dstAddress != BROADCAST && master == false)
 			result = message->decode(pt_slaveData, m_response, output, output.str().empty() == false);
 		if (result != RESULT_OK)
 			L.log(bus, error, "unable to parse %s %s from %s / %s: %s", clazz.c_str(), name.c_str(), m_command.getDataStr().c_str(), m_response.getDataStr().c_str(), getResultCode(result));
 		else {
 			string data = output.str();
-			L.log(bus, trace, "%s %s: %s", clazz.c_str(), name.c_str(), data.c_str());
+			L.log(bus, event, "%s %s: %s", clazz.c_str(), name.c_str(), data.c_str());
 		}
-		return;
 	}
-	if (m_command[1] == BROADCAST)
-		L.log(bus, trace, "received broadcast %s", m_command.getDataStr().c_str());
-	else if (isMaster(m_command[1]) == true)
-		L.log(bus, trace, "received master-master %s", m_command.getDataStr().c_str());
-	else
-		L.log(bus, trace, "received master-slave %s / %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
 }
