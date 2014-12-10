@@ -126,8 +126,9 @@ public:
 	 * @return the polling priority, or 0 for no polling at all.
 	 */
 	unsigned char getPollPriority() const { return m_pollPriority; }
+
 	/**
-	 * @brief Prepare master @a SymbolString for sending to the bus.
+	 * @brief Prepare the master @a SymbolString for sending a query or command to the bus.
 	 * @param masterData the master data @a SymbolString for writing symbols to.
 	 * @param input the @a istringstream to parse the formatted value(s) from.
 	 * @param separator the separator character between multiple fields.
@@ -135,6 +136,14 @@ public:
 	 */
 	result_t prepareMaster(const unsigned char srcAddress, SymbolString& masterData,
 			istringstream& input, char separator=';');
+
+	/**
+	 * @brief Prepare the slave @a SymbolString for sending an answer to the bus.
+	 * @param slaveData the slave data @a SymbolString for writing symbols to.
+	 * @return @a RESULT_OK on success, or an error code.
+	 */
+	result_t prepareSlave(SymbolString& masterData);
+
 	/**
 	 * @brief Decode a received message.
 	 * @param partType the @a PartType of the data.

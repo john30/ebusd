@@ -244,7 +244,6 @@ result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& ma
 		return RESULT_ERR_INVALID_ARG; // prepare not possible
 
 	SymbolString master;
-	master.clear();
 	result_t result = master.push_back(srcAddress, false, false);
 	if (result != RESULT_OK)
 		return result;
@@ -270,6 +269,24 @@ result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& ma
 	if (result != RESULT_OK)
 		return result;
 	masterData = SymbolString(master, true);
+	return result;
+}
+
+result_t Message::prepareSlave(SymbolString& slaveData)
+{
+	if (m_isPassive == false || m_isSet == true)
+			return RESULT_ERR_INVALID_ARG; // prepare not possible
+
+	SymbolString slave;
+	unsigned char addData = m_data->getLength(pt_slaveData);
+	result_t result = slave.push_back(addData, false, false);
+	if (result != RESULT_OK)
+		return result;
+	istringstream input;
+	result = m_data->write(input, pt_slaveData, slave, 0);
+	if (result != RESULT_OK)
+		return result;
+	slaveData = SymbolString(slave, true);
 	return result;
 }
 
