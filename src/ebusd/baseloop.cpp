@@ -350,10 +350,12 @@ string BaseLoop::decodeMessage(const string& data)
 			SymbolString slave;
 			result_t ret = m_busHandler->sendAndWait(master, slave);
 
-			if (ret == RESULT_OK)
-				// decode data
-				result << slave.getDataStr();
-
+			if (ret == RESULT_OK) {
+				if (master[1] == BROADCAST || isMaster(master[1]))
+					result << "done";
+				else
+					result << slave.getDataStr();
+			}
 			if (ret != RESULT_OK) {
 				L.log(bas, error, " %s", getResultCode(ret));
 				result << getResultCode(ret);
