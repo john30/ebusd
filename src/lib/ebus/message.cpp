@@ -74,7 +74,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	// [type],[class],name,[comment],[QQ],ZZ,id,fields...
 	result_t result;
 	bool isSet = false, isPassive = false;
-	char defaultsChar;
+	string defaultName;
 	unsigned int pollPriority = 0;
 	size_t defaultPos = 1;
 	if (it == end)
@@ -83,28 +83,31 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	const char* str = (*it++).c_str();
 	if (it == end)
 		return RESULT_ERR_EOF;
-	if (str[0] == 0 || strncasecmp(str, "R", 1) == 0) { // default: active get
-		defaultsChar = 'r';
+	size_t len = strlen(str);
+	if (len == 0) { // default: active get
+		defaultName = "r";
+	} else if (strncasecmp(str, "R", 1) == 0) { // active get
+		char last = str[len-1];
+		if (last >= '0' && last <= '9') { // poll priority (=active get)
+			pollPriority = last - '0';
+			defaultName = string(str).substr(0, len-1); // cut off priority digit
+		}
+		else
+			defaultName = str;
 	} else if (strncasecmp(str, "W", 1) == 0) { // active set
 		isSet = true;
-		defaultsChar = 'w';
-	} else if (str[0] >= '0' && str[0] <= '9') { // poll priority (=active get)
-		result_t result;
-		pollPriority = parseInt(str, 10, 0, 9, result); // priority is the same as "r"
-		if (result != RESULT_OK)
-			return result;
-		defaultsChar = 'r';
+		defaultName = str;
 	} else { // any other: passive set/get
 		isPassive = true;
-		isSet = strcasecmp(str+strlen(str)-1, "W") == 0; // if type ends with "w" it is treated as passive set
-		defaultsChar = str[0]; // TODO better not case sensitive, also in defaults definition
+		isSet = strcasecmp(str+len-1, "W") == 0; // if type ends with "w" it is treated as passive set
+		defaultName = str;
 	}
 
 	vector<string>* defaults = NULL;
 	if (defaultsRows != NULL && defaultsRows->size() > 0) {
 		for (vector< vector<string> >::reverse_iterator it = defaultsRows->rbegin(); it != defaultsRows->rend(); it++) {
 			string check = (*it)[0];
-			if (check[0] == defaultsChar) { // TODO better not case sensitive
+			if (check == defaultName) {
 				defaults = &(*it);
 				break;
 			}
