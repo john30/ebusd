@@ -28,6 +28,7 @@
 #include <vector>
 #include <cstring>
 #include <time.h>
+#include <iomanip>
 
 using namespace std;
 
@@ -78,6 +79,27 @@ void PollRequest::notify(result_t result)
 	else
 		L.log(bus, event, "poll %s: %s", m_message->getName().c_str(), output.str().c_str());
 }
+
+
+result_t ScanRequest::prepare(unsigned char ownMasterAddress, unsigned char dstAddress)
+{
+	istringstream input;
+	result_t result = m_message->prepareMaster(ownMasterAddress, m_master, input, UI_FIELD_SEPARATOR, dstAddress);
+	if (result == RESULT_OK)
+		L.log(bus, event, " scan msg: %s", m_master.getDataStr().c_str());
+	return result;
+}
+
+void ScanRequest::notify(result_t result)
+{
+	if (result == RESULT_OK) {
+		m_scanResult << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_master[1]) << UI_FIELD_SEPARATOR;
+		result = m_message->decode(pt_slaveData, m_slave, m_scanResult); // decode data
+	}
+	if (result != RESULT_OK)
+		L.log(bus, error, "scan %x failed: %s", m_master[1], getResultCode(result));
+}
+
 
 ActiveBusRequest::ActiveBusRequest(SymbolString& master, SymbolString& slave)
 	: BusRequest(master, slave, false), m_finished(false), m_result(RESULT_SYN)
@@ -131,7 +153,7 @@ result_t BusHandler::sendAndWait(SymbolString& master, SymbolString& slave)
 	result_t result = RESULT_SYN;
 	ActiveBusRequest* request = new ActiveBusRequest(master, slave);
 
-	for (int sendRetries=m_failedSendRetries+1, lostRetries=m_busLostRetries+1; sendRetries>=0; sendRetries--) {
+	for (int sendRetries=m_failedSendRetries+1; sendRetries>=0; sendRetries--) {
 		m_requests.add(request);
 		bool success = request->wait(1); // 1 second is still 3 times the theoretical worst-case request duration
 		if (success == false)
@@ -141,18 +163,11 @@ result_t BusHandler::sendAndWait(SymbolString& master, SymbolString& slave)
 		if (result == RESULT_OK)
 			break;
 
-		if (result == RESULT_ERR_BUS_LOST) {
-			if (--lostRetries > 0) {
-				sendRetries++; // try to get lock again, do not decrement send retries
-				L.log(bus, error, " %s, retry bus loss", getResultCode(result));
-				continue;
-			}
-			lostRetries = m_busLostRetries+1; // send retry: reset lock retries
-		}
 		L.log(bus, error, " %s, %s", getResultCode(result), sendRetries>0 ? "retry send" : "give up");
+		request->m_busLostRetries = 0;
 	}
 
-	delete request;
+	delete request; // TODO may be unsave while run() is using the request
 
 	return result;
 }
@@ -541,12 +556,24 @@ result_t BusHandler::handleSymbol()
 result_t BusHandler::setState(BusState state, result_t result, bool firstRepetition)
 {
 	if (m_request != NULL) {
-		if (state == bs_sendSyn || (result != RESULT_OK && firstRepetition == false)) {
+		if (result == RESULT_ERR_BUS_LOST && m_request->m_busLostRetries < m_busLostRetries) {
+			L.log(bus, error, " %s, retry", getResultCode(result));
+			m_request->m_busLostRetries++;
+			m_requests.add(m_request); // repeat
+			m_request = NULL;
+		} else if (state == bs_sendSyn || (result != RESULT_OK && firstRepetition == false)) {
 			L.log(bus, debug, "notify request: %s", getResultCode(result));
 			m_request->m_slave = SymbolString(m_response, false, false);
 			m_request->notify(result);
-			if (m_request->m_isPoll == true)
+			if (m_request->m_deleteOnFinish == true) {
+				if (result == RESULT_OK && typeid(*m_request) == typeid(ScanRequest)) {
+					unsigned char dstAddress = m_request->m_master[1];
+					string res = ((ScanRequest*)m_request)->m_scanResult.str();
+					L.log(bus, debug, " scan result %x: %s", dstAddress, res.c_str());
+					m_scanResults[dstAddress] = res;
+				}
 				delete m_request;
+			}
 			m_request = NULL;
 		}
 	}
@@ -576,12 +603,16 @@ void BusHandler::receiveCompleted()
 	unsigned char dstAddress = m_command[1];
 	bool master = isMaster(dstAddress);
 
+	m_seenAddresses[m_command[0]] = true;
 	if (dstAddress == BROADCAST)
 		L.log(bus, trace, "received BC %s", m_command.getDataStr().c_str());
-	else if (master == true)
+	else if (master == true) {
 		L.log(bus, trace, "received MM %s", m_command.getDataStr().c_str());
-	else
+		m_seenAddresses[dstAddress] = true;
+	} else {
 		L.log(bus, trace, "received MS %s / %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
+		m_seenAddresses[dstAddress] = true;
+	}
 
 	Message* message = m_messages->find(m_command);
 	if (message != NULL) {
@@ -597,5 +628,50 @@ void BusHandler::receiveCompleted()
 			string data = output.str();
 			L.log(bus, event, "%s %s: %s", clazz.c_str(), name.c_str(), data.c_str());
 		}
+	}
+}
+
+result_t BusHandler::startScan(bool full)
+{
+	Message* scanMessage = m_scanMessage;
+	if (scanMessage == NULL) {
+		scanMessage = m_messages->find("", "scan", false);
+	}
+	if (scanMessage == NULL) {
+		DataFieldSet* identFields = DataFieldSet::createIdentFields();
+		scanMessage = m_scanMessage = new Message(false, false, 0x07, 0x04, identFields);
+	}
+	if (scanMessage == NULL)
+		return RESULT_ERR_NOTFOUND;
+
+	if (full == true)
+		m_scanResults.clear();
+
+	for (unsigned int slave=0; slave<=255; slave++) {
+		if (isValidAddress(slave, false) == false || isMaster(slave) == true)
+			continue;
+		if (full == false && m_seenAddresses[slave] == false) {
+			unsigned int master = slave+(256-5); // check if we saw the corresponding master already
+			if (isMaster(master) == false || m_seenAddresses[slave] == false)
+				continue;
+		}
+
+		ScanRequest* request = new ScanRequest(m_response, scanMessage);
+		result_t result = request->prepare(m_ownMasterAddress, slave);
+		if (result != RESULT_OK) {
+			delete request;
+			return result;
+		}
+		m_requests.add(request);
+	}
+	return RESULT_OK;
+}
+
+void BusHandler::formatScanResult(ostringstream& output)
+{
+	for (unsigned int slave=0; slave<=255; slave++) {
+		map<unsigned char, string>::iterator it = m_scanResults.find(slave);
+		if (it != m_scanResults.end())
+			output << it->second << endl;
 	}
 }
