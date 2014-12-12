@@ -28,10 +28,10 @@
 using namespace std;
 
 Message::Message(const string clazz, const string name, const bool isSet,
-			const bool isPassive, const string comment,
-			const unsigned char srcAddress, const unsigned char dstAddress,
-			const vector<unsigned char> id, DataField* data,
-			const unsigned int pollPriority)
+		const bool isPassive, const string comment,
+		const unsigned char srcAddress, const unsigned char dstAddress,
+		const vector<unsigned char> id, DataField* data,
+		const unsigned int pollPriority)
 		: m_class(clazz), m_name(name), m_isSet(isSet),
 		  m_isPassive(isPassive), m_comment(comment),
 		  m_srcAddress(srcAddress), m_dstAddress(dstAddress),
@@ -48,6 +48,20 @@ Message::Message(const string clazz, const string name, const bool isSet,
 	for (vector<unsigned char>::const_iterator it=id.begin(); it<id.end(); it++)
 		key |= (unsigned long long)*it << (8 * exp--);
 	m_key = key;
+}
+
+Message::Message(const bool isSet, const bool isPassive,
+		const unsigned char pb, const unsigned char sb,
+		DataField* data)
+		: m_class(), m_name(), m_isSet(isSet),
+		  m_isPassive(isPassive), m_comment(),
+		  m_srcAddress(SYN), m_dstAddress(SYN),
+		  m_data(data), m_pollPriority(0),
+		  m_lastUpdateTime(0), m_pollCount(0), m_lastPollTime(0)
+{
+	m_id.push_back(pb);
+	m_id.push_back(sb);
+	m_key = 0;
 }
 
 /**
@@ -223,7 +237,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	return RESULT_OK;
 }
 
-result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& masterData, istringstream& input, char separator)
+result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& masterData, istringstream& input, char separator, const unsigned char dstAddress)
 {
 	if (m_isPassive == true)
 		return RESULT_ERR_INVALID_ARG; // prepare not possible
@@ -232,7 +246,10 @@ result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& ma
 	result_t result = master.push_back(srcAddress, false, false);
 	if (result != RESULT_OK)
 		return result;
-	result = master.push_back(m_dstAddress, false, false);
+	if (dstAddress == SYN)
+		result = master.push_back(m_dstAddress, false, false);
+	else
+		result = master.push_back(dstAddress, false, false);
 	if (result != RESULT_OK)
 		return result;
 	result = master.push_back(m_id[0], false, false);

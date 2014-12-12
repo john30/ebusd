@@ -59,6 +59,18 @@ public:
 			const vector<unsigned char> id, DataField* data,
 			const unsigned int pollPriority);
 	/**
+	 * @brief Construct a new temporary instance.
+	 * @param isSet whether this is a set message.
+	 * @param isPassive true if message can only be initiated by a participant other than us,
+	 * false if message can be initiated by any participant.
+	 * @param pb the primary ID byte.
+	 * @param sb the secondary ID byte.
+	 * @param data the @a DataField for encoding/decoding the message.
+	 */
+	Message(const bool isSet, const bool isPassive,
+			const unsigned char pb, const unsigned char sb,
+			DataField* data);
+	/**
 	 * @brief Destructor.
 	 */
 	virtual ~Message() { delete m_data; }
@@ -129,13 +141,16 @@ public:
 
 	/**
 	 * @brief Prepare the master @a SymbolString for sending a query or command to the bus.
+	 * @param srcAddress the source address to set.
 	 * @param masterData the master data @a SymbolString for writing symbols to.
 	 * @param input the @a istringstream to parse the formatted value(s) from.
 	 * @param separator the separator character between multiple fields.
+	 * @param dstAddress the destination address to set, or @a SYN to keep the address defined during construction.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	result_t prepareMaster(const unsigned char srcAddress, SymbolString& masterData,
-			istringstream& input, char separator=UI_FIELD_SEPARATOR);
+			istringstream& input, char separator=UI_FIELD_SEPARATOR,
+			const unsigned char dstAddress=SYN);
 
 	/**
 	 * @brief Prepare the slave @a SymbolString for sending an answer to the bus.
@@ -199,7 +214,7 @@ private:
 	/** the destination address. */
 	const unsigned char m_dstAddress;
 	/** the primary, secondary, and optionally further command ID bytes. */
-	const vector<unsigned char> m_id;
+	vector<unsigned char> m_id;
 	/** the key for storing in @a MessageSet. */
 	unsigned long long m_key;
 	/** the @a DataField for encoding/decoding the message. */
