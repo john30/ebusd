@@ -28,10 +28,22 @@
 
 using namespace std;
 
+static const dataType_t stringDataType = {
+	"STR",16*8,bt_str,     ADJ,        ' ',          1,         16,    0, 0  // >= 1 byte character string filled up with space
+};
+
+static const dataType_t bcdDataType = {
+	"BCD",  8, bt_num, BCD|LST,       0xff,          0,       0x99,    1, 0 // unsigned decimal in BCD, 0 - 99
+};
+
+static const dataType_t ucharDataType = {
+	"UCH",  8, bt_num,     LST,       0xff,          0,       0xfe,    1, 0 // unsigned integer, 0 - 254
+};
+
 /** the known data field types. */
 static const dataType_t dataTypes[] = {
 	{"IGN",16*8,bt_str, IGN|ADJ,          0,          1,         16,    0, 0}, // >= 1 byte ignored data
-	{"STR",16*8,bt_str,     ADJ,        ' ',          1,         16,    0, 0}, // >= 1 byte character string filled up with space
+	stringDataType,
 	{"HEX",16*8,bt_hexstr,  ADJ,          0,          2,         47,    0, 0}, // >= 1 byte hex digit string, usually separated by space, e.g. 0a 1b 2c 3d
 	{"BDA", 32, bt_dat,     BCD,          0,         10,         10,    0, 0}, // date with weekday in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is weekday Mon=0x00 - Sun=0x06)
 	{"BDA", 24, bt_dat,     BCD,          0,         10,         10,    0, 0}, // date in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99)
@@ -44,8 +56,8 @@ static const dataType_t dataTypes[] = {
 	{"TTM",  8, bt_tim,       0,       0x90,          5,          5,    0, 0}, // truncated time (only multiple of 10 minutes), 00:00 - 24:00 (minutes div 10 + hour * 6 as integer)
 	{"BDY",  8, bt_num, DAY|LST,       0x07,          0,          6,    1, 0}, // weekday, "Mon" - "Sun" (0x00 - 0x06) [ebus type]
 	{"HDY",  8, bt_num, DAY|LST,       0x00,          1,          7,    1, 0}, // weekday, "Mon" - "Sun" (0x01 - 0x07) [Vaillant type]
-	{"BCD",  8, bt_num, BCD|LST,       0xff,          0,       0x99,    1, 0}, // unsigned decimal in BCD, 0 - 99
-	{"UCH",  8, bt_num,     LST,       0xff,          0,       0xfe,    1, 0}, // unsigned integer, 0 - 254
+	bcdDataType,
+	ucharDataType,
 	{"SCH",  8, bt_num,     SIG,       0x80,       0x81,       0x7f,    1, 0}, // signed integer, -127 - +127
 	{"D1B",  8, bt_num,     SIG,       0x80,       0x81,       0x7f,    1, 0}, // signed integer, -127 - +127
 	{"D1C",  8, bt_num,       0,       0xff,       0x00,       0xc8,    2, 1}, // unsigned number (fraction 1/2), 0 - 100 (0x00 - 0xc8, replacement 0xff)
@@ -466,6 +478,19 @@ result_t StringDataField::readSymbols(SymbolString& input,
 		incr = -1;
 	}
 
+	switch (m_dataType.type) // initialize output
+	{
+	case bt_hexstr:
+		output << setw(2) << hex << setfill('0');
+		break;
+	case bt_dat:
+	case bt_tim:
+		output << setw(2) << dec << setfill('0');
+		break;
+	default:
+		output << setw(0) << dec;
+	}
+
 	for (size_t offset = start, i = 0; i < count; offset += incr, i++) {
 		if (m_length == 4 && i == 2 && m_dataType.type == bt_dat)
 			continue; // skip weekday in between
@@ -480,8 +505,7 @@ result_t StringDataField::readSymbols(SymbolString& input,
 		case bt_hexstr:
 			if (i > 0)
 				output << ' ';
-			output << nouppercase << setw(2) << hex << setfill('0')
-			        << static_cast<unsigned>(ch);
+			output << static_cast<unsigned>(ch);
 			break;
 		case bt_dat:
 			if (i + 1 == m_length)
@@ -489,7 +513,7 @@ result_t StringDataField::readSymbols(SymbolString& input,
 			else if (ch < 1 || (i == 0 && ch > 31) || (i == 1 && ch > 12))
 				return RESULT_ERR_OUT_OF_RANGE; // invalid date
 			else
-				output << setw(2) << setfill('0') << static_cast<unsigned>(ch) << ".";
+				output << static_cast<unsigned>(ch) << ".";
 			break;
 		case bt_tim:
 			if (m_dataType.replacement != 0 && ch == m_dataType.replacement) {
@@ -515,7 +539,7 @@ result_t StringDataField::readSymbols(SymbolString& input,
 				return RESULT_ERR_OUT_OF_RANGE; // invalid time
 			if (i > 0)
 				output << ":";
-			output << setw(2) << setfill('0') << static_cast<unsigned>(ch);
+			output << static_cast<unsigned>(ch);
 			break;
 		default:
 			if (ch < 0x20)
@@ -821,6 +845,8 @@ result_t NumberDataField::readSymbols(SymbolString& input,
 	if (result != RESULT_OK)
 		return result;
 
+	output << setw(0) << dec; // initialize output
+
 	if (value == m_dataType.replacement) {
 		output << NULL_VALUE;
 		return RESULT_OK;
@@ -967,6 +993,8 @@ result_t ValueListDataField::readSymbols(SymbolString& input,
 	if (result != RESULT_OK)
 		return result;
 
+	output << setw(0) << dec; // initialize output
+
 	map<unsigned int, string>::iterator it = m_values.find(value);
 	if (it != m_values.end()) {
 		output << it->second;
@@ -997,6 +1025,44 @@ result_t ValueListDataField::writeSymbols(istringstream& input,
 		return writeRawValue(m_dataType.replacement, baseOffset, output); // replacement value
 
 	return RESULT_ERR_NOTFOUND; // value assignment not found
+}
+
+
+DataFieldSet* DataFieldSet::createIdentFields()
+{
+	vector<SingleDataField*> fields;
+	map<unsigned int, string> manufacturers;
+	manufacturers[0x06] = "Karl Dungs GmbH";
+	manufacturers[0x0f] = "FH Braunschweig/Wolfenbüttel";
+	manufacturers[0x10] = "TEM AG für Elektronik Intertem Vertriebs AG";
+	manufacturers[0x11] = "Lamberti Elektronik";
+	manufacturers[0x14] = "CEB Compagnie Européenne de Brûleurs S.A.";
+	manufacturers[0x15] = "Landis & Staefa";
+	manufacturers[0x16] = "FERRO Wärmetechnik GmbH & Co.KG";
+	manufacturers[0x17] = "MONDIAL electronic Ges.mbH";
+	manufacturers[0x18] = "Wikon Kommunikationstechnik GmbH";
+	manufacturers[0x19] = "Wolf GmbH";
+	manufacturers[0x20] = "RAWE Electronic GmbH";
+	manufacturers[0x30] = "Satronic AG";
+	manufacturers[0x40] = "ENCON Electronics";
+	manufacturers[0x50] = "G. Kromschröder AG";
+	manufacturers[0x60] = "Eberle Controls GmbH";
+	manufacturers[0x65] = "EBV Elektronikbau";
+	manufacturers[0x75] = "Grässlin GmbH & Co.KG";
+	manufacturers[0x85] = "Motoren und Ventilatoren Landshut GmbH";
+	manufacturers[0x95] = "SIG Berger Lahr GmbH & Co KG";
+	manufacturers[0xa5] = "Theben Zeitschaltautomatik";
+	manufacturers[0xa7] = "Thermowatt s.p.a.";
+	manufacturers[0xb5] = "Joh. Vaillant GmbH & Co.";
+	manufacturers[0xc0] = "Toby AG";
+	manufacturers[0xc5] = "Max Weishaupt GmbH";
+	fields.push_back(new ValueListDataField("manufacturer", "", "", ucharDataType, pt_slaveData, 1, 8, manufacturers));
+	fields.push_back(new StringDataField("id", "", "", stringDataType, pt_slaveData, 5));
+	fields.push_back(new NumberDataField("swv", "", "", bcdDataType, pt_slaveData, 1, 8, 0));
+	fields.push_back(new NumberDataField("swr", "", "", bcdDataType, pt_slaveData, 1, 8, 0));
+	fields.push_back(new NumberDataField("hwv", "", "", bcdDataType, pt_slaveData, 1, 8, 0));
+	fields.push_back(new NumberDataField("hwr", "", "", bcdDataType, pt_slaveData, 1, 8, 0));
+	return new DataFieldSet("ident", "", fields);
 }
 
 DataFieldSet::~DataFieldSet()

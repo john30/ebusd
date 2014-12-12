@@ -523,6 +523,11 @@ class DataFieldSet : public DataField
 public:
 
 	/**
+	 * @brief Create the @a DataFieldSet for parsing the identification message (service 0x07 0x04).
+	 * @return the @a DataFieldSet for parsing the identification message.
+	 */
+	static DataFieldSet* createIdentFields();
+	/**
 	 * @brief Constructs a new instance.
 	 * @param name the field name.
 	 * @param comment the field comment.
