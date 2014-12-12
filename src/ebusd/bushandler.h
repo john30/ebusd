@@ -31,6 +31,7 @@
 #include <vector>
 #include <map>
 #include <pthread.h>
+#include <typeinfo>
 
 using namespace std;
 
@@ -53,8 +54,8 @@ enum BusState {
 	bs_recvResAck,  // receive response ACK/NACK [passive set]
 	bs_sendCmd,     // send command (ZZ, PBSB, master data) [active set+get]
 	bs_sendResAck,  // send response ACK/NACK [active get]
-//	bs_sendRes,     // send response (slave data) [passive get] // TODO implement
-//	bs_sendCmdAck,  // send command ACK/NACK [passive get] // TODO implement
+	bs_sendCmdAck,  // send command ACK/NACK [passive get]
+	bs_sendRes,     // send response (slave data) [passive get]
 	bs_sendSyn,     // send SYN for completed transfer [active set+get]
 };
 
@@ -72,10 +73,11 @@ public:
 	 * @brief Constructor.
 	 * @param master the master data @a SymbolString to send.
 	 * @param slave the slave data @a SymbolString received.
-	 * @param isPoll whether this is a poll request.
+	 * @param deleteOnFinish whether to automatically delete this @a BusRequest when finished.
 	 */
-	BusRequest(SymbolString& master, SymbolString& slave, bool isPoll)
-		: m_master(master), m_slave(slave), m_isPoll(isPoll) {}
+	BusRequest(SymbolString& master, SymbolString& slave, bool deleteOnFinish)
+		: m_master(master), m_slave(slave), m_busLostRetries(0),
+		  m_deleteOnFinish(deleteOnFinish) {}
 
 	/**
 	 * @brief Destructor.
@@ -96,8 +98,11 @@ protected:
 	/** the slave data @a SymbolString received. */
 	SymbolString& m_slave;
 
-	/** whether this is a poll request. */
-	bool m_isPoll;
+	/** the number of times a send is repeated due to lost arbitration. */
+	unsigned int m_busLostRetries;
+
+	/** whether to automatically delete this @a BusRequest when finished. */
+	bool m_deleteOnFinish;
 
 };
 
@@ -140,6 +145,52 @@ private:
 
 	/** the associated @a Message. */
 	Message* m_message;
+
+};
+
+
+/**
+ * @brief A scan @a BusRequest handled by @a BusHandler itself.
+ */
+class ScanRequest : public BusRequest
+{
+	friend class BusHandler;
+public:
+
+	/**
+	 * @brief Constructor.
+	 * @param slave the slave data @a SymbolString received.
+	 * @param message the associated @a Message.
+	 */
+	ScanRequest(SymbolString& slave, Message* message)
+		: BusRequest(m_master, slave, true), m_message(message) {}
+
+	/**
+	 * @brief Destructor.
+	 */
+	virtual ~ScanRequest() {}
+
+	/**
+	 * @brief Prepare the master data.
+	 * @param masterAddress the master bus address to use.
+	 * @param dstAddress the destination address to set.
+	 * @return the result code.
+	 */
+	result_t prepare(unsigned char masterAddress, unsigned char dstAddress);
+
+	// @copydoc
+	virtual void notify(result_t result);
+
+private:
+
+	/** the master data @a SymbolString. */
+	SymbolString m_master;
+
+	/** the associated @a Message. */
+	Message* m_message;
+
+	/** the formatted scan result. */
+	ostringstream m_scanResult;
 
 };
 
@@ -224,12 +275,18 @@ public:
 		  m_pollInterval(pollInterval), m_lastPoll(0),
 		  m_request(NULL), m_nextSendPos(0),
 		  m_state(bs_skip), m_repeat(false),
-		  m_commandCrcValid(false), m_responseCrcValid(false) {}
+		  m_commandCrcValid(false), m_responseCrcValid(false),
+		  m_scanMessage(NULL) {
+		memset(m_seenAddresses, 0, sizeof(m_seenAddresses));
+	}
 
 	/**
 	 * @brief Destructor.
 	 */
-	virtual ~BusHandler() {}
+	virtual ~BusHandler() {
+		if (m_scanMessage != NULL)
+			delete m_scanMessage;
+	}
 
 	/**
 	 * @brief Send a message on the bus and wait for the answer.
@@ -249,6 +306,18 @@ public:
 	 * @return the last received data for the @a Message, or the empty string if not available.
 	 */
 	string getReceivedData(Message* message);
+
+	/**
+	 * @brief Initiate a scan of the slave addresses.
+	 * @param full true for a full scan (all slaves), false for scanning only already seen slaves.
+	 */
+	result_t startScan(bool full=false);
+
+	/**
+	 * @brief Format the scan result to the @a ostringstream.
+	 * @param output the @a ostringstream to format the scan result to.
+	 */
+	void formatScanResult(ostringstream& output);
 
 private:
 
@@ -338,6 +407,15 @@ private:
 
 	/** whether the response CRC is valid. */
 	bool m_responseCrcValid;
+
+	/** the participating bus addresses seen so far. */
+	bool m_seenAddresses[256];
+
+	/** the @a Message instance used for scanning. */
+	Message* m_scanMessage;
+
+	/** the scan results by slave address. */
+	map<unsigned char, string> m_scanResults;
 
 };
 

@@ -281,6 +281,39 @@ Port::Port(const string deviceName, const bool noDeviceCheck,
 	setDumpRaw(dumpRaw); // open fstream if necessary
 }
 
+ssize_t Port::send(const unsigned char* buffer, size_t nbytes)
+{
+	ssize_t ret = m_device->sendBytes(buffer, nbytes);
+	if (ret>0 && m_logRaw == true && m_logRawFunc != NULL)
+		(*m_logRawFunc)(buffer[0], false);
+	return ret;
+}
+
+ssize_t Port::recv(const long timeout, size_t maxCount, unsigned char* buffer)
+{
+	ssize_t ret = m_device->recvBytes(timeout, maxCount, buffer);
+	if (buffer && ret > 0) {
+		if (m_logRaw == true && m_logRawFunc != NULL) {
+			for (size_t pos = 0; pos < ret; pos++)
+				(*m_logRawFunc)(buffer[pos], true);
+		}
+
+		if (m_dumpRaw == true && m_dumpRawStream.is_open() == true) {
+			m_dumpRawStream.write((char*)buffer, ret);
+
+			if (m_dumpRawStream.tellp() >= m_dumpRawMaxSize * 1024) {
+				string oldfile = m_dumpRawFile + ".old";
+				if (rename(m_dumpRawFile.c_str(), oldfile.c_str()) == 0) {
+					m_dumpRawStream.close();
+					m_dumpRawStream.open(m_dumpRawFile.c_str(), ios::out | ios::binary | ios::app);
+				}
+			}
+		}
+	}
+
+	return ret;
+}
+
 unsigned char Port::byte()
 {
 	unsigned char byte = m_device->getByte();

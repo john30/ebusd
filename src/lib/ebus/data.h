@@ -31,7 +31,20 @@
 
 using namespace std;
 
-#define FIELD_SEPARATOR ';'
+/** the separator character used between fields (in CSV only). */
+#define FIELD_SEPARATOR ','
+
+/** the separator character used between multiple values (in CSV only). */
+#define VALUE_SEPARATOR ';'
+
+/** the separator character used between base type name and length (in CSV only). */
+#define LENGTH_SEPARATOR ':'
+
+/** the replacement string for undefined values (in UI and CSV). */
+#define NULL_VALUE "-"
+
+/** the separator character used between fields (in UI only). */
+#define UI_FIELD_SEPARATOR ';'
 
 /** the message part in which a data field is stored. */
 enum PartType {
@@ -90,7 +103,7 @@ unsigned int parseInt(const char* str, int base, const unsigned int minValue, co
  * @param pos the iterator with the erroneous position.
  * @param separator the character to place between items.
  */
-void printErrorPos(vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, char separator=';');
+void printErrorPos(vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos);
 
 
 class DataFieldTemplates;
@@ -178,7 +191,7 @@ public:
 	virtual result_t read(const PartType partType,
 			SymbolString& data, unsigned char offset,
 			ostringstream& output, bool leadingSeparator=false,
-			bool verbose=false, char separator=';') = 0;
+			bool verbose=false, char separator=UI_FIELD_SEPARATOR) = 0;
 	/**
 	 * @brief Writes the value to the master or slave @a SymbolString.
 	 * @param input the @a istringstream to parse the formatted value from.
@@ -190,7 +203,7 @@ public:
 	 */
 	virtual result_t write(istringstream& input,
 			const PartType partType, SymbolString& data,
-			unsigned char offset, char separator=';') = 0;
+			unsigned char offset, char separator=UI_FIELD_SEPARATOR) = 0;
 
 protected:
 
@@ -259,11 +272,11 @@ public:
 	virtual result_t read(const PartType partType,
 			SymbolString& data, unsigned char offset,
 			ostringstream& output, bool leadingSeparator=false,
-			bool verbose=false, char separator=';');
+			bool verbose=false, char separator=UI_FIELD_SEPARATOR);
 	// @copydoc
 	virtual result_t write(istringstream& input,
 			const PartType partType, SymbolString& data,
-			unsigned char offset, char separator=';');//TODO replace
+			unsigned char offset, char separator=UI_FIELD_SEPARATOR);
 
 protected:
 
@@ -510,6 +523,11 @@ class DataFieldSet : public DataField
 public:
 
 	/**
+	 * @brief Create the @a DataFieldSet for parsing the identification message (service 0x07 0x04).
+	 * @return the @a DataFieldSet for parsing the identification message.
+	 */
+	static DataFieldSet* createIdentFields();
+	/**
 	 * @brief Constructs a new instance.
 	 * @param name the field name.
 	 * @param comment the field comment.
@@ -553,11 +571,11 @@ public:
 	virtual result_t read(const PartType partType,
 			SymbolString& data, unsigned char offset,
 			ostringstream& output, bool leadingSeparator=false,
-			bool verbose=false, char separator=';');
+			bool verbose=false, char separator=UI_FIELD_SEPARATOR);
 	// @copydoc
 	virtual result_t write(istringstream& input,
 			const PartType partType, SymbolString& data,
-			unsigned char offset, char separator=';');
+			unsigned char offset, char separator=UI_FIELD_SEPARATOR);
 
 private:
 

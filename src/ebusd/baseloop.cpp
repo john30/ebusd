@@ -47,9 +47,9 @@ BaseLoop::BaseLoop()
 	else
 		L.log(bas, error, "error reading config files: %s", getResultCode(result));
 
-	L.log(bas, event, "commands DB: %d ", m_messages->size());
-	L.log(bas, event, "   cycle DB: %d ", m_messages->size(true));
-	L.log(bas, event, " polling DB: %d ", m_messages->sizePoll());
+	L.log(bas, event, "message DB: %d ", m_messages->size());
+	L.log(bas, event, "updates DB: %d ", m_messages->size(true));
+	L.log(bas, event, "polling DB: %d ", m_messages->sizePoll());
 
 	m_ownAddress = A.getOptVal<int>("address") & 0xff;
 	const bool answer = A.getOptVal<bool>("answer");
@@ -242,11 +242,11 @@ string BaseLoop::decodeMessage(const string& data)
 			istringstream input;
 			result_t ret = message->prepareMaster(m_ownAddress, master, input);
 			if (ret != RESULT_OK) {
-				L.log(bas, error, " prepare message: %s", getResultCode(ret));
+				L.log(bas, error, " prepare read: %s", getResultCode(ret));
 				result << getResultCode(ret);
 				break;
 			}
-			L.log(bas, event, " msg: %s", master.getDataStr().c_str());
+			L.log(bas, event, " read msg: %s", master.getDataStr().c_str());
 
 			// send message
 			SymbolString slave;
@@ -257,12 +257,12 @@ string BaseLoop::decodeMessage(const string& data)
 				ret = message->decode(pt_slaveData, slave, result); // decode data
 			}
 			if (ret != RESULT_OK) {
-				L.log(bas, error, " %s", getResultCode(ret));
+				L.log(bas, error, " read: %s", getResultCode(ret));
 				result << getResultCode(ret);
 			}
 
 		} else {
-			result << "ebus command not found";
+			result << "get command not found";
 		}
 		break;
 
@@ -280,11 +280,11 @@ string BaseLoop::decodeMessage(const string& data)
 			istringstream input(cmd[3]);
 			result_t ret = message->prepareMaster(m_ownAddress, master, input);
 			if (ret != RESULT_OK) {
-				L.log(bas, error, " prepare message: %s", getResultCode(ret));
+				L.log(bas, error, " prepare write: %s", getResultCode(ret));
 				result << getResultCode(ret);
 				break;
 			}
-			L.log(bas, event, " msg: %s", master.getDataStr().c_str());
+			L.log(bas, event, " write msg: %s", master.getDataStr().c_str());
 
 			// send message
 			SymbolString slave;
@@ -293,16 +293,19 @@ string BaseLoop::decodeMessage(const string& data)
 			if (ret == RESULT_OK) {
 				if (master[1] == BROADCAST || isMaster(master[1]))
 					result << "done";
-				else
+				else {
 					ret = message->decode(pt_slaveData, slave, result); // decode data
+					if (ret == RESULT_OK && result.str().empty() == true)
+						result << "done";
+				}
 			}
 			if (ret != RESULT_OK) {
-				L.log(bas, error, " %s", getResultCode(ret));
+				L.log(bas, error, " write: %s", getResultCode(ret));
 				result << getResultCode(ret);
 			}
 
 		} else {
-			result << "ebus command not found";
+			result << "set command not found";
 		}
 
 		break;
@@ -326,7 +329,7 @@ string BaseLoop::decodeMessage(const string& data)
 				result << "no data stored";
 			}
 		} else {
-			result << "ebus command not found";
+			result << "cyc command not found";
 		}
 
 		break;
@@ -344,18 +347,20 @@ string BaseLoop::decodeMessage(const string& data)
 			msg << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_ownAddress);
 			msg << cmd[1];
 			SymbolString master(msg.str());
-			L.log(bas, event, " msg: %s", master.getDataStr().c_str());
+			L.log(bas, event, " hex msg: %s", master.getDataStr().c_str());
 
 			// send message
 			SymbolString slave;
 			result_t ret = m_busHandler->sendAndWait(master, slave);
 
-			if (ret == RESULT_OK)
-				// decode data
-				result << slave.getDataStr();
-
+			if (ret == RESULT_OK) {
+				if (master[1] == BROADCAST || isMaster(master[1]))
+					result << "done";
+				else
+					result << slave.getDataStr();
+			}
 			if (ret != RESULT_OK) {
-				L.log(bas, error, " %s", getResultCode(ret));
+				L.log(bas, error, " hex: %s", getResultCode(ret));
 				result << getResultCode(ret);
 			}
 
@@ -363,31 +368,38 @@ string BaseLoop::decodeMessage(const string& data)
 
 		break;
 
-	/*case ct_scan:
+	case ct_scan:
 		if (cmd.size() == 1) {
-			m_busloop->scan();
-			result << "done";
+			result_t ret = m_busHandler->startScan();
+			if (ret != RESULT_OK) {
+				L.log(bas, error, " scan: %s", getResultCode(ret));
+				result << getResultCode(ret);
+			}
+			else
+				result << "scan initiated";
 			break;
 		}
 
 		if (strcasecmp(cmd[1].c_str(), "FULL") == 0) {
-			m_busloop->scan(true);
-			result << "done";
+			result_t ret = m_busHandler->startScan(true);
+			if (ret != RESULT_OK) {
+				L.log(bas, error, " full scan: %s", getResultCode(ret));
+				result << getResultCode(ret);
+			}
+			else
+				result << "done";
 			break;
 		}
 
 		if (strcasecmp(cmd[1].c_str(), "RESULT") == 0) {
-			// TODO format scan results
-			for (size_t i = 0; i < m_commands->sizeScanDB(); i++)
-				result << m_commands->getScanData(i) << endl;
-
+			m_busHandler->formatScanResult(result);
 			break;
 		}
 
 		result << "usage: 'scan'" << endl
 		       << "       'scan full'" << endl
 		       << "       'scan result'";
-		break;*/
+		break;
 
 	case ct_log:
 		if (cmd.size() != 3 ) {
@@ -458,9 +470,9 @@ string BaseLoop::decodeMessage(const string& data)
 
 	case ct_help:
 		result << "commands:" << endl
-		       << " get       - fetch ebus data             'get class cmd (sub)'" << endl
+		       << " get       - fetch ebus data             'get [class] cmd (sub)'" << endl
 		       << " set       - set ebus values             'set class cmd value'" << endl
-		       << " cyc       - fetch cycle data            'cyc class cmd (sub)'" << endl
+		       << " cyc       - fetch cycle data            'cyc [class] cmd (sub)'" << endl
 		       << " hex       - send given hex value        'hex type value'         (value: ZZPBSBNNDx)" << endl << endl
 		       << " scan      - scan ebus kown addresses    'scan'" << endl
 		       << "           - scan ebus all addresses     'scan full'" << endl

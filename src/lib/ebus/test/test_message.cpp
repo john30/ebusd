@@ -47,14 +47,14 @@ int main()
 	// field=   name;[pos];type[;[divisor|values][;[unit][;[comment]]]]
 	string checks[][5] = {
 		// "message", "flags"
-		{"u;;first;;;fe;0700;;x;;bda", "26.10.2014", "fffe07000426100614", "00", "p"},
-		{"w;;first;;;15;b509;0400;date;;bda", "26.10.2014", "ff15b50906040026100614", "00", "m"},
-		{"r;ehp;time;;;08;b509;0d2800;;;time", "15:00:17", "ff08b509030d2800", "0311000f", "m"},
-		{"r;ehp;date;;;08;b509;0d2900;;;hda:3", "23.11.2014", "ff08b509030d2900", "03170b0e", "m"},
-		{"u;ehp;ActualEnvironmentPower;Energiebezug;;08;B509;29BA00;;s;IGN:2;;;;;s;power", "8", "1008b5090329ba00", "03ba0008", "pm"},
-		{"uw;ehp;test;Test;;08;B5de;ab;;;power;;;;;s;hex:1", "8;39", "1008b5de02ab08", "0139", "pm"},
+		{"u,,first,,,fe,0700,,x,,bda", "26.10.2014", "fffe07000426100614", "00", "p"},
+		{"w,,first,,,15,b509,0400,date,,bda", "26.10.2014", "ff15b50906040026100614", "00", "m"},
+		{"r,ehp,time,,,08,b509,0d2800,,,time", "15:00:17", "ff08b509030d2800", "0311000f", "m"},
+		{"r,ehp,date,,,08,b509,0d2900,,,hda:3", "23.11.2014", "ff08b509030d2900", "03170b0e", "m"},
+		{"u,ehp,ActualEnvironmentPower,Energiebezug,,08,B509,29BA00,,s,IGN:2,,,,,s,power", "8", "1008b5090329ba00", "03ba0008", "pm"},
+		{"uw,ehp,test,Test,,08,B5de,ab,,,power,,,,,s,hex:1", "8;39", "1008b5de02ab08", "0139", "pm"},
 		{"","55.50;ok","1025b50903290000","050000780300",""},
-		{"","no;25","10feb505042700190023","",""},
+		//{"","no;25","10feb505042700190023","",""},
 	};
 	DataFieldTemplates* templates = new DataFieldTemplates();
 	result_t result = templates->readFromFile("_types.csv");
@@ -64,7 +64,7 @@ int main()
 		cout << "read templates error: " << getResultCode(result) << endl;
 
 	MessageMap* messages = new MessageMap();
-	result = messages->readFromFile("neu-ehp00.csv", templates);
+	result = messages->readFromFile("ehp00.csv", templates);
 	if (result == RESULT_OK)
 		cout << "read messages OK" << endl;
 	else
@@ -86,7 +86,7 @@ int main()
 		string item;
 		vector<string> entries;
 
-		while (getline(isstr, item, ';') != 0)
+		while (getline(isstr, item, FIELD_SEPARATOR) != 0)
 			entries.push_back(item);
 
 		if (deleteMessage != NULL) {
