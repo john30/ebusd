@@ -564,10 +564,12 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 		} else if (state == bs_sendSyn || (result != RESULT_OK && firstRepetition == false)) {
 			L.log(bus, debug, "notify request: %s", getResultCode(result));
 			m_request->m_slave = SymbolString(m_response, false, false);
+			unsigned char dstAddress = m_request->m_master[1];
+			if (result == RESULT_OK && isValidAddress(dstAddress, false) == true)
+				m_seenAddresses[dstAddress] = true;
 			m_request->notify(result);
 			if (m_request->m_deleteOnFinish == true) {
 				if (result == RESULT_OK && typeid(*m_request) == typeid(ScanRequest)) {
-					unsigned char dstAddress = m_request->m_master[1];
 					string res = ((ScanRequest*)m_request)->m_scanResult.str();
 					L.log(bus, debug, " scan result %x: %s", dstAddress, res.c_str());
 					m_scanResults[dstAddress] = res;
