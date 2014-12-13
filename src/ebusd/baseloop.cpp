@@ -262,11 +262,11 @@ string BaseLoop::decodeMessage(const string& data)
 			istringstream input;
 			result_t ret = message->prepareMaster(m_ownAddress, master, input);
 			if (ret != RESULT_OK) {
-				L.log(bas, error, " prepare read: %s", getResultCode(ret));
+				L.log(bas, error, "prepare read: %s", getResultCode(ret));
 				result << getResultCode(ret);
 				break;
 			}
-			L.log(bas, event, " read msg: %s", master.getDataStr().c_str());
+			L.log(bas, event, "read cmd: %s", master.getDataStr().c_str());
 
 			// send message
 			SymbolString slave;
@@ -277,7 +277,7 @@ string BaseLoop::decodeMessage(const string& data)
 				ret = message->decode(pt_slaveData, slave, result); // decode data
 			}
 			if (ret != RESULT_OK) {
-				L.log(bas, error, " read: %s", getResultCode(ret));
+				L.log(bas, error, "read: %s", getResultCode(ret));
 				result << getResultCode(ret);
 			}
 
@@ -301,11 +301,11 @@ string BaseLoop::decodeMessage(const string& data)
 			istringstream input(args[argPos + 2]);
 			result_t ret = message->prepareMaster(m_ownAddress, master, input);
 			if (ret != RESULT_OK) {
-				L.log(bas, error, " prepare write: %s", getResultCode(ret));
+				L.log(bas, error, "prepare write: %s", getResultCode(ret));
 				result << getResultCode(ret);
 				break;
 			}
-			L.log(bas, event, " write msg: %s", master.getDataStr().c_str());
+			L.log(bas, event, "write cmd: %s", master.getDataStr().c_str());
 
 			// send message
 			SymbolString slave;
@@ -321,7 +321,7 @@ string BaseLoop::decodeMessage(const string& data)
 				}
 			}
 			if (ret != RESULT_OK) {
-				L.log(bas, error, " write: %s", getResultCode(ret));
+				L.log(bas, error, "write: %s", getResultCode(ret));
 				result << getResultCode(ret);
 			}
 
@@ -350,7 +350,7 @@ string BaseLoop::decodeMessage(const string& data)
 			break;
 
 		SymbolString master(msg.str());
-		L.log(bas, event, " hex msg: %s", master.getDataStr().c_str());
+		L.log(bas, event, "hex cmd: %s", master.getDataStr().c_str());
 
 		// send message
 		SymbolString slave;
@@ -363,7 +363,7 @@ string BaseLoop::decodeMessage(const string& data)
 				result << slave.getDataStr();
 		}
 		if (ret != RESULT_OK) {
-			L.log(bas, error, " hex: %s", getResultCode(ret));
+			L.log(bas, error, "hex: %s", getResultCode(ret));
 			result << getResultCode(ret);
 		}
 		break;
@@ -372,7 +372,7 @@ string BaseLoop::decodeMessage(const string& data)
 		if (args.size() == argPos) {
 			result_t ret = m_busHandler->startScan();
 			if (ret != RESULT_OK) {
-				L.log(bas, error, " scan: %s", getResultCode(ret));
+				L.log(bas, error, "scan: %s", getResultCode(ret));
 				result << getResultCode(ret);
 			}
 			else
@@ -383,7 +383,7 @@ string BaseLoop::decodeMessage(const string& data)
 		if (strcasecmp(args[argPos].c_str(), "FULL") == 0) {
 			result_t ret = m_busHandler->startScan(true);
 			if (ret != RESULT_OK) {
-				L.log(bas, error, " full scan: %s", getResultCode(ret));
+				L.log(bas, error, "full scan: %s", getResultCode(ret));
 				result << getResultCode(ret);
 			}
 			else
