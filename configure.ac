@@ -11,6 +11,8 @@ AC_CHECK_HEADERS([arpa/inet.h \
 		  pthread.h \
 		  sys/ioctl.h \
 		  sys/select.h \
+		  sys/time.h \
+		  time.h \
 		  termios.h])
 
 AC_CHECK_LIB([pthread], [pthread_setname_np],
