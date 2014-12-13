@@ -482,19 +482,6 @@ result_t StringDataField::readSymbols(SymbolString& input,
 		incr = -1;
 	}
 
-	switch (m_dataType.type) // initialize output
-	{
-	case bt_hexstr:
-		output << setw(2) << hex << setfill('0');
-		break;
-	case bt_dat:
-	case bt_tim:
-		output << setw(2) << dec << setfill('0');
-		break;
-	default:
-		output << setw(0) << dec;
-	}
-
 	for (size_t offset = start, i = 0; i < count; offset += incr, i++) {
 		if (m_length == 4 && i == 2 && m_dataType.type == bt_dat)
 			continue; // skip weekday in between
@@ -509,7 +496,7 @@ result_t StringDataField::readSymbols(SymbolString& input,
 		case bt_hexstr:
 			if (i > 0)
 				output << ' ';
-			output << static_cast<unsigned>(ch);
+			output << setw(2) << hex << setfill('0') << static_cast<unsigned>(ch);
 			break;
 		case bt_dat:
 			if (i + 1 == m_length)
@@ -517,7 +504,7 @@ result_t StringDataField::readSymbols(SymbolString& input,
 			else if (ch < 1 || (i == 0 && ch > 31) || (i == 1 && ch > 12))
 				return RESULT_ERR_OUT_OF_RANGE; // invalid date
 			else
-				output << static_cast<unsigned>(ch) << ".";
+				output << setw(2) << dec << setfill('0') << static_cast<unsigned>(ch) << ".";
 			break;
 		case bt_tim:
 			if (m_dataType.replacement != 0 && ch == m_dataType.replacement) {
@@ -543,12 +530,12 @@ result_t StringDataField::readSymbols(SymbolString& input,
 				return RESULT_ERR_OUT_OF_RANGE; // invalid time
 			if (i > 0)
 				output << ":";
-			output << static_cast<unsigned>(ch);
+			output << setw(2) << dec << setfill('0') << static_cast<unsigned>(ch);
 			break;
 		default:
 			if (ch < 0x20)
 				ch = m_dataType.replacement;
-			output << static_cast<char>(ch);
+			output << setw(0) << dec << static_cast<char>(ch);
 			break;
 		}
 		last = ch;
