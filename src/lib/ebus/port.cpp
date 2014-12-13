@@ -300,6 +300,7 @@ ssize_t Port::recv(const long timeout, size_t maxCount, unsigned char* buffer)
 
 		if (m_dumpRaw == true && m_dumpRawStream.is_open() == true) {
 			m_dumpRawStream.write((char*)buffer, ret);
+			m_dumpRawStream.flush();
 
 			if (m_dumpRawStream.tellp() >= m_dumpRawMaxSize * 1024) {
 				string oldfile = m_dumpRawFile + ".old";
