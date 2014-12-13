@@ -44,4 +44,6 @@ AM_INIT_AUTOMAKE([1.11 -Wall -Werror foreign])
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 AC_PROG_RANLIB
 
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
+
 AC_OUTPUT

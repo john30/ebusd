@@ -294,7 +294,7 @@ ssize_t Port::recv(const long timeout, size_t maxCount, unsigned char* buffer)
 	ssize_t ret = m_device->recvBytes(timeout, maxCount, buffer);
 	if (buffer && ret > 0) {
 		if (m_logRaw == true && m_logRawFunc != NULL) {
-			for (size_t pos = 0; pos < ret; pos++)
+			for (ssize_t pos = 0; pos < ret; pos++)
 				(*m_logRawFunc)(buffer[pos], true);
 		}
 
