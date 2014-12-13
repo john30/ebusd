@@ -607,12 +607,12 @@ void BusHandler::receiveCompleted()
 
 	m_seenAddresses[m_command[0]] = true;
 	if (dstAddress == BROADCAST)
-		L.log(bus, trace, "received BC %s", m_command.getDataStr().c_str());
+		L.log(upd, trace, "received BC %s", m_command.getDataStr().c_str());
 	else if (master == true) {
-		L.log(bus, trace, "received MM %s", m_command.getDataStr().c_str());
+		L.log(upd, trace, "received MM %s", m_command.getDataStr().c_str());
 		m_seenAddresses[dstAddress] = true;
 	} else {
-		L.log(bus, trace, "received MS %s / %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
+		L.log(upd, trace, "received MS %s / %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
 		m_seenAddresses[dstAddress] = true;
 	}
 
@@ -625,10 +625,10 @@ void BusHandler::receiveCompleted()
 		if (result == RESULT_OK && dstAddress != BROADCAST && master == false)
 			result = message->decode(pt_slaveData, m_response, output, output.str().empty() == false);
 		if (result != RESULT_OK)
-			L.log(bus, error, "unable to parse %s %s from %s / %s: %s", clazz.c_str(), name.c_str(), m_command.getDataStr().c_str(), m_response.getDataStr().c_str(), getResultCode(result));
+			L.log(upd, error, "unable to parse %s %s from %s / %s: %s", clazz.c_str(), name.c_str(), m_command.getDataStr().c_str(), m_response.getDataStr().c_str(), getResultCode(result));
 		else {
 			string data = output.str();
-			L.log(bus, event, "%s %s: %s", clazz.c_str(), name.c_str(), data.c_str());
+			L.log(upd, event, "%s %s: %s", clazz.c_str(), name.c_str(), data.c_str());
 		}
 	}
 }
