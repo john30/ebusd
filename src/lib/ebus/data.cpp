@@ -105,13 +105,14 @@ unsigned int parseInt(const char* str, int base, const unsigned int minValue, co
 	return ret;
 }
 
-void printErrorPos(vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos)
+void printErrorPos(vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, string filename, size_t lineNo, result_t result)
 {
+	if (pos > begin)
+		pos--;
+	cout << "Error reading \"" << filename << "\" line " << static_cast<unsigned>(pos.base()-begin.base()) << " value \"" << *pos << "\": " << getResultCode(result) << endl;
 	cout << "Erroneous item is here:" << endl;
 	bool first = true;
 	int cnt = 0;
-	if (pos > begin)
-		pos--;
 	while (begin != end) {
 		if (first == true)
 			first = false;
@@ -122,9 +123,12 @@ void printErrorPos(vector<string>::iterator begin, const vector<string>::iterato
 			}
 		}
 		if (begin < pos) {
-			cnt += (*begin).length();
+			cnt += 1+(*begin).length()+1;
+		} else if (begin == pos) {
+			cnt++;
 		}
-		cout << (*begin++);
+		string item = *begin++;
+		cout << TEXT_SEPARATOR << item << TEXT_SEPARATOR;
 	}
 	cout << endl;
 	cout << setw(cnt) << " " << setw(0) << "^" << endl;
@@ -1221,7 +1225,7 @@ result_t DataFieldTemplates::add(DataField* field, bool replace)
 	return RESULT_OK;
 }
 
-result_t DataFieldTemplates::addFromFile(vector<string>& row, void* arg, vector< vector<string> >* defaults)
+result_t DataFieldTemplates::addFromFile(vector<string>& row, void* arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo)
 {
 	DataField* field = NULL;
 	vector<string>::iterator it = row.begin();

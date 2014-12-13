@@ -113,7 +113,7 @@ int main()
 			if (result != RESULT_OK) {
 				cout << "\"" << check[0] << "\": create error: "
 						<< getResultCode(result) << endl;
-				printErrorPos(entries.begin(), entries.end(), it);
+				printErrorPos(entries.begin(), entries.end(), it, "", 0, result);
 				continue;
 			}
 			if (deleteMessage == NULL) {
