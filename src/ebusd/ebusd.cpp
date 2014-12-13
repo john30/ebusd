@@ -89,7 +89,7 @@ void define_args()
 		    "\tlog file name (/var/log/ebusd.log)");
 
 	A.addOption("logareas", "", OptVal("all"), dt_string, ot_mandatory,
-		    "\tlog areas - bas|net|bus|cyc|all (all)");
+		    "\tlog areas - bas|net|bus|upd|all (all)");
 
 	A.addOption("loglevel", "", OptVal("trace"), dt_string, ot_mandatory,
 		    "\tlog level - error|event|trace|debug (event)");

@@ -30,10 +30,9 @@ using namespace std;
 
 /** possible client commands */
 enum CommandType {
-     ct_get,       /*!< get ebus data */
-     ct_set,       /*!< set ebus value */
-     ct_cyc,       /*!< fetch cycle data */
-     ct_hex,       /*!< send hex value */
+     ct_read,      /*!< read ebus values */
+     ct_write,     /*!< write ebus values */
+     ct_hex,       /*!< send hex data */
      ct_scan,      /*!< scan ebus */
      ct_log,       /*!< logger settings */
      ct_raw,       /*!< toggle log raw data */
@@ -118,9 +117,8 @@ private:
 	 */
 	CommandType getCase(const string& item)
 	{
-		if (strcasecmp(item.c_str(), "GET") == 0) return ct_get;
-		if (strcasecmp(item.c_str(), "SET") == 0) return ct_set;
-		if (strcasecmp(item.c_str(), "CYC") == 0) return ct_cyc;
+		if (strcasecmp(item.c_str(), "READ") == 0) return ct_read;
+		if (strcasecmp(item.c_str(), "WRITE") == 0) return ct_write;
 		if (strcasecmp(item.c_str(), "HEX") == 0) return ct_hex;
 		if (strcasecmp(item.c_str(), "SCAN") == 0) return ct_scan;
 		if (strcasecmp(item.c_str(), "LOG") == 0) return ct_log;

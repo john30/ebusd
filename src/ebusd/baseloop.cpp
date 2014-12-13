@@ -195,35 +195,57 @@ void BaseLoop::logRaw(const unsigned char byte, bool received) {
 string BaseLoop::decodeMessage(const string& data)
 {
 	ostringstream result;
-	string cycdata, polldata;
 
 	// prepare data
 	string token;
 	istringstream stream(data);
-	vector<string> cmd;
-	Message* message;
+	vector<string> args;
 
 	while (getline(stream, token, ' ') != 0)
-		cmd.push_back(token);
+		args.push_back(token);
 
-	if (cmd.size() == 0)
+	if (args.size() == 0)
 		return "command missing";
 
-	switch (getCase(cmd[0])) {
+	size_t argPos = 1;
+	bool force = false;
+
+	switch (getCase(args[0])) {
 	case ct_invalid:
 		result << "command not found";
 		break;
 
-	case ct_get:
-		if (cmd.size() < 2 || cmd.size() > 4) {
-			result << "usage: 'get [class] cmd' or 'get class cmd sub'";
+	case ct_read: {
+		if (args.size() > argPos && args[argPos] == "-f") {
+			force = true;
+			argPos++;
+		}
+		if (args.size() < argPos + 1 || args.size() > argPos + 3) {
+			result << "usage: 'read [-f] [class] cmd' or 'read [-f] class cmd sub'";
 			break;
 		}
 
-		if (cmd.size() == 2)
-			message = m_messages->find("", cmd[1], false);
+		Message* updateMessage = NULL;
+		if (force == false) {
+			if (args.size() == argPos + 1)
+				updateMessage = m_messages->find("", args[argPos], false, true);
+			else
+				updateMessage = m_messages->find(args[argPos], args[argPos + 1], false, true);
+
+			if (updateMessage != NULL) {
+				token = updateMessage->getLastValue();
+				if (token.empty() == false) {
+					result << token;
+					break;
+				} // else try to read directly from bus
+			}
+		}
+
+		Message* message;
+		if (args.size() == argPos + 1)
+			message = m_messages->find("", args[argPos], false);
 		else
-			message = m_messages->find(cmd[1], cmd[2], false);
+			message = m_messages->find(args[argPos], args[argPos + 1], false);
 
 		if (message != NULL) {
 
@@ -232,10 +254,8 @@ string BaseLoop::decodeMessage(const string& data)
 				token = message->getLastValue();
 				if (token.empty() == false) {
 					result << token;
-				} else {
-					result << "no data stored";
-				}
-				break;
+					break;
+				} // else: read directly from bus
 			}
 
 			SymbolString master;
@@ -261,23 +281,24 @@ string BaseLoop::decodeMessage(const string& data)
 				result << getResultCode(ret);
 			}
 
+		} else if (updateMessage != NULL) {
+			result << "no data stored";
 		} else {
-			result << "get command not found";
+			result << "message not defined";
 		}
 		break;
-
-	case ct_set:
-		if (cmd.size() != 4) {
-			result << "usage: 'set class cmd value'";
+	}
+	case ct_write: {
+		if (args.size() != argPos + 3) {
+			result << "usage: 'write class cmd value[;value]*'";
 			break;
 		}
 
-		message = m_messages->find(cmd[1], cmd[2], true);
+		Message* message = m_messages->find(args[argPos], args[argPos + 1], true);
 
 		if (message != NULL) {
-
 			SymbolString master;
-			istringstream input(cmd[3]);
+			istringstream input(args[argPos + 2]);
 			result_t ret = message->prepareMaster(m_ownAddress, master, input);
 			if (ret != RESULT_OK) {
 				L.log(bas, error, " prepare write: %s", getResultCode(ret));
@@ -305,71 +326,50 @@ string BaseLoop::decodeMessage(const string& data)
 			}
 
 		} else {
-			result << "set command not found";
+			result << "message not defined";
 		}
-
 		break;
-
-	case ct_cyc:
-		if (cmd.size() < 2 || cmd.size() > 3) {
-			result << "usage: 'cyc [class] cmd'";
-			break;
-		}
-
-		if (cmd.size() == 2)
-			message = m_messages->find("", cmd[1], false, true);
-		else
-			message = m_messages->find(cmd[1], cmd[2], false, true);
-
-		if (message != NULL) {
-			token = message->getLastValue();
-			if (token.empty() == false) {
-				result << token;
-			} else {
-				result << "no data stored";
-			}
-		} else {
-			result << "cyc command not found";
-		}
-
-		break;
-
-	case ct_hex:
-		if (cmd.size() != 2) {
+	}
+	case ct_hex: {
+		if (args.size() < argPos + 1) {
 			result << "usage: 'hex value' (value: ZZPBSBNNDx)";
 			break;
 		}
 
-		{
-			cmd[1].erase(remove_if(cmd[1].begin(), cmd[1].end(), ::isspace), cmd[1].end());
-			string src;
-			ostringstream msg;
-			msg << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_ownAddress);
-			msg << cmd[1];
-			SymbolString master(msg.str());
-			L.log(bas, event, " hex msg: %s", master.getDataStr().c_str());
-
-			// send message
-			SymbolString slave;
-			result_t ret = m_busHandler->sendAndWait(master, slave);
-
-			if (ret == RESULT_OK) {
-				if (master[1] == BROADCAST || isMaster(master[1]))
-					result << "done";
-				else
-					result << slave.getDataStr();
+		ostringstream msg;
+		msg << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_ownAddress) << setw(0);
+		while (argPos < args.size()) {
+			if ((args[argPos].length() % 2) != 0) {
+				result << "invalid hex string";
+				msg.str("");
+				break;
 			}
-			if (ret != RESULT_OK) {
-				L.log(bas, error, " hex: %s", getResultCode(ret));
-				result << getResultCode(ret);
-			}
-
+			msg << args[argPos++];
 		}
+		if (msg.str().length() == 0)
+			break;
 
+		SymbolString master(msg.str());
+		L.log(bas, event, " hex msg: %s", master.getDataStr().c_str());
+
+		// send message
+		SymbolString slave;
+		result_t ret = m_busHandler->sendAndWait(master, slave);
+
+		if (ret == RESULT_OK) {
+			if (master[1] == BROADCAST || isMaster(master[1]))
+				result << "done";
+			else
+				result << slave.getDataStr();
+		}
+		if (ret != RESULT_OK) {
+			L.log(bas, error, " hex: %s", getResultCode(ret));
+			result << getResultCode(ret);
+		}
 		break;
-
-	case ct_scan:
-		if (cmd.size() == 1) {
+	}
+	case ct_scan: {
+		if (args.size() == argPos) {
 			result_t ret = m_busHandler->startScan();
 			if (ret != RESULT_OK) {
 				L.log(bas, error, " scan: %s", getResultCode(ret));
@@ -380,7 +380,7 @@ string BaseLoop::decodeMessage(const string& data)
 			break;
 		}
 
-		if (strcasecmp(cmd[1].c_str(), "FULL") == 0) {
+		if (strcasecmp(args[argPos].c_str(), "FULL") == 0) {
 			result_t ret = m_busHandler->startScan(true);
 			if (ret != RESULT_OK) {
 				L.log(bas, error, " full scan: %s", getResultCode(ret));
@@ -391,7 +391,7 @@ string BaseLoop::decodeMessage(const string& data)
 			break;
 		}
 
-		if (strcasecmp(cmd[1].c_str(), "RESULT") == 0) {
+		if (strcasecmp(args[argPos].c_str(), "RESULT") == 0) {
 			m_busHandler->formatScanResult(result);
 			break;
 		}
@@ -400,52 +400,53 @@ string BaseLoop::decodeMessage(const string& data)
 		       << "       'scan full'" << endl
 		       << "       'scan result'";
 		break;
-
-	case ct_log:
-		if (cmd.size() != 3 ) {
-			result << "usage: 'log areas area,area,..' (areas: bas|net|bus|cyc|all)" << endl
+	}
+	case ct_log: {
+		if (args.size() != 3 ) {
+			result << "usage: 'log areas area,area,..' (areas: bas|net|bus|upd|all)" << endl
 			       << "       'log level level'        (level: error|event|trace|debug)";
 			break;
 		}
 
 		// TODO: check for possible areas and level
-		if (strcasecmp(cmd[1].c_str(), "AREAS") == 0) {
-			L.getSink(0)->setAreas(calcAreas(cmd[2]));
+		if (strcasecmp(args[argPos].c_str(), "AREAS") == 0) {
+			L.getSink(0)->setAreas(calcAreas(args[argPos + 1]));
 			result << "done";
 			break;
 		}
 
-		if (strcasecmp(cmd[1].c_str(), "LEVEL") == 0) {
-			L.getSink(0)->setLevel(calcLevel(cmd[2]));
+		if (strcasecmp(args[argPos].c_str(), "LEVEL") == 0) {
+			L.getSink(0)->setLevel(calcLevel(args[argPos + 1]));
 			result << "done";
 			break;
 		}
 
-		result << "usage: 'log areas area,area,..' (areas: bas|net|bus|cyc|all)" << endl
+		result << "usage: 'log areas area,area,..' (areas: bas|net|bus|upd|all)" << endl
 		       << "       'log level level'        (level: error|event|trace|debug)";
-
 		break;
-
-	case ct_raw:
-		if (cmd.size() != 1) {
+	}
+	case ct_raw: {
+		if (args.size() != 1) {
 			result << "usage: 'raw'";
 			break;
 		}
 
-		m_port->setLogRaw(!m_port->getLogRaw());
-		result << "done";
+		bool enabled = !m_port->getLogRaw();
+		m_port->setLogRaw(enabled);
+		result << (enabled ? "raw output enabled" : "raw output disabled");
 		break;
-
-	case ct_dump:
-		if (cmd.size() != 1) {
+	}
+	case ct_dump: {
+		if (args.size() != 1) {
 			result << "usage: 'dump'";
 			break;
 		}
 
-		m_port->setDumpRaw(!m_port->getDumpRaw());
-		result << "done";
+		bool enabled = !m_port->getDumpRaw();
+		m_port->setDumpRaw(enabled);
+		result << (enabled ? "dump enabled" : "dump disabled");
 		break;
-
+	}
 	/*case ct_reload:
 		if (cmd.size() != 1) {
 			result << "usage: 'reload'";
@@ -470,14 +471,13 @@ string BaseLoop::decodeMessage(const string& data)
 
 	case ct_help:
 		result << "commands:" << endl
-		       << " get       - fetch ebus data             'get [class] cmd (sub)'" << endl
-		       << " set       - set ebus values             'set class cmd value'" << endl
-		       << " cyc       - fetch cycle data            'cyc [class] cmd (sub)'" << endl
+		       << " read      - read ebus values            'read [-f] [class] cmd [sub]'" << endl
+		       << " write     - write ebus values           'write class cmd value[;value]*'" << endl
 		       << " hex       - send given hex value        'hex type value'         (value: ZZPBSBNNDx)" << endl << endl
 		       << " scan      - scan ebus kown addresses    'scan'" << endl
 		       << "           - scan ebus all addresses     'scan full'" << endl
 		       << "           - show results                'scan result'" << endl << endl
- 		       << " log       - change log areas            'log areas area,area,..' (areas: bas|net|bus|cyc|all)" << endl
+ 		       << " log       - change log areas            'log areas area,area,..' (areas: bas|net|bus|upd|all)" << endl
 		       << "           - change log level            'log level level'        (level: error|event|trace|debug)" << endl << endl
 		       << " raw       - toggle log raw data         'raw'" << endl
 		       << " dump      - toggle dump state           'dump'" << endl << endl

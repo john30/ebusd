@@ -37,7 +37,7 @@ enum AreasType {
 	bas=1,           /*!< basis */
 	net=2,           /*!< network */
 	bus=4,           /*!< ebus */
-	cyc=8,           /*!< cycle */
+	upd=8,           /*!< updates found while listening to the bus */
 	all=15,          /*!< type for all subsystems */
 	Size_of_Areas=4  /*!< number of possible areas */
 };
