@@ -1,8 +1,8 @@
 AM_CXXFLAGS = -fpic \
 	      -Wall \
 	      -Wextra \
-	      -I$(top_srcdir)/src/lib/utils \
-	      -I$(top_srcdir)/src/lib/ebus
+	      -isystem$(top_srcdir)/src/lib/utils \
+	      -isystem$(top_srcdir)/src/lib/ebus
 
 bin_PROGRAMS = ebusd
 
