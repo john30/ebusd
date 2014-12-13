@@ -266,7 +266,7 @@ string BaseLoop::decodeMessage(const string& data)
 				result << getResultCode(ret);
 				break;
 			}
-			L.log(bas, event, "read cmd: %s", master.getDataStr().c_str());
+			L.log(bas, trace, "read cmd: %s", master.getDataStr().c_str());
 
 			// send message
 			SymbolString slave;
@@ -305,7 +305,7 @@ string BaseLoop::decodeMessage(const string& data)
 				result << getResultCode(ret);
 				break;
 			}
-			L.log(bas, event, "write cmd: %s", master.getDataStr().c_str());
+			L.log(bas, trace, "write cmd: %s", master.getDataStr().c_str());
 
 			// send message
 			SymbolString slave;

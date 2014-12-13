@@ -64,7 +64,7 @@ result_t PollRequest::prepare(unsigned char ownMasterAddress)
 	istringstream input;
 	result_t result = m_message->prepareMaster(ownMasterAddress, m_master, input);
 	if (result == RESULT_OK)
-		L.log(bus, event, "poll cmd: %s", m_master.getDataStr().c_str());
+		L.log(bus, trace, "poll cmd: %s", m_master.getDataStr().c_str());
 	return result;
 }
 
@@ -86,7 +86,7 @@ result_t ScanRequest::prepare(unsigned char ownMasterAddress, unsigned char dstA
 	istringstream input;
 	result_t result = m_message->prepareMaster(ownMasterAddress, m_master, input, UI_FIELD_SEPARATOR, dstAddress);
 	if (result == RESULT_OK)
-		L.log(bus, event, "scan cmd: %s", m_master.getDataStr().c_str());
+		L.log(bus, trace, "scan cmd: %s", m_master.getDataStr().c_str());
 	return result;
 }
 
@@ -96,10 +96,10 @@ void ScanRequest::notify(result_t result)
 		m_scanResult << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_master[1]) << UI_FIELD_SEPARATOR;
 		result = m_message->decode(pt_slaveData, m_slave, m_scanResult); // decode data
 	}
-	if (result == RESULT_OK)
-		L.log(bus, event, "scan result: %s", m_scanResult.str().c_str());
-	else
+	if (result != RESULT_OK)
 		L.log(bus, error, "scan %2.2x failed: %s", m_master[1], getResultCode(result));
+	else
+		L.log(bus, event, "scan: %s", m_scanResult.str().c_str());
 }
 
 
@@ -141,7 +141,7 @@ bool ActiveBusRequest::wait(int timeout)
 void ActiveBusRequest::notify(result_t result)
 {
 	if (result == RESULT_OK)
-		L.log(bus, trace, "read res: %s", m_slave.getDataStr().c_str());
+		L.log(bus, event, "read res: %s", m_slave.getDataStr().c_str());
 
 	pthread_mutex_lock(&m_mutex);
 
