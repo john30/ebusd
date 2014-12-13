@@ -22,6 +22,7 @@
 
 #include "symbol.h"
 #include "result.h"
+#include "filereader.h"
 #include <string>
 #include <iostream>
 #include <sstream>
@@ -30,9 +31,6 @@
 #include <map>
 
 using namespace std;
-
-/** the separator character used between fields (in CSV only). */
-#define FIELD_SEPARATOR ','
 
 /** the separator character used between multiple values (in CSV only). */
 #define VALUE_SEPARATOR ';'
@@ -103,7 +101,7 @@ unsigned int parseInt(const char* str, int base, const unsigned int minValue, co
  * @param pos the iterator with the erroneous position.
  * @param separator the character to place between items.
  */
-void printErrorPos(vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos);
+void printErrorPos(vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, string filename, size_t lineNo, result_t result);
 
 
 class DataFieldTemplates;
@@ -586,81 +584,6 @@ private:
 
 
 /**
- * @brief An abstract class that support reading definitions from a file.
- */
-template<typename T>
-class FileReader
-{
-public:
-
-	/**
-	 * @brief Constructs a new instance.
-	 */
-	FileReader(bool supportsDefaults)
-			: m_supportsDefaults(supportsDefaults) {}
-	/**
-	 * @brief Destructor.
-	 */
-	virtual ~FileReader() {}
-	/**
-	 * @brief Reads the definitions from a file.
-	 * @param filename the name (and path) of the file to read.
-	 * @return @a RESULT_OK on success, or an error code.
-	 */
-	virtual result_t readFromFile(string filename, T arg=NULL)
-	{
-		ifstream ifs;
-		ifs.open(filename.c_str(), ifstream::in);
-		if (ifs.is_open() == false)
-			return RESULT_ERR_NOTFOUND;
-
-		string line;
-		unsigned int lineNo = 0;
-		vector<string> row;
-		string token;
-		vector< vector<string> > defaults;
-		while (getline(ifs, line) != 0) {
-			lineNo++;
-			// skip empty lines and comments
-			if (line.length() == 0 || line.substr(0, 1) == "#" || line.substr(0, 2) == "//")
-				continue;
-			istringstream isstr(line);
-			row.clear();
-			while (getline(isstr, token, FIELD_SEPARATOR) != 0)
-				row.push_back(token);
-
-			if (m_supportsDefaults == true && line.substr(0, 1) == "*") {
-				row[0] = row[0].substr(1);
-				defaults.push_back(row);
-				continue;
-			}
-			result_t result = addFromFile(row, arg, m_supportsDefaults == true ? &defaults : NULL);
-			if (result != RESULT_OK) {
-				cerr << "error reading \"" << filename << "\" line " << static_cast<unsigned>(lineNo) << ": " << getResultCode(result) << endl;
-				ifs.close();
-				return result;
-			}
-		}
-
-		ifs.close();
-		return RESULT_OK;
-	}
-	/**
-	 * @brief Adds a definition that was read from a file.
-	 * @param row the definition row read from the file.
-	 * @param defaults all previously read default rows (initial star char removed), or NULL if not supported.
-	 * @return @a RESULT_OK on success, or an error code.
-	 */
-	virtual result_t addFromFile(vector<string>& row, T arg, vector< vector<string> >* defaults) = 0;
-
-private:
-	/** whether this instance supports rows with defaults (starting with a star). */
-	bool m_supportsDefaults;
-
-};
-
-
-/**
  * @brief A map of template @a DataField instances.
  */
 class DataFieldTemplates : public FileReader<void*>
@@ -688,7 +611,7 @@ public:
 	 */
 	result_t add(DataField* message, bool replace=false);
 	// @copydoc
-	virtual result_t addFromFile(vector<string>& row, void* arg, vector< vector<string> >* defaults);
+	virtual result_t addFromFile(vector<string>& row, void* arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo);
 	/**
 	 * @brief Gets the template @a DataField instance with the specified name.
 	 * @return the template @a DataField instance, or NULL.

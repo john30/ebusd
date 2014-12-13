@@ -105,13 +105,14 @@ unsigned int parseInt(const char* str, int base, const unsigned int minValue, co
 	return ret;
 }
 
-void printErrorPos(vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos)
+void printErrorPos(vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, string filename, size_t lineNo, result_t result)
 {
+	if (pos > begin)
+		pos--;
+	cout << "Error reading \"" << filename << "\" line " << static_cast<unsigned>(pos.base()-begin.base()) << " value \"" << *pos << "\": " << getResultCode(result) << endl;
 	cout << "Erroneous item is here:" << endl;
 	bool first = true;
 	int cnt = 0;
-	if (pos > begin)
-		pos--;
 	while (begin != end) {
 		if (first == true)
 			first = false;
@@ -122,9 +123,12 @@ void printErrorPos(vector<string>::iterator begin, const vector<string>::iterato
 			}
 		}
 		if (begin < pos) {
-			cnt += (*begin).length();
+			cnt += 1+(*begin).length()+1;
+		} else if (begin == pos) {
+			cnt++;
 		}
-		cout << (*begin++);
+		string item = *begin++;
+		cout << TEXT_SEPARATOR << item << TEXT_SEPARATOR;
 	}
 	cout << endl;
 	cout << setw(cnt) << " " << setw(0) << "^" << endl;
@@ -478,19 +482,6 @@ result_t StringDataField::readSymbols(SymbolString& input,
 		incr = -1;
 	}
 
-	switch (m_dataType.type) // initialize output
-	{
-	case bt_hexstr:
-		output << setw(2) << hex << setfill('0');
-		break;
-	case bt_dat:
-	case bt_tim:
-		output << setw(2) << dec << setfill('0');
-		break;
-	default:
-		output << setw(0) << dec;
-	}
-
 	for (size_t offset = start, i = 0; i < count; offset += incr, i++) {
 		if (m_length == 4 && i == 2 && m_dataType.type == bt_dat)
 			continue; // skip weekday in between
@@ -505,7 +496,7 @@ result_t StringDataField::readSymbols(SymbolString& input,
 		case bt_hexstr:
 			if (i > 0)
 				output << ' ';
-			output << static_cast<unsigned>(ch);
+			output << setw(2) << hex << setfill('0') << static_cast<unsigned>(ch);
 			break;
 		case bt_dat:
 			if (i + 1 == m_length)
@@ -513,7 +504,7 @@ result_t StringDataField::readSymbols(SymbolString& input,
 			else if (ch < 1 || (i == 0 && ch > 31) || (i == 1 && ch > 12))
 				return RESULT_ERR_OUT_OF_RANGE; // invalid date
 			else
-				output << static_cast<unsigned>(ch) << ".";
+				output << setw(2) << dec << setfill('0') << static_cast<unsigned>(ch) << ".";
 			break;
 		case bt_tim:
 			if (m_dataType.replacement != 0 && ch == m_dataType.replacement) {
@@ -539,12 +530,12 @@ result_t StringDataField::readSymbols(SymbolString& input,
 				return RESULT_ERR_OUT_OF_RANGE; // invalid time
 			if (i > 0)
 				output << ":";
-			output << static_cast<unsigned>(ch);
+			output << setw(2) << dec << setfill('0') << static_cast<unsigned>(ch);
 			break;
 		default:
 			if (ch < 0x20)
 				ch = m_dataType.replacement;
-			output << static_cast<char>(ch);
+			output << setw(0) << dec << static_cast<char>(ch);
 			break;
 		}
 		last = ch;
@@ -1221,7 +1212,7 @@ result_t DataFieldTemplates::add(DataField* field, bool replace)
 	return RESULT_OK;
 }
 
-result_t DataFieldTemplates::addFromFile(vector<string>& row, void* arg, vector< vector<string> >* defaults)
+result_t DataFieldTemplates::addFromFile(vector<string>& row, void* arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo)
 {
 	DataField* field = NULL;
 	vector<string>::iterator it = row.begin();

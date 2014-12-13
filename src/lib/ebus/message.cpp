@@ -369,7 +369,7 @@ result_t MessageMap::add(Message* message)
 	return RESULT_OK;
 }
 
-result_t MessageMap::addFromFile(vector<string>& row, DataFieldTemplates* arg, vector< vector<string> >* defaults)
+result_t MessageMap::addFromFile(vector<string>& row, DataFieldTemplates* arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo)
 {
 	Message* message = NULL;
 	string types = row[0];
@@ -384,8 +384,8 @@ result_t MessageMap::addFromFile(vector<string>& row, DataFieldTemplates* arg, v
 		vector<string>::iterator it = row.begin();
 		result = Message::create(it, row.end(), defaults, arg, message);
 		if (result != RESULT_OK) {
-			printErrorPos(row.begin(), row.end(), it);
-			return result;
+			printErrorPos(row.begin(), row.end(), it, filename, lineNo, result);
+			continue;
 		}
 		result = add(message);
 		if (result != RESULT_OK) {

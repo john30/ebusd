@@ -31,7 +31,7 @@
 using namespace std;
 
 /** static char array with logging area names */
-static const char* AreaNames[Size_of_Areas] = { "bas", "net", "bus", "cyc" };
+static const char* AreaNames[Size_of_Areas] = { "bas", "net", "bus", "upd" };
 
 /** static char array with logging level names */
 static const char* LevelNames[Size_of_Level] = { "error", "event", "trace", "debug" };
