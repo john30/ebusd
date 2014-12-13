@@ -19,8 +19,8 @@ AC_CHECK_LIB([pthread], [pthread_setname_np],
 	AC_DEFINE([HAVE_PTHREAD_SETNAME_NP], [1], ["Define to 1 if pthread has pthread_setname_np."]),
 	AC_MSG_RESULT([Could not find pthread_setname_np in pthread.]))
 
-AC_CHECK_FUNC([pselect], [AC_DEFINE(HAVE_PSELECT, [1], [Define to 1 if pselect() is available.])])
-AC_CHECK_FUNC([ppoll], [AC_DEFINE(HAVE_PPOLL, [1], [Define to 1 if ppoll() is available.])])
+AC_CHECK_FUNC([pselect], [AC_DEFINE(HAVE_PSELECT, [1], ["Define to 1 if pselect() is available."])])
+AC_CHECK_FUNC([ppoll], [AC_DEFINE(HAVE_PPOLL, [1], ["Define to 1 if ppoll() is available."])])
 
 AC_CONFIG_AUX_DIR([build])
 AC_CONFIG_SRCDIR([src/ebusd/ebusd.cpp])
