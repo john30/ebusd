@@ -305,7 +305,7 @@ result_t Message::decode(const PartType partType, SymbolString& data,
 	int startPos = output.str().length();
 	result_t result = m_data->read(partType, data, offset, output, leadingSeparator, verbose, filterName, separator);
 	time(&m_lastUpdateTime);
-	if (result != RESULT_OK) {
+	if (result < RESULT_OK) {
 		m_lastValue.clear();
 		return result;
 	}
