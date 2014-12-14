@@ -8,17 +8,17 @@ which is used in various heating systems.
 Features
 --------
 
- * send and receive ebus commands
- * collect data of cycle commands
- * poll commands and collect received data
- * scan ebus to identifies bus participants
+ * active: send and receive ebus commands
+           poll commands and collect received data
+           scan ebus to identifies bus participants
+
+ * passive: collect data of seen ebus commands
+
  * dump raw data into binary files
 
  * available daemon commands:
-   - get            fetch data from ebus participant
-   - set            adjust data of ebus participant
-   - cyc            fetch data from collected cycle messages
-   - hex            send given hex value to ebus (ZZPBSBNNDx)
+   - read            fetch data from ebus participant
+   - write           adjust data of ebus participant
 
    - scan           scan kown slave addresses (collected)
    - scan full      scan all possible slave addresses
@@ -35,13 +35,13 @@ Features
    - stop           stop daemon
    - quit           close connection
 
-   - help           print help page
+   - help           show command details
 
 
 vendor specific configuration files for ebusd
 ---------------------------------------------
 
-See https://github.com/yuhu-/ebus-configuration
+See https://github.com/yuhu-/ebusd-configuration
 
 
 Tools
@@ -61,6 +61,8 @@ $ make install
 
 
 For usage and further information take a look on help page.
+
+For bugs and missing features use github issue system.
 
 
 The author can be contacted at ebusd@liwest.at.
