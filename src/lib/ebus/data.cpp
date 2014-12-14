@@ -373,7 +373,8 @@ void SingleDataField::dump(ostream& output)
 result_t SingleDataField::read(const PartType partType,
 		SymbolString& data, unsigned char offset,
 		ostringstream& output, bool leadingSeparator,
-		bool verbose, char separator)
+		bool verbose, const char* filterName,
+		char separator)
 {
 	if (partType != m_partType)
 		return RESULT_OK;
@@ -389,11 +390,11 @@ result_t SingleDataField::read(const PartType partType,
 	default:
 		return RESULT_ERR_INVALID_PART;
 	}
-	if (isIgnored() == true) {
+	if (isIgnored() == true || (filterName != NULL && m_name != filterName)) {
 		if (offset + m_length > data.size()) {
 			return RESULT_ERR_INVALID_POS;
 		}
-		return RESULT_OK;
+		return RESULT_EMPTY;
 	}
 
 	if (leadingSeparator == true)
@@ -1111,9 +1112,10 @@ void DataFieldSet::dump(ostream& output)
 result_t DataFieldSet::read(const PartType partType,
 		SymbolString& data, unsigned char offset,
 		ostringstream& output, bool leadingSeparator,
-		bool verbose, char separator)
+		bool verbose, const char* filterName,
+		char separator)
 {
-	bool previousFullByteOffset = true;
+	bool previousFullByteOffset = true, found = false;
 	for (vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
 		SingleDataField* field = *it;
 		if (partType != pt_any && field->getPartType() != partType)
@@ -1122,15 +1124,17 @@ result_t DataFieldSet::read(const PartType partType,
 		if (previousFullByteOffset == false && field->hasFullByteOffset(false) == false)
 			offset--;
 
-//cout<<"read "<<field->getName().c_str()<<" in part "<<static_cast<unsigned>(field->getPartType())<<" offset "<<static_cast<unsigned>(offsets[field->getPartType()])<<endl;
-		result_t result = field->read(partType, data, offset, output, leadingSeparator, verbose, separator);
+		result_t result = field->read(partType, data, offset, output, leadingSeparator, verbose, filterName, separator);
 
-		if (result != RESULT_OK)
+		if (result < RESULT_OK)
 			return result;
 
 		offset += field->getLength(partType);
 		previousFullByteOffset = field->hasFullByteOffset(true);
-		leadingSeparator |= field->isIgnored() == false;
+		if (result != RESULT_EMPTY) {
+			found = true;
+			leadingSeparator = true;
+		}
 	}
 
 	if (verbose == true) {
@@ -1138,7 +1142,7 @@ result_t DataFieldSet::read(const PartType partType,
 			output << " [" << m_comment << "]";
 	}
 
-	return RESULT_OK;
+	return found == true ? RESULT_OK : RESULT_EMPTY;
 }
 
 result_t DataFieldSet::write(istringstream& input,

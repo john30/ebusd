@@ -253,7 +253,7 @@ string BaseLoop::decodeMessage(const string& data)
 			argPos++;
 		}
 		if (args.size() < argPos + 1 || args.size() > argPos + 3) {
-			result << "usage: 'read [-f] [-v] [class] cmd'"; // TODO or 'read [-f] class cmd sub'";
+			result << "usage: 'read [-v] [-f] [-m seconds] [class] cmd' or 'read [-v] [-f] [-m seconds] class cmd sub'";
 			break;
 		}
 
@@ -309,8 +309,10 @@ string BaseLoop::decodeMessage(const string& data)
 			ret = m_busHandler->sendAndWait(master, slave);
 
 			if (ret == RESULT_OK) {
-				// TODO reduce to requested variable only
-				ret = message->decode(pt_slaveData, slave, result, false, verbose); // decode data
+				if (args.size() == argPos + 3)
+					ret = message->decode(pt_slaveData, slave, result, false, verbose, args[argPos + 2].c_str());
+				else
+					ret = message->decode(pt_slaveData, slave, result, false, verbose); // decode data
 			}
 			if (ret != RESULT_OK) {
 				L.log(bas, error, "read: %s", getResultCode(ret));
@@ -501,12 +503,11 @@ string BaseLoop::decodeMessage(const string& data)
 	}
 	case ct_help:
 		result << "commands:" << endl
-		       << " read      - read ebus values            'read [-f] [-v] [class] cmd'" << endl
-		       << " write     - write ebus values           'write class cmd value[;value]*'" << endl
-		       << " hex       - send given hex value        'hex type value'         (value: ZZPBSBNNDx)" << endl << endl
+		       << " read      - read ebus values            'read [-v] [-f] [-m seconds] [class] cmd' or 'read [-v] [-f] [-m seconds] class cmd sub'" << endl
+		       << " write     - write ebus values           'write class cmd value[;value]*' or 'write -h ZZPBSBNNDx'" << endl
 		       << " scan      - scan ebus kown addresses    'scan'" << endl
 		       << "           - scan ebus all addresses     'scan full'" << endl
-		       << "           - show results                'scan result'" << endl << endl
+		       << "           - show scan results           'scan result'" << endl << endl
  		       << " log       - change log areas            'log areas area,area,..' (areas: bas|net|bus|upd|all)" << endl
 		       << "           - change log level            'log level level'        (level: error|event|trace|debug)" << endl << endl
 		       << " raw       - toggle log raw data         'raw'" << endl

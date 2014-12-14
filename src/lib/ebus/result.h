@@ -24,6 +24,7 @@ static const int RESULT_OK = 0;                 // success
 
 static const int RESULT_IN_ESC = 1;             // start of escape sequence received
 static const int RESULT_SYN = 2;                // regular SYN after message received
+static const int RESULT_EMPTY = 3;              // empty result
 
 static const int RESULT_ERR_GENERIC_IO = -1;    // generic I/O error (usually fatal)
 static const int RESULT_ERR_DEVICE = -2;        // generic device error (usually fatal)

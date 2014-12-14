@@ -167,11 +167,14 @@ public:
 	 * @param leadingSeparator whether to prepend a separator before the formatted value.
 	 * @param verbose whether to prepend the name, append the unit (if present), and append
 	 * the comment in square brackets (if present).
+	 * @param filterName the optional name of a field to limit the output to.
 	 * @param separator the separator character between multiple fields.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	result_t decode(const PartType partType, SymbolString& data,
-			ostringstream& output, bool leadingSeparator=false, bool verbose=false, char separator=UI_FIELD_SEPARATOR);
+			ostringstream& output, bool leadingSeparator=false,
+			bool verbose=false, const char* filterName=NULL,
+			char separator=UI_FIELD_SEPARATOR);
 
 	/**
 	 * @brief Get the last decoded value.
