@@ -23,7 +23,6 @@
 #include <fstream>
 #include <cstdio>
 #include <cstring>
-#include <cmath>
 #include <ctime>
 #include <sys/time.h>
 #include <unistd.h>
@@ -36,12 +35,9 @@ static const char* AreaNames[Size_of_Areas] = { "bas", "net", "bus", "upd" };
 /** static char array with logging level names */
 static const char* LevelNames[Size_of_Level] = { "error", "event", "trace", "debug" };
 
-/** inline function of log2 */
-inline double Log2(double n) { return log(n) / log(2); }
-
-int calcAreas(const string areas)
+int calcAreaMask(const string areas)
 {
-	int m_areas = 0;
+	int mask = 0;
 
 	// prepare data
 	string token;
@@ -54,13 +50,13 @@ int calcAreas(const string areas)
 	for (vector<string>::iterator it = cmd.begin() ; it != cmd.end(); ++it)
 		for (int i = 0; i < Size_of_Areas; i++) {
 			if (strcasecmp("ALL", it->c_str()) == 0)
-				return (pow(2, (int)Size_of_Areas) - 1);
+				return (1 << (int)Size_of_Areas) - 1;
 
 			if (strcasecmp(AreaNames[i], it->c_str()) == 0)
-				m_areas += pow(2, i);
+				mask |= 1 << i;
 		}
 
-	return m_areas;
+	return mask;
 }
 
 int calcLevel(const string level)
@@ -104,15 +100,15 @@ void LogSink::run()
 {
 	while (1) {
 		LogMessage* message = m_logQueue.remove();
-			if (message->isRunning() == false) {
+		if (message->isRunning() == false) {
+			delete message;
+			while (m_logQueue.size() == true) {
+				LogMessage* message = m_logQueue.remove();
+				write(*message);
 				delete message;
-				while (m_logQueue.size() == true) {
-					LogMessage* message = m_logQueue.remove();
-					write(*message);
-					delete message;
-				}
-				return;
 			}
+			return;
+		}
 
 		write(*message);
 		delete message;
@@ -124,7 +120,7 @@ void LogSink::run()
 void LogConsole::write(const LogMessage& message) const
 {
 	cout << message.getTime() << " ["
-		  << AreaNames[(int)Log2(message.getArea())] << " "
+		  << AreaNames[(int)message.getArea()] << " "
 		  << LevelNames[message.getLevel()] << "] "
 		  << message.getText() << endl;
 }
@@ -137,7 +133,7 @@ void LogFile::write(const LogMessage& message) const
 
 	if (file.is_open() == true) {
 		file << message.getTime() << " ["
-		     << AreaNames[(int)Log2(message.getArea())] << " "
+		     << AreaNames[(int)message.getArea()] << " "
 		     << LevelNames[message.getLevel()] << "] "
 		     << message.getText() << endl;
 		file.close();
@@ -214,7 +210,7 @@ void Logger::run()
 		for (; iter != m_sinks.end(); ++iter) {
 			if (*iter != 0) {
 
-				if ((((*iter)->getAreas() & message->getArea()) != 0
+				if ((((*iter)->getAreaMask() & (1 << message->getArea())) != 0
 				&& (*iter)->getLevel() >= message->getLevel())
 				&& message->isRunning() == true) {
 					(*iter)->addMessage(*message);

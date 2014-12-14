@@ -159,12 +159,12 @@ int main(int argc, char* argv[])
 
 	// make me daemon
 	if (A.getOptVal<bool>("foreground") == true) {
-		L += new LogConsole(calcAreas(A.getOptVal<const char*>("logareas")),
+		L += new LogConsole(calcAreaMask(A.getOptVal<const char*>("logareas")),
 				    calcLevel(A.getOptVal<const char*>("loglevel")),
 				    "logconsole");
 	} else {
 		D.run("/var/run/ebusd.pid");
-		L += new LogFile(calcAreas(A.getOptVal<const char*>("logareas")),
+		L += new LogFile(calcAreaMask(A.getOptVal<const char*>("logareas")),
 				 calcLevel(A.getOptVal<const char*>("loglevel")),
 				 "logfile", A.getOptVal<const char*>("logfile"));
 	}

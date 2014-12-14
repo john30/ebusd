@@ -450,7 +450,7 @@ string BaseLoop::decodeMessage(const string& data)
 		}
 
 		if (strcasecmp(args[argPos].c_str(), "AREAS") == 0) {
-			L.getSink(0)->setAreas(calcAreas(args[argPos + 1]));
+			L.getSink(0)->setAreaMask(calcAreaMask(args[argPos + 1]));
 			result << "done";
 			break;
 		}
