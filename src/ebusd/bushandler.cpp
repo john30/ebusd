@@ -51,8 +51,8 @@ const char* getStateCode(BusState state) {
 	case bs_sendResAck: return "send response ACK";
 	case bs_recvCmd:    return "receive command";
 	case bs_recvResAck: return "receive response ACK";
-//	case bs_sendRes:    return "send response";
-//	case bs_sendCmdAck: return "send command ACK";
+	case bs_sendCmdAck: return "send command ACK";
+	case bs_sendRes:    return "send response";
 	case bs_sendSyn:    return "send SYN";
 	default:            return "unknown";
 	}
