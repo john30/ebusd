@@ -71,11 +71,10 @@ public:
 	/**
 	 * @brief Constructor.
 	 * @param master the master data @a SymbolString to send.
-	 * @param slave the slave data @a SymbolString received.
 	 * @param deleteOnFinish whether to automatically delete this @a BusRequest when finished.
 	 */
-	BusRequest(SymbolString& master, SymbolString& slave, bool deleteOnFinish)
-		: m_master(master), m_slave(slave), m_busLostRetries(0),
+	BusRequest(SymbolString& master, const bool deleteOnFinish)
+		: m_master(master), m_busLostRetries(0),
 		  m_deleteOnFinish(deleteOnFinish) {}
 
 	/**
@@ -86,22 +85,21 @@ public:
 	/**
 	 * @brief Notify the request of the specified result.
 	 * @param result the result of the request.
+	 * @param slave the slave data @a SymbolString received.
+	 * @return true if the request needs to be restarted.
 	 */
-	virtual void notify(result_t result) = 0;
+	virtual bool notify(result_t result, SymbolString& slave) = 0;
 
 protected:
 
 	/** the master data @a SymbolString to send. */
 	SymbolString& m_master;
 
-	/** the slave data @a SymbolString received. */
-	SymbolString& m_slave;
-
 	/** the number of times a send is repeated due to lost arbitration. */
 	unsigned int m_busLostRetries;
 
 	/** whether to automatically delete this @a BusRequest when finished. */
-	bool m_deleteOnFinish;
+	const bool m_deleteOnFinish;
 
 };
 
@@ -119,8 +117,8 @@ public:
 	 * @param slave the slave data @a SymbolString received.
 	 * @param message the associated @a Message.
 	 */
-	PollRequest(SymbolString& slave, Message* message)
-		: BusRequest(m_master, slave, true), m_message(message) {}
+	PollRequest(Message* message)
+		: BusRequest(m_master, true), m_message(message) {}
 
 	/**
 	 * @brief Destructor.
@@ -135,7 +133,7 @@ public:
 	result_t prepare(unsigned char masterAddress);
 
 	// @copydoc
-	virtual void notify(result_t result);
+	virtual bool notify(result_t result, SymbolString& slave);
 
 private:
 
@@ -159,12 +157,13 @@ public:
 	/**
 	 * @brief Constructor.
 	 * @param slave the slave data @a SymbolString received.
-	 * @param message the associated @a Message.
+	 * @param message the primary query @a Message.
+	 * @param messages the optional secondary query @a Message instances (to be queried only when the primary was successful).
 	 * @param scanResults the map in which to store the formatted scan result by slave address.
 	 */
-	ScanRequest(SymbolString& slave, Message* message,
+	ScanRequest(Message* message, deque<Message*> messages,
 		map<unsigned char, string>* scanResults)
-		: BusRequest(m_master, slave, true), m_message(message),
+		: BusRequest(m_master, true), m_message(message), m_messages(messages),
 		  m_scanResults(scanResults) {}
 
 	/**
@@ -181,15 +180,18 @@ public:
 	result_t prepare(unsigned char masterAddress, unsigned char dstAddress);
 
 	// @copydoc
-	virtual void notify(result_t result);
+	virtual bool notify(result_t result, SymbolString& slave);
 
 private:
 
 	/** the master data @a SymbolString. */
 	SymbolString m_master;
 
-	/** the associated @a Message. */
+	/** the currently queried @a Message. */
 	Message* m_message;
+
+	/** the remaining secondary @a Message instances. */
+	deque<Message*> m_messages;
 
 	/** the map in which to store the formatted scan result by slave address. */
 	map<unsigned char, string>* m_scanResults;
@@ -207,8 +209,8 @@ public:
 
 	/**
 	 * @brief Constructor.
-	 * @param master the master data @a SymbolString to send.
-	 * @param slave the slave data @a SymbolString received.
+	 * @param master reference to the master data @a SymbolString to send.
+	 * @param slave reference to @a SymbolString for filling in the received slave data.
 	 */
 	ActiveBusRequest(SymbolString& master, SymbolString& slave);
 
@@ -225,7 +227,7 @@ public:
 	bool wait(int timeout);
 
 	// @copydoc
-	virtual void notify(result_t result);
+	virtual bool notify(result_t result, SymbolString& slave);
 
 private:
 
@@ -234,6 +236,9 @@ private:
 
 	/** the result of handling the request. */
 	result_t m_result;
+
+	/** reference to @a SymbolString for filling in the received slave data. */
+	SymbolString& m_slave;
 
 	/** a mutex for wait/notify. */
 	pthread_mutex_t m_mutex;

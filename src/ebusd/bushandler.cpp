@@ -26,6 +26,7 @@
 #include "appl.h"
 #include <string>
 #include <vector>
+#include <deque>
 #include <cstring>
 #include <time.h>
 #include <iomanip>
@@ -68,16 +69,18 @@ result_t PollRequest::prepare(unsigned char ownMasterAddress)
 	return result;
 }
 
-void PollRequest::notify(result_t result)
+bool PollRequest::notify(result_t result, SymbolString& slave)
 {
 	ostringstream output;
 	if (result == RESULT_OK) {
-		result = m_message->decode(pt_slaveData, m_slave, output); // decode data
+		result = m_message->decode(pt_slaveData, slave, output); // decode data
 	}
 	if (result != RESULT_OK)
 		L.log(bus, error, "poll %s failed: %s", m_message->getName().c_str(), getResultCode(result));
 	else
 		L.log(bus, event, "poll %s: %s", m_message->getName().c_str(), output.str().c_str());
+
+	return false;
 }
 
 
@@ -90,27 +93,47 @@ result_t ScanRequest::prepare(unsigned char ownMasterAddress, unsigned char dstA
 	return result;
 }
 
-void ScanRequest::notify(result_t result)
+bool ScanRequest::notify(result_t result, SymbolString& slave)
 {
 	unsigned char dstAddress = m_master[1];
+	bool append = m_scanResults != NULL && m_scanResults->find(dstAddress) != m_scanResults->end();
 	ostringstream scanResult;
 	if (result == RESULT_OK) {
-		scanResult << hex << setw(2) << setfill('0') << static_cast<unsigned>(dstAddress) << UI_FIELD_SEPARATOR;
-		result = m_message->decode(pt_slaveData, m_slave, scanResult); // decode data
+		if (append == false)
+			scanResult << hex << setw(2) << setfill('0') << static_cast<unsigned>(dstAddress) << UI_FIELD_SEPARATOR;
+		result = m_message->decode(pt_slaveData, slave, scanResult, append); // decode data
 	}
-	if (result != RESULT_OK)
+	if (result != RESULT_OK) {
 		L.log(bus, error, "scan %2.2x failed: %s", dstAddress, getResultCode(result));
-	else {
-		string str = scanResult.str();
-		L.log(bus, event, "scan: %s", str.c_str());
-		if (m_scanResults != NULL)
+		return false;
+	}
+
+	string str = scanResult.str();
+	L.log(bus, event, "scan: %s", str.c_str());
+	if (m_scanResults != NULL) {
+		if (append == true)
+			(*m_scanResults)[dstAddress] += str;
+		else
 			(*m_scanResults)[dstAddress] = str;
 	}
+
+	// check for remaining secondary messages
+	if (m_messages.empty() == true)
+		return false;
+
+	m_message = m_messages.front();
+	m_messages.pop_front();
+
+	result = prepare(m_master[0], dstAddress);
+	if (result != RESULT_OK)
+		return false; // give up
+
+	return true;
 }
 
 
 ActiveBusRequest::ActiveBusRequest(SymbolString& master, SymbolString& slave)
-	: BusRequest(master, slave, false), m_finished(false), m_result(RESULT_SYN)
+	: BusRequest(master, false), m_finished(false), m_result(RESULT_SYN), m_slave(slave)
 {
 	pthread_mutex_init(&m_mutex, NULL);
 	pthread_cond_init(&m_cond, NULL);
@@ -144,18 +167,20 @@ bool ActiveBusRequest::wait(int timeout)
 	return result == 0;
 }
 
-void ActiveBusRequest::notify(result_t result)
+bool ActiveBusRequest::notify(result_t result, SymbolString& slave)
 {
 	if (result == RESULT_OK)
-		L.log(bus, event, "read res: %s", m_slave.getDataStr().c_str());
+		L.log(bus, event, "read res: %s", slave.getDataStr().c_str());
 
 	pthread_mutex_lock(&m_mutex);
 
 	m_result = result;
+	m_slave = SymbolString(slave, false, false);
 	m_finished = true;
 	pthread_cond_signal(&m_cond);
 
 	pthread_mutex_unlock(&m_mutex);
+	return false;
 }
 
 
@@ -226,7 +251,7 @@ result_t BusHandler::handleSymbol()
 					Message* message = m_messages->getNextPoll();
 					if (message != NULL) {
 						m_lastPoll = now;
-						PollRequest* request = new PollRequest(m_response, message);
+						PollRequest* request = new PollRequest(message);
 						result_t ret = request->prepare(m_ownMasterAddress);
 						if (ret != RESULT_OK) {
 							L.log(bus, error, "prepare poll message: %s", getResultCode(ret));
@@ -574,12 +599,15 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 			m_request = NULL;
 		} else if (state == bs_sendSyn || (result != RESULT_OK && firstRepetition == false)) {
 			L.log(bus, debug, "notify request: %s", getResultCode(result));
-			m_request->m_slave = SymbolString(m_response, false, false);
+			bool restart = m_request->notify(result, m_response);
 			unsigned char dstAddress = m_request->m_master[1];
 			if (result == RESULT_OK && isValidAddress(dstAddress, false) == true)
 				m_seenAddresses[dstAddress] = true;
-			m_request->notify(result);
-			if (m_request->m_deleteOnFinish == true) {
+			if (restart == true) {
+				m_request->m_busLostRetries = 0;
+				m_requests.add(m_request);
+			}
+			else if (m_request->m_deleteOnFinish == true) {
 				delete m_request;
 			}
 			m_request = NULL;
@@ -642,8 +670,14 @@ void BusHandler::receiveCompleted()
 result_t BusHandler::startScan(bool full)
 {
 	Message* scanMessage = m_scanMessage;
-	if (scanMessage == NULL) {
-		scanMessage = m_messages->find("", "scan", false);
+	deque<Message*> messages = m_messages->findAll("scan", "", -1);
+	for (deque<Message*>::iterator it = messages.begin(); it < messages.end();) {
+		Message* message = *it++;
+		if (message->getId()[0] == 0x07 && message->getId()[1] == 0x04) {
+			if (scanMessage == NULL)
+				scanMessage = message;
+			messages.erase(it - 1); // query pb 0x07 / sb 0x04 only once
+		}
 	}
 	if (scanMessage == NULL) {
 		DataFieldSet* identFields = DataFieldSet::createIdentFields();
@@ -652,8 +686,7 @@ result_t BusHandler::startScan(bool full)
 	if (scanMessage == NULL)
 		return RESULT_ERR_NOTFOUND;
 
-	if (full == true)
-		m_scanResults.clear();
+	m_scanResults.clear();
 
 	for (unsigned int slave=0; slave<=255; slave++) {
 		if (isValidAddress(slave, false) == false || isMaster(slave) == true)
@@ -664,7 +697,7 @@ result_t BusHandler::startScan(bool full)
 				continue;
 		}
 
-		ScanRequest* request = new ScanRequest(m_response, scanMessage, &m_scanResults);
+		ScanRequest* request = new ScanRequest(scanMessage, messages, &m_scanResults);
 		result_t result = request->prepare(m_ownMasterAddress, slave);
 		if (result != RESULT_OK) {
 			delete request;
