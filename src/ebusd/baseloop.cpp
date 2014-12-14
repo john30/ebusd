@@ -256,6 +256,8 @@ string BaseLoop::decodeMessage(const string& data)
 			result << "usage: 'read [-v] [-f] [-m seconds] [class] cmd' or 'read [-v] [-f] [-m seconds] class cmd sub'";
 			break;
 		}
+		if (args.size() == argPos + 3)
+			maxAge = 0; // force refresh to filter single field
 
 
 		time_t now;
