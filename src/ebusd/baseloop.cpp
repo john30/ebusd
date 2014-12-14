@@ -351,6 +351,10 @@ string BaseLoop::decodeMessage(const string& data)
 				break;
 
 			SymbolString master(msg.str());
+			if (isValidAddress(master[1]) == false) {
+				result << "invalid destination";
+				break;
+			}
 			L.log(bas, event, "write hex cmd: %s", master.getDataStr().c_str());
 
 			// send message

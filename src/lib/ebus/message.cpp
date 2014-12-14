@@ -71,21 +71,20 @@ Message::Message(const bool isSet, const bool isPassive,
  * @param pos the position in defaults.
  * @return the default if available and value is empty, or the value.
  */
-string getDefault(string value, vector<string>* defaults, size_t pos)
+string getDefault(const string value, vector<string>* defaults, size_t pos)
 {
 	if (value.length() > 0 || defaults == NULL || pos > defaults->size()) {
 		return value;
 	}
 
-	value = defaults->at(pos);
-	return value;
+	return defaults->at(pos);
 }
 
 result_t Message::create(vector<string>::iterator& it, const vector<string>::iterator end,
 		vector< vector<string> >* defaultsRows,
 		DataFieldTemplates* templates, Message*& returnValue)
 {
-	// [type],[class],name,[comment],[QQ],ZZ,id,fields...
+	// [type],[class],name,[comment],[QQ],[ZZ],id,fields...
 	result_t result;
 	bool isSet = false, isPassive = false;
 	string defaultName;
@@ -148,24 +147,28 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 		return RESULT_ERR_EOF;
 	unsigned char srcAddress;
 	if (*str == 0)
-		srcAddress = SYN; // no specific source defined
+		srcAddress = SYN; // no specific source
 	else {
 		srcAddress = parseInt(str, 16, 0, 0xff, result);
 		if (result != RESULT_OK)
 			return result;
 		if (isMaster(srcAddress) == false)
-			return RESULT_ERR_INVALID_ARG;
+			return RESULT_ERR_INVALID_ADDR;
 	}
 
 	str = getDefault(*it++, defaults, defaultPos++).c_str();
 	if (it == end)
-		return RESULT_ERR_EOF;
-
-	unsigned char dstAddress = parseInt(str, 16, 0, 0xff, result);
-	if (result != RESULT_OK)
-		return result;
-	if (isValidAddress(dstAddress) == false)
-		return RESULT_ERR_INVALID_ARG;
+		 return RESULT_ERR_EOF;
+	unsigned char dstAddress;
+	if (*str == 0)
+		dstAddress = SYN; // no specific destination
+	else {
+		dstAddress = parseInt(str, 16, 0, 0xff, result);
+		if (result != RESULT_OK)
+			return result;
+		if (isValidAddress(dstAddress) == false)
+			return RESULT_ERR_INVALID_ADDR;
+	}
 
 	vector<unsigned char> id;
 	for (int pos=0, useDefaults=1; pos<2; pos++) { // message id (PBSB, optional master data)
@@ -229,7 +232,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 		}
 	}
 	DataField* data = NULL;
-	result = DataField::create(it, realEnd, templates, data, isSet, dstAddress);
+	result = DataField::create(it, realEnd, templates, data, isSet, dstAddress==SYN ? ESC : dstAddress);
 	if (result != RESULT_OK) {
 		return result;
 	}
@@ -246,9 +249,11 @@ result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& ma
 	result_t result = master.push_back(srcAddress, false, false);
 	if (result != RESULT_OK)
 		return result;
-	if (dstAddress == SYN)
+	if (dstAddress == SYN) {
+		if (m_dstAddress == SYN)
+			return RESULT_ERR_INVALID_ADDR;
 		result = master.push_back(m_dstAddress, false, false);
-	else
+	} else
 		result = master.push_back(dstAddress, false, false);
 	if (result != RESULT_OK)
 		return result;
@@ -411,6 +416,29 @@ Message* MessageMap::find(const string& clazz, const string& name, const bool is
 	}
 
 	return NULL;
+}
+
+deque<Message*> MessageMap::findAll(const string& clazz, const string& name, const short pb)
+{
+	deque<Message*> ret;
+
+	bool checkClass = clazz.length() > 0;
+	bool checkName = name.length() > 0;
+	bool checkPb = pb >= 0;
+	for (map<string, Message*>::iterator it = m_messagesByName.begin(); it != m_messagesByName.end(); it++) {
+		if (it->first[0] != '-') // avoid duplicates: instances stored multiple times have a key starting with "-"
+			continue;
+		Message* message = it->second;
+		if (checkClass == true && message->getClass() != clazz)
+			continue;
+		if (checkName == true && message->getName() != name)
+			continue;
+		if (checkPb == true && message->getId()[0] != pb)
+			continue;
+		ret.push_back(message);
+	}
+
+	return ret;
 }
 
 Message* MessageMap::find(SymbolString& master)

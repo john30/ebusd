@@ -36,17 +36,18 @@ static const int RESULT_ERR_NOTFOUND = -6;      // file/element not found or not
 static const int RESULT_ERR_EOF = -7;           // end of input reached
 static const int RESULT_ERR_INVALID_ARG = -8;   // invalid argument
 static const int RESULT_ERR_INVALID_NUM = -9;   // invalid numeric argument
-static const int RESULT_ERR_INVALID_POS = -10;  // invalid position
-static const int RESULT_ERR_OUT_OF_RANGE = -11; // argument value out of valid range
-static const int RESULT_ERR_INVALID_PART = -12; // invalid part type value
-static const int RESULT_ERR_MISSING_TYPE = -13; // missing data type
-static const int RESULT_ERR_INVALID_LIST = -14; // invalid value list
-static const int RESULT_ERR_DUPLICATE = -15;    // duplicate entry
+static const int RESULT_ERR_INVALID_ADDR = -10; // invalid address
+static const int RESULT_ERR_INVALID_POS = -11;  // invalid position
+static const int RESULT_ERR_OUT_OF_RANGE = -12; // argument value out of valid range
+static const int RESULT_ERR_INVALID_PART = -13; // invalid part type value
+static const int RESULT_ERR_MISSING_TYPE = -14; // missing data type
+static const int RESULT_ERR_INVALID_LIST = -15; // invalid value list
+static const int RESULT_ERR_DUPLICATE = -16;    // duplicate entry
 
-static const int RESULT_ERR_BUS_LOST = -16;     // arbitration lost
-static const int RESULT_ERR_CRC = -17;          // CRC error
-static const int RESULT_ERR_ACK = -18;          // ACK error
-static const int RESULT_ERR_NAK = -19;          // NAK received
+static const int RESULT_ERR_BUS_LOST = -17;     // arbitration lost
+static const int RESULT_ERR_CRC = -18;          // CRC error
+static const int RESULT_ERR_ACK = -19;          // ACK error
+static const int RESULT_ERR_NAK = -20;          // NAK received
 
 /** type for result code. */
 typedef int result_t;

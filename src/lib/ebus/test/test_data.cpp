@@ -250,17 +250,17 @@ int main()
 		SymbolString writeMstr(mstr.getDataStr().substr(0, 10), false);
 		SymbolString writeSstr(sstr.getDataStr().substr(0, 2), false);
 		result = fields->read(pt_masterData, mstr, 0, output, false, verbose);
-		if (result == RESULT_OK) {
+		if (result >= RESULT_OK) {
 			result = fields->read(pt_slaveData, sstr, 0, output, output.str().empty() == false, verbose);
 		}
 		if (failedRead == true)
-			if (result == RESULT_OK)
+			if (result >= RESULT_OK)
 				cout << "  failed read " << fields->getName() << " >"
 				        << check[2] << "< error: unexpectedly succeeded" << endl;
 			else
 				cout << "  failed read " << fields->getName() << " >"
 				        << check[2] << "< OK" << endl;
-		else if (result != RESULT_OK) {
+		else if (result < RESULT_OK) {
 			cout << "  read " << fields->getName() << " >" << check[2]
 			        << "< error: " << getResultCode(result) << endl;
 		}
@@ -272,17 +272,17 @@ int main()
 		if (verbose == false) {
 			istringstream input(expectStr);
 			result = fields->write(input, pt_masterData, writeMstr, 0);
-			if (result == RESULT_OK)
+			if (result >= RESULT_OK)
 				result = fields->write(input, pt_slaveData, writeSstr, 0);
 			if (failedWrite == true) {
-				if (result == RESULT_OK)
+				if (result >= RESULT_OK)
 					cout << "  failed write " << fields->getName() << " >"
 					        << expectStr << "< error: unexpectedly succeeded" << endl;
 				else
 					cout << "  failed write " << fields->getName() << " >"
 					        << expectStr << "< OK" << endl;
 			}
-			else if (result != RESULT_OK) {
+			else if (result < RESULT_OK) {
 				cout << "  write " << fields->getName() << " >" << expectStr
 				        << "< error: " << getResultCode(result) << endl;
 			}

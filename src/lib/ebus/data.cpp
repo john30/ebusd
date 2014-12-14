@@ -32,11 +32,11 @@ static const dataType_t stringDataType = {
 	"STR",16*8,bt_str,     ADJ,        ' ',          1,         16,    0, 0  // >= 1 byte character string filled up with space
 };
 
-static const dataType_t bcdDataType = {
-	"BCD",  8, bt_num, BCD|LST,       0xff,          0,       0x99,    1, 0 // unsigned decimal in BCD, 0 - 99
+static const dataType_t pinDataType = {
+	"PIN", 16, bt_num, FIX|BCD|REV, 0xffff,          0,     0x9999,    1, 0 // unsigned decimal in BCD, 0000 - 9999 (fixed length)
 };
 
-static const dataType_t ucharDataType = {
+static const dataType_t uchDataType = {
 	"UCH",  8, bt_num,     LST,       0xff,          0,       0xfe,    1, 0 // unsigned integer, 0 - 254
 };
 
@@ -56,8 +56,9 @@ static const dataType_t dataTypes[] = {
 	{"TTM",  8, bt_tim,       0,       0x90,          5,          5,    0, 0}, // truncated time (only multiple of 10 minutes), 00:00 - 24:00 (minutes div 10 + hour * 6 as integer)
 	{"BDY",  8, bt_num, DAY|LST,       0x07,          0,          6,    1, 0}, // weekday, "Mon" - "Sun" (0x00 - 0x06) [ebus type]
 	{"HDY",  8, bt_num, DAY|LST,       0x00,          1,          7,    1, 0}, // weekday, "Mon" - "Sun" (0x01 - 0x07) [Vaillant type]
-	bcdDataType,
-	ucharDataType,
+	{"BCD",  8, bt_num, BCD|LST,       0xff,          0,       0x99,    1, 0}, // unsigned decimal in BCD, 0 - 99
+	pinDataType,
+	uchDataType,
 	{"SCH",  8, bt_num,     SIG,       0x80,       0x81,       0x7f,    1, 0}, // signed integer, -127 - +127
 	{"D1B",  8, bt_num,     SIG,       0x80,       0x81,       0x7f,    1, 0}, // signed integer, -127 - +127
 	{"D1C",  8, bt_num,       0,       0xff,       0x00,       0xc8,    2, 1}, // unsigned number (fraction 1/2), 0 - 100 (0x00 - 0xc8, replacement 0xff)
@@ -861,9 +862,11 @@ result_t NumberDataField::readSymbols(SymbolString& input,
 	else
 		signedValue = (int) value;
 
-	if (m_divisor <= 1)
-		output << static_cast<int>(signedValue);
-	else
+	if (m_divisor <= 1) {
+		if ((m_dataType.flags & (FIX|BCD)) == (FIX|BCD))
+			output << setw(m_length * 2) << setfill('0');
+		output << static_cast<int>(signedValue) << setw(0);
+	} else
 		output << setprecision((m_bitCount % 8) == 0 ? m_dataType.precisionOrFirstBit : 0)
 		       << fixed << static_cast<float>(signedValue / (float) m_divisor);
 
@@ -1048,12 +1051,10 @@ DataFieldSet* DataFieldSet::createIdentFields()
 	manufacturers[0xb5] = "Joh. Vaillant GmbH & Co.";
 	manufacturers[0xc0] = "Toby AG";
 	manufacturers[0xc5] = "Max Weishaupt GmbH";
-	fields.push_back(new ValueListDataField("manufacturer", "", "", ucharDataType, pt_slaveData, 1, 8, manufacturers));
+	fields.push_back(new ValueListDataField("manufacturer", "", "", uchDataType, pt_slaveData, 1, 8, manufacturers));
 	fields.push_back(new StringDataField("id", "", "", stringDataType, pt_slaveData, 5));
-	fields.push_back(new NumberDataField("swv", "", "", bcdDataType, pt_slaveData, 1, 8, 0));
-	fields.push_back(new NumberDataField("swr", "", "", bcdDataType, pt_slaveData, 1, 8, 0));
-	fields.push_back(new NumberDataField("hwv", "", "", bcdDataType, pt_slaveData, 1, 8, 0));
-	fields.push_back(new NumberDataField("hwr", "", "", bcdDataType, pt_slaveData, 1, 8, 0));
+	fields.push_back(new NumberDataField("software", "", "", pinDataType, pt_slaveData, 2, 16, 0));
+	fields.push_back(new NumberDataField("hardware", "", "", pinDataType, pt_slaveData, 2, 16, 0));
 	return new DataFieldSet("ident", "", fields);
 }
 

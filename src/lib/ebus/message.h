@@ -25,6 +25,7 @@
 #include "symbol.h"
 #include <string>
 #include <vector>
+#include <deque>
 #include <map>
 
 using namespace std;
@@ -48,7 +49,7 @@ public:
 	 * false if message can be initiated by any participant.
 	 * @param comment the comment.
 	 * @param srcAddress the source address, or @a SYN for any (only relevant if passive).
-	 * @param dstAddress the destination address.
+	 * @param dstAddress the destination address, or @a SYN for any (set later).
 	 * @param id the primary, secondary, and optional further ID bytes.
 	 * @param data the @a DataField for encoding/decoding the message.
 	 * @param pollPriority the priority for polling, or 0 for no polling at all.
@@ -120,7 +121,7 @@ public:
 	unsigned char getSrcAddress() const { return m_srcAddress; }
 	/**
 	 * @brief Get the destination address.
-	 * @return the destination address.
+	 * @return the destination address, or @a SYN for any.
 	 */
 	unsigned char getDstAddress() const { return m_dstAddress; }
 	/**
@@ -280,6 +281,15 @@ public:
 	 * Note: the caller may not free the returned instance.
 	 */
 	Message* find(const string& clazz, const string& name, const bool isSet, const bool isPassive=false);
+	/**
+	 * @brief Find all active get @a Message instances for the specified class and name.
+	 * @param class the device class, or empty for any.
+	 * @param name the message name, or empty for any.
+	 * @param pb the primary ID byte, or -1 for any.
+	 * @return the found @a Message instances.
+	 * Note: the caller may not free the returned instances.
+	 */
+	deque<Message*> findAll(const string& clazz, const string& name, const short pb);
 	/**
 	 * @brief Find the @a Message instance for the specified master data.
 	 * @param master the master @a SymbolString for identifying the @a Message.

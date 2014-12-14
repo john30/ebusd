@@ -49,7 +49,7 @@ enum PartType {
 	pt_any,          // stored in any data (master or slave)
 	pt_masterData,   // stored in master data
 	pt_slaveData,    // stored in slave data
-	};
+};
 
 /** the available base data types. */
 enum BaseType {
@@ -68,6 +68,7 @@ const unsigned int SIG = 0x08; // signed value
 const unsigned int LST = 0x10; // value list is possible (without applied divisor)
 const unsigned int DAY = 0x20; // forced value list defaulting to week days
 const unsigned int IGN = 0x40; // ignore value during read and write
+const unsigned int FIX = 0x80; // fixed width formatting
 
 /** the structure for defining field types with their properties. */
 typedef struct {
