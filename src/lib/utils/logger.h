@@ -34,11 +34,10 @@ using namespace std;
 
 /** available types for all subsystems */
 enum AreasType {
-	bas=1,           /*!< basis */
-	net=2,           /*!< network */
-	bus=4,           /*!< ebus */
-	upd=8,           /*!< updates found while listening to the bus */
-	all=15,          /*!< type for all subsystems */
+	bas=0,           /*!< basis */
+	net,             /*!< network */
+	bus,             /*!< ebus */
+	upd,             /*!< updates found while listening to the bus */
 	Size_of_Areas=4  /*!< number of possible areas */
 };
 
@@ -51,8 +50,8 @@ enum LevelType {
 	Size_of_Level  /*!< number of possible levels */
 };
 
-/** global function to get calculate logging areas */
-int calcAreas(const string areas);
+/** global function to get the mask of logging areas */
+int calcAreaMask(const string areas);
 
 /** global function to get calculate logging level */
 int calcLevel(const string level);
@@ -77,19 +76,19 @@ public:
 	 * @brief get the logging area.
 	 * @return the logging area.
 	 */
-	int getArea() const { return (m_area); }
+	int getArea() const { return m_area; }
 
 	/**
 	 * @brief get the logging level.
 	 * @return the logging level.
 	 */
-	int getLevel() const { return(m_level); }
+	int getLevel() const { return m_level; }
 
 	/**
 	 * @brief get the logging text.
 	 * @return the logging text.
 	 */
-	string getText() const { return (m_text.c_str()); }
+	string getText() const { return m_text.c_str(); }
 
 	/**
 	 * @brief status of logging subsystem.
@@ -101,22 +100,22 @@ public:
 	 * @brief get the logging timestamp.
 	 * @return the logging timestamp.
 	 */
-	string getTime() const { return (m_time.c_str()); }
+	string getTime() const { return m_time.c_str(); }
 
 private:
-	/** the logging area */
+	/** the logging area. */
 	int m_area;
 
-	/** the logging level */
+	/** the logging level. */
 	int m_level;
 
-	/** the logging message */
+	/** the logging message. */
 	string m_text;
 
-	/** true if this instance is running */
+	/** true if this instance is running. */
 	bool m_running;
 
-	/** the logging timestamp */
+	/** the logging timestamp. */
 	string m_time;
 
 };
@@ -130,10 +129,10 @@ class LogSink : public Thread
 public:
 	/**
 	 * @brief creates a virtual logging sink.
-	 * @param areas the logging areas.
+	 * @param areas the logging area mask.
 	 * @param level the logging level.
 	 */
-	LogSink(const int areas, const int level) : m_areas(areas), m_level(level) {}
+	LogSink(const int areaMask, const int level) : m_areaMask(areaMask), m_level(level) {}
 
 	/**
 	 * @brief adds the logging message to internal message queue.
@@ -147,16 +146,16 @@ public:
 	void run();
 
 	/**
-	 * @brief get the logging areas.
-	 * @return the logging areas.
+	 * @brief get the logging area mask.
+	 * @return the logging area mask.
 	 */
-	int getAreas() const { return (m_areas); }
+	int getAreaMask() const { return m_areaMask; }
 
 	/**
-	 * @brief set the logging areas.
-	 * @param areas the logging areas.
+	 * @brief set the logging area mask.
+	 * @param areas the logging area mask.
 	 */
-	void setAreas(const int& areas) { m_areas = areas; }
+	void setAreaMask(const int& areaMask) { m_areaMask = areaMask; }
 
 	/**
 	 * @brief get the logging level.
@@ -175,10 +174,10 @@ protected:
 	WQueue<LogMessage*> m_logQueue;
 
 private:
-	/** the logging areas */
-	int m_areas;
+	/** the logging area mask. */
+	int m_areaMask;
 
-	/** the logging level */
+	/** the logging level. */
 	int m_level;
 
 	/**
@@ -198,12 +197,12 @@ class LogConsole : public LogSink
 public:
 	/**
 	 * @brief creates a console logging sink.
-	 * @param areas the logging areas.
+	 * @param areas the logging area mask.
 	 * @param level the logging level.
 	 * @param name the thread name for logging sink.
 	 */
-	LogConsole(const int areas, const int level, const char* name)
-		: LogSink(areas, level) { this->start(name); }
+	LogConsole(const int areaMask, const int level, const char* name)
+		: LogSink(areaMask, level) { this->start(name); }
 
 private:
 	/**
@@ -223,13 +222,13 @@ class LogFile : public LogSink
 public:
 	/**
 	 * @brief creates a log file logging sink.
-	 * @param areas the logging areas.
+	 * @param areas the logging area mask.
 	 * @param level the logging level.
 	 * @param name the thread name for logging sink.
 	 * @param file the log file.
 	 */
-	LogFile(const int areas, const int level, const char* name, const char* file)
-		: LogSink(areas, level), m_file(file) { this->start(name); }
+	LogFile(const int areaMask, const int level, const char* name, const char* file)
+		: LogSink(areaMask, level), m_file(file) { this->start(name); }
 
 private:
 	/** the logging file */
