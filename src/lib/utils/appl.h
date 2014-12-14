@@ -117,11 +117,11 @@ class Appl
 public:
 	/**
 	 * @brief create an instance and return the reference.
-	 * @param command is true if an command is needed.
-	 * @param argument is true if command could have an argument.
+	 * @param command string for help page.
+	 * @param argument string for help page.
 	 * @return the reference to instance.
 	 */
-	static Appl& Instance(const bool command=false, const bool argument=false);
+	static Appl& Instance(const char* command="", const char* argument="");
 
 	/**
 	 * @brief destructor.
@@ -198,10 +198,10 @@ public:
 private:
 	/**
 	 * @brief private construtor.
-	 * @param command is true if an command is needed.
-	 * @param argument is true if command could have an argument.
+	 * @param command string for help page.
+	 * @param argument string for help page.
 	 */
-	Appl(const bool command, const bool argument)
+	Appl(const char* command, const char* argument)
 		: m_withCommand(command), m_withArgument(argument) {}
 
 	/**
@@ -235,11 +235,11 @@ private:
 	/** application version string */
 	const char* m_version;
 
-	/** true if the application could have a command */
-	bool m_withCommand;
+	/** command string for help page */
+	const char* m_withCommand;
 
-	/** true if the command could have an argument */
-	bool m_withArgument;
+	/** argument string for help page */
+	const char* m_withArgument;
 
 	/** command (argument 0 = command) string */
 	string m_command;
