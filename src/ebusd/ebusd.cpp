@@ -55,7 +55,7 @@ void define_args()
 	A.addOption("nodevicecheck", "n", OptVal(false), dt_bool, ot_none,
 		    "disable valid ebus device test\n");
 
-	A.addOption("sendretries", "s", OptVal(2), dt_int, ot_mandatory,
+	A.addOption("sendretries", "", OptVal(2), dt_int, ot_mandatory,
 		    "number retries send ebus command (2)");
 
 	A.addOption("lockretries", "", OptVal(2), dt_int, ot_mandatory,
