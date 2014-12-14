@@ -183,13 +183,17 @@ public:
 	 * @param leadingSeparator whether to prepend a separator before the formatted value.
 	 * @param verbose whether to prepend the name, append the unit (if present), and append
 	 * the comment in square brackets (if present).
+	 * @param filterName the optional name of a field to limit the output to.
 	 * @param separator the separator character between multiple fields.
-	 * @return @a RESULT_OK on success (or if the partType does not match), or an error code.
+	 * @return @a RESULT_OK on success (or if the partType does not match),
+	 * or @a RESULT_EMPTY if the field was skipped (either ignored or due to @a filterName),
+	 * or an error code.
 	 */
 	virtual result_t read(const PartType partType,
 			SymbolString& data, unsigned char offset,
 			ostringstream& output, bool leadingSeparator=false,
-			bool verbose=false, char separator=UI_FIELD_SEPARATOR) = 0;
+			bool verbose=false, const char* filterName=NULL,
+			char separator=UI_FIELD_SEPARATOR) = 0;
 	/**
 	 * @brief Writes the value to the master or slave @a SymbolString.
 	 * @param input the @a istringstream to parse the formatted value from.
@@ -270,7 +274,8 @@ public:
 	virtual result_t read(const PartType partType,
 			SymbolString& data, unsigned char offset,
 			ostringstream& output, bool leadingSeparator=false,
-			bool verbose=false, char separator=UI_FIELD_SEPARATOR);
+			bool verbose=false, const char* filterName=NULL,
+			char separator=UI_FIELD_SEPARATOR);
 	// @copydoc
 	virtual result_t write(istringstream& input,
 			const PartType partType, SymbolString& data,
@@ -569,7 +574,8 @@ public:
 	virtual result_t read(const PartType partType,
 			SymbolString& data, unsigned char offset,
 			ostringstream& output, bool leadingSeparator=false,
-			bool verbose=false, char separator=UI_FIELD_SEPARATOR);
+			bool verbose=false, const char* filterName=NULL,
+			char separator=UI_FIELD_SEPARATOR);
 	// @copydoc
 	virtual result_t write(istringstream& input,
 			const PartType partType, SymbolString& data,

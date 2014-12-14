@@ -20,6 +20,7 @@
 #include "baseloop.h"
 #include "logger.h"
 #include "appl.h"
+#include "data.h"
 #include <dirent.h>
 #include <iomanip>
 
@@ -30,26 +31,10 @@ extern Appl& A;
 
 BaseLoop::BaseLoop()
 {
-	// create commands DB
+	// load messages and templates
 	m_templates = new DataFieldTemplates();
 	m_messages = new MessageMap();
-
-	string confdir = A.getOptVal<const char*>("ebusconfdir");
-	L.log(bas, trace, "ebus configuration dir: %s", confdir.c_str());
-	result_t result = m_templates->readFromFile(confdir+"/_types.csv");
-	if (result == RESULT_OK)
-		L.log(bas, trace, "read templates");
-	else
-		L.log(bas, error, "error reading templates: %s", getResultCode(result));
-	result = readConfigFiles(confdir, ".csv");
-	if (result == RESULT_OK)
-		L.log(bas, trace, "read config files");
-	else
-		L.log(bas, error, "error reading config files: %s", getResultCode(result));
-
-	L.log(bas, event, "message DB: %d ", m_messages->size());
-	L.log(bas, event, "updates DB: %d ", m_messages->size(true));
-	L.log(bas, event, "polling DB: %d ", m_messages->sizePoll());
+	loadMessages();
 
 	m_ownAddress = A.getOptVal<int>("address") & 0xff;
 	const bool answer = A.getOptVal<bool>("answer");
@@ -113,6 +98,31 @@ BaseLoop::~BaseLoop()
 		delete m_templates;
 }
 
+result_t BaseLoop::loadMessages()
+{
+	string confdir = A.getOptVal<const char*>("ebusconfdir");
+	L.log(bas, trace, "ebus configuration dir: %s", confdir.c_str());
+	m_messages->clear();
+	m_templates->clear();
+	result_t result = m_templates->readFromFile(confdir+"/_types.csv");
+	if (result == RESULT_OK)
+		L.log(bas, trace, "read templates");
+	else
+		L.log(bas, error, "error reading templates: %s", getResultCode(result));
+
+	result = readConfigFiles(confdir, ".csv");
+	if (result == RESULT_OK) {
+		L.log(bas, trace, "read config files");
+
+		L.log(bas, event, "message DB: %d ", m_messages->size());
+		L.log(bas, event, "updates DB: %d ", m_messages->size(true));
+		L.log(bas, event, "polling DB: %d ", m_messages->sizePoll());
+	} else
+		L.log(bas, error, "error reading config files: %s", getResultCode(result));
+
+	return result;
+}
+
 result_t BaseLoop::readConfigFiles(const string path, const string extension)
 {
 	DIR* dir = opendir(path.c_str());
@@ -132,7 +142,7 @@ result_t BaseLoop::readConfigFiles(const string path, const string extension)
 				if (result != RESULT_OK)
 					return result;
 			}
-		} else if (d->d_type == DT_REG) {
+		} else if (d->d_type == DT_REG || d->d_type == DT_LNK) {
 			string fn = d->d_name;
 
 			if (fn.find(extension, (fn.length() - extension.length())) != string::npos
@@ -208,7 +218,6 @@ string BaseLoop::decodeMessage(const string& data)
 		return "command missing";
 
 	size_t argPos = 1;
-	bool force = false;
 
 	switch (getCase(args[0])) {
 	case ct_invalid:
@@ -216,24 +225,51 @@ string BaseLoop::decodeMessage(const string& data)
 		break;
 
 	case ct_read: {
-		if (args.size() > argPos && args[argPos] == "-f") {
-			force = true;
+		unsigned int maxAge = 5*60;
+		bool verbose = false;
+		while (args.size() > argPos && args[argPos][0] == '-') {
+			if (args[argPos]== "-f") {
+				maxAge = 0;
+			} else if (args[argPos] == "-v") {
+				verbose = true;
+			} else if (args[argPos] == "-m") {
+				argPos++;
+				if (args.size() > argPos) {
+					result_t result;
+					maxAge = parseInt(args[argPos].c_str(), 10, 0, 24*60*60, result);
+					if (result != RESULT_OK) {
+						argPos = args.size(); // print usage
+						break;
+					}
+				}
+				else {
+					argPos = args.size(); // print usage
+					break;
+				}
+			} else {
+				argPos = args.size(); // print usage
+				break;
+			}
 			argPos++;
 		}
 		if (args.size() < argPos + 1 || args.size() > argPos + 3) {
-			result << "usage: 'read [-f] [class] cmd' or 'read [-f] class cmd sub'";
+			result << "usage: 'read [-v] [-f] [-m seconds] [class] cmd' or 'read [-v] [-f] [-m seconds] class cmd sub'";
 			break;
 		}
 
+
+		time_t now;
+		time(&now);
+
 		Message* updateMessage = NULL;
-		if (force == false) {
+		if (maxAge > 0 && verbose == false) {
 			if (args.size() == argPos + 1)
 				updateMessage = m_messages->find("", args[argPos], false, true);
 			else
 				updateMessage = m_messages->find(args[argPos], args[argPos + 1], false, true);
 
-			if (updateMessage != NULL) {
-				token = updateMessage->getLastValue();
+			if (updateMessage != NULL && updateMessage->getLastUpdateTime() + maxAge > now) {
+				token = updateMessage->getLastValue();  // TODO switch from last value to last master/slave to support verbose cached/polled values as well
 				if (token.empty() == false) {
 					result << token;
 					break;
@@ -248,8 +284,8 @@ string BaseLoop::decodeMessage(const string& data)
 			message = m_messages->find(args[argPos], args[argPos + 1], false);
 
 		if (message != NULL) {
-
-			if (m_pollActive == true && message->getPollPriority() > 0) {
+			if (maxAge > 0 && m_pollActive == true && message->getPollPriority() > 0
+			        && message->getLastUpdateTime() + maxAge > now) {
 				// get polldata
 				token = message->getLastValue();
 				if (token.empty() == false) {
@@ -266,15 +302,17 @@ string BaseLoop::decodeMessage(const string& data)
 				result << getResultCode(ret);
 				break;
 			}
-			L.log(bas, event, "read cmd: %s", master.getDataStr().c_str());
+			L.log(bas, trace, "read cmd: %s", master.getDataStr().c_str());
 
 			// send message
 			SymbolString slave;
 			ret = m_busHandler->sendAndWait(master, slave);
 
 			if (ret == RESULT_OK) {
-				// TODO reduce to requested variable only
-				ret = message->decode(pt_slaveData, slave, result); // decode data
+				if (args.size() == argPos + 3)
+					ret = message->decode(pt_slaveData, slave, result, false, verbose, args[argPos + 2].c_str());
+				else
+					ret = message->decode(pt_slaveData, slave, result, false, verbose); // decode data
 			}
 			if (ret != RESULT_OK) {
 				L.log(bas, error, "read: %s", getResultCode(ret));
@@ -289,8 +327,49 @@ string BaseLoop::decodeMessage(const string& data)
 		break;
 	}
 	case ct_write: {
+		if (args.size() > argPos && args[argPos] == "-h") {
+			argPos++;
+
+			if (args.size() < argPos + 1) {
+				result << "usage: 'write -h ZZPBSBNNDx'";
+				break;
+			}
+
+			ostringstream msg;
+			msg << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_ownAddress) << setw(0);
+			while (argPos < args.size()) {
+				if ((args[argPos].length() % 2) != 0) {
+					result << "invalid hex string";
+					msg.str("");
+					break;
+				}
+				msg << args[argPos++];
+			}
+			if (msg.str().length() == 0)
+				break;
+
+			SymbolString master(msg.str());
+			L.log(bas, event, "write hex cmd: %s", master.getDataStr().c_str());
+
+			// send message
+			SymbolString slave;
+			result_t ret = m_busHandler->sendAndWait(master, slave);
+
+			if (ret == RESULT_OK) {
+				if (master[1] == BROADCAST || isMaster(master[1]))
+					result << "done";
+				else
+					result << slave.getDataStr();
+			}
+			if (ret != RESULT_OK) {
+				L.log(bas, error, "write hex: %s", getResultCode(ret));
+				result << getResultCode(ret);
+			}
+			break;
+		}
+
 		if (args.size() != argPos + 3) {
-			result << "usage: 'write class cmd value[;value]*'";
+			result << "usage: 'write class cmd value[;value]*' or 'write -h ZZPBSBNNDx'";
 			break;
 		}
 
@@ -305,7 +384,7 @@ string BaseLoop::decodeMessage(const string& data)
 				result << getResultCode(ret);
 				break;
 			}
-			L.log(bas, event, "write cmd: %s", master.getDataStr().c_str());
+			L.log(bas, trace, "write cmd: %s", master.getDataStr().c_str());
 
 			// send message
 			SymbolString slave;
@@ -327,44 +406,6 @@ string BaseLoop::decodeMessage(const string& data)
 
 		} else {
 			result << "message not defined";
-		}
-		break;
-	}
-	case ct_hex: {
-		if (args.size() < argPos + 1) {
-			result << "usage: 'hex value' (value: ZZPBSBNNDx)";
-			break;
-		}
-
-		ostringstream msg;
-		msg << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_ownAddress) << setw(0);
-		while (argPos < args.size()) {
-			if ((args[argPos].length() % 2) != 0) {
-				result << "invalid hex string";
-				msg.str("");
-				break;
-			}
-			msg << args[argPos++];
-		}
-		if (msg.str().length() == 0)
-			break;
-
-		SymbolString master(msg.str());
-		L.log(bas, event, "hex cmd: %s", master.getDataStr().c_str());
-
-		// send message
-		SymbolString slave;
-		result_t ret = m_busHandler->sendAndWait(master, slave);
-
-		if (ret == RESULT_OK) {
-			if (master[1] == BROADCAST || isMaster(master[1]))
-				result << "done";
-			else
-				result << slave.getDataStr();
-		}
-		if (ret != RESULT_OK) {
-			L.log(bas, error, "hex: %s", getResultCode(ret));
-			result << getResultCode(ret);
 		}
 		break;
 	}
@@ -408,7 +449,6 @@ string BaseLoop::decodeMessage(const string& data)
 			break;
 		}
 
-		// TODO: check for possible areas and level
 		if (strcasecmp(args[argPos].c_str(), "AREAS") == 0) {
 			L.getSink(0)->setAreas(calcAreas(args[argPos + 1]));
 			result << "done";
@@ -447,36 +487,27 @@ string BaseLoop::decodeMessage(const string& data)
 		result << (enabled ? "dump enabled" : "dump disabled");
 		break;
 	}
-	/*case ct_reload:
-		if (cmd.size() != 1) {
+	case ct_reload: {
+		if (args.size() != 1) {
 			result << "usage: 'reload'";
 			break;
 		}
 
-		{
-			// create commands DB
-			Commands* commands = ConfigCommands(A.getOptVal<const char*>("ebusconfdir"), ft_csv).getCommands();
-			L.log(bas, trace, "ebus configuration dir: %s", A.getOptVal<const char*>("ebusconfdir"));
-			L.log(bas, event, "commands DB: %d ", m_commands->sizeCmdDB());
-			L.log(bas, event, "   cycle DB: %d ", m_commands->sizeCycDB());
-			L.log(bas, event, " polling DB: %d ", m_commands->sizePollDB());
-
-			delete m_commands;
-			m_commands = commands;
-			m_busloop->reload(m_commands);
-
+		// create commands DB
+		result_t ret = loadMessages();
+		if (ret == RESULT_OK)
 			result << "done";
-			break;
-		}*/
-
+		else
+			result << getResultCode(ret);
+		break;
+	}
 	case ct_help:
 		result << "commands:" << endl
-		       << " read      - read ebus values            'read [-f] [class] cmd [sub]'" << endl
-		       << " write     - write ebus values           'write class cmd value[;value]*'" << endl
-		       << " hex       - send given hex value        'hex type value'         (value: ZZPBSBNNDx)" << endl << endl
+		       << " read      - read ebus values            'read [-v] [-f] [-m seconds] [class] cmd' or 'read [-v] [-f] [-m seconds] class cmd sub'" << endl
+		       << " write     - write ebus values           'write class cmd value[;value]*' or 'write -h ZZPBSBNNDx'" << endl
 		       << " scan      - scan ebus kown addresses    'scan'" << endl
 		       << "           - scan ebus all addresses     'scan full'" << endl
-		       << "           - show results                'scan result'" << endl << endl
+		       << "           - show scan results           'scan result'" << endl << endl
  		       << " log       - change log areas            'log areas area,area,..' (areas: bas|net|bus|upd|all)" << endl
 		       << "           - change log level            'log level level'        (level: error|event|trace|debug)" << endl << endl
 		       << " raw       - toggle log raw data         'raw'" << endl
@@ -487,8 +518,6 @@ string BaseLoop::decodeMessage(const string& data)
 		       << " help      - print this page             'help'";
 		break;
 
-	default:
-		break;
 	}
 
 	return result.str();

@@ -51,8 +51,8 @@ const char* getStateCode(BusState state) {
 	case bs_sendResAck: return "send response ACK";
 	case bs_recvCmd:    return "receive command";
 	case bs_recvResAck: return "receive response ACK";
-//	case bs_sendRes:    return "send response";
-//	case bs_sendCmdAck: return "send command ACK";
+	case bs_sendCmdAck: return "send command ACK";
+	case bs_sendRes:    return "send response";
 	case bs_sendSyn:    return "send SYN";
 	default:            return "unknown";
 	}
@@ -64,7 +64,7 @@ result_t PollRequest::prepare(unsigned char ownMasterAddress)
 	istringstream input;
 	result_t result = m_message->prepareMaster(ownMasterAddress, m_master, input);
 	if (result == RESULT_OK)
-		L.log(bus, event, "poll cmd: %s", m_master.getDataStr().c_str());
+		L.log(bus, trace, "poll cmd: %s", m_master.getDataStr().c_str());
 	return result;
 }
 
@@ -86,20 +86,26 @@ result_t ScanRequest::prepare(unsigned char ownMasterAddress, unsigned char dstA
 	istringstream input;
 	result_t result = m_message->prepareMaster(ownMasterAddress, m_master, input, UI_FIELD_SEPARATOR, dstAddress);
 	if (result == RESULT_OK)
-		L.log(bus, event, "scan cmd: %s", m_master.getDataStr().c_str());
+		L.log(bus, trace, "scan cmd: %s", m_master.getDataStr().c_str());
 	return result;
 }
 
 void ScanRequest::notify(result_t result)
 {
+	unsigned char dstAddress = m_master[1];
+	ostringstream scanResult;
 	if (result == RESULT_OK) {
-		m_scanResult << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_master[1]) << UI_FIELD_SEPARATOR;
-		result = m_message->decode(pt_slaveData, m_slave, m_scanResult); // decode data
+		scanResult << hex << setw(2) << setfill('0') << static_cast<unsigned>(dstAddress) << UI_FIELD_SEPARATOR;
+		result = m_message->decode(pt_slaveData, m_slave, scanResult); // decode data
 	}
-	if (result == RESULT_OK)
-		L.log(bus, event, "scan result: %s", m_scanResult.str().c_str());
-	else
-		L.log(bus, error, "scan %2.2x failed: %s", m_master[1], getResultCode(result));
+	if (result != RESULT_OK)
+		L.log(bus, error, "scan %2.2x failed: %s", dstAddress, getResultCode(result));
+	else {
+		string str = scanResult.str();
+		L.log(bus, event, "scan: %s", str.c_str());
+		if (m_scanResults != NULL)
+			(*m_scanResults)[dstAddress] = str;
+	}
 }
 
 
@@ -141,7 +147,7 @@ bool ActiveBusRequest::wait(int timeout)
 void ActiveBusRequest::notify(result_t result)
 {
 	if (result == RESULT_OK)
-		L.log(bus, trace, "read res: %s", m_slave.getDataStr().c_str());
+		L.log(bus, event, "read res: %s", m_slave.getDataStr().c_str());
 
 	pthread_mutex_lock(&m_mutex);
 
@@ -574,10 +580,6 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 				m_seenAddresses[dstAddress] = true;
 			m_request->notify(result);
 			if (m_request->m_deleteOnFinish == true) {
-				if (result == RESULT_OK && typeid(*m_request) == typeid(ScanRequest)) {
-					string res = ((ScanRequest*)m_request)->m_scanResult.str();
-					m_scanResults[dstAddress] = res;
-				}
 				delete m_request;
 			}
 			m_request = NULL;
@@ -662,7 +664,7 @@ result_t BusHandler::startScan(bool full)
 				continue;
 		}
 
-		ScanRequest* request = new ScanRequest(m_response, scanMessage);
+		ScanRequest* request = new ScanRequest(m_response, scanMessage, &m_scanResults);
 		result_t result = request->prepare(m_ownMasterAddress, slave);
 		if (result != RESULT_OK) {
 			delete request;

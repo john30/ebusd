@@ -27,6 +27,7 @@ const char* getResultCode(result_t resultCode) {
 	case RESULT_OK:               return "success";
 	case RESULT_IN_ESC:           return "success: escape sequence received";
 	case RESULT_SYN:              return "success: SYN received";
+	case RESULT_EMPTY:            return "success: empty";
 	case RESULT_ERR_GENERIC_IO:   return "ERR: generic I/O error";
 	case RESULT_ERR_DEVICE:       return "ERR: generic device error";
 	case RESULT_ERR_SEND:         return "ERR: send error";

@@ -32,7 +32,6 @@ using namespace std;
 enum CommandType {
      ct_read,      /*!< read ebus values */
      ct_write,     /*!< write ebus values */
-     ct_hex,       /*!< send hex data */
      ct_scan,      /*!< scan ebus */
      ct_log,       /*!< logger settings */
      ct_raw,       /*!< toggle log raw data */
@@ -60,9 +59,16 @@ public:
 	~BaseLoop();
 
 	/**
+	 * @brief Load the message definitions.
+	 * @return the result code.
+	 */
+	result_t loadMessages();
+
+	/**
 	 * @brief Read the configuration files from the specified path.
 	 * @param path the path from which to read the files.
 	 * @param extension the filename extension of the files to read.
+	 * @return the result code.
 	 */
 	result_t readConfigFiles(const string path, const string extension);
 
@@ -119,7 +125,6 @@ private:
 	{
 		if (strcasecmp(item.c_str(), "READ") == 0) return ct_read;
 		if (strcasecmp(item.c_str(), "WRITE") == 0) return ct_write;
-		if (strcasecmp(item.c_str(), "HEX") == 0) return ct_hex;
 		if (strcasecmp(item.c_str(), "SCAN") == 0) return ct_scan;
 		if (strcasecmp(item.c_str(), "LOG") == 0) return ct_log;
 		if (strcasecmp(item.c_str(), "RAW") == 0) return ct_raw;
