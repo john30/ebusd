@@ -293,7 +293,7 @@ result_t Message::prepareSlave(SymbolString& slaveData)
 }
 
 result_t Message::decode(const PartType partType, SymbolString& data,
-		ostringstream& output, bool leadingSeparator, char separator)
+		ostringstream& output, bool leadingSeparator, bool verbose, char separator)
 {
 	unsigned char offset;
 	if (partType == pt_masterData)
@@ -301,7 +301,7 @@ result_t Message::decode(const PartType partType, SymbolString& data,
 	else
 		offset = 0;
 	int startPos = output.str().length();
-	result_t result = m_data->read(partType, data, offset, output, leadingSeparator, false, separator);
+	result_t result = m_data->read(partType, data, offset, output, leadingSeparator, verbose, separator);
 	time(&m_lastUpdateTime);
 	if (result != RESULT_OK) {
 		m_lastValue.clear();
