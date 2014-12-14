@@ -1113,9 +1113,6 @@ result_t DataFieldSet::read(const PartType partType,
 		ostringstream& output, bool leadingSeparator,
 		bool verbose, char separator)
 {
-	if (verbose)
-		output << m_name << "={ ";
-
 	bool previousFullByteOffset = true;
 	for (vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
 		SingleDataField* field = *it;
@@ -1139,7 +1136,6 @@ result_t DataFieldSet::read(const PartType partType,
 	if (verbose == true) {
 		if (m_comment.length() > 0)
 			output << " [" << m_comment << "]";
-		output << "}";
 	}
 
 	return RESULT_OK;
