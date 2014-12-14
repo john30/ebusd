@@ -31,7 +31,6 @@
 #include <vector>
 #include <map>
 #include <pthread.h>
-#include <typeinfo>
 
 using namespace std;
 
@@ -161,9 +160,12 @@ public:
 	 * @brief Constructor.
 	 * @param slave the slave data @a SymbolString received.
 	 * @param message the associated @a Message.
+	 * @param scanResults the map in which to store the formatted scan result by slave address.
 	 */
-	ScanRequest(SymbolString& slave, Message* message)
-		: BusRequest(m_master, slave, true), m_message(message) {}
+	ScanRequest(SymbolString& slave, Message* message,
+		map<unsigned char, string>* scanResults)
+		: BusRequest(m_master, slave, true), m_message(message),
+		  m_scanResults(scanResults) {}
 
 	/**
 	 * @brief Destructor.
@@ -189,8 +191,8 @@ private:
 	/** the associated @a Message. */
 	Message* m_message;
 
-	/** the formatted scan result. */
-	ostringstream m_scanResult;
+	/** the map in which to store the formatted scan result by slave address. */
+	map<unsigned char, string>* m_scanResults;
 
 };
 
