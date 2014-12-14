@@ -29,14 +29,14 @@
 
 using namespace std;
 
-Appl& A = Appl::Instance(true, true);
+Appl& A = Appl::Instance("Command", "{Args...}");
 
 void define_args()
 {
 	A.setVersion("ebusctl is part of """PACKAGE_STRING"");
 
 	A.addText(" 'ebusctl' is a tcp socket client for ebusd.\n\n"
-		  "Command: 'help' show available ebusd commands.\n\n"
+		  "   hint: try 'help' for available ebusd commands.\n\n"
 		  "Options:\n");
 
 	A.addOption("server", "s", OptVal("localhost"), dt_string, ot_mandatory,

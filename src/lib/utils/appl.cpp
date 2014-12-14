@@ -24,7 +24,7 @@
 
 using namespace std;
 
-Appl& Appl::Instance(const bool command, const bool argument)
+Appl& Appl::Instance(const char* command, const char* argument)
 {
 	static Appl instance(command, argument);
 	return instance;
@@ -68,9 +68,11 @@ void Appl::parseArgs(int argc, char* argv[])
 {
 	vector<string> _argv(argv, argv + argc);
 	m_argv = _argv;
+	int i;
+	bool lastOption = false;
 
 	// walk through all arguments
-	for (int i = 1; i < argc; i++) {
+	for (i = 1; i < argc; i++) {
 
 		// find option with long format '--'
 		if (_argv[i].rfind("--") == 0 && _argv[i].size() > 2) {
@@ -84,6 +86,8 @@ void Appl::parseArgs(int argc, char* argv[])
 				if (checkOption(_argv[i].substr(2), "") == false)
 					printHelp();
 			}
+
+			lastOption = true;
 
 		// find option with short format '-'
 		} else if (_argv[i].rfind("-") == 0 && _argv[i].size() > 1) {
@@ -102,22 +106,34 @@ void Appl::parseArgs(int argc, char* argv[])
 						printHelp();
 				}
 			}
+
+			lastOption = true;
+
+
+		} else {
+			// break loop with command
+			if (lastOption == false && strlen(m_withCommand) != 0)
+				break;
+			else
+				lastOption = false;
+
 		}
 
 	}
 
-	// check command
-	for (int i = 1; i < argc; i++) {
+	if (i < argc && strlen(m_withCommand) != 0) {
+		// save command
+		m_command = _argv[i];
 
-		if (_argv[i].rfind("-", 0) != string::npos) {
-			i++;
-			continue;
+		if (strlen(m_withArgument) != 0) {
+			// save args of command
+			for (++i; i < argc; i++)
+					m_arguments.push_back(_argv[i]);
+
 		}
-		if (m_command.size() == 0)
-			m_command = _argv[i];
-		else
-			m_arguments.push_back(_argv[i]);
 	}
+
+
 }
 
 bool Appl::checkOption(const string& option, const string& value)
@@ -189,13 +205,13 @@ void Appl::printVersion()
 void Appl::printHelp()
 {
 	cerr << endl << "Usage:" << endl << "  "
-		  << m_argv[0].substr(m_argv[0].find_last_of("/\\") + 1) << " [OPTIONS...]" ;
+		  << m_argv[0].substr(m_argv[0].find_last_of("/\\") + 1) << " [Options...]" ;
 
-	if (m_withCommand == true)
-		if (m_withArgument == true)
-			cerr << " COMMAND {ARGS...}" << endl << endl;
+	if (strlen(m_withCommand) != 0)
+		if (strlen(m_withArgument) != 0)
+			cerr << " " << m_withCommand << " " << m_withArgument << endl << endl;
 		else
-			cerr << " COMMAND" << endl << endl;
+			cerr << " " << m_withCommand << endl << endl;
 	else
 		cerr << endl << endl;
 

@@ -30,20 +30,19 @@
 
 using namespace std;
 
-Appl& A = Appl::Instance(true);
+Appl& A = Appl::Instance("/path/dumpfile");
 
 void define_args()
 {
 	A.setVersion("ebusfeed is part of """PACKAGE_STRING"");
 
-	A.addText(" 'ebusfeed' sends a dump file to a local serial device (pts)\n\n"
+	A.addText(" 'ebusfeed' sends hex values from dump file to a local serial device (pts)\n\n"
 		  "   Usage: 1. 'socat -d -d pty,raw,echo=0 pty,raw,echo=0'\n"
 		  "          2. create symbol links to appropriate devices\n"
 		  "             for example: 'ln -s /dev/pts/2 /dev/ttyUSB60'\n"
 		  "                          'ln -s /dev/pts/3 /dev/ttyUSB20'\n"
 		  "          3. start ebusd: 'ebusd -f -d /dev/ttyUSB20'\n"
 		  "          4. start ebusfeed: 'ebusfeed /path/to/ebus_dump.bin'\n\n"
-		  "Command: '/path/to/ebus_dump.bin'\n\n"
 		  "Options:\n");
 
 	A.addOption("device", "d", OptVal("/dev/ttyUSB60"), dt_string, ot_mandatory,
