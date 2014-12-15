@@ -28,7 +28,7 @@ using namespace std;
 
 /** \file baseloop.h */
 
-/** possible client commands */
+/** @brief possible client commands */
 enum CommandType {
      ct_read,      /*!< read ebus values */
      ct_write,     /*!< write ebus values */
@@ -85,7 +85,7 @@ public:
 
 	/**
 	 * @brief Create a log message for a received/sent raw data byte.
-	 * @param param byte the raw data byte.
+	 * @param byte byte the raw data byte.
 	 * @param received true if the byte was received, false if it was sent.
 	 */
 	static void logRaw(const unsigned char byte, bool received);

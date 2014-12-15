@@ -59,14 +59,13 @@ int calcAreaMask(const string areas)
 	return mask;
 }
 
-int calcLevel(const string level)
+LevelType calcLevel(const string level)
 {
-	int m_level = event;
 	for (int i = 0; i < Size_of_Level; i++)
 		if (strcasecmp(LevelNames[i], level.c_str()) == 0)
-			return i;
+			return (LevelType)i;
 
-	return m_level;
+	return event;
 }
 
 

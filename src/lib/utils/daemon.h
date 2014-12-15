@@ -20,6 +20,8 @@
 #ifndef LIBUTILS_DAEMON_H_
 #define LIBUTILS_DAEMON_H_
 
+/** \file daemon.h */
+
 /**
  * @brief class to daemonize a process.
  */

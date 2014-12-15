@@ -28,6 +28,8 @@
 #include <deque>
 #include <map>
 
+/** \file message.h */
+
 using namespace std;
 
 class MessageMap;
@@ -42,7 +44,7 @@ public:
 
 	/**
 	 * @brief Construct a new instance.
-	 * @param class the optional device class.
+	 * @param clazz the optional device class.
 	 * @param name the message name (unique within the same class and type).
 	 * @param isSet whether this is a set message.
 	 * @param isPassive true if message can only be initiated by a participant other than us,
@@ -158,7 +160,7 @@ public:
 	 * @param slaveData the slave data @a SymbolString for writing symbols to.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	result_t prepareSlave(SymbolString& masterData);
+	result_t prepareSlave(SymbolString& slaveData);
 
 	/**
 	 * @brief Decode a received message.
@@ -240,9 +242,15 @@ private:
 
 
 /**
- * @brief A function that compares the poll priority of two @a Message instances.
+ * @brief A function that compares the weighted poll priority of two @a Message instances.
  */
 struct compareMessagePriority : binary_function <Message*,Message*,bool> {
+	/**
+	 * @brief Compare the weighted poll priority of the two @a Message instances.
+	 * @param x the first @a Message.
+	 * @param y the second @a Message.
+	 * @return whether @a x is bigger than or equal to @a y with regard to their weighted poll priority.
+	 */
 	bool operator() (Message* x, Message* y) const { return x->isLessPollWeight(y) == false; };
 };
 
@@ -257,7 +265,7 @@ public:
 	/**
 	 * @brief Construct a new instance.
 	 */
-	MessageMap() : FileReader(true), m_minIdLength(4), m_maxIdLength(0), m_messageCount(0) {}
+	MessageMap() : FileReader<DataFieldTemplates*>::FileReader(true), m_minIdLength(4), m_maxIdLength(0), m_messageCount(0) {}
 	/**
 	 * @brief Destructor.
 	 */
@@ -273,7 +281,7 @@ public:
 	virtual result_t addFromFile(vector<string>& row, DataFieldTemplates* arg,  vector< vector<string> >* defaults, const string& filename, unsigned int lineNo);
 	/**
 	 * @brief Find the @a Message instance for the specified class and name.
-	 * @param class the optional device class.
+	 * @param clazz the optional device class.
 	 * @param name the message name.
 	 * @param isSet whether this is a set message.
 	 * @param isPassive whether this is a passive message.
@@ -283,7 +291,7 @@ public:
 	Message* find(const string& clazz, const string& name, const bool isSet, const bool isPassive=false);
 	/**
 	 * @brief Find all active get @a Message instances for the specified class and name.
-	 * @param class the device class, or empty for any.
+	 * @param clazz the device class, or empty for any.
 	 * @param name the message name, or empty for any.
 	 * @param pb the primary ID byte, or -1 for any.
 	 * @return the found @a Message instances.

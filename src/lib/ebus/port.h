@@ -32,16 +32,16 @@ using namespace std;
 
 /** \file port.h */
 
-/** available device types. */
+/** @brief available device types. */
 enum DeviceType {
 	dt_serial,  /*!< serial device */
 	dt_network  /*!< network device */
 };
 
-/** max bytes write to bus. */
+/** @brief max bytes write to bus. */
 #define MAX_WRITE_SIZE 1
 
-/** max size of receive buffer. */
+/** @brief max size of receive buffer. */
 #define MAX_READ_SIZE 100
 
 
@@ -66,6 +66,7 @@ public:
 	 * @brief virtual open function for opening file descriptor
 	 * @param deviceName to determine device type.
 	 * @param noDeviceCheck en-/disable device check.
+	 * @return the @a result_t code.
 	 */
 	virtual result_t openDevice(const string deviceName, const bool noDeviceCheck) = 0;
 
@@ -146,16 +147,10 @@ public:
 	 */
 	~DeviceSerial() { closeDevice(); }
 
-	/**
-	 * @brief open function for opening file descriptor
-	 * @param deviceName to determine device type.
-	 * @param noDeviceCheck en-/disable device check.
-	 */
+	// @copydoc
 	virtual result_t openDevice(const string deviceName, const bool noDeviceCheck);
 
-	/**
-	 * @brief close function for closing opened file descriptor
-	 */
+	// @copydoc
 	void closeDevice();
 
 private:
@@ -176,16 +171,10 @@ public:
 	 */
 	~DeviceNetwork() { closeDevice(); }
 
-	/**
-	 * @brief open function for opening file descriptor
-	 * @param deviceName to determine device type.
-	 * @param noDeviceCheck en-/disable device check.
-	 */
+	// @copydoc
 	virtual result_t openDevice(const string deviceName, const bool noDeviceCheck);
 
-	/**
-	 * @brief close opened file descriptor
-	 */
+	// @copydoc
 	void closeDevice();
 
 private:
@@ -271,7 +260,7 @@ public:
 
 	/**
 	 * @brief Enable or disable logging of raw data.
-	 * @param logRawData true to enable logging of raw data, false to disable it.
+	 * @param logRaw true to enable logging of raw data, false to disable it.
 	 */
 	void setLogRaw(bool logRaw=true) { m_logRaw = logRaw; }
 

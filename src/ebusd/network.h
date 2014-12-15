@@ -26,6 +26,8 @@
 #include "thread.h"
 #include <string>
 
+/** \file network.h */
+
 using namespace std;
 
 /** forward declaration for class connection */
@@ -77,7 +79,7 @@ public:
 
 	/**
 	 * @brief set the result string.
-	 * @return the result string.
+	 * @param result the result string.
 	 */
 	void setResult(const string result) { m_result = result; }
 

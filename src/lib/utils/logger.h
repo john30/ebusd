@@ -32,7 +32,7 @@ using namespace std;
 
 /** \file logger.h */
 
-/** available types for all subsystems */
+/** @brief available types for all subsystems */
 enum AreasType {
 	bas=0,           /*!< basis */
 	net,             /*!< network */
@@ -41,7 +41,7 @@ enum AreasType {
 	Size_of_Areas=4  /*!< number of possible areas */
 };
 
-/** available logging levels */
+/** @brief available logging levels */
 enum LevelType {
 	error=0,       /*!< silent run, only errors will be printed */
 	event,         /*!< only interesting message for normal use */
@@ -50,11 +50,19 @@ enum LevelType {
 	Size_of_Level  /*!< number of possible levels */
 };
 
-/** global function to get the mask of logging areas */
+/**
+ * @brief Calculate the mask of logging areas from string.
+ * @param areas the string to parse the areas from.
+ * @return the bit combination of @a AreasType.
+ */
 int calcAreaMask(const string areas);
 
-/** global function to get calculate logging level */
-int calcLevel(const string level);
+/**
+ * @brief Calculate the log level from string.
+ * @param level the level as string.
+ * @return @a the LevelType.
+ */
+LevelType calcLevel(const string level);
 
 /**
  * @brief class which describes a logging message itself.
@@ -129,7 +137,7 @@ class LogSink : public Thread
 public:
 	/**
 	 * @brief creates a virtual logging sink.
-	 * @param areas the logging area mask.
+	 * @param areaMask the logging area mask.
 	 * @param level the logging level.
 	 */
 	LogSink(const int areaMask, const int level) : m_areaMask(areaMask), m_level(level) {}
@@ -153,7 +161,7 @@ public:
 
 	/**
 	 * @brief set the logging area mask.
-	 * @param areas the logging area mask.
+	 * @param areaMask the logging area mask.
 	 */
 	void setAreaMask(const int& areaMask) { m_areaMask = areaMask; }
 
@@ -197,7 +205,7 @@ class LogConsole : public LogSink
 public:
 	/**
 	 * @brief creates a console logging sink.
-	 * @param areas the logging area mask.
+	 * @param areaMask the logging area mask.
 	 * @param level the logging level.
 	 * @param name the thread name for logging sink.
 	 */
@@ -222,7 +230,7 @@ class LogFile : public LogSink
 public:
 	/**
 	 * @brief creates a log file logging sink.
-	 * @param areas the logging area mask.
+	 * @param areaMask the logging area mask.
 	 * @param level the logging level.
 	 * @param name the thread name for logging sink.
 	 * @param file the log file.

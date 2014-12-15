@@ -32,30 +32,35 @@
 #include <map>
 #include <pthread.h>
 
+/** \file bushandler.h */
+
 using namespace std;
 
-/** the maximum allowed time [us] for retrieving a symbol from an addressed slave. */
+/* the maximum allowed time [us] for retrieving a symbol from an addressed slave. */
 //#define SLAVE_RECV_TIMEOUT 10000
-/** the maximum allowed time [us] for retrieving the AUTO-SYN symbol (45ms + 2*1,2% + 1 Symbol). */
+
+/** @brief the maximum allowed time [us] for retrieving the AUTO-SYN symbol (45ms + 2*1,2% + 1 Symbol). */
 #define SYN_TIMEOUT 50800
-/** the maximum duration [us] of a single symbol (Start+8Bit+Stop+Extra @ 2400Bd-2*1,2%). */
+
+/** @brief the maximum duration [us] of a single symbol (Start+8Bit+Stop+Extra @ 2400Bd-2*1,2%). */
 #define SYMBOL_DURATION 4700
-/** the maximum allowed time [us] for retrieving back a sent symbol (2x symbol duration). */
+
+/** @brief the maximum allowed time [us] for retrieving back a sent symbol (2x symbol duration). */
 #define SEND_TIMEOUT (2*SYMBOL_DURATION)
 
-/** the possible bus states. */
+/** @brief the possible bus states. */
 enum BusState {
-	bs_skip,        // skip all symbols until next @a SYN
-	bs_ready,       // ready for next master (after @a SYN symbol, send/receive QQ)
-	bs_recvCmd,     // receive command (ZZ, PBSB, master data) [passive set]
-	bs_recvCmdAck,  // receive command ACK/NACK [passive set + active set+get]
-	bs_recvRes,     // receive response (slave data) [passive set + active get]
-	bs_recvResAck,  // receive response ACK/NACK [passive set]
-	bs_sendCmd,     // send command (ZZ, PBSB, master data) [active set+get]
-	bs_sendResAck,  // send response ACK/NACK [active get]
-	bs_sendCmdAck,  // send command ACK/NACK [passive get]
-	bs_sendRes,     // send response (slave data) [passive get]
-	bs_sendSyn,     // send SYN for completed transfer [active set+get]
+	bs_skip,        //!< skip all symbols until next @a SYN
+	bs_ready,       //!< ready for next master (after @a SYN symbol, send/receive QQ)
+	bs_recvCmd,     //!< receive command (ZZ, PBSB, master data) [passive set]
+	bs_recvCmdAck,  //!< receive command ACK/NACK [passive set + active set+get]
+	bs_recvRes,     //!< receive response (slave data) [passive set + active get]
+	bs_recvResAck,  //!< receive response ACK/NACK [passive set]
+	bs_sendCmd,     //!< send command (ZZ, PBSB, master data) [active set+get]
+	bs_sendResAck,  //!< send response ACK/NACK [active get]
+	bs_sendCmdAck,  //!< send command ACK/NACK [passive get]
+	bs_sendRes,     //!< send response (slave data) [passive get]
+	bs_sendSyn,     //!< send SYN for completed transfer [active set+get]
 };
 
 class BusHandler;
@@ -114,7 +119,6 @@ public:
 
 	/**
 	 * @brief Constructor.
-	 * @param slave the slave data @a SymbolString received.
 	 * @param message the associated @a Message.
 	 */
 	PollRequest(Message* message)
@@ -156,7 +160,6 @@ public:
 
 	/**
 	 * @brief Constructor.
-	 * @param slave the slave data @a SymbolString received.
 	 * @param message the primary query @a Message.
 	 * @param messages the optional secondary query @a Message instances (to be queried only when the primary was successful).
 	 * @param scanResults the map in which to store the formatted scan result by slave address.
@@ -299,6 +302,7 @@ public:
 	 * @brief Send a message on the bus and wait for the answer.
 	 * @param master the @a SymbolString with the master data to send.
 	 * @param slave the @a SymbolString that will be filled with retrieved slave data.
+	 * @return the result code.
 	 */
 	result_t sendAndWait(SymbolString& master, SymbolString& slave);
 
@@ -317,6 +321,7 @@ public:
 	/**
 	 * @brief Initiate a scan of the slave addresses.
 	 * @param full true for a full scan (all slaves), false for scanning only already seen slaves.
+	 * @return the result code.
 	 */
 	result_t startScan(bool full=false);
 

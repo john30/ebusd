@@ -29,13 +29,14 @@
 #include <vector>
 #include <map>
 
+/** \file filereader.h */
+
 using namespace std;
 
-
-/** the separator character used between fields. */
+/** @brief the separator character used between fields. */
 #define FIELD_SEPARATOR ','
 
-/** the separator character used to quote text having the @a FIELD_SEPARATOR in it. */
+/** @brief the separator character used to quote text having the @a FIELD_SEPARATOR in it. */
 #define TEXT_SEPARATOR '"'
 
 
@@ -48,7 +49,7 @@ class FileReader
 public:
 
 	/**
-	 * @brief Constructs a new instance.
+	 * @brief Construct a new instance.
 	 */
 	FileReader(bool supportsDefaults)
 			: m_supportsDefaults(supportsDefaults) {}
@@ -59,8 +60,9 @@ public:
 	virtual ~FileReader() {}
 
 	/**
-	 * @brief Reads the definitions from a file.
-	 * @param filename the name (and path) of the file to read.
+	 * @brief Read the definitions from a file.
+	 * @param filename the name of the file being read.
+	 * @param arg an argument to pass to @a addFromFile().
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	virtual result_t readFromFile(const string filename, T arg=NULL)
@@ -146,9 +148,12 @@ public:
 	}
 
 	/**
-	 * @brief Adds a definition that was read from a file.
+	 * @brief Add a definition that was read from a file.
 	 * @param row the definition row read from the file.
+	 * @param arg the argument passed to @a readFromFile().
 	 * @param defaults all previously read default rows (initial star char removed), or NULL if not supported.
+	 * @param filename the name of the file being read.
+	 * @param lineNo the current line number in the file being read.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	virtual result_t addFromFile(vector<string>& row, T arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo) = 0;

@@ -23,6 +23,8 @@
 #include <list>
 #include <pthread.h>
 
+/** \file wqueue.h */
+
 using namespace std;
 
 /**
@@ -110,6 +112,7 @@ public:
 
 	/**
 	 * @brief return the first item from queue without remove.
+	 * @param wait whether to wait for an entry if the queue is empty.
 	 * @return the item, or NULL if no item is available and wait was false.
 	 */
 	T next(bool wait=true)

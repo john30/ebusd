@@ -23,6 +23,8 @@
 #include <unistd.h>
 #include <string>
 
+/** \file tcpsocket.h */
+
 using namespace std;
 
 /**

@@ -214,7 +214,7 @@ void BusHandler::run()
 		if (m_port->isOpen() == true)
 			handleSymbol();
 		else {
-			// TODO: define max reopen
+			// TODO define max reopen
 			sleep(10);
 			result_t result = m_port->open();
 

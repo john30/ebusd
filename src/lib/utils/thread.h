@@ -22,6 +22,8 @@
 
 #include <pthread.h>
 
+/** \file thread.h */
+
 /**
  * @brief wrapper class for pthread.
  */

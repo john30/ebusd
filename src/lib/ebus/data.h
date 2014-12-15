@@ -30,57 +30,59 @@
 #include <vector>
 #include <map>
 
+/** \file data.h */
+
 using namespace std;
 
-/** the separator character used between multiple values (in CSV only). */
+/** @brief the separator character used between multiple values (in CSV only). */
 #define VALUE_SEPARATOR ';'
 
-/** the separator character used between base type name and length (in CSV only). */
+/** @brief the separator character used between base type name and length (in CSV only). */
 #define LENGTH_SEPARATOR ':'
 
-/** the replacement string for undefined values (in UI and CSV). */
+/** @brief the replacement string for undefined values (in UI and CSV). */
 #define NULL_VALUE "-"
 
-/** the separator character used between fields (in UI only). */
+/** @brief the separator character used between fields (in UI only). */
 #define UI_FIELD_SEPARATOR ';'
 
-/** the message part in which a data field is stored. */
+/** @brief the message part in which a data field is stored. */
 enum PartType {
-	pt_any,          // stored in any data (master or slave)
-	pt_masterData,   // stored in master data
-	pt_slaveData,    // stored in slave data
+	pt_any,          //!< stored in any data (master or slave)
+	pt_masterData,   //!< stored in master data
+	pt_slaveData,    //!< stored in slave data
 };
 
-/** the available base data types. */
+/** @brief the available base data types. */
 enum BaseType {
-	bt_str,    // text string in a @a StringDataField
-	bt_hexstr, // hex digit string in a @a StringDataField
-	bt_dat,    // date in a @a StringDataField
-	bt_tim,    // time in a @a StringDataField
-	bt_num,    // numeric value in a @a NumericDataField
+	bt_str,    //!< text string in a @a StringDataField
+	bt_hexstr, //!< hex digit string in a @a StringDataField
+	bt_dat,    //!< date in a @a StringDataField
+	bt_tim,    //!< time in a @a StringDataField
+	bt_num,    //!< numeric value in a @a NumericDataField
 };
 
-/** flags for dataType_t. */
-const unsigned int ADJ = 0x01; // adjustable length, numBits is maximum length
-const unsigned int BCD = 0x02; // binary representation is BCD
-const unsigned int REV = 0x04; // reverted binary representation (most significant byte first)
-const unsigned int SIG = 0x08; // signed value
-const unsigned int LST = 0x10; // value list is possible (without applied divisor)
-const unsigned int DAY = 0x20; // forced value list defaulting to week days
-const unsigned int IGN = 0x40; // ignore value during read and write
-const unsigned int FIX = 0x80; // fixed width formatting
+/* flags for dataType_t. */
+static const unsigned int ADJ = 0x01; //!< adjustable length, numBits is maximum length
+static const unsigned int BCD = 0x02; //!< binary representation is BCD
+static const unsigned int REV = 0x04; //!< reverted binary representation (most significant byte first)
+static const unsigned int SIG = 0x08; //!< signed value
+static const unsigned int LST = 0x10; //!< value list is possible (without applied divisor)
+static const unsigned int DAY = 0x20; //!< forced value list defaulting to week days
+static const unsigned int IGN = 0x40; //!< ignore value during read and write
+static const unsigned int FIX = 0x80; //!< fixed width formatting
 
-/** the structure for defining field types with their properties. */
+/** @brief The structure for defining field types with their properties. */
 typedef struct {
-	const char* name;                        // field identifier
-	const unsigned int maxBits;              // number of bits (maximum length if @a ADJ flag is set, must be multiple of 8 with flag @a BCD)
-	const BaseType type;                     // base data type
-	const unsigned int flags;                // flags (e.g. @a BCD)
-	const unsigned int replacement;          // replacement value (fill-up value for @a bt_str / @a bt_hexstr, no replacement if equal to @a minValueOrLength for @a bt_num)
-	const unsigned int minValueOrLength;     // minimum binary value (minimum length of string for @a StringDataField)
-	const unsigned int maxValueOrLength;     // maximum binary value (maximum length of string for @a StringDataField)
-	const unsigned int divisor;              // @a bt_number: divisor
-	const unsigned char precisionOrFirstBit; // @a bt_number: precision for formatting or offset to first bit if (@a numBits%8)!=0
+	const char* name;                        //!< field identifier
+	const unsigned int maxBits;              //!< number of bits (maximum length if @a ADJ flag is set, must be multiple of 8 with flag @a BCD)
+	const BaseType type;                     //!< base data type
+	const unsigned int flags;                //!< flags (e.g. @a BCD)
+	const unsigned int replacement;          //!< replacement value (fill-up value for @a bt_str / @a bt_hexstr, no replacement if equal to @a minValueOrLength for @a bt_num)
+	const unsigned int minValueOrLength;     //!< minimum binary value (minimum length of string for @a StringDataField)
+	const unsigned int maxValueOrLength;     //!< maximum binary value (maximum length of string for @a StringDataField)
+	const unsigned int divisor;              //!< @a bt_number: divisor
+	const unsigned char precisionOrFirstBit; //!< @a bt_number: precision for formatting or offset to first bit if (@a numBits%8)!=0
 } dataType_t;
 
 
@@ -92,6 +94,7 @@ typedef struct {
  * @param maxValue the maximum resulting value.
  * @param result the variable in which to store an error code when parsing failed or the value is out of bounds.
  * @param length the optional variable in which to store the number of read characters.
+ * @return the parsed value.
  */
 unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result, unsigned int* length=NULL);
 
@@ -100,7 +103,9 @@ unsigned int parseInt(const char* str, int base, const unsigned int minValue, co
  * @param begin the iterator to the beginning of the items.
  * @param end the iterator to the end of the items.
  * @param pos the iterator with the erroneous position.
- * @param separator the character to place between items.
+ * @param filename the name of the file being read.
+ * @param lineNo the current line number in the file being read.
+ * @param result the result code.
  */
 void printErrorPos(vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, string filename, size_t lineNo, result_t result);
 
@@ -155,6 +160,7 @@ public:
 	 * @param divisor the extra divisor to apply on the value, or 1 for none (if applicable).
 	 * @param values the value=text assignments, or empty to use this fields assignments (if applicable).
 	 * @param fields the @a vector to which created @a SingleDataField instances shall be added.
+	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	virtual result_t derive(string name, string comment,
 			string unit, const PartType partType,
@@ -372,7 +378,7 @@ public:
 	 * @param dataType the data type definition.
 	 * @param partType the message part in which the field is stored.
 	 * @param length the number of symbols in the message part in which the field is stored.
-	 * @param bitCount the number of bits in the binary value.
+	 * @param bitCount the number of bits in the binary value (may be less than @a length * 8).
 	 * @param bitOffset the offset to the first bit in the binary value.
 	 */
 	NumericDataField(const string name, const string comment,
@@ -432,6 +438,7 @@ public:
 	 * @param dataType the data type definition.
 	 * @param partType the message part in which the field is stored.
 	 * @param length the number of symbols in the message part in which the field is stored.
+	 * @param bitCount the number of bits in the binary value (may be less than @a length * 8).
 	 * @param divisor the extra divisor to apply on the value, or 1 for none.
 	 */
 	NumberDataField(const string name, const string comment,
@@ -483,6 +490,7 @@ public:
 	 * @param dataType the data type definition.
 	 * @param partType the message part in which the field is stored.
 	 * @param length the number of symbols in the message part in which the field is stored.
+	 * @param bitCount the number of bits in the binary value (may be less than @a length * 8).
 	 * @param values the value=text assignments.
 	 */
 	ValueListDataField(const string name, const string comment,
@@ -520,7 +528,7 @@ private:
 
 
 /**
- * @brief A set of DataFields.
+ * @brief A set of @a DataField instances.
  */
 class DataFieldSet : public DataField
 {
@@ -600,7 +608,7 @@ public:
 	/**
 	 * @brief Constructs a new instance.
 	 */
-	DataFieldTemplates() : FileReader(false) {}
+	DataFieldTemplates() : FileReader<void*>::FileReader(false) {}
 	/**
 	 * @brief Destructor.
 	 */
@@ -616,11 +624,12 @@ public:
 	 * @return @a RESULT_OK on success, or an error code.
 	 * Note: the caller may not free the added instance on success.
 	 */
-	result_t add(DataField* message, bool replace=false);
+	result_t add(DataField* field, bool replace=false);
 	// @copydoc
 	virtual result_t addFromFile(vector<string>& row, void* arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo);
 	/**
 	 * @brief Gets the template @a DataField instance with the specified name.
+	 * @param name the name of the template to get.
 	 * @return the template @a DataField instance, or NULL.
 	 * Note: the caller may not free the returned instance.
 	 */

@@ -26,13 +26,15 @@
 #include <sstream>
 #include <queue>
 
+/** \file symbol.h */
+
 using namespace std;
 
-static const unsigned char ESC = 0xA9;       // escape symbol, either followed by 0x00 for the value 0xA9, or 0x01 for the value 0xAA
-static const unsigned char SYN = 0xAA;       // synchronization symbol
-static const unsigned char ACK = 0x00;       // positive acknowledge
-static const unsigned char NAK = 0xFF;       // negative acknowledge
-static const unsigned char BROADCAST = 0xFE; // the broadcast destination address
+static const unsigned char ESC = 0xA9;       //!< escape symbol, either followed by 0x00 for the value 0xA9, or 0x01 for the value 0xAA
+static const unsigned char SYN = 0xAA;       //!< synchronization symbol
+static const unsigned char ACK = 0x00;       //!< positive acknowledge
+static const unsigned char NAK = 0xFF;       //!< negative acknowledge
+static const unsigned char BROADCAST = 0xFE; //!< the broadcast destination address
 
 
 /**
@@ -54,6 +56,8 @@ public:
 	/**
 	 * @brief Creates a new escaped or unescaped instance from another @a SymbolString and adds the calculated CRC.
 	 * @param str the @a SymbolString top copy from.
+	 * @param escape true for an escaped instance, false for an unescaped instance.
+	 * @param addCrc whether to add the calculated CRC as last symbol.
 	 */
 	SymbolString(const SymbolString& str, const bool escape, const bool addCrc=true);
 	/**
@@ -103,7 +107,7 @@ public:
 	 * @brief Appends a the symbol to the end of the symbol string and escapes/unescapes it if necessary.
 	 * @param value the symbol to append.
 	 * @param isEscaped whether the symbol is escaped.
-	 * @param updateCrc whether to update the calculated CRC in @a m_crc.
+	 * @param updateCRC whether to update the calculated CRC in @a m_crc.
 	 * @return RESULT_OK if another symbol was appended,
 	 * RESULT_IN_ESC if this is an unescaped instance and the symbol is escaped and the start of the escape sequence was received,
 	 * RESULT_ERR_ESC if this is an unescaped instance and an invalid escaped sequence was detected.

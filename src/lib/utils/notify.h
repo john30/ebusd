@@ -23,6 +23,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+/** \file notify.h */
+
 /**
  * @brief class to notify other thread per pipe.
  */

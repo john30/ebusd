@@ -29,7 +29,7 @@ using namespace std;
 
 /** \file appl.h */
 
-/** the available data types. */
+/** @brief the available data types. */
 enum DataType {
 	dt_none,    /*!< default for __text_only__ */
 	dt_bool,    /*!< boolean */
@@ -40,14 +40,14 @@ enum DataType {
 	dt_string   /*!< string */
 };
 
-/** option types. */
+/** @brief option types. */
 enum OptionType {
 	ot_none,      /*!< no option type is needed */
 	ot_optional,  /*!< a value is optional */
 	ot_mandatory  /*!< a value is mandatory */
 };
 
-/** structure for defining application options */
+/** @brief structure for defining application options */
 typedef struct {
 	/** long option name */
 	const char* name;
