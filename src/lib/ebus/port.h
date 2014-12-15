@@ -271,7 +271,7 @@ public:
 
 	/**
 	 * @brief Enable or disable logging of raw data.
-	 * @param logRawData true to enable logging of raw data, false to disable it.
+	 * @param logRaw true to enable logging of raw data, false to disable it.
 	 */
 	void setLogRaw(bool logRaw=true) { m_logRaw = logRaw; }
 

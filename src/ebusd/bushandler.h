@@ -114,7 +114,6 @@ public:
 
 	/**
 	 * @brief Constructor.
-	 * @param slave the slave data @a SymbolString received.
 	 * @param message the associated @a Message.
 	 */
 	PollRequest(Message* message)
@@ -156,7 +155,6 @@ public:
 
 	/**
 	 * @brief Constructor.
-	 * @param slave the slave data @a SymbolString received.
 	 * @param message the primary query @a Message.
 	 * @param messages the optional secondary query @a Message instances (to be queried only when the primary was successful).
 	 * @param scanResults the map in which to store the formatted scan result by slave address.

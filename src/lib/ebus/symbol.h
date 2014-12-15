@@ -28,11 +28,21 @@
 
 using namespace std;
 
-static const unsigned char ESC = 0xA9;       // escape symbol, either followed by 0x00 for the value 0xA9, or 0x01 for the value 0xAA
-static const unsigned char SYN = 0xAA;       // synchronization symbol
-static const unsigned char ACK = 0x00;       // positive acknowledge
-static const unsigned char NAK = 0xFF;       // negative acknowledge
-static const unsigned char BROADCAST = 0xFE; // the broadcast destination address
+
+/** escape symbol, either followed by 0x00 for the value 0xA9, or 0x01 for the value 0xAA */
+static const unsigned char ESC = 0xA9;
+
+/** synchronization symbol */
+static const unsigned char SYN = 0xAA;
+
+/** positive acknowledge */
+static const unsigned char ACK = 0x00;
+
+/** negative acknowledge */
+static const unsigned char NAK = 0xFF;
+
+/** the broadcast destination address */
+static const unsigned char BROADCAST = 0xFE;
 
 
 /**
@@ -46,40 +56,47 @@ public:
 	 * @brief Creates a new unescaped empty instance.
 	 */
 	SymbolString() : m_unescapeState(1), m_crc(0) {}
+
 	/**
 	 * @brief Creates a new escaped instance from an unescaped hex string and adds the calculated CRC.
 	 * @param str the unescaped hex string.
 	 */
 	SymbolString(const string& str);
+
 	/**
 	 * @brief Creates a new escaped or unescaped instance from another @a SymbolString and adds the calculated CRC.
 	 * @param str the @a SymbolString top copy from.
 	 */
 	SymbolString(const SymbolString& str, const bool escape, const bool addCrc=true);
+
 	/**
 	 * @brief Creates a new unescaped instance from a hex string.
 	 * @param isEscaped whether the hex string is escaped and shall be unescaped.
 	 * @param str the hex string.
 	 */
 	SymbolString(const string& str, const bool isEscaped);
+
 	/**
 	 * @brief Returns the symbols as hex string.
 	 * @param unescape whether to unescape an escaped instance.
 	 * @return the symbols as hex string.
 	 */
 	const string getDataStr(const bool unescape=true);
+
 	/**
 	 * @brief Returns a reference to the symbol at the specified index.
 	 * @param index the index of the symbol to return.
 	 * @return the reference to the symbol at the specified index.
 	 */
 	unsigned char& operator[](const size_t index) { if (index >= m_data.size()) m_data.resize(index+1, 0); return m_data[index]; }
+
 	/**
 	 * @brief Returns the symbol at the specified index.
 	 * @param index the index of the symbol to return.
 	 * @return the symbol at the specified index.
 	 */
 	const unsigned char& operator[](const size_t index) const { return m_data[index]; }
+
 	/**
 	 * @brief Returns whether this instance is equal to the other instance.
 	 * @param other the other instance.
@@ -99,26 +116,30 @@ public:
 		cout<<"["<<static_cast<unsigned>(other.m_unescapeState)<<"]"<<endl;
 		return ret;*/
 	}
+
 	/**
 	 * @brief Appends a the symbol to the end of the symbol string and escapes/unescapes it if necessary.
 	 * @param value the symbol to append.
 	 * @param isEscaped whether the symbol is escaped.
-	 * @param updateCrc whether to update the calculated CRC in @a m_crc.
+	 * @param updateCRC whether to update the calculated CRC in @a m_crc.
 	 * @return RESULT_OK if another symbol was appended,
 	 * RESULT_IN_ESC if this is an unescaped instance and the symbol is escaped and the start of the escape sequence was received,
 	 * RESULT_ERR_ESC if this is an unescaped instance and an invalid escaped sequence was detected.
 	 */
 	result_t push_back(const unsigned char value, const bool isEscaped=true, const bool updateCRC=true);
+
 	/**
 	 * @brief Returns the number of symbols in this symbol string.
 	 * @return the number of available symbols.
 	 */
 	unsigned char size() const { return (unsigned char)m_data.size(); }
+
 	/**
 	 * @brief Returns the calculated CRC.
 	 * @return the calculated CRC.
 	 */
 	unsigned char getCRC() const { return m_crc; }
+
 	/**
 	 * @brief Clears the symbols.
 	 */
@@ -143,12 +164,14 @@ private:
 	 * @brief the string of bus symbols.
 	 */
 	vector<unsigned char> m_data;
+
 	/**
 	 * @brief 0 if the symbols in @a m_data are escaped,
 	 * 1 if the symbols in @a m_data are unescaped and the last symbol passed to @a push_back was a normal symbol,
 	 * 2 if the symbols in @a m_data are unescaped and the last symbol passed to @a push_back was the escape symbol.
 	 */
 	int m_unescapeState;
+
 	/**
 	 * @brief the calculated CRC.
 	 */

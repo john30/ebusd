@@ -20,34 +20,33 @@
 #ifndef LIBEBUS_RESULT_H_
 #define LIBEBUS_RESULT_H_
 
-static const int RESULT_OK = 0;                 // success
+/** \file result.h */
 
-static const int RESULT_IN_ESC = 1;             // start of escape sequence received
-static const int RESULT_SYN = 2;                // regular SYN after message received
-static const int RESULT_EMPTY = 3;              // empty result
-
-static const int RESULT_ERR_GENERIC_IO = -1;    // generic I/O error (usually fatal)
-static const int RESULT_ERR_DEVICE = -2;        // generic device error (usually fatal)
-static const int RESULT_ERR_SEND = -3;          // send error
-static const int RESULT_ERR_ESC = -4;           // invalid escape sequence
-static const int RESULT_ERR_TIMEOUT = -5;       // read timeout
-
-static const int RESULT_ERR_NOTFOUND = -6;      // file/element not found or not readable
-static const int RESULT_ERR_EOF = -7;           // end of input reached
-static const int RESULT_ERR_INVALID_ARG = -8;   // invalid argument
-static const int RESULT_ERR_INVALID_NUM = -9;   // invalid numeric argument
-static const int RESULT_ERR_INVALID_ADDR = -10; // invalid address
-static const int RESULT_ERR_INVALID_POS = -11;  // invalid position
-static const int RESULT_ERR_OUT_OF_RANGE = -12; // argument value out of valid range
-static const int RESULT_ERR_INVALID_PART = -13; // invalid part type value
-static const int RESULT_ERR_MISSING_TYPE = -14; // missing data type
-static const int RESULT_ERR_INVALID_LIST = -15; // invalid value list
-static const int RESULT_ERR_DUPLICATE = -16;    // duplicate entry
-
-static const int RESULT_ERR_BUS_LOST = -17;     // arbitration lost
-static const int RESULT_ERR_CRC = -18;          // CRC error
-static const int RESULT_ERR_ACK = -19;          // ACK error
-static const int RESULT_ERR_NAK = -20;          // NAK received
+/** types for result_t. */
+static const int RESULT_OK = 0;                 /*!< success */
+static const int RESULT_IN_ESC = 1;             /*!< start of escape sequence received */
+static const int RESULT_SYN = 2;                /*!< regular SYN after message received */
+static const int RESULT_EMPTY = 3;              /*!< empty result */
+static const int RESULT_ERR_GENERIC_IO = -1;    /*!< generic I/O error (usually fatal) */
+static const int RESULT_ERR_DEVICE = -2;        /*!< generic device error (usually fatal) */
+static const int RESULT_ERR_SEND = -3;          /*!< send error */
+static const int RESULT_ERR_ESC = -4;           /*!< invalid escape sequence */
+static const int RESULT_ERR_TIMEOUT = -5;       /*!< read timeout */
+static const int RESULT_ERR_NOTFOUND = -6;      /*!< file/element not found or not readable */
+static const int RESULT_ERR_EOF = -7;           /*!< end of input reached */
+static const int RESULT_ERR_INVALID_ARG = -8;   /*!< invalid argument */
+static const int RESULT_ERR_INVALID_NUM = -9;   /*!< invalid numeric argument */
+static const int RESULT_ERR_INVALID_ADDR = -10; /*!< invalid address */
+static const int RESULT_ERR_INVALID_POS = -11;  /*!< invalid position */
+static const int RESULT_ERR_OUT_OF_RANGE = -12; /*!< argument value out of valid range */
+static const int RESULT_ERR_INVALID_PART = -13; /*!< invalid part type value */
+static const int RESULT_ERR_MISSING_TYPE = -14; /*!< missing data type */
+static const int RESULT_ERR_INVALID_LIST = -15; /*!< invalid value list */
+static const int RESULT_ERR_DUPLICATE = -16;    /*!< duplicate entry */
+static const int RESULT_ERR_BUS_LOST = -17;     /*!< arbitration lost */
+static const int RESULT_ERR_CRC = -18;          /*!< CRC error */
+static const int RESULT_ERR_ACK = -19;          /*!< ACK error */
+static const int RESULT_ERR_NAK = -20;          /*!< NAK received */
 
 /** type for result code. */
 typedef int result_t;
