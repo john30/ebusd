@@ -650,7 +650,7 @@ public:
 	/**
 	 * @brief Constructs a new instance.
 	 */
-	DataFieldTemplates() : FileReader(false) {}
+	DataFieldTemplates() : FileReader<void*>::FileReader(false) {}
 
 	/**
 	 * @brief Destructor.
