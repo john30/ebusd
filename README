@@ -10,7 +10,7 @@ Features
 
  * active: send and receive ebus commands
            poll commands and collect received data
-           scan ebus to identifies bus participants
+           scan ebus to identify bus participants
 
  * passive: collect data of seen ebus commands
 
