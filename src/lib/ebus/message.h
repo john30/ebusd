@@ -61,6 +61,7 @@ public:
 			const unsigned char srcAddress, const unsigned char dstAddress,
 			const vector<unsigned char> id, DataField* data,
 			const unsigned int pollPriority);
+
 	/**
 	 * @brief Construct a new temporary instance.
 	 * @param isSet whether this is a set message.
@@ -73,10 +74,12 @@ public:
 	Message(const bool isSet, const bool isPassive,
 			const unsigned char pb, const unsigned char sb,
 			DataField* data);
+
 	/**
 	 * @brief Destructor.
 	 */
 	virtual ~Message() { delete m_data; }
+
 	/**
 	 * @brief Factory method for creating a new instance.
 	 * @param it the iterator to traverse for the definition parts.
@@ -90,52 +93,62 @@ public:
 	static result_t create(vector<string>::iterator& it, const vector<string>::iterator end,
 			vector< vector<string> >* defaultsRows,
 			DataFieldTemplates* templates, Message*& returnValue);
+
 	/**
 	 * @brief Get the optional device class.
 	 * @return the optional device class.
 	 */
 	string getClass() const { return m_class; }
+
 	/**
 	 * @brief Get the message name (unique within the same class and type).
 	 * @return the message name (unique within the same class and type).
 	 */
 	string getName() const { return m_name; }
+
 	/**
 	 * @brief Get whether this is a set message.
 	 * @return whether this is a set message.
 	 */
 	bool isSet() const { return m_isSet; }
+
 	/**
 	 * @brief Get whether message can be initiated only by a participant other than us.
 	 * @return true if message can only be initiated by a participant other than us,
 	 * false if message can be initiated by any participant.
 	 */
 	bool isPassive() const { return m_isPassive; }
+
 	/**
 	 * @brief Get the comment.
 	 * @return the comment.
 	 */
 	string getComment() const { return m_comment; }
+
 	/**
 	 * @brief Get the source address.
 	 * @return the source address, or @a SYN for any.
 	 */
 	unsigned char getSrcAddress() const { return m_srcAddress; }
+
 	/**
 	 * @brief Get the destination address.
 	 * @return the destination address, or @a SYN for any.
 	 */
 	unsigned char getDstAddress() const { return m_dstAddress; }
+
 	/**
 	 * @brief Get the command ID bytes.
 	 * @return the primary, secondary, and optionally further command ID bytes.
 	 */
 	vector<unsigned char> getId() const { return m_id; }
+
 	/**
 	 * @brief Return the key for storing in @a MessageSet.
 	 * @return the key for storing in @a MessageSet.
 	 */
 	unsigned long long getKey() { return m_key; }
+
 	/**
 	 * @brief Get the polling priority, or 0 for no polling at all.
 	 * @return the polling priority, or 0 for no polling at all.
@@ -206,35 +219,49 @@ public:
 
 private:
 
-	 /** the optional device class. */
+	/** the optional device class. */
 	const string m_class;
+
 	/** the message name (unique within the same class and type). */
 	const string m_name;
+
 	/** whether this is a set message. */
 	const bool m_isSet;
+
 	/** true if message can only be initiated by a participant other than us,
 	 * false if message can be initiated by any participant. */
 	const bool m_isPassive;
+
 	/** the comment. */
 	const string m_comment;
+
 	/** the source address, or @a SYN for any (only relevant if passive). */
 	const unsigned char m_srcAddress;
+
 	/** the destination address. */
 	const unsigned char m_dstAddress;
+
 	/** the primary, secondary, and optionally further command ID bytes. */
 	vector<unsigned char> m_id;
+
 	/** the key for storing in @a MessageSet. */
 	unsigned long long m_key;
+
 	/** the @a DataField for encoding/decoding the message. */
 	DataField* m_data;
+
 	/** the priority for polling, or 0 for no polling at all. */
 	const unsigned char m_pollPriority;
+
 	/** the last decoded value. */
 	string m_lastValue;
+
 	/** the system time when @a m_lastValue was updated, 0 for never. */
 	time_t m_lastUpdateTime;
+
 	/** the number of times this messages was already polled for. */
 	unsigned int m_pollCount;
+
 	/** the system time when this message was last polled for, 0 for never. */
 	time_t m_lastPollTime;
 
@@ -266,10 +293,12 @@ public:
 	 * @brief Construct a new instance.
 	 */
 	MessageMap() : FileReader<DataFieldTemplates*>::FileReader(true), m_minIdLength(4), m_maxIdLength(0), m_messageCount(0) {}
+
 	/**
 	 * @brief Destructor.
 	 */
 	virtual ~MessageMap() { clear(); }
+
 	/**
 	 * @brief Add a @a Message instance to this set.
 	 * @param message the @a Message instance to add.
@@ -277,8 +306,10 @@ public:
 	 * Note: the caller may not free the added instance on success.
 	 */
 	result_t add(Message* message);
+
 	// @copydoc
 	virtual result_t addFromFile(vector<string>& row, DataFieldTemplates* arg,  vector< vector<string> >* defaults, const string& filename, unsigned int lineNo);
+
 	/**
 	 * @brief Find the @a Message instance for the specified class and name.
 	 * @param clazz the optional device class.
@@ -289,6 +320,7 @@ public:
 	 * Note: the caller may not free the returned instance.
 	 */
 	Message* find(const string& clazz, const string& name, const bool isSet, const bool isPassive=false);
+
 	/**
 	 * @brief Find all active get @a Message instances for the specified class and name.
 	 * @param clazz the device class, or empty for any.
@@ -298,6 +330,7 @@ public:
 	 * Note: the caller may not free the returned instances.
 	 */
 	deque<Message*> findAll(const string& clazz, const string& name, const short pb);
+
 	/**
 	 * @brief Find the @a Message instance for the specified master data.
 	 * @param master the master @a SymbolString for identifying the @a Message.
@@ -305,21 +338,25 @@ public:
 	 * Note: the caller may not free the returned instance.
 	 */
 	Message* find(SymbolString& master);
+
 	/**
 	 * @brief Removes all @a Message instances.
 	 */
 	void clear();
+
 	/**
 	 * @brief Get the number of stored @a Message instances.
 	 * @param passiveOnly true to count only passive messages, false to count all messages.
 	 * @return the the number of stored @a Message instances.
 	 */
 	int size(const bool passiveOnly=false) { return passiveOnly ? m_passiveMessagesByKey.size() : m_messageCount; }
+
 	/**
 	 * @brief Get the number of stored @a Message instances with a poll priority.
 	 * @return the the number of stored @a Message instances with a poll priority.
 	 */
 	int sizePoll() { return m_pollMessages.size(); }
+
 	/**
 	 * @brief Get the next @a Message to poll.
 	 * @return the next @a Message to poll, or NULL.

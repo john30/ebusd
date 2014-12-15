@@ -24,9 +24,9 @@
 #include "network.h"
 #include "bushandler.h"
 
-using namespace std;
-
 /** \file baseloop.h */
+
+using namespace std;
 
 /** @brief possible client commands */
 enum CommandType {
@@ -85,7 +85,7 @@ public:
 
 	/**
 	 * @brief Create a log message for a received/sent raw data byte.
-	 * @param byte byte the raw data byte.
+	 * @param byte the raw data byte.
 	 * @param received true if the byte was received, false if it was sent.
 	 */
 	static void logRaw(const unsigned char byte, bool received);
