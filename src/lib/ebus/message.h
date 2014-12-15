@@ -284,7 +284,7 @@ public:
 	/**
 	 * @brief Construct a new instance.
 	 */
-	MessageMap() : FileReader(true), m_minIdLength(4), m_maxIdLength(0), m_messageCount(0) {}
+	MessageMap() : FileReader<DataFieldTemplates*>::FileReader(true), m_minIdLength(4), m_maxIdLength(0), m_messageCount(0) {}
 
 	/**
 	 * @brief Destructor.
