@@ -28,9 +28,9 @@
 #include <vector>
 #include <cstdarg>
 
-using namespace std;
-
 /** \file logger.h */
+
+using namespace std;
 
 /** @brief available types for all subsystems */
 enum AreasType {

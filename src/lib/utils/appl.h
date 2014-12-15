@@ -25,9 +25,9 @@
 #include <map>
 #include <vector>
 
-using namespace std;
-
 /** \file appl.h */
+
+using namespace std;
 
 /** @brief the available data types. */
 enum DataType {

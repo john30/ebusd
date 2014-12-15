@@ -28,9 +28,9 @@
 #include <fstream>
 #include "result.h"
 
-using namespace std;
-
 /** \file port.h */
+
+using namespace std;
 
 /** @brief available device types. */
 enum DeviceType {
