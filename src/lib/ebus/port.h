@@ -288,6 +288,12 @@ public:
 	 */
 	void setDumpRawMaxSize(const long maxSize) { m_dumpRawMaxSize = maxSize; }
 
+	/**
+	 * @brief Return the device name.
+	 * @return the device name.
+	 */
+	const char* getDeviceName() { return m_deviceName.c_str(); }
+
 private:
 	/** the device name */
 	const string m_deviceName;

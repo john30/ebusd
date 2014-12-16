@@ -62,7 +62,7 @@ BaseLoop::BaseLoop()
 	m_port->open();
 
 	if (m_port->isOpen() == false)
-		L.log(bus, error, "can't open %s", A.getOptVal<const char*>("device"));
+		L.log(bus, error, "can't open %s", m_port->getDeviceName());
 
 	// create BusHandler
 	m_busHandler = new BusHandler(m_port, m_messages,

@@ -34,7 +34,6 @@
 using namespace std;
 
 extern Logger& L;
-extern Appl& A;
 
 /**
  * @brief Return the string corresponding to the @a BusState.
@@ -219,7 +218,7 @@ void BusHandler::run()
 			result_t result = m_port->open();
 
 			if (result != RESULT_OK)
-				L.log(bus, error, "can't open %s", A.getOptVal<const char*>("device"));
+				L.log(bus, error, "can't open %s", m_port->getDeviceName());
 
 		}
 
