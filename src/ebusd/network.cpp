@@ -33,7 +33,6 @@
 using namespace std;
 
 extern Logger& L;
-extern Appl& A;
 
 int Connection::m_ids = 0;
 
@@ -144,13 +143,13 @@ void Connection::run()
 }
 
 
-Network::Network(const bool local, WQueue<NetMessage*>* netQueue)
+Network::Network(const bool local, const int port, WQueue<NetMessage*>* netQueue)
 	: m_netQueue(netQueue), m_listening(false)
 {
 	if (local == true)
-		m_tcpServer = new TCPServer(A.getOptVal<int>("port"), "127.0.0.1");
+		m_tcpServer = new TCPServer(port, "127.0.0.1");
 	else
-		m_tcpServer = new TCPServer(A.getOptVal<int>("port"), "0.0.0.0");
+		m_tcpServer = new TCPServer(port, "0.0.0.0");
 
 	if (m_tcpServer != NULL && m_tcpServer->start() == 0)
 		m_listening = true;

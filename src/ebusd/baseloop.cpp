@@ -73,7 +73,7 @@ BaseLoop::BaseLoop()
 	m_busHandler->start("bushandler");
 
 	// create network
-	m_network = new Network(A.getOptVal<bool>("localhost"), &m_netQueue);
+	m_network = new Network(A.getOptVal<bool>("localhost"), A.getOptVal<int>("port"), &m_netQueue);
 	m_network->start("network");
 }
 

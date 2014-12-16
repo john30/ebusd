@@ -181,9 +181,10 @@ public:
 	/**
 	 * @brief create a network instance and listening for incoming connections.
 	 * @param local true to accept connections only for local host.
+	 * @param port the tcp port to listening.
 	 * @param netQueue the remote queue for network messages.
 	 */
-	Network(const bool local, WQueue<NetMessage*>* netQueue);
+	Network(const bool local, const int port, WQueue<NetMessage*>* netQueue);
 
 	/**
 	 * @brief destructor.
