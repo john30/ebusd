@@ -1,6 +1,7 @@
 AM_CXXFLAGS = -fpic \
 	      -Wall \
 	      -Wextra \
+	      -Wno-unused-parameter \
 	      -isystem$(top_srcdir)/src/lib/utils
 
 noinst_LIBRARIES = libebus.a
