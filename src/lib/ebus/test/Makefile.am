@@ -1,8 +1,7 @@
 AM_CXXFLAGS = -fpic \
 	      -Wall \
 	      -Wextra \
-	      -isystem$(top_srcdir)/src/lib/ebus \
-	      -isystem$(top_srcdir)/src/lib/utils
+	      -isystem$(top_srcdir)/src/lib/ebus
 
 noinst_PROGRAMS = test_port \
 		  test_symbol \
