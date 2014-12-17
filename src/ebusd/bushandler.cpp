@@ -75,7 +75,7 @@ bool PollRequest::notify(result_t result, SymbolString& slave)
 		result = m_message->decode(pt_slaveData, slave, output); // decode data
 	}
 	if (result != RESULT_OK)
-		L.log(bus, error, "poll %s failed: %s", m_message->getName().c_str(), getResultCode(result));
+		L.log(bus, error, "poll %s %s failed: %s", m_message->getClass().c_str(), m_message->getName().c_str(), getResultCode(result));
 	else
 		L.log(bus, event, "poll %s %s: %s", m_message->getClass().c_str(), m_message->getName().c_str(), output.str().c_str());
 
