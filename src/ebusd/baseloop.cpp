@@ -100,17 +100,17 @@ BaseLoop::~BaseLoop()
 
 result_t BaseLoop::loadMessages()
 {
-	string confdir = A.getOptVal<const char*>("ebusconfdir");
-	L.log(bas, trace, "ebus configuration dir: %s", confdir.c_str());
+	string path = A.getOptVal<const char*>("configpath");
+	L.log(bas, trace, "path to ebus configuration files: %s", path.c_str());
 	m_messages->clear();
 	m_templates->clear();
-	result_t result = m_templates->readFromFile(confdir+"/_types.csv");
+	result_t result = m_templates->readFromFile(path+"/_types.csv");
 	if (result == RESULT_OK)
 		L.log(bas, trace, "read templates");
 	else
 		L.log(bas, error, "error reading templates: %s", getResultCode(result));
 
-	result = readConfigFiles(confdir, ".csv");
+	result = readConfigFiles(path, ".csv");
 	if (result == RESULT_OK) {
 		L.log(bas, trace, "read config files");
 

@@ -73,8 +73,11 @@ void define_args()
 	A.addOption("pollinterval", "", OptVal(5), dt_int, ot_mandatory,
 		    "polling interval in 's' (5)\n");
 
-	A.addOption("ebusconfdir", "e", OptVal("/etc/ebusd"), dt_string, ot_mandatory,
-		    "directory for ebus configuration (/etc/ebusd)\n");
+	A.addOption("configpath", "c", OptVal("/etc/ebusd"), dt_string, ot_mandatory,
+		    "path to ebus configuration files (/etc/ebusd)");
+
+	A.addOption("checkconfig", "", OptVal(false), dt_bool, ot_none,
+		    "check of configuration files (enable foreground)\n");
 
 	A.addOption("foreground", "f", OptVal(false), dt_bool, ot_none,
 		    "run in foreground\n");
@@ -156,6 +159,11 @@ int main(int argc, char* argv[])
 
 	// parse arguments
 	A.parseArgs(argc, argv);
+
+	// check of configuration files
+	if (A.getOptVal<bool>("checkconfig") == true) {
+		// TODO checkconfig(...);
+	}
 
 	// make me daemon
 	if (A.getOptVal<bool>("foreground") == true) {
