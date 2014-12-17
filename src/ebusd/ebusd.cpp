@@ -160,13 +160,8 @@ int main(int argc, char* argv[])
 	// parse arguments
 	A.parseArgs(argc, argv);
 
-	// check of configuration files
-	if (A.getOptVal<bool>("checkconfig") == true) {
-		// TODO checkconfig(...);
-	}
-
-	// make me daemon
-	if (A.getOptVal<bool>("foreground") == true) {
+	// make me daemon or checkconfig is true
+	if (A.getOptVal<bool>("foreground") == true || A.getOptVal<bool>("checkconfig") == true) {
 		L += new LogConsole(calcAreaMask(A.getOptVal<const char*>("logareas")),
 				    calcLevel(A.getOptVal<const char*>("loglevel")),
 				    "logconsole");
@@ -190,7 +185,8 @@ int main(int argc, char* argv[])
 
 	// create baseloop
 	baseloop = new BaseLoop();
-	baseloop->start();
+	if (A.getOptVal<bool>("checkconfig") == false)
+		baseloop->start();
 
 	// shutdown
 	shutdown();

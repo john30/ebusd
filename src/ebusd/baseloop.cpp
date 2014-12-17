@@ -36,6 +36,12 @@ BaseLoop::BaseLoop()
 	m_messages = new MessageMap();
 	loadMessages();
 
+	// exit if checkconfig is true
+	if (A.getOptVal<bool>("checkconfig") == true) {
+		m_port = NULL;
+		return;
+	}
+
 	m_ownAddress = A.getOptVal<int>("address") & 0xff;
 	const bool answer = A.getOptVal<bool>("answer");
 
