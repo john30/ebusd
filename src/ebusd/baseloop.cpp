@@ -225,7 +225,7 @@ string BaseLoop::decodeMessage(const string& data)
 		break;
 
 	case ct_read: {
-		unsigned int maxAge = 5*60;
+		time_t maxAge = 5*60;
 		bool verbose = false;
 		while (args.size() > argPos && args[argPos][0] == '-') {
 			if (args[argPos]== "-f") {
