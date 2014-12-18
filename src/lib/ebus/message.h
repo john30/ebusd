@@ -308,7 +308,7 @@ public:
 	result_t add(Message* message);
 
 	// @copydoc
-	virtual result_t addFromFile(vector<string>& row, DataFieldTemplates* arg,  vector< vector<string> >* defaults, const string& filename, unsigned int lineNo);
+	virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end, DataFieldTemplates* arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo);
 
 	/**
 	 * @brief Find the @a Message instance for the specified class and name.

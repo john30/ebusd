@@ -110,7 +110,7 @@ void printErrorPos(vector<string>::iterator begin, const vector<string>::iterato
 {
 	if (pos > begin)
 		pos--;
-	cout << "Error reading \"" << filename << "\" line " << static_cast<unsigned>(pos.base()-begin.base()) << " value \"" << *pos << "\": " << getResultCode(result) << endl;
+	cout << "Error reading \"" << filename << "\" line " << static_cast<unsigned>(lineNo) << " field " << static_cast<unsigned>(1+pos.base()-begin.base()) << " value \"" << *pos << "\": " << getResultCode(result) << endl;
 	cout << "Erroneous item is here:" << endl;
 	bool first = true;
 	int cnt = 0;
@@ -1218,11 +1218,10 @@ result_t DataFieldTemplates::add(DataField* field, bool replace)
 	return RESULT_OK;
 }
 
-result_t DataFieldTemplates::addFromFile(vector<string>& row, void* arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo)
+result_t DataFieldTemplates::addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end, void* arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo)
 {
 	DataField* field = NULL;
-	vector<string>::iterator it = row.begin();
-	result_t result = DataField::create(it, row.end(), this, field);
+	result_t result = DataField::create(begin, end, this, field);
 	if (result != RESULT_OK)
 		return result;
 
@@ -1241,4 +1240,3 @@ DataField* DataFieldTemplates::get(const string name)
 
 	return ref->second;
 }
-

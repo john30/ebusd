@@ -678,7 +678,7 @@ public:
 	result_t add(DataField* field, bool replace=false);
 
 	// @copydoc
-	virtual result_t addFromFile(vector<string>& row, void* arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo);
+	virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end, void* arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo);
 
 	/**
 	 * @brief Gets the template @a DataField instance with the specified name.

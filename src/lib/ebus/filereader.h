@@ -39,6 +39,8 @@ using namespace std;
 /** @brief the separator character used to quote text having the @a FIELD_SEPARATOR in it. */
 #define TEXT_SEPARATOR '"'
 
+extern void printErrorPos(vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, string filename, size_t lineNo, result_t result);
+
 
 /**
  * @brief An abstract class that support reading definitions from a file.
@@ -63,9 +65,10 @@ public:
 	 * @brief Read the definitions from a file.
 	 * @param filename the name of the file being read.
 	 * @param arg an argument to pass to @a addFromFile().
+	 * @param verbose whether to verbosely log problems.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	virtual result_t readFromFile(const string filename, T arg=NULL)
+	virtual result_t readFromFile(const string filename, T arg=NULL, bool verbose=false)
 	{
 		ifstream ifs;
 		ifs.open(filename.c_str(), ifstream::in);
@@ -125,21 +128,25 @@ public:
 			row.push_back(field.str());
 
 			result_t result;
+			vector<string>::iterator it = row.begin();
+			const vector<string>::iterator end = row.end();
 			if (m_supportsDefaults == true) {
 				if (line[0] == '*') {
 					row[0] = row[0].substr(1);
 					defaults.push_back(row);
 					continue;
 				}
-				result = addFromFile(row, arg, &defaults, filename, lineNo);
+				result = addFromFile(it, end, arg, &defaults, filename, lineNo);
 			}
 			else
-				result = addFromFile(row, arg, NULL, filename, lineNo);
+				result = addFromFile(it, end, arg, NULL, filename, lineNo);
 
 			if (result != RESULT_OK) {
-				cerr << "error reading \"" << filename << "\" line " << static_cast<unsigned>(lineNo) << ": " << getResultCode(result) << endl;
-				ifs.close();
-				return result;
+				if (verbose == false) {
+					ifs.close();
+					return result;
+				}
+				printErrorPos(row.begin(), end, it, filename, lineNo, result);
 			}
 		}
 
@@ -149,14 +156,15 @@ public:
 
 	/**
 	 * @brief Add a definition that was read from a file.
-	 * @param row the definition row read from the file.
+	 * @param begin an iterator to the first column of the definition row to read.
+	 * @param end the end iterator of the definition row to read.
 	 * @param arg the argument passed to @a readFromFile().
 	 * @param defaults all previously read default rows (initial star char removed), or NULL if not supported.
 	 * @param filename the name of the file being read.
 	 * @param lineNo the current line number in the file being read.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	virtual result_t addFromFile(vector<string>& row, T arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo) = 0;
+	virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end, T arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo) = 0;
 
 private:
 

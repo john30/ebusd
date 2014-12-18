@@ -376,10 +376,11 @@ result_t MessageMap::add(Message* message)
 	return RESULT_OK;
 }
 
-result_t MessageMap::addFromFile(vector<string>& row, DataFieldTemplates* arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo)
+result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end, DataFieldTemplates* arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo)
 {
 	Message* message = NULL;
-	string types = row[0];
+	vector<string>::iterator restart = begin;
+	string types = *restart;
 	if (types.length() == 0)
 		types.append("r");
 	result_t result = RESULT_ERR_EOF;
@@ -387,17 +388,17 @@ result_t MessageMap::addFromFile(vector<string>& row, DataFieldTemplates* arg, v
 	istringstream stream(types);
 	string type;
 	while (getline(stream, type, VALUE_SEPARATOR) != 0) {
-		row[0] = type;
-		vector<string>::iterator it = row.begin();
-		result = Message::create(it, row.end(), defaults, arg, message);
-		if (result != RESULT_OK) {
-			printErrorPos(row.begin(), row.end(), it, filename, lineNo, result);
-			continue;
-		}
+		*restart = type;
+		begin = restart;
+		result = Message::create(begin, end, defaults, arg, message);
+		if (result != RESULT_OK)
+			return result;
 		result = add(message);
 		if (result != RESULT_OK) {
 			delete message;
+			return result;
 		}
+		begin = restart;
 	}
 	return result;
 }
