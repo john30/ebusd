@@ -181,14 +181,18 @@ Logger& Logger::operator-=(const LogSink* sink)
 
 void Logger::log(const int area, const int level, const string& data, ...)
 {
-	if (isRunning() == true) {
+	if (m_direct == true || isRunning() == true) {
 		char* tmp;
 		va_list ap;
 		va_start(ap, data);
 
 		if (vasprintf(&tmp, data.c_str(), ap) != -1) {
 			string buffer(tmp);
-			m_logQueue.add(new LogMessage(area, level, buffer));
+			LogMessage* message = new LogMessage(area, level, buffer);
+			if (m_direct == true)
+				handleMessage(message);
+			else
+				m_logQueue.add(message);
 		}
 
 		va_end(ap);
@@ -197,34 +201,42 @@ void Logger::log(const int area, const int level, const string& data, ...)
 
 }
 
+bool Logger::handleMessage(LogMessage* message) {
+	bool running = true;
+	sinkCI_t iter = m_sinks.begin();
+
+	for (; iter != m_sinks.end(); ++iter) {
+		if (*iter != 0) {
+
+			if ((((*iter)->getAreaMask() & (1 << message->getArea())) != 0
+			&& (*iter)->getLevel() >= message->getLevel())
+			&& message->isRunning() == true) {
+				(*iter)->addMessage(*message);
+			}
+			else if (message->isRunning() == false) {
+				(*iter)->addMessage(*message);
+				running = false;
+			}
+
+		}
+	}
+
+	delete message;
+
+	return running;
+}
+
+bool Logger::start(const char* name)
+{
+	m_direct = false;
+	return Thread::start(name);
+}
+
 void Logger::run()
 {
-	bool running = true;
 
-	do {
-		LogMessage* message = m_logQueue.remove();
+	while (handleMessage(m_logQueue.remove()));
 
-		sinkCI_t iter = m_sinks.begin();
-
-		for (; iter != m_sinks.end(); ++iter) {
-			if (*iter != 0) {
-
-				if ((((*iter)->getAreaMask() & (1 << message->getArea())) != 0
-				&& (*iter)->getLevel() >= message->getLevel())
-				&& message->isRunning() == true) {
-					(*iter)->addMessage(*message);
-				}
-				else if (message->isRunning() == false) {
-					(*iter)->addMessage(*message);
-					running = false;
-				}
-
-			}
-		}
-
-		delete message;
-
-	} while (running == true);
 }
 
 void Logger::stop()

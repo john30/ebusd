@@ -298,6 +298,9 @@ public:
 	 */
 	LogSink* getSink(const int index) const { return(m_sinks[index]); }
 
+	//@copydoc
+	virtual bool start(const char* name);
+
 	/**
 	 * @brief endless loop for logger instance.
 	 */
@@ -312,7 +315,7 @@ private:
 	/**
 	 * @brief private construtor.
 	 */
-	Logger() {}
+	Logger() : m_direct(true) {}
 
 	/**
 	 * @brief private copy construtor.
@@ -327,11 +330,21 @@ private:
 	 */
 	Logger& operator=(const Logger&);
 
+	/**
+	 * @brief Distribute the @a LogMessage to all known sinks and delete it afterwards.
+	 * @param mesage the @a LogMessage to distribute.
+	 * @return true to continue running, false to stop.
+	 */
+	bool handleMessage(LogMessage* message);
+
 	/** typedefs for a vector of type LogSink* */
 	typedef vector<LogSink*> sink_t;
 
 	/** typedefs for a vector of type LogSink* iterator */
 	typedef vector<LogSink*>::iterator sinkCI_t;
+
+	/** true to directly log to all sinks, false to buffer via @a m_logQueue. */
+	bool m_direct;
 
 	/** vector of available logging sinks */
 	sink_t m_sinks;
