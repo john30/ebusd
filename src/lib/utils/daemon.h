@@ -20,6 +20,8 @@
 #ifndef LIBUTILS_DAEMON_H_
 #define LIBUTILS_DAEMON_H_
 
+#include <cstddef>
+
 /** \file daemon.h */
 
 /**
@@ -44,7 +46,7 @@ public:
 	/**
 	 * @brief stop daemon and delete the pid file.
 	 */
-	void stop() { pidfile_close(); }
+	void stop() { if (m_pidfile != NULL) pidfile_close(); }
 
 	/**
 	 * @brief show actual status if daemonize.
@@ -56,7 +58,7 @@ private:
 	/**
 	 * @brief private construtor.
 	 */
-	Daemon() {}
+	Daemon() : m_status(false), m_pidfile(NULL), m_pidfd(0) {}
 
 	/**
 	 * @brief private copy construtor.

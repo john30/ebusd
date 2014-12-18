@@ -81,7 +81,7 @@ void Daemon::run(const char* pidfile)
 	close(STDERR_FILENO);
 
 	// write pidfile and try to lock it
-	if (pidfile_open() == false) {
+	if (m_pidfile != NULL && pidfile_open() == false) {
 		cerr << "can't open pidfile: %s" << m_pidfile << endl;
 		exit(EXIT_FAILURE);
 	}
