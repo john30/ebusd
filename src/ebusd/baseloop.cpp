@@ -110,7 +110,7 @@ result_t BaseLoop::loadMessages()
 	L.log(bas, trace, "path to ebus configuration files: %s", path.c_str());
 	m_messages->clear();
 	m_templates->clear();
-	result_t result = m_templates->readFromFile(path+"/_types.csv");
+	result_t result = m_templates->readFromFile(path+"/_templates.csv");
 	if (result == RESULT_OK)
 		L.log(bas, trace, "read templates");
 	else
@@ -152,7 +152,7 @@ result_t BaseLoop::readConfigFiles(const string path, const string extension)
 			string fn = d->d_name;
 
 			if (fn.find(extension, (fn.length() - extension.length())) != string::npos
-				&& fn != "_types" + extension) {
+				&& fn != "_templates" + extension) {
 				const string p = path + "/" + d->d_name;
 				result_t result = m_messages->readFromFile(p, m_templates);
 				if (result != RESULT_OK)

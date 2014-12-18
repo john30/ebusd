@@ -57,7 +57,7 @@ int main()
 		//{"","no;25","10feb505042700190023","",""},
 	};
 	DataFieldTemplates* templates = new DataFieldTemplates();
-	result_t result = templates->readFromFile("_types.csv");
+	result_t result = templates->readFromFile("_templates.csv");
 	if (result == RESULT_OK)
 		cout << "read templates OK" << endl;
 	else
