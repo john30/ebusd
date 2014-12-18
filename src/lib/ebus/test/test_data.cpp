@@ -176,11 +176,11 @@ int main()
 		{"x,,bi3,,,,y,,bi5", "-;-",            "10feffff0100", "00", ""}, // bit combination
 		{"x,,bi3,,,,y,,bi7,,,,t,,uch", "-;-;9","10feffff020009", "00", ""}, // bit combination
 		{"x,,bi6:2,,,,y,,bi0:2,,,,t,,uch", "2;1;9","10feffff03800109", "00", ""}, // bit combination
-		{"temp,,d2b,,°C,Aussentemperatur","","", "", "t"}, // template with relative pos
+		{"temp,d2b,,°C,Aussentemperatur","","", "", "t"}, // template with relative pos
 		{"x,,temp","18.004","10fe0700020112", "00", ""}, // reference to template
-		{"relrel,,d2b,,,,y,,d1c","","", "", "t"},   // template struct with relative pos
+		{"relrel,d2b,,,,y,d1c","","", "", "t"},   // template struct with relative pos
 		{"x,,relrel","18.004;9.5","10fe070003011213", "00", ""}, // reference to template struct
-		{"trelrel,,temp;temp","","", "", "t"},   // template struct with relative pos and ref to templates
+		{"trelrel,temp;temp","","", "", "t"},   // template struct with relative pos and ref to templates
 		{"x,,trelrel","18.004;19.008","10fe07000401120213", "00", ""}, // reference to template struct
 		{"x,,temp,,,,y,,d1c","18.004;9.5","10fe070003011213", "00", ""}, // reference to template, normal def
 	};
