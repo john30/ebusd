@@ -153,41 +153,46 @@ result_t DataField::create(vector<string>::iterator& it,
 		PartType partType;
 		unsigned int divisor = 0;
 		const bool isTemplate = dstAddress == SYN;
+		bool hasPartStr = false;
 		string token;
 
-		// name,part,type[:len][,[divisor|values][,[unit][,[comment]]]]
+		// templates: name,type[:len][,[divisor|values][,[unit][,[comment]]]]
+		// normal: name,part,type[:len][,[divisor|values][,[unit][,[comment]]]]
 		const string name = *it++;
 		if (it == end)
 			break;
 
-		const char* partStr = (*it++).c_str();
-		if (it == end)
-			break;
+		if (isTemplate == true)
+			partType = pt_any;
+		else {
+			const char* partStr = (*it++).c_str();
+			if (it == end)
+				break;
+
+			hasPartStr = partStr[0] != 0;
+			if (dstAddress == BROADCAST || isMaster(dstAddress) == true
+				|| (isSetMessage == true && hasPartStr == false)
+				|| strcasecmp(partStr, "M") == 0) { // master data
+				partType = pt_masterData;
+			}
+			else if ((isSetMessage == false && hasPartStr == false)
+				|| strcasecmp(partStr, "S") == 0) { // slave data
+				partType = pt_slaveData;
+			}
+			else {
+				result = RESULT_ERR_INVALID_PART;
+				break;
+			}
+		}
 
 		if (fields.empty() == true) {
 			firstName = name;
 			firstComment = comment;
 		}
-		if (dstAddress == BROADCAST || isMaster(dstAddress) == true
-			|| (isTemplate == false && isSetMessage == true && partStr[0] == 0)
-			|| strcasecmp(partStr, "M") == 0) { // master data
-			partType = pt_masterData;
-		}
-		else if ((isTemplate == false && isSetMessage == false && partStr[0] == 0)
-			|| strcasecmp(partStr, "S") == 0) { // slave data
-			partType = pt_slaveData;
-		}
-		else if (isTemplate) {
-			partType = pt_any;
-		}
-		else {
-			result = RESULT_ERR_INVALID_PART;
-			break;
-		}
 
 		string typeStr = *it++;
 		if (typeStr.empty() == true) {
-			if (name.empty() == false || partStr[0] != 0)
+			if (name.empty() == false || hasPartStr == true)
 				result = RESULT_ERR_MISSING_TYPE;
 			break;
 		}
