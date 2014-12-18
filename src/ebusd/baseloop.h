@@ -65,14 +65,6 @@ public:
 	result_t loadMessages();
 
 	/**
-	 * @brief Read the configuration files from the specified path.
-	 * @param path the path from which to read the files.
-	 * @param extension the filename extension of the files to read.
-	 * @return the result code.
-	 */
-	result_t readConfigFiles(const string path, const string extension);
-
-	/**
 	 * @brief start baseloop instance.
 	 */
 	void start();

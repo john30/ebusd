@@ -27,6 +27,8 @@
 #include "baseloop.h"
 #include <csignal>
 #include <iostream>
+#include <dirent.h>
+
 
 using namespace std;
 
@@ -34,7 +36,7 @@ Appl& A = Appl::Instance();
 Daemon& D = Daemon::Instance();
 Logger& L = Logger::Instance();
 
-BaseLoop* baseloop;
+BaseLoop* baseloop = NULL;
 
 void define_args()
 {
@@ -113,7 +115,8 @@ void define_args()
 void shutdown()
 {
 	// stop threads
-	delete baseloop;
+	if (baseloop != NULL)
+		delete baseloop;
 
 	// reset all signal handlers to default
 	signal(SIGHUP, SIG_DFL);
@@ -152,6 +155,86 @@ void signal_handler(int sig)
 	}
 }
 
+/**
+ * @brief Read the configuration files from the specified path.
+ * @param path the path from which to read the files.
+ * @param extension the filename extension of the files to read.
+ * @param logFunc the function to call for logging, or @a NULL to be silent.
+ * @param templates the available @a DataFieldTemplates.
+ * @param messages the @a MessageMap to load the messages into.
+ * @param verbose whether to verbosely log problems.
+ * @return the result code.
+ */
+static result_t readConfigFiles(const string path, const string extension, DataFieldTemplates* templates, MessageMap* messages, bool verbose)
+{
+	DIR* dir = opendir(path.c_str());
+
+	if (dir == NULL)
+		return RESULT_ERR_NOTFOUND;
+
+	dirent* d = readdir(dir);
+
+	while (d != NULL) {
+		if (d->d_type == DT_DIR) {
+			string fn = d->d_name;
+
+			if (fn != "." && fn != "..") {
+				const string p = path + "/" + d->d_name;
+				result_t result = readConfigFiles(p, extension, templates, messages, verbose);
+				if (result != RESULT_OK)
+					return result;
+			}
+		} else if (d->d_type == DT_REG || d->d_type == DT_LNK) {
+			string fn = d->d_name;
+
+			if (fn.find(extension, (fn.length() - extension.length())) != string::npos
+				&& fn != "_templates" + extension) {
+				const string p = path + "/" + d->d_name;
+				result_t result = messages->readFromFile(p, templates, verbose);
+				if (result != RESULT_OK)
+					return result;
+			}
+		}
+
+		d = readdir(dir);
+	}
+	closedir(dir);
+
+	return RESULT_OK;
+};
+
+/**
+ * @brief Load the message definitions from the configuration files.
+ * @param templates the @a DataFieldTemplates to load the templates into.
+ * @param messages the @a MessageMap to load the messages into.
+ * @param verbose whether to verbosely log problems.
+ * @return the result code.
+ */
+result_t loadConfigFiles(DataFieldTemplates* templates, MessageMap* messages, bool verbose=false) {
+	string path = A.getOptVal<const char*>("configpath");
+	L.log(bas, trace, "path to ebus configuration files: %s", path.c_str());
+	messages->clear();
+	templates->clear();
+	result_t result = templates->readFromFile(path+"/_templates.csv", NULL, verbose);
+	if (result == RESULT_OK)
+		L.log(bas, trace, "read templates");
+	else
+		L.log(bas, error, "error reading templates: %s", getResultCode(result));
+
+	result = readConfigFiles(path, ".csv", templates, messages, verbose);
+	if (result == RESULT_OK)
+		L.log(bas, trace, "read config files");
+	else
+		L.log(bas, error, "error reading config files: %s", getResultCode(result));
+
+		L.log(bas, event, "message DB: %d ", messages->size());
+		L.log(bas, event, "updates DB: %d ", messages->size(true));
+		L.log(bas, event, "polling DB: %d ", messages->sizePoll());
+
+	return result;
+}
+
+
 int main(int argc, char* argv[])
 {
 	// define arguments and application variables
@@ -160,8 +243,26 @@ int main(int argc, char* argv[])
 	// parse arguments
 	A.parseArgs(argc, argv);
 
+	if (A.getOptVal<bool>("checkconfig") == true) {
+		L += new LogConsole(calcAreaMask(A.getOptVal<const char*>("logareas")),
+					calcLevel(A.getOptVal<const char*>("loglevel")),
+					"logconsole");
+
+		DataFieldTemplates templates;
+		MessageMap messages;
+
+		loadConfigFiles(&templates, &messages, true);
+
+		messages.clear();
+		templates.clear();
+
+		shutdown();
+
+		return 0;
+	}
+
 	// make me daemon or checkconfig is true
-	if (A.getOptVal<bool>("foreground") == true || A.getOptVal<bool>("checkconfig") == true) {
+	if (A.getOptVal<bool>("foreground") == true) {
 		L += new LogConsole(calcAreaMask(A.getOptVal<const char*>("logareas")),
 				    calcLevel(A.getOptVal<const char*>("loglevel")),
 				    "logconsole");
@@ -185,8 +286,7 @@ int main(int argc, char* argv[])
 
 	// create baseloop
 	baseloop = new BaseLoop();
-	if (A.getOptVal<bool>("checkconfig") == false)
-		baseloop->start();
+	baseloop->start();
 
 	// shutdown
 	shutdown();

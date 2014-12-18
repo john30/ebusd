@@ -21,7 +21,6 @@
 #include "logger.h"
 #include "appl.h"
 #include "data.h"
-#include <dirent.h>
 #include <iomanip>
 
 using namespace std;
@@ -104,68 +103,12 @@ BaseLoop::~BaseLoop()
 		delete m_templates;
 }
 
+extern result_t loadConfigFiles(DataFieldTemplates* templates, MessageMap* messages, bool verbose=false);
+
 result_t BaseLoop::loadMessages()
 {
-	string path = A.getOptVal<const char*>("configpath");
-	L.log(bas, trace, "path to ebus configuration files: %s", path.c_str());
-	m_messages->clear();
-	m_templates->clear();
-	result_t result = m_templates->readFromFile(path+"/_templates.csv");
-	if (result == RESULT_OK)
-		L.log(bas, trace, "read templates");
-	else
-		L.log(bas, error, "error reading templates: %s", getResultCode(result));
-
-	result = readConfigFiles(path, ".csv");
-	if (result == RESULT_OK) {
-		L.log(bas, trace, "read config files");
-
-		L.log(bas, event, "message DB: %d ", m_messages->size());
-		L.log(bas, event, "updates DB: %d ", m_messages->size(true));
-		L.log(bas, event, "polling DB: %d ", m_messages->sizePoll());
-	} else
-		L.log(bas, error, "error reading config files: %s", getResultCode(result));
-
-	return result;
+	return loadConfigFiles(m_templates, m_messages);
 }
-
-result_t BaseLoop::readConfigFiles(const string path, const string extension)
-{
-	DIR* dir = opendir(path.c_str());
-
-	if (dir == NULL)
-		return RESULT_ERR_NOTFOUND;
-
-	dirent* d = readdir(dir);
-
-	while (d != NULL) {
-		if (d->d_type == DT_DIR) {
-			string fn = d->d_name;
-
-			if (fn != "." && fn != "..") {
-				const string p = path + "/" + d->d_name;
-				result_t result = readConfigFiles(p, extension);
-				if (result != RESULT_OK)
-					return result;
-			}
-		} else if (d->d_type == DT_REG || d->d_type == DT_LNK) {
-			string fn = d->d_name;
-
-			if (fn.find(extension, (fn.length() - extension.length())) != string::npos
-				&& fn != "_templates" + extension) {
-				const string p = path + "/" + d->d_name;
-				result_t result = m_messages->readFromFile(p, m_templates);
-				if (result != RESULT_OK)
-					return result;
-			}
-		}
-
-		d = readdir(dir);
-	}
-	closedir(dir);
-
-	return RESULT_OK;
-};
 
 void BaseLoop::start()
 {
