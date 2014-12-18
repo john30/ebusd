@@ -144,7 +144,7 @@ void LogFile::write(const LogMessage& message) const
 Logger& Logger::Instance()
 {
 	static Logger instance;
-	return (instance);
+	return instance;
 }
 
 Logger::~Logger()
