@@ -46,58 +46,58 @@ void define_args()
 	A.addText("Options:\n");
 
 	A.addOption("address", "a", OptVal(0xff), dt_hex, ot_mandatory,
-		    "\tebus device address (FF)");
+		    "\tebus device address [FF]");
 
 	A.addOption("answer", "", OptVal(false), dt_bool, ot_none,
 		    "\tanswers to requests from other devices");
 
+	A.addOption("foreground", "f", OptVal(false), dt_bool, ot_none,
+		    "run in foreground\n");
+
 	A.addOption("device", "d", OptVal("/dev/ttyUSB0"), dt_string, ot_mandatory,
-		    "\tebus device (serial or network) (/dev/ttyUSB0)");
+		    "\tebus device (serial or network) [/dev/ttyUSB0]");
 
 	A.addOption("nodevicecheck", "n", OptVal(false), dt_bool, ot_none,
 		    "disable valid ebus device test\n");
 
-	A.addOption("sendretries", "", OptVal(2), dt_int, ot_mandatory,
-		    "number retries send ebus command (2)");
-
-	A.addOption("lockretries", "", OptVal(2), dt_int, ot_mandatory,
-		    "number retries to lock ebus (2)");
-
-	A.addOption("lockcounter", "", OptVal(5), dt_int, ot_mandatory,
-		    "number of SYN to unlock send function (5)");
-
-	A.addOption("recvtimeout", "", OptVal(15000), dt_long, ot_mandatory,
-		    "receive timeout in 'us' (15000)");
-
 	A.addOption("acquiretimeout", "", OptVal(9400), dt_long, ot_mandatory,
-		    "bus acquisition timeout in 'us' (9400)\n");
+		    "bus acquisition timeout in 'us' [9400]");
+
+	A.addOption("acquireretries", "", OptVal(2), dt_int, ot_mandatory,
+		    "number retries to acquire ebus [2]");
+
+	A.addOption("sendretries", "", OptVal(2), dt_int, ot_mandatory,
+		    "number retries send ebus command [2]");
+
+	A.addOption("receivetimeout", "", OptVal(15000), dt_long, ot_mandatory,
+		    "receive timeout in 'us' [15000]");
+
+	A.addOption("numbermasters", "", OptVal(5), dt_int, ot_mandatory,
+		    "max number of master bus participant [5]");
 
 	A.addOption("pollinterval", "", OptVal(5), dt_int, ot_mandatory,
-		    "polling interval in 's' (5)\n");
+		    "polling interval in 's' [5]\n");
 
 	A.addOption("configpath", "c", OptVal("/etc/ebusd"), dt_string, ot_mandatory,
-		    "path to ebus configuration files (/etc/ebusd)");
+		    "path to ebus configuration files [/etc/ebusd]");
 
 	A.addOption("checkconfig", "", OptVal(false), dt_bool, ot_none,
-		    "check of configuration files (enable foreground)\n");
-
-	A.addOption("foreground", "f", OptVal(false), dt_bool, ot_none,
-		    "run in foreground\n");
+		    "check of configuration files\n");
 
 	A.addOption("port", "p", OptVal(8888), dt_int, ot_mandatory,
-		    "\tlisten port (8888)");
+		    "\tlisten port [8888]");
 
 	A.addOption("localhost", "", OptVal(false), dt_bool, ot_none,
 		    "listen localhost only\n");
 
 	A.addOption("logfile", "l", OptVal("/var/log/ebusd.log"), dt_string, ot_mandatory,
-		    "\tlog file name (/var/log/ebusd.log)");
+		    "\tlog file name [/var/log/ebusd.log]");
 
 	A.addOption("logareas", "", OptVal("all"), dt_string, ot_mandatory,
-		    "\tlog areas - bas|net|bus|upd|all (all)");
+		    "\tlog areas - bas|net|bus|upd|all [all]");
 
 	A.addOption("loglevel", "", OptVal("trace"), dt_string, ot_mandatory,
-		    "\tlog level - error|event|trace|debug (event)");
+		    "\tlog level - error|event|trace|debug [event]");
 
 	A.addOption("lograwdata", "", OptVal(false), dt_bool, ot_none,
 		    "log raw data (bytes)\n");
@@ -106,10 +106,10 @@ void define_args()
 		    "\tenable dump");
 
 	A.addOption("dumpfile", "", OptVal("/tmp/ebus_dump.bin"), dt_string, ot_mandatory,
-		    "\tdump file name (/tmp/ebus_dump.bin)");
+		    "\tdump file name [/tmp/ebus_dump.bin]");
 
 	A.addOption("dumpsize", "", OptVal(100), dt_long, ot_mandatory,
-		    "\tmax size for dump file in 'kB' (100)\n");
+		    "\tmax size for dump file in 'kB' [100]\n");
 }
 
 void shutdown()

@@ -50,11 +50,11 @@ BaseLoop::BaseLoop()
 	const char* dumpRawFile = A.getOptVal<const char*>("dumpfile");
 	const long dumpRawMaxSize = A.getOptVal<long>("dumpsize");
 
-	const unsigned int busLostRetries = A.getOptVal<unsigned int>("lockretries");
+	const unsigned int busLostRetries = A.getOptVal<unsigned int>("acquireretries");
 	const unsigned int failedSendRetries = A.getOptVal<unsigned int>("sendretries");
 	const unsigned int busAcquireWaitTime = A.getOptVal<unsigned int>("acquiretimeout");
-	const unsigned int slaveRecvTimeout = A.getOptVal<unsigned int>("recvtimeout");
-	const unsigned int lockCount = A.getOptVal<unsigned int>("lockcounter");
+	const unsigned int slaveRecvTimeout = A.getOptVal<unsigned int>("receivetimeout");
+	const unsigned int lockCount = A.getOptVal<unsigned int>("numbermasters");
 	int pollInterval = A.getOptVal<unsigned int>("pollinterval");
 	if (pollInterval <= 0) {
 		m_pollActive = false;
