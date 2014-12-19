@@ -36,7 +36,7 @@ void define_args()
 {
 	A.setVersion("ebusfeed is part of """PACKAGE_STRING"");
 
-	A.addText(" 'ebusfeed' sends hex values from dump file to a local serial device (pts)\n\n"
+	A.addText(" 'ebusfeed' sends hex values from dump file to a pseudo terminal device (pty)\n\n"
 		  "   Usage: 1. 'socat -d -d pty,raw,echo=0 pty,raw,echo=0'\n"
 		  "          2. create symbol links to appropriate devices\n"
 		  "             for example: 'ln -s /dev/pts/2 /dev/ttyUSB60'\n"
@@ -46,7 +46,7 @@ void define_args()
 		  "Options:\n");
 
 	A.addOption("device", "d", OptVal("/dev/ttyUSB60"), dt_string, ot_mandatory,
-		    "virtual serial device (/dev/ttyUSB60)");
+		    "link on pseudo terminal device (/dev/ttyUSB60)");
 
 	A.addOption("time", "t", OptVal(10000), dt_long, ot_mandatory,
 		    "delay between 2 bytes in 'us' (10000)");
