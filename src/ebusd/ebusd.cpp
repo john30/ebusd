@@ -248,6 +248,8 @@ int main(int argc, char* argv[])
 					calcLevel(A.getOptVal<const char*>("loglevel")),
 					"logconsole");
 
+		L.log(bas, event, "ebusd started");
+
 		DataFieldTemplates templates;
 		MessageMap messages;
 
