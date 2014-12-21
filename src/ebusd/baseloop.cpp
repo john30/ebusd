@@ -253,7 +253,7 @@ string BaseLoop::decodeMessage(const string& data)
 				result << getResultCode(ret);
 				break;
 			}
-			L.log(bas, trace, "read cmd: %s", master.getDataStr().c_str());
+			L.log(bas, trace, "read name: %s", master.getDataStr().c_str());
 
 			// send message
 			SymbolString slave;
@@ -304,7 +304,7 @@ string BaseLoop::decodeMessage(const string& data)
 				result << "invalid destination";
 				break;
 			}
-			L.log(bas, event, "write hex cmd: %s", master.getDataStr().c_str());
+			L.log(bas, event, "write hex name: %s", master.getDataStr().c_str());
 
 			// send message
 			SymbolString slave;
@@ -339,7 +339,7 @@ string BaseLoop::decodeMessage(const string& data)
 				result << getResultCode(ret);
 				break;
 			}
-			L.log(bas, trace, "write cmd: %s", master.getDataStr().c_str());
+			L.log(bas, trace, "write name: %s", master.getDataStr().c_str());
 
 			// send message
 			SymbolString slave;
