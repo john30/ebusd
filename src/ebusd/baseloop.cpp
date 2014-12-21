@@ -202,7 +202,7 @@ string BaseLoop::decodeMessage(const string& data)
 			argPos++;
 		}
 		if (args.size() < argPos + 1 || args.size() > argPos + 3) {
-			result << "usage: 'read [-v] [-f] [-m seconds] [class] cmd' or 'read [-v] [-f] [-m seconds] class cmd field'";
+			result << "usage: 'read [-v] [-f] [-m seconds] [class] name' or 'read [-v] [-f] [-m seconds] class name field'";
 			break;
 		}
 		if (args.size() == argPos + 3)
@@ -324,7 +324,7 @@ string BaseLoop::decodeMessage(const string& data)
 		}
 
 		if (args.size() != argPos + 3) {
-			result << "usage: 'write class cmd value[;value]*' or 'write -h ZZPBSBNNDx'";
+			result << "usage: 'write class name value[;value]*' or 'write -h ZZPBSBNNDx'";
 			break;
 		}
 
@@ -458,8 +458,8 @@ string BaseLoop::decodeMessage(const string& data)
 	}
 	case ct_help:
 		result << "commands:" << endl
-		       << " read      - read ebus values            'read [-v] [-f] [-m seconds] [class] cmd' or 'read [-v] [-f] [-m seconds] class cmd field'" << endl
-		       << " write     - write ebus values           'write class cmd value[;value]*' or 'write -h ZZPBSBNNDx'" << endl
+		       << " read      - read ebus values            'read [-v] [-f] [-m seconds] [class] name' or 'read [-v] [-f] [-m seconds] class name field'" << endl
+		       << " write     - write ebus values           'write class name value[;value]*' or 'write -h ZZPBSBNNDx'" << endl
 		       << " scan      - scan ebus kown addresses    'scan'" << endl
 		       << "           - scan ebus all addresses     'scan full'" << endl
 		       << "           - show scan results           'scan result'" << endl << endl
