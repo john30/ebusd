@@ -23,3 +23,5 @@ distclean-local:
 	-rm -f Makefile.in
 	-rm -rf .libs
 
+install-data-local:
+	[ -d $(sysconfdir)/ebusd ] || mkdir -p $(sysconfdir)/ebusd
