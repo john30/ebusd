@@ -1,6 +1,9 @@
 AC_PREREQ([2.65])
 AC_INIT([ebusd], [0.5.0], [ebusd@liwest.at], [ebusd], [https://github.com/yuhu-/ebusd])
 
+if test -z $CXXFLAGS;
+	then CXXFLAGS='-g -O2'
+fi
 AC_PROG_CXX
 
 AC_CHECK_HEADERS([arpa/inet.h \
