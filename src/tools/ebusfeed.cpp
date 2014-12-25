@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
 				cout << hex << setw(2) << setfill('0')
 				     << static_cast<unsigned>(byte) << endl;
 
-				port.send(&byte, 1);
+				port.send(byte);
 				usleep(A.getOptVal<long>("time"));
 			}
 

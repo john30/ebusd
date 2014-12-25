@@ -38,12 +38,6 @@ enum DeviceType {
 	dt_network  /*!< network device */
 };
 
-/** @brief max bytes write to bus. */
-#define MAX_WRITE_SIZE 1
-
-/** @brief max size of receive buffer. */
-#define MAX_READ_SIZE 100
-
 
 /**
  * @brief base class for input devices.
@@ -82,33 +76,19 @@ public:
 	bool isOpen();
 
 	/**
-	 * @brief sendBytes write bytes to opened file descriptor.
-	 * @param buffer data to send.
-	 * @param nbytes number of bytes to send.
-	 * @return number of written bytes or -1 if an error has occured.
+	 * @brief Write a single byte to opened file descriptor.
+	 * @param value the value to send.
+	 * @return the result_t code.
 	 */
-	ssize_t sendBytes(const unsigned char* buffer, size_t nbytes);
+	result_t send(const unsigned char value);
 
 	/**
-	 * @brief recvBytes read bytes from opened file descriptor.
-	 * @param timeout time for new input data [usec].
-	 * @param maxCount max size of receive buffer.
-	 * @param buffer optional direct buffer to write to (instead of queuing the data).
-	 * @return number of read bytes or -1 if an error has occured.
+	 * @brief Read a single byte from opened file descriptor.
+	 * @param timeout max time out for new input data [usec], or 0 for infinite.
+	 * @param value the reference in which the value is stored.
+	 * @return the result_t code.
 	 */
-	ssize_t recvBytes(const long timeout, size_t maxCount, unsigned char* buffer=NULL);
-
-	/**
-	 * @brief fetch first byte from receive buffer.
-	 * @return first byte (raw)
-	 */
-	unsigned char getByte();
-
-	/**
-	 * @brief get current size (bytes) of the receive buffer.
-	 * @return number of bytes in queued.
-	 */
-	ssize_t sizeRecvBuffer() const { return m_recvBuffer.size(); }
+	result_t recv(const long timeout, unsigned char& value);
 
 protected:
 	/** file descriptor from input device */
@@ -119,12 +99,6 @@ protected:
 
 	/** true if device check is disabled */
 	bool m_noDeviceCheck;
-
-	/** queue for received bytes */
-	queue<unsigned char> m_recvBuffer;
-
-	/** receive buffer */
-	unsigned char m_buffer[MAX_READ_SIZE];
 
 private:
 	/**
@@ -224,33 +198,19 @@ public:
 	bool isOpen() { return m_device->isOpen(); }
 
 	/**
-	 * @brief send write bytes into opened file descriptor.
-	 * @param buffer data to send.
-	 * @param nbytes number of bytes to send.
-	 * @return number of written bytes or -1 if an error has occured.
+	 * @brief Write a single byte to opened file descriptor.
+	 * @param value the value to send.
+	 * @return the result_t code.
 	 */
-	ssize_t send(const unsigned char* buffer, size_t nbytes = MAX_WRITE_SIZE);
+	result_t send(const unsigned char value);
 
 	/**
-	 * @brief recv read bytes from opened file descriptor.
+	 * @brief Read a single byte from opened file descriptor.
 	 * @param timeout max time out for new input data [usec], or 0 for infinite.
-	 * @param maxCount max size of receive buffer.
-	 * @param buffer optional direct buffer to write to (instead of queuing the data).
-	 * @return number of read bytes (never 0) or a negative result_t code.
+	 * @param value the reference in which the value is stored.
+	 * @return the result_t code.
 	 */
-	ssize_t recv(const long timeout, size_t maxCount = MAX_READ_SIZE, unsigned char* buffer = NULL);
-
-	/**
-	 * @brief fetch first byte from receive buffer.
-	 * @return first byte (raw)
-	 */
-	unsigned char byte();
-
-	/**
-	 * @brief get current size (bytes) of the receive buffer.
-	 * @return number of bytes in queued.
-	 */
-	ssize_t size() const { return m_device->sizeRecvBuffer(); }
+	result_t recv(const long timeout, unsigned char& value);
 
 	/**
 	 * @brief Get whether logging of raw data is enabled.
@@ -321,6 +281,9 @@ private:
 
 	/** the @a ofstream for dumping raw data to. */
 	ofstream m_dumpRawStream;
+
+	/** the number of bytes already written to the @a m_dumpFile. */
+	long m_dumpRawFileSize;
 
 	/**
 	 * @brief internal setter for device type.

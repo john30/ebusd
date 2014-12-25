@@ -312,8 +312,10 @@ result_t BusHandler::handleSymbol()
 	}
 
 	// send symbol if necessary
+	result_t result;
 	if (sending == true) {
-		if (m_port->send(&sendSymbol, 1) == 1)
+		result = m_port->send(sendSymbol);
+		if (result == RESULT_OK)
 			if (m_state == bs_ready)
 				timeout = m_busAcquireTimeout;
 			else
@@ -321,26 +323,26 @@ result_t BusHandler::handleSymbol()
 		else {
 			sending = false;
 			timeout = 0;
-			setState(bs_skip, RESULT_ERR_SEND);
+			setState(bs_skip, result);
 		}
 	}
 
 	// receive next symbol (optionally check reception of sent symbol)
 	unsigned char recvSymbol;
-	ssize_t count = m_port->recv(timeout, 1, &recvSymbol);
+	result = m_port->recv(timeout, recvSymbol);
 
-	if (count < 0) // count < 0 is a RESULT_ERR_ code
-		return setState(bs_skip, count); // TODO keep "no signal" within auto-syn state
+	if (result != RESULT_OK)
+		return setState(bs_skip, result); // TODO keep "no signal" within auto-syn state
 
-	//unsigned char recvSymbol = m_port->byte(); // TODO remove me
 	if (recvSymbol == SYN) {
-		if (sending == false && m_remainLockCount > 0)
+		if (sending == false && m_remainLockCount > 0 && m_command.size() != 1)
 			m_remainLockCount--;
+		else if (sending == false && m_remainLockCount == 0 && m_command.size() == 1)
+			m_remainLockCount = 1; // wait for next AUTO-SYN after SYN / address / SYN (bus locked for own priority)
 		return setState(bs_ready, RESULT_SYN);
 	}
 
 	unsigned char headerLen, crcPos;
-	result_t result;
 
 	switch (m_state)
 	{
@@ -360,7 +362,7 @@ result_t BusHandler::handleSymbol()
 				return setState(bs_sendCmd, RESULT_OK);
 			}
 			// arbitration lost. if same priority class found, try again after next AUTO-SYN
-			m_remainLockCount = isMaster(recvSymbol) ? 2 : 1;
+			m_remainLockCount = isMaster(recvSymbol) ? 2 : 1; // number of SYN to wait for before next send try
 			if ((recvSymbol & 0x0f) != (sendSymbol & 0x0f)
 			        && m_lockCount > m_remainLockCount)
 				// if different priority class found, try again after N AUTO-SYN symbols (at least next AUTO-SYN)

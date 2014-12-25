@@ -36,16 +36,13 @@ int main ()
 	int count = 0;
 
 	while (1) {
-		ssize_t bytes_read;
+		result_t result;
 		unsigned char byte = 0;
-		bytes_read = port.recv(0);
+		result = port.recv(0, byte);
 
-		for (int i = 0; i < bytes_read; i++)
-			byte = port.byte();
+		if (result == RESULT_OK)
 			cout << hex << setw(2) << setfill('0')
 			<< static_cast<unsigned>(byte) << endl;
-
-		bytes_read = 0;
 
 		count++;
 	}

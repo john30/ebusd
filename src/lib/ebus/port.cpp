@@ -60,16 +60,16 @@ bool Device::isValid()
 	return true;
 }
 
-ssize_t Device::sendBytes(const unsigned char* buffer, size_t nbytes)
+result_t Device::send(const unsigned char value)
 {
 	if (isValid() == false)
 		return RESULT_ERR_DEVICE;
 
 	// write bytes to device
-	return write(m_fd, buffer, nbytes);
+	return write(m_fd, &value, 1) == 1 ? RESULT_OK : RESULT_ERR_SEND;
 }
 
-ssize_t Device::recvBytes(const long timeout, size_t maxCount, unsigned char* buffer)
+result_t Device::recv(const long timeout, unsigned char& value)
 {
 	if (isValid() == false)
 		return RESULT_ERR_DEVICE;
@@ -106,41 +106,12 @@ ssize_t Device::recvBytes(const long timeout, size_t maxCount, unsigned char* bu
 		if (ret == 0) return RESULT_ERR_TIMEOUT;
 	}
 
-	if (buffer != NULL) {
-		// read bytes from device directly into provided buffer
-		ssize_t nbytes = read(m_fd, buffer, maxCount);
-		if (nbytes == 0)
-			return RESULT_ERR_EOF;
-
-		return nbytes;
-	}
-
-	if (maxCount > sizeof(m_buffer))
-		maxCount = sizeof(m_buffer);
-
-	// read bytes from device into temporary buffer
-	ssize_t nbytes = read(m_fd, m_buffer, maxCount);
+	// directly read byte from device
+	ssize_t nbytes = read(m_fd, &value, 1);
 	if (nbytes == 0)
 		return RESULT_ERR_EOF;
 
-	for (int i = 0; i < nbytes; i++)
-		m_recvBuffer.push(m_buffer[i]);
-
-	return nbytes;
-}
-
-unsigned char Device::getByte()
-{
-	unsigned char byte;
-
-	if (m_recvBuffer.empty() == false) {
-		byte = m_recvBuffer.front();
-		m_recvBuffer.pop();
-
-		return byte;
-	}
-
-	return 0;
+	return nbytes < 0 ? RESULT_ERR_DEVICE : RESULT_OK;
 }
 
 
@@ -266,7 +237,8 @@ Port::Port(const string deviceName, const bool noDeviceCheck,
 		const bool dumpRaw, const char* dumpRawFile, const long dumpRawMaxSize)
 	: m_deviceName(deviceName), m_noDeviceCheck(noDeviceCheck),
 	  m_logRaw(logRaw), m_logRawFunc(logRawFunc),
-	  m_dumpRawFile(dumpRawFile), m_dumpRawMaxSize(dumpRawMaxSize)
+	  m_dumpRawFile(dumpRawFile), m_dumpRawMaxSize(dumpRawMaxSize),
+	  m_dumpRawFileSize(0)
 {
 	m_device = NULL;
 
@@ -281,60 +253,40 @@ Port::Port(const string deviceName, const bool noDeviceCheck,
 	setDumpRaw(dumpRaw); // open fstream if necessary
 }
 
-ssize_t Port::send(const unsigned char* buffer, size_t nbytes)
+result_t Port::send(const unsigned char value)
 {
-	ssize_t ret = m_device->sendBytes(buffer, nbytes);
-	if (ret>0 && m_logRaw == true && m_logRawFunc != NULL)
-		(*m_logRawFunc)(buffer[0], false);
+	result_t ret = m_device->send(value);
+	if (ret == RESULT_OK && m_logRaw == true && m_logRawFunc != NULL)
+		(*m_logRawFunc)(value, false);
 	return ret;
 }
 
-ssize_t Port::recv(const long timeout, size_t maxCount, unsigned char* buffer)
+result_t Port::recv(const long timeout, unsigned char& value)
 {
-	ssize_t ret = m_device->recvBytes(timeout, maxCount, buffer);
-	if (buffer && ret > 0) {
+	result_t ret = m_device->recv(timeout, value);
+	if (ret == RESULT_OK) {
 		if (m_logRaw == true && m_logRawFunc != NULL) {
-			for (ssize_t pos = 0; pos < ret; pos++)
-				(*m_logRawFunc)(buffer[pos], true);
+			(*m_logRawFunc)(value, true);
 		}
 
 		if (m_dumpRaw == true && m_dumpRawStream.is_open() == true) {
-			m_dumpRawStream.write((char*)buffer, ret);
-			m_dumpRawStream.flush();
+			m_dumpRawStream.write((char*)&value, 1);
+			m_dumpRawFileSize++;
+			if ((m_dumpRawFileSize%1024) == 0)
+				m_dumpRawStream.flush();
 
-			if (m_dumpRawStream.tellp() >= m_dumpRawMaxSize * 1024) {
+			if (m_dumpRawFileSize >= m_dumpRawMaxSize * 1024) {
 				string oldfile = m_dumpRawFile + ".old";
 				if (rename(m_dumpRawFile.c_str(), oldfile.c_str()) == 0) {
 					m_dumpRawStream.close();
 					m_dumpRawStream.open(m_dumpRawFile.c_str(), ios::out | ios::binary | ios::app);
+					m_dumpRawFileSize = 0;
 				}
 			}
 		}
 	}
 
 	return ret;
-}
-
-unsigned char Port::byte()
-{
-	unsigned char byte = m_device->getByte();
-
-	if (m_logRaw == true && m_logRawFunc != NULL)
-		(*m_logRawFunc)(byte, true);
-
-	if (m_dumpRaw == true && m_dumpRawStream.is_open() == true) {
-		m_dumpRawStream.write((char*)&byte, 1);
-
-		if (m_dumpRawStream.tellp() >= m_dumpRawMaxSize * 1024) {
-			string oldfile = m_dumpRawFile + ".old";
-			if (rename(m_dumpRawFile.c_str(), oldfile.c_str()) == 0) {
-				m_dumpRawStream.close();
-				m_dumpRawStream.open(m_dumpRawFile.c_str(), ios::out | ios::binary | ios::app);
-			}
-		}
-	}
-
-	return byte;
 }
 
 void Port::setDumpRaw(bool dumpRaw)
@@ -346,8 +298,10 @@ void Port::setDumpRaw(bool dumpRaw)
 
 	if (dumpRaw == false)
 		m_dumpRawStream.close();
-	else
+	else {
 		m_dumpRawStream.open(m_dumpRawFile.c_str(), ios::out | ios::binary | ios::app);
+		m_dumpRawFileSize = 0;
+	}
 }
 
 void Port::setDumpRawFile(const string& dumpFile) {
@@ -357,8 +311,10 @@ void Port::setDumpRawFile(const string& dumpFile) {
 	m_dumpRawStream.close();
 	m_dumpRawFile = dumpFile;
 
-	if (m_dumpRaw == true)
+	if (m_dumpRaw == true) {
 		m_dumpRawStream.open(m_dumpRawFile.c_str(), ios::out | ios::binary | ios::app);
+		m_dumpRawFileSize = 0;
+	}
 }
 
 void Port::setType(const DeviceType type)
