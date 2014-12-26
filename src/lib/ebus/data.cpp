@@ -193,7 +193,7 @@ result_t DataField::create(vector<string>::iterator& it,
 			firstComment = comment;
 		}
 
-		string typeStr = *it++;
+		const string typeStr = *it++;
 		if (typeStr.empty() == true) {
 			if (name.empty() == false || hasPartStr == true)
 				result = RESULT_ERR_MISSING_TYPE;
@@ -202,7 +202,7 @@ result_t DataField::create(vector<string>::iterator& it,
 
 		map<unsigned int, string> values;
 		if (it != end) {
-			string divisorStr = *it++;
+			const string divisorStr = *it++;
 			if (divisorStr.empty() == false) {
 				if (divisorStr.find('=') == string::npos)
 					divisor = parseInt(divisorStr.c_str(), 10, 1, 10000, result);
@@ -232,19 +232,24 @@ result_t DataField::create(vector<string>::iterator& it,
 		if (it == end)
 			unit = "";
 		else {
-			unit = *it++;
-			if (strcasecmp(unit.c_str(), NULL_VALUE) == 0)
-				unit.clear();
+			const string str = *it++;
+			if (strcasecmp(str.c_str(), NULL_VALUE) == 0)
+				unit = "";
+			else
+				unit = str;
 		}
 
 		if (it == end)
 			comment = "";
 		else {
-			comment = *it++;
-			if (strcasecmp(comment.c_str(), NULL_VALUE) == 0)
-				comment.clear();
+			const string str = *it++;
+			if (strcasecmp(str.c_str(), NULL_VALUE) == 0)
+				comment = "";
+			else
+				comment = str;
 		}
 
+		const char* typeName;
 		size_t pos = typeStr.find(LENGTH_SEPARATOR);
 		unsigned char length;
 		if (pos == string::npos) {
@@ -271,16 +276,16 @@ result_t DataField::create(vector<string>::iterator& it,
 				if (found == true)
 					continue; // go to next definition
 			}
+			typeName = typeStr.c_str();
 		}
 		else {
 			length = parseInt(typeStr.substr(pos+1).c_str(), 10, 1, MAX_POS, result);
 			if (result != RESULT_OK)
 				break;
-			typeStr = typeStr.substr(0, pos);
+			typeName = typeStr.substr(0, pos).c_str();
 		}
 
 		SingleDataField* add = NULL;
-		const char* typeName = typeStr.c_str();
 		for (size_t i = 0; result == RESULT_OK && add == NULL && i < sizeof(dataTypes) / sizeof(dataTypes[0]); i++) {
 			dataType_t dataType = dataTypes[i];
 			if (strcasecmp(typeName, dataType.name) == 0) {
