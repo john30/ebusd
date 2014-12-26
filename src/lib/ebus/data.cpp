@@ -211,7 +211,11 @@ result_t DataField::create(vector<string>::iterator& it,
 					while (getline(stream, token, VALUE_SEPARATOR) != 0) {
 						const char* str = token.c_str();
 						char* strEnd = NULL;
-						unsigned int id = strtoul(str, &strEnd, 10);
+						unsigned int id;
+						if (strncasecmp(str, "0x", 2) == 0)
+							id = strtoul(str+2, &strEnd, 16); // hexadecimal
+						else
+							id = strtoul(str, &strEnd, 10); // decimal
 						if (strEnd == NULL || strEnd == str || *strEnd != '=') {
 							result = RESULT_ERR_INVALID_LIST;
 							break;

@@ -185,7 +185,7 @@ int main()
 		{"x,,bi3:2,0=off;1=on;2=auto;3=eco","auto", "10feffff0110", "00", ""},
 		{"x,,bi3:2,0=off;1=on","on", "10feffff0108", "00", ""},
 		{"x,,bi3:2,0=off;1=on","off","10feffff0100", "00", ""},
-		{"x,,uch,1=test;2=high;3=off;4=on","on","10feffff0104", "00", ""},
+		{"x,,uch,1=test;2=high;3=off;0x10=on","on","10feffff0110", "00", ""},
 		{"x,s,uch","3","1050ffff00", "0103", ""},
 		{"x,,d2b,,°C,Aussentemperatur","x=18.004 °C [Aussentemperatur]","10fe0700090112", "00", "v"},
 		{"x,,bti,,,,y,,bda,,,,z,,bdy", "21:04:58;26.10.2014;Sun","10fe0700085804212610061406", "00", ""}, // combination
