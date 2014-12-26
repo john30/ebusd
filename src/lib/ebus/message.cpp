@@ -409,8 +409,10 @@ Message* MessageMap::find(const string& clazz, const string& name, const bool is
 		string key;
 		if (i==0)
 			key = string(isPassive ? "P" : (isSet ? "W" : "R")) + clazz + FIELD_SEPARATOR + name;
-		else
+		else if (clazz.length() == 0)
 			key = string(isPassive ? "-P" : (isSet ? "-W" : "-R")) + name; // second try: without class
+		else
+			continue; // not allowed without class
 		map<string, Message*>::iterator it = m_messagesByName.find(key);
 		if (it != m_messagesByName.end())
 			return it->second;
