@@ -356,7 +356,7 @@ result_t DataField::create(vector<string>::iterator& it,
 
 	} while (it != end && result == RESULT_OK);
 
-	if (fields.empty() == true || result != RESULT_OK) {
+	if (result != RESULT_OK) {
 		while (fields.empty() == false) { // cleanup already created fields
 			delete fields.back();
 			fields.pop_back();
@@ -1246,7 +1246,7 @@ result_t DataFieldTemplates::addFromFile(vector<string>::iterator& begin, const 
 	if (result != RESULT_OK)
 		return result;
 
-	result = add(field);
+	result = add(field, true);
 	if (result != RESULT_OK)
 		delete field;
 
