@@ -57,6 +57,9 @@ static const dataType_t dataTypes[] = {
 	{"BDY",  8, bt_num, DAY|LST,       0x07,          0,          6,    1, 0}, // weekday, "Mon" - "Sun" (0x00 - 0x06) [ebus type]
 	{"HDY",  8, bt_num, DAY|LST,       0x00,          1,          7,    1, 0}, // weekday, "Mon" - "Sun" (0x01 - 0x07) [Vaillant type]
 	{"BCD",  8, bt_num, BCD|LST,       0xff,          0,       0x99,    1, 0}, // unsigned decimal in BCD, 0 - 99
+	{"BCD", 16, bt_num, BCD|LST,     0xffff,          0,     0x9999,    1, 0}, // unsigned decimal in BCD, 0 - 9999
+	{"BCD", 24, bt_num, BCD|LST,   0xffffff,          0,   0x999999,    1, 0}, // unsigned decimal in BCD, 0 - 999999
+	{"BCD", 32, bt_num, BCD|LST, 0xffffffff,          0, 0x99999999,    1, 0}, // unsigned decimal in BCD, 0 - 99999999
 	pinDataType,
 	uchDataType,
 	{"SCH",  8, bt_num,     SIG,       0x80,       0x81,       0x7f,    1, 0}, // signed integer, -127 - +127
@@ -729,7 +732,7 @@ result_t NumericDataField::readRawValue(SymbolString& input,
 	for (size_t offset = start, i = 0, exp = 1; i < count; offset += incr, i++) {
 		ch = input[baseOffset + offset];
 		if ((m_dataType.flags & BCD) != 0) {
-			if (ch == m_dataType.replacement) {
+			if (ch == (m_dataType.replacement & 0xff)) {
 				value = m_dataType.replacement;
 				return RESULT_OK;
 			}
@@ -776,7 +779,7 @@ result_t NumericDataField::writeRawValue(unsigned int value,
 	for (size_t offset = start, i = 0, exp = 1; i < count; offset += incr, i++) {
 		if ((m_dataType.flags & BCD) != 0) {
 			if (value == m_dataType.replacement)
-				ch = m_dataType.replacement;
+				ch = m_dataType.replacement & 0xff;
 			else {
 				ch = (value / exp) % 100;
 				ch = ((ch / 10) << 4) | (ch % 10);
