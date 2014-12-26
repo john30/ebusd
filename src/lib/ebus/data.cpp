@@ -47,8 +47,8 @@ static const dataType_t dataTypes[] = {
 	{"HEX",16*8,bt_hexstr,  ADJ,          0,          2,         47,    0, 0}, // >= 1 byte hex digit string, usually separated by space, e.g. 0a 1b 2c 3d
 	{"BDA", 32, bt_dat,     BCD,          0,         10,         10,    0, 0}, // date with weekday in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is weekday Mon=0x00 - Sun=0x06)
 	{"BDA", 24, bt_dat,     BCD,          0,         10,         10,    0, 0}, // date in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99)
-	{"HDA", 32, bt_dat,       0,          0,         10,         10,    0, 0}, // date with weekday, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is weekday Mon=0x01 - Sun=0x07))
-	{"HDA", 24, bt_dat,       0,          0,         10,         10,    0, 0}, // date, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99) // TODO remove duplicate of BDA
+	{"HDA", 32, bt_dat,       0,          0,         10,         10,    0, 0}, // date with weekday, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x1f,0x0c,WW,0x63, WW is weekday Mon=0x01 - Sun=0x07))
+	{"HDA", 24, bt_dat,       0,          0,         10,         10,    0, 0}, // date, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x1f,0x0c,0x63)
 	{"BTI", 24, bt_tim, BCD|REV,          0,          8,          8,    0, 0}, // time in BCD, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x59,0x59,0x23)
 	{"HTI", 24, bt_tim,       0,          0,          8,          8,    0, 0}, // time, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x17,0x3b,0x3b)
 	{"VTI", 24, bt_tim,     REV,       0x63,          8,          8,    0, 0}, // time, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x3b,0x3b,0x17, replacement 0x63) [Vaillant type]
@@ -493,7 +493,7 @@ result_t StringDataField::readSymbols(SymbolString& input,
 		if (m_length == 4 && i == 2 && m_dataType.type == bt_dat)
 			continue; // skip weekday in between
 		ch = input[baseOffset + offset];
-		if ((m_dataType.flags & BCD) != 0 || m_dataType.type == bt_dat) {
+		if ((m_dataType.flags & BCD) != 0) {
 			if ((ch & 0xf0) > 0x90 || (ch & 0x0f) > 0x09)
 				return RESULT_ERR_OUT_OF_RANGE; // invalid BCD
 			ch = (ch >> 4) * 10 + (ch & 0x0f);
@@ -675,7 +675,7 @@ result_t StringDataField::writeSymbols(istringstream& input,
 		}
 		lastLast = last;
 		last = value;
-		if ((m_dataType.flags & BCD) != 0 || m_dataType.type == bt_dat) {
+		if ((m_dataType.flags & BCD) != 0) {
 			if (value > 99)
 				return RESULT_ERR_OUT_OF_RANGE; // invalid BCD
 			value = ((value / 10) << 4) | (value % 10);
