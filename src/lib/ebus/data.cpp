@@ -33,7 +33,7 @@ static const dataType_t stringDataType = {
 };
 
 static const dataType_t pinDataType = {
-	"PIN", 16, bt_num, FIX|BCD|REV, 0xffff,          0,     0x9999,    1, 0 // unsigned decimal in BCD, 0000 - 9999 (fixed length)
+	"PIN", 16, bt_num, FIX|BCD|REV|REQ, 0xffff,      0,     0x9999,    1, 0 // unsigned decimal in BCD, 0000 - 9999 (fixed length)
 };
 
 static const dataType_t uchDataType = {
@@ -49,10 +49,10 @@ static const dataType_t dataTypes[] = {
 	{"BDA", 24, bt_dat,     BCD,          0,         10,         10,    0, 0}, // date in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99)
 	{"HDA", 32, bt_dat,       0,          0,         10,         10,    0, 0}, // date with weekday, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x1f,0x0c,WW,0x63, WW is weekday Mon=0x01 - Sun=0x07))
 	{"HDA", 24, bt_dat,       0,          0,         10,         10,    0, 0}, // date, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x1f,0x0c,0x63)
-	{"BTI", 24, bt_tim, BCD|REV,          0,          8,          8,    0, 0}, // time in BCD, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x59,0x59,0x23)
-	{"HTI", 24, bt_tim,       0,          0,          8,          8,    0, 0}, // time, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x17,0x3b,0x3b)
+	{"BTI", 24, bt_tim, BCD|REV|REQ,      0,          8,          8,    0, 0}, // time in BCD, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x59,0x59,0x23)
+	{"HTI", 24, bt_tim,     REQ,          0,          8,          8,    0, 0}, // time, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x17,0x3b,0x3b)
 	{"VTI", 24, bt_tim,     REV,       0x63,          8,          8,    0, 0}, // time, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x3b,0x3b,0x17, replacement 0x63) [Vaillant type]
-	{"HTM", 16, bt_tim,       0,          0,          5,          5,    0, 0}, // time as hh:mm, 00:00 - 23:59 (0x00,0x00 - 0x17,0x3b)
+	{"HTM", 16, bt_tim,     REQ,          0,          5,          5,    0, 0}, // time as hh:mm, 00:00 - 23:59 (0x00,0x00 - 0x17,0x3b)
 	{"TTM",  8, bt_tim,       0,       0x90,          5,          5,    0, 0}, // truncated time (only multiple of 10 minutes), 00:00 - 24:00 (minutes div 10 + hour * 6 as integer)
 	{"BDY",  8, bt_num, DAY|LST,       0x07,          0,          6,    1, 0}, // weekday, "Mon" - "Sun" (0x00 - 0x06) [ebus type]
 	{"HDY",  8, bt_num, DAY|LST,       0x00,          1,          7,    1, 0}, // weekday, "Mon" - "Sun" (0x01 - 0x07) [Vaillant type]
@@ -72,14 +72,14 @@ static const dataType_t dataTypes[] = {
 	{"D2C", 16, bt_num,     SIG,     0x8000,     0x8001,     0x7fff,   16, 2}, // signed number (fraction 1/16), -2047.9 - +2047.9
 	{"ULG", 32, bt_num,     LST, 0xffffffff,          0, 0xfffffffe,    1, 0}, // unsigned integer, 0 - 4294967294
 	{"SLG", 32, bt_num,     SIG, 0x80000000, 0x80000001, 0xffffffff,    1, 0}, // signed integer, -2147483647 - +2147483647
-	{"BI0",  7, bt_num, ADJ|LST,          0,          0,       0xef,    1, 0}, // bit 0 (up to 7 bits until bit 6)
-	{"BI1",  7, bt_num, ADJ|LST,          0,          0,       0x7f,    1, 1}, // bit 1 (up to 7 bits until bit 7)
-	{"BI2",  6, bt_num, ADJ|LST,          0,          0,       0x3f,    1, 2}, // bit 2 (up to 6 bits until bit 7)
-	{"BI3",  5, bt_num, ADJ|LST,          0,          0,       0x1f,    1, 3}, // bit 3 (up to 5 bits until bit 7)
-	{"BI4",  4, bt_num, ADJ|LST,          0,          0,       0x0f,    1, 4}, // bit 4 (up to 4 bits until bit 7)
-	{"BI5",  3, bt_num, ADJ|LST,          0,          0,       0x07,    1, 5}, // bit 5 (up to 3 bits until bit 7)
-	{"BI6",  2, bt_num, ADJ|LST,          0,          0,       0x03,    1, 6}, // bit 6 (up to 2 bits until bit 7)
-	{"BI7",  1, bt_num, ADJ|LST,          0,          0,       0x01,    1, 7}, // bit 7
+	{"BI0",  7, bt_num, ADJ|LST|REQ,      0,          0,       0xef,    1, 0}, // bit 0 (up to 7 bits until bit 6)
+	{"BI1",  7, bt_num, ADJ|LST|REQ,      0,          0,       0x7f,    1, 1}, // bit 1 (up to 7 bits until bit 7)
+	{"BI2",  6, bt_num, ADJ|LST|REQ,      0,          0,       0x3f,    1, 2}, // bit 2 (up to 6 bits until bit 7)
+	{"BI3",  5, bt_num, ADJ|LST|REQ,      0,          0,       0x1f,    1, 3}, // bit 3 (up to 5 bits until bit 7)
+	{"BI4",  4, bt_num, ADJ|LST|REQ,      0,          0,       0x0f,    1, 4}, // bit 4 (up to 4 bits until bit 7)
+	{"BI5",  3, bt_num, ADJ|LST|REQ,      0,          0,       0x07,    1, 5}, // bit 5 (up to 3 bits until bit 7)
+	{"BI6",  2, bt_num, ADJ|LST|REQ,      0,          0,       0x03,    1, 6}, // bit 6 (up to 2 bits until bit 7)
+	{"BI7",  1, bt_num, ADJ|LST|REQ,      0,          0,       0x01,    1, 7}, // bit 7
 };
 
 
@@ -513,6 +513,16 @@ result_t StringDataField::readSymbols(SymbolString& input,
 			output << setw(2) << hex << setfill('0') << static_cast<unsigned>(ch);
 			break;
 		case bt_dat:
+			if ((m_dataType.flags & REQ) == 0 && ch == m_dataType.replacement) {
+				if (i + 1 != m_length) {
+					output << NULL_VALUE << ".";
+					break;
+				}
+				else if (last == m_dataType.replacement) {
+					output << NULL_VALUE;
+					break;
+				}
+			}
 			if (i + 1 == m_length)
 				output << (2000 + ch);
 			else if (ch < 1 || (i == 0 && ch > 31) || (i == 1 && ch > 12))
@@ -521,7 +531,7 @@ result_t StringDataField::readSymbols(SymbolString& input,
 				output << setw(2) << dec << setfill('0') << static_cast<unsigned>(ch) << ".";
 			break;
 		case bt_tim:
-			if (m_dataType.replacement != 0 && ch == m_dataType.replacement) {
+			if ((m_dataType.flags & REQ) == 0 && ch == m_dataType.replacement) {
 				if (m_length == 1) { // truncated time
 					output << NULL_VALUE << ":" << NULL_VALUE;
 					break;
@@ -571,7 +581,7 @@ result_t StringDataField::writeSymbols(istringstream& input,
 		incr = -1;
 	}
 
-	if (isIgnored() == true) {
+	if (isIgnored() == true && (m_dataType.flags & REQ) == 0) {
 		for (size_t offset = start, i = 0; i < count; offset += incr, i++) {
 			output[baseOffset + offset] = m_dataType.replacement; // fill up with replacement
 		}
@@ -606,6 +616,10 @@ result_t StringDataField::writeSymbols(istringstream& input,
 				continue; // skip weekday in between
 			if (input.eof() == true || getline(input, token, '.') == 0)
 				return RESULT_ERR_EOF; // incomplete
+			if ((m_dataType.flags & REQ) == 0 && strcmp(token.c_str(), NULL_VALUE) == 0) {
+				value = m_dataType.replacement;
+				break;
+			}
 			value = parseInt(token.c_str(), 10, 0, 2099, result);
 			if (result != RESULT_OK)
 				return result; // invalid date part
@@ -637,7 +651,7 @@ result_t StringDataField::writeSymbols(istringstream& input,
 		case bt_tim:
 			if (input.eof() == true || getline(input, token, LENGTH_SEPARATOR) == 0)
 				return RESULT_ERR_EOF; // incomplete
-			if (m_dataType.replacement != 0 && strcmp(token.c_str(), NULL_VALUE) == 0) {
+			if ((m_dataType.flags & REQ) == 0 && strcmp(token.c_str(), NULL_VALUE) == 0) {
 				value = m_dataType.replacement;
 				if (m_length == 1) { // truncated time
 					if (i == 0) {
@@ -736,7 +750,7 @@ result_t NumericDataField::readRawValue(SymbolString& input,
 	for (size_t offset = start, i = 0, exp = 1; i < count; offset += incr, i++) {
 		ch = input[baseOffset + offset];
 		if ((m_dataType.flags & BCD) != 0) {
-			if (ch == (m_dataType.replacement & 0xff)) {
+			if ((m_dataType.flags & REQ) == 0 && ch == (m_dataType.replacement & 0xff)) {
 				value = m_dataType.replacement;
 				return RESULT_OK;
 			}
@@ -782,7 +796,7 @@ result_t NumericDataField::writeRawValue(unsigned int value,
 	}
 	for (size_t offset = start, i = 0, exp = 1; i < count; offset += incr, i++) {
 		if ((m_dataType.flags & BCD) != 0) {
-			if (value == m_dataType.replacement)
+			if ((m_dataType.flags & REQ) == 0 && value == m_dataType.replacement)
 				ch = m_dataType.replacement & 0xff;
 			else {
 				ch = (value / exp) % 100;
@@ -852,7 +866,7 @@ result_t NumberDataField::readSymbols(SymbolString& input,
 
 	output << setw(0) << dec; // initialize output
 
-	if (value == m_dataType.replacement) {
+	if ((m_dataType.flags & REQ) == 0 && value == m_dataType.replacement) {
 		output << NULL_VALUE;
 		return RESULT_OK;
 	}
@@ -891,7 +905,7 @@ result_t NumberDataField::writeSymbols(istringstream& input,
 	unsigned int value;
 
 	const char* str = input.str().c_str();
-	if (isIgnored() == true || strcasecmp(str, NULL_VALUE) == 0)
+	if ((m_dataType.flags & REQ) == 0 && (isIgnored() == true || strcasecmp(str, NULL_VALUE) == 0))
 		value = m_dataType.replacement; // replacement value
 	else if (str == NULL || *str == 0)
 		return RESULT_ERR_EOF; // input too short

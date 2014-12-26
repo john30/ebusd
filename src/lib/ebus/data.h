@@ -71,6 +71,7 @@ static const unsigned int LST = 0x10; //!< value list is possible (without appli
 static const unsigned int DAY = 0x20; //!< forced value list defaulting to week days
 static const unsigned int IGN = 0x40; //!< ignore value during read and write
 static const unsigned int FIX = 0x80; //!< fixed width formatting
+static const unsigned int REQ = 0x100;//!< value may not be NULL
 
 /** @brief The structure for defining field types with their properties. */
 typedef struct {
