@@ -115,8 +115,10 @@ void define_args()
 void shutdown()
 {
 	// stop threads
-	if (baseloop != NULL)
+	if (baseloop != NULL) {
 		delete baseloop;
+		baseloop = NULL;
+	}
 
 	// reset all signal handlers to default
 	signal(SIGHUP, SIG_DFL);
