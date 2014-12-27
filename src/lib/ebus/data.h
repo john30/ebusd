@@ -63,7 +63,7 @@ enum BaseType {
 };
 
 /* flags for dataType_t. */
-static const unsigned int ADJ = 0x01; //!< adjustable length, numBits is maximum length
+static const unsigned int ADJ = 0x01; //!< adjustable length, bitCount is maximum length
 static const unsigned int BCD = 0x02; //!< binary representation is BCD
 static const unsigned int REV = 0x04; //!< reverted binary representation (most significant byte first)
 static const unsigned int SIG = 0x08; //!< signed value
@@ -76,14 +76,14 @@ static const unsigned int REQ = 0x100;//!< value may not be NULL
 /** @brief The structure for defining field types with their properties. */
 typedef struct {
 	const char* name;                        //!< field identifier
-	const unsigned int maxBits;              //!< number of bits (maximum length if @a ADJ flag is set, must be multiple of 8 with flag @a BCD)
+	//todo rename to bitCount
+	const unsigned int bitCount;             //!< number of bits (maximum length if @a ADJ flag is set, must be multiple of 8 with flag @a BCD)
 	const BaseType type;                     //!< base data type
 	const unsigned int flags;                //!< flags (e.g. @a BCD)
 	const unsigned int replacement;          //!< replacement value (fill-up value for @a bt_str / @a bt_hexstr, no replacement if equal to @a minValueOrLength for @a bt_num)
 	const unsigned int minValueOrLength;     //!< minimum binary value (minimum length of string for @a StringDataField)
 	const unsigned int maxValueOrLength;     //!< maximum binary value (maximum length of string for @a StringDataField)
-	const unsigned int divisor;              //!< @a bt_number: divisor
-	const unsigned char precisionOrFirstBit; //!< @a bt_number: precision for formatting or offset to first bit if (@a numBits%8)!=0
+	const unsigned int divisorOrFirstBit;    //!< @a bt_number: divisor or offset to first bit (if (@a bitCount%8)!=0)
 } dataType_t;
 
 /**
@@ -475,10 +475,7 @@ public:
 	NumberDataField(const string name, const string comment,
 			const string unit, const dataType_t dataType, const PartType partType,
 			const unsigned char length, const unsigned char bitCount,
-			const unsigned int divisor)
-		: NumericDataField(name, comment, unit, dataType, partType, length, bitCount,
-				(dataType.maxBits < 8) ? dataType.precisionOrFirstBit : 0),
-		m_divisor(divisor) {}
+			const unsigned int divisor);
 
 	/**
 	 * @brief Destructor.
@@ -507,6 +504,9 @@ private:
 	/** the combined divisor to apply on the value, or 1 for none. */
 	const unsigned int m_divisor;
 
+	/** the precision for formatting the value. */
+	unsigned char m_precision;
+
 };
 
 
@@ -533,7 +533,7 @@ public:
 			const unsigned char length, const unsigned char bitCount,
 			const map<unsigned int, string> values)
 		: NumericDataField(name, comment, unit, dataType, partType, length, bitCount,
-				(dataType.maxBits < 8) ? dataType.precisionOrFirstBit : 0),
+				(dataType.bitCount < 8) ? dataType.divisorOrFirstBit : 0),
 		m_values(values) {}
 
 	/**

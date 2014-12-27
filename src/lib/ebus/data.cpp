@@ -29,63 +29,64 @@
 using namespace std;
 
 static const dataType_t stringDataType = {
-	"STR",16*8,bt_str,     ADJ,        ' ',          1,         16,    0, 0  // >= 1 byte character string filled up with space
+	"STR",16*8,bt_str,     ADJ,        ' ',          1,         16,    0  // >= 1 byte character string filled up with space
 };
 
 static const dataType_t pinDataType = {
-	"PIN", 16, bt_num, FIX|BCD|REV|REQ, 0xffff,      0,     0x9999,    1, 0 // unsigned decimal in BCD, 0000 - 9999 (fixed length)
+	"PIN", 16, bt_num, FIX|BCD|REV|REQ, 0xffff,      0,     0x9999,    1 // unsigned decimal in BCD, 0000 - 9999 (fixed length)
 };
 
 static const dataType_t uchDataType = {
-	"UCH",  8, bt_num,     LST,       0xff,          0,       0xfe,    1, 0 // unsigned integer, 0 - 254
+	"UCH",  8, bt_num,     LST,       0xff,          0,       0xfe,    1 // unsigned integer, 0 - 254
 };
 
 /** the known data field types. */
 static const dataType_t dataTypes[] = {
-	{"IGN",16*8,bt_str, IGN|ADJ,          0,          1,         16,    0, 0}, // >= 1 byte ignored data
+	{"IGN",16*8,bt_str, IGN|ADJ,          0,          1,         16,    0}, // >= 1 byte ignored data
 	stringDataType,
-	{"HEX",16*8,bt_hexstr,  ADJ,          0,          2,         47,    0, 0}, // >= 1 byte hex digit string, usually separated by space, e.g. 0a 1b 2c 3d
-	{"BDA", 32, bt_dat,     BCD,          0,         10,         10,    0, 0}, // date with weekday in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is weekday Mon=0x00 - Sun=0x06)
-	{"BDA", 24, bt_dat,     BCD,          0,         10,         10,    0, 0}, // date in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99)
-	{"HDA", 32, bt_dat,       0,          0,         10,         10,    0, 0}, // date with weekday, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x1f,0x0c,WW,0x63, WW is weekday Mon=0x01 - Sun=0x07))
-	{"HDA", 24, bt_dat,       0,          0,         10,         10,    0, 0}, // date, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x1f,0x0c,0x63)
-	{"BTI", 24, bt_tim, BCD|REV|REQ,      0,          8,          8,    0, 0}, // time in BCD, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x59,0x59,0x23)
-	{"HTI", 24, bt_tim,     REQ,          0,          8,          8,    0, 0}, // time, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x17,0x3b,0x3b)
-	{"VTI", 24, bt_tim,     REV,       0x63,          8,          8,    0, 0}, // time, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x3b,0x3b,0x17, replacement 0x63) [Vaillant type]
-	{"HTM", 16, bt_tim,     REQ,          0,          5,          5,    0, 0}, // time as hh:mm, 00:00 - 23:59 (0x00,0x00 - 0x17,0x3b)
-	{"TTM",  8, bt_tim,       0,       0x90,          5,          5,    0, 0}, // truncated time (only multiple of 10 minutes), 00:00 - 24:00 (minutes div 10 + hour * 6 as integer)
-	{"BDY",  8, bt_num, DAY|LST,       0x07,          0,          6,    1, 0}, // weekday, "Mon" - "Sun" (0x00 - 0x06) [ebus type]
-	{"HDY",  8, bt_num, DAY|LST,       0x00,          1,          7,    1, 0}, // weekday, "Mon" - "Sun" (0x01 - 0x07) [Vaillant type]
-	{"BCD",  8, bt_num, BCD|LST,       0xff,          0,       0x99,    1, 0}, // unsigned decimal in BCD, 0 - 99
-	{"BCD", 16, bt_num, BCD|LST,     0xffff,          0,     0x9999,    1, 0}, // unsigned decimal in BCD, 0 - 9999
-	{"BCD", 24, bt_num, BCD|LST,   0xffffff,          0,   0x999999,    1, 0}, // unsigned decimal in BCD, 0 - 999999
-	{"BCD", 32, bt_num, BCD|LST, 0xffffffff,          0, 0x99999999,    1, 0}, // unsigned decimal in BCD, 0 - 99999999
+	{"HEX",16*8,bt_hexstr,  ADJ,          0,          2,         47,    0}, // >= 1 byte hex digit string, usually separated by space, e.g. 0a 1b 2c 3d
+	{"BDA", 32, bt_dat,     BCD,          0,         10,         10,    0}, // date with weekday in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is weekday Mon=0x00 - Sun=0x06)
+	{"BDA", 24, bt_dat,     BCD,          0,         10,         10,    0}, // date in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99)
+	{"HDA", 32, bt_dat,       0,          0,         10,         10,    0}, // date with weekday, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x1f,0x0c,WW,0x63, WW is weekday Mon=0x01 - Sun=0x07))
+	{"HDA", 24, bt_dat,       0,          0,         10,         10,    0}, // date, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x1f,0x0c,0x63)
+	{"BTI", 24, bt_tim, BCD|REV|REQ,      0,          8,          8,    0}, // time in BCD, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x59,0x59,0x23)
+	{"HTI", 24, bt_tim,     REQ,          0,          8,          8,    0}, // time, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x17,0x3b,0x3b)
+	{"VTI", 24, bt_tim,     REV,       0x63,          8,          8,    0}, // time, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x3b,0x3b,0x17, replacement 0x63) [Vaillant type]
+	{"HTM", 16, bt_tim,     REQ,          0,          5,          5,    0}, // time as hh:mm, 00:00 - 23:59 (0x00,0x00 - 0x17,0x3b)
+	{"TTM",  8, bt_tim,       0,       0x90,          5,          5,    0}, // truncated time (only multiple of 10 minutes), 00:00 - 24:00 (minutes div 10 + hour * 6 as integer)
+	{"BDY",  8, bt_num, DAY|LST,       0x07,          0,          6,    1}, // weekday, "Mon" - "Sun" (0x00 - 0x06) [ebus type]
+	{"HDY",  8, bt_num, DAY|LST,       0x00,          1,          7,    1}, // weekday, "Mon" - "Sun" (0x01 - 0x07) [Vaillant type]
+	{"BCD",  8, bt_num, BCD|LST,       0xff,          0,       0x99,    1}, // unsigned decimal in BCD, 0 - 99
+	{"BCD", 16, bt_num, BCD|LST,     0xffff,          0,     0x9999,    1}, // unsigned decimal in BCD, 0 - 9999
+	{"BCD", 24, bt_num, BCD|LST,   0xffffff,          0,   0x999999,    1}, // unsigned decimal in BCD, 0 - 999999
+	{"BCD", 32, bt_num, BCD|LST, 0xffffffff,          0, 0x99999999,    1}, // unsigned decimal in BCD, 0 - 99999999
 	pinDataType,
 	uchDataType,
-	{"SCH",  8, bt_num,     SIG,       0x80,       0x81,       0x7f,    1, 0}, // signed integer, -127 - +127
-	{"D1B",  8, bt_num,     SIG,       0x80,       0x81,       0x7f,    1, 0}, // signed integer, -127 - +127
-	{"D1C",  8, bt_num,       0,       0xff,       0x00,       0xc8,    2, 1}, // unsigned number (fraction 1/2), 0 - 100 (0x00 - 0xc8, replacement 0xff)
-	{"UIN", 16, bt_num,     LST,     0xffff,          0,     0xfffe,    1, 0}, // unsigned integer, 0 - 65534
-	{"SIN", 16, bt_num,     SIG,     0x8000,     0x8001,     0x7fff,    1, 0}, // signed integer, -32767 - +32767
-	{"FLT", 16, bt_num,     SIG,     0x8000,     0x8001,     0x7fff, 1000, 3}, // signed number (fraction 1/1000), -32.767 - +32.767
-	{"D2B", 16, bt_num,     SIG,     0x8000,     0x8001,     0x7fff,  256, 3}, // signed number (fraction 1/256), -127.99 - +127.99
-	{"D2C", 16, bt_num,     SIG,     0x8000,     0x8001,     0x7fff,   16, 2}, // signed number (fraction 1/16), -2047.9 - +2047.9
-	{"ULG", 32, bt_num,     LST, 0xffffffff,          0, 0xfffffffe,    1, 0}, // unsigned integer, 0 - 4294967294
-	{"SLG", 32, bt_num,     SIG, 0x80000000, 0x80000001, 0xffffffff,    1, 0}, // signed integer, -2147483647 - +2147483647
-	{"BI0",  7, bt_num, ADJ|LST|REQ,      0,          0,       0xef,    1, 0}, // bit 0 (up to 7 bits until bit 6)
-	{"BI1",  7, bt_num, ADJ|LST|REQ,      0,          0,       0x7f,    1, 1}, // bit 1 (up to 7 bits until bit 7)
-	{"BI2",  6, bt_num, ADJ|LST|REQ,      0,          0,       0x3f,    1, 2}, // bit 2 (up to 6 bits until bit 7)
-	{"BI3",  5, bt_num, ADJ|LST|REQ,      0,          0,       0x1f,    1, 3}, // bit 3 (up to 5 bits until bit 7)
-	{"BI4",  4, bt_num, ADJ|LST|REQ,      0,          0,       0x0f,    1, 4}, // bit 4 (up to 4 bits until bit 7)
-	{"BI5",  3, bt_num, ADJ|LST|REQ,      0,          0,       0x07,    1, 5}, // bit 5 (up to 3 bits until bit 7)
-	{"BI6",  2, bt_num, ADJ|LST|REQ,      0,          0,       0x03,    1, 6}, // bit 6 (up to 2 bits until bit 7)
-	{"BI7",  1, bt_num, ADJ|LST|REQ,      0,          0,       0x01,    1, 7}, // bit 7
+	{"SCH",  8, bt_num,     SIG,       0x80,       0x81,       0x7f,    1}, // signed integer, -127 - +127
+	{"D1B",  8, bt_num,     SIG,       0x80,       0x81,       0x7f,    1}, // signed integer, -127 - +127
+	{"D1C",  8, bt_num,       0,       0xff,       0x00,       0xc8,    2}, // unsigned number (fraction 1/2), 0 - 100 (0x00 - 0xc8, replacement 0xff)
+	{"UIN", 16, bt_num,     LST,     0xffff,          0,     0xfffe,    1}, // unsigned integer, 0 - 65534
+	{"SIN", 16, bt_num,     SIG,     0x8000,     0x8001,     0x7fff,    1}, // signed integer, -32767 - +32767
+	{"FLT", 16, bt_num,     SIG,     0x8000,     0x8001,     0x7fff, 1000}, // signed number (fraction 1/1000), -32.767 - +32.767
+	{"D2B", 16, bt_num,     SIG,     0x8000,     0x8001,     0x7fff,  256}, // signed number (fraction 1/256), -127.99 - +127.99
+	{"D2C", 16, bt_num,     SIG,     0x8000,     0x8001,     0x7fff,   16}, // signed number (fraction 1/16), -2047.9 - +2047.9
+	{"ULG", 32, bt_num,     LST, 0xffffffff,          0, 0xfffffffe,    1}, // unsigned integer, 0 - 4294967294
+	{"SLG", 32, bt_num,     SIG, 0x80000000, 0x80000001, 0xffffffff,    1}, // signed integer, -2147483647 - +2147483647
+	{"BI0",  7, bt_num, ADJ|LST|REQ,      0,          0,       0xef,    0}, // bit 0 (up to 7 bits until bit 6)
+	{"BI1",  7, bt_num, ADJ|LST|REQ,      0,          0,       0x7f,    1}, // bit 1 (up to 7 bits until bit 7)
+	{"BI2",  6, bt_num, ADJ|LST|REQ,      0,          0,       0x3f,    2}, // bit 2 (up to 6 bits until bit 7)
+	{"BI3",  5, bt_num, ADJ|LST|REQ,      0,          0,       0x1f,    3}, // bit 3 (up to 5 bits until bit 7)
+	{"BI4",  4, bt_num, ADJ|LST|REQ,      0,          0,       0x0f,    4}, // bit 4 (up to 4 bits until bit 7)
+	{"BI5",  3, bt_num, ADJ|LST|REQ,      0,          0,       0x07,    5}, // bit 5 (up to 3 bits until bit 7)
+	{"BI6",  2, bt_num, ADJ|LST|REQ,      0,          0,       0x03,    6}, // bit 6 (up to 2 bits until bit 7)
+	{"BI7",  1, bt_num, ADJ|LST|REQ,      0,          0,       0x01,    7}, // bit 7
 };
 
 
 /** the week day names. */
 static const char* dayNames[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
 
+/** the maximum position within master or slave data. */
 #define MAX_POS 16
 
 unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result, unsigned int* length) {
@@ -249,7 +250,7 @@ result_t DataField::create(vector<string>::iterator& it,
 				comment = str;
 		}
 
-		const char* typeName;
+		string typeName;
 		size_t pos = typeStr.find(LENGTH_SEPARATOR);
 		unsigned char length;
 		if (pos == string::npos) {
@@ -276,80 +277,76 @@ result_t DataField::create(vector<string>::iterator& it,
 				if (found == true)
 					continue; // go to next definition
 			}
-			typeName = typeStr.c_str();
+			typeName = typeStr;
 		}
 		else {
 			length = parseInt(typeStr.substr(pos+1).c_str(), 10, 1, MAX_POS, result);
 			if (result != RESULT_OK)
 				break;
-			typeName = typeStr.substr(0, pos).c_str();
+			typeName = typeStr.substr(0, pos);
 		}
 
 		SingleDataField* add = NULL;
-		for (size_t i = 0; result == RESULT_OK && add == NULL && i < sizeof(dataTypes) / sizeof(dataTypes[0]); i++) {
-			dataType_t dataType = dataTypes[i];
-			if (strcasecmp(typeName, dataType.name) == 0) {
-				unsigned char bitCount = dataType.maxBits;
-				unsigned char useLength = (bitCount + 7) / 8;
-				if ((dataType.flags & ADJ) != 0) { // adjustable length
+		const char* typeNameStr = typeName.c_str();
+		for (size_t i = 0; result == RESULT_OK && add == NULL && i < sizeof(dataTypes) / sizeof(dataType_t); i++) {
+			const dataType_t* dataType = &dataTypes[i];
+			if (strcasecmp(typeNameStr, dataType->name) == 0) {
+				unsigned char bitCount = dataType->bitCount;
+				unsigned char byteCount = (bitCount + 7) / 8;
+				if ((dataType->flags & ADJ) != 0) { // adjustable length
 					if ((bitCount % 8) != 0) {
-						if (length == 0) {
-							useLength = 1; // default length: 1 byte
-							bitCount = 1; // default count: 1 bit
-						}
-						else if (length > bitCount) {
+						if (length == 0)
+							bitCount = 1; // default bit count: 1 bit
+						else if (length <= bitCount)
+							bitCount = length;
+						else {
 							result = RESULT_ERR_OUT_OF_RANGE; // invalid length
 							break;
 						}
-						else {
-							bitCount = length;
-							useLength = (length + 7) / 8;
-						}
+
+						byteCount = (bitCount + 7) / 8;
 					}
-					else if (length == 0) {
-						useLength = 1; // default length: 1 byte
-					}
-					else if (length <= useLength) {
-						useLength = length;
-					}
+					else if (length == 0)
+						byteCount = 1; //default byte count: 1 byte
+					else if (length <= byteCount)
+						byteCount = length;
 					else {
 						result = RESULT_ERR_OUT_OF_RANGE; // invalid length
 						break;
 					}
 				}
-				else if (length > 0 && length != useLength)
-					continue; // check for another one with same name but different length
+				else if (length > 0 && length != byteCount)
+						continue; // check for another one with same name but different length
 
-				switch (dataType.type)
+				switch (dataType->type)
 				{
 				case bt_str:
 				case bt_hexstr:
 				case bt_dat:
 				case bt_tim:
-					add = new StringDataField(name, comment, unit, dataType, partType, useLength);
+					add = new StringDataField(name, comment, unit, *dataType, partType, byteCount);
 					break;
 				case bt_num:
-					if (values.empty() == true && (dataType.flags & DAY) != 0) {
+					if (values.empty() == true && (dataType->flags & DAY) != 0) {
 						for (unsigned int i = 0; i < sizeof(dayNames) / sizeof(dayNames[0]); i++)
-							values[dataType.minValueOrLength + i] = dayNames[i];
+							values[dataType->minValueOrLength + i] = dayNames[i];
 					}
-					if (values.empty() == true || (dataType.flags & LST) == 0) {
-						if (divisor == 0) {
-							divisor = dataType.divisor;
-						}
-						else
-							divisor *= dataType.divisor;
+					if (values.empty() == true || (dataType->flags & LST) == 0) {
+						if (divisor == 0)
+							divisor = 1;
+						if ((dataType->bitCount % 8) == 0)
+							divisor *= dataType->divisorOrFirstBit;
 
-						add = new NumberDataField(name, comment, unit, dataType, partType, useLength, bitCount, divisor);
+						add = new NumberDataField(name, comment, unit, *dataType, partType, byteCount, bitCount, divisor);
 						break;
 					}
-					if (values.begin()->first < dataType.minValueOrLength
-							|| values.rbegin()->first > dataType.maxValueOrLength) {
+					if (values.begin()->first < dataType->minValueOrLength
+							|| values.rbegin()->first > dataType->maxValueOrLength) {
 						result = RESULT_ERR_OUT_OF_RANGE;
 						break;
 					}
 					//TODO add special field for fixed values (exactly one value in the list of values)
-					add = new ValueListDataField(name, comment, unit, dataType, partType, useLength, bitCount, values);
+					add = new ValueListDataField(name, comment, unit, *dataType, partType, byteCount, bitCount, values);
 					break;
 				}
 			}
@@ -728,7 +725,7 @@ void NumericDataField::dump(ostream& output)
 {
 	SingleDataField::dump(output);
 	if ((m_dataType.flags & ADJ) != 0) {
-		if ((m_dataType.maxBits % 8) != 0)
+		if ((m_dataType.bitCount % 8) != 0)
 			output << ":" << static_cast<unsigned>(m_bitCount);
 		else
 			output << ":" << static_cast<unsigned>(m_length);
@@ -823,6 +820,19 @@ result_t NumericDataField::writeRawValue(unsigned int value,
 }
 
 
+NumberDataField::NumberDataField(const string name, const string comment,
+		const string unit, const dataType_t dataType, const PartType partType,
+		const unsigned char length, const unsigned char bitCount,
+		const unsigned int divisor)
+	: NumericDataField(name, comment, unit, dataType, partType, length, bitCount,
+			(dataType.bitCount % 8) == 0 ? 0 : dataType.divisorOrFirstBit),
+	m_divisor(divisor), m_precision(0)
+{
+	for (unsigned int exp = 1; exp < 1000000000; exp *= 10, m_precision++)
+		if (exp >= divisor)
+			break;
+}
+
 result_t NumberDataField::derive(string name, string comment,
 		string unit, const PartType partType,
 		unsigned int divisor, map<unsigned int, string> values,
@@ -838,8 +848,8 @@ result_t NumberDataField::derive(string name, string comment,
 		unit = m_unit;
 	if (divisor == 0)
 		divisor = m_divisor;
-	else
-		divisor *= m_dataType.divisor;
+	else if ((m_dataType.bitCount % 8) == 0)
+		divisor *= m_dataType.divisorOrFirstBit;
 	if (values.empty() == false) {
 		if (divisor != 1)
 			return RESULT_ERR_INVALID_ARG; // cannot use divisor != 1 for value list field
@@ -882,7 +892,7 @@ result_t NumberDataField::readSymbols(SymbolString& input,
 			if (m_divisor <= 1)
 				output << static_cast<unsigned>(value);
 			else
-				output << setprecision((m_bitCount % 8) == 0 ? m_dataType.precisionOrFirstBit : 0)
+				output << setprecision(m_precision)
 				       << fixed << static_cast<float>(value / (float) m_divisor);
 			return RESULT_OK;
 		}
@@ -898,7 +908,7 @@ result_t NumberDataField::readSymbols(SymbolString& input,
 			output << setw(m_length * 2) << setfill('0');
 		output << static_cast<int>(signedValue) << setw(0);
 	} else
-		output << setprecision((m_bitCount % 8) == 0 ? m_dataType.precisionOrFirstBit : 0)
+		output << setprecision(m_precision)
 		       << fixed << static_cast<float>(signedValue / (float) m_divisor);
 
 	return RESULT_OK;
