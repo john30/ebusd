@@ -421,7 +421,7 @@ Message* MessageMap::find(const string& clazz, const string& name, const bool is
 	return NULL;
 }
 
-deque<Message*> MessageMap::findAll(const string& clazz, const string& name, const short pb)
+deque<Message*> MessageMap::findAll(const string& clazz, const string& name, const short pb, const bool completeMatch)
 {
 	deque<Message*> ret;
 
@@ -432,10 +432,16 @@ deque<Message*> MessageMap::findAll(const string& clazz, const string& name, con
 		if (it->first[0] == '-') // avoid duplicates: instances stored multiple times have a key starting with "-"
 			continue;
 		Message* message = it->second;
-		if (checkClass == true && message->getClass() != clazz)
-			continue;
-		if (checkName == true && message->getName() != name)
-			continue;
+		if (checkClass == true) {
+			string check = message->getClass();
+			if (completeMatch ? (check != clazz) : (check.find(clazz) == check.npos))
+				continue;
+		}
+		if (checkName == true) {
+			string check = message->getName();
+			if (completeMatch ? (check != name) : (check.find(name) == check.npos))
+				continue;
+		}
 		if (checkPb == true && message->getId()[0] != pb)
 			continue;
 		ret.push_back(message);

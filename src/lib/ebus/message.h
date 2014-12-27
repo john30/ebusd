@@ -326,10 +326,11 @@ public:
 	 * @param clazz the device class, or empty for any.
 	 * @param name the message name, or empty for any.
 	 * @param pb the primary ID byte, or -1 for any.
+	 * @param completeMatch false to also include messages where the class and name matches only a part of the given class and name.
 	 * @return the found @a Message instances.
 	 * Note: the caller may not free the returned instances.
 	 */
-	deque<Message*> findAll(const string& clazz, const string& name, const short pb);
+	deque<Message*> findAll(const string& clazz, const string& name, const short pb, const bool completeMatch=true);
 
 	/**
 	 * @brief Find the @a Message instance for the specified master data.
