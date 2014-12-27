@@ -249,6 +249,9 @@ void Appl::printSettings()
 			else
 				cerr << "no" << endl;
 		}
+		else if (o_it->datatype == dt_hex) {
+			cerr << hex << getOptVal<int>(o_it->name) << dec << endl;
+		}
 		else if (o_it->datatype == dt_int) {
 			cerr << getOptVal<int>(o_it->name) << endl;
 		}
