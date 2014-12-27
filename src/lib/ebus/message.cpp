@@ -429,7 +429,7 @@ deque<Message*> MessageMap::findAll(const string& clazz, const string& name, con
 	bool checkName = name.length() > 0;
 	bool checkPb = pb >= 0;
 	for (map<string, Message*>::iterator it = m_messagesByName.begin(); it != m_messagesByName.end(); it++) {
-		if (it->first[0] != '-') // avoid duplicates: instances stored multiple times have a key starting with "-"
+		if (it->first[0] == '-') // avoid duplicates: instances stored multiple times have a key starting with "-"
 			continue;
 		Message* message = it->second;
 		if (checkClass == true && message->getClass() != clazz)
