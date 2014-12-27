@@ -76,9 +76,8 @@ public:
 	 * @param area the logging area of the message.
 	 * @param level the logging level of the message.
 	 * @param text the logging message.
-	 * @param running the status of logging subsystem.
 	 */
-	LogMessage(const int area, const int level, const string text, const bool running=true);
+	LogMessage(const int area, const int level, const string text);
 
 	/**
 	 * @brief get the logging area.
@@ -99,12 +98,6 @@ public:
 	string getText() const { return m_text.c_str(); }
 
 	/**
-	 * @brief status of logging subsystem.
-	 * @return false if logging subsystem is going down.
-	 */
-	bool isRunning() const { return m_running; }
-
-	/**
 	 * @brief get the logging timestamp.
 	 * @return the logging timestamp.
 	 */
@@ -119,9 +112,6 @@ private:
 
 	/** the logging message. */
 	string m_text;
-
-	/** true if this instance is running. */
-	bool m_running;
 
 	/** the logging timestamp. */
 	string m_time;
@@ -141,6 +131,11 @@ public:
 	 * @param level the logging level.
 	 */
 	LogSink(const int areaMask, const int level) : m_areaMask(areaMask), m_level(level) {}
+
+	/**
+	 * @brief destructor.
+	 */
+	virtual ~LogSink();
 
 	/**
 	 * @brief adds the logging message to internal message queue.
@@ -188,6 +183,8 @@ private:
 	/** the logging level. */
 	int m_level;
 
+protected:
+
 	/**
 	 * @brief virtual function for writing the logging message.
 	 * @param message the logging message.
@@ -212,12 +209,18 @@ public:
 	LogConsole(const int areaMask, const int level, const char* name)
 		: LogSink(areaMask, level) { this->start(name); }
 
-private:
+	/**
+	 * @brief destructor.
+	 */
+	virtual ~LogConsole() {}
+
+protected:
+
 	/**
 	 * @brief write the logging message to stdout.
 	 * @param message the logging message.
 	 */
-	void write(const LogMessage& message) const;
+	virtual void write(const LogMessage& message) const;
 
 };
 
@@ -238,15 +241,23 @@ public:
 	LogFile(const int areaMask, const int level, const char* name, const char* file)
 		: LogSink(areaMask, level), m_file(file) { this->start(name); }
 
+	/**
+	 * @brief destructor.
+	 */
+	virtual ~LogFile() {}
+
 private:
+
 	/** the logging file */
 	string m_file;
+
+protected:
 
 	/**
 	 * @brief write the logging message to specific log file.
 	 * @param message the logging message.
 	 */
-	void write(const LogMessage& message) const;
+	virtual void write(const LogMessage& message) const;
 
 };
 
@@ -266,7 +277,7 @@ public:
 	/**
 	 * @brief destructor.
 	 */
-	~Logger();
+	virtual ~Logger();
 
 	/**
 	 * @brief adds a logging sink and returns the reference to logger.
@@ -301,15 +312,13 @@ public:
 	//@copydoc
 	virtual bool start(const char* name);
 
-	/**
-	 * @brief endless loop for logger instance.
-	 */
-	virtual void run();
-
-	/**
-	 * @brief shutdown logger subsystem.
-	 */
+	//@copydoc
 	virtual void stop();
+
+protected:
+
+	//@copydoc
+	virtual void run();
 
 private:
 	/**
@@ -333,9 +342,8 @@ private:
 	/**
 	 * @brief Distribute the @a LogMessage to all known sinks and delete it afterwards.
 	 * @param mesage the @a LogMessage to distribute.
-	 * @return true to continue running, false to stop.
 	 */
-	bool handleMessage(LogMessage* message);
+	void handleMessage(LogMessage* message);
 
 	/** typedefs for a vector of type LogSink* */
 	typedef vector<LogSink*> sink_t;

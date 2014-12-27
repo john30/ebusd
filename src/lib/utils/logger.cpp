@@ -69,8 +69,8 @@ LevelType calcLevel(const string level)
 }
 
 
-LogMessage::LogMessage(const int area, const int level, const string text, const bool running)
-	: m_area(area), m_level(level), m_text(text), m_running(running)
+LogMessage::LogMessage(const int area, const int level, const string text)
+	: m_area(area), m_level(level), m_text(text)
 {
 	char time[24];
 	struct timeval tv;
@@ -88,26 +88,29 @@ LogMessage::LogMessage(const int area, const int level, const string text, const
 }
 
 
+LogSink::~LogSink()
+{
+	m_logQueue.add(NULL);
+
+	Thread::join();
+
+	while (m_logQueue.size() > 0) {
+		LogMessage* message = m_logQueue.remove(false);
+		delete message;
+	}
+}
 
 void LogSink::addMessage(const LogMessage& message)
 {
-	LogMessage* tmp = new LogMessage(LogMessage(message));
-	m_logQueue.add((tmp));
+	m_logQueue.add(new LogMessage(LogMessage(message)));
 }
 
 void LogSink::run()
 {
-	while (1) {
+	while (isRunning() == true) {
 		LogMessage* message = m_logQueue.remove();
-		if (message->isRunning() == false) {
-			delete message;
-			while (m_logQueue.size() == true) {
-				LogMessage* message = m_logQueue.remove();
-				write(*message);
-				delete message;
-			}
-			return;
-		}
+		if (message == NULL)
+			break;
 
 		write(*message);
 		delete message;
@@ -201,29 +204,23 @@ void Logger::log(const int area, const int level, const string& data, ...)
 
 }
 
-bool Logger::handleMessage(LogMessage* message) {
-	bool running = true;
+void Logger::handleMessage(LogMessage* message) {
+	if (message == NULL)
+		return;
+
 	sinkCI_t iter = m_sinks.begin();
 
 	for (; iter != m_sinks.end(); ++iter) {
 		if (*iter != 0) {
 
 			if ((((*iter)->getAreaMask() & (1 << message->getArea())) != 0
-			&& (*iter)->getLevel() >= message->getLevel())
-			&& message->isRunning() == true) {
+			&& (*iter)->getLevel() >= message->getLevel())) {
 				(*iter)->addMessage(*message);
 			}
-			else if (message->isRunning() == false) {
-				(*iter)->addMessage(*message);
-				running = false;
-			}
-
 		}
 	}
 
 	delete message;
-
-	return running;
 }
 
 bool Logger::start(const char* name)
@@ -235,13 +232,18 @@ bool Logger::start(const char* name)
 void Logger::run()
 {
 
-	while (handleMessage(m_logQueue.remove()));
+	while (isRunning() == true) {
+		LogMessage* message = m_logQueue.remove();
+		if (message == NULL)
+			break;
+		handleMessage(message);
+	}
 
 }
 
 void Logger::stop()
 {
-	m_logQueue.add(new LogMessage(LogMessage(bas, error, "", false)));
+	m_logQueue.add(NULL);
 	usleep(100000);
 	Thread::stop();
 }
