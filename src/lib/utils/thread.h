@@ -84,6 +84,8 @@ public:
 	 */
 	pthread_t self() {return m_threadid; }
 
+protected:
+
 	/**
 	 * @brief Thread entry method to be overridden by derived class.
 	 */
