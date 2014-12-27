@@ -42,6 +42,9 @@ using namespace std;
 /** @brief the maximum allowed time [us] for retrieving the AUTO-SYN symbol (45ms + 2*1,2% + 1 Symbol). */
 #define SYN_TIMEOUT 50800
 
+/** @brief the time [us] for determining bus signal availability (AUTO-SYN timeout * 5). */
+#define SIGNAL_TIMEOUT 250000
+
 /** @brief the maximum duration [us] of a single symbol (Start+8Bit+Stop+Extra @ 2400Bd-2*1,2%). */
 #define SYMBOL_DURATION 4700
 
@@ -50,6 +53,7 @@ using namespace std;
 
 /** @brief the possible bus states. */
 enum BusState {
+	bs_noSignal,	//!< no signal on the bus
 	bs_skip,        //!< skip all symbols until next @a SYN
 	bs_ready,       //!< ready for next master (after @a SYN symbol, send/receive QQ)
 	bs_recvCmd,     //!< receive command (ZZ, PBSB, master data) [passive set]
@@ -215,19 +219,13 @@ public:
 	 * @param master reference to the master data @a SymbolString to send.
 	 * @param slave reference to @a SymbolString for filling in the received slave data.
 	 */
-	ActiveBusRequest(SymbolString& master, SymbolString& slave);
+	ActiveBusRequest(SymbolString& master, SymbolString& slave)
+		: BusRequest(master, false), m_finished(false), m_result(RESULT_SYN), m_slave(slave) {}
 
 	/**
 	 * @brief Destructor.
 	 */
-	virtual ~ActiveBusRequest();
-
-	/**
-	 * @brief Wait for notification.
-	 * @param timeout the maximum time to wait in seconds.
-	 * @return the result code.
-	 */
-	bool wait(int timeout);
+	virtual ~ActiveBusRequest() {}
 
 	// @copydoc
 	virtual bool notify(result_t result, SymbolString& slave);
@@ -242,12 +240,6 @@ private:
 
 	/** reference to @a SymbolString for filling in the received slave data. */
 	SymbolString& m_slave;
-
-	/** a mutex for wait/notify. */
-	pthread_mutex_t m_mutex;
-
-	/** a mutex condition for wait/notify. */
-	pthread_cond_t m_cond;
 
 };
 
@@ -282,9 +274,9 @@ public:
 		  m_busLostRetries(busLostRetries), m_failedSendRetries(failedSendRetries),
 		  m_busAcquireTimeout(busAcquireTimeout), m_slaveRecvTimeout(slaveRecvTimeout),
 		  m_lockCount(lockCount), m_remainLockCount(lockCount),
-		  m_pollInterval(pollInterval), m_lastPoll(0),
-		  m_request(NULL), m_nextSendPos(0),
-		  m_state(bs_skip), m_repeat(false),
+		  m_pollInterval(pollInterval), m_lastReceive(0), m_lastPoll(0),
+		  m_currentRequest(NULL), m_nextSendPos(0),
+		  m_state(bs_noSignal), m_repeat(false),
 		  m_commandCrcValid(false), m_responseCrcValid(false),
 		  m_scanMessage(NULL) {
 		memset(m_seenAddresses, 0, sizeof(m_seenAddresses));
@@ -389,14 +381,20 @@ private:
 	/** the interval in seconds in which poll messages are cycled, or 0 if disabled. */
 	const unsigned int m_pollInterval;
 
+	/** the time of the last received symbol, or 0 for never. */
+	time_t m_lastReceive;
+
 	/** the time of the last poll, or 0 for never. */
 	time_t m_lastPoll;
 
 	/** the queue of @a BusRequests that shall be handled. */
-	WQueue<BusRequest*> m_requests;
+	WQueue<BusRequest*> m_nextRequests;
 
 	/** the currently handled BusRequest, or NULL. */
-	BusRequest* m_request;
+	BusRequest* m_currentRequest;
+
+	/** the queue of @a BusRequests that are already finished. */
+	WQueue<BusRequest*> m_finishedRequests;
 
 	/** the offset of the next symbol that needs to be sent from the command or response,
 	 * (only relevant if m_request is set and state is bs_command or bs_response). */
