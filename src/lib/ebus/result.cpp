@@ -48,6 +48,7 @@ const char* getResultCode(result_t resultCode) {
 	case RESULT_ERR_CRC:          return "ERR: CRC error";
 	case RESULT_ERR_ACK:          return "ERR: ACK error";
 	case RESULT_ERR_NAK:          return "ERR: NAK received";
+	case RESULT_ERR_NO_SIGNAL:    return "ERR: no signal";
 	default:
 		if (resultCode >= 0)
 			return "success: unknown result code";

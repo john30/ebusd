@@ -51,6 +51,8 @@ static const int RESULT_ERR_CRC = -18;          //!< CRC error
 static const int RESULT_ERR_ACK = -19;          //!< ACK error
 static const int RESULT_ERR_NAK = -20;          //!< NAK received
 
+static const int RESULT_ERR_NO_SIGNAL = -21;    //!< no signal found on the bus
+
 /** type for result code. */
 typedef int result_t;
 
