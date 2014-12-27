@@ -100,6 +100,8 @@ result_t Device::recv(const long timeout, unsigned char& value)
 		FD_SET(m_fd, &readfds);
 
 		ret = pselect(m_fd + 1, &readfds, NULL, NULL, &tdiff, NULL);
+#else
+		ret = 1; // ignore timeout if neither ppoll nor pselect are available
 #endif
 #endif
 		if (ret == -1) return RESULT_ERR_DEVICE;
