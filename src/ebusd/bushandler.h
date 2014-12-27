@@ -220,7 +220,7 @@ public:
 	 * @param slave reference to @a SymbolString for filling in the received slave data.
 	 */
 	ActiveBusRequest(SymbolString& master, SymbolString& slave)
-		: BusRequest(master, false), m_finished(false), m_result(RESULT_SYN), m_slave(slave) {}
+		: BusRequest(master, false), m_result(RESULT_SYN), m_slave(slave) {}
 
 	/**
 	 * @brief Destructor.
@@ -231,9 +231,6 @@ public:
 	virtual bool notify(result_t result, SymbolString& slave);
 
 private:
-
-	/** true once the request is finished. */
-	bool m_finished;
 
 	/** the result of handling the request. */
 	result_t m_result;

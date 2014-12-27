@@ -139,7 +139,6 @@ bool ActiveBusRequest::notify(result_t result, SymbolString& slave)
 
 	m_result = result;
 	m_slave = SymbolString(slave, false, false);
-	m_finished = true;
 
 	return false;
 }
@@ -165,7 +164,6 @@ result_t BusHandler::sendAndWait(SymbolString& master, SymbolString& slave)
 		L.log(bus, error, "%s, %s", getResultCode(result), sendRetries>0 ? "retry send" : "");
 
 		request->m_busLostRetries = 0;
-		request->m_finished = false;
 	}
 
 	delete request;
@@ -243,7 +241,16 @@ result_t BusHandler::handleSymbol()
 
 	case bs_recvCmd:
 	case bs_recvCmdAck:
+		timeout = m_slaveRecvTimeout;
+		break;
+
 	case bs_recvRes:
+		if (m_response.size() > 0 || m_slaveRecvTimeout > SYN_TIMEOUT)
+			timeout = m_slaveRecvTimeout;
+		else
+			timeout = SYN_TIMEOUT;
+		break;
+
 	case bs_recvResAck:
 		timeout = m_slaveRecvTimeout;
 		break;
