@@ -84,23 +84,32 @@ BaseLoop::BaseLoop()
 
 BaseLoop::~BaseLoop()
 {
-	if (m_network != NULL)
+	if (m_network != NULL) {
 		delete m_network;
+		m_network = NULL;
+	}
 
 	if (m_busHandler != NULL) {
 		m_busHandler->stop();
 		m_busHandler->join();
 		delete m_busHandler;
+		m_busHandler = NULL;
 	}
 
-	if (m_port != NULL)
+	if (m_port != NULL) {
 		delete m_port;
+		m_port = NULL;
+	}
 
-	if (m_messages != NULL)
+	if (m_messages != NULL) {
 		delete m_messages;
+		m_messages = NULL;
+	}
 
-	if (m_templates != NULL)
+	if (m_templates != NULL) {
 		delete m_templates;
+		m_templates = NULL;
+	}
 }
 
 extern result_t loadConfigFiles(DataFieldTemplates* templates, MessageMap* messages, bool verbose=false);
