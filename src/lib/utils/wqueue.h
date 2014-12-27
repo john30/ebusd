@@ -63,7 +63,7 @@ public:
 
 		m_queue.push_back(item);
 
-		pthread_cond_signal(&m_cond);
+		pthread_cond_broadcast(&m_cond);
 		pthread_mutex_unlock(&m_mutex);
 	}
 
@@ -95,23 +95,49 @@ public:
 	}
 
 	/**
-	 * @brief Remove the specified item from queue.
+	 * @brief Remove the specified item from the queue.
 	 * @param item the item to remove.
 	 * @return whether the item was removed.
 	 */
 	bool remove(T item)
 	{
 		pthread_mutex_lock(&m_mutex);
-		int oldSize = m_queue.size();
+
+		size_t oldSize = m_queue.size();
 		if (oldSize > 0)
 			m_queue.remove(item);
-		int newSize = m_queue.size();
+		size_t newSize = m_queue.size();
+
 		pthread_mutex_unlock(&m_mutex);
 		return newSize != oldSize;
 	}
 
 	/**
-	 * @brief return the first item from queue without remove.
+	 * @brief Wait for the specified item to appear in the queue and remove it from the queue.
+	 * @param item the item to wait for and remove.
+	 * @return whether the item was removed.
+	 */
+	bool waitRemove(T item)
+	{
+		pthread_mutex_lock(&m_mutex);
+
+		do {
+			size_t oldSize = m_queue.size();
+			if (oldSize > 0) {
+				m_queue.remove(item);
+				if (m_queue.size() != oldSize)
+					break;
+			}
+
+			pthread_cond_wait(&m_cond, &m_mutex);
+		} while (true);
+
+		pthread_mutex_unlock(&m_mutex);
+		return true;
+	}
+
+	/**
+	 * @brief return the first item from the queue without remove.
 	 * @param wait whether to wait for an entry if the queue is empty.
 	 * @return the item, or NULL if no item is available and wait was false.
 	 */
@@ -139,11 +165,11 @@ public:
 	 * @brief the number of entries inside queue.
 	 * @return the size.
 	 */
-	int size()
+	size_t size()
 	{
 		pthread_mutex_lock(&m_mutex);
 
-		int size = m_queue.size();
+		size_t size = m_queue.size();
 
 		pthread_mutex_unlock(&m_mutex);
 
