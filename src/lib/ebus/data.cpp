@@ -33,7 +33,7 @@ static const dataType_t stringDataType = {
 };
 
 static const dataType_t pinDataType = {
-	"PIN", 16, bt_num, FIX|BCD|REV|REQ, 0xffff,      0,     0x9999,    1 // unsigned decimal in BCD, 0000 - 9999 (fixed length)
+	"PIN", 16, bt_num, FIX|BCD|REV, 0xffff,          0,     0x9999,    1 // unsigned decimal in BCD, 0000 - 9999 (fixed length)
 };
 
 static const dataType_t uchDataType = {
