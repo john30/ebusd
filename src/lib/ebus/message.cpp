@@ -378,7 +378,6 @@ result_t MessageMap::add(Message* message)
 
 result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end, DataFieldTemplates* arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo)
 {
-	Message* message = NULL;
 	vector<string>::iterator restart = begin;
 	string types = *restart;
 	if (types.length() == 0)
@@ -390,6 +389,7 @@ result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<s
 	while (getline(stream, type, VALUE_SEPARATOR) != 0) {
 		*restart = type;
 		begin = restart;
+		Message* message = NULL;
 		result = Message::create(begin, end, defaults, arg, message);
 		if (result != RESULT_OK)
 			return result;
