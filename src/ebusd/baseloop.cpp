@@ -165,12 +165,30 @@ string BaseLoop::decodeMessage(const string& data)
 	ostringstream result;
 
 	// prepare data
-	string token;
+	string token, previous;
 	istringstream stream(data);
 	vector<string> args;
+	bool escaped = false;
 
-	while (getline(stream, token, ' ') != 0)
+	while (getline(stream, token, ' ') != 0) {
+		if (escaped == true) {
+			args.pop_back();
+			if (token.length() > 0 && token[token.length()-1] == '"') {
+				token = token.substr(0, token.length() - 1);
+				escaped = false;
+			}
+			token = previous + " " + token;
+		}
+		else if (escaped == false && token.length() > 0 && token[0] == '"') {
+			token = token.substr(1);
+			if (token.length() > 0 && token[token.length()-1] == '"')
+				token = token.substr(0, token.length() - 1);
+			else
+				escaped = true;
+		}
 		args.push_back(token);
+		previous = token;
+	}
 
 	if (args.size() == 0)
 		return "command missing";
@@ -373,6 +391,34 @@ string BaseLoop::decodeMessage(const string& data)
 		}
 		break;
 	}
+	case ct_find: {
+		if (args.size() < argPos || args.size() > argPos + 2) {
+			result << "usage: 'find [name]' or 'find class name'";
+			break;
+		}
+
+		deque<Message*> messages;
+		if (args.size() == argPos)
+			messages = m_messages->findAll("", "", -1);
+		else if (args.size() == argPos + 1)
+			messages = m_messages->findAll("", args[argPos], -1, false);
+		else
+			messages = m_messages->findAll(args[argPos], args[argPos + 1], -1, false);
+
+		bool found = false;
+		for (deque<Message*>::iterator it = messages.begin(); it < messages.end();) {
+			Message* message = *it++;
+			if (message->isSet() == false) {
+				if (found == true)
+					result << endl;
+				result << message->getClass() << " " << message->getName() << " = " << message->getLastValue();
+				found = true;
+			}
+		}
+		if (found == false)
+			result << "no message found";
+		break;
+	}
 	case ct_scan: {
 		if (args.size() == argPos) {
 			result_t ret = m_busHandler->startScan();
@@ -407,7 +453,7 @@ string BaseLoop::decodeMessage(const string& data)
 		break;
 	}
 	case ct_log: {
-		if (args.size() != 3 ) {
+		if (args.size() != argPos + 2 ) {
 			result << "usage: 'log areas area,area,..' (areas: bas|net|bus|upd|all)" << endl
 			       << "       'log level level'        (level: error|event|trace|debug)";
 			break;
@@ -430,7 +476,7 @@ string BaseLoop::decodeMessage(const string& data)
 		break;
 	}
 	case ct_raw: {
-		if (args.size() != 1) {
+		if (args.size() != argPos) {
 			result << "usage: 'raw'";
 			break;
 		}
@@ -441,7 +487,7 @@ string BaseLoop::decodeMessage(const string& data)
 		break;
 	}
 	case ct_dump: {
-		if (args.size() != 1) {
+		if (args.size() != argPos) {
 			result << "usage: 'dump'";
 			break;
 		}
@@ -452,7 +498,7 @@ string BaseLoop::decodeMessage(const string& data)
 		break;
 	}
 	case ct_reload: {
-		if (args.size() != 1) {
+		if (args.size() != argPos) {
 			result << "usage: 'reload'";
 			break;
 		}
@@ -469,7 +515,8 @@ string BaseLoop::decodeMessage(const string& data)
 		result << "commands:" << endl
 		       << " read      - read ebus values            'read [-v] [-f] [-m seconds] [class] name' or 'read [-v] [-f] [-m seconds] class name field'" << endl
 		       << " write     - write ebus values           'write class name value[;value]*' or 'write -h ZZPBSBNNDx'" << endl
-		       << " scan      - scan ebus kown addresses    'scan'" << endl
+		       << " find      - find ebus values            'find [name]' or 'find class name'" << endl
+		       << " scan      - scan ebus known addresses   'scan'" << endl
 		       << "           - scan ebus all addresses     'scan full'" << endl
 		       << "           - show scan results           'scan result'" << endl << endl
  		       << " log       - change log areas            'log areas area,area,..' (areas: bas|net|bus|upd|all)" << endl

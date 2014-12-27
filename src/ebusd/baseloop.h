@@ -32,6 +32,7 @@ using namespace std;
 enum CommandType {
      ct_read,      /*!< read ebus values */
      ct_write,     /*!< write ebus values */
+	 ct_find,      /*!< find values */
      ct_scan,      /*!< scan ebus */
      ct_log,       /*!< logger settings */
      ct_raw,       /*!< toggle log raw data */
@@ -115,14 +116,16 @@ private:
 	 */
 	CommandType getCase(const string& item)
 	{
-		if (strcasecmp(item.c_str(), "READ") == 0) return ct_read;
-		if (strcasecmp(item.c_str(), "WRITE") == 0) return ct_write;
-		if (strcasecmp(item.c_str(), "SCAN") == 0) return ct_scan;
-		if (strcasecmp(item.c_str(), "LOG") == 0) return ct_log;
-		if (strcasecmp(item.c_str(), "RAW") == 0) return ct_raw;
-		if (strcasecmp(item.c_str(), "DUMP") == 0) return ct_dump;
-		if (strcasecmp(item.c_str(), "RELOAD") == 0) return ct_reload;
-		if (strcasecmp(item.c_str(), "HELP") == 0) return ct_help;
+		const char* str = item.c_str();
+		if (strcasecmp(str, "R") == 0 || strcasecmp(str, "READ") == 0) return ct_read;
+		if (strcasecmp(str, "W") == 0 || strcasecmp(str, "WRITE") == 0) return ct_write;
+		if (strcasecmp(str, "F") == 0 || strcasecmp(str, "FIND") == 0) return ct_find;
+		if (strcasecmp(str, "SCAN") == 0) return ct_scan;
+		if (strcasecmp(str, "LOG") == 0) return ct_log;
+		if (strcasecmp(str, "RAW") == 0) return ct_raw;
+		if (strcasecmp(str, "DUMP") == 0) return ct_dump;
+		if (strcasecmp(str, "RELOAD") == 0) return ct_reload;
+		if (strcasecmp(str, "H") == 0 || strcasecmp(str, "HELP") == 0) return ct_help;
 
 		return ct_invalid;
 	}
