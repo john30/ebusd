@@ -178,8 +178,9 @@ string BaseLoop::decodeMessage(const string& data)
 				escaped = false;
 			}
 			token = previous + " " + token;
-		}
-		else if (escaped == false && token.length() > 0 && token[0] == '"') {
+		} else if (token.length() == 0) // allow multiple space chars for a single delimiter
+			continue;
+		else if (token[0] == '"') {
 			token = token.substr(1);
 			if (token.length() > 0 && token[token.length()-1] == '"')
 				token = token.substr(0, token.length() - 1);
@@ -204,7 +205,7 @@ string BaseLoop::decodeMessage(const string& data)
 		time_t maxAge = 5*60;
 		bool verbose = false;
 		while (args.size() > argPos && args[argPos][0] == '-') {
-			if (args[argPos]== "-f") {
+			if (args[argPos] == "-f") {
 				maxAge = 0;
 			} else if (args[argPos] == "-v") {
 				verbose = true;
@@ -214,21 +215,21 @@ string BaseLoop::decodeMessage(const string& data)
 					result_t result;
 					maxAge = parseInt(args[argPos].c_str(), 10, 0, 24*60*60, result);
 					if (result != RESULT_OK) {
-						argPos = args.size(); // print usage
+						argPos = 0; // print usage
 						break;
 					}
 				}
 				else {
-					argPos = args.size(); // print usage
+					argPos = 0; // print usage
 					break;
 				}
 			} else {
-				argPos = args.size(); // print usage
+				argPos = 0; // print usage
 				break;
 			}
 			argPos++;
 		}
-		if (args.size() < argPos + 1 || args.size() > argPos + 3) {
+		if (argPos == 0 || args.size() < argPos + 1 || args.size() > argPos + 3) {
 			result << "usage: 'read [-v] [-f] [-m seconds] [class] name' or 'read [-v] [-f] [-m seconds] class name field'";
 			break;
 		}
@@ -247,12 +248,9 @@ string BaseLoop::decodeMessage(const string& data)
 				updateMessage = m_messages->find(args[argPos], args[argPos + 1], false, true);
 
 			if (updateMessage != NULL && updateMessage->getLastUpdateTime() + maxAge > now) {
-				token = updateMessage->getLastValue();  // TODO switch from last value to last master/slave to support verbose cached/polled values as well
-				if (token.empty() == false) {
-					result << token;
-					break;
-				} // else try to read directly from bus
-			}
+				result << updateMessage->getLastValue(); // TODO switch from last value to last master/slave to support verbose cached/polled values as well
+				break;
+			} // else: check poll data or read directly from bus
 		}
 
 		Message* message;
@@ -265,12 +263,9 @@ string BaseLoop::decodeMessage(const string& data)
 			if (maxAge > 0 && m_pollActive == true && message->getPollPriority() > 0
 			        && message->getLastUpdateTime() + maxAge > now) {
 				// get polldata
-				token = message->getLastValue();
-				if (token.empty() == false) {
-					result << token;
-					break;
-				} // else: read directly from bus
-			}
+				result << message->getLastValue();
+				break;
+			} // else: read directly from bus
 
 			SymbolString master;
 			istringstream input;
@@ -296,7 +291,6 @@ string BaseLoop::decodeMessage(const string& data)
 				L.log(bas, error, "read: %s", getResultCode(ret));
 				result << getResultCode(ret);
 			}
-
 		} else if (updateMessage != NULL) {
 			result << "no data stored";
 		} else {
@@ -392,28 +386,72 @@ string BaseLoop::decodeMessage(const string& data)
 		break;
 	}
 	case ct_find: {
-		if (args.size() < argPos || args.size() > argPos + 2) {
-			result << "usage: 'find [name]' or 'find class name'";
+		bool verbose = false, withRead = true, withWrite = false, withPassive = false, first = true;
+		while (args.size() > argPos && args[argPos][0] == '-') {
+			if (args[argPos] == "-v")
+				verbose = true;
+			else if (args[argPos] == "-r") {
+				if (first)
+					first = false;
+				withRead = true;
+			} else if (args[argPos] == "-w") {
+				if (first) {
+					first = false;
+					withRead = false;
+				}
+				withWrite = true;
+			} else if (args[argPos] == "-p") {
+				if (first) {
+					first = false;
+					withRead = false;
+				}
+				withPassive = true;
+			} else {
+				argPos = 0; // print usage
+				break;
+			}
+			argPos++;
+		}
+		if (argPos == 0 || args.size() < argPos || args.size() > argPos + 2) {
+			result << "usage: 'find [-v] [-r] [-w] [-p] [name]' or 'find [-v] [-r] [-w] [-p] class name'";
 			break;
 		}
 
 		deque<Message*> messages;
 		if (args.size() == argPos)
-			messages = m_messages->findAll("", "", -1);
+			messages = m_messages->findAll("", "", -1, false, withRead, withWrite, withPassive);
 		else if (args.size() == argPos + 1)
-			messages = m_messages->findAll("", args[argPos], -1, false);
+			messages = m_messages->findAll("", args[argPos], -1, false, withRead, withWrite, withPassive);
 		else
-			messages = m_messages->findAll(args[argPos], args[argPos + 1], -1, false);
+			messages = m_messages->findAll(args[argPos], args[argPos + 1], -1, false, withRead, withWrite, withPassive);
 
 		bool found = false;
+		char str[34];
 		for (deque<Message*>::iterator it = messages.begin(); it < messages.end();) {
 			Message* message = *it++;
-			if (message->isSet() == false) {
-				if (found == true)
-					result << endl;
-				result << message->getClass() << " " << message->getName() << " = " << message->getLastValue();
-				found = true;
+			unsigned char dstAddress = message->getDstAddress();
+			if (dstAddress == SYN)
+				continue;
+			if (found == true)
+				result << endl;
+			result << message->getClass() << " " << message->getName() << " = ";
+			time_t lastup = message->getLastUpdateTime();
+			if (lastup == 0)
+				result << "no data stored";
+			else
+				result << message->getLastValue();
+			if (verbose == true) {
+				if (lastup == 0)
+					sprintf(str, "ZZ=%02x", dstAddress);
+				else {
+					struct tm* td = localtime(&lastup);
+					sprintf(str, "ZZ=%02x, lastup=%04d-%02d-%02d %02d:%02d:%02d",
+						dstAddress, td->tm_year+1900, td->tm_mon+1, td->tm_mday,
+						td->tm_hour, td->tm_min, td->tm_sec);
+				}
+				result << " [" << str << "]";
 			}
+			found = true;
 		}
 		if (found == false)
 			result << "no message found";
