@@ -27,6 +27,9 @@
 
 using namespace std;
 
+/** the bit mask of the source master number in the message key. */
+#define ID_SOURCE_MASK (0x1fLL << (8 * 7))
+
 Message::Message(const string clazz, const string name, const bool isSet,
 		const bool isPassive, const string comment,
 		const unsigned char srcAddress, const unsigned char dstAddress,
@@ -338,37 +341,38 @@ bool Message::isLessPollWeight(Message* other) {
 
 result_t MessageMap::add(Message* message)
 {
-	unsigned long long pkey = message->getKey();
-	bool isPassive = message->isPassive();
-	if (isPassive == true) {
-		map<unsigned long long, Message*>::iterator keyIt = m_passiveMessagesByKey.find(pkey);
-		if (keyIt != m_passiveMessagesByKey.end()) {
-			return RESULT_ERR_DUPLICATE; // duplicate key
-		}
+	unsigned long long key = message->getKey();
+	map<unsigned long long, Message*>::iterator keyIt = m_messagesByKey.find(key);
+	if (keyIt != m_messagesByKey.end()) {
+		return RESULT_ERR_DUPLICATE; // duplicate key
 	}
+	bool isPassive = message->isPassive();
 	bool isSet = message->isSet();
 	string clazz = message->getClass();
 	string name = message->getName();
-	string key = string(isPassive ? "P" : (isSet ? "W" : "R")) + clazz + FIELD_SEPARATOR + name;
-	map<string, Message*>::iterator nameIt = m_messagesByName.find(key);
+	string nameKey = string(isPassive ? "P" : (isSet ? "W" : "R")) + clazz + FIELD_SEPARATOR + name;
+	map<string, Message*>::iterator nameIt = m_messagesByName.find(nameKey);
 	if (nameIt != m_messagesByName.end()) {
 		return RESULT_ERR_DUPLICATE; // duplicate key
 	}
 
-	m_messagesByName[key] = message;
+	m_messagesByName[nameKey] = message;
 	m_messageCount++;
+	if (isPassive == true)
+		m_passiveMessageCount++;
 
-	key = string(isPassive ? "-P" : (isSet ? "-W" : "-R")) + name; // also store without class
-	m_messagesByName[key] = message; // last key without class overrides previous
-
-	if (message->isPassive() == true) {
-		unsigned char idLength = message->getId().size() - 2;
-		if (idLength < m_minIdLength)
-			m_minIdLength = idLength;
-		if (idLength > m_maxIdLength)
-			m_maxIdLength = idLength;
-		m_passiveMessagesByKey[pkey] = message;
+	nameKey = string(isPassive ? "-P" : (isSet ? "-W" : "-R")) + name; // also store without class
+	nameIt = m_messagesByName.find(nameKey);
+	if (nameIt == m_messagesByName.end()) {
+		m_messagesByName[nameKey] = message; // only store first key without class
 	}
+
+	unsigned char idLength = message->getId().size() - 2;
+	if (idLength < m_minIdLength)
+		m_minIdLength = idLength;
+	if (idLength > m_maxIdLength)
+		m_maxIdLength = idLength;
+	m_messagesByKey[key] = message;
 
 	if (message->getPollPriority() > 0)
 		m_pollMessages.push(message);
@@ -462,7 +466,6 @@ Message* MessageMap::find(SymbolString& master)
 	if (master.size() < 5+maxIdLength)
 		return NULL;
 
-	unsigned long long sourceMask = 0x1fLL << (8 * 7);
 	for (int idLength = maxIdLength; idLength >= m_minIdLength; idLength--) {
 		int exp = 7;
 		unsigned long long key = (unsigned long long)idLength << (8 * exp + 5);
@@ -473,16 +476,19 @@ Message* MessageMap::find(SymbolString& master)
 		for (unsigned char i=0; i<idLength; i++)
 			key |= (unsigned long long)master[5 + i] << (8 * exp--);
 
-		map<unsigned long long , Message*>::iterator it = m_passiveMessagesByKey.find(key);
-		if (it != m_passiveMessagesByKey.end())
+		map<unsigned long long , Message*>::iterator it = m_messagesByKey.find(key);
+		if (it != m_messagesByKey.end())
 			return it->second;
 
-		if ((key & sourceMask) != 0) {
-			key &= ~sourceMask; // try again without specific source master
-			it = m_passiveMessagesByKey.find(key);
-			if (it != m_passiveMessagesByKey.end())
+		if ((key & ID_SOURCE_MASK) != 0) {
+			it = m_messagesByKey.find(key & ~ID_SOURCE_MASK); // try again without specific source master
+			if (it != m_messagesByKey.end())
 				return it->second;
 		}
+
+		it = m_messagesByKey.find(key | ID_SOURCE_MASK); // try again with special value for active
+		if (it != m_messagesByKey.end())
+			return it->second;
 	}
 
 	return NULL;
@@ -505,7 +511,7 @@ void MessageMap::clear()
 	m_messageCount = 0;
 	m_messagesByName.clear();
 	// clear messages by key
-	m_passiveMessagesByKey.clear();
+	m_messagesByKey.clear();
 	m_minIdLength = 4;
 	m_maxIdLength = 0;
 }

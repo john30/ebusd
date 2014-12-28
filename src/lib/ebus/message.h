@@ -144,8 +144,8 @@ public:
 	vector<unsigned char> getId() const { return m_id; }
 
 	/**
-	 * @brief Return the key for storing in @a MessageSet.
-	 * @return the key for storing in @a MessageSet.
+	 * @brief Return the key for storing in @a MessageMap.
+	 * @return the key for storing in @a MessageMap.
 	 */
 	unsigned long long getKey() { return m_key; }
 
@@ -244,7 +244,7 @@ private:
 	/** the primary, secondary, and optionally further command ID bytes. */
 	vector<unsigned char> m_id;
 
-	/** the key for storing in @a MessageSet. */
+	/** the key for storing in @a MessageMap. */
 	unsigned long long m_key;
 
 	/** the @a DataField for encoding/decoding the message. */
@@ -292,7 +292,8 @@ public:
 	/**
 	 * @brief Construct a new instance.
 	 */
-	MessageMap() : FileReader<DataFieldTemplates*>::FileReader(true), m_minIdLength(4), m_maxIdLength(0), m_messageCount(0) {}
+	MessageMap() : FileReader<DataFieldTemplates*>::FileReader(true),
+		m_minIdLength(4), m_maxIdLength(0), m_messageCount(0), m_passiveMessageCount(0) {}
 
 	/**
 	 * @brief Destructor.
@@ -350,13 +351,13 @@ public:
 	 * @param passiveOnly true to count only passive messages, false to count all messages.
 	 * @return the the number of stored @a Message instances.
 	 */
-	int size(const bool passiveOnly=false) { return passiveOnly ? m_passiveMessagesByKey.size() : m_messageCount; }
+	size_t size(const bool passiveOnly=false) { return passiveOnly ? m_passiveMessageCount : m_messageCount; }
 
 	/**
 	 * @brief Get the number of stored @a Message instances with a poll priority.
 	 * @return the the number of stored @a Message instances with a poll priority.
 	 */
-	int sizePoll() { return m_pollMessages.size(); }
+	size_t sizePoll() { return m_pollMessages.size(); }
 
 	/**
 	 * @brief Get the next @a Message to poll.
@@ -374,13 +375,16 @@ private:
 	unsigned char m_maxIdLength;
 
 	/** the number of distinct @a Message instances stored in @a m_messagesByName. */
-	int m_messageCount;
+	size_t m_messageCount;
+
+	/** the number of distinct passive @a Message instances stored in @a m_messagesByKey. */
+	size_t m_passiveMessageCount;
 
 	/** the known @a Message instances by class and name. */
 	map<string, Message*> m_messagesByName;
 
-	/** the known passive @a Message instances by key. */
-	map<unsigned long long, Message*> m_passiveMessagesByKey;
+	/** the known @a Message instances by key. */
+	map<unsigned long long, Message*> m_messagesByKey;
 
 	/** the known @a Message instances to poll, by priority. */
 	priority_queue<Message*, vector<Message*>, compareMessagePriority> m_pollMessages;
