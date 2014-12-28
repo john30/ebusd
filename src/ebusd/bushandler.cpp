@@ -35,6 +35,9 @@ using namespace std;
 
 extern Logger& L;
 
+/** helper macro for conditional logging (avoids unnecessary code execution). */
+#define LOG(area, level, ...) (L.hasSink(area, level) == true) ? L.log(area, level, __VA_ARGS__) : void(0)
+
 /**
  * @brief Return the string corresponding to the @a BusState.
  * @param state the @a BusState.
@@ -65,7 +68,7 @@ result_t PollRequest::prepare(unsigned char ownMasterAddress)
 	istringstream input;
 	result_t result = m_message->prepareMaster(ownMasterAddress, m_master, input);
 	if (result == RESULT_OK)
-		L.log(bus, trace, "poll cmd: %s", m_master.getDataStr().c_str());
+		LOG(bus, trace, "poll cmd: %s", m_master.getDataStr().c_str());
 	return result;
 }
 
@@ -78,7 +81,7 @@ bool PollRequest::notify(result_t result, SymbolString& slave)
 	if (result != RESULT_OK)
 		L.log(bus, error, "poll %s %s failed: %s", m_message->getClass().c_str(), m_message->getName().c_str(), getResultCode(result));
 	else
-		L.log(bus, event, "poll %s %s: %s", m_message->getClass().c_str(), m_message->getName().c_str(), output.str().c_str());
+		LOG(bus, event, "poll %s %s: %s", m_message->getClass().c_str(), m_message->getName().c_str(), output.str().c_str());
 
 	return false;
 }
@@ -89,7 +92,7 @@ result_t ScanRequest::prepare(unsigned char ownMasterAddress, unsigned char dstA
 	istringstream input;
 	result_t result = m_message->prepareMaster(ownMasterAddress, m_master, input, UI_FIELD_SEPARATOR, dstAddress);
 	if (result == RESULT_OK)
-		L.log(bus, trace, "scan cmd: %s", m_master.getDataStr().c_str());
+		LOG(bus, trace, "scan cmd: %s", m_master.getDataStr().c_str());
 	return result;
 }
 
@@ -109,7 +112,7 @@ bool ScanRequest::notify(result_t result, SymbolString& slave)
 	}
 
 	string str = scanResult.str();
-	L.log(bus, event, "scan: %s", str.c_str());
+	LOG(bus, event, "scan: %s", str.c_str());
 	if (m_scanResults != NULL) {
 		if (append == true)
 			(*m_scanResults)[dstAddress] += str;
@@ -135,7 +138,7 @@ bool ScanRequest::notify(result_t result, SymbolString& slave)
 bool ActiveBusRequest::notify(result_t result, SymbolString& slave)
 {
 	if (result == RESULT_OK)
-		L.log(bus, event, "read res: %s", slave.getDataStr().c_str());
+		LOG(bus, event, "read res: %s", slave.getDataStr().c_str());
 
 	m_result = result;
 	m_slave = SymbolString(slave, false, false);
@@ -312,10 +315,11 @@ result_t BusHandler::handleSymbol()
 	time_t now;
 	time(&now);
 	if (result != RESULT_OK) {
-		if (difftime(now, m_lastReceive) > 1) // at least one full second has passed since last received symbol
+		if (difftime(now, m_lastReceive) > 1 // at least one full second has passed since last received symbol
+			|| m_state == bs_noSignal)
 			return setState(bs_noSignal, result);
 
-		return setState(timeout == SIGNAL_TIMEOUT ? bs_noSignal : bs_skip, result);
+		return setState(bs_skip, result);
 	}
 
 	m_lastReceive = now;
@@ -588,7 +592,7 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 			m_nextRequests.add(m_currentRequest); // repeat
 			m_currentRequest = NULL;
 		} else if (state == bs_sendSyn || (result != RESULT_OK && firstRepetition == false)) {
-			L.log(bus, debug, "notify request: %s", getResultCode(result));
+			LOG(bus, debug, "notify request: %s", getResultCode(result));
 			unsigned char dstAddress = m_currentRequest->m_master[1];
 			if (result == RESULT_OK && isValidAddress(dstAddress, false) == true)
 				m_seenAddresses[dstAddress] = true;
@@ -625,9 +629,9 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 		return result;
 
 	if (result < RESULT_OK || (result != RESULT_OK && state == bs_skip))
-		L.log(bus, debug, "%s during %s, switching to %s", getResultCode(result), getStateCode(m_state), getStateCode(state));
+		LOG(bus, debug, "%s during %s, switching to %s", getResultCode(result), getStateCode(m_state), getStateCode(state));
 	else if (m_currentRequest != NULL || state == bs_sendCmd || state==bs_sendResAck || state==bs_sendSyn)
-		L.log(bus, debug, "switching from %s to %s", getStateCode(m_state), getStateCode(state));
+		LOG(bus, debug, "switching from %s to %s", getStateCode(m_state), getStateCode(state));
 	m_state = state;
 
 	if (state == bs_ready || state == bs_skip) {
@@ -645,15 +649,14 @@ void BusHandler::receiveCompleted()
 {
 	unsigned char dstAddress = m_command[1];
 	bool master = isMaster(dstAddress);
-
 	m_seenAddresses[m_command[0]] = true;
 	if (dstAddress == BROADCAST)
-		L.log(upd, trace, "update BC cmd: %s", m_command.getDataStr().c_str());
+		LOG(upd, trace, "update BC cmd: %s", m_command.getDataStr().c_str());
 	else if (master == true) {
-		L.log(upd, trace, "update MM cmd: %s", m_command.getDataStr().c_str());
+		LOG(upd, trace, "update MM cmd: %s", m_command.getDataStr().c_str());
 		m_seenAddresses[dstAddress] = true;
 	} else {
-		L.log(upd, trace, "update MS cmd: %s / %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
+		LOG(upd, trace, "update MS cmd: %s / %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
 		m_seenAddresses[dstAddress] = true;
 	}
 
@@ -669,8 +672,16 @@ void BusHandler::receiveCompleted()
 			L.log(upd, error, "unable to parse %s %s from %s / %s: %s", clazz.c_str(), name.c_str(), m_command.getDataStr().c_str(), m_response.getDataStr().c_str(), getResultCode(result));
 		else {
 			string data = output.str();
-			L.log(upd, event, "update %s %s: %s", clazz.c_str(), name.c_str(), data.c_str());
+			LOG(upd, event, "update %s %s: %s", clazz.c_str(), name.c_str(), data.c_str());
 		}
+	}
+	else {
+		if (dstAddress == BROADCAST)
+			LOG(upd, event, "unknown BC cmd: %s", m_command.getDataStr().c_str());
+		else if (master == true)
+			LOG(upd, event, "unknown MM cmd: %s", m_command.getDataStr().c_str());
+		else
+			LOG(upd, event, "unknown MS cmd: %s / %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
 	}
 }
 
