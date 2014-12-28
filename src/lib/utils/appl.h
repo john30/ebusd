@@ -168,8 +168,9 @@ public:
 	 * @brief parse application arguments.
 	 * @param argc the number of options.
 	 * @param argv the given options.
+	 * @return false if the arguments are invalid or a help/error message was printed and the process should exit.
 	 */
-	void parseArgs(int argc, char* argv[]);
+	bool parseArgs(int argc, char* argv[]);
 
 	/**
 	 * @brief returns the number of saved commands and arguments.
@@ -202,7 +203,7 @@ private:
 	 * @param argument string for help page.
 	 */
 	Appl(const char* command, const char* argument)
-		: m_withCommand(command), m_withArgument(argument) {}
+		: m_version(NULL), m_withCommand(command), m_withArgument(argument) {}
 
 	/**
 	 * @brief private copy construtor.
@@ -250,7 +251,8 @@ private:
 	/**
 	 * @brief checks the passed parameter if this is a valid option.
 	 * @param option to check.
-	 * @param value to save if paramter is a valid option.
+	 * @param value to save.
+	 * @return true if parameter is a valid option.
 	 */
 	bool checkOption(const string& option, const string& value);
 
@@ -264,18 +266,21 @@ private:
 
 	/**
 	 * @brief print application version.
+	 * @return false.
 	 */
-	void printVersion();
+	bool printVersion();
 
 	/**
 	 * @brief print help page.
+	 * @return false.
 	 */
-	void printHelp();
+	bool printHelp();
 
 	/**
 	 * @brief print used option settings.
+	 * @return false.
 	 */
-	void printSettings();
+	bool printSettings();
 };
 
 #endif // LIBUTILS_APPL_H_
