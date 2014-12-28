@@ -64,7 +64,7 @@ void Appl::addOption(const char* name, const char* shortname, OptVal optval,
 	}
 }
 
-void Appl::parseArgs(int argc, char* argv[])
+bool Appl::parseArgs(int argc, char* argv[])
 {
 	vector<string> _argv(argv, argv + argc);
 	m_argv = _argv;
@@ -80,11 +80,11 @@ void Appl::parseArgs(int argc, char* argv[])
 			// is next item an added argument?
 			if (i+1 < argc && _argv[i+1].rfind("-", 0) == string::npos) {
 				if (checkOption(_argv[i].substr(2), _argv[i+1]) == false)
-					printHelp();
+					return false;
 			}
 			else {
 				if (checkOption(_argv[i].substr(2), "") == false)
-					printHelp();
+					return false;
 			}
 
 			lastOption = true;
@@ -99,11 +99,11 @@ void Appl::parseArgs(int argc, char* argv[])
 				if (i+1 < argc && _argv[i+1].rfind("-", 0) == string::npos
 				&& j+1 == _argv[i].size()) {
 					if (checkOption(_argv[i].substr(j,1), _argv[i+1]) == false)
-						printHelp();
+						return false;
 				}
 				else {
 					if (checkOption(_argv[i].substr(j,1), "") == false)
-						printHelp();
+						return false;
 				}
 			}
 
@@ -133,19 +133,19 @@ void Appl::parseArgs(int argc, char* argv[])
 		}
 	}
 
-
+	return true;
 }
 
 bool Appl::checkOption(const string& option, const string& value)
 {
 	if (strcmp(option.c_str(), "settings") == 0)
-		printSettings();
+		return printSettings();
 
 	if (strcmp(option.c_str(), "version") == 0)
-		printVersion();
+		return printVersion();
 
 	if (strcmp(option.c_str(), "h") == 0 || strcmp(option.c_str(), "help") == 0)
-		printHelp();
+		return printHelp();
 
 	for (o_it = m_opts.begin(); o_it < m_opts.end(); o_it++) {
 		if (o_it->shortname == option || o_it->name == option) {
@@ -154,7 +154,7 @@ bool Appl::checkOption(const string& option, const string& value)
 			if (o_it->optiontype == ot_mandatory && value.size() == 0) {
 				cerr << endl << "option requires an argument '"
 					  << option << "'" << endl;
-				return false;
+				return printHelp();
 			}
 
 			// add given value to option
@@ -167,7 +167,7 @@ bool Appl::checkOption(const string& option, const string& value)
 	}
 
 	cerr << endl << "unknown option '" << option << "'" << endl;
-	return false;
+	return printHelp();
 }
 
 void Appl::setOptVal(const char* option, const string value, DataType datatype)
@@ -196,13 +196,14 @@ void Appl::setOptVal(const char* option, const string value, DataType datatype)
 	}
 }
 
-void Appl::printVersion()
+bool Appl::printVersion()
 {
 	cerr << m_version << endl;
-	exit(EXIT_SUCCESS);
+
+	return false;
 }
 
-void Appl::printHelp()
+bool Appl::printHelp()
 {
 	cerr << endl << "Usage:" << endl << "  "
 		  << m_argv[0].substr(m_argv[0].find_last_of("/\\") + 1) << " [Options...]" ;
@@ -228,10 +229,11 @@ void Appl::printHelp()
 	}
 
 	cerr << endl << "   | --settings\n   | --version\n-h | --help" << endl << endl;
-	exit(EXIT_SUCCESS);
+
+	return false;
 }
 
-void Appl::printSettings()
+bool Appl::printSettings()
 {
 	cerr << endl << "Settings:" << endl << endl;
 
@@ -268,5 +270,6 @@ void Appl::printSettings()
 	}
 
 	cerr << endl;
-	exit(EXIT_SUCCESS);
+
+	return false;
 }

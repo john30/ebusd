@@ -243,7 +243,8 @@ int main(int argc, char* argv[])
 	define_args();
 
 	// parse arguments
-	A.parseArgs(argc, argv);
+	if (A.parseArgs(argc, argv) == false)
+		return EXIT_SUCCESS;
 
 	if (A.getOptVal<bool>("checkconfig") == true) {
 		L += new LogConsole(calcAreaMask(A.getOptVal<const char*>("logareas")),
