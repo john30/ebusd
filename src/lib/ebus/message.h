@@ -326,12 +326,16 @@ public:
 	 * @brief Find all active get @a Message instances for the specified class and name.
 	 * @param clazz the device class, or empty for any.
 	 * @param name the message name, or empty for any.
-	 * @param pb the primary ID byte, or -1 for any.
-	 * @param completeMatch false to also include messages where the class and name matches only a part of the given class and name.
+	 * @param pb the primary ID byte, or -1 for any (default any).
+	 * @param completeMatch false to also include messages where the class and name matches only a part of the given class and name (default true).
+	 * @param withRead true to include read messages (default true).
+	 * @param withWrite true to include write messages (default false).
+	 * @param withPassive true to include passive messages (default false).
 	 * @return the found @a Message instances.
 	 * Note: the caller may not free the returned instances.
 	 */
-	deque<Message*> findAll(const string& clazz, const string& name, const short pb, const bool completeMatch=true);
+	deque<Message*> findAll(const string& clazz, const string& name, const short pb=-1, const bool completeMatch=true,
+		const bool withRead=true, const bool withWrite=false, const bool withPassive=false);
 
 	/**
 	 * @brief Find the @a Message instance for the specified master data.

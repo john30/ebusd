@@ -106,9 +106,8 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 		char last = str[len-1];
 		if (last >= '0' && last <= '9') { // poll priority (=active get)
 			pollPriority = last - '0';
-			defaultName = string(str).substr(0, len-1); // cut off priority digit
-		}
-		else
+			defaultName = string(str).substr(0, len - 1); // cut off priority digit
+		} else
 			defaultName = str;
 	} else if (strncasecmp(str, "W", 1) == 0) { // active set
 		isSet = true;
@@ -425,7 +424,8 @@ Message* MessageMap::find(const string& clazz, const string& name, const bool is
 	return NULL;
 }
 
-deque<Message*> MessageMap::findAll(const string& clazz, const string& name, const short pb, const bool completeMatch)
+deque<Message*> MessageMap::findAll(const string& clazz, const string& name, const short pb, const bool completeMatch,
+	const bool withRead, const bool withWrite, const bool withPassive)
 {
 	deque<Message*> ret;
 
@@ -448,6 +448,16 @@ deque<Message*> MessageMap::findAll(const string& clazz, const string& name, con
 		}
 		if (checkPb == true && message->getId()[0] != pb)
 			continue;
+		if (message->isPassive() == true) {
+			if (withPassive == false)
+				continue;
+		} else if (message->isSet() == true) {
+			if (withWrite == false)
+				continue;
+		} else {
+			if (withRead == false)
+				continue;
+		}
 		ret.push_back(message);
 	}
 
