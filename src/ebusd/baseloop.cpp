@@ -460,13 +460,13 @@ string BaseLoop::decodeMessage(const string& data)
 		}
 
 		if (strcasecmp(args[argPos].c_str(), "AREAS") == 0) {
-			L.getSink(0)->setAreaMask(calcAreaMask(args[argPos + 1]));
+			L.setAreaMask(calcAreaMask(args[argPos + 1]));
 			result << "done";
 			break;
 		}
 
 		if (strcasecmp(args[argPos].c_str(), "LEVEL") == 0) {
-			L.getSink(0)->setLevel(calcLevel(args[argPos + 1]));
+			L.setLevel(calcLevel(args[argPos + 1]));
 			result << "done";
 			break;
 		}

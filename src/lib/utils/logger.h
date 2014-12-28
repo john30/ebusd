@@ -280,18 +280,38 @@ public:
 	virtual ~Logger();
 
 	/**
-	 * @brief adds a logging sink and returns the reference to logger.
-	 * @param sink the used logging sink.
-	 * @return the reference to logger.
+	 * @brief Add a @a LogSink.
+	 * @param sink the used @a LogSink.
+	 * @return the reference to this @a Logger.
 	 */
 	Logger& operator+=(LogSink* sink);
 
 	/**
-	 * @brief removes a logging sink and returns the reference to logger.
-	 * @param sink the used logging sink.
-	 * @return the reference to logger.
+	 * @brief Remove a @a LogSink and delete it.
+	 * @param sink the used @a LogSink.
+	 * @return the reference to this @a Logger.
 	 */
 	Logger& operator-=(const LogSink* sink);
+
+	/**
+	 * @brief Set the logging area mask on all @a LogSink instances.
+	 * @param areaMask the logging area mask.
+	 */
+	void setAreaMask(const int& areaMask);
+
+	/**
+	 * @brief Set the logging level on all @a LogSink instances.
+	 * @param level the logging level.
+	 */
+	void setLevel(const int& level);
+
+	/**
+	 * @brief Return whether a @a LogSink is available that will produce output for the specified area and level.
+	 * @param area the logging area of the message.
+	 * @param level the logging level of the message.
+	 * @return whether a @a LogSink is available that will produce output for the specified area and level.
+	 */
+	bool hasSink(const int area, const int level);
 
 	/**
 	 * @brief creates a logging message and add them to internal message queue.
@@ -301,13 +321,6 @@ public:
 	 * @param ... possible 'variable argument lists'.
 	 */
 	void log(const int area, const int level, const string& text, ...);
-
-	/**
-	 * @brief returns the sink at the specified index.
-	 * @param index the index of the sink to return.
-	 * @return the sink at the specified index.
-	 */
-	LogSink* getSink(const int index) const { return(m_sinks[index]); }
 
 	//@copydoc
 	virtual bool start(const char* name);
@@ -322,12 +335,12 @@ protected:
 
 private:
 	/**
-	 * @brief private construtor.
+	 * @brief private constructor.
 	 */
-	Logger() : m_direct(true) {}
+	Logger() : m_direct(true), m_sink(NULL) {}
 
 	/**
-	 * @brief private copy construtor.
+	 * @brief private copy constructor.
 	 * @param reference to an instance.
 	 */
 	Logger(const Logger&);
@@ -345,19 +358,13 @@ private:
 	 */
 	void handleMessage(LogMessage* message);
 
-	/** typedefs for a vector of type LogSink* */
-	typedef vector<LogSink*> sink_t;
-
-	/** typedefs for a vector of type LogSink* iterator */
-	typedef vector<LogSink*>::iterator sinkCI_t;
-
 	/** true to directly log to all sinks, false to buffer via @a m_logQueue. */
 	bool m_direct;
 
-	/** vector of available logging sinks */
-	sink_t m_sinks;
+	/** the used @a LogSink, or NULL. */
+	LogSink* m_sink;
 
-	/** queue for logging messages */
+	/** queue for logging messages. */
 	WQueue<LogMessage*> m_logQueue;
 
 };

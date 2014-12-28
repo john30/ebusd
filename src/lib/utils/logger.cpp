@@ -152,34 +152,50 @@ Logger& Logger::Instance()
 
 Logger::~Logger()
 {
-	while (m_sinks.empty() == false)
-		*this -= *(m_sinks.begin());
+	if (m_sink != NULL) {
+		delete m_sink;
+		m_sink = NULL;
+	}
 }
 
 Logger& Logger::operator+=(LogSink* sink)
 {
-	sinkCI_t itEnd = m_sinks.end();
-	sinkCI_t it = find(m_sinks.begin(), itEnd, sink);
-
-	if (it == itEnd)
-		m_sinks.push_back(sink);
-
-	return (*this);
+	if (m_sink != NULL)
+		delete m_sink;
+	m_sink = sink;
+	return *this;
 }
 
 Logger& Logger::operator-=(const LogSink* sink)
 {
-	sinkCI_t itEnd = m_sinks.end();
-	sinkCI_t it = find(m_sinks.begin(), itEnd, sink);
+	if (sink != NULL && sink == m_sink) {
+		delete m_sink;
+		m_sink = NULL;
+	}
+	return *this;
+}
 
-	if (it == itEnd)
-		return (*this);
+void Logger::setAreaMask(const int& areaMask)
+{
+	if (m_sink != NULL)
+		m_sink->setAreaMask(areaMask);
+}
 
-	m_sinks.erase(it);
+void Logger::setLevel(const int& level)
+{
+	if (m_sink != NULL)
+		m_sink->setLevel(level);
+}
 
-	delete (sink);
-
-	return (*this);
+bool Logger::hasSink(const int area, const int level)
+{
+	if (m_sink != NULL) {
+		if (((m_sink->getAreaMask() & (1 << area)) != 0
+		&& m_sink->getLevel() >= level)) {
+			return true;
+		}
+	}
+	return false;
 }
 
 void Logger::log(const int area, const int level, const string& data, ...)
@@ -207,19 +223,12 @@ void Logger::log(const int area, const int level, const string& data, ...)
 void Logger::handleMessage(LogMessage* message) {
 	if (message == NULL)
 		return;
-
-	sinkCI_t iter = m_sinks.begin();
-
-	for (; iter != m_sinks.end(); ++iter) {
-		if (*iter != 0) {
-
-			if ((((*iter)->getAreaMask() & (1 << message->getArea())) != 0
-			&& (*iter)->getLevel() >= message->getLevel())) {
-				(*iter)->addMessage(*message);
-			}
+	if (m_sink != NULL) {
+		if (((m_sink->getAreaMask() & (1 << message->getArea())) != 0
+		&& m_sink->getLevel() >= message->getLevel())) {
+			m_sink->addMessage(*message);
 		}
 	}
-
 	delete message;
 }
 
