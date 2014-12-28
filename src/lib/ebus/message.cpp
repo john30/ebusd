@@ -509,6 +509,7 @@ void MessageMap::clear()
 	}
 	// clear messages by name
 	m_messageCount = 0;
+	m_passiveMessageCount = 0;
 	m_messagesByName.clear();
 	// clear messages by key
 	m_messagesByKey.clear();
