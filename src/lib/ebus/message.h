@@ -384,7 +384,7 @@ private:
 	/** the number of distinct passive @a Message instances stored in @a m_messagesByKey. */
 	size_t m_passiveMessageCount;
 
-	/** the known @a Message instances by class and name. */
+	/** the known @a Message instances by lowercase class and name. */
 	map<string, Message*> m_messagesByName;
 
 	/** the known @a Message instances by key. */

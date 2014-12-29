@@ -24,6 +24,8 @@
 #include <string>
 #include <vector>
 #include <cstring>
+#include <algorithm>
+#include <locale>
 
 using namespace std;
 
@@ -345,6 +347,13 @@ bool Message::isLessPollWeight(const Message* other)
 }
 
 
+string strtolower(const string& str)
+{
+	string ret(str);
+	transform(ret.begin(), ret.end(), ret.begin(), ::tolower);
+	return ret;
+}
+
 result_t MessageMap::add(Message* message)
 {
 	unsigned long long key = message->getKey();
@@ -354,8 +363,8 @@ result_t MessageMap::add(Message* message)
 	}
 	bool isPassive = message->isPassive();
 	bool isSet = message->isSet();
-	string clazz = message->getClass();
-	string name = message->getName();
+	string clazz = strtolower(message->getClass());
+	string name = strtolower(message->getName());
 	string nameKey = string(isPassive ? "P" : (isSet ? "W" : "R")) + clazz + FIELD_SEPARATOR + name;
 	map<string, Message*>::iterator nameIt = m_messagesByName.find(nameKey);
 	if (nameIt != m_messagesByName.end()) {
@@ -417,12 +426,14 @@ result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<s
 
 Message* MessageMap::find(const string& clazz, const string& name, const bool isSet, const bool isPassive)
 {
+	string lclass = strtolower(clazz);
+	string lname = strtolower(name);
 	for (int i=0; i<2; i++) {
 		string key;
 		if (i==0)
-			key = string(isPassive ? "P" : (isSet ? "W" : "R")) + clazz + FIELD_SEPARATOR + name;
+			key = string(isPassive ? "P" : (isSet ? "W" : "R")) + lclass + FIELD_SEPARATOR + lname;
 		else if (clazz.length() == 0)
-			key = string(isPassive ? "-P" : (isSet ? "-W" : "-R")) + name; // second try: without class
+			key = string(isPassive ? "-P" : (isSet ? "-W" : "-R")) + lname; // second try: without class
 		else
 			continue; // not allowed without class
 		map<string, Message*>::iterator it = m_messagesByName.find(key);
@@ -438,6 +449,8 @@ deque<Message*> MessageMap::findAll(const string& clazz, const string& name, con
 {
 	deque<Message*> ret;
 
+	string lclass = strtolower(clazz);
+	string lname = strtolower(name);
 	bool checkClass = clazz.length() > 0;
 	bool checkName = name.length() > 0;
 	bool checkPb = pb >= 0;
@@ -446,13 +459,13 @@ deque<Message*> MessageMap::findAll(const string& clazz, const string& name, con
 			continue;
 		Message* message = it->second;
 		if (checkClass == true) {
-			string check = message->getClass();
-			if (completeMatch ? (check != clazz) : (check.find(clazz) == check.npos))
+			string check = strtolower(message->getClass());
+			if (completeMatch ? (check != lclass) : (check.find(lclass) == check.npos))
 				continue;
 		}
 		if (checkName == true) {
-			string check = message->getName();
-			if (completeMatch ? (check != name) : (check.find(name) == check.npos))
+			string check = strtolower(message->getName());
+			if (completeMatch ? (check != lname) : (check.find(lname) == check.npos))
 				continue;
 		}
 		if (checkPb == true && message->getId()[0] != pb)
