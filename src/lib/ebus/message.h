@@ -211,11 +211,11 @@ public:
 	time_t getLastPollTime() { return m_lastPollTime; }
 
 	/**
-	 * @brief Return whether this @a Message needs to be polled before the other one.
+	 * @brief Return whether this @a Message needs to be polled after the other one.
 	 * @param other the other @a Message to compare with.
-	 * @return true if this @a Message needs to be polled before the other one.
+	 * @return true if this @a Message needs to be polled after the other one.
 	 */
-	bool isLessPollWeight(Message* other);
+	bool isLessPollWeight(const Message* other);
 
 private:
 
@@ -276,9 +276,9 @@ struct compareMessagePriority : binary_function <Message*,Message*,bool> {
 	 * @brief Compare the weighted poll priority of the two @a Message instances.
 	 * @param x the first @a Message.
 	 * @param y the second @a Message.
-	 * @return whether @a x is bigger than or equal to @a y with regard to their weighted poll priority.
+	 * @return whether @a x is smaller than @a y with regard to their weighted poll priority.
 	 */
-	bool operator() (Message* x, Message* y) const { return x->isLessPollWeight(y) == false; };
+	bool operator() (Message* x, Message* y) const { return x->isLessPollWeight(y); };
 };
 
 

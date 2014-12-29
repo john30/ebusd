@@ -326,12 +326,19 @@ result_t Message::decode(const PartType partType, SymbolString& data,
 	return RESULT_OK;
 }
 
-bool Message::isLessPollWeight(Message* other) {
-	if (m_pollPriority * m_pollCount < other->m_pollPriority * other->m_pollCount)
+bool Message::isLessPollWeight(const Message* other)
+{
+	unsigned int tw = m_pollPriority * m_pollCount;
+	unsigned int ow = other->m_pollPriority * other->m_pollCount;
+	if (tw > ow)
+		return true;
+	if (tw < ow)
+		return false;
+	if (m_pollPriority > other->m_pollPriority)
 		return true;
 	if (m_pollPriority < other->m_pollPriority)
-		return true;
-	if (m_lastPollTime < other->m_lastPollTime)
+		return false;
+	if (m_lastPollTime > other->m_lastPollTime)
 		return true;
 
 	return false;
@@ -373,8 +380,10 @@ result_t MessageMap::add(Message* message)
 		m_maxIdLength = idLength;
 	m_messagesByKey[key] = message;
 
-	if (message->getPollPriority() > 0)
+	if (message->getPollPriority() > 0) {
+		message->m_lastPollTime = m_pollMessages.size();
 		m_pollMessages.push(message);
+	}
 
 	return RESULT_OK;
 }
