@@ -31,34 +31,29 @@ using namespace std;
 
 /** @brief the available data types. */
 enum DataType {
-	dt_none,    /*!< default for __text_only__ */
-	dt_bool,    /*!< boolean */
-	dt_hex,     /*!< hex integer */
-	dt_int,     /*!< dec integer */
-	dt_long,    /*!< long */
-	dt_float,   /*!< float */
-	dt_string   /*!< string */
+	dt_none,    //!< default for __text_only__
+	dt_bool,    //!< boolean
+	dt_hex,     //!< hex integer
+	dt_int,     //!< dec integer
+	dt_long,    //!< long
+	dt_float,   //!< float
+	dt_string   //!< string
 };
 
 /** @brief option types. */
 enum OptionType {
-	ot_none,      /*!< no option type is needed */
-	ot_optional,  /*!< a value is optional */
-	ot_mandatory  /*!< a value is mandatory */
+	ot_none,      //!< no option type is needed
+	ot_optional,  //!< a value is optional
+	ot_mandatory  //!< a value is mandatory
 };
 
 /** @brief structure for defining application options */
 typedef struct {
-	/** long option name */
-	const char* name;
-	/** short option name */
-	const char* shortname;
-	/** description for this option */
-	const char* description;
-	/** data type for this option */
-	DataType datatype;
-	/** indicates whether an option takes an argument */
-	OptionType optiontype;
+	const char* name;         //!< long option name
+	const char* shortname;    //!< short option name
+	const char* description;  //!< description for this option
+	DataType datatype;        //!< data type for this option
+	OptionType optiontype;    //!< indicates whether an option takes an argument
 } opt_t;
 
 /**
@@ -67,12 +62,16 @@ typedef struct {
 union OptVal {
 	/** boolean */
 	bool b;
+
 	/** integer */
 	int i;
+
 	/** long */
 	long l;
+
 	/** float */
 	float f;
+
 	/** string */
 	const char* c;
 
@@ -80,26 +79,31 @@ union OptVal {
 	 * @brief clear memory
 	 */
 	OptVal() { memset(this, 0, sizeof(OptVal)); }
+
 	/**
 	 * @brief create boolean type
 	 * @param _b the boolean
 	 */
 	OptVal(bool _b) : b(_b) {}
+
 	/**
 	 * @brief create integer type
 	 * @param _i the integer
 	 */
 	OptVal(int _i) : i(_i) {}
+
 	/**
 	 * @brief create long type
 	 * @param _l the long
 	 */
 	OptVal(long _l) : l(_l) {}
+
 	/**
 	 * @brief create float type
 	 * @param _f the float
 	 */
 	OptVal(float _f) : f(_f) {}
+
 	/**
 	 * @brief create string type
 	 * @param _c the string
@@ -191,8 +195,8 @@ public:
 	string getCommand() const { return m_command; }
 
 	/**
-	 * @brief returns the string of given command.
-	 * @return the command string.
+	 * @brief Get whether a command string is missing.
+	 * @return true if a command string is missing.
 	 */
 	bool missingCommand() const { return (m_command.size() == 0 ? true : false); }
 
