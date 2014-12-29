@@ -73,13 +73,19 @@ bool connect(const char* host, int port, bool once)
 			socket->send(message.c_str(), message.size());
 
 			if (strncasecmp(message.c_str(), "QUIT", 4) != 0 && strncasecmp(message.c_str(), "STOP", 4) != 0) {
-
 				char data[1024];
 				size_t datalen;
 
-				datalen = socket->recv(data, sizeof(data)-1);
-				data[datalen] = '\0';
+				do {
+					memset(data, 0, sizeof(data));
+					datalen = socket->recv(data, sizeof(data)-1);
 
+					if (data[datalen-1] != '\n')
+						cout << data;
+
+				} while (data[datalen-1] != '\n');
+
+				data[datalen] = '\0';
 				cout << data;
 			}
 			else
