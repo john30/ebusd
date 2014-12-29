@@ -47,23 +47,7 @@ void define_args()
 
 }
 
-enum CommandType {
-     ct_open,
-     ct_exit,
-     ct_help,
-     ct_invalid
-};
-
-CommandType getCase(const string& item)
-{
-	if (strcasecmp(item.c_str(), "OPEN") == 0) return ct_open;
-	if (strcasecmp(item.c_str(), "EXIT") == 0) return ct_exit;
-	if (strcasecmp(item.c_str(), "HELP") == 0) return ct_help;
-
-	return ct_invalid;
-}
-
-bool connect(const char* host, int port, bool once=true)
+bool connect(const char* host, int port, bool once)
 {
 
 	TCPClient* client = new TCPClient();
@@ -89,13 +73,19 @@ bool connect(const char* host, int port, bool once=true)
 			socket->send(message.c_str(), message.size());
 
 			if (strncasecmp(message.c_str(), "QUIT", 4) != 0 && strncasecmp(message.c_str(), "STOP", 4) != 0) {
-
 				char data[1024];
 				size_t datalen;
 
-				datalen = socket->recv(data, sizeof(data)-1);
-				data[datalen] = '\0';
+				do {
+					memset(data, 0, sizeof(data));
+					datalen = socket->recv(data, sizeof(data)-1);
 
+					if (data[datalen-1] != '\n')
+						cout << data;
+
+				} while (data[datalen-1] != '\n');
+
+				data[datalen] = '\0';
 				cout << data;
 			}
 			else
@@ -124,72 +114,12 @@ int main(int argc, char* argv[])
 
 	// parse arguments
 	if (A.parseArgs(argc, argv) == false)
-		return EXIT_SUCCESS;
+		exit(EXIT_FAILURE);
 
-	if (A.missingCommand() == true) {
-		cout << "interactive mode started." << endl;
-
-		bool running = true;
-
-		do {
-			string input, token;
-			vector<string> cmd;
-
-			cout << "$: ";
-			getline(cin, input);
-
-			// prepare input
-			istringstream stream(input);
-			while (getline(stream, token, ' ') != 0)
-				cmd.push_back(token);
-
-			if (cmd.size() == 0)
-				cout << "command missing" << endl;
-
-			switch (getCase(cmd[0])) {
-			case ct_invalid:
-				cout << "command not found" << endl;
-				break;
-
-			case ct_open:
-				{
-					bool ret = true;
-					cout << "connect to..." << endl;
-					if (cmd.size() == 1)
-						ret = connect(A.getOptVal<const char*>("server"), A.getOptVal<int>("port"), false);
-					else if (cmd.size() == 2)
-						ret = connect(cmd[1].c_str(), A.getOptVal<int>("port"), false);
-					else if (cmd.size() == 3)
-						ret = connect(cmd[1].c_str(), atoi(cmd[2].c_str()), false);
-					else
-						cout << "open [host [port]]" << endl;
-
-					running = ret;
-				}
-
-				break;
-
-			case ct_exit:
-				running = false;
-				break;
-
-			case ct_help:
-				cout << "commands:" << endl
-				     << " open - open connection to ebusd   'open [host [port]]'" << endl
-				     << " exit - exit ebusctl" << endl
-				     << " help - print this page" << endl;
-				break;
-
-			default:
-				break;
-			}
-
-		} while (running == true);
-
-		exit(EXIT_SUCCESS);
-	}
-
-	connect(A.getOptVal<const char*>("server"), A.getOptVal<int>("port"));
+	if (A.missingCommand() == true)
+		connect(A.getOptVal<const char*>("server"), A.getOptVal<int>("port"), false);
+	else
+		connect(A.getOptVal<const char*>("server"), A.getOptVal<int>("port"), true);
 
 	exit(EXIT_SUCCESS);
 }
