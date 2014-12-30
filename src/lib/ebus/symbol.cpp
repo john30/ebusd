@@ -116,7 +116,7 @@ result_t SymbolString::push_back(const unsigned char value, const bool isEscaped
 		if (isEscaped == false && value == ESC) {
 			m_data.push_back(ESC);
 			m_data.push_back(0x00);
-			if (updateCRC) {
+			if (updateCRC == true) {
 				addCRC(ESC);
 				addCRC(0x00);
 			}
@@ -124,14 +124,14 @@ result_t SymbolString::push_back(const unsigned char value, const bool isEscaped
 		else if (isEscaped == false && value == SYN) {
 			m_data.push_back(ESC);
 			m_data.push_back(0x01);
-			if (updateCRC) {
+			if (updateCRC == true) {
 				addCRC(ESC);
 				addCRC(0x01);
 			}
 		}
 		else {
 			m_data.push_back(value);
-			if (updateCRC)
+			if (updateCRC == true)
 				addCRC(value);
 
 		}
@@ -141,7 +141,7 @@ result_t SymbolString::push_back(const unsigned char value, const bool isEscaped
 		if (m_unescapeState != 1)
 			return RESULT_ERR_ESC; // invalid unescape state
 		m_data.push_back(value);
-		if (updateCRC) {
+		if (updateCRC == true) {
 			if (value == ESC) {
 				addCRC(ESC);
 				addCRC(0x00);
@@ -157,7 +157,7 @@ result_t SymbolString::push_back(const unsigned char value, const bool isEscaped
 		return RESULT_OK;
 	}
 	else if (m_unescapeState != 1) {
-		if (updateCRC)
+		if (updateCRC == true)
 			addCRC(value);
 
 		if (value == 0x00) {
@@ -173,13 +173,13 @@ result_t SymbolString::push_back(const unsigned char value, const bool isEscaped
 		return RESULT_ERR_ESC; // invalid escape sequence
 	}
 	else if (value == ESC) {
-		if (updateCRC)
+		if (updateCRC == true)
 			addCRC(value);
 
 		m_unescapeState = 2;
 		return RESULT_IN_ESC;
 	}
-	if (updateCRC)
+	if (updateCRC == true)
 		addCRC(value);
 
 	m_data.push_back(value);

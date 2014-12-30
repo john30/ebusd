@@ -58,7 +58,8 @@ TCPSocket* TCPClient::connect(const string& server, const int& port)
 			return NULL;
 
 		memcpy(&address.sin_addr, he->h_addr_list[0], he->h_length);
-	} else {
+	}
+	else {
 		ret = inet_aton(server.c_str(), &address.sin_addr);
 		if (ret == 0)
 			return NULL;

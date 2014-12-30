@@ -186,7 +186,8 @@ static result_t readConfigFiles(const string path, const string extension, DataF
 				if (result != RESULT_OK)
 					return result;
 			}
-		} else if (d->d_type == DT_REG || d->d_type == DT_LNK) {
+		}
+		else if (d->d_type == DT_REG || d->d_type == DT_LNK) {
 			string fn = d->d_name;
 
 			if (fn.find(extension, (fn.length() - extension.length())) != string::npos
@@ -270,7 +271,8 @@ int main(int argc, char* argv[])
 		L += new LogConsole(calcAreaMask(A.getOptVal<const char*>("logareas")),
 				    calcLevel(A.getOptVal<const char*>("loglevel")),
 				    "logconsole");
-	} else {
+	}
+	else {
 		// make me daemon
 		D.run("/var/run/ebusd.pid");
 		L += new LogFile(calcAreaMask(A.getOptVal<const char*>("logareas")),

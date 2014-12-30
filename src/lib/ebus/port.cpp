@@ -199,7 +199,8 @@ result_t DeviceNetwork::openDevice(const string deviceName, const bool noDeviceC
 			return RESULT_ERR_NOTFOUND;
 
 		memcpy(&sock.sin_addr, he->h_addr_list[0], he->h_length);
-	} else {
+	}
+	else {
 		ret = inet_aton(host, &sock.sin_addr);
 		if (ret == 0)
 			return RESULT_ERR_NOTFOUND;

@@ -104,17 +104,20 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	size_t len = strlen(str);
 	if (len == 0) { // default: active get
 		defaultName = "r";
-	} else if (strncasecmp(str, "R", 1) == 0) { // active get
+	}else if (strncasecmp(str, "R", 1) == 0) { // active get
 		char last = str[len-1];
 		if (last >= '0' && last <= '9') { // poll priority (=active get)
 			pollPriority = last - '0';
 			defaultName = string(str).substr(0, len - 1); // cut off priority digit
-		} else
+		}
+		else
 			defaultName = str;
-	} else if (strncasecmp(str, "W", 1) == 0) { // active set
+	}
+	else if (strncasecmp(str, "W", 1) == 0) { // active set
 		isSet = true;
 		defaultName = str;
-	} else { // any other: passive set/get
+	}
+	else { // any other: passive set/get
 		isPassive = true;
 		isSet = strcasecmp(str+len-1, "W") == 0; // if type ends with "w" it is treated as passive set
 		defaultName = str;
@@ -178,11 +181,11 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	for (int pos=0, useDefaults=1; pos<2; pos++) { // message id (PBSB, optional master data)
 		string token = *it++;
 		if (useDefaults == 1) {
-			if (pos == 0 && token.size() > 0) {
+			if (pos == 0 && token.size() > 0)
 				useDefaults = 0;
-			} else {
+			else
 				token = getDefault("", defaults, defaultPos).append(token);
-			}
+
 		}
 		istringstream input(token);
 		if (it == end)
@@ -257,7 +260,8 @@ result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& ma
 		if (m_dstAddress == SYN)
 			return RESULT_ERR_INVALID_ADDR;
 		result = master.push_back(m_dstAddress, false, false);
-	} else
+	}
+	else
 		result = master.push_back(dstAddress, false, false);
 	if (result != RESULT_OK)
 		return result;
@@ -430,7 +434,7 @@ Message* MessageMap::find(const string& clazz, const string& name, const bool is
 	string lname = strtolower(name);
 	for (int i=0; i<2; i++) {
 		string key;
-		if (i==0)
+		if (i == 0)
 			key = string(isPassive ? "P" : (isSet ? "W" : "R")) + lclass + FIELD_SEPARATOR + lname;
 		else if (clazz.length() == 0)
 			key = string(isPassive ? "-P" : (isSet ? "-W" : "-R")) + lname; // second try: without class
@@ -473,10 +477,12 @@ deque<Message*> MessageMap::findAll(const string& clazz, const string& name, con
 		if (message->isPassive() == true) {
 			if (withPassive == false)
 				continue;
-		} else if (message->isSet() == true) {
+		}
+		else if (message->isSet() == true) {
 			if (withWrite == false)
 				continue;
-		} else {
+		}
+		else {
 			if (withRead == false)
 				continue;
 		}

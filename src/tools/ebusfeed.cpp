@@ -95,7 +95,8 @@ int main(int argc, char* argv[])
 		port.close();
 		if(port.isOpen() == false)
 			cout << "closePort successful." << endl;
-	} else
+	}
+	else
 		cout << "error opening device " << A.getOptVal<const char*>("device") << endl;
 
 

@@ -100,7 +100,8 @@ int main()
 				continue;
 			}
 			cout << "\"" << check[2] << "\": find OK" << endl;
-		} else {
+		}
+		else {
 			vector<string>::iterator it = entries.begin();
 			result = Message::create(it, entries.end(), NULL, templates, deleteMessage);
 			if (failedCreate == true) {
@@ -162,7 +163,8 @@ int main()
 
 			bool match = inputStr == output.str();
 			verify(false, "decode", check[2] + "/" + check[3], match, inputStr, output.str());
-		} else {
+		}
+		else {
 			result = message->prepareMaster(0xff, writeMstr, input);
 			if (failedPrepare == true) {
 				if (result == RESULT_OK)

@@ -59,7 +59,8 @@ BaseLoop::BaseLoop()
 	if (pollInterval <= 0) {
 		m_pollActive = false;
 		pollInterval = 0;
-	} else
+	}
+	else
 		m_pollActive = true;
 
 	// create Port
@@ -142,7 +143,7 @@ void BaseLoop::start()
 		L.log(bas, event, "<<< %s", result.c_str());
 
 		// send result to client
-		result += '\n';
+		result += "\n\n";
 		message->setResult(result);
 		message->sendSignal();
 
@@ -177,7 +178,8 @@ string BaseLoop::decodeMessage(const string& data)
 				escaped = false;
 			}
 			token = previous + " " + token;
-		} else if (token.length() == 0) // allow multiple space chars for a single delimiter
+		}
+		else if (token.length() == 0) // allow multiple space chars for a single delimiter
 			continue;
 		else if (token[0] == '"') {
 			token = token.substr(1);
@@ -206,9 +208,11 @@ string BaseLoop::decodeMessage(const string& data)
 		while (args.size() > argPos && args[argPos][0] == '-') {
 			if (args[argPos] == "-f") {
 				maxAge = 0;
-			} else if (args[argPos] == "-v") {
+			}
+			else if (args[argPos] == "-v") {
 				verbose = true;
-			} else if (args[argPos] == "-m") {
+			}
+			else if (args[argPos] == "-m") {
 				argPos++;
 				if (args.size() > argPos) {
 					result_t result;
@@ -222,7 +226,8 @@ string BaseLoop::decodeMessage(const string& data)
 					argPos = 0; // print usage
 					break;
 				}
-			} else {
+			}
+			else {
 				argPos = 0; // print usage
 				break;
 			}
@@ -290,9 +295,11 @@ string BaseLoop::decodeMessage(const string& data)
 				L.log(bas, error, "read: %s", getResultCode(ret));
 				result << getResultCode(ret);
 			}
-		} else if (updateMessage != NULL) {
+		}
+		else if (updateMessage != NULL) {
 			result << "no data stored";
-		} else {
+		}
+		else {
 			result << "message not defined";
 		}
 		break;
@@ -379,7 +386,8 @@ string BaseLoop::decodeMessage(const string& data)
 				result << getResultCode(ret);
 			}
 
-		} else {
+		}
+		else {
 			result << "message not defined";
 		}
 		break;
@@ -390,22 +398,25 @@ string BaseLoop::decodeMessage(const string& data)
 			if (args[argPos] == "-v")
 				verbose = true;
 			else if (args[argPos] == "-r") {
-				if (first)
+				if (first == true)
 					first = false;
 				withRead = true;
-			} else if (args[argPos] == "-w") {
-				if (first) {
+			}
+			else if (args[argPos] == "-w") {
+				if (first == true) {
 					first = false;
 					withRead = false;
 				}
 				withWrite = true;
-			} else if (args[argPos] == "-p") {
-				if (first) {
+			}
+			else if (args[argPos] == "-p") {
+				if (first == true) {
 					first = false;
 					withRead = false;
 				}
 				withPassive = true;
-			} else {
+			}
+			else {
 				argPos = 0; // print usage
 				break;
 			}

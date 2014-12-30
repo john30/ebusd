@@ -412,7 +412,8 @@ result_t BusHandler::handleSymbol()
 				if (isMaster(m_currentRequest->m_master[1]) == true) {
 					return setState(bs_sendSyn, RESULT_OK);
 				}
-			} else if (isMaster(m_command[1]) == true) {
+			}
+			else if (isMaster(m_command[1]) == true) {
 				receiveCompleted();
 				return setState(bs_skip, RESULT_OK);
 			}
@@ -591,7 +592,8 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 			m_currentRequest->m_busLostRetries++;
 			m_nextRequests.add(m_currentRequest); // repeat
 			m_currentRequest = NULL;
-		} else if (state == bs_sendSyn || (result != RESULT_OK && firstRepetition == false)) {
+		}
+		else if (state == bs_sendSyn || (result != RESULT_OK && firstRepetition == false)) {
 			LOG(bus, debug, "notify request: %s", getResultCode(result));
 			unsigned char dstAddress = m_currentRequest->m_master[1];
 			if (result == RESULT_OK && isValidAddress(dstAddress, false) == true)
@@ -630,7 +632,7 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 
 	if (result < RESULT_OK || (result != RESULT_OK && state == bs_skip))
 		LOG(bus, debug, "%s during %s, switching to %s", getResultCode(result), getStateCode(m_state), getStateCode(state));
-	else if (m_currentRequest != NULL || state == bs_sendCmd || state==bs_sendResAck || state==bs_sendSyn)
+	else if (m_currentRequest != NULL || state == bs_sendCmd || state == bs_sendResAck || state == bs_sendSyn)
 		LOG(bus, debug, "switching from %s to %s", getStateCode(m_state), getStateCode(state));
 	m_state = state;
 
@@ -655,7 +657,8 @@ void BusHandler::receiveCompleted()
 	else if (master == true) {
 		LOG(upd, trace, "update MM cmd: %s", m_command.getDataStr().c_str());
 		m_seenAddresses[dstAddress] = true;
-	} else {
+	}
+	else {
 		LOG(upd, trace, "update MS cmd: %s / %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
 		m_seenAddresses[dstAddress] = true;
 	}

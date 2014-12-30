@@ -90,7 +90,8 @@ bool Appl::parseArgs(int argc, char* argv[])
 			lastOption = true;
 
 		// find option with short format '-'
-		} else if (_argv[i].rfind("-") == 0 && _argv[i].size() > 1) {
+		}
+		else if (_argv[i].rfind("-") == 0 && _argv[i].size() > 1) {
 
 			// walk through all characters
 			for (size_t j = 1; j < _argv[i].size(); j++) {
@@ -110,7 +111,8 @@ bool Appl::parseArgs(int argc, char* argv[])
 			lastOption = true;
 
 
-		} else {
+		}
+		else {
 			// break loop with command
 			if (lastOption == false && strlen(m_withCommand) != 0)
 				break;

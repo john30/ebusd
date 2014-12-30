@@ -86,7 +86,8 @@ public:
 		else if (m_queue.size() > 0) {
 			item = m_queue.front();
 			m_queue.pop_front();
-		} else
+		}
+		else
 			item = NULL;
 
 		pthread_mutex_unlock(&m_mutex);

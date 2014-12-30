@@ -127,11 +127,11 @@ void printErrorPos(vector<string>::iterator begin, const vector<string>::iterato
 				cnt++;
 			}
 		}
-		if (begin < pos) {
+		if (begin < pos)
 			cnt += 1+(*begin).length()+1;
-		} else if (begin == pos) {
+		else if (begin == pos)
 			cnt++;
-		}
+
 		string item = *begin++;
 		cout << TEXT_SEPARATOR << item << TEXT_SEPARATOR;
 	}
@@ -647,7 +647,8 @@ result_t StringDataField::writeSymbols(istringstream& input,
 					value -= 2000;
 				else if (value > 99)
 					return RESULT_ERR_OUT_OF_RANGE; // invalid year
-			} else if (value < 1 || (i == 0 && value > 31) || (i == 1 && value > 12))
+			}
+			else if (value < 1 || (i == 0 && value > 31) || (i == 1 && value > 12))
 				return RESULT_ERR_OUT_OF_RANGE; // invalid date part
 			break;
 		case bt_tim:
@@ -898,7 +899,7 @@ result_t NumberDataField::readSymbols(SymbolString& input,
 		}
 		signedValue = (int) value; // negative signed value
 	}
-	else if (negative) // negative signed value
+	else if (negative == true) // negative signed value
 		signedValue = (int) value - (1 << m_bitCount);
 	else
 		signedValue = (int) value;
@@ -907,7 +908,8 @@ result_t NumberDataField::readSymbols(SymbolString& input,
 		if ((m_dataType.flags & (FIX|BCD)) == (FIX|BCD))
 			output << setw(m_length * 2) << setfill('0');
 		output << static_cast<int>(signedValue) << setw(0);
-	} else
+	}
+	else
 		output << setprecision(m_precision)
 		       << fixed << static_cast<float>(signedValue / (float) m_divisor);
 
