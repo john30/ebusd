@@ -436,7 +436,7 @@ string BaseLoop::decodeMessage(const string& data)
 			argPos++;
 		}
 		if (argPos == 0 || args.size() < argPos || args.size() > argPos + 1) {
-			result << "usage: 'find [-v] [-r] [-w] [-p] [d] [-c class] [name]'";
+			result << "usage: 'find [-v] [-r] [-w] [-p] [-d] [-c class] [name]'";
 			break;
 		}
 
@@ -576,7 +576,7 @@ string BaseLoop::decodeMessage(const string& data)
 		result << "commands:" << endl
 		       << " read      - read ebus values            'read [-v] [-f] [-m seconds] [-c class] name [field]'" << endl
 		       << " write     - write ebus values           'write class name value[;value]*' or 'write -h ZZPBSBNNDx'" << endl
-		       << " find      - find ebus values            'find [-v] [-r] [-w] [-p] [d] [-c class] [name]'" << endl << endl
+		       << " find      - find ebus values            'find [-v] [-r] [-w] [-p] [-d] [-c class] [name]'" << endl << endl
 		       << " scan      - scan ebus known addresses   'scan'" << endl
 		       << "           - scan ebus all addresses     'scan full'" << endl
 		       << "           - show scan results           'scan result'" << endl << endl
