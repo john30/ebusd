@@ -315,13 +315,12 @@ result_t Message::decode(const PartType partType, SymbolString& data,
 		offset = m_id.size() - 2;
 	else
 		offset = 0;
-	int startPos = output.str().length();
+	size_t startPos = output.str().length();
 	result_t result = m_data->read(partType, data, offset, output, leadingSeparator, verbose, filterName, separator);
-	time(&m_lastUpdateTime);
 	if (result < RESULT_OK) {
-		m_lastValue.clear();
 		return result;
 	}
+	time(&m_lastUpdateTime);
 	m_lastValue = output.str().substr(startPos);
 	/*if (m_isPassive == false && answer == true) {
 		istringstream input; // TODO create input from database of internal variables
@@ -329,6 +328,28 @@ result_t Message::decode(const PartType partType, SymbolString& data,
 		if (result != RESULT_OK)
 			return result;
 	}*/
+	return RESULT_OK;
+}
+
+result_t Message::decode(SymbolString& masterData, SymbolString& slaveData,
+		ostringstream& output, bool leadingSeparator,
+		bool verbose, const char* filterName,
+		char separator)
+{
+	unsigned char offset = m_id.size() - 2;
+	size_t startPos = output.str().length();
+	result_t result = m_data->read(pt_masterData, masterData, offset, output, leadingSeparator, verbose, filterName, separator);
+	if (result < RESULT_OK) {
+		return result;
+	}
+	offset = 0;
+	leadingSeparator = output.str().length() > startPos;
+	result = m_data->read(pt_slaveData, slaveData, offset, output, leadingSeparator, verbose, filterName, separator);
+	if (result < RESULT_OK) {
+		return result;
+	}
+	time(&m_lastUpdateTime);
+	m_lastValue = output.str().substr(startPos);
 	return RESULT_OK;
 }
 

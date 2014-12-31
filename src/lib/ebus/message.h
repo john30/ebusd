@@ -176,7 +176,7 @@ public:
 	result_t prepareSlave(SymbolString& slaveData);
 
 	/**
-	 * @brief Decode a received message.
+	 * @brief Decode a singular part of a received message.
 	 * @param partType the @a PartType of the data.
 	 * @param data the unescaped data @a SymbolString for reading binary data.
 	 * @param output the @a ostringstream to append the formatted value to.
@@ -188,6 +188,23 @@ public:
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	result_t decode(const PartType partType, SymbolString& data,
+			ostringstream& output, bool leadingSeparator=false,
+			bool verbose=false, const char* filterName=NULL,
+			char separator=UI_FIELD_SEPARATOR);
+
+	/**
+	 * @brief Decode all parts of a received message.
+	 * @param masterData the unescaped master data @a SymbolString to decode.
+	 * @param slaveData the unescaped slave data @a SymbolString to decode.
+	 * @param output the @a ostringstream to append the formatted value to.
+	 * @param leadingSeparator whether to prepend a separator before the formatted value.
+	 * @param verbose whether to prepend the name, append the unit (if present), and append
+	 * the comment in square brackets (if present).
+	 * @param filterName the optional name of a field to limit the output to.
+	 * @param separator the separator character between multiple fields.
+	 * @return @a RESULT_OK on success, or an error code.
+	 */
+	result_t decode(SymbolString& masterData, SymbolString& slaveData,
 			ostringstream& output, bool leadingSeparator=false,
 			bool verbose=false, const char* filterName=NULL,
 			char separator=UI_FIELD_SEPARATOR);
