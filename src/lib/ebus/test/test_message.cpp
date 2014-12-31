@@ -47,28 +47,26 @@ int main()
 	// field=   name;[pos];type[;[divisor|values][;[unit][;[comment]]]]
 	string checks[][5] = {
 		// "message", "flags"
+		{"date,HDA:3,,,Datum", "", "", "", "t"},
+		{"time,VTI,,,", "", "", "", "t"},
+		{"dcfstate,UCH,0=nosignal;1=ok;2=sync;3=valid,,", "", "", "", "t"},
+		{"temp,D2C,,°C,Temperatur", "", "", "", "t"},
+		{"temp2,D2B,,°C,Temperatur", "", "", "", "t"},
+		{"power,UCH,,kW", "", "", "", "t"},
+		{"sensor,UCH,0=ok;85=circuit;170=cutoff,,Fühlerstatus", "", "", "", "t"},
+		{"tempsensor,temp;sensor", "", "", "", "t"},
 		{"u,,first,,,fe,0700,,x,,bda", "26.10.2014", "fffe07000426100614", "00", "p"},
 		{"w,,first,,,15,b509,0400,date,,bda", "26.10.2014", "ff15b50906040026100614", "00", "m"},
-		{"r,ehp,time,,,08,b509,0d2800,,,time", "15:00:17", "ff08b509030d2800", "0311000f", "m"},
-		{"r,ehp,date,,,08,b509,0d2900,,,hda:3", "23.11.2014", "ff08b509030d2900", "03170b0e", "m"},
+		{"r,ehp,time,,,08,b509,0d2800,,,time", "15:00:17", "ff08b509030d2800", "0311000f", "md"},
+		{"r,ehp,date,,,08,b509,0d2900,,,date", "23.11.2014", "ff08b509030d2900", "03170b0e", "md"},
 		{"u,ehp,ActualEnvironmentPower,Energiebezug,,08,B509,29BA00,,s,IGN:2,,,,,s,power", "8", "1008b5090329ba00", "03ba0008", "pm"},
 		{"uw,ehp,test,Test,,08,B5de,ab,,,power,,,,,s,hex:1", "8;39", "1008b5de02ab08", "0139", "pm"},
-		{"","55.50;ok","1025b50903290000","050000780300",""},
-		//{"","no;25","10feb505042700190023","",""},
+		{"u,ehp,hwTankTemp,Speichertemperatur IST,,25,B509,290000,,,IGN:2,,,,,,tempsensor", "","","","M"},
+		{"", "55.50;ok","1025b50903290000","050000780300","d"},
+		{"r,ehp,datetime,Datum Uhrzeit,,50,B504,00,,,dcfstate,,,,time,,BTI,,,,date,,BDA,,,,temp,,temp2", "valid;08:24:51;31.12.2014;-0.875", "1050b5040100", "0a035124083112031420ff", "md" },
 	};
 	DataFieldTemplates* templates = new DataFieldTemplates();
-	result_t result = templates->readFromFile("_templates.csv");
-	if (result == RESULT_OK)
-		cout << "read templates OK" << endl;
-	else
-		cout << "read templates error: " << getResultCode(result) << endl;
-
 	MessageMap* messages = new MessageMap();
-	result = messages->readFromFile("ehp00.csv", templates);
-	if (result == RESULT_OK)
-		cout << "read messages OK" << endl;
-	else
-		cout << "read messages error: " << getResultCode(result) << endl;
 
 	Message* message = NULL;
 	Message* deleteMessage = NULL;
@@ -79,8 +77,11 @@ int main()
 		SymbolString mstr(check[2]);
 		SymbolString sstr(check[3]);
 		string flags = check[4];
+		bool isTemplate = flags == "t";
 		bool dontMap = flags.find('m') != string::npos;
+		bool onlyMap = flags.find('M') != string::npos;
 		bool failedCreate = flags.find('c') != string::npos;
+		bool decode = flags.find('d') != string::npos;
 		bool failedPrepare = flags.find('p') != string::npos;
 		bool failedPrepareMatch = flags.find('P') != string::npos;
 		string item;
@@ -92,6 +93,28 @@ int main()
 		if (deleteMessage != NULL) {
 			delete deleteMessage;
 			deleteMessage = NULL;
+		}
+		result_t result;
+		if (isTemplate == true) {
+			// store new template
+			DataField* fields = NULL;
+			vector<string>::iterator it = entries.begin();
+			result = DataField::create(it, entries.end(), templates, fields);
+			if (result != RESULT_OK)
+				cout << "\"" << check[0] << "\": template fields create error: " << getResultCode(result) << endl;
+			else if (it != entries.end()) {
+				cout << "\"" << check[0] << "\": template fields create error: trailing input" << endl;
+			}
+			else {
+				result = templates->add(fields, true);
+				if (result == RESULT_OK)
+					cout << "  store template OK" << endl;
+				else {
+					cout << "  store template error: " << getResultCode(result) << endl;
+					delete fields;
+				}
+			}
+			continue;
 		}
 		if (entries.size() == 0) {
 			message = messages->find(mstr);
@@ -136,6 +159,8 @@ int main()
 				cout << "  map OK" << endl;
 				message = deleteMessage;
 				deleteMessage = NULL;
+				if (onlyMap == true)
+					continue;
 				Message* foundMessage = messages->find(mstr);
 				if (foundMessage == message)
 					cout << "  find OK" << endl;
@@ -147,22 +172,23 @@ int main()
 			else
 				message = deleteMessage;
 		}
-		istringstream input(inputStr);
-		SymbolString writeMstr;
-		if (message->isPassive() == true) {
+
+		if (message->isPassive() == true || decode == true) {
 			ostringstream output;
 			result = message->decode(mstr, sstr, output);
 			if (result != RESULT_OK) {
-				cout << "  \"" << inputStr << "\": decode error: "
+				cout << "  \"" << check[2] << "\" / \"" << check[3] << "\": decode error: "
 						<< getResultCode(result) << endl;
 				continue;
 			}
-			cout << "  \"" << inputStr << "\": decode OK" << endl;
+			cout << "  \"" << check[2] << "\" / \"" << check[3] <<  "\": decode OK" << endl;
 
 			bool match = inputStr == output.str();
 			verify(false, "decode", check[2] + "/" + check[3], match, inputStr, output.str());
 		}
 		else {
+			istringstream input(inputStr);
+			SymbolString writeMstr;
 			result = message->prepareMaster(0xff, writeMstr, input);
 			if (failedPrepare == true) {
 				if (result == RESULT_OK)
