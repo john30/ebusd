@@ -205,6 +205,7 @@ string BaseLoop::decodeMessage(const string& data)
 	case ct_read: {
 		time_t maxAge = 5*60;
 		bool verbose = false;
+		string clazz;
 		while (args.size() > argPos && args[argPos][0] == '-') {
 			if (args[argPos] == "-f") {
 				maxAge = 0;
@@ -227,29 +228,33 @@ string BaseLoop::decodeMessage(const string& data)
 					break;
 				}
 			}
+			else if (args[argPos] == "-c") {
+				argPos++;
+				if (argPos >= args.size()) {
+					argPos = 0; // print usage
+					break;
+				}
+				clazz = args[argPos];
+			}
 			else {
 				argPos = 0; // print usage
 				break;
 			}
 			argPos++;
 		}
-		if (argPos == 0 || args.size() < argPos + 1 || args.size() > argPos + 3) {
-			result << "usage: 'read [-v] [-f] [-m seconds] [class] name' or 'read [-v] [-f] [-m seconds] class name field'";
+		if (argPos == 0 || args.size() < argPos + 1 || args.size() > argPos + 2) {
+			result << "usage: 'read [-v] [-f] [-m seconds] [-c class] name [field]'";
 			break;
 		}
-		if (args.size() == argPos + 3)
+		if (args.size() == argPos + 2)
 			maxAge = 0; // force refresh to filter single field
-
 
 		time_t now;
 		time(&now);
 
 		Message* updateMessage = NULL;
 		if (maxAge > 0 && verbose == false) {
-			if (args.size() == argPos + 1)
-				updateMessage = m_messages->find("", args[argPos], false, true);
-			else
-				updateMessage = m_messages->find(args[argPos], args[argPos + 1], false, true);
+			updateMessage = m_messages->find(clazz, args[argPos], false, true);
 
 			if (updateMessage != NULL && updateMessage->getLastUpdateTime() + maxAge > now) {
 				result << updateMessage->getLastValue(); // TODO switch from last value to last master/slave to support verbose cached/polled values as well
@@ -257,11 +262,7 @@ string BaseLoop::decodeMessage(const string& data)
 			} // else: check poll data or read directly from bus
 		}
 
-		Message* message;
-		if (args.size() == argPos + 1)
-			message = m_messages->find("", args[argPos], false);
-		else
-			message = m_messages->find(args[argPos], args[argPos + 1], false);
+		Message* message = m_messages->find(clazz, args[argPos], false);
 
 		if (message != NULL) {
 			if (maxAge > 0 && m_pollActive == true && message->getPollPriority() > 0
@@ -286,8 +287,8 @@ string BaseLoop::decodeMessage(const string& data)
 			ret = m_busHandler->sendAndWait(master, slave);
 
 			if (ret == RESULT_OK) {
-				if (args.size() == argPos + 3)
-					ret = message->decode(pt_slaveData, slave, result, false, verbose, args[argPos + 2].c_str());
+				if (args.size() == argPos + 2)
+					ret = message->decode(pt_slaveData, slave, result, false, verbose, args[argPos + 1].c_str());
 				else
 					ret = message->decode(pt_slaveData, slave, result, false, verbose); // decode data
 			}
@@ -393,7 +394,8 @@ string BaseLoop::decodeMessage(const string& data)
 		break;
 	}
 	case ct_find: {
-		bool verbose = false, withRead = true, withWrite = false, withPassive = false, first = true;
+		bool verbose = false, withRead = true, withWrite = false, withPassive = false, first = true, withData = false;
+		string clazz;
 		while (args.size() > argPos && args[argPos][0] == '-') {
 			if (args[argPos] == "-v")
 				verbose = true;
@@ -416,24 +418,33 @@ string BaseLoop::decodeMessage(const string& data)
 				}
 				withPassive = true;
 			}
+			else if (args[argPos] == "-d") {
+				withData = true;
+			}
+			else if (args[argPos] == "-c") {
+				argPos++;
+				if (argPos >= args.size()) {
+					argPos = 0; // print usage
+					break;
+				}
+				clazz = args[argPos];
+			}
 			else {
 				argPos = 0; // print usage
 				break;
 			}
 			argPos++;
 		}
-		if (argPos == 0 || args.size() < argPos || args.size() > argPos + 2) {
-			result << "usage: 'find [-v] [-r] [-w] [-p] [name]' or 'find [-v] [-r] [-w] [-p] class name'";
+		if (argPos == 0 || args.size() < argPos || args.size() > argPos + 1) {
+			result << "usage: 'find [-v] [-r] [-w] [-p] [d] [-c class] [name]'";
 			break;
 		}
 
 		deque<Message*> messages;
 		if (args.size() == argPos)
 			messages = m_messages->findAll("", "", -1, false, withRead, withWrite, withPassive);
-		else if (args.size() == argPos + 1)
-			messages = m_messages->findAll("", args[argPos], -1, false, withRead, withWrite, withPassive);
 		else
-			messages = m_messages->findAll(args[argPos], args[argPos + 1], -1, false, withRead, withWrite, withPassive);
+			messages = m_messages->findAll(clazz, args[argPos], -1, false, withRead, withWrite, withPassive);
 
 		bool found = false;
 		char str[34];
@@ -442,10 +453,12 @@ string BaseLoop::decodeMessage(const string& data)
 			unsigned char dstAddress = message->getDstAddress();
 			if (dstAddress == SYN)
 				continue;
+			time_t lastup = message->getLastUpdateTime();
+			if (withData == true && lastup == 0)
+				continue;
 			if (found == true)
 				result << endl;
 			result << message->getClass() << " " << message->getName() << " = ";
-			time_t lastup = message->getLastUpdateTime();
 			if (lastup == 0)
 				result << "no data stored";
 			else
@@ -561,9 +574,9 @@ string BaseLoop::decodeMessage(const string& data)
 	}
 	case ct_help:
 		result << "commands:" << endl
-		       << " read      - read ebus values            'read [-v] [-f] [-m seconds] [class] name' or 'read [-v] [-f] [-m seconds] class name field'" << endl
+		       << " read      - read ebus values            'read [-v] [-f] [-m seconds] [-c class] name [field]'" << endl
 		       << " write     - write ebus values           'write class name value[;value]*' or 'write -h ZZPBSBNNDx'" << endl
-		       << " find      - find ebus values            'find [-v] [-r] [-w] [-p] [name]' or 'find [-v] [-r] [-w] [-p] class name'" << endl << endl
+		       << " find      - find ebus values            'find [-v] [-r] [-w] [-p] [d] [-c class] [name]'" << endl << endl
 		       << " scan      - scan ebus known addresses   'scan'" << endl
 		       << "           - scan ebus all addresses     'scan full'" << endl
 		       << "           - show scan results           'scan result'" << endl << endl
