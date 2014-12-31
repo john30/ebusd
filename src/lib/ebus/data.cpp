@@ -170,10 +170,12 @@ result_t DataField::create(vector<string>::iterator& it,
 			partType = pt_any;
 		else {
 			const char* partStr = (*it++).c_str();
-			if (it == end)
-				break;
-
 			hasPartStr = partStr[0] != 0;
+			if (it == end) {
+				if (name.empty() == false || hasPartStr == true)
+					result = RESULT_ERR_MISSING_TYPE;
+				break;
+			}
 			if (dstAddress == BROADCAST || isMaster(dstAddress) == true
 				|| (isWriteMessage == true && hasPartStr == false)
 				|| strcasecmp(partStr, "M") == 0) { // master data
