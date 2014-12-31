@@ -487,7 +487,7 @@ result_t StringDataField::readSymbols(SymbolString& input,
 {
 	size_t start = 0, count = m_length;
 	int incr = 1;
-	unsigned char ch, last = 0;
+	unsigned char ch, last = 0, hour = 0;
 
 	if (baseOffset + m_length > input.size()) {
 		return RESULT_ERR_INVALID_POS;
@@ -552,7 +552,12 @@ result_t StringDataField::readSymbols(SymbolString& input,
 				else
 					ch = (ch % 6) * 10; // minutes
 			}
-			if ((i == 0 && ch > 24) || (i > 0 && (ch > 59 || (last == 24 && ch > 0) )))
+			if (i == 0) {
+				if (ch > 24)
+					return RESULT_ERR_OUT_OF_RANGE; // invalid hour
+				hour = ch;
+			}
+			else if (ch > 59 || (hour == 24 && ch > 0))
 				return RESULT_ERR_OUT_OF_RANGE; // invalid time
 			if (i > 0)
 				output << ":";
