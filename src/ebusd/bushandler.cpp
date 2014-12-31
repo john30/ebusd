@@ -668,9 +668,7 @@ void BusHandler::receiveCompleted()
 		string clazz = message->getClass();
 		string name = message->getName();
 		ostringstream output;
-		result_t result = message->decode(pt_masterData, m_command, output);
-		if (result == RESULT_OK && dstAddress != BROADCAST && master == false)
-			result = message->decode(pt_slaveData, m_response, output, output.str().empty() == false);
+		result_t result = message->decode(m_command, m_response, output);
 		if (result != RESULT_OK)
 			L.log(upd, error, "unable to parse %s %s from %s / %s: %s", clazz.c_str(), name.c_str(), m_command.getDataStr().c_str(), m_response.getDataStr().c_str(), getResultCode(result));
 		else {
