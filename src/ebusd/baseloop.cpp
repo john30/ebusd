@@ -442,7 +442,7 @@ string BaseLoop::decodeMessage(const string& data)
 
 		deque<Message*> messages;
 		if (args.size() == argPos)
-			messages = m_messages->findAll("", "", -1, false, withRead, withWrite, withPassive);
+			messages = m_messages->findAll(clazz, "", -1, false, withRead, withWrite, withPassive);
 		else
 			messages = m_messages->findAll(clazz, args[argPos], -1, false, withRead, withWrite, withPassive);
 
