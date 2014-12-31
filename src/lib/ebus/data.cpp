@@ -143,7 +143,7 @@ void printErrorPos(vector<string>::iterator begin, const vector<string>::iterato
 result_t DataField::create(vector<string>::iterator& it,
 		const vector<string>::iterator end,
 		DataFieldTemplates* templates,
-		DataField*& returnField, const bool isSetMessage,
+		DataField*& returnField, const bool isWriteMessage,
 		const unsigned char dstAddress)
 {
 	vector<SingleDataField*> fields;
@@ -175,11 +175,11 @@ result_t DataField::create(vector<string>::iterator& it,
 
 			hasPartStr = partStr[0] != 0;
 			if (dstAddress == BROADCAST || isMaster(dstAddress) == true
-				|| (isSetMessage == true && hasPartStr == false)
+				|| (isWriteMessage == true && hasPartStr == false)
 				|| strcasecmp(partStr, "M") == 0) { // master data
 				partType = pt_masterData;
 			}
-			else if ((isSetMessage == false && hasPartStr == false)
+			else if ((isWriteMessage == false && hasPartStr == false)
 				|| strcasecmp(partStr, "S") == 0) { // slave data
 				partType = pt_slaveData;
 			}

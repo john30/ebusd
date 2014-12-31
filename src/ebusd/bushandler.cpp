@@ -544,7 +544,7 @@ result_t BusHandler::handleSymbol()
 				m_nextSendPos = 0;
 				m_repeat = false;
 				Message* message = m_messages->find(m_command);
-				if (message == NULL || message->isPassive() == false || message->isSet() == true)
+				if (message == NULL || message->isPassive() == false || message->isWrite() == true)
 					return setState(bs_skip, RESULT_ERR_INVALID_ARG); // don't know this request or definition has wrong direction, deny
 
 				// build response and store in m_response for sending back to requesting master

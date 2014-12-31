@@ -46,7 +46,7 @@ public:
 	 * @brief Construct a new instance.
 	 * @param clazz the optional device class.
 	 * @param name the message name (unique within the same class and type).
-	 * @param isSet whether this is a set message.
+	 * @param isWrite whether this is a write message.
 	 * @param isPassive true if message can only be initiated by a participant other than us,
 	 * false if message can be initiated by any participant.
 	 * @param comment the comment.
@@ -56,7 +56,7 @@ public:
 	 * @param data the @a DataField for encoding/decoding the message.
 	 * @param pollPriority the priority for polling, or 0 for no polling at all.
 	 */
-	Message(const string clazz, const string name, const bool isSet,
+	Message(const string clazz, const string name, const bool isWrite,
 			const bool isPassive, const string comment,
 			const unsigned char srcAddress, const unsigned char dstAddress,
 			const vector<unsigned char> id, DataField* data,
@@ -64,14 +64,14 @@ public:
 
 	/**
 	 * @brief Construct a new temporary instance.
-	 * @param isSet whether this is a set message.
+	 * @param isWrite whether this is a write message.
 	 * @param isPassive true if message can only be initiated by a participant other than us,
 	 * false if message can be initiated by any participant.
 	 * @param pb the primary ID byte.
 	 * @param sb the secondary ID byte.
 	 * @param data the @a DataField for encoding/decoding the message.
 	 */
-	Message(const bool isSet, const bool isPassive,
+	Message(const bool isWrite, const bool isPassive,
 			const unsigned char pb, const unsigned char sb,
 			DataField* data);
 
@@ -107,10 +107,10 @@ public:
 	string getName() const { return m_name; }
 
 	/**
-	 * @brief Get whether this is a set message.
-	 * @return whether this is a set message.
+	 * @brief Get whether this is a write message.
+	 * @return whether this is a write message.
 	 */
-	bool isSet() const { return m_isSet; }
+	bool isWrite() const { return m_isWrite; }
 
 	/**
 	 * @brief Get whether message can be initiated only by a participant other than us.
@@ -225,8 +225,8 @@ private:
 	/** the message name (unique within the same class and type). */
 	const string m_name;
 
-	/** whether this is a set message. */
-	const bool m_isSet;
+	/** whether this is a write message. */
+	const bool m_isWrite;
 
 	/** true if message can only be initiated by a participant other than us,
 	 * false if message can be initiated by any participant. */
@@ -315,12 +315,12 @@ public:
 	 * @brief Find the @a Message instance for the specified class and name.
 	 * @param clazz the optional device class.
 	 * @param name the message name.
-	 * @param isSet whether this is a set message.
+	 * @param isWrite whether this is a write message.
 	 * @param isPassive whether this is a passive message.
 	 * @return the @a Message instance, or NULL.
 	 * Note: the caller may not free the returned instance.
 	 */
-	Message* find(const string& clazz, const string& name, const bool isSet, const bool isPassive=false);
+	Message* find(const string& clazz, const string& name, const bool isWrite, const bool isPassive=false);
 
 	/**
 	 * @brief Find all active get @a Message instances for the specified class and name.

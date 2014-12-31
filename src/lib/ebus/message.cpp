@@ -32,12 +32,12 @@ using namespace std;
 /** the bit mask of the source master number in the message key. */
 #define ID_SOURCE_MASK (0x1fLL << (8 * 7))
 
-Message::Message(const string clazz, const string name, const bool isSet,
+Message::Message(const string clazz, const string name, const bool isWrite,
 		const bool isPassive, const string comment,
 		const unsigned char srcAddress, const unsigned char dstAddress,
 		const vector<unsigned char> id, DataField* data,
 		const unsigned int pollPriority)
-		: m_class(clazz), m_name(name), m_isSet(isSet),
+		: m_class(clazz), m_name(name), m_isWrite(isWrite),
 		  m_isPassive(isPassive), m_comment(comment),
 		  m_srcAddress(srcAddress), m_dstAddress(dstAddress),
 		  m_id(id), m_data(data), m_pollPriority(pollPriority),
@@ -55,10 +55,10 @@ Message::Message(const string clazz, const string name, const bool isSet,
 	m_key = key;
 }
 
-Message::Message(const bool isSet, const bool isPassive,
+Message::Message(const bool isWrite, const bool isPassive,
 		const unsigned char pb, const unsigned char sb,
 		DataField* data)
-		: m_class(), m_name(), m_isSet(isSet),
+		: m_class(), m_name(), m_isWrite(isWrite),
 		  m_isPassive(isPassive), m_comment(),
 		  m_srcAddress(SYN), m_dstAddress(SYN),
 		  m_data(data), m_pollPriority(0),
@@ -91,7 +91,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 {
 	// [type],[class],name,[comment],[QQ],[ZZ],id,fields...
 	result_t result;
-	bool isSet = false, isPassive = false;
+	bool isWrite = false, isPassive = false;
 	string defaultName;
 	unsigned int pollPriority = 0;
 	size_t defaultPos = 1;
@@ -114,12 +114,12 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 			defaultName = str;
 	}
 	else if (strncasecmp(str, "W", 1) == 0) { // active set
-		isSet = true;
+		isWrite = true;
 		defaultName = str;
 	}
 	else { // any other: passive set/get
 		isPassive = true;
-		isSet = strcasecmp(str+len-1, "W") == 0; // if type ends with "w" it is treated as passive set
+		isWrite = strcasecmp(str+len-1, "W") == 0; // if type ends with "w" it is treated as passive set
 		defaultName = str;
 	}
 
@@ -239,11 +239,11 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 		}
 	}
 	DataField* data = NULL;
-	result = DataField::create(it, realEnd, templates, data, isSet, dstAddress==SYN ? ESC : dstAddress);
+	result = DataField::create(it, realEnd, templates, data, isWrite, dstAddress==SYN ? ESC : dstAddress);
 	if (result != RESULT_OK) {
 		return result;
 	}
-	returnValue = new Message(clazz, name, isSet, isPassive, comment, srcAddress, dstAddress, id, data, pollPriority);
+	returnValue = new Message(clazz, name, isWrite, isPassive, comment, srcAddress, dstAddress, id, data, pollPriority);
 	return RESULT_OK;
 }
 
@@ -289,7 +289,7 @@ result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& ma
 
 result_t Message::prepareSlave(SymbolString& slaveData)
 {
-	if (m_isPassive == false || m_isSet == true)
+	if (m_isPassive == false || m_isWrite == true)
 			return RESULT_ERR_INVALID_ARG; // prepare not possible
 
 	SymbolString slave;
@@ -366,10 +366,10 @@ result_t MessageMap::add(Message* message)
 		return RESULT_ERR_DUPLICATE; // duplicate key
 	}
 	bool isPassive = message->isPassive();
-	bool isSet = message->isSet();
+	bool isWrite = message->isWrite();
 	string clazz = strtolower(message->getClass());
 	string name = strtolower(message->getName());
-	string nameKey = string(isPassive ? "P" : (isSet ? "W" : "R")) + clazz + FIELD_SEPARATOR + name;
+	string nameKey = string(isPassive ? "P" : (isWrite ? "W" : "R")) + clazz + FIELD_SEPARATOR + name;
 	map<string, Message*>::iterator nameIt = m_messagesByName.find(nameKey);
 	if (nameIt != m_messagesByName.end()) {
 		return RESULT_ERR_DUPLICATE; // duplicate key
@@ -380,7 +380,7 @@ result_t MessageMap::add(Message* message)
 	if (isPassive == true)
 		m_passiveMessageCount++;
 
-	nameKey = string(isPassive ? "-P" : (isSet ? "-W" : "-R")) + name; // also store without class
+	nameKey = string(isPassive ? "-P" : (isWrite ? "-W" : "-R")) + name; // also store without class
 	nameIt = m_messagesByName.find(nameKey);
 	if (nameIt == m_messagesByName.end()) {
 		m_messagesByName[nameKey] = message; // only store first key without class
@@ -428,16 +428,16 @@ result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<s
 	return result;
 }
 
-Message* MessageMap::find(const string& clazz, const string& name, const bool isSet, const bool isPassive)
+Message* MessageMap::find(const string& clazz, const string& name, const bool isWrite, const bool isPassive)
 {
 	string lclass = strtolower(clazz);
 	string lname = strtolower(name);
 	for (int i=0; i<2; i++) {
 		string key;
 		if (i == 0)
-			key = string(isPassive ? "P" : (isSet ? "W" : "R")) + lclass + FIELD_SEPARATOR + lname;
+			key = string(isPassive ? "P" : (isWrite ? "W" : "R")) + lclass + FIELD_SEPARATOR + lname;
 		else if (clazz.length() == 0)
-			key = string(isPassive ? "-P" : (isSet ? "-W" : "-R")) + lname; // second try: without class
+			key = string(isPassive ? "-P" : (isWrite ? "-W" : "-R")) + lname; // second try: without class
 		else
 			continue; // not allowed without class
 		map<string, Message*>::iterator it = m_messagesByName.find(key);
@@ -478,7 +478,7 @@ deque<Message*> MessageMap::findAll(const string& clazz, const string& name, con
 			if (withPassive == false)
 				continue;
 		}
-		else if (message->isSet() == true) {
+		else if (message->isWrite() == true) {
 			if (withWrite == false)
 				continue;
 		}
