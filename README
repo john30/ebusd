@@ -16,26 +16,7 @@ Features
 
  * dump raw data into binary files
 
- * available daemon commands:
-   - read            fetch data from ebus participant
-   - write           adjust data of ebus participant
-
-   - scan           scan kown slave addresses (collected)
-   - scan full      scan all possible slave addresses
-   - scan result    show scanning results
-
-   - log areas      change log areas
-   - log level      change log level
-
-   - raw            toggle raw data logging
-   - dump           toggle raw data dumping
-
-   - reload         reload ebus configuration
-
-   - stop           stop daemon
-   - quit           close connection
-
-   - help           show command details
+ * provides an ascii interface to read/write of ebus data/messages.
 
 
 vendor specific configuration files for ebusd
