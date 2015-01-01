@@ -1,2 +1,0 @@
-# type (r[1-9];w;u),class,name,comment,QQ,ZZ,PBSB,ID,field,part (m;s),type / templates,divider / values,unit,comment,field,part (m;s),type / templates,divider / values,unit,comment,field,part (m;s),type / templates,divider / values,unit,comment
-u,broad,date_time_temp,"Datum, Uhrzeit und Aussentemperatur",,FE,0700,,temp,,D2B,,,,time,,BTI,,,Uhrzeit,date,,BDA,,,Datum
