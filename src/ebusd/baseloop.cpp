@@ -394,32 +394,34 @@ string BaseLoop::decodeMessage(const string& data)
 		break;
 	}
 	case ct_find: {
-		bool verbose = false, withRead = true, withWrite = false, withPassive = false, first = true, withData = false;
+		bool verbose = false, withRead = true, withWrite = true, withPassive = true, first = true, onlyWithData = false;
 		string clazz;
 		while (args.size() > argPos && args[argPos][0] == '-') {
 			if (args[argPos] == "-v")
 				verbose = true;
 			else if (args[argPos] == "-r") {
-				if (first == true)
+				if (first == true) {
 					first = false;
+					withWrite = withPassive = false;
+				}
 				withRead = true;
 			}
 			else if (args[argPos] == "-w") {
 				if (first == true) {
 					first = false;
-					withRead = false;
+					withRead = withPassive = false;
 				}
 				withWrite = true;
 			}
 			else if (args[argPos] == "-p") {
 				if (first == true) {
 					first = false;
-					withRead = false;
+					withRead = withWrite = false;
 				}
 				withPassive = true;
 			}
 			else if (args[argPos] == "-d") {
-				withData = true;
+				onlyWithData = true;
 			}
 			else if (args[argPos] == "-c") {
 				argPos++;
@@ -454,7 +456,7 @@ string BaseLoop::decodeMessage(const string& data)
 			if (dstAddress == SYN)
 				continue;
 			time_t lastup = message->getLastUpdateTime();
-			if (withData == true && lastup == 0)
+			if (onlyWithData == true && lastup == 0)
 				continue;
 			if (found == true)
 				result << endl;
