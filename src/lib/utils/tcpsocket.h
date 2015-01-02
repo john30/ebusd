@@ -21,6 +21,7 @@
 #define LIBUTILS_TCPSOCKET_H_
 
 #include <unistd.h>
+#include <sys/socket.h>
 #include <string>
 
 /** \file tcpsocket.h */
@@ -51,7 +52,7 @@ public:
 	 * @param len number of bytes to send.
 	 * @return number of written bytes or -1 if an error has occured.
 	 */
-	ssize_t send(const char* buffer, size_t len) { return write(m_sfd, buffer, len); }
+	ssize_t send(const char* buffer, size_t len) { return ::send(m_sfd, buffer, len, MSG_NOSIGNAL); }
 
 	/**
 	 * @brief read bytes from opened file descriptor.
@@ -59,7 +60,7 @@ public:
 	 * @param len size of the receive buffer.
 	 * @return number of read bytes or -1 if an error has occured.
 	 */
-	ssize_t recv(char* buffer, size_t len) { return read(m_sfd, buffer, len); }
+	ssize_t recv(char* buffer, size_t len) { return ::recv(m_sfd, buffer, len, 0); }
 
 	/**
 	 * @brief returns the tcp port.

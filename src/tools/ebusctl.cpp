@@ -23,6 +23,7 @@
 
 #include "appl.h"
 #include "tcpsocket.h"
+#include <cstdio>
 #include <iostream>
 #include <cstdlib>
 #include <sstream>
@@ -74,18 +75,24 @@ bool connect(const char* host, int port, bool once)
 
 			if (strncasecmp(message.c_str(), "QUIT", 4) != 0 && strncasecmp(message.c_str(), "STOP", 4) != 0) {
 				char data[1024];
-				size_t datalen;
+				ssize_t datalen = 0;
 
 				do {
-					memset(data, 0, sizeof(data));
-					datalen = socket->recv(data, sizeof(data)-1);
-
-					if (data[datalen-1] != '\n')
+					if (datalen > 0) {
+						data[datalen] = '\0';
 						cout << data;
+					}
 
-				} while (data[datalen-1] != '\n');
+					memset(data, 0, sizeof(data));
+					datalen = socket->recv(data, sizeof(data));
 
-				data[datalen] = '\0';
+					if (datalen < 0) {
+						perror("send");
+						break;
+					}
+
+				} while (data[datalen-2] != '\n' || data[datalen-1] != '\n');
+
 				cout << data;
 			}
 			else
