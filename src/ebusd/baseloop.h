@@ -30,16 +30,16 @@ using namespace std;
 
 /** @brief possible client commands */
 enum CommandType {
-     ct_read,      /*!< read ebus values */
-     ct_write,     /*!< write ebus values */
-	 ct_find,      /*!< find values */
-     ct_scan,      /*!< scan ebus */
-     ct_log,       /*!< logger settings */
-     ct_raw,       /*!< toggle log raw data */
-     ct_dump,      /*!< toggle dump state */
-     ct_reload,    /*!< reload ebus configuration */
-     ct_help,      /*!< print commands */
-     ct_invalid    /*!< invalid */
+	ct_read,      //!< read ebus values
+	ct_write,     //!< write ebus values
+	ct_find,      //!< find values
+	ct_scan,      //!< scan ebus
+	ct_log,       //!< logger settings
+	ct_raw,       //!< toggle log raw data
+	ct_dump,      //!< toggle dump state
+	ct_reload,    //!< reload ebus configuration
+	ct_help,      //!< print commands
+	ct_invalid    //!< invalid
 };
 
 /**

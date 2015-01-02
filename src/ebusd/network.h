@@ -163,7 +163,7 @@ private:
 	/** notification object for shutdown procedure */
 	Notify m_notify;
 
-	/** id of current connection*/
+	/** id of current connection */
 	int m_id;
 
 	/** sumary for opened connections */
