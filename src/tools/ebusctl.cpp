@@ -84,7 +84,7 @@ bool connect(const char* host, int port, bool once)
 					}
 
 					memset(data, 0, sizeof(data));
-					datalen = socket->recv(data, sizeof(data));
+					datalen = socket->recv(data, sizeof(data)-1);
 
 					if (datalen < 0) {
 						perror("send");
