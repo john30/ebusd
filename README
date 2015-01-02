@@ -1,12 +1,8 @@
 ebusd
 -----
 
-The ebusd provides a communication interface to the energy bus (ebus)
-which is used in various heating systems.
-
-
-Features
---------
+ebusd provides a communication interface to the energy bus (ebus) which is used
+in various heating systems. It offers the following features:
 
  * active: send and receive ebus commands
            poll commands and collect received data
@@ -19,12 +15,6 @@ Features
  * provides an ascii interface to read/write of ebus data/messages.
 
 
-vendor specific configuration files for ebusd
----------------------------------------------
-
-See https://github.com/yuhu-/ebusd-configuration
-
-
 Tools
 -----
 
@@ -32,16 +22,9 @@ Tools
  * 'ebusfeed' is a tool to feed ebusd with raw data from dump files.
 
 
-Build
------
-
-$ ./autogen.sh [--prefix=/usr]
-$ make
-$ make install
+Instructions for use and further information: https://github.com/yuhu-/ebusd/wiki
 
 
-
-For usage and further information take a look on help page.
 
 For bugs and missing features use github issue system.
 
