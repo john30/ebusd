@@ -75,25 +75,26 @@ bool connect(const char* host, int port, bool once)
 
 			if (strncasecmp(message.c_str(), "QUIT", 4) != 0 && strncasecmp(message.c_str(), "STOP", 4) != 0) {
 				char data[1024];
-				ssize_t datalen = 0;
+				ssize_t datalen;
+				string ss;
 
-				do {
-					if (datalen > 0) {
-						data[datalen] = '\0';
-						cout << data;
-					}
-
-					memset(data, 0, sizeof(data));
-					datalen = socket->recv(data, sizeof(data)-1);
+				while(1) {
+					datalen = socket->recv(data, sizeof(data));
 
 					if (datalen < 0) {
 						perror("send");
 						break;
 					}
 
-				} while (data[datalen-2] != '\n' || data[datalen-1] != '\n');
+					for (int i = 0; i < datalen; i++)
+						ss += data[i];
 
-				cout << data;
+					if (ss.length() >= 2 && ss[ss.length()-2] == '\n' && ss[ss.length()-1] == '\n')
+						break;
+				}
+
+				cout << ss;
+
 			}
 			else
 				break;
