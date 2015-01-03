@@ -41,7 +41,7 @@ Message::Message(const string clazz, const string name, const bool isWrite,
 		  m_isPassive(isPassive), m_comment(comment),
 		  m_srcAddress(srcAddress), m_dstAddress(dstAddress),
 		  m_id(id), m_data(data), m_pollPriority(pollPriority),
-		  m_lastUpdateTime(0), m_pollCount(0), m_lastPollTime(0)
+		  m_lastUpdateTime(0), m_lastChangeTime(0), m_pollCount(0), m_lastPollTime(0)
 {
 	int exp = 7;
 	unsigned long long key = (unsigned long long)(id.size()-2) << (8 * exp + 5);
@@ -62,7 +62,7 @@ Message::Message(const bool isWrite, const bool isPassive,
 		  m_isPassive(isPassive), m_comment(),
 		  m_srcAddress(SYN), m_dstAddress(SYN),
 		  m_data(data), m_pollPriority(0),
-		  m_lastUpdateTime(0), m_pollCount(0), m_lastPollTime(0)
+		  m_lastUpdateTime(0), m_lastChangeTime(0), m_pollCount(0), m_lastPollTime(0)
 {
 	m_id.push_back(pb);
 	m_id.push_back(sb);
@@ -321,7 +321,10 @@ result_t Message::decode(const PartType partType, SymbolString& data,
 		return result;
 	}
 	time(&m_lastUpdateTime);
-	m_lastValue = output.str().substr(startPos);
+	string value = output.str().substr(startPos);
+	if (value != m_lastValue)
+		m_lastChangeTime = m_lastUpdateTime;
+	m_lastValue = value;
 	/*if (m_isPassive == false && answer == true) {
 		istringstream input; // TODO create input from database of internal variables
 		result_t result = m_data->write(input, masterData, m_id.size() - 2, slaveData, 0, separator);
@@ -349,7 +352,10 @@ result_t Message::decode(SymbolString& masterData, SymbolString& slaveData,
 		return result;
 	}
 	time(&m_lastUpdateTime);
-	m_lastValue = output.str().substr(startPos);
+	string value = output.str().substr(startPos);
+	if (value != m_lastValue)
+		m_lastChangeTime = m_lastUpdateTime;
+	m_lastValue = value;
 	return RESULT_OK;
 }
 

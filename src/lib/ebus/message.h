@@ -216,10 +216,16 @@ public:
 	string getLastValue() { return m_lastValue; }
 
 	/**
-	 * @brief Get the time when @a m_lastValue was updated.
-	 * @return the time when @a m_lastValue was updated, or 0 if this message was not decoded yet.
+	 * @brief Get the time when @a m_lastValue was last stored.
+	 * @return the time when @a m_lastValue was last stored, or 0 if this message was not decoded yet.
 	 */
 	time_t getLastUpdateTime() { return m_lastUpdateTime; }
+
+	/**
+	 * @brief Get the time when @a m_lastValue was last changed.
+	 * @return the time when @a m_lastValue was last changed, or 0 if this message was not decoded yet.
+	 */
+	time_t getLastChangeTime() { return m_lastChangeTime; }
 
 	/**
 	 * @brief Get the time when this message was last polled for.
@@ -273,8 +279,11 @@ private:
 	/** the last decoded value. */
 	string m_lastValue;
 
-	/** the system time when @a m_lastValue was updated, 0 for never. */
+	/** the system time when @a m_lastValue was last stored, 0 for never. */
 	time_t m_lastUpdateTime;
+
+	/** the system time when @a m_lastValue was last changed, 0 for never. */
+	time_t m_lastChangeTime;
 
 	/** the number of times this messages was already polled for. */
 	unsigned int m_pollCount;
