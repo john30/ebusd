@@ -41,8 +41,8 @@ void Connection::run()
 	int ret;
 	struct timespec tdiff;
 
-	// set select timeout 10 secs
-	tdiff.tv_sec = 10;
+	// set timeout
+	tdiff.tv_sec = 2;
 	tdiff.tv_nsec = 0;
 
 #ifdef HAVE_PPOLL
@@ -70,6 +70,8 @@ void Connection::run()
 #endif
 #endif
 
+	time_t listenSince = 0;
+
 	for (;;) {
 
 #ifdef HAVE_PPOLL
@@ -84,42 +86,45 @@ void Connection::run()
 #endif
 #endif
 
-		if (ret == 0)
-			continue;
-
+		bool newData = false;
+		if (ret != 0) {
 #ifdef HAVE_PPOLL
-		// new data from notify
-		if (fds[0].revents & POLLIN)
-			break;
+			// new data from notify
+			if (fds[0].revents & POLLIN)
+				break;
 
-		// new data from socket
-		if (fds[1].revents & POLLIN) {
+			// new data from socket
+			newData = fds[1].revents & POLLIN;
 #else
 #ifdef HAVE_PSELECT
-		// new data from notify
-		if (FD_ISSET(m_notify.notifyFD(), &readfds))
-			break;
+			// new data from notify
+			if (FD_ISSET(m_notify.notifyFD(), &readfds))
+				break;
 
-		// new data from socket
-		if (FD_ISSET(m_socket->getFD(), &readfds)) {
+			// new data from socket
+			newData = FD_ISSET(m_socket->getFD(), &readfds);
 #endif
 #endif
+		}
 
+		if (newData == true || m_listening == true) {
 			char data[256];
-			size_t datalen;
+			size_t datalen = 0;
 
-			if (m_socket->isValid() == true)
-				datalen = m_socket->recv(data, sizeof(data)-1);
-			else
-				break;
+			if (newData == true) {
+				if (m_socket->isValid() == true)
+					datalen = m_socket->recv(data, sizeof(data)-1);
+				else
+					break;
 
-			// removed closed socket
-			if (datalen <= 0 || strncasecmp(data, "QUIT", 4) == 0)
-				break;
+				// removed closed socket
+				if (datalen <= 0 || strncasecmp(data, "QUIT", 4) == 0)
+					break;
+			}
 
-			// send data
+			// decode client data
 			data[datalen] = '\0';
-			NetMessage message(data);
+			NetMessage message(data, m_listening, listenSince);
 			m_netQueue->add(&message);
 
 			// wait for result
@@ -129,11 +134,14 @@ void Connection::run()
 			L.log(net, debug, "[%05d] result added", getID());
 			string result = message.getResult();
 
-			if (m_socket->isValid() == true)
-				m_socket->send(result.c_str(), result.size());
-			else
+			// remove help sign for Connection::waitSignal()
+			result.erase(remove(result.begin(), result.end(), '\r'), result.end());
+
+			if (m_socket->isValid() == false)
 				break;
 
+			m_socket->send(result.c_str(), result.size());
+			m_listening = message.isListening(listenSince);
 		}
 
 	}
@@ -180,7 +188,7 @@ void Network::run()
 	int ret;
 	struct timespec tdiff;
 
-	// set select timeout 1 secs
+	// set timeout
 	tdiff.tv_sec = 1;
 	tdiff.tv_nsec = 0;
 

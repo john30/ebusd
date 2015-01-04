@@ -129,22 +129,37 @@ void BaseLoop::start()
 		NetMessage* message = m_netQueue.remove();
 		string data = message->getData();
 
-		data.erase(remove(data.begin(), data.end(), '\r'), data.end());
-		data.erase(remove(data.begin(), data.end(), '\n'), data.end());
+		time_t since, now;
+		time(&now);
 
-		L.log(bas, event, ">>> %s", data.c_str());
+		bool listening = message->isListening(since);
 
-		// decode message
-		if (strcasecmp(data.c_str(), "STOP") != 0)
-			result = decodeMessage(data);
-		else
-			result = "done";
+		if (data.length() == 0)
+			result = getUpdates(since, now);
+		else {
+			data.erase(remove(data.begin(), data.end(), '\r'), data.end());
+			data.erase(remove(data.begin(), data.end(), '\n'), data.end());
 
-		L.log(bas, event, "<<< %s", result.c_str());
+			L.log(bas, event, ">>> %s", data.c_str());
+
+			if (data.length() == 0 && listening == true)
+				data = "listen";
+
+			// decode message
+			if (strcasecmp(data.c_str(), "STOP") != 0)
+				result = decodeMessage(data, listening);
+			else
+				result = "done";
+
+			L.log(bas, event, "<<< %s", result.c_str());
+			result += "\n\n";
+		}
+
+		// add help sign for Connection::waitSignal()
+		result += "\r";
 
 		// send result to client
-		result += "\n\n";
-		message->setResult(result);
+		message->setResult(result, listening, now);
 		message->sendSignal();
 
 		// stop daemon
@@ -160,7 +175,7 @@ void BaseLoop::logRaw(const unsigned char byte, bool received) {
 		L.log(bus, event, ">%02x", byte);
 }
 
-string BaseLoop::decodeMessage(const string& data)
+string BaseLoop::decodeMessage(const string& data, bool& listening)
 {
 	ostringstream result;
 
@@ -482,6 +497,16 @@ string BaseLoop::decodeMessage(const string& data)
 			result << "no message found";
 		break;
 	}
+	case ct_listen: {
+		if (args.size() != argPos) {
+			result << "usage: 'listen'";
+			break;
+		}
+
+		bool enabled = !listening;
+		listening = enabled;
+		return (enabled ? "listen started" : "listen stopped");
+	}
 	case ct_scan: {
 		if (args.size() == argPos) {
 			result_t ret = m_busHandler->startScan();
@@ -578,7 +603,8 @@ string BaseLoop::decodeMessage(const string& data)
 		result << "commands:" << endl
 		       << " read      - read ebus values            'read [-v] [-f] [-m seconds] [-c class] name [field]'" << endl
 		       << " write     - write ebus values           'write class name value[;value]*' or 'write -h ZZPBSBNNDx'" << endl
-		       << " find      - find ebus values            'find [-v] [-r] [-w] [-p] [-d] [-c class] [name]'" << endl << endl
+		       << " find      - find ebus values            'find [-v] [-r] [-w] [-p] [-d] [-c class] [name]'" << endl
+		       << " listen    - listen for updates          'listen'" << endl << endl
 		       << " scan      - scan ebus known addresses   'scan'" << endl
 		       << "           - scan ebus all addresses     'scan full'" << endl
 		       << "           - show scan results           'scan result'" << endl << endl
@@ -597,3 +623,24 @@ string BaseLoop::decodeMessage(const string& data)
 	return result.str();
 }
 
+string BaseLoop::getUpdates(time_t since, time_t until)
+{
+	ostringstream result;
+
+	deque<Message*> messages;
+	messages = m_messages->findAll("", "", -1, false, true, true, true);
+
+	for (deque<Message*>::iterator it = messages.begin(); it < messages.end();) {
+		Message* message = *it++;
+		unsigned char dstAddress = message->getDstAddress();
+		if (dstAddress == SYN)
+			continue;
+		time_t lastchg = message->getLastChangeTime();
+		if (lastchg < since || lastchg >= until)
+			continue;
+		result << message->getClass() << " " << message->getName() << " = ";
+		result << message->getLastValue() << endl;
+	}
+
+	return result.str();
+}

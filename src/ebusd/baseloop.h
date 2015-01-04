@@ -33,6 +33,7 @@ enum CommandType {
 	ct_read,      //!< read ebus values
 	ct_write,     //!< write ebus values
 	ct_find,      //!< find values
+	ct_listen,    //!< listen for updates to values
 	ct_scan,      //!< scan ebus
 	ct_log,       //!< logger settings
 	ct_raw,       //!< toggle log raw data
@@ -120,6 +121,7 @@ private:
 		if (strcasecmp(str, "R") == 0 || strcasecmp(str, "READ") == 0) return ct_read;
 		if (strcasecmp(str, "W") == 0 || strcasecmp(str, "WRITE") == 0) return ct_write;
 		if (strcasecmp(str, "F") == 0 || strcasecmp(str, "FIND") == 0) return ct_find;
+		if (strcasecmp(str, "L") == 0 || strcasecmp(str, "LISTEN") == 0) return ct_listen;
 		if (strcasecmp(str, "SCAN") == 0) return ct_scan;
 		if (strcasecmp(str, "LOG") == 0) return ct_log;
 		if (strcasecmp(str, "RAW") == 0) return ct_raw;
@@ -131,11 +133,20 @@ private:
 	}
 
 	/**
-	 * @brief decode and execute client message
-	 * @param data the data string to decode
-	 * @return result string to send back to client
+	 * @brief Decode and execute client message.
+	 * @param data the data string to decode (may be empty).
+	 * @param listening true if client is in listening mode.
+	 * @return result string to send back to client.
 	 */
-	string decodeMessage(const string& data);
+	string decodeMessage(const string& data, bool& listening);
+
+	/**
+	 * @brief Get the updates received since the specified time.
+	 * @param since the time from which to add the updates.
+	 * @param until the time from which to add the updates.
+	 * @return result string to send back to client.
+	 */
+	string getUpdates(time_t since, time_t until);
 
 };
 

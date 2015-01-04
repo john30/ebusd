@@ -41,10 +41,13 @@ class NetMessage
 
 public:
 	/**
-	 * @brief constructs a new instance with message and source client address.
+	 * @brief constructs a new instance with data received from the client.
 	 * @param data from client.
+	 * @param listening whether the client is in listening mode.
+	 * @param listenSince start timestamp of listening update.
 	 */
-	NetMessage(const string data) : m_data(data)
+	NetMessage(const string data, const bool listening, const time_t listenSince)
+		: m_data(data), m_listening(listening), m_listenSince(listenSince)
 	{
 		pthread_mutex_init(&m_mutex, NULL);
 		pthread_cond_init(&m_cond, NULL);
@@ -78,10 +81,20 @@ public:
 	string getResult() const { return m_result; }
 
 	/**
-	 * @brief set the result string.
+	 * @brief Set the result string.
 	 * @param result the result string.
+	 * @param listening whether the client is in listening mode.
+	 * @param listenUntil end timestamp of last listening update.
 	 */
-	void setResult(const string result) { m_result = result; }
+	void setResult(const string result, const bool listening, const time_t listenUntil)
+		{ m_result = result; m_listening = listening; m_listenSince = listenUntil; }
+
+	/**
+	 * @brief Return whether the client is in listening mode.
+	 * @param listenSince start timestamp of listening update.
+	 * @return whether the client is in listen mode.
+	 */
+	bool isListening(time_t& listenSince) { listenSince = m_listenSince; return m_listening; }
 
 	/**
 	 * @brief wait on notification.
@@ -119,6 +132,12 @@ private:
 	/** condition variable for exclusive lock */
 	pthread_cond_t m_cond;
 
+	/** whether the client is in listening mode */
+	bool m_listening;
+
+	/** start timestamp of listening update */
+	time_t m_listenSince;
+
 };
 
 /**
@@ -134,7 +153,7 @@ public:
 	 * @param netQueue the remote queue for network messages.
 	 */
 	Connection(TCPSocket* socket, WQueue<NetMessage*>* netQueue)
-		: m_socket(socket), m_netQueue(netQueue)
+		: m_socket(socket), m_netQueue(netQueue), m_listening(false)
 		{ m_id = ++m_ids; }
 
 	/**
@@ -168,6 +187,9 @@ private:
 
 	/** sumary for opened connections */
 	static int m_ids;
+
+	/** whether the client is in listening mode */
+	bool m_listening;
 
 };
 
