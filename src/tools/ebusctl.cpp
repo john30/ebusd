@@ -28,6 +28,10 @@
 #include <cstdlib>
 #include <sstream>
 
+#ifdef HAVE_PPOLL
+#include <poll.h>
+#endif
+
 using namespace std;
 
 Appl& A = Appl::Instance("Command", "{Args...}");
@@ -48,6 +52,119 @@ void define_args()
 
 }
 
+string fetchData(TCPSocket* socket, bool& listening)
+{
+	char data[1024];
+	ssize_t datalen;
+	ostringstream ss;
+	string message;
+
+	int ret;
+	struct timespec tdiff;
+
+	// set timeout
+	tdiff.tv_sec = 0;
+	tdiff.tv_nsec = 100000;
+
+#ifdef HAVE_PPOLL
+	int nfds = 2;
+	struct pollfd fds[nfds];
+
+	memset(fds, 0, sizeof(fds));
+
+	fds[0].fd = STDIN_FILENO;
+	fds[0].events = POLLIN;
+
+	fds[1].fd = socket->getFD();
+	fds[1].events = POLLIN;
+#else
+#ifdef HAVE_PSELECT
+	int maxfd;
+	fd_set checkfds;
+
+	FD_ZERO(&checkfds);
+	FD_SET(STDIN_FILENO, &checkfds);
+	FD_SET(socket->getFD(), &checkfds);
+
+	(STDIN_FILENO > socket->getFD()) ?
+		(maxfd = notify.notifyFD()) : (maxfd = socket->getFD());
+#endif
+#endif
+
+	while(true) {
+
+#ifdef HAVE_PPOLL
+		// wait for new fd event
+		ret = ppoll(fds, nfds, &tdiff, NULL);
+#else
+#ifdef HAVE_PSELECT
+		// set readfds to inital checkfds
+		fd_set readfds = checkfds;
+		// wait for new fd event
+		ret = pselect(maxfd + 1, &readfds, NULL, NULL, &tdiff, NULL);
+#endif
+#endif
+
+		bool newData = false;
+		bool newInput = false;
+		if (ret != 0) {
+#ifdef HAVE_PPOLL
+			// new data from notify
+			newInput = fds[0].revents & POLLIN;
+
+			// new data from socket
+			newData = fds[1].revents & POLLIN;
+#else
+#ifdef HAVE_PSELECT
+			// new data from notify
+			newInput = FD_ISSET(STDIN_FILENO, &readfds);
+
+			// new data from socket
+			newData = FD_ISSET(socket->getFD(), &readfds);
+#endif
+#endif
+		}
+
+			if (newData == true) {
+				if (socket->isValid() == true) {
+					datalen = socket->recv(data, sizeof(data));
+
+					if (datalen < 0) {
+						perror("recv");
+						break;
+					}
+
+					for (int i = 0; i < datalen; i++)
+						ss << data[i];
+
+					if ((ss.str().length() >= 2
+					&& ss.str()[ss.str().length()-2] == '\n'
+					&& ss.str()[ss.str().length()-1] == '\n')
+					|| listening == true)
+						break;
+
+				}
+				else
+					break;
+			}
+			else if (newInput == true) {
+				getline(cin, message);
+				message += '\n';
+
+				socket->send(message.c_str(), message.size());
+
+				if (strncasecmp(message.c_str(), "QUIT", 4) == 0
+				|| strncasecmp(message.c_str(), "STOP", 4) == 0)
+					exit(EXIT_SUCCESS);
+
+				message.clear();
+			}
+
+	}
+
+	return ss.str();
+}
+
 bool connect(const char* host, int port, bool once)
 {
 
@@ -55,9 +172,9 @@ bool connect(const char* host, int port, bool once)
 	TCPSocket* socket = client->connect(host, port);
 
 	if (socket != NULL) {
-
 		do {
 			string message;
+			bool listening = false;
 
 			if (once == false) {
 				cout << host << ": ";
@@ -73,29 +190,22 @@ bool connect(const char* host, int port, bool once)
 
 			socket->send(message.c_str(), message.size());
 
-			if (strncasecmp(message.c_str(), "QUIT", 4) != 0 && strncasecmp(message.c_str(), "STOP", 4) != 0) {
-				char data[1024];
-				ssize_t datalen;
-				string ss;
+			if (strncasecmp(message.c_str(), "QUIT", 4) != 0
+			&& strncasecmp(message.c_str(), "STOP", 4) != 0)
 
-				while(1) {
-					datalen = socket->recv(data, sizeof(data));
-
-					if (datalen < 0) {
-						perror("send");
-						break;
+				if (strncasecmp(message.c_str(), "L", 1) == 0
+				|| strncasecmp(message.c_str(), "LISTEN", 6) == 0) {
+					listening = true;
+					while (listening) {
+						string result(fetchData(socket, listening));
+						cout << result;
+						if (strncasecmp(result.c_str(), "LISTEN STOPPED", 14) == 0)
+							break;
 					}
-
-					for (int i = 0; i < datalen; i++)
-						ss += data[i];
-
-					if (ss.length() >= 2 && ss[ss.length()-2] == '\n' && ss[ss.length()-1] == '\n')
-						break;
 				}
+				else
+					cout << fetchData(socket, listening);
 
-				cout << ss;
-
-			}
 			else
 				break;
 
