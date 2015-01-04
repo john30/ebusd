@@ -58,7 +58,7 @@ void define_args()
 		    "\tebus device (serial or network) [/dev/ttyUSB0]");
 
 	A.addOption("nodevicecheck", "n", OptVal(false), dt_bool, ot_none,
-		    "disable valid ebus device test\n");
+		    "disable test of local ebus device\n");
 
 	A.addOption("acquiretimeout", "", OptVal(9400), dt_long, ot_mandatory,
 		    "bus acquisition timeout in 'us' [9400]");

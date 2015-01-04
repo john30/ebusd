@@ -245,9 +245,10 @@ Port::Port(const string deviceName, const bool noDeviceCheck,
 {
 	m_device = NULL;
 
-	if (strchr(deviceName.c_str(), '/') == NULL &&
-	    strchr(deviceName.c_str(), ':') != NULL)
+	if (strchr(deviceName.c_str(), '/') == NULL && strchr(deviceName.c_str(), ':') != NULL) {
 		setType(dt_network);
+		m_noDeviceCheck = true;
+	}
 	else
 		setType(dt_serial);
 
