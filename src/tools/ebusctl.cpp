@@ -64,7 +64,7 @@ string fetchData(TCPSocket* socket, bool& listening)
 
 	// set timeout
 	tdiff.tv_sec = 0;
-	tdiff.tv_nsec = 100000;
+	tdiff.tv_nsec = 1E8;
 
 #ifdef HAVE_PPOLL
 	int nfds = 2;

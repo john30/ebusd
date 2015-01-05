@@ -604,17 +604,17 @@ string BaseLoop::decodeMessage(const string& data, bool& listening)
 		       << " read      - read ebus values            'read [-v] [-f] [-m seconds] [-c class] name [field]'" << endl
 		       << " write     - write ebus values           'write class name value[;value]*' or 'write -h ZZPBSBNNDx'" << endl
 		       << " find      - find ebus values            'find [-v] [-r] [-w] [-p] [-d] [-c class] [name]'" << endl
-		       << " listen    - listen for updates          'listen'" << endl << endl
+		       << " listen    - listen for updates          'listen'" << endl
 		       << " scan      - scan ebus known addresses   'scan'" << endl
 		       << "           - scan ebus all addresses     'scan full'" << endl
-		       << "           - show scan results           'scan result'" << endl << endl
+		       << "           - show scan results           'scan result'" << endl
  		       << " log       - change log areas            'log areas area,area,..' (areas: bas|net|bus|upd|all)" << endl
-		       << "           - change log level            'log level level'        (level: error|event|trace|debug)" << endl << endl
+		       << "           - change log level            'log level level'        (level: error|event|trace|debug)" << endl
 		       << " raw       - toggle log raw data         'raw'" << endl
-		       << " dump      - toggle dump state           'dump'" << endl << endl
-		       << " reload    - reload ebus configuration   'reload'" << endl << endl
+		       << " dump      - toggle dump state           'dump'" << endl
+		       << " reload    - reload ebus configuration   'reload'" << endl
 		       << " stop      - stop daemon                 'stop'" << endl
-		       << " quit      - close connection            'quit'" << endl << endl
+		       << " quit      - close connection            'quit'" << endl
 		       << " help      - print this page             'help'";
 		break;
 
