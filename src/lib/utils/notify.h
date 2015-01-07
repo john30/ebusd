@@ -35,12 +35,23 @@ public:
 	/**
 	 * @brief constructs a new instance and do notifying.
 	 */
-	Notify();
+	Notify()
+	{
+		int pipefd[2];
+		int ret = pipe(pipefd);
+
+		if (ret == 0) {
+			m_recvfd = pipefd[0];
+			m_sendfd = pipefd[1];
+
+			fcntl(m_sendfd, F_SETFL, O_NONBLOCK);
+		}
+	}
 
 	/**
 	 * @brief destructor.
 	 */
-	~Notify();
+	~Notify() { close(m_sendfd); close(m_recvfd); }
 
 	/**
 	 * @brief file descriptor to watch for notify event.

@@ -10,14 +10,12 @@ libutils_a_SOURCES = appl.cpp \
 		     daemon.h \
 		     logger.cpp \
 		     logger.h \
-		     notify.cpp \
-		     notify.h \
 		     tcpsocket.cpp \
 		     tcpsocket.h \
 		     thread.cpp \
 		     thread.h \
-		     wqueue.h
-
+		     wqueue.h \
+		     notify.h
 
 distclean-local:
 	-rm -f Makefile.in
