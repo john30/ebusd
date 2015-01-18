@@ -53,6 +53,15 @@ public:
 		pthread_cond_destroy(&m_cond);
 	}
 
+private:
+	/**
+	 * @brief Hidden copy constructor.
+	 * @param src the object to copy from.
+	 */
+	WQueue(const WQueue& src);
+
+public:
+
 	/**
 	 * @brief add a new item to the end of queue.
 	 * @param item to add.
