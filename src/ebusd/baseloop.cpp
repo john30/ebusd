@@ -129,21 +129,17 @@ void BaseLoop::start()
 		NetMessage* message = m_netQueue.remove();
 		string data = message->getData();
 
-		time_t since, now;
-		time(&now);
-
+		time_t since, until;
+		time(&until);
 		bool listening = message->isListening(since);
+		if (listening == false)
+			since = until;
 
-		if (data.length() == 0)
-			result = getUpdates(since, now);
-		else {
+		if (data.length() > 0) {
 			data.erase(remove(data.begin(), data.end(), '\r'), data.end());
 			data.erase(remove(data.begin(), data.end(), '\n'), data.end());
 
 			L.log(bas, event, ">>> %s", data.c_str());
-
-			if (data.length() == 0 && listening == true)
-				data = "listen";
 
 			// decode message
 			if (strcasecmp(data.c_str(), "STOP") != 0)
@@ -154,13 +150,12 @@ void BaseLoop::start()
 			L.log(bas, event, "<<< %s", result.c_str());
 			result += "\n\n";
 		}
-
-		// add help sign for Connection::waitSignal()
-		result += "\r";
+		if (listening == true) {
+			result += getUpdates(since, until);
+		}
 
 		// send result to client
-		message->setResult(result, listening, now);
-		message->sendSignal();
+		message->setResult(result, listening, until);
 
 		// stop daemon
 		if (strcasecmp(data.c_str(), "STOP") == 0)
@@ -503,7 +498,7 @@ string BaseLoop::decodeMessage(const string& data, bool& listening)
 			break;
 		}
 
-		bool enabled = !listening;
+		bool enabled = !listening; // TODO switch to argument "stop"
 		listening = enabled;
 		return (enabled ? "listen started" : "listen stopped");
 	}

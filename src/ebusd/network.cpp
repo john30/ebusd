@@ -129,13 +129,7 @@ void Connection::run()
 
 			// wait for result
 			L.log(net, debug, "[%05d] wait for result", getID());
-			message.waitSignal();
-
-			L.log(net, debug, "[%05d] result added", getID());
 			string result = message.getResult();
-
-			// remove help sign for Connection::waitSignal()
-			result.erase(remove(result.begin(), result.end(), '\r'), result.end());
 
 			if (m_socket->isValid() == false)
 				break;
@@ -146,7 +140,6 @@ void Connection::run()
 
 	}
 
-	delete m_socket;
 	L.log(net, trace, "[%05d] connection closed", getID());
 }
 
@@ -177,7 +170,8 @@ Network::~Network()
 	stop();
 	join();
 
-	delete m_tcpServer;
+	if (m_tcpServer != NULL)
+		delete m_tcpServer;
 }
 
 void Network::run()

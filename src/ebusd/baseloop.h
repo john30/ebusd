@@ -135,15 +135,15 @@ private:
 	/**
 	 * @brief Decode and execute client message.
 	 * @param data the data string to decode (may be empty).
-	 * @param listening true if client is in listening mode.
+	 * @param listening set to true when the client is in listening mode.
 	 * @return result string to send back to client.
 	 */
 	string decodeMessage(const string& data, bool& listening);
 
 	/**
 	 * @brief Get the updates received since the specified time.
-	 * @param since the time from which to add the updates.
-	 * @param until the time from which to add the updates.
+	 * @param since the start time from which to add updates (inclusive).
+	 * @param until the end time to which to add updates (exclusive).
 	 * @return result string to send back to client.
 	 */
 	string getUpdates(time_t since, time_t until);

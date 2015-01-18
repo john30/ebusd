@@ -47,7 +47,7 @@ public:
 	 * @param listenSince start timestamp of listening update.
 	 */
 	NetMessage(const string data, const bool listening, const time_t listenSince)
-		: m_data(data), m_listening(listening), m_listenSince(listenSince)
+		: m_data(data), m_resultSet(false), m_listening(listening), m_listenSince(listenSince)
 	{
 		pthread_mutex_init(&m_mutex, NULL);
 		pthread_cond_init(&m_cond, NULL);
@@ -62,11 +62,14 @@ public:
 		pthread_cond_destroy(&m_cond);
 	}
 
+private:
 	/**
-	 * @brief copy constructor.
-	 * @param src message object for copy.
+	 * @brief Hidden copy constructor.
+	 * @param src the object to copy from.
 	 */
-	NetMessage(const NetMessage& src) : m_data(src.m_data) {}
+	NetMessage(const NetMessage& src);
+
+public:
 
 	/**
 	 * @brief get the data string.
@@ -75,53 +78,50 @@ public:
 	string getData() const { return m_data; }
 
 	/**
-	 * @brief get the result string.
+	 * @brief Wait for the result being set and return the result string.
 	 * @return the result string.
 	 */
-	string getResult() const { return m_result; }
-
-	/**
-	 * @brief Set the result string.
-	 * @param result the result string.
-	 * @param listening whether the client is in listening mode.
-	 * @param listenUntil end timestamp of last listening update.
-	 */
-	void setResult(const string result, const bool listening, const time_t listenUntil)
-		{ m_result = result; m_listening = listening; m_listenSince = listenUntil; }
-
-	/**
-	 * @brief Return whether the client is in listening mode.
-	 * @param listenSince start timestamp of listening update.
-	 * @return whether the client is in listen mode.
-	 */
-	bool isListening(time_t& listenSince) { listenSince = m_listenSince; return m_listening; }
-
-	/**
-	 * @brief wait on notification.
-	 */
-	void waitSignal()
-	{
+	string getResult() {
 		pthread_mutex_lock(&m_mutex);
 
-		while (m_result.size() == 0)
+		while (m_resultSet == false)
 			pthread_cond_wait(&m_cond, &m_mutex);
 
 		pthread_mutex_unlock(&m_mutex);
+
+		return m_result;
 	}
 
 	/**
-	 * @brief send notification.
+	 * @brief Set the result string and notify the waiting thread.
+	 * @param result the result string.
+	 * @param listening whether the client is in listening mode.
+	 * @param listenUntil the end time to which to updates were added (exclusive).
 	 */
-	void sendSignal()
-	{
-		pthread_mutex_lock(&m_mutex);
-		pthread_cond_signal(&m_cond);
-		pthread_mutex_unlock(&m_mutex);
-	}
+	void setResult(const string result, const bool listening, const time_t listenUntil)
+		{
+			m_result = result;
+			m_listening = listening;
+			m_listenSince = listenUntil;
+			m_resultSet = true;
+			pthread_mutex_lock(&m_mutex);
+			pthread_cond_signal(&m_cond);
+			pthread_mutex_unlock(&m_mutex);
+		}
+
+	/**
+	 * @brief Return whether the client is in listening mode.
+	 * @param listenSince set to the start time from which to add updates (inclusive).
+	 * @return whether the client is in listening mode.
+	 */
+	bool isListening(time_t& listenSince) { listenSince = m_listenSince; return m_listening; }
 
 private:
 	/** the data string */
 	string m_data;
+
+	/** whether the result was already set. */
+	bool m_resultSet;
 
 	/** the result string */
 	string m_result;
@@ -156,6 +156,7 @@ public:
 		: m_socket(socket), m_netQueue(netQueue), m_listening(false)
 		{ m_id = ++m_ids; }
 
+	virtual ~Connection() { delete m_socket; }
 	/**
 	 * @brief endless loop for connection instance.
 	 */
