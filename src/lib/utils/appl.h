@@ -29,7 +29,7 @@
 
 using namespace std;
 
-/** @brief the available data types. */
+/** the available data types. */
 enum DataType {
 	dt_none,    //!< default for __text_only__
 	dt_bool,    //!< boolean
@@ -40,14 +40,14 @@ enum DataType {
 	dt_string   //!< string
 };
 
-/** @brief option types. */
+/** option types. */
 enum OptionType {
 	ot_none,      //!< no option type is needed
 	ot_optional,  //!< a value is optional
 	ot_mandatory  //!< a value is mandatory
 };
 
-/** @brief structure for defining application options */
+/** structure for defining application options */
 typedef struct {
 	const char* name;         //!< long option name
 	const char* shortname;    //!< short option name
@@ -57,7 +57,7 @@ typedef struct {
 } opt_t;
 
 /**
- * @brief union for option values
+ * union for option values
  */
 union OptVal {
 	/** boolean */
@@ -76,36 +76,36 @@ union OptVal {
 	const char* c;
 
 	/**
-	 * @brief clear memory
+	 * clear memory
 	 */
 	OptVal() { memset(this, 0, sizeof(OptVal)); }
 
 	/**
-	 * @brief create boolean type
+	 * create boolean type
 	 * @param _b the boolean
 	 */
 	OptVal(bool _b) : b(_b) {}
 
 	/**
-	 * @brief create integer type
+	 * create integer type
 	 * @param _i the integer
 	 */
 	OptVal(int _i) : i(_i) {}
 
 	/**
-	 * @brief create long type
+	 * create long type
 	 * @param _l the long
 	 */
 	OptVal(long _l) : l(_l) {}
 
 	/**
-	 * @brief create float type
+	 * create float type
 	 * @param _f the float
 	 */
 	OptVal(float _f) : f(_f) {}
 
 	/**
-	 * @brief create string type
+	 * create string type
 	 * @param _c the string
 	 */
 	OptVal(const char* _c) : c(_c) {}
@@ -113,14 +113,14 @@ union OptVal {
 
 
 /**
- * @brief class for all kinds of application parameters.
+ * class for all kinds of application parameters.
  */
 class Appl
 {
 
 public:
 	/**
-	 * @brief create an instance and return the reference.
+	 * create an instance and return the reference.
 	 * @param command string for help page.
 	 * @param argument string for help page.
 	 * @return the reference to instance.
@@ -128,24 +128,24 @@ public:
 	static Appl& Instance(const char* command="", const char* argument="");
 
 	/**
-	 * @brief destructor.
+	 * destructor.
 	 */
 	~Appl();
 
 	/**
-	 * @brief save application version string.
+	 * save application version string.
 	 * @param version string.
 	 */
 	void setVersion(const char* version) { m_version = version; }
 
 	/**
-	 * @brief create new entry of application option only for help page.
+	 * create new entry of application option only for help page.
 	 * @param text string to print.
 	 */
 	void addText(const char* text);
 
 	/**
-	 * @brief create new entry of application option.
+	 * create new entry of application option.
 	 * @param name the long name.
 	 * @param shortname optional short name.
 	 * @param optval value of option.
@@ -157,7 +157,7 @@ public:
 		       DataType datatype, OptionType optiontype, const char* description);
 
 	/**
-	 * @brief returns the value of the interested option.
+	 * returns the value of the interested option.
 	 * @param name the interested option.
 	 * @return casted value.
 	 */
@@ -169,7 +169,7 @@ public:
 	}
 
 	/**
-	 * @brief parse application arguments.
+	 * parse application arguments.
 	 * @param argc the number of options.
 	 * @param argv the given options.
 	 * @return false if the arguments are invalid or a help/error message was printed and the process should exit.
@@ -177,32 +177,32 @@ public:
 	bool parseArgs(int argc, char* argv[]);
 
 	/**
-	 * @brief returns the number of saved commands and arguments.
+	 * returns the number of saved commands and arguments.
 	 * @return number of commands and arguments.
 	 */
 	int numArgs() const { return m_arguments.size(); }
 	/**
-	 * @brief returns the string of an interested argument.
+	 * returns the string of an interested argument.
 	 * @param num number of interested argument.
 	 * @return the argument string.
 	 */
 	string getArg(const int num) const { return m_arguments[num]; }
 
 	/**
-	 * @brief returns the string of given command.
+	 * returns the string of given command.
 	 * @return the command string.
 	 */
 	string getCommand() const { return m_command; }
 
 	/**
-	 * @brief Get whether a command string is missing.
+	 * Get whether a command string is missing.
 	 * @return true if a command string is missing.
 	 */
 	bool missingCommand() const { return (m_command.size() == 0 ? true : false); }
 
 private:
 	/**
-	 * @brief private construtor.
+	 * private construtor.
 	 * @param command string for help page.
 	 * @param argument string for help page.
 	 */
@@ -210,13 +210,13 @@ private:
 		: m_version(NULL), m_withCommand(command), m_withArgument(argument) {}
 
 	/**
-	 * @brief private copy construtor.
+	 * private copy construtor.
 	 * @param reference to an instance.
 	 */
 	Appl(const Appl&);
 
 	/**
-	 * @brief private = operator.
+	 * private = operator.
 	 * @param reference to an instance.
 	 * @return reference to instance.
 	 */
@@ -253,7 +253,7 @@ private:
 	vector<string> m_arguments;
 
 	/**
-	 * @brief checks the passed parameter if this is a valid option.
+	 * checks the passed parameter if this is a valid option.
 	 * @param option to check.
 	 * @param value to save.
 	 * @return true if parameter is a valid option.
@@ -261,7 +261,7 @@ private:
 	bool checkOption(const string& option, const string& value);
 
 	/**
-	 * @brief save the passed value to option.
+	 * save the passed value to option.
 	 * @param option name.
 	 * @param value to save.
 	 * @param datatype of given option.
@@ -269,19 +269,19 @@ private:
 	void setOptVal(const char* option, const string value, DataType datatype);
 
 	/**
-	 * @brief print application version.
+	 * print application version.
 	 * @return false.
 	 */
 	bool printVersion();
 
 	/**
-	 * @brief print help page.
+	 * print help page.
 	 * @return false.
 	 */
 	bool printHelp();
 
 	/**
-	 * @brief print used option settings.
+	 * print used option settings.
 	 * @return false.
 	 */
 	bool printSettings();

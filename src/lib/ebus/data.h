@@ -34,26 +34,26 @@
 
 using namespace std;
 
-/** @brief the separator character used between multiple values (in CSV only). */
+/** the separator character used between multiple values (in CSV only). */
 #define VALUE_SEPARATOR ';'
 
-/** @brief the separator character used between base type name and length (in CSV only). */
+/** the separator character used between base type name and length (in CSV only). */
 #define LENGTH_SEPARATOR ':'
 
-/** @brief the replacement string for undefined values (in UI and CSV). */
+/** the replacement string for undefined values (in UI and CSV). */
 #define NULL_VALUE "-"
 
-/** @brief the separator character used between fields (in UI only). */
+/** the separator character used between fields (in UI only). */
 #define UI_FIELD_SEPARATOR ';'
 
-/** @brief the message part in which a data field is stored. */
+/** the message part in which a data field is stored. */
 enum PartType {
 	pt_any,          //!< stored in any data (master or slave)
 	pt_masterData,   //!< stored in master data
 	pt_slaveData,    //!< stored in slave data
 };
 
-/** @brief the available base data types. */
+/** the available base data types. */
 enum BaseType {
 	bt_str,    //!< text string in a @a StringDataField
 	bt_hexstr, //!< hex digit string in a @a StringDataField
@@ -73,7 +73,7 @@ static const unsigned int IGN = 0x40; //!< ignore value during read and write
 static const unsigned int FIX = 0x80; //!< fixed width formatting
 static const unsigned int REQ = 0x100;//!< value may not be NULL
 
-/** @brief The structure for defining field types with their properties. */
+/** The structure for defining field types with their properties. */
 typedef struct {
 	const char* name;                        //!< field identifier
 	//todo rename to bitCount
@@ -87,7 +87,7 @@ typedef struct {
 } dataType_t;
 
 /**
- * @brief Parse an unsigned int value.
+ * Parse an unsigned int value.
  * @param str the string to parse.
  * @param base the numerical base.
  * @param minValue the minimum resulting value.
@@ -99,7 +99,7 @@ typedef struct {
 unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result, unsigned int* length=NULL);
 
 /**
- * @brief Print the error position of the iterator to stdout.
+ * Print the error position of the iterator to stdout.
  * @param begin the iterator to the beginning of the items.
  * @param end the iterator to the end of the items.
  * @param pos the iterator with the erroneous position.
@@ -114,14 +114,14 @@ class DataFieldTemplates;
 class SingleDataField;
 
 /**
- * @brief Base class for all kinds of data fields.
+ * Base class for all kinds of data fields.
  */
 class DataField
 {
 public:
 
 	/**
-	 * @brief Constructs a new instance.
+	 * Constructs a new instance.
 	 * @param name the field name.
 	 * @param comment the field comment.
 	 */
@@ -129,12 +129,12 @@ public:
 		: m_name(name), m_comment(comment) {}
 
 	/**
-	 * @brief Destructor.
+	 * Destructor.
 	 */
 	virtual ~DataField() {}
 
 	/**
-	 * @brief Factory method for creating new instances.
+	 * Factory method for creating new instances.
 	 * @param it the iterator to traverse for the definition parts.
 	 * @param end the iterator pointing to the end of the definition parts.
 	 * @param templates the @a DataFieldTemplates to be referenced by name, or NULL.
@@ -149,14 +149,14 @@ public:
 			const bool isWriteMessage=false, const unsigned char dstAddress=SYN);
 
 	/**
-	 * @brief Returns the length of this field (or contained fields) in bytes.
+	 * Returns the length of this field (or contained fields) in bytes.
 	 * @param partType the message part of the contained fields to limit the length calculation to.
 	 * @return the length of this field (or contained fields) in bytes.
 	 */
 	virtual unsigned char getLength(PartType partType) = 0;
 
 	/**
-	 * @brief Derives a new DataField from this field.
+	 * Derives a new DataField from this field.
 	 * @param name the field name.
 	 * @param comment the field comment, or empty to use this fields comment.
 	 * @param unit the value unit, or empty to use this fields unit (if applicable).
@@ -172,25 +172,25 @@ public:
 			vector<SingleDataField*>& fields) = 0;
 
 	/**
-	 * @brief Get the field name.
+	 * Get the field name.
 	 * @return the field name.
 	 */
 	string getName() const { return m_name; }
 
 	/**
-	 * @brief Get the field comment.
+	 * Get the field comment.
 	 * @return the field comment.
 	 */
 	string getComment() const { return m_comment; }
 
 	/**
-	 * @brief Dump the field settings to the output.
+	 * Dump the field settings to the output.
 	 * @param output the @a ostream to dump to.
 	 */
 	virtual void dump(ostream& output) = 0;
 
 	/**
-	 * @brief Reads the value from the @a SymbolString.
+	 * Reads the value from the @a SymbolString.
 	 * @param partType the @a PartType of the data.
 	 * @param data the unescaped data @a SymbolString for reading binary data.
 	 * @param offset the additional offset to add for reading binary data.
@@ -211,7 +211,7 @@ public:
 			char separator=UI_FIELD_SEPARATOR) = 0;
 
 	/**
-	 * @brief Writes the value to the master or slave @a SymbolString.
+	 * Writes the value to the master or slave @a SymbolString.
 	 * @param input the @a istringstream to parse the formatted value from.
 	 * @param partType the @a PartType of the data.
 	 * @param data the unescaped data @a SymbolString for writing binary data.
@@ -235,14 +235,14 @@ protected:
 
 
 /**
- * @brief A single @a DataField holding a value.
+ * A single @a DataField holding a value.
  */
 class SingleDataField : public DataField
 {
 public:
 
 	/**
-	 * @brief Constructs a new instance.
+	 * Constructs a new instance.
 	 * @param name the field name.
 	 * @param comment the field comment.
 	 * @param unit the value unit.
@@ -258,24 +258,24 @@ public:
 		  m_length(length) {}
 
 	/**
-	 * @brief Destructor.
+	 * Destructor.
 	 */
 	virtual ~SingleDataField() {}
 
 	/**
-	 * @brief Get the value unit.
+	 * Get the value unit.
 	 * @return the value unit.
 	 */
 	string getUnit() const { return m_unit; }
 
 	/**
-	 * @brief Get whether this field is ignored.
+	 * Get whether this field is ignored.
 	 * @return whether this field is ignored.
 	 */
 	bool isIgnored() const { return (m_dataType.flags & IGN) != 0; }
 
 	/**
-	 * @brief Get the message part in which the field is stored.
+	 * Get the message part in which the field is stored.
 	 * @return the message part in which the field is stored.
 	 */
 	PartType getPartType() const { return m_partType; }
@@ -285,7 +285,7 @@ public:
 	// re-use same position as previous field as not all bits of fully consumed yet
 
 	/**
-	 * @brief Get whether this field uses a full byte offset.
+	 * Get whether this field uses a full byte offset.
 	 * @param after @p true to check after consuming the bits, false to check before.
 	 * @return true if this field uses a full byte offset, false if this field
 	 * only consumes a part of a byte and a subsequent field may re-use the same offset.
@@ -310,7 +310,7 @@ public:
 protected:
 
 	/**
-	 * @brief Internal method for reading the field from a @a SymbolString.
+	 * Internal method for reading the field from a @a SymbolString.
 	 * @param input the unescaped @a SymbolString to read the binary value from.
 	 * @param offset the offset in the @a SymbolString.
 	 * @param output the ostringstream to append the formatted value to.
@@ -319,7 +319,7 @@ protected:
 	virtual result_t readSymbols(SymbolString& input, const unsigned char offset, ostringstream& output) = 0;
 
 	/**
-	 * @brief Internal method for writing the field to a @a SymbolString.
+	 * Internal method for writing the field to a @a SymbolString.
 	 * @param input the @a istringstream to parse the formatted value from.
 	 * @param offset the offset in the @a SymbolString.
 	 * @param output the unescaped @a SymbolString to write the binary value to.
@@ -345,14 +345,14 @@ protected:
 
 
 /**
- * @brief Base class for all string based data fields.
+ * Base class for all string based data fields.
  */
 class StringDataField : public SingleDataField
 {
 public:
 
 	/**
-	 * @brief Constructs a new instance.
+	 * Constructs a new instance.
 	 * @param name the field name.
 	 * @param comment the field comment.
 	 * @param unit the value unit.
@@ -366,7 +366,7 @@ public:
 		: SingleDataField(name, comment, unit, dataType, partType, length) {}
 
 	/**
-	 * @brief Destructor.
+	 * Destructor.
 	 */
 	virtual ~StringDataField() {}
 
@@ -391,14 +391,14 @@ protected:
 
 
 /**
- * @brief Base class for all numeric data fields.
+ * Base class for all numeric data fields.
  */
 class NumericDataField : public SingleDataField
 {
 public:
 
 	/**
-	 * @brief Constructs a new instance.
+	 * Constructs a new instance.
 	 * @param name the field name.
 	 * @param comment the field comment.
 	 * @param unit the value unit.
@@ -415,7 +415,7 @@ public:
 		  m_bitCount(bitCount), m_bitOffset(bitOffset) {}
 
 	/**
-	 * @brief Destructor.
+	 * Destructor.
 	 */
 	virtual ~NumericDataField() {}
 
@@ -428,7 +428,7 @@ public:
 protected:
 
 	/**
-	 * @brief Internal method for reading the raw value from a @a SymbolString.
+	 * Internal method for reading the raw value from a @a SymbolString.
 	 * @param input the unescaped @a SymbolString to read the binary value from.
 	 * @param offset the offset in the @a SymbolString.
 	 * @param value the variable in which to store the raw value.
@@ -437,7 +437,7 @@ protected:
 	result_t readRawValue(SymbolString& input, const unsigned char offset, unsigned int& value);
 
 	/**
-	 * @brief Internal method for writing the raw value to a @a SymbolString.
+	 * Internal method for writing the raw value to a @a SymbolString.
 	 * @param value the raw value to write.
 	 * @param offset the offset in the @a SymbolString.
 	 * @param output the unescaped @a SymbolString to write the binary value to.
@@ -455,14 +455,14 @@ protected:
 
 
 /**
- * @brief Base class for all numeric data fields with a number representation.
+ * Base class for all numeric data fields with a number representation.
  */
 class NumberDataField : public NumericDataField
 {
 public:
 
 	/**
-	 * @brief Constructs a new instance.
+	 * Constructs a new instance.
 	 * @param name the field name.
 	 * @param comment the field comment.
 	 * @param unit the value unit.
@@ -478,7 +478,7 @@ public:
 			const unsigned int divisor);
 
 	/**
-	 * @brief Destructor.
+	 * Destructor.
 	 */
 	virtual ~NumberDataField() {}
 
@@ -511,14 +511,14 @@ private:
 
 
 /**
- * @brief A numeric data field with a list of value=text assignments and a string representation.
+ * A numeric data field with a list of value=text assignments and a string representation.
  */
 class ValueListDataField : public NumericDataField
 {
 public:
 
 	/**
-	 * @brief Constructs a new instance.
+	 * Constructs a new instance.
 	 * @param name the field name.
 	 * @param comment the field comment.
 	 * @param unit the value unit.
@@ -537,7 +537,7 @@ public:
 		m_values(values) {}
 
 	/**
-	 * @brief Destructor.
+	 * Destructor.
 	 */
 	virtual ~ValueListDataField() {}
 
@@ -567,20 +567,20 @@ private:
 
 
 /**
- * @brief A set of @a DataField instances.
+ * A set of @a DataField instances.
  */
 class DataFieldSet : public DataField
 {
 public:
 
 	/**
-	 * @brief Create the @a DataFieldSet for parsing the identification message (service 0x07 0x04).
+	 * Create the @a DataFieldSet for parsing the identification message (service 0x07 0x04).
 	 * @return the @a DataFieldSet for parsing the identification message.
 	 */
 	static DataFieldSet* createIdentFields();
 
 	/**
-	 * @brief Constructs a new instance.
+	 * Constructs a new instance.
 	 * @param name the field name.
 	 * @param comment the field comment.
 	 * @param fields the @a vector of @a SingleDataField instances part of this set.
@@ -591,7 +591,7 @@ public:
 		  m_fields(fields) {}
 
 	/**
-	 * @brief Destructor.
+	 * Destructor.
 	 */
 	virtual ~DataFieldSet();
 
@@ -605,21 +605,21 @@ public:
 			vector<SingleDataField*>& fields);
 
 	/**
-	 * @brief Returns the @a SingleDataField at the specified index.
+	 * Returns the @a SingleDataField at the specified index.
 	 * @param index the index of the @a SingleDataField to return.
 	 * @return the @a SingleDataField at the specified index, or NULL.
 	 */
 	SingleDataField* operator[](const size_t index) { if (index >= m_fields.size()) return NULL; return m_fields[index]; }
 
 	/**
-	 * @brief Returns the @a SingleDataField at the specified index.
+	 * Returns the @a SingleDataField at the specified index.
 	 * @param index the index of the @a SingleDataField to return.
 	 * @return the @a SingleDataField at the specified index, or NULL.
 	 */
 	const SingleDataField* operator[](const size_t index) const { if (index >= m_fields.size()) return NULL; return m_fields[index]; }
 
 	/**
-	 * @brief Returns the number of @a SingleDataFields instances in this set.
+	 * Returns the number of @a SingleDataFields instances in this set.
 	 * @return the number of available @a SingleDataField instances.
 	 */
 	size_t size() const { return m_fields.size(); }
@@ -648,29 +648,29 @@ private:
 
 
 /**
- * @brief A map of template @a DataField instances.
+ * A map of template @a DataField instances.
  */
 class DataFieldTemplates : public FileReader<void*>
 {
 public:
 
 	/**
-	 * @brief Constructs a new instance.
+	 * Constructs a new instance.
 	 */
 	DataFieldTemplates() : FileReader<void*>::FileReader(false) {}
 
 	/**
-	 * @brief Destructor.
+	 * Destructor.
 	 */
 	virtual ~DataFieldTemplates() { clear(); }
 
 	/**
-	 * @brief Removes all @a DataField instances.
+	 * Removes all @a DataField instances.
 	 */
 	void clear();
 
 	/**
-	 * @brief Adds a template @a DataField instance to this map.
+	 * Adds a template @a DataField instance to this map.
 	 * @param field the @a DataField instance to add.
 	 * @param replace whether replacing an already stored instance is allowed.
 	 * @return @a RESULT_OK on success, or an error code.
@@ -682,7 +682,7 @@ public:
 	virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end, void* arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo);
 
 	/**
-	 * @brief Gets the template @a DataField instance with the specified name.
+	 * Gets the template @a DataField instance with the specified name.
 	 * @param name the name of the template to get.
 	 * @return the template @a DataField instance, or NULL.
 	 * Note: the caller may not free the returned instance.

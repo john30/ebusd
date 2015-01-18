@@ -57,7 +57,7 @@ static const int RESULT_ERR_NO_SIGNAL = -21;    //!< no signal found on the bus
 typedef int result_t;
 
 /**
- * @brief Return the string corresponding to the result code.
+ * Return the string corresponding to the result code.
  * @param resultCode the result code (see RESULT_ constants).
  * @return the string corresponding to the result code.
  */

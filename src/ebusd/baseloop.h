@@ -28,7 +28,7 @@
 
 using namespace std;
 
-/** @brief possible client commands */
+/** possible client commands */
 enum CommandType {
 	ct_read,      //!< read ebus values
 	ct_write,     //!< write ebus values
@@ -44,41 +44,41 @@ enum CommandType {
 };
 
 /**
- * @brief class baseloop which handle client messages.
+ * class baseloop which handle client messages.
  */
 class BaseLoop
 {
 
 public:
 	/**
-	 * @brief Construct the base loop and create messaging, network and bus handling subsystems.
+	 * Construct the base loop and create messaging, network and bus handling subsystems.
 	 */
 	BaseLoop();
 
 	/**
-	 * @brief Destructor.
+	 * Destructor.
 	 */
 	~BaseLoop();
 
 	/**
-	 * @brief Load the message definitions.
+	 * Load the message definitions.
 	 * @return the result code.
 	 */
 	result_t loadMessages();
 
 	/**
-	 * @brief start baseloop instance.
+	 * start baseloop instance.
 	 */
 	void start();
 
 	/**
-	 * @brief add a new network message to internal message queue.
+	 * add a new network message to internal message queue.
 	 * @param message the network message.
 	 */
 	void addMessage(NetMessage* message) { m_netQueue.add(message); }
 
 	/**
-	 * @brief Create a log message for a received/sent raw data byte.
+	 * Create a log message for a received/sent raw data byte.
 	 * @param byte the raw data byte.
 	 * @param received true if the byte was received, false if it was sent.
 	 */
@@ -111,7 +111,7 @@ private:
 	WQueue<NetMessage*> m_netQueue;
 
 	/**
-	 * @brief compare client command with defined.
+	 * compare client command with defined.
 	 * @param item the client command to compare.
 	 * @return the founded client command type.
 	 */
@@ -133,7 +133,7 @@ private:
 	}
 
 	/**
-	 * @brief Decode and execute client message.
+	 * Decode and execute client message.
 	 * @param data the data string to decode (may be empty).
 	 * @param listening set to true when the client is in listening mode.
 	 * @return result string to send back to client.
@@ -141,7 +141,7 @@ private:
 	string decodeMessage(const string& data, bool& listening);
 
 	/**
-	 * @brief Get the updates received since the specified time.
+	 * Get the updates received since the specified time.
 	 * @param since the start time from which to add updates (inclusive).
 	 * @param until the end time to which to add updates (exclusive).
 	 * @return result string to send back to client.

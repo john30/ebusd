@@ -38,25 +38,25 @@ static const unsigned char BROADCAST = 0xFE; //!< the broadcast destination addr
 
 
 /**
- * @brief A string of escaped or unescaped bus symbols.
+ * A string of escaped or unescaped bus symbols.
  */
 class SymbolString
 {
 
 public:
 	/**
-	 * @brief Creates a new unescaped empty instance.
+	 * Creates a new unescaped empty instance.
 	 */
 	SymbolString() : m_unescapeState(1), m_crc(0) {}
 
 	/**
-	 * @brief Creates a new escaped instance from an unescaped hex string and adds the calculated CRC.
+	 * Creates a new escaped instance from an unescaped hex string and adds the calculated CRC.
 	 * @param str the unescaped hex string.
 	 */
 	SymbolString(const string& str);
 
 	/**
-	 * @brief Creates a new escaped or unescaped instance from another @a SymbolString and adds the calculated CRC.
+	 * Creates a new escaped or unescaped instance from another @a SymbolString and adds the calculated CRC.
 	 * @param str the @a SymbolString top copy from.
 	 * @param escape true for an escaped instance, false for an unescaped instance.
 	 * @param addCrc whether to add the calculated CRC as last symbol.
@@ -64,35 +64,35 @@ public:
 	SymbolString(const SymbolString& str, const bool escape, const bool addCrc=true);
 
 	/**
-	 * @brief Creates a new unescaped instance from a hex string.
+	 * Creates a new unescaped instance from a hex string.
 	 * @param isEscaped whether the hex string is escaped and shall be unescaped.
 	 * @param str the hex string.
 	 */
 	SymbolString(const string& str, const bool isEscaped);
 
 	/**
-	 * @brief Returns the symbols as hex string.
+	 * Returns the symbols as hex string.
 	 * @param unescape whether to unescape an escaped instance.
 	 * @return the symbols as hex string.
 	 */
 	const string getDataStr(const bool unescape=true);
 
 	/**
-	 * @brief Returns a reference to the symbol at the specified index.
+	 * Returns a reference to the symbol at the specified index.
 	 * @param index the index of the symbol to return.
 	 * @return the reference to the symbol at the specified index.
 	 */
 	unsigned char& operator[](const size_t index) { if (index >= m_data.size()) m_data.resize(index+1, 0); return m_data[index]; }
 
 	/**
-	 * @brief Returns the symbol at the specified index.
+	 * Returns the symbol at the specified index.
 	 * @param index the index of the symbol to return.
 	 * @return the symbol at the specified index.
 	 */
 	const unsigned char& operator[](const size_t index) const { return m_data[index]; }
 
 	/**
-	 * @brief Returns whether this instance is equal to the other instance.
+	 * Returns whether this instance is equal to the other instance.
 	 * @param other the other instance.
 	 * @return true if this instance is equal to the other instance (i.e. both escaped or both unescaped and same symbols).
 	 */
@@ -112,7 +112,7 @@ public:
 	}
 
 	/**
-	 * @brief Appends a the symbol to the end of the symbol string and escapes/unescapes it if necessary.
+	 * Appends a the symbol to the end of the symbol string and escapes/unescapes it if necessary.
 	 * @param value the symbol to append.
 	 * @param isEscaped whether the symbol is escaped.
 	 * @param updateCRC whether to update the calculated CRC in @a m_crc.
@@ -123,72 +123,72 @@ public:
 	result_t push_back(const unsigned char value, const bool isEscaped=true, const bool updateCRC=true);
 
 	/**
-	 * @brief Returns the number of symbols in this symbol string.
+	 * Returns the number of symbols in this symbol string.
 	 * @return the number of available symbols.
 	 */
 	unsigned char size() const { return (unsigned char)m_data.size(); }
 
 	/**
-	 * @brief Returns the calculated CRC.
+	 * Returns the calculated CRC.
 	 * @return the calculated CRC.
 	 */
 	unsigned char getCRC() const { return m_crc; }
 
 	/**
-	 * @brief Clears the symbols.
+	 * Clears the symbols.
 	 */
 	void clear() { m_data.clear(); m_unescapeState = m_unescapeState==0 ? 0 : 1; m_crc = 0; }
 
 private:
 
 	/**
-	 * @brief Hidden copy constructor.
+	 * Hidden copy constructor.
 	 * @param str the @a SymbolString to copy from.
 	 */
 	SymbolString(const SymbolString& str)
 		: m_data(str.m_data), m_unescapeState(str.m_unescapeState), m_crc(str.m_crc) {}
 
 	/**
-	 * @brief Updates the calculated CRC in @a m_crc by adding a value.
+	 * Updates the calculated CRC in @a m_crc by adding a value.
 	 * @param value the (escaped) value to add to the calculated CRC in @a m_crc.
 	 */
 	void addCRC(const unsigned char value);
 
 	/**
-	 * @brief the string of bus symbols.
+	 * the string of bus symbols.
 	 */
 	vector<unsigned char> m_data;
 
 	/**
-	 * @brief 0 if the symbols in @a m_data are escaped,
+	 * 0 if the symbols in @a m_data are escaped,
 	 * 1 if the symbols in @a m_data are unescaped and the last symbol passed to @a push_back was a normal symbol,
 	 * 2 if the symbols in @a m_data are unescaped and the last symbol passed to @a push_back was the escape symbol.
 	 */
 	int m_unescapeState;
 
 	/**
-	 * @brief the calculated CRC.
+	 * the calculated CRC.
 	 */
 	unsigned char m_crc;
 };
 
 
 /**
- * @brief Returns whether the address is one of the 25 master addresses.
+ * Returns whether the address is one of the 25 master addresses.
  * @param addr the address to check.
  * @return <code>true</code> if the specified address is a master address.
  */
 bool isMaster(unsigned char addr);
 
 /**
- * @brief Returns the number of the master if the address is a valid bus address.
+ * Returns the number of the master if the address is a valid bus address.
  * @param addr the bus address.
  * @return the number of the master if the address is a valid bus address (1 to 25), or 0.
  */
 unsigned char getMasterNumber(unsigned char addr);
 
 /**
- * @brief Returns whether the address is a valid bus address.
+ * Returns whether the address is a valid bus address.
  * @param addr the address to check.
  * @param allowBroadcast whether to also allow @a addr to be the broadcast address (default true).
  * @return <code>true</code> if the specified address is a valid bus address.

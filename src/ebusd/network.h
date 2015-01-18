@@ -34,14 +34,14 @@ using namespace std;
 class Connection;
 
 /**
- * @brief class for data/message transfer between connection and baseloop.
+ * class for data/message transfer between connection and baseloop.
  */
 class NetMessage
 {
 
 public:
 	/**
-	 * @brief constructs a new instance with data received from the client.
+	 * constructs a new instance with data received from the client.
 	 * @param data from client.
 	 * @param listening whether the client is in listening mode.
 	 * @param listenSince start timestamp of listening update.
@@ -54,7 +54,7 @@ public:
 	}
 
 	/**
-	 * @brief destructor.
+	 * destructor.
 	 */
 	~NetMessage()
 	{
@@ -64,7 +64,7 @@ public:
 
 private:
 	/**
-	 * @brief Hidden copy constructor.
+	 * Hidden copy constructor.
 	 * @param src the object to copy from.
 	 */
 	NetMessage(const NetMessage& src);
@@ -72,13 +72,13 @@ private:
 public:
 
 	/**
-	 * @brief get the data string.
+	 * get the data string.
 	 * @return the data string.
 	 */
 	string getData() const { return m_data; }
 
 	/**
-	 * @brief Wait for the result being set and return the result string.
+	 * Wait for the result being set and return the result string.
 	 * @return the result string.
 	 */
 	string getResult() {
@@ -93,7 +93,7 @@ public:
 	}
 
 	/**
-	 * @brief Set the result string and notify the waiting thread.
+	 * Set the result string and notify the waiting thread.
 	 * @param result the result string.
 	 * @param listening whether the client is in listening mode.
 	 * @param listenUntil the end time to which to updates were added (exclusive).
@@ -110,7 +110,7 @@ public:
 		}
 
 	/**
-	 * @brief Return whether the client is in listening mode.
+	 * Return whether the client is in listening mode.
 	 * @param listenSince set to the start time from which to add updates (inclusive).
 	 * @return whether the client is in listening mode.
 	 */
@@ -141,14 +141,14 @@ private:
 };
 
 /**
- * @brief class connection which handle client and baseloop communication.
+ * class connection which handle client and baseloop communication.
  */
 class Connection : public Thread
 {
 
 public:
 	/**
-	 * @brief create a new connection instance.
+	 * create a new connection instance.
 	 * @param socket the tcp socket for communication.
 	 * @param netQueue the remote queue for network messages.
 	 */
@@ -158,17 +158,17 @@ public:
 
 	virtual ~Connection() { delete m_socket; }
 	/**
-	 * @brief endless loop for connection instance.
+	 * endless loop for connection instance.
 	 */
 	virtual void run();
 
 	/**
-	 * @brief close active connection.
+	 * close active connection.
 	 */
 	virtual void stop() { m_notify.notify(); Thread::stop(); }
 
 	/**
-	 * @brief return own connection id.
+	 * return own connection id.
 	 * @return id of current connection.
 	 */
 	int getID() { return m_id; }
@@ -195,14 +195,14 @@ private:
 };
 
 /**
- * @brief class network which listening on tcp socket for incoming connections.
+ * class network which listening on tcp socket for incoming connections.
  */
 class Network : public Thread
 {
 
 public:
 	/**
-	 * @brief create a network instance and listening for incoming connections.
+	 * create a network instance and listening for incoming connections.
 	 * @param local true to accept connections only for local host.
 	 * @param port the tcp port to listening.
 	 * @param netQueue the remote queue for network messages.
@@ -210,17 +210,17 @@ public:
 	Network(const bool local, const int port, WQueue<NetMessage*>* netQueue);
 
 	/**
-	 * @brief destructor.
+	 * destructor.
 	 */
 	~Network();
 
 	/**
-	 * @brief endless loop for network instance.
+	 * endless loop for network instance.
 	 */
 	virtual void run();
 
 	/**
-	 * @brief shutdown network subsystem.
+	 * shutdown network subsystem.
 	 */
 	void stop() const { m_notify.notify(); usleep(100000); }
 
@@ -241,7 +241,7 @@ private:
 	bool m_listening;
 
 	/**
-	 * @brief clean inactive connections from container.
+	 * clean inactive connections from container.
 	 */
 	void cleanConnections();
 

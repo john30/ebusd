@@ -158,7 +158,7 @@ void signal_handler(int sig)
 }
 
 /**
- * @brief Read the configuration files from the specified path.
+ * Read the configuration files from the specified path.
  * @param path the path from which to read the files.
  * @param extension the filename extension of the files to read.
  * @param logFunc the function to call for logging, or @a NULL to be silent.
@@ -207,7 +207,7 @@ static result_t readConfigFiles(const string path, const string extension, DataF
 };
 
 /**
- * @brief Load the message definitions from the configuration files.
+ * Load the message definitions from the configuration files.
  * @param templates the @a DataFieldTemplates to load the templates into.
  * @param messages the @a MessageMap to load the messages into.
  * @param verbose whether to verbosely log problems.

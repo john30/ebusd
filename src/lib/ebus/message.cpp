@@ -70,7 +70,7 @@ Message::Message(const bool isWrite, const bool isPassive,
 }
 
 /**
- * @brief Helper method for getting a default if the value is empty.
+ * Helper method for getting a default if the value is empty.
  * @param value the value to check.
  * @param defaults a @a vector of defaults, or NULL.
  * @param pos the position in defaults.

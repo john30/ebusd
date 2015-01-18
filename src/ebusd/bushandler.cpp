@@ -39,7 +39,7 @@ extern Logger& L;
 #define LOG(area, level, ...) (L.hasSink(area, level) == true) ? L.log(area, level, __VA_ARGS__) : void(0)
 
 /**
- * @brief Return the string corresponding to the @a BusState.
+ * Return the string corresponding to the @a BusState.
  * @param state the @a BusState.
  * @return the string corresponding to the @a BusState.
  */

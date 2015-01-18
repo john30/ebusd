@@ -25,7 +25,7 @@
 using namespace std;
 
 /**
- * @brief CRC8 lookup table for the polynom 0x9b = x^8 + x^7 + x^4 + x^3 + x^1 + 1.
+ * CRC8 lookup table for the polynom 0x9b = x^8 + x^7 + x^4 + x^3 + x^1 + 1.
  */
 static const unsigned char CRC_LOOKUP_TABLE[] =
 {

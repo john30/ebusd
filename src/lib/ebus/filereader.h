@@ -33,17 +33,17 @@
 
 using namespace std;
 
-/** @brief the separator character used between fields. */
+/** the separator character used between fields. */
 #define FIELD_SEPARATOR ','
 
-/** @brief the separator character used to quote text having the @a FIELD_SEPARATOR in it. */
+/** the separator character used to quote text having the @a FIELD_SEPARATOR in it. */
 #define TEXT_SEPARATOR '"'
 
 extern void printErrorPos(vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, string filename, size_t lineNo, result_t result);
 
 
 /**
- * @brief An abstract class that support reading definitions from a file.
+ * An abstract class that support reading definitions from a file.
  */
 template<typename T>
 class FileReader
@@ -51,18 +51,18 @@ class FileReader
 public:
 
 	/**
-	 * @brief Construct a new instance.
+	 * Construct a new instance.
 	 */
 	FileReader(bool supportsDefaults)
 			: m_supportsDefaults(supportsDefaults) {}
 
 	/**
-	 * @brief Destructor.
+	 * Destructor.
 	 */
 	virtual ~FileReader() {}
 
 	/**
-	 * @brief Read the definitions from a file.
+	 * Read the definitions from a file.
 	 * @param filename the name of the file being read.
 	 * @param arg an argument to pass to @a addFromFile().
 	 * @param verbose whether to verbosely log problems.
@@ -155,7 +155,7 @@ public:
 	}
 
 	/**
-	 * @brief Add a definition that was read from a file.
+	 * Add a definition that was read from a file.
 	 * @param begin an iterator to the first column of the definition row to read.
 	 * @param end the end iterator of the definition row to read.
 	 * @param arg the argument passed to @a readFromFile().

@@ -25,49 +25,49 @@
 /** \file daemon.h */
 
 /**
- * @brief class to daemonize a process.
+ * class to daemonize a process.
  */
 class Daemon
 {
 
 public:
 	/**
-	 * @brief create an instance and return the reference.
+	 * create an instance and return the reference.
 	 * @return the reference to instance.
 	 */
 	static Daemon& Instance();
 
 	/**
-	 * @brief daemonize act process.
+	 * daemonize act process.
 	 * @param pidfile the name of the pid file.
 	 */
 	void run(const char* pidfile);
 
 	/**
-	 * @brief stop daemon and delete the pid file.
+	 * stop daemon and delete the pid file.
 	 */
 	void stop() { if (m_pidfile != NULL) pidfile_close(); }
 
 	/**
-	 * @brief show actual status if daemonize.
+	 * show actual status if daemonize.
 	 * @return true if process is a daemon.
 	 */
 	bool status() { return m_status; }
 
 private:
 	/**
-	 * @brief private construtor.
+	 * private construtor.
 	 */
 	Daemon() : m_status(false), m_pidfile(NULL), m_pidfd(0) {}
 
 	/**
-	 * @brief private copy construtor.
+	 * private copy construtor.
 	 * @param reference to an instance.
 	 */
 	Daemon(const Daemon&);
 
 	/**
-	 * @brief private = operator.
+	 * private = operator.
 	 * @param reference to an instance.
 	 * @return reference to instance.
 	 */
@@ -83,13 +83,13 @@ private:
 	int m_pidfd;
 
 	/**
-	 * @brief creates a pid file for process.
+	 * creates a pid file for process.
 	 * @return true if success.
 	 */
 	bool pidfile_open();
 
 	/**
-	 * @brief close and delete the pid file.
+	 * close and delete the pid file.
 	 * @return true if success.
 	 */
 	bool pidfile_close();

@@ -35,7 +35,7 @@ using namespace std;
 class MessageMap;
 
 /**
- * @brief Defines parameters of a message sent or received on the bus.
+ * Defines parameters of a message sent or received on the bus.
  */
 class Message
 {
@@ -43,7 +43,7 @@ class Message
 public:
 
 	/**
-	 * @brief Construct a new instance.
+	 * Construct a new instance.
 	 * @param clazz the optional device class.
 	 * @param name the message name (unique within the same class and type).
 	 * @param isWrite whether this is a write message.
@@ -63,7 +63,7 @@ public:
 			const unsigned int pollPriority);
 
 	/**
-	 * @brief Construct a new temporary instance.
+	 * Construct a new temporary instance.
 	 * @param isWrite whether this is a write message.
 	 * @param isPassive true if message can only be initiated by a participant other than us,
 	 * false if message can be initiated by any participant.
@@ -76,12 +76,12 @@ public:
 			DataField* data);
 
 	/**
-	 * @brief Destructor.
+	 * Destructor.
 	 */
 	virtual ~Message() { delete m_data; }
 
 	/**
-	 * @brief Factory method for creating a new instance.
+	 * Factory method for creating a new instance.
 	 * @param it the iterator to traverse for the definition parts.
 	 * @param end the iterator pointing to the end of the definition parts.
 	 * @param defaultsRows a @a vector with rows containing defaults, or NULL.
@@ -95,68 +95,68 @@ public:
 			DataFieldTemplates* templates, Message*& returnValue);
 
 	/**
-	 * @brief Get the optional device class.
+	 * Get the optional device class.
 	 * @return the optional device class.
 	 */
 	string getClass() const { return m_class; }
 
 	/**
-	 * @brief Get the message name (unique within the same class and type).
+	 * Get the message name (unique within the same class and type).
 	 * @return the message name (unique within the same class and type).
 	 */
 	string getName() const { return m_name; }
 
 	/**
-	 * @brief Get whether this is a write message.
+	 * Get whether this is a write message.
 	 * @return whether this is a write message.
 	 */
 	bool isWrite() const { return m_isWrite; }
 
 	/**
-	 * @brief Get whether message can be initiated only by a participant other than us.
+	 * Get whether message can be initiated only by a participant other than us.
 	 * @return true if message can only be initiated by a participant other than us,
 	 * false if message can be initiated by any participant.
 	 */
 	bool isPassive() const { return m_isPassive; }
 
 	/**
-	 * @brief Get the comment.
+	 * Get the comment.
 	 * @return the comment.
 	 */
 	string getComment() const { return m_comment; }
 
 	/**
-	 * @brief Get the source address.
+	 * Get the source address.
 	 * @return the source address, or @a SYN for any.
 	 */
 	unsigned char getSrcAddress() const { return m_srcAddress; }
 
 	/**
-	 * @brief Get the destination address.
+	 * Get the destination address.
 	 * @return the destination address, or @a SYN for any.
 	 */
 	unsigned char getDstAddress() const { return m_dstAddress; }
 
 	/**
-	 * @brief Get the command ID bytes.
+	 * Get the command ID bytes.
 	 * @return the primary, secondary, and optionally further command ID bytes.
 	 */
 	vector<unsigned char> getId() const { return m_id; }
 
 	/**
-	 * @brief Return the key for storing in @a MessageMap.
+	 * Return the key for storing in @a MessageMap.
 	 * @return the key for storing in @a MessageMap.
 	 */
 	unsigned long long getKey() { return m_key; }
 
 	/**
-	 * @brief Get the polling priority, or 0 for no polling at all.
+	 * Get the polling priority, or 0 for no polling at all.
 	 * @return the polling priority, or 0 for no polling at all.
 	 */
 	unsigned char getPollPriority() const { return m_pollPriority; }
 
 	/**
-	 * @brief Prepare the master @a SymbolString for sending a query or command to the bus.
+	 * Prepare the master @a SymbolString for sending a query or command to the bus.
 	 * @param srcAddress the source address to set.
 	 * @param masterData the master data @a SymbolString for writing symbols to.
 	 * @param input the @a istringstream to parse the formatted value(s) from.
@@ -169,14 +169,14 @@ public:
 			const unsigned char dstAddress=SYN);
 
 	/**
-	 * @brief Prepare the slave @a SymbolString for sending an answer to the bus.
+	 * Prepare the slave @a SymbolString for sending an answer to the bus.
 	 * @param slaveData the slave data @a SymbolString for writing symbols to.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	result_t prepareSlave(SymbolString& slaveData);
 
 	/**
-	 * @brief Decode a singular part of a received message.
+	 * Decode a singular part of a received message.
 	 * @param partType the @a PartType of the data.
 	 * @param data the unescaped data @a SymbolString for reading binary data.
 	 * @param output the @a ostringstream to append the formatted value to.
@@ -193,7 +193,7 @@ public:
 			char separator=UI_FIELD_SEPARATOR);
 
 	/**
-	 * @brief Decode all parts of a received message.
+	 * Decode all parts of a received message.
 	 * @param masterData the unescaped master data @a SymbolString to decode.
 	 * @param slaveData the unescaped slave data @a SymbolString to decode.
 	 * @param output the @a ostringstream to append the formatted value to.
@@ -210,31 +210,31 @@ public:
 			char separator=UI_FIELD_SEPARATOR);
 
 	/**
-	 * @brief Get the last decoded value.
+	 * Get the last decoded value.
 	 * @return the last decoded value, or the empty string if it was not successful.
 	 */
 	string getLastValue() { return m_lastValue; }
 
 	/**
-	 * @brief Get the time when @a m_lastValue was last stored.
+	 * Get the time when @a m_lastValue was last stored.
 	 * @return the time when @a m_lastValue was last stored, or 0 if this message was not decoded yet.
 	 */
 	time_t getLastUpdateTime() { return m_lastUpdateTime; }
 
 	/**
-	 * @brief Get the time when @a m_lastValue was last changed.
+	 * Get the time when @a m_lastValue was last changed.
 	 * @return the time when @a m_lastValue was last changed, or 0 if this message was not decoded yet.
 	 */
 	time_t getLastChangeTime() { return m_lastChangeTime; }
 
 	/**
-	 * @brief Get the time when this message was last polled for.
+	 * Get the time when this message was last polled for.
 	 * @return the time when this message was last polled for, or 0 for never.
 	 */
 	time_t getLastPollTime() { return m_lastPollTime; }
 
 	/**
-	 * @brief Return whether this @a Message needs to be polled after the other one.
+	 * Return whether this @a Message needs to be polled after the other one.
 	 * @param other the other @a Message to compare with.
 	 * @return true if this @a Message needs to be polled after the other one.
 	 */
@@ -295,11 +295,11 @@ private:
 
 
 /**
- * @brief A function that compares the weighted poll priority of two @a Message instances.
+ * A function that compares the weighted poll priority of two @a Message instances.
  */
 struct compareMessagePriority : binary_function <Message*,Message*,bool> {
 	/**
-	 * @brief Compare the weighted poll priority of the two @a Message instances.
+	 * Compare the weighted poll priority of the two @a Message instances.
 	 * @param x the first @a Message.
 	 * @param y the second @a Message.
 	 * @return whether @a x is smaller than @a y with regard to their weighted poll priority.
@@ -309,25 +309,25 @@ struct compareMessagePriority : binary_function <Message*,Message*,bool> {
 
 
 /**
- * @brief Holds a map of all known @a Message instances.
+ * Holds a map of all known @a Message instances.
  */
 class MessageMap : public FileReader<DataFieldTemplates*>
 {
 public:
 
 	/**
-	 * @brief Construct a new instance.
+	 * Construct a new instance.
 	 */
 	MessageMap() : FileReader<DataFieldTemplates*>::FileReader(true),
 		m_minIdLength(4), m_maxIdLength(0), m_messageCount(0), m_passiveMessageCount(0) {}
 
 	/**
-	 * @brief Destructor.
+	 * Destructor.
 	 */
 	virtual ~MessageMap() { clear(); }
 
 	/**
-	 * @brief Add a @a Message instance to this set.
+	 * Add a @a Message instance to this set.
 	 * @param message the @a Message instance to add.
 	 * @return @a RESULT_OK on success, or an error code.
 	 * Note: the caller may not free the added instance on success.
@@ -338,7 +338,7 @@ public:
 	virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end, DataFieldTemplates* arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo);
 
 	/**
-	 * @brief Find the @a Message instance for the specified class and name.
+	 * Find the @a Message instance for the specified class and name.
 	 * @param clazz the optional device class.
 	 * @param name the message name.
 	 * @param isWrite whether this is a write message.
@@ -349,7 +349,7 @@ public:
 	Message* find(const string& clazz, const string& name, const bool isWrite, const bool isPassive=false);
 
 	/**
-	 * @brief Find all active get @a Message instances for the specified class and name.
+	 * Find all active get @a Message instances for the specified class and name.
 	 * @param clazz the device class, or empty for any.
 	 * @param name the message name, or empty for any.
 	 * @param pb the primary ID byte, or -1 for any (default any).
@@ -364,7 +364,7 @@ public:
 		const bool withRead=true, const bool withWrite=false, const bool withPassive=false);
 
 	/**
-	 * @brief Find the @a Message instance for the specified master data.
+	 * Find the @a Message instance for the specified master data.
 	 * @param master the master @a SymbolString for identifying the @a Message.
 	 * @return the @a Message instance, or NULL.
 	 * Note: the caller may not free the returned instance.
@@ -372,25 +372,25 @@ public:
 	Message* find(SymbolString& master);
 
 	/**
-	 * @brief Removes all @a Message instances.
+	 * Removes all @a Message instances.
 	 */
 	void clear();
 
 	/**
-	 * @brief Get the number of stored @a Message instances.
+	 * Get the number of stored @a Message instances.
 	 * @param passiveOnly true to count only passive messages, false to count all messages.
 	 * @return the the number of stored @a Message instances.
 	 */
 	size_t size(const bool passiveOnly=false) { return passiveOnly ? m_passiveMessageCount : m_messageCount; }
 
 	/**
-	 * @brief Get the number of stored @a Message instances with a poll priority.
+	 * Get the number of stored @a Message instances with a poll priority.
 	 * @return the the number of stored @a Message instances with a poll priority.
 	 */
 	size_t sizePoll() { return m_pollMessages.size(); }
 
 	/**
-	 * @brief Get the next @a Message to poll.
+	 * Get the next @a Message to poll.
 	 * @return the next @a Message to poll, or NULL.
 	 * Note: the caller may not free the returned instance.
 	 */

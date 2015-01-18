@@ -29,7 +29,7 @@
 using namespace std;
 
 /**
- * @brief class for low level tcp socket operations. (open, close, send, receive).
+ * class for low level tcp socket operations. (open, close, send, receive).
  */
 class TCPSocket
 {
@@ -42,12 +42,12 @@ public:
 	friend class TCPServer;
 
 	/**
-	 * @brief destructor.
+	 * destructor.
 	 */
 	~TCPSocket() { close(m_sfd); }
 
 	/**
-	 * @brief write bytes to opened file descriptor.
+	 * write bytes to opened file descriptor.
 	 * @param buffer data to send.
 	 * @param len number of bytes to send.
 	 * @return number of written bytes or -1 if an error has occured.
@@ -55,7 +55,7 @@ public:
 	ssize_t send(const char* buffer, size_t len) { return ::send(m_sfd, buffer, len, MSG_NOSIGNAL); }
 
 	/**
-	 * @brief read bytes from opened file descriptor.
+	 * read bytes from opened file descriptor.
 	 * @param buffer for received bytes.
 	 * @param len size of the receive buffer.
 	 * @return number of read bytes or -1 if an error has occured.
@@ -63,25 +63,25 @@ public:
 	ssize_t recv(char* buffer, size_t len) { return ::recv(m_sfd, buffer, len, 0); }
 
 	/**
-	 * @brief returns the tcp port.
+	 * returns the tcp port.
 	 * @return the tcp port.
 	 */
 	int getPort() const { return m_port; }
 
 	/**
-	 * @brief returns the ip address.
+	 * returns the ip address.
 	 * @return the ip address.
 	 */
 	string getIP() const { return m_ip; }
 
 	/**
-	 * @brief returns the file descriptor.
+	 * returns the file descriptor.
 	 * @return the file descriptor.
 	 */
 	int getFD() const { return m_sfd; }
 
 	/**
-	 * @brief returns status of file descriptor.
+	 * returns status of file descriptor.
 	 * @return true if file descriptor is valid.
 	 */
 	bool isValid();
@@ -97,7 +97,7 @@ private:
 	string  m_ip;
 
 	/**
-	 * @brief private constructor, limited access only for friend classes.
+	 * private constructor, limited access only for friend classes.
 	 * @param sfd the file desctriptor of tcp socket.
 	 * @param address struct which holds the ip address.
 	 */
@@ -106,14 +106,14 @@ private:
 };
 
 /**
- * @brief class to initiate a tcp socket connection to a listening server.
+ * class to initiate a tcp socket connection to a listening server.
  */
 class TCPClient
 {
 
 public:
 	/**
-	 * @brief initiate a tcp socket connection to a listening server.
+	 * initiate a tcp socket connection to a listening server.
 	 * @param server the server name or ip address to connect.
 	 * @param port the tcp port.
 	 * @return pointer to an opened tcp socket.
@@ -123,14 +123,14 @@ public:
 };
 
 /**
- * @brief class for a tcp based network server.
+ * class for a tcp based network server.
  */
 class TCPServer
 {
 
 public:
 	/**
-	 * @brief creates a new instance of a listening tcp server.
+	 * creates a new instance of a listening tcp server.
 	 * @param port the tcp port.
 	 * @param address the ip address.
 	 */
@@ -138,24 +138,24 @@ public:
 		: m_lfd(0), m_port(port), m_address(address), m_listening(false) {}
 
 	/**
-	 * @brief destructor.
+	 * destructor.
 	 */
 	~TCPServer() { if (m_lfd > 0) {close(m_lfd);} }
 
 	/**
-	 * @brief start listening of tcp socket.
+	 * start listening of tcp socket.
 	 * @return result of low level functions.
 	 */
 	int start();
 
 	/**
-	 * @brief accept an incomming tcp connection and create a local tcp socket for communication.
+	 * accept an incomming tcp connection and create a local tcp socket for communication.
 	 * @return pointer to an opened tcp socket.
 	 */
 	TCPSocket* newSocket();
 
 	/**
-	 * @brief returns the file descriptor.
+	 * returns the file descriptor.
 	 * @return the file descriptor.
 	 */
 	int getFD() const { return m_lfd; }

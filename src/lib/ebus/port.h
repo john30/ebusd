@@ -32,7 +32,7 @@
 
 using namespace std;
 
-/** @brief available device types. */
+/** available device types. */
 enum DeviceType {
 	dt_serial,  /*!< serial device */
 	dt_network  /*!< network device */
@@ -40,24 +40,24 @@ enum DeviceType {
 
 
 /**
- * @brief base class for input devices.
+ * base class for input devices.
  */
 class Device
 {
 
 public:
 	/**
-	 * @brief constructs a new instance.
+	 * constructs a new instance.
 	 */
 	Device() : m_fd(-1), m_open(false), m_noDeviceCheck(false) {}
 
 	/**
-	 * @brief destructor.
+	 * destructor.
 	 */
 	virtual ~Device() {}
 
 	/**
-	 * @brief virtual open function for opening file descriptor
+	 * virtual open function for opening file descriptor
 	 * @param deviceName to determine device type.
 	 * @param noDeviceCheck en-/disable device check.
 	 * @return the @a result_t code.
@@ -65,25 +65,25 @@ public:
 	virtual result_t openDevice(const string deviceName, const bool noDeviceCheck) = 0;
 
 	/**
-	 * @brief virtual close function for closing opened file descriptor
+	 * virtual close function for closing opened file descriptor
 	 */
 	virtual void closeDevice() = 0;
 
 	/**
-	 * @brief connection state of device.
+	 * connection state of device.
 	 * @return true if device is open
 	 */
 	bool isOpen();
 
 	/**
-	 * @brief Write a single byte to opened file descriptor.
+	 * Write a single byte to opened file descriptor.
 	 * @param value the value to send.
 	 * @return the result_t code.
 	 */
 	result_t send(const unsigned char value);
 
 	/**
-	 * @brief Read a single byte from opened file descriptor.
+	 * Read a single byte from opened file descriptor.
 	 * @param timeout max time out for new input data [usec], or 0 for infinite.
 	 * @param value the reference in which the value is stored.
 	 * @return the result_t code.
@@ -102,7 +102,7 @@ protected:
 
 private:
 	/**
-	 * @brief system check if opened file descriptor is valid
+	 * system check if opened file descriptor is valid
 	 * @return true if file descriptor is valid
 	 */
 	bool isValid();
@@ -110,14 +110,14 @@ private:
 };
 
 /**
- * @brief class for serial input device.
+ * class for serial input device.
  */
 class DeviceSerial : public Device
 {
 
 public:
 	/**
-	 * @brief destructor.
+	 * destructor.
 	 */
 	~DeviceSerial() { closeDevice(); }
 
@@ -134,14 +134,14 @@ private:
 };
 
 /**
- * @brief class for network input device.
+ * class for network input device.
  */
 class DeviceNetwork : public Device
 {
 
 public:
 	/**
-	 * @brief destructor.
+	 * destructor.
 	 */
 	~DeviceNetwork() { closeDevice(); }
 
@@ -156,14 +156,14 @@ private:
 };
 
 /**
- * @brief wrapper class for class device.
+ * wrapper class for class device.
  */
 class Port
 {
 
 public:
 	/**
-	 * @brief constructs a new instance and determine device type.
+	 * constructs a new instance and determine device type.
 	 * @param deviceName to determine device type.
 	 * @param noDeviceCheck en-/disable device check.
 	 * @param logRaw whether logging of raw data is enabled.
@@ -177,35 +177,35 @@ public:
 		const bool dumpRaw, const char* dumpRawFile, const long dumpRawMaxSize);
 
 	/**
-	 * @brief destructor.
+	 * destructor.
 	 */
 	~Port() { delete m_device; m_dumpRawStream.close(); }
 
 	/**
-	 * @brief open device
+	 * open device
 	 */
 	result_t open() { return m_device->openDevice(m_deviceName, m_noDeviceCheck); }
 
 	/**
-	 * @brief close device
+	 * close device
 	 */
 	void close() { m_device->closeDevice(); }
 
 	/**
-	 * @brief connection state of device.
+	 * connection state of device.
 	 * @return true if device is open
 	 */
 	bool isOpen() { return m_device->isOpen(); }
 
 	/**
-	 * @brief Write a single byte to opened file descriptor.
+	 * Write a single byte to opened file descriptor.
 	 * @param value the value to send.
 	 * @return the result_t code.
 	 */
 	result_t send(const unsigned char value);
 
 	/**
-	 * @brief Read a single byte from opened file descriptor.
+	 * Read a single byte from opened file descriptor.
 	 * @param timeout max time out for new input data [usec], or 0 for infinite.
 	 * @param value the reference in which the value is stored.
 	 * @return the result_t code.
@@ -213,43 +213,43 @@ public:
 	result_t recv(const long timeout, unsigned char& value);
 
 	/**
-	 * @brief Get whether logging of raw data is enabled.
+	 * Get whether logging of raw data is enabled.
 	 * @return whether logging of raw data is enabled.
 	 */
 	bool getLogRaw() { return m_logRaw; }
 
 	/**
-	 * @brief Enable or disable logging of raw data.
+	 * Enable or disable logging of raw data.
 	 * @param logRaw true to enable logging of raw data, false to disable it.
 	 */
 	void setLogRaw(bool logRaw=true) { m_logRaw = logRaw; }
 
 	/**
-	 * @brief Get whether dumping of raw data to a file is enabled.
+	 * Get whether dumping of raw data to a file is enabled.
 	 * @return whether dumping of raw data to a file is enabled.
 	 */
 	bool getDumpRaw() { return m_dumpRaw; }
 
 	/**
-	 * @brief Enable or disable dumping of raw data to a file.
+	 * Enable or disable dumping of raw data to a file.
 	 * @param dumpRaw true to enable dumping of raw data to a file, false to disable it.
 	 */
 	void setDumpRaw(bool dumpRaw=true);
 
 	/**
-	 * @brief Set the name of the file to dump raw data to.
+	 * Set the name of the file to dump raw data to.
 	 * @param dumpFile the name of the file to dump raw data to.
 	 */
 	void setDumpRawFile(const string& dumpFile);
 
 	/**
-	 * @brief Set the maximum size of a file to dump raw data to.
+	 * Set the maximum size of a file to dump raw data to.
 	 * @param maxSize the maximum size of a file to dump raw data to.
 	 */
 	void setDumpRawMaxSize(const long maxSize) { m_dumpRawMaxSize = maxSize; }
 
 	/**
-	 * @brief Return the device name.
+	 * Return the device name.
 	 * @return the device name.
 	 */
 	const char* getDeviceName() { return m_deviceName.c_str(); }
@@ -286,7 +286,7 @@ private:
 	long m_dumpRawFileSize;
 
 	/**
-	 * @brief internal setter for device type.
+	 * internal setter for device type.
 	 * @param type of device
 	 */
 	void setType(const DeviceType type);

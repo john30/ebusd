@@ -26,14 +26,14 @@
 /** \file notify.h */
 
 /**
- * @brief class to notify other thread per pipe.
+ * class to notify other thread per pipe.
  */
 class Notify
 {
 
 public:
 	/**
-	 * @brief constructs a new instance and do notifying.
+	 * constructs a new instance and do notifying.
 	 */
 	Notify()
 	{
@@ -49,18 +49,18 @@ public:
 	}
 
 	/**
-	 * @brief destructor.
+	 * destructor.
 	 */
 	~Notify() { close(m_sendfd); close(m_recvfd); }
 
 	/**
-	 * @brief file descriptor to watch for notify event.
+	 * file descriptor to watch for notify event.
 	 * @return the notification value.
 	 */
 	int notifyFD() { return m_recvfd; }
 
 	/**
-	 * @brief write notify event to file descriptor.
+	 * write notify event to file descriptor.
 	 * @return result of writing notification.
 	 */
 	int notify() const { return write(m_sendfd,"1",1); }

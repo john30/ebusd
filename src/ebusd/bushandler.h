@@ -39,19 +39,19 @@ using namespace std;
 /* the maximum allowed time [us] for retrieving a symbol from an addressed slave. */
 //#define SLAVE_RECV_TIMEOUT 10000
 
-/** @brief the maximum allowed time [us] for retrieving the AUTO-SYN symbol (45ms + 2*1,2% + 1 Symbol). */
+/** the maximum allowed time [us] for retrieving the AUTO-SYN symbol (45ms + 2*1,2% + 1 Symbol). */
 #define SYN_TIMEOUT 50800
 
-/** @brief the time [us] for determining bus signal availability (AUTO-SYN timeout * 5). */
+/** the time [us] for determining bus signal availability (AUTO-SYN timeout * 5). */
 #define SIGNAL_TIMEOUT 250000
 
-/** @brief the maximum duration [us] of a single symbol (Start+8Bit+Stop+Extra @ 2400Bd-2*1,2%). */
+/** the maximum duration [us] of a single symbol (Start+8Bit+Stop+Extra @ 2400Bd-2*1,2%). */
 #define SYMBOL_DURATION 4700
 
-/** @brief the maximum allowed time [us] for retrieving back a sent symbol (2x symbol duration). */
+/** the maximum allowed time [us] for retrieving back a sent symbol (2x symbol duration). */
 #define SEND_TIMEOUT (2*SYMBOL_DURATION)
 
-/** @brief the possible bus states. */
+/** the possible bus states. */
 enum BusState {
 	bs_noSignal,	//!< no signal on the bus
 	bs_skip,        //!< skip all symbols until next @a SYN
@@ -70,7 +70,7 @@ enum BusState {
 class BusHandler;
 
 /**
- * @brief Generic request for sending to and receiving from the bus.
+ * Generic request for sending to and receiving from the bus.
  */
 class BusRequest
 {
@@ -78,7 +78,7 @@ class BusRequest
 public:
 
 	/**
-	 * @brief Constructor.
+	 * Constructor.
 	 * @param master the master data @a SymbolString to send.
 	 * @param deleteOnFinish whether to automatically delete this @a BusRequest when finished.
 	 */
@@ -87,12 +87,12 @@ public:
 		  m_deleteOnFinish(deleteOnFinish) {}
 
 	/**
-	 * @brief Destructor.
+	 * Destructor.
 	 */
 	virtual ~BusRequest() {}
 
 	/**
-	 * @brief Notify the request of the specified result.
+	 * Notify the request of the specified result.
 	 * @param result the result of the request.
 	 * @param slave the slave data @a SymbolString received.
 	 * @return true if the request needs to be restarted.
@@ -114,7 +114,7 @@ protected:
 
 
 /**
- * @brief A poll @a BusRequest handled by @a BusHandler itself.
+ * A poll @a BusRequest handled by @a BusHandler itself.
  */
 class PollRequest : public BusRequest
 {
@@ -122,19 +122,19 @@ class PollRequest : public BusRequest
 public:
 
 	/**
-	 * @brief Constructor.
+	 * Constructor.
 	 * @param message the associated @a Message.
 	 */
 	PollRequest(Message* message)
 		: BusRequest(m_master, true), m_message(message) {}
 
 	/**
-	 * @brief Destructor.
+	 * Destructor.
 	 */
 	virtual ~PollRequest() {}
 
 	/**
-	 * @brief Prepare the master data.
+	 * Prepare the master data.
 	 * @param masterAddress the master bus address to use.
 	 * @return the result code.
 	 */
@@ -155,7 +155,7 @@ private:
 
 
 /**
- * @brief A scan @a BusRequest handled by @a BusHandler itself.
+ * A scan @a BusRequest handled by @a BusHandler itself.
  */
 class ScanRequest : public BusRequest
 {
@@ -163,7 +163,7 @@ class ScanRequest : public BusRequest
 public:
 
 	/**
-	 * @brief Constructor.
+	 * Constructor.
 	 * @param message the primary query @a Message.
 	 * @param messages the optional secondary query @a Message instances (to be queried only when the primary was successful).
 	 * @param scanResults the map in which to store the formatted scan result by slave address.
@@ -174,12 +174,12 @@ public:
 		  m_scanResults(scanResults) {}
 
 	/**
-	 * @brief Destructor.
+	 * Destructor.
 	 */
 	virtual ~ScanRequest() {}
 
 	/**
-	 * @brief Prepare the master data.
+	 * Prepare the master data.
 	 * @param masterAddress the master bus address to use.
 	 * @param dstAddress the destination address to set.
 	 * @return the result code.
@@ -207,7 +207,7 @@ private:
 
 
 /**
- * @brief An active @a BusRequest that can be waited for.
+ * An active @a BusRequest that can be waited for.
  */
 class ActiveBusRequest : public BusRequest
 {
@@ -215,7 +215,7 @@ class ActiveBusRequest : public BusRequest
 public:
 
 	/**
-	 * @brief Constructor.
+	 * Constructor.
 	 * @param master reference to the master data @a SymbolString to send.
 	 * @param slave reference to @a SymbolString for filling in the received slave data.
 	 */
@@ -223,7 +223,7 @@ public:
 		: BusRequest(master, false), m_result(RESULT_SYN), m_slave(slave) {}
 
 	/**
-	 * @brief Destructor.
+	 * Destructor.
 	 */
 	virtual ~ActiveBusRequest() {}
 
@@ -242,14 +242,14 @@ private:
 
 
 /**
- * @brief Handles input from and output to the bus with respect to the ebus protocol.
+ * Handles input from and output to the bus with respect to the ebus protocol.
  */
 class BusHandler : public Thread
 {
 public:
 
 	/**
-	 * @brief Construct a new instance.
+	 * Construct a new instance.
 	 * @param port the @a Port instance for accessing the bus.
 	 * @param messages the @a MessageMap instance with all known @a Message instances.
 	 * @param ownAddress the own master address.
@@ -280,7 +280,7 @@ public:
 	}
 
 	/**
-	 * @brief Destructor.
+	 * Destructor.
 	 */
 	virtual ~BusHandler() {
 		if (m_scanMessage != NULL)
@@ -288,7 +288,7 @@ public:
 	}
 
 	/**
-	 * @brief Send a message on the bus and wait for the answer.
+	 * Send a message on the bus and wait for the answer.
 	 * @param master the @a SymbolString with the master data to send.
 	 * @param slave the @a SymbolString that will be filled with retrieved slave data.
 	 * @return the result code.
@@ -296,26 +296,26 @@ public:
 	result_t sendAndWait(SymbolString& master, SymbolString& slave);
 
 	/**
-	 * @brief Main thread entry.
+	 * Main thread entry.
 	 */
 	virtual void run();
 
 	/**
-	 * @brief Get the last received data for the @a Message.
+	 * Get the last received data for the @a Message.
 	 * @param message the @a Message instance.
 	 * @return the last received data for the @a Message, or the empty string if not available.
 	 */
 	string getReceivedData(Message* message);
 
 	/**
-	 * @brief Initiate a scan of the slave addresses.
+	 * Initiate a scan of the slave addresses.
 	 * @param full true for a full scan (all slaves), false for scanning only already seen slaves.
 	 * @return the result code.
 	 */
 	result_t startScan(bool full=false);
 
 	/**
-	 * @brief Format the scan result to the @a ostringstream.
+	 * Format the scan result to the @a ostringstream.
 	 * @param output the @a ostringstream to format the scan result to.
 	 */
 	void formatScanResult(ostringstream& output);
@@ -323,13 +323,13 @@ public:
 private:
 
 	/**
-	 * @brief Handle the next symbol on the bus.
+	 * Handle the next symbol on the bus.
 	 * @return RESULT_OK on success, or an error code.
 	 */
 	result_t handleSymbol();
 
 	/**
-	 * @brief Set a new @a BusState and add a log message if necessary.
+	 * Set a new @a BusState and add a log message if necessary.
 	 * @param state the new @a BusState.
 	 * @param result the result code.
 	 * @param firstRepetition true if the first repetition of a message part is being started.
@@ -338,7 +338,7 @@ private:
 	result_t setState(BusState state, result_t result, bool firstRepetition=false);
 
 	/**
-	 * @brief Called when a passive reception was successfully completed.
+	 * Called when a passive reception was successfully completed.
 	 */
 	void receiveCompleted();
 
