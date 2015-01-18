@@ -493,14 +493,18 @@ string BaseLoop::decodeMessage(const string& data, bool& listening)
 		break;
 	}
 	case ct_listen: {
-		if (args.size() != argPos) {
-			result << "usage: 'listen'";
-			break;
+		if (args.size() == argPos) {
+			if (listening == true)
+				return "listen continued";
+			listening = true;
+			return "listen started";
 		}
 
-		bool enabled = !listening; // TODO switch to argument "stop"
-		listening = enabled;
-		return (enabled ? "listen started" : "listen stopped");
+		if (args.size() != argPos+1 || args[argPos] != "stop")
+			return "usage: 'listen [stop]'";
+
+		listening = false;
+		return "listen stopped";
 	}
 	case ct_scan: {
 		if (args.size() == argPos) {
@@ -599,7 +603,7 @@ string BaseLoop::decodeMessage(const string& data, bool& listening)
 		       << " read      - read ebus values            'read [-v] [-f] [-m seconds] [-c class] name [field]'" << endl
 		       << " write     - write ebus values           'write class name value[;value]*' or 'write -h ZZPBSBNNDx'" << endl
 		       << " find      - find ebus values            'find [-v] [-r] [-w] [-p] [-d] [-c class] [name]'" << endl
-		       << " listen    - listen for updates          'listen'" << endl
+		       << " listen    - listen for updates          'listen [stop]'" << endl
 		       << " scan      - scan ebus known addresses   'scan'" << endl
 		       << "           - scan ebus all addresses     'scan full'" << endl
 		       << "           - show scan results           'scan result'" << endl
