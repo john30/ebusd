@@ -24,4 +24,4 @@ distclean-local:
 	-rm -rf .libs
 
 install-data-local:
-	[ -d $(sysconfdir)/ebusd ] || mkdir -p $(sysconfdir)/ebusd
+	[ -d $(DESTDIR)$(sysconfdir)/ebusd ] || mkdir -p $(DESTDIR)$(sysconfdir)/ebusd
