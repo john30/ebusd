@@ -23,7 +23,6 @@
 #include "result.h"
 #include "symbol.h"
 #include "log.h"
-#include "appl.h"
 #include <string>
 #include <vector>
 #include <deque>

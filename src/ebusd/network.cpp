@@ -23,7 +23,6 @@
 
 #include "network.h"
 #include "log.h"
-#include "appl.h"
 #include <cstring>
 
 #ifdef HAVE_PPOLL
