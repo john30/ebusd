@@ -44,6 +44,8 @@ void Connection::run()
 	// set timeout
 	tdiff.tv_sec = 2;
 	tdiff.tv_nsec = 0;
+	int notifyFD = m_notify.notifyFD();
+	int sockFD = m_socket->getFD();
 
 #ifdef HAVE_PPOLL
 	int nfds = 2;
@@ -51,29 +53,30 @@ void Connection::run()
 
 	memset(fds, 0, sizeof(fds));
 
-	fds[0].fd = m_notify.notifyFD();
-	fds[0].events = POLLIN;
+	fds[0].fd = notifyFD;
+	fds[0].events = POLLIN | POLLERR | POLLHUP | POLLRDHUP;
 
-	fds[1].fd = m_socket->getFD();
-	fds[1].events = POLLIN;
+	fds[1].fd = sockFD;
+	fds[1].events = POLLIN | POLLERR | POLLHUP | POLLRDHUP;
 #else
 #ifdef HAVE_PSELECT
-	int maxfd;
-	fd_set checkfds;
+	int maxfd = (notifyFD > sockFD) ? notifyFD : sockFD;
+	fd_set checkfds, exceptfds;
 
 	FD_ZERO(&checkfds);
-	FD_SET(m_notify.notifyFD(), &checkfds);
-	FD_SET(m_socket->getFD(), &checkfds);
+	FD_SET(notifyFD, &checkfds);
+	FD_SET(sockFD, &checkfds);
 
-	(m_notify.notifyFD() > m_socket->getFD()) ?
-		(maxfd = m_notify.notifyFD()) : (maxfd = m_socket->getFD());
+	FD_ZERO(&exceptfds);
+	FD_SET(notifyFD, &exceptfds);
+	FD_SET(sockFD, &exceptfds);
 #endif
 #endif
 
 	time_t listenSince = 0;
+	bool closed = false;
 
-	for (;;) {
-
+	while (closed == false) {
 #ifdef HAVE_PPOLL
 		// wait for new fd event
 		ret = ppoll(fds, nfds, &tdiff, NULL);
@@ -82,27 +85,28 @@ void Connection::run()
 		// set readfds to inital checkfds
 		fd_set readfds = checkfds;
 		// wait for new fd event
-		ret = pselect(maxfd + 1, &readfds, NULL, NULL, &tdiff, NULL);
+		ret = pselect(maxfd + 1, &readfds, NULL, &exceptfds, &tdiff, NULL);
 #endif
 #endif
-
 		bool newData = false;
 		if (ret != 0) {
 #ifdef HAVE_PPOLL
 			// new data from notify
-			if (fds[0].revents & POLLIN)
+			if (ret < 0 || (fds[0].revents & (POLLIN | POLLERR | POLLHUP | POLLRDHUP)) || (fds[1].revents & (POLLERR | POLLHUP))) {
 				break;
-
+			}
 			// new data from socket
 			newData = fds[1].revents & POLLIN;
+			closed = fds[1].revents & POLLRDHUP;
 #else
 #ifdef HAVE_PSELECT
 			// new data from notify
-			if (FD_ISSET(m_notify.notifyFD(), &readfds))
+			if (ret < 0 || FD_ISSET(notifyFD, &readfds) || FD_ISSET(notifyFD, &exceptfds))
 				break;
 
 			// new data from socket
-			newData = FD_ISSET(m_socket->getFD(), &readfds);
+			newData = FD_ISSET(sockFD, &readfds);
+			closed = FD_ISSET(sockFD, &exceptfds);
 #endif
 #endif
 		}
@@ -140,6 +144,8 @@ void Connection::run()
 
 	}
 
+	delete m_socket;
+	m_socket = NULL;
 	L.log(net, trace, "[%05d] connection closed", getID());
 }
 

@@ -156,7 +156,7 @@ public:
 		: m_socket(socket), m_netQueue(netQueue), m_listening(false)
 		{ m_id = ++m_ids; }
 
-	virtual ~Connection() { delete m_socket; }
+	virtual ~Connection() { if (m_socket) delete m_socket; }
 	/**
 	 * endless loop for connection instance.
 	 */
