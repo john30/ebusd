@@ -22,7 +22,7 @@
 #endif
 
 #include "network.h"
-#include "logger.h"
+#include "log.h"
 #include "appl.h"
 #include <cstring>
 
@@ -31,8 +31,6 @@
 #endif
 
 using namespace std;
-
-extern Logger& L;
 
 int Connection::m_ids = 0;
 
@@ -132,7 +130,7 @@ void Connection::run()
 			m_netQueue->add(&message);
 
 			// wait for result
-			L.log(net, debug, "[%05d] wait for result", getID());
+			logDebug(lf_network, "[%05d] wait for result", getID());
 			string result = message.getResult();
 
 			if (m_socket->isValid() == false)
@@ -146,7 +144,7 @@ void Connection::run()
 
 	delete m_socket;
 	m_socket = NULL;
-	L.log(net, trace, "[%05d] connection closed", getID());
+	logInfo(lf_network, "[%05d] connection closed", getID());
 }
 
 
@@ -266,7 +264,7 @@ void Network::run()
 
 			connection->start("connection");
 			m_connections.push_back(connection);
-			L.log(net, trace, "[%05d] connection opened %s", connection->getID(), socket->getIP().c_str());
+			logInfo(lf_network, "[%05d] connection opened %s", connection->getID(), socket->getIP().c_str());
 		}
 
 	}
@@ -280,7 +278,7 @@ void Network::cleanConnections()
 			Connection* connection = *c_it;
 			c_it = m_connections.erase(c_it);
 			delete connection;
-			L.log(net, debug, "dead connection removed - %d", m_connections.size());
+			logDebug(lf_network, "dead connection removed - %d", m_connections.size());
 		}
 	}
 }

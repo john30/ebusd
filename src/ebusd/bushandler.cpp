@@ -22,7 +22,7 @@
 #include "data.h"
 #include "result.h"
 #include "symbol.h"
-#include "logger.h"
+#include "log.h"
 #include "appl.h"
 #include <string>
 #include <vector>
@@ -32,11 +32,6 @@
 #include <iomanip>
 
 using namespace std;
-
-extern Logger& L;
-
-/** helper macro for conditional logging (avoids unnecessary code execution). */
-#define LOG(area, level, ...) (L.hasSink(area, level) == true) ? L.log(area, level, __VA_ARGS__) : void(0)
 
 /**
  * Return the string corresponding to the @a BusState.
@@ -68,7 +63,7 @@ result_t PollRequest::prepare(unsigned char ownMasterAddress)
 	istringstream input;
 	result_t result = m_message->prepareMaster(ownMasterAddress, m_master, input);
 	if (result == RESULT_OK)
-		LOG(bus, trace, "poll cmd: %s", m_master.getDataStr().c_str());
+		logInfo(lf_bus, "poll cmd: %s", m_master.getDataStr().c_str());
 	return result;
 }
 
@@ -79,9 +74,9 @@ bool PollRequest::notify(result_t result, SymbolString& slave)
 		result = m_message->decode(pt_slaveData, slave, output); // decode data
 	}
 	if (result != RESULT_OK)
-		L.log(bus, error, "poll %s %s failed: %s", m_message->getClass().c_str(), m_message->getName().c_str(), getResultCode(result));
+		logError(lf_bus, "poll %s %s failed: %s", m_message->getClass().c_str(), m_message->getName().c_str(), getResultCode(result));
 	else
-		LOG(bus, event, "poll %s %s: %s", m_message->getClass().c_str(), m_message->getName().c_str(), output.str().c_str());
+		logNotice(lf_bus, "poll %s %s: %s", m_message->getClass().c_str(), m_message->getName().c_str(), output.str().c_str());
 
 	return false;
 }
@@ -92,7 +87,7 @@ result_t ScanRequest::prepare(unsigned char ownMasterAddress, unsigned char dstA
 	istringstream input;
 	result_t result = m_message->prepareMaster(ownMasterAddress, m_master, input, UI_FIELD_SEPARATOR, dstAddress);
 	if (result == RESULT_OK)
-		LOG(bus, trace, "scan cmd: %s", m_master.getDataStr().c_str());
+		logInfo(lf_bus, "scan cmd: %s", m_master.getDataStr().c_str());
 	return result;
 }
 
@@ -107,12 +102,12 @@ bool ScanRequest::notify(result_t result, SymbolString& slave)
 		result = m_message->decode(pt_slaveData, slave, scanResult, append); // decode data
 	}
 	if (result != RESULT_OK) {
-		L.log(bus, error, "scan %2.2x failed: %s", dstAddress, getResultCode(result));
+		logError(lf_bus, "scan %2.2x failed: %s", dstAddress, getResultCode(result));
 		return false;
 	}
 
 	string str = scanResult.str();
-	LOG(bus, event, "scan: %s", str.c_str());
+	logNotice(lf_bus, "scan: %s", str.c_str());
 	if (m_scanResults != NULL) {
 		if (append == true)
 			(*m_scanResults)[dstAddress] += str;
@@ -138,7 +133,7 @@ bool ScanRequest::notify(result_t result, SymbolString& slave)
 bool ActiveBusRequest::notify(result_t result, SymbolString& slave)
 {
 	if (result == RESULT_OK)
-		LOG(bus, event, "read res: %s", slave.getDataStr().c_str());
+		logNotice(lf_bus, "read res: %s", slave.getDataStr().c_str());
 
 	m_result = result;
 	m_slave = SymbolString(slave, false, false);
@@ -161,10 +156,10 @@ result_t BusHandler::sendAndWait(SymbolString& master, SymbolString& slave)
 			break;
 
 		if (success == false || result == RESULT_ERR_NO_SIGNAL) {
-			L.log(bus, error, "%s, give up", getResultCode(result));
+			logError(lf_bus, "%s, give up", getResultCode(result));
 			break;
 		}
-		L.log(bus, error, "%s, %s", getResultCode(result), sendRetries>0 ? "retry send" : "");
+		logError(lf_bus, "%s, %s", getResultCode(result), sendRetries>0 ? "retry send" : "");
 
 		request->m_busLostRetries = 0;
 	}
@@ -185,7 +180,7 @@ void BusHandler::run()
 			result_t result = m_port->open();
 
 			if (result != RESULT_OK)
-				L.log(bus, error, "can't open %s", m_port->getDeviceName());
+				logError(lf_bus, "can't open %s", m_port->getDeviceName());
 
 		}
 
@@ -225,7 +220,7 @@ result_t BusHandler::handleSymbol()
 						PollRequest* request = new PollRequest(message);
 						result_t ret = request->prepare(m_ownMasterAddress);
 						if (ret != RESULT_OK) {
-							L.log(bus, error, "prepare poll message: %s", getResultCode(ret));
+							logError(lf_bus, "prepare poll message: %s", getResultCode(ret));
 							delete request;
 						}
 						else {
@@ -588,13 +583,13 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 {
 	if (m_currentRequest != NULL) {
 		if (result == RESULT_ERR_BUS_LOST && m_currentRequest->m_busLostRetries < m_busLostRetries) {
-			L.log(bus, error, "%s, retry", getResultCode(result));
+			logError(lf_bus, "%s, retry", getResultCode(result));
 			m_currentRequest->m_busLostRetries++;
 			m_nextRequests.add(m_currentRequest); // repeat
 			m_currentRequest = NULL;
 		}
 		else if (state == bs_sendSyn || (result != RESULT_OK && firstRepetition == false)) {
-			LOG(bus, debug, "notify request: %s", getResultCode(result));
+			logDebug(lf_bus, "notify request: %s", getResultCode(result));
 			unsigned char dstAddress = m_currentRequest->m_master[1];
 			if (result == RESULT_OK && isValidAddress(dstAddress, false) == true)
 				m_seenAddresses[dstAddress] = true;
@@ -631,9 +626,9 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 		return result;
 
 	if (result < RESULT_OK || (result != RESULT_OK && state == bs_skip))
-		LOG(bus, debug, "%s during %s, switching to %s", getResultCode(result), getStateCode(m_state), getStateCode(state));
+		logDebug(lf_bus, "%s during %s, switching to %s", getResultCode(result), getStateCode(m_state), getStateCode(state));
 	else if (m_currentRequest != NULL || state == bs_sendCmd || state == bs_sendResAck || state == bs_sendSyn)
-		LOG(bus, debug, "switching from %s to %s", getStateCode(m_state), getStateCode(state));
+		logDebug(lf_bus, "switching from %s to %s", getStateCode(m_state), getStateCode(state));
 	m_state = state;
 
 	if (state == bs_ready || state == bs_skip) {
@@ -653,13 +648,13 @@ void BusHandler::receiveCompleted()
 	bool master = isMaster(dstAddress);
 	m_seenAddresses[m_command[0]] = true;
 	if (dstAddress == BROADCAST)
-		LOG(upd, trace, "update BC cmd: %s", m_command.getDataStr().c_str());
+		logInfo(lf_update, "update BC cmd: %s", m_command.getDataStr().c_str());
 	else if (master == true) {
-		LOG(upd, trace, "update MM cmd: %s", m_command.getDataStr().c_str());
+		logInfo(lf_update, "update MM cmd: %s", m_command.getDataStr().c_str());
 		m_seenAddresses[dstAddress] = true;
 	}
 	else {
-		LOG(upd, trace, "update MS cmd: %s / %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
+		logInfo(lf_update, "update MS cmd: %s / %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
 		m_seenAddresses[dstAddress] = true;
 	}
 
@@ -670,19 +665,19 @@ void BusHandler::receiveCompleted()
 		ostringstream output;
 		result_t result = message->decode(m_command, m_response, output);
 		if (result != RESULT_OK)
-			L.log(upd, error, "unable to parse %s %s from %s / %s: %s", clazz.c_str(), name.c_str(), m_command.getDataStr().c_str(), m_response.getDataStr().c_str(), getResultCode(result));
+			logError(lf_update, "unable to parse %s %s from %s / %s: %s", clazz.c_str(), name.c_str(), m_command.getDataStr().c_str(), m_response.getDataStr().c_str(), getResultCode(result));
 		else {
 			string data = output.str();
-			LOG(upd, event, "update %s %s: %s", clazz.c_str(), name.c_str(), data.c_str());
+			logNotice(lf_update, "update %s %s: %s", clazz.c_str(), name.c_str(), data.c_str());
 		}
 	}
 	else {
 		if (dstAddress == BROADCAST)
-			LOG(upd, event, "unknown BC cmd: %s", m_command.getDataStr().c_str());
+			logNotice(lf_update, "unknown BC cmd: %s", m_command.getDataStr().c_str());
 		else if (master == true)
-			LOG(upd, event, "unknown MM cmd: %s", m_command.getDataStr().c_str());
+			logNotice(lf_update, "unknown MM cmd: %s", m_command.getDataStr().c_str());
 		else
-			LOG(upd, event, "unknown MS cmd: %s / %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
+			logNotice(lf_update, "unknown MS cmd: %s / %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
 	}
 }
 
