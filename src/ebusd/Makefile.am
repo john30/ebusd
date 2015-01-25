@@ -10,9 +10,9 @@ ebusd_SOURCES = bushandler.cpp \
 		bushandler.h \
 		network.cpp \
 		network.h \
-		baseloop.cpp \
-		baseloop.h \
-		ebusd.cpp
+		mainloop.cpp \
+		mainloop.h \
+		main.cpp
 
 ebusd_LDADD = $(top_srcdir)/src/lib/utils/libutils.a \
               $(top_srcdir)/src/lib/ebus/libebus.a \
