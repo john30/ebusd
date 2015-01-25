@@ -6,10 +6,8 @@ noinst_LIBRARIES = libutils.a
 
 libutils_a_SOURCES = appl.cpp \
 		     appl.h \
-		     daemon.cpp \
-		     daemon.h \
-		     logger.cpp \
-		     logger.h \
+		     log.cpp \
+		     log.h \
 		     tcpsocket.cpp \
 		     tcpsocket.h \
 		     thread.cpp \
