@@ -1,6 +1,7 @@
 # ebusd-munin
-Collection of munin plugins related to ebusd.
-These plugins can easily be used to feeda munin node with data from a local ebusd instance.
+Collection of munin plugins (see http://munin-monitoring.org/) related to ebusd (see http://github.com/john30/ebusd/).
+
+These plugins can easily be used to feed a munin node with data from a local ebusd instance.
 Personally, I use them for checking mainly temperatures, pressures and earned energy of my heatpump. Looking at the graphs produced by munin I find it rather easy to know what's going on in the heatpump.
 
 # Installation:
