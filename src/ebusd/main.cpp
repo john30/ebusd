@@ -474,7 +474,7 @@ result_t loadConfigFiles(DataFieldTemplates* templates, MessageMap* messages, bo
 int main(int argc, char* argv[])
 {
 	struct argp argp = { argpoptions, parse_opt, NULL, argpdoc, NULL, NULL, NULL };
-	if (argp_parse(&argp, argc, argv, 0, 0, &opt) != 0)
+	if (argp_parse(&argp, argc, argv, ARGP_IN_ORDER, NULL, &opt) != 0)
 		return EINVAL;
 
 
