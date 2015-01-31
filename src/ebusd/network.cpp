@@ -118,8 +118,8 @@ void Connection::run()
 				else
 					break;
 
-				// removed closed socket
-				if (datalen <= 0 || strncasecmp(data, "QUIT", 4) == 0)
+				// remove closed socket
+				if (datalen <= 0 || strcasecmp(data, "Q") == 0 || strcasecmp(data, "QUIT") == 0)
 					break;
 			}
 
