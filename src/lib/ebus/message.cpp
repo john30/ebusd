@@ -104,7 +104,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	size_t len = strlen(str);
 	if (len == 0) { // default: active get
 		defaultName = "r";
-	}else if (strncasecmp(str, "R", 1) == 0) { // active get
+	} else if (strncasecmp(str, "R", 1) == 0) { // active get
 		char last = str[len-1];
 		if (last >= '0' && last <= '9') { // poll priority (=active get)
 			pollPriority = last - '0';
