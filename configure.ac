@@ -31,7 +31,7 @@ AC_CHECK_FUNC([pselect], [AC_DEFINE(HAVE_PSELECT, [1], ["Define to 1 if pselect(
 AC_CHECK_FUNC([ppoll], [AC_DEFINE(HAVE_PPOLL, [1], ["Define to 1 if ppoll() is available."])])
 
 AC_CONFIG_AUX_DIR([build])
-AC_CONFIG_SRCDIR([src/ebusd/ebusd.cpp])
+AC_CONFIG_SRCDIR([src/ebusd/main.cpp])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile
 		 docs/Makefile
@@ -40,6 +40,8 @@ AC_CONFIG_FILES([Makefile
 		 src/lib/ebus/test/Makefile
 		 src/ebusd/Makefile
 		 src/tools/Makefile])
+
+AC_DEFINE_UNQUOTED(PACKAGE_PIDFILE, LOCALSTATEDIR "/" PACKAGE ".pid", [The name of the PID file.])
 
 AC_CHECK_PROGS([HAVE_DOXYGEN], [doxygen])
 if test -z "$HAVE_DOXYGEN";

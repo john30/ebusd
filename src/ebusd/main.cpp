@@ -34,7 +34,11 @@
 #include <sys/stat.h>
 
 /** the name of the PID file. */
+#ifdef PACKAGE_PIDFILE
+#define PID_FILE_NAME PACKAGE_PIDFILE
+#else
 #define PID_FILE_NAME "/var/run/ebusd.pid"
+#endif
 
 /** the opened PID file, or NULL. */
 static FILE* pidFile = NULL;
@@ -297,7 +301,7 @@ void daemonize()
 
 	// Change the current working directory. This prevents the current
 	// directory from being locked; hence not being able to remove it.
-	if (chdir("/tmp") < 0) { // TODO
+	if (chdir("/tmp") < 0) { // TODO use constant
 		logError(lf_main, "daemon chdir() failed");
 		exit(EXIT_FAILURE);
 	}
@@ -308,11 +312,12 @@ void daemonize()
 	close(STDERR_FILENO);
 
 	// create pid file and try to lock it
-	umask(077); // leads to pidFile created in mode 0600
-	pidFile = fopen(PID_FILE_NAME, "w");
-	umask(027); // Set file permissions 750
+	pidFile = fopen(PID_FILE_NAME, "w+");
+
+	umask(S_IWGRP | S_IRWXO); // set permissions of newly created files to 750
 
 	if (pidFile != NULL) {
+		setbuf(pidFile, NULL); // disable buffering
 		if (lockf(fileno(pidFile), F_TLOCK, 0) < 0
 			|| fprintf(pidFile, "%d\n", getpid()) <=0) {
 			fclose(pidFile);
