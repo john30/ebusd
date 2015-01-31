@@ -21,8 +21,9 @@
 #include <config.h>
 #endif
 
-#include "appl.h"
+#include <argp.h>
 #include "tcpsocket.h"
+#include <string.h>
 #include <cstdio>
 #include <iostream>
 #include <cstdlib>
@@ -34,22 +35,80 @@
 
 using namespace std;
 
-Appl& A = Appl::Instance("Command", "{Args...}");
-
-void define_args()
+/** A structure holding all program options. */
+struct options
 {
-	A.setVersion("ebusctl is part of """PACKAGE_STRING"");
+	const char* server; //!< ebusd server host (name or ip) [localhost]
+	int port; //!< ebusd server port [8888]
 
-	A.addText(" 'ebusctl' is a tcp socket client for ebusd.\n\n"
-		  "   hint: try 'help' for available ebusd commands.\n\n"
-		  "Options:\n");
+	char* const *args; //!< arguments to pass to ebusd
+	int argCount; //!< number of arguments to pass to ebusd
+};
 
-	A.addOption("server", "s", OptVal("localhost"), dt_string, ot_mandatory,
-		    "name or ip (localhost)");
+/** the program options. */
+static struct options opt = {
+	"localhost", // server
+	8888, // port
 
-	A.addOption("port", "p", OptVal(8888), dt_int, ot_mandatory,
-		    "port (8888)");
+	NULL, // args
+	0 // argCount
+};
 
+/** the version string of the program. */
+const char *argp_program_version = "ebusctl of """PACKAGE_STRING"";
+
+/** the report bugs to address of the program. */
+const char *argp_program_bug_address = ""PACKAGE_BUGREPORT"";
+
+/** the documentation of the program. */
+static const char argpdoc[] =
+	"ebusctl - TCP socket client for "PACKAGE_STRING".\n\n"
+		  "   hint: try 'help' for available ebusd commands.\n";
+
+/** the description of the accepted arguments. */
+static char argpargsdoc[] = "[CMD [CMDOPT]*]";
+
+/** the definition of the known program arguments. */
+static const struct argp_option argpoptions[] = {
+	{"server", 's', "HOST", 0, "Connect to HOST running "PACKAGE_STRING" (name or IP) [localhost]", 0 },
+	{"port",   'p', "PORT", 0, "Connect to PORT on HOST [8888]", 0 },
+	{NULL,       0,   NULL, 0, NULL, 0 },
+};
+
+/**
+ * The program argument parsing function.
+ * @param key the key from @a argpoptions.
+ * @param arg the option argument, or NULL.
+ * @param state the parsing state.
+ */
+error_t parse_opt(int key, char *arg, struct argp_state *state)
+{
+	struct options *opt = (struct options*)state->input;
+	char* strEnd = NULL;
+	switch (key) {
+	// Device settings:
+	case 's': // --server=localhost
+		if (arg == NULL || arg[0] == 0) {
+			argp_error(state, "invalid server");
+			return EINVAL;
+		}
+		opt->server = arg;
+		break;
+	case 'p': // --port=8888
+		opt->port = strtol(arg, &strEnd, 10);
+		if (strEnd == NULL || *strEnd != 0 || opt->port < 1 || opt->port > 65535) {
+			argp_error(state, "invalid port");
+			return EINVAL;
+		}
+		break;
+	case ARGP_KEY_ARGS:
+		opt->args = state->argv + state->next;
+		opt->argCount = state->argc - state->next;
+		break;
+	default:
+		return ARGP_ERR_UNKNOWN;
+	}
+	return 0;
 }
 
 string fetchData(TCPSocket* socket, bool& listening)
@@ -153,8 +212,9 @@ string fetchData(TCPSocket* socket, bool& listening)
 
 				socket->send(message.c_str(), message.size());
 
-				if (strncasecmp(message.c_str(), "QUIT", 4) == 0
-				|| strncasecmp(message.c_str(), "STOP", 4) == 0)
+				if (strcasecmp(message.c_str(), "Q") == 0
+				|| strcasecmp(message.c_str(), "QUIT") == 0
+				|| strcasecmp(message.c_str(), "STOP") == 0)
 					exit(EXIT_SUCCESS);
 
 				message.clear();
@@ -165,12 +225,13 @@ string fetchData(TCPSocket* socket, bool& listening)
 	return ss.str();
 }
 
-bool connect(const char* host, int port, bool once)
+void connect(const char* host, int port, char* const *args, int argCount)
 {
 
 	TCPClient* client = new TCPClient();
 	TCPSocket* socket = client->connect(host, port);
 
+	bool once = args != NULL && argCount > 0;
 	if (socket != NULL) {
 		do {
 			string message;
@@ -181,35 +242,41 @@ bool connect(const char* host, int port, bool once)
 				getline(cin, message);
 			}
 			else {
-				message = A.getCommand();
-				for (int i = 0; i < A.numArgs(); i++) {
-					message += " ";
-					message += A.getArg(i);
+				for (int i = 0; i < argCount; i++) {
+					if (i > 0)
+						message += " ";
+					bool quote = strchr(args[i], ' ') != NULL && strchr(args[i], '"') == NULL;
+					if (quote)
+						message += "\"";
+					message += args[i];
+					if (quote)
+						message += "\"";
 				}
 			}
 
 			socket->send(message.c_str(), message.size());
 
-			if (strncasecmp(message.c_str(), "QUIT", 4) != 0
-			&& strncasecmp(message.c_str(), "STOP", 4) != 0)
+			if (strcasecmp(message.c_str(), "Q") == 0
+			|| strcasecmp(message.c_str(), "QUIT") == 0
+			|| strcasecmp(message.c_str(), "STOP") == 0)
+				break;
 
-				if (strncasecmp(message.c_str(), "L", 1) == 0
-				|| strncasecmp(message.c_str(), "LISTEN", 6) == 0) {
+			if (message.length() > 0) {
+				if (strcasecmp(message.c_str(), "L") == 0
+				|| strcasecmp(message.c_str(), "LISTEN") == 0) {
 					listening = true;
-					while (listening) {
+					while (listening && cin.eof() == false) {
 						string result(fetchData(socket, listening));
 						cout << result;
-						if (strncasecmp(result.c_str(), "LISTEN STOPPED", 14) == 0)
+						if (strcasecmp(result.c_str(), "LISTEN STOPPED") == 0)
 							break;
 					}
 				}
 				else
 					cout << fetchData(socket, listening);
+			}
 
-			else
-				break;
-
-		} while (once == false);
+		} while (once == false && cin.eof() == false);
 
 		delete socket;
 
@@ -218,26 +285,15 @@ bool connect(const char* host, int port, bool once)
 		cout << "error connecting to " << host << ":" << port << endl;
 
 	delete client;
-
-	if (once == false)
-		return false;
-
-	return true;
 }
 
 int main(int argc, char* argv[])
 {
-	// define arguments and application variables
-	define_args();
+	struct argp argp = { argpoptions, parse_opt, argpargsdoc, argpdoc, NULL, NULL, NULL };
+	if (argp_parse(&argp, argc, argv, ARGP_IN_ORDER, NULL, &opt) != 0)
+		return EINVAL;
 
-	// parse arguments
-	if (A.parseArgs(argc, argv) == false)
-		exit(EXIT_FAILURE);
-
-	if (A.missingCommand() == true)
-		connect(A.getOptVal<const char*>("server"), A.getOptVal<int>("port"), false);
-	else
-		connect(A.getOptVal<const char*>("server"), A.getOptVal<int>("port"), true);
+	connect(opt.server, opt.port, opt.args, opt.argCount);
 
 	exit(EXIT_SUCCESS);
 }
