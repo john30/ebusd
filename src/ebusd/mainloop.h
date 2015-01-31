@@ -127,6 +127,13 @@ private:
 	string executeListen(vector<string> &args, bool& listening);
 
 	/**
+	 * Execute the state command.
+	 * @param args the arguments passed to the command (starting with the command itself).
+	 * @return the result string.
+	 */
+	string executeState();
+
+	/**
 	 * Execute the scan command.
 	 * @param args the arguments passed to the command (starting with the command itself).
 	 * @return the result string.

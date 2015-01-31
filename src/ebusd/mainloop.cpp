@@ -167,6 +167,8 @@ string MainLoop::decodeMessage(const string& data, bool& listening)
 		return executeFind(args);
 	if (strcasecmp(str, "L") == 0 || strcasecmp(str, "LISTEN") == 0)
 		return executeListen(args, listening);
+	if (strcasecmp(str, "STATE") == 0)
+		return executeState();
 	if (strcasecmp(str, "SCAN") == 0)
 		return executeScan(args);
 	if (strcasecmp(str, "LOG") == 0)
@@ -467,6 +469,14 @@ string MainLoop::executeListen(vector<string> &args, bool& listening)
 	return "listen stopped";
 }
 
+string MainLoop::executeState()
+{
+	if (m_busHandler->hasSignal() == true)
+		return "signal acquired";
+
+	return "no signal";
+}
+
 string MainLoop::executeScan(vector<string> &args)
 {
 	if (args.size() <= 1) {
@@ -553,21 +563,22 @@ string MainLoop::executeReload(vector<string> &args)
 string MainLoop::executeHelp()
 {
 	return "commands:\n"
-		   " read      - read ebus values            'read [-v] [-f] [-m seconds] [-c class] name [field]'\n"
-		   " write     - write ebus values           'write class name value[;value]*' or 'write -h ZZPBSBNNDx'\n"
-		   " find      - find ebus values            'find [-v] [-r] [-w] [-p] [-d] [-c class] [name]'\n"
-		   " listen    - listen for updates          'listen [stop]'\n"
-		   " scan      - scan ebus known addresses   'scan'\n"
-		   "           - scan ebus all addresses     'scan full'\n"
-		   "           - show scan results           'scan result'\n"
-		   " log       - change log areas            'log areas area,area,..' (area: main|network|bus|update|all)\n"
-		   "           - change log level            'log level level'        (level: error|notice|info|debug)\n"
-		   " raw       - toggle log raw data         'raw'\n"
-		   " dump      - toggle dump state           'dump'\n"
-		   " reload    - reload ebus configuration   'reload'\n"
-		   " stop      - stop daemon                 'stop'\n"
-		   " quit      - close connection            'quit'\n"
-		   " help      - print this page             'help'";
+		   " read     read value(s)         'read [-v] [-f] [-m seconds] [-c class] name [field]'\n"
+		   " write    write value(s)        'write class name value[;value]*' or 'write -h ZZPBSBNNDx'\n"
+		   " find     find value(s)         'find [-v] [-r] [-w] [-p] [-d] [-c class] [name]'\n"
+		   " listen   listen for updates    'listen [stop]'\n"
+		   " state    report bus state      'state'\n"
+		   " scan     scan seen slaves      'scan'\n"
+		   "          scan all slaves       'scan full'\n"
+		   "          show scan results     'scan result'\n"
+		   " log      set log areas         'log areas area,area,..' (area: main|network|bus|update|all)\n"
+		   "          set log level         'log level level'        (level: error|notice|info|debug)\n"
+		   " raw      toggle log raw data   'raw'\n"
+		   " dump     toggle dump state     'dump'\n"
+		   " reload   reload config files   'reload'\n"
+		   " stop     stop daemon           'stop'\n"
+		   " quit     close connection      'quit'\n"
+		   " help     print this page       'help'";
 }
 
 string MainLoop::getUpdates(time_t since, time_t until)
