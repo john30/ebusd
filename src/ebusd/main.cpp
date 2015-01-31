@@ -124,7 +124,7 @@ static const struct argp_option argpoptions[] = {
 
 /**
  * The program argument parsing function.
- * @param key the key from @a options.
+ * @param key the key from @a argpoptions.
  * @param arg the option argument, or NULL.
  * @param state the parsing state.
  */
