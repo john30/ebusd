@@ -320,6 +320,12 @@ public:
 	 */
 	void formatScanResult(ostringstream& output);
 
+	/**
+	 * Return true when a signal on the bus is available.
+	 * @return true when a signal on the bus is available.
+	 */
+	bool hasSignal() { return m_state != bs_noSignal; }
+
 private:
 
 	/**

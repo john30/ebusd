@@ -628,6 +628,12 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 		logDebug(lf_bus, "%s during %s, switching to %s", getResultCode(result), getStateCode(m_state), getStateCode(state));
 	else if (m_currentRequest != NULL || state == bs_sendCmd || state == bs_sendResAck || state == bs_sendSyn)
 		logDebug(lf_bus, "switching from %s to %s", getStateCode(m_state), getStateCode(state));
+
+	if (state == bs_noSignal)
+		logError(lf_bus, "signal lost");
+	else if (m_state == bs_noSignal)
+		logNotice(lf_bus, "signal acquired");
+
 	m_state = state;
 
 	if (state == bs_ready || state == bs_skip) {
