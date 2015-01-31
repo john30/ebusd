@@ -41,7 +41,7 @@ AC_CONFIG_FILES([Makefile
 		 src/ebusd/Makefile
 		 src/tools/Makefile])
 
-AC_DEFINE_UNQUOTED(PACKAGE_PIDFILE, LOCALSTATEDIR "/" PACKAGE ".pid", [The name of the PID file.])
+AC_DEFINE_UNQUOTED(PACKAGE_PIDFILE, LOCALSTATEDIR "/run/" PACKAGE ".pid", [The name of the PID file.])
 
 AC_CHECK_PROGS([HAVE_DOXYGEN], [doxygen])
 if test -z "$HAVE_DOXYGEN";
