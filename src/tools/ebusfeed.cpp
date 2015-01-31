@@ -134,8 +134,10 @@ int main(int argc, char* argv[])
 
 		if (file.is_open() == true) {
 
-			while (file.eof() == false) {
+			while (true) {
 				unsigned char byte = file.get();
+				if (file.eof() == true)
+					break;
 				cout << hex << setw(2) << setfill('0')
 				     << static_cast<unsigned>(byte) << endl;
 
