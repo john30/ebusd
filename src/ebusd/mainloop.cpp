@@ -500,18 +500,14 @@ string MainLoop::executeScan(vector<string> &args)
 
 string MainLoop::executeLog(vector<string> &args)
 {
-	if (args.size() != 3)
-		return "usage: 'log areas area,area,..' (areas: bas|net|bus|upd|all)\n" // TODO
-			   "       'log level level'        (level: error|event|trace|debug)";
-
 	bool result;
-	if (strcasecmp(args[1].c_str(), "AREAS") == 0)
+	if (args.size() == 3 && strcasecmp(args[1].c_str(), "AREAS") == 0)
 		result = setLogFacilities(args[2].c_str());
-	else if (strcasecmp(args[1].c_str(), "LEVEL") == 0)
+	else if (args.size() == 3 && strcasecmp(args[1].c_str(), "LEVEL") == 0)
 		result = setLogLevel(args[2].c_str());
 	else
-		return "usage: 'log areas area,area,..' (areas: bas|net|bus|upd|all)\n" // TODO
-			   "       'log level level'        (level: error|event|trace|debug)";
+		return "usage: 'log areas area,area,..' (area: main|network|bus|update|all)\n"
+			   "       'log level level'        (level: error|notice|info|debug)";
 
 	if (result == true)
 		return "done";
@@ -564,8 +560,8 @@ string MainLoop::executeHelp()
 		   " scan      - scan ebus known addresses   'scan'\n"
 		   "           - scan ebus all addresses     'scan full'\n"
 		   "           - show scan results           'scan result'\n"
-		   " log       - change log areas            'log areas area,area,..' (areas: bas|net|bus|upd|all)\n"//TODO
-		   "           - change log level            'log level level'        (level: error|event|trace|debug)\n"
+		   " log       - change log areas            'log areas area,area,..' (area: main|network|bus|update|all)\n"
+		   "           - change log level            'log level level'        (level: error|notice|info|debug)\n"
 		   " raw       - toggle log raw data         'raw'\n"
 		   " dump      - toggle dump state           'dump'\n"
 		   " reload    - reload ebus configuration   'reload'\n"
