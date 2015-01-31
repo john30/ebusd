@@ -4,9 +4,7 @@ AM_CXXFLAGS = -fpic \
 
 noinst_LIBRARIES = libutils.a
 
-libutils_a_SOURCES = appl.cpp \
-		     appl.h \
-		     log.cpp \
+libutils_a_SOURCES = log.cpp \
 		     log.h \
 		     tcpsocket.cpp \
 		     tcpsocket.h \
