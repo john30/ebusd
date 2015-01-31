@@ -9,8 +9,7 @@ bin_PROGRAMS = ebusctl \
 
 ebusctl_SOURCES = ebusctl.cpp
 
-ebusctl_LDADD = $(top_srcdir)/src/lib/utils/libutils.a \
-	        $(top_srcdir)/src/lib/ebus/libebus.a
+ebusctl_LDADD = $(top_srcdir)/src/lib/utils/libutils.a
 
 ebusfeed_SOURCES = ebusfeed.cpp
 
