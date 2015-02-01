@@ -42,11 +42,11 @@ struct options
 	int acquireRetries; //!< number of retries for bus acquisition [2]
 	int sendRetries; //!< number of retries for failed sends [2]
 	int receiveTimeout; //!< timeout for receiving answer from slave in us [15000]
-	int numberMasters; //!< expected number of masters for arbitration [5]
+	int masterCount; //!< expected number of masters for arbitration [5]
 
 	bool foreground; //!< run in foreground
 	int port; //!< port to listen for client connections [8888]
-	bool localhost; //!< listen on 127.0.0.1 interface only
+	bool localOnly; //!< listen on 127.0.0.1 interface only
 
 	const char* logFile; //!< log file name [/var/log/ebusd.log]
 	bool logRaw; //!< log each received/sent byte on the bus

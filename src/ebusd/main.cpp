@@ -59,10 +59,10 @@ static struct options opt = {
 	2, // acquireRetries
 	2, // sendRetries
 	15000, // receiveTimeout
-	5, // numberMasters
+	5, // masterCount
 	false, // foreground
 	8888, // port
-	false, // localhost
+	false, // localOnly
 	"/var/log/ebusd.log", // logFile
 	false, // logRaw
 	false, // dump
@@ -81,45 +81,61 @@ const char *argp_program_bug_address = ""PACKAGE_BUGREPORT"";
 
 /** the documentation of the program. */
 static const char argpdoc[] =
-	PACKAGE " - a daemon for access to eBUS devices.";
+	"A daemon for access to eBUS devices.";
+
+#define O_CHKCFG  1
+#define O_POLINT  2
+#define O_ANSWER  3
+#define O_ACQTIM  4
+#define O_ACQRET  5
+#define O_SNDRET  6
+#define O_RCVTIM  7
+#define O_MASCNT  8
+#define O_LOCAL   9
+#define O_LOGARE 10
+#define O_LOGLEV 11
+#define O_LOGRAW 12
+#define O_DMPFIL 13
+#define O_DMPSIZ 14
 
 /** the definition of the known program arguments. */
 static const struct argp_option argpoptions[] = {
-	{NULL,               0, NULL,    0, "Device settings:", 1 },
-	{"device",         'd', "DEV",   0, "Use DEV as eBUS device (serial device or ip:port) [/dev/ttyUSB0]", 0 },
-	{"nodevicecheck",  'n', NULL,    0, "Skip serial eBUS device test", 0 },
+	{NULL,             0,        NULL,    0, "Device options:", 1 },
+	{"device",         'd',      "DEV",   0, "Use DEV as eBUS device (serial device or ip:port) [/dev/ttyUSB0]", 0 },
+	{"nodevicecheck",  'n',      NULL,    0, "Skip serial eBUS device test", 0 },
 
-	{NULL,               0, NULL,    0, "Message configuration settings:", 2 },
-	{"configpath",     'c', "PATH",  0, "Read CSV config files from PATH [/etc/ebusd]", 0 },
-	{"checkconfig",      1, NULL,    0, "Only check CSV config files, then stop", 0 },
-	{"pollinterval",     2, "SEC",   0, "Poll for data every SEC seconds (0=disable) [5]", 0 },
+	{NULL,             0,        NULL,    0, "Message configuration options:", 2 },
+	{"configpath",     'c',      "PATH",  0, "Read CSV config files from PATH [/etc/ebusd]", 0 },
+	{"checkconfig",    O_CHKCFG, NULL,    0, "Only check CSV config files, then stop", 0 },
+	{"pollinterval",   O_POLINT, "SEC",   0, "Poll for data every SEC seconds (0=disable) [5]", 0 },
 
-	{NULL,               0, NULL,    0, "E-Bus settings:", 3 },
-	{"address",        'a', "ADDR",  0, "Use ADDR as own bus address [FF]", 0 },
-	{"answer",           3, NULL,    0, "Actively answer to requests from other masters", 0 },
-	{"acquiretimeout",   4, "USEC",  0, "Stop bus acquisition after USEC us [9400]", 0 },
-	{"acquireretries",   5, "COUNT", 0, "Retry bus acquisition COUNT times [2]", 0 },
-	{"sendretries",      6, "COUNT", 0, "Repeat failed sends COUNT times [2]", 0 },
-	{"receivetimeout",   7, "USEC",  0, "Expect a slave to answer within USEC us [15000]", 0 },
-	{"numbermasters",    8, "COUNT", 0, "Expect COUNT masters on the bus [5]", 0 },
+	{NULL,             0,        NULL,    0, "eBUS options:", 3 },
+	{"address",        'a',      "ADDR",  0, "Use ADDR as own bus address [FF]", 0 },
+	{"answer",         O_ANSWER, NULL,    0, "Actively answer to requests from other masters", 0 },
+	{"acquiretimeout", O_ACQTIM, "USEC",  0, "Stop bus acquisition after USEC us [9400]", 0 },
+	{"acquireretries", O_ACQRET, "COUNT", 0, "Retry bus acquisition COUNT times [2]", 0 },
+	{"sendretries",    O_SNDRET, "COUNT", 0, "Repeat failed sends COUNT times [2]", 0 },
+	{"receivetimeout", O_RCVTIM, "USEC",  0, "Expect a slave to answer within USEC us [15000]", 0 },
+	{"numbermasters",  O_MASCNT, "COUNT", 0, "Expect COUNT masters on the bus [5]", 0 },
 
-	{NULL,               0, NULL,    0, "Daemon settings:", 4 },
-	{"foreground",     'f', NULL,    0, "Run in foreground", 0 },
-	{"port",           'p', "PORT",  0, "Listen for client connections on PORT [8888]", 0 },
-	{"localhost",        9, NULL,    0, "Listen on 127.0.0.1 interface only", 0 },
+	{NULL,             0,        NULL,    0, "Daemon options:", 4 },
+	{"foreground",     'f',      NULL,    0, "Run in foreground", 0 },
+	{"port",           'p',      "PORT",  0, "Listen for client connections on PORT [8888]", 0 },
+	{"localhost",      O_LOCAL,  NULL,    0, "Listen on 127.0.0.1 interface only", 0 },
 
-	{NULL,               0, NULL,    0, "Log settings:", 5 },
-	{"logfile",        'l', "FILE",  0, "Write log to FILE (only for daemon) [/var/log/ebusd.log]", 0 },
-	{"logareas",        10, "AREAS", 0, "Only write log for matching AREAS: main,network,bus,update,all [all]", 0 },
-	{"loglevel",        11, "LEVEL", 0, "Only write log below or equal to LEVEL: error/notice/info/debug [notice]", 0 },
-	{"lograwdata",      12, NULL,    0, "Log each received/sent byte on the bus", 0 },
+	{NULL,             0,        NULL,    0, "Log options:", 5 },
+	{"logfile",        'l',      "FILE",  0, "Write log to FILE (only for daemon) [/var/log/ebusd.log]", 0 },
+	{"logareas",       O_LOGARE, "AREAS", 0, "Only write log for matching AREAS: main,network,bus,update,all [all]", 0 },
+	{"loglevel",       O_LOGLEV, "LEVEL", 0, "Only write log below or equal to LEVEL: error/notice/info/debug [notice]", 0 },
+	{"lograwdata",     O_LOGRAW, NULL,    0, "Log each received/sent byte on the bus", 0 },
 
-	{NULL,               0, NULL,    0, "Dump settings:", 6 },
-	{"dump",           'D', NULL,    0, "Enable dump of received bytes", 0 },
-	{"dumpfile",        13, "FILE",  0, "Dump received bytes to FILE [/tmp/ebus_dump.bin]", 0 },
-	{"dumpsize",        14, "SIZE",  0, "Make dump files no larger than SIZE kB [100]", 0 },
+	{NULL,             0,        NULL,    0, "Dump options:", 6 },
+	{"dump",           'D',      NULL,    0, "Enable dump of received bytes", 0 },
+	{"dumpfile",       O_DMPFIL, "FILE",  0, "Dump received bytes to FILE [/tmp/ebus_dump.bin]", 0 },
+	{"dumpsize",       O_DMPSIZ, "SIZE",  0, "Make dump files no larger than SIZE kB [100]", 0 },
 
-	{NULL,               0, NULL,    0, NULL, 0 },
+	//{NULL,             0,        NULL,    0, "Other:", 7 },
+	{NULL,             0,        NULL,    0, NULL, 0 },
 };
 
 /**
@@ -134,7 +150,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 	result_t result = RESULT_OK;
 	switch (key) {
 
-	// Device settings:
+	// Device options:
 	case 'd': // --device=/dev/ttyUSB0
 		if (arg == NULL || arg[0] == 0) {
 			argp_error(state, "invalid device");
@@ -146,7 +162,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 		opt->noDeviceCheck = true;
 		break;
 
-	// Message configuration settings:
+	// Message configuration options:
 	case 'c': // --configpath=/etc/ebusd
 		if (arg == NULL || arg[0] == 0 || strcmp("/", arg) == 0) {
 			argp_error(state, "invalid configpath");
@@ -154,10 +170,10 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 		}
 		opt->configPath = arg;
 		break;
-	case 1: // --checkconfig
+	case O_CHKCFG: // --checkconfig
 		opt->checkConfig = true;
 		break;
-	case 2: // --pollinterval=5
+	case O_POLINT: // --pollinterval=5
 		opt->pollInterval = parseInt(arg, 10, 0, 3600, result);
 		if (result != RESULT_OK) {
 			argp_error(state, "invalid pollinterval");
@@ -165,7 +181,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 		}
 		break;
 
-	// E-Bus settings:
+	// eBUS options:
 	case 'a': // --address=FF
 		opt->address = parseInt(arg, 16, 0, 0xff, result);
 		if (result != RESULT_OK || !isMaster(opt->address)) {
@@ -173,46 +189,46 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 			return EINVAL;
 		}
 		break;
-	case 3: // --answer
+	case O_ANSWER: // --answer
 		opt->answer = true;
 		break;
-	case 4: // --acquiretimeout=9400
+	case O_ACQTIM: // --acquiretimeout=9400
 		opt->acquireTimeout = parseInt(arg, 10, 1000, 100000, result);
 		if (result != RESULT_OK) {
 			argp_error(state, "invalid acquiretimeout");
 			return EINVAL;
 		}
 		break;
-	case 5: // --acquireretries=2
+	case O_ACQRET: // --acquireretries=2
 		opt->acquireRetries = parseInt(arg, 10, 0, 10, result);
 		if (result != RESULT_OK) {
 			argp_error(state, "invalid acquireretries");
 			return EINVAL;
 		}
 		break;
-	case 6: // --sendretries=2
+	case O_SNDRET: // --sendretries=2
 		opt->sendRetries = parseInt(arg, 10, 0, 10, result);
 		if (result != RESULT_OK) {
 			argp_error(state, "invalid sendretries");
 			return EINVAL;
 		}
 		break;
-	case 7: // --receivetimeout=15000
+	case O_RCVTIM: // --receivetimeout=15000
 		opt->receiveTimeout = parseInt(arg, 10, 1000, 100000, result);
 		if (result != RESULT_OK) {
 			argp_error(state, "invalid receivetimeout");
 			return EINVAL;
 		}
 		break;
-	case 8: // --numbermasters=5
-		opt->numberMasters = parseInt(arg, 10, 1, 10, result);
+	case O_MASCNT: // --numbermasters=5
+		opt->masterCount = parseInt(arg, 10, 1, 25, result);
 		if (result != RESULT_OK) {
 			argp_error(state, "invalid numbermasters");
 			return EINVAL;
 		}
 		break;
 
-	// Daemon settings:
+	// Daemon options:
 	case 'f': // --foreground
 		opt->foreground = true;
 		break;
@@ -223,11 +239,11 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 			return EINVAL;
 		}
 		break;
-	case 9: // --localhost
-		opt->localhost = true;
+	case O_LOCAL: // --localhost
+		opt->localOnly = true;
 		break;
 
-	// Log settings:
+	// Log options:
 	case 'l': // --logfile=/var/log/ebusd.log
 		if (arg == NULL || arg[0] == 0 || strcmp("/", arg) == 0) {
 			argp_error(state, "invalid logfile");
@@ -235,34 +251,34 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 		}
 		opt->logFile = arg;
 		break;
-	case 10: // --logareas=all
+	case O_LOGARE: // --logareas=all
 		if (!setLogFacilities(arg)) {
 			argp_error(state, "invalid logareas");
 			return EINVAL;
 		}
 		break;
-	case 11: // --loglevel=event
+	case O_LOGLEV: // --loglevel=event
 		if (!setLogLevel(arg)) {
 			argp_error(state, "invalid loglevel");
 			return EINVAL;
 		}
 		break;
-	case 12:  // --lograwdata
+	case O_LOGRAW:  // --lograwdata
 		opt->logRaw = true;
 		break;
 
-	// Dump settings:
+	// Dump options:
 	case 'D':  // --dump
 		opt->dump = true;
 		break;
-	case 13: // --dumpfile=/tmp/ebus_dump.bin
+	case O_DMPFIL: // --dumpfile=/tmp/ebus_dump.bin
 		if (arg == NULL || arg[0] == 0 || strcmp("/", arg) == 0) {
 			argp_error(state, "invalid dumpfile");
 			return EINVAL;
 		}
 		opt->dumpFile = arg;
 		break;
-	case 14: // --dumpsize=100
+	case O_DMPSIZ: // --dumpsize=100
 		opt->dumpSize = parseInt(arg, 10, 1, 1000000, result);
 		if (result != RESULT_OK) {
 			argp_error(state, "invalid dumpsize");
@@ -474,9 +490,9 @@ result_t loadConfigFiles(DataFieldTemplates* templates, MessageMap* messages, bo
 int main(int argc, char* argv[])
 {
 	struct argp argp = { argpoptions, parse_opt, NULL, argpdoc, NULL, NULL, NULL };
+	setenv("ARGP_HELP_FMT", "no-dup-args-note", 0);
 	if (argp_parse(&argp, argc, argv, ARGP_IN_ORDER, NULL, &opt) != 0)
 		return EINVAL;
-
 
 	DataFieldTemplates templates;
 	MessageMap messages;
