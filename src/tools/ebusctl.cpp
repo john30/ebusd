@@ -62,16 +62,20 @@ const char *argp_program_bug_address = ""PACKAGE_BUGREPORT"";
 
 /** the documentation of the program. */
 static const char argpdoc[] =
-	"ebusctl - TCP socket client for "PACKAGE_STRING".\n\n"
-		  "   hint: try 'help' for available ebusd commands.\n";
+	"Client for acessing "PACKAGE" via TCP.\n"
+	"\v"
+	"If given, send COMMAND together with CMDOPT options to "PACKAGE".\n"
+	"Use 'help' as COMMAND for help on available "PACKAGE" commands.";
 
 /** the description of the accepted arguments. */
-static char argpargsdoc[] = "[CMD [CMDOPT]*]";
+static char argpargsdoc[] = "\nCOMMAND [CMDOPT...]";
 
 /** the definition of the known program arguments. */
 static const struct argp_option argpoptions[] = {
-	{"server", 's', "HOST", 0, "Connect to HOST running "PACKAGE_STRING" (name or IP) [localhost]", 0 },
+	{NULL,       0,   NULL, 0, "Options:", 1 },
+	{"server", 's', "HOST", 0, "Connect to HOST running "PACKAGE" (name or IP) [localhost]", 0 },
 	{"port",   'p', "PORT", 0, "Connect to PORT on HOST [8888]", 0 },
+
 	{NULL,       0,   NULL, 0, NULL, 0 },
 };
 
@@ -290,6 +294,7 @@ void connect(const char* host, int port, char* const *args, int argCount)
 int main(int argc, char* argv[])
 {
 	struct argp argp = { argpoptions, parse_opt, argpargsdoc, argpdoc, NULL, NULL, NULL };
+	setenv("ARGP_HELP_FMT", "no-dup-args-note", 0);
 	if (argp_parse(&argp, argc, argv, ARGP_IN_ORDER, NULL, &opt) != 0)
 		return EINVAL;
 
