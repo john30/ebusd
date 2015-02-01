@@ -242,7 +242,7 @@ private:
 
 
 /**
- * Handles input from and output to the bus with respect to the ebus protocol.
+ * Handles input from and output to the bus with respect to the eBUS protocol.
  */
 class BusHandler : public Thread
 {
