@@ -103,7 +103,8 @@ bool setLogFile(const char* filename)
 void closeLogFile()
 {
 	if (logFile != NULL) {
-		fclose(logFile);
+		if (logFile != stdout)
+			fclose(logFile);
 		logFile = NULL;
 	}
 }
