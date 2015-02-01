@@ -41,11 +41,11 @@ MainLoop::MainLoop(const struct options opt, DataFieldTemplates* templates, Mess
 			m_address, opt.answer,
 			opt.acquireRetries, opt.sendRetries,
 			opt.acquireTimeout, opt.receiveTimeout,
-			opt.numberMasters, opt.pollInterval);
+			opt.masterCount, opt.pollInterval);
 	m_busHandler->start("bushandler");
 
 	// create network
-	m_network = new Network(opt.localhost, opt.port, &m_netQueue);
+	m_network = new Network(opt.localOnly, opt.port, &m_netQueue);
 	m_network->start("network");
 }
 
@@ -74,10 +74,12 @@ MainLoop::~MainLoop()
 
 void MainLoop::run()
 {
-	for (;;) {
+	bool running = true;
+
+	while (running == true) {
 		string result;
 
-		// recv new message from client
+		// pick the next message to handle
 		NetMessage* message = m_netQueue.remove();
 		string data = message->getData();
 
@@ -87,17 +89,13 @@ void MainLoop::run()
 		if (listening == false)
 			since = until;
 
+		bool connected = true;
 		if (data.length() > 0) {
 			data.erase(remove(data.begin(), data.end(), '\r'), data.end());
 			data.erase(remove(data.begin(), data.end(), '\n'), data.end());
 
 			logNotice(lf_main, ">>> %s", data.c_str());
-
-			// decode message
-			if (strcasecmp(data.c_str(), "STOP") != 0)
-				result = decodeMessage(data, listening);
-			else
-				result = "done";
+			result = decodeMessage(data, connected, listening, running);
 
 			logNotice(lf_main, "<<< %s", result.c_str());
 			result += "\n\n";
@@ -107,11 +105,7 @@ void MainLoop::run()
 		}
 
 		// send result to client
-		message->setResult(result, listening, until);
-
-		// stop daemon
-		if (strcasecmp(data.c_str(), "STOP") == 0)
-			return;
+		message->setResult(result, listening, until, connected == false);
 	}
 }
 
@@ -122,7 +116,7 @@ void MainLoop::logRaw(const unsigned char byte, bool received) {
 		logNotice(lf_bus, ">%02x", byte);
 }
 
-string MainLoop::decodeMessage(const string& data, bool& listening)
+string MainLoop::decodeMessage(const string& data, bool& connected, bool& listening, bool& running)
 {
 	ostringstream result;
 
@@ -157,8 +151,16 @@ string MainLoop::decodeMessage(const string& data, bool& listening)
 	if (args.size() == 0)
 		return "command missing";
 
-
 	const char* str = args[0].c_str();
+	if (args.size() == 2) {
+		// check for "CMD -h"
+		if (strcasecmp(args[1].c_str(), "-h") == 0 || strcasecmp(args[1].c_str(), "-?") == 0 || strcasecmp(args[1].c_str(), "--help") == 0)
+			args.clear(); // empty args is used as command help indicator
+		else if (strcasecmp(args[0].c_str(), "H") == 0 || strcasecmp(args[0].c_str(), "HELP") == 0) { // check for "HELP CMD"
+			str = args[1].c_str();
+			args.clear(); // empty args is used as command help indicator
+		}
+	}
 	if (strcasecmp(str, "R") == 0 || strcasecmp(str, "READ") == 0)
 		return executeRead(args);
 	if (strcasecmp(str, "W") == 0 || strcasecmp(str, "WRITE") == 0)
@@ -168,7 +170,7 @@ string MainLoop::decodeMessage(const string& data, bool& listening)
 	if (strcasecmp(str, "L") == 0 || strcasecmp(str, "LISTEN") == 0)
 		return executeListen(args, listening);
 	if (strcasecmp(str, "STATE") == 0)
-		return executeState();
+		return executeState(args);
 	if (strcasecmp(str, "SCAN") == 0)
 		return executeScan(args);
 	if (strcasecmp(str, "LOG") == 0)
@@ -179,6 +181,10 @@ string MainLoop::decodeMessage(const string& data, bool& listening)
 		return executeDump(args);
 	if (strcasecmp(str, "RELOAD") == 0)
 		return executeReload(args);
+	if (strcasecmp(str, "STOP") == 0)
+		return executeStop(args, running);
+	if (strcasecmp(str, "Q") == 0 || strcasecmp(str, "QUIT") == 0)
+		return executeQuit(args, connected);
 	if (strcasecmp(str, "H") == 0 || strcasecmp(str, "HELP") == 0)
 		return executeHelp();
 
@@ -228,7 +234,14 @@ string MainLoop::executeRead(vector<string> &args)
 		argPos++;
 	}
 	if (argPos == 0 || args.size() < argPos + 1 || args.size() > argPos + 2)
-		return "usage: 'read [-v] [-f] [-m seconds] [-c class] name [field]'";
+		return "usage: 'read [-v] [-f] [-m SECONDS] [-c CLASS] NAME [FIELD]'\n"
+			   " Read value(s).\n"
+			   "  -v          be verbose (include field names, units, and comments)\n"
+			   "  -f          force reading from the bus (same as '-m 0')\n"
+			   "  -m SECONDS  only return cached value if age is less than SECONDS [300]\n"
+			   "  -c CLASS    limit to messages of CLASS\n"
+			   "  NAME        the NAME of the message to send\n"
+			   "  FIELD       only retrieve the single FIELD";
 
 	if (args.size() == argPos + 2)
 		maxAge = 0; // force refresh to filter single field
@@ -289,12 +302,13 @@ string MainLoop::executeRead(vector<string> &args)
 string MainLoop::executeWrite(vector<string> &args)
 {
 	size_t argPos = 1;
-	if (args.size() > argPos && args[argPos] == "-h") {
+	while (args.size() > argPos && args[argPos] == "-h") {
 		argPos++;
 
-		if (args.size() < argPos + 1)
-			return "usage: 'write -h ZZPBSBNNDx'";
-
+		if (args.size() < argPos + 1) {
+			argPos = 0;
+			break;
+		}
 		ostringstream msg;
 		msg << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_address) << setw(0);
 		while (argPos < args.size()) {
@@ -323,8 +337,18 @@ string MainLoop::executeWrite(vector<string> &args)
 		return getResultCode(ret);
 	}
 
-	if (args.size() != argPos + 3)
-		return "usage: 'write class name value[;value]*' or 'write -h ZZPBSBNNDx'";
+	if (argPos == 0 || args.size() != argPos + 3)
+		return "usage: 'write CLASS NAME VALUE[;VALUE]*'\n"
+			   "  or:  'write -h ZZPBSBNNDx' or 'write -h ZZ PB SB NN Dx'\n"
+			   " Write value(s).\n"
+			   "  CLASS    the CLASS of the message to send\n"
+			   "  NAME     the NAME of the message to send\n"
+			   "  VALUE    a single field VALUE\n"
+			   "  -h       directly write hex message:\n"
+			   "    ZZ     destination address\n"
+			   "    PB SB  primary/secondary command byte\n"
+			   "    NN     number of data bytes to send\n"
+			   "    Dx     the data byte(s) to send";
 
 	Message* message = m_messages->find(args[argPos], args[argPos + 1], true);
 
@@ -407,7 +431,13 @@ string MainLoop::executeFind(vector<string> &args)
 		argPos++;
 	}
 	if (argPos == 0 || args.size() < argPos || args.size() > argPos + 1)
-		return "usage: 'find [-v] [-r] [-w] [-p] [-d] [-c class] [name]'";
+		return "usage: 'find [-v] [-r] [-w] [-p] [-d] [-c CLASS] [NAME]'\n"
+			   " Find value(s)."
+			   "  -v  be verbose (include field names, units, and comments)\n"
+			   "  -r  limit to active read messages (default all types)\n"
+			   "  -w  limit to active write messages (default all types)\n"
+			   "  -p  limit to passive messages (default all types)\n"
+			   "  -d  only retrieve messages with actual data";
 
 	deque<Message*> messages;
 	if (args.size() == argPos)
@@ -454,7 +484,7 @@ string MainLoop::executeFind(vector<string> &args)
 
 string MainLoop::executeListen(vector<string> &args, bool& listening)
 {
-	if (args.size() <= 1) {
+	if (args.size() == 1) {
 		if (listening == true)
 			return "listen continued";
 
@@ -463,14 +493,19 @@ string MainLoop::executeListen(vector<string> &args, bool& listening)
 	}
 
 	if (args.size() != 2 || args[1] != "stop")
-		return "usage: 'listen [stop]'";
+		return "usage: 'listen [stop]'\n"
+			   " Listen for updates (or stop it).";
 
 	listening = false;
 	return "listen stopped";
 }
 
-string MainLoop::executeState()
+string MainLoop::executeState(vector<string> &args)
 {
+	if (args.size() == 0)
+		return "usage: 'state'\n"
+			   " Report bus state.";
+
 	if (m_busHandler->hasSignal() == true)
 		return "signal acquired";
 
@@ -479,7 +514,7 @@ string MainLoop::executeState()
 
 string MainLoop::executeScan(vector<string> &args)
 {
-	if (args.size() <= 1) {
+	if (args.size() == 1) {
 		result_t result = m_busHandler->startScan();
 		if (result == RESULT_OK)
 			return "scan initiated";
@@ -488,7 +523,7 @@ string MainLoop::executeScan(vector<string> &args)
 		return getResultCode(result);
 	}
 
-	if (strcasecmp(args[1].c_str(), "FULL") == 0) {
+	if (args.size() == 2 && strcasecmp(args[1].c_str(), "FULL") == 0) {
 		result_t result = m_busHandler->startScan(true);
 		if (result == RESULT_OK)
 			return "done";
@@ -497,27 +532,31 @@ string MainLoop::executeScan(vector<string> &args)
 		return getResultCode(result);
 	}
 
-	if (strcasecmp(args[1].c_str(), "RESULT") == 0) {
+	if (args.size() == 2 && strcasecmp(args[1].c_str(), "RESULT") == 0) {
 		ostringstream result;
 		m_busHandler->formatScanResult(result);
 		return result.str();
 	}
 
 	return "usage: 'scan'\n"
-		   "       'scan full'\n"
-		   "       'scan result'";
+		   "  or:  'scan full'\n"
+		   "  or:  'scan result'\n"
+		   " Scan seen or all slaves, or report scan result.";
 }
 
 string MainLoop::executeLog(vector<string> &args)
 {
 	bool result;
-	if (args.size() == 3 && strcasecmp(args[1].c_str(), "AREAS") == 0)
-		result = setLogFacilities(args[2].c_str());
+	if ((args.size() == 3 || args.size() == 2) && strcasecmp(args[1].c_str(), "AREAS") == 0)
+		result = setLogFacilities(args.size() == 3 ? args[2].c_str() : "");
 	else if (args.size() == 3 && strcasecmp(args[1].c_str(), "LEVEL") == 0)
 		result = setLogLevel(args[2].c_str());
 	else
-		return "usage: 'log areas area,area,..' (area: main|network|bus|update|all)\n"
-			   "       'log level level'        (level: error|notice|info|debug)";
+		return "usage: 'log areas AREA,AREA,...'\n"
+			   "  or:  'log level LEVEL'\n"
+			   " Set log area(s) or log level.\n"
+			   "  AREA   the log area(s) to include (main|network|bus|update|all)\n"
+			   "  LEVEL  the log level to set (error|notice|info|debug)";
 
 	if (result == true)
 		return "done";
@@ -528,7 +567,8 @@ string MainLoop::executeLog(vector<string> &args)
 string MainLoop::executeRaw(vector<string> &args)
 {
 	if (args.size() != 1)
-		return "usage: 'raw'";
+		return "usage: 'raw'\n"
+			   " Toggle log raw data.";
 
 	bool enabled = !m_port->getLogRaw();
 	m_port->setLogRaw(enabled);
@@ -539,7 +579,8 @@ string MainLoop::executeRaw(vector<string> &args)
 string MainLoop::executeDump(vector<string> &args)
 {
 	if (args.size() != 1)
-		return "usage: 'dump'";
+		return "usage: 'dump'\n"
+			   " Toggle raw dump.";
 
 	bool enabled = !m_port->getDumpRaw();
 	m_port->setDumpRaw(enabled);
@@ -550,7 +591,8 @@ string MainLoop::executeDump(vector<string> &args)
 string MainLoop::executeReload(vector<string> &args)
 {
 	if (args.size() != 1)
-		return "usage: 'reload'";
+		return "usage: 'reload'\n"
+			   " Reload config files.";
 
 	// reload commands
 	result_t result = loadConfigFiles(m_templates, m_messages);
@@ -560,25 +602,48 @@ string MainLoop::executeReload(vector<string> &args)
 	return getResultCode(result);
 }
 
+string MainLoop::executeStop(vector<string> &args, bool& running)
+{
+	if (args.size() == 1) {
+		running = false;
+		return "daemon stopped";
+	}
+
+	return "usage: 'stop'\n"
+		   " Stop the daemon.";
+}
+
+string MainLoop::executeQuit(vector<string> &args, bool& connected)
+{
+	if (args.size() == 1) {
+		connected = false;
+		return "connection closed";
+	}
+
+	return "usage: 'quit'\n"
+		   " Close client connection.";
+}
+
 string MainLoop::executeHelp()
 {
-	return "commands:\n"
-		   " read     read value(s)         'read [-v] [-f] [-m seconds] [-c class] name [field]'\n"
-		   " write    write value(s)        'write class name value[;value]*' or 'write -h ZZPBSBNNDx'\n"
-		   " find     find value(s)         'find [-v] [-r] [-w] [-p] [-d] [-c class] [name]'\n"
-		   " listen   listen for updates    'listen [stop]'\n"
-		   " state    report bus state      'state'\n"
-		   " scan     scan seen slaves      'scan'\n"
-		   "          scan all slaves       'scan full'\n"
-		   "          show scan results     'scan result'\n"
-		   " log      set log areas         'log areas area,area,..' (area: main|network|bus|update|all)\n"
-		   "          set log level         'log level level'        (level: error|notice|info|debug)\n"
-		   " raw      toggle log raw data   'raw'\n"
-		   " dump     toggle dump state     'dump'\n"
-		   " reload   reload config files   'reload'\n"
-		   " stop     stop daemon           'stop'\n"
-		   " quit     close connection      'quit'\n"
-		   " help     print this page       'help'";
+	return "usage:\n"
+		   " read    Read value(s)         'read [-v] [-f] [-m SECONDS] [-c CLASS] NAME [FIELD]'\n"
+		   " write   Write value(s)        'write CLASS NAME VALUE[;VALUE]*' or 'write -h ZZPBSBNNDx'\n"
+		   " find    Find value(s)         'find [-v] [-r] [-w] [-p] [-d] [-c CLASS] [NAME]'\n"
+		   " listen  Listen for updates    'listen [stop]'\n"
+		   " state   Report bus state      'state'\n"
+		   " scan    Scan seen slaves      'scan'\n"
+		   "         Scan all slaves       'scan full'\n"
+		   "         Report scan result    'scan result'\n"
+		   " log     Set log areas         'log areas AREA,AREA,...' (AREA: main|network|bus|update|all)\n"
+		   "         Set log level         'log level LEVEL'         (LEVEL: error|notice|info|debug)\n"
+		   " raw     Toggle log raw data   'raw'\n"
+		   " dump    Toggle raw dump       'dump'\n"
+		   " reload  Reload config files   'reload'\n"
+		   " stop    Stop the daemon       'stop'\n"
+		   " quit    Close connection      'quit'\n"
+		   " help    Print this help page  'help'\n"
+		   "         Print command usage   'help COMMAND'";
 }
 
 string MainLoop::getUpdates(time_t since, time_t until)

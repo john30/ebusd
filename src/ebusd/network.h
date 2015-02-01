@@ -47,7 +47,7 @@ public:
 	 * @param listenSince start timestamp of listening update.
 	 */
 	NetMessage(const string data, const bool listening, const time_t listenSince)
-		: m_data(data), m_resultSet(false), m_listening(listening), m_listenSince(listenSince)
+		: m_data(data), m_resultSet(false), m_disconnect(false), m_listening(listening), m_listenSince(listenSince)
 	{
 		pthread_mutex_init(&m_mutex, NULL);
 		pthread_cond_init(&m_cond, NULL);
@@ -81,7 +81,8 @@ public:
 	 * Wait for the result being set and return the result string.
 	 * @return the result string.
 	 */
-	string getResult() {
+	string getResult()
+	{
 		pthread_mutex_lock(&m_mutex);
 
 		while (m_resultSet == false)
@@ -97,17 +98,19 @@ public:
 	 * @param result the result string.
 	 * @param listening whether the client is in listening mode.
 	 * @param listenUntil the end time to which to updates were added (exclusive).
+	 * @param disconnect true when the client shall be disconnected.
 	 */
-	void setResult(const string result, const bool listening, const time_t listenUntil)
-		{
-			m_result = result;
-			m_listening = listening;
-			m_listenSince = listenUntil;
-			m_resultSet = true;
-			pthread_mutex_lock(&m_mutex);
-			pthread_cond_signal(&m_cond);
-			pthread_mutex_unlock(&m_mutex);
-		}
+	void setResult(const string result, const bool listening, const time_t listenUntil, const bool disconnect)
+	{
+		m_result = result;
+		m_disconnect = disconnect;
+		m_listening = listening;
+		m_listenSince = listenUntil;
+		m_resultSet = true;
+		pthread_mutex_lock(&m_mutex);
+		pthread_cond_signal(&m_cond);
+		pthread_mutex_unlock(&m_mutex);
+	}
 
 	/**
 	 * Return whether the client is in listening mode.
@@ -115,6 +118,12 @@ public:
 	 * @return whether the client is in listening mode.
 	 */
 	bool isListening(time_t& listenSince) { listenSince = m_listenSince; return m_listening; }
+
+	/**
+	 * Return whether the client shall be disconnected.
+	 * @retur true when the client shall be disconnected.
+	 */
+	bool isDisconnect() { return m_disconnect; }
 
 private:
 	/** the data string */
@@ -125,6 +134,9 @@ private:
 
 	/** the result string */
 	string m_result;
+
+	/** set to true when the client shall be disconnected. */
+	bool m_disconnect;
 
 	/** mutex variable for exclusive lock */
 	pthread_mutex_t m_mutex;

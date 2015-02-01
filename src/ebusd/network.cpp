@@ -113,13 +113,13 @@ void Connection::run()
 			size_t datalen = 0;
 
 			if (newData == true) {
-				if (m_socket->isValid() == true)
-					datalen = m_socket->recv(data, sizeof(data)-1);
-				else
+				if (m_socket->isValid() == false)
 					break;
 
+				datalen = m_socket->recv(data, sizeof(data)-1);
+
 				// remove closed socket
-				if (datalen <= 0 || strcasecmp(data, "Q") == 0 || strcasecmp(data, "QUIT") == 0)
+				if (datalen <= 0)
 					break;
 			}
 
@@ -137,6 +137,9 @@ void Connection::run()
 
 			m_socket->send(result.c_str(), result.size());
 			m_listening = message.isListening(listenSince);
+
+			if (message.isDisconnect())
+				break;
 		}
 
 	}

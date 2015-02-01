@@ -92,35 +92,37 @@ private:
 	/**
 	 * Decode and execute client message.
 	 * @param data the data string to decode (may be empty).
+	 * @param connected set to false when the client connection shall be closed.
 	 * @param listening set to true when the client is in listening mode.
+	 * @param running set to false when the server shall be stopped.
 	 * @return result string to send back to the client.
 	 */
-	string decodeMessage(const string& data, bool& listening);
+	string decodeMessage(const string& data, bool& connected, bool& listening, bool& running);
 
 	/**
 	 * Execute the read command.
-	 * @param args the arguments passed to the command (starting with the command itself).
+	 * @param args the arguments passed to the command (starting with the command itself), or empty for help.
 	 * @return the result string.
 	 */
 	string executeRead(vector<string> &args);
 
 	/**
 	 * Execute the write command.
-	 * @param args the arguments passed to the command (starting with the command itself).
+	 * @param args the arguments passed to the command (starting with the command itself), or empty for help.
 	 * @return the result string.
 	 */
 	string executeWrite(vector<string> &args);
 
 	/**
 	 * Execute the find command.
-	 * @param args the arguments passed to the command (starting with the command itself).
+	 * @param args the arguments passed to the command (starting with the command itself), or empty for help.
 	 * @return the result string.
 	 */
 	string executeFind(vector<string> &args);
 
 	/**
 	 * Execute the listen command.
-	 * @param args the arguments passed to the command (starting with the command itself).
+	 * @param args the arguments passed to the command (starting with the command itself), or empty for help.
 	 * @param listening set to true when the client is in listening mode.
 	 * @return the result string.
 	 */
@@ -128,45 +130,61 @@ private:
 
 	/**
 	 * Execute the state command.
-	 * @param args the arguments passed to the command (starting with the command itself).
+	 * @param args the arguments passed to the command (starting with the command itself), or empty for help.
 	 * @return the result string.
 	 */
-	string executeState();
+	string executeState(vector<string> &args);
 
 	/**
 	 * Execute the scan command.
-	 * @param args the arguments passed to the command (starting with the command itself).
+	 * @param args the arguments passed to the command (starting with the command itself), or empty for help.
 	 * @return the result string.
 	 */
 	string executeScan(vector<string> &args);
 
 	/**
 	 * Execute the log command.
-	 * @param args the arguments passed to the command (starting with the command itself).
+	 * @param args the arguments passed to the command (starting with the command itself), or empty for help.
 	 * @return the result string.
 	 */
 	string executeLog(vector<string> &args);
 
 	/**
 	 * Execute the raw command.
-	 * @param args the arguments passed to the command (starting with the command itself).
+	 * @param args the arguments passed to the command (starting with the command itself), or empty for help.
 	 * @return the result string.
 	 */
 	string executeRaw(vector<string> &args);
 
 	/**
 	 * Execute the dump command.
-	 * @param args the arguments passed to the command (starting with the command itself).
+	 * @param args the arguments passed to the command (starting with the command itself), or empty for help.
 	 * @return the result string.
 	 */
 	string executeDump(vector<string> &args);
 
 	/**
 	 * Execute the reload command.
-	 * @param args the arguments passed to the command (starting with the command itself).
+	 * @param args the arguments passed to the command (starting with the command itself), or empty for help.
 	 * @return the result string.
 	 */
 	string executeReload(vector<string> &args);
+
+	/**
+	 * Execute the stop command.
+	 * @param args the arguments passed to the command (starting with the command itself), or empty for help.
+	 * @param running set to false when the server shall be stopped.
+	 * @return the result string.
+	 */
+	string executeStop(vector<string> &args, bool& running);
+
+	/**
+	 * Execute the quit command.
+	 * @param args the arguments passed to the command (starting with the command itself), or empty for help.
+	 * @param connected set to false when the client connection shall be closed.
+	 * @return the result string.
+	 */
+	string executeQuit(vector<string> &args, bool& connected);
 
 	/**
 	 * Execute the help command.
