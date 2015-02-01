@@ -56,21 +56,26 @@ const char *argp_program_bug_address = ""PACKAGE_BUGREPORT"";
 
 /** the documentation of the program. */
 static const char argpdoc[] =
-	"ebusfeed - feed data from an "PACKAGE" dump file to a pseudo serial device.\n\n"
-	"   Setup: 1. 'socat -d -d pty,raw,echo=0 pty,raw,echo=0'\n"
-	"          2. create symbol links to appropriate devices\n"
-	"             for example: 'ln -s /dev/pts/2 /dev/ttyUSB60'\n"
-	"                          'ln -s /dev/pts/3 /dev/ttyUSB20'\n"
-	"          3. start "PACKAGE": '"PACKAGE" -f -d /dev/ttyUSB20'\n"
-	"          4. start ebusfeed: 'ebusfeed /path/to/ebus_dump.bin'\n\n";
+	"Feed data from an "PACKAGE" DUMPFILE to a serial device.\n"
+	"\v"
+	"With no DUMPFILE, /tmp/ebus_dump.bin is used.\n"
+	"\n"
+	"Example for setting up two pseudo terminals with 'socat':\n"
+	"  1. 'socat -d -d pty,raw,echo=0 pty,raw,echo=0'\n"
+	"  2. create symbol links to appropriate devices, e.g.\n"
+	"     'ln -s /dev/pts/2 /dev/ttyUSB60'\n"
+	"     'ln -s /dev/pts/3 /dev/ttyUSB20'\n"
+	"  3. start "PACKAGE": '"PACKAGE" -f -d /dev/ttyUSB20'\n"
+	"  4. start ebusfeed: 'ebusfeed /path/to/ebus_dump.bin'\n";
 
 /** the description of the accepted arguments. */
 static char argpargsdoc[] = "[DUMPFILE]";
 
 /** the definition of the known program arguments. */
 static const struct argp_option argpoptions[] = {
-	{"device", 'd', "DEV",  0, "Write to DEV (pseudo serial device) [/dev/ttyUSB60]", 0 },
+	{"device", 'd', "DEV",  0, "Write to DEV (serial device) [/dev/ttyUSB60]", 0 },
 	{"time",   't', "USEC", 0, "Delay each byte by USEC us [10000]", 0 },
+
 	{NULL,       0, NULL,   0, NULL, 0 },
 };
 
@@ -120,6 +125,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 int main(int argc, char* argv[])
 {
 	struct argp argp = { argpoptions, parse_opt, argpargsdoc, argpdoc, NULL, NULL, NULL };
+	setenv("ARGP_HELP_FMT", "no-dup-args-note", 0);
 	if (argp_parse(&argp, argc, argv, ARGP_IN_ORDER, NULL, &opt) != 0)
 		return EINVAL;
 
