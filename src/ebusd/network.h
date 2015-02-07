@@ -121,7 +121,7 @@ public:
 
 	/**
 	 * Return whether the client shall be disconnected.
-	 * @retur true when the client shall be disconnected.
+	 * @return true when the client shall be disconnected.
 	 */
 	bool isDisconnect() { return m_disconnect; }
 
