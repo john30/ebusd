@@ -1,5 +1,6 @@
 /*
- * Copyright (C) Roland Jax 2012-2014 <ebusd@liwest.at>
+ * Copyright (C) Roland Jax 2012-2014 <ebusd@liwest.at>,
+ * John Baier 2014-2015 <ebusd@johnm.de>
  *
  * This file is part of ebusd.
  *
@@ -34,7 +35,7 @@ public:
 	/**
 	 * constructor.
 	 */
-	Thread() : m_threadid(0), m_started(false), m_running(false), m_stopped(false), m_detached(false) {}
+	Thread() : m_threadid(0), m_started(false), m_running(false), m_stopped(false) {}
 
 	/**
 	 * virtual destructor.
@@ -73,16 +74,10 @@ public:
 	virtual bool join();
 
 	/**
-	 * Detach the thread.
-	 * @return whether the thread was detached.
-	 */
-	virtual bool detach();
-
-	/**
 	 * Get the thread id.
 	 * @return the thread id.
 	 */
-	pthread_t self() {return m_threadid; }
+	pthread_t self() { return m_threadid; }
 
 protected:
 
@@ -110,8 +105,45 @@ private:
 	/** Whether the thread was stopped by @a stop() or @a join(). */
 	bool m_stopped;
 
-	/** Whether the thread was detached */
-	bool m_detached;
+};
+
+
+/**
+ * A @a Thread that can be waited on.
+ */
+class WaitThread : public Thread
+{
+
+public:
+	/**
+	 * Constructor.
+	 */
+	WaitThread();
+
+	/**
+	 * Destructor.
+	 */
+	virtual ~WaitThread();
+
+	// @copydoc
+	virtual void stop();
+
+	// @copydoc
+	virtual bool join();
+
+	/**
+	 * Wait for the specified amount of time.
+	 * @param seconds the number of seconds to wait.
+	 * @return true if this @a Thread is till running and not yet stopped.
+	 */
+	bool Wait(int seconds);
+
+private:
+	/** the mutex for waiting. */
+	pthread_mutex_t m_mutex;
+
+	/** the condition for waiting. */
+	pthread_cond_t m_cond;
 
 };
 

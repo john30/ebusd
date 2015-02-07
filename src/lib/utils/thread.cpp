@@ -31,7 +31,7 @@ void* Thread::runThread(void* arg)
 
 Thread::~Thread()
 {
-	if (m_started == true && m_detached == false)
+	if (m_started == true)
 		pthread_detach(m_threadid);
 
 	if (m_started == true)
@@ -66,24 +66,8 @@ bool Thread::join()
 		result = pthread_join(m_threadid, NULL);
 
 		if (result == 0) {
-			m_detached = false;
 			m_started = false;
 		}
-	}
-
-	return result == 0;
-}
-
-bool Thread::detach()
-{
-	int result = -1;
-
-	if (m_started == true && m_detached == false) {
-		result = pthread_detach(m_threadid);
-
-		if (result == 0)
-			m_detached = true;
-
 	}
 
 	return result == 0;
@@ -93,4 +77,45 @@ void Thread::enter() {
 	m_running = true;
 	run();
 	m_running = false;
+}
+
+
+WaitThread::WaitThread()
+	: Thread()
+{
+	pthread_mutex_init(&m_mutex, NULL);
+	pthread_cond_init(&m_cond, NULL);
+}
+
+WaitThread::~WaitThread()
+{
+	pthread_mutex_destroy(&m_mutex);
+	pthread_cond_destroy(&m_cond);
+}
+
+void WaitThread::stop()
+{
+	pthread_mutex_lock(&m_mutex);
+	pthread_cond_signal(&m_cond);
+	pthread_mutex_unlock(&m_mutex);
+	Thread::stop();
+}
+
+bool WaitThread::join()
+{
+	pthread_mutex_lock(&m_mutex);
+	pthread_cond_signal(&m_cond);
+	pthread_mutex_unlock(&m_mutex);
+	return Thread::join();
+}
+
+bool WaitThread::Wait(int seconds)
+{
+	struct timespec t;
+	clock_gettime(CLOCK_REALTIME, &t);
+	t.tv_sec += seconds;
+	pthread_mutex_lock(&m_mutex);
+	pthread_cond_timedwait(&m_cond, &m_mutex, &t);
+	pthread_mutex_unlock(&m_mutex);
+	return isRunning();
 }
