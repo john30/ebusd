@@ -1,5 +1,5 @@
 /*
- * Copyright (C) Roland Jax 2012-2014 <ebusd@liwest.at>
+ * Copyright (C) John Baier 2015 <ebusd@johnm.de>
  *
  * This file is part of ebusd.
  *
@@ -17,7 +17,7 @@
  * along with ebusd. If not, see http://www.gnu.org/licenses/.
  */
 
-#include "port.h"
+#include "device.h"
 #include <iostream>
 #include <iomanip>
 
@@ -25,33 +25,38 @@ using namespace std;
 
 int main ()
 {
-	string dev("/dev/ttyUSB20");
-	Port port(dev, true, false, NULL, false, "", 1);
+	Device* device = Device::create("/dev/ttyUSB20", true, NULL);
+	if (device == NULL) {
+		cout << "unable to create device" << endl;
+		return -1;
+	}
+	result_t result = device->open();
+	if (result != RESULT_OK) {
+		cout << "open failed: " << getResultCode(result) << endl;
+	} else {
+		if (device->isValid() == false)
+			cout << "device not available." << endl;
 
-	port.open();
+		int count = 0;
 
-	if(port.isOpen() == true)
-		cout << "openPort successful." << endl;
+		while (1) {
+			unsigned char byte = 0;
+			result = device->recv(0, byte);
 
-	int count = 0;
+			if (result == RESULT_OK)
+				cout << hex << setw(2) << setfill('0')
+				<< static_cast<unsigned>(byte) << endl;
 
-	while (1) {
-		result_t result;
-		unsigned char byte = 0;
-		result = port.recv(0, byte);
+			count++;
+		}
 
-		if (result == RESULT_OK)
-			cout << hex << setw(2) << setfill('0')
-			<< static_cast<unsigned>(byte) << endl;
+		device->close();
 
-		count++;
+		if(device->isValid() == false)
+			cout << "close successful." << endl;
 	}
 
-	port.close();
-
-	if(port.isOpen() == false)
-		cout << "closePort successful." << endl;
+	delete device;
 
 	return 0;
-
 }

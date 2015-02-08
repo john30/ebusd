@@ -482,6 +482,19 @@ result_t loadConfigFiles(DataFieldTemplates* templates, MessageMap* messages, bo
 
 
 /**
+ * Create a log message for a received/sent raw data byte.
+ * @param byte the raw data byte.
+ * @param received true if the byte was received, false if it was sent.
+ */
+static void logRawData(const unsigned char byte, bool received)
+{
+	if (received == true)
+		logNotice(lf_bus, "<%02x", byte);
+	else
+		logNotice(lf_bus, ">%02x", byte);
+}
+
+/**
  * Main method.
  *
  * @param argc the number of command line arguments.
@@ -507,6 +520,13 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 
+	// open the device
+	Device *device = Device::create(opt.device, opt.noDeviceCheck==false, &logRawData);
+	if (device == NULL) {
+		logError(lf_main, "unable to create device %s", opt.device);
+		return EINVAL;
+	}
+
 	if (opt.foreground == false) {
 		setLogFile(opt.logFile);
 		daemonize(); // make me daemon
@@ -523,7 +543,7 @@ int main(int argc, char* argv[])
 	loadConfigFiles(&templates, &messages);
 
 	// create the MainLoop and run it
-	mainLoop = new MainLoop(opt, &templates, &messages);
+	mainLoop = new MainLoop(opt, device, &templates, &messages);
 	mainLoop->run();
 
 	// shutdown

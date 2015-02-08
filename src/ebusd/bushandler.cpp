@@ -23,6 +23,7 @@
 #include "result.h"
 #include "symbol.h"
 #include "log.h"
+#include <unistd.h>
 #include <string>
 #include <vector>
 #include <deque>
@@ -171,18 +172,18 @@ result_t BusHandler::sendAndWait(SymbolString& master, SymbolString& slave)
 void BusHandler::run()
 {
 	do {
-		if (m_port->isOpen() == true)
+		if (m_device->isValid() == true)
 			handleSymbol();
 		else {
-			// TODO define max reopen
-			sleep(10);
-			result_t result = m_port->open();
+			if (Wait(10) == false)
+				break;
+			result_t result = m_device->open();
 
-			if (result != RESULT_OK)
-				logError(lf_bus, "can't open %s", m_port->getDeviceName());
-
+			if (result == RESULT_OK)
+				logNotice(lf_bus, "re-opened %s", m_device->getName());
+			else
+				logError(lf_bus, "unable to open %s: %s", m_device->getName(), getResultCode(result));
 		}
-
 	} while (isRunning() == true);
 }
 
@@ -289,7 +290,7 @@ result_t BusHandler::handleSymbol()
 	// send symbol if necessary
 	result_t result;
 	if (sending == true) {
-		result = m_port->send(sendSymbol);
+		result = m_device->send(sendSymbol);
 		if (result == RESULT_OK)
 			if (m_state == bs_ready)
 				timeout = m_busAcquireTimeout;
@@ -304,7 +305,7 @@ result_t BusHandler::handleSymbol()
 
 	// receive next symbol (optionally check reception of sent symbol)
 	unsigned char recvSymbol;
-	result = m_port->recv(timeout, recvSymbol);
+	result = m_device->recv(timeout, recvSymbol);
 
 	time_t now;
 	time(&now);

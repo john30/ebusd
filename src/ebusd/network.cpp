@@ -1,5 +1,6 @@
 /*
- * Copyright (C) Roland Jax 2012-2014 <ebusd@liwest.at>
+ * Copyright (C) Roland Jax 2012-2014 <ebusd@liwest.at>,
+ * John Baier 2014-2015 <ebusd@johnm.de>
  *
  * This file is part of ebusd.
  *
@@ -165,6 +166,8 @@ Network::Network(const bool local, const int port, WQueue<NetMessage*>* netQueue
 
 Network::~Network()
 {
+	stop();
+
 	while (m_connections.empty() == false) {
 		Connection* connection = m_connections.back();
 		m_connections.pop_back();
@@ -172,8 +175,6 @@ Network::~Network()
 		connection->join();
 		delete connection;
 	}
-
-	stop();
 	join();
 
 	if (m_tcpServer != NULL)

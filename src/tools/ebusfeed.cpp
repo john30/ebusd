@@ -1,5 +1,6 @@
 /*
- * Copyright (C) Roland Jax 2012-2014 <ebusd@liwest.at>
+ * Copyright (C) Roland Jax 2012-2014 <ebusd@liwest.at>,
+ * John Baier 2014-2015 <ebusd@johnm.de>
  *
  * This file is part of ebusd.
  *
@@ -22,7 +23,8 @@
 #endif
 
 #include <argp.h>
-#include "port.h"
+#include "device.h"
+#include <unistd.h>
 #include <iostream>
 #include <string.h>
 #include <cstdlib>
@@ -129,12 +131,19 @@ int main(int argc, char* argv[])
 	if (argp_parse(&argp, argc, argv, ARGP_IN_ORDER, NULL, &opt) != 0)
 		return EINVAL;
 
-	string dev(opt.device);
-	Port port(dev, true, false, NULL, false, "", 1);
+	Device* device = Device::create(opt.device, true, NULL);
+	if (device == NULL) {
+		cout << "unable to create device " << opt.device << endl;
+		return EINVAL;
+	}
+	result_t result = device->open();
+	if (result != RESULT_OK)
+		cout << "unable to open " << opt.device << ": " << getResultCode(result) << endl;
 
-	port.open();
-	if(port.isOpen() == true) {
-		cout << "openPort successful." << endl;
+	if (device->isValid() == false)
+		cout << "device " << opt.device << " not available" << endl;
+	else {
+		cout << "device opened" << endl;
 
 		fstream file(opt.dumpFile, ios::in | ios::binary);
 
@@ -147,7 +156,7 @@ int main(int argc, char* argv[])
 				cout << hex << setw(2) << setfill('0')
 				     << static_cast<unsigned>(byte) << endl;
 
-				port.send(byte);
+				device->send(byte);
 				usleep(opt.time);
 			}
 
@@ -155,14 +164,9 @@ int main(int argc, char* argv[])
 		}
 		else
 			cout << "error opening file " << opt.dumpFile << endl;
-
-		port.close();
-		if(port.isOpen() == false)
-			cout << "closePort successful." << endl;
 	}
-	else
-		cout << "error opening device " << opt.device << endl;
 
+	delete device;
 
 	exit(EXIT_SUCCESS);
 }

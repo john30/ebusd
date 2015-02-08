@@ -3,13 +3,13 @@ AM_CXXFLAGS = -fpic \
 	      -Wextra \
 	      -isystem$(top_srcdir)/src/lib/ebus
 
-noinst_PROGRAMS = test_port \
+noinst_PROGRAMS = test_device \
 		  test_symbol \
 		  test_data \
 		  test_message
 
-test_port_SOURCES = test_port.cpp
-test_port_LDADD = $(top_srcdir)/src/lib/ebus/libebus.a
+test_device_SOURCES = test_device.cpp
+test_device_LDADD = $(top_srcdir)/src/lib/ebus/libebus.a
 
 test_symbol_SOURCES = test_symbol.cpp
 test_symbol_LDADD = $(top_srcdir)/src/lib/ebus/libebus.a

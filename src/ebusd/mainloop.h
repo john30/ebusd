@@ -38,10 +38,11 @@ public:
 	/**
 	 * Construct the main loop and create network and bus handling components.
 	 * @param opt the program options.
+	 * @param device the @a Device instance.
 	 * @param templates the @a DataFieldTemplates instance.
 	 * @param messages the @a MessageMap instance.
 	 */
-	MainLoop(const struct options opt, DataFieldTemplates* templates, MessageMap* messages);
+	MainLoop(const struct options opt, Device *device, DataFieldTemplates* templates, MessageMap* messages);
 
 	/**
 	 * Destructor.
@@ -59,14 +60,10 @@ public:
 	 */
 	void addMessage(NetMessage* message) { m_netQueue.add(message); }
 
-	/**
-	 * Create a log message for a received/sent raw data byte.
-	 * @param byte the raw data byte.
-	 * @param received true if the byte was received, false if it was sent.
-	 */
-	static void logRaw(const unsigned char byte, bool received);
-
 private:
+
+	/** the @a Device instance. */
+	Device* m_device;
 
 	/** the @a DataFieldTemplates instance. */
 	DataFieldTemplates* m_templates;
@@ -76,9 +73,6 @@ private:
 
 	/** the own master address for sending on the bus. */
 	unsigned char m_address;
-
-	/** the created @a Port instance. */
-	Port* m_port;
 
 	/** the created @a BusHandler instance. */
 	BusHandler* m_busHandler;

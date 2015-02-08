@@ -26,18 +26,24 @@
 
 using namespace std;
 
-MainLoop::MainLoop(const struct options opt, DataFieldTemplates* templates, MessageMap* messages)
-	: m_templates(templates), m_messages(messages), m_address(opt.address)
+MainLoop::MainLoop(const struct options opt, Device *device, DataFieldTemplates* templates, MessageMap* messages)
+	: m_device(device), m_templates(templates), m_messages(messages), m_address(opt.address)
 {
-	// create Port
-	m_port = new Port(opt.device, opt.noDeviceCheck, opt.logRaw, &logRaw, opt.dump, opt.dumpFile, opt.dumpSize);
-	m_port->open();
+	// setup Device
+	m_device->setLogRaw(opt.logRaw);
+	m_device->setDumpRawFile(opt.dumpFile);
+	m_device->setDumpRawMaxSize(opt.dumpSize);
+	m_device->setDumpRaw(opt.dump);
 
-	if (m_port->isOpen() == false)
-		logError(lf_bus, "can't open %s", m_port->getDeviceName());
+	// open Device
+	result_t result = m_device->open();
+	if (result != RESULT_OK)
+		logError(lf_bus, "unable to open %s: %s", m_device->getName(), getResultCode(result));
+	else if (m_device->isValid() == false)
+		logError(lf_bus, "device %s not available", m_device->getName());
 
 	// create BusHandler
-	m_busHandler = new BusHandler(m_port, m_messages,
+	m_busHandler = new BusHandler(m_device, m_messages,
 			m_address, opt.answer,
 			opt.acquireRetries, opt.sendRetries,
 			opt.acquireTimeout, opt.receiveTimeout,
@@ -55,17 +61,13 @@ MainLoop::~MainLoop()
 		delete m_network;
 		m_network = NULL;
 	}
-
 	if (m_busHandler != NULL) {
-		m_busHandler->stop();
-		m_busHandler->join();
 		delete m_busHandler;
 		m_busHandler = NULL;
 	}
-
-	if (m_port != NULL) {
-		delete m_port;
-		m_port = NULL;
+	if (m_device != NULL) {
+		delete m_device;
+		m_device = NULL;
 	}
 
 	m_messages->clear();
@@ -107,13 +109,6 @@ void MainLoop::run()
 		// send result to client
 		message->setResult(result, listening, until, connected == false);
 	}
-}
-
-void MainLoop::logRaw(const unsigned char byte, bool received) {
-	if (received == true)
-		logNotice(lf_bus, "<%02x", byte);
-	else
-		logNotice(lf_bus, ">%02x", byte);
 }
 
 string MainLoop::decodeMessage(const string& data, bool& connected, bool& listening, bool& running)
@@ -570,8 +565,8 @@ string MainLoop::executeRaw(vector<string> &args)
 		return "usage: 'raw'\n"
 			   " Toggle log raw data.";
 
-	bool enabled = !m_port->getLogRaw();
-	m_port->setLogRaw(enabled);
+	bool enabled = !m_device->getLogRaw();
+	m_device->setLogRaw(enabled);
 
 	return enabled ? "raw output enabled" : "raw output disabled";
 }
@@ -582,8 +577,8 @@ string MainLoop::executeDump(vector<string> &args)
 		return "usage: 'dump'\n"
 			   " Toggle raw dump.";
 
-	bool enabled = !m_port->getDumpRaw();
-	m_port->setDumpRaw(enabled);
+	bool enabled = !m_device->getDumpRaw();
+	m_device->setDumpRaw(enabled);
 
 	return enabled ? "dump enabled" : "dump disabled";
 }

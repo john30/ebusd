@@ -24,7 +24,7 @@
 #include "data.h"
 #include "symbol.h"
 #include "result.h"
-#include "port.h"
+#include "device.h"
 #include "wqueue.h"
 #include "thread.h"
 #include <string>
@@ -244,13 +244,13 @@ private:
 /**
  * Handles input from and output to the bus with respect to the eBUS protocol.
  */
-class BusHandler : public Thread
+class BusHandler : public WaitThread
 {
 public:
 
 	/**
 	 * Construct a new instance.
-	 * @param port the @a Port instance for accessing the bus.
+	 * @param device the @a Device instance for accessing the bus.
 	 * @param messages the @a MessageMap instance with all known @a Message instances.
 	 * @param ownAddress the own master address.
 	 * @param answer whether to answer queries for the own master/slave address.
@@ -261,12 +261,12 @@ public:
 	 * @param lockCount the number of AUTO-SYN symbols before sending is allowed after lost arbitration.
 	 * @param pollInterval the interval in seconds in which poll messages are cycled, or 0 if disabled.
 	 */
-	BusHandler(Port* port, MessageMap* messages,
+	BusHandler(Device* device, MessageMap* messages,
 			const unsigned char ownAddress, const bool answer,
 			const unsigned int busLostRetries, const unsigned int failedSendRetries,
 			const unsigned int busAcquireTimeout, const unsigned int slaveRecvTimeout,
 			const unsigned int lockCount, const unsigned int pollInterval)
-		: m_port(port), m_messages(messages),
+		: m_device(device), m_messages(messages),
 		  m_ownMasterAddress(ownAddress), m_ownSlaveAddress((ownAddress+5)&0xff), m_answer(answer),
 		  m_busLostRetries(busLostRetries), m_failedSendRetries(failedSendRetries),
 		  m_busAcquireTimeout(busAcquireTimeout), m_slaveRecvTimeout(slaveRecvTimeout),
@@ -283,6 +283,7 @@ public:
 	 * Destructor.
 	 */
 	virtual ~BusHandler() {
+		stop();
 		if (m_scanMessage != NULL)
 			delete m_scanMessage;
 	}
@@ -348,8 +349,8 @@ private:
 	 */
 	void receiveCompleted();
 
-	/** the @a Port instance for accessing the bus. */
-	Port* m_port;
+	/** the @a Device instance for accessing the bus. */
+	Device* m_device;
 
 	/** the @a MessageMap instance with all known @a Message instances. */
 	MessageMap* m_messages;

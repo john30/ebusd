@@ -11,8 +11,8 @@ libebus_a_SOURCES = result.cpp \
 		    symbol.h \
 		    data.cpp \
 		    data.h \
-		    port.cpp \
-		    port.h \
+		    device.cpp \
+		    device.h \
 		    message.cpp \
 		    message.h
 
