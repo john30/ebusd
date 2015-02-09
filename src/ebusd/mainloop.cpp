@@ -427,12 +427,14 @@ string MainLoop::executeFind(vector<string> &args)
 	}
 	if (argPos == 0 || args.size() < argPos || args.size() > argPos + 1)
 		return "usage: 'find [-v] [-r] [-w] [-p] [-d] [-c CLASS] [NAME]'\n"
-			   " Find value(s)."
-			   "  -v  be verbose (include field names, units, and comments)\n"
-			   "  -r  limit to active read messages (default all types)\n"
-			   "  -w  limit to active write messages (default all types)\n"
-			   "  -p  limit to passive messages (default all types)\n"
-			   "  -d  only retrieve messages with actual data";
+			   " Find value(s).\n"
+			   "  -v       be verbose (include field names, units, and comments)\n"
+			   "  -r       limit to active read messages (default all types)\n"
+			   "  -w       limit to active write messages (default all types)\n"
+			   "  -p       limit to passive messages (default all types)\n"
+			   "  -d       only retrieve messages with actual data"
+			   "  -c CLASS limit to messages of CLASS\n"
+			   "  NAME     the NAME of the message to find or a part thereof";
 
 	deque<Message*> messages;
 	if (args.size() == argPos)
