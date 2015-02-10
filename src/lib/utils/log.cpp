@@ -91,7 +91,7 @@ bool setLogLevel(const char* level)
 
 bool setLogFile(const char* filename)
 {
-	FILE* newFile = fopen(filename, "w");
+	FILE* newFile = fopen(filename, "a");
 	if (newFile == NULL)
 		return false;
 
