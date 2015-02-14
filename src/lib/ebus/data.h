@@ -76,7 +76,6 @@ static const unsigned int REQ = 0x100;//!< value may not be NULL
 /** The structure for defining field types with their properties. */
 typedef struct {
 	const char* name;                        //!< field identifier
-	//todo rename to bitCount
 	const unsigned int bitCount;             //!< number of bits (maximum length if @a ADJ flag is set, must be multiple of 8 with flag @a BCD)
 	const BaseType type;                     //!< base data type
 	const unsigned int flags;                //!< flags (e.g. @a BCD)
