@@ -36,8 +36,8 @@
 
 using namespace std;
 
-/* the maximum allowed time [us] for retrieving a symbol from an addressed slave. */
-//#define SLAVE_RECV_TIMEOUT 10000
+/** the default time [us] for retrieving a symbol from an addressed slave. */
+#define SLAVE_RECV_TIMEOUT 15000
 
 /** the maximum allowed time [us] for retrieving the AUTO-SYN symbol (45ms + 2*1,2% + 1 Symbol). */
 #define SYN_TIMEOUT 50800
