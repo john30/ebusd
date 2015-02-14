@@ -16,7 +16,7 @@ Makefile.in
 /src/tools/ebusfeed
 /src/lib/utils/libutils.a
 /src/lib/ebus/libebus.a
-/src/lib/ebus/test/test_port
+/src/lib/ebus/test/test_device
 /src/lib/ebus/test/test_symbol
 /src/lib/ebus/test/test_data
 /src/lib/ebus/test/test_message
