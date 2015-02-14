@@ -38,7 +38,7 @@ AC_CONFIG_FILES([Makefile
 
 AC_DEFINE_UNQUOTED(PACKAGE_PIDFILE, LOCALSTATEDIR "/run/" PACKAGE ".pid", [The path and name of the PID file.])
 AC_DEFINE_UNQUOTED(PACKAGE_LOGFILE, LOCALSTATEDIR "/log/" PACKAGE ".log", [The path and name of the log file.])
-AC_DEFINE_UNQUOTED(PACKAGE_CONFIGPATH, SYSCONFDIR "/ebusd", [The default path of the configuration files.])
+AC_DEFINE_UNQUOTED(PACKAGE_CONFIGPATH, SYSCONFDIR "/" PACKAGE, [The default path of the configuration files.])
 
 AC_CHECK_PROGS([HAVE_DOXYGEN], [doxygen])
 if test -z "$HAVE_DOXYGEN";
