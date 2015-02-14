@@ -1,5 +1,5 @@
 AC_PREREQ([2.65])
-AC_INIT([ebusd], [0.5.0], [ebusd@johnm.de], [ebusd], [https://github.com/john30/ebusd])
+AC_INIT([ebusd], [1.0.0], [ebusd@johnm.de], [ebusd], [https://github.com/john30/ebusd])
 
 if test -z $CXXFLAGS;
 	then CXXFLAGS='-g -O2'
