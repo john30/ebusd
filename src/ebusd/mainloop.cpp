@@ -144,7 +144,7 @@ string MainLoop::decodeMessage(const string& data, bool& connected, bool& listen
 	}
 
 	if (args.size() == 0)
-		return "command missing";
+		return executeHelp();
 
 	const char* str = args[0].c_str();
 	if (args.size() == 2) {
@@ -183,7 +183,7 @@ string MainLoop::decodeMessage(const string& data, bool& connected, bool& listen
 	if (strcasecmp(str, "H") == 0 || strcasecmp(str, "HELP") == 0)
 		return executeHelp();
 
-	return "command not found";
+	return "ERR: command not found";
 }
 
 string MainLoop::executeRead(vector<string> &args)
@@ -257,9 +257,9 @@ string MainLoop::executeRead(vector<string> &args)
 
 	if (message == NULL) {
 		if (updateMessage != NULL)
-			return "no data stored";
-		else
-			return "message not defined";
+			return "ERR: no data stored";
+
+		return getResultCode(RESULT_ERR_NOTFOUND);
 	}
 	if (maxAge > 0 && message->getPollPriority() > 0
 			&& message->getLastUpdateTime() + maxAge > now) {
@@ -308,14 +308,14 @@ string MainLoop::executeWrite(vector<string> &args)
 		msg << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_address) << setw(0);
 		while (argPos < args.size()) {
 			if ((args[argPos].length() % 2) != 0) {
-				return "invalid hex string";
+				return getResultCode(RESULT_ERR_INVALID_NUM);
 			}
 			msg << args[argPos++];
 		}
 
 		SymbolString master(msg.str());
 		if (isValidAddress(master[1]) == false)
-			return "invalid destination";
+			return getResultCode(RESULT_ERR_INVALID_ADDR);
 
 		logNotice(lf_main, "write hex cmd: %s", master.getDataStr().c_str());
 
@@ -325,7 +325,7 @@ string MainLoop::executeWrite(vector<string> &args)
 
 		if (ret == RESULT_OK) {
 			if (master[1] == BROADCAST || isMaster(master[1]))
-				return "done";
+				return getResultCode(RESULT_OK);
 			return slave.getDataStr();
 		}
 		logError(lf_main, "write hex: %s", getResultCode(ret));
@@ -348,7 +348,7 @@ string MainLoop::executeWrite(vector<string> &args)
 	Message* message = m_messages->find(args[argPos], args[argPos + 1], true);
 
 	if (message == NULL)
-		return "message not defined";
+		return getResultCode(RESULT_ERR_NOTFOUND);
 
 	SymbolString master;
 	istringstream input(args[argPos + 2]);
@@ -366,11 +366,11 @@ string MainLoop::executeWrite(vector<string> &args)
 	ostringstream result;
 	if (ret == RESULT_OK) {
 		if (master[1] == BROADCAST || isMaster(master[1]))
-			return "done";
+			return getResultCode(RESULT_OK);
 
 		ret = message->decode(pt_slaveData, slave, result); // decode data
 		if (ret == RESULT_OK && result.str().empty() == true)
-			return "done";
+			return getResultCode(RESULT_OK);
 	}
 	if (ret != RESULT_OK) {
 		logError(lf_main, "write: %s", getResultCode(ret));
@@ -428,7 +428,7 @@ string MainLoop::executeFind(vector<string> &args)
 	if (argPos == 0 || args.size() < argPos || args.size() > argPos + 1)
 		return "usage: 'find [-v] [-r] [-w] [-p] [-d] [-c CLASS] [NAME]'\n"
 			   " Find value(s).\n"
-			   "  -v       be verbose (include field names, units, and comments)\n"
+			   "  -v       be verbose (append destination address and update time)\n"
 			   "  -r       limit to active read messages (default all types)\n"
 			   "  -w       limit to active write messages (default all types)\n"
 			   "  -p       limit to passive messages (default all types)\n"
@@ -474,7 +474,7 @@ string MainLoop::executeFind(vector<string> &args)
 		found = true;
 	}
 	if (found == false)
-		return "no message found";
+		return getResultCode(RESULT_ERR_NOTFOUND);
 
 	return result.str();
 }
@@ -513,19 +513,17 @@ string MainLoop::executeScan(vector<string> &args)
 {
 	if (args.size() == 1) {
 		result_t result = m_busHandler->startScan();
-		if (result == RESULT_OK)
-			return "scan initiated";
+		if (result != RESULT_OK)
+			logError(lf_main, "scan: %s", getResultCode(result));
 
-		logError(lf_main, "scan: %s", getResultCode(result));
 		return getResultCode(result);
 	}
 
 	if (args.size() == 2 && strcasecmp(args[1].c_str(), "FULL") == 0) {
 		result_t result = m_busHandler->startScan(true);
-		if (result == RESULT_OK)
-			return "done";
+		if (result != RESULT_OK)
+			logError(lf_main, "full scan: %s", getResultCode(result));
 
-		logError(lf_main, "full scan: %s", getResultCode(result));
 		return getResultCode(result);
 	}
 
@@ -549,16 +547,16 @@ string MainLoop::executeLog(vector<string> &args)
 	else if (args.size() == 3 && strcasecmp(args[1].c_str(), "LEVEL") == 0)
 		result = setLogLevel(args[2].c_str());
 	else
-		return "usage: 'log areas AREA,AREA,...'\n"
+		return "usage: 'log areas AREA[,AREA]*'\n"
 			   "  or:  'log level LEVEL'\n"
 			   " Set log area(s) or log level.\n"
-			   "  AREA   the log area(s) to include (main|network|bus|update|all)\n"
+			   "  AREA   the log area to include (main|network|bus|update|all)\n"
 			   "  LEVEL  the log level to set (error|notice|info|debug)";
 
 	if (result == true)
-		return "done";
+		return getResultCode(RESULT_OK);
 
-	return "invalid area/level";
+	return getResultCode(RESULT_ERR_INVALID_ARG);
 }
 
 string MainLoop::executeRaw(vector<string> &args)
@@ -593,8 +591,6 @@ string MainLoop::executeReload(vector<string> &args)
 
 	// reload commands
 	result_t result = loadConfigFiles(m_templates, m_messages);
-	if (result == RESULT_OK)
-		return "done";
 
 	return getResultCode(result);
 }
@@ -632,8 +628,8 @@ string MainLoop::executeHelp()
 		   " scan    Scan seen slaves      'scan'\n"
 		   "         Scan all slaves       'scan full'\n"
 		   "         Report scan result    'scan result'\n"
-		   " log     Set log areas         'log areas AREA,AREA,...' (AREA: main|network|bus|update|all)\n"
-		   "         Set log level         'log level LEVEL'         (LEVEL: error|notice|info|debug)\n"
+		   " log     Set log area(s)       'log areas AREA[,AREA*]' (AREA: main|network|bus|update|all)\n"
+		   "         Set log level         'log level LEVEL'        (LEVEL: error|notice|info|debug)\n"
 		   " raw     Toggle log raw data   'raw'\n"
 		   " dump    Toggle raw dump       'dump'\n"
 		   " reload  Reload config files   'reload'\n"
