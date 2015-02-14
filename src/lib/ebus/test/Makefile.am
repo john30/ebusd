@@ -9,16 +9,16 @@ noinst_PROGRAMS = test_device \
 		  test_message
 
 test_device_SOURCES = test_device.cpp
-test_device_LDADD = $(top_srcdir)/src/lib/ebus/libebus.a
+test_device_LDADD = ../libebus.a
 
 test_symbol_SOURCES = test_symbol.cpp
-test_symbol_LDADD = $(top_srcdir)/src/lib/ebus/libebus.a
+test_symbol_LDADD = ../libebus.a
 
 test_data_SOURCES = test_data.cpp
-test_data_LDADD = $(top_srcdir)/src/lib/ebus/libebus.a
+test_data_LDADD = ../libebus.a
 
 test_message_SOURCES = test_message.cpp
-test_message_LDADD = $(top_srcdir)/src/lib/ebus/libebus.a
+test_message_LDADD = ../libebus.a
 
 distclean-local:
 	-rm -f Makefile.in
