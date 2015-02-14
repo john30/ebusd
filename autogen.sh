@@ -5,4 +5,4 @@ test -n "$srcdir" || srcdir=.
 mkdir -p "$srcdir/build"
 
 autoreconf --force --install --verbose "$srcdir"
-test -n "$NOCONFIGURE" || "$srcdir/configure" "--localstatedir=/var" "$@"
+test -n "$NOCONFIGURE" || "$srcdir/configure" "--sysconfdir=/etc" "--localstatedir=/var" "$@"

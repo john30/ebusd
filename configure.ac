@@ -1,10 +1,5 @@
 AC_PREREQ([2.65])
-AC_INIT([ebusd], [0.5.0], [ebusd@liwest.at], [ebusd], [https://github.com/yuhu-/ebusd])
-
-case "$@" in
-	*"--sysconfdir="*) ;;
-	*) sysconfdir=/etc ;;
-esac
+AC_INIT([ebusd], [0.5.0], [ebusd@johnm.de], [ebusd], [https://github.com/john30/ebusd])
 
 if test -z $CXXFLAGS;
 	then CXXFLAGS='-g -O2'
@@ -41,7 +36,9 @@ AC_CONFIG_FILES([Makefile
 		 src/ebusd/Makefile
 		 src/tools/Makefile])
 
-AC_DEFINE_UNQUOTED(PACKAGE_PIDFILE, LOCALSTATEDIR "/run/" PACKAGE ".pid", [The name of the PID file.])
+AC_DEFINE_UNQUOTED(PACKAGE_PIDFILE, LOCALSTATEDIR "/run/" PACKAGE ".pid", [The path and name of the PID file.])
+AC_DEFINE_UNQUOTED(PACKAGE_LOGFILE, LOCALSTATEDIR "/log/" PACKAGE ".log", [The path and name of the log file.])
+AC_DEFINE_UNQUOTED(PACKAGE_CONFIGPATH, SYSCONFDIR "/ebusd", [The default path of the configuration files.])
 
 AC_CHECK_PROGS([HAVE_DOXYGEN], [doxygen])
 if test -z "$HAVE_DOXYGEN";

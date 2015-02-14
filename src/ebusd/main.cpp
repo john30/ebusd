@@ -33,11 +33,25 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-/** the name of the PID file. */
+/** the path and name of the PID file. */
 #ifdef PACKAGE_PIDFILE
 #define PID_FILE_NAME PACKAGE_PIDFILE
 #else
 #define PID_FILE_NAME "/var/run/ebusd.pid"
+#endif
+
+/** the path and name of the log file. */
+#ifdef PACKAGE_LOGFILE
+#define LOG_FILE_NAME PACKAGE_LOGFILE
+#else
+#define LOG_FILE_NAME "/var/log/ebusd.log"
+#endif
+
+/** the default path of the configuration files. */
+#ifdef PACKAGE_CONFIGPATH
+#define CONFIG_PATH PACKAGE_CONFIGPATH
+#else
+#define CONFIG_PATH "/etc/ebusd"
 #endif
 
 /** the opened PID file, or NULL. */
@@ -50,7 +64,7 @@ static bool isDaemon = false;
 static struct options opt = {
 	"/dev/ttyUSB0", // device
 	false, // noDeviceCheck
-	"/etc/ebusd", // configPath
+	CONFIG_PATH, // configPath
 	false, // checkConfig
 	5, // pollInterval
 	0xFF, // address
@@ -58,12 +72,12 @@ static struct options opt = {
 	9400, // acquireTimeout
 	2, // acquireRetries
 	2, // sendRetries
-	15000, // receiveTimeout
+	SLAVE_RECV_TIMEOUT, // receiveTimeout
 	5, // masterCount
 	false, // foreground
 	8888, // port
 	false, // localOnly
-	"/var/log/ebusd.log", // logFile
+	PACKAGE_LOGFILE, // logFile
 	false, // logRaw
 	false, // dump
 	"/tmp/ebus_dump.bin", // dumpFile
@@ -105,7 +119,7 @@ static const struct argp_option argpoptions[] = {
 	{"nodevicecheck",  'n',      NULL,    0, "Skip serial eBUS device test", 0 },
 
 	{NULL,             0,        NULL,    0, "Message configuration options:", 2 },
-	{"configpath",     'c',      "PATH",  0, "Read CSV config files from PATH [/etc/ebusd]", 0 },
+	{"configpath",     'c',      "PATH",  0, "Read CSV config files from PATH [" CONFIG_PATH "]", 0 },
 	{"checkconfig",    O_CHKCFG, NULL,    0, "Only check CSV config files, then stop", 0 },
 	{"pollinterval",   O_POLINT, "SEC",   0, "Poll for data every SEC seconds (0=disable) [5]", 0 },
 
@@ -124,8 +138,8 @@ static const struct argp_option argpoptions[] = {
 	{"localhost",      O_LOCAL,  NULL,    0, "Listen on 127.0.0.1 interface only", 0 },
 
 	{NULL,             0,        NULL,    0, "Log options:", 5 },
-	{"logfile",        'l',      "FILE",  0, "Write log to FILE (only for daemon) [/var/log/ebusd.log]", 0 },
-	{"logareas",       O_LOGARE, "AREAS", 0, "Only write log for matching AREAS: main,network,bus,update,all [all]", 0 },
+	{"logfile",        'l',      "FILE",  0, "Write log to FILE (only for daemon) [" PACKAGE_LOGFILE "]", 0 },
+	{"logareas",       O_LOGARE, "AREAS", 0, "Only write log for matching AREA(S): main,network,bus,update,all [all]", 0 },
 	{"loglevel",       O_LOGLEV, "LEVEL", 0, "Only write log below or equal to LEVEL: error/notice/info/debug [notice]", 0 },
 	{"lograwdata",     O_LOGRAW, NULL,    0, "Log each received/sent byte on the bus", 0 },
 
@@ -134,7 +148,6 @@ static const struct argp_option argpoptions[] = {
 	{"dumpfile",       O_DMPFIL, "FILE",  0, "Dump received bytes to FILE [/tmp/ebus_dump.bin]", 0 },
 	{"dumpsize",       O_DMPSIZ, "SIZE",  0, "Make dump files no larger than SIZE kB [100]", 0 },
 
-	//{NULL,             0,        NULL,    0, "Other:", 7 },
 	{NULL,             0,        NULL,    0, NULL, 0 },
 };
 
@@ -317,7 +330,7 @@ void daemonize()
 
 	// Change the current working directory. This prevents the current
 	// directory from being locked; hence not being able to remove it.
-	if (chdir("/tmp") < 0) { // TODO use constant
+	if (chdir("/tmp") < 0) {
 		logError(lf_main, "daemon chdir() failed");
 		exit(EXIT_FAILURE);
 	}
