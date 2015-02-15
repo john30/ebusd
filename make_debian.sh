@@ -45,9 +45,10 @@ echo "*************"
 echo " pack"
 echo "*************"
 echo
-mkdir -p release/DEBIAN release/etc/init.d release/etc/ebusd release/etc/logrotate.d release/usr/bin release/usr/bin || exit 1
+mkdir -p release/DEBIAN release/etc/init.d release/etc/default/ebusd release/etc/ebusd release/etc/logrotate.d release/usr/bin release/usr/bin || exit 1
 
 cp contrib/etc/init.d/ebusd.debian release/etc/init.d/ebusd || exit 1
+cp contrib/etc/default/ebusd.debian release/etc/default/ebusd || exit 1
 cp contrib/etc/ebusd/* release/etc/ebusd/ || exit 1
 cp contrib/etc/logrotate.d/ebusd release/etc/logrotate.d/ || exit 1
 strip src/ebusd/ebusd || exit 1
@@ -76,6 +77,7 @@ cat <<EOF > release/DEBIAN/dirs
 /etc/ebusd
 /usr/bin/
 /etc/init.d
+/etc/default/ebusd
 /etc/logrotate.d
 EOF
 
