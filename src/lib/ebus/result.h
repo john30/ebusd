@@ -1,5 +1,5 @@
 /*
- * Copyright (C) John Baier 2014 <ebusd@johnm.de>
+ * Copyright (C) John Baier 2014-2015 <ebusd@johnm.de>
  *
  * This file is part of ebusd.
  *
@@ -22,39 +22,40 @@
 
 /** \file result.h */
 
-static const int RESULT_OK = 0;                 //!< success
-
-static const int RESULT_IN_ESC = 1;             //!< start of escape sequence received
-static const int RESULT_EMPTY = 2;              //!< empty result
-
-static const int RESULT_ERR_GENERIC_IO = -1;    //!< generic I/O error (usually fatal)
-static const int RESULT_ERR_DEVICE = -2;        //!< generic device error (usually fatal)
-static const int RESULT_ERR_SEND = -3;          //!< send error
-static const int RESULT_ERR_ESC = -4;           //!< invalid escape sequence
-static const int RESULT_ERR_TIMEOUT = -5;       //!< read timeout
-
-static const int RESULT_ERR_NOTFOUND = -6;      //!< file/element not found or not readable
-static const int RESULT_ERR_EOF = -7;           //!< end of input reached
-static const int RESULT_ERR_INVALID_ARG = -8;   //!< invalid argument
-static const int RESULT_ERR_INVALID_NUM = -9;   //!< invalid numeric argument
-static const int RESULT_ERR_INVALID_ADDR = -10; //!< invalid address
-static const int RESULT_ERR_INVALID_POS = -11;  //!< invalid position
-static const int RESULT_ERR_OUT_OF_RANGE = -12; //!< argument value out of valid range
-static const int RESULT_ERR_INVALID_PART = -13; //!< invalid part type value
-static const int RESULT_ERR_MISSING_TYPE = -14; //!< missing data type
-static const int RESULT_ERR_INVALID_LIST = -15; //!< invalid value list
-static const int RESULT_ERR_DUPLICATE = -16;    //!< duplicate entry
-
-static const int RESULT_ERR_BUS_LOST = -17;     //!< arbitration lost
-static const int RESULT_ERR_CRC = -18;          //!< CRC error
-static const int RESULT_ERR_ACK = -19;          //!< ACK error
-static const int RESULT_ERR_NAK = -20;          //!< NAK received
-
-static const int RESULT_ERR_NO_SIGNAL = -21;    //!< no signal found on the bus
-static const int RESULT_ERR_SYN = -22;          //!< SYN received instead of answer
-
 /** type for result code. */
-typedef int result_t;
+enum result_t {
+	RESULT_OK = 0,                 //!< success
+
+	RESULT_IN_ESC = 1,             //!< start of escape sequence received
+	RESULT_EMPTY = 2,              //!< empty result
+
+	RESULT_ERR_GENERIC_IO = -1,    //!< generic I/O error (usually fatal)
+	RESULT_ERR_DEVICE = -2,        //!< generic device error (usually fatal)
+	RESULT_ERR_SEND = -3,          //!< send error
+	RESULT_ERR_ESC = -4,           //!< invalid escape sequence
+	RESULT_ERR_TIMEOUT = -5,       //!< read timeout
+
+	RESULT_ERR_NOTFOUND = -6,      //!< file/element not found or not readable
+	RESULT_ERR_EOF = -7,           //!< end of input reached
+	RESULT_ERR_INVALID_ARG = -8,   //!< invalid argument
+	RESULT_ERR_INVALID_NUM = -9,   //!< invalid numeric argument
+	RESULT_ERR_INVALID_ADDR = -10, //!< invalid address
+	RESULT_ERR_INVALID_POS = -11,  //!< invalid position
+	RESULT_ERR_OUT_OF_RANGE = -12, //!< argument value out of valid range
+	RESULT_ERR_INVALID_PART = -13, //!< invalid part type value
+	RESULT_ERR_MISSING_TYPE = -14, //!< missing data type
+	RESULT_ERR_INVALID_LIST = -15, //!< invalid value list
+	RESULT_ERR_DUPLICATE = -16,    //!< duplicate entry
+
+	RESULT_ERR_BUS_LOST = -17,     //!< arbitration lost
+	RESULT_ERR_CRC = -18,          //!< CRC error
+	RESULT_ERR_ACK = -19,          //!< ACK error
+	RESULT_ERR_NAK = -20,          //!< NAK received
+
+	RESULT_ERR_NO_SIGNAL = -21,    //!< no signal found on the bus
+	RESULT_ERR_SYN = -22,          //!< SYN received instead of answer
+};
+
 
 /**
  * Return the string corresponding to the result code.
