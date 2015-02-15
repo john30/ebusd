@@ -45,13 +45,13 @@ echo "*************"
 echo " pack"
 echo "*************"
 echo
-mkdir -p release/DEBIAN release/etc/init.d release/etc/ebusd release/etc/logrotate.d release/usr/sbin release/usr/bin || exit 1
+mkdir -p release/DEBIAN release/etc/init.d release/etc/ebusd release/etc/logrotate.d release/usr/bin release/usr/bin || exit 1
 
 cp contrib/etc/init.d/ebusd.debian release/etc/init.d/ebusd || exit 1
 cp contrib/etc/ebusd/* release/etc/ebusd/ || exit 1
 cp contrib/etc/logrotate.d/ebusd release/etc/logrotate.d/ || exit 1
 strip src/ebusd/ebusd || exit 1
-cp src/ebusd/ebusd release/usr/sbin/ || exit 1
+cp src/ebusd/ebusd release/usr/bin/ || exit 1
 strip src/tools/ebusctl || exit 1
 cp src/tools/ebusctl release/usr/bin/ || exit 1
 cp ChangeLog.md release/DEBIAN/changelog || exit 1
@@ -74,7 +74,6 @@ Description: eBUS daemon.
 EOF
 cat <<EOF > release/DEBIAN/dirs
 /etc/ebusd
-/usr/sbin/
 /usr/bin/
 /etc/init.d
 /etc/logrotate.d
