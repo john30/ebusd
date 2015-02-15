@@ -170,10 +170,27 @@ result_t BusHandler::sendAndWait(SymbolString& master, SymbolString& slave)
 
 void BusHandler::run()
 {
+	unsigned int symCount = 0;
+	time_t lastTime;
+	time(&lastTime);
 	do {
-		if (m_device->isValid() == true)
-			handleSymbol();
-		else {
+		if (m_device->isValid() == true) {
+			result_t result = handleSymbol();
+			if (result != RESULT_ERR_TIMEOUT)
+				symCount++;
+			time_t now;
+			time(&now);
+			if (now != lastTime) {
+				m_symPerSec = symCount / (now-lastTime);
+				if (m_symPerSec > m_maxSymPerSec) {
+					m_maxSymPerSec = m_symPerSec;
+					if (m_maxSymPerSec > 100)
+						logNotice(lf_bus, "max. symbols per second: %d", m_maxSymPerSec);
+				}
+				lastTime = now;
+				symCount = 0;
+			}
+		} else {
 			if (Wait(10) == false)
 				break;
 			result_t result = m_device->open();
@@ -182,6 +199,7 @@ void BusHandler::run()
 				logNotice(lf_bus, "re-opened %s", m_device->getName());
 			else
 				logError(lf_bus, "unable to open %s: %s", m_device->getName(), getResultCode(result));
+			symCount = 0;
 		}
 	} while (isRunning() == true);
 }

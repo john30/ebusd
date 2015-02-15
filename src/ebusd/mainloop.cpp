@@ -164,7 +164,7 @@ string MainLoop::decodeMessage(const string& data, bool& connected, bool& listen
 		return executeFind(args);
 	if (strcasecmp(str, "L") == 0 || strcasecmp(str, "LISTEN") == 0)
 		return executeListen(args, listening);
-	if (strcasecmp(str, "STATE") == 0)
+	if (strcasecmp(str, "S") == 0 || strcasecmp(str, "STATE") == 0)
 		return executeState(args);
 	if (strcasecmp(str, "SCAN") == 0)
 		return executeScan(args);
@@ -522,9 +522,13 @@ string MainLoop::executeState(vector<string> &args)
 		return "usage: 'state'\n"
 			   " Report bus state.";
 
-	if (m_busHandler->hasSignal() == true)
-		return "signal acquired";
-
+	if (m_busHandler->hasSignal() == true) {
+		ostringstream result;
+		result << "signal acquired, "
+			   << static_cast<unsigned>(m_busHandler->getSymbolRate()) << " symbols/sec, max. "
+			   << static_cast<unsigned>(m_busHandler->getMaxSymbolRate()) << " symbols/sec";
+		return result.str();
+	}
 	return "no signal";
 }
 

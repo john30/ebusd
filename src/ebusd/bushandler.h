@@ -273,6 +273,7 @@ public:
 		  m_lockCount(lockCount), m_remainLockCount(lockCount),
 		  m_pollInterval(pollInterval), m_lastReceive(0), m_lastPoll(0),
 		  m_currentRequest(NULL), m_nextSendPos(0),
+		  m_symPerSec(0), m_maxSymPerSec(0),
 		  m_state(bs_noSignal), m_repeat(false),
 		  m_command(false), m_commandCrcValid(false), m_response(false), m_responseCrcValid(false),
 		  m_scanMessage(NULL) {
@@ -326,6 +327,18 @@ public:
 	 * @return true when a signal on the bus is available.
 	 */
 	bool hasSignal() { return m_state != bs_noSignal; }
+
+	/**
+	 * Return the current symbol rate.
+	 * @return the number of received symbols in the last second.
+	 */
+	unsigned int getSymbolRate() { return m_symPerSec; }
+
+	/**
+	 * Return the maximum seen symbol rate.
+	 * @return the maximum number of received symbols per second ever seen.
+	 */
+	unsigned int getMaxSymbolRate() { return m_maxSymPerSec; }
 
 private:
 
@@ -403,6 +416,12 @@ private:
 	/** the offset of the next symbol that needs to be sent from the command or response,
 	 * (only relevant if m_request is set and state is @a bs_command or @a bs_response). */
 	unsigned char m_nextSendPos;
+
+	/** the number of received symbols in the last second. */
+	unsigned int m_symPerSec;
+
+	/** the maximum number of received symbols per second ever seen. */
+	unsigned int m_maxSymPerSec;
 
 	/** the current @a BusState. */
 	BusState m_state;
