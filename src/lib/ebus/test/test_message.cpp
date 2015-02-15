@@ -1,7 +1,7 @@
 /*
- * Copyright (C) John Baier 2014 <ebusd@johnm.de>
+ * Copyright (C) John Baier 2014-2015 <ebusd@johnm.de>
  *
- * This file is part of libebus.
+ * This file is part of ebusd.
  *
  * libebus is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
