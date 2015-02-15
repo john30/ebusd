@@ -1,5 +1,6 @@
 /*
- * Copyright (C) Roland Jax 2012-2014 <ebusd@liwest.at>
+ * Copyright (C) Roland Jax 2012-2014 <ebusd@liwest.at>,
+ * John Baier 2015 <ebusd@johnm.de>
  *
  * This file is part of ebusd.
  *
