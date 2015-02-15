@@ -297,7 +297,7 @@ result_t Message::prepareSlave(SymbolString& slaveData)
 	result_t result = slave.push_back(addData, false, false);
 	if (result != RESULT_OK)
 		return result;
-	istringstream input;
+	istringstream input; // TODO create input from database of internal variables
 	result = m_data->write(input, pt_slaveData, slave, 0);
 	if (result != RESULT_OK)
 		return result;
@@ -325,12 +325,6 @@ result_t Message::decode(const PartType partType, SymbolString& data,
 	if (value != m_lastValue)
 		m_lastChangeTime = m_lastUpdateTime;
 	m_lastValue = value;
-	/*if (m_isPassive == false && answer == true) {
-		istringstream input; // TODO create input from database of internal variables
-		result_t result = m_data->write(input, masterData, m_id.size() - 2, slaveData, 0, separator);
-		if (result != RESULT_OK)
-			return result;
-	}*/
 	return RESULT_OK;
 }
 
