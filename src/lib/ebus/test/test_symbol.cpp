@@ -25,14 +25,18 @@ using namespace std;
 
 int main ()
 {
-	SymbolString sstr("10feb5050427a915aa");
+	SymbolString sstr(true);
+
+	result_t result = sstr.parseHex("10feb5050427a915aa", false);
+	if (result != RESULT_OK)
+		std::cout << "parse escaped error: " << getResultCode(result) << std::endl;
 
 	std::string gotStr = sstr.getDataStr(false), expectStr = "10feb5050427a90015a90177";
 
 	if (strcasecmp(gotStr.c_str(), expectStr.c_str()) == 0)
-		std::cout << "ctor escaped OK" << std::endl;
+		std::cout << "parse escaped OK" << std::endl;
 	else
-		std::cout << "ctor escaped error: got " << gotStr << ", expected "
+		std::cout << "parse escaped error: got " << gotStr << ", expected "
 		        << expectStr << std::endl;
 
 	unsigned char gotCrc = sstr.getCRC(), expectCrc = 0x77;
@@ -55,14 +59,17 @@ int main ()
 		std::cout << "unescape error: got " << gotStr << ", expected "
 		        << expectStr << std::endl;
 
-	sstr = SymbolString("10feb5050427a90015a90177", true);
+	sstr = SymbolString(false);
+	result = sstr.parseHex("10feb5050427a90015a90177", true);
+	if (result != RESULT_OK)
+		std::cout << "parse unescaped error: " << getResultCode(result) << std::endl;
 
 	gotStr = sstr.getDataStr();
 
 	if (strcasecmp(gotStr.c_str(), expectStr.c_str()) == 0)
-		std::cout << "ctor unescaped OK" << std::endl;
+		std::cout << "parse unescaped OK" << std::endl;
 	else
-		std::cout << "ctor unescaped error: got " << gotStr << ", expected "
+		std::cout << "parse unescaped error: got " << gotStr << ", expected "
 		        << expectStr << std::endl;
 
 	return 0;

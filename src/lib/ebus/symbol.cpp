@@ -48,37 +48,35 @@ static const unsigned char CRC_LOOKUP_TABLE[] =
 };
 
 
-SymbolString::SymbolString(const string& str) //TODO use a factory method instead
-	: m_unescapeState(0), m_crc(0)
+void SymbolString::addAll(const SymbolString& str)
 {
-	// parse + escape
-	for (size_t i = 0; i+1 < str.size(); i += 2) {
-		unsigned long value = strtoul(str.substr(i, 2).c_str(), NULL, 16); // TODO check
-		push_back((unsigned char)value, false, true);
+	bool addCrc = m_unescapeState == 0;
+	bool isEscaped = str.m_unescapeState == 0;
+	vector<unsigned char> data = str.m_data;
+	for (size_t i = 0; i < data.size(); i++) {
+		push_back(data[i], isEscaped, addCrc);
 	}
-	// add CRC + escape
-	push_back(m_crc, false, false);
+	if (addCrc)
+		push_back(m_crc, false, false); // add CRC
 }
 
-SymbolString::SymbolString(const SymbolString& str, const bool escape, const bool addCrc)
-	: m_unescapeState(escape == true ? 0 : 1), m_crc(0)
+result_t SymbolString::parseHex(const string& str, const bool isEscaped)
 {
-	for (size_t i = 0; i < str.size(); i++) {
-		push_back(str[i], str.m_unescapeState == 0, true);
-	}
-	if (addCrc == true)
-		// add CRC
-		push_back(m_crc, false, false);
-}
+	bool addCrc = m_unescapeState == 0;
+	for (size_t i = 0; i < str.size(); i += 2) {
+		char* strEnd = NULL;
+		const char* strBegin = str.substr(i, 2).c_str();
+		unsigned int value = strtoul(strBegin, &strEnd, 16);
 
-SymbolString::SymbolString(const string& str, bool isEscaped)
-	: m_unescapeState(1), m_crc(0)
-{
-	// parse + optionally unescape
-	for (size_t i = 0; i+1 < str.size(); i += 2) {
-		unsigned long value = strtoul(str.substr(i, 2).c_str(), NULL, 16); // TODO check
-		push_back((unsigned char)value, isEscaped, false);
+		if (strEnd == NULL || *strEnd != 0 || strEnd != strBegin+2 || value > 0xff)
+			return RESULT_ERR_INVALID_NUM; // invalid value
+
+		push_back((unsigned char)value, isEscaped, addCrc);
 	}
+	if (addCrc)
+		push_back(m_crc, false, false); // add CRC
+
+	return RESULT_OK;
 }
 
 const string SymbolString::getDataStr(const bool unescape)

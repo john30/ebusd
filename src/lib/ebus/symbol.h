@@ -45,30 +45,24 @@ class SymbolString
 
 public:
 	/**
-	 * Creates a new unescaped empty instance.
+	 * Creates a new empty escaped or unescaped instance.
+	 * @param escaped whether to create an escaped instance.
 	 */
-	SymbolString() : m_unescapeState(1), m_crc(0) {}
+	SymbolString(const bool escaped=true) : m_unescapeState(escaped == true ? 0 : 1), m_crc(0) {}
 
 	/**
-	 * Creates a new escaped instance from an unescaped hex string and adds the calculated CRC.
-	 * @param str the unescaped hex string.
+	 * Add all symbols from the other @a SymbolString and the calculated CRC if escaped.
+	 * @param str the @a SymbolString to copy from.
 	 */
-	SymbolString(const string& str);
+	void addAll(const SymbolString& str);
 
 	/**
-	 * Creates a new escaped or unescaped instance from another @a SymbolString and adds the calculated CRC.
-	 * @param str the @a SymbolString top copy from.
-	 * @param escape true for an escaped instance, false for an unescaped instance.
-	 * @param addCrc whether to add the calculated CRC as last symbol.
+	 * Parse the escaped or unescaped hex @a string, add all symbols, and add the calculated CRC if escaped.
+	 * @param str the hex @a string.
+	 * @param isEscaped whether the hex string is escaped.
+	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	SymbolString(const SymbolString& str, const bool escape, const bool addCrc=true);
-
-	/**
-	 * Creates a new unescaped instance from a hex string.
-	 * @param isEscaped whether the hex string is escaped and shall be unescaped.
-	 * @param str the hex string.
-	 */
-	SymbolString(const string& str, const bool isEscaped);
+	result_t parseHex(const string& str, const bool isEscaped=false);
 
 	/**
 	 * Returns the symbols as hex string.
@@ -85,31 +79,11 @@ public:
 	unsigned char& operator[](const size_t index) { if (index >= m_data.size()) m_data.resize(index+1, 0); return m_data[index]; }
 
 	/**
-	 * Returns the symbol at the specified index.
-	 * @param index the index of the symbol to return.
-	 * @return the symbol at the specified index.
-	 */
-	const unsigned char& operator[](const size_t index) const { return m_data[index]; }
-
-	/**
 	 * Returns whether this instance is equal to the other instance.
 	 * @param other the other instance.
 	 * @return true if this instance is equal to the other instance (i.e. both escaped or both unescaped and same symbols).
 	 */
-	bool operator==(SymbolString& other) {
-		return m_unescapeState==other.m_unescapeState && m_data==other.m_data;
-		/*bool ret = m_unescapeState==other.m_unescapeState && m_data==other.m_data;
-		for (int i=0; i<m_data.size(); i++) {
-			cout<<setw(2)<<setfill('0')<<hex<<static_cast<unsigned>(m_data[i])<<" ";
-		}
-		cout<<"["<<static_cast<unsigned>(m_unescapeState)<<"]";
-		cout<<(ret?" == ":" != ");
-		for (int i=0; i<other.m_data.size(); i++) {
-			cout<<setw(2)<<setfill('0')<<hex<<static_cast<unsigned>(other.m_data[i])<<" ";
-		}
-		cout<<"["<<static_cast<unsigned>(other.m_unescapeState)<<"]"<<endl;
-		return ret;*/
-	}
+	bool operator==(SymbolString& other) { return m_unescapeState==other.m_unescapeState && m_data==other.m_data; }
 
 	/**
 	 * Appends a the symbol to the end of the symbol string and escapes/unescapes it if necessary.
@@ -135,9 +109,15 @@ public:
 	unsigned char getCRC() const { return m_crc; }
 
 	/**
-	 * Clears the symbols.
+	 * Clear the symbols.
 	 */
 	void clear() { m_data.clear(); m_unescapeState = m_unescapeState==0 ? 0 : 1; m_crc = 0; }
+
+	/**
+	 * Clear the symbols and adjust the escape mode.
+	 * @param escape true to set to an escaped instance, false to set to an unescaped instance.
+	 */
+	void clear(const bool escape) { m_data.clear(); m_unescapeState = escape ? 0 : 1; m_crc = 0; }
 
 private:
 
@@ -149,14 +129,12 @@ private:
 		: m_data(str.m_data), m_unescapeState(str.m_unescapeState), m_crc(str.m_crc) {}
 
 	/**
-	 * Updates the calculated CRC in @a m_crc by adding a value.
+	 * Update the calculated CRC in @a m_crc by adding a value.
 	 * @param value the (escaped) value to add to the calculated CRC in @a m_crc.
 	 */
 	void addCRC(const unsigned char value);
 
-	/**
-	 * the string of bus symbols.
-	 */
+	/** the string of bus symbols. */
 	vector<unsigned char> m_data;
 
 	/**
@@ -166,9 +144,7 @@ private:
 	 */
 	int m_unescapeState;
 
-	/**
-	 * the calculated CRC.
-	 */
+	/** the calculated CRC. */
 	unsigned char m_crc;
 };
 

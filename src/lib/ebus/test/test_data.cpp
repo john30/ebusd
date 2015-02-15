@@ -215,8 +215,18 @@ int main()
 		string check[5] = checks[i];
 		istringstream isstr(check[0]);
 		string expectStr = check[1];
-		SymbolString mstr(check[2], false);
-		SymbolString sstr(check[3], false);
+		SymbolString mstr(false);
+		result_t result = mstr.parseHex(check[2]);
+		if (result != RESULT_OK) {
+			cout << "\"" << check[0] << "\": parse \"" << check[2] << "\" error: " << getResultCode(result) << endl;
+			continue;
+		}
+		SymbolString sstr(false);
+		result = sstr.parseHex(check[3]);
+		if (result != RESULT_OK) {
+			cout << "\"" << check[0] << "\": parse \"" << check[3] << "\" error: " << getResultCode(result) << endl;
+			continue;
+		}
 		string flags = check[4];
 		bool isSet = flags.find('s') != string::npos;
 		bool failedCreate = flags.find('c') != string::npos;
@@ -237,7 +247,7 @@ int main()
 			fields = NULL;
 		}
 		vector<string>::iterator it = entries.begin();
-		result_t result = DataField::create(it, entries.end(), templates, fields, isSet, isTemplate ? SYN : mstr[1]);
+		result = DataField::create(it, entries.end(), templates, fields, isSet, isTemplate ? SYN : mstr[1]);
 		if (failedCreate == true) {
 			if (result == RESULT_OK)
 				cout << "\"" << check[0] << "\": failed create error: unexpectedly succeeded" << endl;
@@ -272,8 +282,16 @@ int main()
 		}
 
 		ostringstream output;
-		SymbolString writeMstr(mstr.getDataStr().substr(0, 10), false);
-		SymbolString writeSstr(sstr.getDataStr().substr(0, 2), false);
+		SymbolString writeMstr(false);
+		result = writeMstr.parseHex(mstr.getDataStr().substr(0, 10));
+		if (result != RESULT_OK) {
+			cout << "  parse \"" << mstr.getDataStr().substr(0, 10) << "\" error: " << getResultCode(result) << endl;
+		}
+		SymbolString writeSstr(false);
+		result = writeSstr.parseHex(sstr.getDataStr().substr(0, 2));
+		if (result != RESULT_OK) {
+			cout << "  parse \"" << sstr.getDataStr().substr(0, 2) << "\" error: " << getResultCode(result) << endl;
+		}
 		result = fields->read(pt_masterData, mstr, 0, output, false, verbose);
 		if (result >= RESULT_OK) {
 			result = fields->read(pt_slaveData, sstr, 0, output, output.str().empty() == false, verbose);

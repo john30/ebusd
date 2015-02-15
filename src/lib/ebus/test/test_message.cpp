@@ -74,8 +74,18 @@ int main()
 		string check[5] = checks[i];
 		istringstream isstr(check[0]);
 		string inputStr = check[1];
-		SymbolString mstr(check[2]);
-		SymbolString sstr(check[3]);
+		SymbolString mstr(true);
+		result_t result = mstr.parseHex(check[2]);
+		if (result != RESULT_OK) {
+			cout << "\"" << check[0] << "\": parse \"" << check[2] << "\" error: " << getResultCode(result) << endl;
+			continue;
+		}
+		SymbolString sstr(true);
+		result = sstr.parseHex(check[3]);
+		if (result != RESULT_OK) {
+			cout << "\"" << check[0] << "\": parse \"" << check[3] << "\" error: " << getResultCode(result) << endl;
+			continue;
+		}
 		string flags = check[4];
 		bool isTemplate = flags == "t";
 		bool dontMap = flags.find('m') != string::npos;
@@ -94,7 +104,6 @@ int main()
 			delete deleteMessage;
 			deleteMessage = NULL;
 		}
-		result_t result;
 		if (isTemplate == true) {
 			// store new template
 			DataField* fields = NULL;

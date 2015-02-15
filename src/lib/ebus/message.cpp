@@ -252,7 +252,7 @@ result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& ma
 	if (m_isPassive == true)
 		return RESULT_ERR_INVALID_ARG; // prepare not possible
 
-	SymbolString master;
+	SymbolString master(false);
 	result_t result = master.push_back(srcAddress, false, false);
 	if (result != RESULT_OK)
 		return result;
@@ -283,7 +283,7 @@ result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& ma
 	result = m_data->write(input, pt_masterData, master, m_id.size() - 2, separator);
 	if (result != RESULT_OK)
 		return result;
-	masterData = SymbolString(master, true);
+	masterData.addAll(master);
 	return result;
 }
 
@@ -292,7 +292,7 @@ result_t Message::prepareSlave(SymbolString& slaveData)
 	if (m_isPassive == false || m_isWrite == true)
 			return RESULT_ERR_INVALID_ARG; // prepare not possible
 
-	SymbolString slave;
+	SymbolString slave(false);
 	unsigned char addData = m_data->getLength(pt_slaveData);
 	result_t result = slave.push_back(addData, false, false);
 	if (result != RESULT_OK)
@@ -301,7 +301,7 @@ result_t Message::prepareSlave(SymbolString& slaveData)
 	result = m_data->write(input, pt_slaveData, slave, 0);
 	if (result != RESULT_OK)
 		return result;
-	slaveData = SymbolString(slave, true);
+	slaveData.addAll(slave);
 	return result;
 }
 

@@ -267,7 +267,7 @@ string MainLoop::executeRead(vector<string> &args)
 		return message->getLastValue();
 	} // else: read directly from bus
 
-	SymbolString master;
+	SymbolString master(true);
 	istringstream input;
 	result_t ret = message->prepareMaster(m_address, master, input);
 	if (ret != RESULT_OK) {
@@ -277,7 +277,7 @@ string MainLoop::executeRead(vector<string> &args)
 	logInfo(lf_main, "read cmd: %s", master.getDataStr().c_str());
 
 	// send message
-	SymbolString slave;
+	SymbolString slave(false);
 	ret = m_busHandler->sendAndWait(master, slave);
 
 	ostringstream result;
@@ -305,23 +305,33 @@ string MainLoop::executeWrite(vector<string> &args)
 			break;
 		}
 		ostringstream msg;
-		msg << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_address) << setw(0);
 		while (argPos < args.size()) {
 			if ((args[argPos].length() % 2) != 0) {
 				return getResultCode(RESULT_ERR_INVALID_NUM);
 			}
 			msg << args[argPos++];
 		}
+		if (msg.str().size() < 4*2) // at least ZZ, PB, SB, NN
+			return getResultCode(RESULT_ERR_INVALID_ARG);
+		result_t ret;
+		unsigned int length = parseInt(msg.str().substr(3*2, 2).c_str(), 16, 0, 16, ret);
+		if (ret == RESULT_OK && (4+length)*2 != msg.str().size())
+			return getResultCode(RESULT_ERR_INVALID_ARG);
 
-		SymbolString master(msg.str());
-		if (isValidAddress(master[1]) == false)
-			return getResultCode(RESULT_ERR_INVALID_ADDR);
+		SymbolString master(true);
+		ret = master.push_back(m_address, false);
+		if (ret == RESULT_OK)
+			ret = master.parseHex(msg.str());
+		if (ret == RESULT_OK && isValidAddress(master[1]) == false)
+			ret = RESULT_ERR_INVALID_ADDR;
+		if (ret != RESULT_OK)
+			return getResultCode(ret);
 
 		logNotice(lf_main, "write hex cmd: %s", master.getDataStr().c_str());
 
 		// send message
-		SymbolString slave;
-		result_t ret = m_busHandler->sendAndWait(master, slave);
+		SymbolString slave(false);
+		ret = m_busHandler->sendAndWait(master, slave);
 
 		if (ret == RESULT_OK) {
 			if (master[1] == BROADCAST || isMaster(master[1]))
@@ -350,7 +360,7 @@ string MainLoop::executeWrite(vector<string> &args)
 	if (message == NULL)
 		return getResultCode(RESULT_ERR_NOTFOUND);
 
-	SymbolString master;
+	SymbolString master(true);
 	istringstream input(args[argPos + 2]);
 	result_t ret = message->prepareMaster(m_address, master, input);
 	if (ret != RESULT_OK) {
@@ -360,7 +370,7 @@ string MainLoop::executeWrite(vector<string> &args)
 	logInfo(lf_main, "write cmd: %s", master.getDataStr().c_str());
 
 	// send message
-	SymbolString slave;
+	SymbolString slave(false);
 	ret = m_busHandler->sendAndWait(master, slave);
 
 	ostringstream result;
@@ -382,7 +392,7 @@ string MainLoop::executeWrite(vector<string> &args)
 string MainLoop::executeFind(vector<string> &args)
 {
 	size_t argPos = 1;
-	bool verbose = false, withRead = true, withWrite = true, withPassive = true, first = true, onlyWithData = false;
+	bool verbose = false, withRead = true, withWrite = false, withPassive = true, first = true, onlyWithData = false;
 	string clazz;
 	while (args.size() > argPos && args[argPos][0] == '-') {
 		if (args[argPos] == "-v")
@@ -429,9 +439,9 @@ string MainLoop::executeFind(vector<string> &args)
 		return "usage: 'find [-v] [-r] [-w] [-p] [-d] [-c CLASS] [NAME]'\n"
 			   " Find value(s).\n"
 			   "  -v       be verbose (append destination address and update time)\n"
-			   "  -r       limit to active read messages (default all types)\n"
-			   "  -w       limit to active write messages (default all types)\n"
-			   "  -p       limit to passive messages (default all types)\n"
+			   "  -r       limit to active read messages (default read + passive)\n"
+			   "  -w       limit to active write messages (default read + passive)\n"
+			   "  -p       limit to passive messages (default read + passive)\n"
 			   "  -d       only retrieve messages with actual data"
 			   "  -c CLASS limit to messages of CLASS\n"
 			   "  NAME     the NAME of the message to find or a part thereof";
@@ -444,7 +454,7 @@ string MainLoop::executeFind(vector<string> &args)
 
 	bool found = false;
 	ostringstream result;
-	char str[34];
+	char str[31];
 	for (deque<Message*>::iterator it = messages.begin(); it < messages.end();) {
 		Message* message = *it++;
 		unsigned char dstAddress = message->getDstAddress();
@@ -462,14 +472,23 @@ string MainLoop::executeFind(vector<string> &args)
 			result << message->getLastValue();
 		if (verbose == true) {
 			if (lastup == 0)
-				sprintf(str, "ZZ=%02x", dstAddress);
+				sprintf(str, "%02x", dstAddress);
 			else {
 				struct tm* td = localtime(&lastup);
-				sprintf(str, "ZZ=%02x, lastup=%04d-%02d-%02d %02d:%02d:%02d",
+				sprintf(str, "%02x, lastup=%04d-%02d-%02d %02d:%02d:%02d",
 					dstAddress, td->tm_year+1900, td->tm_mon+1, td->tm_mday,
 					td->tm_hour, td->tm_min, td->tm_sec);
 			}
-			result << " [" << str << "]";
+			result << " [ZZ=" << str;
+			if (message->isPassive())
+				result << ", passive";
+			else
+				result << ", active";
+
+			if (message->isWrite())
+				result << " write]";
+			else
+				result << " read]";
 		}
 		found = true;
 	}

@@ -79,7 +79,7 @@ public:
 
 	/**
 	 * Constructor.
-	 * @param master the master data @a SymbolString to send.
+	 * @param master the escaped master data @a SymbolString to send.
 	 * @param deleteOnFinish whether to automatically delete this @a BusRequest when finished.
 	 */
 	BusRequest(SymbolString& master, const bool deleteOnFinish)
@@ -101,7 +101,7 @@ public:
 
 protected:
 
-	/** the master data @a SymbolString to send. */
+	/** the escaped master data @a SymbolString to send. */
 	SymbolString& m_master;
 
 	/** the number of times a send is repeated due to lost arbitration. */
@@ -145,7 +145,7 @@ public:
 
 private:
 
-	/** the master data @a SymbolString. */
+	/** the escaped master data @a SymbolString. */
 	SymbolString m_master;
 
 	/** the associated @a Message. */
@@ -191,7 +191,7 @@ public:
 
 private:
 
-	/** the master data @a SymbolString. */
+	/** the escaped master data @a SymbolString. */
 	SymbolString m_master;
 
 	/** the currently queried @a Message. */
@@ -216,7 +216,7 @@ public:
 
 	/**
 	 * Constructor.
-	 * @param master reference to the master data @a SymbolString to send.
+	 * @param master the escaped master data @a SymbolString to send.
 	 * @param slave reference to @a SymbolString for filling in the received slave data.
 	 */
 	ActiveBusRequest(SymbolString& master, SymbolString& slave)
@@ -274,7 +274,7 @@ public:
 		  m_pollInterval(pollInterval), m_lastReceive(0), m_lastPoll(0),
 		  m_currentRequest(NULL), m_nextSendPos(0),
 		  m_state(bs_noSignal), m_repeat(false),
-		  m_commandCrcValid(false), m_responseCrcValid(false),
+		  m_command(false), m_commandCrcValid(false), m_response(false), m_responseCrcValid(false),
 		  m_scanMessage(NULL) {
 		memset(m_seenAddresses, 0, sizeof(m_seenAddresses));
 	}
@@ -290,7 +290,7 @@ public:
 
 	/**
 	 * Send a message on the bus and wait for the answer.
-	 * @param master the @a SymbolString with the master data to send.
+	 * @param master the escaped @a SymbolString with the master data to send.
 	 * @param slave the @a SymbolString that will be filled with retrieved slave data.
 	 * @return the result code.
 	 */
@@ -401,7 +401,7 @@ private:
 	WQueue<BusRequest*> m_finishedRequests;
 
 	/** the offset of the next symbol that needs to be sent from the command or response,
-	 * (only relevant if m_request is set and state is bs_command or bs_response). */
+	 * (only relevant if m_request is set and state is @a bs_command or @a bs_response). */
 	unsigned char m_nextSendPos;
 
 	/** the current @a BusState. */
@@ -410,13 +410,13 @@ private:
 	/** whether the current message part is being repeated. */
 	bool m_repeat;
 
-	/** the received/sent command. */
+	/** the unescaped received command. */
 	SymbolString m_command;
 
 	/** whether the command CRC is valid. */
 	bool m_commandCrcValid;
 
-	/** the received/sent response. */
+	/** the unescaped received response or escaped response to send. */
 	SymbolString m_response;
 
 	/** whether the response CRC is valid. */

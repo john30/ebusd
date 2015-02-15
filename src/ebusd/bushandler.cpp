@@ -85,6 +85,7 @@ bool PollRequest::notify(result_t result, SymbolString& slave)
 result_t ScanRequest::prepare(unsigned char ownMasterAddress, unsigned char dstAddress)
 {
 	istringstream input;
+	m_master.clear();
 	result_t result = m_message->prepareMaster(ownMasterAddress, m_master, input, UI_FIELD_SEPARATOR, dstAddress);
 	if (result == RESULT_OK)
 		logInfo(lf_bus, "scan cmd: %s", m_master.getDataStr().c_str());
@@ -136,7 +137,7 @@ bool ActiveBusRequest::notify(result_t result, SymbolString& slave)
 		logNotice(lf_bus, "read res: %s", slave.getDataStr().c_str());
 
 	m_result = result;
-	m_slave = SymbolString(slave, false, false);
+	m_slave.addAll(slave);
 
 	return false;
 }
@@ -145,12 +146,12 @@ bool ActiveBusRequest::notify(result_t result, SymbolString& slave)
 result_t BusHandler::sendAndWait(SymbolString& master, SymbolString& slave)
 {
 	result_t result = RESULT_SYN;
-	ActiveBusRequest* request = new ActiveBusRequest(master, slave);
+	ActiveBusRequest request(master, slave);
 
 	for (int sendRetries=m_failedSendRetries+1; sendRetries>=0; sendRetries--) {
-		m_nextRequests.add(request);
-		bool success = m_finishedRequests.waitRemove(request);
-		result = success == true ? request->m_result : RESULT_ERR_TIMEOUT;
+		m_nextRequests.add(&request);
+		bool success = m_finishedRequests.waitRemove(&request);
+		result = success == true ? request.m_result : RESULT_ERR_TIMEOUT;
 
 		if (result == RESULT_OK)
 			break;
@@ -161,10 +162,8 @@ result_t BusHandler::sendAndWait(SymbolString& master, SymbolString& slave)
 		}
 		logError(lf_bus, "%s, %s", getResultCode(result), sendRetries>0 ? "retry send" : "");
 
-		request->m_busLostRetries = 0;
+		request.m_busLostRetries = 0;
 	}
-
-	delete request;
 
 	return result;
 }
@@ -255,7 +254,7 @@ result_t BusHandler::handleSymbol()
 
 	case bs_sendCmd:
 		if (m_currentRequest != NULL) {
-			sendSymbol = m_currentRequest->m_master[m_nextSendPos];
+			sendSymbol = m_currentRequest->m_master[m_nextSendPos]; // escaped command
 			sending = true;
 		}
 		break;
@@ -276,7 +275,7 @@ result_t BusHandler::handleSymbol()
 
 	case bs_sendRes:
 		if (m_currentRequest != NULL) {
-			sendSymbol = m_response[m_nextSendPos];
+			sendSymbol = m_response[m_nextSendPos]; // escaped response
 			sending = true;
 		}
 		break;
@@ -366,14 +365,14 @@ result_t BusHandler::handleSymbol()
 
 	case bs_recvCmd:
 		headerLen = 4;
-		crcPos = m_command.size() > headerLen ? headerLen + 1 + m_command[headerLen] : 0xff;
+		crcPos = m_command.size() > headerLen ? headerLen + 1 + m_command[headerLen] : 0xff; // header symbols are never escaped
 		result = m_command.push_back(recvSymbol, true, m_command.size() < crcPos);
 		if (result < RESULT_OK)
 			return setState(bs_skip, result);
 
 		if (result == RESULT_OK && crcPos != 0xff && m_command.size() == crcPos + 1) { // CRC received
 			unsigned char dstAddress = m_command[1];
-			m_commandCrcValid = m_command[headerLen + 1 + m_command[headerLen]] == m_command.getCRC();
+			m_commandCrcValid = m_command[headerLen + 1 + m_command[headerLen]] == m_command.getCRC(); // header symbols are never escaped
 			if (m_commandCrcValid) {
 				if (dstAddress == BROADCAST) {
 					receiveCompleted();
@@ -408,7 +407,7 @@ result_t BusHandler::handleSymbol()
 					return setState(bs_sendSyn, RESULT_OK);
 				}
 			}
-			else if (isMaster(m_command[1]) == true) {
+			else if (isMaster(m_command[1]) == true) { // header symbols are never escaped
 				receiveCompleted();
 				return setState(bs_skip, RESULT_OK);
 			}
@@ -543,6 +542,7 @@ result_t BusHandler::handleSymbol()
 					return setState(bs_skip, RESULT_ERR_INVALID_ARG); // don't know this request or definition has wrong direction, deny
 
 				// build response and store in m_response for sending back to requesting master
+				m_response.clear(true); // escape while sending response
 				result = message->prepareSlave(m_response);
 				if (result != RESULT_OK)
 					return setState(bs_skip, result);
@@ -608,7 +608,7 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 	}
 
 	if (state == bs_noSignal) { // notify all requests
-		m_response.clear();
+		m_response.clear(false); // notify with empty response
 		while ((m_currentRequest = m_nextRequests.remove(false)) != NULL) {
 			bool restart = m_currentRequest->notify(RESULT_ERR_NO_SIGNAL, m_response);
 			if (restart == true) { // should not occur with no signal
@@ -640,7 +640,7 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 	if (state == bs_ready || state == bs_skip) {
 		m_command.clear();
 		m_commandCrcValid = false;
-		m_response.clear();
+		m_response.clear(false); // unescape while receiving response
 		m_responseCrcValid = false;
 		m_nextSendPos = 0;
 	}
@@ -650,9 +650,9 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 
 void BusHandler::receiveCompleted()
 {
-	unsigned char dstAddress = m_command[1];
+	unsigned char srcAddress = m_command[0], dstAddress = m_command[1];
 	bool master = isMaster(dstAddress);
-	m_seenAddresses[m_command[0]] = true;
+	m_seenAddresses[srcAddress] = true;
 	if (dstAddress == BROADCAST)
 		logInfo(lf_update, "update BC cmd: %s", m_command.getDataStr().c_str());
 	else if (master == true) {
@@ -674,7 +674,15 @@ void BusHandler::receiveCompleted()
 			logError(lf_update, "unable to parse %s %s from %s / %s: %s", clazz.c_str(), name.c_str(), m_command.getDataStr().c_str(), m_response.getDataStr().c_str(), getResultCode(result));
 		else {
 			string data = output.str();
-			logNotice(lf_update, "update %s %s: %s", clazz.c_str(), name.c_str(), data.c_str());
+			if (message->getDstAddress() == SYN) { // any destination
+				if (message->getSrcAddress() == SYN) // any destination and any source
+					logNotice(lf_update, "update %s %s QQ=%2.2x ZZ=%2.2x: %s", clazz.c_str(), name.c_str(), srcAddress, dstAddress, data.c_str());
+				else
+					logNotice(lf_update, "update %s %s ZZ=%2.2x: %s", clazz.c_str(), name.c_str(), dstAddress, data.c_str());
+			} else if (message->getSrcAddress() == SYN) // any source
+				logNotice(lf_update, "update %s %s QQ=%2.2x: %s", clazz.c_str(), name.c_str(), srcAddress, data.c_str());
+			else
+				logNotice(lf_update, "update %s %s: %s", clazz.c_str(), name.c_str(), data.c_str());
 		}
 	}
 	else {
@@ -730,9 +738,15 @@ result_t BusHandler::startScan(bool full)
 
 void BusHandler::formatScanResult(ostringstream& output)
 {
+	bool first = true;
 	for (unsigned int slave=0; slave<=255; slave++) {
 		map<unsigned char, string>::iterator it = m_scanResults.find(slave);
-		if (it != m_scanResults.end())
-			output << it->second << endl;
+		if (it != m_scanResults.end()) {
+			if (first)
+				first = false;
+			else
+				output << endl;
+			output << it->second;
+		}
 	}
 }
