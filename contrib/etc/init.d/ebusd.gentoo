@@ -7,7 +7,7 @@
 command="/usr/bin/ebusd"
 command_args="${EBUSD_ARGS}"
 start_stop_daemon_args="--quiet"
-description="Daemon for ebus Communication"
+description="Daemon for eBUS"
 
 depend() {
 	need localmount
