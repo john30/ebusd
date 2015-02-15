@@ -686,7 +686,7 @@ void BusHandler::receiveCompleted()
 					logNotice(lf_update, "update %s %s ZZ=%2.2x: %s", clazz.c_str(), name.c_str(), dstAddress, data.c_str());
 			}
 			else if (message->getSrcAddress() == SYN) // any source
-				logNotice(lf_update, "update %s %s from QQ=%2.2x: %s", clazz.c_str(), name.c_str(), srcAddress, data.c_str());
+				logNotice(lf_update, "update %s %s QQ=%2.2x: %s", clazz.c_str(), name.c_str(), srcAddress, data.c_str());
 			else
 				logNotice(lf_update, "update %s %s: %s", clazz.c_str(), name.c_str(), data.c_str());
 		}
