@@ -220,7 +220,7 @@ public:
 	 * @param slave reference to @a SymbolString for filling in the received slave data.
 	 */
 	ActiveBusRequest(SymbolString& master, SymbolString& slave)
-		: BusRequest(master, false), m_result(RESULT_SYN), m_slave(slave) {}
+		: BusRequest(master, false), m_result(RESULT_ERR_NO_SIGNAL), m_slave(slave) {}
 
 	/**
 	 * Destructor.

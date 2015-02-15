@@ -145,7 +145,7 @@ bool ActiveBusRequest::notify(result_t result, SymbolString& slave)
 
 result_t BusHandler::sendAndWait(SymbolString& master, SymbolString& slave)
 {
-	result_t result = RESULT_SYN;
+	result_t result = RESULT_ERR_NO_SIGNAL;
 	ActiveBusRequest request(master, slave);
 
 	for (int sendRetries=m_failedSendRetries+1; sendRetries>=0; sendRetries--) {
@@ -322,7 +322,8 @@ result_t BusHandler::handleSymbol()
 			m_remainLockCount--;
 		else if (sending == false && m_remainLockCount == 0 && m_command.size() == 1)
 			m_remainLockCount = 1; // wait for next AUTO-SYN after SYN / address / SYN (bus locked for own priority)
-		return setState(bs_ready, RESULT_SYN);
+
+		return setState(bs_ready, RESULT_ERR_SYN);
 	}
 
 	unsigned char headerLen, crcPos;
@@ -425,13 +426,9 @@ result_t BusHandler::handleSymbol()
 
 				return setState(bs_recvCmd, RESULT_ERR_NAK);
 			}
-			if (m_currentRequest != NULL)
-				return setState(bs_skip, RESULT_ERR_NAK);
 
 			return setState(bs_skip, RESULT_ERR_NAK);
 		}
-		if (m_currentRequest != NULL)
-			return setState(bs_skip, RESULT_ERR_ACK);
 
 		return setState(bs_skip, RESULT_ERR_ACK);
 
@@ -439,12 +436,9 @@ result_t BusHandler::handleSymbol()
 		headerLen = 0;
 		crcPos = m_response.size() > headerLen ? headerLen + 1 + m_response[headerLen] : 0xff;
 		result = m_response.push_back(recvSymbol, true, m_response.size() < crcPos);
-		if (result < RESULT_OK) {
-			if (m_currentRequest != NULL)
-				return setState(bs_skip, result);
-
+		if (result < RESULT_OK)
 			return setState(bs_skip, result);
-		}
+
 		if (result == RESULT_OK && crcPos != 0xff && m_response.size() == crcPos + 1) { // CRC received
 			m_responseCrcValid = m_response[headerLen + 1 + m_response[headerLen]] == m_response.getCRC();
 			if (m_responseCrcValid) {
@@ -665,7 +659,15 @@ void BusHandler::receiveCompleted()
 	}
 
 	Message* message = m_messages->find(m_command);
-	if (message != NULL) {
+	if (message == NULL) {
+		if (dstAddress == BROADCAST)
+			logNotice(lf_update, "unknown BC cmd: %s", m_command.getDataStr().c_str());
+		else if (master == true)
+			logNotice(lf_update, "unknown MM cmd: %s", m_command.getDataStr().c_str());
+		else
+			logNotice(lf_update, "unknown MS cmd: %s / %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
+	}
+	else {
 		string clazz = message->getClass();
 		string name = message->getName();
 		ostringstream output;
@@ -674,24 +676,20 @@ void BusHandler::receiveCompleted()
 			logError(lf_update, "unable to parse %s %s from %s / %s: %s", clazz.c_str(), name.c_str(), m_command.getDataStr().c_str(), m_response.getDataStr().c_str(), getResultCode(result));
 		else {
 			string data = output.str();
-			if (message->getDstAddress() == SYN) { // any destination
+			if (m_answer == true && dstAddress == (master ? m_ownMasterAddress : m_ownSlaveAddress)) {
+				logNotice(lf_update, "self-update %s %s QQ=%2.2x: %s", clazz.c_str(), name.c_str(), srcAddress, data.c_str()); // TODO store in database of internal variables
+			}
+			else if (message->getDstAddress() == SYN) { // any destination
 				if (message->getSrcAddress() == SYN) // any destination and any source
 					logNotice(lf_update, "update %s %s QQ=%2.2x ZZ=%2.2x: %s", clazz.c_str(), name.c_str(), srcAddress, dstAddress, data.c_str());
 				else
 					logNotice(lf_update, "update %s %s ZZ=%2.2x: %s", clazz.c_str(), name.c_str(), dstAddress, data.c_str());
-			} else if (message->getSrcAddress() == SYN) // any source
-				logNotice(lf_update, "update %s %s QQ=%2.2x: %s", clazz.c_str(), name.c_str(), srcAddress, data.c_str());
+			}
+			else if (message->getSrcAddress() == SYN) // any source
+				logNotice(lf_update, "update %s %s from QQ=%2.2x: %s", clazz.c_str(), name.c_str(), srcAddress, data.c_str());
 			else
 				logNotice(lf_update, "update %s %s: %s", clazz.c_str(), name.c_str(), data.c_str());
 		}
-	}
-	else {
-		if (dstAddress == BROADCAST)
-			logNotice(lf_update, "unknown BC cmd: %s", m_command.getDataStr().c_str());
-		else if (master == true)
-			logNotice(lf_update, "unknown MM cmd: %s", m_command.getDataStr().c_str());
-		else
-			logNotice(lf_update, "unknown MS cmd: %s / %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
 	}
 }
 

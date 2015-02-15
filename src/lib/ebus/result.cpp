@@ -26,7 +26,6 @@ const char* getResultCode(result_t resultCode) {
 	switch (resultCode) {
 	case RESULT_OK:               return "done";
 	case RESULT_IN_ESC:           return "escape sequence received";
-	case RESULT_SYN:              return "SYN received";
 	case RESULT_EMPTY:            return "empty";
 	case RESULT_ERR_GENERIC_IO:   return "ERR: generic I/O error";
 	case RESULT_ERR_DEVICE:       return "ERR: generic device error";
@@ -49,6 +48,8 @@ const char* getResultCode(result_t resultCode) {
 	case RESULT_ERR_ACK:          return "ERR: ACK error";
 	case RESULT_ERR_NAK:          return "ERR: NAK received";
 	case RESULT_ERR_NO_SIGNAL:    return "ERR: no signal";
+	case RESULT_ERR_SYN:          return "ERR: SYN received";
+
 	default:
 		if (resultCode >= 0)
 			return "done: unknown result code";
