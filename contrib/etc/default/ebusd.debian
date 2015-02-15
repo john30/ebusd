@@ -2,4 +2,4 @@
 # /etc/init.d/ebusd.
 
 # Options to pass to ebusd
-#EBUSD_OPTS="--recvtimeout 60000"
+#EBUSD_OPTS="-d /dev/ttyUSB0"
