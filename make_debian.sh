@@ -20,17 +20,9 @@ echo "*************"
 echo " prepare"
 echo "*************"
 echo
-mkdir debian-build
-cd debian-build
-
-echo
-echo "*************"
-echo " checkout"
-echo "*************"
-echo
-git clone https://github.com/john30/ebusd.git || exit 1
-cd ebusd
-find $PWD -name .svn -o -name .gitignore -o -name .git -exec rm -rf \{\} \;
+mkdir -p debian-build/ebusd || exit 1
+cd debian-build/ebusd || exit 1
+(tar cf - -C  ../.. --exclude=debian-build --exclude=./.* .| tar xf -) || exit 1
 
 echo
 echo "*************"
@@ -45,7 +37,7 @@ echo "*************"
 echo " pack"
 echo "*************"
 echo
-mkdir -p release/DEBIAN release/etc/init.d release/etc/default/ebusd release/etc/ebusd release/etc/logrotate.d release/usr/bin release/usr/bin || exit 1
+mkdir -p release/DEBIAN release/etc/init.d release/etc/default release/etc/ebusd release/etc/logrotate.d release/usr/bin release/usr/bin || exit 1
 
 cp contrib/etc/init.d/ebusd.debian release/etc/init.d/ebusd || exit 1
 cp contrib/etc/default/ebusd.debian release/etc/default/ebusd || exit 1
@@ -77,7 +69,7 @@ cat <<EOF > release/DEBIAN/dirs
 /etc/ebusd
 /usr/bin/
 /etc/init.d
-/etc/default/ebusd
+/etc/default
 /etc/logrotate.d
 EOF
 
