@@ -342,8 +342,11 @@ string MainLoop::executeWrite(vector<string> &args)
 		return getResultCode(ret);
 	}
 
+	if (args.size() == argPos + 4 && args[argPos] == "-c") {
+		argPos++;
+	}
 	if (argPos == 0 || args.size() != argPos + 3)
-		return "usage: 'write CLASS NAME VALUE[;VALUE]*'\n"
+		return "usage: 'write [-c] CLASS NAME VALUE[;VALUE]*'\n"
 			   "  or:  'write -h ZZPBSBNNDx' or 'write -h ZZ PB SB NN Dx'\n"
 			   " Write value(s).\n"
 			   "  CLASS    the CLASS of the message to send\n"
@@ -644,7 +647,7 @@ string MainLoop::executeHelp()
 {
 	return "usage:\n"
 		   " read    Read value(s)         'read [-v] [-f] [-m SECONDS] [-c CLASS] NAME [FIELD]'\n"
-		   " write   Write value(s)        'write CLASS NAME VALUE[;VALUE]*' or 'write -h ZZPBSBNNDx'\n"
+		   " write   Write value(s)        'write [-c] CLASS NAME VALUE[;VALUE]*' or 'write -h ZZPBSBNNDx'\n"
 		   " find    Find value(s)         'find [-v] [-r] [-w] [-p] [-d] [-c CLASS] [NAME]'\n"
 		   " listen  Listen for updates    'listen [stop]'\n"
 		   " state   Report bus state      'state'\n"
