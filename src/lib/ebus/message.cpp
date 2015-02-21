@@ -26,6 +26,7 @@
 #include <cstring>
 #include <algorithm>
 #include <locale>
+#include <iomanip>
 
 using namespace std;
 
@@ -371,6 +372,41 @@ bool Message::isLessPollWeight(const Message* other)
 	return false;
 }
 
+void Message::dump(ostream& output)
+{
+	if (m_isPassive) {
+		output << "u";
+		if (m_isWrite)
+			output << "w";
+	} else if (m_isWrite)
+		output << "w";
+	else {
+		output << "r";
+		if (m_pollPriority>0)
+			output << static_cast<unsigned>(m_pollPriority);
+	}
+	DataField::dumpString(output, m_class);
+	DataField::dumpString(output, m_name);
+	DataField::dumpString(output, m_comment);
+	output << FIELD_SEPARATOR;
+	if (m_srcAddress != SYN)
+		output << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_srcAddress);
+	output << FIELD_SEPARATOR;
+	if (m_dstAddress != SYN)
+		output << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_dstAddress);
+	output << FIELD_SEPARATOR;
+	unsigned int cnt = 0;
+	for (vector<unsigned char>::const_iterator it=m_id.begin(); it<m_id.end(); it++) {
+		if (cnt++ == 2)
+			output << FIELD_SEPARATOR;
+		output << hex << setw(2) << setfill('0') << static_cast<unsigned>(*it);
+	}
+	if (cnt <= 2)
+		output << FIELD_SEPARATOR; // no further ID bytes besides PBSB
+	output << FIELD_SEPARATOR;
+	m_data->dump(output);
+}
+
 
 string strtolower(const string& str)
 {
@@ -586,4 +622,21 @@ Message* MessageMap::getNextPoll()
 	time(&(ret->m_lastPollTime));
 	m_pollMessages.push(ret); // re-insert at new position
 	return ret;
+}
+
+void MessageMap::dump(ostream& output)
+{
+	bool first = true;
+	for (map<string, Message*>::iterator it = m_messagesByName.begin(); it != m_messagesByName.end(); it++) {
+		if (it->first[0] == '-') // skip instances stored multiple times (key starting with "-")
+			continue;
+		Message* message = it->second;
+		if (first)
+			first = false;
+		else
+			cout << endl;
+		message->dump(cout);
+	}
+	if (!first)
+		cout << endl;
 }

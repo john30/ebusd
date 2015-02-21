@@ -240,6 +240,12 @@ public:
 	 */
 	bool isLessPollWeight(const Message* other);
 
+	/**
+	 * Write the message definition to the @a ostream.
+	 * @param output the @a ostream to append the formatted value to.
+	 */
+	void dump(ostream& output);
+
 private:
 
 	/** the optional device class. */
@@ -261,7 +267,7 @@ private:
 	/** the source address, or @a SYN for any (only relevant if passive). */
 	const unsigned char m_srcAddress;
 
-	/** the destination address. */
+	/** the destination address, or @a SYN for any (only for temporary scan messages). */
 	const unsigned char m_dstAddress;
 
 	/** the primary, secondary, and optionally further command ID bytes. */
@@ -395,6 +401,12 @@ public:
 	 * Note: the caller may not free the returned instance.
 	 */
 	Message* getNextPoll();
+
+	/**
+	 * Write the message definitions to the @a ostream.
+	 * @param output the @a ostream to append the formatted messages to.
+	 */
+	void dump(ostream& output);
 
 private:
 

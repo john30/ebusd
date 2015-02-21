@@ -148,6 +148,14 @@ public:
 			const bool isWriteMessage=false, const unsigned char dstAddress=SYN);
 
 	/**
+	 * Dump the @a string optionally embedded in @a TEXT_SEPARATOR to the output.
+	 * @param output the @a ostream to dump to.
+	 * @param str the @a string to dump.
+	 * @param prependFieldSeparator whether to start with a @a FIELD_SEPARATOR.
+	 */
+	static void dumpString(ostream& output, const string str, const bool prependFieldSeparator=true);
+
+	/**
 	 * Returns the length of this field (or contained fields) in bytes.
 	 * @param partType the message part of the contained fields to limit the length calculation to.
 	 * @return the length of this field (or contained fields) in bytes.

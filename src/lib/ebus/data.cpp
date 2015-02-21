@@ -114,7 +114,7 @@ void printErrorPos(vector<string>::iterator begin, const vector<string>::iterato
 {
 	if (pos > begin)
 		pos--;
-	cout << "Error reading \"" << filename << "\" line " << static_cast<unsigned>(lineNo) << " field " << static_cast<unsigned>(1+pos.base()-begin.base()) << " value \"" << *pos << "\": " << getResultCode(result) << endl;
+	cout << "Error reading \"" << filename << "\" line " << setw(0) << dec << static_cast<unsigned>(lineNo) << " field " << static_cast<unsigned>(1+pos.base()-begin.base()) << " value \"" << *pos << "\": " << getResultCode(result) << endl;
 	cout << "Erroneous item is here:" << endl;
 	bool first = true;
 	int cnt = 0;
@@ -376,15 +376,28 @@ result_t DataField::create(vector<string>::iterator& it,
 	return RESULT_OK;
 }
 
+void DataField::dumpString(ostream& output, const string str, const bool prependFieldSeparator)
+{
+	if (prependFieldSeparator)
+		output << FIELD_SEPARATOR;
+	if (str.find_first_of(FIELD_SEPARATOR) == string::npos) {
+		output << str;
+	} else {
+		output << TEXT_SEPARATOR << str << TEXT_SEPARATOR;
+	}
+}
+
 
 void SingleDataField::dump(ostream& output)
 {
-	output << m_name << FIELD_SEPARATOR;
+	output << setw(0) << dec; // initialize formatting
+	dumpString(output, m_name, false);
+	output << FIELD_SEPARATOR;
 	if (m_partType == pt_masterData)
 		output << "m";
 	else if (m_partType == pt_slaveData)
 		output << "s";
-	output << FIELD_SEPARATOR << m_dataType.name;
+	dumpString(output, m_dataType.name);
 }
 
 result_t SingleDataField::read(const PartType partType,
@@ -480,8 +493,9 @@ void StringDataField::dump(ostream& output)
 	SingleDataField::dump(output);
 	if ((m_dataType.flags & ADJ) != 0)
 		output << ":" << static_cast<unsigned>(m_length);
-	output << FIELD_SEPARATOR << FIELD_SEPARATOR; // no value list, no divisor
-	output << m_unit << FIELD_SEPARATOR << m_comment << FIELD_SEPARATOR;
+	output << FIELD_SEPARATOR; // no value list, no divisor
+	dumpString(output, m_unit);
+	dumpString(output, m_comment);
 }
 
 result_t StringDataField::readSymbols(SymbolString& input,
@@ -873,8 +887,10 @@ result_t NumberDataField::derive(string name, string comment,
 void NumberDataField::dump(ostream& output)
 {
 	NumericDataField::dump(output);
-	output << static_cast<unsigned>(m_divisor) << FIELD_SEPARATOR;
-	output << m_unit << FIELD_SEPARATOR << m_comment << FIELD_SEPARATOR;
+	if ((m_dataType.bitCount%8) != 0 && m_dataType.divisorOrFirstBit != m_divisor)
+		output << static_cast<unsigned>(m_divisor / m_dataType.divisorOrFirstBit) << FIELD_SEPARATOR;
+	dumpString(output, m_unit);
+	dumpString(output, m_comment);
 }
 
 result_t NumberDataField::readSymbols(SymbolString& input,
@@ -1025,8 +1041,8 @@ void ValueListDataField::dump(ostream& output)
 			output << VALUE_SEPARATOR;
 		output << static_cast<unsigned>(it->first) << "=" << it->second;
 	}
-	output << FIELD_SEPARATOR;
-	output << m_unit << FIELD_SEPARATOR << m_comment << FIELD_SEPARATOR;
+	dumpString(output, m_unit);
+	dumpString(output, m_comment);
 }
 
 result_t ValueListDataField::readSymbols(SymbolString& input,
@@ -1156,8 +1172,14 @@ result_t DataFieldSet::derive(string name, string comment,
 
 void DataFieldSet::dump(ostream& output)
 {
-	for (vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++)
+	bool first = true;
+	for (vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
+		if (first)
+			first = false;
+		else
+			output << FIELD_SEPARATOR;
 		(*it)->dump(output);
+	}
 }
 
 result_t DataFieldSet::read(const PartType partType,
