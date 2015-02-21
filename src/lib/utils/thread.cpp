@@ -34,8 +34,6 @@ Thread::~Thread()
 {
 	if (m_started) {
 		pthread_detach(m_threadid);
-	}
-	if (m_started) {
 		pthread_cancel(m_threadid);
 	}
 }
