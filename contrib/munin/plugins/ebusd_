@@ -15,7 +15,7 @@ if [ "$1" = "suggest" ]; then
 fi
 prefix=`basename "$0"`
 if [ "$prefix" = "ebusd_temp" ]; then
-  sensors="outsidetemp BrineTempInput BrineTempOutput FlowTemp mcFlowTempSensor hwTankTemp"
+  sensors="outsidetemp BrineTempInput BrineTempOutput FlowTemp mcFlowTempSensor hwTankTemp RoomTemp rc4:RoomTemp"
 elif [ "$prefix" = "ebusd_press" ]; then
   sensors="BrinePress HeatSystemPress VaporPressHigh VaporPressLow"
 else
@@ -34,13 +34,17 @@ if [ "$1" = "config" ]; then
   fi
   echo 'graph_category Heizung'
   for sensor in $sensors; do
-    echo ${prefix}_${sensor}.label $sensor
-    print_warning ${prefix}_$sensor
-    print_critical ${prefix}_$sensor
+    echo ${prefix}_${sensor/:/_}.label $sensor
+    print_warning ${prefix}_${sensor/:/_}
+    print_critical ${prefix}_${sensor/:/_}
   done
   exit 0
 fi
 for sensor in $sensors; do
-  RESULT=`echo "r $sensor"|nc localhost 8888 2>/dev/null|head -n 1|sed -e 's#;.*$##'`
-  echo ${prefix}_${sensor}.value $RESULT
+  if [ "${sensor/:/_}" = "$sensor" ]; then
+    RESULT=`echo "r $sensor"|nc localhost 8888 2>/dev/null|head -n 1|sed -e 's#;.*$##'`
+  else
+    RESULT=`echo "r -c ${sensor/:/ }"|nc localhost 8888 2>/dev/null|head -n 1|sed -e 's#;.*$##'`
+  fi
+  echo ${prefix}_${sensor/:/_}.value $RESULT
 done
