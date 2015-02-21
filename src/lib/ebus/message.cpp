@@ -45,7 +45,7 @@ Message::Message(const string clazz, const string name, const bool isWrite,
 {
 	int exp = 7;
 	unsigned long long key = (unsigned long long)(id.size()-2) << (8 * exp + 5);
-	if (isPassive == true)
+	if (isPassive)
 		key |= (unsigned long long)getMasterNumber(srcAddress) << (8 * exp--); // 0..25
 	else
 		key |= 0x1fLL << (8 * exp--); // special value for active
@@ -159,7 +159,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 		srcAddress = parseInt(str, 16, 0, 0xff, result);
 		if (result != RESULT_OK)
 			return result;
-		if (isMaster(srcAddress) == false)
+		if (!isMaster(srcAddress))
 			return RESULT_ERR_INVALID_ADDR;
 	}
 
@@ -173,7 +173,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 		dstAddress = parseInt(str, 16, 0, 0xff, result);
 		if (result != RESULT_OK)
 			return result;
-		if (isValidAddress(dstAddress) == false)
+		if (!isValidAddress(dstAddress))
 			return RESULT_ERR_INVALID_ADDR;
 	}
 
@@ -190,14 +190,14 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 		istringstream input(token);
 		if (it == end)
 			return RESULT_ERR_EOF;
-		while (input.eof() == false) {
+		while (!input.eof()) {
 			while (input.peek() == ' ')
 				input.get();
-			if (input.eof() == true) // no more digits
+			if (input.eof()) // no more digits
 				break;
 			token.clear();
 			token.push_back(input.get());
-			if (input.eof() == true) {
+			if (input.eof()) {
 				return RESULT_ERR_INVALID_ARG; // too short hex
 			}
 			token.push_back(input.get());
@@ -249,7 +249,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 
 result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& masterData, istringstream& input, char separator, const unsigned char dstAddress)
 {
-	if (m_isPassive == true)
+	if (m_isPassive)
 		return RESULT_ERR_INVALID_ARG; // prepare not possible
 
 	SymbolString master(false);
@@ -289,7 +289,7 @@ result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& ma
 
 result_t Message::prepareSlave(SymbolString& slaveData)
 {
-	if (m_isPassive == false || m_isWrite == true)
+	if (!m_isPassive || m_isWrite)
 			return RESULT_ERR_INVALID_ARG; // prepare not possible
 
 	SymbolString slave(false);
@@ -398,7 +398,7 @@ result_t MessageMap::add(Message* message)
 
 	m_messagesByName[nameKey] = message;
 	m_messageCount++;
-	if (isPassive == true)
+	if (isPassive)
 		m_passiveMessageCount++;
 
 	nameKey = string(isPassive ? "-P" : (isWrite ? "-W" : "-R")) + name; // also store without class
@@ -483,28 +483,28 @@ deque<Message*> MessageMap::findAll(const string& clazz, const string& name, con
 		if (it->first[0] == '-') // avoid duplicates: instances stored multiple times have a key starting with "-"
 			continue;
 		Message* message = it->second;
-		if (checkClass == true) {
+		if (checkClass) {
 			string check = strtolower(message->getClass());
 			if (completeMatch ? (check != lclass) : (check.find(lclass) == check.npos))
 				continue;
 		}
-		if (checkName == true) {
+		if (checkName) {
 			string check = strtolower(message->getName());
 			if (completeMatch ? (check != lname) : (check.find(lname) == check.npos))
 				continue;
 		}
-		if (checkPb == true && message->getId()[0] != pb)
+		if (checkPb && message->getId()[0] != pb)
 			continue;
-		if (message->isPassive() == true) {
-			if (withPassive == false)
+		if (message->isPassive()) {
+			if (!withPassive)
 				continue;
 		}
-		else if (message->isWrite() == true) {
-			if (withWrite == false)
+		else if (message->isWrite()) {
+			if (!withWrite)
 				continue;
 		}
 		else {
-			if (withRead == false)
+			if (!withRead)
 				continue;
 		}
 		ret.push_back(message);
@@ -556,7 +556,7 @@ Message* MessageMap::find(SymbolString& master)
 void MessageMap::clear()
 {
 	// clear poll messages
-	while (m_pollMessages.empty() == false) {
+	while (!m_pollMessages.empty()) {
 		m_pollMessages.top();
 		m_pollMessages.pop();
 	}
@@ -578,7 +578,7 @@ void MessageMap::clear()
 
 Message* MessageMap::getNextPoll()
 {
-	if (m_pollMessages.empty() == true)
+	if (m_pollMessages.empty())
 		return NULL;
 	Message* ret = m_pollMessages.top();
 	m_pollMessages.pop();

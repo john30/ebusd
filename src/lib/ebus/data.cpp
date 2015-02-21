@@ -119,7 +119,7 @@ void printErrorPos(vector<string>::iterator begin, const vector<string>::iterato
 	bool first = true;
 	int cnt = 0;
 	while (begin != end) {
-		if (first == true)
+		if (first)
 			first = false;
 		else {
 			cout << FIELD_SEPARATOR;
@@ -166,22 +166,22 @@ result_t DataField::create(vector<string>::iterator& it,
 		if (it == end)
 			break;
 
-		if (isTemplate == true)
+		if (isTemplate)
 			partType = pt_any;
 		else {
 			const char* partStr = (*it++).c_str();
 			hasPartStr = partStr[0] != 0;
 			if (it == end) {
-				if (name.empty() == false || hasPartStr == true)
+				if (!name.empty() || hasPartStr)
 					result = RESULT_ERR_MISSING_TYPE;
 				break;
 			}
-			if (dstAddress == BROADCAST || isMaster(dstAddress) == true
-				|| (isWriteMessage == true && hasPartStr == false)
+			if (dstAddress == BROADCAST || isMaster(dstAddress)
+				|| (isWriteMessage && !hasPartStr)
 				|| strcasecmp(partStr, "M") == 0) { // master data
 				partType = pt_masterData;
 			}
-			else if ((isWriteMessage == false && hasPartStr == false)
+			else if ((!isWriteMessage && !hasPartStr)
 				|| strcasecmp(partStr, "S") == 0) { // slave data
 				partType = pt_slaveData;
 			}
@@ -191,14 +191,14 @@ result_t DataField::create(vector<string>::iterator& it,
 			}
 		}
 
-		if (fields.empty() == true) {
+		if (fields.empty()) {
 			firstName = name;
 			firstComment = comment;
 		}
 
 		const string typeStr = *it++;
-		if (typeStr.empty() == true) {
-			if (name.empty() == false || hasPartStr == true)
+		if (typeStr.empty()) {
+			if (!name.empty() || hasPartStr)
 				result = RESULT_ERR_MISSING_TYPE;
 			break;
 		}
@@ -206,7 +206,7 @@ result_t DataField::create(vector<string>::iterator& it,
 		map<unsigned int, string> values;
 		if (it != end) {
 			const string divisorStr = *it++;
-			if (divisorStr.empty() == false) {
+			if (!divisorStr.empty()) {
 				if (divisorStr.find('=') == string::npos)
 					divisor = parseInt(divisorStr.c_str(), 10, 1, 10000, result);
 				else {
@@ -265,7 +265,7 @@ result_t DataField::create(vector<string>::iterator& it,
 				while (result == RESULT_OK && getline(stream, token, VALUE_SEPARATOR) != 0) {
 					DataField* templ = templates->get(token);
 					if (templ == NULL) {
-						if (found == false)
+						if (!found)
 							break; // fallback to direct definition
 						result = RESULT_ERR_NOTFOUND; // cannot mix reference and direct definition
 					}
@@ -276,7 +276,7 @@ result_t DataField::create(vector<string>::iterator& it,
 				}
 				if (result != RESULT_OK)
 					break;
-				if (found == true)
+				if (found)
 					continue; // go to next definition
 			}
 			typeName = typeStr;
@@ -329,11 +329,11 @@ result_t DataField::create(vector<string>::iterator& it,
 					add = new StringDataField(name, comment, unit, *dataType, partType, byteCount);
 					break;
 				case bt_num:
-					if (values.empty() == true && (dataType->flags & DAY) != 0) {
+					if (values.empty() && (dataType->flags & DAY) != 0) {
 						for (unsigned int i = 0; i < sizeof(dayNames) / sizeof(dayNames[0]); i++)
 							values[dataType->minValueOrLength + i] = dayNames[i];
 					}
-					if (values.empty() == true || (dataType->flags & LST) == 0) {
+					if (values.empty() || (dataType->flags & LST) == 0) {
 						if (divisor == 0)
 							divisor = 1;
 						if ((dataType->bitCount % 8) == 0)
@@ -361,7 +361,7 @@ result_t DataField::create(vector<string>::iterator& it,
 	} while (it != end && result == RESULT_OK);
 
 	if (result != RESULT_OK) {
-		while (fields.empty() == false) { // cleanup already created fields
+		while (!fields.empty()) { // cleanup already created fields
 			delete fields.back();
 			fields.pop_back();
 		}
@@ -407,17 +407,17 @@ result_t SingleDataField::read(const PartType partType,
 	default:
 		return RESULT_ERR_INVALID_PART;
 	}
-	if (isIgnored() == true || (filterName != NULL && m_name != filterName)) {
+	if (isIgnored() || (filterName != NULL && m_name != filterName)) {
 		if (offset + m_length > data.size()) {
 			return RESULT_ERR_INVALID_POS;
 		}
 		return RESULT_EMPTY;
 	}
 
-	if (leadingSeparator == true)
+	if (leadingSeparator)
 		output << separator;
 
-	if (verbose == true)
+	if (verbose)
 		output << m_name << "=";
 
 	result_t result = readSymbols(data, offset, output);
@@ -461,13 +461,13 @@ result_t StringDataField::derive(string name, string comment,
 {
 	if (m_partType != pt_any && partType == pt_any)
 		return RESULT_ERR_INVALID_PART; // cannot create a template from a concrete instance
-	if (divisor != 0 || values.empty() == false)
+	if (divisor != 0 || !values.empty())
 		return RESULT_ERR_INVALID_ARG; // cannot set divisor or values for string field
-	if (name.empty() == true)
+	if (name.empty())
 		name = m_name;
-	if (comment.empty() == true)
+	if (comment.empty())
 		comment = m_comment;
-	if (unit.empty() == true)
+	if (unit.empty())
 		unit = m_unit;
 
 	fields.push_back(new StringDataField(name, comment, unit, m_dataType, partType, m_length));
@@ -590,7 +590,7 @@ result_t StringDataField::writeSymbols(istringstream& input,
 		incr = -1;
 	}
 
-	if (isIgnored() == true && (m_dataType.flags & REQ) == 0) {
+	if (isIgnored() && (m_dataType.flags & REQ) == 0) {
 		for (size_t offset = start, i = 0; i < count; offset += incr, i++) {
 			output[baseOffset + offset] = m_dataType.replacement; // fill up with replacement
 		}
@@ -602,17 +602,17 @@ result_t StringDataField::writeSymbols(istringstream& input,
 		switch (m_dataType.type)
 		{
 		case bt_hexstr:
-			while (input.eof() == false && input.peek() == ' ')
+			while (!input.eof() && input.peek() == ' ')
 				input.get();
-			if (input.eof() == true) // no more digits
+			if (input.eof()) // no more digits
 				value = m_dataType.replacement; // fill up with replacement
 			else {
 				token.clear();
 				token.push_back(input.get());
-				if (input.eof() == true)
+				if (input.eof())
 					return RESULT_ERR_INVALID_NUM; // too short hex value
 				token.push_back(input.get());
-				if (input.eof() == true)
+				if (input.eof())
 					return RESULT_ERR_INVALID_NUM; // too short hex value
 
 				value = parseInt(token.c_str(), 16, 0, 0xff, result);
@@ -623,7 +623,7 @@ result_t StringDataField::writeSymbols(istringstream& input,
 		case bt_dat:
 			if (m_length == 4 && i == 2)
 				continue; // skip weekday in between
-			if (input.eof() == true || getline(input, token, '.') == 0)
+			if (input.eof() || getline(input, token, '.') == 0)
 				return RESULT_ERR_EOF; // incomplete
 			if ((m_dataType.flags & REQ) == 0 && strcmp(token.c_str(), NULL_VALUE) == 0) {
 				value = m_dataType.replacement;
@@ -659,7 +659,7 @@ result_t StringDataField::writeSymbols(istringstream& input,
 				return RESULT_ERR_OUT_OF_RANGE; // invalid date part
 			break;
 		case bt_tim:
-			if (input.eof() == true || getline(input, token, LENGTH_SEPARATOR) == 0)
+			if (input.eof() || getline(input, token, LENGTH_SEPARATOR) == 0)
 				return RESULT_ERR_EOF; // incomplete
 			if ((m_dataType.flags & REQ) == 0 && strcmp(token.c_str(), NULL_VALUE) == 0) {
 				value = m_dataType.replacement;
@@ -695,11 +695,11 @@ result_t StringDataField::writeSymbols(istringstream& input,
 			}
 			break;
 		default:
-			if (input.eof() == true)
+			if (input.eof())
 				value = m_dataType.replacement;
 			else {
 				value = input.get();
-				if (input.eof() == true || value < 0x20)
+				if (input.eof() || value < 0x20)
 					value = m_dataType.replacement;
 			}
 			break;
@@ -726,7 +726,7 @@ result_t StringDataField::writeSymbols(istringstream& input,
 bool NumericDataField::hasFullByteOffset(bool after)
 {
 	return m_length > 1 || (m_bitCount % 8) == 0
-		|| (after == true && m_bitOffset + (m_bitCount % 8) >= 8);
+		|| (after && m_bitOffset + (m_bitCount % 8) >= 8);
 }
 
 void NumericDataField::dump(ostream& output)
@@ -848,17 +848,17 @@ result_t NumberDataField::derive(string name, string comment,
 {
 	if (m_partType != pt_any && partType == pt_any)
 		return RESULT_ERR_INVALID_PART; // cannot create a template from a concrete instance
-	if (name.empty() == true)
+	if (name.empty())
 		name = m_name;
-	if (comment.empty() == true)
+	if (comment.empty())
 		comment = m_comment;
-	if (unit.empty() == true)
+	if (unit.empty())
 		unit = m_unit;
 	if (divisor == 0)
 		divisor = m_divisor;
 	else if ((m_dataType.bitCount % 8) == 0)
 		divisor *= m_dataType.divisorOrFirstBit;
-	if (values.empty() == false) {
+	if (!values.empty()) {
 		if (divisor != 1)
 			return RESULT_ERR_INVALID_ARG; // cannot use divisor != 1 for value list field
 
@@ -896,7 +896,7 @@ result_t NumberDataField::readSymbols(SymbolString& input,
 
 	bool negative = (m_dataType.flags & SIG) != 0 && (value & (1 << (m_bitCount - 1))) != 0;
 	if (m_bitCount == 32) {
-		if (negative == false) {
+		if (!negative) {
 			if (m_divisor <= 1)
 				output << static_cast<unsigned>(value);
 			else
@@ -906,7 +906,7 @@ result_t NumberDataField::readSymbols(SymbolString& input,
 		}
 		signedValue = (int) value; // negative signed value
 	}
-	else if (negative == true) // negative signed value
+	else if (negative) // negative signed value
 		signedValue = (int) value - (1 << m_bitCount);
 	else
 		signedValue = (int) value;
@@ -929,7 +929,7 @@ result_t NumberDataField::writeSymbols(istringstream& input,
 	unsigned int value;
 
 	const char* str = input.str().c_str();
-	if ((m_dataType.flags & REQ) == 0 && (isIgnored() == true || strcasecmp(str, NULL_VALUE) == 0))
+	if ((m_dataType.flags & REQ) == 0 && (isIgnored() || strcasecmp(str, NULL_VALUE) == 0))
 		value = m_dataType.replacement; // replacement value
 	else if (str == NULL || *str == 0)
 		return RESULT_ERR_EOF; // input too short
@@ -992,16 +992,16 @@ result_t ValueListDataField::derive(string name, string comment,
 {
 	if (m_partType != pt_any && partType == pt_any)
 		return RESULT_ERR_INVALID_PART; // cannot create a template from a concrete instance
-	if (name.empty() == true)
+	if (name.empty())
 		name = m_name;
-	if (comment.empty() == true)
+	if (comment.empty())
 		comment = m_comment;
-	if (unit.empty() == true)
+	if (unit.empty())
 		unit = m_unit;
 	if (divisor != 0 && divisor != 1)
 		return RESULT_ERR_INVALID_ARG; // cannot use divisor != 1 for value list field
 
-	if (values.empty() == false) {
+	if (!values.empty()) {
 		if (values.begin()->first < m_dataType.minValueOrLength
 			|| values.rbegin()->first > m_dataType.maxValueOrLength)
 			return RESULT_ERR_INVALID_ARG; // cannot use divisor != 1 for value list field
@@ -1019,7 +1019,7 @@ void ValueListDataField::dump(ostream& output)
 	NumericDataField::dump(output);
 	bool first = true;
 	for (map<unsigned int, string>::iterator it = m_values.begin(); it != m_values.end(); it++) {
-		if (first == true)
+		if (first)
 			first = false;
 		else
 			output << VALUE_SEPARATOR;
@@ -1057,7 +1057,7 @@ result_t ValueListDataField::readSymbols(SymbolString& input,
 result_t ValueListDataField::writeSymbols(istringstream& input,
 		unsigned char baseOffset, SymbolString& output)
 {
-	if (isIgnored() == true)
+	if (isIgnored())
 		return writeRawValue(m_dataType.replacement, baseOffset, output); // replacement value
 
 	const char* str = input.str().c_str();
@@ -1110,7 +1110,7 @@ DataFieldSet* DataFieldSet::createIdentFields()
 
 DataFieldSet::~DataFieldSet()
 {
-	while (m_fields.empty() == false) {
+	while (!m_fields.empty()) {
 		delete m_fields.back();
 		m_fields.pop_back();
 	}
@@ -1125,7 +1125,7 @@ unsigned char DataFieldSet::getLength(PartType partType)
 	for (vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
 		SingleDataField* field = *it;
 		if (field->getPartType() == partType) {
-			if (previousFullByteOffset[partType] == false && field->hasFullByteOffset(false) == false)
+			if (!previousFullByteOffset[partType] && !field->hasFullByteOffset(false))
 				length--;
 
 			length += field->getLength(partType);
@@ -1142,7 +1142,7 @@ result_t DataFieldSet::derive(string name, string comment,
 		unsigned int divisor, map<unsigned int, string> values,
 		vector<SingleDataField*>& fields)
 {
-	if (values.empty() == false)
+	if (!values.empty())
 		return RESULT_ERR_INVALID_ARG; // value list not allowed in set derive
 
 	for (vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
@@ -1172,7 +1172,7 @@ result_t DataFieldSet::read(const PartType partType,
 		if (partType != pt_any && field->getPartType() != partType)
 			continue;
 
-		if (previousFullByteOffset == false && field->hasFullByteOffset(false) == false)
+		if (!previousFullByteOffset && !field->hasFullByteOffset(false))
 			offset--;
 
 		result_t result = field->read(partType, data, offset, output, leadingSeparator, verbose, filterName, separator);
@@ -1188,12 +1188,12 @@ result_t DataFieldSet::read(const PartType partType,
 		}
 	}
 
-	if (verbose == true) {
+	if (verbose) {
 		if (m_comment.length() > 0)
 			output << " [" << m_comment << "]";
 	}
 
-	return found == true ? RESULT_OK : RESULT_EMPTY;
+	return found ? RESULT_OK : RESULT_EMPTY;
 }
 
 result_t DataFieldSet::write(istringstream& input,
@@ -1208,12 +1208,12 @@ result_t DataFieldSet::write(istringstream& input,
 		if (partType != pt_any && field->getPartType() != partType)
 			continue;
 
-		if (previousFullByteOffset == false && field->hasFullByteOffset(false) == false)
+		if (!previousFullByteOffset && !field->hasFullByteOffset(false))
 			offset--;
 
 		result_t result;
 		if (m_fields.size() > 1) {
-			if (field->isIgnored() == true)
+			if (field->isIgnored())
 				token.clear();
 			else if (getline(input, token, separator) == 0)
 				token.clear();
@@ -1249,7 +1249,7 @@ result_t DataFieldTemplates::add(DataField* field, bool replace)
 	string name = field->getName();
 	map<string, DataField*>::iterator it = m_fieldsByName.find(name);
 	if (it != m_fieldsByName.end()) {
-		if (replace == false)
+		if (!replace)
 			return RESULT_ERR_DUPLICATE; // duplicate key
 
 		delete it->second;

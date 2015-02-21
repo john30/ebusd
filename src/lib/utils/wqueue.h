@@ -87,7 +87,7 @@ public:
 		pthread_mutex_lock(&m_mutex);
 
 		T item;
-		if (wait == true) {
+		if (wait) {
 			while (m_queue.size() == 0)
 				pthread_cond_wait(&m_cond, &m_mutex);
 			item = m_queue.front();
@@ -157,7 +157,7 @@ public:
 		pthread_mutex_lock(&m_mutex);
 
 		T item;
-		if (wait == true) {
+		if (wait) {
 			while (m_queue.size() == 0)
 				pthread_cond_wait(&m_cond, &m_mutex);
 			item = m_queue.front();

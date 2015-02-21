@@ -32,11 +32,12 @@ void* Thread::runThread(void* arg)
 
 Thread::~Thread()
 {
-	if (m_started == true)
+	if (m_started) {
 		pthread_detach(m_threadid);
-
-	if (m_started == true)
+	}
+	if (m_started) {
 		pthread_cancel(m_threadid);
+	}
 }
 
 bool Thread::start(const char* name)
@@ -62,7 +63,7 @@ bool Thread::join()
 {
 	int result = -1;
 
-	if (m_started == true) {
+	if (m_started) {
 		m_stopped = true;
 		result = pthread_join(m_threadid, NULL);
 

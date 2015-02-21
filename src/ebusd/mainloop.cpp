@@ -39,7 +39,7 @@ MainLoop::MainLoop(const struct options opt, Device *device, DataFieldTemplates*
 	result_t result = m_device->open();
 	if (result != RESULT_OK)
 		logError(lf_bus, "unable to open %s: %s", m_device->getName(), getResultCode(result));
-	else if (m_device->isValid() == false)
+	else if (!m_device->isValid())
 		logError(lf_bus, "device %s not available", m_device->getName());
 
 	// create BusHandler
@@ -78,7 +78,7 @@ void MainLoop::run()
 {
 	bool running = true;
 
-	while (running == true) {
+	while (running) {
 		string result;
 
 		// pick the next message to handle
@@ -88,7 +88,7 @@ void MainLoop::run()
 		time_t since, until;
 		time(&until);
 		bool listening = message->isListening(since);
-		if (listening == false)
+		if (!listening)
 			since = until;
 
 		bool connected = true;
@@ -102,12 +102,12 @@ void MainLoop::run()
 			logNotice(lf_main, "<<< %s", result.c_str());
 			result += "\n\n";
 		}
-		if (listening == true) {
+		if (listening) {
 			result += getUpdates(since, until);
 		}
 
 		// send result to client
-		message->setResult(result, listening, until, connected == false);
+		message->setResult(result, listening, until, !connected);
 	}
 }
 
@@ -122,7 +122,7 @@ string MainLoop::decodeMessage(const string& data, bool& connected, bool& listen
 	bool escaped = false;
 
 	while (getline(stream, token, ' ') != 0) {
-		if (escaped == true) {
+		if (escaped) {
 			args.pop_back();
 			if (token.length() > 0 && token[token.length()-1] == '"') {
 				token = token.substr(0, token.length() - 1);
@@ -245,7 +245,7 @@ string MainLoop::executeRead(vector<string> &args)
 	time(&now);
 
 	Message* updateMessage = NULL;
-	if (maxAge > 0 && verbose == false) {
+	if (maxAge > 0 && !verbose) {
 		updateMessage = m_messages->find(clazz, args[argPos], false, true);
 
 		if (updateMessage != NULL && updateMessage->getLastUpdateTime() + maxAge > now)
@@ -322,7 +322,7 @@ string MainLoop::executeWrite(vector<string> &args)
 		ret = master.push_back(m_address, false);
 		if (ret == RESULT_OK)
 			ret = master.parseHex(msg.str());
-		if (ret == RESULT_OK && isValidAddress(master[1]) == false)
+		if (ret == RESULT_OK && !isValidAddress(master[1]))
 			ret = RESULT_ERR_INVALID_ADDR;
 		if (ret != RESULT_OK)
 			return getResultCode(ret);
@@ -382,7 +382,7 @@ string MainLoop::executeWrite(vector<string> &args)
 			return getResultCode(RESULT_OK);
 
 		ret = message->decode(pt_slaveData, slave, result); // decode data
-		if (ret == RESULT_OK && result.str().empty() == true)
+		if (ret == RESULT_OK && result.str().empty())
 			return getResultCode(RESULT_OK);
 	}
 	if (ret != RESULT_OK) {
@@ -401,21 +401,21 @@ string MainLoop::executeFind(vector<string> &args)
 		if (args[argPos] == "-v")
 			verbose = true;
 		else if (args[argPos] == "-r") {
-			if (first == true) {
+			if (first) {
 				first = false;
 				withWrite = withPassive = false;
 			}
 			withRead = true;
 		}
 		else if (args[argPos] == "-w") {
-			if (first == true) {
+			if (first) {
 				first = false;
 				withRead = withPassive = false;
 			}
 			withWrite = true;
 		}
 		else if (args[argPos] == "-p") {
-			if (first == true) {
+			if (first) {
 				first = false;
 				withRead = withWrite = false;
 			}
@@ -464,16 +464,16 @@ string MainLoop::executeFind(vector<string> &args)
 		if (dstAddress == SYN)
 			continue;
 		time_t lastup = message->getLastUpdateTime();
-		if (onlyWithData == true && lastup == 0)
+		if (onlyWithData && lastup == 0)
 			continue;
-		if (found == true)
+		if (found)
 			result << endl;
 		result << message->getClass() << " " << message->getName() << " = ";
 		if (lastup == 0)
 			result << "no data stored";
 		else
 			result << message->getLastValue();
-		if (verbose == true) {
+		if (verbose) {
 			if (lastup == 0)
 				sprintf(str, "%02x", dstAddress);
 			else {
@@ -495,7 +495,7 @@ string MainLoop::executeFind(vector<string> &args)
 		}
 		found = true;
 	}
-	if (found == false)
+	if (!found)
 		return getResultCode(RESULT_ERR_NOTFOUND);
 
 	return result.str();
@@ -504,7 +504,7 @@ string MainLoop::executeFind(vector<string> &args)
 string MainLoop::executeListen(vector<string> &args, bool& listening)
 {
 	if (args.size() == 1) {
-		if (listening == true)
+		if (listening)
 			return "listen continued";
 
 		listening = true;
@@ -525,7 +525,7 @@ string MainLoop::executeState(vector<string> &args)
 		return "usage: 'state'\n"
 			   " Report bus state.";
 
-	if (m_busHandler->hasSignal() == true) {
+	if (m_busHandler->hasSignal()) {
 		ostringstream result;
 		result << "signal acquired, "
 			   << static_cast<unsigned>(m_busHandler->getSymbolRate()) << " symbols/sec, max. "
@@ -579,7 +579,7 @@ string MainLoop::executeLog(vector<string> &args)
 			   "  AREA   the log area to include (main|network|bus|update|all)\n"
 			   "  LEVEL  the log level to set (error|notice|info|debug)";
 
-	if (result == true)
+	if (result)
 		return getResultCode(RESULT_OK);
 
 	return getResultCode(RESULT_ERR_INVALID_ARG);

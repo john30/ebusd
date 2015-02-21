@@ -86,7 +86,7 @@ public:
 	{
 		pthread_mutex_lock(&m_mutex);
 
-		while (m_resultSet == false)
+		while (!m_resultSet)
 			pthread_cond_wait(&m_cond, &m_mutex);
 
 		pthread_mutex_unlock(&m_mutex);

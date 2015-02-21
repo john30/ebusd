@@ -27,14 +27,14 @@ using namespace std;
 void verify(bool expectFailMatch, string type, string input,
 		bool match, string expectStr, string gotStr)
 {
-	if (expectFailMatch == true) {
-		if (match == true)
+	if (expectFailMatch) {
+		if (match)
 			cout << "  failed " << type << " match >" << input
 			        << "< error: unexpectedly succeeded" << endl;
 		else
 			cout << "  failed " << type << " match >" << input << "< OK" << endl;
 	}
-	else if (match == true)
+	else if (match)
 		cout << "  " << type << " match >" << input << "< OK" << endl;
 	else
 		cout << "  " << type << " match >" << input << "< error: got >"
@@ -104,7 +104,7 @@ int main()
 			delete deleteMessage;
 			deleteMessage = NULL;
 		}
-		if (isTemplate == true) {
+		if (isTemplate) {
 			// store new template
 			DataField* fields = NULL;
 			vector<string>::iterator it = entries.begin();
@@ -136,7 +136,7 @@ int main()
 		else {
 			vector<string>::iterator it = entries.begin();
 			result = Message::create(it, entries.end(), NULL, templates, deleteMessage);
-			if (failedCreate == true) {
+			if (failedCreate) {
 				if (result == RESULT_OK)
 					cout << "\"" << check[0] << "\": failed create error: unexpectedly succeeded" << endl;
 				else
@@ -158,7 +158,7 @@ int main()
 				continue;
 			}
 			cout << "\"" << check[0] << "\": create OK" << endl;
-			if (dontMap == false) {
+			if (!dontMap) {
 				result_t result = messages->add(deleteMessage);
 				if (result != RESULT_OK) {
 					cout << "\"" << check[0] << "\": add error: "
@@ -168,7 +168,7 @@ int main()
 				cout << "  map OK" << endl;
 				message = deleteMessage;
 				deleteMessage = NULL;
-				if (onlyMap == true)
+				if (onlyMap)
 					continue;
 				Message* foundMessage = messages->find(mstr);
 				if (foundMessage == message)
@@ -182,7 +182,7 @@ int main()
 				message = deleteMessage;
 		}
 
-		if (message->isPassive() == true || decode == true) {
+		if (message->isPassive() || decode) {
 			ostringstream output;
 			result = message->decode(mstr, sstr, output);
 			if (result != RESULT_OK) {
@@ -199,7 +199,7 @@ int main()
 			istringstream input(inputStr);
 			SymbolString writeMstr;
 			result = message->prepareMaster(0xff, writeMstr, input);
-			if (failedPrepare == true) {
+			if (failedPrepare) {
 				if (result == RESULT_OK)
 					cout << "  \"" << inputStr << "\": failed prepare error: unexpectedly succeeded" << endl;
 				else

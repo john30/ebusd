@@ -501,7 +501,7 @@ result_t loadConfigFiles(DataFieldTemplates* templates, MessageMap* messages, bo
  */
 static void logRawData(const unsigned char byte, bool received)
 {
-	if (received == true)
+	if (received)
 		logNotice(lf_bus, "<%02x", byte);
 	else
 		logNotice(lf_bus, ">%02x", byte);
@@ -522,7 +522,7 @@ int main(int argc, char* argv[])
 
 	DataFieldTemplates templates;
 	MessageMap messages;
-	if (opt.checkConfig == true) {
+	if (opt.checkConfig) {
 		logNotice(lf_main, "Performing configuration check...");
 
 		loadConfigFiles(&templates, &messages, true);
@@ -534,13 +534,13 @@ int main(int argc, char* argv[])
 	}
 
 	// open the device
-	Device *device = Device::create(opt.device, opt.noDeviceCheck==false, &logRawData);
+	Device *device = Device::create(opt.device, !opt.noDeviceCheck, &logRawData);
 	if (device == NULL) {
 		logError(lf_main, "unable to create device %s", opt.device);
 		return EINVAL;
 	}
 
-	if (opt.foreground == false) {
+	if (!opt.foreground) {
 		setLogFile(opt.logFile);
 		daemonize(); // make me daemon
 	}

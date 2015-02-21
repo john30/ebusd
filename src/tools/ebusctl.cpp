@@ -189,8 +189,8 @@ string fetchData(TCPSocket* socket, bool& listening)
 #endif
 		}
 
-			if (newData == true) {
-				if (socket->isValid() == true) {
+			if (newData) {
+				if (socket->isValid()) {
 					datalen = socket->recv(data, sizeof(data));
 
 					if (datalen < 0) {
@@ -204,14 +204,14 @@ string fetchData(TCPSocket* socket, bool& listening)
 					if ((ss.str().length() >= 2
 					&& ss.str()[ss.str().length()-2] == '\n'
 					&& ss.str()[ss.str().length()-1] == '\n')
-					|| listening == true)
+					|| listening)
 						break;
 
 				}
 				else
 					break;
 			}
-			else if (newInput == true) {
+			else if (newInput) {
 				getline(cin, message);
 				message += '\n';
 
@@ -242,7 +242,7 @@ void connect(const char* host, int port, char* const *args, int argCount)
 			string message;
 			bool listening = false;
 
-			if (once == false) {
+			if (!once) {
 				cout << host << ": ";
 				getline(cin, message);
 			}
@@ -270,7 +270,7 @@ void connect(const char* host, int port, char* const *args, int argCount)
 				if (strcasecmp(message.c_str(), "L") == 0
 				|| strcasecmp(message.c_str(), "LISTEN") == 0) {
 					listening = true;
-					while (listening && cin.eof() == false) {
+					while (listening && !cin.eof()) {
 						string result(fetchData(socket, listening));
 						cout << result;
 						if (strcasecmp(result.c_str(), "LISTEN STOPPED") == 0)
@@ -281,7 +281,7 @@ void connect(const char* host, int port, char* const *args, int argCount)
 					cout << fetchData(socket, listening);
 			}
 
-		} while (once == false && cin.eof() == false);
+		} while (!once && !cin.eof());
 
 		delete socket;
 

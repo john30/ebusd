@@ -140,18 +140,18 @@ int main(int argc, char* argv[])
 	if (result != RESULT_OK)
 		cout << "unable to open " << opt.device << ": " << getResultCode(result) << endl;
 
-	if (device->isValid() == false)
+	if (!device->isValid())
 		cout << "device " << opt.device << " not available" << endl;
 	else {
 		cout << "device opened" << endl;
 
 		fstream file(opt.dumpFile, ios::in | ios::binary);
 
-		if (file.is_open() == true) {
+		if (file.is_open()) {
 
 			while (true) {
 				unsigned char byte = file.get();
-				if (file.eof() == true)
+				if (file.eof())
 					break;
 				cout << hex << setw(2) << setfill('0')
 				     << static_cast<unsigned>(byte) << endl;

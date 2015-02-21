@@ -72,7 +72,7 @@ public:
 	{
 		ifstream ifs;
 		ifs.open(filename.c_str(), ifstream::in);
-		if (ifs.is_open() == false)
+		if (!ifs.is_open())
 			return RESULT_ERR_NOTFOUND;
 
 		string line;
@@ -96,7 +96,7 @@ public:
 				switch (ch)
 				{
 				case FIELD_SEPARATOR:
-					if (quotedText == true)
+					if (quotedText)
 						field << ch;
 					else {
 						row.push_back(field.str());
@@ -104,7 +104,7 @@ public:
 					}
 					break;
 				case TEXT_SEPARATOR:
-					if (quotedText == true) {
+					if (quotedText) {
 						quotedText = false;
 					}
 					else if (prev == TEXT_SEPARATOR) { // double dquote
@@ -130,7 +130,7 @@ public:
 			result_t result;
 			vector<string>::iterator it = row.begin();
 			const vector<string>::iterator end = row.end();
-			if (m_supportsDefaults == true) {
+			if (m_supportsDefaults) {
 				if (line[0] == '*') {
 					row[0] = row[0].substr(1);
 					defaults.push_back(row);
@@ -142,7 +142,7 @@ public:
 				result = addFromFile(it, end, arg, NULL, filename, lineNo);
 
 			if (result != RESULT_OK) {
-				if (verbose == false) {
+				if (!verbose) {
 					ifs.close();
 					return result;
 				}

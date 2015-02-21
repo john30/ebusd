@@ -74,7 +74,7 @@ void Connection::run()
 	time_t listenSince = 0;
 	bool closed = false;
 
-	while (closed == false) {
+	while (!closed) {
 #ifdef HAVE_PPOLL
 		// wait for new fd event
 		ret = ppoll(fds, nfds, &tdiff, NULL);
@@ -109,12 +109,12 @@ void Connection::run()
 #endif
 		}
 
-		if (newData == true || m_listening == true) {
+		if (newData || m_listening) {
 			char data[256];
 			size_t datalen = 0;
 
-			if (newData == true) {
-				if (m_socket->isValid() == false)
+			if (newData) {
+				if (!m_socket->isValid())
 					break;
 
 				datalen = m_socket->recv(data, sizeof(data)-1);
@@ -133,7 +133,7 @@ void Connection::run()
 			logDebug(lf_network, "[%05d] wait for result", getID());
 			string result = message.getResult();
 
-			if (m_socket->isValid() == false)
+			if (!m_socket->isValid())
 				break;
 
 			m_socket->send(result.c_str(), result.size());
@@ -154,7 +154,7 @@ void Connection::run()
 Network::Network(const bool local, const int port, WQueue<NetMessage*>* netQueue)
 	: m_netQueue(netQueue), m_listening(false)
 {
-	if (local == true)
+	if (local)
 		m_tcpServer = new TCPServer(port, "127.0.0.1");
 	else
 		m_tcpServer = new TCPServer(port, "0.0.0.0");
@@ -168,7 +168,7 @@ Network::~Network()
 {
 	stop();
 
-	while (m_connections.empty() == false) {
+	while (!m_connections.empty()) {
 		Connection* connection = m_connections.back();
 		m_connections.pop_back();
 		connection->stop();
@@ -183,7 +183,7 @@ Network::~Network()
 
 void Network::run()
 {
-	if (m_listening == false)
+	if (!m_listening)
 		return;
 
 	int ret;
@@ -277,7 +277,7 @@ void Network::cleanConnections()
 {
 	list<Connection*>::iterator c_it;
 	for (c_it = m_connections.begin(); c_it != m_connections.end(); c_it++) {
-		if ((*c_it)->isRunning() == false) {
+		if (!(*c_it)->isRunning()) {
 			Connection* connection = *c_it;
 			c_it = m_connections.erase(c_it);
 			delete connection;

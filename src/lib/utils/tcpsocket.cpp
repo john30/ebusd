@@ -82,7 +82,7 @@ TCPSocket* TCPClient::connect(const string& server, const int& port)
 
 int TCPServer::start()
 {
-	if (m_listening == true)
+	if (m_listening)
 		return 0;
 
 	m_lfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -115,7 +115,7 @@ int TCPServer::start()
 
 TCPSocket* TCPServer::newSocket()
 {
-	if (m_listening == false)
+	if (!m_listening)
 		return NULL;
 
 	struct sockaddr_in address;

@@ -87,7 +87,7 @@ bool Device::isValid()
 	if (m_fd == -1)
 		return false;
 
-	if (m_checkDevice == true)
+	if (m_checkDevice)
 		checkDevice();
 
 	return m_fd != -1;
@@ -95,13 +95,13 @@ bool Device::isValid()
 
 result_t Device::send(const unsigned char value)
 {
-	if (isValid() == false)
+	if (!isValid())
 		return RESULT_ERR_DEVICE;
 
 	if (write(m_fd, &value, 1) != 1)
 		return RESULT_ERR_SEND;
 
-	if (m_logRaw == true && m_logRawFunc != NULL)
+	if (m_logRaw && m_logRawFunc != NULL)
 		(*m_logRawFunc)(value, false);
 
 	return RESULT_OK;
@@ -109,7 +109,7 @@ result_t Device::send(const unsigned char value)
 
 result_t Device::recv(const long timeout, unsigned char& value)
 {
-	if (isValid() == false)
+	if (!isValid())
 		return RESULT_ERR_DEVICE;
 
 	if (timeout > 0) {
@@ -153,10 +153,10 @@ result_t Device::recv(const long timeout, unsigned char& value)
 	if (nbytes < 0)
 		return RESULT_ERR_DEVICE;
 
-	if (m_logRaw == true && m_logRawFunc != NULL)
+	if (m_logRaw && m_logRawFunc != NULL)
 		(*m_logRawFunc)(value, true);
 
-	if (m_dumpRaw == true && m_dumpRawStream.is_open() == true) {
+	if (m_dumpRaw && m_dumpRawStream.is_open()) {
 		m_dumpRawStream.write((char*)&value, 1);
 		m_dumpRawFileSize++;
 		if ((m_dumpRawFileSize%1024) == 0)
@@ -182,7 +182,7 @@ void Device::setDumpRaw(bool dumpRaw)
 
 	m_dumpRaw = dumpRaw;
 
-	if (dumpRaw == false || m_dumpRawFile == NULL)
+	if (!dumpRaw || m_dumpRawFile == NULL)
 		m_dumpRawStream.close();
 	else {
 		m_dumpRawStream.open(m_dumpRawFile, ios::out | ios::binary | ios::app);
@@ -197,7 +197,7 @@ void Device::setDumpRawFile(const char* dumpFile) {
 	m_dumpRawStream.close();
 	m_dumpRawFile = dumpFile;
 
-	if (m_dumpRaw == true && m_dumpRawFile != NULL) {
+	if (m_dumpRaw && m_dumpRawFile != NULL) {
 		m_dumpRawStream.open(m_dumpRawFile, ios::out | ios::binary | ios::app);
 		m_dumpRawFileSize = 0;
 	}

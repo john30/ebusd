@@ -98,7 +98,7 @@ bool ScanRequest::notify(result_t result, SymbolString& slave)
 	bool append = m_scanResults != NULL && m_scanResults->find(dstAddress) != m_scanResults->end();
 	ostringstream scanResult;
 	if (result == RESULT_OK) {
-		if (append == false)
+		if (!append)
 			scanResult << hex << setw(2) << setfill('0') << static_cast<unsigned>(dstAddress) << UI_FIELD_SEPARATOR;
 		result = m_message->decode(pt_slaveData, slave, scanResult, append); // decode data
 	}
@@ -110,14 +110,14 @@ bool ScanRequest::notify(result_t result, SymbolString& slave)
 	string str = scanResult.str();
 	logNotice(lf_bus, "scan: %s", str.c_str());
 	if (m_scanResults != NULL) {
-		if (append == true)
+		if (append)
 			(*m_scanResults)[dstAddress] += str;
 		else
 			(*m_scanResults)[dstAddress] = str;
 	}
 
 	// check for remaining secondary messages
-	if (m_messages.empty() == true)
+	if (m_messages.empty())
 		return false;
 
 	m_message = m_messages.front();
@@ -151,12 +151,12 @@ result_t BusHandler::sendAndWait(SymbolString& master, SymbolString& slave)
 	for (int sendRetries=m_failedSendRetries+1; sendRetries>=0; sendRetries--) {
 		m_nextRequests.add(&request);
 		bool success = m_finishedRequests.waitRemove(&request);
-		result = success == true ? request.m_result : RESULT_ERR_TIMEOUT;
+		result = success ? request.m_result : RESULT_ERR_TIMEOUT;
 
 		if (result == RESULT_OK)
 			break;
 
-		if (success == false || result == RESULT_ERR_NO_SIGNAL) {
+		if (!success || result == RESULT_ERR_NO_SIGNAL) {
 			logError(lf_bus, "%s, give up", getResultCode(result));
 			break;
 		}
@@ -174,7 +174,7 @@ void BusHandler::run()
 	time_t lastTime;
 	time(&lastTime);
 	do {
-		if (m_device->isValid() == true) {
+		if (m_device->isValid()) {
 			result_t result = handleSymbol();
 			if (result != RESULT_ERR_TIMEOUT)
 				symCount++;
@@ -191,7 +191,7 @@ void BusHandler::run()
 				symCount = 0;
 			}
 		} else {
-			if (Wait(10) == false)
+			if (!Wait(10))
 				break;
 			result_t result = m_device->open();
 
@@ -201,7 +201,7 @@ void BusHandler::run()
 				logError(lf_bus, "unable to open %s: %s", m_device->getName(), getResultCode(result));
 			symCount = 0;
 		}
-	} while (isRunning() == true);
+	} while (isRunning());
 }
 
 result_t BusHandler::handleSymbol()
@@ -306,7 +306,7 @@ result_t BusHandler::handleSymbol()
 
 	// send symbol if necessary
 	result_t result;
-	if (sending == true) {
+	if (sending) {
 		result = m_device->send(sendSymbol);
 		if (result == RESULT_OK)
 			if (m_state == bs_ready)
@@ -336,9 +336,9 @@ result_t BusHandler::handleSymbol()
 
 	m_lastReceive = now;
 	if (recvSymbol == SYN) {
-		if (sending == false && m_remainLockCount > 0 && m_command.size() != 1)
+		if (!sending && m_remainLockCount > 0 && m_command.size() != 1)
 			m_remainLockCount--;
-		else if (sending == false && m_remainLockCount == 0 && m_command.size() == 1)
+		else if (!sending && m_remainLockCount == 0 && m_command.size() == 1)
 			m_remainLockCount = 1; // wait for next AUTO-SYN after SYN / address / SYN (bus locked for own priority)
 
 		return setState(bs_ready, RESULT_ERR_SYN);
@@ -355,8 +355,8 @@ result_t BusHandler::handleSymbol()
 		return RESULT_OK;
 
 	case bs_ready:
-		if (startRequest != NULL && sending == true) {
-			if (m_nextRequests.remove(startRequest) == false) {
+		if (startRequest != NULL && sending) {
+			if (!m_nextRequests.remove(startRequest)) {
 				// request already removed (e.g. due to timeout)
 				return setState(bs_skip, RESULT_ERR_TIMEOUT);
 			}
@@ -397,7 +397,7 @@ result_t BusHandler::handleSymbol()
 					receiveCompleted();
 					return setState(bs_skip, RESULT_OK);
 				}
-				if (m_answer == true
+				if (m_answer
 				        && (dstAddress == m_ownMasterAddress || dstAddress == m_ownSlaveAddress))
 					return setState(bs_sendCmdAck, RESULT_OK);
 
@@ -406,11 +406,11 @@ result_t BusHandler::handleSymbol()
 			if (dstAddress == BROADCAST)
 				return setState(bs_skip, RESULT_ERR_CRC);
 
-			if (m_answer == true
+			if (m_answer
 			        && (dstAddress == m_ownMasterAddress || dstAddress == m_ownSlaveAddress)) {
 				return setState(bs_sendCmdAck, RESULT_ERR_CRC);
 			}
-			if (m_repeat == true)
+			if (m_repeat)
 				return setState(bs_skip, RESULT_ERR_CRC);
 			return setState(bs_recvCmdAck, RESULT_ERR_CRC);
 		}
@@ -418,15 +418,15 @@ result_t BusHandler::handleSymbol()
 
 	case bs_recvCmdAck:
 		if (recvSymbol == ACK) {
-			if (m_commandCrcValid == false)
+			if (!m_commandCrcValid)
 				return setState(bs_skip, RESULT_ERR_ACK);
 
 			if (m_currentRequest != NULL) {
-				if (isMaster(m_currentRequest->m_master[1]) == true) {
+				if (isMaster(m_currentRequest->m_master[1])) {
 					return setState(bs_sendSyn, RESULT_OK);
 				}
 			}
-			else if (isMaster(m_command[1]) == true) { // header symbols are never escaped
+			else if (isMaster(m_command[1])) { // header symbols are never escaped
 				receiveCompleted();
 				return setState(bs_skip, RESULT_OK);
 			}
@@ -435,7 +435,7 @@ result_t BusHandler::handleSymbol()
 			return setState(bs_recvRes, RESULT_OK);
 		}
 		if (recvSymbol == NAK) {
-			if (m_repeat == false) {
+			if (!m_repeat) {
 				m_repeat = true;
 				m_nextSendPos = 0;
 				m_command.clear();
@@ -465,7 +465,7 @@ result_t BusHandler::handleSymbol()
 
 				return setState(bs_recvResAck, RESULT_OK);
 			}
-			if (m_repeat == true) {
+			if (m_repeat) {
 				if (m_currentRequest != NULL)
 					return setState(bs_sendSyn, RESULT_ERR_CRC);
 
@@ -480,14 +480,14 @@ result_t BusHandler::handleSymbol()
 
 	case bs_recvResAck:
 		if (recvSymbol == ACK) {
-			if (m_responseCrcValid == false)
+			if (!m_responseCrcValid)
 				return setState(bs_skip, RESULT_ERR_ACK);
 
 			receiveCompleted();
 			return setState(bs_skip, RESULT_OK);
 		}
 		if (recvSymbol == NAK) {
-			if (m_repeat == false) {
+			if (!m_repeat) {
 				m_repeat = true;
 				m_response.clear();
 				return setState(bs_recvRes, RESULT_ERR_NAK, true);
@@ -497,7 +497,7 @@ result_t BusHandler::handleSymbol()
 		return setState(bs_skip, RESULT_ERR_ACK);
 
 	case bs_sendCmd:
-		if (m_currentRequest != NULL && sending == true) {
+		if (m_currentRequest != NULL && sending) {
 			if (recvSymbol == sendSymbol) {
 				// successfully sent
 				m_nextSendPos++;
@@ -515,11 +515,11 @@ result_t BusHandler::handleSymbol()
 		return setState(bs_skip, RESULT_ERR_INVALID_ARG);
 
 	case bs_sendResAck:
-		if (m_currentRequest != NULL && sending == true) {
+		if (m_currentRequest != NULL && sending) {
 			if (recvSymbol == sendSymbol) {
 				// successfully sent
-				if (m_responseCrcValid == false) {
-					if (m_repeat == false) {
+				if (!m_responseCrcValid) {
+					if (!m_repeat) {
 						m_repeat = true;
 						m_response.clear();
 						return setState(bs_recvRes, RESULT_ERR_NAK, true);
@@ -532,25 +532,25 @@ result_t BusHandler::handleSymbol()
 		return setState(bs_skip, RESULT_ERR_INVALID_ARG);
 
 	case bs_sendCmdAck:
-		if (sending == true && m_answer == true) {
+		if (sending && m_answer) {
 			if (recvSymbol == sendSymbol) {
 				// successfully sent
-				if (m_commandCrcValid == false) {
-					if (m_repeat == false) {
+				if (!m_commandCrcValid) {
+					if (!m_repeat) {
 						m_repeat = true;
 						m_command.clear();
 						return setState(bs_recvCmd, RESULT_ERR_NAK, true);
 					}
 					return setState(bs_skip, RESULT_ERR_ACK);
 				}
-				if (isMaster(m_command[1]) == true)
+				if (isMaster(m_command[1]))
 					receiveCompleted(); // decode command and store value
 					return setState(bs_skip, RESULT_OK);
 
 				m_nextSendPos = 0;
 				m_repeat = false;
 				Message* message = m_messages->find(m_command);
-				if (message == NULL || message->isPassive() == false || message->isWrite() == true)
+				if (message == NULL || !message->isPassive() || message->isWrite())
 					return setState(bs_skip, RESULT_ERR_INVALID_ARG); // don't know this request or definition has wrong direction, deny
 
 				// build response and store in m_response for sending back to requesting master
@@ -564,7 +564,7 @@ result_t BusHandler::handleSymbol()
 		return setState(bs_skip, RESULT_ERR_INVALID_ARG);
 
 	case bs_sendRes:
-		if (sending == true && m_answer == true) {
+		if (sending && m_answer) {
 			if (recvSymbol == sendSymbol) {
 				// successfully sent
 				m_nextSendPos++;
@@ -578,7 +578,7 @@ result_t BusHandler::handleSymbol()
 		return setState(bs_skip, RESULT_ERR_INVALID_ARG);
 
 	case bs_sendSyn:
-		if (sending == true) {
+		if (sending) {
 			if (recvSymbol == sendSymbol) {
 				// successfully sent
 				return setState(bs_skip, RESULT_OK);
@@ -600,17 +600,17 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 			m_nextRequests.add(m_currentRequest); // repeat
 			m_currentRequest = NULL;
 		}
-		else if (state == bs_sendSyn || (result != RESULT_OK && firstRepetition == false)) {
+		else if (state == bs_sendSyn || (result != RESULT_OK && !firstRepetition)) {
 			logDebug(lf_bus, "notify request: %s", getResultCode(result));
 			unsigned char dstAddress = m_currentRequest->m_master[1];
-			if (result == RESULT_OK && isValidAddress(dstAddress, false) == true)
+			if (result == RESULT_OK && isValidAddress(dstAddress, false))
 				m_seenAddresses[dstAddress] = true;
 			bool restart = m_currentRequest->notify(result, m_response);
-			if (restart == true) {
+			if (restart) {
 				m_currentRequest->m_busLostRetries = 0;
 				m_nextRequests.add(m_currentRequest);
 			}
-			else if (m_currentRequest->m_deleteOnFinish == true)
+			else if (m_currentRequest->m_deleteOnFinish)
 				delete m_currentRequest;
 			else
 				m_finishedRequests.add(m_currentRequest);
@@ -623,11 +623,11 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 		m_response.clear(false); // notify with empty response
 		while ((m_currentRequest = m_nextRequests.remove(false)) != NULL) {
 			bool restart = m_currentRequest->notify(RESULT_ERR_NO_SIGNAL, m_response);
-			if (restart == true) { // should not occur with no signal
+			if (restart) { // should not occur with no signal
 				m_currentRequest->m_busLostRetries = 0;
 				m_nextRequests.add(m_currentRequest);
 			}
-			else if (m_currentRequest->m_deleteOnFinish == true)
+			else if (m_currentRequest->m_deleteOnFinish)
 				delete m_currentRequest;
 			else
 				m_finishedRequests.add(m_currentRequest);
@@ -667,7 +667,7 @@ void BusHandler::receiveCompleted()
 	m_seenAddresses[srcAddress] = true;
 	if (dstAddress == BROADCAST)
 		logInfo(lf_update, "update BC cmd: %s", m_command.getDataStr().c_str());
-	else if (master == true) {
+	else if (master) {
 		logInfo(lf_update, "update MM cmd: %s", m_command.getDataStr().c_str());
 		m_seenAddresses[dstAddress] = true;
 	}
@@ -680,7 +680,7 @@ void BusHandler::receiveCompleted()
 	if (message == NULL) {
 		if (dstAddress == BROADCAST)
 			logNotice(lf_update, "unknown BC cmd: %s", m_command.getDataStr().c_str());
-		else if (master == true)
+		else if (master)
 			logNotice(lf_update, "unknown MM cmd: %s", m_command.getDataStr().c_str());
 		else
 			logNotice(lf_update, "unknown MS cmd: %s / %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
@@ -694,7 +694,7 @@ void BusHandler::receiveCompleted()
 			logError(lf_update, "unable to parse %s %s from %s / %s: %s", clazz.c_str(), name.c_str(), m_command.getDataStr().c_str(), m_response.getDataStr().c_str(), getResultCode(result));
 		else {
 			string data = output.str();
-			if (m_answer == true && dstAddress == (master ? m_ownMasterAddress : m_ownSlaveAddress)) {
+			if (m_answer && dstAddress == (master ? m_ownMasterAddress : m_ownSlaveAddress)) {
 				logNotice(lf_update, "self-update %s %s QQ=%2.2x: %s", clazz.c_str(), name.c_str(), srcAddress, data.c_str()); // TODO store in database of internal variables
 			}
 			else if (message->getDstAddress() == SYN) { // any destination
@@ -733,11 +733,11 @@ result_t BusHandler::startScan(bool full)
 	m_scanResults.clear();
 
 	for (unsigned int slave=0; slave<=255; slave++) {
-		if (isValidAddress(slave, false) == false || isMaster(slave) == true)
+		if (!isValidAddress(slave, false) || isMaster(slave))
 			continue;
-		if (full == false && m_seenAddresses[slave] == false) {
+		if (!full && !m_seenAddresses[slave]) {
 			unsigned int master = slave+(256-5); // check if we saw the corresponding master already
-			if (isMaster(master) == false || m_seenAddresses[slave] == false)
+			if (!isMaster(master) || !m_seenAddresses[slave])
 				continue;
 		}
 

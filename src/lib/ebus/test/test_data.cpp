@@ -26,14 +26,14 @@ using namespace std;
 void verify(bool expectFailMatch, string type, string input,
 		bool match, string expectStr, string gotStr)
 {
-	if (expectFailMatch == true) {
-		if (match == true)
+	if (expectFailMatch) {
+		if (match)
 			cout << "  failed " << type << " match >" << input
 			        << "< error: unexpectedly succeeded" << endl;
 		else
 			cout << "  failed " << type << " match >" << input << "< OK" << endl;
 	}
-	else if (match == true)
+	else if (match)
 		cout << "  " << type << " match >" << input << "< OK" << endl;
 	else
 		cout << "  " << type << " match >" << input << "< error: got >"
@@ -248,7 +248,7 @@ int main()
 		}
 		vector<string>::iterator it = entries.begin();
 		result = DataField::create(it, entries.end(), templates, fields, isSet, isTemplate ? SYN : mstr[1]);
-		if (failedCreate == true) {
+		if (failedCreate) {
 			if (result == RESULT_OK)
 				cout << "\"" << check[0] << "\": failed create error: unexpectedly succeeded" << endl;
 			else
@@ -294,9 +294,9 @@ int main()
 		}
 		result = fields->read(pt_masterData, mstr, 0, output, false, verbose);
 		if (result >= RESULT_OK) {
-			result = fields->read(pt_slaveData, sstr, 0, output, output.str().empty() == false, verbose);
+			result = fields->read(pt_slaveData, sstr, 0, output, !output.str().empty(), verbose);
 		}
-		if (failedRead == true)
+		if (failedRead)
 			if (result >= RESULT_OK)
 				cout << "  failed read " << fields->getName() << " >"
 				        << check[2] << "< error: unexpectedly succeeded" << endl;
@@ -312,12 +312,12 @@ int main()
 			verify(failedReadMatch, "read", check[2], match, expectStr, output.str());
 		}
 
-		if (verbose == false) {
+		if (!verbose) {
 			istringstream input(expectStr);
 			result = fields->write(input, pt_masterData, writeMstr, 0);
 			if (result >= RESULT_OK)
 				result = fields->write(input, pt_slaveData, writeSstr, 0);
-			if (failedWrite == true) {
+			if (failedWrite) {
 				if (result >= RESULT_OK)
 					cout << "  failed write " << fields->getName() << " >"
 					        << expectStr << "< error: unexpectedly succeeded" << endl;
