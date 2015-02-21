@@ -530,9 +530,9 @@ int main(int argc, char* argv[])
 	if (opt.checkConfig) {
 		logNotice(lf_main, "Performing configuration check...");
 
-		loadConfigFiles(&templates, &messages, true);
+		result_t result = loadConfigFiles(&templates, &messages, true);
 
-		if (opt.checkConfig > 1) {
+		if (result == RESULT_OK && opt.checkConfig > 1) {
 			logNotice(lf_main, "Configuration dump:");
 			messages.dump(cout);
 		}
