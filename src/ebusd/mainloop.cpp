@@ -466,8 +466,8 @@ string MainLoop::executeFind(vector<string> &args)
 			   "  -d       only include messages with actual data\n"
 			   "  -i PB    limit to messages with primary command byte PB ('0xPB' for hex)\n"
 			   "  -f       list messages in CSV configuration file format\n"
-			   "  -c CLASS limit to messages of CLASS\n"
-			   "  NAME     the NAME of the message to find or a part thereof";
+			   "  -c CLASS limit to messages of CLASS (or a part thereof)\n"
+			   "  NAME     the NAME of the message to find (or a part thereof)";
 
 	deque<Message*> messages;
 	if (args.size() == argPos)
