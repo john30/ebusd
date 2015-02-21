@@ -33,7 +33,7 @@ struct options
 	bool noDeviceCheck; //!< skip serial eBUS device test
 
 	const char* configPath; //!< path to CSV configuration files [/etc/ebusd]
-	bool checkConfig; //!< only check CSV config files, then stop
+	int checkConfig; //!< check CSV config files (!=0) and optionally dump (2), then stop
 	int pollInterval; //!< poll interval in seconds, 0 to disable [5]
 
 	unsigned char address; //!< own bus address [FF]

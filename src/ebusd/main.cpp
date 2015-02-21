@@ -65,7 +65,7 @@ static struct options opt = {
 	"/dev/ttyUSB0", // device
 	false, // noDeviceCheck
 	CONFIG_PATH, // configPath
-	false, // checkConfig
+	0, // checkConfig
 	5, // pollInterval
 	0xFF, // address
 	false, // answer
@@ -98,19 +98,20 @@ static const char argpdoc[] =
 	"A daemon for access to eBUS devices.";
 
 #define O_CHKCFG  1
-#define O_POLINT  2
-#define O_ANSWER  3
-#define O_ACQTIM  4
-#define O_ACQRET  5
-#define O_SNDRET  6
-#define O_RCVTIM  7
-#define O_MASCNT  8
-#define O_LOCAL   9
-#define O_LOGARE 10
-#define O_LOGLEV 11
-#define O_LOGRAW 12
-#define O_DMPFIL 13
-#define O_DMPSIZ 14
+#define O_DMPCFG  2
+#define O_POLINT  3
+#define O_ANSWER  4
+#define O_ACQTIM  5
+#define O_ACQRET  6
+#define O_SNDRET  7
+#define O_RCVTIM  8
+#define O_MASCNT  9
+#define O_LOCAL  10
+#define O_LOGARE 11
+#define O_LOGLEV 12
+#define O_LOGRAW 13
+#define O_DMPFIL 14
+#define O_DMPSIZ 15
 
 /** the definition of the known program arguments. */
 static const struct argp_option argpoptions[] = {
@@ -120,7 +121,8 @@ static const struct argp_option argpoptions[] = {
 
 	{NULL,             0,        NULL,    0, "Message configuration options:", 2 },
 	{"configpath",     'c',      "PATH",  0, "Read CSV config files from PATH [" CONFIG_PATH "]", 0 },
-	{"checkconfig",    O_CHKCFG, NULL,    0, "Only check CSV config files, then stop", 0 },
+	{"checkconfig",    O_CHKCFG, NULL,    0, "Check CSV config files, then stop", 0 },
+	{"dumpconfig",     O_DMPCFG, NULL,    0, "Check and dump CSV config files, then stop", 0 },
 	{"pollinterval",   O_POLINT, "SEC",   0, "Poll for data every SEC seconds (0=disable) [5]", 0 },
 
 	{NULL,             0,        NULL,    0, "eBUS options:", 3 },
@@ -184,7 +186,10 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 		opt->configPath = arg;
 		break;
 	case O_CHKCFG: // --checkconfig
-		opt->checkConfig = true;
+		opt->checkConfig = 1;
+		break;
+	case O_DMPCFG: // --dumpconfig
+		opt->checkConfig = 2;
 		break;
 	case O_POLINT: // --pollinterval=5
 		opt->pollInterval = parseInt(arg, 10, 0, 3600, result);
@@ -527,6 +532,10 @@ int main(int argc, char* argv[])
 
 		loadConfigFiles(&templates, &messages, true);
 
+		if (opt.checkConfig > 1) {
+			logNotice(lf_main, "Configuration dump:");
+			messages.dump(cout);
+		}
 		messages.clear();
 		templates.clear();
 

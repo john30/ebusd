@@ -229,7 +229,7 @@ string MainLoop::executeRead(vector<string> &args)
 		argPos++;
 	}
 	if (argPos == 0 || args.size() < argPos + 1 || args.size() > argPos + 2)
-		return "usage: 'read [-v] [-f] [-m SECONDS] [-c CLASS] NAME [FIELD]'\n"
+		return "usage: read [-v] [-f] [-m SECONDS] [-c CLASS] NAME [FIELD]\n"
 			   " Read value(s).\n"
 			   "  -v          be verbose (include field names, units, and comments)\n"
 			   "  -f          force reading from the bus (same as '-m 0')\n"
@@ -346,16 +346,16 @@ string MainLoop::executeWrite(vector<string> &args)
 		argPos++;
 	}
 	if (argPos == 0 || args.size() != argPos + 3)
-		return "usage: 'write [-c] CLASS NAME VALUE[;VALUE]*'\n"
-			   "  or:  'write -h ZZPBSBNNDx' or 'write -h ZZ PB SB NN Dx'\n"
-			   " Write value(s).\n"
+		return "usage: write [-c] CLASS NAME VALUE[;VALUE]*\n"
+			   "  or:  write -h ZZPBSBNNDx\n"
+			   " Write value(s) or hex message.\n"
 			   "  CLASS    the CLASS of the message to send\n"
 			   "  NAME     the NAME of the message to send\n"
 			   "  VALUE    a single field VALUE\n"
 			   "  -h       directly write hex message:\n"
 			   "    ZZ     destination address\n"
 			   "    PB SB  primary/secondary command byte\n"
-			   "    NN     number of data bytes to send\n"
+			   "    NN     number of following data bytes\n"
 			   "    Dx     the data byte(s) to send";
 
 	Message* message = m_messages->find(args[argPos], args[argPos + 1], true);
@@ -395,11 +395,14 @@ string MainLoop::executeWrite(vector<string> &args)
 string MainLoop::executeFind(vector<string> &args)
 {
 	size_t argPos = 1;
-	bool verbose = false, withRead = true, withWrite = false, withPassive = true, first = true, onlyWithData = false;
+	bool verbose = false, configFormat = false, withRead = true, withWrite = false, withPassive = true, first = true, onlyWithData = false;
 	string clazz;
+	int pb = -1;
 	while (args.size() > argPos && args[argPos][0] == '-') {
 		if (args[argPos] == "-v")
 			verbose = true;
+		else if (args[argPos] == "-f")
+			configFormat = true;
 		else if (args[argPos] == "-r") {
 			if (first) {
 				first = false;
@@ -421,8 +424,23 @@ string MainLoop::executeFind(vector<string> &args)
 			}
 			withPassive = true;
 		}
-		else if (args[argPos] == "-d") {
+		else if (args[argPos] == "-d")
 			onlyWithData = true;
+		else if (args[argPos] == "-i") {
+			argPos++;
+			if (argPos >= args.size()) {
+				argPos = 0; // print usage
+				break;
+			}
+			const char* str = args[argPos].c_str();
+			result_t result = RESULT_OK;
+			if (strncasecmp(str, "0x", 2) == 0)
+				pb = parseInt(str+2, 16, 0, 0xff, result); // hexadecimal
+			else
+				pb = parseInt(str, 10, 0, 0xff, result); // decimal
+			if (result != RESULT_OK) {
+				return getResultCode(result);
+			}
 		}
 		else if (args[argPos] == "-c") {
 			argPos++;
@@ -439,59 +457,67 @@ string MainLoop::executeFind(vector<string> &args)
 		argPos++;
 	}
 	if (argPos == 0 || args.size() < argPos || args.size() > argPos + 1)
-		return "usage: 'find [-v] [-r] [-w] [-p] [-d] [-c CLASS] [NAME]'\n"
-			   " Find value(s).\n"
+		return "usage: find [-v] [-r] [-w] [-p] [-d] [-i PB] [-f] [-c CLASS] [NAME]\n"
+			   " Find message(s).\n"
 			   "  -v       be verbose (append destination address and update time)\n"
-			   "  -r       limit to active read messages (default read + passive)\n"
-			   "  -w       limit to active write messages (default read + passive)\n"
-			   "  -p       limit to passive messages (default read + passive)\n"
-			   "  -d       only retrieve messages with actual data"
+			   "  -r       limit to active read messages (default: read + passive)\n"
+			   "  -w       limit to active write messages (default: read + passive)\n"
+			   "  -p       limit to passive messages (default: read + passive)\n"
+			   "  -d       only include messages with actual data\n"
+			   "  -i PB    limit to messages with primary command byte PB ('0xPB' for hex)\n"
+			   "  -f       list messages in CSV configuration file format\n"
 			   "  -c CLASS limit to messages of CLASS\n"
 			   "  NAME     the NAME of the message to find or a part thereof";
 
 	deque<Message*> messages;
 	if (args.size() == argPos)
-		messages = m_messages->findAll(clazz, "", -1, false, withRead, withWrite, withPassive);
+		messages = m_messages->findAll(clazz, "", pb, false, withRead, withWrite, withPassive);
 	else
-		messages = m_messages->findAll(clazz, args[argPos], -1, false, withRead, withWrite, withPassive);
+		messages = m_messages->findAll(clazz, args[argPos], pb, false, withRead, withWrite, withPassive);
 
 	bool found = false;
 	ostringstream result;
 	char str[31];
 	for (deque<Message*>::iterator it = messages.begin(); it < messages.end();) {
 		Message* message = *it++;
-		unsigned char dstAddress = message->getDstAddress();
-		if (dstAddress == SYN)
-			continue;
 		time_t lastup = message->getLastUpdateTime();
 		if (onlyWithData && lastup == 0)
 			continue;
-		if (found)
-			result << endl;
-		result << message->getClass() << " " << message->getName() << " = ";
-		if (lastup == 0)
-			result << "no data stored";
-		else
-			result << message->getLastValue();
-		if (verbose) {
+		if (configFormat) {
+			if (found)
+				result << endl;
+			message->dump(result);
+		} else {
+			unsigned char dstAddress = message->getDstAddress();
+			if (dstAddress == SYN)
+				continue;
+			if (found)
+				result << endl;
+			result << message->getClass() << " " << message->getName() << " = ";
 			if (lastup == 0)
-				sprintf(str, "%02x", dstAddress);
-			else {
-				struct tm* td = localtime(&lastup);
-				sprintf(str, "%02x, lastup=%04d-%02d-%02d %02d:%02d:%02d",
-					dstAddress, td->tm_year+1900, td->tm_mon+1, td->tm_mday,
-					td->tm_hour, td->tm_min, td->tm_sec);
-			}
-			result << " [ZZ=" << str;
-			if (message->isPassive())
-				result << ", passive";
+				result << "no data stored";
 			else
-				result << ", active";
+				result << message->getLastValue();
+			if (verbose) {
+				if (lastup == 0)
+					sprintf(str, "%02x", dstAddress);
+				else {
+					struct tm* td = localtime(&lastup);
+					sprintf(str, "%02x, lastup=%04d-%02d-%02d %02d:%02d:%02d",
+						dstAddress, td->tm_year+1900, td->tm_mon+1, td->tm_mday,
+						td->tm_hour, td->tm_min, td->tm_sec);
+				}
+				result << " [ZZ=" << str;
+				if (message->isPassive())
+					result << ", passive";
+				else
+					result << ", active";
 
-			if (message->isWrite())
-				result << " write]";
-			else
-				result << " read]";
+				if (message->isWrite())
+					result << " write]";
+				else
+					result << " read]";
+			}
 		}
 		found = true;
 	}
@@ -512,8 +538,8 @@ string MainLoop::executeListen(vector<string> &args, bool& listening)
 	}
 
 	if (args.size() != 2 || args[1] != "stop")
-		return "usage: 'listen [stop]'\n"
-			   " Listen for updates (or stop it).";
+		return "usage: listen [stop]\n"
+			   " Listen for updates or stop it.";
 
 	listening = false;
 	return "listen stopped";
@@ -522,7 +548,7 @@ string MainLoop::executeListen(vector<string> &args, bool& listening)
 string MainLoop::executeState(vector<string> &args)
 {
 	if (args.size() == 0)
-		return "usage: 'state'\n"
+		return "usage: state\n"
 			   " Report bus state.";
 
 	if (m_busHandler->hasSignal()) {
@@ -559,9 +585,8 @@ string MainLoop::executeScan(vector<string> &args)
 		return result.str();
 	}
 
-	return "usage: 'scan'\n"
-		   "  or:  'scan full'\n"
-		   "  or:  'scan result'\n"
+	return "usage: scan [full]\n"
+		   "  or:  scan result\n"
 		   " Scan seen or all slaves, or report scan result.";
 }
 
@@ -573,8 +598,8 @@ string MainLoop::executeLog(vector<string> &args)
 	else if (args.size() == 3 && strcasecmp(args[1].c_str(), "LEVEL") == 0)
 		result = setLogLevel(args[2].c_str());
 	else
-		return "usage: 'log areas AREA[,AREA]*'\n"
-			   "  or:  'log level LEVEL'\n"
+		return "usage: log areas AREA[,AREA]*\n"
+			   "  or:  log level LEVEL\n"
 			   " Set log area(s) or log level.\n"
 			   "  AREA   the log area to include (main|network|bus|update|all)\n"
 			   "  LEVEL  the log level to set (error|notice|info|debug)";
@@ -588,8 +613,8 @@ string MainLoop::executeLog(vector<string> &args)
 string MainLoop::executeRaw(vector<string> &args)
 {
 	if (args.size() != 1)
-		return "usage: 'raw'\n"
-			   " Toggle log raw data.";
+		return "usage: raw\n"
+			   " Toggle logging raw bytes.";
 
 	bool enabled = !m_device->getLogRaw();
 	m_device->setLogRaw(enabled);
@@ -600,8 +625,8 @@ string MainLoop::executeRaw(vector<string> &args)
 string MainLoop::executeDump(vector<string> &args)
 {
 	if (args.size() != 1)
-		return "usage: 'dump'\n"
-			   " Toggle raw dump.";
+		return "usage: dump\n"
+			   " Toggle dumping raw bytes.";
 
 	bool enabled = !m_device->getDumpRaw();
 	m_device->setDumpRaw(enabled);
@@ -612,10 +637,9 @@ string MainLoop::executeDump(vector<string> &args)
 string MainLoop::executeReload(vector<string> &args)
 {
 	if (args.size() != 1)
-		return "usage: 'reload'\n"
-			   " Reload config files.";
+		return "usage: reload\n"
+			   " Reload CSV config files.";
 
-	// reload commands
 	result_t result = loadConfigFiles(m_templates, m_messages);
 
 	return getResultCode(result);
@@ -628,7 +652,7 @@ string MainLoop::executeStop(vector<string> &args, bool& running)
 		return "daemon stopped";
 	}
 
-	return "usage: 'stop'\n"
+	return "usage: stop\n"
 		   " Stop the daemon.";
 }
 
@@ -639,30 +663,31 @@ string MainLoop::executeQuit(vector<string> &args, bool& connected)
 		return "connection closed";
 	}
 
-	return "usage: 'quit'\n"
+	return "usage: quit\n"
 		   " Close client connection.";
 }
 
 string MainLoop::executeHelp()
 {
 	return "usage:\n"
-		   " read    Read value(s)         'read [-v] [-f] [-m SECONDS] [-c CLASS] NAME [FIELD]'\n"
-		   " write   Write value(s)        'write [-c] CLASS NAME VALUE[;VALUE]*' or 'write -h ZZPBSBNNDx'\n"
-		   " find    Find value(s)         'find [-v] [-r] [-w] [-p] [-d] [-c CLASS] [NAME]'\n"
-		   " listen  Listen for updates    'listen [stop]'\n"
-		   " state   Report bus state      'state'\n"
-		   " scan    Scan seen slaves      'scan'\n"
-		   "         Scan all slaves       'scan full'\n"
-		   "         Report scan result    'scan result'\n"
-		   " log     Set log area(s)       'log areas AREA[,AREA*]' (AREA: main|network|bus|update|all)\n"
-		   "         Set log level         'log level LEVEL'        (LEVEL: error|notice|info|debug)\n"
-		   " raw     Toggle log raw data   'raw'\n"
-		   " dump    Toggle raw dump       'dump'\n"
-		   " reload  Reload config files   'reload'\n"
-		   " stop    Stop the daemon       'stop'\n"
-		   " quit    Close connection      'quit'\n"
-		   " help    Print this help page  'help'\n"
-		   "         Print command usage   'help COMMAND'";
+		   " read|r   Read value(s):        read [-v] [-f] [-m SECONDS] [-c CLASS] NAME [FIELD]\n"
+		   " write|w  Write value(s):       write [-c] CLASS NAME VALUE[;VALUE]*\n"
+		   "          Write hex message:    write -h ZZPBSBNNDx'\n"
+		   " find|f   Find message(s):      find [-v] [-r] [-w] [-p] [-d] [-i PB] [-f] [-c CLASS] [NAME]\n"
+		   " listen|l Listen for updates:   listen [stop]\n"
+		   " state|s  Report bus state\n"
+		   " scan     Scan slaves:          scan [full]\n"
+		   "          Report scan result:   scan result\n"
+		   " log      Set log area(s):      log areas AREA[,AREA*]\n"
+		   "                                  AREA: main|network|bus|update|all\n"
+		   "          Set log level:        log level LEVEL\n"
+		   "                                  LEVEL: error|notice|info|debug\n"
+		   " raw      Toggle logging raw bytes\n"
+		   " dump     Toggle dumping raw bytes\n"
+		   " reload   Reload CSV config files\n"
+		   " stop     Stop the daemon\n"
+		   " quit|q   Close connection\n"
+		   " help|h   Print help            help [COMMAND]";
 }
 
 string MainLoop::getUpdates(time_t since, time_t until)
