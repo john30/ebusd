@@ -11,6 +11,7 @@ if [ "$1" = "suggest" ]; then
   echo "temp"
   echo "press"
   echo "power"
+  echo "energy"
   exit 0
 fi
 prefix=`basename "$0"`
@@ -18,8 +19,10 @@ if [ "$prefix" = "ebusd_temp" ]; then
   sensors="outsidetemp BrineTempInput BrineTempOutput FlowTemp mcFlowTempSensor hwTankTemp RoomTemp rc4:RoomTemp"
 elif [ "$prefix" = "ebusd_press" ]; then
   sensors="BrinePress HeatSystemPress VaporPressHigh VaporPressLow"
-else
+elif [ "$prefix" = "ebusd_power" ]; then
   sensors="ActualEnvironmentPower"
+else
+  sensors="YieldEnvironmentEnergy"
 fi
 if [ "$1" = "config" ]; then
   if [ "$prefix" = "ebusd_temp" ]; then
@@ -28,13 +31,19 @@ if [ "$1" = "config" ]; then
   elif [ "$prefix" = "ebusd_press" ]; then
     echo "graph_title ebusd Drucksensoren"
     echo "graph_vlabel Bar"
+  elif [ "$prefix" = "ebusd_power" ]; then
+    echo "graph_title ebusd Leistung"
+    echo "graph_vlabel kW"
   else
     echo "graph_title ebusd Ertrag"
-    echo "graph_vlabel kW"
+    echo "graph_vlabel kWh"
   fi
   echo 'graph_category Heizung'
   for sensor in $sensors; do
     echo ${prefix}_${sensor/:/_}.label $sensor
+    if [ "$prefix" = "ebusd_energy" ]; then
+      echo ${prefix}_${sensor/:/_}.type COUNTER
+    fi
     print_warning ${prefix}_${sensor/:/_}
     print_critical ${prefix}_${sensor/:/_}
   done
