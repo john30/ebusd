@@ -37,7 +37,7 @@ Message::Message(const string clazz, const string name, const bool isWrite,
 		const bool isPassive, const string comment,
 		const unsigned char srcAddress, const unsigned char dstAddress,
 		const vector<unsigned char> id, DataField* data,
-		const unsigned int pollPriority)
+		const unsigned char pollPriority)
 		: m_class(clazz), m_name(name), m_isWrite(isWrite),
 		  m_isPassive(isPassive), m_comment(comment),
 		  m_srcAddress(srcAddress), m_dstAddress(dstAddress),
@@ -94,7 +94,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	result_t result;
 	bool isWrite = false, isPassive = false;
 	string defaultName;
-	unsigned int pollPriority = 0;
+	unsigned char pollPriority = 0;
 	size_t defaultPos = 1;
 	if (it == end)
 		return RESULT_ERR_EOF;
@@ -108,7 +108,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	} else if (strncasecmp(str, "R", 1) == 0) { // active get
 		char last = str[len-1];
 		if (last >= '0' && last <= '9') { // poll priority (=active get)
-			pollPriority = last - '0';
+			pollPriority = (unsigned char)(last - '0');
 			defaultName = string(str).substr(0, len - 1); // cut off priority digit
 		}
 		else
@@ -157,7 +157,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	if (*str == 0)
 		srcAddress = SYN; // no specific source
 	else {
-		srcAddress = parseInt(str, 16, 0, 0xff, result);
+		srcAddress = (unsigned char)parseInt(str, 16, 0, 0xff, result);
 		if (result != RESULT_OK)
 			return result;
 		if (!isMaster(srcAddress))
@@ -171,7 +171,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	if (*str == 0)
 		dstAddress = SYN; // no specific destination
 	else {
-		dstAddress = parseInt(str, 16, 0, 0xff, result);
+		dstAddress = (unsigned char)parseInt(str, 16, 0, 0xff, result);
 		if (result != RESULT_OK)
 			return result;
 		if (!isValidAddress(dstAddress))
@@ -197,13 +197,13 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 			if (input.eof()) // no more digits
 				break;
 			token.clear();
-			token.push_back(input.get());
+			token.push_back((char)input.get());
 			if (input.eof()) {
 				return RESULT_ERR_INVALID_ARG; // too short hex
 			}
-			token.push_back(input.get());
+			token.push_back((char)input.get());
 
-			unsigned char value = parseInt(token.c_str(), 16, 0, 0xff, result);
+			unsigned char value = (unsigned char)parseInt(token.c_str(), 16, 0, 0xff, result);
 			if (result != RESULT_OK) {
 				return result; // invalid hex value
 			}
@@ -244,6 +244,11 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	if (result != RESULT_OK) {
 		return result;
 	}
+	if (id.size() + data->getLength(pt_masterData) > 2 + MAX_POS || data->getLength(pt_slaveData) > MAX_POS) {
+		// max NN exceeded
+		delete data;
+		return RESULT_ERR_INVALID_POS;
+	}
 	returnValue = new Message(clazz, name, isWrite, isPassive, comment, srcAddress, dstAddress, id, data, pollPriority);
 	return RESULT_OK;
 }
@@ -273,7 +278,7 @@ result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& ma
 	if (result != RESULT_OK)
 		return result;
 	unsigned char addData = m_data->getLength(pt_masterData);
-	result = master.push_back(m_id.size() - 2 + addData, false, false);
+	result = master.push_back((unsigned char)(m_id.size() - 2 + addData), false, false);
 	if (result != RESULT_OK)
 		return result;
 	for (size_t i=2; i<m_id.size(); i++) {
@@ -281,7 +286,7 @@ result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& ma
 		if (result != RESULT_OK)
 			return result;
 	}
-	result = m_data->write(input, pt_masterData, master, m_id.size() - 2, separator);
+	result = m_data->write(input, pt_masterData, master, (unsigned char)(m_id.size() - 2), separator);
 	if (result != RESULT_OK)
 		return result;
 	masterData.addAll(master);
@@ -308,16 +313,16 @@ result_t Message::prepareSlave(SymbolString& slaveData)
 
 result_t Message::decode(const PartType partType, SymbolString& data,
 		ostringstream& output, bool leadingSeparator,
-		bool verbose, const char* filterName,
+		bool verbose, const char* fieldName, char fieldIndex,
 		char separator)
 {
 	unsigned char offset;
 	if (partType == pt_masterData)
-		offset = m_id.size() - 2;
+		offset = (unsigned char)(m_id.size() - 2);
 	else
 		offset = 0;
 	size_t startPos = output.str().length();
-	result_t result = m_data->read(partType, data, offset, output, leadingSeparator, verbose, filterName, separator);
+	result_t result = m_data->read(partType, data, offset, output, leadingSeparator, verbose, fieldName, fieldIndex, separator);
 	if (result < RESULT_OK) {
 		return result;
 	}
@@ -331,18 +336,17 @@ result_t Message::decode(const PartType partType, SymbolString& data,
 
 result_t Message::decode(SymbolString& masterData, SymbolString& slaveData,
 		ostringstream& output, bool leadingSeparator,
-		bool verbose, const char* filterName,
-		char separator)
+		bool verbose, char separator)
 {
-	unsigned char offset = m_id.size() - 2;
+	unsigned char offset = (unsigned char)(m_id.size() - 2);
 	size_t startPos = output.str().length();
-	result_t result = m_data->read(pt_masterData, masterData, offset, output, leadingSeparator, verbose, filterName, separator);
+	result_t result = m_data->read(pt_masterData, masterData, offset, output, leadingSeparator, verbose, NULL, -1, separator);
 	if (result < RESULT_OK) {
 		return result;
 	}
 	offset = 0;
 	leadingSeparator = output.str().length() > startPos;
-	result = m_data->read(pt_slaveData, slaveData, offset, output, leadingSeparator, verbose, filterName, separator);
+	result = m_data->read(pt_slaveData, slaveData, offset, output, leadingSeparator, verbose, NULL, -1, separator);
 	if (result < RESULT_OK) {
 		return result;
 	}
@@ -443,7 +447,7 @@ result_t MessageMap::add(Message* message)
 		m_messagesByName[nameKey] = message; // only store first key without class
 	}
 
-	unsigned char idLength = message->getId().size() - 2;
+	unsigned char idLength = (unsigned char)(message->getId().size() - 2);
 	if (idLength < m_minIdLength)
 		m_minIdLength = idLength;
 	if (idLength > m_maxIdLength)

@@ -66,7 +66,7 @@ result_t SymbolString::parseHex(const string& str, const bool isEscaped)
 	for (size_t i = 0; i < str.size(); i += 2) {
 		char* strEnd = NULL;
 		const char* strBegin = str.substr(i, 2).c_str();
-		unsigned int value = strtoul(strBegin, &strEnd, 16);
+		unsigned long int value = strtoul(strBegin, &strEnd, 16);
 
 		if (strEnd == NULL || *strEnd != 0 || strEnd != strBegin+2 || value > 0xff)
 			return RESULT_ERR_INVALID_NUM; // invalid value
@@ -206,19 +206,19 @@ unsigned char getMasterNumber(unsigned char addr) {
 	switch (addrLo)
 	{
 	case 0x0:
-		priority = 0;
-		break;
-	case 0x1:
 		priority = 1;
 		break;
-	case 0x3:
+	case 0x1:
 		priority = 2;
 		break;
-	case 0x7:
+	case 0x3:
 		priority = 3;
 		break;
-	case 0xF:
+	case 0x7:
 		priority = 4;
+		break;
+	case 0xF:
+		priority = 5;
 		break;
 	default:
 		return 0;
@@ -227,15 +227,15 @@ unsigned char getMasterNumber(unsigned char addr) {
 	switch (addrHi)
 	{
 	case 0x0:
-		return 5*0 + priority + 1;
+		return (unsigned char)(5*0 + priority);
 	case 0x1:
-		return 5*1 + priority + 2;
+		return (unsigned char)(5*1 + priority);
 	case 0x3:
-		return 5*2 + priority + 3;
+		return (unsigned char)(5*2 + priority);
 	case 0x7:
-		return 5*3 + priority + 4;
+		return (unsigned char)(5*3 + priority);
 	case 0xF:
-		return 5*4 + priority + 5;
+		return (unsigned char)(5*4 + priority);
 	default:
 		return 0;
 	}

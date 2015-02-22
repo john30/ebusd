@@ -201,7 +201,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 
 	// eBUS options:
 	case 'a': // --address=FF
-		opt->address = parseInt(arg, 16, 0, 0xff, result);
+		opt->address = (unsigned char)parseInt(arg, 16, 0, 0xff, result);
 		if (result != RESULT_OK || !isMaster(opt->address)) {
 			argp_error(state, "invalid address");
 			return EINVAL;

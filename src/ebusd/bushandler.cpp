@@ -180,8 +180,8 @@ void BusHandler::run()
 				symCount++;
 			time_t now;
 			time(&now);
-			if (now != lastTime) {
-				m_symPerSec = symCount / (now-lastTime);
+			if (now > lastTime) {
+				m_symPerSec = symCount / (unsigned int)(now-lastTime);
 				if (m_symPerSec > m_maxSymPerSec) {
 					m_maxSymPerSec = m_symPerSec;
 					if (m_maxSymPerSec > 100)
@@ -344,7 +344,7 @@ result_t BusHandler::handleSymbol()
 		return setState(bs_ready, RESULT_ERR_SYN);
 	}
 
-	unsigned char headerLen, crcPos;
+	unsigned int headerLen, crcPos;
 
 	switch (m_state)
 	{
@@ -732,11 +732,11 @@ result_t BusHandler::startScan(bool full)
 
 	m_scanResults.clear();
 
-	for (unsigned int slave=0; slave<=255; slave++) {
+	for (unsigned char slave=1; slave != 0; slave++) { // 0 is known to be a master
 		if (!isValidAddress(slave, false) || isMaster(slave))
 			continue;
 		if (!full && !m_seenAddresses[slave]) {
-			unsigned int master = slave+(256-5); // check if we saw the corresponding master already
+			unsigned char master = (unsigned char)(slave+256-5); // check if we saw the corresponding master already
 			if (!isMaster(master) || !m_seenAddresses[slave])
 				continue;
 		}
@@ -755,7 +755,7 @@ result_t BusHandler::startScan(bool full)
 void BusHandler::formatScanResult(ostringstream& output)
 {
 	bool first = true;
-	for (unsigned int slave=0; slave<=255; slave++) {
+	for (unsigned char slave=1; slave != 0; slave++) { // 0 is known to be a master
 		map<unsigned char, string>::iterator it = m_scanResults.find(slave);
 		if (it != m_scanResults.end()) {
 			if (first)

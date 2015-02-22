@@ -64,6 +64,8 @@ int main()
 		{"u,ehp,hwTankTemp,Speichertemperatur IST,,25,B509,290000,,,IGN:2,,,,,,tempsensor", "","","","M"},
 		{"", "55.50;ok","1025b50903290000","050000780300","d"},
 		{"r,ehp,datetime,Datum Uhrzeit,,50,B504,00,,,dcfstate,,,,time,,BTI,,,,date,,BDA,,,,temp,,temp2", "valid;08:24:51;31.12.2014;-0.875", "1050b5040100", "0a035124083112031420ff", "md" },
+		{"r,ehp,bad,invalid pos,,50,B5ff,000102,,m,tempsensor;tempsensor;tempsensor;tempsensor;power;power,,,", "", "", "", "c" },
+		{"r,ehp,bad,invalid pos,,50,B5ff,,,s,tempsensor;tempsensor;tempsensor;tempsensor;tempsensor;power;power,,,", "", "", "", "c" },
 	};
 	DataFieldTemplates* templates = new DataFieldTemplates();
 	MessageMap* messages = new MessageMap();

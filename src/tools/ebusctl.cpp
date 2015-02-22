@@ -40,10 +40,10 @@ using namespace std;
 struct options
 {
 	const char* server; //!< ebusd server host (name or ip) [localhost]
-	int port; //!< ebusd server port [8888]
+	unsigned int port; //!< ebusd server port [8888]
 
 	char* const *args; //!< arguments to pass to ebusd
-	int argCount; //!< number of arguments to pass to ebusd
+	unsigned int argCount; //!< number of arguments to pass to ebusd
 };
 
 /** the program options. */
@@ -100,7 +100,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 		opt->server = arg;
 		break;
 	case 'p': // --port=8888
-		opt->port = strtol(arg, &strEnd, 10);
+		opt->port = (unsigned int)strtoul(arg, &strEnd, 10);
 		if (strEnd == NULL || *strEnd != 0 || opt->port < 1 || opt->port > 65535) {
 			argp_error(state, "invalid port");
 			return EINVAL;

@@ -76,14 +76,17 @@ static const unsigned int REQ = 0x100;//!< value may not be NULL
 /** The structure for defining field types with their properties. */
 typedef struct {
 	const char* name;                        //!< field identifier
-	const unsigned int bitCount;             //!< number of bits (maximum length if @a ADJ flag is set, must be multiple of 8 with flag @a BCD)
+	const unsigned char bitCount;            //!< number of bits (maximum length if @a ADJ flag is set, must be multiple of 8 with flag @a BCD)
 	const BaseType type;                     //!< base data type
-	const unsigned int flags;                //!< flags (e.g. @a BCD)
+	const unsigned short flags;              //!< flags (e.g. @a BCD)
 	const unsigned int replacement;          //!< replacement value (fill-up value for @a bt_str / @a bt_hexstr, no replacement if equal to @a minValueOrLength for @a bt_num)
 	const unsigned int minValueOrLength;     //!< minimum binary value (minimum length of string for @a StringDataField)
 	const unsigned int maxValueOrLength;     //!< maximum binary value (maximum length of string for @a StringDataField)
-	const unsigned int divisorOrFirstBit;    //!< @a bt_number: divisor or offset to first bit (if (@a bitCount%8)!=0)
+	const unsigned short divisorOrFirstBit;  //!< @a bt_number: divisor or offset to first bit (if (@a bitCount%8)!=0)
 } dataType_t;
+
+/** the maximum position within master or slave data. */
+#define MAX_POS 16
 
 /**
  * Parse an unsigned int value.
@@ -214,7 +217,7 @@ public:
 	virtual result_t read(const PartType partType,
 			SymbolString& data, unsigned char offset,
 			ostringstream& output, bool leadingSeparator=false,
-			bool verbose=false, const char* filterName=NULL,
+			bool verbose=false, const char* fieldName=NULL, char fieldIndex=-1,
 			char separator=UI_FIELD_SEPARATOR) = 0;
 
 	/**
@@ -306,7 +309,7 @@ public:
 	virtual result_t read(const PartType partType,
 			SymbolString& data, unsigned char offset,
 			ostringstream& output, bool leadingSeparator=false,
-			bool verbose=false, const char* filterName=NULL,
+			bool verbose=false, const char* fieldName=NULL, char fieldIndex=-1,
 			char separator=UI_FIELD_SEPARATOR);
 
 	// @copydoc
@@ -540,7 +543,7 @@ public:
 			const unsigned char length, const unsigned char bitCount,
 			const map<unsigned int, string> values)
 		: NumericDataField(name, comment, unit, dataType, partType, length, bitCount,
-				(dataType.bitCount < 8) ? dataType.divisorOrFirstBit : 0),
+				(dataType.bitCount < 8) ? (unsigned char)dataType.divisorOrFirstBit : 0),
 		m_values(values) {}
 
 	/**
@@ -638,7 +641,7 @@ public:
 	virtual result_t read(const PartType partType,
 			SymbolString& data, unsigned char offset,
 			ostringstream& output, bool leadingSeparator=false,
-			bool verbose=false, const char* filterName=NULL,
+			bool verbose=false, const char* fieldName=NULL, char fieldIndex=-1,
 			char separator=UI_FIELD_SEPARATOR);
 
 	// @copydoc

@@ -229,14 +229,15 @@ string MainLoop::executeRead(vector<string> &args)
 		argPos++;
 	}
 	if (argPos == 0 || args.size() < argPos + 1 || args.size() > argPos + 2)
-		return "usage: read [-v] [-f] [-m SECONDS] [-c CLASS] NAME [FIELD]\n"
+		return "usage: read [-v] [-f] [-m SECONDS] [-c CLASS] NAME [FIELD[.N]]\n"
 			   " Read value(s).\n"
 			   "  -v          be verbose (include field names, units, and comments)\n"
 			   "  -f          force reading from the bus (same as '-m 0')\n"
 			   "  -m SECONDS  only return cached value if age is less than SECONDS [300]\n"
 			   "  -c CLASS    limit to messages of CLASS\n"
 			   "  NAME        the NAME of the message to send\n"
-			   "  FIELD       only retrieve the single FIELD";
+			   "  FIELD       only retrieve the field named FIELD\n"
+			   "  N           only retrieve the N'th field named FIELD (0-based)";
 
 	if (args.size() == argPos + 2)
 		maxAge = 0; // force refresh to filter single field
@@ -282,9 +283,18 @@ string MainLoop::executeRead(vector<string> &args)
 
 	ostringstream result;
 	if (ret == RESULT_OK) {
-		if (args.size() == argPos + 2)
-			ret = message->decode(pt_slaveData, slave, result, false, verbose, args[argPos + 1].c_str());
-		else
+		if (args.size() == argPos + 2) {
+			string fieldName = args[argPos + 1];
+			size_t pos = fieldName.find_last_of('.');
+			char fieldIndex = -1;
+			if (pos != string::npos) {
+				result_t result = RESULT_OK;
+				fieldIndex = (char)parseInt(fieldName.substr(pos+1).c_str(), 10, 0, MAX_POS, result);
+				if (result == RESULT_OK)
+					fieldName = fieldName.substr(0, pos);
+			}
+			ret = message->decode(pt_slaveData, slave, result, false, verbose, fieldName.c_str(), fieldIndex);
+		} else
 			ret = message->decode(pt_slaveData, slave, result, false, verbose); // decode data
 	}
 	if (ret != RESULT_OK) {
@@ -314,7 +324,7 @@ string MainLoop::executeWrite(vector<string> &args)
 		if (msg.str().size() < 4*2) // at least ZZ, PB, SB, NN
 			return getResultCode(RESULT_ERR_INVALID_ARG);
 		result_t ret;
-		unsigned int length = parseInt(msg.str().substr(3*2, 2).c_str(), 16, 0, 16, ret);
+		unsigned int length = parseInt(msg.str().substr(3*2, 2).c_str(), 16, 0, MAX_POS, ret);
 		if (ret == RESULT_OK && (4+length)*2 != msg.str().size())
 			return getResultCode(RESULT_ERR_INVALID_ARG);
 
@@ -397,7 +407,7 @@ string MainLoop::executeFind(vector<string> &args)
 	size_t argPos = 1;
 	bool verbose = false, configFormat = false, withRead = true, withWrite = false, withPassive = true, first = true, onlyWithData = false;
 	string clazz;
-	int pb = -1;
+	short pb = -1;
 	while (args.size() > argPos && args[argPos][0] == '-') {
 		if (args[argPos] == "-v")
 			verbose = true;
@@ -435,9 +445,9 @@ string MainLoop::executeFind(vector<string> &args)
 			const char* str = args[argPos].c_str();
 			result_t result = RESULT_OK;
 			if (strncasecmp(str, "0x", 2) == 0)
-				pb = parseInt(str+2, 16, 0, 0xff, result); // hexadecimal
+				pb = (short)parseInt(str+2, 16, 0, 0xff, result); // hexadecimal
 			else
-				pb = parseInt(str, 10, 0, 0xff, result); // decimal
+				pb = (short)parseInt(str, 10, 0, 0xff, result); // decimal
 			if (result != RESULT_OK) {
 				return getResultCode(result);
 			}
@@ -670,7 +680,7 @@ string MainLoop::executeQuit(vector<string> &args, bool& connected)
 string MainLoop::executeHelp()
 {
 	return "usage:\n"
-		   " read|r   Read value(s):        read [-v] [-f] [-m SECONDS] [-c CLASS] NAME [FIELD]\n"
+		   " read|r   Read value(s):        read [-v] [-f] [-m SECONDS] [-c CLASS] NAME [FIELD[.N]]\n"
 		   " write|w  Write value(s):       write [-c] CLASS NAME VALUE[;VALUE]*\n"
 		   "          Write hex message:    write -h ZZPBSBNNDx'\n"
 		   " find|f   Find message(s):      find [-v] [-r] [-w] [-p] [-d] [-i PB] [-f] [-c CLASS] [NAME]\n"

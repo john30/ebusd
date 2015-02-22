@@ -49,7 +49,7 @@ Device* Device::create(const char* name, const bool checkDevice,
 		char* pos = strchr((char*)name, ':');
 		if (pos != NULL) {
 			char* end = NULL;
-			unsigned int port = strtoul(pos+1, &end, 10);
+			unsigned long int port = strtoul(pos+1, &end, 10);
 			if (end == NULL || *end != 0 || port < 1 || port > 65535) {
 				return NULL; // invalid port
 			}

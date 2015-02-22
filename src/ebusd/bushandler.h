@@ -267,7 +267,7 @@ public:
 			const unsigned int busAcquireTimeout, const unsigned int slaveRecvTimeout,
 			const unsigned int lockCount, const unsigned int pollInterval)
 		: m_device(device), m_messages(messages),
-		  m_ownMasterAddress(ownAddress), m_ownSlaveAddress((ownAddress+5)&0xff), m_answer(answer),
+		  m_ownMasterAddress(ownAddress), m_ownSlaveAddress((unsigned char)(ownAddress+5)), m_answer(answer),
 		  m_busLostRetries(busLostRetries), m_failedSendRetries(failedSendRetries),
 		  m_busAcquireTimeout(busAcquireTimeout), m_slaveRecvTimeout(slaveRecvTimeout),
 		  m_lockCount(lockCount), m_remainLockCount(lockCount),

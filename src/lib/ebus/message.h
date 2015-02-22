@@ -60,7 +60,7 @@ public:
 			const bool isPassive, const string comment,
 			const unsigned char srcAddress, const unsigned char dstAddress,
 			const vector<unsigned char> id, DataField* data,
-			const unsigned int pollPriority);
+			const unsigned char pollPriority);
 
 	/**
 	 * Construct a new temporary instance.
@@ -183,13 +183,14 @@ public:
 	 * @param leadingSeparator whether to prepend a separator before the formatted value.
 	 * @param verbose whether to prepend the name, append the unit (if present), and append
 	 * the comment in square brackets (if present).
-	 * @param filterName the optional name of a field to limit the output to.
+	 * @param fieldName the optional name of a field to limit the output to.
+	 * @param fieldIndex the optional index of the named field to limit the output to, or -1.
 	 * @param separator the separator character between multiple fields.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	result_t decode(const PartType partType, SymbolString& data,
 			ostringstream& output, bool leadingSeparator=false,
-			bool verbose=false, const char* filterName=NULL,
+			bool verbose=false, const char* fieldName=NULL, char fieldIndex=-1,
 			char separator=UI_FIELD_SEPARATOR);
 
 	/**
@@ -200,14 +201,12 @@ public:
 	 * @param leadingSeparator whether to prepend a separator before the formatted value.
 	 * @param verbose whether to prepend the name, append the unit (if present), and append
 	 * the comment in square brackets (if present).
-	 * @param filterName the optional name of a field to limit the output to.
 	 * @param separator the separator character between multiple fields.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	result_t decode(SymbolString& masterData, SymbolString& slaveData,
 			ostringstream& output, bool leadingSeparator=false,
-			bool verbose=false, const char* filterName=NULL,
-			char separator=UI_FIELD_SEPARATOR);
+			bool verbose=false, char separator=UI_FIELD_SEPARATOR);
 
 	/**
 	 * Get the last decoded value.

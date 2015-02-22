@@ -29,22 +29,22 @@
 using namespace std;
 
 static const dataType_t stringDataType = {
-	"STR",16*8,bt_str,     ADJ,        ' ',          1,         16,    0  // >= 1 byte character string filled up with space
+	"STR",MAX_POS*8,bt_str, ADJ,        ' ',          1,    MAX_POS,    0  // >= 1 byte character string filled up with space
 };
 
 static const dataType_t pinDataType = {
-	"PIN", 16, bt_num, FIX|BCD|REV, 0xffff,          0,     0x9999,    1 // unsigned decimal in BCD, 0000 - 9999 (fixed length)
+	"PIN", 16, bt_num, FIX|BCD|REV,  0xffff,          0,     0x9999,    1 // unsigned decimal in BCD, 0000 - 9999 (fixed length)
 };
 
 static const dataType_t uchDataType = {
-	"UCH",  8, bt_num,     LST,       0xff,          0,       0xfe,    1 // unsigned integer, 0 - 254
+	"UCH",  8, bt_num,     LST,        0xff,          0,       0xfe,    1 // unsigned integer, 0 - 254
 };
 
 /** the known data field types. */
 static const dataType_t dataTypes[] = {
-	{"IGN",16*8,bt_str, IGN|ADJ,          0,          1,         16,    0}, // >= 1 byte ignored data
+	{"IGN",MAX_POS*8,bt_str, IGN|ADJ,     0,          1,    MAX_POS,    0}, // >= 1 byte ignored data
 	stringDataType,
-	{"HEX",16*8,bt_hexstr,  ADJ,          0,          2,         47,    0}, // >= 1 byte hex digit string, usually separated by space, e.g. 0a 1b 2c 3d
+	{"HEX",MAX_POS*8,bt_hexstr,  ADJ,     0,          2,         47,    0}, // >= 1 byte hex digit string, usually separated by space, e.g. 0a 1b 2c 3d
 	{"BDA", 32, bt_dat,     BCD,          0,         10,         10,    0}, // date with weekday in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is weekday Mon=0x00 - Sun=0x06)
 	{"BDA", 24, bt_dat,     BCD,          0,         10,         10,    0}, // date in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99)
 	{"HDA", 32, bt_dat,       0,          0,         10,         10,    0}, // date with weekday, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x1f,0x0c,WW,0x63, WW is weekday Mon=0x01 - Sun=0x07))
@@ -82,17 +82,19 @@ static const dataType_t dataTypes[] = {
 	{"BI7",  1, bt_num, ADJ|LST|REQ,      0,          0,       0x01,    7}, // bit 7
 };
 
+/** the maximum divisor value. */
+#define MAX_DIVISOR 1000000000
+
+/** the maximum value for value lists. */
+#define MAX_VALUE (1<<24)
 
 /** the week day names. */
 static const char* dayNames[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
 
-/** the maximum position within master or slave data. */
-#define MAX_POS 16
-
 unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result, unsigned int* length) {
 	char* strEnd = NULL;
 
-	unsigned int ret = strtoul(str, &strEnd, base);
+	unsigned long int ret = strtoul(str, &strEnd, base);
 
 	if (strEnd == NULL || *strEnd != 0) {
 		result = RESULT_ERR_INVALID_NUM; // invalid value
@@ -104,10 +106,10 @@ unsigned int parseInt(const char* str, int base, const unsigned int minValue, co
 		return 0;
 	}
 	if (length != NULL)
-		*length = strEnd - str;
+		*length = (unsigned int)(strEnd - str);
 
 	result = RESULT_OK;
-	return ret;
+	return (unsigned int)ret;
 }
 
 void printErrorPos(vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, string filename, size_t lineNo, result_t result)
@@ -128,7 +130,7 @@ void printErrorPos(vector<string>::iterator begin, const vector<string>::iterato
 			}
 		}
 		if (begin < pos)
-			cnt += 1+(*begin).length()+1;
+			cnt += 1+(unsigned int)(*begin).length()+1;
 		else if (begin == pos)
 			cnt++;
 
@@ -208,23 +210,23 @@ result_t DataField::create(vector<string>::iterator& it,
 			const string divisorStr = *it++;
 			if (!divisorStr.empty()) {
 				if (divisorStr.find('=') == string::npos)
-					divisor = parseInt(divisorStr.c_str(), 10, 1, 10000, result);
+					divisor = parseInt(divisorStr.c_str(), 10, 1, MAX_DIVISOR, result);
 				else {
 					istringstream stream(divisorStr);
 					while (getline(stream, token, VALUE_SEPARATOR) != 0) {
 						const char* str = token.c_str();
 						char* strEnd = NULL;
-						unsigned int id;
+						unsigned long int id;
 						if (strncasecmp(str, "0x", 2) == 0)
 							id = strtoul(str+2, &strEnd, 16); // hexadecimal
 						else
 							id = strtoul(str, &strEnd, 10); // decimal
-						if (strEnd == NULL || strEnd == str || *strEnd != '=') {
+						if (strEnd == NULL || strEnd == str || *strEnd != '=' || id > MAX_VALUE) {
 							result = RESULT_ERR_INVALID_LIST;
 							break;
 						}
 
-						values[id] = string(strEnd + 1);
+						values[(unsigned int)id] = string(strEnd + 1);
 					}
 				}
 				if (result != RESULT_OK)
@@ -261,7 +263,6 @@ result_t DataField::create(vector<string>::iterator& it,
 			if (templates != NULL) {
 				istringstream stream(typeStr);
 				bool found = false;
-				string lengthStr;
 				while (result == RESULT_OK && getline(stream, token, VALUE_SEPARATOR) != 0) {
 					DataField* templ = templates->get(token);
 					if (templ == NULL) {
@@ -282,7 +283,7 @@ result_t DataField::create(vector<string>::iterator& it,
 			typeName = typeStr;
 		}
 		else {
-			length = parseInt(typeStr.substr(pos+1).c_str(), 10, 1, MAX_POS, result);
+			length = (unsigned char)parseInt(typeStr.substr(pos+1).c_str(), 10, 1, MAX_POS, result);
 			if (result != RESULT_OK)
 				break;
 			typeName = typeStr.substr(0, pos);
@@ -294,7 +295,7 @@ result_t DataField::create(vector<string>::iterator& it,
 			const dataType_t* dataType = &dataTypes[i];
 			if (strcasecmp(typeNameStr, dataType->name) == 0) {
 				unsigned char bitCount = dataType->bitCount;
-				unsigned char byteCount = (bitCount + 7) / 8;
+				unsigned char byteCount = (unsigned char)((bitCount + 7) / 8);
 				if ((dataType->flags & ADJ) != 0) { // adjustable length
 					if ((bitCount % 8) != 0) {
 						if (length == 0)
@@ -306,7 +307,7 @@ result_t DataField::create(vector<string>::iterator& it,
 							break;
 						}
 
-						byteCount = (bitCount + 7) / 8;
+						byteCount = (unsigned char)((bitCount + 7) / 8);
 					}
 					else if (length == 0)
 						byteCount = 1; //default byte count: 1 byte
@@ -336,8 +337,13 @@ result_t DataField::create(vector<string>::iterator& it,
 					if (values.empty() || (dataType->flags & LST) == 0) {
 						if (divisor == 0)
 							divisor = 1;
-						if ((dataType->bitCount % 8) == 0)
+						if ((dataType->bitCount % 8) == 0) {
 							divisor *= dataType->divisorOrFirstBit;
+							if (divisor > MAX_DIVISOR) {
+								result = RESULT_ERR_OUT_OF_RANGE;
+								break;
+							}
+						}
 
 						add = new NumberDataField(name, comment, unit, *dataType, partType, byteCount, bitCount, divisor);
 						break;
@@ -403,7 +409,7 @@ void SingleDataField::dump(ostream& output)
 result_t SingleDataField::read(const PartType partType,
 		SymbolString& data, unsigned char offset,
 		ostringstream& output, bool leadingSeparator,
-		bool verbose, const char* filterName,
+		bool verbose, const char* fieldName, char fieldIndex,
 		char separator)
 {
 	if (partType != m_partType)
@@ -412,15 +418,15 @@ result_t SingleDataField::read(const PartType partType,
 	switch (m_partType)
 	{
 	case pt_masterData:
-		offset += 5; // skip QQ ZZ PB SB NN
+		offset = (unsigned char)(offset + 5); // skip QQ ZZ PB SB NN
 		break;
 	case pt_slaveData:
-		offset += 1; // skip NN
+		offset++; // skip NN
 		break;
 	default:
 		return RESULT_ERR_INVALID_PART;
 	}
-	if (isIgnored() || (filterName != NULL && m_name != filterName)) {
+	if (isIgnored() || (fieldName != NULL && (m_name != fieldName || fieldIndex > 0))) {
 		if (offset + m_length > data.size()) {
 			return RESULT_ERR_INVALID_POS;
 		}
@@ -455,10 +461,10 @@ result_t SingleDataField::write(istringstream& input,
 	switch (m_partType)
 	{
 	case pt_masterData:
-		offset += 5; // skip QQ ZZ PB SB NN
+		offset = (unsigned char)(offset + 5); // skip QQ ZZ PB SB NN
 		break;
 	case pt_slaveData:
-		offset += 1; // skip NN
+		offset++; // skip NN
 		break;
 	default:
 		return RESULT_ERR_INVALID_PART;
@@ -521,7 +527,7 @@ result_t StringDataField::readSymbols(SymbolString& input,
 		if ((m_dataType.flags & BCD) != 0) {
 			if ((ch & 0xf0) > 0x90 || (ch & 0x0f) > 0x09)
 				return RESULT_ERR_OUT_OF_RANGE; // invalid BCD
-			ch = (ch >> 4) * 10 + (ch & 0x0f);
+			ch = (unsigned char)((ch >> 4) * 10 + (ch & 0x0f));
 		}
 		switch (m_dataType.type)
 		{
@@ -566,7 +572,7 @@ result_t StringDataField::readSymbols(SymbolString& input,
 					count++;
 				}
 				else
-					ch = (ch % 6) * 10; // minutes
+					ch = (unsigned char)((ch % 6) * 10); // minutes
 			}
 			if (i == 0) {
 				if (ch > 24)
@@ -581,7 +587,7 @@ result_t StringDataField::readSymbols(SymbolString& input,
 			break;
 		default:
 			if (ch < 0x20)
-				ch = m_dataType.replacement;
+				ch = (unsigned char)m_dataType.replacement;
 			output << setw(0) << dec << static_cast<char>(ch);
 			break;
 		}
@@ -596,7 +602,7 @@ result_t StringDataField::writeSymbols(istringstream& input,
 {
 	size_t start = 0, count = m_length;
 	int incr = 1;
-	unsigned long int value = 0, last = 0, lastLast = 0;
+	unsigned int value = 0, last = 0, lastLast = 0;
 	string token;
 
 	if ((m_dataType.flags & REV) != 0) { // reverted binary representation (most significant byte first)
@@ -606,7 +612,7 @@ result_t StringDataField::writeSymbols(istringstream& input,
 
 	if (isIgnored() && (m_dataType.flags & REQ) == 0) {
 		for (size_t offset = start, i = 0; i < count; offset += incr, i++) {
-			output[baseOffset + offset] = m_dataType.replacement; // fill up with replacement
+			output[baseOffset + offset] = (unsigned char)m_dataType.replacement; // fill up with replacement
 		}
 		return RESULT_OK;
 	}
@@ -622,10 +628,10 @@ result_t StringDataField::writeSymbols(istringstream& input,
 				value = m_dataType.replacement; // fill up with replacement
 			else {
 				token.clear();
-				token.push_back(input.get());
+				token.push_back((unsigned char)input.get());
 				if (input.eof())
 					return RESULT_ERR_INVALID_NUM; // too short hex value
-				token.push_back(input.get());
+				token.push_back((unsigned char)input.get());
 				if (input.eof())
 					return RESULT_ERR_INVALID_NUM; // too short hex value
 
@@ -660,7 +666,7 @@ result_t StringDataField::writeSymbols(istringstream& input,
 						return RESULT_ERR_INVALID_NUM; // invalid date
 					unsigned char daysSinceSunday = (unsigned char)t.tm_wday; // Sun=0
 					if ((m_dataType.flags & BCD) != 0)
-						output[baseOffset + offset - incr] = (6+daysSinceSunday) % 7; // Sun=0x06
+						output[baseOffset + offset - incr] = (unsigned char)((6+daysSinceSunday) % 7); // Sun=0x06
 					else
 						output[baseOffset + offset - incr] = (daysSinceSunday==0 ? 7 : daysSinceSunday); // Sun=0x07
 				}
@@ -771,7 +777,8 @@ result_t NumericDataField::readRawValue(SymbolString& input,
 	}
 
 	value = 0;
-	for (size_t offset = start, i = 0, exp = 1; i < count; offset += incr, i++) {
+	unsigned int exp = 1;
+	for (size_t offset = start, i = 0; i < count; offset += incr, i++) {
 		ch = input[baseOffset + offset];
 		if ((m_dataType.flags & BCD) != 0) {
 			if ((m_dataType.flags & REQ) == 0 && ch == (m_dataType.replacement & 0xff)) {
@@ -781,7 +788,7 @@ result_t NumericDataField::readRawValue(SymbolString& input,
 			if ((ch & 0xf0) > 0x90 || (ch & 0x0f) > 0x09)
 				return RESULT_ERR_OUT_OF_RANGE; // invalid BCD
 
-			ch = (ch >> 4) * 10 + (ch & 0x0f);
+			ch = (unsigned char)((ch >> 4) * 10 + (ch & 0x0f));
 			value += ch * exp;
 			exp *= 100;
 		}
@@ -823,8 +830,8 @@ result_t NumericDataField::writeRawValue(unsigned int value,
 			if ((m_dataType.flags & REQ) == 0 && value == m_dataType.replacement)
 				ch = m_dataType.replacement & 0xff;
 			else {
-				ch = (value / exp) % 100;
-				ch = ((ch / 10) << 4) | (ch % 10);
+				ch = (unsigned char)((value / exp) % 100);
+				ch = (unsigned char)(((ch / 10) << 4) | (ch % 10));
 			}
 			exp = exp * 100;
 		}
@@ -847,10 +854,10 @@ NumberDataField::NumberDataField(const string name, const string comment,
 		const unsigned char length, const unsigned char bitCount,
 		const unsigned int divisor)
 	: NumericDataField(name, comment, unit, dataType, partType, length, bitCount,
-			(dataType.bitCount % 8) == 0 ? 0 : dataType.divisorOrFirstBit),
+			(dataType.bitCount % 8) == 0 ? 0 : (unsigned char)dataType.divisorOrFirstBit),
 	m_divisor(divisor), m_precision(0)
 {
-	for (unsigned int exp = 1; exp < 1000000000; exp *= 10, m_precision++)
+	for (unsigned int exp = 1; exp < MAX_DIVISOR; exp *= 10, m_precision++)
 		if (exp >= divisor)
 			break;
 }
@@ -870,8 +877,12 @@ result_t NumberDataField::derive(string name, string comment,
 		unit = m_unit;
 	if (divisor == 0)
 		divisor = m_divisor;
-	else if ((m_dataType.bitCount % 8) == 0)
+	else if ((m_dataType.bitCount % 8) == 0) {
 		divisor *= m_dataType.divisorOrFirstBit;
+		if (divisor > MAX_DIVISOR) {
+			return RESULT_ERR_OUT_OF_RANGE;
+		}
+	}
 	if (!values.empty()) {
 		if (divisor != 1)
 			return RESULT_ERR_INVALID_ARG; // cannot use divisor != 1 for value list field
@@ -917,7 +928,7 @@ result_t NumberDataField::readSymbols(SymbolString& input,
 				output << static_cast<unsigned>(value);
 			else
 				output << setprecision(m_precision)
-				       << fixed << static_cast<float>(value / (float) m_divisor);
+				       << fixed << static_cast<float>((float)value / (float)m_divisor);
 			return RESULT_OK;
 		}
 		signedValue = (int) value; // negative signed value
@@ -934,7 +945,7 @@ result_t NumberDataField::readSymbols(SymbolString& input,
 	}
 	else
 		output << setprecision(m_precision)
-		       << fixed << static_cast<float>(signedValue / (float) m_divisor);
+		       << fixed << static_cast<float>((float)signedValue / (float)m_divisor);
 
 	return RESULT_OK;
 }
@@ -953,14 +964,14 @@ result_t NumberDataField::writeSymbols(istringstream& input,
 		char* strEnd = NULL;
 		if (m_divisor <= 1) {
 			if ((m_dataType.flags & SIG) != 0) {
-				int signedValue = strtol(str, &strEnd, 10);
+				long int signedValue = strtol(str, &strEnd, 10);
 				if (signedValue < 0 && m_bitCount != 32)
-					value = (unsigned int) (signedValue + (1 << m_bitCount));
+					value = (unsigned int)(signedValue + (1 << m_bitCount));
 				else
-					value = (unsigned int) signedValue;
+					value = (unsigned int)signedValue;
 			}
 			else
-				value = strtoul(str, &strEnd, 10);
+				value = (unsigned int)strtoul(str, &strEnd, 10);
 			if (strEnd == NULL || *strEnd != 0)
 				return RESULT_ERR_INVALID_NUM; // invalid value
 		}
@@ -974,9 +985,9 @@ result_t NumberDataField::writeSymbols(istringstream& input,
 				if (dvalue < -(1LL << (8 * m_length)) || dvalue >= (1LL << (8 * m_length)))
 					return RESULT_ERR_OUT_OF_RANGE; // value out of range
 				if (dvalue < 0 && m_bitCount != 32)
-					value = (unsigned int) (dvalue + (1 << m_bitCount));
+					value = (unsigned int)(dvalue + (1 << m_bitCount));
 				else
-					value = (unsigned int) dvalue;
+					value = (unsigned int)dvalue;
 			}
 			else {
 				if (dvalue < 0.0 || dvalue >= (1LL << (8 * m_length)))
@@ -1144,7 +1155,7 @@ unsigned char DataFieldSet::getLength(PartType partType)
 			if (!previousFullByteOffset[partType] && !field->hasFullByteOffset(false))
 				length--;
 
-			length += field->getLength(partType);
+			length = (unsigned char)(length + field->getLength(partType));
 
 			previousFullByteOffset[partType] = field->hasFullByteOffset(true);
 		}
@@ -1185,10 +1196,10 @@ void DataFieldSet::dump(ostream& output)
 result_t DataFieldSet::read(const PartType partType,
 		SymbolString& data, unsigned char offset,
 		ostringstream& output, bool leadingSeparator,
-		bool verbose, const char* filterName,
+		bool verbose, const char* fieldName, char fieldIndex,
 		char separator)
 {
-	bool previousFullByteOffset = true, found = false;
+	bool previousFullByteOffset = true, found = false, findFieldIndex = fieldName != NULL && fieldIndex >= 0;
 	for (vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
 		SingleDataField* field = *it;
 		if (partType != pt_any && field->getPartType() != partType)
@@ -1197,19 +1208,29 @@ result_t DataFieldSet::read(const PartType partType,
 		if (!previousFullByteOffset && !field->hasFullByteOffset(false))
 			offset--;
 
-		result_t result = field->read(partType, data, offset, output, leadingSeparator, verbose, filterName, separator);
+		result_t result = field->read(partType, data, offset, output, leadingSeparator, verbose, fieldName, fieldIndex, separator);
 
 		if (result < RESULT_OK)
 			return result;
 
-		offset += field->getLength(partType);
+		offset = (unsigned char)(offset + field->getLength(partType));
 		previousFullByteOffset = field->hasFullByteOffset(true);
 		if (result != RESULT_EMPTY) {
 			found = true;
 			leadingSeparator = true;
 		}
+		if (findFieldIndex && fieldName == field->getName()) {
+			if (fieldIndex == 0) {
+				if (!found)
+					return RESULT_ERR_NOTFOUND;
+				break;
+			}
+			fieldIndex--;
+		}
 	}
 
+	if (findFieldIndex && !found)
+		return RESULT_ERR_NOTFOUND;
 	if (verbose) {
 		if (m_comment.length() > 0)
 			output << " [" << m_comment << "]";
@@ -1249,7 +1270,7 @@ result_t DataFieldSet::write(istringstream& input,
 		if (result != RESULT_OK)
 			return result;
 
-		offset += field->getLength(partType);
+		offset = (unsigned char)(offset + field->getLength(partType));
 		previousFullByteOffset = field->hasFullByteOffset(true);
 	}
 
