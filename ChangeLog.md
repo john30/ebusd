@@ -1,3 +1,19 @@
+# next version (2015-02-?)
+
+## Bug fixes
+* the master number calculation was incorrect (no influence on any behaviour)
+
+## Features
+* new command line option "--dumpconfig" for dumping message configurations
+* new "find" command option "-f" for retriving message configurations
+* new "find" command option "-i PB" to filter messages on primary command byte
+* extended "read" command "FIELD" argument with optional ".N" for retrieving the N'th field with that name
+* new "write" command option "-c" for compatibility with "read" and "find"
+
+## Changed files
+https://github.com/john30/ebusd/compare/v1.0.0...master
+
+
 # 1.0.0 (2015-02-18)
 
 ## Breaking Changes
