@@ -898,7 +898,7 @@ result_t NumberDataField::derive(string name, string comment,
 void NumberDataField::dump(ostream& output)
 {
 	NumericDataField::dump(output);
-	if ((m_dataType.bitCount%8) != 0 && m_dataType.divisorOrFirstBit != m_divisor)
+	if ((m_dataType.bitCount % 8) == 0 && m_dataType.divisorOrFirstBit != m_divisor)
 		output << static_cast<unsigned>(m_divisor / m_dataType.divisorOrFirstBit) << FIELD_SEPARATOR;
 	dumpString(output, m_unit);
 	dumpString(output, m_comment);
