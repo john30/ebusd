@@ -239,35 +239,49 @@ string MainLoop::executeRead(vector<string> &args)
 			   "  FIELD       only retrieve the field named FIELD\n"
 			   "  N           only retrieve the N'th field named FIELD (0-based)";
 
-	if (args.size() == argPos + 2)
-		maxAge = 0; // force refresh to filter single field
+	string fieldName;
+	signed char fieldIndex = -2;
+	if (args.size() == argPos + 2) {
+		fieldName = args[argPos + 1];
+		fieldIndex = -1;
+		size_t pos = fieldName.find_last_of('.');
+		if (pos != string::npos) {
+			result_t result = RESULT_OK;
+			fieldIndex = (char)parseInt(fieldName.substr(pos+1).c_str(), 10, 0, MAX_POS, result);
+			if (result == RESULT_OK)
+				fieldName = fieldName.substr(0, pos);
+		}
+	}
 
 	time_t now;
 	time(&now);
 
-	Message* updateMessage = NULL;
-	if (maxAge > 0 && !verbose) {
-		updateMessage = m_messages->find(clazz, args[argPos], false, true);
-
-		if (updateMessage != NULL && updateMessage->getLastUpdateTime() + maxAge > now)
-			return updateMessage->getLastValue(); // TODO switch from last value to last master/slave to support verbose cached/polled values as well
-		// else: check poll data or read directly from bus
-	}
-
+	ostringstream result;
 	Message* message = m_messages->find(clazz, args[argPos], false);
 
-	if (message == NULL) {
-		if (updateMessage != NULL)
+	if (maxAge > 0) {
+		Message* cacheMessage = m_messages->find(clazz, args[argPos], false, true);
+		bool hasCache = cacheMessage != NULL;
+		if (!hasCache || (message != NULL && message->getLastUpdateTime() > cacheMessage->getLastUpdateTime()))
+			cacheMessage = message; // message is newer/better
+
+		if (cacheMessage != NULL && cacheMessage->getLastUpdateTime() + maxAge > now) {
+			result_t ret = cacheMessage->decodeLastData(result, verbose, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
+			if (ret != RESULT_OK)
+				return getResultCode(ret);
+
+			return result.str();
+		}
+
+		if (message == NULL && hasCache)
 			return "ERR: no data stored";
-
-		return getResultCode(RESULT_ERR_NOTFOUND);
+		// else: read directly from bus
 	}
-	if (maxAge > 0 && message->getPollPriority() > 0
-			&& message->getLastUpdateTime() + maxAge > now) {
-		// get poll data
-		return message->getLastValue();
-	} // else: read directly from bus
 
+	if (message == NULL)
+		return getResultCode(RESULT_ERR_NOTFOUND);
+
+	// read directly from bus
 	SymbolString master(true);
 	istringstream input;
 	result_t ret = message->prepareMaster(m_address, master, input);
@@ -281,21 +295,8 @@ string MainLoop::executeRead(vector<string> &args)
 	SymbolString slave(false);
 	ret = m_busHandler->sendAndWait(master, slave);
 
-	ostringstream result;
 	if (ret == RESULT_OK) {
-		if (args.size() == argPos + 2) {
-			string fieldName = args[argPos + 1];
-			size_t pos = fieldName.find_last_of('.');
-			char fieldIndex = -1;
-			if (pos != string::npos) {
-				result_t result = RESULT_OK;
-				fieldIndex = (char)parseInt(fieldName.substr(pos+1).c_str(), 10, 0, MAX_POS, result);
-				if (result == RESULT_OK)
-					fieldName = fieldName.substr(0, pos);
-			}
-			ret = message->decode(pt_slaveData, slave, result, false, verbose, fieldName.c_str(), fieldIndex);
-		} else
-			ret = message->decode(pt_slaveData, slave, result, false, verbose); // decode data
+		ret = message->decode(pt_slaveData, slave, result, false, verbose, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
 	}
 	if (ret != RESULT_OK) {
 		logError(lf_main, "read: %s", getResultCode(ret));
@@ -507,7 +508,7 @@ string MainLoop::executeFind(vector<string> &args)
 			if (lastup == 0)
 				result << "no data stored";
 			else
-				result << message->getLastValue();
+				message->decodeLastData(result, verbose);
 			if (verbose) {
 				if (lastup == 0)
 					sprintf(str, "%02x", dstAddress);
@@ -716,7 +717,8 @@ string MainLoop::getUpdates(time_t since, time_t until)
 		if (lastchg < since || lastchg >= until)
 			continue;
 		result << message->getClass() << " " << message->getName() << " = ";
-		result << message->getLastValue() << endl;
+		message->decodeLastData(result);
+		result << endl;
 	}
 
 	return result.str();

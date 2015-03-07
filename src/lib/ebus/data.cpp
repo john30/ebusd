@@ -1288,14 +1288,15 @@ result_t DataFieldSet::read(const PartType partType,
 		}
 	}
 
-	if (findFieldIndex && !found)
-		return RESULT_ERR_NOTFOUND;
+	if (!found) {
+		return RESULT_EMPTY;
+	}
 	if (verbose) {
 		if (m_comment.length() > 0)
 			output << " [" << m_comment << "]";
 	}
 
-	return found ? RESULT_OK : RESULT_EMPTY;
+	return RESULT_OK;
 }
 
 result_t DataFieldSet::write(istringstream& input,

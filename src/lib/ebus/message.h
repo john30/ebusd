@@ -209,10 +209,18 @@ public:
 			bool verbose=false, char separator=UI_FIELD_SEPARATOR);
 
 	/**
-	 * Get the last decoded value.
-	 * @return the last decoded value, or the empty string if it was not successful.
+	 * Decode the value from the last stored data.
+	 * @param output the @a ostringstream to append the formatted value to.
+	 * @param verbose whether to prepend the name, append the unit (if present), and append
+	 * the comment in square brackets (if present).
+	 * @param fieldName the optional name of a field to limit the output to.
+	 * @param fieldIndex the optional index of the named field to limit the output to, or -1.
+	 * @param separator the separator character between multiple fields.
+	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	string getLastValue() { return m_lastValue; }
+	result_t decodeLastData(ostringstream& output,
+			bool verbose=false, const char* fieldName=NULL, signed char fieldIndex=-1,
+			char separator=UI_FIELD_SEPARATOR);
 
 	/**
 	 * Get the time when @a m_lastValue was last stored.
@@ -281,8 +289,11 @@ private:
 	/** the priority for polling, or 0 for no polling at all. */
 	const unsigned char m_pollPriority;
 
-	/** the last decoded value. */
-	string m_lastValue;
+	/** the last seen master data. */
+	SymbolString m_lastMasterData;
+
+	/** the last seen slave data. */
+	SymbolString m_lastSlaveData;
 
 	/** the system time when @a m_lastValue was last stored, 0 for never. */
 	time_t m_lastUpdateTime;

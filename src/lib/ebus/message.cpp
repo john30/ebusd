@@ -289,6 +289,10 @@ result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& ma
 	result = m_data->write(input, pt_masterData, master, (unsigned char)(m_id.size() - 2), separator);
 	if (result != RESULT_OK)
 		return result;
+	if (master != m_lastMasterData) {
+		m_lastChangeTime = m_lastUpdateTime;
+		m_lastMasterData = master;
+	}
 	masterData.addAll(master);
 	return result;
 }
@@ -307,6 +311,11 @@ result_t Message::prepareSlave(SymbolString& slaveData)
 	result = m_data->write(input, pt_slaveData, slave, 0);
 	if (result != RESULT_OK)
 		return result;
+	time(&m_lastUpdateTime);
+	if (slave != m_lastSlaveData) {
+		m_lastChangeTime = m_lastUpdateTime;
+		m_lastSlaveData = slave;
+	}
 	slaveData.addAll(slave);
 	return result;
 }
@@ -321,16 +330,24 @@ result_t Message::decode(const PartType partType, SymbolString& data,
 		offset = (unsigned char)(m_id.size() - 2);
 	else
 		offset = 0;
-	size_t startPos = output.str().length();
 	result_t result = m_data->read(partType, data, offset, output, leadingSeparator, verbose, fieldName, fieldIndex, separator);
-	if (result < RESULT_OK) {
+	if (result < RESULT_OK)
 		return result;
-	}
+	if (result == RESULT_EMPTY)
+		return RESULT_ERR_NOTFOUND;
+
 	time(&m_lastUpdateTime);
-	string value = output.str().substr(startPos);
-	if (value != m_lastValue)
-		m_lastChangeTime = m_lastUpdateTime;
-	m_lastValue = value;
+	if (partType == pt_masterData) {
+		if (data != m_lastMasterData) {
+			m_lastChangeTime = m_lastUpdateTime;
+			m_lastMasterData = data;
+		}
+	} else if (partType == pt_slaveData) {
+		if (data != m_lastSlaveData) {
+			m_lastChangeTime = m_lastUpdateTime;
+			m_lastSlaveData = data;
+		}
+	}
 	return RESULT_OK;
 }
 
@@ -341,21 +358,46 @@ result_t Message::decode(SymbolString& masterData, SymbolString& slaveData,
 	unsigned char offset = (unsigned char)(m_id.size() - 2);
 	size_t startPos = output.str().length();
 	result_t result = m_data->read(pt_masterData, masterData, offset, output, leadingSeparator, verbose, NULL, -1, separator);
-	if (result < RESULT_OK) {
+	if (result < RESULT_OK)
 		return result;
-	}
+	bool empty = result==RESULT_EMPTY;
 	offset = 0;
 	leadingSeparator = output.str().length() > startPos;
 	result = m_data->read(pt_slaveData, slaveData, offset, output, leadingSeparator, verbose, NULL, -1, separator);
-	if (result < RESULT_OK) {
+	if (result < RESULT_OK)
 		return result;
-	}
+	if (empty && result == RESULT_EMPTY)
+		return RESULT_ERR_NOTFOUND;
+
 	time(&m_lastUpdateTime);
-	string value = output.str().substr(startPos);
-	if (value != m_lastValue)
+	if (masterData != m_lastMasterData) {
 		m_lastChangeTime = m_lastUpdateTime;
-	m_lastValue = value;
+		m_lastMasterData = masterData;
+	}
+	if (slaveData != m_lastSlaveData) {
+		m_lastChangeTime = m_lastUpdateTime;
+		m_lastSlaveData = slaveData;
+	}
 	return RESULT_OK;
+}
+
+result_t Message::decodeLastData(ostringstream& output,
+		bool verbose, const char* fieldName, signed char fieldIndex,
+		char separator)
+{
+	bool leadingSeparator = false;
+	unsigned char offset = (unsigned char)(m_id.size() - 2);
+	size_t startPos = output.str().length();
+	result_t result = m_data->read(pt_masterData, m_lastMasterData, offset, output, leadingSeparator, verbose, fieldName, fieldIndex, separator);
+	if (result < RESULT_OK)
+		return result;
+	bool empty = result==RESULT_EMPTY;
+	offset = 0;
+	leadingSeparator = output.str().length() > startPos;
+	result = m_data->read(pt_slaveData, m_lastSlaveData, offset, output, leadingSeparator, verbose, fieldName, fieldIndex, separator);
+	if (empty && result == RESULT_EMPTY)
+		return RESULT_ERR_NOTFOUND;
+	return result;
 }
 
 bool Message::isLessPollWeight(const Message* other)

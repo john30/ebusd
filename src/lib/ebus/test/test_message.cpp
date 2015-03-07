@@ -46,7 +46,7 @@ int main()
 	// message= [type];class;name;[comment];[QQ];ZZ;PBSB;fields...
 	// field=   name;[pos];type[;[divisor|values][;[unit][;[comment]]]]
 	string checks[][5] = {
-		// "message", "flags"
+		// "message", "decoded", "master", "slave", "flags"
 		{"date,HDA:3,,,Datum", "", "", "", "t"},
 		{"time,VTI,,,", "", "", "", "t"},
 		{"dcfstate,UCH,0=nosignal;1=ok;2=sync;3=valid,,", "", "", "", "t"},
@@ -56,6 +56,7 @@ int main()
 		{"sensor,UCH,0=ok;85=circuit;170=cutoff,,Fühlerstatus", "", "", "", "t"},
 		{"tempsensor,temp;sensor", "", "", "", "t"},
 		{"u,,first,,,fe,0700,,x,,bda", "26.10.2014", "fffe07000426100614", "00", "p"},
+		{"u,broadcast,hwStatus,,,fe,b505,27,,,UCH,,,,,,UCH,,,,,,UCH,,,", "0;19;0", "10feb505042700130097", "00", ""},
 		{"w,,first,,,15,b509,0400,date,,bda", "26.10.2014", "ff15b50906040026100614", "00", "m"},
 		{"r,ehp,time,,,08,b509,0d2800,,,time", "15:00:17", "ff08b509030d2800", "0311000f", "md"},
 		{"r,ehp,date,,,08,b509,0d2900,,,date", "23.11.2014", "ff08b509030d2900", "03170b0e", "md"},
