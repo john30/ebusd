@@ -270,7 +270,7 @@ public:
 		  m_ownMasterAddress(ownAddress), m_ownSlaveAddress((unsigned char)(ownAddress+5)), m_answer(answer),
 		  m_busLostRetries(busLostRetries), m_failedSendRetries(failedSendRetries),
 		  m_busAcquireTimeout(busAcquireTimeout), m_slaveRecvTimeout(slaveRecvTimeout),
-		  m_autoLockCount(lockCount==0), m_lockCount(lockCount==0 ? 1 : lockCount), m_remainLockCount(lockCount),
+		  m_masterCount(1), m_autoLockCount(lockCount==0), m_lockCount(lockCount==0 ? 1 : lockCount), m_remainLockCount(m_autoLockCount),
 		  m_pollInterval(pollInterval), m_lastReceive(0), m_lastPoll(0),
 		  m_currentRequest(NULL), m_nextSendPos(0),
 		  m_symPerSec(0), m_maxSymPerSec(0),
@@ -303,13 +303,6 @@ public:
 	virtual void run();
 
 	/**
-	 * Get the last received data for the @a Message.
-	 * @param message the @a Message instance.
-	 * @return the last received data for the @a Message, or the empty string if not available.
-	 */
-	string getReceivedData(Message* message);
-
-	/**
 	 * Initiate a scan of the slave addresses.
 	 * @param full true for a full scan (all slaves), false for scanning only already seen slaves.
 	 * @return the result code.
@@ -339,6 +332,12 @@ public:
 	 * @return the maximum number of received symbols per second ever seen.
 	 */
 	unsigned int getMaxSymbolRate() { return m_maxSymPerSec; }
+
+	/**
+	 * Return the number of masters already seen.
+	 * @return the number of masters already seen (including ebusd itself).
+	 */
+	unsigned int getMasterCount() { return m_masterCount; }
 
 private:
 
@@ -388,6 +387,9 @@ private:
 
 	/** the maximum time in microseconds an addressed slave is expected to acknowledge. */
 	const unsigned int m_slaveRecvTimeout;
+
+	/** the number of masters already seen. */
+	unsigned int m_masterCount;
 
 	/** whether m_lockCount shall be detected automatically. */
 	const bool m_autoLockCount;

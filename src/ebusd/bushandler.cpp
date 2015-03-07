@@ -369,8 +369,7 @@ result_t BusHandler::handleSymbol()
 			}
 			// arbitration lost. if same priority class found, try again after next AUTO-SYN
 			m_remainLockCount = isMaster(recvSymbol) ? 2 : 1; // number of SYN to wait for before next send try
-			if ((recvSymbol & 0x0f) != (sendSymbol & 0x0f)
-			        && m_lockCount > m_remainLockCount)
+			if ((recvSymbol & 0x0f) != (sendSymbol & 0x0f) && m_lockCount > m_remainLockCount)
 				// if different priority class found, try again after N AUTO-SYN symbols (at least next AUTO-SYN)
 				m_remainLockCount = m_lockCount;
 			setState(m_state, RESULT_ERR_BUS_LOST); // try again later
@@ -604,12 +603,13 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 			logDebug(lf_bus, "notify request: %s", getResultCode(result));
 			unsigned char dstAddress = m_currentRequest->m_master[1];
 			if (result == RESULT_OK && isValidAddress(dstAddress, false) && !m_seenAddresses[dstAddress]) {
-				if (m_autoLockCount) {
-					unsigned char master = getMasterAddress(dstAddress);
-					if (master != SYN && !m_seenAddresses[master]) {
-						m_seenAddresses[master] = true;
-						m_lockCount++;
-					}
+				unsigned char master = getMasterAddress(dstAddress);
+				if (master != SYN && !m_seenAddresses[master]) {
+					m_seenAddresses[master] = true;
+					m_masterCount++;
+					if (m_autoLockCount)
+						m_lockCount = m_masterCount;
+					logNotice(lf_bus, "new master %2.2x", master);
 				}
 				m_seenAddresses[dstAddress] = true;
 			}
@@ -671,28 +671,35 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 void BusHandler::receiveCompleted()
 {
 	unsigned char srcAddress = m_command[0], dstAddress = m_command[1];
-	bool master = isMaster(dstAddress);
-	if (m_autoLockCount && isMaster(srcAddress) && !m_seenAddresses[srcAddress]) {
-		m_lockCount++;
+	if (isMaster(srcAddress) && !m_seenAddresses[srcAddress]) {
+		m_masterCount++;
+		if (m_autoLockCount)
+			m_lockCount = m_masterCount;
+		logNotice(lf_bus, "new master %2.2x", srcAddress);
 	}
+	bool master = isMaster(dstAddress);
 	m_seenAddresses[srcAddress] = true;
 	if (dstAddress == BROADCAST)
 		logInfo(lf_update, "update BC cmd: %s", m_command.getDataStr().c_str());
 	else if (master) {
 		logInfo(lf_update, "update MM cmd: %s", m_command.getDataStr().c_str());
-		if (m_autoLockCount && !m_seenAddresses[dstAddress]) {
-			m_lockCount++;
+		if (!m_seenAddresses[dstAddress]) {
+			m_masterCount++;
+			if (m_autoLockCount)
+				m_lockCount = m_masterCount;
+			logNotice(lf_bus, "new master %2.2x", dstAddress);
 		}
 		m_seenAddresses[dstAddress] = true;
 	}
 	else {
 		logInfo(lf_update, "update MS cmd: %s / %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
-		if (m_autoLockCount) {
-			unsigned char master = getMasterAddress(dstAddress);
-			if (master != SYN && !m_seenAddresses[master]) {
-				m_seenAddresses[master] = true;
-				m_lockCount++;
-			}
+		unsigned char masterAddr = getMasterAddress(dstAddress);
+		if (masterAddr != SYN && !m_seenAddresses[masterAddr]) {
+			m_seenAddresses[masterAddr] = true;
+			m_masterCount++;
+			if (m_autoLockCount)
+				m_lockCount = m_masterCount;
+			logNotice(lf_bus, "new master %2.2x", masterAddr);
 		}
 		m_seenAddresses[dstAddress] = true;
 	}

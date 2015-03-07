@@ -565,8 +565,9 @@ string MainLoop::executeState(vector<string> &args)
 	if (m_busHandler->hasSignal()) {
 		ostringstream result;
 		result << "signal acquired, "
-			   << static_cast<unsigned>(m_busHandler->getSymbolRate()) << " symbols/sec, max. "
-			   << static_cast<unsigned>(m_busHandler->getMaxSymbolRate()) << " symbols/sec";
+			   << static_cast<unsigned>(m_busHandler->getSymbolRate()) << " symbols/sec ("
+			   << static_cast<unsigned>(m_busHandler->getMaxSymbolRate()) << " max), "
+			   << static_cast<unsigned>(m_busHandler->getMasterCount()) << " masters";
 		return result.str();
 	}
 	return "no signal";
