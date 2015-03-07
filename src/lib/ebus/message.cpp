@@ -313,7 +313,7 @@ result_t Message::prepareSlave(SymbolString& slaveData)
 
 result_t Message::decode(const PartType partType, SymbolString& data,
 		ostringstream& output, bool leadingSeparator,
-		bool verbose, const char* fieldName, char fieldIndex,
+		bool verbose, const char* fieldName, signed char fieldIndex,
 		char separator)
 {
 	unsigned char offset;

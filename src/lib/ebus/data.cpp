@@ -447,7 +447,7 @@ void SingleDataField::dump(ostream& output)
 result_t SingleDataField::read(const PartType partType,
 		SymbolString& data, unsigned char offset,
 		ostringstream& output, bool leadingSeparator,
-		bool verbose, const char* fieldName, char fieldIndex,
+		bool verbose, const char* fieldName, signed char fieldIndex,
 		char separator)
 {
 	if (partType != m_partType)
@@ -1255,7 +1255,7 @@ void DataFieldSet::dump(ostream& output)
 result_t DataFieldSet::read(const PartType partType,
 		SymbolString& data, unsigned char offset,
 		ostringstream& output, bool leadingSeparator,
-		bool verbose, const char* fieldName, char fieldIndex,
+		bool verbose, const char* fieldName, signed char fieldIndex,
 		char separator)
 {
 	bool previousFullByteOffset = true, found = false, findFieldIndex = fieldName != NULL && fieldIndex >= 0;

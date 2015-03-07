@@ -190,7 +190,7 @@ public:
 	 */
 	result_t decode(const PartType partType, SymbolString& data,
 			ostringstream& output, bool leadingSeparator=false,
-			bool verbose=false, const char* fieldName=NULL, char fieldIndex=-1,
+			bool verbose=false, const char* fieldName=NULL, signed char fieldIndex=-1,
 			char separator=UI_FIELD_SEPARATOR);
 
 	/**
