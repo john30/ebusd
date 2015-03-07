@@ -1,14 +1,22 @@
-# next version (2015-02-?)
+# next version (2015-03-?)
 
 ## Bug fixes
-* the master number calculation was incorrect (no influence on any behaviour)
+* return passive messages returned in "read" regardless of their age
+* corrected divisor for chains of derived number types
+* corrected master number calculation (no influence on any behaviour)
+* fixed signed char warning on some compilers
 
 ## Features
 * new command line option "--dumpconfig" for dumping message configurations
-* new "find" command option "-f" for retriving message configurations
+* new "find" command option "-f" for retrieving message configurations in CSV format
 * new "find" command option "-i PB" to filter messages on primary command byte
-* extended "read" command "FIELD" argument with optional ".N" for retrieving the N'th field with that name
+* extended "read" command "FIELD" argument with optional ".N" for retrieving the N''th field with that name
 * new "write" command option "-c" for compatibility with "read" and "find"
+* automatically detect number of masters on the bus and add to "state" command
+* support reciprocal divisor
+* cache symbols instead of formatted strings. this allows retrieval of individual fields and verbose read from cache
+* removed valid CRCs from log and hex "write"
+* shortened manufcaturer names for "scan"
 
 ## Changed files
 https://github.com/john30/ebusd/compare/v1.0.0...master
