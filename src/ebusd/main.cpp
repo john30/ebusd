@@ -491,9 +491,7 @@ result_t loadConfigFiles(DataFieldTemplates* templates, MessageMap* messages, bo
 	else
 		logError(lf_main, "error reading config files: %s", getResultCode(result));
 
-	logNotice(lf_main, "message DB: %d ", messages->size());
-	logNotice(lf_main, "updates DB: %d ", messages->size(true));
-	logNotice(lf_main, "polling DB: %d ", messages->sizePoll());
+	logNotice(lf_main, "found messages: %d (%d poll, %d update)", messages->size(), messages->sizePoll(), messages->size(true));
 
 	return result;
 }
