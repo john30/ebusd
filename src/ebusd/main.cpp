@@ -73,7 +73,7 @@ static struct options opt = {
 	2, // acquireRetries
 	2, // sendRetries
 	SLAVE_RECV_TIMEOUT, // receiveTimeout
-	5, // masterCount
+	0, // masterCount
 	false, // foreground
 	8888, // port
 	false, // localOnly
@@ -132,7 +132,7 @@ static const struct argp_option argpoptions[] = {
 	{"acquireretries", O_ACQRET, "COUNT", 0, "Retry bus acquisition COUNT times [2]", 0 },
 	{"sendretries",    O_SNDRET, "COUNT", 0, "Repeat failed sends COUNT times [2]", 0 },
 	{"receivetimeout", O_RCVTIM, "USEC",  0, "Expect a slave to answer within USEC us [15000]", 0 },
-	{"numbermasters",  O_MASCNT, "COUNT", 0, "Expect COUNT masters on the bus [5]", 0 },
+	{"numbermasters",  O_MASCNT, "COUNT", 0, "Expect COUNT masters on the bus, 0 for auto detection [0]", 0 },
 
 	{NULL,             0,        NULL,    0, "Daemon options:", 4 },
 	{"foreground",     'f',      NULL,    0, "Run in foreground", 0 },
@@ -238,8 +238,8 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 			return EINVAL;
 		}
 		break;
-	case O_MASCNT: // --numbermasters=5
-		opt->masterCount = parseInt(arg, 10, 1, 25, result);
+	case O_MASCNT: // --numbermasters=0
+		opt->masterCount = parseInt(arg, 10, 0, 25, result);
 		if (result != RESULT_OK) {
 			argp_error(state, "invalid numbermasters");
 			return EINVAL;
