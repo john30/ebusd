@@ -26,6 +26,7 @@ using namespace std;
 void verify(bool expectFailMatch, string type, string input,
 		bool match, string expectStr, string gotStr)
 {
+	match = match && expectStr == gotStr;
 	if (expectFailMatch) {
 		if (match)
 			cout << "  failed " << type << " match >" << input
@@ -301,14 +302,14 @@ int main()
 
 		ostringstream output;
 		SymbolString writeMstr(false);
-		result = writeMstr.parseHex(mstr.getDataStr().substr(0, 10));
+		result = writeMstr.parseHex(mstr.getDataStr(true, false).substr(0, 10));
 		if (result != RESULT_OK) {
-			cout << "  parse \"" << mstr.getDataStr().substr(0, 10) << "\" error: " << getResultCode(result) << endl;
+			cout << "  parse \"" << mstr.getDataStr(true, false).substr(0, 10) << "\" error: " << getResultCode(result) << endl;
 		}
 		SymbolString writeSstr(false);
-		result = writeSstr.parseHex(sstr.getDataStr().substr(0, 2));
+		result = writeSstr.parseHex(sstr.getDataStr(true, false).substr(0, 2));
 		if (result != RESULT_OK) {
-			cout << "  parse \"" << sstr.getDataStr().substr(0, 2) << "\" error: " << getResultCode(result) << endl;
+			cout << "  parse \"" << sstr.getDataStr(true, false).substr(0, 2) << "\" error: " << getResultCode(result) << endl;
 		}
 		result = fields->read(pt_masterData, mstr, 0, output, false, verbose);
 		if (result >= RESULT_OK) {

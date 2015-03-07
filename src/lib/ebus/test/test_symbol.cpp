@@ -31,7 +31,7 @@ int main ()
 	if (result != RESULT_OK)
 		std::cout << "parse escaped error: " << getResultCode(result) << std::endl;
 
-	std::string gotStr = sstr.getDataStr(false), expectStr = "10feb5050427a90015a90177";
+	std::string gotStr = sstr.getDataStr(false, false), expectStr = "10feb5050427a90015a90177";
 
 	if (strcasecmp(gotStr.c_str(), expectStr.c_str()) == 0)
 		std::cout << "parse escaped OK" << std::endl;
@@ -51,7 +51,7 @@ int main ()
 		        << std::setfill('0') << static_cast<unsigned>(expectCrc)
 		        << std::endl;
 
-	gotStr = sstr.getDataStr(), expectStr = "10feb5050427a915aa77";
+	gotStr = sstr.getDataStr(true, false), expectStr = "10feb5050427a915aa77";
 
 	if (strcasecmp(gotStr.c_str(), expectStr.c_str()) == 0)
 		std::cout << "unescape OK" << std::endl;
@@ -64,7 +64,7 @@ int main ()
 	if (result != RESULT_OK)
 		std::cout << "parse unescaped error: " << getResultCode(result) << std::endl;
 
-	gotStr = sstr.getDataStr();
+	gotStr = sstr.getDataStr(true, false);
 
 	if (strcasecmp(gotStr.c_str(), expectStr.c_str()) == 0)
 		std::cout << "parse unescaped OK" << std::endl;

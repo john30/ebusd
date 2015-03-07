@@ -79,7 +79,7 @@ result_t SymbolString::parseHex(const string& str, const bool isEscaped)
 	return RESULT_OK;
 }
 
-const string SymbolString::getDataStr(const bool unescape)
+const string SymbolString::getDataStr(const bool unescape, const bool skipLastSymbol)
 {
 	stringstream sstr;
 	bool previousEscape = false;
@@ -87,19 +87,20 @@ const string SymbolString::getDataStr(const bool unescape)
 	for (size_t i = 0; i < m_data.size(); i++) {
 		unsigned char value = m_data[i];
 		if (m_unescapeState == 0 && unescape && previousEscape) {
-			if (value == 0x00)
-				sstr << "a9"; // ESC
-			else if (value == 0x01)
-				sstr << "aa"; // SYN
-			else
-				sstr << "XX"; // invalid escape sequence
-
+			if (!skipLastSymbol || i+1 < m_data.size()) {
+				if (value == 0x00)
+					sstr << "a9"; // ESC
+				else if (value == 0x01)
+					sstr << "aa"; // SYN
+				else
+					sstr << "XX"; // invalid escape sequence
+			}
 			previousEscape = false;
 		}
 		else if (m_unescapeState == 0 && unescape && value == ESC) {
 			previousEscape = true; // escape sequence not yet finished
 		}
-		else {
+		else if (!skipLastSymbol || i+1 < m_data.size()) {
 			sstr << nouppercase << setw(2) << hex
 					<< setfill('0') << static_cast<unsigned>(value);
 		}
