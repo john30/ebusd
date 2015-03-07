@@ -101,7 +101,7 @@ unsigned int parseInt(const char* str, int base, const unsigned int minValue, co
 		return 0;
 	}
 
-	if (ret < minValue || ret > maxValue) {
+	if (minValue > ret || ret > maxValue) {
 		result = RESULT_ERR_OUT_OF_RANGE; // invalid value
 		return 0;
 	}
@@ -110,6 +110,27 @@ unsigned int parseInt(const char* str, int base, const unsigned int minValue, co
 
 	result = RESULT_OK;
 	return (unsigned int)ret;
+}
+
+int parseSignedInt(const char* str, int base, const int minValue, const int maxValue, result_t& result, unsigned int* length) {
+	char* strEnd = NULL;
+
+	long int ret = strtol(str, &strEnd, base);
+
+	if (strEnd == NULL || *strEnd != 0) {
+		result = RESULT_ERR_INVALID_NUM; // invalid value
+		return 0;
+	}
+
+	if (minValue > ret || ret > maxValue) {
+		result = RESULT_ERR_OUT_OF_RANGE; // invalid value
+		return 0;
+	}
+	if (length != NULL)
+		*length = (unsigned int)(strEnd - str);
+
+	result = RESULT_OK;
+	return (int)ret;
 }
 
 void printErrorPos(vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, string filename, size_t lineNo, result_t result)
@@ -157,7 +178,7 @@ result_t DataField::create(vector<string>::iterator& it,
 	do {
 		string unit, comment;
 		PartType partType;
-		unsigned int divisor = 0;
+		int divisor = 0;
 		const bool isTemplate = dstAddress == SYN;
 		bool hasPartStr = false;
 		string token;
@@ -210,7 +231,7 @@ result_t DataField::create(vector<string>::iterator& it,
 			const string divisorStr = *it++;
 			if (!divisorStr.empty()) {
 				if (divisorStr.find('=') == string::npos)
-					divisor = parseInt(divisorStr.c_str(), 10, 1, MAX_DIVISOR, result);
+					divisor = parseSignedInt(divisorStr.c_str(), 10, -MAX_DIVISOR, MAX_DIVISOR, result);
 				else {
 					istringstream stream(divisorStr);
 					while (getline(stream, token, VALUE_SEPARATOR) != 0) {
@@ -337,9 +358,26 @@ result_t DataField::create(vector<string>::iterator& it,
 					if (values.empty() || (dataType->flags & LST) == 0) {
 						if (divisor == 0)
 							divisor = 1;
+
 						if ((dataType->bitCount % 8) == 0) {
-							divisor *= dataType->divisorOrFirstBit;
-							if (divisor > MAX_DIVISOR) {
+							if (divisor < 0) {
+								if (dataType->divisorOrFirstBit > 1) {
+									result = RESULT_ERR_INVALID_ARG;
+									break;
+								}
+								if (dataType->divisorOrFirstBit < 0)
+									divisor *= -dataType->divisorOrFirstBit;
+							} else if (dataType->divisorOrFirstBit < 0) {
+								if (divisor > 1) {
+									result = RESULT_ERR_INVALID_ARG;
+									break;
+								}
+								if (divisor < 0)
+									divisor *= -dataType->divisorOrFirstBit;
+							} else
+								divisor *= dataType->divisorOrFirstBit;
+
+							if (-MAX_DIVISOR > divisor || divisor > MAX_DIVISOR) {
 								result = RESULT_ERR_OUT_OF_RANGE;
 								break;
 							}
@@ -475,7 +513,7 @@ result_t SingleDataField::write(istringstream& input,
 
 result_t StringDataField::derive(string name, string comment,
 		string unit, const PartType partType,
-		unsigned int divisor, map<unsigned int, string> values,
+		int divisor, map<unsigned int, string> values,
 		vector<SingleDataField*>& fields)
 {
 	if (m_partType != pt_any && partType == pt_any)
@@ -852,19 +890,20 @@ result_t NumericDataField::writeRawValue(unsigned int value,
 NumberDataField::NumberDataField(const string name, const string comment,
 		const string unit, const dataType_t dataType, const PartType partType,
 		const unsigned char length, const unsigned char bitCount,
-		const unsigned int divisor)
+		const int divisor)
 	: NumericDataField(name, comment, unit, dataType, partType, length, bitCount,
 			(dataType.bitCount % 8) == 0 ? 0 : (unsigned char)dataType.divisorOrFirstBit),
 	m_divisor(divisor), m_precision(0)
 {
-	for (unsigned int exp = 1; exp < MAX_DIVISOR; exp *= 10, m_precision++)
-		if (exp >= divisor)
-			break;
+	if (divisor > 1)
+		for (unsigned int exp = 1; exp < MAX_DIVISOR; exp *= 10, m_precision++)
+			if (exp >= (unsigned int)divisor)
+				break;
 }
 
 result_t NumberDataField::derive(string name, string comment,
 		string unit, const PartType partType,
-		unsigned int divisor, map<unsigned int, string> values,
+		int divisor, map<unsigned int, string> values,
 		vector<SingleDataField*>& fields)
 {
 	if (m_partType != pt_any && partType == pt_any)
@@ -875,23 +914,37 @@ result_t NumberDataField::derive(string name, string comment,
 		comment = m_comment;
 	if (unit.empty())
 		unit = m_unit;
-	if (divisor == 0)
-		divisor = m_divisor;
-	else if ((m_dataType.bitCount % 8) == 0) {
-		divisor *= m_dataType.divisorOrFirstBit;
-		if (divisor > MAX_DIVISOR) {
-			return RESULT_ERR_OUT_OF_RANGE;
-		}
-	}
 	if (!values.empty()) {
-		if (divisor != 1)
+		if (divisor != 0 || m_divisor != 1)
 			return RESULT_ERR_INVALID_ARG; // cannot use divisor != 1 for value list field
 
 		fields.push_back(new ValueListDataField(name, comment, unit, m_dataType, partType, m_length, m_bitCount, values));
 	}
-	else
-		fields.push_back(new NumberDataField(name, comment, unit, m_dataType, partType, m_length, m_bitCount, divisor));
+	else {
+		if (divisor == 0)
+			divisor = m_divisor;
+		else if ((m_dataType.bitCount % 8) == 0) {
+			if (divisor < 0) {
+				if (m_divisor > 1)
+					return RESULT_ERR_INVALID_ARG;
 
+				if (m_divisor < 0)
+					divisor *= -m_divisor;
+			} else if (m_divisor < 0) {
+				if (divisor > 1)
+					return RESULT_ERR_INVALID_ARG;
+
+				if (divisor < 0)
+					divisor *= -m_divisor;
+			} else
+				divisor *= m_divisor;
+
+			if (-MAX_DIVISOR > divisor || divisor > MAX_DIVISOR) {
+				return RESULT_ERR_OUT_OF_RANGE;
+			}
+		}
+		fields.push_back(new NumberDataField(name, comment, unit, m_dataType, partType, m_length, m_bitCount, divisor));
+	}
 	return RESULT_OK;
 }
 
@@ -924,7 +977,9 @@ result_t NumberDataField::readSymbols(SymbolString& input,
 	bool negative = (m_dataType.flags & SIG) != 0 && (value & (1 << (m_bitCount - 1))) != 0;
 	if (m_bitCount == 32) {
 		if (!negative) {
-			if (m_divisor <= 1)
+			if (m_divisor < 0)
+				output << static_cast<float>((float)value * (float)(-m_divisor));
+			else if (m_divisor <= 1)
 				output << static_cast<unsigned>(value);
 			else
 				output << setprecision(m_precision)
@@ -938,7 +993,9 @@ result_t NumberDataField::readSymbols(SymbolString& input,
 	else
 		signedValue = (int) value;
 
-	if (m_divisor <= 1) {
+	if (m_divisor < 0)
+		output << static_cast<float>((float)signedValue * (float)(-m_divisor));
+	else if (m_divisor <= 1) {
 		if ((m_dataType.flags & (FIX|BCD)) == (FIX|BCD))
 			output << setw(m_length * 2) << setfill('0');
 		output << static_cast<int>(signedValue) << setw(0);
@@ -962,7 +1019,7 @@ result_t NumberDataField::writeSymbols(istringstream& input,
 		return RESULT_ERR_EOF; // input too short
 	else {
 		char* strEnd = NULL;
-		if (m_divisor <= 1) {
+		if (m_divisor >= 0 && m_divisor <= 1) {
 			if ((m_dataType.flags & SIG) != 0) {
 				long int signedValue = strtol(str, &strEnd, 10);
 				if (signedValue < 0 && m_bitCount != 32)
@@ -974,13 +1031,15 @@ result_t NumberDataField::writeSymbols(istringstream& input,
 				value = (unsigned int)strtoul(str, &strEnd, 10);
 			if (strEnd == NULL || *strEnd != 0)
 				return RESULT_ERR_INVALID_NUM; // invalid value
-		}
-		else {
+		} else {
 			char* strEnd = NULL;
 			double dvalue = strtod(str, &strEnd);
 			if (strEnd == NULL || *strEnd != 0)
 				return RESULT_ERR_INVALID_NUM; // invalid value
-			dvalue = round(dvalue * m_divisor);
+			if (m_divisor < 0)
+				dvalue = round(dvalue / -m_divisor);
+			else
+				dvalue = round(dvalue * m_divisor);
 			if ((m_dataType.flags & SIG) != 0) {
 				if (dvalue < -(1LL << (8 * m_length)) || dvalue >= (1LL << (8 * m_length)))
 					return RESULT_ERR_OUT_OF_RANGE; // value out of range
@@ -1014,7 +1073,7 @@ result_t NumberDataField::writeSymbols(istringstream& input,
 
 result_t ValueListDataField::derive(string name, string comment,
 		string unit, const PartType partType,
-		unsigned int divisor, map<unsigned int, string> values,
+		int divisor, map<unsigned int, string> values,
 		vector<SingleDataField*>& fields)
 {
 	if (m_partType != pt_any && partType == pt_any)
@@ -1166,7 +1225,7 @@ unsigned char DataFieldSet::getLength(PartType partType)
 
 result_t DataFieldSet::derive(string name, string comment,
 		string unit, const PartType partType,
-		unsigned int divisor, map<unsigned int, string> values,
+		int divisor, map<unsigned int, string> values,
 		vector<SingleDataField*>& fields)
 {
 	if (!values.empty())

@@ -75,14 +75,14 @@ static const unsigned int REQ = 0x100;//!< value may not be NULL
 
 /** The structure for defining field types with their properties. */
 typedef struct {
-	const char* name;                        //!< field identifier
-	const unsigned char bitCount;            //!< number of bits (maximum length if @a ADJ flag is set, must be multiple of 8 with flag @a BCD)
-	const BaseType type;                     //!< base data type
-	const unsigned short flags;              //!< flags (e.g. @a BCD)
-	const unsigned int replacement;          //!< replacement value (fill-up value for @a bt_str / @a bt_hexstr, no replacement if equal to @a minValueOrLength for @a bt_num)
-	const unsigned int minValueOrLength;     //!< minimum binary value (minimum length of string for @a StringDataField)
-	const unsigned int maxValueOrLength;     //!< maximum binary value (maximum length of string for @a StringDataField)
-	const unsigned short divisorOrFirstBit;  //!< @a bt_number: divisor or offset to first bit (if (@a bitCount%8)!=0)
+	const char* name;                    //!< field identifier
+	const unsigned char bitCount;        //!< number of bits (maximum length if @a ADJ flag is set, must be multiple of 8 with flag @a BCD)
+	const BaseType type;                 //!< base data type
+	const unsigned short flags;          //!< flags (e.g. @a BCD)
+	const unsigned int replacement;      //!< replacement value (fill-up value for @a bt_str / @a bt_hexstr, no replacement if equal to @a minValueOrLength for @a bt_num)
+	const unsigned int minValueOrLength; //!< minimum binary value (minimum length of string for @a StringDataField)
+	const unsigned int maxValueOrLength; //!< maximum binary value (maximum length of string for @a StringDataField)
+	const short divisorOrFirstBit;       //!< @a bt_number: divisor (negative for reciprocal) or offset to first bit (if (@a bitCount%8)!=0)
 } dataType_t;
 
 /** the maximum position within master or slave data. */
@@ -99,6 +99,18 @@ typedef struct {
  * @return the parsed value.
  */
 unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result, unsigned int* length=NULL);
+
+/**
+ * Parse a signed int value.
+ * @param str the string to parse.
+ * @param base the numerical base.
+ * @param minValue the minimum resulting value.
+ * @param maxValue the maximum resulting value.
+ * @param result the variable in which to store an error code when parsing failed or the value is out of bounds.
+ * @param length the optional variable in which to store the number of read characters.
+ * @return the parsed value.
+ */
+int parseSignedInt(const char* str, int base, const int minValue, const int maxValue, result_t& result, unsigned int* length=NULL);
 
 /**
  * Print the error position of the iterator to stdout.
@@ -171,14 +183,14 @@ public:
 	 * @param comment the field comment, or empty to use this fields comment.
 	 * @param unit the value unit, or empty to use this fields unit (if applicable).
 	 * @param partType the message part in which the field is stored.
-	 * @param divisor the extra divisor to apply on the value, or 1 for none (if applicable).
+	 * @param divisor the extra divisor (negative for reciprocal) to apply on the value, or 1 for none (if applicable).
 	 * @param values the value=text assignments, or empty to use this fields assignments (if applicable).
 	 * @param fields the @a vector to which created @a SingleDataField instances shall be added.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	virtual result_t derive(string name, string comment,
 			string unit, const PartType partType,
-			unsigned int divisor, map<unsigned int, string> values,
+			int divisor, map<unsigned int, string> values,
 			vector<SingleDataField*>& fields) = 0;
 
 	/**
@@ -383,7 +395,7 @@ public:
 	// @copydoc
 	virtual result_t derive(string name, string comment,
 			string unit, const PartType partType,
-			unsigned int divisor, map<unsigned int, string> values,
+			int divisor, map<unsigned int, string> values,
 			vector<SingleDataField*>& fields);
 
 	// @copydoc
@@ -480,12 +492,12 @@ public:
 	 * @param partType the message part in which the field is stored.
 	 * @param length the number of symbols in the message part in which the field is stored.
 	 * @param bitCount the number of bits in the binary value (may be less than @a length * 8).
-	 * @param divisor the extra divisor to apply on the value, or 1 for none.
+	 * @param divisor the extra divisor (negative for reciprocal) to apply on the value, or 1 for none.
 	 */
 	NumberDataField(const string name, const string comment,
 			const string unit, const dataType_t dataType, const PartType partType,
 			const unsigned char length, const unsigned char bitCount,
-			const unsigned int divisor);
+			const int divisor);
 
 	/**
 	 * Destructor.
@@ -495,7 +507,7 @@ public:
 	// @copydoc
 	virtual result_t derive(string name, string comment,
 			string unit, const PartType partType,
-			unsigned int divisor, map<unsigned int, string> values,
+			int divisor, map<unsigned int, string> values,
 			vector<SingleDataField*>& fields);
 
 	// @copydoc
@@ -511,8 +523,8 @@ protected:
 
 private:
 
-	/** the combined divisor to apply on the value, or 1 for none. */
-	const unsigned int m_divisor;
+	/** the combined divisor (negative for reciprocal) to apply on the value, or 1 for none. */
+	const int m_divisor;
 
 	/** the precision for formatting the value. */
 	unsigned char m_precision;
@@ -553,7 +565,7 @@ public:
 
 	// @copydoc
 	virtual result_t derive(string name, string comment,
-			string unit, const PartType partType, unsigned int divisor,
+			string unit, const PartType partType, int divisor,
 			map<unsigned int, string> values,
 			vector<SingleDataField*>& fields);
 
@@ -611,7 +623,7 @@ public:
 	// @copydoc
 	virtual result_t derive(string name, string comment,
 			string unit, const PartType partType,
-			unsigned int divisor, map<unsigned int, string> values,
+			int divisor, map<unsigned int, string> values,
 			vector<SingleDataField*>& fields);
 
 	/**
