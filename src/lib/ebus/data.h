@@ -220,7 +220,8 @@ public:
 	 * @param leadingSeparator whether to prepend a separator before the formatted value.
 	 * @param verbose whether to prepend the name, append the unit (if present), and append
 	 * the comment in square brackets (if present).
-	 * @param filterName the optional name of a field to limit the output to.
+	 * @param fieldName the optional name of a field to limit the output to.
+	 * @param fieldIndex the optional index of the named field to limit the output to, or -1.
 	 * @param separator the separator character between multiple fields.
 	 * @return @a RESULT_OK on success (or if the partType does not match),
 	 * or @a RESULT_EMPTY if the field was skipped (either ignored or due to @a filterName),
