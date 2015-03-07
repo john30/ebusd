@@ -395,9 +395,11 @@ result_t Message::decodeLastData(ostringstream& output,
 	offset = 0;
 	leadingSeparator = output.str().length() > startPos;
 	result = m_data->read(pt_slaveData, m_lastSlaveData, offset, output, leadingSeparator, verbose, fieldName, fieldIndex, separator);
+	if (result < RESULT_OK)
+		return result;
 	if (empty && result == RESULT_EMPTY)
 		return RESULT_ERR_NOTFOUND;
-	return result;
+	return RESULT_OK;
 }
 
 bool Message::isLessPollWeight(const Message* other)
