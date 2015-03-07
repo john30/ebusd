@@ -157,6 +157,20 @@ private:
 bool isMaster(unsigned char addr);
 
 /**
+ * Returns whether the address is a slave address of one of the 25 masters.
+ * @param addr the address to check.
+ * @return <code>true</code> if the specified address is a slave address of a master.
+ */
+bool isSlaveMaster(unsigned char addr);
+
+/**
+ * Returns the master address associated with the specified address (master or slave).
+ * @param addr the address to check.
+ * @return the master address, or SYN if the specified address is neither a master address nor a slave address of a master.
+ */
+unsigned char getMasterAddress(unsigned char addr);
+
+/**
  * Returns the number of the master if the address is a valid bus address.
  * @param addr the bus address.
  * @return the number of the master if the address is a valid bus address (1 to 25), or 0.

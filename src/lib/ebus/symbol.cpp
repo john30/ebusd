@@ -198,6 +198,21 @@ bool isMaster(unsigned char addr) {
 	    && ((addrLo == 0x0) || (addrLo == 0x1) || (addrLo == 0x3) || (addrLo == 0x7) || (addrLo == 0xF));
 }
 
+bool isSlaveMaster(unsigned char addr) {
+	return isMaster((unsigned char)(addr+256-5));
+}
+
+unsigned char getMasterAddress(unsigned char addr) {
+	if (isMaster(addr))
+		return addr;
+
+	addr = (unsigned char)(addr+256-5);
+	if (isMaster(addr))
+		return addr;
+
+	return SYN;
+}
+
 unsigned char getMasterNumber(unsigned char addr) {
 	unsigned char addrHi = (addr & 0xF0) >> 4;
 	unsigned char addrLo = (addr & 0x0F);
