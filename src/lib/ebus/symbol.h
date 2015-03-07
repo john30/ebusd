@@ -86,6 +86,13 @@ public:
 	bool operator==(SymbolString& other) { return m_unescapeState==other.m_unescapeState && m_data==other.m_data; }
 
 	/**
+	 * Returns whether this instance is different from the other instance.
+	 * @param other the other instance.
+	 * @return true if this instance is different from the other instance.
+	 */
+	bool operator!=(SymbolString& other) { return m_unescapeState!=other.m_unescapeState || m_data!=other.m_data; }
+
+	/**
 	 * Appends a the symbol to the end of the symbol string and escapes/unescapes it if necessary.
 	 * @param value the symbol to append.
 	 * @param isEscaped whether the symbol is escaped.
