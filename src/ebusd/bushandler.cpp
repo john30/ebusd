@@ -603,8 +603,16 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 		else if (state == bs_sendSyn || (result != RESULT_OK && !firstRepetition)) {
 			logDebug(lf_bus, "notify request: %s", getResultCode(result));
 			unsigned char dstAddress = m_currentRequest->m_master[1];
-			if (result == RESULT_OK && isValidAddress(dstAddress, false))
+			if (result == RESULT_OK && isValidAddress(dstAddress, false) && !m_seenAddresses[dstAddress]) {
+				if (m_autoLockCount) {
+					unsigned char master = getMasterAddress(dstAddress);
+					if (master != SYN && !m_seenAddresses[master]) {
+						m_seenAddresses[master] = true;
+						m_lockCount++;
+					}
+				}
 				m_seenAddresses[dstAddress] = true;
+			}
 			bool restart = m_currentRequest->notify(result, m_response);
 			if (restart) {
 				m_currentRequest->m_busLostRetries = 0;
@@ -664,15 +672,28 @@ void BusHandler::receiveCompleted()
 {
 	unsigned char srcAddress = m_command[0], dstAddress = m_command[1];
 	bool master = isMaster(dstAddress);
+	if (m_autoLockCount && isMaster(srcAddress) && !m_seenAddresses[srcAddress]) {
+		m_lockCount++;
+	}
 	m_seenAddresses[srcAddress] = true;
 	if (dstAddress == BROADCAST)
 		logInfo(lf_update, "update BC cmd: %s", m_command.getDataStr().c_str());
 	else if (master) {
 		logInfo(lf_update, "update MM cmd: %s", m_command.getDataStr().c_str());
+		if (m_autoLockCount && !m_seenAddresses[dstAddress]) {
+			m_lockCount++;
+		}
 		m_seenAddresses[dstAddress] = true;
 	}
 	else {
 		logInfo(lf_update, "update MS cmd: %s / %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
+		if (m_autoLockCount) {
+			unsigned char master = getMasterAddress(dstAddress);
+			if (master != SYN && !m_seenAddresses[master]) {
+				m_seenAddresses[master] = true;
+				m_lockCount++;
+			}
+		}
 		m_seenAddresses[dstAddress] = true;
 	}
 
@@ -736,8 +757,8 @@ result_t BusHandler::startScan(bool full)
 		if (!isValidAddress(slave, false) || isMaster(slave))
 			continue;
 		if (!full && !m_seenAddresses[slave]) {
-			unsigned char master = (unsigned char)(slave+256-5); // check if we saw the corresponding master already
-			if (!isMaster(master) || !m_seenAddresses[slave])
+			unsigned char master = getMasterAddress(slave); // check if we saw the corresponding master already
+			if (master == SYN || !m_seenAddresses[master])
 				continue;
 		}
 

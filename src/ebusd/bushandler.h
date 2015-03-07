@@ -258,7 +258,7 @@ public:
 	 * @param failedSendRetries the number of times a failed send is repeated (other than lost arbitration).
 	 * @param slaveRecvTimeout the maximum time in microseconds an addressed slave is expected to acknowledge.
 	 * @param busAcquireTimeout the maximum time in microseconds for bus acquisition.
-	 * @param lockCount the number of AUTO-SYN symbols before sending is allowed after lost arbitration.
+	 * @param lockCount the number of AUTO-SYN symbols before sending is allowed after lost arbitration, or 0 for auto detection.
 	 * @param pollInterval the interval in seconds in which poll messages are cycled, or 0 if disabled.
 	 */
 	BusHandler(Device* device, MessageMap* messages,
@@ -270,7 +270,7 @@ public:
 		  m_ownMasterAddress(ownAddress), m_ownSlaveAddress((unsigned char)(ownAddress+5)), m_answer(answer),
 		  m_busLostRetries(busLostRetries), m_failedSendRetries(failedSendRetries),
 		  m_busAcquireTimeout(busAcquireTimeout), m_slaveRecvTimeout(slaveRecvTimeout),
-		  m_lockCount(lockCount), m_remainLockCount(lockCount),
+		  m_autoLockCount(lockCount==0), m_lockCount(lockCount==0 ? 1 : lockCount), m_remainLockCount(lockCount),
 		  m_pollInterval(pollInterval), m_lastReceive(0), m_lastPoll(0),
 		  m_currentRequest(NULL), m_nextSendPos(0),
 		  m_symPerSec(0), m_maxSymPerSec(0),
@@ -389,8 +389,11 @@ private:
 	/** the maximum time in microseconds an addressed slave is expected to acknowledge. */
 	const unsigned int m_slaveRecvTimeout;
 
+	/** whether m_lockCount shall be detected automatically. */
+	const bool m_autoLockCount;
+
 	/** the number of AUTO-SYN symbols before sending is allowed after lost arbitration. */
-	const unsigned int m_lockCount;
+	unsigned int m_lockCount;
 
 	/** the remaining number of AUTO-SYN symbols before sending is allowed again. */
 	unsigned int m_remainLockCount;
