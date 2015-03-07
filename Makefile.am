@@ -1,7 +1,6 @@
 SUBDIRS = docs \
 	  src/lib/utils \
 	  src/lib/ebus \
-	  src/lib/ebus/test \
 	  src/ebusd \
 	  src/tools
 
