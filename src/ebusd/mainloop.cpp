@@ -265,7 +265,7 @@ string MainLoop::executeRead(vector<string> &args)
 		if (!hasCache || (message != NULL && message->getLastUpdateTime() > cacheMessage->getLastUpdateTime()))
 			cacheMessage = message; // message is newer/better
 
-		if (cacheMessage != NULL && cacheMessage->getLastUpdateTime() + maxAge > now) {
+		if (cacheMessage != NULL && (cacheMessage->getLastUpdateTime() + maxAge > now || cacheMessage->isPassive())) {
 			result_t ret = cacheMessage->decodeLastData(result, verbose, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
 			if (ret != RESULT_OK)
 				return getResultCode(ret);
