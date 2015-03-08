@@ -749,6 +749,7 @@ result_t BusHandler::startScan(bool full)
 			if (scanMessage == NULL)
 				scanMessage = message;
 			messages.erase(it - 1); // query pb 0x07 / sb 0x04 only once
+			break;
 		}
 	}
 	if (scanMessage == NULL) {
