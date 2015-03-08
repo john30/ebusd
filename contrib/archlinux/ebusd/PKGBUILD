@@ -1,0 +1,38 @@
+# Maintainer: Milan Knizek <knizek volny cz>
+# Contributor: Milan Knizek <knizek volny cz>
+
+pkgname=ebusd
+#_gitname=ebusd
+pkgver=1.0.0
+_pkgver=1.0.0
+pkgrel=1
+pkgdesc="ebusd provides a communication interface to the energy bus (ebus)."
+arch=('i686' 'x86_64' 'armv6h')
+url=https://github.com/yuhu-/ebusd/
+license=('GPL3')
+depends=()
+optdepends=()
+conflicts=('ebusd-git')
+provides=('ebusd')
+install=ebusd.install
+options=()
+backup=('etc/conf.d/ebusd')
+source=("https://github.com/john30/ebusd/archive/v${_pkgver}.tar.gz" 'ebusd.service' 'ebusd')
+
+build() {
+  cd "${srcdir}"/${pkgname}-${_pkgver}
+  ./autogen.sh --prefix=/usr --sysconfdir=/etc
+  # This is corrected in master
+  sed -i 's@\(\[ -d \)\(\$(sysconfdir)/ebusd \] || mkdir -p \)\(\$(sysconfdir)/ebusd\)@\1\$(DESTDIR)\2\$(DESTDIR)\3@' src/ebusd/Makefile.am
+  make -j1
+}
+
+package() {
+  cd "${srcdir}"/${pkgname}-${_pkgver}
+  make DESTDIR="$pkgdir" install
+
+  install -d                       "${pkgdir}"/usr/lib/systemd/system
+  install -m 0644 ../ebusd.service "${pkgdir}"/usr/lib/systemd/system
+  install -d                       "${pkgdir}"/etc/conf.d
+  install -m 0644 ../ebusd_conf.d  "${pkgdir}"/etc/conf.d/ebusd
+}
