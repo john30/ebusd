@@ -104,24 +104,24 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	if (it == end)
 		return RESULT_ERR_EOF;
 	size_t len = strlen(str);
-	if (len == 0) { // default: active get
+	if (len == 0) { // default: active read
 		defaultName = "r";
-	} else if (strncasecmp(str, "R", 1) == 0) { // active get
+	} else if (strncasecmp(str, "R", 1) == 0) { // active read
 		char last = str[len-1];
-		if (last >= '0' && last <= '9') { // poll priority (=active get)
+		if (last >= '0' && last <= '9') { // poll priority (=active read)
 			pollPriority = (unsigned char)(last - '0');
 			defaultName = string(str).substr(0, len - 1); // cut off priority digit
 		}
 		else
 			defaultName = str;
 	}
-	else if (strncasecmp(str, "W", 1) == 0) { // active set
+	else if (strncasecmp(str, "W", 1) == 0) { // active write
 		isWrite = true;
 		defaultName = str;
 	}
-	else { // any other: passive set/get
+	else { // any other: passive read/write
 		isPassive = true;
-		isWrite = strcasecmp(str+len-1, "W") == 0; // if type ends with "w" it is treated as passive set
+		isWrite = strcasecmp(str+len-1, "W") == 0; // if type ends with "w" it is treated as passive write
 		defaultName = str;
 	}
 
@@ -273,7 +273,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 			sprintf(num, ".%d", index);
 			useClass = useClass + num;
 		}
-		messages.push_back(new Message(useClass, name, isWrite, isPassive, comment, srcAddress, dstAddress, id, data, pollPriority, index==0));
+		messages.push_back(new Message(useClass, name, isWrite, isPassive, comment, srcAddress, dstAddress, id, data, index==0, pollPriority));
 	}
 	return RESULT_OK;
 }
