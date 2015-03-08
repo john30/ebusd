@@ -263,14 +263,14 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 		delete data;
 		return RESULT_ERR_INVALID_POS;
 	}
-	size_t index = 0;
+	unsigned int index = 0;
 	bool multiple = dstAddresses.size()>1;
 	char num[10];
 	for (vector<unsigned char>::iterator it = dstAddresses.begin(); it != dstAddresses.end(); it++, index++) {
 		unsigned char dstAddress = *it;
 		string useClass = clazz;
 		if (multiple) {
-			sprintf(num, ".%ld", index);
+			sprintf(num, ".%d", index);
 			useClass = useClass + num;
 		}
 		messages.push_back(new Message(useClass, name, isWrite, isPassive, comment, srcAddress, dstAddress, id, data, pollPriority, index==0));
