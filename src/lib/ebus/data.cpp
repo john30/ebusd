@@ -165,9 +165,9 @@ void printErrorPos(vector<string>::iterator begin, const vector<string>::iterato
 
 result_t DataField::create(vector<string>::iterator& it,
 		const vector<string>::iterator end,
-		DataFieldTemplates* templates,
-		DataField*& returnField, const bool isWriteMessage,
-		const unsigned char dstAddress)
+		DataFieldTemplates* templates, DataField*& returnField,
+		const bool isWriteMessage,
+		const bool isTemplate, const bool isBroadcastOrMasterDestination)
 {
 	vector<SingleDataField*> fields;
 	string firstName, firstComment;
@@ -179,7 +179,6 @@ result_t DataField::create(vector<string>::iterator& it,
 		string unit, comment;
 		PartType partType;
 		int divisor = 0;
-		const bool isTemplate = dstAddress == SYN;
 		bool hasPartStr = false;
 		string token;
 
@@ -199,7 +198,7 @@ result_t DataField::create(vector<string>::iterator& it,
 					result = RESULT_ERR_MISSING_TYPE;
 				break;
 			}
-			if (dstAddress == BROADCAST || isMaster(dstAddress)
+			if (isBroadcastOrMasterDestination
 				|| (isWriteMessage && !hasPartStr)
 				|| strcasecmp(partStr, "M") == 0) { // master data
 				partType = pt_masterData;

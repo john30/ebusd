@@ -160,7 +160,8 @@ public:
 	 */
 	static result_t create(vector<string>::iterator& it, const vector<string>::iterator end,
 			DataFieldTemplates* templates, DataField*& returnField,
-			const bool isWriteMessage=false, const unsigned char dstAddress=SYN);
+			const bool isWriteMessage=false,
+			const bool isTemplate=true, const bool isBroadcastOrMasterDestination=false);
 
 	/**
 	 * Dump the @a string optionally embedded in @a TEXT_SEPARATOR to the output.
