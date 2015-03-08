@@ -54,12 +54,13 @@ public:
 	 * @param dstAddress the destination address, or @a SYN for any (set later).
 	 * @param id the primary, secondary, and optional further ID bytes.
 	 * @param data the @a DataField for encoding/decoding the message.
+	 * @param deleteData whether to delete the @a DataField during destruction.
 	 * @param pollPriority the priority for polling, or 0 for no polling at all.
 	 */
 	Message(const string clazz, const string name, const bool isWrite,
 			const bool isPassive, const string comment,
 			const unsigned char srcAddress, const unsigned char dstAddress,
-			const vector<unsigned char> id, DataField* data,
+			const vector<unsigned char> id, DataField* data, const bool deleteData,
 			const unsigned char pollPriority);
 
 	/**
@@ -78,21 +79,21 @@ public:
 	/**
 	 * Destructor.
 	 */
-	virtual ~Message() { delete m_data; }
+	virtual ~Message() { if (m_deleteData) delete m_data; }
 
 	/**
-	 * Factory method for creating a new instance.
+	 * Factory method for creating new instances.
 	 * @param it the iterator to traverse for the definition parts.
 	 * @param end the iterator pointing to the end of the definition parts.
 	 * @param defaultsRows a @a vector with rows containing defaults, or NULL.
 	 * @param templates the @a DataFieldTemplates to be referenced by name, or NULL.
-	 * @param returnValue the variable in which to store the created instance.
+	 * @param messages the @a vector to which to add created instances.
 	 * @return @a RESULT_OK on success, or an error code.
-	 * Note: the caller needs to free the created instance.
+	 * Note: the caller needs to free the created instances.
 	 */
 	static result_t create(vector<string>::iterator& it, const vector<string>::iterator end,
 			vector< vector<string> >* defaultsRows,
-			DataFieldTemplates* templates, Message*& returnValue);
+			DataFieldTemplates* templates, vector<Message*>& messages);
 
 	/**
 	 * Get the optional device class.
@@ -285,6 +286,9 @@ private:
 
 	/** the @a DataField for encoding/decoding the message. */
 	DataField* m_data;
+
+	/** whether to delete the @a DataField during destruction. */
+	const bool m_deleteData;
 
 	/** the priority for polling, or 0 for no polling at all. */
 	const unsigned char m_pollPriority;

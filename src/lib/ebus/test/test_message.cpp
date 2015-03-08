@@ -59,6 +59,8 @@ int main()
 		{"u,broadcast,hwStatus,,,fe,b505,27,,,UCH,,,,,,UCH,,,,,,UCH,,,", "0;19;0", "10feb505042700130097", "00", ""},
 		{"w,,first,,,15,b509,0400,date,,bda", "26.10.2014", "ff15b50906040026100614", "00", "m"},
 		{"r,ehp,time,,,08,b509,0d2800,,,time", "15:00:17", "ff08b509030d2800", "0311000f", "md"},
+		{"r,ehp,time,,,08;10,b509,0d2800,,,time", "15:00:17", "ff08b509030d2800", "0311000f", "c"},
+		{"r,ehp,time,,,08;09,b509,0d2800,,,time", "15:00:17", "ff08b509030d2800", "0311000f", "md*"},
 		{"r,ehp,date,,,08,b509,0d2900,,,date", "23.11.2014", "ff08b509030d2900", "03170b0e", "md"},
 		{"u,ehp,ActualEnvironmentPower,Energiebezug,,08,B509,29BA00,,s,IGN:2,,,,,s,power", "8", "1008b5090329ba00", "03ba0008", "pm"},
 		{"uw,ehp,test,Test,,08,B5de,ab,,,power,,,,,s,hex:1", "8;39", "1008b5de02ab08", "0139", "pm"},
@@ -72,7 +74,7 @@ int main()
 	MessageMap* messages = new MessageMap();
 
 	Message* message = NULL;
-	Message* deleteMessage = NULL;
+	vector<Message*> deleteMessages;
 	for (size_t i = 0; i < sizeof(checks) / sizeof(checks[0]); i++) {
 		string check[5] = checks[i];
 		istringstream isstr(check[0]);
@@ -97,15 +99,19 @@ int main()
 		bool decode = flags.find('d') != string::npos;
 		bool failedPrepare = flags.find('p') != string::npos;
 		bool failedPrepareMatch = flags.find('P') != string::npos;
+		bool multi = flags.find('*') != string::npos;
 		string item;
 		vector<string> entries;
 
 		while (getline(isstr, item, FIELD_SEPARATOR) != 0)
 			entries.push_back(item);
 
-		if (deleteMessage != NULL) {
-			delete deleteMessage;
-			deleteMessage = NULL;
+		if (deleteMessages.size()>0) {
+			for (vector<Message*>::iterator it = deleteMessages.begin(); it!=deleteMessages.end(); it++) {
+				Message* deleteMessage = *it;
+				delete deleteMessage;
+			}
+			deleteMessages.clear();
 		}
 		if (isTemplate) {
 			// store new template
@@ -138,7 +144,8 @@ int main()
 		}
 		else {
 			vector<string>::iterator it = entries.begin();
-			result = Message::create(it, entries.end(), NULL, templates, deleteMessage);
+
+			result = Message::create(it, entries.end(), NULL, templates, deleteMessages);
 			if (failedCreate) {
 				if (result == RESULT_OK)
 					cout << "\"" << check[0] << "\": failed create error: unexpectedly succeeded" << endl;
@@ -152,7 +159,7 @@ int main()
 				printErrorPos(entries.begin(), entries.end(), it, "", 0, result);
 				continue;
 			}
-			if (deleteMessage == NULL) {
+			if (deleteMessages.size()==0) {
 				cout << "\"" << check[0] << "\": create error: NULL" << endl;
 				continue;
 			}
@@ -160,17 +167,31 @@ int main()
 				cout << "\"" << check[0] << "\": create error: trailing input" << endl;
 				continue;
 			}
+			if (multi && deleteMessages.size()==1) {
+				cout << "\"" << check[0] << "\": create error: single message instead of multiple" << endl;
+				continue;
+			}
+			if (!multi && deleteMessages.size()>1) {
+				cout << "\"" << check[0] << "\": create error: multiple messages instead of single" << endl;
+				continue;
+			}
 			cout << "\"" << check[0] << "\": create OK" << endl;
 			if (!dontMap) {
-				result_t result = messages->add(deleteMessage);
-				if (result != RESULT_OK) {
-					cout << "\"" << check[0] << "\": add error: "
-							<< getResultCode(result) << endl;
-					continue;
+				result_t result = RESULT_OK;
+				for (vector<Message*>::iterator it = deleteMessages.begin(); it!=deleteMessages.end(); it++) {
+					Message* deleteMessage = *it;
+					result_t result = messages->add(deleteMessage);
+					if (result != RESULT_OK) {
+						cout << "\"" << check[0] << "\": add error: "
+								<< getResultCode(result) << endl;
+						break;
+					}
 				}
+				if (result!=RESULT_OK)
+					continue;
 				cout << "  map OK" << endl;
-				message = deleteMessage;
-				deleteMessage = NULL;
+				message = deleteMessages.front();
+				deleteMessages.clear();
 				if (onlyMap)
 					continue;
 				Message* foundMessage = messages->find(mstr);
@@ -182,7 +203,7 @@ int main()
 					cout << "  find error: different" << endl;
 			}
 			else
-				message = deleteMessage;
+				message = deleteMessages.front();
 		}
 
 		if (message->isPassive() || decode) {
@@ -222,9 +243,12 @@ int main()
 		}
 	}
 
-	if (deleteMessage != NULL) {
-		delete deleteMessage;
-		deleteMessage = NULL;
+	if (deleteMessages.size()>0) {
+		for (vector<Message*>::iterator it = deleteMessages.begin(); it!=deleteMessages.end(); it++) {
+			Message* deleteMessage = *it;
+			delete deleteMessage;
+		}
+		deleteMessages.clear();
 	}
 
 	delete templates;

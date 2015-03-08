@@ -36,12 +36,13 @@ using namespace std;
 Message::Message(const string clazz, const string name, const bool isWrite,
 		const bool isPassive, const string comment,
 		const unsigned char srcAddress, const unsigned char dstAddress,
-		const vector<unsigned char> id, DataField* data,
+		const vector<unsigned char> id, DataField* data, const bool deleteData,
 		const unsigned char pollPriority)
 		: m_class(clazz), m_name(name), m_isWrite(isWrite),
 		  m_isPassive(isPassive), m_comment(comment),
 		  m_srcAddress(srcAddress), m_dstAddress(dstAddress),
-		  m_id(id), m_data(data), m_pollPriority(pollPriority),
+		  m_id(id), m_data(data), m_deleteData(deleteData),
+		  m_pollPriority(pollPriority),
 		  m_lastUpdateTime(0), m_lastChangeTime(0), m_pollCount(0), m_lastPollTime(0)
 {
 	int exp = 7;
@@ -62,7 +63,7 @@ Message::Message(const bool isWrite, const bool isPassive,
 		: m_class(), m_name(), m_isWrite(isWrite),
 		  m_isPassive(isPassive), m_comment(),
 		  m_srcAddress(SYN), m_dstAddress(SYN),
-		  m_data(data), m_pollPriority(0),
+		  m_data(data), m_deleteData(true), m_pollPriority(0),
 		  m_lastUpdateTime(0), m_lastChangeTime(0), m_pollCount(0), m_lastPollTime(0)
 {
 	m_id.push_back(pb);
@@ -88,7 +89,7 @@ string getDefault(const string value, vector<string>* defaults, size_t pos)
 
 result_t Message::create(vector<string>::iterator& it, const vector<string>::iterator end,
 		vector< vector<string> >* defaultsRows,
-		DataFieldTemplates* templates, Message*& returnValue)
+		DataFieldTemplates* templates, vector<Message*>& messages)
 {
 	// [type],[class],name,[comment],[QQ],[ZZ],id,fields...
 	result_t result;
@@ -167,15 +168,28 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	str = getDefault(*it++, defaults, defaultPos++).c_str();
 	if (it == end)
 		 return RESULT_ERR_EOF;
-	unsigned char dstAddress;
-	if (*str == 0)
-		dstAddress = SYN; // no specific destination
-	else {
-		dstAddress = (unsigned char)parseInt(str, 16, 0, 0xff, result);
-		if (result != RESULT_OK)
-			return result;
-		if (!isValidAddress(dstAddress))
-			return RESULT_ERR_INVALID_ADDR;
+	vector<unsigned char> dstAddresses;
+	bool isBroadcastOrMasterDestination = false;
+	if (*str == 0) {
+		dstAddresses.push_back(SYN); // no specific destination
+	} else {
+		istringstream stream(str);
+		string token;
+		bool first = true;
+		while (getline(stream, token, VALUE_SEPARATOR) != 0) {
+			unsigned char dstAddress = (unsigned char)parseInt(token.c_str(), 16, 0, 0xff, result);
+			if (result != RESULT_OK)
+				return result;
+			if (!isValidAddress(dstAddress))
+				return RESULT_ERR_INVALID_ADDR;
+			bool broadcastOrMaster = (dstAddress == BROADCAST) || isMaster(dstAddress);
+			if (first) {
+				isBroadcastOrMasterDestination = broadcastOrMaster;
+				first = false;
+			} else if (isBroadcastOrMasterDestination != broadcastOrMaster)
+				return RESULT_ERR_INVALID_ADDR;
+			dstAddresses.push_back(dstAddress);
+		}
 	}
 
 	vector<unsigned char> id;
@@ -240,7 +254,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 		}
 	}
 	DataField* data = NULL;
-	result = DataField::create(it, realEnd, templates, data, isWrite, dstAddress==SYN ? ESC : dstAddress);
+	result = DataField::create(it, realEnd, templates, data, isWrite, false, isBroadcastOrMasterDestination);
 	if (result != RESULT_OK) {
 		return result;
 	}
@@ -249,7 +263,18 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 		delete data;
 		return RESULT_ERR_INVALID_POS;
 	}
-	returnValue = new Message(clazz, name, isWrite, isPassive, comment, srcAddress, dstAddress, id, data, pollPriority);
+	size_t index = 0;
+	bool multiple = dstAddresses.size()>1;
+	char num[10];
+	for (vector<unsigned char>::iterator it = dstAddresses.begin(); it != dstAddresses.end(); it++, index++) {
+		unsigned char dstAddress = *it;
+		string useClass = clazz;
+		if (multiple) {
+			sprintf(num, ".%ld", index);
+			useClass = useClass + num;
+		}
+		messages.push_back(new Message(useClass, name, isWrite, isPassive, comment, srcAddress, dstAddress, id, data, pollPriority, index==0));
+	}
 	return RESULT_OK;
 }
 
@@ -516,18 +541,21 @@ result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<s
 
 	istringstream stream(types);
 	string type;
+	vector<Message*> messages;
 	while (getline(stream, type, VALUE_SEPARATOR) != 0) {
 		*restart = type;
 		begin = restart;
-		Message* message = NULL;
-		result = Message::create(begin, end, defaults, arg, message);
+		messages.clear();
+		result = Message::create(begin, end, defaults, arg, messages);
+		for (vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++) {
+			Message* message = *it;
+			if (result == RESULT_OK)
+				result = add(message);
+			if (result != RESULT_OK)
+				delete message; // delete all remaining messages on error
+		}
 		if (result != RESULT_OK)
 			return result;
-		result = add(message);
-		if (result != RESULT_OK) {
-			delete message;
-			return result;
-		}
 		begin = restart;
 	}
 	return result;
