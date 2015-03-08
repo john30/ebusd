@@ -17,6 +17,7 @@
 * cache symbols instead of formatted strings. this allows retrieval of individual fields and verbose read from cache
 * removed valid CRCs from log and hex "write"
 * shortened manufcaturer names for "scan"
+* allow specifying multiple destination addresses in message definition and defaults
 
 ## Changed files
 https://github.com/john30/ebusd/compare/v1.0.0...master
