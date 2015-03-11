@@ -1,4 +1,4 @@
-AC_PREREQ([2.65])
+AC_PREREQ([2.63])
 AC_INIT([ebusd], [1.0.0], [ebusd@johnm.de], [ebusd], [https://github.com/john30/ebusd])
 
 AC_CONFIG_AUX_DIR([build])
