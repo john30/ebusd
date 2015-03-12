@@ -442,32 +442,33 @@ static result_t readConfigFiles(const string path, const string extension, DataF
 	if (dir == NULL)
 		return RESULT_ERR_NOTFOUND;
 
-	dirent* d = readdir(dir);
+	dirent* d;
 
-	while (d != NULL) {
-		if (d->d_type == DT_DIR) {
-			string fn = d->d_name;
+	while ((d = readdir(dir)) != NULL) {
+		string fn = d->d_name;
 
-			if (fn != "." && fn != "..") {
-				const string p = path + "/" + d->d_name;
-				result_t result = readConfigFiles(p, extension, templates, messages, verbose);
-				if (result != RESULT_OK)
-					return result;
-			}
+		if (fn == "." || fn == "..")
+			continue;
+
+		const string p = path + "/" + d->d_name;
+		struct stat stat_buf;
+
+		if (stat(p.c_str(), &stat_buf) != 0)
+			continue;
+
+		if (S_ISDIR(stat_buf.st_mode)) {
+			result_t result = readConfigFiles(p, extension, templates, messages, verbose);
+			if (result != RESULT_OK)
+				return result;
 		}
-		else if (d->d_type == DT_REG || d->d_type == DT_LNK) {
-			string fn = d->d_name;
-
+		else if (S_ISREG(stat_buf.st_mode)) {
 			if (fn.find(extension, (fn.length() - extension.length())) != string::npos
 				&& fn != "_templates" + extension) {
-				const string p = path + "/" + d->d_name;
 				result_t result = messages->readFromFile(p, templates, verbose);
 				if (result != RESULT_OK)
 					return result;
 			}
 		}
-
-		d = readdir(dir);
 	}
 	closedir(dir);
 
