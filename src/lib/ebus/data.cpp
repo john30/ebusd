@@ -408,7 +408,7 @@ result_t DataField::create(vector<string>::iterator& it,
 			delete fields.back();
 			fields.pop_back();
 		}
-		return result == RESULT_OK ? RESULT_ERR_INVALID_ARG : result;
+		return result;
 	}
 
 	if (fields.size() == 1)
