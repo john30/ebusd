@@ -218,7 +218,7 @@ void Network::run()
 #endif
 #endif
 
-	for (;;) {
+	while (true) {
 
 #ifdef HAVE_PPOLL
 		// wait for new fd event
@@ -269,7 +269,6 @@ void Network::run()
 			m_connections.push_back(connection);
 			logInfo(lf_network, "[%05d] connection opened %s", connection->getID(), socket->getIP().c_str());
 		}
-
 	}
 }
 
