@@ -270,7 +270,7 @@ public:
 		  m_ownMasterAddress(ownAddress), m_ownSlaveAddress((unsigned char)(ownAddress+5)), m_answer(answer),
 		  m_busLostRetries(busLostRetries), m_failedSendRetries(failedSendRetries),
 		  m_busAcquireTimeout(busAcquireTimeout), m_slaveRecvTimeout(slaveRecvTimeout),
-		  m_masterCount(1), m_autoLockCount(lockCount==0), m_lockCount(lockCount==0 ? 1 : lockCount), m_remainLockCount(m_autoLockCount),
+		  m_masterCount(1), m_autoLockCount(lockCount==0), m_lockCount(lockCount<=3 ? 3 : lockCount), m_remainLockCount(m_autoLockCount),
 		  m_pollInterval(pollInterval), m_lastReceive(0), m_lastPoll(0),
 		  m_currentRequest(NULL), m_nextSendPos(0),
 		  m_symPerSec(0), m_maxSymPerSec(0),

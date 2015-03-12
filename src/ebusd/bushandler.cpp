@@ -607,7 +607,7 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 				if (master != SYN && !m_seenAddresses[master]) {
 					m_seenAddresses[master] = true;
 					m_masterCount++;
-					if (m_autoLockCount)
+					if (m_autoLockCount && m_masterCount>m_lockCount)
 						m_lockCount = m_masterCount;
 					logNotice(lf_bus, "new master %2.2x", master);
 				}
@@ -673,7 +673,7 @@ void BusHandler::receiveCompleted()
 	unsigned char srcAddress = m_command[0], dstAddress = m_command[1];
 	if (isMaster(srcAddress) && !m_seenAddresses[srcAddress]) {
 		m_masterCount++;
-		if (m_autoLockCount)
+		if (m_autoLockCount && m_masterCount>m_lockCount)
 			m_lockCount = m_masterCount;
 		logNotice(lf_bus, "new master %2.2x", srcAddress);
 	}
@@ -685,7 +685,7 @@ void BusHandler::receiveCompleted()
 		logInfo(lf_update, "update MM cmd: %s", m_command.getDataStr().c_str());
 		if (!m_seenAddresses[dstAddress]) {
 			m_masterCount++;
-			if (m_autoLockCount)
+			if (m_autoLockCount && m_masterCount>m_lockCount)
 				m_lockCount = m_masterCount;
 			logNotice(lf_bus, "new master %2.2x", dstAddress);
 		}
@@ -697,7 +697,7 @@ void BusHandler::receiveCompleted()
 		if (masterAddr != SYN && !m_seenAddresses[masterAddr]) {
 			m_seenAddresses[masterAddr] = true;
 			m_masterCount++;
-			if (m_autoLockCount)
+			if (m_autoLockCount && m_masterCount>m_lockCount)
 				m_lockCount = m_masterCount;
 			logNotice(lf_bus, "new master %2.2x", masterAddr);
 		}
