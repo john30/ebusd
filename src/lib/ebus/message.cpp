@@ -376,7 +376,7 @@ result_t Message::decode(const PartType partType, SymbolString& data,
 			m_lastSlaveData = data;
 		}
 	}
-	return RESULT_OK;
+	return result;
 }
 
 result_t Message::decode(SymbolString& masterData, SymbolString& slaveData,
@@ -406,7 +406,7 @@ result_t Message::decode(SymbolString& masterData, SymbolString& slaveData,
 		m_lastChangeTime = m_lastUpdateTime;
 		m_lastSlaveData = slaveData;
 	}
-	return RESULT_OK;
+	return result;
 }
 
 result_t Message::decodeLastData(ostringstream& output,
@@ -427,7 +427,7 @@ result_t Message::decodeLastData(ostringstream& output,
 		return result;
 	if (empty && result == RESULT_EMPTY && fieldName != NULL)
 		return RESULT_ERR_NOTFOUND;
-	return RESULT_OK;
+	return result;
 }
 
 bool Message::isLessPollWeight(const Message* other)
