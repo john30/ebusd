@@ -266,7 +266,7 @@ int main()
 			fields = NULL;
 		}
 		vector<string>::iterator it = entries.begin();
-		result = DataField::create(it, entries.end(), templates, fields, isSet, isTemplate ? SYN : mstr[1]);
+		result = DataField::create(it, entries.end(), templates, fields, isSet, isTemplate, !isTemplate && (mstr[1]==BROADCAST || isMaster(mstr[1])));
 		if (failedCreate) {
 			if (result == RESULT_OK)
 				cout << "\"" << check[0] << "\": failed create error: unexpectedly succeeded" << endl;
