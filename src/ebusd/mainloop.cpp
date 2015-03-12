@@ -192,6 +192,7 @@ string MainLoop::executeRead(vector<string> &args)
 	time_t maxAge = 5*60;
 	bool verbose = false;
 	string clazz;
+	unsigned char dstAddress = SYN;
 	while (args.size() > argPos && args[argPos][0] == '-') {
 		if (args[argPos] == "-f") {
 			maxAge = 0;
@@ -222,18 +223,29 @@ string MainLoop::executeRead(vector<string> &args)
 			}
 			clazz = args[argPos];
 		}
-		else {
+		else if (args[argPos] == "-d") {
+			argPos++;
+			if (argPos >= args.size()) {
+				argPos = 0; // print usage
+				break;
+			}
+			result_t ret;
+			dstAddress = (unsigned char)parseInt(args[argPos].c_str(), 16, 0, 0xff, ret);
+			if (ret != RESULT_OK || !isValidAddress(dstAddress) || isMaster(dstAddress))
+				return getResultCode(RESULT_ERR_INVALID_ADDR);
+		} else {
 			argPos = 0; // print usage
 			break;
 		}
 		argPos++;
 	}
 	if (argPos == 0 || args.size() < argPos + 1 || args.size() > argPos + 2)
-		return "usage: read [-v] [-f] [-m SECONDS] [-c CLASS] NAME [FIELD[.N]]\n"
+		return "usage: read [-v] [-f] [-m SECONDS] [-d ZZ] [-c CLASS] NAME [FIELD[.N]]\n"
 			   " Read value(s).\n"
 			   "  -v          be verbose (include field names, units, and comments)\n"
 			   "  -f          force reading from the bus (same as '-m 0')\n"
 			   "  -m SECONDS  only return cached value if age is less than SECONDS [300]\n"
+			   "  -d ZZ       override destination address ZZ\n"
 			   "  -c CLASS    limit to messages of CLASS\n"
 			   "  NAME        the NAME of the message to send\n"
 			   "  FIELD       only retrieve the field named FIELD\n"
@@ -259,7 +271,7 @@ string MainLoop::executeRead(vector<string> &args)
 	ostringstream result;
 	Message* message = m_messages->find(clazz, args[argPos], false);
 
-	if (maxAge > 0) {
+	if (dstAddress==SYN && maxAge > 0) {
 		Message* cacheMessage = m_messages->find(clazz, args[argPos], false, true);
 		bool hasCache = cacheMessage != NULL;
 		if (!hasCache || (message != NULL && message->getLastUpdateTime() > cacheMessage->getLastUpdateTime()))
@@ -280,11 +292,12 @@ string MainLoop::executeRead(vector<string> &args)
 
 	if (message == NULL)
 		return getResultCode(RESULT_ERR_NOTFOUND);
-
+	if (message->getDstAddress()==SYN && dstAddress==SYN)
+		return getResultCode(RESULT_ERR_INVALID_ADDR);
 	// read directly from bus
 	SymbolString master(true);
 	istringstream input;
-	result_t ret = message->prepareMaster(m_address, master, input);
+	result_t ret = message->prepareMaster(m_address, master, input, UI_FIELD_SEPARATOR, dstAddress);
 	if (ret != RESULT_OK) {
 		logError(lf_main, "prepare read: %s", getResultCode(ret));
 		return getResultCode(ret);
@@ -353,11 +366,11 @@ string MainLoop::executeWrite(vector<string> &args)
 		return getResultCode(ret);
 	}
 
-	if (args.size() == argPos + 4 && args[argPos] == "-c") {
+	if (args.size() > argPos && args[argPos] == "-c") {
 		argPos++;
 	}
-	if (argPos == 0 || args.size() != argPos + 3)
-		return "usage: write [-c] CLASS NAME VALUE[;VALUE]*\n"
+	if (argPos == 0 || (args.size() != argPos + 3 && args.size() != argPos + 2))
+		return "usage: write [-c] CLASS NAME [VALUE[;VALUE]*]\n"
 			   "  or:  write -h ZZPBSBNNDx\n"
 			   " Write value(s) or hex message.\n"
 			   "  CLASS    the CLASS of the message to send\n"
@@ -375,7 +388,7 @@ string MainLoop::executeWrite(vector<string> &args)
 		return getResultCode(RESULT_ERR_NOTFOUND);
 
 	SymbolString master(true);
-	istringstream input(args[argPos + 2]);
+	istringstream input(args.size() == argPos + 2 ? "" : args[argPos + 2]); // allow missing values
 	result_t ret = message->prepareMaster(m_address, master, input);
 	if (ret != RESULT_OK) {
 		logError(lf_main, "prepare write: %s", getResultCode(ret));
@@ -682,8 +695,8 @@ string MainLoop::executeQuit(vector<string> &args, bool& connected)
 string MainLoop::executeHelp()
 {
 	return "usage:\n"
-		   " read|r   Read value(s):        read [-v] [-f] [-m SECONDS] [-c CLASS] NAME [FIELD[.N]]\n"
-		   " write|w  Write value(s):       write [-c] CLASS NAME VALUE[;VALUE]*\n"
+		   " read|r   Read value(s):        read [-v] [-f] [-m SECONDS] [-d ZZ] [-c CLASS] NAME [FIELD[.N]]\n"
+		   " write|w  Write value(s):       write [-c] CLASS NAME [VALUE[;VALUE]*]\n"
 		   "          Write hex message:    write -h ZZPBSBNNDx'\n"
 		   " find|f   Find message(s):      find [-v] [-r] [-w] [-p] [-d] [-i PB] [-f] [-c CLASS] [NAME]\n"
 		   " listen|l Listen for updates:   listen [stop]\n"
