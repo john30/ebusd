@@ -5,6 +5,8 @@
 * corrected divisor for chains of derived number types
 * corrected master number calculation (no influence on any behaviour)
 * fixed signed char warning on some compilers
+* corrected minimum lock count according to spec.
+* differentiate between valid empty result and not found field name
 
 ## Features
 * new command line option "--dumpconfig" for dumping message configurations
@@ -18,6 +20,10 @@
 * removed valid CRCs from log and hex "write"
 * shortened manufcaturer names for "scan"
 * allow specifying multiple destination addresses in message definition and defaults
+* added Arch Linux PKGBUILD scripts (thanks to cogano)
+* new "read" command option "-d ZZ" for overriding destination address (e.g. for manual scan)
+* allow message definitions without any field
+* added broadcast ident message (requests all masters to send their identification) and added read ident for manual scan
 
 ## Changed files
 https://github.com/john30/ebusd/compare/v1.0.0...master
