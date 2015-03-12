@@ -52,7 +52,7 @@ Message::Message(const string clazz, const string name, const bool isWrite,
 	else
 		key |= 0x1fLL << (8 * exp--); // special value for active
 	key |= (unsigned long long)dstAddress << (8 * exp--);
-	for (vector<unsigned char>::const_iterator it=id.begin(); it<id.end(); it++)
+	for (vector<unsigned char>::const_iterator it = id.begin(); it < id.end(); it++)
 		key |= (unsigned long long)*it << (8 * exp--);
 	m_key = key;
 }
@@ -193,18 +193,16 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	}
 
 	vector<unsigned char> id;
-	for (int pos=0, useDefaults=1; pos<2; pos++) { // message id (PBSB, optional master data)
+	bool useDefaults = true;
+	for (int pos = 0; pos < 2 && it != end; pos++) { // message id (PBSB, optional master data)
 		string token = *it++;
-		if (useDefaults == 1) {
+		if (useDefaults) {
 			if (pos == 0 && token.size() > 0)
-				useDefaults = 0;
+				useDefaults = false;
 			else
 				token = getDefault("", defaults, defaultPos).append(token);
-
 		}
 		istringstream input(token);
-		if (it == end)
-			return RESULT_ERR_EOF;
 		while (!input.eof()) {
 			while (input.peek() == ' ')
 				input.get();
@@ -223,9 +221,9 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 			}
 			id.push_back(value);
 		}
-		if (pos == 0 && id.size() != 2) {
+		if (pos == 0 && id.size() != 2)
 			return RESULT_ERR_INVALID_ARG; // missing/too short/too PBSB
-		}
+
 		defaultPos++;
 	}
 	if (id.size() < 2 || id.size() > 6) {
@@ -254,9 +252,14 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 		}
 	}
 	DataField* data = NULL;
-	result = DataField::create(it, realEnd, templates, data, isWrite, false, isBroadcastOrMasterDestination);
-	if (result != RESULT_OK) {
-		return result;
+	if (it==realEnd) {
+		vector<SingleDataField*> fields;
+		data = new DataFieldSet("", "", fields);
+	} else {
+		result = DataField::create(it, realEnd, templates, data, isWrite, false, isBroadcastOrMasterDestination);
+		if (result != RESULT_OK) {
+			return result;
+		}
 	}
 	if (id.size() + data->getLength(pt_masterData) > 2 + MAX_POS || data->getLength(pt_slaveData) > MAX_POS) {
 		// max NN exceeded
@@ -306,7 +309,7 @@ result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& ma
 	result = master.push_back((unsigned char)(m_id.size() - 2 + addData), false, false);
 	if (result != RESULT_OK)
 		return result;
-	for (size_t i=2; i<m_id.size(); i++) {
+	for (size_t i = 2; i < m_id.size(); i++) {
 		result = master.push_back(m_id[i], false, false);
 		if (result != RESULT_OK)
 			return result;
@@ -358,7 +361,7 @@ result_t Message::decode(const PartType partType, SymbolString& data,
 	result_t result = m_data->read(partType, data, offset, output, leadingSeparator, verbose, fieldName, fieldIndex, separator);
 	if (result < RESULT_OK)
 		return result;
-	if (result == RESULT_EMPTY)
+	if (result == RESULT_EMPTY && fieldName != NULL)
 		return RESULT_ERR_NOTFOUND;
 
 	time(&m_lastUpdateTime);
@@ -385,14 +388,14 @@ result_t Message::decode(SymbolString& masterData, SymbolString& slaveData,
 	result_t result = m_data->read(pt_masterData, masterData, offset, output, leadingSeparator, verbose, NULL, -1, separator);
 	if (result < RESULT_OK)
 		return result;
-	bool empty = result==RESULT_EMPTY;
+	bool empty = result == RESULT_EMPTY;
 	offset = 0;
 	leadingSeparator = output.str().length() > startPos;
 	result = m_data->read(pt_slaveData, slaveData, offset, output, leadingSeparator, verbose, NULL, -1, separator);
 	if (result < RESULT_OK)
 		return result;
-	if (empty && result == RESULT_EMPTY)
-		return RESULT_ERR_NOTFOUND;
+	if (result == RESULT_EMPTY && !empty)
+		result = RESULT_OK;
 
 	time(&m_lastUpdateTime);
 	if (masterData != m_lastMasterData) {
@@ -416,13 +419,13 @@ result_t Message::decodeLastData(ostringstream& output,
 	result_t result = m_data->read(pt_masterData, m_lastMasterData, offset, output, leadingSeparator, verbose, fieldName, fieldIndex, separator);
 	if (result < RESULT_OK)
 		return result;
-	bool empty = result==RESULT_EMPTY;
+	bool empty = result == RESULT_EMPTY;
 	offset = 0;
 	leadingSeparator = output.str().length() > startPos;
 	result = m_data->read(pt_slaveData, m_lastSlaveData, offset, output, leadingSeparator, verbose, fieldName, fieldIndex, separator);
 	if (result < RESULT_OK)
 		return result;
-	if (empty && result == RESULT_EMPTY)
+	if (empty && result == RESULT_EMPTY && fieldName != NULL)
 		return RESULT_ERR_NOTFOUND;
 	return RESULT_OK;
 }
@@ -469,7 +472,7 @@ void Message::dump(ostream& output)
 		output << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_dstAddress);
 	output << FIELD_SEPARATOR;
 	unsigned int cnt = 0;
-	for (vector<unsigned char>::const_iterator it=m_id.begin(); it<m_id.end(); it++) {
+	for (vector<unsigned char>::const_iterator it = m_id.begin(); it < m_id.end(); it++) {
 		if (cnt++ == 2)
 			output << FIELD_SEPARATOR;
 		output << hex << setw(2) << setfill('0') << static_cast<unsigned>(*it);
@@ -565,7 +568,7 @@ Message* MessageMap::find(const string& clazz, const string& name, const bool is
 {
 	string lclass = strtolower(clazz);
 	string lname = strtolower(name);
-	for (int i=0; i<2; i++) {
+	for (int i = 0; i < 2; i++) {
 		string key;
 		if (i == 0)
 			key = string(isPassive ? "P" : (isWrite ? "W" : "R")) + lclass + FIELD_SEPARATOR + lname;
@@ -644,7 +647,7 @@ Message* MessageMap::find(SymbolString& master)
 		key |= (unsigned long long)master[1] << (8 * exp--);
 		key |= (unsigned long long)master[2] << (8 * exp--);
 		key |= (unsigned long long)master[3] << (8 * exp--);
-		for (unsigned char i=0; i<idLength; i++)
+		for (unsigned char i = 0; i < idLength; i++)
 			key |= (unsigned long long)master[5 + i] << (8 * exp--);
 
 		map<unsigned long long , Message*>::iterator it = m_messagesByKey.find(key);

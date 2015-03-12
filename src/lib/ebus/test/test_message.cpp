@@ -58,6 +58,7 @@ int main()
 		{"u,,first,,,fe,0700,,x,,bda", "26.10.2014", "fffe07000426100614", "00", "p"},
 		{"u,broadcast,hwStatus,,,fe,b505,27,,,UCH,,,,,,UCH,,,,,,UCH,,,", "0;19;0", "10feb505042700130097", "00", ""},
 		{"w,,first,,,15,b509,0400,date,,bda", "26.10.2014", "ff15b50906040026100614", "00", "m"},
+		{"w,,first,,,15,b509", "", "ff15b50900", "00", "m"},
 		{"r,ehp,time,,,08,b509,0d2800,,,time", "15:00:17", "ff08b509030d2800", "0311000f", "md"},
 		{"r,ehp,time,,,08;10,b509,0d2800,,,time", "15:00:17", "ff08b509030d2800", "0311000f", "c"},
 		{"r,ehp,time,,,08;09,b509,0d2800,,,time", "15:00:17", "ff08b509030d2800", "0311000f", "md*"},
@@ -107,7 +108,7 @@ int main()
 			entries.push_back(item);
 
 		if (deleteMessages.size()>0) {
-			for (vector<Message*>::iterator it = deleteMessages.begin(); it!=deleteMessages.end(); it++) {
+			for (vector<Message*>::iterator it = deleteMessages.begin(); it != deleteMessages.end(); it++) {
 				Message* deleteMessage = *it;
 				delete deleteMessage;
 			}
@@ -117,7 +118,7 @@ int main()
 			// store new template
 			DataField* fields = NULL;
 			vector<string>::iterator it = entries.begin();
-			result = DataField::create(it, entries.end(), templates, fields);
+			result = DataField::create(it, entries.end(), templates, fields, false, true, false);
 			if (result != RESULT_OK)
 				cout << "\"" << check[0] << "\": template fields create error: " << getResultCode(result) << endl;
 			else if (it != entries.end()) {
@@ -178,7 +179,7 @@ int main()
 			cout << "\"" << check[0] << "\": create OK" << endl;
 			if (!dontMap) {
 				result_t result = RESULT_OK;
-				for (vector<Message*>::iterator it = deleteMessages.begin(); it!=deleteMessages.end(); it++) {
+				for (vector<Message*>::iterator it = deleteMessages.begin(); it != deleteMessages.end(); it++) {
 					Message* deleteMessage = *it;
 					result_t result = messages->add(deleteMessage);
 					if (result != RESULT_OK) {
@@ -187,7 +188,7 @@ int main()
 						break;
 					}
 				}
-				if (result!=RESULT_OK)
+				if (result != RESULT_OK)
 					continue;
 				cout << "  map OK" << endl;
 				message = deleteMessages.front();
@@ -244,7 +245,7 @@ int main()
 	}
 
 	if (deleteMessages.size()>0) {
-		for (vector<Message*>::iterator it = deleteMessages.begin(); it!=deleteMessages.end(); it++) {
+		for (vector<Message*>::iterator it = deleteMessages.begin(); it != deleteMessages.end(); it++) {
 			Message* deleteMessage = *it;
 			delete deleteMessage;
 		}
