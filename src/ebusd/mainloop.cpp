@@ -294,6 +294,7 @@ string MainLoop::executeRead(vector<string> &args)
 		return getResultCode(RESULT_ERR_NOTFOUND);
 	if (message->getDstAddress()==SYN && dstAddress==SYN)
 		return getResultCode(RESULT_ERR_INVALID_ADDR);
+
 	// read directly from bus
 	SymbolString master(true);
 	istringstream input;
