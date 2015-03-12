@@ -306,7 +306,7 @@ public:
 	PartType getPartType() const { return m_partType; }
 
 	// @copydoc
-	virtual unsigned char getLength(PartType partType) { return partType == m_partType ? m_length : 0; };
+	virtual unsigned char getLength(PartType partType) { return partType == m_partType ? m_length : (unsigned char)0; };
 	// re-use same position as previous field as not all bits of fully consumed yet
 
 	/**
@@ -558,7 +558,7 @@ public:
 			const unsigned char length, const unsigned char bitCount,
 			const map<unsigned int, string> values)
 		: NumericDataField(name, comment, unit, dataType, partType, length, bitCount,
-				(dataType.bitCount < 8) ? (unsigned char)dataType.divisorOrFirstBit : 0),
+				(unsigned char)((dataType.bitCount < 8) ? dataType.divisorOrFirstBit : 0)),
 		m_values(values) {}
 
 	/**

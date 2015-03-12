@@ -1,0 +1,15 @@
+[Unit]
+Description=Communication interface to the energy bus (ebus)
+After=local-fs.target
+ConditionPathExists=/var/log
+
+[Service]
+Type=forking
+EnvironmentFile=-/etc/conf.d/ebusd
+ExecStart=/usr/bin/ebusd $EBUSD_ARGS
+Restart=always
+PIDFile=/run/ebusd.pid
+
+[Install]
+WantedBy=multi-user.target
+

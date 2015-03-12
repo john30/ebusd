@@ -25,7 +25,8 @@ Installation
 ------------
 
 Building ebusd from the source requires the following packages:
- * autoconf (>=2.65)
+ * autoconf (>=2.63)
+ * automake (>=1.11)
  * g++
  * make
 

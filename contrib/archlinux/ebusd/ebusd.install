@@ -1,0 +1,24 @@
+pkgname=ebusd
+
+post_install() {
+  echo ">>> Put daemon options to /etc/conf.d/ebusd (especially /dev/tty????)"
+  echo "    Copy your configuration files (csv) to /etc/ebusd"
+  echo "    Start the daemon 'systemctl start ebusd'"
+}
+
+pre_upgrade() {
+  true
+}
+
+post_upgrade() {
+  true
+}
+
+pre_remove() {
+  true
+}
+
+post_remove() {
+  true
+}
+

@@ -705,7 +705,7 @@ result_t StringDataField::writeSymbols(istringstream& input,
 					if ((m_dataType.flags & BCD) != 0)
 						output[baseOffset + offset - incr] = (unsigned char)((6+daysSinceSunday) % 7); // Sun=0x06
 					else
-						output[baseOffset + offset - incr] = (daysSinceSunday==0 ? 7 : daysSinceSunday); // Sun=0x07
+						output[baseOffset + offset - incr] = (unsigned char)(daysSinceSunday==0 ? 7 : daysSinceSunday); // Sun=0x07
 				}
 				if (value >= 2000)
 					value -= 2000;
@@ -891,7 +891,7 @@ NumberDataField::NumberDataField(const string name, const string comment,
 		const unsigned char length, const unsigned char bitCount,
 		const int divisor)
 	: NumericDataField(name, comment, unit, dataType, partType, length, bitCount,
-			(dataType.bitCount % 8) == 0 ? 0 : (unsigned char)dataType.divisorOrFirstBit),
+			(unsigned char)((dataType.bitCount % 8) == 0 ? 0 : dataType.divisorOrFirstBit)),
 	m_divisor(divisor), m_precision(0)
 {
 	if (divisor > 1)
