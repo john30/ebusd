@@ -1339,7 +1339,7 @@ result_t DataFieldSet::write(istringstream& input,
 
 void DataFieldTemplates::clear()
 {
-	for (map<string, DataField*>::iterator it=m_fieldsByName.begin(); it!=m_fieldsByName.end(); it++) {
+	for (map<string, DataField*>::iterator it = m_fieldsByName.begin(); it != m_fieldsByName.end(); it++) {
 		delete it->second;
 		it->second = NULL;
 	}
@@ -1368,7 +1368,7 @@ result_t DataFieldTemplates::add(DataField* field, bool replace)
 result_t DataFieldTemplates::addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end, void* arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo)
 {
 	DataField* field = NULL;
-	result_t result = DataField::create(begin, end, this, field);
+	result_t result = DataField::create(begin, end, this, field, false, true, false);
 	if (result != RESULT_OK)
 		return result;
 
