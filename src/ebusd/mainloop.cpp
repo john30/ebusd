@@ -312,10 +312,12 @@ string MainLoop::executeRead(vector<string> &args)
 	if (ret == RESULT_OK) {
 		ret = message->decode(pt_slaveData, slave, result, false, verbose, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
 	}
-	if (ret != RESULT_OK) {
+	if (ret < RESULT_OK) {
 		logError(lf_main, "read: %s", getResultCode(ret));
 		return getResultCode(ret);
 	}
+	if (ret > RESULT_OK)
+		return getResultCode(ret);
 	return result.str();
 }
 
@@ -407,7 +409,7 @@ string MainLoop::executeWrite(vector<string> &args)
 			return getResultCode(RESULT_OK);
 
 		ret = message->decode(pt_slaveData, slave, result); // decode data
-		if (ret == RESULT_OK && result.str().empty())
+		if (ret >= RESULT_OK && result.str().empty())
 			return getResultCode(RESULT_OK);
 	}
 	if (ret != RESULT_OK) {
