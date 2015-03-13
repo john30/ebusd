@@ -7,6 +7,8 @@
 * fixed signed char warning on some compilers
 * corrected minimum lock count according to spec.
 * differentiate between valid empty result and not found field name
+* fixed scanning for messages in subdirectories for certain file systems (thanks to joltcoke)
+* allow mixing references to base types and templates in message definition
 
 ## Features
 * new command line option "--dumpconfig" for dumping message configurations
