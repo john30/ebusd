@@ -274,132 +274,33 @@ result_t DataField::create(vector<string>::iterator& it,
 				comment = str;
 		}
 
-		string typeName;
-		size_t pos = typeStr.find(LENGTH_SEPARATOR);
-		unsigned char length;
-		if (pos == string::npos) {
-			length = 0;
-			// check for reference(s) to templates
-			if (templates != NULL) {
-				istringstream stream(typeStr);
-				bool found = false;
-				while (result == RESULT_OK && getline(stream, token, VALUE_SEPARATOR) != 0) {
-					DataField* templ = templates->get(token);
-					if (templ == NULL) {
-						if (!found)
-							break; // fallback to direct definition
-						result = RESULT_ERR_NOTFOUND; // cannot mix reference and direct definition
-					}
-					else {
-						found = true;
-						result = templ->derive("", "", "", partType, divisor, values, fields);
-					}
+		bool firstType = true;
+		istringstream stream(typeStr);
+		while (result == RESULT_OK && getline(stream, token, VALUE_SEPARATOR) != 0) {
+			DataField* templ = templates->get(token);
+			unsigned char length;
+			if (templ == NULL) {
+				size_t pos = token.find(LENGTH_SEPARATOR);
+				if (pos == string::npos)
+					length = 0; // no length specified
+				else {
+					length = (unsigned char)parseInt(token.substr(pos+1).c_str(), 10, 1, MAX_POS, result);
+					if (result != RESULT_OK)
+						break;
 				}
-				if (result != RESULT_OK)
-					break;
-				if (found)
-					continue; // go to next definition
+				string typeName = token.substr(0, pos);
+				SingleDataField* add = NULL;
+				result = SingleDataField::create(typeName.c_str(), length, firstType ? name : "", firstType ? comment : "", firstType ? unit : "", partType, divisor, values, add);
+				if (add != NULL)
+					fields.push_back(add);
+				else if (result == RESULT_OK)
+					result = RESULT_ERR_NOTFOUND; // type not found
 			}
-			typeName = typeStr;
+			else
+				result = templ->derive(firstType ? name : "", firstType ? comment : "", firstType ? unit : "", partType, divisor, values, fields);
+
+			firstType = false;
 		}
-		else {
-			length = (unsigned char)parseInt(typeStr.substr(pos+1).c_str(), 10, 1, MAX_POS, result);
-			if (result != RESULT_OK)
-				break;
-			typeName = typeStr.substr(0, pos);
-		}
-
-		SingleDataField* add = NULL;
-		const char* typeNameStr = typeName.c_str();
-		for (size_t i = 0; result == RESULT_OK && add == NULL && i < sizeof(dataTypes) / sizeof(dataType_t); i++) {
-			const dataType_t* dataType = &dataTypes[i];
-			if (strcasecmp(typeNameStr, dataType->name) == 0) {
-				unsigned char bitCount = dataType->bitCount;
-				unsigned char byteCount = (unsigned char)((bitCount + 7) / 8);
-				if ((dataType->flags & ADJ) != 0) { // adjustable length
-					if ((bitCount % 8) != 0) {
-						if (length == 0)
-							bitCount = 1; // default bit count: 1 bit
-						else if (length <= bitCount)
-							bitCount = length;
-						else {
-							result = RESULT_ERR_OUT_OF_RANGE; // invalid length
-							break;
-						}
-
-						byteCount = (unsigned char)((bitCount + 7) / 8);
-					}
-					else if (length == 0)
-						byteCount = 1; //default byte count: 1 byte
-					else if (length <= byteCount)
-						byteCount = length;
-					else {
-						result = RESULT_ERR_OUT_OF_RANGE; // invalid length
-						break;
-					}
-				}
-				else if (length > 0 && length != byteCount)
-						continue; // check for another one with same name but different length
-
-				switch (dataType->type)
-				{
-				case bt_str:
-				case bt_hexstr:
-				case bt_dat:
-				case bt_tim:
-					add = new StringDataField(name, comment, unit, *dataType, partType, byteCount);
-					break;
-				case bt_num:
-					if (values.empty() && (dataType->flags & DAY) != 0) {
-						for (unsigned int i = 0; i < sizeof(dayNames) / sizeof(dayNames[0]); i++)
-							values[dataType->minValueOrLength + i] = dayNames[i];
-					}
-					if (values.empty() || (dataType->flags & LST) == 0) {
-						if (divisor == 0)
-							divisor = 1;
-
-						if ((dataType->bitCount % 8) == 0) {
-							if (divisor < 0) {
-								if (dataType->divisorOrFirstBit > 1) {
-									result = RESULT_ERR_INVALID_ARG;
-									break;
-								}
-								if (dataType->divisorOrFirstBit < 0)
-									divisor *= -dataType->divisorOrFirstBit;
-							} else if (dataType->divisorOrFirstBit < 0) {
-								if (divisor > 1) {
-									result = RESULT_ERR_INVALID_ARG;
-									break;
-								}
-								if (divisor < 0)
-									divisor *= -dataType->divisorOrFirstBit;
-							} else
-								divisor *= dataType->divisorOrFirstBit;
-
-							if (-MAX_DIVISOR > divisor || divisor > MAX_DIVISOR) {
-								result = RESULT_ERR_OUT_OF_RANGE;
-								break;
-							}
-						}
-
-						add = new NumberDataField(name, comment, unit, *dataType, partType, byteCount, bitCount, divisor);
-						break;
-					}
-					if (values.begin()->first < dataType->minValueOrLength
-							|| values.rbegin()->first > dataType->maxValueOrLength) {
-						result = RESULT_ERR_OUT_OF_RANGE;
-						break;
-					}
-					//TODO add special field for fixed values (exactly one value in the list of values)
-					add = new ValueListDataField(name, comment, unit, *dataType, partType, byteCount, bitCount, values);
-					break;
-				}
-			}
-		}
-		if (add != NULL)
-			fields.push_back(add);
-		else if (result == RESULT_OK)
-			result = RESULT_ERR_NOTFOUND; // type not found
 
 	} while (it != end && result == RESULT_OK);
 
@@ -430,6 +331,89 @@ void DataField::dumpString(ostream& output, const string str, const bool prepend
 	}
 }
 
+result_t SingleDataField::create(const char* typeNameStr, const unsigned char length,
+	const string name, const string comment, const string unit,
+	const PartType partType, int divisor, map<unsigned int, string> values,
+	SingleDataField* &returnField)
+{
+	for (size_t i = 0; i < sizeof(dataTypes) / sizeof(dataType_t); i++) {
+		const dataType_t* dataType = &dataTypes[i];
+		if (strcasecmp(typeNameStr, dataType->name) == 0) {
+			unsigned char bitCount = dataType->bitCount;
+			unsigned char byteCount = (unsigned char)((bitCount + 7) / 8);
+			if ((dataType->flags & ADJ) != 0) { // adjustable length
+				if ((bitCount % 8) != 0) {
+					if (length == 0)
+						bitCount = 1; // default bit count: 1 bit
+					else if (length <= bitCount)
+						bitCount = length;
+					else
+						return RESULT_ERR_OUT_OF_RANGE; // invalid length
+
+					byteCount = (unsigned char)((bitCount + 7) / 8);
+				}
+				else if (length == 0)
+					byteCount = 1; //default byte count: 1 byte
+				else if (length <= byteCount)
+					byteCount = length;
+				else
+					return RESULT_ERR_OUT_OF_RANGE; // invalid length
+			}
+			else if (length > 0 && length != byteCount)
+				continue; // check for another one with same name but different length
+
+			switch (dataType->type)
+			{
+			case bt_str:
+			case bt_hexstr:
+			case bt_dat:
+			case bt_tim:
+				returnField = new StringDataField(name, comment, unit, *dataType, partType, byteCount);
+				return RESULT_OK;
+			case bt_num:
+				if (values.empty() && (dataType->flags & DAY) != 0) {
+					for (unsigned int i = 0; i < sizeof(dayNames) / sizeof(dayNames[0]); i++)
+						values[dataType->minValueOrLength + i] = dayNames[i];
+				}
+				if (values.empty() || (dataType->flags & LST) == 0) {
+					if (divisor == 0)
+						divisor = 1;
+
+					if ((dataType->bitCount % 8) == 0) {
+						if (divisor < 0) {
+							if (dataType->divisorOrFirstBit > 1)
+								return RESULT_ERR_INVALID_ARG;
+
+							if (dataType->divisorOrFirstBit < 0)
+								divisor *= -dataType->divisorOrFirstBit;
+						} else if (dataType->divisorOrFirstBit < 0) {
+							if (divisor > 1)
+								return RESULT_ERR_INVALID_ARG;
+
+							if (divisor < 0)
+								divisor *= -dataType->divisorOrFirstBit;
+						} else
+							divisor *= dataType->divisorOrFirstBit;
+
+						if (-MAX_DIVISOR > divisor || divisor > MAX_DIVISOR)
+							return RESULT_ERR_OUT_OF_RANGE;
+					}
+
+					returnField = new NumberDataField(name, comment, unit, *dataType, partType, byteCount, bitCount, divisor);
+					return RESULT_OK;
+				}
+				if (values.begin()->first < dataType->minValueOrLength
+						|| values.rbegin()->first > dataType->maxValueOrLength)
+					return RESULT_ERR_OUT_OF_RANGE;
+
+				//TODO add special field for fixed values (exactly one value in the list of values)
+				returnField = new ValueListDataField(name, comment, unit, *dataType, partType, byteCount, bitCount, values);
+				return RESULT_OK;
+			}
+		}
+	}
+	return RESULT_ERR_NOTFOUND;
+}
 
 void SingleDataField::dump(ostream& output)
 {

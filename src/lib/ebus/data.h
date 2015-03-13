@@ -180,7 +180,7 @@ public:
 	virtual unsigned char getLength(PartType partType) = 0;
 
 	/**
-	 * Derives a new DataField from this field.
+	 * Derive a new @a DataField from this field.
 	 * @param name the field name.
 	 * @param comment the field comment, or empty to use this fields comment.
 	 * @param unit the value unit, or empty to use this fields unit (if applicable).
@@ -286,6 +286,25 @@ public:
 	 * Destructor.
 	 */
 	virtual ~SingleDataField() {}
+
+	/**
+	 * Factory method for creating a new @a SingleDataField instance derived from a base type.
+	 * @param typeNameStr the base type name string.
+	 * @param length the base type length, or 0 for default.
+	 * @param name the field name.
+	 * @param comment the field comment.
+	 * @param unit the value unit.
+	 * @param partType the message part in which the field is stored.
+	 * @param divisor the extra divisor (negative for reciprocal) to apply on the value, or 1 for none (if applicable).
+	 * @param values the value=text assignments.
+	 * @param returnField the variable in which the created @a SingleDataField instance shall be stored.
+	 * @return @a RESULT_OK on success, or an error code.
+	 * Note: the caller needs to free the created instance.
+	 */
+	static result_t create(const char* typeNameStr, const unsigned char length,
+		const string name, const string comment, const string unit,
+		const PartType partType, int divisor, map<unsigned int, string> values,
+		SingleDataField* &returnField);
 
 	/**
 	 * Get the value unit.

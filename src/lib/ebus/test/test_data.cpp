@@ -227,6 +227,7 @@ int main()
 		{"trelrel,temp;temp","","", "", "t"},   // template struct with relative pos and ref to templates
 		{"x,,trelrel","18.004;19.008","10fe07000401120213", "00", ""}, // reference to template struct
 		{"x,,temp,,,,y,,d1c","18.004;9.5","10fe070003011213", "00", ""}, // reference to template, normal def
+		{"x,,temp;HEX:2","18.004;13 14","10fe07000401121314", "00", ""}, // reference to template and base type
 	};
 	DataFieldTemplates* templates = new DataFieldTemplates();
 	DataField* fields = NULL;
