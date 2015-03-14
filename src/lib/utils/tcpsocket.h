@@ -150,7 +150,7 @@ public:
 	int start();
 
 	/**
-	 * accept an incomming tcp connection and create a local tcp socket for communication.
+	 * accept an incoming tcp connection and create a local tcp socket for communication.
 	 * @return pointer to an opened tcp socket.
 	 */
 	TCPSocket* newSocket();
