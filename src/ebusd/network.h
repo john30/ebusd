@@ -238,16 +238,16 @@ public:
 	void stop() const { m_notify.notify(); usleep(100000); }
 
 private:
-	/** container for active connections */
+	/** the list of active @a Connection instances. */
 	list<Connection*> m_connections;
 
-	/** remote queue for network messages */
+	/** the @a MainLoop queue for transferring @a NetMessage instances. */
 	WQueue<NetMessage*>* m_netQueue;
 
-	/** the tcp server instance */
+	/** the @a TCPServer instance. */
 	TCPServer* m_tcpServer;
 
-	/** notification object for shutdown procedure */
+	/** @a Notify object for shutdown procedure. */
 	Notify m_notify;
 
 	/** true if this instance is listening */
