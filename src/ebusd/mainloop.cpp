@@ -97,10 +97,10 @@ void MainLoop::run()
 			data.erase(remove(data.begin(), data.end(), '\r'), data.end());
 			data.erase(remove(data.begin(), data.end(), '\n'), data.end());
 
-			logNotice(lf_main, ">>> %s", data.c_str());
+			logDebug(lf_main, ">>> %s", data.c_str());
 			result = decodeMessage(data, connected, listening, running);
 
-			logNotice(lf_main, "<<< %s", result.c_str());
+			logDebug(lf_main, "<<< %s", result.c_str());
 			if (result.length() == 0)
 				result = "\n";
 			else
