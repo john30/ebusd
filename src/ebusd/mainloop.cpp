@@ -47,7 +47,8 @@ MainLoop::MainLoop(const struct options opt, Device *device, DataFieldTemplates*
 			m_address, opt.answer,
 			opt.acquireRetries, opt.sendRetries,
 			opt.acquireTimeout, opt.receiveTimeout,
-			opt.masterCount, opt.pollInterval);
+			opt.masterCount, opt.generateSyn,
+			opt.pollInterval);
 	m_busHandler->start("bushandler");
 
 	// create network
