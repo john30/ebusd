@@ -9,6 +9,7 @@
 * differentiate between valid empty result and not found field name
 * fixed scanning for messages in subdirectories for certain file systems (thanks to joltcoke)
 * allow mixing references to base types and templates in message definition
+* renamed "class" to "circuit" in commands and message definition
 
 ## Features
 * new command line option "--dumpconfig" for dumping message configurations
@@ -26,6 +27,8 @@
 * new "read" command option "-d ZZ" for overriding destination address (e.g. for manual scan)
 * allow message definitions without any field
 * added broadcast ident message (requests all masters to send their identification) and added read ident for manual scan
+* added support for AUTO-SYN generation (experimental!)
+* added "grab" command for collecting and reporting seen unknown messages
 
 ## Changed files
 https://github.com/john30/ebusd/compare/v1.0.0...master
