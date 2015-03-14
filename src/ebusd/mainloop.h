@@ -130,6 +130,13 @@ private:
 	string executeState(vector<string> &args);
 
 	/**
+	 * Execute the grab command.
+	 * @param args the arguments passed to the command (starting with the command itself), or empty for help.
+	 * @return the result string.
+	 */
+	string executeGrab(vector<string> &args);
+
+	/**
 	 * Execute the scan command.
 	 * @param args the arguments passed to the command (starting with the command itself), or empty for help.
 	 * @return the result string.

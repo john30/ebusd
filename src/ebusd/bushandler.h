@@ -279,7 +279,7 @@ public:
 		  m_symPerSec(0), m_maxSymPerSec(0),
 		  m_state(bs_noSignal), m_repeat(false),
 		  m_command(false), m_commandCrcValid(false), m_response(false), m_responseCrcValid(false),
-		  m_scanMessage(NULL) {
+		  m_scanMessage(NULL), m_grabUnknownMessages(false) {
 		memset(m_seenAddresses, 0, sizeof(m_seenAddresses));
 	}
 
@@ -317,6 +317,18 @@ public:
 	 * @param output the @a ostringstream to format the scan result to.
 	 */
 	void formatScanResult(ostringstream& output);
+
+	/**
+	 * Start or stop grabbing unknown messages.
+	 * @param enable true to enable grabbing, false to disable it.
+	 */
+	void enableGrab(bool enable=true);
+
+	/**
+	 * Format the grabbed unknown messages to the @a ostringstream.
+	 * @param output the @a ostringstream to format the messages to.
+	 */
+	void formatGrabResult(ostringstream& output);
 
 	/**
 	 * Return true when a signal on the bus is available.
@@ -460,6 +472,12 @@ private:
 
 	/** the scan results by slave address. */
 	map<unsigned char, string> m_scanResults;
+
+	/** whether to grab unknown messages. */
+	bool m_grabUnknownMessages;
+
+	/** the grabbed unknown messages by ID prefix (QQZZPBSBNNDD with up to 4 DD bytes).*/
+	map<string, string> m_grabbedUnknownMessages;
 
 };
 

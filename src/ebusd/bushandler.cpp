@@ -733,6 +733,16 @@ void BusHandler::receiveCompleted()
 			logNotice(lf_update, "unknown MM cmd: %s", m_command.getDataStr().c_str());
 		else
 			logNotice(lf_update, "unknown MS cmd: %s / %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
+
+		if (m_grabUnknownMessages) {
+			string data;
+			string key = data = m_command.getDataStr();
+			if (key.length() > 2*(1+1+2+1+4))
+				key = key.substr(0, 2*(1+1+2+1+4)); // QQZZPBSBNN + up to 4 DD bytes
+			if (dstAddress != BROADCAST && !master)
+				data += " / " + m_response.getDataStr();
+			m_grabbedUnknownMessages[key] = data;
+		}
 	}
 	else {
 		string circuit = message->getCircuit();
@@ -808,6 +818,28 @@ void BusHandler::formatScanResult(ostringstream& output)
 	for (unsigned char slave = 1; slave != 0; slave++) { // 0 is known to be a master
 		map<unsigned char, string>::iterator it = m_scanResults.find(slave);
 		if (it != m_scanResults.end()) {
+			if (first)
+				first = false;
+			else
+				output << endl;
+			output << it->second;
+		}
+	}
+}
+
+void BusHandler::enableGrab(bool enable)
+{
+	m_grabUnknownMessages = enable;
+	m_grabbedUnknownMessages.clear();
+}
+
+void BusHandler::formatGrabResult(ostringstream& output)
+{
+	if (!m_grabUnknownMessages) {
+		output << "grab disabled";
+	} else {
+		bool first = true;
+		for (map<string, string>::iterator it = m_grabbedUnknownMessages.begin(); it != m_grabbedUnknownMessages.end(); it++) {
 			if (first)
 				first = false;
 			else

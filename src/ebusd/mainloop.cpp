@@ -101,7 +101,10 @@ void MainLoop::run()
 			result = decodeMessage(data, connected, listening, running);
 
 			logNotice(lf_main, "<<< %s", result.c_str());
-			result += "\n\n";
+			if (result.length() == 0)
+				result = "\n";
+			else
+				result += "\n\n";
 		}
 		if (listening) {
 			result += getUpdates(since, until);
@@ -167,6 +170,8 @@ string MainLoop::decodeMessage(const string& data, bool& connected, bool& listen
 		return executeListen(args, listening);
 	if (strcasecmp(str, "S") == 0 || strcasecmp(str, "STATE") == 0)
 		return executeState(args);
+	if (strcasecmp(str, "G") == 0 || strcasecmp(str, "GRAB") == 0)
+		return executeGrab(args);
 	if (strcasecmp(str, "SCAN") == 0)
 		return executeScan(args);
 	if (strcasecmp(str, "LOG") == 0)
@@ -590,6 +595,31 @@ string MainLoop::executeState(vector<string> &args)
 	return "no signal";
 }
 
+string MainLoop::executeGrab(vector<string> &args)
+{
+	if (args.size() == 1) {
+		m_busHandler->enableGrab();
+
+		return getResultCode(RESULT_OK);
+	}
+
+	if (args.size() == 2 && strcasecmp(args[1].c_str(), "STOP") == 0) {
+		m_busHandler->enableGrab(false);
+
+		return getResultCode(RESULT_OK);
+	}
+
+	if (args.size() == 2 && strcasecmp(args[1].c_str(), "RESULT") == 0) {
+		ostringstream result;
+		m_busHandler->formatGrabResult(result);
+		return result.str();
+	}
+
+	return "usage: grab [stop]\n"
+		   "  or:  grab result\n"
+		   " Grab unknown messages or stop it, or report the seen unknown messages.";
+}
+
 string MainLoop::executeScan(vector<string> &args)
 {
 	if (args.size() == 1) {
@@ -699,24 +729,26 @@ string MainLoop::executeQuit(vector<string> &args, bool& connected)
 string MainLoop::executeHelp()
 {
 	return "usage:\n"
-		   " read|r   Read value(s):        read [-v] [-f] [-m SECONDS] [-d ZZ] [-c CIRCUIT] NAME [FIELD[.N]]\n"
-		   " write|w  Write value(s):       write [-c] CIRCUIT NAME [VALUE[;VALUE]*]\n"
-		   "          Write hex message:    write -h ZZPBSBNNDx'\n"
-		   " find|f   Find message(s):      find [-v] [-r] [-w] [-p] [-d] [-i PB] [-f] [-c CIRCUIT] [NAME]\n"
-		   " listen|l Listen for updates:   listen [stop]\n"
+		   " read|r   Read value(s):         read [-v] [-f] [-m SECONDS] [-d ZZ] [-c CIRCUIT] NAME [FIELD[.N]]\n"
+		   " write|w  Write value(s):        write [-c] CIRCUIT NAME [VALUE[;VALUE]*]\n"
+		   "          Write hex message:     write -h ZZPBSBNNDx'\n"
+		   " find|f   Find message(s):       find [-v] [-r] [-w] [-p] [-d] [-i PB] [-f] [-c CIRCUIT] [NAME]\n"
+		   " listen|l Listen for updates:    listen [stop]\n"
 		   " state|s  Report bus state\n"
-		   " scan     Scan slaves:          scan [full]\n"
-		   "          Report scan result:   scan result\n"
-		   " log      Set log area(s):      log areas AREA[,AREA*]\n"
-		   "                                  AREA: main|network|bus|update|all\n"
-		   "          Set log level:        log level LEVEL\n"
-		   "                                  LEVEL: error|notice|info|debug\n"
+		   " grab|g   Grab unknown messages: grab [stop]\n"
+		   "          Report the messages:   grab result\n"
+		   " scan     Scan slaves:           scan [full]\n"
+		   "          Report scan result:    scan result\n"
+		   " log      Set log area(s):       log areas AREA[,AREA*]\n"
+		   "                                   AREA: main|network|bus|update|all\n"
+		   "          Set log level:         log level LEVEL\n"
+		   "                                   LEVEL: error|notice|info|debug\n"
 		   " raw      Toggle logging raw bytes\n"
 		   " dump     Toggle dumping raw bytes\n"
 		   " reload   Reload CSV config files\n"
 		   " stop     Stop the daemon\n"
 		   " quit|q   Close connection\n"
-		   " help|h   Print help            help [COMMAND]";
+		   " help|h   Print help             help [COMMAND]";
 }
 
 string MainLoop::getUpdates(time_t since, time_t until)
