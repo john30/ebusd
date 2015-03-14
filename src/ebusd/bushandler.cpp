@@ -215,7 +215,7 @@ result_t BusHandler::handleSymbol()
 	switch (m_state)
 	{
 	case bs_noSignal:
-		timeout = SIGNAL_TIMEOUT;
+		timeout = m_generateSynInterval>0 ? m_generateSynInterval : SIGNAL_TIMEOUT;
 		break;
 
 	case bs_skip:
@@ -315,7 +315,7 @@ result_t BusHandler::handleSymbol()
 				timeout = SEND_TIMEOUT;
 		else {
 			sending = false;
-			timeout = 0;
+			timeout = SYN_TIMEOUT;
 			setState(bs_skip, result);
 		}
 	}
@@ -324,10 +324,31 @@ result_t BusHandler::handleSymbol()
 	unsigned char recvSymbol;
 	result = m_device->recv(timeout, recvSymbol);
 
+	if (!sending && result == RESULT_ERR_TIMEOUT && m_generateSynInterval > 0 && timeout >= m_generateSynInterval && (m_state == bs_noSignal || m_state == bs_skip)) {
+		// check if acting as AUTO-SYN generator is required
+		result = m_device->send(SYN);
+		if (result == RESULT_OK) {
+			recvSymbol = ESC;
+			result = m_device->recv(SEND_TIMEOUT, recvSymbol);
+			if (result == RESULT_ERR_TIMEOUT) {
+				return setState(bs_noSignal, result);
+			}
+			if (result != RESULT_OK)
+				logError(lf_bus, "unable to receive sent AUTO-SYN symbol: %s", getResultCode(result));
+			else if (recvSymbol != SYN) {
+				logError(lf_bus, "received %2.2x instead of AUTO-SYN symbol", recvSymbol);
+			} else if (m_generateSynInterval != SYN_TIMEOUT) {
+				// received own AUTO-SYN symbol back again: act as AUTO-SYN generator now
+				m_generateSynInterval = SYN_TIMEOUT;
+				logNotice(lf_bus, "acting as AUTO-SYN generator");
+			}
+		}
+		return setState(bs_skip, result);
+	}
 	time_t now;
 	time(&now);
 	if (result != RESULT_OK) {
-		if (difftime(now, m_lastReceive) > 1 // at least one full second has passed since last received symbol
+		if ((m_generateSynInterval != SYN_TIMEOUT && difftime(now, m_lastReceive) > 1) // at least one full second has passed since last received symbol
 			|| m_state == bs_noSignal)
 			return setState(bs_noSignal, result);
 

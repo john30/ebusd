@@ -74,6 +74,7 @@ static struct options opt = {
 	2, // sendRetries
 	SLAVE_RECV_TIMEOUT, // receiveTimeout
 	0, // masterCount
+	false, // generateSyn
 	false, // foreground
 	8888, // port
 	false, // localOnly
@@ -106,12 +107,13 @@ static const char argpdoc[] =
 #define O_SNDRET  7
 #define O_RCVTIM  8
 #define O_MASCNT  9
-#define O_LOCAL  10
-#define O_LOGARE 11
-#define O_LOGLEV 12
-#define O_LOGRAW 13
-#define O_DMPFIL 14
-#define O_DMPSIZ 15
+#define O_GENSYN 10
+#define O_LOCAL  11
+#define O_LOGARE 12
+#define O_LOGLEV 13
+#define O_LOGRAW 14
+#define O_DMPFIL 15
+#define O_DMPSIZ 16
 
 /** the definition of the known program arguments. */
 static const struct argp_option argpoptions[] = {
@@ -133,6 +135,7 @@ static const struct argp_option argpoptions[] = {
 	{"sendretries",    O_SNDRET, "COUNT", 0, "Repeat failed sends COUNT times [2]", 0 },
 	{"receivetimeout", O_RCVTIM, "USEC",  0, "Expect a slave to answer within USEC us [15000]", 0 },
 	{"numbermasters",  O_MASCNT, "COUNT", 0, "Expect COUNT masters on the bus, 0 for auto detection [0]", 0 },
+	{"generatesyn",    O_GENSYN, NULL,    0, "Enable AUTO-SYN symbol generation", 0 },
 
 	{NULL,             0,        NULL,    0, "Daemon options:", 4 },
 	{"foreground",     'f',      NULL,    0, "Run in foreground", 0 },
@@ -244,6 +247,9 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 			argp_error(state, "invalid numbermasters");
 			return EINVAL;
 		}
+		break;
+	case O_GENSYN: // --generatesyn
+		opt->generateSyn = true;
 		break;
 
 	// Daemon options:

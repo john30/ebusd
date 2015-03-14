@@ -259,18 +259,21 @@ public:
 	 * @param slaveRecvTimeout the maximum time in microseconds an addressed slave is expected to acknowledge.
 	 * @param busAcquireTimeout the maximum time in microseconds for bus acquisition.
 	 * @param lockCount the number of AUTO-SYN symbols before sending is allowed after lost arbitration, or 0 for auto detection.
+	 * @param generateSyn whether to enable AUTO-SYN symbol generation.
 	 * @param pollInterval the interval in seconds in which poll messages are cycled, or 0 if disabled.
 	 */
 	BusHandler(Device* device, MessageMap* messages,
 			const unsigned char ownAddress, const bool answer,
 			const unsigned int busLostRetries, const unsigned int failedSendRetries,
 			const unsigned int busAcquireTimeout, const unsigned int slaveRecvTimeout,
-			const unsigned int lockCount, const unsigned int pollInterval)
+			const unsigned int lockCount, const bool generateSyn,
+			const unsigned int pollInterval)
 		: m_device(device), m_messages(messages),
 		  m_ownMasterAddress(ownAddress), m_ownSlaveAddress((unsigned char)(ownAddress+5)), m_answer(answer),
 		  m_busLostRetries(busLostRetries), m_failedSendRetries(failedSendRetries),
 		  m_busAcquireTimeout(busAcquireTimeout), m_slaveRecvTimeout(slaveRecvTimeout),
 		  m_masterCount(1), m_autoLockCount(lockCount==0), m_lockCount(lockCount<=3 ? 3 : lockCount), m_remainLockCount(m_autoLockCount),
+		  m_generateSynInterval(generateSyn ? SYN_TIMEOUT*getMasterNumber(ownAddress)+SYMBOL_DURATION : 0),
 		  m_pollInterval(pollInterval), m_lastReceive(0), m_lastPoll(0),
 		  m_currentRequest(NULL), m_nextSendPos(0),
 		  m_symPerSec(0), m_maxSymPerSec(0),
@@ -399,6 +402,9 @@ private:
 
 	/** the remaining number of AUTO-SYN symbols before sending is allowed again. */
 	unsigned int m_remainLockCount;
+
+	/** the interval in microseconds after which to generate an AUTO-SYN symbol, or 0 if disabled. */
+	unsigned int m_generateSynInterval;
 
 	/** the interval in seconds in which poll messages are cycled, or 0 if disabled. */
 	const unsigned int m_pollInterval;

@@ -43,6 +43,7 @@ struct options
 	int sendRetries; //!< number of retries for failed sends [2]
 	int receiveTimeout; //!< timeout for receiving answer from slave in us [15000]
 	int masterCount; //!< expected number of masters for arbitration [5]
+	bool generateSyn; //!< enable AUTO-SYN symbol generation
 
 	bool foreground; //!< run in foreground
 	int port; //!< port to listen for client connections [8888]
