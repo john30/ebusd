@@ -192,7 +192,7 @@ string MainLoop::executeRead(vector<string> &args)
 	size_t argPos = 1;
 	time_t maxAge = 5*60;
 	bool verbose = false;
-	string clazz;
+	string circuit;
 	unsigned char dstAddress = SYN;
 	while (args.size() > argPos && args[argPos][0] == '-') {
 		if (args[argPos] == "-f") {
@@ -222,7 +222,7 @@ string MainLoop::executeRead(vector<string> &args)
 				argPos = 0; // print usage
 				break;
 			}
-			clazz = args[argPos];
+			circuit = args[argPos];
 		}
 		else if (args[argPos] == "-d") {
 			argPos++;
@@ -241,13 +241,13 @@ string MainLoop::executeRead(vector<string> &args)
 		argPos++;
 	}
 	if (argPos == 0 || args.size() < argPos + 1 || args.size() > argPos + 2)
-		return "usage: read [-v] [-f] [-m SECONDS] [-d ZZ] [-c CLASS] NAME [FIELD[.N]]\n"
+		return "usage: read [-v] [-f] [-m SECONDS] [-d ZZ] [-c CIRCUIT] NAME [FIELD[.N]]\n"
 			   " Read value(s).\n"
 			   "  -v          be verbose (include field names, units, and comments)\n"
 			   "  -f          force reading from the bus (same as '-m 0')\n"
 			   "  -m SECONDS  only return cached value if age is less than SECONDS [300]\n"
 			   "  -d ZZ       override destination address ZZ\n"
-			   "  -c CLASS    limit to messages of CLASS\n"
+			   "  -c CIRCUIT  limit to messages of CIRCUIT\n"
 			   "  NAME        the NAME of the message to send\n"
 			   "  FIELD       only retrieve the field named FIELD\n"
 			   "  N           only retrieve the N'th field named FIELD (0-based)";
@@ -270,10 +270,10 @@ string MainLoop::executeRead(vector<string> &args)
 	time(&now);
 
 	ostringstream result;
-	Message* message = m_messages->find(clazz, args[argPos], false);
+	Message* message = m_messages->find(circuit, args[argPos], false);
 
 	if (dstAddress==SYN && maxAge > 0) {
-		Message* cacheMessage = m_messages->find(clazz, args[argPos], false, true);
+		Message* cacheMessage = m_messages->find(circuit, args[argPos], false, true);
 		bool hasCache = cacheMessage != NULL;
 		if (!hasCache || (message != NULL && message->getLastUpdateTime() > cacheMessage->getLastUpdateTime()))
 			cacheMessage = message; // message is newer/better
@@ -374,10 +374,10 @@ string MainLoop::executeWrite(vector<string> &args)
 		argPos++;
 	}
 	if (argPos == 0 || (args.size() != argPos + 3 && args.size() != argPos + 2))
-		return "usage: write [-c] CLASS NAME [VALUE[;VALUE]*]\n"
+		return "usage: write [-c] CIRCUIT NAME [VALUE[;VALUE]*]\n"
 			   "  or:  write -h ZZPBSBNNDx\n"
 			   " Write value(s) or hex message.\n"
-			   "  CLASS    the CLASS of the message to send\n"
+			   "  CIRCUIT  the CIRCUIT of the message to send\n"
 			   "  NAME     the NAME of the message to send\n"
 			   "  VALUE    a single field VALUE\n"
 			   "  -h       directly write hex message:\n"
@@ -424,7 +424,7 @@ string MainLoop::executeFind(vector<string> &args)
 {
 	size_t argPos = 1;
 	bool verbose = false, configFormat = false, withRead = true, withWrite = false, withPassive = true, first = true, onlyWithData = false;
-	string clazz;
+	string circuit;
 	short pb = -1;
 	while (args.size() > argPos && args[argPos][0] == '-') {
 		if (args[argPos] == "-v")
@@ -476,7 +476,7 @@ string MainLoop::executeFind(vector<string> &args)
 				argPos = 0; // print usage
 				break;
 			}
-			clazz = args[argPos];
+			circuit = args[argPos];
 		}
 		else {
 			argPos = 0; // print usage
@@ -485,23 +485,23 @@ string MainLoop::executeFind(vector<string> &args)
 		argPos++;
 	}
 	if (argPos == 0 || args.size() < argPos || args.size() > argPos + 1)
-		return "usage: find [-v] [-r] [-w] [-p] [-d] [-i PB] [-f] [-c CLASS] [NAME]\n"
+		return "usage: find [-v] [-r] [-w] [-p] [-d] [-i PB] [-f] [-c CIRCUIT] [NAME]\n"
 			   " Find message(s).\n"
-			   "  -v       be verbose (append destination address and update time)\n"
-			   "  -r       limit to active read messages (default: read + passive)\n"
-			   "  -w       limit to active write messages (default: read + passive)\n"
-			   "  -p       limit to passive messages (default: read + passive)\n"
-			   "  -d       only include messages with actual data\n"
-			   "  -i PB    limit to messages with primary command byte PB ('0xPB' for hex)\n"
-			   "  -f       list messages in CSV configuration file format\n"
-			   "  -c CLASS limit to messages of CLASS (or a part thereof)\n"
-			   "  NAME     the NAME of the message to find (or a part thereof)";
+			   "  -v         be verbose (append destination address and update time)\n"
+			   "  -r         limit to active read messages (default: read + passive)\n"
+			   "  -w         limit to active write messages (default: read + passive)\n"
+			   "  -p         limit to passive messages (default: read + passive)\n"
+			   "  -d         only include messages with actual data\n"
+			   "  -i PB      limit to messages with primary command byte PB ('0xPB' for hex)\n"
+			   "  -f         list messages in CSV configuration file format\n"
+			   "  -c CIRCUIT limit to messages of CIRCUIT (or a part thereof)\n"
+			   "  NAME       the NAME of the messages to find (or a part thereof)";
 
 	deque<Message*> messages;
 	if (args.size() == argPos)
-		messages = m_messages->findAll(clazz, "", pb, false, withRead, withWrite, withPassive);
+		messages = m_messages->findAll(circuit, "", pb, false, withRead, withWrite, withPassive);
 	else
-		messages = m_messages->findAll(clazz, args[argPos], pb, false, withRead, withWrite, withPassive);
+		messages = m_messages->findAll(circuit, args[argPos], pb, false, withRead, withWrite, withPassive);
 
 	bool found = false;
 	ostringstream result;
@@ -521,7 +521,7 @@ string MainLoop::executeFind(vector<string> &args)
 				continue;
 			if (found)
 				result << endl;
-			result << message->getClass() << " " << message->getName() << " = ";
+			result << message->getCircuit() << " " << message->getName() << " = ";
 			if (lastup == 0)
 				result << "no data stored";
 			else
@@ -699,10 +699,10 @@ string MainLoop::executeQuit(vector<string> &args, bool& connected)
 string MainLoop::executeHelp()
 {
 	return "usage:\n"
-		   " read|r   Read value(s):        read [-v] [-f] [-m SECONDS] [-d ZZ] [-c CLASS] NAME [FIELD[.N]]\n"
-		   " write|w  Write value(s):       write [-c] CLASS NAME [VALUE[;VALUE]*]\n"
+		   " read|r   Read value(s):        read [-v] [-f] [-m SECONDS] [-d ZZ] [-c CIRCUIT] NAME [FIELD[.N]]\n"
+		   " write|w  Write value(s):       write [-c] CIRCUIT NAME [VALUE[;VALUE]*]\n"
 		   "          Write hex message:    write -h ZZPBSBNNDx'\n"
-		   " find|f   Find message(s):      find [-v] [-r] [-w] [-p] [-d] [-i PB] [-f] [-c CLASS] [NAME]\n"
+		   " find|f   Find message(s):      find [-v] [-r] [-w] [-p] [-d] [-i PB] [-f] [-c CIRCUIT] [NAME]\n"
 		   " listen|l Listen for updates:   listen [stop]\n"
 		   " state|s  Report bus state\n"
 		   " scan     Scan slaves:          scan [full]\n"
@@ -734,7 +734,7 @@ string MainLoop::getUpdates(time_t since, time_t until)
 		time_t lastchg = message->getLastChangeTime();
 		if (lastchg < since || lastchg >= until)
 			continue;
-		result << message->getClass() << " " << message->getName() << " = ";
+		result << message->getCircuit() << " " << message->getName() << " = ";
 		message->decodeLastData(result);
 		result << endl;
 	}

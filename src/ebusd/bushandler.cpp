@@ -74,9 +74,9 @@ bool PollRequest::notify(result_t result, SymbolString& slave)
 		result = m_message->decode(pt_slaveData, slave, output); // decode data
 	}
 	if (result < RESULT_OK)
-		logError(lf_bus, "poll %s %s failed: %s", m_message->getClass().c_str(), m_message->getName().c_str(), getResultCode(result));
+		logError(lf_bus, "poll %s %s failed: %s", m_message->getCircuit().c_str(), m_message->getName().c_str(), getResultCode(result));
 	else
-		logNotice(lf_bus, "poll %s %s: %s", m_message->getClass().c_str(), m_message->getName().c_str(), output.str().c_str());
+		logNotice(lf_bus, "poll %s %s: %s", m_message->getCircuit().c_str(), m_message->getName().c_str(), output.str().c_str());
 
 	return false;
 }
@@ -735,27 +735,27 @@ void BusHandler::receiveCompleted()
 			logNotice(lf_update, "unknown MS cmd: %s / %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
 	}
 	else {
-		string clazz = message->getClass();
+		string circuit = message->getCircuit();
 		string name = message->getName();
 		ostringstream output;
 		result_t result = message->decode(m_command, m_response, output);
 		if (result < RESULT_OK)
-			logError(lf_update, "unable to parse %s %s from %s / %s: %s", clazz.c_str(), name.c_str(), m_command.getDataStr().c_str(), m_response.getDataStr().c_str(), getResultCode(result));
+			logError(lf_update, "unable to parse %s %s from %s / %s: %s", circuit.c_str(), name.c_str(), m_command.getDataStr().c_str(), m_response.getDataStr().c_str(), getResultCode(result));
 		else {
 			string data = output.str();
 			if (m_answer && dstAddress == (master ? m_ownMasterAddress : m_ownSlaveAddress)) {
-				logNotice(lf_update, "self-update %s %s QQ=%2.2x: %s", clazz.c_str(), name.c_str(), srcAddress, data.c_str()); // TODO store in database of internal variables
+				logNotice(lf_update, "self-update %s %s QQ=%2.2x: %s", circuit.c_str(), name.c_str(), srcAddress, data.c_str()); // TODO store in database of internal variables
 			}
 			else if (message->getDstAddress() == SYN) { // any destination
 				if (message->getSrcAddress() == SYN) // any destination and any source
-					logNotice(lf_update, "update %s %s QQ=%2.2x ZZ=%2.2x: %s", clazz.c_str(), name.c_str(), srcAddress, dstAddress, data.c_str());
+					logNotice(lf_update, "update %s %s QQ=%2.2x ZZ=%2.2x: %s", circuit.c_str(), name.c_str(), srcAddress, dstAddress, data.c_str());
 				else
-					logNotice(lf_update, "update %s %s ZZ=%2.2x: %s", clazz.c_str(), name.c_str(), dstAddress, data.c_str());
+					logNotice(lf_update, "update %s %s ZZ=%2.2x: %s", circuit.c_str(), name.c_str(), dstAddress, data.c_str());
 			}
 			else if (message->getSrcAddress() == SYN) // any source
-				logNotice(lf_update, "update %s %s QQ=%2.2x: %s", clazz.c_str(), name.c_str(), srcAddress, data.c_str());
+				logNotice(lf_update, "update %s %s QQ=%2.2x: %s", circuit.c_str(), name.c_str(), srcAddress, data.c_str());
 			else
-				logNotice(lf_update, "update %s %s: %s", clazz.c_str(), name.c_str(), data.c_str());
+				logNotice(lf_update, "update %s %s: %s", circuit.c_str(), name.c_str(), data.c_str());
 		}
 	}
 }

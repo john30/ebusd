@@ -44,8 +44,8 @@ public:
 
 	/**
 	 * Construct a new instance.
-	 * @param clazz the optional device class.
-	 * @param name the message name (unique within the same class and type).
+	 * @param circuit the optional circuit name.
+	 * @param name the message name (unique within the same circuit and type).
 	 * @param isWrite whether this is a write message.
 	 * @param isPassive true if message can only be initiated by a participant other than us,
 	 * false if message can be initiated by any participant.
@@ -57,7 +57,7 @@ public:
 	 * @param deleteData whether to delete the @a DataField during destruction.
 	 * @param pollPriority the priority for polling, or 0 for no polling at all.
 	 */
-	Message(const string clazz, const string name, const bool isWrite,
+	Message(const string circuit, const string name, const bool isWrite,
 			const bool isPassive, const string comment,
 			const unsigned char srcAddress, const unsigned char dstAddress,
 			const vector<unsigned char> id, DataField* data, const bool deleteData,
@@ -96,14 +96,14 @@ public:
 			DataFieldTemplates* templates, vector<Message*>& messages);
 
 	/**
-	 * Get the optional device class.
-	 * @return the optional device class.
+	 * Get the optional circuit name.
+	 * @return the optional circuit name.
 	 */
-	string getClass() const { return m_class; }
+	string getCircuit() const { return m_circuit; }
 
 	/**
-	 * Get the message name (unique within the same class and type).
-	 * @return the message name (unique within the same class and type).
+	 * Get the message name (unique within the same circuit and type).
+	 * @return the message name (unique within the same circuit and type).
 	 */
 	string getName() const { return m_name; }
 
@@ -256,10 +256,10 @@ public:
 
 private:
 
-	/** the optional device class. */
-	const string m_class;
+	/** the optional circuit name. */
+	const string m_circuit;
 
-	/** the message name (unique within the same class and type). */
+	/** the message name (unique within the same circuit and type). */
 	const string m_name;
 
 	/** whether this is a write message. */
@@ -358,29 +358,29 @@ public:
 	virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end, DataFieldTemplates* arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo);
 
 	/**
-	 * Find the @a Message instance for the specified class and name.
-	 * @param clazz the optional device class.
+	 * Find the @a Message instance for the specified circuit and name.
+	 * @param circuit the optional circuit name.
 	 * @param name the message name.
 	 * @param isWrite whether this is a write message.
 	 * @param isPassive whether this is a passive message.
 	 * @return the @a Message instance, or NULL.
 	 * Note: the caller may not free the returned instance.
 	 */
-	Message* find(const string& clazz, const string& name, const bool isWrite, const bool isPassive=false);
+	Message* find(const string& circuit, const string& name, const bool isWrite, const bool isPassive=false);
 
 	/**
-	 * Find all active get @a Message instances for the specified class and name.
-	 * @param clazz the device class, or empty for any.
+	 * Find all active get @a Message instances for the specified circuit and name.
+	 * @param circuit the circuit name, or empty for any.
 	 * @param name the message name, or empty for any.
 	 * @param pb the primary ID byte, or -1 for any (default any).
-	 * @param completeMatch false to also include messages where the class and name matches only a part of the given class and name (default true).
+	 * @param completeMatch false to also include messages where the circuit and name matches only a part of the given circuit and name (default true).
 	 * @param withRead true to include read messages (default true).
 	 * @param withWrite true to include write messages (default false).
 	 * @param withPassive true to include passive messages (default false).
 	 * @return the found @a Message instances.
 	 * Note: the caller may not free the returned instances.
 	 */
-	deque<Message*> findAll(const string& clazz, const string& name, const short pb=-1, const bool completeMatch=true,
+	deque<Message*> findAll(const string& circuit, const string& name, const short pb=-1, const bool completeMatch=true,
 		const bool withRead=true, const bool withWrite=false, const bool withPassive=false);
 
 	/**
@@ -436,7 +436,7 @@ private:
 	/** the number of distinct passive @a Message instances stored in @a m_messagesByKey. */
 	size_t m_passiveMessageCount;
 
-	/** the known @a Message instances by lowercase class and name. */
+	/** the known @a Message instances by lowercase circuit and name. */
 	map<string, Message*> m_messagesByName;
 
 	/** the known @a Message instances by key. */

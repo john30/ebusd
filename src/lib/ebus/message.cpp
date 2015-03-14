@@ -33,12 +33,12 @@ using namespace std;
 /** the bit mask of the source master number in the message key. */
 #define ID_SOURCE_MASK (0x1fLL << (8 * 7))
 
-Message::Message(const string clazz, const string name, const bool isWrite,
+Message::Message(const string circuit, const string name, const bool isWrite,
 		const bool isPassive, const string comment,
 		const unsigned char srcAddress, const unsigned char dstAddress,
 		const vector<unsigned char> id, DataField* data, const bool deleteData,
 		const unsigned char pollPriority)
-		: m_class(clazz), m_name(name), m_isWrite(isWrite),
+		: m_circuit(circuit), m_name(name), m_isWrite(isWrite),
 		  m_isPassive(isPassive), m_comment(comment),
 		  m_srcAddress(srcAddress), m_dstAddress(dstAddress),
 		  m_id(id), m_data(data), m_deleteData(deleteData),
@@ -60,7 +60,7 @@ Message::Message(const string clazz, const string name, const bool isWrite,
 Message::Message(const bool isWrite, const bool isPassive,
 		const unsigned char pb, const unsigned char sb,
 		DataField* data)
-		: m_class(), m_name(), m_isWrite(isWrite),
+		: m_circuit(), m_name(), m_isWrite(isWrite),
 		  m_isPassive(isPassive), m_comment(),
 		  m_srcAddress(SYN), m_dstAddress(SYN),
 		  m_data(data), m_deleteData(true), m_pollPriority(0),
@@ -91,7 +91,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 		vector< vector<string> >* defaultsRows,
 		DataFieldTemplates* templates, vector<Message*>& messages)
 {
-	// [type],[class],name,[comment],[QQ],[ZZ],id,fields...
+	// [type],[circuit],name,[comment],[QQ[;QQ]*],[ZZ],id,fields...
 	result_t result;
 	bool isWrite = false, isPassive = false;
 	string defaultName;
@@ -136,7 +136,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 		}
 	}
 
-	string clazz = getDefault(*it++, defaults, defaultPos++);
+	string circuit = getDefault(*it++, defaults, defaultPos++);
 	if (it == end)
 		return RESULT_ERR_EOF;
 
@@ -271,12 +271,12 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	char num[10];
 	for (vector<unsigned char>::iterator it = dstAddresses.begin(); it != dstAddresses.end(); it++, index++) {
 		unsigned char dstAddress = *it;
-		string useClass = clazz;
+		string useCircuit = circuit;
 		if (multiple) {
 			sprintf(num, ".%d", index);
-			useClass = useClass + num;
+			useCircuit = useCircuit + num;
 		}
-		messages.push_back(new Message(useClass, name, isWrite, isPassive, comment, srcAddress, dstAddress, id, data, index==0, pollPriority));
+		messages.push_back(new Message(useCircuit, name, isWrite, isPassive, comment, srcAddress, dstAddress, id, data, index==0, pollPriority));
 	}
 	return RESULT_OK;
 }
@@ -461,7 +461,7 @@ void Message::dump(ostream& output)
 		if (m_pollPriority>0)
 			output << static_cast<unsigned>(m_pollPriority);
 	}
-	DataField::dumpString(output, m_class);
+	DataField::dumpString(output, m_circuit);
 	DataField::dumpString(output, m_name);
 	DataField::dumpString(output, m_comment);
 	output << FIELD_SEPARATOR;
@@ -500,9 +500,9 @@ result_t MessageMap::add(Message* message)
 	}
 	bool isPassive = message->isPassive();
 	bool isWrite = message->isWrite();
-	string clazz = strtolower(message->getClass());
+	string circuit = strtolower(message->getCircuit());
 	string name = strtolower(message->getName());
-	string nameKey = string(isPassive ? "P" : (isWrite ? "W" : "R")) + clazz + FIELD_SEPARATOR + name;
+	string nameKey = string(isPassive ? "P" : (isWrite ? "W" : "R")) + circuit + FIELD_SEPARATOR + name;
 	map<string, Message*>::iterator nameIt = m_messagesByName.find(nameKey);
 	if (nameIt != m_messagesByName.end()) {
 		return RESULT_ERR_DUPLICATE; // duplicate key
@@ -513,10 +513,10 @@ result_t MessageMap::add(Message* message)
 	if (isPassive)
 		m_passiveMessageCount++;
 
-	nameKey = string(isPassive ? "-P" : (isWrite ? "-W" : "-R")) + name; // also store without class
+	nameKey = string(isPassive ? "-P" : (isWrite ? "-W" : "-R")) + name; // also store without circuit
 	nameIt = m_messagesByName.find(nameKey);
 	if (nameIt == m_messagesByName.end()) {
-		m_messagesByName[nameKey] = message; // only store first key without class
+		m_messagesByName[nameKey] = message; // only store first key without circuit
 	}
 
 	unsigned char idLength = (unsigned char)(message->getId().size() - 2);
@@ -564,18 +564,18 @@ result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<s
 	return result;
 }
 
-Message* MessageMap::find(const string& clazz, const string& name, const bool isWrite, const bool isPassive)
+Message* MessageMap::find(const string& circuit, const string& name, const bool isWrite, const bool isPassive)
 {
-	string lclass = strtolower(clazz);
+	string lcircuit = strtolower(circuit);
 	string lname = strtolower(name);
 	for (int i = 0; i < 2; i++) {
 		string key;
 		if (i == 0)
-			key = string(isPassive ? "P" : (isWrite ? "W" : "R")) + lclass + FIELD_SEPARATOR + lname;
-		else if (clazz.length() == 0)
-			key = string(isPassive ? "-P" : (isWrite ? "-W" : "-R")) + lname; // second try: without class
+			key = string(isPassive ? "P" : (isWrite ? "W" : "R")) + lcircuit + FIELD_SEPARATOR + lname;
+		else if (lcircuit.length() == 0)
+			key = string(isPassive ? "-P" : (isWrite ? "-W" : "-R")) + lname; // second try: without circuit
 		else
-			continue; // not allowed without class
+			continue; // not allowed without circuit
 		map<string, Message*>::iterator it = m_messagesByName.find(key);
 		if (it != m_messagesByName.end())
 			return it->second;
@@ -584,23 +584,23 @@ Message* MessageMap::find(const string& clazz, const string& name, const bool is
 	return NULL;
 }
 
-deque<Message*> MessageMap::findAll(const string& clazz, const string& name, const short pb, const bool completeMatch,
+deque<Message*> MessageMap::findAll(const string& circuit, const string& name, const short pb, const bool completeMatch,
 	const bool withRead, const bool withWrite, const bool withPassive)
 {
 	deque<Message*> ret;
 
-	string lclass = strtolower(clazz);
+	string lcircuit = strtolower(circuit);
 	string lname = strtolower(name);
-	bool checkClass = clazz.length() > 0;
+	bool checkCircuit = lcircuit.length() > 0;
 	bool checkName = name.length() > 0;
 	bool checkPb = pb >= 0;
 	for (map<string, Message*>::iterator it = m_messagesByName.begin(); it != m_messagesByName.end(); it++) {
 		if (it->first[0] == '-') // avoid duplicates: instances stored multiple times have a key starting with "-"
 			continue;
 		Message* message = it->second;
-		if (checkClass) {
-			string check = strtolower(message->getClass());
-			if (completeMatch ? (check != lclass) : (check.find(lclass) == check.npos))
+		if (checkCircuit) {
+			string check = strtolower(message->getCircuit());
+			if (completeMatch ? (check != lcircuit) : (check.find(lcircuit) == check.npos))
 				continue;
 		}
 		if (checkName) {
