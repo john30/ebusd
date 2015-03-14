@@ -43,7 +43,7 @@ void verify(bool expectFailMatch, string type, string input,
 
 int main()
 {
-	// message= [type];class;name;[comment];[QQ];ZZ;PBSB;fields...
+	// message= [type];circuit;name;[comment];[QQ[;QQ]*];ZZ;PBSB;fields...
 	// field=   name;[pos];type[;[divisor|values][;[unit][;[comment]]]]
 	string checks[][5] = {
 		// "message", "decoded", "master", "slave", "flags"
