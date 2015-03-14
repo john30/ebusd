@@ -117,8 +117,8 @@ result_t Device::recv(const long timeout, unsigned char& value)
 		struct timespec tdiff;
 
 		// set select timeout
-		tdiff.tv_sec = 0;
-		tdiff.tv_nsec = timeout*1000;
+		tdiff.tv_sec = timeout/1000000;
+		tdiff.tv_nsec = (timeout%1000000)*1000;
 
 #ifdef HAVE_PPOLL
 		int nfds = 1;
