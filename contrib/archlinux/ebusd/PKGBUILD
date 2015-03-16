@@ -36,3 +36,6 @@ package() {
   install -d                       "${pkgdir}"/etc/conf.d
   install -m 0644 ../ebusd_conf.d  "${pkgdir}"/etc/conf.d/ebusd
 }
+md5sums=('1f3e61dcf54467a108d8b9b059bc641f'
+         '15b2fdb0a219fae6feecd539e8823864'
+         'a2b4d5557fd90ea30e04358da62597fb')
