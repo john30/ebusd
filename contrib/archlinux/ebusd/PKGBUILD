@@ -17,7 +17,7 @@ provides=('ebusd')
 install=ebusd.install
 options=()
 backup=('etc/conf.d/ebusd')
-source=("https://github.com/john30/ebusd/archive/v${_pkgver}.tar.gz" 'ebusd.service' 'ebusd')
+source=("https://github.com/john30/ebusd/archive/v${_pkgver}.tar.gz" 'ebusd.service' 'ebusd_conf.d')
 
 build() {
   cd "${srcdir}"/${pkgname}-${_pkgver}
