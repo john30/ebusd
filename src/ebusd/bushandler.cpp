@@ -134,7 +134,7 @@ bool ScanRequest::notify(result_t result, SymbolString& slave)
 bool ActiveBusRequest::notify(result_t result, SymbolString& slave)
 {
 	if (result == RESULT_OK)
-		logNotice(lf_bus, "read res: %s", slave.getDataStr().c_str());
+		logDebug(lf_bus, "read res: %s", slave.getDataStr().c_str());
 
 	m_result = result;
 	m_slave.addAll(slave);
@@ -692,6 +692,10 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 void BusHandler::receiveCompleted()
 {
 	unsigned char srcAddress = m_command[0], dstAddress = m_command[1];
+	if (srcAddress == dstAddress) {
+		logError(lf_bus, "invalid self-addressed message from %2.2x", srcAddress);
+		return;
+	}
 	if (isMaster(srcAddress) && !m_seenAddresses[srcAddress]) {
 		m_masterCount++;
 		if (m_autoLockCount && m_masterCount>m_lockCount)
