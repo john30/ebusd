@@ -416,7 +416,7 @@ private:
 	unsigned int m_remainLockCount;
 
 	/** the interval in microseconds after which to generate an AUTO-SYN symbol, or 0 if disabled. */
-	unsigned int m_generateSynInterval;
+	long m_generateSynInterval;
 
 	/** the interval in seconds in which poll messages are cycled, or 0 if disabled. */
 	const unsigned int m_pollInterval;
