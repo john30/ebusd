@@ -395,8 +395,7 @@ result_t Message::decode(SymbolString& masterData, SymbolString& slaveData,
 	if (result < RESULT_OK)
 		return result;
 	if (result == RESULT_EMPTY && !empty)
-		result = RESULT_OK;
-
+		result = RESULT_OK; // OK if at least one part was non-empty
 	time(&m_lastUpdateTime);
 	if (masterData != m_lastMasterData) {
 		m_lastChangeTime = m_lastUpdateTime;
@@ -425,7 +424,9 @@ result_t Message::decodeLastData(ostringstream& output,
 	result = m_data->read(pt_slaveData, m_lastSlaveData, offset, output, leadingSeparator, verbose, fieldName, fieldIndex, separator);
 	if (result < RESULT_OK)
 		return result;
-	if (empty && result == RESULT_EMPTY && fieldName != NULL)
+	if (result == RESULT_EMPTY && !empty)
+		result = RESULT_OK; // OK if at least one part was non-empty
+	else if (result == RESULT_EMPTY && fieldName != NULL)
 		return RESULT_ERR_NOTFOUND;
 	return result;
 }
