@@ -29,7 +29,7 @@ echo "*************"
 echo " build"
 echo "*************"
 echo
-./autogen.sh --prefix=/usr || exit 1
+./autogen.sh || exit 1
 make || exit 1
 
 echo
