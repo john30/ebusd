@@ -151,7 +151,7 @@ void Connection::run()
 }
 
 
-Network::Network(const bool local, const int port, WQueue<NetMessage*>* netQueue)
+Network::Network(const bool local, const uint16_t port, WQueue<NetMessage*>* netQueue)
 	: m_netQueue(netQueue), m_listening(false)
 {
 	if (local)

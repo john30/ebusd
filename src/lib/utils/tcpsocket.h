@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <string>
+#include <stdint.h>
 
 /** \file tcpsocket.h */
 
@@ -67,7 +68,7 @@ public:
 	 * returns the tcp port.
 	 * @return the tcp port.
 	 */
-	int getPort() const { return m_port; }
+	uint16_t getPort() const { return m_port; }
 
 	/**
 	 * returns the ip address.
@@ -92,7 +93,7 @@ private:
 	int m_sfd;
 
 	/** port of tcp socket */
-	int m_port;
+	uint16_t m_port;
 
 	/** ip address of tcp socket */
 	string  m_ip;
@@ -119,7 +120,7 @@ public:
 	 * @param port the tcp port.
 	 * @return pointer to an opened tcp socket.
 	 */
-	TCPSocket* connect(const string& server, const int& port);
+	TCPSocket* connect(const string& server, const uint16_t& port);
 
 };
 
@@ -135,7 +136,7 @@ public:
 	 * @param port the tcp port.
 	 * @param address the ip address.
 	 */
-	TCPServer(const int port, const string address)
+	TCPServer(const uint16_t port, const string address)
 		: m_lfd(0), m_port(port), m_address(address), m_listening(false) {}
 
 	/**
@@ -166,7 +167,7 @@ private:
 	int m_lfd;
 
 	/** listening tcp port */
-	int m_port;
+	uint16_t m_port;
 
 	/** listening tcp socket ip address */
 	string m_address;

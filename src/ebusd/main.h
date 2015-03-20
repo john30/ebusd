@@ -23,6 +23,7 @@
 #include "result.h"
 #include "data.h"
 #include "message.h"
+#include <stdint.h>
 
 /** \file main.h */
 
@@ -46,7 +47,7 @@ struct options
 	bool generateSyn; //!< enable AUTO-SYN symbol generation
 
 	bool foreground; //!< run in foreground
-	int port; //!< port to listen for client connections [8888]
+	uint16_t port; //!< port to listen for client connections [8888]
 	bool localOnly; //!< listen on 127.0.0.1 interface only
 
 	const char* logFile; //!< log file name [/var/log/ebusd.log]

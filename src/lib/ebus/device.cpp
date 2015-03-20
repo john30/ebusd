@@ -67,7 +67,7 @@ Device* Device::create(const char* name, const bool checkDevice,
 			}
 			free(host);
 			address.sin_family = AF_INET;
-			address.sin_port = htons(port);
+			address.sin_port = htons((uint16_t)port);
 			return new NetworkDevice(name, address, logRawFunc);
 		}
 	}

@@ -43,7 +43,7 @@ bool TCPSocket::isValid()
 }
 
 
-TCPSocket* TCPClient::connect(const string& server, const int& port)
+TCPSocket* TCPClient::connect(const string& server, const uint16_t& port)
 {
 	struct sockaddr_in address;
 	int ret;

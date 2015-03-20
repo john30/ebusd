@@ -40,7 +40,7 @@ using namespace std;
 struct options
 {
 	const char* server; //!< ebusd server host (name or ip) [localhost]
-	unsigned int port; //!< ebusd server port [8888]
+	uint16_t port; //!< ebusd server port [8888]
 
 	char* const *args; //!< arguments to pass to ebusd
 	unsigned int argCount; //!< number of arguments to pass to ebusd
@@ -90,6 +90,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 {
 	struct options *opt = (struct options*)state->input;
 	char* strEnd = NULL;
+	unsigned int port;
 	switch (key) {
 	// Device settings:
 	case 's': // --server=localhost
@@ -100,11 +101,12 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 		opt->server = arg;
 		break;
 	case 'p': // --port=8888
-		opt->port = (unsigned int)strtoul(arg, &strEnd, 10);
-		if (strEnd == NULL || *strEnd != 0 || opt->port < 1 || opt->port > 65535) {
+		port = strtoul(arg, &strEnd, 10);
+		if (strEnd == NULL || *strEnd != 0 || port < 1 || port > 65535) {
 			argp_error(state, "invalid port");
 			return EINVAL;
 		}
+		opt->port = (uint16_t)port;
 		break;
 	case ARGP_KEY_ARGS:
 		opt->args = state->argv + state->next;
@@ -230,7 +232,7 @@ string fetchData(TCPSocket* socket, bool& listening)
 	return ss.str();
 }
 
-void connect(const char* host, int port, char* const *args, int argCount)
+void connect(const char* host, uint16_t port, char* const *args, int argCount)
 {
 
 	TCPClient* client = new TCPClient();

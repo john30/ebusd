@@ -220,7 +220,7 @@ public:
 	 * @param port the tcp port to listening.
 	 * @param netQueue the remote queue for network messages.
 	 */
-	Network(const bool local, const int port, WQueue<NetMessage*>* netQueue);
+	Network(const bool local, const uint16_t port, WQueue<NetMessage*>* netQueue);
 
 	/**
 	 * destructor.

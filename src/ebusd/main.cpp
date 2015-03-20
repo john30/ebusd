@@ -257,7 +257,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 		opt->foreground = true;
 		break;
 	case 'p': // --port=8888
-		opt->port = parseInt(arg, 10, 1, 65535, result);
+		opt->port = (uint16_t)parseInt(arg, 10, 1, 65535, result);
 		if (result != RESULT_OK) {
 			argp_error(state, "invalid port");
 			return EINVAL;
