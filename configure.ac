@@ -21,11 +21,17 @@ AC_CHECK_HEADERS([arpa/inet.h \
 		  termios.h])
 
 AC_CHECK_LIB([pthread], [pthread_setname_np],
-	AC_DEFINE([HAVE_PTHREAD_SETNAME_NP], [1], ["Define to 1 if pthread has pthread_setname_np."]),
+	AC_DEFINE([HAVE_PTHREAD_SETNAME_NP], [1], [Define to 1 if pthread has pthread_setname_np.]),
 	AC_MSG_RESULT([Could not find pthread_setname_np in pthread.]))
 
-AC_CHECK_FUNC([pselect], [AC_DEFINE(HAVE_PSELECT, [1], ["Define to 1 if pselect() is available."])])
-AC_CHECK_FUNC([ppoll], [AC_DEFINE(HAVE_PPOLL, [1], ["Define to 1 if ppoll() is available."])])
+AC_CHECK_FUNC([pselect], [AC_DEFINE(HAVE_PSELECT, [1], [Define to 1 if pselect() is available.])])
+AC_CHECK_FUNC([ppoll], [AC_DEFINE(HAVE_PPOLL, [1], [Define to 1 if ppoll() is available.])])
+AC_CHECK_FUNC([argp_parse], [have_argp=yes], AC_CHECK_LIB([argp], [argp_parse], [have_argp=yes; LIBS="-largp $LIBS"], [have_argp=no]))
+if test "x$have_argp" = "xyes"; then
+  AC_CHECK_HEADER([argp.h], AC_DEFINE([HAVE_ARGP_H], [1], [Define to 1 if argp.h is available.]), AC_MSG_ERROR([argp.h not found]))
+else
+  AC_MSG_ERROR([argp library not found. argp-standalone required.])
+fi
 
 AC_CONFIG_SRCDIR([src/ebusd/main.cpp])
 AC_CONFIG_HEADERS([config.h])
