@@ -34,7 +34,7 @@ build() {
   git reset --hard
 #  git apply -v --ignore-space-change --ignore-whitespace ../some.patch
 
-  ./autogen.sh --prefix=/usr --sysconfdir=/etc
+  ./autogen.sh
   make -j1
 }
 
