@@ -15,6 +15,7 @@ The main features of the daemon are:
  * regularly poll for messages
  * scan for bus participants
  * cache all data
+ * grab unknown messages
  * log messages and problems to a log file
  * dump sent/received bytes to the log file
  * dump received bytes to binary files for later playback/analysis
@@ -24,11 +25,13 @@ The main features of the daemon are:
 Installation
 ------------
 
-Building ebusd from the source requires the following packages:
+Building ebusd from the source requires the following packages and/or features:
  * autoconf (>=2.63)
  * automake (>=1.11)
  * g++
  * make
+ * kernel with pselect or ppoll support
+ * glibc with argp support or argp-standalone
 
 To start the build process, run these commands:
 ./autogen.sh
