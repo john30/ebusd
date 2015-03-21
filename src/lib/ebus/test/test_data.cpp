@@ -218,6 +218,7 @@ int main()
 		{"x,,bi3,,,,y,,bi5", "0;0",            "10feffff0100", "00", ""}, // bit combination
 		{"x,,bi3,,,,y,,bi7,,,,t,,uch", "0;0;9","10feffff020009", "00", ""}, // bit combination
 		{"x,,bi6:2,,,,y,,bi0:2,,,,t,,uch", "2;1;9","10feffff03800109", "00", ""}, // bit combination
+		{"x,,BI0;BI1;BI2;BI3;BI4;BI5;BI6;BI7", "0;0;1;0;0;0;0;0","ff75b50900", "0104", ""}, // bits
 		{"temp,d2b,,°C,Aussentemperatur","","", "", "t"}, // template with relative pos
 		{"x,,temp","18.004","10fe0700020112", "00", ""}, // reference to template
 		{"x,,temp,10","1.8004","10fe0700020112", "00", ""}, // reference to template, valid divider product
@@ -318,14 +319,14 @@ int main()
 		}
 		if (failedRead)
 			if (result >= RESULT_OK)
-				cout << "  failed read " << fields->getName() << " >"
-				        << check[2] << "< error: unexpectedly succeeded" << endl;
+				cout << "  failed read " << fields->getName() << " >" << check[2] << " " << check[3]
+				     << "< error: unexpectedly succeeded" << endl;
 			else
-				cout << "  failed read " << fields->getName() << " >"
-				        << check[2] << "< OK" << endl;
+				cout << "  failed read " << fields->getName() << " >" << check[2] << " " << check[3]
+				     << "< OK" << endl;
 		else if (result < RESULT_OK) {
-			cout << "  read " << fields->getName() << " >" << check[2]
-			        << "< error: " << getResultCode(result) << endl;
+			cout << "  read " << fields->getName() << " >" << check[2] << " " << check[3]
+			     << "< error: " << getResultCode(result) << endl;
 		}
 		else {
 			bool match = strcasecmp(output.str().c_str(), expectStr.c_str()) == 0;
