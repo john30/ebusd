@@ -85,8 +85,8 @@ typedef struct {
 	const short divisorOrFirstBit;       //!< @a bt_number: divisor (negative for reciprocal) or offset to first bit (if (@a bitCount%8)!=0)
 } dataType_t;
 
-/** the maximum position within master or slave data. */
-#define MAX_POS 16
+/** the maximum allowed position within master or slave data. */
+#define MAX_POS 24
 
 /**
  * Parse an unsigned int value.
