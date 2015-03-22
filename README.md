@@ -33,16 +33,16 @@ Building ebusd from the source requires the following packages and/or features:
  * kernel with pselect or ppoll support
  * glibc with argp support or argp-standalone
 
-To start the build process, run these commands:
-./autogen.sh
-make install
+To start the build process, run these commands:  
+> ./autogen.sh  
+> make install  
 
 
 Documentation
 -------------
 
 Usage instructions and further information can be found here:
-https://github.com/john30/ebusd/wiki
+> https://github.com/john30/ebusd/wiki
 
 
 Contact
