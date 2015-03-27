@@ -106,23 +106,24 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	size_t len = strlen(str);
 	if (len == 0) { // default: active read
 		defaultName = "r";
-	} else if (strncasecmp(str, "R", 1) == 0) { // active read
-		char last = str[len-1];
-		if (last >= '0' && last <= '9') { // poll priority (=active read)
-			pollPriority = (unsigned char)(last - '0');
-			defaultName = string(str).substr(0, len - 1); // cut off priority digit
+	} else {
+		defaultName = str;
+		char type = str[0];
+		if (type == 'r' || type == 'R') { // active read
+			char poll = str[1];
+			if (poll >= '0' && poll <= '9') { // poll priority (=active read)
+				pollPriority = (unsigned char)(poll - '0');
+				defaultName.erase(1, 1); // cut off priority digit
+			}
 		}
-		else
-			defaultName = str;
-	}
-	else if (strncasecmp(str, "W", 1) == 0) { // active write
-		isWrite = true;
-		defaultName = str;
-	}
-	else { // any other: passive read/write
-		isPassive = true;
-		isWrite = strcasecmp(str+len-1, "W") == 0; // if type ends with "w" it is treated as passive write
-		defaultName = str;
+		else if (type == 'w' || type == 'W') { // active write
+			isWrite = true;
+		}
+		else { // any other: passive read/write
+			isPassive = true;
+			type = str[1];
+			isWrite = type == 'w' || type == 'W'; // if type continues with "w" it is treated as passive write
+		}
 	}
 
 	vector<string>* defaults = NULL;
@@ -496,18 +497,17 @@ result_t MessageMap::add(Message* message)
 {
 	unsigned long long key = message->getKey();
 	map<unsigned long long, Message*>::iterator keyIt = m_messagesByKey.find(key);
-	if (keyIt != m_messagesByKey.end()) {
+	if (keyIt != m_messagesByKey.end())
 		return RESULT_ERR_DUPLICATE; // duplicate key
-	}
+
 	bool isPassive = message->isPassive();
 	bool isWrite = message->isWrite();
 	string circuit = strtolower(message->getCircuit());
 	string name = strtolower(message->getName());
 	string nameKey = string(isPassive ? "P" : (isWrite ? "W" : "R")) + circuit + FIELD_SEPARATOR + name;
 	map<string, Message*>::iterator nameIt = m_messagesByName.find(nameKey);
-	if (nameIt != m_messagesByName.end()) {
+	if (nameIt != m_messagesByName.end())
 		return RESULT_ERR_DUPLICATE; // duplicate key
-	}
 
 	m_messagesByName[nameKey] = message;
 	m_messageCount++;
@@ -516,9 +516,8 @@ result_t MessageMap::add(Message* message)
 
 	nameKey = string(isPassive ? "-P" : (isWrite ? "-W" : "-R")) + name; // also store without circuit
 	nameIt = m_messagesByName.find(nameKey);
-	if (nameIt == m_messagesByName.end()) {
+	if (nameIt == m_messagesByName.end())
 		m_messagesByName[nameKey] = message; // only store first key without circuit
-	}
 
 	unsigned char idLength = (unsigned char)(message->getId().size() - 2);
 	if (idLength < m_minIdLength)
