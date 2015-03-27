@@ -1,4 +1,4 @@
-# next version (2015-03-?)
+# 1.1.0 (2015-03-28)
 
 ## Bug fixes
 * return passive messages returned in "read" regardless of their age
@@ -10,6 +10,8 @@
 * fixed scanning for messages in subdirectories for certain file systems (thanks to joltcoke)
 * allow mixing references to base types and templates in message definition
 * renamed "class" to "circuit" in commands and message definition
+* fixed reading cached values
+* extended max allowed data length to 25 (spec says 16)
 
 ## Features
 * new command line option "--dumpconfig" for dumping message configurations
@@ -31,7 +33,7 @@
 * added "grab" command for collecting and reporting seen unknown messages
 
 ## Changed files
-https://github.com/john30/ebusd/compare/v1.0.0...master
+https://github.com/john30/ebusd/compare/v1.0.0...v1.1.0
 
 
 # 1.0.0 (2015-02-18)
