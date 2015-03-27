@@ -564,7 +564,7 @@ int main(int argc, char* argv[])
 	signal(SIGINT, signalHandler);
 	signal(SIGTERM, signalHandler);
 
-	logNotice(lf_main, "ebusd started");
+	logNotice(lf_main, PACKAGE_STRING " started");
 
 	// load configuration files
 	loadConfigFiles(&templates, &messages);
