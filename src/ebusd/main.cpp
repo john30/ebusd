@@ -490,13 +490,13 @@ result_t loadConfigFiles(DataFieldTemplates* templates, MessageMap* messages, bo
 	if (result == RESULT_OK)
 		logInfo(lf_main, "read templates");
 	else
-		logError(lf_main, "error reading templates: %s", getResultCode(result));
+		logError(lf_main, "error reading templates: %s, %s", getResultCode(result), templates->getLastError().c_str());
 
 	result = readConfigFiles(path, ".csv", templates, messages, verbose);
 	if (result == RESULT_OK)
 		logInfo(lf_main, "read config files");
 	else
-		logError(lf_main, "error reading config files: %s", getResultCode(result));
+		logError(lf_main, "error reading config files: %s, %s", getResultCode(result), messages->getLastError().c_str());
 
 	logNotice(lf_main, "found messages: %d (%d poll, %d update)", messages->size(), messages->sizePoll(), messages->size(true));
 

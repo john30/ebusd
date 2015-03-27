@@ -144,15 +144,25 @@ public:
 			if (result != RESULT_OK) {
 				if (!verbose) {
 					ifs.close();
+					ostringstream error;
+					error << filename <<":" << static_cast<unsigned>(lineNo);
+					m_lastError = error.str();
 					return result;
 				}
 				printErrorPos(row.begin(), end, it, filename, lineNo, result);
-			}
+			} else if (!verbose)
+				m_lastError = "";
 		}
 
 		ifs.close();
 		return RESULT_OK;
 	}
+
+	/**
+	 * Return a @a string describing the last error position.
+	 * @return a @a string describing the last error position.
+	 */
+	virtual string getLastError() { return m_lastError; }
 
 	/**
 	 * Add a definition that was read from a file.
@@ -170,6 +180,9 @@ private:
 
 	/** whether this instance supports rows with defaults (starting with a star). */
 	bool m_supportsDefaults;
+
+	/** a @a string describing the last error position. */
+	string m_lastError;
 
 };
 
