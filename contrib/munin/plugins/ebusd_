@@ -1,4 +1,5 @@
 #!/bin/bash
+# Munn plugin for ebusd.
 #%# family=auto
 #%# capabilities=autoconf
 #%# capabilities=suggest
@@ -14,44 +15,59 @@ if [ "$1" = "suggest" ]; then
   exit 0
 fi
 prefix=`basename "$0"`
-if [ "$prefix" = "ebusd_temp" ]; then
-  sensors="outsidetemp BrineTempInput BrineTempOutput FlowTemp mcFlowTempSensor hwTankTemp RoomTemp rc4:RoomTemp"
-elif [ "$prefix" = "ebusd_press" ]; then
-  sensors="BrinePress HeatSystemPress VaporPressHigh VaporPressLow"
+type=${prefix##ebusd_}
+skip=
+if [ "$type" = "temp" ]; then
+  match="Temp(Input|Output|Bottom|Top)?\$|outsidetemp"
+  skip="Bivalent|Max|Min|Outside|mc5:"
+elif [ "$type" = "press" ]; then
+  match="Press(High|Low)?\$"
+  skip="KeyPress"
 else
-  sensors="YieldEnvironmentEnergy ActualEnvironmentPower"
+  match="Environment(Energy|Power)\$"
+fi
+result=`echo "find"|nc localhost 8888 2>/dev/null`
+if [ -z "$result" -o "x${result##ERR:*}" = "x" ]; then
+  echo "error: $result"
+  exit 1
+fi
+sensors=`echo "$result"|sed -e 's# =.*$##' -e 's# #:#'|egrep "$match"`
+if [ -n "$skip" ]; then
+  sensors=`echo "$sensors"|egrep -v "$skip"`
 fi
 if [ "$1" = "config" ]; then
-  if [ "$prefix" = "ebusd_temp" ]; then
-    echo "graph_title ebusd Temperaturen"
+  if [ "$type" = "temp" ]; then
+    echo "graph_title ebus Temperaturen"
     echo "graph_vlabel Grad"
-  elif [ "$prefix" = "ebusd_press" ]; then
-    echo "graph_title ebusd Drucksensoren"
+  elif [ "$type" = "press" ]; then
+    echo "graph_title ebus Drucksensoren"
     echo "graph_vlabel Bar"
   else
-    echo "graph_title ebusd Leistung/Ertrag"
+    echo "graph_title ebus Leistung/Ertrag"
     echo "graph_vlabel kW"
     echo "graph_period hour"
   fi
   echo 'graph_category Heizung'
   for sensor in $sensors; do
-    if [ ! "${sensor/nergy/}" = "$sensor" ]; then
-      echo ${prefix}_${sensor/:/_}.label "$sensor [diff]"
+    result=`echo "read -c ${sensor/:/ }"|nc localhost 8888 2>/dev/null|head -n 1|sed -e 's#;.*$##'`
+    if [ "x$result" = "x-" -o "x${result##ERR:*}" = "x" ]; then
+      continue
+    fi
+    if [ ! "${sensor%%Energy}" = "$sensor" ]; then
+      echo ${prefix}_${sensor/:/_}.label ${sensor/:/ } "[diff]"
       echo ${prefix}_${sensor/:/_}.type COUNTER
       echo ${prefix}_${sensor/:/_}.draw AREA
     else
-      echo ${prefix}_${sensor/:/_}.label $sensor
+      echo ${prefix}_${sensor/:/_}.label ${sensor/:/ }
     fi
-    print_warning ${prefix}_${sensor/:/_}
-    print_critical ${prefix}_${sensor/:/_}
+#    print_warning ${prefix}_${sensor/:/_}
+#    print_critical ${prefix}_${sensor/:/_}
   done
   exit 0
 fi
 for sensor in $sensors; do
-  if [ "${sensor/:/_}" = "$sensor" ]; then
-    RESULT=`echo "r $sensor"|nc localhost 8888 2>/dev/null|head -n 1|sed -e 's#;.*$##'`
-  else
-    RESULT=`echo "r -c ${sensor/:/ }"|nc localhost 8888 2>/dev/null|head -n 1|sed -e 's#;.*$##'`
+  result=`echo "read -c ${sensor/:/ }"|nc localhost 8888 2>/dev/null|head -n 1|sed -e 's#;.*$##'`
+  if [ ! "x$result" = "x-" ]; then
+    echo ${prefix}_${sensor/:/_}.value $result
   fi
-  echo ${prefix}_${sensor/:/_}.value $RESULT
 done
