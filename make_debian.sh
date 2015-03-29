@@ -44,7 +44,7 @@ echo " pack"
 echo "*************"
 echo
 mkdir -p $RELEASE/DEBIAN $RELEASE/etc/init.d $RELEASE/etc/default $RELEASE/etc/logrotate.d || exit 1
-
+rm $RELEASE/usr/bin/ebusfeed
 cp contrib/etc/init.d/ebusd.debian $RELEASE/etc/init.d/ebusd || exit 1
 cp contrib/etc/default/ebusd.debian $RELEASE/etc/default/ebusd || exit 1
 cp contrib/etc/ebusd/* $RELEASE/etc/ebusd/ || exit 1
