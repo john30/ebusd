@@ -20,9 +20,15 @@ echo "*************"
 echo " prepare"
 echo "*************"
 echo
-mkdir -p debian-build/ebusd || exit 1
-cd debian-build/ebusd || exit 1
-(tar cf - -C  ../.. --exclude=debian-build --exclude=./.* .| tar xf -) || exit 1
+VERSION=`head -n 1 VERSION`
+ARCH=`dpkg --print-architecture`
+BUILD="build-$ARCH"
+RELEASE="ebusd-$VERSION"
+PACKAGE="${RELEASE}_${ARCH}.deb"
+rm -rf "$BUILD"
+mkdir -p "$BUILD" || exit 1
+cd "$BUILD" || exit 1
+(tar cf - -C .. "--exclude=./$BUILD" --exclude=./.* .| tar xf -) || exit 1
 
 echo
 echo "*************"
@@ -30,24 +36,22 @@ echo " build"
 echo "*************"
 echo
 ./autogen.sh || exit 1
-make DESTDIR="$PWD/release" install-strip || exit 1
+make DESTDIR="$PWD/$RELEASE" install-strip || exit 1
 
 echo
 echo "*************"
 echo " pack"
 echo "*************"
 echo
-mkdir -p release/DEBIAN release/etc/init.d release/etc/default release/etc/ebusd release/etc/logrotate.d release/usr/bin release/usr/bin || exit 1
+mkdir -p $RELEASE/DEBIAN $RELEASE/etc/init.d $RELEASE/etc/default $RELEASE/etc/logrotate.d || exit 1
 
-cp contrib/etc/init.d/ebusd.debian release/etc/init.d/ebusd || exit 1
-cp contrib/etc/default/ebusd.debian release/etc/default/ebusd || exit 1
-cp contrib/etc/ebusd/* release/etc/ebusd/ || exit 1
-cp contrib/etc/logrotate.d/ebusd release/etc/logrotate.d/ || exit 1
-cp ChangeLog.md release/DEBIAN/changelog || exit 1
-VERSION=`head -n 1 VERSION`
+cp contrib/etc/init.d/ebusd.debian $RELEASE/etc/init.d/ebusd || exit 1
+cp contrib/etc/default/ebusd.debian $RELEASE/etc/default/ebusd || exit 1
+cp contrib/etc/ebusd/* $RELEASE/etc/ebusd/ || exit 1
+cp contrib/etc/logrotate.d/ebusd $RELEASE/etc/logrotate.d/ || exit 1
+cp ChangeLog.md $RELEASE/DEBIAN/changelog || exit 1
 
-ARCH=`dpkg --print-architecture`
-cat <<EOF > release/DEBIAN/control
+cat <<EOF > $RELEASE/DEBIAN/control
 Package: ebusd
 Version: $VERSION
 Section: net
@@ -61,26 +65,28 @@ Description: eBUS daemon.
  ebusd is a daemon for handling communication with eBUS devices connected to a
  2-wire bus system.
 EOF
-cat <<EOF > release/DEBIAN/dirs
+cat <<EOF > $RELEASE/DEBIAN/dirs
 /etc/ebusd
-/usr/bin/
 /etc/init.d
 /etc/default
 /etc/logrotate.d
+/usr/bin
 EOF
 
-mv release ebusd-$VERSION || exit 1
-dpkg -b ebusd-$VERSION || exit 1
-mv ebusd-$VERSION.deb ../../ebusd-${VERSION}_${ARCH}.deb || exit 1
+dpkg -b $RELEASE || exit 1
+mv ebusd-$VERSION.deb "../$PACKAGE" || exit 1
 
 echo
 echo "*************"
 echo " cleanup"
 echo "*************"
 echo
-cd ../..
-rm -rf debian-build
+cd ..
+rm -rf "$BUILD"
 
 echo
-echo "Debian package created: ./ebusd-${VERSION}_${ARCH}.deb"
+echo "Package created: $PACKAGE"
+echo
+echo "Content:"
+dpkg -c "$PACKAGE"
 
