@@ -25,6 +25,9 @@ The main features of the daemon are:
 Installation
 ------------
 
+Either pick the latest release package suitable for your system
+(see https://github.com/john30/ebusd/releases/latest) or build it yourself.
+
 Building ebusd from the source requires the following packages and/or features:
  * autoconf (>=2.63)
  * automake (>=1.11)
@@ -43,6 +46,15 @@ Documentation
 
 Usage instructions and further information can be found here:
 > https://github.com/john30/ebusd/wiki
+
+
+Configuration
+-------------
+
+The most important part of each ebusd installation is the message
+configuration. By default, only rudimentary messages are interpreted.
+Check the Wiki and/or the configuration repository:
+> https://github.com/john30/ebusd-configuration
 
 
 Contact
