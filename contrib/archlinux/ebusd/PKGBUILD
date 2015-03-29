@@ -27,7 +27,7 @@ build() {
 
 package() {
   cd "${srcdir}"/${pkgname}-${_pkgver}
-  make DESTDIR="$pkgdir" install
+  make DESTDIR="$pkgdir" install-strip
 
   install -d                       "${pkgdir}"/usr/lib/systemd/system
   install -m 0644 ../ebusd.service "${pkgdir}"/usr/lib/systemd/system
