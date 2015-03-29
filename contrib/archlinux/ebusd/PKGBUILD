@@ -3,8 +3,8 @@
 
 pkgname=ebusd
 #_gitname=ebusd
-pkgver=1.0.0
-_pkgver=1.0.0
+pkgver=1.1.0
+_pkgver=1.1.0
 pkgrel=1
 pkgdesc="ebusd provides a communication interface to the energy bus (ebus)."
 arch=('i686' 'x86_64' 'armv6h')
@@ -21,9 +21,7 @@ source=("https://github.com/john30/ebusd/archive/v${_pkgver}.tar.gz" 'ebusd.serv
 
 build() {
   cd "${srcdir}"/${pkgname}-${_pkgver}
-  ./autogen.sh --prefix=/usr --sysconfdir=/etc
-  # This is corrected in master
-  sed -i 's@\(\[ -d \)\(\$(sysconfdir)/ebusd \] || mkdir -p \)\(\$(sysconfdir)/ebusd\)@\1\$(DESTDIR)\2\$(DESTDIR)\3@' src/ebusd/Makefile.am
+  ./autogen.sh
   make -j1
 }
 
@@ -36,6 +34,6 @@ package() {
   install -d                       "${pkgdir}"/etc/conf.d
   install -m 0644 ../ebusd_conf.d  "${pkgdir}"/etc/conf.d/ebusd
 }
-md5sums=('1f3e61dcf54467a108d8b9b059bc641f'
+md5sums=('b9db787417e7e59e0e872c84bdef52f1'
          '15b2fdb0a219fae6feecd539e8823864'
          'a2b4d5557fd90ea30e04358da62597fb')

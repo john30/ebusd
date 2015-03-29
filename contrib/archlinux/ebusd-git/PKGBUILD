@@ -3,8 +3,8 @@
 
 pkgname=ebusd-git
 _gitname=ebusd
-pkgver=2faab3f
-_pkgver=1.0.0
+pkgver=5b22911
+_pkgver=1.1.0
 pkgrel=1
 pkgdesc="ebusd provides a communication interface to the energy bus (ebus)."
 arch=('i686' 'x86_64' 'armv6h')
@@ -32,7 +32,6 @@ build() {
 
   git clean -dfx
   git reset --hard
-#  git apply -v --ignore-space-change --ignore-whitespace ../some.patch
 
   ./autogen.sh
   make -j1
