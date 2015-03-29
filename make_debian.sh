@@ -30,7 +30,7 @@ echo " build"
 echo "*************"
 echo
 ./autogen.sh || exit 1
-make || exit 1
+make DESTDIR="$PWD/release" install-strip || exit 1
 
 echo
 echo "*************"
@@ -43,10 +43,6 @@ cp contrib/etc/init.d/ebusd.debian release/etc/init.d/ebusd || exit 1
 cp contrib/etc/default/ebusd.debian release/etc/default/ebusd || exit 1
 cp contrib/etc/ebusd/* release/etc/ebusd/ || exit 1
 cp contrib/etc/logrotate.d/ebusd release/etc/logrotate.d/ || exit 1
-strip src/ebusd/ebusd || exit 1
-cp src/ebusd/ebusd release/usr/bin/ || exit 1
-strip src/tools/ebusctl || exit 1
-cp src/tools/ebusctl release/usr/bin/ || exit 1
 cp ChangeLog.md release/DEBIAN/changelog || exit 1
 VERSION=`head -n 1 VERSION`
 
