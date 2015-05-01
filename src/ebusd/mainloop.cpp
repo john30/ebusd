@@ -158,45 +158,46 @@ string MainLoop::decodeMessage(const string& data, const bool isHttp, bool& conn
 	if (isHttp) {
 		if (strcmp(str, "GET") == 0)
 			return executeGet(args);
-	} else {
-		if (args.size() == 2) {
-			// check for "CMD -h"
-			if (strcasecmp(args[1].c_str(), "-h") == 0 || strcasecmp(args[1].c_str(), "-?") == 0 || strcasecmp(args[1].c_str(), "--help") == 0)
-				args.clear(); // empty args is used as command help indicator
-			else if (strcasecmp(args[0].c_str(), "H") == 0 || strcasecmp(args[0].c_str(), "HELP") == 0) { // check for "HELP CMD"
-				str = args[1].c_str();
-				args.clear(); // empty args is used as command help indicator
-			}
-		}
-		if (strcasecmp(str, "R") == 0 || strcasecmp(str, "READ") == 0)
-			return executeRead(args);
-		if (strcasecmp(str, "W") == 0 || strcasecmp(str, "WRITE") == 0)
-			return executeWrite(args);
-		if (strcasecmp(str, "F") == 0 || strcasecmp(str, "FIND") == 0)
-			return executeFind(args);
-		if (strcasecmp(str, "L") == 0 || strcasecmp(str, "LISTEN") == 0)
-			return executeListen(args, listening);
-		if (strcasecmp(str, "S") == 0 || strcasecmp(str, "STATE") == 0)
-			return executeState(args);
-		if (strcasecmp(str, "G") == 0 || strcasecmp(str, "GRAB") == 0)
-			return executeGrab(args);
-		if (strcasecmp(str, "SCAN") == 0)
-			return executeScan(args);
-		if (strcasecmp(str, "LOG") == 0)
-			return executeLog(args);
-		if (strcasecmp(str, "RAW") == 0)
-			return executeRaw(args);
-		if (strcasecmp(str, "DUMP") == 0)
-			return executeDump(args);
-		if (strcasecmp(str, "RELOAD") == 0)
-			return executeReload(args);
-		if (strcasecmp(str, "STOP") == 0)
-			return executeStop(args, running);
-		if (strcasecmp(str, "Q") == 0 || strcasecmp(str, "QUIT") == 0)
-			return executeQuit(args, connected);
-		if (strcasecmp(str, "H") == 0 || strcasecmp(str, "HELP") == 0)
-			return executeHelp();
+		return "HTTP/1.0 405 Method Not Allowed\r\n\r\n";
 	}
+
+	if (args.size() == 2) {
+		// check for "CMD -h"
+		if (strcasecmp(args[1].c_str(), "-h") == 0 || strcasecmp(args[1].c_str(), "-?") == 0 || strcasecmp(args[1].c_str(), "--help") == 0)
+			args.clear(); // empty args is used as command help indicator
+		else if (strcasecmp(args[0].c_str(), "H") == 0 || strcasecmp(args[0].c_str(), "HELP") == 0) { // check for "HELP CMD"
+			str = args[1].c_str();
+			args.clear(); // empty args is used as command help indicator
+		}
+	}
+	if (strcasecmp(str, "R") == 0 || strcasecmp(str, "READ") == 0)
+		return executeRead(args);
+	if (strcasecmp(str, "W") == 0 || strcasecmp(str, "WRITE") == 0)
+		return executeWrite(args);
+	if (strcasecmp(str, "F") == 0 || strcasecmp(str, "FIND") == 0)
+		return executeFind(args);
+	if (strcasecmp(str, "L") == 0 || strcasecmp(str, "LISTEN") == 0)
+		return executeListen(args, listening);
+	if (strcasecmp(str, "S") == 0 || strcasecmp(str, "STATE") == 0)
+		return executeState(args);
+	if (strcasecmp(str, "G") == 0 || strcasecmp(str, "GRAB") == 0)
+		return executeGrab(args);
+	if (strcasecmp(str, "SCAN") == 0)
+		return executeScan(args);
+	if (strcasecmp(str, "LOG") == 0)
+		return executeLog(args);
+	if (strcasecmp(str, "RAW") == 0)
+		return executeRaw(args);
+	if (strcasecmp(str, "DUMP") == 0)
+		return executeDump(args);
+	if (strcasecmp(str, "RELOAD") == 0)
+		return executeReload(args);
+	if (strcasecmp(str, "STOP") == 0)
+		return executeStop(args, running);
+	if (strcasecmp(str, "Q") == 0 || strcasecmp(str, "QUIT") == 0)
+		return executeQuit(args, connected);
+	if (strcasecmp(str, "H") == 0 || strcasecmp(str, "HELP") == 0)
+		return executeHelp();
 	return "ERR: command not found";
 }
 
@@ -762,7 +763,7 @@ string MainLoop::executeHelp()
 string MainLoop::executeGet(vector<string> &args)
 {
 	size_t argPos = 1;
-	bool onlyWithData = true;
+	bool onlyWithData = false;
 
 	deque<Message*> messages;
 	if (args.size() >= argPos+2)
@@ -819,7 +820,8 @@ string MainLoop::executeGet(vector<string> &args)
 		result.str("");
 		result.clear();
 		result << "HTTP/1.0 200 OK\r\n";
-		result << "Content-Type: application/json\r\n";
+		result << "Content-Type: application/json;charset=utf-8\r\n";
+		result << "Access-Control-Allow-Origin: *\r\n";
 		result << "Content-Length: " << setw(0) << dec << static_cast<unsigned>(str.length()) << "\r\n";
 		result << "\r\n";
 		result << str;
