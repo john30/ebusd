@@ -182,17 +182,14 @@ public:
 	 * @param data the unescaped data @a SymbolString for reading binary data.
 	 * @param output the @a ostringstream to append the formatted value to.
 	 * @param leadingSeparator whether to prepend a separator before the formatted value.
-	 * @param verbose whether to prepend the name, append the unit (if present), and append
-	 * the comment in square brackets (if present).
+	 * @param dataFormat the @a DataFormat to use.
 	 * @param fieldName the optional name of a field to limit the output to.
 	 * @param fieldIndex the optional index of the named field to limit the output to, or -1.
-	 * @param separator the separator character between multiple fields.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	result_t decode(const PartType partType, SymbolString& data,
 			ostringstream& output, bool leadingSeparator=false,
-			bool verbose=false, const char* fieldName=NULL, signed char fieldIndex=-1,
-			char separator=UI_FIELD_SEPARATOR);
+			DataFormat dataFormat=df_standard, const char* fieldName=NULL, signed char fieldIndex=-1);
 
 	/**
 	 * Decode all parts of a received message.
@@ -200,28 +197,24 @@ public:
 	 * @param slaveData the unescaped slave data @a SymbolString to decode.
 	 * @param output the @a ostringstream to append the formatted value to.
 	 * @param leadingSeparator whether to prepend a separator before the formatted value.
-	 * @param verbose whether to prepend the name, append the unit (if present), and append
-	 * the comment in square brackets (if present).
-	 * @param separator the separator character between multiple fields.
+	 * @param dataFormat the @a DataFormat to use.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	result_t decode(SymbolString& masterData, SymbolString& slaveData,
 			ostringstream& output, bool leadingSeparator=false,
-			bool verbose=false, char separator=UI_FIELD_SEPARATOR);
+			DataFormat dataFormat=df_standard);
 
 	/**
 	 * Decode the value from the last stored data.
 	 * @param output the @a ostringstream to append the formatted value to.
-	 * @param verbose whether to prepend the name, append the unit (if present), and append
-	 * the comment in square brackets (if present).
+	 * @param leadingSeparator whether to prepend a separator before the formatted value.
+	 * @param dataFormat the @a DataFormat to use.
 	 * @param fieldName the optional name of a field to limit the output to.
 	 * @param fieldIndex the optional index of the named field to limit the output to, or -1.
-	 * @param separator the separator character between multiple fields.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	result_t decodeLastData(ostringstream& output,
-			bool verbose=false, const char* fieldName=NULL, signed char fieldIndex=-1,
-			char separator=UI_FIELD_SEPARATOR);
+	result_t decodeLastData(ostringstream& output, bool leadingSeparator=false,
+			DataFormat dataFormat=df_standard, const char* fieldName=NULL, signed char fieldIndex=-1);
 
 	/**
 	 * Get the time when @a m_lastValue was last stored.

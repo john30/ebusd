@@ -46,6 +46,13 @@ using namespace std;
 /** the separator character used between fields (in UI only). */
 #define UI_FIELD_SEPARATOR ';'
 
+/** the data output format. */
+enum DataFormat {
+	df_standard, //!< standard format (values only)
+	df_verbose,  //!< verbose format (names, values, units, and comments)
+	df_json,     //!< JSON format (names, values, units, and comments)
+};
+
 /** the message part in which a data field is stored. */
 enum PartType {
 	pt_any,          //!< stored in any data (master or slave)
@@ -220,11 +227,9 @@ public:
 	 * @param offset the additional offset to add for reading binary data.
 	 * @param output the @a ostringstream to append the formatted value to.
 	 * @param leadingSeparator whether to prepend a separator before the formatted value.
-	 * @param verbose whether to prepend the name, append the unit (if present), and append
-	 * the comment in square brackets (if present).
+	 * @param dataFormat the @a DataFormat to use.
 	 * @param fieldName the optional name of a field to limit the output to.
 	 * @param fieldIndex the optional index of the named field to limit the output to, or -1.
-	 * @param separator the separator character between multiple fields.
 	 * @return @a RESULT_OK on success (or if the partType does not match),
 	 * or @a RESULT_EMPTY if the field was skipped (either ignored or due to @a filterName),
 	 * or an error code.
@@ -232,8 +237,7 @@ public:
 	virtual result_t read(const PartType partType,
 			SymbolString& data, unsigned char offset,
 			ostringstream& output, bool leadingSeparator=false,
-			bool verbose=false, const char* fieldName=NULL, signed char fieldIndex=-1,
-			char separator=UI_FIELD_SEPARATOR) = 0;
+			DataFormat dataFormat=df_standard, const char* fieldName=NULL, signed char fieldIndex=-1) = 0;
 
 	/**
 	 * Writes the value to the master or slave @a SymbolString.
@@ -343,8 +347,7 @@ public:
 	virtual result_t read(const PartType partType,
 			SymbolString& data, unsigned char offset,
 			ostringstream& output, bool leadingSeparator=false,
-			bool verbose=false, const char* fieldName=NULL, signed char fieldIndex=-1,
-			char separator=UI_FIELD_SEPARATOR);
+			DataFormat dataFormat=df_standard, const char* fieldName=NULL, signed char fieldIndex=-1);
 
 	// @copydoc
 	virtual result_t write(istringstream& input,
@@ -360,7 +363,9 @@ protected:
 	 * @param output the ostringstream to append the formatted value to.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	virtual result_t readSymbols(SymbolString& input, const unsigned char offset, ostringstream& output) = 0;
+	virtual result_t readSymbols(SymbolString& input, const unsigned char baseOffset,
+			ostringstream& output,
+			DataFormat dataFormat) = 0;
 
 	/**
 	 * Internal method for writing the field to a @a SymbolString.
@@ -426,7 +431,9 @@ public:
 protected:
 
 	// @copydoc
-	virtual result_t readSymbols(SymbolString& input, const unsigned char offset, ostringstream& output);
+	virtual result_t readSymbols(SymbolString& input, const unsigned char baseOffset,
+			ostringstream& output,
+			DataFormat dataFormat);
 
 	// @copydoc
 	virtual result_t writeSymbols(istringstream& input, const unsigned char offset, SymbolString& output);
@@ -538,7 +545,9 @@ public:
 protected:
 
 	// @copydoc
-	virtual result_t readSymbols(SymbolString& input, const unsigned char offset, ostringstream& output);
+	virtual result_t readSymbols(SymbolString& input, const unsigned char baseOffset,
+			ostringstream& output,
+			DataFormat dataFormat);
 
 	// @copydoc
 	virtual result_t writeSymbols(istringstream& input, const unsigned char offset, SymbolString& output);
@@ -597,7 +606,9 @@ public:
 protected:
 
 	// @copydoc
-	virtual result_t readSymbols(SymbolString& input, const unsigned char offset, ostringstream& output);
+	virtual result_t readSymbols(SymbolString& input, const unsigned char baseOffset,
+			ostringstream& output,
+			DataFormat dataFormat);
 
 	// @copydoc
 	virtual result_t writeSymbols(istringstream& input, const unsigned char offset, SymbolString& output);
@@ -675,8 +686,7 @@ public:
 	virtual result_t read(const PartType partType,
 			SymbolString& data, unsigned char offset,
 			ostringstream& output, bool leadingSeparator=false,
-			bool verbose=false, const char* fieldName=NULL, signed char fieldIndex=-1,
-			char separator=UI_FIELD_SEPARATOR);
+			DataFormat dataFormat=df_standard, const char* fieldName=NULL, signed char fieldIndex=-1);
 
 	// @copydoc
 	virtual result_t write(istringstream& input,

@@ -351,15 +351,14 @@ result_t Message::prepareSlave(SymbolString& slaveData)
 
 result_t Message::decode(const PartType partType, SymbolString& data,
 		ostringstream& output, bool leadingSeparator,
-		bool verbose, const char* fieldName, signed char fieldIndex,
-		char separator)
+		DataFormat dataFormat, const char* fieldName, signed char fieldIndex)
 {
 	unsigned char offset;
 	if (partType == pt_masterData)
 		offset = (unsigned char)(m_id.size() - 2);
 	else
 		offset = 0;
-	result_t result = m_data->read(partType, data, offset, output, leadingSeparator, verbose, fieldName, fieldIndex, separator);
+	result_t result = m_data->read(partType, data, offset, output, leadingSeparator, dataFormat, fieldName, fieldIndex);
 	if (result < RESULT_OK)
 		return result;
 	if (result == RESULT_EMPTY && fieldName != NULL)
@@ -382,17 +381,17 @@ result_t Message::decode(const PartType partType, SymbolString& data,
 
 result_t Message::decode(SymbolString& masterData, SymbolString& slaveData,
 		ostringstream& output, bool leadingSeparator,
-		bool verbose, char separator)
+		DataFormat dataFormat)
 {
 	unsigned char offset = (unsigned char)(m_id.size() - 2);
 	size_t startPos = output.str().length();
-	result_t result = m_data->read(pt_masterData, masterData, offset, output, leadingSeparator, verbose, NULL, -1, separator);
+	result_t result = m_data->read(pt_masterData, masterData, offset, output, leadingSeparator, dataFormat, NULL, -1);
 	if (result < RESULT_OK)
 		return result;
 	bool empty = result == RESULT_EMPTY;
 	offset = 0;
 	leadingSeparator = output.str().length() > startPos;
-	result = m_data->read(pt_slaveData, slaveData, offset, output, leadingSeparator, verbose, NULL, -1, separator);
+	result = m_data->read(pt_slaveData, slaveData, offset, output, leadingSeparator, dataFormat, NULL, -1);
 	if (result < RESULT_OK)
 		return result;
 	if (result == RESULT_EMPTY && !empty)
@@ -409,20 +408,18 @@ result_t Message::decode(SymbolString& masterData, SymbolString& slaveData,
 	return result;
 }
 
-result_t Message::decodeLastData(ostringstream& output,
-		bool verbose, const char* fieldName, signed char fieldIndex,
-		char separator)
+result_t Message::decodeLastData(ostringstream& output, bool leadingSeparator,
+		DataFormat dataFormat, const char* fieldName, signed char fieldIndex)
 {
-	bool leadingSeparator = false;
 	unsigned char offset = (unsigned char)(m_id.size() - 2);
 	size_t startPos = output.str().length();
-	result_t result = m_data->read(pt_masterData, m_lastMasterData, offset, output, leadingSeparator, verbose, fieldName, fieldIndex, separator);
+	result_t result = m_data->read(pt_masterData, m_lastMasterData, offset, output, leadingSeparator, dataFormat, fieldName, fieldIndex);
 	if (result < RESULT_OK)
 		return result;
 	bool empty = result == RESULT_EMPTY;
 	offset = 0;
 	leadingSeparator = output.str().length() > startPos;
-	result = m_data->read(pt_slaveData, m_lastSlaveData, offset, output, leadingSeparator, verbose, fieldName, fieldIndex, separator);
+	result = m_data->read(pt_slaveData, m_lastSlaveData, offset, output, leadingSeparator, dataFormat, fieldName, fieldIndex);
 	if (result < RESULT_OK)
 		return result;
 	if (result == RESULT_EMPTY && !empty)

@@ -430,8 +430,7 @@ void SingleDataField::dump(ostream& output)
 result_t SingleDataField::read(const PartType partType,
 		SymbolString& data, unsigned char offset,
 		ostringstream& output, bool leadingSeparator,
-		bool verbose, const char* fieldName, signed char fieldIndex,
-		char separator)
+		DataFormat dataFormat, const char* fieldName, signed char fieldIndex)
 {
 	if (partType != m_partType)
 		return RESULT_OK;
@@ -454,21 +453,38 @@ result_t SingleDataField::read(const PartType partType,
 		return RESULT_EMPTY;
 	}
 
-	if (leadingSeparator)
-		output << separator;
+	if (leadingSeparator) {
+		if (dataFormat==df_json)
+			output << ",";
+		else
+			output << UI_FIELD_SEPARATOR;
+	}
 
-	if (verbose)
+	if (dataFormat==df_verbose)
 		output << m_name << "=";
+	else if (dataFormat==df_json)
+		output << "\n    {\"name\": \"" << m_name << "\"";
 
-	result_t result = readSymbols(data, offset, output);
+	if (dataFormat==df_json)
+		output << ", \"value\": ";
+	result_t result = readSymbols(data, offset, output, dataFormat);
 	if (result != RESULT_OK)
 		return result;
 
-	if (verbose && m_unit.length() > 0)
-		output << " " << m_unit;
-	if (verbose && m_comment.length() > 0)
-		output << " [" << m_comment << "]";
-
+	if (m_unit.length() > 0) {
+		if (dataFormat==df_verbose)
+			output << " " << m_unit;
+		else if (dataFormat==df_json)
+			output << ", \"unit\": \"" << m_unit << '"';
+	}
+	if (m_comment.length() > 0) {
+		if (dataFormat==df_verbose)
+			output << " [" << m_comment << "]";
+		else if (dataFormat==df_json)
+			output << ", \"comment\": \"" << m_comment << '"';
+	}
+	if (dataFormat==df_json)
+		output << "}";
 	return RESULT_OK;
 }
 
@@ -525,8 +541,9 @@ void StringDataField::dump(ostream& output)
 	dumpString(output, m_comment);
 }
 
-result_t StringDataField::readSymbols(SymbolString& input,
-		unsigned char baseOffset, ostringstream& output)
+result_t StringDataField::readSymbols(SymbolString& input, const unsigned char baseOffset,
+		ostringstream& output,
+		DataFormat dataFormat)
 {
 	size_t start = 0, count = m_length;
 	int incr = 1;
@@ -541,6 +558,8 @@ result_t StringDataField::readSymbols(SymbolString& input,
 		incr = -1;
 	}
 
+	if (dataFormat==df_json)
+		output << '"';
 	for (size_t offset = start, i = 0; i < count; offset += incr, i++) {
 		if (m_length == 4 && i == 2 && m_dataType.type == bt_dat)
 			continue; // skip weekday in between
@@ -614,6 +633,8 @@ result_t StringDataField::readSymbols(SymbolString& input,
 		}
 		last = ch;
 	}
+	if (dataFormat==df_json)
+		output << '"';
 
 	return RESULT_OK;
 }
@@ -940,8 +961,9 @@ void NumberDataField::dump(ostream& output)
 	dumpString(output, m_comment);
 }
 
-result_t NumberDataField::readSymbols(SymbolString& input,
-		unsigned char baseOffset, ostringstream& output)
+result_t NumberDataField::readSymbols(SymbolString& input, const unsigned char baseOffset,
+		ostringstream& output,
+		DataFormat dataFormat)
 {
 	unsigned int value = 0;
 	int signedValue;
@@ -953,7 +975,11 @@ result_t NumberDataField::readSymbols(SymbolString& input,
 	output << setw(0) << dec; // initialize output
 
 	if ((m_dataType.flags & REQ) == 0 && value == m_dataType.replacement) {
+		if (dataFormat==df_json)
+			output << '"';
 		output << NULL_VALUE;
+		if (dataFormat==df_json)
+			output << '"';
 		return RESULT_OK;
 	}
 
@@ -979,8 +1005,15 @@ result_t NumberDataField::readSymbols(SymbolString& input,
 	if (m_divisor < 0)
 		output << static_cast<float>((float)signedValue * (float)(-m_divisor));
 	else if (m_divisor <= 1) {
-		if ((m_dataType.flags & (FIX|BCD)) == (FIX|BCD))
+		if ((m_dataType.flags & (FIX|BCD)) == (FIX|BCD)) {
+			if (dataFormat==df_json) {
+				output << '"';
+				output << setw(m_length * 2) << setfill('0');
+				output << '"';
+				return RESULT_OK;
+			}
 			output << setw(m_length * 2) << setfill('0');
+		}
 		output << static_cast<int>(signedValue) << setw(0);
 	}
 	else
@@ -1098,8 +1131,9 @@ void ValueListDataField::dump(ostream& output)
 	dumpString(output, m_comment);
 }
 
-result_t ValueListDataField::readSymbols(SymbolString& input,
-		unsigned char baseOffset, ostringstream& output)
+result_t ValueListDataField::readSymbols(SymbolString& input, const unsigned char baseOffset,
+		ostringstream& output,
+		DataFormat dataFormat)
 {
 	unsigned int value = 0;
 
@@ -1107,20 +1141,21 @@ result_t ValueListDataField::readSymbols(SymbolString& input,
 	if (result != RESULT_OK)
 		return result;
 
-	output << setw(0) << dec; // initialize output
-
 	map<unsigned int, string>::iterator it = m_values.find(value);
+	if (it == m_values.end() && value != m_dataType.replacement) {
+		return RESULT_ERR_NOTFOUND; // value assignment not found
+	}
+	output << setw(0) << dec; // initialize output
+	if (dataFormat==df_json)
+		output << '"';
 	if (it != m_values.end()) {
 		output << it->second;
-		return RESULT_OK;
-	}
-
-	if (value == m_dataType.replacement) {
+	} else if (value == m_dataType.replacement) {
 		output << NULL_VALUE;
-		return RESULT_OK;
 	}
-
-	return RESULT_ERR_NOTFOUND; // value assignment not found
+	if (dataFormat==df_json)
+		output << '"';
+	return RESULT_OK;
 }
 
 result_t ValueListDataField::writeSymbols(istringstream& input,
@@ -1238,8 +1273,7 @@ void DataFieldSet::dump(ostream& output)
 result_t DataFieldSet::read(const PartType partType,
 		SymbolString& data, unsigned char offset,
 		ostringstream& output, bool leadingSeparator,
-		bool verbose, const char* fieldName, signed char fieldIndex,
-		char separator)
+		DataFormat dataFormat, const char* fieldName, signed char fieldIndex)
 {
 	bool previousFullByteOffset = true, found = false, findFieldIndex = fieldName != NULL && fieldIndex >= 0;
 	for (vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
@@ -1250,7 +1284,7 @@ result_t DataFieldSet::read(const PartType partType,
 		if (!previousFullByteOffset && !field->hasFullByteOffset(false))
 			offset--;
 
-		result_t result = field->read(partType, data, offset, output, leadingSeparator, verbose, fieldName, fieldIndex, separator);
+		result_t result = field->read(partType, data, offset, output, leadingSeparator, dataFormat, fieldName, fieldIndex);
 
 		if (result < RESULT_OK)
 			return result;
@@ -1274,9 +1308,11 @@ result_t DataFieldSet::read(const PartType partType,
 	if (!found) {
 		return RESULT_EMPTY;
 	}
-	if (verbose) {
-		if (m_comment.length() > 0)
+	if (m_comment.length() > 0) {
+		if (dataFormat==df_verbose)
 			output << " [" << m_comment << "]";
+		else if (dataFormat==df_json)
+			output << ",\"comment\": \"" << m_comment << '"';
 	}
 
 	return RESULT_OK;
