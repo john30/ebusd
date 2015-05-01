@@ -42,11 +42,12 @@ public:
 	 * Construct a new instance.
 	 * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
 	 * @param checkDevice whether to regularly check the device availability (only for serial devices).
+	 * @param readonly whether to allow read access to the device only.
 	 * @param logRawFunc the function to call for logging raw data, or NULL.
 	 */
-	Device(const char* name, const bool checkDevice,
+	Device(const char* name, const bool checkDevice, const bool readonly,
 		void (*logRawFunc)(const unsigned char byte, bool received))
-		: m_name(name), m_checkDevice(checkDevice), m_fd(-1),
+		: m_name(name), m_checkDevice(checkDevice), m_readonly(readonly), m_fd(-1),
 		  m_logRaw(false), m_logRawFunc(logRawFunc),
 		  m_dumpRaw(false), m_dumpRawFile(NULL), m_dumpRawMaxSize(0), m_dumpRawStream(NULL), m_dumpRawFileSize(0) {}
 
@@ -59,11 +60,12 @@ public:
 	 * Factory method for creating a new instance.
 	 * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
 	 * @param checkDevice whether to regularly check the device availability (only for serial devices).
+	 * @param readonly whether to allow read access to the device only.
 	 * @param logRawFunc the function to call for logging raw data, or NULL.
 	 * @return the new @a Device, or NULL on error.
 	 * Note: the caller needs to free the created instance.
 	 */
-	static Device* create(const char* name, const bool checkDevice=true,
+	static Device* create(const char* name, const bool checkDevice=true, const bool readonly=false,
 		void (*logRawFunc)(const unsigned char byte, bool received)=NULL);
 
 	/**
@@ -153,6 +155,9 @@ protected:
 	/** whether to regularly check the device availability (only for serial devices). */
 	const bool m_checkDevice;
 
+	/** whether to allow read access to the device only. */
+	const bool m_readonly;
+
 	/** the opened file descriptor, or -1. */
 	int m_fd;
 
@@ -192,9 +197,9 @@ public:
 	 * @param checkDevice whether to regularly check the device availability (only for serial devices).
 	 * @param logRawFunc the function to call for logging raw data, or NULL.
 	 */
-	SerialDevice(const char* name, const bool checkDevice,
+	SerialDevice(const char* name, const bool checkDevice, const bool readonly,
 		void (*logRawFunc)(const unsigned char byte, bool received))
-		: Device(name, checkDevice, logRawFunc) {}
+		: Device(name, checkDevice, readonly, logRawFunc) {}
 
 	// @copydoc
 	virtual result_t open();
@@ -224,9 +229,9 @@ public:
 	 * @param address the socket address of the device.
 	 * @param logRawFunc the function to call for logging raw data, or NULL.
 	 */
-	NetworkDevice(const char* name, const struct sockaddr_in address,
+	NetworkDevice(const char* name, const struct sockaddr_in address, const bool readonly,
 		void (*logRawFunc)(const unsigned char byte, bool received))
-		: Device(name, true, logRawFunc), m_address(address) {}
+		: Device(name, true, readonly, logRawFunc), m_address(address) {}
 
 	// @copydoc
 	virtual result_t open();

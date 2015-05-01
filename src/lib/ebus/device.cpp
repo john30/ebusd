@@ -42,7 +42,7 @@ Device::~Device()
 	m_dumpRawStream.close();
 }
 
-Device* Device::create(const char* name, const bool checkDevice,
+Device* Device::create(const char* name, const bool checkDevice, const bool readonly,
 		void (*logRawFunc)(const unsigned char byte, bool received))
 {
 	if (strchr(name, '/') == NULL) {
@@ -68,10 +68,10 @@ Device* Device::create(const char* name, const bool checkDevice,
 			free(host);
 			address.sin_family = AF_INET;
 			address.sin_port = htons((uint16_t)port);
-			return new NetworkDevice(name, address, logRawFunc);
+			return new NetworkDevice(name, address, readonly, logRawFunc);
 		}
 	}
-	return new SerialDevice(name, checkDevice, logRawFunc);
+	return new SerialDevice(name, checkDevice, readonly, logRawFunc);
 }
 
 void Device::close()
@@ -98,7 +98,7 @@ result_t Device::send(const unsigned char value)
 	if (!isValid())
 		return RESULT_ERR_DEVICE;
 
-	if (write(m_fd, &value, 1) != 1)
+	if (m_readonly || write(m_fd, &value, 1) != 1)
 		return RESULT_ERR_SEND;
 
 	if (m_logRaw && m_logRawFunc != NULL)
