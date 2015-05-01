@@ -64,6 +64,7 @@ static bool isDaemon = false;
 static struct options opt = {
 	"/dev/ttyUSB0", // device
 	false, // noDeviceCheck
+	false, // readonly
 	CONFIG_PATH, // configPath
 	0, // checkConfig
 	5, // pollInterval
@@ -78,6 +79,7 @@ static struct options opt = {
 	false, // foreground
 	8888, // port
 	false, // localOnly
+	0, // httpPort
 	PACKAGE_LOGFILE, // logFile
 	false, // logRaw
 	false, // dump
@@ -109,17 +111,19 @@ static const char argpdoc[] =
 #define O_MASCNT  9
 #define O_GENSYN 10
 #define O_LOCAL  11
-#define O_LOGARE 12
-#define O_LOGLEV 13
-#define O_LOGRAW 14
-#define O_DMPFIL 15
-#define O_DMPSIZ 16
+#define O_HTTPPT 12
+#define O_LOGARE 13
+#define O_LOGLEV 14
+#define O_LOGRAW 15
+#define O_DMPFIL 16
+#define O_DMPSIZ 17
 
 /** the definition of the known program arguments. */
 static const struct argp_option argpoptions[] = {
 	{NULL,             0,        NULL,    0, "Device options:", 1 },
 	{"device",         'd',      "DEV",   0, "Use DEV as eBUS device (serial device or ip:port) [/dev/ttyUSB0]", 0 },
 	{"nodevicecheck",  'n',      NULL,    0, "Skip serial eBUS device test", 0 },
+	{"readonly",       'r',      NULL,    0, "Only read from device, never write to it", 0 },
 
 	{NULL,             0,        NULL,    0, "Message configuration options:", 2 },
 	{"configpath",     'c',      "PATH",  0, "Read CSV config files from PATH [" CONFIG_PATH "]", 0 },
@@ -139,8 +143,9 @@ static const struct argp_option argpoptions[] = {
 
 	{NULL,             0,        NULL,    0, "Daemon options:", 4 },
 	{"foreground",     'f',      NULL,    0, "Run in foreground", 0 },
-	{"port",           'p',      "PORT",  0, "Listen for client connections on PORT [8888]", 0 },
-	{"localhost",      O_LOCAL,  NULL,    0, "Listen on 127.0.0.1 interface only", 0 },
+	{"port",           'p',      "PORT",  0, "Listen for command line connections on PORT [8888]", 0 },
+	{"localhost",      O_LOCAL,  NULL,    0, "Listen for command line on 127.0.0.1 interface only", 0 },
+	{"httpport",       O_HTTPPT, "PORT",  0, "Listen for HTTP connections on PORT, 0 to disable [0]", 0 },
 
 	{NULL,             0,        NULL,    0, "Log options:", 5 },
 	{"logfile",        'l',      "FILE",  0, "Write log to FILE (only for daemon) [" PACKAGE_LOGFILE "]", 0 },
@@ -178,6 +183,9 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 		break;
 	case 'n': // --nodevicecheck
 		opt->noDeviceCheck = true;
+		break;
+	case 'r': // --readonly
+		opt->readonly = true;
 		break;
 
 	// Message configuration options:
@@ -265,6 +273,13 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 		break;
 	case O_LOCAL: // --localhost
 		opt->localOnly = true;
+		break;
+	case O_HTTPPT: // --httpport
+		opt->httpPort = (uint16_t)parseInt(arg, 10, 1, 65535, result);
+		if (result != RESULT_OK) {
+			argp_error(state, "invalid port");
+			return EINVAL;
+		}
 		break;
 
 	// Log options:
@@ -548,7 +563,7 @@ int main(int argc, char* argv[])
 	}
 
 	// open the device
-	Device *device = Device::create(opt.device, !opt.noDeviceCheck, &logRawData);
+	Device *device = Device::create(opt.device, !opt.noDeviceCheck, opt.readonly, &logRawData);
 	if (device == NULL) {
 		logError(lf_main, "unable to create device %s", opt.device);
 		return EINVAL;

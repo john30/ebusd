@@ -32,6 +32,7 @@ struct options
 {
 	const char* device; //!< eBUS device (serial device or ip:port) [/dev/ttyUSB0]
 	bool noDeviceCheck; //!< skip serial eBUS device test
+	bool readonly; //!< read-only access to the device
 
 	const char* configPath; //!< path to CSV configuration files [/etc/ebusd]
 	int checkConfig; //!< check CSV config files (!=0) and optionally dump (2), then stop
@@ -47,8 +48,9 @@ struct options
 	bool generateSyn; //!< enable AUTO-SYN symbol generation
 
 	bool foreground; //!< run in foreground
-	uint16_t port; //!< port to listen for client connections [8888]
+	uint16_t port; //!< port to listen for command line connections [8888]
 	bool localOnly; //!< listen on 127.0.0.1 interface only
+	uint16_t httpPort; //!< optional port to listen for HTTP connections, 0 to disable [0]
 
 	const char* logFile; //!< log file name [/var/log/ebusd.log]
 	bool logRaw; //!< log each received/sent byte on the bus

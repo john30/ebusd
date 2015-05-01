@@ -91,7 +91,7 @@ private:
 	 * @param running set to false when the server shall be stopped.
 	 * @return result string to send back to the client.
 	 */
-	string decodeMessage(const string& data, bool& connected, bool& listening, bool& running);
+	string decodeMessage(const string& data, const bool isHttp, bool& connected, bool& listening, bool& running);
 
 	/**
 	 * Execute the read command.
@@ -192,6 +192,13 @@ private:
 	 * @return the result string.
 	 */
 	string executeHelp();
+
+	/**
+	 * Execute the HTTP GET command.
+	 * @param args the arguments passed to the command (starting with the command itself).
+	 * @return the result string.
+	 */
+	string executeGet(vector<string> &args);
 
 	/**
 	 * Get the updates received since the specified time.

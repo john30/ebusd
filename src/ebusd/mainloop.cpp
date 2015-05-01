@@ -52,7 +52,7 @@ MainLoop::MainLoop(const struct options opt, Device *device, DataFieldTemplates*
 	m_busHandler->start("bushandler");
 
 	// create network
-	m_network = new Network(opt.localOnly, opt.port, &m_netQueue);
+	m_network = new Network(opt.localOnly, opt.port, opt.httpPort, &m_netQueue);
 	m_network->start("network");
 }
 
@@ -84,21 +84,18 @@ void MainLoop::run()
 
 		// pick the next message to handle
 		NetMessage* message = m_netQueue.remove();
-		string data = message->getData();
+		string request = message->getRequest();
 
 		time_t since, until;
 		time(&until);
-		bool listening = message->isListening(since);
+		bool listening = message->isListening(&since);
 		if (!listening)
 			since = until;
 
 		bool connected = true;
-		if (data.length() > 0) {
-			data.erase(remove(data.begin(), data.end(), '\r'), data.end());
-			data.erase(remove(data.begin(), data.end(), '\n'), data.end());
-
-			logDebug(lf_main, ">>> %s", data.c_str());
-			result = decodeMessage(data, connected, listening, running);
+		if (request.length() > 0) {
+			logDebug(lf_main, ">>> %s", request.c_str());
+			result = decodeMessage(request, message->isHttp(), connected, listening, running);
 
 			logDebug(lf_main, "<<< %s", result.c_str());
 			if (result.length() == 0)
@@ -115,7 +112,7 @@ void MainLoop::run()
 	}
 }
 
-string MainLoop::decodeMessage(const string& data, bool& connected, bool& listening, bool& running)
+string MainLoop::decodeMessage(const string& data, const bool isHttp, bool& connected, bool& listening, bool& running)
 {
 	ostringstream result;
 
@@ -125,11 +122,16 @@ string MainLoop::decodeMessage(const string& data, bool& connected, bool& listen
 	vector<string> args;
 	bool escaped = false;
 
-	while (getline(stream, token, ' ') != 0) {
+	char delim = ' ';
+	while (getline(stream, token, delim) != 0) {
+		if (isHttp && delim == '/' && token.length() > 0 && token[0] == '?') {
+			token.erase(0, 1);
+			delim = '&';
+		}
 		if (escaped) {
 			args.pop_back();
 			if (token.length() > 0 && token[token.length()-1] == '"') {
-				token = token.substr(0, token.length() - 1);
+				token.erase(token.length() - 1, 1);
 				escaped = false;
 			}
 			token = previous + " " + token;
@@ -137,58 +139,64 @@ string MainLoop::decodeMessage(const string& data, bool& connected, bool& listen
 		else if (token.length() == 0) // allow multiple space chars for a single delimiter
 			continue;
 		else if (token[0] == '"') {
-			token = token.substr(1);
+			token.erase(0, 1);
 			if (token.length() > 0 && token[token.length()-1] == '"')
-				token = token.substr(0, token.length() - 1);
+				token.erase(token.length() - 1, 1);
 			else
 				escaped = true;
 		}
 		args.push_back(token);
 		previous = token;
+		if (isHttp)
+			delim = '/';
 	}
 
 	if (args.size() == 0)
 		return executeHelp();
 
 	const char* str = args[0].c_str();
-	if (args.size() == 2) {
-		// check for "CMD -h"
-		if (strcasecmp(args[1].c_str(), "-h") == 0 || strcasecmp(args[1].c_str(), "-?") == 0 || strcasecmp(args[1].c_str(), "--help") == 0)
-			args.clear(); // empty args is used as command help indicator
-		else if (strcasecmp(args[0].c_str(), "H") == 0 || strcasecmp(args[0].c_str(), "HELP") == 0) { // check for "HELP CMD"
-			str = args[1].c_str();
-			args.clear(); // empty args is used as command help indicator
+	if (isHttp) {
+		if (strcmp(str, "GET") == 0)
+			return executeGet(args);
+	} else {
+		if (args.size() == 2) {
+			// check for "CMD -h"
+			if (strcasecmp(args[1].c_str(), "-h") == 0 || strcasecmp(args[1].c_str(), "-?") == 0 || strcasecmp(args[1].c_str(), "--help") == 0)
+				args.clear(); // empty args is used as command help indicator
+			else if (strcasecmp(args[0].c_str(), "H") == 0 || strcasecmp(args[0].c_str(), "HELP") == 0) { // check for "HELP CMD"
+				str = args[1].c_str();
+				args.clear(); // empty args is used as command help indicator
+			}
 		}
+		if (strcasecmp(str, "R") == 0 || strcasecmp(str, "READ") == 0)
+			return executeRead(args);
+		if (strcasecmp(str, "W") == 0 || strcasecmp(str, "WRITE") == 0)
+			return executeWrite(args);
+		if (strcasecmp(str, "F") == 0 || strcasecmp(str, "FIND") == 0)
+			return executeFind(args);
+		if (strcasecmp(str, "L") == 0 || strcasecmp(str, "LISTEN") == 0)
+			return executeListen(args, listening);
+		if (strcasecmp(str, "S") == 0 || strcasecmp(str, "STATE") == 0)
+			return executeState(args);
+		if (strcasecmp(str, "G") == 0 || strcasecmp(str, "GRAB") == 0)
+			return executeGrab(args);
+		if (strcasecmp(str, "SCAN") == 0)
+			return executeScan(args);
+		if (strcasecmp(str, "LOG") == 0)
+			return executeLog(args);
+		if (strcasecmp(str, "RAW") == 0)
+			return executeRaw(args);
+		if (strcasecmp(str, "DUMP") == 0)
+			return executeDump(args);
+		if (strcasecmp(str, "RELOAD") == 0)
+			return executeReload(args);
+		if (strcasecmp(str, "STOP") == 0)
+			return executeStop(args, running);
+		if (strcasecmp(str, "Q") == 0 || strcasecmp(str, "QUIT") == 0)
+			return executeQuit(args, connected);
+		if (strcasecmp(str, "H") == 0 || strcasecmp(str, "HELP") == 0)
+			return executeHelp();
 	}
-	if (strcasecmp(str, "R") == 0 || strcasecmp(str, "READ") == 0)
-		return executeRead(args);
-	if (strcasecmp(str, "W") == 0 || strcasecmp(str, "WRITE") == 0)
-		return executeWrite(args);
-	if (strcasecmp(str, "F") == 0 || strcasecmp(str, "FIND") == 0)
-		return executeFind(args);
-	if (strcasecmp(str, "L") == 0 || strcasecmp(str, "LISTEN") == 0)
-		return executeListen(args, listening);
-	if (strcasecmp(str, "S") == 0 || strcasecmp(str, "STATE") == 0)
-		return executeState(args);
-	if (strcasecmp(str, "G") == 0 || strcasecmp(str, "GRAB") == 0)
-		return executeGrab(args);
-	if (strcasecmp(str, "SCAN") == 0)
-		return executeScan(args);
-	if (strcasecmp(str, "LOG") == 0)
-		return executeLog(args);
-	if (strcasecmp(str, "RAW") == 0)
-		return executeRaw(args);
-	if (strcasecmp(str, "DUMP") == 0)
-		return executeDump(args);
-	if (strcasecmp(str, "RELOAD") == 0)
-		return executeReload(args);
-	if (strcasecmp(str, "STOP") == 0)
-		return executeStop(args, running);
-	if (strcasecmp(str, "Q") == 0 || strcasecmp(str, "QUIT") == 0)
-		return executeQuit(args, connected);
-	if (strcasecmp(str, "H") == 0 || strcasecmp(str, "HELP") == 0)
-		return executeHelp();
-
 	return "ERR: command not found";
 }
 
@@ -284,7 +292,7 @@ string MainLoop::executeRead(vector<string> &args)
 			cacheMessage = message; // message is newer/better
 
 		if (cacheMessage != NULL && (cacheMessage->getLastUpdateTime() + maxAge > now || (cacheMessage->isPassive() && cacheMessage->getLastUpdateTime() != 0))) {
-			result_t ret = cacheMessage->decodeLastData(result, verbose, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
+			result_t ret = cacheMessage->decodeLastData(result, false, verbose?df_verbose:df_standard, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
 			if (ret != RESULT_OK)
 				return getResultCode(ret);
 
@@ -316,7 +324,7 @@ string MainLoop::executeRead(vector<string> &args)
 	ret = m_busHandler->sendAndWait(master, slave);
 
 	if (ret == RESULT_OK) {
-		ret = message->decode(pt_slaveData, slave, result, false, verbose, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
+		ret = message->decode(pt_slaveData, slave, result, false, verbose?df_verbose:df_standard, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
 	}
 	if (ret < RESULT_OK) {
 		logError(lf_main, "read: %s", getResultCode(ret));
@@ -530,7 +538,7 @@ string MainLoop::executeFind(vector<string> &args)
 			if (lastup == 0)
 				result << "no data stored";
 			else
-				message->decodeLastData(result, verbose);
+				message->decodeLastData(result, verbose?df_verbose:df_standard);
 			if (verbose) {
 				if (lastup == 0)
 					sprintf(str, "%02x", dstAddress);
@@ -749,6 +757,88 @@ string MainLoop::executeHelp()
 		   " stop     Stop the daemon\n"
 		   " quit|q   Close connection\n"
 		   " help|h   Print help             help [COMMAND]";
+}
+
+string MainLoop::executeGet(vector<string> &args)
+{
+	size_t argPos = 1;
+	bool onlyWithData = true;
+
+	deque<Message*> messages;
+	if (args.size() >= argPos+2)
+		messages = m_messages->findAll(args[argPos], args[argPos+1], -1, false, true, false, true);
+	else if (args.size() == argPos+1)
+		messages = m_messages->findAll(args[argPos], "", -1, false, true, false, true);
+	else
+		messages = m_messages->findAll("", "", -1, false, true, false, true);
+
+	bool first = true;
+	ostringstream result;
+	result << "{";
+	string lastCircuit = "";
+	result_t ret = RESULT_OK;
+	for (deque<Message*>::iterator it = messages.begin(); it < messages.end();) {
+		Message* message = *it++;
+		time_t lastup = message->getLastUpdateTime();
+		if (onlyWithData && lastup == 0)
+			continue;
+		unsigned char dstAddress = message->getDstAddress();
+		if (dstAddress == SYN)
+			continue;
+		if (message->getCircuit() != lastCircuit) {
+			if (lastCircuit.length() > 0)
+				result << "\n },";
+			lastCircuit = message->getCircuit();
+			result << "\n \"" << lastCircuit << "\": {";
+			first = true;
+		}
+		if (first)
+			first = false;
+		else
+			result << ",";
+		result << "\n  \"" << message->getName() << "\": {";
+		result << "\n   \"lastup\": " << setw(0) << dec << static_cast<unsigned>(lastup);
+		if (lastup != 0) {
+			result << ",\n   \"zz\": \"" << setfill('0') << setw(2) << hex << static_cast<unsigned>(dstAddress) << "\"";
+			result << ",\n   \"fields\": [";
+			ret = message->decodeLastData(result, false, df_json);
+			if (ret < RESULT_OK)
+				break;
+			result << "\n   ]";
+		}
+		result << ",\n   \"passive\": " << (message->isPassive() ? "true" : "false");
+		result << ",\n   \"write\": " << (message->isWrite() ? "true" : "false");
+		result << "\n  }";
+	}
+	if (lastCircuit.length() > 0)
+		result << "\n }";
+	result << "\n}";
+
+	if (ret == RESULT_OK ) {
+		string str = result.str();
+		result.str("");
+		result.clear();
+		result << "HTTP/1.0 200 OK\r\n";
+		result << "Content-Type: application/json\r\n";
+		result << "Content-Length: " << setw(0) << dec << static_cast<unsigned>(str.length()) << "\r\n";
+		result << "\r\n";
+		result << str;
+	} else {
+		result.str("");
+		result.clear();
+		result << "HTTP/1.0 ";
+		switch (ret) {
+		case RESULT_ERR_NOTFOUND:
+			result << "404 Not Found";
+			break;
+		default:
+			result << "500 Internal Server Error";
+			break;
+		}
+		result << "\r\n";
+		result << "\r\n";
+	}
+	return result.str();
 }
 
 string MainLoop::getUpdates(time_t since, time_t until)
