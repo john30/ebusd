@@ -261,6 +261,7 @@ void connect(const char* host, uint16_t port, char* const *args, int argCount)
 				}
 			}
 
+			message += '\n';
 			socket->send(message.c_str(), message.size());
 
 			if (strcasecmp(message.c_str(), "Q") == 0
