@@ -52,6 +52,7 @@ MainLoop::MainLoop(const struct options opt, Device *device, DataFieldTemplates*
 	m_busHandler->start("bushandler");
 
 	// create network
+	m_htmlPath = opt.htmlPath;
 	m_network = new Network(opt.localOnly, opt.port, opt.httpPort, &m_netQueue);
 	m_network->start("network");
 }
@@ -97,10 +98,13 @@ void MainLoop::run()
 			logDebug(lf_main, ">>> %s", request.c_str());
 			result = decodeMessage(request, message->isHttp(), connected, listening, running);
 
-			logDebug(lf_main, "<<< %s", result.c_str());
+			if (result.length() > 100)
+				logDebug(lf_main, "<<< %s ...", result.substr(0, 100).c_str());
+			else
+				logDebug(lf_main, "<<< %s", result.c_str());
 			if (result.length() == 0)
 				result = "\n";
-			else
+			else if (!message->isHttp())
 				result += "\n\n";
 		}
 		if (listening) {
@@ -124,43 +128,44 @@ string MainLoop::decodeMessage(const string& data, const bool isHttp, bool& conn
 
 	char delim = ' ';
 	while (getline(stream, token, delim) != 0) {
-		if (isHttp && delim == '/' && token.length() > 0 && token[0] == '?') {
-			token.erase(0, 1);
-			delim = '&';
-		}
-		if (escaped) {
-			args.pop_back();
-			if (token.length() > 0 && token[token.length()-1] == '"') {
-				token.erase(token.length() - 1, 1);
-				escaped = false;
+		if (!isHttp) {
+			if (escaped) {
+				args.pop_back();
+				if (token.length() > 0 && token[token.length()-1] == '"') {
+					token.erase(token.length() - 1, 1);
+					escaped = false;
+				}
+				token = previous + " " + token;
 			}
-			token = previous + " " + token;
-		}
-		else if (token.length() == 0) // allow multiple space chars for a single delimiter
-			continue;
-		else if (token[0] == '"') {
-			token.erase(0, 1);
-			if (token.length() > 0 && token[token.length()-1] == '"')
-				token.erase(token.length() - 1, 1);
-			else
-				escaped = true;
+			else if (token.length() == 0) // allow multiple space chars for a single delimiter
+				continue;
+			else if (token[0] == '"') {
+				token.erase(0, 1);
+				if (token.length() > 0 && token[token.length()-1] == '"')
+					token.erase(token.length() - 1, 1);
+				else
+					escaped = true;
+			}
 		}
 		args.push_back(token);
 		previous = token;
 		if (isHttp)
-			delim = '/';
+			delim = (args.size() == 1) ? '?' : '\n';
+	}
+
+	if (isHttp) {
+		const char* str = args.size() > 0 ? args[0].c_str() : "";
+		if (strcmp(str, "GET") == 0)
+			return executeGet(args, connected);
+
+		connected = false;
+		return "HTTP/1.0 405 Method Not Allowed\r\n\r\n";
 	}
 
 	if (args.size() == 0)
 		return executeHelp();
 
 	const char* str = args[0].c_str();
-	if (isHttp) {
-		if (strcmp(str, "GET") == 0)
-			return executeGet(args);
-		return "HTTP/1.0 405 Method Not Allowed\r\n\r\n";
-	}
-
 	if (args.size() == 2) {
 		// check for "CMD -h"
 		if (strcasecmp(args[1].c_str(), "-h") == 0 || strcasecmp(args[1].c_str(), "-?") == 0 || strcasecmp(args[1].c_str(), "--help") == 0)
@@ -760,86 +765,162 @@ string MainLoop::executeHelp()
 		   " help|h   Print help             help [COMMAND]";
 }
 
-string MainLoop::executeGet(vector<string> &args)
+string MainLoop::executeGet(vector<string> &args, bool& connected)
 {
-	size_t argPos = 1;
-	bool onlyWithData = false;
-
-	deque<Message*> messages;
-	if (args.size() >= argPos+2)
-		messages = m_messages->findAll(args[argPos], args[argPos+1], -1, false, true, false, true);
-	else if (args.size() == argPos+1)
-		messages = m_messages->findAll(args[argPos], "", -1, false, true, false, true);
-	else
-		messages = m_messages->findAll("", "", -1, false, true, false, true);
-
-	bool first = true;
-	ostringstream result;
-	result << "{";
-	string lastCircuit = "";
 	result_t ret = RESULT_OK;
-	for (deque<Message*>::iterator it = messages.begin(); it < messages.end();) {
-		Message* message = *it++;
-		time_t lastup = message->getLastUpdateTime();
-		if (onlyWithData && lastup == 0)
-			continue;
-		unsigned char dstAddress = message->getDstAddress();
-		if (dstAddress == SYN)
-			continue;
-		if (message->getCircuit() != lastCircuit) {
-			if (lastCircuit.length() > 0)
-				result << "\n },";
-			lastCircuit = message->getCircuit();
-			result << "\n \"" << lastCircuit << "\": {";
-			first = true;
-		}
-		if (first)
-			first = false;
-		else
-			result << ",";
-		result << "\n  \"" << message->getName() << "\": {";
-		result << "\n   \"lastup\": " << setw(0) << dec << static_cast<unsigned>(lastup);
-		if (lastup != 0) {
-			result << ",\n   \"zz\": \"" << setfill('0') << setw(2) << hex << static_cast<unsigned>(dstAddress) << "\"";
-			result << ",\n   \"fields\": [";
-			ret = message->decodeLastData(result, false, df_json);
-			if (ret < RESULT_OK)
-				break;
-			result << "\n   ]";
-		}
-		result << ",\n   \"passive\": " << (message->isPassive() ? "true" : "false");
-		result << ",\n   \"write\": " << (message->isWrite() ? "true" : "false");
-		result << "\n  }";
-	}
-	if (lastCircuit.length() > 0)
-		result << "\n }";
-	result << "\n}";
+	size_t argPos = 1;
+	string uri = args[argPos];
+	ostringstream result;
 
-	if (ret == RESULT_OK ) {
-		string str = result.str();
-		result.str("");
-		result.clear();
-		result << "HTTP/1.0 200 OK\r\n";
-		result << "Content-Type: application/json;charset=utf-8\r\n";
-		result << "Access-Control-Allow-Origin: *\r\n";
-		result << "Content-Length: " << setw(0) << dec << static_cast<unsigned>(str.length()) << "\r\n";
-		result << "\r\n";
-		result << str;
-	} else {
-		result.str("");
-		result.clear();
-		result << "HTTP/1.0 ";
-		switch (ret) {
-		case RESULT_ERR_NOTFOUND:
-			result << "404 Not Found";
-			break;
-		default:
-			result << "500 Internal Server Error";
-			break;
+	if (strncmp(uri.c_str(), "/data/", 6) == 0) {
+		string clazz = "", name = "";
+		size_t pos = uri.find('/', 6);
+		if (pos == string::npos) {
+			clazz = uri.substr(6);
+		} else {
+			clazz = uri.substr(6, pos-6);
+			name = uri.substr(pos+1);
 		}
-		result << "\r\n";
-		result << "\r\n";
+		bool onlyWithData = false;
+
+		deque<Message*> messages = m_messages->findAll(clazz, name, -1, false, true, false, true);
+
+		bool first = true;
+		result << "{";
+		string lastCircuit = "";
+		for (deque<Message*>::iterator it = messages.begin(); it < messages.end();) {
+			Message* message = *it++;
+			time_t lastup = message->getLastUpdateTime();
+			if (onlyWithData && lastup == 0)
+				continue;
+			unsigned char dstAddress = message->getDstAddress();
+			if (dstAddress == SYN)
+				continue;
+			if (message->getCircuit() != lastCircuit) {
+				if (lastCircuit.length() > 0)
+					result << "\n },";
+				lastCircuit = message->getCircuit();
+				result << "\n \"" << lastCircuit << "\": {";
+				first = true;
+			}
+			if (first)
+				first = false;
+			else
+				result << ",";
+			result << "\n  \"" << message->getName() << "\": {";
+			result << "\n   \"lastup\": " << setw(0) << dec << static_cast<unsigned>(lastup);
+			if (lastup != 0) {
+				result << ",\n   \"zz\": \"" << setfill('0') << setw(2) << hex << static_cast<unsigned>(dstAddress) << "\"";
+				result << ",\n   \"fields\": [";
+				ret = message->decodeLastData(result, false, df_json);
+				if (ret < RESULT_OK)
+					break;
+				result << "\n   ]";
+			}
+			result << ",\n   \"passive\": " << (message->isPassive() ? "true" : "false");
+			result << ",\n   \"write\": " << (message->isWrite() ? "true" : "false");
+			result << "\n  }";
+		}
+		if (lastCircuit.length() > 0)
+			result << "\n }";
+		result << "\n}";
+
+		if (ret == RESULT_OK) {
+			string str = result.str();
+			result.str("");
+			result.clear();
+			result << "HTTP/1.0 200 OK\r\n";
+			result << "Content-Type: application/json;charset=utf-8\r\n";
+			result << "Content-Length: " << setw(0) << dec << static_cast<unsigned>(str.length());
+			result << "\r\n\r\n";
+			result << str;
+			return result.str();
+		}
+	} else {
+		if (uri.length() < 1 || uri[0] != '/' || uri.find("//") != string::npos || uri.find("..") != string::npos) {
+			ret = RESULT_ERR_INVALID_ARG;
+		} else {
+			string filename = m_htmlPath+uri;
+			if (uri[uri.length()-1] == '/')
+				filename += "index.html";
+
+			int type = -1;
+			size_t pos = filename.find_last_of('.');
+			if (pos != string::npos && pos != filename.length() - 1 && pos >= filename.length() - 5) {
+				string ext = filename.substr(pos+1);
+				if (ext == "html") {
+					type = 0;
+				} else if (ext == "css") {
+					type = 1;
+				} else if (ext == "js") {
+					type = 2;
+				} else if (ext == "png") {
+					type = 3;
+				} else if (ext == "jpg" || ext == "jpeg") {
+					type = 4;
+				} else if (ext == "svg") {
+					type = 5;
+				}
+			}
+			if (type < 0) {
+				ret = RESULT_ERR_NOTFOUND;
+			} else {
+				ifstream ifs;
+				ifs.open(filename.c_str(), ifstream::in | ifstream::binary);
+				if (!ifs.is_open()) {
+					ret = RESULT_ERR_NOTFOUND;
+				} else {
+					ifs >> result.rdbuf();
+					ifs.close();
+					string str = result.str();
+					result.str("");
+					result.clear();
+					result << "HTTP/1.0 200 OK\r\nContent-Type: ";
+					switch (type) {
+					case 1:
+						result << "text/css";
+						break;
+					case 2:
+						result << "application/javascript";
+						break;
+					case 3:
+						result << "image/png";
+						break;
+					case 4:
+						result << "image/jpeg";
+						break;
+					case 5:
+						result << "image/svg+xml";
+						break;
+					default:
+						result << "text/html";
+						break;
+					}
+					result << "\r\nContent-Length: " << setw(0) << dec << static_cast<unsigned>(str.length());
+					result << "\r\nConnection: close\r\n\r\n";
+					result << str;
+					connected = false;
+					return result.str();
+				}
+			}
+		}
 	}
+	result.str("");
+	result.clear();
+	result << "HTTP/1.0 ";
+	switch (ret) {
+	case RESULT_ERR_NOTFOUND:
+		result << "404 Not Found";
+		break;
+	case RESULT_ERR_INVALID_ARG:
+		result << "400 Bad Request";
+		break;
+	default:
+		result << "500 Internal Server Error";
+		break;
+	}
+	result << "\r\nConnection: close\r\n\r\n";
+	connected = false;
 	return result.str();
 }
 

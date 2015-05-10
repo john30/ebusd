@@ -83,6 +83,9 @@ private:
 	/** the queue for @a NetMessage instances. */
 	WQueue<NetMessage*> m_netQueue;
 
+	/** the path for HTML files served by the HTTP port. */
+	string m_htmlPath;
+
 	/**
 	 * Decode and execute client message.
 	 * @param data the data string to decode (may be empty).
@@ -196,9 +199,10 @@ private:
 	/**
 	 * Execute the HTTP GET command.
 	 * @param args the arguments passed to the command (starting with the command itself).
+	 * @param connected set to false when the client connection shall be closed.
 	 * @return the result string.
 	 */
-	string executeGet(vector<string> &args);
+	string executeGet(vector<string> &args, bool& connected);
 
 	/**
 	 * Get the updates received since the specified time.

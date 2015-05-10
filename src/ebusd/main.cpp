@@ -80,6 +80,7 @@ static struct options opt = {
 	8888, // port
 	false, // localOnly
 	0, // httpPort
+	"/var/ebusd/html", // htmlPath
 	PACKAGE_LOGFILE, // logFile
 	false, // logRaw
 	false, // dump
@@ -112,11 +113,12 @@ static const char argpdoc[] =
 #define O_GENSYN 10
 #define O_LOCAL  11
 #define O_HTTPPT 12
-#define O_LOGARE 13
-#define O_LOGLEV 14
-#define O_LOGRAW 15
-#define O_DMPFIL 16
-#define O_DMPSIZ 17
+#define O_HTMLPA 13
+#define O_LOGARE 14
+#define O_LOGLEV 15
+#define O_LOGRAW 16
+#define O_DMPFIL 17
+#define O_DMPSIZ 18
 
 /** the definition of the known program arguments. */
 static const struct argp_option argpoptions[] = {
@@ -146,6 +148,7 @@ static const struct argp_option argpoptions[] = {
 	{"port",           'p',      "PORT",  0, "Listen for command line connections on PORT [8888]", 0 },
 	{"localhost",      O_LOCAL,  NULL,    0, "Listen for command line on 127.0.0.1 interface only", 0 },
 	{"httpport",       O_HTTPPT, "PORT",  0, "Listen for HTTP connections on PORT, 0 to disable [0]", 0 },
+	{"htmlpath",       O_HTMLPA, "PATH",  0, "Path for HTML files served by HTTP port [/var/ebusd/html]", 0 },
 
 	{NULL,             0,        NULL,    0, "Log options:", 5 },
 	{"logfile",        'l',      "FILE",  0, "Write log to FILE (only for daemon) [" PACKAGE_LOGFILE "]", 0 },
@@ -280,6 +283,13 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 			argp_error(state, "invalid port");
 			return EINVAL;
 		}
+		break;
+	case O_HTMLPA: // --htmlpath=/var/ebusd/html
+		if (arg == NULL || arg[0] == 0 || strcmp("/", arg) == 0) {
+			argp_error(state, "invalid htmlpath");
+			return EINVAL;
+		}
+		opt->htmlPath = arg;
 		break;
 
 	// Log options:
