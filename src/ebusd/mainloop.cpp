@@ -769,7 +769,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 {
 	result_t ret = RESULT_OK;
 	size_t argPos = 1;
-	string uri = args[argPos];
+	string uri = args[argPos++];
 	ostringstream result;
 
 	if (strncmp(uri.c_str(), "/data/", 6) == 0) {
@@ -781,21 +781,41 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 			clazz = uri.substr(6, pos-6);
 			name = uri.substr(pos+1);
 		}
-		bool onlyWithData = false;
-
+		time_t since = 0;
+		if (args.size() > argPos) {
+			string query = args[argPos++];
+			istringstream stream(query);
+			string token;
+			while (getline(stream, token, '&') != 0) {
+				pos = token.find('=');
+				if (pos != string::npos) {
+					const char* qname = query.substr(0, pos).c_str();
+					if (strcmp(qname, "since") == 0) {
+						since = parseInt(query.substr(pos+1).c_str(), 10, 0, 0xffffffff, ret);
+						if (ret != RESULT_OK) {
+							ret = RESULT_ERR_INVALID_ARG;
+							break;
+						}
+					}
+				}
+			}
+		}
 		deque<Message*> messages = m_messages->findAll(clazz, name, -1, false, true, false, true);
 
 		bool first = true;
 		result << "{";
 		string lastCircuit = "";
-		for (deque<Message*>::iterator it = messages.begin(); it < messages.end();) {
+		time_t maxLastUp = 0;
+		for (deque<Message*>::iterator it = messages.begin(); ret == RESULT_OK && it < messages.end();) {
 			Message* message = *it++;
 			time_t lastup = message->getLastUpdateTime();
-			if (onlyWithData && lastup == 0)
+			if (since > 0 && lastup <= since)
 				continue;
 			unsigned char dstAddress = message->getDstAddress();
 			if (dstAddress == SYN)
 				continue;
+			if (lastup > maxLastUp)
+				maxLastUp = lastup;
 			if (message->getCircuit() != lastCircuit) {
 				if (lastCircuit.length() > 0)
 					result << "\n },";
@@ -813,19 +833,21 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 				result << ",\n   \"zz\": \"" << setfill('0') << setw(2) << hex << static_cast<unsigned>(dstAddress) << "\"";
 				result << ",\n   \"fields\": [";
 				ret = message->decodeLastData(result, false, df_json);
-				if (ret < RESULT_OK)
-					break;
 				result << "\n   ]";
 			}
 			result << ",\n   \"passive\": " << (message->isPassive() ? "true" : "false");
 			result << ",\n   \"write\": " << (message->isWrite() ? "true" : "false");
 			result << "\n  }";
 		}
-		if (lastCircuit.length() > 0)
-			result << "\n }";
-		result << "\n}";
 
 		if (ret == RESULT_OK) {
+			if (lastCircuit.length() > 0)
+				result << "\n },";
+			result << "\n \"global\": {";
+			result << "\n  \"signal\": " << (m_busHandler->hasSignal() ? "1" : "0");
+			result << ",\n  \"lastup\": " << setw(0) << dec << static_cast<unsigned>(maxLastUp);
+			result << "\n }";
+			result << "\n}";
 			string str = result.str();
 			result.str("");
 			result.clear();
