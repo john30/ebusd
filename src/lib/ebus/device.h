@@ -195,6 +195,7 @@ public:
 	 * Construct a new instance.
 	 * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
 	 * @param checkDevice whether to regularly check the device availability (only for serial devices).
+	 * @param readonly whether to allow read access to the device only.
 	 * @param logRawFunc the function to call for logging raw data, or NULL.
 	 */
 	SerialDevice(const char* name, const bool checkDevice, const bool readonly,
@@ -227,6 +228,7 @@ public:
 	 * Construct a new instance.
 	 * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
 	 * @param address the socket address of the device.
+	 * @param readonly whether to allow read access to the device only.
 	 * @param logRawFunc the function to call for logging raw data, or NULL.
 	 */
 	NetworkDevice(const char* name, const struct sockaddr_in address, const bool readonly,

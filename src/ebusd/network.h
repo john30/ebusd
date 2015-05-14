@@ -75,8 +75,6 @@ public:
 	/**
 	 * Add request data received from the client.
 	 * @param request the request data from the client.
-	 * @param listening whether the client is in listening mode.
-	 * @param listenSince start timestamp of listening update.
 	 * @return true when the request is complete and the response shall be prepared.
 	 */
 	bool add(string request)

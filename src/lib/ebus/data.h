@@ -359,8 +359,9 @@ protected:
 	/**
 	 * Internal method for reading the field from a @a SymbolString.
 	 * @param input the unescaped @a SymbolString to read the binary value from.
-	 * @param offset the offset in the @a SymbolString.
+	 * @param baseOffset the base offset in the @a SymbolString.
 	 * @param output the ostringstream to append the formatted value to.
+	 * @param dataFormat the @a DataFormat to use.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	virtual result_t readSymbols(SymbolString& input, const unsigned char baseOffset,
