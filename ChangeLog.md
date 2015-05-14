@@ -1,3 +1,17 @@
+# next version (2015-05-?)
+
+## Bug fixes
+* corrected missing newline in ebusctl
+* avoid updating last message change time when only the querying master was modified
+
+## Features
+* new command line option "--readonly" for read-only access to the bus
+* added support for retrieving data as JSON and additional files via optional HTTP port
+
+## Changed files
+https://github.com/john30/ebusd/compare/v1.1.0...master
+
+
 # 1.1.0 (2015-03-28)
 
 ## Bug fixes
