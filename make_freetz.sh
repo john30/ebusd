@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright (C) John Baier 2014-2015 <ebusd@johnm.de>
+# Copyright (C) John Baier 2014-2015 <ebusd@ebusd.eu>
 #
 # This file is part of ebusd.
 #
@@ -51,7 +51,7 @@ rm -rf $RELEASE/usr/ $RELEASE/etc/ || exit 1
 cat <<EOF > $RELEASE/INFO
 Package: ebusd
 Version: $VERSION
-Maintainer: John Baier <ebusd@johnm.de>
+Maintainer: John Baier <ebusd@ebusd.eu>
 Homepage: https://github.com/john30/ebusd
 Bugs: https://github.com/john30/ebusd/issues
 Depends: libstdc++6, libc6, libgcc1

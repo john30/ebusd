@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright (C) John Baier 2014-2015 <ebusd@johnm.de>
+# Copyright (C) John Baier 2014-2015 <ebusd@ebusd.eu>
 #
 # This file is part of ebusd.
 #
@@ -57,7 +57,7 @@ Version: $VERSION
 Section: net
 Priority: required
 Architecture: $ARCH
-Maintainer: John Baier <ebusd@johnm.de>
+Maintainer: John Baier <ebusd@ebusd.eu>
 Homepage: https://github.com/john30/ebusd
 Bugs: https://github.com/john30/ebusd/issues
 Depends: libstdc++6, libc6, libgcc1

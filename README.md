@@ -61,4 +61,4 @@ Contact
 -------
 For bugs and missing features use github issue system.
 
-The author can be contacted at ebusd@johnm.de .
+The author can be contacted at ebusd@ebusd.eu .
