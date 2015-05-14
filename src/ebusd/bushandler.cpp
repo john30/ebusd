@@ -156,7 +156,7 @@ result_t BusHandler::sendAndWait(SymbolString& master, SymbolString& slave)
 		if (result == RESULT_OK)
 			break;
 
-		if (!success || result == RESULT_ERR_NO_SIGNAL) {
+		if (!success || result == RESULT_ERR_NO_SIGNAL || result == RESULT_ERR_SEND || result == RESULT_ERR_DEVICE) {
 			logError(lf_bus, "%s, give up", getResultCode(result));
 			break;
 		}
@@ -316,6 +316,9 @@ result_t BusHandler::handleSymbol()
 		else {
 			sending = false;
 			timeout = SYN_TIMEOUT;
+			if (startRequest != NULL && m_nextRequests.remove(startRequest)) {
+				m_currentRequest = startRequest; // force the failed request to be notified
+			}
 			setState(bs_skip, result);
 		}
 	}
