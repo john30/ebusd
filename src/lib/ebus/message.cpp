@@ -318,9 +318,14 @@ result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& ma
 	result = m_data->write(input, pt_masterData, master, (unsigned char)(m_id.size() - 2), separator);
 	if (result != RESULT_OK)
 		return result;
-	if (master != m_lastMasterData) {
+	switch (master.compareMaster(m_lastMasterData)) {
+	case 1: // completely different
 		m_lastChangeTime = m_lastUpdateTime;
-		m_lastMasterData = master;
+		m_lastMasterData = masterData;
+		break;
+	case 2: // only master address is different
+		m_lastMasterData = masterData;
+		break;
 	}
 	masterData.addAll(master);
 	return result;
@@ -366,9 +371,14 @@ result_t Message::decode(const PartType partType, SymbolString& data,
 
 	time(&m_lastUpdateTime);
 	if (partType == pt_masterData) {
-		if (data != m_lastMasterData) {
+		switch (data.compareMaster(m_lastMasterData)) {
+		case 1: // completely different
 			m_lastChangeTime = m_lastUpdateTime;
 			m_lastMasterData = data;
+			break;
+		case 2: // only master address is different
+			m_lastMasterData = data;
+			break;
 		}
 	} else if (partType == pt_slaveData) {
 		if (data != m_lastSlaveData) {
@@ -397,9 +407,14 @@ result_t Message::decode(SymbolString& masterData, SymbolString& slaveData,
 	if (result == RESULT_EMPTY && !empty)
 		result = RESULT_OK; // OK if at least one part was non-empty
 	time(&m_lastUpdateTime);
-	if (masterData != m_lastMasterData) {
+	switch (masterData.compareMaster(m_lastMasterData)) {
+	case 1: // completely different
 		m_lastChangeTime = m_lastUpdateTime;
 		m_lastMasterData = masterData;
+		break;
+	case 2: // only master address is different
+		m_lastMasterData = masterData;
+		break;
 	}
 	if (slaveData != m_lastSlaveData) {
 		m_lastChangeTime = m_lastUpdateTime;

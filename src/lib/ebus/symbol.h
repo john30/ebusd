@@ -94,6 +94,21 @@ public:
 	bool operator!=(SymbolString& other) { return m_unescapeState!=other.m_unescapeState || m_data!=other.m_data; }
 
 	/**
+	 * Compares this instance to the other instance while treating both as master data (i.e. starting with the master address and ending with the CRC).
+	 * @param other the other instance.
+	 * @return 0 if this instance is equal to the other instance (i.e. both escaped or both unescaped and same symbols),
+	 * 1 if this instance is completely different to the other instance,
+	 * 2 if this instance only differs from the other instance in the first byte (the master address).
+	 */
+	int compareMaster(SymbolString& other) {
+		if (m_unescapeState!=other.m_unescapeState || m_data.size()!=other.m_data.size()) return 1;
+		if (m_data==other.m_data) return 0;
+		if (m_data.size()==1) return 2;
+		if (equal(m_data.begin()+1, m_data.end()-1, other.m_data.begin()+1)) return 2;
+		return 1;
+	}
+
+	/**
 	 * Appends a the symbol to the end of the symbol string and escapes/unescapes it if necessary.
 	 * @param value the symbol to append.
 	 * @param isEscaped whether the symbol is escaped.
