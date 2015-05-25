@@ -217,6 +217,12 @@ public:
 			DataFormat dataFormat=df_standard, const char* fieldName=NULL, signed char fieldIndex=-1);
 
 	/**
+	 * Get the last seen slave data.
+	 * @return the last seen slave @a SymbolString.
+	 */
+	SymbolString& getLastSlaveData() { return m_lastSlaveData; }
+
+	/**
 	 * Get the time when @a m_lastValue was last stored.
 	 * @return the time when @a m_lastValue was last stored, or 0 if this message was not decoded yet.
 	 */
