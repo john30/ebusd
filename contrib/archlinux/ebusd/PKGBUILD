@@ -2,9 +2,8 @@
 # Contributor: Milan Knizek <knizek volny cz>
 
 pkgname=ebusd
-#_gitname=ebusd
-pkgver=1.1.0
-_pkgver=1.1.0
+pkgver=1.2.0
+_pkgver=1.2.0
 pkgrel=1
 pkgdesc="ebusd provides a communication interface to the energy bus (ebus)."
 arch=('i686' 'x86_64' 'armv6h')
@@ -34,6 +33,7 @@ package() {
   install -d                       "${pkgdir}"/etc/conf.d
   install -m 0644 ../ebusd_conf.d  "${pkgdir}"/etc/conf.d/ebusd
 }
-md5sums=('b9db787417e7e59e0e872c84bdef52f1'
+# update md5sum: wget -qO - https://github.com/john30/ebusd/archive/v${_pkgver}.tar.gz|md5sum
+md5sums=('65f5bce294d2adcea8dbcaf341f27b40'
          '15b2fdb0a219fae6feecd539e8823864'
          'a2b4d5557fd90ea30e04358da62597fb')
