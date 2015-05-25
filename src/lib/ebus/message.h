@@ -157,6 +157,13 @@ public:
 	unsigned char getPollPriority() const { return m_pollPriority; }
 
 	/**
+	 * Set the polling priority.
+	 * @param priority the polling priority, or 0 for no polling at all.
+	 * @return true when the priority was changed, false otherwise.
+	 */
+	bool setPollPriority(unsigned char priority);
+
+	/**
 	 * Prepare the master @a SymbolString for sending a query or command to the bus.
 	 * @param srcAddress the source address to set.
 	 * @param masterData the master data @a SymbolString for writing symbols to.
@@ -290,7 +297,7 @@ private:
 	const bool m_deleteData;
 
 	/** the priority for polling, or 0 for no polling at all. */
-	const unsigned char m_pollPriority;
+	unsigned char m_pollPriority;
 
 	/** the last seen master data. */
 	SymbolString m_lastMasterData;
@@ -389,6 +396,12 @@ public:
 	 * Note: the caller may not free the returned instance.
 	 */
 	Message* find(SymbolString& master);
+
+	/**
+	 * Add a @a Message to the list of instances to poll.
+	 * @param message the @a Message to poll.
+	 */
+	void addPollMessage(Message* message);
 
 	/**
 	 * Removes all @a Message instances.

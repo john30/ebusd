@@ -282,6 +282,15 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	return RESULT_OK;
 }
 
+bool Message::setPollPriority(unsigned char priority)
+{
+	if (priority == m_pollPriority || m_isPassive)
+		return false;
+
+	m_pollPriority = priority;
+	return true;
+}
+
 result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& masterData, istringstream& input, char separator, const unsigned char dstAddress)
 {
 	if (m_isPassive)
@@ -538,10 +547,7 @@ result_t MessageMap::add(Message* message)
 		m_maxIdLength = idLength;
 	m_messagesByKey[key] = message;
 
-	if (message->getPollPriority() > 0) {
-		message->m_lastPollTime = m_pollMessages.size();
-		m_pollMessages.push(message);
-	}
+	addPollMessage(message);
 
 	return RESULT_OK;
 }
@@ -678,6 +684,14 @@ Message* MessageMap::find(SymbolString& master)
 	}
 
 	return NULL;
+}
+
+void MessageMap::addPollMessage(Message* message)
+{
+	if (message != NULL && message->getPollPriority() > 0) {
+		message->m_lastPollTime = m_pollMessages.size();
+		m_pollMessages.push(message);
+	}
 }
 
 void MessageMap::clear()
