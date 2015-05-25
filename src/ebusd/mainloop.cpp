@@ -881,6 +881,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 		}
 		time_t since = 0;
 		unsigned char pollPriority = 0;
+		bool exact = false;
 		if (args.size() > argPos) {
 			string query = args[argPos++];
 			istringstream stream(query);
@@ -888,21 +889,21 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 			while (getline(stream, token, '&') != 0) {
 				pos = token.find('=');
 				if (pos != string::npos) {
-					const char* qname = query.substr(0, pos).c_str();
-					const char* value = query.substr(pos+1).c_str();
-					if (strcmp(qname, "since") == 0) {
-						since = parseInt(value, 10, 0, 0xffffffff, ret);
-						if (ret != RESULT_OK)
-							break;
-					} else if (strcmp(qname, "poll") == 0) {
-						pollPriority = (unsigned char)parseInt(value, 10, 1, 9, ret);
-						if (ret != RESULT_OK)
-							break;
+					string qname = token.substr(0, pos);
+					string value = token.substr(pos+1);
+					if (strcmp(qname.c_str(), "since") == 0) {
+						since = parseInt(value.c_str(), 10, 0, 0xffffffff, ret);
+					} else if (strcmp(qname.c_str(), "poll") == 0) {
+						pollPriority = (unsigned char)parseInt(value.c_str(), 10, 1, 9, ret);
+					} else if (strcmp(qname.c_str(), "exact") == 0) {
+						exact = value.length()==0 || strcmp(value.c_str(), "1") == 0;
 					}
+					if (ret != RESULT_OK)
+						break;
 				}
 			}
 		}
-		deque<Message*> messages = m_messages->findAll(clazz, name, -1, false, true, false, true);
+		deque<Message*> messages = m_messages->findAll(clazz, name, -1, exact, true, false, true);
 
 		bool first = true;
 		result << "{";
