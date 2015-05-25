@@ -97,6 +97,25 @@ private:
 	string decodeMessage(const string& data, const bool isHttp, bool& connected, bool& listening, bool& running);
 
 	/**
+	 * Parse the hex master message from the remaining arguments.
+	 * @param args the arguments passed to the command.
+	 * @param argIndex the index of the first argument to parse.
+	 * @param master the master @a SymbolString to write the data to.
+	 * @return the result from parsing the arguments.
+	 */
+	result_t parseHexMaster(vector<string> &args, size_t argPos, SymbolString& master);
+
+	/**
+	 * Prepare the master part for the @a Message, send it to the bus and wait for the answer.
+	 * @param message the @a Message instance.
+	 * @param master the master data @a SymbolString for writing symbols to.
+	 * @param inputStr the input @a string from which to read master values (if any).
+	 * @param slave the @a SymbolString that will be filled with retrieved slave data.
+	 * @return the result code.
+	 */
+	result_t readFromBus(Message* message, SymbolString& master, string inputStr, SymbolString& slave);
+
+	/**
 	 * Execute the read command.
 	 * @param args the arguments passed to the command (starting with the command itself), or empty for help.
 	 * @return the result string.

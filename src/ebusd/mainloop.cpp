@@ -206,15 +206,61 @@ string MainLoop::decodeMessage(const string& data, const bool isHttp, bool& conn
 	return "ERR: command not found";
 }
 
+result_t MainLoop::parseHexMaster(vector<string> &args, size_t argPos, SymbolString& master)
+{
+	ostringstream msg;
+	while (argPos < args.size()) {
+		if ((args[argPos].length() % 2) != 0) {
+			return RESULT_ERR_INVALID_NUM;
+		}
+		msg << args[argPos++];
+	}
+	if (msg.str().size() < 4*2) // at least ZZ, PB, SB, NN
+		return RESULT_ERR_INVALID_ARG;
+
+	result_t ret;
+	unsigned int length = parseInt(msg.str().substr(3*2, 2).c_str(), 16, 0, MAX_POS, ret);
+	if (ret == RESULT_OK && (4+length)*2 != msg.str().size())
+		return RESULT_ERR_INVALID_ARG;
+
+	ret = master.push_back(m_address, false);
+	if (ret == RESULT_OK)
+		ret = master.parseHex(msg.str());
+	if (ret == RESULT_OK && !isValidAddress(master[1]))
+		ret = RESULT_ERR_INVALID_ADDR;
+
+	return ret;
+}
+
+result_t MainLoop::readFromBus(Message* message, SymbolString& master, string inputStr, SymbolString& slave)
+{
+	istringstream input(inputStr);
+	result_t ret = message->prepareMaster(m_address, master, input);
+	if (ret != RESULT_OK) {
+		logError(lf_main, "prepare message: %s", getResultCode(ret));
+		return ret;
+	}
+
+	// send message
+	logInfo(lf_main, "send message: %s", master.getDataStr().c_str());
+	ret = m_busHandler->sendAndWait(master, slave);
+	if (ret != RESULT_OK)
+		logError(lf_main, "send message: %s", getResultCode(ret));
+
+	return ret;
+}
+
 string MainLoop::executeRead(vector<string> &args)
 {
 	size_t argPos = 1;
+	bool hex = false, verbose = false;
 	time_t maxAge = 5*60;
-	bool verbose = false;
 	string circuit;
 	unsigned char dstAddress = SYN;
 	while (args.size() > argPos && args[argPos][0] == '-') {
-		if (args[argPos] == "-f") {
+		if (args[argPos] == "-h") {
+			hex = true;
+		} else if (args[argPos] == "-f") {
 			maxAge = 0;
 		}
 		else if (args[argPos] == "-v") {
@@ -259,17 +305,73 @@ string MainLoop::executeRead(vector<string> &args)
 		}
 		argPos++;
 	}
+	if (hex && (dstAddress != SYN || verbose || args.size() < argPos + 1)) {
+		argPos = 0; // print usage
+	}
+
+	time_t now;
+	time(&now);
+
+	while (hex && argPos > 0 && args.size() > argPos) {
+		SymbolString cacheMaster(false);
+		result_t ret = parseHexMaster(args, argPos, cacheMaster);
+		if (ret != RESULT_OK)
+			return getResultCode(ret);
+		if (cacheMaster[1] == BROADCAST || isMaster(cacheMaster[1]))
+			return getResultCode(RESULT_ERR_INVALID_ARG);
+
+		logNotice(lf_main, "hex read cmd: %s", cacheMaster.getDataStr(true, false).c_str());
+
+		// find message
+		Message* message = m_messages->find(cacheMaster);
+
+		if (message == NULL)
+			return getResultCode(RESULT_ERR_NOTFOUND);
+		if (message->isWrite())
+			return getResultCode(RESULT_ERR_INVALID_ARG);
+		if (circuit.length() > 0 && circuit!=message->getCircuit())
+			return getResultCode(RESULT_ERR_INVALID_ARG); // non-matching circuit
+		if (message->getLastUpdateTime() + maxAge > now || (message->isPassive() && message->getLastUpdateTime() != 0)) {
+			SymbolString& slave = message->getLastSlaveData();
+			logNotice(lf_main, "hex read from cache %s %s", message->getCircuit().c_str(), message->getName().c_str());
+			return slave.getDataStr();
+		}
+
+		// send message
+		SymbolString master(true);
+		master.addAll(cacheMaster);
+		SymbolString slave(false);
+		ret = m_busHandler->sendAndWait(master, slave);
+
+		if (ret == RESULT_OK) {
+			ostringstream result;
+			ret = message->decode(pt_slaveData, slave, result);
+			if (ret >= RESULT_OK)
+				logInfo(lf_main, "hex read cache update: %s", result.str().c_str());
+			else
+				logError(lf_main, "hex read cache update: %s", getResultCode(ret));
+			return slave.getDataStr();
+		}
+		logError(lf_main, "hex read: %s", getResultCode(ret));
+		return getResultCode(ret);
+	}
 	if (argPos == 0 || args.size() < argPos + 1 || args.size() > argPos + 2)
-		return "usage: read [-v] [-f] [-m SECONDS] [-d ZZ] [-c CIRCUIT] NAME [FIELD[.N]]\n"
-			   " Read value(s).\n"
-			   "  -v          be verbose (include field names, units, and comments)\n"
+		return "usage: read [-f] [-m SECONDS] [-c CIRCUIT] [-d ZZ] [-v] NAME [FIELD[.N]]\n"
+			   "  or:  read [-f] [-m SECONDS] [-c CIRCUIT] -h ZZPBSBNNDx\n"
+			   " Read value(s) or hex message.\n"
 			   "  -f          force reading from the bus (same as '-m 0')\n"
 			   "  -m SECONDS  only return cached value if age is less than SECONDS [300]\n"
-			   "  -d ZZ       override destination address ZZ\n"
 			   "  -c CIRCUIT  limit to messages of CIRCUIT\n"
+			   "  -d ZZ       override destination address ZZ\n"
+			   "  -v          be verbose (include field names, units, and comments)\n"
 			   "  NAME        the NAME of the message to send\n"
 			   "  FIELD       only retrieve the field named FIELD\n"
-			   "  N           only retrieve the N'th field named FIELD (0-based)";
+			   "  N           only retrieve the N'th field named FIELD (0-based)\n"
+			   "  -h          send hex read message (or answer from cache):\n"
+			   "    ZZ        destination address\n"
+			   "    PB SB     primary/secondary command byte\n"
+			   "    NN        number of following data bytes\n"
+			   "    Dx        the data byte(s) to send";
 
 	string fieldName;
 	signed char fieldIndex = -2;
@@ -285,9 +387,6 @@ string MainLoop::executeRead(vector<string> &args)
 		}
 	}
 
-	time_t now;
-	time(&now);
-
 	ostringstream result;
 	Message* message = m_messages->find(circuit, args[argPos], false);
 
@@ -299,9 +398,12 @@ string MainLoop::executeRead(vector<string> &args)
 
 		if (cacheMessage != NULL && (cacheMessage->getLastUpdateTime() + maxAge > now || (cacheMessage->isPassive() && cacheMessage->getLastUpdateTime() != 0))) {
 			result_t ret = cacheMessage->decodeLastData(result, false, verbose?df_verbose:df_standard, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
-			if (ret != RESULT_OK)
+			if (ret != RESULT_OK) {
+				if (ret < RESULT_OK)
+					logError(lf_main, "read cached: %s", getResultCode(ret));
 				return getResultCode(ret);
-
+			}
+			logInfo(lf_main, "read cached: %s", result.str().c_str());
 			return result.str();
 		}
 
@@ -317,27 +419,19 @@ string MainLoop::executeRead(vector<string> &args)
 
 	// read directly from bus
 	SymbolString master(true);
-	istringstream input;
-	result_t ret = message->prepareMaster(m_address, master, input, UI_FIELD_SEPARATOR, dstAddress);
-	if (ret != RESULT_OK) {
-		logError(lf_main, "prepare read: %s", getResultCode(ret));
-		return getResultCode(ret);
-	}
-	logInfo(lf_main, "read cmd: %s", master.getDataStr().c_str());
-
-	// send message
 	SymbolString slave(false);
-	ret = m_busHandler->sendAndWait(master, slave);
+	result_t ret = readFromBus(message, master, "", slave);
+	if (ret != RESULT_OK)
+		return getResultCode(ret);
 
-	if (ret == RESULT_OK) {
-		ret = message->decode(pt_slaveData, slave, result, false, verbose?df_verbose:df_standard, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
-	}
+	ret = message->decode(pt_slaveData, slave, result, false, verbose?df_verbose:df_standard, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
 	if (ret < RESULT_OK) {
 		logError(lf_main, "read: %s", getResultCode(ret));
 		return getResultCode(ret);
 	}
 	if (ret > RESULT_OK)
 		return getResultCode(ret);
+	logInfo(lf_main, "read: %s", result.str().c_str());
 	return result.str();
 }
 
@@ -351,41 +445,36 @@ string MainLoop::executeWrite(vector<string> &args)
 			argPos = 0;
 			break;
 		}
-		ostringstream msg;
-		while (argPos < args.size()) {
-			if ((args[argPos].length() % 2) != 0) {
-				return getResultCode(RESULT_ERR_INVALID_NUM);
-			}
-			msg << args[argPos++];
-		}
-		if (msg.str().size() < 4*2) // at least ZZ, PB, SB, NN
-			return getResultCode(RESULT_ERR_INVALID_ARG);
-		result_t ret;
-		unsigned int length = parseInt(msg.str().substr(3*2, 2).c_str(), 16, 0, MAX_POS, ret);
-		if (ret == RESULT_OK && (4+length)*2 != msg.str().size())
-			return getResultCode(RESULT_ERR_INVALID_ARG);
-
-		SymbolString master(true);
-		ret = master.push_back(m_address, false);
-		if (ret == RESULT_OK)
-			ret = master.parseHex(msg.str());
-		if (ret == RESULT_OK && !isValidAddress(master[1]))
-			ret = RESULT_ERR_INVALID_ADDR;
+		SymbolString cacheMaster(false);
+		result_t ret = parseHexMaster(args, argPos, cacheMaster);
 		if (ret != RESULT_OK)
 			return getResultCode(ret);
 
-		logNotice(lf_main, "write hex cmd: %s", master.getDataStr().c_str());
+		logNotice(lf_main, "hex write cmd: %s", cacheMaster.getDataStr(true, false).c_str());
+
+		// find message
+		Message* message = m_messages->find(cacheMaster);
 
 		// send message
+		SymbolString master(true);
+		master.addAll(cacheMaster);
 		SymbolString slave(false);
 		ret = m_busHandler->sendAndWait(master, slave);
 
 		if (ret == RESULT_OK) {
+			if (message != NULL) { // also updates read messages
+				ostringstream result;
+				ret = message->decode(cacheMaster, slave, result);
+				if (ret >= RESULT_OK)
+					logInfo(lf_main, "hex write cache update: %s", result.str().c_str());
+				else
+					logError(lf_main, "hex write cache update: %s", getResultCode(ret));
+			}
 			if (master[1] == BROADCAST || isMaster(master[1]))
 				return getResultCode(RESULT_OK);
 			return slave.getDataStr();
 		}
-		logError(lf_main, "write hex: %s", getResultCode(ret));
+		logError(lf_main, "hex write: %s", getResultCode(ret));
 		return getResultCode(ret);
 	}
 
@@ -399,7 +488,7 @@ string MainLoop::executeWrite(vector<string> &args)
 			   "  CIRCUIT  the CIRCUIT of the message to send\n"
 			   "  NAME     the NAME of the message to send\n"
 			   "  VALUE    a single field VALUE\n"
-			   "  -h       directly write hex message:\n"
+			   "  -h       send hex write message:\n"
 			   "    ZZ     destination address\n"
 			   "    PB SB  primary/secondary command byte\n"
 			   "    NN     number of following data bytes\n"
@@ -411,27 +500,19 @@ string MainLoop::executeWrite(vector<string> &args)
 		return getResultCode(RESULT_ERR_NOTFOUND);
 
 	SymbolString master(true);
-	istringstream input(args.size() == argPos + 2 ? "" : args[argPos + 2]); // allow missing values
-	result_t ret = message->prepareMaster(m_address, master, input);
-	if (ret != RESULT_OK) {
-		logError(lf_main, "prepare write: %s", getResultCode(ret));
-		return getResultCode(ret);
-	}
-	logInfo(lf_main, "write cmd: %s", master.getDataStr().c_str());
-
-	// send message
 	SymbolString slave(false);
-	ret = m_busHandler->sendAndWait(master, slave);
+	result_t ret = readFromBus(message, master, args.size() == argPos + 2 ? "" : args[argPos + 2], slave); // allow missing values
+	if (ret != RESULT_OK)
+		return getResultCode(ret);
 
 	ostringstream result;
-	if (ret == RESULT_OK) {
-		if (master[1] == BROADCAST || isMaster(master[1]))
-			return getResultCode(RESULT_OK);
+	if (master[1] == BROADCAST || isMaster(master[1]))
+		return getResultCode(RESULT_OK);
 
-		ret = message->decode(pt_slaveData, slave, result); // decode data
-		if (ret >= RESULT_OK && result.str().empty())
-			return getResultCode(RESULT_OK);
-	}
+	ret = message->decode(pt_slaveData, slave, result); // decode data
+	if (ret >= RESULT_OK && result.str().empty())
+		return getResultCode(RESULT_OK);
+
 	if (ret != RESULT_OK) {
 		logError(lf_main, "write: %s", getResultCode(ret));
 		return getResultCode(ret);
@@ -743,9 +824,10 @@ string MainLoop::executeQuit(vector<string> &args, bool& connected)
 string MainLoop::executeHelp()
 {
 	return "usage:\n"
-		   " read|r   Read value(s):         read [-v] [-f] [-m SECONDS] [-d ZZ] [-c CIRCUIT] NAME [FIELD[.N]]\n"
+		   " read|r   Read value(s):         read [-f] [-m SECONDS] [-c CIRCUIT] [-d ZZ] [-v] NAME [FIELD[.N]]\n"
+		   "          Read hex message:      read [-f] [-m SECONDS] [-c CIRCUIT] -h ZZPBSBNNDx\n"
 		   " write|w  Write value(s):        write [-c] CIRCUIT NAME [VALUE[;VALUE]*]\n"
-		   "          Write hex message:     write -h ZZPBSBNNDx'\n"
+		   "          Write hex message:     write -h ZZPBSBNNDx\n"
 		   " find|f   Find message(s):       find [-v] [-r] [-w] [-p] [-d] [-i PB] [-f] [-c CIRCUIT] [NAME]\n"
 		   " listen|l Listen for updates:    listen [stop]\n"
 		   " state|s  Report bus state\n"
