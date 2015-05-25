@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<svg version="1.1" baseProfile="tiny" width="25" height="31" viewBox="10111 16016 340 436" preserveAspectRatio="xMinYMin slice" fill-rule="evenodd" stroke-width="28.222" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" xmlns:ooo="http://xml.openoffice.org/svg/export" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve">
+<g class="Page">
+ <g class="com.sun.star.drawing.PolyPolygonShape">
+  <g id="id3">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 10119,16266 L 10119,16105 10442,16266 10442,16105 10119,16266 Z"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.PolyLineShape">
+  <g id="id4">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 10280,16186 L 10362,16025 10199,16025"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.ClosedBezierShape">
+  <g id="id5">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 10377,16348 C 10371,16220 10188,16220 10184,16348 10187,16474 10370,16479 10377,16348 Z"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.PolyLineShape">
+  <g id="id6">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 10280,16251 L 10280,16186 10199,16025"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.ClosedBezierShape">
+  <g id="id7">
+   <path fill="rgb(35,31,32)" stroke="none" d="M 10334,16292 L 10314,16292 C 10300,16324 10290,16372 10271,16406 L 10287,16406 10319,16310 10334,16292 Z"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.PolyPolygonShape">
+  <g id="id8">
+   <path fill="rgb(35,31,32)" stroke="none" d="M 10334,16292 L 10318,16310 10318,16406 10334,16406 10334,16292 Z"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.PolyPolygonShape">
+  <g id="id9">
+   <path fill="rgb(35,31,32)" stroke="none" d="M 10250,16292 L 10224,16292 10224,16406 10240,16406 10240,16308 10250,16292 Z"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.PolyPolygonShape">
+  <g id="id10">
+   <path fill="rgb(35,31,32)" stroke="none" d="M 10248,16292 L 10239,16308 10271,16406 10280,16389 10279,16386 10279,16383 10276,16381 10274,16376 10274,16373 10248,16292 Z"/>
+  </g>
+ </g>
+</g>
+</svg>

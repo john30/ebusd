@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+	<meta name="viewport" content="width=device-width">
+	<title>ebusd</title>
+	<link rel="stylesheet" href="css/jsplumb.css">
+	<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-library="dom">
+	<div id="main" style="width: 1137px; height: 721px;">
+		<div class="ebus" id="ebus">
+			<div class="circuit back" id="dcf" style="left:10px;top:0px;width:54px;height:48px;background-image:url(img/dcf.svg);background-position:10px 10px">
+				<strong>DCF</strong>
+				<div data-id="broadcastdatetime" data-parts="0" class="circuitLabel" leftf="1" topf="0">??? °C</div>
+				<div data-id="broadcastdatetime" data-parts="2 1" class="circuitLabel" leftf="1" topf="0.45">Datum Zeit</div>
+			</div>
+			<div class="circuit" id="source" style="left:10px;top:280px;width:80px;height:100px;"><strong>Source</strong><br/><br/></div>
+			<div class="circuit back" id="ehp" style="left:140px;top:172px;width:144px;height:286px;background-image:url(img/ehp.svg);">
+				<strong>EHP</strong>
+				<div data-id="ehpSourceTempInput" data-parts="0" class="circuitLabel" topf="0.02" leftf="0.1">?? °C</div>
+				<div data-id="ehpSourcePress" data-parts="0" class="circuitLabel" topmf="0.2" leftf="0.01">??? bar</div>
+				<div data-id="ehpSourceTempOutput" data-parts="0" class="circuitLabel" topmf="0.3" leftf="0.01">?? °C</div>
+				<div data-id="ehpSource" class="circuitLabel" topmf="0.53" leftmf="0.12">???</div>
+				<div data-id="ehpHcFlowTemp" data-parts="0" class="circuitLabel" topf="0.02" leftf="0.6">T6 °C</div>
+				<div data-id="ehpHcPress" data-parts="0" class="circuitLabel" topmf="0.2" leftf="0.5">?? bar</div>
+				<div data-id="ehpHcReturnTemp" data-parts="0" class="circuitLabel" topmf="0.3" leftf="0.5">T5 °C</div>
+				<div data-id="ehpHwcHcValve" class="circuitLabel" topmf="0.4" leftmf="0.65">??</div>
+				<div data-id="ehpHc1Pump" class="circuitLabel" topmf="0.53" leftmf="0.665">???</div>
+				<div data-id="ehpBackup" class="circuitLabel" topmf="0.54" leftmf="0.9">???</div>
+				<div data-id="ehpTempOutput" data-parts="0" class="circuitLabel" leftf="0.2" topmf="0.68">T1 °C</div>
+				<div data-id="ehpCompPressHigh" data-parts="0" class="circuitLabel" leftf="0.6" topmf="0.68">?? bar</div>
+				<div data-id="ehpActualEnvironmentPower" data-parts="0" class="circuitLabel" leftmf="0.12" topmf="0.81">???</div>
+				<div data-id="ehpComp" class="circuitLabel" leftmf="0.5" topmf="0.81">???</div>
+				<div data-id="ehpHeatPumpStatus" class="circuitLabel" leftf="1" topmf="0.81">???</div>
+				<div data-id="ehpTempInput" data-parts="0" class="circuitLabel" leftf="0.2" topmf="0.94">T2 °C</div>
+				<div data-id="ehpCondensorTemp" data-parts="0" class="circuitLabel" leftf="0.65" topmf="0.81">T4 °C</div>
+				<div data-id="ehpCompPressLow" data-parts="0" class="circuitLabel" leftf="0.6" topmf="0.94">?? bar</div>
+				<div data-id="ehpYieldEnvironmentEnergy" data-parts="0" class="circuitLabel" leftf="0" topf="1">???</div>
+				<div data-id="ehpPowerCut" data-parts="cut: 0" class="circuitLabel" leftf="0.5" topf="1">???</div>
+			</div>
+			<div class="circuit back" id="valve" style="left:340px;top:188px;width:25px;height:31px;background-image:url(img/valve.svg);">
+				<strong>Valve</strong>
+				<div data-id="ehpHwcHcValve" class="circuitLabel" topf="0.02" leftf="0.1">??</div>
+			</div>
+			<div class="circuit back" id="storage" style="left:530px;top:124px;width:134px;height:334px;background-image:url(img/storage.svg);">
+				<strong>Storage</strong>
+				<div data-id="ehpHwcTemp" data-parts="0" class="circuitLabel" style="left:5px;" topmf="0.18">?? °C</div>
+				<div data-id="ehpStorageTempTop" data-parts="0" class="circuitLabel" style="left:5px" topmf="0.48">?? °C</div>
+				<div data-id="ehpStorageTempBottom" data-parts="0" class="circuitLabel" style="left:5px" topmf="0.62">?? °C</div>
+			</div>
+			<div class="circuit back" id="mc" style="left:820px;top:120px;width:116px;height:212px;background-image:url(img/mc.svg);">
+				<strong>Heating 2</strong>
+				<div data-id="mcStatus" data-parts="2" class="circuitLabel" style="left:5px;top:30px;">?? °C</div>
+				<div data-id="ehpHc2Pump" class="circuitLabel" leftmf="0.25" topmf="0.55">???</div>
+				<div data-id="mcMode" data-parts="1 0" class="circuitLabel" leftmf="0.5" topmf="0.4">???</div>
+				<div data-id="ehpMixer1DutyCycle" class="circuitLabel" leftmf="0.24" topmf="0.73">?? %</div>
+				<div data-id="mcStatus" data-parts="1 0" class="circuitLabel" leftmf="0.4" topmf="0.9">?? %</div>
+			</div>
+			<div class="circuit back" id="rc" style="left:851px;top:30px;width:54px;height:48px;background-image:url(img/rc.svg);background-position:10px 0px">
+				<strong>Room 2</strong>
+				<div data-id="rccRoomTemp" data-parts="0" class="circuitLabel" leftf="0" topf="1">?? °C</div>
+			</div>
+			<div class="circuit back" id="mc4" style="left:940px;top:120px;width:116px;height:212px;background-image:url(img/mc.svg);">
+				<strong>Heating 4</strong>
+				<div data-id="mc4Status" data-parts="2" class="circuitLabel" style="left:5px;top:30px;">?? °C</div>
+				<div data-id="mc4HcPumpPort" class="circuitLabel" leftmf="0.25" topmf="0.55">???</div>
+				<div data-id="mc4Mode" data-parts="1 0" class="circuitLabel" leftmf="0.5" topmf="0.4">???</div>
+				<div data-id="mc4MixerDutyCycle" class="circuitLabel" leftmf="0.24" topmf="0.73">?? %</div>
+				<div data-id="mc4Status" data-parts="1 0" class="circuitLabel" leftmf="0.4" topmf="0.9">?? %</div>
+			</div>
+			<div class="circuit back" id="rc4" style="left:971px;top:30px;width:54px;height:48px;background-image:url(img/rc.svg);background-position:10px 0px">
+				<strong>Room 4</strong>
+				<div data-id="rcc4RoomTemp" data-parts="0" class="circuitLabel" leftf="0" topf="1">?? °C</div>
+			</div>
+			<div class="circuit back" id="hwc" style="left:510px;top:40px;width:174px;height:52px;background-image:url(img/hwc.svg);">
+				<strong>HotWater</strong>
+				<div data-id="cpMode" data-parts="1 0" class="circuitLabel" leftf="0.6" topmf="0.2">???</div>
+				<div data-id="ehpCirPump" class="circuitLabel" leftmf="0.85" topmf="0.8">???</div>
+			</div>
+		</div>
+	</div>
+	<script src="js/dom.jsPlumb-1.7.5-min.js"></script>
+	<script src="js/prototype.js"></script>
+	<script>
+jsPlumb.ready(function() {
+	var instance = jsPlumb.getInstance({
+		DragOptions: { cursor: 'pointer', zIndex: 2000 },
+		ConnectionOverlays: [
+			[ "Arrow", { location: 1 } ],
+			[ "Label", {
+				location: 0.5,
+				id: "label",
+				cssClass: "connLabel"
+			}]
+		],
+		Container: "main"
+	});
+	var selColor = "orange";
+	var offColor = "gray";
+	var hotColor = "red";
+	var warmColor = "orange";
+	var coldColor = "blue";
+	var offType = {
+		connector: "StateMachine",
+		paintStyle: { strokeStyle: offColor, lineWidth: 4 },
+		hoverPaintStyle: { strokeStyle: selColor },
+	};
+	var hotType = {
+		connector: "StateMachine",
+		paintStyle: { strokeStyle: hotColor, lineWidth: 4 },
+		hoverPaintStyle: { strokeStyle: selColor },
+	};
+	var warmType = {
+		connector: "StateMachine",
+		paintStyle: { strokeStyle: warmColor, lineWidth: 4 },
+		hoverPaintStyle: { strokeStyle: selColor },
+	};
+	var coldType = {
+		connector: "StateMachine",
+		paintStyle: { strokeStyle: coldColor, lineWidth: 4 },
+		hoverPaintStyle: { strokeStyle: selColor },
+	};
+	instance.registerConnectionType("off", offType);
+	instance.registerConnectionType("hot", hotType);
+	instance.registerConnectionType("warm", warmType);
+	instance.registerConnectionType("cold", coldType);
+
+	// this is the paint style for the connecting lines..
+	var connectorPaintStyle = {
+		lineWidth: 4,
+		strokeStyle: "#808080",
+		joinstyle: "round",
+		outlineColor: "white",
+		outlineWidth: 2
+	},
+	// .. and this is the hover style.
+	connectorHoverStyle = {
+		lineWidth: 4,
+		strokeStyle: selColor,
+		outlineWidth: 2,
+		outlineColor: "white"
+	},
+	endpointHoverStyle = {
+		fillStyle: selColor,
+		strokeStyle: selColor
+	},
+	// the definition of source endpoints
+	sourceEndpoint = {
+		endpoint: "Rectangle",
+		paintStyle: {
+			strokeStyle: offColor,
+			fillStyle: "transparent",
+			lineWidth: 4,
+			width: 12,
+			height: 12
+		},
+		maxConnections: -1,
+		isSource: true,
+		connectorStyle: connectorPaintStyle,
+		hoverPaintStyle: endpointHoverStyle,
+		connectorHoverStyle: connectorHoverStyle,
+		dragOptions: {},
+		xoverlays: [
+			[ "Label", {
+				location: [0.5, 1.5],
+				label: "out",
+				cssClass: "endpointSourceLabel"
+			}]
+		]
+	},
+	// the definition of target endpoints (will appear when the user drags a connection)
+	targetEndpoint = {
+		endpoint: "Rectangle",
+		paintStyle: {
+			strokeStyle: offColor,
+			fillStyle: "transparent",
+			radius: 6,
+			lineWidth: 4,
+			width: 12,
+			height: 12
+		},
+		hoverPaintStyle: endpointHoverStyle,
+		maxConnections: -1,
+		dropOptions: { hoverClass: "hover", activeClass: "active" },
+		isTarget: true,
+		connector: [ "Flowchart", { stub: [20, 20], gap: 6, cornerRadius: 5, alwaysRespectStubs: true } ],
+		xoverlays: [
+			[ "Label", {
+				location: [0.5, -0.5],
+				label: "in",
+				cssClass: "endpointTargetLabel"
+			}]
+		]
+	},
+	init = function(connection) {
+		connection.getOverlay("label").setLabel(connection.endpoints[0].getParameter('name'));
+	};
+
+	var _addEndpoints = function(divId, anchors) {
+		for (var i = 0; i < anchors.length; i++) {
+			var anchor = anchors[i];
+			var anchUUID = divId + anchor.name;
+			var endpoint = anchor.target ? targetEndpoint : sourceEndpoint;
+			var overlays = endpoint.xoverlays.slice(1);
+			var label = anchor.label ? anchor.label : anchor.name;
+			if (false && label) {
+				var location = anchor.target ? [0.5, -0.5] : [0.5, 0.5];
+				if (Array.isArray(anchor.anchor)) {
+					location = [0.5-3*anchor.anchor[2], 0.5-2*anchor.anchor[3]];
+				}
+				overlays[overlays.length] = ["Label", {
+					location: location,
+					label: label,
+					cssClass: anchor.target ? "endpointTargetLabel" : "endpointSourceLabel"
+				}];
+			}
+			if (anchor.distance && endpoint.connector) {
+				endpoint = jsPlumbUtil.clone(endpoint);
+				if (Array.isArray(anchor.distance)) {
+					endpoint.connector[1].stub[0] += anchor.distance[0];
+					endpoint.connector[1].stub[1] += anchor.distance[1];
+					if (anchor.distance.length>2) {
+						endpoint.connector[1].midpoint = anchor.distance[2];
+					}
+				} else {
+					endpoint.connector[1].stub[anchor.target?1:0] += anchor.distance;
+				}
+			}
+			instance.addEndpoint(divId, endpoint, {
+				anchor: anchor.anchor, uuid: anchUUID, overlays: overlays,
+				parameters:{name:anchor.name}
+			});
+		}
+	};
+
+	var each = function(items, fn) {
+		for (var i = 0; i < items.length; i++)
+			fn(items[i]);
+	}
+	each(instance.getSelector(".ebus .circuitLabel"), function(item) {
+		if (item.getAttribute('topf')) {
+			item.style.top = Math.floor(item.parentElement.clientHeight*item.getAttribute('topf'))+'px';
+		} else if (item.getAttribute('topmf')) {
+			item.style.top = Math.floor(item.parentElement.clientHeight*item.getAttribute('topmf')-item.clientHeight/2)+'px';
+		}
+		if (item.getAttribute('leftf')) {
+			item.style.left = Math.floor(item.parentElement.clientWidth*item.getAttribute('leftf'))+'px';
+		} else if (item.getAttribute('leftmf')) {
+			item.style.left = Math.floor(item.parentElement.clientWidth*item.getAttribute('leftmf')-item.clientWidth/2)+'px';
+		}
+	});
+
+	var items = {};
+	var sourceFlow, sourceReturn, hwcReturn, ehpFlow, hcFlow, hwcFlow, hcReturn, mixFlow, mixReturn, storHwcFlow, storHwcReturn;
+	// suspend drawing and initialise.
+	instance.batch(function() {
+		_addEndpoints("source", [
+			{name:"Output", anchor:[0.25, 0, 0, -1], label: "Source"},
+			{name:"Input", anchor:[0.75, 0, 0, -1], target:true, label: "Source"},
+		]);
+		_addEndpoints("ehp", [
+			{name:"SourceOutput", anchor:[0.12, 0, 0, -1], label: "Source"},
+			{name:"SourceInput", anchor:[0.22, 0, 0, -1], target:true, label: "Source", distance:[0,60]},
+			{name:"HwcReturn", anchor:[0.53, 0, 0, -1], target:true, distance:[0,80,0.3]},
+			{name:"HcReturn", anchor:[0.78, 0, 0, -1], target:true, distance:[0,60,0.42]},
+			{name:"Flow", anchor:[0.88, 0, 0, -1]}
+		]);
+		_addEndpoints("valve", [
+			{name:"Flow", anchor:"Top", target:true},
+			{name:"HwcFlow", anchor:"Right"},
+			{name:"HcFlow", anchor:"Left"}
+		]);
+		_addEndpoints("storage", [
+			{name:"HwcOutput", anchor:[0, 0.06, -1, 0]},
+			{name:"HwcInput", anchor:[1, 0.06, 1, 0], target:true, distance:[0,0,0.8]},
+			{name:"HwcFlow", anchor:[0, 0.24, -1, 0], target:true},
+			{name:"HwcReturn", anchor:[0, 0.43, -1, 0]},
+			{name:"MixFlow", anchor:[1, 0.47, 1, 0]},
+			{name:"HcFlow", anchor:[0, 0.53, -1, 0], target:true},
+			{name:"MixReturn", anchor:[1, 0.62, 1, 0], target:true, distance:[0,0,0.7]},
+			{name:"HcReturn", anchor:[0, 0.67, -1, 0]}
+		]);
+		_addEndpoints("mc", [
+			{name:"Flow", anchor:[0, 0.82, -1, 0], target:true, distance:[0,0,0.7]},
+			{name:"Return", anchor:[0, 0.96, -1, 0]}
+		]);
+		_addEndpoints("hwc", [
+			{name:"Return", anchor:[1, 0.82, 1, 0]},
+			{name:"Flow", anchor:[0, 0.82, -1, 0], target:true, distance:[40,0,0.5]}
+		]);
+		// listen for new connections; initialise them the same way we initialise the connections at startup.
+		instance.bind("connection", function(connInfo, originalEvent) {
+			init(connInfo.connection);
+		});
+
+		// make all the window divs draggable
+		instance.draggable(jsPlumb.getSelector(".ebus .circuit"), { grid: [20, 20] });
+
+		// connections
+		sourceFlow = instance.connect({uuids: ["sourceOutput", "ehpSourceInput"], editable: true});
+		sourceReturn = instance.connect({uuids: ["ehpSourceOutput", "sourceInput"], editable: true});
+		hwcReturn = instance.connect({uuids: ["storageHwcReturn", "ehpHwcReturn"], editable: true});
+		ehpFlow = instance.connect({uuids: ["ehpFlow", "valveFlow"], editable: true});
+		hcFlow = instance.connect({uuids: ["valveHcFlow", "storageHcFlow"], editable: true});
+		hwcFlow = instance.connect({uuids: ["valveHwcFlow", "storageHwcFlow"], editable: true});
+		hcReturn = instance.connect({uuids: ["storageHcReturn", "ehpHcReturn"], editable: true});
+		mixFlow = instance.connect({uuids: ["storageMixFlow", "mcFlow"], editable: true});
+		mixReturn = instance.connect({uuids: ["mcReturn", "storageMixReturn"], editable: true});
+		storHwcFlow = instance.connect({uuids: ["storageHwcOutput", "hwcFlow"], editable: true});
+		storHwcReturn = instance.connect({uuids: ["hwcReturn", "storageHwcInput"], editable: true});
+
+		instance.bind("click", function(conn, originalEvent) {
+			if (conn.hasType("hot")) {
+				conn.toggleType("hot");
+				conn.toggleType("cold");
+			} else if (conn.hasType("cold")) {
+				conn.toggleType("cold");
+			} else {
+				conn.toggleType("hot");
+			}
+		});
+
+		instance.bind("connectionDrag", function(connection) {
+			console.log("connection " + connection.id + " is being dragged. suspendedElement is ", connection.suspendedElement, " of type ", connection.suspendedElementType);
+		});
+
+		instance.bind("connectionDragStop", function(connection) {
+			console.log("connection " + connection.id + " was dragged");
+		});
+
+		instance.bind("connectionMoved", function(params) {
+			console.log("connection " + params.connection.id + " was moved");
+		});
+		sourceFlow.setType("hot");
+		sourceReturn.setType("cold");
+		mixFlow.setType("hot");
+		mixReturn.setType("cold");
+		storHwcFlow.setType("hot");
+		storHwcReturn.setType("off");
+	});
+
+	//jsPlumb.fire("jsPlumbDemoLoaded", instance);
+	var heat = false, water = false;
+	var switchActions = {
+		broadcasthwStatus: function(fields){
+			console.log("action broadcasthwStatus:"+fields);
+			if (!fields) return;
+			var val = fields[0].value;
+			if (val=='on') {
+				water = true;
+				ehpFlow.addType("hot");
+				hcFlow.removeType("hot");
+				hwcFlow.addType("hot");
+				hcReturn.removeType("cold");
+				hwcReturn.addType("cold");
+			} else {
+				water = false;
+				hwcFlow.removeType("hot");
+				hwcReturn.removeType("cold");
+				if (!heat) {
+					ehpFlow.removeType("hot");
+					hcFlow.removeType("hot");
+					hcReturn.removeType("cold");
+				}
+			}
+		},
+		bcStatus: function(fields) {
+			console.log("action bcStatus:"+fields);
+			if (!fields) return;
+			var val = fields[3].value;
+			if (val=='03 2c 00 00') { // heat
+				heat = true;
+				ehpFlow.addType("hot");
+				hwcFlow.removeType("hot");
+				hcFlow.addType("hot");
+				hwcReturn.removeType("cold");
+				hcReturn.addType("cold");
+			} else {
+				water = false;
+				hcFlow.removeType("hot");
+				hcReturn.removeType("cold");
+				if (!water) {
+					ehpFlow.removeType("hot");
+					hwcFlow.removeType("hot");
+					hwcReturn.removeType("cold");
+				}
+			}
+		}
+	};
+	var running = false, firstrun = true;
+	var since = 0;
+	var needUris = new Array();
+	var startNeeded = function() {
+		for (var i=0; i<needUris.length; i++) {
+			new Ajax.Request('/data/'+needUris[i]+'?exact=1&poll=2',{
+				method:'get',
+				onSuccess: function(trans) {
+				}
+			});
+		}
+	};
+	var startRequest = function() {
+		if (running) return;
+		running = true;
+		new Ajax.Request('/data/?since='+since,{
+			method:'get',
+			onSuccess: function(trans) {
+				for (var cname in trans.responseJSON) {
+					if (!trans.responseJSON.hasOwnProperty(cname)) {
+						continue;
+					}
+					var circuit = trans.responseJSON[cname];
+					for (var mname in circuit) {
+						if (!circuit.hasOwnProperty(mname)) {
+							continue;
+						}
+						var message = circuit[mname];
+						var lastup = message.lastup;
+						if (lastup>since) {
+							since = lastup;
+						}
+						var fields = message.fields;
+						var key = cname+mname;
+						var needed = false;
+						if (switchActions.hasOwnProperty(key)) {
+							switchActions[key](fields);
+							needed = true;
+						}
+						var elems = $$('div[data-id="'+key+'"]');
+						if (elems.length>0) {
+							needed = true;
+						} else console.log(key+':'+fields);
+						if (needed && firstrun) {
+							needUris[needUris.length] = cname+'/'+mname;
+						}
+						if (!fields) {
+							continue;
+						}
+						each(elems, function(elem) {
+							var ret = '';
+							var parts = elem.getAttribute('data-parts');
+							if (parts) {
+								parts = parts.split(' ');
+								for (var i=0; i<parts.length; i++) {
+									if (ret.length>0) ret += ',&nbsp;';
+									if (isNaN(parts[i])) {
+										if (parts[i]=='\\n')
+											ret += "<br>";
+										else
+											ret += parts[i];
+									} else {
+										var field = fields[parts[i]];
+										if (field) {
+											ret += field.value;
+											if (field.unit) {
+												ret += '&nbsp;'+field.unit;
+											}
+										} else console.log("undefined field "+parts[i]+" in "+cname+" "+mname);
+									}
+								}
+							} else {
+								for (var i=0; i<fields.length; i++) {
+									if (ret.length>0) ret += ',&nbsp;';
+									var field = fields[i];
+									ret += field.value;
+									if (field.unit) {
+										ret += '&nbsp;'+field.unit;
+									}
+								}
+							}
+							elem.innerHTML=ret;
+						});
+					}
+				}
+				running = false;
+				if (firstrun) {
+					startNeeded();
+				}
+				firstrun = false;
+			},
+			onFailure: function() {
+				console.log("failed");
+				running = false;
+			},
+			onException: function(trans,e) {
+				console.log(e);
+				running = false;
+			}
+		});
+	};
+	startRequest();
+	new PeriodicalExecuter(startRequest, 15);
+});
+	</script>
+</body>
+</html>

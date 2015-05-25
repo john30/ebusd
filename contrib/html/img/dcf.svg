@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<svg version="1.1" baseProfile="tiny" width="34" height="28" viewBox="6856 12865 473 396" preserveAspectRatio="xMinYMin slice" fill-rule="evenodd" stroke-width="28.222" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" xmlns:ooo="http://xml.openoffice.org/svg/export" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve">
+ <g class="com.sun.star.drawing.OpenBezierShape">
+  <g id="id3">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 7260,12974 L 7321,12913"/>
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 7260,12949 L 7321,12888"/>
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 7260,12924 L 7310,12874"/>
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 7260,12899 L 7285,12874"/>
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 7260,13025 L 7321,12963"/>
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 7260,12999 L 7321,12938"/>
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 7260,13123 L 7321,13062"/>
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 7260,13075 L 7321,13012"/>
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 7260,13050 L 7321,12986"/>
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 7260,13100 L 7321,13037"/>
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 7260,12874 L 7260,13123"/>
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 7285,13123 L 7321,13087"/>
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 7321,12874 L 7321,13123"/>
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 7310,13123 L 7321,13112"/>
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 7031,13068 C 7102,13012 7079,12899 6982,12881 6876,12872 6822,12998 6906,13068"/>
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 7031,13253 L 6969,12984 6906,13253 7031,13253 Z"/>
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 7009,13027 C 7093,12895 6845,12895 6928,13027"/>
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 6989,13004 C 7031,12940 6906,12940 6948,13004"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.PolyPolygonShape">
+  <g id="id4">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="24" stroke-linejoin="round" d="M 7207,13097 L 7260,13097 7260,12949 7207,12949 7207,13097 Z"/>
+  </g>
+ </g>
+</svg>

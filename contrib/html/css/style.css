@@ -1,0 +1,112 @@
+.ebus {
+    /* for IE10+ touch devices */
+    touch-action:none;
+}
+
+.ebus .circuit, .ebus .circuit .back {
+	background-repeat: no-repeat;
+#    border: 1px solid #346789;
+#    box-shadow: 2px 2px 19px #aaa;
+#    -o-box-shadow: 2px 2px 19px #aaa;
+#    -webkit-box-shadow: 2px 2px 19px #aaa;
+#    -moz-box-shadow: 2px 2px 19px #aaa;
+#    -moz-border-radius: 0.5em;
+#    border-radius: 0.5em;
+    opacity: 0.8;
+    filter: alpha(opacity=80);
+    width: 80px;
+    height: 80px;
+    line-height: 80px;
+    cursor: pointer;
+    text-align: center;
+    z-index: 20;
+    position: absolute;
+    background-color: #eeeeef;
+    color: black;
+    font-family: helvetica;
+    padding: 0.5em;
+    font-size: 0.9em;
+#    -webkit-transition: -webkit-box-shadow 0.15s ease-in;
+#    -moz-transition: -moz-box-shadow 0.15s ease-in;
+#    -o-transition: -o-box-shadow 0.15s ease-in;
+#    transition: box-shadow 0.15s ease-in;
+}
+
+.ebus .circuit.back {
+	padding: 0;
+}
+
+.ebus .circuit:hover {
+    box-shadow: 2px 2px 19px #444;
+    -o-box-shadow: 2px 2px 19px #444;
+    -webkit-box-shadow: 2px 2px 19px #444;
+    -moz-box-shadow: 2px 2px 19px #444;
+    opacity: 0.6;
+    filter: alpha(opacity=60);
+}
+
+.ebus .active {
+    border: 1px dotted green;
+}
+
+.ebus .hover {
+    border: 1px dotted red;
+}
+
+.ebus ._jsPlumb_connector {
+    z-index: 4;
+}
+
+.ebus ._jsPlumb_endpoint, .endpointTargetLabel, .endpointSourceLabel {
+    z-index: 21;
+    cursor: pointer;
+}
+
+.ebus .circuitLabel {
+    background-color: white;
+    padding: 0.2em;
+    font: 12px sans-serif;
+    color: #000;
+    z-index: 21;
+    border: 1px dotted gray;
+    opacity: 0.8;
+    filter: alpha(opacity=80);
+    cursor: pointer;
+    position: absolute;
+}
+
+.ebus .circuitLabel:hover {
+    background-color: #5C96BC;
+    color: white;
+    border: 1px solid white;
+}
+
+.connLabel {
+    background-color: white;
+    padding: 0.2em;
+    font: 12px sans-serif;
+    color: #000;
+    z-index: 21;
+    border: 1px dotted gray;
+    opacity: 0.8;
+    filter: alpha(opacity=80);
+    cursor: pointer;
+}
+
+.ebus .connLabel._jsPlumb_hover {
+    background-color: #5C96BC;
+    color: white;
+    border: 1px solid white;
+}
+
+.circuit._jsPlumb_connected {
+#    border: 2px solid green;
+}
+
+.jsplumb-drag {
+#    border: 4px solid pink !important;
+}
+
+path, ._jsPlumb_endpoint {
+    cursor: pointer;
+}

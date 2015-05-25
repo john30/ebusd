@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<svg version="1.1" baseProfile="tiny" width="134" height="334" viewBox="13851 14967 1698 4221" preserveAspectRatio="xMinYMin slice" fill-rule="evenodd" stroke-width="28.222" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" xmlns:ooo="http://xml.openoffice.org/svg/export" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve">
+<g class="Page">
+ <g class="com.sun.star.drawing.ClosedBezierShape">
+  <g id="id3">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="24" stroke-linejoin="round" d="M 13893,15245 C 14372,14890 15028,14890 15507,15245 L 15507,15244 15521,15255 15529,15270 15536,15287 15537,15304 15537,15304 15537,18787 15537,18787 15536,18810 15536,18810 15527,18834 15527,18834 15516,18854 15516,18854 15501,18870 15501,18870 15481,18884 15481,18884 C 15298,18959 15123,18999 14928,19023 L 14928,19023 C 14585,19059 14239,19014 13919,18884 L 13919,18884 13919,18884 13919,18884 13899,18870 13899,18870 13884,18854 13884,18854 13873,18834 13873,18834 13864,18810 13864,18810 13863,18787 13863,18787 13863,18787 13863,18787 13863,15304 13863,15304 13864,15287 13871,15270 13879,15255 13893,15244 13893,15245 Z"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.LineShape">
+  <g id="id4">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 13938,18038 L 14021,18038"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.LineShape">
+  <g id="id5">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 14057,18038 L 14132,18038"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.LineShape">
+  <g id="id6">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 14171,18038 L 14244,18038"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.LineShape">
+  <g id="id7">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 14282,18038 L 14355,18038"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.LineShape">
+  <g id="id8">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 14394,18038 L 14467,18038"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.LineShape">
+  <g id="id9">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 14505,18038 L 14580,18038"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.LineShape">
+  <g id="id10">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 14617,18038 L 14692,18038"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.LineShape">
+  <g id="id11">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 14728,18038 L 14803,18038"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.LineShape">
+  <g id="id12">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 14840,18038 L 14915,18038"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.LineShape">
+  <g id="id13">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 14951,18038 L 15026,18038"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.LineShape">
+  <g id="id14">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 15063,18038 L 15138,18038"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.LineShape">
+  <g id="id15">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 15174,18038 L 15249,18038"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.LineShape">
+  <g id="id16">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 15286,18038 L 15361,18038"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.LineShape">
+  <g id="id17">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 15397,18038 L 15482,18038"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.LineShape">
+  <g id="id18">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 15364,16431 L 14037,16710"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.OpenBezierShape">
+  <g id="id19">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 14037,15458 L 15288,15319 15288,15319 C 15328,15316 15335,15264 15301,15247 L 15301,15247 C 14928,15078 14514,15055 14127,15192 L 14127,15192 14101,15199 14074,15202 14074,15202 13941,15202"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.LineShape">
+  <g id="id20">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 14822,18238 L 15537,18238"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.PolyLineShape">
+  <g id="id21">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="24" stroke-linejoin="round" d="M 15462,18891 L 15462,19176 13937,19176 13937,19176 13937,18891"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.PolyLineShape">
+  <g id="id22">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 14036,15457 L 15372,15598 14036,15738"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.PolyLineShape">
+  <g id="id23">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 14036,15736 L 15372,15876 14036,16016"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.PolyLineShape">
+  <g id="id24">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 14036,16014 L 15372,16154 14036,16295"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.LineShape">
+  <g id="id25">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 14036,16293 L 15372,16433"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.PolyLineShape">
+  <g id="id26">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 14036,16711 L 15364,16991 14036,17271 15364,17550 14078,17936 14078,17936 14036,17946 13993,17950 13994,17950 13863,17950"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.OpenBezierShape">
+  <g id="id27">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 15537,18686 L 14158,18686 14159,18686 C 13993,18677 13999,18514 14010,18387 L 14010,18387 C 14013,18302 14074,18241 14159,18238 L 14158,18238 14711,18238"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.LineShape">
+  <g id="id28">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 14712,15296 L 14712,18239"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.LineShape">
+  <g id="id29">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 14823,15296 L 14823,18239"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.PolyLineShape">
+  <g id="id30">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 14823,18686 L 14823,18775 14823,18775 14823,18780 14821,18785 14811,18792 14795,18799 14785,18800 14773,18802 14763,18802 14752,18800 14742,18799 14725,18792 14718,18789 14715,18785 14712,18775 14712,18775 14712,18686"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.OpenBezierShape">
+  <g id="id31">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 14712,18239 C 14745,18268 14790,18269 14823,18239"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.LineShape">
+  <g id="id32">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="24" stroke-linejoin="round" d="M 14243,18566 L 14251,18566"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.OpenBezierShape">
+  <g id="id33">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="24" stroke-linejoin="round" d="M 15537,18566 L 14243,18566 14251,18566 C 14131,18565 14126,18396 14249,18388 L 14249,18388 15537,18388"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.PolyPolygonShape">
+  <g id="id34"/>
+ </g>
+ <g class="com.sun.star.drawing.PolyPolygonShape">
+  <g id="id35"/>
+ </g>
+ <g class="com.sun.star.drawing.PolyPolygonShape">
+  <g id="id36"/>
+ </g>
+</g>
+</svg>

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<svg version="1.1" baseProfile="tiny" width="34" height="28" viewBox="15778 9613 478 385" preserveAspectRatio="xMinYMin slice" fill-rule="evenodd" stroke-width="28.222" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" xmlns:ooo="http://xml.openoffice.org/svg/export" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve">
+ <g class="com.sun.star.drawing.ClosedBezierShape">
+  <g id="id3">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 15935,9902 C 15932,9838 15842,9836 15837,9902 15842,9968 15931,9967 15935,9902 Z"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.PolyLineShape">
+  <g id="id4">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 15787,9802 L 15842,9810 15900,9824 16015,9847 16132,9824 16190,9810 16246,9802"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.PolyPolygonShape">
+  <g id="id5">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 16140,9669 L 15890,9669 15890,9797 16140,9797 16140,9669 Z"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.LineShape">
+  <g id="id6">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 15890,9669 L 15890,9669 Z"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.OpenBezierShape">
+  <g id="id7">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 15913,9864 C 15891,9887 15890,9915 15912,9939"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.PolyLineShape">
+  <g id="id8">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 15859,9942 L 15869,9922 15872,9902 15870,9880 15860,9860"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.PolyLineShape">
+  <g id="id9">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 16178,9859 L 16166,9872 16161,9889 16161,9905 16166,9922 16176,9935"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.PolyLineShape">
+  <g id="id10">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 16123,9937 L 16133,9919 16136,9897 16135,9877 16125,9857"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.LineShape">
+  <g id="id11">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 15890,9669 L 15890,9669 Z"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.ClosedBezierShape">
+  <g id="id12">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 16200,9900 C 16194,9834 16106,9835 16102,9900 16105,9964 16195,9965 16200,9900 Z"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.PolyPolygonShape">
+  <g id="id13">
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="17" stroke-linejoin="round" d="M 15786,9621 L 15786,9989 15786,9989 16247,9989 16247,9621 16247,9621 15788,9621 15786,9621 Z"/>
+  </g>
+ </g>
+</svg>
