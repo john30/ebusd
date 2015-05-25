@@ -197,8 +197,10 @@ void BusHandler::run()
 
 			if (result == RESULT_OK)
 				logNotice(lf_bus, "re-opened %s", m_device->getName());
-			else
+			else {
 				logError(lf_bus, "unable to open %s: %s", m_device->getName(), getResultCode(result));
+				setState(bs_noSignal, result);
+			}
 			symCount = 0;
 		}
 	} while (isRunning());
