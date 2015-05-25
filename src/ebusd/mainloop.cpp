@@ -256,7 +256,7 @@ string MainLoop::executeRead(vector<string> &args)
 	bool hex = false, verbose = false;
 	time_t maxAge = 5*60;
 	string circuit;
-	unsigned char dstAddress = SYN;
+	unsigned char dstAddress = SYN, pollPriority = 0;
 	while (args.size() > argPos && args[argPos][0] == '-') {
 		if (args[argPos] == "-h") {
 			hex = true;
@@ -299,13 +299,23 @@ string MainLoop::executeRead(vector<string> &args)
 			dstAddress = (unsigned char)parseInt(args[argPos].c_str(), 16, 0, 0xff, ret);
 			if (ret != RESULT_OK || !isValidAddress(dstAddress) || isMaster(dstAddress))
 				return getResultCode(RESULT_ERR_INVALID_ADDR);
+		} else if (args[argPos] == "-p") {
+			argPos++;
+			if (argPos >= args.size()) {
+				argPos = 0; // print usage
+				break;
+			}
+			result_t ret;
+			pollPriority = (unsigned char)parseInt(args[argPos].c_str(), 10, 1, 9, ret);
+			if (ret != RESULT_OK)
+				return getResultCode(RESULT_ERR_INVALID_NUM);
 		} else {
 			argPos = 0; // print usage
 			break;
 		}
 		argPos++;
 	}
-	if (hex && (dstAddress != SYN || verbose || args.size() < argPos + 1)) {
+	if (hex && (dstAddress != SYN || verbose || pollPriority > 0 || args.size() < argPos + 1)) {
 		argPos = 0; // print usage
 	}
 
@@ -356,13 +366,14 @@ string MainLoop::executeRead(vector<string> &args)
 		return getResultCode(ret);
 	}
 	if (argPos == 0 || args.size() < argPos + 1 || args.size() > argPos + 2)
-		return "usage: read [-f] [-m SECONDS] [-c CIRCUIT] [-d ZZ] [-v] NAME [FIELD[.N]]\n"
+		return "usage: read [-f] [-m SECONDS] [-c CIRCUIT] [-d ZZ] [-p PRIO] [-v] NAME [FIELD[.N]]\n"
 			   "  or:  read [-f] [-m SECONDS] [-c CIRCUIT] -h ZZPBSBNNDx\n"
 			   " Read value(s) or hex message.\n"
 			   "  -f          force reading from the bus (same as '-m 0')\n"
 			   "  -m SECONDS  only return cached value if age is less than SECONDS [300]\n"
 			   "  -c CIRCUIT  limit to messages of CIRCUIT\n"
 			   "  -d ZZ       override destination address ZZ\n"
+			   "  -p PRIO     set the message poll priority (1-9)\n"
 			   "  -v          be verbose (include field names, units, and comments)\n"
 			   "  NAME        the NAME of the message to send\n"
 			   "  FIELD       only retrieve the field named FIELD\n"
@@ -389,6 +400,11 @@ string MainLoop::executeRead(vector<string> &args)
 
 	ostringstream result;
 	Message* message = m_messages->find(circuit, args[argPos], false);
+
+	// adjust poll priority
+	if (message != NULL && pollPriority > 0 && message->setPollPriority(pollPriority)) {
+		m_messages->addPollMessage(message);
+	}
 
 	if (dstAddress==SYN && maxAge > 0) {
 		Message* cacheMessage = m_messages->find(circuit, args[argPos], false, true);
@@ -824,7 +840,7 @@ string MainLoop::executeQuit(vector<string> &args, bool& connected)
 string MainLoop::executeHelp()
 {
 	return "usage:\n"
-		   " read|r   Read value(s):         read [-f] [-m SECONDS] [-c CIRCUIT] [-d ZZ] [-v] NAME [FIELD[.N]]\n"
+		   " read|r   Read value(s):         read [-f] [-m SECONDS] [-c CIRCUIT] [-d ZZ] [-p PRIO] [-v] NAME [FIELD[.N]]\n"
 		   "          Read hex message:      read [-f] [-m SECONDS] [-c CIRCUIT] -h ZZPBSBNNDx\n"
 		   " write|w  Write value(s):        write [-c] CIRCUIT NAME [VALUE[;VALUE]*]\n"
 		   "          Write hex message:     write -h ZZPBSBNNDx\n"
@@ -864,6 +880,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 			name = uri.substr(pos+1);
 		}
 		time_t since = 0;
+		unsigned char pollPriority = 0;
 		if (args.size() > argPos) {
 			string query = args[argPos++];
 			istringstream stream(query);
@@ -872,12 +889,15 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 				pos = token.find('=');
 				if (pos != string::npos) {
 					const char* qname = query.substr(0, pos).c_str();
+					const char* value = query.substr(pos+1).c_str();
 					if (strcmp(qname, "since") == 0) {
-						since = parseInt(query.substr(pos+1).c_str(), 10, 0, 0xffffffff, ret);
-						if (ret != RESULT_OK) {
-							ret = RESULT_ERR_INVALID_ARG;
+						since = parseInt(value, 10, 0, 0xffffffff, ret);
+						if (ret != RESULT_OK)
 							break;
-						}
+					} else if (strcmp(qname, "poll") == 0) {
+						pollPriority = (unsigned char)parseInt(value, 10, 1, 9, ret);
+						if (ret != RESULT_OK)
+							break;
 					}
 				}
 			}
@@ -890,11 +910,13 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 		time_t maxLastUp = 0;
 		for (deque<Message*>::iterator it = messages.begin(); ret == RESULT_OK && it < messages.end();) {
 			Message* message = *it++;
-			time_t lastup = message->getLastUpdateTime();
-			if (since > 0 && lastup <= since)
-				continue;
 			unsigned char dstAddress = message->getDstAddress();
 			if (dstAddress == SYN)
+				continue;
+			if (pollPriority > 0 && message->setPollPriority(pollPriority))
+				m_messages->addPollMessage(message);
+			time_t lastup = message->getLastUpdateTime();
+			if (since > 0 && lastup <= since)
 				continue;
 			if (lastup > maxLastUp)
 				maxLastUp = lastup;
@@ -1017,6 +1039,8 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 		result << "404 Not Found";
 		break;
 	case RESULT_ERR_INVALID_ARG:
+	case RESULT_ERR_INVALID_NUM:
+	case RESULT_ERR_OUT_OF_RANGE:
 		result << "400 Bad Request";
 		break;
 	default:
