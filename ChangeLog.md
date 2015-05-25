@@ -1,12 +1,17 @@
-# next version (2015-05-?)
+# 1.2.0 (2015-05-25)
 
 ## Bug fixes
 * corrected missing newline in ebusctl
 * avoid updating last message change time when only the querying master was modified
+* notify running requests on device error
 
 ## Features
 * new command line option "--readonly" for read-only access to the bus
 * added support for retrieving data as JSON and additional files via optional HTTP port
+* added first version of static HTML user interface (to be extended to a dynamic one later)
+* new "read" option "-h" for sending hex read messages
+* new "read" option "-p PRIO" for setting the poll priority of a message
+* update cache on hex read or write
 
 ## Changed files
 https://github.com/john30/ebusd/compare/v1.1.0...master
