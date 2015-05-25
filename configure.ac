@@ -1,5 +1,5 @@
 AC_PREREQ([2.63])
-AC_INIT([ebusd], [1.1.0], [ebusd@ebusd.eu], [ebusd], [https://github.com/john30/ebusd])
+AC_INIT([ebusd], m4_esyscmd_s([cat VERSION]), [ebusd@ebusd.eu], [ebusd], [https://github.com/john30/ebusd])
 
 AC_CONFIG_AUX_DIR([build])
 
