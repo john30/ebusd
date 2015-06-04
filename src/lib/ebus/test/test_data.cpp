@@ -209,6 +209,13 @@ int main()
 		{"x,,bi3:2,0=off;1=on;2=auto;3=eco","auto", "10feffff0110", "00", ""},
 		{"x,,bi3:2,0=off;1=on","on", "10feffff0108", "00", ""},
 		{"x,,bi3:2,0=off;1=on","off","10feffff0100", "00", ""},
+		{"x,,bi3:2,0=off;1=on","1", "10feffff0108", "00", "n"},
+		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","x=on ja/nein [Wahrheitswert]", "10feffff0108", "00", "v"},
+		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","x=1 ja/nein [Wahrheitswert]", "10feffff0108", "00", "vn"},
+		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","\n    {\"name\": \"x\", \"value\": \"on\"}", "10feffff0108", "00", "j"},
+		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","\n    {\"name\": \"x\", \"value\": \"on\", \"unit\": \"ja/nein\", \"comment\": \"Wahrheitswert\"}", "10feffff0108", "00", "vj"},
+		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","\n    {\"name\": \"x\", \"value\": 1}", "10feffff0108", "00", "nj"},
+		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","\n    {\"name\": \"x\", \"value\": 1, \"unit\": \"ja/nein\", \"comment\": \"Wahrheitswert\"}", "10feffff0108", "00", "vnj"},
 		{"x,,uch,1=test;2=high;3=off;0x10=on","on","10feffff0110", "00", ""},
 		{"x,s,uch","3","1050ffff00", "0103", ""},
 		{"x,,d2b,,°C,Aussentemperatur","x=18.004 °C [Aussentemperatur]","10fe0700090112", "00", "v"},
@@ -257,6 +264,8 @@ int main()
 		bool failedWrite = flags.find('w') != string::npos;
 		bool failedWriteMatch = flags.find('W') != string::npos;
 		bool verbose = flags.find('v') != string::npos;
+		bool numeric = flags.find('n') != string::npos;
+		bool json = flags.find('j') != string::npos;
 		bool isTemplate = flags.find('t') != string::npos;
 		string item;
 		vector<string> entries;
@@ -314,9 +323,9 @@ int main()
 		if (result != RESULT_OK) {
 			cout << "  parse \"" << sstr.getDataStr(true, false).substr(0, 2) << "\" error: " << getResultCode(result) << endl;
 		}
-		result = fields->read(pt_masterData, mstr, 0, output, false, verbose);
+		result = fields->read(pt_masterData, mstr, 0, output, (verbose?OF_VERBOSE:0)|(numeric?OF_NUMERIC:0)|(json?OF_JSON:0), false);
 		if (result >= RESULT_OK) {
-			result = fields->read(pt_slaveData, sstr, 0, output, !output.str().empty(), verbose);
+			result = fields->read(pt_slaveData, sstr, 0, output, (verbose?OF_VERBOSE:0)|(numeric?OF_NUMERIC:0)|(json?OF_JSON:0), !output.str().empty());
 		}
 		if (failedRead)
 			if (result >= RESULT_OK)
@@ -334,7 +343,7 @@ int main()
 			verify(failedReadMatch, "read", check[2], match, expectStr, output.str());
 		}
 
-		if (!verbose) {
+		if (!verbose && !json) {
 			istringstream input(expectStr);
 			result = fields->write(input, pt_masterData, writeMstr, 0);
 			if (result >= RESULT_OK)
