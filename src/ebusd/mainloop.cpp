@@ -538,7 +538,7 @@ string MainLoop::executeWrite(vector<string> &args)
 string MainLoop::executeFind(vector<string> &args)
 {
 	size_t argPos = 1;
-	bool verbose = false, configFormat = false, withRead = true, withWrite = false, withPassive = true, first = true, onlyWithData = false;
+	bool verbose = false, configFormat = false, exact = false, withRead = true, withWrite = false, withPassive = true, first = true, onlyWithData = false;
 	string circuit;
 	short pb = -1;
 	while (args.size() > argPos && args[argPos][0] == '-') {
@@ -546,6 +546,8 @@ string MainLoop::executeFind(vector<string> &args)
 			verbose = true;
 		else if (args[argPos] == "-f")
 			configFormat = true;
+		else if (args[argPos] == "-e")
+			exact = true;
 		else if (args[argPos] == "-r") {
 			if (first) {
 				first = false;
@@ -600,7 +602,7 @@ string MainLoop::executeFind(vector<string> &args)
 		argPos++;
 	}
 	if (argPos == 0 || args.size() < argPos || args.size() > argPos + 1)
-		return "usage: find [-v] [-r] [-w] [-p] [-d] [-i PB] [-f] [-c CIRCUIT] [NAME]\n"
+		return "usage: find [-v] [-r] [-w] [-p] [-d] [-i PB] [-f] [-e] [-c CIRCUIT] [NAME]\n"
 			   " Find message(s).\n"
 			   "  -v         be verbose (append destination address and update time)\n"
 			   "  -r         limit to active read messages (default: read + passive)\n"
@@ -609,14 +611,15 @@ string MainLoop::executeFind(vector<string> &args)
 			   "  -d         only include messages with actual data\n"
 			   "  -i PB      limit to messages with primary command byte PB ('0xPB' for hex)\n"
 			   "  -f         list messages in CSV configuration file format\n"
-			   "  -c CIRCUIT limit to messages of CIRCUIT (or a part thereof)\n"
-			   "  NAME       the NAME of the messages to find (or a part thereof)";
+			   "  -e         match NAME and optional CIRCUIT exactly (ignoring case)\n"
+			   "  -c CIRCUIT limit to messages of CIRCUIT (or a part thereof without '-e')\n"
+			   "  NAME       the NAME of the messages to find (or a part thereof without '-e')";
 
 	deque<Message*> messages;
 	if (args.size() == argPos)
-		messages = m_messages->findAll(circuit, "", pb, false, withRead, withWrite, withPassive);
+		messages = m_messages->findAll(circuit, "", pb, exact, withRead, withWrite, withPassive);
 	else
-		messages = m_messages->findAll(circuit, args[argPos], pb, false, withRead, withWrite, withPassive);
+		messages = m_messages->findAll(circuit, args[argPos], pb, exact, withRead, withWrite, withPassive);
 
 	bool found = false;
 	ostringstream result;
