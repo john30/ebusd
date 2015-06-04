@@ -1,3 +1,17 @@
+# next version
+
+## Bug fixes
+* fix for numeric parsing of empty string
+
+## Features
+* new "read" option "-n" for retrieving name/value pairs in numeric form
+* added numeric and verbose options to JSON and use "null" for unset or replacement value
+* allow passing raw value when writing name/value pairs
+
+## Changed files
+https://github.com/john30/ebusd/compare/v1.2.0...master
+
+
 # 1.2.0 (2015-05-25)
 
 ## Bug fixes
@@ -14,7 +28,7 @@
 * update cache on hex read or write
 
 ## Changed files
-https://github.com/john30/ebusd/compare/v1.1.0...master
+https://github.com/john30/ebusd/compare/v1.1.0...v1.2.0
 
 
 # 1.1.0 (2015-03-28)
