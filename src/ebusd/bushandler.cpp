@@ -100,7 +100,7 @@ bool ScanRequest::notify(result_t result, SymbolString& slave)
 	if (result == RESULT_OK) {
 		if (!append)
 			scanResult << hex << setw(2) << setfill('0') << static_cast<unsigned>(dstAddress) << UI_FIELD_SEPARATOR;
-		result = m_message->decode(pt_slaveData, slave, scanResult, append); // decode data
+		result = m_message->decode(pt_slaveData, slave, scanResult, 0, append); // decode data
 	}
 	if (result < RESULT_OK) {
 		logError(lf_bus, "scan %2.2x failed: %s", dstAddress, getResultCode(result));

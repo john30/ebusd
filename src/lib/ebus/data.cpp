@@ -96,7 +96,7 @@ unsigned int parseInt(const char* str, int base, const unsigned int minValue, co
 
 	unsigned long int ret = strtoul(str, &strEnd, base);
 
-	if (strEnd == NULL || *strEnd != 0) {
+	if (strEnd == NULL || strEnd == str|| *strEnd != 0) {
 		result = RESULT_ERR_INVALID_NUM; // invalid value
 		return 0;
 	}
@@ -429,8 +429,8 @@ void SingleDataField::dump(ostream& output)
 
 result_t SingleDataField::read(const PartType partType,
 		SymbolString& data, unsigned char offset,
-		ostringstream& output, bool leadingSeparator,
-		DataFormat dataFormat, const char* fieldName, signed char fieldIndex)
+		ostringstream& output, OutputFormat outputFormat,
+		bool leadingSeparator, const char* fieldName, signed char fieldIndex)
 {
 	if (partType != m_partType)
 		return RESULT_OK;
@@ -454,36 +454,36 @@ result_t SingleDataField::read(const PartType partType,
 	}
 
 	if (leadingSeparator) {
-		if (dataFormat==df_json)
+		if (outputFormat & OF_JSON)
 			output << ",";
 		else
 			output << UI_FIELD_SEPARATOR;
 	}
 
-	if (dataFormat==df_verbose)
+	if (outputFormat & OF_JSON)
+		output << "\n    {\"name\": \"" << m_name << "\"" << ", \"value\": ";
+	else if (outputFormat & OF_VERBOSE)
 		output << m_name << "=";
-	else if (dataFormat==df_json)
-		output << "\n    {\"name\": \"" << m_name << "\"";
 
-	if (dataFormat==df_json)
-		output << ", \"value\": ";
-	result_t result = readSymbols(data, offset, output, dataFormat);
+	result_t result = readSymbols(data, offset, output, outputFormat);
 	if (result != RESULT_OK)
 		return result;
 
-	if (m_unit.length() > 0) {
-		if (dataFormat==df_verbose)
-			output << " " << m_unit;
-		else if (dataFormat==df_json)
-			output << ", \"unit\": \"" << m_unit << '"';
+	if (outputFormat & OF_VERBOSE) {
+		if (m_unit.length() > 0) {
+			if (outputFormat & OF_JSON)
+				output << ", \"unit\": \"" << m_unit << '"';
+			else
+				output << " " << m_unit;
+		}
+		if (m_comment.length() > 0) {
+			if (outputFormat & OF_JSON)
+				output << ", \"comment\": \"" << m_comment << '"';
+			else
+				output << " [" << m_comment << "]";
+		}
 	}
-	if (m_comment.length() > 0) {
-		if (dataFormat==df_verbose)
-			output << " [" << m_comment << "]";
-		else if (dataFormat==df_json)
-			output << ", \"comment\": \"" << m_comment << '"';
-	}
-	if (dataFormat==df_json)
+	if (outputFormat & OF_JSON)
 		output << "}";
 	return RESULT_OK;
 }
@@ -542,8 +542,7 @@ void StringDataField::dump(ostream& output)
 }
 
 result_t StringDataField::readSymbols(SymbolString& input, const unsigned char baseOffset,
-		ostringstream& output,
-		DataFormat dataFormat)
+		ostringstream& output, OutputFormat outputFormat)
 {
 	size_t start = 0, count = m_length;
 	int incr = 1;
@@ -558,7 +557,7 @@ result_t StringDataField::readSymbols(SymbolString& input, const unsigned char b
 		incr = -1;
 	}
 
-	if (dataFormat==df_json)
+	if (outputFormat & OF_JSON)
 		output << '"';
 	for (size_t offset = start, i = 0; i < count; offset += incr, i++) {
 		if (m_length == 4 && i == 2 && m_dataType.type == bt_dat)
@@ -633,7 +632,7 @@ result_t StringDataField::readSymbols(SymbolString& input, const unsigned char b
 		}
 		last = ch;
 	}
-	if (dataFormat==df_json)
+	if (outputFormat & OF_JSON)
 		output << '"';
 
 	return RESULT_OK;
@@ -962,8 +961,7 @@ void NumberDataField::dump(ostream& output)
 }
 
 result_t NumberDataField::readSymbols(SymbolString& input, const unsigned char baseOffset,
-		ostringstream& output,
-		DataFormat dataFormat)
+		ostringstream& output, OutputFormat outputFormat)
 {
 	unsigned int value = 0;
 	int signedValue;
@@ -975,11 +973,10 @@ result_t NumberDataField::readSymbols(SymbolString& input, const unsigned char b
 	output << setw(0) << dec; // initialize output
 
 	if ((m_dataType.flags & REQ) == 0 && value == m_dataType.replacement) {
-		if (dataFormat==df_json)
-			output << '"';
-		output << NULL_VALUE;
-		if (dataFormat==df_json)
-			output << '"';
+		if (outputFormat & OF_JSON)
+			output << "null";
+		else
+			output << NULL_VALUE;
 		return RESULT_OK;
 	}
 
@@ -1006,7 +1003,7 @@ result_t NumberDataField::readSymbols(SymbolString& input, const unsigned char b
 		output << static_cast<float>((float)signedValue * (float)(-m_divisor));
 	else if (m_divisor <= 1) {
 		if ((m_dataType.flags & (FIX|BCD)) == (FIX|BCD)) {
-			if (dataFormat==df_json) {
+			if (outputFormat & OF_JSON) {
 				output << '"';
 				output << setw(m_length * 2) << setfill('0');
 				output << '"';
@@ -1045,12 +1042,12 @@ result_t NumberDataField::writeSymbols(istringstream& input,
 			}
 			else
 				value = (unsigned int)strtoul(str, &strEnd, 10);
-			if (strEnd == NULL || *strEnd != 0)
+			if (strEnd == NULL || strEnd == str || *strEnd != 0)
 				return RESULT_ERR_INVALID_NUM; // invalid value
 		} else {
 			char* strEnd = NULL;
 			double dvalue = strtod(str, &strEnd);
-			if (strEnd == NULL || *strEnd != 0)
+			if (strEnd == NULL || strEnd == str || *strEnd != 0)
 				return RESULT_ERR_INVALID_NUM; // invalid value
 			if (m_divisor < 0)
 				dvalue = round(dvalue / -m_divisor);
@@ -1132,8 +1129,7 @@ void ValueListDataField::dump(ostream& output)
 }
 
 result_t ValueListDataField::readSymbols(SymbolString& input, const unsigned char baseOffset,
-		ostringstream& output,
-		DataFormat dataFormat)
+		ostringstream& output, OutputFormat outputFormat)
 {
 	unsigned int value = 0;
 
@@ -1145,16 +1141,17 @@ result_t ValueListDataField::readSymbols(SymbolString& input, const unsigned cha
 	if (it == m_values.end() && value != m_dataType.replacement) {
 		return RESULT_ERR_NOTFOUND; // value assignment not found
 	}
-	output << setw(0) << dec; // initialize output
-	if (dataFormat==df_json)
-		output << '"';
-	if (it != m_values.end()) {
+	if (it == m_values.end()) {
+		if (outputFormat & OF_JSON)
+			output << "null";
+		else if (value == m_dataType.replacement)
+			output << NULL_VALUE;
+	} else if (outputFormat & OF_NUMERIC)
+		output << setw(0) << dec << static_cast<int>(value);
+	else if (outputFormat & OF_JSON)
+		output << '"' << it->second << '"';
+	else
 		output << it->second;
-	} else if (value == m_dataType.replacement) {
-		output << NULL_VALUE;
-	}
-	if (dataFormat==df_json)
-		output << '"';
 	return RESULT_OK;
 }
 
@@ -1172,6 +1169,14 @@ result_t ValueListDataField::writeSymbols(istringstream& input,
 
 	if (strcasecmp(str, NULL_VALUE) == 0)
 		return writeRawValue(m_dataType.replacement, baseOffset, output); // replacement value
+
+	char* strEnd = NULL; // fall back to raw value in input
+	unsigned int value;
+	value = (unsigned int)strtoul(str, &strEnd, 10);
+	if (strEnd == NULL || strEnd == str || *strEnd != 0)
+		return RESULT_ERR_INVALID_NUM; // invalid value
+	if (m_values.find(value) != m_values.end())
+		return writeRawValue(value, baseOffset, output);
 
 	return RESULT_ERR_NOTFOUND; // value assignment not found
 }
@@ -1272,8 +1277,8 @@ void DataFieldSet::dump(ostream& output)
 
 result_t DataFieldSet::read(const PartType partType,
 		SymbolString& data, unsigned char offset,
-		ostringstream& output, bool leadingSeparator,
-		DataFormat dataFormat, const char* fieldName, signed char fieldIndex)
+		ostringstream& output, OutputFormat outputFormat,
+		bool leadingSeparator, const char* fieldName, signed char fieldIndex)
 {
 	bool previousFullByteOffset = true, found = false, findFieldIndex = fieldName != NULL && fieldIndex >= 0;
 	for (vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
@@ -1284,7 +1289,7 @@ result_t DataFieldSet::read(const PartType partType,
 		if (!previousFullByteOffset && !field->hasFullByteOffset(false))
 			offset--;
 
-		result_t result = field->read(partType, data, offset, output, leadingSeparator, dataFormat, fieldName, fieldIndex);
+		result_t result = field->read(partType, data, offset, output, outputFormat, leadingSeparator, fieldName, fieldIndex);
 
 		if (result < RESULT_OK)
 			return result;
@@ -1308,11 +1313,11 @@ result_t DataFieldSet::read(const PartType partType,
 	if (!found) {
 		return RESULT_EMPTY;
 	}
-	if (m_comment.length() > 0) {
-		if (dataFormat==df_verbose)
-			output << " [" << m_comment << "]";
-		else if (dataFormat==df_json)
+	if (m_comment.length() > 0 && (outputFormat & OF_VERBOSE)) {
+		if (outputFormat & OF_JSON)
 			output << ",\"comment\": \"" << m_comment << '"';
+		else
+			output << " [" << m_comment << "]";
 	}
 
 	return RESULT_OK;

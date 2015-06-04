@@ -253,7 +253,7 @@ result_t MainLoop::readFromBus(Message* message, SymbolString& master, string in
 string MainLoop::executeRead(vector<string> &args)
 {
 	size_t argPos = 1;
-	bool hex = false, verbose = false;
+	bool hex = false, verbose = false, numeric = false;
 	time_t maxAge = 5*60;
 	string circuit;
 	unsigned char dstAddress = SYN, pollPriority = 0;
@@ -262,11 +262,11 @@ string MainLoop::executeRead(vector<string> &args)
 			hex = true;
 		} else if (args[argPos] == "-f") {
 			maxAge = 0;
-		}
-		else if (args[argPos] == "-v") {
+		} else if (args[argPos] == "-v") {
 			verbose = true;
-		}
-		else if (args[argPos] == "-m") {
+		} else if (args[argPos] == "-n") {
+			numeric = true;
+		} else if (args[argPos] == "-m") {
 			argPos++;
 			if (args.size() > argPos) {
 				result_t result;
@@ -280,16 +280,14 @@ string MainLoop::executeRead(vector<string> &args)
 				argPos = 0; // print usage
 				break;
 			}
-		}
-		else if (args[argPos] == "-c") {
+		} else if (args[argPos] == "-c") {
 			argPos++;
 			if (argPos >= args.size()) {
 				argPos = 0; // print usage
 				break;
 			}
 			circuit = args[argPos];
-		}
-		else if (args[argPos] == "-d") {
+		} else if (args[argPos] == "-d") {
 			argPos++;
 			if (argPos >= args.size()) {
 				argPos = 0; // print usage
@@ -315,7 +313,7 @@ string MainLoop::executeRead(vector<string> &args)
 		}
 		argPos++;
 	}
-	if (hex && (dstAddress != SYN || verbose || pollPriority > 0 || args.size() < argPos + 1)) {
+	if (hex && (dstAddress != SYN || verbose || numeric || pollPriority > 0 || args.size() < argPos + 1)) {
 		argPos = 0; // print usage
 	}
 
@@ -366,7 +364,7 @@ string MainLoop::executeRead(vector<string> &args)
 		return getResultCode(ret);
 	}
 	if (argPos == 0 || args.size() < argPos + 1 || args.size() > argPos + 2)
-		return "usage: read [-f] [-m SECONDS] [-c CIRCUIT] [-d ZZ] [-p PRIO] [-v] NAME [FIELD[.N]]\n"
+		return "usage: read [-f] [-m SECONDS] [-c CIRCUIT] [-d ZZ] [-p PRIO] [-v] [-n] NAME [FIELD[.N]]\n"
 			   "  or:  read [-f] [-m SECONDS] [-c CIRCUIT] -h ZZPBSBNNDx\n"
 			   " Read value(s) or hex message.\n"
 			   "  -f          force reading from the bus (same as '-m 0')\n"
@@ -375,6 +373,7 @@ string MainLoop::executeRead(vector<string> &args)
 			   "  -d ZZ       override destination address ZZ\n"
 			   "  -p PRIO     set the message poll priority (1-9)\n"
 			   "  -v          be verbose (include field names, units, and comments)\n"
+			   "  -n          use numeric value of value=name pairs\n"
 			   "  NAME        the NAME of the message to send\n"
 			   "  FIELD       only retrieve the field named FIELD\n"
 			   "  N           only retrieve the N'th field named FIELD (0-based)\n"
@@ -413,7 +412,7 @@ string MainLoop::executeRead(vector<string> &args)
 			cacheMessage = message; // message is newer/better
 
 		if (cacheMessage != NULL && (cacheMessage->getLastUpdateTime() + maxAge > now || (cacheMessage->isPassive() && cacheMessage->getLastUpdateTime() != 0))) {
-			result_t ret = cacheMessage->decodeLastData(result, false, verbose?df_verbose:df_standard, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
+			result_t ret = cacheMessage->decodeLastData(result, (verbose?OF_VERBOSE:0)|(numeric?OF_NUMERIC:0), false, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
 			if (ret != RESULT_OK) {
 				if (ret < RESULT_OK)
 					logError(lf_main, "read cached: %s", getResultCode(ret));
@@ -440,7 +439,7 @@ string MainLoop::executeRead(vector<string> &args)
 	if (ret != RESULT_OK)
 		return getResultCode(ret);
 
-	ret = message->decode(pt_slaveData, slave, result, false, verbose?df_verbose:df_standard, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
+	ret = message->decode(pt_slaveData, slave, result, (verbose?OF_VERBOSE:0)|(numeric?OF_NUMERIC:0), false, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
 	if (ret < RESULT_OK) {
 		logError(lf_main, "read: %s", getResultCode(ret));
 		return getResultCode(ret);
@@ -641,7 +640,7 @@ string MainLoop::executeFind(vector<string> &args)
 			if (lastup == 0)
 				result << "no data stored";
 			else
-				message->decodeLastData(result, verbose?df_verbose:df_standard);
+				message->decodeLastData(result, verbose?OF_VERBOSE:0);
 			if (verbose) {
 				if (lastup == 0)
 					sprintf(str, "%02x", dstAddress);
@@ -840,7 +839,7 @@ string MainLoop::executeQuit(vector<string> &args, bool& connected)
 string MainLoop::executeHelp()
 {
 	return "usage:\n"
-		   " read|r   Read value(s):         read [-f] [-m SECONDS] [-c CIRCUIT] [-d ZZ] [-p PRIO] [-v] NAME [FIELD[.N]]\n"
+		   " read|r   Read value(s):         read [-f] [-m SECONDS] [-c CIRCUIT] [-d ZZ] [-p PRIO] [-v] [-n] NAME [FIELD[.N]]\n"
 		   "          Read hex message:      read [-f] [-m SECONDS] [-c CIRCUIT] -h ZZPBSBNNDx\n"
 		   " write|w  Write value(s):        write [-c] CIRCUIT NAME [VALUE[;VALUE]*]\n"
 		   "          Write hex message:     write -h ZZPBSBNNDx\n"
@@ -866,6 +865,7 @@ string MainLoop::executeHelp()
 string MainLoop::executeGet(vector<string> &args, bool& connected)
 {
 	result_t ret = RESULT_OK;
+	bool verbose = false, numeric = false;
 	size_t argPos = 1;
 	string uri = args[argPos++];
 	ostringstream result;
@@ -897,6 +897,10 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 						pollPriority = (unsigned char)parseInt(value.c_str(), 10, 1, 9, ret);
 					} else if (strcmp(qname.c_str(), "exact") == 0) {
 						exact = value.length()==0 || strcmp(value.c_str(), "1") == 0;
+					} else if (strcmp(qname.c_str(), "verbose") == 0) {
+						verbose = value.length()==0 || strcmp(value.c_str(), "1") == 0;
+					} else if (strcmp(qname.c_str(), "numeric") == 0) {
+						numeric = value.length()==0 || strcmp(value.c_str(), "1") == 0;
 					}
 					if (ret != RESULT_OK)
 						break;
@@ -937,7 +941,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 			if (lastup != 0) {
 				result << ",\n   \"zz\": \"" << setfill('0') << setw(2) << hex << static_cast<unsigned>(dstAddress) << "\"";
 				result << ",\n   \"fields\": [";
-				ret = message->decodeLastData(result, false, df_json);
+				ret = message->decodeLastData(result, (verbose?OF_VERBOSE:0)|(numeric?OF_NUMERIC:0)|OF_JSON);
 				result << "\n   ]";
 			}
 			result << ",\n   \"passive\": " << (message->isPassive() ? "true" : "false");
