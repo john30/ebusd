@@ -146,7 +146,7 @@ static const struct argp_option argpoptions[] = {
 	{NULL,             0,        NULL,    0, "Daemon options:", 4 },
 	{"foreground",     'f',      NULL,    0, "Run in foreground", 0 },
 	{"port",           'p',      "PORT",  0, "Listen for command line connections on PORT [8888]", 0 },
-	{"localhost",      O_LOCAL,  NULL,    0, "Listen for command line on 127.0.0.1 interface only", 0 },
+	{"localhost",      O_LOCAL,  NULL,    0, "Listen for command line connections on 127.0.0.1 interface only", 0 },
 	{"httpport",       O_HTTPPT, "PORT",  0, "Listen for HTTP connections on PORT, 0 to disable [0]", 0 },
 	{"htmlpath",       O_HTMLPA, "PATH",  0, "Path for HTML files served by HTTP port [/var/ebusd/html]", 0 },
 
