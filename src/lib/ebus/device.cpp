@@ -50,7 +50,7 @@ Device* Device::create(const char* name, const bool checkDevice, const bool read
 		if (pos != NULL) {
 			char* end = NULL;
 			unsigned long int port = strtoul(pos+1, &end, 10);
-			if (end == NULL || *end != 0 || port < 1 || port > 65535) {
+			if (end == NULL || end == pos+1 || *end != 0 || port < 1 || port > 65535) {
 				return NULL; // invalid port
 			}
 			struct sockaddr_in address;

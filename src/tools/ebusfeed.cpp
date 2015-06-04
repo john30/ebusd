@@ -102,7 +102,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 		break;
 	case 't': // --time=10000
 		opt->time = (unsigned int)strtoul(arg, &strEnd, 10);
-		if (strEnd == NULL || *strEnd != 0 || opt->time < 1000 || opt->time > 100000000) {
+		if (strEnd == NULL || strEnd == arg || *strEnd != 0 || opt->time < 1000 || opt->time > 100000000) {
 			argp_error(state, "invalid time");
 			return EINVAL;
 		}

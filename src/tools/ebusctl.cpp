@@ -102,7 +102,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 		break;
 	case 'p': // --port=8888
 		port = strtoul(arg, &strEnd, 10);
-		if (strEnd == NULL || *strEnd != 0 || port < 1 || port > 65535) {
+		if (strEnd == NULL || strEnd == arg || *strEnd != 0 || port < 1 || port > 65535) {
 			argp_error(state, "invalid port");
 			return EINVAL;
 		}
