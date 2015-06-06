@@ -966,7 +966,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 			result << "HTTP/1.0 200 OK\r\n";
 			result << "Content-Type: application/json;charset=utf-8\r\n";
 			result << "Content-Length: " << setw(0) << dec << static_cast<unsigned>(str.length());
-			result << "\r\n\r\n";
+			result << "\r\nConnection: close\r\n\r\n";
 			result << str;
 			return result.str();
 		}
@@ -994,6 +994,8 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 					type = 4;
 				} else if (ext == "svg") {
 					type = 5;
+				} else if (ext == "json") {
+					type = 6;
 				}
 			}
 			if (type < 0) {
@@ -1025,6 +1027,9 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 						break;
 					case 5:
 						result << "image/svg+xml";
+						break;
+					case 6:
+						result << "application/json;charset=utf-8";
 						break;
 					default:
 						result << "text/html";
