@@ -33,8 +33,8 @@ void* Thread::runThread(void* arg)
 Thread::~Thread()
 {
 	if (m_started) {
-		pthread_detach(m_threadid);
 		pthread_cancel(m_threadid);
+		pthread_detach(m_threadid);
 	}
 }
 
