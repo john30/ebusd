@@ -116,7 +116,7 @@ jsPlumb.ready(function() {
 		connection.getOverlay("label").setLabel(connection.endpoints[0].getParameter('name'));
 	};
 
-	var addEndpoints = function(divId, anchors, needConnections) {
+	var addEndpoints = function(divId, anchors, needConnections, needUpdates) {
 		for (var i = 0; i < anchors.length; i++) {
 			var anchor = anchors[i];
 			var anchUUID = divId + anchor.name;
@@ -136,10 +136,15 @@ jsPlumb.ready(function() {
 			if (anchor.hasOwnProperty('connectWith') && needConnections) {
 				needConnections.push(new Array(anchUUID).concat(anchor.connectWith)); // to-circuit, to-endpoint[, item-circuit, item-name[, item-parts]]
 			}
-			instance.addEndpoint(divId, endpoint, {
+			var endp = instance.addEndpoint(divId, endpoint, {
 				anchor: anchor.anchor, uuid: anchUUID,
 				parameters:{name:anchor.name, priority:anchor.priority}
 			});
+			if (anchor.hasOwnProperty('update') && needUpdates) {
+				var update = anchor.update;
+				update.endpoint = endp;
+				needUpdates.push(update);
+			}
 		}
 	};
 
@@ -399,8 +404,9 @@ jsPlumb.ready(function() {
 				}
 				// add endpoints
 				var needConnections = new Array();
+				var needUpdates = new Array();
 				for (var i=0; i<needEndpoints.length; i++) {
-					addEndpoints(needEndpoints[i].name, needEndpoints[i].endpoints, needConnections);
+					addEndpoints(needEndpoints[i].name, needEndpoints[i].endpoints, needConnections, needUpdates);
 				}
 				// establish connections
 				var connectionItems = new Array();
@@ -454,6 +460,7 @@ jsPlumb.ready(function() {
 						}
 					}
 				}
+				// TODO needUpdates
 				// request all shown values and enable automatic polling
 				for (var i=0; i<needUris.length; i++) {
 					new Ajax.Request('/data/'+needUris[i]+'?exact&poll=2',{
