@@ -1,0 +1,19 @@
+{
+	"title": "Mischer 4",
+	"bounds": [980,120,116,212],
+	"image": "mc.svg",
+	"endpoints": [
+		{"name":"Flow", "anchor": [0, 0.82, -1, 0], "target": true, "distance": [0,0,0.7], "connectWith": [null, "HcFlow"]},
+		{"name":"Return", "anchor": [0, 0.96, -1, 0], "connectWith": [null, "HcReturn"]},
+		{"name":"HcFlow", "anchor": [1, 0.82, 1, 0], "target": true},
+		{"name":"HcReturn", "anchor": [1, 0.96, 1, 0]}
+	],
+	"items": [
+		{"name": "Status", "parts": "2", "top": 0.04, "left": 0.04},
+		{"circuit": "uih", "name": "HcName4", "top": 0.25, "leftc": 0.5},
+		{"name": "Mode", "parts": "1 0", "topc": 0.4, "leftc": 0.5},
+		{"name": "HcPumpPort", "topc": 0.56, "leftc": 0.22},
+		{"name": "MixerDutyCycle", "topc": 0.73, "leftc": 0.24},
+		{"name": "Status", "parts": "1 0", "topc": 0.9, "leftc": 0.4}
+	]
+}

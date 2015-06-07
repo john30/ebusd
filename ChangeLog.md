@@ -11,6 +11,7 @@
 * added numeric, verbose, and required options to JSON and use "null" for unset or replacement value
 * allow static ".json" files being served by HTTP port
 * allow passing raw value when writing name/value pairs
+* enhanced static HTML user interface to dynamic
 
 ## Changed files
 https://github.com/john30/ebusd/compare/v1.2.0...master

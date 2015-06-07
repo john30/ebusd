@@ -11,74 +11,6 @@
 <body data-library="dom">
 	<div id="main" style="width: 1137px; height: 721px;">
 		<div class="ebus" id="ebus">
-			<div class="circuit back" id="dcf" style="left:10px;top:0px;width:54px;height:48px;background-image:url(img/dcf.svg);background-position:10px 10px">
-				<strong>DCF</strong>
-				<div data-id="broadcastdatetime" data-parts="0" class="circuitLabel" leftf="1" topf="0">??? °C</div>
-				<div data-id="broadcastdatetime" data-parts="2 1" class="circuitLabel" leftf="1" topf="0.45">Datum Zeit</div>
-			</div>
-			<div class="circuit" id="source" style="left:10px;top:280px;width:80px;height:100px;"><strong>Source</strong><br/><br/></div>
-			<div class="circuit back" id="ehp" style="left:140px;top:172px;width:144px;height:286px;background-image:url(img/ehp.svg);">
-				<strong>EHP</strong>
-				<div data-id="ehpSourceTempInput" data-parts="0" class="circuitLabel" topf="0.02" leftf="0.1">?? °C</div>
-				<div data-id="ehpSourcePress" data-parts="0" class="circuitLabel" topmf="0.2" leftf="0.01">??? bar</div>
-				<div data-id="ehpSourceTempOutput" data-parts="0" class="circuitLabel" topmf="0.3" leftf="0.01">?? °C</div>
-				<div data-id="ehpSource" class="circuitLabel" topmf="0.53" leftmf="0.12">???</div>
-				<div data-id="ehpHcFlowTemp" data-parts="0" class="circuitLabel" topf="0.02" leftf="0.6">T6 °C</div>
-				<div data-id="ehpHcPress" data-parts="0" class="circuitLabel" topmf="0.2" leftf="0.5">?? bar</div>
-				<div data-id="ehpHcReturnTemp" data-parts="0" class="circuitLabel" topmf="0.3" leftf="0.5">T5 °C</div>
-				<div data-id="ehpHwcHcValve" class="circuitLabel" topmf="0.4" leftmf="0.65">??</div>
-				<div data-id="ehpHc1Pump" class="circuitLabel" topmf="0.53" leftmf="0.665">???</div>
-				<div data-id="ehpBackup" class="circuitLabel" topmf="0.54" leftmf="0.9">???</div>
-				<div data-id="ehpTempOutput" data-parts="0" class="circuitLabel" leftf="0.2" topmf="0.68">T1 °C</div>
-				<div data-id="ehpCompPressHigh" data-parts="0" class="circuitLabel" leftf="0.6" topmf="0.68">?? bar</div>
-				<div data-id="ehpActualEnvironmentPower" data-parts="0" class="circuitLabel" leftmf="0.12" topmf="0.81">???</div>
-				<div data-id="ehpComp" class="circuitLabel" leftmf="0.5" topmf="0.81">???</div>
-				<div data-id="ehpHeatPumpStatus" class="circuitLabel" leftf="1" topmf="0.81">???</div>
-				<div data-id="ehpTempInput" data-parts="0" class="circuitLabel" leftf="0.2" topmf="0.94">T2 °C</div>
-				<div data-id="ehpCondensorTemp" data-parts="0" class="circuitLabel" leftf="0.65" topmf="0.81">T4 °C</div>
-				<div data-id="ehpCompPressLow" data-parts="0" class="circuitLabel" leftf="0.6" topmf="0.94">?? bar</div>
-				<div data-id="ehpYieldEnvironmentEnergy" data-parts="0" class="circuitLabel" leftf="0" topf="1">???</div>
-				<div data-id="ehpPowerCut" data-parts="cut: 0" class="circuitLabel" leftf="0.5" topf="1">???</div>
-			</div>
-			<div class="circuit back" id="valve" style="left:340px;top:188px;width:25px;height:31px;background-image:url(img/valve.svg);">
-				<strong>Valve</strong>
-				<div data-id="ehpHwcHcValve" class="circuitLabel" topf="0.02" leftf="0.1">??</div>
-			</div>
-			<div class="circuit back" id="storage" style="left:530px;top:124px;width:134px;height:334px;background-image:url(img/storage.svg);">
-				<strong>Storage</strong>
-				<div data-id="ehpHwcTemp" data-parts="0" class="circuitLabel" style="left:5px;" topmf="0.18">?? °C</div>
-				<div data-id="ehpStorageTempTop" data-parts="0" class="circuitLabel" style="left:5px" topmf="0.48">?? °C</div>
-				<div data-id="ehpStorageTempBottom" data-parts="0" class="circuitLabel" style="left:5px" topmf="0.62">?? °C</div>
-			</div>
-			<div class="circuit back" id="mc" style="left:820px;top:120px;width:116px;height:212px;background-image:url(img/mc.svg);">
-				<strong>Heating 2</strong>
-				<div data-id="mcStatus" data-parts="2" class="circuitLabel" style="left:5px;top:30px;">?? °C</div>
-				<div data-id="ehpHc2Pump" class="circuitLabel" leftmf="0.25" topmf="0.55">???</div>
-				<div data-id="mcMode" data-parts="1 0" class="circuitLabel" leftmf="0.5" topmf="0.4">???</div>
-				<div data-id="ehpMixer1DutyCycle" class="circuitLabel" leftmf="0.24" topmf="0.73">?? %</div>
-				<div data-id="mcStatus" data-parts="1 0" class="circuitLabel" leftmf="0.4" topmf="0.9">?? %</div>
-			</div>
-			<div class="circuit back" id="rc" style="left:851px;top:30px;width:54px;height:48px;background-image:url(img/rc.svg);background-position:10px 0px">
-				<strong>Room 2</strong>
-				<div data-id="rccRoomTemp" data-parts="0" class="circuitLabel" leftf="0" topf="1">?? °C</div>
-			</div>
-			<div class="circuit back" id="mc4" style="left:940px;top:120px;width:116px;height:212px;background-image:url(img/mc.svg);">
-				<strong>Heating 4</strong>
-				<div data-id="mc4Status" data-parts="2" class="circuitLabel" style="left:5px;top:30px;">?? °C</div>
-				<div data-id="mc4HcPumpPort" class="circuitLabel" leftmf="0.25" topmf="0.55">???</div>
-				<div data-id="mc4Mode" data-parts="1 0" class="circuitLabel" leftmf="0.5" topmf="0.4">???</div>
-				<div data-id="mc4MixerDutyCycle" class="circuitLabel" leftmf="0.24" topmf="0.73">?? %</div>
-				<div data-id="mc4Status" data-parts="1 0" class="circuitLabel" leftmf="0.4" topmf="0.9">?? %</div>
-			</div>
-			<div class="circuit back" id="rc4" style="left:971px;top:30px;width:54px;height:48px;background-image:url(img/rc.svg);background-position:10px 0px">
-				<strong>Room 4</strong>
-				<div data-id="rcc4RoomTemp" data-parts="0" class="circuitLabel" leftf="0" topf="1">?? °C</div>
-			</div>
-			<div class="circuit back" id="hwc" style="left:510px;top:40px;width:174px;height:52px;background-image:url(img/hwc.svg);">
-				<strong>HotWater</strong>
-				<div data-id="cpMode" data-parts="1 0" class="circuitLabel" leftf="0.6" topmf="0.2">???</div>
-				<div data-id="ehpCirPump" class="circuitLabel" leftmf="0.85" topmf="0.8">???</div>
-			</div>
 		</div>
 	</div>
 	<script src="js/dom.jsPlumb-1.7.5-min.js"></script>
@@ -156,19 +88,12 @@ jsPlumb.ready(function() {
 			width: 12,
 			height: 12
 		},
-		maxConnections: -1,
+		maxConnections: 1,
 		isSource: true,
 		connectorStyle: connectorPaintStyle,
 		hoverPaintStyle: endpointHoverStyle,
 		connectorHoverStyle: connectorHoverStyle,
-		dragOptions: {},
-		xoverlays: [
-			[ "Label", {
-				location: [0.5, 1.5],
-				label: "out",
-				cssClass: "endpointSourceLabel"
-			}]
-		]
+		dragOptions: {}
 	},
 	// the definition of target endpoints (will appear when the user drags a connection)
 	targetEndpoint = {
@@ -182,40 +107,20 @@ jsPlumb.ready(function() {
 			height: 12
 		},
 		hoverPaintStyle: endpointHoverStyle,
-		maxConnections: -1,
+		maxConnections: 1,
 		dropOptions: { hoverClass: "hover", activeClass: "active" },
 		isTarget: true,
-		connector: [ "Flowchart", { stub: [20, 20], gap: 6, cornerRadius: 5, alwaysRespectStubs: true } ],
-		xoverlays: [
-			[ "Label", {
-				location: [0.5, -0.5],
-				label: "in",
-				cssClass: "endpointTargetLabel"
-			}]
-		]
+		connector: [ "Flowchart", { stub: [20, 20], gap: 6, cornerRadius: 5, alwaysRespectStubs: true } ]
 	},
 	init = function(connection) {
 		connection.getOverlay("label").setLabel(connection.endpoints[0].getParameter('name'));
 	};
 
-	var _addEndpoints = function(divId, anchors) {
+	var addEndpoints = function(divId, anchors, needConnections) {
 		for (var i = 0; i < anchors.length; i++) {
 			var anchor = anchors[i];
 			var anchUUID = divId + anchor.name;
 			var endpoint = anchor.target ? targetEndpoint : sourceEndpoint;
-			var overlays = endpoint.xoverlays.slice(1);
-			var label = anchor.label ? anchor.label : anchor.name;
-			if (false && label) {
-				var location = anchor.target ? [0.5, -0.5] : [0.5, 0.5];
-				if (Array.isArray(anchor.anchor)) {
-					location = [0.5-3*anchor.anchor[2], 0.5-2*anchor.anchor[3]];
-				}
-				overlays[overlays.length] = ["Label", {
-					location: location,
-					label: label,
-					cssClass: anchor.target ? "endpointTargetLabel" : "endpointSourceLabel"
-				}];
-			}
 			if (anchor.distance && endpoint.connector) {
 				endpoint = jsPlumbUtil.clone(endpoint);
 				if (Array.isArray(anchor.distance)) {
@@ -228,9 +133,12 @@ jsPlumb.ready(function() {
 					endpoint.connector[1].stub[anchor.target?1:0] += anchor.distance;
 				}
 			}
+			if (anchor.hasOwnProperty('connectWith') && needConnections) {
+				needConnections.push(new Array(anchUUID).concat(anchor.connectWith)); // to-circuit, to-endpoint[, item-circuit, item-name[, item-parts]]
+			}
 			instance.addEndpoint(divId, endpoint, {
-				anchor: anchor.anchor, uuid: anchUUID, overlays: overlays,
-				parameters:{name:anchor.name}
+				anchor: anchor.anchor, uuid: anchUUID,
+				parameters:{name:anchor.name, priority:anchor.priority}
 			});
 		}
 	};
@@ -256,60 +164,10 @@ jsPlumb.ready(function() {
 	var sourceFlow, sourceReturn, hwcReturn, ehpFlow, hcFlow, hwcFlow, hcReturn, mixFlow, mixReturn, storHwcFlow, storHwcReturn;
 	// suspend drawing and initialise.
 	instance.batch(function() {
-		_addEndpoints("source", [
-			{name:"Output", anchor:[0.25, 0, 0, -1], label: "Source"},
-			{name:"Input", anchor:[0.75, 0, 0, -1], target:true, label: "Source"},
-		]);
-		_addEndpoints("ehp", [
-			{name:"SourceOutput", anchor:[0.12, 0, 0, -1], label: "Source"},
-			{name:"SourceInput", anchor:[0.22, 0, 0, -1], target:true, label: "Source", distance:[0,60]},
-			{name:"HwcReturn", anchor:[0.53, 0, 0, -1], target:true, distance:[0,80,0.3]},
-			{name:"HcReturn", anchor:[0.78, 0, 0, -1], target:true, distance:[0,60,0.42]},
-			{name:"Flow", anchor:[0.88, 0, 0, -1]}
-		]);
-		_addEndpoints("valve", [
-			{name:"Flow", anchor:"Top", target:true},
-			{name:"HwcFlow", anchor:"Right"},
-			{name:"HcFlow", anchor:"Left"}
-		]);
-		_addEndpoints("storage", [
-			{name:"HwcOutput", anchor:[0, 0.06, -1, 0]},
-			{name:"HwcInput", anchor:[1, 0.06, 1, 0], target:true, distance:[0,0,0.8]},
-			{name:"HwcFlow", anchor:[0, 0.24, -1, 0], target:true},
-			{name:"HwcReturn", anchor:[0, 0.43, -1, 0]},
-			{name:"MixFlow", anchor:[1, 0.47, 1, 0]},
-			{name:"HcFlow", anchor:[0, 0.53, -1, 0], target:true},
-			{name:"MixReturn", anchor:[1, 0.62, 1, 0], target:true, distance:[0,0,0.7]},
-			{name:"HcReturn", anchor:[0, 0.67, -1, 0]}
-		]);
-		_addEndpoints("mc", [
-			{name:"Flow", anchor:[0, 0.82, -1, 0], target:true, distance:[0,0,0.7]},
-			{name:"Return", anchor:[0, 0.96, -1, 0]}
-		]);
-		_addEndpoints("hwc", [
-			{name:"Return", anchor:[1, 0.82, 1, 0]},
-			{name:"Flow", anchor:[0, 0.82, -1, 0], target:true, distance:[40,0,0.5]}
-		]);
 		// listen for new connections; initialise them the same way we initialise the connections at startup.
 		instance.bind("connection", function(connInfo, originalEvent) {
 			init(connInfo.connection);
 		});
-
-		// make all the window divs draggable
-		instance.draggable(jsPlumb.getSelector(".ebus .circuit"), { grid: [20, 20] });
-
-		// connections
-		sourceFlow = instance.connect({uuids: ["sourceOutput", "ehpSourceInput"], editable: true});
-		sourceReturn = instance.connect({uuids: ["ehpSourceOutput", "sourceInput"], editable: true});
-		hwcReturn = instance.connect({uuids: ["storageHwcReturn", "ehpHwcReturn"], editable: true});
-		ehpFlow = instance.connect({uuids: ["ehpFlow", "valveFlow"], editable: true});
-		hcFlow = instance.connect({uuids: ["valveHcFlow", "storageHcFlow"], editable: true});
-		hwcFlow = instance.connect({uuids: ["valveHwcFlow", "storageHwcFlow"], editable: true});
-		hcReturn = instance.connect({uuids: ["storageHcReturn", "ehpHcReturn"], editable: true});
-		mixFlow = instance.connect({uuids: ["storageMixFlow", "mcFlow"], editable: true});
-		mixReturn = instance.connect({uuids: ["mcReturn", "storageMixReturn"], editable: true});
-		storHwcFlow = instance.connect({uuids: ["storageHwcOutput", "hwcFlow"], editable: true});
-		storHwcReturn = instance.connect({uuids: ["hwcReturn", "storageHwcInput"], editable: true});
 
 		instance.bind("click", function(conn, originalEvent) {
 			if (conn.hasType("hot")) {
@@ -333,165 +191,355 @@ jsPlumb.ready(function() {
 		instance.bind("connectionMoved", function(params) {
 			console.log("connection " + params.connection.id + " was moved");
 		});
-		sourceFlow.setType("hot");
+		/*sourceFlow.setType("hot");
 		sourceReturn.setType("cold");
 		mixFlow.setType("hot");
 		mixReturn.setType("cold");
 		storHwcFlow.setType("hot");
-		storHwcReturn.setType("off");
-	});
+		storHwcReturn.setType("off");*/
 
-	//jsPlumb.fire("jsPlumbDemoLoaded", instance);
-	var heat = false, water = false;
-	var switchActions = {
-		broadcasthwStatus: function(fields){
-			console.log("action broadcasthwStatus:"+fields);
-			if (!fields) return;
-			var val = fields[0].value;
-			if (val=='on') {
-				water = true;
-				ehpFlow.addType("hot");
-				hcFlow.removeType("hot");
-				hwcFlow.addType("hot");
-				hcReturn.removeType("cold");
-				hwcReturn.addType("cold");
-			} else {
-				water = false;
-				hwcFlow.removeType("hot");
-				hwcReturn.removeType("cold");
-				if (!heat) {
-					ehpFlow.removeType("hot");
+		var heat = false, water = false;
+		var switchActions = {
+			broadcasthwStatus: function(fields){
+				console.log("action broadcasthwStatus:"+fields);
+				if (!fields) return;
+				var val = fields[0].value;
+				if (val=='on') {
+					water = true;
+					ehpFlow.addType("hot");
 					hcFlow.removeType("hot");
+					hwcFlow.addType("hot");
 					hcReturn.removeType("cold");
-				}
-			}
-		},
-		bcStatus: function(fields) {
-			console.log("action bcStatus:"+fields);
-			if (!fields) return;
-			var val = fields[3].value;
-			if (val=='03 2c 00 00') { // heat
-				heat = true;
-				ehpFlow.addType("hot");
-				hwcFlow.removeType("hot");
-				hcFlow.addType("hot");
-				hwcReturn.removeType("cold");
-				hcReturn.addType("cold");
-			} else {
-				water = false;
-				hcFlow.removeType("hot");
-				hcReturn.removeType("cold");
-				if (!water) {
-					ehpFlow.removeType("hot");
+					hwcReturn.addType("cold");
+				} else {
+					water = false;
 					hwcFlow.removeType("hot");
 					hwcReturn.removeType("cold");
+					if (!heat) {
+						ehpFlow.removeType("hot");
+						hcFlow.removeType("hot");
+						hcReturn.removeType("cold");
+					}
+				}
+			},
+			bcStatus: function(fields) {
+				console.log("action bcStatus:"+fields);
+				if (!fields) return;
+				var val = fields[3].value;
+				if (val=='03 2c 00 00') { // heat
+					heat = true;
+					ehpFlow.addType("hot");
+					hwcFlow.removeType("hot");
+					hcFlow.addType("hot");
+					hwcReturn.removeType("cold");
+					hcReturn.addType("cold");
+				} else {
+					water = false;
+					hcFlow.removeType("hot");
+					hcReturn.removeType("cold");
+					if (!water) {
+						ehpFlow.removeType("hot");
+						hwcFlow.removeType("hot");
+						hwcReturn.removeType("cold");
+					}
 				}
 			}
+		};
+		var buildText = function(parts, fields) {
+			var ret = '';
+			if (parts) {
+				parts = parts.split(' ');
+				for (var i=0; i<parts.length; i++) {
+					if (ret.length>0) ret += ',&nbsp;';
+					if (isNaN(parts[i])) {
+						if (parts[i]=='\\n')
+							ret += "<br>";
+						else
+							ret += parts[i];
+					} else if (fields && fields.hasOwnProperty(parts[i])){
+						var field = fields[parts[i]];
+						ret += field.hasOwnProperty('value')&&field.value!=null?field.value:'?';
+						if (field.unit) {
+							ret += '&nbsp;'+field.unit;
+						}
+					} else {
+						ret += '?';
+					}
+				}
+			} else if (fields) {
+				for (var i=0; i<fields.length; i++) {
+					if (ret.length>0) ret += ',&nbsp;';
+					var field = fields[i];
+					ret += field.hasOwnProperty('value')&&field.value!=null?field.value:'?';
+					if (field && field.unit) {
+						ret += '&nbsp;'+field.unit;
+					}
+				}
+			} else {
+				ret += '?';
+			}
+			return ret;
 		}
-	};
-	var running = false, firstrun = true;
-	var since = 0;
-	var needUris = new Array();
-	var startNeeded = function() {
-		for (var i=0; i<needUris.length; i++) {
-			new Ajax.Request('/data/'+needUris[i]+'?exact=1&poll=2',{
+		var parentElem = document.getElementById("ebus");
+		var getFields = function(circuit, name, numeric, verbose, required) {
+			var ret = Array();
+			new Ajax.Request('/data/'+circuit+(name?'/'+name:'')+'?exact'+(numeric?'&numeric':'')+(verbose?'&verbose':'')+(required?'&required':''),{
 				method:'get',
+				asynchronous:false,
 				onSuccess: function(trans) {
+					ret.push(trans.responseJSON[circuit][name].fields);
 				}
 			});
-		}
-	};
-	var startRequest = function() {
-		if (running) return;
-		running = true;
-		new Ajax.Request('/data/?since='+since,{
-			method:'get',
-			onSuccess: function(trans) {
-				for (var cname in trans.responseJSON) {
-					if (!trans.responseJSON.hasOwnProperty(cname)) {
+			return ret?ret[0]:null;
+		};
+		var checkCondition = function(condition, allMessages) {
+			for (var k=0; k<condition.length; k++) { // "and" loop
+				var cond = condition[k];
+				var found = false;
+				for (var i=0; i+2<cond.length; i+=3) { // "or" loop
+					var fields = allMessages[cond[i]][cond[i+1]].fields;
+					if (!fields || !fields[0] || !fields[0].hasOwnProperty('value') || !isNaN(cond[i+2]) && isNaN(fields[0].value)) {
+						fields = getFields(cond[i], cond[i+1], true, false, true);
+						if (!fields || !fields[0] || !fields[0].hasOwnProperty('value')) continue;
+					}
+					if (fields[0].value==cond[i+2]) {
+						found = true;
+						break;
+					}
+				}
+				if (!found) return;
+			}
+			return true;
+		};
+		var addItemFin = function(parent, name, messages, allMessages, needEndpoints, needUris, data) {
+			if (data.hasOwnProperty('condition') && !checkCondition(data.condition, allMessages)) return;
+			var child = document.createElement("div");
+			child.className = "circuit";
+			if (data.hasOwnProperty('image')) {
+				child.className += " back";
+				child.style.backgroundImage = "url(img/"+data.image+")";
+				if (data.hasOwnProperty('image-pos')) {
+					var pos = data['image-pos'];
+					child.style.backgroundPosition = pos[0]+'px '+pos[1]+'px';
+				}
+			}
+			if (data.hasOwnProperty('endpoints')) {
+				needEndpoints.push({"name": name, "endpoints": data.endpoints});
+			}
+			child.id = name;
+			child.textContent = data.title;
+			var width = data['bounds'][2];
+			var height = data['bounds'][3];
+			child.style.left = ((parent?parent.offsetLeft:0)+data['bounds'][0])+'px';
+			child.style.top  = ((parent?parent.offsetTop:0)+data['bounds'][1])+'px';
+			child.style.width = width+'px';
+			child.style.height = height+'px';
+			parentElem.appendChild(child);
+			for (var i in data.items) {
+				var item = data.items[i];
+				var mname = item.name;
+				var cmessages = messages;
+				var circuit = name;
+				if (item.circuit) {
+					circuit = item.circuit;
+					if (!allMessages.hasOwnProperty(circuit)) {
 						continue;
 					}
-					var circuit = trans.responseJSON[cname];
-					for (var mname in circuit) {
-						if (!circuit.hasOwnProperty(mname)) {
+					cmessages = allMessages[circuit];
+				}
+				if (!cmessages.hasOwnProperty(mname)) {
+					continue;
+				}
+				needUris.push(circuit+'/'+mname);
+				var message = cmessages[mname];
+				var ichild = document.createElement("div");
+				ichild.className = "circuitLabel";
+				ichild.setAttribute('data-id', circuit+'/'+mname);
+				if (item.hasOwnProperty('parts')) {
+					ichild.setAttribute('data-parts', item.parts);
+				}
+				ichild.style.left = Math.floor((item.leftc?item.leftc:item.left)*width)+'px';
+				ichild.style.top = Math.floor((item.topc?item.topc:item.top)*height)+'px';
+				ichild.innerHTML = buildText(item.parts, message?message.fields:null);
+				child.appendChild(ichild);
+				if (item.leftc) {
+					ichild.style.left = Math.floor(item.leftc*width-ichild.clientWidth/2)+'px';
+				}
+				if (item.topc) {
+					ichild.style.top = Math.floor(item.topc*height-ichild.clientHeight/2)+'px';
+				}
+			}
+			if (data.hasOwnProperty('sub')) {
+				for (var i in data.sub) {
+					var sub = data.sub[i];
+					addItemFin(child, sub.name, [], allMessages, needEndpoints, needUris, sub);
+				}
+			}
+		};
+		var addItem = function(parent, name, messages, allMessages, needEndpoints, needUris) {
+			new Ajax.Request('/items/'+name+'.json',{
+				method:'get',
+				asynchronous:false,
+				onSuccess: function(trans) {
+					addItemFin(parent, name, messages, allMessages, needEndpoints, needUris, trans.responseJSON);
+				}
+			});
+		};
+		new Ajax.Request('/data/?verbose',{
+			method:'get',
+			onSuccess: function(trans) {
+				var needEndpoints = new Array();
+				var needUris = new Array();
+				var allMessages = trans.responseJSON;
+				// create items
+				for (var cname in allMessages) {
+					if (!allMessages.hasOwnProperty(cname))
+						continue;
+					addItem(null, cname, allMessages[cname], allMessages, needEndpoints, needUris);
+				}
+				// add endpoints
+				var needConnections = new Array();
+				for (var i=0; i<needEndpoints.length; i++) {
+					addEndpoints(needEndpoints[i].name, needEndpoints[i].endpoints, needConnections);
+				}
+				// establish connections
+				var connectionItems = new Array();
+				var endpoints = instance.selectEndpoints();
+				var first = true;
+				for (var i=0; i<needConnections.length; i++) {
+					var data = needConnections[i];
+					// fromuuid, to-circuit|null, to-endpoint[, item-circuit, item-name[, item-parts]]
+					var src = data[0], dst;
+					if (data[1]==null) {
+						if (first) {
+							if (i+1>=needConnections.length) {
+								first = false;
+								i = -1;
+							}
 							continue;
 						}
-						var message = circuit[mname];
-						var lastup = message.lastup;
-						if (lastup>since) {
-							since = lastup;
-						}
-						var fields = message.fields;
-						var key = cname+mname;
-						var needed = false;
-						if (switchActions.hasOwnProperty(key)) {
-							switchActions[key](fields);
-							needed = true;
-						}
-						var elems = $$('div[data-id="'+key+'"]');
-						if (elems.length>0) {
-							needed = true;
-						} else console.log(key+':'+fields);
-						if (needed && firstrun) {
-							needUris[needUris.length] = cname+'/'+mname;
-						}
-						if (!fields) {
-							continue;
-						}
-						each(elems, function(elem) {
-							var ret = '';
-							var parts = elem.getAttribute('data-parts');
-							if (parts) {
-								parts = parts.split(' ');
-								for (var i=0; i<parts.length; i++) {
-									if (ret.length>0) ret += ',&nbsp;';
-									if (isNaN(parts[i])) {
-										if (parts[i]=='\\n')
-											ret += "<br>";
-										else
-											ret += parts[i];
-									} else {
-										var field = fields[parts[i]];
-										if (field) {
-											ret += field.value;
-											if (field.unit) {
-												ret += '&nbsp;'+field.unit;
-											}
-										} else console.log("undefined field "+parts[i]+" in "+cname+" "+mname);
-									}
-								}
-							} else {
-								for (var i=0; i<fields.length; i++) {
-									if (ret.length>0) ret += ',&nbsp;';
-									var field = fields[i];
-									ret += field.value;
-									if (field.unit) {
-										ret += '&nbsp;'+field.unit;
-									}
+						var avail = new Array();
+						var best = 99;
+						endpoints.each(function(endpoint) {
+							if (endpoint.getParameter('name')==data[2] && !endpoint.isFull()) {
+								var prio = endpoint.getParameter('priority');
+								if (avail.length==0 || (isNaN(prio)?prio:99)<best) {
+									avail.clear();
+									avail.push(endpoint.getUuid());
+									best = isNaN(prio)?prio:99;
 								}
 							}
-							elem.innerHTML=ret;
 						});
+						dst = avail.length>0 ? avail[0] : null;
+					} else {
+						dst = data[1]+data[2];
+					}
+					needConnections.splice(i--, 1);
+					if (!dst) continue;
+					if (instance.getEndpoint(src).isTarget) {
+						src = dst;
+						dst = data[0];
+					}
+					var type = 'off';//TODO dst.indexOf("Flow")>=0?'hot':'cold';
+					var conn = instance.connect({uuids: [src, dst], editable: true, type: type});
+					if (conn && data.length>4 && data[3]) { // add label
+						connectionItems.push({conn: conn, data: data});
+						var cmessages = allMessages[data[3]];
+						var message = cmessages[data[4]];
+						var over = conn.getOverlay("label");
+						over.setLabel(buildText(data.length>5?data[5]:null, message.fields));
+						var key = data[3]+'/'+data[4];
+						if (!needUris[key]) {
+							needUris.push(key);
+						}
 					}
 				}
-				running = false;
-				if (firstrun) {
-					startNeeded();
+				// request all shown values and enable automatic polling
+				for (var i=0; i<needUris.length; i++) {
+					new Ajax.Request('/data/'+needUris[i]+'?exact&poll=2',{
+						method:'get',
+						onSuccess: function(trans) {
+							var cname = needUris[i].split('/');
+							var mname = cname[1];
+							cname = cname[0];
+							var fields = trans.responseJSON[cname][mname].fields;
+							if (fields) {
+								var elems = $$('div[data-id="'+needUris[i]+'"]');
+								each(elems, function(elem) {
+									elem.innerHTML = buildText(elem.getAttribute('data-parts'), fields);
+								});
+							}
+						}
+					});
 				}
-				firstrun = false;
+				instance.draggable(jsPlumb.getSelector(".ebus .circuit"), { grid: [20, 20] });
 			},
 			onFailure: function() {
-				console.log("failed");
-				running = false;
+				console.log("initial request failed");
 			},
-			onException: function(trans,e) {
+			onException: function(trans, e) {
 				console.log(e);
-				running = false;
 			}
 		});
-	};
-	startRequest();
-	new PeriodicalExecuter(startRequest, 15);
+		var running = false, firstrun = true;
+		var since = 0;
+		var startRequest = function() {
+			if (running) return;
+			running = true;
+			new Ajax.Request('/data/?verbose&since='+since,{
+				method:'get',
+				onSuccess: function(trans) {
+					if (firstrun) {
+						firstrun = false;
+					}
+					for (var cname in trans.responseJSON) {
+						if (!trans.responseJSON.hasOwnProperty(cname)) {
+							continue;
+						}
+						var circuit = trans.responseJSON[cname];
+						for (var mname in circuit) {
+							if (!circuit.hasOwnProperty(mname)) {
+								continue;
+							}
+							var message = circuit[mname];
+							var lastup = message.lastup;
+							if (lastup>since) {
+								since = lastup;
+							}
+							var fields = message.fields;
+							var key = cname+'/'+mname;
+							var needed = false;
+							/*if (switchActions.hasOwnProperty(key)) {
+								switchActions[key](fields);
+								needed = true;
+							}*/
+							var elems = $$('div[data-id="'+key+'"]');
+							if (elems.length>0) {
+								needed = true;
+							} else console.log(key+':'+fields);
+							if (!fields) {
+								continue;
+							}
+							each(elems, function(elem) {
+								elem.innerHTML = buildText(elem.getAttribute('data-parts'), fields);
+							});
+						}
+					}
+					running = false;
+				},
+				onFailure: function() {
+					console.log("failed");
+					running = false;
+				},
+				onException: function(trans,e) {
+					console.log(e);
+					running = false;
+				}
+			});
+		};
+		startRequest();
+		new PeriodicalExecuter(startRequest, 15);
+	});
 });
 	</script>
 </body>

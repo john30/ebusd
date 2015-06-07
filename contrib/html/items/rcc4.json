@@ -1,0 +1,10 @@
+{
+	"title": "Regler 4",
+	"bounds": [1011,30,54,48],
+	"image": "rc.svg",
+	"image-pos": [10,0],
+	"items": [
+		{"circuit": "uih", "name": "HcName4", "top": 0.1, "leftc": 0.5},
+		{"name": "RoomTemp", "parts": "0", "top": 1, "left": 0}
+	]
+}

@@ -1,0 +1,14 @@
+ {
+	"title": "Warmwasser",
+	"bounds": [510,40,174,52],
+	"image": "hwc.svg",
+	"endpoints": [
+		{"name": "Flow", "anchor": [0, 0.82, -1, 0], "target": true, "distance": [40,0,0.5], "connectWith": [null, "HwcFlow"]},
+		{"name": "Return", "anchor": [1, 0.82, 1, 0], "connectWith": [null, "HwcReturn"]}
+	],
+	"items": [
+		{"name": "OperatingMode", "topc": 0.2, "left": 0.6},
+		{"circuit": "ehp", "name": "CirPump", "topc": 0.8, "leftc": 0.85},
+		{"circuit": "cp", "name": "Mode", "parts": "1 0", "top": 1, "left": 0.6}
+	]
+ }

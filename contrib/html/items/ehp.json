@@ -1,0 +1,125 @@
+{
+	"title": "Wärmepumpe",
+	"bounds": [140,172,144,286],
+	"image": "ehp.svg",
+	"sub": [
+		{
+			"name": "source",
+			"title": "Quelle",
+			"bounds": [-130,108,80,100],
+			"endpoints": [
+				{"name": "Flow", "anchor": [0.25, 0, 0, -1], "label": "Source", "connectWith": ["ehp", "SourceInput", "ehp", "SourceTempInput", "0"]},
+				{"name": "Return", "anchor": [0.75, 0, 0, -1], "target": true, "label": "Source", "connectWith": ["ehp", "SourceOutput", "ehp", "SourceTempOutput", "0"]}
+			]
+		},
+		{
+			"name": "valve",
+			"condition": [["ehp", "HydraulicScheme", 4, "ehp", "HydraulicScheme", 3]],
+			"title": "Valve",
+			"bounds": [200,16,25,31],
+			"image": "valve.svg",
+			"endpoints": [
+				{"name": "Flow", "anchor": "Top", "target": true, "connectWith": ["ehp", "HcFlow", "ehp", "FlowTemp", "0"]},
+				{"name": "HwcFlow", "anchor": "Right", "connectWith": ["storage", "HwcInput"], "updates": [
+					{"type": ["hot", "off"], "condition": [["ehp", "Hc1Pump", "on"], ["ehp", "HwcHcValve", "on"]]}
+				]},
+				{"name": "HcFlow", "anchor": "Left", "connectWith": ["storage", "HcInput", "ehp", "HcFlowTemp", "0"], "updates": [
+					{"type": ["cold", "off"], "condition": [["ehp", "Hc1Pump", "on"], ["ehp", "HwcHcValve", "off"]]}
+				]}
+			],
+			"items": [
+				{"circuit": "ehp", "name": "HwcHcValve", "topc": 0.5, "leftc": 0.5}
+			]
+		},
+		{
+			"name": "storage",
+			"condition": [["ehp", "HydraulicScheme", 4]],
+			"title": "Speicher",
+			"bounds": [390,-48,134,334],
+			"image": "storage.svg",
+			"endpoints": [
+				{"name": "HwcFlow", "anchor": [0, 0.06, -1, 0]},
+				{"name": "HwcReturn", "anchor": [1, 0.06, 1, 0], "target": true, "distance": [0,0,0.8]},
+				{"name": "HwcInput", "anchor": [0, 0.24, -1, 0], "target": true},
+				{"name": "HwcOutput", "anchor": [0, 0.43, -1, 0]},
+				{"name": "HcFlow", "anchor": [1, 0.47, 1, 0]},
+				{"name": "HcInput", "anchor": [0, 0.53, -1, 0], "target": true},
+				{"name": "HcReturn", "anchor": [1, 0.62, 1, 0], "target": true, "distance": [0,0,0.7]},
+				{"name": "HcOutput", "anchor": [0, 0.67, -1, 0]}
+			],
+			"items": [
+				{"circuit": "ehp", "name": "HwcTemp", "parts": "0", "topc": 0.12, "left": 0.04},
+				{"circuit": "ehp", "name": "StorageTempTop", "parts": "0", "topc": 0.48, "left": 0.04},
+				{"circuit": "ehp", "name": "StorageTempBottom", "parts": "0", "topc": 0.62, "left": 0.04}
+			]
+		},
+		{
+			"name": "storage",
+			"condition": [["ehp", "HydraulicScheme", 3]],
+			"title": "Wasserspeicher",
+			"bounds": [390,47,134,239],
+			"image": "buffer.svg",
+			"endpoints": [
+				{"name": "HwcFlow", "anchor": [0, 0.06, -1, 0]},
+				{"name": "HwcReturn", "anchor": [1, 0.06, 1, 0], "target": true, "distance": [0,0,0.8]},
+				{"name": "HwcInput", "anchor": [0, 0.15, -1, 0], "target": true},
+				{"name": "HwcOutput", "anchor": [0, 0.85, -1, 0]}
+			],
+			"items": [
+				{"circuit": "ehp", "name": "HwcTemp", "parts": "0", "topc": 0.12, "left": 0.04}
+			]
+		},
+		{
+			"name": "storage",
+			"condition": [["ehp", "HydraulicScheme", 2]],
+			"title": "Pufferspeicher",
+			"bounds": [390,47,134,239],
+			"image": "buffer.svg",
+			"endpoints": [
+				{"name": "HcFlow", "anchor": [1, 0.15, 1, 0]},
+				{"name": "HcInput", "anchor": [0, 0.15, -1, 0], "target": true, "connectWith": ["ehp", "HcFlow", "ehp", "FlowTemp", "0"]},
+				{"name": "HcReturn", "anchor": [1, 0.85, 1, 0], "target": true, "distance": [0,0,0.7]},
+				{"name": "HcOutput", "anchor": [0, 0.85, -1, 0]}
+			],
+			"items": [
+				{"circuit": "ehp", "name": "StorageTempTop", "parts": "0", "topc": 0.15, "left": 0.04},
+				{"circuit": "ehp", "name": "StorageTempBottom", "parts": "0", "topc": 0.85, "left": 0.04}
+			]
+		}
+	],
+	"endpoints": [
+		{"name": "SourceOutput", "anchor": [0.12, 0, 0, -1], "label": "Source", "updates": [
+			{"type": ["cold", "off"], "condition": [["ehp", "Source", "on"]]}
+		]},
+		{"name": "SourceInput", "anchor": [0.22, 0, 0, -1], "target": true, "label": "Source", "distance": [0,60], "updates": [
+			{"type": ["hot", "off"], "condition": [["ehp", "Source", "on"]]}
+		]},
+		{"name": "HwcReturn", "anchor": [0.53, 0, 0, -1], "target": true, "distance": [0,80,0.3], "connectWith": ["storage", "HwcOutput"], "updates": [
+			{"type": ["hot", "off"], "condition": [["ehp", "Hc1Pump", "on"], ["ehp", "HwcHcValve", "on"]]}
+		]},
+		{"name": "HcReturn", "anchor": [0.78, 0, 0, -1], "target": true, "distance": [0,60,0.42], "connectWith": ["storage", "HcOutput", "ehp", "HcReturnTemp", "0"], "updates": [
+			{"type": ["cold", "off"], "condition": [["ehp", "Hc1Pump", "on"], ["ehp", "HwcHcValve", "off"]]}
+		]},
+		{"name": "HcFlow", "anchor": [0.88, 0, 0, -1], "priority": 1, "updates": [
+			{"type": ["hot", "off"], "condition": [["ehp", "Hc1Pump", "on"]]}
+		]}
+	],
+	"items": [
+		{"name": "SourcePress", "parts": "0", "topc": 0.2, "left": 0.01},
+		{"name": "Source", "topc": 0.53, "leftc": 0.12},
+		{"name": "HcPress", "parts": "0", "topc": 0.2, "left": 0.5},
+		{"name": "HwcHcValve", "topc": 0.4, "leftc": 0.65},
+		{"name": "Hc1Pump", "topc": 0.53, "leftc": 0.665},
+		{"name": "Backup", "topc": 0.54, "leftc": 0.9},
+		{"name": "TempOutput", "parts": "0", "left": 0.2, "topc": 0.68},
+		{"name": "CompPressHigh", "parts": "0", "left": 0.6, "topc": 0.68},
+		{"name": "ActualEnvironmentPower", "parts": "0", "leftc": 0.12, "topc": 0.81},
+		{"name": "Comp", "leftc": 0.5, "topc": 0.81},
+		{"name": "HeatPumpStatus", "left": 1, "topc": 0.81},
+		{"name": "TempInput", "parts": "0", "left": 0.2, "topc": 0.94},
+		{"name": "CondensorTemp", "parts": "0", "left": 0.65, "topc": 0.81},
+		{"name": "CompPressLow", "parts": "0", "left": 0.6, "topc": 0.94},
+		{"name": "YieldEnvironmentEnergy", "parts": "0", "left": 0, "top": 1},
+		{"name": "PowerCut", "parts": "cut: 0", "left": 0.5, "top": 1}
+	]
+}
