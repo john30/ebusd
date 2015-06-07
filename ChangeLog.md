@@ -3,6 +3,7 @@
 ## Bug fixes
 * fix for numeric parsing of empty string
 * allow HTTP port query string keys without value
+* always update last message update time when actively sending it
 
 ## Features
 * new "read" option "-n" for retrieving name/value pairs in numeric form

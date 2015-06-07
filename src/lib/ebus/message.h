@@ -305,10 +305,10 @@ private:
 	/** the last seen slave data. */
 	SymbolString m_lastSlaveData;
 
-	/** the system time when @a m_lastValue was last stored, 0 for never. */
+	/** the system time when the message was last updated, 0 for never. */
 	time_t m_lastUpdateTime;
 
-	/** the system time when @a m_lastValue was last changed, 0 for never. */
+	/** the system time when the message content was last changed, 0 for never. */
 	time_t m_lastChangeTime;
 
 	/** the number of times this messages was already polled for. */

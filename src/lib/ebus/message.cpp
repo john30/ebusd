@@ -327,6 +327,7 @@ result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& ma
 	result = m_data->write(input, pt_masterData, master, (unsigned char)(m_id.size() - 2), separator);
 	if (result != RESULT_OK)
 		return result;
+	time(&m_lastUpdateTime);
 	switch (master.compareMaster(m_lastMasterData)) {
 	case 1: // completely different
 		m_lastChangeTime = m_lastUpdateTime;
