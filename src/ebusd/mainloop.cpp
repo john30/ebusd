@@ -868,7 +868,7 @@ string MainLoop::executeHelp()
 string MainLoop::executeGet(vector<string> &args, bool& connected)
 {
 	result_t ret = RESULT_OK;
-	bool verbose = false, numeric = false;
+	bool verbose = false, numeric = false, required = false;
 	size_t argPos = 1;
 	string uri = args[argPos++];
 	ostringstream result;
@@ -891,23 +891,28 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 			string token;
 			while (getline(stream, token, '&') != 0) {
 				pos = token.find('=');
+				string qname, value;
 				if (pos != string::npos) {
-					string qname = token.substr(0, pos);
-					string value = token.substr(pos+1);
-					if (strcmp(qname.c_str(), "since") == 0) {
-						since = parseInt(value.c_str(), 10, 0, 0xffffffff, ret);
-					} else if (strcmp(qname.c_str(), "poll") == 0) {
-						pollPriority = (unsigned char)parseInt(value.c_str(), 10, 1, 9, ret);
-					} else if (strcmp(qname.c_str(), "exact") == 0) {
-						exact = value.length()==0 || strcmp(value.c_str(), "1") == 0;
-					} else if (strcmp(qname.c_str(), "verbose") == 0) {
-						verbose = value.length()==0 || strcmp(value.c_str(), "1") == 0;
-					} else if (strcmp(qname.c_str(), "numeric") == 0) {
-						numeric = value.length()==0 || strcmp(value.c_str(), "1") == 0;
-					}
-					if (ret != RESULT_OK)
-						break;
+					qname = token.substr(0, pos);
+					value = token.substr(pos+1);
+				} else {
+					qname = token;
 				}
+				if (strcmp(qname.c_str(), "since") == 0) {
+					since = parseInt(value.c_str(), 10, 0, 0xffffffff, ret);
+				} else if (strcmp(qname.c_str(), "poll") == 0) {
+					pollPriority = (unsigned char)parseInt(value.c_str(), 10, 1, 9, ret);
+				} else if (strcmp(qname.c_str(), "exact") == 0) {
+					exact = value.length()==0 || strcmp(value.c_str(), "1") == 0;
+				} else if (strcmp(qname.c_str(), "verbose") == 0) {
+					verbose = value.length()==0 || strcmp(value.c_str(), "1") == 0;
+				} else if (strcmp(qname.c_str(), "numeric") == 0) {
+					numeric = value.length()==0 || strcmp(value.c_str(), "1") == 0;
+				} else if (strcmp(qname.c_str(), "required") == 0) {
+					required = value.length()==0 || strcmp(value.c_str(), "1") == 0;
+				}
+				if (ret != RESULT_OK)
+					break;
 			}
 		}
 		deque<Message*> messages = m_messages->findAll(clazz, name, -1, exact, true, false, true);
@@ -924,10 +929,24 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 			if (pollPriority > 0 && message->setPollPriority(pollPriority))
 				m_messages->addPollMessage(message);
 			time_t lastup = message->getLastUpdateTime();
-			if (since > 0 && lastup <= since)
-				continue;
-			if (lastup > maxLastUp)
-				maxLastUp = lastup;
+			if (lastup == 0 && required) {
+				// read directly from bus
+				SymbolString master(true);
+				SymbolString slave(false);
+				result_t ret = readFromBus(message, master, "", slave);
+				if (ret == RESULT_OK) {
+					ostringstream temp;
+					ret = message->decode(pt_slaveData, slave, temp);
+				}
+				if (ret != RESULT_OK)
+					break;
+				lastup = message->getLastUpdateTime();
+			} else {
+				if (since > 0 && lastup <= since)
+					continue;
+				if (lastup > maxLastUp)
+					maxLastUp = lastup;
+			}
 			if (message->getCircuit() != lastCircuit) {
 				if (lastCircuit.length() > 0)
 					result << "\n },";

@@ -2,11 +2,12 @@
 
 ## Bug fixes
 * fix for numeric parsing of empty string
+* allow HTTP port query string keys without value
 
 ## Features
 * new "read" option "-n" for retrieving name/value pairs in numeric form
 * new "find" option "-e" for exactly matching name and optional circuit (ignoring case)
-* added numeric and verbose options to JSON and use "null" for unset or replacement value
+* added numeric, verbose, and required options to JSON and use "null" for unset or replacement value
 * allow static ".json" files being served by HTTP port
 * allow passing raw value when writing name/value pairs
 
