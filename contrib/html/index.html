@@ -355,8 +355,8 @@ jsPlumb.ready(function() {
 				if (!cmessages.hasOwnProperty(mname)) {
 					continue;
 				}
-				needUris.push(circuit+'/'+mname);
 				var message = cmessages[mname];
+				if (!message.passive) needUris.push(circuit+'/'+mname);
 				var ichild = document.createElement("div");
 				ichild.className = "circuitLabel";
 				ichild.setAttribute('data-id', circuit+'/'+mname);
