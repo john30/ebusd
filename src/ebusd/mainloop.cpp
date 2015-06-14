@@ -23,6 +23,7 @@
 #include "main.h"
 #include "log.h"
 #include "data.h"
+#include "config.h"
 
 using namespace std;
 
@@ -872,6 +873,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 	size_t argPos = 1;
 	string uri = args[argPos++];
 	ostringstream result;
+	int type = -1;
 
 	if (strncmp(uri.c_str(), "/data/", 6) == 0) {
 		string clazz = "", name = "";
@@ -979,15 +981,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 			result << ",\n  \"lastup\": " << setw(0) << dec << static_cast<unsigned>(maxLastUp);
 			result << "\n }";
 			result << "\n}";
-			string str = result.str();
-			result.str("");
-			result.clear();
-			result << "HTTP/1.0 200 OK\r\n";
-			result << "Content-Type: application/json;charset=utf-8\r\n";
-			result << "Content-Length: " << setw(0) << dec << static_cast<unsigned>(str.length());
-			result << "\r\nConnection: close\r\n\r\n";
-			result << str;
-			return result.str();
+			type = 6;
 		}
 	} else {
 		if (uri.length() < 1 || uri[0] != '/' || uri.find("//") != string::npos || uri.find("..") != string::npos) {
@@ -997,7 +991,6 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 			if (uri[uri.length()-1] == '/')
 				filename += "index.html";
 
-			int type = -1;
 			size_t pos = filename.find_last_of('.');
 			if (pos != string::npos && pos != filename.length() - 1 && pos >= filename.length() - 5) {
 				string ext = filename.substr(pos+1);
@@ -1027,46 +1020,43 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 				} else {
 					ifs >> result.rdbuf();
 					ifs.close();
-					string str = result.str();
-					result.str("");
-					result.clear();
-					result << "HTTP/1.0 200 OK\r\nContent-Type: ";
-					switch (type) {
-					case 1:
-						result << "text/css";
-						break;
-					case 2:
-						result << "application/javascript";
-						break;
-					case 3:
-						result << "image/png";
-						break;
-					case 4:
-						result << "image/jpeg";
-						break;
-					case 5:
-						result << "image/svg+xml";
-						break;
-					case 6:
-						result << "application/json;charset=utf-8";
-						break;
-					default:
-						result << "text/html";
-						break;
-					}
-					result << "\r\nContent-Length: " << setw(0) << dec << static_cast<unsigned>(str.length());
-					result << "\r\nConnection: close\r\n\r\n";
-					result << str;
-					connected = false;
-					return result.str();
 				}
 			}
 		}
 	}
+
+	string data = ret==RESULT_OK ? result.str() : "";
 	result.str("");
 	result.clear();
 	result << "HTTP/1.0 ";
 	switch (ret) {
+	case RESULT_OK:
+		result << "200 OK\r\nContent-Type: ";
+		switch (type) {
+		case 1:
+			result << "text/css";
+			break;
+		case 2:
+			result << "application/javascript";
+			break;
+		case 3:
+			result << "image/png";
+			break;
+		case 4:
+			result << "image/jpeg";
+			break;
+		case 5:
+			result << "image/svg+xml";
+			break;
+		case 6:
+			result << "application/json;charset=utf-8";
+			break;
+		default:
+			result << "text/html";
+			break;
+		}
+		result << "\r\nContent-Length: " << setw(0) << dec << static_cast<unsigned>(data.length());
+		break;
 	case RESULT_ERR_NOTFOUND:
 		result << "404 Not Found";
 		break;
@@ -1079,7 +1069,8 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 		result << "500 Internal Server Error";
 		break;
 	}
-	result << "\r\nConnection: close\r\n\r\n";
+	result << "\r\nServer: ebusd/" PACKAGE_VERSION "\r\n\r\n";
+	result << data;
 	connected = false;
 	return result.str();
 }
