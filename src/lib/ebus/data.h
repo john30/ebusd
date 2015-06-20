@@ -730,11 +730,12 @@ public:
 	/**
 	 * Adds a template @a DataField instance to this map.
 	 * @param field the @a DataField instance to add.
+	 * @param name the name to use in the map, or the empty string to use the @a DataField name.
 	 * @param replace whether replacing an already stored instance is allowed.
 	 * @return @a RESULT_OK on success, or an error code.
 	 * Note: the caller may not free the added instance on success.
 	 */
-	result_t add(DataField* field, bool replace=false);
+	result_t add(DataField* field, string name="", bool replace=false);
 
 	// @copydoc
 	virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end, void* arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo);

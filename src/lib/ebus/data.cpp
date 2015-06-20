@@ -1371,9 +1371,10 @@ void DataFieldTemplates::clear()
 	m_fieldsByName.clear();
 }
 
-result_t DataFieldTemplates::add(DataField* field, bool replace)
+result_t DataFieldTemplates::add(DataField* field, string name, bool replace)
 {
-	string name = field->getName();
+	if (name.length() == 0)
+		name = field->getName();
 	map<string, DataField*>::iterator it = m_fieldsByName.find(name);
 	if (it != m_fieldsByName.end()) {
 		if (!replace)
@@ -1393,11 +1394,19 @@ result_t DataFieldTemplates::add(DataField* field, bool replace)
 result_t DataFieldTemplates::addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end, void* arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo)
 {
 	DataField* field = NULL;
+	string name;
+	if (begin != end) {
+		size_t colon = begin->find(':');
+		if (colon!=string::npos) {
+			name = begin->substr(0, colon);
+			begin->erase(0, colon+1);
+		}
+	}
 	result_t result = DataField::create(begin, end, this, field, false, true, false);
 	if (result != RESULT_OK)
 		return result;
 
-	result = add(field, true);
+	result = add(field, name, true);
 	if (result != RESULT_OK)
 		delete field;
 
