@@ -125,7 +125,7 @@ int main()
 				cout << "\"" << check[0] << "\": template fields create error: trailing input" << endl;
 			}
 			else {
-				result = templates->add(fields, true);
+				result = templates->add(fields, "", true);
 				if (result == RESULT_OK)
 					cout << "  store template OK" << endl;
 				else {
