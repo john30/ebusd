@@ -119,6 +119,10 @@ int main()
 		{"x,,bcd:4","99999999", "10feffff0199999999", "00", ""},
 		{"x,,bcd:4","-",        "10feffff01ffffffff", "00", ""},
 		{"x,,bcd:4","",         "10feffff0100009a00", "00", "rw"},
+		{"x,,hcd","1234567",  "10feffff01432d1701", "00", ""},
+		{"x,,hcd","0",        "10feffff0100000000", "00", ""},
+		{"x,,hcd","99999999", "10feffff0163636363", "00", ""},
+		{"x,,hcd","",         "10feffff0100006400", "00", "rw"},
 		{"x,,str:16", "0123456789ABCDEF",  "10feffff1130313233343536373839414243444546", "00", ""},
 		{"x,,uch:17", "",    "10feffff00", "00", "c"},
 		{"x,s,uch", "0",     "1025ffff0310111213", "0300010203", "W"},
@@ -301,8 +305,7 @@ int main()
 		cout << "\"" << check[0] << "\": create OK" << endl;
 		if (isTemplate) {
 			// store new template
-			string name = fields->getName();
-			result = templates->add(fields, true);
+			result = templates->add(fields, "", true);
 			if (result == RESULT_OK) {
 				fields = NULL;
 				cout << "  store template OK" << endl;

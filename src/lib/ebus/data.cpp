@@ -60,6 +60,7 @@ static const dataType_t dataTypes[] = {
 	{"BCD", 16, bt_num, BCD|LST,     0xffff,          0,     0x9999,    1}, // unsigned decimal in BCD, 0 - 9999
 	{"BCD", 24, bt_num, BCD|LST,   0xffffff,          0,   0x999999,    1}, // unsigned decimal in BCD, 0 - 999999
 	{"BCD", 32, bt_num, BCD|LST, 0xffffffff,          0, 0x99999999,    1}, // unsigned decimal in BCD, 0 - 99999999
+	{"HCD", 32, bt_num, HCD|BCD|REQ,      0,          0, 0x63636363,    1}, // unsigned decimal in HCD, 0 - 99999999
 	pinDataType,
 	uchDataType,
 	{"SCH",  8, bt_num,     SIG,       0x80,       0x81,       0x7f,    1}, // signed integer, -127 - +127
@@ -826,14 +827,16 @@ result_t NumericDataField::readRawValue(SymbolString& input,
 				value = m_dataType.replacement;
 				return RESULT_OK;
 			}
-			if ((ch & 0xf0) > 0x90 || (ch & 0x0f) > 0x09)
-				return RESULT_ERR_OUT_OF_RANGE; // invalid BCD
+			if ((m_dataType.flags & HCD) == 0) {
+				if ((ch & 0xf0) > 0x90 || (ch & 0x0f) > 0x09)
+					return RESULT_ERR_OUT_OF_RANGE; // invalid BCD
 
-			ch = (unsigned char)((ch >> 4) * 10 + (ch & 0x0f));
+				ch = (unsigned char)((ch >> 4) * 10 + (ch & 0x0f));
+			} else if (ch > 0x63)
+				return RESULT_ERR_OUT_OF_RANGE; // invalid HCD
 			value += ch * exp;
 			exp *= 100;
-		}
-		else {
+		} else {
 			value |= ch * exp;
 			exp <<= 8;
 		}
@@ -872,13 +875,13 @@ result_t NumericDataField::writeRawValue(unsigned int value,
 				ch = m_dataType.replacement & 0xff;
 			else {
 				ch = (unsigned char)((value / exp) % 100);
-				ch = (unsigned char)(((ch / 10) << 4) | (ch % 10));
+				if ((m_dataType.flags & HCD) == 0)
+					ch = (unsigned char)(((ch / 10) << 4) | (ch % 10));
 			}
-			exp = exp * 100;
-		}
-		else {
+			exp *= 100;
+		} else {
 			ch = (value / exp) & 0xff;
-			exp = exp << 8;
+			exp <<= 8;
 		}
 		if (offset == start && (m_bitCount % 8) != 0 && baseOffset + offset < output.size())
 			output[baseOffset + offset] |= ch;
