@@ -117,9 +117,10 @@ bool ScanRequest::notify(result_t result, SymbolString& slave)
 	}
 
 	// check for remaining secondary messages
-	if (m_messages.empty())
+	if (m_messages.empty()) {
+		logNotice(lf_bus, "scan completed, retrieved %d answers", m_scanResults->size());
 		return false;
-
+	}
 	m_message = m_messages.front();
 	m_messages.pop_front();
 
