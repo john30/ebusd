@@ -3,7 +3,8 @@
 ## Bug fixes
 * fix for numeric parsing of empty string
 * allow HTTP port query string keys without value
-* always update last message update time when actively sending it
+* fix for thread cleanup
+* update last message update time when actively sending it
 
 ## Features
 * new "read" option "-n" for retrieving name/value pairs in numeric form
@@ -12,6 +13,9 @@
 * allow static ".json" files being served by HTTP port
 * allow passing raw value when writing name/value pairs
 * enhanced static HTML user interface to dynamic
+* added possiblity to use a different name for referenced field template
+* added data type HCD (for Ochsner)
+* added log entry for scan completion
 
 ## Changed files
 https://github.com/john30/ebusd/compare/v1.2.0...master
