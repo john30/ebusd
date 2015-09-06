@@ -1,5 +1,8 @@
 # next version
 
+## Breaking Changes
+* started with a new git repository for working on 2.0 version (previous repository was renamed to ebusd1)
+
 ## Bug fixes
 * fix for numeric parsing of empty string
 * allow HTTP port query string keys without value
