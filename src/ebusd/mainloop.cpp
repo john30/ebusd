@@ -321,7 +321,7 @@ string MainLoop::executeRead(vector<string> &args)
 	time_t now;
 	time(&now);
 
-	while (hex && argPos > 0 && args.size() > argPos) {
+	if (hex && argPos > 0 && args.size() > argPos) {
 		SymbolString cacheMaster(false);
 		result_t ret = parseHexMaster(args, argPos, cacheMaster);
 		if (ret != RESULT_OK)
