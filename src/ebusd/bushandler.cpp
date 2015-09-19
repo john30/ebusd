@@ -154,9 +154,15 @@ result_t BusHandler::sendAndWait(SymbolString& master, SymbolString& slave)
 		bool success = m_finishedRequests.waitRemove(&request);
 		result = success ? request.m_result : RESULT_ERR_TIMEOUT;
 
-		if (result == RESULT_OK)
+		if (result == RESULT_OK) {
+			deque<Message*> messages = m_messages->findAll(master);
+			while (messages.size()>0) {
+				Message* message = messages.front();
+				m_messages->invalidateCache(message);
+				messages.pop_front();
+			}
 			break;
-
+		}
 		if (!success || result == RESULT_ERR_NO_SIGNAL || result == RESULT_ERR_SEND || result == RESULT_ERR_DEVICE) {
 			logError(lf_bus, "%s, give up", getResultCode(result));
 			break;
@@ -737,7 +743,8 @@ void BusHandler::receiveCompleted()
 		m_seenAddresses[dstAddress] = true;
 	}
 
-	Message* message = m_messages->find(m_command);
+	deque<Message*> messages = m_messages->findAll(m_command);
+	Message* message = messages.size()>0 ? messages.front() : NULL;
 	if (message == NULL) {
 		if (dstAddress == BROADCAST)
 			logNotice(lf_update, "unknown BC cmd: %s", m_command.getDataStr().c_str());
@@ -778,6 +785,12 @@ void BusHandler::receiveCompleted()
 				logNotice(lf_update, "update %s %s QQ=%2.2x: %s", circuit.c_str(), name.c_str(), srcAddress, data.c_str());
 			else
 				logNotice(lf_update, "update %s %s: %s", circuit.c_str(), name.c_str(), data.c_str());
+			messages.pop_front();
+		}
+		while (messages.size()>0) {
+			message = messages.front();
+			m_messages->invalidateCache(message);
+			messages.pop_front();
 		}
 	}
 }
