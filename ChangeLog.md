@@ -8,6 +8,7 @@
 * allow HTTP port query string keys without value
 * fix for thread cleanup
 * update last message update time when actively sending it
+* trim CSV lines and fields
 
 ## Features
 * new "read" option "-n" for retrieving name/value pairs in numeric form
