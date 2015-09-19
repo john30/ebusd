@@ -82,6 +82,7 @@ public:
 		vector< vector<string> > defaults;
 		while (getline(ifs, line) != 0) {
 			lineNo++;
+			trim(line);
 			// skip empty lines and comments
 			size_t length = line.length();
 			if (length == 0 || line[0] == '#' || (line.length() > 1 && line[0] == '/' && line[1] == '/'))
@@ -99,7 +100,9 @@ public:
 					if (quotedText)
 						field << ch;
 					else {
-						row.push_back(field.str());
+						string str = field.str();
+						trim(str);
+						row.push_back(str);
 						field.str("");
 					}
 					break;
@@ -125,7 +128,9 @@ public:
 				}
 				prev = ch;
 			}
-			row.push_back(field.str());
+			string str = field.str();
+			trim(str);
+			row.push_back(str);
 
 			result_t result;
 			vector<string>::iterator it = row.begin();
@@ -145,7 +150,7 @@ public:
 				if (!verbose) {
 					ifs.close();
 					ostringstream error;
-					error << filename <<":" << static_cast<unsigned>(lineNo);
+					error << filename << ":" << static_cast<unsigned>(lineNo);
 					m_lastError = error.str();
 					return result;
 				}
@@ -175,6 +180,22 @@ public:
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end, T arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo) = 0;
+
+	/**
+	 * Left and right trim the string.
+	 * @param str the @a string to trim.
+	 */
+	virtual void trim(string& str) {
+		size_t pos = str.find_first_not_of(" \t");
+		if (pos!=string::npos) {
+			str.erase(0, pos);
+		}
+		pos = str.find_last_not_of(" \t");
+		if (pos!=string::npos) {
+			str.erase(pos+1);
+		}
+	}
+
 
 private:
 
