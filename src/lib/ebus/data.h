@@ -47,12 +47,6 @@ using namespace std;
 #define UI_FIELD_SEPARATOR ';'
 
 /** the type for data output format options. */
-/*class OutputFormat {
-	public:
-	bool operator&(int x){return false;}
-	OutputFormat(int x) {}
-};*/
-//typedef xOutputFormat* OutputFormat;
 typedef int OutputFormat;
 
 /* the bit flags for @a OutputFormat. */
