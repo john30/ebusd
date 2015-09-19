@@ -649,17 +649,26 @@ deque<Message*> MessageMap::findAll(const string& circuit, const string& name, c
 
 Message* MessageMap::find(SymbolString& master)
 {
+	deque<Message*> ret = findAll(master);
+
+	return ret.size()>0 ? ret.front() : NULL;
+}
+
+deque<Message*> MessageMap::findAll(SymbolString& master)
+{
+	deque<Message*> ret;
+
 	if (master.size() < 5)
-		return NULL;
+		return ret;
 	unsigned char maxIdLength = master[4];
 	if (maxIdLength < m_minIdLength)
-		return NULL;
+		return ret;
 	if (maxIdLength > m_maxIdLength)
 		maxIdLength = m_maxIdLength;
 	if (master.size() < 5+maxIdLength)
-		return NULL;
+		return ret;
 
-	for (int idLength = maxIdLength; idLength >= m_minIdLength; idLength--) {
+	for (int idLength = maxIdLength; ret.size()==0 && idLength >= m_minIdLength; idLength--) {
 		int exp = 7;
 		unsigned long long key = (unsigned long long)idLength << (8 * exp + 5);
 		key |= (unsigned long long)getMasterNumber(master[0]) << (8 * exp--);
@@ -670,21 +679,47 @@ Message* MessageMap::find(SymbolString& master)
 			key |= (unsigned long long)master[5 + i] << (8 * exp--);
 
 		map<unsigned long long , Message*>::iterator it = m_messagesByKey.find(key);
-		if (it != m_messagesByKey.end())
-			return it->second;
-
+		if (it != m_messagesByKey.end()) {
+			ret.push_back(it->second);
+		}
 		if ((key & ID_SOURCE_MASK) != 0) {
 			it = m_messagesByKey.find(key & ~ID_SOURCE_MASK); // try again without specific source master
 			if (it != m_messagesByKey.end())
-				return it->second;
+				ret.push_back(it->second);
 		}
-
 		it = m_messagesByKey.find(key | ID_SOURCE_MASK); // try again with special value for active
 		if (it != m_messagesByKey.end())
-			return it->second;
+			ret.push_back(it->second);
 	}
 
-	return NULL;
+	return ret;
+}
+
+void MessageMap::invalidateCache(Message* message)
+{
+	message->m_lastUpdateTime = 0;
+	string circuit = message->getCircuit();
+	size_t pos = circuit.find('#');
+	if (pos!=string::npos)
+		circuit.resize(pos);
+	string name = message->getName();
+	deque<Message*> messages = findAll(circuit, name, -1, false, true, true, true);
+	for (deque<Message*>::iterator it = messages.begin(); it != messages.end(); it++) {
+		if (*it==message)
+			continue;
+		message = *it;
+		if (name!=message->getName())
+			continue; // check exact name
+		string check = message->getCircuit();
+		if (check!=circuit) {
+			size_t pos = check.find('#');
+			if (pos!=string::npos)
+				check.resize(pos);
+			if (check!=circuit)
+				continue;
+		}
+		message->m_lastUpdateTime = 0;
+	}
 }
 
 void MessageMap::addPollMessage(Message* message)

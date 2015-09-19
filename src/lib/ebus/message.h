@@ -398,6 +398,20 @@ public:
 	Message* find(SymbolString& master);
 
 	/**
+	 * Find all @a Message instances for the specified master data.
+	 * @param master the master @a SymbolString for identifying the @a Message.
+	 * @return the @a Message instance, or NULL.
+	 * Note: the caller may not free the returned instances.
+	 */
+	deque<Message*> findAll(SymbolString& master);
+
+	/**
+	 * Invalidate cached data of the @a Message and all other instances with a matching name key.
+	 * @param message the @a Message to invalidate.
+	 */
+	void invalidateCache(Message* message);
+
+	/**
 	 * Add a @a Message to the list of instances to poll.
 	 * @param message the @a Message to poll.
 	 */
