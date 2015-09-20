@@ -185,7 +185,7 @@ public:
 	 * Left and right trim the string.
 	 * @param str the @a string to trim.
 	 */
-	virtual void trim(string& str) {
+	static void trim(string& str) {
 		size_t pos = str.find_first_not_of(" \t");
 		if (pos!=string::npos) {
 			str.erase(0, pos);
