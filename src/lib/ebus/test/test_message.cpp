@@ -43,8 +43,9 @@ void verify(bool expectFailMatch, string type, string input,
 
 int main()
 {
-	// message= [type];circuit;name;[comment];[QQ[;QQ]*];ZZ;PBSB;fields...
-	// field=   name;[pos];type[;[divisor|values][;[unit][;[comment]]]]
+	// message:  [type],[circuit],name,[comment],[QQ[;QQ]*],[ZZ],[PBSB],[ID],fields...
+	// field:    name,part,type[:len][,[divisor|values][,[unit][,[comment]]]]
+	// template: name,type[:len][,[divisor|values][,[unit][,[comment]]]]
 	string checks[][5] = {
 		// "message", "decoded", "master", "slave", "flags"
 		{"date,HDA:3,,,Datum", "", "", "", "t"},
@@ -54,7 +55,10 @@ int main()
 		{"temp2,D2B,,°C,Temperatur", "", "", "", "t"},
 		{"power,UCH,,kW", "", "", "", "t"},
 		{"sensor,UCH,0=ok;85=circuit;170=cutoff,,Fühlerstatus", "", "", "", "t"},
-		{"tempsensor,temp;sensor", "", "", "", "t"},
+		{"tempsensor,temp;sensor,,Temperatursensor", "", "", "", "t"},
+		{"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor", "temp=-14.00 Temperatursensor [Temperatur];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "mD"},
+		{"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment", "temp=-14.00 field unit [field comment];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "mD"},
+		{"r,message circuit,message name,message comment,,25,B509,0d2800,,,temp,,field unit,field comment,,,sensor", "temp=-14.00 field unit [field comment];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "mD"},
 		{"u,,first,,,fe,0700,,x,,bda", "26.10.2014", "fffe07000426100614", "00", "p"},
 		{"u,broadcast,hwStatus,,,fe,b505,27,,,UCH,,,,,,UCH,,,,,,UCH,,,", "0;19;0", "10feb505042700130097", "00", ""},
 		{"w,,first,,,15,b509,0400,date,,bda", "26.10.2014", "ff15b50906040026100614", "00", "m"},
@@ -97,7 +101,8 @@ int main()
 		bool dontMap = flags.find('m') != string::npos;
 		bool onlyMap = flags.find('M') != string::npos;
 		bool failedCreate = flags.find('c') != string::npos;
-		bool decode = flags.find('d') != string::npos;
+		bool decodeVerbose = flags.find('D') != string::npos;
+		bool decode = decodeVerbose || (flags.find('d') != string::npos);
 		bool failedPrepare = flags.find('p') != string::npos;
 		bool failedPrepareMatch = flags.find('P') != string::npos;
 		bool multi = flags.find('*') != string::npos;
@@ -209,7 +214,7 @@ int main()
 
 		if (message->isPassive() || decode) {
 			ostringstream output;
-			result = message->decode(mstr, sstr, output);
+			result = message->decode(mstr, sstr, output, decodeVerbose?OF_VERBOSE:0);
 			if (result != RESULT_OK) {
 				cout << "  \"" << check[2] << "\" / \"" << check[3] << "\": decode error: "
 						<< getResultCode(result) << endl;

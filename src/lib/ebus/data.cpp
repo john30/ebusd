@@ -183,16 +183,16 @@ result_t DataField::create(vector<string>::iterator& it,
 		bool hasPartStr = false;
 		string token;
 
-		// templates: name,type[:len][,[divisor|values][,[unit][,[comment]]]]
-		// normal: name,part,type[:len][,[divisor|values][,[unit][,[comment]]]]
-		const string name = *it++;
+		// template: name,type[:len][,[divisor|values][,[unit][,[comment]]]]
+		// std: name,part,type[:len][,[divisor|values][,[unit][,[comment]]]]
+		const string name = *it++; // name
 		if (it == end)
 			break;
 
 		if (isTemplate)
 			partType = pt_any;
 		else {
-			const char* partStr = (*it++).c_str();
+			const char* partStr = (*it++).c_str(); // part
 			hasPartStr = partStr[0] != 0;
 			if (it == end) {
 				if (!name.empty() || hasPartStr)
@@ -219,7 +219,7 @@ result_t DataField::create(vector<string>::iterator& it,
 			firstComment = comment;
 		}
 
-		const string typeStr = *it++;
+		const string typeStr = *it++; // type[:len]
 		if (typeStr.empty()) {
 			if (!name.empty() || hasPartStr)
 				result = RESULT_ERR_MISSING_TYPE;
@@ -228,13 +228,14 @@ result_t DataField::create(vector<string>::iterator& it,
 
 		map<unsigned int, string> values;
 		if (it != end) {
-			const string divisorStr = *it++;
+			const string divisorStr = *it++; // [divisor|values]
 			if (!divisorStr.empty()) {
 				if (divisorStr.find('=') == string::npos)
 					divisor = parseSignedInt(divisorStr.c_str(), 10, -MAX_DIVISOR, MAX_DIVISOR, result);
 				else {
 					istringstream stream(divisorStr);
 					while (getline(stream, token, VALUE_SEPARATOR) != 0) {
+						DataFieldTemplates::trim(token);
 						const char* str = token.c_str();
 						char* strEnd = NULL;
 						unsigned long int id;
@@ -258,7 +259,7 @@ result_t DataField::create(vector<string>::iterator& it,
 		if (it == end)
 			unit = "";
 		else {
-			const string str = *it++;
+			const string str = *it++; // [unit]
 			if (strcasecmp(str.c_str(), NULL_VALUE) == 0)
 				unit = "";
 			else
@@ -268,7 +269,7 @@ result_t DataField::create(vector<string>::iterator& it,
 		if (it == end)
 			comment = "";
 		else {
-			const string str = *it++;
+			const string str = *it++; // [comment]
 			if (strcasecmp(str.c_str(), NULL_VALUE) == 0)
 				comment = "";
 			else
@@ -278,6 +279,7 @@ result_t DataField::create(vector<string>::iterator& it,
 		bool firstType = true;
 		istringstream stream(typeStr);
 		while (result == RESULT_OK && getline(stream, token, VALUE_SEPARATOR) != 0) {
+			DataFieldTemplates::trim(token);
 			DataField* templ = templates->get(token);
 			unsigned char length;
 			if (templ == NULL) {
@@ -297,12 +299,12 @@ result_t DataField::create(vector<string>::iterator& it,
 				else if (result == RESULT_OK)
 					result = RESULT_ERR_NOTFOUND; // type not found
 			}
-			else
-				result = templ->derive(firstType ? name : "", firstType ? comment : "", firstType ? unit : "", partType, divisor, values, fields);
-
+			else {
+				bool lastType = stream.eof();
+				result = templ->derive((firstType && lastType) ? name : "", firstType ? comment : "", firstType ? unit : "", partType, divisor, values, fields);
+			}
 			firstType = false;
 		}
-
 	} while (it != end && result == RESULT_OK);
 
 	if (result != RESULT_OK) {
@@ -1256,11 +1258,12 @@ result_t DataFieldSet::derive(string name, string comment,
 {
 	if (!values.empty())
 		return RESULT_ERR_INVALID_ARG; // value list not allowed in set derive
-
+	bool first = true;
 	for (vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
-		result_t result = (*it)->derive("", "", "", partType,  divisor, values, fields);
+		result_t result = (*it)->derive("", first?comment:"", first?unit:"", partType,  divisor, values, fields);
 		if (result != RESULT_OK)
 			return result;
+		first = false;
 	}
 
 	return RESULT_OK;

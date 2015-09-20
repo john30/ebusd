@@ -190,7 +190,7 @@ public:
 
 	/**
 	 * Derive a new @a DataField from this field.
-	 * @param name the field name.
+	 * @param name the field name, or empty to use this fields name.
 	 * @param comment the field comment, or empty to use this fields comment.
 	 * @param unit the value unit, or empty to use this fields unit (if applicable).
 	 * @param partType the message part in which the field is stored.

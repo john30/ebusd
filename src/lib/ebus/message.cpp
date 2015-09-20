@@ -91,7 +91,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 		vector< vector<string> >* defaultsRows,
 		DataFieldTemplates* templates, vector<Message*>& messages)
 {
-	// [type],[circuit],name,[comment],[QQ[;QQ]*],[ZZ],id,fields...
+	// [type],[circuit],name,[comment],[QQ[;QQ]*],[ZZ],[PBSB],[ID],fields...
 	result_t result;
 	bool isWrite = false, isPassive = false;
 	string defaultName;
@@ -100,7 +100,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	if (it == end)
 		return RESULT_ERR_EOF;
 
-	const char* str = (*it++).c_str();
+	const char* str = (*it++).c_str(); // [type]
 	if (it == end)
 		return RESULT_ERR_EOF;
 	size_t len = strlen(str);
@@ -137,22 +137,22 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 		}
 	}
 
-	string circuit = getDefault(*it++, defaults, defaultPos++);
+	string circuit = getDefault(*it++, defaults, defaultPos++); // [circuit]
 	if (it == end)
 		return RESULT_ERR_EOF;
 
-	string name = *it++;
+	string name = *it++; // name
 	if (it == end)
 		return RESULT_ERR_EOF;
 	if (name.length() == 0)
 		return RESULT_ERR_INVALID_ARG; // empty name
 	defaultPos++;
 
-	string comment = getDefault(*it++, defaults, defaultPos++);
+	string comment = getDefault(*it++, defaults, defaultPos++); // [comment]
 	if (it == end)
 		return RESULT_ERR_EOF;
 
-	str = getDefault(*it++, defaults, defaultPos++).c_str();
+	str = getDefault(*it++, defaults, defaultPos++).c_str(); // [QQ[;QQ]*]
 	if (it == end)
 		return RESULT_ERR_EOF;
 	unsigned char srcAddress;
@@ -166,7 +166,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 			return RESULT_ERR_INVALID_ADDR;
 	}
 
-	str = getDefault(*it++, defaults, defaultPos++).c_str();
+	str = getDefault(*it++, defaults, defaultPos++).c_str(); // [ZZ]
 	if (it == end)
 		 return RESULT_ERR_EOF;
 	vector<unsigned char> dstAddresses;
@@ -178,6 +178,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 		string token;
 		bool first = true;
 		while (getline(stream, token, VALUE_SEPARATOR) != 0) {
+			DataFieldTemplates::trim(token);
 			unsigned char dstAddress = (unsigned char)parseInt(token.c_str(), 16, 0, 0xff, result);
 			if (result != RESULT_OK)
 				return result;
@@ -195,7 +196,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 
 	vector<unsigned char> id;
 	bool useDefaults = true;
-	for (int pos = 0; pos < 2 && it != end; pos++) { // message id (PBSB, optional master data)
+	for (int pos = 0; pos < 2 && it != end; pos++) { // [PBSB],[ID] (optional master data)
 		string token = *it++;
 		if (useDefaults) {
 			if (pos == 0 && token.size() > 0)
@@ -212,7 +213,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 			token.clear();
 			token.push_back((char)input.get());
 			if (input.eof()) {
-				return RESULT_ERR_INVALID_ARG; // too short hex
+				return RESULT_ERR_INVALID_ARG; // to short hex
 			}
 			token.push_back((char)input.get());
 
@@ -223,12 +224,12 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 			id.push_back(value);
 		}
 		if (pos == 0 && id.size() != 2)
-			return RESULT_ERR_INVALID_ARG; // missing/too short/too PBSB
+			return RESULT_ERR_INVALID_ARG; // missing/to short/to long PBSB
 
 		defaultPos++;
 	}
 	if (id.size() < 2 || id.size() > 6) {
-		return RESULT_ERR_INVALID_ARG; // missing/too short/too long ID
+		return RESULT_ERR_INVALID_ARG; // missing/to short/to long ID
 	}
 
 	vector<string>::iterator realEnd = end;
@@ -565,6 +566,7 @@ result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<s
 	string type;
 	vector<Message*> messages;
 	while (getline(stream, type, VALUE_SEPARATOR) != 0) {
+		DataFieldTemplates::trim(type);
 		*restart = type;
 		begin = restart;
 		messages.clear();
