@@ -9,6 +9,7 @@
 * fix for thread cleanup
 * update last message update time when actively sending it
 * trim CSV lines and fields
+* corrected derivation of field name, comment and unit in templates
 
 ## Features
 * new "read" option "-n" for retrieving name/value pairs in numeric form
