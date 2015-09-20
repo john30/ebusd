@@ -202,6 +202,13 @@ private:
 	string executeStop(vector<string> &args, bool& running);
 
 	/**
+	 * Execute the info command.
+	 * @param args the arguments passed to the command (starting with the command itself), or empty for help.
+	 * @return the result string.
+	 */
+	string executeInfo(vector<string> &args);
+
+	/**
 	 * Execute the quit command.
 	 * @param args the arguments passed to the command (starting with the command itself), or empty for help.
 	 * @param connected set to false when the client connection shall be closed.

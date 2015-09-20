@@ -22,6 +22,7 @@
 * added data type HCD (for Ochsner)
 * added log entry for scan completion
 * automatically invalidate cached data of messages with same name+circuit (ignoring level)
+* added "info" command
 
 ## Changed files
 https://github.com/john30/ebusd/compare/v1.2.0...master

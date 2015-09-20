@@ -202,6 +202,8 @@ string MainLoop::decodeMessage(const string& data, const bool isHttp, bool& conn
 		return executeStop(args, running);
 	if (strcasecmp(str, "Q") == 0 || strcasecmp(str, "QUIT") == 0)
 		return executeQuit(args, connected);
+	if (strcasecmp(str, "I") == 0 || strcasecmp(str, "INFO") == 0)
+		return executeInfo(args);
 	if (strcasecmp(str, "H") == 0 || strcasecmp(str, "HELP") == 0)
 		return executeHelp();
 	return "ERR: command not found";
@@ -829,6 +831,26 @@ string MainLoop::executeStop(vector<string> &args, bool& running)
 		   " Stop the daemon.";
 }
 
+string MainLoop::executeInfo(vector<string> &args)
+{
+	if (args.size() == 0)
+		return "usage: info\n"
+			   " Report information about the daemon.";
+
+	ostringstream result;
+	result << "version: " << PACKAGE_STRING << "\n";
+	if (m_busHandler->hasSignal()) {
+		result << "signal: acquired\n";
+		result << "symbol rate: " << static_cast<unsigned>(m_busHandler->getSymbolRate()) << "\n";
+	} else {
+		result << "signal: no signal\n";
+	}
+	result << "masters: " << static_cast<unsigned>(m_busHandler->getMasterCount()) << "\n";
+	result << "messages: " << static_cast<unsigned>(m_messages->size());
+
+	return result.str();
+}
+
 string MainLoop::executeQuit(vector<string> &args, bool& connected)
 {
 	if (args.size() == 1) {
@@ -862,6 +884,7 @@ string MainLoop::executeHelp()
 		   " dump     Toggle dumping raw bytes\n"
 		   " reload   Reload CSV config files\n"
 		   " stop     Stop the daemon\n"
+		   " info|i   Report information about the daemon\n"
 		   " quit|q   Close connection\n"
 		   " help|h   Print help             help [COMMAND]";
 }
