@@ -474,7 +474,7 @@ static result_t readConfigFiles(const string path, const string extension, DataF
 		return RESULT_ERR_NOTFOUND;
 
 	dirent* d;
-
+	vector<string> files, dirs;
 	while ((d = readdir(dir)) != NULL) {
 		string fn = d->d_name;
 
@@ -488,21 +488,32 @@ static result_t readConfigFiles(const string path, const string extension, DataF
 			continue;
 
 		if (S_ISDIR(stat_buf.st_mode)) {
-			result_t result = readConfigFiles(p, extension, templates, messages, verbose);
-			if (result != RESULT_OK)
-				return result;
-		}
-		else if (S_ISREG(stat_buf.st_mode)) {
+			dirs.push_back(p);
+		} else if (S_ISREG(stat_buf.st_mode)) {
 			if (fn.find(extension, (fn.length() - extension.length())) != string::npos
 				&& fn != "_templates" + extension) {
-				result_t result = messages->readFromFile(p, templates, verbose);
-				if (result != RESULT_OK)
-					return result;
+				files.push_back(p);
 			}
 		}
 	}
 	closedir(dir);
 
+	sort(files.begin(), files.end());
+	for (vector<string>::iterator it = files.begin(); it != files.end(); it++) {
+		string name = *it;
+		logInfo(lf_main, "reading file %s", name.c_str());
+		result_t result = messages->readFromFile(name, templates, verbose);
+		if (result != RESULT_OK)
+			return result;
+	}
+	sort(dirs.begin(), dirs.end());
+	for (vector<string>::iterator it = dirs.begin(); it != dirs.end(); it++) {
+		string name = *it;
+		logInfo(lf_main, "reading dir  %s", name.c_str());
+		result_t result = readConfigFiles(name, extension, templates, messages, verbose);
+		if (result != RESULT_OK)
+			return result;
+	}
 	return RESULT_OK;
 };
 
