@@ -371,6 +371,8 @@ result_t SingleDataField::create(const char* typeNameStr, const unsigned char le
 			case bt_hexstr:
 			case bt_dat:
 			case bt_tim:
+				if (divisor != 0 || !values.empty())
+					return RESULT_ERR_INVALID_ARG; // cannot set divisor or values for string field
 				returnField = new StringDataField(name, comment, unit, *dataType, partType, byteCount);
 				return RESULT_OK;
 			case bt_num:
@@ -409,6 +411,8 @@ result_t SingleDataField::create(const char* typeNameStr, const unsigned char le
 						|| values.rbegin()->first > dataType->maxValueOrLength)
 					return RESULT_ERR_OUT_OF_RANGE;
 
+				if (divisor != 0)
+					return RESULT_ERR_INVALID_ARG; // cannot use divisor != 1 for value list field
 				//TODO add special field for fixed values (exactly one value in the list of values)
 				returnField = new ValueListDataField(name, comment, unit, *dataType, partType, byteCount, bitCount, values);
 				return RESULT_OK;
