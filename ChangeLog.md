@@ -10,6 +10,7 @@
 * update last message update time when actively sending it
 * trim CSV lines and fields
 * corrected derivation of field name, comment and unit in templates
+* check invalid divisor/values for string and value list based types
 
 ## Features
 * new "read" option "-n" for retrieving name/value pairs in numeric form
@@ -21,9 +22,11 @@
 * enhanced static HTML user interface to dynamic
 * added possiblity to use a different name for referenced field template
 * added data type HCD (for Ochsner)
+* added base type TTH (truncated time with 30 minutes resolution)
 * added log entry for scan completion
 * automatically invalidate cached data of messages with same name+circuit (ignoring level)
 * added "info" command
+* added circuit and name to verbose "read" output
 
 ## Changed files
 https://github.com/john30/ebusd/compare/v1.2.0...master
