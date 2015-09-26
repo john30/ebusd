@@ -260,6 +260,13 @@ public:
 	 */
 	void dump(ostream& output);
 
+	/**
+	 * Write parts of the message definition to the @a ostream.
+	 * @param output the @a ostream to append the formatted value to.
+	 * @param columns the list of column indexes to write.
+	 */
+	void dump(ostream& output, vector<size_t>& columns);
+
 private:
 
 	/** the optional circuit name. */

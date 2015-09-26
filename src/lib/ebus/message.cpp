@@ -508,6 +508,67 @@ void Message::dump(ostream& output)
 	m_data->dump(output);
 }
 
+void Message::dump(ostream& output, vector<size_t>& columns)
+{
+	bool first = true;
+	unsigned int cnt = 0;
+	for (vector<size_t>::const_iterator it = columns.begin(); it < columns.end(); it++) {
+		if (first) {
+			first = false;
+		} else {
+			output << FIELD_SEPARATOR;
+		}
+		size_t column = *it;
+		switch (column) {
+		case 0: // type
+			if (m_isPassive) {
+				output << "u";
+				if (m_isWrite)
+					output << "w";
+			} else if (m_isWrite)
+				output << "w";
+			else {
+				output << "r";
+				if (m_pollPriority>0)
+					output << static_cast<unsigned>(m_pollPriority);
+			}
+			break;
+		case 1: // circuit
+			DataField::dumpString(output, m_circuit, false);
+			break;
+		case 2: // name
+			DataField::dumpString(output, m_name, false);
+			break;
+		case 3: // comment
+			DataField::dumpString(output, m_comment, false);
+			break;
+		case 4: // QQ
+			if (m_srcAddress != SYN)
+				output << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_srcAddress);
+			break;
+		case 5: // ZZ
+			if (m_dstAddress != SYN)
+				output << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_dstAddress);
+			break;
+		case 6: // PBSB
+		case 7: // ID
+			for (vector<unsigned char>::const_iterator it = m_id.begin(); it < m_id.end(); it++) {
+				cnt++;
+				if (column == 6) {
+					if (cnt == 2)
+						break;
+				} else if (cnt < 2) {
+					continue;
+				}
+				output << hex << setw(2) << setfill('0') << static_cast<unsigned>(*it);
+			}
+			break;
+		case 8: // fields
+			m_data->dump(output);
+			break;
+		}
+	}
+}
 
 string strtolower(const string& str)
 {
