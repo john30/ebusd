@@ -360,7 +360,7 @@ string MainLoop::executeRead(vector<string> &args)
 			return getResultCode(RESULT_ERR_INVALID_ARG); // non-matching circuit
 		if (message->getLastUpdateTime() + maxAge > now || (message->isPassive() && message->getLastUpdateTime() != 0)) {
 			SymbolString& slave = message->getLastSlaveData();
-			logNotice(lf_main, "hex read from cache %s %s", message->getCircuit().c_str(), message->getName().c_str());
+			logNotice(lf_main, "hex read %s %s from cache", message->getCircuit().c_str(), message->getName().c_str());
 			return slave.getDataStr();
 		}
 
@@ -374,12 +374,12 @@ string MainLoop::executeRead(vector<string> &args)
 			ostringstream result;
 			ret = message->decode(pt_slaveData, slave, result);
 			if (ret >= RESULT_OK)
-				logInfo(lf_main, "hex read cache update: %s", result.str().c_str());
+				logInfo(lf_main, "hex read %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(), result.str().c_str());
 			else
-				logError(lf_main, "hex read cache update: %s", getResultCode(ret));
+				logError(lf_main, "hex read %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
 			return slave.getDataStr();
 		}
-		logError(lf_main, "hex read: %s", getResultCode(ret));
+		logError(lf_main, "hex read %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
 		return getResultCode(ret);
 	}
 	if (argPos == 0 || args.size() < argPos + 1 || args.size() > argPos + 2)
@@ -391,7 +391,7 @@ string MainLoop::executeRead(vector<string> &args)
 			   "  -c CIRCUIT  limit to messages of CIRCUIT\n"
 			   "  -d ZZ       override destination address ZZ\n"
 			   "  -p PRIO     set the message poll priority (1-9)\n"
-			   "  -v          be verbose (include field names, units, and comments)\n"
+			   "  -v          be verbose (include circuit, name, field names, units, and comments)\n"
 			   "  -n          use numeric value of value=name pairs\n"
 			   "  NAME        the NAME of the message to send\n"
 			   "  FIELD       only retrieve the field named FIELD\n"
@@ -431,13 +431,15 @@ string MainLoop::executeRead(vector<string> &args)
 			cacheMessage = message; // message is newer/better
 
 		if (cacheMessage != NULL && (cacheMessage->getLastUpdateTime() + maxAge > now || (cacheMessage->isPassive() && cacheMessage->getLastUpdateTime() != 0))) {
+			if (verbose)
+				result << cacheMessage->getCircuit() << " " << cacheMessage->getName() << " ";
 			result_t ret = cacheMessage->decodeLastData(result, (verbose?OF_VERBOSE:0)|(numeric?OF_NUMERIC:0), false, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
 			if (ret != RESULT_OK) {
 				if (ret < RESULT_OK)
-					logError(lf_main, "read cached: %s", getResultCode(ret));
+					logError(lf_main, "read %s %s cached: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
 				return getResultCode(ret);
 			}
-			logInfo(lf_main, "read cached: %s", result.str().c_str());
+			logInfo(lf_main, "read %s %s cached: %s", message->getCircuit().c_str(), message->getName().c_str(), result.str().c_str());
 			return result.str();
 		}
 
@@ -458,14 +460,16 @@ string MainLoop::executeRead(vector<string> &args)
 	if (ret != RESULT_OK)
 		return getResultCode(ret);
 
+	if (verbose)
+		result << message->getCircuit() << " " << message->getName() << " ";
 	ret = message->decode(pt_slaveData, slave, result, (verbose?OF_VERBOSE:0)|(numeric?OF_NUMERIC:0), false, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
 	if (ret < RESULT_OK) {
-		logError(lf_main, "read: %s", getResultCode(ret));
+		logError(lf_main, "read %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
 		return getResultCode(ret);
 	}
 	if (ret > RESULT_OK)
 		return getResultCode(ret);
-	logInfo(lf_main, "read: %s", result.str().c_str());
+	logInfo(lf_main, "read %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), result.str().c_str());
 	return result.str();
 }
 
@@ -500,15 +504,18 @@ string MainLoop::executeWrite(vector<string> &args)
 				ostringstream result;
 				ret = message->decode(cacheMaster, slave, result);
 				if (ret >= RESULT_OK)
-					logInfo(lf_main, "hex write cache update: %s", result.str().c_str());
+					logInfo(lf_main, "hex write %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(), result.str().c_str());
 				else
-					logError(lf_main, "hex write cache update: %s", getResultCode(ret));
+					logError(lf_main, "hex write %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
 			}
 			if (master[1] == BROADCAST || isMaster(master[1]))
 				return getResultCode(RESULT_OK);
 			return slave.getDataStr();
 		}
-		logError(lf_main, "hex write: %s", getResultCode(ret));
+		if (message != NULL)
+			logError(lf_main, "hex write %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
+		else
+			logError(lf_main, "hex write: %s", getResultCode(ret));
 		return getResultCode(ret);
 	}
 
@@ -540,17 +547,21 @@ string MainLoop::executeWrite(vector<string> &args)
 		return getResultCode(ret);
 
 	ostringstream result;
-	if (master[1] == BROADCAST || isMaster(master[1]))
+	if (master[1] == BROADCAST || isMaster(master[1])) {
+		logInfo(lf_main, "write %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
 		return getResultCode(RESULT_OK);
+	}
 
 	ret = message->decode(pt_slaveData, slave, result); // decode data
-	if (ret >= RESULT_OK && result.str().empty())
+	if (ret >= RESULT_OK && result.str().empty()) {
+		logInfo(lf_main, "write %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
 		return getResultCode(RESULT_OK);
-
+	}
 	if (ret != RESULT_OK) {
-		logError(lf_main, "write: %s", getResultCode(ret));
+		logError(lf_main, "write %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
 		return getResultCode(ret);
 	}
+	logInfo(lf_main, "write %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), result.str().c_str());
 	return result.str();
 }
 
