@@ -103,7 +103,10 @@ bool ScanRequest::notify(result_t result, SymbolString& slave)
 		result = m_message->decode(pt_slaveData, slave, scanResult, 0, append); // decode data
 	}
 	if (result < RESULT_OK) {
-		logError(lf_bus, "scan %2.2x failed: %s", dstAddress, getResultCode(result));
+		if (result == RESULT_ERR_TIMEOUT)
+			logInfo(lf_bus, "scan %2.2x timed out", dstAddress);
+		else
+			logError(lf_bus, "scan %2.2x failed: %s", dstAddress, getResultCode(result));
 		return false;
 	}
 
