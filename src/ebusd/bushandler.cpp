@@ -164,10 +164,10 @@ result_t BusHandler::sendAndWait(SymbolString& master, SymbolString& slave)
 			break;
 		}
 		if (!success || result == RESULT_ERR_NO_SIGNAL || result == RESULT_ERR_SEND || result == RESULT_ERR_DEVICE) {
-			logError(lf_bus, "%s, give up", getResultCode(result));
+			logError(lf_bus, "send to %2.2x: %s, give up", master[1], getResultCode(result));
 			break;
 		}
-		logError(lf_bus, "%s%s", getResultCode(result), sendRetries>0 ? ", retry" : "");
+		logError(lf_bus, "send to %2.2x: %s%s", master[1], getResultCode(result), sendRetries>0 ? ", retry" : "");
 
 		request.m_busLostRetries = 0;
 	}
@@ -627,7 +627,7 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 {
 	if (m_currentRequest != NULL) {
 		if (result == RESULT_ERR_BUS_LOST && m_currentRequest->m_busLostRetries < m_busLostRetries) {
-			logError(lf_bus, "%s, retry", getResultCode(result));
+			logDebug(lf_bus, "%s during %s, retry", getResultCode(result));
 			m_currentRequest->m_busLostRetries++;
 			m_nextRequests.add(m_currentRequest); // repeat
 			m_currentRequest = NULL;
