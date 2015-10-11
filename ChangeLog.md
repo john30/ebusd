@@ -2,6 +2,7 @@
 
 ## Breaking Changes
 * started with a new git repository for working on 2.0 version (previous repository was renamed to ebusd1)
+* added support for conditional message definitions based on other message values
 
 ## Bug fixes
 * fix for numeric parsing of empty string
@@ -11,6 +12,7 @@
 * trim CSV lines and fields
 * corrected derivation of field name, comment and unit in templates
 * check invalid divisor/values for string and value list based types
+* fix for overriding destination address in read command
 
 ## Features
 * new "read" option "-n" for retrieving name/value pairs in numeric form
