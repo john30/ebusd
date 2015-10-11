@@ -801,7 +801,7 @@ void BusHandler::receiveCompleted()
 result_t BusHandler::startScan(bool full)
 {
 	Message* scanMessage = m_scanMessage;
-	deque<Message*> messages = m_messages->findAll("scan", "", -1);
+	deque<Message*> messages = m_messages->findAll("scan", "");
 	for (deque<Message*>::iterator it = messages.begin(); it < messages.end();) {
 		Message* message = *it++;
 		if (message->getId()[0] == 0x07 && message->getId()[1] == 0x04) {
