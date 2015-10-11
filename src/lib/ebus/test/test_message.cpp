@@ -46,16 +46,17 @@ int main()
 	// message:  [type],[circuit],name,[comment],[QQ[;QQ]*],[ZZ],[PBSB],[ID],fields...
 	// field:    name,part,type[:len][,[divisor|values][,[unit][,[comment]]]]
 	// template: name,type[:len][,[divisor|values][,[unit][,[comment]]]]
+	// condition: name,circuit,messagename,[fieldname],values
 	string checks[][5] = {
 		// "message", "decoded", "master", "slave", "flags"
-		{"date,HDA:3,,,Datum", "", "", "", "t"},
-		{"time,VTI,,,", "", "", "", "t"},
-		{"dcfstate,UCH,0=nosignal;1=ok;2=sync;3=valid,,", "", "", "", "t"},
-		{"temp,D2C,,°C,Temperatur", "", "", "", "t"},
-		{"temp2,D2B,,°C,Temperatur", "", "", "", "t"},
-		{"power,UCH,,kW", "", "", "", "t"},
-		{"sensor,UCH,0=ok;85=circuit;170=cutoff,,Fühlerstatus", "", "", "", "t"},
-		{"tempsensor,temp;sensor,,Temperatursensor", "", "", "", "t"},
+		{"date,HDA:3,,,Datum", "", "", "", "template"},
+		{"time,VTI,,,", "", "", "", "template"},
+		{"dcfstate,UCH,0=nosignal;1=ok;2=sync;3=valid,,", "", "", "", "template"},
+		{"temp,D2C,,°C,Temperatur", "", "", "", "template"},
+		{"temp2,D2B,,°C,Temperatur", "", "", "", "template"},
+		{"power,UCH,,kW", "", "", "", "template"},
+		{"sensor,UCH,0=ok;85=circuit;170=cutoff,,Fühlerstatus", "", "", "", "template"},
+		{"tempsensor,temp;sensor,,Temperatursensor", "", "", "", "template"},
 		{"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor", "temp=-14.00 Temperatursensor [Temperatur];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "mD"},
 		{"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment", "temp=-14.00 field unit [field comment];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "mD"},
 		{"r,message circuit,message name,message comment,,25,B509,0d2800,,,temp,,field unit,field comment,,,sensor", "temp=-14.00 field unit [field comment];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "mD"},
@@ -74,10 +75,16 @@ int main()
 		{"r,ehp,datetime,Datum Uhrzeit,,50,B504,00,,,dcfstate,,,,time,,BTI,,,,date,,BDA,,,,temp,,temp2", "valid;08:24:51;31.12.2014;-0.875", "1050b5040100", "0a035124083112031420ff", "md" },
 		{"r,ehp,bad,invalid pos,,50,B5ff,000102,,m,HEX:8;tempsensor;tempsensor;tempsensor;tempsensor;power;power,,,", "", "", "", "c" },
 		{"r,ehp,bad,invalid pos,,50,B5ff,,,s,HEX:8;tempsensor;tempsensor;tempsensor;tempsensor;tempsensor;power;power,,,", "", "", "", "c" },
+		{"r,ehp,ApplianceCode,,,08,b509,0d4301,,,UCH,", "9", "ff08b509030d4301", "0109", "d" },
+		{"r,ehp,,,,08,b509,0d", "", "", "", "defaults" },
+		{"[brinetowater],ehp,ApplianceCode,,4;6;8;9;10", "", "", "", "condition" },
+		{"[airtowater]r,ehp,notavailable,,,,,0100,,,uch", "1", "ff08b509030d0100", "0101", "c" },
+		{"[brinetowater]r,ehp,available,,,,,0100,,,uch", "1", "ff08b509030d0100", "0101", "d" },
 	};
 	DataFieldTemplates* templates = new DataFieldTemplates();
 	MessageMap* messages = new MessageMap();
-
+	vector< vector<string> > defaultsRows;
+	map<string, Condition*> &conditions = messages->getConditions();
 	Message* message = NULL;
 	vector<Message*> deleteMessages;
 	for (size_t i = 0; i < sizeof(checks) / sizeof(checks[0]); i++) {
@@ -97,7 +104,9 @@ int main()
 			continue;
 		}
 		string flags = check[4];
-		bool isTemplate = flags == "t";
+		bool isTemplate = flags == "template";
+		bool isCondition = flags == "condition";
+		bool isDefaults = isCondition || flags == "defaults";
 		bool dontMap = flags.find('m') != string::npos;
 		bool onlyMap = flags.find('M') != string::npos;
 		bool failedCreate = flags.find('c') != string::npos;
@@ -127,15 +136,42 @@ int main()
 			if (result != RESULT_OK)
 				cout << "\"" << check[0] << "\": template fields create error: " << getResultCode(result) << endl;
 			else if (it != entries.end()) {
-				cout << "\"" << check[0] << "\": template fields create error: trailing input" << endl;
+				cout << "\"" << check[0] << "\": template fields create error: trailing input " << static_cast<unsigned>(entries.end()-it) << endl;
 			}
 			else {
+				cout << "\"" << check[0] << "\": create template OK" << endl;
 				result = templates->add(fields, "", true);
 				if (result == RESULT_OK)
 					cout << "  store template OK" << endl;
 				else {
 					cout << "  store template error: " << getResultCode(result) << endl;
 					delete fields;
+				}
+			}
+			continue;
+		}
+		if (isDefaults) {
+			// store defaults or condition
+			vector<string>::iterator it = entries.begin();
+			size_t oldSize = conditions.size();
+			result = messages->addDefaultFromFile(defaultsRows, entries, it, "no file", 1);
+			if (result != RESULT_OK)
+				cout << "\"" << check[0] << "\": defaults read error: " << getResultCode(result) << endl;
+			else if (it != entries.end())
+				cout << "\"" << check[0] << "\": defaults read error: trailing input " << static_cast<unsigned>(entries.end()-it) << endl;
+			else {
+				cout << "\"" << check[0] << "\": read defaults OK" << endl;
+				if (isCondition) {
+					if (conditions.size()==oldSize) {
+						cout << "  create condition error" << endl;
+					} else {
+						string error;
+						result = messages->resolveConditions(error);
+						if (result != RESULT_OK)
+							cout << "  resolve conditions error: " << getResultCode(result) << " " << error << endl;
+						else
+							cout << "  resolve conditions OK" << endl;
+					}
 				}
 			}
 			continue;
@@ -151,7 +187,7 @@ int main()
 		else {
 			vector<string>::iterator it = entries.begin();
 
-			result = Message::create(it, entries.end(), NULL, templates, deleteMessages);
+			result = Message::create(it, entries.end(), &defaultsRows, &conditions, "no file", templates, deleteMessages);
 			if (failedCreate) {
 				if (result == RESULT_OK)
 					cout << "\"" << check[0] << "\": failed create error: unexpectedly succeeded" << endl;
@@ -162,7 +198,7 @@ int main()
 			if (result != RESULT_OK) {
 				cout << "\"" << check[0] << "\": create error: "
 						<< getResultCode(result) << endl;
-				printErrorPos(entries.begin(), entries.end(), it, "", 0, result);
+				printErrorPos(cout, entries.begin(), entries.end(), it, "", 0, result);
 				continue;
 			}
 			if (deleteMessages.size()==0) {
@@ -170,7 +206,7 @@ int main()
 				continue;
 			}
 			if (it != entries.end()) {
-				cout << "\"" << check[0] << "\": create error: trailing input" << endl;
+				cout << "\"" << check[0] << "\": create error: trailing input " << static_cast<unsigned>(entries.end()-it) << endl;
 				continue;
 			}
 			if (multi && deleteMessages.size()==1) {
