@@ -457,7 +457,7 @@ void signalHandler(int sig)
 }
 
 /**
- * Read the configuration files from the specified path.
+ * Read the configuration files recursively from the specified path.
  * @param path the path from which to read the files.
  * @param extension the filename extension of the files to read.
  * @param logFunc the function to call for logging, or @a NULL to be silent.
@@ -518,7 +518,7 @@ static result_t readConfigFiles(const string path, const string extension, DataF
 };
 
 result_t loadConfigFiles(DataFieldTemplates* templates, MessageMap* messages, bool verbose) {
-	logInfo(lf_main, "path to ebus configuration files: %s", opt.configPath);
+	logInfo(lf_main, "path to configuration files: %s", opt.configPath);
 	string path = string(opt.configPath);
 	messages->clear();
 	templates->clear();
@@ -534,7 +534,12 @@ result_t loadConfigFiles(DataFieldTemplates* templates, MessageMap* messages, bo
 	else
 		logError(lf_main, "error reading config files: %s, %s", getResultCode(result), messages->getLastError().c_str());
 
-	logNotice(lf_main, "found messages: %d (%d poll, %d update)", messages->size(), messages->sizePoll(), messages->size(true));
+	string error;
+	result = messages->resolveConditions(error, verbose);
+	if (result != RESULT_OK)
+		logError(lf_main, "error resolving conditions: %s, %s", getResultCode(result), error.c_str());
+
+	logNotice(lf_main, "found messages: %d (%d conditional on %d conditions, %d poll, %d update)", messages->size(), messages->sizeConditional(), messages->sizeConditions(), messages->sizePoll(), messages->sizePassive());
 
 	return result;
 }
@@ -604,6 +609,8 @@ int main(int argc, char* argv[])
 
 	// load configuration files
 	loadConfigFiles(&templates, &messages);
+	if (messages.sizeConditions()>0 && opt.pollInterval==0)
+		logError(lf_main, "conditions require a poll interval > 0");
 
 	// create the MainLoop and run it
 	mainLoop = new MainLoop(opt, device, &templates, &messages);
