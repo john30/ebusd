@@ -46,14 +46,15 @@ enum result_t {
 	RESULT_ERR_MISSING_TYPE = -14, //!< missing data type
 	RESULT_ERR_INVALID_LIST = -15, //!< invalid value list
 	RESULT_ERR_DUPLICATE = -16,    //!< duplicate entry
+	RESULT_ERR_DUPLICATE_NAME = -17, //!< duplicate entry (name)
 
-	RESULT_ERR_BUS_LOST = -17,     //!< arbitration lost
-	RESULT_ERR_CRC = -18,          //!< CRC error
-	RESULT_ERR_ACK = -19,          //!< ACK error
-	RESULT_ERR_NAK = -20,          //!< NAK received
+	RESULT_ERR_BUS_LOST = -18,     //!< arbitration lost
+	RESULT_ERR_CRC = -19,          //!< CRC error
+	RESULT_ERR_ACK = -20,          //!< ACK error
+	RESULT_ERR_NAK = -21,          //!< NAK received
 
-	RESULT_ERR_NO_SIGNAL = -21,    //!< no signal found on the bus
-	RESULT_ERR_SYN = -22,          //!< SYN received instead of answer
+	RESULT_ERR_NO_SIGNAL = -22,    //!< no signal found on the bus
+	RESULT_ERR_SYN = -23,          //!< SYN received instead of answer
 };
 
 
