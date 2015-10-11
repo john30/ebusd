@@ -251,10 +251,10 @@ result_t MainLoop::parseHexMaster(vector<string> &args, size_t argPos, SymbolStr
 	return ret;
 }
 
-result_t MainLoop::readFromBus(Message* message, SymbolString& master, string inputStr, SymbolString& slave)
+result_t MainLoop::readFromBus(Message* message, SymbolString& master, string inputStr, SymbolString& slave, const unsigned char dstAddress)
 {
 	istringstream input(inputStr);
-	result_t ret = message->prepareMaster(m_address, master, input);
+	result_t ret = message->prepareMaster(m_address, master, input, UI_FIELD_SEPARATOR, dstAddress);
 	if (ret != RESULT_OK) {
 		logError(lf_main, "prepare message: %s", getResultCode(ret));
 		return ret;
@@ -456,7 +456,7 @@ string MainLoop::executeRead(vector<string> &args)
 	// read directly from bus
 	SymbolString master(true);
 	SymbolString slave(false);
-	result_t ret = readFromBus(message, master, "", slave);
+	result_t ret = readFromBus(message, master, "", slave, dstAddress);
 	if (ret != RESULT_OK)
 		return getResultCode(ret);
 
