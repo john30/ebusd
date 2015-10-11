@@ -122,7 +122,8 @@ unsigned int parseInt(const char* str, int base, const unsigned int minValue, co
 int parseSignedInt(const char* str, int base, const int minValue, const int maxValue, result_t& result, unsigned int* length=NULL);
 
 /**
- * Print the error position of the iterator to stdout.
+ * Print the error position of the iterator.
+ * @param out the @a ostream to print to.
  * @param begin the iterator to the beginning of the items.
  * @param end the iterator to the end of the items.
  * @param pos the iterator with the erroneous position.
@@ -130,7 +131,7 @@ int parseSignedInt(const char* str, int base, const int minValue, const int maxV
  * @param lineNo the current line number in the file being read.
  * @param result the result code.
  */
-void printErrorPos(vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, string filename, size_t lineNo, result_t result);
+void printErrorPos(ostream& out, vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, string filename, size_t lineNo, result_t result);
 
 
 class DataFieldTemplates;
@@ -223,6 +224,31 @@ public:
 	virtual void dump(ostream& output) = 0;
 
 	/**
+	 * Return whether the field is available.
+	 * @param fieldName the name of the field to find.
+	 * @param numeric true for a numeric field, false for a string field.
+	 * @return true if the field is available.
+	 */
+	virtual bool hasField(const char* fieldName, bool numeric) = 0;
+
+	/**
+	 * Reads the numeric value from the @a SymbolString.
+	 * @param partType the @a PartType of the data.
+	 * @param data the unescaped data @a SymbolString for reading binary data.
+	 * @param offset the additional offset to add for reading binary data.
+	 * @param output the variable in which to store the numeric value.
+	 * @param fieldName the name of the field to read, or NULL for the first field.
+	 * @param fieldIndex the optional index of the named field, or -1.
+	 * @return @a RESULT_OK on success,
+	 * or @a RESULT_EMPTY if the field was skipped (either if the partType does
+	 * not match or ignored, or due to @a fieldName or @a fieldIndex),
+	 * or an error code.
+	 */
+	virtual result_t read(const PartType partType,
+			SymbolString& data, unsigned char offset,
+			unsigned int& output, const char* fieldName=NULL, signed char fieldIndex=-1) = 0;
+
+	/**
 	 * Reads the value from the @a SymbolString.
 	 * @param partType the @a PartType of the data.
 	 * @param data the unescaped data @a SymbolString for reading binary data.
@@ -233,7 +259,7 @@ public:
 	 * @param fieldName the optional name of a field to limit the output to.
 	 * @param fieldIndex the optional index of the named field to limit the output to, or -1.
 	 * @return @a RESULT_OK on success (or if the partType does not match),
-	 * or @a RESULT_EMPTY if the field was skipped (either ignored or due to @a filterName),
+	 * or @a RESULT_EMPTY if the field was skipped (either ignored or due to @a fieldName or @a fieldIndex),
 	 * or an error code.
 	 */
 	virtual result_t read(const PartType partType,
@@ -348,6 +374,11 @@ public:
 	// @copydoc
 	virtual result_t read(const PartType partType,
 			SymbolString& data, unsigned char offset,
+			unsigned int& output, const char* fieldName=NULL, signed char fieldIndex=-1);
+
+	// @copydoc
+	virtual result_t read(const PartType partType,
+			SymbolString& data, unsigned char offset,
 			ostringstream& output, OutputFormat outputFormat,
 			bool leadingSeparator=false, const char* fieldName=NULL, signed char fieldIndex=-1);
 
@@ -357,6 +388,15 @@ public:
 			unsigned char offset, char separator=UI_FIELD_SEPARATOR);
 
 protected:
+
+	/**
+	 * Internal method for reading the numeric raw value from a @a SymbolString.
+	 * @param input the unescaped @a SymbolString to read the binary value from.
+	 * @param offset the offset in the @a SymbolString.
+	 * @param value the variable in which to store the numeric raw value.
+	 * @return @a RESULT_OK on success, or an error code.
+	 */
+	virtual result_t readRawValue(SymbolString& input, const unsigned char offset, unsigned int& value) = 0;
 
 	/**
 	 * Internal method for reading the field from a @a SymbolString.
@@ -428,9 +468,15 @@ public:
 			vector<SingleDataField*>& fields);
 
 	// @copydoc
+	virtual bool hasField(const char* fieldName, bool numeric);
+
+	// @copydoc
 	virtual void dump(ostream& output);
 
 protected:
+
+	// @copydoc
+	virtual result_t readRawValue(SymbolString& input, const unsigned char offset, unsigned int& value);
 
 	// @copydoc
 	virtual result_t readSymbols(SymbolString& input, const unsigned char baseOffset,
@@ -475,18 +521,15 @@ public:
 	virtual bool hasFullByteOffset(bool after);
 
 	// @copydoc
+	virtual bool hasField(const char* fieldName, bool numeric);
+
+	// @copydoc
 	virtual void dump(ostream& output);
 
 protected:
 
-	/**
-	 * Internal method for reading the raw value from a @a SymbolString.
-	 * @param input the unescaped @a SymbolString to read the binary value from.
-	 * @param offset the offset in the @a SymbolString.
-	 * @param value the variable in which to store the raw value.
-	 * @return @a RESULT_OK on success, or an error code.
-	 */
-	result_t readRawValue(SymbolString& input, const unsigned char offset, unsigned int& value);
+	// @copydoc
+	virtual result_t readRawValue(SymbolString& input, const unsigned char offset, unsigned int& value);
 
 	/**
 	 * Internal method for writing the raw value to a @a SymbolString.
@@ -679,7 +722,15 @@ public:
 	size_t size() const { return m_fields.size(); }
 
 	// @copydoc
+	virtual bool hasField(const char* fieldName, bool numeric);
+
+	// @copydoc
 	virtual void dump(ostream& output);
+
+	// @copydoc
+	virtual result_t read(const PartType partType,
+			SymbolString& data, unsigned char offset,
+			unsigned int& output, const char* fieldName=NULL, signed char fieldIndex=-1);
 
 	// @copydoc
 	virtual result_t read(const PartType partType,

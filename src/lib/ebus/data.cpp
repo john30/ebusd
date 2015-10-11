@@ -135,19 +135,19 @@ int parseSignedInt(const char* str, int base, const int minValue, const int maxV
 	return (int)ret;
 }
 
-void printErrorPos(vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, string filename, size_t lineNo, result_t result)
+void printErrorPos(ostream& out, vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, string filename, size_t lineNo, result_t result)
 {
 	if (pos > begin)
 		pos--;
-	cout << "Error reading \"" << filename << "\" line " << setw(0) << dec << static_cast<unsigned>(lineNo) << " field " << static_cast<unsigned>(1+pos.base()-begin.base()) << " value \"" << *pos << "\": " << getResultCode(result) << endl;
-	cout << "Erroneous item is here:" << endl;
+	out << "Error reading \"" << filename << "\" line " << setw(0) << dec << static_cast<unsigned>(lineNo) << " field " << static_cast<unsigned>(1+pos.base()-begin.base()) << " value \"" << *pos << "\": " << getResultCode(result) << endl;
+	out << "Erroneous item is here:" << endl;
 	bool first = true;
 	int cnt = 0;
 	while (begin != end) {
 		if (first)
 			first = false;
 		else {
-			cout << FIELD_SEPARATOR;
+			out << FIELD_SEPARATOR;
 			if (begin <= pos) {
 				cnt++;
 			}
@@ -158,10 +158,10 @@ void printErrorPos(vector<string>::iterator begin, const vector<string>::iterato
 			cnt++;
 
 		string item = *begin++;
-		cout << TEXT_SEPARATOR << item << TEXT_SEPARATOR;
+		out << TEXT_SEPARATOR << item << TEXT_SEPARATOR;
 	}
-	cout << endl;
-	cout << setw(cnt) << " " << setw(0) << "^" << endl;
+	out << endl;
+	out << setw(cnt) << " " << setw(0) << "^" << endl;
 }
 
 
@@ -435,6 +435,35 @@ void SingleDataField::dump(ostream& output)
 	dumpString(output, m_dataType.name);
 }
 
+
+result_t SingleDataField::read(const PartType partType,
+		SymbolString& data, unsigned char offset,
+		unsigned int& output, const char* fieldName, signed char fieldIndex)
+{
+	if (partType != m_partType)
+		return RESULT_EMPTY;
+
+	switch (m_partType)
+	{
+	case pt_masterData:
+		offset = (unsigned char)(offset + 5); // skip QQ ZZ PB SB NN
+		break;
+	case pt_slaveData:
+		offset++; // skip NN
+		break;
+	default:
+		return RESULT_ERR_INVALID_PART;
+	}
+	if (isIgnored() || (fieldName != NULL && (m_name != fieldName || fieldIndex > 0))) {
+		if (offset + m_length > data.size()) {
+			return RESULT_ERR_INVALID_POS;
+		}
+		return RESULT_EMPTY;
+	}
+
+	return readRawValue(data, offset, output);
+}
+
 result_t SingleDataField::read(const PartType partType,
 		SymbolString& data, unsigned char offset,
 		ostringstream& output, OutputFormat outputFormat,
@@ -539,6 +568,11 @@ result_t StringDataField::derive(string name, string comment,
 	return RESULT_OK;
 }
 
+bool StringDataField::hasField(const char* fieldName, bool numeric)
+{
+	return !numeric && fieldName==m_name;
+}
+
 void StringDataField::dump(ostream& output)
 {
 	SingleDataField::dump(output);
@@ -547,6 +581,11 @@ void StringDataField::dump(ostream& output)
 	output << FIELD_SEPARATOR; // no value list, no divisor
 	dumpString(output, m_unit);
 	dumpString(output, m_comment);
+}
+
+result_t StringDataField::readRawValue(SymbolString& input, const unsigned char offset, unsigned int& value)
+{
+	return RESULT_EMPTY;
 }
 
 result_t StringDataField::readSymbols(SymbolString& input, const unsigned char baseOffset,
@@ -797,6 +836,11 @@ bool NumericDataField::hasFullByteOffset(bool after)
 {
 	return m_length > 1 || (m_bitCount % 8) == 0
 		|| (after && m_bitOffset + (m_bitCount % 8) >= 8);
+}
+
+bool NumericDataField::hasField(const char* fieldName, bool numeric)
+{
+	return numeric && fieldName==m_name;
 }
 
 void NumericDataField::dump(ostream& output)
@@ -1275,6 +1319,16 @@ result_t DataFieldSet::derive(string name, string comment,
 	return RESULT_OK;
 }
 
+bool DataFieldSet::hasField(const char* fieldName, bool numeric)
+{
+	for (vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
+		SingleDataField* field = *it;
+		if (field->hasField(fieldName, numeric)==0)
+			return true;
+	}
+	return false;
+}
+
 void DataFieldSet::dump(ostream& output)
 {
 	bool first = true;
@@ -1285,6 +1339,46 @@ void DataFieldSet::dump(ostream& output)
 			output << FIELD_SEPARATOR;
 		(*it)->dump(output);
 	}
+}
+
+result_t DataFieldSet::read(const PartType partType,
+		SymbolString& data, unsigned char offset,
+		unsigned int& output, const char* fieldName, signed char fieldIndex)
+{
+	bool previousFullByteOffset = true, found = false, findFieldIndex = fieldName != NULL && fieldIndex >= 0;
+	for (vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
+		SingleDataField* field = *it;
+		if (partType != pt_any && field->getPartType() != partType)
+			continue;
+
+		if (!previousFullByteOffset && !field->hasFullByteOffset(false))
+			offset--;
+
+		result_t result = field->read(partType, data, offset, output, fieldName, fieldIndex);
+
+		if (result < RESULT_OK)
+			return result;
+
+		offset = (unsigned char)(offset + field->getLength(partType));
+		previousFullByteOffset = field->hasFullByteOffset(true);
+		if (result != RESULT_EMPTY) {
+			found = true;
+		}
+		if (findFieldIndex && fieldName == field->getName()) {
+			if (fieldIndex == 0) {
+				if (!found)
+					return RESULT_ERR_NOTFOUND;
+				break;
+			}
+			fieldIndex--;
+		}
+	}
+
+	if (!found) {
+		return RESULT_EMPTY;
+	}
+
+	return RESULT_OK;
 }
 
 result_t DataFieldSet::read(const PartType partType,
@@ -1390,7 +1484,7 @@ result_t DataFieldTemplates::add(DataField* field, string name, bool replace)
 	map<string, DataField*>::iterator it = m_fieldsByName.find(name);
 	if (it != m_fieldsByName.end()) {
 		if (!replace)
-			return RESULT_ERR_DUPLICATE; // duplicate key
+			return RESULT_ERR_DUPLICATE_NAME; // duplicate key
 
 		delete it->second;
 		it->second = field;
@@ -1405,6 +1499,7 @@ result_t DataFieldTemplates::add(DataField* field, string name, bool replace)
 
 result_t DataFieldTemplates::addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end, void* arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo)
 {
+	vector<string>::iterator restart = begin;
 	DataField* field = NULL;
 	string name;
 	if (begin != end) {
@@ -1419,6 +1514,8 @@ result_t DataFieldTemplates::addFromFile(vector<string>::iterator& begin, const 
 		return result;
 
 	result = add(field, name, true);
+	if (result==RESULT_ERR_DUPLICATE_NAME)
+		begin = restart+1; // mark name as invalid
 	if (result != RESULT_OK)
 		delete field;
 
