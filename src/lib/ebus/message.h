@@ -32,6 +32,7 @@
 
 using namespace std;
 
+class Condition;
 class MessageMap;
 
 /**
@@ -56,12 +57,15 @@ public:
 	 * @param data the @a DataField for encoding/decoding the message.
 	 * @param deleteData whether to delete the @a DataField during destruction.
 	 * @param pollPriority the priority for polling, or 0 for no polling at all.
+	 * @param condition the @a Condition for this message, or NULL.
 	 */
 	Message(const string circuit, const string name, const bool isWrite,
 			const bool isPassive, const string comment,
 			const unsigned char srcAddress, const unsigned char dstAddress,
-			const vector<unsigned char> id, DataField* data, const bool deleteData,
-			const unsigned char pollPriority);
+			const vector<unsigned char> id,
+			DataField* data, const bool deleteData,
+			const unsigned char pollPriority,
+			Condition* condition=NULL);
 
 	/**
 	 * Construct a new temporary instance.
@@ -71,10 +75,12 @@ public:
 	 * @param pb the primary ID byte.
 	 * @param sb the secondary ID byte.
 	 * @param data the @a DataField for encoding/decoding the message.
+	 * @param condition the @a Condition for this message, or NULL.
 	 */
 	Message(const bool isWrite, const bool isPassive,
 			const unsigned char pb, const unsigned char sb,
-			DataField* data);
+			DataField* data,
+			Condition* condition=NULL);
 
 	/**
 	 * Destructor.
@@ -86,13 +92,15 @@ public:
 	 * @param it the iterator to traverse for the definition parts.
 	 * @param end the iterator pointing to the end of the definition parts.
 	 * @param defaultsRows a @a vector with rows containing defaults, or NULL.
+	 * @param conditions the @a Condition instances by filename and condition name, or NULL.
+	 * @param filename the name of the file being read.
 	 * @param templates the @a DataFieldTemplates to be referenced by name, or NULL.
 	 * @param messages the @a vector to which to add created instances.
 	 * @return @a RESULT_OK on success, or an error code.
 	 * Note: the caller needs to free the created instances.
 	 */
 	static result_t create(vector<string>::iterator& it, const vector<string>::iterator end,
-			vector< vector<string> >* defaultsRows,
+			vector< vector<string> >* defaultsRows, map<string, Condition*>* conditions, const string& filename,
 			DataFieldTemplates* templates, vector<Message*>& messages);
 
 	/**
@@ -159,9 +167,34 @@ public:
 	/**
 	 * Set the polling priority.
 	 * @param priority the polling priority, or 0 for no polling at all.
-	 * @return true when the priority was changed, false otherwise.
+	 * @return true when the priority was changed and polling was not enabled before, false otherwise.
 	 */
 	bool setPollPriority(unsigned char priority);
+
+	/**
+	 * Set the poll priority suitable for resolving a @a Condition.
+	 */
+	void setUsedByCondition();
+
+	/**
+	 * Return whether this @a Message depends on a @a Condition.
+	 * @return true when this @a Message depends on a @a Condition.
+	 */
+	bool isConditional() const { return m_condition!=NULL; }
+
+	/**
+	 * Return whether this @a Message is available (optionally depending on a @a Condition evaluation).
+	 * @return true when this @a Message is available.
+	 */
+	bool isAvailable();
+
+	/**
+	 * Return whether the field is available.
+	 * @param fieldName the name of the field to find.
+	 * @param numeric true for a numeric field, false for a string field.
+	 * @return true if the field is available.
+	 */
+	bool hasField(const char* fieldName, bool numeric=true);
 
 	/**
 	 * Prepare the master @a SymbolString for sending a query or command to the bus.
@@ -222,6 +255,15 @@ public:
 	 */
 	result_t decodeLastData(ostringstream& output, OutputFormat outputFormat=0,
 			bool leadingSeparator=false, const char* fieldName=NULL, signed char fieldIndex=-1);
+
+	/**
+	 * Decode a particular field value from the last stored data.
+	 * @param output the variable in which to store the value.
+	 * @param fieldName the name of the field to decode, or NULL for the first field.
+	 * @param fieldIndex the optional index of the named field, or -1.
+	 * @return @a RESULT_OK on success, or an error code.
+	 */
+	result_t decodeLastDataField(unsigned int& output, const char* fieldName, signed char fieldIndex=-1);
 
 	/**
 	 * Get the last seen slave data.
@@ -306,6 +348,12 @@ private:
 	/** the priority for polling, or 0 for no polling at all. */
 	unsigned char m_pollPriority;
 
+	/** whether this message is used by a @a Condition. */
+	bool m_usedByCondition;
+
+	/** the @a Condition for this message, or NULL. */
+	Condition* m_condition;
+
 	/** the last seen master data. */
 	SymbolString m_lastMasterData;
 
@@ -342,6 +390,110 @@ struct compareMessagePriority : binary_function <Message*,Message*,bool> {
 
 
 /**
+ * Helper class extending @a priority_queue to hold distinct values only.
+ */
+class MessagePriorityQueue
+	: public priority_queue<Message*, vector<Message*>, compareMessagePriority>
+{
+public:
+	/**
+	 * Add data to the queue and ensure it is contained only once.
+	 * @param __x the element to add.
+	 */
+	void push(const value_type& __x)
+	{
+		for (vector<Message*>::iterator it = c.begin(); it != c.end(); it++) {
+			if (*it==__x) {
+				c.erase(it);
+				break;
+			}
+		}
+		priority_queue<Message*, vector<Message*>, compareMessagePriority>::push(__x);
+	}
+};
+
+
+/**
+ * Holds a reference to a @a Message as condition for another @a Message.
+ */
+class Condition
+{
+public:
+
+	/**
+	 * Construct a new instance.
+	 * @param circuit the circuit name.
+	 * @param name the message name.
+	 * @param field the field name.
+	 * @param valueRanges the valid value ranges (pairs of from/to inclusive).
+	 */
+	Condition(const string circuit, const string name, const string field, const vector<unsigned int> valueRanges)
+		: m_circuit(circuit), m_name(name), m_field(field), m_valueRanges(valueRanges),
+		  m_message(NULL), m_lastCheckTime(0), m_isTrue(false) {
+//		cout << "condition " << circuit << " " << name << " " << field << ":" << static_cast<unsigned>(valueRanges.size()) << endl;
+	}
+
+	/**
+	 * Destructor.
+	 */
+	virtual ~Condition() { }
+
+	/**
+	 * Factory method for creating a new instance.
+	 * @param it the iterator to traverse for the definition parts.
+	 * @param end the iterator pointing to the end of the definition parts.
+	 * @param returnValue the variable in which to store the created instance.
+	 * @return @a RESULT_OK on success, or an error code.
+	 */
+	static result_t create(vector<string>::iterator& it, const vector<string>::iterator end, Condition*& returnValue);
+
+	/**
+	 * Resolve the referred @a Message instance and field index.
+	 * @param messages the @a MessageMap instance for resolving the referred @a Message.
+	 * @param errorMessage a @a ostringstream to which to add optional error messages.
+	 * @return @a RESULT_OK on success, or an error code.
+	 */
+	result_t resolve(MessageMap* messages, ostringstream& errorMessage);
+
+	/**
+	 * Get the resolved @a Message instance
+	 * @return the resolved @a Message instance, or NULL.
+	 */
+	Message* getMessage() { return m_message; }
+
+	/**
+	 * Check and return whether this condition is fulfilled.
+	 * @return whether this condition is fulfilled.
+	 */
+	bool isTrue();
+
+private:
+
+	/** the circuit name. */
+	const string m_circuit;
+
+	/** the message name. */
+	const string m_name;
+
+	/** the field name, or empty for first field. */
+	const string m_field;
+
+	/** the valid value ranges (pairs of from/to inclusive). */
+	const vector<unsigned int> m_valueRanges;
+
+	/** the resolved @a Message instance, or NULL. */
+	Message* m_message;
+
+	/** the system time when the condition was last checked, 0 for never. */
+	time_t m_lastCheckTime;
+
+	/** whether the condition was @a true during the last check. */
+	bool m_isTrue;
+
+};
+
+
+/**
  * Holds a map of all known @a Message instances.
  */
 class MessageMap : public FileReader<DataFieldTemplates*>
@@ -352,7 +504,7 @@ public:
 	 * Construct a new instance.
 	 */
 	MessageMap() : FileReader<DataFieldTemplates*>::FileReader(true),
-		m_minIdLength(4), m_maxIdLength(0), m_messageCount(0), m_passiveMessageCount(0) {}
+		m_minIdLength(4), m_maxIdLength(0), m_messageCount(0), m_conditionalMessageCount(0), m_passiveMessageCount(0) {}
 
 	/**
 	 * Destructor.
@@ -368,7 +520,18 @@ public:
 	result_t add(Message* message);
 
 	// @copydoc
+	virtual result_t addDefaultFromFile(vector< vector<string> >& defaults, vector<string>& row, vector<string>::iterator& begin, const string& filename, unsigned int lineNo);
+
+	// @copydoc
 	virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end, DataFieldTemplates* arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo);
+
+	/**
+	 * Resolve all @a Condition instances.
+	 * @param errorMessage a @a string reference to which to add an optional error message.
+	 * @param verbose whether to verbosely add all problems to the error message.
+	 * @return @a RESULT_OK on success, or an error code.
+	 */
+	result_t resolveConditions(string& errorMessage, bool verbose=false);
 
 	/**
 	 * Find the @a Message instance for the specified circuit and name.
@@ -421,8 +584,9 @@ public:
 	/**
 	 * Add a @a Message to the list of instances to poll.
 	 * @param message the @a Message to poll.
+	 * @param toFront whether to add the @a Message to the very front of the poll queue.
 	 */
-	void addPollMessage(Message* message);
+	void addPollMessage(Message* message, bool toFront=false);
 
 	/**
 	 * Removes all @a Message instances.
@@ -430,11 +594,22 @@ public:
 	void clear();
 
 	/**
-	 * Get the number of stored @a Message instances.
-	 * @param passiveOnly true to count only passive messages, false to count all messages.
-	 * @return the the number of stored @a Message instances.
+	 * Get the number of all stored @a Message instances.
+	 * @return the the number of all stored @a Message instances.
 	 */
-	size_t size(const bool passiveOnly=false) { return passiveOnly ? m_passiveMessageCount : m_messageCount; }
+	size_t size() { return m_messageCount; }
+
+	/**
+	 * Get the number of stored conditional @a Message instances.
+	 * @return the the number of stored conditional @a Message instances.
+	 */
+	size_t sizeConditional() { return m_conditionalMessageCount; }
+
+	/**
+	 * Get the number of stored passive @a Message instances.
+	 * @return the the number of stored passive @a Message instances.
+	 */
+	size_t sizePassive() { return m_passiveMessageCount; }
 
 	/**
 	 * Get the number of stored @a Message instances with a poll priority.
@@ -448,6 +623,18 @@ public:
 	 * Note: the caller may not free the returned instance.
 	 */
 	Message* getNextPoll();
+
+	/**
+	 * Get the number of stored @a Condition instances.
+	 * @return the number of stored @a Condition instances.
+	 */
+	size_t sizeConditions() { return m_conditions.size(); }
+
+	/**
+	 * Get the stored @a Condition instances.
+	 * @return the @a Condition instances by filename and condition name.
+	 */
+	map<string, Condition*>& getConditions() { return m_conditions; }
 
 	/**
 	 * Write the message definitions to the @a ostream.
@@ -466,17 +653,23 @@ private:
 	/** the number of distinct @a Message instances stored in @a m_messagesByName. */
 	size_t m_messageCount;
 
+	/** the number of conditional @a Message instances part of @a m_messageCount. */
+	size_t m_conditionalMessageCount;
+
 	/** the number of distinct passive @a Message instances stored in @a m_messagesByKey. */
 	size_t m_passiveMessageCount;
 
 	/** the known @a Message instances by lowercase circuit and name. */
-	map<string, Message*> m_messagesByName;
+	map<string, vector<Message*> > m_messagesByName;
 
 	/** the known @a Message instances by key. */
-	map<unsigned long long, Message*> m_messagesByKey;
+	map<unsigned long long, vector<Message*> > m_messagesByKey;
 
 	/** the known @a Message instances to poll, by priority. */
-	priority_queue<Message*, vector<Message*>, compareMessagePriority> m_pollMessages;
+	MessagePriorityQueue m_pollMessages;
+
+	/** the @a Condition instances by filename and condition name. */
+	map<string, Condition*> m_conditions;
 
 };
 
