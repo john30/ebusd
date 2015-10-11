@@ -39,7 +39,7 @@ using namespace std;
 /** the separator character used to quote text having the @a FIELD_SEPARATOR in it. */
 #define TEXT_SEPARATOR '"'
 
-extern void printErrorPos(vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, string filename, size_t lineNo, result_t result);
+extern void printErrorPos(ostream& out, vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, string filename, size_t lineNo, result_t result);
 
 
 /**
@@ -138,10 +138,11 @@ public:
 			if (m_supportsDefaults) {
 				if (line[0] == '*') {
 					row[0] = row[0].substr(1);
-					defaults.push_back(row);
-					continue;
-				}
-				result = addFromFile(it, end, arg, &defaults, filename, lineNo);
+					result = addDefaultFromFile(defaults, row, it, filename, lineNo);
+					if (result == RESULT_OK)
+						continue;
+				} else
+					result = addFromFile(it, end, arg, &defaults, filename, lineNo);
 			}
 			else
 				result = addFromFile(it, end, arg, NULL, filename, lineNo);
@@ -154,7 +155,7 @@ public:
 					m_lastError = error.str();
 					return result;
 				}
-				printErrorPos(row.begin(), end, it, filename, lineNo, result);
+				printErrorPos(cout, row.begin(), end, it, filename, lineNo, result);
 			} else if (!verbose)
 				m_lastError = "";
 		}
@@ -168,6 +169,21 @@ public:
 	 * @return a @a string describing the last error position.
 	 */
 	virtual string getLastError() { return m_lastError; }
+
+	/**
+	 * Add a default row that was read from a file.
+	 * @param defaults the list to add the default row to.
+	 * @param row the default row (initial star char removed).
+	 * @param begin an iterator to the first column of the default row to read (for error reporting).
+	 * @param filename the name of the file being read.
+	 * @param lineNo the current line number in the file being read.
+	 * @return @a RESULT_OK on success, or an error code.
+	 */
+	virtual result_t addDefaultFromFile(vector< vector<string> >& defaults, vector<string>& row, vector<string>::iterator& begin, const string& filename, unsigned int lineNo) {
+		defaults.push_back(row);
+		begin = row.end();
+		return RESULT_OK;
+	}
 
 	/**
 	 * Add a definition that was read from a file.
