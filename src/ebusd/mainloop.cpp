@@ -484,6 +484,7 @@ string MainLoop::executeRead(vector<string> &args)
 string MainLoop::executeWrite(vector<string> &args)
 {
 	size_t argPos = 1;
+	unsigned char dstAddress = SYN;
 	while (args.size() > argPos && args[argPos] == "-h") {
 		argPos++;
 
@@ -527,13 +528,22 @@ string MainLoop::executeWrite(vector<string> &args)
 		return getResultCode(ret);
 	}
 
+	if (args.size() > argPos+1 && args[argPos] == "-d") {
+		argPos++;
+		result_t ret;
+		dstAddress = (unsigned char)parseInt(args[argPos].c_str(), 16, 0, 0xff, ret);
+		if (ret != RESULT_OK || !isValidAddress(dstAddress))
+			return getResultCode(RESULT_ERR_INVALID_ADDR);
+		argPos++;
+	}
 	if (args.size() > argPos && args[argPos] == "-c") {
 		argPos++;
 	}
 	if (argPos == 0 || (args.size() != argPos + 3 && args.size() != argPos + 2))
-		return "usage: write [-c] CIRCUIT NAME [VALUE[;VALUE]*]\n"
+		return "usage: write [-d ZZ] [-c] CIRCUIT NAME [VALUE[;VALUE]*]\n"
 			   "  or:  write -h ZZPBSBNNDx\n"
 			   " Write value(s) or hex message.\n"
+			   "  -d ZZ    override destination address ZZ\n"
 			   "  CIRCUIT  the CIRCUIT of the message to send\n"
 			   "  NAME     the NAME of the message to send\n"
 			   "  VALUE    a single field VALUE\n"
@@ -547,10 +557,12 @@ string MainLoop::executeWrite(vector<string> &args)
 
 	if (message == NULL)
 		return getResultCode(RESULT_ERR_NOTFOUND);
+	if (message->getDstAddress()==SYN && dstAddress==SYN)
+		return getResultCode(RESULT_ERR_INVALID_ADDR);
 
 	SymbolString master(true);
 	SymbolString slave(false);
-	result_t ret = readFromBus(message, master, args.size() == argPos + 2 ? "" : args[argPos + 2], slave); // allow missing values
+	result_t ret = readFromBus(message, master, args.size() == argPos + 2 ? "" : args[argPos + 2], slave, dstAddress); // allow missing values
 	if (ret != RESULT_OK)
 		return getResultCode(ret);
 
@@ -943,7 +955,7 @@ string MainLoop::executeHelp()
 	return "usage:\n"
 		   " read|r   Read value(s):         read [-f] [-m SECONDS] [-c CIRCUIT] [-d ZZ] [-p PRIO] [-v] [-n] [-i VALUE[;VALUE]*] NAME [FIELD[.N]]\n"
 		   "          Read hex message:      read [-f] [-m SECONDS] [-c CIRCUIT] -h ZZPBSBNNDx\n"
-		   " write|w  Write value(s):        write [-c] CIRCUIT NAME [VALUE[;VALUE]*]\n"
+		   " write|w  Write value(s):        write [-d ZZ] [-c] CIRCUIT NAME [VALUE[;VALUE]*]\n"
 		   "          Write hex message:     write -h ZZPBSBNNDx\n"
 		   " find|f   Find message(s):       find [-v] [-r] [-w] [-p] [-d] [-i PB] [-f] [-F COL[,COL]*] [-e] [-c CIRCUIT] [NAME]\n"
 		   " listen|l Listen for updates:    listen [stop]\n"
