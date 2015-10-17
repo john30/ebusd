@@ -77,19 +77,20 @@ public:
 			return RESULT_ERR_NOTFOUND;
 
 		string line;
+		size_t lastSep = filename.find_last_of('/');
 		size_t firstDot = filename.find_first_of('.');
 		string defaultDest = "";
 		string defaultCircuit = "";
-		if (firstDot==2) { // potential destination address, matches "^ZZ."
+		if (lastSep!=string::npos && firstDot==lastSep+1+2) { // potential destination address, matches "^ZZ."
 			result_t result;
-			defaultDest = filename.substr(0, 2);
+			defaultDest = filename.substr(lastSep+1, 2);
 			int zz = parseInt(defaultDest.c_str(), 16, 0, 0xff, result, NULL);
 			if (result!=RESULT_OK || !isValidAddress(zz))
 				defaultDest = ""; // invalid: not in hex or no master/slave/broadcast address
 			else {
 				size_t lastDot = filename.find_last_of('.');
 				if (lastDot>firstDot && lastDot-firstDot<=5) { // potential ident, matches "^ZZ.IDENT."
-					defaultCircuit = filename.substr(firstDot+1, lastDot-firstDot);
+					defaultCircuit = filename.substr(firstDot+1, lastDot-firstDot-1);
 					if (defaultCircuit.find_first_of(' ')!=string::npos)
 						defaultCircuit = ""; // invalid: contains spaces
 				}
@@ -202,10 +203,14 @@ public:
 	virtual result_t addDefaultFromFile(vector< vector<string> >& defaults, vector<string>& row,
 			vector<string>::iterator& begin, string defaultDest, string defaultCircuit,
 			const string& filename, unsigned int lineNo) {
-		if (row.size()>1 && defaultCircuit.length()>0 && row[1].length()==0)
-			row[1] = defaultCircuit;
+		if (row.size()>1 && defaultCircuit.length()>0) {
+			if (row[1].length()==0)
+				row[1] = defaultCircuit; // set default circuit
+			else if (row[1][0]=='#')
+				row[1] = defaultCircuit+row[1]; // append security suffix to circuit prefix
+		}
 		if (row.size()>5 && defaultDest.length()>0 && row[5].length()==0)
-			row[5] = defaultDest;
+			row[5] = defaultDest; // set default destination
 		defaults.push_back(row);
 		begin = row.end();
 		return RESULT_OK;
