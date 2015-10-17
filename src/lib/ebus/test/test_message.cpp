@@ -69,6 +69,7 @@ int main()
 		{"r,ehp,time,,,08;09,b509,0d2800,,,time", "15:00:17", "ff08b509030d2800", "0311000f", "md*"},
 		{"r,ehp,date,,,08,b509,0d2900,,,date", "23.11.2014", "ff08b509030d2900", "03170b0e", "md"},
 		{"r,ehp,error,,,08,b509,0d2800,index,m,UCH,,,,,,time", "3;15:00:17", "ff08b509040d280003", "0311000f", "mdi"},
+		{"r,ehp,error,,,08,b509,0d2800,index,m,UCH,,,,,,time", "index=3;time=15:00:17", "ff08b509040d280003", "0311000f", "mD"},
 		{"u,ehp,ActualEnvironmentPower,Energiebezug,,08,B509,29BA00,,s,IGN:2,,,,,s,power", "8", "1008b5090329ba00", "03ba0008", "pm"},
 		{"uw,ehp,test,Test,,08,B5de,ab,,,power,,,,,s,hex:1", "8;39", "1008b5de02ab08", "0139", "pm"},
 		{"u,ehp,hwTankTemp,Speichertemperatur IST,,25,B509,290000,,,IGN:2,,,,,,tempsensor", "","","","M"},
@@ -259,9 +260,18 @@ int main()
 				continue;
 			}
 			cout << "  \"" << check[2] << "\" / \"" << check[3] <<  "\": decode OK" << endl;
-
 			bool match = inputStr == output.str();
 			verify(false, "decode", check[2] + "/" + check[3], match, inputStr, output.str());
+			ostringstream output2;
+			result = message->decodeLastData(output2, decodeVerbose?OF_VERBOSE:0);
+			if (result != RESULT_OK) {
+				cout << "  \"" << check[2] << "\" / \"" << check[3] << "\": decodeLast error: "
+						<< getResultCode(result) << endl;
+				continue;
+			}
+			cout << "  \"" << check[2] << "\" / \"" << check[3] <<  "\": decodeLast OK" << endl;
+			match = output.str() == output2.str();
+			verify(false, "decodeLast", check[2] + "/" + check[3], match, output.str(), output2.str());
 		}
 		if (!message->isPassive() && (withInput || !decode)) {
 			istringstream input(inputStr);
