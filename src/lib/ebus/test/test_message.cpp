@@ -68,6 +68,7 @@ int main()
 		{"r,ehp,time,,,08;10,b509,0d2800,,,time", "15:00:17", "ff08b509030d2800", "0311000f", "c"},
 		{"r,ehp,time,,,08;09,b509,0d2800,,,time", "15:00:17", "ff08b509030d2800", "0311000f", "md*"},
 		{"r,ehp,date,,,08,b509,0d2900,,,date", "23.11.2014", "ff08b509030d2900", "03170b0e", "md"},
+		{"r,ehp,error,,,08,b509,0d2800,index,m,UCH,,,,,,time", "3;15:00:17", "ff08b509040d280003", "0311000f", "mdi"},
 		{"u,ehp,ActualEnvironmentPower,Energiebezug,,08,B509,29BA00,,s,IGN:2,,,,,s,power", "8", "1008b5090329ba00", "03ba0008", "pm"},
 		{"uw,ehp,test,Test,,08,B5de,ab,,,power,,,,,s,hex:1", "8;39", "1008b5de02ab08", "0139", "pm"},
 		{"u,ehp,hwTankTemp,Speichertemperatur IST,,25,B509,290000,,,IGN:2,,,,,,tempsensor", "","","","M"},
@@ -115,6 +116,7 @@ int main()
 		bool failedPrepare = flags.find('p') != string::npos;
 		bool failedPrepareMatch = flags.find('P') != string::npos;
 		bool multi = flags.find('*') != string::npos;
+		bool withInput = flags.find('i') != string::npos;
 		string item;
 		vector<string> entries;
 
@@ -261,7 +263,7 @@ int main()
 			bool match = inputStr == output.str();
 			verify(false, "decode", check[2] + "/" + check[3], match, inputStr, output.str());
 		}
-		else {
+		if (!message->isPassive() && (withInput || !decode)) {
 			istringstream input(inputStr);
 			SymbolString writeMstr;
 			result = message->prepareMaster(0xff, writeMstr, input);
