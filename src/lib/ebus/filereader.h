@@ -41,6 +41,7 @@ using namespace std;
 
 extern void printErrorPos(ostream& out, vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, string filename, size_t lineNo, result_t result);
 
+extern unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result, unsigned int* length);
 
 /**
  * An abstract class that support reading definitions from a file.
@@ -76,9 +77,26 @@ public:
 			return RESULT_ERR_NOTFOUND;
 
 		string line;
+		size_t firstDot = filename.find_first_of('.');
+		string defaultDest = "";
+		string defaultCircuit = "";
+		if (firstDot==2) { // potential destination address, matches "^ZZ."
+			result_t result;
+			defaultDest = filename.substr(0, 2);
+			int zz = parseInt(defaultDest.c_str(), 16, 0, 0xff, result, NULL);
+			if (result!=RESULT_OK || !isValidAddress(zz))
+				defaultDest = ""; // invalid: not in hex or no master/slave/broadcast address
+			else {
+				size_t lastDot = filename.find_last_of('.');
+				if (lastDot>firstDot && lastDot-firstDot<=5) { // potential ident, matches "^ZZ.IDENT."
+					defaultCircuit = filename.substr(firstDot+1, lastDot-firstDot);
+					if (defaultCircuit.find_first_of(' ')!=string::npos)
+						defaultCircuit = ""; // invalid: contains spaces
+				}
+			}
+		}
 		unsigned int lineNo = 0;
 		vector<string> row;
-		string token;
 		vector< vector<string> > defaults;
 		while (getline(ifs, line) != 0) {
 			lineNo++;
@@ -138,7 +156,7 @@ public:
 			if (m_supportsDefaults) {
 				if (line[0] == '*') {
 					row[0] = row[0].substr(1);
-					result = addDefaultFromFile(defaults, row, it, filename, lineNo);
+					result = addDefaultFromFile(defaults, row, it, defaultDest, defaultCircuit, filename, lineNo);
 					if (result == RESULT_OK)
 						continue;
 				} else
@@ -175,11 +193,19 @@ public:
 	 * @param defaults the list to add the default row to.
 	 * @param row the default row (initial star char removed).
 	 * @param begin an iterator to the first column of the default row to read (for error reporting).
+	 * @param defaultDest the valid destination address extracted from the file name (from ZZ part), or empty.
+	 * @param defaultCircuit the valid circuit name extracted from the file name (from IDENT part), or empty.
 	 * @param filename the name of the file being read.
 	 * @param lineNo the current line number in the file being read.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	virtual result_t addDefaultFromFile(vector< vector<string> >& defaults, vector<string>& row, vector<string>::iterator& begin, const string& filename, unsigned int lineNo) {
+	virtual result_t addDefaultFromFile(vector< vector<string> >& defaults, vector<string>& row,
+			vector<string>::iterator& begin, string defaultDest, string defaultCircuit,
+			const string& filename, unsigned int lineNo) {
+		if (row.size()>1 && defaultCircuit.length()>0 && row[1].length()==0)
+			row[1] = defaultCircuit;
+		if (row.size()>5 && defaultDest.length()>0 && row[5].length()==0)
+			row[5] = defaultDest;
 		defaults.push_back(row);
 		begin = row.end();
 		return RESULT_OK;
@@ -195,7 +221,9 @@ public:
 	 * @param lineNo the current line number in the file being read.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end, T arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo) = 0;
+	virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
+		T arg, vector< vector<string> >* defaults,
+		const string& filename, unsigned int lineNo) = 0;
 
 	/**
 	 * Left and right trim the string.

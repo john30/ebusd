@@ -92,7 +92,7 @@ public:
 	 * @param it the iterator to traverse for the definition parts.
 	 * @param end the iterator pointing to the end of the definition parts.
 	 * @param defaultsRows a @a vector with rows containing defaults, or NULL.
-	 * @param conditions the @a Condition instances by filename and condition name, or NULL.
+	 * @param condition the @a Condition instance for the message, or NULL.
 	 * @param filename the name of the file being read.
 	 * @param templates the @a DataFieldTemplates to be referenced by name, or NULL.
 	 * @param messages the @a vector to which to add created instances.
@@ -100,7 +100,7 @@ public:
 	 * Note: the caller needs to free the created instances.
 	 */
 	static result_t create(vector<string>::iterator& it, const vector<string>::iterator end,
-			vector< vector<string> >* defaultsRows, map<string, Condition*>* conditions, const string& filename,
+			vector< vector<string> >* defaultsRows, Condition* condition, const string& filename,
 			DataFieldTemplates* templates, vector<Message*>& messages);
 
 	/**
@@ -526,10 +526,14 @@ public:
 	result_t add(Message* message);
 
 	// @copydoc
-	virtual result_t addDefaultFromFile(vector< vector<string> >& defaults, vector<string>& row, vector<string>::iterator& begin, const string& filename, unsigned int lineNo);
+	virtual result_t addDefaultFromFile(vector< vector<string> >& defaults, vector<string>& row,
+		vector<string>::iterator& begin, string defaultDest, string defaultCircuit,
+		const string& filename, unsigned int lineNo);
 
 	// @copydoc
-	virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end, DataFieldTemplates* arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo);
+	virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
+		DataFieldTemplates* arg, vector< vector<string> >* defaults,
+		const string& filename, unsigned int lineNo);
 
 	/**
 	 * Resolve all @a Condition instances.

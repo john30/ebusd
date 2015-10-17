@@ -98,7 +98,7 @@ string getDefault(const string value, vector<string>* defaults, size_t pos)
 }
 
 result_t Message::create(vector<string>::iterator& it, const vector<string>::iterator end,
-		vector< vector<string> >* defaultsRows, map<string, Condition*>* conditions, const string& filename,
+		vector< vector<string> >* defaultsRows, Condition* condition, const string& filename,
 		DataFieldTemplates* templates, vector<Message*>& messages)
 {
 	// [type],[circuit],name,[comment],[QQ[;QQ]*],[ZZ],[PBSB],[ID],fields...
@@ -111,21 +111,6 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 		return RESULT_ERR_EOF;
 
 	string typeStr = *it++;
-	Condition* condition = NULL;
-	if (conditions && typeStr.length()>0 && typeStr[0]=='[') {
-		// condition
-		size_t pos = typeStr.find(']');
-		if (pos!=string::npos) {
-			string type = typeStr.substr(1, pos-1);
-			string key = filename+":"+type;
-			map<string, Condition*>::iterator it = conditions->find(key);
-			if (it==conditions->end())
-				return RESULT_ERR_NOTFOUND;
-			condition = it->second;
-			typeStr = typeStr.substr(pos+1);
-		}
-	}
-
 	const char* str = typeStr.c_str(); // [type]
 	if (it == end)
 		return RESULT_ERR_EOF;
@@ -755,8 +740,10 @@ result_t MessageMap::add(Message* message)
 	bool conditional = message->isConditional();
 	map<unsigned long long, vector<Message*> >::iterator keyIt = m_messagesByKey.find(key);
 	if (keyIt != m_messagesByKey.end()) {
+		if (!conditional)
+			return RESULT_ERR_DUPLICATE; // duplicate key
 		vector<Message*>* messages = &keyIt->second;
-		if (!messages->front()->isConditional() || !conditional)
+		if (!messages->front()->isConditional())
 			return RESULT_ERR_DUPLICATE; // duplicate key
 	}
 	bool isPassive = message->isPassive();
@@ -798,7 +785,9 @@ result_t MessageMap::add(Message* message)
 	return RESULT_OK;
 }
 
-result_t MessageMap::addDefaultFromFile(vector< vector<string> >& defaults, vector<string>& row, vector<string>::iterator& begin, const string& filename, unsigned int lineNo)
+result_t MessageMap::addDefaultFromFile(vector< vector<string> >& defaults, vector<string>& row,
+	vector<string>::iterator& begin, string defaultDest, string defaultCircuit,
+	const string& filename, unsigned int lineNo)
 {
 	// convert conditions in defaults
 	string type = row[0];
@@ -811,6 +800,8 @@ result_t MessageMap::addDefaultFromFile(vector< vector<string> >& defaults, vect
 		if (it != m_conditions.end())
 			return RESULT_ERR_DUPLICATE_NAME;
 
+		if (row.size()>1 && defaultCircuit.length()>0 && row[1].length()==0)
+			row[1] = defaultCircuit;
 		Condition* condition = NULL;
 		result_t result = Condition::create(++begin, row.end(), condition);
 		if (result!=RESULT_OK) {
@@ -824,13 +815,28 @@ result_t MessageMap::addDefaultFromFile(vector< vector<string> >& defaults, vect
 		m_conditions[key] = condition;
 		return RESULT_OK;
 	}
-	return FileReader::addDefaultFromFile(defaults, row, begin, filename, lineNo);
+	return FileReader::addDefaultFromFile(defaults, row, begin, defaultDest, defaultCircuit, filename, lineNo);
 }
 
-result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end, DataFieldTemplates* arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo)
+result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
+	DataFieldTemplates* arg, vector< vector<string> >* defaults,
+	const string& filename, unsigned int lineNo)
 {
 	vector<string>::iterator restart = begin;
+	Condition* condition = NULL;
 	string types = *restart;
+	if (types.length()>0 && types[0]=='[') {
+		// condition
+		size_t pos = types.find(']');
+		if (pos!=string::npos) {
+			string key = filename+":"+types.substr(1, pos-1);
+			map<string, Condition*>::iterator it = m_conditions.find(key); // TODO add support for global conditions without filename
+			if (it==m_conditions.end())
+				return RESULT_ERR_NOTFOUND;
+			condition = it->second;
+			types = types.substr(pos+1);
+		}
+	}
 	if (types.length() == 0)
 		types.append("r");
 	result_t result = RESULT_ERR_EOF;
@@ -843,7 +849,7 @@ result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<s
 		*restart = type;
 		begin = restart;
 		messages.clear();
-		result = Message::create(begin, end, defaults, &m_conditions, filename, arg, messages);
+		result = Message::create(begin, end, defaults, condition, filename, arg, messages);
 		for (vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++) {
 			Message* message = *it;
 			if (result == RESULT_OK) {
@@ -858,7 +864,6 @@ result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<s
 		}
 		if (result != RESULT_OK)
 			return result;
-		begin = restart;
 	}
 	return result;
 }
