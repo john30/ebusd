@@ -371,13 +371,13 @@ result_t BusHandler::handleSymbol()
 	}
 
 	m_lastReceive = now;
-	if (recvSymbol == SYN) {
+	if ((recvSymbol == SYN) && (m_state != bs_sendSyn)) {
 		if (!sending && m_remainLockCount > 0 && m_command.size() != 1)
 			m_remainLockCount--;
 		else if (!sending && m_remainLockCount == 0 && m_command.size() == 1)
 			m_remainLockCount = 1; // wait for next AUTO-SYN after SYN / address / SYN (bus locked for own priority)
 
-		return setState(bs_ready, RESULT_ERR_SYN);
+		return setState(bs_ready, m_state == bs_skip ? RESULT_OK : RESULT_ERR_SYN);
 	}
 
 	unsigned int headerLen, crcPos;
@@ -630,7 +630,7 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 {
 	if (m_currentRequest != NULL) {
 		if (result == RESULT_ERR_BUS_LOST && m_currentRequest->m_busLostRetries < m_busLostRetries) {
-			logDebug(lf_bus, "%s during %s, retry", getResultCode(result));
+			logDebug(lf_bus, "%s during %s, retry", getResultCode(result), getStateCode(m_state));
 			m_currentRequest->m_busLostRetries++;
 			m_nextRequests.add(m_currentRequest); // repeat
 			m_currentRequest = NULL;
