@@ -379,7 +379,7 @@ string MainLoop::executeRead(vector<string> &args)
 
 		if (ret == RESULT_OK) {
 			ostringstream result;
-			ret = message->decode(pt_slaveData, slave, result);
+			ret = message->decode(cacheMaster, slave, result);
 			if (ret >= RESULT_OK)
 				logInfo(lf_main, "hex read %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(), result.str().c_str());
 			else
@@ -690,7 +690,7 @@ string MainLoop::executeFind(vector<string> &args)
 
 	bool found = false;
 	ostringstream result;
-	char str[31];
+	char str[32];
 	for (deque<Message*>::iterator it = messages.begin(); it < messages.end();) {
 		Message* message = *it++;
 		time_t lastup = message->getLastUpdateTime();
@@ -705,23 +705,31 @@ string MainLoop::executeFind(vector<string> &args)
 				result << endl;
 			message->dump(result, columns);
 		} else {
-			unsigned char dstAddress = message->getDstAddress();
-			if (dstAddress == SYN)
-				continue;
 			if (found)
 				result << endl;
 			result << message->getCircuit() << " " << message->getName() << " = ";
 			if (lastup == 0)
 				result << "no data stored";
-			else
-				message->decodeLastData(result, verbose?OF_VERBOSE:0);
+			else {
+				result_t ret = message->decodeLastData(result, verbose?OF_VERBOSE:0);
+				if (ret!=RESULT_OK) {
+					result << " (" << getResultCode(ret)
+						   << " for " << message->getLastMasterData().getDataStr()
+						   << " / " << message->getLastSlaveData().getDataStr();
+				}
+			}
 			if (verbose) {
-				if (lastup == 0)
+				unsigned char dstAddress = message->getDstAddress();
+				if (dstAddress != SYN)
 					sprintf(str, "%02x", dstAddress);
-				else {
+				else if (lastup != 0 && message->getLastMasterData().size()>1)
+					sprintf(str, "%02x", message->getLastMasterData()[1]);
+				else
+					sprintf(str, "any");
+				if (lastup != 0) {
 					struct tm* td = localtime(&lastup);
-					sprintf(str, "%02x, lastup=%04d-%02d-%02d %02d:%02d:%02d",
-						dstAddress, td->tm_year+1900, td->tm_mon+1, td->tm_mday,
+					sprintf(str+strlen(str), ", lastup=%04d-%02d-%02d %02d:%02d:%02d",
+						td->tm_year+1900, td->tm_mon+1, td->tm_mday,
 						td->tm_hour, td->tm_min, td->tm_sec);
 				}
 				result << " [ZZ=" << str;
