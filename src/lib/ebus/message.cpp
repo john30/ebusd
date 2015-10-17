@@ -380,10 +380,10 @@ result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& ma
 	switch (master.compareMaster(m_lastMasterData)) {
 	case 1: // completely different
 		m_lastChangeTime = m_lastUpdateTime;
-		m_lastMasterData = masterData;
+		m_lastMasterData = master;
 		break;
 	case 2: // only master address is different
-		m_lastMasterData = masterData;
+		m_lastMasterData = master;
 		break;
 	}
 	masterData.addAll(master);

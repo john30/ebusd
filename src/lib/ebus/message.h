@@ -266,6 +266,12 @@ public:
 	result_t decodeLastDataField(unsigned int& output, const char* fieldName, signed char fieldIndex=-1);
 
 	/**
+	 * Get the last seen master data.
+	 * @return the last seen master @a SymbolString.
+	 */
+	SymbolString& getLastMasterData() { return m_lastMasterData; }
+
+	/**
 	 * Get the last seen slave data.
 	 * @return the last seen slave @a SymbolString.
 	 */
