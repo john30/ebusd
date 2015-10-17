@@ -801,7 +801,7 @@ result_t MessageMap::addDefaultFromFile(vector< vector<string> >& defaults, vect
 			return RESULT_ERR_DUPLICATE_NAME;
 
 		if (row.size()>1 && defaultCircuit.length()>0 && row[1].length()==0)
-			row[1] = defaultCircuit;
+			row[1] = defaultCircuit; // set default circuit
 		Condition* condition = NULL;
 		result_t result = Condition::create(++begin, row.end(), condition);
 		if (result!=RESULT_OK) {
