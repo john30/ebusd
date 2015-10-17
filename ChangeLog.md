@@ -25,6 +25,7 @@
 * added possiblity to use a different name for referenced field template
 * added data type HCD (for Ochsner)
 * added base type TTH (truncated time with 30 minutes resolution)
+* added base type VTM (reverse HTM)
 * added log entry for scan completion
 * automatically invalidate cached data of messages with same name+circuit (ignoring level)
 * added "info" command
