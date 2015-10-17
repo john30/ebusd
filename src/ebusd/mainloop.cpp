@@ -274,7 +274,7 @@ string MainLoop::executeRead(vector<string> &args)
 	size_t argPos = 1;
 	bool hex = false, verbose = false, numeric = false;
 	time_t maxAge = 5*60;
-	string circuit;
+	string circuit, params;
 	unsigned char dstAddress = SYN, pollPriority = 0;
 	while (args.size() > argPos && args[argPos][0] == '-') {
 		if (args[argPos] == "-h") {
@@ -326,6 +326,13 @@ string MainLoop::executeRead(vector<string> &args)
 			pollPriority = (unsigned char)parseInt(args[argPos].c_str(), 10, 1, 9, ret);
 			if (ret != RESULT_OK)
 				return getResultCode(RESULT_ERR_INVALID_NUM);
+		} else if (args[argPos] == "-i") {
+			argPos++;
+			if (argPos >= args.size()) {
+				argPos = 0; // print usage
+				break;
+			}
+			params = args[argPos];
 		} else {
 			argPos = 0; // print usage
 			break;
@@ -383,7 +390,7 @@ string MainLoop::executeRead(vector<string> &args)
 		return getResultCode(ret);
 	}
 	if (argPos == 0 || args.size() < argPos + 1 || args.size() > argPos + 2)
-		return "usage: read [-f] [-m SECONDS] [-c CIRCUIT] [-d ZZ] [-p PRIO] [-v] [-n] NAME [FIELD[.N]]\n"
+		return "usage: read [-f] [-m SECONDS] [-c CIRCUIT] [-d ZZ] [-p PRIO] [-v] [-n] [-i VALUE[;VALUE]*] NAME [FIELD[.N]]\n"
 			   "  or:  read [-f] [-m SECONDS] [-c CIRCUIT] -h ZZPBSBNNDx\n"
 			   " Read value(s) or hex message.\n"
 			   "  -f          force reading from the bus (same as '-m 0')\n"
@@ -393,6 +400,7 @@ string MainLoop::executeRead(vector<string> &args)
 			   "  -p PRIO     set the message poll priority (1-9)\n"
 			   "  -v          be verbose (include circuit, name, field names, units, and comments)\n"
 			   "  -n          use numeric value of value=name pairs\n"
+			   "  -i VALUE    read additional message parameters from VALUE\n"
 			   "  NAME        the NAME of the message to send\n"
 			   "  FIELD       only retrieve the field named FIELD\n"
 			   "  N           only retrieve the N'th field named FIELD (0-based)\n"
@@ -436,10 +444,10 @@ string MainLoop::executeRead(vector<string> &args)
 			result_t ret = cacheMessage->decodeLastData(result, (verbose?OF_VERBOSE:0)|(numeric?OF_NUMERIC:0), false, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
 			if (ret != RESULT_OK) {
 				if (ret < RESULT_OK)
-					logError(lf_main, "read %s %s cached: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
+					logError(lf_main, "read %s %s cached: %s", cacheMessage->getCircuit().c_str(), cacheMessage->getName().c_str(), getResultCode(ret));
 				return getResultCode(ret);
 			}
-			logInfo(lf_main, "read %s %s cached: %s", message->getCircuit().c_str(), message->getName().c_str(), result.str().c_str());
+			logInfo(lf_main, "read %s %s cached: %s", cacheMessage->getCircuit().c_str(), cacheMessage->getName().c_str(), result.str().c_str());
 			return result.str();
 		}
 
@@ -456,7 +464,7 @@ string MainLoop::executeRead(vector<string> &args)
 	// read directly from bus
 	SymbolString master(true);
 	SymbolString slave(false);
-	result_t ret = readFromBus(message, master, "", slave, dstAddress);
+	result_t ret = readFromBus(message, master, params, slave, dstAddress);
 	if (ret != RESULT_OK)
 		return getResultCode(ret);
 
@@ -925,7 +933,7 @@ string MainLoop::executeQuit(vector<string> &args, bool& connected)
 string MainLoop::executeHelp()
 {
 	return "usage:\n"
-		   " read|r   Read value(s):         read [-f] [-m SECONDS] [-c CIRCUIT] [-d ZZ] [-p PRIO] [-v] [-n] NAME [FIELD[.N]]\n"
+		   " read|r   Read value(s):         read [-f] [-m SECONDS] [-c CIRCUIT] [-d ZZ] [-p PRIO] [-v] [-n] [-i VALUE[;VALUE]*] NAME [FIELD[.N]]\n"
 		   "          Read hex message:      read [-f] [-m SECONDS] [-c CIRCUIT] -h ZZPBSBNNDx\n"
 		   " write|w  Write value(s):        write [-c] CIRCUIT NAME [VALUE[;VALUE]*]\n"
 		   "          Write hex message:     write -h ZZPBSBNNDx\n"
