@@ -106,6 +106,13 @@ public:
 			DataFieldTemplates* templates, vector<Message*>& messages);
 
 	/**
+	 * Derive a new @a Message from this message.
+	 * @param dstAddress the new destination address.
+	 * @return the derived @a Message instance.
+	 */
+	Message* derive(const unsigned char dstAddress);
+
+	/**
 	 * Get the optional circuit name.
 	 * @return the optional circuit name.
 	 */
@@ -192,7 +199,7 @@ public:
 
 	/**
 	 * Return whether the field is available.
-	 * @param fieldName the name of the field to find.
+	 * @param fieldName the name of the field to find, or NULL for any.
 	 * @param numeric true for a numeric field, false for a string field.
 	 * @return true if the field is available.
 	 */
@@ -490,12 +497,13 @@ public:
 	 * Construct a new instance.
 	 * @param circuit the circuit name.
 	 * @param name the message name.
+	 * @param dstAddress the override destination address, or @a SYN (only for @a Message without specific destination).
 	 * @param field the field name.
-	 * @param valueRanges the valid value ranges (pairs of from/to inclusive).
+	 * @param valueRanges the valid value ranges (pairs of from/to inclusive), empty for @a m_message seen check.
 	 */
-	SimpleCondition(const string circuit, const string name, const string field, const vector<unsigned int> valueRanges)
+	SimpleCondition(const string circuit, const string name, const unsigned char dstAddress, const string field, const vector<unsigned int> valueRanges)
 		: Condition(),
-		  m_circuit(circuit), m_name(name), m_field(field), m_valueRanges(valueRanges),
+		  m_circuit(circuit), m_name(name), m_dstAddress(dstAddress), m_field(field), m_valueRanges(valueRanges),
 		  m_message(NULL) { }
 
 	/**
@@ -528,10 +536,13 @@ private:
 	/** the message name. */
 	const string m_name;
 
+	/** the override destination address, or @a SYN (only for @a Message without specific destination). */
+	const unsigned char m_dstAddress;
+
 	/** the field name, or empty for first field. */
 	const string m_field;
 
-	/** the valid value ranges (pairs of from/to inclusive). */
+	/** the valid value ranges (pairs of from/to inclusive), empty for @a m_message seen check. */
 	const vector<unsigned int> m_valueRanges;
 
 	/** the resolved @a Message instance, or NULL. */
