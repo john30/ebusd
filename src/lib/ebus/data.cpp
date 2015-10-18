@@ -571,7 +571,7 @@ result_t StringDataField::derive(string name, string comment,
 
 bool StringDataField::hasField(const char* fieldName, bool numeric)
 {
-	return !numeric && fieldName==m_name;
+	return !numeric && (fieldName==NULL || fieldName==m_name);
 }
 
 void StringDataField::dump(ostream& output)
@@ -841,7 +841,7 @@ bool NumericDataField::hasFullByteOffset(bool after)
 
 bool NumericDataField::hasField(const char* fieldName, bool numeric)
 {
-	return numeric && fieldName==m_name;
+	return numeric && (fieldName==NULL || fieldName==m_name);
 }
 
 void NumericDataField::dump(ostream& output)

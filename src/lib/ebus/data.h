@@ -225,7 +225,7 @@ public:
 
 	/**
 	 * Return whether the field is available.
-	 * @param fieldName the name of the field to find.
+	 * @param fieldName the name of the field to find, or NULL for any.
 	 * @param numeric true for a numeric field, false for a string field.
 	 * @return true if the field is available.
 	 */
