@@ -606,6 +606,14 @@ public:
 		vector<string>::iterator& begin, string defaultDest, string defaultCircuit,
 		const string& filename, unsigned int lineNo);
 
+	/**
+	 * Read the @a Condition instance(s) from the types field.
+	 * @param types the field from which to read the @a Condition instance(s).
+	 * @param filename the name of the file being read.
+	 * @param returnValue the variable in which to store the read instance.
+	 */
+	result_t readConditions(string& types, const string& filename, Condition*& condition);
+
 	// @copydoc
 	virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
 		DataFieldTemplates* arg, vector< vector<string> >* defaults,

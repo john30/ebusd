@@ -849,13 +849,8 @@ result_t MessageMap::addDefaultFromFile(vector< vector<string> >& defaults, vect
 	return FileReader::addDefaultFromFile(defaults, row, begin, defaultDest, defaultCircuit, filename, lineNo);
 }
 
-result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
-	DataFieldTemplates* arg, vector< vector<string> >* defaults,
-	const string& filename, unsigned int lineNo)
+result_t MessageMap::readConditions(string& types, const string& filename, Condition*& condition)
 {
-	vector<string>::iterator restart = begin;
-	Condition* condition = NULL;
-	string types = *restart;
 	size_t pos;
 	if (types.length()>0 && types[0]=='[' && (pos=types.find_last_of(']'))!=string::npos) {
 		// check if combined or simple condition is already known
@@ -886,13 +881,26 @@ result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<s
 			}
 		}
 	}
+	return RESULT_OK;
+}
+
+result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
+	DataFieldTemplates* arg, vector< vector<string> >* defaults,
+	const string& filename, unsigned int lineNo)
+{
+	vector<string>::iterator restart = begin;
+	string types = *restart;
+	Condition* condition = NULL;
+	result_t result = readConditions(types, filename, condition);
+	if (result!=RESULT_OK)
+		return result;
 
 	if (types.length() == 0)
 		types.append("r");
 	else if (types.find(']')!=string::npos)
 		return RESULT_ERR_INVALID_ARG;
 
-	result_t result = RESULT_ERR_EOF;
+	result = RESULT_ERR_EOF;
 	istringstream stream(types);
 	string type;
 	vector<Message*> messages;
