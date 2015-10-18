@@ -73,9 +73,10 @@ public:
 	{
 		ifstream ifs;
 		ifs.open(filename.c_str(), ifstream::in);
-		if (!ifs.is_open())
+		if (!ifs.is_open()) {
+			m_lastError = filename;
 			return RESULT_ERR_NOTFOUND;
-
+		}
 		string line;
 		size_t lastSep = filename.find_last_of('/');
 		size_t firstDot = filename.find_first_of('.');
@@ -250,6 +251,8 @@ private:
 
 	/** whether this instance supports rows with defaults (starting with a star). */
 	bool m_supportsDefaults;
+
+protected:
 
 	/** a @a string describing the last error position. */
 	string m_lastError;
