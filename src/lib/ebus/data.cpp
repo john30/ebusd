@@ -53,7 +53,7 @@ static const dataType_t dataTypes[] = {
 	{"HTI", 24, bt_tim,     REQ,          0,          8,          8,    0}, // time, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x17,0x3b,0x3b)
 	{"VTI", 24, bt_tim,     REV,       0x63,          8,          8,    0}, // time, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x3b,0x3b,0x17, replacement 0x63) [Vaillant type]
 	{"HTM", 16, bt_tim,     REQ,          0,          5,          5,    0}, // time as hh:mm, 00:00 - 23:59 (0x00,0x00 - 0x17,0x3b)
-	{"VTM", 16, bt_tim, REV|REQ,          0,          5,          5,    0}, // time as hh:mm, 00:00 - 23:59 (0x00,0x00 - 0x3b,0x17) [Vaillant type]
+	{"VTM", 16, bt_tim, REV|REQ,       0xff,          5,          5,    0}, // time as hh:mm, 00:00 - 23:59 (0x00,0x00 - 0x3b,0x17, replacement 0x63) [Vaillant type]
 	{"TTM",  8, bt_tim,       0,       0x90,          5,          5,   10}, // truncated time (only multiple of 10 minutes), 00:00 - 24:00 (minutes div 10 + hour * 6 as integer)
 	{"TTH",  8, bt_tim,       0,          0,          5,          5,   30}, // truncated time (only multiple of 30 minutes), 00:30 - 24:00 (minutes div 30 + hour * 2 as integer)
 	{"BDY",  8, bt_num, DAY|LST,       0x07,          0,          6,    1}, // weekday, "Mon" - "Sun" (0x00 - 0x06) [eBUS type]
@@ -1266,7 +1266,7 @@ DataFieldSet* DataFieldSet::createIdentFields()
 	manufacturers[0xb5] = "Vaillant";
 	manufacturers[0xc0] = "Toby";
 	manufacturers[0xc5] = "Weishaupt";
-	fields.push_back(new ValueListDataField("manufacturer", "", "", uchDataType, pt_slaveData, 1, 8, manufacturers));
+	fields.push_back(new ValueListDataField("manufacturer", "", "", uchDataType, pt_slaveData, 1, 8, manufacturers));//TODO static
 	fields.push_back(new StringDataField("id", "", "", stringDataType, pt_slaveData, 5));
 	fields.push_back(new NumberDataField("software", "", "", pinDataType, pt_slaveData, 2, 16, 0));
 	fields.push_back(new NumberDataField("hardware", "", "", pinDataType, pt_slaveData, 2, 16, 0));
