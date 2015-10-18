@@ -33,6 +33,8 @@
 using namespace std;
 
 class Condition;
+class SimpleCondition;
+class CombinedCondition;
 class MessageMap;
 
 /**
@@ -420,7 +422,7 @@ public:
 
 
 /**
- * Holds a reference to a @a Message as condition for another @a Message.
+ * An abstract condition based on the value of one or more @a Message instances.
  */
 class Condition
 {
@@ -428,16 +430,9 @@ public:
 
 	/**
 	 * Construct a new instance.
-	 * @param circuit the circuit name.
-	 * @param name the message name.
-	 * @param field the field name.
-	 * @param valueRanges the valid value ranges (pairs of from/to inclusive).
 	 */
-	Condition(const string circuit, const string name, const string field, const vector<unsigned int> valueRanges)
-		: m_circuit(circuit), m_name(name), m_field(field), m_valueRanges(valueRanges),
-		  m_message(NULL), m_lastCheckTime(0), m_isTrue(false) {
-//		cout << "condition " << circuit << " " << name << " " << field << ":" << static_cast<unsigned>(valueRanges.size()) << endl;
-	}
+	Condition()
+		: m_lastCheckTime(0), m_isTrue(false) { }
 
 	/**
 	 * Destructor.
@@ -451,27 +446,79 @@ public:
 	 * @param returnValue the variable in which to store the created instance.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	static result_t create(vector<string>::iterator& it, const vector<string>::iterator end, Condition*& returnValue);
+	static result_t create(vector<string>::iterator& it, const vector<string>::iterator end, SimpleCondition*& returnValue);
 
 	/**
-	 * Resolve the referred @a Message instance and field index.
-	 * @param messages the @a MessageMap instance for resolving the referred @a Message.
+	 * Combine this condition with another instance using a logical and.
+	 * @param other the @a Condition to combine with.
+	 */
+	virtual CombinedCondition* combineAnd(Condition* other) = 0;
+
+	/**
+	 * Resolve the referred @a Message instance(s) and field index(es).
+	 * @param messages the @a MessageMap instance for resolving.
 	 * @param errorMessage a @a ostringstream to which to add optional error messages.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	result_t resolve(MessageMap* messages, ostringstream& errorMessage);
-
-	/**
-	 * Get the resolved @a Message instance
-	 * @return the resolved @a Message instance, or NULL.
-	 */
-	Message* getMessage() { return m_message; }
+	virtual result_t resolve(MessageMap* messages, ostringstream& errorMessage) = 0;
 
 	/**
 	 * Check and return whether this condition is fulfilled.
 	 * @return whether this condition is fulfilled.
 	 */
-	bool isTrue();
+	virtual bool isTrue() = 0;
+
+protected:
+
+	/** the system time when the condition was last checked, 0 for never. */
+	time_t m_lastCheckTime;
+
+	/** whether the condition was @a true during the last check. */
+	bool m_isTrue;
+
+};
+
+
+/**
+ * A simple condition based on the value of one @a Message.
+ */
+class SimpleCondition : public Condition
+{
+public:
+
+	/**
+	 * Construct a new instance.
+	 * @param circuit the circuit name.
+	 * @param name the message name.
+	 * @param field the field name.
+	 * @param valueRanges the valid value ranges (pairs of from/to inclusive).
+	 */
+	SimpleCondition(const string circuit, const string name, const string field, const vector<unsigned int> valueRanges)
+		: Condition(),
+		  m_circuit(circuit), m_name(name), m_field(field), m_valueRanges(valueRanges),
+		  m_message(NULL) { }
+
+	/**
+	 * Destructor.
+	 */
+	virtual ~SimpleCondition() {}
+
+	// @copydoc
+	virtual CombinedCondition* combineAnd(Condition* other);
+
+	/**
+	 * Resolve the referred @a Message instance(s) and field index(es).
+	 * @param messages the @a MessageMap instance for resolving.
+	 * @param errorMessage a @a ostringstream to which to add optional error messages.
+	 * @return @a RESULT_OK on success, or an error code.
+	 */
+	virtual result_t resolve(MessageMap* messages, ostringstream& errorMessage);
+
+	/**
+	 * Check and return whether this condition is fulfilled.
+	 * @return whether this condition is fulfilled.
+	 */
+	virtual bool isTrue();
 
 private:
 
@@ -490,11 +537,40 @@ private:
 	/** the resolved @a Message instance, or NULL. */
 	Message* m_message;
 
-	/** the system time when the condition was last checked, 0 for never. */
-	time_t m_lastCheckTime;
+};
 
-	/** whether the condition was @a true during the last check. */
-	bool m_isTrue;
+
+/**
+ * A condition combining two or more @a SimpleCondition instances with a logical and.
+ */
+class CombinedCondition : public Condition
+{
+public:
+
+	/**
+	 * Construct a new instance.
+	 */
+	CombinedCondition()
+		: Condition() { }
+
+	/**
+	 * Destructor.
+	 */
+	virtual ~CombinedCondition() {}
+
+	// @copydoc
+	virtual CombinedCondition* combineAnd(Condition* other) { m_conditions.push_back(other); return this; }
+
+	// @copydoc
+	virtual result_t resolve(MessageMap* messages, ostringstream& errorMessage);
+
+	// @copydoc
+	virtual bool isTrue();
+
+private:
+
+	/** the @a Condition instances used. */
+	vector<Condition*> m_conditions;
 
 };
 
@@ -537,11 +613,10 @@ public:
 
 	/**
 	 * Resolve all @a Condition instances.
-	 * @param errorMessage a @a string reference to which to add an optional error message.
 	 * @param verbose whether to verbosely add all problems to the error message.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	result_t resolveConditions(string& errorMessage, bool verbose=false);
+	result_t resolveConditions(bool verbose=false);
 
 	/**
 	 * Find the @a Message instance for the specified circuit and name.

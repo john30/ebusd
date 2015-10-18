@@ -628,23 +628,23 @@ string strtolower(const string& str)
 }
 
 
-
-result_t Condition::create(vector<string>::iterator& it, const vector<string>::iterator end, Condition*& returnValue)
+result_t Condition::create(vector<string>::iterator& it, const vector<string>::iterator end, SimpleCondition*& returnValue)
 {
-	if (it==end)
+	// name,circuit,messagename,[comment],[fieldname],[ZZ],values   (name already skipped by caller)
+	if (it+6>end) {
+		it = end; // for error reporting
 		return RESULT_ERR_EOF;
-	string circuit = *(it++);
+	}
+	string circuit = *(it++); // circuit
 	if (circuit.length()==0)
 		return RESULT_ERR_INVALID_ARG;
-	if (it==end)
-		return RESULT_ERR_EOF;
-	string name = *(it++);
+	string name = *(it++); // messagename
 	if (name.length()==0)
 		return RESULT_ERR_INVALID_ARG;
-	if (it==end)
-		return RESULT_ERR_EOF;
-	string field = *(it++);
-
+	it++; // comment
+	string field = *(it++); // fieldname
+	string zz = *(it++); // ZZ
+//TODO use ZZ as optional param for ident, create ident message if necessary
 	istringstream stream(*(it++));
 	string str;
 	vector<unsigned int> valueRanges;
@@ -660,7 +660,7 @@ result_t Condition::create(vector<string>::iterator& it, const vector<string>::i
 			if (upto)
 				valueRanges.push_back(0);
 			bool inclusive = str[1]=='=';
-			unsigned int val = parseInt(str.substr(inclusive?2:1).c_str(), 10, 0, UINT_MAX, result);
+			unsigned int val = parseInt(str.substr(inclusive?2:1).c_str(), 10, inclusive?0:1, inclusive?UINT_MAX:(UINT_MAX-1), result);
 			if (result!=RESULT_OK)
 				return result;
 			valueRanges.push_back(inclusive ? val : (val+(upto?-1:1)));
@@ -681,19 +681,28 @@ result_t Condition::create(vector<string>::iterator& it, const vector<string>::i
 			if (result!=RESULT_OK)
 				return result;
 			valueRanges.push_back(val);
-			if (pos>0)
+			if (pos==0)
 				valueRanges.push_back(val); // single value
 		}
 	}
 	if (valueRanges.empty())
 		return RESULT_ERR_INVALID_LIST;
 
-	returnValue = new Condition(circuit, name, field, valueRanges);
+	returnValue = new SimpleCondition(circuit, name, field, valueRanges);
 	return RESULT_OK;
 }
 
-result_t Condition::resolve(MessageMap* messages, ostringstream& errorMessage)
+
+CombinedCondition* SimpleCondition::combineAnd(Condition* other)
 {
+	CombinedCondition* ret = new CombinedCondition();
+	return ret->combineAnd(this)->combineAnd(other);
+}
+
+result_t SimpleCondition::resolve(MessageMap* messages, ostringstream& errorMessage)
+{
+	if (m_message!=NULL)
+		return RESULT_OK; // already resolved
 	Message* message = messages->find(m_circuit, m_name, false);
 	if (!message)
 		message = messages->find(m_circuit, m_name, false, true);
@@ -708,10 +717,12 @@ result_t Condition::resolve(MessageMap* messages, ostringstream& errorMessage)
 		}
 	}
 	m_message = message;
+	message->setUsedByCondition();
+	messages->addPollMessage(message, true);
 	return RESULT_OK;
 }
 
-bool Condition::isTrue()
+bool SimpleCondition::isTrue()
 {
 	if (!m_message)
 		return false;
@@ -731,6 +742,27 @@ bool Condition::isTrue()
 		m_lastCheckTime = m_message->getLastChangeTime();
 	}
 	return m_isTrue;
+}
+
+
+result_t CombinedCondition::resolve(MessageMap* messages, ostringstream& errorMessage)
+{
+	for (vector<Condition*>::iterator it = m_conditions.begin(); it!=m_conditions.end(); it++) {
+		Condition* condition = *it;
+		result_t ret = condition->resolve(messages, errorMessage);
+		if (ret!=RESULT_OK)
+			return ret;
+	}
+	return RESULT_OK;
+}
+
+bool CombinedCondition::isTrue()
+{
+	for (vector<Condition*>::iterator it = m_conditions.begin(); it!=m_conditions.end(); it++) {
+		if (!(*it)->isTrue())
+			return false;
+	}
+	return true;
 }
 
 
@@ -802,7 +834,7 @@ result_t MessageMap::addDefaultFromFile(vector< vector<string> >& defaults, vect
 
 		if (row.size()>1 && defaultCircuit.length()>0 && row[1].length()==0)
 			row[1] = defaultCircuit; // set default circuit
-		Condition* condition = NULL;
+		SimpleCondition* condition = NULL;
 		result_t result = Condition::create(++begin, row.end(), condition);
 		if (result!=RESULT_OK) {
 			if (condition)
@@ -811,7 +843,6 @@ result_t MessageMap::addDefaultFromFile(vector< vector<string> >& defaults, vect
 		}
 		if (!condition)
 			return RESULT_ERR_INVALID_ARG;
-
 		m_conditions[key] = condition;
 		return RESULT_OK;
 	}
@@ -825,22 +856,43 @@ result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<s
 	vector<string>::iterator restart = begin;
 	Condition* condition = NULL;
 	string types = *restart;
-	if (types.length()>0 && types[0]=='[') {
-		// condition
-		size_t pos = types.find(']');
-		if (pos!=string::npos) {
-			string key = filename+":"+types.substr(1, pos-1);
-			map<string, Condition*>::iterator it = m_conditions.find(key); // TODO add support for global conditions without filename
-			if (it==m_conditions.end())
-				return RESULT_ERR_NOTFOUND;
+	size_t pos;
+	if (types.length()>0 && types[0]=='[' && (pos=types.find_last_of(']'))!=string::npos) {
+		// check if combined or simple condition is already known
+		const string combinedkey = filename+":"+types.substr(1, pos-1);
+		map<string, Condition*>::iterator it = m_conditions.find(combinedkey);
+		if (it!=m_conditions.end()) {
 			condition = it->second;
 			types = types.substr(pos+1);
+		} else {
+			bool store = false;
+			while ((pos=types.find(']'))!=string::npos) {
+				// simple condition
+				string key = filename+":"+types.substr(1, pos-1);
+				map<string, Condition*>::iterator it = m_conditions.find(key);
+				if (it==m_conditions.end())
+					return RESULT_ERR_NOTFOUND;
+				if (condition) {
+					condition = condition->combineAnd(it->second);
+					store = true;
+				} else
+					condition = it->second;
+				types = types.substr(pos+1);
+				if (types.length()==0 || types[0]!='[')
+					break;
+			}
+			if (store) {
+				m_conditions[combinedkey] = condition; // store combined condition
+			}
 		}
 	}
+
 	if (types.length() == 0)
 		types.append("r");
-	result_t result = RESULT_ERR_EOF;
+	else if (types.find(']')!=string::npos)
+		return RESULT_ERR_INVALID_ARG;
 
+	result_t result = RESULT_ERR_EOF;
 	istringstream stream(types);
 	string type;
 	vector<Message*> messages;
@@ -868,7 +920,7 @@ result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<s
 	return result;
 }
 
-result_t MessageMap::resolveConditions(string& errorMessage, bool verbose) {
+result_t MessageMap::resolveConditions(bool verbose) {
 	result_t overallResult = RESULT_OK;
 	ostringstream error;
 	for (map<string, Condition*>::iterator it = m_conditions.begin(); it != m_conditions.end(); it++) {
@@ -879,16 +931,12 @@ result_t MessageMap::resolveConditions(string& errorMessage, bool verbose) {
 				overallResult = result;
 				error << ", ";
 			} else {
-				errorMessage = error.str();
+				m_lastError = error.str();
 				return result;
 			}
-		} else {
-			Message* message = condition->getMessage();
-			message->setUsedByCondition();
-			addPollMessage(message, true);
 		}
 	}
-	errorMessage = error.str();
+	m_lastError = error.str();
 	return overallResult;
 }
 
@@ -1067,9 +1115,17 @@ void MessageMap::clear()
 		m_pollMessages.pop();
 	}
 	// free message instances
-	for (map<string, vector<Message*> >::iterator it = m_messagesByName.begin(); it != m_messagesByName.end(); it++) {
-		if (it->first[0] != '-') // avoid double free: instances stored multiple times have a key starting with "-"
-			it->second.clear();
+	for (map<string, vector<Message*> >::iterator mit = m_messagesByName.begin(); mit != m_messagesByName.end(); mit++) {
+		if (mit->first[0] != '-') { // avoid double free: instances stored multiple times have a key starting with "-"
+			vector<Message*> messages = mit->second;
+			for (vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++)
+				delete *it;
+			messages.clear();
+		}
+	}
+	// free condition instances
+	for (map<string, Condition*>::iterator it = m_conditions.begin(); it != m_conditions.end(); it++) {
+		delete it->second;
 	}
 	// clear messages by name
 	m_messageCount = 0;
