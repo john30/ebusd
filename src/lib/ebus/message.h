@@ -458,6 +458,7 @@ public:
 	/**
 	 * Combine this condition with another instance using a logical and.
 	 * @param other the @a Condition to combine with.
+	 * @return the @a CombinedCondition instance.
 	 */
 	virtual CombinedCondition* combineAnd(Condition* other) = 0;
 
@@ -621,7 +622,8 @@ public:
 	 * Read the @a Condition instance(s) from the types field.
 	 * @param types the field from which to read the @a Condition instance(s).
 	 * @param filename the name of the file being read.
-	 * @param returnValue the variable in which to store the read instance.
+	 * @param condition the variable in which to store the result.
+	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	result_t readConditions(string& types, const string& filename, Condition*& condition);
 
