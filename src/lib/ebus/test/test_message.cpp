@@ -43,10 +43,10 @@ void verify(bool expectFailMatch, string type, string input,
 
 int main()
 {
-	// message:  [type],[circuit],name,[comment],[QQ[;QQ]*],[ZZ],[PBSB],[ID],fields...
-	// field:    name,part,type[:len][,[divisor|values][,[unit][,[comment]]]]
-	// template: name,type[:len][,[divisor|values][,[unit][,[comment]]]]
-	// condition: name,circuit,messagename,[fieldname],values
+	// message:   [type],[circuit],name,[comment],[QQ[;QQ]*],[ZZ],[PBSB],[ID],fields...
+	// field:     name,part,type[:len][,[divisor|values][,[unit][,[comment]]]]
+	// template:  name,type[:len][,[divisor|values][,[unit][,[comment]]]]
+	// condition: name,circuit,messagename,[comment],[fieldname],[ZZ],values
 	string checks[][5] = {
 		// "message", "decoded", "master", "slave", "flags"
 		{"date,HDA:3,,,Datum", "", "", "", "template"},
@@ -79,7 +79,7 @@ int main()
 		{"r,ehp,bad,invalid pos,,50,B5ff,,,s,HEX:8;tempsensor;tempsensor;tempsensor;tempsensor;tempsensor;power;power,,,", "", "", "", "c" },
 		{"r,ehp,ApplianceCode,,,08,b509,0d4301,,,UCH,", "9", "ff08b509030d4301", "0109", "d" },
 		{"r,ehp,,,,08,b509,0d", "", "", "", "defaults" },
-		{"[brinetowater],ehp,ApplianceCode,,4;6;8;9;10", "", "", "", "condition" },
+		{"[brinetowater],ehp,ApplianceCode,,,,4;6;8;9;10", "", "", "", "condition" },
 		{"[airtowater]r,ehp,notavailable,,,,,0100,,,uch", "1", "ff08b509030d0100", "0101", "c" },
 		{"[brinetowater]r,ehp,available,,,,,0100,,,uch", "1", "ff08b509030d0100", "0101", "d" },
 	};
@@ -157,7 +157,7 @@ int main()
 			// store defaults or condition
 			vector<string>::iterator it = entries.begin();
 			size_t oldSize = conditions.size();
-			result = messages->addDefaultFromFile(defaultsRows, entries, it, "no file", 1);
+			result = messages->addDefaultFromFile(defaultsRows, entries, it, "", "", "no file", 1);
 			if (result != RESULT_OK)
 				cout << "\"" << check[0] << "\": defaults read error: " << getResultCode(result) << endl;
 			else if (it != entries.end())
@@ -168,10 +168,9 @@ int main()
 					if (conditions.size()==oldSize) {
 						cout << "  create condition error" << endl;
 					} else {
-						string error;
-						result = messages->resolveConditions(error);
+						result = messages->resolveConditions();
 						if (result != RESULT_OK)
-							cout << "  resolve conditions error: " << getResultCode(result) << " " << error << endl;
+							cout << "  resolve conditions error: " << getResultCode(result) << " " << messages->getLastError() << endl;
 						else
 							cout << "  resolve conditions OK" << endl;
 					}
@@ -189,8 +188,13 @@ int main()
 		}
 		else {
 			vector<string>::iterator it = entries.begin();
-
-			result = Message::create(it, entries.end(), &defaultsRows, &conditions, "no file", templates, deleteMessages);
+			string types = *it;
+			Condition* condition = NULL;
+			result = messages->readConditions(types, "no file", condition);
+			if (result==RESULT_OK) {
+				*it = types;
+				result = Message::create(it, entries.end(), &defaultsRows, condition, "no file", templates, deleteMessages);
+			}
 			if (failedCreate) {
 				if (result == RESULT_OK)
 					cout << "\"" << check[0] << "\": failed create error: unexpectedly succeeded" << endl;
