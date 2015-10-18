@@ -172,8 +172,14 @@ public:
 					ifs.close();
 					ostringstream error;
 					error << filename << ":" << static_cast<unsigned>(lineNo);
+					if (m_lastError.length()>0) {
+						error << ": " << m_lastError;
+					}
 					m_lastError = error.str();
 					return result;
+				}
+				if (m_lastError.length()>0) {
+					cout << m_lastError << endl;
 				}
 				printErrorPos(cout, row.begin(), end, it, filename, lineNo, result);
 			} else if (!verbose)
