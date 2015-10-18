@@ -534,10 +534,9 @@ result_t loadConfigFiles(DataFieldTemplates* templates, MessageMap* messages, bo
 	else
 		logError(lf_main, "error reading config files: %s, %s", getResultCode(result), messages->getLastError().c_str());
 
-	string error;
-	result = messages->resolveConditions(error, verbose);
+	result = messages->resolveConditions(verbose);
 	if (result != RESULT_OK)
-		logError(lf_main, "error resolving conditions: %s, %s", getResultCode(result), error.c_str());
+		logError(lf_main, "error resolving conditions: %s, %s", getResultCode(result), messages->getLastError().c_str());
 
 	logNotice(lf_main, "found messages: %d (%d conditional on %d conditions, %d poll, %d update)", messages->size(), messages->sizeConditional(), messages->sizeConditions(), messages->sizePoll(), messages->sizePassive());
 
