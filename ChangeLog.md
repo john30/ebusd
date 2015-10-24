@@ -1,4 +1,4 @@
-# next version
+# 1.3.0 (2015-10-24)
 
 ## Breaking Changes
 * started with a new git repository for working on 2.0 version (previous repository was renamed to ebusd1)
@@ -13,6 +13,7 @@
 * corrected derivation of field name, comment and unit in templates
 * check invalid divisor/values for string and value list based types
 * fix for overriding destination address in read command
+* fix for cached master data
 
 ## Features
 * new "read" option "-n" for retrieving name/value pairs in numeric form
@@ -31,9 +32,13 @@
 * added "info" command
 * added circuit and name to verbose "read" output
 * added option to pass additional input data to "read" command
+* added messages without dedicated destination and cached data decoding error to "find" result
+* new "write" option "-d" for overriding destination address
+* allow CSV file name to define default destination address and circuit name (format "ZZ.CCCCC.csv") and if present, concat default circuit name and security suffix (circuit name in CSV starting with "#")
+
 
 ## Changed files
-https://github.com/john30/ebusd/compare/v1.2.0...master
+https://github.com/john30/ebusd/compare/v1.2.0...v1.3.0
 
 
 # 1.2.0 (2015-05-25)
