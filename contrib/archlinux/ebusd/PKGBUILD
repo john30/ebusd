@@ -2,8 +2,8 @@
 # Contributor: Milan Knizek <knizek volny cz>
 
 pkgname=ebusd
-pkgver=1.2.0
-_pkgver=1.2.0
+pkgver=1.3.0
+_pkgver=1.3.0
 pkgrel=1
 pkgdesc="ebusd provides a communication interface to the energy bus (ebus)."
 arch=('i686' 'x86_64' 'armv6h')
