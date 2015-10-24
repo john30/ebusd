@@ -85,7 +85,7 @@ public:
 		if (lastSep!=string::npos && firstDot==lastSep+1+2) { // potential destination address, matches "^ZZ."
 			result_t result;
 			defaultDest = filename.substr(lastSep+1, 2);
-			int zz = parseInt(defaultDest.c_str(), 16, 0, 0xff, result, NULL);
+			unsigned char zz = (unsigned char)parseInt(defaultDest.c_str(), 16, 0, 0xff, result, NULL);
 			if (result!=RESULT_OK || !isValidAddress(zz))
 				defaultDest = ""; // invalid: not in hex or no master/slave/broadcast address
 			else {
