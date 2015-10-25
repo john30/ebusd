@@ -45,15 +45,15 @@ static const dataType_t dataTypes[] = {
 	{"IGN",MAX_POS*8,bt_str, IGN|ADJ,     0,          1,    MAX_POS,    0}, // >= 1 byte ignored data
 	stringDataType,
 	{"HEX",MAX_POS*8,bt_hexstr,  ADJ,     0,          2,         47,    0}, // >= 1 byte hex digit string, usually separated by space, e.g. 0a 1b 2c 3d
-	{"BDA", 32, bt_dat,     BCD,          0,         10,         10,    0}, // date with weekday in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is weekday Mon=0x00 - Sun=0x06)
-	{"BDA", 24, bt_dat,     BCD,          0,         10,         10,    0}, // date in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99)
-	{"HDA", 32, bt_dat,       0,          0,         10,         10,    0}, // date with weekday, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x1f,0x0c,WW,0x63, WW is weekday Mon=0x01 - Sun=0x07))
-	{"HDA", 24, bt_dat,       0,          0,         10,         10,    0}, // date, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x1f,0x0c,0x63)
-	{"BTI", 24, bt_tim, BCD|REV|REQ,      0,          8,          8,    0}, // time in BCD, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x59,0x59,0x23)
-	{"HTI", 24, bt_tim,     REQ,          0,          8,          8,    0}, // time, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x17,0x3b,0x3b)
+	{"BDA", 32, bt_dat,     BCD,       0xff,         10,         10,    0}, // date with weekday in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is weekday Mon=0x00 - Sun=0x06)
+	{"BDA", 24, bt_dat,     BCD,       0xff,         10,         10,    0}, // date in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99)
+	{"HDA", 32, bt_dat,       0,       0xff,         10,         10,    0}, // date with weekday, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x1f,0x0c,WW,0x63, WW is weekday Mon=0x01 - Sun=0x07))
+	{"HDA", 24, bt_dat,       0,       0xff,         10,         10,    0}, // date, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x1f,0x0c,0x63)
+	{"BTI", 24, bt_tim, BCD|REV|REQ,   0xff,          8,          8,    0}, // time in BCD, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x59,0x59,0x23)
+	{"HTI", 24, bt_tim,     REQ,       0xff,          8,          8,    0}, // time, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x17,0x3b,0x3b)
 	{"VTI", 24, bt_tim,     REV,       0x63,          8,          8,    0}, // time, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x3b,0x3b,0x17, replacement 0x63) [Vaillant type]
-	{"HTM", 16, bt_tim,     REQ,          0,          5,          5,    0}, // time as hh:mm, 00:00 - 23:59 (0x00,0x00 - 0x17,0x3b)
-	{"VTM", 16, bt_tim, REV|REQ,       0xff,          5,          5,    0}, // time as hh:mm, 00:00 - 23:59 (0x00,0x00 - 0x3b,0x17, replacement 0x63) [Vaillant type]
+	{"HTM", 16, bt_tim,     REQ,       0xff,          5,          5,    0}, // time as hh:mm, 00:00 - 23:59 (0x00,0x00 - 0x17,0x3b)
+	{"VTM", 16, bt_tim, REV|REQ,       0xff,          5,          5,    0}, // time as hh:mm, 00:00 - 23:59 (0x00,0x00 - 0x3b,0x17, replacement 0xff) [Vaillant type]
 	{"TTM",  8, bt_tim,       0,       0x90,          5,          5,   10}, // truncated time (only multiple of 10 minutes), 00:00 - 24:00 (minutes div 10 + hour * 6 as integer)
 	{"TTH",  8, bt_tim,       0,          0,          5,          5,   30}, // truncated time (only multiple of 30 minutes), 00:30 - 24:00 (minutes div 30 + hour * 2 as integer)
 	{"BDY",  8, bt_num, DAY|LST,       0x07,          0,          6,    1}, // weekday, "Mon" - "Sun" (0x00 - 0x06) [eBUS type]
@@ -1238,39 +1238,44 @@ result_t ValueListDataField::writeSymbols(istringstream& input,
 }
 
 
-DataFieldSet* DataFieldSet::createIdentFields()
+DataFieldSet* DataFieldSet::s_identFields = NULL;
+
+DataFieldSet* DataFieldSet::getIdentFields()
 {
-	vector<SingleDataField*> fields;
-	map<unsigned int, string> manufacturers;
-	manufacturers[0x06] = "Dungs";
-	manufacturers[0x0f] = "FH Ostfalia";
-	manufacturers[0x10] = "TEM";
-	manufacturers[0x11] = "Lamberti";
-	manufacturers[0x14] = "CEB";
-	manufacturers[0x15] = "Landis-Staefa";
-	manufacturers[0x16] = "FERRO";
-	manufacturers[0x17] = "MONDIAL";
-	manufacturers[0x18] = "Wikon";
-	manufacturers[0x19] = "Wolf";
-	manufacturers[0x20] = "RAWE";
-	manufacturers[0x30] = "Satronic";
-	manufacturers[0x40] = "ENCON";
-	manufacturers[0x50] = "Kromschröder";
-	manufacturers[0x60] = "Eberle";
-	manufacturers[0x65] = "EBV";
-	manufacturers[0x75] = "Grässlin";
-	manufacturers[0x85] = "ebm-papst";
-	manufacturers[0x95] = "SIG";
-	manufacturers[0xa5] = "Theben";
-	manufacturers[0xa7] = "Thermowatt";
-	manufacturers[0xb5] = "Vaillant";
-	manufacturers[0xc0] = "Toby";
-	manufacturers[0xc5] = "Weishaupt";
-	fields.push_back(new ValueListDataField("manufacturer", "", "", uchDataType, pt_slaveData, 1, 8, manufacturers));//TODO static
-	fields.push_back(new StringDataField("id", "", "", stringDataType, pt_slaveData, 5));
-	fields.push_back(new NumberDataField("software", "", "", pinDataType, pt_slaveData, 2, 16, 0));
-	fields.push_back(new NumberDataField("hardware", "", "", pinDataType, pt_slaveData, 2, 16, 0));
-	return new DataFieldSet("ident", "", fields);
+	if (s_identFields==NULL) {
+		map<unsigned int, string> manufacturers;
+		manufacturers[0x06] = "Dungs";
+		manufacturers[0x0f] = "FH Ostfalia";
+		manufacturers[0x10] = "TEM";
+		manufacturers[0x11] = "Lamberti";
+		manufacturers[0x14] = "CEB";
+		manufacturers[0x15] = "Landis-Staefa";
+		manufacturers[0x16] = "FERRO";
+		manufacturers[0x17] = "MONDIAL";
+		manufacturers[0x18] = "Wikon";
+		manufacturers[0x19] = "Wolf";
+		manufacturers[0x20] = "RAWE";
+		manufacturers[0x30] = "Satronic";
+		manufacturers[0x40] = "ENCON";
+		manufacturers[0x50] = "Kromschröder";
+		manufacturers[0x60] = "Eberle";
+		manufacturers[0x65] = "EBV";
+		manufacturers[0x75] = "Grässlin";
+		manufacturers[0x85] = "ebm-papst";
+		manufacturers[0x95] = "SIG";
+		manufacturers[0xa5] = "Theben";
+		manufacturers[0xa7] = "Thermowatt";
+		manufacturers[0xb5] = "Vaillant";
+		manufacturers[0xc0] = "Toby";
+		manufacturers[0xc5] = "Weishaupt";
+		vector<SingleDataField*> fields;
+		fields.push_back(new ValueListDataField("manufacturer", "", "", uchDataType, pt_slaveData, 1, 8, manufacturers));
+		fields.push_back(new StringDataField("id", "", "", stringDataType, pt_slaveData, 5));
+		fields.push_back(new NumberDataField("software", "", "", pinDataType, pt_slaveData, 2, 16, 0));
+		fields.push_back(new NumberDataField("hardware", "", "", pinDataType, pt_slaveData, 2, 16, 0));
+		s_identFields = new DataFieldSet("ident", "", fields);
+	}
+	return s_identFields;
 }
 
 DataFieldSet::~DataFieldSet()

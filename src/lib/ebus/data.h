@@ -671,10 +671,16 @@ class DataFieldSet : public DataField
 public:
 
 	/**
-	 * Create the @a DataFieldSet for parsing the identification message (service 0x07 0x04).
-	 * @return the @a DataFieldSet for parsing the identification message.
+	 * Get the @a DataFieldSet for parsing the identification message (service 0x07 0x04).
+	 * @return the @a DataFieldSet for parsing the identification message. This is:<ul>
+	 * <li>manufacturer name (list of known values)</li>
+	 * <li>identification string (5 characters)</li>
+	 * <li>software version number (0000-9999)</li>
+	 * <li>hardware version number (0000-9999)</li>
+	 * </ul>
+	 * Note: the returned value may only be deleted once.
 	 */
-	static DataFieldSet* createIdentFields();
+	static DataFieldSet* getIdentFields();
 
 	/**
 	 * Constructs a new instance.
@@ -744,6 +750,9 @@ public:
 			unsigned char offset, char separator=UI_FIELD_SEPARATOR);
 
 private:
+
+	/** the @a DataFieldSet containing the ident message @a SingleDataField instances, or NULL. */
+	static DataFieldSet* s_identFields;
 
 	/** the @a vector of @a SingleDataField instances part of this set. */
 	vector<SingleDataField*> m_fields;
