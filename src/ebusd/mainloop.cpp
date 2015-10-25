@@ -115,12 +115,16 @@ void MainLoop::run()
 			logDebug(lf_main, ">>> %s", request.c_str());
 			result = decodeMessage(request, message->isHttp(), connected, listening, running);
 
+			if (result.length() == 0 && !message->isHttp())
+				result = getResultCode(RESULT_EMPTY);
+
 			if (result.length() > 100)
 				logDebug(lf_main, "<<< %s ...", result.substr(0, 100).c_str());
 			else
 				logDebug(lf_main, "<<< %s", result.c_str());
+
 			if (result.length() == 0)
-				result = "\n";
+				result = "\n"; // only for HTTP
 			else if (!message->isHttp())
 				result += "\n\n";
 		}
