@@ -625,7 +625,6 @@ result_t BusHandler::handleSymbol()
 
 	return RESULT_OK;
 }
-
 result_t BusHandler::setState(BusState state, result_t result, bool firstRepetition)
 {
 	if (m_currentRequest != NULL) {
@@ -811,10 +810,8 @@ result_t BusHandler::startScan(bool full)
 			break;
 		}
 	}
-	if (scanMessage == NULL) {
-		DataFieldSet* identFields = DataFieldSet::createIdentFields();
-		scanMessage = m_scanMessage = new Message(false, false, 0x07, 0x04, identFields);
-	}
+	if (scanMessage == NULL)
+		scanMessage = m_scanMessage;
 	if (scanMessage == NULL)
 		return RESULT_ERR_NOTFOUND;
 

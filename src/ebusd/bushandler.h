@@ -281,6 +281,7 @@ public:
 		  m_command(false), m_commandCrcValid(false), m_response(false), m_responseCrcValid(false),
 		  m_scanMessage(NULL), m_grabUnknownMessages(false) {
 		memset(m_seenAddresses, 0, sizeof(m_seenAddresses));
+		m_scanMessage = new Message(false, false, 0x07, 0x04, DataFieldSet::getIdentFields(), true);
 	}
 
 	/**
