@@ -66,14 +66,13 @@ Message::Message(const string circuit, const string name, const bool isWrite,
 
 Message::Message(const bool isWrite, const bool isPassive,
 		const unsigned char pb, const unsigned char sb,
-		DataField* data,
-		Condition* condition)
+		DataField* data, const bool deleteData)
 		: m_circuit(), m_name(), m_isWrite(isWrite),
 		  m_isPassive(isPassive), m_comment(),
 		  m_srcAddress(SYN), m_dstAddress(SYN),
 		  m_data(data), m_deleteData(true),
 		  m_pollPriority(0),
-		  m_usedByCondition(false), m_condition(condition),
+		  m_usedByCondition(false), m_condition(NULL),
 		  m_lastUpdateTime(0), m_lastChangeTime(0), m_pollCount(0), m_lastPollTime(0)
 {
 	m_id.push_back(pb);
@@ -301,6 +300,11 @@ Message* Message::derive(const unsigned char dstAddress)
 		m_srcAddress, dstAddress,
 		m_id, m_data, false,
 		m_pollPriority, m_condition);
+}
+
+unsigned long long Message::getDerivedKey(const unsigned char dstAddress)
+{
+	return (m_key & ~(0xffLL << (8*6))) | (unsigned long long)dstAddress << (8*6);
 }
 
 bool Message::setPollPriority(unsigned char priority)
@@ -636,6 +640,13 @@ string strtolower(const string& str)
 	return ret;
 }
 
+Message* getFirstAvailable(vector<Message*> &messages) {
+	for (vector<Message*>::iterator msgIt = messages.begin(); msgIt != messages.end(); msgIt++)
+		if ((*msgIt)->isAvailable())
+			return *msgIt;
+	return NULL;
+}
+
 
 result_t Condition::create(vector<string>::iterator& it, const vector<string>::iterator end, SimpleCondition*& returnValue)
 {
@@ -733,8 +744,19 @@ result_t SimpleCondition::resolve(MessageMap* messages, ostringstream& errorMess
 			errorMessage << "condition " << m_circuit << " " << m_name << ": destination address missing";
 			return RESULT_ERR_INVALID_ADDR;
 		}
-		// clone the message with dedicated dstAddress
-		message = message->derive(m_dstAddress);
+		// clone the message with dedicated dstAddress if necessary
+		unsigned long long key = message->getDerivedKey(m_dstAddress);
+		vector<Message*>* derived = messages->getByKey(key);
+		if (derived==NULL) {
+			message = message->derive(m_dstAddress);
+			messages->add(message);
+		} else {
+			message = getFirstAvailable(*derived);
+			if (message==NULL) {
+				errorMessage << "condition " << m_circuit << " " << m_name << ": conditional derived message";
+				return RESULT_ERR_INVALID_ARG;
+			}
+		}
 	}
 
 	if (!m_valueRanges.empty()) {
@@ -800,24 +822,28 @@ result_t MessageMap::add(Message* message)
 {
 	unsigned long long key = message->getKey();
 	bool conditional = message->isConditional();
-	map<unsigned long long, vector<Message*> >::iterator keyIt = m_messagesByKey.find(key);
-	if (keyIt != m_messagesByKey.end()) {
-		if (!conditional)
-			return RESULT_ERR_DUPLICATE; // duplicate key
-		vector<Message*>* messages = &keyIt->second;
-		if (!messages->front()->isConditional())
-			return RESULT_ERR_DUPLICATE; // duplicate key
+	if (!m_addAll) {
+		map<unsigned long long, vector<Message*> >::iterator keyIt = m_messagesByKey.find(key);
+		if (keyIt != m_messagesByKey.end()) {
+			if (!conditional)
+				return RESULT_ERR_DUPLICATE; // duplicate key
+			vector<Message*>* messages = &keyIt->second;
+			if (!messages->front()->isConditional())
+				return RESULT_ERR_DUPLICATE; // duplicate key
+		}
 	}
 	bool isPassive = message->isPassive();
 	bool isWrite = message->isWrite();
 	string circuit = strtolower(message->getCircuit());
 	string name = strtolower(message->getName());
 	string nameKey = string(isPassive ? "P" : (isWrite ? "W" : "R")) + circuit + FIELD_SEPARATOR + name;
-	map<string, vector<Message*> >::iterator nameIt = m_messagesByName.find(nameKey);
-	if (nameIt != m_messagesByName.end()) {
-		vector<Message*>* messages = &nameIt->second;
-		if (!messages->front()->isConditional() || !message->isConditional())
-			return RESULT_ERR_DUPLICATE_NAME; // duplicate key
+	if (!m_addAll) {
+		map<string, vector<Message*> >::iterator nameIt = m_messagesByName.find(nameKey);
+		if (nameIt != m_messagesByName.end()) {
+			vector<Message*>* messages = &nameIt->second;
+			if (!message->isConditional() || !messages->front()->isConditional())
+				return RESULT_ERR_DUPLICATE_NAME; // duplicate key
+		}
 	}
 	m_messagesByName[nameKey].push_back(message);
 	m_messageCount++;
@@ -827,13 +853,16 @@ result_t MessageMap::add(Message* message)
 		m_passiveMessageCount++;
 
 	nameKey = string(isPassive ? "-P" : (isWrite ? "-W" : "-R")) + name; // also store without circuit
-	nameIt = m_messagesByName.find(nameKey);
+	map<string, vector<Message*> >::iterator nameIt = m_messagesByName.find(nameKey);
 	if (nameIt == m_messagesByName.end())
-		m_messagesByName[nameKey].push_back(message); // always store first message without circuit
+		m_messagesByName[nameKey].push_back(message); // always store first message without circuit (in order of circuit name)
 	else {
 		vector<Message*>* messages = &nameIt->second;
-		if (messages->front()->isConditional() && conditional)
-			m_messagesByName[nameKey].push_back(message); // store further messages only if both are conditional
+		Message* first = messages->front();
+		if (circuit < first->getCircuit())
+			m_messagesByName[nameKey].at(0) = message; // always store first message without circuit (in order of circuit name)
+		else if (m_addAll || (conditional && first->isConditional()))
+			m_messagesByName[nameKey].push_back(message); // store further messages only if both are conditional or if storing everything
 	}
 	unsigned char idLength = (unsigned char)(message->getId().size() - 2);
 	if (idLength < m_minIdLength)
@@ -984,10 +1013,10 @@ result_t MessageMap::resolveConditions(bool verbose) {
 	return overallResult;
 }
 
-Message* getFirstAvailable(vector<Message*> &messages) {
-	for (vector<Message*>::iterator msgIt = messages.begin(); msgIt != messages.end(); msgIt++)
-		if ((*msgIt)->isAvailable())
-			return *msgIt;
+vector<Message*>* MessageMap::getByKey(const unsigned long long key) {
+	map<unsigned long long, vector<Message*> >::iterator it = m_messagesByKey.find(key);
+	if (it != m_messagesByKey.end())
+		return &it->second;
 	return NULL;
 }
 

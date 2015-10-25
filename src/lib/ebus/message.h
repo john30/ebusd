@@ -77,12 +77,11 @@ public:
 	 * @param pb the primary ID byte.
 	 * @param sb the secondary ID byte.
 	 * @param data the @a DataField for encoding/decoding the message.
-	 * @param condition the @a Condition for this message, or NULL.
+	 * @param deleteData whether to delete the @a DataField during destruction.
 	 */
 	Message(const bool isWrite, const bool isPassive,
 			const unsigned char pb, const unsigned char sb,
-			DataField* data,
-			Condition* condition=NULL);
+			DataField* data, const bool deleteData);
 
 	/**
 	 * Destructor.
@@ -166,6 +165,13 @@ public:
 	 * @return the key for storing in @a MessageMap.
 	 */
 	unsigned long long getKey() { return m_key; }
+
+	/**
+	 * Return the derived key for storing in @a MessageMap.
+	 * @param dstAddress the destination address for the derivation.
+	 * @return the derived key for storing in @a MessageMap.
+	 */
+	unsigned long long getDerivedKey(const unsigned char dstAddress);
 
 	/**
 	 * Get the polling priority, or 0 for no polling at all.
@@ -596,9 +602,10 @@ public:
 
 	/**
 	 * Construct a new instance.
+	 * @param addAll whether to add all messages, even if duplicate.
 	 */
-	MessageMap() : FileReader<DataFieldTemplates*>::FileReader(true),
-		m_minIdLength(4), m_maxIdLength(0), m_messageCount(0), m_conditionalMessageCount(0), m_passiveMessageCount(0) {}
+	MessageMap(const bool addAll=false) : FileReader<DataFieldTemplates*>::FileReader(true),
+		m_addAll(addAll), m_minIdLength(4), m_maxIdLength(0), m_messageCount(0), m_conditionalMessageCount(0), m_passiveMessageCount(0) {}
 
 	/**
 	 * Destructor.
@@ -638,6 +645,14 @@ public:
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	result_t resolveConditions(bool verbose=false);
+
+	/**
+	 * Get the stored @a Message instances for the key.
+	 * @param key the key of the @a Message.
+	 * @return the found @a Message instances, or NULL.
+	 * Note: the caller may not free the returned instances.
+	 */
+	vector<Message*>* getByKey(const unsigned long long key);
 
 	/**
 	 * Find the @a Message instance for the specified circuit and name.
@@ -749,6 +764,9 @@ public:
 	void dump(ostream& output);
 
 private:
+
+	/** whether to add all messages, even if duplicate. */
+	const bool m_addAll;
 
 	/** the minimum ID length used by any of the known @a Message instances. */
 	unsigned char m_minIdLength;
