@@ -29,6 +29,8 @@
 #include <argp.h>
 #include <csignal>
 #include <iostream>
+#include <algorithm>
+#include <iomanip>
 #include <dirent.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -66,6 +68,7 @@ static struct options opt = {
 	false, // noDeviceCheck
 	false, // readonly
 	CONFIG_PATH, // configPath
+	false, // scanConfig
 	0, // checkConfig
 	5, // pollInterval
 	0xFF, // address
@@ -101,24 +104,24 @@ const char *argp_program_bug_address = ""PACKAGE_BUGREPORT"";
 static const char argpdoc[] =
 	"A daemon for access to eBUS devices.";
 
-#define O_CHKCFG  1
-#define O_DMPCFG  2
-#define O_POLINT  3
-#define O_ANSWER  4
-#define O_ACQTIM  5
-#define O_ACQRET  6
-#define O_SNDRET  7
-#define O_RCVTIM  8
-#define O_MASCNT  9
-#define O_GENSYN 10
-#define O_LOCAL  11
-#define O_HTTPPT 12
-#define O_HTMLPA 13
-#define O_LOGARE 14
-#define O_LOGLEV 15
-#define O_LOGRAW 16
-#define O_DMPFIL 17
-#define O_DMPSIZ 18
+#define O_CHKCFG 1
+#define O_DMPCFG (O_CHKCFG+1)
+#define O_POLINT (O_DMPCFG+1)
+#define O_ANSWER (O_POLINT+1)
+#define O_ACQTIM (O_ANSWER+1)
+#define O_ACQRET (O_ACQTIM+1)
+#define O_SNDRET (O_ACQRET+1)
+#define O_RCVTIM (O_SNDRET+1)
+#define O_MASCNT (O_RCVTIM+1)
+#define O_GENSYN (O_MASCNT+1)
+#define O_LOCAL  (O_GENSYN+1)
+#define O_HTTPPT (O_LOCAL+1)
+#define O_HTMLPA (O_HTTPPT+1)
+#define O_LOGARE (O_HTMLPA+1)
+#define O_LOGLEV (O_LOGARE+1)
+#define O_LOGRAW (O_LOGLEV+1)
+#define O_DMPFIL (O_LOGRAW+1)
+#define O_DMPSIZ (O_DMPFIL+1)
 
 /** the definition of the known program arguments. */
 static const struct argp_option argpoptions[] = {
@@ -129,6 +132,7 @@ static const struct argp_option argpoptions[] = {
 
 	{NULL,             0,        NULL,    0, "Message configuration options:", 2 },
 	{"configpath",     'c',      "PATH",  0, "Read CSV config files from PATH [" CONFIG_PATH "]", 0 },
+	{"scanconfig",     's',      NULL,    0, "Pick CSV config files matching initial scan", 0 },
 	{"checkconfig",    O_CHKCFG, NULL,    0, "Check CSV config files, then stop", 0 },
 	{"dumpconfig",     O_DMPCFG, NULL,    0, "Check and dump CSV config files, then stop", 0 },
 	{"pollinterval",   O_POLINT, "SEC",   0, "Poll for data every SEC seconds (0=disable) [5]", 0 },
@@ -189,6 +193,10 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 		break;
 	case 'r': // --readonly
 		opt->readonly = true;
+		if (opt->scanConfig || opt->answer || opt->generateSyn) {
+			argp_error(state, "cannot combine readonly with scanconfig/answer/generatesyn");
+			return EINVAL;
+		}
 		break;
 
 	// Message configuration options:
@@ -199,8 +207,16 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 		}
 		opt->configPath = arg;
 		break;
+	case 's': // --scanconfig
+		opt->scanConfig = true;
+		if (opt->readonly) {
+			argp_error(state, "cannot combine readonly with scanconfig/answer/generatesyn");
+			return EINVAL;
+		}
+		break;
 	case O_CHKCFG: // --checkconfig
-		opt->checkConfig = 1;
+		if (opt->checkConfig==0)
+			opt->checkConfig = 1;
 		break;
 	case O_DMPCFG: // --dumpconfig
 		opt->checkConfig = 2;
@@ -223,6 +239,10 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 		break;
 	case O_ANSWER: // --answer
 		opt->answer = true;
+		if (opt->readonly) {
+			argp_error(state, "cannot combine readonly with scanconfig/answer/generatesyn");
+			return EINVAL;
+		}
 		break;
 	case O_ACQTIM: // --acquiretimeout=9400
 		opt->acquireTimeout = parseInt(arg, 10, 1000, 100000, result);
@@ -261,6 +281,10 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 		break;
 	case O_GENSYN: // --generatesyn
 		opt->generateSyn = true;
+		if (opt->readonly) {
+			argp_error(state, "cannot combine readonly with scanconfig/answer/generatesyn");
+			return EINVAL;
+		}
 		break;
 
 	// Daemon options:
@@ -457,48 +481,69 @@ void signalHandler(int sig)
 }
 
 /**
- * Read the configuration files recursively from the specified path.
- * @param path the path from which to read the files.
- * @param extension the filename extension of the files to read.
- * @param logFunc the function to call for logging, or @a NULL to be silent.
- * @param templates the available @a DataFieldTemplates.
- * @param messages the @a MessageMap to load the messages into.
- * @param verbose whether to verbosely log problems.
+ * Collect configuration files matching the prefix and extension from the specified path.
+ * @param path the path from which to collect the files.
+ * @param prefix the filename prefix the files have to match, or empty.
+ * @param extension the filename extension the files have to match.
+ * @param files the @a vector to which to add the matching files.
+ * @param dirs the @a vector to which to add found directories (without any name check), or NULL to ignore.
  * @return the result code.
  */
-static result_t readConfigFiles(const string path, const string extension, DataFieldTemplates* templates, MessageMap* messages, bool verbose)
+static result_t collectConfigFiles(const string path, const string prefix, const string extension, vector<string>& files, vector<string>* dirs=NULL)
 {
+
 	DIR* dir = opendir(path.c_str());
 
 	if (dir == NULL)
 		return RESULT_ERR_NOTFOUND;
 
 	dirent* d;
-	vector<string> files, dirs;
 	while ((d = readdir(dir)) != NULL) {
-		string fn = d->d_name;
+		string name = d->d_name;
 
-		if (fn == "." || fn == "..")
+		if (name == "." || name == "..")
 			continue;
 
-		const string p = path + "/" + d->d_name;
+		const string p = path + "/" + name;
 		struct stat stat_buf;
 
 		if (stat(p.c_str(), &stat_buf) != 0)
 			continue;
 
 		if (S_ISDIR(stat_buf.st_mode)) {
-			dirs.push_back(p);
+			if (dirs!=NULL)
+				dirs->push_back(p);
 		} else if (S_ISREG(stat_buf.st_mode)) {
-			if (fn.find(extension, (fn.length() - extension.length())) != string::npos
-				&& fn != "_templates" + extension) {
+			if ((prefix.length()==0 || (name.length()>=prefix.length() && name.substr(0, prefix.length())==prefix))
+			&& name.length()>=extension.length()
+			&& name.substr(name.length()-extension.length())==extension
+			&& name!="_templates"+extension) {
 				files.push_back(p);
 			}
 		}
 	}
 	closedir(dir);
 
-	sort(files.begin(), files.end());
+	return RESULT_OK;
+}
+
+/**
+ * Read the configuration files from the specified path.
+ * @param path the path from which to read the files.
+ * @param extension the filename extension of the files to read.
+ * @param templates the available @a DataFieldTemplates.
+ * @param messages the @a MessageMap to load the messages into.
+ * @param recursive whether to load all files recursively.
+ * @param verbose whether to verbosely log problems.
+ * @return the result code.
+ */
+static result_t readConfigFiles(const string path, const string extension, DataFieldTemplates* templates, MessageMap* messages, bool recursive, bool verbose)
+{
+	vector<string> files, dirs;
+	result_t result = collectConfigFiles(path, "", extension, files, &dirs);
+	if (result!=RESULT_OK)
+		return result;
+
 	for (vector<string>::iterator it = files.begin(); it != files.end(); it++) {
 		string name = *it;
 		logInfo(lf_main, "reading file %s", name.c_str());
@@ -506,19 +551,20 @@ static result_t readConfigFiles(const string path, const string extension, DataF
 		if (result != RESULT_OK)
 			return result;
 	}
-	sort(dirs.begin(), dirs.end());
-	for (vector<string>::iterator it = dirs.begin(); it != dirs.end(); it++) {
-		string name = *it;
-		logInfo(lf_main, "reading dir  %s", name.c_str());
-		result_t result = readConfigFiles(name, extension, templates, messages, verbose);
-		if (result != RESULT_OK)
-			return result;
+	if (recursive) {
+		for (vector<string>::iterator it = dirs.begin(); it != dirs.end(); it++) {
+			string name = *it;
+			logInfo(lf_main, "reading dir  %s", name.c_str());
+			result_t result = readConfigFiles(name, extension, templates, messages, true, verbose);
+			if (result != RESULT_OK)
+				return result;
+		}
 	}
 	return RESULT_OK;
 };
 
-result_t loadConfigFiles(DataFieldTemplates* templates, MessageMap* messages, bool verbose) {
-	logInfo(lf_main, "path to configuration files: %s", opt.configPath);
+result_t loadConfigFiles(DataFieldTemplates* templates, MessageMap* messages, bool recursive, bool verbose) {
+	logInfo(lf_main, "loading configuration files from %s", opt.configPath);
 	string path = string(opt.configPath);
 	messages->clear();
 	templates->clear();
@@ -528,7 +574,7 @@ result_t loadConfigFiles(DataFieldTemplates* templates, MessageMap* messages, bo
 	else
 		logError(lf_main, "error reading templates: %s, %s", getResultCode(result), templates->getLastError().c_str());
 
-	result = readConfigFiles(path, ".csv", templates, messages, verbose);
+	result = readConfigFiles(path, ".csv", templates, messages, recursive, verbose);
 	if (result == RESULT_OK)
 		logInfo(lf_main, "read config files");
 	else
@@ -541,6 +587,142 @@ result_t loadConfigFiles(DataFieldTemplates* templates, MessageMap* messages, bo
 	logNotice(lf_main, "found messages: %d (%d conditional on %d conditions, %d poll, %d update)", messages->size(), messages->sizeConditional(), messages->sizeConditions(), messages->sizePoll(), messages->sizePassive());
 
 	return result;
+}
+
+static map<string, DataFieldTemplates*> templatesByPath;
+
+result_t loadScanConfigFile(DataFieldTemplates* templates, MessageMap* messages, SymbolString& master, SymbolString& slave) {
+	if (master.size()<5)
+		return RESULT_EMPTY;
+	unsigned char zz = master[1];
+	SymbolString& data = master;
+	PartType partType;
+	if (zz == BROADCAST) {
+		zz = (unsigned char)(master[0]+5); // slave address of sending master
+		partType = pt_masterData;
+	} else {
+		partType = pt_slaveData;
+		data = slave; // TODO check
+	}
+	DataFieldSet* identFields = DataFieldSet::getIdentFields();
+	// MANUFACTURER/ZZ. ( C.S.H., C.H., C.S., S.H., C., S., H., "" ) csv
+	string path, prefix, ident, sw, hw; // path: cfgpath/MANUFCATUER, prefix: ZZ., ident: C[C[C[C[C]]]], sw: xxxx, hw: xxxx
+	ostringstream out;
+	out << opt.configPath << "/";
+	unsigned char offset = 0;
+	size_t field = 0;
+	result_t result = (*identFields)[field]->read(partType, data, offset, out, 0); // manufacturer name
+	if (result==RESULT_ERR_NOTFOUND)
+		result = (*identFields)[field]->read(partType, data, offset, out, OF_NUMERIC); // manufacturer name
+	if (result==RESULT_OK) {
+		path = out.str();
+		out.str("");
+		out << setw(2) << hex << setfill('0') << nouppercase << static_cast<unsigned>(zz) << ".";
+		prefix = out.str();
+		out.str("");
+		out.clear();
+		offset = (unsigned char)(offset+(*identFields)[field++]->getLength(partType));
+		result = (*identFields)[field]->read(partType, data, offset, out, 0); // identification string
+	}
+	if (result==RESULT_OK) {
+		ident = out.str();
+		out.str("");
+		offset = (unsigned char)(offset+(*identFields)[field++]->getLength(partType));
+		result = (*identFields)[field]->read(partType, data, offset, out, 0); // software version number
+	}
+	if (result==RESULT_OK) {
+		sw = out.str();
+		out.str("");
+		offset = (unsigned char)(offset+(*identFields)[field++]->getLength(partType));
+		result = (*identFields)[field]->read(partType, data, offset, out, 0); // hardware version number
+	}
+	vector<string> files;
+	if (result==RESULT_OK) {
+		hw = out.str();
+		result = collectConfigFiles(path, prefix, ".csv", files);
+	}
+	if (result!=RESULT_OK)
+		return result;
+	if (files.empty())
+		return RESULT_ERR_NOTFOUND;
+
+	// complete name: cfgpath/MANUFACTURER/ZZ[.C[C[C[C[C]]]]][.SWxxxx][.HWxxxx][.*].csv
+	// format ident string: remove trailing spaces
+	//TODO ident.erase(remove_if(ident.begin(), ident.end(), static_cast<int(*)(int)>(&std::isspace)));
+	transform(ident.begin(), ident.end(), ident.begin(), ::tolower);
+	size_t prefixLen = path.length()+1+prefix.length()-1;
+	size_t bestMatch = 0;
+	string best;
+	for (vector<string>::iterator it = files.begin(); it!=files.end(); it++) {
+		string name = *it;
+		name = name.substr(prefixLen, name.length()-prefixLen+1-strlen(".csv")); // .*.
+		size_t match = 1;
+		if (name.length()>2) { // more than just "."
+			size_t pos = name.rfind(".SW"); // check for ".SWxxxx."
+			if (pos!=string::npos && name.find(".", pos+1)==pos+7) {
+				if (name.substr(pos+3, 4)==sw)
+					match += 6;
+				else {
+					continue; // SW mismatch
+				}
+			}
+			pos = name.rfind(".HW"); // check for ".HWxxxx."
+			if (pos!=string::npos && name.find(".", pos+1)==pos+7) {
+				if (name.substr(pos+3, 4)==hw)
+					match += 6;
+				else {
+					continue; // HW mismatch
+				}
+			}
+			pos = name.find(".", 1); // check for ".C[C[C[C[C]]]]."
+			if (pos!=string::npos && pos>1 && pos<=6) { // up to 5 chars between two "."s
+				string check = name.substr(1, pos-1);
+				string remain = ident;
+				bool matches = false;
+				while (remain.length()>0 && remain.length()>=check.length()) {
+					if (check==remain) {
+						matches = true;
+						break;
+					}
+					if (remain[remain.length()-1]!='0')
+						break;
+					remain.erase(remain.length()-1);
+				}
+				if (matches)
+					match += remain.length();
+				else {
+					continue; // IDENT mismatch
+				}
+			}
+		}
+		if (match>=bestMatch) {
+			bestMatch = match;
+			best = *it;
+		}
+	}
+
+	if (best.length()==0)
+		return RESULT_ERR_NOTFOUND;
+
+	// found the right file. load the templates if necessary, then load the file itself
+	if (templates==NULL) {
+		map<string, DataFieldTemplates*>::iterator it = templatesByPath.find(path);
+		if (it==templatesByPath.end()) {
+			templates = new DataFieldTemplates();
+			templatesByPath[path] = templates;
+		} else {
+			templates = it->second;
+		}
+	}
+	if (templates!=NULL) { // && !readTemplates.contains(path+"/_templates.csv")) {
+		result = templates->readFromFile(path+"/_templates.csv", NULL);
+		if (result == RESULT_OK)
+			logNotice(lf_main, "read templates in %s for scan %s", path.c_str(), ident.c_str());
+		else
+			logError(lf_main, "error reading templates in %s for scan %s: %s, %s", path.c_str(), ident.c_str(), getResultCode(result), templates->getLastError().c_str());
+	}
+	logNotice(lf_main, "reading file %s for scan %s", best.c_str(), ident.c_str());
+	return messages->readFromFile(best, templates);
 }
 
 
@@ -571,11 +753,11 @@ int main(int argc, char* argv[])
 		return EINVAL;
 
 	DataFieldTemplates templates;
-	MessageMap messages;
+	MessageMap messages = MessageMap(opt.checkConfig && opt.scanConfig);
 	if (opt.checkConfig) {
 		logNotice(lf_main, "Performing configuration check...");
 
-		result_t result = loadConfigFiles(&templates, &messages, true);
+		result_t result = loadConfigFiles(&templates, &messages, !opt.scanConfig, true);
 
 		if (result == RESULT_OK && opt.checkConfig > 1) {
 			logNotice(lf_main, "Configuration dump:");
@@ -607,7 +789,7 @@ int main(int argc, char* argv[])
 	logNotice(lf_main, PACKAGE_STRING " started");
 
 	// load configuration files
-	loadConfigFiles(&templates, &messages);
+	loadConfigFiles(&templates, &messages, !opt.scanConfig);
 	if (messages.sizeConditions()>0 && opt.pollInterval==0)
 		logError(lf_main, "conditions require a poll interval > 0");
 

@@ -35,6 +35,7 @@ struct options
 	bool readonly; //!< read-only access to the device
 
 	const char* configPath; //!< path to CSV configuration files [/etc/ebusd]
+	bool scanConfig; //!< pick configuration files matching initial scan
 	int checkConfig; //!< check CSV config files (!=0) and optionally dump (2), then stop
 	int pollInterval; //!< poll interval in seconds, 0 to disable [5]
 
@@ -62,12 +63,22 @@ struct options
 };
 
 /**
- * Load the message definitions from the configuration files.
+ * Load the message definitions from configuration files.
  * @param templates the @a DataFieldTemplates to load the templates into.
  * @param messages the @a MessageMap to load the messages into.
+ * @param recursive whether to load all files recursively.
  * @param verbose whether to verbosely log problems.
  * @return the result code.
  */
-result_t loadConfigFiles(DataFieldTemplates* templates, MessageMap* messages, bool verbose=false);
+result_t loadConfigFiles(DataFieldTemplates* templates, MessageMap* messages, bool recursive=true, bool verbose=false);
+
+/**
+ * Load the message definitions from a configuration file matching the scan result.
+ * @param templates the @a DataFieldTemplates to load the necessary templates into, or NULL.
+ * @param messages the @a MessageMap to load the messages into.
+ * @param matchScan the scan @a Message for which to load the configuration file.
+ * @return the result code.
+ */
+result_t loadScanConfigFile(DataFieldTemplates* templates, MessageMap* messages, SymbolString& master, SymbolString& slave);
 
 #endif // MAIN_H_
