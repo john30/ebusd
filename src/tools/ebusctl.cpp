@@ -122,7 +122,7 @@ string fetchData(TCPSocket* socket, bool& listening)
 {
 	char data[1024];
 	ssize_t datalen;
-	ostringstream ss;
+	ostringstream ostream;
 	string message;
 
 	int ret;
@@ -191,45 +191,43 @@ string fetchData(TCPSocket* socket, bool& listening)
 #endif
 		}
 
-			if (newData) {
-				if (socket->isValid()) {
-					datalen = socket->recv(data, sizeof(data));
+		if (newData) {
+			if (socket->isValid()) {
+				datalen = socket->recv(data, sizeof(data));
 
-					if (datalen < 0) {
-						perror("recv");
-						break;
-					}
-
-					for (int i = 0; i < datalen; i++)
-						ss << data[i];
-
-					if ((ss.str().length() >= 2
-					&& ss.str()[ss.str().length()-2] == '\n'
-					&& ss.str()[ss.str().length()-1] == '\n')
-					|| listening)
-						break;
-
-				}
-				else
+				if (datalen < 0) {
+					perror("recv");
 					break;
+				}
+
+				for (int i = 0; i < datalen; i++)
+					ostream << data[i];
+
+				string str = ostream.str();
+				if (listening)
+					return str;
+				if (str.length() >= 2 && str[str.length()-2] == '\n' && str[str.length()-1] == '\n')
+					return str;
 			}
-			else if (newInput) {
-				getline(cin, message);
-				message += '\n';
+			else
+				break;
+		}
+		else if (newInput) {
+			getline(cin, message);
+			message += '\n';
 
-				socket->send(message.c_str(), message.size());
+			socket->send(message.c_str(), message.size());
 
-				if (strcasecmp(message.c_str(), "Q") == 0
-				|| strcasecmp(message.c_str(), "QUIT") == 0
-				|| strcasecmp(message.c_str(), "STOP") == 0)
-					exit(EXIT_SUCCESS);
+			if (strcasecmp(message.c_str(), "Q") == 0
+			|| strcasecmp(message.c_str(), "QUIT") == 0
+			|| strcasecmp(message.c_str(), "STOP") == 0)
+				exit(EXIT_SUCCESS);
 
-				message.clear();
-			}
-
+			message.clear();
+		}
 	}
 
-	return ss.str();
+	return ostream.str();
 }
 
 void connect(const char* host, uint16_t port, char* const *args, int argCount)
