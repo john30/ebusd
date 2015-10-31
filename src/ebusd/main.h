@@ -76,7 +76,8 @@ result_t loadConfigFiles(DataFieldTemplates* templates, MessageMap* messages, bo
  * Load the message definitions from a configuration file matching the scan result.
  * @param templates the @a DataFieldTemplates to load the necessary templates into, or NULL.
  * @param messages the @a MessageMap to load the messages into.
- * @param matchScan the scan @a Message for which to load the configuration file.
+ * @param master the scan master @a SymbolString for which to load the configuration file.
+ * @param slave the scan slave @a SymbolString for which to load the configuration file.
  * @return the result code.
  */
 result_t loadScanConfigFile(DataFieldTemplates* templates, MessageMap* messages, SymbolString& master, SymbolString& slave);

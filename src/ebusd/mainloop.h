@@ -58,7 +58,7 @@ public:
 	 * Add a client @a NetMessage to the queue.
 	 * @param message the client @a NetMessage to handle.
 	 */
-	void addMessage(NetMessage* message) { m_netQueue.add(message); }
+	void addMessage(NetMessage* message) { m_netQueue.push(message); }
 
 private:
 
@@ -80,8 +80,8 @@ private:
 	/** the created @a Network instance. */
 	Network* m_network;
 
-	/** the queue for @a NetMessage instances. */
-	WQueue<NetMessage*> m_netQueue;
+	/** the @a NetMessage @a Queue. */
+	Queue<NetMessage*> m_netQueue;
 
 	/** the path for HTML files served by the HTTP port. */
 	string m_htmlPath;

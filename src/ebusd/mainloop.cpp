@@ -101,7 +101,11 @@ void MainLoop::run()
 		string result;
 
 		// pick the next message to handle
-		NetMessage* message = m_netQueue.remove();
+		NetMessage* message = m_netQueue.pop(5);
+		if (message==NULL) {
+			// TODO perform regular tasks
+			continue;
+		}
 		string request = message->getRequest();
 
 		time_t since, until;

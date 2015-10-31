@@ -120,7 +120,7 @@ bool ScanRequest::notify(result_t result, SymbolString& slave)
 	}
 
 	// check for remaining secondary messages
-	if (m_messages.empty()) {
+	if (m_messages.empty()) { // TODO appears several times
 		logNotice(lf_bus, "scan completed, retrieved %d answers", m_scanResults->size());
 		return false;
 	}
@@ -153,8 +153,8 @@ result_t BusHandler::sendAndWait(SymbolString& master, SymbolString& slave)
 	ActiveBusRequest request(master, slave);
 
 	for (int sendRetries = m_failedSendRetries + 1; sendRetries >= 0; sendRetries--) {
-		m_nextRequests.add(&request);
-		bool success = m_finishedRequests.waitRemove(&request);
+		m_nextRequests.push(&request);
+		bool success = m_finishedRequests.remove(&request, true);
 		result = success ? request.m_result : RESULT_ERR_TIMEOUT;
 
 		if (result == RESULT_OK) {
@@ -238,7 +238,7 @@ result_t BusHandler::handleSymbol()
 		if (m_currentRequest != NULL)
 			setState(bs_ready, RESULT_ERR_TIMEOUT); // just to be sure an old BusRequest is cleaned up
 		if (m_remainLockCount == 0 && m_currentRequest == NULL) {
-			startRequest = m_nextRequests.next(false);
+			startRequest = m_nextRequests.peek();
 			if (startRequest == NULL && m_pollInterval > 0) { // check for poll/scan
 				time_t now;
 				time(&now);
@@ -254,7 +254,7 @@ result_t BusHandler::handleSymbol()
 						}
 						else {
 							startRequest = request;
-							m_nextRequests.add(request);
+							m_nextRequests.push(request);
 						}
 					}
 				}
@@ -625,13 +625,14 @@ result_t BusHandler::handleSymbol()
 
 	return RESULT_OK;
 }
+
 result_t BusHandler::setState(BusState state, result_t result, bool firstRepetition)
 {
 	if (m_currentRequest != NULL) {
 		if (result == RESULT_ERR_BUS_LOST && m_currentRequest->m_busLostRetries < m_busLostRetries) {
 			logDebug(lf_bus, "%s during %s, retry", getResultCode(result), getStateCode(m_state));
 			m_currentRequest->m_busLostRetries++;
-			m_nextRequests.add(m_currentRequest); // repeat
+			m_nextRequests.push(m_currentRequest); // repeat
 			m_currentRequest = NULL;
 		}
 		else if (state == bs_sendSyn || (result != RESULT_OK && !firstRepetition)) {
@@ -653,12 +654,12 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 			);
 			if (restart) {
 				m_currentRequest->m_busLostRetries = 0;
-				m_nextRequests.add(m_currentRequest);
+				m_nextRequests.push(m_currentRequest);
 			}
 			else if (m_currentRequest->m_deleteOnFinish)
 				delete m_currentRequest;
 			else
-				m_finishedRequests.add(m_currentRequest);
+				m_finishedRequests.push(m_currentRequest);
 
 			m_currentRequest = NULL;
 		}
@@ -666,16 +667,16 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 
 	if (state == bs_noSignal) { // notify all requests
 		m_response.clear(false); // notify with empty response
-		while ((m_currentRequest = m_nextRequests.remove(false)) != NULL) {
+		while ((m_currentRequest = m_nextRequests.pop()) != NULL) {
 			bool restart = m_currentRequest->notify(RESULT_ERR_NO_SIGNAL, m_response);
 			if (restart) { // should not occur with no signal
 				m_currentRequest->m_busLostRetries = 0;
-				m_nextRequests.add(m_currentRequest);
+				m_nextRequests.push(m_currentRequest);
 			}
 			else if (m_currentRequest->m_deleteOnFinish)
 				delete m_currentRequest;
 			else
-				m_finishedRequests.add(m_currentRequest);
+				m_finishedRequests.push(m_currentRequest);
 		}
 	}
 
@@ -832,7 +833,7 @@ result_t BusHandler::startScan(bool full)
 			delete request;
 			return result;
 		}
-		m_nextRequests.add(request);
+		m_nextRequests.push(request);
 	}
 	return RESULT_OK;
 }

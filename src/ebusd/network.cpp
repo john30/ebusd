@@ -129,7 +129,7 @@ void Connection::run()
 
 			// decode client data
 			if (message.add(data)) {
-				m_netQueue->add(&message);
+				m_netQueue->push(&message);
 
 				// wait for result
 				logDebug(lf_network, "[%05d] wait for result", getID());
@@ -153,7 +153,7 @@ void Connection::run()
 }
 
 
-Network::Network(const bool local, const uint16_t port, const uint16_t httpPort, WQueue<NetMessage*>* netQueue)
+Network::Network(const bool local, const uint16_t port, const uint16_t httpPort, Queue<NetMessage*>* netQueue)
 	: m_netQueue(netQueue), m_listening(false)
 {
 	if (local)

@@ -22,7 +22,7 @@
 #define NETWORK_H_
 
 #include "tcpsocket.h"
-#include "wqueue.h"
+#include "queue.h"
 #include "notify.h"
 #include "thread.h"
 #include <string>
@@ -214,9 +214,9 @@ public:
 	 * Constructor.
 	 * @param socket the @a TCPSocket for communication.
 	 * @param isHttp whether this is a HTTP message.
-	 * @param netQueue the remote @a WQueue for handling @a NetMessage instances.
+	 * @param netQueue the reference to the @a NetMessage @a Queue.
 	 */
-	Connection(TCPSocket* socket, const bool isHttp, WQueue<NetMessage*>* netQueue)
+	Connection(TCPSocket* socket, const bool isHttp, Queue<NetMessage*>* netQueue)
 		: m_isHttp(isHttp), m_socket(socket), m_netQueue(netQueue)
 		{ m_id = ++m_ids; }
 
@@ -244,8 +244,8 @@ private:
 	/** the @a TCPSocket for communication. */
 	TCPSocket* m_socket;
 
-	/** the remote @a WQueue for handling @a NetMessage instances. */
-	WQueue<NetMessage*>* m_netQueue;
+	/** the reference to the @a NetMessage @a Queue. */
+	Queue<NetMessage*>* m_netQueue;
 
 	/** notification object for shutdown procedure. */
 	Notify m_notify;
@@ -270,9 +270,9 @@ public:
 	 * @param local true to accept connections only for local host.
 	 * @param port the port to listen for command line connections.
 	 * @param httpPort the port to listen for HTTP connections, or 0.
-	 * @param netQueue the remote queue for network messages.
+	 * @param netQueue the reference to the @a NetMessage @a Queue.
 	 */
-	Network(const bool local, const uint16_t port, const uint16_t httpPort, WQueue<NetMessage*>* netQueue);
+	Network(const bool local, const uint16_t port, const uint16_t httpPort, Queue<NetMessage*>* netQueue);
 
 	/**
 	 * destructor.
@@ -293,8 +293,8 @@ private:
 	/** the list of active @a Connection instances. */
 	list<Connection*> m_connections;
 
-	/** the @a MainLoop queue for transferring @a NetMessage instances. */
-	WQueue<NetMessage*>* m_netQueue;
+	/** the reference to the @a NetMessage @a Queue. */
+	Queue<NetMessage*>* m_netQueue;
 
 	/** the command line @a TCPServer instance. */
 	TCPServer* m_tcpServer;

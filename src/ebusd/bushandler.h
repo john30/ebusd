@@ -25,7 +25,7 @@
 #include "symbol.h"
 #include "result.h"
 #include "device.h"
-#include "wqueue.h"
+#include "queue.h"
 #include "thread.h"
 #include <string>
 #include <vector>
@@ -429,13 +429,13 @@ private:
 	time_t m_lastPoll;
 
 	/** the queue of @a BusRequests that shall be handled. */
-	WQueue<BusRequest*> m_nextRequests;
+	Queue<BusRequest*> m_nextRequests;
 
 	/** the currently handled BusRequest, or NULL. */
 	BusRequest* m_currentRequest;
 
 	/** the queue of @a BusRequests that are already finished. */
-	WQueue<BusRequest*> m_finishedRequests;
+	Queue<BusRequest*> m_finishedRequests;
 
 	/** the offset of the next symbol that needs to be sent from the command or response,
 	 * (only relevant if m_request is set and state is @a bs_command or @a bs_response). */
