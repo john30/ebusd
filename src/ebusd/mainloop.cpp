@@ -521,7 +521,9 @@ string MainLoop::executeWrite(vector<string> &args)
 				else
 					logError(lf_main, "hex write %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
 			}
-			if (master[1] == BROADCAST || isMaster(master[1]))
+			if (master[1] == BROADCAST)
+				return "done broadcast";
+			if (isMaster(master[1]))
 				return getResultCode(RESULT_OK);
 			return slave.getDataStr();
 		}
