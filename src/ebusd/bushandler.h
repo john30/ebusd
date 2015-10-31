@@ -67,6 +67,12 @@ enum BusState {
 	bs_sendSyn,     //!< send SYN for completed transfer [active set+get]
 };
 
+/** bit for the seen state: seen. */
+#define SEEN 1
+
+/** bit for the seen state: scanned. */
+#define SCANNED 1
+
 class BusHandler;
 
 /**
@@ -373,6 +379,12 @@ private:
 	result_t setState(BusState state, result_t result, bool firstRepetition=false);
 
 	/**
+	 * Add a seen bus address.
+	 * @param address the seen bus address.
+	 */
+	void addSeenAddress(unsigned char address);
+
+	/**
 	 * Called when a passive reception was successfully completed.
 	 */
 	void receiveCompleted();
@@ -465,8 +477,8 @@ private:
 	/** whether the response CRC is valid. */
 	bool m_responseCrcValid;
 
-	/** the participating bus addresses seen so far. */
-	bool m_seenAddresses[256];
+	/** the participating bus addresses seen so far (0 if not seen yet, or combination of @a SEEN bits). */
+	unsigned char m_seenAddresses[256];
 
 	/** the @a Message instance used for scanning. */
 	Message* m_scanMessage;

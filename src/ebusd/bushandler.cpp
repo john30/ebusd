@@ -638,17 +638,9 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 		else if (state == bs_sendSyn || (result != RESULT_OK && !firstRepetition)) {
 			logDebug(lf_bus, "notify request: %s", getResultCode(result));
 			unsigned char dstAddress = m_currentRequest->m_master[1];
-			if (result == RESULT_OK && isValidAddress(dstAddress, false) && !m_seenAddresses[dstAddress]) {
-				unsigned char master = getMasterAddress(dstAddress);
-				if (master != SYN && !m_seenAddresses[master]) {
-					m_seenAddresses[master] = true;
-					m_masterCount++;
-					if (m_autoLockCount && m_masterCount>m_lockCount)
-						m_lockCount = m_masterCount;
-					logNotice(lf_bus, "new master %2.2x", master);
-				}
-				m_seenAddresses[dstAddress] = true;
-			}
+			if (result == RESULT_OK)
+				addSeenAddress(dstAddress);
+
 			bool restart = m_currentRequest->notify(
 				result == RESULT_ERR_SYN && (m_state == bs_recvCmdAck || m_state == bs_recvRes) ? RESULT_ERR_TIMEOUT : result, m_response
 			);
@@ -706,6 +698,25 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 	return result;
 }
 
+void BusHandler::addSeenAddress(unsigned char address)
+{
+	if (!isValidAddress(address, false))
+		return;
+	if (!isMaster(address)) {
+		m_seenAddresses[address] |= SEEN;
+		address = getMasterAddress(address);
+		if (address==SYN)
+			return;
+	}
+	if (m_seenAddresses[address]==0) {
+		m_masterCount++;
+		if (m_autoLockCount && m_masterCount>m_lockCount)
+			m_lockCount = m_masterCount;
+		logNotice(lf_bus, "new master %2.2x", address);//TODO scan
+		m_seenAddresses[address] |= SEEN;
+	}
+}
+
 void BusHandler::receiveCompleted()
 {
 	unsigned char srcAddress = m_command[0], dstAddress = m_command[1];
@@ -713,38 +724,16 @@ void BusHandler::receiveCompleted()
 		logError(lf_bus, "invalid self-addressed message from %2.2x", srcAddress);
 		return;
 	}
-	if (isMaster(srcAddress) && !m_seenAddresses[srcAddress]) {
-		m_masterCount++;
-		if (m_autoLockCount && m_masterCount>m_lockCount)
-			m_lockCount = m_masterCount;
-		logNotice(lf_bus, "new master %2.2x", srcAddress);
-	}
+	addSeenAddress(srcAddress);
+	addSeenAddress(dstAddress);
+
 	bool master = isMaster(dstAddress);
-	m_seenAddresses[srcAddress] = true;
 	if (dstAddress == BROADCAST)
 		logInfo(lf_update, "update BC cmd: %s", m_command.getDataStr().c_str());
-	else if (master) {
+	else if (master)
 		logInfo(lf_update, "update MM cmd: %s", m_command.getDataStr().c_str());
-		if (!m_seenAddresses[dstAddress]) {
-			m_masterCount++;
-			if (m_autoLockCount && m_masterCount>m_lockCount)
-				m_lockCount = m_masterCount;
-			logNotice(lf_bus, "new master %2.2x", dstAddress);
-		}
-		m_seenAddresses[dstAddress] = true;
-	}
-	else {
+	else
 		logInfo(lf_update, "update MS cmd: %s / %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
-		unsigned char masterAddr = getMasterAddress(dstAddress);
-		if (masterAddr != SYN && !m_seenAddresses[masterAddr]) {
-			m_seenAddresses[masterAddr] = true;
-			m_masterCount++;
-			if (m_autoLockCount && m_masterCount>m_lockCount)
-				m_lockCount = m_masterCount;
-			logNotice(lf_bus, "new master %2.2x", masterAddr);
-		}
-		m_seenAddresses[dstAddress] = true;
-	}
 
 	deque<Message*> messages = m_messages->findAll(m_command);
 	Message* message = messages.size()>0 ? messages.front() : NULL;
@@ -821,9 +810,9 @@ result_t BusHandler::startScan(bool full)
 	for (unsigned char slave = 1; slave != 0; slave++) { // 0 is known to be a master
 		if (!isValidAddress(slave, false) || isMaster(slave))
 			continue;
-		if (!full && !m_seenAddresses[slave]) {
+		if (!full && m_seenAddresses[slave]==0) {
 			unsigned char master = getMasterAddress(slave); // check if we saw the corresponding master already
-			if (master == SYN || !m_seenAddresses[master])
+			if (master == SYN || m_seenAddresses[master]==0)
 				continue;
 		}
 
