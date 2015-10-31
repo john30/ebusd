@@ -1,3 +1,21 @@
+# next version
+
+## Breaking Changes
+* started with autoscan feature
+
+## Bug fixes
+* avoid multiple identical derived messages
+* return "empty" for queries without result (e.g. grab result)
+
+## Features
+* respond to broadcast "write" command with "done broadcast"
+* prepared for full file check with overlapping names and message keys
+* added replacement value for date/time types
+
+## Changed files
+https://github.com/john30/ebusd/compare/v1.3.0...master
+
+
 # 1.3.0 (2015-10-24)
 
 ## Breaking Changes
@@ -35,7 +53,6 @@
 * added messages without dedicated destination and cached data decoding error to "find" result
 * new "write" option "-d" for overriding destination address
 * allow CSV file name to define default destination address and circuit name (format "ZZ.CCCCC.csv") and if present, concat default circuit name and security suffix (circuit name in CSV starting with "#")
-
 
 ## Changed files
 https://github.com/john30/ebusd/compare/v1.2.0...v1.3.0
