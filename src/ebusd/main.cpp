@@ -755,11 +755,17 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 		templates = it->second;
 	}
 	result = messages->readFromFile(best, templates);
-	if (result==RESULT_OK)
-		logNotice(lf_main, "read config file %s for scan %s", best.c_str(), ident.c_str());
-	else
+	if (result!=RESULT_OK) {
 		logError(lf_main, "error reading config file %s for scan %s: %s", best.c_str(), ident.c_str(), getResultCode(result));
-	return result;
+		return result;
+	}
+	logNotice(lf_main, "read config file %s for scan %s", best.c_str(), ident.c_str());
+	result = messages->resolveConditions(false);
+	if (result != RESULT_OK)
+		logError(lf_main, "error resolving conditions: %s, %s", getResultCode(result), messages->getLastError().c_str());
+
+	logNotice(lf_main, "found messages: %d (%d conditional on %d conditions, %d poll, %d update)", messages->size(), messages->sizeConditional(), messages->sizeConditions(), messages->sizePoll(), messages->sizePassive());
+	return RESULT_OK;
 }
 
 
