@@ -43,8 +43,8 @@ static const char* columnNames[] = {
 /** the number of known column names. */
 static const size_t columnCount = sizeof(columnNames) / sizeof(char*);
 
-MainLoop::MainLoop(const struct options opt, Device *device, DataFieldTemplates* templates, MessageMap* messages)
-	: m_device(device), m_templates(templates), m_messages(messages), m_address(opt.address)
+MainLoop::MainLoop(const struct options opt, Device *device, MessageMap* messages)
+	: m_device(device), m_messages(messages), m_address(opt.address), m_scanConfig(opt.scanConfig)
 {
 	// setup Device
 	m_device->setLogRaw(opt.logRaw);
@@ -90,20 +90,54 @@ MainLoop::~MainLoop()
 	}
 
 	m_messages->clear();
-	m_templates->clear();
 }
 
 void MainLoop::run()
 {
 	bool running = true;
+	time_t lastTaskRun, now;
+	int taskDelay = 5;
+	unsigned char lastScanAddress = 0; // 0 is known to be a master
+	time(&now);
+	lastTaskRun = now;
 
 	while (running) {
 		string result;
 
 		// pick the next message to handle
-		NetMessage* message = m_netQueue.pop(5);
+		NetMessage* message = m_netQueue.pop(taskDelay);
+		time(&now);
+		if (now<lastTaskRun) {
+			// clock skew
+			lastTaskRun = now;
+		} else if (now > lastTaskRun+taskDelay) {
+			logDebug(lf_main, "performing regular tasks");
+			if (m_scanConfig) {
+				lastScanAddress = m_busHandler->getNextScanAddress(lastScanAddress);
+				if (lastScanAddress==SYN) {
+					taskDelay = 5;
+					lastScanAddress = 0;
+				} else {
+					SymbolString slave(false);
+					result_t result = m_busHandler->scanAndWait(lastScanAddress, slave);
+					taskDelay = (result == RESULT_ERR_NO_SIGNAL) ? 10 : 1;
+					if (result!=RESULT_OK)
+						logError(lf_main, "scan config %2.2x message: %s", lastScanAddress, getResultCode(result));
+					else {
+						logInfo(lf_main, "scan config %2.2x message received", lastScanAddress);
+						result = loadScanConfigFile(m_messages, lastScanAddress, slave);
+						if (result!=RESULT_OK)
+							logError(lf_main, "scan config %2.2x file: %s", lastScanAddress, getResultCode(result));
+						else {
+							logInfo(lf_main, "scan config %2.2x file loaded", lastScanAddress);
+							m_busHandler->setScanConfigLoaded(lastScanAddress);
+						}
+					}
+				}
+			}
+			time(&lastTaskRun);
+		}
 		if (message==NULL) {
-			// TODO perform regular tasks
 			continue;
 		}
 		string request = message->getRequest();
@@ -913,7 +947,7 @@ string MainLoop::executeReload(vector<string> &args)
 		return "usage: reload\n"
 			   " Reload CSV config files.";
 
-	result_t result = loadConfigFiles(m_templates, m_messages);
+	result_t result = loadConfigFiles(m_messages);
 
 	return getResultCode(result);
 }
@@ -933,7 +967,7 @@ string MainLoop::executeInfo(vector<string> &args)
 {
 	if (args.size() == 0)
 		return "usage: info\n"
-			   " Report information about the daemon.";
+			   " Report information about the daemon, the configuration, and seen devices.";
 
 	ostringstream result;
 	result << "version: " << PACKAGE_STRING << "\n";
@@ -945,7 +979,7 @@ string MainLoop::executeInfo(vector<string> &args)
 	}
 	result << "masters: " << static_cast<unsigned>(m_busHandler->getMasterCount()) << "\n";
 	result << "messages: " << static_cast<unsigned>(m_messages->size());
-
+	m_busHandler->formatSeenInfo(result);
 	return result.str();
 }
 
@@ -970,6 +1004,7 @@ string MainLoop::executeHelp()
 		   " find|f   Find message(s):       find [-v] [-r] [-w] [-p] [-d] [-i PB] [-f] [-F COL[,COL]*] [-e] [-c CIRCUIT] [NAME]\n"
 		   " listen|l Listen for updates:    listen [stop]\n"
 		   " state|s  Report bus state\n"
+		   " info|i   Report information about the daemon, the configuration, and seen devices.\n"
 		   " grab|g   Grab unknown messages: grab [stop]\n"
 		   "          Report the messages:   grab result\n"
 		   " scan     Scan slaves:           scan [full]\n"
@@ -982,7 +1017,6 @@ string MainLoop::executeHelp()
 		   " dump     Toggle dumping raw bytes\n"
 		   " reload   Reload CSV config files\n"
 		   " stop     Stop the daemon\n"
-		   " info|i   Report information about the daemon\n"
 		   " quit|q   Close connection\n"
 		   " help|h   Print help             help [COMMAND]";
 }

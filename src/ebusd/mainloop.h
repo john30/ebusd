@@ -31,7 +31,7 @@ using namespace std;
 /**
  * The main loop handling requests from connected clients.
  */
-class MainLoop
+class MainLoop : public Thread
 {
 
 public:
@@ -39,10 +39,9 @@ public:
 	 * Construct the main loop and create network and bus handling components.
 	 * @param opt the program options.
 	 * @param device the @a Device instance.
-	 * @param templates the @a DataFieldTemplates instance.
 	 * @param messages the @a MessageMap instance.
 	 */
-	MainLoop(const struct options opt, Device *device, DataFieldTemplates* templates, MessageMap* messages);
+	MainLoop(const struct options opt, Device *device, MessageMap* messages);
 
 	/**
 	 * Destructor.
@@ -65,14 +64,14 @@ private:
 	/** the @a Device instance. */
 	Device* m_device;
 
-	/** the @a DataFieldTemplates instance. */
-	DataFieldTemplates* m_templates;
-
 	/** the @a MessageMap instance. */
 	MessageMap* m_messages;
 
 	/** the own master address for sending on the bus. */
-	unsigned char m_address;
+	const unsigned char m_address;
+
+	/** whether to pick configuration files matching initial scan. */
+	const bool m_scanConfig;
 
 	/** the created @a BusHandler instance. */
 	BusHandler* m_busHandler;

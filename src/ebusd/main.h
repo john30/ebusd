@@ -64,22 +64,20 @@ struct options
 
 /**
  * Load the message definitions from configuration files.
- * @param templates the @a DataFieldTemplates to load the templates into.
  * @param messages the @a MessageMap to load the messages into.
  * @param recursive whether to load all files recursively.
  * @param verbose whether to verbosely log problems.
  * @return the result code.
  */
-result_t loadConfigFiles(DataFieldTemplates* templates, MessageMap* messages, bool recursive=true, bool verbose=false);
+result_t loadConfigFiles(MessageMap* messages, bool recursive=true, bool verbose=false);
 
 /**
  * Load the message definitions from a configuration file matching the scan result.
- * @param templates the @a DataFieldTemplates to load the necessary templates into, or NULL.
  * @param messages the @a MessageMap to load the messages into.
- * @param master the scan master @a SymbolString for which to load the configuration file.
- * @param slave the scan slave @a SymbolString for which to load the configuration file.
+ * @param address the address of the scan participant (either master for broadcast master data or slave for read slave data).
+ * @param data the scan @a SymbolString for which to load the configuration file.
  * @return the result code.
  */
-result_t loadScanConfigFile(DataFieldTemplates* templates, MessageMap* messages, SymbolString& master, SymbolString& slave);
+result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolString& data);
 
 #endif // MAIN_H_

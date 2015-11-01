@@ -168,6 +168,12 @@ static const struct argp_option argpoptions[] = {
 	{NULL,             0,        NULL,    0, NULL, 0 },
 };
 
+/** the global @a DataFieldTemplates. */
+static DataFieldTemplates globalTemplates;
+
+/** the loaded @a DataFieldTemplates by sub path. */
+static map<string, DataFieldTemplates*> templatesByPath;
+
 /**
  * The program argument parsing function.
  * @param key the key from @a argpoptions.
@@ -441,6 +447,12 @@ void shutdown()
 		delete mainLoop;
 		mainLoop = NULL;
 	}
+	// free templates
+	globalTemplates.clear(); // TODO should be unnecessary due to dtor
+	for (map<string, DataFieldTemplates*>::iterator it = templatesByPath.begin(); it != templatesByPath.end(); it++) {
+		delete it->second;
+	}
+	templatesByPath.clear();
 
 	// reset all signal handlers to default
 	signal(SIGHUP, SIG_DFL);
@@ -563,18 +575,18 @@ static result_t readConfigFiles(const string path, const string extension, DataF
 	return RESULT_OK;
 };
 
-result_t loadConfigFiles(DataFieldTemplates* templates, MessageMap* messages, bool recursive, bool verbose) {
+result_t loadConfigFiles(MessageMap* messages, bool recursive, bool verbose) {
 	logInfo(lf_main, "loading configuration files from %s", opt.configPath);
 	string path = string(opt.configPath);
 	messages->clear();
-	templates->clear();
-	result_t result = templates->readFromFile(path+"/_templates.csv", NULL, verbose);
+	globalTemplates.clear();
+	result_t result = globalTemplates.readFromFile(path+"/_templates.csv", NULL, verbose);
 	if (result == RESULT_OK)
 		logInfo(lf_main, "read templates");
 	else
-		logError(lf_main, "error reading templates: %s, %s", getResultCode(result), templates->getLastError().c_str());
+		logError(lf_main, "error reading templates: %s, %s", getResultCode(result), globalTemplates.getLastError().c_str());
 
-	result = readConfigFiles(path, ".csv", templates, messages, recursive, verbose);
+	result = readConfigFiles(path, ".csv", &globalTemplates, messages, recursive, verbose);
 	if (result == RESULT_OK)
 		logInfo(lf_main, "read config files");
 	else
@@ -589,26 +601,22 @@ result_t loadConfigFiles(DataFieldTemplates* templates, MessageMap* messages, bo
 	return result;
 }
 
-static map<string, DataFieldTemplates*> templatesByPath;
-
-result_t loadScanConfigFile(DataFieldTemplates* templates, MessageMap* messages, SymbolString& master, SymbolString& slave) {
-	if (master.size()<5)
-		return RESULT_EMPTY;
-	unsigned char zz = master[1];
-	SymbolString& data = master;
+result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolString& data) {
 	PartType partType;
-	if (zz == BROADCAST) {
-		zz = (unsigned char)(master[0]+5); // slave address of sending master
+	if (isMaster(address)) {
+		address = (unsigned char)(data[0]+5); // slave address of sending master
 		partType = pt_masterData;
+		if (data.size()<5+1+5+2+2) // skip QQ ZZ PB SB NN
+			return RESULT_EMPTY;
 	} else {
 		partType = pt_slaveData;
-		data = slave; // TODO check
+		if (data.size()<1+1+5+2+2) // skip NN
+			return RESULT_EMPTY;
 	}
 	DataFieldSet* identFields = DataFieldSet::getIdentFields();
-	// MANUFACTURER/ZZ. ( C.S.H., C.H., C.S., S.H., C., S., H., "" ) csv
-	string path, prefix, ident, sw, hw; // path: cfgpath/MANUFCATUER, prefix: ZZ., ident: C[C[C[C[C]]]], sw: xxxx, hw: xxxx
+	// MANUFACTURER/ZZ. ( C.S.H., C.H., C.S., S.H., C., S., H., "" ) .*csv
+	string path, prefix, ident, sw, hw; // path: cfgpath/MANUFACTURER, prefix: ZZ., ident: C[C[C[C[C]]]], sw: xxxx, hw: xxxx
 	ostringstream out;
-	out << opt.configPath << "/";
 	unsigned char offset = 0;
 	size_t field = 0;
 	result_t result = (*identFields)[field]->read(partType, data, offset, out, 0); // manufacturer name
@@ -616,8 +624,10 @@ result_t loadScanConfigFile(DataFieldTemplates* templates, MessageMap* messages,
 		result = (*identFields)[field]->read(partType, data, offset, out, OF_NUMERIC); // manufacturer name
 	if (result==RESULT_OK) {
 		path = out.str();
+		transform(path.begin(), path.end(), path.begin(), ::tolower);
+		path = string(opt.configPath) + "/" + path;
 		out.str("");
-		out << setw(2) << hex << setfill('0') << nouppercase << static_cast<unsigned>(zz) << ".";
+		out << setw(2) << hex << setfill('0') << nouppercase << static_cast<unsigned>(address) << ".";
 		prefix = out.str();
 		out.str("");
 		out.clear();
@@ -636,20 +646,29 @@ result_t loadScanConfigFile(DataFieldTemplates* templates, MessageMap* messages,
 		offset = (unsigned char)(offset+(*identFields)[field++]->getLength(partType));
 		result = (*identFields)[field]->read(partType, data, offset, out, 0); // hardware version number
 	}
+	if (result!=RESULT_OK) {
+		logDebug(lf_main, "load scan config files: %s", getResultCode(result));
+		return result;
+	}
 	vector<string> files;
 	if (result==RESULT_OK) {
 		hw = out.str();
 		result = collectConfigFiles(path, prefix, ".csv", files);
 	}
+	logDebug(lf_main, "found %d matching scan config files from %s with prefix %s: %s", files.size(), path.c_str(), prefix.c_str(), getResultCode(result));
 	if (result!=RESULT_OK)
 		return result;
 	if (files.empty())
 		return RESULT_ERR_NOTFOUND;
 
 	// complete name: cfgpath/MANUFACTURER/ZZ[.C[C[C[C[C]]]]][.SWxxxx][.HWxxxx][.*].csv
-	// format ident string: remove trailing spaces
-	//TODO ident.erase(remove_if(ident.begin(), ident.end(), static_cast<int(*)(int)>(&std::isspace)));
-	transform(ident.begin(), ident.end(), ident.begin(), ::tolower);
+	for (string::iterator it = ident.begin(); it!=ident.end(); it++) {
+		if (::isspace(*it)) {
+			ident.erase(it--);
+		} else {
+			*it = (char)::tolower(*it);
+		}
+	}
 	size_t prefixLen = path.length()+1+prefix.length()-1;
 	size_t bestMatch = 0;
 	string best;
@@ -675,7 +694,7 @@ result_t loadScanConfigFile(DataFieldTemplates* templates, MessageMap* messages,
 				}
 			}
 			pos = name.find(".", 1); // check for ".C[C[C[C[C]]]]."
-			if (pos!=string::npos && pos>1 && pos<=6) { // up to 5 chars between two "."s
+			if (ident.length()>0 && pos!=string::npos && pos>1 && pos<=6) { // up to 5 chars between two "."s, immediately after "ZZ."
 				string check = name.substr(1, pos-1);
 				string remain = ident;
 				bool matches = false;
@@ -705,24 +724,42 @@ result_t loadScanConfigFile(DataFieldTemplates* templates, MessageMap* messages,
 		return RESULT_ERR_NOTFOUND;
 
 	// found the right file. load the templates if necessary, then load the file itself
-	if (templates==NULL) {
-		map<string, DataFieldTemplates*>::iterator it = templatesByPath.find(path);
-		if (it==templatesByPath.end()) {
-			templates = new DataFieldTemplates();
-			templatesByPath[path] = templates;
-		} else {
-			templates = it->second;
-		}
-	}
-	if (templates!=NULL) { // && !readTemplates.contains(path+"/_templates.csv")) {
+	DataFieldTemplates* templates = NULL;
+	map<string, DataFieldTemplates*>::iterator it = templatesByPath.find(path);
+	if (it==templatesByPath.end()) {
+		templates = new DataFieldTemplates(globalTemplates);
 		result = templates->readFromFile(path+"/_templates.csv", NULL);
 		if (result == RESULT_OK)
 			logNotice(lf_main, "read templates in %s for scan %s", path.c_str(), ident.c_str());
 		else
 			logError(lf_main, "error reading templates in %s for scan %s: %s, %s", path.c_str(), ident.c_str(), getResultCode(result), templates->getLastError().c_str());
+		templatesByPath[path] = templates;
+		result = collectConfigFiles(path, "", ".csv", files);
+		if (result==RESULT_OK && !files.empty()) {
+			for (vector<string>::iterator it = files.begin(); it!=files.end(); it++) {
+				string name = *it;
+				name = name.substr(path.length()+1, name.length()-path.length()-strlen(".csv")); // *.
+				if (name=="_templates.") // skip templates
+					continue;
+				if (name.length()<3 || name.find_first_of('.')!=2) { // different from the scheme "ZZ."
+					name = *it;
+					result = messages->readFromFile(name, templates);
+					if (result==RESULT_OK)
+						logNotice(lf_main, "read common config file %s for scan %s", name.c_str(), ident.c_str());
+					else
+						logError(lf_main, "error reading common config file %s for scan %s: %s", name.c_str(), ident.c_str(), getResultCode(result));
+				}
+			}
+		}
+	} else {
+		templates = it->second;
 	}
-	logNotice(lf_main, "reading file %s for scan %s", best.c_str(), ident.c_str());
-	return messages->readFromFile(best, templates);
+	result = messages->readFromFile(best, templates);
+	if (result==RESULT_OK)
+		logNotice(lf_main, "read config file %s for scan %s", best.c_str(), ident.c_str());
+	else
+		logError(lf_main, "error reading config file %s for scan %s: %s", best.c_str(), ident.c_str(), getResultCode(result));
+	return result;
 }
 
 
@@ -752,19 +789,18 @@ int main(int argc, char* argv[])
 	if (argp_parse(&argp, argc, argv, ARGP_IN_ORDER, NULL, &opt) != 0)
 		return EINVAL;
 
-	DataFieldTemplates templates;
 	MessageMap messages = MessageMap(opt.checkConfig && opt.scanConfig);
 	if (opt.checkConfig) {
 		logNotice(lf_main, "Performing configuration check...");
 
-		result_t result = loadConfigFiles(&templates, &messages, !opt.scanConfig, true);
+		result_t result = loadConfigFiles(&messages, !opt.scanConfig, true);
 
 		if (result == RESULT_OK && opt.checkConfig > 1) {
 			logNotice(lf_main, "Configuration dump:");
 			messages.dump(cout);
 		}
 		messages.clear();
-		templates.clear();
+		globalTemplates.clear();
 
 		return 0;
 	}
@@ -789,13 +825,14 @@ int main(int argc, char* argv[])
 	logNotice(lf_main, PACKAGE_STRING " started");
 
 	// load configuration files
-	loadConfigFiles(&templates, &messages, !opt.scanConfig);
+	loadConfigFiles(&messages, !opt.scanConfig);
 	if (messages.sizeConditions()>0 && opt.pollInterval==0)
 		logError(lf_main, "conditions require a poll interval > 0");
 
 	// create the MainLoop and run it
-	mainLoop = new MainLoop(opt, device, &templates, &messages);
-	mainLoop->run();
+	mainLoop = new MainLoop(opt, device, &messages);
+	mainLoop->start("mainloop");
+	mainLoop->join();
 
 	// shutdown
 	shutdown();
