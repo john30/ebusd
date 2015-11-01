@@ -71,7 +71,10 @@ enum BusState {
 #define SEEN 1
 
 /** bit for the seen state: scanned. */
-#define SCANNED 1
+#define SCANNED 2
+
+/** bit for the seen state: configuration loaded. */
+#define LOADED 4
 
 class BusHandler;
 
@@ -326,6 +329,20 @@ public:
 	void formatScanResult(ostringstream& output);
 
 	/**
+	 * Format information about seen participants to the @a ostringstream.
+	 * @param output the @a ostringstream to append the info to.
+	 */
+	void formatSeenInfo(ostringstream& output);
+
+	/**
+	 * Send a scan message on the bus and wait for the answer.
+	 * @param dstAddress the destination slave address to send to.
+	 * @param slave the @a SymbolString that will be filled with retrieved slave data.
+	 * @return the result code.
+	 */
+	result_t scanAndWait(unsigned char dstAddress, SymbolString& slave);
+
+	/**
 	 * Start or stop grabbing unknown messages.
 	 * @param enable true to enable grabbing, false to disable it.
 	 */
@@ -360,6 +377,19 @@ public:
 	 * @return the number of masters already seen (including ebusd itself).
 	 */
 	unsigned int getMasterCount() { return m_masterCount; }
+
+	/**
+	 * Get the next slave address that still needs to be scanned.
+	 * @param lastAddress the last returned slave address, or 0 for returning the first one.
+	 * @return the next slave address that still needs to be scanned, or @a SYN.
+	 */
+	unsigned char getNextScanAddress(unsigned char lastAddress);
+
+	/**
+	 * Set the state of the participant to configuration @a LOADED.
+	 * @param address the slave address.
+	 */
+	void setScanConfigLoaded(unsigned char address);
 
 private:
 

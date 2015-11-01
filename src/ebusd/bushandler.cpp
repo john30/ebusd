@@ -708,11 +708,11 @@ void BusHandler::addSeenAddress(unsigned char address)
 		if (address==SYN)
 			return;
 	}
-	if (m_seenAddresses[address]==0) {
+	if ((m_seenAddresses[address]&SEEN)==0) {
 		m_masterCount++;
 		if (m_autoLockCount && m_masterCount>m_lockCount)
 			m_lockCount = m_masterCount;
-		logNotice(lf_bus, "new master %2.2x", address);//TODO scan
+		logNotice(lf_bus, "new master %2.2x, master count %d", address, m_masterCount);
 		m_seenAddresses[address] |= SEEN;
 	}
 }
@@ -842,6 +842,43 @@ void BusHandler::formatScanResult(ostringstream& output)
 	}
 }
 
+void BusHandler::formatSeenInfo(ostringstream& output)
+{
+	for (unsigned char address = 1; address != 0; address++) { // 0 is known to be a master
+		if (isValidAddress(address, false) && m_seenAddresses[address]!=0) {
+			output << endl << "address " << setfill('0') << setw(2) << hex << static_cast<unsigned>(address);
+			if (isMaster(address)) {
+				output << ": master #" << setw(0) << dec << static_cast<unsigned>(getMasterNumber(address));
+			} else {
+				output << ": slave";
+				unsigned char master = getMasterAddress(address);
+				if (master!=SYN)
+					output << " of " << setfill('0') << setw(2) << hex << static_cast<unsigned>(master);
+			}
+			if ((m_seenAddresses[address]&SEEN)!=0)
+				output << ", seen";
+			if ((m_seenAddresses[address]&SCANNED)!=0)
+				output << ", scanned"; //TODO add detailed scan info: Manufacturer Ident SWxxxx HWxxxx
+			if ((m_seenAddresses[address]&LOADED)!=0)
+				output << ", configured";
+		}
+	}
+}
+
+result_t BusHandler::scanAndWait(unsigned char dstAddress, SymbolString& slave)
+{
+	if (!isValidAddress(dstAddress, false) || isMaster(dstAddress))
+		return RESULT_ERR_INVALID_ADDR;
+	istringstream input;
+	SymbolString master;
+	result_t result = m_scanMessage->prepareMaster(m_ownMasterAddress, master, input, UI_FIELD_SEPARATOR, dstAddress);
+	if (result==RESULT_OK)
+		result = sendAndWait(master, slave);
+	if (result==RESULT_OK)
+		m_seenAddresses[dstAddress] |= SCANNED;
+	return result;
+}
+
 void BusHandler::enableGrab(bool enable)
 {
 	m_grabUnknownMessages = enable;
@@ -862,4 +899,23 @@ void BusHandler::formatGrabResult(ostringstream& output)
 			output << it->second;
 		}
 	}
+}
+
+unsigned char BusHandler::getNextScanAddress(unsigned char lastAddress) {
+	if (lastAddress==SYN)
+		return SYN;
+	while (++lastAddress!=0) { // 0 is known to be a master
+		if (!isValidAddress(lastAddress, false) || isMaster(lastAddress))
+			continue;
+		if ((m_seenAddresses[lastAddress]&(SEEN|SCANNED))==SEEN)
+			return lastAddress;
+		unsigned char master = getMasterAddress(lastAddress);
+		if (master!=SYN && (m_seenAddresses[master]&SEEN)!=0 && (m_seenAddresses[lastAddress]&SCANNED)==0)
+			return lastAddress;
+	}
+	return SYN;
+}
+
+void BusHandler::setScanConfigLoaded(unsigned char address) {
+	m_seenAddresses[address] |= LOADED;
 }
