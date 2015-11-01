@@ -79,7 +79,7 @@ public:
 		}
 		string line;
 		size_t lastSep = filename.find_last_of('/');
-		size_t firstDot = filename.find_first_of('.');
+		size_t firstDot = filename.find_first_of('.', lastSep+1);
 		string defaultDest = "";
 		string defaultCircuit = "";
 		if (lastSep!=string::npos && firstDot==lastSep+1+2) { // potential destination address, matches "^ZZ."
@@ -89,8 +89,8 @@ public:
 			if (result!=RESULT_OK || !isValidAddress(zz))
 				defaultDest = ""; // invalid: not in hex or no master/slave/broadcast address
 			else {
-				size_t lastDot = filename.find_last_of('.');
-				if (lastDot>firstDot && lastDot-firstDot<=5) { // potential ident, matches "^ZZ.IDENT."
+				size_t lastDot = filename.find_first_of('.', firstDot+1);
+				if (lastDot>firstDot && lastDot-firstDot<=6) { // potential ident, matches "^ZZ.IDENT."
 					defaultCircuit = filename.substr(firstDot+1, lastDot-firstDot-1);
 					if (defaultCircuit.find_first_of(' ')!=string::npos)
 						defaultCircuit = ""; // invalid: contains spaces
