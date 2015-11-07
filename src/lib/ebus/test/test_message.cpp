@@ -65,7 +65,7 @@ int main()
 		{"w,,first,,,15,b509,0400,date,,bda", "26.10.2014", "ff15b50906040026100614", "00", "m"},
 		{"w,,first,,,15,b509", "", "ff15b50900", "00", "m"},
 		{"r,ehp,time,,,08,b509,0d2800,,,time", "15:00:17", "ff08b509030d2800", "0311000f", "md"},
-		{"r,ehp,time,,,08;10,b509,0d2800,,,time", "15:00:17", "ff08b509030d2800", "0311000f", "c"},
+		{"r,ehp,time,,,08;10,b509,0d2800,,,time", "", "", "", "c"},
 		{"r,ehp,time,,,08;09,b509,0d2800,,,time", "15:00:17", "ff08b509030d2800", "0311000f", "md*"},
 		{"r,ehp,date,,,08,b509,0d2900,,,date", "23.11.2014", "ff08b509030d2900", "03170b0e", "md"},
 		{"r,ehp,error,,,08,b509,0d2800,index,m,UCH,,,,,,time", "3;15:00:17", "ff08b509040d280003", "0311000f", "mdi"},
@@ -80,8 +80,10 @@ int main()
 		{"r,ehp,ApplianceCode,,,08,b509,0d4301,,,UCH,", "9", "ff08b509030d4301", "0109", "d" },
 		{"r,ehp,,,,08,b509,0d", "", "", "", "defaults" },
 		{"[brinetowater],ehp,ApplianceCode,,,,4;6;8;9;10", "", "", "", "condition" },
-		{"[airtowater]r,ehp,notavailable,,,,,0100,,,uch", "1", "ff08b509030d0100", "0101", "c" },
+		{"[airtowater]r,ehp,notavailable,,,,,0100,,,uch", "1", "", "", "c" },
 		{"[brinetowater]r,ehp,available,,,,,0100,,,uch", "1", "ff08b509030d0100", "0101", "d" },
+		{"r,,x,,,,,\"6800\",,,UCH,,,bit0=\"comment, continued comment", "", "", "", "c"},
+		{"r,,x,,,,,\"6800\",,,UCH,,\"\",\"bit0=\"comment, continued comment\"", "=1 [bit0=\"comment, continued comment]", "ff08b509030d6800", "0101", "mD"},
 	};
 	DataFieldTemplates* templates = new DataFieldTemplates();
 	MessageMap* messages = new MessageMap();
@@ -91,7 +93,6 @@ int main()
 	vector<Message*> deleteMessages;
 	for (size_t i = 0; i < sizeof(checks) / sizeof(checks[0]); i++) {
 		string check[5] = checks[i];
-		istringstream isstr(check[0]);
 		string inputStr = check[1];
 		SymbolString mstr(true);
 		result_t result = mstr.parseHex(check[2]);
@@ -121,8 +122,7 @@ int main()
 		string item;
 		vector<string> entries;
 
-		while (getline(isstr, item, FIELD_SEPARATOR) != 0)
-			entries.push_back(item);
+		FileReader<string>::splitFields(check[0], entries);
 
 		if (deleteMessages.size()>0) {
 			for (vector<Message*>::iterator it = deleteMessages.begin(); it != deleteMessages.end(); it++) {
