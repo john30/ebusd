@@ -99,7 +99,7 @@ unsigned int parseInt(const char* str, int base, const unsigned int minValue, co
 
 	unsigned long int ret = strtoul(str, &strEnd, base);
 
-	if (strEnd == NULL || strEnd == str|| *strEnd != 0) {
+	if (strEnd == NULL || strEnd == str || *strEnd != 0) {
 		result = RESULT_ERR_INVALID_NUM; // invalid value
 		return 0;
 	}
@@ -178,7 +178,7 @@ result_t DataField::create(vector<string>::iterator& it,
 	if (it == end)
 		return RESULT_ERR_EOF;
 
-	do {
+	while (it != end && result == RESULT_OK) {
 		string unit, comment;
 		PartType partType;
 		int divisor = 0;
@@ -188,8 +188,11 @@ result_t DataField::create(vector<string>::iterator& it,
 		// template: name,type[:len][,[divisor|values][,[unit][,[comment]]]]
 		// std: name,part,type[:len][,[divisor|values][,[unit][,[comment]]]]
 		const string name = *it++; // name
-		if (it == end)
+		if (it == end) {
+			if (!name.empty())
+				result = RESULT_ERR_MISSING_TYPE;
 			break;
+		}
 
 		if (isTemplate)
 			partType = pt_any;
@@ -307,7 +310,7 @@ result_t DataField::create(vector<string>::iterator& it,
 			}
 			firstType = false;
 		}
-	} while (it != end && result == RESULT_OK);
+	}
 
 	if (result != RESULT_OK) {
 		while (!fields.empty()) { // cleanup already created fields
