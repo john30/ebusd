@@ -39,6 +39,9 @@ using namespace std;
 /** the separator character used to quote text having the @a FIELD_SEPARATOR in it. */
 #define TEXT_SEPARATOR '"'
 
+/** the separator character as string used to quote text having the @a FIELD_SEPARATOR in it. */
+#define TEXT_SEPARATOR_STR "\""
+
 extern void printErrorPos(ostream& out, vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, string filename, size_t lineNo, result_t result);
 
 extern unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result, unsigned int* length);
