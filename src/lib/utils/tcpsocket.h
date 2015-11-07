@@ -28,6 +28,12 @@
 
 using namespace std;
 
+#ifdef __MACH__
+#ifndef MSG_NOSIGNAL
+#define MSG_NOSIGNAL SO_NOSIGPIPE
+#endif
+#endif
+
 /**
  * class for low level tcp socket operations. (open, close, send, receive).
  */
