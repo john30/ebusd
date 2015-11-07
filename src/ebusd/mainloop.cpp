@@ -112,25 +112,37 @@ void MainLoop::run()
 		} else if (now > lastTaskRun+taskDelay) {
 			logDebug(lf_main, "performing regular tasks");
 			if (m_scanConfig) {
-				lastScanAddress = m_busHandler->getNextScanAddress(lastScanAddress);
+				bool scanned = false;
+				lastScanAddress = m_busHandler->getNextScanAddress(lastScanAddress, scanned);
 				if (lastScanAddress==SYN) {
 					taskDelay = 5;
 					lastScanAddress = 0;
 				} else {
 					SymbolString slave(false);
-					result_t result = m_busHandler->scanAndWait(lastScanAddress, slave);
-					taskDelay = (result == RESULT_ERR_NO_SIGNAL) ? 10 : 1;
-					if (result!=RESULT_OK)
-						logError(lf_main, "scan config %2.2x message: %s", lastScanAddress, getResultCode(result));
-					else {
-						logInfo(lf_main, "scan config %2.2x message received", lastScanAddress);
+					if (scanned) {
+						Message* message = m_messages->getScanMessage(lastScanAddress);
+						slave = message->getLastSlaveData();
+						scanned = message->getLastUpdateTime()>0;
+					}
+					if (!scanned) {
+						result_t result = m_busHandler->scanAndWait(lastScanAddress, slave);
+						taskDelay = (result == RESULT_ERR_NO_SIGNAL) ? 10 : 1;
+						if (result!=RESULT_OK)
+							logError(lf_main, "scan config %2.2x message: %s", lastScanAddress, getResultCode(result));
+						else {
+							scanned = true;
+							logInfo(lf_main, "scan config %2.2x message received", lastScanAddress);
+						}
+					}
+					if (scanned) {
+						m_busHandler->setScanConfigLoaded(lastScanAddress, false, "");
 						string file;
-						result = loadScanConfigFile(m_messages, lastScanAddress, slave, file);
+						result_t result = loadScanConfigFile(m_messages, lastScanAddress, slave, file);
 						if (result!=RESULT_OK)
 							logError(lf_main, "scan config %2.2x file: %s", lastScanAddress, getResultCode(result));
 						else {
 							logInfo(lf_main, "scan config %2.2x file loaded", lastScanAddress);
-							m_busHandler->setScanConfigLoaded(lastScanAddress, file);
+							m_busHandler->setScanConfigLoaded(lastScanAddress, true, file);
 						}
 					}
 				}

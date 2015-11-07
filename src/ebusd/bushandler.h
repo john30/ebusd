@@ -72,8 +72,11 @@ enum BusState {
 /** bit for the seen state: scanned. */
 #define SCANNED 2
 
+/** bit for the seen state: configuration loading initiated. */
+#define LOAD_INIT 4
+
 /** bit for the seen state: configuration loaded. */
-#define LOADED 4
+#define LOAD_DONE 8
 
 class BusHandler;
 
@@ -389,14 +392,15 @@ public:
 	 * @param lastAddress the last returned slave address, or 0 for returning the first one.
 	 * @return the next slave address that still needs to be scanned, or @a SYN.
 	 */
-	unsigned char getNextScanAddress(unsigned char lastAddress);
+	unsigned char getNextScanAddress(unsigned char lastAddress, bool& scanned);
 
 	/**
 	 * Set the state of the participant to configuration @a LOADED.
 	 * @param address the slave address.
+	 * @param completed true when loading was completed.
 	 * @param file the file from which the configuration was loaded.
 	 */
-	void setScanConfigLoaded(unsigned char address, string file);
+	void setScanConfigLoaded(unsigned char address, bool completed, string file);
 
 private:
 

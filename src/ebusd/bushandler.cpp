@@ -96,7 +96,7 @@ bool ScanRequest::notify(result_t result, SymbolString& slave)
 	unsigned char dstAddress = m_master[1];
 	ostringstream scanResult;
 	if (result == RESULT_OK) {
-		result = m_message->decode(pt_slaveData, slave, scanResult); // decode data
+		result = m_message->decode(pt_slaveData, slave, scanResult, 0, true); // decode data
 	}
 	if (result < RESULT_OK) {
 		if (result == RESULT_ERR_TIMEOUT)
@@ -140,6 +140,7 @@ void BusHandler::clear()
 {
 	m_loadedFiles.clear();
 	memset(m_seenAddresses, 0, sizeof(m_seenAddresses));
+	m_masterCount = 1;
 	m_scanResults.clear();
 }
 
@@ -789,19 +790,14 @@ void BusHandler::receiveCompleted()
 
 result_t BusHandler::startScan(bool full)
 {
-	Message* scanMessage = m_messages->getScanMessage();
 	deque<Message*> messages = m_messages->findAll("scan", "");
 	for (deque<Message*>::iterator it = messages.begin(); it < messages.end();) {
 		Message* message = *it++;
 		if (message->getId()[0] == 0x07 && message->getId()[1] == 0x04) {
-			if (scanMessage == NULL)
-				scanMessage = message;
 			messages.erase(it - 1); // query pb 0x07 / sb 0x04 only once
 			break;
 		}
 	}
-	if (scanMessage == NULL)
-		return RESULT_ERR_NOTFOUND;
 
 	m_scanResults.clear();
 
@@ -814,6 +810,9 @@ result_t BusHandler::startScan(bool full)
 				continue;
 		}
 
+		Message* scanMessage = m_messages->getScanMessage(slave);
+		if (scanMessage==NULL)
+			continue;
 		ScanRequest* request = new ScanRequest(scanMessage, messages, this);
 		result_t result = request->prepare(m_ownMasterAddress, slave);
 		if (result != RESULT_OK) {
@@ -828,7 +827,7 @@ result_t BusHandler::startScan(bool full)
 void BusHandler::addScanResult(unsigned char dstAddress, string result)
 {
 	m_seenAddresses[dstAddress] |= SCANNED;
-	logNotice(lf_bus, "scan %2.2x: %s", result.c_str());
+	logNotice(lf_bus, "scan %2.2x: %s", dstAddress, result.c_str());
 	if (m_scanResults.find(dstAddress) == m_scanResults.end())
 		m_scanResults[dstAddress] = result;
 	else
@@ -845,8 +844,7 @@ void BusHandler::formatScanResult(ostringstream& output)
 				first = false;
 			else
 				output << endl;
-			output << hex << setw(2) << setfill('0') << static_cast<unsigned>(slave) << UI_FIELD_SEPARATOR;
-			output << it->second;
+			output << hex << setw(2) << setfill('0') << static_cast<unsigned>(slave) << it->second;
 		}
 	}
 }
@@ -869,7 +867,7 @@ void BusHandler::formatSeenInfo(ostringstream& output)
 			if ((m_seenAddresses[address]&SCANNED)!=0) {
 				output << ", scanned";
 				Message* message = m_messages->getScanMessage(address);
-				if (message!=NULL) {
+				if (message!=NULL && message->getLastUpdateTime()>0) {
 					// add detailed scan info: Manufacturer ID SW HW
 					output << " \"";
 					result_t result = message->decodeLastData(output, OF_VERBOSE);
@@ -879,7 +877,7 @@ void BusHandler::formatSeenInfo(ostringstream& output)
 						output << "\"";
 				}
 			}
-			if ((m_seenAddresses[address]&LOADED)!=0)
+			if ((m_seenAddresses[address]&LOAD_DONE)!=0)
 				output << ", loaded \"" << m_loadedFiles[address] << "\"";
 		}
 	}
@@ -928,22 +926,27 @@ void BusHandler::formatGrabResult(ostringstream& output)
 	}
 }
 
-unsigned char BusHandler::getNextScanAddress(unsigned char lastAddress) {
+unsigned char BusHandler::getNextScanAddress(unsigned char lastAddress, bool& scanned) {
 	if (lastAddress==SYN)
 		return SYN;
 	while (++lastAddress!=0) { // 0 is known to be a master
 		if (!isValidAddress(lastAddress, false) || isMaster(lastAddress))
 			continue;
-		if ((m_seenAddresses[lastAddress]&(SEEN|SCANNED))==SEEN)
+		if ((m_seenAddresses[lastAddress]&(SEEN|LOAD_INIT))==SEEN) {
+			scanned = m_seenAddresses[lastAddress]&SCANNED;
 			return lastAddress;
+		}
 		unsigned char master = getMasterAddress(lastAddress);
-		if (master!=SYN && (m_seenAddresses[master]&SEEN)!=0 && (m_seenAddresses[lastAddress]&SCANNED)==0)
+		if (master!=SYN && (m_seenAddresses[master]&SEEN)!=0 && (m_seenAddresses[lastAddress]&LOAD_INIT)==0)
 			return lastAddress;
 	}
 	return SYN;
 }
 
-void BusHandler::setScanConfigLoaded(unsigned char address, string file) {
-	m_seenAddresses[address] |= LOADED;
-	m_loadedFiles[address] = file;
+void BusHandler::setScanConfigLoaded(unsigned char address, bool completed, string file) {
+	m_seenAddresses[address] |= LOAD_INIT;
+	if (completed) {
+		m_seenAddresses[address] |= LOAD_DONE;
+		m_loadedFiles[address] = file;
+	}
 }
