@@ -906,7 +906,7 @@ result_t MessageMap::addDefaultFromFile(vector< vector<string> >& defaults, vect
 		m_conditions[key] = condition;
 		return RESULT_OK;
 	}
-	return FileReader::addDefaultFromFile(defaults, row, begin, defaultDest, defaultCircuit, filename, lineNo);
+	return FileReader<DataFieldTemplates*>::addDefaultFromFile(defaults, row, begin, defaultDest, defaultCircuit, filename, lineNo);
 }
 
 result_t MessageMap::readConditions(string& types, const string& filename, Condition*& condition)
