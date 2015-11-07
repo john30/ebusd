@@ -88,7 +88,7 @@ MainLoop::~MainLoop()
 		m_device = NULL;
 	}
 
-	m_messages->clear();
+	m_messages->clear(); // TODO should be unnecessary
 }
 
 void MainLoop::run()
@@ -124,12 +124,13 @@ void MainLoop::run()
 						logError(lf_main, "scan config %2.2x message: %s", lastScanAddress, getResultCode(result));
 					else {
 						logInfo(lf_main, "scan config %2.2x message received", lastScanAddress);
-						result = loadScanConfigFile(m_messages, lastScanAddress, slave);
+						string file;
+						result = loadScanConfigFile(m_messages, lastScanAddress, slave, file);
 						if (result!=RESULT_OK)
 							logError(lf_main, "scan config %2.2x file: %s", lastScanAddress, getResultCode(result));
 						else {
 							logInfo(lf_main, "scan config %2.2x file loaded", lastScanAddress);
-							m_busHandler->setScanConfigLoaded(lastScanAddress);
+							m_busHandler->setScanConfigLoaded(lastScanAddress, file);
 						}
 					}
 				}
@@ -946,6 +947,7 @@ string MainLoop::executeReload(vector<string> &args)
 		return "usage: reload\n"
 			   " Reload CSV config files.";
 
+	m_busHandler->clear();
 	result_t result = loadConfigFiles(m_messages);
 
 	return getResultCode(result);
