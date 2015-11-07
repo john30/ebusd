@@ -199,8 +199,8 @@ void Network::run()
 	// set timeout
 	tdiff.tv_sec = 1;
 	tdiff.tv_nsec = 0;
-	int socketCount = m_httpServer ? 2 : 1;
 #ifdef HAVE_PPOLL
+	int socketCount = m_httpServer ? 2 : 1;
 	int nfds = 1+socketCount;
 	struct pollfd fds[nfds];
 
