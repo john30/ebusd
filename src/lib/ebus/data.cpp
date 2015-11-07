@@ -153,13 +153,30 @@ void printErrorPos(ostream& out, vector<string>::iterator begin, const vector<st
 				cnt++;
 			}
 		}
+		string item = *begin;
+		size_t i = item.find(TEXT_SEPARATOR);
+		if (i != string::npos) {
+			do {
+				item.replace(i, 1, TEXT_SEPARATOR_STR TEXT_SEPARATOR_STR);
+				i = item.find(TEXT_SEPARATOR, i+sizeof(TEXT_SEPARATOR_STR)+sizeof(TEXT_SEPARATOR_STR));
+			} while (i != string::npos);
+			i = 0;
+		} else {
+			i = item.find(FIELD_SEPARATOR);
+		}
+		if (i!=string::npos) {
+			out << TEXT_SEPARATOR << item << TEXT_SEPARATOR;
+			if (begin < pos)
+				cnt += 2;
+			else if (begin == pos)
+				cnt++;
+		} else {
+			out << item;
+		}
 		if (begin < pos)
-			cnt += 1+(unsigned int)(*begin).length()+1;
-		else if (begin == pos)
-			cnt++;
+			cnt += (unsigned int)(item).length();
 
-		string item = *begin++;
-		out << TEXT_SEPARATOR << item << TEXT_SEPARATOR;
+		begin++;
 	}
 	out << endl;
 	out << setw(cnt) << " " << setw(0) << "^" << endl;
