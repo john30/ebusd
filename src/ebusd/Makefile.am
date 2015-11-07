@@ -21,7 +21,7 @@ ebusd_SOURCES = bushandler.cpp \
 ebusd_LDADD = ../lib/utils/libutils.a \
               ../lib/ebus/libebus.a \
 	      -lpthread \
-	      -lrt
+	      @RT_LIB@
 
 distclean-local:
 	-rm -f Makefile.in

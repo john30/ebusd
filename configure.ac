@@ -23,7 +23,9 @@ AC_CHECK_HEADERS([arpa/inet.h \
 AC_CHECK_LIB([pthread], [pthread_setname_np],
 	AC_DEFINE([HAVE_PTHREAD_SETNAME_NP], [1], [Define to 1 if pthread has pthread_setname_np.]),
 	AC_MSG_RESULT([Could not find pthread_setname_np in pthread.]))
-
+RT_LIB=
+AC_CHECK_LIB([rt], [clock_gettime], [RT_LIB="-lrt"])
+AC_SUBST(RT_LIB)
 AC_CHECK_FUNC([pselect], [AC_DEFINE(HAVE_PSELECT, [1], [Define to 1 if pselect() is available.])])
 AC_CHECK_FUNC([ppoll], [AC_DEFINE(HAVE_PPOLL, [1], [Define to 1 if ppoll() is available.])])
 AC_CHECK_FUNC([argp_parse], [have_argp=yes], AC_CHECK_LIB([argp], [argp_parse], [have_argp=yes; LIBS="-largp $LIBS"], [have_argp=no]))
