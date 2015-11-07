@@ -1288,10 +1288,10 @@ DataFieldSet* DataFieldSet::getIdentFields()
 		manufacturers[0xc0] = "Toby";
 		manufacturers[0xc5] = "Weishaupt";
 		vector<SingleDataField*> fields;
-		fields.push_back(new ValueListDataField("manufacturer", "", "", uchDataType, pt_slaveData, 1, 8, manufacturers));
-		fields.push_back(new StringDataField("id", "", "", stringDataType, pt_slaveData, 5));
-		fields.push_back(new NumberDataField("software", "", "", pinDataType, pt_slaveData, 2, 16, 0));
-		fields.push_back(new NumberDataField("hardware", "", "", pinDataType, pt_slaveData, 2, 16, 0));
+		fields.push_back(new ValueListDataField("MF", "", "", uchDataType, pt_slaveData, 1, 8, manufacturers));
+		fields.push_back(new StringDataField("ID", "", "", stringDataType, pt_slaveData, 5));
+		fields.push_back(new NumberDataField("SW", "", "", pinDataType, pt_slaveData, 2, 16, 0));
+		fields.push_back(new NumberDataField("HW", "", "", pinDataType, pt_slaveData, 2, 16, 0));
 		s_identFields = new DataFieldSet("ident", "", fields);
 	}
 	return s_identFields;
