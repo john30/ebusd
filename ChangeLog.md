@@ -1,16 +1,21 @@
 # next version
 
 ## Breaking Changes
-* started with autoscan feature
+* automatic configuration file selection by querying device identification ("--scanconfig")
 
 ## Bug fixes
 * avoid multiple identical derived messages
 * return "empty" for queries without result (e.g. grab result)
+* fix for stopping main loop in rare cases
+* fix for extracting default circuit name from CSV file name
 
 ## Features
 * respond to broadcast "write" command with "done broadcast"
 * prepared for full file check with overlapping names and message keys
 * added replacement value for date/time types
+* extended "info" command with seen addresses and scan state
+* improved CSV file check
+* include index suffix in default circuit name extracted from CSV file name (format "ZZ.CCCCC[.index].csv")
 
 ## Changed files
 https://github.com/john30/ebusd/compare/v1.3.0...master
