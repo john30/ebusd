@@ -23,6 +23,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <stdarg.h>
+#include "clock.h"
 
 using namespace std;
 
@@ -120,7 +121,7 @@ void logWrite(const LogFacility facility, const LogLevel level, const char* mess
 	struct timespec ts;
 	struct tm* tm;
 
-	clock_gettime(CLOCK_REALTIME, &ts);
+	clockGettime(&ts);
 	tm = localtime(&ts.tv_sec);
 
 	char* buf;

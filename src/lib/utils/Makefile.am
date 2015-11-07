@@ -11,7 +11,9 @@ libutils_a_SOURCES = log.cpp \
 		     tcpsocket.h \
 		     thread.cpp \
 		     thread.h \
-		     wqueue.h \
+		     clock.h \
+		     clock.cpp \
+		     queue.h \
 		     notify.h
 
 distclean-local:

@@ -23,6 +23,7 @@
 #endif
 
 #include "thread.h"
+#include "clock.h"
 
 void* Thread::runThread(void* arg)
 {
@@ -46,7 +47,9 @@ bool Thread::start(const char* name)
 	if (result == 0) {
 
 #ifdef HAVE_PTHREAD_SETNAME_NP
+#ifndef __MACH__
 		pthread_setname_np(m_threadid, name);
+#endif
 #endif
 
 		m_started = true;
@@ -112,7 +115,7 @@ bool WaitThread::join()
 bool WaitThread::Wait(int seconds)
 {
 	struct timespec t;
-	clock_gettime(CLOCK_REALTIME, &t);
+	clockGettime(&t);
 	t.tv_sec += seconds;
 	pthread_mutex_lock(&m_mutex);
 	pthread_cond_timedwait(&m_cond, &m_mutex, &t);

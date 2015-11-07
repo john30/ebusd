@@ -23,6 +23,7 @@
 #include <list>
 #include <pthread.h>
 #include <errno.h>
+#include "clock.h"
 
 /** \file queue.h */
 
@@ -88,7 +89,7 @@ public:
 		pthread_mutex_lock(&m_mutex);
 		if (timeout>0) {
 			struct timespec t;
-			clock_gettime(CLOCK_REALTIME, &t);
+			clockGettime(&t);
 			t.tv_sec += timeout;
 			while (m_queue.empty()) {
 				if (pthread_cond_timedwait(&m_cond, &m_mutex, &t)==ETIMEDOUT)
