@@ -89,11 +89,19 @@ public:
 			if (result!=RESULT_OK || !isValidAddress(zz))
 				defaultDest = ""; // invalid: not in hex or no master/slave/broadcast address
 			else {
-				size_t lastDot = filename.find_first_of('.', firstDot+1);
-				if (lastDot>firstDot && lastDot-firstDot<=6) { // potential ident, matches "^ZZ.IDENT."
-					defaultCircuit = filename.substr(firstDot+1, lastDot-firstDot-1);
+				size_t endDot = filename.find_first_of('.', firstDot+1);
+				if (endDot>firstDot && endDot-firstDot<=6) { // potential ident, matches "^ZZ.IDENT."
+					defaultCircuit = filename.substr(firstDot+1, endDot-firstDot-1); // IDENT
 					if (defaultCircuit.find_first_of(' ')!=string::npos)
 						defaultCircuit = ""; // invalid: contains spaces
+					else {
+						size_t nextDot = filename.find_first_of('.', endDot+1);
+						if (nextDot!=string::npos && nextDot>endDot+1) { // potential index suffix, matches "^ZZ.IDENT.[0-9]*."
+							parseInt(filename.substr(endDot+1, nextDot-endDot-1).c_str(), 10, 1, 16, result, NULL);
+							if (result==RESULT_OK)
+								defaultCircuit = filename.substr(firstDot+1, nextDot-firstDot-1); // IDENT.[0-9]*
+						}
+					}
 				}
 			}
 		}
@@ -102,55 +110,9 @@ public:
 		vector< vector<string> > defaults;
 		while (getline(ifs, line) != 0) {
 			lineNo++;
-			trim(line);
-			// skip empty lines and comments
-			size_t length = line.length();
-			if (length == 0 || line[0] == '#' || (line.length() > 1 && line[0] == '/' && line[1] == '/'))
+			splitFields(line, row);
+			if (row.empty())
 				continue;
-
-			row.clear();
-			bool quotedText = false;
-			ostringstream field;
-			char prev = FIELD_SEPARATOR;
-			for (size_t pos = 0; pos < length; pos++) {
-				char ch = line[pos];
-				switch (ch)
-				{
-				case FIELD_SEPARATOR:
-					if (quotedText)
-						field << ch;
-					else {
-						string str = field.str();
-						trim(str);
-						row.push_back(str);
-						field.str("");
-					}
-					break;
-				case TEXT_SEPARATOR:
-					if (quotedText) {
-						quotedText = false;
-					}
-					else if (prev == TEXT_SEPARATOR) { // double dquote
-						quotedText = true;
-						field << ch;
-					}
-					else if (prev == FIELD_SEPARATOR) {
-						quotedText = true;
-					}
-					else
-						field << ch;
-					break;
-				case '\r':
-					break;
-				default:
-					field << ch;
-					break;
-				}
-				prev = ch;
-			}
-			string str = field.str();
-			trim(str);
-			row.push_back(str);
 
 			result_t result;
 			vector<string>::iterator it = row.begin();
@@ -252,6 +214,67 @@ public:
 		}
 	}
 
+	/**
+	 * Split the line into fields.
+	 * @param line the @a string with the line to split.
+	 * @param row the @a vector to which to add the fields.
+	 * @return true if the line was split, false if the line was completely empty or a comment line.
+	 */
+	static bool splitFields(string& line, vector<string>& row) {
+		row.clear();
+		trim(line);
+		// skip empty lines and comments
+		size_t length = line.length();
+		if (length == 0 || line[0] == '#' || (line.length() > 1 && line[0] == '/' && line[1] == '/'))
+			return false;
+
+		bool quotedText = false, wasQuoted = false;
+		ostringstream field;
+		char prev = FIELD_SEPARATOR;
+		for (size_t pos = 0; pos < length; pos++) {
+			char ch = line[pos];
+			switch (ch)
+			{
+			case FIELD_SEPARATOR:
+				if (quotedText) {
+					field << ch;
+				} else {
+					string str = field.str();
+					trim(str);
+					row.push_back(str);
+					field.str("");
+					wasQuoted = false;
+				}
+				break;
+			case TEXT_SEPARATOR:
+				if (prev == TEXT_SEPARATOR && !quotedText) { // double dquote
+					field << ch;
+					quotedText = true;
+				} else if (quotedText) {
+					quotedText = false;
+				} else if (prev == FIELD_SEPARATOR) {
+					quotedText = wasQuoted = true;
+				} else {
+					field << ch;
+				}
+				break;
+			case '\r':
+				break;
+			default:
+				if (prev==TEXT_SEPARATOR && !quotedText && wasQuoted) {
+					field << TEXT_SEPARATOR; // single dquote in the middle of formerly quoted text
+					quotedText = true;
+				}
+				field << ch;
+				break;
+			}
+			prev = ch;
+		}
+		string str = field.str();
+		trim(str);
+		row.push_back(str);
+		return true;
+	}
 
 private:
 
