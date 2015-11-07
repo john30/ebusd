@@ -8,6 +8,7 @@
 * return "empty" for queries without result (e.g. grab result)
 * fix for stopping main loop in rare cases
 * fix for extracting default circuit name from CSV file name
+* fix for using pselect
 
 ## Features
 * respond to broadcast "write" command with "done broadcast"
@@ -16,6 +17,7 @@
 * extended "info" command with seen addresses and scan state
 * improved CSV file check
 * include index suffix in default circuit name extracted from CSV file name (format "ZZ.CCCCC[.index].csv")
+* added support MACH architecture (Mac OS)
 
 ## Changed files
 https://github.com/john30/ebusd/compare/v1.3.0...master
