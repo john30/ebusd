@@ -574,7 +574,8 @@ static result_t readConfigFiles(const string path, const string extension, DataF
 	return RESULT_OK;
 };
 
-result_t loadConfigFiles(MessageMap* messages, bool recursive, bool verbose) {
+result_t loadConfigFiles(MessageMap* messages, bool recursive, bool verbose)
+{
 	logInfo(lf_main, "loading configuration files from %s", opt.configPath);
 	string path = string(opt.configPath);
 	messages->clear();
@@ -600,7 +601,8 @@ result_t loadConfigFiles(MessageMap* messages, bool recursive, bool verbose) {
 	return result;
 }
 
-result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolString& data) {
+result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolString& data, string& relativeFile)
+{
 	PartType partType;
 	if (isMaster(address)) {
 		address = (unsigned char)(data[0]+5); // slave address of sending master
@@ -764,6 +766,7 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 		logError(lf_main, "error resolving conditions: %s, %s", getResultCode(result), messages->getLastError().c_str());
 
 	logNotice(lf_main, "found messages: %d (%d conditional on %d conditions, %d poll, %d update)", messages->size(), messages->sizeConditional(), messages->sizeConditions(), messages->sizePoll(), messages->sizePassive());
+	relativeFile = best.substr(strlen(opt.configPath)+1);
 	return RESULT_OK;
 }
 

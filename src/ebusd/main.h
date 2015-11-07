@@ -75,8 +75,9 @@ result_t loadConfigFiles(MessageMap* messages, bool recursive=true, bool verbose
  * @param messages the @a MessageMap to load the messages into.
  * @param address the address of the scan participant (either master for broadcast master data or slave for read slave data).
  * @param data the scan @a SymbolString for which to load the configuration file.
+ * @param relativeFile the string in which the name of the configuration file is stored on success.
  * @return the result code.
  */
-result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolString& data);
+result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolString& data, string& relativeFile);
 
 #endif // MAIN_H_
