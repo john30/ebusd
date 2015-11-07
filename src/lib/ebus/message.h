@@ -60,8 +60,8 @@ public:
 	 * @param pollPriority the priority for polling, or 0 for no polling at all.
 	 * @param condition the @a Condition for this message, or NULL.
 	 */
-	Message(const string circuit, const string name, const bool isWrite,
-			const bool isPassive, const string comment,
+	Message(const string circuit, const string name,
+			const bool isWrite, const bool isPassive, const string comment,
 			const unsigned char srcAddress, const unsigned char dstAddress,
 			const vector<unsigned char> id,
 			DataField* data, const bool deleteData,
@@ -502,8 +502,8 @@ public:
 	/**
 	 * Construct a new instance.
 	 * @param circuit the circuit name.
-	 * @param name the message name.
-	 * @param dstAddress the override destination address, or @a SYN (only for @a Message without specific destination).
+	 * @param name the message name, or empty for scan message.
+	 * @param dstAddress the override destination address, or @a SYN (only for @a Message without specific destination as well as scan message).
 	 * @param field the field name.
 	 * @param valueRanges the valid value ranges (pairs of from/to inclusive), empty for @a m_message seen check.
 	 */
@@ -539,10 +539,10 @@ private:
 	/** the circuit name. */
 	const string m_circuit;
 
-	/** the message name. */
+	/** the message name, or empty for scan message. */
 	const string m_name;
 
-	/** the override destination address, or @a SYN (only for @a Message without specific destination). */
+	/** the override destination address, or @a SYN (only for @a Message without specific destination as well as scan message). */
 	const unsigned char m_dstAddress;
 
 	/** the field name, or empty for first field. */
@@ -604,7 +604,10 @@ public:
 	 * @param addAll whether to add all messages, even if duplicate.
 	 */
 	MessageMap(const bool addAll=false) : FileReader<DataFieldTemplates*>::FileReader(true),
-		m_addAll(addAll), m_minIdLength(4), m_maxIdLength(0), m_messageCount(0), m_conditionalMessageCount(0), m_passiveMessageCount(0) {}
+		m_addAll(addAll), m_maxIdLength(0), m_messageCount(0), m_conditionalMessageCount(0), m_passiveMessageCount(0)
+	{
+		m_scanMessage = new Message(false, false, 0x07, 0x04, DataFieldSet::getIdentFields(), true);
+	}
 
 	/**
 	 * Destructor.
@@ -614,10 +617,11 @@ public:
 	/**
 	 * Add a @a Message instance to this set.
 	 * @param message the @a Message instance to add.
+	 * @param storeByName whether to store the @a Message by name.
 	 * @return @a RESULT_OK on success, or an error code.
 	 * Note: the caller may not free the added instance on success.
 	 */
-	result_t add(Message* message);
+	result_t add(Message* message, bool storeByName=true);
 
 	// @copydoc
 	virtual result_t addDefaultFromFile(vector< vector<string> >& defaults, vector<string>& row,
@@ -637,6 +641,13 @@ public:
 	virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
 		DataFieldTemplates* arg, vector< vector<string> >* defaults,
 		const string& filename, unsigned int lineNo);
+
+	/**
+	 * Get the scan @a Message instance for the specified address.
+	 * @param dstAddress the destination address, or @a SYN for the base scan @a Message.
+	 * @return the scan @a Message instance, or NULL if the dstAddress is no slave.
+	 */
+	Message* getScanMessage(const unsigned char dstAddress=SYN);
 
 	/**
 	 * Resolve all @a Condition instances.
@@ -767,8 +778,8 @@ private:
 	/** whether to add all messages, even if duplicate. */
 	const bool m_addAll;
 
-	/** the minimum ID length used by any of the known @a Message instances. */
-	unsigned char m_minIdLength;
+	/** the @a Message instance used for scanning. */
+	Message* m_scanMessage;
 
 	/** the maximum ID length used by any of the known @a Message instances. */
 	unsigned char m_maxIdLength;

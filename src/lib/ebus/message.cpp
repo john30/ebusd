@@ -36,8 +36,8 @@ using namespace std;
 /** the maximum poll priority for a @a Message referred to by a @a Condition. */
 #define POLL_PRIORITY_CONDITION 5
 
-Message::Message(const string circuit, const string name, const bool isWrite,
-		const bool isPassive, const string comment,
+Message::Message(const string circuit, const string name,
+		const bool isWrite, const bool isPassive, const string comment,
 		const unsigned char srcAddress, const unsigned char dstAddress,
 		const vector<unsigned char> id,
 		DataField* data, const bool deleteData,
@@ -76,7 +76,11 @@ Message::Message(const bool isWrite, const bool isPassive,
 {
 	m_id.push_back(pb);
 	m_id.push_back(sb);
-	m_key = 0;
+	unsigned long long key = (isPassive ? 0LL : 0x1fLL) << (8 * 7);
+	key |= (unsigned long long)SYN << (8 * 6);
+	key |= (unsigned long long)pb << (8 * 5);
+	key |= (unsigned long long)sb << (8 * 4);
+	m_key = key;
 }
 
 /**
@@ -456,7 +460,7 @@ result_t Message::decode(SymbolString& masterData, SymbolString& slaveData,
 		return result;
 	bool empty = result == RESULT_EMPTY;
 	offset = 0;
-	leadingSeparator = output.str().length() > startPos;
+	leadingSeparator |= output.str().length() > startPos;
 	result = m_data->read(pt_slaveData, slaveData, offset, output, outputFormat, leadingSeparator, NULL, -1);
 	if (result < RESULT_OK)
 		return result;
@@ -489,7 +493,7 @@ result_t Message::decodeLastData(ostringstream& output, OutputFormat outputForma
 		return result;
 	bool empty = result == RESULT_EMPTY;
 	offset = 0;
-	leadingSeparator = output.str().length() > startPos;
+	leadingSeparator |= output.str().length() > startPos;
 	result = m_data->read(pt_slaveData, m_lastSlaveData, offset, output, outputFormat, leadingSeparator, fieldName, fieldIndex);
 	if (result < RESULT_OK)
 		return result;
@@ -655,11 +659,7 @@ result_t Condition::create(vector<string>::iterator& it, const vector<string>::i
 		return RESULT_ERR_EOF;
 	}
 	string circuit = *(it++); // circuit
-	if (circuit.length()==0)
-		return RESULT_ERR_INVALID_ARG;
 	string name = it==end ? "" : *(it++); // messagename
-	if (name.length()==0)
-		return RESULT_ERR_INVALID_ARG;
 	it++; // comment
 	string field = it==end ? "" : *(it++); // fieldname
 	string zz = it==end ? "" : *(it++); // ZZ
@@ -727,9 +727,14 @@ result_t SimpleCondition::resolve(MessageMap* messages, ostringstream& errorMess
 {
 	if (m_message!=NULL)
 		return RESULT_OK; // already resolved
-	Message* message = messages->find(m_circuit, m_name, false);
-	if (!message)
-		message = messages->find(m_circuit, m_name, false, true);
+	Message* message;
+	if (m_name.length()==0) {
+		message = messages->getScanMessage(m_dstAddress);
+	} else {
+		message = messages->find(m_circuit, m_name, false);
+		if (!message)
+			message = messages->find(m_circuit, m_name, false, true);
+	}
 	if (!message) {
 		errorMessage << "condition " << m_circuit << " " << m_name << ": message not found";
 		return RESULT_ERR_NOTFOUND;
@@ -766,7 +771,8 @@ result_t SimpleCondition::resolve(MessageMap* messages, ostringstream& errorMess
 	}
 	m_message = message;
 	message->setUsedByCondition();
-	messages->addPollMessage(message, true);
+	if (m_name.length()>0)
+		messages->addPollMessage(message, true);
 	return RESULT_OK;
 }
 
@@ -817,7 +823,7 @@ bool CombinedCondition::isTrue()
 }
 
 
-result_t MessageMap::add(Message* message)
+result_t MessageMap::add(Message* message, bool storeByName)
 {
 	unsigned long long key = message->getKey();
 	bool conditional = message->isConditional();
@@ -832,40 +838,40 @@ result_t MessageMap::add(Message* message)
 		}
 	}
 	bool isPassive = message->isPassive();
-	bool isWrite = message->isWrite();
-	string circuit = strtolower(message->getCircuit());
-	string name = strtolower(message->getName());
-	string nameKey = string(isPassive ? "P" : (isWrite ? "W" : "R")) + circuit + FIELD_SEPARATOR + name;
-	if (!m_addAll) {
+	if (storeByName) {
+		bool isWrite = message->isWrite();
+		string circuit = strtolower(message->getCircuit());
+		string name = strtolower(message->getName());
+		string nameKey = string(isPassive ? "P" : (isWrite ? "W" : "R")) + circuit + FIELD_SEPARATOR + name;
+		if (!m_addAll) {
+			map<string, vector<Message*> >::iterator nameIt = m_messagesByName.find(nameKey);
+			if (nameIt != m_messagesByName.end()) {
+				vector<Message*>* messages = &nameIt->second;
+				if (!message->isConditional() || !messages->front()->isConditional())
+					return RESULT_ERR_DUPLICATE_NAME; // duplicate key
+			}
+		}
+		m_messagesByName[nameKey].push_back(message);
+
+		nameKey = string(isPassive ? "-P" : (isWrite ? "-W" : "-R")) + name; // also store without circuit
 		map<string, vector<Message*> >::iterator nameIt = m_messagesByName.find(nameKey);
-		if (nameIt != m_messagesByName.end()) {
+		if (nameIt == m_messagesByName.end())
+			m_messagesByName[nameKey].push_back(message); // always store first message without circuit (in order of circuit name)
+		else {
 			vector<Message*>* messages = &nameIt->second;
-			if (!message->isConditional() || !messages->front()->isConditional())
-				return RESULT_ERR_DUPLICATE_NAME; // duplicate key
+			Message* first = messages->front();
+			if (circuit < first->getCircuit())
+				m_messagesByName[nameKey].at(0) = message; // always store first message without circuit (in order of circuit name)
+			else if (m_addAll || (conditional && first->isConditional()))
+				m_messagesByName[nameKey].push_back(message); // store further messages only if both are conditional or if storing everything
 		}
 	}
-	m_messagesByName[nameKey].push_back(message);
 	m_messageCount++;
 	if (conditional)
 		m_conditionalMessageCount++;
 	if (isPassive)
 		m_passiveMessageCount++;
-
-	nameKey = string(isPassive ? "-P" : (isWrite ? "-W" : "-R")) + name; // also store without circuit
-	map<string, vector<Message*> >::iterator nameIt = m_messagesByName.find(nameKey);
-	if (nameIt == m_messagesByName.end())
-		m_messagesByName[nameKey].push_back(message); // always store first message without circuit (in order of circuit name)
-	else {
-		vector<Message*>* messages = &nameIt->second;
-		Message* first = messages->front();
-		if (circuit < first->getCircuit())
-			m_messagesByName[nameKey].at(0) = message; // always store first message without circuit (in order of circuit name)
-		else if (m_addAll || (conditional && first->isConditional()))
-			m_messagesByName[nameKey].push_back(message); // store further messages only if both are conditional or if storing everything
-	}
 	unsigned char idLength = (unsigned char)(message->getId().size() - 2);
-	if (idLength < m_minIdLength)
-		m_minIdLength = idLength;
 	if (idLength > m_maxIdLength)
 		m_maxIdLength = idLength;
 	m_messagesByKey[key].push_back(message);
@@ -989,6 +995,21 @@ result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<s
 	return result;
 }
 
+Message* MessageMap::getScanMessage(const unsigned char dstAddress)
+{
+	if (dstAddress==SYN)
+		return m_scanMessage;
+	if (!isValidAddress(dstAddress, false) || isMaster(dstAddress))
+		return NULL;
+	unsigned long long key = m_scanMessage->getDerivedKey(dstAddress);
+	vector<Message*>* msgs = getByKey(key);
+	if (msgs!=NULL)
+		return msgs->front();
+	Message* message = m_scanMessage->derive(dstAddress);
+	add(message, false);
+	return message;
+}
+
 result_t MessageMap::resolveConditions(bool verbose) {
 	result_t overallResult = RESULT_OK;
 	for (map<string, Condition*>::iterator it = m_conditions.begin(); it != m_conditions.end(); it++) {
@@ -1102,14 +1123,12 @@ deque<Message*> MessageMap::findAll(SymbolString& master)
 	if (master.size() < 5)
 		return ret;
 	unsigned char maxIdLength = master[4];
-	if (maxIdLength < m_minIdLength)
-		return ret;
 	if (maxIdLength > m_maxIdLength)
 		maxIdLength = m_maxIdLength;
 	if (master.size() < 5+maxIdLength)
 		return ret;
 
-	for (int idLength = maxIdLength; ret.size()==0 && idLength >= m_minIdLength; idLength--) {
+	for (int idLength = maxIdLength; ret.size()==0 && idLength >= 0; idLength--) {
 		int exp = 7;
 		unsigned long long key = (unsigned long long)idLength << (8 * exp + 5);
 		key |= (unsigned long long)getMasterNumber(master[0]) << (8 * exp--);
@@ -1207,7 +1226,6 @@ void MessageMap::clear()
 	// clear messages by key
 	m_messagesByKey.clear();
 	m_conditions.clear();
-	m_minIdLength = 4;
 	m_maxIdLength = 0;
 }
 
