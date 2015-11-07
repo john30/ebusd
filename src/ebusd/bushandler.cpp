@@ -338,7 +338,8 @@ result_t BusHandler::handleSymbol()
 	unsigned char recvSymbol;
 	result = m_device->recv(timeout, recvSymbol);
 
-	if (!sending && result == RESULT_ERR_TIMEOUT && m_generateSynInterval > 0 && timeout >= m_generateSynInterval && (m_state == bs_noSignal || m_state == bs_skip)) {
+	if (!sending && result == RESULT_ERR_TIMEOUT && m_generateSynInterval > 0
+	&& timeout >= m_generateSynInterval && (m_state == bs_noSignal || m_state == bs_skip)) {
 		// check if acting as AUTO-SYN generator is required
 		result = m_device->send(SYN);
 		if (result == RESULT_OK) {
@@ -362,6 +363,9 @@ result_t BusHandler::handleSymbol()
 	time_t now;
 	time(&now);
 	if (result != RESULT_OK) {
+		if (sending && startRequest != NULL && m_nextRequests.remove(startRequest)) {
+			m_currentRequest = startRequest; // force the failed request to be notified
+		}
 		if ((m_generateSynInterval != SYN_TIMEOUT && difftime(now, m_lastReceive) > 1) // at least one full second has passed since last received symbol
 			|| m_state == bs_noSignal)
 			return setState(bs_noSignal, result);
