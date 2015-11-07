@@ -94,12 +94,9 @@ result_t ScanRequest::prepare(unsigned char ownMasterAddress, unsigned char dstA
 bool ScanRequest::notify(result_t result, SymbolString& slave)
 {
 	unsigned char dstAddress = m_master[1];
-	bool append = m_scanResults != NULL && m_scanResults->find(dstAddress) != m_scanResults->end();
 	ostringstream scanResult;
 	if (result == RESULT_OK) {
-		if (!append)
-			scanResult << hex << setw(2) << setfill('0') << static_cast<unsigned>(dstAddress) << UI_FIELD_SEPARATOR;
-		result = m_message->decode(pt_slaveData, slave, scanResult, 0, append); // decode data
+		result = m_message->decode(pt_slaveData, slave, scanResult); // decode data
 	}
 	if (result < RESULT_OK) {
 		if (result == RESULT_ERR_TIMEOUT)
@@ -109,18 +106,11 @@ bool ScanRequest::notify(result_t result, SymbolString& slave)
 		return false;
 	}
 
-	string str = scanResult.str();
-	logNotice(lf_bus, "scan: %s", str.c_str());
-	if (m_scanResults != NULL) {
-		if (append)
-			(*m_scanResults)[dstAddress] += str;
-		else
-			(*m_scanResults)[dstAddress] = str;
-	}
+	m_busHandler->addScanResult(dstAddress, scanResult.str());
 
 	// check for remaining secondary messages
-	if (m_messages.empty()) { // TODO appears several times
-		logNotice(lf_bus, "scan completed, retrieved %d answers", m_scanResults->size());
+	if (m_messages.empty()) {
+		logNotice(lf_bus, "scan %2.2x completed", dstAddress);
 		return false;
 	}
 	m_message = m_messages.front();
@@ -145,6 +135,13 @@ bool ActiveBusRequest::notify(result_t result, SymbolString& slave)
 	return false;
 }
 
+
+void BusHandler::clear()
+{
+	m_loadedFiles.clear();
+	memset(m_seenAddresses, 0, sizeof(m_seenAddresses));
+	m_scanResults.clear();
+}
 
 result_t BusHandler::sendAndWait(SymbolString& master, SymbolString& slave)
 {
@@ -792,7 +789,7 @@ void BusHandler::receiveCompleted()
 
 result_t BusHandler::startScan(bool full)
 {
-	Message* scanMessage = m_scanMessage;
+	Message* scanMessage = m_messages->getScanMessage();
 	deque<Message*> messages = m_messages->findAll("scan", "");
 	for (deque<Message*>::iterator it = messages.begin(); it < messages.end();) {
 		Message* message = *it++;
@@ -804,8 +801,6 @@ result_t BusHandler::startScan(bool full)
 		}
 	}
 	if (scanMessage == NULL)
-		scanMessage = m_scanMessage;
-	if (scanMessage == NULL)
 		return RESULT_ERR_NOTFOUND;
 
 	m_scanResults.clear();
@@ -813,13 +808,13 @@ result_t BusHandler::startScan(bool full)
 	for (unsigned char slave = 1; slave != 0; slave++) { // 0 is known to be a master
 		if (!isValidAddress(slave, false) || isMaster(slave))
 			continue;
-		if (!full && m_seenAddresses[slave]==0) {
+		if (!full && (m_seenAddresses[slave]&SEEN)==0) {
 			unsigned char master = getMasterAddress(slave); // check if we saw the corresponding master already
-			if (master == SYN || m_seenAddresses[master]==0)
+			if (master == SYN || (m_seenAddresses[master]&SEEN)==0)
 				continue;
 		}
 
-		ScanRequest* request = new ScanRequest(scanMessage, messages, &m_scanResults);
+		ScanRequest* request = new ScanRequest(scanMessage, messages, this);
 		result_t result = request->prepare(m_ownMasterAddress, slave);
 		if (result != RESULT_OK) {
 			delete request;
@@ -828,6 +823,16 @@ result_t BusHandler::startScan(bool full)
 		m_nextRequests.push(request);
 	}
 	return RESULT_OK;
+}
+
+void BusHandler::addScanResult(unsigned char dstAddress, string result)
+{
+	m_seenAddresses[dstAddress] |= SCANNED;
+	logNotice(lf_bus, "scan %2.2x: %s", result.c_str());
+	if (m_scanResults.find(dstAddress) == m_scanResults.end())
+		m_scanResults[dstAddress] = result;
+	else
+		m_scanResults[dstAddress] += result;
 }
 
 void BusHandler::formatScanResult(ostringstream& output)
@@ -840,6 +845,7 @@ void BusHandler::formatScanResult(ostringstream& output)
 				first = false;
 			else
 				output << endl;
+			output << hex << setw(2) << setfill('0') << static_cast<unsigned>(slave) << UI_FIELD_SEPARATOR;
 			output << it->second;
 		}
 	}
@@ -860,10 +866,21 @@ void BusHandler::formatSeenInfo(ostringstream& output)
 			}
 			if ((m_seenAddresses[address]&SEEN)!=0)
 				output << ", seen";
-			if ((m_seenAddresses[address]&SCANNED)!=0)
-				output << ", scanned"; //TODO add detailed scan info: Manufacturer Ident SWxxxx HWxxxx
+			if ((m_seenAddresses[address]&SCANNED)!=0) {
+				output << ", scanned";
+				Message* message = m_messages->getScanMessage(address);
+				if (message!=NULL) {
+					// add detailed scan info: Manufacturer ID SW HW
+					output << " \"";
+					result_t result = message->decodeLastData(output, OF_VERBOSE);
+					if (result!=RESULT_OK)
+						output << "\" error: " << getResultCode(result);
+					else
+						output << "\"";
+				}
+			}
 			if ((m_seenAddresses[address]&LOADED)!=0)
-				output << ", configured";
+				output << ", loaded \"" << m_loadedFiles[address] << "\"";
 		}
 	}
 }
@@ -872,13 +889,20 @@ result_t BusHandler::scanAndWait(unsigned char dstAddress, SymbolString& slave)
 {
 	if (!isValidAddress(dstAddress, false) || isMaster(dstAddress))
 		return RESULT_ERR_INVALID_ADDR;
+	Message* message = m_messages->getScanMessage(dstAddress);
+	if (message==NULL) {
+		return RESULT_ERR_NOTFOUND;
+	}
 	istringstream input;
 	SymbolString master;
-	result_t result = m_scanMessage->prepareMaster(m_ownMasterAddress, master, input, UI_FIELD_SEPARATOR, dstAddress);
+	result_t result = message->prepareMaster(m_ownMasterAddress, master, input, UI_FIELD_SEPARATOR, dstAddress);
 	if (result==RESULT_OK)
 		result = sendAndWait(master, slave);
-	if (result==RESULT_OK)
+	if (result==RESULT_OK) {
 		m_seenAddresses[dstAddress] |= SCANNED;
+		ostringstream output;
+		message->decode(master, slave, output); // just to update the cached data
+	}
 	return result;
 }
 
@@ -919,6 +943,7 @@ unsigned char BusHandler::getNextScanAddress(unsigned char lastAddress) {
 	return SYN;
 }
 
-void BusHandler::setScanConfigLoaded(unsigned char address) {
+void BusHandler::setScanConfigLoaded(unsigned char address, string file) {
 	m_seenAddresses[address] |= LOADED;
+	m_loadedFiles[address] = file;
 }

@@ -174,12 +174,10 @@ public:
 	 * Constructor.
 	 * @param message the primary query @a Message.
 	 * @param messages the optional secondary query @a Message instances (to be queried only when the primary was successful).
-	 * @param scanResults the map in which to store the formatted scan result by slave address.
+	 * @param busHandler the @a BusHandler instance to notify of final scan result.
 	 */
-	ScanRequest(Message* message, deque<Message*> messages,
-		map<unsigned char, string>* scanResults)
-		: BusRequest(m_master, true), m_message(message), m_messages(messages),
-		  m_scanResults(scanResults) {}
+	ScanRequest(Message* message, deque<Message*> messages, BusHandler* busHandler)
+		: BusRequest(m_master, true), m_message(message), m_messages(messages), m_busHandler(busHandler) {}
 
 	/**
 	 * Destructor.
@@ -208,8 +206,8 @@ private:
 	/** the remaining secondary @a Message instances. */
 	deque<Message*> m_messages;
 
-	/** the map in which to store the formatted scan result by slave address. */
-	map<unsigned char, string>* m_scanResults;
+	/** the @a BusHandler instance to notify of final scan result. */
+	BusHandler* m_busHandler;
 
 };
 
@@ -287,9 +285,8 @@ public:
 		  m_symPerSec(0), m_maxSymPerSec(0),
 		  m_state(bs_noSignal), m_repeat(false),
 		  m_command(false), m_commandCrcValid(false), m_response(false), m_responseCrcValid(false),
-		  m_scanMessage(NULL), m_grabUnknownMessages(false) {
+		  m_grabUnknownMessages(false) {
 		memset(m_seenAddresses, 0, sizeof(m_seenAddresses));
-		m_scanMessage = new Message(false, false, 0x07, 0x04, DataFieldSet::getIdentFields(), true);
 	}
 
 	/**
@@ -297,9 +294,12 @@ public:
 	 */
 	virtual ~BusHandler() {
 		stop();
-		if (m_scanMessage != NULL)
-			delete m_scanMessage;
 	}
+
+	/**
+	 * Clear stored values (e.g. scan results).
+	 */
+	void clear();
 
 	/**
 	 * Send a message on the bus and wait for the answer.
@@ -320,6 +320,13 @@ public:
 	 * @return the result code.
 	 */
 	result_t startScan(bool full=false);
+
+	/**
+	 * Add a scan result @a string for a scanned slave address.
+	 * @param dstAddress the scanned slave address.
+	 * @param result the scan result @a string to add.
+	 */
+	void addScanResult(unsigned char dstAddress, string result);
 
 	/**
 	 * Format the scan result to the @a ostringstream.
@@ -387,8 +394,9 @@ public:
 	/**
 	 * Set the state of the participant to configuration @a LOADED.
 	 * @param address the slave address.
+	 * @param file the file from which the configuration was loaded.
 	 */
-	void setScanConfigLoaded(unsigned char address);
+	void setScanConfigLoaded(unsigned char address, string file);
 
 private:
 
@@ -509,8 +517,8 @@ private:
 	/** the participating bus addresses seen so far (0 if not seen yet, or combination of @a SEEN bits). */
 	unsigned char m_seenAddresses[256];
 
-	/** the @a Message instance used for scanning. */
-	Message* m_scanMessage;
+	/** the loaded configuration files by slave address. */
+	map<unsigned char, string> m_loadedFiles;
 
 	/** the scan results by slave address. */
 	map<unsigned char, string> m_scanResults;
