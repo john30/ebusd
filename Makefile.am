@@ -4,6 +4,9 @@ SUBDIRS = docs \
 	  src/ebusd \
 	  src/tools
 
+EXTRA_DIST = LICENSE \
+	     README.md
+
 distclean-local:
 	-rm -rf autom4te.cache
 	-rm -f aclocal.m4
