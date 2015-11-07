@@ -5,7 +5,9 @@ SUBDIRS = docs \
 	  src/tools
 
 EXTRA_DIST = LICENSE \
-	     README.md
+	     ChangeLog.md \
+	     README.md \
+	     VERSION
 
 distclean-local:
 	-rm -rf autom4te.cache
