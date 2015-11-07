@@ -151,9 +151,9 @@ string fetchData(TCPSocket* socket, bool& listening)
 	FD_ZERO(&checkfds);
 	FD_SET(STDIN_FILENO, &checkfds);
 	FD_SET(socket->getFD(), &checkfds);
-
-	(STDIN_FILENO > socket->getFD()) ?
-		(maxfd = notify.notifyFD()) : (maxfd = socket->getFD());
+	maxfd = STDIN_FILENO;
+	if (socket->getFD()>maxfd)
+		maxfd = socket->getFD();
 #endif
 #endif
 
