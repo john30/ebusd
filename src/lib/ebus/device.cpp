@@ -22,6 +22,7 @@
 #endif
 
 #include "device.h"
+#include "data.h"
 #include <unistd.h>
 #include <cstdlib>
 #include <cstring>
@@ -45,31 +46,31 @@ Device::~Device()
 Device* Device::create(const char* name, const bool checkDevice, const bool readonly,
 		void (*logRawFunc)(const unsigned char byte, bool received))
 {
-	if (strchr(name, '/') == NULL) {
-		char* pos = strchr((char*)name, ':');
-		if (pos != NULL) {
-			char* end = NULL;
-			unsigned long int port = strtoul(pos+1, &end, 10);
-			if (end == NULL || end == pos+1 || *end != 0 || port < 1 || port > 65535) {
-				return NULL; // invalid port
-			}
-			struct sockaddr_in address;
-			memset((char*)&address, 0, sizeof(address));
-
-			char* host = strndup(name, pos-name);
-			if (inet_aton(host, &address.sin_addr) == 0) {
-				struct hostent* h = gethostbyname(host);
-				if (h == NULL) {
-					free(host);
-					return NULL; // invalid host
-				}
-				memcpy(&address.sin_addr, h->h_addr_list[0], h->h_length);
-			}
-			free(host);
-			address.sin_family = AF_INET;
-			address.sin_port = htons((uint16_t)port);
-			return new NetworkDevice(name, address, readonly, logRawFunc);
+	if (strchr(name, '/') == NULL && strchr(name, ':') != NULL) {
+		char* dup = strdup(name);
+		char* pos = strchr(dup, ':');
+		result_t result = RESULT_OK;
+		unsigned long int port = parseInt(pos+1, 10, 1, 65535, result);
+		if (result!=RESULT_OK) {
+			free(dup);
+			return NULL; // invalid port
 		}
+		struct sockaddr_in address;
+		memset((char*)&address, 0, sizeof(address));
+
+		*pos = 0;
+		if (inet_aton(dup, &address.sin_addr) == 0) {
+			struct hostent* h = gethostbyname(dup);
+			if (h == NULL) {
+				free(dup);
+				return NULL; // invalid host
+			}
+			memcpy(&address.sin_addr, h->h_addr_list[0], h->h_length);
+		}
+		free(dup);
+		address.sin_family = AF_INET;
+		address.sin_port = htons((uint16_t)port);
+		return new NetworkDevice(name, address, readonly, logRawFunc);
 	}
 	return new SerialDevice(name, checkDevice, readonly, logRawFunc);
 }
