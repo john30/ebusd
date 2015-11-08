@@ -1205,14 +1205,35 @@ void MessageMap::clear()
 		m_pollMessages.top();
 		m_pollMessages.pop();
 	}
-	// free message instances
-	for (map<string, vector<Message*> >::iterator mit = m_messagesByName.begin(); mit != m_messagesByName.end(); mit++) {
-		if (mit->first[0] != '-') { // avoid double free: instances stored multiple times have a key starting with "-"
-			vector<Message*> messages = mit->second;
-			for (vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++)
-				delete *it;
-			messages.clear();
+	// free message instances by name
+	for (map<string, vector<Message*> >::iterator it = m_messagesByName.begin(); it != m_messagesByName.end(); it++) {
+		vector<Message*> nameMessages = it->second;
+		if (it->first[0] != '-') { // avoid double free: instances stored multiple times have a key starting with "-"
+			for (vector<Message*>::iterator nit = nameMessages.begin(); nit != nameMessages.end(); nit++) {
+				Message* message = *nit;
+				map<unsigned long long, vector<Message*> >::iterator keyIt = m_messagesByKey.find(message->getKey());
+				if (keyIt != m_messagesByKey.end()) {
+					vector<Message*>* keyMessages = &keyIt->second;
+					if (!keyMessages->empty()) {
+						for (vector<Message*>::iterator kit = keyMessages->begin(); kit != keyMessages->end(); kit++) {
+							if (*kit==message) {
+								keyMessages->erase(kit--);
+							}
+						}
+					}
+				}
+				delete message;
+			}
 		}
+		nameMessages.clear();
+	}
+	// free remaining message instances by key
+	for (map<unsigned long long, vector<Message*> >::iterator it = m_messagesByKey.begin(); it != m_messagesByKey.end(); it++) {
+		vector<Message*> keyMessages = it->second;
+		for (vector<Message*>::iterator kit = keyMessages.begin(); kit != keyMessages.end(); kit++) {
+			delete *kit;
+		}
+		keyMessages.clear();
 	}
 	// free condition instances
 	for (map<string, Condition*>::iterator it = m_conditions.begin(); it != m_conditions.end(); it++) {
