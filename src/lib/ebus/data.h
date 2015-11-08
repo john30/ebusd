@@ -774,7 +774,9 @@ public:
 	/**
 	 * Destructor.
 	 */
-	virtual ~DataFieldTemplates() { clear(); }
+	virtual ~DataFieldTemplates() {
+		clear();
+	}
 
 	/**
 	 * Removes all @a DataField instances.
