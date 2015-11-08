@@ -623,6 +623,8 @@ string MainLoop::executeWrite(vector<string> &args)
 	ostringstream result;
 	if (master[1] == BROADCAST || isMaster(master[1])) {
 		logInfo(lf_main, "write %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
+		if (master[1] == BROADCAST)
+			return "done broadcast";
 		return getResultCode(RESULT_OK);
 	}
 
