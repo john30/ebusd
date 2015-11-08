@@ -750,11 +750,9 @@ string MainLoop::executeFind(vector<string> &args)
 			   "  -c CIRCUIT    limit to messages of CIRCUIT (or a part thereof without '-e')\n"
 			   "  NAME          the NAME of the messages to find (or a part thereof without '-e')";
 
-	deque<Message*> messages;
-	if (args.size() == argPos)
-		messages = m_messages->findAll(circuit, "", pb, exact, withRead, withWrite, withPassive);
-	else
-		messages = m_messages->findAll(circuit, args[argPos], pb, exact, withRead, withWrite, withPassive);
+	deque<Message*> messages = m_messages->findAll(
+		circuit, args.size() == argPos ? "" : args[argPos], pb, exact, withRead, withWrite, withPassive
+	);
 
 	bool found = false;
 	ostringstream result;
@@ -771,7 +769,7 @@ string MainLoop::executeFind(vector<string> &args)
 		} else if (!columns.empty()) {
 			if (found)
 				result << endl;
-			message->dump(result, columns);
+			message->dump(result, &columns);
 		} else {
 			if (found)
 				result << endl;
