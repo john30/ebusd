@@ -796,12 +796,10 @@ void BusHandler::receiveCompleted()
 result_t BusHandler::startScan(bool full)
 {
 	deque<Message*> messages = m_messages->findAll("scan", "");
-	for (deque<Message*>::iterator it = messages.begin(); it < messages.end();) {
-		Message* message = *it++;
-		if (message->getId()[0] == 0x07 && message->getId()[1] == 0x04) {
-			messages.erase(it - 1); // query pb 0x07 / sb 0x04 only once
-			break;
-		}
+	for (deque<Message*>::iterator it = messages.begin(); it < messages.end(); it++) {
+		Message* message = *it;
+		if (message->getId()[0] == 0x07 && message->getId()[1] == 0x04)
+			messages.erase(it--); // query pb 0x07 / sb 0x04 only once
 	}
 
 	Message* scanMessage = m_messages->getScanMessage();
@@ -853,26 +851,42 @@ void BusHandler::formatScanResult(ostringstream& output)
 			output << hex << setw(2) << setfill('0') << static_cast<unsigned>(slave) << it->second;
 		}
 	}
+	if (first) {
+		// fallback to autoscan results
+		for (unsigned char slave = 1; slave != 0; slave++) { // 0 is known to be a master
+			if (isValidAddress(slave, false) && !isMaster(slave) && (m_seenAddresses[slave]&SCANNED)!=0) {
+				Message* message = m_messages->getScanMessage(slave);
+				if (message!=NULL && message->getLastUpdateTime()>0) {
+					if (first)
+						first = false;
+					else
+						output << endl;
+					output << hex << setw(2) << setfill('0') << static_cast<unsigned>(slave);
+					message->decodeLastData(output, 0, true);
+				}
+			}
+		}
+	}
 }
 
 void BusHandler::formatSeenInfo(ostringstream& output)
 {
-	for (unsigned char address = 1; address != 0; address++) { // 0 is known to be a master
-		if (isValidAddress(address, false) && m_seenAddresses[address]!=0) {
-			output << endl << "address " << setfill('0') << setw(2) << hex << static_cast<unsigned>(address);
-			if (isMaster(address)) {
-				output << ": master #" << setw(0) << dec << static_cast<unsigned>(getMasterNumber(address));
+	for (unsigned char slave = 1; slave != 0; slave++) { // 0 is known to be a master
+		if (isValidAddress(slave, false) && m_seenAddresses[slave]!=0) {
+			output << endl << "address " << setfill('0') << setw(2) << hex << static_cast<unsigned>(slave);
+			if (isMaster(slave)) {
+				output << ": master #" << setw(0) << dec << static_cast<unsigned>(getMasterNumber(slave));
 			} else {
 				output << ": slave";
-				unsigned char master = getMasterAddress(address);
+				unsigned char master = getMasterAddress(slave);
 				if (master!=SYN)
 					output << " of " << setfill('0') << setw(2) << hex << static_cast<unsigned>(master);
 			}
-			if ((m_seenAddresses[address]&SEEN)!=0)
+			if ((m_seenAddresses[slave]&SEEN)!=0)
 				output << ", seen";
-			if ((m_seenAddresses[address]&SCANNED)!=0) {
+			if ((m_seenAddresses[slave]&SCANNED)!=0) {
 				output << ", scanned";
-				Message* message = m_messages->getScanMessage(address);
+				Message* message = m_messages->getScanMessage(slave);
 				if (message!=NULL && message->getLastUpdateTime()>0) {
 					// add detailed scan info: Manufacturer ID SW HW
 					output << " \"";
@@ -883,8 +897,8 @@ void BusHandler::formatSeenInfo(ostringstream& output)
 						output << "\"";
 				}
 			}
-			if ((m_seenAddresses[address]&LOAD_DONE)!=0)
-				output << ", loaded \"" << m_loadedFiles[address] << "\"";
+			if ((m_seenAddresses[slave]&LOAD_DONE)!=0)
+				output << ", loaded \"" << m_loadedFiles[slave] << "\"";
 		}
 	}
 }
