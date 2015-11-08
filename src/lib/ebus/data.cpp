@@ -566,6 +566,10 @@ result_t SingleDataField::write(istringstream& input,
 	return writeSymbols(input, offset, data);
 }
 
+StringDataField* StringDataField::clone()
+{
+	return new StringDataField(*this);
+}
 
 result_t StringDataField::derive(string name, string comment,
 		string unit, const PartType partType,
@@ -979,6 +983,11 @@ NumberDataField::NumberDataField(const string name, const string comment,
 				break;
 }
 
+NumberDataField* NumberDataField::clone()
+{
+	return new NumberDataField(*this);
+}
+
 result_t NumberDataField::derive(string name, string comment,
 		string unit, const PartType partType,
 		int divisor, map<unsigned int, string> values,
@@ -1159,6 +1168,11 @@ result_t NumberDataField::writeSymbols(istringstream& input,
 }
 
 
+ValueListDataField* ValueListDataField::clone()
+{
+	return new ValueListDataField(*this);
+}
+
 result_t ValueListDataField::derive(string name, string comment,
 		string unit, const PartType partType,
 		int divisor, map<unsigned int, string> values,
@@ -1303,6 +1317,15 @@ DataFieldSet::~DataFieldSet()
 		delete m_fields.back();
 		m_fields.pop_back();
 	}
+}
+
+DataFieldSet* DataFieldSet::clone()
+{
+	vector<SingleDataField*> fields;
+	for (vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
+		fields.push_back((*it)->clone());
+	}
+	return new DataFieldSet(m_name, m_comment, fields);
 }
 
 unsigned char DataFieldSet::getLength(PartType partType)
@@ -1492,6 +1515,14 @@ result_t DataFieldSet::write(istringstream& input,
 	return RESULT_OK;
 }
 
+
+DataFieldTemplates::DataFieldTemplates(DataFieldTemplates& other)
+	: FileReader<void*>::FileReader(false)
+{
+	for (map<string, DataField*>::iterator it = other.m_fieldsByName.begin(); it != other.m_fieldsByName.end(); it++) {
+		m_fieldsByName[it->first] = it->second->clone();
+	}
+}
 
 void DataFieldTemplates::clear()
 {

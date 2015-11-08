@@ -157,6 +157,12 @@ public:
 	virtual ~DataField() {}
 
 	/**
+	 * Clone this instance.
+	 * @return a clone of this instance.
+	 */
+	virtual DataField* clone() = 0;
+
+	/**
 	 * Factory method for creating new instances.
 	 * @param it the iterator to traverse for the definition parts.
 	 * @param end the iterator pointing to the end of the definition parts.
@@ -318,6 +324,9 @@ public:
 	 */
 	virtual ~SingleDataField() {}
 
+	// @copydoc
+	virtual SingleDataField* clone() = 0;
+
 	/**
 	 * Factory method for creating a new @a SingleDataField instance derived from a base type.
 	 * @param typeNameStr the base type name string.
@@ -461,6 +470,9 @@ public:
 	virtual ~StringDataField() {}
 
 	// @copydoc
+	virtual StringDataField* clone();
+
+	// @copydoc
 	virtual result_t derive(string name, string comment,
 			string unit, const PartType partType,
 			int divisor, map<unsigned int, string> values,
@@ -515,6 +527,9 @@ public:
 	 * Destructor.
 	 */
 	virtual ~NumericDataField() {}
+
+	// @copydoc
+	virtual NumericDataField* clone() = 0;
 
 	// @copydoc
 	virtual bool hasFullByteOffset(bool after);
@@ -577,6 +592,9 @@ public:
 	virtual ~NumberDataField() {}
 
 	// @copydoc
+	virtual NumberDataField* clone();
+
+	// @copydoc
 	virtual result_t derive(string name, string comment,
 			string unit, const PartType partType,
 			int divisor, map<unsigned int, string> values,
@@ -635,6 +653,9 @@ public:
 	 * Destructor.
 	 */
 	virtual ~ValueListDataField() {}
+
+	// @copydoc
+	virtual ValueListDataField* clone();
 
 	// @copydoc
 	virtual result_t derive(string name, string comment,
@@ -696,6 +717,9 @@ public:
 	 * Destructor.
 	 */
 	virtual ~DataFieldSet();
+
+	// @copydoc
+	virtual DataFieldSet* clone();
 
 	// @copydoc
 	virtual unsigned char getLength(PartType partType);
@@ -770,6 +794,12 @@ public:
 	 * Constructs a new instance.
 	 */
 	DataFieldTemplates() : FileReader<void*>::FileReader(false) {}
+
+	/**
+	 * Constructs a new copied instance.
+	 * @param other the @a DataFieldTemplates to copy from.
+	 */
+	DataFieldTemplates(DataFieldTemplates& other);
 
 	/**
 	 * Destructor.
