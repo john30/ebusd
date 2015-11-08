@@ -3,8 +3,8 @@ AC_INIT([ebusd], m4_esyscmd_s([cat VERSION]), [ebusd@ebusd.eu], [ebusd], [https:
 
 AC_CONFIG_AUX_DIR([build])
 
-if test -z $CXXFLAGS;
-	then CXXFLAGS='-g -O2'
+if test -z $CXXFLAGS; then
+	CXXFLAGS='-g -O2'
 fi
 AC_PROG_CXX
 
@@ -28,11 +28,14 @@ AC_CHECK_LIB([rt], [clock_gettime], [RT_LIB="-lrt"])
 AC_SUBST(RT_LIB)
 AC_CHECK_FUNC([pselect], [AC_DEFINE(HAVE_PSELECT, [1], [Define to 1 if pselect() is available.])])
 AC_CHECK_FUNC([ppoll], [AC_DEFINE(HAVE_PPOLL, [1], [Define to 1 if ppoll() is available.])])
+
+AC_ARG_WITH(argp-lib, AS_HELP_STRING([--with-argp-lib=PATH], [path to argp libraries]), [LDFLAGS+="-L$with_argp_lib"])
+AC_ARG_WITH(argp-include, AS_HELP_STRING([--with-argp-include=PATH], [path to argp includes]), [CPPFLAGS+="-I$with_argp_include"])
 AC_CHECK_FUNC([argp_parse], [have_argp=yes], AC_CHECK_LIB([argp], [argp_parse], [have_argp=yes; LIBS="-largp $LIBS"], [have_argp=no]))
 if test "x$have_argp" = "xyes"; then
-  AC_CHECK_HEADER([argp.h], AC_DEFINE([HAVE_ARGP_H], [1], [Define to 1 if argp.h is available.]), AC_MSG_ERROR([argp.h not found]))
+	AC_CHECK_HEADER([argp.h], AC_DEFINE([HAVE_ARGP_H], [1], [Define to 1 if argp.h is available.]), AC_MSG_ERROR([argp.h not found]))
 else
-  AC_MSG_ERROR([argp library not found. argp-standalone required.])
+	AC_MSG_ERROR([argp library not found, specify argp-standalone location in --with-argp-lib= and --with-argp-include= options.])
 fi
 
 AC_CONFIG_SRCDIR([src/ebusd/main.cpp])
@@ -50,8 +53,8 @@ AC_DEFINE_UNQUOTED(PACKAGE_LOGFILE, LOCALSTATEDIR "/log/" PACKAGE ".log", [The p
 AC_DEFINE_UNQUOTED(PACKAGE_CONFIGPATH, SYSCONFDIR "/" PACKAGE, [The default path of the configuration files.])
 
 AC_CHECK_PROGS([HAVE_DOXYGEN], [doxygen], [])
-if test -z "$HAVE_DOXYGEN";
-	then AC_MSG_WARN([Doxygen not found - continuing without Doxygen support.])
+if test -z "$HAVE_DOXYGEN"; then
+	AC_MSG_WARN([Doxygen not found - continuing without Doxygen support.])
 fi
 
 AM_CONDITIONAL([HAVE_DOXYGEN], [test -n "$HAVE_DOXYGEN"])
