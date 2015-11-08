@@ -179,8 +179,8 @@ public:
 	 * @param messages the optional secondary query @a Message instances (to be queried only when the primary was successful).
 	 * @param busHandler the @a BusHandler instance to notify of final scan result.
 	 */
-	ScanRequest(Message* message, deque<Message*> messages, BusHandler* busHandler)
-		: BusRequest(m_master, true), m_message(message), m_messages(messages), m_busHandler(busHandler) {}
+	ScanRequest(MessageMap* messageMap, Message* message, deque<Message*> messages, BusHandler* busHandler)
+		: BusRequest(m_master, true), m_messageMap(messageMap), m_message(message), m_messages(messages), m_busHandler(busHandler) {}
 
 	/**
 	 * Destructor.
@@ -199,6 +199,9 @@ public:
 	virtual bool notify(result_t result, SymbolString& slave);
 
 private:
+
+	/** the @a MessageMap instance. */
+	MessageMap* m_messageMap;
 
 	/** the escaped master data @a SymbolString. */
 	SymbolString m_master;

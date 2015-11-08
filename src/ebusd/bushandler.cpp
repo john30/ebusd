@@ -96,6 +96,11 @@ bool ScanRequest::notify(result_t result, SymbolString& slave)
 	unsigned char dstAddress = m_master[1];
 	ostringstream scanResult;
 	if (result == RESULT_OK) {
+		if (m_message==m_messageMap->getScanMessage()) {
+			Message* message = m_messageMap->getScanMessage(dstAddress);
+			if (message!=NULL)
+				m_message = message;
+		}
 		result = m_message->decode(pt_slaveData, slave, scanResult, 0, true); // decode data
 	}
 	if (result < RESULT_OK) {
@@ -799,6 +804,10 @@ result_t BusHandler::startScan(bool full)
 		}
 	}
 
+	Message* scanMessage = m_messages->getScanMessage();
+	if (scanMessage==NULL)
+		return RESULT_ERR_NOTFOUND;
+
 	m_scanResults.clear();
 
 	for (unsigned char slave = 1; slave != 0; slave++) { // 0 is known to be a master
@@ -810,10 +819,7 @@ result_t BusHandler::startScan(bool full)
 				continue;
 		}
 
-		Message* scanMessage = m_messages->getScanMessage(slave);
-		if (scanMessage==NULL)
-			continue;
-		ScanRequest* request = new ScanRequest(scanMessage, messages, this);
+		ScanRequest* request = new ScanRequest(m_messages, scanMessage, messages, this);
 		result_t result = request->prepare(m_ownMasterAddress, slave);
 		if (result != RESULT_OK) {
 			delete request;
@@ -887,19 +893,25 @@ result_t BusHandler::scanAndWait(unsigned char dstAddress, SymbolString& slave)
 {
 	if (!isValidAddress(dstAddress, false) || isMaster(dstAddress))
 		return RESULT_ERR_INVALID_ADDR;
-	Message* message = m_messages->getScanMessage(dstAddress);
-	if (message==NULL) {
+	Message* scanMessage = m_messages->getScanMessage();
+	if (scanMessage==NULL) {
 		return RESULT_ERR_NOTFOUND;
 	}
 	istringstream input;
 	SymbolString master;
-	result_t result = message->prepareMaster(m_ownMasterAddress, master, input, UI_FIELD_SEPARATOR, dstAddress);
-	if (result==RESULT_OK)
+	result_t result = scanMessage->prepareMaster(m_ownMasterAddress, master, input, UI_FIELD_SEPARATOR, dstAddress);
+	if (result==RESULT_OK) {
 		result = sendAndWait(master, slave);
+		if (result==RESULT_OK) {
+			Message* message = m_messages->getScanMessage(dstAddress);
+			if (message!=NULL)
+				scanMessage = message;
+		}
+	}
 	if (result==RESULT_OK) {
 		m_seenAddresses[dstAddress] |= SCANNED;
 		ostringstream output;
-		message->decode(master, slave, output); // just to update the cached data
+		scanMessage->decode(master, slave, output); // just to update the cached data
 	}
 	return result;
 }
