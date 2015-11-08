@@ -388,9 +388,10 @@ public:
 	unsigned int getMasterCount() { return m_masterCount; }
 
 	/**
-	 * Get the next slave address that still needs to be scanned.
+	 * Get the next slave address that still needs to be scanned or loaded.
 	 * @param lastAddress the last returned slave address, or 0 for returning the first one.
-	 * @return the next slave address that still needs to be scanned, or @a SYN.
+	 * @param scanned set to true when the slave is already scanned but not yet loaded, set to false when it still needs to be scanned and loaded.
+	 * @return the next slave address that still needs to be scanned or loaded, or @a SYN.
 	 */
 	unsigned char getNextScanAddress(unsigned char lastAddress, bool& scanned);
 
