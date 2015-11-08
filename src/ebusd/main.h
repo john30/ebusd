@@ -64,11 +64,10 @@ struct options
 /**
  * Load the message definitions from configuration files.
  * @param messages the @a MessageMap to load the messages into.
- * @param recursive whether to load all files recursively.
  * @param verbose whether to verbosely log problems.
  * @return the result code.
  */
-result_t loadConfigFiles(MessageMap* messages, bool recursive=true, bool verbose=false);
+result_t loadConfigFiles(MessageMap* messages, bool verbose=false);
 
 /**
  * Load the message definitions from a configuration file matching the scan result.

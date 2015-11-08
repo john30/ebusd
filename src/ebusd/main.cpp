@@ -574,7 +574,7 @@ static result_t readConfigFiles(const string path, const string extension, DataF
 	return RESULT_OK;
 };
 
-result_t loadConfigFiles(MessageMap* messages, bool recursive, bool verbose)
+result_t loadConfigFiles(MessageMap* messages, bool verbose)
 {
 	logInfo(lf_main, "loading configuration files from %s", opt.configPath);
 	string path = string(opt.configPath);
@@ -586,7 +586,7 @@ result_t loadConfigFiles(MessageMap* messages, bool recursive, bool verbose)
 	else
 		logError(lf_main, "error reading templates: %s, %s", getResultCode(result), globalTemplates.getLastError().c_str());
 
-	result = readConfigFiles(path, ".csv", &globalTemplates, messages, recursive, verbose);
+	result = readConfigFiles(path, ".csv", &globalTemplates, messages, !opt.scanConfig, verbose);
 	if (result == RESULT_OK)
 		logInfo(lf_main, "read config files");
 	else
@@ -801,7 +801,7 @@ int main(int argc, char* argv[])
 	if (opt.checkConfig) {
 		logNotice(lf_main, "Performing configuration check...");
 
-		result_t result = loadConfigFiles(&messages, !opt.scanConfig, true);
+		result_t result = loadConfigFiles(&messages, true);
 
 		if (result == RESULT_OK && opt.checkConfig > 1) {
 			logNotice(lf_main, "Configuration dump:");
@@ -833,7 +833,7 @@ int main(int argc, char* argv[])
 	logNotice(lf_main, PACKAGE_STRING " started");
 
 	// load configuration files
-	loadConfigFiles(&messages, !opt.scanConfig);
+	loadConfigFiles(&messages);
 	if (messages.sizeConditions()>0 && opt.pollInterval==0)
 		logError(lf_main, "conditions require a poll interval > 0");
 
