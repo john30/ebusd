@@ -184,6 +184,8 @@ Network::~Network()
 
 	if (m_tcpServer != NULL)
 		delete m_tcpServer;
+	if (m_httpServer != NULL)
+		delete m_httpServer;
 }
 
 void Network::run()

@@ -51,7 +51,7 @@ struct options
 	uint16_t port; //!< port to listen for command line connections [8888]
 	bool localOnly; //!< listen on 127.0.0.1 interface only
 	uint16_t httpPort; //!< optional port to listen for HTTP connections, 0 to disable [0]
-	string htmlPath; //!< path for HTML files served by the HTTP port [/var/ebusd/html]
+	const char* htmlPath; //!< path for HTML files served by the HTTP port [/var/ebusd/html]
 
 	const char* logFile; //!< log file name [/var/log/ebusd.log]
 	bool logRaw; //!< log each received/sent byte on the bus

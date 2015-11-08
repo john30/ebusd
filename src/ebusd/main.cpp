@@ -90,8 +90,11 @@ static struct options opt = {
 	100 // dumpSize
 };
 
+/** the @a MessageMap instance, or NULL. */
+static MessageMap* s_messageMap = NULL;
+
 /** the @a MainLoop instance, or NULL. */
-static MainLoop* mainLoop = NULL;
+static MainLoop* s_mainLoop = NULL;
 
 /** the version string of the program. */
 const char *argp_program_version = ""PACKAGE_STRING"";
@@ -442,12 +445,15 @@ void closePidFile()
 void shutdown()
 {
 	// stop main loop and all dependent components
-	if (mainLoop != NULL) {
-		delete mainLoop;
-		mainLoop = NULL;
+	if (s_mainLoop != NULL) {
+		delete s_mainLoop;
+		s_mainLoop = NULL;
+	}
+	if (s_messageMap!=NULL) {
+		delete s_messageMap;
+		s_messageMap = NULL;
 	}
 	// free templates
-	globalTemplates.clear(); // TODO should be unnecessary due to dtor
 	for (map<string, DataFieldTemplates*>::iterator it = templatesByPath.begin(); it != templatesByPath.end(); it++) {
 		delete it->second;
 	}
@@ -580,6 +586,11 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose)
 	string path = string(opt.configPath);
 	messages->clear();
 	globalTemplates.clear();
+	for (map<string, DataFieldTemplates*>::iterator it = templatesByPath.begin(); it != templatesByPath.end(); it++) {
+		delete it->second;
+		it->second = NULL;
+	}
+	templatesByPath.clear();
 	result_t result = globalTemplates.readFromFile(path+"/_templates.csv", NULL, verbose);
 	if (result == RESULT_OK)
 		logInfo(lf_main, "read templates");
@@ -797,17 +808,18 @@ int main(int argc, char* argv[])
 	if (argp_parse(&argp, argc, argv, ARGP_IN_ORDER, NULL, &opt) != 0)
 		return EINVAL;
 
-	MessageMap messages = MessageMap(opt.checkConfig && opt.scanConfig);
+	s_messageMap = new MessageMap(opt.checkConfig && opt.scanConfig);
 	if (opt.checkConfig) {
 		logNotice(lf_main, "Performing configuration check...");
 
-		result_t result = loadConfigFiles(&messages, true);
+		result_t result = loadConfigFiles(s_messageMap, true);
 
 		if (result == RESULT_OK && opt.checkConfig > 1) {
 			logNotice(lf_main, "Configuration dump:");
-			messages.dump(cout);
+			s_messageMap->dump(cout);
 		}
-		messages.clear();
+		delete s_messageMap;
+		s_messageMap = NULL;
 		globalTemplates.clear();
 
 		return 0;
@@ -833,14 +845,14 @@ int main(int argc, char* argv[])
 	logNotice(lf_main, PACKAGE_STRING " started");
 
 	// load configuration files
-	loadConfigFiles(&messages);
-	if (messages.sizeConditions()>0 && opt.pollInterval==0)
+	loadConfigFiles(s_messageMap);
+	if (s_messageMap->sizeConditions()>0 && opt.pollInterval==0)
 		logError(lf_main, "conditions require a poll interval > 0");
 
 	// create the MainLoop and run it
-	mainLoop = new MainLoop(opt, device, &messages);
-	mainLoop->start("mainloop");
-	mainLoop->join();
+	s_mainLoop = new MainLoop(opt, device, s_messageMap);
+	s_mainLoop->start("mainloop");
+	s_mainLoop->join();
 
 	// shutdown
 	shutdown();

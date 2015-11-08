@@ -87,8 +87,6 @@ MainLoop::~MainLoop()
 		delete m_device;
 		m_device = NULL;
 	}
-
-	m_messages->clear(); // TODO should be unnecessary
 }
 
 void MainLoop::run()
