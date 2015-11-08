@@ -539,54 +539,23 @@ bool Message::isLessPollWeight(const Message* other)
 	return false;
 }
 
-void Message::dump(ostream& output)
+void Message::dump(ostream& output, vector<size_t>* columns)
 {
-	if (m_isPassive) {
-		output << "u";
-		if (m_isWrite)
-			output << "w";
-	} else if (m_isWrite)
-		output << "w";
-	else {
-		output << "r";
-		if (m_pollPriority>0)
-			output << static_cast<unsigned>(m_pollPriority);
-	}
-	DataField::dumpString(output, m_circuit);
-	DataField::dumpString(output, m_name);
-	DataField::dumpString(output, m_comment);
-	output << FIELD_SEPARATOR;
-	if (m_srcAddress != SYN)
-		output << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_srcAddress);
-	output << FIELD_SEPARATOR;
-	if (m_dstAddress != SYN)
-		output << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_dstAddress);
-	output << FIELD_SEPARATOR;
+	bool first = true, all = columns==NULL;
+	size_t end = all ? 9 : columns->size();
 	unsigned int cnt = 0;
-	for (vector<unsigned char>::const_iterator it = m_id.begin(); it < m_id.end(); it++) {
-		if (cnt++ == 2)
-			output << FIELD_SEPARATOR;
-		output << hex << setw(2) << setfill('0') << static_cast<unsigned>(*it);
-	}
-	if (cnt <= 2)
-		output << FIELD_SEPARATOR; // no further ID bytes besides PBSB
-	output << FIELD_SEPARATOR;
-	m_data->dump(output);
-}
-
-void Message::dump(ostream& output, vector<size_t>& columns)
-{
-	bool first = true;
-	unsigned int cnt = 0;
-	for (vector<size_t>::const_iterator it = columns.begin(); it < columns.end(); it++) {
+	for (size_t i=0; i<end; i++) {
 		if (first) {
 			first = false;
 		} else {
 			output << FIELD_SEPARATOR;
 		}
-		size_t column = *it;
+		size_t column = all ? i : (*columns)[i];
 		switch (column) {
 		case 0: // type
+			if (m_condition!=NULL) {
+				m_condition->dump(output);
+			}
 			if (m_isPassive) {
 				output << "u";
 				if (m_isWrite)
@@ -618,6 +587,7 @@ void Message::dump(ostream& output, vector<size_t>& columns)
 			break;
 		case 6: // PBSB
 		case 7: // ID
+			cnt = 0;
 			for (vector<unsigned char>::const_iterator it = m_id.begin(); it < m_id.end(); it++) {
 				cnt++;
 				if (column == 6) {
@@ -651,7 +621,7 @@ Message* getFirstAvailable(vector<Message*> &messages) {
 }
 
 
-result_t Condition::create(vector<string>::iterator& it, const vector<string>::iterator end, string defaultDest, string defaultCircuit, SimpleCondition*& returnValue)
+result_t Condition::create(const string condName, vector<string>::iterator& it, const vector<string>::iterator end, string defaultDest, string defaultCircuit, SimpleCondition*& returnValue)
 {
 	// name,circuit,messagename,[comment],[fieldname],[ZZ],values   (name already skipped by caller)
 	string circuit = it==end ? "" : *(it++); // circuit
@@ -716,11 +686,18 @@ result_t Condition::create(vector<string>::iterator& it, const vector<string>::i
 				valueRanges.push_back(val); // single value
 		}
 	}
-
-	returnValue = new SimpleCondition(circuit, name, dstAddress, field, valueRanges);
+	if (field.length()>0 && valueRanges.empty())
+		return RESULT_ERR_INVALID_NUM;
+	returnValue = new SimpleCondition(condName, circuit, name, dstAddress, field, valueRanges);
 	return RESULT_OK;
 }
 
+
+void SimpleCondition::dump(ostream& output)
+{
+	output << "[" << m_condName << "]";
+	//output << "{name="<<m_name<<",field="<<m_field<<",dst="<<static_cast<unsigned>(m_dstAddress)<<",valuessize="<<static_cast<unsigned>(m_valueRanges.size())<<"}";
+}
 
 CombinedCondition* SimpleCondition::combineAnd(Condition* other)
 {
@@ -807,6 +784,14 @@ bool SimpleCondition::isTrue()
 	return m_isTrue;
 }
 
+
+void CombinedCondition::dump(ostream& output)
+{
+	for (vector<Condition*>::iterator it = m_conditions.begin(); it!=m_conditions.end(); it++) {
+		Condition* condition = *it;
+		condition->dump(output);
+	}
+}
 
 result_t CombinedCondition::resolve(MessageMap* messages, ostringstream& errorMessage)
 {
@@ -906,7 +891,7 @@ result_t MessageMap::addDefaultFromFile(vector< vector<string> >& defaults, vect
 			return RESULT_ERR_DUPLICATE_NAME;
 		}
 		SimpleCondition* condition = NULL;
-		result_t result = Condition::create(++begin, row.end(), defaultDest, defaultCircuit, condition);
+		result_t result = Condition::create(type, ++begin, row.end(), defaultDest, defaultCircuit, condition);
 		if (condition==NULL || result!=RESULT_OK) {
 			m_lastError = "invalid condition";
 			return result;

@@ -317,17 +317,11 @@ public:
 	bool isLessPollWeight(const Message* other);
 
 	/**
-	 * Write the message definition to the @a ostream.
+	 * Write the message definition or parts of it to the @a ostream.
 	 * @param output the @a ostream to append the formatted value to.
+	 * @param columns the list of column indexes to write, or NULL for all.
 	 */
-	void dump(ostream& output);
-
-	/**
-	 * Write parts of the message definition to the @a ostream.
-	 * @param output the @a ostream to append the formatted value to.
-	 * @param columns the list of column indexes to write.
-	 */
-	void dump(ostream& output, vector<size_t>& columns);
+	void dump(ostream& output, vector<size_t>* columns=NULL);
 
 private:
 
@@ -453,6 +447,7 @@ public:
 
 	/**
 	 * Factory method for creating a new instance.
+	 * @param condName the name of the condition.
 	 * @param it the iterator to traverse for the definition parts.
 	 * @param end the iterator pointing to the end of the definition parts.
 	 * @param defaultDest the valid destination address extracted from the file name (from ZZ part), or empty.
@@ -460,7 +455,13 @@ public:
 	 * @param returnValue the variable in which to store the created instance.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	static result_t create(vector<string>::iterator& it, const vector<string>::iterator end, string defaultDest, string defaultCircuit, SimpleCondition*& returnValue);
+	static result_t create(const string condName, vector<string>::iterator& it, const vector<string>::iterator end, string defaultDest, string defaultCircuit, SimpleCondition*& returnValue);
+
+	/**
+	 * Write the condition definition to the @a ostream.
+	 * @param output the @a ostream to append to.
+	 */
+	virtual void dump(ostream& output) = 0;
 
 	/**
 	 * Combine this condition with another instance using a logical and.
@@ -503,21 +504,25 @@ public:
 
 	/**
 	 * Construct a new instance.
+	 * @param condName the name of the condition.
 	 * @param circuit the circuit name.
 	 * @param name the message name, or empty for scan message.
 	 * @param dstAddress the override destination address, or @a SYN (only for @a Message without specific destination as well as scan message).
 	 * @param field the field name.
 	 * @param valueRanges the valid value ranges (pairs of from/to inclusive), empty for @a m_message seen check.
 	 */
-	SimpleCondition(const string circuit, const string name, const unsigned char dstAddress, const string field, const vector<unsigned int> valueRanges)
+	SimpleCondition(const string condName, const string circuit, const string name, const unsigned char dstAddress, const string field, const vector<unsigned int> valueRanges)
 		: Condition(),
-		  m_circuit(circuit), m_name(name), m_dstAddress(dstAddress), m_field(field),
+		  m_condName(condName), m_circuit(circuit), m_name(name), m_dstAddress(dstAddress), m_field(field),
 		  m_valueRanges(valueRanges), m_message(NULL) { }
 
 	/**
 	 * Destructor.
 	 */
 	virtual ~SimpleCondition() {}
+
+	// @copydoc
+	virtual void dump(ostream& output);
 
 	// @copydoc
 	virtual CombinedCondition* combineAnd(Condition* other);
@@ -537,6 +542,9 @@ public:
 	virtual bool isTrue();
 
 private:
+
+	/** the condition name. */
+	const string m_condName;
 
 	/** the circuit name. */
 	const string m_circuit;
@@ -576,6 +584,9 @@ public:
 	 * Destructor.
 	 */
 	virtual ~CombinedCondition() {}
+
+	// @copydoc
+	virtual void dump(ostream& output);
 
 	// @copydoc
 	virtual CombinedCondition* combineAnd(Condition* other) { m_conditions.push_back(other); return this; }
