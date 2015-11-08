@@ -1,4 +1,4 @@
-# next version
+# next version (2.0.0)
 
 ## Breaking Changes
 * automatic configuration file selection by querying device identification ("--scanconfig")
@@ -10,6 +10,7 @@
 * fix for extracting default circuit name from CSV file name
 * fix for using pselect
 * fix for finishing active request when own master address reception timed out
+* fix for some memory issues
 
 ## Features
 * respond to broadcast "write" command with "done broadcast"
