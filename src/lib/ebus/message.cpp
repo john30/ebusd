@@ -1168,6 +1168,8 @@ deque<Message*> MessageMap::findAll(SymbolString& master)
 
 void MessageMap::invalidateCache(Message* message)
 {
+	if (message->m_data==DataFieldSet::getIdentFields())
+		return;
 	message->m_lastUpdateTime = 0;
 	string circuit = message->getCircuit();
 	size_t pos = circuit.find('#');
