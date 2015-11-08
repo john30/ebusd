@@ -48,7 +48,7 @@ public:
 		void (*logRawFunc)(const unsigned char byte, bool received))
 		: m_name(name), m_checkDevice(checkDevice), m_readonly(readonly), m_fd(-1),
 		  m_logRaw(false), m_logRawFunc(logRawFunc),
-		  m_dumpRaw(false), m_dumpRawFile(NULL), m_dumpRawMaxSize(0), m_dumpRawStream(NULL), m_dumpRawFileSize(0) {}
+		  m_dumpRaw(false), m_dumpRawFile(NULL), m_dumpRawMaxSize(0), m_dumpRawStream(), m_dumpRawFileSize(0) {}
 
 	/**
 	 * Destructor.
