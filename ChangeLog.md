@@ -9,15 +9,17 @@
 * fix for stopping main loop in rare cases
 * fix for extracting default circuit name from CSV file name
 * fix for using pselect
+* fix for finishing active request when own master address reception timed out
 
 ## Features
 * respond to broadcast "write" command with "done broadcast"
 * prepared for full file check with overlapping names and message keys
 * added replacement value for date/time types
-* extended "info" command with seen addresses and scan state
+* extended "info" command with seen addresses, scan state, and loaded CSV file
 * improved CSV file check
 * include index suffix in default circuit name extracted from CSV file name (format "ZZ.CCCCC[.index].csv")
 * added support MACH architecture (Mac OS)
+* use empty condition messagename for referencing scan message
 
 ## Changed files
 https://github.com/john30/ebusd/compare/v1.3.0...master
