@@ -651,26 +651,31 @@ Message* getFirstAvailable(vector<Message*> &messages) {
 }
 
 
-result_t Condition::create(vector<string>::iterator& it, const vector<string>::iterator end, SimpleCondition*& returnValue)
+result_t Condition::create(vector<string>::iterator& it, const vector<string>::iterator end, string defaultDest, string defaultCircuit, SimpleCondition*& returnValue)
 {
 	// name,circuit,messagename,[comment],[fieldname],[ZZ],values   (name already skipped by caller)
-	if (it+2>end) { // at least everything including messagename
-		it = end; // for error reporting
-		return RESULT_ERR_EOF;
-	}
-	string circuit = *(it++); // circuit
+	string circuit = it==end ? "" : *(it++); // circuit
 	string name = it==end ? "" : *(it++); // messagename
-	it++; // comment
+	if (it<end)
+		it++; // comment
 	string field = it==end ? "" : *(it++); // fieldname
 	string zz = it==end ? "" : *(it++); // ZZ
 	unsigned char dstAddress = SYN;
 	result_t result = RESULT_OK;
+	if (zz.length()==0)
+		zz = defaultDest;
 	if (zz.length()>0) {
 		dstAddress = (unsigned char)parseInt(zz.c_str(), 16, 0, 0xff, result);
 		if (result != RESULT_OK)
 			return result;
 		if (dstAddress!=SYN && !isValidAddress(dstAddress, false))
 			return RESULT_ERR_INVALID_ADDR;
+	}
+	if (name.length()==0) {
+		if (!isValidAddress(dstAddress, false) || isMaster(dstAddress))
+			return RESULT_ERR_INVALID_ADDR;
+	} else if (circuit.length()==0) {
+		circuit = defaultCircuit;
 	}
 	istringstream stream(it==end ? "" : *(it++));
 	string str;
@@ -730,22 +735,24 @@ result_t SimpleCondition::resolve(MessageMap* messages, ostringstream& errorMess
 	Message* message;
 	if (m_name.length()==0) {
 		message = messages->getScanMessage(m_dstAddress);
+		errorMessage << "scan condition " << nouppercase << setw(2) << hex << setfill('0') << static_cast<unsigned>(m_dstAddress);
 	} else {
 		message = messages->find(m_circuit, m_name, false);
 		if (!message)
 			message = messages->find(m_circuit, m_name, false, true);
+		errorMessage << "condition " << m_circuit << " " << m_name;
 	}
 	if (!message) {
-		errorMessage << "condition " << m_circuit << " " << m_name << ": message not found";
+		errorMessage << ": message not found";
 		return RESULT_ERR_NOTFOUND;
 	}
 	if (message->getDstAddress()==SYN) {
 		if (message->isPassive()) {
-			errorMessage << "condition " << m_circuit << " " << m_name << ": invalid passive message";
+			errorMessage << ": invalid passive message";
 			return RESULT_ERR_INVALID_ARG;
 		}
 		if (m_dstAddress==SYN) {
-			errorMessage << "condition " << m_circuit << " " << m_name << ": destination address missing";
+			errorMessage << ": destination address missing";
 			return RESULT_ERR_INVALID_ADDR;
 		}
 		// clone the message with dedicated dstAddress if necessary
@@ -757,7 +764,7 @@ result_t SimpleCondition::resolve(MessageMap* messages, ostringstream& errorMess
 		} else {
 			message = getFirstAvailable(*derived);
 			if (message==NULL) {
-				errorMessage << "condition " << m_circuit << " " << m_name << ": conditional derived message";
+				errorMessage << ": conditional derived message";
 				return RESULT_ERR_INVALID_ARG;
 			}
 		}
@@ -765,7 +772,7 @@ result_t SimpleCondition::resolve(MessageMap* messages, ostringstream& errorMess
 
 	if (!m_valueRanges.empty()) {
 		if (!message->hasField(m_field.length()>0 ? m_field.c_str() : NULL, true)) {
-			errorMessage << "condition " << m_circuit << " " << m_name << ": numeric field " << m_field << " not found";
+			errorMessage << ": numeric field " << m_field << " not found";
 			return RESULT_ERR_NOTFOUND;
 		}
 	}
@@ -803,12 +810,14 @@ bool SimpleCondition::isTrue()
 
 result_t CombinedCondition::resolve(MessageMap* messages, ostringstream& errorMessage)
 {
-	ostringstream dummy;
 	for (vector<Condition*>::iterator it = m_conditions.begin(); it!=m_conditions.end(); it++) {
 		Condition* condition = *it;
+		ostringstream dummy;
 		result_t ret = condition->resolve(messages, dummy);
-		if (ret!=RESULT_OK)
+		if (ret!=RESULT_OK) {
+			errorMessage << dummy.str();
 			return ret;
+		}
 	}
 	return RESULT_OK;
 }
@@ -896,18 +905,12 @@ result_t MessageMap::addDefaultFromFile(vector< vector<string> >& defaults, vect
 			m_lastError = "condition "+type+" already defined";
 			return RESULT_ERR_DUPLICATE_NAME;
 		}
-		if (row.size()>1 && defaultCircuit.length()>0 && row[1].length()==0)
-			row[1] = defaultCircuit; // set default circuit
 		SimpleCondition* condition = NULL;
-		result_t result = Condition::create(++begin, row.end(), condition);
-		if (result!=RESULT_OK) {
-			if (condition)
-				delete condition;
+		result_t result = Condition::create(++begin, row.end(), defaultDest, defaultCircuit, condition);
+		if (condition==NULL || result!=RESULT_OK) {
 			m_lastError = "invalid condition";
 			return result;
 		}
-		if (!condition)
-			return RESULT_ERR_INVALID_ARG;
 		m_conditions[key] = condition;
 		return RESULT_OK;
 	}

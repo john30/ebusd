@@ -455,10 +455,12 @@ public:
 	 * Factory method for creating a new instance.
 	 * @param it the iterator to traverse for the definition parts.
 	 * @param end the iterator pointing to the end of the definition parts.
+	 * @param defaultDest the valid destination address extracted from the file name (from ZZ part), or empty.
+	 * @param defaultCircuit the valid circuit name extracted from the file name (from IDENT part), or empty.
 	 * @param returnValue the variable in which to store the created instance.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	static result_t create(vector<string>::iterator& it, const vector<string>::iterator end, SimpleCondition*& returnValue);
+	static result_t create(vector<string>::iterator& it, const vector<string>::iterator end, string defaultDest, string defaultCircuit, SimpleCondition*& returnValue);
 
 	/**
 	 * Combine this condition with another instance using a logical and.
@@ -509,8 +511,8 @@ public:
 	 */
 	SimpleCondition(const string circuit, const string name, const unsigned char dstAddress, const string field, const vector<unsigned int> valueRanges)
 		: Condition(),
-		  m_circuit(circuit), m_name(name), m_dstAddress(dstAddress), m_field(field), m_valueRanges(valueRanges),
-		  m_message(NULL) { }
+		  m_circuit(circuit), m_name(name), m_dstAddress(dstAddress), m_field(field),
+		  m_valueRanges(valueRanges), m_message(NULL) { }
 
 	/**
 	 * Destructor.
