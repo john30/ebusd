@@ -612,7 +612,10 @@ public:
 	/**
 	 * Destructor.
 	 */
-	virtual ~MessageMap() { clear(); }
+	virtual ~MessageMap() {
+		clear();
+		delete m_scanMessage;
+	}
 
 	/**
 	 * Add a @a Message instance to this set.
