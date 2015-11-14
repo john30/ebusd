@@ -504,9 +504,11 @@ void signalHandler(int sig)
  * @param extension the filename extension the files have to match.
  * @param files the @a vector to which to add the matching files.
  * @param dirs the @a vector to which to add found directories (without any name check), or NULL to ignore.
+ * @param hasTemplates the bool to set when the templates file was found in the path, or NULL to ignore.
  * @return the result code.
  */
-static result_t collectConfigFiles(const string path, const string prefix, const string extension, vector<string>& files, vector<string>* dirs=NULL)
+static result_t collectConfigFiles(const string path, const string prefix, const string extension,
+		vector<string>& files, vector<string>* dirs=NULL, bool* hasTemplates=NULL)
 {
 
 	DIR* dir = opendir(path.c_str());
@@ -533,15 +535,54 @@ static result_t collectConfigFiles(const string path, const string prefix, const
 		} else if (S_ISREG(stat_buf.st_mode)) {
 			if ((prefix.length()==0 || (name.length()>=prefix.length() && name.substr(0, prefix.length())==prefix))
 			&& name.length()>=extension.length()
-			&& name.substr(name.length()-extension.length())==extension
-			&& name!="_templates"+extension) {
-				files.push_back(p);
+			&& name.substr(name.length()-extension.length())==extension) {
+				if (name=="_templates"+extension) {
+					if (hasTemplates) {
+						*hasTemplates = true;
+					}
+				} else {
+					files.push_back(p);
+				}
 			}
 		}
 	}
 	closedir(dir);
 
 	return RESULT_OK;
+}
+
+/**
+ * Get the @a DataFieldTemplates for the specified path.
+ * @param path the path from which to read the files.
+ * @param extension the filename extension of the files to read.
+ * @param available whether the templates file is available in the path.
+ * @param verbose whether to verbosely log problems.
+ * @param wasAdded the bool to set when the templates file was not yet loaded, or NULL to ignore.
+ * @return the @a DataFieldTemplates.
+ */
+static DataFieldTemplates* getTemplates(const string path, const string extension, bool available, bool verbose=false, bool* wasAdded=NULL) {
+	map<string, DataFieldTemplates*>::iterator it = templatesByPath.find(path);
+	if (it!=templatesByPath.end()) {
+		return it->second;
+	}
+	if (!available) {
+		return &globalTemplates;
+	}
+	DataFieldTemplates* templates;
+	if (path==opt.configPath) {
+		templates = &globalTemplates;
+	} else {
+		templates = new DataFieldTemplates(globalTemplates);
+		templatesByPath[path] = templates;
+	}
+	result_t result = templates->readFromFile(path+"/_templates"+extension, NULL, verbose);
+	if (result == RESULT_OK)
+		logInfo(lf_main, "read templates in %s", path.c_str());
+	else
+		logError(lf_main, "error reading templates in %s: %s, %s", path.c_str(), getResultCode(result), templates->getLastError().c_str());
+	if (wasAdded)
+		*wasAdded = true;
+	return templates;
 }
 
 /**
@@ -554,13 +595,15 @@ static result_t collectConfigFiles(const string path, const string prefix, const
  * @param verbose whether to verbosely log problems.
  * @return the result code.
  */
-static result_t readConfigFiles(const string path, const string extension, DataFieldTemplates* templates, MessageMap* messages, bool recursive, bool verbose)
+static result_t readConfigFiles(const string path, const string extension, MessageMap* messages, bool recursive, bool verbose)
 {
 	vector<string> files, dirs;
-	result_t result = collectConfigFiles(path, "", extension, files, &dirs);
+	bool hasTemplates = false;
+	result_t result = collectConfigFiles(path, "", extension, files, &dirs, &hasTemplates);
 	if (result!=RESULT_OK)
 		return result;
 
+	DataFieldTemplates* templates = getTemplates(path, extension, hasTemplates, verbose);
 	for (vector<string>::iterator it = files.begin(); it != files.end(); it++) {
 		string name = *it;
 		logInfo(lf_main, "reading file %s", name.c_str());
@@ -572,7 +615,7 @@ static result_t readConfigFiles(const string path, const string extension, DataF
 		for (vector<string>::iterator it = dirs.begin(); it != dirs.end(); it++) {
 			string name = *it;
 			logInfo(lf_main, "reading dir  %s", name.c_str());
-			result_t result = readConfigFiles(name, extension, templates, messages, true, verbose);
+			result_t result = readConfigFiles(name, extension, messages, true, verbose);
 			if (result != RESULT_OK)
 				return result;
 		}
@@ -583,7 +626,6 @@ static result_t readConfigFiles(const string path, const string extension, DataF
 result_t loadConfigFiles(MessageMap* messages, bool verbose)
 {
 	logInfo(lf_main, "loading configuration files from %s", opt.configPath);
-	string path = string(opt.configPath);
 	messages->clear();
 	globalTemplates.clear();
 	for (map<string, DataFieldTemplates*>::iterator it = templatesByPath.begin(); it != templatesByPath.end(); it++) {
@@ -591,13 +633,8 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose)
 		it->second = NULL;
 	}
 	templatesByPath.clear();
-	result_t result = globalTemplates.readFromFile(path+"/_templates.csv", NULL, verbose);
-	if (result == RESULT_OK)
-		logInfo(lf_main, "read templates");
-	else
-		logError(lf_main, "error reading templates: %s, %s", getResultCode(result), globalTemplates.getLastError().c_str());
 
-	result = readConfigFiles(path, ".csv", &globalTemplates, messages, !opt.scanConfig, verbose);
+	result_t result = readConfigFiles(string(opt.configPath), ".csv", messages, !opt.scanConfig || opt.checkConfig, verbose);
 	if (result == RESULT_OK)
 		logInfo(lf_main, "read config files");
 	else
@@ -663,9 +700,10 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 		return result;
 	}
 	vector<string> files;
+	bool hasTemplates = false;
 	if (result==RESULT_OK) {
 		hw = out.str();
-		result = collectConfigFiles(path, prefix, ".csv", files);
+		result = collectConfigFiles(path, prefix, ".csv", files, NULL, &hasTemplates);
 	}
 	logDebug(lf_main, "found %d matching scan config files from %s with prefix %s: %s", files.size(), path.c_str(), prefix.c_str(), getResultCode(result));
 	if (result!=RESULT_OK)
@@ -736,16 +774,9 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 		return RESULT_ERR_NOTFOUND;
 
 	// found the right file. load the templates if necessary, then load the file itself
-	DataFieldTemplates* templates = NULL;
-	map<string, DataFieldTemplates*>::iterator it = templatesByPath.find(path);
-	if (it==templatesByPath.end()) {
-		templates = new DataFieldTemplates(globalTemplates);
-		result = templates->readFromFile(path+"/_templates.csv", NULL);
-		if (result == RESULT_OK)
-			logNotice(lf_main, "read templates in %s for scan %s", path.c_str(), ident.c_str());
-		else
-			logError(lf_main, "error reading templates in %s for scan %s: %s, %s", path.c_str(), ident.c_str(), getResultCode(result), templates->getLastError().c_str());
-		templatesByPath[path] = templates;
+	bool readCommon = false;
+	DataFieldTemplates* templates = getTemplates(path, ".csv", hasTemplates, false, &readCommon);
+	if (readCommon) {
 		result = collectConfigFiles(path, "", ".csv", files);
 		if (result==RESULT_OK && !files.empty()) {
 			for (vector<string>::iterator it = files.begin(); it!=files.end(); it++) {
@@ -763,8 +794,6 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 				}
 			}
 		}
-	} else {
-		templates = it->second;
 	}
 	result = messages->readFromFile(best, templates);
 	if (result!=RESULT_OK) {
