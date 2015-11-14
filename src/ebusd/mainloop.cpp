@@ -136,10 +136,8 @@ void MainLoop::run()
 						m_busHandler->setScanConfigLoaded(lastScanAddress, false, "");
 						string file;
 						result_t result = loadScanConfigFile(m_messages, lastScanAddress, slave, file);
-						if (result!=RESULT_OK)
-							logError(lf_main, "scan config %2.2x file: %s", lastScanAddress, getResultCode(result));
-						else {
-							logInfo(lf_main, "scan config %2.2x file loaded", lastScanAddress);
+						if (result==RESULT_OK) {
+							logInfo(lf_main, "scan config %2.2x: file %s loaded", lastScanAddress, file.c_str());
 							m_busHandler->setScanConfigLoaded(lastScanAddress, true, file);
 						}
 					}
