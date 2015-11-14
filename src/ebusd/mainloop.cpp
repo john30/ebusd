@@ -522,8 +522,10 @@ string MainLoop::executeRead(vector<string> &args)
 		result << message->getCircuit() << " " << message->getName() << " ";
 	ret = message->decode(pt_slaveData, slave, result, (verbose?OF_VERBOSE:0)|(numeric?OF_NUMERIC:0), false, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
 	if (ret < RESULT_OK) {
-		logError(lf_main, "read %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
-		return getResultCode(ret);
+		logError(lf_main, "read %s %s: decode %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
+		result.str("");
+		result << getResultCode(ret) << " in decode";
+		return result.str();
 	}
 	if (ret > RESULT_OK)
 		return getResultCode(ret);
@@ -628,12 +630,14 @@ string MainLoop::executeWrite(vector<string> &args)
 
 	ret = message->decode(pt_slaveData, slave, result); // decode data
 	if (ret >= RESULT_OK && result.str().empty()) {
-		logInfo(lf_main, "write %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
+		logInfo(lf_main, "write %s %s: decode %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
 		return getResultCode(RESULT_OK);
 	}
 	if (ret != RESULT_OK) {
-		logError(lf_main, "write %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
-		return getResultCode(ret);
+		logError(lf_main, "write %s %s: decode %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
+		result.str("");
+		result << getResultCode(ret) << " in decode";
+		return result.str();
 	}
 	logInfo(lf_main, "write %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), result.str().c_str());
 	return result.str();
