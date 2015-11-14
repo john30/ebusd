@@ -33,6 +33,12 @@ using namespace std;
 /** the bit mask of the source master number in the message key. */
 #define ID_SOURCE_MASK (0x1fLL << (8 * 7))
 
+/** the bits in the @a ID_SOURCE_MASK for arbitrary source and active read message. */
+#define ID_SOURCE_ACTIVE_WRITE (0x1fLL << (8 * 7))
+
+/** the bits in the @a ID_SOURCE_MASK for arbitrary source and active write message. */
+#define ID_SOURCE_ACTIVE_READ (0x1eLL << (8 * 7))
+
 /** the maximum poll priority for a @a Message referred to by a @a Condition. */
 #define POLL_PRIORITY_CONDITION 5
 
@@ -51,13 +57,13 @@ Message::Message(const string circuit, const string name,
 		  m_usedByCondition(false), m_condition(condition),
 		  m_lastUpdateTime(0), m_lastChangeTime(0), m_pollCount(0), m_lastPollTime(0)
 {
-	int exp = 7;
-	unsigned long long key = (unsigned long long)(id.size()-2) << (8 * exp + 5);
+	unsigned long long key = (unsigned long long)(id.size()-2) << (8 * 7 + 5);
 	if (isPassive)
-		key |= (unsigned long long)getMasterNumber(srcAddress) << (8 * exp--); // 0..25
+		key |= (unsigned long long)getMasterNumber(srcAddress) << (8 * 7); // 0..25
 	else
-		key |= 0x1fLL << (8 * exp--); // special value for active
-	key |= (unsigned long long)dstAddress << (8 * exp--);
+		key |= (isWrite ? 0x1fLL : 0x1eLL) << (8 * 7); // special values for active
+	key |= (unsigned long long)dstAddress << (8 * 6);
+	int exp = 5;
 	for (vector<unsigned char>::const_iterator it = id.begin(); it < id.end(); it++)
 		key |= (unsigned long long)*it << (8 * exp--);
 	m_key = key;
@@ -76,7 +82,9 @@ Message::Message(const bool isWrite, const bool isPassive,
 {
 	m_id.push_back(pb);
 	m_id.push_back(sb);
-	unsigned long long key = (isPassive ? 0LL : 0x1fLL) << (8 * 7);
+	unsigned long long key = 0;
+	if (!isPassive)
+		key |= (isWrite ? 0x1fLL : 0x1eLL) << (8 * 7); // special values for active
 	key |= (unsigned long long)SYN << (8 * 6);
 	key |= (unsigned long long)pb << (8 * 5);
 	key |= (unsigned long long)sb << (8 * 4);
@@ -1132,6 +1140,7 @@ deque<Message*> MessageMap::findAll(SymbolString& master)
 				ret.push_back(message);
 		}
 		if ((key & ID_SOURCE_MASK) != 0) {
+			key &= ~ID_SOURCE_MASK;
 			it = m_messagesByKey.find(key & ~ID_SOURCE_MASK); // try again without specific source master
 			if (it != m_messagesByKey.end()) {
 				Message* message = getFirstAvailable(it->second);
@@ -1139,7 +1148,13 @@ deque<Message*> MessageMap::findAll(SymbolString& master)
 					ret.push_back(message);
 			}
 		}
-		it = m_messagesByKey.find(key | ID_SOURCE_MASK); // try again with special value for active
+		it = m_messagesByKey.find(key | ID_SOURCE_ACTIVE_READ); // try again with special value for active read
+		if (it != m_messagesByKey.end()) {
+			Message* message = getFirstAvailable(it->second);
+			if (message)
+				ret.push_back(message);
+		}
+		it = m_messagesByKey.find(key | ID_SOURCE_ACTIVE_WRITE); // try again with special value for active write
 		if (it != m_messagesByKey.end()) {
 			Message* message = getFirstAvailable(it->second);
 			if (message)
