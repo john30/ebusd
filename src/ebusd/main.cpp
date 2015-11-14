@@ -532,17 +532,14 @@ static result_t collectConfigFiles(const string path, const string prefix, const
 		if (S_ISDIR(stat_buf.st_mode)) {
 			if (dirs!=NULL)
 				dirs->push_back(p);
-		} else if (S_ISREG(stat_buf.st_mode)) {
-			if ((prefix.length()==0 || (name.length()>=prefix.length() && name.substr(0, prefix.length())==prefix))
-			&& name.length()>=extension.length()
-			&& name.substr(name.length()-extension.length())==extension) {
-				if (name=="_templates"+extension) {
-					if (hasTemplates) {
-						*hasTemplates = true;
-					}
-				} else {
-					files.push_back(p);
+		} else if (S_ISREG(stat_buf.st_mode) && name.length()>=extension.length()
+		&& name.substr(name.length()-extension.length())==extension) {
+			if (name=="_templates"+extension) {
+				if (hasTemplates) {
+					*hasTemplates = true;
 				}
+			} else if (prefix.length()==0 || (name.length()>=prefix.length() && name.substr(0, prefix.length())==prefix)) {
+				files.push_back(p);
 			}
 		}
 	}
