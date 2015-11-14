@@ -859,18 +859,17 @@ result_t MessageMap::add(Message* message, bool storeByName)
 			else if (m_addAll || (conditional && first->isConditional()))
 				m_messagesByName[nameKey].push_back(message); // store further messages only if both are conditional or if storing everything
 		}
+		m_messageCount++;
+		if (conditional)
+			m_conditionalMessageCount++;
+		if (isPassive)
+			m_passiveMessageCount++;
+		addPollMessage(message);
 	}
-	m_messageCount++;
-	if (conditional)
-		m_conditionalMessageCount++;
-	if (isPassive)
-		m_passiveMessageCount++;
 	unsigned char idLength = (unsigned char)(message->getId().size() - 2);
 	if (idLength > m_maxIdLength)
 		m_maxIdLength = idLength;
 	m_messagesByKey[key].push_back(message);
-
-	addPollMessage(message);
 
 	return RESULT_OK;
 }
@@ -1258,14 +1257,27 @@ void MessageMap::dump(ostream& output)
 	for (map<string, vector<Message*> >::iterator it = m_messagesByName.begin(); it != m_messagesByName.end(); it++) {
 		if (it->first[0] == '-') // skip instances stored multiple times (key starting with "-")
 			continue;
-		Message* message = getFirstAvailable(it->second);
-		if (!message)
-			continue;
-		if (first)
-			first = false;
-		else
-			output << endl;
-		message->dump(output);
+		if (m_addAll) {
+			for (vector<Message*>::iterator mit = it->second.begin(); mit != it->second.end(); mit++) {
+				Message* message = *mit;
+				if (!message)
+					continue;
+				if (first)
+					first = false;
+				else
+					output << endl;
+				message->dump(output);
+			}
+		} else {
+			Message* message = getFirstAvailable(it->second);
+			if (!message)
+				continue;
+			if (first)
+				first = false;
+			else
+				output << endl;
+			message->dump(output);
+		}
 	}
 	if (!first)
 		output << endl;
