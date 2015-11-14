@@ -21,6 +21,8 @@
 * include index suffix in default circuit name extracted from CSV file name (format "ZZ.CCCCC[.index].csv")
 * added support MACH architecture (Mac OS)
 * use empty condition messagename for referencing scan message
+* allow read and write message definitions having the same ID
+* add hint to decoding problems in "read" and "write" if answer was retrieved successfully
 
 ## Changed files
 https://github.com/john30/ebusd/compare/v1.3.0...master
