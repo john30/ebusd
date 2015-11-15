@@ -108,10 +108,11 @@ bool ScanRequest::notify(result_t result, SymbolString& slave)
 			logInfo(lf_bus, "scan %2.2x timed out", dstAddress);
 		else
 			logError(lf_bus, "scan %2.2x failed: %s", dstAddress, getResultCode(result));
+		m_busHandler->addScanResult(dstAddress, "", result);
 		return false;
 	}
 
-	m_busHandler->addScanResult(dstAddress, scanResult.str());
+	m_busHandler->addScanResult(dstAddress, scanResult.str(), result);
 
 	// check for remaining secondary messages
 	if (m_messages.empty()) {
@@ -828,10 +829,15 @@ result_t BusHandler::startScan(bool full)
 	return RESULT_OK;
 }
 
-void BusHandler::addScanResult(unsigned char dstAddress, string result)
+void BusHandler::addScanResult(unsigned char dstAddress, string str, result_t result)
 {
-	m_seenAddresses[dstAddress] |= SCANNED;
-	logNotice(lf_bus, "scan %2.2x: %s", dstAddress, result.c_str());
+	if (result==RESULT_ERR_NO_SIGNAL)
+		return;
+	m_seenAddresses[dstAddress] |= SCAN_INIT;
+	if (result!=RESULT_OK)
+		return;
+	m_seenAddresses[dstAddress] |= SCAN_DONE;
+	logNotice(lf_bus, "scan %2.2x: %s", dstAddress, str.c_str());
 	if (m_scanResults.find(dstAddress) == m_scanResults.end())
 		m_scanResults[dstAddress] = result;
 	else
@@ -854,7 +860,7 @@ void BusHandler::formatScanResult(ostringstream& output)
 	if (first) {
 		// fallback to autoscan results
 		for (unsigned char slave = 1; slave != 0; slave++) { // 0 is known to be a master
-			if (isValidAddress(slave, false) && !isMaster(slave) && (m_seenAddresses[slave]&SCANNED)!=0) {
+			if (isValidAddress(slave, false) && !isMaster(slave) && (m_seenAddresses[slave]&SCAN_DONE)!=0) {
 				Message* message = m_messages->getScanMessage(slave);
 				if (message!=NULL && message->getLastUpdateTime()>0) {
 					if (first)
@@ -884,7 +890,7 @@ void BusHandler::formatSeenInfo(ostringstream& output)
 			}
 			if ((m_seenAddresses[slave]&SEEN)!=0)
 				output << ", seen";
-			if ((m_seenAddresses[slave]&SCANNED)!=0) {
+			if ((m_seenAddresses[slave]&SCAN_DONE)!=0) {
 				output << ", scanned";
 				Message* message = m_messages->getScanMessage(slave);
 				if (message!=NULL && message->getLastUpdateTime()>0) {
@@ -907,6 +913,7 @@ result_t BusHandler::scanAndWait(unsigned char dstAddress, SymbolString& slave)
 {
 	if (!isValidAddress(dstAddress, false) || isMaster(dstAddress))
 		return RESULT_ERR_INVALID_ADDR;
+	m_seenAddresses[dstAddress] |= SCAN_INIT;
 	Message* scanMessage = m_messages->getScanMessage();
 	if (scanMessage==NULL) {
 		return RESULT_ERR_NOTFOUND;
@@ -921,9 +928,10 @@ result_t BusHandler::scanAndWait(unsigned char dstAddress, SymbolString& slave)
 			if (message!=NULL)
 				scanMessage = message;
 		}
+		if (result!=RESULT_ERR_NO_SIGNAL)
+			m_seenAddresses[dstAddress] |= SCAN_DONE;
 	}
 	if (result==RESULT_OK) {
-		m_seenAddresses[dstAddress] |= SCANNED;
 		ostringstream output;
 		scanMessage->decode(master, slave, output); // just to update the cached data
 	}
@@ -959,12 +967,14 @@ unsigned char BusHandler::getNextScanAddress(unsigned char lastAddress, bool& sc
 		if (!isValidAddress(lastAddress, false) || isMaster(lastAddress))
 			continue;
 		if ((m_seenAddresses[lastAddress]&(SEEN|LOAD_INIT))==SEEN) {
-			scanned = m_seenAddresses[lastAddress]&SCANNED;
+			scanned = (m_seenAddresses[lastAddress]&SCAN_INIT)!=0;
 			return lastAddress;
 		}
 		unsigned char master = getMasterAddress(lastAddress);
-		if (master!=SYN && (m_seenAddresses[master]&SEEN)!=0 && (m_seenAddresses[lastAddress]&LOAD_INIT)==0)
+		if (master!=SYN && (m_seenAddresses[master]&SEEN)!=0 && (m_seenAddresses[lastAddress]&LOAD_INIT)==0) {
+			scanned = (m_seenAddresses[lastAddress]&SCAN_INIT)!=0;
 			return lastAddress;
+		}
 	}
 	return SYN;
 }

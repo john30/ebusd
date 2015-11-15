@@ -67,16 +67,19 @@ enum BusState {
 };
 
 /** bit for the seen state: seen. */
-#define SEEN 1
+#define SEEN 0x01
 
-/** bit for the seen state: scanned. */
-#define SCANNED 2
+/** bit for the seen state: scan initiated. */
+#define SCAN_INIT 0x02
+
+/** bit for the seen state: scan finished. */
+#define SCAN_DONE 0x04
 
 /** bit for the seen state: configuration loading initiated. */
-#define LOAD_INIT 4
+#define LOAD_INIT 0x08
 
 /** bit for the seen state: configuration loaded. */
-#define LOAD_DONE 8
+#define LOAD_DONE 0x10
 
 class BusHandler;
 
@@ -331,9 +334,10 @@ public:
 	/**
 	 * Add a scan result @a string for a scanned slave address.
 	 * @param dstAddress the scanned slave address.
-	 * @param result the scan result @a string to add.
+	 * @param str the scan result @a string to add.
+	 * @param result the scan result code.
 	 */
-	void addScanResult(unsigned char dstAddress, string result);
+	void addScanResult(unsigned char dstAddress, string str, result_t result);
 
 	/**
 	 * Format the scan result to the @a ostringstream.
