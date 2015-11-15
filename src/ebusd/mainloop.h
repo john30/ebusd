@@ -88,6 +88,7 @@ private:
 	 * Decode and execute client message.
 	 * @param data the data string to decode (may be empty).
 	 * @param connected set to false when the client connection shall be closed.
+	 * @param isHttp true for HTTP message.
 	 * @param listening set to true when the client is in listening mode.
 	 * @param running set to false when the server shall be stopped.
 	 * @return result string to send back to the client.
@@ -97,7 +98,7 @@ private:
 	/**
 	 * Parse the hex master message from the remaining arguments.
 	 * @param args the arguments passed to the command.
-	 * @param argIndex the index of the first argument to parse.
+	 * @param argPos the index of the first argument to parse.
 	 * @param master the master @a SymbolString to write the data to.
 	 * @return the result from parsing the arguments.
 	 */
