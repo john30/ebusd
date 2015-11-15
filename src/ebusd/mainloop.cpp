@@ -121,8 +121,7 @@ void MainLoop::run()
 						Message* message = m_messages->getScanMessage(lastScanAddress);
 						slave = message->getLastSlaveData();
 						scanned = message->getLastUpdateTime()>0;
-					}
-					if (!scanned) {
+					} else {
 						result_t result = m_busHandler->scanAndWait(lastScanAddress, slave);
 						taskDelay = (result == RESULT_ERR_NO_SIGNAL) ? 10 : 1;
 						if (result!=RESULT_OK)
@@ -130,10 +129,10 @@ void MainLoop::run()
 						else {
 							scanned = true;
 							logInfo(lf_main, "scan config %2.2x message received", lastScanAddress);
+							m_busHandler->setScanConfigLoaded(lastScanAddress, false, "");
 						}
 					}
 					if (scanned) {
-						m_busHandler->setScanConfigLoaded(lastScanAddress, false, "");
 						string file;
 						result_t result = loadScanConfigFile(m_messages, lastScanAddress, slave, file);
 						if (result==RESULT_OK) {
@@ -983,7 +982,7 @@ string MainLoop::executeInfo(vector<string> &args)
 			   " Report information about the daemon, the configuration, and seen devices.";
 
 	ostringstream result;
-	result << "version: " << PACKAGE_STRING << "\n";
+	result << "version: " << PACKAGE_STRING << "." REVISION "\n";
 	if (m_busHandler->hasSignal()) {
 		result << "signal: acquired\n";
 		result << "symbol rate: " << static_cast<unsigned>(m_busHandler->getSymbolRate()) << "\n";
