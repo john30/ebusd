@@ -19,7 +19,13 @@
 #ifndef LIBEBUS_RESULT_H_
 #define LIBEBUS_RESULT_H_
 
-/** \file result.h */
+/** @file result.h
+ * Functions, and constants related to execution results.
+ *
+ * The #result_t codes defined here are used by many functions to emit the
+ * result of the function call. Zero and positive values indicate success,
+ * whereas negative values indicate failure.
+ */
 
 /** type for result code. */
 enum result_t {

@@ -29,7 +29,32 @@
 #include <vector>
 #include <map>
 
-/** \file data.h */
+/** @file data.h
+ * Classes, functions, and constants related to decoding/encoding of symbols
+ * on the eBUS to/from readable values.
+ *
+ * A @a DataField is either a @a SingleDataField or a list of
+ * @a SingleDataField instances in a @a DataFieldSet.
+ *
+ * A @a SingleDataField is either a string based one or a numeric one. Due to
+ * their text nature, date and time fields are also treated as
+ * @a StringDataField.
+ *
+ * The basic field types are just @a StringDataField, @a NumberDataField, and
+ * @a ValueListDataField. The particular eBUS specification types like e.g.
+ * @a D1C are defined by using one of these basic field types (see #BaseType)
+ * with certain flags, such as #BCD, #FIX, #REQ, see #dataType_s.
+ *
+ * The list of available base types is defined an array of #dataType_s
+ * structures and can easily be extended if necessary.
+ *
+ * Each @a DataField can be converted from a @a SymbolString to an
+ * @a ostringstream (see @a DataField#read() methods) or vice versa from an
+ * @a istringstream to a @a SymbolString (see @a DataField#write()).
+ *
+ * The @a DataFieldTemplates allow definition of derived types as well as
+ * combined types based on the list of available base types.
+ */
 
 using namespace std;
 
@@ -79,18 +104,18 @@ static const unsigned int DAY = 0x20; //!< forced value list defaulting to week 
 static const unsigned int IGN = 0x40; //!< ignore value during read and write
 static const unsigned int FIX = 0x80; //!< fixed width formatting
 static const unsigned int REQ = 0x100;//!< value may not be NULL
-static const unsigned int HCD = 0x200; //!< binary representation is hex converted to decimal and interpreted as 2 digits (also requires @a BCD)
+static const unsigned int HCD = 0x200; //!< binary representation is hex converted to decimal and interpreted as 2 digits (also requires #BCD)
 
-/** The structure for defining field types with their properties. */
-typedef struct {
-	const char* name;                    //!< field identifier
-	const unsigned char bitCount;        //!< number of bits (maximum length if @a ADJ flag is set, must be multiple of 8 with flag @a BCD)
+/** The structure for defining data types with their properties. */
+typedef struct dataType_s {
+	const char* name;                    //!< data type identifier
+	const unsigned char bitCount;        //!< number of bits (maximum length if #ADJ flag is set, must be multiple of 8 with flag #BCD)
 	const BaseType type;                 //!< base data type
-	const unsigned short flags;          //!< flags (e.g. @a BCD)
-	const unsigned int replacement;      //!< replacement value (fill-up value for @a bt_str / @a bt_hexstr, no replacement if equal to @a minValueOrLength for @a bt_num)
+	const unsigned short flags;          //!< flags (like #BCD)
+	const unsigned int replacement;      //!< replacement value (fill-up value for #bt_str / #bt_hexstr, no replacement if equal to #minValueOrLength for #bt_num)
 	const unsigned int minValueOrLength; //!< minimum binary value (minimum length of string for @a StringDataField)
 	const unsigned int maxValueOrLength; //!< maximum binary value (maximum length of string for @a StringDataField)
-	const short divisorOrFirstBit;       //!< @a bt_number: divisor (negative for reciprocal) or offset to first bit (if (@a bitCount%8)!=0)
+	const short divisorOrFirstBit;       //!< #bt_num: divisor (negative for reciprocal) or offset to first bit (if (#bitCount%8)!=0)
 } dataType_t;
 
 /** the maximum allowed position within master or slave data. */

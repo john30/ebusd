@@ -25,7 +25,41 @@
 #include <sstream>
 #include <queue>
 
-/** \file symbol.h */
+/** @file symbol.h
+ * Classes, functions, and constants related to symbols on the eBUS.
+ *
+ * The @a SymbolString class is used for escaping or unescaping a sequence of
+ * bytes in preparation for sending to the bus or after reception of bytes from
+ * the bus, as well as calculating and verifying the CRC of a message part.
+ *
+ * A message on the bus always consists of a command part, i.e. the data sent
+ * from a master to the bus. The command part starts with the sending master
+ * address followed by the destination address. Both addresses are not allowed
+ * to be escaped and whenever a #SYN symbol appears, the sending has to be
+ * treated as timed out, as only the auto-SYN generator will do so when there
+ * was no symbol on the bus for a certain period of time.
+ *
+ * The remaining bytes of the command part are the primary and secondary
+ * command byte, the number of data bytes, the data bytes themselves, and the
+ * final CRC.
+ *
+ * When the destination is the #BROADCAST address, then the messages consists
+ * of the command part only.
+ *
+ * When the destination address is a master (see @a isMaster()), the receiving
+ * master has to acknowledge the correct reception of the command with either
+ * the #ACK (if the CRC was valid) or the #NAK symbol (if the received CRC did
+ * not match the calculated one). In case of a non-acknowledge #NAK symbol, the
+ * command part has to be repeated once (and once only) by the sender.
+ *
+ * When the destination address is a slave, the receiving slave has to
+ * acknowledge the reception of the command as described above. After a
+ * positive #ACK symbol, the receiving slave has to send its response data.
+ * The response data consists of the number of data bytes, the data bytes
+ * themselves, and the final CRC. The sending master has to acknowledge the
+ * correct reception of the response as described above and in case of a
+ * non-acknowledge, the receiving slave has to repeat its data once.
+ */
 
 using namespace std;
 

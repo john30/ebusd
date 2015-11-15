@@ -27,7 +27,30 @@
 #include <deque>
 #include <map>
 
-/** \file message.h */
+/** @file message.h
+ * Classes, functions, and constants related to decoding/encoding of complete
+ * messages on the eBUS to/from readable values.
+ *
+ * A @a Message has a unique numeric key (see Message#getKey()) as well as a
+ * unique name and circuit (@see Message#getCircuit() and Message#getName()).
+ * The numeric key is built from the message type (active/passive, read/write),
+ * the source and destination address, the primary and secondary command byte,
+ * as well as additional command ID bytes (see Message#getId()).
+ *
+ * Whenever a @a Message gets decoded from a master and slave @a SymbolString
+ * (see Message#decode()), it stores these strings for later retrieval from
+ * cache (see Message#decodeLastData()).
+ *
+ * In order to make a @a Message available (see Message#isAvailable()) under
+ * certain conditions only, it may have assigned a @a Condition instance.
+ *
+ * A @a Condition is either a @a SimpleCondition referencing another
+ * @a Message, field, and field value, or a @a CombinedCondition referencing
+ * two or more other @a Condition instances.
+ *
+ * The @a MessageMap stores all @a Message and @a Condition instances by their
+ * unique keys, and also keeps track of messages with polling enabled.
+ */
 
 using namespace std;
 
