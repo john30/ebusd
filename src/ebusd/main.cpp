@@ -97,14 +97,14 @@ static MessageMap* s_messageMap = NULL;
 static MainLoop* s_mainLoop = NULL;
 
 /** the version string of the program. */
-const char *argp_program_version = ""PACKAGE_STRING"";
+const char *argp_program_version = ""PACKAGE_STRING "." REVISION"";
 
 /** the report bugs to address of the program. */
 const char *argp_program_bug_address = ""PACKAGE_BUGREPORT"";
 
 /** the documentation of the program. */
 static const char argpdoc[] =
-	"A daemon for access to eBUS devices.";
+	"A daemon for communication with eBUS heating systems.";
 
 #define O_CHKCFG 1
 #define O_DMPCFG (O_CHKCFG+1)
@@ -868,7 +868,7 @@ int main(int argc, char* argv[])
 	signal(SIGINT, signalHandler);
 	signal(SIGTERM, signalHandler);
 
-	logNotice(lf_main, PACKAGE_STRING " started");
+	logNotice(lf_main, PACKAGE_STRING "." REVISION " started");
 
 	// load configuration files
 	loadConfigFiles(s_messageMap);
