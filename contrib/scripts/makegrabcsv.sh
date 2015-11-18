@@ -8,7 +8,7 @@ BEGIN{
   print "enable grab first!"
   exit
 }
-// {
+/.+/ {
   len[substr($1,3)]=length($3)/2;
 }
 END {
