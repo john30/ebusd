@@ -1,10 +1,19 @@
 #!/bin/sh
 echo "grab result"|nc localhost 8888|awk '
+BEGIN{
+  len[""]=0
+  delete len[""]
+}
+/grab disabled/ {
+  print "enable grab first!"
+  exit
+}
 // {
   len[substr($1,3)]=length($3)/2;
 }
 END {
-  print "# type (r[1-9];w;u),circuit,name,[comment],[QQ],ZZ,PBSB,[ID],field1,part (m/s),datatypes/templates"
+  if (length(len)>0)
+    print "# type (r[1-9];w;u),circuit,name,[comment],[QQ],ZZ,PBSB,[ID],field1,part (m/s),datatypes/templates"
   for (i in len) {
     zz=substr(i,1,2)
     pbsb=substr(i,3,4)
@@ -46,4 +55,4 @@ END {
     }
   }
 }
-'
+'|uniq
