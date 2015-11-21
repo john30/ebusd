@@ -31,7 +31,13 @@
 #include <map>
 #include <pthread.h>
 
-/** \file bushandler.h */
+/** @file bushandler.h
+ * Classes, functions, and constants related to handling of symbols on the eBUS.
+ *
+ * The following table shows the possible states, symbols, and state transition
+ * depending on the kind of message to send/receive:
+ * @image html states.png "ebusd BusHandler states"
+ */
 
 using namespace std;
 

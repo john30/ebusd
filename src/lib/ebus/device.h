@@ -26,7 +26,14 @@
 #include <netdb.h>
 #include "result.h"
 
-/** \file device.h */
+/** @file device.h
+ * Classes providing access to the eBUS.
+ *
+ * A @a Device is either a @a SerialDevice directly connected to a local tty
+ * port or a remote @a NetworkDevice handled via a TCP socket. It allows to
+ * send and receive bytes to/from the eBUS while optionally dumping the data
+ * to a file and/or forwarding it to a logging function.
+ */
 
 using namespace std;
 
