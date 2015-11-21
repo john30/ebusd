@@ -28,7 +28,15 @@
 #include <vector>
 #include <map>
 
-/** \file filereader.h */
+/** @file filereader.h
+ * Helper class and constants for reading configuration files.
+ *
+ * The @a FileReader template class allows to read CSV compliant text files
+ * while splitting each read line into fields.
+ * It also supports special treatment of comment lines starting with a "#", as
+ * well as so called "default values" indicated by the first field starting
+ * with a "*" symbol.
+ */
 
 using namespace std;
 
@@ -174,14 +182,6 @@ public:
 	virtual result_t addDefaultFromFile(vector< vector<string> >& defaults, vector<string>& row,
 			vector<string>::iterator& begin, string defaultDest, string defaultCircuit,
 			const string& filename, unsigned int lineNo) {
-		if (row.size()>1 && defaultCircuit.length()>0) {
-			if (row[1].length()==0)
-				row[1] = defaultCircuit; // set default circuit
-			else if (row[1][0]=='#')
-				row[1] = defaultCircuit+row[1]; // append security suffix to circuit prefix
-		}
-		if (row.size()>5 && defaultDest.length()>0 && row[5].length()==0)
-			row[5] = defaultDest; // set default destination
 		defaults.push_back(row);
 		begin = row.end();
 		return RESULT_OK;

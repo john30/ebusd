@@ -886,7 +886,7 @@ result_t MessageMap::addDefaultFromFile(vector< vector<string> >& defaults, vect
 	vector<string>::iterator& begin, string defaultDest, string defaultCircuit,
 	const string& filename, unsigned int lineNo)
 {
-	// convert conditions in defaults
+	// check for condition in defaults
 	string type = row[0];
 	if (type.length()>0 && type[0]=='[' && type[type.length()-1]==']') {
 		// condition
@@ -906,6 +906,14 @@ result_t MessageMap::addDefaultFromFile(vector< vector<string> >& defaults, vect
 		m_conditions[key] = condition;
 		return RESULT_OK;
 	}
+	if (row.size()>1 && defaultCircuit.length()>0) {
+		if (row[1].length()==0)
+			row[1] = defaultCircuit; // set default circuit
+		else if (row[1][0]=='#')
+			row[1] = defaultCircuit+row[1]; // append security suffix to circuit prefix
+	}
+	if (row.size()>5 && defaultDest.length()>0 && row[5].length()==0)
+		row[5] = defaultDest; // set default destination
 	return FileReader<DataFieldTemplates*>::addDefaultFromFile(defaults, row, begin, defaultDest, defaultCircuit, filename, lineNo);
 }
 
