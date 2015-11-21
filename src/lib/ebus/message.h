@@ -28,8 +28,8 @@
 #include <map>
 
 /** @file message.h
- * Classes, functions, and constants related to decoding/encoding of complete
- * messages on the eBUS to/from readable values.
+ * Classes and functions for decoding and encoding of complete messages on the
+ * eBUS to and from readable values.
  *
  * A @a Message has a unique numeric key (see Message#getKey()) as well as a
  * unique name and circuit (@see Message#getCircuit() and Message#getName()).
