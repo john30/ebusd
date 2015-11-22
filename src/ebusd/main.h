@@ -62,6 +62,13 @@ struct options
 };
 
 /**
+ * Get the @a DataFieldTemplates for the specified configuration file.
+ * @param filename the full name of the configuration file.
+ * @return the @a DataFieldTemplates.
+ */
+DataFieldTemplates* getTemplates(const string filename);
+
+/**
  * Load the message definitions from configuration files.
  * @param messages the @a MessageMap to load the messages into.
  * @param verbose whether to verbosely log problems.
