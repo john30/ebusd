@@ -40,6 +40,13 @@ void verify(bool expectFailMatch, string type, string input,
 		        << gotStr << "<, expected >" << expectStr << "<" << endl;
 }
 
+DataFieldTemplates* templates = NULL;
+
+DataFieldTemplates* getTemplates(const string filename)
+{
+	return templates;
+}
+
 int main()
 {
 	// message:   [type],[circuit],name,[comment],[QQ[;QQ]*],[ZZ],[PBSB],[ID],fields...
@@ -84,7 +91,7 @@ int main()
 		{"r,,x,,,,,\"6800\",,,UCH,,,bit0=\"comment, continued comment", "", "", "", "c"},
 		{"r,,x,,,,,\"6800\",,,UCH,,\"\",\"bit0=\"comment, continued comment\"", "=1 [bit0=\"comment, continued comment]", "ff08b509030d6800", "0101", "mD"},
 	};
-	DataFieldTemplates* templates = new DataFieldTemplates();
+	templates = new DataFieldTemplates();
 	MessageMap* messages = new MessageMap();
 	vector< vector<string> > defaultsRows;
 	map<string, Condition*> &conditions = messages->getConditions();
@@ -121,7 +128,7 @@ int main()
 		string item;
 		vector<string> entries;
 
-		FileReader<string>::splitFields(check[0], entries);
+		FileReader::splitFields(check[0], entries);
 
 		if (deleteMessages.size()>0) {
 			for (vector<Message*>::iterator it = deleteMessages.begin(); it != deleteMessages.end(); it++) {
