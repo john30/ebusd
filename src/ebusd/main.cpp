@@ -460,6 +460,7 @@ void shutdown()
 	for (map<string, DataFieldTemplates*>::iterator it = templatesByPath.begin(); it != templatesByPath.end(); it++) {
 		if (it->second!=&globalTemplates)
 			delete it->second;
+		it->second = NULL;
 	}
 	templatesByPath.clear();
 
@@ -641,7 +642,8 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose)
 	messages->clear();
 	globalTemplates.clear();
 	for (map<string, DataFieldTemplates*>::iterator it = templatesByPath.begin(); it != templatesByPath.end(); it++) {
-		delete it->second;
+		if (it->second!=&globalTemplates)
+			delete it->second;
 		it->second = NULL;
 	}
 	templatesByPath.clear();
