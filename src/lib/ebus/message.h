@@ -32,7 +32,7 @@
  * eBUS to and from readable values.
  *
  * A @a Message has a unique numeric key (see Message#getKey()) as well as a
- * unique name and circuit (@see Message#getCircuit() and Message#getName()).
+ * unique name and circuit (see Message#getCircuit() and Message#getName()).
  * The numeric key is built from the message type (active/passive, read/write),
  * the source and destination address, the primary and secondary command byte,
  * as well as additional command ID bytes (see Message#getId()).
@@ -45,11 +45,13 @@
  * certain conditions only, it may have assigned a @a Condition instance.
  *
  * A @a Condition is either a @a SimpleCondition referencing another
- * @a Message, field, and field value, or a @a CombinedCondition referencing
- * two or more other @a Condition instances.
+ * @a Message, numeric field, and field value, or a @a CombinedCondition
+ * applying a logical AND on two or more other @a Condition instances.
  *
  * The @a MessageMap stores all @a Message and @a Condition instances by their
- * unique keys, and also keeps track of messages with polling enabled.
+ * unique keys, and also keeps track of messages with polling enabled. It reads
+ * the instances from configuration files by inheriting the @a FileReader
+ * template class.
  */
 
 using namespace std;
@@ -631,7 +633,7 @@ private:
 /**
  * Holds a map of all known @a Message instances.
  */
-class MessageMap : public FileReader<DataFieldTemplates*>
+class MessageMap : public FileReader
 {
 public:
 
@@ -639,7 +641,7 @@ public:
 	 * Construct a new instance.
 	 * @param addAll whether to add all messages, even if duplicate.
 	 */
-	MessageMap(const bool addAll=false) : FileReader<DataFieldTemplates*>::FileReader(true),
+	MessageMap(const bool addAll=false) : FileReader::FileReader(true),
 		m_addAll(addAll), m_maxIdLength(0), m_messageCount(0), m_conditionalMessageCount(0), m_passiveMessageCount(0)
 	{
 		m_scanMessage = new Message(false, false, 0x07, 0x04, DataFieldSet::getIdentFields(), true);
@@ -678,7 +680,7 @@ public:
 
 	// @copydoc
 	virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
-		DataFieldTemplates* arg, vector< vector<string> >* defaults,
+		vector< vector<string> >* defaults,
 		const string& filename, unsigned int lineNo);
 
 	/**

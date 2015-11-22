@@ -25,8 +25,8 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <algorithm>
 #include <vector>
-#include <map>
 
 /** @file filereader.h
  * Helper class and constants for reading configuration files.
@@ -56,7 +56,6 @@ extern unsigned int parseInt(const char* str, int base, const unsigned int minVa
 /**
  * An abstract class that support reading definitions from a file.
  */
-template<typename T>
 class FileReader
 {
 public:
@@ -75,11 +74,10 @@ public:
 	/**
 	 * Read the definitions from a file.
 	 * @param filename the name of the file being read.
-	 * @param arg an argument to pass to @a addFromFile().
 	 * @param verbose whether to verbosely log problems.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	virtual result_t readFromFile(const string filename, T arg=NULL, bool verbose=false)
+	virtual result_t readFromFile(const string filename, bool verbose=false)
 	{
 		ifstream ifs;
 		ifs.open(filename.c_str(), ifstream::in);
@@ -134,10 +132,10 @@ public:
 					if (result == RESULT_OK)
 						continue;
 				} else
-					result = addFromFile(it, end, arg, &defaults, filename, lineNo);
+					result = addFromFile(it, end, &defaults, filename, lineNo);
 			}
 			else
-				result = addFromFile(it, end, arg, NULL, filename, lineNo);
+				result = addFromFile(it, end, NULL, filename, lineNo);
 
 			if (result != RESULT_OK) {
 				if (!verbose) {
@@ -181,7 +179,8 @@ public:
 	 */
 	virtual result_t addDefaultFromFile(vector< vector<string> >& defaults, vector<string>& row,
 			vector<string>::iterator& begin, string defaultDest, string defaultCircuit,
-			const string& filename, unsigned int lineNo) {
+			const string& filename, unsigned int lineNo)
+	{
 		defaults.push_back(row);
 		begin = row.end();
 		return RESULT_OK;
@@ -191,21 +190,21 @@ public:
 	 * Add a definition that was read from a file.
 	 * @param begin an iterator to the first column of the definition row to read.
 	 * @param end the end iterator of the definition row to read.
-	 * @param arg the argument passed to @a readFromFile().
 	 * @param defaults all previously read default rows (initial star char removed), or NULL if not supported.
 	 * @param filename the name of the file being read.
 	 * @param lineNo the current line number in the file being read.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
-		T arg, vector< vector<string> >* defaults,
+		vector< vector<string> >* defaults,
 		const string& filename, unsigned int lineNo) = 0;
 
 	/**
 	 * Left and right trim the string.
 	 * @param str the @a string to trim.
 	 */
-	static void trim(string& str) {
+	static void trim(string& str)
+	{
 		size_t pos = str.find_first_not_of(" \t");
 		if (pos!=string::npos) {
 			str.erase(0, pos);
@@ -217,12 +216,22 @@ public:
 	}
 
 	/**
+	 * Convert all upper case characters in the string to lower case.
+	 * @param str the @a string to convert.
+	 */
+	static void tolower(string& str)
+	{
+		transform(str.begin(), str.end(), str.begin(), ::tolower);
+	}
+
+	/**
 	 * Split the line into fields.
 	 * @param line the @a string with the line to split.
 	 * @param row the @a vector to which to add the fields.
 	 * @return true if the line was split, false if the line was completely empty or a comment line.
 	 */
-	static bool splitFields(string& line, vector<string>& row) {
+	static bool splitFields(string& line, vector<string>& row)
+	{
 		row.clear();
 		trim(line);
 		// skip empty lines and comments

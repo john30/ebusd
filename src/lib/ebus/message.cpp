@@ -23,7 +23,6 @@
 #include <string>
 #include <vector>
 #include <cstring>
-#include <algorithm>
 #include <locale>
 #include <iomanip>
 #include <climits>
@@ -41,6 +40,8 @@ using namespace std;
 
 /** the maximum poll priority for a @a Message referred to by a @a Condition. */
 #define POLL_PRIORITY_CONDITION 5
+
+extern DataFieldTemplates* getTemplates(const string filename);
 
 Message::Message(const string circuit, const string name,
 		const bool isWrite, const bool isPassive, const string comment,
@@ -199,7 +200,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 		string token;
 		bool first = true;
 		while (getline(stream, token, VALUE_SEPARATOR) != 0) {
-			DataFieldTemplates::trim(token);
+			FileReader::trim(token);
 			unsigned char dstAddress = (unsigned char)parseInt(token.c_str(), 16, 0, 0xff, result);
 			if (result != RESULT_OK)
 				return result;
@@ -614,13 +615,6 @@ void Message::dump(ostream& output, vector<size_t>* columns)
 	}
 }
 
-string strtolower(const string& str)
-{
-	string ret(str);
-	transform(ret.begin(), ret.end(), ret.begin(), ::tolower);
-	return ret;
-}
-
 Message* getFirstAvailable(vector<Message*> &messages) {
 	for (vector<Message*>::iterator msgIt = messages.begin(); msgIt != messages.end(); msgIt++)
 		if ((*msgIt)->isAvailable())
@@ -659,7 +653,7 @@ result_t Condition::create(const string condName, vector<string>::iterator& it, 
 	string str;
 	vector<unsigned int> valueRanges;
 	while (getline(stream, str, VALUE_SEPARATOR) != 0) {
-		DataFieldTemplates::trim(str);
+		FileReader::trim(str);
 		if (str.length()==0)
 			return RESULT_ERR_INVALID_ARG;
 		bool upto = str[0]=='<';
@@ -842,8 +836,10 @@ result_t MessageMap::add(Message* message, bool storeByName)
 	bool isPassive = message->isPassive();
 	if (storeByName) {
 		bool isWrite = message->isWrite();
-		string circuit = strtolower(message->getCircuit());
-		string name = strtolower(message->getName());
+		string circuit = message->getCircuit();
+		FileReader::tolower(circuit);
+		string name = message->getName();
+		FileReader::tolower(name);
 		string nameKey = string(isPassive ? "P" : (isWrite ? "W" : "R")) + circuit + FIELD_SEPARATOR + name;
 		if (!m_addAll) {
 			map<string, vector<Message*> >::iterator nameIt = m_messagesByName.find(nameKey);
@@ -914,7 +910,7 @@ result_t MessageMap::addDefaultFromFile(vector< vector<string> >& defaults, vect
 	}
 	if (row.size()>5 && defaultDest.length()>0 && row[5].length()==0)
 		row[5] = defaultDest; // set default destination
-	return FileReader<DataFieldTemplates*>::addDefaultFromFile(defaults, row, begin, defaultDest, defaultCircuit, filename, lineNo);
+	return FileReader::addDefaultFromFile(defaults, row, begin, defaultDest, defaultCircuit, filename, lineNo);
 }
 
 result_t MessageMap::readConditions(string& types, const string& filename, Condition*& condition)
@@ -955,7 +951,7 @@ result_t MessageMap::readConditions(string& types, const string& filename, Condi
 }
 
 result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
-	DataFieldTemplates* arg, vector< vector<string> >* defaults,
+	vector< vector<string> >* defaults,
 	const string& filename, unsigned int lineNo)
 {
 	vector<string>::iterator restart = begin;
@@ -971,15 +967,16 @@ result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<s
 		return RESULT_ERR_INVALID_ARG;
 
 	result = RESULT_ERR_EOF;
+	DataFieldTemplates* templates = getTemplates(filename);
 	istringstream stream(types);
 	string type;
 	vector<Message*> messages;
 	while (getline(stream, type, VALUE_SEPARATOR) != 0) {
-		DataFieldTemplates::trim(type);
+		FileReader::trim(type);
 		*restart = type;
 		begin = restart;
 		messages.clear();
-		result = Message::create(begin, end, defaults, condition, filename, arg, messages);
+		result = Message::create(begin, end, defaults, condition, filename, templates, messages);
 		for (vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++) {
 			Message* message = *it;
 			if (result == RESULT_OK) {
@@ -1045,8 +1042,10 @@ vector<Message*>* MessageMap::getByKey(const unsigned long long key) {
 
 Message* MessageMap::find(const string& circuit, const string& name, const bool isWrite, const bool isPassive)
 {
-	string lcircuit = strtolower(circuit);
-	string lname = strtolower(name);
+	string lcircuit = circuit;
+	FileReader::tolower(lcircuit);
+	string lname = name;
+	FileReader::tolower(lname);
 	for (int i = 0; i < 2; i++) {
 		string key;
 		if (i == 0)
@@ -1070,9 +1069,10 @@ deque<Message*> MessageMap::findAll(const string& circuit, const string& name, c
 	const bool withRead, const bool withWrite, const bool withPassive)
 {
 	deque<Message*> ret;
-
-	string lcircuit = strtolower(circuit);
-	string lname = strtolower(name);
+	string lcircuit = circuit;
+	FileReader::tolower(lcircuit);
+	string lname = name;
+	FileReader::tolower(lname);
 	bool checkCircuit = lcircuit.length() > 0;
 	bool checkName = name.length() > 0;
 	bool checkPb = pb >= 0;
@@ -1083,12 +1083,14 @@ deque<Message*> MessageMap::findAll(const string& circuit, const string& name, c
 		if (!message)
 			continue;
 		if (checkCircuit) {
-			string check = strtolower(message->getCircuit());
+			string check = message->getCircuit();
+			FileReader::tolower(check);
 			if (completeMatch ? (check != lcircuit) : (check.find(lcircuit) == check.npos))
 				continue;
 		}
 		if (checkName) {
-			string check = strtolower(message->getName());
+			string check = message->getName();
+			FileReader::tolower(check);
 			if (completeMatch ? (check != lname) : (check.find(lname) == check.npos))
 				continue;
 		}
