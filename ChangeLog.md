@@ -1,7 +1,8 @@
 # next version (2.0.0)
 
 ## Breaking Changes
-* automatic configuration file selection by querying device identification ("--scanconfig")
+* automatic configuration file selection by querying device identification ("--scanconfig").  
+  The previous configuration files are still usable, but only without the "--scanconfig" command line parameter to ebusd (unless the files are renamed).
 
 ## Bug fixes
 * avoid multiple identical derived messages
@@ -11,6 +12,8 @@
 * fix for using pselect
 * fix for finishing active request when own master address reception timed out
 * fix for some memory issues
+* fix for closing serial device that is no tty
+* fix for dumping message definition
 
 ## Features
 * respond to broadcast "write" command with "done broadcast"
@@ -18,11 +21,14 @@
 * added replacement value for date/time types
 * extended "info" command with seen addresses, scan state, and loaded CSV file
 * improved CSV file check
-* include index suffix in default circuit name extracted from CSV file name (format "ZZ.CCCCC[.index].csv")
-* added support MACH architecture (Mac OS)
+* insert index suffix extracted from CSV file name when applying defaults (format "ZZ.CCCCC[.index].csv")
+* added support for MACH architecture (Mac OS)
 * use empty condition messagename for referencing scan message
 * allow read and write message definitions having the same ID
 * add hint to decoding problems in "read" and "write" if answer was retrieved successfully
+* added script for converting "grab result" to CSV
+* exclusively lock serial device to prevent simultaneous access by another process
+* extended "-i" parameter of "find" command to accept further ID parts
 
 ## Changed files
 https://github.com/john30/ebusd/compare/v1.3.0...master
