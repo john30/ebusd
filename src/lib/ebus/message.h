@@ -94,7 +94,9 @@ public:
 			Condition* condition=NULL);
 
 	/**
-	 * Construct a new temporary instance.
+	 * Construct a new simple instance (e.g. for scanning).
+	 * @param circuit the circuit name, or empty for not storing by name.
+	 * @param name the message name (unique within the same circuit and type), or empty for not storing by name.
 	 * @param isWrite whether this is a write message.
 	 * @param isPassive true if message can only be initiated by a participant other than us,
 	 * false if message can be initiated by any participant.
@@ -103,7 +105,8 @@ public:
 	 * @param data the @a DataField for encoding/decoding the message.
 	 * @param deleteData whether to delete the @a DataField during destruction.
 	 */
-	Message(const bool isWrite, const bool isPassive,
+	Message(const string circuit, const string name,
+			const bool isWrite, const bool isPassive,
 			const unsigned char pb, const unsigned char sb,
 			DataField* data, const bool deleteData);
 
@@ -111,6 +114,14 @@ public:
 	 * Destructor.
 	 */
 	virtual ~Message() { if (m_deleteData) delete m_data; }
+
+	/**
+	 * Parse an ID part from the input @a string.
+	 * @param input the input @a string, hex digits optionally separated by space.
+	 * @param id the vector to which to add the parsed values.
+	 * @return @a RESULT_OK on success, or an error code.
+	 */
+	static result_t parseId(string input, vector<unsigned char>& id);
 
 	/**
 	 * Factory method for creating new instances.
@@ -644,7 +655,7 @@ public:
 	MessageMap(const bool addAll=false) : FileReader::FileReader(true),
 		m_addAll(addAll), m_maxIdLength(0), m_messageCount(0), m_conditionalMessageCount(0), m_passiveMessageCount(0)
 	{
-		m_scanMessage = new Message(false, false, 0x07, 0x04, DataFieldSet::getIdentFields(), true);
+		m_scanMessage = new Message("scan", "ident", false, false, 0x07, 0x04, DataFieldSet::getIdentFields(), true);
 	}
 
 	/**
@@ -720,7 +731,6 @@ public:
 	 * Find all active get @a Message instances for the specified circuit and name.
 	 * @param circuit the circuit name, or empty for any.
 	 * @param name the message name, or empty for any.
-	 * @param pb the primary ID byte, or -1 for any (default any).
 	 * @param completeMatch false to also include messages where the circuit and name matches only a part of the given circuit and name (default true).
 	 * @param withRead true to include read messages (default true).
 	 * @param withWrite true to include write messages (default false).
@@ -728,7 +738,7 @@ public:
 	 * @return the found @a Message instances.
 	 * Note: the caller may not free the returned instances.
 	 */
-	deque<Message*> findAll(const string& circuit, const string& name, const short pb=-1, const bool completeMatch=true,
+	deque<Message*> findAll(const string& circuit, const string& name, const bool completeMatch=true,
 		const bool withRead=true, const bool withWrite=false, const bool withPassive=false);
 
 	/**

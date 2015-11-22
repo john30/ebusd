@@ -70,10 +70,11 @@ Message::Message(const string circuit, const string name,
 	m_key = key;
 }
 
-Message::Message(const bool isWrite, const bool isPassive,
+Message::Message(const string circuit, const string name,
+		const bool isWrite, const bool isPassive,
 		const unsigned char pb, const unsigned char sb,
 		DataField* data, const bool deleteData)
-		: m_circuit(), m_name(), m_isWrite(isWrite),
+		: m_circuit(circuit), m_name(name), m_isWrite(isWrite),
 		  m_isPassive(isPassive), m_comment(),
 		  m_srcAddress(SYN), m_dstAddress(SYN),
 		  m_data(data), m_deleteData(true),
@@ -106,6 +107,31 @@ string getDefault(const string value, vector<string>* defaults, size_t pos)
 	}
 
 	return defaults->at(pos);
+}
+
+result_t Message::parseId(string input, vector<unsigned char>& id)
+{
+	istringstream in(input);
+	while (!in.eof()) {
+		while (in.peek() == ' ')
+			in.get();
+		if (in.eof()) // no more digits
+			break;
+		input.clear();
+		input.push_back((char)in.get());
+		if (in.eof()) {
+			return RESULT_ERR_INVALID_ARG; // too short hex
+		}
+		input.push_back((char)in.get());
+
+		result_t result;
+		unsigned char value = (unsigned char)parseInt(input.c_str(), 16, 0, 0xff, result);
+		if (result != RESULT_OK) {
+			return result; // invalid hex value
+		}
+		id.push_back(value);
+	}
+	return RESULT_OK;
 }
 
 result_t Message::create(vector<string>::iterator& it, const vector<string>::iterator end,
@@ -226,25 +252,9 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 			else
 				token = getDefault("", defaults, defaultPos).append(token);
 		}
-		istringstream input(token);
-		while (!input.eof()) {
-			while (input.peek() == ' ')
-				input.get();
-			if (input.eof()) // no more digits
-				break;
-			token.clear();
-			token.push_back((char)input.get());
-			if (input.eof()) {
-				return RESULT_ERR_INVALID_ARG; // to short hex
-			}
-			token.push_back((char)input.get());
-
-			unsigned char value = (unsigned char)parseInt(token.c_str(), 16, 0, 0xff, result);
-			if (result != RESULT_OK) {
-				return result; // invalid hex value
-			}
-			id.push_back(value);
-		}
+		result = parseId(token, id);
+		if (result!=RESULT_OK)
+			return result;
 		if (pos == 0 && id.size() != 2)
 			return RESULT_ERR_INVALID_ARG; // missing/to short/to long PBSB
 
@@ -1064,7 +1074,7 @@ Message* MessageMap::find(const string& circuit, const string& name, const bool 
 	return NULL;
 }
 
-deque<Message*> MessageMap::findAll(const string& circuit, const string& name, const short pb, const bool completeMatch,
+deque<Message*> MessageMap::findAll(const string& circuit, const string& name, const bool completeMatch,
 	const bool withRead, const bool withWrite, const bool withPassive)
 {
 	deque<Message*> ret;
@@ -1074,7 +1084,6 @@ deque<Message*> MessageMap::findAll(const string& circuit, const string& name, c
 	FileReader::tolower(lname);
 	bool checkCircuit = lcircuit.length() > 0;
 	bool checkName = name.length() > 0;
-	bool checkPb = pb >= 0;
 	for (map<string, vector<Message*> >::iterator it = m_messagesByName.begin(); it != m_messagesByName.end(); it++) {
 		if (it->first[0] == '-') // avoid duplicates: instances stored multiple times have a key starting with "-"
 			continue;
@@ -1093,8 +1102,6 @@ deque<Message*> MessageMap::findAll(const string& circuit, const string& name, c
 			if (completeMatch ? (check != lname) : (check.find(lname) == check.npos))
 				continue;
 		}
-		if (checkPb && message->getId()[0] != pb)
-			continue;
 		if (message->isPassive()) {
 			if (!withPassive)
 				continue;
@@ -1184,7 +1191,7 @@ void MessageMap::invalidateCache(Message* message)
 	if (pos!=string::npos)
 		circuit.resize(pos);
 	string name = message->getName();
-	deque<Message*> messages = findAll(circuit, name, -1, false, true, true, true);
+	deque<Message*> messages = findAll(circuit, name, false, true, true, true);
 	for (deque<Message*>::iterator it = messages.begin(); it != messages.end(); it++) {
 		if (*it==message)
 			continue;
@@ -1244,7 +1251,8 @@ void MessageMap::clear()
 	for (map<unsigned long long, vector<Message*> >::iterator it = m_messagesByKey.begin(); it != m_messagesByKey.end(); it++) {
 		vector<Message*> keyMessages = it->second;
 		for (vector<Message*>::iterator kit = keyMessages.begin(); kit != keyMessages.end(); kit++) {
-			delete *kit;
+			Message* message = *kit;
+			delete message;
 		}
 		keyMessages.clear();
 	}

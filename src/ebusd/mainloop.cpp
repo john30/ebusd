@@ -647,7 +647,7 @@ string MainLoop::executeFind(vector<string> &args)
 	bool verbose = false, configFormat = false, exact = false, withRead = true, withWrite = false, withPassive = true, first = true, onlyWithData = false;
 	vector<size_t> columns;
 	string circuit;
-	short pb = -1;
+	vector<unsigned char> id;
 	while (args.size() > argPos && args[argPos][0] == '-') {
 		if (args[argPos] == "-v")
 			verbose = true;
@@ -706,15 +706,17 @@ string MainLoop::executeFind(vector<string> &args)
 			onlyWithData = true;
 		else if (args[argPos] == "-i") {
 			argPos++;
-			if (argPos >= args.size()) {
+			if (argPos >= args.size() || !id.empty()) {
 				argPos = 0; // print usage
 				break;
 			}
-			const char* str = args[argPos].c_str();
-			result_t result = RESULT_OK;
-			pb = (short)parseInt(str+2, 16, 0, 0xff, result);
+			result_t result = Message::parseId(args[argPos], id);
 			if (result != RESULT_OK) {
 				return getResultCode(result);
+			}
+			if (id.empty()) {
+				argPos = 0; // print usage
+				break;
 			}
 		}
 		else if (args[argPos] == "-c") {
@@ -732,14 +734,14 @@ string MainLoop::executeFind(vector<string> &args)
 		argPos++;
 	}
 	if (argPos == 0 || args.size() < argPos || args.size() > argPos + 1)
-		return "usage: find [-v] [-r] [-w] [-p] [-d] [-i PB] [-f] [-F COL[,COL]*] [-e] [-c CIRCUIT] [NAME]\n"
+		return "usage: find [-v] [-r] [-w] [-p] [-d] [-i ID] [-f] [-F COL[,COL]*] [-e] [-c CIRCUIT] [NAME]\n"
 			   " Find message(s).\n"
 			   "  -v            be verbose (append destination address and update time)\n"
 			   "  -r            limit to active read messages (default: read + passive)\n"
 			   "  -w            limit to active write messages (default: read + passive)\n"
 			   "  -p            limit to passive messages (default: read + passive)\n"
 			   "  -d            only include messages with actual data\n"
-			   "  -i PB         limit to messages with primary command byte PB (in hex)\n"
+			   "  -i ID         limit to messages with ID (in hex, PB, SB and further ID bytes)\n"
 			   "  -f            list messages in CSV configuration file format\n"
 			   "  -F COL[,COL]* list messages in the specified format\n"
 			   "                (COL: type,circuit,name,comment,qq,zz,pbsb,id,fields)\n"
@@ -748,7 +750,7 @@ string MainLoop::executeFind(vector<string> &args)
 			   "  NAME          the NAME of the messages to find (or a part thereof without '-e')";
 
 	deque<Message*> messages = m_messages->findAll(
-		circuit, args.size() == argPos ? "" : args[argPos], pb, exact, withRead, withWrite, withPassive
+		circuit, args.size() == argPos ? "" : args[argPos], exact, withRead, withWrite, withPassive
 	);
 
 	bool found = false;
@@ -756,6 +758,22 @@ string MainLoop::executeFind(vector<string> &args)
 	char str[32];
 	for (deque<Message*>::iterator it = messages.begin(); it < messages.end();) {
 		Message* message = *it++;
+		if (!id.empty()) {
+			vector<unsigned char> msgId = message->getId();
+			if (id.size()>msgId.size()) {
+				continue;
+			}
+			bool mismatch = false;
+			for (size_t pos = 0; pos<id.size(); pos++) {
+				if (id[pos]!=msgId[pos]) {
+					mismatch = true;
+					break;
+				}
+			}
+			if (mismatch) {
+				continue;
+			}
+		}
 		time_t lastup = message->getLastUpdateTime();
 		if (onlyWithData && lastup == 0)
 			continue;
@@ -1009,7 +1027,7 @@ string MainLoop::executeHelp()
 		   "          Read hex message:      read [-f] [-m SECONDS] [-c CIRCUIT] -h ZZPBSBNNDx\n"
 		   " write|w  Write value(s):        write [-d ZZ] [-c] CIRCUIT NAME [VALUE[;VALUE]*]\n"
 		   "          Write hex message:     write -h ZZPBSBNNDx\n"
-		   " find|f   Find message(s):       find [-v] [-r] [-w] [-p] [-d] [-i PB] [-f] [-F COL[,COL]*] [-e] [-c CIRCUIT] [NAME]\n"
+		   " find|f   Find message(s):       find [-v] [-r] [-w] [-p] [-d] [-i ID] [-f] [-F COL[,COL]*] [-e] [-c CIRCUIT] [NAME]\n"
 		   " listen|l Listen for updates:    listen [stop]\n"
 		   " state|s  Report bus state\n"
 		   " info|i   Report information about the daemon, the configuration, and seen devices.\n"
@@ -1039,12 +1057,12 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 	int type = -1;
 
 	if (strncmp(uri.c_str(), "/data/", 6) == 0) {
-		string clazz = "", name = "";
+		string circuit = "", name = "";
 		size_t pos = uri.find('/', 6);
 		if (pos == string::npos) {
-			clazz = uri.substr(6);
+			circuit = uri.substr(6);
 		} else {
-			clazz = uri.substr(6, pos-6);
+			circuit = uri.substr(6, pos-6);
 			name = uri.substr(pos+1);
 		}
 		time_t since = 0;
@@ -1080,7 +1098,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 					break;
 			}
 		}
-		deque<Message*> messages = m_messages->findAll(clazz, name, -1, exact, true, false, true);
+		deque<Message*> messages = m_messages->findAll(circuit, name, exact, true, false, true);
 
 		bool first = true;
 		result << "{";
@@ -1243,7 +1261,7 @@ string MainLoop::getUpdates(time_t since, time_t until)
 	ostringstream result;
 
 	deque<Message*> messages;
-	messages = m_messages->findAll("", "", -1, false, true, true, true);
+	messages = m_messages->findAll("", "", false, true, true, true);
 
 	for (deque<Message*>::iterator it = messages.begin(); it < messages.end();) {
 		Message* message = *it++;
