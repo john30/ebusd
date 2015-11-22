@@ -53,7 +53,9 @@
  * @a istringstream to a @a SymbolString (see @a DataField#write()).
  *
  * The @a DataFieldTemplates allow definition of derived types as well as
- * combined types based on the list of available base types.
+ * combined types based on the list of available base types. It reads the
+ * instances from configuration files by inheriting the @a FileReader template
+ * class.
  */
 
 using namespace std;
@@ -811,14 +813,14 @@ private:
 /**
  * A map of template @a DataField instances.
  */
-class DataFieldTemplates : public FileReader<void*>
+class DataFieldTemplates : public FileReader
 {
 public:
 
 	/**
 	 * Constructs a new instance.
 	 */
-	DataFieldTemplates() : FileReader<void*>::FileReader(false) {}
+	DataFieldTemplates() : FileReader::FileReader(false) {}
 
 	/**
 	 * Constructs a new copied instance.
@@ -850,7 +852,7 @@ public:
 
 	// @copydoc
 	virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
-		void* arg, vector< vector<string> >* defaults,
+		vector< vector<string> >* defaults,
 		const string& filename, unsigned int lineNo);
 
 	/**

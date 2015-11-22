@@ -18,7 +18,6 @@
 
 #include "data.h"
 #include <iostream>
-#include <algorithm>
 #include <sstream>
 #include <iomanip>
 #include <vector>
@@ -256,7 +255,7 @@ result_t DataField::create(vector<string>::iterator& it,
 				else {
 					istringstream stream(divisorStr);
 					while (getline(stream, token, VALUE_SEPARATOR) != 0) {
-						DataFieldTemplates::trim(token);
+						FileReader::trim(token);
 						const char* str = token.c_str();
 						char* strEnd = NULL;
 						unsigned long int id;
@@ -300,7 +299,7 @@ result_t DataField::create(vector<string>::iterator& it,
 		bool firstType = true;
 		istringstream stream(typeStr);
 		while (result == RESULT_OK && getline(stream, token, VALUE_SEPARATOR) != 0) {
-			DataFieldTemplates::trim(token);
+			FileReader::trim(token);
 			DataField* templ = templates->get(token);
 			unsigned char length;
 			if (templ == NULL) {
@@ -1517,7 +1516,7 @@ result_t DataFieldSet::write(istringstream& input,
 
 
 DataFieldTemplates::DataFieldTemplates(DataFieldTemplates& other)
-	: FileReader<void*>::FileReader(false)
+	: FileReader::FileReader(false)
 {
 	for (map<string, DataField*>::iterator it = other.m_fieldsByName.begin(); it != other.m_fieldsByName.end(); it++) {
 		m_fieldsByName[it->first] = it->second->clone();
@@ -1554,7 +1553,7 @@ result_t DataFieldTemplates::add(DataField* field, string name, bool replace)
 }
 
 result_t DataFieldTemplates::addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
-	void* arg, vector< vector<string> >* defaults,
+	vector< vector<string> >* defaults,
 	const string& filename, unsigned int lineNo)
 {
 	vector<string>::iterator restart = begin;
