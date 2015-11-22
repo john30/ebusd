@@ -90,6 +90,7 @@ public:
 		size_t firstDot = filename.find_first_of('.', lastSep+1);
 		string defaultDest = "";
 		string defaultCircuit = "";
+		string defaultSuffix = "";
 		if (lastSep!=string::npos && firstDot==lastSep+1+2) { // potential destination address, matches "^ZZ."
 			result_t result;
 			defaultDest = filename.substr(lastSep+1, 2);
@@ -107,7 +108,7 @@ public:
 						if (nextDot!=string::npos && nextDot>endDot+1) { // potential index suffix, matches "^ZZ.IDENT.[0-9]*."
 							parseInt(filename.substr(endDot+1, nextDot-endDot-1).c_str(), 10, 1, 16, result, NULL);
 							if (result==RESULT_OK)
-								defaultCircuit = filename.substr(firstDot+1, nextDot-firstDot-1); // IDENT.[0-9]*
+								defaultSuffix = filename.substr(endDot, nextDot-endDot); // .[0-9]*
 						}
 					}
 				}
@@ -128,7 +129,7 @@ public:
 			if (m_supportsDefaults) {
 				if (line[0] == '*') {
 					row[0] = row[0].substr(1);
-					result = addDefaultFromFile(defaults, row, it, defaultDest, defaultCircuit, filename, lineNo);
+					result = addDefaultFromFile(defaults, row, it, defaultDest, defaultCircuit, defaultSuffix, filename, lineNo);
 					if (result == RESULT_OK)
 						continue;
 				} else
@@ -173,12 +174,13 @@ public:
 	 * @param begin an iterator to the first column of the default row to read (for error reporting).
 	 * @param defaultDest the valid destination address extracted from the file name (from ZZ part), or empty.
 	 * @param defaultCircuit the valid circuit name extracted from the file name (from IDENT part), or empty.
+	 * @param defaultSuffix the valid circuit name suffix (starting with a ".") extracted from the file name (number after after IDENT part and "."), or empty.
 	 * @param filename the name of the file being read.
 	 * @param lineNo the current line number in the file being read.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	virtual result_t addDefaultFromFile(vector< vector<string> >& defaults, vector<string>& row,
-			vector<string>::iterator& begin, string defaultDest, string defaultCircuit,
+			vector<string>::iterator& begin, string defaultDest, string defaultCircuit, string defaultSuffix,
 			const string& filename, unsigned int lineNo)
 	{
 		defaults.push_back(row);

@@ -677,7 +677,7 @@ public:
 
 	// @copydoc
 	virtual result_t addDefaultFromFile(vector< vector<string> >& defaults, vector<string>& row,
-		vector<string>::iterator& begin, string defaultDest, string defaultCircuit,
+		vector<string>::iterator& begin, string defaultDest, string defaultCircuit, string defaultSuffix,
 		const string& filename, unsigned int lineNo);
 
 	/**

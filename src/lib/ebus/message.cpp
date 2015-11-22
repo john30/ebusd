@@ -888,7 +888,7 @@ result_t MessageMap::add(Message* message, bool storeByName)
 }
 
 result_t MessageMap::addDefaultFromFile(vector< vector<string> >& defaults, vector<string>& row,
-	vector<string>::iterator& begin, string defaultDest, string defaultCircuit,
+	vector<string>::iterator& begin, string defaultDest, string defaultCircuit, string defaultSuffix,
 	const string& filename, unsigned int lineNo)
 {
 	// check for condition in defaults
@@ -903,7 +903,7 @@ result_t MessageMap::addDefaultFromFile(vector< vector<string> >& defaults, vect
 			return RESULT_ERR_DUPLICATE_NAME;
 		}
 		SimpleCondition* condition = NULL;
-		result_t result = Condition::create(type, ++begin, row.end(), defaultDest, defaultCircuit, condition);
+		result_t result = Condition::create(type, ++begin, row.end(), defaultDest, defaultCircuit+defaultSuffix, condition);
 		if (condition==NULL || result!=RESULT_OK) {
 			m_lastError = "invalid condition";
 			return result;
@@ -913,13 +913,20 @@ result_t MessageMap::addDefaultFromFile(vector< vector<string> >& defaults, vect
 	}
 	if (row.size()>1 && defaultCircuit.length()>0) {
 		if (row[1].length()==0)
-			row[1] = defaultCircuit; // set default circuit
+			row[1] = defaultCircuit+defaultSuffix; // set default circuit and suffix: "circuit[.suffix]"
 		else if (row[1][0]=='#')
-			row[1] = defaultCircuit+row[1]; // append security suffix to circuit prefix
+			row[1] = defaultCircuit+defaultSuffix+row[1]; // move security suffix behind default circuit and suffix: "circuit[.suffix]#security"
+		else if (defaultSuffix.length()>0 && row[1].find_last_of('.')==string::npos) { // circuit suffix not yet present
+			size_t pos = row[1].find_first_of('#');
+			if (pos==string::npos)
+				row[1] += defaultSuffix; // append default suffix: "circuit.suffix"
+			else
+				row[1] = row[1].substr(0, pos)+defaultSuffix+row[1].substr(pos); // insert default suffix: "circuit.suffix#security"
+		}
 	}
 	if (row.size()>5 && defaultDest.length()>0 && row[5].length()==0)
 		row[5] = defaultDest; // set default destination
-	return FileReader::addDefaultFromFile(defaults, row, begin, defaultDest, defaultCircuit, filename, lineNo);
+	return FileReader::addDefaultFromFile(defaults, row, begin, defaultDest, defaultCircuit, defaultSuffix, filename, lineNo);
 }
 
 result_t MessageMap::readConditions(string& types, const string& filename, Condition*& condition)
