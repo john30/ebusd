@@ -2,7 +2,7 @@
 
 ## Breaking Changes
 * automatic configuration file selection by querying device identification ("--scanconfig").  
-  The previous configuration files are still usable, but only without the "--scanconfig" command line parameter to ebusd (unless the files are renamed).
+  Previous configuration files are still usable, but only without the "--scanconfig" command line parameter to ebusd (unless the files are renamed).
 
 ## Bug fixes
 * avoid multiple identical derived messages
