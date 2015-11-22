@@ -712,10 +712,7 @@ string MainLoop::executeFind(vector<string> &args)
 			}
 			const char* str = args[argPos].c_str();
 			result_t result = RESULT_OK;
-			if (strncasecmp(str, "0x", 2) == 0)
-				pb = (short)parseInt(str+2, 16, 0, 0xff, result); // hexadecimal
-			else
-				pb = (short)parseInt(str, 10, 0, 0xff, result); // decimal
+			pb = (short)parseInt(str+2, 16, 0, 0xff, result);
 			if (result != RESULT_OK) {
 				return getResultCode(result);
 			}
@@ -742,7 +739,7 @@ string MainLoop::executeFind(vector<string> &args)
 			   "  -w            limit to active write messages (default: read + passive)\n"
 			   "  -p            limit to passive messages (default: read + passive)\n"
 			   "  -d            only include messages with actual data\n"
-			   "  -i PB         limit to messages with primary command byte PB ('0xPB' for hex)\n"
+			   "  -i PB         limit to messages with primary command byte PB (in hex)\n"
 			   "  -f            list messages in CSV configuration file format\n"
 			   "  -F COL[,COL]* list messages in the specified format\n"
 			   "                (COL: type,circuit,name,comment,qq,zz,pbsb,id,fields)\n"
