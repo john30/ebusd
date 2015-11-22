@@ -28,6 +28,7 @@
 #include <fcntl.h>
 #include <fstream>
 #include <sys/ioctl.h>
+#include <sys/file.h>
 #include <errno.h>
 
 #ifdef HAVE_PPOLL
@@ -214,8 +215,17 @@ result_t SerialDevice::open()
 	// open file descriptor
 	m_fd = ::open(m_name, O_RDWR | O_NOCTTY);
 
-	if (m_fd < 0 || isatty(m_fd) == 0)
+	if (m_fd < 0)
 		return RESULT_ERR_NOTFOUND;
+	if (isatty(m_fd) == 0) {
+		close();
+		return RESULT_ERR_NOTFOUND;
+	}
+
+	if (flock(m_fd, LOCK_EX|LOCK_NB)) {
+		close();
+		return RESULT_ERR_DEVICE;
+	}
 
 	// save current settings
 	tcgetattr(m_fd, &m_oldSettings);
