@@ -677,8 +677,7 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 			return RESULT_EMPTY;
 	}
 	DataFieldSet* identFields = DataFieldSet::getIdentFields();
-	// MANUFACTURER/ZZ. ( C.S.H., C.H., C.S., S.H., C., S., H., "" ) .*csv
-	string path, prefix, ident, sw, hw; // path: cfgpath/MANUFACTURER, prefix: ZZ., ident: C[C[C[C[C]]]], sw: xxxx, hw: xxxx
+	string path, prefix, ident, sw, hw; // path: cfgpath/MANUFACTURER, prefix: ZZ., ident: C[C[C[C[C]]]], SW: xxxx, HW: xxxx
 	ostringstream out;
 	unsigned char offset = 0;
 	size_t field = 0;
@@ -717,6 +716,7 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 	bool hasTemplates = false;
 	if (result==RESULT_OK) {
 		hw = out.str();
+		// find files matching MANUFACTURER/ZZ.*csv in cfgpath
 		result = collectConfigFiles(path, prefix, ".csv", files, NULL, &hasTemplates);
 	}
 	logDebug(lf_main, "found %d matching scan config files from %s with prefix %s: %s", files.size(), path.c_str(), prefix.c_str(), getResultCode(result));
@@ -725,7 +725,7 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 	if (files.empty())
 		return RESULT_ERR_NOTFOUND;
 
-	// complete name: cfgpath/MANUFACTURER/ZZ[.C[C[C[C[C]]]]][.SWxxxx][.HWxxxx][.*].csv
+	// complete name: cfgpath/MANUFACTURER/ZZ[.C[C[C[C[C]]]]][.index][.*][.SWxxxx][.HWxxxx][.*].csv
 	for (string::iterator it = ident.begin(); it!=ident.end(); it++) {
 		if (::isspace(*it)) {
 			ident.erase(it--);
