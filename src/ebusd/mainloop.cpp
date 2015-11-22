@@ -18,7 +18,6 @@
 
 #include "mainloop.h"
 #include <iomanip>
-#include <algorithm>
 #include "main.h"
 #include "log.h"
 #include "data.h"
