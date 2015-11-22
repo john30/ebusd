@@ -552,7 +552,7 @@ void Message::dump(ostream& output, vector<size_t>* columns)
 {
 	bool first = true, all = columns==NULL;
 	size_t end = all ? 9 : columns->size();
-	unsigned int cnt = 0;
+	unsigned int index = 0;
 	for (size_t i=0; i<end; i++) {
 		if (first) {
 			first = false;
@@ -596,16 +596,15 @@ void Message::dump(ostream& output, vector<size_t>* columns)
 			break;
 		case 6: // PBSB
 		case 7: // ID
-			cnt = 0;
-			for (vector<unsigned char>::const_iterator it = m_id.begin(); it < m_id.end(); it++) {
-				cnt++;
-				if (column == 6) {
-					if (cnt == 2)
-						break;
-				} else if (cnt < 2) {
+			index = 0;
+			for (vector<unsigned char>::const_iterator it = m_id.begin(); it < m_id.end(); it++, index++) {
+				if (column == 7 && index <= 1) {
 					continue;
 				}
 				output << hex << setw(2) << setfill('0') << static_cast<unsigned>(*it);
+				if (column == 6 && index >= 1) {
+					break;
+				}
 			}
 			break;
 		case 8: // fields
