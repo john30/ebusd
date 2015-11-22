@@ -27,21 +27,21 @@ END {
       reg+=index("123456789abcdef",tolower(substr(id,3,1)))*16
       reg+=index("123456789abcdef",tolower(substr(id,6,1)))*256
       reg+=index("123456789abcdef",tolower(substr(id,5,1)))*4096
-      print "r,unknown" zz ",reg" reg ",,," zz "," pbsb "," substr(id,3,4) ",data,,HEX:" (len[i]-1)
+      print "r,unknown" zz ",reg" reg ",,," zz "," pbsb "," substr(id,1,6) ",data,,HEX:" (len[i]-1)
     } else if (pbsb=="b509" && substr(id,1,2)=="0e") {
       # register write
       reg=index("123456789abcdef",tolower(substr(id,4,1)))
       reg+=index("123456789abcdef",tolower(substr(id,3,1)))*16
       reg+=index("123456789abcdef",tolower(substr(id,6,1)))*256
       reg+=index("123456789abcdef",tolower(substr(id,5,1)))*4096
-      print "w,unknown" zz ",reg" reg ",,," zz "," pbsb "," substr(id,3,4) ",data,,HEX:" (idlen-3)
+      print "w,unknown" zz ",reg" reg ",,," zz "," pbsb "," substr(id,1,6) ",data,,HEX:" (idlen-3)
     } else if (pbsb=="b509" && substr(id,1,2)=="29") {
       # register update
       reg=index("123456789abcdef",tolower(substr(id,4,1)))
       reg+=index("123456789abcdef",tolower(substr(id,3,1)))*16
       reg+=index("123456789abcdef",tolower(substr(id,6,1)))*256
       reg+=index("123456789abcdef",tolower(substr(id,5,1)))*4096
-      print "u,unknown" zz ",reg" reg ",,," zz "," pbsb "," substr(id,3,4) ",,,IGN:2,,,,data,,HEX:" (len[i]-3)
+      print "u,unknown" zz ",reg" reg ",,," zz "," pbsb "," substr(id,1,6) ",,,IGN:2,,,,data,,HEX:" (len[i]-3)
     } else if (len[i]<=1 || idlen>3) {
       # seems to be a write
       if (idlen>3) idlen=3
