@@ -65,4 +65,4 @@ END {
     }
   }
 }
-'|uniq
+'|sort|uniq
