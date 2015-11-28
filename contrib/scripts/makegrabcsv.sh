@@ -52,8 +52,10 @@ END {
       printf substr(id,1,idlen*2) ",,," zz "," pbsb "," substr(id,1,idlen*2)
       if (length(id)/2>idlen)
         printf ",data,,HEX:" (length(id)/2-idlen)
+      else
+        printf ",,,"
       if (len[i]>1)
-        printf ",result,s,HEX:" (len[i]-1)
+        printf ",,,,result,s,HEX:" (len[i]-1)
       print ""
     } else {
       printf "r,unknown" zz ","
@@ -63,4 +65,4 @@ END {
     }
   }
 }
-'|uniq
+'|sort|uniq
