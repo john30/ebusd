@@ -1116,7 +1116,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 				// read directly from bus
 				SymbolString master(true);
 				SymbolString slave(false);
-				result_t ret = readFromBus(message, master, "", slave);
+				ret = readFromBus(message, master, "", slave);
 				if (ret == RESULT_OK) {
 					ostringstream temp;
 					ret = message->decode(pt_slaveData, slave, temp);
@@ -1145,9 +1145,15 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 			result << "\n   \"lastup\": " << setw(0) << dec << static_cast<unsigned>(lastup);
 			if (lastup != 0) {
 				result << ",\n   \"zz\": \"" << setfill('0') << setw(2) << hex << static_cast<unsigned>(dstAddress) << "\"";
+				size_t pos = result.tellp();
 				result << ",\n   \"fields\": [";
-				ret = message->decodeLastData(result, (verbose?OF_VERBOSE:0)|(numeric?OF_NUMERIC:0)|OF_JSON);
+				result_t dret = message->decodeLastData(result, (verbose?OF_VERBOSE:0)|(numeric?OF_NUMERIC:0)|OF_JSON);
 				result << "\n   ]";
+				if (dret!=RESULT_OK) {
+					string prefix = result.str().substr(0, pos);
+					result.str(prefix); // remove written fields
+					result << ",\n   \"decodeerror\": \"" << getResultCode(dret) << "\"";
+				}
 			}
 			result << ",\n   \"passive\": " << (message->isPassive() ? "true" : "false");
 			result << ",\n   \"write\": " << (message->isWrite() ? "true" : "false");
