@@ -767,9 +767,9 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 						matches = true;
 						break;
 					}
-					if (remain[remain.length()-1]!='0')
+					if (remain[remain.length()-1]<'0' || remain[remain.length()-1]>'9')
 						break;
-					remain.erase(remain.length()-1);
+					remain.erase(remain.length()-1); // remove trailing digit
 				}
 				if (matches)
 					match += remain.length();
