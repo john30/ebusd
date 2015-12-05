@@ -134,7 +134,7 @@ static const struct argp_option argpoptions[] = {
 
 	{NULL,             0,        NULL,    0, "Message configuration options:", 2 },
 	{"configpath",     'c',      "PATH",  0, "Read CSV config files from PATH [" CONFIG_PATH "]", 0 },
-	{"scanconfig",     's',      NULL,    0, "Pick CSV config files matching initial scan", 0 },
+	{"scanconfig",     's',      NULL,    0, "Pick CSV config files matching initial scan. If combined with --checkconfig, you can add ident messages as arguments for checking a particular scan configuration, e.g. \"FF08070400/0AB5454850303003277201\".", 0 },
 	{"checkconfig",    O_CHKCFG, NULL,    0, "Check CSV config files, then stop", 0 },
 	{"dumpconfig",     O_DMPCFG, NULL,    0, "Check and dump CSV config files, then stop", 0 },
 	{"pollinterval",   O_POLINT, "SEC",   0, "Poll for data every SEC seconds (0=disable) [5]", 0 },
@@ -636,7 +636,7 @@ static result_t readConfigFiles(const string path, const string extension, Messa
 	return RESULT_OK;
 };
 
-result_t loadConfigFiles(MessageMap* messages, bool verbose)
+result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
 {
 	logInfo(lf_main, "loading configuration files from %s", opt.configPath);
 	messages->clear();
@@ -648,7 +648,7 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose)
 	}
 	templatesByPath.clear();
 
-	result_t result = readConfigFiles(string(opt.configPath), ".csv", messages, !opt.scanConfig || opt.checkConfig, verbose);
+	result_t result = readConfigFiles(string(opt.configPath), ".csv", messages, (!opt.scanConfig || opt.checkConfig) && !denyRecursive, verbose);
 	if (result == RESULT_OK)
 		logInfo(lf_main, "read config files");
 	else
@@ -846,16 +846,43 @@ static void logRawData(const unsigned char byte, bool received)
 int main(int argc, char* argv[])
 {
 	struct argp argp = { argpoptions, parse_opt, NULL, argpdoc, NULL, NULL, NULL };
+	int arg_index = -1;
 	setenv("ARGP_HELP_FMT", "no-dup-args-note", 0);
-	if (argp_parse(&argp, argc, argv, ARGP_IN_ORDER, NULL, &opt) != 0)
+	if (argp_parse(&argp, argc, argv, ARGP_IN_ORDER, &arg_index, &opt) != 0)
 		return EINVAL;
 
-	s_messageMap = new MessageMap(opt.checkConfig && opt.scanConfig);
+	s_messageMap = new MessageMap(opt.checkConfig && opt.scanConfig && arg_index >= argc);
 	if (opt.checkConfig) {
 		logNotice(lf_main, "Performing configuration check...");
 
-		result_t result = loadConfigFiles(s_messageMap, true);
+		result_t result = loadConfigFiles(s_messageMap, true, opt.scanConfig && arg_index < argc);
 
+		while (result == RESULT_OK && opt.scanConfig && arg_index < argc) {
+			// check scan config for each passed ident message
+			string arg = argv[arg_index++];
+			size_t pos = arg.find_first_of('/');
+			if (pos==string::npos) {
+				logError(lf_main, "invalid scan message %s", arg.c_str());
+				break;
+			}
+			SymbolString master(false), slave(false);
+			result = master.parseHex(arg.substr(0, pos));
+			if (result==RESULT_OK) {
+				result = slave.parseHex(arg.substr(pos+1));
+			}
+			if (result!=RESULT_OK) {
+				logError(lf_main, "unable to parse scan message %s: %s", arg.c_str(), getResultCode(result));
+				break;
+			}
+			unsigned char address = master[1];
+			string file;
+			result = loadScanConfigFile(s_messageMap, address, slave, file);
+			if (result!=RESULT_OK) {
+				logError(lf_main, "unable to load scan config %2.2x: %s", address, getResultCode(result));
+				break;
+			}
+			logInfo(lf_main, "scan config %2.2x: file %s loaded", address, file.c_str());
+		}
 		if (result == RESULT_OK && opt.checkConfig > 1) {
 			logNotice(lf_main, "Configuration dump:");
 			s_messageMap->dump(cout);
@@ -866,6 +893,9 @@ int main(int argc, char* argv[])
 
 		return 0;
 	}
+
+	if (arg_index < argc)
+		return EINVAL;
 
 	// open the device
 	Device *device = Device::create(opt.device, !opt.noDeviceCheck, opt.readonly, &logRawData);

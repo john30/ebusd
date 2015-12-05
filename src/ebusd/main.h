@@ -72,9 +72,10 @@ DataFieldTemplates* getTemplates(const string filename);
  * Load the message definitions from configuration files.
  * @param messages the @a MessageMap to load the messages into.
  * @param verbose whether to verbosely log problems.
+ * @param denyRecursive whether to avoid loading all files recursively (e.g. for scan config check).
  * @return the result code.
  */
-result_t loadConfigFiles(MessageMap* messages, bool verbose=false);
+result_t loadConfigFiles(MessageMap* messages, bool verbose=false, bool denyRecursive=false);
 
 /**
  * Load the message definitions from a configuration file matching the scan result.
