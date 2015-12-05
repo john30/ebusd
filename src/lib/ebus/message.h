@@ -190,10 +190,49 @@ public:
 	unsigned char getDstAddress() const { return m_dstAddress; }
 
 	/**
-	 * Get the command ID bytes.
+	 * Get the primary command byte.
+	 * @return the primary command byte.
+	 */
+	unsigned char getPrimaryCommand() const { return m_id[0]; }
+
+	/**
+	 * Get the secondary command byte.
+	 * @return the secondary command byte.
+	 */
+	unsigned char getSecondaryCommand() const { return m_id[1]; }
+
+	/**
+	 * Get the full command ID bytes.
 	 * @return the primary, secondary, and optionally further command ID bytes.
 	 */
-	vector<unsigned char> getId() const { return m_id; }
+	vector<unsigned char> getFullId() const { return m_id; }
+
+	/**
+	 * Get the length of the ID bytes (without primary and secondary command bytes).
+	 * @return the length of the ID bytes (without primary and secondary command bytes).
+	 */
+	unsigned char getIdLength() const { return (unsigned char)(m_id.size() - 2); }
+
+	/**
+	 * Check if the full command ID starts with the given value.
+	 * @param id the ID bytes to check against.
+	 * @return true if the full command ID starts with the given value.
+	 */
+	bool checkIdMatch(vector<unsigned char>& id);
+
+	/**
+	 * Check the ID extension (bytes exceeding @a MAX_ID_KEYLEN) against the master @a SymbolString data.
+	 * @param master the master @a SymbolString to check against.
+	 * @return true if the ID extension matches, false otherwise.
+	 */
+	bool checkIdExtension(SymbolString* master);
+
+	/**
+	 * Check the ID extension (bytes exceeding @a MAX_ID_KEYLEN) against the other @a Message.
+	 * @param other the other @a Message to check against.
+	 * @return true if the ID extension matches, false otherwise.
+	 */
+	bool checkIdExtension(Message* other);
 
 	/**
 	 * Return the key for storing in @a MessageMap.
@@ -386,7 +425,26 @@ private:
 	/** the primary, secondary, and optionally further command ID bytes. */
 	vector<unsigned char> m_id;
 
-	/** the key for storing in @a MessageMap. */
+	/**
+	 * the key for storing in @a MessageMap.
+	 * <ul>
+	 * <li>byte 7:
+	 *  <ul>
+	 *   <li>bits 5-7: length of ID bytes (without PB/SB)</li>
+	 *   <li>bits 0-4:
+	 *    <ul>
+	 *     <li>master number (1..25) of QQ for passive message</li>
+	 *     <li>0x1f for active write</li>
+	 *     <li>0x1e for active read</li>
+	 *    </ul>
+	 *  </ul>
+	 * </li>
+	 * <li>byte 6: ZZ or SYN for any</li>
+	 * <li>byte 5: PB</li>
+	 * <li>byte 4: SB</li>
+	 * <li>bytes 3-0: ID bytes (with cyclic xor if more than 4)</li>
+	 * </ul>
+	 */
 	unsigned long long m_key;
 
 	/** the @a DataField for encoding/decoding the message. */

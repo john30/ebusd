@@ -29,6 +29,9 @@
 
 using namespace std;
 
+/** the maximum length of the command ID bytes (in addition to PB/SB) for which the key is distinct. */
+#define MAX_ID_KEYLEN 4
+
 /** the bit mask of the source master number in the message key. */
 #define ID_SOURCE_MASK (0x1fLL << (8 * 7))
 
@@ -65,8 +68,11 @@ Message::Message(const string circuit, const string name,
 		key |= (isWrite ? 0x1fLL : 0x1eLL) << (8 * 7); // special values for active
 	key |= (unsigned long long)dstAddress << (8 * 6);
 	int exp = 5;
-	for (vector<unsigned char>::const_iterator it = id.begin(); it < id.end(); it++)
-		key |= (unsigned long long)*it << (8 * exp--);
+	for (vector<unsigned char>::const_iterator it = id.begin(); it < id.end(); it++) {
+		key ^= (unsigned long long)*it << (8 * exp--);
+		if (exp == 0)
+			exp = 3;
+	}
 	m_key = key;
 }
 
@@ -260,7 +266,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 
 		defaultPos++;
 	}
-	if (id.size() < 2 || id.size() > 6) {
+	if (id.size() < 2) {
 		return RESULT_ERR_INVALID_ARG; // missing/to short/to long ID
 	}
 
@@ -322,6 +328,44 @@ Message* Message::derive(const unsigned char dstAddress)
 		m_srcAddress, dstAddress,
 		m_id, m_data, false,
 		m_pollPriority, m_condition);
+}
+
+bool Message::checkIdMatch(vector<unsigned char>& id)
+{
+	if (id.size() > m_id.size())
+		return false;
+	bool match = true;
+	for (size_t pos = 0; pos < id.size(); pos++) {
+		if (id[pos] != m_id[pos]) {
+			match = false;
+			break;
+		}
+	}
+	return match;
+}
+
+bool Message::checkIdExtension(SymbolString* master)
+{
+	unsigned char idLen = getIdLength();
+	if (master->size() < 5 + idLen) // QQ, ZZ, PB, SB, NN
+		return false;
+	for (unsigned char pos = 2+MAX_ID_KEYLEN; pos < idLen; pos++) {
+		if (m_id[pos] != (*master)[3 + pos]) // pos includes PB+SB
+			return false;
+	}
+	return true;
+}
+
+bool Message::checkIdExtension(Message* other)
+{
+	if (m_id.size() != other->m_id.size())
+		return false;
+	unsigned char idLen = getIdLength();
+	for (unsigned char pos = 2+MAX_ID_KEYLEN; pos < idLen; pos++) {
+		if (m_id[pos] != other->m_id[pos])
+			return false;
+	}
+	return true;
 }
 
 unsigned long long Message::getDerivedKey(const unsigned char dstAddress)
@@ -624,10 +668,30 @@ void Message::dump(ostream& output, vector<size_t>* columns)
 	}
 }
 
-Message* getFirstAvailable(vector<Message*> &messages) {
-	for (vector<Message*>::iterator msgIt = messages.begin(); msgIt != messages.end(); msgIt++)
-		if ((*msgIt)->isAvailable())
+Message* getFirstAvailable(vector<Message*> &messages, unsigned char idLength=0, SymbolString* master=NULL) {
+	for (vector<Message*>::iterator msgIt = messages.begin(); msgIt != messages.end(); msgIt++) {
+		Message* message = *msgIt;
+		if (idLength > MAX_ID_KEYLEN && master) {
+			if (message->getIdLength() != idLength || !message->checkIdExtension(master))
+				continue;
+		}
+		if (message->isAvailable())
 			return *msgIt;
+	}
+	return NULL;
+}
+
+Message* getFirstAvailable(vector<Message*> &messages, Message* sameIdExtAs) {
+	unsigned char idLength = sameIdExtAs->getIdLength();
+	for (vector<Message*>::iterator msgIt = messages.begin(); msgIt != messages.end(); msgIt++) {
+		Message* message = *msgIt;
+		if (idLength > MAX_ID_KEYLEN) {
+			if (!message->checkIdExtension(sameIdExtAs))
+				continue;
+		}
+		if (message->isAvailable())
+			return *msgIt;
+	}
 	return NULL;
 }
 
@@ -750,7 +814,7 @@ result_t SimpleCondition::resolve(MessageMap* messages, ostringstream& errorMess
 			message = message->derive(m_dstAddress);
 			messages->add(message);
 		} else {
-			message = getFirstAvailable(*derived);
+			message = getFirstAvailable(*derived, message);
 			if (message==NULL) {
 				errorMessage << ": conditional derived message";
 				return RESULT_ERR_INVALID_ARG;
@@ -879,7 +943,7 @@ result_t MessageMap::add(Message* message, bool storeByName)
 			m_passiveMessageCount++;
 		addPollMessage(message);
 	}
-	unsigned char idLength = (unsigned char)(message->getId().size() - 2);
+	unsigned char idLength = message->getIdLength();
 	if (idLength > m_maxIdLength)
 		m_maxIdLength = idLength;
 	m_messagesByKey[key].push_back(message);
@@ -1145,20 +1209,23 @@ deque<Message*> MessageMap::findAll(SymbolString& master)
 		maxIdLength = m_maxIdLength;
 	if (master.size() < 5+maxIdLength)
 		return ret;
-
-	for (int idLength = maxIdLength; ret.size()==0 && idLength >= 0; idLength--) {
-		int exp = 7;
-		unsigned long long key = (unsigned long long)idLength << (8 * exp + 5);
-		key |= (unsigned long long)getMasterNumber(master[0]) << (8 * exp--);
-		key |= (unsigned long long)master[1] << (8 * exp--);
-		key |= (unsigned long long)master[2] << (8 * exp--);
-		key |= (unsigned long long)master[3] << (8 * exp--);
-		for (unsigned char i = 0; i < idLength; i++)
+	unsigned long long baseKey = (unsigned long long)getMasterNumber(master[0]) << (8 * 7);
+	baseKey |= (unsigned long long)master[1] << (8 * 6);
+	baseKey |= (unsigned long long)master[2] << (8 * 5);
+	baseKey |= (unsigned long long)master[3] << (8 * 4);
+	for (unsigned char idLength = maxIdLength; ret.size()==0; idLength--) {
+		unsigned long long key = (unsigned long long)idLength << (8 * 7 + 5);
+		key |= baseKey;
+		int exp = 3;
+		for (unsigned char i = 0; i < idLength; i++) {
 			key |= (unsigned long long)master[5 + i] << (8 * exp--);
+			if (exp == 0)
+				exp = 3;
+		}
 
 		map<unsigned long long , vector<Message*> >::iterator it = m_messagesByKey.find(key);
 		if (it != m_messagesByKey.end()) {
-			Message* message = getFirstAvailable(it->second);
+			Message* message = getFirstAvailable(it->second, idLength, &master);
 			if (message)
 				ret.push_back(message);
 		}
@@ -1166,23 +1233,25 @@ deque<Message*> MessageMap::findAll(SymbolString& master)
 			key &= ~ID_SOURCE_MASK;
 			it = m_messagesByKey.find(key & ~ID_SOURCE_MASK); // try again without specific source master
 			if (it != m_messagesByKey.end()) {
-				Message* message = getFirstAvailable(it->second);
+				Message* message = getFirstAvailable(it->second, idLength, &master);
 				if (message)
 					ret.push_back(message);
 			}
 		}
 		it = m_messagesByKey.find(key | ID_SOURCE_ACTIVE_READ); // try again with special value for active read
 		if (it != m_messagesByKey.end()) {
-			Message* message = getFirstAvailable(it->second);
+			Message* message = getFirstAvailable(it->second, idLength, &master);
 			if (message)
 				ret.push_back(message);
 		}
 		it = m_messagesByKey.find(key | ID_SOURCE_ACTIVE_WRITE); // try again with special value for active write
 		if (it != m_messagesByKey.end()) {
-			Message* message = getFirstAvailable(it->second);
+			Message* message = getFirstAvailable(it->second, idLength, &master);
 			if (message)
 				ret.push_back(message);
 		}
+		if (idLength == 0)
+			break;
 	}
 
 	return ret;

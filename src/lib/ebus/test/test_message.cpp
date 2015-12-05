@@ -74,6 +74,11 @@ int main()
 		{"r,ehp,time,,,08;10,b509,0d2800,,,time", "", "", "", "c"},
 		{"r,ehp,time,,,08;09,b509,0d2800,,,time", "15:00:17", "ff08b509030d2800", "0311000f", "md*"},
 		{"r,ehp,date,,,08,b509,0d2900,,,date", "23.11.2014", "ff08b509030d2900", "03170b0e", "md"},
+		{"r,700,date,,,15,b524,020000003400,,,IGN:4,,,,,,date", "23.11.2015", "ff15b52406020000003400", "0703003400170b0f", "d"},
+		{"r,700,time,,,15,b524,020000003500,,,IGN:4,,,,,,HTI", "12:29:06", "ff15b52406020000003500", "07030035000c1d06", "d"},
+		{"", "23.11.2015", "ff15b52406020000003400", "0703003400170b0f", "d"},
+		{"", "12:29:06", "ff15b52406020000003500", "07030035000c1d06", "d"},
+		{"w,700,date,,,15,b524,020000003400,,,date", "23.11.2015", "ff15b52409020000003400170b0f", "00", "m"},
 		{"r,ehp,error,,,08,b509,0d2800,index,m,UCH,,,,,,time", "3;15:00:17", "ff08b509040d280003", "0311000f", "mdi"},
 		{"r,ehp,error,,,08,b509,0d2800,index,m,UCH,,,,,,time", "index=3;time=15:00:17", "ff08b509040d280003", "0311000f", "mD"},
 		{"u,ehp,ActualEnvironmentPower,Energiebezug,,08,B509,29BA00,,s,IGN:2,,,,,s,power", "8", "1008b5090329ba00", "03ba0008", "pm"},
@@ -163,7 +168,7 @@ int main()
 			// store defaults or condition
 			vector<string>::iterator it = entries.begin();
 			size_t oldSize = conditions.size();
-			result = messages->addDefaultFromFile(defaultsRows, entries, it, "", "", "no file", 1);
+			result = messages->addDefaultFromFile(defaultsRows, entries, it, "", "", "", "no file", 1);
 			if (result != RESULT_OK)
 				cout << "\"" << check[0] << "\": defaults read error: " << getResultCode(result) << endl;
 			else if (it != entries.end())
