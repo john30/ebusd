@@ -758,21 +758,8 @@ string MainLoop::executeFind(vector<string> &args)
 	char str[32];
 	for (deque<Message*>::iterator it = messages.begin(); it < messages.end();) {
 		Message* message = *it++;
-		if (!id.empty()) {
-			vector<unsigned char> msgId = message->getId();
-			if (id.size()>msgId.size()) {
-				continue;
-			}
-			bool mismatch = false;
-			for (size_t pos = 0; pos<id.size(); pos++) {
-				if (id[pos]!=msgId[pos]) {
-					mismatch = true;
-					break;
-				}
-			}
-			if (mismatch) {
-				continue;
-			}
+		if (!id.empty() && !message->checkIdMatch(id)) {
+			continue;
 		}
 		time_t lastup = message->getLastUpdateTime();
 		if (onlyWithData && lastup == 0)
@@ -870,27 +857,23 @@ string MainLoop::executeState(vector<string> &args)
 
 string MainLoop::executeGrab(vector<string> &args)
 {
-	if (args.size() == 1) {
-		m_busHandler->enableGrab();
+	bool all = args.size() == 2 && strcasecmp(args[1].c_str(), "ALL") == 0;
+	if (args.size() == 1 || all)
+		return m_busHandler->enableGrab(true, all) ? "grab started" : "grab continued";
 
-		return getResultCode(RESULT_OK);
+	if (args.size() == 2) {
+		if (strcasecmp(args[1].c_str(), "STOP") == 0)
+			return m_busHandler->enableGrab(false) ? "grab stopped" : "grab not running";
+
+		if (strcasecmp(args[1].c_str(), "RESULT") == 0) {
+			ostringstream result;
+			m_busHandler->formatGrabResult(result);
+			return result.str();
+		}
 	}
-
-	if (args.size() == 2 && strcasecmp(args[1].c_str(), "STOP") == 0) {
-		m_busHandler->enableGrab(false);
-
-		return getResultCode(RESULT_OK);
-	}
-
-	if (args.size() == 2 && strcasecmp(args[1].c_str(), "RESULT") == 0) {
-		ostringstream result;
-		m_busHandler->formatGrabResult(result);
-		return result.str();
-	}
-
-	return "usage: grab [stop]\n"
+	return "usage: grab [all|stop]\n"
 		   "  or:  grab result\n"
-		   " Grab unknown messages or stop it, or report the seen unknown messages.";
+		   " Start or stop grabbing unknown or all messages, or report the grabbed messages.";
 }
 
 string MainLoop::executeScan(vector<string> &args)
@@ -1031,7 +1014,7 @@ string MainLoop::executeHelp()
 		   " listen|l Listen for updates:    listen [stop]\n"
 		   " state|s  Report bus state\n"
 		   " info|i   Report information about the daemon, the configuration, and seen devices.\n"
-		   " grab|g   Grab unknown messages: grab [stop]\n"
+		   " grab|g   Grab messages:         grab [all|stop]\n"
 		   "          Report the messages:   grab result\n"
 		   " scan     Scan slaves:           scan [full]\n"
 		   "          Report scan result:    scan result\n"

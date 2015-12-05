@@ -744,6 +744,15 @@ void BusHandler::receiveCompleted()
 
 	deque<Message*> messages = m_messages->findAll(m_command);
 	Message* message = messages.size()>0 ? messages.front() : NULL;
+	if (m_grabUnknownMessages==gr_all || (message==NULL && m_grabUnknownMessages==gr_unknown)) {
+		string data;
+		string key = data = m_command.getDataStr();
+		if (key.length() > 2*(1+1+2+1+4))
+			key = key.substr(0, 2*(1+1+2+1+4)); // QQZZPBSBNN + up to 4 DD bytes
+		if (dstAddress != BROADCAST && !master)
+			data += " / " + m_response.getDataStr();
+		m_grabbedUnknownMessages[key] = data;
+	}
 	if (message == NULL) {
 		if (dstAddress == BROADCAST)
 			logNotice(lf_update, "unknown BC cmd: %s", m_command.getDataStr().c_str());
@@ -751,16 +760,6 @@ void BusHandler::receiveCompleted()
 			logNotice(lf_update, "unknown MM cmd: %s", m_command.getDataStr().c_str());
 		else
 			logNotice(lf_update, "unknown MS cmd: %s / %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
-
-		if (m_grabUnknownMessages) {
-			string data;
-			string key = data = m_command.getDataStr();
-			if (key.length() > 2*(1+1+2+1+4))
-				key = key.substr(0, 2*(1+1+2+1+4)); // QQZZPBSBNN + up to 4 DD bytes
-			if (dstAddress != BROADCAST && !master)
-				data += " / " + m_response.getDataStr();
-			m_grabbedUnknownMessages[key] = data;
-		}
 	}
 	else {
 		string circuit = message->getCircuit();
@@ -799,7 +798,7 @@ result_t BusHandler::startScan(bool full)
 	deque<Message*> messages = m_messages->findAll("scan", "");
 	for (deque<Message*>::iterator it = messages.begin(); it < messages.end(); it++) {
 		Message* message = *it;
-		if (message->getId()[0] == 0x07 && message->getId()[1] == 0x04)
+		if (message->getPrimaryCommand() == 0x07 && message->getSecondaryCommand() == 0x04)
 			messages.erase(it--); // query pb 0x07 / sb 0x04 only once
 	}
 
@@ -938,10 +937,15 @@ result_t BusHandler::scanAndWait(unsigned char dstAddress, SymbolString& slave)
 	return result;
 }
 
-void BusHandler::enableGrab(bool enable)
+bool BusHandler::enableGrab(bool enable, bool all)
 {
-	m_grabUnknownMessages = enable;
-	m_grabbedUnknownMessages.clear();
+	GrabRequest request = enable ? (all ? gr_all : gr_unknown) : gr_none;
+	if (request==m_grabUnknownMessages)
+		return false;
+	if (m_grabUnknownMessages==gr_none)
+		m_grabbedUnknownMessages.clear();
+	m_grabUnknownMessages = request;
+	return true;
 }
 
 void BusHandler::formatGrabResult(ostringstream& output)

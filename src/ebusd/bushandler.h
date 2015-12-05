@@ -72,6 +72,13 @@ enum BusState {
 	bs_sendSyn,     //!< send SYN for completed transfer [active set+get]
 };
 
+/** the possible grab request kinds. */
+enum GrabRequest {
+	gr_none,	//!< no grabbing at all
+	gr_unknown, //!< grab unknown messages only
+	gr_all,     //!< grab all messages
+};
+
 /** bit for the seen state: seen. */
 #define SEEN 0x01
 
@@ -301,7 +308,7 @@ public:
 		  m_symPerSec(0), m_maxSymPerSec(0),
 		  m_state(bs_noSignal), m_repeat(false),
 		  m_command(false), m_commandCrcValid(false), m_response(false), m_responseCrcValid(false),
-		  m_grabUnknownMessages(false) {
+		  m_grabUnknownMessages(gr_none) {
 		memset(m_seenAddresses, 0, sizeof(m_seenAddresses));
 	}
 
@@ -368,8 +375,10 @@ public:
 	/**
 	 * Start or stop grabbing unknown messages.
 	 * @param enable true to enable grabbing, false to disable it.
+	 * @param all true to grab all messages, false to grab unknown messages only (only relevant if @a enable is true).
+	 * @return true when the grabbing was changed.
 	 */
-	void enableGrab(bool enable=true);
+	bool enableGrab(bool enable=true, bool all=false);
 
 	/**
 	 * Format the grabbed unknown messages to the @a ostringstream.
@@ -543,7 +552,7 @@ private:
 	map<unsigned char, string> m_scanResults;
 
 	/** whether to grab unknown messages. */
-	bool m_grabUnknownMessages;
+	GrabRequest m_grabUnknownMessages;
 
 	/** the grabbed unknown messages by ID prefix (QQZZPBSBNNDD with up to 4 DD bytes).*/
 	map<string, string> m_grabbedUnknownMessages;
