@@ -1115,7 +1115,7 @@ result_t NumberDataField::writeSymbols(istringstream& input,
 		return RESULT_ERR_EOF; // input too short
 	else {
 		char* strEnd = NULL;
-		if (m_divisor >= 0 && m_divisor <= 1) {
+		if (m_divisor == 1) {
 			if ((m_dataType.flags & SIG) != 0) {
 				long int signedValue = strtol(str, &strEnd, 10);
 				if (signedValue < 0 && m_bitCount != 32)
@@ -1125,7 +1125,7 @@ result_t NumberDataField::writeSymbols(istringstream& input,
 			}
 			else
 				value = (unsigned int)strtoul(str, &strEnd, 10);
-			if (strEnd == NULL || strEnd == str || *strEnd != 0)
+			if (strEnd == NULL || strEnd == str || (*strEnd != 0 && *strEnd != '.'))
 				return RESULT_ERR_INVALID_NUM; // invalid value
 		} else {
 			char* strEnd = NULL;
@@ -1261,7 +1261,7 @@ result_t ValueListDataField::writeSymbols(istringstream& input,
 	char* strEnd = NULL; // fall back to raw value in input
 	unsigned int value;
 	value = (unsigned int)strtoul(str, &strEnd, 10);
-	if (strEnd == NULL || strEnd == str || *strEnd != 0)
+	if (strEnd == NULL || strEnd == str || (*strEnd != 0 && *strEnd != '.'))
 		return RESULT_ERR_INVALID_NUM; // invalid value
 	if (m_values.find(value) != m_values.end())
 		return writeRawValue(value, baseOffset, output);
