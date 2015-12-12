@@ -762,6 +762,12 @@ void BusHandler::receiveCompleted()
 			logNotice(lf_update, "unknown MS cmd: %s / %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
 	}
 	else {
+		messages.pop_front();
+		while (messages.size()>0) {
+			Message* invalidate = messages.front();
+			m_messages->invalidateCache(invalidate);
+			messages.pop_front();
+		}
 		string circuit = message->getCircuit();
 		string name = message->getName();
 		ostringstream output;
@@ -783,12 +789,6 @@ void BusHandler::receiveCompleted()
 				logNotice(lf_update, "update %s %s QQ=%2.2x: %s", circuit.c_str(), name.c_str(), srcAddress, data.c_str());
 			else
 				logNotice(lf_update, "update %s %s: %s", circuit.c_str(), name.c_str(), data.c_str());
-			messages.pop_front();
-		}
-		while (messages.size()>0) {
-			message = messages.front();
-			m_messages->invalidateCache(message);
-			messages.pop_front();
 		}
 	}
 }
