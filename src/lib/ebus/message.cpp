@@ -1209,10 +1209,10 @@ deque<Message*> MessageMap::findAll(SymbolString& master)
 		maxIdLength = m_maxIdLength;
 	if (master.size() < 5+maxIdLength)
 		return ret;
-	unsigned long long baseKey = (unsigned long long)getMasterNumber(master[0]) << (8 * 7);
-	baseKey |= (unsigned long long)master[1] << (8 * 6);
-	baseKey |= (unsigned long long)master[2] << (8 * 5);
-	baseKey |= (unsigned long long)master[3] << (8 * 4);
+	unsigned long long baseKey = (unsigned long long)getMasterNumber(master[0]) << (8 * 7); // src address for passive message
+	baseKey |= (unsigned long long)master[1] << (8 * 6); // dst address
+	baseKey |= (unsigned long long)master[2] << (8 * 5); // PB
+	baseKey |= (unsigned long long)master[3] << (8 * 4); // SB
 	for (unsigned char idLength = maxIdLength; ret.size()==0; idLength--) {
 		unsigned long long key = (unsigned long long)idLength << (8 * 7 + 5);
 		key |= baseKey;
@@ -1269,12 +1269,11 @@ void MessageMap::invalidateCache(Message* message)
 	string name = message->getName();
 	deque<Message*> messages = findAll(circuit, name, false, true, true, true);
 	for (deque<Message*>::iterator it = messages.begin(); it != messages.end(); it++) {
-		if (*it==message)
-			continue;
-		message = *it;
-		if (name!=message->getName())
+		Message* checkMessage = *it;
+		if (checkMessage==message
+		|| name!=checkMessage->getName())
 			continue; // check exact name
-		string check = message->getCircuit();
+		string check = checkMessage->getCircuit();
 		if (check!=circuit) {
 			size_t pos = check.find('#');
 			if (pos!=string::npos)
@@ -1282,7 +1281,7 @@ void MessageMap::invalidateCache(Message* message)
 			if (check!=circuit)
 				continue;
 		}
-		message->m_lastUpdateTime = 0;
+		checkMessage->m_lastUpdateTime = 0;
 	}
 }
 
