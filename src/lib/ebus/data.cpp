@@ -66,13 +66,18 @@ static const dataType_t dataTypes[] = {
 	{"SCH",  8, bt_num,     SIG,       0x80,       0x81,       0x7f,    1}, // signed integer, -127 - +127
 	{"D1B",  8, bt_num,     SIG,       0x80,       0x81,       0x7f,    1}, // signed integer, -127 - +127
 	{"D1C",  8, bt_num,       0,       0xff,       0x00,       0xc8,    2}, // unsigned number (fraction 1/2), 0 - 100 (0x00 - 0xc8, replacement 0xff)
-	{"UIN", 16, bt_num,     LST,     0xffff,          0,     0xfffe,    1}, // unsigned integer, 0 - 65534
-	{"SIN", 16, bt_num,     SIG,     0x8000,     0x8001,     0x7fff,    1}, // signed integer, -32767 - +32767
-	{"FLT", 16, bt_num,     SIG,     0x8000,     0x8001,     0x7fff, 1000}, // signed number (fraction 1/1000), -32.767 - +32.767
 	{"D2B", 16, bt_num,     SIG,     0x8000,     0x8001,     0x7fff,  256}, // signed number (fraction 1/256), -127.99 - +127.99
 	{"D2C", 16, bt_num,     SIG,     0x8000,     0x8001,     0x7fff,   16}, // signed number (fraction 1/16), -2047.9 - +2047.9
-	{"ULG", 32, bt_num,     LST, 0xffffffff,          0, 0xfffffffe,    1}, // unsigned integer, 0 - 4294967294
-	{"SLG", 32, bt_num,     SIG, 0x80000000, 0x80000001, 0xffffffff,    1}, // signed integer, -2147483647 - +2147483647
+	{"FLT", 16, bt_num,     SIG,     0x8000,     0x8001,     0x7fff, 1000}, // signed number (fraction 1/1000), -32.767 - +32.767, little endian
+	{"FLR", 16, bt_num, SIG|REV,     0x8000,     0x8001,     0x7fff, 1000}, // signed number (fraction 1/1000), -32.767 - +32.767, big endian
+	{"UIN", 16, bt_num,     LST,     0xffff,          0,     0xfffe,    1}, // unsigned integer, 0 - 65534, little endian
+	{"UIR", 16, bt_num, LST|REV,     0xffff,          0,     0xfffe,    1}, // unsigned integer, 0 - 65534, big endian
+	{"SIN", 16, bt_num,     SIG,     0x8000,     0x8001,     0x7fff,    1}, // signed integer, -32767 - +32767, little endian
+	{"SIR", 16, bt_num, SIG|REV,     0x8000,     0x8001,     0x7fff,    1}, // signed integer, -32767 - +32767, big endian
+	{"ULG", 32, bt_num,     LST, 0xffffffff,          0, 0xfffffffe,    1}, // unsigned integer, 0 - 4294967294, little endian
+	{"ULR", 32, bt_num, LST|REV, 0xffffffff,          0, 0xfffffffe,    1}, // unsigned integer, 0 - 4294967294, big endian
+	{"SLG", 32, bt_num,     SIG, 0x80000000, 0x80000001, 0xffffffff,    1}, // signed integer, -2147483647 - +2147483647, little endian
+	{"SLR", 32, bt_num, SIG|REV, 0x80000000, 0x80000001, 0xffffffff,    1}, // signed integer, -2147483647 - +2147483647, big endian
 	{"BI0",  7, bt_num, ADJ|LST|REQ,      0,          0,       0xef,    0}, // bit 0 (up to 7 bits until bit 6)
 	{"BI1",  7, bt_num, ADJ|LST|REQ,      0,          0,       0x7f,    1}, // bit 1 (up to 7 bits until bit 7)
 	{"BI2",  6, bt_num, ADJ|LST|REQ,      0,          0,       0x3f,    2}, // bit 2 (up to 6 bits until bit 7)
