@@ -14,6 +14,7 @@
 * fix for some memory issues
 * fix for closing serial device that is no tty
 * fix for dumping message definition
+* fix for cache invalidation
 
 ## Features
 * respond to broadcast "write" command with "done broadcast"
@@ -29,6 +30,11 @@
 * added script for converting "grab result" to CSV
 * exclusively lock serial device to prevent simultaneous access by another process
 * extended "-i" parameter of "find" command to accept further ID parts
+* include decode problems instead of returning invalid JSON
+* extended allowed message ID length
+* extended "grab" comamnd with "all" option for grabbing all messages instead of only unknown
+* allow float values being used for int types
+* added big endian data type variants (UIR, SIR, FLR, ULR, SLR)
 
 ## Changed files
 https://github.com/john30/ebusd/compare/v1.3.0...master
