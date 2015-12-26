@@ -1294,10 +1294,10 @@ DataFieldSet* DataFieldSet::getIdentFields()
 		manufacturers[0x20] = "RAWE";
 		manufacturers[0x30] = "Satronic";
 		manufacturers[0x40] = "ENCON";
-		manufacturers[0x50] = "Kromschröder";
+		manufacturers[0x50] = "Kromschroeder";
 		manufacturers[0x60] = "Eberle";
 		manufacturers[0x65] = "EBV";
-		manufacturers[0x75] = "Grässlin";
+		manufacturers[0x75] = "Graesslin";
 		manufacturers[0x85] = "ebm-papst";
 		manufacturers[0x95] = "SIG";
 		manufacturers[0xa5] = "Theben";
