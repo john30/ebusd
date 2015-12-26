@@ -134,7 +134,7 @@ static const struct argp_option argpoptions[] = {
 
 	{NULL,             0,        NULL,    0, "Message configuration options:", 2 },
 	{"configpath",     'c',      "PATH",  0, "Read CSV config files from PATH [" CONFIG_PATH "]", 0 },
-	{"scanconfig",     's',      NULL,    0, "Pick CSV config files matching initial scan. If combined with --checkconfig, you can add ident messages as arguments for checking a particular scan configuration, e.g. \"FF08070400/0AB5454850303003277201\".", 0 },
+	{"scanconfig",     's',      NULL,    0, "Pick CSV config files matching initial scan. If combined with --checkconfig, you can add scan message data as arguments for checking a particular scan configuration, e.g. \"FF08070400/0AB5454850303003277201\".", 0 },
 	{"checkconfig",    O_CHKCFG, NULL,    0, "Check CSV config files, then stop", 0 },
 	{"dumpconfig",     O_DMPCFG, NULL,    0, "Check and dump CSV config files, then stop", 0 },
 	{"pollinterval",   O_POLINT, "SEC",   0, "Poll for data every SEC seconds (0=disable) [5]", 0 },
@@ -669,12 +669,16 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 	if (isMaster(address)) {
 		address = (unsigned char)(data[0]+5); // slave address of sending master
 		partType = pt_masterData;
-		if (data.size()<5+1+5+2+2) // skip QQ ZZ PB SB NN
+		if (data.size()<5+1+5+2+2) { // skip QQ ZZ PB SB NN
+			logError(lf_main, "unable to load scan config %2.2x: master part too short", address);
 			return RESULT_EMPTY;
+		}
 	} else {
 		partType = pt_slaveData;
-		if (data.size()<1+1+5+2+2) // skip NN
+		if (data.size()<1+1+5+2+2) { // skip NN
+			logError(lf_main, "unable to load scan config %2.2x: slave part too short", address);
 			return RESULT_EMPTY;
+		}
 	}
 	DataFieldSet* identFields = DataFieldSet::getIdentFields();
 	string path, prefix, ident, sw, hw; // path: cfgpath/MANUFACTURER, prefix: ZZ., ident: C[C[C[C[C]]]], SW: xxxx, HW: xxxx
@@ -709,21 +713,23 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 		result = (*identFields)[field]->read(partType, data, offset, out, 0); // hardware version number
 	}
 	if (result!=RESULT_OK) {
-		logDebug(lf_main, "load scan config files: %s", getResultCode(result));
+		logError(lf_main, "unable to load scan config %2.2x: decode %s", address, getResultCode(result));
 		return result;
 	}
 	vector<string> files;
 	bool hasTemplates = false;
-	if (result==RESULT_OK) {
-		hw = out.str();
-		// find files matching MANUFACTURER/ZZ.*csv in cfgpath
-		result = collectConfigFiles(path, prefix, ".csv", files, NULL, &hasTemplates);
-	}
+	hw = out.str();
+	// find files matching MANUFACTURER/ZZ.*csv in cfgpath
+	result = collectConfigFiles(path, prefix, ".csv", files, NULL, &hasTemplates);
 	logDebug(lf_main, "found %d matching scan config files from %s with prefix %s: %s", files.size(), path.c_str(), prefix.c_str(), getResultCode(result));
-	if (result!=RESULT_OK)
+	if (result!=RESULT_OK) {
+		logError(lf_main, "unable to load scan config %2.2x: list files in %s %s", address, path.c_str(), getResultCode(result));
 		return result;
-	if (files.empty())
+	}
+	if (files.empty()) {
+		logError(lf_main, "unable to load scan config %2.2x: no file from %s with prefix %s found", address, path.c_str(), prefix.c_str());
 		return RESULT_ERR_NOTFOUND;
+	}
 
 	// complete name: cfgpath/MANUFACTURER/ZZ[.C[C[C[C[C]]]]][.index][.*][.SWxxxx][.HWxxxx][.*].csv
 	for (string::iterator it = ident.begin(); it!=ident.end(); it++) {
@@ -784,8 +790,10 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 		}
 	}
 
-	if (best.length()==0)
+	if (best.length()==0) {
+		logError(lf_main, "unable to load scan config %2.2x: no file from %s with prefix %s matches ID \"%s\", SW%s, HW%s", address, path.c_str(), prefix.c_str(), ident.c_str(), sw.c_str(), hw.c_str());
 		return RESULT_ERR_NOTFOUND;
+	}
 
 	// found the right file. load the templates if necessary, then load the file itself
 	bool readCommon = readTemplates(path, ".csv", hasTemplates, false);
@@ -801,19 +809,19 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 					name = *it;
 					result = messages->readFromFile(name);
 					if (result==RESULT_OK)
-						logNotice(lf_main, "read common config file %s for scan %s", name.c_str(), ident.c_str());
+						logNotice(lf_main, "read common config file %s", name.c_str());
 					else
-						logError(lf_main, "error reading common config file %s for scan %s: %s", name.c_str(), ident.c_str(), getResultCode(result));
+						logError(lf_main, "error reading common config file %s: %s", name.c_str(), getResultCode(result));
 				}
 			}
 		}
 	}
 	result = messages->readFromFile(best);
 	if (result!=RESULT_OK) {
-		logError(lf_main, "error reading config file %s for scan %s: %s", best.c_str(), ident.c_str(), getResultCode(result));
+		logError(lf_main, "error reading scan config file %s for ID \"%s\", SW%s, HW%s: %s", best.c_str(), ident.c_str(), sw.c_str(), hw.c_str(), getResultCode(result));
 		return result;
 	}
-	logNotice(lf_main, "read config file %s for scan %s", best.c_str(), ident.c_str());
+	logNotice(lf_main, "read scan config file %s for ID \"%s\", SW%s, HW%s", best.c_str(), ident.c_str(), sw.c_str(), hw.c_str());
 	result = messages->resolveConditions(false);
 	if (result != RESULT_OK)
 		logError(lf_main, "error resolving conditions: %s, %s", getResultCode(result), messages->getLastError().c_str());
@@ -862,26 +870,27 @@ int main(int argc, char* argv[])
 			string arg = argv[arg_index++];
 			size_t pos = arg.find_first_of('/');
 			if (pos==string::npos) {
-				logError(lf_main, "invalid scan message %s", arg.c_str());
-				break;
+				logError(lf_main, "invalid scan message %s: missing \"/\"", arg.c_str());
+				continue;
 			}
 			SymbolString master(false), slave(false);
-			result = master.parseHex(arg.substr(0, pos));
-			if (result==RESULT_OK) {
-				result = slave.parseHex(arg.substr(pos+1));
+			result_t res = master.parseHex(arg.substr(0, pos));
+			if (res==RESULT_OK) {
+				res = slave.parseHex(arg.substr(pos+1));
 			}
-			if (result!=RESULT_OK) {
-				logError(lf_main, "unable to parse scan message %s: %s", arg.c_str(), getResultCode(result));
-				break;
+			if (res!=RESULT_OK) {
+				logError(lf_main, "invalid scan message %s: %s", arg.c_str(), getResultCode(res));
+				continue;
+			}
+			if (master.size()<5) { // skip QQ ZZ PB SB NN
+				logError(lf_main, "invalid scan message %s: master part too short", arg.c_str());
+				continue;
 			}
 			unsigned char address = master[1];
 			string file;
-			result = loadScanConfigFile(s_messageMap, address, slave, file);
-			if (result!=RESULT_OK) {
-				logError(lf_main, "unable to load scan config %2.2x: %s", address, getResultCode(result));
-				break;
-			}
-			logInfo(lf_main, "scan config %2.2x: file %s loaded", address, file.c_str());
+			res = loadScanConfigFile(s_messageMap, address, slave, file);
+			if (res==RESULT_OK)
+				logInfo(lf_main, "scan config %2.2x: file %s loaded", address, file.c_str());
 		}
 		if (result == RESULT_OK && opt.checkConfig > 1) {
 			logNotice(lf_main, "Configuration dump:");
