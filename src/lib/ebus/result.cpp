@@ -24,7 +24,7 @@ using namespace std;
 const char* getResultCode(result_t resultCode) {
 	switch (resultCode) {
 	case RESULT_OK:               return "done";
-	case RESULT_IN_ESC:           return "escape sequence received";
+	case RESULT_CONTINUE:         return "continue";
 	case RESULT_EMPTY:            return "empty";
 	case RESULT_ERR_GENERIC_IO:   return "ERR: generic I/O error";
 	case RESULT_ERR_DEVICE:       return "ERR: generic device error";

@@ -31,7 +31,7 @@
 enum result_t {
 	RESULT_OK = 0,                 //!< success
 
-	RESULT_IN_ESC = 1,             //!< start of escape sequence received
+	RESULT_CONTINUE = 1,           //!< more input data is needed (e.g. start of escape sequence received)
 	RESULT_EMPTY = 2,              //!< empty result
 
 	RESULT_ERR_GENERIC_IO = -1,    //!< generic I/O error (usually fatal)

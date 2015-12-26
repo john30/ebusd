@@ -175,7 +175,7 @@ result_t SymbolString::push_back(const unsigned char value, const bool isEscaped
 			addCRC(value);
 
 		m_unescapeState = 2;
-		return RESULT_IN_ESC;
+		return RESULT_CONTINUE;
 	}
 	if (updateCRC)
 		addCRC(value);
