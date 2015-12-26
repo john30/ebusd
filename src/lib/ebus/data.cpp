@@ -1232,7 +1232,9 @@ result_t ValueListDataField::readSymbols(SymbolString& input, const unsigned cha
 
 	map<unsigned int, string>::iterator it = m_values.find(value);
 	if (it == m_values.end() && value != m_dataType.replacement) {
-		return RESULT_ERR_NOTFOUND; // value assignment not found
+		// fall back to raw value in input
+		output << setw(0) << dec << static_cast<int>(value);
+		return RESULT_OK;
 	}
 	if (it == m_values.end()) {
 		if (outputFormat & OF_JSON)
