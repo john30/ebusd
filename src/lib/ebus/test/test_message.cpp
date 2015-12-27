@@ -65,11 +65,16 @@ int main()
 		{"tempsensor,temp;sensor,,Temperatursensor", "", "", "", "template"},
 		{"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor", "temp=-14.00 Temperatursensor [Temperatur];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "mD"},
 		{"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment", "temp=-14.00 field unit [field comment];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "mD"},
+		{"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment", "\n    \"temp\": {\"value\": -14.00},\n    \"sensor\": {\"value\": \"ok\"}", "ff25b509030d2800", "0320ff00", "mj"},
+		{"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment", "\n    \"temp\": {\"value\": -14.00, \"unit\": \"field unit\", \"comment\": \"field comment\"},\n    \"sensor\": {\"value\": \"ok\", \"comment\": \"Fühlerstatus\"}", "ff25b509030d2800", "0320ff00", "mJ"},
 		{"r,message circuit,message name,message comment,,25,B509,0d2800,,,temp,,field unit,field comment,,,sensor", "temp=-14.00 field unit [field comment];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "mD"},
+		{"r,message circuit,message name,message comment,,25,B509,0d2800,,,D2C,,°C,Temperatur,,,sensor", "\n    \"0\": {\"name\": \"\", \"value\": -14.00},\n    \"1\": {\"name\": \"sensor\", \"value\": \"ok\"}", "ff25b509030d2800", "0320ff00", "mj"},
 		{"u,,first,,,fe,0700,,x,,bda", "26.10.2014", "fffe07000426100614", "00", "p"},
 		{"u,broadcast,hwStatus,,,fe,b505,27,,,UCH,,,,,,UCH,,,,,,UCH,,,", "0;19;0", "10feb505042700130097", "00", ""},
 		{"w,,first,,,15,b509,0400,date,,bda", "26.10.2014", "ff15b50906040026100614", "00", "m"},
 		{"w,,first,,,15,b509", "", "ff15b50900", "00", "m"},
+		{"w,,,,,,b505,2d", "", "", "", "defaults"},
+		{"w,,offset,,,50,,,,,temp", "0.50", "ff50b505042d080000", "00", "md"},
 		{"r,ehp,time,,,08,b509,0d2800,,,time", "15:00:17", "ff08b509030d2800", "0311000f", "md"},
 		{"r,ehp,time,,,08;10,b509,0d2800,,,time", "", "", "", "c"},
 		{"r,ehp,time,,,08;09,b509,0d2800,,,time", "15:00:17", "ff08b509030d2800", "0311000f", "md*"},
@@ -90,11 +95,17 @@ int main()
 		{"r,ehp,bad,invalid pos,,50,B5ff,,,s,HEX:8;tempsensor;tempsensor;tempsensor;tempsensor;tempsensor;power;power,,,", "", "", "", "c" },
 		{"r,ehp,ApplianceCode,,,08,b509,0d4301,,,UCH,", "9", "ff08b509030d4301", "0109", "d" },
 		{"r,ehp,,,,08,b509,0d", "", "", "", "defaults" },
+		{"w,ehp,,,,08,b509,0e", "", "", "", "defaults" },
 		{"[brinetowater],ehp,ApplianceCode,,,,4;6;8;9;10", "", "", "", "condition" },
 		{"[airtowater]r,ehp,notavailable,,,,,0100,,,uch", "1", "", "", "c" },
 		{"[brinetowater]r,ehp,available,,,,,0100,,,uch", "1", "ff08b509030d0100", "0101", "d" },
-		{"r,,x,,,,,\"6800\",,,UCH,,,bit0=\"comment, continued comment", "", "", "", "c"},
-		{"r,,x,,,,,\"6800\",,,UCH,,\"\",\"bit0=\"comment, continued comment\"", "=1 [bit0=\"comment, continued comment]", "ff08b509030d6800", "0101", "mD"},
+		{"r,,x,,,,,\"6800\",,,UCH,,,bit0=\"comment, continued comment", "", "", "", "c" },
+		{"r,,x,,,,,\"6800\",,,UCH,,\"\",\"bit0=\"comment, continued comment\"", "=1 [bit0=\"comment, continued comment]", "ff08b509030d6800", "0101", "mD" },
+		{"r,ehp,multi,,,,,0001:5;0002;0003,longname,,STR:15", "ABCDEFGHIJKLMNO", "ff08b509030d0001;ff08b509030d0003;ff08b509030d0002", "054142434445;054b4c4d4e4f;05464748494a", "mdC" },
+		{"r,ehp,multi,,,,,01;02;03,longname,,STR:15", "ABCDEFGHIJKLMNO", "ff08b509020d01;ff08b509020d03;ff08b509020d02", "084142434445464748;054b4c4d4e4f;02494a", "mdC" },
+		{"w,ehp,multi,,,,,01:8;02:2;03,longname,,STR:15", "ABCDEFGHIJKLMNO", "ff08b5090a0e014142434445464748;ff08b509040e02494a;ff08b509070e034b4c4d4e4f", "00;00;00", "mdC" },
+		{"w,ehp,multi,,,,,01:8;02:2;0304,longname,,STR:15", "ABCDEFGHIJKLMNO", "ff08b5090a0e014142434445464748;ff08b509040e02494a;ff08b509070e034b4c4d4e4f", "00;00;00", "cC" },
+		{"r,ehp,scan,chained scan,,08,B509,24:9;25;26;27,,,IGN,,,,id4,,STR:28", "21074500100027790000000000N8", "ff08b5090124;ff08b5090125;ff08b5090126;ff08b5090127", "09003231303734353030;09313030303237373930;09303030303030303030;024E38", "mdC" },
 	};
 	templates = new DataFieldTemplates();
 	MessageMap* messages = new MessageMap();
@@ -102,21 +113,13 @@ int main()
 	map<string, Condition*> &conditions = messages->getConditions();
 	Message* message = NULL;
 	vector<Message*> deleteMessages;
+	vector<SymbolString*> mstrs;
+	vector<SymbolString*> sstrs;
+	mstrs.resize(1);
+	sstrs.resize(1);
 	for (size_t i = 0; i < sizeof(checks) / sizeof(checks[0]); i++) {
 		string check[5] = checks[i];
 		string inputStr = check[1];
-		SymbolString mstr(true);
-		result_t result = mstr.parseHex(check[2]);
-		if (result != RESULT_OK) {
-			cout << "\"" << check[0] << "\": parse \"" << check[2] << "\" error: " << getResultCode(result) << endl;
-			continue;
-		}
-		SymbolString sstr(true);
-		result = sstr.parseHex(check[3]);
-		if (result != RESULT_OK) {
-			cout << "\"" << check[0] << "\": parse \"" << check[3] << "\" error: " << getResultCode(result) << endl;
-			continue;
-		}
 		string flags = check[4];
 		bool isTemplate = flags == "template";
 		bool isCondition = flags == "condition";
@@ -124,12 +127,68 @@ int main()
 		bool dontMap = flags.find('m') != string::npos;
 		bool onlyMap = flags.find('M') != string::npos;
 		bool failedCreate = flags.find('c') != string::npos;
-		bool decodeVerbose = flags.find('D') != string::npos;
-		bool decode = decodeVerbose || (flags.find('d') != string::npos);
+		bool isChain = flags.find('C') != string::npos;
+		bool decodeJson = flags.find('j') != string::npos || flags.find('J') != string::npos;
+		bool decodeVerbose = flags.find('D') != string::npos || flags.find('J') != string::npos;
+		bool decode = decodeJson || decodeVerbose || (flags.find('d') != string::npos);
 		bool failedPrepare = flags.find('p') != string::npos;
 		bool failedPrepareMatch = flags.find('P') != string::npos;
 		bool multi = flags.find('*') != string::npos;
 		bool withInput = flags.find('i') != string::npos;
+		result_t result;
+		if (isChain) {
+			size_t pos = 0;
+			string token;
+			istringstream stream(check[2]);
+			while (getline(stream, token, VALUE_SEPARATOR) != 0) {
+				if (pos>=mstrs.size())
+					mstrs.resize(pos+1);
+				else if (mstrs[pos]!=NULL)
+					delete mstrs[pos];
+				mstrs[pos] = new SymbolString(false);
+				result = mstrs[pos]->parseHex(token);
+				if (result != RESULT_OK) {
+					cout << "\"" << check[0] << "\": parse \"" << token << "\" error: " << getResultCode(result) << endl;
+					break;
+				}
+				pos++;
+			}
+			pos = 0;
+			stream.str(check[3]);
+			stream.clear();
+			while (getline(stream, token, VALUE_SEPARATOR) != 0) {
+				if (pos>=sstrs.size())
+					sstrs.resize(pos+1);
+				else if (sstrs[pos]!=NULL)
+					delete sstrs[pos];
+				sstrs[pos] = new SymbolString(false);
+				result = sstrs[pos]->parseHex(token);
+				if (result != RESULT_OK) {
+					cout << "\"" << check[0] << "\": parse \"" << token << "\" error: " << getResultCode(result) << endl;
+					break;
+				}
+				pos++;
+			}
+			if (result != RESULT_OK)
+				continue;
+		} else {
+			if (mstrs[0]!=NULL)
+				delete mstrs[0];
+			mstrs[0] = new SymbolString(true);
+			result = mstrs[0]->parseHex(check[2]);
+			if (result != RESULT_OK) {
+				cout << "\"" << check[0] << "\": parse \"" << check[2] << "\" error: " << getResultCode(result) << endl;
+				continue;
+			}
+			if (sstrs[0]!=NULL)
+				delete sstrs[0];
+			sstrs[0] = new SymbolString(true);
+			result = sstrs[0]->parseHex(check[3]);
+			if (result != RESULT_OK) {
+				cout << "\"" << check[0] << "\": parse \"" << check[3] << "\" error: " << getResultCode(result) << endl;
+				continue;
+			}
+		}
 		string item;
 		vector<string> entries;
 
@@ -190,7 +249,7 @@ int main()
 			continue;
 		}
 		if (entries.size() == 0) {
-			message = messages->find(mstr);
+			message = messages->find(*mstrs[0]);
 			if (message == NULL) {
 				cout << "\"" << check[2] << "\": find error: NULL" << endl;
 				continue;
@@ -254,7 +313,7 @@ int main()
 				deleteMessages.clear();
 				if (onlyMap)
 					continue;
-				Message* foundMessage = messages->find(mstr);
+				Message* foundMessage = messages->find(*mstrs[0]);
 				if (foundMessage == message)
 					cout << "  find OK" << endl;
 				else if (foundMessage == NULL)
@@ -268,7 +327,10 @@ int main()
 
 		if (message->isPassive() || decode) {
 			ostringstream output;
-			result = message->decode(mstr, sstr, output, decodeVerbose?OF_VERBOSE:0);
+			for (unsigned char index=0; index<message->getCount(); index++) {
+				message->storeLastData(*mstrs[index], *sstrs[index]);
+			}
+			result = message->decodeLastData(output, (decodeVerbose?OF_VERBOSE:0)|(decodeJson?OF_JSON:0), false);
 			if (result != RESULT_OK) {
 				cout << "  \"" << check[2] << "\" / \"" << check[3] << "\": decode error: "
 						<< getResultCode(result) << endl;
@@ -277,16 +339,6 @@ int main()
 			cout << "  \"" << check[2] << "\" / \"" << check[3] <<  "\": decode OK" << endl;
 			bool match = inputStr == output.str();
 			verify(false, "decode", check[2] + "/" + check[3], match, inputStr, output.str());
-			ostringstream output2;
-			result = message->decodeLastData(output2, decodeVerbose?OF_VERBOSE:0);
-			if (result != RESULT_OK) {
-				cout << "  \"" << check[2] << "\" / \"" << check[3] << "\": decodeLast error: "
-						<< getResultCode(result) << endl;
-				continue;
-			}
-			cout << "  \"" << check[2] << "\" / \"" << check[3] <<  "\": decodeLast OK" << endl;
-			match = output.str() == output2.str();
-			verify(false, "decodeLast", check[2] + "/" + check[3], match, output.str(), output2.str());
 		}
 		if (!message->isPassive() && (withInput || !decode)) {
 			istringstream input(inputStr);
@@ -307,8 +359,8 @@ int main()
 			}
 			cout << "  \"" << inputStr << "\": prepare OK" << endl;
 
-			bool match = writeMstr==mstr;
-			verify(failedPrepareMatch, "prepare", inputStr, match, mstr.getDataStr(), writeMstr.getDataStr());
+			bool match = writeMstr==*mstrs[0];
+			verify(failedPrepareMatch, "prepare", inputStr, match, mstrs[0]->getDataStr(), writeMstr.getDataStr());
 		}
 	}
 
@@ -322,7 +374,12 @@ int main()
 
 	delete templates;
 	delete messages;
-
+	for (vector<SymbolString*>::iterator it = mstrs.begin(); it!=mstrs.end(); it++) {
+		delete *it;
+	}
+	for (vector<SymbolString*>::iterator it = sstrs.begin(); it!=sstrs.end(); it++) {
+		delete *it;
+	}
 	return 0;
 
 }

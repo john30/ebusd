@@ -144,7 +144,7 @@ public:
 	 * @param dstAddress the new destination address.
 	 * @return the derived @a Message instance.
 	 */
-	Message* derive(const unsigned char dstAddress);
+	virtual Message* derive(const unsigned char dstAddress);
 
 	/**
 	 * Get the optional circuit name.
@@ -202,37 +202,32 @@ public:
 	unsigned char getSecondaryCommand() const { return m_id[1]; }
 
 	/**
-	 * Get the full command ID bytes.
-	 * @return the primary, secondary, and optionally further command ID bytes.
-	 */
-	vector<unsigned char> getFullId() const { return m_id; }
-
-	/**
 	 * Get the length of the ID bytes (without primary and secondary command bytes).
 	 * @return the length of the ID bytes (without primary and secondary command bytes).
 	 */
-	unsigned char getIdLength() const { return (unsigned char)(m_id.size() - 2); }
+	virtual unsigned char getIdLength() const { return (unsigned char)(m_id.size() - 2); }
 
 	/**
 	 * Check if the full command ID starts with the given value.
 	 * @param id the ID bytes to check against.
 	 * @return true if the full command ID starts with the given value.
 	 */
-	bool checkIdMatch(vector<unsigned char>& id);
+	bool checkIdPrefix(vector<unsigned char>& id);
 
 	/**
-	 * Check the ID extension (bytes exceeding @a MAX_ID_KEYLEN) against the master @a SymbolString data.
+	 * Check the ID against the master @a SymbolString data.
 	 * @param master the master @a SymbolString to check against.
-	 * @return true if the ID extension matches, false otherwise.
+	 * @param index the variable in which to store the message part index, or NULL to ignore.
+	 * @return true if the ID matches, false otherwise.
 	 */
-	bool checkIdExtension(SymbolString* master);
+	virtual bool checkId(SymbolString& master, unsigned char* index=NULL);
 
 	/**
-	 * Check the ID extension (bytes exceeding @a MAX_ID_KEYLEN) against the other @a Message.
+	 * Check the ID against the other @a Message.
 	 * @param other the other @a Message to check against.
-	 * @return true if the ID extension matches, false otherwise.
+	 * @return true if the ID matches, false otherwise.
 	 */
-	bool checkIdExtension(Message* other);
+	virtual bool checkId(Message& other);
 
 	/**
 	 * Return the key for storing in @a MessageMap.
@@ -286,29 +281,65 @@ public:
 	bool hasField(const char* fieldName, bool numeric=true);
 
 	/**
+	 * @return the number of parts this message is composed of.
+	 */
+	virtual unsigned char getCount() { return 1; }
+
+	/**
 	 * Prepare the master @a SymbolString for sending a query or command to the bus.
 	 * @param srcAddress the source address to set.
 	 * @param masterData the master data @a SymbolString for writing symbols to.
 	 * @param input the @a istringstream to parse the formatted value(s) from.
 	 * @param separator the separator character between multiple fields.
 	 * @param dstAddress the destination address to set, or @a SYN to keep the address defined during construction.
+	 * @param index the index of the part to prepare.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	result_t prepareMaster(const unsigned char srcAddress, SymbolString& masterData,
 			istringstream& input, char separator=UI_FIELD_SEPARATOR,
-			const unsigned char dstAddress=SYN);
+			const unsigned char dstAddress=SYN, unsigned char index=0);
+
+protected:
+
+	/**
+	 * Prepare a part of the master data @a SymbolString for sending (everything including NN).
+	 * @param master the master data @a SymbolString for writing symbols to.
+	 * @param input the @a istringstream to parse the formatted value(s) from.
+	 * @param separator the separator character between multiple fields.
+	 * @param index the index of the part to prepare.
+	 * @return @a RESULT_OK on success, or an error code.
+	 */
+	virtual result_t prepareMasterPart(SymbolString& master, istringstream& input, char separator, unsigned char index);
+
+public:
 
 	/**
 	 * Prepare the slave @a SymbolString for sending an answer to the bus.
 	 * @param slaveData the slave data @a SymbolString for writing symbols to.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	result_t prepareSlave(SymbolString& slaveData);
+	virtual result_t prepareSlave(SymbolString& slaveData);
 
 	/**
-	 * Decode a singular part of a received message.
+	 * Store the last seen master and slave data.
+	 * @param master the last seen master data.
+	 * @param slave the last seen slave data.
+	 * @return @a RESULT_OK on success, or an error code.
+	 */
+	virtual result_t storeLastData(SymbolString& master, SymbolString& slave);
+
+	/**
+	 * Store last seen master or slave data.
 	 * @param partType the @a PartType of the data.
-	 * @param data the unescaped data @a SymbolString for reading binary data.
+	 * @param data the last seen data.
+	 * @param index the index of the part to store.
+	 * @return @a RESULT_OK on success, or an error code.
+	 */
+	virtual result_t storeLastData(const PartType partType, SymbolString& data, unsigned char index);
+
+	/**
+	 * Decode the value from the last stored data.
+	 * @param partType the @a PartType of the data.
 	 * @param output the @a ostringstream to append the formatted value to.
 	 * @param outputFormat the @a OutputFormat options to use.
 	 * @param leadingSeparator whether to prepend a separator before the formatted value.
@@ -316,22 +347,9 @@ public:
 	 * @param fieldIndex the optional index of the named field to limit the output to, or -1.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	result_t decode(const PartType partType, SymbolString& data,
+	virtual result_t decodeLastData(const PartType partType,
 			ostringstream& output, OutputFormat outputFormat=0,
 			bool leadingSeparator=false, const char* fieldName=NULL, signed char fieldIndex=-1);
-
-	/**
-	 * Decode all parts of a received message.
-	 * @param masterData the unescaped master data @a SymbolString to decode.
-	 * @param slaveData the unescaped slave data @a SymbolString to decode.
-	 * @param output the @a ostringstream to append the formatted value to.
-	 * @param outputFormat the @a OutputFormat options to use.
-	 * @param leadingSeparator whether to prepend a separator before the formatted value.
-	 * @return @a RESULT_OK on success, or an error code.
-	 */
-	result_t decode(SymbolString& masterData, SymbolString& slaveData,
-			ostringstream& output, OutputFormat outputFormat=0,
-			bool leadingSeparator=false);
 
 	/**
 	 * Decode the value from the last stored data.
@@ -342,17 +360,17 @@ public:
 	 * @param fieldIndex the optional index of the named field to limit the output to, or -1.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	result_t decodeLastData(ostringstream& output, OutputFormat outputFormat=0,
+	virtual result_t decodeLastData(ostringstream& output, OutputFormat outputFormat=0,
 			bool leadingSeparator=false, const char* fieldName=NULL, signed char fieldIndex=-1);
 
 	/**
-	 * Decode a particular field value from the last stored data.
+	 * Decode a particular numeric field value from the last stored data.
 	 * @param output the variable in which to store the value.
 	 * @param fieldName the name of the field to decode, or NULL for the first field.
 	 * @param fieldIndex the optional index of the named field, or -1.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	result_t decodeLastDataField(unsigned int& output, const char* fieldName, signed char fieldIndex=-1);
+	virtual result_t decodeLastDataNumField(unsigned int& output, const char* fieldName, signed char fieldIndex=-1);
 
 	/**
 	 * Get the last seen master data.
@@ -398,7 +416,14 @@ public:
 	 */
 	void dump(ostream& output, vector<size_t>* columns=NULL);
 
-private:
+protected:
+
+	/**
+	 * Write the specified column to the @a ostream.
+	 * @param output the @a ostream to append the formatted value to.
+	 * @param column the column indexes to write.
+	 */
+	virtual void dumpColumn(ostream& output, size_t column);
 
 	/** the optional circuit name. */
 	const string m_circuit;
@@ -433,7 +458,8 @@ private:
 	 *   <li>bits 5-7: length of ID bytes (without PB/SB)</li>
 	 *   <li>bits 0-4:
 	 *    <ul>
-	 *     <li>master number (1..25) of QQ for passive message</li>
+	 *     <li>master number (1..25) of sender for passive message</li>
+	 *     <li>0x00 for passive message with any sender</li>
 	 *     <li>0x1f for active write</li>
 	 *     <li>0x1e for active read</li>
 	 *    </ul>
@@ -479,6 +505,93 @@ private:
 
 	/** the system time when this message was last polled for, 0 for never. */
 	time_t m_lastPollTime;
+
+};
+
+
+/**
+ * A chained @a Message that needs more than one read/write on the bus to collect/send the data.
+ */
+class ChainedMessage : public Message
+{
+public:
+
+	/**
+	 * Construct a new instance.
+	 * @param circuit the optional circuit name.
+	 * @param name the message name (unique within the same circuit and type).
+	 * @param isWrite whether this is a write message.
+	 * @param comment the comment.
+	 * @param srcAddress the source address, or @a SYN for any (only relevant if passive).
+	 * @param dstAddress the destination address, or @a SYN for any (set later).
+	 * @param id the primary, secondary, and optional further ID bytes common to each part of the chain.
+	 * @param ids the primary, secondary, and optional further ID bytes for each part of the chain.
+	 * @param lengths the data length for each part of the chain.
+	 * @param data the @a DataField for encoding/decoding the chained message.
+	 * @param deleteData whether to delete the @a DataField during destruction.
+	 * @param pollPriority the priority for polling, or 0 for no polling at all.
+	 * @param condition the @a Condition for this message, or NULL.
+	 */
+	ChainedMessage(const string circuit, const string name,
+			const bool isWrite, const string comment,
+			const unsigned char srcAddress, const unsigned char dstAddress,
+			const vector<unsigned char> id,
+			vector< vector<unsigned char> > ids, vector<unsigned char> lengths,
+			DataField* data, const bool deleteData,
+			const unsigned char pollPriority,
+			Condition* condition=NULL);
+
+	virtual ~ChainedMessage();
+
+	// @copydoc
+	virtual Message* derive(const unsigned char dstAddress);
+
+	// @copydoc
+	virtual unsigned char getIdLength() const { return (unsigned char)(m_ids[0].size() - 2); }
+
+	// @copydoc
+	virtual bool checkId(SymbolString& master, unsigned char* index=NULL);
+
+	// @copydoc
+	virtual unsigned char getCount() { return (unsigned char)m_ids.size(); }
+
+protected:
+
+	// @copydoc
+	virtual result_t prepareMasterPart(SymbolString& master, istringstream& input, char separator, unsigned char index);
+
+public:
+
+	// @copydoc
+	virtual result_t storeLastData(SymbolString& master, SymbolString& slave);
+
+	// @copydoc
+	virtual result_t storeLastData(const PartType partType, SymbolString& data, unsigned char index);
+
+protected:
+
+	// @copydoc
+	virtual void dumpColumn(ostream& output, size_t column);
+
+private:
+
+	/** the primary, secondary, and optional further ID bytes for each part of the chain. */
+	vector< vector<unsigned char> > m_ids;
+
+	/** the data length for each part of the chain. */
+	vector<unsigned char> m_lengths;
+
+	/** array of the last seen master datas. */
+	SymbolString** m_lastMasterDatas;
+
+	/** array of the last seen slave datas. */
+	SymbolString** m_lastSlaveDatas;
+
+	/** array of the system times when the corresponding master data was last updated, 0 for never. */
+	time_t* m_lastMasterUpdateTimes;
+
+	/** array of the system times when the corresponding slave data was last updated, 0 for never. */
+	time_t* m_lastSlaveUpdateTimes;
 
 };
 
@@ -806,14 +919,6 @@ public:
 	 * Note: the caller may not free the returned instance.
 	 */
 	Message* find(SymbolString& master);
-
-	/**
-	 * Find all @a Message instances for the specified master data.
-	 * @param master the master @a SymbolString for identifying the @a Message.
-	 * @return the @a Message instance, or NULL.
-	 * Note: the caller may not free the returned instances.
-	 */
-	deque<Message*> findAll(SymbolString& master);
 
 	/**
 	 * Invalidate cached data of the @a Message and all other instances with a matching name key.
