@@ -153,7 +153,7 @@ public:
 	 * @param message the associated @a Message.
 	 */
 	PollRequest(Message* message)
-		: BusRequest(m_master, true), m_message(message) {}
+		: BusRequest(m_master, true), m_message(message), m_index(0) {}
 
 	/**
 	 * Destructor.
@@ -178,6 +178,9 @@ private:
 	/** the associated @a Message. */
 	Message* m_message;
 
+	/** the current part index in @a m_message. */
+	unsigned char m_index;
+
 };
 
 
@@ -192,12 +195,16 @@ public:
 	/**
 	 * Constructor.
 	 * @param messageMap the @a MessageMap instance.
-	 * @param message the primary query @a Message.
-	 * @param messages the optional secondary query @a Message instances (to be queried only when the primary was successful).
+	 * @param messages the @a Message instances to query starting with the primary one.
+	 * @param slaves the slave addresses to scan.
 	 * @param busHandler the @a BusHandler instance to notify of final scan result.
 	 */
-	ScanRequest(MessageMap* messageMap, Message* message, deque<Message*> messages, BusHandler* busHandler)
-		: BusRequest(m_master, true), m_messageMap(messageMap), m_message(message), m_messages(messages), m_busHandler(busHandler) {}
+	ScanRequest(MessageMap* messageMap, deque<Message*> messages, deque<unsigned char> slaves, BusHandler* busHandler)
+		: BusRequest(m_master, true), m_messageMap(messageMap), m_index(0), m_allMessages(messages), m_messages(messages), m_slaves(slaves), m_busHandler(busHandler)
+	{
+		m_message = m_messages.front();
+		m_messages.pop_front();
+	}
 
 	/**
 	 * Destructor.
@@ -205,12 +212,11 @@ public:
 	virtual ~ScanRequest() {}
 
 	/**
-	 * Prepare the master data.
+	 * Prepare the next master data.
 	 * @param masterAddress the master bus address to use.
-	 * @param dstAddress the destination address to set.
 	 * @return the result code.
 	 */
-	result_t prepare(unsigned char masterAddress, unsigned char dstAddress);
+	result_t prepare(unsigned char masterAddress);
 
 	// @copydoc
 	virtual bool notify(result_t result, SymbolString& slave);
@@ -226,8 +232,17 @@ private:
 	/** the currently queried @a Message. */
 	Message* m_message;
 
+	/** the current part index in @a m_message. */
+	unsigned char m_index;
+
+	/** all secondary @a Message instances. */
+	const deque<Message*> m_allMessages;
+
 	/** the remaining secondary @a Message instances. */
 	deque<Message*> m_messages;
+
+	/** the slave addresses to scan. */
+	deque<unsigned char> m_slaves;
 
 	/** the @a BusHandler instance to notify of final scan result. */
 	BusHandler* m_busHandler;
