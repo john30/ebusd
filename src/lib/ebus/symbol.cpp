@@ -67,7 +67,7 @@ result_t SymbolString::parseHex(const string& str, const bool isEscaped)
 		const char* strBegin = str.substr(i, 2).c_str();
 		unsigned long int value = strtoul(strBegin, &strEnd, 16);
 
-		if (strEnd == NULL || *strEnd != 0 || strEnd != strBegin+2 || value > 0xff)
+		if (strEnd == NULL || strEnd != strBegin+2 || value > 0xff)
 			return RESULT_ERR_INVALID_NUM; // invalid value
 
 		push_back((unsigned char)value, isEscaped, addCrc);
