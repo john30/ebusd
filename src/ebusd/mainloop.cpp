@@ -299,21 +299,30 @@ result_t MainLoop::parseHexMaster(vector<string> &args, size_t argPos, SymbolStr
 	return ret;
 }
 
-result_t MainLoop::readFromBus(Message* message, SymbolString& master, string inputStr, SymbolString& slave, const unsigned char dstAddress)
+result_t MainLoop::readFromBus(Message* message, string inputStr, const unsigned char dstAddress)
 {
-	istringstream input(inputStr);
-	result_t ret = message->prepareMaster(m_address, master, input, UI_FIELD_SEPARATOR, dstAddress);
-	if (ret != RESULT_OK) {
-		logError(lf_main, "prepare message: %s", getResultCode(ret));
-		return ret;
+	result_t ret = RESULT_EMPTY;
+	SymbolString master(true);
+	SymbolString slave(false);
+	for (unsigned char index=0; index<message->getCount(); index++) {
+		istringstream input(inputStr);
+		ret = message->prepareMaster(m_address, master, input, UI_FIELD_SEPARATOR, dstAddress, index);
+		if (ret != RESULT_OK) {
+			logError(lf_main, "prepare message part %d: %s", index, getResultCode(ret));
+			break;
+		}
+		// send message
+		ret = m_busHandler->sendAndWait(master, slave);
+		if (ret != RESULT_OK) {
+			logError(lf_main, "send message part %d: %s", index, getResultCode(ret));
+			break;
+		}
+		ret = message->storeLastData(pt_slaveData, slave, index);
+		if (ret < RESULT_OK) {
+			logError(lf_main, "store message part %d: %s", index, getResultCode(ret));
+			break;
+		}
 	}
-
-	// send message
-	logInfo(lf_main, "send message: %s", master.getDataStr().c_str());
-	ret = m_busHandler->sendAndWait(master, slave);
-	if (ret != RESULT_OK)
-		logError(lf_main, "send message: %s", getResultCode(ret));
-
 	return ret;
 }
 
@@ -426,8 +435,10 @@ string MainLoop::executeRead(vector<string> &args)
 		ret = m_busHandler->sendAndWait(master, slave);
 
 		if (ret == RESULT_OK) {
+			ret = message->storeLastData(cacheMaster, slave);
 			ostringstream result;
-			ret = message->decode(cacheMaster, slave, result);
+			if (ret==RESULT_OK)
+				ret = message->decodeLastData(result);
 			if (ret >= RESULT_OK)
 				logInfo(lf_main, "hex read %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(), result.str().c_str());
 			else
@@ -489,7 +500,7 @@ string MainLoop::executeRead(vector<string> &args)
 		if (cacheMessage != NULL && (cacheMessage->getLastUpdateTime() + maxAge > now || (cacheMessage->isPassive() && cacheMessage->getLastUpdateTime() != 0))) {
 			if (verbose)
 				result << cacheMessage->getCircuit() << " " << cacheMessage->getName() << " ";
-			result_t ret = cacheMessage->decodeLastData(result, (verbose?OF_VERBOSE:0)|(numeric?OF_NUMERIC:0), false, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
+			result_t ret = cacheMessage->decodeLastData(pt_slaveData, result, (verbose?OF_VERBOSE:0)|(numeric?OF_NUMERIC:0), false, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
 			if (ret != RESULT_OK) {
 				if (ret < RESULT_OK)
 					logError(lf_main, "read %s %s cached: %s", cacheMessage->getCircuit().c_str(), cacheMessage->getName().c_str(), getResultCode(ret));
@@ -510,15 +521,13 @@ string MainLoop::executeRead(vector<string> &args)
 		return getResultCode(RESULT_ERR_INVALID_ADDR);
 
 	// read directly from bus
-	SymbolString master(true);
-	SymbolString slave(false);
-	result_t ret = readFromBus(message, master, params, slave, dstAddress);
+	result_t ret = readFromBus(message, params, dstAddress);
 	if (ret != RESULT_OK)
 		return getResultCode(ret);
 
 	if (verbose)
 		result << message->getCircuit() << " " << message->getName() << " ";
-	ret = message->decode(pt_slaveData, slave, result, (verbose?OF_VERBOSE:0)|(numeric?OF_NUMERIC:0), false, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
+	ret = message->decodeLastData(pt_slaveData, result, (verbose?OF_VERBOSE:0)|(numeric?OF_NUMERIC:0), false, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
 	if (ret < RESULT_OK) {
 		logError(lf_main, "read %s %s: decode %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
 		result.str("");
@@ -560,8 +569,10 @@ string MainLoop::executeWrite(vector<string> &args)
 
 		if (ret == RESULT_OK) {
 			if (message != NULL) { // also updates read messages
+				ret = message->storeLastData(cacheMaster, slave);
 				ostringstream result;
-				ret = message->decode(cacheMaster, slave, result);
+				if (ret==RESULT_OK)
+					ret = message->decodeLastData(result);
 				if (ret >= RESULT_OK)
 					logInfo(lf_main, "hex write %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(), result.str().c_str());
 				else
@@ -612,21 +623,20 @@ string MainLoop::executeWrite(vector<string> &args)
 	if (message->getDstAddress()==SYN && dstAddress==SYN)
 		return getResultCode(RESULT_ERR_INVALID_ADDR);
 
-	SymbolString master(true);
-	SymbolString slave(false);
-	result_t ret = readFromBus(message, master, args.size() == argPos + 2 ? "" : args[argPos + 2], slave, dstAddress); // allow missing values
+	result_t ret = readFromBus(message, args.size() == argPos + 2 ? "" : args[argPos + 2], dstAddress); // allow missing values
 	if (ret != RESULT_OK)
 		return getResultCode(ret);
 
+	dstAddress = message->getLastMasterData()[1];
 	ostringstream result;
-	if (master[1] == BROADCAST || isMaster(master[1])) {
+	if (dstAddress == BROADCAST || isMaster(dstAddress)) {
 		logInfo(lf_main, "write %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
-		if (master[1] == BROADCAST)
+		if (dstAddress == BROADCAST)
 			return "done broadcast";
 		return getResultCode(RESULT_OK);
 	}
 
-	ret = message->decode(pt_slaveData, slave, result); // decode data
+	ret = message->decodeLastData(pt_slaveData, result); // decode data
 	if (ret >= RESULT_OK && result.str().empty()) {
 		logInfo(lf_main, "write %s %s: decode %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
 		return getResultCode(RESULT_OK);
@@ -758,7 +768,7 @@ string MainLoop::executeFind(vector<string> &args)
 	char str[32];
 	for (deque<Message*>::iterator it = messages.begin(); it < messages.end();) {
 		Message* message = *it++;
-		if (!id.empty() && !message->checkIdMatch(id)) {
+		if (!id.empty() && !message->checkIdPrefix(id)) {
 			continue;
 		}
 		time_t lastup = message->getLastUpdateTime();
@@ -783,7 +793,7 @@ string MainLoop::executeFind(vector<string> &args)
 				if (ret!=RESULT_OK) {
 					result << " (" << getResultCode(ret)
 						   << " for " << message->getLastMasterData().getDataStr()
-						   << " / " << message->getLastSlaveData().getDataStr();
+						   << " / " << message->getLastSlaveData().getDataStr() << ")";
 				}
 			}
 			if (verbose) {
@@ -1097,15 +1107,9 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 			time_t lastup = message->getLastUpdateTime();
 			if (lastup == 0 && required) {
 				// read directly from bus
-				SymbolString master(true);
-				SymbolString slave(false);
-				ret = readFromBus(message, master, "", slave);
-				if (ret == RESULT_OK) {
-					ostringstream temp;
-					ret = message->decode(pt_slaveData, slave, temp);
-				}
+				ret = readFromBus(message, "");
 				if (ret != RESULT_OK)
-					break;
+					continue;
 				lastup = message->getLastUpdateTime();
 			} else {
 				if (since > 0 && lastup <= since)
@@ -1129,13 +1133,15 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 			if (lastup != 0) {
 				result << ",\n   \"zz\": \"" << setfill('0') << setw(2) << hex << static_cast<unsigned>(dstAddress) << "\"";
 				size_t pos = result.tellp();
-				result << ",\n   \"fields\": [";
+				result << ",\n   \"fields\": {";
 				result_t dret = message->decodeLastData(result, (verbose?OF_VERBOSE:0)|(numeric?OF_NUMERIC:0)|OF_JSON);
-				result << "\n   ]";
-				if (dret!=RESULT_OK) {
+				if (dret==RESULT_OK) {
+					result << "\n   }";
+				} else {
 					string prefix = result.str().substr(0, pos);
-					result.str(prefix); // remove written fields
-					result << ",\n   \"decodeerror\": \"" << getResultCode(dret) << "\"";
+					result.str("");
+					result.clear(); // remove written fields
+					result << prefix << ",\n   \"decodeerror\": \"" << getResultCode(dret) << "\"";
 				}
 			}
 			result << ",\n   \"passive\": " << (message->isPassive() ? "true" : "false");

@@ -107,13 +107,11 @@ private:
 	/**
 	 * Prepare the master part for the @a Message, send it to the bus and wait for the answer.
 	 * @param message the @a Message instance.
-	 * @param master the master data @a SymbolString for writing symbols to.
 	 * @param inputStr the input @a string from which to read master values (if any).
-	 * @param slave the @a SymbolString that will be filled with retrieved slave data.
 	 * @param dstAddress the destination address to set, or @a SYN to keep the address defined during construction.
 	 * @return the result code.
 	 */
-	result_t readFromBus(Message* message, SymbolString& master, string inputStr, SymbolString& slave, const unsigned char dstAddress=SYN);
+	result_t readFromBus(Message* message, string inputStr, const unsigned char dstAddress=SYN);
 
 	/**
 	 * Execute the read command.
