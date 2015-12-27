@@ -78,7 +78,7 @@ typedef int OutputFormat;
 /* the bit flags for @a OutputFormat. */
 static const unsigned int OF_VERBOSE = 0x01; //!< verbose format (names, values, units, and comments).
 static const unsigned int OF_NUMERIC = 0x02; //!< numeric format (keep numeric value of value=name pairs).
-static const unsigned int OF_JSON = 0x04; //!< JSON format.
+static const unsigned int OF_JSON = 0x04;    //!< JSON format.
 
 /** the message part in which a data field is stored. */
 enum PartType {
@@ -110,18 +110,21 @@ static const unsigned int HCD = 0x200; //!< binary representation is hex convert
 
 /** The structure for defining data types with their properties. */
 typedef struct dataType_s {
-	const char* name;                    //!< data type identifier
-	const unsigned char bitCount;        //!< number of bits (maximum length if #ADJ flag is set, must be multiple of 8 with flag #BCD)
-	const BaseType type;                 //!< base data type
-	const unsigned short flags;          //!< flags (like #BCD)
-	const unsigned int replacement;      //!< replacement value (fill-up value for #bt_str / #bt_hexstr, no replacement if equal to #minValueOrLength for #bt_num)
-	const unsigned int minValueOrLength; //!< minimum binary value (minimum length of string for @a StringDataField)
-	const unsigned int maxValueOrLength; //!< maximum binary value (maximum length of string for @a StringDataField)
-	const short divisorOrFirstBit;       //!< #bt_num: divisor (negative for reciprocal) or offset to first bit (if (#bitCount%8)!=0)
+	const char* name;               //!< data type identifier
+	const unsigned char bitCount;   //!< number of bits (maximum length if #ADJ flag is set, must be multiple of 8 with flag #BCD)
+	const BaseType type;            //!< base data type
+	const unsigned short flags;     //!< flags (like #BCD)
+	const unsigned int replacement; //!< replacement value (fill-up value for #bt_str / #bt_hexstr, no replacement if equal to #minValue for #bt_num)
+	const unsigned int minValue;    //!< minimum binary value (ignored for @a StringDataField)
+	const unsigned int maxValue;    //!< maximum binary value (ignored for @a StringDataField)
+	const short divisorOrFirstBit;  //!< #bt_num: divisor (negative for reciprocal) or offset to first bit (if (#bitCount%8)!=0)
 } dataType_t;
 
 /** the maximum allowed position within master or slave data. */
 #define MAX_POS 24
+
+/** the maximum allowed field length. */
+#define MAX_LEN 31
 
 /**
  * Parse an unsigned int value.
@@ -198,13 +201,15 @@ public:
 	 * @param isWriteMessage whether the field is part of a write message (default false).
 	 * @param isTemplate true for creating a template @a DataField.
 	 * @param isBroadcastOrMasterDestination true if the destination bus address is @a BRODCAST or a master address.
+	 * @param maxFieldLength the maximum allowed length of a single field (default @a MAX_POS).
 	 * @return @a RESULT_OK on success, or an error code.
 	 * Note: the caller needs to free the created instance.
 	 */
 	static result_t create(vector<string>::iterator& it, const vector<string>::iterator end,
 			DataFieldTemplates* templates, DataField*& returnField,
 			const bool isWriteMessage,
-			const bool isTemplate, const bool isBroadcastOrMasterDestination);
+			const bool isTemplate, const bool isBroadcastOrMasterDestination,
+			const unsigned char maxFieldLength=MAX_POS);
 
 	/**
 	 * Dump the @a string optionally embedded in @a TEXT_SEPARATOR to the output.
@@ -287,6 +292,7 @@ public:
 	 * @param offset the additional offset to add for reading binary data.
 	 * @param output the @a ostringstream to append the formatted value to.
 	 * @param outputFormat the @a OutputFormat options to use.
+	 * @param outputIndex the optional index of the field when using an indexed output format, or -1.
 	 * @param leadingSeparator whether to prepend a separator before the formatted value.
 	 * @param fieldName the optional name of a field to limit the output to.
 	 * @param fieldIndex the optional index of the named field to limit the output to, or -1.
@@ -296,7 +302,7 @@ public:
 	 */
 	virtual result_t read(const PartType partType,
 			SymbolString& data, unsigned char offset,
-			ostringstream& output, OutputFormat outputFormat,
+			ostringstream& output, OutputFormat outputFormat, signed char outputIndex=-1,
 			bool leadingSeparator=false, const char* fieldName=NULL, signed char fieldIndex=-1) = 0;
 
 	/**
@@ -414,7 +420,7 @@ public:
 	// @copydoc
 	virtual result_t read(const PartType partType,
 			SymbolString& data, unsigned char offset,
-			ostringstream& output, OutputFormat outputFormat,
+			ostringstream& output, OutputFormat outputFormat, signed char outputIndex=-1,
 			bool leadingSeparator=false, const char* fieldName=NULL, signed char fieldIndex=-1);
 
 	// @copydoc
@@ -738,7 +744,20 @@ public:
 	DataFieldSet(const string name, const string comment,
 			const vector<SingleDataField*> fields)
 		: DataField(name, comment),
-		  m_fields(fields) {}
+		  m_fields(fields)
+	{
+		bool uniqueNames = true;
+		map<string, string> names;
+		for (vector<SingleDataField*>::const_iterator it=fields.begin(); it!=fields.end(); it++) {
+			string name = (*it)->getName();
+			if (name.empty() || names.find(name)!=names.end()) {
+				uniqueNames = false;
+				break;
+			}
+			names[name] = name;
+		}
+		m_uniqueNames = uniqueNames;
+	}
 
 	/**
 	 * Destructor.
@@ -791,7 +810,7 @@ public:
 	// @copydoc
 	virtual result_t read(const PartType partType,
 			SymbolString& data, unsigned char offset,
-			ostringstream& output, OutputFormat outputFormat,
+			ostringstream& output, OutputFormat outputFormat, signed char outputIndex=-1,
 			bool leadingSeparator=false, const char* fieldName=NULL, signed char fieldIndex=-1);
 
 	// @copydoc
@@ -806,6 +825,9 @@ private:
 
 	/** the @a vector of @a SingleDataField instances part of this set. */
 	vector<SingleDataField*> m_fields;
+
+	/** whether all fields have a unique name. */
+	bool m_uniqueNames;
 
 };
 

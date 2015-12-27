@@ -119,10 +119,10 @@ int main()
 		{"x,,tth,2", "",    "",               "",   "c"},
 		{"x,,bdy", "Mon",   "10fe07000300",   "00", ""},
 		{"x,,bdy", "Sun",   "10fe07000306",   "00", ""},
-		{"x,,bdy", "",      "10fe07000308",   "00", "rw"},
+		{"x,,bdy", "8",      "10fe07000308",   "00", "w"},
 		{"x,,hdy", "Mon",   "10fe07000301",   "00", ""},
 		{"x,,hdy", "Sun",   "10fe07000307",   "00", ""},
-		{"x,,hdy", "",      "10fe07000308",   "00", "rw"},
+		{"x,,hdy", "8",      "10fe07000308",   "00", "w"},
 		{"x,,bcd", "26",    "10feffff0126", "00", ""},
 		{"x,,bcd", "0",     "10feffff0100", "00", ""},
 		{"x,,bcd", "99",    "10feffff0199", "00", ""},
@@ -273,10 +273,11 @@ int main()
 		{"x,,bi3:2,0=off;1=on","1", "10feffff0108", "00", "n"},
 		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","x=on ja/nein [Wahrheitswert]", "10feffff0108", "00", "v"},
 		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","x=1 ja/nein [Wahrheitswert]", "10feffff0108", "00", "vn"},
-		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","\n    {\"name\": \"x\", \"value\": \"on\"}", "10feffff0108", "00", "j"},
-		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","\n    {\"name\": \"x\", \"value\": \"on\", \"unit\": \"ja/nein\", \"comment\": \"Wahrheitswert\"}", "10feffff0108", "00", "vj"},
-		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","\n    {\"name\": \"x\", \"value\": 1}", "10feffff0108", "00", "nj"},
-		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","\n    {\"name\": \"x\", \"value\": 1, \"unit\": \"ja/nein\", \"comment\": \"Wahrheitswert\"}", "10feffff0108", "00", "vnj"},
+		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","\n    \"x\": {\"value\": \"on\"}", "10feffff0108", "00", "j"},
+		{",,bi3:2,0=off;1=on,ja/nein,Wahrheitswert", "\n    \"0\": {\"name\": \"\", \"value\": \"on\"}", "10feffff0108", "00", "j"},
+		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","\n    \"x\": {\"value\": \"on\", \"unit\": \"ja/nein\", \"comment\": \"Wahrheitswert\"}", "10feffff0108", "00", "vj"},
+		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","\n    \"x\": {\"value\": 1}", "10feffff0108", "00", "nj"},
+		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","\n    \"x\": {\"value\": 1, \"unit\": \"ja/nein\", \"comment\": \"Wahrheitswert\"}", "10feffff0108", "00", "vnj"},
 		{"x,,uch,1=test;2=high;3=off;0x10=on","on","10feffff0110", "00", ""},
 		{"x,s,uch","3","1050ffff00", "0103", ""},
 		{"x,,d2b,,°C,Aussentemperatur","x=18.004 °C [Aussentemperatur]","10fe0700090112", "00", "v"},
@@ -383,9 +384,9 @@ int main()
 		if (result != RESULT_OK) {
 			cout << "  parse \"" << sstr.getDataStr(true, false).substr(0, 2) << "\" error: " << getResultCode(result) << endl;
 		}
-		result = fields->read(pt_masterData, mstr, 0, output, (verbose?OF_VERBOSE:0)|(numeric?OF_NUMERIC:0)|(json?OF_JSON:0), false);
+		result = fields->read(pt_masterData, mstr, 0, output, (verbose?OF_VERBOSE:0)|(numeric?OF_NUMERIC:0)|(json?OF_JSON:0), -1, false);
 		if (result >= RESULT_OK) {
-			result = fields->read(pt_slaveData, sstr, 0, output, (verbose?OF_VERBOSE:0)|(numeric?OF_NUMERIC:0)|(json?OF_JSON:0), !output.str().empty());
+			result = fields->read(pt_slaveData, sstr, 0, output, (verbose?OF_VERBOSE:0)|(numeric?OF_NUMERIC:0)|(json?OF_JSON:0), -1, !output.str().empty());
 		}
 		if (failedRead)
 			if (result >= RESULT_OK)
