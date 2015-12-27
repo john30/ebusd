@@ -41,7 +41,7 @@ struct options
 	unsigned char address; //!< own bus address [FF]
 	bool answer; //!< answer to requests from other masters
 	int acquireTimeout; //!< bus acquisition timeout in us [9400]
-	int acquireRetries; //!< number of retries for bus acquisition [2]
+	int acquireRetries; //!< number of retries for bus acquisition [3]
 	int sendRetries; //!< number of retries for failed sends [2]
 	int receiveTimeout; //!< timeout for receiving answer from slave in us [15000]
 	int masterCount; //!< expected number of masters for arbitration [5]

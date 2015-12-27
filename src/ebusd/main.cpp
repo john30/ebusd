@@ -73,7 +73,7 @@ static struct options opt = {
 	0xFF, // address
 	false, // answer
 	9400, // acquireTimeout
-	2, // acquireRetries
+	3, // acquireRetries
 	2, // sendRetries
 	SLAVE_RECV_TIMEOUT, // receiveTimeout
 	0, // masterCount
@@ -143,7 +143,7 @@ static const struct argp_option argpoptions[] = {
 	{"address",        'a',      "ADDR",  0, "Use ADDR as own bus address [FF]", 0 },
 	{"answer",         O_ANSWER, NULL,    0, "Actively answer to requests from other masters", 0 },
 	{"acquiretimeout", O_ACQTIM, "USEC",  0, "Stop bus acquisition after USEC us [9400]", 0 },
-	{"acquireretries", O_ACQRET, "COUNT", 0, "Retry bus acquisition COUNT times [2]", 0 },
+	{"acquireretries", O_ACQRET, "COUNT", 0, "Retry bus acquisition COUNT times [3]", 0 },
 	{"sendretries",    O_SNDRET, "COUNT", 0, "Repeat failed sends COUNT times [2]", 0 },
 	{"receivetimeout", O_RCVTIM, "USEC",  0, "Expect a slave to answer within USEC us [15000]", 0 },
 	{"numbermasters",  O_MASCNT, "COUNT", 0, "Expect COUNT masters on the bus, 0 for auto detection [0]", 0 },
