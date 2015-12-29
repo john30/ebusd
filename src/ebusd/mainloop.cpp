@@ -500,7 +500,7 @@ string MainLoop::executeRead(vector<string> &args)
 		if (cacheMessage != NULL && (cacheMessage->getLastUpdateTime() + maxAge > now || (cacheMessage->isPassive() && cacheMessage->getLastUpdateTime() != 0))) {
 			if (verbose)
 				result << cacheMessage->getCircuit() << " " << cacheMessage->getName() << " ";
-			result_t ret = cacheMessage->decodeLastData(pt_slaveData, result, (verbose?OF_VERBOSE:0)|(numeric?OF_NUMERIC:0), false, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
+			result_t ret = cacheMessage->decodeLastData(result, (verbose?OF_VERBOSE:0)|(numeric?OF_NUMERIC:0), false, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
 			if (ret != RESULT_OK) {
 				if (ret < RESULT_OK)
 					logError(lf_main, "read %s %s cached: %s", cacheMessage->getCircuit().c_str(), cacheMessage->getName().c_str(), getResultCode(ret));
