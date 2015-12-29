@@ -92,7 +92,7 @@ static const dataType_t dataTypes[] = {
 #define MAX_DIVISOR 1000000000
 
 /** the maximum value for value lists. */
-#define MAX_VALUE (1<<24)
+#define MAX_VALUE (0xFFFFFFFFu)
 
 /** the week day names. */
 static const char* dayNames[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
