@@ -53,12 +53,14 @@ if [ "$1" = "config" ]; then
     if [ "x$result" = "x-" -o "x${result##ERR:*}" = "x" ]; then
       continue
     fi
+    name=${sensor/:/_}
+    name=${name/./_}
     if [ ! "${sensor%%Energy}" = "$sensor" ]; then
-      echo ${prefix}_${sensor/:/_}.label ${sensor/:/ } "[diff]"
-      echo ${prefix}_${sensor/:/_}.type COUNTER
-      echo ${prefix}_${sensor/:/_}.draw AREA
+      echo ${prefix}_${name}.label ${sensor/:/ } "[diff]"
+      echo ${prefix}_${name}.type COUNTER
+      echo ${prefix}_${name}.draw AREA
     else
-      echo ${prefix}_${sensor/:/_}.label ${sensor/:/ }
+      echo ${prefix}_${name}.label ${sensor/:/ }
     fi
 #    print_warning ${prefix}_${sensor/:/_}
 #    print_critical ${prefix}_${sensor/:/_}
@@ -68,6 +70,8 @@ fi
 for sensor in $sensors; do
   result=`echo "read -c ${sensor/:/ }"|nc localhost 8888 2>/dev/null|head -n 1|sed -e 's#;.*$##'`
   if [ ! "x$result" = "x-" ]; then
-    echo ${prefix}_${sensor/:/_}.value $result
+    name=${sensor/:/_}
+    name=${name/./_}
+    echo ${prefix}_${name}.value $result
   fi
 done
