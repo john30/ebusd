@@ -244,6 +244,9 @@ private:
 	/** the slave addresses to scan. */
 	deque<unsigned char> m_slaves;
 
+	/** the @a ostringstream for building the scan result of a single slave. */
+	ostringstream m_scanResult;
+
 	/** the @a BusHandler instance to notify of final scan result. */
 	BusHandler* m_busHandler;
 
@@ -360,12 +363,12 @@ public:
 	result_t startScan(bool full=false);
 
 	/**
-	 * Add a scan result @a string for a scanned slave address.
+	 * Set the scan result @a string for a scanned slave address.
 	 * @param dstAddress the scanned slave address.
-	 * @param str the scan result @a string to add.
+	 * @param str the scan result @a string to set.
 	 * @param result the scan result code.
 	 */
-	void addScanResult(unsigned char dstAddress, string str, result_t result);
+	void setScanResult(unsigned char dstAddress, string str, result_t result);
 
 	/**
 	 * Format the scan result to the @a ostringstream.

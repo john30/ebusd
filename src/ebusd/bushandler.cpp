@@ -103,7 +103,6 @@ result_t ScanRequest::prepare(unsigned char ownMasterAddress)
 bool ScanRequest::notify(result_t result, SymbolString& slave)
 {
 	unsigned char dstAddress = m_master[1];
-	ostringstream scanResult;
 	if (result == RESULT_OK) {
 		if (m_message==m_messageMap->getScanMessage()) {
 			Message* message = m_messageMap->getScanMessage(dstAddress);
@@ -120,27 +119,30 @@ bool ScanRequest::notify(result_t result, SymbolString& slave)
 				return true;
 		}
 		if (result==RESULT_OK)
-			result = m_message->decodeLastData(scanResult, 0, true); // decode data
+			result = m_message->decodeLastData(m_scanResult, 0, true); // decode data
 	}
 	if (result < RESULT_OK) {
 		if (!m_slaves.empty())
 			m_slaves.pop_front();
 		if (result == RESULT_ERR_TIMEOUT)
-			logInfo(lf_bus, "scan %2.2x timed out, %d remain", dstAddress, m_slaves.size());
+			logInfo(lf_bus, "scan %2.2x timed out (%d slaves left)", dstAddress, m_slaves.size());
 		else
-			logError(lf_bus, "scan %2.2x failed, %d remain: %s", dstAddress, m_slaves.size(), getResultCode(result));
-		m_busHandler->addScanResult(dstAddress, "", result);  // TODO combine all data from one slave and then store in BusHandler
+			logError(lf_bus, "scan %2.2x failed (%d slaves left): %s", dstAddress, m_slaves.size(), getResultCode(result));
+		m_busHandler->setScanResult(dstAddress, m_scanResult.str(), result);
 		// skip remaining secondary messages
+		m_messages.clear();
+	} else if (m_messages.empty()) {
+		m_busHandler->setScanResult(dstAddress, m_scanResult.str(), result);
+		if (!m_slaves.empty())
+			m_slaves.pop_front();
+		logNotice(lf_bus, "scan %2.2x completed (%d slaves left)", dstAddress, m_slaves.size());
+	}
+	if (m_slaves.empty())
+		return false;
+	if (m_messages.empty()) {
 		m_messages = m_allMessages;
-	} else {
-		m_busHandler->addScanResult(dstAddress, scanResult.str(), result);
-		// check for remaining secondary messages
-		if (m_messages.empty()) {
-			if (!m_slaves.empty())
-				m_slaves.pop_front();
-			logNotice(lf_bus, "scan %2.2x completed, %d remain", dstAddress, m_slaves.size());
-			m_messages = m_allMessages;
-		}
+		m_scanResult.str("");
+		m_scanResult.clear();
 	}
 	m_index = 0;
 	m_message = m_messages.front();
@@ -847,19 +849,17 @@ result_t BusHandler::startScan(bool full)
 	return RESULT_OK;
 }
 
-void BusHandler::addScanResult(unsigned char dstAddress, string str, result_t result)
+void BusHandler::setScanResult(unsigned char dstAddress, string str, result_t result)
 {
 	if (result==RESULT_ERR_NO_SIGNAL)
 		return;
 	m_seenAddresses[dstAddress] |= SCAN_INIT;
-	if (result!=RESULT_OK)
-		return;
-	m_seenAddresses[dstAddress] |= SCAN_DONE;
-	logNotice(lf_bus, "scan %2.2x: %s", dstAddress, str.c_str());
-	if (m_scanResults.find(dstAddress) == m_scanResults.end())
+	if (result==RESULT_OK) {
+		m_seenAddresses[dstAddress] |= SCAN_DONE;
+		logNotice(lf_bus, "scan %2.2x: %s", dstAddress, str.c_str());
+	}
+	if (str.length()>0)
 		m_scanResults[dstAddress] = str;
-	else
-		m_scanResults[dstAddress] += str;
 }
 
 void BusHandler::formatScanResult(ostringstream& output)
