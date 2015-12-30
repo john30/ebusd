@@ -3,6 +3,7 @@
 ## Breaking Changes
 * automatic configuration file selection by querying device identification ("--scanconfig").  
   Previous configuration files are still usable, but only without the "--scanconfig" command line parameter to ebusd (unless the files are renamed).
+* support for chained messages with fields covering more than one message ID
 
 ## Bug fixes
 * avoid multiple identical derived messages
@@ -31,10 +32,14 @@
 * exclusively lock serial device to prevent simultaneous access by another process
 * extended "-i" parameter of "find" command to accept further ID parts
 * include decode problems instead of returning invalid JSON
-* extended allowed message ID length
+* extended allowed message ID length and max STR and HEX length
 * extended "grab" comamnd with "all" option for grabbing all messages instead of only unknown
 * allow float values being used for int types
 * added big endian data type variants (UIR, SIR, FLR, ULR, SLR)
+* use numeric value as fallback for value lists with unknown value association
+* increased verbosity during scan
+* increased default bus acquisition retries from 2 to 3
+* use named objects for JSON fields instead of array with fallback to numbered
 
 ## Changed files
 https://github.com/john30/ebusd/compare/v1.3.0...master
