@@ -894,7 +894,7 @@ int main(int argc, char* argv[])
 		}
 		if (result == RESULT_OK && opt.checkConfig > 1) {
 			logNotice(lf_main, "Configuration dump:");
-			s_messageMap->dump(cout);
+			s_messageMap->dump(cout, true);
 		}
 		delete s_messageMap;
 		s_messageMap = NULL;

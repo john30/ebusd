@@ -641,7 +641,7 @@ bool Message::isLessPollWeight(const Message* other)
 	return false;
 }
 
-void Message::dump(ostream& output, vector<size_t>* columns)
+void Message::dump(ostream& output, vector<size_t>* columns, bool withConditions)
 {
 	bool first = true, all = columns==NULL;
 	size_t end = all ? 9 : columns->size();
@@ -652,15 +652,15 @@ void Message::dump(ostream& output, vector<size_t>* columns)
 			output << FIELD_SEPARATOR;
 		}
 		size_t column = all ? i : (*columns)[i];
-		dumpColumn(output, column);
+		dumpColumn(output, column, withConditions);
 	}
 }
 
-void Message::dumpColumn(ostream& output, size_t column)
+void Message::dumpColumn(ostream& output, size_t column, bool withConditions)
 {
 	switch (column) {
 	case 0: // type
-		if (m_condition!=NULL) {
+		if (withConditions && m_condition!=NULL) {
 			m_condition->dump(output);
 		}
 		if (m_isPassive) {
@@ -914,10 +914,10 @@ result_t ChainedMessage::storeLastData(const PartType partType, SymbolString& da
 	return result;
 }
 
-void ChainedMessage::dumpColumn(ostream& output, size_t column)
+void ChainedMessage::dumpColumn(ostream& output, size_t column, bool withConditions)
 {
 	if (column!=7) {
-		Message::dumpColumn(output, column);
+		Message::dumpColumn(output, column, withConditions);
 		return;
 	}
 	bool first = true;
@@ -1614,7 +1614,7 @@ Message* MessageMap::getNextPoll()
 	return ret;
 }
 
-void MessageMap::dump(ostream& output)
+void MessageMap::dump(ostream& output, bool withConditions)
 {
 	bool first = true;
 	for (map<string, vector<Message*> >::iterator it = m_messagesByName.begin(); it != m_messagesByName.end(); it++) {
@@ -1629,7 +1629,7 @@ void MessageMap::dump(ostream& output)
 					first = false;
 				else
 					output << endl;
-				message->dump(output);
+				message->dump(output, NULL, withConditions);
 			}
 		} else {
 			Message* message = getFirstAvailable(it->second);
@@ -1639,7 +1639,7 @@ void MessageMap::dump(ostream& output)
 				first = false;
 			else
 				output << endl;
-			message->dump(output);
+			message->dump(output, NULL, withConditions);
 		}
 	}
 	if (!first)

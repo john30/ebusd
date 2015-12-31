@@ -413,8 +413,9 @@ public:
 	 * Write the message definition or parts of it to the @a ostream.
 	 * @param output the @a ostream to append the formatted value to.
 	 * @param columns the list of column indexes to write, or NULL for all.
+	 * @param withConditions whether to include the optional conditions prefix.
 	 */
-	void dump(ostream& output, vector<size_t>* columns=NULL);
+	void dump(ostream& output, vector<size_t>* columns=NULL, bool withConditions=false);
 
 protected:
 
@@ -422,8 +423,9 @@ protected:
 	 * Write the specified column to the @a ostream.
 	 * @param output the @a ostream to append the formatted value to.
 	 * @param column the column indexes to write.
+	 * @param withConditions whether to include the optional conditions prefix.
 	 */
-	virtual void dumpColumn(ostream& output, size_t column);
+	virtual void dumpColumn(ostream& output, size_t column, bool withConditions);
 
 	/** the optional circuit name. */
 	const string m_circuit;
@@ -571,7 +573,7 @@ public:
 protected:
 
 	// @copydoc
-	virtual void dumpColumn(ostream& output, size_t column);
+	virtual void dumpColumn(ostream& output, size_t column, bool withConditions);
 
 private:
 
@@ -984,8 +986,9 @@ public:
 	/**
 	 * Write the message definitions to the @a ostream.
 	 * @param output the @a ostream to append the formatted messages to.
+	 * @param withConditions whether to include the optional conditions prefix.
 	 */
-	void dump(ostream& output);
+	void dump(ostream& output, bool withConditions=false);
 
 private:
 
