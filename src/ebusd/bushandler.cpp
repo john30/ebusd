@@ -44,7 +44,7 @@ using namespace std;
 const char* getStateCode(BusState state) {
 	switch (state)
 	{
-	case bs_noSignal:	return "no signal";
+	case bs_noSignal:   return "no signal";
 	case bs_skip:       return "skip";
 	case bs_ready:      return "ready";
 	case bs_sendCmd:    return "send command";
@@ -570,37 +570,33 @@ result_t BusHandler::handleSymbol()
 		return setState(bs_skip, RESULT_ERR_ACK);
 
 	case bs_sendCmd:
-		if (m_currentRequest != NULL && sending) {
-			if (recvSymbol == sendSymbol) {
-				// successfully sent
-				m_nextSendPos++;
-				if (m_nextSendPos >= m_currentRequest->m_master.size()) {
-					// master data completely sent
-					if (m_currentRequest->m_master[1] == BROADCAST)
-						return setState(bs_sendSyn, RESULT_OK);
+		if (m_currentRequest != NULL && sending && recvSymbol == sendSymbol) {
+			// successfully sent
+			m_nextSendPos++;
+			if (m_nextSendPos >= m_currentRequest->m_master.size()) {
+				// master data completely sent
+				if (m_currentRequest->m_master[1] == BROADCAST)
+					return setState(bs_sendSyn, RESULT_OK);
 
-					m_commandCrcValid = true;
-					return setState(bs_recvCmdAck, RESULT_OK);
-				}
-				return RESULT_OK;
+				m_commandCrcValid = true;
+				return setState(bs_recvCmdAck, RESULT_OK);
 			}
+			return RESULT_OK;
 		}
 		return setState(bs_skip, RESULT_ERR_INVALID_ARG);
 
 	case bs_sendResAck:
-		if (m_currentRequest != NULL && sending) {
-			if (recvSymbol == sendSymbol) {
-				// successfully sent
-				if (!m_responseCrcValid) {
-					if (!m_repeat) {
-						m_repeat = true;
-						m_response.clear();
-						return setState(bs_recvRes, RESULT_ERR_NAK, true);
-					}
-					return setState(bs_sendSyn, RESULT_ERR_ACK);
+		if (m_currentRequest != NULL && sending recvSymbol == sendSymbol) {
+			// successfully sent
+			if (!m_responseCrcValid) {
+				if (!m_repeat) {
+					m_repeat = true;
+					m_response.clear();
+					return setState(bs_recvRes, RESULT_ERR_NAK, true);
 				}
-				return setState(bs_sendSyn, RESULT_OK);
+				return setState(bs_sendSyn, RESULT_ERR_ACK);
 			}
+			return setState(bs_sendSyn, RESULT_OK);
 		}
 		return setState(bs_skip, RESULT_ERR_INVALID_ARG);
 
@@ -646,25 +642,21 @@ result_t BusHandler::handleSymbol()
 		return setState(bs_skip, RESULT_ERR_INVALID_ARG);
 
 	case bs_sendRes:
-		if (sending && m_answer) {
-			if (recvSymbol == sendSymbol) {
-				// successfully sent
-				m_nextSendPos++;
-				if (m_nextSendPos >= m_response.size()) {
-					// slave data completely sent
-					return setState(bs_recvResAck, RESULT_OK);
-				}
-				return RESULT_OK;
+		if (sending && m_answer && recvSymbol == sendSymbol) {
+			// successfully sent
+			m_nextSendPos++;
+			if (m_nextSendPos >= m_response.size()) {
+				// slave data completely sent
+				return setState(bs_recvResAck, RESULT_OK);
 			}
+			return RESULT_OK;
 		}
 		return setState(bs_skip, RESULT_ERR_INVALID_ARG);
 
 	case bs_sendSyn:
-		if (sending) {
-			if (recvSymbol == sendSymbol) {
-				// successfully sent
-				return setState(bs_skip, RESULT_OK);
-			}
+		if (sending && recvSymbol == sendSymbol) {
+			// successfully sent
+			return setState(bs_skip, RESULT_OK);
 		}
 		return setState(bs_skip, RESULT_ERR_INVALID_ARG);
 
