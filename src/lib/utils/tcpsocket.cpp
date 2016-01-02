@@ -30,7 +30,7 @@ TCPSocket::TCPSocket(int sfd, struct sockaddr_in* address) : m_sfd(sfd)
 	char ip[17];
 	inet_ntop(AF_INET, (struct in_addr*)&(address->sin_addr.s_addr), ip, (socklen_t)sizeof(ip)-1);
 	m_ip = ip;
-	m_port = ntohs(address->sin_port);
+	m_port = (uint16_t)ntohs(address->sin_port);
 }
 
 bool TCPSocket::isValid()
@@ -65,7 +65,7 @@ TCPSocket* TCPClient::connect(const string& server, const uint16_t& port)
 	}
 
 	address.sin_family = AF_INET;
-	address.sin_port = htons(port);
+	address.sin_port = (in_port_t)htons(port);
 
 	int sfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sfd < 0)
@@ -90,7 +90,7 @@ int TCPServer::start()
 	memset(&address, 0, sizeof(address));
 
 	address.sin_family = AF_INET;
-	address.sin_port = htons(m_port);
+	address.sin_port = (in_port_t)htons(m_port);
 
 	if (m_address.size() > 0)
 		inet_pton(AF_INET, m_address.c_str(), &(address.sin_addr));

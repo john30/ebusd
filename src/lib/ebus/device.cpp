@@ -50,7 +50,7 @@ Device* Device::create(const char* name, const bool checkDevice, const bool read
 		char* dup = strdup(name);
 		char* pos = strchr(dup, ':');
 		result_t result = RESULT_OK;
-		unsigned long int port = parseInt(pos+1, 10, 1, 65535, result);
+		unsigned int port = parseInt(pos+1, 10, 1, 65535, result);
 		if (result!=RESULT_OK) {
 			free(dup);
 			return NULL; // invalid port
@@ -69,7 +69,7 @@ Device* Device::create(const char* name, const bool checkDevice, const bool read
 		}
 		free(dup);
 		address.sin_family = AF_INET;
-		address.sin_port = htons((uint16_t)port);
+		address.sin_port = (in_port_t)htons((uint16_t)port);
 		return new NetworkDevice(name, address, readonly, logRawFunc);
 	}
 	return new SerialDevice(name, checkDevice, readonly, logRawFunc);
