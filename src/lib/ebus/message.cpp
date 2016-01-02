@@ -378,7 +378,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	return RESULT_OK;
 }
 
-Message* Message::derive(const unsigned char dstAddress, unsigned char srcAddress=SYN)
+Message* Message::derive(const unsigned char dstAddress, unsigned char srcAddress)
 {
 	return new Message(m_circuit, m_name, m_isWrite,
 		m_isPassive, m_comment,
@@ -746,10 +746,10 @@ ChainedMessage::~ChainedMessage()
 	free(m_lastSlaveUpdateTimes);
 }
 
-Message* ChainedMessage::derive(const unsigned char dstAddress)
+Message* ChainedMessage::derive(const unsigned char dstAddress, unsigned char srcAddress)
 {
 	return new ChainedMessage(m_circuit, m_name, m_isWrite,
-		m_comment, m_srcAddress, dstAddress, m_id,
+		m_comment, srcAddress==SYN ? m_srcAddress : srcAddress, dstAddress, m_id,
 		m_ids, m_lengths, m_data, false,
 		m_pollPriority, m_condition);
 }

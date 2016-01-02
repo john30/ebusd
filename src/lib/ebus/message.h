@@ -145,7 +145,7 @@ public:
 	 * @param srcAddress the new source address, or @a SYN to keep the current source address.
 	 * @return the derived @a Message instance.
 	 */
-	virtual Message* derive(const unsigned char dstAddress, unsigned char srcAddress);
+	virtual Message* derive(const unsigned char dstAddress, unsigned char srcAddress=SYN);
 
 	/**
 	 * Get the optional circuit name.
@@ -548,7 +548,7 @@ public:
 	virtual ~ChainedMessage();
 
 	// @copydoc
-	virtual Message* derive(const unsigned char dstAddress);
+	virtual Message* derive(const unsigned char dstAddress, unsigned char srcAddress=SYN);
 
 	// @copydoc
 	virtual unsigned char getIdLength() const { return (unsigned char)(m_ids[0].size() - 2); }
