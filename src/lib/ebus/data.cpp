@@ -1310,8 +1310,8 @@ DataFieldSet* DataFieldSet::getIdentFields()
 		vector<SingleDataField*> fields;
 		fields.push_back(new ValueListDataField("MF", "", "", uchDataType, pt_slaveData, 1, 8, manufacturers));
 		fields.push_back(new StringDataField("ID", "", "", stringDataType, pt_slaveData, 5));
-		fields.push_back(new NumberDataField("SW", "", "", pinDataType, pt_slaveData, 2, 16, 0));
-		fields.push_back(new NumberDataField("HW", "", "", pinDataType, pt_slaveData, 2, 16, 0));
+		fields.push_back(new NumberDataField("SW", "", "", pinDataType, pt_slaveData, 2, 16, 1));
+		fields.push_back(new NumberDataField("HW", "", "", pinDataType, pt_slaveData, 2, 16, 1));
 		s_identFields = new DataFieldSet("ident", "", fields);
 	}
 	return s_identFields;
