@@ -630,7 +630,7 @@ result_t BusHandler::handleSymbol()
 			if (message == NULL || message->isWrite())
 				return setState(bs_skip, RESULT_ERR_INVALID_ARG); // don't know this request or definition has wrong direction, deny
 			if (message == m_messages->getScanMessage()) {
-				input.str("ebusd;EBUSD;" SCAN_VERSION  ";0100");
+				input.str("ebusd;ebusd;" SCAN_VERSION  ";100");
 			}
 
 			// build response and store in m_response for sending back to requesting master
