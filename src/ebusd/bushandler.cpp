@@ -33,6 +33,9 @@
 
 using namespace std;
 
+// the string used for answering to a scan request (07h 04h)
+#define SCAN_ANSWER ("ebusd.eu;" PACKAGE_NAME ";" SCAN_VERSION ";100")
+
 /**
  * Return the string corresponding to the @a BusState.
  * @param state the @a BusState.
@@ -630,7 +633,7 @@ result_t BusHandler::handleSymbol()
 			if (message == NULL || message->isWrite())
 				return setState(bs_skip, RESULT_ERR_INVALID_ARG); // don't know this request or definition has wrong direction, deny
 			if (message == m_messages->getScanMessage()) {
-				input.str("ebusd;ebusd;" SCAN_VERSION  ";100");
+				input.str(SCAN_ANSWER);
 			}
 
 			// build response and store in m_response for sending back to requesting master

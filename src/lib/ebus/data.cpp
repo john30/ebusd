@@ -1306,7 +1306,7 @@ DataFieldSet* DataFieldSet::getIdentFields()
 		manufacturers[0xb5] = "Vaillant";
 		manufacturers[0xc0] = "Toby";
 		manufacturers[0xc5] = "Weishaupt";
-		manufacturers[0xfd] = "ebusd";
+		manufacturers[0xfd] = "ebusd.eu";
 		vector<SingleDataField*> fields;
 		fields.push_back(new ValueListDataField("MF", "", "", uchDataType, pt_slaveData, 1, 8, manufacturers));
 		fields.push_back(new StringDataField("ID", "", "", stringDataType, pt_slaveData, 5));
