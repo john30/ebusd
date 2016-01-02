@@ -586,7 +586,7 @@ result_t BusHandler::handleSymbol()
 		return setState(bs_skip, RESULT_ERR_INVALID_ARG);
 
 	case bs_sendResAck:
-		if (m_currentRequest != NULL && sending recvSymbol == sendSymbol) {
+		if (m_currentRequest != NULL && sending && recvSymbol == sendSymbol) {
 			// successfully sent
 			if (!m_responseCrcValid) {
 				if (!m_repeat) {
