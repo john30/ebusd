@@ -135,7 +135,7 @@ int main()
 		bool failedPrepareMatch = flags.find('P') != string::npos;
 		bool multi = flags.find('*') != string::npos;
 		bool withInput = flags.find('i') != string::npos;
-		result_t result;
+		result_t result = RESULT_EMPTY;
 		if (isChain) {
 			size_t pos = 0;
 			string token;
