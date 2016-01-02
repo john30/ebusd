@@ -378,11 +378,11 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	return RESULT_OK;
 }
 
-Message* Message::derive(const unsigned char dstAddress)
+Message* Message::derive(const unsigned char dstAddress, unsigned char srcAddress=SYN)
 {
 	return new Message(m_circuit, m_name, m_isWrite,
 		m_isPassive, m_comment,
-		m_srcAddress, dstAddress,
+		srcAddress==SYN ? m_srcAddress : srcAddress, dstAddress,
 		m_id, m_data, false,
 		m_pollPriority, m_condition);
 }
@@ -419,10 +419,10 @@ bool Message::checkId(SymbolString& master, unsigned char* index)
 bool Message::checkId(Message& other)
 {
 	unsigned char idLen = getIdLength();
-	if (idLen != other.getIdLength())
+	if (idLen != other.getIdLength() || getCount() > 1) // not supported for chained messages
 		return false;
 	for (unsigned char pos = 0; pos < idLen; pos++) {
-		if (m_id[2+pos] != other.m_id[2+pos])//TODO chain
+		if (m_id[2+pos] != other.m_id[2+pos])
 			return false;
 	}
 	return true;
@@ -517,17 +517,16 @@ result_t Message::prepareMasterPart(SymbolString& master, istringstream& input, 
 	return m_data->write(input, pt_masterData, master, getIdLength(), separator);
 }
 
-result_t Message::prepareSlave(SymbolString& slaveData)
+result_t Message::prepareSlave(istringstream& input, SymbolString& slaveData)
 {
-	if (!m_isPassive || m_isWrite)
-			return RESULT_ERR_INVALID_ARG; // prepare not possible
+	if (m_isWrite)
+		return RESULT_ERR_INVALID_ARG; // prepare not possible
 
 	SymbolString slave(false);
 	unsigned char addData = m_data->getLength(pt_slaveData);
 	result_t result = slave.push_back(addData, false, false);
 	if (result != RESULT_OK)
 		return result;
-	istringstream input; // TODO create input from database of internal variables
 	result = m_data->write(input, pt_slaveData, slave, 0);
 	if (result != RESULT_OK)
 		return result;
@@ -1456,7 +1455,7 @@ deque<Message*> MessageMap::findAll(const string& circuit, const string& name, c
 	return ret;
 }
 
-Message* MessageMap::find(SymbolString& master)
+Message* MessageMap::find(SymbolString& master, bool anyDestination)
 {
 	if (master.size() < 5)
 		return NULL;
@@ -1465,8 +1464,10 @@ Message* MessageMap::find(SymbolString& master)
 		maxIdLength = m_maxIdLength;
 	if (master.size() < 5+maxIdLength)
 		return NULL;
+	if (maxIdLength == 0 && anyDestination && master[2] == 0x07 && master[3] == 0x04)
+		return m_scanMessage;
 	unsigned long long baseKey = (unsigned long long)getMasterNumber(master[0]) << (8 * 7); // QQ address for passive message
-	baseKey |= (unsigned long long)master[1] << (8 * 6); // ZZ address
+	baseKey |= (unsigned long long)(anyDestination ? SYN : master[1]) << (8 * 6); // ZZ address
 	baseKey |= (unsigned long long)master[2] << (8 * 5); // PB
 	baseKey |= (unsigned long long)master[3] << (8 * 4); // SB
 	for (unsigned char idLength = maxIdLength; true; idLength--) {

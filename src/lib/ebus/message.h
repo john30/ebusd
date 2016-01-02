@@ -142,9 +142,10 @@ public:
 	/**
 	 * Derive a new @a Message from this message.
 	 * @param dstAddress the new destination address.
+	 * @param srcAddress the new source address, or @a SYN to keep the current source address.
 	 * @return the derived @a Message instance.
 	 */
-	virtual Message* derive(const unsigned char dstAddress);
+	virtual Message* derive(const unsigned char dstAddress, unsigned char srcAddress);
 
 	/**
 	 * Get the optional circuit name.
@@ -227,7 +228,7 @@ public:
 	 * @param other the other @a Message to check against.
 	 * @return true if the ID matches, false otherwise.
 	 */
-	virtual bool checkId(Message& other);
+	bool checkId(Message& other);
 
 	/**
 	 * Return the key for storing in @a MessageMap.
@@ -315,10 +316,11 @@ public:
 
 	/**
 	 * Prepare the slave @a SymbolString for sending an answer to the bus.
+	 * @param input the @a istringstream to parse the formatted value(s) from.
 	 * @param slaveData the slave data @a SymbolString for writing symbols to.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	virtual result_t prepareSlave(SymbolString& slaveData);
+	virtual result_t prepareSlave(istringstream& input, SymbolString& slaveData);
 
 	/**
 	 * Store the last seen master and slave data.
@@ -917,10 +919,11 @@ public:
 	/**
 	 * Find the @a Message instance for the specified master data.
 	 * @param master the master @a SymbolString for identifying the @a Message.
+	 * @param anyDestination true to only return messages without a particular destination.
 	 * @return the @a Message instance, or NULL.
 	 * Note: the caller may not free the returned instance.
 	 */
-	Message* find(SymbolString& master);
+	Message* find(SymbolString& master, bool anyDestination=false);
 
 	/**
 	 * Invalidate cached data of the @a Message and all other instances with a matching name key.
