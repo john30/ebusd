@@ -1132,7 +1132,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 			result << "\n   \"lastup\": " << setw(0) << dec << static_cast<unsigned>(lastup);
 			if (lastup != 0) {
 				result << ",\n   \"zz\": \"" << setfill('0') << setw(2) << hex << static_cast<unsigned>(dstAddress) << "\"";
-				size_t pos = result.tellp();
+				size_t pos = (size_t)result.tellp();
 				result << ",\n   \"fields\": {";
 				result_t dret = message->decodeLastData(result, (verbose?OF_VERBOSE:0)|(numeric?OF_NUMERIC:0)|OF_JSON);
 				if (dret==RESULT_OK) {
