@@ -51,7 +51,7 @@ AC_CONFIG_FILES([Makefile
 AC_DEFINE_UNQUOTED(PACKAGE_PIDFILE, LOCALSTATEDIR "/run/" PACKAGE ".pid", [The path and name of the PID file.])
 AC_DEFINE_UNQUOTED(PACKAGE_LOGFILE, LOCALSTATEDIR "/log/" PACKAGE ".log", [The path and name of the log file.])
 AC_DEFINE_UNQUOTED(PACKAGE_CONFIGPATH, SYSCONFDIR "/" PACKAGE, [The default path of the configuration files.])
-AC_DEFINE(SCAN_VERSION, "[m4_esyscmd_s([sed -e 's#^\([1-9]\)\.#0\1.#' -e 's#\.\([0-9]\)[^0-9]*$#.0\1#' -e 's#\.##' VERSION])]", [The version of the package formatted for the scan result.])
+AC_DEFINE(SCAN_VERSION, "[m4_esyscmd_s([sed -e 's#^\([0-9]*\.[0-9]*\).*#\1#' -e 's#\.\([0-9]\)$#0\1#' -e 's#\.##' VERSION])]", [The version of the package formatted for the scan result.])
 AC_DEFINE(REVISION, "[m4_esyscmd_s([git describe --always 2>/dev/null || (echo -n 'p'; date +%Y%m%d)])]", [The revision of the package.])
 
 AC_CHECK_PROGS([HAVE_DOXYGEN], [doxygen], [])
