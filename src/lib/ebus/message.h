@@ -143,9 +143,18 @@ public:
 	 * Derive a new @a Message from this message.
 	 * @param dstAddress the new destination address.
 	 * @param srcAddress the new source address, or @a SYN to keep the current source address.
+	 * @param circuit the new circuit name, or empty to use the current circuit name.
 	 * @return the derived @a Message instance.
 	 */
-	virtual Message* derive(const unsigned char dstAddress, unsigned char srcAddress=SYN);
+	virtual Message* derive(const unsigned char dstAddress, const unsigned char srcAddress=SYN, const string circuit="");
+
+	/**
+	 * Derive a new @a Message from this message.
+	 * @param dstAddress the new destination address.
+	 * @param extendCircuit whether to extend the current circuit name with a dot and the new destination address in hex.
+	 * @return the derived @a Message instance.
+	 */
+	Message* derive(const unsigned char dstAddress, const bool extendCircuit);
 
 	/**
 	 * Get the optional circuit name.
@@ -548,7 +557,7 @@ public:
 	virtual ~ChainedMessage();
 
 	// @copydoc
-	virtual Message* derive(const unsigned char dstAddress, unsigned char srcAddress=SYN);
+	virtual Message* derive(const unsigned char dstAddress, const unsigned char srcAddress=SYN, const string circuit="");
 
 	// @copydoc
 	virtual unsigned char getIdLength() const { return (unsigned char)(m_ids[0].size() - 2); }

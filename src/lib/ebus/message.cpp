@@ -378,13 +378,23 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	return RESULT_OK;
 }
 
-Message* Message::derive(const unsigned char dstAddress, unsigned char srcAddress)
+Message* Message::derive(const unsigned char dstAddress, const unsigned char srcAddress, const string circuit)
 {
-	return new Message(m_circuit, m_name, m_isWrite,
-		m_isPassive, m_comment,
+	return new Message(circuit.length()==0 ? m_circuit : circuit, m_name,
+		m_isWrite, m_isPassive, m_comment,
 		srcAddress==SYN ? m_srcAddress : srcAddress, dstAddress,
 		m_id, m_data, false,
 		m_pollPriority, m_condition);
+}
+
+Message* Message::derive(const unsigned char dstAddress, const bool extendCircuit)
+{
+	if (extendCircuit) {
+		ostringstream out;
+		out << m_circuit << '.' << hex << setw(2) << setfill('0') << static_cast<unsigned>(dstAddress);
+		return derive(dstAddress, SYN, out.str());
+	}
+	return derive(dstAddress);
 }
 
 bool Message::checkIdPrefix(vector<unsigned char>& id)
@@ -746,11 +756,12 @@ ChainedMessage::~ChainedMessage()
 	free(m_lastSlaveUpdateTimes);
 }
 
-Message* ChainedMessage::derive(const unsigned char dstAddress, unsigned char srcAddress)
+Message* ChainedMessage::derive(const unsigned char dstAddress, const unsigned char srcAddress, const string circuit)
 {
-	return new ChainedMessage(m_circuit, m_name, m_isWrite,
-		m_comment, srcAddress==SYN ? m_srcAddress : srcAddress, dstAddress, m_id,
-		m_ids, m_lengths, m_data, false,
+	return new ChainedMessage(circuit.length()==0 ? m_circuit : circuit, m_name,
+		m_isWrite, m_comment,
+		srcAddress==SYN ? m_srcAddress : srcAddress, dstAddress,
+		m_id, m_ids, m_lengths, m_data, false,
 		m_pollPriority, m_condition);
 }
 
@@ -1075,7 +1086,7 @@ result_t SimpleCondition::resolve(MessageMap* messages, ostringstream& errorMess
 		unsigned long long key = message->getDerivedKey(m_dstAddress);
 		vector<Message*>* derived = messages->getByKey(key);
 		if (derived==NULL) {
-			message = message->derive(m_dstAddress);
+			message = message->derive(m_dstAddress, true);
 			messages->add(message);
 		} else {
 			message = getFirstAvailable(*derived, *message);
@@ -1349,8 +1360,8 @@ Message* MessageMap::getScanMessage(const unsigned char dstAddress)
 	vector<Message*>* msgs = getByKey(key);
 	if (msgs!=NULL)
 		return msgs->front();
-	Message* message = m_scanMessage->derive(dstAddress);
-	add(message, false);
+	Message* message = m_scanMessage->derive(dstAddress, true);
+	add(message);
 	return message;
 }
 
