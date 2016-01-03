@@ -353,7 +353,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 			return result;
 		}
 	}
-	if (id.size() + data->getLength(pt_masterData) > 2 + maxLength || data->getLength(pt_slaveData) > maxLength) {
+	if (id.size() + data->getLength(pt_masterData, (unsigned char)maxLength) > 2 + maxLength || data->getLength(pt_slaveData, (unsigned char)maxLength) > maxLength) {
 		// max NN exceeded
 		delete data;
 		return RESULT_ERR_INVALID_POS;
@@ -515,8 +515,8 @@ result_t Message::prepareMasterPart(SymbolString& master, istringstream& input, 
 {
 	if (index!=0)
 		return RESULT_ERR_NOTFOUND;
-	unsigned char addData = m_data->getLength(pt_masterData);
-	result_t result = master.push_back((unsigned char)(getIdLength() + addData), false, false);
+	unsigned char pos = master.size();
+	result_t result = master.push_back(0, false, false); // length, will be set later
 	if (result != RESULT_OK)
 		return result;
 	for (size_t i = 2; i < m_id.size(); i++) {
@@ -524,7 +524,11 @@ result_t Message::prepareMasterPart(SymbolString& master, istringstream& input, 
 		if (result != RESULT_OK)
 			return result;
 	}
-	return m_data->write(input, pt_masterData, master, getIdLength(), separator);
+	result = m_data->write(input, pt_masterData, master, getIdLength(), separator);
+	if (result != RESULT_OK)
+		return result;
+	master[pos] = (unsigned char)(master.size()-pos-1);
+	return result;
 }
 
 result_t Message::prepareSlave(istringstream& input, SymbolString& slaveData)
@@ -533,13 +537,13 @@ result_t Message::prepareSlave(istringstream& input, SymbolString& slaveData)
 		return RESULT_ERR_INVALID_ARG; // prepare not possible
 
 	SymbolString slave(false);
-	unsigned char addData = m_data->getLength(pt_slaveData);
-	result_t result = slave.push_back(addData, false, false);
+	result_t result = slave.push_back(0, false, false); // length, will be set later
 	if (result != RESULT_OK)
 		return result;
 	result = m_data->write(input, pt_slaveData, slave, 0);
 	if (result != RESULT_OK)
 		return result;
+	slave[0] = (unsigned char)(slave.size()-1);
 	time(&m_lastUpdateTime);
 	if (slave != m_lastSlaveData) {
 		m_lastChangeTime = m_lastUpdateTime;

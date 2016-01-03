@@ -126,6 +126,9 @@ typedef struct dataType_s {
 /** the maximum allowed field length. */
 #define MAX_LEN 31
 
+/** the field length indicating remainder of input. */
+#define REMAIN_LEN 255
+
 /**
  * Parse an unsigned int value.
  * @param str the string to parse.
@@ -222,9 +225,10 @@ public:
 	/**
 	 * Returns the length of this field (or contained fields) in bytes.
 	 * @param partType the message part of the contained fields to limit the length calculation to.
+	 * @param maxLength the maximum length for calculating remainder of input.
 	 * @return the length of this field (or contained fields) in bytes.
 	 */
-	virtual unsigned char getLength(PartType partType) = 0;
+	virtual unsigned char getLength(PartType partType, unsigned char maxLength=MAX_LEN) = 0;
 
 	/**
 	 * Derive a new @a DataField from this field.
@@ -312,11 +316,12 @@ public:
 	 * @param data the unescaped data @a SymbolString for writing binary data.
 	 * @param offset the additional offset to add for writing binary data.
 	 * @param separator the separator character between multiple fields.
+	 * @param length the variable in which to store the used length in bytes, or NULL.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	virtual result_t write(istringstream& input,
 			const PartType partType, SymbolString& data,
-			unsigned char offset, char separator=UI_FIELD_SEPARATOR) = 0;
+			unsigned char offset, char separator=UI_FIELD_SEPARATOR, unsigned char* length=NULL) = 0;
 
 protected:
 
@@ -363,7 +368,7 @@ public:
 	/**
 	 * Factory method for creating a new @a SingleDataField instance derived from a base type.
 	 * @param typeNameStr the base type name string.
-	 * @param length the base type length, or 0 for default.
+	 * @param length the base type length, or 0 for default, or @a REMAIN_LEN for remainder within same message part.
 	 * @param name the field name.
 	 * @param comment the field comment.
 	 * @param unit the value unit.
@@ -398,8 +403,13 @@ public:
 	PartType getPartType() const { return m_partType; }
 
 	// @copydoc
-	virtual unsigned char getLength(PartType partType) { return partType == m_partType ? m_length : (unsigned char)0; };
-	// re-use same position as previous field as not all bits of fully consumed yet
+	virtual unsigned char getLength(PartType partType, unsigned char maxLength=MAX_LEN) {
+		if (partType != m_partType) {
+			return (unsigned char)0;
+		}
+		bool remainder = m_length==REMAIN_LEN && (m_dataType.flags & ADJ)!=0;
+		return remainder ? maxLength : m_length;
+	}
 
 	/**
 	 * Get whether this field uses a full byte offset.
@@ -426,7 +436,7 @@ public:
 	// @copydoc
 	virtual result_t write(istringstream& input,
 			const PartType partType, SymbolString& data,
-			unsigned char offset, char separator=UI_FIELD_SEPARATOR);
+			unsigned char offset, char separator=UI_FIELD_SEPARATOR, unsigned char* length=NULL);
 
 protected:
 
@@ -455,9 +465,10 @@ protected:
 	 * @param input the @a istringstream to parse the formatted value from.
 	 * @param offset the offset in the @a SymbolString.
 	 * @param output the unescaped @a SymbolString to write the binary value to.
+	 * @param length the variable in which to store the used length in bytes, or NULL.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	virtual result_t writeSymbols(istringstream& input, const unsigned char offset, SymbolString& output) = 0;
+	virtual result_t writeSymbols(istringstream& input, const unsigned char offset, SymbolString& output, unsigned char* length) = 0;
 
 protected:
 
@@ -490,7 +501,7 @@ public:
 	 * @param unit the value unit.
 	 * @param dataType the data type definition.
 	 * @param partType the message part in which the field is stored.
-	 * @param length the number of symbols in the message part in which the field is stored.
+	 * @param length the number of symbols in the message part in which the field is stored, or @a REMAIN_LEN for remainder within same message part.
 	 */
 	StringDataField(const string name, const string comment,
 			const string unit, const dataType_t dataType, const PartType partType,
@@ -527,7 +538,7 @@ protected:
 			ostringstream& output, OutputFormat outputFormat);
 
 	// @copydoc
-	virtual result_t writeSymbols(istringstream& input, const unsigned char offset, SymbolString& output);
+	virtual result_t writeSymbols(istringstream& input, const unsigned char offset, SymbolString& output, unsigned char* length);
 
 };
 
@@ -583,9 +594,10 @@ protected:
 	 * @param value the raw value to write.
 	 * @param offset the offset in the @a SymbolString.
 	 * @param output the unescaped @a SymbolString to write the binary value to.
+	 * @param length the variable in which to store the used length in bytes, or NULL.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	result_t writeRawValue(unsigned int value, const unsigned char offset, SymbolString& output);
+	result_t writeRawValue(unsigned int value, const unsigned char offset, SymbolString& output, unsigned char* length=NULL);
 
 	/** the number of bits in the binary value. */
 	const unsigned char m_bitCount;
@@ -643,7 +655,7 @@ protected:
 			ostringstream& output, OutputFormat outputFormat);
 
 	// @copydoc
-	virtual result_t writeSymbols(istringstream& input, const unsigned char offset, SymbolString& output);
+	virtual result_t writeSymbols(istringstream& input, const unsigned char offset, SymbolString& output, unsigned char* length);
 
 private:
 
@@ -706,7 +718,7 @@ protected:
 			ostringstream& output, OutputFormat outputFormat);
 
 	// @copydoc
-	virtual result_t writeSymbols(istringstream& input, const unsigned char offset, SymbolString& output);
+	virtual result_t writeSymbols(istringstream& input, const unsigned char offset, SymbolString& output, unsigned char* length);
 
 private:
 
@@ -768,7 +780,7 @@ public:
 	virtual DataFieldSet* clone();
 
 	// @copydoc
-	virtual unsigned char getLength(PartType partType);
+	virtual unsigned char getLength(PartType partType, unsigned char maxLength=MAX_LEN);
 
 	// @copydoc
 	virtual result_t derive(string name, string comment,
@@ -816,7 +828,7 @@ public:
 	// @copydoc
 	virtual result_t write(istringstream& input,
 			const PartType partType, SymbolString& data,
-			unsigned char offset, char separator=UI_FIELD_SEPARATOR);
+			unsigned char offset, char separator=UI_FIELD_SEPARATOR, unsigned char* length=NULL);
 
 private:
 

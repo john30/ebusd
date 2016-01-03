@@ -312,7 +312,9 @@ result_t DataField::create(vector<string>::iterator& it,
 				size_t pos = token.find(LENGTH_SEPARATOR);
 				if (pos == string::npos)
 					length = 0; // no length specified
-				else {
+				else if (pos+2==token.length() && token[pos+1]=='*') {
+					length = REMAIN_LEN;
+				} else {
 					length = (unsigned char)parseInt(token.substr(pos+1).c_str(), 10, 1, maxFieldLength, result);
 					if (result != RESULT_OK)
 						break;
@@ -367,81 +369,82 @@ result_t SingleDataField::create(const char* typeNameStr, const unsigned char le
 {
 	for (size_t i = 0; i < sizeof(dataTypes) / sizeof(dataType_t); i++) { // TODO use a map
 		const dataType_t* dataType = &dataTypes[i];
-		if (strcasecmp(typeNameStr, dataType->name) == 0) {
-			unsigned char bitCount = dataType->bitCount;
-			unsigned char byteCount = (unsigned char)((bitCount + 7) / 8);
-			if ((dataType->flags & ADJ) != 0) { // adjustable length
-				if ((bitCount % 8) != 0) {
-					if (length == 0)
-						bitCount = 1; // default bit count: 1 bit
-					else if (length <= bitCount)
-						bitCount = length;
-					else
-						return RESULT_ERR_OUT_OF_RANGE; // invalid length
+		if (strcasecmp(typeNameStr, dataType->name) != 0)
+			continue;
 
-					byteCount = (unsigned char)((bitCount + 7) / 8);
-				}
-				else if (length == 0)
-					byteCount = 1; //default byte count: 1 byte
-				else if (length <= byteCount)
-					byteCount = length;
+		unsigned char bitCount = dataType->bitCount;
+		unsigned char byteCount = (unsigned char)((bitCount + 7) / 8);
+		if ((dataType->flags & ADJ) != 0) { // adjustable length
+			if ((bitCount % 8) != 0) {
+				if (length == 0)
+					bitCount = 1; // default bit count: 1 bit
+				else if (length <= bitCount)
+					bitCount = length;
 				else
 					return RESULT_ERR_OUT_OF_RANGE; // invalid length
+
+				byteCount = (unsigned char)((bitCount + 7) / 8);
 			}
-			else if (length > 0 && length != byteCount)
-				continue; // check for another one with same name but different length
+			else if (length == 0)
+				byteCount = 1; //default byte count: 1 byte
+			else if (length <= byteCount || length == REMAIN_LEN)
+				byteCount = length;
+			else
+				return RESULT_ERR_OUT_OF_RANGE; // invalid length
+		}
+		else if (length > 0 && length != byteCount)
+			continue; // check for another one with same name but different length
 
-			switch (dataType->type)
-			{
-			case bt_str:
-			case bt_hexstr:
-			case bt_dat:
-			case bt_tim:
-				if (divisor != 0 || !values.empty())
-					return RESULT_ERR_INVALID_ARG; // cannot set divisor or values for string field
-				returnField = new StringDataField(name, comment, unit, *dataType, partType, byteCount);
-				return RESULT_OK;
-			case bt_num:
-				if (values.empty() && (dataType->flags & DAY) != 0) {
-					for (unsigned int i = 0; i < sizeof(dayNames) / sizeof(dayNames[0]); i++)
-						values[dataType->minValue + i] = dayNames[i];
+		switch (dataType->type)
+		{
+		case bt_str:
+		case bt_hexstr:
+		case bt_dat:
+		case bt_tim:
+			if (divisor != 0 || !values.empty())
+				return RESULT_ERR_INVALID_ARG; // cannot set divisor or values for string field
+			returnField = new StringDataField(name, comment, unit, *dataType, partType, byteCount);
+			return RESULT_OK;
+		case bt_num:
+			if (values.empty() && (dataType->flags & DAY) != 0) {
+				for (unsigned int i = 0; i < sizeof(dayNames) / sizeof(dayNames[0]); i++)
+					values[dataType->minValue + i] = dayNames[i];
+			}
+			if (values.empty() || (dataType->flags & LST) == 0) {
+				if (divisor == 0)
+					divisor = 1;
+
+				if ((dataType->bitCount % 8) == 0) {
+					if (divisor < 0) {
+						if (dataType->divisorOrFirstBit > 1)
+							return RESULT_ERR_INVALID_ARG;
+
+						if (dataType->divisorOrFirstBit < 0)
+							divisor *= -dataType->divisorOrFirstBit;
+					} else if (dataType->divisorOrFirstBit < 0) {
+						if (divisor > 1)
+							return RESULT_ERR_INVALID_ARG;
+
+						if (divisor < 0)
+							divisor *= -dataType->divisorOrFirstBit;
+					} else
+						divisor *= dataType->divisorOrFirstBit;
+
+					if (-MAX_DIVISOR > divisor || divisor > MAX_DIVISOR)
+						return RESULT_ERR_OUT_OF_RANGE;
 				}
-				if (values.empty() || (dataType->flags & LST) == 0) {
-					if (divisor == 0)
-						divisor = 1;
 
-					if ((dataType->bitCount % 8) == 0) {
-						if (divisor < 0) {
-							if (dataType->divisorOrFirstBit > 1)
-								return RESULT_ERR_INVALID_ARG;
-
-							if (dataType->divisorOrFirstBit < 0)
-								divisor *= -dataType->divisorOrFirstBit;
-						} else if (dataType->divisorOrFirstBit < 0) {
-							if (divisor > 1)
-								return RESULT_ERR_INVALID_ARG;
-
-							if (divisor < 0)
-								divisor *= -dataType->divisorOrFirstBit;
-						} else
-							divisor *= dataType->divisorOrFirstBit;
-
-						if (-MAX_DIVISOR > divisor || divisor > MAX_DIVISOR)
-							return RESULT_ERR_OUT_OF_RANGE;
-					}
-
-					returnField = new NumberDataField(name, comment, unit, *dataType, partType, byteCount, bitCount, divisor);
-					return RESULT_OK;
-				}
-				if (values.begin()->first < dataType->minValue || values.rbegin()->first > dataType->maxValue)
-					return RESULT_ERR_OUT_OF_RANGE;
-
-				if (divisor != 0)
-					return RESULT_ERR_INVALID_ARG; // cannot use divisor != 1 for value list field
-				//TODO add special field for fixed values (exactly one value in the list of values)
-				returnField = new ValueListDataField(name, comment, unit, *dataType, partType, byteCount, bitCount, values);
+				returnField = new NumberDataField(name, comment, unit, *dataType, partType, byteCount, bitCount, divisor);
 				return RESULT_OK;
 			}
+			if (values.begin()->first < dataType->minValue || values.rbegin()->first > dataType->maxValue)
+				return RESULT_ERR_OUT_OF_RANGE;
+
+			if (divisor != 0)
+				return RESULT_ERR_INVALID_ARG; // cannot use divisor != 1 for value list field
+			//TODO add special field for fixed values (exactly one value in the list of values)
+			returnField = new ValueListDataField(name, comment, unit, *dataType, partType, byteCount, bitCount, values);
+			return RESULT_OK;
 		}
 	}
 	return RESULT_ERR_NOTFOUND;
@@ -479,7 +482,8 @@ result_t SingleDataField::read(const PartType partType,
 		return RESULT_ERR_INVALID_PART;
 	}
 	if (isIgnored() || (fieldName != NULL && (m_name != fieldName || fieldIndex > 0))) {
-		if (offset + m_length > data.size()) {
+		bool remainder = m_length==REMAIN_LEN && (m_dataType.flags & ADJ)!=0;
+		if (!remainder && offset + m_length > data.size()) {
 			return RESULT_ERR_INVALID_POS;
 		}
 		return RESULT_EMPTY;
@@ -507,7 +511,8 @@ result_t SingleDataField::read(const PartType partType,
 		return RESULT_ERR_INVALID_PART;
 	}
 	if (isIgnored() || (fieldName != NULL && (m_name != fieldName || fieldIndex > 0))) {
-		if (offset + m_length > data.size()) {
+		bool remainder = m_length==REMAIN_LEN && (m_dataType.flags & ADJ)!=0;
+		if (!remainder && offset + m_length > data.size()) {
 			return RESULT_ERR_INVALID_POS;
 		}
 		return RESULT_EMPTY;
@@ -552,7 +557,7 @@ result_t SingleDataField::read(const PartType partType,
 
 result_t SingleDataField::write(istringstream& input,
 		const PartType partType, SymbolString& data,
-		unsigned char offset, char separator)
+		unsigned char offset, char separator, unsigned char* length)
 {
 	if (partType != m_partType)
 		return RESULT_OK;
@@ -568,7 +573,7 @@ result_t SingleDataField::write(istringstream& input,
 	default:
 		return RESULT_ERR_INVALID_PART;
 	}
-	return writeSymbols(input, offset, data);
+	return writeSymbols(input, offset, data, length);
 }
 
 StringDataField* StringDataField::clone()
@@ -605,8 +610,12 @@ bool StringDataField::hasField(const char* fieldName, bool numeric)
 void StringDataField::dump(ostream& output)
 {
 	SingleDataField::dump(output);
-	if ((m_dataType.flags & ADJ) != 0)
-		output << ":" << static_cast<unsigned>(m_length);
+	if ((m_dataType.flags & ADJ) != 0) {
+		if (m_length==REMAIN_LEN)
+			output << ":*";
+		else
+			output << ":" << static_cast<unsigned>(m_length);
+	}
 	output << FIELD_SEPARATOR; // no value list, no divisor
 	dumpString(output, m_unit);
 	dumpString(output, m_comment);
@@ -623,8 +632,9 @@ result_t StringDataField::readSymbols(SymbolString& input, const unsigned char b
 	size_t start = 0, count = m_length;
 	int incr = 1;
 	unsigned char ch, last = 0, hour = 0;
-
-	if (baseOffset + m_length > input.size()) {
+	if (count==REMAIN_LEN && input.size()>baseOffset) {
+		count = input.size()-baseOffset;
+	} else if (baseOffset + count > input.size()) {
 		return RESULT_ERR_INVALID_POS;
 	}
 	if ((m_dataType.flags & REV) != 0) { // reverted binary representation (most significant byte first)
@@ -714,9 +724,10 @@ result_t StringDataField::readSymbols(SymbolString& input, const unsigned char b
 }
 
 result_t StringDataField::writeSymbols(istringstream& input,
-		unsigned char baseOffset, SymbolString& output)
+		unsigned char baseOffset, SymbolString& output, unsigned char* length)
 {
 	size_t start = 0, count = m_length;
+	bool remainder = count==REMAIN_LEN && (m_dataType.flags & ADJ)!=0;
 	int incr = 1;
 	unsigned int value = 0, last = 0, lastLast = 0;
 	string token;
@@ -725,11 +736,15 @@ result_t StringDataField::writeSymbols(istringstream& input,
 		start = m_length - 1;
 		incr = -1;
 	}
-
 	if (isIgnored() && (m_dataType.flags & REQ) == 0) {
+		if (remainder) {
+			count = 1;
+		}
 		for (size_t offset = start, i = 0; i < count; offset += incr, i++) {
 			output[baseOffset + offset] = (unsigned char)m_dataType.replacement; // fill up with replacement
 		}
+		if (length!=NULL)
+			*length = (unsigned char)count;
 		return RESULT_OK;
 	}
 	result_t result;
@@ -740,9 +755,9 @@ result_t StringDataField::writeSymbols(istringstream& input,
 		case bt_hexstr:
 			while (!input.eof() && input.peek() == ' ')
 				input.get();
-			if (input.eof()) // no more digits
+			if (input.eof()) { // no more digits
 				value = m_dataType.replacement; // fill up with replacement
-			else {
+			} else {
 				token.clear();
 				token.push_back((unsigned char)input.get());
 				if (input.eof())
@@ -841,6 +856,10 @@ result_t StringDataField::writeSymbols(istringstream& input,
 			}
 			break;
 		}
+		if (remainder && input.eof() && i > 0) {
+			count = (offset-start)*incr;
+			break;
+		}
 		lastLast = last;
 		last = value;
 		if ((m_dataType.flags & BCD) != 0 && ((m_dataType.flags & REQ) != 0 || value != m_dataType.replacement)) {
@@ -853,9 +872,10 @@ result_t StringDataField::writeSymbols(istringstream& input,
 		output[baseOffset + offset] = (unsigned char)value;
 	}
 
-	if (i < m_length)
+	if (!remainder && i < m_length) // TODO check with bt_tim and m_length == 1
 		return RESULT_ERR_EOF; // input too short
-
+	if (length!=NULL)
+		*length = (unsigned char)count;
 	return RESULT_OK;
 }
 
@@ -932,7 +952,7 @@ result_t NumericDataField::readRawValue(SymbolString& input,
 }
 
 result_t NumericDataField::writeRawValue(unsigned int value,
-		unsigned char baseOffset, SymbolString& output)
+		unsigned char baseOffset, SymbolString& output, unsigned char* length)
 {
 	size_t start = 0, count = m_length;
 	int incr = 1;
@@ -968,7 +988,8 @@ result_t NumericDataField::writeRawValue(unsigned int value,
 		else
 			output[baseOffset + offset] = ch;
 	}
-
+	if (length!=NULL)
+		*length = m_length;
 	return RESULT_OK;
 }
 
@@ -1109,7 +1130,7 @@ result_t NumberDataField::readSymbols(SymbolString& input, const unsigned char b
 }
 
 result_t NumberDataField::writeSymbols(istringstream& input,
-		unsigned char baseOffset, SymbolString& output)
+		unsigned char baseOffset, SymbolString& output, unsigned char* length)
 {
 	unsigned int value;
 
@@ -1168,7 +1189,7 @@ result_t NumberDataField::writeSymbols(istringstream& input,
 			return RESULT_ERR_OUT_OF_RANGE; // value out of range
 	}
 
-	return writeRawValue(value, baseOffset, output);
+	return writeRawValue(value, baseOffset, output, length);
 }
 
 
@@ -1250,19 +1271,19 @@ result_t ValueListDataField::readSymbols(SymbolString& input, const unsigned cha
 }
 
 result_t ValueListDataField::writeSymbols(istringstream& input,
-		unsigned char baseOffset, SymbolString& output)
+		unsigned char baseOffset, SymbolString& output, unsigned char* length)
 {
 	if (isIgnored())
-		return writeRawValue(m_dataType.replacement, baseOffset, output); // replacement value
+		return writeRawValue(m_dataType.replacement, baseOffset, output, length); // replacement value
 
 	const char* str = input.str().c_str();
 
 	for (map<unsigned int, string>::iterator it = m_values.begin(); it != m_values.end(); it++)
 		if (it->second.compare(str) == 0)
-			return writeRawValue(it->first, baseOffset, output);
+			return writeRawValue(it->first, baseOffset, output, length);
 
 	if (strcasecmp(str, NULL_VALUE) == 0)
-		return writeRawValue(m_dataType.replacement, baseOffset, output); // replacement value
+		return writeRawValue(m_dataType.replacement, baseOffset, output, length); // replacement value
 
 	char* strEnd = NULL; // fall back to raw value in input
 	unsigned int value;
@@ -1270,7 +1291,7 @@ result_t ValueListDataField::writeSymbols(istringstream& input,
 	if (strEnd == NULL || strEnd == str || (*strEnd != 0 && *strEnd != '.'))
 		return RESULT_ERR_INVALID_NUM; // invalid value
 	if (m_values.find(value) != m_values.end())
-		return writeRawValue(value, baseOffset, output);
+		return writeRawValue(value, baseOffset, output, length);
 
 	return RESULT_ERR_NOTFOUND; // value assignment not found
 }
@@ -1334,7 +1355,7 @@ DataFieldSet* DataFieldSet::clone()
 	return new DataFieldSet(m_name, m_comment, fields);
 }
 
-unsigned char DataFieldSet::getLength(PartType partType)
+unsigned char DataFieldSet::getLength(PartType partType, unsigned char maxLength)
 {
 	unsigned char length = 0;
 
@@ -1346,7 +1367,12 @@ unsigned char DataFieldSet::getLength(PartType partType)
 			if (!previousFullByteOffset[partType] && !field->hasFullByteOffset(false))
 				length--;
 
-			length = (unsigned char)(length + field->getLength(partType));
+			unsigned char fieldLength = field->getLength(partType, maxLength);
+			if (fieldLength>=maxLength)
+				maxLength = 0;
+			else
+				maxLength = (unsigned char)(maxLength-fieldLength);
+			length = (unsigned char)(length + fieldLength);
 
 			previousFullByteOffset[partType] = field->hasFullByteOffset(true);
 		}
@@ -1413,7 +1439,7 @@ result_t DataFieldSet::read(const PartType partType,
 		if (result < RESULT_OK)
 			return result;
 
-		offset = (unsigned char)(offset + field->getLength(partType));
+		offset = (unsigned char)(offset + field->getLength(partType, (unsigned char)(data.size()-offset)));
 		previousFullByteOffset = field->hasFullByteOffset(true);
 		if (result != RESULT_EMPTY) {
 			found = true;
@@ -1458,7 +1484,7 @@ result_t DataFieldSet::read(const PartType partType,
 		if (result < RESULT_OK)
 			return result;
 
-		offset = (unsigned char)(offset + field->getLength(partType));
+		offset = (unsigned char)(offset + field->getLength(partType, (unsigned char)(data.size()-offset)));
 		previousFullByteOffset = field->hasFullByteOffset(true);
 		if (result != RESULT_EMPTY) {
 			found = true;
@@ -1491,11 +1517,12 @@ result_t DataFieldSet::read(const PartType partType,
 
 result_t DataFieldSet::write(istringstream& input,
 		const PartType partType, SymbolString& data,
-		unsigned char offset, char separator)
+		unsigned char offset, char separator, unsigned char* length)
 {
 	string token;
 
 	bool previousFullByteOffset = true;
+	unsigned char baseOffset = offset;
 	for (vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
 		SingleDataField* field = *it;
 		if (partType != pt_any && field->getPartType() != partType)
@@ -1505,6 +1532,7 @@ result_t DataFieldSet::write(istringstream& input,
 			offset--;
 
 		result_t result;
+		unsigned char fieldLength;
 		if (m_fields.size() > 1) {
 			if (field->isIgnored())
 				token.clear();
@@ -1512,18 +1540,20 @@ result_t DataFieldSet::write(istringstream& input,
 				token.clear();
 
 			istringstream single(token);
-			result = (*it)->write(single, partType, data, offset, separator);
+			result = (*it)->write(single, partType, data, offset, separator, &fieldLength);
 		}
 		else
-			result = (*it)->write(input, partType, data, offset, separator);
+			result = (*it)->write(input, partType, data, offset, separator, &fieldLength);
 
 		if (result != RESULT_OK)
 			return result;
 
-		offset = (unsigned char)(offset + field->getLength(partType));
+		offset = (unsigned char)(offset+fieldLength);
 		previousFullByteOffset = field->hasFullByteOffset(true);
 	}
 
+	if (length!=NULL)
+		*length = (unsigned char)(offset-baseOffset);
 	return RESULT_OK;
 }
 
