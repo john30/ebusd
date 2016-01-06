@@ -42,7 +42,7 @@ echo "*************"
 echo " pack"
 echo "*************"
 echo
-mkdir -p $RELEASE/DEBIAN $RELEASE/etc/init.d $RELEASE/etc/default $RELEASE/etc/logrotate.d || exit 1
+mkdir -p $RELEASE/DEBIAN $RELEASE/etc/init.d $RELEASE/etc/default $RELEASE/etc/ebusd $RELEASE/etc/logrotate.d || exit 1
 rm $RELEASE/usr/bin/ebusfeed
 cp contrib/etc/init.d/ebusd.debian $RELEASE/etc/init.d/ebusd || exit 1
 cp contrib/etc/default/ebusd.debian $RELEASE/etc/default/ebusd || exit 1
@@ -88,4 +88,3 @@ echo "Package created: $PACKAGE"
 echo
 echo "Content:"
 dpkg -c "$PACKAGE"
-
