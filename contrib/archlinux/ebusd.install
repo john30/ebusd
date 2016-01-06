@@ -1,24 +1,10 @@
-pkgname=ebusd
-
 post_install() {
-  echo ">>> Put daemon options to /etc/conf.d/ebusd (especially /dev/tty????)"
-  echo "    Copy your configuration files (csv) to /etc/ebusd"
-  echo "    Start the daemon 'systemctl start ebusd'"
-}
-
-pre_upgrade() {
-  true
-}
-
-post_upgrade() {
-  true
-}
-
-pre_remove() {
-  true
-}
-
-post_remove() {
-  true
+  echo "Instructions:"
+  echo "1. Edit /etc/conf.d/ebusd if necessary"
+  echo "   (especially if your device is not /dev/ttyUSB0)"
+  echo "2. Place CSV configuration files in /etc/ebusd/"
+  echo "   (see https://github.com/john30/ebusd-configuration)
+  echo "3. To tart the daemon, enter 'systemctl start ebusd'"
+  echo "4. Check the log file /var/log/ebusd.log"
 }
 
