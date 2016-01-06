@@ -1,26 +1,24 @@
 #!/bin/sh
-
+#
 ### BEGIN INIT INFO
 # Provides:        ebusd
 # Required-Start:  $network $remote_fs $syslog
 # Required-Stop:   $network $remote_fs $syslog
 # Default-Start:   2 3 4 5
 # Default-Stop:    0 1 6
-# Short-Description: Start ebusd
+# Short-Description: controls ebusd, the daemon for communication with eBUS heating systems.
 ### END INIT INFO
-
-PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin
-
-if test -f /etc/default/ebusd; then
-    . /etc/default/ebusd
-fi
-
-. /lib/lsb/init-functions
 
 DAEMON=/usr/bin/ebusd
 PIDFILE=/var/run/ebusd.pid
 
-test -x $DAEMON || exit 5
+. /lib/lsb/init-functions
+[ -r /etc/default/ebusd ] && . /etc/default/ebusd
+
+if [ ! -x $DAEMON ]; then
+	log_failure_msg "$DAEMON is not available or not executable."
+	exit 5
+fi
 
 case $1 in
 	start)

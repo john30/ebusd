@@ -1,5 +1,5 @@
-# Default settings for ebusd. This file is sourced by /bin/sh from
-# /etc/init.d/ebusd.
+# /etc/default/ebusd:
+# config file for /etc/init.d/ebusd.
 
-# Options to pass to ebusd
-#EBUSD_OPTS="-d /dev/ttyUSB0"
+# Options to pass to ebusd:
+EBUSD_OPTS="--scanconfig"
