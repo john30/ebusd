@@ -71,6 +71,17 @@ cat <<EOF > $RELEASE/DEBIAN/dirs
 /etc/logrotate.d
 /usr/bin
 EOF
+cat <<EOF > $RELEASE/DEBIAN/postinst
+#!/bin/sh
+echo "Instructions:"
+echo "1. Edit /etc/default/ebusd if necessary"
+echo "   (especially if your device is not /dev/ttyUSB0)"
+echo "2. Place CSV configuration files in /etc/ebusd/"
+echo "   (see https://github.com/john30/ebusd-configuration)"
+echo "3. To tart the daemon, enter 'service ebusd start'"
+echo "4. Check the log file /var/log/ebusd.log"
+EOF
+chmod 755 $RELEASE/DEBIAN/postinst
 
 dpkg -b $RELEASE || exit 1
 mv ebusd-$VERSION.deb "../$PACKAGE" || exit 1
