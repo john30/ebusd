@@ -589,10 +589,13 @@ protected:
 private:
 
 	/** the primary, secondary, and optional further ID bytes for each part of the chain. */
-	vector< vector<unsigned char> > m_ids;
+	const vector< vector<unsigned char> > m_ids;
 
 	/** the data length for each part of the chain. */
-	vector<unsigned char> m_lengths;
+	const vector<unsigned char> m_lengths;
+
+	/** the maximum allowed time difference of any data pair. */
+	const time_t m_maxTimeDiff;
 
 	/** array of the last seen master datas. */
 	SymbolString** m_lastMasterDatas;

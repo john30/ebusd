@@ -367,7 +367,7 @@ result_t SingleDataField::create(const char* typeNameStr, const unsigned char le
 	const PartType partType, int divisor, map<unsigned int, string> values,
 	SingleDataField* &returnField)
 {
-	for (size_t i = 0; i < sizeof(dataTypes) / sizeof(dataType_t); i++) { // TODO use a map
+	for (size_t i = 0; i < sizeof(dataTypes) / sizeof(dataType_t); i++) {
 		const dataType_t* dataType = &dataTypes[i];
 		if (strcasecmp(typeNameStr, dataType->name) != 0)
 			continue;
@@ -748,8 +748,8 @@ result_t StringDataField::writeSymbols(istringstream& input,
 		return RESULT_OK;
 	}
 	result_t result;
-	size_t i = 0;
-	for (size_t offset = start; i < count; offset += incr, i++) {
+	size_t i = 0, offset;
+	for (offset = start; i < count; offset += incr, i++) {
 		switch (m_dataType.type)
 		{
 		case bt_hexstr:
@@ -856,10 +856,9 @@ result_t StringDataField::writeSymbols(istringstream& input,
 			}
 			break;
 		}
-		if (remainder && input.eof() && i > 0) {
-			count = (offset-start)*incr;
+		if (remainder && input.eof() && i > 0)
 			break;
-		}
+
 		lastLast = last;
 		last = value;
 		if ((m_dataType.flags & BCD) != 0 && ((m_dataType.flags & REQ) != 0 || value != m_dataType.replacement)) {
@@ -872,10 +871,10 @@ result_t StringDataField::writeSymbols(istringstream& input,
 		output[baseOffset + offset] = (unsigned char)value;
 	}
 
-	if (!remainder && i < m_length) // TODO check with bt_tim and m_length == 1
+	if (!remainder && i < count)
 		return RESULT_ERR_EOF; // input too short
 	if (length!=NULL)
-		*length = (unsigned char)count;
+		*length = (unsigned char)((offset-start)*incr);
 	return RESULT_OK;
 }
 

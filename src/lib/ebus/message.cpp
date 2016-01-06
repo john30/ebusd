@@ -733,7 +733,8 @@ ChainedMessage::ChainedMessage(const string circuit, const string name,
 		: Message(circuit, name, isWrite, false, comment,
 		  srcAddress, dstAddress, id,
 		  data, deleteData, pollPriority, condition),
-		  m_ids(ids), m_lengths(lengths)
+		  m_ids(ids), m_lengths(lengths),
+		  m_maxTimeDiff(m_ids.size()*15) // 15 seconds per message
 {
 	size_t cnt = ids.size();
 	m_lastMasterDatas = (SymbolString**)calloc(cnt, sizeof(SymbolString*));
@@ -807,7 +808,7 @@ result_t ChainedMessage::prepareMasterPart(SymbolString& master, istringstream& 
 		return RESULT_ERR_NOTFOUND;
 
 	SymbolString allData(false);
-	result_t result = m_data->write(input, pt_masterData, allData, 0, separator); // TODO cache this?
+	result_t result = m_data->write(input, pt_masterData, allData, 0, separator);
 	if (result != RESULT_OK)
 		return result;
 	size_t pos = 0, addData = 0;
@@ -896,7 +897,7 @@ result_t ChainedMessage::storeLastData(const PartType partType, SymbolString& da
 		if (m_lastSlaveUpdateTimes[index]>maxTime) {
 			maxTime = m_lastSlaveUpdateTimes[index];
 		}
-		if (minTime==0 || maxTime==0 || maxTime-minTime>30) {// TODO constant multiplied by number of messages
+		if (minTime==0 || maxTime==0 || maxTime-minTime>m_maxTimeDiff) {
 			return RESULT_CONTINUE;
 		}
 	}
@@ -904,7 +905,6 @@ result_t ChainedMessage::storeLastData(const PartType partType, SymbolString& da
 	SymbolString master(false);
 	SymbolString slave(false);
 	size_t offset = 5+(m_ids[0].size()-2); // skip QQ, ZZ, PB, SB, NN
-	//getIdLength(); // TODO usually shorter than real ID, only use for external interface
 	for (index=0; index<m_ids.size(); index++) {
 		SymbolString* add = m_lastMasterDatas[index];
 		size_t end = 5+(*add)[4];
