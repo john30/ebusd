@@ -1,8 +1,9 @@
-# next version (2.0.0)
+# 2.0 (2016-01-06)
 
 ## Breaking Changes
 * automatic configuration file selection by querying device identification ("--scanconfig").  
-  Previous configuration files are still usable, but only without the "--scanconfig" command line parameter to ebusd (unless the files are renamed).
+  Previous configuration files are still usable, but only without the "--scanconfig" command line parameter to ebusd (unless the files are renamed).  
+  This is now enabled by default in the init.d (or systemd) scripts to work with ebusd-2.x.x configuration files. 
 * support for chained messages with fields covering more than one message ID
 
 ## Bug fixes
@@ -16,6 +17,7 @@
 * fix for closing serial device that is no tty
 * fix for dumping message definition
 * fix for cache invalidation
+* fixes for answer mode
 
 ## Features
 * respond to broadcast "write" command with "done broadcast"
@@ -40,9 +42,12 @@
 * increased verbosity during scan
 * increased default bus acquisition retries from 2 to 3
 * use named objects for JSON fields instead of array with fallback to numbered
+* exclude conditions from "find -f" command
+* let ebusd answer to scan request (if started with "--answer")
+* add special length '*' for consuming remaining input for some string types (IGN, STR, HEX)
 
 ## Changed files
-https://github.com/john30/ebusd/compare/v1.3.0...master
+https://github.com/john30/ebusd/compare/v1.3.0...v2.0
 
 
 # 1.3.0 (2015-10-24)
@@ -65,7 +70,7 @@ https://github.com/john30/ebusd/compare/v1.3.0...master
 ## Features
 * new "read" option "-n" for retrieving name/value pairs in numeric form
 * new "find" option "-e" for exactly matching name and optional circuit (ignoring case)
-* new "find" optipn "-F" for listing messages in CSV format with selected columns only
+* new "find" option "-F" for listing messages in CSV format with selected columns only
 * added numeric, verbose, and required options to JSON and use "null" for unset or replacement value
 * allow static ".json" files being served by HTTP port
 * allow passing raw value when writing name/value pairs
