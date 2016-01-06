@@ -365,10 +365,9 @@ public:
 	/**
 	 * Set the scan result @a string for a scanned slave address.
 	 * @param dstAddress the scanned slave address.
-	 * @param str the scan result @a string to set.
-	 * @param result the scan result code.
+	 * @param str the scan result @a string to set, or empty if not a single part of the scan was successful.
 	 */
-	void setScanResult(unsigned char dstAddress, string str, result_t result);
+	void setScanResult(unsigned char dstAddress, string str);
 
 	/**
 	 * Format the scan result to the @a ostringstream.

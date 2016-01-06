@@ -95,9 +95,11 @@ result_t ScanRequest::prepare(unsigned char ownMasterAddress)
 	if (m_slaves.empty())
 		return RESULT_ERR_EOF;
 	unsigned char dstAddress = m_slaves.front();
+	if (m_index==0 && m_messages.size()==m_allMessages.size()) // first message for this address
+		m_busHandler->setScanResult(dstAddress, "");
+
 	istringstream input;
 	result_t result = m_message->prepareMaster(ownMasterAddress, m_master, input, UI_FIELD_SEPARATOR, dstAddress, m_index);
-
 	if (result >= RESULT_OK)
 		logInfo(lf_bus, "scan %2.2x cmd: %s", dstAddress, m_master.getDataStr().c_str());
 	return result;
@@ -131,17 +133,19 @@ bool ScanRequest::notify(result_t result, SymbolString& slave)
 			logInfo(lf_bus, "scan %2.2x timed out (%d slaves left)", dstAddress, m_slaves.size());
 		else
 			logError(lf_bus, "scan %2.2x failed (%d slaves left): %s", dstAddress, m_slaves.size(), getResultCode(result));
-		m_busHandler->setScanResult(dstAddress, m_scanResult.str(), result);
-		// skip remaining secondary messages
-		m_messages.clear();
+		m_messages.clear(); // skip remaining secondary messages
 	} else if (m_messages.empty()) {
-		m_busHandler->setScanResult(dstAddress, m_scanResult.str(), result);
 		if (!m_slaves.empty())
 			m_slaves.pop_front();
 		logNotice(lf_bus, "scan %2.2x completed (%d slaves left)", dstAddress, m_slaves.size());
 	}
-	if (m_slaves.empty())
+	if (m_messages.empty()) // last message for this address
+		m_busHandler->setScanResult(dstAddress, m_scanResult.str());
+
+	if (m_slaves.empty()) {
+		logNotice(lf_bus, "scan finished");
 		return false;
+	}
 	if (m_messages.empty()) {
 		m_messages = m_allMessages;
 		m_scanResult.str("");
@@ -860,17 +864,14 @@ result_t BusHandler::startScan(bool full)
 	return RESULT_OK;
 }
 
-void BusHandler::setScanResult(unsigned char dstAddress, string str, result_t result)
+void BusHandler::setScanResult(unsigned char dstAddress, string str)
 {
-	if (result==RESULT_ERR_NO_SIGNAL)
-		return;
 	m_seenAddresses[dstAddress] |= SCAN_INIT;
-	if (result==RESULT_OK) {
+	if (str.length()>0) {
 		m_seenAddresses[dstAddress] |= SCAN_DONE;
+		m_scanResults[dstAddress] = str;
 		logNotice(lf_bus, "scan %2.2x: %s", dstAddress, str.c_str());
 	}
-	if (str.length()>0)
-		m_scanResults[dstAddress] = str;
 }
 
 void BusHandler::formatScanResult(ostringstream& output)
@@ -907,18 +908,18 @@ void BusHandler::formatScanResult(ostringstream& output)
 void BusHandler::formatSeenInfo(ostringstream& output)
 {
 	for (unsigned char slave = 1; slave != 0; slave++) { // 0 is known to be a master
-		if (isValidAddress(slave, false) && m_seenAddresses[slave]!=0) {
+		if (isValidAddress(slave, false) && (m_seenAddresses[slave]&SEEN)!=0) {
 			output << endl << "address " << setfill('0') << setw(2) << hex << static_cast<unsigned>(slave);
+			unsigned char master;
 			if (isMaster(slave)) {
-				output << ": master #" << setw(0) << dec << static_cast<unsigned>(getMasterNumber(slave));
+				output << ": master";
+				master = slave;
 			} else {
 				output << ": slave";
-				unsigned char master = getMasterAddress(slave);
-				if (master!=SYN)
-					output << " of " << setfill('0') << setw(2) << hex << static_cast<unsigned>(master);
+				master = getMasterAddress(slave);
 			}
-			if ((m_seenAddresses[slave]&SEEN)!=0)
-				output << ", seen";
+			if (master != SYN)
+				output << " #" << setw(0) << dec << static_cast<unsigned>(getMasterNumber(master));
 			if ((m_seenAddresses[slave]&SCAN_DONE)!=0) {
 				output << ", scanned";
 				Message* message = m_messages->getScanMessage(slave);
