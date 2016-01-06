@@ -1015,9 +1015,9 @@ unsigned char BusHandler::getNextScanAddress(unsigned char lastAddress, bool& sc
 	return SYN;
 }
 
-void BusHandler::setScanConfigLoaded(unsigned char address, bool completed, string file) {
+void BusHandler::setScanConfigLoaded(unsigned char address, string file) {
 	m_seenAddresses[address] |= LOAD_INIT;
-	if (completed) {
+	if (!file.empty()) {
 		m_seenAddresses[address] |= LOAD_DONE;
 		m_loadedFiles[address] = file;
 	}

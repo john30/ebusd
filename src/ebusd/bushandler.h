@@ -438,10 +438,9 @@ public:
 	/**
 	 * Set the state of the participant to configuration @a LOADED.
 	 * @param address the slave address.
-	 * @param completed true when loading was completed.
-	 * @param file the file from which the configuration was loaded.
+	 * @param file the file from which the configuration was loaded, or empty if loading was not possible.
 	 */
-	void setScanConfigLoaded(unsigned char address, bool completed, string file);
+	void setScanConfigLoaded(unsigned char address, string file);
 
 private:
 
