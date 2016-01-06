@@ -1,5 +1,5 @@
 # /etc/default/ebusd:
-# config file for /etc/init.d/ebusd.
+# config file for ebusd service.
 
-# Options to pass to ebusd:
+# Options to pass to ebusd (run "ebusd -?" for more info):
 EBUSD_OPTS="--scanconfig"

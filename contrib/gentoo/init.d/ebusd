@@ -4,7 +4,7 @@
 # $Header: $
 
 command="/usr/bin/ebusd"
-command_args="${EBUSD_ARGS}"
+command_args="${EBUSD_OPTS}"
 start_stop_daemon_args="--quiet"
 description="ebusd, the daemon for communication with eBUS heating systems."
 
