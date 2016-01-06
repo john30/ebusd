@@ -18,8 +18,7 @@ backup=('etc/conf.d/ebusd')
 source=("https://github.com/john30/${pkgname}/archive/v${pkgver}.tar.gz")
 
 pkgver() {
-  cd "$_gitname"
-  cat VERSION|sed -e 's#-#_#g'
+  cat "${srcdir}/${pkgname}-${pkgver}/VERSION"|sed -e 's#-#_#g'
 }
 
 build() {
