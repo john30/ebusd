@@ -796,7 +796,7 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 	}
 
 	// found the right file. load the templates if necessary, then load the file itself
-	bool readCommon = readTemplates(path, ".csv", hasTemplates, false);
+	bool readCommon = readTemplates(path, ".csv", hasTemplates, opt.checkConfig);
 	if (readCommon) {
 		result = collectConfigFiles(path, "", ".csv", files);
 		if (result==RESULT_OK && !files.empty()) {
@@ -807,7 +807,7 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 					continue;
 				if (name.length()<3 || name.find_first_of('.')!=2) { // different from the scheme "ZZ."
 					name = *it;
-					result = messages->readFromFile(name);
+					result = messages->readFromFile(name, opt.checkConfig);
 					if (result==RESULT_OK)
 						logNotice(lf_main, "read common config file %s", name.c_str());
 					else
@@ -816,7 +816,7 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 			}
 		}
 	}
-	result = messages->readFromFile(best);
+	result = messages->readFromFile(best, opt.checkConfig);
 	if (result!=RESULT_OK) {
 		logError(lf_main, "error reading scan config file %s for ID \"%s\", SW%s, HW%s: %s", best.c_str(), ident.c_str(), sw.c_str(), hw.c_str(), getResultCode(result));
 		return result;
