@@ -12,21 +12,27 @@ if [ "$1" = "suggest" ]; then
   echo "temp"
   echo "press"
   echo "power"
+  echo "hours"
   exit 0
 fi
 prefix=`basename "$0"`
 type=${prefix##ebusd_}
+find=$type
 skip=
 if [ "$type" = "temp" ]; then
   match="Temp(Input|Output|Bottom|Top)?\$|outsidetemp"
-  skip="Bivalent|Max|Min|Outside|mc5:|rcc.*:Flow|^ui"
+  skip="Bivalent|Max|Min|Outside|mc.5:|rcc.*:Flow|^ui"
 elif [ "$type" = "press" ]; then
   match="Press(High|Low)?\$"
   skip="KeyPress"
-else
+elif [ "$type" = "power" ]; then
+  find="Environment"
   match="Environment(Energy|Power)\$"
+else
+  find="hours"
+  skip="mc.4:|mc.5:"
 fi
-result=`echo "find"|nc localhost 8888 2>/dev/null`
+result=`echo "find $find"|nc localhost 8888 2>/dev/null`
 if [ -z "$result" -o "x${result##ERR:*}" = "x" ]; then
   echo "error: $result"
   exit 1
@@ -35,6 +41,7 @@ sensors=`echo "$result"|sed -e 's# =.*$##' -e 's# #:#'|egrep "$match"`
 if [ -n "$skip" ]; then
   sensors=`echo "$sensors"|egrep -v "$skip"`
 fi
+sensors=`echo "$sensors"|sort -u`
 if [ "$1" = "config" ]; then
   if [ "$type" = "temp" ]; then
     echo "graph_title ebus Temperaturen"
@@ -42,9 +49,13 @@ if [ "$1" = "config" ]; then
   elif [ "$type" = "press" ]; then
     echo "graph_title ebus Drucksensoren"
     echo "graph_vlabel Bar"
-  else
+  elif [ "$type" = "power" ]; then
     echo "graph_title ebus Leistung/Ertrag"
     echo "graph_vlabel kW"
+    echo "graph_period hour"
+  else
+    echo "graph_title ebus Betriebsstunden"
+    echo "graph_vlabel h"
     echo "graph_period hour"
   fi
   echo 'graph_category Heizung'
@@ -55,12 +66,12 @@ if [ "$1" = "config" ]; then
     fi
     name=${sensor/:/_}
     name=${name/./_}
-    if [ ! "${sensor%%Energy}" = "$sensor" ]; then
+    if [ "${sensor%%Energy}" = "$sensor" -a ! "$type" = "hours" ]; then
+      echo ${prefix}_${name}.label ${sensor/:/ }
+    else
       echo ${prefix}_${name}.label ${sensor/:/ } "[diff]"
       echo ${prefix}_${name}.type COUNTER
       echo ${prefix}_${name}.draw AREA
-    else
-      echo ${prefix}_${name}.label ${sensor/:/ }
     fi
 #    print_warning ${prefix}_${sensor/:/_}
 #    print_critical ${prefix}_${sensor/:/_}
