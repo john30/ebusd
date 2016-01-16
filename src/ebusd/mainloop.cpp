@@ -397,14 +397,14 @@ string MainLoop::executeRead(vector<string> &args)
 		}
 		argPos++;
 	}
-	if (hex && (dstAddress != SYN || verbose || numeric || pollPriority > 0 || args.size() < argPos + 1)) {
+	if (hex && (dstAddress != SYN || !circuit.empty() || verbose || numeric || pollPriority > 0 || args.size() < argPos + 1)) {
 		argPos = 0; // print usage
 	}
 
 	time_t now;
 	time(&now);
 
-	if (hex && argPos > 0 && args.size() > argPos) {
+	if (hex && argPos > 0) {
 		SymbolString cacheMaster(false);
 		result_t ret = parseHexMaster(args, argPos, cacheMaster);
 		if (ret != RESULT_OK)
@@ -544,14 +544,41 @@ string MainLoop::executeRead(vector<string> &args)
 string MainLoop::executeWrite(vector<string> &args)
 {
 	size_t argPos = 1;
+	bool hex = false;
+	string circuit;
 	unsigned char dstAddress = SYN;
-	while (args.size() > argPos && args[argPos] == "-h") {
-		argPos++;
-
-		if (args.size() < argPos + 1) {
-			argPos = 0;
+	while (args.size() > argPos && args[argPos][0] == '-') {
+		if (args[argPos] == "-h") {
+			hex = true;
+		} else if (args[argPos] == "-d") {
+			argPos++;
+			if (argPos >= args.size()) {
+				argPos = 0; // print usage
+				break;
+			}
+			result_t ret;
+			dstAddress = (unsigned char)parseInt(args[argPos].c_str(), 16, 0, 0xff, ret);
+			if (ret != RESULT_OK || !isValidAddress(dstAddress) || isMaster(dstAddress))
+				return getResultCode(RESULT_ERR_INVALID_ADDR);
+		} else if (args[argPos] == "-c") {
+			argPos++;
+			if (argPos >= args.size()) {
+				argPos = 0; // print usage
+				break;
+			}
+			circuit = args[argPos];
+		} else {
+			argPos = 0; // print usage
 			break;
 		}
+		argPos++;
+	}
+
+	if (hex && (dstAddress != SYN || !circuit.empty() || args.size() < argPos + 1)) {
+		argPos = 0; // print usage
+	}
+
+	if (hex && argPos > 0) {
 		SymbolString cacheMaster(false);
 		result_t ret = parseHexMaster(args, argPos, cacheMaster);
 		if (ret != RESULT_OK)
@@ -592,39 +619,28 @@ string MainLoop::executeWrite(vector<string> &args)
 		return getResultCode(ret);
 	}
 
-	if (args.size() > argPos+1 && args[argPos] == "-d") {
-		argPos++;
-		result_t ret;
-		dstAddress = (unsigned char)parseInt(args[argPos].c_str(), 16, 0, 0xff, ret);
-		if (ret != RESULT_OK || !isValidAddress(dstAddress))
-			return getResultCode(RESULT_ERR_INVALID_ADDR);
-		argPos++;
-	}
-	if (args.size() > argPos && args[argPos] == "-c") {
-		argPos++;
-	}
-	if (argPos == 0 || (args.size() != argPos + 3 && args.size() != argPos + 2))
-		return "usage: write [-d ZZ] [-c] CIRCUIT NAME [VALUE[;VALUE]*]\n"
+	if (argPos == 0 || circuit.empty() || (args.size() != argPos + 2 && args.size() != argPos + 1))
+		return "usage: write [-d ZZ] -c CIRCUIT NAME [VALUE[;VALUE]*]\n"
 			   "  or:  write -h ZZPBSBNNDx\n"
 			   " Write value(s) or hex message.\n"
-			   "  -d ZZ    override destination address ZZ\n"
-			   "  CIRCUIT  the CIRCUIT of the message to send\n"
-			   "  NAME     the NAME of the message to send\n"
-			   "  VALUE    a single field VALUE\n"
-			   "  -h       send hex write message:\n"
-			   "    ZZ     destination address\n"
-			   "    PB SB  primary/secondary command byte\n"
-			   "    NN     number of following data bytes\n"
-			   "    Dx     the data byte(s) to send";
+			   "  -d ZZ       override destination address ZZ\n"
+			   "  -c CIRCUIT  the CIRCUIT of the message to send\n"
+			   "  NAME        the NAME of the message to send\n"
+			   "  VALUE       a single field VALUE\n"
+			   "  -h          send hex write message:\n"
+			   "    ZZ        destination address\n"
+			   "    PB SB     primary/secondary command byte\n"
+			   "    NN        number of following data bytes\n"
+			   "    Dx        the data byte(s) to send";
 
-	Message* message = m_messages->find(args[argPos], args[argPos + 1], true);
+	Message* message = m_messages->find(circuit, args[argPos], true);
 
 	if (message == NULL)
 		return getResultCode(RESULT_ERR_NOTFOUND);
 	if (message->getDstAddress()==SYN && dstAddress==SYN)
 		return getResultCode(RESULT_ERR_INVALID_ADDR);
 
-	result_t ret = readFromBus(message, args.size() == argPos + 2 ? "" : args[argPos + 2], dstAddress); // allow missing values
+	result_t ret = readFromBus(message, args.size() == argPos + 1 ? "" : args[argPos + 1], dstAddress); // allow missing values
 	if (ret != RESULT_OK)
 		return getResultCode(ret);
 
@@ -1019,7 +1035,7 @@ string MainLoop::executeHelp()
 	return "usage:\n"
 		   " read|r   Read value(s):         read [-f] [-m SECONDS] [-c CIRCUIT] [-d ZZ] [-p PRIO] [-v] [-n] [-i VALUE[;VALUE]*] NAME [FIELD[.N]]\n"
 		   "          Read hex message:      read [-f] [-m SECONDS] [-c CIRCUIT] -h ZZPBSBNNDx\n"
-		   " write|w  Write value(s):        write [-d ZZ] [-c] CIRCUIT NAME [VALUE[;VALUE]*]\n"
+		   " write|w  Write value(s):        write [-d ZZ] -c CIRCUIT NAME [VALUE[;VALUE]*]\n"
 		   "          Write hex message:     write -h ZZPBSBNNDx\n"
 		   " find|f   Find message(s):       find [-v] [-r] [-w] [-p] [-d] [-i ID] [-f] [-F COL[,COL]*] [-e] [-c CIRCUIT] [NAME]\n"
 		   " listen|l Listen for updates:    listen [stop]\n"
