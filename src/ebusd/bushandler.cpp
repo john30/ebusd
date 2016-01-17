@@ -130,7 +130,7 @@ bool ScanRequest::notify(result_t result, SymbolString& slave)
 		if (!m_slaves.empty())
 			m_slaves.pop_front();
 		if (result == RESULT_ERR_TIMEOUT)
-			logInfo(lf_bus, "scan %2.2x timed out (%d slaves left)", dstAddress, m_slaves.size());
+			logNotice(lf_bus, "scan %2.2x timed out (%d slaves left)", dstAddress, m_slaves.size());
 		else
 			logError(lf_bus, "scan %2.2x failed (%d slaves left): %s", dstAddress, m_slaves.size(), getResultCode(result));
 		m_messages.clear(); // skip remaining secondary messages
