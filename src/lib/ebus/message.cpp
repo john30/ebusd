@@ -1178,11 +1178,13 @@ result_t MessageMap::add(Message* message, bool storeByName)
 	if (!m_addAll) {
 		map<unsigned long long, vector<Message*> >::iterator keyIt = m_messagesByKey.find(key);
 		if (keyIt != m_messagesByKey.end()) {
-			if (!conditional)
-				return RESULT_ERR_DUPLICATE; // duplicate key
-			vector<Message*>* messages = &keyIt->second;
-			if (!messages->front()->isConditional())
-				return RESULT_ERR_DUPLICATE; // duplicate key
+			Message* other = getFirstAvailable(keyIt->second, *message);
+			if (other != NULL) {
+				if (!conditional)
+					return RESULT_ERR_DUPLICATE; // duplicate key
+				if (!other->isConditional())
+					return RESULT_ERR_DUPLICATE; // duplicate key
+			}
 		}
 	}
 	bool isPassive = message->isPassive();
