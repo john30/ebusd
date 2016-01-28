@@ -258,7 +258,7 @@ result_t DataField::create(vector<string>::iterator& it,
 			if (!divisorStr.empty()) {
 				if (divisorStr.find('=') == string::npos)
 					divisor = parseSignedInt(divisorStr.c_str(), 10, -MAX_DIVISOR, MAX_DIVISOR, result);
-				else {
+				else { // '=' is present => value list found
 					istringstream stream(divisorStr);
 					while (getline(stream, token, VALUE_SEPARATOR) != 0) {
 						FileReader::trim(token);
@@ -269,12 +269,24 @@ result_t DataField::create(vector<string>::iterator& it,
 							id = strtoul(str+2, &strEnd, 16); // hexadecimal
 						else
 							id = strtoul(str, &strEnd, 10); // decimal
-						if (strEnd == NULL || strEnd == str || *strEnd != '=' || id > MAX_VALUE) {
+						if (strEnd == NULL || strEnd == str || id > MAX_VALUE) {
 							result = RESULT_ERR_INVALID_LIST;
 							break;
 						}
 
-						values[(unsigned int)id] = string(strEnd + 1);
+						// remove blanks around '=' sign
+						while (*strEnd == ' ') strEnd++;
+						if (*strEnd != '=') {
+							result = RESULT_ERR_INVALID_LIST;
+							break;
+						}
+						string val = string(strEnd + 1);
+						if (val.length()>0) {
+							size_t val_start = val.find_first_not_of(' ');
+							val=val.substr(val_start);
+						}
+
+						values[(unsigned int)id] = val;
 					}
 				}
 				if (result != RESULT_OK)
