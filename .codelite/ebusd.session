@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Session Name="/home/werner/ebusd/ebusd.workspace">
+  <int Value="4" Name="m_selectedTab"/>
+  <wxString Value="/home/werner/ebusd/ebusd.workspace" Name="m_workspaceName"/>
+  <TabInfoArray Name="TabInfoArray">
+    <TabInfo>
+      <wxString Value="/home/werner/ebusd/src/lib/ebus/result.h" Name="FileName"/>
+      <int Value="17" Name="FirstVisibleLine"/>
+      <int Value="18" Name="CurrentLine"/>
+      <wxArrayString Name="Bookmarks"/>
+      <IntVector Name="CollapsedFolds"/>
+    </TabInfo>
+    <TabInfo>
+      <wxString Value="/home/werner/ebusd/src/lib/ebus/result.cpp" Name="FileName"/>
+      <int Value="40" Name="FirstVisibleLine"/>
+      <int Value="38" Name="CurrentLine"/>
+      <wxArrayString Name="Bookmarks"/>
+      <IntVector Name="CollapsedFolds"/>
+    </TabInfo>
+    <TabInfo>
+      <wxString Value="/home/werner/ebusd/src/lib/ebus/message.cpp" Name="FileName"/>
+      <int Value="1172" Name="FirstVisibleLine"/>
+      <int Value="1173" Name="CurrentLine"/>
+      <wxArrayString Name="Bookmarks"/>
+      <IntVector Name="CollapsedFolds"/>
+    </TabInfo>
+    <TabInfo>
+      <wxString Value="/home/werner/ebusd/src/lib/ebus/data.cpp" Name="FileName"/>
+      <int Value="1330" Name="FirstVisibleLine"/>
+      <int Value="1334" Name="CurrentLine"/>
+      <wxArrayString Name="Bookmarks"/>
+      <IntVector Name="CollapsedFolds"/>
+    </TabInfo>
+    <TabInfo>
+      <wxString Value="/home/werner/ebusd-1.3.0-mod/src/lib/ebus/data.cpp" Name="FileName"/>
+      <int Value="1318" Name="FirstVisibleLine"/>
+      <int Value="1346" Name="CurrentLine"/>
+      <wxArrayString Name="Bookmarks"/>
+      <IntVector Name="CollapsedFolds"/>
+    </TabInfo>
+    <TabInfo>
+      <wxString Value="/home/werner/ebusd/src/lib/ebus/data.h" Name="FileName"/>
+      <int Value="145" Name="FirstVisibleLine"/>
+      <int Value="343" Name="CurrentLine"/>
+      <wxArrayString Name="Bookmarks"/>
+      <IntVector Name="CollapsedFolds"/>
+    </TabInfo>
+    <TabInfo>
+      <wxString Value="/home/werner/ebusd-1.3.0-mod/src/lib/ebus/data.h" Name="FileName"/>
+      <int Value="82" Name="FirstVisibleLine"/>
+      <int Value="100" Name="CurrentLine"/>
+      <wxArrayString Name="Bookmarks"/>
+      <IntVector Name="CollapsedFolds"/>
+    </TabInfo>
+  </TabInfoArray>
+  <SerializedObject Name="m_breakpoints">
+    <long Value="0" Name="Count"/>
+  </SerializedObject>
+</Session>

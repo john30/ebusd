@@ -42,6 +42,7 @@ static const dataType_t uchDataType = {
 static const dataType_t dataTypes[] = {
 	{"IGN",MAX_LEN*8,bt_str, IGN|ADJ,     0,          1,          0,    0}, // >= 1 byte ignored data
 	stringDataType,
+	{"NTS",MAX_POS*8,bt_str, ADJ|NTS,     0,          1,    MAX_POS,    0},  // >= 1 byte null-terminated character string (read max until \0 is encountered; filled up with \0 characters in write operations)
 	{"HEX",MAX_LEN*8,bt_hexstr,  ADJ,    0,           2,         47,    0}, // >= 1 byte hex digit string, usually separated by space, e.g. 0a 1b 2c 3d
 	{"BDA", 32, bt_dat,     BCD,       0xff,         10,         10,    0}, // date with weekday in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is weekday Mon=0x00 - Sun=0x06, replacement 0xff)
 	{"BDA", 24, bt_dat,     BCD,       0xff,         10,         10,    0}, // date in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99, replacement 0xff)
@@ -56,11 +57,19 @@ static const dataType_t dataTypes[] = {
 	{"TTH",  8, bt_tim,       0,          0,          5,          5,   30}, // truncated time (only multiple of 30 minutes), 00:30 - 24:00 (minutes div 30 + hour * 2 as integer)
 	{"BDY",  8, bt_num, DAY|LST,       0x07,          0,          6,    1}, // weekday, "Mon" - "Sun" (0x00 - 0x06) [eBUS type]
 	{"HDY",  8, bt_num, DAY|LST,       0x00,          1,          7,    1}, // weekday, "Mon" - "Sun" (0x01 - 0x07) [Vaillant type]
-	{"BCD",  8, bt_num, BCD|LST,       0xff,          0,       0x99,    1}, // unsigned decimal in BCD, 0 - 99
-	{"BCD", 16, bt_num, BCD|LST,     0xffff,          0,     0x9999,    1}, // unsigned decimal in BCD, 0 - 9999
-	{"BCD", 24, bt_num, BCD|LST,   0xffffff,          0,   0x999999,    1}, // unsigned decimal in BCD, 0 - 999999
-	{"BCD", 32, bt_num, BCD|LST, 0xffffffff,          0, 0x99999999,    1}, // unsigned decimal in BCD, 0 - 99999999
-	{"HCD", 32, bt_num, HCD|BCD|REQ,      0,          0, 0x63636363,    1}, // unsigned decimal in HCD, 0 - 99999999
+	// Note: the difference between BCD and HCD in the context of this program is as follows
+	//		In BCD each nibble (4 bits) represents 1 individual decimal digit, coded separately. Allowed values 0...9
+	//		Every decimal digit is multiplied by 10 (except the right-most) and accumulated
+	//		In HCD each byte represents 2 decimal digits, coded together. Allowed values 0...99 or 0x0..0x63
+	//		Each 2 decimal digits are multiplied by 100 (except the right-most pair) and accumulated
+	{"BCD",  8, bt_num, BCD|LST,       0xff,          0,         99,    1}, // unsigned decimal in BCD, 0 - 99
+	{"BCD", 16, bt_num, BCD|LST,     0xffff,          0,       9999,    1}, // unsigned decimal in BCD, 0 - 9999
+	{"BCD", 24, bt_num, BCD|LST,   0xffffff,          0,     999999,    1}, // unsigned decimal in BCD, 0 - 999999
+	{"BCD", 32, bt_num, BCD|LST, 0xffffffff,          0,   99999999,    1}, // unsigned decimal in BCD, 0 - 99999999
+	{"HCD",  8, bt_num, HCD|BCD|REQ,      0,          0,         99,    1}, // unsigned decimal in HCD, 0 - 99
+	{"HCD", 16, bt_num, HCD|BCD|REQ,      0,          0,       9999,    1}, // unsigned decimal in HCD, 0 - 9999
+	{"HCD", 24, bt_num, HCD|BCD|REQ,      0,          0,     999999,    1}, // unsigned decimal in HCD, 0 - 999999
+	{"HCD", 32, bt_num, HCD|BCD|REQ,      0,          0,   99999999,    1}, // unsigned decimal in HCD, 0 - 99999999
 	pinDataType,
 	uchDataType,
 	{"SCH",  8, bt_num,     SIG,       0x80,       0x81,       0x7f,    1}, // signed integer, -127 - +127
@@ -86,6 +95,11 @@ static const dataType_t dataTypes[] = {
 	{"BI5",  3, bt_num, ADJ|LST|REQ,      0,          0,       0x07,    5}, // bit 5 (up to 3 bits until bit 7)
 	{"BI6",  2, bt_num, ADJ|LST|REQ,      0,          0,       0x03,    6}, // bit 6 (up to 2 bits until bit 7)
 	{"BI7",  1, bt_num, ADJ|LST|REQ,      0,          0,       0x01,    7}, // bit 7
+	{"M01", 16, bt_num,       0,     0xffff,          0,     0xffff,    1}, // Manufacturer specific data type 01: TEM/Dungs ParamID (Master data only)
+	{"M02", 16, bt_num,       0,     0xffff,          0,     0xffff,    1}, // Manufacturer specific data type 02: TEM/Dungs ParamID (Slave data only)
+	{"COM",  0, bt_str,       0,          0,          0,          0,    0}, // convert no data but insert configuration comment into output instead
+	{"ITM", 16, bt_num,       0,     0xffff,          0,       1439,    0}, // time as integer, minutes since midnight or any earlier midnight (e.g.'the start of the week i.e. Monday 00:00
+	{"IDA", 16, bt_num,       0,     0xffff,          0,     0xffff,    0}, // integer date as days since Jan, 2nd (!), 1900 (looks like TEM special)
 };
 
 /** the maximum divisor value. */
@@ -544,9 +558,16 @@ result_t SingleDataField::read(const PartType partType,
 			output << m_name << "=";
 	}
 
-	result_t result = readSymbols(data, offset, output, outputFormat);
-	if (result != RESULT_OK)
-		return result;
+	if (strcasecmp(m_dataType.name, "COM") == 0) {
+	// if this is a comment data type, we do not read any symbols, just inject a comment of the configuration record
+		m_value = this->getComment();
+		output << this->getComment();
+	}
+	else {		
+		result_t result = readSymbols(data, offset, output, outputFormat);
+		if (result != RESULT_OK)
+			return result;
+	}
 
 	if (outputFormat & OF_VERBOSE) {
 		if (m_unit.length() > 0) {
@@ -644,6 +665,7 @@ result_t StringDataField::readSymbols(SymbolString& input, const unsigned char b
 	size_t start = 0, count = m_length;
 	int incr = 1;
 	unsigned char ch, last = 0, hour = 0;
+	ostringstream tmp_output; // Input will first be read into this tmp variable and later be stored into m_value for subsequent usage 
 	if (count==REMAIN_LEN && input.size()>baseOffset) {
 		count = input.size()-baseOffset;
 	} else if (baseOffset + count > input.size()) {
@@ -669,36 +691,36 @@ result_t StringDataField::readSymbols(SymbolString& input, const unsigned char b
 		{
 		case bt_hexstr:
 			if (i > 0)
-				output << ' ';
-			output << setw(2) << hex << setfill('0') << static_cast<unsigned>(ch);
+				tmp_output << ' ';
+			tmp_output << setw(2) << hex << setfill('0') << static_cast<unsigned>(ch);
 			break;
 		case bt_dat:
 			if ((m_dataType.flags & REQ) == 0 && ch == m_dataType.replacement) {
 				if (i + 1 != m_length) {
-					output << NULL_VALUE << ".";
+					tmp_output << NULL_VALUE << ".";
 					break;
 				}
 				else if (last == m_dataType.replacement) {
-					output << NULL_VALUE;
+					tmp_output << NULL_VALUE;
 					break;
 				}
 			}
 			if (i + 1 == m_length)
-				output << (2000 + ch);
+				tmp_output << (2000 + ch);
 			else if (ch < 1 || (i == 0 && ch > 31) || (i == 1 && ch > 12))
 				return RESULT_ERR_OUT_OF_RANGE; // invalid date
 			else
-				output << setw(2) << dec << setfill('0') << static_cast<unsigned>(ch) << ".";
+				tmp_output << setw(2) << dec << setfill('0') << static_cast<unsigned>(ch) << ".";
 			break;
 		case bt_tim:
 			if ((m_dataType.flags & REQ) == 0 && ch == m_dataType.replacement) {
 				if (m_length == 1) { // truncated time
-					output << NULL_VALUE << ":" << NULL_VALUE;
+					tmp_output << NULL_VALUE << ":" << NULL_VALUE;
 					break;
 				}
 				if (i > 0)
-					output << ":";
-				output << NULL_VALUE;
+					tmp_output << ":";
+				tmp_output << NULL_VALUE;
 				break;
 			}
 			if (m_length == 1) { // truncated time
@@ -718,17 +740,27 @@ result_t StringDataField::readSymbols(SymbolString& input, const unsigned char b
 			else if (ch > 59 || (hour == 24 && ch > 0))
 				return RESULT_ERR_OUT_OF_RANGE; // invalid time
 			if (i > 0)
-				output << ":";
-			output << setw(2) << dec << setfill('0') << static_cast<unsigned>(ch);
+				tmp_output << ":";
+			tmp_output << setw(2) << dec << setfill('0') << static_cast<unsigned>(ch);
 			break;
 		default:
 			if (ch < 0x20)
 				ch = (unsigned char)m_dataType.replacement;
-			output << setw(0) << dec << static_cast<char>(ch);
+			tmp_output << setw(0) << dec << static_cast<char>(ch);
 			break;
 		}
 		last = ch;
 	}
+	m_value = tmp_output.str();
+	
+	if ((m_dataType.flags & NTS) != 0) { // null-terminated string: check for trailing \0
+		for (unsigned int i=0; i<m_value.length(); i++)
+			if (m_value[i] == '\0') {
+				m_value = m_value.substr(0,i);
+				break;
+			}
+	}
+	output << m_value;
 	if (outputFormat & OF_JSON)
 		output << '"';
 
@@ -1085,14 +1117,17 @@ result_t NumberDataField::readSymbols(SymbolString& input, const unsigned char b
 {
 	unsigned int value = 0;
 	int signedValue;
+	ostringstream tmp_output(""); // Input will first be read into this tmp variable and later be stored into m_value for subsequent usage 
 
 	result_t result = readRawValue(input, baseOffset, value);
 	if (result != RESULT_OK)
 		return result;
 
-	output << setw(0) << dec; // initialize output
+	tmp_output << setw(0) << dec; // initialize output
 
 	if ((m_dataType.flags & REQ) == 0 && value == m_dataType.replacement) {
+		m_value = tmp_output.str();
+		output  << setw(0) << dec;
 		if (outputFormat & OF_JSON)
 			output << "null";
 		else
@@ -1104,12 +1139,13 @@ result_t NumberDataField::readSymbols(SymbolString& input, const unsigned char b
 	if (m_bitCount == 32) {
 		if (!negative) {
 			if (m_divisor < 0)
-				output << static_cast<float>((float)value * (float)(-m_divisor));
+				tmp_output << static_cast<float>((float)value * (float)(-m_divisor));
 			else if (m_divisor <= 1)
-				output << static_cast<unsigned>(value);
+				tmp_output << static_cast<unsigned>(value);
 			else
-				output << setprecision(m_precision)
+				tmp_output << setprecision(m_precision)
 				       << fixed << static_cast<float>((float)value / (float)m_divisor);
+			output << tmp_output.str();
 			return RESULT_OK;
 		}
 		signedValue = (int) value; // negative signed value
@@ -1120,23 +1156,60 @@ result_t NumberDataField::readSymbols(SymbolString& input, const unsigned char b
 		signedValue = (int) value;
 
 	if (m_divisor < 0)
-		output << static_cast<float>((float)signedValue * (float)(-m_divisor));
+		tmp_output << static_cast<float>((float)signedValue * (float)(-m_divisor));
 	else if (m_divisor <= 1) {
 		if ((m_dataType.flags & (FIX|BCD)) == (FIX|BCD)) {
 			if (outputFormat & OF_JSON) {
+				m_value = tmp_output.str();
+				output << tmp_output;
 				output << '"';
 				output << setw(m_length * 2) << setfill('0');
 				output << '"';
 				return RESULT_OK;
 			}
-			output << setw(m_length * 2) << setfill('0');
+			tmp_output << setw(m_length * 2) << setfill('0');
 		}
-		output << static_cast<int>(signedValue) << setw(0);
+
+		// Handle various data types
+		if (strcasecmp(m_dataType.name, "M01") == 0 || strcasecmp(m_dataType.name, "M02") == 0) {
+			// Type M01 is manufacturer specific: TEM/Dungs ParamID in master data
+			// Type M02 is manufacturer specific: TEM/Dungs ParamID in slave data
+			int grp=0, num=0;
+			// M01 and M02 are semantically identical (same Param IDs) but coded differently
+			if (strcasecmp(m_dataType.name, "M01") == 0) {
+				grp=(value & 31); // in M01 grp is in Bit 0...5
+				num=((value >> 8) & 127); // num is in Bit 8...13
+			}
+			else {
+				num=(value & 127); // num is in Bit 0...6
+				grp=((value >> 7) & 31); // in M02 grp is in Bit 7...11				
+			}
+			tmp_output << setfill('0') << setw(2) << static_cast<int>(grp) << '-' << setw(3) << static_cast<int>(num);
+			tmp_output << setfill(' ') << setw(0); // '"';
+		}
+
+		else if (strcasecmp(m_dataType.name, "ITM") == 0) {
+			// Type ITM is integer time in minutes since last midnight or any previous midnight (e.g. beginning of the week)
+			tmp_output << setfill('0') << setw(2) << static_cast<int>(static_cast<int>(value/60) % 24) << ':' << setw(2) << static_cast<int>(value % 60) << setfill(' ') << setw(0);
+		}
+
+		else if (strcasecmp(m_dataType.name, "IDA") == 0) {
+			// Decode IDA: Convert date based on Jan, 2nd 1900 into unix epoch time in seconds based Jan, 1st 1970
+			time_t epochtime = static_cast<time_t>((value -25568) * 86400);
+			struct tm * timeinfo = localtime(&epochtime);
+			char tbuf[20];
+			strftime (tbuf, 20, "%d.%m.%Y", timeinfo);
+			tmp_output << tbuf;
+		}
+		else
+			tmp_output << static_cast<int>(signedValue) << setw(0);
 	}
 	else
-		output << setprecision(m_precision)
+		tmp_output << setprecision(m_precision)
 		       << fixed << static_cast<float>((float)signedValue / (float)m_divisor);
 
+	m_value = tmp_output.str();
+	output << tmp_output.str();
 	return RESULT_OK;
 }
 
@@ -1256,28 +1329,35 @@ result_t ValueListDataField::readSymbols(SymbolString& input, const unsigned cha
 		ostringstream& output, OutputFormat outputFormat)
 {
 	unsigned int value = 0;
+	ostringstream tmp_output; // Input will first be read into this tmp variable and later be stored into m_value for subsequent usage 
 
 	result_t result = readRawValue(input, baseOffset, value);
 	if (result != RESULT_OK)
 		return result;
 
 	map<unsigned int, string>::iterator it = m_values.find(value);
-	if (it == m_values.end() && value != m_dataType.replacement) {
-		// fall back to raw value in input
-		output << setw(0) << dec << static_cast<int>(value);
-		return RESULT_OK;
-	}
+
 	if (it == m_values.end()) {
-		if (outputFormat & OF_JSON)
-			output << "null";
-		else if (value == m_dataType.replacement)
-			output << NULL_VALUE;
+		// If we didn't find a list item then return the input value
+		if (value == m_dataType.replacement)
+			tmp_output << NULL_VALUE;
+		else 
+			tmp_output << value;
+
 	} else if (outputFormat & OF_NUMERIC)
-		output << setw(0) << dec << static_cast<int>(value);
-	else if (outputFormat & OF_JSON)
-		output << '"' << it->second << '"';
+		tmp_output << setw(0) << dec << static_cast<int>(value);
+	else if (outputFormat & OF_JSON) {
+		tmp_output << it->second;
+		output << '"';
+	}
 	else
-		output << it->second;
+		tmp_output << it->second;
+
+	m_value = tmp_output.str();
+	output << tmp_output.str();
+	if (outputFormat & OF_JSON) 
+		output << '"';
+		
 	return RESULT_OK;
 }
 
@@ -1477,6 +1557,7 @@ result_t DataFieldSet::read(const PartType partType,
 		ostringstream& output, OutputFormat outputFormat, signed char outputIndex,
 		bool leadingSeparator, const char* fieldName, signed char fieldIndex)
 {
+	string lastComment = NULL_VALUE; // Store the last read comment for subsequent fields (for COM data type)
 	bool previousFullByteOffset = true, found = false, findFieldIndex = fieldName != NULL && fieldIndex >= 0;
 	if (!m_uniqueNames && outputIndex<0)
 		outputIndex = 0;
@@ -1489,6 +1570,12 @@ result_t DataFieldSet::read(const PartType partType,
 		}
 		if (!previousFullByteOffset && !field->hasFullByteOffset(false))
 			offset--;
+			
+		if (field->getComment().length() > 0) 
+			lastComment = field->getComment(); // Save last comment for use in later field
+			
+		if ((strcasecmp(field->getDataType().name , "COM")) == 0) // Handle data type COM
+			field->setComment(lastComment); //If this is not the first field then we do not have a comment. So we use the last available one.
 
 		result_t result = field->read(partType, data, offset, output, outputFormat, outputIndex, leadingSeparator, fieldName, fieldIndex);
 
