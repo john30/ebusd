@@ -107,6 +107,7 @@ static const unsigned int IGN = 0x40; //!< ignore value during read and write
 static const unsigned int FIX = 0x80; //!< fixed width formatting
 static const unsigned int REQ = 0x100;//!< value may not be NULL
 static const unsigned int HCD = 0x200; //!< binary representation is hex converted to decimal and interpreted as 2 digits (also requires #BCD)
+static const unsigned int NTS = 0x400; //!< null-terminated string
 
 /** The structure for defining data types with their properties. */
 typedef struct dataType_s {
@@ -182,7 +183,7 @@ public:
 	 * @param comment the field comment.
 	 */
 	DataField(const string name, const string comment)
-		: m_name(name), m_comment(comment) {}
+		: m_name(name), m_comment(comment), m_value("") {}
 
 	/**
 	 * Destructor.
@@ -257,6 +258,18 @@ public:
 	 * @return the field comment.
 	 */
 	string getComment() const { return m_comment; }
+	
+	/**
+	 * Set the field comment (// COM for data type)
+	 * @return (none).
+	 */
+	virtual void setComment(string comment) { m_comment = comment; }
+
+	/**
+	 * Get the value which is associated with this data field
+	 * @return the value string.
+	 */
+	string getValue() const { return m_value; }
 
 	/**
 	 * Dump the field settings to the output.
@@ -329,7 +342,10 @@ protected:
 	const string m_name;
 
 	/** the field comment. */
-	const string m_comment;
+	string m_comment;
+	
+	/** the interpreted value part of a message pertaining to this field */
+	string m_value;
 
 };
 
@@ -401,6 +417,12 @@ public:
 	 * @return the message part in which the field is stored.
 	 */
 	PartType getPartType() const { return m_partType; }
+
+	/**
+	 * Get the type of a data field.
+	 * @return the data type of the field.
+	 */
+	dataType_t getDataType() const { return m_dataType; }
 
 	// @copydoc
 	virtual unsigned char getLength(PartType partType, unsigned char maxLength=MAX_LEN) {

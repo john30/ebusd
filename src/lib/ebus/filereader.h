@@ -43,6 +43,9 @@ using namespace std;
 /** the separator character used between fields. */
 #define FIELD_SEPARATOR ','
 
+/** the list separator character (used inside quoted lists) */
+#define LIST_SEPARATOR ';'
+
 /** the separator character used to quote text having the @a FIELD_SEPARATOR in it. */
 #define TEXT_SEPARATOR '"'
 
@@ -118,9 +121,8 @@ public:
 		vector<string> row;
 		vector< vector<string> > defaults;
 		while (getline(ifs, line) != 0) {
-			lineNo++;
-			splitFields(line, row);
-			if (row.empty())
+			bool ret = splitFields(line, row, lineNo);
+			if (!ret) // Note we may have got row elements from splitFields() and still be in the middle of an unfinished logical line (returning false) 
 				continue;
 
 			result_t result;
@@ -227,62 +229,135 @@ public:
 	}
 
 	/**
-	 * Split the line into fields.
-	 * @param line the @a string with the line to split.
+	 * Split a line into fields.
+	 * Note:
+	 * A physical line may be part of a logical line, which may be spread over several physical lines.
+	 * Logical lines may have Return chars (\r) within quoted text.
+	 * Yet "\r" is also a line-end-indicator for getline().
+	 * Therefor these individually read in physical lines will be merged back into logical lines
+	 * if the line end (\r) occurs within quoted text.
+	 * The whole thing is to improve readability of files (just like in spread sheets)
+	 * Note:
+	 * If a line with one or more Return chars (\r) within quoted text is commented out
+	 * then this comment line is also spread over several physical lines.
+	 * Hence comment lines will be tracked too, before they are dropped.
+	 * Note:
+	 * List separators are optional at the end of physical lines which are part of a logical line
+	 * @param line the @a string with the line to split. The current full logical line read in so far will be returned.
 	 * @param row the @a vector to which to add the fields.
-	 * @return true if the line was split, false if the line was completely empty or a comment line.
+	 * @param lineNo the @a int with the line number which will be incremented if this is a new logical line (not if the current physical line is part of a previous logical line).
+	 * @return true if the whole logical line was split, false if the line was completely empty or a comment line or partially split and ending with open quoted text.
 	 */
-	static bool splitFields(string& line, vector<string>& row)
+	static bool splitFields(string& line, vector<string>& row, unsigned int& lineNo)
 	{
-		row.clear();
-		trim(line);
-		// skip empty lines and comments
-		size_t length = line.length();
-		if (length == 0 || line[0] == '#' || (line.length() > 1 && line[0] == '/' && line[1] == '/'))
-			return false;
+		static string prevline(""); // A logical line possibly made up of several physical lines from previous calls
+		static bool quotedText = false, wasQuoted = false;
+		static size_t startpos = 0;
+		static size_t length = 0;
+		static size_t pos = 0;
+		static ostringstream field;
+		static char prev = FIELD_SEPARATOR;
+		static bool commentLine=false;
 
-		bool quotedText = false, wasQuoted = false;
-		ostringstream field;
-		char prev = FIELD_SEPARATOR;
-		for (size_t pos = 0; pos < length; pos++) {
+		if (quotedText) {
+			line = prevline.append(line);
+			length = line.length();
+			startpos = pos;
+		}
+		else {
+			lineNo++;
+			trim(line); // Might not work in all scenarios if line will contain enclosed quotes. Exotic though. 
+			length = line.length();
+			// Mark comment lines. We need to scan them, too or will get into trouble if they contain quoted text with \r.
+			if (length == 0 || line[0] == '#' || (length > 1 && line[0] == '/' && line[1] == '/') || (length > 1 && line[0] == TEXT_SEPARATOR && line[1] == '#'))
+				commentLine=true;
+			// lines consisting only of a series of field separators are treated as "empty" lines (spread sheets save a row of FIELD_SEPARATORs in a visually empty line)
+			bool emptyLine = true;
+			for (pos = 0; pos < length; pos++) {
+				if ((line[pos] != FIELD_SEPARATOR) && (line[pos] != '\r')) { //Note: line.length() also includes \r at end-of-line!
+					emptyLine = false;
+					break;
+				}
+			}
+			if (emptyLine) {
+				prevline = line = "";
+				row.clear();
+				return false;
+			}
+			
+			startpos = 0;
+			row.clear();
+			field.str("");
+			prev = FIELD_SEPARATOR;
+		}
+		prevline = line;
+
+		for (pos = startpos; pos < length; pos++) {
 			char ch = line[pos];
 			switch (ch)
 			{
 			case FIELD_SEPARATOR:
-				if (quotedText) {
-					field << ch;
-				} else {
-					string str = field.str();
-					trim(str);
-					row.push_back(str);
-					field.str("");
-					wasQuoted = false;
+				if (!commentLine) {
+					if (quotedText) {
+						field << ch;
+					} else {
+						string str = field.str();
+						trim(str);
+						row.push_back(str);
+						field.str("");
+						wasQuoted = false;
+					}
 				}
 				break;
 			case TEXT_SEPARATOR:
 				if (prev == TEXT_SEPARATOR && !quotedText) { // double dquote
-					field << ch;
-					quotedText = true;
+					if (!commentLine) {
+						field << ch;
+						quotedText = true;
+					}
 				} else if (quotedText) {
 					quotedText = false;
 				} else if (prev == FIELD_SEPARATOR) {
 					quotedText = wasQuoted = true;
 				} else {
-					field << ch;
+					if (!commentLine)
+						field << ch;
 				}
 				break;
 			case '\r':
 				break;
 			default:
-				if (prev==TEXT_SEPARATOR && !quotedText && wasQuoted) {
-					field << TEXT_SEPARATOR; // single dquote in the middle of formerly quoted text
-					quotedText = true;
+				if (!commentLine) {
+					if (quotedText && (pos == startpos) && (prev != LIST_SEPARATOR)) {
+						// Restore list separator if it is missing inside quoted fields at end of previous line
+						// Note: Trailing list separators are optional at the end of physical lines
+						field << LIST_SEPARATOR;
+						prev = LIST_SEPARATOR;
+					}
+					if (prev==TEXT_SEPARATOR && !quotedText && wasQuoted) {
+						field << TEXT_SEPARATOR; // single dquote in the middle of formerly quoted text
+						quotedText = true;
+					}
+					field << ch;
 				}
-				field << ch;
 				break;
 			}
 			prev = ch;
 		}
+
+		if (quotedText)
+			// If we end inside a quoted text we will return false with a valid line
+			// to indicate that getline() must be called again to read the remainder of the current logical line
+			return false;
+			
+		if (commentLine) {
+			// Finally we drop comment lines and return an empty line
+			prevline = line = "";
+			commentLine = false;
+			return false;
+		}
+
+
 		string str = field.str();
 		trim(str);
 		row.push_back(str);

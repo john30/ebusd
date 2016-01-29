@@ -215,6 +215,7 @@ string fetchData(TCPSocket* socket, bool& listening)
 			message += '\n';
 
 			socket->send(message.c_str(), message.size());
+			message = message.substr(0, message.length()-1); // Need to trim out the \n from above to avoid intermittent communication problems during listen mode
 
 			if (strcasecmp(message.c_str(), "Q") == 0
 			|| strcasecmp(message.c_str(), "QUIT") == 0
@@ -259,6 +260,7 @@ void connect(const char* host, uint16_t port, char* const *args, int argCount)
 
 			message += '\n';
 			socket->send(message.c_str(), message.size());
+			message = message.substr(0, message.length()-1); // Need to trim out the \n, see above
 
 			if (strcasecmp(message.c_str(), "Q") == 0
 			|| strcasecmp(message.c_str(), "QUIT") == 0
