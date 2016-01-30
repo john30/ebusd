@@ -115,8 +115,8 @@ typedef struct dataType_s {
 	const BaseType type;            //!< base data type
 	const unsigned short flags;     //!< flags (like #BCD)
 	const unsigned int replacement; //!< replacement value (fill-up value for #bt_str / #bt_hexstr, no replacement if equal to #minValue for #bt_num)
-	const unsigned int minValue;    //!< minimum binary value (ignored for @a StringDataField)
-	const unsigned int maxValue;    //!< maximum binary value (ignored for @a StringDataField)
+	const unsigned int minValue;    //!< minimum raw value (ignored for @a StringDataField)
+	const unsigned int maxValue;    //!< maximum raw value (ignored for @a StringDataField)
 	const short divisorOrFirstBit;  //!< #bt_num: divisor (negative for reciprocal) or offset to first bit (if (#bitCount%8)!=0)
 } dataType_t;
 

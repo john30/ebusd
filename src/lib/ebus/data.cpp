@@ -56,11 +56,14 @@ static const dataType_t dataTypes[] = {
 	{"TTH",  8, bt_tim,       0,          0,          5,          5,   30}, // truncated time (only multiple of 30 minutes), 00:30 - 24:00 (minutes div 30 + hour * 2 as integer)
 	{"BDY",  8, bt_num, DAY|LST,       0x07,          0,          6,    1}, // weekday, "Mon" - "Sun" (0x00 - 0x06) [eBUS type]
 	{"HDY",  8, bt_num, DAY|LST,       0x00,          1,          7,    1}, // weekday, "Mon" - "Sun" (0x01 - 0x07) [Vaillant type]
-	{"BCD",  8, bt_num, BCD|LST,       0xff,          0,       0x99,    1}, // unsigned decimal in BCD, 0 - 99
-	{"BCD", 16, bt_num, BCD|LST,     0xffff,          0,     0x9999,    1}, // unsigned decimal in BCD, 0 - 9999
-	{"BCD", 24, bt_num, BCD|LST,   0xffffff,          0,   0x999999,    1}, // unsigned decimal in BCD, 0 - 999999
-	{"BCD", 32, bt_num, BCD|LST, 0xffffffff,          0, 0x99999999,    1}, // unsigned decimal in BCD, 0 - 99999999
-	{"HCD", 32, bt_num, HCD|BCD|REQ,      0,          0, 0x63636363,    1}, // unsigned decimal in HCD, 0 - 99999999
+	{"BCD",  8, bt_num, BCD|LST,       0xff,          0,         99,    1}, // unsigned decimal in BCD, 0 - 99
+	{"BCD", 16, bt_num, BCD|LST,     0xffff,          0,       9999,    1}, // unsigned decimal in BCD, 0 - 9999
+	{"BCD", 24, bt_num, BCD|LST,   0xffffff,          0,     999999,    1}, // unsigned decimal in BCD, 0 - 999999
+	{"BCD", 32, bt_num, BCD|LST, 0xffffffff,          0,   99999999,    1}, // unsigned decimal in BCD, 0 - 99999999
+	{"HCD", 32, bt_num, HCD|BCD|REQ,      0,          0,   99999999,    1}, // unsigned decimal in HCD, 0 - 99999999
+	{"HCD",  8, bt_num, HCD|BCD|REQ,      0,          0,         99,    1}, // unsigned decimal in HCD, 0 - 99
+	{"HCD", 16, bt_num, HCD|BCD|REQ,      0,          0,       9999,    1}, // unsigned decimal in HCD, 0 - 9999
+	{"HCD", 24, bt_num, HCD|BCD|REQ,      0,          0,     999999,    1}, // unsigned decimal in HCD, 0 - 999999
 	pinDataType,
 	uchDataType,
 	{"SCH",  8, bt_num,     SIG,       0x80,       0x81,       0x7f,    1}, // signed integer, -127 - +127
