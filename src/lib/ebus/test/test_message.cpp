@@ -59,10 +59,13 @@ int main()
 		{"time,VTI,,,", "", "", "", "template"},
 		{"dcfstate,UCH,0=nosignal;1=ok;2=sync;3=valid,,", "", "", "", "template"},
 		{"temp,D2C,,°C,Temperatur", "", "", "", "template"},
+		{"temp1,D1C,,°C,Temperatur", "", "", "", "template"},
 		{"temp2,D2B,,°C,Temperatur", "", "", "", "template"},
 		{"power,UCH,,kW", "", "", "", "template"},
 		{"sensor,UCH,0=ok;85=circuit;170=cutoff,,Fühlerstatus", "", "", "", "template"},
+		{"pumpstate,UCH,0=off;1=on;2=overrun,,Pumpenstatus", "", "", "", "template"},
 		{"tempsensor,temp;sensor,,Temperatursensor", "", "", "", "template"},
+		{"r,,Status01,VL/RL/AussenTemp/VLWW/SpeicherTemp/Status,,08,B511,01,,,temp1;temp1;temp2;temp1;temp1;pumpstate","28;24;4.937;35;41;4","ff08b5110101","093830f00446520400ff","d"},
 		{"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor", "temp=-14.00 Temperatursensor [Temperatur];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "mD"},
 		{"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment", "temp=-14.00 field unit [field comment];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "mD"},
 		{"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment", "\n    \"temp\": {\"value\": -14.00},\n    \"sensor\": {\"value\": \"ok\"}", "ff25b509030d2800", "0320ff00", "mj"},
@@ -141,7 +144,7 @@ int main()
 			string token;
 			istringstream stream(check[2]);
 			while (getline(stream, token, VALUE_SEPARATOR) != 0) {
-				if (pos>=mstrs.size())
+				if (pos >= mstrs.size())
 					mstrs.resize(pos+1);
 				else if (mstrs[pos]!=NULL)
 					delete mstrs[pos];
@@ -157,7 +160,7 @@ int main()
 			stream.str(check[3]);
 			stream.clear();
 			while (getline(stream, token, VALUE_SEPARATOR) != 0) {
-				if (pos>=sstrs.size())
+				if (pos >= sstrs.size())
 					sstrs.resize(pos+1);
 				else if (sstrs[pos]!=NULL)
 					delete sstrs[pos];
