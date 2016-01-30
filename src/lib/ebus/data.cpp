@@ -42,7 +42,8 @@ static const dataType_t uchDataType = {
 static const dataType_t dataTypes[] = {
 	{"IGN",MAX_LEN*8,bt_str, IGN|ADJ,     0,          1,          0,    0}, // >= 1 byte ignored data
 	stringDataType,
-	{"HEX",MAX_LEN*8,bt_hexstr,  ADJ,    0,           2,         47,    0}, // >= 1 byte hex digit string, usually separated by space, e.g. 0a 1b 2c 3d
+	{"NTS",MAX_LEN*8,bt_str, ADJ,         0,          1,          0,    0}, // >= 1 byte character string filled up with 0x00 (null terminated string)
+	{"HEX",MAX_LEN*8,bt_hexstr,  ADJ,     0,          2,         47,    0}, // >= 1 byte hex digit string, usually separated by space, e.g. 0a 1b 2c 3d
 	{"BDA", 32, bt_dat,     BCD,       0xff,         10,         10,    0}, // date with weekday in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is weekday Mon=0x00 - Sun=0x06, replacement 0xff)
 	{"BDA", 24, bt_dat,     BCD,       0xff,         10,         10,    0}, // date in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99, replacement 0xff)
 	{"HDA", 32, bt_dat,       0,       0xff,         10,         10,    0}, // date with weekday, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x1f,0x0c,WW,0x63, WW is weekday Mon=0x01 - Sun=0x07, replacement 0xff)
@@ -724,7 +725,8 @@ result_t StringDataField::readSymbols(SymbolString& input, const unsigned char b
 		default:
 			if (ch < 0x20)
 				ch = (unsigned char)m_dataType.replacement;
-			output << setw(0) << dec << static_cast<char>(ch);
+			if (ch != 0x00)
+				output << setw(0) << dec << static_cast<char>(ch);
 			break;
 		}
 		last = ch;
@@ -859,18 +861,22 @@ result_t StringDataField::writeSymbols(istringstream& input,
 			}
 			break;
 		default:
-			if (input.eof())
+			if (input.eof()) {
 				value = m_dataType.replacement;
-			else {
+			} else {
 				value = input.get();
 				if (input.eof() || value < 0x20)
 					value = m_dataType.replacement;
 			}
 			break;
 		}
-		if (remainder && input.eof() && i > 0)
+		if (remainder && input.eof() && i > 0) {
+			if (value == 0x00 && m_dataType.type == bt_str) {
+				output[baseOffset + offset] = 0;
+				offset += incr;
+			}
 			break;
-
+		}
 		lastLast = last;
 		last = value;
 		if ((m_dataType.flags & BCD) != 0 && ((m_dataType.flags & REQ) != 0 || value != m_dataType.replacement)) {
