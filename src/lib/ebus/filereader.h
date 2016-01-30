@@ -119,8 +119,7 @@ public:
 		vector< vector<string> > defaults;
 		while (getline(ifs, line) != 0) {
 			lineNo++;
-			splitFields(line, row);
-			if (row.empty())
+			if (!splitFields(line, row) || row.empty())
 				continue;
 
 			result_t result;
@@ -244,6 +243,7 @@ public:
 		bool quotedText = false, wasQuoted = false;
 		ostringstream field;
 		char prev = FIELD_SEPARATOR;
+		bool empty = true;
 		for (size_t pos = 0; pos < length; pos++) {
 			char ch = line[pos];
 			switch (ch)
@@ -254,6 +254,7 @@ public:
 				} else {
 					string str = field.str();
 					trim(str);
+					empty &= str.empty();
 					row.push_back(str);
 					field.str("");
 					wasQuoted = false;
@@ -285,6 +286,8 @@ public:
 		}
 		string str = field.str();
 		trim(str);
+		if (empty && str.empty())
+			return false;
 		row.push_back(str);
 		return true;
 	}
