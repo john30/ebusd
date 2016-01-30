@@ -23,3 +23,5 @@ Makefile.in
 /docs/Doxyfile
 /docs/doxyfile.stamp
 /docs/html
+/.clang/
+/.codelite
