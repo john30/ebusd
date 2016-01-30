@@ -265,16 +265,25 @@ result_t DataField::create(vector<string>::iterator& it,
 						const char* str = token.c_str();
 						char* strEnd = NULL;
 						unsigned long int id;
-						if (strncasecmp(str, "0x", 2) == 0)
-							id = strtoul(str+2, &strEnd, 16); // hexadecimal
-						else
+						if (strncasecmp(str, "0x", 2) == 0) {
+							str += 2;
+							id = strtoul(str, &strEnd, 16); // hexadecimal
+						} else {
 							id = strtoul(str, &strEnd, 10); // decimal
-						if (strEnd == NULL || strEnd == str || *strEnd != '=' || id > MAX_VALUE) {
+						}
+						if (strEnd == NULL || strEnd == str || id > MAX_VALUE) {
 							result = RESULT_ERR_INVALID_LIST;
 							break;
 						}
-
-						values[(unsigned int)id] = string(strEnd + 1);
+						// remove blanks around '=' sign
+						while (*strEnd == ' ') strEnd++;
+						if (*strEnd != '=') {
+							result = RESULT_ERR_INVALID_LIST;
+							break;
+						}
+						token = string(strEnd + 1);
+						FileReader::trim(token);
+						values[(unsigned int)id] = token;
 					}
 				}
 				if (result != RESULT_OK)
