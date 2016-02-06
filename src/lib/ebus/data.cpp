@@ -645,6 +645,7 @@ result_t StringDataField::readSymbols(SymbolString& input, const unsigned char b
 	size_t start = 0, count = m_length;
 	int incr = 1;
 	unsigned char ch, last = 0, hour = 0;
+	bool terminated = false;
 	if (count==REMAIN_LEN && input.size()>baseOffset) {
 		count = input.size()-baseOffset;
 	} else if (baseOffset + count > input.size()) {
@@ -725,7 +726,9 @@ result_t StringDataField::readSymbols(SymbolString& input, const unsigned char b
 		default:
 			if (ch < 0x20)
 				ch = (unsigned char)m_dataType.replacement;
-			if (ch != 0x00)
+			if (ch == 0x00)
+				terminated = true;
+			else if (!terminated)
 				output << setw(0) << dec << static_cast<char>(ch);
 			break;
 		}
