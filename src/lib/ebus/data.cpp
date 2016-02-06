@@ -74,6 +74,8 @@ static const dataType_t dataTypes[] = {
 	{"D2C", 16, bt_num,     SIG,     0x8000,     0x8001,     0x7fff,   16}, // signed number (fraction 1/16), -2047.9 - +2047.9
 	{"FLT", 16, bt_num,     SIG,     0x8000,     0x8001,     0x7fff, 1000}, // signed number (fraction 1/1000), -32.767 - +32.767, little endian
 	{"FLR", 16, bt_num, SIG|REV,     0x8000,     0x8001,     0x7fff, 1000}, // signed number (fraction 1/1000), -32.767 - +32.767, big endian
+	{"EXP", 32, bt_num, SIG|EXP, 0x7f800000, 0x00000000, 0xffffffff,    1}, // signed number (IEEE 754 binary32: 1 bit sign, 8 bits exponent, 23 bits significand), little endian
+	{"EXR", 32, bt_num, SIG|EXP|REV,0x7f800000,0x00000000,0xffffffff,   1}, // signed number (IEEE 754 binary32: 1 bit sign, 8 bits exponent, 23 bits significand), big endian
 	{"UIN", 16, bt_num,     LST,     0xffff,          0,     0xfffe,    1}, // unsigned integer, 0 - 65534, little endian
 	{"UIR", 16, bt_num, LST|REV,     0xffff,          0,     0xfffe,    1}, // unsigned integer, 0 - 65534, big endian
 	{"SIN", 16, bt_num,     SIG,     0x8000,     0x8001,     0x7fff,    1}, // signed integer, -32767 - +32767, little endian
@@ -1111,14 +1113,45 @@ result_t NumberDataField::readSymbols(SymbolString& input, const unsigned char b
 
 	bool negative = (m_dataType.flags & SIG) != 0 && (value & (1 << (m_bitCount - 1))) != 0;
 	if (m_bitCount == 32) {
+		if ((m_dataType.flags & EXP) != 0) {  // IEEE 754 binary32
+			float val;
+			/*int exp = (value >> 23) & 0xff; // 8 bits, signed
+			if (exp == 0) {
+				val = 0.0;
+			} else {
+				exp -= 127;
+				unsigned int sig = value & ((1 << 23) - 1);
+				val = (1.0f + (float)(sig / exp2(23))) * (float)exp2(exp);
+				if (negative) {
+					val = -val;
+				}
+				if (m_divisor < 0) {
+					val *= (float)-m_divisor;
+				} else if (m_divisor > 1) {
+					val /= (float)m_divisor;
+				}
+			}*/
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+			value = __builtin_bswap32(value);
+#endif
+			unsigned char* pval = (unsigned char*)&value;
+			val = *((float*)pval);
+			if (m_precision != 0)
+				output << fixed << setprecision(m_precision+6);
+			else if (val == 0)
+				output << fixed << setprecision(1);
+			output << static_cast<double>(val);
+			return RESULT_OK;
+		}
 		if (!negative) {
-			if (m_divisor < 0)
+			if (m_divisor < 0) {
 				output << static_cast<float>((float)value * (float)(-m_divisor));
-			else if (m_divisor <= 1)
+			} else if (m_divisor <= 1) {
 				output << static_cast<unsigned>(value);
-			else
+			} else {
 				output << setprecision(m_precision)
 				       << fixed << static_cast<float>((float)value / (float)m_divisor);
+			}
 			return RESULT_OK;
 		}
 		signedValue = (int) value; // negative signed value
@@ -1161,7 +1194,7 @@ result_t NumberDataField::writeSymbols(istringstream& input,
 		return RESULT_ERR_EOF; // input too short
 	else {
 		char* strEnd = NULL;
-		if (m_divisor == 1) {
+		if (m_divisor == 1 && (m_dataType.flags & EXP) == 0) {
 			if ((m_dataType.flags & SIG) != 0) {
 				long int signedValue = strtol(str, &strEnd, 10);
 				if (signedValue < 0 && m_bitCount != 32)
@@ -1179,18 +1212,43 @@ result_t NumberDataField::writeSymbols(istringstream& input,
 			if (strEnd == NULL || strEnd == str || *strEnd != 0)
 				return RESULT_ERR_INVALID_NUM; // invalid value
 			if (m_divisor < 0)
-				dvalue = round(dvalue / -m_divisor);
+				dvalue /= -m_divisor;
 			else
-				dvalue = round(dvalue * m_divisor);
-			if ((m_dataType.flags & SIG) != 0) {
+				dvalue *= m_divisor;
+			if ((m_dataType.flags & EXP) != 0) { // IEEE 754 binary32
+				/*value = 0;
+				if (dvalue != 0) {
+					bool negative = dvalue < 0;
+					if (negative) {
+						dvalue = -dvalue;
+					}
+					int exp = ilogb(dvalue);
+					if (exp < -126 || exp > 127)
+						return RESULT_ERR_INVALID_NUM; // invalid value
+					dvalue = scalbln(dvalue, -exp) - 1.0;
+					unsigned int sig = (unsigned int)(dvalue * exp2(23));
+					exp += 127;
+					value = (exp << 23) | sig;
+					if (negative) {
+						value |= 0x80000000;
+					}
+				}*/
+				float val = (float)dvalue;
+				unsigned char* pval = (unsigned char*)&val;
+				value = *((int32_t*)pval);
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+				value = __builtin_bswap32(value);
+#endif
+			} else if ((m_dataType.flags & SIG) != 0) {
+				dvalue = round(dvalue);
 				if (dvalue < -(1LL << (8 * m_length)) || dvalue >= (1LL << (8 * m_length)))
 					return RESULT_ERR_OUT_OF_RANGE; // value out of range
 				if (dvalue < 0 && m_bitCount != 32)
 					value = (unsigned int)(dvalue + (1 << m_bitCount));
 				else
 					value = (unsigned int)dvalue;
-			}
-			else {
+			} else {
+				dvalue = round(dvalue);
 				if (dvalue < 0.0 || dvalue >= (1LL << (8 * m_length)))
 					return RESULT_ERR_OUT_OF_RANGE; // value out of range
 				value = (unsigned int) dvalue;

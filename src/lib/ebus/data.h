@@ -107,6 +107,7 @@ static const unsigned int IGN = 0x40; //!< ignore value during read and write
 static const unsigned int FIX = 0x80; //!< fixed width formatting
 static const unsigned int REQ = 0x100;//!< value may not be NULL
 static const unsigned int HCD = 0x200; //!< binary representation is hex converted to decimal and interpreted as 2 digits (also requires #BCD)
+static const unsigned int EXP = 0x400; //!< exponential numeric representation
 
 /** The structure for defining data types with their properties. */
 typedef struct dataType_s {

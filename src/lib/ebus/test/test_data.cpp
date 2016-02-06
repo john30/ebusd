@@ -273,6 +273,11 @@ int main()
 		{"x,,flr", "-",      "10feffff028000", "00", ""},
 		{"x,,flr","-32.767", "10feffff028001", "00", ""},
 		{"x,,flr", "32.767", "10feffff027fff", "00", ""},
+		{"x,,exp", "-0.09",  "10feffff04ec51b8bd", "00", ""},
+		{"x,,exp", "0.0",    "10feffff0400000000", "00", ""},
+		{"x,,exp", "-0.001", "10feffff046f1283ba", "00", ""},
+		{"x,,exp", "-",      "10feffff040000807f", "00", ""},
+		{"x,,exp","-32.767", "10feffff04681103c2", "00", ""},
 		{"x,,d2b", "18.004", "10fe0700090112", "00", ""},
 		{"x,,d2b", "0.000",  "10feffff020000", "00", ""},
 		{"x,,d2b", "-0.004", "10feffff02ffff", "00", ""},
@@ -477,7 +482,7 @@ int main()
 			}
 			else {
 				bool match = mstr == writeMstr && sstr == writeSstr;
-				verify(failedWriteMatch, "write", expectStr, match, mstr.getDataStr() + " " + sstr.getDataStr(), writeMstr.getDataStr() + " " + writeSstr.getDataStr());
+				verify(failedWriteMatch, "write", expectStr, match, mstr.getDataStr(true, false) + " " + sstr.getDataStr(true, false), writeMstr.getDataStr(true, false) + " " + writeSstr.getDataStr(true, false));
 			}
 		}
 		delete fields;
