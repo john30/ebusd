@@ -51,7 +51,7 @@ static const dataType_t dataTypes[] = {
 	{"BTI", 24, bt_tim, BCD|REV|REQ,      0,          8,          8,    0}, // time in BCD, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x59,0x59,0x23)
 	{"HTI", 24, bt_tim,     REQ,          0,          8,          8,    0}, // time, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x17,0x3b,0x3b)
 	{"VTI", 24, bt_tim,     REV,       0x63,          8,          8,    0}, // time, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x3b,0x3b,0x17, replacement 0x63) [Vaillant type]
-	{"BTM", 16, bt_tim, BCD|REV,       0xff,          5,          5,    0}, // time in BCD, 00:00 - 23:59 (0x00,0x00 - 0x59,0x23, replacement 0xff) [Vaillant type]
+	{"BTM", 16, bt_tim, BCD|REV,       0xff,          5,          5,    0}, // time as hh:mm in BCD, 00:00 - 23:59 (0x00,0x00 - 0x59,0x23, replacement 0xff)
 	{"HTM", 16, bt_tim,     REQ,          0,          5,          5,    0}, // time as hh:mm, 00:00 - 23:59 (0x00,0x00 - 0x17,0x3b)
 	{"VTM", 16, bt_tim,     REV,       0xff,          5,          5,    0}, // time as hh:mm, 00:00 - 23:59 (0x00,0x00 - 0x3b,0x17, replacement 0xff) [Vaillant type]
 	{"TTM",  8, bt_tim,       0,       0x90,          5,          5,   10}, // truncated time (only multiple of 10 minutes), 00:00 - 24:00 (minutes div 10 + hour * 6 as integer)
