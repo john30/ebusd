@@ -16,6 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include "data.h"
 #include <iostream>
 #include <sstream>
@@ -1111,7 +1115,12 @@ result_t NumberDataField::readSymbols(SymbolString& input, const unsigned char b
 	if (m_bitCount == 32) {
 		if ((m_dataType.flags & EXP) != 0) {  // IEEE 754 binary32
 			float val;
-			/*int exp = (value >> 23) & 0xff; // 8 bits, signed
+#ifdef HAVE_DIRECT_FLOAT_FORMAT
+#	if HAVE_DIRECT_FLOAT_FORMAT == 2
+			value = __builtin_bswap32(value);
+#	endif
+#else
+			int exp = (value >> 23) & 0xff; // 8 bits, signed
 			if (exp == 0) {
 				val = 0.0;
 			} else {
@@ -1126,9 +1135,7 @@ result_t NumberDataField::readSymbols(SymbolString& input, const unsigned char b
 				} else if (m_divisor > 1) {
 					val /= (float)m_divisor;
 				}
-			}*/
-#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-			value = __builtin_bswap32(value);
+			}
 #endif
 			unsigned char* pval = (unsigned char*)&value;
 			val = *((float*)pval);
@@ -1184,13 +1191,45 @@ result_t NumberDataField::writeSymbols(istringstream& input,
 	unsigned int value;
 
 	const char* str = input.str().c_str();
-	if ((m_dataType.flags & REQ) == 0 && (isIgnored() || strcasecmp(str, NULL_VALUE) == 0))
+	if ((m_dataType.flags & REQ) == 0 && (isIgnored() || strcasecmp(str, NULL_VALUE) == 0)) {
 		value = m_dataType.replacement; // replacement value
-	else if (str == NULL || *str == 0)
+	} else if (str == NULL || *str == 0) {
 		return RESULT_ERR_EOF; // input too short
-	else {
+	} else if ((m_dataType.flags & EXP) != 0) { // IEEE 754 binary32
 		char* strEnd = NULL;
-		if (m_divisor == 1 && (m_dataType.flags & EXP) == 0) {
+		double dvalue = strtod(str, &strEnd);
+		if (strEnd == NULL || strEnd == str || *strEnd != 0) {
+			return RESULT_ERR_INVALID_NUM; // invalid value
+		}
+#ifdef HAVE_DIRECT_FLOAT_FORMAT
+		float val = (float)dvalue;
+		unsigned char* pval = (unsigned char*)&val;
+		value = *((int32_t*)pval);
+#	if HAVE_DIRECT_FLOAT_FORMAT == 2
+		value = __builtin_bswap32(value);
+#	endif
+#else
+		value = 0;
+		if (dvalue != 0) {
+			bool negative = dvalue < 0;
+			if (negative) {
+				dvalue = -dvalue;
+			}
+			int exp = ilogb(dvalue);
+			if (exp < -126 || exp > 127)
+				return RESULT_ERR_INVALID_NUM; // invalid value
+			dvalue = scalbln(dvalue, -exp) - 1.0;
+			unsigned int sig = (unsigned int)(dvalue * exp2(23));
+			exp += 127;
+			value = (exp << 23) | sig;
+			if (negative) {
+				value |= 0x80000000;
+			}
+		}
+#endif
+	} else {
+		char* strEnd = NULL;
+		if (m_divisor == 1) {
 			if ((m_dataType.flags & SIG) != 0) {
 				long int signedValue = strtol(str, &strEnd, 10);
 				if (signedValue < 0 && m_bitCount != 32)
@@ -1208,46 +1247,20 @@ result_t NumberDataField::writeSymbols(istringstream& input,
 			if (strEnd == NULL || strEnd == str || *strEnd != 0)
 				return RESULT_ERR_INVALID_NUM; // invalid value
 			if (m_divisor < 0)
-				dvalue /= -m_divisor;
+				dvalue = round(dvalue / -m_divisor);
 			else
-				dvalue *= m_divisor;
-			if ((m_dataType.flags & EXP) != 0) { // IEEE 754 binary32
-				/*value = 0;
-				if (dvalue != 0) {
-					bool negative = dvalue < 0;
-					if (negative) {
-						dvalue = -dvalue;
-					}
-				int exp = ilogb(dvalue);
-					if (exp < -126 || exp > 127)
-						return RESULT_ERR_INVALID_NUM; // invalid value
-					dvalue = scalbln(dvalue, -exp) - 1.0;
-					unsigned int sig = (unsigned int)(dvalue * exp2(23));
-					exp += 127;
-					value = (exp << 23) | sig;
-					if (negative) {
-						value |= 0x80000000;
-					}
-				}*/
-				float val = (float)dvalue;
-				unsigned char* pval = (unsigned char*)&val;
-				value = *((int32_t*)pval);
-#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-				value = __builtin_bswap32(value);
-#endif
-			} else if ((m_dataType.flags & SIG) != 0) {
-				dvalue = round(dvalue);
+				dvalue = round(dvalue * m_divisor);
+			if ((m_dataType.flags & SIG) != 0) {
 				if (dvalue < -(1LL << (8 * m_length)) || dvalue >= (1LL << (8 * m_length)))
 					return RESULT_ERR_OUT_OF_RANGE; // value out of range
 				if (dvalue < 0 && m_bitCount != 32)
-					value = (unsigned int)(dvalue + (1 << m_bitCount));
+					value = (int)(dvalue + (1 << m_bitCount));
 				else
-					value = (unsigned int)dvalue;
+					value = (int)dvalue;
 			} else {
-				dvalue = round(dvalue);
 				if (dvalue < 0.0 || dvalue >= (1LL << (8 * m_length)))
 					return RESULT_ERR_OUT_OF_RANGE; // value out of range
-				value = (unsigned int) dvalue;
+				value = (unsigned int)dvalue;
 			}
 		}
 

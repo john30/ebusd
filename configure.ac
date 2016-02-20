@@ -38,6 +38,48 @@ else
 	AC_MSG_ERROR([argp library not found, specify argp-standalone location in --with-argp-lib= and --with-argp-include= options.])
 fi
 
+AC_MSG_CHECKING([for direct float format conversion])
+AC_TRY_RUN(
+	[
+#include <stdint.h>
+int main() {
+	union {
+		uint32_t i;
+		float f;
+	} test;
+	test.f = 0.15;
+	return test.i == 0x3e19999a ? 0 : 1;
+}
+	],
+	[direct_float=1],
+	[direct_float=],
+	[direct_float=no],
+)
+if [[ "x$direct_float" == "x" ]]; then
+AC_TRY_RUN(
+	[
+#include <stdint.h>
+int main() {
+	union {
+		uint32_t i;
+		float f;
+	} test;
+	test.f = 0.15;
+	return test.i == 0x9a99193e ? 0 : 1;
+}
+	],
+	[direct_float=2],
+	[direct_float=no],
+	[direct_float=no],
+)
+fi
+if [[ "x$direct_float" == "xno" ]]; then
+	AC_MSG_RESULT([no])
+else
+	AC_MSG_RESULT([yes])
+	AC_DEFINE_UNQUOTED([HAVE_DIRECT_FLOAT_FORMAT], $direct_float, [Define for direct conversion from float to int (2 for swapped by order).])
+fi
+
 AC_CONFIG_SRCDIR([src/ebusd/main.cpp])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile
