@@ -48,6 +48,7 @@ struct options
 	bool generateSyn; //!< enable AUTO-SYN symbol generation
 
 	bool foreground; //!< run in foreground
+	const char* pidFile; //!< PID file name [/var/run/ebusd.pid]
 	uint16_t port; //!< port to listen for command line connections [8888]
 	bool localOnly; //!< listen on 127.0.0.1 interface only
 	uint16_t httpPort; //!< optional port to listen for HTTP connections, 0 to disable [0]

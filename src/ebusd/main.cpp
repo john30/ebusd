@@ -79,6 +79,7 @@ static struct options opt = {
 	0, // masterCount
 	false, // generateSyn
 	false, // foreground
+	PID_FILE_NAME, // pidFile
 	8888, // port
 	false, // localOnly
 	0, // httpPort
@@ -116,7 +117,8 @@ static const char argpdoc[] =
 #define O_RCVTIM (O_SNDRET+1)
 #define O_MASCNT (O_RCVTIM+1)
 #define O_GENSYN (O_MASCNT+1)
-#define O_LOCAL  (O_GENSYN+1)
+#define O_PIDFIL (O_GENSYN+1)
+#define O_LOCAL  (O_PIDFIL+1)
 #define O_HTTPPT (O_LOCAL+1)
 #define O_HTMLPA (O_HTTPPT+1)
 #define O_LOGARE (O_HTMLPA+1)
@@ -151,6 +153,7 @@ static const struct argp_option argpoptions[] = {
 
 	{NULL,             0,        NULL,    0, "Daemon options:", 4 },
 	{"foreground",     'f',      NULL,    0, "Run in foreground", 0 },
+	{"pidfile",        O_PIDFIL, "FILE",  0, "PID file name (only for daemon) [" PID_FILE_NAME "]", 0 },
 	{"port",           'p',      "PORT",  0, "Listen for command line connections on PORT [8888]", 0 },
 	{"localhost",      O_LOCAL,  NULL,    0, "Listen for command line connections on 127.0.0.1 interface only", 0 },
 	{"httpport",       O_HTTPPT, "PORT",  0, "Listen for HTTP connections on PORT, 0 to disable [0]", 0 },
@@ -302,6 +305,13 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 	case 'f': // --foreground
 		opt->foreground = true;
 		break;
+	case O_PIDFIL: // --pidfile=/var/run/ebusd.pid
+		if (arg == NULL || arg[0] == 0 || strcmp("/", arg) == 0) {
+			argp_error(state, "invalid pidfile");
+			return EINVAL;
+		}
+		opt->dumpFile = arg;
+		break;
 	case 'p': // --port=8888
 		opt->port = (uint16_t)parseInt(arg, 10, 1, 65535, result);
 		if (result != RESULT_OK) {
@@ -412,7 +422,7 @@ void daemonize()
 	close(STDERR_FILENO);
 
 	// create pid file and try to lock it
-	pidFile = fopen(PID_FILE_NAME, "w+");
+	pidFile = fopen(opt.pidFile, "w+");
 
 	umask(S_IWGRP | S_IRWXO); // set permissions of newly created files to 750
 
