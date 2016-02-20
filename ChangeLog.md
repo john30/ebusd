@@ -1,3 +1,19 @@
+# next version
+
+## Bug fixes
+* require "-c" in write command
+* corrected duplicate messages check with condition
+* corrected maximum values for BCD and HCD types
+* corrected weekday calculation (for smaller systems mainly)
+
+## Features
+* allow CSV to contain empty lines (no field filled in)
+* added shorter HCD and BCD data types
+* added data type NTS (null terminated string)
+* added EXP and EXR data types (exponential)
+* added option for changing PID file
+
+
 # 2.0 (2016-01-06)
 
 ## Breaking Changes
