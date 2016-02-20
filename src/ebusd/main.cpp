@@ -435,7 +435,7 @@ void daemonize()
 		}
 	}
 	if (pidFile == NULL) {
-		logError(lf_main, "can't open pidfile: " PID_FILE_NAME);
+		logError(lf_main, "can't open pidfile: %s", opt.pidFile);
 		exit(EXIT_FAILURE);
 	}
 
@@ -448,7 +448,7 @@ void closePidFile()
 		if (fclose(pidFile) != 0)
 			return;
 
-		remove(PID_FILE_NAME);
+		remove(opt.pidFile);
 	}
 }
 
