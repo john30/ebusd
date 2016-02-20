@@ -1119,6 +1119,8 @@ result_t NumberDataField::readSymbols(SymbolString& input, const unsigned char b
 #	if HAVE_DIRECT_FLOAT_FORMAT == 2
 			value = __builtin_bswap32(value);
 #	endif
+			unsigned char* pval = (unsigned char*)&value;
+			val = *((float*)pval);
 #else
 			int exp = (value >> 23) & 0xff; // 8 bits, signed
 			if (exp == 0) {
@@ -1130,15 +1132,15 @@ result_t NumberDataField::readSymbols(SymbolString& input, const unsigned char b
 				if (negative) {
 					val = -val;
 				}
+			}
+#endif
+			if (val != 0.0) {
 				if (m_divisor < 0) {
 					val *= (float)-m_divisor;
 				} else if (m_divisor > 1) {
 					val /= (float)m_divisor;
 				}
 			}
-#endif
-			unsigned char* pval = (unsigned char*)&value;
-			val = *((float*)pval);
 			if (m_precision != 0)
 				output << fixed << setprecision(m_precision+6);
 			else if (val == 0)
@@ -1201,6 +1203,10 @@ result_t NumberDataField::writeSymbols(istringstream& input,
 		if (strEnd == NULL || strEnd == str || *strEnd != 0) {
 			return RESULT_ERR_INVALID_NUM; // invalid value
 		}
+		if (m_divisor < 0)
+			dvalue /= -m_divisor;
+		else if (m_divisor > 1)
+			dvalue *= m_divisor;
 #ifdef HAVE_DIRECT_FLOAT_FORMAT
 		float val = (float)dvalue;
 		unsigned char* pval = (unsigned char*)&val;
