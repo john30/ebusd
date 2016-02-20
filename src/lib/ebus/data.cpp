@@ -801,21 +801,16 @@ result_t StringDataField::writeSymbols(istringstream& input,
 				break;
 			}
 			value = parseInt(token.c_str(), 10, 0, 2099, result);
-			if (result != RESULT_OK)
+			if (result != RESULT_OK) {
 				return result; // invalid date part
+			}
 			if (i + 1 == m_length) {
 				if (m_length == 4) {
 					// calculate local week day
-					struct tm t;
-					t.tm_min = t.tm_sec = 0;
-					t.tm_hour = 12;
-					t.tm_mday = lastLast;
-					t.tm_mon = last-1; // January=0
-					t.tm_year = (value < 100 ? value + 2000 : value) - 1900;
-					t.tm_isdst = 0; // automatic
-					if (mktime(&t) < 0)
-						return RESULT_ERR_INVALID_NUM; // invalid date
-					unsigned char daysSinceSunday = (unsigned char)t.tm_wday; // Sun=0
+					int y = (value < 100 ? value + 2000 : value) - 1900;
+					int l = (last==1 || last==2) ? 1 : 0;
+					int mjd = 14956 + lastLast + (int)((y-l)*365.25) + (int)((last+1+l*12)*30.6001);
+					int daysSinceSunday = (mjd+3) % 7; // Sun=0
 					if ((m_dataType.flags & BCD) != 0)
 						output[baseOffset + offset - incr] = (unsigned char)((6+daysSinceSunday) % 7); // Sun=0x06
 					else
@@ -823,7 +818,7 @@ result_t StringDataField::writeSymbols(istringstream& input,
 				}
 				if (value >= 2000)
 					value -= 2000;
-				else if (value > 99)
+				if (value > 99)
 					return RESULT_ERR_OUT_OF_RANGE; // invalid year
 			}
 			else if (value < 1 || (i == 0 && value > 31) || (i == 1 && value > 12))
@@ -1223,7 +1218,7 @@ result_t NumberDataField::writeSymbols(istringstream& input,
 					if (negative) {
 						dvalue = -dvalue;
 					}
-					int exp = ilogb(dvalue);
+				int exp = ilogb(dvalue);
 					if (exp < -126 || exp > 127)
 						return RESULT_ERR_INVALID_NUM; // invalid value
 					dvalue = scalbln(dvalue, -exp) - 1.0;
