@@ -310,7 +310,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 			argp_error(state, "invalid pidfile");
 			return EINVAL;
 		}
-		opt->dumpFile = arg;
+		opt->pidFile = arg;
 		break;
 	case 'p': // --port=8888
 		opt->port = (uint16_t)parseInt(arg, 10, 1, 65535, result);
