@@ -49,6 +49,9 @@ using namespace std;
 /** the separator character as string used to quote text having the @a FIELD_SEPARATOR in it. */
 #define TEXT_SEPARATOR_STR "\""
 
+/** the separator character used between multiple values (in CSV only). */
+#define VALUE_SEPARATOR ';'
+
 extern void printErrorPos(ostream& out, vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, string filename, size_t lineNo, result_t result);
 
 extern unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result, unsigned int* length);
@@ -85,7 +88,6 @@ public:
 			m_lastError = filename;
 			return RESULT_ERR_NOTFOUND;
 		}
-		string line;
 		size_t lastSep = filename.find_last_of('/');
 		size_t firstDot = filename.find_first_of('.', lastSep+1);
 		string defaultDest = "";
@@ -117,16 +119,15 @@ public:
 		unsigned int lineNo = 0;
 		vector<string> row;
 		vector< vector<string> > defaults;
-		while (getline(ifs, line) != 0) {
-			lineNo++;
-			if (!splitFields(line, row) || row.empty())
+		while (splitFields(ifs, row, lineNo)) {
+			if (row.empty())
 				continue;
 
 			result_t result;
 			vector<string>::iterator it = row.begin();
 			const vector<string>::iterator end = row.end();
 			if (m_supportsDefaults) {
-				if (line[0] == '*') {
+				if (row[0][0] == '*') {
 					row[0] = row[0].substr(1);
 					result = addDefaultFromFile(defaults, row, it, defaultDest, defaultCircuit, defaultSuffix, filename, lineNo);
 					if (result == RESULT_OK)
@@ -226,68 +227,80 @@ public:
 	}
 
 	/**
-	 * Split the line into fields.
-	 * @param line the @a string with the line to split.
-	 * @param row the @a vector to which to add the fields.
-	 * @return true if the line was split, false if the line was completely empty or a comment line.
+	 * Split the next line(s) from the @a istring into fields.
+	 * @param in the @a istream to read from.
+	 * @param row the @a vector to which to add the fields. This will be empty for completely empty and comment lines.
+	 * @param lineNo the current line number (incremented with each line read).
+	 * @return true if there are more lines to read, false when there are no more lines left.
 	 */
-	static bool splitFields(string& line, vector<string>& row)
+	static bool splitFields(istream& ifs, vector<string>& row, unsigned int& lineNo)
 	{
 		row.clear();
-		trim(line);
-		// skip empty lines and comments
-		size_t length = line.length();
-		if (length == 0 || line[0] == '#' || (line.length() > 1 && line[0] == '/' && line[1] == '/'))
-			return false;
-
+		string line;
 		bool quotedText = false, wasQuoted = false;
 		ostringstream field;
 		char prev = FIELD_SEPARATOR;
-		bool empty = true;
-		for (size_t pos = 0; pos < length; pos++) {
-			char ch = line[pos];
-			switch (ch)
-			{
-			case FIELD_SEPARATOR:
-				if (quotedText) {
+		bool empty = true, read = false;
+		while (getline(ifs, line) != 0) {
+			read = true;
+			lineNo++;
+			trim(line);
+
+			size_t length = line.length();
+			if (!quotedText && (length == 0 || line[0] == '#' || (line.length() > 1 && line[0] == '/' && line[1] == '/')))
+				continue; // skip empty lines and comments
+
+			for (size_t pos = 0; pos < length; pos++) {
+				char ch = line[pos];
+				switch (ch)
+				{
+				case FIELD_SEPARATOR:
+					if (quotedText) {
+						field << ch;
+					} else {
+						string str = field.str();
+						trim(str);
+						empty &= str.empty();
+						row.push_back(str);
+						field.str("");
+						wasQuoted = false;
+					}
+					break;
+				case TEXT_SEPARATOR:
+					if (prev == TEXT_SEPARATOR && !quotedText) { // double dquote
+						field << ch;
+						quotedText = true;
+					} else if (quotedText) {
+						quotedText = false;
+					} else if (prev == FIELD_SEPARATOR) {
+						quotedText = wasQuoted = true;
+					} else {
+						field << ch;
+					}
+					break;
+				case '\r':
+					break;
+				default:
+					if (prev==TEXT_SEPARATOR && !quotedText && wasQuoted) {
+						field << TEXT_SEPARATOR; // single dquote in the middle of formerly quoted text
+						quotedText = true;
+					} else if (quotedText && pos==0 && field.tellp()>0 && *(field.str().end()-1)!=VALUE_SEPARATOR) {
+						field << VALUE_SEPARATOR;
+					}
 					field << ch;
-				} else {
-					string str = field.str();
-					trim(str);
-					empty &= str.empty();
-					row.push_back(str);
-					field.str("");
-					wasQuoted = false;
+					break;
 				}
-				break;
-			case TEXT_SEPARATOR:
-				if (prev == TEXT_SEPARATOR && !quotedText) { // double dquote
-					field << ch;
-					quotedText = true;
-				} else if (quotedText) {
-					quotedText = false;
-				} else if (prev == FIELD_SEPARATOR) {
-					quotedText = wasQuoted = true;
-				} else {
-					field << ch;
-				}
-				break;
-			case '\r':
-				break;
-			default:
-				if (prev==TEXT_SEPARATOR && !quotedText && wasQuoted) {
-					field << TEXT_SEPARATOR; // single dquote in the middle of formerly quoted text
-					quotedText = true;
-				}
-				field << ch;
-				break;
+				prev = ch;
 			}
-			prev = ch;
+			if (!quotedText)
+				break;
 		}
 		string str = field.str();
 		trim(str);
-		if (empty && str.empty())
-			return false;
+		if (empty && str.empty()) {
+			row.clear();
+			return read;
+		}
 		row.push_back(str);
 		return true;
 	}

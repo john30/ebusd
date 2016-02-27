@@ -44,6 +44,8 @@ DataFieldTemplates* templates = NULL;
 
 DataFieldTemplates* getTemplates(const string filename)
 {
+	if (filename=="") // avoid compiler warning
+		return templates;
 	return templates;
 }
 
@@ -192,10 +194,12 @@ int main()
 				continue;
 			}
 		}
-		string item;
 		vector<string> entries;
-
-		FileReader::splitFields(check[0], entries);
+		istringstream ifs(check[0]);
+		unsigned int lineNo = 0;
+		if (!FileReader::splitFields(ifs, entries, lineNo)) {
+			entries.clear();
+		}
 
 		if (deleteMessages.size()>0) {
 			for (vector<Message*>::iterator it = deleteMessages.begin(); it != deleteMessages.end(); it++) {

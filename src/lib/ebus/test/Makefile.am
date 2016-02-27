@@ -3,10 +3,14 @@ AM_CXXFLAGS = -fpic \
 	      -Wextra \
 	      -isystem$(top_srcdir)/src/lib/ebus
 
-noinst_PROGRAMS = test_device \
+noinst_PROGRAMS = test_filereader \
+		  test_device \
 		  test_symbol \
 		  test_data \
 		  test_message
+
+test_filereader_SOURCES = test_filereader.cpp
+test_filereader_LDADD = ../libebus.a
 
 test_device_SOURCES = test_device.cpp
 test_device_LDADD = ../libebus.a

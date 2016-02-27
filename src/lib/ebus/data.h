@@ -60,9 +60,6 @@
 
 using namespace std;
 
-/** the separator character used between multiple values (in CSV only). */
-#define VALUE_SEPARATOR ';'
-
 /** the separator character used between base type name and length (in CSV only). */
 #define LENGTH_SEPARATOR ':'
 
