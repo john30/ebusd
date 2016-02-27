@@ -121,7 +121,7 @@ string fetchData(TCPSocket* socket, bool& listening)
 	char data[1024];
 	ssize_t datalen;
 	ostringstream ostream;
-	string message;
+	string message, sendmessage;
 
 	int ret;
 	struct timespec tdiff;
@@ -212,14 +212,15 @@ string fetchData(TCPSocket* socket, bool& listening)
 		}
 		else if (newInput) {
 			getline(cin, message);
-			message += '\n';
-
-			socket->send(message.c_str(), message.size());
+			sendmessage = message+'\n';
+			socket->send(sendmessage.c_str(), sendmessage.size());
 
 			if (strcasecmp(message.c_str(), "Q") == 0
 			|| strcasecmp(message.c_str(), "QUIT") == 0
-			|| strcasecmp(message.c_str(), "STOP") == 0)
+			|| strcasecmp(message.c_str(), "STOP") == 0) {
 				exit(EXIT_SUCCESS);
+				return "";
+			}
 
 			message.clear();
 		}
@@ -236,8 +237,8 @@ void connect(const char* host, uint16_t port, char* const *args, int argCount)
 
 	bool once = args != NULL && argCount > 0;
 	if (socket != NULL) {
+		string message, sendmessage;
 		do {
-			string message;
 			bool listening = false;
 
 			if (!once) {
@@ -257,8 +258,8 @@ void connect(const char* host, uint16_t port, char* const *args, int argCount)
 				}
 			}
 
-			message += '\n';
-			socket->send(message.c_str(), message.size());
+			sendmessage = message+'\n';
+			socket->send(sendmessage.c_str(), sendmessage.size());
 
 			if (strcasecmp(message.c_str(), "Q") == 0
 			|| strcasecmp(message.c_str(), "QUIT") == 0
