@@ -22,54 +22,66 @@
 
 using namespace std;
 
-int main ()
+int main(int argc, char** argv)
 {
 	SymbolString sstr(true);
 
+	if (argc>1) {
+		result_t result = sstr.parseHex(argv[1], true);
+		if (result != RESULT_OK) {
+			cout << "parse escaped error: " << getResultCode(result) << endl;
+		} else {
+			unsigned char gotCrc = sstr.getCRC();
+			cout << "calculated CRC: 0x"
+					<< nouppercase << setw(2) << hex << setfill('0')
+			        << static_cast<unsigned>(gotCrc) << endl;
+		}
+		return 0;
+	}
 	result_t result = sstr.parseHex("10feb5050427a915aa", false);
 	if (result != RESULT_OK)
-		std::cout << "parse escaped error: " << getResultCode(result) << std::endl;
+		cout << "parse escaped error: " << getResultCode(result) << endl;
 
-	std::string gotStr = sstr.getDataStr(false, false), expectStr = "10feb5050427a90015a90177";
+	string gotStr = sstr.getDataStr(false, false), expectStr = "10feb5050427a90015a90177";
 
 	if (strcasecmp(gotStr.c_str(), expectStr.c_str()) == 0)
-		std::cout << "parse escaped OK" << std::endl;
+		cout << "parse escaped OK" << endl;
 	else
-		std::cout << "parse escaped error: got " << gotStr << ", expected "
-		        << expectStr << std::endl;
+		cout << "parse escaped error: got " << gotStr << ", expected "
+		        << expectStr << endl;
 
 	unsigned char gotCrc = sstr.getCRC(), expectCrc = 0x77;
 
 	if (gotCrc == expectCrc)
-		std::cout << "CRC OK" << std::endl;
+		cout << "CRC OK" << endl;
 	else
-		std::cout << "CRC error: got 0x" << std::nouppercase << std::setw(2)
-		        << std::hex << std::setfill('0')
+		cout << "CRC error: got 0x" << nouppercase << setw(2)
+		        << hex << setfill('0')
 		        << static_cast<unsigned>(gotCrc) << ", expected 0x"
-		        << std::nouppercase << std::setw(2) << std::hex
-		        << std::setfill('0') << static_cast<unsigned>(expectCrc)
-		        << std::endl;
+		        << nouppercase << setw(2) << hex
+		        << setfill('0') << static_cast<unsigned>(expectCrc)
+		        << endl;
 
 	gotStr = sstr.getDataStr(true, false), expectStr = "10feb5050427a915aa77";
 
 	if (strcasecmp(gotStr.c_str(), expectStr.c_str()) == 0)
-		std::cout << "unescape OK" << std::endl;
+		cout << "unescape OK" << endl;
 	else
-		std::cout << "unescape error: got " << gotStr << ", expected "
-		        << expectStr << std::endl;
+		cout << "unescape error: got " << gotStr << ", expected "
+		        << expectStr << endl;
 
 	sstr = SymbolString(false);
 	result = sstr.parseHex("10feb5050427a90015a90177", true);
 	if (result != RESULT_OK)
-		std::cout << "parse unescaped error: " << getResultCode(result) << std::endl;
+		cout << "parse unescaped error: " << getResultCode(result) << endl;
 
 	gotStr = sstr.getDataStr(true, false);
 
 	if (strcasecmp(gotStr.c_str(), expectStr.c_str()) == 0)
-		std::cout << "parse unescaped OK" << std::endl;
+		cout << "parse unescaped OK" << endl;
 	else
-		std::cout << "parse unescaped error: got " << gotStr << ", expected "
-		        << expectStr << std::endl;
+		cout << "parse unescaped error: got " << gotStr << ", expected "
+		        << expectStr << endl;
 
 	return 0;
 
