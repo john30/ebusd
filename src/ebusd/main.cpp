@@ -871,7 +871,7 @@ int main(int argc, char* argv[])
 
 	s_messageMap = new MessageMap(opt.checkConfig && opt.scanConfig && arg_index >= argc);
 	if (opt.checkConfig) {
-		logNotice(lf_main, "Performing configuration check...");
+		logNotice(lf_main, PACKAGE_STRING "." REVISION " performing configuration check...");
 
 		result_t result = loadConfigFiles(s_messageMap, true, opt.scanConfig && arg_index < argc);
 
@@ -903,13 +903,10 @@ int main(int argc, char* argv[])
 				logInfo(lf_main, "scan config %2.2x: file %s loaded", address, file.c_str());
 		}
 		if (result == RESULT_OK && opt.checkConfig > 1) {
-			logNotice(lf_main, "Configuration dump:");
+			logNotice(lf_main, "configuration dump:");
 			s_messageMap->dump(cout, true);
 		}
-		delete s_messageMap;
-		s_messageMap = NULL;
-		globalTemplates.clear();
-
+		shutdown();
 		return 0;
 	}
 
