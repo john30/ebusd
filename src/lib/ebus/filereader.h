@@ -228,7 +228,7 @@ public:
 
 	/**
 	 * Split the next line(s) from the @a istring into fields.
-	 * @param in the @a istream to read from.
+	 * @param ifs the @a istream to read from.
 	 * @param row the @a vector to which to add the fields. This will be empty for completely empty and comment lines.
 	 * @param lineNo the current line number (incremented with each line read).
 	 * @return true if there are more lines to read, false when there are no more lines left.
