@@ -322,7 +322,7 @@ public:
 		  m_masterCount(1), m_autoLockCount(lockCount==0), m_lockCount(lockCount<=3 ? 3 : lockCount), m_remainLockCount(m_autoLockCount),
 		  m_generateSynInterval(generateSyn ? SYN_TIMEOUT*getMasterNumber(ownAddress)+SYMBOL_DURATION : 0),
 		  m_pollInterval(pollInterval), m_lastReceive(0), m_lastPoll(0),
-		  m_currentRequest(NULL), m_nextSendPos(0),
+		  m_currentRequest(NULL), m_runningScans(0), m_nextSendPos(0),
 		  m_symPerSec(0), m_maxSymPerSec(0),
 		  m_state(bs_noSignal), m_repeat(false),
 		  m_command(false), m_commandCrcValid(false), m_response(false), m_responseCrcValid(false),
@@ -368,6 +368,11 @@ public:
 	 * @param str the scan result @a string to set, or empty if not a single part of the scan was successful.
 	 */
 	void setScanResult(unsigned char dstAddress, string str);
+
+	/**
+	 * Called from @a ScanRequest upon completion.
+	 */
+	void setScanFinished();
 
 	/**
 	 * Format the scan result to the @a ostringstream.
@@ -529,6 +534,9 @@ private:
 
 	/** the queue of @a BusRequests that are already finished. */
 	Queue<BusRequest*> m_finishedRequests;
+
+	/** the number of scan request currently running. */
+	unsigned int m_runningScans;
 
 	/** the offset of the next symbol that needs to be sent from the command or response,
 	 * (only relevant if m_request is set and state is @a bs_command or @a bs_response). */

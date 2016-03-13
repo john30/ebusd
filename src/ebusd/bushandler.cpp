@@ -144,6 +144,7 @@ bool ScanRequest::notify(result_t result, SymbolString& slave)
 
 	if (m_slaves.empty()) {
 		logNotice(lf_bus, "scan finished");
+		m_busHandler->setScanFinished();
 		return false;
 	}
 	if (m_messages.empty()) {
@@ -155,6 +156,7 @@ bool ScanRequest::notify(result_t result, SymbolString& slave)
 	m_message = m_messages.front();
 	m_messages.pop_front();
 	if (prepare(m_master[0]) < RESULT_OK) {
+		m_busHandler->setScanFinished();
 		return false; // give up
 	}
 	return true;
@@ -690,12 +692,11 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 			if (restart) {
 				m_currentRequest->m_busLostRetries = 0;
 				m_nextRequests.push(m_currentRequest);
-			}
-			else if (m_currentRequest->m_deleteOnFinish)
+			} else if (m_currentRequest->m_deleteOnFinish) {
 				delete m_currentRequest;
-			else
+			} else {
 				m_finishedRequests.push(m_currentRequest);
-
+			}
 			m_currentRequest = NULL;
 		}
 	}
@@ -860,6 +861,7 @@ result_t BusHandler::startScan(bool full)
 		delete request;
 		return result==RESULT_ERR_EOF ? RESULT_EMPTY : result;
 	}
+	m_runningScans++;
 	m_nextRequests.push(request);
 	return RESULT_OK;
 }
@@ -874,8 +876,17 @@ void BusHandler::setScanResult(unsigned char dstAddress, string str)
 	}
 }
 
+void BusHandler::setScanFinished()
+{
+	if (m_runningScans>0)
+		m_runningScans--;
+}
+
 void BusHandler::formatScanResult(ostringstream& output)
 {
+	if (m_runningScans>0) {
+		output << static_cast<unsigned>(m_runningScans) << " scan(s) still running" << endl;
+	}
 	bool first = true;
 	for (unsigned char slave = 1; slave != 0; slave++) { // 0 is known to be a master
 		map<unsigned char, string>::iterator it = m_scanResults.find(slave);
