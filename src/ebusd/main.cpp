@@ -668,6 +668,10 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
 	if (result != RESULT_OK)
 		logError(lf_main, "error resolving conditions: %s, %s", getResultCode(result), messages->getLastError().c_str());
 
+	result = messages->executeInstructions(verbose);
+	if (result != RESULT_OK)
+		logError(lf_main, "error executing instructions: %s, %s", getResultCode(result), messages->getLastError().c_str());
+
 	logNotice(lf_main, "found messages: %d (%d conditional on %d conditions, %d poll, %d update)", messages->size(), messages->sizeConditional(), messages->sizeConditions(), messages->sizePoll(), messages->sizePassive());
 
 	return result;
@@ -832,9 +836,14 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 		return result;
 	}
 	logNotice(lf_main, "read scan config file %s for ID \"%s\", SW%s, HW%s", best.c_str(), ident.c_str(), sw.c_str(), hw.c_str());
+
 	result = messages->resolveConditions(false);
 	if (result != RESULT_OK)
 		logError(lf_main, "error resolving conditions: %s, %s", getResultCode(result), messages->getLastError().c_str());
+
+	result = messages->executeInstructions(false);
+	if (result != RESULT_OK)
+		logError(lf_main, "error executing instructions: %s, %s", getResultCode(result), messages->getLastError().c_str());
 
 	logNotice(lf_main, "found messages: %d (%d conditional on %d conditions, %d poll, %d update)", messages->size(), messages->sizeConditional(), messages->sizeConditions(), messages->sizePoll(), messages->sizePassive());
 	relativeFile = best.substr(strlen(opt.configPath)+1);
