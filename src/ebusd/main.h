@@ -38,7 +38,7 @@ struct options
 	int checkConfig; //!< check CSV config files (!=0) and optionally dump (2), then stop
 	int pollInterval; //!< poll interval in seconds, 0 to disable [5]
 
-	unsigned char address; //!< own bus address [FF]
+	unsigned char address; //!< own bus address [31]
 	bool answer; //!< answer to requests from other masters
 	int acquireTimeout; //!< bus acquisition timeout in us [9400]
 	int acquireRetries; //!< number of retries for bus acquisition [3]

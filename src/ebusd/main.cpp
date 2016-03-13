@@ -70,7 +70,7 @@ static struct options opt = {
 	false, // scanConfig
 	0, // checkConfig
 	5, // pollInterval
-	0xFF, // address
+	0x31, // address
 	false, // answer
 	9400, // acquireTimeout
 	3, // acquireRetries
@@ -142,7 +142,7 @@ static const struct argp_option argpoptions[] = {
 	{"pollinterval",   O_POLINT, "SEC",   0, "Poll for data every SEC seconds (0=disable) [5]", 0 },
 
 	{NULL,             0,        NULL,    0, "eBUS options:", 3 },
-	{"address",        'a',      "ADDR",  0, "Use ADDR as own bus address [FF]", 0 },
+	{"address",        'a',      "ADDR",  0, "Use ADDR as own bus address [31]", 0 },
 	{"answer",         O_ANSWER, NULL,    0, "Actively answer to requests from other masters", 0 },
 	{"acquiretimeout", O_ACQTIM, "USEC",  0, "Stop bus acquisition after USEC us [9400]", 0 },
 	{"acquireretries", O_ACQRET, "COUNT", 0, "Retry bus acquisition COUNT times [3]", 0 },
