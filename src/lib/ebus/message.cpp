@@ -401,14 +401,12 @@ bool Message::checkIdPrefix(vector<unsigned char>& id)
 {
 	if (id.size() > m_id.size())
 		return false;
-	bool match = true;
 	for (size_t pos = 0; pos < id.size(); pos++) {
 		if (id[pos] != m_id[pos]) {
-			match = false;
-			break;
+			return false;
 		}
 	}
-	return match;
+	return true;
 }
 
 bool Message::checkId(SymbolString& master, unsigned char* index)
@@ -429,13 +427,9 @@ bool Message::checkId(SymbolString& master, unsigned char* index)
 bool Message::checkId(Message& other)
 {
 	unsigned char idLen = getIdLength();
-	if (idLen != other.getIdLength() || getCount() > 1) // not supported for chained messages
+	if (idLen != other.getIdLength() || getCount() > 1) // only equal for non-chained messages
 		return false;
-	for (unsigned char pos = 0; pos < idLen; pos++) {
-		if (m_id[2+pos] != other.m_id[2+pos])
-			return false;
-	}
-	return true;
+	return other.checkIdPrefix(m_id);
 }
 
 unsigned long long Message::getDerivedKey(const unsigned char dstAddress)
@@ -801,6 +795,14 @@ bool ChainedMessage::checkId(SymbolString& master, unsigned char* index)
 	return false;
 }
 
+bool ChainedMessage::checkId(Message& other)
+{
+	unsigned char idLen = getIdLength();
+	if (idLen != other.getIdLength() || other.getCount() == 1) // only equal for chained messages
+		return false;
+	return other.checkIdPrefix(m_id);
+}
+
 result_t ChainedMessage::prepareMasterPart(SymbolString& master, istringstream& input, char separator, unsigned char index)
 {
 	size_t cnt = getCount();
@@ -967,43 +969,40 @@ Message* getFirstAvailable(vector<Message*> &messages, Message& sameIdExtAs) {
 		Message* message = *msgIt;
 		if (!message->checkId(sameIdExtAs))
 			continue;
-
 		if (message->isAvailable())
-			return *msgIt;
+			return message;
 	}
 	return NULL;
 }
 
-
-result_t Condition::create(const string condName, vector<string>::iterator& it, const vector<string>::iterator end, string defaultDest, string defaultCircuit, SimpleCondition*& returnValue)
+/**
+ * Split up a list of string values separated by @a VALUE_SEPARATOR.
+ * @param valueList the input string to split.
+ * @param values the output value list to append to.
+ */
+result_t splitValues(string valueList, vector<string>& values)
 {
-	// name,circuit,messagename,[comment],[fieldname],[ZZ],values   (name already skipped by caller)
-	string circuit = it==end ? "" : *(it++); // circuit
-	string name = it==end ? "" : *(it++); // messagename
-	if (it<end)
-		it++; // comment
-	string field = it==end ? "" : *(it++); // fieldname
-	string zz = it==end ? "" : *(it++); // ZZ
-	unsigned char dstAddress = SYN;
-	result_t result = RESULT_OK;
-	if (zz.length()==0)
-		zz = defaultDest;
-	if (zz.length()>0) {
-		dstAddress = (unsigned char)parseInt(zz.c_str(), 16, 0, 0xff, result);
-		if (result != RESULT_OK)
-			return result;
-		if (dstAddress!=SYN && !isValidAddress(dstAddress, false))
-			return RESULT_ERR_INVALID_ADDR;
-	}
-	if (name.length()==0) {
-		if (!isValidAddress(dstAddress, false) || isMaster(dstAddress))
-			return RESULT_ERR_INVALID_ADDR;
-	} else if (circuit.length()==0) {
-		circuit = defaultCircuit;
-	}
-	istringstream stream(it==end ? "" : *(it++));
+	istringstream stream(valueList);
 	string str;
-	vector<unsigned int> valueRanges;
+	while (getline(stream, str, VALUE_SEPARATOR) != 0) {
+		if (str.length()>0 && str[0]=='\'' && str[str.length()-1]=='\'') {
+			str = str.substr(1, str.length()-2);
+		}
+		values.push_back(str);
+	}
+	return RESULT_OK;
+}
+
+/**
+ * Split up a list of numeric value ranges separated by @a VALUE_SEPARATOR.
+ * @param valueList the input string to split.
+ * @param valueRanges the output list of value ranges to append to (pairs of inclusive from-to values).
+ */
+result_t splitValues(string valueList, vector<unsigned int>& valueRanges)
+{
+	istringstream stream(valueList);
+	string str;
+	result_t result;
 	while (getline(stream, str, VALUE_SEPARATOR) != 0) {
 		FileReader::trim(str);
 		if (str.length()==0)
@@ -1040,12 +1039,81 @@ result_t Condition::create(const string condName, vector<string>::iterator& it, 
 				valueRanges.push_back(val); // single value
 		}
 	}
-	if (field.length()>0 && valueRanges.empty())
-		return RESULT_ERR_INVALID_NUM;
-	returnValue = new SimpleCondition(condName, circuit, name, dstAddress, field, valueRanges);
 	return RESULT_OK;
 }
 
+result_t Condition::create(const string condName, vector<string>::iterator& it, const vector<string>::iterator end, string defaultDest, string defaultCircuit, SimpleCondition*& returnValue)
+{
+	// name,circuit,messagename,[comment],[fieldname],[ZZ],values   (name already skipped by caller)
+	string circuit = it==end ? "" : *(it++); // circuit
+	string name = it==end ? "" : *(it++); // messagename
+	if (it<end)
+		it++; // comment
+	string field = it==end ? "" : *(it++); // fieldname
+	string zz = it==end ? "" : *(it++); // ZZ
+	unsigned char dstAddress = SYN;
+	result_t result = RESULT_OK;
+	if (zz.length()==0)
+		zz = defaultDest;
+	if (zz.length()>0) {
+		dstAddress = (unsigned char)parseInt(zz.c_str(), 16, 0, 0xff, result);
+		if (result != RESULT_OK)
+			return result;
+		if (dstAddress!=SYN && !isValidAddress(dstAddress, false))
+			return RESULT_ERR_INVALID_ADDR;
+	}
+	if (name.length()==0) {
+		if (!isValidAddress(dstAddress, false) || isMaster(dstAddress))
+			return RESULT_ERR_INVALID_ADDR;
+	} else if (circuit.length()==0) {
+		circuit = defaultCircuit;
+	}
+	string valueList = it==end ? "" : *(it++);
+	if (valueList.length()==0) {
+		returnValue = new SimpleCondition(condName, circuit, name, dstAddress, field);
+		return RESULT_OK;
+	}
+	if (valueList[0]=='\'') {
+		// strings
+		vector<string> values;
+		result = splitValues(valueList, values);
+		if (result!=RESULT_OK)
+			return result;
+		returnValue = new SimpleStringCondition(condName, circuit, name, dstAddress, field, values);
+		return RESULT_OK;
+	}
+	// numbers
+	vector<unsigned int> valueRanges;
+	result = splitValues(valueList, valueRanges);
+	if (result!=RESULT_OK)
+		return result;
+
+	returnValue = new SimpleNumericCondition(condName, circuit, name, dstAddress, field, valueRanges);
+	return RESULT_OK;
+}
+
+SimpleCondition* SimpleCondition::derive(string valueList)
+{
+	if (valueList.empty())
+		return NULL;
+	result_t result;
+	if (valueList[0]=='\'') {
+		// strings
+		vector<string> values;
+		result = splitValues(valueList, values);
+		if (result!=RESULT_OK)
+			return NULL;
+		return new SimpleStringCondition(m_condName+valueList, m_circuit, m_name, m_dstAddress, m_field, values);
+	}
+	// numbers
+	if (!isNumeric())
+		return NULL;
+	vector<unsigned int> valueRanges;
+	result = splitValues(valueList, valueRanges);
+	if (result!=RESULT_OK)
+		return NULL;
+	return new SimpleNumericCondition(m_condName+valueList, m_circuit, m_name, m_dstAddress, m_field, valueRanges);
+}
 
 void SimpleCondition::dump(ostream& output)
 {
@@ -1095,15 +1163,15 @@ result_t SimpleCondition::resolve(MessageMap* messages, ostringstream& errorMess
 		} else {
 			message = getFirstAvailable(*derived, *message);
 			if (message==NULL) {
-				errorMessage << ": conditional derived message";
+				errorMessage << ": conditional derived message not found";
 				return RESULT_ERR_INVALID_ARG;
 			}
 		}
 	}
 
-	if (!m_valueRanges.empty()) {
-		if (!message->hasField(m_field.length()>0 ? m_field.c_str() : NULL, true)) {
-			errorMessage << ": numeric field " << m_field << " not found";
+	if (m_hasValues) {
+		if (!message->hasField(m_field.length()>0 ? m_field.c_str() : NULL, isNumeric())) {
+			errorMessage << (isNumeric() ? ": numeric field " : ": string field ") << m_field << " not found";
 			return RESULT_ERR_NOTFOUND;
 		}
 	}
@@ -1119,23 +1187,43 @@ bool SimpleCondition::isTrue()
 	if (!m_message)
 		return false;
 	if (m_message->getLastChangeTime()>m_lastCheckTime) {
-		bool isTrue = m_valueRanges.empty(); // for message seen check
+		bool isTrue = !m_hasValues; // for message seen check
 		if (!isTrue) {
-			unsigned int value = 0;
-			result_t result = m_message->decodeLastDataNumField(value, m_field.length()==0 ? NULL : m_field.c_str());
-			if (result==RESULT_OK) {
-				for (size_t i=0; i+1<m_valueRanges.size(); i+=2) {
-					if (m_valueRanges[i]<=value && value<=m_valueRanges[i+1]) {
-						isTrue = true;
-						break;
-					}
-				}
-			}
+			isTrue = checkValue(m_message, m_field);
 		}
 		m_isTrue = isTrue;
 		m_lastCheckTime = m_message->getLastChangeTime();
 	}
 	return m_isTrue;
+}
+
+
+bool SimpleNumericCondition::checkValue(Message* message, string field) {
+	unsigned int value = 0;
+	result_t result = message->decodeLastDataNumField(value, field.length()==0 ? NULL : field.c_str());
+	if (result==RESULT_OK) {
+		for (size_t i=0; i+1<m_valueRanges.size(); i+=2) {
+			if (m_valueRanges[i]<=value && value<=m_valueRanges[i+1]) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+
+bool SimpleStringCondition::checkValue(Message* message, string field) {
+	ostringstream output;
+	result_t result = message->decodeLastData(output, 0, false, field.length()==0 ? NULL : field.c_str());
+	if (result==RESULT_OK) {
+		string value = output.str();
+		for (size_t i=0; i<m_values.size(); i++) {
+			if (m_values[i]==value) {
+				return true;
+			}
+		}
+	}
+	return false;
 }
 
 
@@ -1168,6 +1256,34 @@ bool CombinedCondition::isTrue()
 			return false;
 	}
 	return true;
+}
+
+
+result_t Instruction::create(const string contextPath, Condition* condition, const string type, vector<string>::iterator& it, const vector<string>::iterator end, Instruction*& returnValue)
+{
+	// type[,argument]* (type already skipped by caller)
+	bool singleton = false;
+	if ((singleton=(type=="load")) || type=="include") {
+		if (it==end || (*it).empty()) {
+			return RESULT_ERR_INVALID_ARG;
+		}
+		size_t pos = contextPath.find_last_of('/');
+		string path;
+		if (pos==string::npos) {
+			path = contextPath;
+		} else {
+			path = contextPath.substr(0, pos+1);
+		}
+		returnValue = new LoadInstruction(condition, singleton, path+(*it));
+		return RESULT_OK;
+	}
+	// unknown instruction
+	return RESULT_ERR_INVALID_ARG;
+}
+
+
+result_t LoadInstruction::execute(MessageMap* messages) {
+	return messages->readFromFile(m_filename);
 }
 
 
@@ -1286,19 +1402,43 @@ result_t MessageMap::readConditions(string& types, const string& filename, Condi
 			types = types.substr(pos+1);
 		} else {
 			bool store = false;
+			condition = NULL;
 			while ((pos=types.find(']'))!=string::npos) {
 				// simple condition
 				string key = filename+":"+types.substr(1, pos-1);
 				map<string, Condition*>::iterator it = m_conditions.find(key);
+				Condition* add = NULL;
 				if (it==m_conditions.end()) {
-					m_lastError = "condition "+types.substr(1, pos-1)+" not defined";
-					return RESULT_ERR_NOTFOUND;
+					// check for on-the-fly condition
+					size_t pos = key.find_first_of("=<>", filename.length()+1);
+					if (pos!=string::npos) {
+						it = m_conditions.find(key.substr(0, pos));
+						if (it!=m_conditions.end()) {
+							// derive from another condition
+							if (key[pos]=='=')
+								pos++;
+							add = it->second->derive(key.substr(pos));
+							if (add==NULL) {
+								m_lastError = "derive condition with values "+key.substr(pos)+" failed";
+								return RESULT_ERR_INVALID_ARG;
+							}
+							m_conditions[key] = add; // store derived condition
+						}
+					}
+					if (add==NULL) {
+						// shared condition not available
+						m_lastError = "condition "+types.substr(1, pos-1)+" not defined";
+						return RESULT_ERR_NOTFOUND;
+					}
+				} else {
+					add = it->second;
 				}
 				if (condition) {
-					condition = condition->combineAnd(it->second);
+					condition = condition->combineAnd(add);
 					store = true;
-				} else
-					condition = it->second;
+				} else {
+					condition = add;
+				}
 				types = types.substr(pos+1);
 				if (types.length()==0 || types[0]!='[')
 					break;
@@ -1321,7 +1461,25 @@ result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<s
 	result_t result = readConditions(types, filename, condition);
 	if (result!=RESULT_OK)
 		return result;
-
+	if (types.length()>0 && types[0]=='!') {
+		// instruction
+		types = types.substr(1);
+		Instruction* instruction = NULL;
+		result_t result = Instruction::create(filename, condition, types, ++begin, end, instruction);
+		if (instruction==NULL || result!=RESULT_OK) {
+			m_lastError = "invalid instruction";
+			return result;
+		}
+		map<string, vector<Instruction*> >::iterator it = m_instructions.find(filename);
+		if (it == m_instructions.end()) {
+			vector<Instruction*> instructions;
+			instructions.push_back(instruction);
+			m_instructions[filename] = instructions;
+		} else {
+			it->second.push_back(instruction);
+		}
+		return RESULT_OK;
+	}
 	if (types.length() == 0)
 		types.append("r");
 	else if (types.find(']')!=string::npos)
@@ -1375,19 +1533,71 @@ result_t MessageMap::resolveConditions(bool verbose) {
 	result_t overallResult = RESULT_OK;
 	for (map<string, Condition*>::iterator it = m_conditions.begin(); it != m_conditions.end(); it++) {
 		Condition* condition = it->second;
-		ostringstream error;
-		result_t result = condition->resolve(this, error);
+		result_t result = resolveCondition(condition);
 		if (result!=RESULT_OK) {
-			string errorMessage = error.str();
-			if (errorMessage.length()>0) {
-				if (m_lastError.length()>0)
-					m_lastError += ", ";
-				m_lastError += errorMessage;
+			overallResult = result;
+		}
+	}
+	return overallResult;
+}
+
+result_t MessageMap::resolveCondition(Condition* condition) {
+	ostringstream error;
+	result_t result = condition->resolve(this, error);
+	if (result!=RESULT_OK) {
+		string errorMessage = error.str();
+		if (errorMessage.length()>0) {
+			if (m_lastError.length()>0)
+				m_lastError += ", ";
+			m_lastError += errorMessage;
+		}
+	}
+	return result;
+}
+
+result_t MessageMap::executeInstructions(bool verbose) {
+	result_t overallResult = RESULT_OK;
+	for (map<string, vector<Instruction*> >::iterator it = m_instructions.begin(); it != m_instructions.end(); it++) {
+		vector<Instruction*> instructions = it->second;
+		bool removeSingletons = false;
+		for (vector<Instruction*>::iterator lit = instructions.begin(); lit != instructions.end(); lit++) {
+			Instruction* instruction = *lit;
+			if (removeSingletons && instruction->isSingleton()) {
+				continue;
 			}
-			if (verbose)
-				overallResult = result;
-			else {
-				return result;
+			Condition* condition = instruction->getCondition();
+			bool execute = condition==NULL;
+			if (!execute) {
+				result_t result = resolveCondition(condition);
+				if (result!=RESULT_OK) {
+					overallResult = result;
+				} else if (condition->isTrue()) {
+					execute = true;
+				}
+			}
+			if (execute) {
+				if (instruction->isSingleton())
+					removeSingletons = true;
+				result_t result = instruction->execute(this);
+				if (result!=RESULT_OK) {
+					overallResult = result;
+				}
+				delete instruction;
+				instructions.erase(lit--);
+			}
+		}
+		if (removeSingletons) {
+			for (vector<Instruction*>::iterator lit = instructions.begin(); lit != instructions.end(); lit++) {
+				Instruction* instruction = *lit;
+				if (!instruction->isSingleton()) {
+					continue;
+				}
+				delete instruction;
+				instructions.erase(lit);
+				lit--;
+			}
+			if (instructions.empty()) {
+				m_instructions.erase(it--);
 			}
 		}
 	}
@@ -1609,6 +1819,15 @@ void MessageMap::clear()
 	for (map<string, Condition*>::iterator it = m_conditions.begin(); it != m_conditions.end(); it++) {
 		delete it->second;
 	}
+	// free instruction instances
+	for (map<string, vector<Instruction*> >::iterator it = m_instructions.begin(); it != m_instructions.end(); it++) {
+		vector<Instruction*> instructions = it->second;
+		for (vector<Instruction*>::iterator lit = instructions.begin(); lit != instructions.end(); lit++) {
+			Instruction* instruction = *lit;
+			delete instruction;
+		}
+		instructions.clear();
+	}
 	// clear messages by name
 	m_messageCount = 0;
 	m_conditionalMessageCount = 0;
@@ -1617,6 +1836,7 @@ void MessageMap::clear()
 	// clear messages by key
 	m_messagesByKey.clear();
 	m_conditions.clear();
+	m_instructions.clear();
 	m_maxIdLength = 0;
 }
 

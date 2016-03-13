@@ -237,7 +237,7 @@ public:
 	 * @param other the other @a Message to check against.
 	 * @return true if the ID matches, false otherwise.
 	 */
-	bool checkId(Message& other);
+	virtual bool checkId(Message& other);
 
 	/**
 	 * Return the key for storing in @a MessageMap.
@@ -566,6 +566,9 @@ public:
 	virtual bool checkId(SymbolString& master, unsigned char* index=NULL);
 
 	// @copydoc
+	virtual bool checkId(Message& other);
+
+	// @copydoc
 	virtual unsigned char getCount() { return (unsigned char)m_ids.size(); }
 
 protected:
@@ -681,6 +684,13 @@ public:
 	static result_t create(const string condName, vector<string>::iterator& it, const vector<string>::iterator end, string defaultDest, string defaultCircuit, SimpleCondition*& returnValue);
 
 	/**
+	 * Derive a new @a SimpleCondition from this condition.
+	 * @param valueList the @a string with the new list of values.
+	 * @return the derived @a SimpleCondition instance, or NULL if the value list is invalid.
+	 */
+	virtual SimpleCondition* derive(string valueList) { return NULL; };
+
+	/**
 	 * Write the condition definition to the @a ostream.
 	 * @param output the @a ostream to append to.
 	 */
@@ -719,7 +729,7 @@ protected:
 
 
 /**
- * A simple condition based on the value of one @a Message.
+ * A simple @a Condition based on the value of one @a Message.
  */
 class SimpleCondition : public Condition
 {
@@ -732,17 +742,19 @@ public:
 	 * @param name the message name, or empty for scan message.
 	 * @param dstAddress the override destination address, or @a SYN (only for @a Message without specific destination as well as scan message).
 	 * @param field the field name.
-	 * @param valueRanges the valid value ranges (pairs of from/to inclusive), empty for @a m_message seen check.
+	 * @param hasValues whether a value has to be checked against.
 	 */
-	SimpleCondition(const string condName, const string circuit, const string name, const unsigned char dstAddress, const string field, const vector<unsigned int> valueRanges)
+	SimpleCondition(const string condName, const string circuit, const string name, const unsigned char dstAddress, const string field, const bool hasValues=false)
 		: Condition(),
-		  m_condName(condName), m_circuit(circuit), m_name(name), m_dstAddress(dstAddress), m_field(field),
-		  m_valueRanges(valueRanges), m_message(NULL) { }
+		  m_condName(condName), m_circuit(circuit), m_name(name), m_dstAddress(dstAddress), m_field(field), m_hasValues(hasValues), m_message(NULL) { }
 
 	/**
 	 * Destructor.
 	 */
 	virtual ~SimpleCondition() {}
+
+	// @copydoc
+	virtual SimpleCondition* derive(string valueList);
 
 	// @copydoc
 	virtual void dump(ostream& output);
@@ -758,11 +770,24 @@ public:
 	 */
 	virtual result_t resolve(MessageMap* messages, ostringstream& errorMessage);
 
-	/**
-	 * Check and return whether this condition is fulfilled.
-	 * @return whether this condition is fulfilled.
-	 */
+	// @copydoc
 	virtual bool isTrue();
+
+	/**
+	 * Return whether the condition is based on a numeric value.
+	 * @return whether the condition is based on a numeric value.
+	 */
+	virtual bool isNumeric() { return true; }
+
+protected:
+
+	/**
+	 * Check the values against the field in the @a Message.
+	 * @param message the @a Message to check against.
+	 * @param field the field name to check against, or empty for first field.
+	 * @return whether the field matches one of the valid values.
+	 */
+	virtual bool checkValue(Message* message, const string field) { return true; }
 
 private:
 
@@ -781,8 +806,8 @@ private:
 	/** the field name, or empty for first field. */
 	const string m_field;
 
-	/** the valid value ranges (pairs of from/to inclusive), empty for @a m_message seen check. */
-	const vector<unsigned int> m_valueRanges;
+	/** whether a value has to be checked against. */
+	const bool m_hasValues;
 
 	/** the resolved @a Message instance, or NULL. */
 	Message* m_message;
@@ -791,7 +816,86 @@ private:
 
 
 /**
- * A condition combining two or more @a SimpleCondition instances with a logical and.
+ * A simple @a Condition based on the numeric value of one @a Message.
+ */
+class SimpleNumericCondition : public SimpleCondition
+{
+public:
+
+	/**
+	 * Construct a new instance.
+	 * @param condName the name of the condition.
+	 * @param circuit the circuit name.
+	 * @param name the message name, or empty for scan message.
+	 * @param dstAddress the override destination address, or @a SYN (only for @a Message without specific destination as well as scan message).
+	 * @param field the field name.
+	 * @param valueRanges the valid value ranges (pairs of from/to inclusive), empty for @a m_message seen check.
+	 */
+	SimpleNumericCondition(const string condName, const string circuit, const string name, const unsigned char dstAddress, const string field, const vector<unsigned int> valueRanges)
+		: SimpleCondition(condName, circuit, name, dstAddress, field, true),
+		  m_valueRanges(valueRanges) { }
+
+	/**
+	 * Destructor.
+	 */
+	virtual ~SimpleNumericCondition() {}
+
+protected:
+
+	// @copydoc
+	virtual bool checkValue(Message* message, const string field);
+
+private:
+
+	/** the valid value ranges (pairs of from/to inclusive), empty for @a m_message seen check. */
+	const vector<unsigned int> m_valueRanges;
+
+};
+
+
+/**
+ * A simple @a Condition based on the string value of one @a Message.
+ */
+class SimpleStringCondition : public SimpleCondition
+{
+public:
+
+	/**
+	 * Construct a new instance.
+	 * @param condName the name of the condition.
+	 * @param circuit the circuit name.
+	 * @param name the message name, or empty for scan message.
+	 * @param dstAddress the override destination address, or @a SYN (only for @a Message without specific destination as well as scan message).
+	 * @param field the field name.
+	 * @param values the valid values.
+	 */
+	SimpleStringCondition(const string condName, const string circuit, const string name, const unsigned char dstAddress, const string field, const vector<string> values)
+		: SimpleCondition(condName, circuit, name, dstAddress, field, true),
+		  m_values(values) { }
+
+	/**
+	 * Destructor.
+	 */
+	virtual ~SimpleStringCondition() {}
+
+	// @copydoc
+	virtual bool isNumeric() { return false; }
+
+protected:
+
+	// @copydoc
+	virtual bool checkValue(Message* message, const string field);
+
+private:
+
+	/** the valid values. */
+	const vector<string> m_values;
+
+};
+
+
+/**
+ * A @a Condition combining two or more @a SimpleCondition instances with a logical and.
  */
 class CombinedCondition : public Condition
 {
@@ -824,6 +928,100 @@ private:
 
 	/** the @a Condition instances used. */
 	vector<Condition*> m_conditions;
+
+};
+
+
+/**
+ * An abstract instruction based on the value of one or more @a Message instances.
+ */
+class Instruction
+{
+public:
+
+	/**
+	 * Construct a new instance.
+	 * @param condition the @a Condition this instruction requires, or null.
+	 * @param singleton whether this @a Instruction belongs to a set of instructions of which only the first one may be executed for the same source file.
+	 */
+	Instruction(Condition* condition, const bool singleton)
+		: m_condition(condition), m_singleton(singleton) { }
+
+	/**
+	 * Destructor.
+	 */
+	virtual ~Instruction() { }
+
+	/**
+	 * Factory method for creating a new instance.
+	 * @param contextPath the path and/or filename context being loaded.
+	 * @param condition the @a Condition for the instruction, or NULL.
+	 * @param type the type of the instruction.
+	 * @param it the iterator to traverse for the definition parts.
+	 * @param end the iterator pointing to the end of the definition parts.
+	 * @param returnValue the variable in which to store the created instance.
+	 * @return @a RESULT_OK on success, or an error code.
+	 */
+	static result_t create(const string contextPath, Condition* condition, const string type, vector<string>::iterator& it, const vector<string>::iterator end, Instruction*& returnValue);
+
+	/**
+	 * Return the @a Condition this instruction requires.
+	 * @return the @a Condition this instruction requires, or null.
+	 */
+	Condition* getCondition() { return m_condition; }
+
+	/**
+	 * Return whether this @a Instruction belongs to a set of instructions of which only the first one may be executed for the same source file.
+	 * @return whether this @a Instruction belongs to a set of instructions of which only the first one may be executed for the same source file.
+	 */
+	bool isSingleton() { return m_singleton; }
+
+	/**
+	 * Execute the instruction.
+	 * @param messages the @a MessageMap.
+	 * @return @a RESULT_OK on success, or an error code.
+	 */
+	virtual result_t execute(MessageMap* messages) = 0;
+
+private:
+
+	/** the @a Condition this instruction requires, or null. */
+	Condition* m_condition;
+
+	/** whether this @a Instruction belongs to a set of instructions of which only the first one may be executed for the same source file. */
+	bool m_singleton;
+
+};
+
+
+/**
+ * An @a Instruction allowing to load another file.
+ */
+class LoadInstruction : public Instruction
+{
+public:
+
+	/**
+	 * Construct a new instance.
+	 * @param condition the @a Condition this instruction requires, or null.
+	 * @param singleton whether this @a Instruction belongs to a set of instructions of which only the first one may be executed for the same source file.
+	 * @param filename the name of the file to load.
+	 */
+	LoadInstruction(Condition* condition, const bool singleton, const string filename)
+		: Instruction(condition, singleton), m_filename(filename) { }
+
+	/**
+	 * Destructor.
+	 */
+	virtual ~LoadInstruction() { }
+
+	// @copydoc
+	virtual result_t execute(MessageMap* messages);
+
+private:
+
+	/** the name of the file to load. */
+	const string m_filename;
 
 };
 
@@ -894,6 +1092,20 @@ public:
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	result_t resolveConditions(bool verbose=false);
+
+	/**
+	 * Resolve a @a Condition.
+	 * @param condition the @a Condition to resolve.
+	 * @return @a RESULT_OK on success, or an error code.
+	 */
+	result_t resolveCondition(Condition* condition);
+
+	/**
+	 * Run all executable @a Instruction instances.
+	 * @param verbose whether to verbosely add all problems to the error message.
+	 * @return @a RESULT_OK on success, or an error code.
+	 */
+	result_t executeInstructions(bool verbose);
 
 	/**
 	 * Get the stored @a Message instances for the key.
@@ -1036,6 +1248,9 @@ private:
 
 	/** the @a Condition instances by filename and condition name. */
 	map<string, Condition*> m_conditions;
+
+	/** the list of @a Instruction instances by filename. */
+	map<string, vector<Instruction*> > m_instructions;
 
 };
 
