@@ -884,7 +884,7 @@ public:
 
 	// @copydoc
 	virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
-		vector< vector<string> >* defaults,
+		vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit, const string& defaultSuffix,
 		const string& filename, unsigned int lineNo);
 
 	/**

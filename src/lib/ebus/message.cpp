@@ -1259,7 +1259,8 @@ bool CombinedCondition::isTrue()
 }
 
 
-result_t Instruction::create(const string contextPath, Condition* condition, const string type, vector<string>::iterator& it, const vector<string>::iterator end, Instruction*& returnValue)
+result_t Instruction::create(const string contextPath, const string& defaultDest, const string& defaultCircuit, const string& defaultSuffix,
+	Condition* condition, const string type, vector<string>::iterator& it, const vector<string>::iterator end, Instruction*& returnValue)
 {
 	// type[,argument]* (type already skipped by caller)
 	bool singleton = false;
@@ -1274,7 +1275,7 @@ result_t Instruction::create(const string contextPath, Condition* condition, con
 		} else {
 			path = contextPath.substr(0, pos+1);
 		}
-		returnValue = new LoadInstruction(condition, singleton, path+(*it));
+		returnValue = new LoadInstruction(condition, singleton, path+(*it), defaultDest, defaultCircuit, defaultSuffix);
 		return RESULT_OK;
 	}
 	// unknown instruction
@@ -1283,7 +1284,7 @@ result_t Instruction::create(const string contextPath, Condition* condition, con
 
 
 result_t LoadInstruction::execute(MessageMap* messages) {
-	return messages->readFromFile(m_filename);
+	return messages->readFromFile(m_filename, false, m_defaultDest, m_defaultCircuit, m_defaultSuffix);
 }
 
 
@@ -1452,7 +1453,7 @@ result_t MessageMap::readConditions(string& types, const string& filename, Condi
 }
 
 result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
-	vector< vector<string> >* defaults,
+	vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit, const string& defaultSuffix,
 	const string& filename, unsigned int lineNo)
 {
 	vector<string>::iterator restart = begin;
@@ -1465,7 +1466,7 @@ result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<s
 		// instruction
 		types = types.substr(1);
 		Instruction* instruction = NULL;
-		result_t result = Instruction::create(filename, condition, types, ++begin, end, instruction);
+		result_t result = Instruction::create(filename, defaultDest, defaultCircuit, defaultSuffix, condition, types, ++begin, end, instruction);
 		if (instruction==NULL || result!=RESULT_OK) {
 			m_lastError = "invalid instruction";
 			return result;
@@ -1560,9 +1561,11 @@ result_t MessageMap::executeInstructions(bool verbose) {
 	for (map<string, vector<Instruction*> >::iterator it = m_instructions.begin(); it != m_instructions.end(); it++) {
 		vector<Instruction*> instructions = it->second;
 		bool removeSingletons = false;
+		vector<Instruction*> remain;
 		for (vector<Instruction*>::iterator lit = instructions.begin(); lit != instructions.end(); lit++) {
 			Instruction* instruction = *lit;
 			if (removeSingletons && instruction->isSingleton()) {
+				delete instruction;
 				continue;
 			}
 			Condition* condition = instruction->getCondition();
@@ -1576,29 +1579,34 @@ result_t MessageMap::executeInstructions(bool verbose) {
 				}
 			}
 			if (execute) {
-				if (instruction->isSingleton())
+				if (instruction->isSingleton()) {
 					removeSingletons = true;
+				}
 				result_t result = instruction->execute(this);
 				if (result!=RESULT_OK) {
 					overallResult = result;
 				}
 				delete instruction;
-				instructions.erase(lit--);
+			} else {
+				remain.push_back(instruction);
 			}
 		}
-		if (removeSingletons) {
+		if (removeSingletons && !remain.empty()) {
+			instructions = remain;
+			remain.clear();
 			for (vector<Instruction*>::iterator lit = instructions.begin(); lit != instructions.end(); lit++) {
 				Instruction* instruction = *lit;
 				if (!instruction->isSingleton()) {
+					remain.push_back(instruction);
 					continue;
 				}
 				delete instruction;
-				instructions.erase(lit);
-				lit--;
 			}
-			if (instructions.empty()) {
-				m_instructions.erase(it--);
-			}
+		}
+		if (remain.empty()) {
+			m_instructions.erase(it--);
+		} else {
+			it->second = remain;
 		}
 	}
 	return overallResult;

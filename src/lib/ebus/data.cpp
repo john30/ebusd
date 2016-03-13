@@ -1689,7 +1689,7 @@ result_t DataFieldTemplates::add(DataField* field, string name, bool replace)
 }
 
 result_t DataFieldTemplates::addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
-	vector< vector<string> >* defaults,
+	vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit, const string& defaultSuffix,
 	const string& filename, unsigned int lineNo)
 {
 	vector<string>::iterator restart = begin;

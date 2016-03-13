@@ -955,6 +955,9 @@ public:
 	/**
 	 * Factory method for creating a new instance.
 	 * @param contextPath the path and/or filename context being loaded.
+	 * @param defaultDest the default destination address (may be overwritten by file name), or empty.
+	 * @param defaultCircuit the default circuit name (may be overwritten by file name), or empty.
+	 * @param defaultSuffix the default circuit name suffix (starting with a ".", may be overwritten by file name, or empty.
 	 * @param condition the @a Condition for the instruction, or NULL.
 	 * @param type the type of the instruction.
 	 * @param it the iterator to traverse for the definition parts.
@@ -962,7 +965,8 @@ public:
 	 * @param returnValue the variable in which to store the created instance.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	static result_t create(const string contextPath, Condition* condition, const string type, vector<string>::iterator& it, const vector<string>::iterator end, Instruction*& returnValue);
+	static result_t create(const string contextPath, const string& defaultDest, const string& defaultCircuit, const string& defaultSuffix,
+		Condition* condition, const string type, vector<string>::iterator& it, const vector<string>::iterator end, Instruction*& returnValue);
 
 	/**
 	 * Return the @a Condition this instruction requires.
@@ -1006,9 +1010,12 @@ public:
 	 * @param condition the @a Condition this instruction requires, or null.
 	 * @param singleton whether this @a Instruction belongs to a set of instructions of which only the first one may be executed for the same source file.
 	 * @param filename the name of the file to load.
+	 * @param defaultDest the default destination address (may be overwritten by file name), or empty.
+	 * @param defaultCircuit the default circuit name (may be overwritten by file name), or empty.
+	 * @param defaultSuffix the default circuit name suffix (starting with a ".", may be overwritten by file name, or empty.
 	 */
-	LoadInstruction(Condition* condition, const bool singleton, const string filename)
-		: Instruction(condition, singleton), m_filename(filename) { }
+	LoadInstruction(Condition* condition, const bool singleton, const string filename, const string& defaultDest, const string& defaultCircuit, const string& defaultSuffix)
+		: Instruction(condition, singleton), m_filename(filename), m_defaultDest(defaultDest), m_defaultCircuit(defaultCircuit), m_defaultSuffix(defaultSuffix) { }
 
 	/**
 	 * Destructor.
@@ -1022,6 +1029,15 @@ private:
 
 	/** the name of the file to load. */
 	const string m_filename;
+
+	/** the default destination address (may be overwritten by file name), or empty. */
+	const string m_defaultDest;
+
+	/** the default circuit name (may be overwritten by file name), or empty. */
+	const string m_defaultCircuit;
+
+	/** the default circuit name suffix (starting with a ".", may be overwritten by file name, or empty. */
+	const string m_defaultSuffix;
 
 };
 
@@ -1076,7 +1092,7 @@ public:
 
 	// @copydoc
 	virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
-		vector< vector<string> >* defaults,
+		vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit, const string& defaultSuffix,
 		const string& filename, unsigned int lineNo);
 
 	/**

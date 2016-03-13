@@ -78,9 +78,13 @@ public:
 	 * Read the definitions from a file.
 	 * @param filename the name of the file being read.
 	 * @param verbose whether to verbosely log problems.
+	 * @param defaultDest the default destination address (may be overwritten by file name), or empty.
+	 * @param defaultCircuit the default circuit name (may be overwritten by file name), or empty.
+	 * @param defaultSuffix the default circuit name suffix (starting with a ".", may be overwritten by file name, or empty.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	virtual result_t readFromFile(const string filename, bool verbose=false)
+	virtual result_t readFromFile(const string filename, bool verbose=false,
+		string defaultDest = "", string defaultCircuit = "", string defaultSuffix = "")
 	{
 		ifstream ifs;
 		ifs.open(filename.c_str(), ifstream::in);
@@ -90,22 +94,17 @@ public:
 		}
 		size_t lastSep = filename.find_last_of('/');
 		size_t firstDot = filename.find_first_of('.', lastSep+1);
-		string defaultDest = "";
-		string defaultCircuit = "";
-		string defaultSuffix = "";
 		if (lastSep!=string::npos && firstDot==lastSep+1+2) { // potential destination address, matches "^ZZ."
 			result_t result;
-			defaultDest = filename.substr(lastSep+1, 2);
-			unsigned char zz = (unsigned char)parseInt(defaultDest.c_str(), 16, 0, 0xff, result, NULL);
-			if (result!=RESULT_OK || !isValidAddress(zz))
-				defaultDest = ""; // invalid: not in hex or no master/slave/broadcast address
-			else {
+			string str = filename.substr(lastSep+1, 2);
+			unsigned char zz = (unsigned char)parseInt(str.c_str(), 16, 0, 0xff, result, NULL);
+			if (result==RESULT_OK && isValidAddress(zz)) {
+				defaultDest = str;
 				size_t endDot = filename.find_first_of('.', firstDot+1);
 				if (endDot>firstDot && endDot-firstDot<=6) { // potential ident, matches "^ZZ.IDENT."
-					defaultCircuit = filename.substr(firstDot+1, endDot-firstDot-1); // IDENT
-					if (defaultCircuit.find_first_of(' ')!=string::npos)
-						defaultCircuit = ""; // invalid: contains spaces
-					else {
+					str = filename.substr(firstDot+1, endDot-firstDot-1); // IDENT
+					if (str.find_first_of(' ')==string::npos) {
+						defaultCircuit = str;
 						size_t nextDot = filename.find_first_of('.', endDot+1);
 						if (nextDot!=string::npos && nextDot>endDot+1) { // potential index suffix, matches "^ZZ.IDENT.[0-9]*."
 							parseInt(filename.substr(endDot+1, nextDot-endDot-1).c_str(), 10, 1, 16, result, NULL);
@@ -133,10 +132,10 @@ public:
 					if (result == RESULT_OK)
 						continue;
 				} else
-					result = addFromFile(it, end, &defaults, filename, lineNo);
+					result = addFromFile(it, end, &defaults, defaultDest, defaultCircuit, defaultSuffix, filename, lineNo);
 			}
 			else
-				result = addFromFile(it, end, NULL, filename, lineNo);
+				result = addFromFile(it, end, NULL, defaultDest, defaultCircuit, defaultSuffix, filename, lineNo);
 
 			if (result != RESULT_OK) {
 				if (!verbose) {
@@ -193,12 +192,15 @@ public:
 	 * @param begin an iterator to the first column of the definition row to read.
 	 * @param end the end iterator of the definition row to read.
 	 * @param defaults all previously read default rows (initial star char removed), or NULL if not supported.
+	 * @param defaultDest the valid destination address extracted from the file name (from ZZ part), or empty.
+	 * @param defaultCircuit the valid circuit name extracted from the file name (from IDENT part), or empty.
+	 * @param defaultSuffix the valid circuit name suffix (starting with a ".") extracted from the file name (number after after IDENT part and "."), or empty.
 	 * @param filename the name of the file being read.
 	 * @param lineNo the current line number in the file being read.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
-		vector< vector<string> >* defaults,
+		vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit, const string& defaultSuffix,
 		const string& filename, unsigned int lineNo) = 0;
 
 	/**
