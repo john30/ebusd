@@ -759,7 +759,9 @@ public:
 		bool uniqueNames = true;
 		map<string, string> names;
 		for (vector<SingleDataField*>::const_iterator it=fields.begin(); it!=fields.end(); it++) {
-			string name = (*it)->getName();
+			SingleDataField* field = *it;
+			if (field->isIgnored()) continue;
+			string name = field->getName();
 			if (name.empty() || names.find(name)!=names.end()) {
 				uniqueNames = false;
 				break;
