@@ -668,9 +668,12 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
 	if (result != RESULT_OK)
 		logError(lf_main, "error resolving conditions: %s, %s", getResultCode(result), messages->getLastError().c_str());
 
-	result = messages->executeInstructions(verbose);
+	ostringstream log;
+	result = messages->executeInstructions(verbose, log);
 	if (result != RESULT_OK)
 		logError(lf_main, "error executing instructions: %s, %s", getResultCode(result), messages->getLastError().c_str());
+	else if (log.tellp() > 0)
+		logNotice(lf_main, log.str().c_str());
 
 	logNotice(lf_main, "found messages: %d (%d conditional on %d conditions, %d poll, %d update)", messages->size(), messages->sizeConditional(), messages->sizeConditions(), messages->sizePoll(), messages->sizePassive());
 
@@ -841,9 +844,12 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 	if (result != RESULT_OK)
 		logError(lf_main, "error resolving conditions: %s, %s", getResultCode(result), messages->getLastError().c_str());
 
-	result = messages->executeInstructions(false);
+	ostringstream log;
+	result = messages->executeInstructions(false, log);
 	if (result != RESULT_OK)
 		logError(lf_main, "error executing instructions: %s, %s", getResultCode(result), messages->getLastError().c_str());
+	else if (log.tellp() > 0)
+		logNotice(lf_main, log.str().c_str());
 
 	logNotice(lf_main, "found messages: %d (%d conditional on %d conditions, %d poll, %d update)", messages->size(), messages->sizeConditional(), messages->sizeConditions(), messages->sizePoll(), messages->sizePassive());
 	relativeFile = best.substr(strlen(opt.configPath)+1);

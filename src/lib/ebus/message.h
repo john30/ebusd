@@ -943,9 +943,12 @@ public:
 	 * Construct a new instance.
 	 * @param condition the @a Condition this instruction requires, or null.
 	 * @param singleton whether this @a Instruction belongs to a set of instructions of which only the first one may be executed for the same source file.
+	 * @param defaultDest the default destination address, or empty.
+	 * @param defaultCircuit the default circuit name, or empty.
+	 * @param defaultSuffix the default circuit name suffix (starting with a "."), or empty.
 	 */
-	Instruction(Condition* condition, const bool singleton)
-		: m_condition(condition), m_singleton(singleton) { }
+	Instruction(Condition* condition, const bool singleton, const string& defaultDest, const string& defaultCircuit, const string& defaultSuffix)
+		: m_condition(condition), m_singleton(singleton), m_defaultDest(defaultDest), m_defaultCircuit(defaultCircuit), m_defaultSuffix(defaultSuffix) { }
 
 	/**
 	 * Destructor.
@@ -955,9 +958,9 @@ public:
 	/**
 	 * Factory method for creating a new instance.
 	 * @param contextPath the path and/or filename context being loaded.
-	 * @param defaultDest the default destination address (may be overwritten by file name), or empty.
-	 * @param defaultCircuit the default circuit name (may be overwritten by file name), or empty.
-	 * @param defaultSuffix the default circuit name suffix (starting with a ".", may be overwritten by file name, or empty.
+	 * @param defaultDest the default destination address, or empty.
+	 * @param defaultCircuit the default circuit name, or empty.
+	 * @param defaultSuffix the default circuit name suffix (starting with a "."), or empty.
 	 * @param condition the @a Condition for the instruction, or NULL.
 	 * @param type the type of the instruction.
 	 * @param it the iterator to traverse for the definition parts.
@@ -981,11 +984,18 @@ public:
 	bool isSingleton() { return m_singleton; }
 
 	/**
+	 * Return a string describing the destination from the stored default values.
+	 * @return a string describing the destination.
+	 */
+	string getDestination();
+
+	/**
 	 * Execute the instruction.
 	 * @param messages the @a MessageMap.
+	 * @param log the @a ostringstream to log success messages to (if necessary).
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	virtual result_t execute(MessageMap* messages) = 0;
+	virtual result_t execute(MessageMap* messages, ostringstream& log) = 0;
 
 private:
 
@@ -994,6 +1004,17 @@ private:
 
 	/** whether this @a Instruction belongs to a set of instructions of which only the first one may be executed for the same source file. */
 	bool m_singleton;
+
+protected:
+
+	/** the default destination address, or empty. */
+	const string m_defaultDest;
+
+	/** the default circuit name, or empty. */
+	const string m_defaultCircuit;
+
+	/** the default circuit name suffix (starting with a "."), or empty. */
+	const string m_defaultSuffix;
 
 };
 
@@ -1009,13 +1030,13 @@ public:
 	 * Construct a new instance.
 	 * @param condition the @a Condition this instruction requires, or null.
 	 * @param singleton whether this @a Instruction belongs to a set of instructions of which only the first one may be executed for the same source file.
-	 * @param filename the name of the file to load.
 	 * @param defaultDest the default destination address (may be overwritten by file name), or empty.
 	 * @param defaultCircuit the default circuit name (may be overwritten by file name), or empty.
-	 * @param defaultSuffix the default circuit name suffix (starting with a ".", may be overwritten by file name, or empty.
+	 * @param defaultSuffix the default circuit name suffix (starting with a ".", may be overwritten by file name), or empty.
+	 * @param filename the name of the file to load.
 	 */
-	LoadInstruction(Condition* condition, const bool singleton, const string filename, const string& defaultDest, const string& defaultCircuit, const string& defaultSuffix)
-		: Instruction(condition, singleton), m_filename(filename), m_defaultDest(defaultDest), m_defaultCircuit(defaultCircuit), m_defaultSuffix(defaultSuffix) { }
+	LoadInstruction(Condition* condition, const bool singleton, const string& defaultDest, const string& defaultCircuit, const string& defaultSuffix, const string filename)
+		: Instruction(condition, singleton, defaultDest, defaultCircuit, defaultSuffix), m_filename(filename) { }
 
 	/**
 	 * Destructor.
@@ -1023,21 +1044,12 @@ public:
 	virtual ~LoadInstruction() { }
 
 	// @copydoc
-	virtual result_t execute(MessageMap* messages);
+	virtual result_t execute(MessageMap* messages, ostringstream& log);
 
 private:
 
 	/** the name of the file to load. */
 	const string m_filename;
-
-	/** the default destination address (may be overwritten by file name), or empty. */
-	const string m_defaultDest;
-
-	/** the default circuit name (may be overwritten by file name), or empty. */
-	const string m_defaultCircuit;
-
-	/** the default circuit name suffix (starting with a ".", may be overwritten by file name, or empty. */
-	const string m_defaultSuffix;
 
 };
 
@@ -1119,9 +1131,10 @@ public:
 	/**
 	 * Run all executable @a Instruction instances.
 	 * @param verbose whether to verbosely add all problems to the error message.
+	 * @param log the @a ostringstream to log success messages to (if necessary).
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	result_t executeInstructions(bool verbose);
+	result_t executeInstructions(bool verbose, ostringstream& log);
 
 	/**
 	 * Get the stored @a Message instances for the key.

@@ -1275,16 +1275,43 @@ result_t Instruction::create(const string contextPath, const string& defaultDest
 		} else {
 			path = contextPath.substr(0, pos+1);
 		}
-		returnValue = new LoadInstruction(condition, singleton, path+(*it), defaultDest, defaultCircuit, defaultSuffix);
+		returnValue = new LoadInstruction(condition, singleton, defaultDest, defaultCircuit, defaultSuffix, path+(*it));
 		return RESULT_OK;
 	}
 	// unknown instruction
 	return RESULT_ERR_INVALID_ARG;
 }
 
+string Instruction::getDestination()
+{
+	// ZZ.circuit[.suffix]
+	string ret;
+	if (!m_defaultDest.empty())
+		ret = m_defaultDest;
+	if (!m_defaultCircuit.empty() || !m_defaultSuffix.empty()) {
+		if (!ret.empty())
+			ret += ".";
+		if (m_defaultCircuit.empty())
+			ret += "*";
+		else
+			ret += m_defaultCircuit;
+		if (!m_defaultSuffix.empty())
+			ret += "."+m_defaultSuffix;
+	}
+	return ret;
+}
 
-result_t LoadInstruction::execute(MessageMap* messages) {
-	return messages->readFromFile(m_filename, false, m_defaultDest, m_defaultCircuit, m_defaultSuffix);
+
+result_t LoadInstruction::execute(MessageMap* messages, ostringstream& log) {
+	result_t result = messages->readFromFile(m_filename, false, m_defaultDest, m_defaultCircuit, m_defaultSuffix);
+	if (result!=RESULT_OK) {
+		if (log.tellp()>0)
+			log << ", ";
+		log << "error " << (isSingleton() ? "loading " : "including ") << m_filename << " for \"" << getDestination() << "\": " << getResultCode(result);
+		return result;
+	}
+	log << (isSingleton() ? "loaded " : "included ") << m_filename << " for \"" << getDestination() << "\"";
+	return result;
 }
 
 
@@ -1556,7 +1583,7 @@ result_t MessageMap::resolveCondition(Condition* condition) {
 	return result;
 }
 
-result_t MessageMap::executeInstructions(bool verbose) {
+result_t MessageMap::executeInstructions(bool verbose, ostringstream& log) {
 	result_t overallResult = RESULT_OK;
 	for (map<string, vector<Instruction*> >::iterator it = m_instructions.begin(); it != m_instructions.end(); it++) {
 		vector<Instruction*> instructions = it->second;
@@ -1582,7 +1609,7 @@ result_t MessageMap::executeInstructions(bool verbose) {
 				if (instruction->isSingleton()) {
 					removeSingletons = true;
 				}
-				result_t result = instruction->execute(this);
+				result_t result = instruction->execute(this, log);
 				if (result!=RESULT_OK) {
 					overallResult = result;
 				}
