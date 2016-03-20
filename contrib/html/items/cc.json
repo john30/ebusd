@@ -1,0 +1,13 @@
+{
+	"title": "Zirkulation",
+	"bounds": [610,80,54,18],
+	"image": "cc.svg",
+	"endpoints": [
+		{"name": "Flow", "anchor": [0, 0.5, -1, 0], "target": true, "distance": [0,0,0.5], "connectWith": ["hwc", "Return"]},
+		{"name": "Return", "anchor": [1, 0.5, 1, 0], "connectWith": [null, "HwcReturn"]}
+	],
+	"items": [
+		{"circuit": "ehp", "name": "CirPump", "topc": 0.5, "leftc": 0.5},
+		{"circuit": "cc", "name": "Mode", "format": "$1 $0", "top": 1, "leftc": 0.5}
+	]
+}

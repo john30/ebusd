@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg version="1.1" width="54" height="18" viewBox="0 0 1910 620" preserveAspectRatio="xMinYMin slice" fill-rule="evenodd" stroke-width="28.222" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" xmlns:ooo="http://xml.openoffice.org/svg/export" xml:space="preserve">
+ <g class="com.sun.star.drawing.ClosedBezierShape">
+  <g id="id3">
+   <rect class="BoundingBox" stroke="none" fill="none" x="647" y="0" width="624" height="621"/>
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="43" stroke-linejoin="round" d="M 669,310 C 692,-74 1228,-74 1248,310 1230,694 687,694 669,310 Z"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.LineShape">
+  <g id="id4">
+   <rect class="BoundingBox" stroke="none" fill="none" x="940" y="288" width="331" height="334"/>
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="43" stroke-linejoin="round" d="M 1248,310 L 962,599"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.LineShape">
+  <g id="id5">
+   <rect class="BoundingBox" stroke="none" fill="none" x="937" y="-2" width="331" height="336"/>
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="43" stroke-linejoin="round" d="M 959,20 L 1245,311"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.LineShape">
+  <g id="id6">
+   <rect class="BoundingBox" stroke="none" fill="none" x="-2" y="288" width="695" height="45"/>
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="43" stroke-linejoin="round" d="M 20,310 L 670,310"/>
+  </g>
+ </g>
+ <g class="com.sun.star.drawing.LineShape">
+  <g id="id7">
+   <rect class="BoundingBox" stroke="none" fill="none" x="1220" y="288" width="696" height="45"/>
+   <path fill="none" stroke="rgb(35,31,32)" stroke-width="43" stroke-linejoin="round" d="M 1242,310 L 1893,310"/>
+  </g>
+ </g>
+</svg>
