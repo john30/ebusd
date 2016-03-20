@@ -1124,8 +1124,9 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 			time_t lastup = message->getLastUpdateTime();
 			if (lastup == 0 && required) {
 				// read directly from bus
-				ret = readFromBus(message, "");
-				if (ret != RESULT_OK)
+				if (message->isPassive())
+					continue; // not possible to actively read this message
+				if (readFromBus(message, "") != RESULT_OK)
 					continue;
 				lastup = message->getLastUpdateTime();
 			} else {
