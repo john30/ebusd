@@ -9,10 +9,10 @@
 			"bounds": [-130,108,80,100],
 			"endpoints": [
 				{"name": "Flow", "anchor": [0.25, 0, 0, -1], "label": "Source",
-					"connectWith": ["ehp", "SourceInput", "ehp", "SourceTempInput", "0"]
+					"connectWith": ["ehp", "SourceInput", "ehp", "SourceTempInput", "$temp"]
 				},
 				{"name": "Return", "anchor": [0.75, 0, 0, -1], "target": true, "label": "Source",
-					"connectWith": ["ehp", "SourceOutput", "ehp", "SourceTempOutput", "0"]
+					"connectWith": ["ehp", "SourceOutput", "ehp", "SourceTempOutput", "$temp"]
 				}
 			]
 		},
@@ -24,15 +24,15 @@
 			"image": "valve.svg",
 			"endpoints": [
 				{"name": "Flow", "anchor": "Top", "target": true,
-					"connectWith": ["ehp", "HcFlow", "ehp", "FlowTemp", "0"]
+					"connectWith": ["ehp", "HcFlow", "ehp", "FlowTemp", "$temp"]
 				},
 				{"name": "HwcFlow", "anchor": "Right",
 					"connectWith": ["storage", "HwcInput"],
-					"update": {"type": ["hot", "off"], "condition": [["ehp", "Hc1Pump", "on"], ["ehp", "HwcHcValve", "on"]]}
+					"update": {"type": ["hot", "off"], "condition": ["ehp", "Hc1Pump", "on", "ehp", "HwcHcValve", "on"]}
 				},
 				{"name": "HcFlow", "anchor": "Left",
-					"connectWith": ["storage", "HcInput", "ehp", "HcFlowTemp", "0"],
-					"update": {"type": ["cold", "off"], "condition": [["ehp", "Hc1Pump", "on"], ["ehp", "HwcHcValve", "off"]]}
+					"connectWith": ["storage", "HcInput", "ehp", "HcFlowTemp", "$temp"],
+					"update": {"type": ["hot", "off"], "condition": ["ehp", "Hc1Pump", "on", "ehp", "HwcHcValve", "off"]}
 				}
 			],
 			"items": [
@@ -86,7 +86,7 @@
 			"endpoints": [
 				{"name": "HcFlow", "anchor": [1, 0.15, 1, 0]},
 				{"name": "HcInput", "anchor": [0, 0.15, -1, 0], "target": true,
-					"connectWith": ["ehp", "HcFlow", "ehp", "FlowTemp", "0"]
+					"connectWith": ["ehp", "HcFlow", "ehp", "FlowTemp", "$temp"]
 				},
 				{"name": "HcReturn", "anchor": [1, 0.85, 1, 0], "target": true, "distance": [0,0,0.7]},
 				{"name": "HcOutput", "anchor": [0, 0.85, -1, 0]}
@@ -98,19 +98,19 @@
 		}
 	],
 	"endpoints": [
-		{"name": "SourceOutput", "anchor": [0.12, 0, 0, -1], "label": "Source", "update":
-			{"type": ["cold", "off"], "condition": ["ehp", "Source", "on"]}
+		{"name": "SourceOutput", "anchor": [0.12, 0, 0, -1], "label": "Source",
+			"update": {"type": ["cold", "off"], "condition": ["ehp", "Source", "on"]}
 		},
-		{"name": "SourceInput", "anchor": [0.22, 0, 0, -1], "target": true, "label": "Source", "distance": [0,60], "update":
-			{"type": ["hot", "off"], "condition": ["ehp", "Source", "on"]}
+		{"name": "SourceInput", "anchor": [0.22, 0, 0, -1], "target": true, "label": "Source", "distance": [0,60],
+			"update": {"type": ["hot", "off"], "condition": ["ehp", "Source", "on"]}
 		},
 		{"name": "HwcReturn", "anchor": [0.53, 0, 0, -1], "target": true, "distance": [0,80,0.3],
 			"connectWith": ["storage", "HwcOutput"],
-			"update": {"type": ["hot", "off"], "condition": [["ehp", "Hc1Pump", "on"], ["ehp", "HwcHcValve", "on"]]}
+			"update": {"type": ["hot", "off"], "condition": ["ehp", "Hc1Pump", "on", "ehp", "HwcHcValve", "on"]}
 		},
 		{"name": "HcReturn", "anchor": [0.78, 0, 0, -1], "target": true, "distance": [0,60,0.42],
-			"connectWith": ["storage", "HcOutput", "ehp", "HcReturnTemp", "0"],
-			"update": {"type": ["cold", "off"], "condition": [["ehp", "Hc1Pump", "on"], ["ehp", "HwcHcValve", "off"]]}
+			"connectWith": ["storage", "HcOutput", "ehp", "HcReturnTemp", "$temp"],
+			"update": {"type": ["cold", "off"], "condition": ["ehp", "Hc1Pump", "on", "ehp", "HwcHcValve", "off"]}
 		},
 		{"name": "HcFlow", "anchor": [0.88, 0, 0, -1], "priority": 1,
 			"update": {"type": ["hot", "off"], "condition": ["ehp", "Hc1Pump", "on"]}

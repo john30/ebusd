@@ -5,8 +5,10 @@
 	"endpoints": [
 		{"name":"Flow", "anchor": [0, 0.82, -1, 0], "target": true, "distance": [0,0,0.7], "connectWith": [null, "HcFlow"]},
 		{"name":"Return", "anchor": [0, 0.96, -1, 0], "connectWith": [null, "HcReturn"]},
-		{"name":"HcFlow", "anchor": [1, 0.82, 1, 0], "target": true},
-		{"name":"HcReturn", "anchor": [1, 0.96, 1, 0]}
+		{"name":"HcFlow", "anchor": [1, 0.82, 1, 0], "target": true,
+			"update": {"type": ["hot", "off"], "condition": ["mc", "HcPumpPort", "on"]}},
+		{"name":"HcReturn", "anchor": [1, 0.96, 1, 0],
+			"update": {"type": ["cold", "off"], "condition": ["mc", "HcPumpPort", "on"]}}
 	],
 	"items": [
 		{"name": "Status", "format": "$2", "top": 0.04, "left": 0.04},
