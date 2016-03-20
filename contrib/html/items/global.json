@@ -1,0 +1,8 @@
+{
+	"title": "eBUS",
+	"bounds": [10,0,110,50],
+	"items": [
+		{"name": "lastup", "top": 0, "left": 0},
+		{"name": "signal", "format": "Signal: $", "top": 0.4, "left": 0}
+	]
+}

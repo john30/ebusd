@@ -1,6 +1,6 @@
 {
 	"title": "DCF",
-	"bounds": [10,0,54,48],
+	"bounds": [140,0,54,48],
 	"image": "dcf.svg",
 	"image-pos": [10, 10],
 	"items": [

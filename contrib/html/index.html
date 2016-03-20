@@ -143,7 +143,14 @@ jsPlumb.ready(function() {
 			if (anchor.hasOwnProperty('update') && needUpdates) {
 				var update = anchor.update;
 				update.endpoint = endp;
-				needUpdates.push(update);
+				if (anchor.hasOwnProperty('connectWith')) {
+					if (needConnections) {
+						update.connectWith = anchor.connectWith;
+					}
+					needUpdates.push(update);
+				} else {
+					endp.needUpdate = update;
+				}
 			}
 		}
 	};
@@ -250,12 +257,25 @@ jsPlumb.ready(function() {
 				}
 			}*/
 		};
-		var buildText = function(format, fields) {
+		var formatGlobalField = function(name, value) {
+			if (name=='signal') {
+				return value==1?'OK':'none';
+			}
+			if (name=='lastup') {
+				return new Date(value*1000).toLocaleString().replace(' ', '&nbsp;');
+			}
+			return '';
+		};
+		var buildText = function(format, message, circuit, name) {
+			var fields = circuit=='global'?message:(message?message.fields:null);
 			var ret = '';
 			if (format) {
 				format = format.split(' ');
 				for (var i=0; i<format.length; i++) {
-					if (ret.length>0) ret += ',&nbsp;';
+					if (ret.length>0) {
+						if (ret[ret.length-1]==':') ret += '&nbsp;';
+						else ret += ',&nbsp;';
+					}
 					if (format[i][0]!='$') {
 						if (format[i]=='\\n')
 							ret += "<br>";
@@ -267,13 +287,20 @@ jsPlumb.ready(function() {
 						if (field.unit) {
 							ret += '&nbsp;'+field.unit;
 						}
+					} else if (circuit=='global' && format[i]=='$' && !Array.isArray(fields)) {
+						ret += formatGlobalField(name, fields);
 					} else {
 						ret += '?';
 					}
 				}
+			} else if (circuit=='global' && !Array.isArray(fields)) {
+				ret += formatGlobalField(name, fields)
 			} else if (fields) {
 				for (var i in fields) {
-					if (ret.length>0) ret += ',&nbsp;';
+					if (ret.length>0) {
+						if (ret[ret.length-1]==':') ret += '&nbsp;';
+						else ret += ',&nbsp;';
+					}
 					var field = fields[i];
 					ret += field.hasOwnProperty('value')&&field.value!=null?field.value:'?';
 					if (field && field.unit) {
@@ -302,18 +329,24 @@ jsPlumb.ready(function() {
 				var found = false;
 				var fields = allMessages[condition[k]][condition[k+1]].fields;
 				var cond = condition[k+2];
-				if (!fields || !fields[0] || !fields[0].hasOwnProperty('value') || !isNaN(Array.isArray(cond) ? cond[0] : cond) && isNaN(fields[0].value)) {
-					fields = getFields(condition[k], condition[k+1], true, false, true);
-					if (!fields || !fields[0] || !fields[0].hasOwnProperty('value')) return false;
+				var key = 0;
+				if (fields && !fields.hasOwnProperty(key)) {
+					for (key in fields) {
+						break;
+					}
+				}
+				if (!fields || !fields[key] || !fields[key].hasOwnProperty('value') || !isNaN(Array.isArray(cond) ? cond[0] : cond) && isNaN(fields[key].value)) {
+					fields = getFields(condition[k], condition[k+1], key==0, false, true);
+					if (!fields || !fields[key] || !fields[key].hasOwnProperty('value')) return false;
 				}
 				if (Array.isArray(cond)) {
 					for (var i=0; i<cond.length; i++) { // "or" loop
-						if (fields[0].value==cond[i]) {
+						if (fields[key].value==cond[i]) {
 							found = true;
 							break;
 						}
 					}
-				} else if (fields[0].value==cond) {
+				} else if (fields[key].value==cond) {
 					found = true;
 				}
 				if (!found) return;
@@ -360,7 +393,7 @@ jsPlumb.ready(function() {
 					continue;
 				}
 				var message = cmessages[mname];
-				if (!message.passive) needUris.push(circuit+'/'+mname);
+				if (circuit!='global' && !message.passive) needUris.push(circuit+'/'+mname);
 				var ichild = document.createElement("div");
 				ichild.className = "circuitLabel";
 				ichild.setAttribute('data-id', circuit+'/'+mname);
@@ -369,7 +402,7 @@ jsPlumb.ready(function() {
 				}
 				ichild.style.left = Math.floor((item.leftc?item.leftc:item.left)*width)+'px';
 				ichild.style.top = Math.floor((item.topc?item.topc:item.top)*height)+'px';
-				ichild.innerHTML = buildText(item.format, message?message.fields:null);
+				ichild.innerHTML = buildText(item.format, message, circuit, mname);
 				child.appendChild(ichild);
 				if (item.leftc) {
 					ichild.style.left = Math.floor(item.leftc*width-ichild.clientWidth/2)+'px';
@@ -394,40 +427,34 @@ jsPlumb.ready(function() {
 				}
 			});
 		};
+		var connectionItems = {};
+		var needUpdates = new Array();
+		var updateConnections = {};
+		var allMessages = {};
 		new Ajax.Request('/data/?verbose',{
 			method:'get',
 			onSuccess: function(trans) {
 				var needEndpoints = new Array();
 				var needUris = new Array();
-				var allMessages = trans.responseJSON;
+				allMessages = trans.responseJSON;
 				// create items
 				for (var cname in allMessages) {
-					if (!allMessages.hasOwnProperty(cname))
+					if (!allMessages.hasOwnProperty(cname) || cname.substring(0, 5)=='scan.')
 						continue;
 					addItem(null, cname, allMessages[cname], allMessages, needEndpoints, needUris);
 				}
 				// add endpoints
 				var needConnections = new Array();
-				var needUpdates = new Array();
 				for (var i=0; i<needEndpoints.length; i++) {
 					addEndpoints(needEndpoints[i].name, needEndpoints[i].endpoints, needConnections, needUpdates);
 				}
 				// establish connections
-				var connectionItems = new Array();
+				var resolveDsts = {};
 				var endpoints = instance.selectEndpoints();
-				var first = true;
 				for (var i=0; i<needConnections.length; i++) {
-					var data = needConnections[i];
-					// fromuuid, to-circuit|null, to-endpoint[, item-circuit, item-name[, item-format]]
+					var data = needConnections[i]; // fromuuid, to-circuit|null, to-endpoint[, item-circuit, item-name[, item-format]]
 					var src = data[0], dst;
 					if (data[1]==null) {
-						if (first) {
-							if (i+1>=needConnections.length) {
-								first = false;
-								i = -1;
-							}
-							continue;
-						}
 						var avail = new Array();
 						var best = 99;
 						endpoints.each(function(endpoint) {
@@ -441,6 +468,9 @@ jsPlumb.ready(function() {
 							}
 						});
 						dst = avail.length>0 ? avail[0] : null;
+						if (dst && !instance.getEndpoint(src).isTarget) {
+							resolveDsts["-"+data[2]] = dst;
+						}
 					} else {
 						dst = data[1]+data[2];
 					}
@@ -452,19 +482,37 @@ jsPlumb.ready(function() {
 					}
 					var type = 'off';//TODO dst.indexOf("Flow")>=0?'hot':'cold';
 					var conn = instance.connect({uuids: [src, dst], editable: true, type: type});
-					if (conn && data.length>4 && data[3]) { // add label
-						connectionItems.push({conn: conn, data: data});
+					if (!conn) continue;
+					connectionItems[src+"-"+dst] = {conn: conn, data: data};
+					var srcendpoint = instance.getEndpoint(src);
+					var dstendpoint = instance.getEndpoint(dst);
+					if (srcendpoint.needUpdate) {
+						var update = srcendpoint.needUpdate;
+						delete(srcendpoint.needUpdate);
+						update.endpoint = srcendpoint;
+						update.connectWith = dstendpoint.getUuid();
+						needUpdates.push(update);
+						console.log("src need update "+conn);
+					}
+					if (dstendpoint.needUpdate) {
+						var update = dstendpoint.needUpdate;
+						delete(dstendpoint.needUpdate);
+						update.endpoint = srcendpoint;
+						update.connectWith = dstendpoint.getUuid();
+						needUpdates.push(update);
+						console.log("dst need update "+conn);
+					}
+					if (data.length>4 && data[3]) { // add label
 						var cmessages = allMessages[data[3]];
 						var message = cmessages[data[4]];
 						var over = conn.getOverlay("label");
-						over.setLabel(buildText(data.length>5?data[5]:null, message.fields));
+						over.setLabel(buildText(data.length>5?data[5]:null, message, data[3], data[4]));
 						var key = data[3]+'/'+data[4];
 						if (!needUris[key]) {
 							needUris.push(key);
 						}
 					}
 				}
-				// TODO needUpdates
 				// request all shown values and enable automatic polling
 				for (var i=0; i<needUris.length; i++) {
 					new Ajax.Request('/data/'+needUris[i]+'?exact&poll=2',{
@@ -473,11 +521,11 @@ jsPlumb.ready(function() {
 							var cname = needUris[i].split('/');
 							var mname = cname[1];
 							cname = cname[0];
-							var fields = trans.responseJSON[cname][mname].fields;
-							if (fields) {
+							var message = trans.responseJSON[cname][mname];
+							if (message) {
 								var elems = $$('div[data-id="'+needUris[i]+'"]');
 								each(elems, function(elem) {
-									elem.innerHTML = buildText(elem.getAttribute('data-format'), fields);
+									elem.innerHTML = buildText(elem.getAttribute('data-format'), message, cname, mname);
 								});
 							}
 						}
@@ -518,6 +566,15 @@ jsPlumb.ready(function() {
 								since = lastup;
 							}
 							var fields = message.fields;
+							if (fields) {
+								var cmessages = allMessages[cname];
+								if (cmessages) {
+									var msg = cmessages[mname];
+									if (msg) {
+										msg.fields = fields;
+									}
+								}
+							}
 							var key = cname+'/'+mname;
 							var needed = false;
 							if (switchActions.hasOwnProperty(key)) {
@@ -528,12 +585,28 @@ jsPlumb.ready(function() {
 							if (elems.length>0) {
 								needed = true;
 							} else console.log(key+':'+fields);
-							if (!fields) {
+							if (cname!='global' && !message.fields) {
 								continue;
 							}
 							each(elems, function(elem) {
-								elem.innerHTML = buildText(elem.getAttribute('data-format'), fields);
+								elem.innerHTML = buildText(elem.getAttribute('data-format'), message, cname, mname);
 							});
+						}
+					}
+					// run needUpdates
+					for (var i=0; i<needUpdates.length; i++) {
+						var needUpdate = needUpdates[i];
+						var src = needUpdate.endpoint.getUuid();
+						var data = needUpdate.connectWith;
+						if (data) {
+							var dst = Array.isArray(data) ? data[0]==null ? resolveDsts[data[1]]: data[0]+data[1] : data; 
+							var conn = connectionItems[src+"-"+dst];
+							if (conn) {
+								var cond = checkCondition(needUpdate.condition, allMessages);
+								var type = needUpdate.type[cond?0:1];
+								console.log("need update "+needUpdate.type+": "+conn+" to "+type);
+								conn.conn.setType(type);
+							} else console.log("need update "+needUpdate.type+": "+conn);
 						}
 					}
 					running = false;
