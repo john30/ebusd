@@ -134,7 +134,7 @@ jsPlumb.ready(function() {
 				}
 			}
 			if (anchor.hasOwnProperty('connectWith') && needConnections) {
-				needConnections.push(new Array(anchUUID).concat(anchor.connectWith)); // to-circuit, to-endpoint[, item-circuit, item-name[, item-parts]]
+				needConnections.push(new Array(anchUUID).concat(anchor.connectWith)); // to-circuit, to-endpoint[, item-circuit, item-name[, item-format]]
 			}
 			var endp = instance.addEndpoint(divId, endpoint, {
 				anchor: anchor.anchor, uuid: anchUUID,
@@ -205,8 +205,8 @@ jsPlumb.ready(function() {
 
 		var heat = false, water = false;
 		var switchActions = {
-			broadcasthwStatus: function(fields){
-				console.log("action broadcasthwStatus:"+fields);
+			/*"broadcast/hwcStatus": function(fields){
+				console.log("action broadcast/hwcStatus:"+fields);
 				if (!fields) return;
 				var val = fields[0].value;
 				if (val=='on') {
@@ -227,11 +227,11 @@ jsPlumb.ready(function() {
 					}
 				}
 			},
-			bcStatus: function(fields) {
-				console.log("action bcStatus:"+fields);
+			"ehp/HwcHcValve": function(fields) {
+				console.log("action ehp/HwcHcValve:"+fields);
 				if (!fields) return;
-				var val = fields[3].value;
-				if (val=='03 2c 00 00') { // heat
+				var val = fields['onoff'].value;
+				if (val=='off') { // heat
 					heat = true;
 					ehpFlow.addType("hot");
 					hwcFlow.removeType("hot");
@@ -248,21 +248,21 @@ jsPlumb.ready(function() {
 						hwcReturn.removeType("cold");
 					}
 				}
-			}
+			}*/
 		};
-		var buildText = function(parts, fields) {
+		var buildText = function(format, fields) {
 			var ret = '';
-			if (parts) {
-				parts = parts.split(' ');
-				for (var i=0; i<parts.length; i++) {
+			if (format) {
+				format = format.split(' ');
+				for (var i=0; i<format.length; i++) {
 					if (ret.length>0) ret += ',&nbsp;';
-					if (isNaN(parts[i])) {
-						if (parts[i]=='\\n')
+					if (format[i][0]!='$') {
+						if (format[i]=='\\n')
 							ret += "<br>";
 						else
-							ret += parts[i];
-					} else if (fields && fields.hasOwnProperty(parts[i])){
-						var field = fields[parts[i]];
+							ret += format[i];
+					} else if (fields && fields.hasOwnProperty(format[i].substring(1))){
+						var field = fields[format[i].substring(1)];
 						ret += field.hasOwnProperty('value')&&field.value!=null?field.value:'?';
 						if (field.unit) {
 							ret += '&nbsp;'+field.unit;
@@ -272,7 +272,7 @@ jsPlumb.ready(function() {
 					}
 				}
 			} else if (fields) {
-				for (var i=0; i<fields.length; i++) {
+				for (var i in fields) {
 					if (ret.length>0) ret += ',&nbsp;';
 					var field = fields[i];
 					ret += field.hasOwnProperty('value')&&field.value!=null?field.value:'?';
@@ -298,19 +298,23 @@ jsPlumb.ready(function() {
 			return ret?ret[0]:null;
 		};
 		var checkCondition = function(condition, allMessages) {
-			for (var k=0; k<condition.length; k++) { // "and" loop
-				var cond = condition[k];
+			for (var k=0; k+2<condition.length; k+=3) { // "and" loop
 				var found = false;
-				for (var i=0; i+2<cond.length; i+=3) { // "or" loop
-					var fields = allMessages[cond[i]][cond[i+1]].fields;
-					if (!fields || !fields[0] || !fields[0].hasOwnProperty('value') || !isNaN(cond[i+2]) && isNaN(fields[0].value)) {
-						fields = getFields(cond[i], cond[i+1], true, false, true);
-						if (!fields || !fields[0] || !fields[0].hasOwnProperty('value')) continue;
+				var fields = allMessages[condition[k]][condition[k+1]].fields;
+				var cond = condition[k+2];
+				if (!fields || !fields[0] || !fields[0].hasOwnProperty('value') || !isNaN(Array.isArray(cond) ? cond[0] : cond) && isNaN(fields[0].value)) {
+					fields = getFields(condition[k], condition[k+1], true, false, true);
+					if (!fields || !fields[0] || !fields[0].hasOwnProperty('value')) return false;
+				}
+				if (Array.isArray(cond)) {
+					for (var i=0; i<cond.length; i++) { // "or" loop
+						if (fields[0].value==cond[i]) {
+							found = true;
+							break;
+						}
 					}
-					if (fields[0].value==cond[i+2]) {
-						found = true;
-						break;
-					}
+				} else if (fields[0].value==cond) {
+					found = true;
 				}
 				if (!found) return;
 			}
@@ -360,12 +364,12 @@ jsPlumb.ready(function() {
 				var ichild = document.createElement("div");
 				ichild.className = "circuitLabel";
 				ichild.setAttribute('data-id', circuit+'/'+mname);
-				if (item.hasOwnProperty('parts')) {
-					ichild.setAttribute('data-parts', item.parts);
+				if (item.hasOwnProperty('format')) {
+					ichild.setAttribute('data-format', item.format);
 				}
 				ichild.style.left = Math.floor((item.leftc?item.leftc:item.left)*width)+'px';
 				ichild.style.top = Math.floor((item.topc?item.topc:item.top)*height)+'px';
-				ichild.innerHTML = buildText(item.parts, message?message.fields:null);
+				ichild.innerHTML = buildText(item.format, message?message.fields:null);
 				child.appendChild(ichild);
 				if (item.leftc) {
 					ichild.style.left = Math.floor(item.leftc*width-ichild.clientWidth/2)+'px';
@@ -414,7 +418,7 @@ jsPlumb.ready(function() {
 				var first = true;
 				for (var i=0; i<needConnections.length; i++) {
 					var data = needConnections[i];
-					// fromuuid, to-circuit|null, to-endpoint[, item-circuit, item-name[, item-parts]]
+					// fromuuid, to-circuit|null, to-endpoint[, item-circuit, item-name[, item-format]]
 					var src = data[0], dst;
 					if (data[1]==null) {
 						if (first) {
@@ -473,7 +477,7 @@ jsPlumb.ready(function() {
 							if (fields) {
 								var elems = $$('div[data-id="'+needUris[i]+'"]');
 								each(elems, function(elem) {
-									elem.innerHTML = buildText(elem.getAttribute('data-parts'), fields);
+									elem.innerHTML = buildText(elem.getAttribute('data-format'), fields);
 								});
 							}
 						}
@@ -516,10 +520,10 @@ jsPlumb.ready(function() {
 							var fields = message.fields;
 							var key = cname+'/'+mname;
 							var needed = false;
-							/*if (switchActions.hasOwnProperty(key)) {
+							if (switchActions.hasOwnProperty(key)) {
 								switchActions[key](fields);
 								needed = true;
-							}*/
+							}
 							var elems = $$('div[data-id="'+key+'"]');
 							if (elems.length>0) {
 								needed = true;
@@ -528,7 +532,7 @@ jsPlumb.ready(function() {
 								continue;
 							}
 							each(elems, function(elem) {
-								elem.innerHTML = buildText(elem.getAttribute('data-parts'), fields);
+								elem.innerHTML = buildText(elem.getAttribute('data-format'), fields);
 							});
 						}
 					}

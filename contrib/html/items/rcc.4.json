@@ -5,6 +5,6 @@
 	"image-pos": [10,0],
 	"items": [
 		{"circuit": "uih", "name": "HcName4", "top": 0.1, "leftc": 0.5},
-		{"name": "RoomTemp", "parts": "0", "top": 1, "left": 0}
+		{"name": "RoomTemp", "format": "$temp", "top": 1, "left": 0}
 	]
 }

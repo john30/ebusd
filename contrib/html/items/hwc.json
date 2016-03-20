@@ -1,4 +1,4 @@
- {
+{
 	"title": "Warmwasser",
 	"bounds": [510,40,174,52],
 	"image": "hwc.svg",
@@ -9,6 +9,6 @@
 	"items": [
 		{"name": "OperatingMode", "topc": 0.2, "left": 0.6},
 		{"circuit": "ehp", "name": "CirPump", "topc": 0.8, "leftc": 0.85},
-		{"circuit": "cp", "name": "Mode", "parts": "1 0", "top": 1, "left": 0.6}
+		{"circuit": "cc", "name": "Mode", "format": "$1 $0", "top": 1, "left": 0.6}
 	]
- }
+}

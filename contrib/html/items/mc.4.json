@@ -9,11 +9,11 @@
 		{"name":"HcReturn", "anchor": [1, 0.96, 1, 0]}
 	],
 	"items": [
-		{"name": "Status", "parts": "2", "top": 0.04, "left": 0.04},
+		{"name": "Status", "format": "$2", "top": 0.04, "left": 0.04},
 		{"circuit": "uih", "name": "HcName4", "top": 0.25, "leftc": 0.5},
-		{"name": "Mode", "parts": "1 0", "topc": 0.4, "leftc": 0.5},
+		{"name": "Mode", "format": "$1 $0", "topc": 0.4, "leftc": 0.5},
 		{"name": "HcPumpPort", "topc": 0.56, "leftc": 0.22},
 		{"name": "MixerDutyCycle", "topc": 0.73, "leftc": 0.24},
-		{"name": "Status", "parts": "1 0", "topc": 0.9, "leftc": 0.4}
+		{"name": "Status", "format": "$1 $0", "topc": 0.9, "leftc": 0.4}
 	]
 }
