@@ -75,7 +75,7 @@ static struct options opt = {
 	9400, // acquireTimeout
 	3, // acquireRetries
 	2, // sendRetries
-	SLAVE_RECV_TIMEOUT, // receiveTimeout
+	SLAVE_RECV_TIMEOUT*5/3, // receiveTimeout
 	0, // masterCount
 	false, // generateSyn
 	false, // foreground
@@ -130,7 +130,7 @@ static const char argpdoc[] =
 /** the definition of the known program arguments. */
 static const struct argp_option argpoptions[] = {
 	{NULL,             0,        NULL,    0, "Device options:", 1 },
-	{"device",         'd',      "DEV",   0, "Use DEV as eBUS device (serial device or ip:port) [/dev/ttyUSB0]", 0 },
+	{"device",         'd',      "DEV",   0, "Use DEV as eBUS device (serial or ip:port) [/dev/ttyUSB0]", 0 },
 	{"nodevicecheck",  'n',      NULL,    0, "Skip serial eBUS device test", 0 },
 	{"readonly",       'r',      NULL,    0, "Only read from device, never write to it", 0 },
 
@@ -147,7 +147,7 @@ static const struct argp_option argpoptions[] = {
 	{"acquiretimeout", O_ACQTIM, "USEC",  0, "Stop bus acquisition after USEC us [9400]", 0 },
 	{"acquireretries", O_ACQRET, "COUNT", 0, "Retry bus acquisition COUNT times [3]", 0 },
 	{"sendretries",    O_SNDRET, "COUNT", 0, "Repeat failed sends COUNT times [2]", 0 },
-	{"receivetimeout", O_RCVTIM, "USEC",  0, "Expect a slave to answer within USEC us [15000]", 0 },
+	{"receivetimeout", O_RCVTIM, "USEC",  0, "Expect a slave to answer within USEC us [25000]", 0 },
 	{"numbermasters",  O_MASCNT, "COUNT", 0, "Expect COUNT masters on the bus, 0 for auto detection [0]", 0 },
 	{"generatesyn",    O_GENSYN, NULL,    0, "Enable AUTO-SYN symbol generation", 0 },
 
@@ -279,7 +279,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 			return EINVAL;
 		}
 		break;
-	case O_RCVTIM: // --receivetimeout=15000
+	case O_RCVTIM: // --receivetimeout=25000
 		opt->receiveTimeout = parseInt(arg, 10, 1000, 100000, result);
 		if (result != RESULT_OK) {
 			argp_error(state, "invalid receivetimeout");
