@@ -671,7 +671,7 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
 	ostringstream log;
 	result = messages->executeInstructions(verbose, log);
 	if (result != RESULT_OK)
-		logError(lf_main, "error executing instructions: %s, %s", getResultCode(result), messages->getLastError().c_str());
+		logError(lf_main, "error executing instructions: %s, %s, %s", getResultCode(result), messages->getLastError().c_str(), log.str().c_str());
 	else if (log.tellp() > 0)
 		logNotice(lf_main, log.str().c_str());
 
@@ -847,7 +847,7 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 	ostringstream log;
 	result = messages->executeInstructions(false, log);
 	if (result != RESULT_OK)
-		logError(lf_main, "error executing instructions: %s, %s", getResultCode(result), messages->getLastError().c_str());
+		logError(lf_main, "error executing instructions: %s, %s, %s", getResultCode(result), messages->getLastError().c_str(), log.str().c_str());
 	else if (log.tellp() > 0)
 		logNotice(lf_main, log.str().c_str());
 
