@@ -1304,9 +1304,9 @@ string Instruction::getDestination()
 
 result_t LoadInstruction::execute(MessageMap* messages, ostringstream& log) {
 	result_t result = messages->readFromFile(m_filename, false, m_defaultDest, m_defaultCircuit, m_defaultSuffix);
+	if (log.tellp()>0)
+		log << ", ";
 	if (result!=RESULT_OK) {
-		if (log.tellp()>0)
-			log << ", ";
 		log << "error " << (isSingleton() ? "loading " : "including ") << m_filename << " for \"" << getDestination() << "\": " << getResultCode(result);
 		return result;
 	}
@@ -1558,6 +1558,7 @@ Message* MessageMap::getScanMessage(const unsigned char dstAddress)
 }
 
 result_t MessageMap::resolveConditions(bool verbose) {
+	m_lastError = "";
 	result_t overallResult = RESULT_OK;
 	for (map<string, Condition*>::iterator it = m_conditions.begin(); it != m_conditions.end(); it++) {
 		Condition* condition = it->second;
@@ -1584,6 +1585,7 @@ result_t MessageMap::resolveCondition(Condition* condition) {
 }
 
 result_t MessageMap::executeInstructions(bool verbose, ostringstream& log) {
+	m_lastError = "";
 	result_t overallResult = RESULT_OK;
 	for (map<string, vector<Instruction*> >::iterator it = m_instructions.begin(); it != m_instructions.end(); it++) {
 		vector<Instruction*> instructions = it->second;
