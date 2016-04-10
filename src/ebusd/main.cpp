@@ -612,7 +612,6 @@ static bool readTemplates(const string path, const string extension, bool availa
  * Read the configuration files from the specified path.
  * @param path the path from which to read the files.
  * @param extension the filename extension of the files to read.
- * @param templates the available @a DataFieldTemplates.
  * @param messages the @a MessageMap to load the messages into.
  * @param recursive whether to load all files recursively.
  * @param verbose whether to verbosely log problems.
@@ -673,7 +672,7 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
 	if (result != RESULT_OK)
 		logError(lf_main, "error executing instructions: %s, %s, %s", getResultCode(result), messages->getLastError().c_str(), log.str().c_str());
 	else if (log.tellp() > 0)
-		logNotice(lf_main, log.str().c_str());
+		logInfo(lf_main, log.str().c_str());
 
 	logNotice(lf_main, "found messages: %d (%d conditional on %d conditions, %d poll, %d update)", messages->size(), messages->sizeConditional(), messages->sizeConditions(), messages->sizePoll(), messages->sizePassive());
 
@@ -698,7 +697,8 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 		}
 	}
 	DataFieldSet* identFields = DataFieldSet::getIdentFields();
-	string path, prefix, ident, sw, hw; // path: cfgpath/MANUFACTURER, prefix: ZZ., ident: C[C[C[C[C]]]], SW: xxxx, HW: xxxx
+	string path, prefix, ident; // path: cfgpath/MANUFACTURER, prefix: ZZ., ident: C[C[C[C[C]]]], SW: xxxx, HW: xxxx
+	unsigned int sw, hw;
 	ostringstream out;
 	unsigned char offset = 0;
 	size_t field = 0;
@@ -721,13 +721,11 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 		ident = out.str();
 		out.str("");
 		offset = (unsigned char)(offset+(*identFields)[field++]->getLength(partType));
-		result = (*identFields)[field]->read(partType, data, offset, out, 0); // software version number
+		result = (*identFields)[field]->read(partType, data, offset, sw, 0); // software version number
 	}
 	if (result==RESULT_OK) {
-		sw = out.str();
-		out.str("");
 		offset = (unsigned char)(offset+(*identFields)[field++]->getLength(partType));
-		result = (*identFields)[field]->read(partType, data, offset, out, 0); // hardware version number
+		result = (*identFields)[field]->read(partType, data, offset, hw, 0); // hardware version number
 	}
 	if (result!=RESULT_OK) {
 		logError(lf_main, "unable to load scan config %2.2x: decode %s", address, getResultCode(result));
@@ -735,7 +733,6 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 	}
 	vector<string> files;
 	bool hasTemplates = false;
-	hw = out.str();
 	// find files matching MANUFACTURER/ZZ.*csv in cfgpath
 	result = collectConfigFiles(path, prefix, ".csv", files, NULL, &hasTemplates);
 	logDebug(lf_main, "found %d matching scan config files from %s with prefix %s: %s", files.size(), path.c_str(), prefix.c_str(), getResultCode(result));
@@ -747,8 +744,6 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 		logError(lf_main, "unable to load scan config %2.2x: no file from %s with prefix %s found", address, path.c_str(), prefix.c_str());
 		return RESULT_ERR_NOTFOUND;
 	}
-
-	// complete name: cfgpath/MANUFACTURER/ZZ[.C[C[C[C[C]]]]][.index][.*][.SWxxxx][.HWxxxx][.*].csv
 	for (string::iterator it = ident.begin(); it!=ident.end(); it++) {
 		if (::isspace(*it)) {
 			ident.erase(it--);
@@ -756,59 +751,47 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 			*it = (char)::tolower(*it);
 		}
 	}
-	size_t prefixLen = path.length()+1+prefix.length()-1;
+	// complete name: cfgpath/MANUFACTURER/ZZ[.C[C[C[C[C]]]]][.circuit][.suffix][.*][.SWxxxx][.HWxxxx][.*].csv
 	size_t bestMatch = 0;
 	string best;
 	for (vector<string>::iterator it = files.begin(); it!=files.end(); it++) {
 		string name = *it;
-		name = name.substr(prefixLen, name.length()-prefixLen+1-strlen(".csv")); // .*.
+		unsigned char checkDest;
+		string checkIdent, useCircuit, useSuffix;
+		unsigned int checkSw, checkHw;
+		if (!FileReader::extractDefaultsFromFilename(name.substr(path.length()+1), checkDest, checkIdent, useCircuit, useSuffix, checkSw, checkHw)) {
+			continue;
+		}
+		if (address!=checkDest || (checkSw!=UINT_MAX && sw!=checkSw) || (checkHw!=UINT_MAX && hw!=checkHw)) {
+			continue;
+		}
 		size_t match = 1;
-		if (name.length()>2) { // more than just "."
-			size_t pos = name.rfind(".SW"); // check for ".SWxxxx."
-			if (pos!=string::npos && name.find(".", pos+1)==pos+7) {
-				if (name.substr(pos+3, 4)==sw)
-					match += 6;
-				else {
-					continue; // SW mismatch
+		if (!checkIdent.empty()) {
+			string remain = ident;
+			bool matches = false;
+			while (remain.length()>0 && remain.length()>=checkIdent.length()) {
+				if (checkIdent==remain) {
+					matches = true;
+					break;
 				}
+				if (remain[remain.length()-1]<'0' || remain[remain.length()-1]>'9')
+					break;
+				remain.erase(remain.length()-1); // remove trailing digit
 			}
-			pos = name.rfind(".HW"); // check for ".HWxxxx."
-			if (pos!=string::npos && name.find(".", pos+1)==pos+7) {
-				if (name.substr(pos+3, 4)==hw)
-					match += 6;
-				else {
-					continue; // HW mismatch
-				}
+			if (!matches) {
+				continue; // IDENT mismatch
 			}
-			pos = name.find(".", 1); // check for ".C[C[C[C[C]]]]."
-			if (ident.length()>0 && pos!=string::npos && pos>1 && pos<=6) { // up to 5 chars between two "."s, immediately after "ZZ."
-				string check = name.substr(1, pos-1);
-				string remain = ident;
-				bool matches = false;
-				while (remain.length()>0 && remain.length()>=check.length()) {
-					if (check==remain) {
-						matches = true;
-						break;
-					}
-					if (remain[remain.length()-1]<'0' || remain[remain.length()-1]>'9')
-						break;
-					remain.erase(remain.length()-1); // remove trailing digit
-				}
-				if (matches)
-					match += remain.length();
-				else {
-					continue; // IDENT mismatch
-				}
-			}
+			match += remain.length();
 		}
 		if (match>=bestMatch) {
 			bestMatch = match;
-			best = *it;
+			best = name;
 		}
+		break;
 	}
 
-	if (best.length()==0) {
-		logError(lf_main, "unable to load scan config %2.2x: no file from %s with prefix %s matches ID \"%s\", SW%s, HW%s", address, path.c_str(), prefix.c_str(), ident.c_str(), sw.c_str(), hw.c_str());
+	if (best.empty()) {
+		logError(lf_main, "unable to load scan config %2.2x: no file from %s with prefix %s matches ID \"%s\", SW%4.4d, HW%4.4d", address, path.c_str(), prefix.c_str(), ident.c_str(), sw, hw);
 		return RESULT_ERR_NOTFOUND;
 	}
 
@@ -835,10 +818,10 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 	}
 	result = messages->readFromFile(best, opt.checkConfig);
 	if (result!=RESULT_OK) {
-		logError(lf_main, "error reading scan config file %s for ID \"%s\", SW%s, HW%s: %s", best.c_str(), ident.c_str(), sw.c_str(), hw.c_str(), getResultCode(result));
+		logError(lf_main, "error reading scan config file %s for ID \"%s\", SW%4.4d, HW%4.4d: %s", best.c_str(), ident.c_str(), sw, hw, getResultCode(result));
 		return result;
 	}
-	logNotice(lf_main, "read scan config file %s for ID \"%s\", SW%s, HW%s", best.c_str(), ident.c_str(), sw.c_str(), hw.c_str());
+	logNotice(lf_main, "read scan config file %s for ID \"%s\", SW%4.4d, HW%4.4d", best.c_str(), ident.c_str(), sw, hw);
 
 	result = messages->resolveConditions(false);
 	if (result != RESULT_OK)
@@ -849,7 +832,7 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 	if (result != RESULT_OK)
 		logError(lf_main, "error executing instructions: %s, %s, %s", getResultCode(result), messages->getLastError().c_str(), log.str().c_str());
 	else if (log.tellp() > 0)
-		logNotice(lf_main, log.str().c_str());
+		logInfo(lf_main, log.str().c_str());
 
 	logNotice(lf_main, "found messages: %d (%d conditional on %d conditions, %d poll, %d update)", messages->size(), messages->sizeConditional(), messages->sizeConditions(), messages->sizePoll(), messages->sizePassive());
 	relativeFile = best.substr(strlen(opt.configPath)+1);

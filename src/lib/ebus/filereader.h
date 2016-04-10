@@ -21,6 +21,7 @@
 
 #include "symbol.h"
 #include "result.h"
+#include <climits>
 #include <string>
 #include <iostream>
 #include <sstream>
@@ -93,25 +94,19 @@ public:
 			return RESULT_ERR_NOTFOUND;
 		}
 		size_t lastSep = filename.find_last_of('/');
-		size_t firstDot = filename.find_first_of('.', lastSep+1);
-		if (lastSep!=string::npos && firstDot==lastSep+1+2) { // potential destination address, matches "^ZZ."
-			result_t result;
-			string str = filename.substr(lastSep+1, 2);
-			unsigned char zz = (unsigned char)parseInt(str.c_str(), 16, 0, 0xff, result, NULL);
-			if (result==RESULT_OK && isValidAddress(zz)) {
-				defaultDest = str;
-				size_t endDot = filename.find_first_of('.', firstDot+1);
-				if (endDot>firstDot && endDot-firstDot<=6) { // potential ident, matches "^ZZ.IDENT."
-					str = filename.substr(firstDot+1, endDot-firstDot-1); // IDENT
-					if (str.find_first_of(' ')==string::npos) {
-						defaultCircuit = str;
-						size_t nextDot = filename.find_first_of('.', endDot+1);
-						if (nextDot!=string::npos && nextDot>endDot+1) { // potential index suffix, matches "^ZZ.IDENT.[0-9]*."
-							parseInt(filename.substr(endDot+1, nextDot-endDot-1).c_str(), 10, 1, 16, result, NULL);
-							if (result==RESULT_OK)
-								defaultSuffix = filename.substr(endDot, nextDot-endDot); // .[0-9]*
-						}
-					}
+		if (lastSep!=string::npos) { // potential destination address, matches "^ZZ."
+			// extract defaultDest, defaultCircuit, defaultSuffix from filename:
+			// ZZ.IDENT[.CIRCUIT][.SUFFIX].*csv
+			unsigned char checkDest;
+			string checkIdent, useCircuit, useSuffix;
+			unsigned int checkSw, checkHw;
+			if (extractDefaultsFromFilename(filename.substr(lastSep+1), checkDest, checkIdent, useCircuit, useSuffix, checkSw, checkHw)) {
+				defaultDest = filename.substr(lastSep+1, 2);
+				if (!useCircuit.empty()) {
+					defaultCircuit = useCircuit;
+				}
+				if (!useSuffix.empty()) {
+					defaultSuffix = useSuffix;
 				}
 			}
 		}
@@ -304,6 +299,75 @@ public:
 			return read;
 		}
 		row.push_back(str);
+		return true;
+	}
+
+	/**
+	 * Extract default values from the file name.
+	 * @param name the file name (without path) in the form "ZZ[.IDENT][.CIRCUIT][.SUFFIX][.SWXXXX][.HWXXXX][.*].csv".
+	 * @param dest the output destination address ZZ (hex digits).
+	 * @param ident the identification part IDENT (up to 5 characters, set to empty if not present).
+	 * @param circuit the circuit part CIRCUIT (set to IDENT if not present).
+	 * @param suffix the suffix part SUFFIX including the leading dot (decimal digit, set to empty if not present).
+	 * @param software the software version part SWXXXX (BCD digits, set to @a UINT_MAX if not present).
+	 * @param hardware the hardware version part HWXXXX (BCD digits, set to @a UINT_MAX if not present).
+	 * @return true if at least the address and the identification part were extracted, false otherwise.
+	 */
+	static bool extractDefaultsFromFilename(string name, unsigned char& dest, string& ident, string& circuit,
+		string& suffix, unsigned int& software, unsigned int& hardware)
+	{
+		ident = circuit = suffix = "";
+		software = hardware = UINT_MAX;
+		if (name.length()>4 && name.substr(name.length()-4)==".csv") {
+			name = name.substr(0, name.length()-3); // including trailing "."
+		}
+		size_t pos = name.find('.');
+		if (pos!=2) {
+			return false; // missing "ZZ."
+		}
+		result_t result = RESULT_OK;
+		dest = (unsigned char)parseInt(name.substr(0, pos).c_str(), 16, 0, 0xff, result, NULL);
+		if (result!=RESULT_OK || !isValidAddress(dest)) {
+			return false; // invalid "ZZ"
+		}
+		name.erase(0, pos);
+		if (name.length()>1) {
+			pos = name.rfind(".SW"); // check for ".SWxxxx."
+			if (pos!=string::npos && name.find(".", pos+1)==pos+7) {
+				software = parseInt(name.substr(pos+3, 4).c_str(), 10, 0, 9999, result, NULL);
+				if (result!=RESULT_OK) {
+					return false; // invalid "SWxxxx"
+				}
+				name.erase(pos, 7);
+			}
+		}
+		if (name.length()>1) {
+			pos = name.rfind(".HW"); // check for ".HWxxxx."
+			if (pos!=string::npos && name.find(".", pos+1)==pos+7) {
+				hardware = parseInt(name.substr(pos+3, 4).c_str(), 10, 0, 9999, result, NULL);
+				if (result!=RESULT_OK) {
+					return false; // invalid "HWxxxx"
+				}
+				name.erase(pos, 7);
+			}
+		}
+		if (name.length()>1) {
+			pos = name.find('.', 1); // check for ".IDENT."
+			if (pos!=string::npos && pos>2 && pos<=6) { // up to 5 chars between two "."s, immediately after "ZZ."
+				ident = circuit = name.substr(1, pos-1);
+				name.erase(0, pos);
+				pos = name.find('.', 1); // check for ".CIRCUIT."
+				if (pos!=string::npos && (pos>2 || name[1]<'0' || name[1]>'9')) {
+					circuit = name.substr(1, pos-1);
+					name.erase(0, pos);
+					pos = name.find('.', 1); // check for ".SUFFIX."
+				}
+				if (pos!=string::npos && pos==2 && name[1]>='0' && name[1]<='9') {
+					suffix = name.substr(0, 2);
+					name.erase(0, pos);
+				}
+			}
+		}
 		return true;
 	}
 
