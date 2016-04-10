@@ -1587,6 +1587,7 @@ result_t MessageMap::resolveCondition(Condition* condition) {
 result_t MessageMap::executeInstructions(bool verbose, ostringstream& log) {
 	m_lastError = "";
 	result_t overallResult = RESULT_OK;
+	vector<string> remove;
 	for (map<string, vector<Instruction*> >::iterator it = m_instructions.begin(); it != m_instructions.end(); it++) {
 		vector<Instruction*> instructions = it->second;
 		bool removeSingletons = false;
@@ -1633,10 +1634,13 @@ result_t MessageMap::executeInstructions(bool verbose, ostringstream& log) {
 			}
 		}
 		if (remain.empty()) {
-			m_instructions.erase(it--);
+			remove.push_back(it->first);
 		} else {
 			it->second = remain;
 		}
+	}
+	for (vector<string>::iterator it = remove.begin(); it != remove.end(); it++) {
+		m_instructions.erase(*it);
 	}
 	return overallResult;
 }
