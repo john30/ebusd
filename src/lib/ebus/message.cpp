@@ -1096,6 +1096,9 @@ SimpleCondition* SimpleCondition::derive(string valueList)
 {
 	if (valueList.empty())
 		return NULL;
+	string name = m_condName+valueList;
+	if (valueList[0]=='=')
+		valueList.erase(0);
 	result_t result;
 	if (valueList[0]=='\'') {
 		// strings
@@ -1103,7 +1106,7 @@ SimpleCondition* SimpleCondition::derive(string valueList)
 		result = splitValues(valueList, values);
 		if (result!=RESULT_OK)
 			return NULL;
-		return new SimpleStringCondition(m_condName+valueList, m_circuit, m_name, m_dstAddress, m_field, values);
+		return new SimpleStringCondition(name, m_circuit, m_name, m_dstAddress, m_field, values);
 	}
 	// numbers
 	if (!isNumeric())
@@ -1112,7 +1115,7 @@ SimpleCondition* SimpleCondition::derive(string valueList)
 	result = splitValues(valueList, valueRanges);
 	if (result!=RESULT_OK)
 		return NULL;
-	return new SimpleNumericCondition(m_condName+valueList, m_circuit, m_name, m_dstAddress, m_field, valueRanges);
+	return new SimpleNumericCondition(name, m_circuit, m_name, m_dstAddress, m_field, valueRanges);
 }
 
 void SimpleCondition::dump(ostream& output)
@@ -1443,8 +1446,6 @@ result_t MessageMap::readConditions(string& types, const string& filename, Condi
 						it = m_conditions.find(key.substr(0, pos));
 						if (it!=m_conditions.end()) {
 							// derive from another condition
-							if (key[pos]=='=')
-								pos++;
 							add = it->second->derive(key.substr(pos));
 							if (add==NULL) {
 								m_lastError = "derive condition with values "+key.substr(pos)+" failed";
