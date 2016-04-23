@@ -1,10 +1,12 @@
-# next version
+# next version: 2.1
 
 ## Bug fixes
 * require "-c" in write command
 * corrected duplicate messages check with condition
 * corrected maximum values for BCD and HCD types
 * corrected weekday calculation (for smaller systems mainly)
+* corrected determination of field name uniqueness
+* corrected JSON read of passive messages
 
 ## Features
 * allow CSV to contain empty lines (no field filled in)
@@ -12,6 +14,13 @@
 * added data type NTS (null terminated string)
 * added EXP and EXR data types (exponential)
 * added option for changing PID file
+* allow using newlines within quoted fields in CSV
+* changed ebusd default address to 0x31
+* added support for string based conditions and on-the-fly condition definition
+* added "!load" and "!include" instruction for CSV
+* enhanced HTTP user interface
+* increased default receive timeout to 25ms
+* extract default circuit name from CSV file name
 
 
 # 2.0 (2016-01-06)
