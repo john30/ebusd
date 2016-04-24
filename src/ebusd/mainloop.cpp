@@ -710,10 +710,10 @@ string MainLoop::executeHex(vector<string> &args)
 
 	return "usage: hex ZZPBSBNNDx\n"
 		   " Send arbitrary data in hex (only if enabled).\n"
-		   "  ZZ        destination address\n"
-		   "  PB SB     primary/secondary command byte\n"
-		   "  NN        number of following data bytes\n"
-		   "  Dx        data byte(s) to send";
+		   "  ZZ     destination address\n"
+		   "  PB SB  primary/secondary command byte\n"
+		   "  NN     number of following data bytes\n"
+		   "  Dx     data byte(s) to send";
 }
 
 string MainLoop::executeFind(vector<string> &args)
