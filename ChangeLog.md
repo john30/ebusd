@@ -1,5 +1,12 @@
 # next version: 2.1
 
+## Breaking Changes
+* added "hex" command for sending arbitrary hex data, disable it by default (use "--enablehex" command line option), and limit "write -h" command to known messages only.  
+  This increases security by avoiding unintended sending of arbitrary messages.
+* changed ebusd default address to 0x31 in order to avoid address conflicts with popular devices on the bus
+* added "!load" instruction for CSV configuration files allowing conditional loading of single other CSV file
+* added "!include" instruction for CSV configuration files in order to include other files
+
 ## Bug fixes
 * require "-c" in write command
 * corrected duplicate messages check with condition
@@ -15,12 +22,12 @@
 * added EXP and EXR data types (exponential)
 * added option for changing PID file
 * allow using newlines within quoted fields in CSV
-* changed ebusd default address to 0x31
 * added support for string based conditions and on-the-fly condition definition
-* added "!load" and "!include" instruction for CSV
 * enhanced HTTP user interface
 * increased default receive timeout to 25ms
 * extract default circuit name from CSV file name
+* automatically start grabbing all messages
+* add circuit+message name of known messages to grab result
 
 
 # 2.0 (2016-01-06)
@@ -28,7 +35,7 @@
 ## Breaking Changes
 * automatic configuration file selection by querying device identification ("--scanconfig").  
   Previous configuration files are still usable, but only without the "--scanconfig" command line parameter to ebusd (unless the files are renamed).  
-  This is now enabled by default in the init.d (or systemd) scripts to work with ebusd-2.x.x configuration files. 
+  This is now enabled by default in the init.d (or systemd) scripts to work with ebusd-2.x.x configuration files.
 * support for chained messages with fields covering more than one message ID
 
 ## Bug fixes
@@ -60,7 +67,7 @@
 * extended "-i" parameter of "find" command to accept further ID parts
 * include decode problems instead of returning invalid JSON
 * extended allowed message ID length and max STR and HEX length
-* extended "grab" comamnd with "all" option for grabbing all messages instead of only unknown
+* extended "grab" command with "all" option for grabbing all messages instead of only unknown
 * allow float values being used for int types
 * added big endian data type variants (UIR, SIR, FLR, ULR, SLR)
 * use numeric value as fallback for value lists with unknown value association
@@ -100,7 +107,7 @@ https://github.com/john30/ebusd/compare/v1.3.0...v2.0
 * allow static ".json" files being served by HTTP port
 * allow passing raw value when writing name/value pairs
 * enhanced static HTML user interface to dynamic
-* added possiblity to use a different name for referenced field template
+* added possibility to use a different name for referenced field template
 * added data type HCD (for Ochsner)
 * added base type TTH (truncated time with 30 minutes resolution)
 * added base type VTM (reverse HTM)
@@ -161,7 +168,7 @@ https://github.com/john30/ebusd/compare/v1.1.0...v1.2.0
 * support reciprocal divisor
 * cache symbols instead of formatted strings. this allows retrieval of individual fields and verbose read from cache
 * removed valid CRCs from log and hex "write"
-* shortened manufcaturer names for "scan"
+* shortened manufacturer names for "scan"
 * allow specifying multiple destination addresses in message definition and defaults
 * added Arch Linux PKGBUILD scripts (thanks to cogano)
 * new "read" command option "-d ZZ" for overriding destination address (e.g. for manual scan)
