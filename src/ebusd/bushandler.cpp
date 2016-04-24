@@ -785,10 +785,15 @@ void BusHandler::receiveCompleted()
 	if (m_grabUnknownMessages==gr_all || (message==NULL && m_grabUnknownMessages==gr_unknown)) {
 		string data;
 		string key = data = m_command.getDataStr();
-		if (key.length() > 2*(1+1+2+1+4))
+		if (key.length() > 2*(1+1+2+1+4)) {
 			key = key.substr(0, 2*(1+1+2+1+4)); // QQZZPBSBNN + up to 4 DD bytes
-		if (dstAddress != BROADCAST && !master)
+		}
+		if (dstAddress != BROADCAST && !master) {
 			data += " / " + m_response.getDataStr();
+		}
+		if (message) {
+			data += " = "+message->getCircuit()+" "+message->getName();
+		}
 		m_grabbedUnknownMessages[key] = data;
 	}
 	if (message == NULL) {
