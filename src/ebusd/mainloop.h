@@ -72,6 +72,9 @@ private:
 	/** whether to pick configuration files matching initial scan. */
 	const bool m_scanConfig;
 
+	/** whether to enable the hex command. */
+	const bool m_enableHex;
+
 	/** the created @a BusHandler instance. */
 	BusHandler* m_busHandler;
 
@@ -126,6 +129,13 @@ private:
 	 * @return the result string.
 	 */
 	string executeWrite(vector<string> &args);
+
+	/**
+	 * Execute the hex command.
+	 * @param args the arguments passed to the command (starting with the command itself), or empty for help.
+	 * @return the result string.
+	 */
+	string executeHex(vector<string> &args);
 
 	/**
 	 * Execute the find command.

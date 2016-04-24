@@ -42,7 +42,7 @@ static const char* columnNames[] = {
 static const size_t columnCount = sizeof(columnNames) / sizeof(char*);
 
 MainLoop::MainLoop(const struct options opt, Device *device, MessageMap* messages)
-	: m_device(device), m_messages(messages), m_address(opt.address), m_scanConfig(opt.scanConfig)
+	: m_device(device), m_messages(messages), m_address(opt.address), m_scanConfig(opt.scanConfig), m_enableHex(opt.enableHex)
 {
 	// setup Device
 	m_device->setLogRaw(opt.logRaw);
@@ -245,6 +245,11 @@ string MainLoop::decodeMessage(const string& data, const bool isHttp, bool& conn
 		return executeRead(args);
 	if (strcasecmp(str, "W") == 0 || strcasecmp(str, "WRITE") == 0)
 		return executeWrite(args);
+	if (strcasecmp(str, "HEX") == 0) {
+		if (m_enableHex)
+			return executeHex(args);
+		return "ERR: command not enabled";
+	}
 	if (strcasecmp(str, "F") == 0 || strcasecmp(str, "FIND") == 0)
 		return executeFind(args);
 	if (strcasecmp(str, "L") == 0 || strcasecmp(str, "LISTEN") == 0)
@@ -412,10 +417,10 @@ string MainLoop::executeRead(vector<string> &args)
 		if (cacheMaster[1] == BROADCAST || isMaster(cacheMaster[1]))
 			return getResultCode(RESULT_ERR_INVALID_ARG);
 
-		logNotice(lf_main, "hex read cmd: %s", cacheMaster.getDataStr(true, false).c_str());
+		logNotice(lf_main, "read hex cmd: %s", cacheMaster.getDataStr(true, false).c_str());
 
 		// find message
-		Message* message = m_messages->find(cacheMaster);
+		Message* message = m_messages->find(cacheMaster, false, true, false, false);
 
 		if (message == NULL)
 			return getResultCode(RESULT_ERR_NOTFOUND);
@@ -441,12 +446,12 @@ string MainLoop::executeRead(vector<string> &args)
 			if (ret==RESULT_OK)
 				ret = message->decodeLastData(result);
 			if (ret >= RESULT_OK)
-				logInfo(lf_main, "hex read %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(), result.str().c_str());
+				logInfo(lf_main, "read hex %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(), result.str().c_str());
 			else
-				logError(lf_main, "hex read %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
+				logError(lf_main, "read hex %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
 			return slave.getDataStr();
 		}
-		logError(lf_main, "hex read %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
+		logError(lf_main, "read hex %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
 		return getResultCode(ret);
 	}
 	if (argPos == 0 || args.size() < argPos + 1 || args.size() > argPos + 2)
@@ -461,14 +466,14 @@ string MainLoop::executeRead(vector<string> &args)
 			   "  -v          be verbose (include circuit, name, field names, units, and comments)\n"
 			   "  -n          use numeric value of value=name pairs\n"
 			   "  -i VALUE    read additional message parameters from VALUE\n"
-			   "  NAME        the NAME of the message to send\n"
+			   "  NAME        NAME of the message to send\n"
 			   "  FIELD       only retrieve the field named FIELD\n"
 			   "  N           only retrieve the N'th field named FIELD (0-based)\n"
 			   "  -h          send hex read message (or answer from cache):\n"
 			   "    ZZ        destination address\n"
 			   "    PB SB     primary/secondary command byte\n"
 			   "    NN        number of following data bytes\n"
-			   "    Dx        the data byte(s) to send";
+			   "    Dx        data byte(s) to send";
 
 	string fieldName;
 	signed char fieldIndex = -2;
@@ -584,10 +589,17 @@ string MainLoop::executeWrite(vector<string> &args)
 		if (ret != RESULT_OK)
 			return getResultCode(ret);
 
-		logNotice(lf_main, "hex write cmd: %s", cacheMaster.getDataStr(true, false).c_str());
+		logNotice(lf_main, "write hex cmd: %s", cacheMaster.getDataStr(true, false).c_str());
 
 		// find message
-		Message* message = m_messages->find(cacheMaster);
+		Message* message = m_messages->find(cacheMaster, false, false, true, false);
+
+		if (message == NULL)
+			return getResultCode(RESULT_ERR_NOTFOUND);
+		if (!message->isWrite())
+			return getResultCode(RESULT_ERR_INVALID_ARG);
+		if (circuit.length() > 0 && circuit!=message->getCircuit())
+			return getResultCode(RESULT_ERR_INVALID_ARG); // non-matching circuit
 
 		// send message
 		SymbolString master(true);
@@ -596,42 +608,38 @@ string MainLoop::executeWrite(vector<string> &args)
 		ret = m_busHandler->sendAndWait(master, slave);
 
 		if (ret == RESULT_OK) {
-			if (message != NULL) { // also updates read messages
-				ret = message->storeLastData(cacheMaster, slave);
-				ostringstream result;
-				if (ret==RESULT_OK)
-					ret = message->decodeLastData(result);
-				if (ret >= RESULT_OK)
-					logInfo(lf_main, "hex write %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(), result.str().c_str());
-				else
-					logError(lf_main, "hex write %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
-			}
+			// also update read messages
+			ret = message->storeLastData(cacheMaster, slave);
+			ostringstream result;
+			if (ret==RESULT_OK)
+				ret = message->decodeLastData(result);
+			if (ret >= RESULT_OK)
+				logInfo(lf_main, "write hex %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(), result.str().c_str());
+			else
+				logError(lf_main, "write hex %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
 			if (master[1] == BROADCAST)
 				return "done broadcast";
 			if (isMaster(master[1]))
 				return getResultCode(RESULT_OK);
 			return slave.getDataStr();
 		}
-		if (message != NULL)
-			logError(lf_main, "hex write %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
-		else
-			logError(lf_main, "hex write: %s", getResultCode(ret));
+		logError(lf_main, "write hex %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
 		return getResultCode(ret);
 	}
 
 	if (argPos == 0 || circuit.empty() || (args.size() != argPos + 2 && args.size() != argPos + 1))
 		return "usage: write [-d ZZ] -c CIRCUIT NAME [VALUE[;VALUE]*]\n"
-			   "  or:  write -h ZZPBSBNNDx\n"
+			   "  or:  write [-c CIRCUIT] -h ZZPBSBNNDx\n"
 			   " Write value(s) or hex message.\n"
 			   "  -d ZZ       override destination address ZZ\n"
-			   "  -c CIRCUIT  the CIRCUIT of the message to send\n"
-			   "  NAME        the NAME of the message to send\n"
+			   "  -c CIRCUIT  CIRCUIT of the message to send\n"
+			   "  NAME        NAME of the message to send\n"
 			   "  VALUE       a single field VALUE\n"
 			   "  -h          send hex write message:\n"
 			   "    ZZ        destination address\n"
 			   "    PB SB     primary/secondary command byte\n"
 			   "    NN        number of following data bytes\n"
-			   "    Dx        the data byte(s) to send";
+			   "    Dx        data byte(s) to send";
 
 	Message* message = m_messages->find(circuit, args[argPos], true);
 
@@ -666,6 +674,46 @@ string MainLoop::executeWrite(vector<string> &args)
 	}
 	logInfo(lf_main, "write %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), result.str().c_str());
 	return result.str();
+}
+
+string MainLoop::executeHex(vector<string> &args)
+{
+	size_t argPos = 1;
+	if (args.size() < argPos + 1 || (args.size() > argPos && args[argPos][0] == '-')) {
+		argPos = 0; // print usage
+	}
+
+	if (argPos > 0) {
+		SymbolString cacheMaster(false);
+		result_t ret = parseHexMaster(args, argPos, cacheMaster);
+		if (ret != RESULT_OK)
+			return getResultCode(ret);
+
+		logNotice(lf_main, "hex cmd: %s", cacheMaster.getDataStr(true, false).c_str());
+
+		// send message
+		SymbolString master(true);
+		master.addAll(cacheMaster);
+		SymbolString slave(false);
+		ret = m_busHandler->sendAndWait(master, slave);
+
+		if (ret == RESULT_OK) {
+			if (master[1] == BROADCAST)
+				return "done broadcast";
+			if (isMaster(master[1]))
+				return getResultCode(RESULT_OK);
+			return slave.getDataStr();
+		}
+		logError(lf_main, "hex: %s", getResultCode(ret));
+		return getResultCode(ret);
+	}
+
+	return "usage: hex ZZPBSBNNDx\n"
+		   " Send arbitrary data in hex (only if enabled).\n"
+		   "  ZZ        destination address\n"
+		   "  PB SB     primary/secondary command byte\n"
+		   "  NN        number of following data bytes\n"
+		   "  Dx        data byte(s) to send";
 }
 
 string MainLoop::executeFind(vector<string> &args)
@@ -774,7 +822,7 @@ string MainLoop::executeFind(vector<string> &args)
 			   "                (COL: type,circuit,name,comment,qq,zz,pbsb,id,fields)\n"
 			   "  -e            match NAME and optional CIRCUIT exactly (ignoring case)\n"
 			   "  -c CIRCUIT    limit to messages of CIRCUIT (or a part thereof without '-e')\n"
-			   "  NAME          the NAME of the messages to find (or a part thereof without '-e')";
+			   "  NAME          NAME of the messages to find (or a part thereof without '-e')";
 
 	deque<Message*> messages = m_messages->findAll(
 		circuit, args.size() == argPos ? "" : args[argPos], exact, withRead, withWrite, withPassive
@@ -943,8 +991,8 @@ string MainLoop::executeLog(vector<string> &args)
 		return "usage: log areas AREA[,AREA]*\n"
 			   "  or:  log level LEVEL\n"
 			   " Set log area(s) or log level.\n"
-			   "  AREA   the log area to include (main|network|bus|update|all)\n"
-			   "  LEVEL  the log level to set (error|notice|info|debug)";
+			   "  AREA   log area to include (main|network|bus|update|all)\n"
+			   "  LEVEL  log level to set (error|notice|info|debug)";
 
 	if (result)
 		return getResultCode(RESULT_OK);
@@ -1036,7 +1084,8 @@ string MainLoop::executeHelp()
 		   " read|r   Read value(s):         read [-f] [-m SECONDS] [-c CIRCUIT] [-d ZZ] [-p PRIO] [-v] [-n] [-i VALUE[;VALUE]*] NAME [FIELD[.N]]\n"
 		   "          Read hex message:      read [-f] [-m SECONDS] [-c CIRCUIT] -h ZZPBSBNNDx\n"
 		   " write|w  Write value(s):        write [-d ZZ] -c CIRCUIT NAME [VALUE[;VALUE]*]\n"
-		   "          Write hex message:     write -h ZZPBSBNNDx\n"
+		   "          Write hex message:     write [-c CIRCUIT] -h ZZPBSBNNDx\n"
+		   " hex      Send hex data:         hex ZZPBSBNNDx\n"
 		   " find|f   Find message(s):       find [-v] [-r] [-w] [-p] [-d] [-i ID] [-f] [-F COL[,COL]*] [-e] [-c CIRCUIT] [NAME]\n"
 		   " listen|l Listen for updates:    listen [stop]\n"
 		   " state|s  Report bus state\n"
