@@ -1724,7 +1724,8 @@ deque<Message*> MessageMap::findAll(const string& circuit, const string& name, c
 	return ret;
 }
 
-Message* MessageMap::find(SymbolString& master, bool anyDestination)
+Message* MessageMap::find(SymbolString& master, bool anyDestination,
+	const bool withRead, const bool withWrite, const bool withPassive)
 {
 	if (master.size() < 5)
 		return NULL;
@@ -1749,32 +1750,41 @@ Message* MessageMap::find(SymbolString& master, bool anyDestination)
 				exp = 3;
 		}
 
-		map<unsigned long long , vector<Message*> >::iterator it = m_messagesByKey.find(key);
-		if (it != m_messagesByKey.end()) {
-			Message* message = getFirstAvailable(it->second, idLength, &master);
-			if (message)
-				return message;
-		}
-		if ((key & ID_SOURCE_MASK) != 0) {
+		map<unsigned long long , vector<Message*> >::iterator it;
+		if (withPassive) {
+			it = m_messagesByKey.find(key);
+			if (it != m_messagesByKey.end()) {
+				Message* message = getFirstAvailable(it->second, idLength, &master);
+				if (message)
+					return message;
+			}
+			if ((key & ID_SOURCE_MASK) != 0) {
+				key &= ~ID_SOURCE_MASK;
+				it = m_messagesByKey.find(key & ~ID_SOURCE_MASK); // try again without specific source master
+				if (it != m_messagesByKey.end()) {
+					Message* message = getFirstAvailable(it->second, idLength, &master);
+					if (message)
+						return message;
+				}
+			}
+		} else {
 			key &= ~ID_SOURCE_MASK;
-			it = m_messagesByKey.find(key & ~ID_SOURCE_MASK); // try again without specific source master
+		}
+		if (withRead) {
+			it = m_messagesByKey.find(key | ID_SOURCE_ACTIVE_READ); // try again with special value for active read
 			if (it != m_messagesByKey.end()) {
 				Message* message = getFirstAvailable(it->second, idLength, &master);
 				if (message)
 					return message;
 			}
 		}
-		it = m_messagesByKey.find(key | ID_SOURCE_ACTIVE_READ); // try again with special value for active read
-		if (it != m_messagesByKey.end()) {
-			Message* message = getFirstAvailable(it->second, idLength, &master);
-			if (message)
-				return message;
-		}
-		it = m_messagesByKey.find(key | ID_SOURCE_ACTIVE_WRITE); // try again with special value for active write
-		if (it != m_messagesByKey.end()) {
-			Message* message = getFirstAvailable(it->second, idLength, &master);
-			if (message)
-				return message;
+		if (withWrite) {
+			it = m_messagesByKey.find(key | ID_SOURCE_ACTIVE_WRITE); // try again with special value for active write
+			if (it != m_messagesByKey.end()) {
+				Message* message = getFirstAvailable(it->second, idLength, &master);
+				if (message)
+					return message;
+			}
 		}
 		if (idLength == 0)
 			break;

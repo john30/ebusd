@@ -1173,10 +1173,14 @@ public:
 	 * Find the @a Message instance for the specified master data.
 	 * @param master the master @a SymbolString for identifying the @a Message.
 	 * @param anyDestination true to only return messages without a particular destination.
+	 * @param withRead true to include read messages (default true).
+	 * @param withWrite true to include write messages (default true).
+	 * @param withPassive true to include passive messages (default true).
 	 * @return the @a Message instance, or NULL.
 	 * Note: the caller may not free the returned instance.
 	 */
-	Message* find(SymbolString& master, bool anyDestination=false);
+	Message* find(SymbolString& master, bool anyDestination=false,
+		const bool withRead=true, const bool withWrite=true, const bool withPassive=true);
 
 	/**
 	 * Invalidate cached data of the @a Message and all other instances with a matching name key.
