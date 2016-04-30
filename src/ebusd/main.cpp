@@ -247,7 +247,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 		break;
 
 	// eBUS options:
-	case 'a': // --address=FF
+	case 'a': // --address=31
 		opt->address = (unsigned char)parseInt(arg, 16, 0, 0xff, result);
 		if (result != RESULT_OK || !isMaster(opt->address)) {
 			argp_error(state, "invalid address");
@@ -268,7 +268,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 			return EINVAL;
 		}
 		break;
-	case O_ACQRET: // --acquireretries=2
+	case O_ACQRET: // --acquireretries=3
 		opt->acquireRetries = parseInt(arg, 10, 0, 10, result);
 		if (result != RESULT_OK) {
 			argp_error(state, "invalid acquireretries");
@@ -357,7 +357,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 			return EINVAL;
 		}
 		break;
-	case O_LOGLEV: // --loglevel=event
+	case O_LOGLEV: // --loglevel=notice
 		if (!setLogLevel(arg)) {
 			argp_error(state, "invalid loglevel");
 			return EINVAL;
@@ -651,6 +651,17 @@ static result_t readConfigFiles(const string path, const string extension, Messa
 	return RESULT_OK;
 };
 
+/**
+ * Helper method for logging loading of a configuration file.
+ * @param messages the @a MessageMap instance.
+ * @param address the address for which the file was loaded.
+ * @param file the name of the loaded file.
+ */
+void logFileLoaded(MessageMap* messages, const unsigned char address, string file)
+{
+	messages->addLoadedFile(address, file);
+}
+
 result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
 {
 	logInfo(lf_main, "loading configuration files from %s", opt.configPath);
@@ -674,7 +685,7 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
 		logError(lf_main, "error resolving conditions: %s, %s", getResultCode(result), messages->getLastError().c_str());
 
 	ostringstream log;
-	result = messages->executeInstructions(verbose, log);
+	result = messages->executeInstructions(log, logFileLoaded);
 	if (result != RESULT_OK)
 		logError(lf_main, "error executing instructions: %s, %s, %s", getResultCode(result), messages->getLastError().c_str(), log.str().c_str());
 	else if (log.tellp() > 0)
@@ -685,7 +696,7 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
 	return result;
 }
 
-result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolString& data, string& relativeFile)
+result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolString& data, string& relativeFile, bool verbose)
 {
 	PartType partType;
 	if (isMaster(address)) {
@@ -829,12 +840,12 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 	}
 	logNotice(lf_main, "read scan config file %s for ID \"%s\", SW%4.4d, HW%4.4d", best.c_str(), ident.c_str(), sw, hw);
 
-	result = messages->resolveConditions(false);
+	result = messages->resolveConditions(verbose);
 	if (result != RESULT_OK)
 		logError(lf_main, "error resolving conditions: %s, %s", getResultCode(result), messages->getLastError().c_str());
 
 	ostringstream log;
-	result = messages->executeInstructions(false, log);
+	result = messages->executeInstructions(log, logFileLoaded);
 	if (result != RESULT_OK)
 		logError(lf_main, "error executing instructions: %s, %s, %s", getResultCode(result), messages->getLastError().c_str(), log.str().c_str());
 	else if (log.tellp() > 0)
@@ -902,7 +913,7 @@ int main(int argc, char* argv[])
 			}
 			unsigned char address = master[1];
 			string file;
-			res = loadScanConfigFile(s_messageMap, address, slave, file);
+			res = loadScanConfigFile(s_messageMap, address, slave, file, true);
 			if (res==RESULT_OK)
 				logInfo(lf_main, "scan config %2.2x: file %s loaded", address, file.c_str());
 		}

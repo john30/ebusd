@@ -43,8 +43,8 @@ struct options
 	int acquireTimeout; //!< bus acquisition timeout in us [9400]
 	int acquireRetries; //!< number of retries for bus acquisition [3]
 	int sendRetries; //!< number of retries for failed sends [2]
-	int receiveTimeout; //!< timeout for receiving answer from slave in us [15000]
-	int masterCount; //!< expected number of masters for arbitration [5]
+	int receiveTimeout; //!< timeout for receiving answer from slave in us [25000]
+	int masterCount; //!< expected number of masters for arbitration [0]
 	bool generateSyn; //!< enable AUTO-SYN symbol generation
 
 	bool foreground; //!< run in foreground
@@ -85,8 +85,9 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose=false, bool denyRecu
  * @param address the address of the scan participant (either master for broadcast master data or slave for read slave data).
  * @param data the scan @a SymbolString for which to load the configuration file.
  * @param relativeFile the string in which the name of the configuration file is stored on success.
+ * @param verbose whether to verbosely log problems.
  * @return the result code.
  */
-result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolString& data, string& relativeFile);
+result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolString& data, string& relativeFile, bool verbose=false);
 
 #endif // MAIN_H_
