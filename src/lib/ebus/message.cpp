@@ -1305,7 +1305,7 @@ string Instruction::getDestination()
 }
 
 
-result_t LoadInstruction::execute(MessageMap* messages, ostringstream& log) {
+result_t LoadInstruction::execute(MessageMap* messages, ostringstream& log, void (*loadInfoFunc)(MessageMap* messages, const unsigned char address, string filename)) {
 	result_t result = messages->readFromFile(m_filename, false, m_defaultDest, m_defaultCircuit, m_defaultSuffix);
 	if (log.tellp()>0)
 		log << ", ";
@@ -1314,6 +1314,20 @@ result_t LoadInstruction::execute(MessageMap* messages, ostringstream& log) {
 		return result;
 	}
 	log << (isSingleton() ? "loaded " : "included ") << m_filename << " for \"" << getDestination() << "\"";
+	if (isSingleton() && loadInfoFunc!=NULL && !m_defaultDest.empty()) {
+		result_t temp;
+		unsigned char address = (unsigned char)parseInt(m_defaultDest.c_str(), 16, 0, 0xff, temp);
+		if (temp==RESULT_OK) {
+			size_t pos = m_filename.find_last_of('/');
+			string filename;
+			if (pos==string::npos) {
+				filename = m_filename;
+			} else {
+				filename = m_filename.substr(pos+1);
+			}
+			(*loadInfoFunc)(messages, address, filename);
+		}
+	}
 	return result;
 }
 
@@ -1585,7 +1599,7 @@ result_t MessageMap::resolveCondition(Condition* condition) {
 	return result;
 }
 
-result_t MessageMap::executeInstructions(bool verbose, ostringstream& log) {
+result_t MessageMap::executeInstructions(ostringstream& log, void (*loadInfoFunc)(MessageMap* messages, const unsigned char address, string filename)) {
 	m_lastError = "";
 	result_t overallResult = RESULT_OK;
 	vector<string> remove;
@@ -1613,7 +1627,7 @@ result_t MessageMap::executeInstructions(bool verbose, ostringstream& log) {
 				if (instruction->isSingleton()) {
 					removeSingletons = true;
 				}
-				result_t result = instruction->execute(this, log);
+				result_t result = instruction->execute(this, log, loadInfoFunc);
 				if (result!=RESULT_OK) {
 					overallResult = result;
 				}
@@ -1644,6 +1658,22 @@ result_t MessageMap::executeInstructions(bool verbose, ostringstream& log) {
 		m_instructions.erase(*it);
 	}
 	return overallResult;
+}
+
+void MessageMap::addLoadedFile(unsigned char address, string file)
+{
+	if (file.empty()) return;
+	if (m_loadedFiles.find(address)==m_loadedFiles.end())
+		m_loadedFiles[address] = "\""+file+"\"";
+	else
+		m_loadedFiles[address] += ", \""+file+"\"";
+}
+
+string MessageMap::getLoadedFiles(unsigned char address)
+{
+	if (m_loadedFiles.find(address)==m_loadedFiles.end())
+		return "";
+	return m_loadedFiles[address];
 }
 
 vector<Message*>* MessageMap::getByKey(const unsigned long long key) {
@@ -1831,6 +1861,7 @@ void MessageMap::addPollMessage(Message* message, bool toFront)
 
 void MessageMap::clear()
 {
+	m_loadedFiles.clear();
 	// clear poll messages
 	while (!m_pollMessages.empty()) {
 		m_pollMessages.top();

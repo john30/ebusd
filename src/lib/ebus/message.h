@@ -993,9 +993,10 @@ public:
 	 * Execute the instruction.
 	 * @param messages the @a MessageMap.
 	 * @param log the @a ostringstream to log success messages to (if necessary).
+	 * @param loadInfoFunc the function to call for successful loading of a file for a certain address, or NULL.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	virtual result_t execute(MessageMap* messages, ostringstream& log) = 0;
+	virtual result_t execute(MessageMap* messages, ostringstream& log, void (*loadInfoFunc)(MessageMap* messages, const unsigned char address, string filename)=NULL) = 0;
 
 private:
 
@@ -1044,7 +1045,7 @@ public:
 	virtual ~LoadInstruction() { }
 
 	// @copydoc
-	virtual result_t execute(MessageMap* messages, ostringstream& log);
+	virtual result_t execute(MessageMap* messages, ostringstream& log, void (*loadInfoFunc)(MessageMap* messages, const unsigned char address, string filename)=NULL);
 
 private:
 
@@ -1130,11 +1131,25 @@ public:
 
 	/**
 	 * Run all executable @a Instruction instances.
-	 * @param verbose whether to verbosely add all problems to the error message.
 	 * @param log the @a ostringstream to log success messages to (if necessary).
+	 * @param loadInfoFunc the function to call for successful loading of a file for a participant, or NULL.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	result_t executeInstructions(bool verbose, ostringstream& log);
+	result_t executeInstructions(ostringstream& log, void (*loadInfoFunc)(MessageMap* messages, const unsigned char address, string file)=NULL);
+
+	/**
+	 * Add a loaded file to a participant.
+	 * @param address the slave address.
+	 * @param file the name of the file from which a configuration part was loaded for the participant.
+	 */
+	void addLoadedFile(unsigned char address, string file);
+
+	/**
+	 * Get the loaded files for a participant.
+	 * @param address the slave address.
+	 * @return the name of the file(s) loaded for the participant (separated by comma and enclosed in double quotes), or empty.
+	 */
+	string getLoadedFiles(unsigned char address);
 
 	/**
 	 * Get the stored @a Message instances for the key.
@@ -1257,6 +1272,9 @@ private:
 
 	/** the @a Message instance used for scanning. */
 	Message* m_scanMessage;
+
+	/** the loaded configuration files by slave address. */
+	map<unsigned char, string> m_loadedFiles;
 
 	/** the maximum ID length used by any of the known @a Message instances. */
 	unsigned char m_maxIdLength;
