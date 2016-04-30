@@ -569,9 +569,6 @@ private:
 	/** the participating bus addresses seen so far (0 if not seen yet, or combination of @a SEEN bits). */
 	unsigned char m_seenAddresses[256];
 
-	/** the loaded configuration files by slave address. */
-	map<unsigned char, string> m_loadedFiles;
-
 	/** the scan results by slave address. */
 	map<unsigned char, string> m_scanResults;
 

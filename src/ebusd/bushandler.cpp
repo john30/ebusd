@@ -177,7 +177,6 @@ bool ActiveBusRequest::notify(result_t result, SymbolString& slave)
 
 void BusHandler::clear()
 {
-	m_loadedFiles.clear();
 	memset(m_seenAddresses, 0, sizeof(m_seenAddresses));
 	m_masterCount = 1;
 	m_scanResults.clear();
@@ -923,22 +922,33 @@ void BusHandler::formatScanResult(ostringstream& output)
 
 void BusHandler::formatSeenInfo(ostringstream& output)
 {
-	for (unsigned char slave = 1; slave != 0; slave++) { // 0 is known to be a master
-		if (isValidAddress(slave, false) && (m_seenAddresses[slave]&SEEN)!=0) {
-			output << endl << "address " << setfill('0') << setw(2) << hex << static_cast<unsigned>(slave);
+	unsigned char address = 0;
+	for (int index=0; index<256; index++, address++) {
+		if (isValidAddress(address, false)
+		&& ((m_seenAddresses[address]&SEEN)!=0 || address==m_ownMasterAddress || address==m_ownSlaveAddress)) {
+			output << endl << "address " << setfill('0') << setw(2) << hex << static_cast<unsigned>(address);
 			unsigned char master;
-			if (isMaster(slave)) {
+			if (isMaster(address)) {
 				output << ": master";
-				master = slave;
+				master = address;
 			} else {
 				output << ": slave";
-				master = getMasterAddress(slave);
+				master = getMasterAddress(address);
 			}
 			if (master != SYN)
 				output << " #" << setw(0) << dec << static_cast<unsigned>(getMasterNumber(master));
-			if ((m_seenAddresses[slave]&SCAN_DONE)!=0) {
+			if (address==m_ownMasterAddress || (m_answer && address==m_ownSlaveAddress)) {
+				output << ", ebusd";
+				if (m_answer) {
+					output << " (answering)";
+				}
+				if ((m_seenAddresses[address]&SEEN)!=0) {
+					output << ", conflict";
+				}
+			}
+			if ((m_seenAddresses[address]&SCAN_DONE)!=0) {
 				output << ", scanned";
-				Message* message = m_messages->getScanMessage(slave);
+				Message* message = m_messages->getScanMessage(address);
 				if (message!=NULL && message->getLastUpdateTime()>0) {
 					// add detailed scan info: Manufacturer ID SW HW
 					output << " \"";
@@ -949,8 +959,9 @@ void BusHandler::formatSeenInfo(ostringstream& output)
 						output << "\"";
 				}
 			}
-			if ((m_seenAddresses[slave]&LOAD_DONE)!=0)
-				output << ", loaded \"" << m_loadedFiles[slave] << "\"";
+			string loadedFiles = m_messages->getLoadedFiles(address);
+			if (!loadedFiles.empty())
+				output << ", loaded " << loadedFiles;
 		}
 	}
 }
@@ -1035,6 +1046,6 @@ void BusHandler::setScanConfigLoaded(unsigned char address, string file) {
 	m_seenAddresses[address] |= LOAD_INIT;
 	if (!file.empty()) {
 		m_seenAddresses[address] |= LOAD_DONE;
-		m_loadedFiles[address] = file;
+		m_messages->addLoadedFile(address, file);
 	}
 }
