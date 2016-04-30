@@ -961,36 +961,70 @@ string MainLoop::executeScan(vector<string> &args)
 		return getResultCode(result);
 	}
 
-	if (args.size() == 2 && strcasecmp(args[1].c_str(), "FULL") == 0) {
-		result_t result = m_busHandler->startScan(true);
+	if (args.size() == 2) {
+		if (strcasecmp(args[1].c_str(), "FULL") == 0) {
+			result_t result = m_busHandler->startScan(true);
+			if (result != RESULT_OK)
+				logError(lf_main, "full scan: %s", getResultCode(result));
+
+			return getResultCode(result);
+		}
+
+		if (strcasecmp(args[1].c_str(), "RESULT") == 0) {
+			ostringstream ret;
+			m_busHandler->formatScanResult(ret);
+			return ret.str();
+		}
+
+		result_t result;
+		unsigned char dstAddress = (unsigned char)parseInt(args[1].c_str(), 16, 0, 0xff, result);
 		if (result != RESULT_OK)
-			logError(lf_main, "full scan: %s", getResultCode(result));
+			return getResultCode(result);
 
-		return getResultCode(result);
+		SymbolString slave(false);
+		result = m_busHandler->scanAndWait(dstAddress, slave);
+		if (result != RESULT_OK)
+			return getResultCode(result);
+
+		Message* message = m_messages->getScanMessage(dstAddress); // never NULL due to scanAndWait() == RESULT_OK
+		ostringstream ret;
+		ret << hex << setw(2) << setfill('0') << static_cast<unsigned>(dstAddress);
+		result = message->decodeLastData(ret, 0, true); // decode data
+		if (result != RESULT_OK)
+			return getResultCode(result);
+
+		return ret.str();
 	}
 
-	if (args.size() == 2 && strcasecmp(args[1].c_str(), "RESULT") == 0) {
-		ostringstream result;
-		m_busHandler->formatScanResult(result);
-		return result.str();
-	}
-
-	return "usage: scan [full]\n"
+	return "usage: scan [full|ZZ]\n"
 		   "  or:  scan result\n"
-		   " Scan seen or all slaves, or report scan result.";
+		   " Scan seen slaves, all slaves (full), a single slave (address ZZ), or report scan result.";
 }
 
 string MainLoop::executeLog(vector<string> &args)
 {
+	if (args.size() == 1) {
+		ostringstream ret;
+		char str[32];
+		if (getLogFacilities(str)) {
+			ret << str << ' ';
+		}
+		ret << getLogLevel();
+		return ret.str();
+	}
 	bool result;
+	// old format: log areas AREA[,AREA]*, log level LEVEL
 	if ((args.size() == 3 || args.size() == 2) && strcasecmp(args[1].c_str(), "AREAS") == 0)
 		result = setLogFacilities(args.size() == 3 ? args[2].c_str() : "");
 	else if (args.size() == 3 && strcasecmp(args[1].c_str(), "LEVEL") == 0)
 		result = setLogLevel(args[2].c_str());
+	else if (args.size() == 2)
+		result = setLogLevel(args[1].c_str()) || setLogFacilities(args[1].c_str());
+	else if (args.size() == 3)
+		result = setLogFacilities(args[1].c_str()) && setLogLevel(args[2].c_str());
 	else
-		return "usage: log areas AREA[,AREA]*\n"
-			   "  or:  log level LEVEL\n"
-			   " Set log area(s) or log level.\n"
+		return "usage: log [AREA[,AREA]*] [LEVEL]\n"
+			   " Set log area(s) and/or log level or get current settings.\n"
 			   "  AREA   log area to include (main|network|bus|update|all)\n"
 			   "  LEVEL  log level to set (error|notice|info|debug)";
 
@@ -1092,11 +1126,10 @@ string MainLoop::executeHelp()
 		   " info|i   Report information about the daemon, the configuration, and seen devices.\n"
 		   " grab|g   Grab messages:         grab [all|stop]\n"
 		   "          Report the messages:   grab result\n"
-		   " scan     Scan slaves:           scan [full]\n"
+		   " scan     Scan slaves:           scan [full|ZZ]\n"
 		   "          Report scan result:    scan result\n"
-		   " log      Set log area(s):       log areas AREA[,AREA*]\n"
+		   " log      Set log area/level:    log [AREA[,AREA]*] [LEVEL]\n"
 		   "                                   AREA: main|network|bus|update|all\n"
-		   "          Set log level:         log level LEVEL\n"
 		   "                                   LEVEL: error|notice|info|debug\n"
 		   " raw      Toggle logging raw bytes\n"
 		   " dump     Toggle dumping raw bytes\n"
