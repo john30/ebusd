@@ -213,47 +213,34 @@ unsigned char getMasterAddress(unsigned char addr) {
 	return SYN;
 }
 
+/**
+ * Returns the index of the upper or lower 4 bits of a master address.
+ * @param bits the upper or lower 4 bits of the address.
+ * @return the 1-based index of the upper or lower 4 bits of a master address (1 to 5), or 0.
+ */
+unsigned char getMasterPartIndex(unsigned char bits) {
+	switch (bits)
+	{
+	case 0x0:
+		return 1;
+	case 0x1:
+		return 2;
+	case 0x3:
+		return 3;
+	case 0x7:
+		return 4;
+	case 0xF:
+		return 5;
+	default:
+		return 0;
+	}
+}
 unsigned char getMasterNumber(unsigned char addr) {
-	unsigned char addrHi = (addr & 0xF0) >> 4;
-	unsigned char addrLo = (addr & 0x0F);
-
-	unsigned char priority;
-	switch (addrLo)
-	{
-	case 0x0:
-		priority = 1;
-		break;
-	case 0x1:
-		priority = 2;
-		break;
-	case 0x3:
-		priority = 3;
-		break;
-	case 0x7:
-		priority = 4;
-		break;
-	case 0xF:
-		priority = 5;
-		break;
-	default:
-		return 0;
-	}
-
-	switch (addrHi)
-	{
-	case 0x0:
-		return (unsigned char)(5*0 + priority);
-	case 0x1:
-		return (unsigned char)(5*1 + priority);
-	case 0x3:
-		return (unsigned char)(5*2 + priority);
-	case 0x7:
-		return (unsigned char)(5*3 + priority);
-	case 0xF:
-		return (unsigned char)(5*4 + priority);
-	default:
-		return 0;
-	}
+	unsigned char priority = getMasterPartIndex(addr & 0x0F);
+	if (priority==0) return 0;
+	unsigned char index = getMasterPartIndex((addr & 0xF0) >> 4);
+	if (index==0) return 0;
+	return (unsigned char)(5*(priority-1) + index);
 }
 
 bool isValidAddress(unsigned char addr, bool allowBroadcast) {
