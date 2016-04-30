@@ -51,11 +51,24 @@ enum LogLevel {
 bool setLogFacilities(const char* facilities);
 
 /**
+ * Get the log facilities.
+ * @param buffer the buffer into which the facilities are written to (separated by comma, buffer needs to be at last 32 characters long).
+ * @return true on success, false on error.
+ */
+bool getLogFacilities(char* buffer);
+
+/**
  * Parse the log level from the string.
  * @param level the level as string.
  * @return true on success, false on error.
  */
 bool setLogLevel(const char* level);
+
+/**
+ * Get the log level.
+ * @return the level as string.
+ */
+const char* getLogLevel();
 
 /**
  * Set the log file to use.

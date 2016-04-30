@@ -22,6 +22,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <stdarg.h>
+#include <string.h>
 #include "clock.h"
 
 using namespace std;
@@ -57,36 +58,63 @@ static FILE* logFile = stdout;
 
 bool setLogFacilities(const char* facilities)
 {
-	char *opt = (char*)facilities, *value = NULL;
+	char *input = strdup(facilities);
+	char *opt = (char*)input, *value = NULL;
 	int newFacilites = 0;
 	while (*opt) {
 		int val = getsubopt(&opt, (char *const *)facilityNames, &value);
-		if (val < 0 || val > lf_COUNT || value)
+		if (val < 0 || val > lf_COUNT || value) {
+			free(input);
 			return false;
-		if (val == lf_COUNT) {
-			newFacilites = LF_ALL;
-			break;
 		}
-		newFacilites |= 1<<val;
+		if (val == lf_COUNT)
+			newFacilites = LF_ALL;
+		else
+			newFacilites |= 1<<val;
 	}
-
 	logFacilites = newFacilites;
+	free(input);
+	return true;
+}
+
+bool getLogFacilities(char* buffer)
+{
+	if (logFacilites==LF_ALL)
+		return strcpy(buffer, facilityNames[lf_COUNT]) != NULL;
+	*buffer = 0; // for strcat to work
+	bool found = false;
+	for (int val=0; val<lf_COUNT; val++) {
+		if (logFacilites&(1<<val)) {
+			if (found)
+				strcat(buffer, ",");
+			found = true;
+			strcat(buffer, facilityNames[val]);
+		}
+	}
 	return true;
 }
 
 bool setLogLevel(const char* level)
 {
-	char *opt = (char*)level, *value = NULL;
+	char *input = strdup(level);
+	char *opt = (char*)input, *value = NULL;
 	int newLevel = 0;
 	if (*opt) {
 		int val = getsubopt(&opt, (char *const *)levelNames, &value);
-		if (val < 0 || val >= ll_COUNT || value || *opt)
+		if (val < 0 || val >= ll_COUNT || value || *opt) {
+			free(input);
 			return false;
+		}
 		newLevel = val;
 	}
-
 	logLevel = (LogLevel)newLevel;
+	free(input);
 	return true;
+}
+
+const char* getLogLevel()
+{
+	return levelNames[logLevel];
 }
 
 bool setLogFile(const char* filename)
