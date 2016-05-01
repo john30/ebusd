@@ -474,11 +474,11 @@ result_t BusHandler::handleSymbol()
 					receiveCompleted();
 					return setState(bs_skip, RESULT_OK);
 				}
+				addSeenAddress(m_command[0]);
 				if (m_answer
 				        && (dstAddress == m_ownMasterAddress || dstAddress == m_ownSlaveAddress))
 					return setState(bs_sendCmdAck, RESULT_OK);
 
-				addSeenAddress(m_command[0]);
 				return setState(bs_recvCmdAck, RESULT_OK);
 			}
 			if (dstAddress == BROADCAST)
