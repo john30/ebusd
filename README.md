@@ -12,16 +12,19 @@ Features
 
 The main features of the daemon are:
 
+ * use USB serial, TCP connected, or UDP device
  * actively send messages to and receive answers from the eBUS
  * passively listen to messages sent on the eBUS
  * regularly poll for messages
- * scan for bus participants
  * cache all data
+ * scan for bus participants
+ * parse messages to human readable values by using CSV message configuration files
+ * automatically pick CSV message configuration files by scan result
  * grab unknown messages
  * log messages and problems to a log file
- * dump sent/received bytes to the log file
+ * dump sent/received bytes to a log file
  * dump received bytes to binary files for later playback/analysis
- * listen for client connections on a dedicated TCP port
+ * listen for client connections on a dedicated TCP port (command line style and/or HTTP)
 
 
 Installation
