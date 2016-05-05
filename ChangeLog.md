@@ -6,6 +6,7 @@
 * changed ebusd default address to 0x31 in order to avoid address conflicts with popular devices on the bus
 * added "!load" instruction for CSV configuration files allowing conditional loading of single other CSV file
 * added "!include" instruction for CSV configuration files in order to include other files
+* added support for UDP connected devices
 
 ## Bug fixes
 * require "-c" in write command
@@ -28,6 +29,8 @@
 * extract default circuit name from CSV file name
 * automatically start grabbing all messages
 * add circuit+message name of known messages to grab result
+* added buffer for network devices and flush potentially buffered input when connecting
+* added option for setting transfer latency and use default 10 ms for network device
 
 
 # 2.0 (2016-01-06)
