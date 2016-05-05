@@ -29,9 +29,11 @@
 /** A structure holding all program options. */
 struct options
 {
-	const char* device; //!< eBUS device (serial device or ip:port) [/dev/ttyUSB0]
+	const char* device; //!< eBUS device (serial device or [udp:]ip:port) [/dev/ttyUSB0]
 	bool noDeviceCheck; //!< skip serial eBUS device test
-	bool readonly; //!< read-only access to the device
+	bool readOnly; //!< read-only access to the device
+	bool initialSend; //!< send an initial escape symbol after connecting device
+	int latency; //!< transfer latency in us [0 for USB, 10000 for IP]
 
 	const char* configPath; //!< path to CSV configuration files [/etc/ebusd]
 	bool scanConfig; //!< pick configuration files matching initial scan

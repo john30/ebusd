@@ -22,13 +22,15 @@
 
 #include "device.h"
 #include "data.h"
-#include <unistd.h>
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
 #include <fstream>
 #include <sys/ioctl.h>
 #include <sys/file.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <errno.h>
 
 #ifdef HAVE_PPOLL
@@ -43,36 +45,45 @@ Device::~Device()
 	m_dumpRawStream.close();
 }
 
-Device* Device::create(const char* name, const bool checkDevice, const bool readonly,
+Device* Device::create(const char* name, const bool checkDevice, const bool readOnly, const bool initialSend,
 		void (*logRawFunc)(const unsigned char byte, bool received))
 {
 	if (strchr(name, '/') == NULL && strchr(name, ':') != NULL) {
-		char* dup = strdup(name);
-		char* pos = strchr(dup, ':');
+		char* in = strdup(name);
+		bool udp = false;
+		char* addrpos = in;
+		char* portpos = strchr(addrpos, ':');
+		if (portpos==addrpos+3 && (strncmp(addrpos, "tcp", 3)==0 || (udp=(strncmp(addrpos, "udp", 3)==0)))) {
+			addrpos += 4;
+			portpos = strchr(addrpos, ':');
+		}
+		if (portpos==NULL) {
+			free(in);
+			return NULL; // invalid protocol or missing port
+		}
 		result_t result = RESULT_OK;
-		unsigned int port = parseInt(pos+1, 10, 1, 65535, result);
+		unsigned int port = parseInt(portpos+1, 10, 1, 65535, result);
 		if (result!=RESULT_OK) {
-			free(dup);
+			free(in);
 			return NULL; // invalid port
 		}
 		struct sockaddr_in address;
 		memset((char*)&address, 0, sizeof(address));
-
-		*pos = 0;
-		if (inet_aton(dup, &address.sin_addr) == 0) {
-			struct hostent* h = gethostbyname(dup);
+		*portpos = 0;
+		if (inet_aton(addrpos, &address.sin_addr) == 0) {
+			struct hostent* h = gethostbyname(addrpos);
 			if (h == NULL) {
-				free(dup);
+				free(in);
 				return NULL; // invalid host
 			}
 			memcpy(&address.sin_addr, h->h_addr_list[0], h->h_length);
 		}
-		free(dup);
+		free(in);
 		address.sin_family = AF_INET;
 		address.sin_port = (in_port_t)htons((uint16_t)port);
-		return new NetworkDevice(name, address, readonly, logRawFunc);
+		return new NetworkDevice(name, address, readOnly, initialSend, logRawFunc, udp);
 	}
-	return new SerialDevice(name, checkDevice, readonly, logRawFunc);
+	return new SerialDevice(name, checkDevice, readOnly, initialSend, logRawFunc);
 }
 
 void Device::close()
@@ -99,7 +110,7 @@ result_t Device::send(const unsigned char value)
 	if (!isValid())
 		return RESULT_ERR_DEVICE;
 
-	if (m_readonly || write(m_fd, &value, 1) != 1)
+	if (m_readOnly || write(value) != 1)
 		return RESULT_ERR_SEND;
 
 	if (m_logRaw && m_logRawFunc != NULL)
@@ -113,7 +124,7 @@ result_t Device::recv(const long timeout, unsigned char& value)
 	if (!isValid())
 		return RESULT_ERR_DEVICE;
 
-	if (timeout > 0) {
+	if (!available() && timeout > 0) {
 		int ret;
 		struct timespec tdiff;
 
@@ -148,7 +159,7 @@ result_t Device::recv(const long timeout, unsigned char& value)
 	}
 
 	// directly read byte from device
-	ssize_t nbytes = read(m_fd, &value, 1);
+	ssize_t nbytes = read(value);
 	if (nbytes == 0)
 		return RESULT_ERR_EOF;
 	if (nbytes < 0)
@@ -251,6 +262,9 @@ result_t SerialDevice::open()
 	// set serial device into blocking mode
 	fcntl(m_fd, F_SETFL, fcntl(m_fd, F_GETFL) & ~O_NONBLOCK);
 
+	if (m_initialSend && write(ESC) != 1) {
+		return RESULT_ERR_SEND;
+	}
 	return RESULT_OK;
 }
 
@@ -281,16 +295,42 @@ result_t NetworkDevice::open()
 	if (m_fd != -1)
 		close();
 
-	int ret;
-
-	m_fd = socket(AF_INET, SOCK_STREAM, 0);
+	m_fd = socket(AF_INET, m_udp ? SOCK_DGRAM : SOCK_STREAM, 0);
 	if (m_fd < 0)
 		return RESULT_ERR_GENERIC_IO;
 
-	ret = connect(m_fd, (struct sockaddr*)&m_address, sizeof(m_address));
+	int ret;
+	if (m_udp) {
+		struct sockaddr_in address = m_address;
+		address.sin_addr.s_addr = INADDR_ANY;
+		ret = bind(m_fd, (struct sockaddr*)&address, sizeof(address));
+	} else {
+		int value = 1;
+		ret = setsockopt(m_fd, IPPROTO_TCP, TCP_NODELAY, (void*)&value, sizeof(value));
+	}
+	if (ret==0)	{
+		ret = connect(m_fd, (struct sockaddr*)&m_address, sizeof(m_address));
+	}
 	if (ret < 0) {
 		close();
 		return RESULT_ERR_GENERIC_IO;
+	}
+	int cnt;
+	if (ioctl(m_fd, FIONREAD, &cnt) >= 0 && cnt > 1) {
+		// skip buffered input
+		unsigned char buf[256];
+		while (::read(m_fd, &buf, 256) > 0);
+	}
+	if (m_bufSize==0) {
+		m_bufSize = MAX_LEN+1;
+		m_buffer = (unsigned char*)malloc(m_bufSize);
+		if (!m_buffer) {
+			m_bufSize = 0;
+		}
+	}
+	m_bufLen = 0;
+	if (m_initialSend && write(ESC) != 1) {
+		return RESULT_ERR_SEND;
 	}
 	return RESULT_OK;
 }
@@ -300,6 +340,39 @@ void NetworkDevice::checkDevice()
 	unsigned char value;
 	ssize_t c = ::recv(m_fd, &value, 1, MSG_PEEK | MSG_DONTWAIT);
 	if (c == 0 || (c < 0 && errno != EAGAIN)) {
+		m_bufLen = 0; // flush read buffer
 		close();
 	}
+}
+
+bool NetworkDevice::available()
+{
+	return m_buffer && m_bufLen>0;
+}
+
+ssize_t NetworkDevice::write(const unsigned char value)
+{
+	m_bufLen = 0; // flush read buffer
+	return Device::write(value);
+}
+
+ssize_t NetworkDevice::read(unsigned char& value)
+{
+	if (available()) {
+		value = m_buffer[m_bufPos];
+		m_bufPos = (unsigned char)((m_bufPos+1)%m_bufSize);
+		m_bufLen--;
+		return 1;
+	}
+	if (m_bufSize>0) {
+		ssize_t size = ::read(m_fd, m_buffer, m_bufSize);
+		if (size<=0) {
+			return size;
+		}
+		value = m_buffer[0];
+		m_bufPos = 1;
+		m_bufLen = (unsigned char)(size-1);
+		return size;
+	}
+	return Device::read(value);
 }

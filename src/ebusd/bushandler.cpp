@@ -313,7 +313,7 @@ result_t BusHandler::handleSymbol()
 		break;
 
 	case bs_recvResAck:
-		timeout = m_slaveRecvTimeout;
+		timeout = m_slaveRecvTimeout+m_transferLatency;
 		break;
 
 	case bs_sendCmd:
@@ -354,12 +354,12 @@ result_t BusHandler::handleSymbol()
 	result_t result;
 	if (sending) {
 		result = m_device->send(sendSymbol);
-		if (result == RESULT_OK)
+		if (result == RESULT_OK) {
 			if (m_state == bs_ready)
-				timeout = m_busAcquireTimeout;
+				timeout = m_transferLatency+m_busAcquireTimeout;
 			else
-				timeout = SEND_TIMEOUT;
-		else {
+				timeout = m_transferLatency+SEND_TIMEOUT;
+		} else {
 			sending = false;
 			timeout = SYN_TIMEOUT;
 			if (startRequest != NULL && m_nextRequests.remove(startRequest)) {
@@ -371,7 +371,7 @@ result_t BusHandler::handleSymbol()
 
 	// receive next symbol (optionally check reception of sent symbol)
 	unsigned char recvSymbol;
-	result = m_device->recv(timeout, recvSymbol);
+	result = m_device->recv(timeout+m_transferLatency, recvSymbol);
 
 	if (!sending && result == RESULT_ERR_TIMEOUT && m_generateSynInterval > 0
 	&& timeout >= m_generateSynInterval && (m_state == bs_noSignal || m_state == bs_skip)) {

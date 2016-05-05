@@ -65,7 +65,9 @@ static bool isDaemon = false;
 static struct options opt = {
 	"/dev/ttyUSB0", // device
 	false, // noDeviceCheck
-	false, // readonly
+	false, // readOnly
+	false, // initialSend
+	-1, // latency
 	CONFIG_PATH, // configPath
 	false, // scanConfig
 	0, // checkConfig
@@ -108,7 +110,9 @@ const char *argp_program_bug_address = ""PACKAGE_BUGREPORT"";
 static const char argpdoc[] =
 	"A daemon for communication with eBUS heating systems.";
 
-#define O_CHKCFG 1
+#define O_INISND 1
+#define O_DEVLAT (O_INISND+1)
+#define O_CHKCFG (O_DEVLAT+1)
 #define O_DMPCFG (O_CHKCFG+1)
 #define O_POLINT (O_DMPCFG+1)
 #define O_ANSWER (O_POLINT+1)
@@ -132,9 +136,11 @@ static const char argpdoc[] =
 /** the definition of the known program arguments. */
 static const struct argp_option argpoptions[] = {
 	{NULL,             0,        NULL,    0, "Device options:", 1 },
-	{"device",         'd',      "DEV",   0, "Use DEV as eBUS device (serial or ip:port) [/dev/ttyUSB0]", 0 },
+	{"device",         'd',      "DEV",   0, "Use DEV as eBUS device (serial or [udp:]ip:port) [/dev/ttyUSB0]", 0 },
 	{"nodevicecheck",  'n',      NULL,    0, "Skip serial eBUS device test", 0 },
 	{"readonly",       'r',      NULL,    0, "Only read from device, never write to it", 0 },
+	{"initsend",       O_INISND, NULL,    0, "Send an initial escape symbol after connecting device", 0 },
+	{"latency",        O_DEVLAT, "USEC",  0, "Transfer latency in us [0 for USB, 10000 for IP]", 0 },
 
 	{NULL,             0,        NULL,    0, "Message configuration options:", 2 },
 	{"configpath",     'c',      "PATH",  0, "Read CSV config files from PATH [" CONFIG_PATH "]", 0 },
@@ -209,9 +215,19 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 		opt->noDeviceCheck = true;
 		break;
 	case 'r': // --readonly
-		opt->readonly = true;
+		opt->readOnly = true;
 		if (opt->scanConfig || opt->answer || opt->generateSyn) {
 			argp_error(state, "cannot combine readonly with scanconfig/answer/generatesyn");
+			return EINVAL;
+		}
+		break;
+	case O_INISND: // --initsend
+		opt->initialSend = true;
+		break;
+	case O_DEVLAT: // --latency
+		opt->latency = parseInt(arg, 10, 0, 200000, result);
+		if (result != RESULT_OK) {
+			argp_error(state, "invalid latency");
 			return EINVAL;
 		}
 		break;
@@ -226,7 +242,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 		break;
 	case 's': // --scanconfig
 		opt->scanConfig = true;
-		if (opt->readonly) {
+		if (opt->readOnly) {
 			argp_error(state, "cannot combine readonly with scanconfig/answer/generatesyn");
 			return EINVAL;
 		}
@@ -256,7 +272,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 		break;
 	case O_ANSWER: // --answer
 		opt->answer = true;
-		if (opt->readonly) {
+		if (opt->readOnly) {
 			argp_error(state, "cannot combine readonly with scanconfig/answer/generatesyn");
 			return EINVAL;
 		}
@@ -298,7 +314,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 		break;
 	case O_GENSYN: // --generatesyn
 		opt->generateSyn = true;
-		if (opt->readonly) {
+		if (opt->readOnly) {
 			argp_error(state, "cannot combine readonly with scanconfig/answer/generatesyn");
 			return EINVAL;
 		}
@@ -929,7 +945,7 @@ int main(int argc, char* argv[])
 		return EINVAL;
 
 	// open the device
-	Device *device = Device::create(opt.device, !opt.noDeviceCheck, opt.readonly, &logRawData);
+	Device *device = Device::create(opt.device, !opt.noDeviceCheck, opt.readOnly, opt.initialSend, &logRawData);
 	if (device == NULL) {
 		logError(lf_main, "unable to create device %s", opt.device);
 		return EINVAL;

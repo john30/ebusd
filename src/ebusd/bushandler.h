@@ -303,8 +303,9 @@ public:
 	 * @param answer whether to answer queries for the own master/slave address.
 	 * @param busLostRetries the number of times a send is repeated due to lost arbitration.
 	 * @param failedSendRetries the number of times a failed send is repeated (other than lost arbitration).
-	 * @param slaveRecvTimeout the maximum time in microseconds an addressed slave is expected to acknowledge.
+	 * @param transferLatency the bus transfer latency in microseconds.
 	 * @param busAcquireTimeout the maximum time in microseconds for bus acquisition.
+	 * @param slaveRecvTimeout the maximum time in microseconds an addressed slave is expected to acknowledge.
 	 * @param lockCount the number of AUTO-SYN symbols before sending is allowed after lost arbitration, or 0 for auto detection.
 	 * @param generateSyn whether to enable AUTO-SYN symbol generation.
 	 * @param pollInterval the interval in seconds in which poll messages are cycled, or 0 if disabled.
@@ -312,13 +313,13 @@ public:
 	BusHandler(Device* device, MessageMap* messages,
 			const unsigned char ownAddress, const bool answer,
 			const unsigned int busLostRetries, const unsigned int failedSendRetries,
-			const unsigned int busAcquireTimeout, const unsigned int slaveRecvTimeout,
+			const unsigned int transferLatency, const unsigned int busAcquireTimeout, const unsigned int slaveRecvTimeout,
 			const unsigned int lockCount, const bool generateSyn,
 			const unsigned int pollInterval)
 		: m_device(device), m_messages(messages),
 		  m_ownMasterAddress(ownAddress), m_ownSlaveAddress((unsigned char)(ownAddress+5)), m_answer(answer),
 		  m_busLostRetries(busLostRetries), m_failedSendRetries(failedSendRetries),
-		  m_busAcquireTimeout(busAcquireTimeout), m_slaveRecvTimeout(slaveRecvTimeout),
+		  m_transferLatency(transferLatency), m_busAcquireTimeout(busAcquireTimeout), m_slaveRecvTimeout(slaveRecvTimeout),
 		  m_masterCount(1), m_autoLockCount(lockCount==0), m_lockCount(lockCount<=3 ? 3 : lockCount), m_remainLockCount(m_autoLockCount),
 		  m_generateSynInterval(generateSyn ? SYN_TIMEOUT*getMasterNumber(ownAddress)+SYMBOL_DURATION : 0),
 		  m_pollInterval(pollInterval), m_lastReceive(0), m_lastPoll(0),
@@ -495,6 +496,9 @@ private:
 
 	/** the number of times a failed send is repeated (other than lost arbitration). */
 	const unsigned int m_failedSendRetries;
+
+	/** the bus transfer latency in microseconds. */
+	const unsigned int m_transferLatency;
 
 	/** the maximum time in microseconds for bus acquisition. */
 	const unsigned int m_busAcquireTimeout;

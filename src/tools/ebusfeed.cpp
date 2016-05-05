@@ -129,7 +129,7 @@ int main(int argc, char* argv[])
 	if (argp_parse(&argp, argc, argv, ARGP_IN_ORDER, NULL, &opt) != 0)
 		return EINVAL;
 
-	Device* device = Device::create(opt.device, false, NULL);
+	Device* device = Device::create(opt.device, false, false, NULL);
 	if (device == NULL) {
 		cout << "unable to create device " << opt.device << endl;
 		return EINVAL;
