@@ -1,4 +1,4 @@
-# next version: 2.1
+# 2.1 (2016-05-05)
 
 ## Breaking Changes
 * added "hex" command for sending arbitrary hex data, disable it by default (use "--enablehex" command line option), and limit "write -h" command to known messages only.  
