@@ -199,7 +199,7 @@ string MainLoop::decodeMessage(const string& data, const bool isHttp, bool& conn
 	bool escaped = false;
 
 	char delim = ' ';
-	while (getline(stream, token, delim) != 0) {
+	while (getline(stream, token, delim)) {
 		if (!isHttp) {
 			if (escaped) {
 				args.pop_back();
@@ -742,7 +742,7 @@ string MainLoop::executeFind(vector<string> &args)
 			}
 			istringstream input(args[argPos]);
 			string column;
-			while (getline(input, column, ',') != 0) {
+			while (getline(input, column, ',')) {
 				size_t idx = columnCount;
 				for (size_t i = 0; i < columnCount; i++) {
 					if (strcasecmp(columnNames[i], column.c_str()) == 0) {
@@ -1170,7 +1170,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 			string query = args[argPos++];
 			istringstream stream(query);
 			string token;
-			while (getline(stream, token, '&') != 0) {
+			while (getline(stream, token, '&')) {
 				pos = token.find('=');
 				string qname, value;
 				if (pos != string::npos) {

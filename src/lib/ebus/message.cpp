@@ -231,7 +231,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 		istringstream stream(str);
 		string token;
 		bool first = true;
-		while (getline(stream, token, VALUE_SEPARATOR) != 0) {
+		while (getline(stream, token, VALUE_SEPARATOR)) {
 			FileReader::trim(token);
 			unsigned char dstAddress = (unsigned char)parseInt(token.c_str(), 16, 0, 0xff, result);
 			if (result != RESULT_OK)
@@ -275,7 +275,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	size_t chainLength = 16;
 	size_t chainPrefixLength = id.size();
 	bool first = true, lastChainLengthSpecified = false;
-	while (getline(stream, token, VALUE_SEPARATOR) != 0 || first) {
+	while (getline(stream, token, VALUE_SEPARATOR) || first) {
 		FileReader::trim(token);
 		token = defaultIdPrefix+token;
 		size_t lengthPos = token.find(LENGTH_SEPARATOR);
@@ -984,7 +984,7 @@ result_t splitValues(string valueList, vector<string>& values)
 {
 	istringstream stream(valueList);
 	string str;
-	while (getline(stream, str, VALUE_SEPARATOR) != 0) {
+	while (getline(stream, str, VALUE_SEPARATOR)) {
 		if (str.length()>0 && str[0]=='\'' && str[str.length()-1]=='\'') {
 			str = str.substr(1, str.length()-2);
 		}
@@ -1003,7 +1003,7 @@ result_t splitValues(string valueList, vector<unsigned int>& valueRanges)
 	istringstream stream(valueList);
 	string str;
 	result_t result;
-	while (getline(stream, str, VALUE_SEPARATOR) != 0) {
+	while (getline(stream, str, VALUE_SEPARATOR)) {
 		FileReader::trim(str);
 		if (str.length()==0)
 			return RESULT_ERR_INVALID_ARG;
@@ -1533,7 +1533,7 @@ result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<s
 	istringstream stream(types);
 	string type;
 	vector<Message*> messages;
-	while (getline(stream, type, VALUE_SEPARATOR) != 0) {
+	while (getline(stream, type, VALUE_SEPARATOR)) {
 		FileReader::trim(type);
 		*restart = type;
 		begin = restart;

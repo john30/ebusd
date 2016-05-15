@@ -271,7 +271,7 @@ result_t DataField::create(vector<string>::iterator& it,
 					divisor = parseSignedInt(divisorStr.c_str(), 10, -MAX_DIVISOR, MAX_DIVISOR, result);
 				else {
 					istringstream stream(divisorStr);
-					while (getline(stream, token, VALUE_SEPARATOR) != 0) {
+					while (getline(stream, token, VALUE_SEPARATOR)) {
 						FileReader::trim(token);
 						const char* str = token.c_str();
 						char* strEnd = NULL;
@@ -324,7 +324,7 @@ result_t DataField::create(vector<string>::iterator& it,
 
 		bool firstType = true;
 		istringstream stream(typeStr);
-		while (result == RESULT_OK && getline(stream, token, VALUE_SEPARATOR) != 0) {
+		while (result == RESULT_OK && getline(stream, token, VALUE_SEPARATOR)) {
 			FileReader::trim(token);
 			DataField* templ = templates->get(token);
 			unsigned char length;
@@ -798,7 +798,7 @@ result_t StringDataField::writeSymbols(istringstream& input,
 		case bt_dat:
 			if (m_length == 4 && i == 2)
 				continue; // skip weekday in between
-			if (input.eof() || getline(input, token, '.') == 0)
+			if (input.eof() || !getline(input, token, '.'))
 				return RESULT_ERR_EOF; // incomplete
 			if ((m_dataType.flags & REQ) == 0 && strcmp(token.c_str(), NULL_VALUE) == 0) {
 				value = m_dataType.replacement;
@@ -829,7 +829,7 @@ result_t StringDataField::writeSymbols(istringstream& input,
 				return RESULT_ERR_OUT_OF_RANGE; // invalid date part
 			break;
 		case bt_tim:
-			if (input.eof() || getline(input, token, LENGTH_SEPARATOR) == 0)
+			if (input.eof() || !getline(input, token, LENGTH_SEPARATOR))
 				return RESULT_ERR_EOF; // incomplete
 			if ((m_dataType.flags & REQ) == 0 && strcmp(token.c_str(), NULL_VALUE) == 0) {
 				value = m_dataType.replacement;
@@ -1629,7 +1629,7 @@ result_t DataFieldSet::write(istringstream& input,
 		if (m_fields.size() > 1) {
 			if (field->isIgnored())
 				token.clear();
-			else if (getline(input, token, separator) == 0)
+			else if (!getline(input, token, separator))
 				token.clear();
 
 			istringstream single(token);
