@@ -1173,6 +1173,7 @@ result_t NumberDataField::readSymbols(SymbolString& input, const unsigned char b
 			if (outputFormat & OF_JSON) {
 				output << '"';
 				output << setw(m_length * 2) << setfill('0');
+				output << static_cast<int>(signedValue) << setw(0);
 				output << '"';
 				return RESULT_OK;
 			}
