@@ -238,7 +238,7 @@ public:
 		ostringstream field;
 		char prev = FIELD_SEPARATOR;
 		bool empty = true, read = false;
-		while (getline(ifs, line) != 0) {
+		while (getline(ifs, line)) {
 			read = true;
 			lineNo++;
 			trim(line);

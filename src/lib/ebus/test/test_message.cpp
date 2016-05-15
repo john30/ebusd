@@ -145,7 +145,7 @@ int main()
 			size_t pos = 0;
 			string token;
 			istringstream stream(check[2]);
-			while (getline(stream, token, VALUE_SEPARATOR) != 0) {
+			while (getline(stream, token, VALUE_SEPARATOR)) {
 				if (pos >= mstrs.size())
 					mstrs.resize(pos+1);
 				else if (mstrs[pos]!=NULL)
@@ -161,7 +161,7 @@ int main()
 			pos = 0;
 			stream.str(check[3]);
 			stream.clear();
-			while (getline(stream, token, VALUE_SEPARATOR) != 0) {
+			while (getline(stream, token, VALUE_SEPARATOR)) {
 				if (pos >= sstrs.size())
 					sstrs.resize(pos+1);
 				else if (sstrs[pos]!=NULL)

@@ -408,7 +408,7 @@ int main()
 		string item;
 		vector<string> entries;
 
-		while (getline(isstr, item, FIELD_SEPARATOR) != 0)
+		while (getline(isstr, item, FIELD_SEPARATOR))
 			entries.push_back(item);
 
 		if (fields != NULL) {
