@@ -245,7 +245,7 @@ public:
 	virtual result_t open();
 
 	// @copydoc
-	void close();
+	virtual void close();
 
 protected:
 	// @copydoc
