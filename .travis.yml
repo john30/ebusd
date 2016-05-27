@@ -1,9 +1,10 @@
 language: cpp
+before_script:
+  - pip install --user codecov
 script:
   - ./autogen.sh --enable-coverage && make all test
   - (cd src/lib/ebus/test && ./test_symbol && ./test_filereader && ./test_data && ./test_message)
   - ./src/ebusd/ebusd --help
 after_success:
-  - export
-  - find . -type f
-  - bash <(curl -s https://codecov.io/bash) -s src
+  - find . -type f -name "*.gc*"
+  - codecov --gcov-exec ${GCOV}
