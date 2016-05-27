@@ -4,5 +4,5 @@ script:
   - (cd src/lib/ebus/test && ./test_symbol && ./test_filereader && ./test_data && ./test_message)
   - ./src/ebusd/ebusd --help
 after_success:
-  - find . -type f -name '*.gcno' -exec gcov -pb {} \;
+  - find . -type f -name '*.gcno' -exec bash -c "(f={}; cd \${f%/*}; gcov -pb \${f##*/})" \;
   - bash <(curl -s https://codecov.io/bash) -X gcov
