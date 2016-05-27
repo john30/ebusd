@@ -4,4 +4,6 @@ script:
   - (cd src/lib/ebus/test && ./test_symbol && ./test_filereader && ./test_data && ./test_message)
   - ./src/ebusd/ebusd --help
 after_success:
-  - bash <(curl -s https://codecov.io/bash)
+  - export
+  - find . -type f
+  - bash <(curl -s https://codecov.io/bash) -s src
