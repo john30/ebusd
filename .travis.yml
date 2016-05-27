@@ -6,4 +6,6 @@ script:
   - (cd src/lib/ebus/test && ./test_symbol && ./test_filereader && ./test_data && ./test_message)
   - ./src/ebusd/ebusd --help
 after_success:
+  - find src/ebusd -name "*.gc*"
+  - gcov -pb src/ebusd/main.gcno
   - codecov
