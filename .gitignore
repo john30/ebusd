@@ -7,10 +7,13 @@ Makefile.in
 /config.*
 /configure
 /ebusd*.tar.*
+/ebusd*.deb
 /stamp-h?
 .deps/
 *.o
 *.dirstamp
+*.gc*
+app.info
 /src/ebusd/ebusd
 /src/tools/ebusctl
 /src/tools/ebusfeed
@@ -20,6 +23,7 @@ Makefile.in
 /src/lib/ebus/test/test_symbol
 /src/lib/ebus/test/test_data
 /src/lib/ebus/test/test_message
+/src/lib/ebus/test/test_filereader
 /docs/Doxyfile
 /docs/doxyfile.stamp
 /docs/html
