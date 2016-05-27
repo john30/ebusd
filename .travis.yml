@@ -1,4 +1,7 @@
 language: cpp
-script: ./autogen.sh && ./configure && make
+script:
+  - ./autogen.sh --enable-coverage && make all test
+  - (cd src/lib/ebus/test && ./test_symbol && ./test_filereader && ./test_data && ./test_message)
+  - ./src/ebusd/ebusd --help
 after_success:
   - bash <(curl -s https://codecov.io/bash)
