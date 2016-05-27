@@ -22,22 +22,27 @@
 
 using namespace std;
 
+static bool error = false;
+
 void verify(bool expectFailMatch, string type, string input,
 		bool match, string expectStr, string gotStr)
 {
 	match = match && expectStr == gotStr;
 	if (expectFailMatch) {
-		if (match)
+		if (match) {
 			cout << "  failed " << type << " match >" << input
 			        << "< error: unexpectedly succeeded" << endl;
-		else
+			error = true;
+		} else {
 			cout << "  failed " << type << " match >" << input << "< OK" << endl;
-	}
-	else if (match)
+		}
+	} else if (match) {
 		cout << "  " << type << " match >" << input << "< OK" << endl;
-	else
+	} else {
 		cout << "  " << type << " match >" << input << "< error: got >"
 		        << gotStr << "<, expected >" << expectStr << "<" << endl;
+			error = true;
+	}
 }
 
 int main()
@@ -70,10 +75,12 @@ int main()
 		string resultline[3] = resultlines[lineNo-1];
 		if (row.empty()) {
 			cout << "  result empty";
-			if (resultline[0] == "")
+			if (resultline[0] == "") {
 				cout << ": OK" << endl;
-			else
+			} else {
 				cout << ": error" << endl;
+				error = true;
+			}
 			continue;
 		}
 		for (vector<string>::iterator it = row.begin(); it != row.end(); it++) {
@@ -85,5 +92,5 @@ int main()
 		}
 	}
 
-	return 0;
+	return error ? 1 : 0;
 }
