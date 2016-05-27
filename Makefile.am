@@ -9,6 +9,9 @@ EXTRA_DIST = LICENSE \
 	     README.md \
 	     VERSION
 
+test:
+	$(MAKE) -C src/lib/ebus/test
+
 distclean-local:
 	-rm -rf autom4te.cache
 	-rm -f aclocal.m4

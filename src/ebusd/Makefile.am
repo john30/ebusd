@@ -1,7 +1,4 @@
-AM_CXXFLAGS = -fpic \
-	      -Wall \
-	      -Wextra \
-	      -Wconversion \
+AM_CXXFLAGS = -Wconversion \
 	      -isystem$(top_srcdir)/src/lib/utils \
 	      -isystem$(top_srcdir)/src/lib/ebus \
 	      -DSYSCONFDIR=\"$(sysconfdir)\" \

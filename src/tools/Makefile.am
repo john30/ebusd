@@ -1,7 +1,4 @@
-AM_CXXFLAGS = -fpic \
-	      -Wall \
-	      -Wextra \
-	      -isystem$(top_srcdir)/src/lib/utils \
+AM_CXXFLAGS = -isystem$(top_srcdir)/src/lib/utils \
 	      -isystem$(top_srcdir)/src/lib/ebus
 
 bin_PROGRAMS = ebusctl \

@@ -1,7 +1,4 @@
-AM_CXXFLAGS = -fpic \
-	      -Wall \
-	      -Wextra \
-	      -Wno-unused-parameter \
+AM_CXXFLAGS = -Wno-unused-parameter \
 	      -Wconversion
 
 noinst_LIBRARIES = libebus.a

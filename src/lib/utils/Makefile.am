@@ -1,7 +1,4 @@
-AM_CXXFLAGS = -fpic \
-	      -Wall \
-	      -Wextra \
-	      -Wconversion
+AM_CXXFLAGS = -Wconversion
 
 noinst_LIBRARIES = libutils.a
 
