@@ -7,5 +7,9 @@ script:
   - ./src/ebusd/ebusd --help
 after_success:
   - find src/ebusd -name "*.gc*"
-  - gcov -pb src/ebusd/main.gcno
+  - g++ --version
+  - gcov --version
+  - hexdump -C src/lib/ebus/symbol.gcno |head
+  - hexdump -C src/lib/ebus/symbol.gcda |head
+  - gcov -pb ./src/ebusd/symbol.gcno
   - codecov
