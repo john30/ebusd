@@ -4,6 +4,7 @@ ebusd - eBUS daemon
 ebusd is a daemon for handling communication with eBUS devices connected to a
 2-wire bus system ("energy bus" used by numerous heating systems).
 
+[![Build Status](https://travis-ci.org/john30/ebusd.svg?branch=master)](https://travis-ci.org/john30/ebusd)
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/john30/ebusd?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 
