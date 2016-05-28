@@ -11,6 +11,6 @@ EBUSD_OPTS="--scanconfig"
 # script in order to start/stop an individual ebusd instance instead of all
 # instances.
 # Example (uncomment the EBUSD_OPTS above):
-#EBUSD_OPTS1="--scanconfig -d /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port0 -p 8888"
-#EBUSD_OPTS2="--scanconfig -d /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A900acTF-if00-port0 -p 8889"
-#EBUSD_OPTS3="--scanconfig -d /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A900beCG-if00-port0 -p 8890"
+#EBUSD_OPTS1="--scanconfig -d /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port0 -p 8888 -l /var/log/ebusd1.log"
+#EBUSD_OPTS2="--scanconfig -d /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A900acTF-if00-port0 -p 8889 -l /var/log/ebusd2.log"
+#EBUSD_OPTS3="--scanconfig -d /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A900beCG-if00-port0 -p 8890 -l /var/log/ebusd3.log"
