@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 ### BEGIN INIT INFO
 # Provides:        ebusd
@@ -10,7 +10,8 @@
 ### END INIT INFO
 
 DAEMON=/usr/bin/ebusd
-PIDFILE=/var/run/ebusd.pid
+PIDFILE_PREFIX=/var/run/ebusd
+PIDFILE_SUFFIX=.pid
 
 . /lib/lsb/init-functions
 [ -r /etc/default/ebusd ] && . /etc/default/ebusd
@@ -20,27 +21,81 @@ if [ ! -x $DAEMON ]; then
 	exit 5
 fi
 
+ALL_OPTS=${!EBUSD_OPTS*}
+if [ ${#ALL_OPTS[@]} -lt 1 ]; then
+  ALL_OPTS[0]=EBUSD_OPTS
+fi
+instance="EBUSD_OPTS$2"
+instance=${!instance}
+
+start_instance () {
+	local opts suffix
+	opts=$1
+	shift
+	suffix="${opts#EBUSD_OPTS}"
+	log_daemon_msg "Starting ebusd${suffix}" ebusd
+	pidfile=$PIDFILE_PREFIX${suffix}$PIDFILE_SUFFIX
+	start-stop-daemon --start --quiet --oknodo --pidfile $pidfile --exec $DAEMON -- --pidfile $pidfile ${!opts}
+	log_end_msg $?
+}
+
+stop_instance () {
+	local opts suffix
+	opts=$1
+	shift
+	suffix="${opts#EBUSD_OPTS}"
+	log_daemon_msg "Stopping ebusd${suffix}" ebusd
+	pidfile=$PIDFILE_PREFIX${suffix}$PIDFILE_SUFFIX
+	start-stop-daemon --stop --quiet --oknodo --pidfile $pidfile
+	log_end_msg $?
+	rm -f $PIDFILE_PREFIX${suffix}$PIDFILE_SUFFIX
+}
+
 case $1 in
 	start)
-		log_daemon_msg "Starting ebusd" "ebusd"
-		start-stop-daemon --start --quiet --oknodo --pidfile $PIDFILE --exec $DAEMON -- $EBUSD_OPTS
-		status=$?
-		log_end_msg $status
+		if [ -z "$2" ]; then
+			for opts in $ALL_OPTS; do
+				start_instance $opts
+			done
+		elif [ -z "$instance" ]; then
+			log_failure_msg "ebusd$2 is not configured"
+		else
+			start_instance EBUSD_OPTS$2
+		fi
   		;;
 	stop)
-		log_daemon_msg "Stopping ebusd" "ebusd"
-  		start-stop-daemon --stop --quiet --oknodo --pidfile $PIDFILE
-		log_end_msg $?
-		rm -f $PIDFILE
+		if [ -z "$2" ]; then
+			for opts in $ALL_OPTS; do
+				stop_instance $opts
+			done
+		else
+			if [ -z "$instance" ]; then
+				log_warning_msg "ebusd$2 is not configured"
+			fi
+			stop_instance EBUSD_OPTS$2
+		fi
   		;;
 	restart|force-reload)
-		$0 stop && sleep 2 && $0 start
+		ARGS=($@)
+		$0 stop ${ARGS[@]:1} && sleep 2 && $0 start ${ARGS[@]:1}
   		;;
 	status)
-		status_of_proc $DAEMON "ebusd"
+		if [ -z "$2" ]; then
+			for opts in $ALL_OPTS; do
+				suffix=${opts#EBUSD_OPTS}
+				pidfile=$PIDFILE_PREFIX$suffix$PIDFILE_SUFFIX
+				status_of_proc -p $pidfile $DAEMON ebusd$suffix
+			done
+		else
+			if [ -z "$instance" ]; then
+				log_warning_msg "ebusd$2 is not configured"
+			fi
+			pidfile=$PIDFILE_PREFIX$2$PIDFILE_SUFFIX
+			status_of_proc -p $pidfile $DAEMON ebusd$2
+		fi
 		;;
 	*)
-		echo "Usage: $0 {start|stop|restart|force-reload|status}"
+		echo "Usage: $0 {start|stop|restart|force-reload|status} [instance]"
 		exit 2
 		;;
 esac
