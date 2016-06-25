@@ -8,6 +8,8 @@ libebus_a_SOURCES = result.cpp \
 		    symbol.cpp \
 		    symbol.h \
 		    filereader.h \
+		    datatype.cpp \
+		    datatype.h \
 		    data.cpp \
 		    data.h \
 		    device.cpp \

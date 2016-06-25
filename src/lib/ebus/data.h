@@ -22,6 +22,7 @@
 #include "symbol.h"
 #include "result.h"
 #include "filereader.h"
+#include "datatype.h"
 #include <string>
 #include <iostream>
 #include <sstream>
@@ -30,139 +31,21 @@
 #include <map>
 
 /** @file data.h
- * Classes, functions, and constants related to decoding/encoding of symbols
- * on the eBUS to/from readable values.
+ * Classes related to defining fields based on data types in symbols on the
+ * eBUS.
  *
  * A @a DataField is either a @a SingleDataField or a list of
  * @a SingleDataField instances in a @a DataFieldSet.
  *
- * A @a SingleDataField is either a string based one or a numeric one. Due to
- * their text nature, date and time fields are also treated as
- * @a StringDataField.
- *
  * The basic field types are just @a StringDataField, @a NumberDataField, and
- * @a ValueListDataField. The particular eBUS specification types like e.g.
- * @a D1C are defined by using one of these basic field types (see #BaseType)
- * with certain flags, such as #BCD, #FIX, #REQ, see #dataType_s.
- *
- * The list of available base types is defined an array of #dataType_s
- * structures and can easily be extended if necessary.
- *
- * Each @a DataField can be converted from a @a SymbolString to an
- * @a ostringstream (see @a DataField#read() methods) or vice versa from an
- * @a istringstream to a @a SymbolString (see @a DataField#write()).
+ * @a ValueListDataField.
  *
  * The @a DataFieldTemplates allow definition of derived types as well as
  * combined types based on the list of available base types. It reads the
  * instances from configuration files by inheriting the @a FileReader template
  * class.
  */
-
 using namespace std;
-
-/** the separator character used between base type name and length (in CSV only). */
-#define LENGTH_SEPARATOR ':'
-
-/** the replacement string for undefined values (in UI and CSV). */
-#define NULL_VALUE "-"
-
-/** the separator character used between fields (in UI only). */
-#define UI_FIELD_SEPARATOR ';'
-
-/** the type for data output format options. */
-typedef int OutputFormat;
-
-/* the bit flags for @a OutputFormat. */
-static const unsigned int OF_VERBOSE = 0x01; //!< verbose format (names, values, units, and comments).
-static const unsigned int OF_NUMERIC = 0x02; //!< numeric format (keep numeric value of value=name pairs).
-static const unsigned int OF_JSON = 0x04;    //!< JSON format.
-
-/** the message part in which a data field is stored. */
-enum PartType {
-	pt_any,          //!< stored in any data (master or slave)
-	pt_masterData,   //!< stored in master data
-	pt_slaveData,    //!< stored in slave data
-};
-
-/** the available base data types. */
-enum BaseType {
-	bt_str,    //!< text string in a @a StringDataField
-	bt_hexstr, //!< hex digit string in a @a StringDataField
-	bt_dat,    //!< date in a @a StringDataField
-	bt_tim,    //!< time in a @a StringDataField
-	bt_num,    //!< numeric value in a @a NumericDataField
-};
-
-/* flags for dataType_t. */
-static const unsigned int ADJ = 0x01; //!< adjustable length, bitCount is maximum length
-static const unsigned int BCD = 0x02; //!< binary representation is BCD
-static const unsigned int REV = 0x04; //!< reverted binary representation (most significant byte first)
-static const unsigned int SIG = 0x08; //!< signed value
-static const unsigned int LST = 0x10; //!< value list is possible (without applied divisor)
-static const unsigned int DAY = 0x20; //!< forced value list defaulting to week days
-static const unsigned int IGN = 0x40; //!< ignore value during read and write
-static const unsigned int FIX = 0x80; //!< fixed width formatting
-static const unsigned int REQ = 0x100;//!< value may not be NULL
-static const unsigned int HCD = 0x200; //!< binary representation is hex converted to decimal and interpreted as 2 digits (also requires #BCD)
-static const unsigned int EXP = 0x400; //!< exponential numeric representation
-
-/** The structure for defining data types with their properties. */
-typedef struct dataType_s {
-	const char* name;               //!< data type identifier
-	const unsigned char bitCount;   //!< number of bits (maximum length if #ADJ flag is set, must be multiple of 8 with flag #BCD)
-	const BaseType type;            //!< base data type
-	const unsigned short flags;     //!< flags (like #BCD)
-	const unsigned int replacement; //!< replacement value (fill-up value for #bt_str / #bt_hexstr, no replacement if equal to #minValue for #bt_num)
-	const unsigned int minValue;    //!< minimum raw value (ignored for @a StringDataField)
-	const unsigned int maxValue;    //!< maximum raw value (ignored for @a StringDataField)
-	const short divisorOrFirstBit;  //!< #bt_num: divisor (negative for reciprocal) or offset to first bit (if (#bitCount%8)!=0)
-} dataType_t;
-
-/** the maximum allowed position within master or slave data. */
-#define MAX_POS 24
-
-/** the maximum allowed field length. */
-#define MAX_LEN 31
-
-/** the field length indicating remainder of input. */
-#define REMAIN_LEN 255
-
-/**
- * Parse an unsigned int value.
- * @param str the string to parse.
- * @param base the numerical base.
- * @param minValue the minimum resulting value.
- * @param maxValue the maximum resulting value.
- * @param result the variable in which to store an error code when parsing failed or the value is out of bounds.
- * @param length the optional variable in which to store the number of read characters.
- * @return the parsed value.
- */
-unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result, unsigned int* length=NULL);
-
-/**
- * Parse a signed int value.
- * @param str the string to parse.
- * @param base the numerical base.
- * @param minValue the minimum resulting value.
- * @param maxValue the maximum resulting value.
- * @param result the variable in which to store an error code when parsing failed or the value is out of bounds.
- * @param length the optional variable in which to store the number of read characters.
- * @return the parsed value.
- */
-int parseSignedInt(const char* str, int base, const int minValue, const int maxValue, result_t& result, unsigned int* length=NULL);
-
-/**
- * Print the error position of the iterator.
- * @param out the @a ostream to print to.
- * @param begin the iterator to the beginning of the items.
- * @param end the iterator to the end of the items.
- * @param pos the iterator with the erroneous position.
- * @param filename the name of the file being read.
- * @param lineNo the current line number in the file being read.
- * @param result the result code.
- */
-void printErrorPos(ostream& out, vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, string filename, size_t lineNo, result_t result);
-
 
 class DataFieldTemplates;
 class SingleDataField;
@@ -349,7 +232,7 @@ public:
 	 * @param length the number of symbols in the message part in which the field is stored.
 	 */
 	SingleDataField(const string name, const string comment,
-			const string unit, const dataType_t dataType, const PartType partType,
+			const string unit, DataType* dataType, const PartType partType,
 			const unsigned char length)
 		: DataField(name, comment),
 		  m_unit(unit), m_dataType(dataType), m_partType(partType),
@@ -361,11 +244,12 @@ public:
 	virtual ~SingleDataField() {}
 
 	// @copydoc
-	virtual SingleDataField* clone() = 0;
+	virtual SingleDataField* clone();
 
 	/**
 	 * Factory method for creating a new @a SingleDataField instance derived from a base type.
-	 * @param typeNameStr the base type name string.
+	 * @param fullIdStr the full ID string (including optional length suffix).
+	 * @param idStr the ID string (excluding optional length suffix).
 	 * @param length the base type length, or 0 for default, or @a REMAIN_LEN for remainder within same message part.
 	 * @param name the field name.
 	 * @param comment the field comment.
@@ -377,7 +261,7 @@ public:
 	 * @return @a RESULT_OK on success, or an error code.
 	 * Note: the caller needs to free the created instance.
 	 */
-	static result_t create(const char* typeNameStr, const unsigned char length,
+	static result_t create(const char* fullIdStr, const char* idStr, const unsigned char length,
 		const string name, const string comment, const string unit,
 		const PartType partType, int divisor, map<unsigned int, string> values,
 		SingleDataField* &returnField);
@@ -392,7 +276,7 @@ public:
 	 * Get whether this field is ignored.
 	 * @return whether this field is ignored.
 	 */
-	bool isIgnored() const { return (m_dataType.flags & IGN) != 0; }
+	bool isIgnored() const { return m_dataType->isIgnored(); }
 
 	/**
 	 * Get the message part in which the field is stored.
@@ -401,13 +285,13 @@ public:
 	PartType getPartType() const { return m_partType; }
 
 	// @copydoc
-	virtual unsigned char getLength(PartType partType, unsigned char maxLength=MAX_LEN) {
-		if (partType != m_partType) {
-			return (unsigned char)0;
-		}
-		bool remainder = m_length==REMAIN_LEN && (m_dataType.flags & ADJ)!=0;
-		return remainder ? maxLength : m_length;
-	}
+	virtual unsigned char getLength(PartType partType, unsigned char maxLength=MAX_LEN);
+
+	// @copydoc
+	virtual result_t derive(string name, string comment,
+		string unit, const PartType partType,
+		int divisor, map<unsigned int, string> values,
+		vector<SingleDataField*>& fields);
 
 	/**
 	 * Get whether this field uses a full byte offset.
@@ -415,10 +299,13 @@ public:
 	 * @return true if this field uses a full byte offset, false if this field
 	 * only consumes a part of a byte and a subsequent field may re-use the same offset.
 	 */
-	virtual bool hasFullByteOffset(bool after) { return true; }
+	virtual bool hasFullByteOffset(bool after);
 
 	// @copydoc
 	virtual void dump(ostream& output);
+
+	// @copydoc
+	virtual bool hasField(const char* fieldName, bool numeric);
 
 	// @copydoc
 	virtual result_t read(const PartType partType,
@@ -439,34 +326,28 @@ public:
 protected:
 
 	/**
-	 * Internal method for reading the numeric raw value from a @a SymbolString.
-	 * @param input the unescaped @a SymbolString to read the binary value from.
-	 * @param offset the offset in the @a SymbolString.
-	 * @param value the variable in which to store the numeric raw value.
-	 * @return @a RESULT_OK on success, or an error code.
-	 */
-	virtual result_t readRawValue(SymbolString& input, const unsigned char offset, unsigned int& value) = 0;
-
-	/**
 	 * Internal method for reading the field from a @a SymbolString.
 	 * @param input the unescaped @a SymbolString to read the binary value from.
-	 * @param baseOffset the base offset in the @a SymbolString.
+	 * @param offset the offset in the @a SymbolString.
 	 * @param output the ostringstream to append the formatted value to.
 	 * @param outputFormat the @a OutputFormat options to use.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	virtual result_t readSymbols(SymbolString& input, const unsigned char baseOffset,
-			ostringstream& output, OutputFormat outputFormat) = 0;
+	virtual result_t readSymbols(SymbolString& input,
+		const unsigned char offset,
+		ostringstream& output, OutputFormat outputFormat);
 
 	/**
 	 * Internal method for writing the field to a @a SymbolString.
 	 * @param input the @a istringstream to parse the formatted value from.
 	 * @param offset the offset in the @a SymbolString.
 	 * @param output the unescaped @a SymbolString to write the binary value to.
-	 * @param length the variable in which to store the used length in bytes, or NULL.
+	 * @param usedLength the variable in which to store the used length in bytes, or NULL.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	virtual result_t writeSymbols(istringstream& input, const unsigned char offset, SymbolString& output, unsigned char* length) = 0;
+	virtual result_t writeSymbols(istringstream& input,
+		const unsigned char offset,
+		SymbolString& output, unsigned char* usedLength);
 
 protected:
 
@@ -474,7 +355,7 @@ protected:
 	const string m_unit;
 
 	/** the data type definition. */
-	const dataType_t m_dataType;
+	DataType* m_dataType;
 
 	/** the message part in which the field is stored. */
 	const PartType m_partType;
@@ -486,190 +367,9 @@ protected:
 
 
 /**
- * Base class for all string based data fields.
- */
-class StringDataField : public SingleDataField
-{
-public:
-
-	/**
-	 * Constructs a new instance.
-	 * @param name the field name.
-	 * @param comment the field comment.
-	 * @param unit the value unit.
-	 * @param dataType the data type definition.
-	 * @param partType the message part in which the field is stored.
-	 * @param length the number of symbols in the message part in which the field is stored, or @a REMAIN_LEN for remainder within same message part.
-	 */
-	StringDataField(const string name, const string comment,
-			const string unit, const dataType_t dataType, const PartType partType,
-			const unsigned char length)
-		: SingleDataField(name, comment, unit, dataType, partType, length) {}
-
-	/**
-	 * Destructor.
-	 */
-	virtual ~StringDataField() {}
-
-	// @copydoc
-	virtual StringDataField* clone();
-
-	// @copydoc
-	virtual result_t derive(string name, string comment,
-			string unit, const PartType partType,
-			int divisor, map<unsigned int, string> values,
-			vector<SingleDataField*>& fields);
-
-	// @copydoc
-	virtual bool hasField(const char* fieldName, bool numeric);
-
-	// @copydoc
-	virtual void dump(ostream& output);
-
-protected:
-
-	// @copydoc
-	virtual result_t readRawValue(SymbolString& input, const unsigned char offset, unsigned int& value);
-
-	// @copydoc
-	virtual result_t readSymbols(SymbolString& input, const unsigned char baseOffset,
-			ostringstream& output, OutputFormat outputFormat);
-
-	// @copydoc
-	virtual result_t writeSymbols(istringstream& input, const unsigned char offset, SymbolString& output, unsigned char* length);
-
-};
-
-
-/**
- * Base class for all numeric data fields.
- */
-class NumericDataField : public SingleDataField
-{
-public:
-
-	/**
-	 * Constructs a new instance.
-	 * @param name the field name.
-	 * @param comment the field comment.
-	 * @param unit the value unit.
-	 * @param dataType the data type definition.
-	 * @param partType the message part in which the field is stored.
-	 * @param length the number of symbols in the message part in which the field is stored.
-	 * @param bitCount the number of bits in the binary value (may be less than @a length * 8).
-	 * @param bitOffset the offset to the first bit in the binary value.
-	 */
-	NumericDataField(const string name, const string comment,
-			const string unit, const dataType_t dataType, const PartType partType,
-			const unsigned char length, const unsigned char bitCount, const unsigned char bitOffset)
-		: SingleDataField(name, comment, unit, dataType, partType, length),
-		  m_bitCount(bitCount), m_bitOffset(bitOffset) {}
-
-	/**
-	 * Destructor.
-	 */
-	virtual ~NumericDataField() {}
-
-	// @copydoc
-	virtual NumericDataField* clone() = 0;
-
-	// @copydoc
-	virtual bool hasFullByteOffset(bool after);
-
-	// @copydoc
-	virtual bool hasField(const char* fieldName, bool numeric);
-
-	// @copydoc
-	virtual void dump(ostream& output);
-
-protected:
-
-	// @copydoc
-	virtual result_t readRawValue(SymbolString& input, const unsigned char offset, unsigned int& value);
-
-	/**
-	 * Internal method for writing the raw value to a @a SymbolString.
-	 * @param value the raw value to write.
-	 * @param offset the offset in the @a SymbolString.
-	 * @param output the unescaped @a SymbolString to write the binary value to.
-	 * @param length the variable in which to store the used length in bytes, or NULL.
-	 * @return @a RESULT_OK on success, or an error code.
-	 */
-	result_t writeRawValue(unsigned int value, const unsigned char offset, SymbolString& output, unsigned char* length=NULL);
-
-	/** the number of bits in the binary value. */
-	const unsigned char m_bitCount;
-
-	/** the offset to the first bit in the binary value. */
-	const unsigned char m_bitOffset;
-
-};
-
-
-/**
- * Base class for all numeric data fields with a number representation.
- */
-class NumberDataField : public NumericDataField
-{
-public:
-
-	/**
-	 * Constructs a new instance.
-	 * @param name the field name.
-	 * @param comment the field comment.
-	 * @param unit the value unit.
-	 * @param dataType the data type definition.
-	 * @param partType the message part in which the field is stored.
-	 * @param length the number of symbols in the message part in which the field is stored.
-	 * @param bitCount the number of bits in the binary value (may be less than @a length * 8).
-	 * @param divisor the extra divisor (negative for reciprocal) to apply on the value, or 1 for none.
-	 */
-	NumberDataField(const string name, const string comment,
-			const string unit, const dataType_t dataType, const PartType partType,
-			const unsigned char length, const unsigned char bitCount,
-			const int divisor);
-
-	/**
-	 * Destructor.
-	 */
-	virtual ~NumberDataField() {}
-
-	// @copydoc
-	virtual NumberDataField* clone();
-
-	// @copydoc
-	virtual result_t derive(string name, string comment,
-			string unit, const PartType partType,
-			int divisor, map<unsigned int, string> values,
-			vector<SingleDataField*>& fields);
-
-	// @copydoc
-	virtual void dump(ostream& output);
-
-protected:
-
-	// @copydoc
-	virtual result_t readSymbols(SymbolString& input, const unsigned char baseOffset,
-			ostringstream& output, OutputFormat outputFormat);
-
-	// @copydoc
-	virtual result_t writeSymbols(istringstream& input, const unsigned char offset, SymbolString& output, unsigned char* length);
-
-private:
-
-	/** the combined divisor (negative for reciprocal) to apply on the value, or 1 for none. */
-	const int m_divisor;
-
-	/** the precision for formatting the value. */
-	unsigned char m_precision;
-
-};
-
-
-/**
  * A numeric data field with a list of value=text assignments and a string representation.
  */
-class ValueListDataField : public NumericDataField
+class ValueListDataField : public SingleDataField
 {
 public:
 
@@ -681,15 +381,12 @@ public:
 	 * @param dataType the data type definition.
 	 * @param partType the message part in which the field is stored.
 	 * @param length the number of symbols in the message part in which the field is stored.
-	 * @param bitCount the number of bits in the binary value (may be less than @a length * 8).
 	 * @param values the value=text assignments.
 	 */
 	ValueListDataField(const string name, const string comment,
-			const string unit, const dataType_t dataType, const PartType partType,
-			const unsigned char length, const unsigned char bitCount,
-			const map<unsigned int, string> values)
-		: NumericDataField(name, comment, unit, dataType, partType, length, bitCount,
-				(unsigned char)((dataType.bitCount < 8) ? dataType.divisorOrFirstBit : 0)),
+		const string unit, NumberDataType* dataType, const PartType partType,
+		const unsigned char length, const map<unsigned int, string> values)
+		: SingleDataField(name, comment, unit, dataType, partType, length),
 		m_values(values) {}
 
 	/**
@@ -712,11 +409,14 @@ public:
 protected:
 
 	// @copydoc
-	virtual result_t readSymbols(SymbolString& input, const unsigned char baseOffset,
+	virtual result_t readSymbols(SymbolString& input,
+			const unsigned char offset,
 			ostringstream& output, OutputFormat outputFormat);
 
 	// @copydoc
-	virtual result_t writeSymbols(istringstream& input, const unsigned char offset, SymbolString& output, unsigned char* length);
+	virtual result_t writeSymbols(istringstream& input,
+			const unsigned char offset,
+			SymbolString& output, unsigned char* usedLength);
 
 private:
 
