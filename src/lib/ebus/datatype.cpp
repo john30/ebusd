@@ -491,16 +491,16 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
 }
 
 
-NumberDataType::NumberDataType(const char* id, const unsigned char bitCount, const unsigned short flags, const unsigned int replacement,
-		const unsigned int minValue, const unsigned int maxValue, const int divisor)
-	: DataType(id, bitCount, flags, replacement), m_minValue(minValue), m_maxValue(maxValue), m_divisor(divisor), m_firstBit(0), m_baseType(NULL)
-{
+unsigned char NumberDataType::calcPrecision(const int divisor) {
 	unsigned char precision = 0;
-	if (divisor > 1)
-		for (unsigned int exp = 1; exp < MAX_DIVISOR; exp *= 10, precision++)
-			if (exp >= (unsigned int)divisor)
+	if (divisor > 1) {
+		for (unsigned int exp = 1; exp < MAX_DIVISOR; exp *= 10, precision++) {
+			if (exp >= (unsigned int)divisor) {
 				break;
-	m_precision = precision;
+			}
+		}
+	}
+	return precision;
 }
 
 bool NumberDataType::dump(ostream& output, unsigned char length) const

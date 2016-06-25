@@ -40,9 +40,6 @@
  * using one of these base data types with certain flags, such as #BCD, #FIX,
  * #REQ, see @a DataType.
  *
- * The list of available base data types is stored in #baseTypes and can easily
- * be extended if necessary.
- *
  * Each @a DataType can be converted from a @a SymbolString to an
  * @a ostringstream (see @a DataType#readSymbols() methods) or vice versa from
  * an @a istringstream to a @a SymbolString (see @a DataType#writeSymbols()).
@@ -97,7 +94,7 @@ static const unsigned int REV = 0x04; //!< reverted binary representation (most 
 static const unsigned int SIG = 0x08; //!< signed value
 static const unsigned int IGN = 0x10; //!< ignore value during read and write
 static const unsigned int FIX = 0x20; //!< fixed width formatting
-static const unsigned int REQ = 0x40;//!< value may not be NULL
+static const unsigned int REQ = 0x40; //!< value may not be NULL
 static const unsigned int HCD = 0x80; //!< binary representation is hex converted to decimal and interpreted as 2 digits (also requires #BCD)
 static const unsigned int EXP = 0x100; //!< exponential numeric representation
 static const unsigned int LAST_DATATYPE_FLAG = EXP; //!< the last flag value used by @a DataType and children
@@ -138,6 +135,7 @@ int parseSignedInt(const char* str, int base, const int minValue, const int maxV
  * @param result the result code.
  */
 void printErrorPos(ostream& out, vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, string filename, size_t lineNo, result_t result);
+
 
 /**
  * Base class for all kinds of data types.
@@ -256,6 +254,7 @@ protected:
 
 };
 
+
 /**
  * A string based @a DataType.
  */
@@ -301,6 +300,7 @@ private:
 	const bool m_isHex;
 
 };
+
 
 /**
  * A date/time based @a DataType.
@@ -364,7 +364,7 @@ private:
 
 
 /**
- * Base class for numeric @a DataType.
+ * A number based @a DataType.
  */
 class NumberDataType : public DataType
 {
@@ -375,19 +375,20 @@ public:
 	 * @param id the type identifier.
 	 * @param bitCount the number of bits (maximum length if #ADJ flag is set, must be multiple of 8 with flag #BCD).
 	 * @param flags the combination of flags (like #BCD).
-	 * @param replacement the replacement value (no replacement if equal to #minValue).
+	 * @param replacement the replacement value (no replacement if equal to minValue).
 	 * @param minValue the minimum raw value.
 	 * @param maxValue the maximum raw value.
 	 * @param divisor the divisor (negative for reciprocal).
 	 */
 	NumberDataType(const char* id, const unsigned char bitCount, const unsigned short flags, const unsigned int replacement,
-			const unsigned int minValue, const unsigned int maxValue, const int divisor);
+			const unsigned int minValue, const unsigned int maxValue, const int divisor)
+		: DataType(id, bitCount, flags, replacement), m_minValue(minValue), m_maxValue(maxValue), m_divisor(divisor), m_precision(calcPrecision(divisor)), m_firstBit(0), m_baseType(NULL) {}
 
 	/**
 	 * Constructs a new instance for less than 8 bits.
 	 * @param id the type identifier.
 	 * @param bitCount the number of bits (maximum length if #ADJ flag is set).
-	 * @param flags the combination of flags (like #ADJ, must not include flag #BCD).
+	 * @param flags the combination of flags (like #ADJ, may not include flag #BCD).
 	 * @param replacement the replacement value (no replacement if zero).
 	 * @param firstBit the offset to the first bit.
 	 * @param divisor the divisor (negative for reciprocal).
@@ -401,13 +402,25 @@ public:
 	 */
 	virtual ~NumberDataType() {}
 
-	// @copydoc
+	/**
+	 * Calculate the precision from the divisor.
+	 *
+	 * @param divisor the divisor (negative for reciprocal).
+	 * @return the precision for formatting the value.
+	 */
+	static unsigned char calcPrecision(const int divisor);
+
+		// @copydoc
 	virtual bool dump(ostream& output, const unsigned char length) const;
 
 	/**
 	 * Derive a new @a NumberDataType from this.
-	 * @param divisor the extra divisor (negative for reciprocal) to apply, or 1 for none (if applicable).
-	 * @param derived the derived @a NumberDataType, or this if derivation is not necessary.
+	 * @param divisor the extra divisor (negative for reciprocal) to apply, or
+	 * 1 for none (if applicable), or 0 to keep the current value.
+	 * @param bitCount the number of bits (maximum length if #ADJ flag is set,
+	 * must be multiple of 8 with flag #BCD), or 0 to keep the current value.
+	 * @param derived the derived @a NumberDataType, or this if derivation is
+	 * not necessary.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	result_t derive(int divisor, unsigned char bitCount, NumberDataType* &derived);
@@ -453,7 +466,8 @@ public:
 	 * @param offset the offset in the @a SymbolString.
 	 * @param length the number of symbols to write, or @a REMAIN_LEN.
 	 * @param output the unescaped @a SymbolString to write the binary value to.
-	 * @param length the variable in which to store the used length in bytes, or NULL.
+	 * @param usedLength the variable in which to store the used length in bytes,
+	 * or NULL.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	virtual result_t writeRawValue(unsigned int value,
@@ -477,7 +491,7 @@ private:
 	const int m_divisor;
 
 	/** the precision for formatting the value. */
-	unsigned char m_precision;
+	const unsigned char m_precision;
 
 	/** the offset to the first bit. */
 	const short m_firstBit;
