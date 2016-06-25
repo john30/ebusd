@@ -37,8 +37,8 @@
  * A @a DataField is either a @a SingleDataField or a list of
  * @a SingleDataField instances in a @a DataFieldSet.
  *
- * The basic field types are just @a StringDataField, @a NumberDataField, and
- * @a ValueListDataField.
+ * Each @a SingleDataField has a reference to one basic field type @a DataType.
+ * The list of available data types can be extended easily if necessary.
  *
  * The @a DataFieldTemplates allow definition of derived types as well as
  * combined types based on the list of available base types. It reads the
