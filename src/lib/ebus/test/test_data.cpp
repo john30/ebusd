@@ -448,7 +448,9 @@ int main()
 			error = true;
 			continue;
 		}
-		cout << "\"" << check[0] << "\": create OK" << endl;
+		cout << "\"" << check[0] << "\"=\"";
+		fields->dump(cout);
+		cout << "\": create OK" << endl;
 		if (isTemplate) {
 			// store new template
 			result = templates->add(fields, "", true);
