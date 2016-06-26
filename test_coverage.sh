@@ -179,11 +179,21 @@ f -e -c mc.5
 r -c mc.5 Timer.Monday
 w -c mc.5 Timer.Monday "-:-;-:-;-:-;-:-;-:-;-:-;Mo-So"
 w -c mc.5 -d 53 HeatingCurve 0.25
-w -h fe070400
 hex fe070400
 hex 53070400
 dump
 grab result
+r -c mc.5 -d g3 HeatingCurve
+r -c mc.5 -d 00 HeatingCurve
+r -c mc.5 -m 999999 HeatingCurve
+r -c
+r -d
+r -p
+r -i
+r -Z
+r -h fe070400
+w -h fe070400
+nocommand
 reload
 EOF
 while [ ! "$status" = 0 ]; do
@@ -207,6 +217,9 @@ if [ "$status" = 0 ]; then
   done
   echo "scan result:"
   ./src/tools/ebusctl -p 8877 scan result
+  curl http://localhost:8080/data/ >/dev/null
+  curl "http://localhost:8080/data/?verbose=1" >/dev/null
+  curl -T .travis.yml http://localhost:8080/data/
   echo "commands done"
 fi
 sleep 5
