@@ -860,3 +860,145 @@ result_t NumberDataType::writeSymbols(istringstream& input,
 
 	return writeRawValue(value, baseOffset, length, output, usedLength);
 }
+
+
+DataTypeList DataTypeList::s_instance;
+
+DataTypeList::DataTypeList()
+//	: FileReader::FileReader(false)
+{
+	add(new StringDataType("STR", MAX_LEN*8, ADJ, ' ')); // >= 1 byte character string filled up with space
+	add(new NumberDataType("PIN", 16, FIX|BCD|REV, 0xffff, 0, 0x9999, 1)); // unsigned decimal in BCD, 0000 - 9999 (fixed length)
+	add(new NumberDataType("UCH", 8, 0, 0xff, 0, 0xfe, 1)); // unsigned integer, 0 - 254
+	add(new StringDataType("IGN", MAX_LEN*8, IGN|ADJ, 0)); // >= 1 byte ignored data
+	add(new StringDataType("NTS", MAX_LEN*8, ADJ, 0)); // >= 1 byte character string filled up with 0x00 (null terminated string)
+	add(new StringDataType("HEX", MAX_LEN*8, ADJ, 0, true)); // >= 1 byte hex digit string, usually separated by space, e.g. 0a 1b 2c 3d
+	add(new DateTimeDataType("BDA", 32, BCD, 0xff, true, 0)); // date with weekday in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is weekday Mon=0x00 - Sun=0x06, replacement 0xff)
+	add(new DateTimeDataType("BDA", 24, BCD, 0xff, true, 0)); // date in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99, replacement 0xff)
+	add(new DateTimeDataType("HDA", 32, 0, 0xff, true, 0)); // date with weekday, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x1f,0x0c,WW,0x63, WW is weekday Mon=0x01 - Sun=0x07, replacement 0xff)
+	add(new DateTimeDataType("HDA", 24, 0, 0xff, true, 0)); // date, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x1f,0x0c,0x63, replacement 0xff)
+	add(new DateTimeDataType("DAY", 16, REQ, 0, true, 0)); // date, days since 01.01.1900, 01.01.1900 - 06.06.2079 (0x00,0x00 - 0xff,0xff)
+	add(new DateTimeDataType("BTI", 24, BCD|REV|REQ, 0, false, 0)); // time in BCD, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x59,0x59,0x23)
+	add(new DateTimeDataType("HTI", 24, REQ, 0, false, 0)); // time, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x17,0x3b,0x3b)
+	add(new DateTimeDataType("VTI", 24, REV, 0x63, false, 0)); // time, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x3b,0x3b,0x17, replacement 0x63) [Vaillant type]
+	add(new DateTimeDataType("BTM", 16, BCD|REV, 0xff, false, 0)); // time as hh:mm in BCD, 00:00 - 23:59 (0x00,0x00 - 0x59,0x23, replacement 0xff)
+	add(new DateTimeDataType("HTM", 16, REQ, 0, false, 0)); // time as hh:mm, 00:00 - 23:59 (0x00,0x00 - 0x17,0x3b)
+	add(new DateTimeDataType("VTM", 16, REV, 0xff, false, 0)); // time as hh:mm, 00:00 - 23:59 (0x00,0x00 - 0x3b,0x17, replacement 0xff) [Vaillant type]
+	add(new DateTimeDataType("TTM", 8, 0, 0x90, false, 10)); // truncated time (only multiple of 10 minutes), 00:00 - 24:00 (minutes div 10 + hour * 6 as integer)
+	add(new DateTimeDataType("TTH", 8, 0, 0, false, 30)); // truncated time (only multiple of 30 minutes), 00:30 - 24:00 (minutes div 30 + hour * 2 as integer)
+	add(new NumberDataType("BDY", 8, DAY, 0x07, 0, 6, 1)); // weekday, "Mon" - "Sun" (0x00 - 0x06) [eBUS type]
+	add(new NumberDataType("HDY", 8, DAY, 0x00, 1, 7, 1)); // weekday, "Mon" - "Sun" (0x01 - 0x07) [Vaillant type]
+	add(new NumberDataType("BCD", 8, BCD, 0xff, 0, 99, 1)); // unsigned decimal in BCD, 0 - 99
+	add(new NumberDataType("BCD", 16, BCD, 0xffff, 0, 9999, 1)); // unsigned decimal in BCD, 0 - 9999
+	add(new NumberDataType("BCD", 24, BCD, 0xffffff, 0, 999999, 1)); // unsigned decimal in BCD, 0 - 999999
+	add(new NumberDataType("BCD", 32, BCD, 0xffffffff, 0, 99999999, 1)); // unsigned decimal in BCD, 0 - 99999999
+	add(new NumberDataType("HCD", 32, HCD|BCD|REQ, 0, 0, 99999999, 1)); // unsigned decimal in HCD, 0 - 99999999
+	add(new NumberDataType("HCD", 8, HCD|BCD|REQ, 0, 0, 99, 1)); // unsigned decimal in HCD, 0 - 99
+	add(new NumberDataType("HCD", 16, HCD|BCD|REQ, 0, 0, 9999, 1)); // unsigned decimal in HCD, 0 - 9999
+	add(new NumberDataType("HCD", 24, HCD|BCD|REQ, 0, 0, 999999, 1)); // unsigned decimal in HCD, 0 - 999999
+	add(new NumberDataType("SCH", 8, SIG, 0x80, 0x81, 0x7f, 1)); // signed integer, -127 - +127
+	add(new NumberDataType("D1B", 8, SIG, 0x80, 0x81, 0x7f, 1)); // signed integer, -127 - +127
+	add(new NumberDataType("D1C", 8, 0, 0xff, 0x00, 0xc8, 2)); // unsigned number (fraction 1/2), 0 - 100 (0x00 - 0xc8, replacement 0xff)
+	add(new NumberDataType("D2B", 16, SIG, 0x8000, 0x8001, 0x7fff, 256)); // signed number (fraction 1/256), -127.99 - +127.99
+	add(new NumberDataType("D2C", 16, SIG, 0x8000, 0x8001, 0x7fff, 16)); // signed number (fraction 1/16), -2047.9 - +2047.9
+	add(new NumberDataType("FLT", 16, SIG, 0x8000, 0x8001, 0x7fff, 1000)); // signed number (fraction 1/1000), -32.767 - +32.767, little endian
+	add(new NumberDataType("FLR", 16, SIG|REV, 0x8000, 0x8001, 0x7fff, 1000)); // signed number (fraction 1/1000), -32.767 - +32.767, big endian
+	add(new NumberDataType("EXP", 32, SIG|EXP, 0x7f800000, 0x00000000, 0xffffffff, 1)); // signed number (IEEE 754 binary32: 1 bit sign, 8 bits exponent, 23 bits significand), little endian
+	add(new NumberDataType("EXR", 32, SIG|EXP|REV, 0x7f800000, 0x00000000, 0xffffffff, 1)); // signed number (IEEE 754 binary32: 1 bit sign, 8 bits exponent, 23 bits significand), big endian
+	add(new NumberDataType("UIN", 16, 0, 0xffff, 0, 0xfffe, 1)); // unsigned integer, 0 - 65534, little endian
+	add(new NumberDataType("UIR", 16, REV, 0xffff, 0, 0xfffe, 1)); // unsigned integer, 0 - 65534, big endian
+	add(new NumberDataType("SIN", 16, SIG, 0x8000, 0x8001, 0x7fff, 1)); // signed integer, -32767 - +32767, little endian
+	add(new NumberDataType("SIR", 16, SIG|REV, 0x8000, 0x8001, 0x7fff, 1)); // signed integer, -32767 - +32767, big endian
+	add(new NumberDataType("ULG", 32, 0, 0xffffffff, 0, 0xfffffffe, 1)); // unsigned integer, 0 - 4294967294, little endian
+	add(new NumberDataType("ULR", 32, REV, 0xffffffff, 0, 0xfffffffe, 1)); // unsigned integer, 0 - 4294967294, big endian
+	add(new NumberDataType("SLG", 32, SIG, 0x80000000, 0x80000001, 0xffffffff, 1)); // signed integer, -2147483647 - +2147483647, little endian
+	add(new NumberDataType("SLR", 32, SIG|REV, 0x80000000, 0x80000001, 0xffffffff, 1)); // signed integer, -2147483647 - +2147483647, big endian
+	add(new NumberDataType("BI0", 7, ADJ|REQ, 0, 0, 1)); // bit 0 (up to 7 bits until bit 6)
+	add(new NumberDataType("BI1", 7, ADJ|REQ, 0, 1, 1)); // bit 1 (up to 7 bits until bit 7)
+	add(new NumberDataType("BI2", 6, ADJ|REQ, 0, 2, 1)); // bit 2 (up to 6 bits until bit 7)
+	add(new NumberDataType("BI3", 5, ADJ|REQ, 0, 3, 1)); // bit 3 (up to 5 bits until bit 7)
+	add(new NumberDataType("BI4", 4, ADJ|REQ, 0, 4, 1)); // bit 4 (up to 4 bits until bit 7)
+	add(new NumberDataType("BI5", 3, ADJ|REQ, 0, 5, 1)); // bit 5 (up to 3 bits until bit 7)
+	add(new NumberDataType("BI6", 2, ADJ|REQ, 0, 6, 1)); // bit 6 (up to 2 bits until bit 7)
+	add(new NumberDataType("BI7", 1, ADJ|REQ, 0, 7, 1)); // bit 7
+}
+
+DataTypeList* DataTypeList::getInstance()
+{
+	return &s_instance;
+}
+
+void DataTypeList::clear()
+{
+	for (map<string, DataType*>::iterator it = m_typesByIdLength.begin(); it != m_typesByIdLength.end(); it++) {
+		if (m_typesById[it->second->getId()] == it->second) {
+			m_typesById.erase(it->second->getId());
+		}
+		delete it->second;
+		it->second = NULL;
+	}
+	for (map<string, DataType*>::iterator it = m_typesById.begin(); it != m_typesById.end(); it++) {
+		delete it->second;
+		it->second = NULL;
+	}
+	m_typesByIdLength.clear();
+	m_typesById.clear();
+}
+
+result_t DataTypeList::add(DataType* dataType)
+{
+	if (!dataType->isAdjustableLength()) {
+		ostringstream str;
+		unsigned char bitCount = dataType->getBitCount();
+		str << dataType->getId() << LENGTH_SEPARATOR << static_cast<unsigned>(bitCount>=8?bitCount/8:bitCount);
+		map<string, DataType*>::iterator it = m_typesByIdLength.find(str.str());
+		if (it != m_typesByIdLength.end()) {
+			return RESULT_ERR_DUPLICATE_NAME; // duplicate key
+		}
+		m_typesByIdLength[str.str()] = dataType;
+		if (m_typesById.find(dataType->getId()) != m_typesById.end()) {
+			return RESULT_OK; // only store first one as default
+		}
+	} else if (m_typesById.find(dataType->getId()) != m_typesById.end()) {
+		return RESULT_ERR_DUPLICATE_NAME; // duplicate key
+	}
+	m_typesById[dataType->getId()] = dataType;
+	return RESULT_OK;
+}
+
+/*result_t DataTypeList::addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
+	vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit, const string& defaultSuffix,
+	const string& filename, unsigned int lineNo)
+{
+	vector<string>::iterator restart = begin;
+	DataType* dataType = NULL;
+	result_t result = DataField::create(begin, end, this, dataType, false, true, false);
+	if (result != RESULT_OK)
+		return result;
+
+	result = add(dataType);
+	if (result==RESULT_ERR_DUPLICATE_NAME) {
+		begin = restart+1; // mark name as invalid
+	}
+	if (result != RESULT_OK) {
+		delete dataType;
+	}
+	return result;
+}*/
+
+DataType* DataTypeList::get(const string id, const unsigned char length)
+{
+	DataType* dataType = NULL;
+	if (length > 0) {
+		ostringstream str;
+		str << id << LENGTH_SEPARATOR << static_cast<unsigned>(length);
+		dataType = m_typesByIdLength[str.str()];
+	}
+	if (!dataType) {
+		dataType = m_typesById[id];
+		if (dataType && length > 0 && !dataType->isAdjustableLength()) {
+			return NULL;
+		}
+	}
+	return dataType;
+}

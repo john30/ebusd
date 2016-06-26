@@ -248,8 +248,7 @@ public:
 
 	/**
 	 * Factory method for creating a new @a SingleDataField instance derived from a base type.
-	 * @param fullIdStr the full ID string (including optional length suffix).
-	 * @param idStr the ID string (excluding optional length suffix).
+	 * @param id the ID string (excluding optional length suffix).
 	 * @param length the base type length, or 0 for default, or @a REMAIN_LEN for remainder within same message part.
 	 * @param name the field name.
 	 * @param comment the field comment.
@@ -261,7 +260,7 @@ public:
 	 * @return @a RESULT_OK on success, or an error code.
 	 * Note: the caller needs to free the created instance.
 	 */
-	static result_t create(const char* fullIdStr, const char* idStr, const unsigned char length,
+	static result_t create(const string id, const unsigned char length,
 		const string name, const string comment, const string unit,
 		const PartType partType, int divisor, map<unsigned int, string> values,
 		SingleDataField* &returnField);

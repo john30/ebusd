@@ -31,111 +31,9 @@
 
 using namespace std;
 
-/* additional flags for @a DataType. */
-static const unsigned int DAY = LAST_DATATYPE_FLAG<<1; //!< forced value list defaulting to week days
-
 /** the week day names. */
 static const char* dayNames[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
 
-/**
- * The STR data type: >= 1 byte character string filled up with space.
- */
-static StringDataType* stringDataType = new StringDataType("STR", MAX_LEN*8, ADJ, ' ');
-
-/**
- * The PIN data type: unsigned decimal in BCD, 0000 - 9999 (fixed length).
- */
-static NumberDataType* pinDataType = new NumberDataType(
-	"PIN", 16, FIX|BCD|REV, 0xffff, 0, 0x9999, 1
-);
-
-/**
- * The UCH data type: unsigned integer, 0 - 254.
- */
-static NumberDataType* uchDataType = new NumberDataType(
-	"UCH", 8, 0, 0xff, 0, 0xfe, 1
-);
-
-/** the known base @a DataType instances by ID.
- * Note: adjustable length types are stored with the ID only, all others are stored by "ID:BITS". */
-static map<string, DataType*> baseTypes;
-
-/**
- * Register a base @a DataType.
- * @baseType the @a DataType to register.
- */
-void registerBaseType(DataType* baseType) {
-	if (!baseType->isAdjustableLength()) {
-		ostringstream str;
-		str << baseType->getId() << LENGTH_SEPARATOR << static_cast<unsigned>(baseType->getBitCount()>=8?baseType->getBitCount()/8:baseType->getBitCount());
-		baseTypes[str.str()] = baseType;
-		if (baseTypes.find(baseType->getId()) != baseTypes.end()) {
-			return; // only store first one as default
-		}
-	}
-	baseTypes[baseType->getId()] = baseType;
-}
-
-/** Register the known base data types. */
-bool registerBaseTypes() {
-	registerBaseType(stringDataType);
-	registerBaseType(pinDataType);
-	registerBaseType(uchDataType);
-	registerBaseType(new StringDataType("IGN", MAX_LEN*8, IGN|ADJ, 0)); // >= 1 byte ignored data
-	registerBaseType(new StringDataType("NTS", MAX_LEN*8, ADJ, 0)); // >= 1 byte character string filled up with 0x00 (null terminated string)
-	registerBaseType(new StringDataType("HEX", MAX_LEN*8, ADJ, 0, true)); // >= 1 byte hex digit string, usually separated by space, e.g. 0a 1b 2c 3d
-	registerBaseType(new DateTimeDataType("BDA", 32, BCD, 0xff, true, 0)); // date with weekday in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is weekday Mon=0x00 - Sun=0x06, replacement 0xff)
-	registerBaseType(new DateTimeDataType("BDA", 24, BCD, 0xff, true, 0)); // date in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99, replacement 0xff)
-	registerBaseType(new DateTimeDataType("HDA", 32, 0, 0xff, true, 0)); // date with weekday, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x1f,0x0c,WW,0x63, WW is weekday Mon=0x01 - Sun=0x07, replacement 0xff)
-	registerBaseType(new DateTimeDataType("HDA", 24, 0, 0xff, true, 0)); // date, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x1f,0x0c,0x63, replacement 0xff)
-	registerBaseType(new DateTimeDataType("DAY", 16, REQ, 0, true, 0)); // date, days since 01.01.1900, 01.01.1900 - 06.06.2079 (0x00,0x00 - 0xff,0xff)
-	registerBaseType(new DateTimeDataType("BTI", 24, BCD|REV|REQ, 0, false, 0)); // time in BCD, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x59,0x59,0x23)
-	registerBaseType(new DateTimeDataType("HTI", 24, REQ, 0, false, 0)); // time, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x17,0x3b,0x3b)
-	registerBaseType(new DateTimeDataType("VTI", 24, REV, 0x63, false, 0)); // time, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x3b,0x3b,0x17, replacement 0x63) [Vaillant type]
-	registerBaseType(new DateTimeDataType("BTM", 16, BCD|REV, 0xff, false, 0)); // time as hh:mm in BCD, 00:00 - 23:59 (0x00,0x00 - 0x59,0x23, replacement 0xff)
-	registerBaseType(new DateTimeDataType("HTM", 16, REQ, 0, false, 0)); // time as hh:mm, 00:00 - 23:59 (0x00,0x00 - 0x17,0x3b)
-	registerBaseType(new DateTimeDataType("VTM", 16, REV, 0xff, false, 0)); // time as hh:mm, 00:00 - 23:59 (0x00,0x00 - 0x3b,0x17, replacement 0xff) [Vaillant type]
-	registerBaseType(new DateTimeDataType("TTM", 8, 0, 0x90, false, 10)); // truncated time (only multiple of 10 minutes), 00:00 - 24:00 (minutes div 10 + hour * 6 as integer)
-	registerBaseType(new DateTimeDataType("TTH", 8, 0, 0, false, 30)); // truncated time (only multiple of 30 minutes), 00:30 - 24:00 (minutes div 30 + hour * 2 as integer)
-	registerBaseType(new NumberDataType("BDY", 8, DAY, 0x07, 0, 6, 1)); // weekday, "Mon" - "Sun" (0x00 - 0x06) [eBUS type]
-	registerBaseType(new NumberDataType("HDY", 8, DAY, 0x00, 1, 7, 1)); // weekday, "Mon" - "Sun" (0x01 - 0x07) [Vaillant type]
-	registerBaseType(new NumberDataType("BCD", 8, BCD, 0xff, 0, 99, 1)); // unsigned decimal in BCD, 0 - 99
-	registerBaseType(new NumberDataType("BCD", 16, BCD, 0xffff, 0, 9999, 1)); // unsigned decimal in BCD, 0 - 9999
-	registerBaseType(new NumberDataType("BCD", 24, BCD, 0xffffff, 0, 999999, 1)); // unsigned decimal in BCD, 0 - 999999
-	registerBaseType(new NumberDataType("BCD", 32, BCD, 0xffffffff, 0, 99999999, 1)); // unsigned decimal in BCD, 0 - 99999999
-	registerBaseType(new NumberDataType("HCD", 32, HCD|BCD|REQ, 0, 0, 99999999, 1)); // unsigned decimal in HCD, 0 - 99999999
-	registerBaseType(new NumberDataType("HCD", 8, HCD|BCD|REQ, 0, 0, 99, 1)); // unsigned decimal in HCD, 0 - 99
-	registerBaseType(new NumberDataType("HCD", 16, HCD|BCD|REQ, 0, 0, 9999, 1)); // unsigned decimal in HCD, 0 - 9999
-	registerBaseType(new NumberDataType("HCD", 24, HCD|BCD|REQ, 0, 0, 999999, 1)); // unsigned decimal in HCD, 0 - 999999
-	registerBaseType(new NumberDataType("SCH", 8, SIG, 0x80, 0x81, 0x7f, 1)); // signed integer, -127 - +127
-	registerBaseType(new NumberDataType("D1B", 8, SIG, 0x80, 0x81, 0x7f, 1)); // signed integer, -127 - +127
-	registerBaseType(new NumberDataType("D1C", 8, 0, 0xff, 0x00, 0xc8, 2)); // unsigned number (fraction 1/2), 0 - 100 (0x00 - 0xc8, replacement 0xff)
-	registerBaseType(new NumberDataType("D2B", 16, SIG, 0x8000, 0x8001, 0x7fff, 256)); // signed number (fraction 1/256), -127.99 - +127.99
-	registerBaseType(new NumberDataType("D2C", 16, SIG, 0x8000, 0x8001, 0x7fff, 16)); // signed number (fraction 1/16), -2047.9 - +2047.9
-	registerBaseType(new NumberDataType("FLT", 16, SIG, 0x8000, 0x8001, 0x7fff, 1000)); // signed number (fraction 1/1000), -32.767 - +32.767, little endian
-	registerBaseType(new NumberDataType("FLR", 16, SIG|REV, 0x8000, 0x8001, 0x7fff, 1000)); // signed number (fraction 1/1000), -32.767 - +32.767, big endian
-	registerBaseType(new NumberDataType("EXP", 32, SIG|EXP, 0x7f800000, 0x00000000, 0xffffffff, 1)); // signed number (IEEE 754 binary32: 1 bit sign, 8 bits exponent, 23 bits significand), little endian
-	registerBaseType(new NumberDataType("EXR", 32, SIG|EXP|REV, 0x7f800000, 0x00000000, 0xffffffff, 1)); // signed number (IEEE 754 binary32: 1 bit sign, 8 bits exponent, 23 bits significand), big endian
-	registerBaseType(new NumberDataType("UIN", 16, 0, 0xffff, 0, 0xfffe, 1)); // unsigned integer, 0 - 65534, little endian
-	registerBaseType(new NumberDataType("UIR", 16, REV, 0xffff, 0, 0xfffe, 1)); // unsigned integer, 0 - 65534, big endian
-	registerBaseType(new NumberDataType("SIN", 16, SIG, 0x8000, 0x8001, 0x7fff, 1)); // signed integer, -32767 - +32767, little endian
-	registerBaseType(new NumberDataType("SIR", 16, SIG|REV, 0x8000, 0x8001, 0x7fff, 1)); // signed integer, -32767 - +32767, big endian
-	registerBaseType(new NumberDataType("ULG", 32, 0, 0xffffffff, 0, 0xfffffffe, 1)); // unsigned integer, 0 - 4294967294, little endian
-	registerBaseType(new NumberDataType("ULR", 32, REV, 0xffffffff, 0, 0xfffffffe, 1)); // unsigned integer, 0 - 4294967294, big endian
-	registerBaseType(new NumberDataType("SLG", 32, SIG, 0x80000000, 0x80000001, 0xffffffff, 1)); // signed integer, -2147483647 - +2147483647, little endian
-	registerBaseType(new NumberDataType("SLR", 32, SIG|REV, 0x80000000, 0x80000001, 0xffffffff, 1)); // signed integer, -2147483647 - +2147483647, big endian
-	registerBaseType(new NumberDataType("BI0", 7, ADJ|REQ, 0, 0, 1)); // bit 0 (up to 7 bits until bit 6)
-	registerBaseType(new NumberDataType("BI1", 7, ADJ|REQ, 0, 1, 1)); // bit 1 (up to 7 bits until bit 7)
-	registerBaseType(new NumberDataType("BI2", 6, ADJ|REQ, 0, 2, 1)); // bit 2 (up to 6 bits until bit 7)
-	registerBaseType(new NumberDataType("BI3", 5, ADJ|REQ, 0, 3, 1)); // bit 3 (up to 5 bits until bit 7)
-	registerBaseType(new NumberDataType("BI4", 4, ADJ|REQ, 0, 4, 1)); // bit 4 (up to 4 bits until bit 7)
-	registerBaseType(new NumberDataType("BI5", 3, ADJ|REQ, 0, 5, 1)); // bit 5 (up to 3 bits until bit 7)
-	registerBaseType(new NumberDataType("BI6", 2, ADJ|REQ, 0, 6, 1)); // bit 6 (up to 2 bits until bit 7)
-	registerBaseType(new NumberDataType("BI7", 1, ADJ|REQ, 0, 7, 1)); // bit 7
-	return true;
-}
-
-static bool baseTypesRegistered = registerBaseTypes();
 
 result_t DataField::create(vector<string>::iterator& it,
 		const vector<string>::iterator end,
@@ -282,7 +180,7 @@ result_t DataField::create(vector<string>::iterator& it,
 				transform(token.begin(), token.end(), token.begin(), ::toupper);
 				string typeName = token.substr(0, pos);
 				SingleDataField* add = NULL;
-				result = SingleDataField::create(token.c_str(), typeName.c_str(), length, firstType ? name : "", firstType ? comment : "", firstType ? unit : "", partType, divisor, values, add);
+				result = SingleDataField::create(typeName, length, firstType ? name : "", firstType ? comment : "", firstType ? unit : "", partType, divisor, values, add);
 				if (add != NULL)
 					fields.push_back(add);
 				else if (result == RESULT_OK)
@@ -322,20 +220,15 @@ void DataField::dumpString(ostream& output, const string str, const bool prepend
 	}
 }
 
-result_t SingleDataField::create(const char* fullIdStr, const char* idStr, const unsigned char length,
+result_t SingleDataField::create(const string id, const unsigned char length,
 	const string name, const string comment, const string unit,
 	const PartType partType, int divisor, map<unsigned int, string> values,
 	SingleDataField* &returnField)
 {
-	DataType* dataType = baseTypes[fullIdStr];
+
+	DataType* dataType = DataTypeList::getInstance()->get(id, length==REMAIN_LEN ? 0 : length);
 	if (!dataType) {
-		dataType = baseTypes[idStr];
-		if (!dataType) {
-			return RESULT_ERR_NOTFOUND;
-		}
-		if (!dataType->isAdjustableLength()) {
-			return RESULT_ERR_OUT_OF_RANGE;
-		}
+		return RESULT_ERR_NOTFOUND;
 	}
 	unsigned char bitCount = dataType->getBitCount();
 	unsigned char byteCount = (unsigned char)((bitCount + 7) / 8);
@@ -717,6 +610,9 @@ DataFieldSet* DataFieldSet::s_identFields = NULL;
 DataFieldSet* DataFieldSet::getIdentFields()
 {
 	if (s_identFields==NULL) {
+		NumberDataType* uchDataType = (NumberDataType*)DataTypeList::getInstance()->get("UCH");
+		StringDataType* stringDataType = (StringDataType*)DataTypeList::getInstance()->get("STR");
+		NumberDataType* pinDataType = (NumberDataType*)DataTypeList::getInstance()->get("PIN");
 		map<unsigned int, string> manufacturers;
 		manufacturers[0x06] = "Dungs";
 		manufacturers[0x0f] = "FH Ostfalia";

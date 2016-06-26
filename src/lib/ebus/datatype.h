@@ -97,7 +97,7 @@ static const unsigned int FIX = 0x20; //!< fixed width formatting
 static const unsigned int REQ = 0x40; //!< value may not be NULL
 static const unsigned int HCD = 0x80; //!< binary representation is hex converted to decimal and interpreted as 2 digits (also requires #BCD)
 static const unsigned int EXP = 0x100; //!< exponential numeric representation
-static const unsigned int LAST_DATATYPE_FLAG = EXP; //!< the last flag value used by @a DataType and children
+static const unsigned int DAY = 0x200; //!< forced value list defaulting to week days
 
 
 /**
@@ -498,6 +498,73 @@ private:
 
 	/** the base @a NumberDataType for derived instances. */
 	NumberDataType* m_baseType;
+
+};
+
+
+/**
+ * A map of base @a DataType instances.
+ */
+class DataTypeList
+{
+public:
+
+	/**
+	 * Constructs a new instance and registers the known base data types.
+	 */
+	DataTypeList();
+
+	/**
+	 * Destructor.
+	 */
+	virtual ~DataTypeList() {
+		clear();
+	}
+
+	/**
+	 * Returns the singleton instance.
+	 * @return the singleton @a DataTypeList instance.
+	 */
+	static DataTypeList* getInstance();
+
+	/**
+	 * Removes all @a DataType instances.
+	 */
+	void clear();
+
+	/**
+	 * Adds a @a DataType instance to this map.
+	 * @param dataType the @a DataType instance to add.
+	 * @return @a RESULT_OK on success, or an error code.
+	 * Note: the caller may not free the added instance on success.
+	 */
+	result_t add(DataType* dataType);
+
+	// @copydoc
+	/*virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
+		vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit, const string& defaultSuffix,
+		const string& filename, unsigned int lineNo);*/
+
+	/**
+	 * Gets the @a DataType instance with the specified ID.
+	 * @param id the ID string (excluding optional length suffix).
+	 * @param length the length in bytes, or 0 for default.
+	 * @return the @a DataType instance, or NULL if not available.
+	 * Note: the caller may not free the instance.
+	 */
+	DataType* get(const string id, const unsigned char length=0);
+
+private:
+
+	/** the known @a DataType instances by ID only. */
+	map<string, DataType*> m_typesById;
+
+	/** the known @a DataType instances by ID and length (i.e. "ID:BITS").
+	 * Note: adjustable length types are stored by ID only. */
+	map<string, DataType*> m_typesByIdLength;
+
+	/** the singleton instance. */
+	static DataTypeList s_instance;
 
 };
 
