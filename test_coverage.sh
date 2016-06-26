@@ -1,7 +1,33 @@
 #!/bin/bash
 ./src/ebusd/ebusd --help >/dev/null
 ./src/ebusd/ebusd -r -f -x >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f -d "" >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f -d "tcp:192.168.999.999:1" >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --scanconfig -r >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --latency 999999 >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f -c "" >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f -r --scanconfig >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --pollinterval 999999 >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --address 999 >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f -r --answer >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --acquiretimeout 999999 >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --acquireretries 999999 >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --sendretries 999999 >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --receivetimeout 9999999 >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --numbermasters 999999 >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f -r --generatesyn >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --pidfile "" >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f -p 999999 >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --httpport 999999 >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --htmlpath "" >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f -l "" >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --logareas some >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --loglevel unknown >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --dumpfile "" >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --dumpsize 9999999 >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f "ff08070400/0ab5303132333431313131" >/dev/null
+./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f "ff08070400" >/dev/null 2>/dev/null
+./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f "ff080704/" >/dev/null 2>/dev/null
 php -r '
 error_reporting (E_ALL);
 set_time_limit (0);
@@ -85,7 +111,15 @@ w,mc.5,Timer.Monday,,,53,b505,02,from,m,TTM,,,Slots 1-3,to,m,TTM,,,bis,from,m,TT
 r,mc.5,HeatingCurve,,,53,b509,0d3500,curve,s,UIN,100
 w,mc.5,HeatingCurve,,,53,b509,0e3500,curve,m,UIN,100
 EOF
-./src/ebusd/ebusd -d tcp:127.0.0.1:8876 --initsend --latency 10000 -n -c "$PWD/contrib/etc/ebusd" --pollinterval=10 -s -a 31 --acquireretries 3 --answer --generatesyn --numbermasters 1 --receivetimeout 10000 --sendretries 1 --enablehex --htmlpath "$PWD/contrib/html" --httpport 8878 --localhost --pidfile "$PWD/ebusd.pid" -p 8877 -l "$PWD/ebusd.log" --logareas all --loglevel debug --lograwdata --dumpfile "$PWD/ebusd.dump" --dumpsize 100 -D
+mkdir -p "$PWD/contrib/etc/ebusd/153"
+cat >"$PWD/contrib/etc/ebusd/153/_templates" <<EOF
+temps,SCH,,°C,Temperatur
+EOF
+cat >"$PWD/contrib/etc/ebusd/153/36.bbb.csv" <<EOF
+*r,,,,,,"9900",,,,,,,
+r,,SoftwareVersion,,,,,"0000",,,HEX:4,,,
+EOF
+./src/ebusd/ebusd -d tcp:127.0.0.1:8876 --initsend --latency 10000 -n -c "$PWD/contrib/etc/ebusd" --pollinterval=10 -s -a 31 --acquireretries 3 --answer --generatesyn --numbermasters 1 --receivetimeout 10000 --sendretries 1 --enablehex --htmlpath "$PWD/contrib/html" --httpport 8878 --localhost --pidfile "$PWD/ebusd.pid" -p 8877 -l "$PWD/ebusd.log" --logareas all --loglevel debug --lograwdata --dumpfile "$PWD/ebusd.dump" --dumpsize 100 -D --scanconfig
 pid=`head -n 1 "$PWD/ebusd.pid"`
 if [ -z "$pid" ]; then
   echo "unable to start ebusd"
@@ -93,8 +127,11 @@ if [ -z "$pid" ]; then
   exit 1
 fi
 echo "ebusd: $pid"
+kill -1 $pid
 readarray lines <<EOF
 raw
+log
+log bus,update debug
 log
 log all notice
 grab
