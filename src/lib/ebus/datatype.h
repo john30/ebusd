@@ -27,6 +27,7 @@
 #include <sstream>
 #include <fstream>
 #include <vector>
+#include <list>
 #include <map>
 
 /** @file datatype.h
@@ -151,13 +152,13 @@ public:
 	 * @param flags the combination of flags (like #BCD).
 	 * @param replacement the replacement value (fill-up value for @a StringDataType, no replacement if equal to @a NumberDataType#minValue).
 	 */
-	DataType(const char* id, const unsigned char bitCount, const unsigned short flags, const unsigned int replacement)
+	DataType(const string id, const unsigned char bitCount, const unsigned short flags, const unsigned int replacement)
 		: m_id(id), m_bitCount(bitCount), m_flags(flags), m_replacement(replacement) {}
 
 	/**
 	 * Destructor.
 	 */
-	virtual ~DataType() {}
+	virtual ~DataType() { }
 
 	/**
 	 * @return the type identifier.
@@ -241,7 +242,7 @@ public:
 protected:
 
 	/** the type identifier. */
-	const char* m_id;
+	const string m_id;
 
 	/** the number of bits (maximum length if #ADJ flag is set, must be multiple of 8 with flag #BCD). */
 	const unsigned char m_bitCount;
@@ -270,7 +271,7 @@ public:
 	 * @param replacement the replacement value (fill-up value).
 	 * @param isHex true for hex digits instead of characters.
 	 */
-	StringDataType(const char* id, const unsigned char bitCount, const unsigned short flags,
+	StringDataType(const string id, const unsigned char bitCount, const unsigned short flags,
 		const unsigned int replacement, bool isHex=false)
 		: DataType(id, bitCount, flags, replacement), m_isHex(isHex) {}
 
@@ -318,7 +319,7 @@ public:
 	 * @param isDate true for date, false for time.
 	 * @param resolution the the resolution in minutes for time types, or 1.
 	 */
-	DateTimeDataType(const char* id, const unsigned char bitCount, const unsigned short flags, const unsigned int replacement,
+	DateTimeDataType(const string id, const unsigned char bitCount, const unsigned short flags, const unsigned int replacement,
 			const bool isDate, const short resolution)
 		: DataType(id, bitCount, flags, replacement), m_isDate(isDate), m_resolution(resolution) {}
 
@@ -380,7 +381,7 @@ public:
 	 * @param maxValue the maximum raw value.
 	 * @param divisor the divisor (negative for reciprocal).
 	 */
-	NumberDataType(const char* id, const unsigned char bitCount, const unsigned short flags, const unsigned int replacement,
+	NumberDataType(const string id, const unsigned char bitCount, const unsigned short flags, const unsigned int replacement,
 			const unsigned int minValue, const unsigned int maxValue, const int divisor)
 		: DataType(id, bitCount, flags, replacement), m_minValue(minValue), m_maxValue(maxValue), m_divisor(divisor), m_precision(calcPrecision(divisor)), m_firstBit(0), m_baseType(NULL) {}
 
@@ -393,7 +394,7 @@ public:
 	 * @param firstBit the offset to the first bit.
 	 * @param divisor the divisor (negative for reciprocal).
 	 */
-	NumberDataType(const char* id, const unsigned char bitCount, const unsigned short flags, const unsigned int replacement,
+	NumberDataType(const string id, const unsigned char bitCount, const unsigned short flags, const unsigned int replacement,
 			const short firstBit, const int divisor)
 		: DataType(id, bitCount, flags, replacement), m_minValue(0), m_maxValue((1<<bitCount)-1), m_divisor(divisor), m_precision(0), m_firstBit(firstBit), m_baseType(NULL) {}
 
@@ -540,6 +541,12 @@ public:
 	 */
 	result_t add(DataType* dataType);
 
+	/**
+	 * Adds a @a DataType instance for later cleanup.
+	 * @param dataType the @a DataType instance to add.
+	 */
+	void addCleanup(DataType* dataType) { m_cleanupTypes.push_back(dataType); }
+
 	// @copydoc
 	/*virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
 		vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit, const string& defaultSuffix,
@@ -562,6 +569,9 @@ private:
 	/** the known @a DataType instances by ID and length (i.e. "ID:BITS").
 	 * Note: adjustable length types are stored by ID only. */
 	map<string, DataType*> m_typesByIdLength;
+
+	/** the @a DataType instances to cleanup. */
+	list<DataType*> m_cleanupTypes;
 
 	/** the singleton instance. */
 	static DataTypeList s_instance;

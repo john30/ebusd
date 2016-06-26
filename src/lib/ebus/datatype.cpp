@@ -567,6 +567,7 @@ result_t NumberDataType::derive(int divisor, unsigned char bitCount, NumberDataT
 		derived = new NumberDataType(m_id, bitCount, m_flags, m_replacement,
 			m_minValue, m_maxValue, divisor);
 	derived->m_baseType = m_baseType ? m_baseType : this;
+	DataTypeList::getInstance()->addCleanup(derived);
 	return RESULT_OK;
 }
 
@@ -930,17 +931,10 @@ DataTypeList* DataTypeList::getInstance()
 
 void DataTypeList::clear()
 {
-	for (map<string, DataType*>::iterator it = m_typesByIdLength.begin(); it != m_typesByIdLength.end(); it++) {
-		if (m_typesById[it->second->getId()] == it->second) {
-			m_typesById.erase(it->second->getId());
-		}
-		delete it->second;
-		it->second = NULL;
+	for (list<DataType*>::iterator it = m_cleanupTypes.begin(); it != m_cleanupTypes.end(); it++) {
+		delete *it;
 	}
-	for (map<string, DataType*>::iterator it = m_typesById.begin(); it != m_typesById.end(); it++) {
-		delete it->second;
-		it->second = NULL;
-	}
+	m_cleanupTypes.clear();
 	m_typesByIdLength.clear();
 	m_typesById.clear();
 }
@@ -957,12 +951,14 @@ result_t DataTypeList::add(DataType* dataType)
 		}
 		m_typesByIdLength[str.str()] = dataType;
 		if (m_typesById.find(dataType->getId()) != m_typesById.end()) {
+			m_cleanupTypes.push_back(dataType);
 			return RESULT_OK; // only store first one as default
 		}
 	} else if (m_typesById.find(dataType->getId()) != m_typesById.end()) {
 		return RESULT_ERR_DUPLICATE_NAME; // duplicate key
 	}
 	m_typesById[dataType->getId()] = dataType;
+	m_cleanupTypes.push_back(dataType);
 	return RESULT_OK;
 }
 
