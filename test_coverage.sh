@@ -217,11 +217,13 @@ if [ "$status" = 0 ]; then
   done
   echo "scan result:"
   ./src/tools/ebusctl -p 8877 scan result
-  curl http://localhost:8080/data/ >/dev/null
-  curl "http://localhost:8080/data/?verbose=1" >/dev/null
-  curl -T .travis.yml http://localhost:8080/data/
+  curl http://localhost:8878/data/ >/dev/null
+  curl "http://localhost:8878/data/?verbose=1" >/dev/null
+  curl -T .travis.yml http://localhost:8878/data/
   echo "commands done"
 fi
+echo "ebusd log:"
+cat "$PWD/ebusd.log"
 sleep 5
 kill $pid
 kill $srvpid
