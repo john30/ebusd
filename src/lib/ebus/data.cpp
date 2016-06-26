@@ -291,9 +291,7 @@ void SingleDataField::dump(ostream& output)
 	else if (m_partType == pt_slaveData)
 		output << "s";
 	output << FIELD_SEPARATOR;
-	if (!m_dataType->dump(output, m_length)) { // no divisor appended
-		output << FIELD_SEPARATOR; // no value list, no divisor
-	}
+	m_dataType->dump(output, m_length);
 	dumpString(output, m_unit);
 	dumpString(output, m_comment);
 }
@@ -536,10 +534,6 @@ void ValueListDataField::dump(ostream& output)
 	if (!m_dataType->dump(output, m_length)) { // no divisor appended
 		bool first = true;
 		for (map<unsigned int, string>::iterator it = m_values.begin(); it != m_values.end(); it++) {
-			if (first)
-				first = false;
-			else
-				output << VALUE_SEPARATOR;
 			output << static_cast<unsigned>(it->first) << "=" << it->second;
 		}
 	} // TODO else does not fit into CSV format!

@@ -194,7 +194,7 @@ public:
 
 	/**
 	 * Dump the type identifier with the specified length and optionally the
-	 * divisor to the output.
+	 * divisor to the output (@a FIELD_SEPARATOR is always appended!).
 	 * @param output the @a ostream to dump to.
 	 * @param length the number of symbols to read/write.
 	 * @return true when a non-default divisor was written to the output.
