@@ -137,7 +137,6 @@ log all notice
 grab
 info
 state
-scan full
 read -c "hallo du" ich
 h
 h r
@@ -183,6 +182,7 @@ hex fe070400
 hex 53070400
 dump
 grab result
+scan full
 r -c mc.5 -d g3 HeatingCurve
 r -c mc.5 -d 00 HeatingCurve
 r -c mc.5 -m 999999 HeatingCurve
