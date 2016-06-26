@@ -7,10 +7,13 @@ Makefile.in
 /config.*
 /configure
 /ebusd*.tar.*
+/ebusd*.deb
 /stamp-h?
 .deps/
 *.o
 *.dirstamp
+*.gc*
+app.info
 /src/ebusd/ebusd
 /src/tools/ebusctl
 /src/tools/ebusfeed

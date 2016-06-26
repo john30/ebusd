@@ -1,8 +1,12 @@
 language: cpp
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y php5-cli
 script:
   - ./autogen.sh --enable-coverage && make all test
   - (cd src/lib/ebus/test && ./test_symbol && ./test_filereader && ./test_data && ./test_message)
   - ./src/ebusd/ebusd --help
+  - ./test_coverage.sh
 after_success:
   - find . -type f -name '*.gcno' -exec bash -c "(f={}; cd \${f%/*}; gcov -pb \${f##*/})" \;
   - bash <(curl -s https://codecov.io/bash) -X gcov
