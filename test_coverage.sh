@@ -137,7 +137,6 @@ log all notice
 grab
 info
 state
-scan full
 read -c "hallo du" ich
 h
 h r
@@ -183,6 +182,7 @@ hex fe070400
 hex 53070400
 dump
 grab result
+scan full
 r -c mc.5 -d g3 HeatingCurve
 r -c mc.5 -d 00 HeatingCurve
 r -c mc.5 -m 999999 HeatingCurve
@@ -217,11 +217,13 @@ if [ "$status" = 0 ]; then
   done
   echo "scan result:"
   ./src/tools/ebusctl -p 8877 scan result
-  curl http://localhost:8080/data/ >/dev/null
-  curl "http://localhost:8080/data/?verbose=1" >/dev/null
-  curl -T .travis.yml http://localhost:8080/data/
+  curl http://localhost:8878/data/ >/dev/null
+  curl "http://localhost:8878/data/?verbose=1" >/dev/null
+  curl -T .travis.yml http://localhost:8878/data/
   echo "commands done"
 fi
+echo "ebusd log:"
+cat "$PWD/ebusd.log"
 sleep 5
 kill $pid
 kill $srvpid
