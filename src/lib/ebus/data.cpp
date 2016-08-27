@@ -532,7 +532,6 @@ void ValueListDataField::dump(ostream& output)
 		output << "s";
 	output << FIELD_SEPARATOR;
 	if (!m_dataType->dump(output, m_length)) { // no divisor appended
-		bool first = true;
 		for (map<unsigned int, string>::iterator it = m_values.begin(); it != m_values.end(); it++) {
 			output << static_cast<unsigned>(it->first) << "=" << it->second;
 		}
