@@ -527,20 +527,10 @@ result_t NumberDataType::derive(int divisor, unsigned char bitCount, NumberDataT
 	if (divisor == 0) {
 		divisor = 1;
 	}
-	if (bitCount <= 0) {
-		bitCount = m_bitCount;
-	} else if (bitCount!=m_bitCount && (m_bitCount%8)!=0) { // todo check bitCount%8=0
-		if (bitCount+m_firstBit>8) {
-			return RESULT_ERR_OUT_OF_RANGE;
-		}
-	}
 	if (m_divisor != 1) {
 		if (divisor == 1) {
 			divisor = m_divisor;
 		} else if (divisor < 0) {
-			/*if ((divisor < 0) != (m_divisor < 0) {
-				return RESULT_ERR_INVALID_ARG;
-			}*/
 			if (m_divisor > 1)
 				return RESULT_ERR_INVALID_ARG;
 
@@ -553,19 +543,33 @@ result_t NumberDataType::derive(int divisor, unsigned char bitCount, NumberDataT
 		} else
 			divisor *= m_divisor;
 	}
-	if (divisor==m_divisor && bitCount==m_bitCount) {
+	if (divisor == m_divisor && bitCount == m_bitCount) {
 		derived = this;
 		return RESULT_OK;
 	}
-	if (-MAX_DIVISOR > divisor || divisor > MAX_DIVISOR)
+	if (-MAX_DIVISOR > divisor || divisor > MAX_DIVISOR) {
 		return RESULT_ERR_OUT_OF_RANGE;
-
-	if (m_bitCount < 8)
+	}
+	if (bitCount <= 0 || bitCount == m_bitCount) {
+		bitCount = m_bitCount;
+	} else if (isAdjustableLength()) {
+		if (m_bitCount < 8) {
+			if (bitCount+m_firstBit > 8) {
+				return RESULT_ERR_OUT_OF_RANGE;
+			}
+		} else if ((bitCount%8) == 0) {
+			return RESULT_ERR_INVALID_ARG;
+		}
+	} else {
+		return RESULT_ERR_INVALID_ARG;
+	}
+	if (m_bitCount < 8) {
 		derived = new NumberDataType(m_id, bitCount, m_flags, m_replacement,
 			m_firstBit, divisor);
-	else
+	} else {
 		derived = new NumberDataType(m_id, bitCount, m_flags, m_replacement,
 			m_minValue, m_maxValue, divisor);
+	}
 	derived->m_baseType = m_baseType ? m_baseType : this;
 	DataTypeList::getInstance()->addCleanup(derived);
 	return RESULT_OK;
@@ -866,7 +870,6 @@ result_t NumberDataType::writeSymbols(istringstream& input,
 DataTypeList DataTypeList::s_instance;
 
 DataTypeList::DataTypeList()
-//	: FileReader::FileReader(false)
 {
 	add(new StringDataType("STR", MAX_LEN*8, ADJ, ' ')); // >= 1 byte character string filled up with space
 	add(new NumberDataType("PIN", 16, FIX|BCD|REV, 0xffff, 0, 0x9999, 1)); // unsigned decimal in BCD, 0000 - 9999 (fixed length)
@@ -961,26 +964,6 @@ result_t DataTypeList::add(DataType* dataType)
 	m_cleanupTypes.push_back(dataType);
 	return RESULT_OK;
 }
-
-/*result_t DataTypeList::addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
-	vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit, const string& defaultSuffix,
-	const string& filename, unsigned int lineNo)
-{
-	vector<string>::iterator restart = begin;
-	DataType* dataType = NULL;
-	result_t result = DataField::create(begin, end, this, dataType, false, true, false);
-	if (result != RESULT_OK)
-		return result;
-
-	result = add(dataType);
-	if (result==RESULT_ERR_DUPLICATE_NAME) {
-		begin = restart+1; // mark name as invalid
-	}
-	if (result != RESULT_OK) {
-		delete dataType;
-	}
-	return result;
-}*/
 
 DataType* DataTypeList::get(const string id, const unsigned char length)
 {
