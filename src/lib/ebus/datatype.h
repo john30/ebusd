@@ -411,7 +411,7 @@ public:
 	 */
 	static unsigned char calcPrecision(const int divisor);
 
-		// @copydoc
+	// @copydoc
 	virtual bool dump(ostream& output, const unsigned char length) const;
 
 	/**
