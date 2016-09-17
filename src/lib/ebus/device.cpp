@@ -307,6 +307,8 @@ result_t NetworkDevice::open()
 	} else {
 		int value = 1;
 		ret = setsockopt(m_fd, IPPROTO_TCP, TCP_NODELAY, (void*)&value, sizeof(value));
+		value = 1;
+		setsockopt(m_fd, SOL_SOCKET, SO_KEEPALIVE, (void*)&value, sizeof(value));
 	}
 	if (ret==0)	{
 		ret = connect(m_fd, (struct sockaddr*)&m_address, sizeof(m_address));
