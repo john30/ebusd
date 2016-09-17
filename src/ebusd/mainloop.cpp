@@ -725,18 +725,22 @@ string MainLoop::executeHex(vector<string> &args)
 string MainLoop::executeFind(vector<string> &args)
 {
 	size_t argPos = 1;
-	bool verbose = false, configFormat = false, exact = false, withRead = true, withWrite = false, withPassive = true, first = true, onlyWithData = false;
+	bool verbose = false, configFormat = false, exact = false, withRead = true, withWrite = false, withPassive = true, first = true, onlyWithData = false, hexFormat = false;
 	vector<size_t> columns;
 	string circuit;
 	vector<unsigned char> id;
 	while (args.size() > argPos && args[argPos][0] == '-') {
-		if (args[argPos] == "-v")
+		if (args[argPos] == "-v") {
 			verbose = true;
-		else if (args[argPos] == "-f")
+		} else if (args[argPos] == "-f") {
 			configFormat = true;
-		else if (args[argPos] == "-F") {
+			if (hexFormat) {
+				argPos = 0; // print usage
+				break;
+			}
+		} else if (args[argPos] == "-F") {
 			argPos++;
-			if (argPos >= args.size()) {
+			if (hexFormat || (argPos >= args.size())) {
 				argPos = 0; // print usage
 				break;
 			}
@@ -760,32 +764,35 @@ string MainLoop::executeFind(vector<string> &args)
 				argPos = 0; // print usage
 				break;
 			}
-		} else if (args[argPos] == "-e")
+		} else if (args[argPos] == "-e") {
 			exact = true;
-		else if (args[argPos] == "-r") {
+		} else if (args[argPos] == "-r") {
 			if (first) {
 				first = false;
 				withWrite = withPassive = false;
 			}
 			withRead = true;
-		}
-		else if (args[argPos] == "-w") {
+		} else if (args[argPos] == "-w") {
 			if (first) {
 				first = false;
 				withRead = withPassive = false;
 			}
 			withWrite = true;
-		}
-		else if (args[argPos] == "-p") {
+		} else if (args[argPos] == "-p") {
 			if (first) {
 				first = false;
 				withRead = withWrite = false;
 			}
 			withPassive = true;
-		}
-		else if (args[argPos] == "-d")
+		} else if (args[argPos] == "-d") {
 			onlyWithData = true;
-		else if (args[argPos] == "-i") {
+		} else if (args[argPos] == "-h") {
+			hexFormat = true;
+			if (configFormat) {
+				argPos = 0; // print usage
+				break;
+			}
+		} else if (args[argPos] == "-i") {
 			argPos++;
 			if (argPos >= args.size() || !id.empty()) {
 				argPos = 0; // print usage
@@ -799,29 +806,28 @@ string MainLoop::executeFind(vector<string> &args)
 				argPos = 0; // print usage
 				break;
 			}
-		}
-		else if (args[argPos] == "-c") {
+		} else if (args[argPos] == "-c") {
 			argPos++;
 			if (argPos >= args.size()) {
 				argPos = 0; // print usage
 				break;
 			}
 			circuit = args[argPos];
-		}
-		else {
+		} else {
 			argPos = 0; // print usage
 			break;
 		}
 		argPos++;
 	}
 	if (argPos == 0 || args.size() < argPos || args.size() > argPos + 1)
-		return "usage: find [-v] [-r] [-w] [-p] [-d] [-i ID] [-f] [-F COL[,COL]*] [-e] [-c CIRCUIT] [NAME]\n"
+		return "usage: find [-v] [-r] [-w] [-p] [-d] [-h] [-i ID] [-f] [-F COL[,COL]*] [-e] [-c CIRCUIT] [NAME]\n"
 			   " Find message(s).\n"
 			   "  -v            be verbose (append destination address and update time)\n"
 			   "  -r            limit to active read messages (default: read + passive)\n"
 			   "  -w            limit to active write messages (default: read + passive)\n"
 			   "  -p            limit to passive messages (default: read + passive)\n"
 			   "  -d            only include messages with actual data\n"
+			   "  -h            show hex data instead of decoded values\n"
 			   "  -i ID         limit to messages with ID (in hex, PB, SB and further ID bytes)\n"
 			   "  -f            list messages in CSV configuration file format\n"
 			   "  -F COL[,COL]* list messages in the specified format\n"
@@ -857,9 +863,12 @@ string MainLoop::executeFind(vector<string> &args)
 			if (found)
 				result << endl;
 			result << message->getCircuit() << " " << message->getName() << " = ";
-			if (lastup == 0)
+			if (lastup == 0) {
 				result << "no data stored";
-			else {
+			} else if (hexFormat) {
+				result << message->getLastMasterData().getDataStr()
+					   << " / " << message->getLastSlaveData().getDataStr();
+			} else {
 				result_t ret = message->decodeLastData(result, verbose?OF_VERBOSE:0);
 				if (ret!=RESULT_OK) {
 					result << " (" << getResultCode(ret)
@@ -1126,7 +1135,7 @@ string MainLoop::executeHelp()
 		   " write|w  Write value(s):        write [-d ZZ] -c CIRCUIT NAME [VALUE[;VALUE]*]\n"
 		   "          Write hex message:     write [-c CIRCUIT] -h ZZPBSBNNDx\n"
 		   " hex      Send hex data:         hex ZZPBSBNNDx\n"
-		   " find|f   Find message(s):       find [-v] [-r] [-w] [-p] [-d] [-i ID] [-f] [-F COL[,COL]*] [-e] [-c CIRCUIT] [NAME]\n"
+		   " find|f   Find message(s):       find [-v] [-r] [-w] [-p] [-d] [-h] [-i ID] [-f] [-F COL[,COL]*] [-e] [-c CIRCUIT] [NAME]\n"
 		   " listen|l Listen for updates:    listen [stop]\n"
 		   " state|s  Report bus state\n"
 		   " info|i   Report information about the daemon, the configuration, and seen devices.\n"
