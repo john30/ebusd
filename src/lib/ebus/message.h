@@ -396,14 +396,14 @@ public:
 	SymbolString& getLastSlaveData() { return m_lastSlaveData; }
 
 	/**
-	 * Get the time when @a m_lastValue was last stored.
-	 * @return the time when @a m_lastValue was last stored, or 0 if this message was not decoded yet.
+	 * Get the time when this message was last seen with reasonable data.
+	 * @return the time when this message was last seen, or 0.
 	 */
 	time_t getLastUpdateTime() { return m_lastUpdateTime; }
 
 	/**
-	 * Get the time when @a m_lastValue was last changed.
-	 * @return the time when @a m_lastValue was last changed, or 0 if this message was not decoded yet.
+	 * Get the time when the message data was last changed.
+	 * @return the time when the message data was last changed, or 0 if this message was not decoded yet.
 	 */
 	time_t getLastChangeTime() { return m_lastChangeTime; }
 

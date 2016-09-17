@@ -497,12 +497,9 @@ result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& ma
 	result = prepareMasterPart(master, input, separator, index);
 	if (result != RESULT_OK)
 		return result;
-	result = storeLastData(pt_masterData, master, index);
-	if (result < RESULT_OK)
-		return result;
 	masterData.clear();
 	masterData.addAll(master);
-	return RESULT_OK;
+	return storeLastData(pt_masterData, masterData, index);
 }
 
 result_t Message::prepareMasterPart(SymbolString& master, istringstream& input, char separator, unsigned char index)
@@ -558,7 +555,9 @@ result_t Message::storeLastData(SymbolString& master, SymbolString& slave)
 
 result_t Message::storeLastData(const PartType partType, SymbolString& data, unsigned char index)
 {
-	time(&m_lastUpdateTime);
+	if (data.size() > 0 && (this->m_dstAddress == BROADCAST || partType == pt_slaveData)) {
+		time(&m_lastUpdateTime);
+	}
 	if (partType == pt_masterData) {
 		switch (data.compareMaster(m_lastMasterData)) {
 		case 1: // completely different
