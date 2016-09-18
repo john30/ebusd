@@ -530,7 +530,7 @@ string MainLoop::executeRead(vector<string> &args)
 		m_messages->addPollMessage(message);
 	}
 
-	if (dstAddress==SYN && maxAge > 0) {
+	if (dstAddress == SYN && maxAge > 0 && params.length() == 0) {
 		Message* cacheMessage = m_messages->find(circuit, args[argPos], false, true);
 		bool hasCache = cacheMessage != NULL;
 		if (!hasCache || (message != NULL && message->getLastUpdateTime() > cacheMessage->getLastUpdateTime()))
