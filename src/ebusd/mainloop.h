@@ -72,6 +72,9 @@ private:
 	/** whether to pick configuration files matching initial scan. */
 	const bool m_scanConfig;
 
+	/** the initial address to scan for @a m_scanConfig (@a ESC=none, 0xfe=broadcast ident, @a SYN=full scan, else: single slave address). */
+	const unsigned char m_initialScan;
+
 	/** whether to enable the hex command. */
 	const bool m_enableHex;
 
@@ -94,9 +97,10 @@ private:
 	 * @param isHttp true for HTTP message.
 	 * @param listening set to true when the client is in listening mode.
 	 * @param running set to false when the server shall be stopped.
+	 * @param reload set to true when the configuration files were reloaded.
 	 * @return result string to send back to the client.
 	 */
-	string decodeMessage(const string& data, const bool isHttp, bool& connected, bool& listening, bool& running);
+	string decodeMessage(const string& data, const bool isHttp, bool& connected, bool& listening, bool& running, bool& reload);
 
 	/**
 	 * Parse the hex master message from the remaining arguments.

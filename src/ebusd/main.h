@@ -37,6 +37,7 @@ struct options
 
 	const char* configPath; //!< path to CSV configuration files [/etc/ebusd]
 	bool scanConfig; //!< pick configuration files matching initial scan
+	unsigned char initialScan; //!< the initial address to scan for scanconfig (@a ESC=none, 0xfe=broadcast ident, @a SYN=full scan, else: single slave address)
 	int checkConfig; //!< check CSV config files (!=0) and optionally dump (2), then stop
 	int pollInterval; //!< poll interval in seconds, 0 to disable [5]
 

@@ -70,6 +70,7 @@ static struct options opt = {
 	-1, // latency
 	CONFIG_PATH, // configPath
 	false, // scanConfig
+	BROADCAST, // initialScan
 	0, // checkConfig
 	5, // pollInterval
 	0x31, // address
@@ -144,7 +145,7 @@ static const struct argp_option argpoptions[] = {
 
 	{NULL,             0,        NULL,    0, "Message configuration options:", 2 },
 	{"configpath",     'c',      "PATH",  0, "Read CSV config files from PATH [" CONFIG_PATH "]", 0 },
-	{"scanconfig",     's',      NULL,    0, "Pick CSV config files matching initial scan. If combined with --checkconfig, you can add scan message data as arguments for checking a particular scan configuration, e.g. \"FF08070400/0AB5454850303003277201\".", 0 },
+	{"scanconfig",     's',      "ADDR",  OPTION_ARG_OPTIONAL, "Pick CSV config files matching initial scan (ADDR=\"none\" or empty for no initial scan message, \"full\" for full scan, or a single hex address to scan, default is broadcast ident message). If combined with --checkconfig, you can add scan message data as arguments for checking a particular scan configuration, e.g. \"FF08070400/0AB5454850303003277201\".", 0 },
 	{"checkconfig",    O_CHKCFG, NULL,    0, "Check CSV config files, then stop", 0 },
 	{"dumpconfig",     O_DMPCFG, NULL,    0, "Check and dump CSV config files, then stop", 0 },
 	{"pollinterval",   O_POLINT, "SEC",   0, "Poll for data every SEC seconds (0=disable) [5]", 0 },
@@ -224,7 +225,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 	case O_INISND: // --initsend
 		opt->initialSend = true;
 		break;
-	case O_DEVLAT: // --latency
+	case O_DEVLAT: // --latency=10000
 		opt->latency = parseInt(arg, 10, 0, 200000, result);
 		if (result != RESULT_OK) {
 			argp_error(state, "invalid latency");
@@ -240,11 +241,27 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 		}
 		opt->configPath = arg;
 		break;
-	case 's': // --scanconfig
+	case 's': // --scanconfig[=ADDR] (ADDR=<empty>|full|<hexaddr>)
 		opt->scanConfig = true;
 		if (opt->readOnly) {
 			argp_error(state, "cannot combine readonly with scanconfig/answer/generatesyn");
 			return EINVAL;
+		}
+		if (arg != NULL) {
+			if (arg[0] == 0 || strcmp("none", arg) == 0) {
+				opt->initialScan = ESC;
+			} else if (strcmp("full", arg) == 0) {
+				opt->initialScan = SYN;
+			} else {
+				opt->initialScan = (unsigned char)parseInt(arg, 16, 0x00, 0xff, result);
+				if (!isValidAddress(opt->initialScan)) {
+					argp_error(state, "invalid initial scan address");
+					return EINVAL;
+				}
+				if (isMaster(opt->initialScan)) {
+					opt->initialScan = (unsigned char)(opt->initialScan+5);
+				}
+			}
 		}
 		break;
 	case O_CHKCFG: // --checkconfig
@@ -344,7 +361,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 	case O_LOCAL: // --localhost
 		opt->localOnly = true;
 		break;
-	case O_HTTPPT: // --httpport
+	case O_HTTPPT: // --httpport=0
 		opt->httpPort = (uint16_t)parseInt(arg, 10, 1, 65535, result);
 		if (result != RESULT_OK) {
 			argp_error(state, "invalid port");
@@ -897,8 +914,9 @@ int main(int argc, char* argv[])
 	struct argp argp = { argpoptions, parse_opt, NULL, argpdoc, NULL, NULL, NULL };
 	int arg_index = -1;
 	setenv("ARGP_HELP_FMT", "no-dup-args-note", 0);
-	if (argp_parse(&argp, argc, argv, ARGP_IN_ORDER, &arg_index, &opt) != 0)
+	if (argp_parse(&argp, argc, argv, ARGP_IN_ORDER, &arg_index, &opt) != 0) {
 		return EINVAL;
+	}
 
 	s_messageMap = new MessageMap(opt.checkConfig && opt.scanConfig && arg_index >= argc);
 	if (opt.checkConfig) {

@@ -42,7 +42,7 @@ static const char* columnNames[] = {
 static const size_t columnCount = sizeof(columnNames) / sizeof(char*);
 
 MainLoop::MainLoop(const struct options opt, Device *device, MessageMap* messages)
-	: m_device(device), m_messages(messages), m_address(opt.address), m_scanConfig(opt.scanConfig), m_enableHex(opt.enableHex)
+	: m_device(device), m_messages(messages), m_address(opt.address), m_scanConfig(opt.scanConfig), m_initialScan(opt.initialScan), m_enableHex(opt.enableHex)
 {
 	// setup Device
 	m_device->setLogRaw(opt.logRaw);
@@ -96,7 +96,7 @@ MainLoop::~MainLoop()
 
 void MainLoop::run()
 {
-	bool running = true;
+	bool running = true, reload = true;
 	time_t lastTaskRun, now;
 	int taskDelay = 5;
 	unsigned char lastScanAddress = 0; // 0 is known to be a master
@@ -115,6 +115,31 @@ void MainLoop::run()
 		} else if (now > lastTaskRun+taskDelay) {
 			logDebug(lf_main, "performing regular tasks");
 			if (m_scanConfig) {
+				if (m_initialScan != ESC && reload && m_busHandler->hasSignal()) {
+					result_t result = RESULT_ERR_NO_SIGNAL;
+					if (m_initialScan == SYN) {
+						logNotice(lf_main, "initiating full scan");
+						result = m_busHandler->startScan(true);
+					} else {
+						logNotice(lf_main, "starting initial scan for %2.2x", m_initialScan);
+						SymbolString slave(false);
+						result = m_busHandler->scanAndWait(m_initialScan, slave);
+						Message* message = m_messages->getScanMessage(m_initialScan);
+						if (result == RESULT_OK && message != NULL) {
+							ostringstream ret;
+							result = message->decodeLastData(ret, 0, true); // decode data
+							if (result == RESULT_OK) {
+								logNotice(lf_main, "initial scan result: %2.2x%s", m_initialScan, ret.str().c_str());
+							}
+						}
+					}
+					if (result != RESULT_OK) {
+						logError(lf_main, "initial scan failed: %s", getResultCode(result));
+					}
+					if (result != RESULT_ERR_NO_SIGNAL) {
+						reload = false;
+					}
+				}
 				bool scanned = false;
 				lastScanAddress = m_busHandler->getNextScanAddress(lastScanAddress, scanned);
 				if (lastScanAddress==SYN) {
@@ -164,7 +189,7 @@ void MainLoop::run()
 		bool connected = true;
 		if (request.length() > 0) {
 			logDebug(lf_main, ">>> %s", request.c_str());
-			result = decodeMessage(request, message->isHttp(), connected, listening, running);
+			result = decodeMessage(request, message->isHttp(), connected, listening, running, reload);
 
 			if (result.length() == 0 && !message->isHttp())
 				result = getResultCode(RESULT_EMPTY);
@@ -188,7 +213,7 @@ void MainLoop::run()
 	}
 }
 
-string MainLoop::decodeMessage(const string& data, const bool isHttp, bool& connected, bool& listening, bool& running)
+string MainLoop::decodeMessage(const string& data, const bool isHttp, bool& connected, bool& listening, bool& running, bool& reload)
 {
 	ostringstream result;
 
@@ -272,8 +297,10 @@ string MainLoop::decodeMessage(const string& data, const bool isHttp, bool& conn
 		return executeRaw(args);
 	if (strcasecmp(str, "DUMP") == 0)
 		return executeDump(args);
-	if (strcasecmp(str, "RELOAD") == 0)
+	if (strcasecmp(str, "RELOAD") == 0) {
+		reload = true;
 		return executeReload(args);
+	}
 	if (strcasecmp(str, "STOP") == 0)
 		return executeStop(args, running);
 	if (strcasecmp(str, "Q") == 0 || strcasecmp(str, "QUIT") == 0)
@@ -993,6 +1020,8 @@ string MainLoop::executeScan(vector<string> &args)
 
 		result_t result;
 		unsigned char dstAddress = (unsigned char)parseInt(args[1].c_str(), 16, 0, 0xff, result);
+		if (result == RESULT_OK && !isValidAddress(dstAddress, false))
+			result = RESULT_ERR_INVALID_ADDR;
 		if (result != RESULT_OK)
 			return getResultCode(result);
 
@@ -1001,7 +1030,7 @@ string MainLoop::executeScan(vector<string> &args)
 		if (result != RESULT_OK)
 			return getResultCode(result);
 
-		Message* message = m_messages->getScanMessage(dstAddress); // never NULL due to scanAndWait() == RESULT_OK
+		Message* message = m_messages->getScanMessage(dstAddress); // never NULL due to scanAndWait() == RESULT_OK && dstAddress != BROADCAST
 		ostringstream ret;
 		ret << hex << setw(2) << setfill('0') << static_cast<unsigned>(dstAddress);
 		result = message->decodeLastData(ret, 0, true); // decode data
