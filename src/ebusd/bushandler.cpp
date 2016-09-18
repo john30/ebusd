@@ -968,7 +968,7 @@ void BusHandler::formatSeenInfo(ostringstream& output)
 
 result_t BusHandler::scanAndWait(unsigned char dstAddress, SymbolString& slave)
 {
-	if (!isValidAddress(dstAddress, false) || isMaster(dstAddress))
+	if (!isValidAddress(dstAddress) || isMaster(dstAddress))
 		return RESULT_ERR_INVALID_ADDR;
 	m_seenAddresses[dstAddress] |= SCAN_INIT;
 	Message* scanMessage = m_messages->getScanMessage();
@@ -990,7 +990,7 @@ result_t BusHandler::scanAndWait(unsigned char dstAddress, SymbolString& slave)
 		if (result!=RESULT_ERR_NO_SIGNAL)
 			m_seenAddresses[dstAddress] |= SCAN_DONE;
 	}
-	if (result!=RESULT_OK)
+	if (result != RESULT_OK || slave.size() == 0) // avoid "invalid position" during decode
 		return result;
 
 	return scanMessage->storeLastData(pt_slaveData, slave, 0); // update the cache
