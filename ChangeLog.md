@@ -1,7 +1,26 @@
+# next version
+
+## Bug Fixes
+* corrected extra separator in CSV style dump
+* corrected BCD representation in JSON
+* corrected serial close()
+* completely reworked base data types to allow user-defined types
+* fix for storing own prepared master data
+* no longer show messages that did not receive data in "find" command
+* check address argument for validity in "scan" command
+* only use cached data if no input is necessary in "read" command
+
+## Features
+* allow running multiple ebusd instances by configuration file (/etc/default/ebusd on debian)
+* set keepalive option on network device
+* added hex option to "find" command
+* added optional initial active scan address to "--scanconfig" option that allows initiating a single destination address scan, a full scan, or sending a broadcast ident message (this is now the default)
+
+
 # 2.1 (2016-05-05)
 
 ## Breaking Changes
-* added "hex" command for sending arbitrary hex data, disable it by default (use "--enablehex" command line option), and limit "write -h" command to known messages only.  
+* added "hex" command for sending arbitrary hex data, disabled it by default (use "--enablehex" command line option), and limit "write -h" command to known messages only.  
   This increases security by avoiding unintended sending of arbitrary messages.
 * changed ebusd default address to 0x31 in order to avoid address conflicts with popular devices on the bus
 * added "!load" instruction for CSV configuration files allowing conditional loading of single other CSV file
