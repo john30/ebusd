@@ -285,8 +285,7 @@ result_t BusHandler::handleSymbol()
 						if (ret != RESULT_OK) {
 							logError(lf_bus, "prepare poll message: %s", getResultCode(ret));
 							delete request;
-						}
-						else {
+						} else {
 							startRequest = request;
 							m_nextRequests.push(request);
 						}
