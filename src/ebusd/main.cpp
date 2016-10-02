@@ -202,8 +202,8 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 {
 	struct options *opt = (struct options*)state->input;
 	result_t result = RESULT_OK;
-	switch (key) {
 
+	switch (key) {
 	// Device options:
 	case 'd': // --device=/dev/ttyUSB0
 		if (arg == NULL || arg[0] == 0) {
@@ -419,9 +419,16 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 		}
 		break;
 
+	case ARGP_KEY_ARG:
+		if (!opt->checkConfig) {
+			argp_error(state, "invalid arguments starting with \"%s\"", arg);
+			return EINVAL;
+		}
+		return ARGP_ERR_UNKNOWN;
 	default:
 		return ARGP_ERR_UNKNOWN;
 	}
+
 	return 0;
 }
 
@@ -915,6 +922,7 @@ int main(int argc, char* argv[])
 	int arg_index = -1;
 	setenv("ARGP_HELP_FMT", "no-dup-args-note", 0);
 	if (argp_parse(&argp, argc, argv, ARGP_IN_ORDER, &arg_index, &opt) != 0) {
+		logError(lf_main, "invalid arguments");
 		return EINVAL;
 	}
 
@@ -958,9 +966,6 @@ int main(int argc, char* argv[])
 		shutdown();
 		return 0;
 	}
-
-	if (arg_index < argc)
-		return EINVAL;
 
 	// open the device
 	Device *device = Device::create(opt.device, !opt.noDeviceCheck, opt.readOnly, opt.initialSend, &logRawData);
