@@ -499,7 +499,10 @@ result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& ma
 		return result;
 	masterData.clear();
 	masterData.addAll(master);
-	return storeLastData(pt_masterData, masterData, index);
+	result = storeLastData(pt_masterData, masterData, index);
+	if (result < RESULT_OK)
+		return result;
+	return RESULT_OK;
 }
 
 result_t Message::prepareMasterPart(SymbolString& master, istringstream& input, char separator, unsigned char index)
