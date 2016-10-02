@@ -247,6 +247,10 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 			argp_error(state, "cannot combine readonly with scanconfig/answer/generatesyn");
 			return EINVAL;
 		}
+		if (opt->pollInterval == 0) {
+			argp_error(state, "scanconfig without polling may lead to invalid files included for certain products!");
+			return EINVAL;
+		}
 		if (arg != NULL) {
 			if (arg[0] == 0 || strcmp("none", arg) == 0) {
 				opt->initialScan = ESC;
@@ -275,6 +279,10 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 		opt->pollInterval = parseInt(arg, 10, 0, 3600, result);
 		if (result != RESULT_OK) {
 			argp_error(state, "invalid pollinterval");
+			return EINVAL;
+		}
+		if (opt->pollInterval == 0 && opt->scanConfig) {
+			argp_error(state, "scanconfig without polling may lead to invalid files included for certain products!");
 			return EINVAL;
 		}
 		break;
