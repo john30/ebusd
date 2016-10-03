@@ -342,14 +342,27 @@ result_t DateTimeDataType::readSymbols(SymbolString& input, const bool isMaster,
 				output << NULL_VALUE;
 				break;
 			}
-			if (length == 1) { // truncated time
+			if (hasFlag(SPE)) { // minutes since midnight
+				if (i == 0) {
+					last = ch;
+					continue;
+				}
+				int minutes = ch*256 + last;
+				if (minutes > 24*60)
+					return RESULT_ERR_OUT_OF_RANGE; // invalid value
+				int hour = minutes / 60;
+				if (hour > 24)
+					return RESULT_ERR_OUT_OF_RANGE; // invalid hour
+				output << setw(2) << dec << setfill('0') << static_cast<unsigned>(hour);
+				ch = (unsigned char)(minutes % 60);
+			} else if (length == 1) { // truncated time
 				if (i == 0) {
 					ch = (unsigned char)(ch/(60/m_resolution)); // convert to hours
 					offset -= incr; // repeat for minutes
 					count++;
-				}
-				else
+				} else {
 					ch = (unsigned char)((ch % (60/m_resolution)) * m_resolution); // convert to minutes
+				}
 			}
 			if (i == 0) {
 				if (ch > 24)
@@ -475,13 +488,21 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
 				return result; // invalid time part
 			if ((i == 0 && value > 24) || (i > 0 && (last == 24 && value > 0) ))
 				return RESULT_ERR_OUT_OF_RANGE; // invalid time part
-			if (length == 1) { // truncated time
+			if (hasFlag(SPE)) { // minutes since midnight
+				if (i == 0) {
+					skip = true; // repeat for minutes
+					break;
+				}
+				value += last*60;
+				output[baseOffset + offset] = (unsigned char)(value&0xff);
+				value >>= 8;
+				offset += incr;
+			} else if (length == 1) { // truncated time
 				if (i == 0) {
 					skip = true; // repeat for minutes
 					count++;
 					break;
 				}
-
 				if ((value % m_resolution) != 0)
 					return RESULT_ERR_INVALID_NUM; // invalid truncated time minutes
 				value = (last * 60 + value)/m_resolution;
@@ -909,7 +930,7 @@ DataTypeList::DataTypeList()
 	add(new DateTimeDataType("BTM", 16, BCD|REV, 0xff, false, true, 0)); // time as hh:mm in BCD, 00:00 - 23:59 (0x00,0x00 - 0x59,0x23, replacement 0xff)
 	add(new DateTimeDataType("HTM", 16, REQ, 0, false, true, 0)); // time as hh:mm, 00:00 - 23:59 (0x00,0x00 - 0x17,0x3b)
 	add(new DateTimeDataType("VTM", 16, REV, 0xff, false, true, 0)); // time as hh:mm, 00:00 - 23:59 (0x00,0x00 - 0x3b,0x17, replacement 0xff) [Vaillant type]
-//	add(new DateTimeDataType("MIN", 16, SPE, 0xff, false, true, 0)); // time, minutes since last midnight, 00:00 - 24:00 (minutes + hour * 60 as integer)
+	add(new DateTimeDataType("MIN", 16, SPE, 0xff, false, true, 0)); // time, minutes since last midnight, 00:00 - 24:00 (minutes + hour * 60 as integer)
 	add(new DateTimeDataType("TTM", 8, 0, 0x90, false, true, 10)); // truncated time (only multiple of 10 minutes), 00:00 - 24:00 (minutes div 10 + hour * 6 as integer)
 	add(new DateTimeDataType("TTH", 8, 0, 0, false, true, 30)); // truncated time (only multiple of 30 minutes), 00:00 - 24:00 (minutes div 30 + hour * 2 as integer)
 	add(new NumberDataType("BDY", 8, DAY, 0x07, 0, 6, 1)); // weekday, "Mon" - "Sun" (0x00 - 0x06) [eBUS type]
