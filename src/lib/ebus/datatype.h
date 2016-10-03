@@ -100,6 +100,7 @@ static const unsigned int HCD = 0x80; //!< binary representation is hex converte
 static const unsigned int EXP = 0x100; //!< exponential numeric representation
 static const unsigned int DAY = 0x200; //!< forced value list defaulting to week days
 static const unsigned int NUM = 0x400; //!< numeric type with base class @a NumberDataType
+static const unsigned int SPE = 0x800; //!< special marker for certain types
 
 
 /**
@@ -324,12 +325,13 @@ public:
 	 * @param bitCount the number of bits (maximum length if #ADJ flag is set, must be multiple of 8 with flag #BCD).
 	 * @param flags the combination of flags (like #BCD).
 	 * @param replacement the replacement value.
-	 * @param isDate true for date, false for time.
+	 * @param hasDate true if date part is present.
+	 * @param hasTime true if time part is present.
 	 * @param resolution the the resolution in minutes for time types, or 1.
 	 */
 	DateTimeDataType(const string id, const unsigned char bitCount, const unsigned short flags, const unsigned int replacement,
-			const bool isDate, const short resolution)
-		: DataType(id, bitCount, flags, replacement), m_isDate(isDate), m_resolution(resolution) {}
+			const bool hasDate, const bool hasTime, const short resolution)
+		: DataType(id, bitCount, flags, replacement), m_hasDate(hasDate), m_hasTime(hasTime), m_resolution(resolution) {}
 
 	/**
 	 * Destructor.
@@ -337,9 +339,14 @@ public:
 	virtual ~DateTimeDataType() {}
 
 	/**
-	 * @return true for date, false for time.
+	 * @return true if date part is present.
 	 */
-	bool isDate() const { return m_isDate; }
+	bool hasDate() const { return m_hasDate; }
+
+	/**
+	 * @return true if time part is present.
+	 */
+	bool hasTime() const { return m_hasTime; }
 
 	/**
 	 * @return the resolution in minutes for time types, or 1.
@@ -363,8 +370,11 @@ public:
 
 private:
 
-	/** true for date, false for time. */
-	const bool m_isDate;
+	/** true if date part is present. */
+	const bool m_hasDate;
+
+	/** true if time part is present. */
+	const bool m_hasTime;
 
 	/** the resolution in minutes for time types, or 1. */
 	const short m_resolution;
@@ -554,11 +564,6 @@ public:
 	 * @param dataType the @a DataType instance to add.
 	 */
 	void addCleanup(DataType* dataType) { m_cleanupTypes.push_back(dataType); }
-
-	// @copydoc
-	/*virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
-		vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit, const string& defaultSuffix,
-		const string& filename, unsigned int lineNo);*/
 
 	/**
 	 * Gets the @a DataType instance with the specified ID.

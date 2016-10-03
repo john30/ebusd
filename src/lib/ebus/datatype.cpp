@@ -281,8 +281,9 @@ result_t DateTimeDataType::readSymbols(SymbolString& input, const bool isMaster,
 
 	if (outputFormat & OF_JSON)
 		output << '"';
+	int type = (m_hasDate?2:0) | (m_hasTime?1:0);
 	for (size_t offset = start, i = 0; i < count; offset += incr, i++) {
-		if (length == 4 && i == 2 && m_isDate)
+		if (length == 4 && i == 2 && m_hasDate)
 			continue; // skip weekday in between
 		ch = input[baseOffset + offset];
 		if (hasFlag(BCD) && (hasFlag(REQ) || ch != m_replacement)) {
@@ -290,33 +291,37 @@ result_t DateTimeDataType::readSymbols(SymbolString& input, const bool isMaster,
 				return RESULT_ERR_OUT_OF_RANGE; // invalid BCD
 			ch = (unsigned char)((ch >> 4) * 10 + (ch & 0x0f));
 		}
-		switch (m_isDate)
+		switch (type)
 		{
-		case true:
-			if (length == 2) { // number of days since 01.01.1900
-				if (i == 0) {
-					break;
-				}
-				/*int days = last*256 + ch + 15020; // 01.01.1900
-				int y = days(value < 100 ? value + 2000 : value) - 1900;
-				int l = (last==1 || last==2) ? 1 : 0;
-				int mjd = 14956 + lastLast + (int)((y-l)*365.25) + (int)((last+1+l*12)*30.6001);
-				int daysSinceSunday = (mjd+3) % 7; // Sun=0
-				if ((m_dataType.flags & BCD) != 0)
-					output[baseOffset + offset - incr] = (unsigned char)((6+daysSinceSunday) % 7); // Sun=0x06
-				else
-					output[baseOffset + offset - incr] = (unsigned char)(daysSinceSunday==0 ? 7 : daysSinceSunday); // Sun=0x07*/
-				output << setw(2) << dec << setfill('0') << static_cast<unsigned>(ch) << ".";
-			}
+		case 2: // date only
 			if (!hasFlag(REQ) && ch == m_replacement) {
 				if (i + 1 != length) {
 					output << NULL_VALUE << ".";
 					break;
-				}
-				else if (last == m_replacement) {
+				} else if (last == m_replacement) {
+					if (length == 2) { // number of days since 01.01.1900
+						output << NULL_VALUE << ".";
+					}
 					output << NULL_VALUE;
 					break;
 				}
+			}
+			if (length == 2) { // number of days since 01.01.1900
+				if (i == 0) {
+					break;
+				}
+				int mjd = last + ch*256 + 15020; // 01.01.1900
+				int y = (int)((mjd-15078.2)/365.25);
+				int m = (int)((mjd-14956.1-(int)(y*365.25))/30.6001);
+				int d = mjd-14956-(int)(y*365.25)-(int)(m*30.6001);
+				m--;
+				if (m>=13) {
+					y++;
+					m -= 12;
+				}
+				output << dec << setfill('0') << setw(2) << static_cast<unsigned>(d) << "."
+						<< setw(2) << static_cast<unsigned>(m) << "." << static_cast<unsigned>(y + 1900);
+				break;
 			}
 			if (i + 1 == length)
 				output << (2000 + ch);
@@ -325,7 +330,8 @@ result_t DateTimeDataType::readSymbols(SymbolString& input, const bool isMaster,
 			else
 				output << setw(2) << dec << setfill('0') << static_cast<unsigned>(ch) << ".";
 			break;
-		case false:
+
+		case 1: // time only
 			if (!hasFlag(REQ) && ch == m_replacement) {
 				if (length == 1) { // truncated time
 					output << NULL_VALUE << ":" << NULL_VALUE;
@@ -392,10 +398,13 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
 	}
 	result_t result;
 	size_t i = 0, offset;
-	for (offset = start; i < count; offset += incr, i++) {
-		switch (m_isDate)
+	int type = (m_hasDate?2:0) | (m_hasTime?1:0);
+	bool skip = false;
+	for (offset = start; i < count; offset += skip?0:incr, i++) {
+		skip = false;
+		switch (type)
 		{
-		case true:
+		case 2: // date only
 			if (length == 4 && i == 2)
 				continue; // skip weekday in between
 			if (input.eof() || !getline(input, token, '.'))
@@ -408,11 +417,27 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
 			if (result != RESULT_OK) {
 				return result; // invalid date part
 			}
-			if (i + 1 == length) {
+			if (length == 2) { // number of days since 01.01.1900
+				skip = true;
+				if (i == 0) {
+					count++;
+				} else if (i + 1 == count) {
+					int y = (value < 100 ? value + 2000 : value) - 1900;
+					int l = last<=2 ? 1 : 0;
+					int mjd = 14956 + lastLast + (int)((y-l)*365.25) + (int)((last+1+l*12)*30.6001);
+					value = mjd - 15020; // 01.01.1900
+					output[baseOffset + offset] = (unsigned char)(value&0xff);
+					value >>= 8;
+					offset += incr;
+					skip = false;
+					break;
+				}
+			}
+			if (i + 1 == count) {
 				if (length == 4) {
 					// calculate local week day
 					int y = (value < 100 ? value + 2000 : value) - 1900;
-					int l = (last==1 || last==2) ? 1 : 0;
+					int l = last<=2 ? 1 : 0;
 					int mjd = 14956 + lastLast + (int)((y-l)*365.25) + (int)((last+1+l*12)*30.6001);
 					int daysSinceSunday = (mjd+3) % 7; // Sun=0
 					if (hasFlag(BCD))
@@ -424,21 +449,21 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
 					value -= 2000;
 				if (value > 99)
 					return RESULT_ERR_OUT_OF_RANGE; // invalid year
-			}
-			else if (value < 1 || (i == 0 && value > 31) || (i == 1 && value > 12))
+			} else if (value < 1 || (i == 0 && value > 31) || (i == 1 && value > 12)) {
 				return RESULT_ERR_OUT_OF_RANGE; // invalid date part
+			}
 			break;
-		case false:
+
+		case 1: // time only
 			if (input.eof() || !getline(input, token, LENGTH_SEPARATOR))
 				return RESULT_ERR_EOF; // incomplete
 			if (!hasFlag(REQ) && strcmp(token.c_str(), NULL_VALUE) == 0) {
 				value = m_replacement;
 				if (length == 1) { // truncated time
 					if (i == 0) {
-						last = value;
-						offset -= incr; // repeat for minutes
+						skip = true; // repeat for minutes
 						count++;
-						continue;
+						break;
 					}
 					if (last != m_replacement)
 						return RESULT_ERR_INVALID_NUM; // invalid truncated time minutes
@@ -452,10 +477,9 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
 				return RESULT_ERR_OUT_OF_RANGE; // invalid time part
 			if (length == 1) { // truncated time
 				if (i == 0) {
-					last = value;
-					offset -= incr; // repeat for minutes
+					skip = true; // repeat for minutes
 					count++;
-					continue;
+					break;
 				}
 
 				if ((value % m_resolution) != 0)
@@ -466,23 +490,18 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
 			}
 			break;
 		}
-		if (remainder && input.eof() && i > 0) {
-			if (value == 0x00) {
-				output[baseOffset + offset] = 0;
-				offset += incr;
-			}
-			break;
-		}
 		lastLast = last;
 		last = value;
-		if (hasFlag(BCD) && (hasFlag(REQ) || value != m_replacement)) {
-			if (value > 99)
-				return RESULT_ERR_OUT_OF_RANGE; // invalid BCD
-			value = ((value / 10) << 4) | (value % 10);
+		if (!skip) {
+			if (hasFlag(BCD) && (hasFlag(REQ) || value != m_replacement)) {
+				if (value > 99)
+					return RESULT_ERR_OUT_OF_RANGE; // invalid BCD
+				value = ((value / 10) << 4) | (value % 10);
+			}
+			if (value > 0xff)
+				return RESULT_ERR_OUT_OF_RANGE; // value out of range
+			output[baseOffset + offset] = (unsigned char)value;
 		}
-		if (value > 0xff)
-			return RESULT_ERR_OUT_OF_RANGE; // value out of range
-		output[baseOffset + offset] = (unsigned char)value;
 	}
 
 	if (!remainder && i < count)
@@ -879,19 +898,20 @@ DataTypeList::DataTypeList()
 	add(new StringDataType("IGN", MAX_LEN*8, IGN|ADJ, 0)); // >= 1 byte ignored data
 	add(new StringDataType("NTS", MAX_LEN*8, ADJ, 0)); // >= 1 byte character string filled up with 0x00 (null terminated string)
 	add(new StringDataType("HEX", MAX_LEN*8, ADJ, 0, true)); // >= 1 byte hex digit string, usually separated by space, e.g. 0a 1b 2c 3d
-	add(new DateTimeDataType("BDA", 32, BCD, 0xff, true, 0)); // date with weekday in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is weekday Mon=0x00 - Sun=0x06, replacement 0xff)
-	add(new DateTimeDataType("BDA", 24, BCD, 0xff, true, 0)); // date in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99, replacement 0xff)
-	add(new DateTimeDataType("HDA", 32, 0, 0xff, true, 0)); // date with weekday, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x1f,0x0c,WW,0x63, WW is weekday Mon=0x01 - Sun=0x07, replacement 0xff)
-	add(new DateTimeDataType("HDA", 24, 0, 0xff, true, 0)); // date, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x1f,0x0c,0x63, replacement 0xff)
-	add(new DateTimeDataType("DAY", 16, REQ, 0, true, 0)); // date, days since 01.01.1900, 01.01.1900 - 06.06.2079 (0x00,0x00 - 0xff,0xff)
-	add(new DateTimeDataType("BTI", 24, BCD|REV|REQ, 0, false, 0)); // time in BCD, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x59,0x59,0x23)
-	add(new DateTimeDataType("HTI", 24, REQ, 0, false, 0)); // time, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x17,0x3b,0x3b)
-	add(new DateTimeDataType("VTI", 24, REV, 0x63, false, 0)); // time, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x3b,0x3b,0x17, replacement 0x63) [Vaillant type]
-	add(new DateTimeDataType("BTM", 16, BCD|REV, 0xff, false, 0)); // time as hh:mm in BCD, 00:00 - 23:59 (0x00,0x00 - 0x59,0x23, replacement 0xff)
-	add(new DateTimeDataType("HTM", 16, REQ, 0, false, 0)); // time as hh:mm, 00:00 - 23:59 (0x00,0x00 - 0x17,0x3b)
-	add(new DateTimeDataType("VTM", 16, REV, 0xff, false, 0)); // time as hh:mm, 00:00 - 23:59 (0x00,0x00 - 0x3b,0x17, replacement 0xff) [Vaillant type]
-	add(new DateTimeDataType("TTM", 8, 0, 0x90, false, 10)); // truncated time (only multiple of 10 minutes), 00:00 - 24:00 (minutes div 10 + hour * 6 as integer)
-	add(new DateTimeDataType("TTH", 8, 0, 0, false, 30)); // truncated time (only multiple of 30 minutes), 00:30 - 24:00 (minutes div 30 + hour * 2 as integer)
+	add(new DateTimeDataType("BDA", 32, BCD, 0xff, true, false, 0)); // date with weekday in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99, WW is weekday Mon=0x00 - Sun=0x06, replacement 0xff)
+	add(new DateTimeDataType("BDA", 24, BCD, 0xff, true, false, 0)); // date in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99, replacement 0xff)
+	add(new DateTimeDataType("HDA", 32, 0, 0xff, true, false, 0)); // date with weekday, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x1f,0x0c,WW,0x63, WW is weekday Mon=0x01 - Sun=0x07, replacement 0xff)
+	add(new DateTimeDataType("HDA", 24, 0, 0xff, true, false, 0)); // date, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x1f,0x0c,0x63, replacement 0xff)
+	add(new DateTimeDataType("DAY", 16, 0, 0xff, true, false, 0)); // date, days since 01.01.1900, 01.01.1900 - 06.06.2079 (0x00,0x00 - 0xff,0xff)
+	add(new DateTimeDataType("BTI", 24, BCD|REV|REQ, 0, false, true, 0)); // time in BCD, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x59,0x59,0x23)
+	add(new DateTimeDataType("HTI", 24, REQ, 0, false, true, 0)); // time, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x17,0x3b,0x3b)
+	add(new DateTimeDataType("VTI", 24, REV, 0x63, false, true, 0)); // time, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x3b,0x3b,0x17, replacement 0x63) [Vaillant type]
+	add(new DateTimeDataType("BTM", 16, BCD|REV, 0xff, false, true, 0)); // time as hh:mm in BCD, 00:00 - 23:59 (0x00,0x00 - 0x59,0x23, replacement 0xff)
+	add(new DateTimeDataType("HTM", 16, REQ, 0, false, true, 0)); // time as hh:mm, 00:00 - 23:59 (0x00,0x00 - 0x17,0x3b)
+	add(new DateTimeDataType("VTM", 16, REV, 0xff, false, true, 0)); // time as hh:mm, 00:00 - 23:59 (0x00,0x00 - 0x3b,0x17, replacement 0xff) [Vaillant type]
+//	add(new DateTimeDataType("MIN", 16, SPE, 0xff, false, true, 0)); // time, minutes since last midnight, 00:00 - 24:00 (minutes + hour * 60 as integer)
+	add(new DateTimeDataType("TTM", 8, 0, 0x90, false, true, 10)); // truncated time (only multiple of 10 minutes), 00:00 - 24:00 (minutes div 10 + hour * 6 as integer)
+	add(new DateTimeDataType("TTH", 8, 0, 0, false, true, 30)); // truncated time (only multiple of 30 minutes), 00:00 - 24:00 (minutes div 30 + hour * 2 as integer)
 	add(new NumberDataType("BDY", 8, DAY, 0x07, 0, 6, 1)); // weekday, "Mon" - "Sun" (0x00 - 0x06) [eBUS type]
 	add(new NumberDataType("HDY", 8, DAY, 0x00, 1, 7, 1)); // weekday, "Mon" - "Sun" (0x01 - 0x07) [Vaillant type]
 	add(new NumberDataType("BCD", 8, BCD, 0xff, 0, 99, 1)); // unsigned decimal in BCD, 0 - 99
