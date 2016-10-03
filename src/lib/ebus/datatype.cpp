@@ -140,8 +140,9 @@ result_t StringDataType::readRawValue(SymbolString& input, const unsigned char o
 	return RESULT_EMPTY;
 }
 
-result_t StringDataType::readSymbols(SymbolString& input, const unsigned char baseOffset,
-		const unsigned char length, ostringstream& output, OutputFormat outputFormat)
+result_t StringDataType::readSymbols(SymbolString& input, const bool isMaster,
+		const unsigned char baseOffset, const unsigned char length,
+		ostringstream& output, OutputFormat outputFormat)
 {
 	size_t start = 0, count = length;
 	int incr = 1;
@@ -182,7 +183,7 @@ result_t StringDataType::readSymbols(SymbolString& input, const unsigned char ba
 
 result_t StringDataType::writeSymbols(istringstream& input,
 		unsigned char baseOffset, const unsigned char length,
-		SymbolString& output, unsigned char* usedLength)
+		SymbolString& output, const bool isMaster, unsigned char* usedLength)
 {
 	size_t start = 0, count = length;
 	bool remainder = count==REMAIN_LEN && hasFlag(ADJ);
@@ -261,8 +262,9 @@ result_t DateTimeDataType::readRawValue(SymbolString& input, const unsigned char
 	return RESULT_EMPTY;
 }
 
-result_t DateTimeDataType::readSymbols(SymbolString& input, const unsigned char baseOffset,
-		const unsigned char length, ostringstream& output, OutputFormat outputFormat)
+result_t DateTimeDataType::readSymbols(SymbolString& input, const bool isMaster,
+		const unsigned char baseOffset, const unsigned char length,
+		ostringstream& output, OutputFormat outputFormat)
 {
 	size_t start = 0, count = length;
 	int incr = 1;
@@ -365,7 +367,7 @@ result_t DateTimeDataType::readSymbols(SymbolString& input, const unsigned char 
 
 result_t DateTimeDataType::writeSymbols(istringstream& input,
 		unsigned char baseOffset, const unsigned char length,
-		SymbolString& output, unsigned char* usedLength)
+		SymbolString& output, const bool isMaster, unsigned char* usedLength)
 {
 	size_t start = 0, count = length;
 	bool remainder = count==REMAIN_LEN && hasFlag(ADJ);
@@ -625,7 +627,7 @@ result_t NumberDataType::readRawValue(SymbolString& input,
 	return RESULT_OK;
 }
 
-result_t NumberDataType::readSymbols(SymbolString& input,
+result_t NumberDataType::readSymbols(SymbolString& input, const bool isMaster,
 		const unsigned char baseOffset, const unsigned char length,
 		ostringstream& output, OutputFormat outputFormat)
 {
@@ -769,7 +771,7 @@ result_t NumberDataType::writeRawValue(unsigned int value,
 
 result_t NumberDataType::writeSymbols(istringstream& input,
 		const unsigned char baseOffset, const unsigned char length,
-		SymbolString& output, unsigned char* usedLength)
+		SymbolString& output, const bool isMaster, unsigned char* usedLength)
 {
 	unsigned int value;
 

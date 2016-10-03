@@ -225,7 +225,6 @@ result_t SingleDataField::create(const string id, const unsigned char length,
 	const PartType partType, int divisor, map<unsigned int, string> values,
 	SingleDataField* &returnField)
 {
-
 	DataType* dataType = DataTypeList::getInstance()->get(id, length==REMAIN_LEN ? 0 : length);
 	if (!dataType) {
 		return RESULT_ERR_NOTFOUND;
@@ -251,14 +250,7 @@ result_t SingleDataField::create(const string id, const unsigned char length,
 			return RESULT_ERR_OUT_OF_RANGE; // invalid length
 		}
 	}
-	if (typeid(*dataType)==typeid(StringDataType)
-	|| typeid(*dataType)==typeid(DateTimeDataType)) {
-		if (divisor != 0 || !values.empty())
-			return RESULT_ERR_INVALID_ARG; // cannot set divisor or values for string field
-		returnField = new SingleDataField(name, comment, unit, (StringDataType*)dataType, partType, byteCount);
-		return RESULT_OK;
-	}
-	if (typeid(*dataType)==typeid(NumberDataType)) {
+	if (dataType->isNumeric()) {
 		NumberDataType* numType = (NumberDataType*)dataType;
 		if (values.empty() && numType->hasFlag(DAY)) {
 			for (unsigned int i = 0; i < sizeof(dayNames) / sizeof(dayNames[0]); i++)
@@ -278,7 +270,11 @@ result_t SingleDataField::create(const string id, const unsigned char length,
 		returnField = new ValueListDataField(name, comment, unit, numType, partType, byteCount, values);
 		return RESULT_OK;
 	}
-	return RESULT_ERR_NOTFOUND;
+	if (divisor != 0 || !values.empty()) {
+		return RESULT_ERR_INVALID_ARG; // cannot set divisor or values for string field
+	}
+	returnField = new SingleDataField(name, comment, unit, (StringDataType*)dataType, partType, byteCount);
+	return RESULT_OK;
 }
 
 void SingleDataField::dump(ostream& output)
@@ -366,7 +362,7 @@ result_t SingleDataField::read(const PartType partType,
 			output << m_name << "=";
 	}
 
-	result_t result = readSymbols(data, offset, output, outputFormat);
+	result_t result = readSymbols(data, m_partType==pt_masterData, offset, output, outputFormat);
 	if (result != RESULT_OK)
 		return result;
 
@@ -407,21 +403,21 @@ result_t SingleDataField::write(istringstream& input,
 	default:
 		return RESULT_ERR_INVALID_PART;
 	}
-	return writeSymbols(input, (const unsigned char)offset, data, length);
+	return writeSymbols(input, (const unsigned char)offset, data, m_partType==pt_masterData, length);
 }
 
-result_t SingleDataField::readSymbols(SymbolString& input,
+result_t SingleDataField::readSymbols(SymbolString& input, const bool isMaster,
 		const unsigned char offset,
 		ostringstream& output, OutputFormat outputFormat)
 {
-	return m_dataType->readSymbols(input, offset, m_length, output, outputFormat);
+	return m_dataType->readSymbols(input, isMaster, offset, m_length, output, outputFormat);
 }
 
 result_t SingleDataField::writeSymbols(istringstream& input,
 	const unsigned char offset,
-	SymbolString& output, unsigned char* usedLength)
+	SymbolString& output, const bool isMaster, unsigned char* usedLength)
 {
-	return m_dataType->writeSymbols(input, offset, m_length, output, usedLength);
+	return m_dataType->writeSymbols(input, offset, m_length, output, isMaster, usedLength);
 }
 
 SingleDataField* SingleDataField::clone()
@@ -436,7 +432,7 @@ result_t SingleDataField::derive(string name, string comment,
 {
 	if (m_partType != pt_any && partType == pt_any)
 		return RESULT_ERR_INVALID_PART; // cannot create a template from a concrete instance
-	bool numeric = typeid(*m_dataType)==typeid(NumberDataType);
+	bool numeric = m_dataType->isNumeric();
 	if (!numeric && (divisor != 0 || !values.empty()))
 		return RESULT_ERR_INVALID_ARG; // cannot set divisor or values for non-numeric field
 	if (name.empty())
@@ -463,7 +459,7 @@ result_t SingleDataField::derive(string name, string comment,
 
 bool SingleDataField::hasField(const char* fieldName, bool numeric)
 {
-	bool numericType = typeid(*m_dataType)==typeid(NumberDataType);
+	bool numericType = m_dataType->isNumeric();
 	return numeric==numericType && (fieldName==NULL || fieldName==m_name);
 }
 
@@ -478,7 +474,7 @@ unsigned char SingleDataField::getLength(PartType partType, unsigned char maxLen
 
 bool SingleDataField::hasFullByteOffset(bool after)
 {
-	if (m_length > 1 || typeid(*m_dataType) != typeid(NumberDataType)) {
+	if (m_length > 1 || !m_dataType->isNumeric()) {
 		return true;
 	}
 	NumberDataType* num = (NumberDataType*)m_dataType;
@@ -540,7 +536,7 @@ void ValueListDataField::dump(ostream& output)
 	dumpString(output, m_comment);
 }
 
-result_t ValueListDataField::readSymbols(SymbolString& input,
+result_t ValueListDataField::readSymbols(SymbolString& input, const bool isMaster,
 		const unsigned char offset,
 		ostringstream& output, OutputFormat outputFormat)
 {
@@ -571,7 +567,7 @@ result_t ValueListDataField::readSymbols(SymbolString& input,
 
 result_t ValueListDataField::writeSymbols(istringstream& input,
 		const unsigned char offset,
-		SymbolString& output, unsigned char* usedLength)
+		SymbolString& output, const bool isMaster, unsigned char* usedLength)
 {
 	NumberDataType* numType = (NumberDataType*)m_dataType;
 	if (isIgnored())

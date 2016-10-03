@@ -99,6 +99,7 @@ static const unsigned int REQ = 0x40; //!< value may not be NULL
 static const unsigned int HCD = 0x80; //!< binary representation is hex converted to decimal and interpreted as 2 digits (also requires #BCD)
 static const unsigned int EXP = 0x100; //!< exponential numeric representation
 static const unsigned int DAY = 0x200; //!< forced value list defaulting to week days
+static const unsigned int NUM = 0x400; //!< numeric type with base class @a NumberDataType
 
 
 /**
@@ -178,14 +179,19 @@ public:
 	bool hasFlag(const unsigned int flag) const { return (m_flags & flag) != 0; }
 
 	/**
-	 * @return whether this field is ignored.
+	 * @return whether this type is ignored.
 	 */
 	bool isIgnored() const { return hasFlag(IGN); }
 
 	/**
-	 * @return whether this field has an .
+	 * @return whether this type has an adjustable length.
 	 */
 	bool isAdjustableLength() const { return hasFlag(ADJ); }
+
+	/**
+	 * @return whether this field is derived from @a NumberDataType.
+	 */
+	bool isNumeric() const { return hasFlag(NUM); }
 
 	/**
 	 * @return the replacement value (fill-up value for @a StringDataType, no replacement if equal to @a NumberDataType#minValue).
@@ -216,13 +222,14 @@ public:
 	/**
 	 * Internal method for reading the field from a @a SymbolString.
 	 * @param input the unescaped @a SymbolString to read the binary value from.
+	 * @param isMaster whether the @a SymbolString is the master part.
 	 * @param offset the offset in the @a SymbolString.
 	 * @param length the number of symbols to read.
 	 * @param output the ostringstream to append the formatted value to.
 	 * @param outputFormat the @a OutputFormat options to use.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	virtual result_t readSymbols(SymbolString& input,
+	virtual result_t readSymbols(SymbolString& input, const bool isMaster,
 		const unsigned char offset, const unsigned char length,
 		ostringstream& output, OutputFormat outputFormat) = 0;
 
@@ -232,12 +239,13 @@ public:
 	 * @param offset the offset in the @a SymbolString.
 	 * @param length the number of symbols to write, or @a REMAIN_LEN.
 	 * @param output the unescaped @a SymbolString to write the binary value to.
+	 * @param isMaster whether the @a SymbolString is the master part.
 	 * @param usedLength the variable in which to store the used length in bytes, or NULL.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	virtual result_t writeSymbols(istringstream& input,
 		const unsigned char offset, const unsigned char length,
-		SymbolString& output, unsigned char* usedLength) = 0;
+		SymbolString& output, const bool isMaster, unsigned char* usedLength) = 0;
 
 protected:
 
@@ -286,14 +294,14 @@ public:
 		unsigned int& value);
 
 	// @copydoc
-	virtual result_t readSymbols(SymbolString& input,
+	virtual result_t readSymbols(SymbolString& input, const bool isMaster,
 		const unsigned char offset, const unsigned char length,
 		ostringstream& output, OutputFormat outputFormat);
 
 	// @copydoc
 	virtual result_t writeSymbols(istringstream& input,
 		const unsigned char offset, const unsigned char length,
-		SymbolString& output, unsigned char* usedLength);
+		SymbolString& output, const bool isMaster, unsigned char* usedLength);
 
 private:
 
@@ -344,14 +352,14 @@ public:
 		unsigned int& value);
 
 	// @copydoc
-	virtual result_t readSymbols(SymbolString& input,
+	virtual result_t readSymbols(SymbolString& input, const bool isMaster,
 		const unsigned char offset, const unsigned char length,
 		ostringstream& output, OutputFormat outputFormat);
 
 	// @copydoc
 	virtual result_t writeSymbols(istringstream& input,
 		const unsigned char offset, const unsigned char length,
-		SymbolString& output, unsigned char* usedLength);
+		SymbolString& output, const bool isMaster, unsigned char* usedLength);
 
 private:
 
@@ -383,7 +391,7 @@ public:
 	 */
 	NumberDataType(const string id, const unsigned char bitCount, const unsigned short flags, const unsigned int replacement,
 			const unsigned int minValue, const unsigned int maxValue, const int divisor)
-		: DataType(id, bitCount, flags, replacement), m_minValue(minValue), m_maxValue(maxValue), m_divisor(divisor), m_precision(calcPrecision(divisor)), m_firstBit(0), m_baseType(NULL) {}
+		: DataType(id, bitCount, flags|NUM, replacement), m_minValue(minValue), m_maxValue(maxValue), m_divisor(divisor), m_precision(calcPrecision(divisor)), m_firstBit(0), m_baseType(NULL) {}
 
 	/**
 	 * Constructs a new instance for less than 8 bits.
@@ -396,7 +404,7 @@ public:
 	 */
 	NumberDataType(const string id, const unsigned char bitCount, const unsigned short flags, const unsigned int replacement,
 			const short firstBit, const int divisor)
-		: DataType(id, bitCount, flags, replacement), m_minValue(0), m_maxValue((1<<bitCount)-1), m_divisor(divisor), m_precision(0), m_firstBit(firstBit), m_baseType(NULL) {}
+		: DataType(id, bitCount, flags|NUM, replacement), m_minValue(0), m_maxValue((1<<bitCount)-1), m_divisor(divisor), m_precision(0), m_firstBit(firstBit), m_baseType(NULL) {}
 
 	/**
 	 * Destructor.
@@ -424,7 +432,7 @@ public:
 	 * not necessary.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	result_t derive(int divisor, unsigned char bitCount, NumberDataType* &derived);
+	virtual result_t derive(int divisor, unsigned char bitCount, NumberDataType* &derived);
 
 	/**
 	 * @return the minimum raw value.
@@ -457,7 +465,7 @@ public:
 		unsigned int& value);
 
 	// @copydoc
-	virtual result_t readSymbols(SymbolString& input,
+	virtual result_t readSymbols(SymbolString& input, const bool isMaster,
 		const unsigned char offset, const unsigned char length,
 		ostringstream& output, OutputFormat outputFormat);
 
@@ -478,7 +486,7 @@ public:
 	// @copydoc
 	virtual result_t writeSymbols(istringstream& input,
 		const unsigned char offset, const unsigned char length,
-		SymbolString& output, unsigned char* usedLength);
+		SymbolString& output, const bool isMaster, unsigned char* usedLength);
 
 private:
 

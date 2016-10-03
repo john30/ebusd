@@ -261,9 +261,9 @@ public:
 	 * Note: the caller needs to free the created instance.
 	 */
 	static result_t create(const string id, const unsigned char length,
-		const string name, const string comment, const string unit,
-		const PartType partType, int divisor, map<unsigned int, string> values,
-		SingleDataField* &returnField);
+			const string name, const string comment, const string unit,
+			const PartType partType, int divisor, map<unsigned int, string> values,
+			SingleDataField* &returnField);
 
 	/**
 	 * Get the value unit.
@@ -288,9 +288,9 @@ public:
 
 	// @copydoc
 	virtual result_t derive(string name, string comment,
-		string unit, const PartType partType,
-		int divisor, map<unsigned int, string> values,
-		vector<SingleDataField*>& fields);
+			string unit, const PartType partType,
+			int divisor, map<unsigned int, string> values,
+			vector<SingleDataField*>& fields);
 
 	/**
 	 * Get whether this field uses a full byte offset.
@@ -327,26 +327,28 @@ protected:
 	/**
 	 * Internal method for reading the field from a @a SymbolString.
 	 * @param input the unescaped @a SymbolString to read the binary value from.
+	 * @param isMaster whether the @a SymbolString is the master part.
 	 * @param offset the offset in the @a SymbolString.
 	 * @param output the ostringstream to append the formatted value to.
 	 * @param outputFormat the @a OutputFormat options to use.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	virtual result_t readSymbols(SymbolString& input,
-		const unsigned char offset,
-		ostringstream& output, OutputFormat outputFormat);
+	virtual result_t readSymbols(SymbolString& input, const bool isMaster,
+			const unsigned char offset,
+			ostringstream& output, OutputFormat outputFormat);
 
 	/**
 	 * Internal method for writing the field to a @a SymbolString.
 	 * @param input the @a istringstream to parse the formatted value from.
 	 * @param offset the offset in the @a SymbolString.
 	 * @param output the unescaped @a SymbolString to write the binary value to.
+	 * @param isMaster whether the @a SymbolString is the master part.
 	 * @param usedLength the variable in which to store the used length in bytes, or NULL.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	virtual result_t writeSymbols(istringstream& input,
-		const unsigned char offset,
-		SymbolString& output, unsigned char* usedLength);
+			const unsigned char offset,
+			SymbolString& output, const bool isMaster, unsigned char* usedLength);
 
 protected:
 
@@ -408,14 +410,14 @@ public:
 protected:
 
 	// @copydoc
-	virtual result_t readSymbols(SymbolString& input,
+	virtual result_t readSymbols(SymbolString& input, const bool isMaster,
 			const unsigned char offset,
 			ostringstream& output, OutputFormat outputFormat);
 
 	// @copydoc
 	virtual result_t writeSymbols(istringstream& input,
 			const unsigned char offset,
-			SymbolString& output, unsigned char* usedLength);
+			SymbolString& output, const bool isMaster, unsigned char* usedLength);
 
 private:
 
