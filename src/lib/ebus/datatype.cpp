@@ -158,26 +158,36 @@ result_t StringDataType::readSymbols(SymbolString& input, const bool isMaster,
 		incr = -1;
 	}
 
-	if (outputFormat & OF_JSON)
+	if (outputFormat & OF_JSON) {
 		output << '"';
+	}
+	output << setfill('0') << (m_isHex ? hex : dec);
 	for (size_t offset = start, i = 0; i < count; offset += incr, i++) {
 		ch = input[baseOffset + offset];
 		if (m_isHex) {
 			if (i > 0)
 				output << ' ';
-			output << setw(2) << hex << setfill('0') << static_cast<unsigned>(ch);
+			output << setw(2) << static_cast<unsigned>(ch);
 		} else {
-			if (ch < 0x20)
-				ch = (unsigned char)m_replacement;
-			if (ch == 0x00)
+			if (ch == 0x00) {
 				terminated = true;
-			else if (!terminated)
-				output << setw(0) << dec << static_cast<char>(ch);
+			} else if (!terminated) {
+				if (ch < 0x20) {
+					ch = (unsigned char)m_replacement;
+				} else if (!isprint(ch)) {
+					ch = '?';
+				} else if (outputFormat & OF_JSON) {
+					if (ch == '"' || ch == '\\') {
+						output << '\\'; // escape
+					}
+				}
+				output << static_cast<char>(ch);
+			}
 		}
 	}
-	if (outputFormat & OF_JSON)
+	if (outputFormat & OF_JSON) {
 		output << '"';
-
+	}
 	return RESULT_OK;
 }
 
