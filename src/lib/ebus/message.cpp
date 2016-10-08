@@ -1007,27 +1007,33 @@ result_t splitValues(string valueList, vector<unsigned int>& valueRanges)
 	result_t result;
 	while (getline(stream, str, VALUE_SEPARATOR)) {
 		FileReader::trim(str);
-		if (str.length()==0)
+		if (str.length()==0) {
 			return RESULT_ERR_INVALID_ARG;
+		}
 		bool upto = str[0]=='<';
 		if (upto || str[0]=='>') {
-			if (str.length()==1)
+			if (str.length()==1) {
 				return RESULT_ERR_INVALID_ARG;
-			if (upto)
+			}
+			if (upto) {
 				valueRanges.push_back(0);
+			}
 			bool inclusive = str[1]=='=';
 			unsigned int val = parseInt(str.substr(inclusive?2:1).c_str(), 10, inclusive?0:1, inclusive?UINT_MAX:(UINT_MAX-1), result);
-			if (result!=RESULT_OK)
+			if (result!=RESULT_OK) {
 				return result;
+			}
 			valueRanges.push_back(inclusive ? val : (val+(upto?-1:1)));
-			if (!upto)
+			if (!upto) {
 				valueRanges.push_back(UINT_MAX);
+			}
 		} else {
 			size_t pos = str.find('-');
-			if (pos>0) { // range
+			if (pos!=string::npos && pos>0) { // range
 				unsigned int val = parseInt(str.substr(0, pos).c_str(), 10, 0, UINT_MAX, result);
-				if (result!=RESULT_OK)
+				if (result!=RESULT_OK) {
 					return result;
+				}
 				valueRanges.push_back(val);
 				pos++;
 			} else { // single value
@@ -1037,8 +1043,9 @@ result_t splitValues(string valueList, vector<unsigned int>& valueRanges)
 			if (result!=RESULT_OK)
 				return result;
 			valueRanges.push_back(val);
-			if (pos==0)
+			if (pos==0) {
 				valueRanges.push_back(val); // single value
+			}
 		}
 	}
 	return RESULT_OK;
@@ -1049,24 +1056,29 @@ result_t Condition::create(const string condName, vector<string>::iterator& it, 
 	// name,circuit,messagename,[comment],[fieldname],[ZZ],values   (name already skipped by caller)
 	string circuit = it==end ? "" : *(it++); // circuit
 	string name = it==end ? "" : *(it++); // messagename
-	if (it<end)
+	if (it<end) {
 		it++; // comment
+	}
 	string field = it==end ? "" : *(it++); // fieldname
 	string zz = it==end ? "" : *(it++); // ZZ
 	unsigned char dstAddress = SYN;
 	result_t result = RESULT_OK;
-	if (zz.length()==0)
+	if (zz.length()==0) {
 		zz = defaultDest;
+	}
 	if (zz.length()>0) {
 		dstAddress = (unsigned char)parseInt(zz.c_str(), 16, 0, 0xff, result);
-		if (result != RESULT_OK)
+		if (result != RESULT_OK) {
 			return result;
-		if (dstAddress!=SYN && !isValidAddress(dstAddress, false))
+		}
+		if (dstAddress!=SYN && !isValidAddress(dstAddress, false)) {
 			return RESULT_ERR_INVALID_ADDR;
+		}
 	}
 	if (name.length()==0) {
-		if (!isValidAddress(dstAddress, false) || isMaster(dstAddress))
+		if (!isValidAddress(dstAddress, false) || isMaster(dstAddress)) {
 			return RESULT_ERR_INVALID_ADDR;
+		}
 	} else if (circuit.length()==0) {
 		circuit = defaultCircuit;
 	}
@@ -1079,44 +1091,50 @@ result_t Condition::create(const string condName, vector<string>::iterator& it, 
 		// strings
 		vector<string> values;
 		result = splitValues(valueList, values);
-		if (result!=RESULT_OK)
+		if (result!=RESULT_OK) {
 			return result;
+		}
 		returnValue = new SimpleStringCondition(condName, circuit, name, dstAddress, field, values);
 		return RESULT_OK;
 	}
 	// numbers
 	vector<unsigned int> valueRanges;
 	result = splitValues(valueList, valueRanges);
-	if (result!=RESULT_OK)
+	if (result!=RESULT_OK) {
 		return result;
-
+	}
 	returnValue = new SimpleNumericCondition(condName, circuit, name, dstAddress, field, valueRanges);
 	return RESULT_OK;
 }
 
 SimpleCondition* SimpleCondition::derive(string valueList)
 {
-	if (valueList.empty())
+	if (valueList.empty()) {
 		return NULL;
+	}
 	string name = m_condName+valueList;
-	if (valueList[0]=='=')
-		valueList.erase(0);
+	if (valueList[0]=='=') {
+		valueList.erase(0, 1);
+	}
 	result_t result;
 	if (valueList[0]=='\'') {
 		// strings
 		vector<string> values;
 		result = splitValues(valueList, values);
-		if (result!=RESULT_OK)
+		if (result!=RESULT_OK) {
 			return NULL;
+		}
 		return new SimpleStringCondition(name, m_circuit, m_name, m_dstAddress, m_field, values);
 	}
 	// numbers
-	if (!isNumeric())
+	if (!isNumeric()) {
 		return NULL;
+	}
 	vector<unsigned int> valueRanges;
 	result = splitValues(valueList, valueRanges);
-	if (result!=RESULT_OK)
+	if (result!=RESULT_OK) {
 		return NULL;
+	}
 	return new SimpleNumericCondition(name, m_circuit, m_name, m_dstAddress, m_field, valueRanges);
 }
 
@@ -1134,16 +1152,18 @@ CombinedCondition* SimpleCondition::combineAnd(Condition* other)
 
 result_t SimpleCondition::resolve(MessageMap* messages, ostringstream& errorMessage)
 {
-	if (m_message!=NULL)
+	if (m_message!=NULL) {
 		return RESULT_OK; // already resolved
+	}
 	Message* message;
 	if (m_name.length()==0) {
 		message = messages->getScanMessage(m_dstAddress);
 		errorMessage << "scan condition " << nouppercase << setw(2) << hex << setfill('0') << static_cast<unsigned>(m_dstAddress);
 	} else {
 		message = messages->find(m_circuit, m_name, false);
-		if (!message)
+		if (!message) {
 			message = messages->find(m_circuit, m_name, false, true);
+		}
 		errorMessage << "condition " << m_circuit << " " << m_name;
 	}
 	if (!message) {
@@ -1182,15 +1202,17 @@ result_t SimpleCondition::resolve(MessageMap* messages, ostringstream& errorMess
 	}
 	m_message = message;
 	message->setUsedByCondition();
-	if (m_name.length()>0)
+	if (m_name.length()>0) {
 		messages->addPollMessage(message, true);
+	}
 	return RESULT_OK;
 }
 
 bool SimpleCondition::isTrue()
 {
-	if (!m_message)
+	if (!m_message) {
 		return false;
+	}
 	if (m_message->getLastChangeTime()>m_lastCheckTime) {
 		bool isTrue = !m_hasValues; // for message seen check
 		if (!isTrue) {
