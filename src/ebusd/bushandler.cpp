@@ -951,7 +951,7 @@ void BusHandler::formatSeenInfo(ostringstream& output)
 				if (message!=NULL && message->getLastUpdateTime()>0) {
 					// add detailed scan info: Manufacturer ID SW HW
 					output << " \"";
-					result_t result = message->decodeLastData(output, OF_VERBOSE);
+					result_t result = message->decodeLastData(output, OF_NAMES|OF_UNITS|OF_COMMENTS);
 					if (result!=RESULT_OK)
 						output << "\" error: " << getResultCode(result);
 					else

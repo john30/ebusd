@@ -77,9 +77,11 @@ using namespace std;
 typedef int OutputFormat;
 
 /* the bit flags for @a OutputFormat. */
-static const unsigned int OF_VERBOSE = 0x01; //!< verbose format (names, values, units, and comments).
-static const unsigned int OF_NUMERIC = 0x02; //!< numeric format (keep numeric value of value=name pairs).
-static const unsigned int OF_JSON = 0x04;    //!< JSON format.
+static const unsigned int OF_NAMES = 0x01;    //!< include names.
+static const unsigned int OF_UNITS = 0x02;    //!< include units.
+static const unsigned int OF_COMMENTS = 0x04; //!< include comments.
+static const unsigned int OF_NUMERIC = 0x08;  //!< numeric format (keep numeric value of value=name pairs).
+static const unsigned int OF_JSON = 0x10;     //!< JSON format.
 
 /** the message part in which a data field is stored. */
 enum PartType {

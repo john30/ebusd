@@ -55,8 +55,8 @@ result_t DataField::create(vector<string>::iterator& it,
 		bool hasPartStr = false;
 		string token;
 
-		// template: name,type[:len][,[divisor|values][,[unit][,[comment]]]]
-		// std: name,part,type[:len][,[divisor|values][,[unit][,[comment]]]]
+		// template: name,basetype[:len]|template[:name][,[divisor|values][,[unit][,[comment]]]]
+		// std: name,part,basetype[:len]|template[:name][,[divisor|values][,[unit][,[comment]]]]
 		const string name = *it++; // name
 		if (it == end) {
 			if (!name.empty())
@@ -64,9 +64,9 @@ result_t DataField::create(vector<string>::iterator& it,
 			break;
 		}
 
-		if (isTemplate)
+		if (isTemplate) {
 			partType = pt_any;
-		else {
+		} else {
 			const char* partStr = (*it++).c_str(); // part
 			hasPartStr = partStr[0] != 0;
 			if (it == end) {
@@ -78,12 +78,10 @@ result_t DataField::create(vector<string>::iterator& it,
 				|| (isWriteMessage && !hasPartStr)
 				|| strcasecmp(partStr, "M") == 0) { // master data
 				partType = pt_masterData;
-			}
-			else if ((!isWriteMessage && !hasPartStr)
+			} else if ((!isWriteMessage && !hasPartStr)
 				|| strcasecmp(partStr, "S") == 0) { // slave data
 				partType = pt_slaveData;
-			}
-			else {
+			} else {
 				result = RESULT_ERR_INVALID_PART;
 				break;
 			}
@@ -94,10 +92,11 @@ result_t DataField::create(vector<string>::iterator& it,
 			firstComment = comment;
 		}
 
-		const string typeStr = *it++; // type[:len]
+		const string typeStr = *it++; // basetype[:len]|template[:name]
 		if (typeStr.empty()) {
-			if (!name.empty() || hasPartStr)
+			if (!name.empty() || hasPartStr) {
 				result = RESULT_ERR_MISSING_TYPE;
+			}
 			break;
 		}
 
@@ -105,9 +104,9 @@ result_t DataField::create(vector<string>::iterator& it,
 		if (it != end) {
 			const string divisorStr = *it++; // [divisor|values]
 			if (!divisorStr.empty()) {
-				if (divisorStr.find('=') == string::npos)
+				if (divisorStr.find('=') == string::npos) {
 					divisor = parseSignedInt(divisorStr.c_str(), 10, -MAX_DIVISOR, MAX_DIVISOR, result);
-				else {
+				} else {
 					istringstream stream(divisorStr);
 					while (getline(stream, token, VALUE_SEPARATOR)) {
 						FileReader::trim(token);
@@ -135,29 +134,32 @@ result_t DataField::create(vector<string>::iterator& it,
 						values[(unsigned int)id] = token;
 					}
 				}
-				if (result != RESULT_OK)
+				if (result != RESULT_OK) {
 					break;
+				}
 			}
 		}
 
-		if (it == end)
+		if (it == end) {
 			unit = "";
-		else {
+		} else {
 			const string str = *it++; // [unit]
-			if (strcasecmp(str.c_str(), NULL_VALUE) == 0)
+			if (strcasecmp(str.c_str(), NULL_VALUE) == 0) {
 				unit = "";
-			else
+			} else {
 				unit = str;
+			}
 		}
 
-		if (it == end)
+		if (it == end) {
 			comment = "";
-		else {
+		} else {
 			const string str = *it++; // [comment]
-			if (strcasecmp(str.c_str(), NULL_VALUE) == 0)
+			if (strcasecmp(str.c_str(), NULL_VALUE) == 0) {
 				comment = "";
-			else
+			} else {
 				comment = str;
+			}
 		}
 
 		bool firstType = true;
@@ -165,29 +167,44 @@ result_t DataField::create(vector<string>::iterator& it,
 		while (result == RESULT_OK && getline(stream, token, VALUE_SEPARATOR)) {
 			FileReader::trim(token);
 			DataField* templ = templates->get(token);
-			unsigned char length;
-			if (templ == NULL) {
-				size_t pos = token.find(LENGTH_SEPARATOR);
-				if (pos == string::npos)
+			size_t pos = token.find(LENGTH_SEPARATOR);
+			if (templ == NULL && pos != string::npos) {
+				templ = templates->get(token.substr(0, pos));
+			}
+			if (templ == NULL) { // basetype[:len]
+				unsigned char length;
+				string typeName;
+				if (pos == string::npos) {
 					length = 0; // no length specified
-				else if (pos+2==token.length() && token[pos+1]=='*') {
-					length = REMAIN_LEN;
+					typeName = token;
 				} else {
-					length = (unsigned char)parseInt(token.substr(pos+1).c_str(), 10, 1, maxFieldLength, result);
-					if (result != RESULT_OK)
-						break;
+					if (pos+2==token.length() && token[pos+1]=='*') {
+						length = REMAIN_LEN;
+					} else {
+						length = (unsigned char)parseInt(token.substr(pos+1).c_str(), 10, 1, maxFieldLength, result);
+						if (result != RESULT_OK) {
+							break;
+						}
+					}
+					typeName = token.substr(0, pos);
 				}
-				transform(token.begin(), token.end(), token.begin(), ::toupper);
-				string typeName = token.substr(0, pos);
+				transform(typeName.begin(), typeName.end(), typeName.begin(), ::toupper);
 				SingleDataField* add = NULL;
 				result = SingleDataField::create(typeName, length, firstType ? name : "", firstType ? comment : "", firstType ? unit : "", partType, divisor, values, add);
-				if (add != NULL)
+				if (add != NULL) {
 					fields.push_back(add);
-				else if (result == RESULT_OK)
+				} else if (result == RESULT_OK) {
 					result = RESULT_ERR_NOTFOUND; // type not found
-			} else {
+				}
+			} else { // template[:name]
+				string fieldName;
 				bool lastType = stream.eof();
-				result = templ->derive((firstType && lastType) ? name : "", firstType ? comment : "", firstType ? unit : "", partType, divisor, values, fields);
+				if (pos != string::npos) { // replacement name specified
+					fieldName = token.substr(pos+1);
+				} else {
+					fieldName = (firstType && lastType) ? name : "";
+				}
+				result = templ->derive(fieldName, firstType ? comment : "", firstType ? unit : "", partType, divisor, values, fields);
 			}
 			firstType = false;
 		}
@@ -201,9 +218,9 @@ result_t DataField::create(vector<string>::iterator& it,
 		return result;
 	}
 
-	if (fields.size() == 1)
+	if (fields.size() == 1) {
 		returnField = fields[0];
-	else {
+	} else {
 		returnField = new DataFieldSet(firstName, firstComment, fields);
 	}
 	return RESULT_OK;
@@ -211,8 +228,9 @@ result_t DataField::create(vector<string>::iterator& it,
 
 void DataField::dumpString(ostream& output, const string str, const bool prependFieldSeparator)
 {
-	if (prependFieldSeparator)
+	if (prependFieldSeparator) {
 		output << FIELD_SEPARATOR;
+	}
 	if (str.find_first_of(FIELD_SEPARATOR) == string::npos) {
 		output << str;
 	} else {
@@ -326,9 +344,9 @@ result_t SingleDataField::read(const PartType partType,
 		ostringstream& output, OutputFormat outputFormat, signed char outputIndex,
 		bool leadingSeparator, const char* fieldName, signed char fieldIndex)
 {
-	if (partType != m_partType)
+	if (partType != m_partType) {
 		return RESULT_OK;
-
+	}
 	switch (m_partType)
 	{
 	case pt_masterData:
@@ -349,39 +367,44 @@ result_t SingleDataField::read(const PartType partType,
 	}
 
 	if (outputFormat & OF_JSON) {
-		if (leadingSeparator)
+		if (leadingSeparator) {
 			output << ",";
-		if (outputIndex>=0 || m_name.empty())
+		}
+		if (outputIndex>=0 || m_name.empty() || !(outputFormat & OF_NAMES)) {
 			output << "\n    \"" << static_cast<signed int>(outputIndex<0?0:outputIndex) << "\": {\"name\": \"" << m_name << "\"" << ", \"value\": ";
-		else
+		} else {
 			output << "\n    \"" << m_name << "\": {\"value\": ";
+		}
 	} else {
-		if (leadingSeparator)
+		if (leadingSeparator) {
 			output << UI_FIELD_SEPARATOR;
-		if (outputFormat & OF_VERBOSE)
+		}
+		if (outputFormat & OF_NAMES) {
 			output << m_name << "=";
+		}
 	}
 
 	result_t result = readSymbols(data, m_partType==pt_masterData, offset, output, outputFormat);
-	if (result != RESULT_OK)
+	if (result != RESULT_OK) {
 		return result;
-
-	if (outputFormat & OF_VERBOSE) {
-		if (m_unit.length() > 0) {
-			if (outputFormat & OF_JSON)
-				output << ", \"unit\": \"" << m_unit << '"';
-			else
-				output << " " << m_unit;
-		}
-		if (m_comment.length() > 0) {
-			if (outputFormat & OF_JSON)
-				output << ", \"comment\": \"" << m_comment << '"';
-			else
-				output << " [" << m_comment << "]";
+	}
+	if ((outputFormat & OF_UNITS) && m_unit.length() > 0) {
+		if (outputFormat & OF_JSON) {
+			output << ", \"unit\": \"" << m_unit << '"';
+		} else {
+			output << " " << m_unit;
 		}
 	}
-	if (outputFormat & OF_JSON)
+	if ((outputFormat & OF_COMMENTS) && m_comment.length() > 0) {
+		if (outputFormat & OF_JSON) {
+			output << ", \"comment\": \"" << m_comment << '"';
+		} else {
+			output << " [" << m_comment << "]";
+		}
+	}
+	if (outputFormat & OF_JSON) {
 		output << "}";
+	}
 	return RESULT_OK;
 }
 
@@ -389,9 +412,9 @@ result_t SingleDataField::write(istringstream& input,
 		const PartType partType, SymbolString& data,
 		unsigned char offset, char separator, unsigned char* length)
 {
-	if (partType != m_partType)
+	if (partType != m_partType) {
 		return RESULT_OK;
-
+	}
 	switch (m_partType)
 	{
 	case pt_masterData:
@@ -805,11 +828,12 @@ result_t DataFieldSet::read(const PartType partType,
 	if (!found) {
 		return RESULT_EMPTY;
 	}
-	if (m_comment.length() > 0 && (outputFormat & OF_VERBOSE)) {
-		if (outputFormat & OF_JSON)
+	if ((outputFormat & OF_COMMENTS) && m_comment.length() > 0) {
+		if (outputFormat & OF_JSON) {
 			output << ",\"comment\": \"" << m_comment << '"';
-		else
+		} else {
 			output << " [" << m_comment << "]";
+		}
 	}
 
 	return RESULT_OK;

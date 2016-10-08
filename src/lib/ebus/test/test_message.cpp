@@ -337,7 +337,7 @@ int main()
 			for (unsigned char index=0; index<message->getCount(); index++) {
 				message->storeLastData(*mstrs[index], *sstrs[index]);
 			}
-			result = message->decodeLastData(output, (decodeVerbose?OF_VERBOSE:0)|(decodeJson?OF_JSON:0), false);
+			result = message->decodeLastData(output, (decodeVerbose?OF_NAMES|OF_UNITS|OF_COMMENTS:0)|(decodeJson?OF_NAMES|OF_JSON:0), false);
 			if (result != RESULT_OK) {
 				cout << "  \"" << check[2] << "\" / \"" << check[3] << "\": decode error: "
 						<< getResultCode(result) << endl;

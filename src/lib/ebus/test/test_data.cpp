@@ -365,16 +365,18 @@ int main()
 		{"x,,bi3:2,0=off;1=on","on", "10feffff0108", "00", ""},
 		{"x,,bi3:2,0=off;1=on","off","10feffff0100", "00", ""},
 		{"x,,bi3:2,0=off;1=on","1", "10feffff0108", "00", "n"},
-		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","x=on ja/nein [Wahrheitswert]", "10feffff0108", "00", "v"},
-		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","x=1 ja/nein [Wahrheitswert]", "10feffff0108", "00", "vn"},
-		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","\n    \"x\": {\"value\": \"on\"}", "10feffff0108", "00", "j"},
+		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","x=on ja/nein [Wahrheitswert]", "10feffff0108", "00", "vvv"},
+		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","x=1 ja/nein [Wahrheitswert]", "10feffff0108", "00", "vvvn"},
+		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","\n    \"x\": {\"value\": \"on\"}", "10feffff0108", "00", "vj"},
+		{",,bi3:2,0=off;1=on,ja/nein,Wahrheitswert", "\n    \"0\": {\"name\": \"\", \"value\": \"on\"}", "10feffff0108", "00", "vj"},
 		{",,bi3:2,0=off;1=on,ja/nein,Wahrheitswert", "\n    \"0\": {\"name\": \"\", \"value\": \"on\"}", "10feffff0108", "00", "j"},
-		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","\n    \"x\": {\"value\": \"on\", \"unit\": \"ja/nein\", \"comment\": \"Wahrheitswert\"}", "10feffff0108", "00", "vj"},
-		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","\n    \"x\": {\"value\": 1}", "10feffff0108", "00", "nj"},
-		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","\n    \"x\": {\"value\": 1, \"unit\": \"ja/nein\", \"comment\": \"Wahrheitswert\"}", "10feffff0108", "00", "vnj"},
+		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","\n    \"x\": {\"value\": \"on\", \"unit\": \"ja/nein\", \"comment\": \"Wahrheitswert\"}", "10feffff0108", "00", "vvvj"},
+		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","\n    \"x\": {\"value\": 1}", "10feffff0108", "00", "vnj"},
+		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","\n    \"x\": {\"value\": 1, \"unit\": \"ja/nein\", \"comment\": \"Wahrheitswert\"}", "10feffff0108", "00", "vvvnj"},
+		{"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert","\n    \"0\": {\"name\": \"x\", \"value\": 1}", "10feffff0108", "00", "nj"},
 		{"x,,uch,1=test;2=high;3=off;0x10=on","on","10feffff0110", "00", ""},
 		{"x,s,uch","3","1050ffff00", "0103", ""},
-		{"x,,d2b,,°C,Aussentemperatur","x=18.004 °C [Aussentemperatur]","10fe0700090112", "00", "v"},
+		{"x,,d2b,,°C,Aussentemperatur","x=18.004 °C [Aussentemperatur]","10fe0700090112", "00", "vvv"},
 		{"x,,bti,,,,y,,bda,,,,z,,bdy", "21:04:58;26.10.2014;Sun","10fe0700085804212610061406", "00", ""}, // combination
 		{"x,,bi3,,,,y,,bi5", "1;0",            "10feffff0108", "00", ""}, // bit combination
 		{"x,,bi3,,,,y,,bi5", "1;1",            "10feffff0128", "00", ""}, // bit combination
@@ -393,6 +395,8 @@ int main()
 		{"x,,trelrel","18.004;19.008","10fe07000401120213", "00", ""}, // reference to template struct
 		{"x,,temp,,,,y,,d1c","18.004;9.5","10fe070003011213", "00", ""}, // reference to template, normal def
 		{"x,,temp;HEX:2","18.004;13 14","10fe07000401121314", "00", ""}, // reference to template and base type
+		{"x,,temp;HEX:2","temp=18.004;=13 14","10fe07000401121314", "00", "v"}, // reference to template and base type
+		{"x,,temp:degrees;HEX:2","degrees=18.004;=13 14","10fe07000401121314", "00", "v"}, // reference to template and base type
 	};
 	DataFieldTemplates* templates = new DataFieldTemplates();
 	DataField* fields = NULL;
@@ -421,9 +425,20 @@ int main()
 		bool failedReadMatch = flags.find('R') != string::npos;
 		bool failedWrite = flags.find('w') != string::npos;
 		bool failedWriteMatch = flags.find('W') != string::npos;
-		bool verbose = flags.find('v') != string::npos;
+		OutputFormat verbosity = 0;
+		if (flags.find("v") != string::npos) {
+			verbosity |= OF_NAMES;
+		}
+		if (flags.find("vv") != string::npos) {
+			verbosity |= OF_UNITS;
+		}
+		if (flags.find("vvv") != string::npos) {
+			verbosity |= OF_COMMENTS;
+		}
+		if (flags.find('j') != string::npos) {
+			verbosity |= OF_JSON;
+		}
 		bool numeric = flags.find('n') != string::npos;
-		bool json = flags.find('j') != string::npos;
 		bool isTemplate = flags.find('t') != string::npos;
 		string item;
 		vector<string> entries;
@@ -490,9 +505,9 @@ int main()
 			cout << "  parse \"" << sstr.getDataStr(true, false).substr(0, 2) << "\" error: " << getResultCode(result) << endl;
 			error = true;
 		}
-		result = fields->read(pt_masterData, mstr, 0, output, (verbose?OF_VERBOSE:0)|(numeric?OF_NUMERIC:0)|(json?OF_JSON:0), -1, false);
+		result = fields->read(pt_masterData, mstr, 0, output, verbosity|(numeric?OF_NUMERIC:0), -1, false);
 		if (result >= RESULT_OK) {
-			result = fields->read(pt_slaveData, sstr, 0, output, (verbose?OF_VERBOSE:0)|(numeric?OF_NUMERIC:0)|(json?OF_JSON:0), -1, !output.str().empty());
+			result = fields->read(pt_slaveData, sstr, 0, output, verbosity|(numeric?OF_NUMERIC:0), -1, !output.str().empty());
 		}
 		if (failedRead)
 			if (result >= RESULT_OK) {
@@ -513,7 +528,7 @@ int main()
 			verify(failedReadMatch, "read", check[2], match, expectStr, output.str());
 		}
 
-		if (!verbose && !json) {
+		if (verbosity==0) {
 			istringstream input(expectStr);
 			result = fields->write(input, pt_masterData, writeMstr, 0);
 			if (result >= RESULT_OK)

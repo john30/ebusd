@@ -368,7 +368,8 @@ result_t MainLoop::readFromBus(Message* message, string inputStr, const unsigned
 string MainLoop::executeRead(vector<string> &args)
 {
 	size_t argPos = 1;
-	bool hex = false, verbose = false, numeric = false;
+	bool hex = false, numeric = false;
+	OutputFormat verbosity = 0;
 	time_t maxAge = 5*60;
 	string circuit, params;
 	unsigned char dstAddress = SYN, pollPriority = 0;
@@ -378,7 +379,21 @@ string MainLoop::executeRead(vector<string> &args)
 		} else if (args[argPos] == "-f") {
 			maxAge = 0;
 		} else if (args[argPos] == "-v") {
-			verbose = true;
+			switch (verbosity) {
+			case 0:
+				verbosity = OF_NAMES;
+				break;
+			case OF_NAMES:
+				verbosity |= OF_UNITS;
+				break;
+			case OF_NAMES|OF_UNITS:
+				verbosity |= OF_COMMENTS;
+				break;
+			}
+		} else if (args[argPos] == "-vv") {
+			verbosity |= OF_NAMES|OF_UNITS;
+		} else if (args[argPos] == "-vvv" || args[argPos] == "-V") {
+			verbosity |= OF_NAMES|OF_UNITS|OF_COMMENTS;
 		} else if (args[argPos] == "-n") {
 			numeric = true;
 		} else if (args[argPos] == "-m") {
@@ -435,7 +450,7 @@ string MainLoop::executeRead(vector<string> &args)
 		}
 		argPos++;
 	}
-	if (hex && (dstAddress != SYN || !circuit.empty() || verbose || numeric || pollPriority > 0 || args.size() < argPos + 1)) {
+	if (hex && (dstAddress != SYN || !circuit.empty() || verbosity != 0 || numeric || pollPriority > 0 || args.size() < argPos + 1)) {
 		argPos = 0; // print usage
 	}
 
@@ -488,7 +503,7 @@ string MainLoop::executeRead(vector<string> &args)
 		return getResultCode(ret);
 	}
 	if (argPos == 0 || args.size() < argPos + 1 || args.size() > argPos + 2)
-		return "usage: read [-f] [-m SECONDS] [-c CIRCUIT] [-d ZZ] [-p PRIO] [-v] [-n] [-i VALUE[;VALUE]*] NAME [FIELD[.N]]\n"
+		return "usage: read [-f] [-m SECONDS] [-c CIRCUIT] [-d ZZ] [-p PRIO] [-v|-V] [-n] [-i VALUE[;VALUE]*] NAME [FIELD[.N]]\n"
 			   "  or:  read [-f] [-m SECONDS] [-c CIRCUIT] -h ZZPBSBNNDx\n"
 			   " Read value(s) or hex message.\n"
 			   "  -f          force reading from the bus (same as '-m 0')\n"
@@ -496,7 +511,8 @@ string MainLoop::executeRead(vector<string> &args)
 			   "  -c CIRCUIT  limit to messages of CIRCUIT\n"
 			   "  -d ZZ       override destination address ZZ\n"
 			   "  -p PRIO     set the message poll priority (1-9)\n"
-			   "  -v          be verbose (include circuit, name, field names, units, and comments)\n"
+			   "  -v          increase verbosity (include names/units/comments)\n"
+			   "  -V          be very verbose (include names, units, and comments)\n"
 			   "  -n          use numeric value of value=name pairs\n"
 			   "  -i VALUE    read additional message parameters from VALUE\n"
 			   "  NAME        NAME of the message to send\n"
@@ -533,13 +549,14 @@ string MainLoop::executeRead(vector<string> &args)
 	if (dstAddress == SYN && maxAge > 0 && params.length() == 0) {
 		Message* cacheMessage = m_messages->find(circuit, args[argPos], false, true);
 		bool hasCache = cacheMessage != NULL;
-		if (!hasCache || (message != NULL && message->getLastUpdateTime() > cacheMessage->getLastUpdateTime()))
+		if (!hasCache || (message != NULL && message->getLastUpdateTime() > cacheMessage->getLastUpdateTime())) {
 			cacheMessage = message; // message is newer/better
-
+		}
 		if (cacheMessage != NULL && (cacheMessage->getLastUpdateTime() + maxAge > now || (cacheMessage->isPassive() && cacheMessage->getLastUpdateTime() != 0))) {
-			if (verbose)
+			if (verbosity & OF_NAMES) {
 				result << cacheMessage->getCircuit() << " " << cacheMessage->getName() << " ";
-			result_t ret = cacheMessage->decodeLastData(result, (verbose?OF_VERBOSE:0)|(numeric?OF_NUMERIC:0), false, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
+			}
+			result_t ret = cacheMessage->decodeLastData(result, verbosity|(numeric?OF_NUMERIC:0), false, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
 			if (ret != RESULT_OK) {
 				if (ret < RESULT_OK)
 					logError(lf_main, "read %s %s cached: %s", cacheMessage->getCircuit().c_str(), cacheMessage->getName().c_str(), getResultCode(ret));
@@ -564,9 +581,10 @@ string MainLoop::executeRead(vector<string> &args)
 	if (ret != RESULT_OK)
 		return getResultCode(ret);
 
-	if (verbose)
+	if (verbosity & OF_NAMES) {
 		result << message->getCircuit() << " " << message->getName() << " ";
-	ret = message->decodeLastData(pt_slaveData, result, (verbose?OF_VERBOSE:0)|(numeric?OF_NUMERIC:0), false, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
+	}
+	ret = message->decodeLastData(pt_slaveData, result, verbosity|(numeric?OF_NUMERIC:0), false, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
 	if (ret < RESULT_OK) {
 		logError(lf_main, "read %s %s: decode %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
 		result.str("");
@@ -752,13 +770,28 @@ string MainLoop::executeHex(vector<string> &args)
 string MainLoop::executeFind(vector<string> &args)
 {
 	size_t argPos = 1;
-	bool verbose = false, configFormat = false, exact = false, withRead = true, withWrite = false, withPassive = true, first = true, onlyWithData = false, hexFormat = false;
+	bool configFormat = false, exact = false, withRead = true, withWrite = false, withPassive = true, first = true, onlyWithData = false, hexFormat = false;
+	OutputFormat verbosity = 0;
 	vector<size_t> columns;
 	string circuit;
 	vector<unsigned char> id;
 	while (args.size() > argPos && args[argPos][0] == '-') {
 		if (args[argPos] == "-v") {
-			verbose = true;
+			switch (verbosity) {
+			case 0:
+				verbosity |= OF_NAMES;
+				break;
+			case OF_NAMES:
+				verbosity |= OF_UNITS;
+				break;
+			case OF_NAMES|OF_UNITS:
+				verbosity |= OF_COMMENTS;
+				break;
+			}
+		} else if (args[argPos] == "-vv") {
+			verbosity |= OF_NAMES|OF_UNITS;
+		} else if (args[argPos] == "-vvv" || args[argPos] == "-V") {
+			verbosity |= OF_NAMES|OF_UNITS|OF_COMMENTS;
 		} else if (args[argPos] == "-f") {
 			configFormat = true;
 			if (hexFormat) {
@@ -847,9 +880,10 @@ string MainLoop::executeFind(vector<string> &args)
 		argPos++;
 	}
 	if (argPos == 0 || args.size() < argPos || args.size() > argPos + 1)
-		return "usage: find [-v] [-r] [-w] [-p] [-d] [-h] [-i ID] [-f] [-F COL[,COL]*] [-e] [-c CIRCUIT] [NAME]\n"
+		return "usage: find [-v|-V] [-r] [-w] [-p] [-d] [-h] [-i ID] [-f] [-F COL[,COL]*] [-e] [-c CIRCUIT] [NAME]\n"
 			   " Find message(s).\n"
-			   "  -v            be verbose (append destination address and update time)\n"
+			   "  -v            increase verbosity (include names/units/comments+destination address++update time)\n"
+			   "  -V            be very verbose (include everything)\n"
 			   "  -r            limit to active read messages (default: read + passive)\n"
 			   "  -w            limit to active write messages (default: read + passive)\n"
 			   "  -p            limit to passive messages (default: read + passive)\n"
@@ -896,14 +930,14 @@ string MainLoop::executeFind(vector<string> &args)
 				result << message->getLastMasterData().getDataStr()
 					   << " / " << message->getLastSlaveData().getDataStr();
 			} else {
-				result_t ret = message->decodeLastData(result, verbose?OF_VERBOSE:0);
+				result_t ret = message->decodeLastData(result, verbosity);
 				if (ret!=RESULT_OK) {
 					result << " (" << getResultCode(ret)
 						   << " for " << message->getLastMasterData().getDataStr()
 						   << " / " << message->getLastSlaveData().getDataStr() << ")";
 				}
 			}
-			if (verbose) {
+			if (verbosity==(OF_NAMES|OF_UNITS|OF_COMMENTS)) {
 				unsigned char dstAddress = message->getDstAddress();
 				if (dstAddress != SYN)
 					sprintf(str, "%02x", dstAddress);
@@ -1159,12 +1193,12 @@ string MainLoop::executeQuit(vector<string> &args, bool& connected)
 string MainLoop::executeHelp()
 {
 	return "usage:\n"
-		   " read|r   Read value(s):         read [-f] [-m SECONDS] [-c CIRCUIT] [-d ZZ] [-p PRIO] [-v] [-n] [-i VALUE[;VALUE]*] NAME [FIELD[.N]]\n"
+		   " read|r   Read value(s):         read [-f] [-m SECONDS] [-c CIRCUIT] [-d ZZ] [-p PRIO] [-v|-V] [-n] [-i VALUE[;VALUE]*] NAME [FIELD[.N]]\n"
 		   "          Read hex message:      read [-f] [-m SECONDS] [-c CIRCUIT] -h ZZPBSBNNDx\n"
 		   " write|w  Write value(s):        write [-d ZZ] -c CIRCUIT NAME [VALUE[;VALUE]*]\n"
 		   "          Write hex message:     write [-c CIRCUIT] -h ZZPBSBNNDx\n"
 		   " hex      Send hex data:         hex ZZPBSBNNDx\n"
-		   " find|f   Find message(s):       find [-v] [-r] [-w] [-p] [-d] [-h] [-i ID] [-f] [-F COL[,COL]*] [-e] [-c CIRCUIT] [NAME]\n"
+		   " find|f   Find message(s):       find [-v|-V] [-r] [-w] [-p] [-d] [-h] [-i ID] [-f] [-F COL[,COL]*] [-e] [-c CIRCUIT] [NAME]\n"
 		   " listen|l Listen for updates:    listen [stop]\n"
 		   " state|s  Report bus state\n"
 		   " info|i   Report information about the daemon, the configuration, and seen devices.\n"
@@ -1186,7 +1220,8 @@ string MainLoop::executeHelp()
 string MainLoop::executeGet(vector<string> &args, bool& connected)
 {
 	result_t ret = RESULT_OK;
-	bool verbose = false, numeric = false, required = false;
+	bool numeric = false, required = false;
+	OutputFormat verbosity = OF_NAMES;
 	size_t argPos = 1;
 	string uri = args[argPos++];
 	ostringstream result;
@@ -1224,7 +1259,13 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 				} else if (strcmp(qname.c_str(), "exact") == 0) {
 					exact = value.length()==0 || strcmp(value.c_str(), "1") == 0;
 				} else if (strcmp(qname.c_str(), "verbose") == 0) {
-					verbose = value.length()==0 || strcmp(value.c_str(), "1") == 0;
+					if (value.length()==0 || strcmp(value.c_str(), "1") == 0) {
+						verbosity |= OF_UNITS|OF_COMMENTS;
+					}
+				} else if (strcmp(qname.c_str(), "indexed") == 0) {
+					if (value.length()==0 || strcmp(value.c_str(), "1") == 0) {
+						verbosity &= ~OF_NAMES;
+					}
 				} else if (strcmp(qname.c_str(), "numeric") == 0) {
 					numeric = value.length()==0 || strcmp(value.c_str(), "1") == 0;
 				} else if (strcmp(qname.c_str(), "required") == 0) {
@@ -1278,7 +1319,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 				result << ",\n   \"zz\": \"" << setfill('0') << setw(2) << hex << static_cast<unsigned>(dstAddress) << "\"";
 				size_t pos = (size_t)result.tellp();
 				result << ",\n   \"fields\": {";
-				result_t dret = message->decodeLastData(result, (verbose?OF_VERBOSE:0)|(numeric?OF_NUMERIC:0)|OF_JSON);
+				result_t dret = message->decodeLastData(result, verbosity|(numeric?OF_NUMERIC:0)|OF_JSON);
 				if (dret==RESULT_OK) {
 					result << "\n   }";
 				} else {
