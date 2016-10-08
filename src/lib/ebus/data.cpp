@@ -552,9 +552,12 @@ void ValueListDataField::dump(ostream& output)
 	output << FIELD_SEPARATOR;
 	if (!m_dataType->dump(output, m_length)) { // no divisor appended
 		for (map<unsigned int, string>::iterator it = m_values.begin(); it != m_values.end(); it++) {
+			if (it != m_values.begin()) {
+				output << VALUE_SEPARATOR;
+			}
 			output << static_cast<unsigned>(it->first) << "=" << it->second;
 		}
-	} // TODO else does not fit into CSV format!
+	} // else: impossible since divisor is not allowed for ValueListDataField
 	dumpString(output, m_unit);
 	dumpString(output, m_comment);
 }
