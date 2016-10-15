@@ -45,9 +45,9 @@ unsigned int parseInt(const char* str, int base, const unsigned int minValue, co
 		result = RESULT_ERR_OUT_OF_RANGE; // invalid value
 		return 0;
 	}
-	if (length != NULL)
+	if (length != NULL) {
 		*length = (unsigned int)(strEnd - str);
-
+	}
 	result = RESULT_OK;
 	return (unsigned int)ret;
 }
@@ -66,25 +66,26 @@ int parseSignedInt(const char* str, int base, const int minValue, const int maxV
 		result = RESULT_ERR_OUT_OF_RANGE; // invalid value
 		return 0;
 	}
-	if (length != NULL)
+	if (length != NULL) {
 		*length = (unsigned int)(strEnd - str);
-
+	}
 	result = RESULT_OK;
 	return (int)ret;
 }
 
 void printErrorPos(ostream& out, vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, string filename, size_t lineNo, result_t result)
 {
-	if (pos > begin)
+	if (pos > begin) {
 		pos--;
+	}
 	out << "Error reading \"" << filename << "\" line " << setw(0) << dec << static_cast<unsigned>(lineNo) << " field " << static_cast<unsigned>(1+pos.base()-begin.base()) << " value \"" << *pos << "\": " << getResultCode(result) << endl;
 	out << "Erroneous item is here:" << endl;
 	bool first = true;
 	int cnt = 0;
 	while (begin != end) {
-		if (first)
+		if (first) {
 			first = false;
-		else {
+		} else {
 			out << FIELD_SEPARATOR;
 			if (begin <= pos) {
 				cnt++;
@@ -103,16 +104,17 @@ void printErrorPos(ostream& out, vector<string>::iterator begin, const vector<st
 		}
 		if (i!=string::npos) {
 			out << TEXT_SEPARATOR << item << TEXT_SEPARATOR;
-			if (begin < pos)
+			if (begin < pos) {
 				cnt += 2;
-			else if (begin == pos)
+			} else if (begin == pos) {
 				cnt++;
+			}
 		} else {
 			out << item;
 		}
-		if (begin < pos)
+		if (begin < pos) {
 			cnt += (unsigned int)(item).length();
-
+		}
 		begin++;
 	}
 	out << endl;
@@ -124,10 +126,11 @@ bool DataType::dump(ostream& output, const unsigned char length) const
 {
 	output << m_id;
 	if (isAdjustableLength()) {
-		if (length==REMAIN_LEN)
+		if (length==REMAIN_LEN) {
 			output << ":*";
-		else
+		} else {
 			output << ":" << static_cast<unsigned>(length);
+		}
 	}
 	output << FIELD_SEPARATOR;
 	return false;
@@ -165,8 +168,9 @@ result_t StringDataType::readSymbols(SymbolString& input, const bool isMaster,
 	for (size_t offset = start, i = 0; i < count; offset += incr, i++) {
 		ch = input[baseOffset + offset];
 		if (m_isHex) {
-			if (i > 0)
+			if (i > 0) {
 				output << ' ';
+			}
 			output << setw(2) << static_cast<unsigned>(ch);
 		} else {
 			if (ch == 0x00) {
@@ -212,27 +216,30 @@ result_t StringDataType::writeSymbols(istringstream& input,
 		for (size_t offset = start, i = 0; i < count; offset += incr, i++) {
 			output[baseOffset + offset] = (unsigned char)m_replacement; // fill up with replacement
 		}
-		if (usedLength!=NULL)
+		if (usedLength!=NULL) {
 			*usedLength = (unsigned char)count;
+		}
 		return RESULT_OK;
 	}
 	result_t result;
 	size_t i = 0, offset;
 	for (offset = start; i < count; offset += incr, i++) {
 		if (m_isHex) {
-			while (!input.eof() && input.peek() == ' ')
+			while (!input.eof() && input.peek() == ' ') {
 				input.get();
+			}
 			if (input.eof()) { // no more digits
 				value = m_replacement; // fill up with replacement
 			} else {
 				token.clear();
 				token.push_back((unsigned char)input.get());
-				if (input.eof())
+				if (input.eof()) {
 					return RESULT_ERR_INVALID_NUM; // too short hex value
+				}
 				token.push_back((unsigned char)input.get());
-				if (input.eof())
+				if (input.eof()) {
 					return RESULT_ERR_INVALID_NUM; // too short hex value
-
+				}
 				value = parseInt(token.c_str(), 16, 0, 0xff, result);
 				if (result != RESULT_OK)
 					return result; // invalid hex value
@@ -253,15 +260,18 @@ result_t StringDataType::writeSymbols(istringstream& input,
 			}
 			break;
 		}
-		if (value > 0xff)
+		if (value > 0xff) {
 			return RESULT_ERR_OUT_OF_RANGE; // value out of range
+		}
 		output[baseOffset + offset] = (unsigned char)value;
 	}
 
-	if (!remainder && i < count)
+	if (!remainder && i < count) {
 		return RESULT_ERR_EOF; // input too short
-	if (usedLength!=NULL)
+	}
+	if (usedLength!=NULL) {
 		*usedLength = (unsigned char)((offset-start)*incr);
+	}
 	return RESULT_OK;
 }
 
@@ -289,16 +299,19 @@ result_t DateTimeDataType::readSymbols(SymbolString& input, const bool isMaster,
 		incr = -1;
 	}
 
-	if (outputFormat & OF_JSON)
+	if (outputFormat & OF_JSON) {
 		output << '"';
+	}
 	int type = (m_hasDate?2:0) | (m_hasTime?1:0);
 	for (size_t offset = start, i = 0; i < count; offset += incr, i++) {
-		if (length == 4 && i == 2 && m_hasDate)
+		if (length == 4 && i == 2 && m_hasDate) {
 			continue; // skip weekday in between
+		}
 		ch = input[baseOffset + offset];
 		if (hasFlag(BCD) && (hasFlag(REQ) || ch != m_replacement)) {
-			if ((ch & 0xf0) > 0x90 || (ch & 0x0f) > 0x09)
+			if ((ch & 0xf0) > 0x90 || (ch & 0x0f) > 0x09) {
 				return RESULT_ERR_OUT_OF_RANGE; // invalid BCD
+			}
 			ch = (unsigned char)((ch >> 4) * 10 + (ch & 0x0f));
 		}
 		switch (type)
@@ -333,12 +346,13 @@ result_t DateTimeDataType::readSymbols(SymbolString& input, const bool isMaster,
 						<< setw(2) << static_cast<unsigned>(m) << "." << static_cast<unsigned>(y + 1900);
 				break;
 			}
-			if (i + 1 == length)
+			if (i + 1 == length) {
 				output << (2000 + ch);
-			else if (ch < 1 || (i == 0 && ch > 31) || (i == 1 && ch > 12))
+			} else if (ch < 1 || (i == 0 && ch > 31) || (i == 1 && ch > 12)) {
 				return RESULT_ERR_OUT_OF_RANGE; // invalid date
-			else
+			} else {
 				output << setw(2) << dec << setfill('0') << static_cast<unsigned>(ch) << ".";
+			}
 			break;
 
 		case 1: // time only
@@ -347,8 +361,9 @@ result_t DateTimeDataType::readSymbols(SymbolString& input, const bool isMaster,
 					output << NULL_VALUE << ":" << NULL_VALUE;
 					break;
 				}
-				if (i > 0)
+				if (i > 0) {
 					output << ":";
+				}
 				output << NULL_VALUE;
 				break;
 			}
@@ -358,11 +373,13 @@ result_t DateTimeDataType::readSymbols(SymbolString& input, const bool isMaster,
 					continue;
 				}
 				int minutes = ch*256 + last;
-				if (minutes > 24*60)
+				if (minutes > 24*60) {
 					return RESULT_ERR_OUT_OF_RANGE; // invalid value
+				}
 				int hour = minutes / 60;
-				if (hour > 24)
+				if (hour > 24) {
 					return RESULT_ERR_OUT_OF_RANGE; // invalid hour
+				}
 				output << setw(2) << dec << setfill('0') << static_cast<unsigned>(hour);
 				ch = (unsigned char)(minutes % 60);
 			} else if (length == 1) { // truncated time
@@ -375,12 +392,13 @@ result_t DateTimeDataType::readSymbols(SymbolString& input, const bool isMaster,
 				}
 			}
 			if (i == 0) {
-				if (ch > 24)
+				if (ch > 24) {
 					return RESULT_ERR_OUT_OF_RANGE; // invalid hour
+				}
 				hour = ch;
-			}
-			else if (ch > 59 || (hour == 24 && ch > 0))
+			} else if (ch > 59 || (hour == 24 && ch > 0)) {
 				return RESULT_ERR_OUT_OF_RANGE; // invalid time
+			}
 			if (i > 0)
 				output << ":";
 			output << setw(2) << dec << setfill('0') << static_cast<unsigned>(ch);
@@ -388,9 +406,9 @@ result_t DateTimeDataType::readSymbols(SymbolString& input, const bool isMaster,
 		}
 		last = ch;
 	}
-	if (outputFormat & OF_JSON)
+	if (outputFormat & OF_JSON) {
 		output << '"';
-
+	}
 	return RESULT_OK;
 }
 
@@ -415,8 +433,9 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
 		for (size_t offset = start, i = 0; i < count; offset += incr, i++) {
 			output[baseOffset + offset] = (unsigned char)m_replacement; // fill up with replacement
 		}
-		if (usedLength!=NULL)
+		if (usedLength!=NULL) {
 			*usedLength = (unsigned char)count;
+		}
 		return RESULT_OK;
 	}
 	result_t result;
@@ -430,8 +449,9 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
 		case 2: // date only
 			if (length == 4 && i == 2)
 				continue; // skip weekday in between
-			if (input.eof() || !getline(input, token, '.'))
+			if (input.eof() || !getline(input, token, '.')) {
 				return RESULT_ERR_EOF; // incomplete
+			}
 			if (!hasFlag(REQ) && strcmp(token.c_str(), NULL_VALUE) == 0) {
 				value = m_replacement;
 				break;
@@ -463,23 +483,27 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
 					int l = last<=2 ? 1 : 0;
 					int mjd = 14956 + lastLast + (int)((y-l)*365.25) + (int)((last+1+l*12)*30.6001);
 					int daysSinceSunday = (mjd+3) % 7; // Sun=0
-					if (hasFlag(BCD))
+					if (hasFlag(BCD)) {
 						output[baseOffset + offset - incr] = (unsigned char)((6+daysSinceSunday) % 7); // Sun=0x06
-					else
+					} else {
 						output[baseOffset + offset - incr] = (unsigned char)(daysSinceSunday==0 ? 7 : daysSinceSunday); // Sun=0x07
+					}
 				}
-				if (value >= 2000)
+				if (value >= 2000) {
 					value -= 2000;
-				if (value > 99)
+				}
+				if (value > 99) {
 					return RESULT_ERR_OUT_OF_RANGE; // invalid year
+				}
 			} else if (value < 1 || (i == 0 && value > 31) || (i == 1 && value > 12)) {
 				return RESULT_ERR_OUT_OF_RANGE; // invalid date part
 			}
 			break;
 
 		case 1: // time only
-			if (input.eof() || !getline(input, token, LENGTH_SEPARATOR))
+			if (input.eof() || !getline(input, token, LENGTH_SEPARATOR)) {
 				return RESULT_ERR_EOF; // incomplete
+			}
 			if (!hasFlag(REQ) && strcmp(token.c_str(), NULL_VALUE) == 0) {
 				value = m_replacement;
 				if (length == 1) { // truncated time
@@ -488,16 +512,19 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
 						count++;
 						break;
 					}
-					if (last != m_replacement)
+					if (last != m_replacement) {
 						return RESULT_ERR_INVALID_NUM; // invalid truncated time minutes
+					}
 				}
 				break;
 			}
 			value = parseInt(token.c_str(), 10, 0, 59, result);
-			if (result != RESULT_OK)
+			if (result != RESULT_OK) {
 				return result; // invalid time part
-			if ((i == 0 && value > 24) || (i > 0 && (last == 24 && value > 0) ))
+			}
+			if ((i == 0 && value > 24) || (i > 0 && (last == 24 && value > 0) )) {
 				return RESULT_ERR_OUT_OF_RANGE; // invalid time part
+			}
 			if (hasFlag(SPE)) { // minutes since midnight
 				if (i == 0) {
 					skip = true; // repeat for minutes
@@ -513,11 +540,10 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
 					count++;
 					break;
 				}
-				if ((value % m_resolution) != 0)
-					return RESULT_ERR_INVALID_NUM; // invalid truncated time minutes
-				value = (last * 60 + value)/m_resolution;
-				if (value > 24 * 6)
+				value = (last * 60 + value + m_resolution/2)/m_resolution;
+				if (value > 24 * 6) {
 					return RESULT_ERR_OUT_OF_RANGE; // invalid time
+				}
 			}
 			break;
 		}
@@ -525,20 +551,24 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
 		last = value;
 		if (!skip) {
 			if (hasFlag(BCD) && (hasFlag(REQ) || value != m_replacement)) {
-				if (value > 99)
+				if (value > 99) {
 					return RESULT_ERR_OUT_OF_RANGE; // invalid BCD
+				}
 				value = ((value / 10) << 4) | (value % 10);
 			}
-			if (value > 0xff)
+			if (value > 0xff) {
 				return RESULT_ERR_OUT_OF_RANGE; // value out of range
+			}
 			output[baseOffset + offset] = (unsigned char)value;
 		}
 	}
 
-	if (!remainder && i < count)
+	if (!remainder && i < count) {
 		return RESULT_ERR_EOF; // input too short
-	if (usedLength!=NULL)
+	}
+	if (usedLength!=NULL) {
 		*usedLength = (unsigned char)((offset-start)*incr);
+	}
 	return RESULT_OK;
 }
 
@@ -583,17 +613,18 @@ result_t NumberDataType::derive(int divisor, unsigned char bitCount, NumberDataT
 		if (divisor == 1) {
 			divisor = m_divisor;
 		} else if (divisor < 0) {
-			if (m_divisor > 1)
+			if (m_divisor > 1) {
 				return RESULT_ERR_INVALID_ARG;
-
+			}
 			divisor *= -m_divisor;
 		} else if (m_divisor < 0) {
-			if (divisor > 1)
+			if (divisor > 1) {
 				return RESULT_ERR_INVALID_ARG;
-
+			}
 			divisor *= -m_divisor;
-		} else
+		} else {
 			divisor *= m_divisor;
+		}
 	}
 	if (divisor == m_divisor && bitCount == m_bitCount) {
 		derived = this;
@@ -635,9 +666,9 @@ result_t NumberDataType::readRawValue(SymbolString& input,
 	int incr = 1;
 	unsigned char ch;
 
-	if (baseOffset + length > input.size())
+	if (baseOffset + length > input.size()) {
 		return RESULT_ERR_INVALID_POS; // not enough data available
-
+	}
 	if (hasFlag(REV)) { // reverted binary representation (most significant byte first)
 		start = length - 1;
 		incr = -1;
@@ -666,14 +697,12 @@ result_t NumberDataType::readRawValue(SymbolString& input,
 			exp <<= 8;
 		}
 	}
-
 	if (m_firstBit > 0) {
 		value >>= m_firstBit;
 	}
 	if (m_bitCount < 8) {
 		value &= (1 << m_bitCount) - 1;
 	}
-
 	return RESULT_OK;
 }
 
@@ -797,25 +826,28 @@ result_t NumberDataType::writeRawValue(unsigned int value,
 
 	for (size_t offset = start, i = 0, exp = 1; i < count; offset += incr, i++) {
 		if (hasFlag(BCD)) {
-			if (!hasFlag(REQ) && value == m_replacement)
+			if (!hasFlag(REQ) && value == m_replacement) {
 				ch = m_replacement & 0xff;
-			else {
+			} else {
 				ch = (unsigned char)((value / exp) % 100);
-				if (!hasFlag(HCD))
+				if (!hasFlag(HCD)) {
 					ch = (unsigned char)(((ch / 10) << 4) | (ch % 10));
+				}
 			}
 			exp *= 100;
 		} else {
 			ch = (value / exp) & 0xff;
 			exp <<= 8;
 		}
-		if (offset == start && (m_bitCount % 8) != 0 && baseOffset + offset < output.size())
+		if (offset == start && (m_bitCount % 8) != 0 && baseOffset + offset < output.size()) {
 			output[baseOffset + offset] |= ch;
-		else
+		} else {
 			output[baseOffset + offset] = ch;
+		}
 	}
-	if (usedLength!=NULL)
+	if (usedLength!=NULL) {
 		*usedLength = length;
+	}
 	return RESULT_OK;
 }
 
@@ -836,10 +868,11 @@ result_t NumberDataType::writeSymbols(istringstream& input,
 		if (strEnd == NULL || strEnd == str || *strEnd != 0) {
 			return RESULT_ERR_INVALID_NUM; // invalid value
 		}
-		if (m_divisor < 0)
+		if (m_divisor < 0) {
 			dvalue /= -m_divisor;
-		else if (m_divisor > 1)
+		} else if (m_divisor > 1) {
 			dvalue *= m_divisor;
+		}
 #ifdef HAVE_DIRECT_FLOAT_FORMAT
 		float val = (float)dvalue;
 		unsigned char* pval = (unsigned char*)&val;
@@ -855,8 +888,9 @@ result_t NumberDataType::writeSymbols(istringstream& input,
 				dvalue = -dvalue;
 			}
 			int exp = ilogb(dvalue);
-			if (exp < -126 || exp > 127)
+			if (exp < -126 || exp > 127) {
 				return RESULT_ERR_INVALID_NUM; // invalid value
+			}
 			dvalue = scalbln(dvalue, -exp) - 1.0;
 			unsigned int sig = (unsigned int)(dvalue * exp2(23));
 			exp += 127;
@@ -871,48 +905,56 @@ result_t NumberDataType::writeSymbols(istringstream& input,
 		if (m_divisor == 1) {
 			if (hasFlag(SIG)) {
 				long int signedValue = strtol(str, &strEnd, 10);
-				if (signedValue < 0 && m_bitCount != 32)
+				if (signedValue < 0 && m_bitCount != 32) {
 					value = (unsigned int)(signedValue + (1 << m_bitCount));
-				else
+				} else {
 					value = (unsigned int)signedValue;
-			}
-			else
+				}
+			} else {
 				value = (unsigned int)strtoul(str, &strEnd, 10);
-			if (strEnd == NULL || strEnd == str || (*strEnd != 0 && *strEnd != '.'))
+			}
+			if (strEnd == NULL || strEnd == str || (*strEnd != 0 && *strEnd != '.')) {
 				return RESULT_ERR_INVALID_NUM; // invalid value
+			}
 		} else {
 			char* strEnd = NULL;
 			double dvalue = strtod(str, &strEnd);
-			if (strEnd == NULL || strEnd == str || *strEnd != 0)
+			if (strEnd == NULL || strEnd == str || *strEnd != 0) {
 				return RESULT_ERR_INVALID_NUM; // invalid value
-			if (m_divisor < 0)
+			}
+			if (m_divisor < 0) {
 				dvalue = round(dvalue / -m_divisor);
-			else
-				dvalue = round(dvalue * m_divisor);
-			if (hasFlag(SIG)) {
-				if (dvalue < -(1LL << (8 * length)) || dvalue >= (1LL << (8 * length)))
-					return RESULT_ERR_OUT_OF_RANGE; // value out of range
-				if (dvalue < 0 && m_bitCount != 32)
-					value = (int)(dvalue + (1 << m_bitCount));
-				else
-					value = (int)dvalue;
 			} else {
-				if (dvalue < 0.0 || dvalue >= (1LL << (8 * length)))
+				dvalue = round(dvalue * m_divisor);
+			}
+			if (hasFlag(SIG)) {
+				if (dvalue < -(1LL << (8 * length)) || dvalue >= (1LL << (8 * length))) {
 					return RESULT_ERR_OUT_OF_RANGE; // value out of range
+				}
+				if (dvalue < 0 && m_bitCount != 32) {
+					value = (int)(dvalue + (1 << m_bitCount));
+				} else {
+					value = (int)dvalue;
+				}
+			} else {
+				if (dvalue < 0.0 || dvalue >= (1LL << (8 * length))) {
+					return RESULT_ERR_OUT_OF_RANGE; // value out of range
+				}
 				value = (unsigned int)dvalue;
 			}
 		}
 
 		if (hasFlag(SIG)) { // signed value
 			if ((value & (1 << (m_bitCount - 1))) != 0) { // negative signed value
-				if (value < m_minValue)
+				if (value < m_minValue) {
 					return RESULT_ERR_OUT_OF_RANGE; // value out of range
-			}
-			else if (value > m_maxValue)
+				}
+			} else if (value > m_maxValue) {
 				return RESULT_ERR_OUT_OF_RANGE; // value out of range
-		}
-		else if (value < m_minValue || value > m_maxValue)
+			}
+		} else if (value < m_minValue || value > m_maxValue) {
 			return RESULT_ERR_OUT_OF_RANGE; // value out of range
+		}
 	}
 
 	return writeRawValue(value, baseOffset, length, output, usedLength);
