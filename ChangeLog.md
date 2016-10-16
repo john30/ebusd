@@ -1,20 +1,35 @@
 # next version
 
+## Breaking Changes
+* completely reworked base data types to allow user-defined types
+* added first version of TEM specific data type
+* allow inline rename of template reference
+
 ## Bug Fixes
 * corrected extra separator in CSV style dump
 * corrected BCD representation in JSON
 * corrected serial close()
-* completely reworked base data types to allow user-defined types
 * fix for storing own prepared master data
 * no longer show messages that did not receive data in "find" command
 * check address argument for validity in "scan" command
 * only use cached data if no input is necessary in "read" command
+* fix for poll "continue" errors
+* fix for checking command line arguments
+* fix for DAY data type
+* corrected checking of inline conditions
+* escape special characters in string data types for JSON
+* corrected dumping of value lists
 
 ## Features
 * allow running multiple ebusd instances by configuration file (/etc/default/ebusd on debian)
 * set keepalive option on network device
 * added hex option to "find" command
 * added optional initial active scan address to "--scanconfig" option that allows initiating a single destination address scan, a full scan, or sending a broadcast ident message (this is now the default)
+* added MIN datatype
+* avoid output of unprintable characters in string data types
+* split verbosity of "read" and "find" commands into 3 levels
+* added "indexed" parameter for JSON
+* allow non-exact values for truncated time types
 
 
 # 2.1 (2016-05-05)
