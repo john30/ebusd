@@ -591,6 +591,11 @@ private:
 	/** the singleton instance. */
 	static DataTypeList s_instance;
 
+#ifdef HAVE_CONTRIB
+	/** true when contributed datatypes were successfully initialized. */
+	static bool s_contrib_initialized;
+#endif
+
 };
 
 #endif // LIBEBUS_DATATYPE_H_

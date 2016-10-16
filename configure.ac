@@ -30,6 +30,10 @@ AC_CHECK_FUNC([pselect], [AC_DEFINE(HAVE_PSELECT, [1], [Define to 1 if pselect()
 AC_CHECK_FUNC([ppoll], [AC_DEFINE(HAVE_PPOLL, [1], [Define to 1 if ppoll() is available.])])
 
 AC_ARG_ENABLE(coverage, AS_HELP_STRING([--enable-coverage], [enable code coverage tracking]), [CXXFLAGS+=" -coverage -O0"], [])
+AC_ARG_WITH(contrib, AS_HELP_STRING([--without-contrib], [disable inclusion of contributed sources]), [], [with_contrib=yes])
+if test "x$with_contrib" != "xno"; then
+	AC_DEFINE_UNQUOTED(HAVE_CONTRIB, [1], [Define to 1 for inclusion of contributed sources.])
+fi
 AC_ARG_WITH(argp-lib, AS_HELP_STRING([--with-argp-lib=PATH], [path to argp libraries]), [LDFLAGS+="-L$with_argp_lib"])
 AC_ARG_WITH(argp-include, AS_HELP_STRING([--with-argp-include=PATH], [path to argp includes]), [CXXFLAGS+="-I$with_argp_include"])
 AC_CHECK_FUNC([argp_parse], [have_argp=yes], AC_CHECK_LIB([argp], [argp_parse], [have_argp=yes; LIBS="-largp $LIBS"], [have_argp=no]))
@@ -84,12 +88,17 @@ fi
 AC_CONFIG_SRCDIR([src/ebusd/main.cpp])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile
-		 docs/Makefile
-		 src/lib/utils/Makefile
-		 src/lib/ebus/Makefile
-		 src/lib/ebus/test/Makefile
-		 src/ebusd/Makefile
-		 src/tools/Makefile])
+		docs/Makefile
+		src/lib/utils/Makefile
+		src/lib/ebus/Makefile
+		src/lib/ebus/test/Makefile
+		src/ebusd/Makefile
+		src/tools/Makefile])
+AM_CONDITIONAL([CONTRIB], [test "x$with_contrib" != "xno"])
+AM_COND_IF([CONTRIB], [AC_CONFIG_FILES([
+		src/lib/ebus/contrib/Makefile
+		src/lib/ebus/contrib/test/Makefile
+	])])
 
 AC_DEFINE_UNQUOTED(PACKAGE_PIDFILE, LOCALSTATEDIR "/run/" PACKAGE ".pid", [The path and name of the PID file.])
 AC_DEFINE_UNQUOTED(PACKAGE_LOGFILE, LOCALSTATEDIR "/log/" PACKAGE ".log", [The path and name of the log file.])
@@ -103,9 +112,9 @@ if test -z "$HAVE_DOXYGEN"; then
 fi
 
 AM_CONDITIONAL([HAVE_DOXYGEN], [test -n "$HAVE_DOXYGEN"])
-	AM_COND_IF([HAVE_DOXYGEN], [AC_CONFIG_FILES([docs/Doxyfile])])
+AM_COND_IF([HAVE_DOXYGEN], [AC_CONFIG_FILES([docs/Doxyfile])])
 
-AM_INIT_AUTOMAKE([1.11 -Wall -Werror foreign])
+AM_INIT_AUTOMAKE([1.11 -Wall -Werror foreign subdir-objects])
 
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 AC_PROG_RANLIB

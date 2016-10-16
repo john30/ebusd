@@ -29,6 +29,10 @@
 #include <math.h>
 #include <typeinfo>
 
+#ifdef HAVE_CONTRIB
+#include "contrib/contrib.h"
+#endif
+
 using namespace std;
 
 unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result, unsigned int* length) {
@@ -962,6 +966,11 @@ result_t NumberDataType::writeSymbols(istringstream& input,
 
 
 DataTypeList DataTypeList::s_instance;
+
+#ifdef HAVE_CONTRIB
+bool DataTypeList::s_contrib_initialized = libebus_contrib_register();
+#endif
+
 
 DataTypeList::DataTypeList()
 {

@@ -17,5 +17,10 @@ libebus_a_SOURCES = result.cpp \
 		    message.cpp \
 		    message.h
 
+if CONTRIB
+SUBDIRS = contrib
+libebus_a_LIBADD = contrib/*.o
+endif
+
 distclean-local:
 	-rm -f Makefile.in
