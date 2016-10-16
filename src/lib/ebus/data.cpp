@@ -243,7 +243,7 @@ result_t SingleDataField::create(const string id, const unsigned char length,
 	const PartType partType, int divisor, map<unsigned int, string> values,
 	SingleDataField* &returnField)
 {
-	DataType* dataType = DataTypeList::getInstance()->get(id, length==REMAIN_LEN ? 0 : length);
+	DataType* dataType = DataTypeList::getInstance()->get(id, length==REMAIN_LEN ? (unsigned char)0 : length);
 	if (!dataType) {
 		return RESULT_ERR_NOTFOUND;
 	}
