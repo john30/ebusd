@@ -233,7 +233,8 @@ done
 if [ "$status" = 0 ]; then
   echo "got signal"
   sleep 5
-  echo "listen"|./src/tools/ebusctl -p 8877
+  echo "listen"|./src/tools/ebusctl -p 8877 &
+  lstpid=$!
   ./src/tools/ebusctl -p 8899 >/dev/null 2>/dev/null
   for line in "${lines[@]}"; do
     if [ -n "$line" ]; then
@@ -254,6 +255,7 @@ if [ "$status" = 0 ]; then
   curl "http://localhost:8878/data/?indexed=1&numeric=1" >/dev/null
   curl -T .travis.yml http://localhost:8878/data/
   echo "commands done"
+  kill $lstpid
 fi
 echo "ebusd log:"
 cat "$PWD/ebusd.log"
