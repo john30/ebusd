@@ -75,7 +75,7 @@ if [ "$1" = "config" ]; then
     fi
     name=${sensor/:/_}
     name=${name/./_}
-    if [ "${sensor%%Energy}" = "$sensor" -a ! "$type" = "hours" ]; then
+    if [ "${sensor%%Total}" = "$sensor" -a ! "$type" = "hours" ]; then
       echo ${prefix}_${name}.label ${sensor/:/ }
     else
       echo ${prefix}_${name}.label ${sensor/:/ } "[diff]"
