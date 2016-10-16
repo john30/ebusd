@@ -139,10 +139,12 @@ cat >"$PWD/contrib/etc/ebusd/153/36.bbb.csv" <<EOF
 r,,SoftwareVersion,,,,,"0000",,,HEX:4,,,
 EOF
 ./src/ebusd/ebusd -d tcp:127.0.0.1:8876 --initsend --latency 10000 -n -c "$PWD/contrib/etc/ebusd" --pollinterval=10 -s -a 31 --acquireretries 3 --answer --generatesyn --receivetimeout 40000 --sendretries 1 --enablehex --htmlpath "$PWD/contrib/html" --httpport 8878 --localhost --pidfile "$PWD/ebusd.pid" -p 8877 -l "$PWD/ebusd.log" --logareas all --loglevel debug --lograwdata --dumpfile "$PWD/ebusd.dump" --dumpsize 100 -D --scanconfig
+sleep 1
 pid=`head -n 1 "$PWD/ebusd.pid"`
 if [ -z "$pid" ]; then
   echo "unable to start ebusd"
   kill $srvpid
+  cat "$PWD/ebusd.log"
   exit 1
 fi
 echo "ebusd: $pid"
