@@ -5,6 +5,7 @@ before_install:
 script:
   - ./autogen.sh --enable-coverage && make all test
   - (cd src/lib/ebus/test && ./test_symbol && ./test_filereader && ./test_data && ./test_message)
+  - (cd src/lib/ebus/contrib/test && ./test_contrib)
   - ./src/ebusd/ebusd --help
   - ./test_coverage.sh
 after_success:

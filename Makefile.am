@@ -11,6 +11,9 @@ EXTRA_DIST = LICENSE \
 
 test:
 	$(MAKE) -C src/lib/ebus/test
+if CONTRIB
+	$(MAKE) -C src/lib/ebus/contrib/test
+endif
 
 distclean-local:
 	-rm -rf autom4te.cache
