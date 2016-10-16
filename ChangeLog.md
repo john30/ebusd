@@ -5,6 +5,7 @@
 * added first version of TEM specific data type
 * allow inline rename of template reference
 * removed "stop" command for enhanced security
+* use broadcast ID messages for identification and automatic configuration file selection
 
 ## Bug Fixes
 * corrected extra separator in CSV style dump
