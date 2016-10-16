@@ -68,11 +68,17 @@ while (time()<$endtime) {
     }
   } else {
     $output.=substr(dechex(0x100|ord($r[0])),1);
-    if ("31040704006f"==$output) { // answer on ident query
+    if ("31040704006f"==$output) { // answer on first ident query
       socket_write($cli, "\x00\x0a\x99\x42\x42\x42\x42\x42\x30\x31\x30\x31\x71",13);
       $output.=">answered<";
-    } else if ("315307040091"==$output) { // answer on other ident query
+    } else if ("315307040091"==$output) { // answer on second ident query
       socket_write($cli, "\x00\x0a\x99\x42\x42\x42\x42\x42\x30\x31\x30\x31\x71",13);
+      $output.=">answered<";
+    } else if ("315407040090"==$output) { // answer on third ident query with invalid CRC
+      socket_write($cli, "\x00\x0a\x99\x42\x42\x42\x42\x42\x30\x31\x30\x31\x72",13);
+      $output.=">answered<";
+    } else if ("315407040090"==$output) { // answer on fourth ident query with short reply
+      socket_write($cli, "\x00\x09\x99\x42\x42\x42\x42\x42\x30\x31\x30\x25",12);
       $output.=">answered<";
     } else if ("311cb509030d0000e1"==$output || "3152b509030d0600c9"==$output || "3153b509030d060034"==$output) {
       socket_write($cli, "\x00\x02\x40\x50\xb4",5);
@@ -81,7 +87,7 @@ while (time()<$endtime) {
       socket_write($cli, "\x00\x00\x00",3);
       $output.=">answered<";
     } else {
-      $endtime=time()+10; // keep further alive
+      $endtime=time()+20; // keep further alive
     }
   }
 }
@@ -119,7 +125,7 @@ cat >"$PWD/contrib/etc/ebusd/153/36.bbb.csv" <<EOF
 *r,,,,,,"9900",,,,,,,
 r,,SoftwareVersion,,,,,"0000",,,HEX:4,,,
 EOF
-./src/ebusd/ebusd -d tcp:127.0.0.1:8876 --initsend --latency 10000 -n -c "$PWD/contrib/etc/ebusd" --pollinterval=10 -s -a 31 --acquireretries 3 --answer --generatesyn --numbermasters 1 --receivetimeout 10000 --sendretries 1 --enablehex --htmlpath "$PWD/contrib/html" --httpport 8878 --localhost --pidfile "$PWD/ebusd.pid" -p 8877 -l "$PWD/ebusd.log" --logareas all --loglevel debug --lograwdata --dumpfile "$PWD/ebusd.dump" --dumpsize 100 -D --scanconfig
+./src/ebusd/ebusd -d tcp:127.0.0.1:8876 --initsend --latency 10000 -n -c "$PWD/contrib/etc/ebusd" --pollinterval=10 -s -a 31 --acquireretries 3 --answer --generatesyn --receivetimeout 40000 --sendretries 1 --enablehex --htmlpath "$PWD/contrib/html" --httpport 8878 --localhost --pidfile "$PWD/ebusd.pid" -p 8877 -l "$PWD/ebusd.log" --logareas all --loglevel debug --lograwdata --dumpfile "$PWD/ebusd.dump" --dumpsize 100 -D --scanconfig
 pid=`head -n 1 "$PWD/ebusd.pid"`
 if [ -z "$pid" ]; then
   echo "unable to start ebusd"
@@ -160,6 +166,9 @@ r -f temp
 r -f outsidetemp
 r -m 10 outsidetemp
 r -v outsidetemp
+r -v -v outsidetemp
+r -v -v -v outsidetemp
+r -V outsidetemp
 r -c broadcast outsidetemp
 r -c mc.4 -d 53 -p 2 outsidetemp
 r -c mc.4 -d 53 -p 2 -i 1 outsidetemp temp.1
@@ -171,12 +180,17 @@ f -f outsidetemp
 f -v -r temp
 f -v -w temp
 f -v -p temp
+f -v -v temp
+f -v -v -v temp
+f -V temp
+f -V -h temp
 f -d -i b5
 f -F name temp
 f -e RoomTemp
 f -e -c mc.5
 r -c mc.5 Timer.Monday
 w -c mc.5 Timer.Monday "-:-;-:-;-:-;-:-;-:-;-:-;Mo-So"
+w -c mc.5 Timer.Monday "00:00;23:50;00:30;00:50;03:30;06:00;Mo-Fr"
 w -c mc.5 -d 53 HeatingCurve 0.25
 hex fe070400
 hex 53070400
@@ -218,7 +232,11 @@ if [ "$status" = 0 ]; then
   echo "scan result:"
   ./src/tools/ebusctl -p 8877 scan result
   curl http://localhost:8878/data/ >/dev/null
+  curl "http://localhost:8878/data/" >/dev/null
+  curl "http://localhost:8878/data/broadcast/?since=1&exact=1&required=" >/dev/null
+  curl "http://localhost:8878/data/mc.4/outsidetemp?poll=1" >/dev/null
   curl "http://localhost:8878/data/?verbose=1" >/dev/null
+  curl "http://localhost:8878/data/?indexed=1&numeric=1" >/dev/null
   curl -T .travis.yml http://localhost:8878/data/
   echo "commands done"
 fi
