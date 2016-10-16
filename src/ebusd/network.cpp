@@ -97,9 +97,9 @@ void Connection::run()
 #else
 #ifdef HAVE_PSELECT
 			// new data from notify
-			if (ret < 0 || FD_ISSET(notifyFD, &readfds) || FD_ISSET(notifyFD, &exceptfds))
+			if (ret < 0 || FD_ISSET(notifyFD, &readfds) || FD_ISSET(notifyFD, &exceptfds)) {
 				break;
-
+			}
 			// new data from socket
 			newData = FD_ISSET(sockFD, &readfds);
 			closed = FD_ISSET(sockFD, &exceptfds);
@@ -110,16 +110,16 @@ void Connection::run()
 		if (newData || message.isListening()) {
 			char data[256];
 
-			if (!m_socket->isValid())
+			if (!m_socket->isValid()) {
 				break;
-
+			}
 			if (newData) {
 				size_t datalen = m_socket->recv(data, sizeof(data)-1);
 
 				// remove closed socket
-				if (datalen <= 0)
+				if (datalen <= 0) {
 					break;
-
+				}
 				data[datalen] = '\0';
 			} else {
 				data[0] = '\0';
@@ -133,14 +133,15 @@ void Connection::run()
 				logDebug(lf_network, "[%05d] wait for result", getID());
 				string result = message.getResult();
 
-				if (!m_socket->isValid())
+				if (!m_socket->isValid()) {
 					break;
-
+				}
 				m_socket->send(result.c_str(), result.size());
 			}
 
-			if (message.isDisconnect() || !m_socket->isValid())
+			if (message.isDisconnect() || !m_socket->isValid()) {
 				break;
+			}
 		}
 
 	}
@@ -154,19 +155,17 @@ void Connection::run()
 Network::Network(const bool local, const uint16_t port, const uint16_t httpPort, Queue<NetMessage*>* netQueue)
 	: Thread(), m_netQueue(netQueue), m_listening(false)
 {
-	if (local)
-		m_tcpServer = new TCPServer(port, "127.0.0.1");
-	else
-		m_tcpServer = new TCPServer(port, "0.0.0.0");
+	m_tcpServer = new TCPServer(port, local ? "127.0.0.1" : "0.0.0.0");
 
-	if (m_tcpServer != NULL && m_tcpServer->start() == 0)
+	if (m_tcpServer != NULL && m_tcpServer->start() == 0) {
 		m_listening = true;
-
+	}
 	if (httpPort>0) {
 		m_httpServer = new TCPServer(httpPort, "0.0.0.0");
 		m_httpServer->start();
-	} else
+	} else {
 		m_httpServer = NULL;
+	}
 }
 
 Network::~Network()
@@ -182,17 +181,19 @@ Network::~Network()
 	}
 	join();
 
-	if (m_tcpServer != NULL)
+	if (m_tcpServer != NULL) {
 		delete m_tcpServer;
-	if (m_httpServer != NULL)
+	}
+	if (m_httpServer != NULL) {
 		delete m_httpServer;
+	}
 }
 
 void Network::run()
 {
-	if (!m_listening)
+	if (!m_listening) {
 		return;
-
+	}
 	int ret;
 	struct timespec tdiff;
 
@@ -237,7 +238,6 @@ void Network::run()
 #endif
 
 	while (true) {
-
 #ifdef HAVE_PPOLL
 		// wait for new fd event
 		ret = ppoll(fds, nfds, &tdiff, NULL);
@@ -249,7 +249,6 @@ void Network::run()
 		ret = pselect(maxfd + 1, &readfds, NULL, NULL, &tdiff, NULL);
 #endif
 #endif
-
 		if (ret == 0) {
 			cleanConnections();
 			continue;
@@ -260,7 +259,6 @@ void Network::run()
 		if (fds[0].revents & POLLIN) {
 			return;
 		}
-
 		// new data from socket
 		if (fds[1].revents & POLLIN) {
 			newData = true;
@@ -273,7 +271,6 @@ void Network::run()
 		if (FD_ISSET(m_notify.notifyFD(), &readfds)) {
 			return;
 		}
-
 		// new data from socket
 		if (FD_ISSET(m_tcpServer->getFD(), &readfds)) {
 			newData = true;
@@ -284,13 +281,13 @@ void Network::run()
 #endif
 		if (newData) {
 			TCPSocket* socket = (isHttp ? m_httpServer : m_tcpServer)->newSocket();
-			if (socket == NULL)
+			if (socket == NULL) {
 				continue;
-
+			}
 			Connection* connection = new Connection(socket, isHttp, m_netQueue);
-			if (connection == NULL)
+			if (connection == NULL) {
 				continue;
-
+			}
 			connection->start("connection");
 			m_connections.push_back(connection);
 			logInfo(lf_network, "[%05d] %s connection opened %s", connection->getID(), isHttp ? "HTTP" : "client", socket->getIP().c_str());
