@@ -215,7 +215,7 @@ public:
 	 * @param netQueue the reference to the @a NetMessage @a Queue.
 	 */
 	Connection(TCPSocket* socket, const bool isHttp, Queue<NetMessage*>* netQueue)
-		: m_isHttp(isHttp), m_socket(socket), m_netQueue(netQueue)
+		: Thread(), m_isHttp(isHttp), m_socket(socket), m_netQueue(netQueue)
 		{ m_id = ++m_ids; }
 
 	virtual ~Connection() { if (m_socket) delete m_socket; }

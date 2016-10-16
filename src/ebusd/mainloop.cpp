@@ -42,7 +42,7 @@ static const char* columnNames[] = {
 static const size_t columnCount = sizeof(columnNames) / sizeof(char*);
 
 MainLoop::MainLoop(const struct options opt, Device *device, MessageMap* messages)
-	: m_device(device), m_messages(messages), m_address(opt.address), m_scanConfig(opt.scanConfig), m_initialScan(opt.initialScan), m_enableHex(opt.enableHex)
+	: Thread(), m_device(device), m_messages(messages), m_address(opt.address), m_scanConfig(opt.scanConfig), m_initialScan(opt.initialScan), m_enableHex(opt.enableHex)
 {
 	// setup Device
 	m_device->setLogRaw(opt.logRaw);
@@ -80,6 +80,7 @@ MainLoop::MainLoop(const struct options opt, Device *device, MessageMap* message
 
 MainLoop::~MainLoop()
 {
+	join();
 	if (m_network != NULL) {
 		delete m_network;
 		m_network = NULL;
@@ -96,14 +97,14 @@ MainLoop::~MainLoop()
 
 void MainLoop::run()
 {
-	bool running = true, reload = true;
+	bool reload = true;
 	time_t lastTaskRun, now;
 	int taskDelay = 5;
 	unsigned char lastScanAddress = 0; // 0 is known to be a master
 	time(&now);
 	lastTaskRun = now;
 
-	while (running) {
+	while (true) {
 		string result;
 
 		// pick the next message to handle
@@ -189,7 +190,7 @@ void MainLoop::run()
 		bool connected = true;
 		if (request.length() > 0) {
 			logDebug(lf_main, ">>> %s", request.c_str());
-			result = decodeMessage(request, message->isHttp(), connected, listening, running, reload);
+			result = decodeMessage(request, message->isHttp(), connected, listening, reload);
 
 			if (result.length() == 0 && !message->isHttp())
 				result = getResultCode(RESULT_EMPTY);
@@ -213,7 +214,7 @@ void MainLoop::run()
 	}
 }
 
-string MainLoop::decodeMessage(const string& data, const bool isHttp, bool& connected, bool& listening, bool& running, bool& reload)
+string MainLoop::decodeMessage(const string& data, const bool isHttp, bool& connected, bool& listening, bool& reload)
 {
 	ostringstream result;
 
@@ -301,8 +302,6 @@ string MainLoop::decodeMessage(const string& data, const bool isHttp, bool& conn
 		reload = true;
 		return executeReload(args);
 	}
-	if (strcasecmp(str, "STOP") == 0)
-		return executeStop(args, running);
 	if (strcasecmp(str, "Q") == 0 || strcasecmp(str, "QUIT") == 0)
 		return executeQuit(args, connected);
 	if (strcasecmp(str, "I") == 0 || strcasecmp(str, "INFO") == 0)
@@ -1148,17 +1147,6 @@ string MainLoop::executeReload(vector<string> &args)
 	return getResultCode(result);
 }
 
-string MainLoop::executeStop(vector<string> &args, bool& running)
-{
-	if (args.size() == 1) {
-		running = false;
-		return "daemon stopped";
-	}
-
-	return "usage: stop\n"
-		   " Stop the daemon.";
-}
-
 string MainLoop::executeInfo(vector<string> &args)
 {
 	if (args.size() == 0)
@@ -1212,7 +1200,6 @@ string MainLoop::executeHelp()
 		   " raw      Toggle logging raw bytes\n"
 		   " dump     Toggle dumping raw bytes\n"
 		   " reload   Reload CSV config files\n"
-		   " stop     Stop the daemon\n"
 		   " quit|q   Close connection\n"
 		   " help|h   Print help             help [COMMAND]";
 }

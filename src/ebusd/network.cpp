@@ -152,7 +152,7 @@ void Connection::run()
 
 
 Network::Network(const bool local, const uint16_t port, const uint16_t httpPort, Queue<NetMessage*>* netQueue)
-	: m_netQueue(netQueue), m_listening(false)
+	: Thread(), m_netQueue(netQueue), m_listening(false)
 {
 	if (local)
 		m_tcpServer = new TCPServer(port, "127.0.0.1");

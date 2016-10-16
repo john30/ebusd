@@ -96,11 +96,10 @@ private:
 	 * @param connected set to false when the client connection shall be closed.
 	 * @param isHttp true for HTTP message.
 	 * @param listening set to true when the client is in listening mode.
-	 * @param running set to false when the server shall be stopped.
 	 * @param reload set to true when the configuration files were reloaded.
 	 * @return result string to send back to the client.
 	 */
-	string decodeMessage(const string& data, const bool isHttp, bool& connected, bool& listening, bool& running, bool& reload);
+	string decodeMessage(const string& data, const bool isHttp, bool& connected, bool& listening, bool& reload);
 
 	/**
 	 * Parse the hex master message from the remaining arguments.
@@ -204,14 +203,6 @@ private:
 	 * @return the result string.
 	 */
 	string executeReload(vector<string> &args);
-
-	/**
-	 * Execute the stop command.
-	 * @param args the arguments passed to the command (starting with the command itself), or empty for help.
-	 * @param running set to false when the server shall be stopped.
-	 * @return the result string.
-	 */
-	string executeStop(vector<string> &args, bool& running);
 
 	/**
 	 * Execute the info command.
