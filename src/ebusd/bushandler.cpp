@@ -772,13 +772,37 @@ void BusHandler::receiveCompleted()
 	addSeenAddress(dstAddress);
 
 	bool master = isMaster(dstAddress);
-	if (dstAddress == BROADCAST)
+	if (dstAddress == BROADCAST) {
 		logInfo(lf_update, "update BC cmd: %s", m_command.getDataStr().c_str());
-	else if (master)
+		if (m_command.size()>=5+9 && m_command[2]==0x07 && m_command[3]==0x04) {
+			unsigned char slaveAddress = (unsigned char)((srcAddress+5)&0xff);
+			addSeenAddress(slaveAddress);
+			Message* message = m_messages->getScanMessage(slaveAddress);
+			if (message && (message->getLastUpdateTime()==0 || message->getLastSlaveData().size()<10)) {
+				// e.g. 10fe07040a b5564149303001248901
+				m_seenAddresses[slaveAddress] |= SCAN_INIT;
+				SymbolString idData;
+				istringstream input;
+				result_t result = message->prepareMaster(m_ownMasterAddress, idData, input);
+				if (result==RESULT_OK) {
+					idData.clear();
+					idData.push_back(9);
+					for (size_t i = 5; i <= 5+9; i++) {
+						idData.push_back(m_command[i]);
+					}
+					result = message->storeLastData(pt_slaveData, idData, 0);
+				}
+				if (result==RESULT_OK) {
+					m_seenAddresses[slaveAddress] |= SCAN_DONE;
+				}
+				logNotice(lf_update, "store BC ident: %s", getResultCode(result));
+			}
+		}
+	} else if (master) {
 		logInfo(lf_update, "update MM cmd: %s", m_command.getDataStr().c_str());
-	else
+	} else {
 		logInfo(lf_update, "update MS cmd: %s / %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
-
+	}
 	Message* message = m_messages->find(m_command);
 	if (m_grabUnknownMessages==gr_all || (message==NULL && m_grabUnknownMessages==gr_unknown)) {
 		string data;
@@ -795,38 +819,39 @@ void BusHandler::receiveCompleted()
 		m_grabbedUnknownMessages[key] = data;
 	}
 	if (message == NULL) {
-		if (dstAddress == BROADCAST)
+		if (dstAddress == BROADCAST) {
 			logNotice(lf_update, "unknown BC cmd: %s", m_command.getDataStr().c_str());
-		else if (master)
+		} else if (master) {
 			logNotice(lf_update, "unknown MM cmd: %s", m_command.getDataStr().c_str());
-		else
+		} else {
 			logNotice(lf_update, "unknown MS cmd: %s / %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
-	}
-	else {
+		}
+	} else {
 		m_messages->invalidateCache(message);
 		string circuit = message->getCircuit();
 		string name = message->getName();
 		result_t result = message->storeLastData(m_command, m_response);
 		ostringstream output;
-		if (result==RESULT_OK)
+		if (result==RESULT_OK) {
 			result = message->decodeLastData(output);
-		if (result < RESULT_OK)
+		}
+		if (result < RESULT_OK) {
 			logError(lf_update, "unable to parse %s %s from %s / %s: %s", circuit.c_str(), name.c_str(), m_command.getDataStr().c_str(), m_response.getDataStr().c_str(), getResultCode(result));
-		else {
+		} else {
 			string data = output.str();
 			if (m_answer && dstAddress == (master ? m_ownMasterAddress : m_ownSlaveAddress)) {
 				logNotice(lf_update, "self-update %s %s QQ=%2.2x: %s", circuit.c_str(), name.c_str(), srcAddress, data.c_str()); // TODO store in database of internal variables
-			}
-			else if (message->getDstAddress() == SYN) { // any destination
-				if (message->getSrcAddress() == SYN) // any destination and any source
+			} else if (message->getDstAddress() == SYN) { // any destination
+				if (message->getSrcAddress() == SYN) { // any destination and any source
 					logNotice(lf_update, "update %s %s QQ=%2.2x ZZ=%2.2x: %s", circuit.c_str(), name.c_str(), srcAddress, dstAddress, data.c_str());
-				else
+				} else {
 					logNotice(lf_update, "update %s %s ZZ=%2.2x: %s", circuit.c_str(), name.c_str(), dstAddress, data.c_str());
-			}
-			else if (message->getSrcAddress() == SYN) // any source
+				}
+			} else if (message->getSrcAddress() == SYN) { // any source
 				logNotice(lf_update, "update %s %s QQ=%2.2x: %s", circuit.c_str(), name.c_str(), srcAddress, data.c_str());
-			else
+			} else {
 				logNotice(lf_update, "update %s %s: %s", circuit.c_str(), name.c_str(), data.c_str());
+			}
 		}
 	}
 }
