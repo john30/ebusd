@@ -1,4 +1,4 @@
-# next version
+# 2.2 (2016-10-16)
 
 ## Breaking Changes
 * completely reworked base data types to allow user-defined types
