@@ -28,6 +28,7 @@
 ./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f "ff08070400/0ab5303132333431313131" >/dev/null
 ./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f "ff08070400" >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f "ff080704/" >/dev/null 2>/dev/null
+./src/tools/ebusfeed -d tcp:127.0.0.1:8876 -t 10000 dump
 php -r '
 error_reporting (E_ALL);
 set_time_limit (0);
@@ -83,7 +84,7 @@ while (time()<$endtime) {
     } else if ("311cb509030d0000e1"==$output || "3152b509030d0600c9"==$output || "3153b509030d060034"==$output) {
       socket_write($cli, "\x00\x02\x40\x50\xb4",5);
       $output.=">answered<";
-    } else if ("3153b505080290909090909003f6"==$output || "3153b509050e3500190030"==$output) {
+    } else if ("3153b505080290909090909003f6"==$output || "3153b509050e3500190030"==$output || "3153b5050802008f030515240161"==$output) {
       socket_write($cli, "\x00\x00\x00",3);
       $output.=">answered<";
     } else {
