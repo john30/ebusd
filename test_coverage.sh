@@ -28,7 +28,16 @@
 ./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f "ff08070400/0ab5303132333431313131" >/dev/null
 ./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f "ff08070400" >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f "ff080704/" >/dev/null 2>/dev/null
-./src/tools/ebusfeed -d tcp:127.0.0.1:8876 -t 10000 dump
+./src/tools/ebusfeed -d tcp:127.0.0.1:8876 -t 10000 dump >/dev/null 2>/dev/null
+./src/tools/ebusfeed -d "" >/dev/null 2>/dev/null
+./src/tools/ebusfeed -t 1 >/dev/null 2>/dev/null
+./src/tools/ebusfeed "" >/dev/null 2>/dev/null
+./src/tools/ebusfeed 1 2 >/dev/null 2>/dev/null
+./src/tools/ebusfeed -x >/dev/null 2>/dev/null
+./src/tools/ebusctl -s testserver -p 100000 >/dev/null 2>/dev/null
+./src/tools/ebusctl -s "" >/dev/null 2>/dev/null
+./src/tools/ebusctl -p "" >/dev/null 2>/dev/null
+./src/tools/ebusctl -x >/dev/null 2>/dev/null
 php -r '
 error_reporting (E_ALL);
 set_time_limit (0);
@@ -80,6 +89,9 @@ while (time()<$endtime) {
       $output.=">answered<";
     } else if ("315407040090"==$output) { // answer on fourth ident query with short reply
       socket_write($cli, "\x00\x09\x99\x42\x42\x42\x42\x42\x30\x31\x30\x25",12);
+      $output.=">answered<";
+    } else if ("3155070400ce"==$output) { // answer NAK on sixth ident query
+      socket_write($cli, "\x01",1);
       $output.=">answered<";
     } else if ("311cb509030d0000e1"==$output || "3152b509030d0600c9"==$output || "3153b509030d060034"==$output) {
       socket_write($cli, "\x00\x02\x40\x50\xb4",5);
@@ -219,7 +231,8 @@ done
 if [ "$status" = 0 ]; then
   echo "got signal"
   sleep 5
-  ./src/tools/ebusctl -p 8877 ""
+  echo "listen"|./src/tools/ebusctl -p 8877
+  ./src/tools/ebusctl -p 8899 >/dev/null 2>/dev/null
   for line in "${lines[@]}"; do
     if [ -n "$line" ]; then
       echo "send: $line"
@@ -232,7 +245,6 @@ if [ "$status" = 0 ]; then
   done
   echo "scan result:"
   ./src/tools/ebusctl -p 8877 scan result
-  curl http://localhost:8878/data/ >/dev/null
   curl "http://localhost:8878/data/" >/dev/null
   curl "http://localhost:8878/data/broadcast/?since=1&exact=1&required=" >/dev/null
   curl "http://localhost:8878/data/mc.4/outsidetemp?poll=1" >/dev/null
