@@ -24,6 +24,8 @@ app.info
 /src/lib/ebus/test/test_data
 /src/lib/ebus/test/test_message
 /src/lib/ebus/test/test_filereader
+/src/lib/ebus/contrib/libebuscontrib.a
+/src/lib/ebus/contrib/test/test_tem
 /docs/Doxyfile
 /docs/doxyfile.stamp
 /docs/html
