@@ -881,7 +881,7 @@ string MainLoop::executeFind(vector<string> &args)
 	if (argPos == 0 || args.size() < argPos || args.size() > argPos + 1)
 		return "usage: find [-v|-V] [-r] [-w] [-p] [-d] [-h] [-i ID] [-f] [-F COL[,COL]*] [-e] [-c CIRCUIT] [NAME]\n"
 			   " Find message(s).\n"
-			   "  -v            increase verbosity (include names/units/comments+destination address++update time)\n"
+			   "  -v            increase verbosity (include names/units/comments+destination address+update time)\n"
 			   "  -V            be very verbose (include everything)\n"
 			   "  -r            limit to active read messages (default: read + passive)\n"
 			   "  -w            limit to active write messages (default: read + passive)\n"
