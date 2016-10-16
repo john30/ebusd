@@ -4,6 +4,7 @@
 * completely reworked base data types to allow user-defined types
 * added first version of TEM specific data type
 * allow inline rename of template reference
+* removed "stop" command for enhanced security
 
 ## Bug Fixes
 * corrected extra separator in CSV style dump
