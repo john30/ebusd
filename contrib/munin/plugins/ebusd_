@@ -27,7 +27,8 @@ elif [ "$type" = "press" ]; then
   skip="KeyPress"
 elif [ "$type" = "power" ]; then
   find="Environment"
-  match="Environment(Energy|Power)\$"
+  find2="Yield"
+  match="Environment(Energy|Power)\$|YieldTotal\$"
 else
   find="hours"
   skip="mc.4:|mc.5:"
@@ -36,6 +37,14 @@ result=`echo "find $find"|nc localhost 8888 2>/dev/null`
 if [ -z "$result" -o "x${result##ERR:*}" = "x" ]; then
   echo "error: $result"
   exit 1
+fi
+if [ -n "$find2" ]; then
+  result2=`echo "find $find2"|nc localhost 8888 2>/dev/null`
+  if [ -z "$result2" -o "x${result2##ERR:*}" = "x" ]; then
+    echo "error: $result2"
+    exit 1
+  fi
+  result="$result\n$result2"
 fi
 sensors=`echo "$result"|sed -e 's# =.*$##' -e 's# #:#'|egrep "$match"`
 if [ -n "$skip" ]; then
