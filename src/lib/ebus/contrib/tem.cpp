@@ -41,6 +41,9 @@ result_t TemParamDataType::derive(int divisor, unsigned char bitCount, NumberDat
 	if (divisor == 0) {
 		divisor = 1;
 	}
+	if (bitCount == 0) {
+		bitCount = m_bitCount;
+	}
 	if (divisor == 1 && bitCount == 16) {
 		derived = this;
 		return RESULT_OK;
