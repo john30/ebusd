@@ -52,22 +52,49 @@ if [ -n "$skip" ]; then
 fi
 sensors=`echo "$sensors"|sort -u`
 if [ "$1" = "config" ]; then
+  if [ -r /etc/default/locale ]; then
+    . /etc/default/locale
+  fi
+  lang="${LANG:0:2}"
+  if [ "$lang" = "de" ]; then
+    lang_temp='Temperaturen'
+    lang_degrees='Grad'
+    lang_press='Drucksensoren'
+    lang_bar='Bar'
+    lang_power_yield='Leistung/Ertrag'
+    lang_kw='kW'
+    lang_optime='Operating Time'
+    lang_hours='h'
+    lang_catheat='Heizung'
+    lang_diff='Diff.'
+  else
+    lang_temp='Temperatures'
+    lang_degrees='degrees'
+    lang_press='Pressure Sensors'
+    lang_bar='bar'
+    lang_power_yield='Power/Yield'
+    lang_kw='kW'
+    lang_optime='Betriebsstunden'
+    lang_hours='h'
+    lang_catheat='Heating'
+    lang_diff='diff.'
+  fi
   if [ "$type" = "temp" ]; then
-    echo "graph_title ebus Temperaturen"
-    echo "graph_vlabel Grad"
+    echo "graph_title ebus $lang_temp"
+    echo "graph_vlabel $lang_degrees"
   elif [ "$type" = "press" ]; then
-    echo "graph_title ebus Drucksensoren"
-    echo "graph_vlabel Bar"
+    echo "graph_title ebus $lang_press"
+    echo "graph_vlabel $lang_bar"
   elif [ "$type" = "power" ]; then
-    echo "graph_title ebus Leistung/Ertrag"
-    echo "graph_vlabel kW"
+    echo "graph_title ebus $lang_power_yield"
+    echo "graph_vlabel $lang_kw"
     echo "graph_period hour"
   else
-    echo "graph_title ebus Betriebsstunden"
-    echo "graph_vlabel h"
+    echo "graph_title ebus $lang_optime"
+    echo "graph_vlabel $lang_hours"
     echo "graph_period hour"
   fi
-  echo 'graph_category Heizung'
+  echo "graph_category $lang_catheat"
   for sensor in $sensors; do
     result=`echo "read -c ${sensor/:/ }"|nc localhost 8888 2>/dev/null|head -n 1|sed -e 's#;.*$##'`
     if [ "x$result" = "x-" -o "x${result##ERR:*}" = "x" ]; then
@@ -78,7 +105,7 @@ if [ "$1" = "config" ]; then
     if [ "${sensor%%Total}" = "$sensor" -a ! "$type" = "hours" ]; then
       echo ${prefix}_${name}.label ${sensor/:/ }
     else
-      echo ${prefix}_${name}.label ${sensor/:/ } "[diff]"
+      echo ${prefix}_${name}.label ${sensor/:/ } "[$lang_diff]"
       echo ${prefix}_${name}.type COUNTER
       echo ${prefix}_${name}.draw AREA
     fi
