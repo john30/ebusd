@@ -6,7 +6,7 @@
 		{
 			"name": "source",
 			"title": "Quelle",
-			"bounds": [-130,108,80,100],
+			"bounds": [-130,0,80,80],
 			"endpoints": [
 				{"name": "Flow", "anchor": [0.25, 0, 0, -1], "label": "Source",
 					"connectWith": ["ehp", "SourceInput", "ehp", "SourceTempInput", "$temp"]
@@ -131,7 +131,7 @@
 		{"name": "TempInput", "format": "$temp", "left": 0.2, "topc": 0.94},
 		{"name": "CondensorTemp", "format": "$temp", "left": 0.65, "topc": 0.81},
 		{"name": "CompPressLow", "format": "$press", "left": 0.6, "topc": 0.94},
-		{"name": "YieldEnvironmentEnergy", "left": 0, "top": 1},
+		{"name": "YieldTotal", "left": 0, "top": 1},
 		{"name": "PowerCut", "format": "cut: $yesno", "left": 0.5, "top": 1}
 	]
 }
