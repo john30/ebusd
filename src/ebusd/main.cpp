@@ -710,6 +710,40 @@ void logFileLoaded(MessageMap* messages, const unsigned char address, string fil
 	messages->addLoadedFile(address, file);
 }
 
+/**
+ * Helper method for immediate reading of a @a Message from the bus.
+ * @param message the @a Message to read.
+ */
+void readMessage(Message* message)
+{
+	if (!s_mainLoop) {
+		return;
+	}
+	BusHandler* busHandler = s_mainLoop->getBusHandler();
+	result_t result = busHandler->readFromBus(message, "");
+}
+
+/**
+ * Helper method for executing all loaded and resolvable instructions.
+ * @param messages the @a MessageMap instance.
+ * @param verbose whether to verbosely log all problems.
+ */
+void executeInstructions(MessageMap* messages, bool verbose)
+{
+	result_t result = messages->resolveConditions(verbose);
+	if (result != RESULT_OK)
+		logError(lf_main, "error resolving conditions: %s, %s", getResultCode(result), messages->getLastError().c_str());
+
+	ostringstream log;
+	result = messages->executeInstructions(log, logFileLoaded, readMessage);
+	if (result != RESULT_OK)
+		logError(lf_main, "error executing instructions: %s, %s, %s", getResultCode(result), messages->getLastError().c_str(), log.str().c_str());
+	else if (log.tellp() > 0)
+		logNotice(lf_main, log.str().c_str());
+
+	logNotice(lf_main, "found messages: %d (%d conditional on %d conditions, %d poll, %d update)", messages->size(), messages->sizeConditional(), messages->sizeConditions(), messages->sizePoll(), messages->sizePassive());
+}
+
 result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
 {
 	logInfo(lf_main, "loading configuration files from %s", opt.configPath);
@@ -728,20 +762,8 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
 	else
 		logError(lf_main, "error reading config files: %s, %s", getResultCode(result), messages->getLastError().c_str());
 
-	result = messages->resolveConditions(verbose);
-	if (result != RESULT_OK)
-		logError(lf_main, "error resolving conditions: %s, %s", getResultCode(result), messages->getLastError().c_str());
-
-	ostringstream log;
-	result = messages->executeInstructions(log, logFileLoaded);
-	if (result != RESULT_OK)
-		logError(lf_main, "error executing instructions: %s, %s, %s", getResultCode(result), messages->getLastError().c_str(), log.str().c_str());
-	else if (log.tellp() > 0)
-		logInfo(lf_main, log.str().c_str());
-
-	logNotice(lf_main, "found messages: %d (%d conditional on %d conditions, %d poll, %d update)", messages->size(), messages->sizeConditional(), messages->sizeConditions(), messages->sizePoll(), messages->sizePassive());
-
-	return result;
+	executeInstructions(messages, verbose);
+	return RESULT_OK;
 }
 
 result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolString& data, string& relativeFile, bool verbose)
@@ -800,7 +822,6 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 	bool hasTemplates = false;
 	// find files matching MANUFACTURER/ZZ.*csv in cfgpath
 	result = collectConfigFiles(path, prefix, ".csv", files, NULL, &hasTemplates);
-	logDebug(lf_main, "found %d matching scan config files from %s with prefix %s: %s", files.size(), path.c_str(), prefix.c_str(), getResultCode(result));
 	if (result!=RESULT_OK) {
 		logError(lf_main, "unable to load scan config %2.2x: list files in %s %s", address, path.c_str(), getResultCode(result));
 		return result;
@@ -809,6 +830,7 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 		logError(lf_main, "unable to load scan config %2.2x: no file from %s with prefix %s found", address, path.c_str(), prefix.c_str());
 		return RESULT_ERR_NOTFOUND;
 	}
+	logDebug(lf_main, "found %d matching scan config files from %s with prefix %s: %s", files.size(), path.c_str(), prefix.c_str(), getResultCode(result));
 	for (string::iterator it = ident.begin(); it!=ident.end(); it++) {
 		if (::isspace(*it)) {
 			ident.erase(it--);
@@ -887,23 +909,10 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 		return result;
 	}
 	logNotice(lf_main, "read scan config file %s for ID \"%s\", SW%4.4d, HW%4.4d", best.c_str(), ident.c_str(), sw, hw);
-
-	result = messages->resolveConditions(verbose);
-	if (result != RESULT_OK)
-		logError(lf_main, "error resolving conditions: %s, %s", getResultCode(result), messages->getLastError().c_str());
-
-	ostringstream log;
-	result = messages->executeInstructions(log, logFileLoaded);
-	if (result != RESULT_OK)
-		logError(lf_main, "error executing instructions: %s, %s, %s", getResultCode(result), messages->getLastError().c_str(), log.str().c_str());
-	else if (log.tellp() > 0)
-		logInfo(lf_main, log.str().c_str());
-
-	logNotice(lf_main, "found messages: %d (%d conditional on %d conditions, %d poll, %d update)", messages->size(), messages->sizeConditional(), messages->sizeConditions(), messages->sizePoll(), messages->sizePassive());
 	relativeFile = best.substr(strlen(opt.configPath)+1);
+	executeInstructions(messages, verbose);
 	return RESULT_OK;
 }
-
 
 /**
  * Create a log message for a received/sent raw data byte.
@@ -994,14 +1003,16 @@ int main(int argc, char* argv[])
 
 	logNotice(lf_main, PACKAGE_STRING "." REVISION " started");
 
+	// create the MainLoop and start it
+	s_mainLoop = new MainLoop(opt, device, s_messageMap);
+	s_mainLoop->start("mainloop");
+
 	// load configuration files
 	loadConfigFiles(s_messageMap);
 	if (s_messageMap->sizeConditions()>0 && opt.pollInterval==0)
 		logError(lf_main, "conditions require a poll interval > 0");
 
-	// create the MainLoop and run it
-	s_mainLoop = new MainLoop(opt, device, s_messageMap);
-	s_mainLoop->start("mainloop");
+	// wait for end of MainLoop
 	s_mainLoop->join();
 
 	// shutdown
