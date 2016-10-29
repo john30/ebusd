@@ -58,7 +58,7 @@ Message::Message(const string circuit, const string name,
 		  m_srcAddress(srcAddress), m_dstAddress(dstAddress),
 		  m_id(id), m_data(data), m_deleteData(deleteData),
 		  m_pollPriority(pollPriority),
-		  m_usedByCondition(false), m_condition(condition),
+		  m_usedByCondition(false), m_isScanMessage(false), m_condition(condition),
 		  m_lastUpdateTime(0), m_lastChangeTime(0), m_pollCount(0), m_lastPollTime(0)
 {
 	unsigned long long key = (unsigned long long)(id.size()-2) << (8 * 7 + 5);
@@ -74,6 +74,10 @@ Message::Message(const string circuit, const string name,
 			exp = 3;
 	}
 	m_key = key;
+	if (circuit=="scan") {
+		setScanMessage();
+		m_pollPriority = 0;
+	}
 }
 
 Message::Message(const string circuit, const string name,
@@ -85,7 +89,7 @@ Message::Message(const string circuit, const string name,
 		  m_srcAddress(SYN), m_dstAddress(SYN),
 		  m_data(data), m_deleteData(true),
 		  m_pollPriority(0),
-		  m_usedByCondition(false), m_condition(NULL),
+		  m_usedByCondition(false), m_isScanMessage(false), m_condition(NULL),
 		  m_lastUpdateTime(0), m_lastChangeTime(0), m_pollCount(0), m_lastPollTime(0)
 {
 	m_id.push_back(pb);
@@ -97,6 +101,10 @@ Message::Message(const string circuit, const string name,
 	key |= (unsigned long long)pb << (8 * 5);
 	key |= (unsigned long long)sb << (8 * 4);
 	m_key = key;
+	if (circuit=="scan") {
+		setScanMessage();
+		m_pollPriority = 0;
+	}
 }
 
 /**
@@ -371,8 +379,9 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 		Message* message;
 		if (chainIds.size()>1) {
 			message = new ChainedMessage(useCircuit, name, isWrite, comment, srcAddress, dstAddress, id, chainIds, chainLengths, data, index==0, pollPriority, condition);
-		} else
+		} else {
 			message = new Message(useCircuit, name, isWrite, isPassive, comment, srcAddress, dstAddress, id, data, index==0, pollPriority, condition);
+		}
 		messages.push_back(message);
 	}
 	return RESULT_OK;
@@ -385,16 +394,6 @@ Message* Message::derive(const unsigned char dstAddress, const unsigned char src
 		srcAddress==SYN ? m_srcAddress : srcAddress, dstAddress,
 		m_id, m_data, false,
 		m_pollPriority, m_condition);
-}
-
-Message* Message::derive(const unsigned char dstAddress, const bool extendCircuit)
-{
-	if (extendCircuit) {
-		ostringstream out;
-		out << m_circuit << '.' << hex << setw(2) << setfill('0') << static_cast<unsigned>(dstAddress);
-		return derive(dstAddress, SYN, out.str());
-	}
-	return derive(dstAddress);
 }
 
 bool Message::checkIdPrefix(vector<unsigned char>& id)
@@ -439,7 +438,7 @@ unsigned long long Message::getDerivedKey(const unsigned char dstAddress)
 
 bool Message::setPollPriority(unsigned char priority)
 {
-	if (priority == m_pollPriority || m_isPassive)
+	if (priority == m_pollPriority || m_isPassive || isScanMessage() || m_dstAddress==SYN)
 		return false;
 
 	if (m_usedByCondition && (priority==0 || priority>POLL_PRIORITY_CONDITION))
@@ -715,6 +714,22 @@ void Message::dumpColumn(ostream& output, size_t column, bool withConditions)
 		m_data->dump(output);
 		break;
 	}
+}
+
+
+Message* ScanMessage::derive(const unsigned char dstAddress, const unsigned char srcAddress, const string circuit)
+{
+	return new ScanMessage(circuit, dstAddress, this);
+}
+
+ScanMessage* ScanMessage::derive(const unsigned char dstAddress, const bool extendCircuit)
+{
+	if (extendCircuit) {
+		ostringstream out;
+		out << m_circuit << '.' << hex << setw(2) << setfill('0') << static_cast<unsigned>(dstAddress);
+		return new ScanMessage(out.str(), dstAddress, this);
+	}
+	return new ScanMessage(m_circuit, dstAddress, this);
 }
 
 
@@ -1150,60 +1165,62 @@ CombinedCondition* SimpleCondition::combineAnd(Condition* other)
 	return ret->combineAnd(this)->combineAnd(other);
 }
 
-result_t SimpleCondition::resolve(MessageMap* messages, ostringstream& errorMessage)
+result_t SimpleCondition::resolve(MessageMap* messages, ostringstream& errorMessage, void (*readMessageFunc)(Message* message))
 {
-	if (m_message!=NULL) {
-		return RESULT_OK; // already resolved
-	}
-	Message* message;
-	if (m_name.length()==0) {
-		message = messages->getScanMessage(m_dstAddress);
-		errorMessage << "scan condition " << nouppercase << setw(2) << hex << setfill('0') << static_cast<unsigned>(m_dstAddress);
-	} else {
-		message = messages->find(m_circuit, m_name, false);
-		if (!message) {
-			message = messages->find(m_circuit, m_name, false, true);
-		}
-		errorMessage << "condition " << m_circuit << " " << m_name;
-	}
-	if (!message) {
-		errorMessage << ": message not found";
-		return RESULT_ERR_NOTFOUND;
-	}
-	if (message->getDstAddress()==SYN) {
-		if (message->isPassive()) {
-			errorMessage << ": invalid passive message";
-			return RESULT_ERR_INVALID_ARG;
-		}
-		if (m_dstAddress==SYN) {
-			errorMessage << ": destination address missing";
-			return RESULT_ERR_INVALID_ADDR;
-		}
-		// clone the message with dedicated dstAddress if necessary
-		unsigned long long key = message->getDerivedKey(m_dstAddress);
-		vector<Message*>* derived = messages->getByKey(key);
-		if (derived==NULL) {
-			message = message->derive(m_dstAddress, true);
-			messages->add(message);
+	if (m_message==NULL) {
+		Message* message;
+		if (m_name.length()==0) {
+			message = messages->getScanMessage(m_dstAddress);
+			errorMessage << "scan condition " << nouppercase << setw(2) << hex << setfill('0') << static_cast<unsigned>(m_dstAddress);
 		} else {
-			message = getFirstAvailable(*derived, *message);
-			if (message==NULL) {
-				errorMessage << ": conditional derived message not found";
-				return RESULT_ERR_INVALID_ARG;
+			message = messages->find(m_circuit, m_name, false);
+			if (!message) {
+				message = messages->find(m_circuit, m_name, false, true);
 			}
+			errorMessage << "condition " << m_circuit << " " << m_name;
 		}
-	}
-
-	if (m_hasValues) {
-		if (!message->hasField(m_field.length()>0 ? m_field.c_str() : NULL, isNumeric())) {
-			errorMessage << (isNumeric() ? ": numeric field " : ": string field ") << m_field << " not found";
+		if (!message) {
+			errorMessage << ": message not found";
 			return RESULT_ERR_NOTFOUND;
 		}
+		if (message->getDstAddress()==SYN) {
+			if (message->isPassive()) {
+				errorMessage << ": invalid passive message";
+				return RESULT_ERR_INVALID_ARG;
+			}
+			if (m_dstAddress==SYN) {
+				errorMessage << ": destination address missing";
+				return RESULT_ERR_INVALID_ADDR;
+			}
+			// clone the message with dedicated dstAddress if necessary
+			unsigned long long key = message->getDerivedKey(m_dstAddress);
+			vector<Message*>* derived = messages->getByKey(key);
+			if (derived==NULL) {
+				message = message->derive(m_dstAddress, true);
+				messages->add(message);
+			} else {
+				message = getFirstAvailable(*derived, *message);
+				if (message==NULL) {
+					errorMessage << ": conditional derived message not found";
+					return RESULT_ERR_INVALID_ARG;
+				}
+			}
+		}
+
+		if (m_hasValues) {
+			if (!message->hasField(m_field.length()>0 ? m_field.c_str() : NULL, isNumeric())) {
+				errorMessage << (isNumeric() ? ": numeric field " : ": string field ") << m_field << " not found";
+				return RESULT_ERR_NOTFOUND;
+			}
+		}
+		m_message = message;
+		message->setUsedByCondition();
+		if (m_name.length()>0 && !message->isScanMessage()) {
+			messages->addPollMessage(message, true);
+		}
 	}
-	m_message = message;
-	message->setUsedByCondition();
-	if (m_name.length()>0) {
-		messages->addPollMessage(message, true);
+	if (m_message->getLastUpdateTime()==0 && readMessageFunc!=NULL) {
+		(*readMessageFunc)(m_message);
 	}
 	return RESULT_OK;
 }
@@ -1262,12 +1279,12 @@ void CombinedCondition::dump(ostream& output)
 	}
 }
 
-result_t CombinedCondition::resolve(MessageMap* messages, ostringstream& errorMessage)
+result_t CombinedCondition::resolve(MessageMap* messages, ostringstream& errorMessage, void (*readMessageFunc)(Message* message))
 {
 	for (vector<Condition*>::iterator it = m_conditions.begin(); it!=m_conditions.end(); it++) {
 		Condition* condition = *it;
 		ostringstream dummy;
-		result_t ret = condition->resolve(messages, dummy);
+		result_t ret = condition->resolve(messages, dummy, readMessageFunc);
 		if (ret!=RESULT_OK) {
 			errorMessage << dummy.str();
 			return ret;
@@ -1323,7 +1340,7 @@ string Instruction::getDestination()
 		else
 			ret += m_defaultCircuit;
 		if (!m_defaultSuffix.empty())
-			ret += "."+m_defaultSuffix;
+			ret += m_defaultSuffix;
 	}
 	return ret;
 }
@@ -1581,7 +1598,7 @@ result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<s
 	return result;
 }
 
-Message* MessageMap::getScanMessage(const unsigned char dstAddress)
+ScanMessage* MessageMap::getScanMessage(const unsigned char dstAddress)
 {
 	if (dstAddress==SYN)
 		return m_scanMessage;
@@ -1590,8 +1607,8 @@ Message* MessageMap::getScanMessage(const unsigned char dstAddress)
 	unsigned long long key = m_scanMessage->getDerivedKey(dstAddress);
 	vector<Message*>* msgs = getByKey(key);
 	if (msgs!=NULL)
-		return msgs->front();
-	Message* message = m_scanMessage->derive(dstAddress, true);
+		return (ScanMessage*)msgs->front();
+	ScanMessage* message = m_scanMessage->derive(dstAddress, true);
 	add(message);
 	return message;
 }
@@ -1609,9 +1626,10 @@ result_t MessageMap::resolveConditions(bool verbose) {
 	return overallResult;
 }
 
-result_t MessageMap::resolveCondition(Condition* condition) {
+result_t MessageMap::resolveCondition(Condition* condition, void (*readMessageFunc)(Message* message))
+{
 	ostringstream error;
-	result_t result = condition->resolve(this, error);
+	result_t result = condition->resolve(this, error, readMessageFunc);
 	if (result!=RESULT_OK) {
 		string errorMessage = error.str();
 		if (errorMessage.length()>0) {
@@ -1623,7 +1641,8 @@ result_t MessageMap::resolveCondition(Condition* condition) {
 	return result;
 }
 
-result_t MessageMap::executeInstructions(ostringstream& log, void (*loadInfoFunc)(MessageMap* messages, const unsigned char address, string filename)) {
+result_t MessageMap::executeInstructions(ostringstream& log, void (*loadInfoFunc)(MessageMap* messages, const unsigned char address, string file), void (*readMessageFunc)(Message* message))
+{
 	m_lastError = "";
 	result_t overallResult = RESULT_OK;
 	vector<string> remove;
@@ -1640,7 +1659,7 @@ result_t MessageMap::executeInstructions(ostringstream& log, void (*loadInfoFunc
 			Condition* condition = instruction->getCondition();
 			bool execute = condition==NULL;
 			if (!execute) {
-				result_t result = resolveCondition(condition);
+				result_t result = resolveCondition(condition, instruction->isSingleton()?readMessageFunc:NULL);
 				if (result!=RESULT_OK) {
 					overallResult = result;
 				} else if (condition->isTrue()) {
@@ -1733,8 +1752,10 @@ Message* MessageMap::find(const string& circuit, const string& name, const bool 
 }
 
 deque<Message*> MessageMap::findAll(const string& circuit, const string& name, const bool completeMatch,
-	const bool withRead, const bool withWrite, const bool withPassive)
+	const bool withRead, const bool withWrite, const bool withPassive,
+	const bool completeMatchIgnoreCircuitSuffix, const bool onlyAvailable)
 {
+	bool checkCircuitIgnoreSuffix = completeMatch && completeMatchIgnoreCircuitSuffix;
 	deque<Message*> ret;
 	string lcircuit = circuit;
 	FileReader::tolower(lcircuit);
@@ -1742,37 +1763,52 @@ deque<Message*> MessageMap::findAll(const string& circuit, const string& name, c
 	FileReader::tolower(lname);
 	bool checkCircuit = lcircuit.length() > 0;
 	bool checkName = name.length() > 0;
+	if (checkCircuit && checkCircuitIgnoreSuffix) {
+		size_t pos = lcircuit.find('#');
+		if (pos!=string::npos) {
+			lcircuit.resize(pos);
+		}
+	}
 	for (map<string, vector<Message*> >::iterator it = m_messagesByName.begin(); it != m_messagesByName.end(); it++) {
 		if (it->first[0] == '-') // avoid duplicates: instances stored multiple times have a key starting with "-"
 			continue;
-		Message* message = getFirstAvailable(it->second);
-		if (!message)
-			continue;
-		if (checkCircuit) {
-			string check = message->getCircuit();
-			FileReader::tolower(check);
-			if (completeMatch ? (check != lcircuit) : (check.find(lcircuit) == check.npos))
-				continue;
+		for (vector<Message*>::iterator msgIt = it->second.begin(); msgIt != it->second.end(); msgIt++) {
+			Message* message = *msgIt;
+			if (checkCircuit) {
+				string check = message->getCircuit();
+				FileReader::tolower(check);
+				if (checkCircuitIgnoreSuffix) {
+					size_t pos = check.find('#');
+					if (pos!=string::npos) {
+						check.resize(pos);
+					}
+				}
+				if (completeMatch ? (check != lcircuit) : (check.find(lcircuit) == check.npos))
+					continue;
+			}
+			if (checkName) {
+				string check = message->getName();
+				FileReader::tolower(check);
+				if (completeMatch ? (check != lname) : (check.find(lname) == check.npos))
+					continue;
+			}
+			if (message->isPassive()) {
+				if (!withPassive) {
+					continue;
+				}
+			} else if (message->isWrite()) {
+				if (!withWrite) {
+					continue;
+				}
+			} else {
+				if (!withRead) {
+					continue;
+				}
+			}
+			if (!onlyAvailable || message->isAvailable()) {
+				ret.push_back(*msgIt);
+			}
 		}
-		if (checkName) {
-			string check = message->getName();
-			FileReader::tolower(check);
-			if (completeMatch ? (check != lname) : (check.find(lname) == check.npos))
-				continue;
-		}
-		if (message->isPassive()) {
-			if (!withPassive)
-				continue;
-		}
-		else if (message->isWrite()) {
-			if (!withWrite)
-				continue;
-		}
-		else {
-			if (!withRead)
-				continue;
-		}
-		ret.push_back(message);
 	}
 
 	return ret;
@@ -1853,25 +1889,13 @@ void MessageMap::invalidateCache(Message* message)
 		return;
 	message->m_lastUpdateTime = 0;
 	string circuit = message->getCircuit();
-	size_t pos = circuit.find('#');
-	if (pos!=string::npos)
-		circuit.resize(pos);
 	string name = message->getName();
-	deque<Message*> messages = findAll(circuit, name, false, true, true, true);
+	deque<Message*> messages = findAll(circuit, name, true, true, true, true, true);
 	for (deque<Message*>::iterator it = messages.begin(); it != messages.end(); it++) {
 		Message* checkMessage = *it;
-		if (checkMessage==message
-		|| name!=checkMessage->getName())
-			continue; // check exact name
-		string check = checkMessage->getCircuit();
-		if (check!=circuit) {
-			size_t pos = check.find('#');
-			if (pos!=string::npos)
-				check.resize(pos);
-			if (check!=circuit)
-				continue;
+		if (checkMessage!=message) {
+			checkMessage->m_lastUpdateTime = 0;
 		}
-		checkMessage->m_lastUpdateTime = 0;
 	}
 }
 

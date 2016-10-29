@@ -90,7 +90,7 @@ public:
 			const unsigned char srcAddress, const unsigned char dstAddress,
 			const vector<unsigned char> id,
 			DataField* data, const bool deleteData,
-			const unsigned char pollPriority,
+			const unsigned char pollPriority=0,
 			Condition* condition=NULL);
 
 	/**
@@ -140,6 +140,17 @@ public:
 			DataFieldTemplates* templates, vector<Message*>& messages);
 
 	/**
+	 * Set that this is a special scanning @a Message instance.
+	 */
+	void setScanMessage() { m_isScanMessage = true; }
+
+	/**
+	 * Return whether this is a special scanning @a Message instance.
+	 * @return whether this is a special scanning @a Message instance.
+	 */
+	bool isScanMessage() { return m_isScanMessage; }
+
+	/**
 	 * Derive a new @a Message from this message.
 	 * @param dstAddress the new destination address.
 	 * @param srcAddress the new source address, or @a SYN to keep the current source address.
@@ -147,14 +158,6 @@ public:
 	 * @return the derived @a Message instance.
 	 */
 	virtual Message* derive(const unsigned char dstAddress, const unsigned char srcAddress=SYN, const string circuit="");
-
-	/**
-	 * Derive a new @a Message from this message.
-	 * @param dstAddress the new destination address.
-	 * @param extendCircuit whether to extend the current circuit name with a dot and the new destination address in hex.
-	 * @return the derived @a Message instance.
-	 */
-	Message* derive(const unsigned char dstAddress, const bool extendCircuit);
 
 	/**
 	 * Get the optional circuit name.
@@ -498,6 +501,9 @@ protected:
 	/** whether this message is used by a @a Condition. */
 	bool m_usedByCondition;
 
+	/** whether this is a special scanning @a Message instance. */
+	bool m_isScanMessage;
+
 	/** the @a Condition for this message, or NULL. */
 	Condition* m_condition;
 
@@ -518,6 +524,52 @@ protected:
 
 	/** the system time when this message was last polled for, 0 for never. */
 	time_t m_lastPollTime;
+
+};
+
+
+/**
+ * A marker subclass of @a Message for identifying ebusd created scanning @a Message instances.
+ */
+class ScanMessage : public Message
+{
+public:
+
+	/**
+	 * Construct a new instance.
+	 * @param circuit the optional circuit name.
+	 * @param dstAddress the destination address, or @a SYN for any (set later).
+	 * @param copyFrom the @a ScanMessage from which to copy the ID and data.
+	 */
+	ScanMessage(const string circuit,
+		const unsigned char dstAddress,
+		ScanMessage* copyFrom)
+		: Message(circuit, "id", false, false, "", SYN, dstAddress,
+			copyFrom->m_id, copyFrom->m_data, false) {
+		setScanMessage();
+	}
+
+	/**
+	 * Construct a new instance.
+	 * @param data the @a DataField for encoding/decoding the chained message.
+	 * @param deleteData whether to delete the @a DataField during destruction.
+	 */
+	ScanMessage(DataField* data, const bool deleteData)
+		: Message("scan", "id", false, false, 0x07, 0x04, data, deleteData) {
+	}
+
+	virtual ~ScanMessage() {}
+
+	// @copydoc
+	virtual Message* derive(const unsigned char dstAddress, const unsigned char srcAddress, const string circuit);
+
+	/**
+	 * Derive a new @a ScanMessage from this message.
+	 * @param dstAddress the new destination address.
+	 * @param extendCircuit whether to extend the current circuit name with a dot and the new destination address in hex.
+	 * @return the derived @a ScanMessage instance.
+	 */
+	ScanMessage* derive(const unsigned char dstAddress, const bool extendCircuit);
 
 };
 
@@ -707,9 +759,10 @@ public:
 	 * Resolve the referred @a Message instance(s) and field index(es).
 	 * @param messages the @a MessageMap instance for resolving.
 	 * @param errorMessage a @a ostringstream to which to add optional error messages.
+	 * @param readMessageFunc the function to call for immediate reading of a @a Message from the bus, or NULL.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	virtual result_t resolve(MessageMap* messages, ostringstream& errorMessage) = 0;
+	virtual result_t resolve(MessageMap* messages, ostringstream& errorMessage, void (*readMessageFunc)(Message* message)=NULL) = 0;
 
 	/**
 	 * Check and return whether this condition is fulfilled.
@@ -762,13 +815,8 @@ public:
 	// @copydoc
 	virtual CombinedCondition* combineAnd(Condition* other);
 
-	/**
-	 * Resolve the referred @a Message instance(s) and field index(es).
-	 * @param messages the @a MessageMap instance for resolving.
-	 * @param errorMessage a @a ostringstream to which to add optional error messages.
-	 * @return @a RESULT_OK on success, or an error code.
-	 */
-	virtual result_t resolve(MessageMap* messages, ostringstream& errorMessage);
+	// @copydoc
+	virtual result_t resolve(MessageMap* messages, ostringstream& errorMessage, void (*readMessageFunc)(Message* message)=NULL);
 
 	// @copydoc
 	virtual bool isTrue();
@@ -919,7 +967,7 @@ public:
 	virtual CombinedCondition* combineAnd(Condition* other) { m_conditions.push_back(other); return this; }
 
 	// @copydoc
-	virtual result_t resolve(MessageMap* messages, ostringstream& errorMessage);
+	virtual result_t resolve(MessageMap* messages, ostringstream& errorMessage, void (*readMessageFunc)(Message* message)=NULL);
 
 	// @copydoc
 	virtual bool isTrue();
@@ -1069,7 +1117,7 @@ public:
 	MessageMap(const bool addAll=false) : FileReader::FileReader(true),
 		m_addAll(addAll), m_maxIdLength(0), m_messageCount(0), m_conditionalMessageCount(0), m_passiveMessageCount(0)
 	{
-		m_scanMessage = new Message("scan", "ident", false, false, 0x07, 0x04, DataFieldSet::getIdentFields(), true);
+		m_scanMessage = new ScanMessage(DataFieldSet::getIdentFields(), true);
 	}
 
 	/**
@@ -1109,11 +1157,11 @@ public:
 		const string& filename, unsigned int lineNo);
 
 	/**
-	 * Get the scan @a Message instance for the specified address.
+	 * Get the scan @a ScanMessage instance for the specified address.
 	 * @param dstAddress the destination address, or @a SYN for the base scan @a Message.
-	 * @return the scan @a Message instance, or NULL if the dstAddress is no slave.
+	 * @return the scan @a ScanMessage instance, or NULL if the dstAddress is no slave.
 	 */
-	Message* getScanMessage(const unsigned char dstAddress=SYN);
+	ScanMessage* getScanMessage(const unsigned char dstAddress=SYN);
 
 	/**
 	 * Resolve all @a Condition instances.
@@ -1125,17 +1173,20 @@ public:
 	/**
 	 * Resolve a @a Condition.
 	 * @param condition the @a Condition to resolve.
+	 * @param readMessageFunc the function to call for immediate reading of a @a Message from the bus, or NULL.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	result_t resolveCondition(Condition* condition);
+	result_t resolveCondition(Condition* condition, void (*readMessageFunc)(Message* message)=NULL);
 
 	/**
 	 * Run all executable @a Instruction instances.
 	 * @param log the @a ostringstream to log success messages to (if necessary).
 	 * @param loadInfoFunc the function to call for successful loading of a file for a participant, or NULL.
+	 * @param readMessageFunc the function to call for immediate reading of a
+	 * @a Message values from the bus required for singleton instructions, or NULL.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	result_t executeInstructions(ostringstream& log, void (*loadInfoFunc)(MessageMap* messages, const unsigned char address, string file)=NULL);
+	result_t executeInstructions(ostringstream& log, void (*loadInfoFunc)(MessageMap* messages, const unsigned char address, string file)=NULL, void (*readMessageFunc)(Message* message)=NULL);
 
 	/**
 	 * Add a loaded file to a participant.
@@ -1179,10 +1230,13 @@ public:
 	 * @param withWrite true to include write messages (default false).
 	 * @param withPassive true to include passive messages (default false).
 	 * @return the found @a Message instances.
+	 * @param completeMatchIgnoreCircuitSuffix ignore different circuit suffixes (after "#") for completeMatch.
+	 * @param onlyAvailable true to include only available messages (default true), false to also include messages that are currently not available (e.g. due to unresolved or false conditions).
 	 * Note: the caller may not free the returned instances.
 	 */
 	deque<Message*> findAll(const string& circuit, const string& name, const bool completeMatch=true,
-		const bool withRead=true, const bool withWrite=false, const bool withPassive=false);
+		const bool withRead=true, const bool withWrite=false, const bool withPassive=false,
+		const bool completeMatchIgnoreCircuitSuffix=false, const bool onlyAvailable=true);
 
 	/**
 	 * Find the @a Message instance for the specified master data.
@@ -1270,8 +1324,8 @@ private:
 	/** whether to add all messages, even if duplicate. */
 	const bool m_addAll;
 
-	/** the @a Message instance used for scanning. */
-	Message* m_scanMessage;
+	/** the @a ScanMessage instance used for scanning. */
+	ScanMessage* m_scanMessage;
 
 	/** the loaded configuration files by slave address. */
 	map<unsigned char, string> m_loadedFiles;
