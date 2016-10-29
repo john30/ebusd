@@ -93,8 +93,9 @@ public:
 			const unsigned char pollPriority=0,
 			Condition* condition=NULL);
 
+private:
 	/**
-	 * Construct a new simple instance (e.g. for scanning).
+	 * Construct a new scan @a Message instance.
 	 * @param circuit the circuit name, or empty for not storing by name.
 	 * @param name the message name (unique within the same circuit and type), or empty for not storing by name.
 	 * @param isWrite whether this is a write message.
@@ -110,6 +111,7 @@ public:
 			const unsigned char pb, const unsigned char sb,
 			DataField* data, const bool deleteData);
 
+public:
 	/**
 	 * Destructor.
 	 */
@@ -140,6 +142,11 @@ public:
 			DataFieldTemplates* templates, vector<Message*>& messages);
 
 	/**
+	 * Create a new scan @a Message instance.
+	 */
+	static Message* createScanMessage();
+
+	/**
 	 * Set that this is a special scanning @a Message instance.
 	 */
 	void setScanMessage() { m_isScanMessage = true; }
@@ -158,6 +165,14 @@ public:
 	 * @return the derived @a Message instance.
 	 */
 	virtual Message* derive(const unsigned char dstAddress, const unsigned char srcAddress=SYN, const string circuit="");
+
+	/**
+	 * Derive a new @a Message from this message.
+	 * @param dstAddress the new destination address.
+	 * @param extendCircuit whether to extend the current circuit name with a dot and the new destination address in hex.
+	 * @return the derived @a ScanMessage instance.
+	 */
+	Message* derive(const unsigned char dstAddress, const bool extendCircuit);
 
 	/**
 	 * Get the optional circuit name.
@@ -524,52 +539,6 @@ protected:
 
 	/** the system time when this message was last polled for, 0 for never. */
 	time_t m_lastPollTime;
-
-};
-
-
-/**
- * A marker subclass of @a Message for identifying ebusd created scanning @a Message instances.
- */
-class ScanMessage : public Message
-{
-public:
-
-	/**
-	 * Construct a new instance.
-	 * @param circuit the optional circuit name.
-	 * @param dstAddress the destination address, or @a SYN for any (set later).
-	 * @param copyFrom the @a ScanMessage from which to copy the ID and data.
-	 */
-	ScanMessage(const string circuit,
-		const unsigned char dstAddress,
-		ScanMessage* copyFrom)
-		: Message(circuit, "id", false, false, "", SYN, dstAddress,
-			copyFrom->m_id, copyFrom->m_data, false) {
-		setScanMessage();
-	}
-
-	/**
-	 * Construct a new instance.
-	 * @param data the @a DataField for encoding/decoding the chained message.
-	 * @param deleteData whether to delete the @a DataField during destruction.
-	 */
-	ScanMessage(DataField* data, const bool deleteData)
-		: Message("scan", "id", false, false, 0x07, 0x04, data, deleteData) {
-	}
-
-	virtual ~ScanMessage() {}
-
-	// @copydoc
-	virtual Message* derive(const unsigned char dstAddress, const unsigned char srcAddress, const string circuit);
-
-	/**
-	 * Derive a new @a ScanMessage from this message.
-	 * @param dstAddress the new destination address.
-	 * @param extendCircuit whether to extend the current circuit name with a dot and the new destination address in hex.
-	 * @return the derived @a ScanMessage instance.
-	 */
-	ScanMessage* derive(const unsigned char dstAddress, const bool extendCircuit);
 
 };
 
@@ -1117,7 +1086,7 @@ public:
 	MessageMap(const bool addAll=false) : FileReader::FileReader(true),
 		m_addAll(addAll), m_maxIdLength(0), m_messageCount(0), m_conditionalMessageCount(0), m_passiveMessageCount(0)
 	{
-		m_scanMessage = new ScanMessage(DataFieldSet::getIdentFields(), true);
+		m_scanMessage = Message::createScanMessage();
 	}
 
 	/**
@@ -1157,11 +1126,11 @@ public:
 		const string& filename, unsigned int lineNo);
 
 	/**
-	 * Get the scan @a ScanMessage instance for the specified address.
+	 * Get the scan @a Message instance for the specified address.
 	 * @param dstAddress the destination address, or @a SYN for the base scan @a Message.
-	 * @return the scan @a ScanMessage instance, or NULL if the dstAddress is no slave.
+	 * @return the scan @a Message instance, or NULL if the dstAddress is no slave.
 	 */
-	ScanMessage* getScanMessage(const unsigned char dstAddress=SYN);
+	Message* getScanMessage(const unsigned char dstAddress=SYN);
 
 	/**
 	 * Resolve all @a Condition instances.
@@ -1324,8 +1293,8 @@ private:
 	/** whether to add all messages, even if duplicate. */
 	const bool m_addAll;
 
-	/** the @a ScanMessage instance used for scanning. */
-	ScanMessage* m_scanMessage;
+	/** the @a Message instance used for scanning. */
+	Message* m_scanMessage;
 
 	/** the loaded configuration files by slave address. */
 	map<unsigned char, string> m_loadedFiles;

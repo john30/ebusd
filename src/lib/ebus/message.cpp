@@ -101,11 +101,9 @@ Message::Message(const string circuit, const string name,
 	key |= (unsigned long long)pb << (8 * 5);
 	key |= (unsigned long long)sb << (8 * 4);
 	m_key = key;
-	if (circuit=="scan") {
-		setScanMessage();
-		m_pollPriority = 0;
-	}
+	setScanMessage();
 }
+
 
 /**
  * Helper method for getting a default if the value is empty.
@@ -387,13 +385,32 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 	return RESULT_OK;
 }
 
+Message* Message::createScanMessage()
+{
+	return new Message("scan", "", false, false, 0x07, 0x04, DataFieldSet::getIdentFields(), true);
+}
+
 Message* Message::derive(const unsigned char dstAddress, const unsigned char srcAddress, const string circuit)
 {
-	return new Message(circuit.length()==0 ? m_circuit : circuit, m_name,
+	Message* result = new Message(circuit.length()==0 ? m_circuit : circuit, m_name,
 		m_isWrite, m_isPassive, m_comment,
 		srcAddress==SYN ? m_srcAddress : srcAddress, dstAddress,
 		m_id, m_data, false,
 		m_pollPriority, m_condition);
+	if (m_isScanMessage) {
+		result->setScanMessage();
+	}
+	return result;
+}
+
+Message* Message::derive(const unsigned char dstAddress, const bool extendCircuit)
+{
+	if (extendCircuit) {
+		ostringstream out;
+		out << m_circuit << '.' << hex << setw(2) << setfill('0') << static_cast<unsigned>(dstAddress);
+		return derive(dstAddress, SYN, out.str());
+	}
+	return derive(dstAddress, SYN, m_circuit);
 }
 
 bool Message::checkIdPrefix(vector<unsigned char>& id)
@@ -717,22 +734,6 @@ void Message::dumpColumn(ostream& output, size_t column, bool withConditions)
 }
 
 
-Message* ScanMessage::derive(const unsigned char dstAddress, const unsigned char srcAddress, const string circuit)
-{
-	return new ScanMessage(circuit, dstAddress, this);
-}
-
-ScanMessage* ScanMessage::derive(const unsigned char dstAddress, const bool extendCircuit)
-{
-	if (extendCircuit) {
-		ostringstream out;
-		out << m_circuit << '.' << hex << setw(2) << setfill('0') << static_cast<unsigned>(dstAddress);
-		return new ScanMessage(out.str(), dstAddress, this);
-	}
-	return new ScanMessage(m_circuit, dstAddress, this);
-}
-
-
 ChainedMessage::ChainedMessage(const string circuit, const string name,
 		const bool isWrite, const string comment,
 		const unsigned char srcAddress, const unsigned char dstAddress,
@@ -774,11 +775,15 @@ ChainedMessage::~ChainedMessage()
 
 Message* ChainedMessage::derive(const unsigned char dstAddress, const unsigned char srcAddress, const string circuit)
 {
-	return new ChainedMessage(circuit.length()==0 ? m_circuit : circuit, m_name,
+	ChainedMessage* result = new ChainedMessage(circuit.length()==0 ? m_circuit : circuit, m_name,
 		m_isWrite, m_comment,
 		srcAddress==SYN ? m_srcAddress : srcAddress, dstAddress,
 		m_id, m_ids, m_lengths, m_data, false,
 		m_pollPriority, m_condition);
+	if (m_isScanMessage) {
+		result->setScanMessage();
+	}
+	return result;
 }
 
 bool ChainedMessage::checkId(SymbolString& master, unsigned char* index)
@@ -1598,7 +1603,7 @@ result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<s
 	return result;
 }
 
-ScanMessage* MessageMap::getScanMessage(const unsigned char dstAddress)
+Message* MessageMap::getScanMessage(const unsigned char dstAddress)
 {
 	if (dstAddress==SYN)
 		return m_scanMessage;
@@ -1607,8 +1612,8 @@ ScanMessage* MessageMap::getScanMessage(const unsigned char dstAddress)
 	unsigned long long key = m_scanMessage->getDerivedKey(dstAddress);
 	vector<Message*>* msgs = getByKey(key);
 	if (msgs!=NULL)
-		return (ScanMessage*)msgs->front();
-	ScanMessage* message = m_scanMessage->derive(dstAddress, true);
+		return msgs->front();
+	Message* message = m_scanMessage->derive(dstAddress, true);
 	add(message);
 	return message;
 }
