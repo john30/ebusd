@@ -166,7 +166,7 @@ void MainLoop::run()
 						string file;
 						result_t result = loadScanConfigFile(m_messages, lastScanAddress, slave, file);
 						if (result==RESULT_OK) {
-							logInfo(lf_main, "scan config %2.2x: file %s loaded", lastScanAddress, file.c_str());
+							logNotice(lf_main, "scan config %2.2x: file %s loaded", lastScanAddress, file.c_str());
 							m_busHandler->setScanConfigLoaded(lastScanAddress, file);
 						} else {
 							m_busHandler->setScanConfigLoaded(lastScanAddress, "");
@@ -334,33 +334,6 @@ result_t MainLoop::parseHexMaster(vector<string> &args, size_t argPos, SymbolStr
 	if (ret == RESULT_OK && !isValidAddress(master[1]))
 		ret = RESULT_ERR_INVALID_ADDR;
 
-	return ret;
-}
-
-result_t MainLoop::readFromBus(Message* message, string inputStr, const unsigned char dstAddress)
-{
-	result_t ret = RESULT_EMPTY;
-	SymbolString master(true);
-	SymbolString slave(false);
-	for (unsigned char index=0; index<message->getCount(); index++) {
-		istringstream input(inputStr);
-		ret = message->prepareMaster(m_address, master, input, UI_FIELD_SEPARATOR, dstAddress, index);
-		if (ret != RESULT_OK) {
-			logError(lf_main, "prepare message part %d: %s", index, getResultCode(ret));
-			break;
-		}
-		// send message
-		ret = m_busHandler->sendAndWait(master, slave);
-		if (ret != RESULT_OK) {
-			logError(lf_main, "send message part %d: %s", index, getResultCode(ret));
-			break;
-		}
-		ret = message->storeLastData(pt_slaveData, slave, index);
-		if (ret < RESULT_OK) {
-			logError(lf_main, "store message part %d: %s", index, getResultCode(ret));
-			break;
-		}
-	}
 	return ret;
 }
 
@@ -576,7 +549,7 @@ string MainLoop::executeRead(vector<string> &args)
 		return getResultCode(RESULT_ERR_INVALID_ADDR);
 
 	// read directly from bus
-	result_t ret = readFromBus(message, params, dstAddress);
+	result_t ret = m_busHandler->readFromBus(message, params, dstAddress);
 	if (ret != RESULT_OK)
 		return getResultCode(ret);
 
@@ -698,14 +671,15 @@ string MainLoop::executeWrite(vector<string> &args)
 	if (message->getDstAddress()==SYN && dstAddress==SYN)
 		return getResultCode(RESULT_ERR_INVALID_ADDR);
 
-	result_t ret = readFromBus(message, args.size() == argPos + 1 ? "" : args[argPos + 1], dstAddress); // allow missing values
-	if (ret != RESULT_OK)
+	result_t ret = m_busHandler->readFromBus(message, args.size() == argPos + 1 ? "" : args[argPos + 1], dstAddress); // allow missing values
+	if (ret != RESULT_OK) {
+		logError(lf_main, "write %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
 		return getResultCode(ret);
-
+	}
 	dstAddress = message->getLastMasterData()[1];
 	ostringstream result;
 	if (dstAddress == BROADCAST || isMaster(dstAddress)) {
-		logInfo(lf_main, "write %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
+		logNotice(lf_main, "write %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
 		if (dstAddress == BROADCAST)
 			return "done broadcast";
 		return getResultCode(RESULT_OK);
@@ -713,7 +687,7 @@ string MainLoop::executeWrite(vector<string> &args)
 
 	ret = message->decodeLastData(pt_slaveData, result); // decode data
 	if (ret >= RESULT_OK && result.str().empty()) {
-		logInfo(lf_main, "write %s %s: decode %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
+		logNotice(lf_main, "write %s %s: decode %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
 		return getResultCode(RESULT_OK);
 	}
 	if (ret != RESULT_OK) {
@@ -722,7 +696,7 @@ string MainLoop::executeWrite(vector<string> &args)
 		result << getResultCode(ret) << " in decode";
 		return result.str();
 	}
-	logInfo(lf_main, "write %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), result.str().c_str());
+	logNotice(lf_main, "write %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), result.str().c_str());
 	return result.str();
 }
 
@@ -1162,7 +1136,10 @@ string MainLoop::executeInfo(vector<string> &args)
 		result << "signal: no signal\n";
 	}
 	result << "masters: " << static_cast<unsigned>(m_busHandler->getMasterCount()) << "\n";
-	result << "messages: " << static_cast<unsigned>(m_messages->size());
+	result << "messages: " << static_cast<unsigned>(m_messages->size()) << "\n";
+	result << "conditional: " << static_cast<unsigned>(m_messages->sizeConditional()) << "\n";
+	result << "poll: " << static_cast<unsigned>(m_messages->sizePoll()) << "\n";
+	result << "update: " << static_cast<unsigned>(m_messages->sizePassive()) << "\n";
 	m_busHandler->formatSeenInfo(result);
 	return result.str();
 }
@@ -1280,7 +1257,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 				// read directly from bus
 				if (message->isPassive())
 					continue; // not possible to actively read this message
-				if (readFromBus(message, "") != RESULT_OK)
+				if (m_busHandler->readFromBus(message, "") != RESULT_OK)
 					continue;
 				lastup = message->getLastUpdateTime();
 			} else {

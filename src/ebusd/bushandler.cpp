@@ -63,7 +63,7 @@ const char* getStateCode(BusState state) {
 result_t PollRequest::prepare(unsigned char ownMasterAddress)
 {
 	istringstream input;
-	result_t result = m_message->prepareMaster(ownMasterAddress, m_master, input, m_index);
+	result_t result = m_message->prepareMaster(ownMasterAddress, m_master, input, UI_FIELD_SEPARATOR, SYN, m_index);
 	if (result == RESULT_OK)
 		logInfo(lf_bus, "poll cmd: %s", m_master.getDataStr().c_str());
 	return result;
@@ -75,7 +75,10 @@ bool PollRequest::notify(result_t result, SymbolString& slave)
 		result = m_message->storeLastData(pt_slaveData, slave, m_index);
 		if (result>=RESULT_OK && m_index+1 < m_message->getCount()) {
 			m_index++;
-			return true;
+			result = prepare(m_master[0]);
+			if (result >= RESULT_OK) {
+				return true;
+			}
 		}
 	}
 	ostringstream output;
@@ -115,6 +118,10 @@ bool ScanRequest::notify(result_t result, SymbolString& slave)
 				m_message = message;
 				m_message->storeLastData(pt_masterData, m_master, m_index); // expected to work since this is a clone
 			}
+		} else if (m_message->getDstAddress()==SYN) {
+			m_message = m_message->derive(dstAddress, true);
+			m_messageMap->add(m_message);
+			m_message->storeLastData(pt_masterData, m_master, m_index); // expected to work since this is a clone
 		}
 		result = m_message->storeLastData(pt_slaveData, slave, m_index);
 		if (result>=RESULT_OK && m_index+1 < m_message->getCount()) {
@@ -212,6 +219,33 @@ result_t BusHandler::sendAndWait(SymbolString& master, SymbolString& slave)
 	return result;
 }
 
+result_t BusHandler::readFromBus(Message* message, string inputStr, const unsigned char dstAddress)
+{
+	result_t ret = RESULT_EMPTY;
+	SymbolString master(true);
+	SymbolString slave(false);
+	for (unsigned char index=0; index<message->getCount(); index++) {
+		istringstream input(inputStr);
+		ret = message->prepareMaster(m_ownMasterAddress, master, input, UI_FIELD_SEPARATOR, dstAddress, index);
+		if (ret != RESULT_OK) {
+			logError(lf_bus, "prepare message part %d: %s", index, getResultCode(ret));
+			break;
+		}
+		// send message
+		ret = sendAndWait(master, slave);
+		if (ret != RESULT_OK) {
+			logError(lf_bus, "send message part %d: %s", index, getResultCode(ret));
+			break;
+		}
+		ret = message->storeLastData(pt_slaveData, slave, index);
+		if (ret < RESULT_OK) {
+			logError(lf_bus, "store message part %d: %s", index, getResultCode(ret));
+			break;
+		}
+	}
+	return ret;
+}
+
 void BusHandler::run()
 {
 	unsigned int symCount = 0;
@@ -269,9 +303,9 @@ result_t BusHandler::handleSymbol()
 		break;
 
 	case bs_ready:
-		if (m_currentRequest != NULL)
+		if (m_currentRequest != NULL) {
 			setState(bs_ready, RESULT_ERR_TIMEOUT); // just to be sure an old BusRequest is cleaned up
-		if (m_remainLockCount == 0 && m_currentRequest == NULL) {
+		} else if (m_remainLockCount == 0) {
 			startRequest = m_nextRequests.peek();
 			if (startRequest == NULL && m_pollInterval > 0) { // check for poll/scan
 				time_t now;
@@ -632,7 +666,7 @@ result_t BusHandler::handleSymbol()
 			}
 			if (message == NULL || message->isWrite())
 				return setState(bs_skip, RESULT_ERR_INVALID_ARG); // don't know this request or definition has wrong direction, deny
-			if (message == m_messages->getScanMessage()) {
+			if (message == m_messages->getScanMessage(m_ownSlaveAddress)) {
 				input.str(SCAN_ANSWER);
 			}
 
@@ -858,7 +892,7 @@ void BusHandler::receiveCompleted()
 
 result_t BusHandler::startScan(bool full)
 {
-	deque<Message*> messages = m_messages->findAll("scan", "");
+	deque<Message*> messages = m_messages->findAll("scan", "", true);
 	for (deque<Message*>::iterator it = messages.begin(); it < messages.end(); it++) {
 		Message* message = *it;
 		if (message->getPrimaryCommand() == 0x07 && message->getSecondaryCommand() == 0x04)
@@ -976,11 +1010,12 @@ void BusHandler::formatSeenInfo(ostringstream& output)
 				if (message!=NULL && message->getLastUpdateTime()>0) {
 					// add detailed scan info: Manufacturer ID SW HW
 					output << " \"";
-					result_t result = message->decodeLastData(output, OF_NAMES|OF_UNITS|OF_COMMENTS);
-					if (result!=RESULT_OK)
+					result_t result = message->decodeLastData(output, OF_NAMES);
+					if (result!=RESULT_OK) {
 						output << "\" error: " << getResultCode(result);
-					else
+					} else {
 						output << "\"";
+					}
 				}
 			}
 			string loadedFiles = m_messages->getLoadedFiles(address);

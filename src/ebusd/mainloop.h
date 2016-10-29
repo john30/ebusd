@@ -48,6 +48,12 @@ public:
 	~MainLoop();
 
 	/**
+	 * Get the @a BusHandler instance.
+	 * @return the created @a BusHandler instance.
+	 */
+	BusHandler* getBusHandler() { return m_busHandler; }
+
+	/**
 	 * Run the main loop.
 	 */
 	void run();
@@ -109,15 +115,6 @@ private:
 	 * @return the result from parsing the arguments.
 	 */
 	result_t parseHexMaster(vector<string> &args, size_t argPos, SymbolString& master);
-
-	/**
-	 * Prepare the master part for the @a Message, send it to the bus and wait for the answer.
-	 * @param message the @a Message instance.
-	 * @param inputStr the input @a string from which to read master values (if any).
-	 * @param dstAddress the destination address to set, or @a SYN to keep the address defined during construction.
-	 * @return the result code.
-	 */
-	result_t readFromBus(Message* message, string inputStr, const unsigned char dstAddress=SYN);
 
 	/**
 	 * Execute the read command.
