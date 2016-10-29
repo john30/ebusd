@@ -66,7 +66,7 @@
     cursor: pointer;
 }
 
-.ebus .circuitLabel {
+.ebus .circuitLabel, .ebus .circuitBar, .ebus .circuitBarLabel {
     background-color: white;
     padding: 0.2em;
     font: 12px sans-serif;
@@ -80,6 +80,36 @@
 }
 
 .ebus .circuitLabel:hover {
+    background-color: #5C96BC;
+    color: white;
+    border: 1px solid white;
+}
+
+.ebus .circuitBar {
+	width: 60px;
+	height: 20px;
+    border: none;
+    opacity: 1.0;
+    filter: alpha(opacity=100);
+}
+
+.ebus .circuitBarLabel {
+    border: none;
+    background: none;
+    width: 60px;
+    line-height: 5px;
+}
+
+.ebus .circuitBarLine {
+	width: 3px;
+	background-color: black;
+    opacity: 0.8;
+    filter: alpha(opacity=80);
+    cursor: pointer;
+	position: absolute;
+}
+
+.ebus .circuitBarLine:hover {
     background-color: #5C96BC;
     color: white;
     border: 1px solid white;

@@ -271,6 +271,7 @@ jsPlumb.ready(function() {
 			var ret = '';
 			if (format) {
 				format = format.split(' ');
+				var unit = true;
 				for (var i=0; i<format.length; i++) {
 					if (ret.length>0) {
 						if (ret[ret.length-1]==':') ret += '&nbsp;';
@@ -279,14 +280,17 @@ jsPlumb.ready(function() {
 					if (format[i][0]!='$') {
 						if (format[i]=='\\n')
 							ret += "<br>";
+						else if (format[i]=='NOUNIT')
+							unit = false
 						else
 							ret += format[i];
 					} else if (fields && fields.hasOwnProperty(format[i].substring(1))){
 						var field = fields[format[i].substring(1)];
 						ret += field.hasOwnProperty('value')&&field.value!=null?field.value:'?';
-						if (field.unit) {
+						if (field.unit && unit) {
 							ret += '&nbsp;'+field.unit;
 						}
+						unit = true;
 					} else if (circuit=='global' && format[i]=='$' && !Array.isArray(fields)) {
 						ret += formatGlobalField(name, fields);
 					} else {
@@ -379,7 +383,6 @@ jsPlumb.ready(function() {
 			parentElem.appendChild(child);
 			for (var i in data.items) {
 				var item = data.items[i];
-				var mname = item.name;
 				var cmessages = messages;
 				var circuit = name;
 				if (item.circuit) {
@@ -389,6 +392,66 @@ jsPlumb.ready(function() {
 					}
 					cmessages = allMessages[circuit];
 				}
+				if (item.type && item.type=='bar') {
+					var ichild = document.createElement("div");
+					ichild.className = "circuitBar";
+					ichild.style.left = Math.floor((item.leftc?item.leftc:item.left)*width)+'px';
+					ichild.style.top = Math.floor((item.topc?item.topc:item.top)*height)+'px';
+					child.appendChild(ichild);
+					if (item.leftc) {
+						ichild.style.left = Math.floor(item.leftc*width-ichild.clientWidth/2)+'px';
+					}
+					if (item.topc) {
+						ichild.style.top = Math.floor(item.topc*height-ichild.clientHeight/2)+'px';
+					}
+					if (item.title) {
+						var bchild = document.createElement("div");
+						bchild.className = "circuitBarLabel";
+						bchild.innerHTML = item.title;
+						ichild.appendChild(bchild);
+					}
+					var values = Array();
+					var lastvalues = Array();
+					var maxValue = 1;
+					for (var which=0; which<2; which++) {
+						if (which>0 && !item.lastnames) continue;
+						var setvalues = which==0?values:lastvalues;
+						for (var m=0; m<item.names.length; m++) {
+							var mname = which==0?item.names[m]:item.lastnames[m];
+							var value = null;
+							if (mname && cmessages.hasOwnProperty(mname)) {
+								var message = cmessages[mname];
+								if (circuit!='global' && !message.passive) needUris.push(circuit+'/'+mname);
+								var fields = circuit=='global'?message:(message?message.fields:null);
+								var field = fields?fields[item.field]:null;
+								if (field && field.hasOwnProperty('value')) {
+									value = field.value;
+								}
+							}
+							setvalues[setvalues.length] = value;
+							if (value>maxValue) maxValue = value;
+						}
+					}
+					for (var which=1; which>=0; which--) {
+						if (which>0 && lastvalues.length==0) continue;
+						var x = 0;
+						var setvalues = which==0?values:lastvalues;
+						for (var b=0; b<setvalues.length; b++) {
+							var value = setvalues[b];
+							var bchild = document.createElement("div");
+							bchild.className = "circuitBarLine";
+							if (which>0) bchild.style["background-color"] = "grey";
+							ichild.appendChild(bchild);
+							var h = Math.floor(ichild.clientHeight*value/maxValue);
+							bchild.style.height = h+'px';
+							bchild.style.top = (ichild.clientHeight-h)+'px';
+							bchild.style.left = x+'px';
+							x += bchild.clientWidth+2;
+						}
+					}
+					continue;
+				}
+				var mname = item.name;
 				if (!cmessages.hasOwnProperty(mname)) {
 					continue;
 				}
@@ -584,7 +647,7 @@ jsPlumb.ready(function() {
 							var elems = $$('div[data-id="'+key+'"]');
 							if (elems.length>0) {
 								needed = true;
-							} else console.log(key+':'+fields);
+							} // else console.log(key+':'+fields);
 							if (cname!='global' && !message.fields) {
 								continue;
 							}
