@@ -7,8 +7,8 @@
 		{"name": "YieldSum", "format": "$0 kWh", "top": 0.1, "leftc": 0.5},
 		{"type": "bar",
 			"title": "Ertrag",
-			"names": ["YieldThisYear1", "YieldThisYear2", "YieldThisYear3", "YieldThisYear4", "YieldThisYear5", "YieldThisYear6", "YieldThisYear7", "YieldThisYear8", "YieldThisYear9", "YieldThisYear10", "YieldThisYear11", "YieldThisYear12" ],
-			"lastnames": ["YieldLastYear1", "YieldLastYear2", "YieldLastYear3", "YieldLastYear4", "YieldLastYear5", "YieldLastYear6", "YieldLastYear7", "YieldLastYear8", "YieldLastYear9", "YieldLastYear10", "YieldLastYear11", "YieldLastYear12" ],
+			"names": "YieldThisYear",
+			"lastnames": "YieldLastYear",
 			"field": "energy", "top": 0.75, "leftc": 0.5
 		},
 		{"name": "FlowTemp", "format": "$temp", "top": 0.5, "left": 0.04},
