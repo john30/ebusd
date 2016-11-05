@@ -736,11 +736,11 @@ void executeInstructions(MessageMap* messages, bool verbose)
 
 	ostringstream log;
 	result = messages->executeInstructions(log, logFileLoaded, readMessage);
-	if (result != RESULT_OK)
+	if (result != RESULT_OK) {
 		logError(lf_main, "error executing instructions: %s, %s, %s", getResultCode(result), messages->getLastError().c_str(), log.str().c_str());
-	else if (log.tellp() > 0)
-		logNotice(lf_main, log.str().c_str());
-
+	} else if (log.tellp() > 0) {
+		logInfo(lf_main, log.str().c_str());
+	}
 	logNotice(lf_main, "found messages: %d (%d conditional on %d conditions, %d poll, %d update)", messages->size(), messages->sizeConditional(), messages->sizeConditions(), messages->sizePoll(), messages->sizePassive());
 }
 
