@@ -416,16 +416,33 @@ jsPlumb.ready(function() {
 					for (var which=0; which<2; which++) {
 						if (which>0 && !item.lastnames) continue;
 						var setvalues = which==0?values:lastvalues;
-						for (var m=0; m<item.names.length; m++) {
-							var mname = which==0?item.names[m]:item.lastnames[m];
+						var names = which>0 ? item.lastnames : item.names;
+						if (!Array.isArray(names)) {
+							names = Array(names);
+						}
+						for (var m=0; m<names.length; m++) {
+							var mname = names[m];
 							var value = null;
 							if (mname && cmessages.hasOwnProperty(mname)) {
 								var message = cmessages[mname];
 								if (circuit!='global' && !message.passive) needUris.push(circuit+'/'+mname);
 								var fields = circuit=='global'?message:(message?message.fields:null);
-								var field = fields?fields[item.field]:null;
-								if (field && field.hasOwnProperty('value')) {
-									value = field.value;
+								if (names.length==1 && fields) {
+									for (var f in fields) {
+										var field = fields[f];
+										value = null;
+										if (field && field.hasOwnProperty('value')) {
+											value = field.value;
+										}
+										setvalues[setvalues.length] = value;
+										if (value>maxValue) maxValue = value;
+									}
+									continue;
+								} else {
+									var field = fields?fields[item.field]:null;
+									if (field && field.hasOwnProperty('value')) {
+										value = field.value;
+									}
 								}
 							}
 							setvalues[setvalues.length] = value;
