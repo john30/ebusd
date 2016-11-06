@@ -86,8 +86,9 @@ public:
 	/**
 	 * Add all symbols from the other @a SymbolString and the calculated CRC if escaped.
 	 * @param str the @a SymbolString to copy from.
+	 * @param skipLastSymbol whether to skip the last symbol (probably the CRC).
 	 */
-	void addAll(const SymbolString& str);
+	void addAll(const SymbolString& str, const bool skipLastSymbol=false);
 
 	/**
 	 * Parse the escaped or unescaped hex @a string, add all symbols, and add the calculated CRC if escaped.

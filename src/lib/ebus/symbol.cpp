@@ -47,12 +47,16 @@ static const unsigned char CRC_LOOKUP_TABLE[] =
 };
 
 
-void SymbolString::addAll(const SymbolString& str)
+void SymbolString::addAll(const SymbolString& str, bool skipLastSymbol)
 {
 	bool addCrc = m_unescapeState == 0;
 	bool isEscaped = str.m_unescapeState == 0;
 	vector<unsigned char> data = str.m_data;
-	for (size_t i = 0; i < data.size(); i++) {
+	size_t end = data.size();
+	if (end>0 && skipLastSymbol) {
+		end--;
+	}
+	for (size_t i = 0; i < end; i++) {
 		push_back(data[i], isEscaped, addCrc);
 	}
 	if (addCrc)
