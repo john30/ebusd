@@ -176,7 +176,7 @@ bool ActiveBusRequest::notify(result_t result, SymbolString& slave)
 		logDebug(lf_bus, "read res: %s", slave.getDataStr().c_str());
 
 	m_result = result;
-	m_slave.addAll(slave);
+	m_slave.addAll(slave, true);
 
 	return false;
 }
