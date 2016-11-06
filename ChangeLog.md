@@ -1,3 +1,17 @@
+# 2.3 (2016-11-06)
+
+## Bug Fixes
+* synchronously request a message if needed for loading "*.inc" files
+* corrected derivation for TEM_P type
+* allow chained messages to be polled
+* removed CRC from slave answer in decode
+
+## Features
+* no longer poll scan messages since those are expected not to change
+* added more message counts to "info" result
+* added uih circuit with bar chart containing yields to HTML interface
+
+
 # 2.2 (2016-10-16)
 
 ## Breaking Changes
