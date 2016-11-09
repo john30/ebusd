@@ -451,7 +451,7 @@ string MainLoop::executeRead(vector<string> &args)
 		if (message->getLastUpdateTime() + maxAge > now || (message->isPassive() && message->getLastUpdateTime() != 0)) {
 			SymbolString& slave = message->getLastSlaveData();
 			logNotice(lf_main, "hex read %s %s from cache", message->getCircuit().c_str(), message->getName().c_str());
-			return slave.getDataStr();
+			return slave.getDataStr(true, false);
 		}
 
 		// send message
@@ -469,7 +469,7 @@ string MainLoop::executeRead(vector<string> &args)
 				logInfo(lf_main, "read hex %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(), result.str().c_str());
 			else
 				logError(lf_main, "read hex %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
-			return slave.getDataStr();
+			return slave.getDataStr(true, false);
 		}
 		logError(lf_main, "read hex %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
 		return getResultCode(ret);
@@ -644,7 +644,7 @@ string MainLoop::executeWrite(vector<string> &args)
 				return "done broadcast";
 			if (isMaster(master[1]))
 				return getResultCode(RESULT_OK);
-			return slave.getDataStr();
+			return slave.getDataStr(true, false);
 		}
 		logError(lf_main, "write hex %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
 		return getResultCode(ret);
@@ -726,7 +726,7 @@ string MainLoop::executeHex(vector<string> &args)
 				return "done broadcast";
 			if (isMaster(master[1]))
 				return getResultCode(RESULT_OK);
-			return slave.getDataStr();
+			return slave.getDataStr(true, false);
 		}
 		logError(lf_main, "hex: %s", getResultCode(ret));
 		return getResultCode(ret);
@@ -901,13 +901,13 @@ string MainLoop::executeFind(vector<string> &args)
 				result << "no data stored";
 			} else if (hexFormat) {
 				result << message->getLastMasterData().getDataStr()
-					   << " / " << message->getLastSlaveData().getDataStr();
+					   << " / " << message->getLastSlaveData().getDataStr(true, false);
 			} else {
 				result_t ret = message->decodeLastData(result, verbosity);
 				if (ret!=RESULT_OK) {
 					result << " (" << getResultCode(ret)
 						   << " for " << message->getLastMasterData().getDataStr()
-						   << " / " << message->getLastSlaveData().getDataStr() << ")";
+						   << " / " << message->getLastSlaveData().getDataStr(true, false) << ")";
 				}
 			}
 			if (verbosity==(OF_NAMES|OF_UNITS|OF_COMMENTS)) {
