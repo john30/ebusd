@@ -716,11 +716,14 @@ void logFileLoaded(MessageMap* messages, const unsigned char address, string fil
  */
 void readMessage(Message* message)
 {
-	if (!s_mainLoop) {
+	if (!s_mainLoop || !message) {
 		return;
 	}
 	BusHandler* busHandler = s_mainLoop->getBusHandler();
 	result_t result = busHandler->readFromBus(message, "");
+	if (result != RESULT_OK) {
+		logError(lf_main, "error reading message %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(result));
+	}
 }
 
 /**
