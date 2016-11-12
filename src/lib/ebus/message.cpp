@@ -820,9 +820,32 @@ bool ChainedMessage::checkId(SymbolString& master, unsigned char* index)
 bool ChainedMessage::checkId(Message& other)
 {
 	unsigned char idLen = getIdLength();
-	if (idLen != other.getIdLength() || other.getCount() == 1) // only equal for chained messages
+	if (idLen != other.getIdLength() || other.getCount() == 1) { // only equal for chained messages
 		return false;
-	return other.checkIdPrefix(m_id);
+	}
+	if (!other.checkIdPrefix(m_id)) {
+		return false; // chain prefix mismatch
+	}
+	vector< vector<unsigned char> > otherIds = ((ChainedMessage&)other).m_ids;
+	unsigned char chainPrefixLength = (unsigned char)m_id.size();
+	for (unsigned char checkIndex=0; checkIndex<m_ids.size(); checkIndex++) { // check suffix for each part
+		vector<unsigned char> id = m_ids[checkIndex];
+		for (unsigned char otherIndex=0; otherIndex<otherIds.size(); otherIndex++) {
+			vector<unsigned char> otherId = otherIds[otherIndex];
+			bool found = false;
+			for (unsigned char pos=chainPrefixLength; pos<idLen; pos++) {
+				if (id[pos] != otherId[pos]) {
+					found = false;
+					break;
+				}
+				found = true;
+			}
+			if (found) {
+				return true;
+			}
+		}
+	}
+	return false;
 }
 
 result_t ChainedMessage::prepareMasterPart(SymbolString& master, istringstream& input, char separator, unsigned char index)
@@ -1387,8 +1410,9 @@ result_t MessageMap::add(Message* message, bool storeByName)
 		if (keyIt != m_messagesByKey.end()) {
 			Message* other = getFirstAvailable(keyIt->second, *message);
 			if (other != NULL) {
-				if (!conditional)
+				if (!conditional) {
 					return RESULT_ERR_DUPLICATE; // duplicate key
+				}
 				if (!other->isConditional())
 					return RESULT_ERR_DUPLICATE; // duplicate key
 			}
