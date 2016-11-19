@@ -111,6 +111,14 @@ int main()
 		{"w,ehp,multi,,,,,01:8;02:2;03,longname,,STR:15", "ABCDEFGHIJKLMNO", "ff08b5090a0e014142434445464748;ff08b509040e02494a;ff08b509070e034b4c4d4e4f", "00;00;00", "mdC" },
 		{"w,ehp,multi,,,,,01:8;02:2;0304,longname,,STR:15", "ABCDEFGHIJKLMNO", "ff08b5090a0e014142434445464748;ff08b509040e02494a;ff08b509070e034b4c4d4e4f", "00;00;00", "cC" },
 		{"r,ehp,scan,chained scan,,08,B509,24:9;25;26;27,,,IGN,,,,id4,,STR:28", "21074500100027790000000000N8", "ff08b5090124;ff08b5090125;ff08b5090126;ff08b5090127", "09003231303734353030;09313030303237373930;09303030303030303030;024E38", "mdC" },
+		{"r,,x,,,,,6900,,,UCH,10,bar,,Bit7,,BI7:1,0=B70;1=B71,,,Bit6,,BI6:1,0=B60;1=B61", "1.9;B71;B61", "ff08b509030d6900", "03138040", "md" },
+		{"r,,x,,,,,6900,,,UCH,10,bar,,Bit7,,BI7:1,0=B70;1=B71,,,Bit6,,BI6:1,0=B60;1=B61", "1.9;B71;B60", "ff08b509030d6900", "0313ffbf", "md" },
+		{"r,,x,,,,,6900,,,UCH,10,bar,,Bit7,,BI7:1,0=B70;1=B71,,,Bit6,,BI6:1,0=B60;1=B61", "1.9;B70;B61", "ff08b509030d6900", "03137fff", "md" },
+		{"r,,x,,,,,6900,,,UCH,10,bar,,Bit7,,BI7:1,0=B70;1=B71,,,Bit6,,BI6:1,0=B60;1=B61", "1.9;B70;B60", "ff08b509030d6900", "03137fbf", "md" },
+		{"r,,x,,,,,6a00,,,UCH,10,bar,,Bit6,,BI6:1,0=B60;1=B61,,,Bit7,,BI7:1,0=B70;1=B71", "1.9;B61;B71", "ff08b509030d6900", "0213ff", "md" },
+		{"r,,x,,,,,6a00,,,UCH,10,bar,,Bit6,,BI6:1,0=B60;1=B61,,,Bit7,,BI7:1,0=B70;1=B71", "1.9;B60;B71", "ff08b509030d6900", "0213bf", "md" },
+		{"r,,x,,,,,6a00,,,UCH,10,bar,,Bit6,,BI6:1,0=B60;1=B61,,,Bit7,,BI7:1,0=B70;1=B71", "1.9;B61;B70", "ff08b509030d6900", "02137f", "md" },
+		{"r,,x,,,,,6a00,,,UCH,10,bar,,Bit6,,BI6:1,0=B60;1=B61,,,Bit7,,BI7:1,0=B70;1=B71", "1.9;B60;B70", "ff08b509030d6900", "02133f", "md" },
 	};
 	templates = new DataFieldTemplates();
 	MessageMap* messages = new MessageMap();
@@ -141,72 +149,11 @@ int main()
 		bool multi = flags.find('*') != string::npos;
 		bool withInput = flags.find('i') != string::npos;
 		result_t result = RESULT_EMPTY;
-		if (isChain) {
-			size_t pos = 0;
-			string token;
-			istringstream stream(check[2]);
-			while (getline(stream, token, VALUE_SEPARATOR)) {
-				if (pos >= mstrs.size())
-					mstrs.resize(pos+1);
-				else if (mstrs[pos]!=NULL)
-					delete mstrs[pos];
-				mstrs[pos] = new SymbolString(false);
-				result = mstrs[pos]->parseHex(token);
-				if (result != RESULT_OK) {
-					cout << "\"" << check[0] << "\": parse \"" << token << "\" error: " << getResultCode(result) << endl;
-					break;
-				}
-				pos++;
-			}
-			pos = 0;
-			stream.str(check[3]);
-			stream.clear();
-			while (getline(stream, token, VALUE_SEPARATOR)) {
-				if (pos >= sstrs.size())
-					sstrs.resize(pos+1);
-				else if (sstrs[pos]!=NULL)
-					delete sstrs[pos];
-				sstrs[pos] = new SymbolString(false);
-				result = sstrs[pos]->parseHex(token);
-				if (result != RESULT_OK) {
-					cout << "\"" << check[0] << "\": parse \"" << token << "\" error: " << getResultCode(result) << endl;
-					break;
-				}
-				pos++;
-			}
-			if (result != RESULT_OK)
-				continue;
-		} else {
-			if (mstrs[0]!=NULL)
-				delete mstrs[0];
-			mstrs[0] = new SymbolString(true);
-			result = mstrs[0]->parseHex(check[2]);
-			if (result != RESULT_OK) {
-				cout << "\"" << check[0] << "\": parse \"" << check[2] << "\" error: " << getResultCode(result) << endl;
-				continue;
-			}
-			if (sstrs[0]!=NULL)
-				delete sstrs[0];
-			sstrs[0] = new SymbolString(true);
-			result = sstrs[0]->parseHex(check[3]);
-			if (result != RESULT_OK) {
-				cout << "\"" << check[0] << "\": parse \"" << check[3] << "\" error: " << getResultCode(result) << endl;
-				continue;
-			}
-		}
 		vector<string> entries;
 		istringstream ifs(check[0]);
 		unsigned int lineNo = 0;
 		if (!FileReader::splitFields(ifs, entries, lineNo)) {
 			entries.clear();
-		}
-
-		if (deleteMessages.size()>0) {
-			for (vector<Message*>::iterator it = deleteMessages.begin(); it != deleteMessages.end(); it++) {
-				Message* deleteMessage = *it;
-				delete deleteMessage;
-			}
-			deleteMessages.clear();
 		}
 		if (isTemplate) {
 			// store new template
@@ -255,6 +202,67 @@ int main()
 			}
 			continue;
 		}
+		if (isChain) {
+			size_t pos = 0;
+			string token;
+			istringstream stream(check[2]);
+			while (getline(stream, token, VALUE_SEPARATOR)) {
+				if (pos >= mstrs.size())
+					mstrs.resize(pos+1);
+				else if (mstrs[pos]!=NULL)
+					delete mstrs[pos];
+				mstrs[pos] = new SymbolString(false);
+				result = mstrs[pos]->parseHex(token);
+				if (result != RESULT_OK) {
+					cout << "\"" << check[0] << "\": parse \"" << token << "\" error: " << getResultCode(result) << endl;
+					break;
+				}
+				pos++;
+			}
+			pos = 0;
+			stream.str(check[3]);
+			stream.clear();
+			while (getline(stream, token, VALUE_SEPARATOR)) {
+				if (pos >= sstrs.size())
+					sstrs.resize(pos+1);
+				else if (sstrs[pos]!=NULL)
+					delete sstrs[pos];
+				sstrs[pos] = new SymbolString(false);
+				result = sstrs[pos]->parseHex(token);
+				if (result != RESULT_OK) {
+					cout << "\"" << check[0] << "\": parse \"" << token << "\" error: " << getResultCode(result) << endl;
+					break;
+				}
+				pos++;
+			}
+			if (result != RESULT_OK)
+				continue;
+		} else {
+			if (mstrs[0]!=NULL)
+				delete mstrs[0];
+			mstrs[0] = new SymbolString(false);
+			result = mstrs[0]->parseHex(check[2]);
+			if (result != RESULT_OK) {
+				cout << "\"" << check[0] << "\": parse \"" << check[2] << "\" error: " << getResultCode(result) << endl;
+				continue;
+			}
+			if (sstrs[0]!=NULL)
+				delete sstrs[0];
+			sstrs[0] = new SymbolString(false);
+			result = sstrs[0]->parseHex(check[3]);
+			if (result != RESULT_OK) {
+				cout << "\"" << check[0] << "\": parse \"" << check[3] << "\" error: " << getResultCode(result) << endl;
+				continue;
+			}
+		}
+
+		if (deleteMessages.size()>0) {
+			for (vector<Message*>::iterator it = deleteMessages.begin(); it != deleteMessages.end(); it++) {
+				Message* deleteMessage = *it;
+				delete deleteMessage;
+			}
+			deleteMessages.clear();
+		}
 		if (entries.size() == 0) {
 			message = messages->find(*mstrs[0]);
 			if (message == NULL) {
@@ -262,8 +270,7 @@ int main()
 				continue;
 			}
 			cout << "\"" << check[2] << "\": find OK" << endl;
-		}
-		else {
+		} else {
 			vector<string>::iterator it = entries.begin();
 			string types = *it;
 			Condition* condition = NULL;
@@ -349,7 +356,7 @@ int main()
 		}
 		if (!message->isPassive() && (withInput || !decode)) {
 			istringstream input(inputStr);
-			SymbolString writeMstr;
+			SymbolString writeMstr(false);
 			result = message->prepareMaster(0xff, writeMstr, input);
 			if (failedPrepare) {
 				if (result == RESULT_OK)
@@ -367,7 +374,7 @@ int main()
 			cout << "  \"" << inputStr << "\": prepare OK" << endl;
 
 			bool match = writeMstr==*mstrs[0];
-			verify(failedPrepareMatch, "prepare", inputStr, match, mstrs[0]->getDataStr(), writeMstr.getDataStr());
+			verify(failedPrepareMatch, "prepare", inputStr, match, mstrs[0]->getDataStr(true, false), writeMstr.getDataStr(true, false));
 		}
 	}
 
