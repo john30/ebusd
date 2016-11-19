@@ -1010,10 +1010,9 @@ public:
 	 * Execute the instruction.
 	 * @param messages the @a MessageMap.
 	 * @param log the @a ostringstream to log success messages to (if necessary).
-	 * @param loadInfoFunc the function to call for successful loading of a file for a certain address, or NULL.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	virtual result_t execute(MessageMap* messages, ostringstream& log, void (*loadInfoFunc)(MessageMap* messages, const unsigned char address, string filename)=NULL) = 0;
+	virtual result_t execute(MessageMap* messages, ostringstream& log) = 0;
 
 private:
 
@@ -1062,7 +1061,7 @@ public:
 	virtual ~LoadInstruction() { }
 
 	// @copydoc
-	virtual result_t execute(MessageMap* messages, ostringstream& log, void (*loadInfoFunc)(MessageMap* messages, const unsigned char address, string filename)=NULL);
+	virtual result_t execute(MessageMap* messages, ostringstream& log);
 
 private:
 
@@ -1150,12 +1149,11 @@ public:
 	/**
 	 * Run all executable @a Instruction instances.
 	 * @param log the @a ostringstream to log success messages to (if necessary).
-	 * @param loadInfoFunc the function to call for successful loading of a file for a participant, or NULL.
 	 * @param readMessageFunc the function to call for immediate reading of a
 	 * @a Message values from the bus required for singleton instructions, or NULL.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	result_t executeInstructions(ostringstream& log, void (*loadInfoFunc)(MessageMap* messages, const unsigned char address, string file)=NULL, void (*readMessageFunc)(Message* message)=NULL);
+	result_t executeInstructions(ostringstream& log, void (*readMessageFunc)(Message* message)=NULL);
 
 	/**
 	 * Add a loaded file to a participant.

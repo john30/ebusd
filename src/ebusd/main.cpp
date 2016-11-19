@@ -700,17 +700,6 @@ static result_t readConfigFiles(const string path, const string extension, Messa
 };
 
 /**
- * Helper method for logging loading of a configuration file.
- * @param messages the @a MessageMap instance.
- * @param address the address for which the file was loaded.
- * @param file the name of the loaded file.
- */
-void logFileLoaded(MessageMap* messages, const unsigned char address, string file)
-{
-	messages->addLoadedFile(address, file);
-}
-
-/**
  * Helper method for immediate reading of a @a Message from the bus.
  * @param message the @a Message to read.
  */
@@ -738,7 +727,7 @@ void executeInstructions(MessageMap* messages, bool verbose)
 		logError(lf_main, "error resolving conditions: %s, %s", getResultCode(result), messages->getLastError().c_str());
 	}
 	ostringstream log;
-	result = messages->executeInstructions(log, logFileLoaded, readMessage);
+	result = messages->executeInstructions(log, readMessage);
 	if (result != RESULT_OK) {
 		logError(lf_main, "error executing instructions: %s, %s, %s", getResultCode(result), messages->getLastError().c_str(), log.str().c_str());
 	} else if (verbose && log.tellp() > 0) {

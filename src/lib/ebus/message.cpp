@@ -1399,7 +1399,7 @@ string Instruction::getDestination()
 }
 
 
-result_t LoadInstruction::execute(MessageMap* messages, ostringstream& log, void (*loadInfoFunc)(MessageMap* messages, const unsigned char address, string filename)) {
+result_t LoadInstruction::execute(MessageMap* messages, ostringstream& log) {
 	result_t result = messages->readFromFile(m_filename, false, m_defaultDest, m_defaultCircuit, m_defaultSuffix);
 	if (log.tellp()>0) {
 		log << ", ";
@@ -1409,7 +1409,7 @@ result_t LoadInstruction::execute(MessageMap* messages, ostringstream& log, void
 		return result;
 	}
 	log << (isSingleton() ? "loaded " : "included ") << m_filename << " for \"" << getDestination() << "\"";
-	if (isSingleton() && loadInfoFunc!=NULL && !m_defaultDest.empty()) {
+	if (isSingleton() && !m_defaultDest.empty()) {
 		result_t temp;
 		unsigned char address = (unsigned char)parseInt(m_defaultDest.c_str(), 16, 0, 0xff, temp);
 		if (temp==RESULT_OK) {
@@ -1420,7 +1420,7 @@ result_t LoadInstruction::execute(MessageMap* messages, ostringstream& log, void
 			} else {
 				filename = m_filename.substr(pos+1);
 			}
-			(*loadInfoFunc)(messages, address, filename);
+			messages->addLoadedFile(address, filename);
 		}
 	}
 	return result;
@@ -1696,7 +1696,7 @@ result_t MessageMap::resolveCondition(Condition* condition, void (*readMessageFu
 	return result;
 }
 
-result_t MessageMap::executeInstructions(ostringstream& log, void (*loadInfoFunc)(MessageMap* messages, const unsigned char address, string file), void (*readMessageFunc)(Message* message))
+result_t MessageMap::executeInstructions(ostringstream& log, void (*readMessageFunc)(Message* message))
 {
 	m_lastError = "";
 	result_t overallResult = RESULT_OK;
@@ -1725,7 +1725,7 @@ result_t MessageMap::executeInstructions(ostringstream& log, void (*loadInfoFunc
 				if (instruction->isSingleton()) {
 					removeSingletons = true;
 				}
-				result_t result = instruction->execute(this, log, loadInfoFunc);
+				result_t result = instruction->execute(this, log);
 				if (result!=RESULT_OK) {
 					overallResult = result;
 				}
