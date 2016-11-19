@@ -274,10 +274,11 @@ result_t SingleDataField::create(const string id, const unsigned char length,
 			for (unsigned int i = 0; i < sizeof(dayNames) / sizeof(dayNames[0]); i++)
 				values[numType->getMinValue() + i] = dayNames[i];
 		}
+		result_t result = numType->derive(divisor, bitCount, numType);
+		if (result!=RESULT_OK) {
+			return result;
+		}
 		if (values.empty()) {
-			result_t result = numType->derive(divisor, bitCount, numType);
-			if (result!=RESULT_OK)
-				return result;
 			returnField = new SingleDataField(name, comment, unit, numType, partType, byteCount);
 			return RESULT_OK;
 		}
@@ -329,11 +330,11 @@ result_t SingleDataField::read(const PartType partType,
 	default:
 		return RESULT_ERR_INVALID_PART;
 	}
+	bool remainder = m_length==REMAIN_LEN && m_dataType->isAdjustableLength();
+	if (offset + (remainder?1:m_length) > data.size()) {
+		return RESULT_ERR_INVALID_POS;
+	}
 	if (isIgnored() || (fieldName != NULL && (m_name != fieldName || fieldIndex > 0))) {
-		bool remainder = m_length==REMAIN_LEN && m_dataType->isAdjustableLength();
-		if (!remainder && offset + m_length > data.size()) {
-			return RESULT_ERR_INVALID_POS;
-		}
 		return RESULT_EMPTY;
 	}
 	return m_dataType->readRawValue(data, offset, m_length, output);
@@ -358,11 +359,11 @@ result_t SingleDataField::read(const PartType partType,
 	default:
 		return RESULT_ERR_INVALID_PART;
 	}
+	bool remainder = m_length==REMAIN_LEN && m_dataType->isAdjustableLength();
+	if (offset + (remainder?1:m_length) > data.size()) {
+		return RESULT_ERR_INVALID_POS;
+	}
 	if (isIgnored() || (fieldName != NULL && (m_name != fieldName || fieldIndex > 0))) {
-		bool remainder = m_length==REMAIN_LEN && m_dataType->isAdjustableLength();
-		if (!remainder && offset + m_length > data.size()) {
-			return RESULT_ERR_INVALID_POS;
-		}
 		return RESULT_EMPTY;
 	}
 
@@ -502,7 +503,7 @@ bool SingleDataField::hasFullByteOffset(bool after)
 	}
 	NumberDataType* num = (NumberDataType*)m_dataType;
 	return (num->getBitCount() % 8) == 0
-		|| (after && num->getFirstBit() + (num->getBitCount() % 8) >= 8);
+	|| (after && num->getFirstBit() + (num->getBitCount() % 8) >= 8);
 }
 
 

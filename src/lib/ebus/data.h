@@ -294,11 +294,11 @@ public:
 
 	/**
 	 * Get whether this field uses a full byte offset.
-	 * @param after @p true to check after consuming the bits, false to check before.
-	 * @return true if this field uses a full byte offset, false if this field
+	 * @param after @p true to check after consuming the bits, @p false to check before.
+	 * @return @p true if this field uses a full byte offset, @p false if this field
 	 * only consumes a part of a byte and a subsequent field may re-use the same offset.
 	 */
-	virtual bool hasFullByteOffset(bool after);
+	bool hasFullByteOffset(bool after);
 
 	// @copydoc
 	virtual void dump(ostream& output);
