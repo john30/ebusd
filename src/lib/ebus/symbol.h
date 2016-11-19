@@ -99,7 +99,7 @@ public:
 	result_t parseHex(const string& str, const bool isEscaped=false);
 
 	/**
-	 * Returns the symbols as hex string.
+	 * Return the symbols as hex string.
 	 * @param unescape whether to unescape an escaped instance.
 	 * @param skipLastSymbol whether to skip the last symbol (probably the CRC).
 	 * @return the symbols as hex string.
@@ -107,21 +107,21 @@ public:
 	const string getDataStr(const bool unescape=true, const bool skipLastSymbol=true);
 
 	/**
-	 * Returns a reference to the symbol at the specified index.
+	 * Return a reference to the symbol at the specified index.
 	 * @param index the index of the symbol to return.
 	 * @return the reference to the symbol at the specified index.
 	 */
 	unsigned char& operator[](const size_t index) { if (index >= m_data.size()) m_data.resize(index+1, 0); return m_data[index]; }
 
 	/**
-	 * Returns whether this instance is equal to the other instance.
+	 * Return whether this instance is equal to the other instance.
 	 * @param other the other instance.
 	 * @return true if this instance is equal to the other instance (i.e. both escaped or both unescaped and same symbols).
 	 */
 	bool operator==(SymbolString& other) { return m_unescapeState==other.m_unescapeState && m_data==other.m_data; }
 
 	/**
-	 * Returns whether this instance is different from the other instance.
+	 * Return whether this instance is different from the other instance.
 	 * @param other the other instance.
 	 * @return true if this instance is different from the other instance.
 	 */
@@ -154,13 +154,13 @@ public:
 	result_t push_back(const unsigned char value, const bool isEscaped=true, const bool updateCRC=true);
 
 	/**
-	 * Returns the number of symbols in this symbol string.
+	 * Return the number of symbols in this symbol string.
 	 * @return the number of available symbols.
 	 */
 	unsigned char size() const { return (unsigned char)m_data.size(); }
 
 	/**
-	 * Returns the calculated CRC.
+	 * Return the calculated CRC.
 	 * @return the calculated CRC.
 	 */
 	unsigned char getCRC() const { return m_crc; }
@@ -207,35 +207,42 @@ private:
 
 
 /**
- * Returns whether the address is one of the 25 master addresses.
+ * Return whether the address is one of the 25 master addresses.
  * @param addr the address to check.
  * @return <code>true</code> if the specified address is a master address.
  */
 bool isMaster(unsigned char addr);
 
 /**
- * Returns whether the address is a slave address of one of the 25 masters.
+ * Return whether the address is a slave address of one of the 25 masters.
  * @param addr the address to check.
  * @return <code>true</code> if the specified address is a slave address of a master.
  */
 bool isSlaveMaster(unsigned char addr);
 
 /**
- * Returns the master address associated with the specified address (master or slave).
+ * Return the slave address associated with the specified address (master or slave).
+ * @param addr the address to check.
+ * @return the slave address, or SYN if the specified address is neither a master address nor a slave address of a master.
+ */
+unsigned char getSlaveAddress(unsigned char addr);
+
+/**
+ * Return the master address associated with the specified address (master or slave).
  * @param addr the address to check.
  * @return the master address, or SYN if the specified address is neither a master address nor a slave address of a master.
  */
 unsigned char getMasterAddress(unsigned char addr);
 
 /**
- * Returns the number of the master if the address is a valid bus address.
+ * Return the number of the master if the address is a valid bus address.
  * @param addr the bus address.
  * @return the number of the master if the address is a valid bus address (1 to 25), or 0.
  */
 unsigned char getMasterNumber(unsigned char addr);
 
 /**
- * Returns whether the address is a valid bus address.
+ * Return whether the address is a valid bus address.
  * @param addr the address to check.
  * @param allowBroadcast whether to also allow @a addr to be the broadcast address (default true).
  * @return <code>true</code> if the specified address is a valid bus address.

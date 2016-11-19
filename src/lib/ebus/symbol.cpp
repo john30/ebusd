@@ -59,8 +59,9 @@ void SymbolString::addAll(const SymbolString& str, bool skipLastSymbol)
 	for (size_t i = 0; i < end; i++) {
 		push_back(data[i], isEscaped, addCrc);
 	}
-	if (addCrc)
+	if (addCrc) {
 		push_back(m_crc, false, false); // add CRC
+	}
 }
 
 result_t SymbolString::parseHex(const string& str, const bool isEscaped)
@@ -71,14 +72,14 @@ result_t SymbolString::parseHex(const string& str, const bool isEscaped)
 		const char* strBegin = str.substr(i, 2).c_str();
 		unsigned long int value = strtoul(strBegin, &strEnd, 16);
 
-		if (strEnd == NULL || strEnd != strBegin+2 || value > 0xff)
+		if (strEnd == NULL || strEnd != strBegin+2 || value > 0xff) {
 			return RESULT_ERR_INVALID_NUM; // invalid value
-
+		}
 		push_back((unsigned char)value, isEscaped, addCrc);
 	}
-	if (addCrc)
+	if (addCrc) {
 		push_back(m_crc, false, false); // add CRC
-
+	}
 	return RESULT_OK;
 }
 
@@ -91,24 +92,22 @@ const string SymbolString::getDataStr(const bool unescape, const bool skipLastSy
 		unsigned char value = m_data[i];
 		if (m_unescapeState == 0 && unescape && previousEscape) {
 			if (!skipLastSymbol || i+1 < m_data.size()) {
-				if (value == 0x00)
+				if (value == 0x00) {
 					sstr << "a9"; // ESC
-				else if (value == 0x01)
+				} else if (value == 0x01) {
 					sstr << "aa"; // SYN
-				else
+				} else {
 					sstr << "XX"; // invalid escape sequence
+				}
 			}
 			previousEscape = false;
-		}
-		else if (m_unescapeState == 0 && unescape && value == ESC) {
+		} else if (m_unescapeState == 0 && unescape && value == ESC) {
 			previousEscape = true; // escape sequence not yet finished
-		}
-		else if (!skipLastSymbol || i+1 < m_data.size()) {
+		} else if (!skipLastSymbol || i+1 < m_data.size()) {
 			sstr << nouppercase << setw(2) << hex
 					<< setfill('0') << static_cast<unsigned>(value);
 		}
 	}
-
 	return sstr.str();
 }
 
@@ -122,46 +121,43 @@ result_t SymbolString::push_back(const unsigned char value, const bool isEscaped
 				addCRC(ESC);
 				addCRC(0x00);
 			}
-		}
-		else if (!isEscaped && value == SYN) {
+		} else if (!isEscaped && value == SYN) {
 			m_data.push_back(ESC);
 			m_data.push_back(0x01);
 			if (updateCRC) {
 				addCRC(ESC);
 				addCRC(0x01);
 			}
-		}
-		else {
+		} else {
 			m_data.push_back(value);
-			if (updateCRC)
+			if (updateCRC) {
 				addCRC(value);
-
+			}
 		}
 		return RESULT_OK;
 	}
-	else if (!isEscaped) {
-		if (m_unescapeState != 1)
+	if (!isEscaped) {
+		if (m_unescapeState != 1) {
 			return RESULT_ERR_ESC; // invalid unescape state
+		}
 		m_data.push_back(value);
 		if (updateCRC) {
 			if (value == ESC) {
 				addCRC(ESC);
 				addCRC(0x00);
-			}
-			else if (value == SYN) {
+			} else if (value == SYN) {
 				addCRC(ESC);
 				addCRC(0x01);
-			}
-			else {
+			} else {
 				addCRC(value);
 			}
 		}
 		return RESULT_OK;
 	}
-	else if (m_unescapeState != 1) {
-		if (updateCRC)
+	if (m_unescapeState != 1) {
+		if (updateCRC) {
 			addCRC(value);
-
+		}
 		if (value == 0x00) {
 			m_data.push_back(ESC);
 			m_unescapeState = 1;
@@ -174,16 +170,16 @@ result_t SymbolString::push_back(const unsigned char value, const bool isEscaped
 		}
 		return RESULT_ERR_ESC; // invalid escape sequence
 	}
-	else if (value == ESC) {
-		if (updateCRC)
+	if (value == ESC) {
+		if (updateCRC) {
 			addCRC(value);
-
+		}
 		m_unescapeState = 2;
 		return RESULT_CONTINUE;
 	}
-	if (updateCRC)
+	if (updateCRC) {
 		addCRC(value);
-
+	}
 	m_data.push_back(value);
 	return RESULT_OK;
 }
@@ -206,14 +202,24 @@ bool isSlaveMaster(unsigned char addr) {
 	return isMaster((unsigned char)(addr+256-5));
 }
 
+unsigned char getSlaveAddress(unsigned char addr) {
+	if (isMaster(addr)) {
+		return (unsigned char)(addr+5);
+	}
+	if (isValidAddress(addr, false)) {
+		return addr;
+	}
+	return SYN;
+}
+
 unsigned char getMasterAddress(unsigned char addr) {
-	if (isMaster(addr))
+	if (isMaster(addr)) {
 		return addr;
-
+	}
 	addr = (unsigned char)(addr+256-5);
-	if (isMaster(addr))
+	if (isMaster(addr)) {
 		return addr;
-
+	}
 	return SYN;
 }
 
@@ -241,9 +247,13 @@ unsigned char getMasterPartIndex(unsigned char bits) {
 }
 unsigned char getMasterNumber(unsigned char addr) {
 	unsigned char priority = getMasterPartIndex(addr & 0x0F);
-	if (priority==0) return 0;
+	if (priority==0) {
+		return 0;
+	}
 	unsigned char index = getMasterPartIndex((addr & 0xF0) >> 4);
-	if (index==0) return 0;
+	if (index==0) {
+		return 0;
+	}
 	return (unsigned char)(5*(priority-1) + index);
 }
 
