@@ -110,15 +110,30 @@ Message::Message(const string circuit, const string name,
  * @param value the value to check.
  * @param defaults a @a vector of defaults, or NULL.
  * @param pos the position in defaults.
+ * @param replaceStar whether to replace a star in the default with the value.
+ * If there is no star in the default and the value is empty, use the complete
+ * default instead.
+ * @param required don't combine the value with the default when the value is
+ * empty and @p replaceStar is @p true.
  * @return the default if available and value is empty, or the value.
  */
-string getDefault(const string value, vector<string>* defaults, size_t pos)
+string getDefault(const string value, vector<string>* defaults, size_t pos, bool replaceStar=false, bool required=false)
 {
-	if (value.length() > 0 || defaults == NULL || pos >= defaults->size()) {
+	if (defaults == NULL || pos >= defaults->size()) {
 		return value;
 	}
-
-	return defaults->at(pos);
+	if (value.length()==0 && replaceStar && required) {
+		return value;
+	}
+	string defaultStr = defaults->at(pos);
+	if (!replaceStar || defaultStr.length()==0) {
+		return value.length()>0 ? value : defaultStr;
+	}
+	string::size_type insertPos = defaultStr.find('*');
+	if (insertPos==string::npos) {
+		return value.length()==0 ? defaultStr : value;
+	}
+	return defaultStr.substr(0, insertPos)+value+defaultStr.substr(insertPos+1);
 }
 
 result_t Message::parseId(string input, vector<unsigned char>& id)
@@ -197,27 +212,19 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 		}
 	}
 
-	string circuit = getDefault(*it++, defaults, defaultPos++); // [circuit]
+	string circuit = getDefault(*it++, defaults, defaultPos++, true); // [circuit]
 	if (it == end)
 		return RESULT_ERR_EOF;
 
-	string name = *it++; // name
+	string name = getDefault(*it++, defaults, defaultPos++, true, true); // name
 	if (it == end)
 		return RESULT_ERR_EOF;
 	if (name.length() == 0)
 		return RESULT_ERR_INVALID_ARG; // empty name
-	string defStr = getDefault("", defaults, defaultPos++);
-	if (defStr.length() > 0) {
-		name = defStr+name; // prefix default name
-	}
 
-	string comment = *it++; // [comment]
+	string comment = getDefault(*it++, defaults, defaultPos++, true); // [comment]
 	if (it == end)
 		return RESULT_ERR_EOF;
-	defStr = getDefault("", defaults, defaultPos++);
-	if (defStr.length() > 0) {
-		name = defStr+name; // prefix default comment
-	}
 
 	str = getDefault(*it++, defaults, defaultPos++).c_str(); // [QQ[;QQ]*]
 	if (it == end)
