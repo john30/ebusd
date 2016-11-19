@@ -28,6 +28,33 @@
 ./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f "ff08070400/0ab5303132333431313131" >/dev/null
 ./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f "ff08070400" >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f "ff080704/" >/dev/null 2>/dev/null
+cat >contrib/etc/ebusd/bad.csv <<EOF
+u,broadcast,outsidetemp,,,fe,b516,01,temp2,m,UCH,2000000000
+u,broadcast,outsidetemp,,,fe,b516,01,temp2,m,D2B,2000000000=
+u,broadcast,outsidetemp,,,fe,b516,01,temp2,m,D2B,0=0;1
+u,broadcast,outsidetemp,,,fe,b516,01,temp2,m,D2B,a
+u,broadcast,outsidetemp,,,fe,b516,01,temp2,m,z
+u,broadcast,outsidetemp,,,fe,b516,01,temp2,m,
+u,broadcast,outsidetemp,,,fe,b516,01,temp2,m
+u,broadcast,outsidetemp,,,fe,b516,01,temp2,z
+u,broadcast,outsidetemp,,,fe,b516,01,temp2,
+u,broadcast,outsidetemp,,,fe,b516,01,temp2
+u,broadcast,outsidetemp,,,fe,b516,z
+u,broadcast,outsidetemp,,,fe,z
+u,broadcast,outsidetemp,,,fe,
+u,broadcast,outsidetemp,,,fe
+u,broadcast,outsidetemp,,,z
+u,broadcast,outsidetemp,,,
+u,broadcast,outsidetemp,,
+u,broadcast,outsidetemp,
+u,broadcast,outsidetemp
+u,broadcast,
+u,broadcast
+u,
+u
+EOF
+./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig >/dev/null
+rm -f contrib/etc/ebusd/bad.csv
 ./src/tools/ebusfeed -d tcp:127.0.0.1:8876 -t 10000 dump >/dev/null 2>/dev/null
 ./src/tools/ebusfeed -d "" >/dev/null 2>/dev/null
 ./src/tools/ebusfeed -t 1 >/dev/null 2>/dev/null
