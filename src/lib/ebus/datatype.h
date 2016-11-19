@@ -394,7 +394,7 @@ public:
 	/**
 	 * Constructs a new instance for multiple of 8 bits.
 	 * @param id the type identifier.
-	 * @param bitCount the number of bits (maximum length if #ADJ flag is set, must be multiple of 8 with flag #BCD).
+	 * @param bitCount the number of bits (maximum length if #ADJ flag is set).
 	 * @param flags the combination of flags (like #BCD).
 	 * @param replacement the replacement value (no replacement if equal to minValue).
 	 * @param minValue the minimum raw value.
