@@ -119,6 +119,8 @@ int main()
 		{"r,,x,,,,,6a00,,,UCH,10,bar,,Bit6,,BI6:1,0=B60;1=B61,,,Bit7,,BI7:1,0=B70;1=B71", "1.9;B60;B71", "ff08b509030d6900", "0213bf", "md" },
 		{"r,,x,,,,,6a00,,,UCH,10,bar,,Bit6,,BI6:1,0=B60;1=B61,,,Bit7,,BI7:1,0=B70;1=B71", "1.9;B61;B70", "ff08b509030d6900", "02137f", "md" },
 		{"r,,x,,,,,6a00,,,UCH,10,bar,,Bit6,,BI6:1,0=B60;1=B61,,,Bit7,,BI7:1,0=B70;1=B71", "1.9;B60;B70", "ff08b509030d6900", "02133f", "md" },
+		{"r,cir*cuit#level,na*me,com*ment,ff,75,b509,0d", "", "", "", "defaults" },
+		{"r,CIRCUIT,NAME,COMMENT,,,,0100,field,,UCH", "r,cirCIRCUITcuit#level,naNAMEme,comCOMMENTment,ff,75,b509,0d0100,field,s,UCH,,,: field=42", "ff08b509030d0100", "012a", "mDN"},
 	};
 	templates = new DataFieldTemplates();
 	MessageMap* messages = new MessageMap();
@@ -143,6 +145,7 @@ int main()
 		bool isChain = flags.find('C') != string::npos;
 		bool decodeJson = flags.find('j') != string::npos || flags.find('J') != string::npos;
 		bool decodeVerbose = flags.find('D') != string::npos || flags.find('J') != string::npos;
+		bool withMessageDump = flags.find('N') != string::npos;
 		bool decode = decodeJson || decodeVerbose || (flags.find('d') != string::npos);
 		bool failedPrepare = flags.find('p') != string::npos;
 		bool failedPrepareMatch = flags.find('P') != string::npos;
@@ -343,6 +346,10 @@ int main()
 			ostringstream output;
 			for (unsigned char index=0; index<message->getCount(); index++) {
 				message->storeLastData(*mstrs[index], *sstrs[index]);
+			}
+			if (withMessageDump && !decodeJson) {
+				message->dump(output, NULL, true);
+				output << ": ";
 			}
 			result = message->decodeLastData(output, (decodeVerbose?OF_NAMES|OF_UNITS|OF_COMMENTS:0)|(decodeJson?OF_NAMES|OF_JSON:0), false);
 			if (result != RESULT_OK) {
