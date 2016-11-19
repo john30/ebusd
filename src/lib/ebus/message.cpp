@@ -206,11 +206,18 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 		return RESULT_ERR_EOF;
 	if (name.length() == 0)
 		return RESULT_ERR_INVALID_ARG; // empty name
-	defaultPos++;
+	string defStr = getDefault("", defaults, defaultPos++);
+	if (defStr.length() > 0) {
+		name = defStr+name; // prefix default name
+	}
 
-	string comment = getDefault(*it++, defaults, defaultPos++); // [comment]
+	string comment = *it++; // [comment]
 	if (it == end)
 		return RESULT_ERR_EOF;
+	defStr = getDefault("", defaults, defaultPos++);
+	if (defStr.length() > 0) {
+		name = defStr+name; // prefix default comment
+	}
 
 	str = getDefault(*it++, defaults, defaultPos++).c_str(); // [QQ[;QQ]*]
 	if (it == end)
@@ -415,8 +422,9 @@ Message* Message::derive(const unsigned char dstAddress, const bool extendCircui
 
 bool Message::checkIdPrefix(vector<unsigned char>& id)
 {
-	if (id.size() > m_id.size())
+	if (id.size() > m_id.size()) {
 		return false;
+	}
 	for (size_t pos = 0; pos < id.size(); pos++) {
 		if (id[pos] != m_id[pos]) {
 			return false;
@@ -428,23 +436,25 @@ bool Message::checkIdPrefix(vector<unsigned char>& id)
 bool Message::checkId(SymbolString& master, unsigned char* index)
 {
 	unsigned char idLen = getIdLength();
-	if (master.size() < 5 + idLen) // QQ, ZZ, PB, SB, NN
+	if (master.size() < 5+idLen) { // QQ, ZZ, PB, SB, NN
 		return false;
-
+	}
 	for (unsigned char pos = 0; pos < idLen; pos++) {
-		if (m_id[2+pos] != master[5 + pos])
+		if (m_id[2+pos] != master[5+pos])
 			return false;
 	}
-	if (index)
+	if (index) {
 		*index = 0;
+	}
 	return true;
 }
 
 bool Message::checkId(Message& other)
 {
 	unsigned char idLen = getIdLength();
-	if (idLen != other.getIdLength() || getCount() > 1) // only equal for non-chained messages
+	if (idLen != other.getIdLength() || getCount() > 1) { // only equal for non-chained messages
 		return false;
+	}
 	return other.checkIdPrefix(m_id);
 }
 
@@ -789,28 +799,29 @@ Message* ChainedMessage::derive(const unsigned char dstAddress, const unsigned c
 bool ChainedMessage::checkId(SymbolString& master, unsigned char* index)
 {
 	unsigned char idLen = getIdLength();
-	unsigned char chainPrefixLength = (unsigned char)(m_id.size()-2); // minimum is 2
-	if (master.size() < 5 + idLen) // QQ, ZZ, PB, SB, NN
+	if (master.size() < 5+idLen) { // QQ, ZZ, PB, SB, NN
 		return false;
-
-	for (unsigned char pos=0; pos<chainPrefixLength; pos++) {
-		if (m_id[2+pos] != master[5 + pos])
-			return false; // chain prefix mismatch
 	}
-
+	unsigned char chainPrefixLength = Message::getIdLength();
+	for (unsigned char pos = 0; pos < chainPrefixLength; pos++) {
+		if (m_id[2+pos] != master[5+pos]) {
+			return false; // chain prefix mismatch
+		}
+	}
 	for (unsigned char checkIndex=0; checkIndex<m_ids.size(); checkIndex++) { // check suffix for each part
 		vector<unsigned char> id = m_ids[checkIndex];
 		bool found = false;
 		for (unsigned char pos=chainPrefixLength; pos<idLen; pos++) {
-			if (id[2+pos] != master[5 + pos]) {
+			if (id[2+pos] != master[5+pos]) {
 				found = false;
 				break;
 			}
 			found = true;
 		}
 		if (found) {
-			if (index)
+			if (index) {
 				*index = checkIndex;
+			}
 			return true;
 		}
 	}
@@ -997,25 +1008,38 @@ void ChainedMessage::dumpColumn(ostream& output, size_t column, bool withConditi
 }
 
 
-Message* getFirstAvailable(vector<Message*> &messages, unsigned char idLength=0, SymbolString* master=NULL) {
+/**
+ * Get the first available @a Message from the list.
+ * @param messages the list of @a Message instances to check.
+ * @param sameIdExtAs the optional @a Message to check for having the same ID.
+ */
+Message* getFirstAvailable(vector<Message*> &messages, SymbolString* sameIdExtAs) {
 	for (vector<Message*>::iterator msgIt = messages.begin(); msgIt != messages.end(); msgIt++) {
 		Message* message = *msgIt;
-		if (master && !message->checkId(*master))
+		if (sameIdExtAs && !message->checkId(*sameIdExtAs)) {
 			continue;
-
-		if (message->isAvailable())
-			return *msgIt;
+		}
+		if (message->isAvailable()) {
+			return message;
+		}
 	}
 	return NULL;
 }
 
-Message* getFirstAvailable(vector<Message*> &messages, Message& sameIdExtAs) {
+/**
+ * Get the first available @a Message from the list.
+ * @param messages the list of @a Message instances to check.
+ * @param sameIdExtAs the optional @a Message to check for having the same ID.
+ */
+Message* getFirstAvailable(vector<Message*> &messages, Message* sameIdExtAs=NULL) {
 	for (vector<Message*>::iterator msgIt = messages.begin(); msgIt != messages.end(); msgIt++) {
 		Message* message = *msgIt;
-		if (!message->checkId(sameIdExtAs))
+		if (sameIdExtAs && !message->checkId(*sameIdExtAs)) {
 			continue;
-		if (message->isAvailable())
+		}
+		if (message->isAvailable()) {
 			return message;
+		}
 	}
 	return NULL;
 }
@@ -1227,11 +1251,12 @@ result_t SimpleCondition::resolve(MessageMap* messages, ostringstream& errorMess
 				message = message->derive(m_dstAddress, true);
 				messages->add(message);
 			} else {
-				message = getFirstAvailable(*derived, *message);
-				if (message==NULL) {
-					errorMessage << ": conditional derived message not found";
+				Message* first = getFirstAvailable(*derived, message);
+				if (first==NULL) {
+					errorMessage << ": conditional derived message " << message->getCircuit() << "." << message->getName() << " for " << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_dstAddress) << " not found" ;
 					return RESULT_ERR_INVALID_ARG;
 				}
+				message = first;
 			}
 		}
 
@@ -1376,8 +1401,9 @@ string Instruction::getDestination()
 
 result_t LoadInstruction::execute(MessageMap* messages, ostringstream& log, void (*loadInfoFunc)(MessageMap* messages, const unsigned char address, string filename)) {
 	result_t result = messages->readFromFile(m_filename, false, m_defaultDest, m_defaultCircuit, m_defaultSuffix);
-	if (log.tellp()>0)
+	if (log.tellp()>0) {
 		log << ", ";
+	}
 	if (result!=RESULT_OK) {
 		log << "error " << (isSingleton() ? "loading " : "including ") << m_filename << " for \"" << getDestination() << "\": " << getResultCode(result);
 		return result;
@@ -1408,7 +1434,7 @@ result_t MessageMap::add(Message* message, bool storeByName)
 	if (!m_addAll) {
 		map<unsigned long long, vector<Message*> >::iterator keyIt = m_messagesByKey.find(key);
 		if (keyIt != m_messagesByKey.end()) {
-			Message* other = getFirstAvailable(keyIt->second, *message);
+			Message* other = getFirstAvailable(keyIt->second, message);
 			if (other != NULL) {
 				if (!conditional) {
 					return RESULT_ERR_DUPLICATE; // duplicate key
@@ -1846,15 +1872,19 @@ deque<Message*> MessageMap::findAll(const string& circuit, const string& name, c
 Message* MessageMap::find(SymbolString& master, bool anyDestination,
 	const bool withRead, const bool withWrite, const bool withPassive)
 {
-	if (master.size() < 5)
+	if (master.size() < 5) {
 		return NULL;
+	}
 	unsigned char maxIdLength = master[4];
-	if (maxIdLength > m_maxIdLength)
+	if (maxIdLength > m_maxIdLength) {
 		maxIdLength = m_maxIdLength;
-	if (master.size() < 5+maxIdLength)
+	}
+	if (master.size() < 5+maxIdLength) {
 		return NULL;
-	if (maxIdLength == 0 && anyDestination && master[2] == 0x07 && master[3] == 0x04)
+	}
+	if (maxIdLength == 0 && anyDestination && master[2] == 0x07 && master[3] == 0x04) {
 		return m_scanMessage;
+	}
 	unsigned long long baseKey = (unsigned long long)getMasterNumber(master[0]) << (8 * 7); // QQ address for passive message
 	baseKey |= (unsigned long long)(anyDestination ? SYN : master[1]) << (8 * 6); // ZZ address
 	baseKey |= (unsigned long long)master[2] << (8 * 5); // PB
@@ -1873,7 +1903,7 @@ Message* MessageMap::find(SymbolString& master, bool anyDestination,
 		if (withPassive) {
 			it = m_messagesByKey.find(key);
 			if (it != m_messagesByKey.end()) {
-				Message* message = getFirstAvailable(it->second, idLength, &master);
+				Message* message = getFirstAvailable(it->second, &master);
 				if (message)
 					return message;
 			}
@@ -1881,7 +1911,7 @@ Message* MessageMap::find(SymbolString& master, bool anyDestination,
 				key &= ~ID_SOURCE_MASK;
 				it = m_messagesByKey.find(key & ~ID_SOURCE_MASK); // try again without specific source master
 				if (it != m_messagesByKey.end()) {
-					Message* message = getFirstAvailable(it->second, idLength, &master);
+					Message* message = getFirstAvailable(it->second, &master);
 					if (message)
 						return message;
 				}
@@ -1892,7 +1922,7 @@ Message* MessageMap::find(SymbolString& master, bool anyDestination,
 		if (withRead) {
 			it = m_messagesByKey.find(key | ID_SOURCE_ACTIVE_READ); // try again with special value for active read
 			if (it != m_messagesByKey.end()) {
-				Message* message = getFirstAvailable(it->second, idLength, &master);
+				Message* message = getFirstAvailable(it->second, &master);
 				if (message)
 					return message;
 			}
@@ -1900,7 +1930,7 @@ Message* MessageMap::find(SymbolString& master, bool anyDestination,
 		if (withWrite) {
 			it = m_messagesByKey.find(key | ID_SOURCE_ACTIVE_WRITE); // try again with special value for active write
 			if (it != m_messagesByKey.end()) {
-				Message* message = getFirstAvailable(it->second, idLength, &master);
+				Message* message = getFirstAvailable(it->second, &master);
 				if (message)
 					return message;
 			}
