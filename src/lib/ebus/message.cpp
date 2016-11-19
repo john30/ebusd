@@ -838,14 +838,14 @@ bool ChainedMessage::checkId(Message& other)
 		return false; // chain prefix mismatch
 	}
 	vector< vector<unsigned char> > otherIds = ((ChainedMessage&)other).m_ids;
-	unsigned char chainPrefixLength = (unsigned char)m_id.size();
+	unsigned char chainPrefixLength = Message::getIdLength();
 	for (unsigned char checkIndex=0; checkIndex<m_ids.size(); checkIndex++) { // check suffix for each part
 		vector<unsigned char> id = m_ids[checkIndex];
 		for (unsigned char otherIndex=0; otherIndex<otherIds.size(); otherIndex++) {
 			vector<unsigned char> otherId = otherIds[otherIndex];
 			bool found = false;
 			for (unsigned char pos=chainPrefixLength; pos<idLen; pos++) {
-				if (id[pos] != otherId[pos]) {
+				if (id[2+pos] != otherId[2+pos]) {
 					found = false;
 					break;
 				}
