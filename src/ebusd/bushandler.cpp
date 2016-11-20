@@ -808,19 +808,33 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 
 void BusHandler::addSeenAddress(unsigned char address)
 {
-	if (!isValidAddress(address, false))
+	if (!isValidAddress(address, false)) {
 		return;
+	}
 	if (!isMaster(address)) {
+		if (!m_device->isReadOnly() && address==m_ownSlaveAddress) {
+			if (!m_addressConflict) {
+				m_addressConflict = true;
+				logError(lf_bus, "own slave address %2.2x is used by another participant", address);
+			}
+		}
 		m_seenAddresses[address] |= SEEN;
 		address = getMasterAddress(address);
-		if (address==SYN)
+		if (address==SYN) {
 			return;
+		}
 	}
 	if ((m_seenAddresses[address]&SEEN)==0) {
-		if (!m_answer || address!=m_ownMasterAddress) {
+		if (!m_device->isReadOnly() && address==m_ownMasterAddress) {
+			if (!m_addressConflict) {
+				m_addressConflict = true;
+				logError(lf_bus, "own master address %2.2x is used by another participant", address);
+			}
+		} else {
 			m_masterCount++;
-			if (m_autoLockCount && m_masterCount>m_lockCount)
+			if (m_autoLockCount && m_masterCount>m_lockCount) {
 				m_lockCount = m_masterCount;
+			}
 			logNotice(lf_bus, "new master %2.2x, master count %d", address, m_masterCount);
 		}
 		m_seenAddresses[address] |= SEEN;
@@ -1010,7 +1024,7 @@ void BusHandler::formatSeenInfo(ostringstream& output)
 	unsigned char address = 0;
 	for (int index=0; index<256; index++, address++) {
 		if (isValidAddress(address, false)
-		&& ((m_seenAddresses[address]&SEEN)!=0 || address==m_ownMasterAddress || address==m_ownSlaveAddress)) {
+		&& ((m_seenAddresses[address]&SEEN)!=0 || (!m_device->isReadOnly() && (address==m_ownMasterAddress || address==m_ownSlaveAddress)))) {
 			output << endl << "address " << setfill('0') << setw(2) << hex << static_cast<unsigned>(address);
 			unsigned char master;
 			if (isMaster(address)) {
@@ -1022,12 +1036,12 @@ void BusHandler::formatSeenInfo(ostringstream& output)
 			}
 			if (master != SYN)
 				output << " #" << setw(0) << dec << static_cast<unsigned>(getMasterNumber(master));
-			if (address==m_ownMasterAddress || (m_answer && address==m_ownSlaveAddress)) {
+			if (!m_device->isReadOnly() && (address==m_ownMasterAddress || address==m_ownSlaveAddress)) {
 				output << ", ebusd";
 				if (m_answer) {
 					output << " (answering)";
 				}
-				if ((m_seenAddresses[address]&SEEN)!=0) {
+				if (m_addressConflict && (m_seenAddresses[address]&SEEN)!=0) {
 					output << ", conflict";
 				}
 			}
@@ -1088,7 +1102,7 @@ bool BusHandler::enableGrab(bool enable)
 		return false;
 	}
 	if (!enable) {
-		m_grabbedMessages.clear(); // TODO check
+		m_grabbedMessages.clear();
 	}
 	m_grabMessages = enable;
 	return true;

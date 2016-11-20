@@ -363,10 +363,11 @@ public:
 			const unsigned int lockCount, const bool generateSyn,
 			const unsigned int pollInterval)
 		: WaitThread(), m_device(device), m_reconnect(false), m_messages(messages),
-		  m_ownMasterAddress(ownAddress), m_ownSlaveAddress((unsigned char)(ownAddress+5)), m_answer(answer),
+		  m_ownMasterAddress(ownAddress), m_ownSlaveAddress((unsigned char)(ownAddress+5)),
+		  m_addressConflict(false), m_answer(answer),
 		  m_busLostRetries(busLostRetries), m_failedSendRetries(failedSendRetries),
 		  m_transferLatency(transferLatency), m_busAcquireTimeout(busAcquireTimeout), m_slaveRecvTimeout(slaveRecvTimeout),
-		  m_masterCount(1), m_autoLockCount(lockCount==0), m_lockCount(lockCount<=3 ? 3 : lockCount), m_remainLockCount(m_autoLockCount),
+		  m_masterCount(device->isReadOnly()?0:1), m_autoLockCount(lockCount==0), m_lockCount(lockCount<=3 ? 3 : lockCount), m_remainLockCount(m_autoLockCount),
 		  m_generateSynInterval(generateSyn ? SYN_TIMEOUT*getMasterNumber(ownAddress)+SYMBOL_DURATION : 0),
 		  m_pollInterval(pollInterval), m_lastReceive(0), m_lastPoll(0),
 		  m_currentRequest(NULL), m_runningScans(0), m_nextSendPos(0),
@@ -565,6 +566,9 @@ private:
 
 	/** whether to answer queries for the own master/slave address. */
 	const bool m_answer;
+
+	/** set to @p true once an address conflict with the own addresses was detected. */
+	bool m_addressConflict;
 
 	/** the number of times a send is repeated due to lost arbitration. */
 	const unsigned int m_busLostRetries;
