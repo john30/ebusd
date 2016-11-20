@@ -118,6 +118,37 @@ public:
 	virtual ~Message() { if (m_deleteData) delete m_data; }
 
 	/**
+	 * Calculate the key for the ID.
+	 * @param id the primary, secondary, and optional further ID bytes.
+	 * @param isWrite whether this is a write message.
+	 * @param isPassive true if message can only be initiated by a participant other than us,
+	 * false if message can be initiated by any participant.
+	 * @param srcAddress the source address, or @a SYN for any (only relevant if passive).
+	 * @param dstAddress the destination address, or @a SYN for any (set later).
+	 * @return the key for the ID.
+	 */
+	static unsigned long long createKey(const vector<unsigned char> id,
+		const bool isWrite, const bool isPassive,
+		const unsigned char srcAddress, const unsigned char dstAddress);
+
+	/**
+	 * Calculate the key for the master @a SymbolString.
+	 * @param master the master @a SymbolString.
+	 * @param maxIdLength the maximum ID length to use
+	 * @param anyDestination @p true to use the special @a SYN as destination address in the key.
+	 * @return the key for the ID, or -1LL if the data is invalid.
+	 */
+	static unsigned long long createKey(SymbolString& master,
+		unsigned char maxIdLength, bool anyDestination=false);
+
+	/**
+	 * Get the length field from the key.
+	 * @param key the key.
+	 * @return the length field from the key.
+	 */
+	static unsigned char getKeyLength(unsigned long long key) { return (unsigned char)(key >> (8 * 7 + 5)); }
+
+	/**
 	 * Parse an ID part from the input @a string.
 	 * @param input the input @a string, hex digits optionally separated by space.
 	 * @param id the vector to which to add the parsed values.
