@@ -655,10 +655,11 @@ static bool readTemplates(const string path, const string extension, bool availa
 		return true;
 	}
 	result_t result = templates->readFromFile(path+"/_templates"+extension, verbose);
-	if (result == RESULT_OK)
+	if (result == RESULT_OK) {
 		logInfo(lf_main, "read templates in %s", path.c_str());
-	else
-		logError(lf_main, "error reading templates in %s: %s, %s", path.c_str(), getResultCode(result), templates->getLastError().c_str());
+	} else {
+		logError(lf_main, "error reading templates in %s: %s, last error: %s", path.c_str(), getResultCode(result), templates->getLastError().c_str());
+	}
 	return templates;
 }
 
@@ -724,12 +725,12 @@ void executeInstructions(MessageMap* messages, bool verbose)
 {
 	result_t result = messages->resolveConditions(verbose);
 	if (result != RESULT_OK) {
-		logError(lf_main, "error resolving conditions: %s, %s", getResultCode(result), messages->getLastError().c_str());
+		logError(lf_main, "error resolving conditions: %s, last error: %s", getResultCode(result), messages->getLastError().c_str());
 	}
 	ostringstream log;
 	result = messages->executeInstructions(log, readMessage);
 	if (result != RESULT_OK) {
-		logError(lf_main, "error executing instructions: %s, %s, %s", getResultCode(result), messages->getLastError().c_str(), log.str().c_str());
+		logError(lf_main, "error executing instructions: %s, last error: %s, %s", getResultCode(result), messages->getLastError().c_str(), log.str().c_str());
 	} else if (verbose && log.tellp() > 0) {
 		logInfo(lf_main, log.str().c_str());
 	}
@@ -742,18 +743,19 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
 	messages->clear();
 	globalTemplates.clear();
 	for (map<string, DataFieldTemplates*>::iterator it = templatesByPath.begin(); it != templatesByPath.end(); it++) {
-		if (it->second!=&globalTemplates)
+		if (it->second!=&globalTemplates) {
 			delete it->second;
+		}
 		it->second = NULL;
 	}
 	templatesByPath.clear();
 
 	result_t result = readConfigFiles(string(opt.configPath), ".csv", messages, (!opt.scanConfig || opt.checkConfig) && !denyRecursive, verbose);
-	if (result == RESULT_OK)
+	if (result == RESULT_OK) {
 		logInfo(lf_main, "read config files");
-	else
-		logError(lf_main, "error reading config files: %s, %s", getResultCode(result), messages->getLastError().c_str());
-
+	} else {
+		logError(lf_main, "error reading config files: %s, last error: %s", getResultCode(result), messages->getLastError().c_str());
+	}
 	executeInstructions(messages, verbose);
 	return RESULT_OK;
 }
