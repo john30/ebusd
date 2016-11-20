@@ -72,13 +72,6 @@ enum BusState {
 	bs_sendSyn,     //!< send SYN for completed transfer [active set+get]
 };
 
-/** the possible grab request kinds. */
-enum GrabRequest {
-	gr_none,	//!< no grabbing at all
-	gr_unknown, //!< grab unknown messages only
-	gr_all,     //!< grab all messages
-};
-
 /** bit for the seen state: seen. */
 #define SEEN 0x01
 
@@ -289,6 +282,59 @@ private:
 
 
 /**
+ * Helper class for keeping track of grabbed messages.
+ */
+class GrabbedMessage
+{
+
+public:
+
+	/**
+	 * Construct a new instance.
+	 */
+	GrabbedMessage() : m_count(0) {}
+
+	/**
+	 * Copy constructor.
+	 * @param other the @a GrabbedMessage to copy from.
+	 */
+	GrabbedMessage(const GrabbedMessage& other) : m_count(other.m_count) {
+		m_lastMaster.addAll(other.m_lastMaster);
+		m_lastSlave.addAll(other.m_lastSlave);
+	}
+
+	/**
+	 * Set the last received data.
+	 * @param master the last master @a SymbolString.
+	 * @param slave the last slave @a SymbolString.
+	 */
+	void setLastData(SymbolString& master, SymbolString& slave);
+
+	/**
+	 * Dump the last received data and message count to the output.
+	 * @param unknown whether to dump only if this message is unknown.
+	 * @param messages the @a MessageMap instance for resolving known @a Message instances.
+	 * @param first whether this is the first message to be added to the output.
+	 * @param output the @a ostringstream to format the messages to.
+	 * @return whether the message was added to the output.
+	 */
+	bool dump(const bool unknown, MessageMap* messages, bool first, ostringstream& output);
+
+private:
+
+	/** the last master @a SymbolString. */
+	SymbolString m_lastMaster;
+
+	/** the last slave @a SymbolString. */
+	SymbolString m_lastSlave;
+
+	/** the number of times this message was seen. */
+	unsigned int m_count;
+
+};
+
+
+/**
  * Handles input from and output to the bus with respect to the eBUS protocol.
  */
 class BusHandler : public WaitThread
@@ -327,7 +373,8 @@ public:
 		  m_symPerSec(0), m_maxSymPerSec(0),
 		  m_state(bs_noSignal), m_repeat(false),
 		  m_command(false), m_commandCrcValid(false), m_response(false), m_responseCrcValid(false),
-		  m_grabUnknownMessages(gr_unknown) {
+		  m_grabMessages(true)
+	{
 		memset(m_seenAddresses, 0, sizeof(m_seenAddresses));
 	}
 
@@ -336,6 +383,17 @@ public:
 	 */
 	virtual ~BusHandler() {
 		stop();
+		BusRequest* req;
+		while ((req = m_finishedRequests.pop())!=NULL) {
+			delete req;
+		}
+		while ((req = m_nextRequests.pop())!=NULL) {
+			delete req;
+		}
+		if (m_currentRequest!=NULL) {
+			delete m_currentRequest;
+			m_currentRequest = NULL;
+		}
 	}
 
 	/**
@@ -407,16 +465,16 @@ public:
 	/**
 	 * Start or stop grabbing unknown messages.
 	 * @param enable true to enable grabbing, false to disable it.
-	 * @param all true to grab all messages, false to grab unknown messages only (only relevant if @a enable is true).
 	 * @return true when the grabbing was changed.
 	 */
-	bool enableGrab(bool enable=true, bool all=false);
+	bool enableGrab(bool enable=true);
 
 	/**
-	 * Format the grabbed unknown messages to the @a ostringstream.
+	 * Format the grabbed messages to the @a ostringstream.
+	 * @param unknown whether to dump only unknown messages.
 	 * @param output the @a ostringstream to format the messages to.
 	 */
-	void formatGrabResult(ostringstream& output);
+	void formatGrabResult(const bool unknown, ostringstream& output);
 
 	/**
 	 * Return true when a signal on the bus is available.
@@ -593,13 +651,12 @@ private:
 	/** the scan results by slave address. */
 	map<unsigned char, string> m_scanResults;
 
-	/** whether to grab unknown messages. */
-	GrabRequest m_grabUnknownMessages;
+	/** whether to grab messages. */
+	bool m_grabMessages;
 
-	/** the grabbed unknown messages by ID prefix (QQZZPBSBNNDD with up to 4 DD bytes).*/
-	map<string, string> m_grabbedUnknownMessages;
+	/** the grabbed messages by key.*/
+	map<unsigned long long, GrabbedMessage> m_grabbedMessages;
 
 };
-
 
 #endif // BUSHANDLER_H_

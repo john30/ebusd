@@ -181,6 +181,36 @@ bool ActiveBusRequest::notify(result_t result, SymbolString& slave)
 	return false;
 }
 
+void GrabbedMessage::setLastData(SymbolString& master, SymbolString& slave)
+{
+	m_lastMaster.clear(false);
+	m_lastMaster.addAll(master);
+	m_lastSlave.clear(false);
+	m_lastSlave.addAll(slave);
+	m_count++;
+}
+
+bool GrabbedMessage::dump(const bool unknown, MessageMap* messages, bool first, ostringstream& output)
+{
+	Message* message = messages->find(m_lastMaster);
+	if (unknown && message) {
+		return false;
+	}
+	if (!first) {
+		output << endl;
+	}
+	unsigned char dstAddress = m_lastMaster[1];
+	output << m_lastMaster.getDataStr();
+	if (dstAddress != BROADCAST && !isMaster(dstAddress)) {
+		output << " / " << m_lastSlave.getDataStr();
+	}
+	output << " = " << static_cast<unsigned>(m_count);
+	if (message) {
+		output << ": " << message->getCircuit() << " " << message->getName();
+	}
+	return true;
+}
+
 
 void BusHandler::clear()
 {
@@ -840,19 +870,14 @@ void BusHandler::receiveCompleted()
 		logInfo(lf_update, "update MS cmd: %s / %s", m_command.getDataStr().c_str(), m_response.getDataStr().c_str());
 	}
 	Message* message = m_messages->find(m_command);
-	if (m_grabUnknownMessages==gr_all || (message==NULL && m_grabUnknownMessages==gr_unknown)) {
-		string data;
-		string key = data = m_command.getDataStr();
-		if (key.length() > 2*(1+1+2+1+4)) {
-			key = key.substr(0, 2*(1+1+2+1+4)); // QQZZPBSBNN + up to 4 DD bytes
-		}
-		if (dstAddress != BROADCAST && !master) {
-			data += " / " + m_response.getDataStr();
-		}
+	if (m_grabMessages) {
+		unsigned long long key;
 		if (message) {
-			data += " = "+message->getCircuit()+" "+message->getName();
+			key = message->getKey();
+		} else {
+			key = Message::createKey(m_command, 4); // up to 4 DD bytes
 		}
-		m_grabbedUnknownMessages[key] = data;
+		m_grabbedMessages[key].setLastData(m_command, m_response);
 	}
 	if (message == NULL) {
 		if (dstAddress == BROADCAST) {
@@ -1057,29 +1082,28 @@ result_t BusHandler::scanAndWait(unsigned char dstAddress, SymbolString& slave)
 	return scanMessage->storeLastData(pt_slaveData, slave, 0); // update the cache
 }
 
-bool BusHandler::enableGrab(bool enable, bool all)
+bool BusHandler::enableGrab(bool enable)
 {
-	GrabRequest request = enable ? (all ? gr_all : gr_unknown) : gr_none;
-	if (request==m_grabUnknownMessages)
+	if (enable==m_grabMessages) {
 		return false;
-	if (m_grabUnknownMessages==gr_none)
-		m_grabbedUnknownMessages.clear();
-	m_grabUnknownMessages = request;
+	}
+	if (!enable) {
+		m_grabbedMessages.clear(); // TODO check
+	}
+	m_grabMessages = enable;
 	return true;
 }
 
-void BusHandler::formatGrabResult(ostringstream& output)
+void BusHandler::formatGrabResult(const bool unknown, ostringstream& output)
 {
-	if (!m_grabUnknownMessages) {
+	if (!m_grabMessages) {
 		output << "grab disabled";
 	} else {
 		bool first = true;
-		for (map<string, string>::iterator it = m_grabbedUnknownMessages.begin(); it != m_grabbedUnknownMessages.end(); it++) {
-			if (first)
+		for (map<unsigned long long, GrabbedMessage>::iterator it = m_grabbedMessages.begin(); it != m_grabbedMessages.end(); it++) {
+			if (it->second.dump(unknown, m_messages, first, output)) {
 				first = false;
-			else
-				output << endl;
-			output << it->second;
+			}
 		}
 	}
 }

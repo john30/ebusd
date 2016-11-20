@@ -98,6 +98,10 @@ MainLoop::~MainLoop()
 		delete m_device;
 		m_device = NULL;
 	}
+	NetMessage* msg;
+	while ((msg = m_netQueue.pop())!=NULL) {
+		delete msg;
+	}
 }
 
 void MainLoop::run()
@@ -996,23 +1000,22 @@ string MainLoop::executeState(vector<string> &args)
 
 string MainLoop::executeGrab(vector<string> &args)
 {
-	bool all = args.size() == 2 && strcasecmp(args[1].c_str(), "ALL") == 0;
-	if (args.size() == 1 || all)
-		return m_busHandler->enableGrab(true, all) ? "grab started" : "grab continued";
-
-	if (args.size() == 2) {
-		if (strcasecmp(args[1].c_str(), "STOP") == 0)
-			return m_busHandler->enableGrab(false) ? "grab stopped" : "grab not running";
-
-		if (strcasecmp(args[1].c_str(), "RESULT") == 0) {
+	if (args.size() == 1) {
+		return m_busHandler->enableGrab(true) ? "grab started" : "grab continued";
+	}
+	if (args.size() == 2 && strcasecmp(args[1].c_str(), "STOP") == 0) {
+		return m_busHandler->enableGrab(false) ? "grab stopped" : "grab not running";
+	}
+	if (args.size() >= 2 && strcasecmp(args[1].c_str(), "RESULT") == 0) {
+		if (args.size() == 2 || strcasecmp(args[2].c_str(), "ALL") == 0) {
 			ostringstream result;
-			m_busHandler->formatGrabResult(result);
+			m_busHandler->formatGrabResult(args.size() == 2, result);
 			return result.str();
 		}
 	}
-	return "usage: grab [all|stop]\n"
-		   "  or:  grab result\n"
-		   " Start or stop grabbing unknown or all messages, or report the grabbed messages.";
+	return "usage: grab [stop]\n"
+		   "  or:  grab result [all]\n"
+		   " Start or stop grabbing, or report unknown or all grabbed messages.";
 }
 
 string MainLoop::executeScan(vector<string> &args)
@@ -1183,8 +1186,8 @@ string MainLoop::executeHelp()
 		   " listen|l Listen for updates:    listen [stop]\n"
 		   " state|s  Report bus state\n"
 		   " info|i   Report information about the daemon, the configuration, and seen devices.\n"
-		   " grab|g   Grab messages:         grab [all|stop]\n"
-		   "          Report the messages:   grab result\n"
+		   " grab|g   Grab messages:         grab [stop]\n"
+		   "          Report the messages:   grab result [all]\n"
 		   " scan     Scan slaves:           scan [full|ZZ]\n"
 		   "          Report scan result:    scan result\n"
 		   " log      Set log area/level:    log [AREA[,AREA]*] [LEVEL]\n"
