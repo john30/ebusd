@@ -327,7 +327,7 @@ public:
 		  m_symPerSec(0), m_maxSymPerSec(0),
 		  m_state(bs_noSignal), m_repeat(false),
 		  m_command(false), m_commandCrcValid(false), m_response(false), m_responseCrcValid(false),
-		  m_grabUnknownMessages(gr_all) {
+		  m_grabUnknownMessages(gr_unknown) {
 		memset(m_seenAddresses, 0, sizeof(m_seenAddresses));
 	}
 
