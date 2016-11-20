@@ -69,6 +69,9 @@ private:
 	/** the @a Device instance. */
 	Device* m_device;
 
+	/** the number of reconnects requested from the @a Device. */
+	unsigned int m_reconnectCount;
+
 	/** the @a MessageMap instance. */
 	MessageMap* m_messages;
 

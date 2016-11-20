@@ -316,7 +316,7 @@ public:
 			const unsigned int transferLatency, const unsigned int busAcquireTimeout, const unsigned int slaveRecvTimeout,
 			const unsigned int lockCount, const bool generateSyn,
 			const unsigned int pollInterval)
-		: WaitThread(), m_device(device), m_messages(messages),
+		: WaitThread(), m_device(device), m_reconnect(false), m_messages(messages),
 		  m_ownMasterAddress(ownAddress), m_ownSlaveAddress((unsigned char)(ownAddress+5)), m_answer(answer),
 		  m_busLostRetries(busLostRetries), m_failedSendRetries(failedSendRetries),
 		  m_transferLatency(transferLatency), m_busAcquireTimeout(busAcquireTimeout), m_slaveRecvTimeout(slaveRecvTimeout),
@@ -425,6 +425,11 @@ public:
 	bool hasSignal() { return m_state != bs_noSignal; }
 
 	/**
+	 * Reconnect the device.
+	 */
+	void reconnect() { m_reconnect = true; }
+
+	/**
 	 * Return the current symbol rate.
 	 * @return the number of received symbols in the last second.
 	 */
@@ -487,6 +492,9 @@ private:
 
 	/** the @a Device instance for accessing the bus. */
 	Device* m_device;
+
+	/** set to @p true when the device shall be reconnected. */
+	bool m_reconnect;
 
 	/** the @a MessageMap instance with all known @a Message instances. */
 	MessageMap* m_messages;

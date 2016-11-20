@@ -252,7 +252,7 @@ void BusHandler::run()
 	time_t lastTime;
 	time(&lastTime);
 	do {
-		if (m_device->isValid()) {
+		if (m_device->isValid() && !m_reconnect) {
 			result_t result = handleSymbol();
 			if (result != RESULT_ERR_TIMEOUT)
 				symCount++;
@@ -262,20 +262,22 @@ void BusHandler::run()
 				m_symPerSec = symCount / (unsigned int)(now-lastTime);
 				if (m_symPerSec > m_maxSymPerSec) {
 					m_maxSymPerSec = m_symPerSec;
-					if (m_maxSymPerSec > 100)
+					if (m_maxSymPerSec > 100) {
 						logNotice(lf_bus, "max. symbols per second: %d", m_maxSymPerSec);
+					}
 				}
 				lastTime = now;
 				symCount = 0;
 			}
 		} else {
-			if (!Wait(10))
+			if (!Wait(10)) {
 				break;
+			}
+			m_reconnect = false;
 			result_t result = m_device->open();
-
-			if (result == RESULT_OK)
+			if (result == RESULT_OK) {
 				logNotice(lf_bus, "re-opened %s", m_device->getName());
-			else {
+			} else {
 				logError(lf_bus, "unable to open %s: %s", m_device->getName(), getResultCode(result));
 				setState(bs_noSignal, result);
 			}

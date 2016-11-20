@@ -25,6 +25,9 @@
 
 using namespace std;
 
+/** the number of seconds of permanent missing signal after which to reconnect the device. */
+#define RECONNECT_MISSING_SIGNAL 60
+
 /** the known column names (pairs of full length name and short length name). */
 static const char* columnNames[] = {
 	"type", "t",
@@ -42,7 +45,9 @@ static const char* columnNames[] = {
 static const size_t columnCount = sizeof(columnNames) / sizeof(char*);
 
 MainLoop::MainLoop(const struct options opt, Device *device, MessageMap* messages)
-	: Thread(), m_device(device), m_messages(messages), m_address(opt.address), m_scanConfig(opt.scanConfig), m_initialScan(opt.initialScan), m_enableHex(opt.enableHex)
+	: Thread(), m_device(device), m_reconnectCount(0), m_messages(messages),
+	  m_address(opt.address), m_scanConfig(opt.scanConfig),
+	  m_initialScan(opt.initialScan), m_enableHex(opt.enableHex)
 {
 	// setup Device
 	m_device->setLogRaw(opt.logRaw);
@@ -98,7 +103,7 @@ MainLoop::~MainLoop()
 void MainLoop::run()
 {
 	bool reload = true;
-	time_t lastTaskRun, now;
+	time_t lastTaskRun, now, lastSignal = 0;
 	int taskDelay = 5;
 	unsigned char lastScanAddress = 0; // 0 is known to be a master
 	time(&now);
@@ -112,9 +117,19 @@ void MainLoop::run()
 		time(&now);
 		if (now<lastTaskRun) {
 			// clock skew
+			if (now<lastSignal) {
+				lastSignal -= lastTaskRun-now;
+			}
 			lastTaskRun = now;
 		} else if (now > lastTaskRun+taskDelay) {
 			logDebug(lf_main, "performing regular tasks");
+			if (m_busHandler->hasSignal()) {
+				lastSignal = now;
+			} else if (lastSignal && now > lastSignal+RECONNECT_MISSING_SIGNAL) {
+				lastSignal = 0;
+				m_busHandler->reconnect();
+				m_reconnectCount++;
+			}
 			if (m_scanConfig) {
 				if (m_initialScan != ESC && reload && m_busHandler->hasSignal()) {
 					result_t result = RESULT_ERR_NO_SIGNAL;
@@ -1135,11 +1150,12 @@ string MainLoop::executeInfo(vector<string> &args)
 	} else {
 		result << "signal: no signal\n";
 	}
+	result << "reconnects: " << static_cast<unsigned>(m_reconnectCount) << "\n";
 	result << "masters: " << static_cast<unsigned>(m_busHandler->getMasterCount()) << "\n";
 	result << "messages: " << static_cast<unsigned>(m_messages->size()) << "\n";
 	result << "conditional: " << static_cast<unsigned>(m_messages->sizeConditional()) << "\n";
 	result << "poll: " << static_cast<unsigned>(m_messages->sizePoll()) << "\n";
-	result << "update: " << static_cast<unsigned>(m_messages->sizePassive()) << "\n";
+	result << "update: " << static_cast<unsigned>(m_messages->sizePassive());
 	m_busHandler->formatSeenInfo(result);
 	return result.str();
 }
