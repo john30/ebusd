@@ -788,7 +788,7 @@ result_t NumberDataType::readSymbols(SymbolString& input, const bool isMaster,
 		signedValue = (int)value;
 	}
 	if (m_divisor < 0) {
-		output << static_cast<float>((float)signedValue * (float)(-m_divisor));
+		output << setprecision(0) << static_cast<float>((float)signedValue * (float)(-m_divisor));
 	} else if (m_divisor <= 1) {
 		if (hasFlag(FIX) && hasFlag(BCD)) {
 			if (outputFormat & OF_JSON) {
