@@ -157,6 +157,12 @@ public:
 	 */
 	bool isValid();
 
+	/**
+	 * Return whether to allow read access to the device only.
+	 * @return whether to allow read access to the device only.
+	 */
+	bool isReadOnly() const { return m_readOnly; }
+
 protected:
 	/**
 	 * Check if the device is still available and close it if not.
