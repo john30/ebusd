@@ -626,14 +626,16 @@ result_t Message::prepareSlave(istringstream& input, SymbolString& slaveData)
 result_t Message::storeLastData(SymbolString& master, SymbolString& slave)
 {
 	result_t result = storeLastData(pt_masterData, master, 0);
-	if (result>=RESULT_OK)
+	if (result>=RESULT_OK) {
 		result = storeLastData(pt_slaveData, slave, 0);
+	}
 	return result;
 }
 
 result_t Message::storeLastData(const PartType partType, SymbolString& data, unsigned char index)
 {
-	if (data.size() > 0 && (this->m_dstAddress == BROADCAST || partType == pt_slaveData)) {
+	if (data.size() > 0
+	&& (this->m_dstAddress == BROADCAST || partType == pt_slaveData || (partType == pt_masterData && isMaster(this->m_dstAddress)))) {
 		time(&m_lastUpdateTime);
 	}
 	if (partType == pt_masterData) {
@@ -958,8 +960,9 @@ result_t ChainedMessage::storeLastData(SymbolString& master, SymbolString& slave
 	unsigned char index = 0;
 	if (checkId(master, &index)) {
 		result_t result = storeLastData(pt_masterData, master, index);
-		if (result>=RESULT_OK)
+		if (result>=RESULT_OK) {
 			result = storeLastData(pt_slaveData, slave, index);
+		}
 		return result;
 	}
 	return RESULT_ERR_INVALID_ARG;
@@ -967,8 +970,9 @@ result_t ChainedMessage::storeLastData(SymbolString& master, SymbolString& slave
 
 result_t ChainedMessage::storeLastData(const PartType partType, SymbolString& data, unsigned char index)
 {
-	if (index>=m_ids.size())
+	if (index>=m_ids.size()) {
 		return RESULT_ERR_INVALID_ARG;
+	}
 	if (partType == pt_masterData) {
 		switch (data.compareMaster(*m_lastMasterDatas[index])) {
 		case 1: // completely different
@@ -1025,13 +1029,15 @@ result_t ChainedMessage::storeLastData(const PartType partType, SymbolString& da
 		}
 	}
 	// adjust NN
-	if (master.size()-5>255 || slave.size()-1>255)
+	if (master.size()-5>255 || slave.size()-1>255) {
 		return RESULT_ERR_INVALID_POS;
+	}
 	master[4] = (unsigned char)(master.size()-5);
 	slave[0] = (unsigned char)(slave.size()-1);
 	result_t result = Message::storeLastData(pt_masterData, master, 0);
-	if (result==RESULT_OK)
+	if (result==RESULT_OK) {
 		result = Message::storeLastData(pt_slaveData, slave, 0);
+	}
 	return result;
 }
 
