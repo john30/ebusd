@@ -364,7 +364,7 @@ public:
 			const unsigned int pollInterval)
 		: WaitThread(), m_device(device), m_reconnect(false), m_messages(messages),
 		  m_ownMasterAddress(ownAddress), m_ownSlaveAddress((unsigned char)(ownAddress+5)),
-		  m_addressConflict(false), m_answer(answer),
+		  m_answer(answer), m_addressConflict(false),
 		  m_busLostRetries(busLostRetries), m_failedSendRetries(failedSendRetries),
 		  m_transferLatency(transferLatency), m_busAcquireTimeout(busAcquireTimeout), m_slaveRecvTimeout(slaveRecvTimeout),
 		  m_masterCount(device->isReadOnly()?0:1), m_autoLockCount(lockCount==0), m_lockCount(lockCount<=3 ? 3 : lockCount), m_remainLockCount(m_autoLockCount),
