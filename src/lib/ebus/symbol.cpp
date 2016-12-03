@@ -190,12 +190,32 @@ void SymbolString::addCRC(const unsigned char value) {
 
 
 
-bool isMaster(unsigned char addr) {
-	unsigned char addrHi = (addr & 0xF0) >> 4;
-	unsigned char addrLo = (addr & 0x0F);
+/**
+ * Return the index of the upper or lower 4 bits of a master address.
+ * @param bits the upper or lower 4 bits of the address.
+ * @return the 1-based index of the upper or lower 4 bits of a master address (1 to 5), or 0.
+ */
+unsigned char getMasterPartIndex(unsigned char bits) {
+	switch (bits)
+	{
+	case 0x0:
+		return 1;
+	case 0x1:
+		return 2;
+	case 0x3:
+		return 3;
+	case 0x7:
+		return 4;
+	case 0xF:
+		return 5;
+	default:
+		return 0;
+	}
+}
 
-	return ((addrHi == 0x0) || (addrHi == 0x1) || (addrHi == 0x3) || (addrHi == 0x7) || (addrHi == 0xF))
-	    && ((addrLo == 0x0) || (addrLo == 0x1) || (addrLo == 0x3) || (addrLo == 0x7) || (addrLo == 0xF));
+bool isMaster(unsigned char addr) {
+	return getMasterPartIndex(addr & 0x0F)>0
+		&& getMasterPartIndex((addr & 0xF0) >> 4)>0;
 }
 
 bool isSlaveMaster(unsigned char addr) {
@@ -223,28 +243,6 @@ unsigned char getMasterAddress(unsigned char addr) {
 	return SYN;
 }
 
-/**
- * Returns the index of the upper or lower 4 bits of a master address.
- * @param bits the upper or lower 4 bits of the address.
- * @return the 1-based index of the upper or lower 4 bits of a master address (1 to 5), or 0.
- */
-unsigned char getMasterPartIndex(unsigned char bits) {
-	switch (bits)
-	{
-	case 0x0:
-		return 1;
-	case 0x1:
-		return 2;
-	case 0x3:
-		return 3;
-	case 0x7:
-		return 4;
-	case 0xF:
-		return 5;
-	default:
-		return 0;
-	}
-}
 unsigned char getMasterNumber(unsigned char addr) {
 	unsigned char priority = getMasterPartIndex(addr & 0x0F);
 	if (priority==0) {
