@@ -48,13 +48,13 @@ static const char* levelNames[] = {
 };
 
 /** the bit combination of currently active log facilities (1 << @a LogFacility). */
-static int logFacilites = LF_ALL;
+static int s_logFacilites = LF_ALL;
 
 /** the current log level. */
-static LogLevel logLevel = ll_notice;
+static LogLevel s_logLevel = ll_notice;
 
 /** the current log FILE. */
-static FILE* logFile = stdout;
+static FILE* s_logFile = stdout;
 
 bool setLogFacilities(const char* facilities)
 {
@@ -67,26 +67,29 @@ bool setLogFacilities(const char* facilities)
 			free(input);
 			return false;
 		}
-		if (val == lf_COUNT)
+		if (val == lf_COUNT) {
 			newFacilites = LF_ALL;
-		else
+		} else {
 			newFacilites |= 1<<val;
+		}
 	}
-	logFacilites = newFacilites;
+	s_logFacilites = newFacilites;
 	free(input);
 	return true;
 }
 
 bool getLogFacilities(char* buffer)
 {
-	if (logFacilites==LF_ALL)
+	if (s_logFacilites==LF_ALL) {
 		return strcpy(buffer, facilityNames[lf_COUNT]) != NULL;
+	}
 	*buffer = 0; // for strcat to work
 	bool found = false;
 	for (int val=0; val<lf_COUNT; val++) {
-		if (logFacilites&(1<<val)) {
-			if (found)
+		if (s_logFacilites&(1<<val)) {
+			if (found) {
 				strcat(buffer, ",");
+			}
 			found = true;
 			strcat(buffer, facilityNames[val]);
 		}
@@ -107,14 +110,14 @@ bool setLogLevel(const char* level)
 		}
 		newLevel = val;
 	}
-	logLevel = (LogLevel)newLevel;
+	s_logLevel = (LogLevel)newLevel;
 	free(input);
 	return true;
 }
 
 const char* getLogLevel()
 {
-	return levelNames[logLevel];
+	return levelNames[s_logLevel];
 }
 
 bool setLogFile(const char* filename)
@@ -124,23 +127,24 @@ bool setLogFile(const char* filename)
 		return false;
 
 	closeLogFile();
-	logFile = newFile;
+	s_logFile = newFile;
 	return true;
 }
 
 void closeLogFile()
 {
-	if (logFile != NULL) {
-		if (logFile != stdout)
-			fclose(logFile);
-		logFile = NULL;
+	if (s_logFile != NULL) {
+		if (s_logFile != stdout) {
+			fclose(s_logFile);
+		}
+		s_logFile = NULL;
 	}
 }
 
 bool needsLog(const LogFacility facility, const LogLevel level)
 {
-	return ((logFacilites & (1<<facility)) != 0)
-		&& (logLevel >= level);
+	return ((s_logFacilites & (1<<facility)) != 0)
+		&& (s_logLevel >= level);
 }
 
 void logWrite(const LogFacility facility, const LogLevel level, const char* message, ...)
@@ -156,14 +160,15 @@ void logWrite(const LogFacility facility, const LogLevel level, const char* mess
 	va_start(ap, message);
 
 	if (vasprintf(&buf, message, ap) >= 0 && buf) {
-		fprintf(logFile, "%04d-%02d-%02d %02d:%02d:%02d.%03ld [%s %s] %s\n",
+		fprintf(s_logFile, "%04d-%02d-%02d %02d:%02d:%02d.%03ld [%s %s] %s\n",
 			tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday,
 			tm->tm_hour, tm->tm_min, tm->tm_sec, ts.tv_nsec/1000000,
 			facilityNames[facility], levelNames[level], buf);
-		fflush(logFile);
+		fflush(s_logFile);
 	}
 
 	va_end(ap);
-	if (buf)
+	if (buf) {
 		free(buf);
+	}
 }
