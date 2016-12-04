@@ -22,6 +22,7 @@
 #include "message.h"
 #include "network.h"
 #include "bushandler.h"
+#include "rotatefile.h"
 
 /** \file mainloop.h */
 
@@ -30,7 +31,7 @@ using namespace std;
 /**
  * The main loop handling requests from connected clients.
  */
-class MainLoop : public Thread
+class MainLoop : public Thread, DeviceListener
 {
 
 public:
@@ -64,6 +65,9 @@ public:
 	 */
 	void addMessage(NetMessage* message) { m_netQueue.push(message); }
 
+	// @copydoc
+	virtual void notifyDeviceData(const unsigned char byte, bool received);
+
 private:
 
 	/** the @a Device instance. */
@@ -71,6 +75,15 @@ private:
 
 	/** the number of reconnects requested from the @a Device. */
 	unsigned int m_reconnectCount;
+
+	/** the @a RotateFile for writing sent/received bytes in log format, or NULL. */
+	RotateFile* m_logRawFile;
+
+	/** whether raw logging to @p logNotice is enabled (only relevant if m_logRawFile is NULL). */
+	bool m_logRawEnabled;
+
+	/** the @a RotateFile for dumping received data, or NULL. */
+	RotateFile* m_dumpFile;
 
 	/** the @a MessageMap instance. */
 	MessageMap* m_messages;

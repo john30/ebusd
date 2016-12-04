@@ -59,10 +59,13 @@ struct options
 	const char* htmlPath; //!< path for HTML files served by the HTTP port [/var/ebusd/html]
 
 	const char* logFile; //!< log file name [/var/log/ebusd.log]
-	bool logRaw; //!< log each received/sent byte on the bus
 
-	bool dump; //!< dump received bytes
-	const char* dumpFile; //!< dump file name [/tmp/ebus_dump.bin]
+	bool logRaw; //!< raw log each received/sent byte on the bus
+	const char* logRawFile; //!< name of raw log file [/var/log/ebusd.log]
+	int logRawSize; //!< maximum size of raw log file in kB [100]
+
+	bool dump; //!< binary dump received bytes
+	const char* dumpFile; //!< name of dump file [/tmp/ebusd_dump.bin]
 	int dumpSize; //!< maximum size of dump file in kB [100]
 };
 

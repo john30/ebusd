@@ -24,6 +24,7 @@
 #include "mainloop.h"
 #include "bushandler.h"
 #include "log.h"
+#include "rotatefile.h"
 #include <stdlib.h>
 #include <argp.h>
 #include <csignal>
@@ -90,8 +91,10 @@ static struct options opt = {
 	"/var/ebusd/html", // htmlPath
 	PACKAGE_LOGFILE, // logFile
 	false, // logRaw
+	PACKAGE_LOGFILE, // logRawFile
+	100, // logRawSize
 	false, // dump
-	"/tmp/ebus_dump.bin", // dumpFile
+	"/tmp/" PACKAGE "_dump.bin", // dumpFile
 	100 // dumpSize
 };
 
@@ -130,8 +133,10 @@ static const char argpdoc[] =
 #define O_HTMLPA (O_HTTPPT+1)
 #define O_LOGARE (O_HTMLPA+1)
 #define O_LOGLEV (O_LOGARE+1)
-#define O_LOGRAW (O_LOGLEV+1)
-#define O_DMPFIL (O_LOGRAW+1)
+#define O_RAW    (O_LOGLEV+1)
+#define O_RAWFIL (O_RAW+1)
+#define O_RAWSIZ (O_RAWFIL+1)
+#define O_DMPFIL (O_RAWSIZ+1)
 #define O_DMPSIZ (O_DMPFIL+1)
 
 /** the definition of the known program arguments. */
@@ -173,24 +178,28 @@ static const struct argp_option argpoptions[] = {
 	{"logfile",        'l',      "FILE",  0, "Write log to FILE (only for daemon) [" PACKAGE_LOGFILE "]", 0 },
 	{"logareas",       O_LOGARE, "AREAS", 0, "Only write log for matching AREA(S): main,network,bus,update,all [all]", 0 },
 	{"loglevel",       O_LOGLEV, "LEVEL", 0, "Only write log below or equal to LEVEL: error/notice/info/debug [notice]", 0 },
-	{"lograwdata",     O_LOGRAW, NULL,    0, "Log each received/sent byte on the bus", 0 },
 
-	{NULL,             0,        NULL,    0, "Dump options:", 6 },
-	{"dump",           'D',      NULL,    0, "Enable dump of received bytes", 0 },
-	{"dumpfile",       O_DMPFIL, "FILE",  0, "Dump received bytes to FILE [/tmp/ebus_dump.bin]", 0 },
-	{"dumpsize",       O_DMPSIZ, "SIZE",  0, "Make dump files no larger than SIZE kB [100]", 0 },
+	{NULL,             0,        NULL,    0, "Raw logging options:", 6 },
+	{"lograwdata",     O_RAW,    NULL,    0, "Log each received/sent byte on the bus", 0 },
+	{"lograwdatafile", O_RAWFIL, "FILE",  0, "Write raw log to FILE [" PACKAGE_LOGFILE "]", 0 },
+	{"lograwdatasize", O_RAWSIZ, "SIZE",  0, "Make raw log file no larger than SIZE kB [100]", 0 },
+
+	{NULL,             0,        NULL,    0, "Binary dump options:", 7 },
+	{"dump",           'D',      NULL,    0, "Enable binary dump of received bytes", 0 },
+	{"dumpfile",       O_DMPFIL, "FILE",  0, "Dump received bytes to FILE [/tmp/" PACKAGE "_dump.bin]", 0 },
+	{"dumpsize",       O_DMPSIZ, "SIZE",  0, "Make dump file no larger than SIZE kB [100]", 0 },
 
 	{NULL,             0,        NULL,    0, NULL, 0 },
 };
 
 /** the global @a DataFieldTemplates. */
-static DataFieldTemplates globalTemplates;
+static DataFieldTemplates s_globalTemplates;
 
 /**
  * the loaded @a DataFieldTemplates by path (may also carry
  * @a globalTemplates as replacement for missing file).
  */
-static map<string, DataFieldTemplates*> templatesByPath;
+static map<string, DataFieldTemplates*> s_templatesByPath;
 
 /**
  * The program argument parsing function.
@@ -404,15 +413,32 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 			return EINVAL;
 		}
 		break;
-	case O_LOGRAW:  // --lograwdata
+
+	// Raw logging options:
+	case O_RAW:  // --lograwdata
 		opt->logRaw = true;
 		break;
+	case O_RAWFIL: // --lograwdatafile=/var/log/ebusd.log
+		if (arg == NULL || arg[0] == 0 || strcmp("/", arg) == 0) {
+			argp_error(state, "invalid dumpfile");
+			return EINVAL;
+		}
+		opt->logRawFile = arg;
+		break;
+	case O_RAWSIZ: // --lograwdatasize=100
+		opt->logRawSize = parseInt(arg, 10, 1, 1000000, result);
+		if (result != RESULT_OK) {
+			argp_error(state, "invalid dumpsize");
+			return EINVAL;
+		}
+		break;
 
-	// Dump options:
+
+	// Binary dump options:
 	case 'D':  // --dump
 		opt->dump = true;
 		break;
-	case O_DMPFIL: // --dumpfile=/tmp/ebus_dump.bin
+	case O_DMPFIL: // --dumpfile=/tmp/ebusd_dump.bin
 		if (arg == NULL || arg[0] == 0 || strcmp("/", arg) == 0) {
 			argp_error(state, "invalid dumpfile");
 			return EINVAL;
@@ -521,12 +547,13 @@ void shutdown()
 		s_messageMap = NULL;
 	}
 	// free templates
-	for (map<string, DataFieldTemplates*>::iterator it = templatesByPath.begin(); it != templatesByPath.end(); it++) {
-		if (it->second!=&globalTemplates)
+	for (map<string, DataFieldTemplates*>::iterator it = s_templatesByPath.begin(); it != s_templatesByPath.end(); it++) {
+		if (it->second!=&s_globalTemplates) {
 			delete it->second;
+		}
 		it->second = NULL;
 	}
-	templatesByPath.clear();
+	s_templatesByPath.clear();
 
 	// reset all signal handlers to default
 	signal(SIGHUP, SIG_DFL);
@@ -620,13 +647,14 @@ static result_t collectConfigFiles(const string path, const string prefix, const
 DataFieldTemplates* getTemplates(const string filename) {
 	string path;
 	size_t pos = filename.find_last_of('/');
-	if (pos!=string::npos)
+	if (pos!=string::npos) {
 		path = filename.substr(0, pos);
-	map<string, DataFieldTemplates*>::iterator it = templatesByPath.find(path);
-	if (it!=templatesByPath.end()) {
+	}
+	map<string, DataFieldTemplates*>::iterator it = s_templatesByPath.find(path);
+	if (it!=s_templatesByPath.end()) {
 		return it->second;
 	}
-	return &globalTemplates;
+	return &s_globalTemplates;
 }
 
 /**
@@ -639,17 +667,17 @@ DataFieldTemplates* getTemplates(const string filename) {
  * @return the @a DataFieldTemplates.
  */
 static bool readTemplates(const string path, const string extension, bool available, bool verbose=false) {
-	map<string, DataFieldTemplates*>::iterator it = templatesByPath.find(path);
-	if (it!=templatesByPath.end()) {
+	map<string, DataFieldTemplates*>::iterator it = s_templatesByPath.find(path);
+	if (it!=s_templatesByPath.end()) {
 		return false;
 	}
 	DataFieldTemplates* templates;
 	if (path==opt.configPath || !available) {
-		templates = &globalTemplates;
+		templates = &s_globalTemplates;
 	} else {
-		templates = new DataFieldTemplates(globalTemplates);
+		templates = new DataFieldTemplates(s_globalTemplates);
 	}
-	templatesByPath[path] = templates;
+	s_templatesByPath[path] = templates;
 	if (!available) {
 		// global templates are stored as replacement in order to determine whether the directory was already loaded
 		return true;
@@ -741,14 +769,14 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
 {
 	logInfo(lf_main, "loading configuration files from %s", opt.configPath);
 	messages->clear();
-	globalTemplates.clear();
-	for (map<string, DataFieldTemplates*>::iterator it = templatesByPath.begin(); it != templatesByPath.end(); it++) {
-		if (it->second!=&globalTemplates) {
+	s_globalTemplates.clear();
+	for (map<string, DataFieldTemplates*>::iterator it = s_templatesByPath.begin(); it != s_templatesByPath.end(); it++) {
+		if (it->second!=&s_globalTemplates) {
 			delete it->second;
 		}
 		it->second = NULL;
 	}
-	templatesByPath.clear();
+	s_templatesByPath.clear();
 
 	result_t result = readConfigFiles(string(opt.configPath), ".csv", messages, (!opt.scanConfig || opt.checkConfig) && !denyRecursive, verbose);
 	if (result == RESULT_OK) {
@@ -908,18 +936,6 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 	return RESULT_OK;
 }
 
-/**
- * Create a log message for a received/sent raw data byte.
- * @param byte the raw data byte.
- * @param received true if the byte was received, false if it was sent.
- */
-static void logRawData(const unsigned char byte, bool received)
-{
-	if (received)
-		logNotice(lf_bus, "<%02x", byte);
-	else
-		logNotice(lf_bus, ">%02x", byte);
-}
 
 /**
  * Main method.
@@ -965,10 +981,17 @@ int main(int argc, char* argv[])
 				continue;
 			}
 			unsigned char address = master[1];
-			string file;
-			res = loadScanConfigFile(s_messageMap, address, slave, file, true);
-			if (res==RESULT_OK)
-				logInfo(lf_main, "scan config %2.2x: file %s loaded", address, file.c_str());
+			Message* message = s_messageMap->getScanMessage(address);
+			if (!message) {
+				logError(lf_main, "invalid scan address %2.2x", address);
+			} else {
+				message->storeLastData(master, slave);
+				string file;
+				res = loadScanConfigFile(s_messageMap, address, slave, file, true);
+				if (res==RESULT_OK) {
+					logInfo(lf_main, "scan config %2.2x: file %s loaded", address, file.c_str());
+				}
+			}
 		}
 		if (result == RESULT_OK && opt.checkConfig > 1) {
 			logNotice(lf_main, "configuration dump:");
@@ -978,8 +1001,9 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 
+
 	// open the device
-	Device *device = Device::create(opt.device, !opt.noDeviceCheck, opt.readOnly, opt.initialSend, &logRawData);
+	Device *device = Device::create(opt.device, !opt.noDeviceCheck, opt.readOnly, opt.initialSend);
 	if (device == NULL) {
 		logError(lf_main, "unable to create device %s", opt.device);
 		return EINVAL;
@@ -1003,9 +1027,9 @@ int main(int argc, char* argv[])
 
 	// load configuration files
 	loadConfigFiles(s_messageMap);
-	if (s_messageMap->sizeConditions()>0 && opt.pollInterval==0)
+	if (s_messageMap->sizeConditions()>0 && opt.pollInterval==0) {
 		logError(lf_main, "conditions require a poll interval > 0");
-
+	}
 	// wait for end of MainLoop
 	s_mainLoop->join();
 

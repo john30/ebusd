@@ -42,11 +42,9 @@ using namespace std;
 Device::~Device()
 {
 	close();
-	m_dumpRawStream.close();
 }
 
-Device* Device::create(const char* name, const bool checkDevice, const bool readOnly, const bool initialSend,
-		void (*logRawFunc)(const unsigned char byte, bool received))
+Device* Device::create(const char* name, const bool checkDevice, const bool readOnly, const bool initialSend)
 {
 	if (strchr(name, '/') == NULL && strchr(name, ':') != NULL) {
 		char* in = strdup(name);
@@ -81,9 +79,9 @@ Device* Device::create(const char* name, const bool checkDevice, const bool read
 		free(in);
 		address.sin_family = AF_INET;
 		address.sin_port = (in_port_t)htons((uint16_t)port);
-		return new NetworkDevice(name, address, readOnly, initialSend, logRawFunc, udp);
+		return new NetworkDevice(name, address, readOnly, initialSend, udp);
 	}
-	return new SerialDevice(name, checkDevice, readOnly, initialSend, logRawFunc);
+	return new SerialDevice(name, checkDevice, readOnly, initialSend);
 }
 
 void Device::close()
@@ -96,34 +94,34 @@ void Device::close()
 
 bool Device::isValid()
 {
-	if (m_fd == -1)
+	if (m_fd == -1) {
 		return false;
-
-	if (m_checkDevice)
+	}
+	if (m_checkDevice) {
 		checkDevice();
-
+	}
 	return m_fd != -1;
 }
 
 result_t Device::send(const unsigned char value)
 {
-	if (!isValid())
+	if (!isValid()) {
 		return RESULT_ERR_DEVICE;
-
-	if (m_readOnly || write(value) != 1)
+	}
+	if (m_readOnly || write(value) != 1) {
 		return RESULT_ERR_SEND;
-
-	if (m_logRaw && m_logRawFunc != NULL)
-		(*m_logRawFunc)(value, false);
-
+	}
+	if (m_listener != NULL) {
+		m_listener->notifyDeviceData(value, false);
+	}
 	return RESULT_OK;
 }
 
 result_t Device::recv(const long timeout, unsigned char& value)
 {
-	if (!isValid())
+	if (!isValid()) {
 		return RESULT_ERR_DEVICE;
-
+	}
 	if (!available() && timeout > 0) {
 		int ret;
 		struct timespec tdiff;
@@ -154,80 +152,42 @@ result_t Device::recv(const long timeout, unsigned char& value)
 		ret = 1; // ignore timeout if neither ppoll nor pselect are available
 #endif
 #endif
-		if (ret == -1) return RESULT_ERR_DEVICE;
-		if (ret == 0) return RESULT_ERR_TIMEOUT;
+		if (ret == -1) {
+			return RESULT_ERR_DEVICE;
+		}
+		if (ret == 0) {
+			return RESULT_ERR_TIMEOUT;
+		}
 	}
 
 	// directly read byte from device
 	ssize_t nbytes = read(value);
-	if (nbytes == 0)
+	if (nbytes == 0) {
 		return RESULT_ERR_EOF;
-	if (nbytes < 0)
+	}
+	if (nbytes < 0) {
 		return RESULT_ERR_DEVICE;
-
-	if (m_logRaw && m_logRawFunc != NULL)
-		(*m_logRawFunc)(value, true);
-
-	if (m_dumpRaw && m_dumpRawStream.is_open()) {
-		m_dumpRawStream.write((char*)&value, 1);
-		m_dumpRawFileSize++;
-		if ((m_dumpRawFileSize%1024) == 0)
-			m_dumpRawStream.flush();
-
-		if (m_dumpRawFileSize >= m_dumpRawMaxSize * 1024) {
-			string oldfile = string(m_dumpRawFile) + ".old";
-			if (rename(m_dumpRawFile, oldfile.c_str()) == 0) {
-				m_dumpRawStream.close();
-				m_dumpRawStream.open(m_dumpRawFile, ios::out | ios::binary | ios::app);
-				m_dumpRawFileSize = 0;
-			}
-		}
 	}
-
+	if (m_listener != NULL) {
+		m_listener->notifyDeviceData(value, true);
+	}
 	return RESULT_OK;
-}
-
-void Device::setDumpRaw(bool dumpRaw)
-{
-	if (dumpRaw == m_dumpRaw)
-		return;
-
-	m_dumpRaw = dumpRaw;
-
-	if (!dumpRaw || m_dumpRawFile == NULL)
-		m_dumpRawStream.close();
-	else {
-		m_dumpRawStream.open(m_dumpRawFile, ios::out | ios::binary | ios::app);
-		m_dumpRawFileSize = 0;
-	}
-}
-
-void Device::setDumpRawFile(const char* dumpFile) {
-	if ((dumpFile == NULL) ? (m_dumpRawFile == NULL) : (m_dumpRawFile != NULL && (m_dumpRawFile == dumpFile || strcmp(dumpFile, m_dumpRawFile) == 0)))
-		return;
-
-	m_dumpRawStream.close();
-	m_dumpRawFile = dumpFile;
-
-	if (m_dumpRaw && m_dumpRawFile != NULL) {
-		m_dumpRawStream.open(m_dumpRawFile, ios::out | ios::binary | ios::app);
-		m_dumpRawFileSize = 0;
-	}
 }
 
 
 result_t SerialDevice::open()
 {
-	if (m_fd != -1)
+	if (m_fd != -1) {
 		close();
-
+	}
 	struct termios newSettings;
 
 	// open file descriptor
 	m_fd = ::open(m_name, O_RDWR | O_NOCTTY);
 
-	if (m_fd < 0)
+	if (m_fd < 0) {
 		return RESULT_ERR_NOTFOUND;
+	}
 	if (isatty(m_fd) == 0) {
 		close();
 		return RESULT_ERR_NOTFOUND;
@@ -283,7 +243,6 @@ void SerialDevice::close()
 void SerialDevice::checkDevice()
 {
 	int port;
-
 	if (ioctl(m_fd, TIOCMGET, &port) == -1) {
 		close();
 	}
@@ -292,13 +251,13 @@ void SerialDevice::checkDevice()
 
 result_t NetworkDevice::open()
 {
-	if (m_fd != -1)
+	if (m_fd != -1) {
 		close();
-
+	}
 	m_fd = socket(AF_INET, m_udp ? SOCK_DGRAM : SOCK_STREAM, 0);
-	if (m_fd < 0)
+	if (m_fd < 0) {
 		return RESULT_ERR_GENERIC_IO;
-
+	}
 	int ret;
 	if (m_udp) {
 		struct sockaddr_in address = m_address;

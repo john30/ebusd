@@ -11,7 +11,9 @@ libutils_a_SOURCES = log.cpp \
 		     clock.h \
 		     clock.cpp \
 		     queue.h \
-		     notify.h
+		     notify.h \
+		     rotatefile.h \
+		     rotatefile.cpp
 
 distclean-local:
 	-rm -f Makefile.in

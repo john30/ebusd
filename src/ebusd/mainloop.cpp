@@ -49,19 +49,21 @@ MainLoop::MainLoop(const struct options opt, Device *device, MessageMap* message
 	  m_address(opt.address), m_scanConfig(opt.scanConfig),
 	  m_initialScan(opt.initialScan), m_enableHex(opt.enableHex)
 {
-	// setup Device
-	m_device->setLogRaw(opt.logRaw);
-	m_device->setDumpRawFile(opt.dumpFile);
-	m_device->setDumpRawMaxSize(opt.dumpSize);
-	m_device->setDumpRaw(opt.dump);
-
 	// open Device
 	result_t result = m_device->open();
-	if (result != RESULT_OK)
+	if (result != RESULT_OK) {
 		logError(lf_bus, "unable to open %s: %s", m_device->getName(), getResultCode(result));
-	else if (!m_device->isValid())
+	} else if (!m_device->isValid()) {
 		logError(lf_bus, "device %s not available", m_device->getName());
-
+	}
+	m_device->setListener(this);
+	if (opt.dumpFile[0]) {
+		m_dumpFile = new RotateFile(opt.dumpFile, opt.dumpSize);
+	}
+	if (opt.logRawFile[0] && strcmp(opt.logRawFile, opt.logFile)!=0) {
+		m_logRawFile = new RotateFile(opt.logRawFile, opt.logRawSize, true);
+	}
+	m_logRawEnabled = opt.logRaw;
 	// create BusHandler
 	unsigned int latency;
 	if (opt.latency<0) {
@@ -86,6 +88,14 @@ MainLoop::MainLoop(const struct options opt, Device *device, MessageMap* message
 MainLoop::~MainLoop()
 {
 	join();
+	if (m_dumpFile) {
+		delete m_dumpFile;
+		m_dumpFile = NULL;
+	}
+	if (m_logRawFile) {
+		delete m_logRawFile;
+		m_logRawFile = NULL;
+	}
 	if (m_network != NULL) {
 		delete m_network;
 		m_network = NULL;
@@ -230,6 +240,22 @@ void MainLoop::run()
 
 		// send result to client
 		message->setResult(result, listening, until, !connected);
+	}
+}
+
+void MainLoop::notifyDeviceData(const unsigned char byte, bool received)
+{
+	if (received && m_dumpFile) {
+		m_dumpFile->write((unsigned char*)&byte, 1);
+	}
+	if (m_logRawFile) {
+		m_logRawFile->write((unsigned char*)&byte, 1, received);
+	} else if (m_logRawEnabled){
+		if (received) {
+			logNotice(lf_bus, "<%02x", byte);
+		} else {
+			logNotice(lf_bus, ">%02x", byte);
+		}
 	}
 }
 
@@ -1105,25 +1131,32 @@ string MainLoop::executeLog(vector<string> &args)
 
 string MainLoop::executeRaw(vector<string> &args)
 {
-	if (args.size() != 1)
+	if (args.size() != 1) {
 		return "usage: raw\n"
-			   " Toggle logging raw bytes.";
-
-	bool enabled = !m_device->getLogRaw();
-	m_device->setLogRaw(enabled);
-
-	return enabled ? "raw output enabled" : "raw output disabled";
+			   " Toggle logging of each byte.";
+	}
+	bool enabled;
+	if (m_logRawFile) {
+		enabled = !m_logRawFile->isEnabled();
+		m_logRawFile->setEnabled(enabled);
+	} else {
+		enabled = !m_logRawEnabled;
+		m_logRawEnabled = enabled;
+	}
+	return enabled ? "raw logging enabled" : "raw logging disabled";
 }
 
 string MainLoop::executeDump(vector<string> &args)
 {
-	if (args.size() != 1)
+	if (args.size() != 1) {
 		return "usage: dump\n"
-			   " Toggle dumping raw bytes.";
-
-	bool enabled = !m_device->getDumpRaw();
-	m_device->setDumpRaw(enabled);
-
+			   " Toggle binary dump of received bytes.";
+	}
+	if (!m_dumpFile) {
+		return "dump not configured";
+	}
+	bool enabled = !m_dumpFile->isEnabled();
+	m_dumpFile->setEnabled(enabled);
 	return enabled ? "dump enabled" : "dump disabled";
 }
 
@@ -1193,8 +1226,8 @@ string MainLoop::executeHelp()
 		   " log      Set log area/level:    log [AREA[,AREA]*] [LEVEL]\n"
 		   "                                   AREA: main|network|bus|update|all\n"
 		   "                                   LEVEL: error|notice|info|debug\n"
-		   " raw      Toggle logging raw bytes\n"
-		   " dump     Toggle dumping raw bytes\n"
+		   " raw      Toggle logging of each byte\n"
+		   " dump     Toggle binary dump of received bytes\n"
 		   " reload   Reload CSV config files\n"
 		   " quit|q   Close connection\n"
 		   " help|h   Print help             help [COMMAND]";
