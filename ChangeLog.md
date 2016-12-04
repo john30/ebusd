@@ -1,3 +1,23 @@
+# 2.4 (2016-12-??)
+
+## Bug Fixes
+* fixed removed last byte in "hex" command answers
+* corrected checking duplicates of chained messages
+* fixed reading beyond message bounds
+* corrected output precision with reciprocal divisor
+* corrected caching of master-master messages
+* corrected default dump file name to "/tmp/ebusd_dump.bin"
+
+## Features
+* extended default definition in CSV to allow message name and comment prefix/suffix
+* added automatic reconnect of device if signal loss is persistent and extended "info" result with number of reconnects
+* extended "grab" command to allow selection of all or only unknown messages in grab result
+* added error log entry when ebusd address conflicts with another participant
+* extended BTI/HTI/BTM types to allow replacement value
+* added condition name to logging of "!load" instructions and "info" result
+* added "--lograwdatafile" and "--lograwdatasize" options logging received/sent bytes to a dedicated text file
+
+
 # 2.3 (2016-11-06)
 
 ## Bug Fixes
