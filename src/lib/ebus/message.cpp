@@ -1454,7 +1454,7 @@ string Instruction::getDestination()
 }
 
 
-result_t LoadInstruction::execute(MessageMap* messages, ostringstream& log) {
+result_t LoadInstruction::execute(MessageMap* messages, ostringstream& log, Condition* condition) {
 	result_t result = messages->readFromFile(m_filename, false, m_defaultDest, m_defaultCircuit, m_defaultSuffix);
 	if (log.tellp()>0) {
 		log << ", ";
@@ -1475,7 +1475,13 @@ result_t LoadInstruction::execute(MessageMap* messages, ostringstream& log) {
 			} else {
 				filename = m_filename.substr(pos+1);
 			}
-			messages->addLoadedFile(address, filename);
+			string comment;
+			if (condition) {
+				ostringstream out;
+				condition->dump(out);
+				comment = out.str();
+			}
+			messages->addLoadedFile(address, filename, comment);
 		}
 	}
 	return result;
@@ -1780,7 +1786,7 @@ result_t MessageMap::executeInstructions(ostringstream& log, void (*readMessageF
 				if (instruction->isSingleton()) {
 					removeSingletons = true;
 				}
-				result_t result = instruction->execute(this, log);
+				result_t result = instruction->execute(this, log, condition);
 				if (result!=RESULT_OK) {
 					overallResult = result;
 				}
@@ -1813,13 +1819,19 @@ result_t MessageMap::executeInstructions(ostringstream& log, void (*readMessageF
 	return overallResult;
 }
 
-void MessageMap::addLoadedFile(unsigned char address, string file)
+void MessageMap::addLoadedFile(unsigned char address, string file, string comment)
 {
-	if (file.empty()) return;
-	if (m_loadedFiles.find(address)==m_loadedFiles.end())
-		m_loadedFiles[address] = "\""+file+"\"";
-	else
-		m_loadedFiles[address] += ", \""+file+"\"";
+	if (!file.empty()) {
+		string fileComment = "\""+file+"\"";
+		if (!comment.empty()) {
+			fileComment += " ("+comment+")";
+		}
+		if (m_loadedFiles.find(address)==m_loadedFiles.end()) {
+			m_loadedFiles[address] = fileComment;
+		} else {
+			m_loadedFiles[address] += fileComment;
+		}
+	}
 }
 
 string MessageMap::getLoadedFiles(unsigned char address)

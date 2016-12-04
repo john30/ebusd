@@ -1041,9 +1041,10 @@ public:
 	 * Execute the instruction.
 	 * @param messages the @a MessageMap.
 	 * @param log the @a ostringstream to log success messages to (if necessary).
+	 * @param condition the @a Condition that was successfully evaluated for execution, or NULL.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	virtual result_t execute(MessageMap* messages, ostringstream& log) = 0;
+	virtual result_t execute(MessageMap* messages, ostringstream& log, Condition* condition) = 0;
 
 private:
 
@@ -1092,7 +1093,7 @@ public:
 	virtual ~LoadInstruction() { }
 
 	// @copydoc
-	virtual result_t execute(MessageMap* messages, ostringstream& log);
+	virtual result_t execute(MessageMap* messages, ostringstream& log, Condition* condition);
 
 private:
 
@@ -1190,8 +1191,9 @@ public:
 	 * Add a loaded file to a participant.
 	 * @param address the slave address.
 	 * @param file the name of the file from which a configuration part was loaded for the participant.
+	 * @param comment an optional comment.
 	 */
-	void addLoadedFile(unsigned char address, string file);
+	void addLoadedFile(unsigned char address, string file, string comment);
 
 	/**
 	 * Get the loaded files for a participant.

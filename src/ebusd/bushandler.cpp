@@ -1145,6 +1145,6 @@ void BusHandler::setScanConfigLoaded(unsigned char address, string file) {
 	m_seenAddresses[address] |= LOAD_INIT;
 	if (!file.empty()) {
 		m_seenAddresses[address] |= LOAD_DONE;
-		m_messages->addLoadedFile(address, file);
+		m_messages->addLoadedFile(address, file, "");
 	}
 }
