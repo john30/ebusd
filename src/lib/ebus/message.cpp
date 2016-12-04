@@ -1460,10 +1460,10 @@ result_t LoadInstruction::execute(MessageMap* messages, ostringstream& log, Cond
 		log << ", ";
 	}
 	if (result!=RESULT_OK) {
-		log << "error " << (isSingleton() ? "loading " : "including ") << m_filename << " for \"" << getDestination() << "\": " << getResultCode(result);
+		log << "error " << (isSingleton() ? "loading \"" : "including \"") << m_filename << "\" for \"" << getDestination() << "\": " << getResultCode(result);
 		return result;
 	}
-	log << (isSingleton() ? "loaded " : "included ") << m_filename << " for \"" << getDestination() << "\"";
+	log << (isSingleton() ? "loaded \"" : "included \"") << m_filename << "\" for \"" << getDestination() << "\"";
 	if (isSingleton() && !m_defaultDest.empty()) {
 		result_t temp;
 		unsigned char address = (unsigned char)parseInt(m_defaultDest.c_str(), 16, 0, 0xff, temp);
@@ -1480,6 +1480,7 @@ result_t LoadInstruction::execute(MessageMap* messages, ostringstream& log, Cond
 				ostringstream out;
 				condition->dump(out);
 				comment = out.str();
+				log << " ("+comment+")";
 			}
 			messages->addLoadedFile(address, filename, comment);
 		}
@@ -1829,7 +1830,7 @@ void MessageMap::addLoadedFile(unsigned char address, string file, string commen
 		if (m_loadedFiles.find(address)==m_loadedFiles.end()) {
 			m_loadedFiles[address] = fileComment;
 		} else {
-			m_loadedFiles[address] += fileComment;
+			m_loadedFiles[address] += ", "+fileComment;
 		}
 	}
 }
