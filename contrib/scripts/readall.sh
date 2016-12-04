@@ -11,7 +11,7 @@ if [ "x$1" = "x-R" ]; then
   readargs=$1
   shift
 fi
-for i in `echo "f" "$@"|nc localhost $port|cut -d ' ' -f '1-2'|sed -e 's# #:#'`; do
-  ret=`echo "r ${readargs} -c" ${i%%:*} ${i##*:}|nc localhost $port|head -n 1`
-  echo ${i%%:*} ${i##*:} "=" $ret
+for i in `echo "f -F circuit,name" "$@"|nc 127.0.0.1 $port|sort -u|egrep ','`; do
+  ret=`echo "r ${readargs} -c" ${i%%,*} ${i##*,}|nc 127.0.0.1 $port|head -n 1`
+  echo ${i%%,*} ${i##*,} "=" $ret
 done
