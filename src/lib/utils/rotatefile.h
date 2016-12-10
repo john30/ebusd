@@ -41,7 +41,7 @@ public:
 	 * @param maxSize the maximum size of the file to write to.
 	 * @param textMode whether to write each byte with prefixed timestamp and direction as text.
 	 */
-	RotateFile(const string fileName, const long maxSize, const bool textMode=false)
+	RotateFile(const string fileName, const unsigned long maxSize, const bool textMode=false)
 		: m_enabled(false), m_fileName(fileName), m_maxSize(maxSize), m_textMode(textMode), m_stream(), m_fileSize(0) {}
 
 	/**
@@ -78,7 +78,7 @@ private:
 	const string m_fileName;
 
 	/** the maximum size of @a m_file, or 0 for infinite. */
-	const long m_maxSize;
+	const unsigned long m_maxSize;
 
 	/** whether to write each byte with prefixed timestamp and direction as text. */
 	const bool m_textMode;

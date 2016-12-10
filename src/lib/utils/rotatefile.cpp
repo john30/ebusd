@@ -67,7 +67,6 @@ void RotateFile::write(unsigned char* value, unsigned int size, bool received)
 		struct tm* tm;
 		clockGettime(&ts);
 		tm = localtime(&ts.tv_sec);
-		char* buf;
 		fprintf(m_stream, "%04d-%02d-%02d %02d:%02d:%02d.%03ld %c",
 			tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday,
 			tm->tm_hour, tm->tm_min, tm->tm_sec, ts.tv_nsec/1000000,

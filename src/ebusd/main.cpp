@@ -426,7 +426,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 		opt->logRawFile = arg;
 		break;
 	case O_RAWSIZ: // --lograwdatasize=100
-		opt->logRawSize = parseInt(arg, 10, 1, 1000000, result);
+		opt->logRawSize = (unsigned int)parseInt(arg, 10, 1, 1000000, result);
 		if (result != RESULT_OK) {
 			argp_error(state, "invalid dumpsize");
 			return EINVAL;
@@ -446,7 +446,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 		opt->dumpFile = arg;
 		break;
 	case O_DMPSIZ: // --dumpsize=100
-		opt->dumpSize = parseInt(arg, 10, 1, 1000000, result);
+		opt->dumpSize = (unsigned int)parseInt(arg, 10, 1, 1000000, result);
 		if (result != RESULT_OK) {
 			argp_error(state, "invalid dumpsize");
 			return EINVAL;
