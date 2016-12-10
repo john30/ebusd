@@ -101,11 +101,21 @@ result_t DataField::create(vector<string>::iterator& it,
 		}
 
 		map<unsigned int, string> values;
+		string constantValue;
+		bool verifyValue = false;
 		if (it != end) {
 			const string divisorStr = *it++; // [divisor|values]
 			if (!divisorStr.empty()) {
-				if (divisorStr.find('=') == string::npos) {
+				size_t equalPos = divisorStr.find('=');
+				if (equalPos == string::npos) {
 					divisor = parseSignedInt(divisorStr.c_str(), 10, -MAX_DIVISOR, MAX_DIVISOR, result);
+				} else if (equalPos == 0 && divisorStr.length() > 1) {
+					verifyValue = divisorStr[1]=='='; // == forced verification of constant value
+					if (verifyValue && divisorStr.length() == 1) {
+						result = RESULT_ERR_INVALID_LIST;
+						break;
+					}
+					constantValue = divisorStr.substr(equalPos+(verifyValue?2:1));
 				} else {
 					istringstream stream(divisorStr);
 					while (getline(stream, token, VALUE_SEPARATOR)) {
@@ -190,12 +200,14 @@ result_t DataField::create(vector<string>::iterator& it,
 				}
 				transform(typeName.begin(), typeName.end(), typeName.begin(), ::toupper);
 				SingleDataField* add = NULL;
-				result = SingleDataField::create(typeName, length, firstType ? name : "", firstType ? comment : "", firstType ? unit : "", partType, divisor, values, add);
+				result = SingleDataField::create(typeName, length, firstType ? name : "", firstType ? comment : "", firstType ? unit : "", partType, divisor, values, constantValue, verifyValue, add);
 				if (add != NULL) {
 					fields.push_back(add);
 				} else if (result == RESULT_OK) {
 					result = RESULT_ERR_NOTFOUND; // type not found
 				}
+			} else if (!constantValue.empty()) {
+				result = RESULT_ERR_INVALID_ARG; // invalid value list
 			} else { // template[:name]
 				string fieldName;
 				bool lastType = stream.eof();
@@ -241,7 +253,7 @@ void DataField::dumpString(ostream& output, const string str, const bool prepend
 result_t SingleDataField::create(const string id, const unsigned char length,
 	const string name, const string comment, const string unit,
 	const PartType partType, int divisor, map<unsigned int, string> values,
-	SingleDataField* &returnField)
+	const string constantValue, const bool verifyValue, SingleDataField* &returnField)
 {
 	DataType* dataType = DataTypeList::getInstance()->get(id, length==REMAIN_LEN ? (unsigned char)0 : length);
 	if (!dataType) {
@@ -268,6 +280,10 @@ result_t SingleDataField::create(const string id, const unsigned char length,
 			return RESULT_ERR_OUT_OF_RANGE; // invalid length
 		}
 	}
+	if (!constantValue.empty()) {
+		returnField = new ConstantDataField(name, comment, unit, dataType, partType, byteCount, constantValue, verifyValue);
+		return RESULT_OK;
+	}
 	if (dataType->isNumeric()) {
 		NumberDataType* numType = (NumberDataType*)dataType;
 		if (values.empty() && numType->hasFlag(DAY)) {
@@ -285,7 +301,6 @@ result_t SingleDataField::create(const string id, const unsigned char length,
 		if (values.begin()->first < numType->getMinValue() || values.rbegin()->first > numType->getMaxValue()) {
 			return RESULT_ERR_OUT_OF_RANGE;
 		}
-		//TODO add special field for fixed values (exactly one value in the list of values)
 		returnField = new ValueListDataField(name, comment, unit, numType, partType, byteCount, values);
 		return RESULT_OK;
 	}
@@ -618,6 +633,79 @@ result_t ValueListDataField::writeSymbols(istringstream& input,
 		return numType->writeRawValue(value, offset, m_length, output, usedLength);
 
 	return RESULT_ERR_NOTFOUND; // value assignment not found
+}
+
+
+ConstantDataField* ConstantDataField::clone()
+{
+	return new ConstantDataField(*this);
+}
+
+result_t ConstantDataField::derive(string name, string comment,
+		string unit, const PartType partType,
+		int divisor, map<unsigned int, string> values,
+		vector<SingleDataField*>& fields)
+{
+	if (m_partType != pt_any && partType == pt_any)
+		return RESULT_ERR_INVALID_PART; // cannot create a template from a concrete instance
+	if (name.empty())
+		name = m_name;
+	if (comment.empty())
+		comment = m_comment;
+	if (unit.empty())
+		unit = m_unit;
+	if (divisor != 0)
+		return RESULT_ERR_INVALID_ARG; // cannot use other than current divisor for constant value field
+	if (!values.empty()) {
+		return RESULT_ERR_INVALID_ARG; // cannot use value list for constant value field
+	}
+	fields.push_back(new ConstantDataField(name, comment, unit, m_dataType, partType, m_length, m_value, m_verify));
+
+	return RESULT_OK;
+}
+
+void ConstantDataField::dump(ostream& output)
+{
+	output << setw(0) << dec; // initialize formatting
+	dumpString(output, m_name, false);
+	output << FIELD_SEPARATOR;
+	if (m_partType == pt_masterData)
+		output << "m";
+	else if (m_partType == pt_slaveData)
+		output << "s";
+	output << FIELD_SEPARATOR;
+	if (!m_dataType->dump(output, m_length)) { // no divisor appended
+		output << (m_verify?"==":"=") << m_value;
+	} // else: impossible since divisor is not allowed for ConstantDataField
+	dumpString(output, m_unit);
+	dumpString(output, m_comment);
+}
+
+result_t ConstantDataField::readSymbols(SymbolString& input, const bool isMaster,
+		const unsigned char offset,
+		ostringstream& output, OutputFormat outputFormat)
+{
+	ostringstream coutput;
+	result_t result = SingleDataField::readSymbols(input, isMaster, offset, coutput, 0);
+	if (result != RESULT_OK) {
+		return result;
+	}
+	if (m_verify) {
+		string value = coutput.str();
+		FileReader::trim(value);
+		if (value!=m_value) {
+			return RESULT_ERR_OUT_OF_RANGE;
+		}
+	}
+	return RESULT_OK;
+}
+
+result_t ConstantDataField::writeSymbols(istringstream& input,
+		const unsigned char offset,
+		SymbolString& output, const bool isMaster, unsigned char* usedLength)
+{
+	istringstream cinput(m_value);
+	return SingleDataField::writeSymbols(cinput, offset, output, isMaster, usedLength);
 }
 
 

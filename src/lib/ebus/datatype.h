@@ -103,6 +103,7 @@ static const unsigned int EXP = 0x100; //!< exponential numeric representation
 static const unsigned int DAY = 0x200; //!< forced value list defaulting to week days
 static const unsigned int NUM = 0x400; //!< numeric type with base class @a NumberDataType
 static const unsigned int SPE = 0x800; //!< special marker for certain types
+static const unsigned int CON = 0x1000; //!< marker for a constant value
 
 
 /**

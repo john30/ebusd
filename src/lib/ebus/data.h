@@ -256,6 +256,8 @@ public:
 	 * @param partType the message part in which the field is stored.
 	 * @param divisor the extra divisor (negative for reciprocal) to apply on the value, or 1 for none (if applicable).
 	 * @param values the value=text assignments.
+	 * @param constantValue the constant value as string, or empty.
+	 * @param verifyValue whether to verify the read value against the constant value.
 	 * @param returnField the variable in which the created @a SingleDataField instance shall be stored.
 	 * @return @a RESULT_OK on success, or an error code.
 	 * Note: the caller needs to free the created instance.
@@ -263,7 +265,7 @@ public:
 	static result_t create(const string id, const unsigned char length,
 			const string name, const string comment, const string unit,
 			const PartType partType, int divisor, map<unsigned int, string> values,
-			SingleDataField* &returnField);
+			const string constantValue, const bool verifyValue, SingleDataField* &returnField);
 
 	/**
 	 * Get the value unit.
@@ -423,6 +425,70 @@ private:
 
 	/** the value=text assignments. */
 	map<unsigned int, string> m_values;
+
+};
+
+
+/**
+ * A data field with a constant value.
+ */
+class ConstantDataField : public SingleDataField
+{
+public:
+
+	/**
+	 * Constructs a new instance.
+	 * @param name the field name.
+	 * @param comment the field comment.
+	 * @param unit the value unit.
+	 * @param dataType the data type definition.
+	 * @param partType the message part in which the field is stored.
+	 * @param length the number of symbols in the message part in which the field is stored.
+	 * @param value the constant value.
+	 * @param verify whether to verify the read value against the constant value.
+	 */
+	ConstantDataField(const string name, const string comment,
+		const string unit, DataType* dataType, const PartType partType,
+		const unsigned char length, const string value, const bool verify)
+		: SingleDataField(name, comment, unit, dataType, partType, length),
+		m_value(value), m_verify(verify) {}
+
+	/**
+	 * Destructor.
+	 */
+	virtual ~ConstantDataField() {}
+
+	// @copydoc
+	virtual ConstantDataField* clone();
+
+	// @copydoc
+	virtual result_t derive(string name, string comment,
+			string unit, const PartType partType, int divisor,
+			map<unsigned int, string> values,
+			vector<SingleDataField*>& fields);
+
+	// @copydoc
+	virtual void dump(ostream& output);
+
+protected:
+
+	// @copydoc
+	virtual result_t readSymbols(SymbolString& input, const bool isMaster,
+			const unsigned char offset,
+			ostringstream& output, OutputFormat outputFormat);
+
+	// @copydoc
+	virtual result_t writeSymbols(istringstream& input,
+			const unsigned char offset,
+			SymbolString& output, const bool isMaster, unsigned char* usedLength);
+
+private:
+
+	/** the constant value. */
+	const string m_value;
+
+	/** whether to verify the read value against the constant value. */
+	const bool m_verify;
 
 };
 
