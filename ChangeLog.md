@@ -1,4 +1,4 @@
-# 2.4 (2016-12-??)
+# 2.4 (2016-12-10)
 
 ## Bug Fixes
 * fixed removed last byte in "hex" command answers
