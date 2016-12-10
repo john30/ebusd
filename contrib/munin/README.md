@@ -8,7 +8,7 @@ Personally, I use them for checking mainly temperatures, pressures and earned en
 - prerequisite is of course a running munin installation on the local host
 - to install the plugins:
   - git checkout https://github.com/john30/ebusd-munin.git
-  - sudo cp ebusd-munin/plugins/* /usr/share/munin/plugins/
+  - sudo cp ebusd-munin/ebusd_ /usr/share/munin/plugins/
   - sudo munin-node-configure --shell
   - run all "ln -s" commands printed by munin-node-configure and containing "ebusd_"
   - sudo service munin-node reload
