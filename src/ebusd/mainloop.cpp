@@ -59,9 +59,13 @@ MainLoop::MainLoop(const struct options opt, Device *device, MessageMap* message
 	m_device->setListener(this);
 	if (opt.dumpFile[0]) {
 		m_dumpFile = new RotateFile(opt.dumpFile, opt.dumpSize);
+	} else {
+		m_dumpFile = NULL;
 	}
 	if (opt.logRawFile[0] && strcmp(opt.logRawFile, opt.logFile)!=0) {
 		m_logRawFile = new RotateFile(opt.logRawFile, opt.logRawSize, true);
+	} else {
+		m_logRawFile = NULL;
 	}
 	m_logRawEnabled = opt.logRaw;
 	// create BusHandler
