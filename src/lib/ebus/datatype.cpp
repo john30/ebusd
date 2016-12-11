@@ -17,7 +17,7 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#	include <config.h>
 #endif
 
 #include "datatype.h"
@@ -30,7 +30,7 @@
 #include <typeinfo>
 
 #ifdef HAVE_CONTRIB
-#include "contrib/contrib.h"
+#	include "contrib/contrib.h"
 #endif
 
 using namespace std;

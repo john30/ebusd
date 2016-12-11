@@ -22,7 +22,9 @@
 #include "result.h"
 #include "symbol.h"
 #include "log.h"
-#include "config.h"
+#ifdef HAVE_CONFIG_H
+#	include <config.h>
+#endif
 #include <unistd.h>
 #include <string>
 #include <vector>

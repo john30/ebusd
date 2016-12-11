@@ -17,7 +17,7 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#	include <config.h>
 #endif
 
 #include <argp.h>
@@ -29,7 +29,7 @@
 #include <sstream>
 
 #ifdef HAVE_PPOLL
-#include <poll.h>
+#	include <poll.h>
 #endif
 
 using namespace std;

@@ -17,7 +17,7 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#	include <config.h>
 #endif
 
 #include "device.h"
@@ -34,7 +34,7 @@
 #include <errno.h>
 
 #ifdef HAVE_PPOLL
-#include <poll.h>
+#	include <poll.h>
 #endif
 
 using namespace std;
