@@ -18,16 +18,16 @@ The main features of the daemon are:
  * actively send messages to and receive answers from the eBUS
  * passively listen to messages sent on the eBUS
  * regularly poll for messages
- * cache all data
+ * cache all messages
  * scan for bus participants
  * parse messages to human readable values by using CSV message configuration files
  * automatically pick CSV message configuration files by scan result
- * grab unknown messages
+ * grab all messages on the eBUS
  * log messages and problems to a log file
- * dump sent/received bytes to a log file
+ * capture sent/received bytes to a log file as text
  * dump received bytes to binary files for later playback/analysis
  * listen for client connections on a dedicated TCP port (command line style and/or HTTP)
-
+ * optionally format messages and data in JSON on dedicated HTTP port
 
 Installation
 ------------

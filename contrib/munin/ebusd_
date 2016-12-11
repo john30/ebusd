@@ -1,0 +1,135 @@
+#!/bin/bash
+# Munn plugin for ebusd.
+#%# family=auto
+#%# capabilities=autoconf
+#%# capabilities=suggest
+. $MUNIN_LIBDIR/plugins/plugin.sh
+if [ "$1" = "autoconf" ]; then
+  echo "yes"
+  exit 0
+fi
+if [ "$1" = "suggest" ]; then
+  echo "temp"
+  echo "press"
+  echo "power"
+  echo "hours"
+  exit 0
+fi
+prefix=`basename "$0"`
+type=${prefix##ebusd_}
+find=$type
+skip=
+if [ "$type" = "temp" ]; then
+  match="Temp(Input|Output|Bottom|Top)?\$|outsidetemp"
+  skip="Bivalent|Max|Min|Outside|mc.5:|rcc.*:Flow|^ui"
+elif [ "$type" = "press" ]; then
+  match="Press(High|Low)?\$"
+  skip="KeyPress"
+elif [ "$type" = "power" ]; then
+  find="Environment"
+  find2="Yield"
+  match="Environment(Energy|Power)\$|YieldTotal\$"
+else
+  find="hours"
+  skip="mc.4:|mc.5:"
+fi
+result=`echo "find $find"|nc localhost 8888 2>/dev/null`
+if [ -z "$result" -o "x${result##ERR:*}" = "x" ]; then
+  echo "error: $result"
+  exit 1
+fi
+if [ -n "$find2" ]; then
+  result2=`echo "find $find2"|nc localhost 8888 2>/dev/null`
+  if [ -z "$result2" -o "x${result2##ERR:*}" = "x" ]; then
+    echo "error: $result2"
+    exit 1
+  fi
+  result="$result\n$result2"
+fi
+sensors=`echo "$result"|sed -e 's# =.*$##' -e 's# #:#'|egrep "$match"`
+if [ -n "$skip" ]; then
+  sensors=`echo "$sensors"|egrep -v "$skip"`
+fi
+sensors=`echo "$sensors"|sort -u`
+if [ "$1" = "config" ]; then
+  if [ -r /etc/default/locale ]; then
+    . /etc/default/locale
+  fi
+  lang="${LANG:0:2}"
+  if [ "$lang" = "de" ]; then
+    lang_temp='Temperaturen'
+    lang_degrees='Grad'
+    lang_press='Drucksensoren'
+    lang_bar='Bar'
+    lang_power_yield='Leistung/Ertrag'
+    lang_kw='kW'
+    lang_optime='Operating Time'
+    lang_hours='h'
+    lang_catheat='Heizung'
+    lang_diff='Diff.'
+  elif [ "$lang" = "fr" ]; then
+    lang_temp='Température'
+    lang_degrees='Degrées'
+    lang_press='Capteur de pression'
+    lang_bar='Bar'
+    lang_power_yield='Puissance/Rendement'
+    lang_kw='kW'
+    lang_optime='Durée de fonctionnement'
+    lang_hours='h'
+    lang_catheat='Chauffage'
+    lang_diff='Diff.'
+  else
+    lang_temp='Temperatures'
+    lang_degrees='degrees'
+    lang_press='Pressure Sensors'
+    lang_bar='bar'
+    lang_power_yield='Power/Yield'
+    lang_kw='kW'
+    lang_optime='Betriebsstunden'
+    lang_hours='h'
+    lang_catheat='Heating'
+    lang_diff='diff.'
+  fi
+  if [ "$type" = "temp" ]; then
+    echo "graph_title ebus $lang_temp"
+    echo "graph_vlabel $lang_degrees"
+  elif [ "$type" = "press" ]; then
+    echo "graph_title ebus $lang_press"
+    echo "graph_vlabel $lang_bar"
+  elif [ "$type" = "power" ]; then
+    echo "graph_title ebus $lang_power_yield"
+    echo "graph_vlabel $lang_kw"
+    echo "graph_period hour"
+  else
+    echo "graph_title ebus $lang_optime"
+    echo "graph_vlabel $lang_hours"
+    echo "graph_period hour"
+  fi
+  echo "graph_category $lang_catheat"
+  for sensor in $sensors; do
+    result=`echo "read -c ${sensor/:/ }"|nc localhost 8888 2>/dev/null|head -n 1|sed -e 's#;.*$##'`
+    if [ "x$result" = "x-" -o "x${result##ERR:*}" = "x" ]; then
+      continue
+    fi
+    name=${sensor/:/_}
+    name=${name/./_}
+    if [ "${sensor%%Total}" = "$sensor" -a ! "$type" = "hours" ]; then
+      echo ${prefix}_${name}.label ${sensor/:/ }
+    else
+      echo ${prefix}_${name}.label ${sensor/:/ } "[$lang_diff]"
+      echo ${prefix}_${name}.type COUNTER
+      echo ${prefix}_${name}.draw AREA
+    fi
+#    print_warning ${prefix}_${sensor/:/_}
+#    print_critical ${prefix}_${sensor/:/_}
+  done
+  exit 0
+fi
+for sensor in $sensors; do
+  result=`echo "read -c ${sensor/:/ }"|nc localhost 8888 2>/dev/null|head -n 1|sed -e 's#;.*$##'`
+  if [ ! "x$result" = "x-" ]; then
+    name=${sensor/:/_}
+    name=${name/./_}
+    echo ${prefix}_${name}.value $result
+  fi
+done
