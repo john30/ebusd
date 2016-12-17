@@ -1366,7 +1366,9 @@ bool SimpleNumericCondition::checkValue(Message* message, string field) {
 	if (result==RESULT_OK) {
 		for (size_t i=0; i+1<m_valueRanges.size(); i+=2) {
 			if (m_valueRanges[i]<=value && value<=m_valueRanges[i+1]) {
-				m_matchedValue = ""+static_cast<unsigned>(value);
+				ostringstream out;
+				out << static_cast<unsigned>(value);
+				m_matchedValue = out.str();
 				return true;
 			}
 		}
