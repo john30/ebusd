@@ -477,8 +477,6 @@ public:
 	 */
 	void dump(ostream& output, vector<size_t>* columns=NULL, bool withConditions=false);
 
-protected:
-
 	/**
 	 * Write the specified column to the @a ostream.
 	 * @param output the @a ostream to append the formatted value to.
@@ -486,6 +484,8 @@ protected:
 	 * @param withConditions whether to include the optional conditions prefix.
 	 */
 	virtual void dumpColumn(ostream& output, size_t column, bool withConditions);
+
+protected:
 
 	/** the optional circuit name. */
 	const string m_circuit;
@@ -743,10 +743,11 @@ public:
 	virtual SimpleCondition* derive(string valueList) { return NULL; };
 
 	/**
-	 * Write the condition definition to the @a ostream.
+	 * Write the condition definition or resolved expression to the @a ostream.
 	 * @param output the @a ostream to append to.
+	 * @param matched true for dumping the matched value if the condition is true, false for dumping the definition.
 	 */
-	virtual void dump(ostream& output) = 0;
+	virtual void dump(ostream& output, bool matched=false) = 0;
 
 	/**
 	 * Combine this condition with another instance using a logical and.
@@ -791,15 +792,16 @@ public:
 	/**
 	 * Construct a new instance.
 	 * @param condName the name of the condition.
+	 * @param refName the reference name for dumping.
 	 * @param circuit the circuit name.
 	 * @param name the message name, or empty for scan message.
 	 * @param dstAddress the override destination address, or @a SYN (only for @a Message without specific destination as well as scan message).
 	 * @param field the field name.
 	 * @param hasValues whether a value has to be checked against.
 	 */
-	SimpleCondition(const string condName, const string circuit, const string name, const unsigned char dstAddress, const string field, const bool hasValues=false)
+	SimpleCondition(const string condName, const string refName, const string circuit, const string name, const unsigned char dstAddress, const string field, const bool hasValues=false)
 		: Condition(),
-		  m_condName(condName), m_circuit(circuit), m_name(name), m_dstAddress(dstAddress), m_field(field), m_hasValues(hasValues), m_message(NULL) { }
+		  m_condName(condName), m_refName(refName), m_circuit(circuit), m_name(name), m_dstAddress(dstAddress), m_field(field), m_hasValues(hasValues), m_message(NULL) { }
 
 	/**
 	 * Destructor.
@@ -810,7 +812,7 @@ public:
 	virtual SimpleCondition* derive(string valueList);
 
 	// @copydoc
-	virtual void dump(ostream& output);
+	virtual void dump(ostream& output, bool matched=false);
 
 	// @copydoc
 	virtual CombinedCondition* combineAnd(Condition* other);
@@ -837,10 +839,16 @@ protected:
 	 */
 	virtual bool checkValue(Message* message, const string field) { return true; }
 
+	/** the value that matched in @a checkValue. */
+	string m_matchedValue;
+
 private:
 
 	/** the condition name. */
 	const string m_condName;
+
+	/** the reference name for dumping. */
+	const string m_refName;
 
 	/** the circuit name. */
 	const string m_circuit;
@@ -873,14 +881,15 @@ public:
 	/**
 	 * Construct a new instance.
 	 * @param condName the name of the condition.
+	 * @param refName the reference name for dumping.
 	 * @param circuit the circuit name.
 	 * @param name the message name, or empty for scan message.
 	 * @param dstAddress the override destination address, or @a SYN (only for @a Message without specific destination as well as scan message).
 	 * @param field the field name.
 	 * @param valueRanges the valid value ranges (pairs of from/to inclusive), empty for @a m_message seen check.
 	 */
-	SimpleNumericCondition(const string condName, const string circuit, const string name, const unsigned char dstAddress, const string field, const vector<unsigned int> valueRanges)
-		: SimpleCondition(condName, circuit, name, dstAddress, field, true),
+	SimpleNumericCondition(const string condName, const string refName, const string circuit, const string name, const unsigned char dstAddress, const string field, const vector<unsigned int> valueRanges)
+		: SimpleCondition(condName, refName, circuit, name, dstAddress, field, true),
 		  m_valueRanges(valueRanges) { }
 
 	/**
@@ -911,14 +920,15 @@ public:
 	/**
 	 * Construct a new instance.
 	 * @param condName the name of the condition.
+	 * @param refName the reference name for dumping.
 	 * @param circuit the circuit name.
 	 * @param name the message name, or empty for scan message.
 	 * @param dstAddress the override destination address, or @a SYN (only for @a Message without specific destination as well as scan message).
 	 * @param field the field name.
 	 * @param values the valid values.
 	 */
-	SimpleStringCondition(const string condName, const string circuit, const string name, const unsigned char dstAddress, const string field, const vector<string> values)
-		: SimpleCondition(condName, circuit, name, dstAddress, field, true),
+	SimpleStringCondition(const string condName, const string refName, const string circuit, const string name, const unsigned char dstAddress, const string field, const vector<string> values)
+		: SimpleCondition(condName, refName, circuit, name, dstAddress, field, true),
 		  m_values(values) { }
 
 	/**
@@ -961,7 +971,7 @@ public:
 	virtual ~CombinedCondition() {}
 
 	// @copydoc
-	virtual void dump(ostream& output);
+	virtual void dump(ostream& output, bool matched=false);
 
 	// @copydoc
 	virtual CombinedCondition* combineAnd(Condition* other) { m_conditions.push_back(other); return this; }

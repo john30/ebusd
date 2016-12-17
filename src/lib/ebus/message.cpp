@@ -1206,7 +1206,7 @@ result_t Condition::create(const string condName, vector<string>::iterator& it, 
 	}
 	string valueList = it==end ? "" : *(it++);
 	if (valueList.length()==0) {
-		returnValue = new SimpleCondition(condName, circuit, name, dstAddress, field);
+		returnValue = new SimpleCondition(condName, condName, circuit, name, dstAddress, field);
 		return RESULT_OK;
 	}
 	if (valueList[0]=='\'') {
@@ -1216,7 +1216,7 @@ result_t Condition::create(const string condName, vector<string>::iterator& it, 
 		if (result!=RESULT_OK) {
 			return result;
 		}
-		returnValue = new SimpleStringCondition(condName, circuit, name, dstAddress, field, values);
+		returnValue = new SimpleStringCondition(condName, condName, circuit, name, dstAddress, field, values);
 		return RESULT_OK;
 	}
 	// numbers
@@ -1225,7 +1225,7 @@ result_t Condition::create(const string condName, vector<string>::iterator& it, 
 	if (result!=RESULT_OK) {
 		return result;
 	}
-	returnValue = new SimpleNumericCondition(condName, circuit, name, dstAddress, field, valueRanges);
+	returnValue = new SimpleNumericCondition(condName, condName, circuit, name, dstAddress, field, valueRanges);
 	return RESULT_OK;
 }
 
@@ -1246,7 +1246,7 @@ SimpleCondition* SimpleCondition::derive(string valueList)
 		if (result!=RESULT_OK) {
 			return NULL;
 		}
-		return new SimpleStringCondition(name, m_circuit, m_name, m_dstAddress, m_field, values);
+		return new SimpleStringCondition(name, m_refName, m_circuit, m_name, m_dstAddress, m_field, values);
 	}
 	// numbers
 	if (!isNumeric()) {
@@ -1257,13 +1257,23 @@ SimpleCondition* SimpleCondition::derive(string valueList)
 	if (result!=RESULT_OK) {
 		return NULL;
 	}
-	return new SimpleNumericCondition(name, m_circuit, m_name, m_dstAddress, m_field, valueRanges);
+	return new SimpleNumericCondition(name, m_refName, m_circuit, m_name, m_dstAddress, m_field, valueRanges);
 }
 
-void SimpleCondition::dump(ostream& output)
+void SimpleCondition::dump(ostream& output, bool matched)
 {
-	output << "[" << m_condName << "]";
-	//output << "{name="<<m_name<<",field="<<m_field<<",dst="<<static_cast<unsigned>(m_dstAddress)<<",valuessize="<<static_cast<unsigned>(m_valueRanges.size())<<"}";
+	if (matched) {
+		if (!m_isTrue) {
+			return;
+		}
+		output << "[" << m_refName;
+		if (m_hasValues) {
+			output << "=" << m_matchedValue;
+		}
+		output << "]";
+	} else {
+		output << "[" << m_condName << "]";
+	}
 }
 
 CombinedCondition* SimpleCondition::combineAnd(Condition* other)
@@ -1356,6 +1366,7 @@ bool SimpleNumericCondition::checkValue(Message* message, string field) {
 	if (result==RESULT_OK) {
 		for (size_t i=0; i+1<m_valueRanges.size(); i+=2) {
 			if (m_valueRanges[i]<=value && value<=m_valueRanges[i+1]) {
+				m_matchedValue = ""+static_cast<unsigned>(value);
 				return true;
 			}
 		}
@@ -1371,6 +1382,7 @@ bool SimpleStringCondition::checkValue(Message* message, string field) {
 		string value = output.str();
 		for (size_t i=0; i<m_values.size(); i++) {
 			if (m_values[i]==value) {
+				m_matchedValue = "'"+value+"'";
 				return true;
 			}
 		}
@@ -1379,11 +1391,11 @@ bool SimpleStringCondition::checkValue(Message* message, string field) {
 }
 
 
-void CombinedCondition::dump(ostream& output)
+void CombinedCondition::dump(ostream& output, bool matched)
 {
 	for (vector<Condition*>::iterator it = m_conditions.begin(); it!=m_conditions.end(); it++) {
 		Condition* condition = *it;
-		condition->dump(output);
+		condition->dump(output, matched);
 	}
 }
 
@@ -1478,7 +1490,7 @@ result_t LoadInstruction::execute(MessageMap* messages, ostringstream& log, Cond
 			string comment;
 			if (condition) {
 				ostringstream out;
-				condition->dump(out);
+				condition->dump(out, true);
 				comment = out.str();
 				log << " ("+comment+")";
 			}
@@ -1560,6 +1572,10 @@ result_t MessageMap::addDefaultFromFile(vector< vector<string> >& defaults, vect
 	if (type.length()>0 && type[0]=='[' && type[type.length()-1]==']') {
 		// condition
 		type = type.substr(1, type.length()-2);
+		if (type.find('[')!=string::npos || type.find(']')!=string::npos) {
+			m_lastError = "invalid condition name "+type;
+			return RESULT_ERR_INVALID_ARG;
+		}
 		string key = filename+":"+type;
 		map<string, Condition*>::iterator it = m_conditions.find(key);
 		if (it != m_conditions.end()) {
