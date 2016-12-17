@@ -27,7 +27,7 @@ PACKAGE="${RELEASE}_${ARCH}.deb"
 rm -rf "$BUILD"
 mkdir -p "$BUILD" || exit 1
 cd "$BUILD" || exit 1
-(tar cf - -C .. "--exclude=./$BUILD" --exclude=./.* .| tar xf -) || exit 1
+(tar cf - -C .. "--exclude=./$BUILD" --exclude=./.* "--exclude=*.o" "--exclude=*.a" .| tar xf -) || exit 1
 
 echo
 echo "*************"
