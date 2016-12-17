@@ -1,4 +1,4 @@
-# 2.4 (2016-12-10)
+# 2.4 (2016-12-17)
 
 ## Bug Fixes
 * fixed removed last byte in "hex" command answers
@@ -16,6 +16,8 @@
 * extended BTI/HTI/BTM types to allow replacement value
 * added condition name to logging of "!load" instructions and "info" result
 * added "--lograwdatafile" and "--lograwdatasize" options logging received/sent bytes to a dedicated text file
+* added TTQ base type
+* added support for constant value fields
 
 
 # 2.3 (2016-11-06)
