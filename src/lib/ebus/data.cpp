@@ -93,6 +93,7 @@ result_t DataField::create(vector<string>::iterator& it,
 		}
 
 		const string typeStr = *it++; // basetype[:len]|template[:name]
+		vector<string>::iterator typePos = it;
 		if (typeStr.empty()) {
 			if (!name.empty() || hasPartStr) {
 				result = RESULT_ERR_MISSING_TYPE;
@@ -203,10 +204,14 @@ result_t DataField::create(vector<string>::iterator& it,
 				result = SingleDataField::create(typeName, length, firstType ? name : "", firstType ? comment : "", firstType ? unit : "", partType, divisor, values, constantValue, verifyValue, add);
 				if (add != NULL) {
 					fields.push_back(add);
-				} else if (result == RESULT_OK) {
-					result = RESULT_ERR_NOTFOUND; // type not found
+				} else {
+					it = typePos; // back to type
+					if (result == RESULT_OK) {
+						result = RESULT_ERR_NOTFOUND; // type not found
+					}
 				}
 			} else if (!constantValue.empty()) {
+				it = typePos; // back to type
 				result = RESULT_ERR_INVALID_ARG; // invalid value list
 			} else { // template[:name]
 				string fieldName;
@@ -217,6 +222,9 @@ result_t DataField::create(vector<string>::iterator& it,
 					fieldName = (firstType && lastType) ? name : "";
 				}
 				result = templ->derive(fieldName, firstType ? comment : "", firstType ? unit : "", partType, divisor, values, fields);
+				if (result != RESULT_OK) {
+					it = typePos; // back to type
+				}
 			}
 			firstType = false;
 		}
