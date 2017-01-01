@@ -1678,8 +1678,9 @@ result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<s
 	string types = *restart;
 	Condition* condition = NULL;
 	result_t result = readConditions(types, filename, condition);
-	if (result!=RESULT_OK)
+	if (result!=RESULT_OK) {
 		return result;
+	}
 	if (types.length()>0 && types[0]=='!') {
 		// instruction
 		types = types.substr(1);
@@ -1699,11 +1700,11 @@ result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<s
 		}
 		return RESULT_OK;
 	}
-	if (types.length() == 0)
+	if (types.length() == 0) {
 		types.append("r");
-	else if (types.find(']')!=string::npos)
+	} else if (types.find(']')!=string::npos) {
 		return RESULT_ERR_INVALID_ARG;
-
+	}
 	result = RESULT_ERR_EOF;
 	DataFieldTemplates* templates = getTemplates(filename);
 	istringstream stream(types);
@@ -1719,16 +1720,19 @@ result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<s
 			Message* message = *it;
 			if (result == RESULT_OK) {
 				result = add(message);
-				if (result==RESULT_ERR_DUPLICATE_NAME)
+				if (result==RESULT_ERR_DUPLICATE_NAME) {
 					begin = restart+3; // mark name as invalid
-				else if (result==RESULT_ERR_DUPLICATE)
+				} else if (result==RESULT_ERR_DUPLICATE) {
 					begin = restart+8; // mark ID as invalid
+				}
 			}
-			if (result != RESULT_OK)
+			if (result != RESULT_OK) {
 				delete message; // delete all remaining messages on error
+			}
 		}
-		if (result != RESULT_OK)
+		if (result != RESULT_OK) {
 			return result;
+		}
 	}
 	return result;
 }
