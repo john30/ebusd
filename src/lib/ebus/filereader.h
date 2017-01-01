@@ -353,7 +353,7 @@ public:
 		}
 		if (name.length()>1) {
 			pos = name.find('.', 1); // check for ".IDENT."
-			if (pos!=string::npos && pos>2 && pos<=6) { // up to 5 chars between two "."s, immediately after "ZZ."
+			if (pos!=string::npos && pos>=1 && pos<=6) { // up to 5 chars between two "."s, immediately after "ZZ.", or ".."
 				ident = circuit = name.substr(1, pos-1);
 				name.erase(0, pos);
 				pos = name.find('.', 1); // check for ".CIRCUIT."
