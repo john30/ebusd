@@ -916,7 +916,7 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 					continue;
 				if (name.length()<3 || name.find_first_of('.')!=2) { // different from the scheme "ZZ."
 					name = *it;
-					result = messages->readFromFile(name, opt.checkConfig);
+					result = messages->readFromFile(name, opt.checkConfig, "", ident);
 					if (result==RESULT_OK)
 						logNotice(lf_main, "read common config file %s", name.c_str());
 					else
