@@ -1019,6 +1019,10 @@ DataTypeList::DataTypeList()
 	add(new NumberDataType("UIR", 16, REV, 0xffff, 0, 0xfffe, 1)); // unsigned integer, 0 - 65534, big endian
 	add(new NumberDataType("SIN", 16, SIG, 0x8000, 0x8001, 0x7fff, 1)); // signed integer, -32767 - +32767, little endian
 	add(new NumberDataType("SIR", 16, SIG|REV, 0x8000, 0x8001, 0x7fff, 1)); // signed integer, -32767 - +32767, big endian
+	add(new NumberDataType("U3N", 24, 0, 0xffffff, 0, 0xfffffe, 1)); // unsigned 3 bytes int, 0 - 16777214, little endian
+	add(new NumberDataType("U3R", 24, REV, 0xffffff, 0, 0xfffffe, 1)); // unsigned 3 bytes int, 0 - 16777214, big endian
+	add(new NumberDataType("S3N", 24, SIG, 0x800000, 0x800001, 0xffffff, 1)); // signed 3 bytes int, -8388607 - +8388607, little endian
+	add(new NumberDataType("S3R", 24, SIG|REV, 0x800000, 0x800001, 0xffffff, 1)); // signed 3 bytes int, -8388607 - +8388607, big endian
 	add(new NumberDataType("ULG", 32, 0, 0xffffffff, 0, 0xfffffffe, 1)); // unsigned integer, 0 - 4294967294, little endian
 	add(new NumberDataType("ULR", 32, REV, 0xffffffff, 0, 0xfffffffe, 1)); // unsigned integer, 0 - 4294967294, big endian
 	add(new NumberDataType("SLG", 32, SIG, 0x80000000, 0x80000001, 0xffffffff, 1)); // signed integer, -2147483647 - +2147483647, little endian
