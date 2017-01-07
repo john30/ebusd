@@ -171,6 +171,7 @@ Network::Network(const bool local, const uint16_t port, const uint16_t httpPort,
 Network::~Network()
 {
 	stop();
+	join();
 
 	while (!m_connections.empty()) {
 		Connection* connection = m_connections.back();
@@ -179,7 +180,6 @@ Network::~Network()
 		connection->join();
 		delete connection;
 	}
-	join();
 
 	if (m_tcpServer != NULL) {
 		delete m_tcpServer;
