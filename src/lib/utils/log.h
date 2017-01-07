@@ -27,11 +27,12 @@ enum LogFacility {
 	lf_network, //!< network related
 	lf_bus,     //!< eBUS related
 	lf_update,  //!< updates found while listening to the bus
-	lf_COUNT=4  //!< number of available log facilities
+	lf_other,   //!< all other log facilities
+	lf_COUNT=5  //!< number of available log facilities
 };
 
 /** macro for enabling all log facilities. */
-#define LF_ALL ((1<<lf_main) | (1<<lf_network) | (1<<lf_bus) | (1<<lf_update))
+#define LF_ALL ((1<<lf_main) | (1<<lf_network) | (1<<lf_bus) | (1<<lf_update) | (1<<lf_other))
 
 /** the available log levels. */
 enum LogLevel {
@@ -99,6 +100,15 @@ bool needsLog(const LogFacility facility, const LogLevel level);
  */
 void logWrite(const LogFacility facility, const LogLevel level, const char* message, ...);
 
+/**
+ * Log the message for the specified facility name @a LogLevel (even if logging is not needed for the facility/level).
+ * @param facility the facility name of the message to log.
+ * @param level the @a LogLevel of the message to log.
+ * @param message the message to log.
+ * @param ... variable arguments depending on the @a message.
+ */
+void logWrite(const char* facility, const LogLevel level, const char* message, ...);
+
 /** A macro that calls the logging function only if needed. */
 #define LOG(facility, level, ...) (needsLog(facility, level) ? logWrite(facility, level, __VA_ARGS__) : void(0))
 
@@ -114,5 +124,16 @@ void logWrite(const LogFacility facility, const LogLevel level, const char* mess
 /** A macro for a debug message that calls the logging function only if needed. */
 #define logDebug(facility, ...) (needsLog(facility, ll_debug) ? logWrite(facility, ll_debug, __VA_ARGS__) : void(0))
 
+/** A macro for an error message that calls the logging function only if needed. */
+#define logOtherError(facility, ...) (needsLog(lf_other, ll_error) ? logWrite(facility, ll_error, __VA_ARGS__) : void(0))
+
+/** A macro for a notice message that calls the logging function only if needed. */
+#define logOtherNotice(facility, ...) (needsLog(lf_other, ll_notice) ? logWrite(facility, ll_notice, __VA_ARGS__) : void(0))
+
+/** A macro for an info message that calls the logging function only if needed. */
+#define logOtherInfo(facility, ...) (needsLog(lf_other, ll_info) ? logWrite(facility, ll_info, __VA_ARGS__) : void(0))
+
+/** A macro for a debug message that calls the logging function only if needed. */
+#define logOtherDebug(facility, ...) (needsLog(lf_other, ll_debug) ? logWrite(facility, ll_debug, __VA_ARGS__) : void(0))
 
 #endif // LIBUTILS_LOG_H_

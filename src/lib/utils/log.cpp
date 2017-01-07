@@ -33,6 +33,7 @@ static const char *facilityNames[] = {
 	"network",
 	"bus",
 	"update",
+	"other",
 	"all",
 	NULL
 };
@@ -73,6 +74,7 @@ bool setLogFacilities(const char* facilities)
 			newFacilites |= 1<<val;
 		}
 	}
+	//s_lastFacilities = newFacilites;
 	s_logFacilites = newFacilites;
 	free(input);
 	return true;
@@ -147,28 +149,37 @@ bool needsLog(const LogFacility facility, const LogLevel level)
 		&& (s_logLevel >= level);
 }
 
-void logWrite(const LogFacility facility, const LogLevel level, const char* message, ...)
+void logWrite(const char* facility, const char* level, const char* message, va_list ap)
 {
 	struct timespec ts;
 	struct tm* tm;
-
 	clockGettime(&ts);
 	tm = localtime(&ts.tv_sec);
-
 	char* buf;
-	va_list ap;
-	va_start(ap, message);
-
 	if (vasprintf(&buf, message, ap) >= 0 && buf) {
 		fprintf(s_logFile, "%04d-%02d-%02d %02d:%02d:%02d.%03ld [%s %s] %s\n",
 			tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday,
 			tm->tm_hour, tm->tm_min, tm->tm_sec, ts.tv_nsec/1000000,
-			facilityNames[facility], levelNames[level], buf);
+			facility, level, buf);
 		fflush(s_logFile);
 	}
-
-	va_end(ap);
 	if (buf) {
 		free(buf);
 	}
+}
+
+void logWrite(const LogFacility facility, const LogLevel level, const char* message, ...)
+{
+	va_list ap;
+	va_start(ap, message);
+	logWrite(facilityNames[facility], levelNames[level], message, ap);
+	va_end(ap);
+}
+
+void logWrite(const char* facility, const LogLevel level, const char* message, ...)
+{
+	va_list ap;
+	va_start(ap, message);
+	logWrite(facility, levelNames[level], message, ap);
+	va_end(ap);
 }
