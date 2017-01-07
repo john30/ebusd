@@ -384,12 +384,15 @@ public:
 	 */
 	virtual ~BusHandler() {
 		stop();
+		join();
 		BusRequest* req;
 		while ((req = m_finishedRequests.pop())!=NULL) {
 			delete req;
 		}
 		while ((req = m_nextRequests.pop())!=NULL) {
-			delete req;
+			if (req->m_deleteOnFinish) {
+				delete req;
+			}
 		}
 		if (m_currentRequest!=NULL) {
 			delete m_currentRequest;
