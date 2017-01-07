@@ -745,7 +745,7 @@ void Message::dump(ostream& output, vector<size_t>* columns, bool withConditions
 void Message::dumpColumn(ostream& output, size_t column, bool withConditions)
 {
 	switch (column) {
-	case 0: // type
+	case COLUMN_TYPE: // type
 		if (withConditions && m_condition!=NULL) {
 			m_condition->dump(output);
 		}
@@ -761,34 +761,34 @@ void Message::dumpColumn(ostream& output, size_t column, bool withConditions)
 				output << static_cast<unsigned>(m_pollPriority);
 		}
 		break;
-	case 1: // circuit
+	case COLUMN_CIRCUIT: // circuit
 		DataField::dumpString(output, m_circuit, false);
 		break;
-	case 2: // name
+	case COLUMN_NAME: // name
 		DataField::dumpString(output, m_name, false);
 		break;
-	case 3: // comment
+	case COLUMN_COMMENT: // comment
 		DataField::dumpString(output, m_comment, false);
 		break;
-	case 4: // QQ
+	case COLUMN_QQ: // QQ
 		if (m_srcAddress != SYN)
 			output << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_srcAddress);
 		break;
-	case 5: // ZZ
+	case COLUMN_ZZ: // ZZ
 		if (m_dstAddress != SYN)
 			output << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_dstAddress);
 		break;
-	case 6: // PBSB
+	case COLUMN_PBSB: // PBSB
 		for (vector<unsigned char>::const_iterator it = m_id.begin(); it < m_id.begin()+2 && it < m_id.end(); it++) {
 			output << hex << setw(2) << setfill('0') << static_cast<unsigned>(*it);
 		}
 		break;
-	case 7: // ID
+	case COLUMN_ID: // ID
 		for (vector<unsigned char>::const_iterator it = m_id.begin()+2; it < m_id.end(); it++) {
 			output << hex << setw(2) << setfill('0') << static_cast<unsigned>(*it);
 		}
 		break;
-	case 8: // fields
+	case COLUMN_FIELDS: // fields
 		m_data->dump(output);
 		break;
 	}
@@ -1898,7 +1898,8 @@ Message* MessageMap::find(const string& circuit, const string& name, const bool 
 
 deque<Message*> MessageMap::findAll(const string& circuit, const string& name, const bool completeMatch,
 	const bool withRead, const bool withWrite, const bool withPassive,
-	const bool completeMatchIgnoreCircuitSuffix, const bool onlyAvailable)
+	const bool completeMatchIgnoreCircuitSuffix, const bool onlyAvailable,
+	const time_t since, const time_t until)
 {
 	bool checkCircuitIgnoreSuffix = completeMatch && completeMatchIgnoreCircuitSuffix;
 	deque<Message*> ret;
@@ -1947,6 +1948,16 @@ deque<Message*> MessageMap::findAll(const string& circuit, const string& name, c
 				}
 			} else {
 				if (!withRead) {
+					continue;
+				}
+			}
+			if (since!=0 || until!=0) {
+				if (message->getDstAddress() == SYN) {
+					continue;
+				}
+				time_t lastchg = message->getLastChangeTime();
+				if ((since!=0 && lastchg < since)
+				|| (until!=0 && lastchg >= until)) {
 					continue;
 				}
 			}

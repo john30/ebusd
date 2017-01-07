@@ -61,6 +61,33 @@ class SimpleCondition;
 class CombinedCondition;
 class MessageMap;
 
+/** the column index in @a Message::dump() for the message type. */
+#define COLUMN_TYPE 0
+
+/** the column index in @a Message::dump() for the circuit name. */
+#define COLUMN_CIRCUIT 1
+
+/** the column index in @a Message::dump() for the message name. */
+#define COLUMN_NAME 2
+
+/** the column index in @a Message::dump() for the message comment. */
+#define COLUMN_COMMENT 3
+
+/** the column index in @a Message::dump() for the source address QQ. */
+#define COLUMN_QQ 4
+
+/** the column index in @a Message::dump() for the destination address QQ. */
+#define COLUMN_ZZ 5
+
+/** the column index in @a Message::dump() for the PBSB bytes. */
+#define COLUMN_PBSB 6
+
+/** the column index in @a Message::dump() for the ID columns (after the PBSB bytes). */
+#define COLUMN_ID 7
+
+/** the column index in @a Message::dump() for the field(s). */
+#define COLUMN_FIELDS 8
+
 /**
  * Defines parameters of a message sent or received on the bus.
  */
@@ -472,7 +499,7 @@ public:
 	/**
 	 * Write the message definition or parts of it to the @a ostream.
 	 * @param output the @a ostream to append the formatted value to.
-	 * @param columns the list of column indexes to write, or NULL for all.
+	 * @param columns the list of column indexes to write, or NULL for all (see @p COLUMN_TYPE index constants).
 	 * @param withConditions whether to include the optional conditions prefix.
 	 */
 	void dump(ostream& output, vector<size_t>* columns=NULL, bool withConditions=false);
@@ -480,7 +507,7 @@ public:
 	/**
 	 * Write the specified column to the @a ostream.
 	 * @param output the @a ostream to append the formatted value to.
-	 * @param column the column indexes to write.
+	 * @param column the column index to write (see @p COLUMN_TYPE index constants).
 	 * @param withConditions whether to include the optional conditions prefix.
 	 */
 	virtual void dumpColumn(ostream& output, size_t column, bool withConditions);
@@ -1242,11 +1269,14 @@ public:
 	 * @return the found @a Message instances.
 	 * @param completeMatchIgnoreCircuitSuffix ignore different circuit suffixes (after "#") for completeMatch.
 	 * @param onlyAvailable true to include only available messages (default true), false to also include messages that are currently not available (e.g. due to unresolved or false conditions).
+	 * @param since the start time from which to add updates (inclusive, also removes messages with unset destination address), or 0 to ignore.
+	 * @param until the end time to which to add updates (exclusive, also removes messages with unset destination address), or 0 to ignore.
 	 * Note: the caller may not free the returned instances.
 	 */
 	deque<Message*> findAll(const string& circuit, const string& name, const bool completeMatch=true,
 		const bool withRead=true, const bool withWrite=false, const bool withPassive=false,
-		const bool completeMatchIgnoreCircuitSuffix=false, const bool onlyAvailable=true);
+		const bool completeMatchIgnoreCircuitSuffix=false, const bool onlyAvailable=true,
+		const time_t since=0, const time_t until=0);
 
 	/**
 	 * Find the @a Message instance for the specified master data.
