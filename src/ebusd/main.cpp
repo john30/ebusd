@@ -1,6 +1,6 @@
 /*
  * ebusd - daemon for communication with eBUS heating systems.
- * Copyright (C) 2014-2016 John Baier <ebusd@ebusd.eu>
+ * Copyright (C) 2014-2017 John Baier <ebusd@ebusd.eu>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#	include <config.h>
 #endif
 
 #include "main.h"
@@ -88,14 +88,14 @@ static struct options opt = {
 	8888, // port
 	false, // localOnly
 	0, // httpPort
-	"/var/ebusd/html", // htmlPath
+	"/var/" PACKAGE "/html", // htmlPath
 	PACKAGE_LOGFILE, // logFile
 	false, // logRaw
 	PACKAGE_LOGFILE, // logRawFile
 	100, // logRawSize
 	false, // dump
 	"/tmp/" PACKAGE "_dump.bin", // dumpFile
-	100 // dumpSize
+	100, // dumpSize
 };
 
 /** the @a MessageMap instance, or NULL. */
@@ -381,7 +381,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 	case O_HTTPPT: // --httpport=0
 		opt->httpPort = (uint16_t)parseInt(arg, 10, 1, 65535, result);
 		if (result != RESULT_OK) {
-			argp_error(state, "invalid port");
+			argp_error(state, "invalid httpport");
 			return EINVAL;
 		}
 		break;
@@ -420,7 +420,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 		break;
 	case O_RAWFIL: // --lograwdatafile=/var/log/ebusd.log
 		if (arg == NULL || arg[0] == 0 || strcmp("/", arg) == 0) {
-			argp_error(state, "invalid dumpfile");
+			argp_error(state, "invalid lograwdatafile");
 			return EINVAL;
 		}
 		opt->logRawFile = arg;
@@ -428,7 +428,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 	case O_RAWSIZ: // --lograwdatasize=100
 		opt->logRawSize = (unsigned int)parseInt(arg, 10, 1, 1000000, result);
 		if (result != RESULT_OK) {
-			argp_error(state, "invalid dumpsize");
+			argp_error(state, "invalid lograwdatasize");
 			return EINVAL;
 		}
 		break;
@@ -916,7 +916,7 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 					continue;
 				if (name.length()<3 || name.find_first_of('.')!=2) { // different from the scheme "ZZ."
 					name = *it;
-					result = messages->readFromFile(name, opt.checkConfig, "", ident);
+					result = messages->readFromFile(name, opt.checkConfig);
 					if (result==RESULT_OK)
 						logNotice(lf_main, "read common config file %s", name.c_str());
 					else
@@ -925,7 +925,7 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 			}
 		}
 	}
-	result = messages->readFromFile(best, opt.checkConfig);
+	result = messages->readFromFile(best, opt.checkConfig, "", ident);
 	if (result!=RESULT_OK) {
 		logError(lf_main, "error reading scan config file %s for ID \"%s\", SW%4.4d, HW%4.4d: %s", best.c_str(), ident.c_str(), sw, hw, getResultCode(result));
 		return result;
@@ -945,7 +945,7 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
  */
 int main(int argc, char* argv[])
 {
-	struct argp argp = { argpoptions, parse_opt, NULL, argpdoc, NULL, NULL, NULL };
+	struct argp argp = { argpoptions, parse_opt, NULL, argpdoc, datahandler_getargs(), NULL, NULL };
 	int arg_index = -1;
 	setenv("ARGP_HELP_FMT", "no-dup-args-note", 0);
 	if (argp_parse(&argp, argc, argv, ARGP_IN_ORDER, &arg_index, &opt) != 0) {
