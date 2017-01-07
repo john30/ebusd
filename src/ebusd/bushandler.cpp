@@ -749,9 +749,9 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 		else if (state == bs_sendSyn || (result != RESULT_OK && !firstRepetition)) {
 			logDebug(lf_bus, "notify request: %s", getResultCode(result));
 			unsigned char dstAddress = m_currentRequest->m_master[1];
-			if (result == RESULT_OK)
+			if (result == RESULT_OK) {
 				addSeenAddress(dstAddress);
-
+			}
 			bool restart = m_currentRequest->notify(
 				result == RESULT_ERR_SYN && (m_state == bs_recvCmdAck || m_state == bs_recvRes) ? RESULT_ERR_TIMEOUT : result, m_response
 			);
@@ -774,27 +774,27 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 			if (restart) { // should not occur with no signal
 				m_currentRequest->m_busLostRetries = 0;
 				m_nextRequests.push(m_currentRequest);
-			}
-			else if (m_currentRequest->m_deleteOnFinish)
+			} else if (m_currentRequest->m_deleteOnFinish) {
 				delete m_currentRequest;
-			else
+			} else {
 				m_finishedRequests.push(m_currentRequest);
+			}
 		}
 	}
 
-	if (state == m_state)
+	if (state == m_state) {
 		return result;
-
-	if (result < RESULT_OK || (result != RESULT_OK && state == bs_skip))
+	}
+	if (result < RESULT_OK || (result != RESULT_OK && state == bs_skip)) {
 		logDebug(lf_bus, "%s during %s, switching to %s", getResultCode(result), getStateCode(m_state), getStateCode(state));
-	else if (m_currentRequest != NULL || state == bs_sendCmd || state == bs_sendResAck || state == bs_sendSyn)
+	} else if (m_currentRequest != NULL || state == bs_sendCmd || state == bs_sendResAck || state == bs_sendSyn) {
 		logDebug(lf_bus, "switching from %s to %s", getStateCode(m_state), getStateCode(state));
-
-	if (state == bs_noSignal)
+	}
+	if (state == bs_noSignal) {
 		logError(lf_bus, "signal lost");
-	else if (m_state == bs_noSignal)
+	} else if (m_state == bs_noSignal) {
 		logNotice(lf_bus, "signal acquired");
-
+	}
 	m_state = state;
 
 	if (state == bs_ready || state == bs_skip) {
