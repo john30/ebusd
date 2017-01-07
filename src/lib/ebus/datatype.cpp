@@ -27,7 +27,6 @@
 #include <vector>
 #include <cstring>
 #include <math.h>
-#include <typeinfo>
 
 #ifdef HAVE_CONTRIB
 #	include "contrib/contrib.h"

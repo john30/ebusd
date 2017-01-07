@@ -28,7 +28,6 @@
 #include <vector>
 #include <cstring>
 #include <math.h>
-#include <typeinfo>
 
 using namespace std;
 
