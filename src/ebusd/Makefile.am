@@ -1,4 +1,4 @@
-AM_CXXFLAGS = -Wconversion -Wunused-parameter \
+AM_CXXFLAGS = -Wconversion -Wno-unused-parameter \
 	      -isystem$(top_srcdir)/src/lib/utils \
 	      -isystem$(top_srcdir)/src/lib/ebus \
 	      -DSYSCONFDIR=\"$(sysconfdir)\" \
