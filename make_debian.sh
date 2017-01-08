@@ -23,7 +23,7 @@ VERSION=`head -n 1 VERSION`
 ARCH=`dpkg --print-architecture`
 BUILD="build-$ARCH"
 RELEASE="ebusd-$VERSION"
-PACKAGE="${RELEASE}_${ARCH}.deb"
+PACKAGE="${RELEASE}_${ARCH}"
 rm -rf "$BUILD"
 mkdir -p "$BUILD" || exit 1
 cd "$BUILD" || exit 1
@@ -34,8 +34,20 @@ echo "*************"
 echo " build"
 echo "*************"
 echo
-./autogen.sh || exit 1
+./autogen.sh $@ || exit 1
 make DESTDIR="$PWD/$RELEASE" install-strip || exit 1
+extralibs=
+ldd $RELEASE/usr/bin/ebusd | egrep -q libmosquitto.so.0
+if [ $? -eq 0 ]; then
+  extralibs=', libmosquitto0'
+  PACKAGE="${PACKAGE}_mqtt0"
+else
+  ldd $RELEASE/usr/bin/ebusd | egrep -q libmosquitto.so.1
+  if [ $? -eq 0 ]; then
+    extralibs=', libmosquitto1'
+    PACKAGE="${PACKAGE}_mqtt1"
+  fi
+fi
 
 echo
 echo "*************"
@@ -49,7 +61,6 @@ cp contrib/debian/default/ebusd $RELEASE/etc/default/ebusd || exit 1
 cp contrib/etc/ebusd/* $RELEASE/etc/ebusd/ || exit 1
 cp contrib/etc/logrotate.d/ebusd $RELEASE/etc/logrotate.d/ || exit 1
 cp ChangeLog.md $RELEASE/DEBIAN/changelog || exit 1
-
 cat <<EOF > $RELEASE/DEBIAN/control
 Package: ebusd
 Version: $VERSION
@@ -59,7 +70,7 @@ Architecture: $ARCH
 Maintainer: John Baier <ebusd@ebusd.eu>
 Homepage: https://github.com/john30/ebusd
 Bugs: https://github.com/john30/ebusd/issues
-Depends: libstdc++6, libc6, libgcc1
+Depends: libstdc++6, libc6, libgcc1$extralibs
 Description: eBUS daemon.
  ebusd is a daemon for handling communication with eBUS devices connected to a
  2-wire bus system.
@@ -84,7 +95,7 @@ EOF
 chmod 755 $RELEASE/DEBIAN/postinst
 
 dpkg -b $RELEASE || exit 1
-mv ebusd-$VERSION.deb "../$PACKAGE" || exit 1
+mv ebusd-$VERSION.deb "../${PACKAGE}.deb" || exit 1
 
 echo
 echo "*************"
@@ -95,7 +106,7 @@ cd ..
 rm -rf "$BUILD"
 
 echo
-echo "Package created: $PACKAGE"
+echo "Package created: ${PACKAGE}.deb"
 echo
 echo "Content:"
-dpkg -c "$PACKAGE"
+dpkg -c "${PACKAGE}.deb"
