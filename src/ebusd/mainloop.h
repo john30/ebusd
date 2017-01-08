@@ -22,7 +22,11 @@
 #include "message.h"
 #include "network.h"
 #include "bushandler.h"
+#include "datahandler.h"
 #include "rotatefile.h"
+#ifdef HAVE_CONFIG_H
+#	include <config.h>
+#endif
 
 /** \file mainloop.h */
 
@@ -33,8 +37,8 @@ using namespace std;
  */
 class MainLoop : public Thread, DeviceListener
 {
-
 public:
+
 	/**
 	 * Construct the main loop and create network and bus handling components.
 	 * @param opt the program options.
@@ -55,11 +59,6 @@ public:
 	BusHandler* getBusHandler() { return m_busHandler; }
 
 	/**
-	 * Run the main loop.
-	 */
-	void run();
-
-	/**
 	 * Add a client @a NetMessage to the queue.
 	 * @param message the client @a NetMessage to handle.
 	 */
@@ -68,49 +67,12 @@ public:
 	// @copydoc
 	virtual void notifyDeviceData(const unsigned char byte, bool received);
 
+protected:
+
+	// @copydoc
+	virtual void run();
+
 private:
-
-	/** the @a Device instance. */
-	Device* m_device;
-
-	/** the number of reconnects requested from the @a Device. */
-	unsigned int m_reconnectCount;
-
-	/** the @a RotateFile for writing sent/received bytes in log format, or NULL. */
-	RotateFile* m_logRawFile;
-
-	/** whether raw logging to @p logNotice is enabled (only relevant if m_logRawFile is NULL). */
-	bool m_logRawEnabled;
-
-	/** the @a RotateFile for dumping received data, or NULL. */
-	RotateFile* m_dumpFile;
-
-	/** the @a MessageMap instance. */
-	MessageMap* m_messages;
-
-	/** the own master address for sending on the bus. */
-	const unsigned char m_address;
-
-	/** whether to pick configuration files matching initial scan. */
-	const bool m_scanConfig;
-
-	/** the initial address to scan for @a m_scanConfig (@a ESC=none, 0xfe=broadcast ident, @a SYN=full scan, else: single slave address). */
-	const unsigned char m_initialScan;
-
-	/** whether to enable the hex command. */
-	const bool m_enableHex;
-
-	/** the created @a BusHandler instance. */
-	BusHandler* m_busHandler;
-
-	/** the created @a Network instance. */
-	Network* m_network;
-
-	/** the @a NetMessage @a Queue. */
-	Queue<NetMessage*> m_netQueue;
-
-	/** the path for HTML files served by the HTTP port. */
-	string m_htmlPath;
 
 	/**
 	 * Decode and execute client message.
@@ -246,13 +208,50 @@ private:
 	 */
 	string executeGet(vector<string> &args, bool& connected);
 
-	/**
-	 * Get the updates received since the specified time.
-	 * @param since the start time from which to add updates (inclusive).
-	 * @param until the end time to which to add updates (exclusive).
-	 * @return result string to send back to client.
-	 */
-	string getUpdates(time_t since, time_t until);
+	/** the @a Device instance. */
+	Device* m_device;
+
+	/** the number of reconnects requested from the @a Device. */
+	unsigned int m_reconnectCount;
+
+	/** the @a RotateFile for writing sent/received bytes in log format, or NULL. */
+	RotateFile* m_logRawFile;
+
+	/** whether raw logging to @p logNotice is enabled (only relevant if m_logRawFile is NULL). */
+	bool m_logRawEnabled;
+
+	/** the @a RotateFile for dumping received data, or NULL. */
+	RotateFile* m_dumpFile;
+
+	/** the @a MessageMap instance. */
+	MessageMap* m_messages;
+
+	/** the own master address for sending on the bus. */
+	const unsigned char m_address;
+
+	/** whether to pick configuration files matching initial scan. */
+	const bool m_scanConfig;
+
+	/** the initial address to scan for @a m_scanConfig (@a ESC=none, 0xfe=broadcast ident, @a SYN=full scan, else: single slave address). */
+	const unsigned char m_initialScan;
+
+	/** whether to enable the hex command. */
+	const bool m_enableHex;
+
+	/** the created @a BusHandler instance. */
+	BusHandler* m_busHandler;
+
+	/** the created @a Network instance. */
+	Network* m_network;
+
+	/** the @a NetMessage @a Queue. */
+	Queue<NetMessage*> m_netQueue;
+
+	/** the path for HTML files served by the HTTP port. */
+	string m_htmlPath;
+
+	/** the registered @a DataHandler instances. */
+	list<DataHandler*> m_dataHandlers;
 
 };
 

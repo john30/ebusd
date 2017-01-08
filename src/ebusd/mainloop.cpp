@@ -21,7 +21,6 @@
 #include "main.h"
 #include "log.h"
 #include "data.h"
-#include "config.h"
 
 using namespace std;
 
@@ -41,8 +40,22 @@ static const char* columnNames[] = {
 	"fields", "f",
 };
 
+/** the known column IDs according to @a columnNames. */
+static const size_t columnIds[] = {
+	COLUMN_TYPE, COLUMN_TYPE,
+	COLUMN_CIRCUIT, COLUMN_CIRCUIT,
+	COLUMN_NAME, COLUMN_NAME,
+	COLUMN_COMMENT, COLUMN_COMMENT,
+	COLUMN_QQ, COLUMN_QQ,
+	COLUMN_ZZ, COLUMN_ZZ,
+	COLUMN_PBSB, COLUMN_PBSB,
+	COLUMN_ID, COLUMN_ID,
+	COLUMN_FIELDS, COLUMN_FIELDS,
+};
+
 /** the number of known column names. */
 static const size_t columnCount = sizeof(columnNames) / sizeof(char*);
+
 
 MainLoop::MainLoop(const struct options opt, Device *device, MessageMap* messages)
 	: Thread(), m_device(device), m_reconnectCount(0), m_messages(messages),
@@ -87,11 +100,18 @@ MainLoop::MainLoop(const struct options opt, Device *device, MessageMap* message
 	m_htmlPath = opt.htmlPath;
 	m_network = new Network(opt.localOnly, opt.port, opt.httpPort, &m_netQueue);
 	m_network->start("network");
+	if (!datahandler_register(m_busHandler, m_dataHandlers)) {
+		logError(lf_main, "error registering data handlers");
+	}
 }
 
 MainLoop::~MainLoop()
 {
 	join();
+
+	for (list<DataHandler*>::iterator it = m_dataHandlers.begin(); it != m_dataHandlers.end(); it++) {
+		delete *it;
+	}
 	if (m_dumpFile) {
 		delete m_dumpFile;
 		m_dumpFile = NULL;
@@ -121,17 +141,25 @@ MainLoop::~MainLoop()
 void MainLoop::run()
 {
 	bool reload = true;
-	time_t lastTaskRun, now, lastSignal = 0;
+	time_t lastTaskRun, now, lastSignal = 0, since, sinkSince = 1;
 	int taskDelay = 5;
 	unsigned char lastScanAddress = 0; // 0 is known to be a master
 	time(&now);
 	lastTaskRun = now;
+	ostringstream updates;
+	list<DataSink*> dataSinks;
+	deque<Message*> messages;
 
+	for (list<DataHandler*>::iterator it = m_dataHandlers.begin(); it != m_dataHandlers.end(); it++) {
+		if ((*it)->isDataSink()) {
+			dataSinks.push_back(dynamic_cast<DataSink*>(*it));
+		}
+		(*it)->start();
+	}
 	while (true) {
 		string result;
-
 		// pick the next message to handle
-		NetMessage* message = m_netQueue.pop(taskDelay);
+		NetMessage* netMessage = m_netQueue.pop(taskDelay);
 		time(&now);
 		if (now<lastTaskRun) {
 			// clock skew
@@ -209,41 +237,58 @@ void MainLoop::run()
 			}
 			time(&lastTaskRun);
 		}
-		if (message==NULL) {
+		time(&now);
+		if (!dataSinks.empty()) {
+			messages = m_messages->findAll("", "", false, true, true, true, false, true, sinkSince, now);
+			for (deque<Message*>::iterator it = messages.begin(); it != messages.end(); it++) {
+				Message* message = *it;
+				for (list<DataSink*>::iterator it = dataSinks.begin(); it != dataSinks.end(); it++) {
+					(*it)->notifyUpdate(message);
+				}
+			}
+			sinkSince = now;
+		}
+		if (netMessage==NULL) {
 			continue;
 		}
-		string request = message->getRequest();
-
-		time_t since, until;
-		time(&until);
-		bool listening = message->isListening(&since);
-		if (!listening)
-			since = until;
-
+		string request = netMessage->getRequest();
+		bool listening = netMessage->isListening(&since);
+		if (!listening) {
+			since = now;
+		}
 		bool connected = true;
 		if (request.length() > 0) {
 			logDebug(lf_main, ">>> %s", request.c_str());
-			result = decodeMessage(request, message->isHttp(), connected, listening, reload);
+			result = decodeMessage(request, netMessage->isHttp(), connected, listening, reload);
 
-			if (result.length() == 0 && !message->isHttp())
+			if (result.length() == 0 && !netMessage->isHttp()) {
 				result = getResultCode(RESULT_EMPTY);
-
-			if (result.length() > 100)
+			}
+			if (result.length() > 100) {
 				logDebug(lf_main, "<<< %s ...", result.substr(0, 100).c_str());
-			else
+			} else {
 				logDebug(lf_main, "<<< %s", result.c_str());
-
-			if (result.length() == 0)
+			}
+			if (result.length() == 0) {
 				result = "\n"; // only for HTTP
-			else if (!message->isHttp())
+			} else if (!netMessage->isHttp()) {
 				result += "\n\n";
+			}
 		}
 		if (listening) {
-			result += getUpdates(since, until);
+			messages = m_messages->findAll("", "", false, true, true, true, false, true, since, now);
+			updates.str("");
+			updates.clear();
+			for (deque<Message*>::iterator it = messages.begin(); it != messages.end(); it++) {
+				Message* message = *it;
+				updates << message->getCircuit() << " " << message->getName() << " = " << dec;
+				message->decodeLastData(updates);
+				updates << endl;
+			}
+			result += updates.str();
 		}
-
 		// send result to client
-		message->setResult(result, listening, until, !connected);
+		netMessage->setResult(result, listening, now, !connected);
 	}
 }
 
@@ -265,8 +310,6 @@ void MainLoop::notifyDeviceData(const unsigned char byte, bool received)
 
 string MainLoop::decodeMessage(const string& data, const bool isHttp, bool& connected, bool& listening, bool& reload)
 {
-	ostringstream result;
-
 	// prepare data
 	string token, previous;
 	istringstream stream(data);
@@ -840,7 +883,7 @@ string MainLoop::executeFind(vector<string> &args)
 					argPos = 0; // print usage
 					break;
 				}
-				columns.push_back(idx/2);
+				columns.push_back(columnIds[idx]);
 			}
 			if (columns.empty()) {
 				argPos = 0; // print usage
@@ -926,7 +969,7 @@ string MainLoop::executeFind(vector<string> &args)
 	bool found = false;
 	ostringstream result;
 	char str[32];
-	for (deque<Message*>::iterator it = messages.begin(); it < messages.end();) {
+	for (deque<Message*>::iterator it = messages.begin(); it != messages.end();) {
 		Message* message = *it++;
 		if (!id.empty() && !message->checkIdPrefix(id)) {
 			continue;
@@ -1183,7 +1226,7 @@ string MainLoop::executeInfo(vector<string> &args)
 			   " Report information about the daemon, the configuration, and seen devices.";
 
 	ostringstream result;
-	result << "version: " << PACKAGE_STRING << "." REVISION "\n";
+	result << "version: " << PACKAGE_STRING "." REVISION "\n";
 	if (m_busHandler->hasSignal()) {
 		result << "signal: acquired\n";
 		result << "symbol rate: " << static_cast<unsigned>(m_busHandler->getSymbolRate()) << "\n";
@@ -1301,7 +1344,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 		result << "{";
 		string lastCircuit = "";
 		time_t maxLastUp = 0;
-		for (deque<Message*>::iterator it = messages.begin(); ret == RESULT_OK && it < messages.end();) {
+		for (deque<Message*>::iterator it = messages.begin(); ret == RESULT_OK && it != messages.end();) {
 			Message* message = *it++;
 			unsigned char dstAddress = message->getDstAddress();
 			if (dstAddress == SYN)
@@ -1450,31 +1493,8 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 		result << "500 Internal Server Error";
 		break;
 	}
-	result << "\r\nServer: ebusd/" PACKAGE_VERSION "\r\n\r\n";
+	result << "\r\nServer: " PACKAGE_NAME "/" PACKAGE_VERSION "\r\n\r\n";
 	result << data;
 	connected = false;
-	return result.str();
-}
-
-string MainLoop::getUpdates(time_t since, time_t until)
-{
-	ostringstream result;
-
-	deque<Message*> messages;
-	messages = m_messages->findAll("", "", false, true, true, true);
-
-	for (deque<Message*>::iterator it = messages.begin(); it < messages.end();) {
-		Message* message = *it++;
-		unsigned char dstAddress = message->getDstAddress();
-		if (dstAddress == SYN)
-			continue;
-		time_t lastchg = message->getLastChangeTime();
-		if (lastchg < since || lastchg >= until)
-			continue;
-		result << message->getCircuit() << " " << message->getName() << " = ";
-		message->decodeLastData(result);
-		result << endl;
-	}
-
 	return result.str();
 }
