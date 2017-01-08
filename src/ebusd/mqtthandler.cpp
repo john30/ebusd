@@ -154,6 +154,12 @@ MqttHandler::MqttHandler(BusHandler* busHandler, MessageMap* messages)
 	if (!enabled) {
 		return;
 	}
+	int major = -1;
+	mosquitto_lib_version(&major, NULL, NULL);
+	if (major!=LIBMOSQUITTO_MAJOR) {
+		logOtherError("mqtt", "invalid mosquitto version %d instead of %d", major, LIBMOSQUITTO_MAJOR);
+		return;
+	}
 	if (m_topicCols.empty()) {
 		if (m_topicStrs.empty()) {
 			m_topicStrs.push_back("");
