@@ -1,3 +1,17 @@
+# next version
+
+## Bug Fixes
+* corrected numeric condition formatting
+* corrected reporting of CSV error position
+
+## Features
+* added support for MQTT handling via libmosquitto (will be compiled in when library is available)
+* allow empty ID in filename for circuit and suffix extraction
+* use scan ID as fallback for default circuit name
+* added U3N/U3R/S3N/S3R data types
+* added another log facility "other"
+
+
 # 2.4 (2016-12-17)
 
 ## Bug Fixes
