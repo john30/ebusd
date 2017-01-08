@@ -1,4 +1,4 @@
-AM_CXXFLAGS = -Wconversion \
+AM_CXXFLAGS = -Wconversion -Wunused-parameter \
 	      -isystem$(top_srcdir)/src/lib/utils \
 	      -isystem$(top_srcdir)/src/lib/ebus \
 	      -DSYSCONFDIR=\"$(sysconfdir)\" \
@@ -19,8 +19,6 @@ ebusd_SOURCES = bushandler.cpp \
 
 if MQTT
 ebusd_SOURCES += mqtthandler.cpp mqtthandler.h
-else
-AM_CXXFLAGS += -Wunused-parameter
 endif
 
 ebusd_LDADD = ../lib/utils/libutils.a \
