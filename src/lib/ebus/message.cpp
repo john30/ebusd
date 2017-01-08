@@ -635,7 +635,7 @@ result_t Message::storeLastData(SymbolString& master, SymbolString& slave)
 result_t Message::storeLastData(const PartType partType, SymbolString& data, unsigned char index)
 {
 	if (data.size() > 0
-	&& (this->m_dstAddress == BROADCAST || partType == pt_slaveData || (partType == pt_masterData && isMaster(this->m_dstAddress)))) {
+	&& (m_isWrite || this->m_dstAddress == BROADCAST || partType == pt_slaveData)) {
 		time(&m_lastUpdateTime);
 	}
 	if (partType == pt_masterData) {
