@@ -132,7 +132,7 @@ public:
 	 * @param fieldIndex the index of the field, or -1 for this.
 	 * @return the field name, or the index as string if not unique or not available.
 	 */
-	virtual string getName(signed char fieldIndex=-1) const { return m_name; }
+	virtual string getName(signed char fieldIndex=-1) { return m_name; }
 
 	/**
 	 * Get the field comment.
