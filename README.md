@@ -28,6 +28,7 @@ The main features of the daemon are:
  * dump received bytes to binary files for later playback/analysis
  * listen for client connections on a dedicated TCP port (command line style and/or HTTP)
  * optionally format messages and data in JSON on dedicated HTTP port
+ * optionally publish all received message data to MQTT topics and vice versa
 
 Installation
 ------------
@@ -42,6 +43,7 @@ Building ebusd from the source requires the following packages and/or features:
  * make
  * kernel with pselect or ppoll support
  * glibc with argp support or argp-standalone
+ * libmosquitto-dev for MQTT support
 
 To start the build process, run these commands:  
 > ./autogen.sh  
