@@ -27,7 +27,7 @@ using namespace std;
 /** the definition of the MQTT arguments. */
 static const struct argp_option g_mqtt_argp_options[] = {
 	{NULL,             0, NULL,    0, "MQTT options:", 1 },
-	{"mqttport",       1, "PORT",  0, "Connect to MQTT broker on PORT, 0 to disable [0]", 0 },
+	{"mqttport",       1, "PORT",  0, "Connect to MQTT broker on PORT (usually 1883), 0 to disable [0]", 0 },
 	{"mqtttopic",      2, "TOPIC", 0, "Use MQTT TOPIC (prefix before /%circuit/%name or complete format) [ebusd]", 0 },
 
 	{NULL,             0,        NULL,    0, NULL, 0 },
@@ -178,7 +178,11 @@ MqttHandler::MqttHandler(BusHandler* busHandler, MessageMap* messages)
 	} else {
 		string clientId = PACKAGE_STRING;
 		clientId += " "+static_cast<unsigned>(getpid());
-		m_mosquitto = mosquitto_new(clientId.c_str(), this);
+		m_mosquitto = mosquitto_new(clientId.c_str(),
+#if (LIBMOSQUITTO_MAJOR>=1)
+			true,
+#endif
+			this);
 		if (!m_mosquitto) {
 			logOtherError("mqtt", "unable to instantiate");
 		}
@@ -189,8 +193,16 @@ MqttHandler::MqttHandler(BusHandler* busHandler, MessageMap* messages)
 		string willTopic = m_globalTopic+"running";
 		string willData = "false";
 		size_t len = willData.length();
-		mosquitto_will_set(m_mosquitto, true, willTopic.c_str(), (uint32_t)len, (uint8_t*)(willData.c_str()), 0, true);
-		if (mosquitto_connect(m_mosquitto, "localhost", g_port, 60, true)!=MOSQ_ERR_SUCCESS) {
+		mosquitto_will_set(m_mosquitto,
+#if (LIBMOSQUITTO_MAJOR<1)
+			true,
+#endif
+			willTopic.c_str(), (uint32_t)len, (uint8_t*)(willData.c_str()), 0, true);
+		if (mosquitto_connect(m_mosquitto, "localhost", g_port, 60
+#if (LIBMOSQUITTO_MAJOR<1)
+				, true
+#endif
+				)!=MOSQ_ERR_SUCCESS) {
 			logOtherError("mqtt", "unable to connect");
 			mosquitto_destroy(m_mosquitto);
 			m_mosquitto = NULL;
@@ -217,7 +229,11 @@ void MqttHandler::start()
 	}
 }
 
-void on_message(void *obj, const struct mosquitto_message *message)
+void on_message(
+#if (LIBMOSQUITTO_MAJOR>=1)
+	struct mosquitto *mosq,
+#endif
+	void *obj, const struct mosquitto_message *message)
 {
 	MqttHandler* handler = (MqttHandler*)obj;
 	if (!handler || !message || !handler->isRunning()) {
@@ -379,7 +395,11 @@ void MqttHandler::run()
 void MqttHandler::handleTraffic()
 {
 	if (m_mosquitto) {
-		mosquitto_loop(m_mosquitto, 0);
+		mosquitto_loop(m_mosquitto, 0
+#if (LIBMOSQUITTO_MAJOR>=1)
+			,1
+#endif
+			);
 	}
 }
 
