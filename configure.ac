@@ -26,9 +26,10 @@ AC_CHECK_HEADERS([arpa/inet.h \
 AC_CHECK_LIB([pthread], [pthread_setname_np],
 	AC_DEFINE([HAVE_PTHREAD_SETNAME_NP], [1], [Define to 1 if pthread has pthread_setname_np.]),
 	AC_MSG_RESULT([Could not find pthread_setname_np in pthread.]))
-RT_LIB=
-AC_CHECK_LIB([rt], [clock_gettime], [RT_LIB="-lrt"])
-AC_SUBST(RT_LIB)
+EXTRA_LIBS=
+AC_CHECK_LIB([rt], [clock_gettime], [EXTRA_LIBS+="-lrt"])
+AC_SUBST(EXTRA_LIBS)
+
 AC_CHECK_FUNC([pselect], [AC_DEFINE(HAVE_PSELECT, [1], [Define to 1 if pselect() is available.])])
 AC_CHECK_FUNC([ppoll], [AC_DEFINE(HAVE_PPOLL, [1], [Define to 1 if ppoll() is available.])])
 
@@ -45,6 +46,15 @@ if test "x$have_argp" = "xyes"; then
 else
 	AC_MSG_ERROR([argp library not found, specify argp-standalone location in --with-argp-lib= and --with-argp-include= options.])
 fi
+AC_ARG_WITH(mqtt, AS_HELP_STRING([--without-mqtt], [disable support for MQTT handling]), [], [with_mqtt=yes])
+if test "x$with_mqtt" != "xno"; then
+	AC_CHECK_LIB([mosquitto], [mosquitto_lib_init],
+		[AC_DEFINE_UNQUOTED(HAVE_MQTT, [1], [Define to 1 for enabled MQTT handling.])
+		EXTRA_LIBS+=" -lmosquitto"],
+		[AC_MSG_RESULT([Could not find mosquitto_lib_init in libmosquitto.])
+		with_mqtt="no"])
+fi
+AM_CONDITIONAL([MQTT], [test "x$with_mqtt" != "xno"])
 
 AC_MSG_CHECKING([for direct float format conversion])
 AC_TRY_RUN(

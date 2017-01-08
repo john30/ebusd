@@ -8,6 +8,8 @@ bin_PROGRAMS = ebusd
 
 ebusd_SOURCES = bushandler.cpp \
 		bushandler.h \
+		datahandler.cpp \
+		datahandler.h \
 		network.cpp \
 		network.h \
 		mainloop.cpp \
@@ -15,10 +17,14 @@ ebusd_SOURCES = bushandler.cpp \
 		main.h \
 		main.cpp
 
+if MQTT
+ebusd_SOURCES += mqtthandler.cpp mqtthandler.h
+endif
+
 ebusd_LDADD = ../lib/utils/libutils.a \
               ../lib/ebus/libebus.a \
 	      -lpthread \
-	      @RT_LIB@
+	      @EXTRA_LIBS@
 
 distclean-local:
 	-rm -f Makefile.in
