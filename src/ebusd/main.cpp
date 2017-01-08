@@ -945,10 +945,10 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
  */
 int main(int argc, char* argv[])
 {
-	struct argp argp = { argpoptions, parse_opt, NULL, argpdoc, datahandler_getargs(), NULL, NULL };
+	struct argp aargp = { argpoptions, parse_opt, NULL, argpdoc, datahandler_getargs(), NULL, NULL };
 	int arg_index = -1;
 	setenv("ARGP_HELP_FMT", "no-dup-args-note", 0);
-	if (argp_parse(&argp, argc, argv, ARGP_IN_ORDER, &arg_index, &opt) != 0) {
+	if (argp_parse(&aargp, argc, argv, ARGP_IN_ORDER, &arg_index, &opt) != 0) {
 		logError(lf_main, "invalid arguments");
 		return EINVAL;
 	}
