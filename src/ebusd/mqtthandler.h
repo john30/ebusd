@@ -39,22 +39,24 @@ const struct argp_child* mqtthandler_getargs();
 /**
  * Registration function that is called once during initialization.
  * @param busHandler the @a BusHandler instance.
+ * @param messages the @a MessageMap instance.
  * @return the create @a DataHandler, or NULL on error.
  */
-DataHandler* mqtthandler_register(BusHandler* busHandler);
+DataHandler* mqtthandler_register(BusHandler* busHandler, MessageMap* messages);
 
 /**
  * The main class supporting MQTT data handling.
  */
-class MqttHandler : public DataSink, DataSource, Thread
+class MqttHandler : public DataSink, public DataSource, public Thread
 {
 public:
 
 	/**
 	 * Constructor.
 	 * @param busHandler the @a BusHandler instance.
+	 * @param messages the @a MessageMap instance.
 	 */
-	MqttHandler(BusHandler* busHandler);
+	MqttHandler(BusHandler* busHandler, MessageMap* messages);
 
 	/**
 	 * Destructor.
@@ -63,6 +65,13 @@ public:
 
 	// @copydoc
 	virtual void start();
+
+	/**
+	 * Notify the handler of a received MQTT message.
+	 * @param topic the topic string.
+	 * @param data the data string.
+	 */
+	void notifyTopic(string topic, string data);
 
 protected:
 
@@ -79,9 +88,17 @@ private:
 	/**
 	 * Build the MQTT topic string for the @a Message.
 	 * @param message the @a Message to build the topic string for.
+	 * @param fieldIndex the optional field index for the field column, or -1.
 	 * @return the topic string.
 	 */
-	string getTopic(Message* message);
+	string getTopic(Message* message, signed char fieldIndex=-1);
+
+	/**
+	 * Prepare a @a Message and publish as topic.
+	 * @param message the @a Message to publish.
+	 * @param updates the @a ostringstream for preparation.
+	 */
+	void publishMessage(Message* message, ostringstream& updates);
 
 	/**
 	 * Publish a topic update to MQTT.
@@ -90,6 +107,9 @@ private:
 	 * @param retain whether the topic shall be retained.
 	 */
 	void publishTopic(string topic, string data, bool retain=true);
+
+	/** the @a MessageMap instance. */
+	MessageMap* m_messages;
 
 	/** the MQTT topic string parts. */
 	vector<string> m_topicStrs;
