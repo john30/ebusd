@@ -31,7 +31,7 @@ using namespace std;
 static const struct argp_child g_last_argp_child = {NULL, 0, NULL, 0};
 
 /** the list of @a argp_child structures. */
-static const struct argp_child* g_argp_children[
+static struct argp_child g_argp_children[
 #ifdef HAVE_MQTT
 						1
 #endif
@@ -42,11 +42,11 @@ const struct argp_child* datahandler_getargs()
 {
 	size_t count = 0;
 #ifdef HAVE_MQTT
-	g_argp_children[count++] = mqtthandler_getargs();
+	g_argp_children[count++] = *mqtthandler_getargs();
 #endif
 	if (count>0) {
-		g_argp_children[count] = &g_last_argp_child;
-		return g_argp_children[0];
+		g_argp_children[count] = g_last_argp_child;
+		return g_argp_children;
 	}
 	return NULL;
 }

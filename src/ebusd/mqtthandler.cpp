@@ -69,7 +69,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state)
 	return 0;
 }
 
-static struct argp g_mqtt_argp = { g_mqtt_argp_options, mqtt_parse_opt, NULL, NULL, NULL, NULL, NULL };
+static const struct argp g_mqtt_argp = { g_mqtt_argp_options, mqtt_parse_opt, NULL, NULL, NULL, NULL, NULL };
 static const struct argp_child g_mqtt_argp_child = {&g_mqtt_argp, 0, "", 1};
 
 const struct argp_child* mqtthandler_getargs()
@@ -149,6 +149,9 @@ MqttHandler::MqttHandler(BusHandler* busHandler, MessageMap* messages)
 	m_mosquitto = NULL;
 	if (enabled && !parseTopic(g_topic, m_topicStrs, m_topicCols)) {
 		logOtherError("mqtt", "malformed topic %s", g_topic);
+		return;
+	}
+	if (!enabled) {
 		return;
 	}
 	if (m_topicCols.empty()) {
