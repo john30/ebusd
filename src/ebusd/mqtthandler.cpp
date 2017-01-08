@@ -404,7 +404,7 @@ void MqttHandler::run()
 void MqttHandler::handleTraffic()
 {
 	if (m_mosquitto) {
-		mosquitto_loop(m_mosquitto, 0
+		mosquitto_loop(m_mosquitto, -1
 #if (LIBMOSQUITTO_MAJOR>=1)
 			,1
 #endif
