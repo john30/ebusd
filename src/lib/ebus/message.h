@@ -245,6 +245,13 @@ public:
 	string getName() const { return m_name; }
 
 	/**
+	 * Get the specified field name.
+	 * @param fieldIndex the index of the field.
+	 * @return the field name, or the index as string if not unique or not available.
+	 */
+	virtual string getFieldName(signed char fieldIndex) const { return m_data->getName(fieldIndex); }
+
+	/**
 	 * Get whether this is a write message.
 	 * @return whether this is a write message.
 	 */
@@ -510,7 +517,7 @@ public:
 	 * @param column the column index to write (see @p COLUMN_TYPE index constants).
 	 * @param withConditions whether to include the optional conditions prefix.
 	 */
-	virtual void dumpColumn(ostream& output, size_t column, bool withConditions);
+	virtual void dumpColumn(ostream& output, size_t column, bool withConditions=false);
 
 protected:
 
@@ -666,7 +673,7 @@ public:
 protected:
 
 	// @copydoc
-	virtual void dumpColumn(ostream& output, size_t column, bool withConditions);
+	virtual void dumpColumn(ostream& output, size_t column, bool withConditions=false);
 
 private:
 

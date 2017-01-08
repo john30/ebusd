@@ -1043,7 +1043,7 @@ result_t ChainedMessage::storeLastData(const PartType partType, SymbolString& da
 
 void ChainedMessage::dumpColumn(ostream& output, size_t column, bool withConditions)
 {
-	if (column!=7) {
+	if (column!=COLUMN_ID) {
 		Message::dumpColumn(output, column, withConditions);
 		return;
 	}
