@@ -128,10 +128,11 @@ public:
 			vector<SingleDataField*>& fields) = 0;
 
 	/**
-	 * Get the field name.
-	 * @return the field name.
+	 * Get the specified field name.
+	 * @param fieldIndex the index of the field, or -1 for this.
+	 * @return the field name, or the index as string if not unique or not available.
 	 */
-	string getName() const { return m_name; }
+	virtual string getName(signed char fieldIndex=-1) const { return m_name; }
 
 	/**
 	 * Get the field comment.
@@ -548,6 +549,9 @@ public:
 
 	// @copydoc
 	virtual unsigned char getLength(PartType partType, unsigned char maxLength=MAX_LEN);
+
+	// @copydoc
+	virtual string getName(signed char fieldIndex=-1);
 
 	// @copydoc
 	virtual result_t derive(string name, string comment,

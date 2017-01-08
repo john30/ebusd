@@ -803,6 +803,22 @@ unsigned char DataFieldSet::getLength(PartType partType, unsigned char maxLength
 	return length;
 }
 
+string DataFieldSet::getName(signed char fieldIndex)
+{
+	if (fieldIndex<0) {
+		return m_name;
+	}
+	if ((unsigned char)fieldIndex>=m_fields.size()) {
+		return "";
+	}
+	if (m_uniqueNames) {
+		return m_fields[fieldIndex]->getName();
+	}
+	ostringstream ostream;
+	ostream << static_cast<signed>(fieldIndex);
+	return ostream.str();
+}
+
 result_t DataFieldSet::derive(string name, string comment,
 		string unit, const PartType partType,
 		int divisor, map<unsigned int, string> values,
@@ -835,10 +851,11 @@ void DataFieldSet::dump(ostream& output)
 {
 	bool first = true;
 	for (vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
-		if (first)
+		if (first) {
 			first = false;
-		else
+		} else {
 			output << FIELD_SEPARATOR;
+		}
 		(*it)->dump(output);
 	}
 }
