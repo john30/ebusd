@@ -132,7 +132,7 @@ public:
 	/**
 	 * Wait for the specified amount of time.
 	 * @param seconds the number of seconds to wait.
-	 * @return true if this @a Thread is till running and not yet stopped.
+	 * @return true if this @a WaitThread is still running and not yet stopped.
 	 */
 	bool Wait(int seconds);
 
