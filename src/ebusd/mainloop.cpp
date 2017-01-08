@@ -100,7 +100,7 @@ MainLoop::MainLoop(const struct options opt, Device *device, MessageMap* message
 	m_htmlPath = opt.htmlPath;
 	m_network = new Network(opt.localOnly, opt.port, opt.httpPort, &m_netQueue);
 	m_network->start("network");
-	if (!datahandler_register(m_busHandler, m_dataHandlers)) {
+	if (!datahandler_register(m_busHandler, messages, m_dataHandlers)) {
 		logError(lf_main, "error registering data handlers");
 	}
 }

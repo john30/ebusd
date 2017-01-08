@@ -42,10 +42,11 @@ const struct argp_child* datahandler_getargs();
 /**
  * Registration function that is called once during initialization.
  * @param busHandler the @a BusHandler instance.
+ * @param messages the @a MessageMap instance.
  * @param handlers the @a list to which new @a DataHandler instances shall be added.
  * @return true if registration was successful.
  */
-bool datahandler_register(BusHandler* busHandler, list<DataHandler*>& handlers);
+bool datahandler_register(BusHandler* busHandler, MessageMap* messages, list<DataHandler*>& handlers);
 
 
 /**

@@ -51,11 +51,11 @@ const struct argp_child* datahandler_getargs()
 	return NULL;
 }
 
-bool datahandler_register(BusHandler* busHandler, list<DataHandler*>& handlers)
+bool datahandler_register(BusHandler* busHandler, MessageMap* messages, list<DataHandler*>& handlers)
 {
 	bool success = true;
 #ifdef HAVE_MQTT
-	DataHandler* handler = mqtthandler_register(busHandler);
+	DataHandler* handler = mqtthandler_register(busHandler, messages);
 	if (handler) {
 		handlers.push_back(handler);
 	} else {
