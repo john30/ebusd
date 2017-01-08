@@ -22,9 +22,6 @@
 #include "bushandler.h"
 #include "message.h"
 #include <argp.h>
-#ifdef HAVE_CONFIG_H
-#	include <config.h>
-#endif
 
 /** @file datahandler.h
  * Classes and functions for implementing and registering generic data sinks
@@ -45,10 +42,10 @@ const struct argp_child* datahandler_getargs();
 /**
  * Registration function that is called once during initialization.
  * @param busHandler the @a BusHandler instance.
- * @param handlers the @a vector to which new @a DataHandler instances shall be added.
+ * @param handlers the @a list to which new @a DataHandler instances shall be added.
  * @return true if registration was successful.
  */
-bool datahandler_register(BusHandler* busHandler, vector<DataHandler*>& handlers);
+bool datahandler_register(BusHandler* busHandler, list<DataHandler*>& handlers);
 
 
 /**
@@ -71,6 +68,18 @@ public:
 	 * Called to start the @a DataHandler.
 	 */
 	virtual void start() = 0;
+
+	/**
+	 * Return whether this is a @a DataSink instance.
+	 * @return whether this is a @a DataSink instance.
+	 */
+	virtual bool isDataSink() { return false; }
+
+	/**
+	 * Return whether this is a @a DataSource instance.
+	 * @return whether this is a @a DataSource instance.
+	 */
+	virtual bool isDataSource() { return false; }
 
 };
 
@@ -98,10 +107,13 @@ public:
 	 */
 	virtual void notifyUpdate(Message* message);
 
+	// @copydoc
+	virtual bool isDataSink() { return true; }
+
 protected:
 
-	/** a queue of updated @p Message instances. */
-	deque<Message*> m_updatedMessages;
+	/** a map of updated @p Message instances. */
+	map<Message*, int> m_updatedMessages;
 
 };
 
@@ -124,6 +136,9 @@ public:
 	 * Destructor.
 	 */
 	virtual ~DataSource() {}
+
+	// @copydoc
+	virtual bool isDataSource() { return true; }
 
 protected:
 

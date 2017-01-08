@@ -17,7 +17,10 @@
  */
 
 #include "datahandler.h"
-#include <vector>
+#include <list>
+#ifdef HAVE_CONFIG_H
+#	include <config.h>
+#endif
 #ifdef HAVE_MQTT
 #	include "mqtthandler.h"
 #endif
@@ -48,7 +51,7 @@ const struct argp_child* datahandler_getargs()
 	return NULL;
 }
 
-bool datahandler_register(BusHandler* busHandler, vector<DataHandler*>& handlers)
+bool datahandler_register(BusHandler* busHandler, list<DataHandler*>& handlers)
 {
 	bool success = true;
 #ifdef HAVE_MQTT
@@ -64,5 +67,5 @@ bool datahandler_register(BusHandler* busHandler, vector<DataHandler*>& handlers
 
 void DataSink::notifyUpdate(Message* message)
 {
-	m_updatedMessages.push_back(message);
+	m_updatedMessages[message]++;
 }
