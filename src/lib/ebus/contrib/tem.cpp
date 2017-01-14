@@ -20,14 +20,14 @@
 #	include <config.h>
 #endif
 
-#include "datatype.h"
 #include "tem.h"
+#include <math.h>
 #include <iostream>
 #include <sstream>
 #include <iomanip>
 #include <vector>
 #include <cstring>
-#include <math.h>
+#include "datatype.h"
 
 using namespace std;
 
@@ -35,8 +35,7 @@ void contrib_tem_register() {
 	DataTypeList::getInstance()->add(new TemParamDataType("TEM_P"));
 }
 
-result_t TemParamDataType::derive(int divisor, unsigned char bitCount, NumberDataType* &derived)
-{
+result_t TemParamDataType::derive(int divisor, unsigned char bitCount, NumberDataType* &derived) {
 	if (divisor == 0) {
 		divisor = 1;
 	}
@@ -52,8 +51,7 @@ result_t TemParamDataType::derive(int divisor, unsigned char bitCount, NumberDat
 
 result_t TemParamDataType::readSymbols(SymbolString& input, const bool isMaster,
 		const unsigned char offset, const unsigned char length,
-		ostringstream& output, OutputFormat outputFormat)
-{
+		ostringstream& output, OutputFormat outputFormat) {
 	unsigned int value = 0;
 
 	result_t result = readRawValue(input, offset, length, value);
@@ -90,8 +88,7 @@ result_t TemParamDataType::readSymbols(SymbolString& input, const bool isMaster,
 
 result_t TemParamDataType::writeSymbols(istringstream& input,
 	const unsigned char offset, const unsigned char length,
-	SymbolString& output, const bool isMaster, unsigned char* usedLength)
-{
+	SymbolString& output, const bool isMaster, unsigned char* usedLength) {
 	unsigned int value;
 	int grp, num;
 	string token;

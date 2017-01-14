@@ -16,12 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DATAHANDLER_H_
-#define DATAHANDLER_H_
+#ifndef EBUSD_DATAHANDLER_H_
+#define EBUSD_DATAHANDLER_H_
 
+#include <argp.h>
+#include <map>
+#include <list>
 #include "bushandler.h"
 #include "message.h"
-#include <argp.h>
 
 /** @file datahandler.h
  * Classes and functions for implementing and registering generic data sinks
@@ -148,4 +150,4 @@ protected:
 
 };
 
-#endif // DATAHANDLER_H_
+#endif // EBUSD_DATAHANDLER_H_

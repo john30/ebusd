@@ -21,13 +21,12 @@
 #endif
 
 #include "datatype.h"
+#include <math.h>
 #include <iostream>
 #include <sstream>
 #include <iomanip>
 #include <vector>
 #include <cstring>
-#include <math.h>
-
 #ifdef HAVE_CONTRIB
 #	include "contrib/contrib.h"
 #endif
@@ -76,8 +75,7 @@ int parseSignedInt(const char* str, int base, const int minValue, const int maxV
 	return (int)ret;
 }
 
-void printErrorPos(ostream& out, vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, string filename, size_t lineNo, result_t result)
-{
+void printErrorPos(ostream& out, vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, string filename, size_t lineNo, result_t result) {
 	if (pos > begin) {
 		pos--;
 	}
@@ -105,7 +103,7 @@ void printErrorPos(ostream& out, vector<string>::iterator begin, const vector<st
 		} else {
 			i = item.find(FIELD_SEPARATOR);
 		}
-		if (i!=string::npos) {
+		if (i != string::npos) {
 			out << TEXT_SEPARATOR << item << TEXT_SEPARATOR;
 			if (begin < pos) {
 				cnt += 2;
@@ -129,7 +127,7 @@ bool DataType::dump(ostream& output, const unsigned char length) const
 {
 	output << m_id;
 	if (isAdjustableLength()) {
-		if (length==REMAIN_LEN) {
+		if (length == REMAIN_LEN) {
 			output << ":*";
 		} else {
 			output << ":" << static_cast<unsigned>(length);
@@ -141,20 +139,18 @@ bool DataType::dump(ostream& output, const unsigned char length) const
 
 
 result_t StringDataType::readRawValue(SymbolString& input, const unsigned char offset,
-		const unsigned char length, unsigned int& value)
-{
+		const unsigned char length, unsigned int& value) {
 	return RESULT_EMPTY;
 }
 
 result_t StringDataType::readSymbols(SymbolString& input, const bool isMaster,
 		const unsigned char baseOffset, const unsigned char length,
-		ostringstream& output, OutputFormat outputFormat)
-{
+		ostringstream& output, OutputFormat outputFormat) {
 	size_t start = 0, count = length;
 	int incr = 1;
 	unsigned char ch;
 	bool terminated = false;
-	if (count==REMAIN_LEN && input.size()>baseOffset) {
+	if (count == REMAIN_LEN && input.size() > baseOffset) {
 		count = input.size()-baseOffset;
 	} else if (baseOffset + count > input.size()) {
 		return RESULT_ERR_INVALID_POS;
@@ -200,10 +196,9 @@ result_t StringDataType::readSymbols(SymbolString& input, const bool isMaster,
 
 result_t StringDataType::writeSymbols(istringstream& input,
 		unsigned char baseOffset, const unsigned char length,
-		SymbolString& output, const bool isMaster, unsigned char* usedLength)
-{
+		SymbolString& output, const bool isMaster, unsigned char* usedLength) {
 	size_t start = 0, count = length;
-	bool remainder = count==REMAIN_LEN && hasFlag(ADJ);
+	bool remainder = count == REMAIN_LEN && hasFlag(ADJ);
 	int incr = 1;
 	unsigned int value = 0;
 	string token;
@@ -219,7 +214,7 @@ result_t StringDataType::writeSymbols(istringstream& input,
 		for (size_t offset = start, i = 0; i < count; offset += incr, i++) {
 			output[baseOffset + offset] = (unsigned char)m_replacement; // fill up with replacement
 		}
-		if (usedLength!=NULL) {
+		if (usedLength != NULL) {
 			*usedLength = (unsigned char)count;
 		}
 		return RESULT_OK;
@@ -244,16 +239,18 @@ result_t StringDataType::writeSymbols(istringstream& input,
 					return RESULT_ERR_INVALID_NUM; // too short hex value
 				}
 				value = parseInt(token.c_str(), 16, 0, 0xff, result);
-				if (result != RESULT_OK)
+				if (result != RESULT_OK) {
 					return result; // invalid hex value
+				}
 			}
 		} else {
 			if (input.eof()) {
 				value = m_replacement;
 			} else {
 				value = input.get();
-				if (input.eof() || value < 0x20)
+				if (input.eof() || value < 0x20) {
 					value = m_replacement;
+				}
 			}
 		}
 		if (remainder && input.eof() && i > 0) {
@@ -272,7 +269,7 @@ result_t StringDataType::writeSymbols(istringstream& input,
 	if (!remainder && i < count) {
 		return RESULT_ERR_EOF; // input too short
 	}
-	if (usedLength!=NULL) {
+	if (usedLength != NULL) {
 		*usedLength = (unsigned char)((offset-start)*incr);
 	}
 	return RESULT_OK;
@@ -280,19 +277,17 @@ result_t StringDataType::writeSymbols(istringstream& input,
 
 
 result_t DateTimeDataType::readRawValue(SymbolString& input, const unsigned char offset,
-		const unsigned char length, unsigned int& value)
-{
+		const unsigned char length, unsigned int& value) {
 	return RESULT_EMPTY;
 }
 
 result_t DateTimeDataType::readSymbols(SymbolString& input, const bool isMaster,
 		const unsigned char baseOffset, const unsigned char length,
-		ostringstream& output, OutputFormat outputFormat)
-{
+		ostringstream& output, OutputFormat outputFormat) {
 	size_t start = 0, count = length;
 	int incr = 1;
 	unsigned char ch, last = 0, hour = 0;
-	if (count==REMAIN_LEN && input.size()>baseOffset) {
+	if (count == REMAIN_LEN && input.size() > baseOffset) {
 		count = input.size()-baseOffset;
 	} else if (baseOffset + count > input.size()) {
 		return RESULT_ERR_INVALID_POS;
@@ -341,7 +336,7 @@ result_t DateTimeDataType::readSymbols(SymbolString& input, const bool isMaster,
 				int m = (int)((mjd-14956.1-(int)(y*365.25))/30.6001);
 				int d = mjd-14956-(int)(y*365.25)-(int)(m*30.6001);
 				m--;
-				if (m>=13) {
+				if (m >= 13) {
 					y++;
 					m -= 12;
 				}
@@ -402,8 +397,9 @@ result_t DateTimeDataType::readSymbols(SymbolString& input, const bool isMaster,
 			} else if (ch > 59 || (hour == 24 && ch > 0)) {
 				return RESULT_ERR_OUT_OF_RANGE; // invalid time
 			}
-			if (i > 0)
+			if (i > 0) {
 				output << ":";
+			}
 			output << setw(2) << dec << setfill('0') << static_cast<unsigned>(ch);
 			break;
 		}
@@ -417,10 +413,9 @@ result_t DateTimeDataType::readSymbols(SymbolString& input, const bool isMaster,
 
 result_t DateTimeDataType::writeSymbols(istringstream& input,
 		unsigned char baseOffset, const unsigned char length,
-		SymbolString& output, const bool isMaster, unsigned char* usedLength)
-{
+		SymbolString& output, const bool isMaster, unsigned char* usedLength) {
 	size_t start = 0, count = length;
-	bool remainder = count==REMAIN_LEN && hasFlag(ADJ);
+	bool remainder = count == REMAIN_LEN && hasFlag(ADJ);
 	int incr = 1;
 	unsigned int value = 0, last = 0, lastLast = 0;
 	string token;
@@ -436,7 +431,7 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
 		for (size_t offset = start, i = 0; i < count; offset += incr, i++) {
 			output[baseOffset + offset] = (unsigned char)m_replacement; // fill up with replacement
 		}
-		if (usedLength!=NULL) {
+		if (usedLength != NULL) {
 			*usedLength = (unsigned char)count;
 		}
 		return RESULT_OK;
@@ -450,8 +445,9 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
 		switch (type)
 		{
 		case 2: // date only
-			if (length == 4 && i == 2)
+			if (length == 4 && i == 2) {
 				continue; // skip weekday in between
+			}
 			if (input.eof() || !getline(input, token, '.')) {
 				return RESULT_ERR_EOF; // incomplete
 			}
@@ -469,11 +465,11 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
 					count++;
 				} else if (i + 1 == count) {
 					int y = (value < 100 ? value + 2000 : value) - 1900;
-					int l = last<=2 ? 1 : 0;
+					int l = last <= 2 ? 1 : 0;
 					int mjd = 14956 + lastLast + (int)((y-l)*365.25) + (int)((last+1+l*12)*30.6001);
 					value = mjd - 15020; // 01.01.1900
 					output[baseOffset + offset] = (unsigned char)(value&0xff);
-					value >>= 8;
+					value >>=  8;
 					offset += incr;
 					skip = false;
 					break;
@@ -483,13 +479,13 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
 				if (length == 4) {
 					// calculate local week day
 					int y = (value < 100 ? value + 2000 : value) - 1900;
-					int l = last<=2 ? 1 : 0;
+					int l = last <= 2 ? 1 : 0;
 					int mjd = 14956 + lastLast + (int)((y-l)*365.25) + (int)((last+1+l*12)*30.6001);
 					int daysSinceSunday = (mjd+3) % 7; // Sun=0
 					if (hasFlag(BCD)) {
 						output[baseOffset + offset - incr] = (unsigned char)((6+daysSinceSunday) % 7); // Sun=0x06
 					} else {
-						output[baseOffset + offset - incr] = (unsigned char)(daysSinceSunday==0 ? 7 : daysSinceSunday); // Sun=0x07
+						output[baseOffset + offset - incr] = (unsigned char)(daysSinceSunday == 0 ? 7 : daysSinceSunday); // Sun=0x07
 					}
 				}
 				if (value >= 2000) {
@@ -535,7 +531,7 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
 				}
 				value += last*60;
 				output[baseOffset + offset] = (unsigned char)(value&0xff);
-				value >>= 8;
+				value >>=  8;
 				offset += incr;
 			} else if (length == 1) { // truncated time
 				if (i == 0) {
@@ -569,7 +565,7 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
 	if (!remainder && i < count) {
 		return RESULT_ERR_EOF; // input too short
 	}
-	if (usedLength!=NULL) {
+	if (usedLength != NULL) {
 		*usedLength = (unsigned char)((offset-start)*incr);
 	}
 	return RESULT_OK;
@@ -600,15 +596,14 @@ bool NumberDataType::dump(ostream& output, unsigned char length) const
 			output << static_cast<int>(m_divisor / m_baseType->m_divisor);
 			return true;
 		}
-	} else if (m_divisor!=1) {
+	} else if (m_divisor != 1) {
 		output << static_cast<int>(m_divisor);
 		return true;
 	}
 	return false;
 }
 
-result_t NumberDataType::derive(int divisor, unsigned char bitCount, NumberDataType* &derived)
-{
+result_t NumberDataType::derive(int divisor, unsigned char bitCount, NumberDataType* &derived) {
 	if (divisor == 0) {
 		divisor = 1;
 	}
@@ -663,8 +658,7 @@ result_t NumberDataType::derive(int divisor, unsigned char bitCount, NumberDataT
 
 result_t NumberDataType::readRawValue(SymbolString& input,
 		unsigned char baseOffset, const unsigned char length,
-		unsigned int& value)
-{
+		unsigned int& value) {
 	size_t start = 0, count = length;
 	int incr = 1;
 	unsigned char ch;
@@ -687,21 +681,22 @@ result_t NumberDataType::readRawValue(SymbolString& input,
 				return RESULT_OK;
 			}
 			if (!hasFlag(HCD)) {
-				if ((ch & 0xf0) > 0x90 || (ch & 0x0f) > 0x09)
+				if ((ch & 0xf0) > 0x90 || (ch & 0x0f) > 0x09) {
 					return RESULT_ERR_OUT_OF_RANGE; // invalid BCD
-
+				}
 				ch = (unsigned char)((ch >> 4) * 10 + (ch & 0x0f));
-			} else if (ch > 0x63)
+			} else if (ch > 0x63) {
 				return RESULT_ERR_OUT_OF_RANGE; // invalid HCD
+			}
 			value += ch * exp;
 			exp *= 100;
 		} else {
 			value |= ch * exp;
-			exp <<= 8;
+			exp <<=  8;
 		}
 	}
 	if (m_firstBit > 0) {
-		value >>= m_firstBit;
+		value >>=  m_firstBit;
 	}
 	if (m_bitCount < 8) {
 		value &= (1 << m_bitCount) - 1;
@@ -711,8 +706,7 @@ result_t NumberDataType::readRawValue(SymbolString& input,
 
 result_t NumberDataType::readSymbols(SymbolString& input, const bool isMaster,
 		const unsigned char baseOffset, const unsigned char length,
-		ostringstream& output, OutputFormat outputFormat)
-{
+		ostringstream& output, OutputFormat outputFormat) {
 	unsigned int value = 0;
 	int signedValue;
 
@@ -810,8 +804,7 @@ result_t NumberDataType::readSymbols(SymbolString& input, const bool isMaster,
 
 result_t NumberDataType::writeRawValue(unsigned int value,
 		const unsigned char baseOffset, const unsigned char length,
-		SymbolString& output, unsigned char* usedLength)
-{
+		SymbolString& output, unsigned char* usedLength) {
 	size_t start = 0, count = length;
 	int incr = 1;
 	unsigned char ch;
@@ -820,7 +813,7 @@ result_t NumberDataType::writeRawValue(unsigned int value,
 		return RESULT_ERR_OUT_OF_RANGE;
 	}
 	if (m_firstBit > 0) {
-		value <<= m_firstBit;
+		value <<=  m_firstBit;
 	}
 
 	if (hasFlag(REV)) { // reverted binary representation (most significant byte first)
@@ -841,7 +834,7 @@ result_t NumberDataType::writeRawValue(unsigned int value,
 			exp *= 100;
 		} else {
 			ch = (value / exp) & 0xff;
-			exp <<= 8;
+			exp <<=  8;
 		}
 		if (offset == start && (m_bitCount % 8) != 0 && baseOffset + offset < output.size()) {
 			output[baseOffset + offset] |= ch;
@@ -849,7 +842,7 @@ result_t NumberDataType::writeRawValue(unsigned int value,
 			output[baseOffset + offset] = ch;
 		}
 	}
-	if (usedLength!=NULL) {
+	if (usedLength != NULL) {
 		*usedLength = length;
 	}
 	return RESULT_OK;
@@ -857,8 +850,7 @@ result_t NumberDataType::writeRawValue(unsigned int value,
 
 result_t NumberDataType::writeSymbols(istringstream& input,
 		const unsigned char baseOffset, const unsigned char length,
-		SymbolString& output, const bool isMaster, unsigned char* usedLength)
-{
+		SymbolString& output, const bool isMaster, unsigned char* usedLength) {
 	unsigned int value;
 
 	const char* str = input.str().c_str();
@@ -972,8 +964,7 @@ bool DataTypeList::s_contrib_initialized = libebus_contrib_register();
 #endif
 
 
-DataTypeList::DataTypeList()
-{
+DataTypeList::DataTypeList() {
 	add(new StringDataType("STR", MAX_LEN*8, ADJ, ' ')); // >= 1 byte character string filled up with space
 	add(new NumberDataType("PIN", 16, FIX|BCD|REV, 0xffff, 0, 0x9999, 1)); // unsigned decimal in BCD, 0000 - 9999 (fixed length)
 	add(new NumberDataType("UCH", 8, 0, 0xff, 0, 0xfe, 1)); // unsigned integer, 0 - 254
@@ -1036,13 +1027,11 @@ DataTypeList::DataTypeList()
 	add(new NumberDataType("BI7", 1, ADJ|REQ, 0, 7, 1)); // bit 7
 }
 
-DataTypeList* DataTypeList::getInstance()
-{
+DataTypeList* DataTypeList::getInstance() {
 	return &s_instance;
 }
 
-void DataTypeList::clear()
-{
+void DataTypeList::clear() {
 	for (list<DataType*>::iterator it = m_cleanupTypes.begin(); it != m_cleanupTypes.end(); it++) {
 		delete *it;
 	}
@@ -1051,12 +1040,11 @@ void DataTypeList::clear()
 	m_typesById.clear();
 }
 
-result_t DataTypeList::add(DataType* dataType)
-{
+result_t DataTypeList::add(DataType* dataType) {
 	if (!dataType->isAdjustableLength()) {
 		ostringstream str;
 		unsigned char bitCount = dataType->getBitCount();
-		str << dataType->getId() << LENGTH_SEPARATOR << static_cast<unsigned>(bitCount>=8?bitCount/8:bitCount);
+		str << dataType->getId() << LENGTH_SEPARATOR << static_cast<unsigned>(bitCount >= 8?bitCount/8:bitCount);
 		map<string, DataType*>::iterator it = m_typesByIdLength.find(str.str());
 		if (it != m_typesByIdLength.end()) {
 			return RESULT_ERR_DUPLICATE_NAME; // duplicate key
@@ -1074,8 +1062,7 @@ result_t DataTypeList::add(DataType* dataType)
 	return RESULT_OK;
 }
 
-DataType* DataTypeList::get(const string id, const unsigned char length)
-{
+DataType* DataTypeList::get(const string id, const unsigned char length) {
 	DataType* dataType = NULL;
 	if (length > 0) {
 		ostringstream str;

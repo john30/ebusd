@@ -21,19 +21,17 @@
 #endif
 
 #include "network.h"
-#include "log.h"
-#include <cstring>
-
 #ifdef HAVE_PPOLL
 #	include <poll.h>
 #endif
+#include <cstring>
+#include "log.h"
 
 using namespace std;
 
 int Connection::m_ids = 0;
 
-void Connection::run()
-{
+void Connection::run() {
 	int ret;
 	struct timespec tdiff;
 
@@ -153,14 +151,13 @@ void Connection::run()
 
 
 Network::Network(const bool local, const uint16_t port, const uint16_t httpPort, Queue<NetMessage*>* netQueue)
-	: Thread(), m_netQueue(netQueue), m_listening(false)
-{
+	: Thread(), m_netQueue(netQueue), m_listening(false) {
 	m_tcpServer = new TCPServer(port, local ? "127.0.0.1" : "0.0.0.0");
 
 	if (m_tcpServer != NULL && m_tcpServer->start() == 0) {
 		m_listening = true;
 	}
-	if (httpPort>0) {
+	if (httpPort > 0) {
 		m_httpServer = new TCPServer(httpPort, "0.0.0.0");
 		m_httpServer->start();
 	} else {
@@ -168,8 +165,7 @@ Network::Network(const bool local, const uint16_t port, const uint16_t httpPort,
 	}
 }
 
-Network::~Network()
-{
+Network::~Network() {
 	stop();
 	while (!m_connections.empty()) {
 		Connection* connection = m_connections.back();
@@ -188,8 +184,7 @@ Network::~Network()
 	join();
 }
 
-void Network::run()
-{
+void Network::run() {
 	if (!m_listening) {
 		return;
 	}
@@ -230,7 +225,7 @@ void Network::run()
 
 	maxfd = (m_notify.notifyFD() > m_tcpServer->getFD()) ?
 		m_notify.notifyFD() : m_tcpServer->getFD();
-	if (m_httpServer && m_httpServer->getFD()>maxfd) {
+	if (m_httpServer && m_httpServer->getFD() > maxfd) {
 		maxfd = m_httpServer->getFD();
 	}
 #endif
@@ -294,8 +289,7 @@ void Network::run()
 	}
 }
 
-void Network::cleanConnections()
-{
+void Network::cleanConnections() {
 	list<Connection*>::iterator c_it;
 	for (c_it = m_connections.begin(); c_it != m_connections.end(); c_it++) {
 		if (!(*c_it)->isRunning()) {

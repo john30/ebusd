@@ -16,18 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "tem.h"
-#include "data.h"
 #include <iostream>
 #include <iomanip>
+#include <string>
+#include <vector>
+#include "tem.h"
+#include "data.h"
 
 using namespace std;
 
 static bool error = false;
 
 void verify(bool expectFailMatch, string type, string input,
-		bool match, string expectStr, string gotStr)
-{
+		bool match, string expectStr, string gotStr) {
 	match = match && expectStr == gotStr;
 	if (expectFailMatch) {
 		if (match) {
@@ -46,8 +47,7 @@ void verify(bool expectFailMatch, string type, string input,
 	}
 }
 
-int main()
-{
+int main() {
 	DataType* type = DataTypeList::getInstance()->get("TEM_P");
 	if (type == NULL) {
 		cout << "datatype not registered" << endl;
@@ -108,7 +108,7 @@ int main()
 			fields = NULL;
 		}
 		vector<string>::iterator it = entries.begin();
-		result = DataField::create(it, entries.end(), templates, fields, isSet, false, (mstr[1]==BROADCAST || isMaster(mstr[1])));
+		result = DataField::create(it, entries.end(), templates, fields, isSet, false, (mstr[1] == BROADCAST || isMaster(mstr[1])));
 		if (result != RESULT_OK) {
 			cout << "\"" << check[0] << "\": create error: " << getResultCode(result) << endl;
 			error = true;
@@ -145,7 +145,7 @@ int main()
 		if (result >= RESULT_OK) {
 			result = fields->read(pt_slaveData, sstr, 0, output, 0, -1, !output.str().empty());
 		}
-		if (failedRead)
+		if (failedRead) {
 			if (result >= RESULT_OK) {
 				cout << "  failed read " << fields->getName() << " >" << check[2] << " " << check[3]
 				     << "< error: unexpectedly succeeded" << endl;
@@ -154,20 +154,20 @@ int main()
 				cout << "  failed read " << fields->getName() << " >" << check[2] << " " << check[3]
 				     << "< OK" << endl;
 			}
-		else if (result < RESULT_OK) {
+		} else if (result < RESULT_OK) {
 			cout << "  read " << fields->getName() << " >" << check[2] << " " << check[3]
 			     << "< error: " << getResultCode(result) << endl;
 			error = true;
-		}
-		else {
+		} else {
 			bool match = strcasecmp(output.str().c_str(), expectStr.c_str()) == 0;
 			verify(failedReadMatch, "read", check[2], match, expectStr, output.str());
 		}
 
 		istringstream input(expectStr);
 		result = fields->write(input, pt_masterData, writeMstr, 0);
-		if (result >= RESULT_OK)
+		if (result >= RESULT_OK) {
 			result = fields->write(input, pt_slaveData, writeSstr, 0);
+		}
 		if (failedWrite) {
 			if (result >= RESULT_OK) {
 				cout << "  failed write " << fields->getName() << " >"
@@ -177,8 +177,7 @@ int main()
 				cout << "  failed write " << fields->getName() << " >"
 						<< expectStr << "< OK" << endl;
 			}
-		}
-		else if (result < RESULT_OK) {
+		} else if (result < RESULT_OK) {
 			cout << "  write " << fields->getName() << " >" << expectStr
 					<< "< error: " << getResultCode(result) << endl;
 			error = true;
@@ -191,6 +190,5 @@ int main()
 	}
 
 	delete templates;
-
 	return error ? 1 : 0;
 }

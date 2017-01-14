@@ -16,16 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef NETWORK_H_
-#define NETWORK_H_
+#ifndef EBUSD_NETWORK_H_
+#define EBUSD_NETWORK_H_
 
+#include <string>
+#include <cstdio>
+#include <algorithm>
+#include <list>
 #include "tcpsocket.h"
 #include "queue.h"
 #include "notify.h"
 #include "thread.h"
-#include <string>
-#include <cstdio>
-#include <algorithm>
 
 /** \file network.h */
 
@@ -77,34 +78,35 @@ public:
 	 */
 	bool add(string request)
 	{
-		if (request.length()>0) {
+		if (request.length() > 0) {
 			request.erase(remove(request.begin(), request.end(), '\r'), request.end());
 			m_request.append(request);
 		}
 		size_t pos = m_request.find(m_isHttp ? "\n\n" : "\n");
-		if (pos!=string::npos) {
+		if (pos != string::npos) {
 			if (m_isHttp) {
 				pos = m_request.find("\n");
 				m_request.resize(pos); // reduce to first line
 				// typical first line: GET /ehp/outsidetemp HTTP/1.1
 				pos = m_request.rfind(" HTTP/");
-				if (pos!=string::npos) {
+				if (pos != string::npos) {
 					m_request.resize(pos); // remove "HTTP/x.x" suffix
 				}
 				pos = 0;
-				while ((pos=m_request.find('%', pos))!=string::npos && pos+2<=m_request.length()) {
+				while ((pos=m_request.find('%', pos)) != string::npos && pos+2 <= m_request.length()) {
 					unsigned int value1, value2;
-					if (sscanf("%1x%1x", m_request.c_str()+pos+1, &value1, &value2)<2)
+					if (sscanf("%1x%1x", m_request.c_str()+pos+1, &value1, &value2) < 2) {
 						break;
-					m_request[pos] = (char)(((value1&0x0f)<<4)|(value2&0x0f));
+					}
+					m_request[pos] = (char)(((value1&0x0f)<<4) | (value2&0x0f));
 					m_request.erase(pos+1, 2);
 				}
-			} else if (pos+1==m_request.length()) {
+			} else if (pos+1 == m_request.length()) {
 				m_request.resize(pos); // reduce to complete lines
 			}
 			return true;
 		}
-		return m_request.length()==0 && m_listening;
+		return m_request.length() == 0 && m_listening;
 	}
 
 	/**
@@ -163,7 +165,7 @@ public:
 	 * @param listenSince set to the start time from which to add updates (inclusive).
 	 * @return whether the client is in listening mode.
 	 */
-	bool isListening(time_t* listenSince=NULL) { if (listenSince) *listenSince = m_listenSince; return m_listening; }
+	bool isListening(time_t* listenSince=NULL) { if (listenSince) { *listenSince = m_listenSince; } return m_listening; }
 
 	/**
 	 * Return whether the client shall be disconnected.
@@ -313,5 +315,5 @@ private:
 
 };
 
-#endif // NETWORK_H_
+#endif // EBUSD_NETWORK_H_
 

@@ -16,17 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef MAINLOOP_H_
-#define MAINLOOP_H_
+#ifndef EBUSD_MAINLOOP_H_
+#define EBUSD_MAINLOOP_H_
 
-#include "message.h"
-#include "network.h"
+#include <string>
+#include <list>
+#include <vector>
 #include "bushandler.h"
 #include "datahandler.h"
+#include "network.h"
+#include "message.h"
 #include "rotatefile.h"
-#ifdef HAVE_CONFIG_H
-#	include <config.h>
-#endif
 
 /** \file mainloop.h */
 
@@ -35,10 +35,8 @@ using namespace std;
 /**
  * The main loop handling requests from connected clients.
  */
-class MainLoop : public Thread, DeviceListener
-{
-public:
-
+class MainLoop : public Thread, DeviceListener {
+	public:
 	/**
 	 * Construct the main loop and create network and bus handling components.
 	 * @param opt the program options.
@@ -67,13 +65,13 @@ public:
 	// @copydoc
 	virtual void notifyDeviceData(const unsigned char byte, bool received);
 
-protected:
 
+	protected:
 	// @copydoc
 	virtual void run();
 
-private:
 
+	private:
 	/**
 	 * Decode and execute client message.
 	 * @param data the data string to decode (may be empty).
@@ -252,7 +250,6 @@ private:
 
 	/** the registered @a DataHandler instances. */
 	list<DataHandler*> m_dataHandlers;
-
 };
 
-#endif // MAINLOOP_H_
+#endif // EBUSD_MAINLOOP_H_

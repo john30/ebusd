@@ -16,12 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBEBUS_DATATYPE_H_
-#define LIBEBUS_DATATYPE_H_
+#ifndef LIB_EBUS_DATATYPE_H_
+#define LIB_EBUS_DATATYPE_H_
 
-#include "symbol.h"
-#include "result.h"
-#include "filereader.h"
 #include <string>
 #include <iostream>
 #include <sstream>
@@ -29,6 +26,9 @@
 #include <vector>
 #include <list>
 #include <map>
+#include "symbol.h"
+#include "result.h"
+#include "filereader.h"
 
 /** @file datatype.h
  * Classes, functions, and constants related to decoding/encoding of symbols
@@ -116,7 +116,7 @@ static const unsigned int CON = 0x1000; //!< marker for a constant value
  * @param length the optional variable in which to store the number of read characters.
  * @return the parsed value.
  */
-unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result, unsigned int* length=NULL);
+unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result, unsigned int* length = NULL);
 
 /**
  * Parse a signed int value.
@@ -128,7 +128,7 @@ unsigned int parseInt(const char* str, int base, const unsigned int minValue, co
  * @param length the optional variable in which to store the number of read characters.
  * @return the parsed value.
  */
-int parseSignedInt(const char* str, int base, const int minValue, const int maxValue, result_t& result, unsigned int* length=NULL);
+int parseSignedInt(const char* str, int base, const int minValue, const int maxValue, result_t& result, unsigned int* length = NULL);
 
 /**
  * Print the error position of the iterator.
@@ -284,7 +284,7 @@ public:
 	 * @param isHex true for hex digits instead of characters.
 	 */
 	StringDataType(const string id, const unsigned char bitCount, const unsigned short flags,
-		const unsigned int replacement, bool isHex=false)
+		const unsigned int replacement, bool isHex = false)
 		: DataType(id, bitCount, flags, replacement), m_isHex(isHex) {}
 
 	/**
@@ -494,7 +494,7 @@ public:
 	 */
 	virtual result_t writeRawValue(unsigned int value,
 		const unsigned char offset, const unsigned char length,
-		SymbolString& output, unsigned char* usedLength=NULL);
+		SymbolString& output, unsigned char* usedLength = NULL);
 
 	// @copydoc
 	virtual result_t writeSymbols(istringstream& input,
@@ -575,7 +575,7 @@ public:
 	 * @return the @a DataType instance, or NULL if not available.
 	 * Note: the caller may not free the instance.
 	 */
-	DataType* get(const string id, const unsigned char length=0);
+	DataType* get(const string id, const unsigned char length = 0);
 
 private:
 
@@ -599,4 +599,4 @@ private:
 
 };
 
-#endif // LIBEBUS_DATATYPE_H_
+#endif // LIB_EBUS_DATATYPE_H_

@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBUTILS_CLOCK_H_
-#define LIBUTILS_CLOCK_H_
+#ifndef LIB_UTILS_CLOCK_H_
+#define LIB_UTILS_CLOCK_H_
 
 #include <time.h>
 
@@ -29,4 +29,4 @@
  */
 void clockGettime(struct timespec* t);
 
-#endif // LIBUTILS_CLOCK_H_
+#endif // LIB_UTILS_CLOCK_H_

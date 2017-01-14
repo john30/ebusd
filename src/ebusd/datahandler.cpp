@@ -16,11 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "datahandler.h"
-#include <list>
 #ifdef HAVE_CONFIG_H
 #	include <config.h>
 #endif
+
+#include "datahandler.h"
+#include <list>
 #ifdef HAVE_MQTT
 #	include "mqtthandler.h"
 #endif
@@ -38,21 +39,19 @@ static struct argp_child g_argp_children[
 						+1
 ];
 
-const struct argp_child* datahandler_getargs()
-{
+const struct argp_child* datahandler_getargs() {
 	size_t count = 0;
 #ifdef HAVE_MQTT
 	g_argp_children[count++] = *mqtthandler_getargs();
 #endif
-	if (count>0) {
+	if (count > 0) {
 		g_argp_children[count] = g_last_argp_child;
 		return g_argp_children;
 	}
 	return NULL;
 }
 
-bool datahandler_register(BusHandler* busHandler, MessageMap* messages, list<DataHandler*>& handlers)
-{
+bool datahandler_register(BusHandler* busHandler, MessageMap* messages, list<DataHandler*>& handlers) {
 	bool success = true;
 #ifdef HAVE_MQTT
 	DataHandler* handler = mqtthandler_register(busHandler, messages);
@@ -65,7 +64,6 @@ bool datahandler_register(BusHandler* busHandler, MessageMap* messages, list<Dat
 	return success;
 }
 
-void DataSink::notifyUpdate(Message* message)
-{
+void DataSink::notifyUpdate(Message* message) {
 	m_updatedMessages[message]++;
 }

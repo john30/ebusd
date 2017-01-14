@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBUTILS_NOTIFY_H_
-#define LIBUTILS_NOTIFY_H_
+#ifndef LIB_UTILS_NOTIFY_H_
+#define LIB_UTILS_NOTIFY_H_
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -73,6 +73,6 @@ private:
 
 };
 
-#endif // LIBUTILS_NOTIFY_H_
+#endif // LIB_UTILS_NOTIFY_H_
 
 

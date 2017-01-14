@@ -16,16 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBEBUS_MESSAGE_H_
-#define LIBEBUS_MESSAGE_H_
+#ifndef LIB_EBUS_MESSAGE_H_
+#define LIB_EBUS_MESSAGE_H_
 
-#include "data.h"
-#include "result.h"
-#include "symbol.h"
 #include <string>
 #include <vector>
 #include <deque>
 #include <map>
+#include <queue>
+#include <functional>
+#include "data.h"
+#include "result.h"
+#include "symbol.h"
 
 /** @file message.h
  * Classes and functions for decoding and encoding of complete messages on the
@@ -117,8 +119,8 @@ public:
 			const unsigned char srcAddress, const unsigned char dstAddress,
 			const vector<unsigned char> id,
 			DataField* data, const bool deleteData,
-			const unsigned char pollPriority=0,
-			Condition* condition=NULL);
+			const unsigned char pollPriority = 0,
+			Condition* condition = NULL);
 
 private:
 	/**
@@ -142,7 +144,7 @@ public:
 	/**
 	 * Destructor.
 	 */
-	virtual ~Message() { if (m_deleteData) delete m_data; }
+	virtual ~Message() { if (m_deleteData) { delete m_data; } }
 
 	/**
 	 * Calculate the key for the ID.
@@ -166,7 +168,7 @@ public:
 	 * @return the key for the ID, or -1LL if the data is invalid.
 	 */
 	static unsigned long long createKey(SymbolString& master,
-		unsigned char maxIdLength, bool anyDestination=false);
+		unsigned char maxIdLength, bool anyDestination = false);
 
 	/**
 	 * Get the length field from the key.
@@ -222,7 +224,7 @@ public:
 	 * @param circuit the new circuit name, or empty to use the current circuit name.
 	 * @return the derived @a Message instance.
 	 */
-	virtual Message* derive(const unsigned char dstAddress, const unsigned char srcAddress=SYN, const string circuit="");
+	virtual Message* derive(const unsigned char dstAddress, const unsigned char srcAddress = SYN, const string circuit = "");
 
 	/**
 	 * Derive a new @a Message from this message.
@@ -313,7 +315,7 @@ public:
 	 * @param index the variable in which to store the message part index, or NULL to ignore.
 	 * @return true if the ID matches, false otherwise.
 	 */
-	virtual bool checkId(SymbolString& master, unsigned char* index=NULL);
+	virtual bool checkId(SymbolString& master, unsigned char* index = NULL);
 
 	/**
 	 * Check the ID against the other @a Message.
@@ -357,7 +359,7 @@ public:
 	 * Return whether this @a Message depends on a @a Condition.
 	 * @return true when this @a Message depends on a @a Condition.
 	 */
-	bool isConditional() const { return m_condition!=NULL; }
+	bool isConditional() const { return m_condition != NULL; }
 
 	/**
 	 * Return whether this @a Message is available (optionally depending on a @a Condition evaluation).
@@ -371,7 +373,7 @@ public:
 	 * @param numeric true for a numeric field, false for a string field.
 	 * @return true if the field is available.
 	 */
-	bool hasField(const char* fieldName, bool numeric=true);
+	bool hasField(const char* fieldName, bool numeric = true);
 
 	/**
 	 * @return the number of parts this message is composed of.
@@ -389,8 +391,8 @@ public:
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	result_t prepareMaster(const unsigned char srcAddress, SymbolString& masterData,
-			istringstream& input, char separator=UI_FIELD_SEPARATOR,
-			const unsigned char dstAddress=SYN, unsigned char index=0);
+			istringstream& input, char separator = UI_FIELD_SEPARATOR,
+			const unsigned char dstAddress = SYN, unsigned char index = 0);
 
 protected:
 
@@ -442,8 +444,8 @@ public:
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	virtual result_t decodeLastData(const PartType partType,
-			ostringstream& output, OutputFormat outputFormat=0,
-			bool leadingSeparator=false, const char* fieldName=NULL, signed char fieldIndex=-1);
+			ostringstream& output, OutputFormat outputFormat = 0,
+			bool leadingSeparator = false, const char* fieldName = NULL, signed char fieldIndex = -1);
 
 	/**
 	 * Decode the value from the last stored data.
@@ -454,8 +456,8 @@ public:
 	 * @param fieldIndex the optional index of the named field to limit the output to, or -1.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	virtual result_t decodeLastData(ostringstream& output, OutputFormat outputFormat=0,
-			bool leadingSeparator=false, const char* fieldName=NULL, signed char fieldIndex=-1);
+	virtual result_t decodeLastData(ostringstream& output, OutputFormat outputFormat = 0,
+			bool leadingSeparator = false, const char* fieldName = NULL, signed char fieldIndex = -1);
 
 	/**
 	 * Decode a particular numeric field value from the last stored data.
@@ -464,7 +466,7 @@ public:
 	 * @param fieldIndex the optional index of the named field, or -1.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	virtual result_t decodeLastDataNumField(unsigned int& output, const char* fieldName, signed char fieldIndex=-1);
+	virtual result_t decodeLastDataNumField(unsigned int& output, const char* fieldName, signed char fieldIndex = -1);
 
 	/**
 	 * Get the last seen master data.
@@ -509,7 +511,7 @@ public:
 	 * @param columns the list of column indexes to write, or NULL for all (see @p COLUMN_TYPE index constants).
 	 * @param withConditions whether to include the optional conditions prefix.
 	 */
-	void dump(ostream& output, vector<size_t>* columns=NULL, bool withConditions=false);
+	void dump(ostream& output, vector<size_t>* columns = NULL, bool withConditions = false);
 
 	/**
 	 * Write the specified column to the @a ostream.
@@ -517,7 +519,7 @@ public:
 	 * @param column the column index to write (see @p COLUMN_TYPE index constants).
 	 * @param withConditions whether to include the optional conditions prefix.
 	 */
-	virtual void dumpColumn(ostream& output, size_t column, bool withConditions=false);
+	virtual void dumpColumn(ostream& output, size_t column, bool withConditions = false);
 
 protected:
 
@@ -638,18 +640,18 @@ public:
 			vector< vector<unsigned char> > ids, vector<unsigned char> lengths,
 			DataField* data, const bool deleteData,
 			const unsigned char pollPriority,
-			Condition* condition=NULL);
+			Condition* condition = NULL);
 
 	virtual ~ChainedMessage();
 
 	// @copydoc
-	virtual Message* derive(const unsigned char dstAddress, const unsigned char srcAddress=SYN, const string circuit="");
+	virtual Message* derive(const unsigned char dstAddress, const unsigned char srcAddress = SYN, const string circuit = "");
 
 	// @copydoc
 	virtual unsigned char getIdLength() const { return (unsigned char)(m_ids[0].size() - 2); }
 
 	// @copydoc
-	virtual bool checkId(SymbolString& master, unsigned char* index=NULL);
+	virtual bool checkId(SymbolString& master, unsigned char* index = NULL);
 
 	// @copydoc
 	virtual bool checkId(Message& other);
@@ -673,7 +675,7 @@ public:
 protected:
 
 	// @copydoc
-	virtual void dumpColumn(ostream& output, size_t column, bool withConditions=false);
+	virtual void dumpColumn(ostream& output, size_t column, bool withConditions = false);
 
 private:
 
@@ -729,7 +731,7 @@ public:
 	void push(const value_type& __x)
 	{
 		for (vector<Message*>::iterator it = c.begin(); it != c.end(); it++) {
-			if (*it==__x) {
+			if (*it == __x) {
 				c.erase(it);
 				break;
 			}
@@ -781,7 +783,7 @@ public:
 	 * @param output the @a ostream to append to.
 	 * @param matched true for dumping the matched value if the condition is true, false for dumping the definition.
 	 */
-	virtual void dump(ostream& output, bool matched=false) = 0;
+	virtual void dump(ostream& output, bool matched = false) = 0;
 
 	/**
 	 * Combine this condition with another instance using a logical and.
@@ -797,7 +799,7 @@ public:
 	 * @param readMessageFunc the function to call for immediate reading of a @a Message from the bus, or NULL.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	virtual result_t resolve(MessageMap* messages, ostringstream& errorMessage, void (*readMessageFunc)(Message* message)=NULL) = 0;
+	virtual result_t resolve(MessageMap* messages, ostringstream& errorMessage, void (*readMessageFunc)(Message* message) = NULL) = 0;
 
 	/**
 	 * Check and return whether this condition is fulfilled.
@@ -833,7 +835,7 @@ public:
 	 * @param field the field name.
 	 * @param hasValues whether a value has to be checked against.
 	 */
-	SimpleCondition(const string condName, const string refName, const string circuit, const string name, const unsigned char dstAddress, const string field, const bool hasValues=false)
+	SimpleCondition(const string condName, const string refName, const string circuit, const string name, const unsigned char dstAddress, const string field, const bool hasValues = false)
 		: Condition(),
 		  m_condName(condName), m_refName(refName), m_circuit(circuit), m_name(name), m_dstAddress(dstAddress), m_field(field), m_hasValues(hasValues), m_message(NULL) { }
 
@@ -846,13 +848,13 @@ public:
 	virtual SimpleCondition* derive(string valueList);
 
 	// @copydoc
-	virtual void dump(ostream& output, bool matched=false);
+	virtual void dump(ostream& output, bool matched = false);
 
 	// @copydoc
 	virtual CombinedCondition* combineAnd(Condition* other);
 
 	// @copydoc
-	virtual result_t resolve(MessageMap* messages, ostringstream& errorMessage, void (*readMessageFunc)(Message* message)=NULL);
+	virtual result_t resolve(MessageMap* messages, ostringstream& errorMessage, void (*readMessageFunc)(Message* message) = NULL);
 
 	// @copydoc
 	virtual bool isTrue();
@@ -1005,13 +1007,13 @@ public:
 	virtual ~CombinedCondition() {}
 
 	// @copydoc
-	virtual void dump(ostream& output, bool matched=false);
+	virtual void dump(ostream& output, bool matched = false);
 
 	// @copydoc
 	virtual CombinedCondition* combineAnd(Condition* other) { m_conditions.push_back(other); return this; }
 
 	// @copydoc
-	virtual result_t resolve(MessageMap* messages, ostringstream& errorMessage, void (*readMessageFunc)(Message* message)=NULL);
+	virtual result_t resolve(MessageMap* messages, ostringstream& errorMessage, void (*readMessageFunc)(Message* message) = NULL);
 
 	// @copydoc
 	virtual bool isTrue();
@@ -1158,7 +1160,7 @@ public:
 	 * Construct a new instance.
 	 * @param addAll whether to add all messages, even if duplicate.
 	 */
-	MessageMap(const bool addAll=false) : FileReader::FileReader(true),
+	MessageMap(const bool addAll = false) : FileReader::FileReader(true),
 		m_addAll(addAll), m_maxIdLength(0), m_messageCount(0), m_conditionalMessageCount(0), m_passiveMessageCount(0)
 	{
 		m_scanMessage = Message::createScanMessage();
@@ -1179,7 +1181,7 @@ public:
 	 * @return @a RESULT_OK on success, or an error code.
 	 * Note: the caller may not free the added instance on success.
 	 */
-	result_t add(Message* message, bool storeByName=true);
+	result_t add(Message* message, bool storeByName = true);
 
 	// @copydoc
 	virtual result_t addDefaultFromFile(vector< vector<string> >& defaults, vector<string>& row,
@@ -1205,14 +1207,14 @@ public:
 	 * @param dstAddress the destination address, or @a SYN for the base scan @a Message.
 	 * @return the scan @a Message instance, or NULL if the dstAddress is no slave.
 	 */
-	Message* getScanMessage(const unsigned char dstAddress=SYN);
+	Message* getScanMessage(const unsigned char dstAddress = SYN);
 
 	/**
 	 * Resolve all @a Condition instances.
 	 * @param verbose whether to verbosely add all problems to the error message.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	result_t resolveConditions(bool verbose=false);
+	result_t resolveConditions(bool verbose = false);
 
 	/**
 	 * Resolve a @a Condition.
@@ -1220,7 +1222,7 @@ public:
 	 * @param readMessageFunc the function to call for immediate reading of a @a Message from the bus, or NULL.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	result_t resolveCondition(Condition* condition, void (*readMessageFunc)(Message* message)=NULL);
+	result_t resolveCondition(Condition* condition, void (*readMessageFunc)(Message* message) = NULL);
 
 	/**
 	 * Run all executable @a Instruction instances.
@@ -1229,7 +1231,7 @@ public:
 	 * @a Message values from the bus required for singleton instructions, or NULL.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	result_t executeInstructions(ostringstream& log, void (*readMessageFunc)(Message* message)=NULL);
+	result_t executeInstructions(ostringstream& log, void (*readMessageFunc)(Message* message) = NULL);
 
 	/**
 	 * Add a loaded file to a participant.
@@ -1263,7 +1265,7 @@ public:
 	 * @return the @a Message instance, or NULL.
 	 * Note: the caller may not free the returned instance.
 	 */
-	Message* find(const string& circuit, const string& name, const bool isWrite, const bool isPassive=false);
+	Message* find(const string& circuit, const string& name, const bool isWrite, const bool isPassive = false);
 
 	/**
 	 * Find all active get @a Message instances for the specified circuit and name.
@@ -1280,10 +1282,10 @@ public:
 	 * @param until the end time to which to add updates (exclusive, also removes messages with unset destination address), or 0 to ignore.
 	 * Note: the caller may not free the returned instances.
 	 */
-	deque<Message*> findAll(const string& circuit, const string& name, const bool completeMatch=true,
-		const bool withRead=true, const bool withWrite=false, const bool withPassive=false,
-		const bool completeMatchIgnoreCircuitSuffix=false, const bool onlyAvailable=true,
-		const time_t since=0, const time_t until=0);
+	deque<Message*> findAll(const string& circuit, const string& name, const bool completeMatch = true,
+		const bool withRead = true, const bool withWrite = false, const bool withPassive = false,
+		const bool completeMatchIgnoreCircuitSuffix = false, const bool onlyAvailable = true,
+		const time_t since = 0, const time_t until = 0);
 
 	/**
 	 * Find the @a Message instance for the specified master data.
@@ -1295,8 +1297,8 @@ public:
 	 * @return the @a Message instance, or NULL.
 	 * Note: the caller may not free the returned instance.
 	 */
-	Message* find(SymbolString& master, bool anyDestination=false,
-		const bool withRead=true, const bool withWrite=true, const bool withPassive=true);
+	Message* find(SymbolString& master, bool anyDestination = false,
+		const bool withRead = true, const bool withWrite = true, const bool withPassive = true);
 
 	/**
 	 * Invalidate cached data of the @a Message and all other instances with a matching name key.
@@ -1309,7 +1311,7 @@ public:
 	 * @param message the @a Message to poll.
 	 * @param toFront whether to add the @a Message to the very front of the poll queue.
 	 */
-	void addPollMessage(Message* message, bool toFront=false);
+	void addPollMessage(Message* message, bool toFront = false);
 
 	/**
 	 * Removes all @a Message instances.
@@ -1364,7 +1366,7 @@ public:
 	 * @param output the @a ostream to append the formatted messages to.
 	 * @param withConditions whether to include the optional conditions prefix.
 	 */
-	void dump(ostream& output, bool withConditions=false);
+	void dump(ostream& output, bool withConditions = false);
 
 private:
 
@@ -1406,4 +1408,4 @@ private:
 
 };
 
-#endif // LIBEBUS_MESSAGE_H_
+#endif // LIB_EBUS_MESSAGE_H_

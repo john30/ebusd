@@ -16,19 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBUTILS_LOG_H_
-#define LIBUTILS_LOG_H_
+#ifndef LIB_UTILS_LOG_H_
+#define LIB_UTILS_LOG_H_
 
 /** \file log.h */
 
 /** the available log facilities. */
 enum LogFacility {
-	lf_main=0,  //!< main loop
-	lf_network, //!< network related
-	lf_bus,     //!< eBUS related
-	lf_update,  //!< updates found while listening to the bus
-	lf_other,   //!< all other log facilities
-	lf_COUNT=5  //!< number of available log facilities
+	lf_main = 0,  //!< main loop
+	lf_network,   //!< network related
+	lf_bus,       //!< eBUS related
+	lf_update,    //!< updates found while listening to the bus
+	lf_other,     //!< all other log facilities
+	lf_COUNT = 5  //!< number of available log facilities
 };
 
 /** macro for enabling all log facilities. */
@@ -36,12 +36,12 @@ enum LogFacility {
 
 /** the available log levels. */
 enum LogLevel {
-	ll_none=0, //!< no level at all
-	ll_error,  //!< error message
-	ll_notice, //!< important message
-	ll_info,   //!< informational message
-	ll_debug,  //!< debugging message (normally suppressed)
-	ll_COUNT=5 //!< number of available log levels
+	ll_none = 0, //!< no level at all
+	ll_error,    //!< error message
+	ll_notice,   //!< important message
+	ll_info,     //!< informational message
+	ll_debug,    //!< debugging message (normally suppressed)
+	ll_COUNT = 5 //!< number of available log levels
 };
 
 /**
@@ -136,4 +136,4 @@ void logWrite(const char* facility, const LogLevel level, const char* message, .
 /** A macro for a debug message that calls the logging function only if needed. */
 #define logOtherDebug(facility, ...) (needsLog(lf_other, ll_debug) ? logWrite(facility, ll_debug, __VA_ARGS__) : void(0))
 
-#endif // LIBUTILS_LOG_H_
+#endif // LIB_UTILS_LOG_H_

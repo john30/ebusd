@@ -16,17 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "data.h"
 #include <iostream>
 #include <iomanip>
+#include <string>
+#include <vector>
+#include "data.h"
 
 using namespace std;
 
 static bool error = false;
 
 void verify(bool expectFailMatch, string type, string input,
-		bool match, string expectStr, string gotStr)
-{
+		bool match, string expectStr, string gotStr) {
 	match = match && expectStr == gotStr;
 	if (expectFailMatch) {
 		if (match) {
@@ -45,8 +46,7 @@ void verify(bool expectFailMatch, string type, string input,
 	}
 }
 
-int main()
-{
+int main() {
 	string checks[][5] = {
 		// entry: definition, decoded value, master data, slave data, flags
 		// definition: name,part,type[:len][,[divisor|values][,[unit][,[comment]]]]
@@ -63,9 +63,9 @@ int main()
 		{"x,,str:*",   "abcde",                         "10fe0700056162636465",           "00", ""},
 		{"x,,str,2",   "",                              "",                               "",   "c"},
 		{"x,,str:10,=dummy", "",                        "10fe07000a48616c6c6f2044752120", "00", "W"},
-		{"x,,str:10,==dummy", "",                       "10fe07000a48616c6c6f2044752120", "00", "rW"},
+		{"x,,str:10, == dummy", "",                       "10fe07000a48616c6c6f2044752120", "00", "rW"},
 		{"x,,str:10,=dummy", "",                        "10fe07000a64756d6d792020202020", "00", ""},
-		{"x,,str:10,==dummy", "",                       "10fe07000a64756d6d792020202020", "00", ""},
+		{"x,,str:10, == dummy", "",                       "10fe07000a64756d6d792020202020", "00", ""},
 		{"x,,nts:10",  "Hallo, Du!",                    "10fe07000a48616c6c6f2c20447521", "00", ""},
 		{"x,,nts:10",  "Hallo, Du!",                    "10fe07000a48616c6c6f2c20447521", "00", ""},
 		{"x,,nts:10",  "Hallo, Du",                     "10fe07000a48616c6c6f2c20447500", "00", ""},
@@ -83,9 +83,9 @@ int main()
 		{"x,,hex:11",  "",                              "10fe07000a48616c6c6f2c20447521", "00", "rW"},
 		{"x,,hex,2",   "",                              "",                               "",   "c"},
 		{"x,,hex:5,=48 61 6c 6c 6f", "",                "10fe070005ababababab", "00", "W"},
-		{"x,,hex:5,==48 61 6c 6c 6f", "",               "10fe070005ababababab", "00", "rW"},
+		{"x,,hex:5, == 48 61 6c 6c 6f", "",               "10fe070005ababababab", "00", "rW"},
 		{"x,,hex:5,=48 61 6c 6c 6f", "",                "10fe07000548616c6c6f", "00", ""},
-		{"x,,hex:5,==48 61 6c 6c 6f", "",               "10fe07000548616c6c6f", "00", ""},
+		{"x,,hex:5, == 48 61 6c 6c 6f", "",               "10fe07000548616c6c6f", "00", ""},
 		{"x,,bda",   "26.10.2014","10fe07000426100614", "00", ""}, // Sunday
 		{"x,,bda",   "01.01.2000","10fe07000401010500", "00", ""}, // Saturday
 		{"x,,bda",   "31.12.2099","10fe07000431120399", "00", ""}, // Thursday
@@ -264,9 +264,9 @@ int main()
 		{"x,,uch,10", "3.8", "10feffff0126", "00", ""},
 		{"x,,uch,-10", "380","10feffff0126", "00", ""},
 		{"x,,uch,=48", "",   "10feffff01ab", "00", "W"},
-		{"x,,uch,==48", "",  "10feffff01ab", "00", "rW"},
+		{"x,,uch, == 48", "",  "10feffff01ab", "00", "rW"},
 		{"x,,uch,=48", "",   "10feffff0130", "00", ""},
-		{"x,,uch,==48", "",  "10feffff0130", "00", ""},
+		{"x,,uch, == 48", "",  "10feffff0130", "00", ""},
 		{"x,,sch", "-90",    "10feffff01a6", "00", ""},
 		{"x,,sch", "0",      "10feffff0100", "00", ""},
 		{"x,,sch", "-1",     "10feffff01ff", "00", ""},
@@ -510,7 +510,7 @@ int main()
 			fields = NULL;
 		}
 		vector<string>::iterator it = entries.begin();
-		result = DataField::create(it, entries.end(), templates, fields, isSet, isTemplate, !isTemplate && (mstr[1]==BROADCAST || isMaster(mstr[1])));
+		result = DataField::create(it, entries.end(), templates, fields, isSet, isTemplate, !isTemplate && (mstr[1] == BROADCAST || isMaster(mstr[1])));
 		if (failedCreate) {
 			if (result == RESULT_OK) {
 				cout << "\"" << check[0] << "\": failed create error: unexpectedly succeeded" << endl;
@@ -568,7 +568,7 @@ int main()
 		if (result >= RESULT_OK) {
 			result = fields->read(pt_slaveData, sstr, 0, output, verbosity|(numeric?OF_NUMERIC:0), -1, !output.str().empty());
 		}
-		if (failedRead)
+		if (failedRead) {
 			if (result >= RESULT_OK) {
 				cout << "  failed read " << fields->getName() << " >" << check[2] << " " << check[3]
 				     << "< error: unexpectedly succeeded" << endl;
@@ -577,21 +577,21 @@ int main()
 				cout << "  failed read " << fields->getName() << " >" << check[2] << " " << check[3]
 				     << "< OK" << endl;
 			}
-		else if (result < RESULT_OK) {
+		} else if (result < RESULT_OK) {
 			cout << "  read " << fields->getName() << " >" << check[2] << " " << check[3]
 			     << "< error: " << getResultCode(result) << endl;
 			error = true;
-		}
-		else {
+		} else {
 			bool match = strcasecmp(output.str().c_str(), expectStr.c_str()) == 0;
 			verify(failedReadMatch, "read", check[2], match, expectStr, output.str());
 		}
 
-		if (verbosity==0) {
+		if (verbosity == 0) {
 			istringstream input(expectStr);
 			result = fields->write(input, pt_masterData, writeMstr, 0);
-			if (result >= RESULT_OK)
+			if (result >= RESULT_OK) {
 				result = fields->write(input, pt_slaveData, writeSstr, 0);
+			}
 			if (failedWrite) {
 				if (result >= RESULT_OK) {
 					cout << "  failed write " << fields->getName() << " >"
@@ -601,8 +601,7 @@ int main()
 					cout << "  failed write " << fields->getName() << " >"
 					        << expectStr << "< OK" << endl;
 				}
-			}
-			else if (result < RESULT_OK) {
+			} else if (result < RESULT_OK) {
 				cout << "  write " << fields->getName() << " >" << expectStr
 				        << "< error: " << getResultCode(result) << endl;
 				error = true;

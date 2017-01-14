@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBUTILS_THREAD_H_
-#define LIBUTILS_THREAD_H_
+#ifndef LIB_UTILS_THREAD_H_
+#define LIB_UTILS_THREAD_H_
 
 #include <pthread.h>
 
@@ -145,4 +145,4 @@ private:
 
 };
 
-#endif // LIBUTILS_THREAD_H_
+#endif // LIB_UTILS_THREAD_H_

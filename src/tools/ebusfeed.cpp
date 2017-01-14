@@ -21,13 +21,13 @@
 #endif
 
 #include <argp.h>
-#include "device.h"
 #include <unistd.h>
-#include <iostream>
 #include <string.h>
+#include <iostream>
 #include <cstdlib>
 #include <fstream>
 #include <iomanip>
+#include "device.h"
 
 using namespace std;
 
@@ -85,8 +85,7 @@ static const struct argp_option argpoptions[] = {
  * @param arg the option argument, or NULL.
  * @param state the parsing state.
  */
-error_t parse_opt(int key, char *arg, struct argp_state *state)
-{
+error_t parse_opt(int key, char *arg, struct argp_state *state) {
 	struct options *opt = (struct options*)state->input;
 	char* strEnd = NULL;
 	switch (key) {
@@ -122,50 +121,44 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 }
 
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
 	struct argp argp = { argpoptions, parse_opt, argpargsdoc, argpdoc, NULL, NULL, NULL };
 	setenv("ARGP_HELP_FMT", "no-dup-args-note", 0);
-	if (argp_parse(&argp, argc, argv, ARGP_IN_ORDER, NULL, &opt) != 0)
+	if (argp_parse(&argp, argc, argv, ARGP_IN_ORDER, NULL, &opt) != 0) {
 		return EINVAL;
-
+	}
 	Device* device = Device::create(opt.device, false, false, NULL);
 	if (device == NULL) {
 		cout << "unable to create device " << opt.device << endl;
 		return EINVAL;
 	}
 	result_t result = device->open();
-	if (result != RESULT_OK)
+	if (result != RESULT_OK) {
 		cout << "unable to open " << opt.device << ": " << getResultCode(result) << endl;
-
-	if (!device->isValid())
+	}
+	if (!device->isValid()) {
 		cout << "device " << opt.device << " not available" << endl;
-	else {
+	} else {
 		cout << "device opened" << endl;
-
 		fstream file(opt.dumpFile, ios::in | ios::binary);
-
 		if (file.is_open()) {
-
 			while (true) {
 				unsigned char byte = (unsigned char)file.get();
-				if (file.eof())
+				if (file.eof()) {
 					break;
+				}
 				cout << hex << setw(2) << setfill('0')
 				     << static_cast<unsigned>(byte) << endl;
-
 				device->send(byte);
 				usleep(opt.time);
 			}
-
 			file.close();
-		}
-		else
+		} else {
 			cout << "error opening file " << opt.dumpFile << endl;
+		}
 	}
 
 	delete device;
-
 	exit(EXIT_SUCCESS);
 }
 

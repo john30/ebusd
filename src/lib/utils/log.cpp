@@ -57,8 +57,7 @@ static LogLevel s_logLevel = ll_notice;
 /** the current log FILE. */
 static FILE* s_logFile = stdout;
 
-bool setLogFacilities(const char* facilities)
-{
+bool setLogFacilities(const char* facilities) {
 	char *input = strdup(facilities);
 	char *opt = (char*)input, *value = NULL;
 	int newFacilites = 0;
@@ -80,14 +79,13 @@ bool setLogFacilities(const char* facilities)
 	return true;
 }
 
-bool getLogFacilities(char* buffer)
-{
-	if (s_logFacilites==LF_ALL) {
+bool getLogFacilities(char* buffer) {
+	if (s_logFacilites == LF_ALL) {
 		return strcpy(buffer, facilityNames[lf_COUNT]) != NULL;
 	}
 	*buffer = 0; // for strcat to work
 	bool found = false;
-	for (int val=0; val<lf_COUNT; val++) {
+	for (int val = 0; val < lf_COUNT; val++) {
 		if (s_logFacilites&(1<<val)) {
 			if (found) {
 				strcat(buffer, ",");
@@ -99,8 +97,7 @@ bool getLogFacilities(char* buffer)
 	return true;
 }
 
-bool setLogLevel(const char* level)
-{
+bool setLogLevel(const char* level) {
 	char *input = strdup(level);
 	char *opt = (char*)input, *value = NULL;
 	int newLevel = 0;
@@ -117,24 +114,21 @@ bool setLogLevel(const char* level)
 	return true;
 }
 
-const char* getLogLevel()
-{
+const char* getLogLevel() {
 	return levelNames[s_logLevel];
 }
 
-bool setLogFile(const char* filename)
-{
+bool setLogFile(const char* filename) {
 	FILE* newFile = fopen(filename, "a");
-	if (newFile == NULL)
+	if (newFile == NULL) {
 		return false;
-
+	}
 	closeLogFile();
 	s_logFile = newFile;
 	return true;
 }
 
-void closeLogFile()
-{
+void closeLogFile() {
 	if (s_logFile != NULL) {
 		if (s_logFile != stdout) {
 			fclose(s_logFile);
@@ -143,14 +137,12 @@ void closeLogFile()
 	}
 }
 
-bool needsLog(const LogFacility facility, const LogLevel level)
-{
+bool needsLog(const LogFacility facility, const LogLevel level) {
 	return ((s_logFacilites & (1<<facility)) != 0)
 		&& (s_logLevel >= level);
 }
 
-void logWrite(const char* facility, const char* level, const char* message, va_list ap)
-{
+void logWrite(const char* facility, const char* level, const char* message, va_list ap) {
 	struct timespec ts;
 	struct tm* tm;
 	clockGettime(&ts);
@@ -168,16 +160,14 @@ void logWrite(const char* facility, const char* level, const char* message, va_l
 	}
 }
 
-void logWrite(const LogFacility facility, const LogLevel level, const char* message, ...)
-{
+void logWrite(const LogFacility facility, const LogLevel level, const char* message, ...) {
 	va_list ap;
 	va_start(ap, message);
 	logWrite(facilityNames[facility], levelNames[level], message, ap);
 	va_end(ap);
 }
 
-void logWrite(const char* facility, const LogLevel level, const char* message, ...)
-{
+void logWrite(const char* facility, const LogLevel level, const char* message, ...) {
 	va_list ap;
 	va_start(ap, message);
 	logWrite(facility, levelNames[level], message, ap);

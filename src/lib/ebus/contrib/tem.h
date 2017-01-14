@@ -16,12 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBEBUS_CONTRIB_TEM_H_
-#define LIBEBUS_CONTRIB_TEM_H_
+#ifndef LIB_EBUS_CONTRIB_TEM_H_
+#define LIB_EBUS_CONTRIB_TEM_H_
 
-#include "symbol.h"
-#include "result.h"
-#include "datatype.h"
 #include <string>
 #include <iostream>
 #include <sstream>
@@ -29,6 +26,9 @@
 #include <vector>
 #include <list>
 #include <map>
+#include "symbol.h"
+#include "result.h"
+#include "datatype.h"
 
 /** @file tem.h
  * Contributed data types for TEM devices not part of regular releases.
@@ -71,4 +71,4 @@ public:
  */
 void contrib_tem_register();
 
-#endif // LIBEBUS_CONTRIB_TEM_H_
+#endif // LIB_EBUS_CONTRIB_TEM_H_

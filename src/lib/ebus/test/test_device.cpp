@@ -16,14 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "device.h"
 #include <iostream>
 #include <iomanip>
+#include "device.h"
 
 using namespace std;
 
-int main ()
-{
+int main () {
 	Device* device = Device::create("/dev/ttyUSB20", true, false, false);
 	if (device == NULL) {
 		cout << "unable to create device" << endl;
@@ -33,26 +32,27 @@ int main ()
 	if (result != RESULT_OK) {
 		cout << "open failed: " << getResultCode(result) << endl;
 	} else {
-		if (!device->isValid())
+		if (!device->isValid()) {
 			cout << "device not available." << endl;
-
+		}
 		int count = 0;
 
 		while (1) {
 			unsigned char byte = 0;
 			result = device->recv(0, byte);
 
-			if (result == RESULT_OK)
+			if (result == RESULT_OK) {
 				cout << hex << setw(2) << setfill('0')
 				<< static_cast<unsigned>(byte) << endl;
-
+			}
 			count++;
 		}
 
 		device->close();
 
-		if (!device->isValid())
+		if (!device->isValid()) {
 			cout << "close successful." << endl;
+		}
 	}
 
 	delete device;

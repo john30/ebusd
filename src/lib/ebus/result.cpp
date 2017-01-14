@@ -51,8 +51,9 @@ const char* getResultCode(result_t resultCode) {
 	case RESULT_ERR_SYN:          return "ERR: SYN received";
 
 	default:
-		if (resultCode >= 0)
+		if (resultCode >= 0) {
 			return "done: unknown result code";
+		}
 		return "ERR: unknown result code";
 	}
 }

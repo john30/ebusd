@@ -16,11 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "mqtthandler.h"
-#include "log.h"
 #ifdef HAVE_CONFIG_H
 #	include <config.h>
 #endif
+
+#include "mqtthandler.h"
+#include "log.h"
 
 using namespace std;
 
@@ -43,8 +44,7 @@ static const char* g_topic = PACKAGE; //!< MQTT topic to use (prefix if without 
  * @param arg the option argument, or NULL.
  * @param state the parsing state.
  */
-static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state)
-{
+static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
 	result_t result = RESULT_OK;
 
 	switch (key) {
@@ -57,7 +57,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state)
 		break;
 
 	case 2: // --mqtttopic=ebusd
-		if (arg == NULL || arg[0] == 0 || arg[0]=='/' || arg[strlen(arg)-1]=='/') {
+		if (arg == NULL || arg[0] == 0 || arg[0] == '/' || arg[strlen(arg)-1] == '/') {
 			argp_error(state, "invalid mqtttopic");
 			return EINVAL;
 		}
@@ -72,13 +72,11 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state)
 static const struct argp g_mqtt_argp = { g_mqtt_argp_options, mqtt_parse_opt, NULL, NULL, NULL, NULL, NULL };
 static const struct argp_child g_mqtt_argp_child = {&g_mqtt_argp, 0, "", 1};
 
-const struct argp_child* mqtthandler_getargs()
-{
+const struct argp_child* mqtthandler_getargs() {
 	return &g_mqtt_argp_child;
 }
 
-DataHandler* mqtthandler_register(BusHandler* busHandler, MessageMap* messages)
-{
+DataHandler* mqtthandler_register(BusHandler* busHandler, MessageMap* messages) {
 	return new MqttHandler(busHandler, messages);
 }
 
@@ -111,21 +109,21 @@ bool parseTopic(const string topic, vector<string> &strs, vector<size_t> &cols) 
 	size_t lastpos = 0;
 	size_t end = topic.length();
 	vector<string> columns;
-	for (size_t pos=topic.find('%', lastpos); pos!=string::npos; ) {
+	for (size_t pos=topic.find('%', lastpos); pos != string::npos; ) {
 		size_t col = columnCount;
 		size_t len = 0;
 		for (size_t i = 0; i < columnCount; i++) {
 			len = strlen(columnNames[i]);
-			if (topic.substr(pos+1, len)==columnNames[i]) {
+			if (topic.substr(pos+1, len) == columnNames[i]) {
 				col = columnIds[i];
 				break;
 			}
 		}
-		if (col==columnCount) {
+		if (col == columnCount) {
 			return false;
 		}
-		for (vector<size_t>::iterator it=cols.begin(); it!=cols.end(); it++) {
-			if (*it==col) {
+		for (vector<size_t>::iterator it=cols.begin(); it != cols.end(); it++) {
+			if (*it == col) {
 				return false; // duplicate column
 			}
 		}
@@ -134,7 +132,7 @@ bool parseTopic(const string topic, vector<string> &strs, vector<size_t> &cols) 
 		lastpos = pos+1+len;
 		pos = topic.find('%', lastpos);
 	}
-	if (lastpos<end) {
+	if (lastpos < end) {
 		strs.push_back(topic.substr(lastpos, end-lastpos));
 	}
 	return true;
@@ -142,9 +140,8 @@ bool parseTopic(const string topic, vector<string> &strs, vector<size_t> &cols) 
 
 
 MqttHandler::MqttHandler(BusHandler* busHandler, MessageMap* messages)
-	: DataSink(), DataSource(busHandler), Thread(), m_messages(messages)
-{
-	bool enabled = g_port!=0;
+	: DataSink(), DataSource(busHandler), Thread(), m_messages(messages) {
+	bool enabled = g_port != 0;
 	m_publishByField = false;
 	m_mosquitto = NULL;
 	if (enabled && !parseTopic(g_topic, m_topicStrs, m_topicCols)) {
@@ -156,7 +153,7 @@ MqttHandler::MqttHandler(BusHandler* busHandler, MessageMap* messages)
 	}
 	int major = -1;
 	mosquitto_lib_version(&major, NULL, NULL);
-	if (major!=LIBMOSQUITTO_MAJOR) {
+	if (major != LIBMOSQUITTO_MAJOR) {
 		logOtherError("mqtt", "invalid mosquitto version %d instead of %d", major, LIBMOSQUITTO_MAJOR);
 		return;
 	}
@@ -165,7 +162,7 @@ MqttHandler::MqttHandler(BusHandler* busHandler, MessageMap* messages)
 			m_topicStrs.push_back("");
 		} else {
 			string str = m_topicStrs[0];
-			if (str.empty() || str[str.length()-1]!='/') {
+			if (str.empty() || str[str.length()-1] != '/') {
 				m_topicStrs[0] = str+"/";
 			}
 		}
@@ -173,8 +170,8 @@ MqttHandler::MqttHandler(BusHandler* busHandler, MessageMap* messages)
 		m_topicStrs.push_back("/");
 		m_topicCols.push_back(COLUMN_NAME); // name
 	} else {
-		for (size_t i=0; i<m_topicCols.size(); i++) {
-			if (m_topicCols[i]==COLUMN_FIELDS) { // fields
+		for (size_t i = 0; i < m_topicCols.size(); i++) {
+			if (m_topicCols[i] == COLUMN_FIELDS) { // fields
 				m_publishByField = true;
 				break;
 			}
@@ -182,13 +179,13 @@ MqttHandler::MqttHandler(BusHandler* busHandler, MessageMap* messages)
 	}
 	m_globalTopic = getTopic(NULL)+"global/";
 	m_mosquitto = NULL;
-	if (mosquitto_lib_init()!=MOSQ_ERR_SUCCESS) {
+	if (mosquitto_lib_init() != MOSQ_ERR_SUCCESS) {
 		logOtherError("mqtt", "unable to initialize");
 	} else {
 		string clientId = PACKAGE_STRING;
 		clientId += " "+static_cast<unsigned>(getpid());
 		m_mosquitto = mosquitto_new(clientId.c_str(),
-#if (LIBMOSQUITTO_MAJOR>=1)
+#if (LIBMOSQUITTO_MAJOR >= 1)
 			true,
 #endif
 			this);
@@ -203,15 +200,15 @@ MqttHandler::MqttHandler(BusHandler* busHandler, MessageMap* messages)
 		string willData = "false";
 		size_t len = willData.length();
 		mosquitto_will_set(m_mosquitto,
-#if (LIBMOSQUITTO_MAJOR<1)
+#if (LIBMOSQUITTO_MAJOR < 1)
 			true,
 #endif
 			willTopic.c_str(), (uint32_t)len, (uint8_t*)(willData.c_str()), 0, true);
 		if (mosquitto_connect(m_mosquitto, "localhost", g_port, 60
-#if (LIBMOSQUITTO_MAJOR<1)
+#if (LIBMOSQUITTO_MAJOR < 1)
 				, true
 #endif
-				)!=MOSQ_ERR_SUCCESS) {
+				) != MOSQ_ERR_SUCCESS) {
 			logOtherError("mqtt", "unable to connect");
 			mosquitto_destroy(m_mosquitto);
 			m_mosquitto = NULL;
@@ -221,8 +218,7 @@ MqttHandler::MqttHandler(BusHandler* busHandler, MessageMap* messages)
 	}
 }
 
-MqttHandler::~MqttHandler()
-{
+MqttHandler::~MqttHandler() {
 	join();
 	if (m_mosquitto) {
 		mosquitto_destroy(m_mosquitto);
@@ -231,32 +227,29 @@ MqttHandler::~MqttHandler()
 	mosquitto_lib_cleanup();
 }
 
-void MqttHandler::start()
-{
+void MqttHandler::start() {
 	if (m_mosquitto) {
 		Thread::start("MQTT");
 	}
 }
 
 void on_message(
-#if (LIBMOSQUITTO_MAJOR>=1)
+#if (LIBMOSQUITTO_MAJOR >= 1)
 	struct mosquitto *mosq,
 #endif
-	void *obj, const struct mosquitto_message *message)
-{
+	void *obj, const struct mosquitto_message *message) {
 	MqttHandler* handler = (MqttHandler*)obj;
 	if (!handler || !message || !handler->isRunning()) {
 		return;
 	}
 	string topic(message->topic);
-	string data(message->payloadlen>0 ? (char*)message->payload : "");
+	string data(message->payloadlen > 0 ? (char*)message->payload : "");
 	handler->notifyTopic(topic, data);
 }
 
-void MqttHandler::notifyTopic(string topic, string data)
-{
+void MqttHandler::notifyTopic(string topic, string data) {
 	size_t pos = topic.rfind('/');
-	if (pos==string::npos) {
+	if (pos == string::npos) {
 		return;
 	}
 	string suffix = topic.substr(pos+1);
@@ -265,8 +258,8 @@ void MqttHandler::notifyTopic(string topic, string data)
 		return;
 	}
 	string direction = suffix.substr(0, 3);
-	isWrite = direction=="set";
-	if (!isWrite && direction!="get") {
+	isWrite = direction == "set";
+	if (!isWrite && direction != "get") {
 		return;
 	}
 	suffix = suffix.substr(3); // security level
@@ -275,26 +268,26 @@ void MqttHandler::notifyTopic(string topic, string data)
 	size_t last = 0;
 	string circuit, name;
 	size_t idx;
-	for (idx=0; idx<m_topicStrs.size()+1; idx++) {
+	for (idx = 0; idx < m_topicStrs.size()+1; idx++) {
 		string field;
 		string chk;
-		if (idx<m_topicStrs.size()) {
+		if (idx < m_topicStrs.size()) {
 			chk = m_topicStrs[idx];
 			pos = remain.find(chk, last);
-			if (pos==string::npos) {
+			if (pos == string::npos) {
 				return;
 			}
-		} else if (idx-1<m_topicCols.size()) {
+		} else if (idx-1 < m_topicCols.size()) {
 			pos = remain.size();
-		} else if (last<remain.size()) {
+		} else if (last < remain.size()) {
 			return;
 		} else {
 			break;
 		}
 		field = remain.substr(last, pos-last);
 		last = pos+chk.size();
-		if (idx==0) {
-			if (pos>0) {
+		if (idx == 0) {
+			if (pos > 0) {
 				return;
 			}
 		} else {
@@ -320,20 +313,20 @@ void MqttHandler::notifyTopic(string topic, string data)
 		return;
 	}
 	logOtherInfo("mqtt", "received topic for %s %s", circuit.c_str(), name.c_str());
-	if (suffix.length()>0) {
+	if (suffix.length() > 0) {
 		circuit += "#"+suffix;
 	}
 	Message* message = m_messages->find(circuit, name, isWrite);
-	if (message==NULL) {
+	if (message == NULL) {
 		message = m_messages->find(circuit, name, isWrite, true);
 	}
-	if (message==NULL) {
+	if (message == NULL) {
 		logOtherError("mqtt", "%s message %s %s not found", isWrite?"write":"read", circuit.c_str(), name.c_str());
 		return;
 	}
 	if (!message->isPassive()) {
 		result_t result = m_busHandler->readFromBus(message, data);
-		if (result!=RESULT_OK) {
+		if (result != RESULT_OK) {
 			logOtherError("mqtt", "%s %s %s: %s", isWrite?"write":"read", circuit.c_str(), name.c_str(), getResultCode(result));
 			return;
 		}
@@ -343,8 +336,7 @@ void MqttHandler::notifyTopic(string topic, string data)
 	publishMessage(message, ostream);
 }
 
-void MqttHandler::run()
-{
+void MqttHandler::run() {
 	time_t lastTaskRun, now, start, lastSignal = 0;
 	bool signal = false;
 	string signalTopic = m_globalTopic+"signal";
@@ -362,9 +354,9 @@ void MqttHandler::run()
 	while (isRunning()) {
 		handleTraffic();
 		time(&now);
-		if (now<start) {
+		if (now < start) {
 			// clock skew
-			if (now<lastSignal) {
+			if (now < lastSignal) {
 				lastSignal -= lastTaskRun-now;
 			}
 			lastTaskRun = now;
@@ -401,27 +393,25 @@ void MqttHandler::run()
 	}
 }
 
-void MqttHandler::handleTraffic()
-{
+void MqttHandler::handleTraffic() {
 	if (m_mosquitto) {
 		mosquitto_loop(m_mosquitto, -1
-#if (LIBMOSQUITTO_MAJOR>=1)
+#if (LIBMOSQUITTO_MAJOR >= 1)
 			,1
 #endif
 			);
 	}
 }
 
-string MqttHandler::getTopic(Message* message, signed char fieldIndex)
-{
+string MqttHandler::getTopic(Message* message, signed char fieldIndex) {
 	ostringstream ret;
-	for (size_t i=0; i<m_topicStrs.size(); i++) {
+	for (size_t i = 0; i < m_topicStrs.size(); i++) {
 		ret << m_topicStrs[i];
 		if (!message) {
 			break;
 		}
-		if (i<m_topicCols.size()) {
-			if (m_topicCols[i]==COLUMN_FIELDS && fieldIndex>=0) {
+		if (i < m_topicCols.size()) {
+			if (m_topicCols[i] == COLUMN_FIELDS && fieldIndex >= 0) {
 				ret << message->getFieldName(fieldIndex);
 			} else {
 				message->dumpColumn(ret, m_topicCols[i]);
@@ -431,10 +421,9 @@ string MqttHandler::getTopic(Message* message, signed char fieldIndex)
 	return ret.str();
 }
 
-void MqttHandler::publishMessage(Message* message, ostringstream& updates)
-{
+void MqttHandler::publishMessage(Message* message, ostringstream& updates) {
 	result_t result = message->decodeLastData(updates);
-	if (result!=RESULT_OK) {
+	if (result != RESULT_OK) {
 		logOtherError("mqtt", "decode %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(result));
 		return;
 	}
@@ -452,8 +441,7 @@ void MqttHandler::publishMessage(Message* message, ostringstream& updates)
 	}
 }
 
-void MqttHandler::publishTopic(string topic, string data, bool retain)
-{
+void MqttHandler::publishTopic(string topic, string data, bool retain) {
 	logOtherDebug("mqtt", "publish %s %s", topic.c_str(), data.c_str());
 	mosquitto_publish(m_mosquitto, NULL, topic.c_str(), (uint32_t)data.size(), (uint8_t*)(data.c_str()), 0, retain);
 }

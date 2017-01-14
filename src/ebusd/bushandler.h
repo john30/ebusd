@@ -16,9 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef BUSHANDLER_H_
-#define BUSHANDLER_H_
+#ifndef EBUSD_BUSHANDLER_H_
+#define EBUSD_BUSHANDLER_H_
 
+#include <pthread.h>
+#include <string>
+#include <vector>
+#include <map>
+#include <deque>
 #include "message.h"
 #include "data.h"
 #include "symbol.h"
@@ -26,10 +31,6 @@
 #include "device.h"
 #include "queue.h"
 #include "thread.h"
-#include <string>
-#include <vector>
-#include <map>
-#include <pthread.h>
 
 /** @file bushandler.h
  * Classes, functions, and constants related to handling of symbols on the eBUS.
@@ -367,7 +368,7 @@ public:
 		  m_answer(answer), m_addressConflict(false),
 		  m_busLostRetries(busLostRetries), m_failedSendRetries(failedSendRetries),
 		  m_transferLatency(transferLatency), m_busAcquireTimeout(busAcquireTimeout), m_slaveRecvTimeout(slaveRecvTimeout),
-		  m_masterCount(device->isReadOnly()?0:1), m_autoLockCount(lockCount==0), m_lockCount(lockCount<=3 ? 3 : lockCount), m_remainLockCount(m_autoLockCount),
+		  m_masterCount(device->isReadOnly()?0:1), m_autoLockCount(lockCount == 0), m_lockCount(lockCount <= 3 ? 3 : lockCount), m_remainLockCount(m_autoLockCount),
 		  m_generateSynInterval(generateSyn ? SYN_TIMEOUT*getMasterNumber(ownAddress)+SYMBOL_DURATION : 0),
 		  m_pollInterval(pollInterval), m_lastReceive(0), m_lastPoll(0),
 		  m_currentRequest(NULL), m_runningScans(0), m_nextSendPos(0),
@@ -386,15 +387,15 @@ public:
 		stop();
 		join();
 		BusRequest* req;
-		while ((req = m_finishedRequests.pop())!=NULL) {
+		while ((req = m_finishedRequests.pop()) != NULL) {
 			delete req;
 		}
-		while ((req = m_nextRequests.pop())!=NULL) {
+		while ((req = m_nextRequests.pop()) != NULL) {
 			if (req->m_deleteOnFinish) {
 				delete req;
 			}
 		}
-		if (m_currentRequest!=NULL) {
+		if (m_currentRequest != NULL) {
 			delete m_currentRequest;
 			m_currentRequest = NULL;
 		}
@@ -420,7 +421,7 @@ public:
 	 * @param dstAddress the destination address to set, or @a SYN to keep the address defined during construction.
 	 * @return the result code.
 	 */
-	result_t readFromBus(Message* message, string inputStr, const unsigned char dstAddress=SYN);
+	result_t readFromBus(Message* message, string inputStr, const unsigned char dstAddress = SYN);
 
 	/**
 	 * Main thread entry.
@@ -432,7 +433,7 @@ public:
 	 * @param full true for a full scan (all slaves), false for scanning only already seen slaves.
 	 * @return the result code.
 	 */
-	result_t startScan(bool full=false);
+	result_t startScan(bool full = false);
 
 	/**
 	 * Set the scan result @a string for a scanned slave address.
@@ -471,7 +472,7 @@ public:
 	 * @param enable true to enable grabbing, false to disable it.
 	 * @return true when the grabbing was changed.
 	 */
-	bool enableGrab(bool enable=true);
+	bool enableGrab(bool enable = true);
 
 	/**
 	 * Format the grabbed messages to the @a ostringstream.
@@ -539,7 +540,7 @@ private:
 	 * @param firstRepetition true if the first repetition of a message part is being started.
 	 * @return the result code.
 	 */
-	result_t setState(BusState state, result_t result, bool firstRepetition=false);
+	result_t setState(BusState state, result_t result, bool firstRepetition = false);
 
 	/**
 	 * Add a seen bus address.
@@ -666,4 +667,4 @@ private:
 
 };
 
-#endif // BUSHANDLER_H_
+#endif // EBUSD_BUSHANDLER_H_

@@ -16,15 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBEBUS_DEVICE_H_
-#define LIBEBUS_DEVICE_H_
+#ifndef LIB_EBUS_DEVICE_H_
+#define LIB_EBUS_DEVICE_H_
 
 #include <unistd.h>
 #include <termios.h>
-#include <iostream>
-#include <fstream>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <iostream>
+#include <fstream>
 #include "result.h"
 
 /** @file device.h
@@ -92,7 +92,7 @@ public:
 	 * @return the new @a Device, or NULL on error.
 	 * Note: the caller needs to free the created instance.
 	 */
-	static Device* create(const char* name, const bool checkDevice=true, const bool readOnly=false, const bool initialSend=false);
+	static Device* create(const char* name, const bool checkDevice = true, const bool readOnly = false, const bool initialSend = false);
 
 	/**
 	 * Get the transfer latency of this device.
@@ -290,4 +290,4 @@ private:
 
 };
 
-#endif // LIBEBUS_DEVICE_H_
+#endif // LIB_EBUS_DEVICE_H_

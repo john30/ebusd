@@ -21,16 +21,17 @@
 #endif
 
 #include <argp.h>
-#include "tcpsocket.h"
 #include <string.h>
+#ifdef HAVE_PPOLL
+#	include <poll.h>
+#endif
 #include <cstdio>
 #include <iostream>
 #include <cstdlib>
 #include <sstream>
+#include <string>
+#include "tcpsocket.h"
 
-#ifdef HAVE_PPOLL
-#	include <poll.h>
-#endif
 
 using namespace std;
 
@@ -84,8 +85,7 @@ static const struct argp_option argpoptions[] = {
  * @param arg the option argument, or NULL.
  * @param state the parsing state.
  */
-error_t parse_opt(int key, char *arg, struct argp_state *state)
-{
+error_t parse_opt(int key, char *arg, struct argp_state *state) {
 	struct options *opt = (struct options*)state->input;
 	char* strEnd = NULL;
 	unsigned int port;
@@ -116,8 +116,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 	return 0;
 }
 
-string fetchData(TCPSocket* socket, bool& listening)
-{
+string fetchData(TCPSocket* socket, bool& listening) {
 	char data[1024];
 	ssize_t datalen;
 	ostringstream ostream;
@@ -150,13 +149,13 @@ string fetchData(TCPSocket* socket, bool& listening)
 	FD_SET(STDIN_FILENO, &checkfds);
 	FD_SET(socket->getFD(), &checkfds);
 	maxfd = STDIN_FILENO;
-	if (socket->getFD()>maxfd)
+	if (socket->getFD() > maxfd) {
 		maxfd = socket->getFD();
+	}
 #endif
 #endif
 
 	while(true) {
-
 #ifdef HAVE_PPOLL
 		// wait for new fd event
 		ret = ppoll(fds, nfds, &tdiff, NULL);
@@ -198,19 +197,20 @@ string fetchData(TCPSocket* socket, bool& listening)
 					break;
 				}
 
-				for (int i = 0; i < datalen; i++)
+				for (int i = 0; i < datalen; i++) {
 					ostream << data[i];
-
+				}
 				string str = ostream.str();
-				if (listening)
+				if (listening) {
 					return str;
-				if (str.length() >= 2 && str[str.length()-2] == '\n' && str[str.length()-1] == '\n')
+				}
+				if (str.length() >= 2 && str[str.length()-2] == '\n' && str[str.length()-1] == '\n') {
 					return str;
-			}
-			else
+				}
+			} else {
 				break;
-		}
-		else if (newInput) {
+			}
+		} else if (newInput) {
 			getline(cin, message);
 			sendmessage = message+'\n';
 			socket->send(sendmessage.c_str(), sendmessage.size());
@@ -221,7 +221,6 @@ string fetchData(TCPSocket* socket, bool& listening)
 				exit(EXIT_SUCCESS);
 				return "";
 			}
-
 			message.clear();
 		}
 	}
@@ -229,8 +228,7 @@ string fetchData(TCPSocket* socket, bool& listening)
 	return ostream.str();
 }
 
-void connect(const char* host, uint16_t port, char* const *args, int argCount)
-{
+void connect(const char* host, uint16_t port, char* const *args, int argCount) {
 
 	TCPClient* client = new TCPClient();
 	TCPSocket* socket = client->connect(host, port);
@@ -247,14 +245,17 @@ void connect(const char* host, uint16_t port, char* const *args, int argCount)
 			}
 			else {
 				for (int i = 0; i < argCount; i++) {
-					if (i > 0)
+					if (i > 0) {
 						message += " ";
+					}
 					bool quote = strchr(args[i], ' ') != NULL && strchr(args[i], '"') == NULL;
-					if (quote)
+					if (quote) {
 						message += "\"";
+					}
 					message += args[i];
-					if (quote)
+					if (quote) {
 						message += "\"";
+					}
 				}
 			}
 
@@ -273,32 +274,28 @@ void connect(const char* host, uint16_t port, char* const *args, int argCount)
 					while (listening && !cin.eof()) {
 						string result(fetchData(socket, listening));
 						cout << result;
-						if (strcasecmp(result.c_str(), "LISTEN STOPPED") == 0)
+						if (strcasecmp(result.c_str(), "LISTEN STOPPED") == 0) {
 							break;
+						}
 					}
-				}
-				else
+				} else {
 					cout << fetchData(socket, listening);
+				}
 			}
-
 		} while (!once && !cin.eof());
-
 		delete socket;
-
-	}
-	else
+	} else {
 		cout << "error connecting to " << host << ":" << port << endl;
-
+	}
 	delete client;
 }
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
 	struct argp argp = { argpoptions, parse_opt, argpargsdoc, argpdoc, NULL, NULL, NULL };
 	setenv("ARGP_HELP_FMT", "no-dup-args-note", 0);
-	if (argp_parse(&argp, argc, argv, ARGP_IN_ORDER, NULL, &opt) != 0)
+	if (argp_parse(&argp, argc, argv, ARGP_IN_ORDER, NULL, &opt) != 0) {
 		return EINVAL;
-
+	}
 	connect(opt.server, opt.port, opt.args, opt.argCount);
 
 	exit(EXIT_SUCCESS);

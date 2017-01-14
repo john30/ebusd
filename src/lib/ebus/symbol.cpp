@@ -17,9 +17,11 @@
  */
 
 #include "symbol.h"
-#include "result.h"
 #include <iostream>
 #include <iomanip>
+#include <string>
+#include <vector>
+#include "result.h"
 
 using namespace std;
 
@@ -47,13 +49,12 @@ static const unsigned char CRC_LOOKUP_TABLE[] =
 };
 
 
-void SymbolString::addAll(const SymbolString& str, bool skipLastSymbol)
-{
+void SymbolString::addAll(const SymbolString& str, bool skipLastSymbol) {
 	bool addCrc = m_unescapeState == 0;
 	bool isEscaped = str.m_unescapeState == 0;
 	vector<unsigned char> data = str.m_data;
 	size_t end = data.size();
-	if (end>0 && skipLastSymbol) {
+	if (end > 0 && skipLastSymbol) {
 		end--;
 	}
 	for (size_t i = 0; i < end; i++) {
@@ -64,8 +65,7 @@ void SymbolString::addAll(const SymbolString& str, bool skipLastSymbol)
 	}
 }
 
-result_t SymbolString::parseHex(const string& str, const bool isEscaped)
-{
+result_t SymbolString::parseHex(const string& str, const bool isEscaped) {
 	bool addCrc = m_unescapeState == 0;
 	for (size_t i = 0; i < str.size(); i += 2) {
 		char* strEnd = NULL;
@@ -83,8 +83,7 @@ result_t SymbolString::parseHex(const string& str, const bool isEscaped)
 	return RESULT_OK;
 }
 
-const string SymbolString::getDataStr(const bool unescape, const bool skipLastSymbol)
-{
+const string SymbolString::getDataStr(const bool unescape, const bool skipLastSymbol) {
 	stringstream sstr;
 	bool previousEscape = false;
 
@@ -111,8 +110,7 @@ const string SymbolString::getDataStr(const bool unescape, const bool skipLastSy
 	return sstr.str();
 }
 
-result_t SymbolString::push_back(const unsigned char value, const bool isEscaped, const bool updateCRC)
-{
+result_t SymbolString::push_back(const unsigned char value, const bool isEscaped, const bool updateCRC) {
 	if (m_unescapeState == 0) { // store escaped data
 		if (!isEscaped && value == ESC) {
 			m_data.push_back(ESC);
@@ -214,8 +212,8 @@ unsigned char getMasterPartIndex(unsigned char bits) {
 }
 
 bool isMaster(unsigned char addr) {
-	return getMasterPartIndex(addr & 0x0F)>0
-		&& getMasterPartIndex((addr & 0xF0) >> 4)>0;
+	return getMasterPartIndex(addr & 0x0F) > 0
+		&& getMasterPartIndex((addr & 0xF0)>>4) > 0;
 }
 
 bool isSlaveMaster(unsigned char addr) {
@@ -245,11 +243,11 @@ unsigned char getMasterAddress(unsigned char addr) {
 
 unsigned char getMasterNumber(unsigned char addr) {
 	unsigned char priority = getMasterPartIndex(addr & 0x0F);
-	if (priority==0) {
+	if (priority == 0) {
 		return 0;
 	}
 	unsigned char index = getMasterPartIndex((addr & 0xF0) >> 4);
-	if (index==0) {
+	if (index == 0) {
 		return 0;
 	}
 	return (unsigned char)(5*(priority-1) + index);

@@ -16,13 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBUTILS_TCPSOCKET_H_
-#define LIBUTILS_TCPSOCKET_H_
+#ifndef LIB_UTILS_TCPSOCKET_H_
+#define LIB_UTILS_TCPSOCKET_H_
 
 #include <unistd.h>
 #include <sys/socket.h>
-#include <string>
 #include <stdint.h>
+#include <string>
 
 /** \file tcpsocket.h */
 
@@ -181,5 +181,5 @@ private:
 
 };
 
-#endif // LIBUTILS_TCPSOCKET_H_
+#endif // LIB_UTILS_TCPSOCKET_H_
 

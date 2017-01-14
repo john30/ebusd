@@ -23,22 +23,19 @@
 #include "thread.h"
 #include "clock.h"
 
-void* Thread::runThread(void* arg)
-{
+void* Thread::runThread(void* arg) {
 	((Thread*)arg)->enter();
 	return NULL;
 }
 
-Thread::~Thread()
-{
+Thread::~Thread() {
 	if (m_started) {
 		pthread_cancel(m_threadid);
 		pthread_detach(m_threadid);
 	}
 }
 
-bool Thread::start(const char* name)
-{
+bool Thread::start(const char* name) {
 
 	int result = pthread_create(&m_threadid, NULL, runThread, this);
 
@@ -58,8 +55,7 @@ bool Thread::start(const char* name)
 	return false;
 }
 
-bool Thread::join()
-{
+bool Thread::join() {
 	int result = -1;
 
 	if (m_started) {
@@ -82,36 +78,31 @@ void Thread::enter() {
 
 
 WaitThread::WaitThread()
-	: Thread()
-{
+	: Thread() {
 	pthread_mutex_init(&m_mutex, NULL);
 	pthread_cond_init(&m_cond, NULL);
 }
 
-WaitThread::~WaitThread()
-{
+WaitThread::~WaitThread() {
 	pthread_mutex_destroy(&m_mutex);
 	pthread_cond_destroy(&m_cond);
 }
 
-void WaitThread::stop()
-{
+void WaitThread::stop() {
 	pthread_mutex_lock(&m_mutex);
 	pthread_cond_signal(&m_cond);
 	pthread_mutex_unlock(&m_mutex);
 	Thread::stop();
 }
 
-bool WaitThread::join()
-{
+bool WaitThread::join() {
 	pthread_mutex_lock(&m_mutex);
 	pthread_cond_signal(&m_cond);
 	pthread_mutex_unlock(&m_mutex);
 	return Thread::join();
 }
 
-bool WaitThread::Wait(int seconds)
-{
+bool WaitThread::Wait(int seconds) {
 	struct timespec t;
 	clockGettime(&t);
 	t.tv_sec += seconds;

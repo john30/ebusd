@@ -16,17 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "filereader.h"
 #include <iostream>
 #include <iomanip>
+#include <string>
+#include <vector>
+#include "filereader.h"
 
 using namespace std;
 
 static bool error = false;
 
 void verify(bool expectFailMatch, string type, string input,
-		bool match, string expectStr, string gotStr)
-{
+		bool match, string expectStr, string gotStr) {
 	match = match && expectStr == gotStr;
 	if (expectFailMatch) {
 		if (match) {
@@ -45,8 +46,7 @@ void verify(bool expectFailMatch, string type, string input,
 	}
 }
 
-int main()
-{
+int main() {
 	istringstream ifs(
 		"line 1 col 1,line 1 col 2,line 1 col 3\n"
 		"line 2 col 1,\"line 2 col 2\",\"line 2 \"\"col 3\"\"\"\n"
