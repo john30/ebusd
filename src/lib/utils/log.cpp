@@ -57,7 +57,7 @@ static FILE* s_logFile = stdout;
 
 bool setLogFacilities(const char* facilities) {
 	char *input = strdup(facilities);
-	char *opt = (char*)input, *value = NULL;
+	char *opt = reinterpret_cast<char*>(input), *value = NULL;
 	int newFacilites = 0;
 	while (*opt) {
 		int val = getsubopt(&opt, (char *const *)facilityNames, &value);
@@ -97,7 +97,7 @@ bool getLogFacilities(char* buffer) {
 
 bool setLogLevel(const char* level) {
 	char *input = strdup(level);
-	char *opt = (char*)input, *value = NULL;
+	char *opt = reinterpret_cast<char*>(input), *value = NULL;
 	int newLevel = 0;
 	if (*opt) {
 		int val = getsubopt(&opt, (char *const *)levelNames, &value);

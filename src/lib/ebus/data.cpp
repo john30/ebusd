@@ -128,7 +128,7 @@ result_t DataField::create(vector<string>::iterator& it,
 						FileReader::trim(token);
 						const char* str = token.c_str();
 						char* strEnd = NULL;
-						unsigned long int id;
+						unsigned long id;
 						if (strncasecmp(str, "0x", 2) == 0) {
 							str += 2;
 							id = strtoul(str, &strEnd, 16); // hexadecimal
@@ -296,7 +296,7 @@ result_t SingleDataField::create(const string id, const unsigned char length,
 		return RESULT_OK;
 	}
 	if (dataType->isNumeric()) {
-		NumberDataType* numType = (NumberDataType*)dataType;
+		NumberDataType* numType = reinterpret_cast<NumberDataType*>(dataType);
 		if (values.empty() && numType->hasFlag(DAY)) {
 			for (unsigned int i = 0; i < sizeof(dayNames) / sizeof(dayNames[0]); i++)
 				values[numType->getMinValue() + i] = dayNames[i];
@@ -318,7 +318,7 @@ result_t SingleDataField::create(const string id, const unsigned char length,
 	if (divisor != 0 || !values.empty()) {
 		return RESULT_ERR_INVALID_ARG; // cannot set divisor or values for string field
 	}
-	returnField = new SingleDataField(name, comment, unit, (StringDataType*)dataType, partType, byteCount);
+	returnField = new SingleDataField(name, comment, unit, dataType, partType, byteCount);
 	return RESULT_OK;
 }
 
@@ -488,7 +488,7 @@ result_t SingleDataField::derive(string name, string comment,
 	}
 	DataType* dataType = m_dataType;
 	if (numeric) {
-		NumberDataType* numType = (NumberDataType*)m_dataType;
+		NumberDataType* numType = reinterpret_cast<NumberDataType*>(dataType);
 		result_t result = numType->derive(divisor, 0, numType);
 		if (result != RESULT_OK) {
 			return result;
@@ -497,8 +497,10 @@ result_t SingleDataField::derive(string name, string comment,
 	}
 	if (values.empty()) {
 		fields.push_back(new SingleDataField(name, comment, unit, dataType, partType, m_length));
+	} else if (numeric) {
+		fields.push_back(new ValueListDataField(name, comment, unit, reinterpret_cast<NumberDataType*>(dataType), partType, m_length, values));
 	} else {
-		fields.push_back(new ValueListDataField(name, comment, unit, (NumberDataType*)dataType, partType, m_length, values));
+		return RESULT_ERR_INVALID_ARG;
 	}
 	return RESULT_OK;
 }
@@ -520,7 +522,7 @@ bool SingleDataField::hasFullByteOffset(bool after) {
 	if (m_length > 1 || !m_dataType->isNumeric()) {
 		return true;
 	}
-	NumberDataType* num = (NumberDataType*)m_dataType;
+	NumberDataType* num = reinterpret_cast<NumberDataType*>(m_dataType);
 	return (num->getBitCount() % 8) == 0
 	|| (after && num->getFirstBit() + (num->getBitCount() % 8) >= 8);
 }
@@ -549,15 +551,18 @@ result_t ValueListDataField::derive(string name, string comment,
 	if (divisor != 0 && divisor != 1) {
 		return RESULT_ERR_INVALID_ARG; // cannot use divisor != 1 for value list field
 	}
+	if (!m_dataType->isNumeric()) {
+		return RESULT_ERR_INVALID_ARG;
+	}
 	if (!values.empty()) {
-		NumberDataType* num = (NumberDataType*)m_dataType;
+		NumberDataType* num = reinterpret_cast<NumberDataType*>(m_dataType);
 		if (values.begin()->first < num->getMinValue() || values.rbegin()->first > num->getMaxValue()) {
 			return RESULT_ERR_INVALID_ARG; // cannot use divisor != 1 for value list field
 		}
 	} else {
 		values = m_values;
 	}
-	fields.push_back(new ValueListDataField(name, comment, unit, (NumberDataType*)m_dataType, partType, m_length, values));
+	fields.push_back(new ValueListDataField(name, comment, unit, reinterpret_cast<NumberDataType*>(m_dataType), partType, m_length, values));
 	return RESULT_OK;
 }
 
@@ -617,7 +622,7 @@ result_t ValueListDataField::readSymbols(SymbolString& input, const bool isMaste
 result_t ValueListDataField::writeSymbols(istringstream& input,
 		const unsigned char offset,
 		SymbolString& output, const bool isMaster, unsigned char* usedLength) {
-	NumberDataType* numType = (NumberDataType*)m_dataType;
+	NumberDataType* numType = reinterpret_cast<NumberDataType*>(m_dataType);
 	if (isIgnored()) {
 		return numType->writeRawValue(numType->getReplacement(), offset, m_length, output, usedLength); // replacement value
 	}
@@ -721,9 +726,9 @@ DataFieldSet* DataFieldSet::s_identFields = NULL;
 
 DataFieldSet* DataFieldSet::getIdentFields() {
 	if (s_identFields == NULL) {
-		NumberDataType* uchDataType = (NumberDataType*)DataTypeList::getInstance()->get("UCH");
-		StringDataType* stringDataType = (StringDataType*)DataTypeList::getInstance()->get("STR");
-		NumberDataType* pinDataType = (NumberDataType*)DataTypeList::getInstance()->get("PIN");
+		NumberDataType* uchDataType = reinterpret_cast<NumberDataType*>(DataTypeList::getInstance()->get("UCH"));
+		StringDataType* stringDataType = reinterpret_cast<StringDataType*>(DataTypeList::getInstance()->get("STR"));
+		NumberDataType* pinDataType = reinterpret_cast<NumberDataType*>(DataTypeList::getInstance()->get("PIN"));
 		map<unsigned int, string> manufacturers;
 		manufacturers[0x06] = "Dungs";
 		manufacturers[0x0f] = "FH Ostfalia";

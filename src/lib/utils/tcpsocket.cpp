@@ -39,7 +39,7 @@ TCPSocket* TCPClient::connect(const string& server, const uint16_t& port) {
 	struct sockaddr_in address;
 	int ret;
 
-	memset((char*) &address, 0, sizeof(address));
+	memset(reinterpret_cast<char*>(&address), 0, sizeof(address));
 
 	if (inet_addr(server.c_str()) == INADDR_NONE) {
 		struct hostent* he;

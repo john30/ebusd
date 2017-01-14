@@ -22,6 +22,7 @@
 
 #include "datahandler.h"
 #include <list>
+#include <string>
 #ifdef HAVE_MQTT
 #	include "mqtthandler.h"
 #endif

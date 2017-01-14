@@ -19,6 +19,7 @@
 #ifndef LIB_EBUS_DATATYPE_H_
 #define LIB_EBUS_DATATYPE_H_
 
+#include <stdint.h>
 #include <string>
 #include <iostream>
 #include <sstream>
@@ -158,7 +159,7 @@ class DataType {
 	 * @param flags the combination of flags (like #BCD).
 	 * @param replacement the replacement value (fill-up value for @a StringDataType, no replacement if equal to @a NumberDataType#minValue).
 	 */
-	DataType(const string id, const unsigned char bitCount, const unsigned short flags, const unsigned int replacement)
+	DataType(const string id, const unsigned char bitCount, const uint16_t flags, const unsigned int replacement)
 		: m_id(id), m_bitCount(bitCount), m_flags(flags), m_replacement(replacement) {}
 
 	/**
@@ -261,7 +262,7 @@ class DataType {
 	const unsigned char m_bitCount;
 
 	/** the combination of flags (like #BCD). */
-	const unsigned short m_flags;
+	const uint16_t m_flags;
 
 	/** the replacement value (fill-up value for @a StringDataType, no replacement if equal to @a NumberDataType#minValue). */
 	const unsigned int m_replacement;
@@ -281,7 +282,7 @@ class StringDataType : public DataType {
 	 * @param replacement the replacement value (fill-up value).
 	 * @param isHex true for hex digits instead of characters.
 	 */
-	StringDataType(const string id, const unsigned char bitCount, const unsigned short flags,
+	StringDataType(const string id, const unsigned char bitCount, const uint16_t flags,
 		const unsigned int replacement, bool isHex = false)
 		: DataType(id, bitCount, flags, replacement), m_isHex(isHex) {}
 
@@ -327,8 +328,8 @@ class DateTimeDataType : public DataType {
 	 * @param hasTime true if time part is present.
 	 * @param resolution the the resolution in minutes for time types, or 1.
 	 */
-	DateTimeDataType(const string id, const unsigned char bitCount, const unsigned short flags, const unsigned int replacement,
-			const bool hasDate, const bool hasTime, const short resolution)
+	DateTimeDataType(const string id, const unsigned char bitCount, const uint16_t flags, const unsigned int replacement,
+			const bool hasDate, const bool hasTime, const int16_t resolution)
 		: DataType(id, bitCount, flags, replacement), m_hasDate(hasDate), m_hasTime(hasTime), m_resolution(resolution) {}
 
 	/**
@@ -349,7 +350,7 @@ class DateTimeDataType : public DataType {
 	/**
 	 * @return the resolution in minutes for time types, or 1.
 	 */
-	short getResolution() const { return m_resolution; }
+	int16_t getResolution() const { return m_resolution; }
 
 	// @copydoc
 	virtual result_t readRawValue(SymbolString& input,
@@ -375,7 +376,7 @@ class DateTimeDataType : public DataType {
 	const bool m_hasTime;
 
 	/** the resolution in minutes for time types, or 1. */
-	const short m_resolution;
+	const int16_t m_resolution;
 };
 
 
@@ -394,7 +395,7 @@ class NumberDataType : public DataType {
 	 * @param maxValue the maximum raw value.
 	 * @param divisor the divisor (negative for reciprocal).
 	 */
-	NumberDataType(const string id, const unsigned char bitCount, const unsigned short flags, const unsigned int replacement,
+	NumberDataType(const string id, const unsigned char bitCount, const uint16_t flags, const unsigned int replacement,
 			const unsigned int minValue, const unsigned int maxValue, const int divisor)
 		: DataType(id, bitCount, flags|NUM, replacement), m_minValue(minValue), m_maxValue(maxValue), m_divisor(divisor), m_precision(calcPrecision(divisor)), m_firstBit(0), m_baseType(NULL) {}
 
@@ -407,8 +408,8 @@ class NumberDataType : public DataType {
 	 * @param firstBit the offset to the first bit.
 	 * @param divisor the divisor (negative for reciprocal).
 	 */
-	NumberDataType(const string id, const unsigned char bitCount, const unsigned short flags, const unsigned int replacement,
-			const short firstBit, const int divisor)
+	NumberDataType(const string id, const unsigned char bitCount, const uint16_t flags, const unsigned int replacement,
+			const int16_t firstBit, const int divisor)
 		: DataType(id, bitCount, flags|NUM, replacement), m_minValue(0), m_maxValue((1<<bitCount)-1), m_divisor(divisor), m_precision(0), m_firstBit(firstBit), m_baseType(NULL) {}
 
 	/**
@@ -462,7 +463,7 @@ class NumberDataType : public DataType {
 	/**
 	 * @return the offset to the first bit.
 	 */
-	short getFirstBit() const { return m_firstBit; }
+	int16_t getFirstBit() const { return m_firstBit; }
 
 	// @copydoc
 	virtual result_t readRawValue(SymbolString& input,
@@ -508,7 +509,7 @@ class NumberDataType : public DataType {
 	const unsigned char m_precision;
 
 	/** the offset to the first bit. */
-	const short m_firstBit;
+	const int16_t m_firstBit;
 
 	/** the base @a NumberDataType for derived instances. */
 	NumberDataType* m_baseType;

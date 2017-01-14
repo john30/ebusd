@@ -615,14 +615,14 @@ string MainLoop::executeRead(vector<string> &args) {
 			   "    Dx        data byte(s) to send";
 	}
 	string fieldName;
-	signed char fieldIndex = -2;
+	char fieldIndex = -2;
 	if (args.size() == argPos + 2) {
 		fieldName = args[argPos + 1];
 		fieldIndex = -1;
 		size_t pos = fieldName.find_last_of('.');
 		if (pos != string::npos) {
 			result_t result = RESULT_OK;
-			fieldIndex = (char)parseInt(fieldName.substr(pos+1).c_str(), 10, 0, MAX_POS, result);
+			fieldIndex = static_cast<char>(parseInt(fieldName.substr(pos+1).c_str(), 10, 0, MAX_POS, result));
 			if (result == RESULT_OK) {
 				fieldName = fieldName.substr(0, pos);
 			}

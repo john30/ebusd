@@ -19,6 +19,7 @@
 #ifndef LIB_EBUS_MESSAGE_H_
 #define LIB_EBUS_MESSAGE_H_
 
+#include <stdint.h>
 #include <string>
 #include <vector>
 #include <deque>
@@ -160,7 +161,7 @@ class Message {
 	 * @param dstAddress the destination address, or @a SYN for any (set later).
 	 * @return the key for the ID.
 	 */
-	static unsigned long long createKey(const vector<unsigned char> id,
+	static uint64_t createKey(const vector<unsigned char> id,
 		const bool isWrite, const bool isPassive,
 		const unsigned char srcAddress, const unsigned char dstAddress);
 
@@ -171,7 +172,7 @@ class Message {
 	 * @param anyDestination @p true to use the special @a SYN as destination address in the key.
 	 * @return the key for the ID, or -1LL if the data is invalid.
 	 */
-	static unsigned long long createKey(SymbolString& master,
+	static uint64_t createKey(SymbolString& master,
 		unsigned char maxIdLength, bool anyDestination = false);
 
 	/**
@@ -179,7 +180,7 @@ class Message {
 	 * @param key the key.
 	 * @return the length field from the key.
 	 */
-	static unsigned char getKeyLength(unsigned long long key) { return (unsigned char)(key >> (8 * 7 + 5)); }
+	static unsigned char getKeyLength(uint64_t key) { return (unsigned char)(key >> (8 * 7 + 5)); }
 
 	/**
 	 * Parse an ID part from the input @a string.
@@ -332,14 +333,14 @@ class Message {
 	 * Return the key for storing in @a MessageMap.
 	 * @return the key for storing in @a MessageMap.
 	 */
-	unsigned long long getKey() { return m_key; }
+	uint64_t getKey() { return m_key; }
 
 	/**
 	 * Return the derived key for storing in @a MessageMap.
 	 * @param dstAddress the destination address for the derivation.
 	 * @return the derived key for storing in @a MessageMap.
 	 */
-	unsigned long long getDerivedKey(const unsigned char dstAddress);
+	uint64_t getDerivedKey(const unsigned char dstAddress);
 
 	/**
 	 * Get the polling priority, or 0 for no polling at all.
@@ -573,7 +574,7 @@ class Message {
 	 * <li>bytes 3-0: ID bytes (with cyclic xor if more than 4)</li>
 	 * </ul>
 	 */
-	unsigned long long m_key;
+	uint64_t m_key;
 
 	/** the @a DataField for encoding/decoding the message. */
 	DataField* m_data;
@@ -1228,7 +1229,7 @@ class MessageMap : public FileReader {
 	 * @return the found @a Message instances, or NULL.
 	 * Note: the caller may not free the returned instances.
 	 */
-	vector<Message*>* getByKey(const unsigned long long key);
+	vector<Message*>* getByKey(const uint64_t key);
 
 	/**
 	 * Find the @a Message instance for the specified circuit and name.
@@ -1369,7 +1370,7 @@ class MessageMap : public FileReader {
 	map<string, vector<Message*> > m_messagesByName;
 
 	/** the known @a Message instances by key. */
-	map<unsigned long long, vector<Message*> > m_messagesByKey;
+	map<uint64_t, vector<Message*> > m_messagesByKey;
 
 	/** the known @a Message instances to poll, by priority. */
 	MessagePriorityQueue m_pollMessages;

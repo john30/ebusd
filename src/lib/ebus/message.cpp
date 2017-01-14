@@ -92,13 +92,13 @@ Message::Message(const string circuit, const string name,
 		  m_lastUpdateTime(0), m_lastChangeTime(0), m_pollCount(0), m_lastPollTime(0) {
 	m_id.push_back(pb);
 	m_id.push_back(sb);
-	unsigned long long key = 0;
+	uint64_t key = 0;
 	if (!isPassive) {
 		key |= (isWrite ? 0x1fLL : 0x1eLL) << (8 * 7); // special values for active
 	}
-	key |= (unsigned long long)SYN << (8 * 6);
-	key |= (unsigned long long)pb << (8 * 5);
-	key |= (unsigned long long)sb << (8 * 4);
+	key |= (uint64_t)SYN << (8 * 6);
+	key |= (uint64_t)pb << (8 * 5);
+	key |= (uint64_t)sb << (8 * 4);
 	m_key = key;
 	setScanMessage();
 }
@@ -134,19 +134,19 @@ string getDefault(const string value, vector<string>* defaults, size_t pos, bool
 	return defaultStr.substr(0, insertPos)+value+defaultStr.substr(insertPos+1);
 }
 
-unsigned long long Message::createKey(const vector<unsigned char> id,
+uint64_t Message::createKey(const vector<unsigned char> id,
 		const bool isWrite, const bool isPassive,
 		const unsigned char srcAddress, const unsigned char dstAddress) {
-	unsigned long long key = (unsigned long long)(id.size()-2) << (8 * 7 + 5);
+	uint64_t key = (uint64_t)(id.size()-2) << (8 * 7 + 5);
 	if (isPassive) {
-		key |= (unsigned long long)getMasterNumber(srcAddress) << (8 * 7); // 0..25
+		key |= (uint64_t)getMasterNumber(srcAddress) << (8 * 7); // 0..25
 	} else {
 		key |= (isWrite ? 0x1fLL : 0x1eLL) << (8 * 7); // special values for active
 	}
-	key |= (unsigned long long)dstAddress << (8 * 6);
+	key |= (uint64_t)dstAddress << (8 * 6);
 	int exp = 5;
 	for (vector<unsigned char>::const_iterator it = id.begin(); it < id.end(); it++) {
-		key ^= (unsigned long long)*it << (8 * exp--);
+		key ^= (uint64_t)*it << (8 * exp--);
 		if (exp == 0) {
 			exp = 3;
 		}
@@ -154,7 +154,7 @@ unsigned long long Message::createKey(const vector<unsigned char> id,
 	return key;
 }
 
-unsigned long long Message::createKey(SymbolString& master, unsigned char maxIdLength, bool anyDestination) {
+uint64_t Message::createKey(SymbolString& master, unsigned char maxIdLength, bool anyDestination) {
 	if (master.size() < 5) {
 		return INVALID_KEY;
 	}
@@ -165,14 +165,14 @@ unsigned long long Message::createKey(SymbolString& master, unsigned char maxIdL
 	if (master.size() < 5+idLength) {
 		return INVALID_KEY;
 	}
-	unsigned long long key = (unsigned long long)idLength << (8 * 7 + 5);
-	key |= (unsigned long long)getMasterNumber(master[0]) << (8 * 7); // QQ address for passive message
-	key |= (unsigned long long)(anyDestination ? SYN : master[1]) << (8 * 6); // ZZ address
-	key |= (unsigned long long)master[2] << (8 * 5); // PB
-	key |= (unsigned long long)master[3] << (8 * 4); // SB
+	uint64_t key = (uint64_t)idLength << (8 * 7 + 5);
+	key |= (uint64_t)getMasterNumber(master[0]) << (8 * 7); // QQ address for passive message
+	key |= (uint64_t)(anyDestination ? SYN : master[1]) << (8 * 6); // ZZ address
+	key |= (uint64_t)master[2] << (8 * 5); // PB
+	key |= (uint64_t)master[3] << (8 * 4); // SB
 	int exp = 3;
 	for (unsigned char i = 0; i < idLength; i++) {
-		key ^= (unsigned long long)master[5 + i] << (8 * exp--);
+		key ^= (uint64_t)master[5 + i] << (8 * exp--);
 		if (exp == 0) {
 			exp = 3;
 		}
@@ -190,11 +190,11 @@ result_t Message::parseId(string input, vector<unsigned char>& id) {
 			break;
 		}
 		input.clear();
-		input.push_back((char)in.get());
+		input.push_back(static_cast<char>(in.get()));
 		if (in.eof()) {
 			return RESULT_ERR_INVALID_ARG; // too short hex
 		}
-		input.push_back((char)in.get());
+		input.push_back(static_cast<char>(in.get()));
 
 		result_t result;
 		unsigned char value = (unsigned char)parseInt(input.c_str(), 16, 0, 0xff, result);
@@ -522,8 +522,8 @@ bool Message::checkId(Message& other) {
 	return other.checkIdPrefix(m_id);
 }
 
-unsigned long long Message::getDerivedKey(const unsigned char dstAddress) {
-	return (m_key & ~(0xffLL << (8*6))) | (unsigned long long)dstAddress << (8*6);
+uint64_t Message::getDerivedKey(const unsigned char dstAddress) {
+	return (m_key & ~(0xffLL << (8*6))) | (uint64_t)dstAddress << (8*6);
 }
 
 bool Message::setPollPriority(unsigned char priority) {
@@ -842,10 +842,10 @@ ChainedMessage::ChainedMessage(const string circuit, const string name,
 		  m_ids(ids), m_lengths(lengths),
 		  m_maxTimeDiff(m_ids.size()*15) { // 15 seconds per message
 	size_t cnt = ids.size();
-	m_lastMasterDatas = (SymbolString**)calloc(cnt, sizeof(SymbolString*));
-	m_lastSlaveDatas = (SymbolString**)calloc(cnt, sizeof(SymbolString*));
-	m_lastMasterUpdateTimes = (time_t*)calloc(cnt, sizeof(time_t));
-	m_lastSlaveUpdateTimes = (time_t*)calloc(cnt, sizeof(time_t));
+	m_lastMasterDatas = reinterpret_cast<SymbolString**>(calloc(cnt, sizeof(SymbolString*)));
+	m_lastSlaveDatas = reinterpret_cast<SymbolString**>(calloc(cnt, sizeof(SymbolString*)));
+	m_lastMasterUpdateTimes = reinterpret_cast<time_t*>(calloc(cnt, sizeof(time_t)));
+	m_lastSlaveUpdateTimes = reinterpret_cast<time_t*>(calloc(cnt, sizeof(time_t)));
 	for (size_t index = 0; index < cnt; index++) {
 		m_lastMasterDatas[index] = new SymbolString();
 		m_lastSlaveDatas[index] = new SymbolString();
@@ -1331,7 +1331,7 @@ result_t SimpleCondition::resolve(MessageMap* messages, ostringstream& errorMess
 				return RESULT_ERR_INVALID_ADDR;
 			}
 			// clone the message with dedicated dstAddress if necessary
-			unsigned long long key = message->getDerivedKey(m_dstAddress);
+			uint64_t key = message->getDerivedKey(m_dstAddress);
 			vector<Message*>* derived = messages->getByKey(key);
 			if (derived == NULL) {
 				message = message->derive(m_dstAddress, true);
@@ -1524,10 +1524,10 @@ result_t LoadInstruction::execute(MessageMap* messages, ostringstream& log, Cond
 
 
 result_t MessageMap::add(Message* message, bool storeByName) {
-	unsigned long long key = message->getKey();
+	uint64_t key = message->getKey();
 	bool conditional = message->isConditional();
 	if (!m_addAll) {
-		map<unsigned long long, vector<Message*> >::iterator keyIt = m_messagesByKey.find(key);
+		map<uint64_t, vector<Message*> >::iterator keyIt = m_messagesByKey.find(key);
 		if (keyIt != m_messagesByKey.end()) {
 			Message* other = getFirstAvailable(keyIt->second, message);
 			if (other != NULL) {
@@ -1768,7 +1768,7 @@ Message* MessageMap::getScanMessage(const unsigned char dstAddress) {
 	if (!isValidAddress(dstAddress, false) || isMaster(dstAddress)) {
 		return NULL;
 	}
-	unsigned long long key = m_scanMessage->getDerivedKey(dstAddress);
+	uint64_t key = m_scanMessage->getDerivedKey(dstAddress);
 	vector<Message*>* msgs = getByKey(key);
 	if (msgs != NULL) {
 		return msgs->front();
@@ -1888,8 +1888,8 @@ string MessageMap::getLoadedFiles(unsigned char address) {
 	return m_loadedFiles[address];
 }
 
-vector<Message*>* MessageMap::getByKey(const unsigned long long key) {
-	map<unsigned long long, vector<Message*> >::iterator it = m_messagesByKey.find(key);
+vector<Message*>* MessageMap::getByKey(const uint64_t key) {
+	map<uint64_t, vector<Message*> >::iterator it = m_messagesByKey.find(key);
 	if (it != m_messagesByKey.end()) {
 		return &it->second;
 	}
@@ -2002,26 +2002,26 @@ Message* MessageMap::find(SymbolString& master, bool anyDestination,
 	if (master.size() >= 5 && master[4] == 0 && anyDestination && master[2] == 0x07 && master[3] == 0x04) {
 		return m_scanMessage;
 	}
-	unsigned long long baseKey = Message::createKey(master, m_maxIdLength, anyDestination);
+	uint64_t baseKey = Message::createKey(master, m_maxIdLength, anyDestination);
 	if (baseKey == INVALID_KEY) {
 		return NULL;
 	}
 	unsigned char maxIdLength = Message::getKeyLength(baseKey);
 	for (unsigned char idLength = maxIdLength; true; idLength--) {
-		unsigned long long key = baseKey;
+		uint64_t key = baseKey;
 		if (idLength == maxIdLength) {
 			baseKey &= ~ID_LENGTH_AND_IDS_MASK;
 		} else {
-			key |= (unsigned long long)idLength << (8 * 7 + 5);
+			key |= (uint64_t)idLength << (8 * 7 + 5);
 			int exp = 3;
 			for (unsigned char i = 0; i < idLength; i++) {
-				key ^= (unsigned long long)master[5 + i] << (8 * exp--);
+				key ^= (uint64_t)master[5 + i] << (8 * exp--);
 				if (exp == 0) {
 					exp = 3;
 				}
 			}
 		}
-		map<unsigned long long , vector<Message*> >::iterator it;
+		map<uint64_t , vector<Message*> >::iterator it;
 		if (withPassive) {
 			it = m_messagesByKey.find(key);
 			if (it != m_messagesByKey.end()) {
@@ -2105,7 +2105,7 @@ void MessageMap::clear() {
 		if (it->first[0] != '-') { // avoid double free: instances stored multiple times have a key starting with "-"
 			for (vector<Message*>::iterator nit = nameMessages.begin(); nit != nameMessages.end(); nit++) {
 				Message* message = *nit;
-				map<unsigned long long, vector<Message*> >::iterator keyIt = m_messagesByKey.find(message->getKey());
+				map<uint64_t, vector<Message*> >::iterator keyIt = m_messagesByKey.find(message->getKey());
 				if (keyIt != m_messagesByKey.end()) {
 					vector<Message*>* keyMessages = &keyIt->second;
 					if (!keyMessages->empty()) {
@@ -2122,7 +2122,7 @@ void MessageMap::clear() {
 		nameMessages.clear();
 	}
 	// free remaining message instances by key
-	for (map<unsigned long long, vector<Message*> >::iterator it = m_messagesByKey.begin(); it != m_messagesByKey.end(); it++) {
+	for (map<uint64_t, vector<Message*> >::iterator it = m_messagesByKey.begin(); it != m_messagesByKey.end(); it++) {
 		vector<Message*> keyMessages = it->second;
 		for (vector<Message*>::iterator kit = keyMessages.begin(); kit != keyMessages.end(); kit++) {
 			Message* message = *kit;

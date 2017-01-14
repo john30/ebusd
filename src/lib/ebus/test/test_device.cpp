@@ -20,6 +20,7 @@
 #include <iomanip>
 #include "device.h"
 
+using namespace std;
 using namespace ebusd;
 
 int main() {

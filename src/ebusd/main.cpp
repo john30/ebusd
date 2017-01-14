@@ -861,7 +861,7 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 		if (::isspace(*it)) {
 			ident.erase(it--);
 		} else {
-			*it = (char)::tolower(*it);
+			*it = static_cast<char>(::tolower(*it));
 		}
 	}
 	// complete name: cfgpath/MANUFACTURER/ZZ[.C[C[C[C[C]]]]][.circuit][.suffix][.*][.SWxxxx][.HWxxxx][.*].csv

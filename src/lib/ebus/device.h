@@ -119,7 +119,7 @@ class Device {
 	 * @param value the reference in which the received byte value is stored.
 	 * @return the result_t code.
 	 */
-	result_t recv(const long timeout, unsigned char& value);
+	result_t recv(const unsigned int timeout, unsigned char& value);
 
 	/**
 	 * Return the device name.

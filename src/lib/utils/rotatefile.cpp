@@ -77,7 +77,7 @@ void RotateFile::write(unsigned char* value, unsigned int size, bool received) {
 	if ((m_fileSize%1024) == 0) {
 		fflush(m_stream);
 	}
-	if (m_fileSize >= m_maxSize * 1024) {
+	if (m_fileSize >= m_maxSize * 1024LL) {
 		string oldfile = string(m_fileName)+".old";
 		if (rename(m_fileName.c_str(), oldfile.c_str()) == 0) {
 			fclose(m_stream);

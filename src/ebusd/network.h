@@ -94,7 +94,7 @@ class NetMessage {
 					if (sscanf("%1x%1x", m_request.c_str()+pos+1, &value1, &value2) < 2) {
 						break;
 					}
-					m_request[pos] = (char)(((value1&0x0f)<<4) | (value2&0x0f));
+					m_request[pos] = static_cast<char>(((value1&0x0f)<<4) | (value2&0x0f));
 					m_request.erase(pos+1, 2);
 				}
 			} else if (pos+1 == m_request.length()) {

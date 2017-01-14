@@ -20,6 +20,7 @@
 #define EBUSD_BUSHANDLER_H_
 
 #include <pthread.h>
+#include <stdint.h>
 #include <string>
 #include <vector>
 #include <map>
@@ -588,7 +589,7 @@ class BusHandler : public WaitThread {
 	unsigned int m_remainLockCount;
 
 	/** the interval in microseconds after which to generate an AUTO-SYN symbol, or 0 if disabled. */
-	long m_generateSynInterval;
+	unsigned int m_generateSynInterval;
 
 	/** the interval in seconds in which poll messages are cycled, or 0 if disabled. */
 	const unsigned int m_pollInterval;
@@ -649,7 +650,7 @@ class BusHandler : public WaitThread {
 	bool m_grabMessages;
 
 	/** the grabbed messages by key.*/
-	map<unsigned long long, GrabbedMessage> m_grabbedMessages;
+	map<uint64_t, GrabbedMessage> m_grabbedMessages;
 };
 
 } // namespace ebusd

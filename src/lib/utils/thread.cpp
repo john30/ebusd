@@ -24,7 +24,7 @@
 #include "clock.h"
 
 void* Thread::runThread(void* arg) {
-	((Thread*)arg)->enter();
+	reinterpret_cast<Thread*>(arg)->enter();
 	return NULL;
 }
 
