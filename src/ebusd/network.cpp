@@ -27,7 +27,7 @@
 #include <cstring>
 #include "log.h"
 
-using namespace std;
+namespace ebusd {
 
 int Connection::m_ids = 0;
 
@@ -299,3 +299,4 @@ void Network::cleanConnections() {
 	}
 }
 
+} // namespace ebusd

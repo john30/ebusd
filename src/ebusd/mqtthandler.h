@@ -20,9 +20,9 @@
 #define EBUSD_MQTTHANDLER_H_
 
 #include <mosquitto.h>
+#include <map>
 #include <string>
 #include <vector>
-#include <map>
 #include "datahandler.h"
 #include "bushandler.h"
 #include "message.h"
@@ -31,7 +31,11 @@
  * A data handler enabling MQTT support via mosquitto.
  */
 
-using namespace std;
+namespace ebusd {
+
+using std::map;
+using std::string;
+using std::vector;
 
 /**
  * Helper function for getting the argp definition for MQTT.
@@ -127,5 +131,7 @@ class MqttHandler : public DataSink, public DataSource, public Thread {
 	/** the mosquitto structure if initialized, or NULL. */
 	struct mosquitto* m_mosquitto;
 };
+
+} // namespace ebusd
 
 #endif // EBUSD_MQTTHANDLER_H_

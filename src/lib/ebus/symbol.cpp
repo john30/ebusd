@@ -23,7 +23,13 @@
 #include <vector>
 #include "result.h"
 
-using namespace std;
+namespace ebusd {
+
+using std::ostringstream;
+using std::nouppercase;
+using std::setw;
+using std::hex;
+using std::setfill;
 
 /**
  * CRC8 lookup table for the polynom 0x9b = x^8 + x^7 + x^4 + x^3 + x^1 + 1.
@@ -69,7 +75,7 @@ result_t SymbolString::parseHex(const string& str, const bool isEscaped) {
 	for (size_t i = 0; i < str.size(); i += 2) {
 		char* strEnd = NULL;
 		const char* strBegin = str.substr(i, 2).c_str();
-		unsigned long int value = strtoul(strBegin, &strEnd, 16);
+		unsigned long value = strtoul(strBegin, &strEnd, 16);
 
 		if (strEnd == NULL || strEnd != strBegin+2 || value > 0xff) {
 			return RESULT_ERR_INVALID_NUM; // invalid value
@@ -83,7 +89,7 @@ result_t SymbolString::parseHex(const string& str, const bool isEscaped) {
 }
 
 const string SymbolString::getDataStr(const bool unescape, const bool skipLastSymbol) {
-	stringstream sstr;
+	ostringstream sstr;
 	bool previousEscape = false;
 
 	for (size_t i = 0; i < m_data.size(); i++) {
@@ -255,3 +261,4 @@ bool isValidAddress(unsigned char addr, bool allowBroadcast) {
 	return addr != SYN && addr != ESC && (allowBroadcast || addr != BROADCAST);
 }
 
+} // namespace ebusd

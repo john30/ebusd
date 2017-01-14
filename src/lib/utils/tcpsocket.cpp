@@ -23,8 +23,6 @@
 #include <string.h>
 #include <cstdlib>
 
-using namespace std;
-
 TCPSocket::TCPSocket(int sfd, struct sockaddr_in* address) : m_sfd(sfd) {
 	char ip[17];
 	inet_ntop(AF_INET, (struct in_addr*)&(address->sin_addr.s_addr), ip, (socklen_t)sizeof(ip)-1);
@@ -41,7 +39,7 @@ TCPSocket* TCPClient::connect(const string& server, const uint16_t& port) {
 	struct sockaddr_in address;
 	int ret;
 
-	memset((char*) &address, 0, sizeof(address));
+	memset(reinterpret_cast<char*>(&address), 0, sizeof(address));
 
 	if (inet_addr(server.c_str()) == INADDR_NONE) {
 		struct hostent* he;

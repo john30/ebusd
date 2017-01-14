@@ -19,9 +19,11 @@
 #include "contrib.h"
 #include "tem.h"
 
-using namespace std;
+namespace ebusd {
 
 bool libebus_contrib_register() {
 	contrib_tem_register();
 	return true;
 }
+
+} // namespace ebusd

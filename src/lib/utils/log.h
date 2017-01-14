@@ -32,7 +32,7 @@ enum LogFacility {
 };
 
 /** macro for enabling all log facilities. */
-#define LF_ALL ((1<<lf_main) | (1<<lf_network) | (1<<lf_bus) | (1<<lf_update) | (1<<lf_other))
+#define LF_ALL ((1 << lf_main) | (1 << lf_network) | (1 << lf_bus) | (1 << lf_update) | (1 << lf_other))
 
 /** the available log levels. */
 enum LogLevel {
@@ -53,7 +53,7 @@ bool setLogFacilities(const char* facilities);
 
 /**
  * Get the log facilities.
- * @param buffer the buffer into which the facilities are written to (separated by comma, buffer needs to be at last 32 characters long).
+ * @param buffer the buffer into which the facilities are written to (separated by comma, buffer needs to be at last 48 characters long).
  * @return true on success, false on error.
  */
 bool getLogFacilities(char* buffer);

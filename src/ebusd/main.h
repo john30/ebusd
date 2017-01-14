@@ -27,6 +27,8 @@
 
 /** \file main.h */
 
+namespace ebusd {
+
 /** A structure holding all program options. */
 struct options {
 	const char* device; //!< eBUS device (serial device or [udp:]ip:port) [/dev/ttyUSB0]
@@ -95,5 +97,7 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose = false, bool denyRe
  * @return the result code.
  */
 result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolString& data, string& relativeFile, bool verbose = false);
+
+} // namespace ebusd
 
 #endif // EBUSD_MAIN_H_

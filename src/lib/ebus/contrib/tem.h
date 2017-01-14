@@ -34,7 +34,7 @@
  * Contributed data types for TEM devices not part of regular releases.
  */
 
-using namespace std;
+namespace ebusd {
 
 /**
  * A special variant of @a NumberDataType for TEM/Dungs ParamID in master/slave
@@ -46,7 +46,7 @@ class TemParamDataType : public NumberDataType {
 	 * Constructs a new instance.
 	 * @param id the type identifier.
 	 */
-	TemParamDataType(const string id)
+	explicit TemParamDataType(const string id)
 		: NumberDataType(id, 16, 0, 0xffff, 0, 0xffff, 0) {}
 
 	// @copydoc
@@ -67,5 +67,7 @@ class TemParamDataType : public NumberDataType {
  * Registration function to be called once during initialization.
  */
 void contrib_tem_register();
+
+} // namespace ebusd
 
 #endif // LIB_EBUS_CONTRIB_TEM_H_

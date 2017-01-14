@@ -31,12 +31,19 @@
 #	include "contrib/contrib.h"
 #endif
 
-using namespace std;
+namespace ebusd {
+
+using std::dec;
+using std::hex;
+using std::fixed;
+using std::setfill;
+using std::setprecision;
+using std::setw;
 
 unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result, unsigned int* length) {
 	char* strEnd = NULL;
 
-	unsigned long int ret = strtoul(str, &strEnd, base);
+	unsigned long ret = strtoul(str, &strEnd, base);
 
 	if (strEnd == NULL || strEnd == str || *strEnd != 0) {
 		result = RESULT_ERR_INVALID_NUM; // invalid value
@@ -57,7 +64,7 @@ unsigned int parseInt(const char* str, int base, const unsigned int minValue, co
 int parseSignedInt(const char* str, int base, const int minValue, const int maxValue, result_t& result, unsigned int* length) {
 	char* strEnd = NULL;
 
-	long int ret = strtol(str, &strEnd, base);
+	long ret = strtol(str, &strEnd, base);
 
 	if (strEnd == NULL || *strEnd != 0) {
 		result = RESULT_ERR_INVALID_NUM; // invalid value
@@ -72,7 +79,7 @@ int parseSignedInt(const char* str, int base, const int minValue, const int maxV
 		*length = (unsigned int)(strEnd - str);
 	}
 	result = RESULT_OK;
-	return (int)ret;
+	return static_cast<int>(ret);
 }
 
 void printErrorPos(ostream& out, vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, string filename, size_t lineNo, result_t result) {
@@ -330,9 +337,9 @@ result_t DateTimeDataType::readSymbols(SymbolString& input, const bool isMaster,
 					break;
 				}
 				int mjd = last + ch*256 + 15020; // 01.01.1900
-				int y = (int)((mjd-15078.2)/365.25);
-				int m = (int)((mjd-14956.1-(int)(y*365.25))/30.6001);
-				int d = mjd-14956-(int)(y*365.25)-(int)(m*30.6001);
+				int y = static_cast<int>((mjd-15078.2)/365.25);
+				int m = static_cast<int>((mjd-14956.1-static_cast<int>(y*365.25))/30.6001);
+				int d = mjd-14956-static_cast<int>(y*365.25)-static_cast<int>(m*30.6001);
 				m--;
 				if (m >= 13) {
 					y++;
@@ -463,7 +470,7 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
 				} else if (i + 1 == count) {
 					int y = (value < 100 ? value + 2000 : value) - 1900;
 					int l = last <= 2 ? 1 : 0;
-					int mjd = 14956 + lastLast + (int)((y-l)*365.25) + (int)((last+1+l*12)*30.6001);
+					int mjd = 14956 + lastLast + static_cast<int>((y-l)*365.25) + static_cast<int>((last+1+l*12)*30.6001);
 					value = mjd - 15020; // 01.01.1900
 					output[baseOffset + offset] = (unsigned char)(value&0xff);
 					value >>=  8;
@@ -477,7 +484,7 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
 					// calculate local week day
 					int y = (value < 100 ? value + 2000 : value) - 1900;
 					int l = last <= 2 ? 1 : 0;
-					int mjd = 14956 + lastLast + (int)((y-l)*365.25) + (int)((last+1+l*12)*30.6001);
+					int mjd = 14956 + lastLast + static_cast<int>((y-l)*365.25) + static_cast<int>((last+1+l*12)*30.6001);
 					int daysSinceSunday = (mjd+3) % 7; // Sun=0
 					if (hasFlag(BCD)) {
 						output[baseOffset + offset - incr] = (unsigned char)((6+daysSinceSunday) % 7); // Sun=0x06
@@ -730,7 +737,7 @@ result_t NumberDataType::readSymbols(SymbolString& input, const bool isMaster,
 			value = __builtin_bswap32(value);
 #	endif
 			unsigned char* pval = (unsigned char*)&value;
-			val = *((float*)pval);
+			val = *reinterpret_cast<float*>(pval);
 #else
 			int exp = (value >> 23) & 0xff; // 8 bits, signed
 			if (exp == 0) {
@@ -738,7 +745,7 @@ result_t NumberDataType::readSymbols(SymbolString& input, const bool isMaster,
 			} else {
 				exp -= 127;
 				unsigned int sig = value & ((1 << 23) - 1);
-				val = (1.0f + (float)(sig / exp2(23))) * (float)exp2(exp);
+				val = (1.0f + static_cast<float>(sig / exp2(23))) * static_cast<float>(exp2(exp));
 				if (negative) {
 					val = -val;
 				}
@@ -746,9 +753,9 @@ result_t NumberDataType::readSymbols(SymbolString& input, const bool isMaster,
 #endif
 			if (val != 0.0) {
 				if (m_divisor < 0) {
-					val *= (float)-m_divisor;
+					val *= static_cast<float>(-m_divisor);
 				} else if (m_divisor > 1) {
-					val /= (float)m_divisor;
+					val /= static_cast<float>(m_divisor);
 				}
 			}
 			if (m_precision != 0) {
@@ -761,24 +768,24 @@ result_t NumberDataType::readSymbols(SymbolString& input, const bool isMaster,
 		}
 		if (!negative) {
 			if (m_divisor < 0) {
-				output << static_cast<float>((float)value * (float)(-m_divisor));
+				output << (static_cast<float>(value) * static_cast<float>(-m_divisor));
 			} else if (m_divisor <= 1) {
 				output << static_cast<unsigned>(value);
 			} else {
 				output << setprecision(m_precision)
-				       << fixed << static_cast<float>((float)value / (float)m_divisor);
+				       << fixed << (static_cast<float>(value) / static_cast<float>(m_divisor));
 			}
 			return RESULT_OK;
 		}
-		signedValue = (int)value; // negative signed value
+		signedValue = static_cast<int>(value); // negative signed value
 	} else if (negative) { // negative signed value
-		signedValue = (int)value - (1 << m_bitCount);
+		signedValue = static_cast<int>(value) - (1 << m_bitCount);
 	} else {
-		signedValue = (int)value;
+		signedValue = static_cast<int>(value);
 	}
 	if (m_divisor < 0) {
 		output << fixed << setprecision(0)
-				<< static_cast<float>((float)signedValue * (float)(-m_divisor));
+				<< (static_cast<float>(signedValue) * static_cast<float>(-m_divisor));
 	} else if (m_divisor <= 1) {
 		if (hasFlag(FIX) && hasFlag(BCD)) {
 			if (outputFormat & OF_JSON) {
@@ -793,7 +800,7 @@ result_t NumberDataType::readSymbols(SymbolString& input, const bool isMaster,
 		output << static_cast<signed>(signedValue) << setw(0);
 	} else {
 		output << setprecision(m_precision)
-		       << fixed << static_cast<float>((float)signedValue / (float)m_divisor);
+		       << fixed << (static_cast<float>(signedValue) / static_cast<float>(m_divisor));
 	}
 	return RESULT_OK;
 }
@@ -866,9 +873,9 @@ result_t NumberDataType::writeSymbols(istringstream& input,
 			dvalue *= m_divisor;
 		}
 #ifdef HAVE_DIRECT_FLOAT_FORMAT
-		float val = (float)dvalue;
+		float val = static_cast<float>(dvalue);
 		unsigned char* pval = (unsigned char*)&val;
-		value = *((int32_t*)pval);
+		value = *reinterpret_cast<int32_t*>(pval);
 #	if HAVE_DIRECT_FLOAT_FORMAT == 2
 		value = __builtin_bswap32(value);
 #	endif
@@ -896,7 +903,7 @@ result_t NumberDataType::writeSymbols(istringstream& input,
 		char* strEnd = NULL;
 		if (m_divisor == 1) {
 			if (hasFlag(SIG)) {
-				long int signedValue = strtol(str, &strEnd, 10);
+				long signedValue = strtol(str, &strEnd, 10);
 				if (signedValue < 0 && m_bitCount != 32) {
 					value = (unsigned int)(signedValue + (1 << m_bitCount));
 				} else {
@@ -924,9 +931,9 @@ result_t NumberDataType::writeSymbols(istringstream& input,
 					return RESULT_ERR_OUT_OF_RANGE; // value out of range
 				}
 				if (dvalue < 0 && m_bitCount != 32) {
-					value = (int)(dvalue + (1 << m_bitCount));
+					value = static_cast<int>(dvalue + (1 << m_bitCount));
 				} else {
-					value = (int)dvalue;
+					value = static_cast<int>(dvalue);
 				}
 			} else {
 				if (dvalue < 0.0 || dvalue >= (1LL << (8 * length))) {
@@ -1073,3 +1080,5 @@ DataType* DataTypeList::get(const string id, const unsigned char length) {
 	}
 	return dataType;
 }
+
+} // namespace ebusd

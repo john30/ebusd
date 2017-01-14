@@ -34,7 +34,12 @@
 #include "symbol.h"
 #include "log.h"
 
-using namespace std;
+namespace ebusd {
+
+using std::dec;
+using std::hex;
+using std::setfill;
+using std::setw;
 
 // the string used for answering to a scan request (07h 04h)
 #define SCAN_ANSWER ("ebusd.eu;" PACKAGE_NAME ";" SCAN_VERSION ";100")
@@ -315,7 +320,7 @@ void BusHandler::run() {
 }
 
 result_t BusHandler::handleSymbol() {
-	long timeout = SYN_TIMEOUT;
+	unsigned int timeout = SYN_TIMEOUT;
 	unsigned char sendSymbol = ESC;
 	bool sending = false;
 	BusRequest* startRequest = NULL;
@@ -874,7 +879,7 @@ void BusHandler::receiveCompleted() {
 	}
 	Message* message = m_messages->find(m_command);
 	if (m_grabMessages) {
-		unsigned long long key;
+		uint64_t key;
 		if (message) {
 			key = message->getKey();
 		} else {
@@ -1105,7 +1110,7 @@ void BusHandler::formatGrabResult(const bool unknown, ostringstream& output) {
 		output << "grab disabled";
 	} else {
 		bool first = true;
-		for (map<unsigned long long, GrabbedMessage>::iterator it = m_grabbedMessages.begin(); it != m_grabbedMessages.end(); it++) {
+		for (map<uint64_t, GrabbedMessage>::iterator it = m_grabbedMessages.begin(); it != m_grabbedMessages.end(); it++) {
 			if (it->second.dump(unknown, m_messages, first, output)) {
 				first = false;
 			}
@@ -1141,3 +1146,5 @@ void BusHandler::setScanConfigLoaded(unsigned char address, string file) {
 		m_messages->addLoadedFile(address, file, "");
 	}
 }
+
+} // namespace ebusd

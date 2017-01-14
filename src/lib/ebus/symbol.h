@@ -27,8 +27,6 @@
 #include <vector>
 #include "result.h"
 
-using namespace std;
-
 /** @file symbol.h
  * Classes, functions, and constants related to symbols on the eBUS.
  *
@@ -65,6 +63,11 @@ using namespace std;
  * non-acknowledge, the receiving slave has to repeat its data once.
  */
 
+namespace ebusd {
+
+using std::string;
+using std::vector;
+
 static const unsigned char ESC = 0xA9;       //!< escape symbol, either followed by 0x00 for the value 0xA9, or 0x01 for the value 0xAA
 static const unsigned char SYN = 0xAA;       //!< synchronization symbol
 static const unsigned char ACK = 0x00;       //!< positive acknowledge
@@ -81,7 +84,7 @@ class SymbolString {
 	 * Creates a new empty escaped or unescaped instance.
 	 * @param escaped whether to create an escaped instance.
 	 */
-	SymbolString(const bool escaped = true) : m_unescapeState(escaped ? 0 : 1), m_crc(0) {}
+	explicit SymbolString(const bool escaped = true) : m_unescapeState(escaped ? 0 : 1), m_crc(0) {}
 
 	/**
 	 * Add all symbols from the other @a SymbolString and the calculated CRC if escaped.
@@ -256,5 +259,7 @@ unsigned char getMasterNumber(unsigned char addr);
  * @return <code>true</code> if the specified address is a valid bus address.
  */
 bool isValidAddress(unsigned char addr, bool allowBroadcast = true);
+
+} // namespace ebusd
 
 #endif // LIB_EBUS_SYMBOL_H_

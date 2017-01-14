@@ -29,7 +29,11 @@
 #include <cstring>
 #include "datatype.h"
 
-using namespace std;
+namespace ebusd {
+
+using std::setfill;
+using std::setw;
+using std::dec;
 
 void contrib_tem_register() {
 	DataTypeList::getInstance()->add(new TemParamDataType("TEM_P"));
@@ -125,9 +129,9 @@ result_t TemParamDataType::writeSymbols(istringstream& input,
 			return RESULT_ERR_OUT_OF_RANGE; // value out of range
 		}
 		if (isMaster) {
-			value = grp | (num<<8); // grp in bits 0...5, num in bits 8...13
+			value = grp | (num << 8); // grp in bits 0...5, num in bits 8...13
 		} else {
-			value = (grp<<7) | num; // grp in bits 7...11, num in bits 0...6
+			value = (grp << 7) | num; // grp in bits 7...11, num in bits 0...6
 		}
 	}
 	if (value < getMinValue() || value > getMaxValue()) {
@@ -135,3 +139,5 @@ result_t TemParamDataType::writeSymbols(istringstream& input,
 	}
 	return writeRawValue(value, offset, length, output, usedLength);
 }
+
+} // namespace ebusd

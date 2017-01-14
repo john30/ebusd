@@ -27,7 +27,7 @@
 #include <string>
 #include "clock.h"
 
-using namespace std;
+using std::streamsize;
 
 RotateFile::~RotateFile() {
 	if (m_stream) {
@@ -58,12 +58,12 @@ void RotateFile::write(unsigned char* value, unsigned int size, bool received) {
 	}
 	if (m_textMode) {
 		struct timespec ts;
-		struct tm* tm;
+		struct tm td;
 		clockGettime(&ts);
-		tm = localtime(&ts.tv_sec);
+		localtime_r(&ts.tv_sec, &td);
 		fprintf(m_stream, "%04d-%02d-%02d %02d:%02d:%02d.%03ld %c",
-			tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday,
-			tm->tm_hour, tm->tm_min, tm->tm_sec, ts.tv_nsec/1000000,
+			td.tm_year+1900, td.tm_mon+1, td.tm_mday,
+			td.tm_hour, td.tm_min, td.tm_sec, ts.tv_nsec/1000000,
 			received ? '<' : '>');
 		for (unsigned int pos = 0; pos < size; pos++) {
 			fprintf(m_stream, "%2.2x ", value[pos]);
@@ -77,7 +77,7 @@ void RotateFile::write(unsigned char* value, unsigned int size, bool received) {
 	if ((m_fileSize%1024) == 0) {
 		fflush(m_stream);
 	}
-	if (m_fileSize >= m_maxSize * 1024) {
+	if (m_fileSize >= m_maxSize * 1024LL) {
 		string oldfile = string(m_fileName)+".old";
 		if (rename(m_fileName.c_str(), oldfile.c_str()) == 0) {
 			fclose(m_stream);

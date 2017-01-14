@@ -38,6 +38,14 @@
 #include "log.h"
 #include "rotatefile.h"
 
+namespace ebusd {
+
+using std::dec;
+using std::hex;
+using std::setfill;
+using std::setw;
+using std::nouppercase;
+
 /** the path and name of the PID file. */
 #ifdef PACKAGE_PIDFILE
 #define PID_FILE_NAME PACKAGE_PIDFILE
@@ -853,7 +861,7 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 		if (::isspace(*it)) {
 			ident.erase(it--);
 		} else {
-			*it = (char)::tolower(*it);
+			*it = static_cast<char>(::tolower(*it));
 		}
 	}
 	// complete name: cfgpath/MANUFACTURER/ZZ[.C[C[C[C[C]]]]][.circuit][.suffix][.*][.SWxxxx][.HWxxxx][.*].csv
@@ -935,6 +943,9 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 	return RESULT_OK;
 }
 
+} // namespace ebusd
+
+using namespace ebusd;
 
 /**
  * Main method.
@@ -1033,4 +1044,5 @@ int main(int argc, char* argv[]) {
 
 	// shutdown
 	shutdown();
+	return 0;
 }

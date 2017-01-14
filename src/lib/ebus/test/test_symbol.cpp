@@ -22,6 +22,7 @@
 #include "symbol.h"
 
 using namespace std;
+using namespace ebusd;
 
 static bool error = false;
 

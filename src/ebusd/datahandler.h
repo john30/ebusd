@@ -31,7 +31,10 @@
  * the bus.
  */
 
-using namespace std;
+namespace ebusd {
+
+using std::list;
+using std::map;
 
 class DataHandler;
 
@@ -125,7 +128,7 @@ class DataSource : virtual public DataHandler {
 	 * Constructor.
 	 * @param busHandler the @a BusHandler instance.
 	 */
-	DataSource(BusHandler* busHandler)
+	explicit DataSource(BusHandler* busHandler)
 		: m_busHandler(busHandler) {}
 
 	/**
@@ -141,5 +144,7 @@ class DataSource : virtual public DataHandler {
 	/** the @a BusHandler instance. */
 	BusHandler* m_busHandler;
 };
+
+} // namespace ebusd
 
 #endif // EBUSD_DATAHANDLER_H_

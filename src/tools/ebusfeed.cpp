@@ -28,8 +28,17 @@
 #include <fstream>
 #include <iomanip>
 #include "device.h"
+#include "result.h"
 
-using namespace std;
+using std::hex;
+using std::fstream;
+using std::cout;
+using std::endl;
+using std::setw;
+using std::setfill;
+using std::ios;
+using ebusd::result_t;
+using ebusd::Device;
 
 /** A structure holding all program options. */
 struct options {
@@ -133,7 +142,7 @@ int main(int argc, char* argv[]) {
 		return EINVAL;
 	}
 	result_t result = device->open();
-	if (result != RESULT_OK) {
+	if (result != ebusd::RESULT_OK) {
 		cout << "unable to open " << opt.device << ": " << getResultCode(result) << endl;
 	}
 	if (!device->isValid()) {

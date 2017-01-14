@@ -30,7 +30,7 @@
 
 /** \file mainloop.h */
 
-using namespace std;
+namespace ebusd {
 
 /**
  * The main loop handling requests from connected clients.
@@ -251,5 +251,7 @@ class MainLoop : public Thread, DeviceListener {
 	/** the registered @a DataHandler instances. */
 	list<DataHandler*> m_dataHandlers;
 };
+
+} // namespace ebusd
 
 #endif // EBUSD_MAINLOOP_H_

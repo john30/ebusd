@@ -20,6 +20,7 @@
 #define EBUSD_BUSHANDLER_H_
 
 #include <pthread.h>
+#include <stdint.h>
 #include <string>
 #include <vector>
 #include <map>
@@ -40,7 +41,9 @@
  * @image html states.png "ebusd BusHandler states"
  */
 
-using namespace std;
+namespace ebusd {
+
+using std::string;
 
 /** the default time [us] for retrieving a symbol from an addressed slave. */
 #define SLAVE_RECV_TIMEOUT 15000
@@ -143,7 +146,7 @@ class PollRequest : public BusRequest {
 	 * Constructor.
 	 * @param message the associated @a Message.
 	 */
-	PollRequest(Message* message)
+	explicit PollRequest(Message* message)
 		: BusRequest(m_master, true), m_message(message), m_index(0) {}
 
 	/**
@@ -586,7 +589,7 @@ class BusHandler : public WaitThread {
 	unsigned int m_remainLockCount;
 
 	/** the interval in microseconds after which to generate an AUTO-SYN symbol, or 0 if disabled. */
-	long m_generateSynInterval;
+	unsigned int m_generateSynInterval;
 
 	/** the interval in seconds in which poll messages are cycled, or 0 if disabled. */
 	const unsigned int m_pollInterval;
@@ -647,7 +650,9 @@ class BusHandler : public WaitThread {
 	bool m_grabMessages;
 
 	/** the grabbed messages by key.*/
-	map<unsigned long long, GrabbedMessage> m_grabbedMessages;
+	map<uint64_t, GrabbedMessage> m_grabbedMessages;
 };
+
+} // namespace ebusd
 
 #endif // EBUSD_BUSHANDLER_H_

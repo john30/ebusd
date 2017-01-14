@@ -27,7 +27,12 @@
 #include "log.h"
 #include "data.h"
 
-using namespace std;
+namespace ebusd {
+
+using std::dec;
+using std::hex;
+using std::setfill;
+using std::setw;
 
 /** the number of seconds of permanent missing signal after which to reconnect the device. */
 #define RECONNECT_MISSING_SIGNAL 60
@@ -610,14 +615,14 @@ string MainLoop::executeRead(vector<string> &args) {
 			   "    Dx        data byte(s) to send";
 	}
 	string fieldName;
-	signed char fieldIndex = -2;
+	char fieldIndex = -2;
 	if (args.size() == argPos + 2) {
 		fieldName = args[argPos + 1];
 		fieldIndex = -1;
 		size_t pos = fieldName.find_last_of('.');
 		if (pos != string::npos) {
 			result_t result = RESULT_OK;
-			fieldIndex = (char)parseInt(fieldName.substr(pos+1).c_str(), 10, 0, MAX_POS, result);
+			fieldIndex = static_cast<char>(parseInt(fieldName.substr(pos+1).c_str(), 10, 0, MAX_POS, result));
 			if (result == RESULT_OK) {
 				fieldName = fieldName.substr(0, pos);
 			}
@@ -1042,17 +1047,19 @@ string MainLoop::executeFind(vector<string> &args) {
 			if (verbosity == (OF_NAMES|OF_UNITS|OF_COMMENTS)) {
 				unsigned char dstAddress = message->getDstAddress();
 				if (dstAddress != SYN) {
-					sprintf(str, "%02x", dstAddress);
+					snprintf(str, sizeof(str), "%02x", dstAddress);
 				} else if (lastup != 0 && message->getLastMasterData().size() > 1) {
-					sprintf(str, "%02x", message->getLastMasterData()[1]);
+					snprintf(str, sizeof(str), "%02x", message->getLastMasterData()[1]);
 				} else {
-					sprintf(str, "any");
+					snprintf(str, sizeof(str), "any");
 				}
 				if (lastup != 0) {
-					struct tm* td = localtime(&lastup);
-					sprintf(str+strlen(str), ", lastup=%04d-%02d-%02d %02d:%02d:%02d",
-						td->tm_year+1900, td->tm_mon+1, td->tm_mday,
-						td->tm_hour, td->tm_min, td->tm_sec);
+					struct tm td;
+					localtime_r(&lastup, &td);
+					size_t len = strlen(str);
+					snprintf(str+len, sizeof(str)-len, ", lastup=%04d-%02d-%02d %02d:%02d:%02d",
+						td.tm_year+1900, td.tm_mon+1, td.tm_mday,
+						td.tm_hour, td.tm_min, td.tm_sec);
 				}
 				result << " [ZZ=" << str;
 				if (message->isPassive()) {
@@ -1182,7 +1189,7 @@ string MainLoop::executeScan(vector<string> &args) {
 string MainLoop::executeLog(vector<string> &args) {
 	if (args.size() == 1) {
 		ostringstream ret;
-		char str[32];
+		char str[48];
 		if (getLogFacilities(str)) {
 			ret << str << ' ';
 		}
@@ -1534,3 +1541,5 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
 	connected = false;
 	return result.str();
 }
+
+} // namespace ebusd

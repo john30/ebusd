@@ -24,7 +24,7 @@
 #include <map>
 #include "message.h"
 
-using namespace std;
+using namespace ebusd;
 
 void verify(bool expectFailMatch, string type, string input,
 		bool match, string expectStr, string gotStr) {
@@ -45,11 +45,13 @@ void verify(bool expectFailMatch, string type, string input,
 
 DataFieldTemplates* templates = NULL;
 
+namespace ebusd {
 DataFieldTemplates* getTemplates(const string filename) {
 	if (filename == "") { // avoid compiler warning
 		return templates;
 	}
 	return templates;
+}
 }
 
 int main() {

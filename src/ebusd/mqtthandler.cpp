@@ -23,7 +23,9 @@
 #include "mqtthandler.h"
 #include "log.h"
 
-using namespace std;
+namespace ebusd {
+
+using std::dec;
 
 /** the definition of the MQTT arguments. */
 static const struct argp_option g_mqtt_argp_options[] = {
@@ -213,7 +215,7 @@ MqttHandler::MqttHandler(BusHandler* busHandler, MessageMap* messages)
 #if (LIBMOSQUITTO_MAJOR < 1)
 			true,
 #endif
-			willTopic.c_str(), (uint32_t)len, (uint8_t*)(willData.c_str()), 0, true);
+			willTopic.c_str(), (uint32_t)len, reinterpret_cast<const uint8_t*>(willData.c_str()), 0, true);
 		if (mosquitto_connect(m_mosquitto, g_host, g_port, 60
 #if (LIBMOSQUITTO_MAJOR < 1)
 				, true
@@ -248,12 +250,12 @@ void on_message(
 	struct mosquitto *mosq,
 #endif
 	void *obj, const struct mosquitto_message *message) {
-	MqttHandler* handler = (MqttHandler*)obj;
+	MqttHandler* handler = reinterpret_cast<MqttHandler*>(obj);
 	if (!handler || !message || !handler->isRunning()) {
 		return;
 	}
 	string topic(message->topic);
-	string data(message->payloadlen > 0 ? (char*)message->payload : "");
+	string data(message->payloadlen > 0 ? reinterpret_cast<char*>(message->payload) : "");
 	handler->notifyTopic(topic, data);
 }
 
@@ -453,5 +455,7 @@ void MqttHandler::publishMessage(Message* message, ostringstream& updates) {
 
 void MqttHandler::publishTopic(string topic, string data, bool retain) {
 	logOtherDebug("mqtt", "publish %s %s", topic.c_str(), data.c_str());
-	mosquitto_publish(m_mosquitto, NULL, topic.c_str(), (uint32_t)data.size(), (uint8_t*)(data.c_str()), 0, retain);
+	mosquitto_publish(m_mosquitto, NULL, topic.c_str(), (uint32_t)data.size(), reinterpret_cast<const uint8_t*>(data.c_str()), 0, retain);
 }
+
+} // namespace ebusd

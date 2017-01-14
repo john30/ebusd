@@ -20,6 +20,7 @@
 #define LIB_UTILS_ROTATEFILE_H_
 
 #include <unistd.h>
+#include <stdint.h>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -28,7 +29,7 @@
  * Helpers for writing to rotating files.
  */
 
-using namespace std;
+using std::string;
 
 /**
  * Helper class for writing to a rotating file with maximum size.
@@ -41,7 +42,7 @@ class RotateFile {
 	 * @param maxSize the maximum size of the file to write to.
 	 * @param textMode whether to write each byte with prefixed timestamp and direction as text.
 	 */
-	RotateFile(const string fileName, const unsigned long maxSize, const bool textMode = false)
+	RotateFile(const string fileName, const unsigned int maxSize, const bool textMode = false)
 		: m_enabled(false), m_fileName(fileName), m_maxSize(maxSize), m_textMode(textMode), m_stream(), m_fileSize(0) {}
 
 	/**
@@ -79,7 +80,7 @@ class RotateFile {
 	const string m_fileName;
 
 	/** the maximum size of @a m_file, or 0 for infinite. */
-	const unsigned long m_maxSize;
+	const unsigned int m_maxSize;
 
 	/** whether to write each byte with prefixed timestamp and direction as text. */
 	const bool m_textMode;
@@ -88,7 +89,7 @@ class RotateFile {
 	FILE* m_stream;
 
 	/** the number of bytes already written to the @a m_file. */
-	unsigned long m_fileSize;
+	uint64_t m_fileSize;
 };
 
 #endif // LIB_UTILS_ROTATEFILE_H_

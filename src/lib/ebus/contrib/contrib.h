@@ -24,12 +24,14 @@
  * configure switch: --without-contrib
  */
 
-using namespace std;
+namespace ebusd {
 
 /**
  * Registration function that is called once during initialization.
  * @return true if registration was successful.
  */
 bool libebus_contrib_register();
+
+} // namespace ebusd
 
 #endif // LIB_EBUS_CONTRIB_CONTRIB_H_

@@ -36,7 +36,7 @@
  * to a file and/or forwarding it to a logging function.
  */
 
-using namespace std;
+namespace ebusd {
 
 /**
  * Interface for listening to data received on/sent to a device.
@@ -119,7 +119,7 @@ class Device {
 	 * @param value the reference in which the received byte value is stored.
 	 * @return the result_t code.
 	 */
-	result_t recv(const long timeout, unsigned char& value);
+	result_t recv(const unsigned int timeout, unsigned char& value);
 
 	/**
 	 * Return the device name.
@@ -283,5 +283,7 @@ class NetworkDevice : public Device {
 	/** the buffer read position. */
 	unsigned char m_bufPos;
 };
+
+} // namespace ebusd
 
 #endif // LIB_EBUS_DEVICE_H_

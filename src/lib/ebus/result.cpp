@@ -19,7 +19,7 @@
 #include "result.h"
 #include <iostream>
 
-using namespace std;
+namespace ebusd {
 
 const char* getResultCode(result_t resultCode) {
 	switch (resultCode) {
@@ -58,3 +58,4 @@ const char* getResultCode(result_t resultCode) {
 	}
 }
 
+} // namespace ebusd

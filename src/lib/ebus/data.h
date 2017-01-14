@@ -45,7 +45,8 @@
  * instances from configuration files by inheriting the @a FileReader template
  * class.
  */
-using namespace std;
+
+namespace ebusd {
 
 class DataFieldTemplates;
 class SingleDataField;
@@ -655,5 +656,7 @@ class DataFieldTemplates : public FileReader {
 	/** the known template @a DataField instances by name. */
 	map<string, DataField*> m_fieldsByName;
 };
+
+} // namespace ebusd
 
 #endif // LIB_EBUS_DATA_H_

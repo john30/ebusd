@@ -36,7 +36,7 @@
 #include <fstream>
 #include "data.h"
 
-using namespace std;
+namespace ebusd {
 
 Device::~Device() {
 	close();
@@ -63,7 +63,7 @@ Device* Device::create(const char* name, const bool checkDevice, const bool read
 			return NULL; // invalid port
 		}
 		struct sockaddr_in address;
-		memset((char*)&address, 0, sizeof(address));
+		memset(reinterpret_cast<char*>(&address), 0, sizeof(address));
 		*portpos = 0;
 		if (inet_aton(addrpos, &address.sin_addr) == 0) {
 			struct hostent* h = gethostbyname(addrpos);
@@ -111,7 +111,7 @@ result_t Device::send(const unsigned char value) {
 	return RESULT_OK;
 }
 
-result_t Device::recv(const long timeout, unsigned char& value) {
+result_t Device::recv(const unsigned int timeout, unsigned char& value) {
 	if (!isValid()) {
 		return RESULT_ERR_DEVICE;
 	}
@@ -254,9 +254,9 @@ result_t NetworkDevice::open() {
 		ret = bind(m_fd, (struct sockaddr*)&address, sizeof(address));
 	} else {
 		int value = 1;
-		ret = setsockopt(m_fd, IPPROTO_TCP, TCP_NODELAY, (void*)&value, sizeof(value));
+		ret = setsockopt(m_fd, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<void*>(&value), sizeof(value));
 		value = 1;
-		setsockopt(m_fd, SOL_SOCKET, SO_KEEPALIVE, (void*)&value, sizeof(value));
+		setsockopt(m_fd, SOL_SOCKET, SO_KEEPALIVE, reinterpret_cast<void*>(&value), sizeof(value));
 	}
 	if (ret == 0) {
 		ret = connect(m_fd, (struct sockaddr*)&m_address, sizeof(m_address));
@@ -323,3 +323,5 @@ ssize_t NetworkDevice::read(unsigned char& value) {
 	}
 	return Device::read(value);
 }
+
+} // namespace ebusd
