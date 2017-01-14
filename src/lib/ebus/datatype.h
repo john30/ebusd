@@ -16,12 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBEBUS_DATATYPE_H_
-#define LIBEBUS_DATATYPE_H_
+#ifndef LIB_EBUS_DATATYPE_H_
+#define LIB_EBUS_DATATYPE_H_
 
-#include "symbol.h"
-#include "result.h"
-#include "filereader.h"
 #include <string>
 #include <iostream>
 #include <sstream>
@@ -29,6 +26,9 @@
 #include <vector>
 #include <list>
 #include <map>
+#include "symbol.h"
+#include "result.h"
+#include "filereader.h"
 
 /** @file datatype.h
  * Classes, functions, and constants related to decoding/encoding of symbols
@@ -116,7 +116,7 @@ static const unsigned int CON = 0x1000; //!< marker for a constant value
  * @param length the optional variable in which to store the number of read characters.
  * @return the parsed value.
  */
-unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result, unsigned int* length=NULL);
+unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result, unsigned int* length = NULL);
 
 /**
  * Parse a signed int value.
@@ -128,7 +128,7 @@ unsigned int parseInt(const char* str, int base, const unsigned int minValue, co
  * @param length the optional variable in which to store the number of read characters.
  * @return the parsed value.
  */
-int parseSignedInt(const char* str, int base, const int minValue, const int maxValue, result_t& result, unsigned int* length=NULL);
+int parseSignedInt(const char* str, int base, const int minValue, const int maxValue, result_t& result, unsigned int* length = NULL);
 
 /**
  * Print the error position of the iterator.
@@ -146,10 +146,8 @@ void printErrorPos(ostream& out, vector<string>::iterator begin, const vector<st
 /**
  * Base class for all kinds of data types.
  */
-class DataType
-{
-public:
-
+class DataType {
+	public:
 	/**
 	 * Constructs a new instance.
 	 * @param id the type identifier.
@@ -251,8 +249,8 @@ public:
 		const unsigned char offset, const unsigned char length,
 		SymbolString& output, const bool isMaster, unsigned char* usedLength) = 0;
 
-protected:
 
+	protected:
 	/** the type identifier. */
 	const string m_id;
 
@@ -264,17 +262,14 @@ protected:
 
 	/** the replacement value (fill-up value for @a StringDataType, no replacement if equal to @a NumberDataType#minValue). */
 	const unsigned int m_replacement;
-
 };
 
 
 /**
  * A string based @a DataType.
  */
-class StringDataType : public DataType
-{
-public:
-
+class StringDataType : public DataType {
+	public:
 	/**
 	 * Constructs a new instance.
 	 * @param id the type identifier.
@@ -284,7 +279,7 @@ public:
 	 * @param isHex true for hex digits instead of characters.
 	 */
 	StringDataType(const string id, const unsigned char bitCount, const unsigned short flags,
-		const unsigned int replacement, bool isHex=false)
+		const unsigned int replacement, bool isHex = false)
 		: DataType(id, bitCount, flags, replacement), m_isHex(isHex) {}
 
 	/**
@@ -307,21 +302,18 @@ public:
 		const unsigned char offset, const unsigned char length,
 		SymbolString& output, const bool isMaster, unsigned char* usedLength);
 
-private:
 
+	private:
 	/** true for hex digits instead of characters. */
 	const bool m_isHex;
-
 };
 
 
 /**
  * A date/time based @a DataType.
  */
-class DateTimeDataType : public DataType
-{
-public:
-
+class DateTimeDataType : public DataType {
+	public:
 	/**
 	 * Constructs a new instance.
 	 * @param id the type identifier.
@@ -371,8 +363,8 @@ public:
 		const unsigned char offset, const unsigned char length,
 		SymbolString& output, const bool isMaster, unsigned char* usedLength);
 
-private:
 
+	private:
 	/** true if date part is present. */
 	const bool m_hasDate;
 
@@ -381,17 +373,14 @@ private:
 
 	/** the resolution in minutes for time types, or 1. */
 	const short m_resolution;
-
 };
 
 
 /**
  * A number based @a DataType.
  */
-class NumberDataType : public DataType
-{
-public:
-
+class NumberDataType : public DataType {
+	public:
 	/**
 	 * Constructs a new instance for multiple of 8 bits.
 	 * @param id the type identifier.
@@ -494,15 +483,15 @@ public:
 	 */
 	virtual result_t writeRawValue(unsigned int value,
 		const unsigned char offset, const unsigned char length,
-		SymbolString& output, unsigned char* usedLength=NULL);
+		SymbolString& output, unsigned char* usedLength = NULL);
 
 	// @copydoc
 	virtual result_t writeSymbols(istringstream& input,
 		const unsigned char offset, const unsigned char length,
 		SymbolString& output, const bool isMaster, unsigned char* usedLength);
 
-private:
 
+	private:
 	/** the minimum raw value. */
 	const unsigned int m_minValue;
 
@@ -520,17 +509,14 @@ private:
 
 	/** the base @a NumberDataType for derived instances. */
 	NumberDataType* m_baseType;
-
 };
 
 
 /**
  * A map of base @a DataType instances.
  */
-class DataTypeList
-{
-public:
-
+class DataTypeList {
+	public:
 	/**
 	 * Constructs a new instance and registers the known base data types.
 	 */
@@ -575,10 +561,10 @@ public:
 	 * @return the @a DataType instance, or NULL if not available.
 	 * Note: the caller may not free the instance.
 	 */
-	DataType* get(const string id, const unsigned char length=0);
+	DataType* get(const string id, const unsigned char length = 0);
 
-private:
 
+	private:
 	/** the known @a DataType instances by ID only. */
 	map<string, DataType*> m_typesById;
 
@@ -596,7 +582,6 @@ private:
 	/** true when contributed datatypes were successfully initialized. */
 	static bool s_contrib_initialized;
 #endif
-
 };
 
-#endif // LIBEBUS_DATATYPE_H_
+#endif // LIB_EBUS_DATATYPE_H_

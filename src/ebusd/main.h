@@ -16,19 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef MAIN_H_
-#define MAIN_H_
+#ifndef EBUSD_MAIN_H_
+#define EBUSD_MAIN_H_
 
-#include "result.h"
+#include <stdint.h>
+#include <string>
 #include "data.h"
 #include "message.h"
-#include <stdint.h>
+#include "result.h"
 
 /** \file main.h */
 
 /** A structure holding all program options. */
-struct options
-{
+struct options {
 	const char* device; //!< eBUS device (serial device or [udp:]ip:port) [/dev/ttyUSB0]
 	bool noDeviceCheck; //!< skip serial eBUS device test
 	bool readOnly; //!< read-only access to the device
@@ -38,7 +38,7 @@ struct options
 	const char* configPath; //!< path to CSV configuration files [/etc/ebusd]
 	bool scanConfig; //!< pick configuration files matching initial scan
 	unsigned char initialScan; //!< the initial address to scan for scanconfig (@a ESC=none, 0xfe=broadcast ident, @a SYN=full scan, else: single slave address)
-	int checkConfig; //!< check CSV config files (!=0) and optionally dump (2), then stop
+	int checkConfig; //!< check CSV config files ( != 0) and optionally dump (2), then stop
 	int pollInterval; //!< poll interval in seconds, 0 to disable [5]
 
 	unsigned char address; //!< own bus address [31]
@@ -83,7 +83,7 @@ DataFieldTemplates* getTemplates(const string filename);
  * @param denyRecursive whether to avoid loading all files recursively (e.g. for scan config check).
  * @return the result code.
  */
-result_t loadConfigFiles(MessageMap* messages, bool verbose=false, bool denyRecursive=false);
+result_t loadConfigFiles(MessageMap* messages, bool verbose = false, bool denyRecursive = false);
 
 /**
  * Load the message definitions from a configuration file matching the scan result.
@@ -94,6 +94,6 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose=false, bool denyRecu
  * @param verbose whether to verbosely log problems.
  * @return the result code.
  */
-result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolString& data, string& relativeFile, bool verbose=false);
+result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolString& data, string& relativeFile, bool verbose = false);
 
-#endif // MAIN_H_
+#endif // EBUSD_MAIN_H_

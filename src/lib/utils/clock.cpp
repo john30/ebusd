@@ -27,8 +27,7 @@ static bool clockInitialized = false;
 static clock_serv_t clockServ;
 #endif
 
-void clockGettime(struct timespec* t)
-{
+void clockGettime(struct timespec* t) {
 #ifdef __MACH__
 	if (!clockInitialized) {
 		clockInitialized = true;

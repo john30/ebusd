@@ -16,12 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBUTILS_QUEUE_H_
-#define LIBUTILS_QUEUE_H_
+#ifndef LIB_UTILS_QUEUE_H_
+#define LIB_UTILS_QUEUE_H_
 
-#include <list>
 #include <pthread.h>
 #include <errno.h>
+#include <list>
 #include "clock.h"
 
 /** \file queue.h */
@@ -33,15 +33,12 @@ using namespace std;
  * @param T the item type.
  */
 template <typename T>
-class Queue
-{
-
-public:
+class Queue {
+	public:
 	/**
 	 * Constructor.
 	 */
-	Queue()
-	{
+	Queue() {
 		pthread_mutex_init(&m_mutex, NULL);
 		pthread_cond_init(&m_cond, NULL);
 	}
@@ -49,28 +46,26 @@ public:
 	/**
 	 * Destructor.
 	 */
-	~Queue()
-	{
+	~Queue() {
 		pthread_mutex_destroy(&m_mutex);
 		pthread_cond_destroy(&m_cond);
 	}
 
-private:
 
+	private:
 	/**
 	 * Hidden copy constructor.
 	 * @param src the object to copy from.
 	 */
 	Queue(const Queue& src);
 
-public:
 
+	public:
 	/**
 	 * Add an item to the end of queue.
 	 * @param item the item to add.
 	 */
-	void push(T item)
-	{
+	void push(T item) {
 		pthread_mutex_lock(&m_mutex);
 		m_queue.push_back(item);
 		pthread_cond_broadcast(&m_cond);
@@ -82,22 +77,22 @@ public:
 	 * @param timeout the maximum time in seconds to wait for the queue being filled, or 0 for no wait.
 	 * @return the item, or NULL if no item is available within the specified time.
 	 */
-	T pop(int timeout=0)
-	{
+	T pop(int timeout = 0) {
 		T item;
 		pthread_mutex_lock(&m_mutex);
-		if (timeout>0) {
+		if (timeout > 0) {
 			struct timespec t;
 			clockGettime(&t);
 			t.tv_sec += timeout;
 			while (m_queue.empty()) {
-				if (pthread_cond_timedwait(&m_cond, &m_mutex, &t)==ETIMEDOUT)
+				if (pthread_cond_timedwait(&m_cond, &m_mutex, &t) == ETIMEDOUT) {
 					break;
+				}
 			}
 		}
-		if (m_queue.empty())
+		if (m_queue.empty()) {
 			item = NULL;
-		else {
+		} else {
 			item = m_queue.front();
 			m_queue.pop_front();
 		}
@@ -111,8 +106,7 @@ public:
 	 * @param wait true to wait for the item to appear in the queue.
 	 * @return whether the item was removed.
 	 */
-	bool remove(T item, bool wait=false)
-	{
+	bool remove(T item, bool wait = false) {
 		bool ret = false;
 		pthread_mutex_lock(&m_mutex);
 		do {
@@ -134,19 +128,20 @@ public:
 	 * Return the first item in the queue without removing it.
 	 * @return the item, or NULL if no item is available.
 	 */
-	T peek()
-	{
+	T peek() {
 		T item;
 		pthread_mutex_lock(&m_mutex);
-		if (m_queue.empty())
+		if (m_queue.empty()) {
 			item = NULL;
-		else
+		} else {
 			item = m_queue.front();
+		}
 		pthread_mutex_unlock(&m_mutex);
 		return item;
 	}
 
-private:
+
+	private:
 	/** the queue itself */
 	list<T> m_queue;
 
@@ -155,7 +150,6 @@ private:
 
 	/** condition variable for exclusive lock */
 	pthread_cond_t m_cond;
-
 };
 
-#endif // LIBUTILS_QUEUE_H_
+#endif // LIB_UTILS_QUEUE_H_

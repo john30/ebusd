@@ -16,41 +16,43 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "message.h"
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <string>
+#include <vector>
+#include <map>
+#include "message.h"
 
 using namespace std;
 
 void verify(bool expectFailMatch, string type, string input,
-		bool match, string expectStr, string gotStr)
-{
+		bool match, string expectStr, string gotStr) {
 	if (expectFailMatch) {
-		if (match)
+		if (match) {
 			cout << "  failed " << type << " match >" << input
 			        << "< error: unexpectedly succeeded" << endl;
-		else
+		} else {
 			cout << "  failed " << type << " match >" << input << "< OK" << endl;
-	}
-	else if (match)
+		}
+	} else if (match) {
 		cout << "  " << type << " match >" << input << "< OK" << endl;
-	else
+	} else {
 		cout << "  " << type << " match >" << input << "< error: got >"
 		        << gotStr << "<, expected >" << expectStr << "<" << endl;
+	}
 }
 
 DataFieldTemplates* templates = NULL;
 
-DataFieldTemplates* getTemplates(const string filename)
-{
-	if (filename=="") // avoid compiler warning
+DataFieldTemplates* getTemplates(const string filename) {
+	if (filename == "") { // avoid compiler warning
 		return templates;
+	}
 	return templates;
 }
 
-int main()
-{
+int main() {
 	// message:   [type],[circuit],name,[comment],[QQ[;QQ]*],[ZZ],[PBSB],[ID],fields...
 	// field:     name,part,type[:len][,[divisor|values][,[unit][,[comment]]]]
 	// template:  name,type[:len][,[divisor|values][,[unit][,[comment]]]]
@@ -69,7 +71,7 @@ int main()
 		{"pumpstate,UCH,0=off;1=on;2=overrun,,Pumpenstatus", "", "", "", "template"},
 		{"tempsensor,temp;sensor,,Temperatursensor", "", "", "", "template"},
 		{"tempsensorc,temp;sensorc,,Temperatursensor", "", "", "", "template"},
-		{"r,,Status01,VL/RL/AussenTemp/VLWW/SpeicherTemp/Status,,08,B511,01,,,temp1;temp1;temp2;temp1;temp1;pumpstate","28.0;24.0;4.938;35.0;41.0;4","ff08b5110101","093830f00446520400ff","d"},
+		{"r,,Status01,VL/RL/AussenTemp/VLWW/SpeicherTemp/Status,,08,B511,01,,,temp1;temp1;temp2;temp1;temp1;pumpstate", "28.0;24.0;4.938;35.0;41.0;4", "ff08b5110101", "093830f00446520400ff", "d"},
 		{"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor", "temp=-14.00 Temperatursensor [Temperatur];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "mD"},
 		{"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment", "temp=-14.00 field unit [field comment];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "mD"},
 		{"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment", "\n    \"temp\": {\"value\": -14.00},\n    \"sensor\": {\"value\": \"ok\"}", "ff25b509030d2800", "0320ff00", "mj"},
@@ -97,8 +99,8 @@ int main()
 		{"r,ehp,error,,,08,b509,0d2800,index,m,UCH,,,,,,time", "index=3;time=15:00:17", "ff08b509040d280003", "0311000f", "mD"},
 		{"u,ehp,ActualEnvironmentPower,Energiebezug,,08,B509,29BA00,,s,IGN:2,,,,,s,power", "8", "1008b5090329ba00", "03ba0008", "pm"},
 		{"uw,ehp,test,Test,,08,B5de,ab,,,power,,,,,s,hex:1", "8;39", "1008b5de02ab08", "0139", "pm"},
-		{"u,ehp,hwTankTemp,Speichertemperatur IST,,25,B509,290000,,,IGN:2,,,,,,tempsensor", "","","","M"},
-		{"", "55.50;ok","1025b50903290000","050000780300","d"},
+		{"u,ehp,hwTankTemp,Speichertemperatur IST,,25,B509,290000,,,IGN:2,,,,,,tempsensor", "", "", "", "M"},
+		{"", "55.50;ok", "1025b50903290000", "050000780300", "d"},
 		{"r,ehp,datetime,Datum Uhrzeit,,50,B504,00,,,dcfstate,,,,time,,BTI,,,,date,,BDA,,,,temp,,temp2", "valid;08:24:51;31.12.2014;-0.875", "1050b5040100", "0a035124083112031420ff", "md" },
 		{"r,ehp,bad,invalid pos,,50,B5ff,000102,,m,HEX:8;tempsensor;tempsensor;tempsensor;tempsensor;power;power,,,", "", "", "", "c" },
 		{"r,ehp,bad,invalid pos,,50,B5ff,,,s,HEX:8;tempsensor;tempsensor;tempsensor;tempsensor;tempsensor;power;power,,,", "", "", "", "c" },
@@ -167,17 +169,16 @@ int main()
 			DataField* fields = NULL;
 			vector<string>::iterator it = entries.begin();
 			result = DataField::create(it, entries.end(), templates, fields, false, true, false);
-			if (result != RESULT_OK)
+			if (result != RESULT_OK) {
 				cout << "\"" << check[0] << "\": template fields create error: " << getResultCode(result) << endl;
-			else if (it != entries.end()) {
+			} else if (it != entries.end()) {
 				cout << "\"" << check[0] << "\": template fields create error: trailing input " << static_cast<unsigned>(entries.end()-it) << endl;
-			}
-			else {
+			} else {
 				cout << "\"" << check[0] << "\": create template OK" << endl;
 				result = templates->add(fields, "", true);
-				if (result == RESULT_OK)
+				if (result == RESULT_OK) {
 					cout << "  store template OK" << endl;
-				else {
+				} else {
 					cout << "  store template error: " << getResultCode(result) << endl;
 					delete fields;
 				}
@@ -189,21 +190,22 @@ int main()
 			vector<string>::iterator it = entries.begin();
 			size_t oldSize = conditions.size();
 			result = messages->addDefaultFromFile(defaultsRows, entries, it, "", "", "", "no file", 1);
-			if (result != RESULT_OK)
+			if (result != RESULT_OK) {
 				cout << "\"" << check[0] << "\": defaults read error: " << getResultCode(result) << endl;
-			else if (it != entries.end())
+			} else if (it != entries.end()) {
 				cout << "\"" << check[0] << "\": defaults read error: trailing input " << static_cast<unsigned>(entries.end()-it) << endl;
-			else {
+			} else {
 				cout << "\"" << check[0] << "\": read defaults OK" << endl;
 				if (isCondition) {
-					if (conditions.size()==oldSize) {
+					if (conditions.size() == oldSize) {
 						cout << "  create condition error" << endl;
 					} else {
 						result = messages->resolveConditions();
-						if (result != RESULT_OK)
+						if (result != RESULT_OK) {
 							cout << "  resolve conditions error: " << getResultCode(result) << " " << messages->getLastError() << endl;
-						else
+						} else {
 							cout << "  resolve conditions OK" << endl;
+						}
 					}
 				}
 			}
@@ -214,10 +216,11 @@ int main()
 			string token;
 			istringstream stream(check[2]);
 			while (getline(stream, token, VALUE_SEPARATOR)) {
-				if (pos >= mstrs.size())
+				if (pos >= mstrs.size()) {
 					mstrs.resize(pos+1);
-				else if (mstrs[pos]!=NULL)
+				} else if (mstrs[pos] != NULL) {
 					delete mstrs[pos];
+				}
 				mstrs[pos] = new SymbolString(false);
 				result = mstrs[pos]->parseHex(token);
 				if (result != RESULT_OK) {
@@ -230,10 +233,11 @@ int main()
 			stream.str(check[3]);
 			stream.clear();
 			while (getline(stream, token, VALUE_SEPARATOR)) {
-				if (pos >= sstrs.size())
+				if (pos >= sstrs.size()) {
 					sstrs.resize(pos+1);
-				else if (sstrs[pos]!=NULL)
+				} else if (sstrs[pos] != NULL) {
 					delete sstrs[pos];
+				}
 				sstrs[pos] = new SymbolString(false);
 				result = sstrs[pos]->parseHex(token);
 				if (result != RESULT_OK) {
@@ -242,19 +246,22 @@ int main()
 				}
 				pos++;
 			}
-			if (result != RESULT_OK)
+			if (result != RESULT_OK) {
 				continue;
+			}
 		} else {
-			if (mstrs[0]!=NULL)
+			if (mstrs[0] != NULL) {
 				delete mstrs[0];
+			}
 			mstrs[0] = new SymbolString(false);
 			result = mstrs[0]->parseHex(check[2]);
 			if (result != RESULT_OK) {
 				cout << "\"" << check[0] << "\": parse \"" << check[2] << "\" error: " << getResultCode(result) << endl;
 				continue;
 			}
-			if (sstrs[0]!=NULL)
+			if (sstrs[0] != NULL) {
 				delete sstrs[0];
+			}
 			sstrs[0] = new SymbolString(false);
 			result = sstrs[0]->parseHex(check[3]);
 			if (result != RESULT_OK) {
@@ -263,7 +270,7 @@ int main()
 			}
 		}
 
-		if (deleteMessages.size()>0) {
+		if (deleteMessages.size() > 0) {
 			for (vector<Message*>::iterator it = deleteMessages.begin(); it != deleteMessages.end(); it++) {
 				Message* deleteMessage = *it;
 				delete deleteMessage;
@@ -282,15 +289,16 @@ int main()
 			string types = *it;
 			Condition* condition = NULL;
 			result = messages->readConditions(types, "no file", condition);
-			if (result==RESULT_OK) {
+			if (result == RESULT_OK) {
 				*it = types;
 				result = Message::create(it, entries.end(), &defaultsRows, condition, "no file", templates, deleteMessages);
 			}
 			if (failedCreate) {
-				if (result == RESULT_OK)
+				if (result == RESULT_OK) {
 					cout << "\"" << check[0] << "\": failed create error: unexpectedly succeeded" << endl;
-				else
+				} else {
 					cout << "\"" << check[0] << "\": failed create OK" << endl;
+				}
 				continue;
 			}
 			if (result != RESULT_OK) {
@@ -299,7 +307,7 @@ int main()
 				printErrorPos(cout, entries.begin(), entries.end(), it, "", 0, result);
 				continue;
 			}
-			if (deleteMessages.size()==0) {
+			if (deleteMessages.size() == 0) {
 				cout << "\"" << check[0] << "\": create error: NULL" << endl;
 				continue;
 			}
@@ -307,11 +315,11 @@ int main()
 				cout << "\"" << check[0] << "\": create error: trailing input " << static_cast<unsigned>(entries.end()-it) << endl;
 				continue;
 			}
-			if (multi && deleteMessages.size()==1) {
+			if (multi && deleteMessages.size() == 1) {
 				cout << "\"" << check[0] << "\": create error: single message instead of multiple" << endl;
 				continue;
 			}
-			if (!multi && deleteMessages.size()>1) {
+			if (!multi && deleteMessages.size() > 1) {
 				cout << "\"" << check[0] << "\": create error: multiple messages instead of single" << endl;
 				continue;
 			}
@@ -327,28 +335,31 @@ int main()
 						break;
 					}
 				}
-				if (result != RESULT_OK)
+				if (result != RESULT_OK) {
 					continue;
+				}
 				cout << "  map OK" << endl;
 				message = deleteMessages.front();
 				deleteMessages.clear();
-				if (onlyMap)
+				if (onlyMap) {
 					continue;
+				}
 				Message* foundMessage = messages->find(*mstrs[0]);
-				if (foundMessage == message)
+				if (foundMessage == message) {
 					cout << "  find OK" << endl;
-				else if (foundMessage == NULL)
+				} else if (foundMessage == NULL) {
 					cout << "  find error: NULL" << endl;
-				else
+				} else {
 					cout << "  find error: different" << endl;
-			}
-			else
+				}
+			} else {
 				message = deleteMessages.front();
+			}
 		}
 
 		if (message->isPassive() || decode) {
 			ostringstream output;
-			for (unsigned char index=0; index<message->getCount(); index++) {
+			for (unsigned char index = 0; index < message->getCount(); index++) {
 				message->storeLastData(*mstrs[index], *sstrs[index]);
 			}
 			if (withMessageDump && !decodeJson) {
@@ -370,10 +381,11 @@ int main()
 			SymbolString writeMstr(false);
 			result = message->prepareMaster(0xff, writeMstr, input);
 			if (failedPrepare) {
-				if (result == RESULT_OK)
+				if (result == RESULT_OK) {
 					cout << "  \"" << inputStr << "\": failed prepare error: unexpectedly succeeded" << endl;
-				else
+				} else {
 					cout << "  \"" << inputStr << "\": failed prepare OK" << endl;
+				}
 				continue;
 			}
 
@@ -384,12 +396,12 @@ int main()
 			}
 			cout << "  \"" << inputStr << "\": prepare OK" << endl;
 
-			bool match = writeMstr==*mstrs[0];
+			bool match = writeMstr == *mstrs[0];
 			verify(failedPrepareMatch, "prepare", inputStr, match, mstrs[0]->getDataStr(true, false), writeMstr.getDataStr(true, false));
 		}
 	}
 
-	if (deleteMessages.size()>0) {
+	if (deleteMessages.size() > 0) {
 		for (vector<Message*>::iterator it = deleteMessages.begin(); it != deleteMessages.end(); it++) {
 			Message* deleteMessage = *it;
 			delete deleteMessage;
@@ -399,12 +411,11 @@ int main()
 
 	delete templates;
 	delete messages;
-	for (vector<SymbolString*>::iterator it = mstrs.begin(); it!=mstrs.end(); it++) {
+	for (vector<SymbolString*>::iterator it = mstrs.begin(); it != mstrs.end(); it++) {
 		delete *it;
 	}
-	for (vector<SymbolString*>::iterator it = sstrs.begin(); it!=sstrs.end(); it++) {
+	for (vector<SymbolString*>::iterator it = sstrs.begin(); it != sstrs.end(); it++) {
 		delete *it;
 	}
 	return 0;
-
 }

@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBEBUS_RESULT_H_
-#define LIBEBUS_RESULT_H_
+#ifndef LIB_EBUS_RESULT_H_
+#define LIB_EBUS_RESULT_H_
 
 /** @file result.h
  * Functions, and constants related to execution results.
@@ -70,4 +70,4 @@ enum result_t {
  */
 const char* getResultCode(result_t resultCode);
 
-#endif // LIBEBUS_RESULT_H_
+#endif // LIB_EBUS_RESULT_H_

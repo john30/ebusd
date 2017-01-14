@@ -17,28 +17,27 @@
  */
 
 #include "rotatefile.h"
-#include "clock.h"
-#include <cstdlib>
-#include <cstring>
-#include <fcntl.h>
-#include <fstream>
 #include <sys/ioctl.h>
 #include <sys/file.h>
+#include <fcntl.h>
 #include <errno.h>
+#include <cstdlib>
+#include <cstring>
+#include <fstream>
+#include <string>
+#include "clock.h"
 
 using namespace std;
 
-RotateFile::~RotateFile()
-{
+RotateFile::~RotateFile() {
 	if (m_stream) {
 		fclose(m_stream);
 		m_stream = NULL;
 	}
 }
 
-bool RotateFile::setEnabled(bool enabled)
-{
-	if (enabled==m_enabled) {
+bool RotateFile::setEnabled(bool enabled) {
+	if (enabled == m_enabled) {
 		return false;
 	}
 	m_enabled = enabled;
@@ -53,8 +52,7 @@ bool RotateFile::setEnabled(bool enabled)
 	return true;
 }
 
-void RotateFile::write(unsigned char* value, unsigned int size, bool received)
-{
+void RotateFile::write(unsigned char* value, unsigned int size, bool received) {
 	if (!m_enabled || !m_stream) {
 		return;
 	}
@@ -66,9 +64,8 @@ void RotateFile::write(unsigned char* value, unsigned int size, bool received)
 		fprintf(m_stream, "%04d-%02d-%02d %02d:%02d:%02d.%03ld %c",
 			tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday,
 			tm->tm_hour, tm->tm_min, tm->tm_sec, ts.tv_nsec/1000000,
-			received ? '<' : '>'
-		);
-		for (unsigned int pos=0; pos<size; pos++) {
+			received ? '<' : '>');
+		for (unsigned int pos = 0; pos < size; pos++) {
 			fprintf(m_stream, "%2.2x ", value[pos]);
 		}
 		fprintf(m_stream, "\n");

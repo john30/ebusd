@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBUTILS_NOTIFY_H_
-#define LIBUTILS_NOTIFY_H_
+#ifndef LIB_UTILS_NOTIFY_H_
+#define LIB_UTILS_NOTIFY_H_
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -27,15 +27,12 @@
 /**
  * class to notify other thread per pipe.
  */
-class Notify
-{
-
-public:
+class Notify {
+	public:
 	/**
 	 * constructs a new instance and do notifying.
 	 */
-	Notify()
-	{
+	Notify() {
 		int pipefd[2];
 		int ret = pipe(pipefd);
 
@@ -62,17 +59,16 @@ public:
 	 * write notify event to file descriptor.
 	 * @return result of writing notification.
 	 */
-	int notify() const { return write(m_sendfd,"1",1); }
+	int notify() const { return write(m_sendfd, "1", 1); }
 
-private:
+	private:
 	/** file descriptor to watch */
 	int m_recvfd;
 
 	/** file descriptor to notify */
 	int m_sendfd;
-
 };
 
-#endif // LIBUTILS_NOTIFY_H_
+#endif // LIB_UTILS_NOTIFY_H_
 
 

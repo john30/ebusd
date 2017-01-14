@@ -16,11 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBEBUS_FILEREADER_H_
-#define LIBEBUS_FILEREADER_H_
+#ifndef LIB_EBUS_FILEREADER_H_
+#define LIB_EBUS_FILEREADER_H_
 
-#include "symbol.h"
-#include "result.h"
 #include <climits>
 #include <string>
 #include <iostream>
@@ -28,6 +26,8 @@
 #include <fstream>
 #include <algorithm>
 #include <vector>
+#include "symbol.h"
+#include "result.h"
 
 /** @file filereader.h
  * Helper class and constants for reading configuration files.
@@ -60,10 +60,8 @@ extern unsigned int parseInt(const char* str, int base, const unsigned int minVa
 /**
  * An abstract class that support reading definitions from a file.
  */
-class FileReader
-{
-public:
-
+class FileReader {
+	public:
 	/**
 	 * Construct a new instance.
 	 */
@@ -84,9 +82,8 @@ public:
 	 * @param defaultSuffix the default circuit name suffix (starting with a ".", may be overwritten by file name, or empty.
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
-	virtual result_t readFromFile(const string filename, bool verbose=false,
-		string defaultDest = "", string defaultCircuit = "", string defaultSuffix = "")
-	{
+	virtual result_t readFromFile(const string filename, bool verbose = false,
+		string defaultDest = "", string defaultCircuit = "", string defaultSuffix = "") {
 		ifstream ifs;
 		ifs.open(filename.c_str(), ifstream::in);
 		if (!ifs.is_open()) {
@@ -94,7 +91,7 @@ public:
 			return RESULT_ERR_NOTFOUND;
 		}
 		size_t lastSep = filename.find_last_of('/');
-		if (lastSep!=string::npos) { // potential destination address, matches "^ZZ."
+		if (lastSep != string::npos) { // potential destination address, matches "^ZZ."
 			// extract defaultDest, defaultCircuit, defaultSuffix from filename:
 			// ZZ.IDENT[.CIRCUIT][.SUFFIX].*csv
 			unsigned char checkDest;
@@ -114,9 +111,9 @@ public:
 		vector<string> row;
 		vector< vector<string> > defaults;
 		while (splitFields(ifs, row, lineNo)) {
-			if (row.empty())
+			if (row.empty()) {
 				continue;
-
+			}
 			result_t result;
 			vector<string>::iterator it = row.begin();
 			const vector<string>::iterator end = row.end();
@@ -124,31 +121,33 @@ public:
 				if (row[0][0] == '*') {
 					row[0] = row[0].substr(1);
 					result = addDefaultFromFile(defaults, row, it, defaultDest, defaultCircuit, defaultSuffix, filename, lineNo);
-					if (result == RESULT_OK)
+					if (result == RESULT_OK) {
 						continue;
-				} else
+					}
+				} else {
 					result = addFromFile(it, end, &defaults, defaultDest, defaultCircuit, defaultSuffix, filename, lineNo);
-			}
-			else
+				}
+			} else {
 				result = addFromFile(it, end, NULL, defaultDest, defaultCircuit, defaultSuffix, filename, lineNo);
-
+			}
 			if (result != RESULT_OK) {
 				if (!verbose) {
 					ifs.close();
 					ostringstream error;
 					error << filename << ":" << static_cast<unsigned>(lineNo);
-					if (m_lastError.length()>0) {
+					if (m_lastError.length() > 0) {
 						error << ": " << m_lastError;
 					}
 					m_lastError = error.str();
 					return result;
 				}
-				if (m_lastError.length()>0) {
+				if (m_lastError.length() > 0) {
 					cout << m_lastError << endl;
 				}
 				printErrorPos(cout, row.begin(), end, it, filename, lineNo, result);
-			} else if (!verbose)
+			} else if (!verbose) {
 				m_lastError = "";
+			}
 		}
 
 		ifs.close();
@@ -175,8 +174,7 @@ public:
 	 */
 	virtual result_t addDefaultFromFile(vector< vector<string> >& defaults, vector<string>& row,
 			vector<string>::iterator& begin, string defaultDest, string defaultCircuit, string defaultSuffix,
-			const string& filename, unsigned int lineNo)
-	{
+			const string& filename, unsigned int lineNo) {
 		defaults.push_back(row);
 		begin = row.end();
 		return RESULT_OK;
@@ -202,14 +200,13 @@ public:
 	 * Left and right trim the string.
 	 * @param str the @a string to trim.
 	 */
-	static void trim(string& str)
-	{
+	static void trim(string& str) {
 		size_t pos = str.find_first_not_of(" \t");
-		if (pos!=string::npos) {
+		if (pos != string::npos) {
 			str.erase(0, pos);
 		}
 		pos = str.find_last_not_of(" \t");
-		if (pos!=string::npos) {
+		if (pos != string::npos) {
 			str.erase(pos+1);
 		}
 	}
@@ -218,8 +215,7 @@ public:
 	 * Convert all upper case characters in the string to lower case.
 	 * @param str the @a string to convert.
 	 */
-	static void tolower(string& str)
-	{
+	static void tolower(string& str) {
 		transform(str.begin(), str.end(), str.begin(), ::tolower);
 	}
 
@@ -230,8 +226,7 @@ public:
 	 * @param lineNo the current line number (incremented with each line read).
 	 * @return true if there are more lines to read, false when there are no more lines left.
 	 */
-	static bool splitFields(istream& ifs, vector<string>& row, unsigned int& lineNo)
-	{
+	static bool splitFields(istream& ifs, vector<string>& row, unsigned int& lineNo) {
 		row.clear();
 		string line;
 		bool quotedText = false, wasQuoted = false;
@@ -244,13 +239,12 @@ public:
 			trim(line);
 
 			size_t length = line.length();
-			if (!quotedText && (length == 0 || line[0] == '#' || (line.length() > 1 && line[0] == '/' && line[1] == '/')))
+			if (!quotedText && (length == 0 || line[0] == '#' || (line.length() > 1 && line[0] == '/' && line[1] == '/'))) {
 				continue; // skip empty lines and comments
-
+			}
 			for (size_t pos = 0; pos < length; pos++) {
 				char ch = line[pos];
-				switch (ch)
-				{
+				switch (ch) {
 				case FIELD_SEPARATOR:
 					if (quotedText) {
 						field << ch;
@@ -278,10 +272,10 @@ public:
 				case '\r':
 					break;
 				default:
-					if (prev==TEXT_SEPARATOR && !quotedText && wasQuoted) {
+					if (prev == TEXT_SEPARATOR && !quotedText && wasQuoted) {
 						field << TEXT_SEPARATOR; // single dquote in the middle of formerly quoted text
 						quotedText = true;
-					} else if (quotedText && pos==0 && field.tellp()>0 && *(field.str().end()-1)!=VALUE_SEPARATOR) {
+					} else if (quotedText && pos == 0 && field.tellp() > 0 && *(field.str().end()-1) != VALUE_SEPARATOR) {
 						field << VALUE_SEPARATOR;
 					}
 					field << ch;
@@ -289,8 +283,9 @@ public:
 				}
 				prev = ch;
 			}
-			if (!quotedText)
+			if (!quotedText) {
 				break;
+			}
 		}
 		string str = field.str();
 		trim(str);
@@ -314,55 +309,54 @@ public:
 	 * @return true if at least the address and the identification part were extracted, false otherwise.
 	 */
 	static bool extractDefaultsFromFilename(string name, unsigned char& dest, string& ident, string& circuit,
-		string& suffix, unsigned int& software, unsigned int& hardware)
-	{
+		string& suffix, unsigned int& software, unsigned int& hardware) {
 		ident = circuit = suffix = "";
 		software = hardware = UINT_MAX;
-		if (name.length()>4 && name.substr(name.length()-4)==".csv") {
+		if (name.length() > 4 && name.substr(name.length()-4) == ".csv") {
 			name = name.substr(0, name.length()-3); // including trailing "."
 		}
 		size_t pos = name.find('.');
-		if (pos!=2) {
+		if (pos != 2) {
 			return false; // missing "ZZ."
 		}
 		result_t result = RESULT_OK;
 		dest = (unsigned char)parseInt(name.substr(0, pos).c_str(), 16, 0, 0xff, result, NULL);
-		if (result!=RESULT_OK || !isValidAddress(dest)) {
+		if (result != RESULT_OK || !isValidAddress(dest)) {
 			return false; // invalid "ZZ"
 		}
 		name.erase(0, pos);
-		if (name.length()>1) {
+		if (name.length() > 1) {
 			pos = name.rfind(".SW"); // check for ".SWxxxx."
-			if (pos!=string::npos && name.find(".", pos+1)==pos+7) {
+			if (pos != string::npos && name.find(".", pos+1) == pos+7) {
 				software = parseInt(name.substr(pos+3, 4).c_str(), 10, 0, 9999, result, NULL);
-				if (result!=RESULT_OK) {
+				if (result != RESULT_OK) {
 					return false; // invalid "SWxxxx"
 				}
 				name.erase(pos, 7);
 			}
 		}
-		if (name.length()>1) {
+		if (name.length() > 1) {
 			pos = name.rfind(".HW"); // check for ".HWxxxx."
-			if (pos!=string::npos && name.find(".", pos+1)==pos+7) {
+			if (pos != string::npos && name.find(".", pos+1) == pos+7) {
 				hardware = parseInt(name.substr(pos+3, 4).c_str(), 10, 0, 9999, result, NULL);
-				if (result!=RESULT_OK) {
+				if (result != RESULT_OK) {
 					return false; // invalid "HWxxxx"
 				}
 				name.erase(pos, 7);
 			}
 		}
-		if (name.length()>1) {
+		if (name.length() > 1) {
 			pos = name.find('.', 1); // check for ".IDENT."
-			if (pos!=string::npos && pos>=1 && pos<=6) { // up to 5 chars between two "."s, immediately after "ZZ.", or ".."
+			if (pos != string::npos && pos >= 1 && pos <= 6) { // up to 5 chars between two "."s, immediately after "ZZ.", or ".."
 				ident = circuit = name.substr(1, pos-1);
 				name.erase(0, pos);
 				pos = name.find('.', 1); // check for ".CIRCUIT."
-				if (pos!=string::npos && (pos>2 || name[1]<'0' || name[1]>'9')) {
+				if (pos != string::npos && (pos>2 || name[1]<'0' || name[1]>'9')) {
 					circuit = name.substr(1, pos-1);
 					name.erase(0, pos);
 					pos = name.find('.', 1); // check for ".SUFFIX."
 				}
-				if (pos!=string::npos && pos==2 && name[1]>='0' && name[1]<='9') {
+				if (pos != string::npos && pos == 2 && name[1] >= '0' && name[1] <= '9') {
 					suffix = name.substr(0, 2);
 					name.erase(0, pos);
 				}
@@ -371,16 +365,15 @@ public:
 		return true;
 	}
 
-private:
 
+	private:
 	/** whether this instance supports rows with defaults (starting with a star). */
 	bool m_supportsDefaults;
 
-protected:
 
+	protected:
 	/** a @a string describing the last error position. */
 	string m_lastError;
-
 };
 
-#endif // LIBEBUS_FILEREADER_H_
+#endif // LIB_EBUS_FILEREADER_H_

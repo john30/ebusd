@@ -21,19 +21,22 @@
 #endif
 
 #include "main.h"
-#include "mainloop.h"
-#include "bushandler.h"
-#include "log.h"
-#include "rotatefile.h"
+#include <dirent.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <stdlib.h>
 #include <argp.h>
 #include <csignal>
 #include <iostream>
 #include <algorithm>
 #include <iomanip>
-#include <dirent.h>
-#include <sys/types.h>
-#include <sys/stat.h>
+#include <map>
+#include <string>
+#include <vector>
+#include "mainloop.h"
+#include "bushandler.h"
+#include "log.h"
+#include "rotatefile.h"
 
 /** the path and name of the PID file. */
 #ifdef PACKAGE_PIDFILE
@@ -207,8 +210,7 @@ static map<string, DataFieldTemplates*> s_templatesByPath;
  * @param arg the option argument, or NULL.
  * @param state the parsing state.
  */
-error_t parse_opt(int key, char *arg, struct argp_state *state)
-{
+error_t parse_opt(int key, char *arg, struct argp_state *state) {
 	struct options *opt = (struct options*)state->input;
 	result_t result = RESULT_OK;
 
@@ -278,8 +280,9 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 		}
 		break;
 	case O_CHKCFG: // --checkconfig
-		if (opt->checkConfig==0)
+		if (opt->checkConfig == 0) {
 			opt->checkConfig = 1;
+		}
 		break;
 	case O_DMPCFG: // --dumpconfig
 		opt->checkConfig = 2;
@@ -466,8 +469,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
 	return 0;
 }
 
-void daemonize()
-{
+void daemonize() {
 	// fork off the parent process
 	pid_t pid = fork();
 
@@ -477,9 +479,9 @@ void daemonize()
 	}
 
 	// If we got a good PID, then we can exit the parent process
-	if (pid > 0)
+	if (pid > 0) {
 		exit(EXIT_SUCCESS);
-
+	}
 	// At this point we are executing as the child process
 
 	// Create a new SID for the child process and
@@ -509,7 +511,7 @@ void daemonize()
 	if (pidFile != NULL) {
 		setbuf(pidFile, NULL); // disable buffering
 		if (lockf(fileno(pidFile), F_TLOCK, 0) < 0
-			|| fprintf(pidFile, "%d\n", getpid()) <=0) {
+			|| fprintf(pidFile, "%d\n", getpid())  <= 0) {
 			fclose(pidFile);
 			pidFile = NULL;
 		}
@@ -522,12 +524,11 @@ void daemonize()
 	isDaemon = true;
 }
 
-void closePidFile()
-{
+void closePidFile() {
 	if (pidFile != NULL) {
-		if (fclose(pidFile) != 0)
+		if (fclose(pidFile) != 0) {
 			return;
-
+		}
 		remove(opt.pidFile);
 	}
 }
@@ -535,20 +536,19 @@ void closePidFile()
 /**
  * Helper method performing shutdown.
  */
-void shutdown()
-{
+void shutdown() {
 	// stop main loop and all dependent components
 	if (s_mainLoop != NULL) {
 		delete s_mainLoop;
 		s_mainLoop = NULL;
 	}
-	if (s_messageMap!=NULL) {
+	if (s_messageMap != NULL) {
 		delete s_messageMap;
 		s_messageMap = NULL;
 	}
 	// free templates
 	for (map<string, DataFieldTemplates*>::iterator it = s_templatesByPath.begin(); it != s_templatesByPath.end(); it++) {
-		if (it->second!=&s_globalTemplates) {
+		if (it->second != &s_globalTemplates) {
 			delete it->second;
 		}
 		it->second = NULL;
@@ -573,8 +573,7 @@ void shutdown()
  * The signal handling function.
  * @param sig the received signal.
  */
-void signalHandler(int sig)
-{
+void signalHandler(int sig) {
 	switch (sig) {
 	case SIGHUP:
 		logNotice(lf_main, "SIGHUP received");
@@ -604,37 +603,36 @@ void signalHandler(int sig)
  * @return the result code.
  */
 static result_t collectConfigFiles(const string path, const string prefix, const string extension,
-		vector<string>& files, vector<string>* dirs=NULL, bool* hasTemplates=NULL)
-{
-
+		vector<string>& files, vector<string>* dirs = NULL, bool* hasTemplates = NULL) {
 	DIR* dir = opendir(path.c_str());
 
-	if (dir == NULL)
+	if (dir == NULL) {
 		return RESULT_ERR_NOTFOUND;
-
+	}
 	dirent* d;
 	while ((d = readdir(dir)) != NULL) {
 		string name = d->d_name;
 
-		if (name == "." || name == "..")
+		if (name == "." || name == "..") {
 			continue;
-
+		}
 		const string p = path + "/" + name;
 		struct stat stat_buf;
 
-		if (stat(p.c_str(), &stat_buf) != 0)
+		if (stat(p.c_str(), &stat_buf) != 0) {
 			continue;
-
+		}
 		if (S_ISDIR(stat_buf.st_mode)) {
-			if (dirs!=NULL)
+			if (dirs != NULL) {
 				dirs->push_back(p);
-		} else if (S_ISREG(stat_buf.st_mode) && name.length()>=extension.length()
-		&& name.substr(name.length()-extension.length())==extension) {
-			if (name=="_templates"+extension) {
+			}
+		} else if (S_ISREG(stat_buf.st_mode) && name.length() >= extension.length()
+		&& name.substr(name.length()-extension.length()) == extension) {
+			if (name == "_templates"+extension) {
 				if (hasTemplates) {
 					*hasTemplates = true;
 				}
-			} else if (prefix.length()==0 || (name.length()>=prefix.length() && name.substr(0, prefix.length())==prefix)) {
+			} else if (prefix.length() == 0 || (name.length() >= prefix.length() && name.substr(0, prefix.length()) == prefix)) {
 				files.push_back(p);
 			}
 		}
@@ -647,11 +645,11 @@ static result_t collectConfigFiles(const string path, const string prefix, const
 DataFieldTemplates* getTemplates(const string filename) {
 	string path;
 	size_t pos = filename.find_last_of('/');
-	if (pos!=string::npos) {
+	if (pos != string::npos) {
 		path = filename.substr(0, pos);
 	}
 	map<string, DataFieldTemplates*>::iterator it = s_templatesByPath.find(path);
-	if (it!=s_templatesByPath.end()) {
+	if (it != s_templatesByPath.end()) {
 		return it->second;
 	}
 	return &s_globalTemplates;
@@ -666,13 +664,13 @@ DataFieldTemplates* getTemplates(const string filename) {
  * @return false when the templates for the path were already loaded before, true when the templates for the path were added (independent from @a available).
  * @return the @a DataFieldTemplates.
  */
-static bool readTemplates(const string path, const string extension, bool available, bool verbose=false) {
+static bool readTemplates(const string path, const string extension, bool available, bool verbose = false) {
 	map<string, DataFieldTemplates*>::iterator it = s_templatesByPath.find(path);
-	if (it!=s_templatesByPath.end()) {
+	if (it != s_templatesByPath.end()) {
 		return false;
 	}
 	DataFieldTemplates* templates;
-	if (path==opt.configPath || !available) {
+	if (path == opt.configPath || !available) {
 		templates = &s_globalTemplates;
 	} else {
 		templates = new DataFieldTemplates(s_globalTemplates);
@@ -700,40 +698,40 @@ static bool readTemplates(const string path, const string extension, bool availa
  * @param verbose whether to verbosely log problems.
  * @return the result code.
  */
-static result_t readConfigFiles(const string path, const string extension, MessageMap* messages, bool recursive, bool verbose)
-{
+static result_t readConfigFiles(const string path, const string extension, MessageMap* messages, bool recursive, bool verbose) {
 	vector<string> files, dirs;
 	bool hasTemplates = false;
 	result_t result = collectConfigFiles(path, "", extension, files, &dirs, &hasTemplates);
-	if (result!=RESULT_OK)
+	if (result != RESULT_OK) {
 		return result;
-
+	}
 	readTemplates(path, extension, hasTemplates, verbose);
 	for (vector<string>::iterator it = files.begin(); it != files.end(); it++) {
 		string name = *it;
 		logInfo(lf_main, "reading file %s", name.c_str());
 		result_t result = messages->readFromFile(name, verbose);
-		if (result != RESULT_OK)
+		if (result != RESULT_OK) {
 			return result;
+		}
 	}
 	if (recursive) {
 		for (vector<string>::iterator it = dirs.begin(); it != dirs.end(); it++) {
 			string name = *it;
 			logInfo(lf_main, "reading dir  %s", name.c_str());
 			result_t result = readConfigFiles(name, extension, messages, true, verbose);
-			if (result != RESULT_OK)
+			if (result != RESULT_OK) {
 				return result;
+			}
 		}
 	}
 	return RESULT_OK;
-};
+}
 
 /**
  * Helper method for immediate reading of a @a Message from the bus.
  * @param message the @a Message to read.
  */
-void readMessage(Message* message)
-{
+void readMessage(Message* message) {
 	if (!s_mainLoop || !message) {
 		return;
 	}
@@ -749,8 +747,7 @@ void readMessage(Message* message)
  * @param messages the @a MessageMap instance.
  * @param verbose whether to verbosely log all problems.
  */
-void executeInstructions(MessageMap* messages, bool verbose)
-{
+void executeInstructions(MessageMap* messages, bool verbose) {
 	result_t result = messages->resolveConditions(verbose);
 	if (result != RESULT_OK) {
 		logError(lf_main, "error resolving conditions: %s, last error: %s", getResultCode(result), messages->getLastError().c_str());
@@ -765,13 +762,12 @@ void executeInstructions(MessageMap* messages, bool verbose)
 	logNotice(lf_main, "found messages: %d (%d conditional on %d conditions, %d poll, %d update)", messages->size(), messages->sizeConditional(), messages->sizeConditions(), messages->sizePoll(), messages->sizePassive());
 }
 
-result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
-{
+result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive) {
 	logInfo(lf_main, "loading configuration files from %s", opt.configPath);
 	messages->clear();
 	s_globalTemplates.clear();
 	for (map<string, DataFieldTemplates*>::iterator it = s_templatesByPath.begin(); it != s_templatesByPath.end(); it++) {
-		if (it->second!=&s_globalTemplates) {
+		if (it->second != &s_globalTemplates) {
 			delete it->second;
 		}
 		it->second = NULL;
@@ -788,19 +784,18 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
 	return RESULT_OK;
 }
 
-result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolString& data, string& relativeFile, bool verbose)
-{
+result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolString& data, string& relativeFile, bool verbose) {
 	PartType partType;
 	if (isMaster(address)) {
 		address = (unsigned char)(data[0]+5); // slave address of sending master
 		partType = pt_masterData;
-		if (data.size()<5+1+5+2+2) { // skip QQ ZZ PB SB NN
+		if (data.size() < 5+1+5+2+2) { // skip QQ ZZ PB SB NN
 			logError(lf_main, "unable to load scan config %2.2x: master part too short", address);
 			return RESULT_EMPTY;
 		}
 	} else {
 		partType = pt_slaveData;
-		if (data.size()<1+1+5+2+2) { // skip NN
+		if (data.size() < 1+1+5+2+2) { // skip NN
 			logError(lf_main, "unable to load scan config %2.2x: slave part too short", address);
 			return RESULT_EMPTY;
 		}
@@ -812,9 +807,10 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 	unsigned char offset = 0;
 	size_t field = 0;
 	result_t result = (*identFields)[field]->read(partType, data, offset, out, 0); // manufacturer name
-	if (result==RESULT_ERR_NOTFOUND)
+	if (result == RESULT_ERR_NOTFOUND) {
 		result = (*identFields)[field]->read(partType, data, offset, out, OF_NUMERIC); // manufacturer name
-	if (result==RESULT_OK) {
+	}
+	if (result == RESULT_OK) {
 		path = out.str();
 		transform(path.begin(), path.end(), path.begin(), ::tolower);
 		path = string(opt.configPath) + "/" + path;
@@ -826,17 +822,17 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 		offset = (unsigned char)(offset+(*identFields)[field++]->getLength(partType));
 		result = (*identFields)[field]->read(partType, data, offset, out, 0); // identification string
 	}
-	if (result==RESULT_OK) {
+	if (result == RESULT_OK) {
 		ident = out.str();
 		out.str("");
 		offset = (unsigned char)(offset+(*identFields)[field++]->getLength(partType));
 		result = (*identFields)[field]->read(partType, data, offset, sw, 0); // software version number
 	}
-	if (result==RESULT_OK) {
+	if (result == RESULT_OK) {
 		offset = (unsigned char)(offset+(*identFields)[field++]->getLength(partType));
 		result = (*identFields)[field]->read(partType, data, offset, hw, 0); // hardware version number
 	}
-	if (result!=RESULT_OK) {
+	if (result != RESULT_OK) {
 		logError(lf_main, "unable to load scan config %2.2x: decode %s", address, getResultCode(result));
 		return result;
 	}
@@ -844,7 +840,7 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 	bool hasTemplates = false;
 	// find files matching MANUFACTURER/ZZ.*csv in cfgpath
 	result = collectConfigFiles(path, prefix, ".csv", files, NULL, &hasTemplates);
-	if (result!=RESULT_OK) {
+	if (result != RESULT_OK) {
 		logError(lf_main, "unable to load scan config %2.2x: list files in %s %s", address, path.c_str(), getResultCode(result));
 		return result;
 	}
@@ -853,7 +849,7 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 		return RESULT_ERR_NOTFOUND;
 	}
 	logDebug(lf_main, "found %d matching scan config files from %s with prefix %s: %s", files.size(), path.c_str(), prefix.c_str(), getResultCode(result));
-	for (string::iterator it = ident.begin(); it!=ident.end(); it++) {
+	for (string::iterator it = ident.begin(); it != ident.end(); it++) {
 		if (::isspace(*it)) {
 			ident.erase(it--);
 		} else {
@@ -863,7 +859,7 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 	// complete name: cfgpath/MANUFACTURER/ZZ[.C[C[C[C[C]]]]][.circuit][.suffix][.*][.SWxxxx][.HWxxxx][.*].csv
 	size_t bestMatch = 0;
 	string best;
-	for (vector<string>::iterator it = files.begin(); it!=files.end(); it++) {
+	for (vector<string>::iterator it = files.begin(); it != files.end(); it++) {
 		string name = *it;
 		unsigned char checkDest;
 		string checkIdent, useCircuit, useSuffix;
@@ -871,20 +867,21 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 		if (!FileReader::extractDefaultsFromFilename(name.substr(path.length()+1), checkDest, checkIdent, useCircuit, useSuffix, checkSw, checkHw)) {
 			continue;
 		}
-		if (address!=checkDest || (checkSw!=UINT_MAX && sw!=checkSw) || (checkHw!=UINT_MAX && hw!=checkHw)) {
+		if (address != checkDest || (checkSw != UINT_MAX && sw != checkSw) || (checkHw != UINT_MAX && hw != checkHw)) {
 			continue;
 		}
 		size_t match = 1;
 		if (!checkIdent.empty()) {
 			string remain = ident;
 			bool matches = false;
-			while (remain.length()>0 && remain.length()>=checkIdent.length()) {
-				if (checkIdent==remain) {
+			while (remain.length() > 0 && remain.length() >= checkIdent.length()) {
+				if (checkIdent == remain) {
 					matches = true;
 					break;
 				}
-				if (remain[remain.length()-1]<'0' || remain[remain.length()-1]>'9')
+				if (remain[remain.length()-1] < '0' || remain[remain.length()-1] > '9') {
 					break;
+				}
 				remain.erase(remain.length()-1); // remove trailing digit
 			}
 			if (!matches) {
@@ -892,7 +889,7 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 			}
 			match += remain.length();
 		}
-		if (match>=bestMatch) {
+		if (match >= bestMatch) {
 			bestMatch = match;
 			best = name;
 		}
@@ -908,25 +905,27 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 	bool readCommon = readTemplates(path, ".csv", hasTemplates, opt.checkConfig);
 	if (readCommon) {
 		result = collectConfigFiles(path, "", ".csv", files);
-		if (result==RESULT_OK && !files.empty()) {
-			for (vector<string>::iterator it = files.begin(); it!=files.end(); it++) {
+		if (result == RESULT_OK && !files.empty()) {
+			for (vector<string>::iterator it = files.begin(); it != files.end(); it++) {
 				string name = *it;
 				name = name.substr(path.length()+1, name.length()-path.length()-strlen(".csv")); // *.
-				if (name=="_templates.") // skip templates
+				if (name == "_templates.") { // skip templates
 					continue;
-				if (name.length()<3 || name.find_first_of('.')!=2) { // different from the scheme "ZZ."
+				}
+				if (name.length() < 3 || name.find_first_of('.') != 2) { // different from the scheme "ZZ."
 					name = *it;
 					result = messages->readFromFile(name, opt.checkConfig);
-					if (result==RESULT_OK)
+					if (result == RESULT_OK) {
 						logNotice(lf_main, "read common config file %s", name.c_str());
-					else
+					} else {
 						logError(lf_main, "error reading common config file %s: %s", name.c_str(), getResultCode(result));
+					}
 				}
 			}
 		}
 	}
 	result = messages->readFromFile(best, opt.checkConfig, "", ident);
-	if (result!=RESULT_OK) {
+	if (result != RESULT_OK) {
 		logError(lf_main, "error reading scan config file %s for ID \"%s\", SW%4.4d, HW%4.4d: %s", best.c_str(), ident.c_str(), sw, hw, getResultCode(result));
 		return result;
 	}
@@ -943,8 +942,7 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
  * @param argc the number of command line arguments.
  * @param argv the command line arguments.
  */
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
 	struct argp aargp = { argpoptions, parse_opt, NULL, argpdoc, datahandler_getargs(), NULL, NULL };
 	int arg_index = -1;
 	setenv("ARGP_HELP_FMT", "no-dup-args-note", 0);
@@ -963,20 +961,20 @@ int main(int argc, char* argv[])
 			// check scan config for each passed ident message
 			string arg = argv[arg_index++];
 			size_t pos = arg.find_first_of('/');
-			if (pos==string::npos) {
+			if (pos == string::npos) {
 				logError(lf_main, "invalid scan message %s: missing \"/\"", arg.c_str());
 				continue;
 			}
 			SymbolString master(false), slave(false);
 			result_t res = master.parseHex(arg.substr(0, pos));
-			if (res==RESULT_OK) {
+			if (res == RESULT_OK) {
 				res = slave.parseHex(arg.substr(pos+1));
 			}
-			if (res!=RESULT_OK) {
+			if (res != RESULT_OK) {
 				logError(lf_main, "invalid scan message %s: %s", arg.c_str(), getResultCode(res));
 				continue;
 			}
-			if (master.size()<5) { // skip QQ ZZ PB SB NN
+			if (master.size() < 5) { // skip QQ ZZ PB SB NN
 				logError(lf_main, "invalid scan message %s: master part too short", arg.c_str());
 				continue;
 			}
@@ -988,7 +986,7 @@ int main(int argc, char* argv[])
 				message->storeLastData(master, slave);
 				string file;
 				res = loadScanConfigFile(s_messageMap, address, slave, file, true);
-				if (res==RESULT_OK) {
+				if (res == RESULT_OK) {
 					logInfo(lf_main, "scan config %2.2x: file %s loaded", address, file.c_str());
 				}
 			}
@@ -1027,7 +1025,7 @@ int main(int argc, char* argv[])
 
 	// load configuration files
 	loadConfigFiles(s_messageMap);
-	if (s_messageMap->sizeConditions()>0 && opt.pollInterval==0) {
+	if (s_messageMap->sizeConditions() > 0 && opt.pollInterval == 0) {
 		logError(lf_main, "conditions require a poll interval > 0");
 	}
 	// wait for end of MainLoop

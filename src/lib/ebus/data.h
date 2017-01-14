@@ -16,19 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBEBUS_DATA_H_
-#define LIBEBUS_DATA_H_
+#ifndef LIB_EBUS_DATA_H_
+#define LIB_EBUS_DATA_H_
 
-#include "symbol.h"
-#include "result.h"
-#include "filereader.h"
-#include "datatype.h"
 #include <string>
 #include <iostream>
 #include <sstream>
 #include <fstream>
 #include <vector>
 #include <map>
+#include "symbol.h"
+#include "result.h"
+#include "filereader.h"
+#include "datatype.h"
 
 /** @file data.h
  * Classes related to defining fields based on data types in symbols on the
@@ -53,10 +53,8 @@ class SingleDataField;
 /**
  * Base class for all kinds of data fields.
  */
-class DataField
-{
-public:
-
+class DataField {
+	public:
 	/**
 	 * Constructs a new instance.
 	 * @param name the field name.
@@ -93,7 +91,7 @@ public:
 			DataFieldTemplates* templates, DataField*& returnField,
 			const bool isWriteMessage,
 			const bool isTemplate, const bool isBroadcastOrMasterDestination,
-			const unsigned char maxFieldLength=MAX_POS);
+			const unsigned char maxFieldLength = MAX_POS);
 
 	/**
 	 * Dump the @a string optionally embedded in @a TEXT_SEPARATOR to the output.
@@ -101,7 +99,7 @@ public:
 	 * @param str the @a string to dump.
 	 * @param prependFieldSeparator whether to start with a @a FIELD_SEPARATOR.
 	 */
-	static void dumpString(ostream& output, const string str, const bool prependFieldSeparator=true);
+	static void dumpString(ostream& output, const string str, const bool prependFieldSeparator = true);
 
 	/**
 	 * Returns the length of this field (or contained fields) in bytes.
@@ -109,7 +107,7 @@ public:
 	 * @param maxLength the maximum length for calculating remainder of input.
 	 * @return the length of this field (or contained fields) in bytes.
 	 */
-	virtual unsigned char getLength(PartType partType, unsigned char maxLength=MAX_LEN) = 0;
+	virtual unsigned char getLength(PartType partType, unsigned char maxLength = MAX_LEN) = 0;
 
 	/**
 	 * Derive a new @a DataField from this field.
@@ -132,7 +130,7 @@ public:
 	 * @param fieldIndex the index of the field, or -1 for this.
 	 * @return the field name, or the index as string if not unique or not available.
 	 */
-	virtual string getName(signed char fieldIndex=-1) { return m_name; }
+	virtual string getName(signed char fieldIndex = -1) { return m_name; }
 
 	/**
 	 * Get the field comment.
@@ -169,7 +167,7 @@ public:
 	 */
 	virtual result_t read(const PartType partType,
 			SymbolString& data, unsigned char offset,
-			unsigned int& output, const char* fieldName=NULL, signed char fieldIndex=-1) = 0;
+			unsigned int& output, const char* fieldName = NULL, signed char fieldIndex = -1) = 0;
 
 	/**
 	 * Reads the value from the @a SymbolString.
@@ -188,8 +186,8 @@ public:
 	 */
 	virtual result_t read(const PartType partType,
 			SymbolString& data, unsigned char offset,
-			ostringstream& output, OutputFormat outputFormat, signed char outputIndex=-1,
-			bool leadingSeparator=false, const char* fieldName=NULL, signed char fieldIndex=-1) = 0;
+			ostringstream& output, OutputFormat outputFormat, signed char outputIndex = -1,
+			bool leadingSeparator = false, const char* fieldName = NULL, signed char fieldIndex = -1) = 0;
 
 	/**
 	 * Writes the value to the master or slave @a SymbolString.
@@ -203,26 +201,23 @@ public:
 	 */
 	virtual result_t write(istringstream& input,
 			const PartType partType, SymbolString& data,
-			unsigned char offset, char separator=UI_FIELD_SEPARATOR, unsigned char* length=NULL) = 0;
+			unsigned char offset, char separator = UI_FIELD_SEPARATOR, unsigned char* length = NULL) = 0;
 
-protected:
 
+	protected:
 	/** the field name. */
 	const string m_name;
 
 	/** the field comment. */
 	const string m_comment;
-
 };
 
 
 /**
  * A single @a DataField holding a value.
  */
-class SingleDataField : public DataField
-{
-public:
-
+class SingleDataField : public DataField {
+	public:
 	/**
 	 * Constructs a new instance.
 	 * @param name the field name.
@@ -287,7 +282,7 @@ public:
 	PartType getPartType() const { return m_partType; }
 
 	// @copydoc
-	virtual unsigned char getLength(PartType partType, unsigned char maxLength=MAX_LEN);
+	virtual unsigned char getLength(PartType partType, unsigned char maxLength = MAX_LEN);
 
 	// @copydoc
 	virtual result_t derive(string name, string comment,
@@ -312,21 +307,21 @@ public:
 	// @copydoc
 	virtual result_t read(const PartType partType,
 			SymbolString& data, unsigned char offset,
-			unsigned int& output, const char* fieldName=NULL, signed char fieldIndex=-1);
+			unsigned int& output, const char* fieldName = NULL, signed char fieldIndex = -1);
 
 	// @copydoc
 	virtual result_t read(const PartType partType,
 			SymbolString& data, unsigned char offset,
-			ostringstream& output, OutputFormat outputFormat, signed char outputIndex=-1,
-			bool leadingSeparator=false, const char* fieldName=NULL, signed char fieldIndex=-1);
+			ostringstream& output, OutputFormat outputFormat, signed char outputIndex = -1,
+			bool leadingSeparator = false, const char* fieldName = NULL, signed char fieldIndex = -1);
 
 	// @copydoc
 	virtual result_t write(istringstream& input,
 			const PartType partType, SymbolString& data,
-			unsigned char offset, char separator=UI_FIELD_SEPARATOR, unsigned char* length=NULL);
+			unsigned char offset, char separator = UI_FIELD_SEPARATOR, unsigned char* length = NULL);
 
-protected:
 
+	protected:
 	/**
 	 * Internal method for reading the field from a @a SymbolString.
 	 * @param input the unescaped @a SymbolString to read the binary value from.
@@ -353,8 +348,6 @@ protected:
 			const unsigned char offset,
 			SymbolString& output, const bool isMaster, unsigned char* usedLength);
 
-protected:
-
 	/** the value unit. */
 	const string m_unit;
 
@@ -366,17 +359,14 @@ protected:
 
 	/** the number of symbols in the message part in which the field is stored. */
 	const unsigned char m_length;
-
 };
 
 
 /**
  * A numeric data field with a list of value=text assignments and a string representation.
  */
-class ValueListDataField : public SingleDataField
-{
-public:
-
+class ValueListDataField : public SingleDataField {
+	public:
 	/**
 	 * Constructs a new instance.
 	 * @param name the field name.
@@ -410,8 +400,8 @@ public:
 	// @copydoc
 	virtual void dump(ostream& output);
 
-protected:
 
+	protected:
 	// @copydoc
 	virtual result_t readSymbols(SymbolString& input, const bool isMaster,
 			const unsigned char offset,
@@ -422,21 +412,18 @@ protected:
 			const unsigned char offset,
 			SymbolString& output, const bool isMaster, unsigned char* usedLength);
 
-private:
 
+	private:
 	/** the value=text assignments. */
 	map<unsigned int, string> m_values;
-
 };
 
 
 /**
  * A data field with a constant value.
  */
-class ConstantDataField : public SingleDataField
-{
-public:
-
+class ConstantDataField : public SingleDataField {
+	public:
 	/**
 	 * Constructs a new instance.
 	 * @param name the field name.
@@ -471,8 +458,8 @@ public:
 	// @copydoc
 	virtual void dump(ostream& output);
 
-protected:
 
+	protected:
 	// @copydoc
 	virtual result_t readSymbols(SymbolString& input, const bool isMaster,
 			const unsigned char offset,
@@ -483,24 +470,21 @@ protected:
 			const unsigned char offset,
 			SymbolString& output, const bool isMaster, unsigned char* usedLength);
 
-private:
 
+	private:
 	/** the constant value. */
 	const string m_value;
 
 	/** whether to verify the read value against the constant value. */
 	const bool m_verify;
-
 };
 
 
 /**
  * A set of @a DataField instances.
  */
-class DataFieldSet : public DataField
-{
-public:
-
+class DataFieldSet : public DataField {
+	public:
 	/**
 	 * Get the @a DataFieldSet for parsing the identification message (service 0x07 0x04).
 	 * @return the @a DataFieldSet for parsing the identification message. This is:<ul>
@@ -522,15 +506,16 @@ public:
 	DataFieldSet(const string name, const string comment,
 			const vector<SingleDataField*> fields)
 		: DataField(name, comment),
-		  m_fields(fields)
-	{
+		  m_fields(fields) {
 		bool uniqueNames = true;
 		map<string, string> names;
-		for (vector<SingleDataField*>::const_iterator it=fields.begin(); it!=fields.end(); it++) {
+		for (vector<SingleDataField*>::const_iterator it = fields.begin(); it != fields.end(); it++) {
 			SingleDataField* field = *it;
-			if (field->isIgnored()) continue;
+			if (field->isIgnored()) {
+				continue;
+			}
 			string name = field->getName();
-			if (name.empty() || names.find(name)!=names.end()) {
+			if (name.empty() || names.find(name) != names.end()) {
 				uniqueNames = false;
 				break;
 			}
@@ -548,10 +533,10 @@ public:
 	virtual DataFieldSet* clone();
 
 	// @copydoc
-	virtual unsigned char getLength(PartType partType, unsigned char maxLength=MAX_LEN);
+	virtual unsigned char getLength(PartType partType, unsigned char maxLength = MAX_LEN);
 
 	// @copydoc
-	virtual string getName(signed char fieldIndex=-1);
+	virtual string getName(signed char fieldIndex = -1);
 
 	// @copydoc
 	virtual result_t derive(string name, string comment,
@@ -564,14 +549,14 @@ public:
 	 * @param index the index of the @a SingleDataField to return.
 	 * @return the @a SingleDataField at the specified index, or NULL.
 	 */
-	SingleDataField* operator[](const size_t index) { if (index >= m_fields.size()) return NULL; return m_fields[index]; }
+	SingleDataField* operator[](const size_t index) { if (index >= m_fields.size()) { return NULL; } return m_fields[index]; }
 
 	/**
 	 * Returns the @a SingleDataField at the specified index.
 	 * @param index the index of the @a SingleDataField to return.
 	 * @return the @a SingleDataField at the specified index, or NULL.
 	 */
-	const SingleDataField* operator[](const size_t index) const { if (index >= m_fields.size()) return NULL; return m_fields[index]; }
+	const SingleDataField* operator[](const size_t index) const { if (index >= m_fields.size()) { return NULL; } return m_fields[index]; }
 
 	/**
 	 * Returns the number of @a SingleDataFields instances in this set.
@@ -588,21 +573,21 @@ public:
 	// @copydoc
 	virtual result_t read(const PartType partType,
 			SymbolString& data, unsigned char offset,
-			unsigned int& output, const char* fieldName=NULL, signed char fieldIndex=-1);
+			unsigned int& output, const char* fieldName = NULL, signed char fieldIndex = -1);
 
 	// @copydoc
 	virtual result_t read(const PartType partType,
 			SymbolString& data, unsigned char offset,
-			ostringstream& output, OutputFormat outputFormat, signed char outputIndex=-1,
-			bool leadingSeparator=false, const char* fieldName=NULL, signed char fieldIndex=-1);
+			ostringstream& output, OutputFormat outputFormat, signed char outputIndex = -1,
+			bool leadingSeparator = false, const char* fieldName = NULL, signed char fieldIndex = -1);
 
 	// @copydoc
 	virtual result_t write(istringstream& input,
 			const PartType partType, SymbolString& data,
-			unsigned char offset, char separator=UI_FIELD_SEPARATOR, unsigned char* length=NULL);
+			unsigned char offset, char separator = UI_FIELD_SEPARATOR, unsigned char* length = NULL);
 
-private:
 
+	private:
 	/** the @a DataFieldSet containing the ident message @a SingleDataField instances, or NULL. */
 	static DataFieldSet* s_identFields;
 
@@ -611,17 +596,14 @@ private:
 
 	/** whether all fields have a unique name. */
 	bool m_uniqueNames;
-
 };
 
 
 /**
  * A map of template @a DataField instances.
  */
-class DataFieldTemplates : public FileReader
-{
-public:
-
+class DataFieldTemplates : public FileReader {
+	public:
 	/**
 	 * Constructs a new instance.
 	 */
@@ -653,7 +635,7 @@ public:
 	 * @return @a RESULT_OK on success, or an error code.
 	 * Note: the caller may not free the added instance on success.
 	 */
-	result_t add(DataField* field, string name="", bool replace=false);
+	result_t add(DataField* field, string name = "", bool replace = false);
 
 	// @copydoc
 	virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
@@ -668,11 +650,10 @@ public:
 	 */
 	DataField* get(string name);
 
-private:
 
+	private:
 	/** the known template @a DataField instances by name. */
 	map<string, DataField*> m_fieldsByName;
-
 };
 
-#endif // LIBEBUS_DATA_H_
+#endif // LIB_EBUS_DATA_H_

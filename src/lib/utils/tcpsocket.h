@@ -16,13 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBUTILS_TCPSOCKET_H_
-#define LIBUTILS_TCPSOCKET_H_
+#ifndef LIB_UTILS_TCPSOCKET_H_
+#define LIB_UTILS_TCPSOCKET_H_
 
 #include <unistd.h>
 #include <sys/socket.h>
-#include <string>
 #include <stdint.h>
+#include <string>
 
 /** \file tcpsocket.h */
 
@@ -37,10 +37,8 @@ using namespace std;
 /**
  * class for low level tcp socket operations. (open, close, send, receive).
  */
-class TCPSocket
-{
-
-public:
+class TCPSocket {
+	public:
 	/** grant access for friend class TCPClient */
 	friend class TCPClient;
 
@@ -92,7 +90,8 @@ public:
 	 */
 	bool isValid();
 
-private:
+
+	private:
 	/** file descriptor from tcp socket */
 	int m_sfd;
 
@@ -108,16 +107,13 @@ private:
 	 * @param address struct which holds the ip address.
 	 */
 	TCPSocket(int sfd, struct sockaddr_in* address);
-
 };
 
 /**
  * class to initiate a tcp socket connection to a listening server.
  */
-class TCPClient
-{
-
-public:
+class TCPClient {
+	public:
 	/**
 	 * initiate a tcp socket connection to a listening server.
 	 * @param server the server name or ip address to connect.
@@ -125,16 +121,13 @@ public:
 	 * @return pointer to an opened tcp socket.
 	 */
 	TCPSocket* connect(const string& server, const uint16_t& port);
-
 };
 
 /**
  * class for a tcp based network server.
  */
-class TCPServer
-{
-
-public:
+class TCPServer {
+	public:
 	/**
 	 * creates a new instance of a listening tcp server.
 	 * @param port the tcp port.
@@ -166,7 +159,8 @@ public:
 	 */
 	int getFD() const { return m_lfd; }
 
-private:
+
+	private:
 	/** file descriptor from listening tcp socket */
 	int m_lfd;
 
@@ -178,8 +172,7 @@ private:
 
 	/** true if object is already listening */
 	bool m_listening;
-
 };
 
-#endif // LIBUTILS_TCPSOCKET_H_
+#endif // LIB_UTILS_TCPSOCKET_H_
 

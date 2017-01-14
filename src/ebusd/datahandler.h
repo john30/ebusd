@@ -16,12 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DATAHANDLER_H_
-#define DATAHANDLER_H_
+#ifndef EBUSD_DATAHANDLER_H_
+#define EBUSD_DATAHANDLER_H_
 
+#include <argp.h>
+#include <map>
+#include <list>
 #include "bushandler.h"
 #include "message.h"
-#include <argp.h>
 
 /** @file datahandler.h
  * Classes and functions for implementing and registering generic data sinks
@@ -52,9 +54,8 @@ bool datahandler_register(BusHandler* busHandler, MessageMap* messages, list<Dat
 /**
  * Base class for all kinds of data handlers.
  */
-class DataHandler
-{
-public:
+class DataHandler {
+	public:
 	/**
 	 * Constructor.
 	 */
@@ -81,17 +82,14 @@ public:
 	 * @return whether this is a @a DataSource instance.
 	 */
 	virtual bool isDataSource() { return false; }
-
 };
 
 
 /**
  * Base class for listening to data updates.
  */
-class DataSink : virtual public DataHandler
-{
-public:
-
+class DataSink : virtual public DataHandler {
+	public:
 	/**
 	 * Constructor.
 	 */
@@ -111,21 +109,18 @@ public:
 	// @copydoc
 	virtual bool isDataSink() { return true; }
 
-protected:
 
+	protected:
 	/** a map of updated @p Message instances. */
 	map<Message*, int> m_updatedMessages;
-
 };
 
 
 /**
  * Base class providing data to be sent on the bus.
  */
-class DataSource : virtual public DataHandler
-{
-public:
-
+class DataSource : virtual public DataHandler {
+	public:
 	/**
 	 * Constructor.
 	 * @param busHandler the @a BusHandler instance.
@@ -141,11 +136,10 @@ public:
 	// @copydoc
 	virtual bool isDataSource() { return true; }
 
-protected:
 
+	protected:
 	/** the @a BusHandler instance. */
 	BusHandler* m_busHandler;
-
 };
 
-#endif // DATAHANDLER_H_
+#endif // EBUSD_DATAHANDLER_H_

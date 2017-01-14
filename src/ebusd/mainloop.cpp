@@ -16,8 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef HAVE_CONFIG_H
+#	include <config.h>
+#endif
+
 #include "mainloop.h"
 #include <iomanip>
+#include <deque>
 #include "main.h"
 #include "log.h"
 #include "data.h"
@@ -60,8 +65,7 @@ static const size_t columnCount = sizeof(columnNames) / sizeof(char*);
 MainLoop::MainLoop(const struct options opt, Device *device, MessageMap* messages)
 	: Thread(), m_device(device), m_reconnectCount(0), m_messages(messages),
 	  m_address(opt.address), m_scanConfig(opt.scanConfig),
-	  m_initialScan(opt.initialScan), m_enableHex(opt.enableHex)
-{
+	  m_initialScan(opt.initialScan), m_enableHex(opt.enableHex) {
 	// open Device
 	result_t result = m_device->open();
 	if (result != RESULT_OK) {
@@ -75,7 +79,7 @@ MainLoop::MainLoop(const struct options opt, Device *device, MessageMap* message
 	} else {
 		m_dumpFile = NULL;
 	}
-	if (opt.logRawFile[0] && strcmp(opt.logRawFile, opt.logFile)!=0) {
+	if (opt.logRawFile[0] && strcmp(opt.logRawFile, opt.logFile) != 0) {
 		m_logRawFile = new RotateFile(opt.logRawFile, opt.logRawSize, true);
 	} else {
 		m_logRawFile = NULL;
@@ -83,7 +87,7 @@ MainLoop::MainLoop(const struct options opt, Device *device, MessageMap* message
 	m_logRawEnabled = opt.logRaw;
 	// create BusHandler
 	unsigned int latency;
-	if (opt.latency<0) {
+	if (opt.latency < 0) {
 		latency = device->getLatency();
 	} else {
 		latency = (unsigned int)opt.latency;
@@ -105,8 +109,7 @@ MainLoop::MainLoop(const struct options opt, Device *device, MessageMap* message
 	}
 }
 
-MainLoop::~MainLoop()
-{
+MainLoop::~MainLoop() {
 	join();
 
 	for (list<DataHandler*>::iterator it = m_dataHandlers.begin(); it != m_dataHandlers.end(); it++) {
@@ -133,13 +136,12 @@ MainLoop::~MainLoop()
 		m_device = NULL;
 	}
 	NetMessage* msg;
-	while ((msg = m_netQueue.pop())!=NULL) {
+	while ((msg = m_netQueue.pop()) != NULL) {
 		delete msg;
 	}
 }
 
-void MainLoop::run()
-{
+void MainLoop::run() {
 	bool reload = true;
 	time_t lastTaskRun, now, lastSignal = 0, since, sinkSince = 1;
 	int taskDelay = 5;
@@ -161,9 +163,9 @@ void MainLoop::run()
 		// pick the next message to handle
 		NetMessage* netMessage = m_netQueue.pop(taskDelay);
 		time(&now);
-		if (now<lastTaskRun) {
+		if (now < lastTaskRun) {
 			// clock skew
-			if (now<lastSignal) {
+			if (now < lastSignal) {
 				lastSignal -= lastTaskRun-now;
 			}
 			lastTaskRun = now;
@@ -204,7 +206,7 @@ void MainLoop::run()
 				}
 				bool scanned = false;
 				lastScanAddress = m_busHandler->getNextScanAddress(lastScanAddress, scanned);
-				if (lastScanAddress==SYN) {
+				if (lastScanAddress == SYN) {
 					taskDelay = 5;
 					lastScanAddress = 0;
 				} else {
@@ -212,13 +214,13 @@ void MainLoop::run()
 					if (scanned) {
 						Message* message = m_messages->getScanMessage(lastScanAddress);
 						slave = message->getLastSlaveData();
-						scanned = message->getLastUpdateTime()>0;
+						scanned = message->getLastUpdateTime() > 0;
 					} else {
 						result_t result = m_busHandler->scanAndWait(lastScanAddress, slave);
 						taskDelay = (result == RESULT_ERR_NO_SIGNAL) ? 10 : 1;
-						if (result!=RESULT_OK)
+						if (result != RESULT_OK) {
 							logError(lf_main, "scan config %2.2x message: %s", lastScanAddress, getResultCode(result));
-						else {
+						} else {
 							scanned = true;
 							logInfo(lf_main, "scan config %2.2x message received", lastScanAddress);
 						}
@@ -226,7 +228,7 @@ void MainLoop::run()
 					if (scanned) {
 						string file;
 						result_t result = loadScanConfigFile(m_messages, lastScanAddress, slave, file);
-						if (result==RESULT_OK) {
+						if (result == RESULT_OK) {
 							logNotice(lf_main, "scan config %2.2x: file %s loaded", lastScanAddress, file.c_str());
 							m_busHandler->setScanConfigLoaded(lastScanAddress, file);
 						} else {
@@ -248,7 +250,7 @@ void MainLoop::run()
 			}
 			sinkSince = now;
 		}
-		if (netMessage==NULL) {
+		if (netMessage == NULL) {
 			continue;
 		}
 		string request = netMessage->getRequest();
@@ -292,14 +294,13 @@ void MainLoop::run()
 	}
 }
 
-void MainLoop::notifyDeviceData(const unsigned char byte, bool received)
-{
+void MainLoop::notifyDeviceData(const unsigned char byte, bool received) {
 	if (received && m_dumpFile) {
 		m_dumpFile->write((unsigned char*)&byte, 1);
 	}
 	if (m_logRawFile) {
 		m_logRawFile->write((unsigned char*)&byte, 1, received);
-	} else if (m_logRawEnabled){
+	} else if (m_logRawEnabled) {
 		if (received) {
 			logNotice(lf_bus, "<%02x", byte);
 		} else {
@@ -308,8 +309,7 @@ void MainLoop::notifyDeviceData(const unsigned char byte, bool received)
 	}
 }
 
-string MainLoop::decodeMessage(const string& data, const bool isHttp, bool& connected, bool& listening, bool& reload)
-{
+string MainLoop::decodeMessage(const string& data, const bool isHttp, bool& connected, bool& listening, bool& reload) {
 	// prepare data
 	string token, previous;
 	istringstream stream(data);
@@ -326,85 +326,99 @@ string MainLoop::decodeMessage(const string& data, const bool isHttp, bool& conn
 					escaped = false;
 				}
 				token = previous + " " + token;
-			}
-			else if (token.length() == 0) // allow multiple space chars for a single delimiter
+			} else if (token.length() == 0) { // allow multiple space chars for a single delimiter
 				continue;
-			else if (token[0] == '"') {
+			} else if (token[0] == '"') {
 				token.erase(0, 1);
-				if (token.length() > 0 && token[token.length()-1] == '"')
+				if (token.length() > 0 && token[token.length()-1] == '"') {
 					token.erase(token.length() - 1, 1);
-				else
+				} else {
 					escaped = true;
+				}
 			}
 		}
 		args.push_back(token);
 		previous = token;
-		if (isHttp)
+		if (isHttp) {
 			delim = (args.size() == 1) ? '?' : '\n';
+		}
 	}
 
 	if (isHttp) {
 		const char* str = args.size() > 0 ? args[0].c_str() : "";
-		if (strcmp(str, "GET") == 0)
+		if (strcmp(str, "GET") == 0) {
 			return executeGet(args, connected);
-
+		}
 		connected = false;
 		return "HTTP/1.0 405 Method Not Allowed\r\n\r\n";
 	}
 
-	if (args.size() == 0)
+	if (args.size() == 0) {
 		return executeHelp();
-
+	}
 	const char* str = args[0].c_str();
 	if (args.size() == 2) {
 		// check for "CMD -h"
-		if (strcasecmp(args[1].c_str(), "-h") == 0 || strcasecmp(args[1].c_str(), "-?") == 0 || strcasecmp(args[1].c_str(), "--help") == 0)
+		if (strcasecmp(args[1].c_str(), "-h") == 0 || strcasecmp(args[1].c_str(), "-?") == 0 || strcasecmp(args[1].c_str(), "--help") == 0) {
 			args.clear(); // empty args is used as command help indicator
-		else if (strcasecmp(args[0].c_str(), "H") == 0 || strcasecmp(args[0].c_str(), "HELP") == 0) { // check for "HELP CMD"
+		} else if (strcasecmp(args[0].c_str(), "H") == 0 || strcasecmp(args[0].c_str(), "HELP") == 0) { // check for "HELP CMD"
 			str = args[1].c_str();
 			args.clear(); // empty args is used as command help indicator
 		}
 	}
-	if (strcasecmp(str, "R") == 0 || strcasecmp(str, "READ") == 0)
+	if (strcasecmp(str, "R") == 0 || strcasecmp(str, "READ") == 0) {
 		return executeRead(args);
-	if (strcasecmp(str, "W") == 0 || strcasecmp(str, "WRITE") == 0)
+	}
+	if (strcasecmp(str, "W") == 0 || strcasecmp(str, "WRITE") == 0) {
 		return executeWrite(args);
+	}
 	if (strcasecmp(str, "HEX") == 0) {
-		if (m_enableHex)
+		if (m_enableHex) {
 			return executeHex(args);
+		}
 		return "ERR: command not enabled";
 	}
-	if (strcasecmp(str, "F") == 0 || strcasecmp(str, "FIND") == 0)
+	if (strcasecmp(str, "F") == 0 || strcasecmp(str, "FIND") == 0) {
 		return executeFind(args);
-	if (strcasecmp(str, "L") == 0 || strcasecmp(str, "LISTEN") == 0)
+	}
+	if (strcasecmp(str, "L") == 0 || strcasecmp(str, "LISTEN") == 0) {
 		return executeListen(args, listening);
-	if (strcasecmp(str, "S") == 0 || strcasecmp(str, "STATE") == 0)
+	}
+	if (strcasecmp(str, "S") == 0 || strcasecmp(str, "STATE") == 0) {
 		return executeState(args);
-	if (strcasecmp(str, "G") == 0 || strcasecmp(str, "GRAB") == 0)
+	}
+	if (strcasecmp(str, "G") == 0 || strcasecmp(str, "GRAB") == 0) {
 		return executeGrab(args);
-	if (strcasecmp(str, "SCAN") == 0)
+	}
+	if (strcasecmp(str, "SCAN") == 0) {
 		return executeScan(args);
-	if (strcasecmp(str, "LOG") == 0)
+	}
+	if (strcasecmp(str, "LOG") == 0) {
 		return executeLog(args);
-	if (strcasecmp(str, "RAW") == 0)
+	}
+	if (strcasecmp(str, "RAW") == 0) {
 		return executeRaw(args);
-	if (strcasecmp(str, "DUMP") == 0)
+	}
+	if (strcasecmp(str, "DUMP") == 0) {
 		return executeDump(args);
+	}
 	if (strcasecmp(str, "RELOAD") == 0) {
 		reload = true;
 		return executeReload(args);
 	}
-	if (strcasecmp(str, "Q") == 0 || strcasecmp(str, "QUIT") == 0)
+	if (strcasecmp(str, "Q") == 0 || strcasecmp(str, "QUIT") == 0) {
 		return executeQuit(args, connected);
-	if (strcasecmp(str, "I") == 0 || strcasecmp(str, "INFO") == 0)
+	}
+	if (strcasecmp(str, "I") == 0 || strcasecmp(str, "INFO") == 0) {
 		return executeInfo(args);
-	if (strcasecmp(str, "H") == 0 || strcasecmp(str, "HELP") == 0)
+	}
+	if (strcasecmp(str, "H") == 0 || strcasecmp(str, "HELP") == 0) {
 		return executeHelp();
+	}
 	return "ERR: command not found";
 }
 
-result_t MainLoop::parseHexMaster(vector<string> &args, size_t argPos, SymbolString& master)
-{
+result_t MainLoop::parseHexMaster(vector<string> &args, size_t argPos, SymbolString& master) {
 	ostringstream msg;
 	while (argPos < args.size()) {
 		if ((args[argPos].length() % 2) != 0) {
@@ -412,25 +426,25 @@ result_t MainLoop::parseHexMaster(vector<string> &args, size_t argPos, SymbolStr
 		}
 		msg << args[argPos++];
 	}
-	if (msg.str().size() < 4*2) // at least ZZ, PB, SB, NN
+	if (msg.str().size() < 4*2) { // at least ZZ, PB, SB, NN
 		return RESULT_ERR_INVALID_ARG;
-
+	}
 	result_t ret;
 	unsigned int length = parseInt(msg.str().substr(3*2, 2).c_str(), 16, 0, MAX_POS, ret);
-	if (ret == RESULT_OK && (4+length)*2 != msg.str().size())
+	if (ret == RESULT_OK && (4+length)*2 != msg.str().size()) {
 		return RESULT_ERR_INVALID_ARG;
-
+	}
 	ret = master.push_back(m_address, false);
-	if (ret == RESULT_OK)
+	if (ret == RESULT_OK) {
 		ret = master.parseHex(msg.str());
-	if (ret == RESULT_OK && !isValidAddress(master[1]))
+	}
+	if (ret == RESULT_OK && !isValidAddress(master[1])) {
 		ret = RESULT_ERR_INVALID_ADDR;
-
+	}
 	return ret;
 }
 
-string MainLoop::executeRead(vector<string> &args)
-{
+string MainLoop::executeRead(vector<string> &args) {
 	size_t argPos = 1;
 	bool hex = false, numeric = false;
 	OutputFormat verbosity = 0;
@@ -469,8 +483,7 @@ string MainLoop::executeRead(vector<string> &args)
 					argPos = 0; // print usage
 					break;
 				}
-			}
-			else {
+			} else {
 				argPos = 0; // print usage
 				break;
 			}
@@ -489,8 +502,9 @@ string MainLoop::executeRead(vector<string> &args)
 			}
 			result_t ret;
 			dstAddress = (unsigned char)parseInt(args[argPos].c_str(), 16, 0, 0xff, ret);
-			if (ret != RESULT_OK || !isValidAddress(dstAddress) || isMaster(dstAddress))
+			if (ret != RESULT_OK || !isValidAddress(dstAddress) || isMaster(dstAddress)) {
 				return getResultCode(RESULT_ERR_INVALID_ADDR);
+			}
 		} else if (args[argPos] == "-p") {
 			argPos++;
 			if (argPos >= args.size()) {
@@ -499,8 +513,9 @@ string MainLoop::executeRead(vector<string> &args)
 			}
 			result_t ret;
 			pollPriority = (unsigned char)parseInt(args[argPos].c_str(), 10, 1, 9, ret);
-			if (ret != RESULT_OK)
+			if (ret != RESULT_OK) {
 				return getResultCode(RESULT_ERR_INVALID_NUM);
+			}
 		} else if (args[argPos] == "-i") {
 			argPos++;
 			if (argPos >= args.size()) {
@@ -524,22 +539,26 @@ string MainLoop::executeRead(vector<string> &args)
 	if (hex && argPos > 0) {
 		SymbolString cacheMaster(false);
 		result_t ret = parseHexMaster(args, argPos, cacheMaster);
-		if (ret != RESULT_OK)
+		if (ret != RESULT_OK) {
 			return getResultCode(ret);
-		if (cacheMaster[1] == BROADCAST || isMaster(cacheMaster[1]))
+		}
+		if (cacheMaster[1] == BROADCAST || isMaster(cacheMaster[1])) {
 			return getResultCode(RESULT_ERR_INVALID_ARG);
-
+		}
 		logNotice(lf_main, "read hex cmd: %s", cacheMaster.getDataStr(true, false).c_str());
 
 		// find message
 		Message* message = m_messages->find(cacheMaster, false, true, false, false);
 
-		if (message == NULL)
+		if (message == NULL) {
 			return getResultCode(RESULT_ERR_NOTFOUND);
-		if (message->isWrite())
+		}
+		if (message->isWrite()) {
 			return getResultCode(RESULT_ERR_INVALID_ARG);
-		if (circuit.length() > 0 && circuit!=message->getCircuit())
+		}
+		if (circuit.length() > 0 && circuit != message->getCircuit()) {
 			return getResultCode(RESULT_ERR_INVALID_ARG); // non-matching circuit
+		}
 		if (message->getLastUpdateTime() + maxAge > now || (message->isPassive() && message->getLastUpdateTime() != 0)) {
 			SymbolString& slave = message->getLastSlaveData();
 			logNotice(lf_main, "hex read %s %s from cache", message->getCircuit().c_str(), message->getName().c_str());
@@ -555,18 +574,20 @@ string MainLoop::executeRead(vector<string> &args)
 		if (ret == RESULT_OK) {
 			ret = message->storeLastData(cacheMaster, slave);
 			ostringstream result;
-			if (ret==RESULT_OK)
+			if (ret == RESULT_OK) {
 				ret = message->decodeLastData(result);
-			if (ret >= RESULT_OK)
+			}
+			if (ret >= RESULT_OK) {
 				logInfo(lf_main, "read hex %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(), result.str().c_str());
-			else
+			} else {
 				logError(lf_main, "read hex %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
+			}
 			return slave.getDataStr(true, false);
 		}
 		logError(lf_main, "read hex %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
 		return getResultCode(ret);
 	}
-	if (argPos == 0 || args.size() < argPos + 1 || args.size() > argPos + 2)
+	if (argPos == 0 || args.size() < argPos + 1 || args.size() > argPos + 2) {
 		return "usage: read [-f] [-m SECONDS] [-c CIRCUIT] [-d ZZ] [-p PRIO] [-v|-V] [-n] [-i VALUE[;VALUE]*] NAME [FIELD[.N]]\n"
 			   "  or:  read [-f] [-m SECONDS] [-c CIRCUIT] -h ZZPBSBNNDx\n"
 			   " Read value(s) or hex message.\n"
@@ -587,7 +608,7 @@ string MainLoop::executeRead(vector<string> &args)
 			   "    PB SB     primary/secondary command byte\n"
 			   "    NN        number of following data bytes\n"
 			   "    Dx        data byte(s) to send";
-
+	}
 	string fieldName;
 	signed char fieldIndex = -2;
 	if (args.size() == argPos + 2) {
@@ -597,8 +618,9 @@ string MainLoop::executeRead(vector<string> &args)
 		if (pos != string::npos) {
 			result_t result = RESULT_OK;
 			fieldIndex = (char)parseInt(fieldName.substr(pos+1).c_str(), 10, 0, MAX_POS, result);
-			if (result == RESULT_OK)
+			if (result == RESULT_OK) {
 				fieldName = fieldName.substr(0, pos);
+			}
 		}
 	}
 
@@ -620,49 +642,51 @@ string MainLoop::executeRead(vector<string> &args)
 			if (verbosity & OF_NAMES) {
 				result << cacheMessage->getCircuit() << " " << cacheMessage->getName() << " ";
 			}
-			result_t ret = cacheMessage->decodeLastData(result, verbosity|(numeric?OF_NUMERIC:0), false, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
+			result_t ret = cacheMessage->decodeLastData(result, verbosity|(numeric?OF_NUMERIC:0), false, fieldIndex == -2 ? NULL : fieldName.c_str(), fieldIndex);
 			if (ret != RESULT_OK) {
-				if (ret < RESULT_OK)
+				if (ret < RESULT_OK) {
 					logError(lf_main, "read %s %s cached: %s", cacheMessage->getCircuit().c_str(), cacheMessage->getName().c_str(), getResultCode(ret));
+				}
 				return getResultCode(ret);
 			}
 			logInfo(lf_main, "read %s %s cached: %s", cacheMessage->getCircuit().c_str(), cacheMessage->getName().c_str(), result.str().c_str());
 			return result.str();
 		}
 
-		if (message == NULL && hasCache)
+		if (message == NULL && hasCache) {
 			return "ERR: no data stored";
-		// else: read directly from bus
+		} // else: read directly from bus
 	}
 
-	if (message == NULL)
+	if (message == NULL) {
 		return getResultCode(RESULT_ERR_NOTFOUND);
-	if (message->getDstAddress()==SYN && dstAddress==SYN)
+	}
+	if (message->getDstAddress() == SYN && dstAddress == SYN) {
 		return getResultCode(RESULT_ERR_INVALID_ADDR);
-
+	}
 	// read directly from bus
 	result_t ret = m_busHandler->readFromBus(message, params, dstAddress);
-	if (ret != RESULT_OK)
+	if (ret != RESULT_OK) {
 		return getResultCode(ret);
-
+	}
 	if (verbosity & OF_NAMES) {
 		result << message->getCircuit() << " " << message->getName() << " ";
 	}
-	ret = message->decodeLastData(pt_slaveData, result, verbosity|(numeric?OF_NUMERIC:0), false, fieldIndex==-2 ? NULL : fieldName.c_str(), fieldIndex);
+	ret = message->decodeLastData(pt_slaveData, result, verbosity|(numeric?OF_NUMERIC:0), false, fieldIndex == -2 ? NULL : fieldName.c_str(), fieldIndex);
 	if (ret < RESULT_OK) {
 		logError(lf_main, "read %s %s: decode %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
 		result.str("");
 		result << getResultCode(ret) << " in decode";
 		return result.str();
 	}
-	if (ret > RESULT_OK)
+	if (ret > RESULT_OK) {
 		return getResultCode(ret);
+	}
 	logInfo(lf_main, "read %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), result.str().c_str());
 	return result.str();
 }
 
-string MainLoop::executeWrite(vector<string> &args)
-{
+string MainLoop::executeWrite(vector<string> &args) {
 	size_t argPos = 1;
 	bool hex = false;
 	string circuit;
@@ -678,8 +702,9 @@ string MainLoop::executeWrite(vector<string> &args)
 			}
 			result_t ret;
 			dstAddress = (unsigned char)parseInt(args[argPos].c_str(), 16, 0, 0xff, ret);
-			if (ret != RESULT_OK || !isValidAddress(dstAddress) || isMaster(dstAddress))
+			if (ret != RESULT_OK || !isValidAddress(dstAddress) || isMaster(dstAddress)) {
 				return getResultCode(RESULT_ERR_INVALID_ADDR);
+			}
 		} else if (args[argPos] == "-c") {
 			argPos++;
 			if (argPos >= args.size()) {
@@ -701,21 +726,23 @@ string MainLoop::executeWrite(vector<string> &args)
 	if (hex && argPos > 0) {
 		SymbolString cacheMaster(false);
 		result_t ret = parseHexMaster(args, argPos, cacheMaster);
-		if (ret != RESULT_OK)
+		if (ret != RESULT_OK) {
 			return getResultCode(ret);
-
+		}
 		logNotice(lf_main, "write hex cmd: %s", cacheMaster.getDataStr(true, false).c_str());
 
 		// find message
 		Message* message = m_messages->find(cacheMaster, false, false, true, false);
 
-		if (message == NULL)
+		if (message == NULL) {
 			return getResultCode(RESULT_ERR_NOTFOUND);
-		if (!message->isWrite())
+		}
+		if (!message->isWrite()) {
 			return getResultCode(RESULT_ERR_INVALID_ARG);
-		if (circuit.length() > 0 && circuit!=message->getCircuit())
+		}
+		if (circuit.length() > 0 && circuit != message->getCircuit()) {
 			return getResultCode(RESULT_ERR_INVALID_ARG); // non-matching circuit
-
+		}
 		// send message
 		SymbolString master(true);
 		master.addAll(cacheMaster);
@@ -726,23 +753,27 @@ string MainLoop::executeWrite(vector<string> &args)
 			// also update read messages
 			ret = message->storeLastData(cacheMaster, slave);
 			ostringstream result;
-			if (ret==RESULT_OK)
+			if (ret == RESULT_OK) {
 				ret = message->decodeLastData(result);
-			if (ret >= RESULT_OK)
+			}
+			if (ret >= RESULT_OK) {
 				logInfo(lf_main, "write hex %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(), result.str().c_str());
-			else
+			} else {
 				logError(lf_main, "write hex %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
-			if (master[1] == BROADCAST)
+			}
+			if (master[1] == BROADCAST) {
 				return "done broadcast";
-			if (isMaster(master[1]))
+			}
+			if (isMaster(master[1])) {
 				return getResultCode(RESULT_OK);
+			}
 			return slave.getDataStr(true, false);
 		}
 		logError(lf_main, "write hex %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
 		return getResultCode(ret);
 	}
 
-	if (argPos == 0 || circuit.empty() || (args.size() != argPos + 2 && args.size() != argPos + 1))
+	if (argPos == 0 || circuit.empty() || (args.size() != argPos + 2 && args.size() != argPos + 1)) {
 		return "usage: write [-d ZZ] -c CIRCUIT NAME [VALUE[;VALUE]*]\n"
 			   "  or:  write [-c CIRCUIT] -h ZZPBSBNNDx\n"
 			   " Write value(s) or hex message.\n"
@@ -755,14 +786,15 @@ string MainLoop::executeWrite(vector<string> &args)
 			   "    PB SB     primary/secondary command byte\n"
 			   "    NN        number of following data bytes\n"
 			   "    Dx        data byte(s) to send";
-
+	}
 	Message* message = m_messages->find(circuit, args[argPos], true);
 
-	if (message == NULL)
+	if (message == NULL) {
 		return getResultCode(RESULT_ERR_NOTFOUND);
-	if (message->getDstAddress()==SYN && dstAddress==SYN)
+	}
+	if (message->getDstAddress() == SYN && dstAddress == SYN) {
 		return getResultCode(RESULT_ERR_INVALID_ADDR);
-
+	}
 	result_t ret = m_busHandler->readFromBus(message, args.size() == argPos + 1 ? "" : args[argPos + 1], dstAddress); // allow missing values
 	if (ret != RESULT_OK) {
 		logError(lf_main, "write %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
@@ -772,8 +804,9 @@ string MainLoop::executeWrite(vector<string> &args)
 	ostringstream result;
 	if (dstAddress == BROADCAST || isMaster(dstAddress)) {
 		logNotice(lf_main, "write %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(ret));
-		if (dstAddress == BROADCAST)
+		if (dstAddress == BROADCAST) {
 			return "done broadcast";
+		}
 		return getResultCode(RESULT_OK);
 	}
 
@@ -792,8 +825,7 @@ string MainLoop::executeWrite(vector<string> &args)
 	return result.str();
 }
 
-string MainLoop::executeHex(vector<string> &args)
-{
+string MainLoop::executeHex(vector<string> &args) {
 	size_t argPos = 1;
 	if (args.size() < argPos + 1 || (args.size() > argPos && args[argPos][0] == '-')) {
 		argPos = 0; // print usage
@@ -802,9 +834,9 @@ string MainLoop::executeHex(vector<string> &args)
 	if (argPos > 0) {
 		SymbolString cacheMaster(false);
 		result_t ret = parseHexMaster(args, argPos, cacheMaster);
-		if (ret != RESULT_OK)
+		if (ret != RESULT_OK) {
 			return getResultCode(ret);
-
+		}
 		logNotice(lf_main, "hex cmd: %s", cacheMaster.getDataStr(true, false).c_str());
 
 		// send message
@@ -814,10 +846,12 @@ string MainLoop::executeHex(vector<string> &args)
 		ret = m_busHandler->sendAndWait(master, slave);
 
 		if (ret == RESULT_OK) {
-			if (master[1] == BROADCAST)
+			if (master[1] == BROADCAST) {
 				return "done broadcast";
-			if (isMaster(master[1]))
+			}
+			if (isMaster(master[1])) {
 				return getResultCode(RESULT_OK);
+			}
 			return slave.getDataStr(true, false);
 		}
 		logError(lf_main, "hex: %s", getResultCode(ret));
@@ -832,8 +866,7 @@ string MainLoop::executeHex(vector<string> &args)
 		   "  Dx     data byte(s) to send";
 }
 
-string MainLoop::executeFind(vector<string> &args)
-{
+string MainLoop::executeFind(vector<string> &args) {
 	size_t argPos = 1;
 	bool configFormat = false, exact = false, withRead = true, withWrite = false, withPassive = true, first = true, onlyWithData = false, hexFormat = false;
 	OutputFormat verbosity = 0;
@@ -879,7 +912,7 @@ string MainLoop::executeFind(vector<string> &args)
 						break;
 					}
 				}
-				if (idx==columnCount) {
+				if (idx == columnCount) {
 					argPos = 0; // print usage
 					break;
 				}
@@ -944,7 +977,7 @@ string MainLoop::executeFind(vector<string> &args)
 		}
 		argPos++;
 	}
-	if (argPos == 0 || args.size() < argPos || args.size() > argPos + 1)
+	if (argPos == 0 || args.size() < argPos || args.size() > argPos + 1) {
 		return "usage: find [-v|-V] [-r] [-w] [-p] [-d] [-h] [-i ID] [-f] [-F COL[,COL]*] [-e] [-c CIRCUIT] [NAME]\n"
 			   " Find message(s).\n"
 			   "  -v            increase verbosity (include names/units/comments+destination address+update time)\n"
@@ -961,7 +994,7 @@ string MainLoop::executeFind(vector<string> &args)
 			   "  -e            match NAME and optional CIRCUIT exactly (ignoring case)\n"
 			   "  -c CIRCUIT    limit to messages of CIRCUIT (or a part thereof without '-e')\n"
 			   "  NAME          NAME of the messages to find (or a part thereof without '-e')";
-
+	}
 	deque<Message*> messages = m_messages->findAll(
 		circuit, args.size() == argPos ? "" : args[argPos], exact, withRead, withWrite, withPassive
 	);
@@ -975,19 +1008,23 @@ string MainLoop::executeFind(vector<string> &args)
 			continue;
 		}
 		time_t lastup = message->getLastUpdateTime();
-		if (onlyWithData && lastup == 0)
+		if (onlyWithData && lastup == 0) {
 			continue;
+		}
 		if (configFormat) {
-			if (found)
+			if (found) {
 				result << endl;
+			}
 			message->dump(result);
 		} else if (!columns.empty()) {
-			if (found)
+			if (found) {
 				result << endl;
+			}
 			message->dump(result, &columns);
 		} else {
-			if (found)
+			if (found) {
 				result << endl;
+			}
 			result << message->getCircuit() << " " << message->getName() << " = ";
 			if (lastup == 0) {
 				result << "no data stored";
@@ -996,20 +1033,21 @@ string MainLoop::executeFind(vector<string> &args)
 					   << " / " << message->getLastSlaveData().getDataStr(true, false);
 			} else {
 				result_t ret = message->decodeLastData(result, verbosity);
-				if (ret!=RESULT_OK) {
+				if (ret != RESULT_OK) {
 					result << " (" << getResultCode(ret)
 						   << " for " << message->getLastMasterData().getDataStr()
 						   << " / " << message->getLastSlaveData().getDataStr(true, false) << ")";
 				}
 			}
-			if (verbosity==(OF_NAMES|OF_UNITS|OF_COMMENTS)) {
+			if (verbosity == (OF_NAMES|OF_UNITS|OF_COMMENTS)) {
 				unsigned char dstAddress = message->getDstAddress();
-				if (dstAddress != SYN)
+				if (dstAddress != SYN) {
 					sprintf(str, "%02x", dstAddress);
-				else if (lastup != 0 && message->getLastMasterData().size()>1)
+				} else if (lastup != 0 && message->getLastMasterData().size() > 1) {
 					sprintf(str, "%02x", message->getLastMasterData()[1]);
-				else
+				} else {
 					sprintf(str, "any");
+				}
 				if (lastup != 0) {
 					struct tm* td = localtime(&lastup);
 					sprintf(str+strlen(str), ", lastup=%04d-%02d-%02d %02d:%02d:%02d",
@@ -1017,49 +1055,48 @@ string MainLoop::executeFind(vector<string> &args)
 						td->tm_hour, td->tm_min, td->tm_sec);
 				}
 				result << " [ZZ=" << str;
-				if (message->isPassive())
+				if (message->isPassive()) {
 					result << ", passive";
-				else
+				} else {
 					result << ", active";
-
-				if (message->isWrite())
+				}
+				if (message->isWrite()) {
 					result << " write]";
-				else
+				} else {
 					result << " read]";
+				}
 			}
 		}
 		found = true;
 	}
-	if (!found)
+	if (!found) {
 		return getResultCode(RESULT_ERR_NOTFOUND);
-
+	}
 	return result.str();
 }
 
-string MainLoop::executeListen(vector<string> &args, bool& listening)
-{
+string MainLoop::executeListen(vector<string> &args, bool& listening) {
 	if (args.size() == 1) {
-		if (listening)
+		if (listening) {
 			return "listen continued";
-
+		}
 		listening = true;
 		return "listen started";
 	}
 
-	if (args.size() != 2 || args[1] != "stop")
+	if (args.size() != 2 || args[1] != "stop") {
 		return "usage: listen [stop]\n"
 			   " Listen for updates or stop it.";
-
+	}
 	listening = false;
 	return "listen stopped";
 }
 
-string MainLoop::executeState(vector<string> &args)
-{
-	if (args.size() == 0)
+string MainLoop::executeState(vector<string> &args) {
+	if (args.size() == 0) {
 		return "usage: state\n"
 			   " Report bus state.";
-
+	}
 	if (m_busHandler->hasSignal()) {
 		ostringstream result;
 		result << "signal acquired, "
@@ -1071,8 +1108,7 @@ string MainLoop::executeState(vector<string> &args)
 	return "no signal";
 }
 
-string MainLoop::executeGrab(vector<string> &args)
-{
+string MainLoop::executeGrab(vector<string> &args) {
 	if (args.size() == 1) {
 		return m_busHandler->enableGrab(true) ? "grab started" : "grab continued";
 	}
@@ -1091,22 +1127,21 @@ string MainLoop::executeGrab(vector<string> &args)
 		   " Start or stop grabbing, or report unknown or all grabbed messages.";
 }
 
-string MainLoop::executeScan(vector<string> &args)
-{
+string MainLoop::executeScan(vector<string> &args) {
 	if (args.size() == 1) {
 		result_t result = m_busHandler->startScan();
-		if (result != RESULT_OK)
+		if (result != RESULT_OK) {
 			logError(lf_main, "scan: %s", getResultCode(result));
-
+		}
 		return getResultCode(result);
 	}
 
 	if (args.size() == 2) {
 		if (strcasecmp(args[1].c_str(), "FULL") == 0) {
 			result_t result = m_busHandler->startScan(true);
-			if (result != RESULT_OK)
+			if (result != RESULT_OK) {
 				logError(lf_main, "full scan: %s", getResultCode(result));
-
+			}
 			return getResultCode(result);
 		}
 
@@ -1118,23 +1153,24 @@ string MainLoop::executeScan(vector<string> &args)
 
 		result_t result;
 		unsigned char dstAddress = (unsigned char)parseInt(args[1].c_str(), 16, 0, 0xff, result);
-		if (result == RESULT_OK && !isValidAddress(dstAddress, false))
+		if (result == RESULT_OK && !isValidAddress(dstAddress, false)) {
 			result = RESULT_ERR_INVALID_ADDR;
-		if (result != RESULT_OK)
+		}
+		if (result != RESULT_OK) {
 			return getResultCode(result);
-
+		}
 		SymbolString slave(false);
 		result = m_busHandler->scanAndWait(dstAddress, slave);
-		if (result != RESULT_OK)
+		if (result != RESULT_OK) {
 			return getResultCode(result);
-
+		}
 		Message* message = m_messages->getScanMessage(dstAddress); // never NULL due to scanAndWait() == RESULT_OK && dstAddress != BROADCAST
 		ostringstream ret;
 		ret << hex << setw(2) << setfill('0') << static_cast<unsigned>(dstAddress);
 		result = message->decodeLastData(ret, 0, true); // decode data
-		if (result != RESULT_OK)
+		if (result != RESULT_OK) {
 			return getResultCode(result);
-
+		}
 		return ret.str();
 	}
 
@@ -1143,8 +1179,7 @@ string MainLoop::executeScan(vector<string> &args)
 		   " Scan seen slaves, all slaves (full), a single slave (address ZZ), or report scan result.";
 }
 
-string MainLoop::executeLog(vector<string> &args)
-{
+string MainLoop::executeLog(vector<string> &args) {
 	if (args.size() == 1) {
 		ostringstream ret;
 		char str[32];
@@ -1156,28 +1191,27 @@ string MainLoop::executeLog(vector<string> &args)
 	}
 	bool result;
 	// old format: log areas AREA[,AREA]*, log level LEVEL
-	if ((args.size() == 3 || args.size() == 2) && strcasecmp(args[1].c_str(), "AREAS") == 0)
+	if ((args.size() == 3 || args.size() == 2) && strcasecmp(args[1].c_str(), "AREAS") == 0) {
 		result = setLogFacilities(args.size() == 3 ? args[2].c_str() : "");
-	else if (args.size() == 3 && strcasecmp(args[1].c_str(), "LEVEL") == 0)
+	} else if (args.size() == 3 && strcasecmp(args[1].c_str(), "LEVEL") == 0) {
 		result = setLogLevel(args[2].c_str());
-	else if (args.size() == 2)
+	} else if (args.size() == 2) {
 		result = setLogLevel(args[1].c_str()) || setLogFacilities(args[1].c_str());
-	else if (args.size() == 3)
+	} else if (args.size() == 3) {
 		result = setLogFacilities(args[1].c_str()) && setLogLevel(args[2].c_str());
-	else
+	} else {
 		return "usage: log [AREA[,AREA]*] [LEVEL]\n"
 			   " Set log area(s) and/or log level or get current settings.\n"
 			   "  AREA   log area to include (main|network|bus|update|all)\n"
 			   "  LEVEL  log level to set (error|notice|info|debug)";
-
-	if (result)
+	}
+	if (result) {
 		return getResultCode(RESULT_OK);
-
+	}
 	return getResultCode(RESULT_ERR_INVALID_ARG);
 }
 
-string MainLoop::executeRaw(vector<string> &args)
-{
+string MainLoop::executeRaw(vector<string> &args) {
 	if (args.size() != 1) {
 		return "usage: raw\n"
 			   " Toggle logging of each byte.";
@@ -1193,8 +1227,7 @@ string MainLoop::executeRaw(vector<string> &args)
 	return enabled ? "raw logging enabled" : "raw logging disabled";
 }
 
-string MainLoop::executeDump(vector<string> &args)
-{
+string MainLoop::executeDump(vector<string> &args) {
 	if (args.size() != 1) {
 		return "usage: dump\n"
 			   " Toggle binary dump of received bytes.";
@@ -1207,24 +1240,21 @@ string MainLoop::executeDump(vector<string> &args)
 	return enabled ? "dump enabled" : "dump disabled";
 }
 
-string MainLoop::executeReload(vector<string> &args)
-{
-	if (args.size() != 1)
+string MainLoop::executeReload(vector<string> &args) {
+	if (args.size() != 1) {
 		return "usage: reload\n"
 			   " Reload CSV config files.";
-
+	}
 	m_busHandler->clear();
 	result_t result = loadConfigFiles(m_messages);
-
 	return getResultCode(result);
 }
 
-string MainLoop::executeInfo(vector<string> &args)
-{
-	if (args.size() == 0)
+string MainLoop::executeInfo(vector<string> &args) {
+	if (args.size() == 0) {
 		return "usage: info\n"
 			   " Report information about the daemon, the configuration, and seen devices.";
-
+	}
 	ostringstream result;
 	result << "version: " << PACKAGE_STRING "." REVISION "\n";
 	if (m_busHandler->hasSignal()) {
@@ -1243,19 +1273,16 @@ string MainLoop::executeInfo(vector<string> &args)
 	return result.str();
 }
 
-string MainLoop::executeQuit(vector<string> &args, bool& connected)
-{
+string MainLoop::executeQuit(vector<string> &args, bool& connected) {
 	if (args.size() == 1) {
 		connected = false;
 		return "connection closed";
 	}
-
 	return "usage: quit\n"
 		   " Close client connection.";
 }
 
-string MainLoop::executeHelp()
-{
+string MainLoop::executeHelp() {
 	return "usage:\n"
 		   " read|r   Read value(s):         read [-f] [-m SECONDS] [-c CIRCUIT] [-d ZZ] [-p PRIO] [-v|-V] [-n] [-i VALUE[;VALUE]*] NAME [FIELD[.N]]\n"
 		   "          Read hex message:      read [-f] [-m SECONDS] [-c CIRCUIT] -h ZZPBSBNNDx\n"
@@ -1280,8 +1307,7 @@ string MainLoop::executeHelp()
 		   " help|h   Print help             help [COMMAND]";
 }
 
-string MainLoop::executeGet(vector<string> &args, bool& connected)
-{
+string MainLoop::executeGet(vector<string> &args, bool& connected) {
 	result_t ret = RESULT_OK;
 	bool numeric = false, required = false;
 	OutputFormat verbosity = OF_NAMES;
@@ -1320,22 +1346,23 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 				} else if (strcmp(qname.c_str(), "poll") == 0) {
 					pollPriority = (unsigned char)parseInt(value.c_str(), 10, 1, 9, ret);
 				} else if (strcmp(qname.c_str(), "exact") == 0) {
-					exact = value.length()==0 || strcmp(value.c_str(), "1") == 0;
+					exact = value.length() == 0 || strcmp(value.c_str(), "1") == 0;
 				} else if (strcmp(qname.c_str(), "verbose") == 0) {
-					if (value.length()==0 || strcmp(value.c_str(), "1") == 0) {
+					if (value.length() == 0 || strcmp(value.c_str(), "1") == 0) {
 						verbosity |= OF_UNITS|OF_COMMENTS;
 					}
 				} else if (strcmp(qname.c_str(), "indexed") == 0) {
-					if (value.length()==0 || strcmp(value.c_str(), "1") == 0) {
+					if (value.length() == 0 || strcmp(value.c_str(), "1") == 0) {
 						verbosity &= ~OF_NAMES;
 					}
 				} else if (strcmp(qname.c_str(), "numeric") == 0) {
-					numeric = value.length()==0 || strcmp(value.c_str(), "1") == 0;
+					numeric = value.length() == 0 || strcmp(value.c_str(), "1") == 0;
 				} else if (strcmp(qname.c_str(), "required") == 0) {
-					required = value.length()==0 || strcmp(value.c_str(), "1") == 0;
+					required = value.length() == 0 || strcmp(value.c_str(), "1") == 0;
 				}
-				if (ret != RESULT_OK)
+				if (ret != RESULT_OK) {
 					break;
+				}
 			}
 		}
 		deque<Message*> messages = m_messages->findAll(circuit, name, exact, true, false, true);
@@ -1347,35 +1374,43 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 		for (deque<Message*>::iterator it = messages.begin(); ret == RESULT_OK && it != messages.end();) {
 			Message* message = *it++;
 			unsigned char dstAddress = message->getDstAddress();
-			if (dstAddress == SYN)
+			if (dstAddress == SYN) {
 				continue;
-			if (pollPriority > 0 && message->setPollPriority(pollPriority))
+			}
+			if (pollPriority > 0 && message->setPollPriority(pollPriority)) {
 				m_messages->addPollMessage(message);
+			}
 			time_t lastup = message->getLastUpdateTime();
 			if (lastup == 0 && required) {
 				// read directly from bus
-				if (message->isPassive())
+				if (message->isPassive()) {
 					continue; // not possible to actively read this message
-				if (m_busHandler->readFromBus(message, "") != RESULT_OK)
+				}
+				if (m_busHandler->readFromBus(message, "") != RESULT_OK) {
 					continue;
+				}
 				lastup = message->getLastUpdateTime();
 			} else {
-				if (since > 0 && lastup <= since)
+				if (since > 0 && lastup <= since) {
 					continue;
-				if (lastup > maxLastUp)
+				}
+				if (lastup > maxLastUp) {
 					maxLastUp = lastup;
+				}
 			}
 			if (message->getCircuit() != lastCircuit) {
-				if (lastCircuit.length() > 0)
+				if (lastCircuit.length() > 0) {
 					result << "\n },";
+				}
 				lastCircuit = message->getCircuit();
 				result << "\n \"" << lastCircuit << "\": {";
 				first = true;
 			}
-			if (first)
+			if (first) {
 				first = false;
-			else
+			} else {
 				result << ",";
+			}
 			result << "\n  \"" << message->getName() << "\": {";
 			result << "\n   \"lastup\": " << setw(0) << dec << static_cast<unsigned>(lastup);
 			if (lastup != 0) {
@@ -1383,7 +1418,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 				size_t pos = (size_t)result.tellp();
 				result << ",\n   \"fields\": {";
 				result_t dret = message->decodeLastData(result, verbosity|(numeric?OF_NUMERIC:0)|OF_JSON);
-				if (dret==RESULT_OK) {
+				if (dret == RESULT_OK) {
 					result << "\n   }";
 				} else {
 					string prefix = result.str().substr(0, pos);
@@ -1398,8 +1433,9 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 		}
 
 		if (ret == RESULT_OK) {
-			if (lastCircuit.length() > 0)
+			if (lastCircuit.length() > 0) {
 				result << "\n },";
+			}
 			result << "\n \"global\": {";
 			result << "\n  \"signal\": " << (m_busHandler->hasSignal() ? "1" : "0");
 			result << ",\n  \"lastup\": " << setw(0) << dec << static_cast<unsigned>(maxLastUp);
@@ -1412,9 +1448,9 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 			ret = RESULT_ERR_INVALID_ARG;
 		} else {
 			string filename = m_htmlPath+uri;
-			if (uri[uri.length()-1] == '/')
+			if (uri[uri.length()-1] == '/') {
 				filename += "index.html";
-
+			}
 			size_t pos = filename.find_last_of('.');
 			if (pos != string::npos && pos != filename.length() - 1 && pos >= filename.length() - 5) {
 				string ext = filename.substr(pos+1);
@@ -1449,7 +1485,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected)
 		}
 	}
 
-	string data = ret==RESULT_OK ? result.str() : "";
+	string data = ret == RESULT_OK ? result.str() : "";
 	result.str("");
 	result.clear();
 	result << "HTTP/1.0 ";

@@ -16,13 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef MQTTHANDLER_H_
-#define MQTTHANDLER_H_
+#ifndef EBUSD_MQTTHANDLER_H_
+#define EBUSD_MQTTHANDLER_H_
 
+#include <mosquitto.h>
+#include <string>
+#include <vector>
+#include <map>
 #include "datahandler.h"
 #include "bushandler.h"
 #include "message.h"
-#include <mosquitto.h>
 
 /** @file mqtthandler.h
  * A data handler enabling MQTT support via mosquitto.
@@ -47,10 +50,8 @@ DataHandler* mqtthandler_register(BusHandler* busHandler, MessageMap* messages);
 /**
  * The main class supporting MQTT data handling.
  */
-class MqttHandler : public DataSink, public DataSource, public Thread
-{
-public:
-
+class MqttHandler : public DataSink, public DataSource, public Thread {
+	public:
 	/**
 	 * Constructor.
 	 * @param busHandler the @a BusHandler instance.
@@ -73,13 +74,13 @@ public:
 	 */
 	void notifyTopic(string topic, string data);
 
-protected:
 
+	protected:
 	// @copydoc
 	virtual void run();
 
-private:
 
+	private:
 	/**
 	 * Called regularly to handle MQTT traffic.
 	 */
@@ -91,7 +92,7 @@ private:
 	 * @param fieldIndex the optional field index for the field column, or -1.
 	 * @return the topic string.
 	 */
-	string getTopic(Message* message, signed char fieldIndex=-1);
+	string getTopic(Message* message, signed char fieldIndex = -1);
 
 	/**
 	 * Prepare a @a Message and publish as topic.
@@ -106,7 +107,7 @@ private:
 	 * @param data the data string.
 	 * @param retain whether the topic shall be retained.
 	 */
-	void publishTopic(string topic, string data, bool retain=true);
+	void publishTopic(string topic, string data, bool retain = true);
 
 	/** the @a MessageMap instance. */
 	MessageMap* m_messages;
@@ -125,7 +126,6 @@ private:
 
 	/** the mosquitto structure if initialized, or NULL. */
 	struct mosquitto* m_mosquitto;
-
 };
 
-#endif // DATAHANDLER_H_
+#endif // EBUSD_MQTTHANDLER_H_

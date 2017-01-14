@@ -17,30 +17,27 @@
  */
 
 #include "tcpsocket.h"
-#include <cstdlib>
 #include <fcntl.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <string.h>
+#include <cstdlib>
 
 using namespace std;
 
-TCPSocket::TCPSocket(int sfd, struct sockaddr_in* address) : m_sfd(sfd)
-{
+TCPSocket::TCPSocket(int sfd, struct sockaddr_in* address) : m_sfd(sfd) {
 	char ip[17];
 	inet_ntop(AF_INET, (struct in_addr*)&(address->sin_addr.s_addr), ip, (socklen_t)sizeof(ip)-1);
 	m_ip = ip;
 	m_port = (uint16_t)ntohs(address->sin_port);
 }
 
-bool TCPSocket::isValid()
-{
+bool TCPSocket::isValid() {
 	return fcntl(m_sfd, F_GETFL) != -1;
 }
 
 
-TCPSocket* TCPClient::connect(const string& server, const uint16_t& port)
-{
+TCPSocket* TCPClient::connect(const string& server, const uint16_t& port) {
 	struct sockaddr_in address;
 	int ret;
 
@@ -76,8 +73,7 @@ TCPSocket* TCPClient::connect(const string& server, const uint16_t& port)
 }
 
 
-int TCPServer::start()
-{
+int TCPServer::start() {
 	if (m_listening) {
 		return 0;
 	}
@@ -109,8 +105,7 @@ int TCPServer::start()
 	return result;
 }
 
-TCPSocket* TCPServer::newSocket()
-{
+TCPSocket* TCPServer::newSocket() {
 	if (!m_listening) {
 		return NULL;
 	}
