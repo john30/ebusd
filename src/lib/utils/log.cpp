@@ -71,7 +71,6 @@ bool setLogFacilities(const char* facilities) {
       newFacilites |= 1 << val;
     }
   }
-  //s_lastFacilities = newFacilites;
   s_logFacilites = newFacilites;
   free(input);
   return true;
@@ -81,7 +80,7 @@ bool getLogFacilities(char* buffer) {
   if (s_logFacilites == LF_ALL) {
     return snprintf(buffer, 48, "%s", facilityNames[lf_COUNT]) != 0;
   }
-  *buffer = 0; // for strcat to work
+  *buffer = 0;  // for strcat to work
   bool found = false;
   size_t len = 0;
   for (int val = 0; val < lf_COUNT; val++) {

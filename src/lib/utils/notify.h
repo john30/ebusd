@@ -28,7 +28,7 @@
  * class to notify other thread per pipe.
  */
 class Notify {
-  public:
+ public:
   /**
    * constructs a new instance and do notifying.
    */
@@ -61,7 +61,7 @@ class Notify {
    */
   int notify() const { return write(m_sendfd, "1", 1); }
 
-  private:
+ private:
   /** file descriptor to watch */
   int m_recvfd;
 
@@ -69,6 +69,6 @@ class Notify {
   int m_sendfd;
 };
 
-#endif // LIB_UTILS_NOTIFY_H_
+#endif  // LIB_UTILS_NOTIFY_H_
 
 

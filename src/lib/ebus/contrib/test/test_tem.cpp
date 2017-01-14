@@ -108,7 +108,8 @@ int main() {
       fields = NULL;
     }
     vector<string>::iterator it = entries.begin();
-    result = DataField::create(it, entries.end(), templates, fields, isSet, false, (mstr[1] == BROADCAST || isMaster(mstr[1])));
+    result = DataField::create(it, entries.end(), templates, fields, isSet, false,
+        (mstr[1] == BROADCAST || isMaster(mstr[1])));
     if (result != RESULT_OK) {
       cout << "\"" << check[0] << "\": create error: " << getResultCode(result) << endl;
       error = true;
@@ -132,13 +133,15 @@ int main() {
     SymbolString writeMstr(false);
     result = writeMstr.parseHex(mstr.getDataStr(true, false).substr(0, 10));
     if (result != RESULT_OK) {
-      cout << "  parse \"" << mstr.getDataStr(true, false).substr(0, 10) << "\" error: " << getResultCode(result) << endl;
+      cout << "  parse \"" << mstr.getDataStr(true, false).substr(0, 10) << "\" error: " << getResultCode(result)
+          << endl;
       error = true;
     }
     SymbolString writeSstr(false);
     result = writeSstr.parseHex(sstr.getDataStr(true, false).substr(0, 2));
     if (result != RESULT_OK) {
-      cout << "  parse \"" << sstr.getDataStr(true, false).substr(0, 2) << "\" error: " << getResultCode(result) << endl;
+      cout << "  parse \"" << sstr.getDataStr(true, false).substr(0, 2) << "\" error: " << getResultCode(result)
+          << endl;
       error = true;
     }
     result = fields->read(pt_masterData, mstr, 0, output, 0, -1, false);
@@ -183,7 +186,8 @@ int main() {
       error = true;
     } else {
       bool match = mstr == writeMstr && sstr == writeSstr;
-      verify(failedWriteMatch, "write", expectStr, match, mstr.getDataStr(true, false) + " " + sstr.getDataStr(true, false), writeMstr.getDataStr(true, false) + " " + writeSstr.getDataStr(true, false));
+      verify(failedWriteMatch, "write", expectStr, match, mstr.getDataStr(true, false) + " "
+          + sstr.getDataStr(true, false), writeMstr.getDataStr(true, false) + " " + writeSstr.getDataStr(true, false));
     }
     delete fields;
     fields = NULL;

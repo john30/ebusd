@@ -46,14 +46,14 @@ enum result_t {
   RESULT_ERR_EOF = -7,           //!< end of input reached
   RESULT_ERR_INVALID_ARG = -8,   //!< invalid argument
   RESULT_ERR_INVALID_NUM = -9,   //!< invalid numeric argument
-  RESULT_ERR_INVALID_ADDR = -10, //!< invalid address
+  RESULT_ERR_INVALID_ADDR = -10,  //!< invalid address
   RESULT_ERR_INVALID_POS = -11,  //!< invalid position
-  RESULT_ERR_OUT_OF_RANGE = -12, //!< argument value out of valid range
-  RESULT_ERR_INVALID_PART = -13, //!< invalid part type value
-  RESULT_ERR_MISSING_TYPE = -14, //!< missing data type
-  RESULT_ERR_INVALID_LIST = -15, //!< invalid value list
+  RESULT_ERR_OUT_OF_RANGE = -12,  //!< argument value out of valid range
+  RESULT_ERR_INVALID_PART = -13,  //!< invalid part type value
+  RESULT_ERR_MISSING_TYPE = -14,  //!< missing data type
+  RESULT_ERR_INVALID_LIST = -15,  //!< invalid value list
   RESULT_ERR_DUPLICATE = -16,    //!< duplicate entry
-  RESULT_ERR_DUPLICATE_NAME = -17, //!< duplicate entry (name)
+  RESULT_ERR_DUPLICATE_NAME = -17,  //!< duplicate entry (name)
 
   RESULT_ERR_BUS_LOST = -18,     //!< arbitration lost
   RESULT_ERR_CRC = -19,          //!< CRC error
@@ -72,6 +72,6 @@ enum result_t {
  */
 const char* getResultCode(result_t resultCode);
 
-} // namespace ebusd
+}  // namespace ebusd
 
-#endif // LIB_EBUS_RESULT_H_
+#endif  // LIB_EBUS_RESULT_H_

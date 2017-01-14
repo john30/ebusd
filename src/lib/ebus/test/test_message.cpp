@@ -47,7 +47,7 @@ DataFieldTemplates* templates = NULL;
 
 namespace ebusd {
 DataFieldTemplates* getTemplates(const string filename) {
-  if (filename == "") { // avoid compiler warning
+  if (filename == "") {  // avoid compiler warning
     return templates;
   }
   return templates;
@@ -73,13 +73,23 @@ int main() {
     {"pumpstate,UCH,0=off;1=on;2=overrun,,Pumpenstatus", "", "", "", "template"},
     {"tempsensor,temp;sensor,,Temperatursensor", "", "", "", "template"},
     {"tempsensorc,temp;sensorc,,Temperatursensor", "", "", "", "template"},
-    {"r,,Status01,VL/RL/AussenTemp/VLWW/SpeicherTemp/Status,,08,B511,01,,,temp1;temp1;temp2;temp1;temp1;pumpstate", "28.0;24.0;4.938;35.0;41.0;4", "ff08b5110101", "093830f00446520400ff", "d"},
-    {"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor", "temp=-14.00 Temperatursensor [Temperatur];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "mD"},
-    {"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment", "temp=-14.00 field unit [field comment];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "mD"},
-    {"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment", "\n    \"temp\": {\"value\": -14.00},\n    \"sensor\": {\"value\": \"ok\"}", "ff25b509030d2800", "0320ff00", "mj"},
-    {"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment", "\n    \"temp\": {\"value\": -14.00, \"unit\": \"field unit\", \"comment\": \"field comment\"},\n    \"sensor\": {\"value\": \"ok\", \"comment\": \"Fühlerstatus\"}", "ff25b509030d2800", "0320ff00", "mJ"},
-    {"r,message circuit,message name,message comment,,25,B509,0d2800,,,temp,,field unit,field comment,,,sensor", "temp=-14.00 field unit [field comment];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "mD"},
-    {"r,message circuit,message name,message comment,,25,B509,0d2800,,,D2C,,°C,Temperatur,,,sensor", "\n    \"0\": {\"name\": \"\", \"value\": -14.00},\n    \"1\": {\"name\": \"sensor\", \"value\": \"ok\"}", "ff25b509030d2800", "0320ff00", "mj"},
+    {"r,,Status01,VL/RL/AussenTemp/VLWW/SpeicherTemp/Status,,08,B511,01,,,temp1;temp1;temp2;temp1;temp1;pumpstate",
+        "28.0;24.0;4.938;35.0;41.0;4", "ff08b5110101", "093830f00446520400ff", "d"},
+    {"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor",
+        "temp=-14.00 Temperatursensor [Temperatur];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "mD"},
+    {"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment",
+        "temp=-14.00 field unit [field comment];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "mD"},
+    {"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment",
+        "\n    \"temp\": {\"value\": -14.00},\n    \"sensor\": {\"value\": \"ok\"}", "ff25b509030d2800", "0320ff00",
+        "mj"},
+    {"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment",
+        "\n    \"temp\": {\"value\": -14.00, \"unit\": \"field unit\", \"comment\": \"field comment\"},\n"
+        "    \"sensor\": {\"value\": \"ok\", \"comment\": \"Fühlerstatus\"}", "ff25b509030d2800", "0320ff00", "mJ"},
+    {"r,message circuit,message name,message comment,,25,B509,0d2800,,,temp,,field unit,field comment,,,sensor",
+        "temp=-14.00 field unit [field comment];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "mD"},
+    {"r,message circuit,message name,message comment,,25,B509,0d2800,,,D2C,,°C,Temperatur,,,sensor",
+        "\n    \"0\": {\"name\": \"\", \"value\": -14.00},\n    \"1\": {\"name\": \"sensor\", \"value\": \"ok\"}",
+        "ff25b509030d2800", "0320ff00", "mj"},
     {"r,,name,,,25,B509,0d2800,,,tempsensorc", "-14.00", "ff25b509030d2800", "0320ff55", "m"},
     {"r,,name,,,25,B509,0d28,,m,sensorc,,,,,,temp", "-14.00", "ff25b509030d2855", "0220ff", "m"},
     {"u,,first,,,fe,0700,,x,,bda", "26.10.2014", "fffe07000426100614", "00", "p"},
@@ -92,20 +102,27 @@ int main() {
     {"r,ehp,time,,,08;10,b509,0d2800,,,time", "", "", "", "c"},
     {"r,ehp,time,,,08;09,b509,0d2800,,,time", "15:00:17", "ff08b509030d2800", "0311000f", "md*"},
     {"r,ehp,date,,,08,b509,0d2900,,,date", "23.11.2014", "ff08b509030d2900", "03170b0e", "md"},
-    {"r,700,date,,,15,b524,020000003400,,,IGN:4,,,,,,date", "23.11.2015", "ff15b52406020000003400", "0703003400170b0f", "d"},
-    {"r,700,time,,,15,b524,030000003500,,,IGN:4,,,,,,HTI", "12:29:06", "ff15b52406030000003500", "07030035000c1d06", "d"},
+    {"r,700,date,,,15,b524,020000003400,,,IGN:4,,,,,,date", "23.11.2015", "ff15b52406020000003400", "0703003400170b0f",
+        "d"},
+    {"r,700,time,,,15,b524,030000003500,,,IGN:4,,,,,,HTI", "12:29:06", "ff15b52406030000003500", "07030035000c1d06",
+        "d"},
     {"", "23.11.2015", "ff15b52406020000003400", "0703003400170b0f", "d"},
     {"", "12:29:06", "ff15b52406030000003500", "07030035000c1d06", "d"},
     {"w,700,date,,,15,b524,020000003400,,,date", "23.11.2015", "ff15b52409020000003400170b0f", "00", "m"},
     {"r,ehp,error,,,08,b509,0d2800,index,m,UCH,,,,,,time", "3;15:00:17", "ff08b509040d280003", "0311000f", "mdi"},
-    {"r,ehp,error,,,08,b509,0d2800,index,m,UCH,,,,,,time", "index=3;time=15:00:17", "ff08b509040d280003", "0311000f", "mD"},
-    {"u,ehp,ActualEnvironmentPower,Energiebezug,,08,B509,29BA00,,s,IGN:2,,,,,s,power", "8", "1008b5090329ba00", "03ba0008", "pm"},
+    {"r,ehp,error,,,08,b509,0d2800,index,m,UCH,,,,,,time", "index=3;time=15:00:17", "ff08b509040d280003", "0311000f",
+        "mD"},
+    {"u,ehp,ActualEnvironmentPower,Energiebezug,,08,B509,29BA00,,s,IGN:2,,,,,s,power", "8", "1008b5090329ba00",
+        "03ba0008", "pm"},
     {"uw,ehp,test,Test,,08,B5de,ab,,,power,,,,,s,hex:1", "8;39", "1008b5de02ab08", "0139", "pm"},
     {"u,ehp,hwTankTemp,Speichertemperatur IST,,25,B509,290000,,,IGN:2,,,,,,tempsensor", "", "", "", "M"},
     {"", "55.50;ok", "1025b50903290000", "050000780300", "d"},
-    {"r,ehp,datetime,Datum Uhrzeit,,50,B504,00,,,dcfstate,,,,time,,BTI,,,,date,,BDA,,,,temp,,temp2", "valid;08:24:51;31.12.2014;-0.875", "1050b5040100", "0a035124083112031420ff", "md" },
-    {"r,ehp,bad,invalid pos,,50,B5ff,000102,,m,HEX:8;tempsensor;tempsensor;tempsensor;tempsensor;power;power,,,", "", "", "", "c" },
-    {"r,ehp,bad,invalid pos,,50,B5ff,,,s,HEX:8;tempsensor;tempsensor;tempsensor;tempsensor;tempsensor;power;power,,,", "", "", "", "c" },
+    {"r,ehp,datetime,Datum Uhrzeit,,50,B504,00,,,dcfstate,,,,time,,BTI,,,,date,,BDA,,,,temp,,temp2",
+        "valid;08:24:51;31.12.2014;-0.875", "1050b5040100", "0a035124083112031420ff", "md" },
+    {"r,ehp,bad,invalid pos,,50,B5ff,000102,,m,HEX:8;tempsensor;tempsensor;tempsensor;tempsensor;power;power,,,", "",
+        "", "", "c" },
+    {"r,ehp,bad,invalid pos,,50,B5ff,,,s,HEX:8;tempsensor;tempsensor;tempsensor;tempsensor;tempsensor;power;power,,,",
+        "", "", "", "c" },
     {"r,ehp,ApplianceCode,,,08,b509,0d4301,,,UCH,", "9", "ff08b509030d4301", "0109", "d" },
     {"r,ehp,,,,08,b509,0d", "", "", "", "defaults" },
     {"w,ehp,,,,08,b509,0e", "", "", "", "defaults" },
@@ -113,22 +130,39 @@ int main() {
     {"[airtowater]r,ehp,notavailable,,,,,0100,,,uch", "1", "", "", "c" },
     {"[brinetowater]r,ehp,available,,,,,0100,,,uch", "1", "ff08b509030d0100", "0101", "d" },
     {"r,,x,,,,,\"6800\",,,UCH,,,bit0=\"comment, continued comment", "", "", "", "c" },
-    {"r,,x,,,,,\"6800\",,,UCH,,\"\",\"bit0=\"comment, continued comment\"", "=1 [bit0=\"comment, continued comment]", "ff08b509030d6800", "0101", "mD" },
-    {"r,ehp,multi,,,,,0001:5;0002;0003,longname,,STR:15", "ABCDEFGHIJKLMNO", "ff08b509030d0001;ff08b509030d0003;ff08b509030d0002", "054142434445;054b4c4d4e4f;05464748494a", "mdC" },
-    {"r,ehp,multi,,,,,01;02;03,longname,,STR:15", "ABCDEFGHIJKLMNO", "ff08b509020d01;ff08b509020d03;ff08b509020d02", "084142434445464748;054b4c4d4e4f;02494a", "mdC" },
-    {"w,ehp,multi,,,,,01:8;02:2;03,longname,,STR:15", "ABCDEFGHIJKLMNO", "ff08b5090a0e014142434445464748;ff08b509040e02494a;ff08b509070e034b4c4d4e4f", "00;00;00", "mdC" },
-    {"w,ehp,multi,,,,,01:8;02:2;0304,longname,,STR:15", "ABCDEFGHIJKLMNO", "ff08b5090a0e014142434445464748;ff08b509040e02494a;ff08b509070e034b4c4d4e4f", "00;00;00", "cC" },
-    {"r,ehp,scan,chained scan,,08,B509,24:9;25;26;27,,,IGN,,,,id4,,STR:28", "21074500100027790000000000N8", "ff08b5090124;ff08b5090125;ff08b5090126;ff08b5090127", "09003231303734353030;09313030303237373930;09303030303030303030;024E38", "mdC" },
-    {"r,,x,,,,,6900,,,UCH,10,bar,,Bit7,,BI7:1,0=B70;1=B71,,,Bit6,,BI6:1,0=B60;1=B61", "1.9;B71;B61", "ff08b509030d6900", "03138040", "md" },
-    {"r,,x,,,,,6900,,,UCH,10,bar,,Bit7,,BI7:1,0=B70;1=B71,,,Bit6,,BI6:1,0=B60;1=B61", "1.9;B71;B60", "ff08b509030d6900", "0313ffbf", "md" },
-    {"r,,x,,,,,6900,,,UCH,10,bar,,Bit7,,BI7:1,0=B70;1=B71,,,Bit6,,BI6:1,0=B60;1=B61", "1.9;B70;B61", "ff08b509030d6900", "03137fff", "md" },
-    {"r,,x,,,,,6900,,,UCH,10,bar,,Bit7,,BI7:1,0=B70;1=B71,,,Bit6,,BI6:1,0=B60;1=B61", "1.9;B70;B60", "ff08b509030d6900", "03137fbf", "md" },
-    {"r,,x,,,,,6a00,,,UCH,10,bar,,Bit6,,BI6:1,0=B60;1=B61,,,Bit7,,BI7:1,0=B70;1=B71", "1.9;B61;B71", "ff08b509030d6900", "0213ff", "md" },
-    {"r,,x,,,,,6a00,,,UCH,10,bar,,Bit6,,BI6:1,0=B60;1=B61,,,Bit7,,BI7:1,0=B70;1=B71", "1.9;B60;B71", "ff08b509030d6900", "0213bf", "md" },
-    {"r,,x,,,,,6a00,,,UCH,10,bar,,Bit6,,BI6:1,0=B60;1=B61,,,Bit7,,BI7:1,0=B70;1=B71", "1.9;B61;B70", "ff08b509030d6900", "02137f", "md" },
-    {"r,,x,,,,,6a00,,,UCH,10,bar,,Bit6,,BI6:1,0=B60;1=B61,,,Bit7,,BI7:1,0=B70;1=B71", "1.9;B60;B70", "ff08b509030d6900", "02133f", "md" },
+    {"r,,x,,,,,\"6800\",,,UCH,,\"\",\"bit0=\"comment, continued comment\"", "=1 [bit0=\"comment, continued comment]",
+        "ff08b509030d6800", "0101", "mD" },
+    {"r,ehp,multi,,,,,0001:5;0002;0003,longname,,STR:15", "ABCDEFGHIJKLMNO",
+        "ff08b509030d0001;ff08b509030d0003;ff08b509030d0002", "054142434445;054b4c4d4e4f;05464748494a", "mdC" },
+    {"r,ehp,multi,,,,,01;02;03,longname,,STR:15", "ABCDEFGHIJKLMNO", "ff08b509020d01;ff08b509020d03;ff08b509020d02",
+        "084142434445464748;054b4c4d4e4f;02494a", "mdC" },
+    {"w,ehp,multi,,,,,01:8;02:2;03,longname,,STR:15", "ABCDEFGHIJKLMNO",
+        "ff08b5090a0e014142434445464748;ff08b509040e02494a;ff08b509070e034b4c4d4e4f", "00;00;00", "mdC" },
+    {"w,ehp,multi,,,,,01:8;02:2;0304,longname,,STR:15", "ABCDEFGHIJKLMNO",
+        "ff08b5090a0e014142434445464748;ff08b509040e02494a;ff08b509070e034b4c4d4e4f", "00;00;00", "cC" },
+    {"r,ehp,scan,chained scan,,08,B509,24:9;25;26;27,,,IGN,,,,id4,,STR:28", "21074500100027790000000000N8",
+        "ff08b5090124;ff08b5090125;ff08b5090126;ff08b5090127",
+        "09003231303734353030;09313030303237373930;09303030303030303030;024E38", "mdC" },
+    {"r,,x,,,,,6900,,,UCH,10,bar,,Bit7,,BI7:1,0=B70;1=B71,,,Bit6,,BI6:1,0=B60;1=B61", "1.9;B71;B61",
+        "ff08b509030d6900", "03138040", "md" },
+    {"r,,x,,,,,6900,,,UCH,10,bar,,Bit7,,BI7:1,0=B70;1=B71,,,Bit6,,BI6:1,0=B60;1=B61", "1.9;B71;B60",
+        "ff08b509030d6900", "0313ffbf", "md" },
+    {"r,,x,,,,,6900,,,UCH,10,bar,,Bit7,,BI7:1,0=B70;1=B71,,,Bit6,,BI6:1,0=B60;1=B61", "1.9;B70;B61",
+        "ff08b509030d6900", "03137fff", "md" },
+    {"r,,x,,,,,6900,,,UCH,10,bar,,Bit7,,BI7:1,0=B70;1=B71,,,Bit6,,BI6:1,0=B60;1=B61", "1.9;B70;B60",
+        "ff08b509030d6900", "03137fbf", "md" },
+    {"r,,x,,,,,6a00,,,UCH,10,bar,,Bit6,,BI6:1,0=B60;1=B61,,,Bit7,,BI7:1,0=B70;1=B71", "1.9;B61;B71",
+        "ff08b509030d6900", "0213ff", "md" },
+    {"r,,x,,,,,6a00,,,UCH,10,bar,,Bit6,,BI6:1,0=B60;1=B61,,,Bit7,,BI7:1,0=B70;1=B71", "1.9;B60;B71",
+        "ff08b509030d6900", "0213bf", "md" },
+    {"r,,x,,,,,6a00,,,UCH,10,bar,,Bit6,,BI6:1,0=B60;1=B61,,,Bit7,,BI7:1,0=B70;1=B71", "1.9;B61;B70",
+        "ff08b509030d6900", "02137f", "md" },
+    {"r,,x,,,,,6a00,,,UCH,10,bar,,Bit6,,BI6:1,0=B60;1=B61,,,Bit7,,BI7:1,0=B70;1=B71", "1.9;B60;B70",
+        "ff08b509030d6900", "02133f", "md" },
     {"r,cir*cuit#level,na*me,com*ment,ff,75,b509,0d", "", "", "", "defaults" },
-    {"r,CIRCUIT,NAME,COMMENT,,,,0100,field,,UCH", "r,cirCIRCUITcuit#level,naNAMEme,comCOMMENTment,ff,75,b509,0d0100,field,s,UCH,,,: field=42", "ff08b509030d0100", "012a", "mDN"},
+    {"r,CIRCUIT,NAME,COMMENT,,,,0100,field,,UCH",
+        "r,cirCIRCUITcuit#level,naNAMEme,comCOMMENTment,ff,75,b509,0d0100,field,s,UCH,,,: field=42",
+        "ff08b509030d0100", "012a", "mDN"},
   };
   templates = new DataFieldTemplates();
   MessageMap* messages = new MessageMap();
@@ -174,7 +208,8 @@ int main() {
       if (result != RESULT_OK) {
         cout << "\"" << check[0] << "\": template fields create error: " << getResultCode(result) << endl;
       } else if (it != entries.end()) {
-        cout << "\"" << check[0] << "\": template fields create error: trailing input " << static_cast<unsigned>(entries.end()-it) << endl;
+        cout << "\"" << check[0] << "\": template fields create error: trailing input "
+            << static_cast<unsigned>(entries.end()-it) << endl;
       } else {
         cout << "\"" << check[0] << "\": create template OK" << endl;
         result = templates->add(fields, "", true);
@@ -195,7 +230,8 @@ int main() {
       if (result != RESULT_OK) {
         cout << "\"" << check[0] << "\": defaults read error: " << getResultCode(result) << endl;
       } else if (it != entries.end()) {
-        cout << "\"" << check[0] << "\": defaults read error: trailing input " << static_cast<unsigned>(entries.end()-it) << endl;
+        cout << "\"" << check[0] << "\": defaults read error: trailing input "
+            << static_cast<unsigned>(entries.end()-it) << endl;
       } else {
         cout << "\"" << check[0] << "\": read defaults OK" << endl;
         if (isCondition) {
@@ -204,7 +240,8 @@ int main() {
           } else {
             result = messages->resolveConditions();
             if (result != RESULT_OK) {
-              cout << "  resolve conditions error: " << getResultCode(result) << " " << messages->getLastError() << endl;
+              cout << "  resolve conditions error: " << getResultCode(result) << " " << messages->getLastError()
+                  << endl;
             } else {
               cout << "  resolve conditions OK" << endl;
             }
@@ -314,7 +351,8 @@ int main() {
         continue;
       }
       if (it != entries.end()) {
-        cout << "\"" << check[0] << "\": create error: trailing input " << static_cast<unsigned>(entries.end()-it) << endl;
+        cout << "\"" << check[0] << "\": create error: trailing input " << static_cast<unsigned>(entries.end()-it)
+            << endl;
         continue;
       }
       if (multi && deleteMessages.size() == 1) {
@@ -368,7 +406,8 @@ int main() {
         message->dump(output, NULL, true);
         output << ": ";
       }
-      result = message->decodeLastData(output, (decodeVerbose?OF_NAMES|OF_UNITS|OF_COMMENTS:0)|(decodeJson?OF_NAMES|OF_JSON:0), false);
+      result = message->decodeLastData(output,
+          (decodeVerbose?OF_NAMES|OF_UNITS|OF_COMMENTS:0)|(decodeJson?OF_NAMES|OF_JSON:0), false);
       if (result != RESULT_OK) {
         cout << "  \"" << check[2] << "\" / \"" << check[3] << "\": decode error: "
             << getResultCode(result) << endl;
@@ -399,7 +438,8 @@ int main() {
       cout << "  \"" << inputStr << "\": prepare OK" << endl;
 
       bool match = writeMstr == *mstrs[0];
-      verify(failedPrepareMatch, "prepare", inputStr, match, mstrs[0]->getDataStr(true, false), writeMstr.getDataStr(true, false));
+      verify(failedPrepareMatch, "prepare", inputStr, match, mstrs[0]->getDataStr(true, false),
+          writeMstr.getDataStr(true, false));
     }
   }
 

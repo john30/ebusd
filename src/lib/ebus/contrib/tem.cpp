@@ -73,11 +73,11 @@ result_t TemParamDataType::readSymbols(SymbolString& input, const bool isMaster,
   }
   int grp = 0, num = 0;
   if (isMaster) {
-    grp = (value & 0x1f); // grp in bits 0...5
-    num = ((value >> 8) & 0x7f); // num in bits 8...13
+    grp = (value & 0x1f);  // grp in bits 0...5
+    num = ((value >> 8) & 0x7f);  // num in bits 8...13
   } else {
-    grp = ((value >> 7) & 0x1f); // grp in bits 7...11
-    num = (value & 0x7f); // num in bits 0...6
+    grp = ((value >> 7) & 0x1f);  // grp in bits 7...11
+    num = (value & 0x7f);  // num in bits 0...6
   }
   if (outputFormat & OF_JSON) {
     output << '"';
@@ -86,7 +86,7 @@ result_t TemParamDataType::readSymbols(SymbolString& input, const bool isMaster,
   if (outputFormat & OF_JSON) {
     output << '"';
   }
-  output << setfill(' ') << setw(0); // reset
+  output << setfill(' ') << setw(0);  // reset
   return RESULT_OK;
 }
 
@@ -99,45 +99,45 @@ result_t TemParamDataType::writeSymbols(istringstream& input,
 
   const char* str = input.str().c_str();
   if (strcasecmp(str, NULL_VALUE) == 0) {
-    value = m_replacement; // replacement value
+    value = m_replacement;  // replacement value
   } else {
     if (input.eof() || !getline(input, token, '-')) {
-      return RESULT_ERR_EOF; // incomplete
+      return RESULT_ERR_EOF;  // incomplete
     }
     str = token.c_str();
     if (str == NULL || *str == 0) {
-      return RESULT_ERR_EOF; // input too short
+      return RESULT_ERR_EOF;  // input too short
     }
     char* strEnd = NULL;
     grp = (unsigned int)strtoul(str, &strEnd, 10);
     if (strEnd == NULL || strEnd == str || *strEnd != 0) {
-      return RESULT_ERR_INVALID_NUM; // invalid value
+      return RESULT_ERR_INVALID_NUM;  // invalid value
     }
     if (input.eof() || !getline(input, token, '-')) {
-      return RESULT_ERR_EOF; // incomplete
+      return RESULT_ERR_EOF;  // incomplete
     }
     str = token.c_str();
     if (str == NULL || *str == 0) {
-      return RESULT_ERR_EOF; // input too short
+      return RESULT_ERR_EOF;  // input too short
     }
     strEnd = NULL;
     num = (unsigned int)strtoul(str, &strEnd, 10);
     if (strEnd == NULL || strEnd == str || *strEnd != 0) {
-      return RESULT_ERR_INVALID_NUM; // invalid value
+      return RESULT_ERR_INVALID_NUM;  // invalid value
     }
     if (grp < 0 || grp > 0x1f || num < 0 || num > 0x7f) {
-      return RESULT_ERR_OUT_OF_RANGE; // value out of range
+      return RESULT_ERR_OUT_OF_RANGE;  // value out of range
     }
     if (isMaster) {
-      value = grp | (num << 8); // grp in bits 0...5, num in bits 8...13
+      value = grp | (num << 8);  // grp in bits 0...5, num in bits 8...13
     } else {
-      value = (grp << 7) | num; // grp in bits 7...11, num in bits 0...6
+      value = (grp << 7) | num;  // grp in bits 7...11, num in bits 0...6
     }
   }
   if (value < getMinValue() || value > getMaxValue()) {
-    return RESULT_ERR_OUT_OF_RANGE; // value out of range
+    return RESULT_ERR_OUT_OF_RANGE;  // value out of range
   }
   return writeRawValue(value, offset, length, output, usedLength);
 }
 
-} // namespace ebusd
+}  // namespace ebusd

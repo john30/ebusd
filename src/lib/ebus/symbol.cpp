@@ -66,7 +66,7 @@ void SymbolString::addAll(const SymbolString& str, bool skipLastSymbol) {
     push_back(data[i], isEscaped, addCrc);
   }
   if (addCrc) {
-    push_back(m_crc, false, false); // add CRC
+    push_back(m_crc, false, false);  // add CRC
   }
 }
 
@@ -78,12 +78,12 @@ result_t SymbolString::parseHex(const string& str, const bool isEscaped) {
     unsigned long value = strtoul(strBegin, &strEnd, 16);
 
     if (strEnd == NULL || strEnd != strBegin+2 || value > 0xff) {
-      return RESULT_ERR_INVALID_NUM; // invalid value
+      return RESULT_ERR_INVALID_NUM;  // invalid value
     }
     push_back((unsigned char)value, isEscaped, addCrc);
   }
   if (addCrc) {
-    push_back(m_crc, false, false); // add CRC
+    push_back(m_crc, false, false);  // add CRC
   }
   return RESULT_OK;
 }
@@ -97,16 +97,16 @@ const string SymbolString::getDataStr(const bool unescape, const bool skipLastSy
     if (m_unescapeState == 0 && unescape && previousEscape) {
       if (!skipLastSymbol || i+1 < m_data.size()) {
         if (value == 0x00) {
-          sstr << "a9"; // ESC
+          sstr << "a9";  // ESC
         } else if (value == 0x01) {
-          sstr << "aa"; // SYN
+          sstr << "aa";  // SYN
         } else {
-          sstr << "XX"; // invalid escape sequence
+          sstr << "XX";  // invalid escape sequence
         }
       }
       previousEscape = false;
     } else if (m_unescapeState == 0 && unescape && value == ESC) {
-      previousEscape = true; // escape sequence not yet finished
+      previousEscape = true;  // escape sequence not yet finished
     } else if (!skipLastSymbol || i+1 < m_data.size()) {
       sstr << nouppercase << setw(2) << hex
           << setfill('0') << static_cast<unsigned>(value);
@@ -116,7 +116,7 @@ const string SymbolString::getDataStr(const bool unescape, const bool skipLastSy
 }
 
 result_t SymbolString::push_back(const unsigned char value, const bool isEscaped, const bool updateCRC) {
-  if (m_unescapeState == 0) { // store escaped data
+  if (m_unescapeState == 0) {  // store escaped data
     if (!isEscaped && value == ESC) {
       m_data.push_back(ESC);
       m_data.push_back(0x00);
@@ -141,7 +141,7 @@ result_t SymbolString::push_back(const unsigned char value, const bool isEscaped
   }
   if (!isEscaped) {
     if (m_unescapeState != 1) {
-      return RESULT_ERR_ESC; // invalid unescape state
+      return RESULT_ERR_ESC;  // invalid unescape state
     }
     m_data.push_back(value);
     if (updateCRC) {
@@ -171,7 +171,7 @@ result_t SymbolString::push_back(const unsigned char value, const bool isEscaped
       m_unescapeState = 1;
       return RESULT_OK;
     }
-    return RESULT_ERR_ESC; // invalid escape sequence
+    return RESULT_ERR_ESC;  // invalid escape sequence
   }
   if (value == ESC) {
     if (updateCRC) {
@@ -261,4 +261,4 @@ bool isValidAddress(unsigned char addr, bool allowBroadcast) {
   return addr != SYN && addr != ESC && (allowBroadcast || addr != BROADCAST);
 }
 
-} // namespace ebusd
+}  // namespace ebusd

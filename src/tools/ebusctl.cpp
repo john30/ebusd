@@ -39,20 +39,20 @@ using std::endl;
 
 /** A structure holding all program options. */
 struct options {
-  const char* server; //!< ebusd server host (name or ip) [localhost]
-  uint16_t port; //!< ebusd server port [8888]
+  const char* server;  //!< ebusd server host (name or ip) [localhost]
+  uint16_t port;  //!< ebusd server port [8888]
 
-  char* const *args; //!< arguments to pass to ebusd
-  unsigned int argCount; //!< number of arguments to pass to ebusd
+  char* const *args;  //!< arguments to pass to ebusd
+  unsigned int argCount;  //!< number of arguments to pass to ebusd
 };
 
 /** the program options. */
 static struct options opt = {
-  "localhost", // server
-  8888, // port
+  "localhost",  // server
+  8888,  // port
 
-  NULL, // args
-  0 // argCount
+  NULL,  // args
+  0  // argCount
 };
 
 /** the version string of the program. */
@@ -92,14 +92,14 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
   unsigned int port;
   switch (key) {
   // Device settings:
-  case 's': // --server=localhost
+  case 's':  // --server=localhost
     if (arg == NULL || arg[0] == 0) {
       argp_error(state, "invalid server");
       return EINVAL;
     }
     opt->server = arg;
     break;
-  case 'p': // --port=8888
+  case 'p':  // --port=8888
     port = strtoul(arg, &strEnd, 10);
     if (strEnd == NULL || strEnd == arg || *strEnd != 0 || port < 1 || port > 65535) {
       argp_error(state, "invalid port");
@@ -156,7 +156,7 @@ string fetchData(TCPSocket* socket, bool& listening) {
 #endif
 #endif
 
-  while(true) {
+  while (true) {
 #ifdef HAVE_PPOLL
     // wait for new fd event
     ret = ppoll(fds, nfds, &tdiff, NULL);

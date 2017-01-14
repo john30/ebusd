@@ -58,4 +58,4 @@ const char* getResultCode(result_t resultCode) {
   }
 }
 
-} // namespace ebusd
+}  // namespace ebusd

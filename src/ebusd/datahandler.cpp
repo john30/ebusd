@@ -71,4 +71,4 @@ void DataSink::notifyUpdate(Message* message) {
   m_updatedMessages[message]++;
 }
 
-} // namespace ebusd
+}  // namespace ebusd

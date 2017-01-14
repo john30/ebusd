@@ -54,13 +54,13 @@ Device* Device::create(const char* name, const bool checkDevice, const bool read
     }
     if (portpos == NULL) {
       free(in);
-      return NULL; // invalid protocol or missing port
+      return NULL;  // invalid protocol or missing port
     }
     result_t result = RESULT_OK;
     unsigned int port = parseInt(portpos+1, 10, 1, 65535, result);
     if (result != RESULT_OK) {
       free(in);
-      return NULL; // invalid port
+      return NULL;  // invalid port
     }
     struct sockaddr_in address;
     memset(reinterpret_cast<char*>(&address), 0, sizeof(address));
@@ -69,7 +69,7 @@ Device* Device::create(const char* name, const bool checkDevice, const bool read
       struct hostent* h = gethostbyname(addrpos);
       if (h == NULL) {
         free(in);
-        return NULL; // invalid host
+        return NULL;  // invalid host
       }
       memcpy(&address.sin_addr, h->h_addr_list[0], h->h_length);
     }
@@ -142,7 +142,7 @@ result_t Device::recv(const unsigned int timeout, unsigned char& value) {
 
     ret = pselect(m_fd + 1, &readfds, NULL, NULL, &tdiff, NULL);
 #else
-    ret = 1; // ignore timeout if neither ppoll nor pselect are available
+    ret = 1;  // ignore timeout if neither ppoll nor pselect are available
 #endif
 #endif
     if (ret == -1) {
@@ -197,8 +197,8 @@ result_t SerialDevice::open() {
   memset(&newSettings, '\0', sizeof(newSettings));
 
   newSettings.c_cflag |= (B2400 | CS8 | CLOCAL | CREAD);
-  newSettings.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG); // non-canonical mode
-  newSettings.c_iflag |= IGNPAR; // ignore parity errors
+  newSettings.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);  // non-canonical mode
+  newSettings.c_iflag |= IGNPAR;  // ignore parity errors
   newSettings.c_oflag &= ~OPOST;
 
   // non-canonical mode: read() blocks until at least one byte is available
@@ -290,7 +290,7 @@ void NetworkDevice::checkDevice() {
   unsigned char value;
   ssize_t c = ::recv(m_fd, &value, 1, MSG_PEEK | MSG_DONTWAIT);
   if (c == 0 || (c < 0 && errno != EAGAIN)) {
-    m_bufLen = 0; // flush read buffer
+    m_bufLen = 0;  // flush read buffer
     close();
   }
 }
@@ -300,7 +300,7 @@ bool NetworkDevice::available() {
 }
 
 ssize_t NetworkDevice::write(const unsigned char value) {
-  m_bufLen = 0; // flush read buffer
+  m_bufLen = 0;  // flush read buffer
   return Device::write(value);
 }
 
@@ -324,4 +324,4 @@ ssize_t NetworkDevice::read(unsigned char& value) {
   return Device::read(value);
 }
 
-} // namespace ebusd
+}  // namespace ebusd

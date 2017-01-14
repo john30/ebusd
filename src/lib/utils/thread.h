@@ -27,7 +27,7 @@
  * wrapper class for pthread.
  */
 class Thread {
-  public:
+ public:
   /**
    * constructor.
    */
@@ -76,14 +76,14 @@ class Thread {
   pthread_t self() { return m_threadid; }
 
 
-  protected:
+ protected:
   /**
    * Thread entry method to be overridden by derived class.
    */
   virtual void run() = 0;
 
 
-  private:
+ private:
   /**
    * Enter the Thread loop by calling run().
    */
@@ -107,7 +107,7 @@ class Thread {
  * A @a Thread that can be waited on.
  */
 class WaitThread : public Thread {
-  public:
+ public:
   /**
    * Constructor.
    */
@@ -132,7 +132,7 @@ class WaitThread : public Thread {
   bool Wait(int seconds);
 
 
-  private:
+ private:
   /** the mutex for waiting. */
   pthread_mutex_t m_mutex;
 
@@ -140,4 +140,4 @@ class WaitThread : public Thread {
   pthread_cond_t m_cond;
 };
 
-#endif // LIB_UTILS_THREAD_H_
+#endif  // LIB_UTILS_THREAD_H_

@@ -35,7 +35,7 @@ using std::string;
  * Helper class for writing to a rotating file with maximum size.
  */
 class RotateFile {
-  public:
+ public:
   /**
    * Construct a new instance.
    * @param fileName the name of the file write to.
@@ -72,7 +72,7 @@ class RotateFile {
   void write(unsigned char* value, unsigned int size, bool received = true);
 
 
-  private:
+ private:
   /** whether writing to the file is enabled. */
   bool m_enabled;
 
@@ -92,5 +92,5 @@ class RotateFile {
   uint64_t m_fileSize;
 };
 
-#endif // LIB_UTILS_ROTATEFILE_H_
+#endif  // LIB_UTILS_ROTATEFILE_H_
 

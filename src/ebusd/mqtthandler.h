@@ -55,7 +55,7 @@ DataHandler* mqtthandler_register(BusHandler* busHandler, MessageMap* messages);
  * The main class supporting MQTT data handling.
  */
 class MqttHandler : public DataSink, public DataSource, public Thread {
-  public:
+ public:
   /**
    * Constructor.
    * @param busHandler the @a BusHandler instance.
@@ -79,12 +79,12 @@ class MqttHandler : public DataSink, public DataSource, public Thread {
   void notifyTopic(string topic, string data);
 
 
-  protected:
+ protected:
   // @copydoc
   virtual void run();
 
 
-  private:
+ private:
   /**
    * Called regularly to handle MQTT traffic.
    */
@@ -132,6 +132,6 @@ class MqttHandler : public DataSink, public DataSource, public Thread {
   struct mosquitto* m_mosquitto;
 };
 
-} // namespace ebusd
+}  // namespace ebusd
 
-#endif // EBUSD_MQTTHANDLER_H_
+#endif  // EBUSD_MQTTHANDLER_H_

@@ -83,18 +83,15 @@ Message::Message(const string circuit, const string name,
     const bool isWrite, const bool isPassive,
     const unsigned char pb, const unsigned char sb,
     DataField* data, const bool deleteData)
-    : m_circuit(circuit), m_name(name), m_isWrite(isWrite),
-      m_isPassive(isPassive), m_comment(),
-      m_srcAddress(SYN), m_dstAddress(SYN),
-      m_data(data), m_deleteData(true),
-      m_pollPriority(0),
-      m_usedByCondition(false), m_isScanMessage(false), m_condition(NULL),
-      m_lastUpdateTime(0), m_lastChangeTime(0), m_pollCount(0), m_lastPollTime(0) {
+    : m_circuit(circuit), m_name(name), m_isWrite(isWrite), m_isPassive(isPassive), m_comment(), m_srcAddress(SYN),
+      m_dstAddress(SYN), m_data(data), m_deleteData(true), m_pollPriority(0), m_usedByCondition(false),
+      m_isScanMessage(false), m_condition(NULL), m_lastUpdateTime(0), m_lastChangeTime(0), m_pollCount(0),
+      m_lastPollTime(0) {
   m_id.push_back(pb);
   m_id.push_back(sb);
   uint64_t key = 0;
   if (!isPassive) {
-    key |= (isWrite ? 0x1fLL : 0x1eLL) << (8 * 7); // special values for active
+    key |= (isWrite ? 0x1fLL : 0x1eLL) << (8 * 7);  // special values for active
   }
   key |= (uint64_t)SYN << (8 * 6);
   key |= (uint64_t)pb << (8 * 5);
@@ -116,7 +113,8 @@ Message::Message(const string circuit, const string name,
  * empty and @p replaceStar is @p true.
  * @return the default if available and value is empty, or the value.
  */
-string getDefault(const string value, vector<string>* defaults, size_t pos, bool replaceStar = false, bool required = false) {
+string getDefault(const string value, vector<string>* defaults, size_t pos, bool replaceStar = false,
+    bool required = false) {
   if (defaults == NULL || pos >= defaults->size()) {
     return value;
   }
@@ -139,9 +137,9 @@ uint64_t Message::createKey(const vector<unsigned char> id,
     const unsigned char srcAddress, const unsigned char dstAddress) {
   uint64_t key = (uint64_t)(id.size()-2) << (8 * 7 + 5);
   if (isPassive) {
-    key |= (uint64_t)getMasterNumber(srcAddress) << (8 * 7); // 0..25
+    key |= (uint64_t)getMasterNumber(srcAddress) << (8 * 7);  // 0..25
   } else {
-    key |= (isWrite ? 0x1fLL : 0x1eLL) << (8 * 7); // special values for active
+    key |= (isWrite ? 0x1fLL : 0x1eLL) << (8 * 7);  // special values for active
   }
   key |= (uint64_t)dstAddress << (8 * 6);
   int exp = 5;
@@ -166,10 +164,10 @@ uint64_t Message::createKey(SymbolString& master, unsigned char maxIdLength, boo
     return INVALID_KEY;
   }
   uint64_t key = (uint64_t)idLength << (8 * 7 + 5);
-  key |= (uint64_t)getMasterNumber(master[0]) << (8 * 7); // QQ address for passive message
-  key |= (uint64_t)(anyDestination ? SYN : master[1]) << (8 * 6); // ZZ address
-  key |= (uint64_t)master[2] << (8 * 5); // PB
-  key |= (uint64_t)master[3] << (8 * 4); // SB
+  key |= (uint64_t)getMasterNumber(master[0]) << (8 * 7);  // QQ address for passive message
+  key |= (uint64_t)(anyDestination ? SYN : master[1]) << (8 * 6);  // ZZ address
+  key |= (uint64_t)master[2] << (8 * 5);  // PB
+  key |= (uint64_t)master[3] << (8 * 4);  // SB
   int exp = 3;
   for (unsigned char i = 0; i < idLength; i++) {
     key ^= (uint64_t)master[5 + i] << (8 * exp--);
@@ -186,20 +184,20 @@ result_t Message::parseId(string input, vector<unsigned char>& id) {
     while (in.peek() == ' ') {
       in.get();
     }
-    if (in.eof()) { // no more digits
+    if (in.eof()) {  // no more digits
       break;
     }
     input.clear();
     input.push_back(static_cast<char>(in.get()));
     if (in.eof()) {
-      return RESULT_ERR_INVALID_ARG; // too short hex
+      return RESULT_ERR_INVALID_ARG;  // too short hex
     }
     input.push_back(static_cast<char>(in.get()));
 
     result_t result;
     unsigned char value = (unsigned char)parseInt(input.c_str(), 16, 0, 0xff, result);
     if (result != RESULT_OK) {
-      return result; // invalid hex value
+      return result;  // invalid hex value
     }
     id.push_back(value);
   }
@@ -219,28 +217,28 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
     return RESULT_ERR_EOF;
   }
   string typeStr = *it++;
-  const char* str = typeStr.c_str(); // [type]
+  const char* str = typeStr.c_str();  // [type]
   if (it == end) {
     return RESULT_ERR_EOF;
   }
   size_t len = strlen(str);
-  if (len == 0) { // default: active read
+  if (len == 0) {  // default: active read
     defaultName = "r";
   } else {
     defaultName = str;
     char type = str[0];
-    if (type == 'r' || type == 'R') { // active read
+    if (type == 'r' || type == 'R') {  // active read
       char poll = str[1];
-      if (poll >= '0' && poll <= '9') { // poll priority (=active read)
+      if (poll >= '0' && poll <= '9') {  // poll priority (=active read)
         pollPriority = (unsigned char)(poll - '0');
-        defaultName.erase(1, 1); // cut off priority digit
+        defaultName.erase(1, 1);  // cut off priority digit
       }
-    } else if (type == 'w' || type == 'W') { // active write
+    } else if (type == 'w' || type == 'W') {  // active write
       isWrite = true;
-    } else { // any other: passive read/write
+    } else {  // any other: passive read/write
       isPassive = true;
       type = str[1];
-      isWrite = type == 'w' || type == 'W'; // if type continues with "w" it is treated as passive write
+      isWrite = type == 'w' || type == 'W';  // if type continues with "w" it is treated as passive write
     }
   }
 
@@ -255,28 +253,28 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
     }
   }
 
-  string circuit = getDefault(*it++, defaults, defaultPos++, true); // [circuit]
+  string circuit = getDefault(*it++, defaults, defaultPos++, true);  // [circuit]
   if (it == end) {
     return RESULT_ERR_EOF;
   }
-  string name = getDefault(*it++, defaults, defaultPos++, true, true); // name
+  string name = getDefault(*it++, defaults, defaultPos++, true, true);  // name
   if (it == end) {
     return RESULT_ERR_EOF;
   }
   if (name.length() == 0) {
-    return RESULT_ERR_INVALID_ARG; // empty name
+    return RESULT_ERR_INVALID_ARG;  // empty name
   }
-  string comment = getDefault(*it++, defaults, defaultPos++, true); // [comment]
+  string comment = getDefault(*it++, defaults, defaultPos++, true);  // [comment]
   if (it == end) {
     return RESULT_ERR_EOF;
   }
-  str = getDefault(*it++, defaults, defaultPos++).c_str(); // [QQ[;QQ]*]
+  str = getDefault(*it++, defaults, defaultPos++).c_str();  // [QQ[;QQ]*]
   if (it == end) {
     return RESULT_ERR_EOF;
   }
   unsigned char srcAddress;
   if (*str == 0) {
-    srcAddress = SYN; // no specific source
+    srcAddress = SYN;  // no specific source
   } else {
     srcAddress = (unsigned char)parseInt(str, 16, 0, 0xff, result);
     if (result != RESULT_OK) {
@@ -287,14 +285,14 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
     }
   }
 
-  str = getDefault(*it++, defaults, defaultPos++).c_str(); // [ZZ]
+  str = getDefault(*it++, defaults, defaultPos++).c_str();  // [ZZ]
   if (it == end) {
      return RESULT_ERR_EOF;
   }
   vector<unsigned char> dstAddresses;
   bool isBroadcastOrMasterDestination = false;
   if (*str == 0) {
-    dstAddresses.push_back(SYN); // no specific destination
+    dstAddresses.push_back(SYN);  // no specific destination
   } else {
     istringstream stream(str);
     string token;
@@ -320,7 +318,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
   }
 
   vector<unsigned char> id;
-  string token = *it++; // [PBSB]
+  string token = *it++;  // [PBSB]
   bool useDefaults = token.empty();
   if (useDefaults) {
     token = getDefault(token, defaults, defaultPos);
@@ -331,12 +329,12 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
     return result;
   }
   if (id.size() != 2) {
-    return RESULT_ERR_INVALID_ARG; // missing/to short/to long PBSB
+    return RESULT_ERR_INVALID_ARG;  // missing/to short/to long PBSB
   }
   if (it == end) {
     token = "";
   } else {
-    token = *it++;// [ID] (optional master data)
+    token = *it++;  // [ID] (optional master data)
   }
   string defaultIdPrefix;
   if (useDefaults) {
@@ -406,7 +404,8 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
   }
   vector<string>::iterator realEnd = end;
   vector<string> newTypes;
-  if (defaults != NULL && defaults->size() > defaultPos + 2) { // need at least "[name];[part];type" (optional: "[divisor|values][;[unit][;[comment]]]]")
+  if (defaults != NULL && defaults->size() > defaultPos + 2) {
+    // need at least "[name];[part];type" (optional: "[divisor|values][;[unit][;[comment]]]]")
     while (defaults->size() > defaultPos + 2 && defaults->at(defaultPos + 2).size() > 0) {
       for (size_t i = 0; i < 6; i++) {
         if (defaults->size() > defaultPos) {
@@ -430,12 +429,14 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
     vector<SingleDataField*> fields;
     data = new DataFieldSet("", "", fields);
   } else {
-    result = DataField::create(it, realEnd, templates, data, isWrite, false, isBroadcastOrMasterDestination, (unsigned char)maxLength);
+    result = DataField::create(it, realEnd, templates, data, isWrite, false, isBroadcastOrMasterDestination,
+        (unsigned char)maxLength);
     if (result != RESULT_OK) {
       return result;
     }
   }
-  if (id.size() + data->getLength(pt_masterData, (unsigned char)maxLength) > 2 + maxLength || data->getLength(pt_slaveData, (unsigned char)maxLength) > maxLength) {
+  if (id.size() + data->getLength(pt_masterData, (unsigned char)maxLength) > 2 + maxLength
+      || data->getLength(pt_slaveData, (unsigned char)maxLength) > maxLength) {
     // max NN exceeded
     delete data;
     return RESULT_ERR_INVALID_POS;
@@ -452,9 +453,11 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
     }
     Message* message;
     if (chainIds.size() > 1) {
-      message = new ChainedMessage(useCircuit, name, isWrite, comment, srcAddress, dstAddress, id, chainIds, chainLengths, data, index == 0, pollPriority, condition);
+      message = new ChainedMessage(useCircuit, name, isWrite, comment, srcAddress, dstAddress, id, chainIds,
+          chainLengths, data, index == 0, pollPriority, condition);
     } else {
-      message = new Message(useCircuit, name, isWrite, isPassive, comment, srcAddress, dstAddress, id, data, index == 0, pollPriority, condition);
+      message = new Message(useCircuit, name, isWrite, isPassive, comment, srcAddress, dstAddress, id, data,
+          index == 0, pollPriority, condition);
     }
     messages.push_back(message);
   }
@@ -500,7 +503,7 @@ bool Message::checkIdPrefix(vector<unsigned char>& id) {
 
 bool Message::checkId(SymbolString& master, unsigned char* index) {
   unsigned char idLen = getIdLength();
-  if (master.size() < 5+idLen) { // QQ, ZZ, PB, SB, NN
+  if (master.size() < 5+idLen) {  // QQ, ZZ, PB, SB, NN
     return false;
   }
   for (unsigned char pos = 0; pos < idLen; pos++) {
@@ -516,7 +519,7 @@ bool Message::checkId(SymbolString& master, unsigned char* index) {
 
 bool Message::checkId(Message& other) {
   unsigned char idLen = getIdLength();
-  if (idLen != other.getIdLength() || getCount() > 1) { // only equal for non-chained messages
+  if (idLen != other.getIdLength() || getCount() > 1) {  // only equal for non-chained messages
     return false;
   }
   return other.checkIdPrefix(m_id);
@@ -560,7 +563,7 @@ result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& ma
     istringstream& input, char separator,
     const unsigned char dstAddress, unsigned char index) {
   if (m_isPassive) {
-    return RESULT_ERR_INVALID_ARG; // prepare not possible
+    return RESULT_ERR_INVALID_ARG;  // prepare not possible
   }
   SymbolString master(false);
   result_t result = master.push_back(srcAddress, false, false);
@@ -604,7 +607,7 @@ result_t Message::prepareMasterPart(SymbolString& master, istringstream& input, 
     return RESULT_ERR_NOTFOUND;
   }
   unsigned char pos = master.size();
-  result_t result = master.push_back(0, false, false); // length, will be set later
+  result_t result = master.push_back(0, false, false);  // length, will be set later
   if (result != RESULT_OK) {
     return result;
   }
@@ -624,10 +627,10 @@ result_t Message::prepareMasterPart(SymbolString& master, istringstream& input, 
 
 result_t Message::prepareSlave(istringstream& input, SymbolString& slaveData) {
   if (m_isWrite) {
-    return RESULT_ERR_INVALID_ARG; // prepare not possible
+    return RESULT_ERR_INVALID_ARG;  // prepare not possible
   }
   SymbolString slave(false);
-  result_t result = slave.push_back(0, false, false); // length, will be set later
+  result_t result = slave.push_back(0, false, false);  // length, will be set later
   if (result != RESULT_OK) {
     return result;
   }
@@ -661,11 +664,11 @@ result_t Message::storeLastData(const PartType partType, SymbolString& data, uns
   }
   if (partType == pt_masterData) {
     switch (data.compareMaster(m_lastMasterData)) {
-    case 1: // completely different
+    case 1:  // completely different
       m_lastChangeTime = m_lastUpdateTime;
       m_lastMasterData = data;
       break;
-    case 2: // only master address is different
+    case 2:  // only master address is different
       m_lastMasterData = data;
       break;
     }
@@ -687,7 +690,8 @@ result_t Message::decodeLastData(const PartType partType,
   } else {
     offset = 0;
   }
-  result_t result = m_data->read(partType, partType == pt_masterData ? m_lastMasterData : m_lastSlaveData, offset, output, outputFormat, -1, leadingSeparator, fieldName, fieldIndex);
+  result_t result = m_data->read(partType, partType == pt_masterData ? m_lastMasterData : m_lastSlaveData, offset,
+      output, outputFormat, -1, leadingSeparator, fieldName, fieldIndex);
   if (result < RESULT_OK) {
     return result;
   }
@@ -700,18 +704,20 @@ result_t Message::decodeLastData(const PartType partType,
 result_t Message::decodeLastData(ostringstream& output, OutputFormat outputFormat,
     bool leadingSeparator, const char* fieldName, signed char fieldIndex) {
   size_t startPos = output.str().length();
-  result_t result = m_data->read(pt_masterData, m_lastMasterData, getIdLength(), output, outputFormat, -1, leadingSeparator, fieldName, fieldIndex);
+  result_t result = m_data->read(pt_masterData, m_lastMasterData, getIdLength(), output, outputFormat, -1,
+      leadingSeparator, fieldName, fieldIndex);
   if (result < RESULT_OK) {
     return result;
   }
   bool empty = result == RESULT_EMPTY;
   leadingSeparator |= output.str().length() > startPos;
-  result = m_data->read(pt_slaveData, m_lastSlaveData, 0, output, outputFormat, -1, leadingSeparator, fieldName, fieldIndex);
+  result = m_data->read(pt_slaveData, m_lastSlaveData, 0, output, outputFormat, -1, leadingSeparator, fieldName,
+      fieldIndex);
   if (result < RESULT_OK) {
     return result;
   }
   if (result == RESULT_EMPTY && !empty) {
-    result = RESULT_OK; // OK if at least one part was non-empty
+    result = RESULT_OK;  // OK if at least one part was non-empty
   } else if (result == RESULT_EMPTY && fieldName != NULL) {
     return RESULT_ERR_NOTFOUND;
   }
@@ -774,7 +780,7 @@ void Message::dump(ostream& output, vector<size_t>* columns, bool withConditions
 
 void Message::dumpColumn(ostream& output, size_t column, bool withConditions) {
   switch (column) {
-  case COLUMN_TYPE: // type
+  case COLUMN_TYPE:  // type
     if (withConditions && m_condition != NULL) {
       m_condition->dump(output);
     }
@@ -792,36 +798,36 @@ void Message::dumpColumn(ostream& output, size_t column, bool withConditions) {
       }
     }
     break;
-  case COLUMN_CIRCUIT: // circuit
+  case COLUMN_CIRCUIT:  // circuit
     DataField::dumpString(output, m_circuit, false);
     break;
-  case COLUMN_NAME: // name
+  case COLUMN_NAME:  // name
     DataField::dumpString(output, m_name, false);
     break;
-  case COLUMN_COMMENT: // comment
+  case COLUMN_COMMENT:  // comment
     DataField::dumpString(output, m_comment, false);
     break;
-  case COLUMN_QQ: // QQ
+  case COLUMN_QQ:  // QQ
     if (m_srcAddress != SYN) {
       output << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_srcAddress);
     }
     break;
-  case COLUMN_ZZ: // ZZ
+  case COLUMN_ZZ:  // ZZ
     if (m_dstAddress != SYN) {
       output << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_dstAddress);
     }
     break;
-  case COLUMN_PBSB: // PBSB
+  case COLUMN_PBSB:  // PBSB
     for (vector<unsigned char>::const_iterator it = m_id.begin(); it < m_id.begin()+2 && it < m_id.end(); it++) {
       output << hex << setw(2) << setfill('0') << static_cast<unsigned>(*it);
     }
     break;
-  case COLUMN_ID: // ID
+  case COLUMN_ID:  // ID
     for (vector<unsigned char>::const_iterator it = m_id.begin()+2; it < m_id.end(); it++) {
       output << hex << setw(2) << setfill('0') << static_cast<unsigned>(*it);
     }
     break;
-  case COLUMN_FIELDS: // fields
+  case COLUMN_FIELDS:  // fields
     m_data->dump(output);
     break;
   }
@@ -840,7 +846,7 @@ ChainedMessage::ChainedMessage(const string circuit, const string name,
       srcAddress, dstAddress, id,
       data, deleteData, pollPriority, condition),
       m_ids(ids), m_lengths(lengths),
-      m_maxTimeDiff(m_ids.size()*15) { // 15 seconds per message
+      m_maxTimeDiff(m_ids.size()*15) {  // 15 seconds per message
   size_t cnt = ids.size();
   m_lastMasterDatas = reinterpret_cast<SymbolString**>(calloc(cnt, sizeof(SymbolString*)));
   m_lastSlaveDatas = reinterpret_cast<SymbolString**>(calloc(cnt, sizeof(SymbolString*)));
@@ -879,16 +885,16 @@ Message* ChainedMessage::derive(const unsigned char dstAddress, const unsigned c
 
 bool ChainedMessage::checkId(SymbolString& master, unsigned char* index) {
   unsigned char idLen = getIdLength();
-  if (master.size() < 5+idLen) { // QQ, ZZ, PB, SB, NN
+  if (master.size() < 5+idLen) {  // QQ, ZZ, PB, SB, NN
     return false;
   }
   unsigned char chainPrefixLength = Message::getIdLength();
   for (unsigned char pos = 0; pos < chainPrefixLength; pos++) {
     if (m_id[2+pos] != master[5+pos]) {
-      return false; // chain prefix mismatch
+      return false;  // chain prefix mismatch
     }
   }
-  for (unsigned char checkIndex = 0; checkIndex < m_ids.size(); checkIndex++) { // check suffix for each part
+  for (unsigned char checkIndex = 0; checkIndex < m_ids.size(); checkIndex++) {  // check suffix for each part
     vector<unsigned char> id = m_ids[checkIndex];
     bool found = false;
     for (unsigned char pos = chainPrefixLength; pos < idLen; pos++) {
@@ -910,15 +916,15 @@ bool ChainedMessage::checkId(SymbolString& master, unsigned char* index) {
 
 bool ChainedMessage::checkId(Message& other) {
   unsigned char idLen = getIdLength();
-  if (idLen != other.getIdLength() || other.getCount() == 1) { // only equal for chained messages
+  if (idLen != other.getIdLength() || other.getCount() == 1) {  // only equal for chained messages
     return false;
   }
   if (!other.checkIdPrefix(m_id)) {
-    return false; // chain prefix mismatch
+    return false;  // chain prefix mismatch
   }
   vector< vector<unsigned char> > otherIds = ((ChainedMessage&)other).m_ids;
   unsigned char chainPrefixLength = Message::getIdLength();
-  for (unsigned char checkIndex = 0; checkIndex < m_ids.size(); checkIndex++) { // check suffix for each part
+  for (unsigned char checkIndex = 0; checkIndex < m_ids.size(); checkIndex++) {  // check suffix for each part
     vector<unsigned char> id = m_ids[checkIndex];
     for (unsigned char otherIndex = 0; otherIndex < otherIds.size(); otherIndex++) {
       vector<unsigned char> otherId = otherIds[otherIndex];
@@ -938,7 +944,8 @@ bool ChainedMessage::checkId(Message& other) {
   return false;
 }
 
-result_t ChainedMessage::prepareMasterPart(SymbolString& master, istringstream& input, char separator, unsigned char index) {
+result_t ChainedMessage::prepareMasterPart(SymbolString& master, istringstream& input, char separator,
+    unsigned char index) {
   size_t cnt = getCount();
   if (index >= cnt) {
     return RESULT_ERR_NOTFOUND;
@@ -960,7 +967,7 @@ result_t ChainedMessage::prepareMasterPart(SymbolString& master, istringstream& 
     return RESULT_ERR_INVALID_POS;
   }
   vector<unsigned char> id = m_ids[index];
-  result = master.push_back((unsigned char)(id.size()-2+addData), false, false); // NN
+  result = master.push_back((unsigned char)(id.size()-2+addData), false, false);  // NN
   if (result != RESULT_OK) {
     return result;
   }
@@ -1003,10 +1010,10 @@ result_t ChainedMessage::storeLastData(const PartType partType, SymbolString& da
   }
   if (partType == pt_masterData) {
     switch (data.compareMaster(*m_lastMasterDatas[index])) {
-    case 1: // completely different
+    case 1:  // completely different
       *m_lastMasterDatas[index] = data;
       break;
-    case 2: // only master address is different
+    case 2:  // only master address is different
       *m_lastMasterDatas[index] = data;
       break;
     }
@@ -1043,7 +1050,7 @@ result_t ChainedMessage::storeLastData(const PartType partType, SymbolString& da
   // everything was completely retrieved in short time
   SymbolString master(false);
   SymbolString slave(false);
-  size_t offset = 5+(m_ids[0].size()-2); // skip QQ, ZZ, PB, SB, NN
+  size_t offset = 5+(m_ids[0].size()-2);  // skip QQ, ZZ, PB, SB, NN
   for (index = 0; index < m_ids.size(); index++) {
     SymbolString* add = m_lastMasterDatas[index];
     size_t end = 5+(*add)[4];
@@ -1166,7 +1173,8 @@ result_t splitValues(string valueList, vector<unsigned int>& valueRanges) {
         valueRanges.push_back(0);
       }
       bool inclusive = str[1] == '=';
-      unsigned int val = parseInt(str.substr(inclusive?2:1).c_str(), 10, inclusive?0:1, inclusive?UINT_MAX:(UINT_MAX-1), result);
+      unsigned int val = parseInt(str.substr(inclusive?2:1).c_str(), 10, inclusive?0:1,
+          inclusive?UINT_MAX:(UINT_MAX-1), result);
       if (result != RESULT_OK) {
         return result;
       }
@@ -1176,14 +1184,14 @@ result_t splitValues(string valueList, vector<unsigned int>& valueRanges) {
       }
     } else {
       size_t pos = str.find('-');
-      if (pos != string::npos && pos > 0) { // range
+      if (pos != string::npos && pos > 0) {  // range
         unsigned int val = parseInt(str.substr(0, pos).c_str(), 10, 0, UINT_MAX, result);
         if (result != RESULT_OK) {
           return result;
         }
         valueRanges.push_back(val);
         pos++;
-      } else { // single value
+      } else {  // single value
         pos = 0;
       }
       unsigned int val = parseInt(str.substr(pos).c_str(), 10, 0, UINT_MAX, result);
@@ -1192,22 +1200,23 @@ result_t splitValues(string valueList, vector<unsigned int>& valueRanges) {
       }
       valueRanges.push_back(val);
       if (pos == 0) {
-        valueRanges.push_back(val); // single value
+        valueRanges.push_back(val);  // single value
       }
     }
   }
   return RESULT_OK;
 }
 
-result_t Condition::create(const string condName, vector<string>::iterator& it, const vector<string>::iterator end, string defaultDest, string defaultCircuit, SimpleCondition*& returnValue) {
+result_t Condition::create(const string condName, vector<string>::iterator& it, const vector<string>::iterator end,
+    string defaultDest, string defaultCircuit, SimpleCondition*& returnValue) {
   // name,circuit,messagename,[comment],[fieldname],[ZZ],values   (name already skipped by caller)
-  string circuit = it == end ? "" : *(it++); // circuit
-  string name = it == end ? "" : *(it++); // messagename
+  string circuit = it == end ? "" : *(it++);  // circuit
+  string name = it == end ? "" : *(it++);  // messagename
   if (it < end) {
-    it++; // comment
+    it++;  // comment
   }
-  string field = it == end ? "" : *(it++); // fieldname
-  string zz = it == end ? "" : *(it++); // ZZ
+  string field = it == end ? "" : *(it++);  // fieldname
+  string zz = it == end ? "" : *(it++);  // ZZ
   unsigned char dstAddress = SYN;
   result_t result = RESULT_OK;
   if (zz.length() == 0) {
@@ -1304,12 +1313,14 @@ CombinedCondition* SimpleCondition::combineAnd(Condition* other) {
   return ret->combineAnd(this)->combineAnd(other);
 }
 
-result_t SimpleCondition::resolve(MessageMap* messages, ostringstream& errorMessage, void (*readMessageFunc)(Message* message)) {
+result_t SimpleCondition::resolve(MessageMap* messages, ostringstream& errorMessage,
+    void (*readMessageFunc)(Message* message)) {
   if (m_message == NULL) {
     Message* message;
     if (m_name.length() == 0) {
       message = messages->getScanMessage(m_dstAddress);
-      errorMessage << "scan condition " << nouppercase << setw(2) << hex << setfill('0') << static_cast<unsigned>(m_dstAddress);
+      errorMessage << "scan condition " << nouppercase << setw(2) << hex << setfill('0')
+          << static_cast<unsigned>(m_dstAddress);
     } else {
       message = messages->find(m_circuit, m_name, false);
       if (!message) {
@@ -1339,7 +1350,8 @@ result_t SimpleCondition::resolve(MessageMap* messages, ostringstream& errorMess
       } else {
         Message* first = getFirstAvailable(*derived, message);
         if (first == NULL) {
-          errorMessage << ": conditional derived message " << message->getCircuit() << "." << message->getName() << " for " << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_dstAddress) << " not found";
+          errorMessage << ": conditional derived message " << message->getCircuit() << "." << message->getName()
+              << " for " << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_dstAddress) << " not found";
           return RESULT_ERR_INVALID_ARG;
         }
         message = first;
@@ -1369,7 +1381,7 @@ bool SimpleCondition::isTrue() {
     return false;
   }
   if (m_message->getLastChangeTime() > m_lastCheckTime) {
-    bool isTrue = !m_hasValues; // for message seen check
+    bool isTrue = !m_hasValues;  // for message seen check
     if (!isTrue) {
       isTrue = checkValue(m_message, m_field);
     }
@@ -1420,7 +1432,8 @@ void CombinedCondition::dump(ostream& output, bool matched) {
   }
 }
 
-result_t CombinedCondition::resolve(MessageMap* messages, ostringstream& errorMessage, void (*readMessageFunc)(Message* message)) {
+result_t CombinedCondition::resolve(MessageMap* messages, ostringstream& errorMessage,
+    void (*readMessageFunc)(Message* message)) {
   for (vector<Condition*>::iterator it = m_conditions.begin(); it != m_conditions.end(); it++) {
     Condition* condition = *it;
     ostringstream dummy;
@@ -1443,8 +1456,9 @@ bool CombinedCondition::isTrue() {
 }
 
 
-result_t Instruction::create(const string contextPath, const string& defaultDest, const string& defaultCircuit, const string& defaultSuffix,
-  Condition* condition, const string type, vector<string>::iterator& it, const vector<string>::iterator end, Instruction*& returnValue) {
+result_t Instruction::create(const string contextPath, const string& defaultDest, const string& defaultCircuit,
+    const string& defaultSuffix, Condition* condition, const string type, vector<string>::iterator& it,
+    const vector<string>::iterator end, Instruction*& returnValue) {
   // type[,argument]* (type already skipped by caller)
   bool singleton = false;
   if ((singleton=(type == "load")) || type == "include") {
@@ -1494,7 +1508,8 @@ result_t LoadInstruction::execute(MessageMap* messages, ostringstream& log, Cond
     log << ", ";
   }
   if (result != RESULT_OK) {
-    log << "error " << (isSingleton() ? "loading \"" : "including \"") << m_filename << "\" for \"" << getDestination() << "\": " << getResultCode(result);
+    log << "error " << (isSingleton() ? "loading \"" : "including \"") << m_filename << "\" for \""
+        << getDestination() << "\": " << getResultCode(result);
     return result;
   }
   log << (isSingleton() ? "loaded \"" : "included \"") << m_filename << "\" for \"" << getDestination() << "\"";
@@ -1532,10 +1547,10 @@ result_t MessageMap::add(Message* message, bool storeByName) {
       Message* other = getFirstAvailable(keyIt->second, message);
       if (other != NULL) {
         if (!conditional) {
-          return RESULT_ERR_DUPLICATE; // duplicate key
+          return RESULT_ERR_DUPLICATE;  // duplicate key
         }
         if (!other->isConditional()) {
-          return RESULT_ERR_DUPLICATE; // duplicate key
+          return RESULT_ERR_DUPLICATE;  // duplicate key
         }
       }
     }
@@ -1553,23 +1568,26 @@ result_t MessageMap::add(Message* message, bool storeByName) {
       if (nameIt != m_messagesByName.end()) {
         vector<Message*>* messages = &nameIt->second;
         if (!message->isConditional() || !messages->front()->isConditional()) {
-          return RESULT_ERR_DUPLICATE_NAME; // duplicate key
+          return RESULT_ERR_DUPLICATE_NAME;  // duplicate key
         }
       }
     }
     m_messagesByName[nameKey].push_back(message);
 
-    nameKey = string(isPassive ? "-P" : (isWrite ? "-W" : "-R")) + name; // also store without circuit
+    nameKey = string(isPassive ? "-P" : (isWrite ? "-W" : "-R")) + name;  // also store without circuit
     map<string, vector<Message*> >::iterator nameIt = m_messagesByName.find(nameKey);
     if (nameIt == m_messagesByName.end()) {
-      m_messagesByName[nameKey].push_back(message); // always store first message without circuit (in order of circuit name)
+      // always store first message without circuit (in order of circuit name)
+      m_messagesByName[nameKey].push_back(message);
     } else {
       vector<Message*>* messages = &nameIt->second;
       Message* first = messages->front();
       if (circuit < first->getCircuit()) {
-        m_messagesByName[nameKey].at(0) = message; // always store first message without circuit (in order of circuit name)
+        // always store first message without circuit (in order of circuit name)
+        m_messagesByName[nameKey].at(0) = message;
       } else if (m_addAll || (conditional && first->isConditional())) {
-        m_messagesByName[nameKey].push_back(message); // store further messages only if both are conditional or if storing everything
+        // store further messages only if both are conditional or if storing everything
+        m_messagesByName[nameKey].push_back(message);
       }
     }
     m_messageCount++;
@@ -1618,22 +1636,26 @@ result_t MessageMap::addDefaultFromFile(vector< vector<string> >& defaults, vect
   }
   if (row.size() > 1 && defaultCircuit.length() > 0) {
     if (row[1].length() == 0) {
-      row[1] = defaultCircuit+defaultSuffix; // set default circuit and suffix: "circuit[.suffix]"
+      row[1] = defaultCircuit+defaultSuffix;  // set default circuit and suffix: "circuit[.suffix]"
     } else if (row[1][0] == '#') {
-      row[1] = defaultCircuit+defaultSuffix+row[1]; // move security suffix behind default circuit and suffix: "circuit[.suffix]#security"
-    } else if (defaultSuffix.length() > 0 && row[1].find_last_of('.') == string::npos) { // circuit suffix not yet present
+      // move security suffix behind default circuit and suffix: "circuit[.suffix]#security"
+      row[1] = defaultCircuit+defaultSuffix+row[1];
+    } else if (defaultSuffix.length() > 0 && row[1].find_last_of('.') == string::npos) {
+      // circuit suffix not yet present
       size_t pos = row[1].find_first_of('#');
       if (pos == string::npos) {
-        row[1] += defaultSuffix; // append default suffix: "circuit.suffix"
+        row[1] += defaultSuffix;  // append default suffix: "circuit.suffix"
       } else {
-        row[1] = row[1].substr(0, pos)+defaultSuffix+row[1].substr(pos); // insert default suffix: "circuit.suffix#security"
+        // insert default suffix: "circuit.suffix#security"
+        row[1] = row[1].substr(0, pos)+defaultSuffix+row[1].substr(pos);
       }
     }
   }
   if (row.size() > 5 && defaultDest.length() > 0 && row[5].length() == 0) {
-    row[5] = defaultDest; // set default destination
+    row[5] = defaultDest;  // set default destination
   }
-  return FileReader::addDefaultFromFile(defaults, row, begin, defaultDest, defaultCircuit, defaultSuffix, filename, lineNo);
+  return FileReader::addDefaultFromFile(defaults, row, begin, defaultDest, defaultCircuit, defaultSuffix, filename,
+      lineNo);
 }
 
 result_t MessageMap::readConditions(string& types, const string& filename, Condition*& condition) {
@@ -1665,7 +1687,7 @@ result_t MessageMap::readConditions(string& types, const string& filename, Condi
                 m_lastError = "derive condition with values "+key.substr(pos)+" failed";
                 return RESULT_ERR_INVALID_ARG;
               }
-              m_conditions[key] = add; // store derived condition
+              m_conditions[key] = add;  // store derived condition
             }
           }
           if (add == NULL) {
@@ -1688,7 +1710,7 @@ result_t MessageMap::readConditions(string& types, const string& filename, Condi
         }
       }
       if (store) {
-        m_conditions[combinedkey] = condition; // store combined condition
+        m_conditions[combinedkey] = condition;  // store combined condition
       }
     }
   }
@@ -1696,8 +1718,8 @@ result_t MessageMap::readConditions(string& types, const string& filename, Condi
 }
 
 result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
-  vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit, const string& defaultSuffix,
-  const string& filename, unsigned int lineNo) {
+  vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit,
+  const string& defaultSuffix, const string& filename, unsigned int lineNo) {
   vector<string>::iterator restart = begin;
   string types = *restart;
   Condition* condition = NULL;
@@ -1709,7 +1731,8 @@ result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<s
     // instruction
     types = types.substr(1);
     Instruction* instruction = NULL;
-    result_t result = Instruction::create(filename, defaultDest, defaultCircuit, defaultSuffix, condition, types, ++begin, end, instruction);
+    result_t result = Instruction::create(filename, defaultDest, defaultCircuit, defaultSuffix, condition, types,
+        ++begin, end, instruction);
     if (instruction == NULL || result != RESULT_OK) {
       m_lastError = "invalid instruction";
       return result;
@@ -1745,13 +1768,13 @@ result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<s
       if (result == RESULT_OK) {
         result = add(message);
         if (result == RESULT_ERR_DUPLICATE_NAME) {
-          begin = restart+3; // mark name as invalid
+          begin = restart+3;  // mark name as invalid
         } else if (result == RESULT_ERR_DUPLICATE) {
-          begin = restart+8; // mark ID as invalid
+          begin = restart+8;  // mark ID as invalid
         }
       }
       if (result != RESULT_OK) {
-        delete message; // delete all remaining messages on error
+        delete message;  // delete all remaining messages on error
       }
     }
     if (result != RESULT_OK) {
@@ -1906,9 +1929,9 @@ Message* MessageMap::find(const string& circuit, const string& name, const bool 
     if (i == 0) {
       key = string(isPassive ? "P" : (isWrite ? "W" : "R")) + lcircuit + FIELD_SEPARATOR + lname;
     } else if (lcircuit.length() == 0) {
-      key = string(isPassive ? "-P" : (isWrite ? "-W" : "-R")) + lname; // second try: without circuit
+      key = string(isPassive ? "-P" : (isWrite ? "-W" : "-R")) + lname;  // second try: without circuit
     } else {
-      continue; // not allowed without circuit
+      continue;  // not allowed without circuit
     }
     map<string, vector<Message*> >::iterator it = m_messagesByName.find(key);
     if (it != m_messagesByName.end()) {
@@ -1940,7 +1963,7 @@ deque<Message*> MessageMap::findAll(const string& circuit, const string& name, c
     }
   }
   for (map<string, vector<Message*> >::iterator it = m_messagesByName.begin(); it != m_messagesByName.end(); it++) {
-    if (it->first[0] == '-') { // avoid duplicates: instances stored multiple times have a key starting with "-"
+    if (it->first[0] == '-') {  // avoid duplicates: instances stored multiple times have a key starting with "-"
       continue;
     }
     for (vector<Message*>::iterator msgIt = it->second.begin(); msgIt != it->second.end(); msgIt++) {
@@ -2032,7 +2055,7 @@ Message* MessageMap::find(SymbolString& master, bool anyDestination,
       }
       if ((key & ID_SOURCE_MASK) != 0) {
         key &= ~ID_SOURCE_MASK;
-        it = m_messagesByKey.find(key & ~ID_SOURCE_MASK); // try again without specific source master
+        it = m_messagesByKey.find(key & ~ID_SOURCE_MASK);  // try again without specific source master
         if (it != m_messagesByKey.end()) {
           Message* message = getFirstAvailable(it->second, &master);
           if (message) {
@@ -2044,7 +2067,7 @@ Message* MessageMap::find(SymbolString& master, bool anyDestination,
       key &= ~ID_SOURCE_MASK;
     }
     if (withRead) {
-      it = m_messagesByKey.find(key | ID_SOURCE_ACTIVE_READ); // try again with special value for active read
+      it = m_messagesByKey.find(key | ID_SOURCE_ACTIVE_READ);  // try again with special value for active read
       if (it != m_messagesByKey.end()) {
         Message* message = getFirstAvailable(it->second, &master);
         if (message) {
@@ -2053,7 +2076,7 @@ Message* MessageMap::find(SymbolString& master, bool anyDestination,
       }
     }
     if (withWrite) {
-      it = m_messagesByKey.find(key | ID_SOURCE_ACTIVE_WRITE); // try again with special value for active write
+      it = m_messagesByKey.find(key | ID_SOURCE_ACTIVE_WRITE);  // try again with special value for active write
       if (it != m_messagesByKey.end()) {
         Message* message = getFirstAvailable(it->second, &master);
         if (message) {
@@ -2102,7 +2125,7 @@ void MessageMap::clear() {
   // free message instances by name
   for (map<string, vector<Message*> >::iterator it = m_messagesByName.begin(); it != m_messagesByName.end(); it++) {
     vector<Message*> nameMessages = it->second;
-    if (it->first[0] != '-') { // avoid double free: instances stored multiple times have a key starting with "-"
+    if (it->first[0] != '-') {  // avoid double free: instances stored multiple times have a key starting with "-"
       for (vector<Message*>::iterator nit = nameMessages.begin(); nit != nameMessages.end(); nit++) {
         Message* message = *nit;
         map<uint64_t, vector<Message*> >::iterator keyIt = m_messagesByKey.find(message->getKey());
@@ -2163,14 +2186,14 @@ Message* MessageMap::getNextPoll() {
   m_pollMessages.pop();
   ret->m_pollCount++;
   time(&(ret->m_lastPollTime));
-  m_pollMessages.push(ret); // re-insert at new position
+  m_pollMessages.push(ret);  // re-insert at new position
   return ret;
 }
 
 void MessageMap::dump(ostream& output, bool withConditions) {
   bool first = true;
   for (map<string, vector<Message*> >::iterator it = m_messagesByName.begin(); it != m_messagesByName.end(); it++) {
-    if (it->first[0] == '-') { // skip instances stored multiple times (key starting with "-")
+    if (it->first[0] == '-') {  // skip instances stored multiple times (key starting with "-")
       continue;
     }
     if (m_addAll) {
@@ -2204,4 +2227,4 @@ void MessageMap::dump(ostream& output, bool withConditions) {
   }
 }
 
-} // namespace ebusd
+}  // namespace ebusd

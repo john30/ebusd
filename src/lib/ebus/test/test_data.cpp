@@ -59,7 +59,8 @@ int main() {
     {"x,,str:10",  "          ",                    "10fe07000a20202020202020202020", "00", ""},
     {"x,,str:10",  "",                              "10fe07000a20202020202020202020", "00", "R"},
     {"x,,str:11",  "",                              "10fe07000a20202020202020202020", "00", "rW"},
-    {"x,,str:24",  "abcdefghijklmnopqrstuvwx",      "10fe0700186162636465666768696a6b6c6d6e6f707172737475767778", "00", ""},
+    {"x,,str:24",  "abcdefghijklmnopqrstuvwx",      "10fe0700186162636465666768696a6b6c6d6e6f707172737475767778",
+        "00", ""},
     {"x,,str:*",   "abcde",                         "10fe0700056162636465",           "00", ""},
     {"x,,str,2",   "",                              "",                               "",   "c"},
     {"x,,str:10,=dummy", "",                        "10fe07000a48616c6c6f2044752120", "00", "W"},
@@ -73,7 +74,8 @@ int main() {
     {"x,,nts:10",  "",                              "10fe07000a00000000000000000000", "00", ""},
     {"x,,nts:10",  "abc",                           "10fe07000a6162630065666768696a", "00", "W"},
     {"x,,nts:11",  "",                              "10fe07000a20202020202020202020", "00", "rW"},
-    {"x,,nts:24",  "abcdefghijklmnopqrstuvwx",      "10fe0700186162636465666768696a6b6c6d6e6f707172737475767778", "00", ""},
+    {"x,,nts:24",  "abcdefghijklmnopqrstuvwx",      "10fe0700186162636465666768696a6b6c6d6e6f707172737475767778",
+        "00", ""},
     {"x,,nts:*",   "abcde",                         "10fe0700056162636465",           "00", "W"},
     {"x,,nts:*",   "abcde",                         "10fe070006616263646500",         "00", ""},
     {"x,,nts,2",   "",                              "",                               "",   "c"},
@@ -86,9 +88,9 @@ int main() {
     {"x,,hex:5,==48 61 6c 6c 6f", "",               "10fe070005ababababab", "00", "rW"},
     {"x,,hex:5,=48 61 6c 6c 6f", "",                "10fe07000548616c6c6f", "00", ""},
     {"x,,hex:5,==48 61 6c 6c 6f", "",               "10fe07000548616c6c6f", "00", ""},
-    {"x,,bda",   "26.10.2014", "10fe07000426100614", "00", ""}, // Sunday
-    {"x,,bda",   "01.01.2000", "10fe07000401010500", "00", ""}, // Saturday
-    {"x,,bda",   "31.12.2099", "10fe07000431120399", "00", ""}, // Thursday
+    {"x,,bda",   "26.10.2014", "10fe07000426100614", "00", ""},  // Sunday
+    {"x,,bda",   "01.01.2000", "10fe07000401010500", "00", ""},  // Saturday
+    {"x,,bda",   "31.12.2099", "10fe07000431120399", "00", ""},  // Thursday
     {"x,,bda",   "-.-.-",      "10fe070004ffff00ff", "00", ""},
     {"x,,bda",   "",           "10fe07000432100014", "00", "rw"},
     {"x,,bda:3", "26.10.2014", "10fe070003261014",   "00", ""},
@@ -97,9 +99,9 @@ int main() {
     {"x,,bda:3", "-.-.-",      "10fe070003ffffff",   "00", ""},
     {"x,,bda:3", "",           "10fe070003321299",   "00", "rw"},
     {"x,,bda,2", "",           "",                   "",   "c"},
-    {"x,,hda",   "26.10.2014", "10fe0700041a0a070e", "00", ""}, // Sunday
-    {"x,,hda",   "01.01.2000", "10fe07000401010600", "00", ""}, // Saturday
-    {"x,,hda",   "31.12.2099", "10fe0700041f0c0463", "00", ""}, // Thursday
+    {"x,,hda",   "26.10.2014", "10fe0700041a0a070e", "00", ""},  // Sunday
+    {"x,,hda",   "01.01.2000", "10fe07000401010600", "00", ""},  // Saturday
+    {"x,,hda",   "31.12.2099", "10fe0700041f0c0463", "00", ""},  // Thursday
     {"x,,hda",   "-.-.-",      "10fe070004ffff00ff", "00", ""},
     {"x,,hda",   "",           "10fe070004200c0463", "00", "rw"},
     {"x,,hda:3", "26.10.2014", "10fe0700031a0a0e",   "00", ""},
@@ -301,7 +303,7 @@ int main() {
     {"uin10,uin,-10", "", "", "", "t"},                    // template
     {"x,,uin10",     "380",  "10feffff022600", "00", ""},  // template reference
     {"x,,uin10,-10", "3800", "10feffff022600", "00", ""},  // template reference, valid divider product
-    {"x,,uin10,10",  "",     "",               "",   "c"}, // template reference, invalid divider product
+    {"x,,uin10,10",  "",     "",               "",   "c"},  // template reference, invalid divider product
     {"x,,sin", "-90",      "10feffff02a6ff", "00", ""},
     {"x,,sin", "0",        "10feffff020000", "00", ""},
     {"x,,sin", "-1",       "10feffff02ffff", "00", ""},
@@ -427,35 +429,43 @@ int main() {
     {"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert", "x=on ja/nein [Wahrheitswert]", "10feffff0108", "00", "vvv"},
     {"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert", "x=1 ja/nein [Wahrheitswert]", "10feffff0108", "00", "vvvn"},
     {"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert", "\n    \"x\": {\"value\": \"on\"}", "10feffff0108", "00", "vj"},
-    {",,bi3:2,0=off;1=on,ja/nein,Wahrheitswert",  "\n    \"0\": {\"name\": \"\", \"value\": \"on\"}", "10feffff0108", "00", "vj"},
-    {",,bi3:2,0=off;1=on,ja/nein,Wahrheitswert",  "\n    \"0\": {\"name\": \"\", \"value\": \"on\"}", "10feffff0108", "00", "j"},
-    {"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert", "\n    \"x\": {\"value\": \"on\", \"unit\": \"ja/nein\", \"comment\": \"Wahrheitswert\"}", "10feffff0108", "00", "vvvj"},
+    {",,bi3:2,0=off;1=on,ja/nein,Wahrheitswert",  "\n    \"0\": {\"name\": \"\", \"value\": \"on\"}", "10feffff0108",
+        "00", "vj"},
+    {",,bi3:2,0=off;1=on,ja/nein,Wahrheitswert",  "\n    \"0\": {\"name\": \"\", \"value\": \"on\"}", "10feffff0108",
+        "00", "j"},
+    {"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert",
+        "\n    \"x\": {\"value\": \"on\", \"unit\": \"ja/nein\", \"comment\": \"Wahrheitswert\"}", "10feffff0108",
+        "00", "vvvj"},
     {"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert", "\n    \"x\": {\"value\": 1}", "10feffff0108", "00", "vnj"},
-    {"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert", "\n    \"x\": {\"value\": 1, \"unit\": \"ja/nein\", \"comment\": \"Wahrheitswert\"}", "10feffff0108", "00", "vvvnj"},
-    {"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert", "\n    \"0\": {\"name\": \"x\", \"value\": 1}", "10feffff0108", "00", "nj"},
+    {"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert",
+        "\n    \"x\": {\"value\": 1, \"unit\": \"ja/nein\", \"comment\": \"Wahrheitswert\"}", "10feffff0108", "00",
+        "vvvnj"},
+    {"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert", "\n    \"0\": {\"name\": \"x\", \"value\": 1}", "10feffff0108", "00",
+        "nj"},
     {"x,,uch,1=test;2=high;3=off;0x10=on", "on", "10feffff0110", "00", ""},
     {"x,s,uch", "3", "1050ffff00", "0103", ""},
     {"x,,d2b,,°C,Aussentemperatur", "x=18.004 °C [Aussentemperatur]", "10fe0700090112", "00", "vvv"},
-    {"x,,bti,,,,y,,bda,,,,z,,bdy", "21:04:58;26.10.2014;Sun", "10fe0700085804212610061406", "00", ""}, // combination
-    {"x,,bi3,,,,y,,bi5", "1;0",            "10feffff0108", "00", ""}, // bit combination
-    {"x,,bi3,,,,y,,bi5", "1;1",            "10feffff0128", "00", ""}, // bit combination
-    {"x,,bi3,,,,y,,bi5", "0;1",            "10feffff0120", "00", ""}, // bit combination
-    {"x,,bi3,,,,y,,bi5", "0;0",            "10feffff0100", "00", ""}, // bit combination
-    {"x,,bi3,,,,y,,bi7,,,,t,,uch", "0;0;9", "10feffff020009", "00", ""}, // bit combination
-    {"x,,bi6:2,,,,y,,bi0:2,,,,t,,uch", "2;1;9", "10feffff03800109", "00", ""}, // bit combination
-    {"x,,BI0;BI1;BI2;BI3;BI4;BI5;BI6;BI7", "0;0;1;0;0;0;0;0", "ff75b50900", "0104", ""}, // bits
-    {"temp,d2b,,°C,Aussentemperatur", "", "", "", "t"}, // template with relative pos
-    {"x,,temp", "18.004", "10fe0700020112", "00", ""}, // reference to template
-    {"x,,temp,10", "1.8004", "10fe0700020112", "00", ""}, // reference to template, valid divider product
-    {"x,,temp,-10", "", "", "", "c"}, // reference to template, invalid divider product
+    {"x,,bti,,,,y,,bda,,,,z,,bdy", "21:04:58;26.10.2014;Sun", "10fe0700085804212610061406", "00", ""},  // combination
+    {"x,,bi3,,,,y,,bi5", "1;0",            "10feffff0108", "00", ""},  // bit combination
+    {"x,,bi3,,,,y,,bi5", "1;1",            "10feffff0128", "00", ""},  // bit combination
+    {"x,,bi3,,,,y,,bi5", "0;1",            "10feffff0120", "00", ""},  // bit combination
+    {"x,,bi3,,,,y,,bi5", "0;0",            "10feffff0100", "00", ""},  // bit combination
+    {"x,,bi3,,,,y,,bi7,,,,t,,uch", "0;0;9", "10feffff020009", "00", ""},  // bit combination
+    {"x,,bi6:2,,,,y,,bi0:2,,,,t,,uch", "2;1;9", "10feffff03800109", "00", ""},  // bit combination
+    {"x,,BI0;BI1;BI2;BI3;BI4;BI5;BI6;BI7", "0;0;1;0;0;0;0;0", "ff75b50900", "0104", ""},  // bits
+    {"temp,d2b,,°C,Aussentemperatur", "", "", "", "t"},  // template with relative pos
+    {"x,,temp", "18.004", "10fe0700020112", "00", ""},  // reference to template
+    {"x,,temp,10", "1.8004", "10fe0700020112", "00", ""},  // reference to template, valid divider product
+    {"x,,temp,-10", "", "", "", "c"},  // reference to template, invalid divider product
     {"relrel,d2b,,,,y,d1c", "", "", "", "t"},   // template struct with relative pos
-    {"x,,relrel", "18.004;9.5", "10fe070003011213", "00", ""}, // reference to template struct
+    {"x,,relrel", "18.004;9.5", "10fe070003011213", "00", ""},  // reference to template struct
     {"trelrel,temp;temp", "", "", "", "t"},   // template struct with relative pos and ref to templates
-    {"x,,trelrel", "18.004;19.008", "10fe07000401120213", "00", ""}, // reference to template struct
-    {"x,,temp,,,,y,,d1c", "18.004;9.5", "10fe070003011213", "00", ""}, // reference to template, normal def
-    {"x,,temp;HEX:2", "18.004;13 14", "10fe07000401121314", "00", ""}, // reference to template and base type
-    {"x,,temp;HEX:2", "temp=18.004;=13 14", "10fe07000401121314", "00", "v"}, // reference to template and base type
-    {"x,,temp:degrees;HEX:2", "degrees=18.004;=13 14", "10fe07000401121314", "00", "v"}, // reference to template and base type
+    {"x,,trelrel", "18.004;19.008", "10fe07000401120213", "00", ""},  // reference to template struct
+    {"x,,temp,,,,y,,d1c", "18.004;9.5", "10fe070003011213", "00", ""},  // reference to template, normal def
+    {"x,,temp;HEX:2", "18.004;13 14", "10fe07000401121314", "00", ""},  // reference to template and base type
+    {"x,,temp;HEX:2", "temp=18.004;=13 14", "10fe07000401121314", "00", "v"},  // reference to template and base type
+    // reference to template and base type
+    {"x,,temp:degrees;HEX:2", "degrees=18.004;=13 14", "10fe07000401121314", "00", "v"},
   };
   DataFieldTemplates* templates = new DataFieldTemplates();
   DataField* fields = NULL;
@@ -510,7 +520,8 @@ int main() {
       fields = NULL;
     }
     vector<string>::iterator it = entries.begin();
-    result = DataField::create(it, entries.end(), templates, fields, isSet, isTemplate, !isTemplate && (mstr[1] == BROADCAST || isMaster(mstr[1])));
+    result = DataField::create(it, entries.end(), templates, fields, isSet, isTemplate,
+        !isTemplate && (mstr[1] == BROADCAST || isMaster(mstr[1])));
     if (failedCreate) {
       if (result == RESULT_OK) {
         cout << "\"" << check[0] << "\": failed create error: unexpectedly succeeded" << endl;
@@ -555,18 +566,21 @@ int main() {
     SymbolString writeMstr(false);
     result = writeMstr.parseHex(mstr.getDataStr(true, false).substr(0, 10));
     if (result != RESULT_OK) {
-      cout << "  parse \"" << mstr.getDataStr(true, false).substr(0, 10) << "\" error: " << getResultCode(result) << endl;
+      cout << "  parse \"" << mstr.getDataStr(true, false).substr(0, 10) << "\" error: " << getResultCode(result)
+          << endl;
       error = true;
     }
     SymbolString writeSstr(false);
     result = writeSstr.parseHex(sstr.getDataStr(true, false).substr(0, 2));
     if (result != RESULT_OK) {
-      cout << "  parse \"" << sstr.getDataStr(true, false).substr(0, 2) << "\" error: " << getResultCode(result) << endl;
+      cout << "  parse \"" << sstr.getDataStr(true, false).substr(0, 2) << "\" error: " << getResultCode(result)
+          << endl;
       error = true;
     }
     result = fields->read(pt_masterData, mstr, 0, output, verbosity|(numeric?OF_NUMERIC:0), -1, false);
     if (result >= RESULT_OK) {
-      result = fields->read(pt_slaveData, sstr, 0, output, verbosity|(numeric?OF_NUMERIC:0), -1, !output.str().empty());
+      result = fields->read(pt_slaveData, sstr, 0, output, verbosity|(numeric?OF_NUMERIC:0), -1,
+          !output.str().empty());
     }
     if (failedRead) {
       if (result >= RESULT_OK) {
@@ -607,7 +621,9 @@ int main() {
         error = true;
       } else {
         bool match = mstr == writeMstr && sstr == writeSstr;
-        verify(failedWriteMatch, "write", expectStr, match, mstr.getDataStr(true, false) + " " + sstr.getDataStr(true, false), writeMstr.getDataStr(true, false) + " " + writeSstr.getDataStr(true, false));
+        verify(failedWriteMatch, "write", expectStr, match, mstr.getDataStr(true, false) + " "
+            + sstr.getDataStr(true, false), writeMstr.getDataStr(true, false) + " "
+            + writeSstr.getDataStr(true, false));
       }
     }
     delete fields;

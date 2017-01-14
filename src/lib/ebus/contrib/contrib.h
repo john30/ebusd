@@ -32,6 +32,6 @@ namespace ebusd {
  */
 bool libebus_contrib_register();
 
-} // namespace ebusd
+}  // namespace ebusd
 
-#endif // LIB_EBUS_CONTRIB_CONTRIB_H_
+#endif  // LIB_EBUS_CONTRIB_CONTRIB_H_

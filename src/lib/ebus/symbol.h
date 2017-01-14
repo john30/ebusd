@@ -68,18 +68,19 @@ namespace ebusd {
 using std::string;
 using std::vector;
 
-static const unsigned char ESC = 0xA9;       //!< escape symbol, either followed by 0x00 for the value 0xA9, or 0x01 for the value 0xAA
+/** escape symbol, either followed by 0x00 for the value 0xA9, or 0x01 for the value 0xAA. */
+static const unsigned char ESC = 0xA9;
 static const unsigned char SYN = 0xAA;       //!< synchronization symbol
 static const unsigned char ACK = 0x00;       //!< positive acknowledge
 static const unsigned char NAK = 0xFF;       //!< negative acknowledge
-static const unsigned char BROADCAST = 0xFE; //!< the broadcast destination address
+static const unsigned char BROADCAST = 0xFE;  //!< the broadcast destination address
 
 
 /**
  * A string of escaped or unescaped bus symbols.
  */
 class SymbolString {
-  public:
+ public:
   /**
    * Creates a new empty escaped or unescaped instance.
    * @param escaped whether to create an escaped instance.
@@ -114,24 +115,35 @@ class SymbolString {
    * @param index the index of the symbol to return.
    * @return the reference to the symbol at the specified index.
    */
-  unsigned char& operator[](const size_t index) { if (index >= m_data.size()) { m_data.resize(index+1, 0); } return m_data[index]; }
+  unsigned char& operator[](const size_t index) {
+    if (index >= m_data.size()) {
+      m_data.resize(index+1, 0);
+    }
+    return m_data[index];
+  }
 
   /**
    * Return whether this instance is equal to the other instance.
    * @param other the other instance.
-   * @return true if this instance is equal to the other instance (i.e. both escaped or both unescaped and same symbols).
+   * @return true if this instance is equal to the other instance (i.e. both escaped or both unescaped and same
+   * symbols).
    */
-  bool operator == (SymbolString& other) { return m_unescapeState == other.m_unescapeState && m_data == other.m_data; }
+  bool operator == (SymbolString& other) {
+    return m_unescapeState == other.m_unescapeState && m_data == other.m_data;
+  }
 
   /**
    * Return whether this instance is different from the other instance.
    * @param other the other instance.
    * @return true if this instance is different from the other instance.
    */
-  bool operator != (SymbolString& other) { return m_unescapeState != other.m_unescapeState || m_data != other.m_data; }
+  bool operator != (SymbolString& other) {
+    return m_unescapeState != other.m_unescapeState || m_data != other.m_data;
+  }
 
   /**
-   * Compares this instance to the other instance while treating both as master data (i.e. starting with the master address and ending with the CRC).
+   * Compares this instance to the other instance while treating both as master data (i.e. starting with the master
+   * address and ending with the CRC).
    * @param other the other instance.
    * @return 0 if this instance is equal to the other instance (i.e. both escaped or both unescaped and same symbols),
    * 1 if this instance is completely different to the other instance,
@@ -159,8 +171,8 @@ class SymbolString {
    * @param isEscaped whether the symbol is escaped.
    * @param updateCRC whether to update the calculated CRC in @a m_crc.
    * @return RESULT_OK if another symbol was appended,
-   * RESULT_IN_ESC if this is an unescaped instance and the symbol is escaped and the start of the escape sequence was received,
-   * RESULT_ERR_ESC if this is an unescaped instance and an invalid escaped sequence was detected.
+   * RESULT_IN_ESC if this is an unescaped instance and the symbol is escaped and the start of the escape sequence was
+   * received, RESULT_ERR_ESC if this is an unescaped instance and an invalid escaped sequence was detected.
    */
   result_t push_back(const unsigned char value, const bool isEscaped = true, const bool updateCRC = true);
 
@@ -188,7 +200,7 @@ class SymbolString {
   void clear(const bool escape) { m_data.clear(); m_unescapeState = escape ? 0 : 1; m_crc = 0; }
 
 
-  private:
+ private:
   /**
    * Hidden copy constructor.
    * @param str the @a SymbolString to copy from.
@@ -234,14 +246,16 @@ bool isSlaveMaster(unsigned char addr);
 /**
  * Return the slave address associated with the specified address (master or slave).
  * @param addr the address to check.
- * @return the slave address, or SYN if the specified address is neither a master address nor a slave address of a master.
+ * @return the slave address, or SYN if the specified address is neither a master address nor a slave address of a
+ * master.
  */
 unsigned char getSlaveAddress(unsigned char addr);
 
 /**
  * Return the master address associated with the specified address (master or slave).
  * @param addr the address to check.
- * @return the master address, or SYN if the specified address is neither a master address nor a slave address of a master.
+ * @return the master address, or SYN if the specified address is neither a master address nor a slave address of a
+ * master.
  */
 unsigned char getMasterAddress(unsigned char addr);
 
@@ -260,6 +274,6 @@ unsigned char getMasterNumber(unsigned char addr);
  */
 bool isValidAddress(unsigned char addr, bool allowBroadcast = true);
 
-} // namespace ebusd
+}  // namespace ebusd
 
-#endif // LIB_EBUS_SYMBOL_H_
+#endif  // LIB_EBUS_SYMBOL_H_

@@ -62,15 +62,17 @@ using std::endl;
 /** the separator character used between multiple values (in CSV only). */
 #define VALUE_SEPARATOR ';'
 
-extern void printErrorPos(ostream& out, vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, string filename, size_t lineNo, result_t result);
+extern void printErrorPos(ostream& out, vector<string>::iterator begin, const vector<string>::iterator end,
+    vector<string>::iterator pos, string filename, size_t lineNo, result_t result);
 
-extern unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result, unsigned int* length);
+extern unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue,
+    result_t& result, unsigned int* length);
 
 /**
  * An abstract class that support reading definitions from a file.
  */
 class FileReader {
-  public:
+ public:
   /**
    * Construct a new instance.
    */
@@ -100,13 +102,14 @@ class FileReader {
       return RESULT_ERR_NOTFOUND;
     }
     size_t lastSep = filename.find_last_of('/');
-    if (lastSep != string::npos) { // potential destination address, matches "^ZZ."
+    if (lastSep != string::npos) {  // potential destination address, matches "^ZZ."
       // extract defaultDest, defaultCircuit, defaultSuffix from filename:
       // ZZ.IDENT[.CIRCUIT][.SUFFIX].*csv
       unsigned char checkDest;
       string checkIdent, useCircuit, useSuffix;
       unsigned int checkSw, checkHw;
-      if (extractDefaultsFromFilename(filename.substr(lastSep+1), checkDest, checkIdent, useCircuit, useSuffix, checkSw, checkHw)) {
+      if (extractDefaultsFromFilename(filename.substr(lastSep+1), checkDest, checkIdent, useCircuit, useSuffix,
+          checkSw, checkHw)) {
         defaultDest = filename.substr(lastSep+1, 2);
         if (!useCircuit.empty()) {
           defaultCircuit = useCircuit;
@@ -202,8 +205,8 @@ class FileReader {
    * @return @a RESULT_OK on success, or an error code.
    */
   virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
-    vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit, const string& defaultSuffix,
-    const string& filename, unsigned int lineNo) = 0;
+    vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit,
+    const string& defaultSuffix, const string& filename, unsigned int lineNo) = 0;
 
   /**
    * Left and right trim the string.
@@ -249,7 +252,7 @@ class FileReader {
 
       size_t length = line.length();
       if (!quotedText && (length == 0 || line[0] == '#' || (line.length() > 1 && line[0] == '/' && line[1] == '/'))) {
-        continue; // skip empty lines and comments
+        continue;  // skip empty lines and comments
       }
       for (size_t pos = 0; pos < length; pos++) {
         char ch = line[pos];
@@ -267,7 +270,7 @@ class FileReader {
           }
           break;
         case TEXT_SEPARATOR:
-          if (prev == TEXT_SEPARATOR && !quotedText) { // double dquote
+          if (prev == TEXT_SEPARATOR && !quotedText) {  // double dquote
             field << ch;
             quotedText = true;
           } else if (quotedText) {
@@ -282,7 +285,7 @@ class FileReader {
           break;
         default:
           if (prev == TEXT_SEPARATOR && !quotedText && wasQuoted) {
-            field << TEXT_SEPARATOR; // single dquote in the middle of formerly quoted text
+            field << TEXT_SEPARATOR;  // single dquote in the middle of formerly quoted text
             quotedText = true;
           } else if (quotedText && pos == 0 && field.tellp() > 0 && *(field.str().end()-1) != VALUE_SEPARATOR) {
             field << VALUE_SEPARATOR;
@@ -322,48 +325,49 @@ class FileReader {
     ident = circuit = suffix = "";
     software = hardware = UINT_MAX;
     if (name.length() > 4 && name.substr(name.length()-4) == ".csv") {
-      name = name.substr(0, name.length()-3); // including trailing "."
+      name = name.substr(0, name.length()-3);  // including trailing "."
     }
     size_t pos = name.find('.');
     if (pos != 2) {
-      return false; // missing "ZZ."
+      return false;  // missing "ZZ."
     }
     result_t result = RESULT_OK;
     dest = (unsigned char)parseInt(name.substr(0, pos).c_str(), 16, 0, 0xff, result, NULL);
     if (result != RESULT_OK || !isValidAddress(dest)) {
-      return false; // invalid "ZZ"
+      return false;  // invalid "ZZ"
     }
     name.erase(0, pos);
     if (name.length() > 1) {
-      pos = name.rfind(".SW"); // check for ".SWxxxx."
+      pos = name.rfind(".SW");  // check for ".SWxxxx."
       if (pos != string::npos && name.find(".", pos+1) == pos+7) {
         software = parseInt(name.substr(pos+3, 4).c_str(), 10, 0, 9999, result, NULL);
         if (result != RESULT_OK) {
-          return false; // invalid "SWxxxx"
+          return false;  // invalid "SWxxxx"
         }
         name.erase(pos, 7);
       }
     }
     if (name.length() > 1) {
-      pos = name.rfind(".HW"); // check for ".HWxxxx."
+      pos = name.rfind(".HW");  // check for ".HWxxxx."
       if (pos != string::npos && name.find(".", pos+1) == pos+7) {
         hardware = parseInt(name.substr(pos+3, 4).c_str(), 10, 0, 9999, result, NULL);
         if (result != RESULT_OK) {
-          return false; // invalid "HWxxxx"
+          return false;  // invalid "HWxxxx"
         }
         name.erase(pos, 7);
       }
     }
     if (name.length() > 1) {
-      pos = name.find('.', 1); // check for ".IDENT."
-      if (pos != string::npos && pos >= 1 && pos <= 6) { // up to 5 chars between two "."s, immediately after "ZZ.", or ".."
+      pos = name.find('.', 1);  // check for ".IDENT."
+      if (pos != string::npos && pos >= 1 && pos <= 6) {
+        // up to 5 chars between two "."s, immediately after "ZZ.", or ".."
         ident = circuit = name.substr(1, pos-1);
         name.erase(0, pos);
-        pos = name.find('.', 1); // check for ".CIRCUIT."
+        pos = name.find('.', 1);  // check for ".CIRCUIT."
         if (pos != string::npos && (pos>2 || name[1]<'0' || name[1]>'9')) {
           circuit = name.substr(1, pos-1);
           name.erase(0, pos);
-          pos = name.find('.', 1); // check for ".SUFFIX."
+          pos = name.find('.', 1);  // check for ".SUFFIX."
         }
         if (pos != string::npos && pos == 2 && name[1] >= '0' && name[1] <= '9') {
           suffix = name.substr(0, 2);
@@ -375,16 +379,16 @@ class FileReader {
   }
 
 
-  private:
+ private:
   /** whether this instance supports rows with defaults (starting with a star). */
   bool m_supportsDefaults;
 
 
-  protected:
+ protected:
   /** a @a string describing the last error position. */
   string m_lastError;
 };
 
-} // namespace ebusd
+}  // namespace ebusd
 
-#endif // LIB_EBUS_FILEREADER_H_
+#endif  // LIB_EBUS_FILEREADER_H_

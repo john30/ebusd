@@ -100,7 +100,7 @@ class MessageMap;
  */
 class Message {
   friend class MessageMap;
-  public:
+ public:
   /**
    * Construct a new instance.
    * @param circuit the optional circuit name.
@@ -126,7 +126,7 @@ class Message {
       Condition* condition = NULL);
 
 
-  private:
+ private:
   /**
    * Construct a new scan @a Message instance.
    * @param circuit the circuit name, or empty for not storing by name.
@@ -145,7 +145,7 @@ class Message {
       DataField* data, const bool deleteData);
 
 
-  public:
+ public:
   /**
    * Destructor.
    */
@@ -229,7 +229,8 @@ class Message {
    * @param circuit the new circuit name, or empty to use the current circuit name.
    * @return the derived @a Message instance.
    */
-  virtual Message* derive(const unsigned char dstAddress, const unsigned char srcAddress = SYN, const string circuit = "");
+  virtual Message* derive(const unsigned char dstAddress, const unsigned char srcAddress = SYN,
+      const string circuit = "");
 
   /**
    * Derive a new @a Message from this message.
@@ -400,7 +401,7 @@ class Message {
       const unsigned char dstAddress = SYN, unsigned char index = 0);
 
 
-  protected:
+ protected:
   /**
    * Prepare a part of the master data @a SymbolString for sending (everything including NN).
    * @param master the master data @a SymbolString for writing symbols to.
@@ -412,7 +413,7 @@ class Message {
   virtual result_t prepareMasterPart(SymbolString& master, istringstream& input, char separator, unsigned char index);
 
 
-  public:
+ public:
   /**
    * Prepare the slave @a SymbolString for sending an answer to the bus.
    * @param input the @a istringstream to parse the formatted value(s) from.
@@ -527,7 +528,7 @@ class Message {
   virtual void dumpColumn(ostream& output, size_t column, bool withConditions = false);
 
 
-  protected:
+ protected:
   /** the optional circuit name. */
   const string m_circuit;
 
@@ -618,7 +619,7 @@ class Message {
  * A chained @a Message that needs more than one read/write on the bus to collect/send the data.
  */
 class ChainedMessage : public Message {
-  public:
+ public:
   /**
    * Construct a new instance.
    * @param circuit the optional circuit name.
@@ -647,7 +648,8 @@ class ChainedMessage : public Message {
   virtual ~ChainedMessage();
 
   // @copydoc
-  virtual Message* derive(const unsigned char dstAddress, const unsigned char srcAddress = SYN, const string circuit = "");
+  virtual Message* derive(const unsigned char dstAddress, const unsigned char srcAddress = SYN,
+      const string circuit = "");
 
   // @copydoc
   virtual unsigned char getIdLength() const { return (unsigned char)(m_ids[0].size() - 2); }
@@ -662,12 +664,12 @@ class ChainedMessage : public Message {
   virtual unsigned char getCount() { return (unsigned char)m_ids.size(); }
 
 
-  protected:
+ protected:
   // @copydoc
   virtual result_t prepareMasterPart(SymbolString& master, istringstream& input, char separator, unsigned char index);
 
 
-  public:
+ public:
   // @copydoc
   virtual result_t storeLastData(SymbolString& master, SymbolString& slave);
 
@@ -675,12 +677,12 @@ class ChainedMessage : public Message {
   virtual result_t storeLastData(const PartType partType, SymbolString& data, unsigned char index);
 
 
-  protected:
+ protected:
   // @copydoc
   virtual void dumpColumn(ostream& output, size_t column, bool withConditions = false);
 
 
-  private:
+ private:
   /** the primary, secondary, and optional further ID bytes for each part of the chain. */
   const vector< vector<unsigned char> > m_ids;
 
@@ -723,7 +725,7 @@ struct compareMessagePriority : binary_function<Message*, Message*, bool> {
  */
 class MessagePriorityQueue
   : public priority_queue<Message*, vector<Message*>, compareMessagePriority> {
-  public:
+ public:
   /**
    * Add data to the queue and ensure it is contained only once.
    * @param __x the element to add.
@@ -744,7 +746,7 @@ class MessagePriorityQueue
  * An abstract condition based on the value of one or more @a Message instances.
  */
 class Condition {
-  public:
+ public:
   /**
    * Construct a new instance.
    */
@@ -766,7 +768,8 @@ class Condition {
    * @param returnValue the variable in which to store the created instance.
    * @return @a RESULT_OK on success, or an error code.
    */
-  static result_t create(const string condName, vector<string>::iterator& it, const vector<string>::iterator end, string defaultDest, string defaultCircuit, SimpleCondition*& returnValue);
+  static result_t create(const string condName, vector<string>::iterator& it, const vector<string>::iterator end,
+      string defaultDest, string defaultCircuit, SimpleCondition*& returnValue);
 
   /**
    * Derive a new @a SimpleCondition from this condition.
@@ -796,7 +799,8 @@ class Condition {
    * @param readMessageFunc the function to call for immediate reading of a @a Message from the bus, or NULL.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t resolve(MessageMap* messages, ostringstream& errorMessage, void (*readMessageFunc)(Message* message) = NULL) = 0;
+  virtual result_t resolve(MessageMap* messages, ostringstream& errorMessage,
+      void (*readMessageFunc)(Message* message) = NULL) = 0;
 
   /**
    * Check and return whether this condition is fulfilled.
@@ -805,7 +809,7 @@ class Condition {
   virtual bool isTrue() = 0;
 
 
-  protected:
+ protected:
   /** the system time when the condition was last checked, 0 for never. */
   time_t m_lastCheckTime;
 
@@ -818,20 +822,23 @@ class Condition {
  * A simple @a Condition based on the value of one @a Message.
  */
 class SimpleCondition : public Condition {
-  public:
+ public:
   /**
    * Construct a new instance.
    * @param condName the name of the condition.
    * @param refName the reference name for dumping.
    * @param circuit the circuit name.
    * @param name the message name, or empty for scan message.
-   * @param dstAddress the override destination address, or @a SYN (only for @a Message without specific destination as well as scan message).
+   * @param dstAddress the override destination address, or @a SYN (only for @a Message without specific destination
+   * as well as scan message).
    * @param field the field name.
    * @param hasValues whether a value has to be checked against.
    */
-  SimpleCondition(const string condName, const string refName, const string circuit, const string name, const unsigned char dstAddress, const string field, const bool hasValues = false)
+  SimpleCondition(const string condName, const string refName, const string circuit, const string name,
+      const unsigned char dstAddress, const string field, const bool hasValues = false)
     : Condition(),
-      m_condName(condName), m_refName(refName), m_circuit(circuit), m_name(name), m_dstAddress(dstAddress), m_field(field), m_hasValues(hasValues), m_message(NULL) { }
+      m_condName(condName), m_refName(refName), m_circuit(circuit), m_name(name), m_dstAddress(dstAddress),
+      m_field(field), m_hasValues(hasValues), m_message(NULL) { }
 
   /**
    * Destructor.
@@ -848,7 +855,8 @@ class SimpleCondition : public Condition {
   virtual CombinedCondition* combineAnd(Condition* other);
 
   // @copydoc
-  virtual result_t resolve(MessageMap* messages, ostringstream& errorMessage, void (*readMessageFunc)(Message* message) = NULL);
+  virtual result_t resolve(MessageMap* messages, ostringstream& errorMessage,
+      void (*readMessageFunc)(Message* message) = NULL);
 
   // @copydoc
   virtual bool isTrue();
@@ -860,7 +868,7 @@ class SimpleCondition : public Condition {
   virtual bool isNumeric() { return true; }
 
 
-  protected:
+ protected:
   /**
    * Check the values against the field in the @a Message.
    * @param message the @a Message to check against.
@@ -873,7 +881,7 @@ class SimpleCondition : public Condition {
   string m_matchedValue;
 
 
-  private:
+ private:
   /** the condition name. */
   const string m_condName;
 
@@ -886,7 +894,8 @@ class SimpleCondition : public Condition {
   /** the message name, or empty for scan message. */
   const string m_name;
 
-  /** the override destination address, or @a SYN (only for @a Message without specific destination as well as scan message). */
+  /** the override destination address, or @a SYN (only for @a Message without specific destination as well as scan
+   * message). */
   const unsigned char m_dstAddress;
 
   /** the field name, or empty for first field. */
@@ -904,7 +913,7 @@ class SimpleCondition : public Condition {
  * A simple @a Condition based on the numeric value of one @a Message.
  */
 class SimpleNumericCondition : public SimpleCondition {
-  public:
+ public:
   /**
    * Construct a new instance.
    * @param condName the name of the condition.
@@ -915,7 +924,8 @@ class SimpleNumericCondition : public SimpleCondition {
    * @param field the field name.
    * @param valueRanges the valid value ranges (pairs of from/to inclusive), empty for @a m_message seen check.
    */
-  SimpleNumericCondition(const string condName, const string refName, const string circuit, const string name, const unsigned char dstAddress, const string field, const vector<unsigned int> valueRanges)
+  SimpleNumericCondition(const string condName, const string refName, const string circuit, const string name,
+      const unsigned char dstAddress, const string field, const vector<unsigned int> valueRanges)
     : SimpleCondition(condName, refName, circuit, name, dstAddress, field, true),
       m_valueRanges(valueRanges) { }
 
@@ -925,12 +935,12 @@ class SimpleNumericCondition : public SimpleCondition {
   virtual ~SimpleNumericCondition() {}
 
 
-  protected:
+ protected:
   // @copydoc
   virtual bool checkValue(Message* message, const string field);
 
 
-  private:
+ private:
   /** the valid value ranges (pairs of from/to inclusive), empty for @a m_message seen check. */
   const vector<unsigned int> m_valueRanges;
 };
@@ -940,7 +950,7 @@ class SimpleNumericCondition : public SimpleCondition {
  * A simple @a Condition based on the string value of one @a Message.
  */
 class SimpleStringCondition : public SimpleCondition {
-  public:
+ public:
   /**
    * Construct a new instance.
    * @param condName the name of the condition.
@@ -951,7 +961,8 @@ class SimpleStringCondition : public SimpleCondition {
    * @param field the field name.
    * @param values the valid values.
    */
-  SimpleStringCondition(const string condName, const string refName, const string circuit, const string name, const unsigned char dstAddress, const string field, const vector<string> values)
+  SimpleStringCondition(const string condName, const string refName, const string circuit, const string name,
+      const unsigned char dstAddress, const string field, const vector<string> values)
     : SimpleCondition(condName, refName, circuit, name, dstAddress, field, true),
       m_values(values) { }
 
@@ -964,12 +975,12 @@ class SimpleStringCondition : public SimpleCondition {
   virtual bool isNumeric() { return false; }
 
 
-  protected:
+ protected:
   // @copydoc
   virtual bool checkValue(Message* message, const string field);
 
 
-  private:
+ private:
   /** the valid values. */
   const vector<string> m_values;
 };
@@ -979,7 +990,7 @@ class SimpleStringCondition : public SimpleCondition {
  * A @a Condition combining two or more @a SimpleCondition instances with a logical and.
  */
 class CombinedCondition : public Condition {
-  public:
+ public:
   /**
    * Construct a new instance.
    */
@@ -998,13 +1009,14 @@ class CombinedCondition : public Condition {
   virtual CombinedCondition* combineAnd(Condition* other) { m_conditions.push_back(other); return this; }
 
   // @copydoc
-  virtual result_t resolve(MessageMap* messages, ostringstream& errorMessage, void (*readMessageFunc)(Message* message) = NULL);
+  virtual result_t resolve(MessageMap* messages, ostringstream& errorMessage,
+      void (*readMessageFunc)(Message* message) = NULL);
 
   // @copydoc
   virtual bool isTrue();
 
 
-  private:
+ private:
   /** the @a Condition instances used. */
   vector<Condition*> m_conditions;
 };
@@ -1014,17 +1026,20 @@ class CombinedCondition : public Condition {
  * An abstract instruction based on the value of one or more @a Message instances.
  */
 class Instruction {
-  public:
+ public:
   /**
    * Construct a new instance.
    * @param condition the @a Condition this instruction requires, or null.
-   * @param singleton whether this @a Instruction belongs to a set of instructions of which only the first one may be executed for the same source file.
+   * @param singleton whether this @a Instruction belongs to a set of instructions of which only the first one may be
+   * executed for the same source file.
    * @param defaultDest the default destination address, or empty.
    * @param defaultCircuit the default circuit name, or empty.
    * @param defaultSuffix the default circuit name suffix (starting with a "."), or empty.
    */
-  Instruction(Condition* condition, const bool singleton, const string& defaultDest, const string& defaultCircuit, const string& defaultSuffix)
-    : m_condition(condition), m_singleton(singleton), m_defaultDest(defaultDest), m_defaultCircuit(defaultCircuit), m_defaultSuffix(defaultSuffix) { }
+  Instruction(Condition* condition, const bool singleton, const string& defaultDest, const string& defaultCircuit,
+      const string& defaultSuffix)
+    : m_condition(condition), m_singleton(singleton), m_defaultDest(defaultDest), m_defaultCircuit(defaultCircuit),
+      m_defaultSuffix(defaultSuffix) { }
 
   /**
    * Destructor.
@@ -1044,8 +1059,9 @@ class Instruction {
    * @param returnValue the variable in which to store the created instance.
    * @return @a RESULT_OK on success, or an error code.
    */
-  static result_t create(const string contextPath, const string& defaultDest, const string& defaultCircuit, const string& defaultSuffix,
-    Condition* condition, const string type, vector<string>::iterator& it, const vector<string>::iterator end, Instruction*& returnValue);
+  static result_t create(const string contextPath, const string& defaultDest, const string& defaultCircuit,
+      const string& defaultSuffix, Condition* condition, const string type, vector<string>::iterator& it,
+      const vector<string>::iterator end, Instruction*& returnValue);
 
   /**
    * Return the @a Condition this instruction requires.
@@ -1054,8 +1070,10 @@ class Instruction {
   Condition* getCondition() { return m_condition; }
 
   /**
-   * Return whether this @a Instruction belongs to a set of instructions of which only the first one may be executed for the same source file.
-   * @return whether this @a Instruction belongs to a set of instructions of which only the first one may be executed for the same source file.
+   * Return whether this @a Instruction belongs to a set of instructions of which only the first one may be executed
+   * for the same source file.
+   * @return whether this @a Instruction belongs to a set of instructions of which only the first one may be executed
+   * for the same source file.
    */
   bool isSingleton() { return m_singleton; }
 
@@ -1075,15 +1093,16 @@ class Instruction {
   virtual result_t execute(MessageMap* messages, ostringstream& log, Condition* condition) = 0;
 
 
-  private:
+ private:
   /** the @a Condition this instruction requires, or null. */
   Condition* m_condition;
 
-  /** whether this @a Instruction belongs to a set of instructions of which only the first one may be executed for the same source file. */
+  /** whether this @a Instruction belongs to a set of instructions of which only the first one may be executed for the
+   * same source file. */
   bool m_singleton;
 
 
-  protected:
+ protected:
   /** the default destination address, or empty. */
   const string m_defaultDest;
 
@@ -1099,17 +1118,20 @@ class Instruction {
  * An @a Instruction allowing to load another file.
  */
 class LoadInstruction : public Instruction {
-  public:
+ public:
   /**
    * Construct a new instance.
    * @param condition the @a Condition this instruction requires, or null.
-   * @param singleton whether this @a Instruction belongs to a set of instructions of which only the first one may be executed for the same source file.
+   * @param singleton whether this @a Instruction belongs to a set of instructions of which only the first one may be
+   * executed for the same source file.
    * @param defaultDest the default destination address (may be overwritten by file name), or empty.
    * @param defaultCircuit the default circuit name (may be overwritten by file name), or empty.
-   * @param defaultSuffix the default circuit name suffix (starting with a ".", may be overwritten by file name), or empty.
+   * @param defaultSuffix the default circuit name suffix (starting with a ".", may be overwritten by file name), or
+   * empty.
    * @param filename the name of the file to load.
    */
-  LoadInstruction(Condition* condition, const bool singleton, const string& defaultDest, const string& defaultCircuit, const string& defaultSuffix, const string filename)
+  LoadInstruction(Condition* condition, const bool singleton, const string& defaultDest, const string& defaultCircuit,
+      const string& defaultSuffix, const string filename)
     : Instruction(condition, singleton, defaultDest, defaultCircuit, defaultSuffix), m_filename(filename) { }
 
   /**
@@ -1121,7 +1143,7 @@ class LoadInstruction : public Instruction {
   virtual result_t execute(MessageMap* messages, ostringstream& log, Condition* condition);
 
 
-  private:
+ private:
   /** the name of the file to load. */
   const string m_filename;
 };
@@ -1131,7 +1153,7 @@ class LoadInstruction : public Instruction {
  * Holds a map of all known @a Message instances.
  */
 class MessageMap : public FileReader {
-  public:
+ public:
   /**
    * Construct a new instance.
    * @param addAll whether to add all messages, even if duplicate.
@@ -1174,8 +1196,8 @@ class MessageMap : public FileReader {
 
   // @copydoc
   virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
-    vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit, const string& defaultSuffix,
-    const string& filename, unsigned int lineNo);
+    vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit,
+    const string& defaultSuffix, const string& filename, unsigned int lineNo);
 
   /**
    * Get the scan @a Message instance for the specified address.
@@ -1219,7 +1241,8 @@ class MessageMap : public FileReader {
   /**
    * Get the loaded files for a participant.
    * @param address the slave address.
-   * @return the name of the file(s) loaded for the participant (separated by comma and enclosed in double quotes), or empty.
+   * @return the name of the file(s) loaded for the participant (separated by comma and enclosed in double quotes),
+   * or empty.
    */
   string getLoadedFiles(unsigned char address);
 
@@ -1246,15 +1269,19 @@ class MessageMap : public FileReader {
    * Find all active get @a Message instances for the specified circuit and name.
    * @param circuit the circuit name, or empty for any.
    * @param name the message name, or empty for any.
-   * @param completeMatch false to also include messages where the circuit and name matches only a part of the given circuit and name (default true).
+   * @param completeMatch false to also include messages where the circuit and name matches only a part of the given
+   * circuit and name (default true).
    * @param withRead true to include read messages (default true).
    * @param withWrite true to include write messages (default false).
    * @param withPassive true to include passive messages (default false).
    * @return the found @a Message instances.
    * @param completeMatchIgnoreCircuitSuffix ignore different circuit suffixes (after "#") for completeMatch.
-   * @param onlyAvailable true to include only available messages (default true), false to also include messages that are currently not available (e.g. due to unresolved or false conditions).
-   * @param since the start time from which to add updates (inclusive, also removes messages with unset destination address), or 0 to ignore.
-   * @param until the end time to which to add updates (exclusive, also removes messages with unset destination address), or 0 to ignore.
+   * @param onlyAvailable true to include only available messages (default true), false to also include messages that
+   * are currently not available (e.g. due to unresolved or false conditions).
+   * @param since the start time from which to add updates (inclusive, also removes messages with unset destination
+   * address), or 0 to ignore.
+   * @param until the end time to which to add updates (exclusive, also removes messages with unset destination
+   * address), or 0 to ignore.
    * Note: the caller may not free the returned instances.
    */
   deque<Message*> findAll(const string& circuit, const string& name, const bool completeMatch = true,
@@ -1344,7 +1371,7 @@ class MessageMap : public FileReader {
   void dump(ostream& output, bool withConditions = false);
 
 
-  private:
+ private:
   /** whether to add all messages, even if duplicate. */
   const bool m_addAll;
 
@@ -1382,6 +1409,6 @@ class MessageMap : public FileReader {
   map<string, vector<Instruction*> > m_instructions;
 };
 
-} // namespace ebusd
+}  // namespace ebusd
 
-#endif // LIB_EBUS_MESSAGE_H_
+#endif  // LIB_EBUS_MESSAGE_H_

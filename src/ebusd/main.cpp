@@ -75,38 +75,38 @@ static bool isDaemon = false;
 
 /** the program options. */
 static struct options opt = {
-  "/dev/ttyUSB0", // device
-  false, // noDeviceCheck
-  false, // readOnly
-  false, // initialSend
-  -1, // latency
-  CONFIG_PATH, // configPath
-  false, // scanConfig
-  BROADCAST, // initialScan
-  0, // checkConfig
-  5, // pollInterval
-  0x31, // address
-  false, // answer
-  9400, // acquireTimeout
-  3, // acquireRetries
-  2, // sendRetries
-  SLAVE_RECV_TIMEOUT*5/3, // receiveTimeout
-  0, // masterCount
-  false, // generateSyn
-  false, // foreground
-  false, // enableHex
-  PID_FILE_NAME, // pidFile
-  8888, // port
-  false, // localOnly
-  0, // httpPort
-  "/var/" PACKAGE "/html", // htmlPath
-  PACKAGE_LOGFILE, // logFile
-  false, // logRaw
-  PACKAGE_LOGFILE, // logRawFile
-  100, // logRawSize
-  false, // dump
-  "/tmp/" PACKAGE "_dump.bin", // dumpFile
-  100, // dumpSize
+  "/dev/ttyUSB0",  // device
+  false,  // noDeviceCheck
+  false,  // readOnly
+  false,  // initialSend
+  -1,  // latency
+  CONFIG_PATH,  // configPath
+  false,  // scanConfig
+  BROADCAST,  // initialScan
+  0,  // checkConfig
+  5,  // pollInterval
+  0x31,  // address
+  false,  // answer
+  9400,  // acquireTimeout
+  3,  // acquireRetries
+  2,  // sendRetries
+  SLAVE_RECV_TIMEOUT*5/3,  // receiveTimeout
+  0,  // masterCount
+  false,  // generateSyn
+  false,  // foreground
+  false,  // enableHex
+  PID_FILE_NAME,  // pidFile
+  8888,  // port
+  false,  // localOnly
+  0,  // httpPort
+  "/var/" PACKAGE "/html",  // htmlPath
+  PACKAGE_LOGFILE,  // logFile
+  false,  // logRaw
+  PACKAGE_LOGFILE,  // logRawFile
+  100,  // logRawSize
+  false,  // dump
+  "/tmp/" PACKAGE "_dump.bin",  // dumpFile
+  100,  // dumpSize
 };
 
 /** the @a MessageMap instance, or NULL. */
@@ -161,7 +161,10 @@ static const struct argp_option argpoptions[] = {
 
   {NULL,             0,        NULL,    0, "Message configuration options:", 2 },
   {"configpath",     'c',      "PATH",  0, "Read CSV config files from PATH [" CONFIG_PATH "]", 0 },
-  {"scanconfig",     's',      "ADDR",  OPTION_ARG_OPTIONAL, "Pick CSV config files matching initial scan (ADDR=\"none\" or empty for no initial scan message, \"full\" for full scan, or a single hex address to scan, default is broadcast ident message). If combined with --checkconfig, you can add scan message data as arguments for checking a particular scan configuration, e.g. \"FF08070400/0AB5454850303003277201\".", 0 },
+  {"scanconfig",     's',      "ADDR",  OPTION_ARG_OPTIONAL, "Pick CSV config files matching initial scan (ADDR="
+      "\"none\" or empty for no initial scan message, \"full\" for full scan, or a single hex address to scan, "
+      "default is broadcast ident message). If combined with --checkconfig, you can add scan message data as "
+      "arguments for checking a particular scan configuration, e.g. \"FF08070400/0AB5454850303003277201\".", 0 },
   {"checkconfig",    O_CHKCFG, NULL,    0, "Check CSV config files, then stop", 0 },
   {"dumpconfig",     O_DMPCFG, NULL,    0, "Check and dump CSV config files, then stop", 0 },
   {"pollinterval",   O_POLINT, "SEC",   0, "Poll for data every SEC seconds (0=disable) [5]", 0 },
@@ -187,8 +190,10 @@ static const struct argp_option argpoptions[] = {
 
   {NULL,             0,        NULL,    0, "Log options:", 5 },
   {"logfile",        'l',      "FILE",  0, "Write log to FILE (only for daemon) [" PACKAGE_LOGFILE "]", 0 },
-  {"logareas",       O_LOGARE, "AREAS", 0, "Only write log for matching AREA(S): main,network,bus,update,all [all]", 0 },
-  {"loglevel",       O_LOGLEV, "LEVEL", 0, "Only write log below or equal to LEVEL: error/notice/info/debug [notice]", 0 },
+  {"logareas",       O_LOGARE, "AREAS", 0, "Only write log for matching AREA(S): main,network,bus,update,all "
+      "[all]", 0 },
+  {"loglevel",       O_LOGLEV, "LEVEL", 0, "Only write log below or equal to LEVEL: error/notice/info/debug "
+      "[notice]", 0 },
 
   {NULL,             0,        NULL,    0, "Raw logging options:", 6 },
   {"lograwdata",     O_RAW,    NULL,    0, "Log each received/sent byte on the bus", 0 },
@@ -224,27 +229,27 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
 
   switch (key) {
   // Device options:
-  case 'd': // --device=/dev/ttyUSB0
+  case 'd':  // --device=/dev/ttyUSB0
     if (arg == NULL || arg[0] == 0) {
       argp_error(state, "invalid device");
       return EINVAL;
     }
     opt->device = arg;
     break;
-  case 'n': // --nodevicecheck
+  case 'n':  // --nodevicecheck
     opt->noDeviceCheck = true;
     break;
-  case 'r': // --readonly
+  case 'r':  // --readonly
     opt->readOnly = true;
     if (opt->scanConfig || opt->answer || opt->generateSyn) {
       argp_error(state, "cannot combine readonly with scanconfig/answer/generatesyn");
       return EINVAL;
     }
     break;
-  case O_INISND: // --initsend
+  case O_INISND:  // --initsend
     opt->initialSend = true;
     break;
-  case O_DEVLAT: // --latency=10000
+  case O_DEVLAT:  // --latency=10000
     opt->latency = parseInt(arg, 10, 0, 200000, result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid latency");
@@ -253,14 +258,14 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
 
   // Message configuration options:
-  case 'c': // --configpath=/etc/ebusd
+  case 'c':  // --configpath=/etc/ebusd
     if (arg == NULL || arg[0] == 0 || strcmp("/", arg) == 0) {
       argp_error(state, "invalid configpath");
       return EINVAL;
     }
     opt->configPath = arg;
     break;
-  case 's': // --scanconfig[=ADDR] (ADDR=<empty>|full|<hexaddr>)
+  case 's':  // --scanconfig[=ADDR] (ADDR=<empty>|full|<hexaddr>)
     opt->scanConfig = true;
     if (opt->readOnly) {
       argp_error(state, "cannot combine readonly with scanconfig/answer/generatesyn");
@@ -287,15 +292,15 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       }
     }
     break;
-  case O_CHKCFG: // --checkconfig
+  case O_CHKCFG:  // --checkconfig
     if (opt->checkConfig == 0) {
       opt->checkConfig = 1;
     }
     break;
-  case O_DMPCFG: // --dumpconfig
+  case O_DMPCFG:  // --dumpconfig
     opt->checkConfig = 2;
     break;
-  case O_POLINT: // --pollinterval=5
+  case O_POLINT:  // --pollinterval=5
     opt->pollInterval = parseInt(arg, 10, 0, 3600, result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid pollinterval");
@@ -308,56 +313,56 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
 
   // eBUS options:
-  case 'a': // --address=31
+  case 'a':  // --address=31
     opt->address = (unsigned char)parseInt(arg, 16, 0, 0xff, result);
     if (result != RESULT_OK || !isMaster(opt->address)) {
       argp_error(state, "invalid address");
       return EINVAL;
     }
     break;
-  case O_ANSWER: // --answer
+  case O_ANSWER:  // --answer
     opt->answer = true;
     if (opt->readOnly) {
       argp_error(state, "cannot combine readonly with scanconfig/answer/generatesyn");
       return EINVAL;
     }
     break;
-  case O_ACQTIM: // --acquiretimeout=9400
+  case O_ACQTIM:  // --acquiretimeout=9400
     opt->acquireTimeout = parseInt(arg, 10, 1000, 100000, result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid acquiretimeout");
       return EINVAL;
     }
     break;
-  case O_ACQRET: // --acquireretries=3
+  case O_ACQRET:  // --acquireretries=3
     opt->acquireRetries = parseInt(arg, 10, 0, 10, result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid acquireretries");
       return EINVAL;
     }
     break;
-  case O_SNDRET: // --sendretries=2
+  case O_SNDRET:  // --sendretries=2
     opt->sendRetries = parseInt(arg, 10, 0, 10, result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid sendretries");
       return EINVAL;
     }
     break;
-  case O_RCVTIM: // --receivetimeout=25000
+  case O_RCVTIM:  // --receivetimeout=25000
     opt->receiveTimeout = parseInt(arg, 10, 1000, 100000, result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid receivetimeout");
       return EINVAL;
     }
     break;
-  case O_MASCNT: // --numbermasters=0
+  case O_MASCNT:  // --numbermasters=0
     opt->masterCount = parseInt(arg, 10, 0, 25, result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid numbermasters");
       return EINVAL;
     }
     break;
-  case O_GENSYN: // --generatesyn
+  case O_GENSYN:  // --generatesyn
     opt->generateSyn = true;
     if (opt->readOnly) {
       argp_error(state, "cannot combine readonly with scanconfig/answer/generatesyn");
@@ -366,37 +371,37 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
 
   // Daemon options:
-  case 'f': // --foreground
+  case 'f':  // --foreground
     opt->foreground = true;
     break;
-  case O_HEXCMD: // --enablehex
+  case O_HEXCMD:  // --enablehex
     opt->enableHex = true;
     break;
-  case O_PIDFIL: // --pidfile=/var/run/ebusd.pid
+  case O_PIDFIL:  // --pidfile=/var/run/ebusd.pid
     if (arg == NULL || arg[0] == 0 || strcmp("/", arg) == 0) {
       argp_error(state, "invalid pidfile");
       return EINVAL;
     }
     opt->pidFile = arg;
     break;
-  case 'p': // --port=8888
+  case 'p':  // --port=8888
     opt->port = (uint16_t)parseInt(arg, 10, 1, 65535, result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid port");
       return EINVAL;
     }
     break;
-  case O_LOCAL: // --localhost
+  case O_LOCAL:  // --localhost
     opt->localOnly = true;
     break;
-  case O_HTTPPT: // --httpport=0
+  case O_HTTPPT:  // --httpport=0
     opt->httpPort = (uint16_t)parseInt(arg, 10, 1, 65535, result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid httpport");
       return EINVAL;
     }
     break;
-  case O_HTMLPA: // --htmlpath=/var/ebusd/html
+  case O_HTMLPA:  // --htmlpath=/var/ebusd/html
     if (arg == NULL || arg[0] == 0 || strcmp("/", arg) == 0) {
       argp_error(state, "invalid htmlpath");
       return EINVAL;
@@ -405,20 +410,20 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
 
   // Log options:
-  case 'l': // --logfile=/var/log/ebusd.log
+  case 'l':  // --logfile=/var/log/ebusd.log
     if (arg == NULL || arg[0] == 0 || strcmp("/", arg) == 0) {
       argp_error(state, "invalid logfile");
       return EINVAL;
     }
     opt->logFile = arg;
     break;
-  case O_LOGARE: // --logareas=all
+  case O_LOGARE:  // --logareas=all
     if (!setLogFacilities(arg)) {
       argp_error(state, "invalid logareas");
       return EINVAL;
     }
     break;
-  case O_LOGLEV: // --loglevel=notice
+  case O_LOGLEV:  // --loglevel=notice
     if (!setLogLevel(arg)) {
       argp_error(state, "invalid loglevel");
       return EINVAL;
@@ -429,14 +434,14 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case O_RAW:  // --lograwdata
     opt->logRaw = true;
     break;
-  case O_RAWFIL: // --lograwdatafile=/var/log/ebusd.log
+  case O_RAWFIL:  // --lograwdatafile=/var/log/ebusd.log
     if (arg == NULL || arg[0] == 0 || strcmp("/", arg) == 0) {
       argp_error(state, "invalid lograwdatafile");
       return EINVAL;
     }
     opt->logRawFile = arg;
     break;
-  case O_RAWSIZ: // --lograwdatasize=100
+  case O_RAWSIZ:  // --lograwdatasize=100
     opt->logRawSize = (unsigned int)parseInt(arg, 10, 1, 1000000, result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid lograwdatasize");
@@ -449,14 +454,14 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case 'D':  // --dump
     opt->dump = true;
     break;
-  case O_DMPFIL: // --dumpfile=/tmp/ebusd_dump.bin
+  case O_DMPFIL:  // --dumpfile=/tmp/ebusd_dump.bin
     if (arg == NULL || arg[0] == 0 || strcmp("/", arg) == 0) {
       argp_error(state, "invalid dumpfile");
       return EINVAL;
     }
     opt->dumpFile = arg;
     break;
-  case O_DMPSIZ: // --dumpsize=100
+  case O_DMPSIZ:  // --dumpsize=100
     opt->dumpSize = (unsigned int)parseInt(arg, 10, 1, 1000000, result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid dumpsize");
@@ -514,10 +519,10 @@ void daemonize() {
   // create pid file and try to lock it
   pidFile = fopen(opt.pidFile, "w+");
 
-  umask(S_IWGRP | S_IRWXO); // set permissions of newly created files to 750
+  umask(S_IWGRP | S_IRWXO);  // set permissions of newly created files to 750
 
   if (pidFile != NULL) {
-    setbuf(pidFile, NULL); // disable buffering
+    setbuf(pidFile, NULL);  // disable buffering
     if (lockf(fileno(pidFile), F_TLOCK, 0) < 0
       || fprintf(pidFile, "%d\n", getpid())  <= 0) {
       fclose(pidFile);
@@ -640,7 +645,8 @@ static result_t collectConfigFiles(const string path, const string prefix, const
         if (hasTemplates) {
           *hasTemplates = true;
         }
-      } else if (prefix.length() == 0 || (name.length() >= prefix.length() && name.substr(0, prefix.length()) == prefix)) {
+      } else if (prefix.length() == 0
+          || (name.length() >= prefix.length() && name.substr(0, prefix.length()) == prefix)) {
         files.push_back(p);
       }
     }
@@ -692,7 +698,8 @@ static bool readTemplates(const string path, const string extension, bool availa
   if (result == RESULT_OK) {
     logInfo(lf_main, "read templates in %s", path.c_str());
   } else {
-    logError(lf_main, "error reading templates in %s: %s, last error: %s", path.c_str(), getResultCode(result), templates->getLastError().c_str());
+    logError(lf_main, "error reading templates in %s: %s, last error: %s", path.c_str(), getResultCode(result),
+        templates->getLastError().c_str());
   }
   return templates;
 }
@@ -706,7 +713,8 @@ static bool readTemplates(const string path, const string extension, bool availa
  * @param verbose whether to verbosely log problems.
  * @return the result code.
  */
-static result_t readConfigFiles(const string path, const string extension, MessageMap* messages, bool recursive, bool verbose) {
+static result_t readConfigFiles(const string path, const string extension, MessageMap* messages, bool recursive,
+    bool verbose) {
   vector<string> files, dirs;
   bool hasTemplates = false;
   result_t result = collectConfigFiles(path, "", extension, files, &dirs, &hasTemplates);
@@ -746,7 +754,8 @@ void readMessage(Message* message) {
   BusHandler* busHandler = s_mainLoop->getBusHandler();
   result_t result = busHandler->readFromBus(message, "");
   if (result != RESULT_OK) {
-    logError(lf_main, "error reading message %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(result));
+    logError(lf_main, "error reading message %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(),
+        getResultCode(result));
   }
 }
 
@@ -758,23 +767,27 @@ void readMessage(Message* message) {
 void executeInstructions(MessageMap* messages, bool verbose) {
   result_t result = messages->resolveConditions(verbose);
   if (result != RESULT_OK) {
-    logError(lf_main, "error resolving conditions: %s, last error: %s", getResultCode(result), messages->getLastError().c_str());
+    logError(lf_main, "error resolving conditions: %s, last error: %s", getResultCode(result),
+        messages->getLastError().c_str());
   }
   ostringstream log;
   result = messages->executeInstructions(log, readMessage);
   if (result != RESULT_OK) {
-    logError(lf_main, "error executing instructions: %s, last error: %s, %s", getResultCode(result), messages->getLastError().c_str(), log.str().c_str());
+    logError(lf_main, "error executing instructions: %s, last error: %s, %s", getResultCode(result),
+        messages->getLastError().c_str(), log.str().c_str());
   } else if (verbose && log.tellp() > 0) {
     logInfo(lf_main, log.str().c_str());
   }
-  logNotice(lf_main, "found messages: %d (%d conditional on %d conditions, %d poll, %d update)", messages->size(), messages->sizeConditional(), messages->sizeConditions(), messages->sizePoll(), messages->sizePassive());
+  logNotice(lf_main, "found messages: %d (%d conditional on %d conditions, %d poll, %d update)", messages->size(),
+      messages->sizeConditional(), messages->sizeConditions(), messages->sizePoll(), messages->sizePassive());
 }
 
 result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive) {
   logInfo(lf_main, "loading configuration files from %s", opt.configPath);
   messages->clear();
   s_globalTemplates.clear();
-  for (map<string, DataFieldTemplates*>::iterator it = s_templatesByPath.begin(); it != s_templatesByPath.end(); it++) {
+  for (map<string, DataFieldTemplates*>::iterator it = s_templatesByPath.begin(); it != s_templatesByPath.end();
+      it++) {
     if (it->second != &s_globalTemplates) {
       delete it->second;
     }
@@ -782,41 +795,44 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
   }
   s_templatesByPath.clear();
 
-  result_t result = readConfigFiles(string(opt.configPath), ".csv", messages, (!opt.scanConfig || opt.checkConfig) && !denyRecursive, verbose);
+  result_t result = readConfigFiles(string(opt.configPath), ".csv", messages,
+      (!opt.scanConfig || opt.checkConfig) && !denyRecursive, verbose);
   if (result == RESULT_OK) {
     logInfo(lf_main, "read config files");
   } else {
-    logError(lf_main, "error reading config files: %s, last error: %s", getResultCode(result), messages->getLastError().c_str());
+    logError(lf_main, "error reading config files: %s, last error: %s", getResultCode(result),
+        messages->getLastError().c_str());
   }
   executeInstructions(messages, verbose);
   return RESULT_OK;
 }
 
-result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolString& data, string& relativeFile, bool verbose) {
+result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolString& data, string& relativeFile,
+    bool verbose) {
   PartType partType;
   if (isMaster(address)) {
-    address = (unsigned char)(data[0]+5); // slave address of sending master
+    address = (unsigned char)(data[0]+5);  // slave address of sending master
     partType = pt_masterData;
-    if (data.size() < 5+1+5+2+2) { // skip QQ ZZ PB SB NN
+    if (data.size() < 5+1+5+2+2) {  // skip QQ ZZ PB SB NN
       logError(lf_main, "unable to load scan config %2.2x: master part too short", address);
       return RESULT_EMPTY;
     }
   } else {
     partType = pt_slaveData;
-    if (data.size() < 1+1+5+2+2) { // skip NN
+    if (data.size() < 1+1+5+2+2) {  // skip NN
       logError(lf_main, "unable to load scan config %2.2x: slave part too short", address);
       return RESULT_EMPTY;
     }
   }
   DataFieldSet* identFields = DataFieldSet::getIdentFields();
-  string path, prefix, ident; // path: cfgpath/MANUFACTURER, prefix: ZZ., ident: C[C[C[C[C]]]], SW: xxxx, HW: xxxx
+  string path, prefix, ident;  // path: cfgpath/MANUFACTURER, prefix: ZZ., ident: C[C[C[C[C]]]], SW: xxxx, HW: xxxx
   unsigned int sw, hw;
   ostringstream out;
   unsigned char offset = 0;
   size_t field = 0;
-  result_t result = (*identFields)[field]->read(partType, data, offset, out, 0); // manufacturer name
+  result_t result = (*identFields)[field]->read(partType, data, offset, out, 0);  // manufacturer name
   if (result == RESULT_ERR_NOTFOUND) {
-    result = (*identFields)[field]->read(partType, data, offset, out, OF_NUMERIC); // manufacturer name
+    result = (*identFields)[field]->read(partType, data, offset, out, OF_NUMERIC);  // manufacturer name
   }
   if (result == RESULT_OK) {
     path = out.str();
@@ -828,17 +844,17 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
     out.str("");
     out.clear();
     offset = (unsigned char)(offset+(*identFields)[field++]->getLength(partType));
-    result = (*identFields)[field]->read(partType, data, offset, out, 0); // identification string
+    result = (*identFields)[field]->read(partType, data, offset, out, 0);  // identification string
   }
   if (result == RESULT_OK) {
     ident = out.str();
     out.str("");
     offset = (unsigned char)(offset+(*identFields)[field++]->getLength(partType));
-    result = (*identFields)[field]->read(partType, data, offset, sw, 0); // software version number
+    result = (*identFields)[field]->read(partType, data, offset, sw, 0);  // software version number
   }
   if (result == RESULT_OK) {
     offset = (unsigned char)(offset+(*identFields)[field++]->getLength(partType));
-    result = (*identFields)[field]->read(partType, data, offset, hw, 0); // hardware version number
+    result = (*identFields)[field]->read(partType, data, offset, hw, 0);  // hardware version number
   }
   if (result != RESULT_OK) {
     logError(lf_main, "unable to load scan config %2.2x: decode %s", address, getResultCode(result));
@@ -849,14 +865,17 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
   // find files matching MANUFACTURER/ZZ.*csv in cfgpath
   result = collectConfigFiles(path, prefix, ".csv", files, NULL, &hasTemplates);
   if (result != RESULT_OK) {
-    logError(lf_main, "unable to load scan config %2.2x: list files in %s %s", address, path.c_str(), getResultCode(result));
+    logError(lf_main, "unable to load scan config %2.2x: list files in %s %s", address, path.c_str(),
+        getResultCode(result));
     return result;
   }
   if (files.empty()) {
-    logError(lf_main, "unable to load scan config %2.2x: no file from %s with prefix %s found", address, path.c_str(), prefix.c_str());
+    logError(lf_main, "unable to load scan config %2.2x: no file from %s with prefix %s found", address, path.c_str(),
+        prefix.c_str());
     return RESULT_ERR_NOTFOUND;
   }
-  logDebug(lf_main, "found %d matching scan config files from %s with prefix %s: %s", files.size(), path.c_str(), prefix.c_str(), getResultCode(result));
+  logDebug(lf_main, "found %d matching scan config files from %s with prefix %s: %s", files.size(), path.c_str(),
+      prefix.c_str(), getResultCode(result));
   for (string::iterator it = ident.begin(); it != ident.end(); it++) {
     if (::isspace(*it)) {
       ident.erase(it--);
@@ -872,7 +891,8 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
     unsigned char checkDest;
     string checkIdent, useCircuit, useSuffix;
     unsigned int checkSw, checkHw;
-    if (!FileReader::extractDefaultsFromFilename(name.substr(path.length()+1), checkDest, checkIdent, useCircuit, useSuffix, checkSw, checkHw)) {
+    if (!FileReader::extractDefaultsFromFilename(name.substr(path.length()+1), checkDest, checkIdent, useCircuit,
+        useSuffix, checkSw, checkHw)) {
       continue;
     }
     if (address != checkDest || (checkSw != UINT_MAX && sw != checkSw) || (checkHw != UINT_MAX && hw != checkHw)) {
@@ -890,10 +910,10 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
         if (remain[remain.length()-1] < '0' || remain[remain.length()-1] > '9') {
           break;
         }
-        remain.erase(remain.length()-1); // remove trailing digit
+        remain.erase(remain.length()-1);  // remove trailing digit
       }
       if (!matches) {
-        continue; // IDENT mismatch
+        continue;  // IDENT mismatch
       }
       match += remain.length();
     }
@@ -905,7 +925,9 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
   }
 
   if (best.empty()) {
-    logError(lf_main, "unable to load scan config %2.2x: no file from %s with prefix %s matches ID \"%s\", SW%4.4d, HW%4.4d", address, path.c_str(), prefix.c_str(), ident.c_str(), sw, hw);
+    logError(lf_main,
+        "unable to load scan config %2.2x: no file from %s with prefix %s matches ID \"%s\", SW%4.4d, HW%4.4d",
+        address, path.c_str(), prefix.c_str(), ident.c_str(), sw, hw);
     return RESULT_ERR_NOTFOUND;
   }
 
@@ -916,11 +938,11 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
     if (result == RESULT_OK && !files.empty()) {
       for (vector<string>::iterator it = files.begin(); it != files.end(); it++) {
         string name = *it;
-        name = name.substr(path.length()+1, name.length()-path.length()-strlen(".csv")); // *.
-        if (name == "_templates.") { // skip templates
+        name = name.substr(path.length()+1, name.length()-path.length()-strlen(".csv"));  // *.
+        if (name == "_templates.") {  // skip templates
           continue;
         }
-        if (name.length() < 3 || name.find_first_of('.') != 2) { // different from the scheme "ZZ."
+        if (name.length() < 3 || name.find_first_of('.') != 2) {  // different from the scheme "ZZ."
           name = *it;
           result = messages->readFromFile(name, opt.checkConfig);
           if (result == RESULT_OK) {
@@ -934,7 +956,8 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
   }
   result = messages->readFromFile(best, opt.checkConfig, "", ident);
   if (result != RESULT_OK) {
-    logError(lf_main, "error reading scan config file %s for ID \"%s\", SW%4.4d, HW%4.4d: %s", best.c_str(), ident.c_str(), sw, hw, getResultCode(result));
+    logError(lf_main, "error reading scan config file %s for ID \"%s\", SW%4.4d, HW%4.4d: %s", best.c_str(),
+        ident.c_str(), sw, hw, getResultCode(result));
     return result;
   }
   logNotice(lf_main, "read scan config file %s for ID \"%s\", SW%4.4d, HW%4.4d", best.c_str(), ident.c_str(), sw, hw);
@@ -943,7 +966,7 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
   return RESULT_OK;
 }
 
-} // namespace ebusd
+}  // namespace ebusd
 
 using namespace ebusd;
 
@@ -985,7 +1008,7 @@ int main(int argc, char* argv[]) {
         logError(lf_main, "invalid scan message %s: %s", arg.c_str(), getResultCode(res));
         continue;
       }
-      if (master.size() < 5) { // skip QQ ZZ PB SB NN
+      if (master.size() < 5) {  // skip QQ ZZ PB SB NN
         logError(lf_main, "invalid scan message %s: master part too short", arg.c_str());
         continue;
       }
@@ -1020,7 +1043,7 @@ int main(int argc, char* argv[]) {
 
   if (!opt.foreground) {
     setLogFile(opt.logFile);
-    daemonize(); // make me daemon
+    daemonize();  // make me daemon
   }
 
   // trap signals that we expect to receive

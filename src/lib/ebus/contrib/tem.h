@@ -41,7 +41,7 @@ namespace ebusd {
  * data.
  */
 class TemParamDataType : public NumberDataType {
-  public:
+ public:
   /**
    * Constructs a new instance.
    * @param id the type identifier.
@@ -68,6 +68,6 @@ class TemParamDataType : public NumberDataType {
  */
 void contrib_tem_register();
 
-} // namespace ebusd
+}  // namespace ebusd
 
-#endif // LIB_EBUS_CONTRIB_TEM_H_
+#endif  // LIB_EBUS_CONTRIB_TEM_H_

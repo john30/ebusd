@@ -37,9 +37,9 @@ static const struct argp_option g_mqtt_argp_options[] = {
   {NULL,             0,        NULL,    0, NULL, 0 },
 };
 
-static const char* g_host = "localhost"; //!< MQTT Host to use [localhost]
-static uint16_t g_port = 0; //!< optional port of MQTT broker, 0 to disable [0]
-static const char* g_topic = PACKAGE; //!< MQTT topic to use (prefix if without wildcards) [ebusd]
+static const char* g_host = "localhost";  //!< MQTT Host to use [localhost]
+static uint16_t g_port = 0;  //!< optional port of MQTT broker, 0 to disable [0]
+static const char* g_topic = PACKAGE;  //!< MQTT topic to use (prefix if without wildcards) [ebusd]
 
 
 /**
@@ -52,7 +52,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
   result_t result = RESULT_OK;
 
   switch (key) {
-  case 1: // --mqtthost=localhost
+  case 1:  // --mqtthost=localhost
     if (arg == NULL || arg[0] == 0) {
       argp_error(state, "invalid mqtthost");
       return EINVAL;
@@ -60,7 +60,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
     g_host = arg;
     break;
 
-  case 2: // --mqttport=1883
+  case 2:  // --mqttport=1883
     g_port = (uint16_t)parseInt(arg, 10, 1, 65535, result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid mqttport");
@@ -68,7 +68,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
     }
     break;
 
-  case 3: // --mqtttopic=ebusd
+  case 3:  // --mqtttopic=ebusd
     if (arg == NULL || arg[0] == 0 || arg[0] == '/' || arg[strlen(arg)-1] == '/') {
       argp_error(state, "invalid mqtttopic");
       return EINVAL;
@@ -136,7 +136,7 @@ bool parseTopic(const string topic, vector<string> &strs, vector<size_t> &cols) 
     }
     for (vector<size_t>::iterator it=cols.begin(); it != cols.end(); it++) {
       if (*it == col) {
-        return false; // duplicate column
+        return false;  // duplicate column
       }
     }
     strs.push_back(topic.substr(lastpos, pos-lastpos));
@@ -178,12 +178,12 @@ MqttHandler::MqttHandler(BusHandler* busHandler, MessageMap* messages)
         m_topicStrs[0] = str+"/";
       }
     }
-    m_topicCols.push_back(COLUMN_CIRCUIT); // circuit
+    m_topicCols.push_back(COLUMN_CIRCUIT);  // circuit
     m_topicStrs.push_back("/");
-    m_topicCols.push_back(COLUMN_NAME); // name
+    m_topicCols.push_back(COLUMN_NAME);  // name
   } else {
     for (size_t i = 0; i < m_topicCols.size(); i++) {
-      if (m_topicCols[i] == COLUMN_FIELDS) { // fields
+      if (m_topicCols[i] == COLUMN_FIELDS) {  // fields
         m_publishByField = true;
         break;
       }
@@ -274,7 +274,7 @@ void MqttHandler::notifyTopic(string topic, string data) {
   if (!isWrite && direction != "get") {
     return;
   }
-  suffix = suffix.substr(3); // security level
+  suffix = suffix.substr(3);  // security level
   logOtherDebug("mqtt", "received topic %s", topic.c_str(), data.c_str());
   string remain = topic.substr(0, pos);
   size_t last = 0;
@@ -314,7 +314,7 @@ void MqttHandler::notifyTopic(string topic, string data) {
         name = field;
         break;
       case COLUMN_FIELDS:
-        //field = field; // TODO add support for writing a single field
+        //field = field;  // TODO add support for writing a single field
         break;
       default:
         return;
@@ -339,7 +339,8 @@ void MqttHandler::notifyTopic(string topic, string data) {
   if (!message->isPassive()) {
     result_t result = m_busHandler->readFromBus(message, data);
     if (result != RESULT_OK) {
-      logOtherError("mqtt", "%s %s %s: %s", isWrite?"write":"read", circuit.c_str(), name.c_str(), getResultCode(result));
+      logOtherError("mqtt", "%s %s %s: %s", isWrite?"write":"read", circuit.c_str(), name.c_str(),
+          getResultCode(result));
       return;
     }
     logOtherNotice("mqtt", "%s %s %s: %s", isWrite?"write":"read", circuit.c_str(), name.c_str(), data.c_str());
@@ -436,7 +437,8 @@ string MqttHandler::getTopic(Message* message, signed char fieldIndex) {
 void MqttHandler::publishMessage(Message* message, ostringstream& updates) {
   result_t result = message->decodeLastData(updates);
   if (result != RESULT_OK) {
-    logOtherError("mqtt", "decode %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(), getResultCode(result));
+    logOtherError("mqtt", "decode %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(),
+        getResultCode(result));
     return;
   }
   if (m_publishByField) {
@@ -455,7 +457,8 @@ void MqttHandler::publishMessage(Message* message, ostringstream& updates) {
 
 void MqttHandler::publishTopic(string topic, string data, bool retain) {
   logOtherDebug("mqtt", "publish %s %s", topic.c_str(), data.c_str());
-  mosquitto_publish(m_mosquitto, NULL, topic.c_str(), (uint32_t)data.size(), reinterpret_cast<const uint8_t*>(data.c_str()), 0, retain);
+  mosquitto_publish(m_mosquitto, NULL, topic.c_str(), (uint32_t)data.size(),
+      reinterpret_cast<const uint8_t*>(data.c_str()), 0, retain);
 }
 
-} // namespace ebusd
+}  // namespace ebusd

@@ -36,7 +36,7 @@ namespace ebusd {
  * The main loop handling requests from connected clients.
  */
 class MainLoop : public Thread, DeviceListener {
-  public:
+ public:
   /**
    * Construct the main loop and create network and bus handling components.
    * @param opt the program options.
@@ -66,12 +66,12 @@ class MainLoop : public Thread, DeviceListener {
   virtual void notifyDeviceData(const unsigned char byte, bool received);
 
 
-  protected:
+ protected:
   // @copydoc
   virtual void run();
 
 
-  private:
+ private:
   /**
    * Decode and execute client message.
    * @param data the data string to decode (may be empty).
@@ -230,7 +230,8 @@ class MainLoop : public Thread, DeviceListener {
   /** whether to pick configuration files matching initial scan. */
   const bool m_scanConfig;
 
-  /** the initial address to scan for @a m_scanConfig (@a ESC=none, 0xfe=broadcast ident, @a SYN=full scan, else: single slave address). */
+  /** the initial address to scan for @a m_scanConfig
+   * (@a ESC=none, 0xfe=broadcast ident, @a SYN=full scan, else: single slave address). */
   const unsigned char m_initialScan;
 
   /** whether to enable the hex command. */
@@ -252,6 +253,6 @@ class MainLoop : public Thread, DeviceListener {
   list<DataHandler*> m_dataHandlers;
 };
 
-} // namespace ebusd
+}  // namespace ebusd
 
-#endif // EBUSD_MAINLOOP_H_
+#endif  // EBUSD_MAINLOOP_H_

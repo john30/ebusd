@@ -42,18 +42,18 @@ using ebusd::Device;
 
 /** A structure holding all program options. */
 struct options {
-  const char* device; //!< device to write to [/dev/ttyUSB60]
-  unsigned int time; //!< delay between bytes in us [10000]
+  const char* device;  //!< device to write to [/dev/ttyUSB60]
+  unsigned int time;  //!< delay between bytes in us [10000]
 
-  const char* dumpFile; //!< dump file to read
+  const char* dumpFile;  //!< dump file to read
 };
 
 /** the program options. */
 static struct options opt = {
-  "/dev/ttyUSB60", // device
-  10000, // time
+  "/dev/ttyUSB60",  // device
+  10000,  // time
 
-  "/tmp/ebus_dump.bin", // dumpFile
+  "/tmp/ebus_dump.bin",  // dumpFile
 };
 
 /** the version string of the program. */
@@ -98,14 +98,14 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
   char* strEnd = NULL;
   switch (key) {
   // Device settings:
-  case 'd': // --device=/dev/ttyUSB60
+  case 'd':  // --device=/dev/ttyUSB60
     if (arg == NULL || arg[0] == 0) {
       argp_error(state, "invalid device");
       return EINVAL;
     }
     opt->device = arg;
     break;
-  case 't': // --time=10000
+  case 't':  // --time=10000
     opt->time = (unsigned int)strtoul(arg, &strEnd, 10);
     if (strEnd == NULL || strEnd == arg || *strEnd != 0 || opt->time < 1000 || opt->time > 100000000) {
       argp_error(state, "invalid time");

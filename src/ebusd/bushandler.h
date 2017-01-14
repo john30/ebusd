@@ -99,7 +99,7 @@ class BusHandler;
 class BusRequest {
   friend class BusHandler;
 
-  public:
+ public:
   /**
    * Constructor.
    * @param master the escaped master data @a SymbolString to send.
@@ -123,7 +123,7 @@ class BusRequest {
   virtual bool notify(result_t result, SymbolString& slave) = 0;
 
 
-  protected:
+ protected:
   /** the escaped master data @a SymbolString to send. */
   SymbolString& m_master;
 
@@ -141,7 +141,7 @@ class BusRequest {
 class PollRequest : public BusRequest {
   friend class BusHandler;
 
-  public:
+ public:
   /**
    * Constructor.
    * @param message the associated @a Message.
@@ -165,7 +165,7 @@ class PollRequest : public BusRequest {
   virtual bool notify(result_t result, SymbolString& slave);
 
 
-  private:
+ private:
   /** the escaped master data @a SymbolString. */
   SymbolString m_master;
 
@@ -183,7 +183,7 @@ class PollRequest : public BusRequest {
 class ScanRequest : public BusRequest {
   friend class BusHandler;
 
-  public:
+ public:
   /**
    * Constructor.
    * @param messageMap the @a MessageMap instance.
@@ -192,7 +192,8 @@ class ScanRequest : public BusRequest {
    * @param busHandler the @a BusHandler instance to notify of final scan result.
    */
   ScanRequest(MessageMap* messageMap, deque<Message*> messages, deque<unsigned char> slaves, BusHandler* busHandler)
-    : BusRequest(m_master, true), m_messageMap(messageMap), m_index(0), m_allMessages(messages), m_messages(messages), m_slaves(slaves), m_busHandler(busHandler) {
+    : BusRequest(m_master, true), m_messageMap(messageMap), m_index(0), m_allMessages(messages), m_messages(messages),
+      m_slaves(slaves), m_busHandler(busHandler) {
     m_message = m_messages.front();
     m_messages.pop_front();
   }
@@ -213,7 +214,7 @@ class ScanRequest : public BusRequest {
   virtual bool notify(result_t result, SymbolString& slave);
 
 
-  private:
+ private:
   /** the @a MessageMap instance. */
   MessageMap* m_messageMap;
 
@@ -249,7 +250,7 @@ class ScanRequest : public BusRequest {
 class ActiveBusRequest : public BusRequest {
   friend class BusHandler;
 
-  public:
+ public:
   /**
    * Constructor.
    * @param master the escaped master data @a SymbolString to send.
@@ -267,7 +268,7 @@ class ActiveBusRequest : public BusRequest {
   virtual bool notify(result_t result, SymbolString& slave);
 
 
-  private:
+ private:
   /** the result of handling the request. */
   result_t m_result;
 
@@ -280,7 +281,7 @@ class ActiveBusRequest : public BusRequest {
  * Helper class for keeping track of grabbed messages.
  */
 class GrabbedMessage {
-  public:
+ public:
   /**
    * Construct a new instance.
    */
@@ -313,7 +314,7 @@ class GrabbedMessage {
   bool dump(const bool unknown, MessageMap* messages, bool first, ostringstream& output);
 
 
-  private:
+ private:
   /** the last master @a SymbolString. */
   SymbolString m_lastMaster;
 
@@ -329,7 +330,7 @@ class GrabbedMessage {
  * Handles input from and output to the bus with respect to the eBUS protocol.
  */
 class BusHandler : public WaitThread {
-  public:
+ public:
   /**
    * Construct a new instance.
    * @param device the @a Device instance for accessing the bus.
@@ -356,7 +357,8 @@ class BusHandler : public WaitThread {
       m_answer(answer), m_addressConflict(false),
       m_busLostRetries(busLostRetries), m_failedSendRetries(failedSendRetries),
       m_transferLatency(transferLatency), m_busAcquireTimeout(busAcquireTimeout), m_slaveRecvTimeout(slaveRecvTimeout),
-      m_masterCount(device->isReadOnly()?0:1), m_autoLockCount(lockCount == 0), m_lockCount(lockCount <= 3 ? 3 : lockCount), m_remainLockCount(m_autoLockCount),
+      m_masterCount(device->isReadOnly()?0:1), m_autoLockCount(lockCount == 0),
+      m_lockCount(lockCount <= 3 ? 3 : lockCount), m_remainLockCount(m_autoLockCount),
       m_generateSynInterval(generateSyn ? SYN_TIMEOUT*getMasterNumber(ownAddress)+SYMBOL_DURATION : 0),
       m_pollInterval(pollInterval), m_lastReceive(0), m_lastPoll(0),
       m_currentRequest(NULL), m_runningScans(0), m_nextSendPos(0),
@@ -513,7 +515,7 @@ class BusHandler : public WaitThread {
   void setScanConfigLoaded(unsigned char address, string file);
 
 
-  private:
+ private:
   /**
    * Handle the next symbol on the bus.
    * @return RESULT_OK on success, or an error code.
@@ -653,6 +655,6 @@ class BusHandler : public WaitThread {
   map<uint64_t, GrabbedMessage> m_grabbedMessages;
 };
 
-} // namespace ebusd
+}  // namespace ebusd
 
-#endif // EBUSD_BUSHANDLER_H_
+#endif  // EBUSD_BUSHANDLER_H_

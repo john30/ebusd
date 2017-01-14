@@ -34,7 +34,7 @@ using std::list;
  */
 template <typename T>
 class Queue {
-  public:
+ public:
   /**
    * Constructor.
    */
@@ -52,7 +52,7 @@ class Queue {
   }
 
 
-  private:
+ private:
   /**
    * Hidden copy constructor.
    * @param src the object to copy from.
@@ -60,7 +60,7 @@ class Queue {
   Queue(const Queue& src);
 
 
-  public:
+ public:
   /**
    * Add an item to the end of queue.
    * @param item the item to add.
@@ -141,7 +141,7 @@ class Queue {
   }
 
 
-  private:
+ private:
   /** the queue itself */
   list<T> m_queue;
 
@@ -152,4 +152,4 @@ class Queue {
   pthread_cond_t m_cond;
 };
 
-#endif // LIB_UTILS_QUEUE_H_
+#endif  // LIB_UTILS_QUEUE_H_

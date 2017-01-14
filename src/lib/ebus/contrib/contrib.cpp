@@ -26,4 +26,4 @@ bool libebus_contrib_register() {
   return true;
 }
 
-} // namespace ebusd
+}  // namespace ebusd

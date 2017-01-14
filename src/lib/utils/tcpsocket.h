@@ -38,7 +38,7 @@ using std::string;
  * class for low level tcp socket operations. (open, close, send, receive).
  */
 class TCPSocket {
-  public:
+ public:
   /** grant access for friend class TCPClient */
   friend class TCPClient;
 
@@ -91,7 +91,7 @@ class TCPSocket {
   bool isValid();
 
 
-  private:
+ private:
   /** file descriptor from tcp socket */
   int m_sfd;
 
@@ -113,7 +113,7 @@ class TCPSocket {
  * class to initiate a tcp socket connection to a listening server.
  */
 class TCPClient {
-  public:
+ public:
   /**
    * initiate a tcp socket connection to a listening server.
    * @param server the server name or ip address to connect.
@@ -127,7 +127,7 @@ class TCPClient {
  * class for a tcp based network server.
  */
 class TCPServer {
-  public:
+ public:
   /**
    * creates a new instance of a listening tcp server.
    * @param port the tcp port.
@@ -160,7 +160,7 @@ class TCPServer {
   int getFD() const { return m_lfd; }
 
 
-  private:
+ private:
   /** file descriptor from listening tcp socket */
   int m_lfd;
 
@@ -174,5 +174,5 @@ class TCPServer {
   bool m_listening;
 };
 
-#endif // LIB_UTILS_TCPSOCKET_H_
+#endif  // LIB_UTILS_TCPSOCKET_H_
 

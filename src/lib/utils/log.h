@@ -36,12 +36,12 @@ enum LogFacility {
 
 /** the available log levels. */
 enum LogLevel {
-  ll_none = 0, //!< no level at all
+  ll_none = 0,  //!< no level at all
   ll_error,    //!< error message
   ll_notice,   //!< important message
   ll_info,     //!< informational message
   ll_debug,    //!< debugging message (normally suppressed)
-  ll_COUNT = 5 //!< number of available log levels
+  ll_COUNT = 5  //!< number of available log levels
 };
 
 /**
@@ -125,15 +125,19 @@ void logWrite(const char* facility, const LogLevel level, const char* message, .
 #define logDebug(facility, ...) (needsLog(facility, ll_debug) ? logWrite(facility, ll_debug, __VA_ARGS__) : void(0))
 
 /** A macro for an error message that calls the logging function only if needed. */
-#define logOtherError(facility, ...) (needsLog(lf_other, ll_error) ? logWrite(facility, ll_error, __VA_ARGS__) : void(0))
+#define logOtherError(facility, ...) \
+  (needsLog(lf_other, ll_error) ? logWrite(facility, ll_error, __VA_ARGS__) : void(0))
 
 /** A macro for a notice message that calls the logging function only if needed. */
-#define logOtherNotice(facility, ...) (needsLog(lf_other, ll_notice) ? logWrite(facility, ll_notice, __VA_ARGS__) : void(0))
+#define logOtherNotice(facility, ...) \
+  (needsLog(lf_other, ll_notice) ? logWrite(facility, ll_notice, __VA_ARGS__) : void(0))
 
 /** A macro for an info message that calls the logging function only if needed. */
-#define logOtherInfo(facility, ...) (needsLog(lf_other, ll_info) ? logWrite(facility, ll_info, __VA_ARGS__) : void(0))
+#define logOtherInfo(facility, ...) \
+  (needsLog(lf_other, ll_info) ? logWrite(facility, ll_info, __VA_ARGS__) : void(0))
 
 /** A macro for a debug message that calls the logging function only if needed. */
-#define logOtherDebug(facility, ...) (needsLog(lf_other, ll_debug) ? logWrite(facility, ll_debug, __VA_ARGS__) : void(0))
+#define logOtherDebug(facility, ...) \
+  (needsLog(lf_other, ll_debug) ? logWrite(facility, ll_debug, __VA_ARGS__) : void(0))
 
-#endif // LIB_UTILS_LOG_H_
+#endif  // LIB_UTILS_LOG_H_

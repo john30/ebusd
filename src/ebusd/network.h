@@ -39,7 +39,7 @@ class Connection;
  * Class for data/message transfer between @a Connection and @a MainLoop.
  */
 class NetMessage {
-  public:
+ public:
   /**
    * Constructor.
    * @param isHttp whether this is a HTTP message.
@@ -59,7 +59,7 @@ class NetMessage {
   }
 
 
-  private:
+ private:
   /**
    * Hidden copy constructor.
    * @param src the object to copy from.
@@ -67,7 +67,7 @@ class NetMessage {
   NetMessage(const NetMessage& src);
 
 
-  public:
+ public:
   /**
    * Add request data received from the client.
    * @param request the request data from the client.
@@ -82,11 +82,11 @@ class NetMessage {
     if (pos != string::npos) {
       if (m_isHttp) {
         pos = m_request.find("\n");
-        m_request.resize(pos); // reduce to first line
+        m_request.resize(pos);  // reduce to first line
         // typical first line: GET /ehp/outsidetemp HTTP/1.1
         pos = m_request.rfind(" HTTP/");
         if (pos != string::npos) {
-          m_request.resize(pos); // remove "HTTP/x.x" suffix
+          m_request.resize(pos);  // remove "HTTP/x.x" suffix
         }
         pos = 0;
         while ((pos=m_request.find('%', pos)) != string::npos && pos+2 <= m_request.length()) {
@@ -98,7 +98,7 @@ class NetMessage {
           m_request.erase(pos+1, 2);
         }
       } else if (pos+1 == m_request.length()) {
-        m_request.resize(pos); // reduce to complete lines
+        m_request.resize(pos);  // reduce to complete lines
       }
       return true;
     }
@@ -168,7 +168,7 @@ class NetMessage {
   bool isDisconnect() { return m_disconnect; }
 
 
-  private:
+ private:
   /** whether this is a HTTP message. */
   const bool m_isHttp;
 
@@ -201,7 +201,7 @@ class NetMessage {
  * class connection which handle client and baseloop communication.
  */
 class Connection : public Thread {
-  public:
+ public:
   /**
    * Constructor.
    * @param socket the @a TCPSocket for communication.
@@ -231,7 +231,7 @@ class Connection : public Thread {
   int getID() { return m_id; }
 
 
-  private:
+ private:
   /** whether this is a HTTP connection. */
   const bool m_isHttp;
 
@@ -255,7 +255,7 @@ class Connection : public Thread {
  * class network which listening on tcp socket for incoming connections.
  */
 class Network : public Thread {
-  public:
+ public:
   /**
    * create a network instance and listening for incoming connections.
    * @param local true to accept connections only for local host.
@@ -281,7 +281,7 @@ class Network : public Thread {
   void stop() const { m_notify.notify(); usleep(100000); }
 
 
-  private:
+ private:
   /** the list of active @a Connection instances. */
   list<Connection*> m_connections;
 
@@ -306,6 +306,6 @@ class Network : public Thread {
   void cleanConnections();
 };
 
-} // namespace ebusd
+}  // namespace ebusd
 
-#endif // EBUSD_NETWORK_H_
+#endif  // EBUSD_NETWORK_H_

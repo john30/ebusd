@@ -83,7 +83,7 @@ typedef int OutputFormat;
 /* the bit flags for @a OutputFormat. */
 static const unsigned int OF_NAMES = 0x01;    //!< include names.
 static const unsigned int OF_UNITS = 0x02;    //!< include units.
-static const unsigned int OF_COMMENTS = 0x04; //!< include comments.
+static const unsigned int OF_COMMENTS = 0x04;  //!< include comments.
 static const unsigned int OF_NUMERIC = 0x08;  //!< numeric format (keep numeric value of value=name pairs).
 static const unsigned int OF_JSON = 0x10;     //!< JSON format.
 
@@ -95,19 +95,20 @@ enum PartType {
 };
 
 /* flags for @a DataType. */
-static const unsigned int ADJ = 0x01; //!< adjustable length, bitCount is maximum length
-static const unsigned int BCD = 0x02; //!< binary representation is BCD
-static const unsigned int REV = 0x04; //!< reverted binary representation (most significant byte first)
-static const unsigned int SIG = 0x08; //!< signed value
-static const unsigned int IGN = 0x10; //!< ignore value during read and write
-static const unsigned int FIX = 0x20; //!< fixed width formatting
-static const unsigned int REQ = 0x40; //!< value may not be NULL
-static const unsigned int HCD = 0x80; //!< binary representation is hex converted to decimal and interpreted as 2 digits (also requires #BCD)
-static const unsigned int EXP = 0x100; //!< exponential numeric representation
-static const unsigned int DAY = 0x200; //!< forced value list defaulting to week days
-static const unsigned int NUM = 0x400; //!< numeric type with base class @a NumberDataType
-static const unsigned int SPE = 0x800; //!< special marker for certain types
-static const unsigned int CON = 0x1000; //!< marker for a constant value
+static const unsigned int ADJ = 0x01;  //!< adjustable length, bitCount is maximum length
+static const unsigned int BCD = 0x02;  //!< binary representation is BCD
+static const unsigned int REV = 0x04;  //!< reverted binary representation (most significant byte first)
+static const unsigned int SIG = 0x08;  //!< signed value
+static const unsigned int IGN = 0x10;  //!< ignore value during read and write
+static const unsigned int FIX = 0x20;  //!< fixed width formatting
+static const unsigned int REQ = 0x40;  //!< value may not be NULL
+/** binary representation is hex converted to decimal and interpreted as 2 digits (also requires #BCD). */
+static const unsigned int HCD = 0x80;
+static const unsigned int EXP = 0x100;  //!< exponential numeric representation
+static const unsigned int DAY = 0x200;  //!< forced value list defaulting to week days
+static const unsigned int NUM = 0x400;  //!< numeric type with base class @a NumberDataType
+static const unsigned int SPE = 0x800;  //!< special marker for certain types
+static const unsigned int CON = 0x1000;  //!< marker for a constant value
 
 
 /**
@@ -120,7 +121,8 @@ static const unsigned int CON = 0x1000; //!< marker for a constant value
  * @param length the optional variable in which to store the number of read characters.
  * @return the parsed value.
  */
-unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result, unsigned int* length = NULL);
+unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue,
+    result_t& result, unsigned int* length = NULL);
 
 /**
  * Parse a signed int value.
@@ -132,7 +134,8 @@ unsigned int parseInt(const char* str, int base, const unsigned int minValue, co
  * @param length the optional variable in which to store the number of read characters.
  * @return the parsed value.
  */
-int parseSignedInt(const char* str, int base, const int minValue, const int maxValue, result_t& result, unsigned int* length = NULL);
+int parseSignedInt(const char* str, int base, const int minValue, const int maxValue, result_t& result,
+    unsigned int* length = NULL);
 
 /**
  * Print the error position of the iterator.
@@ -144,20 +147,22 @@ int parseSignedInt(const char* str, int base, const int minValue, const int maxV
  * @param lineNo the current line number in the file being read.
  * @param result the result code.
  */
-void printErrorPos(ostream& out, vector<string>::iterator begin, const vector<string>::iterator end, vector<string>::iterator pos, string filename, size_t lineNo, result_t result);
+void printErrorPos(ostream& out, vector<string>::iterator begin, const vector<string>::iterator end,
+    vector<string>::iterator pos, string filename, size_t lineNo, result_t result);
 
 
 /**
  * Base class for all kinds of data types.
  */
 class DataType {
-  public:
+ public:
   /**
    * Constructs a new instance.
    * @param id the type identifier.
    * @param bitCount the number of bits (maximum length if #ADJ flag is set, must be multiple of 8 with flag #BCD).
    * @param flags the combination of flags (like #BCD).
-   * @param replacement the replacement value (fill-up value for @a StringDataType, no replacement if equal to @a NumberDataType#minValue).
+   * @param replacement the replacement value (fill-up value for @a StringDataType, no replacement if equal to
+   * @a NumberDataType#minValue).
    */
   DataType(const string id, const unsigned char bitCount, const uint16_t flags, const unsigned int replacement)
     : m_id(id), m_bitCount(bitCount), m_flags(flags), m_replacement(replacement) {}
@@ -200,7 +205,8 @@ class DataType {
   bool isNumeric() const { return hasFlag(NUM); }
 
   /**
-   * @return the replacement value (fill-up value for @a StringDataType, no replacement if equal to @a NumberDataType#minValue).
+   * @return the replacement value (fill-up value for @a StringDataType, no replacement if equal to
+   * @a NumberDataType#minValue).
    */
   unsigned int getReplacement() const { return m_replacement; }
 
@@ -254,7 +260,7 @@ class DataType {
     SymbolString& output, const bool isMaster, unsigned char* usedLength) = 0;
 
 
-  protected:
+ protected:
   /** the type identifier. */
   const string m_id;
 
@@ -264,7 +270,8 @@ class DataType {
   /** the combination of flags (like #BCD). */
   const uint16_t m_flags;
 
-  /** the replacement value (fill-up value for @a StringDataType, no replacement if equal to @a NumberDataType#minValue). */
+  /** the replacement value (fill-up value for @a StringDataType, no replacement if equal to
+   * @a NumberDataType#minValue). */
   const unsigned int m_replacement;
 };
 
@@ -273,7 +280,7 @@ class DataType {
  * A string based @a DataType.
  */
 class StringDataType : public DataType {
-  public:
+ public:
   /**
    * Constructs a new instance.
    * @param id the type identifier.
@@ -307,7 +314,7 @@ class StringDataType : public DataType {
     SymbolString& output, const bool isMaster, unsigned char* usedLength);
 
 
-  private:
+ private:
   /** true for hex digits instead of characters. */
   const bool m_isHex;
 };
@@ -317,7 +324,7 @@ class StringDataType : public DataType {
  * A date/time based @a DataType.
  */
 class DateTimeDataType : public DataType {
-  public:
+ public:
   /**
    * Constructs a new instance.
    * @param id the type identifier.
@@ -368,7 +375,7 @@ class DateTimeDataType : public DataType {
     SymbolString& output, const bool isMaster, unsigned char* usedLength);
 
 
-  private:
+ private:
   /** true if date part is present. */
   const bool m_hasDate;
 
@@ -384,7 +391,7 @@ class DateTimeDataType : public DataType {
  * A number based @a DataType.
  */
 class NumberDataType : public DataType {
-  public:
+ public:
   /**
    * Constructs a new instance for multiple of 8 bits.
    * @param id the type identifier.
@@ -397,7 +404,8 @@ class NumberDataType : public DataType {
    */
   NumberDataType(const string id, const unsigned char bitCount, const uint16_t flags, const unsigned int replacement,
       const unsigned int minValue, const unsigned int maxValue, const int divisor)
-    : DataType(id, bitCount, flags|NUM, replacement), m_minValue(minValue), m_maxValue(maxValue), m_divisor(divisor), m_precision(calcPrecision(divisor)), m_firstBit(0), m_baseType(NULL) {}
+    : DataType(id, bitCount, flags|NUM, replacement), m_minValue(minValue), m_maxValue(maxValue), m_divisor(divisor),
+      m_precision(calcPrecision(divisor)), m_firstBit(0), m_baseType(NULL) {}
 
   /**
    * Constructs a new instance for less than 8 bits.
@@ -410,7 +418,8 @@ class NumberDataType : public DataType {
    */
   NumberDataType(const string id, const unsigned char bitCount, const uint16_t flags, const unsigned int replacement,
       const int16_t firstBit, const int divisor)
-    : DataType(id, bitCount, flags|NUM, replacement), m_minValue(0), m_maxValue((1 << bitCount)-1), m_divisor(divisor), m_precision(0), m_firstBit(firstBit), m_baseType(NULL) {}
+    : DataType(id, bitCount, flags|NUM, replacement), m_minValue(0), m_maxValue((1 << bitCount)-1), m_divisor(divisor),
+      m_precision(0), m_firstBit(firstBit), m_baseType(NULL) {}
 
   /**
    * Destructor.
@@ -495,7 +504,7 @@ class NumberDataType : public DataType {
     SymbolString& output, const bool isMaster, unsigned char* usedLength);
 
 
-  private:
+ private:
   /** the minimum raw value. */
   const unsigned int m_minValue;
 
@@ -520,7 +529,7 @@ class NumberDataType : public DataType {
  * A map of base @a DataType instances.
  */
 class DataTypeList {
-  public:
+ public:
   /**
    * Constructs a new instance and registers the known base data types.
    */
@@ -568,7 +577,7 @@ class DataTypeList {
   DataType* get(const string id, const unsigned char length = 0);
 
 
-  private:
+ private:
   /** the known @a DataType instances by ID only. */
   map<string, DataType*> m_typesById;
 
@@ -588,6 +597,6 @@ class DataTypeList {
 #endif
 };
 
-} // namespace ebusd
+}  // namespace ebusd
 
-#endif // LIB_EBUS_DATATYPE_H_
+#endif  // LIB_EBUS_DATATYPE_H_

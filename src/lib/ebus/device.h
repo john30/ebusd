@@ -42,7 +42,7 @@ namespace ebusd {
  * Interface for listening to data received on/sent to a device.
  */
 class DeviceListener {
-  public:
+ public:
   /**
    * Destructor.
    */
@@ -53,7 +53,7 @@ class DeviceListener {
    * @param byte the data byte received/sent.
    * @param received @a true on reception, @a false on sending.
    */
-  virtual void notifyDeviceData(const unsigned char byte, bool received) = 0; // abstract
+  virtual void notifyDeviceData(const unsigned char byte, bool received) = 0;  // abstract
 };
 
 
@@ -61,7 +61,7 @@ class DeviceListener {
  * The base class for accessing an eBUS.
  */
 class Device {
-  public:
+ public:
   /**
    * Construct a new instance.
    * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
@@ -87,7 +87,8 @@ class Device {
    * @return the new @a Device, or NULL on error.
    * Note: the caller needs to free the created instance.
    */
-  static Device* create(const char* name, const bool checkDevice = true, const bool readOnly = false, const bool initialSend = false);
+  static Device* create(const char* name, const bool checkDevice = true, const bool readOnly = false,
+      const bool initialSend = false);
 
   /**
    * Get the transfer latency of this device.
@@ -99,7 +100,7 @@ class Device {
    * Open the file descriptor.
    * @return the @a result_t code.
    */
-  virtual result_t open() = 0; // abstract
+  virtual result_t open() = 0;  // abstract
 
   /**
    * Close the file descriptor if opened.
@@ -146,11 +147,11 @@ class Device {
   void setListener(DeviceListener* listener) { m_listener = listener; }
 
 
-  protected:
+ protected:
   /**
    * Check if the device is still available and close it if not.
    */
-  virtual void checkDevice() = 0; // abstract
+  virtual void checkDevice() = 0;  // abstract
 
   /**
    * Check whether a byte is available immediately (without waiting).
@@ -188,7 +189,7 @@ class Device {
   int m_fd;
 
 
-  private:
+ private:
   /** the @a DeviceListener, or NULL. */
   DeviceListener* m_listener;
 };
@@ -197,7 +198,7 @@ class Device {
  * The @a Device for directly connected serial interfaces (tty).
  */
 class SerialDevice : public Device {
-  public:
+ public:
   /**
    * Construct a new instance.
    * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
@@ -215,12 +216,12 @@ class SerialDevice : public Device {
   virtual void close();
 
 
-  protected:
+ protected:
   // @copydoc
   virtual void checkDevice();
 
 
-  private:
+ private:
   /** the previous settings of the device for restoring. */
   termios m_oldSettings;
 };
@@ -229,7 +230,7 @@ class SerialDevice : public Device {
  * The @a Device for remote network interfaces.
  */
 class NetworkDevice : public Device {
-  public:
+ public:
   /**
    * Construct a new instance.
    * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
@@ -250,7 +251,7 @@ class NetworkDevice : public Device {
   virtual result_t open();
 
 
-  protected:
+ protected:
   // @copydoc
   virtual void checkDevice();
 
@@ -264,7 +265,7 @@ class NetworkDevice : public Device {
   virtual ssize_t read(unsigned char& value);
 
 
-  private:
+ private:
   /** the socket address of the device. */
   const struct sockaddr_in m_address;
 
@@ -284,6 +285,6 @@ class NetworkDevice : public Device {
   unsigned char m_bufPos;
 };
 
-} // namespace ebusd
+}  // namespace ebusd
 
-#endif // LIB_EBUS_DEVICE_H_
+#endif  // LIB_EBUS_DEVICE_H_
