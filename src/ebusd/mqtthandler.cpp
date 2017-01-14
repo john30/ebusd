@@ -28,12 +28,14 @@ using namespace std;
 /** the definition of the MQTT arguments. */
 static const struct argp_option g_mqtt_argp_options[] = {
 	{NULL,             0, NULL,    0, "MQTT options:", 1 },
-	{"mqttport",       1, "PORT",  0, "Connect to MQTT broker on PORT (usually 1883), 0 to disable [0]", 0 },
-	{"mqtttopic",      2, "TOPIC", 0, "Use MQTT TOPIC (prefix before /%circuit/%name or complete format) [ebusd]", 0 },
+	{"mqtthost",       1, "HOST",  0, "Connect to MQTT broker on HOST [localhost]", 0 },
+	{"mqttport",       2, "PORT",  0, "Connect to MQTT broker on PORT (usually 1883), 0 to disable [0]", 0 },
+	{"mqtttopic",      3, "TOPIC", 0, "Use MQTT TOPIC (prefix before /%circuit/%name or complete format) [ebusd]", 0 },
 
 	{NULL,             0,        NULL,    0, NULL, 0 },
 };
 
+static const char* g_host = "localhost"; //!< MQTT Host to use [localhost]
 static uint16_t g_port = 0; //!< optional port of MQTT broker, 0 to disable [0]
 static const char* g_topic = PACKAGE; //!< MQTT topic to use (prefix if without wildcards) [ebusd]
 
@@ -48,7 +50,15 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
 	result_t result = RESULT_OK;
 
 	switch (key) {
-	case 1: // --mqttport=1883
+	case 1: // --mqtthost=localhost
+		if (arg == NULL || arg[0] == 0) {
+			argp_error(state, "invalid mqtthost");
+			return EINVAL;
+		}
+		g_host = arg;
+		break;
+
+	case 2: // --mqttport=1883
 		g_port = (uint16_t)parseInt(arg, 10, 1, 65535, result);
 		if (result != RESULT_OK) {
 			argp_error(state, "invalid mqttport");
@@ -56,7 +66,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
 		}
 		break;
 
-	case 2: // --mqtttopic=ebusd
+	case 3: // --mqtttopic=ebusd
 		if (arg == NULL || arg[0] == 0 || arg[0] == '/' || arg[strlen(arg)-1] == '/') {
 			argp_error(state, "invalid mqtttopic");
 			return EINVAL;
@@ -204,7 +214,7 @@ MqttHandler::MqttHandler(BusHandler* busHandler, MessageMap* messages)
 			true,
 #endif
 			willTopic.c_str(), (uint32_t)len, (uint8_t*)(willData.c_str()), 0, true);
-		if (mosquitto_connect(m_mosquitto, "localhost", g_port, 60
+		if (mosquitto_connect(m_mosquitto, g_host, g_port, 60
 #if (LIBMOSQUITTO_MAJOR < 1)
 				, true
 #endif
