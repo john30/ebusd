@@ -27,7 +27,7 @@ using namespace std;
 /** the definition of the MQTT arguments. */
 static const struct argp_option g_mqtt_argp_options[] = {
 	{NULL,             0, NULL,    0, "MQTT options:", 1 },
-	{"mqtthost",       1, "PORT",  0, "Connect to MQTT broker on HOST [localhsot]", 0 },
+	{"mqtthost",       1, "HOST",  0, "Connect to MQTT broker on HOST [localhost]", 0 },
 	{"mqttport",       2, "PORT",  0, "Connect to MQTT broker on PORT (usually 1883), 0 to disable [0]", 0 },
 	{"mqtttopic",      3, "TOPIC", 0, "Use MQTT TOPIC (prefix before /%circuit/%name or complete format) [ebusd]", 0 },
 
