@@ -75,10 +75,8 @@ static const unsigned char BROADCAST = 0xFE; //!< the broadcast destination addr
 /**
  * A string of escaped or unescaped bus symbols.
  */
-class SymbolString
-{
-
-public:
+class SymbolString {
+	public:
 	/**
 	 * Creates a new empty escaped or unescaped instance.
 	 * @param escaped whether to create an escaped instance.
@@ -186,8 +184,8 @@ public:
 	 */
 	void clear(const bool escape) { m_data.clear(); m_unescapeState = escape ? 0 : 1; m_crc = 0; }
 
-private:
 
+	private:
 	/**
 	 * Hidden copy constructor.
 	 * @param str the @a SymbolString to copy from.

@@ -71,7 +71,7 @@ int main() {
 		{"pumpstate,UCH,0=off;1=on;2=overrun,,Pumpenstatus", "", "", "", "template"},
 		{"tempsensor,temp;sensor,,Temperatursensor", "", "", "", "template"},
 		{"tempsensorc,temp;sensorc,,Temperatursensor", "", "", "", "template"},
-		{"r,,Status01,VL/RL/AussenTemp/VLWW/SpeicherTemp/Status,,08,B511,01,,,temp1;temp1;temp2;temp1;temp1;pumpstate","28.0;24.0;4.938;35.0;41.0;4","ff08b5110101","093830f00446520400ff","d"},
+		{"r,,Status01,VL/RL/AussenTemp/VLWW/SpeicherTemp/Status,,08,B511,01,,,temp1;temp1;temp2;temp1;temp1;pumpstate", "28.0;24.0;4.938;35.0;41.0;4", "ff08b5110101", "093830f00446520400ff", "d"},
 		{"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor", "temp=-14.00 Temperatursensor [Temperatur];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "mD"},
 		{"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment", "temp=-14.00 field unit [field comment];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "mD"},
 		{"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment", "\n    \"temp\": {\"value\": -14.00},\n    \"sensor\": {\"value\": \"ok\"}", "ff25b509030d2800", "0320ff00", "mj"},
@@ -99,8 +99,8 @@ int main() {
 		{"r,ehp,error,,,08,b509,0d2800,index,m,UCH,,,,,,time", "index=3;time=15:00:17", "ff08b509040d280003", "0311000f", "mD"},
 		{"u,ehp,ActualEnvironmentPower,Energiebezug,,08,B509,29BA00,,s,IGN:2,,,,,s,power", "8", "1008b5090329ba00", "03ba0008", "pm"},
 		{"uw,ehp,test,Test,,08,B5de,ab,,,power,,,,,s,hex:1", "8;39", "1008b5de02ab08", "0139", "pm"},
-		{"u,ehp,hwTankTemp,Speichertemperatur IST,,25,B509,290000,,,IGN:2,,,,,,tempsensor", "","","","M"},
-		{"", "55.50;ok","1025b50903290000","050000780300","d"},
+		{"u,ehp,hwTankTemp,Speichertemperatur IST,,25,B509,290000,,,IGN:2,,,,,,tempsensor", "", "", "", "M"},
+		{"", "55.50;ok", "1025b50903290000", "050000780300", "d"},
 		{"r,ehp,datetime,Datum Uhrzeit,,50,B504,00,,,dcfstate,,,,time,,BTI,,,,date,,BDA,,,,temp,,temp2", "valid;08:24:51;31.12.2014;-0.875", "1050b5040100", "0a035124083112031420ff", "md" },
 		{"r,ehp,bad,invalid pos,,50,B5ff,000102,,m,HEX:8;tempsensor;tempsensor;tempsensor;tempsensor;power;power,,,", "", "", "", "c" },
 		{"r,ehp,bad,invalid pos,,50,B5ff,,,s,HEX:8;tempsensor;tempsensor;tempsensor;tempsensor;tempsensor;power;power,,,", "", "", "", "c" },
@@ -418,5 +418,4 @@ int main() {
 		delete *it;
 	}
 	return 0;
-
 }

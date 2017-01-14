@@ -123,8 +123,7 @@ void printErrorPos(ostream& out, vector<string>::iterator begin, const vector<st
 }
 
 
-bool DataType::dump(ostream& output, const unsigned char length) const
-{
+bool DataType::dump(ostream& output, const unsigned char length) const {
 	output << m_id;
 	if (isAdjustableLength()) {
 		if (length == REMAIN_LEN) {
@@ -312,8 +311,7 @@ result_t DateTimeDataType::readSymbols(SymbolString& input, const bool isMaster,
 			}
 			ch = (unsigned char)((ch >> 4) * 10 + (ch & 0x0f));
 		}
-		switch (type)
-		{
+		switch (type) {
 		case 2: // date only
 			if (!hasFlag(REQ) && ch == m_replacement) {
 				if (i + 1 != length) {
@@ -440,10 +438,9 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
 	size_t i = 0, offset;
 	int type = (m_hasDate?2:0) | (m_hasTime?1:0);
 	bool skip = false;
-	for (offset = start; i < count; offset += skip?0:incr, i++) {
+	for (offset = start; i < count; offset += skip ? 0 : incr, i++) {
 		skip = false;
-		switch (type)
-		{
+		switch (type) {
 		case 2: // date only
 			if (length == 4 && i == 2) {
 				continue; // skip weekday in between
@@ -584,8 +581,7 @@ unsigned char NumberDataType::calcPrecision(const int divisor) {
 	return precision;
 }
 
-bool NumberDataType::dump(ostream& output, unsigned char length) const
-{
+bool NumberDataType::dump(ostream& output, unsigned char length) const {
 	if (m_bitCount < 8) {
 		DataType::dump(output, m_bitCount);
 	} else {

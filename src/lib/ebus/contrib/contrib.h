@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIB_EBUS_CONTRIB_H_
-#define LIB_EBUS_CONTRIB_H_
+#ifndef LIB_EBUS_CONTRIB_CONTRIB_H_
+#define LIB_EBUS_CONTRIB_CONTRIB_H_
 
 /** @file contrib.h
  * Contributed sources that may be excluded from regular builds.
@@ -32,4 +32,4 @@ using namespace std;
  */
 bool libebus_contrib_register();
 
-#endif // LIB_EBUS_CONTRIB_H_
+#endif // LIB_EBUS_CONTRIB_CONTRIB_H_

@@ -834,8 +834,7 @@ ChainedMessage::ChainedMessage(const string circuit, const string name,
 		  srcAddress, dstAddress, id,
 		  data, deleteData, pollPriority, condition),
 		  m_ids(ids), m_lengths(lengths),
-		  m_maxTimeDiff(m_ids.size()*15) // 15 seconds per message
-{
+		  m_maxTimeDiff(m_ids.size()*15) { // 15 seconds per message
 	size_t cnt = ids.size();
 	m_lastMasterDatas = (SymbolString**)calloc(cnt, sizeof(SymbolString*));
 	m_lastSlaveDatas = (SymbolString**)calloc(cnt, sizeof(SymbolString*));
@@ -1334,7 +1333,7 @@ result_t SimpleCondition::resolve(MessageMap* messages, ostringstream& errorMess
 			} else {
 				Message* first = getFirstAvailable(*derived, message);
 				if (first == NULL) {
-					errorMessage << ": conditional derived message " << message->getCircuit() << "." << message->getName() << " for " << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_dstAddress) << " not found" ;
+					errorMessage << ": conditional derived message " << message->getCircuit() << "." << message->getName() << " for " << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_dstAddress) << " not found";
 					return RESULT_ERR_INVALID_ARG;
 				}
 				message = first;

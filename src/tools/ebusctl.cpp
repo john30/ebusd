@@ -36,8 +36,7 @@
 using namespace std;
 
 /** A structure holding all program options. */
-struct options
-{
+struct options {
 	const char* server; //!< ebusd server host (name or ip) [localhost]
 	uint16_t port; //!< ebusd server port [8888]
 
@@ -229,7 +228,6 @@ string fetchData(TCPSocket* socket, bool& listening) {
 }
 
 void connect(const char* host, uint16_t port, char* const *args, int argCount) {
-
 	TCPClient* client = new TCPClient();
 	TCPSocket* socket = client->connect(host, port);
 
@@ -242,8 +240,7 @@ void connect(const char* host, uint16_t port, char* const *args, int argCount) {
 			if (!once) {
 				cout << host << ": ";
 				getline(cin, message);
-			}
-			else {
+			} else {
 				for (int i = 0; i < argCount; i++) {
 					if (i > 0) {
 						message += " ";

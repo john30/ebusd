@@ -45,8 +45,7 @@ using namespace std;
  * @return the string corresponding to the @a BusState.
  */
 const char* getStateCode(BusState state) {
-	switch (state)
-	{
+	switch (state) {
 	case bs_noSignal:   return "no signal";
 	case bs_skip:       return "skip";
 	case bs_ready:      return "ready";
@@ -322,8 +321,7 @@ result_t BusHandler::handleSymbol() {
 	BusRequest* startRequest = NULL;
 
 	// check if another symbol has to be sent and determine timeout for receive
-	switch (m_state)
-	{
+	switch (m_state) {
 	case bs_noSignal:
 		timeout = m_generateSynInterval > 0 ? m_generateSynInterval : SIGNAL_TIMEOUT;
 		break;
@@ -489,8 +487,7 @@ result_t BusHandler::handleSymbol() {
 
 	unsigned int headerLen, crcPos;
 
-	switch (m_state)
-	{
+	switch (m_state) {
 	case bs_noSignal:
 		return setState(bs_skip, RESULT_OK);
 
@@ -728,7 +725,6 @@ result_t BusHandler::handleSymbol() {
 			return setState(bs_skip, RESULT_OK);
 		}
 		return setState(bs_skip, RESULT_ERR_INVALID_ARG);
-
 	}
 	return RESULT_OK;
 }
@@ -740,16 +736,14 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 			m_currentRequest->m_busLostRetries++;
 			m_nextRequests.push(m_currentRequest); // repeat
 			m_currentRequest = NULL;
-		}
-		else if (state == bs_sendSyn || (result != RESULT_OK && !firstRepetition)) {
+		} else if (state == bs_sendSyn || (result != RESULT_OK && !firstRepetition)) {
 			logDebug(lf_bus, "notify request: %s", getResultCode(result));
 			unsigned char dstAddress = m_currentRequest->m_master[1];
 			if (result == RESULT_OK) {
 				addSeenAddress(dstAddress);
 			}
 			bool restart = m_currentRequest->notify(
-				result == RESULT_ERR_SYN && (m_state == bs_recvCmdAck || m_state == bs_recvRes) ? RESULT_ERR_TIMEOUT : result, m_response
-			);
+				result == RESULT_ERR_SYN && (m_state == bs_recvCmdAck || m_state == bs_recvRes) ? RESULT_ERR_TIMEOUT : result, m_response);
 			if (restart) {
 				m_currentRequest->m_busLostRetries = 0;
 				m_nextRequests.push(m_currentRequest);

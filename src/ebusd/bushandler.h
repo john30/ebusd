@@ -93,11 +93,10 @@ class BusHandler;
 /**
  * Generic request for sending to and receiving from the bus.
  */
-class BusRequest
-{
+class BusRequest {
 	friend class BusHandler;
-public:
 
+	public:
 	/**
 	 * Constructor.
 	 * @param master the escaped master data @a SymbolString to send.
@@ -120,8 +119,8 @@ public:
 	 */
 	virtual bool notify(result_t result, SymbolString& slave) = 0;
 
-protected:
 
+	protected:
 	/** the escaped master data @a SymbolString to send. */
 	SymbolString& m_master;
 
@@ -130,18 +129,16 @@ protected:
 
 	/** whether to automatically delete this @a BusRequest when finished. */
 	const bool m_deleteOnFinish;
-
 };
 
 
 /**
  * A poll @a BusRequest handled by @a BusHandler itself.
  */
-class PollRequest : public BusRequest
-{
+class PollRequest : public BusRequest {
 	friend class BusHandler;
-public:
 
+	public:
 	/**
 	 * Constructor.
 	 * @param message the associated @a Message.
@@ -164,8 +161,8 @@ public:
 	// @copydoc
 	virtual bool notify(result_t result, SymbolString& slave);
 
-private:
 
+	private:
 	/** the escaped master data @a SymbolString. */
 	SymbolString m_master;
 
@@ -174,18 +171,16 @@ private:
 
 	/** the current part index in @a m_message. */
 	unsigned char m_index;
-
 };
 
 
 /**
  * A scan @a BusRequest handled by @a BusHandler itself.
  */
-class ScanRequest : public BusRequest
-{
+class ScanRequest : public BusRequest {
 	friend class BusHandler;
-public:
 
+	public:
 	/**
 	 * Constructor.
 	 * @param messageMap the @a MessageMap instance.
@@ -194,8 +189,7 @@ public:
 	 * @param busHandler the @a BusHandler instance to notify of final scan result.
 	 */
 	ScanRequest(MessageMap* messageMap, deque<Message*> messages, deque<unsigned char> slaves, BusHandler* busHandler)
-		: BusRequest(m_master, true), m_messageMap(messageMap), m_index(0), m_allMessages(messages), m_messages(messages), m_slaves(slaves), m_busHandler(busHandler)
-	{
+		: BusRequest(m_master, true), m_messageMap(messageMap), m_index(0), m_allMessages(messages), m_messages(messages), m_slaves(slaves), m_busHandler(busHandler) {
 		m_message = m_messages.front();
 		m_messages.pop_front();
 	}
@@ -215,8 +209,8 @@ public:
 	// @copydoc
 	virtual bool notify(result_t result, SymbolString& slave);
 
-private:
 
+	private:
 	/** the @a MessageMap instance. */
 	MessageMap* m_messageMap;
 
@@ -243,18 +237,16 @@ private:
 
 	/** the @a BusHandler instance to notify of final scan result. */
 	BusHandler* m_busHandler;
-
 };
 
 
 /**
  * An active @a BusRequest that can be waited for.
  */
-class ActiveBusRequest : public BusRequest
-{
+class ActiveBusRequest : public BusRequest {
 	friend class BusHandler;
-public:
 
+	public:
 	/**
 	 * Constructor.
 	 * @param master the escaped master data @a SymbolString to send.
@@ -271,25 +263,21 @@ public:
 	// @copydoc
 	virtual bool notify(result_t result, SymbolString& slave);
 
-private:
 
+	private:
 	/** the result of handling the request. */
 	result_t m_result;
 
 	/** reference to @a SymbolString for filling in the received slave data. */
 	SymbolString& m_slave;
-
 };
 
 
 /**
  * Helper class for keeping track of grabbed messages.
  */
-class GrabbedMessage
-{
-
-public:
-
+class GrabbedMessage {
+	public:
 	/**
 	 * Construct a new instance.
 	 */
@@ -321,8 +309,8 @@ public:
 	 */
 	bool dump(const bool unknown, MessageMap* messages, bool first, ostringstream& output);
 
-private:
 
+	private:
 	/** the last master @a SymbolString. */
 	SymbolString m_lastMaster;
 
@@ -331,17 +319,14 @@ private:
 
 	/** the number of times this message was seen. */
 	unsigned int m_count;
-
 };
 
 
 /**
  * Handles input from and output to the bus with respect to the eBUS protocol.
  */
-class BusHandler : public WaitThread
-{
-public:
-
+class BusHandler : public WaitThread {
+	public:
 	/**
 	 * Construct a new instance.
 	 * @param device the @a Device instance for accessing the bus.
@@ -375,8 +360,7 @@ public:
 		  m_symPerSec(0), m_maxSymPerSec(0),
 		  m_state(bs_noSignal), m_repeat(false),
 		  m_command(false), m_commandCrcValid(false), m_response(false), m_responseCrcValid(false),
-		  m_grabMessages(true)
-	{
+		  m_grabMessages(true) {
 		memset(m_seenAddresses, 0, sizeof(m_seenAddresses));
 	}
 
@@ -525,8 +509,8 @@ public:
 	 */
 	void setScanConfigLoaded(unsigned char address, string file);
 
-private:
 
+	private:
 	/**
 	 * Handle the next symbol on the bus.
 	 * @return RESULT_OK on success, or an error code.
@@ -664,7 +648,6 @@ private:
 
 	/** the grabbed messages by key.*/
 	map<unsigned long long, GrabbedMessage> m_grabbedMessages;
-
 };
 
 #endif // EBUSD_BUSHANDLER_H_

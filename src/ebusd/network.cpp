@@ -141,7 +141,6 @@ void Connection::run() {
 				break;
 			}
 		}
-
 	}
 
 	delete m_socket;
@@ -230,7 +229,6 @@ void Network::run() {
 	}
 #endif
 #endif
-
 	while (true) {
 #ifdef HAVE_PPOLL
 		// wait for new fd event

@@ -53,10 +53,8 @@ class SingleDataField;
 /**
  * Base class for all kinds of data fields.
  */
-class DataField
-{
-public:
-
+class DataField {
+	public:
 	/**
 	 * Constructs a new instance.
 	 * @param name the field name.
@@ -205,24 +203,21 @@ public:
 			const PartType partType, SymbolString& data,
 			unsigned char offset, char separator = UI_FIELD_SEPARATOR, unsigned char* length = NULL) = 0;
 
-protected:
 
+	protected:
 	/** the field name. */
 	const string m_name;
 
 	/** the field comment. */
 	const string m_comment;
-
 };
 
 
 /**
  * A single @a DataField holding a value.
  */
-class SingleDataField : public DataField
-{
-public:
-
+class SingleDataField : public DataField {
+	public:
 	/**
 	 * Constructs a new instance.
 	 * @param name the field name.
@@ -325,8 +320,8 @@ public:
 			const PartType partType, SymbolString& data,
 			unsigned char offset, char separator = UI_FIELD_SEPARATOR, unsigned char* length = NULL);
 
-protected:
 
+	protected:
 	/**
 	 * Internal method for reading the field from a @a SymbolString.
 	 * @param input the unescaped @a SymbolString to read the binary value from.
@@ -353,8 +348,6 @@ protected:
 			const unsigned char offset,
 			SymbolString& output, const bool isMaster, unsigned char* usedLength);
 
-protected:
-
 	/** the value unit. */
 	const string m_unit;
 
@@ -366,17 +359,14 @@ protected:
 
 	/** the number of symbols in the message part in which the field is stored. */
 	const unsigned char m_length;
-
 };
 
 
 /**
  * A numeric data field with a list of value=text assignments and a string representation.
  */
-class ValueListDataField : public SingleDataField
-{
-public:
-
+class ValueListDataField : public SingleDataField {
+	public:
 	/**
 	 * Constructs a new instance.
 	 * @param name the field name.
@@ -410,8 +400,8 @@ public:
 	// @copydoc
 	virtual void dump(ostream& output);
 
-protected:
 
+	protected:
 	// @copydoc
 	virtual result_t readSymbols(SymbolString& input, const bool isMaster,
 			const unsigned char offset,
@@ -422,21 +412,18 @@ protected:
 			const unsigned char offset,
 			SymbolString& output, const bool isMaster, unsigned char* usedLength);
 
-private:
 
+	private:
 	/** the value=text assignments. */
 	map<unsigned int, string> m_values;
-
 };
 
 
 /**
  * A data field with a constant value.
  */
-class ConstantDataField : public SingleDataField
-{
-public:
-
+class ConstantDataField : public SingleDataField {
+	public:
 	/**
 	 * Constructs a new instance.
 	 * @param name the field name.
@@ -471,8 +458,8 @@ public:
 	// @copydoc
 	virtual void dump(ostream& output);
 
-protected:
 
+	protected:
 	// @copydoc
 	virtual result_t readSymbols(SymbolString& input, const bool isMaster,
 			const unsigned char offset,
@@ -483,24 +470,21 @@ protected:
 			const unsigned char offset,
 			SymbolString& output, const bool isMaster, unsigned char* usedLength);
 
-private:
 
+	private:
 	/** the constant value. */
 	const string m_value;
 
 	/** whether to verify the read value against the constant value. */
 	const bool m_verify;
-
 };
 
 
 /**
  * A set of @a DataField instances.
  */
-class DataFieldSet : public DataField
-{
-public:
-
+class DataFieldSet : public DataField {
+	public:
 	/**
 	 * Get the @a DataFieldSet for parsing the identification message (service 0x07 0x04).
 	 * @return the @a DataFieldSet for parsing the identification message. This is:<ul>
@@ -522,8 +506,7 @@ public:
 	DataFieldSet(const string name, const string comment,
 			const vector<SingleDataField*> fields)
 		: DataField(name, comment),
-		  m_fields(fields)
-	{
+		  m_fields(fields) {
 		bool uniqueNames = true;
 		map<string, string> names;
 		for (vector<SingleDataField*>::const_iterator it = fields.begin(); it != fields.end(); it++) {
@@ -603,8 +586,8 @@ public:
 			const PartType partType, SymbolString& data,
 			unsigned char offset, char separator = UI_FIELD_SEPARATOR, unsigned char* length = NULL);
 
-private:
 
+	private:
 	/** the @a DataFieldSet containing the ident message @a SingleDataField instances, or NULL. */
 	static DataFieldSet* s_identFields;
 
@@ -613,17 +596,14 @@ private:
 
 	/** whether all fields have a unique name. */
 	bool m_uniqueNames;
-
 };
 
 
 /**
  * A map of template @a DataField instances.
  */
-class DataFieldTemplates : public FileReader
-{
-public:
-
+class DataFieldTemplates : public FileReader {
+	public:
 	/**
 	 * Constructs a new instance.
 	 */
@@ -670,11 +650,10 @@ public:
 	 */
 	DataField* get(string name);
 
-private:
 
+	private:
 	/** the known template @a DataField instances by name. */
 	map<string, DataField*> m_fieldsByName;
-
 };
 
 #endif // LIB_EBUS_DATA_H_

@@ -93,11 +93,9 @@ class MessageMap;
 /**
  * Defines parameters of a message sent or received on the bus.
  */
-class Message
-{
+class Message {
 	friend class MessageMap;
-public:
-
+	public:
 	/**
 	 * Construct a new instance.
 	 * @param circuit the optional circuit name.
@@ -122,7 +120,8 @@ public:
 			const unsigned char pollPriority = 0,
 			Condition* condition = NULL);
 
-private:
+
+	private:
 	/**
 	 * Construct a new scan @a Message instance.
 	 * @param circuit the circuit name, or empty for not storing by name.
@@ -140,7 +139,8 @@ private:
 			const unsigned char pb, const unsigned char sb,
 			DataField* data, const bool deleteData);
 
-public:
+
+	public:
 	/**
 	 * Destructor.
 	 */
@@ -394,8 +394,8 @@ public:
 			istringstream& input, char separator = UI_FIELD_SEPARATOR,
 			const unsigned char dstAddress = SYN, unsigned char index = 0);
 
-protected:
 
+	protected:
 	/**
 	 * Prepare a part of the master data @a SymbolString for sending (everything including NN).
 	 * @param master the master data @a SymbolString for writing symbols to.
@@ -406,8 +406,8 @@ protected:
 	 */
 	virtual result_t prepareMasterPart(SymbolString& master, istringstream& input, char separator, unsigned char index);
 
-public:
 
+	public:
 	/**
 	 * Prepare the slave @a SymbolString for sending an answer to the bus.
 	 * @param input the @a istringstream to parse the formatted value(s) from.
@@ -521,8 +521,8 @@ public:
 	 */
 	virtual void dumpColumn(ostream& output, size_t column, bool withConditions = false);
 
-protected:
 
+	protected:
 	/** the optional circuit name. */
 	const string m_circuit;
 
@@ -606,17 +606,14 @@ protected:
 
 	/** the system time when this message was last polled for, 0 for never. */
 	time_t m_lastPollTime;
-
 };
 
 
 /**
  * A chained @a Message that needs more than one read/write on the bus to collect/send the data.
  */
-class ChainedMessage : public Message
-{
-public:
-
+class ChainedMessage : public Message {
+	public:
 	/**
 	 * Construct a new instance.
 	 * @param circuit the optional circuit name.
@@ -659,26 +656,26 @@ public:
 	// @copydoc
 	virtual unsigned char getCount() { return (unsigned char)m_ids.size(); }
 
-protected:
 
+	protected:
 	// @copydoc
 	virtual result_t prepareMasterPart(SymbolString& master, istringstream& input, char separator, unsigned char index);
 
-public:
 
+	public:
 	// @copydoc
 	virtual result_t storeLastData(SymbolString& master, SymbolString& slave);
 
 	// @copydoc
 	virtual result_t storeLastData(const PartType partType, SymbolString& data, unsigned char index);
 
-protected:
 
+	protected:
 	// @copydoc
 	virtual void dumpColumn(ostream& output, size_t column, bool withConditions = false);
 
-private:
 
+	private:
 	/** the primary, secondary, and optional further ID bytes for each part of the chain. */
 	const vector< vector<unsigned char> > m_ids;
 
@@ -699,21 +696,20 @@ private:
 
 	/** array of the system times when the corresponding slave data was last updated, 0 for never. */
 	time_t* m_lastSlaveUpdateTimes;
-
 };
 
 
 /**
  * A function that compares the weighted poll priority of two @a Message instances.
  */
-struct compareMessagePriority : binary_function <Message*,Message*,bool> {
+struct compareMessagePriority : binary_function <Message*, Message*, bool> {
 	/**
 	 * Compare the weighted poll priority of the two @a Message instances.
 	 * @param x the first @a Message.
 	 * @param y the second @a Message.
 	 * @return whether @a x is smaller than @a y with regard to their weighted poll priority.
 	 */
-	bool operator() (Message* x, Message* y) const { return x->isLessPollWeight(y); };
+	bool operator() (Message* x, Message* y) const { return x->isLessPollWeight(y); }
 };
 
 
@@ -721,15 +717,13 @@ struct compareMessagePriority : binary_function <Message*,Message*,bool> {
  * Helper class extending @a priority_queue to hold distinct values only.
  */
 class MessagePriorityQueue
-	: public priority_queue<Message*, vector<Message*>, compareMessagePriority>
-{
-public:
+	: public priority_queue<Message*, vector<Message*>, compareMessagePriority> {
+	public:
 	/**
 	 * Add data to the queue and ensure it is contained only once.
 	 * @param __x the element to add.
 	 */
-	void push(const value_type& __x)
-	{
+	void push(const value_type& __x) {
 		for (vector<Message*>::iterator it = c.begin(); it != c.end(); it++) {
 			if (*it == __x) {
 				c.erase(it);
@@ -744,10 +738,8 @@ public:
 /**
  * An abstract condition based on the value of one or more @a Message instances.
  */
-class Condition
-{
-public:
-
+class Condition {
+	public:
 	/**
 	 * Construct a new instance.
 	 */
@@ -776,7 +768,7 @@ public:
 	 * @param valueList the @a string with the new list of values.
 	 * @return the derived @a SimpleCondition instance, or NULL if the value list is invalid.
 	 */
-	virtual SimpleCondition* derive(string valueList) { return NULL; };
+	virtual SimpleCondition* derive(string valueList) { return NULL; }
 
 	/**
 	 * Write the condition definition or resolved expression to the @a ostream.
@@ -807,24 +799,21 @@ public:
 	 */
 	virtual bool isTrue() = 0;
 
-protected:
 
+	protected:
 	/** the system time when the condition was last checked, 0 for never. */
 	time_t m_lastCheckTime;
 
 	/** whether the condition was @a true during the last check. */
 	bool m_isTrue;
-
 };
 
 
 /**
  * A simple @a Condition based on the value of one @a Message.
  */
-class SimpleCondition : public Condition
-{
-public:
-
+class SimpleCondition : public Condition {
+	public:
 	/**
 	 * Construct a new instance.
 	 * @param condName the name of the condition.
@@ -865,8 +854,8 @@ public:
 	 */
 	virtual bool isNumeric() { return true; }
 
-protected:
 
+	protected:
 	/**
 	 * Check the values against the field in the @a Message.
 	 * @param message the @a Message to check against.
@@ -878,8 +867,8 @@ protected:
 	/** the value that matched in @a checkValue. */
 	string m_matchedValue;
 
-private:
 
+	private:
 	/** the condition name. */
 	const string m_condName;
 
@@ -903,17 +892,14 @@ private:
 
 	/** the resolved @a Message instance, or NULL. */
 	Message* m_message;
-
 };
 
 
 /**
  * A simple @a Condition based on the numeric value of one @a Message.
  */
-class SimpleNumericCondition : public SimpleCondition
-{
-public:
-
+class SimpleNumericCondition : public SimpleCondition {
+	public:
 	/**
 	 * Construct a new instance.
 	 * @param condName the name of the condition.
@@ -933,26 +919,23 @@ public:
 	 */
 	virtual ~SimpleNumericCondition() {}
 
-protected:
 
+	protected:
 	// @copydoc
 	virtual bool checkValue(Message* message, const string field);
 
-private:
 
+	private:
 	/** the valid value ranges (pairs of from/to inclusive), empty for @a m_message seen check. */
 	const vector<unsigned int> m_valueRanges;
-
 };
 
 
 /**
  * A simple @a Condition based on the string value of one @a Message.
  */
-class SimpleStringCondition : public SimpleCondition
-{
-public:
-
+class SimpleStringCondition : public SimpleCondition {
+	public:
 	/**
 	 * Construct a new instance.
 	 * @param condName the name of the condition.
@@ -975,26 +958,23 @@ public:
 	// @copydoc
 	virtual bool isNumeric() { return false; }
 
-protected:
 
+	protected:
 	// @copydoc
 	virtual bool checkValue(Message* message, const string field);
 
-private:
 
+	private:
 	/** the valid values. */
 	const vector<string> m_values;
-
 };
 
 
 /**
  * A @a Condition combining two or more @a SimpleCondition instances with a logical and.
  */
-class CombinedCondition : public Condition
-{
-public:
-
+class CombinedCondition : public Condition {
+	public:
 	/**
 	 * Construct a new instance.
 	 */
@@ -1018,21 +998,18 @@ public:
 	// @copydoc
 	virtual bool isTrue();
 
-private:
 
+	private:
 	/** the @a Condition instances used. */
 	vector<Condition*> m_conditions;
-
 };
 
 
 /**
  * An abstract instruction based on the value of one or more @a Message instances.
  */
-class Instruction
-{
-public:
-
+class Instruction {
+	public:
 	/**
 	 * Construct a new instance.
 	 * @param condition the @a Condition this instruction requires, or null.
@@ -1092,16 +1069,16 @@ public:
 	 */
 	virtual result_t execute(MessageMap* messages, ostringstream& log, Condition* condition) = 0;
 
-private:
 
+	private:
 	/** the @a Condition this instruction requires, or null. */
 	Condition* m_condition;
 
 	/** whether this @a Instruction belongs to a set of instructions of which only the first one may be executed for the same source file. */
 	bool m_singleton;
 
-protected:
 
+	protected:
 	/** the default destination address, or empty. */
 	const string m_defaultDest;
 
@@ -1110,17 +1087,14 @@ protected:
 
 	/** the default circuit name suffix (starting with a "."), or empty. */
 	const string m_defaultSuffix;
-
 };
 
 
 /**
  * An @a Instruction allowing to load another file.
  */
-class LoadInstruction : public Instruction
-{
-public:
-
+class LoadInstruction : public Instruction {
+	public:
 	/**
 	 * Construct a new instance.
 	 * @param condition the @a Condition this instruction requires, or null.
@@ -1141,28 +1115,24 @@ public:
 	// @copydoc
 	virtual result_t execute(MessageMap* messages, ostringstream& log, Condition* condition);
 
-private:
 
+	private:
 	/** the name of the file to load. */
 	const string m_filename;
-
 };
 
 
 /**
  * Holds a map of all known @a Message instances.
  */
-class MessageMap : public FileReader
-{
-public:
-
+class MessageMap : public FileReader {
+	public:
 	/**
 	 * Construct a new instance.
 	 * @param addAll whether to add all messages, even if duplicate.
 	 */
 	MessageMap(const bool addAll = false) : FileReader::FileReader(true),
-		m_addAll(addAll), m_maxIdLength(0), m_messageCount(0), m_conditionalMessageCount(0), m_passiveMessageCount(0)
-	{
+		m_addAll(addAll), m_maxIdLength(0), m_messageCount(0), m_conditionalMessageCount(0), m_passiveMessageCount(0) {
 		m_scanMessage = Message::createScanMessage();
 	}
 
@@ -1368,8 +1338,8 @@ public:
 	 */
 	void dump(ostream& output, bool withConditions = false);
 
-private:
 
+	private:
 	/** whether to add all messages, even if duplicate. */
 	const bool m_addAll;
 
@@ -1405,7 +1375,6 @@ private:
 
 	/** the list of @a Instruction instances by filename. */
 	map<string, vector<Instruction*> > m_instructions;
-
 };
 
 #endif // LIB_EBUS_MESSAGE_H_

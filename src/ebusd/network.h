@@ -38,17 +38,14 @@ class Connection;
 /**
  * Class for data/message transfer between @a Connection and @a MainLoop.
  */
-class NetMessage
-{
-
-public:
+class NetMessage {
+	public:
 	/**
 	 * Constructor.
 	 * @param isHttp whether this is a HTTP message.
 	 */
 	NetMessage(const bool isHttp)
-		: m_isHttp(isHttp), m_resultSet(false), m_disconnect(false), m_listening(false), m_listenSince(0)
-	{
+		: m_isHttp(isHttp), m_resultSet(false), m_disconnect(false), m_listening(false), m_listenSince(0) {
 		pthread_mutex_init(&m_mutex, NULL);
 		pthread_cond_init(&m_cond, NULL);
 	}
@@ -56,28 +53,27 @@ public:
 	/**
 	 * Destructor.
 	 */
-	~NetMessage()
-	{
+	~NetMessage() {
 		pthread_mutex_destroy(&m_mutex);
 		pthread_cond_destroy(&m_cond);
 	}
 
-private:
+
+	private:
 	/**
 	 * Hidden copy constructor.
 	 * @param src the object to copy from.
 	 */
 	NetMessage(const NetMessage& src);
 
-public:
 
+	public:
 	/**
 	 * Add request data received from the client.
 	 * @param request the request data from the client.
 	 * @return true when the request is complete and the response shall be prepared.
 	 */
-	bool add(string request)
-	{
+	bool add(string request) {
 		if (request.length() > 0) {
 			request.erase(remove(request.begin(), request.end(), '\r'), request.end());
 			m_request.append(request);
@@ -125,8 +121,7 @@ public:
 	 * Wait for the result being set and return the result string.
 	 * @return the result string.
 	 */
-	string getResult()
-	{
+	string getResult() {
 		pthread_mutex_lock(&m_mutex);
 
 		while (!m_resultSet)
@@ -148,8 +143,7 @@ public:
 	 * @param listenUntil the end time to which to updates were added (exclusive).
 	 * @param disconnect true when the client shall be disconnected.
 	 */
-	void setResult(const string result, const bool listening, const time_t listenUntil, const bool disconnect)
-	{
+	void setResult(const string result, const bool listening, const time_t listenUntil, const bool disconnect) {
 		pthread_mutex_lock(&m_mutex);
 		m_result = result;
 		m_disconnect = disconnect;
@@ -173,7 +167,8 @@ public:
 	 */
 	bool isDisconnect() { return m_disconnect; }
 
-private:
+
+	private:
 	/** whether this is a HTTP message. */
 	const bool m_isHttp;
 
@@ -200,16 +195,13 @@ private:
 
 	/** start timestamp of listening update. */
 	time_t m_listenSince;
-
 };
 
 /**
  * class connection which handle client and baseloop communication.
  */
-class Connection : public Thread
-{
-
-public:
+class Connection : public Thread {
+	public:
 	/**
 	 * Constructor.
 	 * @param socket the @a TCPSocket for communication.
@@ -217,8 +209,9 @@ public:
 	 * @param netQueue the reference to the @a NetMessage @a Queue.
 	 */
 	Connection(TCPSocket* socket, const bool isHttp, Queue<NetMessage*>* netQueue)
-		: Thread(), m_isHttp(isHttp), m_socket(socket), m_netQueue(netQueue)
-		{ m_id = ++m_ids; }
+		: Thread(), m_isHttp(isHttp), m_socket(socket), m_netQueue(netQueue) {
+		m_id = ++m_ids;
+	}
 
 	virtual ~Connection() { if (m_socket) delete m_socket; }
 	/**
@@ -237,7 +230,8 @@ public:
 	 */
 	int getID() { return m_id; }
 
-private:
+
+	private:
 	/** whether this is a HTTP connection. */
 	const bool m_isHttp;
 
@@ -255,16 +249,13 @@ private:
 
 	/** the IF of the last opened connection. */
 	static int m_ids;
-
 };
 
 /**
  * class network which listening on tcp socket for incoming connections.
  */
-class Network : public Thread
-{
-
-public:
+class Network : public Thread {
+	public:
 	/**
 	 * create a network instance and listening for incoming connections.
 	 * @param local true to accept connections only for local host.
@@ -289,7 +280,8 @@ public:
 	 */
 	void stop() const { m_notify.notify(); usleep(100000); }
 
-private:
+
+	private:
 	/** the list of active @a Connection instances. */
 	list<Connection*> m_connections;
 
@@ -312,7 +304,6 @@ private:
 	 * clean inactive connections from container.
 	 */
 	void cleanConnections();
-
 };
 
 #endif // EBUSD_NETWORK_H_

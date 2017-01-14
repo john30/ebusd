@@ -54,9 +54,8 @@ bool datahandler_register(BusHandler* busHandler, MessageMap* messages, list<Dat
 /**
  * Base class for all kinds of data handlers.
  */
-class DataHandler
-{
-public:
+class DataHandler {
+	public:
 	/**
 	 * Constructor.
 	 */
@@ -83,17 +82,14 @@ public:
 	 * @return whether this is a @a DataSource instance.
 	 */
 	virtual bool isDataSource() { return false; }
-
 };
 
 
 /**
  * Base class for listening to data updates.
  */
-class DataSink : virtual public DataHandler
-{
-public:
-
+class DataSink : virtual public DataHandler {
+	public:
 	/**
 	 * Constructor.
 	 */
@@ -113,21 +109,18 @@ public:
 	// @copydoc
 	virtual bool isDataSink() { return true; }
 
-protected:
 
+	protected:
 	/** a map of updated @p Message instances. */
 	map<Message*, int> m_updatedMessages;
-
 };
 
 
 /**
  * Base class providing data to be sent on the bus.
  */
-class DataSource : virtual public DataHandler
-{
-public:
-
+class DataSource : virtual public DataHandler {
+	public:
 	/**
 	 * Constructor.
 	 * @param busHandler the @a BusHandler instance.
@@ -143,11 +136,10 @@ public:
 	// @copydoc
 	virtual bool isDataSource() { return true; }
 
-protected:
 
+	protected:
 	/** the @a BusHandler instance. */
 	BusHandler* m_busHandler;
-
 };
 
 #endif // EBUSD_DATAHANDLER_H_

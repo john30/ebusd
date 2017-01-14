@@ -41,10 +41,8 @@ using namespace std;
 /**
  * Interface for listening to data received on/sent to a device.
  */
-class DeviceListener
-{
-public:
-
+class DeviceListener {
+	public:
 	/**
 	 * Destructor.
 	 */
@@ -56,17 +54,14 @@ public:
 	 * @param received @a true on reception, @a false on sending.
 	 */
 	virtual void notifyDeviceData(const unsigned char byte, bool received) = 0; // abstract
-
 };
 
 
 /**
  * The base class for accessing an eBUS.
  */
-class Device
-{
-
-public:
+class Device {
+	public:
 	/**
 	 * Construct a new instance.
 	 * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
@@ -150,7 +145,8 @@ public:
 	 */
 	void setListener(DeviceListener* listener) { m_listener = listener; }
 
-protected:
+
+	protected:
 	/**
 	 * Check if the device is still available and close it if not.
 	 */
@@ -176,7 +172,6 @@ protected:
 	 */
 	virtual ssize_t read(unsigned char& value) { return ::read(m_fd, &value, 1); }
 
-protected:
 	/** the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network). */
 	const char* m_name;
 
@@ -192,19 +187,17 @@ protected:
 	/** the opened file descriptor, or -1. */
 	int m_fd;
 
-private:
 
+	private:
 	/** the @a DeviceListener, or NULL. */
 	DeviceListener* m_listener;
-
 };
 
 /**
  * The @a Device for directly connected serial interfaces (tty).
  */
-class SerialDevice : public Device
-{
-public:
+class SerialDevice : public Device {
+	public:
 	/**
 	 * Construct a new instance.
 	 * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
@@ -221,22 +214,22 @@ public:
 	// @copydoc
 	virtual void close();
 
-protected:
+
+	protected:
 	// @copydoc
 	virtual void checkDevice();
 
-private:
+
+	private:
 	/** the previous settings of the device for restoring. */
 	termios m_oldSettings;
-
 };
 
 /**
  * The @a Device for remote network interfaces.
  */
-class NetworkDevice : public Device
-{
-public:
+class NetworkDevice : public Device {
+	public:
 	/**
 	 * Construct a new instance.
 	 * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
@@ -256,7 +249,8 @@ public:
 	// @copydoc
 	virtual result_t open();
 
-protected:
+
+	protected:
 	// @copydoc
 	virtual void checkDevice();
 
@@ -269,7 +263,8 @@ protected:
 	// @copydoc
 	virtual ssize_t read(unsigned char& value);
 
-private:
+
+	private:
 	/** the socket address of the device. */
 	const struct sockaddr_in m_address;
 
@@ -287,7 +282,6 @@ private:
 
 	/** the buffer read position. */
 	unsigned char m_bufPos;
-
 };
 
 #endif // LIB_EBUS_DEVICE_H_

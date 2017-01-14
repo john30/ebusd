@@ -60,10 +60,8 @@ extern unsigned int parseInt(const char* str, int base, const unsigned int minVa
 /**
  * An abstract class that support reading definitions from a file.
  */
-class FileReader
-{
-public:
-
+class FileReader {
+	public:
 	/**
 	 * Construct a new instance.
 	 */
@@ -85,8 +83,7 @@ public:
 	 * @return @a RESULT_OK on success, or an error code.
 	 */
 	virtual result_t readFromFile(const string filename, bool verbose = false,
-		string defaultDest = "", string defaultCircuit = "", string defaultSuffix = "")
-	{
+		string defaultDest = "", string defaultCircuit = "", string defaultSuffix = "") {
 		ifstream ifs;
 		ifs.open(filename.c_str(), ifstream::in);
 		if (!ifs.is_open()) {
@@ -177,8 +174,7 @@ public:
 	 */
 	virtual result_t addDefaultFromFile(vector< vector<string> >& defaults, vector<string>& row,
 			vector<string>::iterator& begin, string defaultDest, string defaultCircuit, string defaultSuffix,
-			const string& filename, unsigned int lineNo)
-	{
+			const string& filename, unsigned int lineNo) {
 		defaults.push_back(row);
 		begin = row.end();
 		return RESULT_OK;
@@ -204,8 +200,7 @@ public:
 	 * Left and right trim the string.
 	 * @param str the @a string to trim.
 	 */
-	static void trim(string& str)
-	{
+	static void trim(string& str) {
 		size_t pos = str.find_first_not_of(" \t");
 		if (pos != string::npos) {
 			str.erase(0, pos);
@@ -220,8 +215,7 @@ public:
 	 * Convert all upper case characters in the string to lower case.
 	 * @param str the @a string to convert.
 	 */
-	static void tolower(string& str)
-	{
+	static void tolower(string& str) {
 		transform(str.begin(), str.end(), str.begin(), ::tolower);
 	}
 
@@ -232,8 +226,7 @@ public:
 	 * @param lineNo the current line number (incremented with each line read).
 	 * @return true if there are more lines to read, false when there are no more lines left.
 	 */
-	static bool splitFields(istream& ifs, vector<string>& row, unsigned int& lineNo)
-	{
+	static bool splitFields(istream& ifs, vector<string>& row, unsigned int& lineNo) {
 		row.clear();
 		string line;
 		bool quotedText = false, wasQuoted = false;
@@ -251,8 +244,7 @@ public:
 			}
 			for (size_t pos = 0; pos < length; pos++) {
 				char ch = line[pos];
-				switch (ch)
-				{
+				switch (ch) {
 				case FIELD_SEPARATOR:
 					if (quotedText) {
 						field << ch;
@@ -317,8 +309,7 @@ public:
 	 * @return true if at least the address and the identification part were extracted, false otherwise.
 	 */
 	static bool extractDefaultsFromFilename(string name, unsigned char& dest, string& ident, string& circuit,
-		string& suffix, unsigned int& software, unsigned int& hardware)
-	{
+		string& suffix, unsigned int& software, unsigned int& hardware) {
 		ident = circuit = suffix = "";
 		software = hardware = UINT_MAX;
 		if (name.length() > 4 && name.substr(name.length()-4) == ".csv") {
@@ -374,16 +365,15 @@ public:
 		return true;
 	}
 
-private:
 
+	private:
 	/** whether this instance supports rows with defaults (starting with a star). */
 	bool m_supportsDefaults;
 
-protected:
 
+	protected:
 	/** a @a string describing the last error position. */
 	string m_lastError;
-
 };
 
 #endif // LIB_EBUS_FILEREADER_H_

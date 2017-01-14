@@ -258,7 +258,7 @@ result_t NetworkDevice::open() {
 		value = 1;
 		setsockopt(m_fd, SOL_SOCKET, SO_KEEPALIVE, (void*)&value, sizeof(value));
 	}
-	if (ret == 0)	{
+	if (ret == 0) {
 		ret = connect(m_fd, (struct sockaddr*)&m_address, sizeof(m_address));
 	}
 	if (ret < 0) {
@@ -269,7 +269,8 @@ result_t NetworkDevice::open() {
 	if (ioctl(m_fd, FIONREAD, &cnt) >= 0 && cnt > 1) {
 		// skip buffered input
 		unsigned char buf[256];
-		while (::read(m_fd, &buf, 256) > 0);
+		while (::read(m_fd, &buf, 256) > 0) {
+		}
 	}
 	if (m_bufSize == 0) {
 		m_bufSize = MAX_LEN+1;

@@ -36,37 +36,28 @@ Thread::~Thread() {
 }
 
 bool Thread::start(const char* name) {
-
 	int result = pthread_create(&m_threadid, NULL, runThread, this);
-
 	if (result == 0) {
-
 #ifdef HAVE_PTHREAD_SETNAME_NP
 #ifndef __MACH__
 		pthread_setname_np(m_threadid, name);
 #endif
 #endif
-
 		m_started = true;
-
 		return true;
 	}
-
 	return false;
 }
 
 bool Thread::join() {
 	int result = -1;
-
 	if (m_started) {
 		m_stopped = true;
 		result = pthread_join(m_threadid, NULL);
-
 		if (result == 0) {
 			m_started = false;
 		}
 	}
-
 	return result == 0;
 }
 

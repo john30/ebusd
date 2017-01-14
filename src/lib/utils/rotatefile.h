@@ -33,9 +33,8 @@ using namespace std;
 /**
  * Helper class for writing to a rotating file with maximum size.
  */
-class RotateFile
-{
-public:
+class RotateFile {
+	public:
 	/**
 	 * Construct a new instance.
 	 * @param fileName the name of the file write to.
@@ -71,7 +70,8 @@ public:
 	 */
 	void write(unsigned char* value, unsigned int size, bool received = true);
 
-private:
+
+	private:
 	/** whether writing to the file is enabled. */
 	bool m_enabled;
 
@@ -89,7 +89,6 @@ private:
 
 	/** the number of bytes already written to the @a m_file. */
 	unsigned long m_fileSize;
-
 };
 
 #endif // LIB_UTILS_ROTATEFILE_H_

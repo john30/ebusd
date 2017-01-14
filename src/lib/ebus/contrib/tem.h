@@ -40,10 +40,8 @@ using namespace std;
  * A special variant of @a NumberDataType for TEM/Dungs ParamID in master/slave
  * data.
  */
-class TemParamDataType : public NumberDataType
-{
-public:
-
+class TemParamDataType : public NumberDataType {
+	public:
 	/**
 	 * Constructs a new instance.
 	 * @param id the type identifier.
@@ -63,7 +61,6 @@ public:
 	virtual result_t writeSymbols(istringstream& input,
 		const unsigned char offset, const unsigned char length,
 		SymbolString& output, const bool isMaster, unsigned char* usedLength);
-
 };
 
 /**

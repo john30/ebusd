@@ -340,8 +340,7 @@ result_t SingleDataField::read(const PartType partType,
 	if (partType != m_partType) {
 		return RESULT_EMPTY;
 	}
-	switch (m_partType)
-	{
+	switch (m_partType) {
 	case pt_masterData:
 		offset = (unsigned char)(offset + 5); // skip QQ ZZ PB SB NN
 		break;
@@ -368,8 +367,7 @@ result_t SingleDataField::read(const PartType partType,
 	if (partType != m_partType) {
 		return RESULT_OK;
 	}
-	switch (m_partType)
-	{
+	switch (m_partType) {
 	case pt_masterData:
 		offset = (unsigned char)(offset + 5); // skip QQ ZZ PB SB NN
 		break;
@@ -435,8 +433,7 @@ result_t SingleDataField::write(istringstream& input,
 	if (partType != m_partType) {
 		return RESULT_OK;
 	}
-	switch (m_partType)
-	{
+	switch (m_partType) {
 	case pt_masterData:
 		offset = (unsigned char)(offset + 5); // skip QQ ZZ PB SB NN
 		break;

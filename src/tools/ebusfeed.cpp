@@ -32,8 +32,7 @@
 using namespace std;
 
 /** A structure holding all program options. */
-struct options
-{
+struct options {
 	const char* device; //!< device to write to [/dev/ttyUSB60]
 	unsigned int time; //!< delay between bytes in us [10000]
 
@@ -111,8 +110,9 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
 				return EINVAL;
 			}
 			opt->dumpFile = arg;
-		} else
+		} else {
 			return ARGP_ERR_UNKNOWN;
+		}
 		break;
 	default:
 		return ARGP_ERR_UNKNOWN;

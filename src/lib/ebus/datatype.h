@@ -146,10 +146,8 @@ void printErrorPos(ostream& out, vector<string>::iterator begin, const vector<st
 /**
  * Base class for all kinds of data types.
  */
-class DataType
-{
-public:
-
+class DataType {
+	public:
 	/**
 	 * Constructs a new instance.
 	 * @param id the type identifier.
@@ -251,8 +249,8 @@ public:
 		const unsigned char offset, const unsigned char length,
 		SymbolString& output, const bool isMaster, unsigned char* usedLength) = 0;
 
-protected:
 
+	protected:
 	/** the type identifier. */
 	const string m_id;
 
@@ -264,17 +262,14 @@ protected:
 
 	/** the replacement value (fill-up value for @a StringDataType, no replacement if equal to @a NumberDataType#minValue). */
 	const unsigned int m_replacement;
-
 };
 
 
 /**
  * A string based @a DataType.
  */
-class StringDataType : public DataType
-{
-public:
-
+class StringDataType : public DataType {
+	public:
 	/**
 	 * Constructs a new instance.
 	 * @param id the type identifier.
@@ -307,21 +302,18 @@ public:
 		const unsigned char offset, const unsigned char length,
 		SymbolString& output, const bool isMaster, unsigned char* usedLength);
 
-private:
 
+	private:
 	/** true for hex digits instead of characters. */
 	const bool m_isHex;
-
 };
 
 
 /**
  * A date/time based @a DataType.
  */
-class DateTimeDataType : public DataType
-{
-public:
-
+class DateTimeDataType : public DataType {
+	public:
 	/**
 	 * Constructs a new instance.
 	 * @param id the type identifier.
@@ -371,8 +363,8 @@ public:
 		const unsigned char offset, const unsigned char length,
 		SymbolString& output, const bool isMaster, unsigned char* usedLength);
 
-private:
 
+	private:
 	/** true if date part is present. */
 	const bool m_hasDate;
 
@@ -381,17 +373,14 @@ private:
 
 	/** the resolution in minutes for time types, or 1. */
 	const short m_resolution;
-
 };
 
 
 /**
  * A number based @a DataType.
  */
-class NumberDataType : public DataType
-{
-public:
-
+class NumberDataType : public DataType {
+	public:
 	/**
 	 * Constructs a new instance for multiple of 8 bits.
 	 * @param id the type identifier.
@@ -501,8 +490,8 @@ public:
 		const unsigned char offset, const unsigned char length,
 		SymbolString& output, const bool isMaster, unsigned char* usedLength);
 
-private:
 
+	private:
 	/** the minimum raw value. */
 	const unsigned int m_minValue;
 
@@ -520,17 +509,14 @@ private:
 
 	/** the base @a NumberDataType for derived instances. */
 	NumberDataType* m_baseType;
-
 };
 
 
 /**
  * A map of base @a DataType instances.
  */
-class DataTypeList
-{
-public:
-
+class DataTypeList {
+	public:
 	/**
 	 * Constructs a new instance and registers the known base data types.
 	 */
@@ -577,8 +563,8 @@ public:
 	 */
 	DataType* get(const string id, const unsigned char length = 0);
 
-private:
 
+	private:
 	/** the known @a DataType instances by ID only. */
 	map<string, DataType*> m_typesById;
 
@@ -596,7 +582,6 @@ private:
 	/** true when contributed datatypes were successfully initialized. */
 	static bool s_contrib_initialized;
 #endif
-
 };
 
 #endif // LIB_EBUS_DATATYPE_H_
