@@ -1136,7 +1136,7 @@ class MessageMap : public FileReader {
 	 * Construct a new instance.
 	 * @param addAll whether to add all messages, even if duplicate.
 	 */
-	MessageMap(const bool addAll = false) : FileReader::FileReader(true),
+	explicit MessageMap(const bool addAll = false) : FileReader::FileReader(true),
 		m_addAll(addAll), m_maxIdLength(0), m_messageCount(0), m_conditionalMessageCount(0), m_passiveMessageCount(0) {
 		m_scanMessage = Message::createScanMessage();
 	}

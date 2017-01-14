@@ -68,7 +68,7 @@ bool setLogFacilities(const char* facilities) {
 		if (val == lf_COUNT) {
 			newFacilites = LF_ALL;
 		} else {
-			newFacilites |= 1<<val;
+			newFacilites |= 1 << val;
 		}
 	}
 	//s_lastFacilities = newFacilites;
@@ -79,17 +79,18 @@ bool setLogFacilities(const char* facilities) {
 
 bool getLogFacilities(char* buffer) {
 	if (s_logFacilites == LF_ALL) {
-		return strcpy(buffer, facilityNames[lf_COUNT]) != NULL;
+		return snprintf(buffer, 48, "%s", facilityNames[lf_COUNT]) != 0;
 	}
 	*buffer = 0; // for strcat to work
 	bool found = false;
+	size_t len = 0;
 	for (int val = 0; val < lf_COUNT; val++) {
-		if (s_logFacilites&(1<<val)) {
+		if (s_logFacilites&(1 << val)) {
 			if (found) {
-				strcat(buffer, ",");
+				len += snprintf(buffer+len, 48-len, ",");
 			}
 			found = true;
-			strcat(buffer, facilityNames[val]);
+			len += snprintf(buffer+len, 48-len, "%s", facilityNames[val]);
 		}
 	}
 	return true;
@@ -136,20 +137,20 @@ void closeLogFile() {
 }
 
 bool needsLog(const LogFacility facility, const LogLevel level) {
-	return ((s_logFacilites & (1<<facility)) != 0)
+	return ((s_logFacilites & (1 << facility)) != 0)
 		&& (s_logLevel >= level);
 }
 
 void logWrite(const char* facility, const char* level, const char* message, va_list ap) {
 	struct timespec ts;
-	struct tm* tm;
+	struct tm td;
 	clockGettime(&ts);
-	tm = localtime(&ts.tv_sec);
+	localtime_r(&ts.tv_sec, &td);
 	char* buf;
 	if (vasprintf(&buf, message, ap) >= 0 && buf) {
 		fprintf(s_logFile, "%04d-%02d-%02d %02d:%02d:%02d.%03ld [%s %s] %s\n",
-			tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday,
-			tm->tm_hour, tm->tm_min, tm->tm_sec, ts.tv_nsec/1000000,
+			td.tm_year+1900, td.tm_mon+1, td.tm_mday,
+			td.tm_hour, td.tm_min, td.tm_sec, ts.tv_nsec/1000000,
 			facility, level, buf);
 		fflush(s_logFile);
 	}

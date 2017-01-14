@@ -46,7 +46,7 @@ class TemParamDataType : public NumberDataType {
 	 * Constructs a new instance.
 	 * @param id the type identifier.
 	 */
-	TemParamDataType(const string id)
+	explicit TemParamDataType(const string id)
 		: NumberDataType(id, 16, 0, 0xffff, 0, 0xffff, 0) {}
 
 	// @copydoc

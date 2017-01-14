@@ -42,7 +42,7 @@ using std::setw;
 #define ID_SOURCE_MASK (0x1fLL << (8 * 7))
 
 /** the bit mask for the ID length and combined ID bytes in the message key. */
-#define ID_LENGTH_AND_IDS_MASK ((7LL<<(8 * 7 + 5)) | 0xffffffffLL)
+#define ID_LENGTH_AND_IDS_MASK ((7LL << (8 * 7 + 5)) | 0xffffffffLL)
 
 /** the bits in the @a ID_SOURCE_MASK for arbitrary source and active read message. */
 #define ID_SOURCE_ACTIVE_WRITE (0x1fLL << (8 * 7))
@@ -447,7 +447,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 		unsigned char dstAddress = *it;
 		string useCircuit = circuit;
 		if (multiple) {
-			sprintf(num, ".%d", index);
+			snprintf(num, sizeof(num), ".%d", index);
 			useCircuit = useCircuit + num;
 		}
 		Message* message;

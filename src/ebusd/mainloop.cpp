@@ -1047,17 +1047,19 @@ string MainLoop::executeFind(vector<string> &args) {
 			if (verbosity == (OF_NAMES|OF_UNITS|OF_COMMENTS)) {
 				unsigned char dstAddress = message->getDstAddress();
 				if (dstAddress != SYN) {
-					sprintf(str, "%02x", dstAddress);
+					snprintf(str, sizeof(str), "%02x", dstAddress);
 				} else if (lastup != 0 && message->getLastMasterData().size() > 1) {
-					sprintf(str, "%02x", message->getLastMasterData()[1]);
+					snprintf(str, sizeof(str), "%02x", message->getLastMasterData()[1]);
 				} else {
-					sprintf(str, "any");
+					snprintf(str, sizeof(str), "any");
 				}
 				if (lastup != 0) {
-					struct tm* td = localtime(&lastup);
-					sprintf(str+strlen(str), ", lastup=%04d-%02d-%02d %02d:%02d:%02d",
-						td->tm_year+1900, td->tm_mon+1, td->tm_mday,
-						td->tm_hour, td->tm_min, td->tm_sec);
+					struct tm td;
+					localtime_r(&lastup, &td);
+					size_t len = strlen(str);
+					snprintf(str+len, sizeof(str)-len, ", lastup=%04d-%02d-%02d %02d:%02d:%02d",
+						td.tm_year+1900, td.tm_mon+1, td.tm_mday,
+						td.tm_hour, td.tm_min, td.tm_sec);
 				}
 				result << " [ZZ=" << str;
 				if (message->isPassive()) {
@@ -1187,7 +1189,7 @@ string MainLoop::executeScan(vector<string> &args) {
 string MainLoop::executeLog(vector<string> &args) {
 	if (args.size() == 1) {
 		ostringstream ret;
-		char str[32];
+		char str[48];
 		if (getLogFacilities(str)) {
 			ret << str << ' ';
 		}

@@ -74,7 +74,7 @@ class FileReader {
 	/**
 	 * Construct a new instance.
 	 */
-	FileReader(bool supportsDefaults)
+	explicit FileReader(bool supportsDefaults)
 			: m_supportsDefaults(supportsDefaults) {}
 
 	/**

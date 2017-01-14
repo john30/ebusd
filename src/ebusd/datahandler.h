@@ -128,7 +128,7 @@ class DataSource : virtual public DataHandler {
 	 * Constructor.
 	 * @param busHandler the @a BusHandler instance.
 	 */
-	DataSource(BusHandler* busHandler)
+	explicit DataSource(BusHandler* busHandler)
 		: m_busHandler(busHandler) {}
 
 	/**

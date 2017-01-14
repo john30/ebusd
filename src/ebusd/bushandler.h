@@ -146,7 +146,7 @@ class PollRequest : public BusRequest {
 	 * Constructor.
 	 * @param message the associated @a Message.
 	 */
-	PollRequest(Message* message)
+	explicit PollRequest(Message* message)
 		: BusRequest(m_master, true), m_message(message), m_index(0) {}
 
 	/**

@@ -410,7 +410,7 @@ class NumberDataType : public DataType {
 	 */
 	NumberDataType(const string id, const unsigned char bitCount, const uint16_t flags, const unsigned int replacement,
 			const int16_t firstBit, const int divisor)
-		: DataType(id, bitCount, flags|NUM, replacement), m_minValue(0), m_maxValue((1<<bitCount)-1), m_divisor(divisor), m_precision(0), m_firstBit(firstBit), m_baseType(NULL) {}
+		: DataType(id, bitCount, flags|NUM, replacement), m_minValue(0), m_maxValue((1 << bitCount)-1), m_divisor(divisor), m_precision(0), m_firstBit(firstBit), m_baseType(NULL) {}
 
 	/**
 	 * Destructor.
