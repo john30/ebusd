@@ -25,8 +25,6 @@
 #include <string.h>
 #include "clock.h"
 
-using namespace std;
-
 /** the name of each @a LogFacility. */
 static const char *facilityNames[] = {
 	"main",

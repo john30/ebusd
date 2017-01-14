@@ -30,7 +30,7 @@
 
 /** \file network.h */
 
-using namespace std;
+namespace ebusd {
 
 /** Forward declaration for @a Connection. */
 class Connection;
@@ -306,5 +306,6 @@ class Network : public Thread {
 	void cleanConnections();
 };
 
-#endif // EBUSD_NETWORK_H_
+} // namespace ebusd
 
+#endif // EBUSD_NETWORK_H_

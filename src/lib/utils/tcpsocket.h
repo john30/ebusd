@@ -26,7 +26,7 @@
 
 /** \file tcpsocket.h */
 
-using namespace std;
+using std::string;
 
 #ifdef __MACH__
 #ifndef MSG_NOSIGNAL

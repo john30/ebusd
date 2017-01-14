@@ -27,6 +27,8 @@
  * whereas negative values indicate failure.
  */
 
+namespace ebusd {
+
 /** type for result code. */
 enum result_t {
 	RESULT_OK = 0,                 //!< success
@@ -69,5 +71,7 @@ enum result_t {
  * @return the string corresponding to the result code.
  */
 const char* getResultCode(result_t resultCode);
+
+} // namespace ebusd
 
 #endif // LIB_EBUS_RESULT_H_

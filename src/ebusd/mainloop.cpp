@@ -27,7 +27,12 @@
 #include "log.h"
 #include "data.h"
 
-using namespace std;
+namespace ebusd {
+
+using std::dec;
+using std::hex;
+using std::setfill;
+using std::setw;
 
 /** the number of seconds of permanent missing signal after which to reconnect the device. */
 #define RECONNECT_MISSING_SIGNAL 60
@@ -1534,3 +1539,5 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
 	connected = false;
 	return result.str();
 }
+
+} // namespace ebusd

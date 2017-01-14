@@ -39,7 +39,16 @@
  * with a "*" symbol.
  */
 
-using namespace std;
+namespace ebusd {
+
+using std::string;
+using std::ostream;
+using std::ostringstream;
+using std::istream;
+using std::istringstream;
+using std::ifstream;
+using std::cout;
+using std::endl;
 
 /** the separator character used between fields. */
 #define FIELD_SEPARATOR ','
@@ -375,5 +384,7 @@ class FileReader {
 	/** a @a string describing the last error position. */
 	string m_lastError;
 };
+
+} // namespace ebusd
 
 #endif // LIB_EBUS_FILEREADER_H_

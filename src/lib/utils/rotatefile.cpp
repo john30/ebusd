@@ -27,7 +27,7 @@
 #include <string>
 #include "clock.h"
 
-using namespace std;
+using std::streamsize;
 
 RotateFile::~RotateFile() {
 	if (m_stream) {

@@ -26,7 +26,9 @@
 #	include "mqtthandler.h"
 #endif
 
-using namespace std;
+namespace ebusd {
+
+using std::string;
 
 /** the final @a argp_child structure. */
 static const struct argp_child g_last_argp_child = {NULL, 0, NULL, 0};
@@ -67,3 +69,5 @@ bool datahandler_register(BusHandler* busHandler, MessageMap* messages, list<Dat
 void DataSink::notifyUpdate(Message* message) {
 	m_updatedMessages[message]++;
 }
+
+} // namespace ebusd

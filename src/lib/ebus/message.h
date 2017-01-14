@@ -56,7 +56,11 @@
  * template class.
  */
 
-using namespace std;
+namespace ebusd {
+
+using std::binary_function;
+using std::priority_queue;
+using std::deque;
 
 class Condition;
 class SimpleCondition;
@@ -702,7 +706,7 @@ class ChainedMessage : public Message {
 /**
  * A function that compares the weighted poll priority of two @a Message instances.
  */
-struct compareMessagePriority : binary_function <Message*, Message*, bool> {
+struct compareMessagePriority : binary_function<Message*, Message*, bool> {
 	/**
 	 * Compare the weighted poll priority of the two @a Message instances.
 	 * @param x the first @a Message.
@@ -1376,5 +1380,7 @@ class MessageMap : public FileReader {
 	/** the list of @a Instruction instances by filename. */
 	map<string, vector<Instruction*> > m_instructions;
 };
+
+} // namespace ebusd
 
 #endif // LIB_EBUS_MESSAGE_H_

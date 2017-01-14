@@ -40,7 +40,9 @@
  * @image html states.png "ebusd BusHandler states"
  */
 
-using namespace std;
+namespace ebusd {
+
+using std::string;
 
 /** the default time [us] for retrieving a symbol from an addressed slave. */
 #define SLAVE_RECV_TIMEOUT 15000
@@ -649,5 +651,7 @@ class BusHandler : public WaitThread {
 	/** the grabbed messages by key.*/
 	map<unsigned long long, GrabbedMessage> m_grabbedMessages;
 };
+
+} // namespace ebusd
 
 #endif // EBUSD_BUSHANDLER_H_

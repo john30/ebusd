@@ -36,7 +36,7 @@
  * to a file and/or forwarding it to a logging function.
  */
 
-using namespace std;
+namespace ebusd {
 
 /**
  * Interface for listening to data received on/sent to a device.
@@ -283,5 +283,7 @@ class NetworkDevice : public Device {
 	/** the buffer read position. */
 	unsigned char m_bufPos;
 };
+
+} // namespace ebusd
 
 #endif // LIB_EBUS_DEVICE_H_

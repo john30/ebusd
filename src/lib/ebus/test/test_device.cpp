@@ -20,7 +20,7 @@
 #include <iomanip>
 #include "device.h"
 
-using namespace std;
+using namespace ebusd;
 
 int main() {
 	Device* device = Device::create("/dev/ttyUSB20", true, false, false);

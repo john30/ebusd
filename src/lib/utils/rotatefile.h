@@ -28,7 +28,7 @@
  * Helpers for writing to rotating files.
  */
 
-using namespace std;
+using std::string;
 
 /**
  * Helper class for writing to a rotating file with maximum size.

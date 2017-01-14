@@ -36,7 +36,7 @@
 #include <fstream>
 #include "data.h"
 
-using namespace std;
+namespace ebusd {
 
 Device::~Device() {
 	close();
@@ -323,3 +323,5 @@ ssize_t NetworkDevice::read(unsigned char& value) {
 	}
 	return Device::read(value);
 }
+
+} // namespace ebusd

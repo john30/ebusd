@@ -34,7 +34,12 @@
 #include "symbol.h"
 #include "log.h"
 
-using namespace std;
+namespace ebusd {
+
+using std::dec;
+using std::hex;
+using std::setfill;
+using std::setw;
 
 // the string used for answering to a scan request (07h 04h)
 #define SCAN_ANSWER ("ebusd.eu;" PACKAGE_NAME ";" SCAN_VERSION ";100")
@@ -1141,3 +1146,5 @@ void BusHandler::setScanConfigLoaded(unsigned char address, string file) {
 		m_messages->addLoadedFile(address, file, "");
 	}
 }
+
+} // namespace ebusd

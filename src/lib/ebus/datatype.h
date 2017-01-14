@@ -46,7 +46,10 @@
  * an @a istringstream to a @a SymbolString (see @a DataType#writeSymbols()).
  */
 
-using namespace std;
+namespace ebusd {
+
+using std::map;
+using std::list;
 
 /** the separator character used between base type name and length (in CSV only). */
 #define LENGTH_SEPARATOR ':'
@@ -583,5 +586,7 @@ class DataTypeList {
 	static bool s_contrib_initialized;
 #endif
 };
+
+} // namespace ebusd
 
 #endif // LIB_EBUS_DATATYPE_H_

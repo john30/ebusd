@@ -22,7 +22,7 @@
 #include <vector>
 #include "data.h"
 
-using namespace std;
+using namespace ebusd;
 
 static bool error = false;
 

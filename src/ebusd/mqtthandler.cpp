@@ -23,7 +23,9 @@
 #include "mqtthandler.h"
 #include "log.h"
 
-using namespace std;
+namespace ebusd {
+
+using std::dec;
 
 /** the definition of the MQTT arguments. */
 static const struct argp_option g_mqtt_argp_options[] = {
@@ -455,3 +457,5 @@ void MqttHandler::publishTopic(string topic, string data, bool retain) {
 	logOtherDebug("mqtt", "publish %s %s", topic.c_str(), data.c_str());
 	mosquitto_publish(m_mosquitto, NULL, topic.c_str(), (uint32_t)data.size(), (uint8_t*)(data.c_str()), 0, retain);
 }
+
+} // namespace ebusd

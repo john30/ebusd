@@ -26,7 +26,7 @@
 
 /** \file queue.h */
 
-using namespace std;
+using std::list;
 
 /**
  * Thread safe template class for queuing items.

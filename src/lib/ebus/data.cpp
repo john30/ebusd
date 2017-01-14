@@ -29,7 +29,11 @@
 #include <cstring>
 #include <algorithm>
 
-using namespace std;
+namespace ebusd {
+
+using std::dec;
+using std::hex;
+using std::setw;
 
 /** the week day names. */
 static const char* dayNames[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
@@ -1057,3 +1061,5 @@ DataField* DataFieldTemplates::get(const string name) {
 	}
 	return ref->second;
 }
+
+} // namespace ebusd

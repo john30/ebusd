@@ -29,7 +29,11 @@
 #include <cstring>
 #include "datatype.h"
 
-using namespace std;
+namespace ebusd {
+
+using std::setfill;
+using std::setw;
+using std::dec;
 
 void contrib_tem_register() {
 	DataTypeList::getInstance()->add(new TemParamDataType("TEM_P"));
@@ -135,3 +139,5 @@ result_t TemParamDataType::writeSymbols(istringstream& input,
 	}
 	return writeRawValue(value, offset, length, output, usedLength);
 }
+
+} // namespace ebusd

@@ -27,7 +27,13 @@
 #include "result.h"
 #include "symbol.h"
 
-using namespace std;
+namespace ebusd {
+
+using std::dec;
+using std::hex;
+using std::nouppercase;
+using std::setfill;
+using std::setw;
 
 /** the maximum length of the command ID bytes (in addition to PB/SB) for which the key is distinct. */
 #define MAX_ID_KEYLEN 4
@@ -2197,3 +2203,5 @@ void MessageMap::dump(ostream& output, bool withConditions) {
 		output << endl;
 	}
 }
+
+} // namespace ebusd

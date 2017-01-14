@@ -32,8 +32,10 @@
 #include <string>
 #include "tcpsocket.h"
 
-
-using namespace std;
+using std::ostringstream;
+using std::cin;
+using std::cout;
+using std::endl;
 
 /** A structure holding all program options. */
 struct options {

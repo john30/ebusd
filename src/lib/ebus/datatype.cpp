@@ -31,7 +31,14 @@
 #	include "contrib/contrib.h"
 #endif
 
-using namespace std;
+namespace ebusd {
+
+using std::dec;
+using std::hex;
+using std::fixed;
+using std::setfill;
+using std::setprecision;
+using std::setw;
 
 unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue, result_t& result, unsigned int* length) {
 	char* strEnd = NULL;
@@ -1073,3 +1080,5 @@ DataType* DataTypeList::get(const string id, const unsigned char length) {
 	}
 	return dataType;
 }
+
+} // namespace ebusd
