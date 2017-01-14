@@ -22,8 +22,8 @@
 namespace ebusd {
 
 bool libebus_contrib_register() {
-	contrib_tem_register();
-	return true;
+  contrib_tem_register();
+  return true;
 }
 
 } // namespace ebusd

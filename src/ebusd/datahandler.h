@@ -58,33 +58,33 @@ bool datahandler_register(BusHandler* busHandler, MessageMap* messages, list<Dat
  * Base class for all kinds of data handlers.
  */
 class DataHandler {
-	public:
-	/**
-	 * Constructor.
-	 */
-	DataHandler() {}
+  public:
+  /**
+   * Constructor.
+   */
+  DataHandler() {}
 
-	/**
-	 * Destructor.
-	 */
-	virtual ~DataHandler() {}
+  /**
+   * Destructor.
+   */
+  virtual ~DataHandler() {}
 
-	/**
-	 * Called to start the @a DataHandler.
-	 */
-	virtual void start() = 0;
+  /**
+   * Called to start the @a DataHandler.
+   */
+  virtual void start() = 0;
 
-	/**
-	 * Return whether this is a @a DataSink instance.
-	 * @return whether this is a @a DataSink instance.
-	 */
-	virtual bool isDataSink() { return false; }
+  /**
+   * Return whether this is a @a DataSink instance.
+   * @return whether this is a @a DataSink instance.
+   */
+  virtual bool isDataSink() { return false; }
 
-	/**
-	 * Return whether this is a @a DataSource instance.
-	 * @return whether this is a @a DataSource instance.
-	 */
-	virtual bool isDataSource() { return false; }
+  /**
+   * Return whether this is a @a DataSource instance.
+   * @return whether this is a @a DataSource instance.
+   */
+  virtual bool isDataSource() { return false; }
 };
 
 
@@ -92,30 +92,30 @@ class DataHandler {
  * Base class for listening to data updates.
  */
 class DataSink : virtual public DataHandler {
-	public:
-	/**
-	 * Constructor.
-	 */
-	DataSink() {}
+  public:
+  /**
+   * Constructor.
+   */
+  DataSink() {}
 
-	/**
-	 * Destructor.
-	 */
-	virtual ~DataSink() {}
+  /**
+   * Destructor.
+   */
+  virtual ~DataSink() {}
 
-	/**
-	 * Notify the sink of an updated @a Message.
-	 * @param message the updated @a Message.
-	 */
-	virtual void notifyUpdate(Message* message);
+  /**
+   * Notify the sink of an updated @a Message.
+   * @param message the updated @a Message.
+   */
+  virtual void notifyUpdate(Message* message);
 
-	// @copydoc
-	virtual bool isDataSink() { return true; }
+  // @copydoc
+  virtual bool isDataSink() { return true; }
 
 
-	protected:
-	/** a map of updated @p Message instances. */
-	map<Message*, int> m_updatedMessages;
+  protected:
+  /** a map of updated @p Message instances. */
+  map<Message*, int> m_updatedMessages;
 };
 
 
@@ -123,26 +123,26 @@ class DataSink : virtual public DataHandler {
  * Base class providing data to be sent on the bus.
  */
 class DataSource : virtual public DataHandler {
-	public:
-	/**
-	 * Constructor.
-	 * @param busHandler the @a BusHandler instance.
-	 */
-	explicit DataSource(BusHandler* busHandler)
-		: m_busHandler(busHandler) {}
+  public:
+  /**
+   * Constructor.
+   * @param busHandler the @a BusHandler instance.
+   */
+  explicit DataSource(BusHandler* busHandler)
+    : m_busHandler(busHandler) {}
 
-	/**
-	 * Destructor.
-	 */
-	virtual ~DataSource() {}
+  /**
+   * Destructor.
+   */
+  virtual ~DataSource() {}
 
-	// @copydoc
-	virtual bool isDataSource() { return true; }
+  // @copydoc
+  virtual bool isDataSource() { return true; }
 
 
-	protected:
-	/** the @a BusHandler instance. */
-	BusHandler* m_busHandler;
+  protected:
+  /** the @a BusHandler instance. */
+  BusHandler* m_busHandler;
 };
 
 } // namespace ebusd

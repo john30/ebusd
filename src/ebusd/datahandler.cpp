@@ -17,14 +17,14 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#	include <config.h>
+#  include <config.h>
 #endif
 
 #include "datahandler.h"
 #include <list>
 #include <string>
 #ifdef HAVE_MQTT
-#	include "mqtthandler.h"
+#  include "mqtthandler.h"
 #endif
 
 namespace ebusd {
@@ -37,38 +37,38 @@ static const struct argp_child g_last_argp_child = {NULL, 0, NULL, 0};
 /** the list of @a argp_child structures. */
 static struct argp_child g_argp_children[
 #ifdef HAVE_MQTT
-						1
+            1
 #endif
-						+1
+            +1
 ];
 
 const struct argp_child* datahandler_getargs() {
-	size_t count = 0;
+  size_t count = 0;
 #ifdef HAVE_MQTT
-	g_argp_children[count++] = *mqtthandler_getargs();
+  g_argp_children[count++] = *mqtthandler_getargs();
 #endif
-	if (count > 0) {
-		g_argp_children[count] = g_last_argp_child;
-		return g_argp_children;
-	}
-	return NULL;
+  if (count > 0) {
+    g_argp_children[count] = g_last_argp_child;
+    return g_argp_children;
+  }
+  return NULL;
 }
 
 bool datahandler_register(BusHandler* busHandler, MessageMap* messages, list<DataHandler*>& handlers) {
-	bool success = true;
+  bool success = true;
 #ifdef HAVE_MQTT
-	DataHandler* handler = mqtthandler_register(busHandler, messages);
-	if (handler) {
-		handlers.push_back(handler);
-	} else {
-		success = false;
-	}
+  DataHandler* handler = mqtthandler_register(busHandler, messages);
+  if (handler) {
+    handlers.push_back(handler);
+  } else {
+    success = false;
+  }
 #endif
-	return success;
+  return success;
 }
 
 void DataSink::notifyUpdate(Message* message) {
-	m_updatedMessages[message]++;
+  m_updatedMessages[message]++;
 }
 
 } // namespace ebusd

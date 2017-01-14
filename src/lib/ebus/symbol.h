@@ -79,141 +79,141 @@ static const unsigned char BROADCAST = 0xFE; //!< the broadcast destination addr
  * A string of escaped or unescaped bus symbols.
  */
 class SymbolString {
-	public:
-	/**
-	 * Creates a new empty escaped or unescaped instance.
-	 * @param escaped whether to create an escaped instance.
-	 */
-	explicit SymbolString(const bool escaped = true) : m_unescapeState(escaped ? 0 : 1), m_crc(0) {}
+  public:
+  /**
+   * Creates a new empty escaped or unescaped instance.
+   * @param escaped whether to create an escaped instance.
+   */
+  explicit SymbolString(const bool escaped = true) : m_unescapeState(escaped ? 0 : 1), m_crc(0) {}
 
-	/**
-	 * Add all symbols from the other @a SymbolString and the calculated CRC if escaped.
-	 * @param str the @a SymbolString to copy from.
-	 * @param skipLastSymbol whether to skip the last symbol (probably the CRC).
-	 */
-	void addAll(const SymbolString& str, const bool skipLastSymbol = false);
+  /**
+   * Add all symbols from the other @a SymbolString and the calculated CRC if escaped.
+   * @param str the @a SymbolString to copy from.
+   * @param skipLastSymbol whether to skip the last symbol (probably the CRC).
+   */
+  void addAll(const SymbolString& str, const bool skipLastSymbol = false);
 
-	/**
-	 * Parse the escaped or unescaped hex @a string, add all symbols, and add the calculated CRC if escaped.
-	 * @param str the hex @a string.
-	 * @param isEscaped whether the hex string is escaped.
-	 * @return @a RESULT_OK on success, or an error code.
-	 */
-	result_t parseHex(const string& str, const bool isEscaped = false);
+  /**
+   * Parse the escaped or unescaped hex @a string, add all symbols, and add the calculated CRC if escaped.
+   * @param str the hex @a string.
+   * @param isEscaped whether the hex string is escaped.
+   * @return @a RESULT_OK on success, or an error code.
+   */
+  result_t parseHex(const string& str, const bool isEscaped = false);
 
-	/**
-	 * Return the symbols as hex string.
-	 * @param unescape whether to unescape an escaped instance.
-	 * @param skipLastSymbol whether to skip the last symbol (probably the CRC).
-	 * @return the symbols as hex string.
-	 */
-	const string getDataStr(const bool unescape = true, const bool skipLastSymbol = true);
+  /**
+   * Return the symbols as hex string.
+   * @param unescape whether to unescape an escaped instance.
+   * @param skipLastSymbol whether to skip the last symbol (probably the CRC).
+   * @return the symbols as hex string.
+   */
+  const string getDataStr(const bool unescape = true, const bool skipLastSymbol = true);
 
-	/**
-	 * Return a reference to the symbol at the specified index.
-	 * @param index the index of the symbol to return.
-	 * @return the reference to the symbol at the specified index.
-	 */
-	unsigned char& operator[](const size_t index) { if (index >= m_data.size()) { m_data.resize(index+1, 0); } return m_data[index]; }
+  /**
+   * Return a reference to the symbol at the specified index.
+   * @param index the index of the symbol to return.
+   * @return the reference to the symbol at the specified index.
+   */
+  unsigned char& operator[](const size_t index) { if (index >= m_data.size()) { m_data.resize(index+1, 0); } return m_data[index]; }
 
-	/**
-	 * Return whether this instance is equal to the other instance.
-	 * @param other the other instance.
-	 * @return true if this instance is equal to the other instance (i.e. both escaped or both unescaped and same symbols).
-	 */
-	bool operator == (SymbolString& other) { return m_unescapeState == other.m_unescapeState && m_data == other.m_data; }
+  /**
+   * Return whether this instance is equal to the other instance.
+   * @param other the other instance.
+   * @return true if this instance is equal to the other instance (i.e. both escaped or both unescaped and same symbols).
+   */
+  bool operator == (SymbolString& other) { return m_unescapeState == other.m_unescapeState && m_data == other.m_data; }
 
-	/**
-	 * Return whether this instance is different from the other instance.
-	 * @param other the other instance.
-	 * @return true if this instance is different from the other instance.
-	 */
-	bool operator != (SymbolString& other) { return m_unescapeState != other.m_unescapeState || m_data != other.m_data; }
+  /**
+   * Return whether this instance is different from the other instance.
+   * @param other the other instance.
+   * @return true if this instance is different from the other instance.
+   */
+  bool operator != (SymbolString& other) { return m_unescapeState != other.m_unescapeState || m_data != other.m_data; }
 
-	/**
-	 * Compares this instance to the other instance while treating both as master data (i.e. starting with the master address and ending with the CRC).
-	 * @param other the other instance.
-	 * @return 0 if this instance is equal to the other instance (i.e. both escaped or both unescaped and same symbols),
-	 * 1 if this instance is completely different to the other instance,
-	 * 2 if this instance only differs from the other instance in the first byte (the master address).
-	 */
-	int compareMaster(SymbolString& other) {
-		if (m_unescapeState != other.m_unescapeState || m_data.size() != other.m_data.size()) {
-			return 1;
-		}
-		if (m_data == other.m_data) {
-			return 0;
-		}
-		if (m_data.size() == 1) {
-			return 2;
-		}
-		if (equal(m_data.begin()+1, m_data.end()-1, other.m_data.begin()+1)) {
-			return 2;
-		}
-		return 1;
-	}
+  /**
+   * Compares this instance to the other instance while treating both as master data (i.e. starting with the master address and ending with the CRC).
+   * @param other the other instance.
+   * @return 0 if this instance is equal to the other instance (i.e. both escaped or both unescaped and same symbols),
+   * 1 if this instance is completely different to the other instance,
+   * 2 if this instance only differs from the other instance in the first byte (the master address).
+   */
+  int compareMaster(SymbolString& other) {
+    if (m_unescapeState != other.m_unescapeState || m_data.size() != other.m_data.size()) {
+      return 1;
+    }
+    if (m_data == other.m_data) {
+      return 0;
+    }
+    if (m_data.size() == 1) {
+      return 2;
+    }
+    if (equal(m_data.begin()+1, m_data.end()-1, other.m_data.begin()+1)) {
+      return 2;
+    }
+    return 1;
+  }
 
-	/**
-	 * Appends a the symbol to the end of the symbol string and escapes/unescapes it if necessary.
-	 * @param value the symbol to append.
-	 * @param isEscaped whether the symbol is escaped.
-	 * @param updateCRC whether to update the calculated CRC in @a m_crc.
-	 * @return RESULT_OK if another symbol was appended,
-	 * RESULT_IN_ESC if this is an unescaped instance and the symbol is escaped and the start of the escape sequence was received,
-	 * RESULT_ERR_ESC if this is an unescaped instance and an invalid escaped sequence was detected.
-	 */
-	result_t push_back(const unsigned char value, const bool isEscaped = true, const bool updateCRC = true);
+  /**
+   * Appends a the symbol to the end of the symbol string and escapes/unescapes it if necessary.
+   * @param value the symbol to append.
+   * @param isEscaped whether the symbol is escaped.
+   * @param updateCRC whether to update the calculated CRC in @a m_crc.
+   * @return RESULT_OK if another symbol was appended,
+   * RESULT_IN_ESC if this is an unescaped instance and the symbol is escaped and the start of the escape sequence was received,
+   * RESULT_ERR_ESC if this is an unescaped instance and an invalid escaped sequence was detected.
+   */
+  result_t push_back(const unsigned char value, const bool isEscaped = true, const bool updateCRC = true);
 
-	/**
-	 * Return the number of symbols in this symbol string.
-	 * @return the number of available symbols.
-	 */
-	unsigned char size() const { return (unsigned char)m_data.size(); }
+  /**
+   * Return the number of symbols in this symbol string.
+   * @return the number of available symbols.
+   */
+  unsigned char size() const { return (unsigned char)m_data.size(); }
 
-	/**
-	 * Return the calculated CRC.
-	 * @return the calculated CRC.
-	 */
-	unsigned char getCRC() const { return m_crc; }
+  /**
+   * Return the calculated CRC.
+   * @return the calculated CRC.
+   */
+  unsigned char getCRC() const { return m_crc; }
 
-	/**
-	 * Clear the symbols.
-	 */
-	void clear() { m_data.clear(); m_unescapeState = m_unescapeState == 0 ? 0 : 1; m_crc = 0; }
+  /**
+   * Clear the symbols.
+   */
+  void clear() { m_data.clear(); m_unescapeState = m_unescapeState == 0 ? 0 : 1; m_crc = 0; }
 
-	/**
-	 * Clear the symbols and adjust the escape mode.
-	 * @param escape true to set to an escaped instance, false to set to an unescaped instance.
-	 */
-	void clear(const bool escape) { m_data.clear(); m_unescapeState = escape ? 0 : 1; m_crc = 0; }
+  /**
+   * Clear the symbols and adjust the escape mode.
+   * @param escape true to set to an escaped instance, false to set to an unescaped instance.
+   */
+  void clear(const bool escape) { m_data.clear(); m_unescapeState = escape ? 0 : 1; m_crc = 0; }
 
 
-	private:
-	/**
-	 * Hidden copy constructor.
-	 * @param str the @a SymbolString to copy from.
-	 */
-	SymbolString(const SymbolString& str)
-		: m_data(str.m_data), m_unescapeState(str.m_unescapeState), m_crc(str.m_crc) {}
+  private:
+  /**
+   * Hidden copy constructor.
+   * @param str the @a SymbolString to copy from.
+   */
+  SymbolString(const SymbolString& str)
+    : m_data(str.m_data), m_unescapeState(str.m_unescapeState), m_crc(str.m_crc) {}
 
-	/**
-	 * Update the calculated CRC in @a m_crc by adding a value.
-	 * @param value the (escaped) value to add to the calculated CRC in @a m_crc.
-	 */
-	void addCRC(const unsigned char value);
+  /**
+   * Update the calculated CRC in @a m_crc by adding a value.
+   * @param value the (escaped) value to add to the calculated CRC in @a m_crc.
+   */
+  void addCRC(const unsigned char value);
 
-	/** the string of bus symbols. */
-	vector<unsigned char> m_data;
+  /** the string of bus symbols. */
+  vector<unsigned char> m_data;
 
-	/**
-	 * 0 if the symbols in @a m_data are escaped,
-	 * 1 if the symbols in @a m_data are unescaped and the last symbol passed to @a push_back was a normal symbol,
-	 * 2 if the symbols in @a m_data are unescaped and the last symbol passed to @a push_back was the escape symbol.
-	 */
-	int m_unescapeState;
+  /**
+   * 0 if the symbols in @a m_data are escaped,
+   * 1 if the symbols in @a m_data are unescaped and the last symbol passed to @a push_back was a normal symbol,
+   * 2 if the symbols in @a m_data are unescaped and the last symbol passed to @a push_back was the escape symbol.
+   */
+  int m_unescapeState;
 
-	/** the calculated CRC. */
-	unsigned char m_crc;
+  /** the calculated CRC. */
+  unsigned char m_crc;
 };
 
 

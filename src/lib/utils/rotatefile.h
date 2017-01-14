@@ -35,61 +35,61 @@ using std::string;
  * Helper class for writing to a rotating file with maximum size.
  */
 class RotateFile {
-	public:
-	/**
-	 * Construct a new instance.
-	 * @param fileName the name of the file write to.
-	 * @param maxSize the maximum size of the file to write to.
-	 * @param textMode whether to write each byte with prefixed timestamp and direction as text.
-	 */
-	RotateFile(const string fileName, const unsigned int maxSize, const bool textMode = false)
-		: m_enabled(false), m_fileName(fileName), m_maxSize(maxSize), m_textMode(textMode), m_stream(), m_fileSize(0) {}
+  public:
+  /**
+   * Construct a new instance.
+   * @param fileName the name of the file write to.
+   * @param maxSize the maximum size of the file to write to.
+   * @param textMode whether to write each byte with prefixed timestamp and direction as text.
+   */
+  RotateFile(const string fileName, const unsigned int maxSize, const bool textMode = false)
+    : m_enabled(false), m_fileName(fileName), m_maxSize(maxSize), m_textMode(textMode), m_stream(), m_fileSize(0) {}
 
-	/**
-	 * Destructor.
-	 */
-	virtual ~RotateFile();
+  /**
+   * Destructor.
+   */
+  virtual ~RotateFile();
 
-	/**
-	 * Enable or disable writing to the file.
-	 * @param enabled @p true to enable writing to the file, @p false to disable it.
-	 * @return @p true when the state was changed, @p false otherwise.
-	 */
-	bool setEnabled(bool enabled = true);
+  /**
+   * Enable or disable writing to the file.
+   * @param enabled @p true to enable writing to the file, @p false to disable it.
+   * @return @p true when the state was changed, @p false otherwise.
+   */
+  bool setEnabled(bool enabled = true);
 
-	/**
-	 * Return whether writing to the file is enabled.
-	 * @return whether writing to the file is enabled.
-	 */
-	bool isEnabled() { return m_enabled; }
+  /**
+   * Return whether writing to the file is enabled.
+   * @return whether writing to the file is enabled.
+   */
+  bool isEnabled() { return m_enabled; }
 
-	/**
-	 * Write a number of bytes to the stream.
-	 * @param value the pointer to the bytes to write.
-	 * @param size the number of bytes to write.
-	 * @param received @a true on reception, @a false on sending (only relevant in text mode).
-	 */
-	void write(unsigned char* value, unsigned int size, bool received = true);
+  /**
+   * Write a number of bytes to the stream.
+   * @param value the pointer to the bytes to write.
+   * @param size the number of bytes to write.
+   * @param received @a true on reception, @a false on sending (only relevant in text mode).
+   */
+  void write(unsigned char* value, unsigned int size, bool received = true);
 
 
-	private:
-	/** whether writing to the file is enabled. */
-	bool m_enabled;
+  private:
+  /** whether writing to the file is enabled. */
+  bool m_enabled;
 
-	/** the name of the file write to. */
-	const string m_fileName;
+  /** the name of the file write to. */
+  const string m_fileName;
 
-	/** the maximum size of @a m_file, or 0 for infinite. */
-	const unsigned int m_maxSize;
+  /** the maximum size of @a m_file, or 0 for infinite. */
+  const unsigned int m_maxSize;
 
-	/** whether to write each byte with prefixed timestamp and direction as text. */
-	const bool m_textMode;
+  /** whether to write each byte with prefixed timestamp and direction as text. */
+  const bool m_textMode;
 
-	/** the @a FILE to writing to. */
-	FILE* m_stream;
+  /** the @a FILE to writing to. */
+  FILE* m_stream;
 
-	/** the number of bytes already written to the @a m_file. */
-	uint64_t m_fileSize;
+  /** the number of bytes already written to the @a m_file. */
+  uint64_t m_fileSize;
 };
 
 #endif // LIB_UTILS_ROTATEFILE_H_

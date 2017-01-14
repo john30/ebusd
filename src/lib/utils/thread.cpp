@@ -17,88 +17,88 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#	include <config.h>
+#  include <config.h>
 #endif
 
 #include "thread.h"
 #include "clock.h"
 
 void* Thread::runThread(void* arg) {
-	reinterpret_cast<Thread*>(arg)->enter();
-	return NULL;
+  reinterpret_cast<Thread*>(arg)->enter();
+  return NULL;
 }
 
 Thread::~Thread() {
-	if (m_started) {
-		pthread_cancel(m_threadid);
-		pthread_detach(m_threadid);
-	}
+  if (m_started) {
+    pthread_cancel(m_threadid);
+    pthread_detach(m_threadid);
+  }
 }
 
 bool Thread::start(const char* name) {
-	int result = pthread_create(&m_threadid, NULL, runThread, this);
-	if (result == 0) {
+  int result = pthread_create(&m_threadid, NULL, runThread, this);
+  if (result == 0) {
 #ifdef HAVE_PTHREAD_SETNAME_NP
 #ifndef __MACH__
-		pthread_setname_np(m_threadid, name);
+    pthread_setname_np(m_threadid, name);
 #endif
 #endif
-		m_started = true;
-		return true;
-	}
-	return false;
+    m_started = true;
+    return true;
+  }
+  return false;
 }
 
 bool Thread::join() {
-	int result = -1;
-	if (m_started) {
-		m_stopped = true;
-		result = pthread_join(m_threadid, NULL);
-		if (result == 0) {
-			m_started = false;
-		}
-	}
-	return result == 0;
+  int result = -1;
+  if (m_started) {
+    m_stopped = true;
+    result = pthread_join(m_threadid, NULL);
+    if (result == 0) {
+      m_started = false;
+    }
+  }
+  return result == 0;
 }
 
 void Thread::enter() {
-	m_running = true;
-	run();
-	m_running = false;
+  m_running = true;
+  run();
+  m_running = false;
 }
 
 
 WaitThread::WaitThread()
-	: Thread() {
-	pthread_mutex_init(&m_mutex, NULL);
-	pthread_cond_init(&m_cond, NULL);
+  : Thread() {
+  pthread_mutex_init(&m_mutex, NULL);
+  pthread_cond_init(&m_cond, NULL);
 }
 
 WaitThread::~WaitThread() {
-	pthread_mutex_destroy(&m_mutex);
-	pthread_cond_destroy(&m_cond);
+  pthread_mutex_destroy(&m_mutex);
+  pthread_cond_destroy(&m_cond);
 }
 
 void WaitThread::stop() {
-	pthread_mutex_lock(&m_mutex);
-	pthread_cond_signal(&m_cond);
-	pthread_mutex_unlock(&m_mutex);
-	Thread::stop();
+  pthread_mutex_lock(&m_mutex);
+  pthread_cond_signal(&m_cond);
+  pthread_mutex_unlock(&m_mutex);
+  Thread::stop();
 }
 
 bool WaitThread::join() {
-	pthread_mutex_lock(&m_mutex);
-	pthread_cond_signal(&m_cond);
-	pthread_mutex_unlock(&m_mutex);
-	return Thread::join();
+  pthread_mutex_lock(&m_mutex);
+  pthread_cond_signal(&m_cond);
+  pthread_mutex_unlock(&m_mutex);
+  return Thread::join();
 }
 
 bool WaitThread::Wait(int seconds) {
-	struct timespec t;
-	clockGettime(&t);
-	t.tv_sec += seconds;
-	pthread_mutex_lock(&m_mutex);
-	pthread_cond_timedwait(&m_cond, &m_mutex, &t);
-	pthread_mutex_unlock(&m_mutex);
-	return isRunning();
+  struct timespec t;
+  clockGettime(&t);
+  t.tv_sec += seconds;
+  pthread_mutex_lock(&m_mutex);
+  pthread_cond_timedwait(&m_cond, &m_mutex, &t);
+  pthread_mutex_unlock(&m_mutex);
+  return isRunning();
 }
