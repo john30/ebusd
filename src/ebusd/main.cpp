@@ -116,10 +116,10 @@ static MessageMap* s_messageMap = NULL;
 static MainLoop* s_mainLoop = NULL;
 
 /** the version string of the program. */
-const char *argp_program_version = ""PACKAGE_STRING "." REVISION"";
+const char *argp_program_version = "" PACKAGE_STRING "." REVISION "";
 
 /** the report bugs to address of the program. */
-const char *argp_program_bug_address = ""PACKAGE_BUGREPORT"";
+const char *argp_program_bug_address = "" PACKAGE_BUGREPORT "";
 
 /** the documentation of the program. */
 static const char argpdoc[] =
