@@ -141,6 +141,9 @@ bool needsLog(const LogFacility facility, const LogLevel level) {
 }
 
 void logWrite(const char* facility, const char* level, const char* message, va_list ap) {
+  if (s_logFile == NULL) {
+    return;
+  }
   struct timespec ts;
   struct tm td;
   clockGettime(&ts);

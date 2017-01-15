@@ -590,6 +590,10 @@ void signalHandler(int sig) {
   switch (sig) {
   case SIGHUP:
     logNotice(lf_main, "SIGHUP received");
+    if (!opt.foreground) {
+      closeLogFile();
+      setLogFile(opt.logFile);
+    }
     break;
   case SIGINT:
     logNotice(lf_main, "SIGINT received");
