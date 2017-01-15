@@ -115,12 +115,6 @@ static MessageMap* s_messageMap = NULL;
 /** the @a MainLoop instance, or NULL. */
 static MainLoop* s_mainLoop = NULL;
 
-/** the version string of the program. */
-const char *argp_program_version = "" PACKAGE_STRING "." REVISION "";
-
-/** the report bugs to address of the program. */
-const char *argp_program_bug_address = "" PACKAGE_BUGREPORT "";
-
 /** the documentation of the program. */
 static const char argpdoc[] =
   "A daemon for communication with eBUS heating systems.";
@@ -973,6 +967,12 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
 }  // namespace ebusd
 
 using namespace ebusd;
+
+/** the version string of the program. */
+const char *argp_program_version = "" PACKAGE_STRING "." REVISION "";
+
+/** the report bugs to address of the program. */
+const char *argp_program_bug_address = "" PACKAGE_BUGREPORT "";
 
 /**
  * Main method.
