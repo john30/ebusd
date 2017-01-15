@@ -196,11 +196,11 @@ MqttHandler::MqttHandler(BusHandler* busHandler, MessageMap* messages)
   } else {
     string clientId = PACKAGE_STRING;
     clientId += " "+static_cast<unsigned>(getpid());
-    m_mosquitto = mosquitto_new(clientId.c_str(),
 #if (LIBMOSQUITTO_MAJOR >= 1)
-      true,
+    m_mosquitto = mosquitto_new(clientId.c_str(), true, this);
+#else
+    m_mosquitto = mosquitto_new(clientId.c_str(), this);
 #endif
-      this);
     if (!m_mosquitto) {
       logOtherError("mqtt", "unable to instantiate");
     }
@@ -211,16 +211,19 @@ MqttHandler::MqttHandler(BusHandler* busHandler, MessageMap* messages)
     string willTopic = m_globalTopic+"running";
     string willData = "false";
     size_t len = willData.length();
-    mosquitto_will_set(m_mosquitto,
-#if (LIBMOSQUITTO_MAJOR < 1)
-      true,
+#if (LIBMOSQUITTO_MAJOR >= 1)
+    mosquitto_will_set(m_mosquitto, willTopic.c_str(), (uint32_t)len,
+        reinterpret_cast<const uint8_t*>(willData.c_str()), 0, true);
+#else
+    mosquitto_will_set(m_mosquitto, true, willTopic.c_str(), (uint32_t)len,
+        reinterpret_cast<const uint8_t*>(willData.c_str()), 0, true);
 #endif
-      willTopic.c_str(), (uint32_t)len, reinterpret_cast<const uint8_t*>(willData.c_str()), 0, true);
-    if (mosquitto_connect(m_mosquitto, g_host, g_port, 60
-#if (LIBMOSQUITTO_MAJOR < 1)
-        , true
+
+#if (LIBMOSQUITTO_MAJOR >= 1)
+    if (mosquitto_connect(m_mosquitto, g_host, g_port, 60) != MOSQ_ERR_SUCCESS) {
+#else
+    if (mosquitto_connect(m_mosquitto, g_host, g_port, 60, true) != MOSQ_ERR_SUCCESS) {
 #endif
-        ) != MOSQ_ERR_SUCCESS) {
       logOtherError("mqtt", "unable to connect");
       mosquitto_destroy(m_mosquitto);
       m_mosquitto = NULL;
@@ -408,11 +411,11 @@ void MqttHandler::run() {
 
 void MqttHandler::handleTraffic() {
   if (m_mosquitto) {
-    mosquitto_loop(m_mosquitto, -1
 #if (LIBMOSQUITTO_MAJOR >= 1)
-      , 1
+    mosquitto_loop(m_mosquitto, -1, 1);
+#else
+    mosquitto_loop(m_mosquitto, -1);
 #endif
-      );
   }
 }
 
