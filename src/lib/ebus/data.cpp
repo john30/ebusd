@@ -286,7 +286,7 @@ result_t SingleDataField::create(const string id, const unsigned char length,
       }
       byteCount = (unsigned char)((bitCount + 7) / 8);
     } else if (length == 0) {
-      byteCount = 1;  //default byte count: 1 byte
+      byteCount = 1;  // default byte count: 1 byte
     } else if (length <= byteCount || length == REMAIN_LEN) {
       byteCount = length;
     } else {
