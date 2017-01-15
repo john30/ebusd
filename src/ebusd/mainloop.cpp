@@ -622,7 +622,7 @@ string MainLoop::executeRead(vector<string> &args) {
         "    Dx        data byte(s) to send";
   }
   string fieldName;
-  char fieldIndex = -2;
+  signed char fieldIndex = -2;
   if (args.size() == argPos + 2) {
     fieldName = args[argPos + 1];
     fieldIndex = -1;
@@ -1025,8 +1025,7 @@ string MainLoop::executeFind(vector<string> &args) {
          "  NAME          NAME of the messages to find (or a part thereof without '-e')";
   }
   deque<Message*> messages = m_messages->findAll(
-    circuit, args.size() == argPos ? "" : args[argPos], exact, withRead, withWrite, withPassive
-  );
+    circuit, args.size() == argPos ? "" : args[argPos], exact, withRead, withWrite, withPassive);
 
   bool found = false;
   ostringstream result;
