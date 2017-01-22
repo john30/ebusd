@@ -59,7 +59,7 @@ class Notify {
    * write notify event to file descriptor.
    * @return result of writing notification.
    */
-  int notify() const { return write(m_sendfd, "1", 1); }
+  ssize_t notify() const { return write(m_sendfd, "1", 1); }
 
  private:
   /** file descriptor to watch */
