@@ -52,5 +52,5 @@
 /* The version of the package formatted for the scan result. */
 #cmakedefine SCAN_VERSION "${SCAN_VERSION}"
 
-/* The version of the package */
+/* The version of the package. */
 #cmakedefine VERSION "${VERSION}"
