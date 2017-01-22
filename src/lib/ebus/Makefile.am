@@ -1,5 +1,4 @@
-AM_CXXFLAGS = -Wno-unused-parameter \
-	      -Wconversion
+AM_CXXFLAGS = -Wconversion -Wno-unused-parameter
 
 noinst_LIBRARIES = libebus.a
 
@@ -19,7 +18,6 @@ libebus_a_SOURCES = result.cpp \
 
 if CONTRIB
 SUBDIRS = contrib
-libebus_a_LIBADD = contrib/*.o
 endif
 
 distclean-local:

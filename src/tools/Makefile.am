@@ -11,6 +11,10 @@ ebusfeed_SOURCES = ebusfeed.cpp
 ebusfeed_LDADD = ../lib/utils/libutils.a \
 	         ../lib/ebus/libebus.a
 
+if CONTRIB
+ebusfeed_LDADD += ../lib/ebus/contrib/libebuscontrib.a
+endif
+
 distclean-local:
 	-rm -f Makefile.in
 	-rm -rf .libs

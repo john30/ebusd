@@ -26,6 +26,10 @@ ebusd_LDADD = ../lib/utils/libutils.a \
 	      -lpthread \
 	      @EXTRA_LIBS@
 
+if CONTRIB
+ebusd_LDADD += ../lib/ebus/contrib/libebuscontrib.a
+endif
+
 distclean-local:
 	-rm -f Makefile.in
 	-rm -rf .libs
