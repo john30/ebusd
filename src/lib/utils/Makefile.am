@@ -8,12 +8,12 @@ libutils_a_SOURCES = log.cpp \
 		     tcpsocket.h \
 		     thread.cpp \
 		     thread.h \
-		     clock.h \
 		     clock.cpp \
+		     clock.h \
 		     queue.h \
 		     notify.h \
-		     rotatefile.h \
-		     rotatefile.cpp
+		     rotatefile.cpp \
+		     rotatefile.h
 
 distclean-local:
 	-rm -f Makefile.in
