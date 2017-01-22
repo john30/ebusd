@@ -23,16 +23,16 @@
 #cmakedefine PACKAGE_BUGREPORT "${PACKAGE_BUGREPORT}"
 
 /* The default path of the configuration files. */
-#cmakedefine PACKAGE_CONFIGPATH "${PACKAGE_CONFIGPATH}"
+#define PACKAGE_CONFIGPATH SYSCONFDIR "/" PACKAGE
 
 /* The path and name of the log file. */
-#cmakedefine PACKAGE_LOGFILE "${PACKAGE_LOGFILE}"
+#define PACKAGE_LOGFILE LOCALSTATEDIR "/log/" PACKAGE ".log"
 
 /* The full name of this package. */
 #cmakedefine PACKAGE_NAME "${PACKAGE_NAME}"
 
 /* The path and name of the PID file. */
-#cmakedefine PACKAGE_PIDFILE "${PACKAGE_PIDFILE}"
+#define PACKAGE_PIDFILE LOCALSTATEDIR "/run/" PACKAGE ".pid"
 
 /* The full name and version of this package. */
 #cmakedefine PACKAGE_STRING "${PACKAGE_STRING}"
