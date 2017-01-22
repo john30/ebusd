@@ -24,32 +24,32 @@ AC_CHECK_HEADERS([arpa/inet.h \
 		  termios.h])
 
 AC_CHECK_LIB([pthread], [pthread_setname_np],
-	AC_DEFINE([HAVE_PTHREAD_SETNAME_NP], [1], [Define to 1 if pthread has pthread_setname_np.]),
+	AC_DEFINE([HAVE_PTHREAD_SETNAME_NP], [1], [Defined if pthread_setname_np is available.]),
 	AC_MSG_RESULT([Could not find pthread_setname_np in pthread.]))
 EXTRA_LIBS=
 AC_CHECK_LIB([rt], [clock_gettime], [EXTRA_LIBS+="-lrt"])
 AC_SUBST(EXTRA_LIBS)
 
-AC_CHECK_FUNC([pselect], [AC_DEFINE(HAVE_PSELECT, [1], [Define to 1 if pselect() is available.])])
-AC_CHECK_FUNC([ppoll], [AC_DEFINE(HAVE_PPOLL, [1], [Define to 1 if ppoll() is available.])])
+AC_CHECK_FUNC([pselect], [AC_DEFINE(HAVE_PSELECT, [1], [Defined if pselect() is available.])])
+AC_CHECK_FUNC([ppoll], [AC_DEFINE(HAVE_PPOLL, [1], [Defined if ppoll() is available.])])
 
 AC_ARG_ENABLE(coverage, AS_HELP_STRING([--enable-coverage], [enable code coverage tracking]), [CXXFLAGS+=" -coverage -O0"], [])
 AC_ARG_WITH(contrib, AS_HELP_STRING([--without-contrib], [disable inclusion of contributed sources]), [], [with_contrib=yes])
 if test "x$with_contrib" != "xno"; then
-	AC_DEFINE_UNQUOTED(HAVE_CONTRIB, [1], [Define to 1 for inclusion of contributed sources.])
+	AC_DEFINE_UNQUOTED(HAVE_CONTRIB, [1], [Defined if contributed sources are enabled.])
 fi
 AC_ARG_WITH(argp-lib, AS_HELP_STRING([--with-argp-lib=PATH], [path to argp libraries]), [LDFLAGS+="-L$with_argp_lib"])
 AC_ARG_WITH(argp-include, AS_HELP_STRING([--with-argp-include=PATH], [path to argp includes]), [CXXFLAGS+="-I$with_argp_include"])
 AC_CHECK_FUNC([argp_parse], [have_argp=yes], AC_CHECK_LIB([argp], [argp_parse], [have_argp=yes; LIBS="-largp $LIBS"], [have_argp=no]))
 if test "x$have_argp" = "xyes"; then
-	AC_CHECK_HEADER([argp.h], AC_DEFINE([HAVE_ARGP_H], [1], [Define to 1 if argp.h is available.]), AC_MSG_ERROR([argp.h not found]))
+	AC_CHECK_HEADER([argp.h], AC_DEFINE([HAVE_ARGP_H], [1], [Defined if argp.h is available.]), AC_MSG_ERROR([argp.h not found]))
 else
 	AC_MSG_ERROR([argp library not found, specify argp-standalone location in --with-argp-lib= and --with-argp-include= options.])
 fi
 AC_ARG_WITH(mqtt, AS_HELP_STRING([--without-mqtt], [disable support for MQTT handling]), [], [with_mqtt=yes])
 if test "x$with_mqtt" != "xno"; then
 	AC_CHECK_LIB([mosquitto], [mosquitto_lib_init],
-		[AC_DEFINE_UNQUOTED(HAVE_MQTT, [1], [Define to 1 for enabled MQTT handling.])
+		[AC_DEFINE_UNQUOTED(HAVE_MQTT, [1], [Defined if MQTT handling is enabled.])
 		EXTRA_LIBS+=" -lmosquitto"],
 		[AC_MSG_RESULT([Could not find mosquitto_lib_init in libmosquitto.])
 		with_mqtt="no"])
@@ -95,7 +95,7 @@ if [[ "x$direct_float" == "xno" ]]; then
 	AC_MSG_RESULT([no])
 else
 	AC_MSG_RESULT([yes])
-	AC_DEFINE_UNQUOTED([HAVE_DIRECT_FLOAT_FORMAT], $direct_float, [Define for direct conversion from float to int (2 for swapped by order).])
+	AC_DEFINE_UNQUOTED([HAVE_DIRECT_FLOAT_FORMAT], $direct_float, [Defined if direct conversion from float to int is available (2 for swapped byte order).])
 fi
 
 AC_CONFIG_SRCDIR([src/ebusd/main.cpp])

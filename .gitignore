@@ -2,6 +2,11 @@
 .project
 .settings
 /INSTALL
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Testing
+cmake_install.cmake
 Makefile
 Makefile.in
 /build/*

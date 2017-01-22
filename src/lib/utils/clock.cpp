@@ -1,6 +1,6 @@
 /*
  * ebusd - daemon for communication with eBUS heating systems.
- * Copyright (C) 2015-2016 John Baier <ebusd@ebusd.eu>
+ * Copyright (C) 2015-2017 John Baier <ebusd@ebusd.eu>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 
 #include "clock.h"
 #ifdef __MACH__
-#	include <mach/clock.h>
-#	include <mach/mach.h>
+#  include <mach/clock.h>
+#  include <mach/mach.h>
 #endif
 
 #ifdef __MACH__
@@ -29,15 +29,15 @@ static clock_serv_t clockServ;
 
 void clockGettime(struct timespec* t) {
 #ifdef __MACH__
-	if (!clockInitialized) {
-		clockInitialized = true;
-		host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &clockServ);
-	}
-	mach_timespec_t mts;
-	clock_get_time(clockServ, &mts);
-	t->tv_sec = mts.tv_sec;
-	t->tv_nsec = mts.tv_nsec;
+  if (!clockInitialized) {
+    clockInitialized = true;
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &clockServ);
+  }
+  mach_timespec_t mts;
+  clock_get_time(clockServ, &mts);
+  t->tv_sec = mts.tv_sec;
+  t->tv_nsec = mts.tv_nsec;
 #else
-	clock_gettime(CLOCK_REALTIME, t);
+  clock_gettime(CLOCK_REALTIME, t);
 #endif
 }

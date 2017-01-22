@@ -55,83 +55,83 @@ DataHandler* mqtthandler_register(BusHandler* busHandler, MessageMap* messages);
  * The main class supporting MQTT data handling.
  */
 class MqttHandler : public DataSink, public DataSource, public Thread {
-	public:
-	/**
-	 * Constructor.
-	 * @param busHandler the @a BusHandler instance.
-	 * @param messages the @a MessageMap instance.
-	 */
-	MqttHandler(BusHandler* busHandler, MessageMap* messages);
+ public:
+  /**
+   * Constructor.
+   * @param busHandler the @a BusHandler instance.
+   * @param messages the @a MessageMap instance.
+   */
+  MqttHandler(BusHandler* busHandler, MessageMap* messages);
 
-	/**
-	 * Destructor.
-	 */
-	virtual ~MqttHandler();
+  /**
+   * Destructor.
+   */
+  virtual ~MqttHandler();
 
-	// @copydoc
-	virtual void start();
+  // @copydoc
+  virtual void start();
 
-	/**
-	 * Notify the handler of a received MQTT message.
-	 * @param topic the topic string.
-	 * @param data the data string.
-	 */
-	void notifyTopic(string topic, string data);
-
-
-	protected:
-	// @copydoc
-	virtual void run();
+  /**
+   * Notify the handler of a received MQTT message.
+   * @param topic the topic string.
+   * @param data the data string.
+   */
+  void notifyTopic(string topic, string data);
 
 
-	private:
-	/**
-	 * Called regularly to handle MQTT traffic.
-	 */
-	void handleTraffic();
+ protected:
+  // @copydoc
+  virtual void run();
 
-	/**
-	 * Build the MQTT topic string for the @a Message.
-	 * @param message the @a Message to build the topic string for.
-	 * @param fieldIndex the optional field index for the field column, or -1.
-	 * @return the topic string.
-	 */
-	string getTopic(Message* message, signed char fieldIndex = -1);
 
-	/**
-	 * Prepare a @a Message and publish as topic.
-	 * @param message the @a Message to publish.
-	 * @param updates the @a ostringstream for preparation.
-	 */
-	void publishMessage(Message* message, ostringstream& updates);
+ private:
+  /**
+   * Called regularly to handle MQTT traffic.
+   */
+  void handleTraffic();
 
-	/**
-	 * Publish a topic update to MQTT.
-	 * @param topic the topic string.
-	 * @param data the data string.
-	 * @param retain whether the topic shall be retained.
-	 */
-	void publishTopic(string topic, string data, bool retain = true);
+  /**
+   * Build the MQTT topic string for the @a Message.
+   * @param message the @a Message to build the topic string for.
+   * @param fieldIndex the optional field index for the field column, or -1.
+   * @return the topic string.
+   */
+  string getTopic(Message* message, signed char fieldIndex = -1);
 
-	/** the @a MessageMap instance. */
-	MessageMap* m_messages;
+  /**
+   * Prepare a @a Message and publish as topic.
+   * @param message the @a Message to publish.
+   * @param updates the @a ostringstream for preparation.
+   */
+  void publishMessage(Message* message, ostringstream& updates);
 
-	/** the MQTT topic string parts. */
-	vector<string> m_topicStrs;
+  /**
+   * Publish a topic update to MQTT.
+   * @param topic the topic string.
+   * @param data the data string.
+   * @param retain whether the topic shall be retained.
+   */
+  void publishTopic(string topic, string data, bool retain = true);
 
-	/** the MQTT topic column parts. */
-	vector<size_t> m_topicCols;
+  /** the @a MessageMap instance. */
+  MessageMap* m_messages;
 
-	/** the global topic prefix. */
-	string m_globalTopic;
+  /** the MQTT topic string parts. */
+  vector<string> m_topicStrs;
 
-	/** whether to publish a separate topic for each message field. */
-	bool m_publishByField;
+  /** the MQTT topic column parts. */
+  vector<size_t> m_topicCols;
 
-	/** the mosquitto structure if initialized, or NULL. */
-	struct mosquitto* m_mosquitto;
+  /** the global topic prefix. */
+  string m_globalTopic;
+
+  /** whether to publish a separate topic for each message field. */
+  bool m_publishByField;
+
+  /** the mosquitto structure if initialized, or NULL. */
+  struct mosquitto* m_mosquitto;
 };
 
-} // namespace ebusd
+}  // namespace ebusd
 
-#endif // EBUSD_MQTTHANDLER_H_
+#endif  // EBUSD_MQTTHANDLER_H_

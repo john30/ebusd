@@ -29,4 +29,4 @@
  */
 void clockGettime(struct timespec* t);
 
-#endif // LIB_UTILS_CLOCK_H_
+#endif  // LIB_UTILS_CLOCK_H_

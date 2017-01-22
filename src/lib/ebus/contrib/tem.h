@@ -41,26 +41,26 @@ namespace ebusd {
  * data.
  */
 class TemParamDataType : public NumberDataType {
-	public:
-	/**
-	 * Constructs a new instance.
-	 * @param id the type identifier.
-	 */
-	explicit TemParamDataType(const string id)
-		: NumberDataType(id, 16, 0, 0xffff, 0, 0xffff, 0) {}
+ public:
+  /**
+   * Constructs a new instance.
+   * @param id the type identifier.
+   */
+  explicit TemParamDataType(const string id)
+    : NumberDataType(id, 16, 0, 0xffff, 0, 0xffff, 0) {}
 
-	// @copydoc
-	virtual result_t derive(int divisor, unsigned char bitCount, NumberDataType* &derived);
+  // @copydoc
+  virtual result_t derive(int divisor, unsigned char bitCount, NumberDataType* &derived);
 
-	// @copydoc
-	virtual result_t readSymbols(SymbolString& input, const bool isMaster,
-		const unsigned char offset, const unsigned char length,
-		ostringstream& output, OutputFormat outputFormat);
+  // @copydoc
+  virtual result_t readSymbols(SymbolString& input, const bool isMaster,
+    const unsigned char offset, const unsigned char length,
+    ostringstream& output, OutputFormat outputFormat);
 
-	// @copydoc
-	virtual result_t writeSymbols(istringstream& input,
-		const unsigned char offset, const unsigned char length,
-		SymbolString& output, const bool isMaster, unsigned char* usedLength);
+  // @copydoc
+  virtual result_t writeSymbols(istringstream& input,
+    const unsigned char offset, const unsigned char length,
+    SymbolString& output, const bool isMaster, unsigned char* usedLength);
 };
 
 /**
@@ -68,6 +68,6 @@ class TemParamDataType : public NumberDataType {
  */
 void contrib_tem_register();
 
-} // namespace ebusd
+}  // namespace ebusd
 
-#endif // LIB_EBUS_CONTRIB_TEM_H_
+#endif  // LIB_EBUS_CONTRIB_TEM_H_

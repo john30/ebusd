@@ -1,6 +1,6 @@
 /*
  * ebusd - daemon for communication with eBUS heating systems.
- * Copyright (C) 2014-2016 John Baier <ebusd@ebusd.eu>
+ * Copyright (C) 2014-2017 John Baier <ebusd@ebusd.eu>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,39 +24,39 @@ using namespace std;
 using namespace ebusd;
 
 int main() {
-	Device* device = Device::create("/dev/ttyUSB20", true, false, false);
-	if (device == NULL) {
-		cout << "unable to create device" << endl;
-		return -1;
-	}
-	result_t result = device->open();
-	if (result != RESULT_OK) {
-		cout << "open failed: " << getResultCode(result) << endl;
-	} else {
-		if (!device->isValid()) {
-			cout << "device not available." << endl;
-		}
-		int count = 0;
+  Device* device = Device::create("/dev/ttyUSB20", true, false, false);
+  if (device == NULL) {
+    cout << "unable to create device" << endl;
+    return -1;
+  }
+  result_t result = device->open();
+  if (result != RESULT_OK) {
+    cout << "open failed: " << getResultCode(result) << endl;
+  } else {
+    if (!device->isValid()) {
+      cout << "device not available." << endl;
+    }
+    int count = 0;
 
-		while (1) {
-			unsigned char byte = 0;
-			result = device->recv(0, byte);
+    while (1) {
+      unsigned char byte = 0;
+      result = device->recv(0, byte);
 
-			if (result == RESULT_OK) {
-				cout << hex << setw(2) << setfill('0')
-				<< static_cast<unsigned>(byte) << endl;
-			}
-			count++;
-		}
+      if (result == RESULT_OK) {
+        cout << hex << setw(2) << setfill('0')
+        << static_cast<unsigned>(byte) << endl;
+      }
+      count++;
+    }
 
-		device->close();
+    device->close();
 
-		if (!device->isValid()) {
-			cout << "close successful." << endl;
-		}
-	}
+    if (!device->isValid()) {
+      cout << "close successful." << endl;
+    }
+  }
 
-	delete device;
+  delete device;
 
-	return 0;
+  return 0;
 }
