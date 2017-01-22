@@ -21,6 +21,12 @@ test_data_LDADD = ../libebus.a
 test_message_SOURCES = test_message.cpp
 test_message_LDADD = ../libebus.a
 
+if CONTRIB
+test_device_LDADD += ../contrib/libebuscontrib.a
+test_data_LDADD += ../contrib/libebuscontrib.a
+test_message_LDADD += ../contrib/libebuscontrib.a
+endif
+
 distclean-local:
 	-rm -f Makefile.in
 	-rm -rf .libs
