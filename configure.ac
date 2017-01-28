@@ -7,8 +7,9 @@ AC_INIT([ebusd], m4_esyscmd_s([cat VERSION]), [ebusd@ebusd.eu], [ebusd], [https:
 AC_CONFIG_AUX_DIR([build])
 
 if test -z $CXXFLAGS; then
-	CXXFLAGS='-fpic -Wall -Wextra -g -O2'
+	CXXFLAGS="-fpic -Wall -Wno-unused-function -Wextra -g -O2"
 fi
+CXXFLAGS+=" -std=c++11"
 AC_PROG_CXX
 
 AC_CHECK_HEADERS([arpa/inet.h \
