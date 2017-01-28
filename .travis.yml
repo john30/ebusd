@@ -16,5 +16,5 @@ script:
   - ./src/ebusd/ebusd --help
   - ./test_coverage.sh
 after_success:
-  - find . -type f -name '*.gcno' -exec bash -c "(f={}; ls -l \$f; cd \${f%/*}; gcov -pb \${f##*/})" \;
+  - find . -type f -name '*.gcno' -exec bash -c "(f={}; ls -l \$f; cd \${f%/*}; gcov-4.8 -pb \${f##*/})" \;
   - bash <(curl -s https://codecov.io/bash) -X gcov
