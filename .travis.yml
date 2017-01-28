@@ -8,7 +8,6 @@ addons:
     - php5-cli
 before_install:
   - sudo apt-get -qq update
-  - sudo apt list --installed
 script:
   - ./autogen.sh --enable-coverage && make all test
   - (cd src/lib/ebus/test && ./test_symbol && ./test_filereader && ./test_data && ./test_message)
