@@ -31,7 +31,7 @@ include(CheckFunctionExists)
 include(CheckCXXSourceRuns)
 include(CheckIncludeFile)
 
-add_compile_options(-fpic -Wall -Wextra)
+add_compile_options(-fpic -Wall -Wno-unused-function -Wextra)
 
 check_include_file(arpa/inet.h HAVE_ARPA_INET_H)
 check_include_file(dirent.h HAVE_DIRENT_H)
