@@ -21,3 +21,7 @@ if(HAVE_CONTRIB)
 endif(HAVE_CONTRIB)
 
 add_library(ebus ${libebus_a_SOURCES})
+
+if(BUILD_TESTING)
+  add_subdirectory(test)
+endif(BUILD_TESTING)
