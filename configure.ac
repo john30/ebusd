@@ -5,12 +5,13 @@ AC_PREREQ([2.63])
 AC_INIT([ebusd], m4_esyscmd_s([cat VERSION]), [ebusd@ebusd.eu], [ebusd], [https://github.com/john30/ebusd])
 
 AC_CONFIG_AUX_DIR([build])
+AC_CONFIG_MACRO_DIR([macros])
 
 if test -z $CXXFLAGS; then
 	CXXFLAGS="-fpic -Wall -Wno-unused-function -Wextra -g -O2"
 fi
-CXXFLAGS+=" -std=c++11"
 AC_PROG_CXX
+AX_CXX_COMPILE_STDCXX([11], [noext], [mandatory])
 
 AC_CHECK_HEADERS([arpa/inet.h \
 		  dirent.h \
