@@ -10,7 +10,7 @@ AC_CONFIG_MACRO_DIR([m4])
 if test -z $CXXFLAGS; then
 	CXXFLAGS="-fpic -Wall -Wno-unused-function -Wextra -g -O2"
 fi
-AC_PROG_CXX
+AC_PROG_CXX([g++-6 g++-5 g++-4.9 g++-4.8 g++])
 AX_CXX_COMPILE_STDCXX([11], [noext], [mandatory])
 
 AC_CHECK_HEADERS([arpa/inet.h \
