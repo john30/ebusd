@@ -5,7 +5,7 @@ AC_PREREQ([2.63])
 AC_INIT([ebusd], m4_esyscmd_s([cat VERSION]), [ebusd@ebusd.eu], [ebusd], [https://github.com/john30/ebusd])
 
 AC_CONFIG_AUX_DIR([build])
-AC_CONFIG_MACRO_DIR([macros])
+AC_CONFIG_MACRO_DIR([m4])
 
 if test -z $CXXFLAGS; then
 	CXXFLAGS="-fpic -Wall -Wno-unused-function -Wextra -g -O2"
