@@ -1,3 +1,5 @@
+ACLOCAL_AMFLAGS = -I m4
+
 SUBDIRS = docs \
 	  src/lib/utils \
 	  src/lib/ebus \

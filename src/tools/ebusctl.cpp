@@ -56,17 +56,17 @@ static struct options opt = {
 };
 
 /** the version string of the program. */
-const char *argp_program_version = "ebusctl of """PACKAGE_STRING"";
+const char *argp_program_version = "ebusctl of """ PACKAGE_STRING "";
 
 /** the report bugs to address of the program. */
-const char *argp_program_bug_address = ""PACKAGE_BUGREPORT"";
+const char *argp_program_bug_address = "" PACKAGE_BUGREPORT "";
 
 /** the documentation of the program. */
 static const char argpdoc[] =
-  "Client for acessing "PACKAGE" via TCP.\n"
+  "Client for acessing " PACKAGE " via TCP.\n"
   "\v"
-  "If given, send COMMAND together with CMDOPT options to "PACKAGE".\n"
-  "Use 'help' as COMMAND for help on available "PACKAGE" commands.";
+  "If given, send COMMAND together with CMDOPT options to " PACKAGE ".\n"
+  "Use 'help' as COMMAND for help on available " PACKAGE " commands.";
 
 /** the description of the accepted arguments. */
 static char argpargsdoc[] = "\nCOMMAND [CMDOPT...]";
@@ -74,7 +74,7 @@ static char argpargsdoc[] = "\nCOMMAND [CMDOPT...]";
 /** the definition of the known program arguments. */
 static const struct argp_option argpoptions[] = {
   {NULL,       0,   NULL, 0, "Options:", 1 },
-  {"server", 's', "HOST", 0, "Connect to HOST running "PACKAGE" (name or IP) [localhost]", 0 },
+  {"server", 's', "HOST", 0, "Connect to HOST running " PACKAGE " (name or IP) [localhost]", 0 },
   {"port",   'p', "PORT", 0, "Connect to PORT on HOST [8888]", 0 },
 
   {NULL,       0,   NULL, 0, NULL, 0 },

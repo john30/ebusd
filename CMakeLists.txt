@@ -24,13 +24,14 @@ if(NOT REVISION)
 endif(NOT REVISION)
 
 set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 set(CMAKE_INSTALL_PREFIX "/")
 include(GNUInstallDirs)
 include(CheckFunctionExists)
 include(CheckCXXSourceRuns)
 include(CheckIncludeFile)
 
-add_compile_options(-fpic -Wall -Wextra)
+add_compile_options(-fpic -Wall -Wno-unused-function -Wextra)
 
 check_include_file(arpa/inet.h HAVE_ARPA_INET_H)
 check_include_file(dirent.h HAVE_DIRENT_H)
@@ -101,6 +102,10 @@ endif(NOT HAVE_DIRECT_FLOAT_FORMAT)
 add_definitions(-DHAVE_CONFIG_H -DSYSCONFDIR="${CMAKE_INSTALL_FULL_SYSCONFDIR}" -DLOCALSTATEDIR="${CMAKE_INSTALL_FULL_LOCALSTATEDIR}")
 configure_file(config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+if(BUILD_TESTING)
+  enable_testing()
+endif(BUILD_TESTING)
 
 add_subdirectory(src/ebusd)
 add_subdirectory(src/lib/utils)
