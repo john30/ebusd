@@ -37,9 +37,8 @@ Either pick the latest release package suitable for your system
 (see https://github.com/john30/ebusd/releases/latest) or build it yourself.
 
 Building ebusd from the source requires the following packages and/or features:
- * autoconf (>=2.63)
- * automake (>=1.11)
- * g++
+ * autoconf (>=2.63) + automake (>=1.11) or cmake
+ * g++ with C++11 support (>=4.8.1)
  * make
  * kernel with pselect or ppoll support
  * glibc with argp support or argp-standalone
