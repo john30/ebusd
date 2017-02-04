@@ -74,7 +74,7 @@ You can use it like this:
 > docker pull john30/ebusd  
 > docker run -it --rm --device=/dev/ttyUSB0 -p 8888 john30/ebusd
 
-For more details, see [Docker Readme](contrib/docker/README.md).
+For more details, see [Docker Readme](https://github.com/john30/ebusd/blob/master/contrib/docker/README.md).
 
 
 Contact
