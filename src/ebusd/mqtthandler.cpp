@@ -30,21 +30,36 @@ using std::dec;
 
 /** the definition of the MQTT arguments. */
 static const struct argp_option g_mqtt_argp_options[] = {
-  {NULL,        0, NULL,        0, "MQTT options:", 1 },
-  {"mqtthost",  1, "HOST",      0, "Connect to MQTT broker on HOST [localhost]", 0 },
-  {"mqttport",  2, "PORT",      0, "Connect to MQTT broker on PORT (usually 1883), 0 to disable [0]", 0 },
-  {"mqttuser",  3, "USER",      0, "Connect as USER to MQTT broker (not used by default)", 0 },
-  {"mqttpass",  4, "PASSWORD",  0, "Use PASSWORD when connecting to MQTT broker (not used by default)", 0 },
-  {"mqtttopic", 5, "TOPIC",     0, "Use MQTT TOPIC (prefix before /%circuit/%name or complete format) [ebusd]", 0 },
+  {NULL,          0, NULL,       0, "MQTT options:", 1 },
+  {"mqtthost",    1, "HOST",     0, "Connect to MQTT broker on HOST [localhost]", 0 },
+  {"mqttport",    2, "PORT",     0, "Connect to MQTT broker on PORT (usually 1883), 0 to disable [0]", 0 },
+  {"mqttuser",    3, "USER",     0, "Connect as USER to MQTT broker (no default)", 0 },
+  {"mqttpass",    4, "PASSWORD", 0, "Use PASSWORD when connecting to MQTT broker (no default)", 0 },
+  {"mqtttopic",   5, "TOPIC",    0, "Use MQTT TOPIC (prefix before /%circuit/%name or complete format) [ebusd]", 0 },
 
-  {NULL,             0,        NULL,    0, NULL, 0 },
+#if (LIBMOSQUITTO_MAJOR >= 1)
+  {"mqttca",      6, "CA",       0, "Use CA file or dir (ending with '/') for MQTT TLS (no default)", 0 },
+  {"mqttcert",    7, "CERTFILE", 0, "Use CERTFILE for MQTT TLS client certificate (no default)", 0 },
+  {"mqttkey",     8, "KEYFILE",  0, "Use KEYFILE for MQTT TLS client certificate (no default)", 0 },
+  {"mqttkeypass", 9, "PASSWORD", 0, "Use PASSWORD for the encrypted KEYFILE (no default)", 0 },
+#endif
+
+  {NULL,          0, NULL,       0, NULL, 0 },
 };
 
 static const char* g_host = "localhost";  //!< host name of MQTT broker [localhost]
 static uint16_t g_port = 0;  //!< optional port of MQTT broker, 0 to disable [0]
-static const char* g_username = NULL;  //!< optional user name for MQTT broker (not used by default)
-static const char* g_password = NULL;  //!< optional password for MQTT broker (not used by default)
+static const char* g_username = NULL;  //!< optional user name for MQTT broker (no default)
+static const char* g_password = NULL;  //!< optional password for MQTT broker (no default)
 static const char* g_topic = PACKAGE;  //!< MQTT topic to use (prefix if without wildcards) [ebusd]
+
+#if (LIBMOSQUITTO_MAJOR >= 1)
+static const char* g_cafile = NULL; //!< CA file for TLS
+static const char* g_capath = NULL; //!< CA path for TLS
+static const char* g_certfile = NULL; //!< client certificate file for TLS
+static const char* g_keyfile = NULL; //!< client key file for TLS
+static const char* g_keypass = NULL; //!< client key file password for TLS
+#endif
 
 
 /**
@@ -96,6 +111,46 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
     }
     g_topic = arg;
     break;
+
+#if (LIBMOSQUITTO_MAJOR >= 1)
+    case 6:  // --mqttca=file or --mqttca=dir/
+      if (arg == NULL || arg[0] == 0) {
+        argp_error(state, "invalid mqttca");
+        return EINVAL;
+      }
+      if (arg[strlen(arg)-1] == '/') {
+        g_cafile = NULL;
+        g_capath = arg;
+      } else {
+        g_cafile = arg;
+        g_capath = NULL;
+      }
+      break;
+
+    case 7:  // --mqttcert=CERTFILE
+      if (arg == NULL || arg[0] == 0) {
+        argp_error(state, "invalid mqttcert");
+        return EINVAL;
+      }
+      g_certfile = arg;
+      break;
+
+    case 8:  // --mqttkey=KEYFILE
+      if (arg == NULL || arg[0] == 0) {
+        argp_error(state, "invalid mqttkey");
+        return EINVAL;
+      }
+      g_keyfile = arg;
+      break;
+
+    case 9:  // --mqttkeypass=PASSWORD
+      if (arg == NULL) {
+        argp_error(state, "invalid mqttkeypass");
+        return EINVAL;
+      }
+      g_keypass = arg;
+      break;
+#endif
 
   default:
     return ARGP_ERR_UNKNOWN;
@@ -172,6 +227,19 @@ bool parseTopic(const string topic, vector<string> &strs, vector<size_t> &cols) 
   return true;
 }
 
+#if (LIBMOSQUITTO_MAJOR >= 1)
+int on_keypassword(char *buf, int size, int rwflag, void *userdata) {
+  if (!g_keypass) {
+    return 0;
+  }
+  int len = strlen(g_keypass);
+  if (len>size) {
+    len = size;
+  }
+  memcpy(buf, g_keypass, len);
+  return len;
+}
+#endif
 
 void on_connect(
 #if (LIBMOSQUITTO_MAJOR >= 1)
@@ -267,6 +335,16 @@ MqttHandler::MqttHandler(BusHandler* busHandler, MessageMap* messages)
 #else
     mosquitto_will_set(m_mosquitto, true, willTopic.c_str(), (uint32_t)len,
         reinterpret_cast<const uint8_t*>(willData.c_str()), 0, true);
+#endif
+
+#if (LIBMOSQUITTO_MAJOR >= 1)
+    if (g_cafile || g_capath) {
+      int ret;
+      ret = mosquitto_tls_set(m_mosquitto, g_cafile, g_capath, g_certfile, g_keyfile, on_keypassword);
+      if (ret != MOSQ_ERR_SUCCESS) {
+        logOtherError("mqtt", "unable to set TLS: %d", ret);
+      }
+    }
 #endif
 
     mosquitto_connect_callback_set(m_mosquitto, on_connect);
