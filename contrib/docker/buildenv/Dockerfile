@@ -1,8 +1,10 @@
 FROM debian
 
-RUN apt-get update
-RUN apt-get install -y git autoconf automake g++ make
-RUN apt-get install -y libmosquitto-dev
+RUN apt-get update && apt-get install -y \
+    autoconf automake g++ make \
+    libmosquitto-dev
+
+LABEL maintainer "ebusd@ebusd.eu"
 
 WORKDIR /build
 CMD ["/bin/bash"]
