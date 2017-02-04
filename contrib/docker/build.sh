@@ -1,10 +1,13 @@
 #!/bin/sh
 set -e
-(cd buildenv && docker build -t ebusd-buildenv .)
+stamp=`docker inspect -f '{{.Created}}' ebusd-buildenv `
+if [ -z "$stamp" ] || ( rm -f .stamp && touch -d "$stamp" .stamp && [ buildenv/Dockerfile -nt .stamp ] ) ; then
+  (cd buildenv && docker build -t ebusd-buildenv .)
+fi
 docker run --rm -it -v `pwd`/../..:/build ebusd-buildenv ./make_debian.sh
 export EBUSD_VERSION=`cat ../../VERSION`
 export EBUSD_ARCH=`docker version|grep -i "Arch[^:]*server"|head -n 1|sed -e 's#^.*/##'`
-cp -a ../../ebusd-${EBUSD_VERSION}_${EBUSD_ARCH}.deb runtime/
+mv ../../ebusd-${EBUSD_VERSION}_${EBUSD_ARCH}.deb runtime/
 (cd runtime && docker build -t ebusd .)
 echo "docker image created."
 echo
