@@ -102,6 +102,7 @@ endif(NOT HAVE_DIRECT_FLOAT_FORMAT)
 add_definitions(-DHAVE_CONFIG_H -DSYSCONFDIR="${CMAKE_INSTALL_FULL_SYSCONFDIR}" -DLOCALSTATEDIR="${CMAKE_INSTALL_FULL_LOCALSTATEDIR}")
 configure_file(config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${ebusd_SOURCE_DIR}/src)
 
 if(BUILD_TESTING)
   enable_testing()
