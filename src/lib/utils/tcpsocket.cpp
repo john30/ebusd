@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "tcpsocket.h"
+#include "lib/utils/tcpsocket.h"
 #include <fcntl.h>
 #include <arpa/inet.h>
 #include <netdb.h>

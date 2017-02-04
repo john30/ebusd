@@ -20,7 +20,7 @@
 #  include <config.h>
 #endif
 
-#include "bushandler.h"
+#include "ebusd/bushandler.h"
 #include <unistd.h>
 #include <time.h>
 #include <string>
@@ -28,11 +28,11 @@
 #include <deque>
 #include <cstring>
 #include <iomanip>
-#include "message.h"
-#include "data.h"
-#include "result.h"
-#include "symbol.h"
-#include "log.h"
+#include "lib/ebus/message.h"
+#include "lib/ebus/data.h"
+#include "lib/ebus/result.h"
+#include "lib/ebus/symbol.h"
+#include "lib/utils/log.h"
 
 namespace ebusd {
 

@@ -25,13 +25,13 @@
 #include <vector>
 #include <map>
 #include <deque>
-#include "message.h"
-#include "data.h"
-#include "symbol.h"
-#include "result.h"
-#include "device.h"
-#include "queue.h"
-#include "thread.h"
+#include "lib/ebus/message.h"
+#include "lib/ebus/data.h"
+#include "lib/ebus/symbol.h"
+#include "lib/ebus/result.h"
+#include "lib/ebus/device.h"
+#include "lib/utils/queue.h"
+#include "lib/utils/thread.h"
 
 /** @file bushandler.h
  * Classes, functions, and constants related to handling of symbols on the eBUS.

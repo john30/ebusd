@@ -20,9 +20,9 @@
 #  include <config.h>
 #endif
 
-#include "mqtthandler.h"
+#include "ebusd/mqtthandler.h"
 #include <csignal>
-#include "log.h"
+#include "lib/utils/log.h"
 
 namespace ebusd {
 
@@ -48,17 +48,17 @@ static const struct argp_option g_mqtt_argp_options[] = {
 };
 
 static const char* g_host = "localhost";  //!< host name of MQTT broker [localhost]
-static uint16_t g_port = 0;  //!< optional port of MQTT broker, 0 to disable [0]
-static const char* g_username = NULL;  //!< optional user name for MQTT broker (no default)
-static const char* g_password = NULL;  //!< optional password for MQTT broker (no default)
-static const char* g_topic = PACKAGE;  //!< MQTT topic to use (prefix if without wildcards) [ebusd]
+static uint16_t g_port = 0;               //!< optional port of MQTT broker, 0 to disable [0]
+static const char* g_username = NULL;     //!< optional user name for MQTT broker (no default)
+static const char* g_password = NULL;     //!< optional password for MQTT broker (no default)
+static const char* g_topic = PACKAGE;     //!< MQTT topic to use (prefix if without wildcards) [ebusd]
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
-static const char* g_cafile = NULL; //!< CA file for TLS
-static const char* g_capath = NULL; //!< CA path for TLS
-static const char* g_certfile = NULL; //!< client certificate file for TLS
-static const char* g_keyfile = NULL; //!< client key file for TLS
-static const char* g_keypass = NULL; //!< client key file password for TLS
+static const char* g_cafile = NULL;    //!< CA file for TLS
+static const char* g_capath = NULL;    //!< CA path for TLS
+static const char* g_certfile = NULL;  //!< client certificate file for TLS
+static const char* g_keyfile = NULL;   //!< client key file for TLS
+static const char* g_keypass = NULL;   //!< client key file password for TLS
 #endif
 
 
@@ -232,7 +232,7 @@ int on_keypassword(char *buf, int size, int rwflag, void *userdata) {
   if (!g_keypass) {
     return 0;
   }
-  int len = (int)strlen(g_keypass);
+  int len = static_cast<int>(strlen(g_keypass));
   if (len > size) {
     len = size;
   }
@@ -251,8 +251,7 @@ void on_connect(
   } else {
     if (rc >= 1 && rc <= 3) {
       logOtherError("mqtt", "connection refused: %s",
-          rc == 1 ? "wrong protocol" : (rc == 2 ? "wrong username/password" : "broker down")
-      );
+                    rc == 1 ? "wrong protocol" : (rc == 2 ? "wrong username/password" : "broker down"));
     } else {
       logOtherError("mqtt", "connection refused: %d", rc);
     }
@@ -303,7 +302,7 @@ MqttHandler::MqttHandler(BusHandler* busHandler, MessageMap* messages)
   if (mosquitto_lib_init() != MOSQ_ERR_SUCCESS) {
     logOtherError("mqtt", "unable to initialize");
   } else {
-    signal(SIGPIPE, SIG_IGN); // needed before libmosquitto v. 1.1.3
+    signal(SIGPIPE, SIG_IGN);  // needed before libmosquitto v. 1.1.3
     ostringstream clientId;
     clientId << PACKAGE_NAME << '_' << PACKAGE_VERSION << '_' << static_cast<unsigned>(getpid());
 #if (LIBMOSQUITTO_MAJOR >= 1)
@@ -357,7 +356,7 @@ MqttHandler::MqttHandler(BusHandler* busHandler, MessageMap* messages)
       mosquitto_destroy(m_mosquitto);
       m_mosquitto = NULL;
     } else {
-      m_connected = true; // assume success until connect_callback says otherwise
+      m_connected = true;  // assume success until connect_callback says otherwise
       logOtherDebug("mqtt", "connection requested");
     }
   }
@@ -556,8 +555,7 @@ void MqttHandler::handleTraffic() {
     }
     if (ret == MOSQ_ERR_NO_CONN || ret == MOSQ_ERR_CONN_LOST || ret == MOSQ_ERR_CONN_REFUSED) {
       logOtherError("mqtt", "communication error: %s", ret == MOSQ_ERR_NO_CONN ? "not connected"
-        : (ret == MOSQ_ERR_CONN_LOST ? "connection lost" : "connection refused")
-      );
+                    : (ret == MOSQ_ERR_CONN_LOST ? "connection lost" : "connection refused"));
       m_connected = false;
     } else {
       logOtherError("mqtt", "communication error: %d", ret);

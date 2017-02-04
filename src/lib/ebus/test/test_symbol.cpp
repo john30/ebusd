@@ -19,7 +19,7 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
-#include "symbol.h"
+#include "lib/ebus/symbol.h"
 
 using namespace std;
 using namespace ebusd;

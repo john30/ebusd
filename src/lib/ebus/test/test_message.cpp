@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 #include <map>
-#include "message.h"
+#include "lib/ebus/message.h"
 
 using namespace ebusd;
 

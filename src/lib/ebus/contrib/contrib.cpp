@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "contrib.h"
-#include "tem.h"
+#include "lib/ebus/contrib/contrib.h"
+#include "lib/ebus/contrib/tem.h"
 
 namespace ebusd {
 

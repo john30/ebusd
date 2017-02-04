@@ -26,9 +26,9 @@
 #include <map>
 #include <queue>
 #include <functional>
-#include "data.h"
-#include "result.h"
-#include "symbol.h"
+#include "lib/ebus/data.h"
+#include "lib/ebus/result.h"
+#include "lib/ebus/symbol.h"
 
 /** @file message.h
  * Classes and functions for decoding and encoding of complete messages on the

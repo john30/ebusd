@@ -1,4 +1,4 @@
-AM_CXXFLAGS = -isystem$(top_srcdir)/src/lib/ebus
+AM_CXXFLAGS = -I$(top_srcdir)/src
 
 noinst_PROGRAMS = test_filereader \
 		  test_device \

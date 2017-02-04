@@ -20,14 +20,14 @@
 #  include <config.h>
 #endif
 
-#include "tem.h"
+#include "lib/ebus/contrib/tem.h"
 #include <math.h>
 #include <iostream>
 #include <sstream>
 #include <iomanip>
 #include <vector>
 #include <cstring>
-#include "datatype.h"
+#include "lib/ebus/datatype.h"
 
 namespace ebusd {
 

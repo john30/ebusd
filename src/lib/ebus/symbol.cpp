@@ -16,12 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "symbol.h"
+#include "lib/ebus/symbol.h"
 #include <iostream>
 #include <iomanip>
 #include <string>
 #include <vector>
-#include "result.h"
+#include "lib/ebus/result.h"
 
 namespace ebusd {
 

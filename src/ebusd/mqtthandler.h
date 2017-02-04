@@ -23,9 +23,9 @@
 #include <map>
 #include <string>
 #include <vector>
-#include "datahandler.h"
-#include "bushandler.h"
-#include "message.h"
+#include "ebusd/datahandler.h"
+#include "ebusd/bushandler.h"
+#include "lib/ebus/message.h"
 
 /** @file mqtthandler.h
  * A data handler enabling MQTT support via mosquitto.

@@ -1,4 +1,5 @@
-AM_CXXFLAGS = -Wconversion -Wno-unused-parameter
+AM_CXXFLAGS = -I$(top_srcdir)/src \
+	      -Wconversion -Wno-unused-parameter
 
 noinst_LIBRARIES = libebus.a
 

@@ -23,12 +23,14 @@
 #include <cstdio>
 #include <algorithm>
 #include <list>
-#include "tcpsocket.h"
-#include "queue.h"
-#include "notify.h"
-#include "thread.h"
+#include "lib/utils/tcpsocket.h"
+#include "lib/utils/queue.h"
+#include "lib/utils/notify.h"
+#include "lib/utils/thread.h"
 
-/** \file network.h */
+/** \file network.h
+ * The TCP and HTTP client request handling.
+ */
 
 namespace ebusd {
 

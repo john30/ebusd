@@ -20,8 +20,8 @@
 #include <iomanip>
 #include <string>
 #include <vector>
-#include "tem.h"
-#include "data.h"
+#include "lib/ebus/contrib/tem.h"
+#include "lib/ebus/data.h"
 
 using namespace ebusd;
 

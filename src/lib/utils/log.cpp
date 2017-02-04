@@ -16,14 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "log.h"
+#include "lib/utils/log.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
 #include <sys/time.h>
 #include <stdarg.h>
 #include <string.h>
-#include "clock.h"
+#include "lib/utils/clock.h"
 
 /** the name of each @a LogFacility. */
 static const char *facilityNames[] = {

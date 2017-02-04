@@ -25,10 +25,10 @@
 #include <fstream>
 #include <vector>
 #include <map>
-#include "symbol.h"
-#include "result.h"
-#include "filereader.h"
-#include "datatype.h"
+#include "lib/ebus/symbol.h"
+#include "lib/ebus/result.h"
+#include "lib/ebus/filereader.h"
+#include "lib/ebus/datatype.h"
 
 /** @file data.h
  * Classes related to defining fields based on data types in symbols on the

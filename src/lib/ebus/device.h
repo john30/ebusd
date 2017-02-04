@@ -25,7 +25,7 @@
 #include <netdb.h>
 #include <iostream>
 #include <fstream>
-#include "result.h"
+#include "lib/ebus/result.h"
 
 /** @file device.h
  * Classes providing access to the eBUS.

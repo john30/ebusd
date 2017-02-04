@@ -22,13 +22,15 @@
 #include <string>
 #include <list>
 #include <vector>
-#include "bushandler.h"
-#include "datahandler.h"
-#include "network.h"
-#include "message.h"
-#include "rotatefile.h"
+#include "ebusd/bushandler.h"
+#include "ebusd/datahandler.h"
+#include "ebusd/network.h"
+#include "lib/ebus/message.h"
+#include "lib/utils/rotatefile.h"
 
-/** \file mainloop.h */
+/** \file mainloop.h
+ * The main loop for the TCP client interface and regular tasks such as resolving scanned data.
+ */
 
 namespace ebusd {
 

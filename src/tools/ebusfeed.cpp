@@ -27,8 +27,8 @@
 #include <cstdlib>
 #include <fstream>
 #include <iomanip>
-#include "device.h"
-#include "result.h"
+#include "lib/ebus/device.h"
+#include "lib/ebus/result.h"
 
 using std::hex;
 using std::fstream;

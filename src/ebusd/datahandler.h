@@ -22,8 +22,8 @@
 #include <argp.h>
 #include <map>
 #include <list>
-#include "bushandler.h"
-#include "message.h"
+#include "ebusd/bushandler.h"
+#include "lib/ebus/message.h"
 
 /** @file datahandler.h
  * Classes and functions for implementing and registering generic data sinks

@@ -20,7 +20,7 @@
 #  include <config.h>
 #endif
 
-#include "device.h"
+#include "lib/ebus/device.h"
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/file.h>
@@ -34,7 +34,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
-#include "data.h"
+#include "lib/ebus/data.h"
 
 namespace ebusd {
 

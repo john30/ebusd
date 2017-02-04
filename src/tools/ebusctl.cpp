@@ -30,7 +30,7 @@
 #include <cstdlib>
 #include <sstream>
 #include <string>
-#include "tcpsocket.h"
+#include "lib/utils/tcpsocket.h"
 
 using std::ostringstream;
 using std::cin;

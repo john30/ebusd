@@ -20,11 +20,11 @@
 #  include <config.h>
 #endif
 
-#include "datahandler.h"
+#include "ebusd/datahandler.h"
 #include <list>
 #include <string>
 #ifdef HAVE_MQTT
-#  include "mqtthandler.h"
+#  include "ebusd/mqtthandler.h"
 #endif
 
 namespace ebusd {

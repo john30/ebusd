@@ -20,7 +20,7 @@
 #  include <config.h>
 #endif
 
-#include "main.h"
+#include "ebusd/main.h"
 #include <dirent.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -33,10 +33,10 @@
 #include <map>
 #include <string>
 #include <vector>
-#include "mainloop.h"
-#include "bushandler.h"
-#include "log.h"
-#include "rotatefile.h"
+#include "ebusd/mainloop.h"
+#include "ebusd/bushandler.h"
+#include "lib/utils/log.h"
+#include "lib/utils/rotatefile.h"
 
 namespace ebusd {
 
@@ -849,21 +849,24 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
     out.str("");
     offset = (unsigned char)(offset+(*identFields)[field++]->getLength(partType));
     result = (*identFields)[field]->read(partType, data, offset, sw, 0);  // software version number
-    if (result==RESULT_ERR_OUT_OF_RANGE) {
-      sw = (data[(partType==pt_masterData ? 5 : 1)+offset]<<16)|data[(partType==pt_masterData ? 5 : 1)+offset+1];
+    if (result == RESULT_ERR_OUT_OF_RANGE) {
+      sw = (data[(partType == pt_masterData ? 5 : 1)+offset] << 16)
+           | data[(partType == pt_masterData ? 5 : 1)+offset+1];
       result = RESULT_OK;
     }
   }
   if (result == RESULT_OK) {
     offset = (unsigned char)(offset+(*identFields)[field++]->getLength(partType));
     result = (*identFields)[field]->read(partType, data, offset, hw, 0);  // hardware version number
-    if (result==RESULT_ERR_OUT_OF_RANGE) {
-      hw = (data[(partType==pt_masterData ? 5 : 1)+offset]<<16)|data[(partType==pt_masterData ? 5 : 1)+offset+1];
+    if (result == RESULT_ERR_OUT_OF_RANGE) {
+      hw = (data[(partType == pt_masterData ? 5 : 1)+offset] << 16)
+           | data[(partType == pt_masterData ? 5 : 1)+offset+1];
       result = RESULT_OK;
     }
   }
   if (result != RESULT_OK) {
-    logError(lf_main, "unable to load scan config %2.2x: decode field %s %s", address, identFields->getName(field).c_str(), getResultCode(result));
+    logError(lf_main, "unable to load scan config %2.2x: decode field %s %s", address,
+             identFields->getName(field).c_str(), getResultCode(result));
     return result;
   }
   vector<string> files;

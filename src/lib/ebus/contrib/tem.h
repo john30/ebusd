@@ -26,9 +26,9 @@
 #include <vector>
 #include <list>
 #include <map>
-#include "symbol.h"
-#include "result.h"
-#include "datatype.h"
+#include "lib/ebus/symbol.h"
+#include "lib/ebus/result.h"
+#include "lib/ebus/datatype.h"
 
 /** @file tem.h
  * Contributed data types for TEM devices not part of regular releases.

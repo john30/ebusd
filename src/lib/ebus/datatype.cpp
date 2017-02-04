@@ -20,7 +20,7 @@
 #  include <config.h>
 #endif
 
-#include "datatype.h"
+#include "lib/ebus/datatype.h"
 #include <math.h>
 #include <iostream>
 #include <sstream>
@@ -28,7 +28,7 @@
 #include <vector>
 #include <cstring>
 #ifdef HAVE_CONTRIB
-#  include "contrib/contrib.h"
+#  include "lib/ebus/contrib/contrib.h"
 #endif
 
 namespace ebusd {

@@ -20,7 +20,7 @@
 #include <iomanip>
 #include <string>
 #include <vector>
-#include "filereader.h"
+#include "lib/ebus/filereader.h"
 
 using namespace std;
 using namespace ebusd;

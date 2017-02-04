@@ -27,9 +27,9 @@
 #include <vector>
 #include <list>
 #include <map>
-#include "symbol.h"
-#include "result.h"
-#include "filereader.h"
+#include "lib/ebus/symbol.h"
+#include "lib/ebus/result.h"
+#include "lib/ebus/filereader.h"
 
 /** @file datatype.h
  * Classes, functions, and constants related to decoding/encoding of symbols
@@ -271,7 +271,7 @@ class DataType {
   const uint16_t m_flags;
 
   /** the replacement value (fill-up value for @a StringDataType, no replacement if equal to
-   * @a NumberDataType#minValue). */
+   * @a NumberDataType#m_minValue). */
   const unsigned int m_replacement;
 };
 

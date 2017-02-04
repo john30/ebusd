@@ -20,8 +20,8 @@
 #  include <config.h>
 #endif
 
-#include "thread.h"
-#include "clock.h"
+#include "lib/utils/thread.h"
+#include "lib/utils/clock.h"
 
 void* Thread::runThread(void* arg) {
   reinterpret_cast<Thread*>(arg)->enter();

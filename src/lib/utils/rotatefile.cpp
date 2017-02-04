@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "rotatefile.h"
+#include "lib/utils/rotatefile.h"
 #include <sys/ioctl.h>
 #include <sys/file.h>
 #include <fcntl.h>
@@ -25,7 +25,7 @@
 #include <cstring>
 #include <fstream>
 #include <string>
-#include "clock.h"
+#include "lib/utils/clock.h"
 
 using std::streamsize;
 

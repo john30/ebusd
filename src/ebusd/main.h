@@ -21,11 +21,13 @@
 
 #include <stdint.h>
 #include <string>
-#include "data.h"
-#include "message.h"
-#include "result.h"
+#include "lib/ebus/data.h"
+#include "lib/ebus/message.h"
+#include "lib/ebus/result.h"
 
-/** \file main.h */
+/** \file main.h
+ * The main entry method doing all the startup handling.
+ */
 
 namespace ebusd {
 

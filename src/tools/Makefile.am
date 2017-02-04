@@ -1,5 +1,4 @@
-AM_CXXFLAGS = -isystem$(top_srcdir)/src/lib/utils \
-	      -isystem$(top_srcdir)/src/lib/ebus
+AM_CXXFLAGS = -I$(top_srcdir)/src
 
 bin_PROGRAMS = ebusctl \
 	       ebusfeed

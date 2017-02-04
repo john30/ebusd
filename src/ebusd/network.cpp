@@ -20,12 +20,12 @@
 #  include <config.h>
 #endif
 
-#include "network.h"
+#include "ebusd/network.h"
 #ifdef HAVE_PPOLL
 #  include <poll.h>
 #endif
 #include <cstring>
-#include "log.h"
+#include "lib/utils/log.h"
 
 namespace ebusd {
 

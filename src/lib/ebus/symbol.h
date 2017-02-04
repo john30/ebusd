@@ -25,7 +25,7 @@
 #include <queue>
 #include <string>
 #include <vector>
-#include "result.h"
+#include "lib/ebus/result.h"
 
 /** @file symbol.h
  * Classes, functions, and constants related to symbols on the eBUS.

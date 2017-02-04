@@ -18,7 +18,7 @@
 
 #include <iostream>
 #include <iomanip>
-#include "device.h"
+#include "lib/ebus/device.h"
 
 using namespace std;
 using namespace ebusd;

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "clock.h"
+#include "lib/utils/clock.h"
 #ifdef __MACH__
 #  include <mach/clock.h>
 #  include <mach/mach.h>

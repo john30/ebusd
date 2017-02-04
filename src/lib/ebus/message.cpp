@@ -16,16 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "message.h"
+#include "lib/ebus/message.h"
 #include <string>
 #include <vector>
 #include <cstring>
 #include <locale>
 #include <iomanip>
 #include <climits>
-#include "data.h"
-#include "result.h"
-#include "symbol.h"
+#include "lib/ebus/data.h"
+#include "lib/ebus/result.h"
+#include "lib/ebus/symbol.h"
 
 namespace ebusd {
 
@@ -659,7 +659,8 @@ result_t Message::storeLastData(SymbolString& master, SymbolString& slave) {
 
 result_t Message::storeLastData(const PartType partType, SymbolString& data, unsigned char index) {
   if (data.size() > 0
-  && (m_isWrite || this->m_dstAddress == BROADCAST || partType == pt_slaveData || (partType == pt_masterData && isMaster(this->m_dstAddress)))) {
+      && (m_isWrite || this->m_dstAddress == BROADCAST || partType == pt_slaveData
+      || (partType == pt_masterData && isMaster(this->m_dstAddress)))) {
     time(&m_lastUpdateTime);
   }
   if (partType == pt_masterData) {

@@ -20,7 +20,7 @@
 #  include <config.h>
 #endif
 
-#include "data.h"
+#include "lib/ebus/data.h"
 #include <math.h>
 #include <iostream>
 #include <sstream>

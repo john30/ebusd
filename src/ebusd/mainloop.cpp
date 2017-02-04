@@ -20,12 +20,12 @@
 #  include <config.h>
 #endif
 
-#include "mainloop.h"
+#include "ebusd/mainloop.h"
 #include <iomanip>
 #include <deque>
-#include "main.h"
-#include "log.h"
-#include "data.h"
+#include "ebusd/main.h"
+#include "lib/utils/log.h"
+#include "lib/ebus/data.h"
 
 namespace ebusd {
 

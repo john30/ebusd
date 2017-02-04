@@ -26,8 +26,8 @@
 #include <fstream>
 #include <algorithm>
 #include <vector>
-#include "symbol.h"
-#include "result.h"
+#include "lib/ebus/symbol.h"
+#include "lib/ebus/result.h"
 
 /** @file filereader.h
  * Helper class and constants for reading configuration files.
