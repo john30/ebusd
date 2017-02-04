@@ -70,7 +70,7 @@ Architecture: $ARCH
 Maintainer: John Baier <ebusd@ebusd.eu>
 Homepage: https://github.com/john30/ebusd
 Bugs: https://github.com/john30/ebusd/issues
-Depends: libstdc++6, libc6, libgcc1$extralibs
+Depends: libstdc++6 (>= 4.8.1), libc6, libgcc1$extralibs
 Description: eBUS daemon.
  ebusd is a daemon for handling communication with eBUS devices connected to a
  2-wire bus system.
