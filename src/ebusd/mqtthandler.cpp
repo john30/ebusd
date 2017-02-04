@@ -232,7 +232,7 @@ int on_keypassword(char *buf, int size, int rwflag, void *userdata) {
   if (!g_keypass) {
     return 0;
   }
-  int len = strlen(g_keypass);
+  size_t len = strlen(g_keypass);
   if (len>size) {
     len = size;
   }
