@@ -130,6 +130,9 @@ class MqttHandler : public DataSink, public DataSource, public Thread {
 
   /** the mosquitto structure if initialized, or NULL. */
   struct mosquitto* m_mosquitto;
+
+  /** whether the connection to the broker is established. */
+  bool m_connected;
 };
 
 }  // namespace ebusd

@@ -21,6 +21,7 @@
 #endif
 
 #include "mqtthandler.h"
+#include <csignal>
 #include "log.h"
 
 namespace ebusd {
@@ -29,16 +30,20 @@ using std::dec;
 
 /** the definition of the MQTT arguments. */
 static const struct argp_option g_mqtt_argp_options[] = {
-  {NULL,             0, NULL,    0, "MQTT options:", 1 },
-  {"mqtthost",       1, "HOST",  0, "Connect to MQTT broker on HOST [localhost]", 0 },
-  {"mqttport",       2, "PORT",  0, "Connect to MQTT broker on PORT (usually 1883), 0 to disable [0]", 0 },
-  {"mqtttopic",      3, "TOPIC", 0, "Use MQTT TOPIC (prefix before /%circuit/%name or complete format) [ebusd]", 0 },
+  {NULL,        0, NULL,        0, "MQTT options:", 1 },
+  {"mqtthost",  1, "HOST",      0, "Connect to MQTT broker on HOST [localhost]", 0 },
+  {"mqttport",  2, "PORT",      0, "Connect to MQTT broker on PORT (usually 1883), 0 to disable [0]", 0 },
+  {"mqttuser",  3, "USER",      0, "Connect as USER to MQTT broker (not used by default)", 0 },
+  {"mqttpass",  4, "PASSWORD",  0, "Use PASSWORD when connecting to MQTT broker (not used by default)", 0 },
+  {"mqtttopic", 5, "TOPIC",     0, "Use MQTT TOPIC (prefix before /%circuit/%name or complete format) [ebusd]", 0 },
 
   {NULL,             0,        NULL,    0, NULL, 0 },
 };
 
-static const char* g_host = "localhost";  //!< MQTT Host to use [localhost]
+static const char* g_host = "localhost";  //!< host name of MQTT broker [localhost]
 static uint16_t g_port = 0;  //!< optional port of MQTT broker, 0 to disable [0]
+static const char* g_username = NULL;  //!< optional user name for MQTT broker (not used by default)
+static const char* g_password = NULL;  //!< optional password for MQTT broker (not used by default)
 static const char* g_topic = PACKAGE;  //!< MQTT topic to use (prefix if without wildcards) [ebusd]
 
 
@@ -68,13 +73,30 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
     }
     break;
 
-  case 3:  // --mqtttopic=ebusd
+  case 3:  // --mqttuser=username
+    if (arg == NULL) {
+      argp_error(state, "invalid mqttuser");
+      return EINVAL;
+    }
+    g_username = arg;
+    break;
+
+  case 4:  // --mqttpass=password
+    if (arg == NULL) {
+      argp_error(state, "invalid mqttpass");
+      return EINVAL;
+    }
+    g_password = arg;
+    break;
+
+  case 5:  // --mqtttopic=ebusd
     if (arg == NULL || arg[0] == 0 || arg[0] == '/' || arg[strlen(arg)-1] == '/') {
       argp_error(state, "invalid mqtttopic");
       return EINVAL;
     }
     g_topic = arg;
     break;
+
   default:
     return ARGP_ERR_UNKNOWN;
   }
@@ -151,8 +173,27 @@ bool parseTopic(const string topic, vector<string> &strs, vector<size_t> &cols) 
 }
 
 
+void on_connect(
+#if (LIBMOSQUITTO_MAJOR >= 1)
+  struct mosquitto *mosq,
+#endif
+  void *obj, int rc) {
+  if (rc == 0) {
+    logOtherNotice("mqtt", "connection established");
+  } else {
+    if (rc >= 1 && rc <= 3) {
+      logOtherError("mqtt", "connection refused: %s",
+          rc == 1 ? "wrong protocol" : (rc == 2 ? "wrong username/password" : "broker down")
+      );
+    } else {
+      logOtherError("mqtt", "connection refused: %d", rc);
+    }
+  }
+}
+
+
 MqttHandler::MqttHandler(BusHandler* busHandler, MessageMap* messages)
-  : DataSink(), DataSource(busHandler), Thread(), m_messages(messages) {
+  : DataSink(), DataSource(busHandler), Thread(), m_messages(messages), m_connected(false) {
   bool enabled = g_port != 0;
   m_publishByField = false;
   m_mosquitto = NULL;
@@ -194,12 +235,13 @@ MqttHandler::MqttHandler(BusHandler* busHandler, MessageMap* messages)
   if (mosquitto_lib_init() != MOSQ_ERR_SUCCESS) {
     logOtherError("mqtt", "unable to initialize");
   } else {
-    string clientId = PACKAGE_STRING;
-    clientId += " "+static_cast<unsigned>(getpid());
+    signal(SIGPIPE, SIG_IGN); // needed before libmosquitto v. 1.1.3
+    ostringstream clientId;
+    clientId << PACKAGE_NAME << '_' << PACKAGE_VERSION << '_' << static_cast<unsigned>(getpid());
 #if (LIBMOSQUITTO_MAJOR >= 1)
-    m_mosquitto = mosquitto_new(clientId.c_str(), true, this);
+    m_mosquitto = mosquitto_new(clientId.str().c_str(), true, this);
 #else
-    m_mosquitto = mosquitto_new(clientId.c_str(), this);
+    m_mosquitto = mosquitto_new(clientId.str().c_str(), this);
 #endif
     if (!m_mosquitto) {
       logOtherError("mqtt", "unable to instantiate");
@@ -208,6 +250,14 @@ MqttHandler::MqttHandler(BusHandler* busHandler, MessageMap* messages)
   if (m_mosquitto) {
     /*mosquitto_log_init(m_mosquitto, MOSQ_LOG_DEBUG | MOSQ_LOG_ERR | MOSQ_LOG_WARNING
                 | MOSQ_LOG_NOTICE | MOSQ_LOG_INFO, MOSQ_LOG_STDERR);*/
+    if (g_username || g_password) {
+      if (!g_username) {
+        g_username = PACKAGE;
+      }
+      if (mosquitto_username_pw_set(m_mosquitto, g_username, g_password) != MOSQ_ERR_SUCCESS) {
+        logOtherError("mqtt", "unable to set username/password, trying without");
+      }
+    }
     string willTopic = m_globalTopic+"running";
     string willData = "false";
     size_t len = willData.length();
@@ -219,6 +269,7 @@ MqttHandler::MqttHandler(BusHandler* busHandler, MessageMap* messages)
         reinterpret_cast<const uint8_t*>(willData.c_str()), 0, true);
 #endif
 
+    mosquitto_connect_callback_set(m_mosquitto, on_connect);
 #if (LIBMOSQUITTO_MAJOR >= 1)
     if (mosquitto_connect(m_mosquitto, g_host, g_port, 60) != MOSQ_ERR_SUCCESS) {
 #else
@@ -228,7 +279,8 @@ MqttHandler::MqttHandler(BusHandler* busHandler, MessageMap* messages)
       mosquitto_destroy(m_mosquitto);
       m_mosquitto = NULL;
     } else {
-      logOtherNotice("mqtt", "connection established");
+      m_connected = true; // assume success until connect_callback says otherwise
+      logOtherDebug("mqtt", "connection requested");
     }
   }
 }
@@ -396,7 +448,7 @@ void MqttHandler::run() {
       publishTopic(uptimeTopic, updates.str());
       time(&lastTaskRun);
     }
-    if (!m_updatedMessages.empty()) {
+    if (m_connected && !m_updatedMessages.empty()) {
       for (map<Message*, int>::iterator it = m_updatedMessages.begin(); it != m_updatedMessages.end(); it++) {
         Message* message = it->first;
         updates.str("");
@@ -404,18 +456,34 @@ void MqttHandler::run() {
         updates << dec;
         publishMessage(message, updates);
       }
-      m_updatedMessages.clear();
     }
+    m_updatedMessages.clear();
   }
 }
 
 void MqttHandler::handleTraffic() {
   if (m_mosquitto) {
+    int ret;
 #if (LIBMOSQUITTO_MAJOR >= 1)
-    mosquitto_loop(m_mosquitto, -1, 1);
+    ret = mosquitto_loop(m_mosquitto, -1, 1);
 #else
-    mosquitto_loop(m_mosquitto, -1);
+    ret = mosquitto_loop(m_mosquitto, -1);
 #endif
+    if (!m_connected && ret == MOSQ_ERR_SUCCESS) {
+      m_connected = true;
+      logOtherNotice("mqtt", "connection re-established");
+    }
+    if (!m_connected || ret == MOSQ_ERR_SUCCESS) {
+      return;
+    }
+    if (ret == MOSQ_ERR_NO_CONN || ret == MOSQ_ERR_CONN_LOST || ret == MOSQ_ERR_CONN_REFUSED) {
+      logOtherError("mqtt", "communication error: %s", ret == MOSQ_ERR_NO_CONN ? "not connected"
+        : (ret == MOSQ_ERR_CONN_LOST ? "connection lost" : "connection refused")
+      );
+      m_connected = false;
+    } else {
+      logOtherError("mqtt", "communication error: %d", ret);
+    }
   }
 }
 
