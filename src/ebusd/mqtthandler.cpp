@@ -232,8 +232,8 @@ int on_keypassword(char *buf, int size, int rwflag, void *userdata) {
   if (!g_keypass) {
     return 0;
   }
-  size_t len = strlen(g_keypass);
-  if (len>size) {
+  int len = (int)strlen(g_keypass);
+  if (len > size) {
     len = size;
   }
   memcpy(buf, g_keypass, len);
