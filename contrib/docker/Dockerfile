@@ -32,6 +32,6 @@ RUN mkdir -p /etc/ebusd \
 
 EXPOSE 8888
 
-COPY docker-entrypoint.sh /
+COPY runtime/docker-entrypoint.sh /
 ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["-f", "--scanconfig"]
