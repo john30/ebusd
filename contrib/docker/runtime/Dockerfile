@@ -1,7 +1,7 @@
 FROM debian
 
 RUN apt-get update
-RUN apt-get install -y curl
+RUN apt-get install -y curl libmosquitto1
 
 LABEL maintainer "ebusd@ebusd.eu"
 
@@ -11,7 +11,7 @@ RUN mkdir /etc/ebusd \
 
 ENV EBUSD_VERSION 3.0pre
 ENV EBUSD_ARCH amd64
-COPY ebusd-${EBUSD_VERSION}_${EBUSD_ARCH}.deb ebusd.deb
+COPY ebusd-${EBUSD_VERSION}_${EBUSD_ARCH}_mqtt1.deb ebusd.deb
 
 RUN dpkg -i ebusd.deb
 
