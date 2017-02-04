@@ -28,13 +28,14 @@ The main features of the daemon are:
  * dump received bytes to binary files for later playback/analysis
  * listen for client connections on a dedicated TCP port (command line style and/or HTTP)
  * optionally format messages and data in JSON on dedicated HTTP port
- * optionally publish all received message data to MQTT topics and vice versa
+ * optionally publish all received message data to MQTT topics and vice versa including optional TLS
+
 
 Installation
 ------------
 
-Either pick the latest release package suitable for your system
-(see https://github.com/john30/ebusd/releases/latest) or build it yourself.
+Either pick the [latest release package](https://github.com/john30/ebusd/releases/latest)
+suitable for your system or build it yourself.
 
 Building ebusd from the source requires the following packages and/or features:
  * autoconf (>=2.63) + automake (>=1.11) or cmake
@@ -63,6 +64,17 @@ The most important part of each ebusd installation is the message
 configuration. By default, only rudimentary messages are interpreted.
 Check the Wiki and/or the configuration repository:
 > https://github.com/john30/ebusd-configuration
+
+
+Docker image
+------------
+
+A Docker image is available on the hub and it contains the latest German configuration files.
+You can use it like this:  
+> docker pull john30/ebusd  
+> docker run -it --rm --device=/dev/ttyUSB0 -p 8888 john30/ebusd
+
+For more details, see [Docker Readme](contrib/docker/README.md).
 
 
 Contact
