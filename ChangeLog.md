@@ -1,8 +1,13 @@
-# next version
+# next version: 3.0
+
+## Breaking Changes
+* switched to C++11 compiler
 
 ## Bug Fixes
 * corrected numeric condition formatting
 * corrected reporting of CSV error position
+* corrected last update time of write messages
+* close log file on SIGHUP for better logrotate support
 
 ## Features
 * added support for MQTT handling via libmosquitto (will be compiled in when library is available)
@@ -10,6 +15,9 @@
 * use scan ID as fallback for default circuit name
 * added U3N/U3R/S3N/S3R data types
 * added another log facility "other"
+* added support for using cmake in addition to autoconf
+* added Docker support
+* allow invalid (non-BCD) coded SW and HW fields when looking for scan config file
 
 
 # 2.4 (2016-12-17)
