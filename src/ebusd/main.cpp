@@ -827,7 +827,7 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
   unsigned int sw, hw;
   ostringstream out;
   unsigned char offset = 0;
-  size_t field = 0;
+  unsigned char field = 0;
   result_t result = (*identFields)[field]->read(partType, data, offset, out, 0);  // manufacturer name
   if (result == RESULT_ERR_NOTFOUND) {
     result = (*identFields)[field]->read(partType, data, offset, out, OF_NUMERIC);  // manufacturer name
