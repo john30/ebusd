@@ -208,6 +208,15 @@ class MainLoop : public Thread, DeviceListener {
    */
   string executeGet(vector<string> &args, bool& connected);
 
+  /**
+   * Format the HTTP answer to the result string.
+   * @param ret the result code of handling the request.
+   * @param result the @a ostringstream containing the successful result.
+   * @param type the content type.
+   * @return the result string.
+   */
+  string formatHttpResult(result_t ret, ostringstream& result, int type);
+
   /** the @a Device instance. */
   Device* m_device;
 

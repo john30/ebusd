@@ -164,7 +164,6 @@ void MainLoop::run() {
     (*it)->start();
   }
   while (true) {
-    string result;
     // pick the next message to handle
     NetMessage* netMessage = m_netQueue.pop(taskDelay);
     time(&now);
@@ -263,39 +262,37 @@ void MainLoop::run() {
     if (!listening) {
       since = now;
     }
+    ostringstream ostream;
     bool connected = true;
     if (request.length() > 0) {
       logDebug(lf_main, ">>> %s", request.c_str());
-      result = decodeMessage(request, netMessage->isHttp(), connected, listening, reload);
+      ostream << decodeMessage(request, netMessage->isHttp(), connected, listening, reload);
 
-      if (result.length() == 0 && !netMessage->isHttp()) {
-        result = getResultCode(RESULT_EMPTY);
+      if (ostream.tellp() == 0 && !netMessage->isHttp()) {
+        ostream << getResultCode(RESULT_EMPTY);
       }
-      if (result.length() > 100) {
-        logDebug(lf_main, "<<< %s ...", result.substr(0, 100).c_str());
+      if (ostream.tellp() > 100) {
+        logDebug(lf_main, "<<< %s ...", ostream.str().substr(0, 100).c_str());
       } else {
-        logDebug(lf_main, "<<< %s", result.c_str());
+        logDebug(lf_main, "<<< %s", ostream.str().c_str());
       }
-      if (result.length() == 0) {
-        result = "\n";  // only for HTTP
+      if (ostream.tellp() == 0) {
+        ostream << "\n";  // only for HTTP
       } else if (!netMessage->isHttp()) {
-        result += "\n\n";
+        ostream << "\n\n";
       }
     }
     if (listening) {
       messages = m_messages->findAll("", "", false, true, true, true, false, true, since, now);
-      updates.str("");
-      updates.clear();
       for (deque<Message*>::iterator it = messages.begin(); it != messages.end(); it++) {
         Message* message = *it;
-        updates << message->getCircuit() << " " << message->getName() << " = " << dec;
-        message->decodeLastData(updates);
-        updates << endl;
+        ostream << message->getCircuit() << " " << message->getName() << " = " << dec;
+        message->decodeLastData(ostream);
+        ostream << endl;
       }
-      result += updates.str();
     }
     // send result to client
-    netMessage->setResult(result, listening, now, !connected);
+    netMessage->setResult(ostream.str(), listening, now, !connected);
   }
 }
 
@@ -1130,9 +1127,9 @@ string MainLoop::executeState(vector<string> &args) {
   if (m_busHandler->hasSignal()) {
     ostringstream result;
     result << "signal acquired, "
-         << static_cast<unsigned>(m_busHandler->getSymbolRate()) << " symbols/sec ("
-         << static_cast<unsigned>(m_busHandler->getMaxSymbolRate()) << " max), "
-         << static_cast<unsigned>(m_busHandler->getMasterCount()) << " masters";
+         << m_busHandler->getSymbolRate() << " symbols/sec ("
+         << m_busHandler->getMaxSymbolRate() << " max), "
+         << m_busHandler->getMasterCount() << " masters";
     return result.str();
   }
   return "no signal";
@@ -1290,16 +1287,16 @@ string MainLoop::executeInfo(vector<string> &args) {
   result << "version: " << PACKAGE_STRING "." REVISION "\n";
   if (m_busHandler->hasSignal()) {
     result << "signal: acquired\n";
-    result << "symbol rate: " << static_cast<unsigned>(m_busHandler->getSymbolRate()) << "\n";
+    result << "symbol rate: " << m_busHandler->getSymbolRate() << "\n";
   } else {
     result << "signal: no signal\n";
   }
-  result << "reconnects: " << static_cast<unsigned>(m_reconnectCount) << "\n";
-  result << "masters: " << static_cast<unsigned>(m_busHandler->getMasterCount()) << "\n";
-  result << "messages: " << static_cast<unsigned>(m_messages->size()) << "\n";
-  result << "conditional: " << static_cast<unsigned>(m_messages->sizeConditional()) << "\n";
-  result << "poll: " << static_cast<unsigned>(m_messages->sizePoll()) << "\n";
-  result << "update: " << static_cast<unsigned>(m_messages->sizePassive());
+  result << "reconnects: " << m_reconnectCount << "\n";
+  result << "masters: " << m_busHandler->getMasterCount() << "\n";
+  result << "messages: " << m_messages->size() << "\n";
+  result << "conditional: " << m_messages->sizeConditional() << "\n";
+  result << "poll: " << m_messages->sizePoll() << "\n";
+  result << "update: " << m_messages->sizePassive();
   m_busHandler->formatSeenInfo(result);
   return result.str();
 }
@@ -1355,8 +1352,8 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
     if (pos == string::npos) {
       circuit = uri.substr(6);
     } else {
-      circuit = uri.substr(6, pos-6);
-      name = uri.substr(pos+1);
+      circuit = uri.substr(6, pos - 6);
+      name = uri.substr(pos + 1);
     }
     time_t since = 0;
     unsigned char pollPriority = 0;
@@ -1370,7 +1367,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
         string qname, value;
         if (pos != string::npos) {
           qname = token.substr(0, pos);
-          value = token.substr(pos+1);
+          value = token.substr(pos + 1);
         } else {
           qname = token;
         }
@@ -1382,7 +1379,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
           exact = value.length() == 0 || strcmp(value.c_str(), "1") == 0;
         } else if (strcmp(qname.c_str(), "verbose") == 0) {
           if (value.length() == 0 || strcmp(value.c_str(), "1") == 0) {
-            verbosity |= OF_UNITS|OF_COMMENTS;
+            verbosity |= OF_UNITS | OF_COMMENTS;
           }
         } else if (strcmp(qname.c_str(), "indexed") == 0) {
           if (value.length() == 0 || strcmp(value.c_str(), "1") == 0) {
@@ -1398,74 +1395,75 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
         }
       }
     }
-    deque<Message*> messages = m_messages->findAll(circuit, name, exact, true, false, true);
 
-    bool first = true;
     result << "{";
     string lastCircuit = "";
     time_t maxLastUp = 0;
-    for (deque<Message*>::iterator it = messages.begin(); ret == RESULT_OK && it != messages.end();) {
-      Message* message = *it++;
-      unsigned char dstAddress = message->getDstAddress();
-      if (dstAddress == SYN) {
-        continue;
-      }
-      if (pollPriority > 0 && message->setPollPriority(pollPriority)) {
-        m_messages->addPollMessage(message);
-      }
-      time_t lastup = message->getLastUpdateTime();
-      if (lastup == 0 && required) {
-        // read directly from bus
-        if (message->isPassive()) {
-          continue;  // not possible to actively read this message
-        }
-        if (m_busHandler->readFromBus(message, "") != RESULT_OK) {
-          continue;
-        }
-        lastup = message->getLastUpdateTime();
-      } else {
-        if (since > 0 && lastup <= since) {
-          continue;
-        }
-        if (lastup > maxLastUp) {
-          maxLastUp = lastup;
-        }
-      }
-      if (message->getCircuit() != lastCircuit) {
-        if (lastCircuit.length() > 0) {
-          result << "\n },";
-        }
-        lastCircuit = message->getCircuit();
-        result << "\n \"" << lastCircuit << "\": {";
-        first = true;
-      }
-      if (first) {
-        first = false;
-      } else {
-        result << ",";
-      }
-      result << "\n  \"" << message->getName() << "\": {";
-      result << "\n   \"lastup\": " << setw(0) << dec << static_cast<unsigned>(lastup);
-      if (lastup != 0) {
-        result << ",\n   \"zz\": \"" << setfill('0') << setw(2) << hex << static_cast<unsigned>(dstAddress) << "\"";
-        size_t pos = (size_t)result.tellp();
-        result << ",\n   \"fields\": {";
-        result_t dret = message->decodeLastData(result, verbosity|(numeric?OF_NUMERIC:0)|OF_JSON);
-        if (dret == RESULT_OK) {
-          result << "\n   }";
-        } else {
-          string prefix = result.str().substr(0, pos);
-          result.str("");
-          result.clear();  // remove written fields
-          result << prefix << ",\n   \"decodeerror\": \"" << getResultCode(dret) << "\"";
-        }
-      }
-      result << ",\n   \"passive\": " << (message->isPassive() ? "true" : "false");
-      result << ",\n   \"write\": " << (message->isWrite() ? "true" : "false");
-      result << "\n  }";
-    }
-
     if (ret == RESULT_OK) {
+      deque<Message *> messages = m_messages->findAll(circuit, name, exact, true, false, true);
+
+      bool first = true;
+      for (deque<Message*>::iterator it = messages.begin(); it != messages.end();) {
+        Message* message = *it++;
+        unsigned char dstAddress = message->getDstAddress();
+        if (dstAddress == SYN) {
+          continue;
+        }
+        if (pollPriority > 0 && message->setPollPriority(pollPriority)) {
+          m_messages->addPollMessage(message);
+        }
+        time_t lastup = message->getLastUpdateTime();
+        if (lastup == 0 && required) {
+          // read directly from bus
+          if (message->isPassive()) {
+            continue;  // not possible to actively read this message
+          }
+          if (m_busHandler->readFromBus(message, "") != RESULT_OK) {
+            continue;
+          }
+          lastup = message->getLastUpdateTime();
+        } else {
+          if (since > 0 && lastup <= since) {
+            continue;
+          }
+          if (lastup > maxLastUp) {
+            maxLastUp = lastup;
+          }
+        }
+        if (message->getCircuit() != lastCircuit) {
+          if (lastCircuit.length() > 0) {
+            result << "\n },";
+          }
+          lastCircuit = message->getCircuit();
+          result << "\n \"" << lastCircuit << "\": {";
+          first = true;
+        }
+        if (first) {
+          first = false;
+        } else {
+          result << ",";
+        }
+        result << "\n  \"" << message->getName() << "\": {";
+        result << "\n   \"lastup\": " << setw(0) << dec << static_cast<unsigned>(lastup);
+        if (lastup != 0) {
+          result << ",\n   \"zz\": \"" << setfill('0') << setw(2) << hex << static_cast<unsigned>(dstAddress) << "\"";
+          size_t pos = (size_t) result.tellp();
+          result << ",\n   \"fields\": {";
+          result_t dret = message->decodeLastData(result, verbosity | (numeric ? OF_NUMERIC : 0) | OF_JSON);
+          if (dret == RESULT_OK) {
+            result << "\n   }";
+          } else {
+            string prefix = result.str().substr(0, pos);
+            result.str("");
+            result.clear();  // remove written fields
+            result << prefix << ",\n   \"decodeerror\": \"" << getResultCode(dret) << "\"";
+          }
+        }
+        result << ",\n   \"passive\": " << (message->isPassive() ? "true" : "false");
+        result << ",\n   \"write\": " << (message->isWrite() ? "true" : "false");
+        result << "\n  }";
+      }
+
       if (lastCircuit.length() > 0) {
         result << "\n },";
       }
@@ -1476,48 +1474,54 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
       result << "\n}";
       type = 6;
     }
+    connected = false;
+    return formatHttpResult(ret, result, type);
+  }  // request for "/data/..."
+
+  if (uri.length() < 1 || uri[0] != '/' || uri.find("//") != string::npos || uri.find("..") != string::npos) {
+    ret = RESULT_ERR_INVALID_ARG;
   } else {
-    if (uri.length() < 1 || uri[0] != '/' || uri.find("//") != string::npos || uri.find("..") != string::npos) {
-      ret = RESULT_ERR_INVALID_ARG;
+    string filename = m_htmlPath + uri;
+    if (uri[uri.length() - 1] == '/') {
+      filename += "index.html";
+    }
+    size_t pos = filename.find_last_of('.');
+    if (pos != string::npos && pos != filename.length() - 1 && pos >= filename.length() - 5) {
+      string ext = filename.substr(pos + 1);
+      if (ext == "html") {
+        type = 0;
+      } else if (ext == "css") {
+        type = 1;
+      } else if (ext == "js") {
+        type = 2;
+      } else if (ext == "png") {
+        type = 3;
+      } else if (ext == "jpg" || ext == "jpeg") {
+        type = 4;
+      } else if (ext == "svg") {
+        type = 5;
+      } else if (ext == "json") {
+        type = 6;
+      }
+    }
+    if (type < 0) {
+      ret = RESULT_ERR_NOTFOUND;
     } else {
-      string filename = m_htmlPath+uri;
-      if (uri[uri.length()-1] == '/') {
-        filename += "index.html";
-      }
-      size_t pos = filename.find_last_of('.');
-      if (pos != string::npos && pos != filename.length() - 1 && pos >= filename.length() - 5) {
-        string ext = filename.substr(pos+1);
-        if (ext == "html") {
-          type = 0;
-        } else if (ext == "css") {
-          type = 1;
-        } else if (ext == "js") {
-          type = 2;
-        } else if (ext == "png") {
-          type = 3;
-        } else if (ext == "jpg" || ext == "jpeg") {
-          type = 4;
-        } else if (ext == "svg") {
-          type = 5;
-        } else if (ext == "json") {
-          type = 6;
-        }
-      }
-      if (type < 0) {
+      ifstream ifs;
+      ifs.open(filename.c_str(), ifstream::in | ifstream::binary);
+      if (!ifs.is_open()) {
         ret = RESULT_ERR_NOTFOUND;
       } else {
-        ifstream ifs;
-        ifs.open(filename.c_str(), ifstream::in | ifstream::binary);
-        if (!ifs.is_open()) {
-          ret = RESULT_ERR_NOTFOUND;
-        } else {
-          ifs >> result.rdbuf();
-          ifs.close();
-        }
+        ifs >> result.rdbuf();
+        ifs.close();
       }
     }
   }
+  connected = false;
+  return formatHttpResult(ret, result, type);
+}
 
+string MainLoop::formatHttpResult(result_t ret, ostringstream& result, int type) {
   string data = ret == RESULT_OK ? result.str() : "";
   result.str("");
   result.clear();
@@ -1564,7 +1568,6 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
   }
   result << "\r\nServer: " PACKAGE_NAME "/" PACKAGE_VERSION "\r\n\r\n";
   result << data;
-  connected = false;
   return result.str();
 }
 
