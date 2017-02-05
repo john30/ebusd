@@ -1,7 +1,9 @@
-cmake_minimum_required(VERSION 2.8)
-project(ebusd)
+cmake_minimum_required(VERSION 2.8.4 FATAL_ERROR)
 
 file(STRINGS "VERSION" VERSION)
+
+project(ebusd)
+
 set(PACKAGE ${CMAKE_PROJECT_NAME})
 set(PACKAGE_NAME ${CMAKE_PROJECT_NAME})
 set(PACKAGE_TARNAME ${CMAKE_PROJECT_NAME})
@@ -12,8 +14,10 @@ set(PACKAGE_URL "https://github.com/john30/ebusd")
 set(PACKAGE_PIDFILE "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/run/${PACKAGE}.pid")
 set(PACKAGE_LOGFILE "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/${PACKAGE}.log")
 set(PACKAGE_CONFIGPATH "${CMAKE_INSTALL_FULL_SYSCONFDIR}/${PACKAGE}")
-execute_process(COMMAND sed -e "s/^\\([0-9]*\\.[0-9]*\\).*/\\1/" -e "s/\\.\\([0-9]\\)\$/0\\1/" -e "s/\\.//" VERSION
+execute_process(COMMAND echo -n ${VERSION}
+                COMMAND sed "-e" "s/^\\([0-9]*\\.[0-9]*\\).*/\\1/" "-e" "s/\\.\\([0-9]\\)\$/0\\1/" "-e" "s/\\.//"
                 OUTPUT_VARIABLE SCAN_VERSION)
+
 execute_process(COMMAND git describe --always
                 OUTPUT_VARIABLE REVISION
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
@@ -45,11 +49,18 @@ check_include_file(sys/time.h HAVE_SYS_TIME_H)
 check_include_file(time.h HAVE_TIME_H)
 check_include_file(termios.h HAVE_TERMIOS_H)
 
-set(CMAKE_REQUIRED_LIBRARIES pthread)
+set(CMAKE_REQUIRED_LIBRARIES pthread rt)
 check_function_exists(pthread_setname_np HAVE_PTHREAD_SETNAME_NP)
-
 check_function_exists(pselect HAVE_PSELECT)
 check_function_exists(ppoll HAVE_PPOLL)
+check_function_exists(argp_parse HAVE_ARGP)
+if(NOT HAVE_ARGP)
+  find_library(LIB_ARGP argp)
+  if (NOT LIB_ARGP)
+    message(FATAL_ERROR "argp library not available")
+  endif(NOT LIB_ARGP)
+  set(CMAKE_REQUIRED_LIBRARIES "${CMAKE_REQUIRED_LIBRARIES} ${LIB_ARGP}")
+endif(NOT HAVE_ARGP)
 
 option(coverage "enable code coverage tracking." OFF)
 if(NOT coverage STREQUAL OFF)
@@ -99,7 +110,7 @@ int main() {
   endif(HAVE_DIRECT_FLOAT_FORMAT_REV)
 endif(NOT HAVE_DIRECT_FLOAT_FORMAT)
 
-add_definitions(-DHAVE_CONFIG_H -DSYSCONFDIR="${CMAKE_INSTALL_FULL_SYSCONFDIR}" -DLOCALSTATEDIR="${CMAKE_INSTALL_FULL_LOCALSTATEDIR}")
+add_definitions(-D_GNU_SOURCE -DHAVE_CONFIG_H -DSYSCONFDIR="${CMAKE_INSTALL_FULL_SYSCONFDIR}" -DLOCALSTATEDIR="${CMAKE_INSTALL_FULL_LOCALSTATEDIR}")
 configure_file(config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${ebusd_SOURCE_DIR}/src)
