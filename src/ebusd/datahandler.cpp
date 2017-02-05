@@ -21,15 +21,11 @@
 #endif
 
 #include "ebusd/datahandler.h"
-#include <list>
-#include <string>
 #ifdef HAVE_MQTT
 #  include "ebusd/mqtthandler.h"
 #endif
 
 namespace ebusd {
-
-using std::string;
 
 /** the final @a argp_child structure. */
 static const struct argp_child g_last_argp_child = {NULL, 0, NULL, 0};

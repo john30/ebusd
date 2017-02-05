@@ -358,7 +358,7 @@ class BusHandler : public WaitThread {
       m_busLostRetries(busLostRetries), m_failedSendRetries(failedSendRetries),
       m_transferLatency(transferLatency), m_busAcquireTimeout(busAcquireTimeout), m_slaveRecvTimeout(slaveRecvTimeout),
       m_masterCount(device->isReadOnly()?0:1), m_autoLockCount(lockCount == 0),
-      m_lockCount(lockCount <= 3 ? 3 : lockCount), m_remainLockCount(m_autoLockCount),
+      m_lockCount(lockCount <= 3 ? 3 : lockCount), m_remainLockCount(m_autoLockCount ? 1 : 0),
       m_generateSynInterval(generateSyn ? SYN_TIMEOUT*getMasterNumber(ownAddress)+SYMBOL_DURATION : 0),
       m_pollInterval(pollInterval), m_lastReceive(0), m_lastPoll(0),
       m_currentRequest(NULL), m_runningScans(0), m_nextSendPos(0),

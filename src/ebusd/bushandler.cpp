@@ -21,17 +21,7 @@
 #endif
 
 #include "ebusd/bushandler.h"
-#include <unistd.h>
-#include <time.h>
-#include <string>
-#include <vector>
-#include <deque>
-#include <cstring>
 #include <iomanip>
-#include "lib/ebus/message.h"
-#include "lib/ebus/data.h"
-#include "lib/ebus/result.h"
-#include "lib/ebus/symbol.h"
 #include "lib/utils/log.h"
 
 namespace ebusd {
@@ -995,7 +985,7 @@ void BusHandler::setScanFinished() {
 
 void BusHandler::formatScanResult(ostringstream& output) {
   if (m_runningScans > 0) {
-    output << static_cast<unsigned>(m_runningScans) << " scan(s) still running" << endl;
+    output << m_runningScans << " scan(s) still running" << endl;
   }
   bool first = true;
   for (unsigned char slave = 1; slave != 0; slave++) {  // 0 is known to be a master
