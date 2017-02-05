@@ -31,6 +31,10 @@ namespace ebusd {
 
 int Connection::m_ids = 0;
 
+#ifndef POLLRDHUP
+#define POLLRDHUP 0
+#endif
+
 void Connection::run() {
   int ret;
   struct timespec tdiff;
@@ -113,7 +117,7 @@ void Connection::run() {
         break;
       }
       if (newData) {
-        size_t datalen = m_socket->recv(data, sizeof(data)-1);
+        ssize_t datalen = m_socket->recv(data, sizeof(data)-1);
 
         // remove closed socket
         if (datalen <= 0) {
@@ -278,9 +282,6 @@ void Network::run() {
         continue;
       }
       Connection* connection = new Connection(socket, isHttp, m_netQueue);
-      if (connection == NULL) {
-        continue;
-      }
       connection->start("connection");
       m_connections.push_back(connection);
       logInfo(lf_network, "[%05d] %s connection opened %s", connection->getID(), isHttp ? "HTTP" : "client",
