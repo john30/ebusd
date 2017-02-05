@@ -44,16 +44,17 @@ struct options {
   /** the initial address to scan for scanconfig
    * (@a ESC=none, 0xfe=broadcast ident, @a SYN=full scan, else: single slave address). */
   unsigned char initialScan;
-  int checkConfig;  //!< check CSV config files ( != 0) and optionally dump (2), then stop
-  int pollInterval;  //!< poll interval in seconds, 0 to disable [5]
+  bool checkConfig;  //!< check CSV config files, then stop
+  bool dumpConfig;   //!< dump CSV config files, then stop
+  unsigned int pollInterval;  //!< poll interval in seconds, 0 to disable [5]
 
   unsigned char address;  //!< own bus address [31]
   bool answer;  //!< answer to requests from other masters
-  int acquireTimeout;  //!< bus acquisition timeout in us [9400]
-  int acquireRetries;  //!< number of retries for bus acquisition [3]
-  int sendRetries;  //!< number of retries for failed sends [2]
-  int receiveTimeout;  //!< timeout for receiving answer from slave in us [25000]
-  int masterCount;  //!< expected number of masters for arbitration [0]
+  unsigned int acquireTimeout;  //!< bus acquisition timeout in us [9400]
+  unsigned int acquireRetries;  //!< number of retries for bus acquisition [3]
+  unsigned int sendRetries;  //!< number of retries for failed sends [2]
+  unsigned int receiveTimeout;  //!< timeout for receiving answer from slave in us [25000]
+  unsigned int masterCount;  //!< expected number of masters for arbitration [0]
   bool generateSyn;  //!< enable AUTO-SYN symbol generation
 
   bool foreground;  //!< run in foreground

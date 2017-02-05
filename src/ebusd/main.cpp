@@ -22,21 +22,16 @@
 
 #include "ebusd/main.h"
 #include <dirent.h>
-#include <sys/types.h>
 #include <sys/stat.h>
-#include <stdlib.h>
 #include <argp.h>
 #include <csignal>
 #include <iostream>
 #include <algorithm>
 #include <iomanip>
 #include <map>
-#include <string>
 #include <vector>
 #include "ebusd/mainloop.h"
-#include "ebusd/bushandler.h"
 #include "lib/utils/log.h"
-#include "lib/utils/rotatefile.h"
 
 namespace ebusd {
 
@@ -83,7 +78,8 @@ static struct options opt = {
   CONFIG_PATH,  // configPath
   false,  // scanConfig
   BROADCAST,  // initialScan
-  0,  // checkConfig
+  false,  // checkConfig
+  false,  // dumpConfig
   5,  // pollInterval
   0x31,  // address
   false,  // answer
@@ -287,12 +283,11 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     }
     break;
   case O_CHKCFG:  // --checkconfig
-    if (opt->checkConfig == 0) {
-      opt->checkConfig = 1;
-    }
+    opt->checkConfig = true;
     break;
   case O_DMPCFG:  // --dumpconfig
-    opt->checkConfig = 2;
+    opt->checkConfig = true;
+    opt->dumpConfig = true;
     break;
   case O_POLINT:  // --pollinterval=5
     opt->pollInterval = parseInt(arg, 10, 0, 3600, result);
@@ -436,7 +431,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     opt->logRawFile = arg;
     break;
   case O_RAWSIZ:  // --lograwdatasize=100
-    opt->logRawSize = (unsigned int)parseInt(arg, 10, 1, 1000000, result);
+    opt->logRawSize = parseInt(arg, 10, 1, 1000000, result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid lograwdatasize");
       return EINVAL;
@@ -456,7 +451,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     opt->dumpFile = arg;
     break;
   case O_DMPSIZ:  // --dumpsize=100
-    opt->dumpSize = (unsigned int)parseInt(arg, 10, 1, 1000000, result);
+    opt->dumpSize = parseInt(arg, 10, 1, 1000000, result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid dumpsize");
       return EINVAL;
@@ -695,11 +690,11 @@ static bool readTemplates(const string path, const string extension, bool availa
   result_t result = templates->readFromFile(path+"/_templates"+extension, verbose);
   if (result == RESULT_OK) {
     logInfo(lf_main, "read templates in %s", path.c_str());
-  } else {
-    logError(lf_main, "error reading templates in %s: %s, last error: %s", path.c_str(), getResultCode(result),
-        templates->getLastError().c_str());
+    return true;
   }
-  return templates;
+  logError(lf_main, "error reading templates in %s: %s, last error: %s", path.c_str(), getResultCode(result),
+           templates->getLastError().c_str());
+  return false;
 }
 
 /**
@@ -723,7 +718,7 @@ static result_t readConfigFiles(const string path, const string extension, Messa
   for (vector<string>::iterator it = files.begin(); it != files.end(); it++) {
     string name = *it;
     logInfo(lf_main, "reading file %s", name.c_str());
-    result_t result = messages->readFromFile(name, verbose);
+    result = messages->readFromFile(name, verbose);
     if (result != RESULT_OK) {
       return result;
     }
@@ -732,7 +727,7 @@ static result_t readConfigFiles(const string path, const string extension, Messa
     for (vector<string>::iterator it = dirs.begin(); it != dirs.end(); it++) {
       string name = *it;
       logInfo(lf_main, "reading dir  %s", name.c_str());
-      result_t result = readConfigFiles(name, extension, messages, true, verbose);
+      result = readConfigFiles(name, extension, messages, true, verbose);
       if (result != RESULT_OK) {
         return result;
       }
@@ -824,7 +819,7 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
   }
   DataFieldSet* identFields = DataFieldSet::getIdentFields();
   string path, prefix, ident;  // path: cfgpath/MANUFACTURER, prefix: ZZ., ident: C[C[C[C[C]]]], SW: xxxx, HW: xxxx
-  unsigned int sw, hw;
+  unsigned int sw = 0, hw = 0;
   ostringstream out;
   unsigned char offset = 0;
   unsigned char field = 0;
@@ -1040,7 +1035,7 @@ int main(int argc, char* argv[]) {
         }
       }
     }
-    if (result == RESULT_OK && opt.checkConfig > 1) {
+    if (result == RESULT_OK && opt.dumpConfig) {
       logNotice(lf_main, "configuration dump:");
       s_messageMap->dump(cout, true);
     }
