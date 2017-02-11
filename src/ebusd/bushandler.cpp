@@ -929,6 +929,9 @@ void BusHandler::receiveCompleted() {
 }
 
 result_t BusHandler::startScan(bool full) {
+  if (m_runningScans > 0) {
+    return RESULT_ERR_DUPLICATE;
+  }
   deque<Message*> messages = m_messages->findAll("scan", "", true);
   for (deque<Message*>::iterator it = messages.begin(); it < messages.end(); it++) {
     Message* message = *it;

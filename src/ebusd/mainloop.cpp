@@ -1157,6 +1157,9 @@ string MainLoop::executeGrab(vector<string> &args) {
 string MainLoop::executeScan(vector<string> &args) {
   if (args.size() == 1) {
     result_t result = m_busHandler->startScan();
+    if (result == RESULT_ERR_DUPLICATE) {
+      return "ERR: scan already running";
+    }
     if (result != RESULT_OK) {
       logError(lf_main, "scan: %s", getResultCode(result));
     }
