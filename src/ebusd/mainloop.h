@@ -23,6 +23,7 @@
 #include <list>
 #include <vector>
 #include <map>
+#include <algorithm>
 #include "ebusd/bushandler.h"
 #include "ebusd/datahandler.h"
 #include "ebusd/network.h"
@@ -46,7 +47,13 @@ class UserList : public UserInfo, public FileReader {
    * @param defaultLevels the default access levels.
    */
   explicit UserList(const string defaultLevels) : FileReader::FileReader(false) {
-    m_userLevels[""] = defaultLevels;
+    if (!defaultLevels.empty()) {
+      string levels = defaultLevels;
+      transform(levels.begin(), levels.end(), levels.begin(), [](unsigned char c) {
+        return c == ',' ? VALUE_SEPARATOR : c;
+      });
+      m_userLevels[""] = levels;
+    }
   }
 
   /**
