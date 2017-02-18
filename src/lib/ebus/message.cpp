@@ -2002,8 +2002,8 @@ Message* MessageMap::find(const string& circuit, const string& name, const strin
 }
 
 deque<Message*> MessageMap::findAll(const string& circuit, const string& name, const string& levels,
-    const bool completeMatch, const bool withRead, const bool withWrite,
-    const bool withPassive, const bool onlyAvailable,
+    const bool completeMatch, const bool withRead, const bool withWrite, const bool withPassive,
+    const bool includeEmptyLevel, const bool onlyAvailable,
     const time_t since, const time_t until) {
   deque<Message*> ret;
   string lcircuit = circuit;
@@ -2019,7 +2019,7 @@ deque<Message*> MessageMap::findAll(const string& circuit, const string& name, c
     }
     for (vector<Message*>::iterator msgIt = it->second.begin(); msgIt != it->second.end(); msgIt++) {
       Message* message = *msgIt;
-      if (checkLevel && !message->hasLevel(levels, !completeMatch)) {
+      if (checkLevel && !message->hasLevel(levels, includeEmptyLevel)) {
         continue;
       }
       if (checkCircuit) {

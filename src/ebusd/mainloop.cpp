@@ -288,7 +288,7 @@ void MainLoop::run() {
     }
     time(&now);
     if (!dataSinks.empty()) {
-      messages = m_messages->findAll("", "", "*", false, true, true, true, true, sinkSince, now);
+      messages = m_messages->findAll("", "", "*", false, true, true, true, true, true, sinkSince, now);
       for (deque<Message*>::iterator it = messages.begin(); it != messages.end(); it++) {
         Message* message = *it;
         for (list<DataSink*>::iterator it = dataSinks.begin(); it != dataSinks.end(); it++) {
@@ -328,7 +328,7 @@ void MainLoop::run() {
     }
     if (listening) {
       string levels = getUserLevels(user);
-      messages = m_messages->findAll("", "", levels, false, true, true, true, true, since, now);
+      messages = m_messages->findAll("", "", levels, false, true, true, true, true, true, since, now);
       for (deque<Message*>::iterator it = messages.begin(); it != messages.end(); it++) {
         Message* message = *it;
         ostream << message->getCircuit() << " " << message->getName() << " = " << dec;
@@ -963,7 +963,7 @@ string MainLoop::executeHex(vector<string> &args) {
 string MainLoop::executeFind(vector<string> &args, string levels) {
   size_t argPos = 1;
   bool configFormat = false, exact = false, withRead = true, withWrite = false, withPassive = true, first = true,
-      onlyWithData = false, hexFormat = false;
+      onlyWithData = false, hexFormat = false, userLevel = true;
   OutputFormat verbosity = 0;
   vector<column_t> columns;
   string circuit;
@@ -1075,6 +1075,7 @@ string MainLoop::executeFind(vector<string> &args, string levels) {
         break;
       }
       levels = args[argPos];
+      userLevel = false;
     } else {
       argPos = 0;  // print usage
       break;
@@ -1103,7 +1104,7 @@ string MainLoop::executeFind(vector<string> &args, string levels) {
          "  NAME           NAME of the messages to find (or a part thereof without '-e')";
   }
   deque<Message*> messages = m_messages->findAll(
-    circuit, args.size() == argPos ? "" : args[argPos], levels, exact, withRead, withWrite, withPassive);
+    circuit, args.size() == argPos ? "" : args[argPos], levels, exact, withRead, withWrite, withPassive, userLevel);
 
   bool found = false;
   ostringstream result;

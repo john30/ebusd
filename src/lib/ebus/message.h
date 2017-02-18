@@ -1320,6 +1320,8 @@ class MessageMap : public FileReader {
    * @param withWrite true to include write messages (default false).
    * @param withPassive true to include passive messages (default false).
    * @return the found @a Message instances.
+   * @param includeEmptyLevel true to also include messages with no access level, false to include only messages with
+   * the specified level.
    * @param onlyAvailable true to include only available messages (default true), false to also include messages that
    * are currently not available (e.g. due to unresolved or false conditions).
    * @param since the start time from which to add updates (inclusive, also removes messages with unset destination
@@ -1330,7 +1332,7 @@ class MessageMap : public FileReader {
    */
   deque<Message*> findAll(const string& circuit, const string& name, const string& levels,
     const bool completeMatch = true, const bool withRead = true, const bool withWrite = false,
-    const bool withPassive = false, const bool onlyAvailable = true,
+    const bool withPassive = false, const bool includeEmptyLevel = true, const bool onlyAvailable = true,
     const time_t since = 0, const time_t until = 0);
 
   /**
