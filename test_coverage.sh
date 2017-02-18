@@ -193,6 +193,7 @@ read -c "hallo du" ich
 h
 h r
 h w
+h a
 h hex
 h f
 h l
@@ -240,6 +241,7 @@ w -c mc.5 Timer.Monday "-:-;-:-;-:-;-:-;-:-;-:-;Mo-So"
 w -c mc.5 Timer.Monday "00:00;23:50;00:30;00:50;03:30;06:00;Mo-Fr"
 w -c mc.5 -d 53 HeatingCurve 0.25
 w -c mc.5 -d 53 installparam 123
+a b
 a test testpass
 w -c mc.5 -d 53 installparam 123
 hex fe070400
