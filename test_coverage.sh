@@ -25,6 +25,9 @@
 ./src/ebusd/ebusd -f --loglevel unknown >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --dumpfile "" >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --dumpsize 9999999 >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --aclfile=/ >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --accesslevel= >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f "--accesslevel=*" >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f "ff08070400/0ab5303132333431313131" >/dev/null
 ./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f "ff08070400" >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f "ff080704/" >/dev/null 2>/dev/null
@@ -156,6 +159,7 @@ r,mc.5,Timer.Monday,,,53,b504,02,from,s,TTM,,,Slots 1-3,to,s,TTM,,,bis,from,s,TT
 w,mc.5,Timer.Monday,,,53,b505,02,from,m,TTM,,,Slots 1-3,to,m,TTM,,,bis,from,m,TTM,,,Slot von/bis,to,m,TTM,,,bis,from,m,TTM,,,Slot von/bis,to,m,TTM,,,bis,daysel,m,UCH,0=selected;1=Mo-Fr;2=Sa-So;3=Mo-So,,Tage
 r,mc.5,HeatingCurve,,,53,b509,0d3500,curve,s,UIN,100
 w,mc.5,HeatingCurve,,,53,b509,0e3500,curve,m,UIN,100
+w,mc.5#installer,installparam,,,53,b509,0e3f00,param,m,UCH
 EOF
 mkdir -p "$PWD/contrib/etc/ebusd/153"
 cat >"$PWD/contrib/etc/ebusd/153/_templates" <<EOF
@@ -165,7 +169,8 @@ cat >"$PWD/contrib/etc/ebusd/153/36.bbb.csv" <<EOF
 *r,,,,,,"9900",,,,,,,
 r,,SoftwareVersion,,,,,"0000",,,HEX:4,,,
 EOF
-./src/ebusd/ebusd -d tcp:127.0.0.1:8876 --initsend --latency 10000 -n -c "$PWD/contrib/etc/ebusd" --pollinterval=10 -s -a 31 --acquireretries 3 --answer --generatesyn --receivetimeout 40000 --sendretries 1 --enablehex --htmlpath "$PWD/contrib/html" --httpport 8878 --localhost --pidfile "$PWD/ebusd.pid" -p 8877 -l "$PWD/ebusd.log" --logareas all --loglevel debug --lograwdata --dumpfile "$PWD/ebusd.dump" --dumpsize 100 -D --scanconfig
+echo "test,testpass,installer" > ./passwd
+./src/ebusd/ebusd -d tcp:127.0.0.1:8876 --initsend --latency 10000 -n -c "$PWD/contrib/etc/ebusd" --pollinterval=10 -s -a 31 --acquireretries 3 --answer --generatesyn --receivetimeout 40000 --sendretries 1 --enablehex --htmlpath "$PWD/contrib/html" --httpport 8878 --localhost --pidfile "$PWD/ebusd.pid" -p 8877 -l "$PWD/ebusd.log" --logareas all --loglevel debug --lograwdata --dumpfile "$PWD/ebusd.dump" --dumpsize 100 -D --scanconfig --aclfile=./passwd
 sleep 1
 pid=`head -n 1 "$PWD/ebusd.pid"`
 if [ -z "$pid" ]; then
@@ -230,10 +235,14 @@ f -d -i b5
 f -F name temp
 f -e RoomTemp
 f -e -c mc.5
+f -e -c mc.5 -l installer
 r -c mc.5 Timer.Monday
 w -c mc.5 Timer.Monday "-:-;-:-;-:-;-:-;-:-;-:-;Mo-So"
 w -c mc.5 Timer.Monday "00:00;23:50;00:30;00:50;03:30;06:00;Mo-Fr"
 w -c mc.5 -d 53 HeatingCurve 0.25
+w -c mc.5 -d 53 installparam 123
+a test testpass
+w -c mc.5 -d 53 installparam 123
 hex fe070400
 hex 53070400
 dump
@@ -280,6 +289,7 @@ if [ "$status" = 0 ]; then
   curl "http://localhost:8878/data/mc.4/outsidetemp?poll=1" >/dev/null
   curl "http://localhost:8878/data/?verbose=1" >/dev/null
   curl "http://localhost:8878/data/?indexed=1&numeric=1" >/dev/null
+  curl "http://localhost:8878/data/mc.5/installparam?poll=1&user=test&secret=testpass" >/dev/null
   curl -T .travis.yml http://localhost:8878/data/
   echo "commands done"
   kill $lstpid
