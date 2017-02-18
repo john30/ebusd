@@ -91,7 +91,13 @@ result_t UserList::addFromFile(vector<string>::iterator& begin, const vector<str
   if (begin == end) {
     return RESULT_ERR_EOF;
   }
-  const string levels = *begin++;
+  string levels = *begin++;
+  while (begin != end) {
+    string level = *begin++;
+    if (!level.empty()) {
+      levels += VALUE_SEPARATOR + level;
+    }
+  }
   m_userSecrets[name] = secret;
   m_userLevels[name] = levels;
   return RESULT_OK;
@@ -495,7 +501,7 @@ result_t MainLoop::parseHexMaster(vector<string> &args, size_t argPos, SymbolStr
 string MainLoop::executeAuth(vector<string> &args, string &user) {
   if (args.size() != 3) {
     return "usage: auth USER SECRET\n"
-           " Authorize with USER name and SECRET.\n"
+           " Authenticate with USER name and SECRET.\n"
            "  USER    the user name\n"
            "  SECRET  the secret string of the user";
   }
@@ -1402,7 +1408,7 @@ string MainLoop::executeHelp() {
       "          Read hex message:      read [-f] [-m SECONDS] [-c CIRCUIT] -h ZZPBSBNNDx\n"
       " write|w  Write value(s):        write [-d ZZ] -c CIRCUIT NAME [VALUE[;VALUE]*]\n"
       "          Write hex message:     write [-c CIRCUIT] -h ZZPBSBNNDx\n"
-      " auth|a   Authorize user:        auth USER SECRET\n"
+      " auth|a   Authenticate user:     auth USER SECRET\n"
       " hex      Send hex data:         hex ZZPBSBNNDx\n"
       " find|f   Find message(s):       find [-v|-V] [-r] [-w] [-p] [-a] [-d] [-h] [-i ID] [-f] [-F COL[,COL]*] [-e]"
       " [-c CIRCUIT] [-l LEVEL] [NAME]\n"
