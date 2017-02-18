@@ -24,6 +24,7 @@
 #include "lib/ebus/data.h"
 #include "lib/ebus/message.h"
 #include "lib/ebus/result.h"
+#include "lib/utils/log.h"
 
 /** \file main.h
  * The main entry method doing all the startup handling.
@@ -68,6 +69,9 @@ struct options {
   const char* htmlPath;  //!< path for HTML files served by the HTTP port [/var/ebusd/html]
 
   const char* logFile;  //!< log file name [/var/log/ebusd.log]
+  int logAreas;  //!< log areas [all]
+  LogLevel logLevel;  //!< log level [notice]
+  bool multiLog;  //!< multiple log levels adjusted with --log=...
 
   bool logRaw;  //!< raw log each received/sent byte on the bus
   const char* logRawFile;  //!< name of raw log file [/var/log/ebusd.log]

@@ -31,45 +31,68 @@ enum LogFacility {
   lf_COUNT = 5  //!< number of available log facilities
 };
 
-/** macro for enabling all log facilities. */
+/** macro for all log facilities. */
 #define LF_ALL ((1 << lf_main) | (1 << lf_network) | (1 << lf_bus) | (1 << lf_update) | (1 << lf_other))
 
 /** the available log levels. */
 enum LogLevel {
   ll_none = 0,  //!< no level at all
-  ll_error,    //!< error message
-  ll_notice,   //!< important message
-  ll_info,     //!< informational message
-  ll_debug,    //!< debugging message (normally suppressed)
+  ll_error,     //!< error message
+  ll_notice,    //!< important message
+  ll_info,      //!< informational message
+  ll_debug,     //!< debugging message (normally suppressed)
   ll_COUNT = 5  //!< number of available log levels
 };
 
 /**
- * Set the log facilities from the string.
- * @param facilities the string to parse the facilities from (separated by comma).
- * @return true on success, false on error.
+ * Parse the log facility from the string.
+ * @param facility the string to parse the singular facility from.
+ * @return the @a LogFacility, or @a lf_COUNT on error.
  */
-bool setLogFacilities(const char* facilities);
+LogFacility parseLogFacility(const char* facility);
 
 /**
- * Get the log facilities.
- * @param buffer the buffer into which the facilities are written to (separated by comma, buffer needs to be at last 48 characters long).
- * @return true on success, false on error.
+ * Parse the log facilities from the string.
+ * @param facilities the string to parse the list of facilities from (separated by comma).
+ * @return the @a LogFacility list as bit mask (1 << facility), or -1 on error.
  */
-bool getLogFacilities(char* buffer);
+int parseLogFacilities(const char* facilities);
+
+/**
+ * Get the log facility as string.
+ * @param level the @a LogFacility.
+ * @return the log facility as string.
+ */
+const char* getLogFacilityStr(LogFacility facility);
 
 /**
  * Parse the log level from the string.
  * @param level the level as string.
- * @return true on success, false on error.
+ * @return the @a LogLevel, or @a ll_COUNT on error.
  */
-bool setLogLevel(const char* level);
+LogLevel parseLogLevel(const char* level);
 
 /**
- * Get the log level.
- * @return the level as string.
+ * Get the log level as string.
+ * @param level the @a LogLevel.
+ * @return the log level as string.
  */
-const char* getLogLevel();
+const char* getLogLevelStr(LogLevel level);
+
+/**
+ * Set the log level for the specified facilities.
+ * @param facilities the log facilities as bit mask (1 << facility).
+ * @param level the @a LogLevel to set.
+ * @return true when a level was changed for a facility, false when no level was changed at all.
+ */
+bool setFacilitiesLogLevel(int facilities, LogLevel level);
+
+/**
+ * Get the log level for the specified facility.
+ * @param facility the @a LogFacility.
+ * @return the @a LogLevel.
+ */
+LogLevel getFacilityLogLevel(LogFacility facility);
 
 /**
  * Set the log file to use.

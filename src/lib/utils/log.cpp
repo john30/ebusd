@@ -46,16 +46,28 @@ static const char* levelNames[] = {
   NULL
 };
 
-/** the bit combination of currently active log facilities (1 << @a LogFacility). */
-static int s_logFacilites = LF_ALL;
-
-/** the current log level. */
-static LogLevel s_logLevel = ll_notice;
+/** the current log level by log facility. */
+static LogLevel s_facilityLogLevel[] = { ll_notice, ll_notice, ll_notice, ll_notice, ll_notice, };
 
 /** the current log FILE. */
 static FILE* s_logFile = stdout;
 
-bool setLogFacilities(const char* facilities) {
+LogFacility parseLogFacility(const char* facility) {
+  if (!facility) {
+    return lf_COUNT;
+  }
+  char *input = strdup(facility);
+  char *opt = reinterpret_cast<char*>(input), *value = NULL;
+  int val = getsubopt(&opt, (char *const *)facilityNames, &value);
+  if (val < 0 || val >= lf_COUNT || value || *opt) {
+    free(input);
+    return lf_COUNT;
+  }
+  free(input);
+  return (LogFacility)val;
+}
+
+int parseLogFacilities(const char* facilities) {
   char *input = strdup(facilities);
   char *opt = reinterpret_cast<char*>(input), *value = NULL;
   int newFacilites = 0;
@@ -63,7 +75,7 @@ bool setLogFacilities(const char* facilities) {
     int val = getsubopt(&opt, (char *const *)facilityNames, &value);
     if (val < 0 || val > lf_COUNT || value) {
       free(input);
-      return false;
+      return -1;
     }
     if (val == lf_COUNT) {
       newFacilites = LF_ALL;
@@ -71,49 +83,46 @@ bool setLogFacilities(const char* facilities) {
       newFacilites |= 1 << val;
     }
   }
-  s_logFacilites = newFacilites;
   free(input);
-  return true;
+  return newFacilites;
 }
 
-bool getLogFacilities(char* buffer) {
-  if (s_logFacilites == LF_ALL) {
-    return snprintf(buffer, 48, "%s", facilityNames[lf_COUNT]) != 0;
+LogLevel parseLogLevel(const char* level) {
+  if (!level) {
+    return ll_COUNT;
   }
-  *buffer = 0;  // for strcat to work
-  bool found = false;
-  size_t len = 0;
-  for (int val = 0; val < lf_COUNT; val++) {
-    if (s_logFacilites&(1 << val)) {
-      if (found) {
-        len += snprintf(buffer+len, 48-len, ",");
-      }
-      found = true;
-      len += snprintf(buffer+len, 48-len, "%s", facilityNames[val]);
-    }
-  }
-  return true;
-}
-
-bool setLogLevel(const char* level) {
   char *input = strdup(level);
   char *opt = reinterpret_cast<char*>(input), *value = NULL;
-  int newLevel = 0;
-  if (*opt) {
-    int val = getsubopt(&opt, (char *const *)levelNames, &value);
-    if (val < 0 || val >= ll_COUNT || value || *opt) {
-      free(input);
-      return false;
-    }
-    newLevel = val;
+  int val = getsubopt(&opt, (char *const *)levelNames, &value);
+  if (val < 0 || val >= ll_COUNT || value || *opt) {
+    free(input);
+    return ll_COUNT;
   }
-  s_logLevel = (LogLevel)newLevel;
   free(input);
-  return true;
+  return (LogLevel)val;
 }
 
-const char* getLogLevel() {
-  return levelNames[s_logLevel];
+const char* getLogFacilityStr(LogFacility facility) {
+  return facilityNames[facility];
+}
+
+const char* getLogLevelStr(LogLevel level) {
+  return levelNames[level];
+}
+
+bool setFacilitiesLogLevel(int facilities, LogLevel level) {
+  bool changed = false;
+  for (int val = 0; val < lf_COUNT && facilities != 0; val++) {
+    if ((facilities & (1 << val)) != 0 && s_facilityLogLevel[(LogFacility)val] != level) {
+      s_facilityLogLevel[(LogFacility)val] = level;
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+LogLevel getFacilityLogLevel(LogFacility facility) {
+  return s_facilityLogLevel[facility];
 }
 
 bool setLogFile(const char* filename) {
@@ -136,8 +145,7 @@ void closeLogFile() {
 }
 
 bool needsLog(const LogFacility facility, const LogLevel level) {
-  return ((s_logFacilites & (1 << facility)) != 0)
-    && (s_logLevel >= level);
+  return s_facilityLogLevel[facility] >= level;
 }
 
 void logWrite(const char* facility, const char* level, const char* message, va_list ap) {

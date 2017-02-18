@@ -103,6 +103,10 @@ static struct options opt = {
   "/var/" PACKAGE "/html",  // htmlPath
 
   PACKAGE_LOGFILE,  // logFile
+  -1,  // logAreas
+  ll_COUNT,  // logLevel
+  false,  // multiLog
+
   false,  // logRaw
   PACKAGE_LOGFILE,  // logRawFile
   100,  // logRawSize
@@ -141,7 +145,8 @@ static const char argpdoc[] =
 #define O_LOCAL  (O_PIDFIL+1)
 #define O_HTTPPT (O_LOCAL+1)
 #define O_HTMLPA (O_HTTPPT+1)
-#define O_LOGARE (O_HTMLPA+1)
+#define O_LOG    (O_HTMLPA+1)
+#define O_LOGARE (O_LOG+1)
 #define O_LOGLEV (O_LOGARE+1)
 #define O_RAW    (O_LOGLEV+1)
 #define O_RAWFIL (O_RAW+1)
@@ -191,10 +196,12 @@ static const struct argp_option argpoptions[] = {
 
   {NULL,             0,        NULL,    0, "Log options:", 5 },
   {"logfile",        'l',      "FILE",  0, "Write log to FILE (only for daemon) [" PACKAGE_LOGFILE "]", 0 },
-  {"logareas",       O_LOGARE, "AREAS", 0, "Only write log for matching AREA(S): main,network,bus,update,all "
-      "[all]", 0 },
-  {"loglevel",       O_LOGLEV, "LEVEL", 0, "Only write log below or equal to LEVEL: error/notice/info/debug "
-      "[notice]", 0 },
+  {"log",            O_LOG,    "AREAS LEVEL", 0, "Only write log for matching AREA(S) below or equal to LEVEL"
+      " (alternative to --logareas/--logevel, may be used multiple times) [all notice]", 0 },
+  {"logareas",       O_LOGARE, "AREAS", 0, "Only write log for matching AREA(S): main|network|bus|update|all"
+      " [all]", 0 },
+  {"loglevel",       O_LOGLEV, "LEVEL", 0, "Only write log below or equal to LEVEL: error|notice|info|debug"
+      " [notice]", 0 },
 
   {NULL,             0,        NULL,    0, "Raw logging options:", 6 },
   {"lograwdata",     O_RAW,    NULL,    0, "Log each received/sent byte on the bus", 0 },
@@ -431,15 +438,51 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     }
     opt->logFile = arg;
     break;
+  case O_LOG:  // --log=area(s) level
+    {
+      char* pos = strchr(arg, ' ');
+      if (pos == NULL) {
+        argp_error(state, "invalid log");
+        return EINVAL;
+      }
+      *pos = 0;
+      int facilities = parseLogFacilities(arg);
+      if (facilities == -1) {
+        argp_error(state, "invalid log: areas");
+        return EINVAL;
+      }
+      LogLevel level = parseLogLevel(pos + 1);
+      if (level == ll_COUNT) {
+        argp_error(state, "invalid log: level");
+        return EINVAL;
+      }
+      if (opt->logAreas != -1 || opt->logLevel != ll_COUNT) {
+        argp_error(state, "invalid log (combined with logareas or loglevel)");
+        return EINVAL;
+      }
+      setFacilitiesLogLevel(facilities, level);
+      opt->multiLog = true;
+    }
+    break;
   case O_LOGARE:  // --logareas=all
-    if (!setLogFacilities(arg)) {
+    opt->logAreas = parseLogFacilities(arg);
+    if (opt->logAreas == -1) {
       argp_error(state, "invalid logareas");
+      return EINVAL;
+    }
+    if (opt->multiLog) {
+      argp_error(state, "invalid logareas (combined with log)");
       return EINVAL;
     }
     break;
   case O_LOGLEV:  // --loglevel=notice
-    if (!setLogLevel(arg)) {
+    opt->logLevel = parseLogLevel(arg);
+    if (opt->logLevel == ll_COUNT) {
       argp_error(state, "invalid loglevel");
+      return EINVAL;
+    }
+    if (opt->multiLog) {
+      argp_error(state, "invalid loglevel (combined with log)");
       return EINVAL;
     }
     break;
@@ -1015,9 +1058,15 @@ int main(int argc, char* argv[]) {
   struct argp aargp = { argpoptions, parse_opt, NULL, argpdoc, datahandler_getargs(), NULL, NULL };
   int arg_index = -1;
   setenv("ARGP_HELP_FMT", "no-dup-args-note", 0);
+
   if (argp_parse(&aargp, argc, argv, ARGP_IN_ORDER, &arg_index, &opt) != 0) {
     logError(lf_main, "invalid arguments");
     return EINVAL;
+  }
+
+  if (opt.logAreas != -1 || opt.logLevel != ll_COUNT) {
+    setFacilitiesLogLevel(LF_ALL, ll_none);
+    setFacilitiesLogLevel(opt.logAreas, opt.logLevel);
   }
 
   s_messageMap = new MessageMap(opt.checkConfig && opt.scanConfig && arg_index >= argc);

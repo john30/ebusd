@@ -1295,31 +1295,25 @@ string MainLoop::executeScan(vector<string> &args, string levels) {
 string MainLoop::executeLog(vector<string> &args) {
   if (args.size() == 1) {
     ostringstream ret;
-    char str[48];
-    if (getLogFacilities(str)) {
-      ret << str << ' ';
+    for (int val = 0; val < lf_COUNT; val++) {
+      LogFacility facility = (LogFacility)val;
+      ret << getLogFacilityStr(facility) << ": " << getLogLevelStr(getFacilityLogLevel(facility)) << "\n";
     }
-    ret << getLogLevel();
     return ret.str();
   }
-  bool result;
-  // old format: log areas AREA[,AREA]*, log level LEVEL
-  if ((args.size() == 3 || args.size() == 2) && strcasecmp(args[1].c_str(), "AREAS") == 0) {
-    result = setLogFacilities(args.size() == 3 ? args[2].c_str() : "");
-  } else if (args.size() == 3 && strcasecmp(args[1].c_str(), "LEVEL") == 0) {
-    result = setLogLevel(args[2].c_str());
-  } else if (args.size() == 2) {
-    result = setLogLevel(args[1].c_str()) || setLogFacilities(args[1].c_str());
-  } else if (args.size() == 3) {
-    result = setLogFacilities(args[1].c_str()) && setLogLevel(args[2].c_str());
-  } else {
+  if (args.size() != 3) {
     return "usage: log [AREA[,AREA]*] [LEVEL]\n"
          " Set log area(s) and/or log level or get current settings.\n"
          "  AREA   log area to include (main|network|bus|update|all)\n"
          "  LEVEL  log level to set (error|notice|info|debug)";
   }
-  if (result) {
-    return getResultCode(RESULT_OK);
+  int facilities = parseLogFacilities(args[1].c_str());
+  LogLevel level = parseLogLevel(args[2].c_str());
+  if (facilities != -1 && level != ll_COUNT) {
+    if (setFacilitiesLogLevel(facilities, level)) {
+      return getResultCode(RESULT_OK);
+    }
+    return "same";
   }
   return getResultCode(RESULT_ERR_INVALID_ARG);
 }
