@@ -134,6 +134,7 @@ class MainLoop : public Thread, DeviceListener {
    * @param connected set to false when the client connection shall be closed.
    * @param isHttp true for HTTP message.
    * @param listening set to true when the client is in listening mode.
+   * @param user set to the new user name when changed by authentication.
    * @param reload set to true when the configuration files were reloaded.
    * @return result string to send back to the client.
    */
@@ -167,7 +168,7 @@ class MainLoop : public Thread, DeviceListener {
   /**
    * Execute the read command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
-   * @param level the current user's access levels.
+   * @param levels the current user's access levels.
    * @return the result string.
    */
   string executeRead(vector<string> &args, const string levels);
