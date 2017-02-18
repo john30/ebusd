@@ -288,7 +288,7 @@ class FileReader {
             field << TEXT_SEPARATOR;  // single dquote in the middle of formerly quoted text
             quotedText = true;
           } else if (quotedText && pos == 0 && field.tellp() > 0 && *(field.str().end()-1) != VALUE_SEPARATOR) {
-            field << VALUE_SEPARATOR;
+            field << VALUE_SEPARATOR;  // add separator in between multiline field parts
           }
           field << ch;
           break;
