@@ -1068,7 +1068,7 @@ string MainLoop::executeFind(vector<string> &args, string levels) {
         break;
       }
       circuit = args[argPos];
-    } else if (args[argPos] == "-s") {
+    } else if (args[argPos] == "-l") {
       argPos++;
       if (argPos >= args.size()) {
         argPos = 0;  // print usage
