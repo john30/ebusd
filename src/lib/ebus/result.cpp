@@ -49,6 +49,7 @@ const char* getResultCode(result_t resultCode) {
   case RESULT_ERR_NAK:          return "ERR: NAK received";
   case RESULT_ERR_NO_SIGNAL:    return "ERR: no signal";
   case RESULT_ERR_SYN:          return "ERR: SYN received";
+  case RESULT_ERR_NOTAUTHORIZED: return "ERR: not authorized";
 
   default:
     if (resultCode >= 0) {
