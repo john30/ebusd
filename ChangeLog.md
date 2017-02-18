@@ -2,12 +2,15 @@
 
 ## Breaking Changes
 * switched to C++11 compiler
+* separated access level from circuit name
+* introduced access control list and user authentication for access to certain messages
 
 ## Bug Fixes
 * corrected numeric condition formatting
 * corrected reporting of CSV error position
 * corrected last update time of write messages
 * close log file on SIGHUP for better logrotate support
+* only allow a single scan at the same time
 
 ## Features
 * added support for MQTT handling via libmosquitto (will be compiled in when library is available)
@@ -18,6 +21,10 @@
 * added support for using cmake in addition to autoconf
 * added Docker support
 * allow invalid (non-BCD) coded SW and HW fields when looking for scan config file
+* added "auth" command and user/access information to "info" command output
+* added user and secret arguments to HTTP port
+* use ACL in read/write/find/scan commands
+* added -a and -l options to "find" command
 
 
 # 2.4 (2016-12-17)
