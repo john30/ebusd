@@ -1,4 +1,5 @@
-AM_CXXFLAGS = -I$(top_srcdir)/src
+AM_CXXFLAGS = -I$(top_srcdir)/src \
+	      -Wno-unused-parameter
 
 noinst_PROGRAMS = test_filereader \
 		  test_device \
