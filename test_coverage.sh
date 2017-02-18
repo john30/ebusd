@@ -26,8 +26,7 @@
 ./src/ebusd/ebusd -f --dumpfile "" >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --dumpsize 9999999 >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --aclfile=/ >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --accesslevel= >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f "--accesslevel=*" >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --accesslevel >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f "ff08070400/0ab5303132333431313131" >/dev/null
 ./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f "ff08070400" >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f "ff080704/" >/dev/null 2>/dev/null
