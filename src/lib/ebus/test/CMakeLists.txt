@@ -1,3 +1,5 @@
+add_compile_options(-Wno-unused-parameter)
+
 if(HAVE_CONTRIB)
   set(test_LIBS ${test_LIBS} ebuscontrib)
 endif(HAVE_CONTRIB)
