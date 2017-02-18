@@ -22,9 +22,11 @@
 #include <string>
 #include <list>
 #include <vector>
+#include <map>
 #include "ebusd/bushandler.h"
 #include "ebusd/datahandler.h"
 #include "ebusd/network.h"
+#include "lib/ebus/filereader.h"
 #include "lib/ebus/message.h"
 #include "lib/utils/rotatefile.h"
 
@@ -33,6 +35,51 @@
  */
 
 namespace ebusd {
+
+/**
+ * Helper class for user authentication.
+ */
+class UserList : public UserInfo, public FileReader {
+ public:
+  /**
+   * Constructor.
+   * @param defaultLevels the default access levels.
+   */
+  explicit UserList(const string defaultLevels) : FileReader::FileReader(false) {
+    m_userLevels[""] = defaultLevels;
+  }
+
+  /**
+   * Destructor.
+   */
+  virtual ~UserList() {}
+
+  // @copydoc
+  virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
+      vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit,
+      const string& defaultSuffix, const string& filename, unsigned int lineNo);
+
+  // @copydoc
+  virtual bool hasUser(const string user) {
+    return m_userLevels.find(user) != m_userLevels.end();
+  }
+
+  // @copydoc
+  virtual bool checkSecret(const string user, const string secret) {
+    return m_userSecrets.find(user) != m_userSecrets.end() && m_userSecrets[user] == secret;
+  }
+
+  // @copydoc
+  virtual string getLevels(const string user) { return m_userLevels[user]; }
+
+ private:
+  /** the secret string by user name. */
+  map<string, string> m_userSecrets;
+
+  /** the access levels by user name (separated by semicolon, empty name for default levels). */
+  map<string, string> m_userLevels;
+};
+
 
 /**
  * The main loop handling requests from connected clients.
@@ -83,7 +130,8 @@ class MainLoop : public Thread, DeviceListener {
    * @param reload set to true when the configuration files were reloaded.
    * @return result string to send back to the client.
    */
-  string decodeMessage(const string& data, const bool isHttp, bool& connected, bool& listening, bool& reload);
+  string decodeMessage(const string& data, const bool isHttp, bool& connected, bool& listening,
+      string& user, bool& reload);
 
   /**
    * Parse the hex master message from the remaining arguments.
@@ -95,18 +143,35 @@ class MainLoop : public Thread, DeviceListener {
   result_t parseHexMaster(vector<string> &args, size_t argPos, SymbolString& master);
 
   /**
-   * Execute the read command.
+   * Get the access levels associated with the specified user name.
+   * @param user the user name, or empty for default levels.
+   * @return the access levels separated by semicolon.
+   */
+  string getUserLevels(const string user) { return m_userList.getLevels(user); }
+
+  /**
+   * Execute the auth command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
+   * @param user the current user name to set to the new user name on success.
    * @return the result string.
    */
-  string executeRead(vector<string> &args);
+  string executeAuth(vector<string> &args, string &user);
+
+  /**
+   * Execute the read command.
+   * @param args the arguments passed to the command (starting with the command itself), or empty for help.
+   * @param level the current user's access levels.
+   * @return the result string.
+   */
+  string executeRead(vector<string> &args, const string levels);
 
   /**
    * Execute the write command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
+   * @param level the current user's access levels.
    * @return the result string.
    */
-  string executeWrite(vector<string> &args);
+  string executeWrite(vector<string> &args, const string levels);
 
   /**
    * Execute the hex command.
@@ -118,9 +183,10 @@ class MainLoop : public Thread, DeviceListener {
   /**
    * Execute the find command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
+   * @param level the current user's access levels.
    * @return the result string.
    */
-  string executeFind(vector<string> &args);
+  string executeFind(vector<string> &args, string levels);
 
   /**
    * Execute the listen command.
@@ -147,9 +213,10 @@ class MainLoop : public Thread, DeviceListener {
   /**
    * Execute the scan command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
+   * @param level the current user's access levels.
    * @return the result string.
    */
-  string executeScan(vector<string> &args);
+  string executeScan(vector<string> &args, const string levels);
 
   /**
    * Execute the log command.
@@ -182,9 +249,10 @@ class MainLoop : public Thread, DeviceListener {
   /**
    * Execute the info command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
+   * @param user the current user name.
    * @return the result string.
    */
-  string executeInfo(vector<string> &args);
+  string executeInfo(vector<string> &args, const string user);
 
   /**
    * Execute the quit command.
@@ -231,6 +299,9 @@ class MainLoop : public Thread, DeviceListener {
 
   /** the @a RotateFile for dumping received data, or NULL. */
   RotateFile* m_dumpFile;
+
+  /** the @a UserList instance. */
+  UserList m_userList;
 
   /** the @a MessageMap instance. */
   MessageMap* m_messages;

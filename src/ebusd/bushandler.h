@@ -420,9 +420,10 @@ class BusHandler : public WaitThread {
   /**
    * Initiate a scan of the slave addresses.
    * @param full true for a full scan (all slaves), false for scanning only already seen slaves.
+   * @param level the current user's access levels.
    * @return the result code.
    */
-  result_t startScan(bool full = false);
+  result_t startScan(bool full, string levels);
 
   /**
    * Set the scan result @a string for a scanned slave address.

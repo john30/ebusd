@@ -120,6 +120,12 @@ class NetMessage {
   string getRequest() const { return m_request; }
 
   /**
+   * Return the current user name.
+   * @return the current user name.
+   */
+  string getUser() const { return m_user; }
+
+  /**
    * Wait for the result being set and return the result string.
    * @return the result string.
    */
@@ -141,13 +147,16 @@ class NetMessage {
   /**
    * Set the result string and notify the waiting thread.
    * @param result the result string.
+   * @param user the new user name.
    * @param listening whether the client is in listening mode.
    * @param listenUntil the end time to which to updates were added (exclusive).
    * @param disconnect true when the client shall be disconnected.
    */
-  void setResult(const string result, const bool listening, const time_t listenUntil, const bool disconnect) {
+  void setResult(const string result, const string user, const bool listening, const time_t listenUntil,
+      const bool disconnect) {
     pthread_mutex_lock(&m_mutex);
     m_result = result;
+    m_user = user;
     m_disconnect = disconnect;
     m_listening = listening;
     m_listenSince = listenUntil;
@@ -176,6 +185,9 @@ class NetMessage {
 
   /** the request string. */
   string m_request;
+
+  /** the current user name. */
+  string m_user;
 
   /** whether the result was already set. */
   bool m_resultSet;

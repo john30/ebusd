@@ -928,11 +928,11 @@ void BusHandler::receiveCompleted() {
   }
 }
 
-result_t BusHandler::startScan(bool full) {
+result_t BusHandler::startScan(bool full, string levels) {
   if (m_runningScans > 0) {
     return RESULT_ERR_DUPLICATE;
   }
-  deque<Message*> messages = m_messages->findAll("scan", "", true);
+  deque<Message*> messages = m_messages->findAll("scan", "", levels, true);
   for (deque<Message*>::iterator it = messages.begin(); it < messages.end(); it++) {
     Message* message = *it;
     if (message->getPrimaryCommand() == 0x07 && message->getSecondaryCommand() == 0x04) {

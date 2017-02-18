@@ -57,6 +57,8 @@ struct options {
   unsigned int masterCount;  //!< expected number of masters for arbitration [0]
   bool generateSyn;  //!< enable AUTO-SYN symbol generation
 
+  const char* accessLevel;  //!< default access level
+  const char* aclFile;  //!< ACL file name
   bool foreground;  //!< run in foreground
   bool enableHex;  //!< enable hex command
   const char* pidFile;  //!< PID file name [/var/run/ebusd.pid]

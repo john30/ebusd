@@ -75,12 +75,14 @@ static struct options opt = {
   false,  // readOnly
   false,  // initialSend
   -1,  // latency
+
   CONFIG_PATH,  // configPath
   false,  // scanConfig
   BROADCAST,  // initialScan
   false,  // checkConfig
   false,  // dumpConfig
   5,  // pollInterval
+
   0x31,  // address
   false,  // answer
   9400,  // acquireTimeout
@@ -89,6 +91,9 @@ static struct options opt = {
   SLAVE_RECV_TIMEOUT*5/3,  // receiveTimeout
   0,  // masterCount
   false,  // generateSyn
+
+  "",  // accessLevel
+  "",  // aclFile
   false,  // foreground
   false,  // enableHex
   PID_FILE_NAME,  // pidFile
@@ -96,10 +101,12 @@ static struct options opt = {
   false,  // localOnly
   0,  // httpPort
   "/var/" PACKAGE "/html",  // htmlPath
+
   PACKAGE_LOGFILE,  // logFile
   false,  // logRaw
   PACKAGE_LOGFILE,  // logRawFile
   100,  // logRawSize
+
   false,  // dump
   "/tmp/" PACKAGE "_dump.bin",  // dumpFile
   100,  // dumpSize
@@ -127,7 +134,9 @@ static const char argpdoc[] =
 #define O_RCVTIM (O_SNDRET+1)
 #define O_MASCNT (O_RCVTIM+1)
 #define O_GENSYN (O_MASCNT+1)
-#define O_HEXCMD (O_GENSYN+1)
+#define O_ACLDEF (O_GENSYN+1)
+#define O_ACLFIL (O_ACLDEF+1)
+#define O_HEXCMD (O_ACLFIL+1)
 #define O_PIDFIL (O_HEXCMD+1)
 #define O_LOCAL  (O_PIDFIL+1)
 #define O_HTTPPT (O_LOCAL+1)
@@ -170,6 +179,8 @@ static const struct argp_option argpoptions[] = {
   {"generatesyn",    O_GENSYN, NULL,    0, "Enable AUTO-SYN symbol generation", 0 },
 
   {NULL,             0,        NULL,    0, "Daemon options:", 4 },
+  {"accesslevel",    O_ACLDEF, "LEVEL", 0, "Set default access level to LEVEL (\"*\" for everything) [\"\"]", 0 },
+  {"aclfile",        O_ACLFIL, "FILE",  0, "Read access control list from FILE", 0 },
   {"foreground",     'f',      NULL,    0, "Run in foreground", 0 },
   {"enablehex",      O_HEXCMD, NULL,    0, "Enable hex command", 0 },
   {"pidfile",        O_PIDFIL, "FILE",  0, "PID file name (only for daemon) [" PID_FILE_NAME "]", 0 },
@@ -360,6 +371,20 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
 
   // Daemon options:
+  case O_ACLDEF:  // --accesslevel=*
+    if (arg == NULL) {
+      argp_error(state, "invalid accesslevel");
+      return EINVAL;
+    }
+    opt->accessLevel = arg;
+    break;
+  case O_ACLFIL:  // --aclfile=/etc/ebusd/acl
+    if (arg == NULL || arg[0] == 0 || strcmp("/", arg) == 0) {
+      argp_error(state, "invalid aclfile");
+      return EINVAL;
+    }
+    opt->aclFile = arg;
+    break;
   case 'f':  // --foreground
     opt->foreground = true;
     break;
