@@ -48,5 +48,5 @@ Note: the "-f" and "--scanconfig" arguments are only passed to ebusd if it is ca
 
 Running with MQTT broker
 ------------------------
-To start an ebusd container in the background and have it connect to your MQTT broker, use the following command while repacing "<YOUR MQTT BROKER HOST>" with your MQTT broker host name or IP address:
-> docker run -d --name=ebusd --device=/dev/ttyUSB0 -p 8888 john30/ebusd -f --scanconfig -d /dev/ttyUSB0 --mqttport=1883 --mqtthost=<YOUR MQTT BROKER HOST>
+To start an ebusd container in the background and have it connect to your MQTT broker, use the following command while repacing "BROKERHOST" with your MQTT broker host name or IP address:
+> docker run -d --name=ebusd --device=/dev/ttyUSB0 -p 8888 john30/ebusd -f --scanconfig -d /dev/ttyUSB0 --mqttport=1883 --mqtthost=BROKERHOST
