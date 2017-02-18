@@ -1320,7 +1320,6 @@ class MessageMap : public FileReader {
    * @param withWrite true to include write messages (default false).
    * @param withPassive true to include passive messages (default false).
    * @return the found @a Message instances.
-   * @param completeMatchIgnoreCircuitSuffix ignore different circuit suffixes (after "#") for completeMatch.
    * @param onlyAvailable true to include only available messages (default true), false to also include messages that
    * are currently not available (e.g. due to unresolved or false conditions).
    * @param since the start time from which to add updates (inclusive, also removes messages with unset destination

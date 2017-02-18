@@ -1975,7 +1975,7 @@ vector<Message*>* MessageMap::getByKey(const uint64_t key) {
   return NULL;
 }
 
-Message* MessageMap::find(const string& circuit, const string& levels, const string& name, const bool isWrite,
+Message* MessageMap::find(const string& circuit, const string& name, const string& levels, const bool isWrite,
     const bool isPassive) {
   string lcircuit = circuit;
   FileReader::tolower(lcircuit);
@@ -2012,7 +2012,6 @@ deque<Message*> MessageMap::findAll(const string& circuit, const string& name, c
   FileReader::tolower(lname);
   bool checkCircuit = lcircuit.length() > 0;
   bool checkLevel = levels != "*";
-  bool includeEmptyLevel = levels.empty();
   bool checkName = lname.length() > 0;
   for (map<string, vector<Message*> >::iterator it = m_messagesByName.begin(); it != m_messagesByName.end(); it++) {
     if (it->first[0] == '-') {  // avoid duplicates: instances stored multiple times have a key starting with "-"
@@ -2020,7 +2019,7 @@ deque<Message*> MessageMap::findAll(const string& circuit, const string& name, c
     }
     for (vector<Message*>::iterator msgIt = it->second.begin(); msgIt != it->second.end(); msgIt++) {
       Message* message = *msgIt;
-      if (checkLevel && !message->hasLevel(levels, includeEmptyLevel)) {
+      if (checkLevel && !message->hasLevel(levels, !completeMatch)) {
         continue;
       }
       if (checkCircuit) {
