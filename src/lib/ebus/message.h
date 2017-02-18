@@ -68,32 +68,37 @@ class SimpleCondition;
 class CombinedCondition;
 class MessageMap;
 
-/** the column index in @a Message::dump() for the message type. */
-#define COLUMN_TYPE 0
+/**
+ * Column type enumeration for CSV.
+ */
+enum column_t {
+  /** the column index in @a Message::dump() for the message type. */
+  COLUMN_TYPE,
+  /** the column index in @a Message::dump() for the circuit name. */
+  COLUMN_CIRCUIT,
+  /** the column index in @a Message::dump() for the access level. */
+  COLUMN_LEVEL,
+  /** the column index in @a Message::dump() for the message name. */
+  COLUMN_NAME,
+  /** the column index in @a Message::dump() for the message comment. */
+  COLUMN_COMMENT,
+  /** the column index in @a Message::dump() for the source address QQ. */
+  COLUMN_QQ,
+  /** the column index in @a Message::dump() for the destination address QQ. */
+  COLUMN_ZZ,
+  /** the column index in @a Message::dump() for the PBSB bytes. */
+  COLUMN_PBSB,
+  /** the column index in @a Message::dump() for the ID columns (after the PBSB bytes). */
+  COLUMN_ID,
+  /** the column index in @a Message::dump() for the field(s). */
+  COLUMN_FIELDS,
+  /** the marker column index for the next-to-last element. */
+  COLUMN_LAST,
+};
 
-/** the column index in @a Message::dump() for the circuit name. */
-#define COLUMN_CIRCUIT 1
+/** A link to the first column of @a column_t. */
+#define COLUMN_FIRST COLUMN_TYPE
 
-/** the column index in @a Message::dump() for the message name. */
-#define COLUMN_NAME 2
-
-/** the column index in @a Message::dump() for the message comment. */
-#define COLUMN_COMMENT 3
-
-/** the column index in @a Message::dump() for the source address QQ. */
-#define COLUMN_QQ 4
-
-/** the column index in @a Message::dump() for the destination address QQ. */
-#define COLUMN_ZZ 5
-
-/** the column index in @a Message::dump() for the PBSB bytes. */
-#define COLUMN_PBSB 6
-
-/** the column index in @a Message::dump() for the ID columns (after the PBSB bytes). */
-#define COLUMN_ID 7
-
-/** the column index in @a Message::dump() for the field(s). */
-#define COLUMN_FIELDS 8
 
 /**
  * Defines parameters of a message sent or received on the bus.
@@ -104,6 +109,7 @@ class Message {
   /**
    * Construct a new instance.
    * @param circuit the optional circuit name.
+   * @param level the optional access level.
    * @param name the message name (unique within the same circuit and type).
    * @param isWrite whether this is a write message.
    * @param isPassive true if message can only be initiated by a participant other than us,
@@ -117,7 +123,7 @@ class Message {
    * @param pollPriority the priority for polling, or 0 for no polling at all.
    * @param condition the @a Condition for this message, or NULL.
    */
-  Message(const string circuit, const string name,
+  Message(const string circuit, const string level, const string name,
       const bool isWrite, const bool isPassive, const string comment,
       const unsigned char srcAddress, const unsigned char dstAddress,
       const vector<unsigned char> id,
@@ -130,6 +136,7 @@ class Message {
   /**
    * Construct a new scan @a Message instance.
    * @param circuit the circuit name, or empty for not storing by name.
+   * @param level the optional access level.
    * @param name the message name (unique within the same circuit and type), or empty for not storing by name.
    * @param isWrite whether this is a write message.
    * @param isPassive true if message can only be initiated by a participant other than us,
@@ -139,7 +146,7 @@ class Message {
    * @param data the @a DataField for encoding/decoding the message.
    * @param deleteData whether to delete the @a DataField during destruction.
    */
-  Message(const string circuit, const string name,
+  Message(const string circuit, const string level, const string name,
       const bool isWrite, const bool isPassive,
       const unsigned char pb, const unsigned char sb,
       DataField* data, const bool deleteData);
@@ -245,6 +252,31 @@ class Message {
    * @return the optional circuit name.
    */
   string getCircuit() const { return m_circuit; }
+
+  /**
+   * Get the optional access level.
+   * @return the optional access level.
+   */
+  string getLevel() const { return m_level; }
+
+  /**
+   * Return whether one of the specified access levels allows access to this message.
+   * @param levels the allowed access levels to check, separated by semicolon.
+   * @param includeEmpty true to also allow this message when the message level is empty but does not match the
+   * level to check.
+   * @return true when access is granted.
+   */
+  bool hasLevel(const string levels, bool includeEmpty = true) {
+    return m_level.empty() ? (includeEmpty || levels.empty()) : checkLevel(m_level, levels);
+  }
+
+  /**
+   * Check if the access level is part of the levels.
+   * @param level the access level to check.
+   * @param checkLevels the access levels to check against, separated by semicolon.
+   * @return whether the access level matches.
+   */
+  static bool checkLevel(const string level, const string checkLevels);
 
   /**
    * Get the message name (unique within the same circuit and type).
@@ -517,7 +549,7 @@ class Message {
    * @param columns the list of column indexes to write, or NULL for all (see @p COLUMN_TYPE index constants).
    * @param withConditions whether to include the optional conditions prefix.
    */
-  void dump(ostream& output, vector<size_t>* columns = NULL, bool withConditions = false);
+  void dump(ostream& output, vector<column_t>* columns = NULL, bool withConditions = false);
 
   /**
    * Write the specified column to the @a ostream.
@@ -525,12 +557,15 @@ class Message {
    * @param column the column index to write (see @p COLUMN_TYPE index constants).
    * @param withConditions whether to include the optional conditions prefix.
    */
-  virtual void dumpColumn(ostream& output, size_t column, bool withConditions = false);
+  virtual void dumpColumn(ostream& output, column_t column, bool withConditions = false);
 
 
  protected:
   /** the optional circuit name. */
   const string m_circuit;
+
+  /** the optional access level. */
+  const string m_level;
 
   /** the message name (unique within the same circuit and type). */
   const string m_name;
@@ -623,6 +658,7 @@ class ChainedMessage : public Message {
   /**
    * Construct a new instance.
    * @param circuit the optional circuit name.
+   * @param level the optional access level.
    * @param name the message name (unique within the same circuit and type).
    * @param isWrite whether this is a write message.
    * @param comment the comment.
@@ -636,7 +672,7 @@ class ChainedMessage : public Message {
    * @param pollPriority the priority for polling, or 0 for no polling at all.
    * @param condition the @a Condition for this message, or NULL.
    */
-  ChainedMessage(const string circuit, const string name,
+  ChainedMessage(const string circuit, const string level, const string name,
       const bool isWrite, const string comment,
       const unsigned char srcAddress, const unsigned char dstAddress,
       const vector<unsigned char> id,
@@ -679,7 +715,7 @@ class ChainedMessage : public Message {
 
  protected:
   // @copydoc
-  virtual void dumpColumn(ostream& output, size_t column, bool withConditions = false);
+  virtual void dumpColumn(ostream& output, column_t column, bool withConditions = false);
 
 
  private:
@@ -828,17 +864,18 @@ class SimpleCondition : public Condition {
    * @param condName the name of the condition.
    * @param refName the reference name for dumping.
    * @param circuit the circuit name.
+   * @param level the access level.
    * @param name the message name, or empty for scan message.
    * @param dstAddress the override destination address, or @a SYN (only for @a Message without specific destination
    * as well as scan message).
    * @param field the field name.
    * @param hasValues whether a value has to be checked against.
    */
-  SimpleCondition(const string condName, const string refName, const string circuit, const string name,
-      const unsigned char dstAddress, const string field, const bool hasValues = false)
+  SimpleCondition(const string condName, const string refName, const string circuit, const string level,
+      const string name, const unsigned char dstAddress, const string field, const bool hasValues = false)
     : Condition(),
-      m_condName(condName), m_refName(refName), m_circuit(circuit), m_name(name), m_dstAddress(dstAddress),
-      m_field(field), m_hasValues(hasValues), m_message(NULL) { }
+      m_condName(condName), m_refName(refName), m_circuit(circuit), m_level(level), m_name(name),
+      m_dstAddress(dstAddress), m_field(field), m_hasValues(hasValues), m_message(NULL) { }
 
   /**
    * Destructor.
@@ -891,6 +928,9 @@ class SimpleCondition : public Condition {
   /** the circuit name. */
   const string m_circuit;
 
+  /** the access level. */
+  const string m_level;
+
   /** the message name, or empty for scan message. */
   const string m_name;
 
@@ -919,14 +959,15 @@ class SimpleNumericCondition : public SimpleCondition {
    * @param condName the name of the condition.
    * @param refName the reference name for dumping.
    * @param circuit the circuit name.
+   * @param level the access level.
    * @param name the message name, or empty for scan message.
    * @param dstAddress the override destination address, or @a SYN (only for @a Message without specific destination as well as scan message).
    * @param field the field name.
    * @param valueRanges the valid value ranges (pairs of from/to inclusive), empty for @a m_message seen check.
    */
-  SimpleNumericCondition(const string condName, const string refName, const string circuit, const string name,
-      const unsigned char dstAddress, const string field, const vector<unsigned int> valueRanges)
-    : SimpleCondition(condName, refName, circuit, name, dstAddress, field, true),
+  SimpleNumericCondition(const string condName, const string refName, const string circuit, const string level,
+      const string name, const unsigned char dstAddress, const string field, const vector<unsigned int> valueRanges)
+    : SimpleCondition(condName, refName, circuit, level, name, dstAddress, field, true),
       m_valueRanges(valueRanges) { }
 
   /**
@@ -956,14 +997,15 @@ class SimpleStringCondition : public SimpleCondition {
    * @param condName the name of the condition.
    * @param refName the reference name for dumping.
    * @param circuit the circuit name.
+   * @param level the access level.
    * @param name the message name, or empty for scan message.
    * @param dstAddress the override destination address, or @a SYN (only for @a Message without specific destination as well as scan message).
    * @param field the field name.
    * @param values the valid values.
    */
-  SimpleStringCondition(const string condName, const string refName, const string circuit, const string name,
-      const unsigned char dstAddress, const string field, const vector<string> values)
-    : SimpleCondition(condName, refName, circuit, name, dstAddress, field, true),
+  SimpleStringCondition(const string condName, const string refName, const string circuit, const string level,
+      const string name, const unsigned char dstAddress, const string field, const vector<string> values)
+    : SimpleCondition(condName, refName, circuit, level, name, dstAddress, field, true),
       m_values(values) { }
 
   /**
@@ -1258,17 +1300,20 @@ class MessageMap : public FileReader {
    * Find the @a Message instance for the specified circuit and name.
    * @param circuit the optional circuit name.
    * @param name the message name.
+   * @param levels the access levels to match.
    * @param isWrite whether this is a write message.
    * @param isPassive whether this is a passive message.
    * @return the @a Message instance, or NULL.
    * Note: the caller may not free the returned instance.
    */
-  Message* find(const string& circuit, const string& name, const bool isWrite, const bool isPassive = false);
+  Message* find(const string& circuit, const string& name, const string& levels, const bool isWrite,
+    const bool isPassive = false);
 
   /**
    * Find all active get @a Message instances for the specified circuit and name.
    * @param circuit the circuit name, or empty for any.
    * @param name the message name, or empty for any.
+   * @param levels the access levels to match.
    * @param completeMatch false to also include messages where the circuit and name matches only a part of the given
    * circuit and name (default true).
    * @param withRead true to include read messages (default true).
@@ -1284,9 +1329,9 @@ class MessageMap : public FileReader {
    * address), or 0 to ignore.
    * Note: the caller may not free the returned instances.
    */
-  deque<Message*> findAll(const string& circuit, const string& name, const bool completeMatch = true,
-    const bool withRead = true, const bool withWrite = false, const bool withPassive = false,
-    const bool completeMatchIgnoreCircuitSuffix = false, const bool onlyAvailable = true,
+  deque<Message*> findAll(const string& circuit, const string& name, const string& levels,
+    const bool completeMatch = true, const bool withRead = true, const bool withWrite = false,
+    const bool withPassive = false, const bool onlyAvailable = true,
     const time_t since = 0, const time_t until = 0);
 
   /**

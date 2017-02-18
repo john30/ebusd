@@ -161,7 +161,7 @@ int main() {
         "ff08b509030d6900", "02133f", "md" },
     {"r,cir*cuit#level,na*me,com*ment,ff,75,b509,0d", "", "", "", "defaults" },
     {"r,CIRCUIT,NAME,COMMENT,,,,0100,field,,UCH",
-        "r,cirCIRCUITcuit#level,naNAMEme,comCOMMENTment,ff,75,b509,0d0100,field,s,UCH,,,: field=42",
+        "r,cirCIRCUITcuit,naNAMEme,comCOMMENTment,ff,75,b509,0d0100,field,s,UCH,,,: field=42",
         "ff08b509030d0100", "012a", "mDN"},
   };
   templates = new DataFieldTemplates();

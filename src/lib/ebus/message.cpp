@@ -58,14 +58,14 @@ using std::setw;
 
 extern DataFieldTemplates* getTemplates(const string filename);
 
-Message::Message(const string circuit, const string name,
+Message::Message(const string circuit, const string level, const string name,
     const bool isWrite, const bool isPassive, const string comment,
     const unsigned char srcAddress, const unsigned char dstAddress,
     const vector<unsigned char> id,
     DataField* data, const bool deleteData,
     const unsigned char pollPriority,
     Condition* condition)
-    : m_circuit(circuit), m_name(name), m_isWrite(isWrite),
+    : m_circuit(circuit), m_level(level), m_name(name), m_isWrite(isWrite),
       m_isPassive(isPassive), m_comment(comment),
       m_srcAddress(srcAddress), m_dstAddress(dstAddress),
       m_id(id), m_data(data), m_deleteData(deleteData),
@@ -79,14 +79,17 @@ Message::Message(const string circuit, const string name,
   }
 }
 
-Message::Message(const string circuit, const string name,
+Message::Message(const string circuit, const string level, const string name,
     const bool isWrite, const bool isPassive,
     const unsigned char pb, const unsigned char sb,
     DataField* data, const bool deleteData)
-    : m_circuit(circuit), m_name(name), m_isWrite(isWrite), m_isPassive(isPassive), m_comment(), m_srcAddress(SYN),
-      m_dstAddress(SYN), m_data(data), m_deleteData(true), m_pollPriority(0), m_usedByCondition(false),
-      m_isScanMessage(false), m_condition(NULL), m_lastUpdateTime(0), m_lastChangeTime(0), m_pollCount(0),
-      m_lastPollTime(0) {
+    : m_circuit(circuit), m_level(level), m_name(name), m_isWrite(isWrite),
+      m_isPassive(isPassive), m_comment(),
+      m_srcAddress(SYN), m_dstAddress(SYN),
+      m_data(data), m_deleteData(true),
+      m_pollPriority(0),
+      m_usedByCondition(false), m_isScanMessage(false), m_condition(NULL),
+      m_lastUpdateTime(0), m_lastChangeTime(0), m_pollCount(0), m_lastPollTime(0) {
   m_id.push_back(pb);
   m_id.push_back(sb);
   uint64_t key = 0;
@@ -253,9 +256,15 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
     }
   }
 
-  string circuit = getDefault(*it++, defaults, defaultPos++, true);  // [circuit]
+  string circuit = getDefault(*it++, defaults, defaultPos++, true);  // [circuit[#level]]
   if (it == end) {
     return RESULT_ERR_EOF;
+  }
+  string level;
+  size_t pos = circuit.find('#');
+  if (pos != string::npos) {
+    level = circuit.substr(pos+1);
+    circuit.resize(pos);
   }
   string name = getDefault(*it++, defaults, defaultPos++, true, true);  // name
   if (it == end) {
@@ -453,10 +462,10 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
     }
     Message* message;
     if (chainIds.size() > 1) {
-      message = new ChainedMessage(useCircuit, name, isWrite, comment, srcAddress, dstAddress, id, chainIds,
+      message = new ChainedMessage(useCircuit, level, name, isWrite, comment, srcAddress, dstAddress, id, chainIds,
           chainLengths, data, index == 0, pollPriority, condition);
     } else {
-      message = new Message(useCircuit, name, isWrite, isPassive, comment, srcAddress, dstAddress, id, data,
+      message = new Message(useCircuit, level, name, isWrite, isPassive, comment, srcAddress, dstAddress, id, data,
           index == 0, pollPriority, condition);
     }
     messages.push_back(message);
@@ -465,11 +474,11 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
 }
 
 Message* Message::createScanMessage() {
-  return new Message("scan", "", false, false, 0x07, 0x04, DataFieldSet::getIdentFields(), true);
+  return new Message("scan", "", "", false, false, 0x07, 0x04, DataFieldSet::getIdentFields(), true);
 }
 
 Message* Message::derive(const unsigned char dstAddress, const unsigned char srcAddress, const string circuit) {
-  Message* result = new Message(circuit.length() == 0 ? m_circuit : circuit, m_name,
+  Message* result = new Message(circuit.length() == 0 ? m_circuit : circuit, m_level, m_name,
     m_isWrite, m_isPassive, m_comment,
     srcAddress == SYN ? m_srcAddress : srcAddress, dstAddress,
     m_id, m_data, false,
@@ -489,6 +498,28 @@ Message* Message::derive(const unsigned char dstAddress, const bool extendCircui
   return derive(dstAddress, SYN, m_circuit);
 }
 
+bool Message::checkLevel(const string level, const string checkLevels) {
+  if (level.empty()) {
+    return true;
+  }
+  if (checkLevels.empty()) {
+    return false;
+  }
+  if (checkLevels == "*") {
+    return true;
+  }
+  size_t len = level.length();
+  size_t maxLen = checkLevels.length();
+  for (size_t pos = checkLevels.find(level); pos != string::npos && pos + len <= maxLen;
+      pos = checkLevels.find(level, pos)) {
+    if ((pos == 0 || checkLevels[pos - 1] == VALUE_SEPARATOR)
+        && (pos + len == maxLen || checkLevels[pos + len] == VALUE_SEPARATOR)) {
+      return true;
+    }
+    pos += len;
+  }
+  return false;
+}
 bool Message::checkIdPrefix(vector<unsigned char>& id) {
   if (id.size() > m_id.size()) {
     return false;
@@ -765,23 +796,35 @@ bool Message::isLessPollWeight(const Message* other) {
   return false;
 }
 
-void Message::dump(ostream& output, vector<size_t>* columns, bool withConditions) {
-  bool first = true, all = columns == NULL;
-  size_t end = all ? 9 : columns->size();
-  for (size_t i = 0; i < end; i++) {
+void Message::dump(ostream& output, vector<column_t>* columns, bool withConditions) {
+  bool first = true;
+  if (columns == NULL) {
+    for (int column = COLUMN_FIRST; column != COLUMN_LAST; column++) {
+      if (column == COLUMN_LEVEL) {
+        continue;  // access level not included in default dump format
+      }
+      if (first) {
+        first = false;
+      } else {
+        output << FIELD_SEPARATOR;
+      }
+      dumpColumn(output, static_cast<column_t>(column), withConditions);
+    }
+    return;
+  }
+  for (auto column : *columns) {
     if (first) {
       first = false;
     } else {
       output << FIELD_SEPARATOR;
     }
-    size_t column = all ? i : (*columns)[i];
     dumpColumn(output, column, withConditions);
   }
 }
 
-void Message::dumpColumn(ostream& output, size_t column, bool withConditions) {
+void Message::dumpColumn(ostream& output, column_t column, bool withConditions) {
   switch (column) {
-  case COLUMN_TYPE:  // type
+  case COLUMN_TYPE:
     if (withConditions && m_condition != NULL) {
       m_condition->dump(output);
     }
@@ -799,43 +842,49 @@ void Message::dumpColumn(ostream& output, size_t column, bool withConditions) {
       }
     }
     break;
-  case COLUMN_CIRCUIT:  // circuit
+  case COLUMN_CIRCUIT:
     DataField::dumpString(output, m_circuit, false);
     break;
-  case COLUMN_NAME:  // name
+  case COLUMN_LEVEL:
+    DataField::dumpString(output, m_level, false);
+    break;
+  case COLUMN_NAME:
     DataField::dumpString(output, m_name, false);
     break;
-  case COLUMN_COMMENT:  // comment
+  case COLUMN_COMMENT:
     DataField::dumpString(output, m_comment, false);
     break;
-  case COLUMN_QQ:  // QQ
+  case COLUMN_QQ:
     if (m_srcAddress != SYN) {
       output << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_srcAddress);
     }
     break;
-  case COLUMN_ZZ:  // ZZ
+  case COLUMN_ZZ:
     if (m_dstAddress != SYN) {
       output << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_dstAddress);
     }
     break;
-  case COLUMN_PBSB:  // PBSB
+  case COLUMN_PBSB:
     for (vector<unsigned char>::const_iterator it = m_id.begin(); it < m_id.begin()+2 && it < m_id.end(); it++) {
       output << hex << setw(2) << setfill('0') << static_cast<unsigned>(*it);
     }
     break;
-  case COLUMN_ID:  // ID
+  case COLUMN_ID:
     for (vector<unsigned char>::const_iterator it = m_id.begin()+2; it < m_id.end(); it++) {
       output << hex << setw(2) << setfill('0') << static_cast<unsigned>(*it);
     }
     break;
-  case COLUMN_FIELDS:  // fields
+  case COLUMN_FIELDS:
     m_data->dump(output);
+    break;
+  case COLUMN_LAST:
+  default:
     break;
   }
 }
 
 
-ChainedMessage::ChainedMessage(const string circuit, const string name,
+ChainedMessage::ChainedMessage(const string circuit, const string level, const string name,
     const bool isWrite, const string comment,
     const unsigned char srcAddress, const unsigned char dstAddress,
     const vector<unsigned char> id,
@@ -843,7 +892,7 @@ ChainedMessage::ChainedMessage(const string circuit, const string name,
     DataField* data, const bool deleteData,
     const unsigned char pollPriority,
     Condition* condition)
-    : Message(circuit, name, isWrite, false, comment,
+    : Message(circuit, level, name, isWrite, false, comment,
       srcAddress, dstAddress, id,
       data, deleteData, pollPriority, condition),
       m_ids(ids), m_lengths(lengths),
@@ -873,7 +922,7 @@ ChainedMessage::~ChainedMessage() {
 }
 
 Message* ChainedMessage::derive(const unsigned char dstAddress, const unsigned char srcAddress, const string circuit) {
-  ChainedMessage* result = new ChainedMessage(circuit.length() == 0 ? m_circuit : circuit, m_name,
+  ChainedMessage* result = new ChainedMessage(circuit.length() == 0 ? m_circuit : circuit, m_level, m_name,
     m_isWrite, m_comment,
     srcAddress == SYN ? m_srcAddress : srcAddress, dstAddress,
     m_id, m_ids, m_lengths, m_data, false,
@@ -1077,7 +1126,7 @@ result_t ChainedMessage::storeLastData(const PartType partType, SymbolString& da
   return result;
 }
 
-void ChainedMessage::dumpColumn(ostream& output, size_t column, bool withConditions) {
+void ChainedMessage::dumpColumn(ostream& output, column_t column, bool withConditions) {
   if (column != COLUMN_ID) {
     Message::dumpColumn(output, column, withConditions);
     return;
@@ -1211,7 +1260,13 @@ result_t splitValues(string valueList, vector<unsigned int>& valueRanges) {
 result_t Condition::create(const string condName, vector<string>::iterator& it, const vector<string>::iterator end,
     string defaultDest, string defaultCircuit, SimpleCondition*& returnValue) {
   // name,circuit,messagename,[comment],[fieldname],[ZZ],values   (name already skipped by caller)
-  string circuit = it == end ? "" : *(it++);  // circuit
+  string circuit = it == end ? "" : *(it++);  // circuit[#level]
+  string level;
+  size_t pos = circuit.find('#');
+  if (pos != string::npos) {
+    level = circuit.substr(pos+1);
+    circuit.resize(pos);
+  }
   string name = it == end ? "" : *(it++);  // messagename
   if (it < end) {
     it++;  // comment
@@ -1241,7 +1296,7 @@ result_t Condition::create(const string condName, vector<string>::iterator& it, 
   }
   string valueList = it == end ? "" : *(it++);
   if (valueList.length() == 0) {
-    returnValue = new SimpleCondition(condName, condName, circuit, name, dstAddress, field);
+    returnValue = new SimpleCondition(condName, condName, circuit, level, name, dstAddress, field);
     return RESULT_OK;
   }
   if (valueList[0] == '\'') {
@@ -1251,7 +1306,7 @@ result_t Condition::create(const string condName, vector<string>::iterator& it, 
     if (result != RESULT_OK) {
       return result;
     }
-    returnValue = new SimpleStringCondition(condName, condName, circuit, name, dstAddress, field, values);
+    returnValue = new SimpleStringCondition(condName, condName, circuit, level, name, dstAddress, field, values);
     return RESULT_OK;
   }
   // numbers
@@ -1260,7 +1315,7 @@ result_t Condition::create(const string condName, vector<string>::iterator& it, 
   if (result != RESULT_OK) {
     return result;
   }
-  returnValue = new SimpleNumericCondition(condName, condName, circuit, name, dstAddress, field, valueRanges);
+  returnValue = new SimpleNumericCondition(condName, condName, circuit, level, name, dstAddress, field, valueRanges);
   return RESULT_OK;
 }
 
@@ -1280,7 +1335,7 @@ SimpleCondition* SimpleCondition::derive(string valueList) {
     if (result != RESULT_OK) {
       return NULL;
     }
-    return new SimpleStringCondition(name, m_refName, m_circuit, m_name, m_dstAddress, m_field, values);
+    return new SimpleStringCondition(name, m_refName, m_circuit, m_level, m_name, m_dstAddress, m_field, values);
   }
   // numbers
   if (!isNumeric()) {
@@ -1291,7 +1346,7 @@ SimpleCondition* SimpleCondition::derive(string valueList) {
   if (result != RESULT_OK) {
     return NULL;
   }
-  return new SimpleNumericCondition(name, m_refName, m_circuit, m_name, m_dstAddress, m_field, valueRanges);
+  return new SimpleNumericCondition(name, m_refName, m_circuit, m_level, m_name, m_dstAddress, m_field, valueRanges);
 }
 
 void SimpleCondition::dump(ostream& output, bool matched) {
@@ -1323,9 +1378,9 @@ result_t SimpleCondition::resolve(MessageMap* messages, ostringstream& errorMess
       errorMessage << "scan condition " << nouppercase << setw(2) << hex << setfill('0')
           << static_cast<unsigned>(m_dstAddress);
     } else {
-      message = messages->find(m_circuit, m_name, false);
+      message = messages->find(m_circuit, m_name, m_level, false);
       if (!message) {
-        message = messages->find(m_circuit, m_name, false, true);
+        message = messages->find(m_circuit, m_name, m_level, false, true);
       }
       errorMessage << "condition " << m_circuit << " " << m_name;
     }
@@ -1639,7 +1694,7 @@ result_t MessageMap::addDefaultFromFile(vector< vector<string> >& defaults, vect
     if (row[1].length() == 0) {
       row[1] = defaultCircuit+defaultSuffix;  // set default circuit and suffix: "circuit[.suffix]"
     } else if (row[1][0] == '#') {
-      // move security suffix behind default circuit and suffix: "circuit[.suffix]#security"
+      // move access level behind default circuit and suffix: "circuit[.suffix]#level"
       row[1] = defaultCircuit+defaultSuffix+row[1];
     } else if (defaultSuffix.length() > 0 && row[1].find_last_of('.') == string::npos) {
       // circuit suffix not yet present
@@ -1647,7 +1702,7 @@ result_t MessageMap::addDefaultFromFile(vector< vector<string> >& defaults, vect
       if (pos == string::npos) {
         row[1] += defaultSuffix;  // append default suffix: "circuit.suffix"
       } else {
-        // insert default suffix: "circuit.suffix#security"
+        // insert default suffix: "circuit.suffix#level"
         row[1] = row[1].substr(0, pos)+defaultSuffix+row[1].substr(pos);
       }
     }
@@ -1920,7 +1975,8 @@ vector<Message*>* MessageMap::getByKey(const uint64_t key) {
   return NULL;
 }
 
-Message* MessageMap::find(const string& circuit, const string& name, const bool isWrite, const bool isPassive) {
+Message* MessageMap::find(const string& circuit, const string& levels, const string& name, const bool isWrite,
+    const bool isPassive) {
   string lcircuit = circuit;
   FileReader::tolower(lcircuit);
   string lname = name;
@@ -1937,7 +1993,7 @@ Message* MessageMap::find(const string& circuit, const string& name, const bool 
     map<string, vector<Message*> >::iterator it = m_messagesByName.find(key);
     if (it != m_messagesByName.end()) {
       Message* message = getFirstAvailable(it->second);
-      if (message) {
+      if (message && message->hasLevel(levels)) {
         return message;
       }
     }
@@ -1945,39 +2001,31 @@ Message* MessageMap::find(const string& circuit, const string& name, const bool 
   return NULL;
 }
 
-deque<Message*> MessageMap::findAll(const string& circuit, const string& name, const bool completeMatch,
-  const bool withRead, const bool withWrite, const bool withPassive,
-  const bool completeMatchIgnoreCircuitSuffix, const bool onlyAvailable,
-  const time_t since, const time_t until) {
-  bool checkCircuitIgnoreSuffix = completeMatch && completeMatchIgnoreCircuitSuffix;
+deque<Message*> MessageMap::findAll(const string& circuit, const string& name, const string& levels,
+    const bool completeMatch, const bool withRead, const bool withWrite,
+    const bool withPassive, const bool onlyAvailable,
+    const time_t since, const time_t until) {
   deque<Message*> ret;
   string lcircuit = circuit;
   FileReader::tolower(lcircuit);
   string lname = name;
   FileReader::tolower(lname);
   bool checkCircuit = lcircuit.length() > 0;
-  bool checkName = name.length() > 0;
-  if (checkCircuit && checkCircuitIgnoreSuffix) {
-    size_t pos = lcircuit.find('#');
-    if (pos != string::npos) {
-      lcircuit.resize(pos);
-    }
-  }
+  bool checkLevel = levels != "*";
+  bool includeEmptyLevel = levels.empty();
+  bool checkName = lname.length() > 0;
   for (map<string, vector<Message*> >::iterator it = m_messagesByName.begin(); it != m_messagesByName.end(); it++) {
     if (it->first[0] == '-') {  // avoid duplicates: instances stored multiple times have a key starting with "-"
       continue;
     }
     for (vector<Message*>::iterator msgIt = it->second.begin(); msgIt != it->second.end(); msgIt++) {
       Message* message = *msgIt;
+      if (checkLevel && !message->hasLevel(levels, includeEmptyLevel)) {
+        continue;
+      }
       if (checkCircuit) {
         string check = message->getCircuit();
         FileReader::tolower(check);
-        if (checkCircuitIgnoreSuffix) {
-          size_t pos = check.find('#');
-          if (pos != string::npos) {
-            check.resize(pos);
-          }
-        }
         if (completeMatch ? (check != lcircuit) : (check.find(lcircuit) == check.npos)) {
           continue;
         }
@@ -2100,7 +2148,7 @@ void MessageMap::invalidateCache(Message* message) {
   message->m_lastUpdateTime = 0;
   string circuit = message->getCircuit();
   string name = message->getName();
-  deque<Message*> messages = findAll(circuit, name, true, true, true, true, true);
+  deque<Message*> messages = findAll(circuit, name, "*", true, true, true, true);
   for (deque<Message*>::iterator it = messages.begin(); it != messages.end(); it++) {
     Message* checkMessage = *it;
     if (checkMessage != message) {
