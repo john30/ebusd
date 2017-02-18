@@ -28,7 +28,8 @@ The main features of the daemon are:
  * dump received bytes to binary files for later playback/analysis
  * listen for client connections on a dedicated TCP port (command line style and/or HTTP)
  * optionally format messages and data in JSON on dedicated HTTP port
- * optionally publish all received message data to MQTT topics and vice versa including optional TLS
+ * optionally publish received message data to MQTT topics and vice versa (if authorized)
+ * optional ACL and required user authentication for access to certain messages
 
 
 Installation
