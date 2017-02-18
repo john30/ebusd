@@ -175,7 +175,7 @@ class MainLoop : public Thread, DeviceListener {
   /**
    * Execute the write command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
-   * @param level the current user's access levels.
+   * @param levels the current user's access levels.
    * @return the result string.
    */
   string executeWrite(vector<string> &args, const string levels);
@@ -190,7 +190,7 @@ class MainLoop : public Thread, DeviceListener {
   /**
    * Execute the find command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
-   * @param level the current user's access levels.
+   * @param levels the current user's access levels.
    * @return the result string.
    */
   string executeFind(vector<string> &args, string levels);
@@ -220,7 +220,7 @@ class MainLoop : public Thread, DeviceListener {
   /**
    * Execute the scan command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
-   * @param level the current user's access levels.
+   * @param levels the current user's access levels.
    * @return the result string.
    */
   string executeScan(vector<string> &args, const string levels);
