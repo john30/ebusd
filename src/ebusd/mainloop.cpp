@@ -73,7 +73,7 @@ static const size_t columnCount = sizeof(columnNames) / sizeof(char*);
 result_t UserList::addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
     vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit,
     const string& defaultSuffix, const string& filename, unsigned int lineNo) {
-  // name,secret,level
+  // name,secret,level[,level]*
   if (begin == end) {
     return RESULT_ERR_EOF;
   }
