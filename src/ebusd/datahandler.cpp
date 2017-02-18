@@ -50,10 +50,11 @@ const struct argp_child* datahandler_getargs() {
   return NULL;
 }
 
-bool datahandler_register(BusHandler* busHandler, MessageMap* messages, list<DataHandler*>& handlers) {
+bool datahandler_register(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages,
+    list<DataHandler*>& handlers) {
   bool success = true;
 #ifdef HAVE_MQTT
-  DataHandler* handler = mqtthandler_register(busHandler, messages);
+  DataHandler* handler = mqtthandler_register(userInfo, busHandler, messages);
   if (handler) {
     handlers.push_back(handler);
   } else {
@@ -64,7 +65,9 @@ bool datahandler_register(BusHandler* busHandler, MessageMap* messages, list<Dat
 }
 
 void DataSink::notifyUpdate(Message* message) {
-  m_updatedMessages[message]++;
+  if (message && message->hasLevel(m_levels)) {
+    m_updatedMessages[message]++;
+  }
 }
 
 }  // namespace ebusd

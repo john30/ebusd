@@ -45,11 +45,12 @@ const struct argp_child* mqtthandler_getargs();
 
 /**
  * Registration function that is called once during initialization.
+ * @param userInfo the @a UserInfo instance.
  * @param busHandler the @a BusHandler instance.
  * @param messages the @a MessageMap instance.
  * @return the create @a DataHandler, or NULL on error.
  */
-DataHandler* mqtthandler_register(BusHandler* busHandler, MessageMap* messages);
+DataHandler* mqtthandler_register(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages);
 
 /**
  * The main class supporting MQTT data handling.
@@ -58,10 +59,11 @@ class MqttHandler : public DataSink, public DataSource, public Thread {
  public:
   /**
    * Constructor.
+   * @param userInfo the @a UserInfo instance.
    * @param busHandler the @a BusHandler instance.
    * @param messages the @a MessageMap instance.
    */
-  MqttHandler(BusHandler* busHandler, MessageMap* messages);
+  MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages);
 
   /**
    * Destructor.
@@ -120,7 +122,7 @@ class MqttHandler : public DataSink, public DataSource, public Thread {
   vector<string> m_topicStrs;
 
   /** the MQTT topic column parts. */
-  vector<size_t> m_topicCols;
+  vector<column_t> m_topicCols;
 
   /** the global topic prefix. */
   string m_globalTopic;

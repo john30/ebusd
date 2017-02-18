@@ -165,8 +165,8 @@ const struct argp_child* mqtthandler_getargs() {
   return &g_mqtt_argp_child;
 }
 
-DataHandler* mqtthandler_register(BusHandler* busHandler, MessageMap* messages) {
-  return new MqttHandler(busHandler, messages);
+DataHandler* mqtthandler_register(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages) {
+  return new MqttHandler(userInfo, busHandler, messages);
 }
 
 /** the known topic column names. */
@@ -177,7 +177,7 @@ static const char* columnNames[] = {
 };
 
 /** the known topic column IDs. */
-static const size_t columnIds[] = {
+static const column_t columnIds[] = {
   COLUMN_CIRCUIT,
   COLUMN_NAME,
   COLUMN_FIELDS,
@@ -194,24 +194,25 @@ static const size_t columnCount = sizeof(columnNames) / sizeof(char*);
  * @param cols the @a vector to which the column parts shall be added.
  * @return true on success, false on malformed topic template.
  */
-bool parseTopic(const string topic, vector<string> &strs, vector<size_t> &cols) {
+bool parseTopic(const string topic, vector<string> &strs, vector<column_t> &cols) {
   size_t lastpos = 0;
   size_t end = topic.length();
   vector<string> columns;
   for (size_t pos=topic.find('%', lastpos); pos != string::npos; ) {
-    size_t col = columnCount;
+    size_t idx = columnCount;
     size_t len = 0;
     for (size_t i = 0; i < columnCount; i++) {
       len = strlen(columnNames[i]);
       if (topic.substr(pos+1, len) == columnNames[i]) {
-        col = columnIds[i];
+        idx = i;
         break;
       }
     }
-    if (col == columnCount) {
+    if (idx== columnCount) {
       return false;
     }
-    for (vector<size_t>::iterator it=cols.begin(); it != cols.end(); it++) {
+    column_t col = columnIds[idx];
+    for (vector<column_t>::iterator it=cols.begin(); it != cols.end(); it++) {
       if (*it == col) {
         return false;  // duplicate column
       }
@@ -259,8 +260,8 @@ void on_connect(
 }
 
 
-MqttHandler::MqttHandler(BusHandler* busHandler, MessageMap* messages)
-  : DataSink(), DataSource(busHandler), Thread(), m_messages(messages), m_connected(false) {
+MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages)
+  : DataSink(userInfo, "mqtt"), DataSource(busHandler), Thread(), m_messages(messages), m_connected(false) {
   bool enabled = g_port != 0;
   m_publishByField = false;
   m_mosquitto = NULL;
@@ -396,17 +397,16 @@ void MqttHandler::notifyTopic(string topic, string data) {
   if (pos == string::npos) {
     return;
   }
-  string suffix = topic.substr(pos+1);
+  string direction = topic.substr(pos+1);
   bool isWrite = false;
-  if (suffix.empty()) {
+  if (direction.empty()) {
     return;
   }
-  string direction = suffix.substr(0, 3);
   isWrite = direction == "set";
   if (!isWrite && direction != "get") {
     return;
   }
-  suffix = suffix.substr(3);  // security level
+
   logOtherDebug("mqtt", "received topic %s", topic.c_str(), data.c_str());
   string remain = topic.substr(0, pos);
   size_t last = 0;
@@ -457,12 +457,9 @@ void MqttHandler::notifyTopic(string topic, string data) {
     return;
   }
   logOtherInfo("mqtt", "received topic for %s %s", circuit.c_str(), name.c_str());
-  if (suffix.length() > 0) {
-    circuit += "#"+suffix;
-  }
-  Message* message = m_messages->find(circuit, name, isWrite);
+  Message* message = m_messages->find(circuit, name, m_levels, isWrite);
   if (message == NULL) {
-    message = m_messages->find(circuit, name, isWrite, true);
+    message = m_messages->find(circuit, name, m_levels, isWrite, true);
   }
   if (message == NULL) {
     logOtherError("mqtt", "%s message %s %s not found", isWrite?"write":"read", circuit.c_str(), name.c_str());
