@@ -1302,10 +1302,10 @@ string MainLoop::executeLog(vector<string> &args) {
     return ret.str();
   }
   if (args.size() != 3) {
-    return "usage: log [AREA[,AREA]*] [LEVEL]\n"
-         " Set log area(s) and/or log level or get current settings.\n"
-         "  AREA   log area to include (main|network|bus|update|all)\n"
-         "  LEVEL  log level to set (error|notice|info|debug)";
+    return "usage: log [AREA[,AREA]* LEVEL]\n"
+         " Set log level for the specified area(s) or get current settings.\n"
+         "  AREA   the area to set the level for (main|network|bus|update|other|all)\n"
+         "  LEVEL  the log level to set (error|notice|info|debug)";
   }
   int facilities = parseLogFacilities(args[1].c_str());
   LogLevel level = parseLogLevel(args[2].c_str());
@@ -1414,7 +1414,7 @@ string MainLoop::executeHelp() {
       "          Report the messages:   grab result [all]\n"
       " scan     Scan slaves:           scan [full|ZZ]\n"
       "          Report scan result:    scan result\n"
-      " log      Set log area/level:    log [AREA[,AREA]*] [LEVEL]\n"
+      " log      Set log area level:    log [AREA[,AREA]* LEVEL]\n"
       " raw      Toggle logging of each byte\n"
       " dump     Toggle binary dump of received bytes\n"
       " reload   Reload CSV config files\n"
