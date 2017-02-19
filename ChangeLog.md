@@ -28,6 +28,7 @@
 * added -a and -l options to "find" command
 * added possibility to define different log level per area on command line and with "log" command
 * added decode option to "grab" command presenting decoding hints for unknown messages
+* added option to use different source address QQ to read/write/hex commands
 
 
 # 2.4 (2016-12-17)
