@@ -135,7 +135,7 @@ void printErrorPos(ostream& out, vector<string>::iterator begin, const vector<st
 }
 
 
-bool DataType::dump(ostream& output, const unsigned char length) const {
+bool DataType::dump(ostream& output, const unsigned char length, const bool appendSeparatorDivisor) const {
   output << m_id;
   if (isAdjustableLength()) {
     if (length == REMAIN_LEN) {
@@ -144,7 +144,9 @@ bool DataType::dump(ostream& output, const unsigned char length) const {
       output << ":" << static_cast<unsigned>(length);
     }
   }
-  output << FIELD_SEPARATOR;
+  if (appendSeparatorDivisor) {
+    output << FIELD_SEPARATOR;
+  }
   return false;
 }
 
@@ -594,11 +596,14 @@ unsigned char NumberDataType::calcPrecision(const int divisor) {
   return precision;
 }
 
-bool NumberDataType::dump(ostream& output, unsigned char length) const {
+bool NumberDataType::dump(ostream& output, unsigned char length, const bool appendSeparatorDivisor) const {
   if (m_bitCount < 8) {
-    DataType::dump(output, m_bitCount);
+    DataType::dump(output, m_bitCount, appendSeparatorDivisor);
   } else {
-    DataType::dump(output, length);
+    DataType::dump(output, length, appendSeparatorDivisor);
+  }
+  if (!appendSeparatorDivisor) {
+    return false;
   }
   if (m_baseType) {
     if (m_baseType->m_divisor != m_divisor) {
@@ -710,6 +715,7 @@ result_t NumberDataType::readRawValue(SymbolString& input,
   if (m_bitCount < 8) {
     value &= (1 << m_bitCount) - 1;
   }
+
   return RESULT_OK;
 }
 
@@ -734,7 +740,21 @@ result_t NumberDataType::readSymbols(SymbolString& input, const bool isMaster,
     return RESULT_OK;
   }
 
-  bool negative = hasFlag(SIG) && (value & (1 << (m_bitCount - 1))) != 0;
+  bool negative;
+  if (hasFlag(SIG)) {  // signed value
+    negative = (value & (1 << (m_bitCount - 1))) != 0;
+    if (negative) {  // negative signed value
+      if (value < m_minValue) {
+        return RESULT_ERR_OUT_OF_RANGE;  // value out of range
+      }
+    } else if (value > m_maxValue) {
+      return RESULT_ERR_OUT_OF_RANGE;  // value out of range
+    }
+  } else if (value < m_minValue || value > m_maxValue) {
+    return RESULT_ERR_OUT_OF_RANGE;  // value out of range
+  } else {
+    negative = false;
+  }
   if (m_bitCount == 32) {
     if (hasFlag(EXP)) {  // IEEE 754 binary32
       float val;

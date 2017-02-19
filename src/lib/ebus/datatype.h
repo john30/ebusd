@@ -212,12 +212,13 @@ class DataType {
 
   /**
    * Dump the type identifier with the specified length and optionally the
-   * divisor to the output (@a FIELD_SEPARATOR is always appended!).
+   * divisor to the output.
    * @param output the @a ostream to dump to.
    * @param length the number of symbols to read/write.
+   * @param appendSeparatorDivisor whether to append a @a FIELD_SEPARATOR followed by the divisor (if available).
    * @return true when a non-default divisor was written to the output.
    */
-  virtual bool dump(ostream& output, const unsigned char length) const;
+  virtual bool dump(ostream& output, const unsigned char length, const bool appendSeparatorDivisor = true) const;
 
   /**
    * Internal method for reading the numeric raw value from a @a SymbolString.
@@ -435,7 +436,7 @@ class NumberDataType : public DataType {
   static unsigned char calcPrecision(const int divisor);
 
   // @copydoc
-  virtual bool dump(ostream& output, const unsigned char length) const;
+  virtual bool dump(ostream& output, const unsigned char length, const bool appendSeparatorDivisor = true) const;
 
   /**
    * Derive a new @a NumberDataType from this.
@@ -576,6 +577,17 @@ class DataTypeList {
    */
   DataType* get(const string id, const unsigned char length = 0);
 
+  /**
+   * Returns an iterator pointing to the first ID/@a DataType pair.
+   * @return an iterator pointing to the first ID/@a DataType pair.
+   */
+  map<string, DataType*>::const_iterator begin() const { return m_typesById.begin(); }
+
+  /**
+   * Returns an iterator pointing one past the last ID/@a DataType pair.
+   * @return an iterator pointing one past the last ID/@a DataType pair.
+   */
+  map<string, DataType*>::const_iterator end() const { return m_typesById.end(); }
 
  private:
   /** the known @a DataType instances by ID only. */
