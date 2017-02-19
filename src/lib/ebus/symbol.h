@@ -108,7 +108,8 @@ class SymbolString {
    * @param skipLastSymbol whether to skip the last symbol (probably the CRC).
    * @return the symbols as hex string.
    */
-  const string getDataStr(const bool unescape = true, const bool skipLastSymbol = true);
+  const string getDataStr(const bool unescape = true, const bool skipLastSymbol = true,
+      unsigned char skipFirstSymbols = 0);
 
   /**
    * Return a reference to the symbol at the specified index.
