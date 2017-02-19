@@ -192,7 +192,64 @@ void GrabbedMessage::setLastData(SymbolString& master, SymbolString& slave) {
   m_count++;
 }
 
-bool GrabbedMessage::dump(const bool unknown, MessageMap* messages, bool first, ostringstream& output) {
+/**
+ * Decode the input @a SymbolString with the specified @a DataType and length.
+ * @param type the @a DataType.
+ * @param input the unescaped @a SymbolString to read the binary value from.
+ * @param isMaster whether the @a SymbolString is the master part.
+ * @param baseOffset the base offset in the @a SymbolString.
+ * @param length the number of symbols to read.
+ * @param offsets the last offset to the baseOffset to read.
+ * @param output the ostringstream to append the formatted value to.
+ * @param firstOnly whether to read only the first non-erroneous offset.
+ * @return @a RESULT_OK on success, or an error code.
+ */
+bool decodeType(DataType* type, SymbolString *input, bool isMaster, unsigned char baseOffset, unsigned char length,
+    unsigned char offsets, ostringstream& output, bool firstOnly = false) {
+  bool first = true;
+  string in = input->getDataStr(true, true, baseOffset);
+  for (unsigned char offset = 0; offset <= offsets; offset++) {
+    ostringstream out;
+    result_t result = type->readSymbols(*input, isMaster, (unsigned char)(baseOffset+offset), (unsigned char)length,
+        out, 0);
+    if (result != RESULT_OK) {
+      continue;
+    }
+    if (type->isNumeric() && type->hasFlag(DAY)) {
+      unsigned int value = 0;
+      if (type->readRawValue(*input, (unsigned char)(baseOffset+offset), (unsigned char)length, value) == RESULT_OK) {
+        out.str("");
+        out << DataField::getDayName(reinterpret_cast<NumberDataType*>(type)->getMinValue()+value);
+      }
+    }
+    if (first) {
+      first = false;
+      output << endl << " ";
+      ostringstream::pos_type cnt = output.tellp();
+      type->dump(output, length, false);
+      cnt = output.tellp() - cnt;
+      while (cnt < 5) {
+        output << " ";
+        cnt += 1;
+      }
+    } else {
+      output << ",";
+    }
+    output << " " << in.substr(offset*2, length*2);
+    if (type->isNumeric()) {
+      output << "=" << out.str();
+    } else {
+      output << "=\"" << out.str() << "\"";
+    }
+    if (firstOnly) {
+      return true;  // only the first offset with maximum length when adjustable maximum size is at least 8 bytes
+    }
+  }
+  return !first;
+}
+
+bool GrabbedMessage::dump(const bool unknown, MessageMap* messages, bool first, ostringstream& output,
+    const bool decode) {
   Message* message = messages->find(m_lastMaster);
   if (unknown && message) {
     return false;
@@ -208,6 +265,43 @@ bool GrabbedMessage::dump(const bool unknown, MessageMap* messages, bool first, 
   output << " = " << static_cast<unsigned>(m_count);
   if (message) {
     output << ": " << message->getCircuit() << " " << message->getName();
+  }
+  if (decode) {
+    DataTypeList *types = DataTypeList::getInstance();
+    if (!types) {
+      return true;
+    }
+    bool master = isMaster(dstAddress) || dstAddress == BROADCAST || m_lastSlave.size() <= 1 || m_lastSlave[0] == 0;
+    SymbolString *input = master ? &m_lastMaster : &m_lastSlave;
+    unsigned char baseOffset = master ? 5 : 1;
+    unsigned char remain = input->size();
+    if (remain <= baseOffset+1) {  // excluding CRC
+      return true;
+    }
+    remain = (unsigned char)(remain-baseOffset-1);
+    for (map<string, DataType*>::const_iterator it = types->begin(); it != types->end(); it++) {
+      DataType* baseType = it->second;
+      if ((baseType->getBitCount() % 8) != 0 || baseType->isIgnored()) {  // skip bit and ignored types
+        continue;
+      }
+      unsigned char maxLength = baseType->getBitCount()/8;
+      bool firstOnly = maxLength >= 8;
+      if (maxLength > remain) {
+        maxLength = remain;
+      }
+      if (baseType->isAdjustableLength()) {
+        for (unsigned char length = maxLength; length >= 1; length--) {
+          DataType* type = types->get(baseType->getId(), length);
+          if (decodeType(type, input, master, baseOffset, length, (unsigned char)(remain-length), output, firstOnly)) {
+            if (firstOnly) {
+              break;  // only a single offset with maximum length when adjustable maximum size is at least 8 bytes
+            }
+          }
+        }
+      } else if (maxLength > 0) {
+        decodeType(baseType, input, master, baseOffset, maxLength, (unsigned char)(remain-maxLength), output);
+      }
+    }
   }
   return true;
 }
@@ -1112,14 +1206,14 @@ bool BusHandler::enableGrab(bool enable) {
   return true;
 }
 
-void BusHandler::formatGrabResult(const bool unknown, ostringstream& output) {
+void BusHandler::formatGrabResult(const bool unknown, ostringstream& output, const bool decode) {
   if (!m_grabMessages) {
     output << "grab disabled";
   } else {
     bool first = true;
     for (map<uint64_t, GrabbedMessage>::iterator it = m_grabbedMessages.begin(); it != m_grabbedMessages.end();
         it++) {
-      if (it->second.dump(unknown, m_messages, first, output)) {
+      if (it->second.dump(unknown, m_messages, first, output, decode)) {
         first = false;
       }
     }

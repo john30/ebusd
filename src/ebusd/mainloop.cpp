@@ -1230,10 +1230,15 @@ string MainLoop::executeGrab(vector<string> &args) {
       m_busHandler->formatGrabResult(args.size() == 2, result);
       return result.str();
     }
+    if (args.size() == 3 || strcasecmp(args[2].c_str(), "decode") == 0) {  // TODO remove strcasecmp
+      ostringstream result;
+      m_busHandler->formatGrabResult(true, result, true);
+      return result.str();
+    }
   }
   return "usage: grab [stop]\n"
-       "  or:  grab result [all]\n"
-       " Start or stop grabbing, or report unknown or all grabbed messages.";
+       "  or:  grab result [all|decode]\n"
+       " Start or stop grabbing, or report/decode unknown or all grabbed messages.";
 }
 
 string MainLoop::executeScan(vector<string> &args, string levels) {

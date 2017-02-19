@@ -309,9 +309,10 @@ class GrabbedMessage {
    * @param messages the @a MessageMap instance for resolving known @a Message instances.
    * @param first whether this is the first message to be added to the output.
    * @param output the @a ostringstream to format the messages to.
+   * @param decode whether to add decoding hints.
    * @return whether the message was added to the output.
    */
-  bool dump(const bool unknown, MessageMap* messages, bool first, ostringstream& output);
+  bool dump(const bool unknown, MessageMap* messages, bool first, ostringstream& output, const bool decode = false);
 
 
  private:
@@ -468,8 +469,9 @@ class BusHandler : public WaitThread {
    * Format the grabbed messages to the @a ostringstream.
    * @param unknown whether to dump only unknown messages.
    * @param output the @a ostringstream to format the messages to.
+   * @param decode whether to add decoding hints.
    */
-  void formatGrabResult(const bool unknown, ostringstream& output);
+  void formatGrabResult(const bool unknown, ostringstream& output, const bool decode = false);
 
   /**
    * Return true when a signal on the bus is available.
