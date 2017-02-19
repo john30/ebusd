@@ -22,7 +22,7 @@ The main features of the daemon are:
  * scan for bus participants
  * parse messages to human readable values by using CSV message configuration files
  * automatically pick CSV message configuration files by scan result
- * grab all messages on the eBUS
+ * grab all messages on the eBUS and provide decoding hints
  * log messages and problems to a log file
  * capture sent/received bytes to a log file as text
  * dump received bytes to binary files for later playback/analysis
