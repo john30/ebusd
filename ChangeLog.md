@@ -11,6 +11,7 @@
 * corrected last update time of write messages
 * close log file on SIGHUP for better logrotate support
 * only allow a single scan at the same time
+* check allowed value range for base types during decoding
 
 ## Features
 * added support for MQTT handling via libmosquitto (will be compiled in when library is available)
@@ -25,6 +26,8 @@
 * added user and secret arguments to HTTP port
 * use ACL in read/write/find/scan commands
 * added -a and -l options to "find" command
+* added possibility to define different log level per area on command line and with "log" command
+* added decode option to "grab" command presenting decoding hints for unknown messages
 
 
 # 2.4 (2016-12-17)
