@@ -340,13 +340,15 @@ result_t BusHandler::sendAndWait(SymbolString& master, SymbolString& slave) {
   return result;
 }
 
-result_t BusHandler::readFromBus(Message* message, string inputStr, const unsigned char dstAddress) {
+result_t BusHandler::readFromBus(Message* message, string inputStr, const unsigned char dstAddress,
+    const unsigned char srcAddress) {
+  unsigned char masterAddress = srcAddress == SYN ? m_ownMasterAddress : srcAddress;
   result_t ret = RESULT_EMPTY;
   SymbolString master(true);
   SymbolString slave(false);
   for (unsigned char index = 0; index < message->getCount(); index++) {
     istringstream input(inputStr);
-    ret = message->prepareMaster(m_ownMasterAddress, master, input, UI_FIELD_SEPARATOR, dstAddress, index);
+    ret = message->prepareMaster(masterAddress, master, input, UI_FIELD_SEPARATOR, dstAddress, index);
     if (ret != RESULT_OK) {
       logError(lf_bus, "prepare message part %d: %s", index, getResultCode(ret));
       break;
@@ -447,7 +449,7 @@ result_t BusHandler::handleSymbol() {
         }
       }
       if (startRequest != NULL) {  // initiate arbitration
-        sendSymbol = m_ownMasterAddress;
+        sendSymbol = startRequest->m_master[0];
         sending = true;
       }
     }

@@ -409,9 +409,11 @@ class BusHandler : public WaitThread {
    * @param message the @a Message instance.
    * @param inputStr the input @a string from which to read master values (if any).
    * @param dstAddress the destination address to set, or @a SYN to keep the address defined during construction.
+   * @param srcAddress the source address to set, or @a SYN for the own master address.
    * @return the result code.
    */
-  result_t readFromBus(Message* message, string inputStr, const unsigned char dstAddress = SYN);
+  result_t readFromBus(Message* message, string inputStr, const unsigned char dstAddress = SYN,
+      const unsigned char srcAddress = SYN);
 
   /**
    * Main thread entry.
