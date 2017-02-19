@@ -104,6 +104,7 @@ class DataField {
 
   /**
    * Return the name of the specified day.
+   * @param day the day (between 0 and 6).
    * @return the name of the specified day.
    */
   static string getDayName(int day);

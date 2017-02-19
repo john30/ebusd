@@ -106,6 +106,7 @@ class SymbolString {
    * Return the symbols as hex string.
    * @param unescape whether to unescape an escaped instance.
    * @param skipLastSymbol whether to skip the last symbol (probably the CRC).
+   * @param skipFirstSymbols the number of first symbols to skip.
    * @return the symbols as hex string.
    */
   const string getDataStr(const bool unescape = true, const bool skipLastSymbol = true,
