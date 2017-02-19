@@ -264,6 +264,13 @@ void DataField::dumpString(ostream& output, const string str, const bool prepend
   }
 }
 
+string DataField::getDayName(int day) {
+  if (day < 0 || day > 6) {
+    return "";
+  }
+  return dayNames[day];
+}
+
 result_t SingleDataField::create(const string id, const unsigned char length,
   const string name, const string comment, const string unit,
   const PartType partType, int divisor, map<unsigned int, string> values,
@@ -300,8 +307,9 @@ result_t SingleDataField::create(const string id, const unsigned char length,
   if (dataType->isNumeric()) {
     NumberDataType* numType = reinterpret_cast<NumberDataType*>(dataType);
     if (values.empty() && numType->hasFlag(DAY)) {
-      for (unsigned int i = 0; i < sizeof(dayNames) / sizeof(dayNames[0]); i++)
+      for (unsigned int i = 0; i < sizeof(dayNames) / sizeof(dayNames[0]); i++) {
         values[numType->getMinValue() + i] = dayNames[i];
+      }
     }
     result_t result = numType->derive(divisor, bitCount, numType);
     if (result != RESULT_OK) {

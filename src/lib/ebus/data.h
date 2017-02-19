@@ -103,6 +103,12 @@ class DataField {
   static void dumpString(ostream& output, const string str, const bool prependFieldSeparator = true);
 
   /**
+   * Return the name of the specified day.
+   * @return the name of the specified day.
+   */
+  static string getDayName(int day);
+
+  /**
    * Returns the length of this field (or contained fields) in bytes.
    * @param partType the message part of the contained fields to limit the length calculation to.
    * @param maxLength the maximum length for calculating remainder of input.
