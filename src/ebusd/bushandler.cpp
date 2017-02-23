@@ -275,10 +275,16 @@ bool GrabbedMessage::dump(const bool unknown, MessageMap* messages, bool first, 
     SymbolString *input = master ? &m_lastMaster : &m_lastSlave;
     unsigned char baseOffset = master ? 5 : 1;
     unsigned char remain = input->size();
-    if (remain <= baseOffset+1) {  // excluding CRC
+    if (remain <= baseOffset) {
       return true;
     }
-    remain = (unsigned char)(remain-baseOffset-1);
+    remain = (unsigned char)(remain-baseOffset);
+    if ((*input)[baseOffset-1] < remain) {
+      remain = (*input)[baseOffset-1];
+    }
+    if (remain == 0) {
+      return true;
+    }
     for (map<string, DataType*>::const_iterator it = types->begin(); it != types->end(); it++) {
       DataType* baseType = it->second;
       if ((baseType->getBitCount() % 8) != 0 || baseType->isIgnored()) {  // skip bit and ignored types
