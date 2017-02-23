@@ -338,7 +338,7 @@ class DateTimeDataType : public DataType {
    */
   DateTimeDataType(const string id, const unsigned char bitCount, const uint16_t flags, const unsigned int replacement,
       const bool hasDate, const bool hasTime, const int16_t resolution)
-    : DataType(id, bitCount, flags, replacement), m_hasDate(hasDate), m_hasTime(hasTime), m_resolution(resolution) {}
+    : DataType(id, bitCount, flags, replacement), m_hasDate(hasDate), m_hasTime(hasTime), m_resolution(resolution == 0 ? 1 : resolution) {}
 
   /**
    * Destructor.
