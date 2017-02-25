@@ -1,5 +1,6 @@
 AM_CXXFLAGS = -I$(top_srcdir)/src \
-	-Wno-unused-parameter
+	      -isystem$(top_srcdir) \
+	      -Wno-unused-parameter
 
 noinst_PROGRAMS = test_contrib
 

@@ -1,7 +1,6 @@
 AM_CXXFLAGS = -I$(top_srcdir)/src \
+	      -isystem$(top_srcdir) \
 	      -Wconversion -Wno-unused-parameter \
-	      -isystem$(top_srcdir)/src/lib/utils \
-	      -isystem$(top_srcdir)/src/lib/ebus \
 	      -DSYSCONFDIR=\"$(sysconfdir)\" \
 	      -DLOCALSTATEDIR=\"$(localstatedir)\"
 

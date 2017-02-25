@@ -1,4 +1,5 @@
-AM_CXXFLAGS = -I$(top_srcdir)/src
+AM_CXXFLAGS = -I$(top_srcdir)/src \
+	      -isystem$(top_srcdir)
 
 bin_PROGRAMS = ebusctl \
 	       ebusfeed
@@ -17,4 +18,3 @@ endif
 distclean-local:
 	-rm -f Makefile.in
 	-rm -rf .libs
-

@@ -1,4 +1,5 @@
 AM_CXXFLAGS = -I$(top_srcdir)/src \
+	      -isystem$(top_srcdir) \
 	      -Wconversion
 
 noinst_LIBRARIES = libutils.a
