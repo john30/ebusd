@@ -22,6 +22,8 @@
 #  include <mach/mach.h>
 #endif
 
+namespace ebusd {
+
 #ifdef __MACH__
 static bool clockInitialized = false;
 static clock_serv_t clockServ;
@@ -41,3 +43,5 @@ void clockGettime(struct timespec* t) {
   clock_gettime(CLOCK_REALTIME, t);
 #endif
 }
+
+}  // namespace ebusd

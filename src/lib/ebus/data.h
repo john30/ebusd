@@ -30,7 +30,9 @@
 #include "lib/ebus/filereader.h"
 #include "lib/ebus/datatype.h"
 
-/** @file data.h
+namespace ebusd {
+
+/** @file lib/ebus/data.h
  * Classes related to defining fields based on data types in symbols on the
  * eBUS.
  *
@@ -45,8 +47,6 @@
  * instances from configuration files by inheriting the @a FileReader template
  * class.
  */
-
-namespace ebusd {
 
 class DataFieldTemplates;
 class SingleDataField;

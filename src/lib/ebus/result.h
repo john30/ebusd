@@ -19,15 +19,15 @@
 #ifndef LIB_EBUS_RESULT_H_
 #define LIB_EBUS_RESULT_H_
 
-/** @file result.h
+namespace ebusd {
+
+/** @file lib/ebus/result.h
  * Functions, and constants related to execution results.
  *
- * The #result_t codes defined here are used by many functions to emit the
+ * The @a result_t codes defined here are used by many functions to emit the
  * result of the function call. Zero and positive values indicate success,
  * whereas negative values indicate failure.
  */
-
-namespace ebusd {
 
 /** type for result code. */
 enum result_t {

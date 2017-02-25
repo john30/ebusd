@@ -27,7 +27,9 @@
 #include <vector>
 #include "lib/ebus/result.h"
 
-/** @file symbol.h
+namespace ebusd {
+
+/** @file lib/ebus/symbol.h
  * Classes, functions, and constants related to symbols on the eBUS.
  *
  * The @a SymbolString class is used for escaping or unescaping a sequence of
@@ -63,17 +65,19 @@
  * non-acknowledge, the receiving slave has to repeat its data once.
  */
 
-namespace ebusd {
-
 using std::string;
 using std::vector;
 
 /** escape symbol, either followed by 0x00 for the value 0xA9, or 0x01 for the value 0xAA. */
-static const unsigned char ESC = 0xA9;
-static const unsigned char SYN = 0xAA;       //!< synchronization symbol
-static const unsigned char ACK = 0x00;       //!< positive acknowledge
-static const unsigned char NAK = 0xFF;       //!< negative acknowledge
-static const unsigned char BROADCAST = 0xFE;  //!< the broadcast destination address
+#define ESC 0xA9
+/** synchronization symbol. */
+#define SYN 0xAA
+/** positive acknowledge symbol. */
+#define ACK 0x00
+/** negative acknowledge symbol. */
+#define NAK 0xFF
+/** the broadcast destination address. */
+#define BROADCAST 0xFE
 
 
 /**

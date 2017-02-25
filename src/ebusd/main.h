@@ -26,11 +26,11 @@
 #include "lib/ebus/result.h"
 #include "lib/utils/log.h"
 
-/** \file main.h
+namespace ebusd {
+
+/** \file ebusd/main.h
  * The main entry method doing all the startup handling.
  */
-
-namespace ebusd {
 
 /** A structure holding all program options. */
 struct options {

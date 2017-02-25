@@ -28,11 +28,11 @@
 #include "lib/utils/notify.h"
 #include "lib/utils/thread.h"
 
-/** \file network.h
+namespace ebusd {
+
+/** \file ebusd/network.h
  * The TCP and HTTP client request handling.
  */
-
-namespace ebusd {
 
 /** Forward declaration for @a Connection. */
 class Connection;

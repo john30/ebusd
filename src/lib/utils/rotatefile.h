@@ -25,7 +25,9 @@
 #include <fstream>
 #include <string>
 
-/** @file rotatefile.h
+namespace ebusd {
+
+/** \file lib/utils/rotatefile.h
  * Helpers for writing to rotating files.
  */
 
@@ -92,5 +94,6 @@ class RotateFile {
   uint64_t m_fileSize;
 };
 
-#endif  // LIB_UTILS_ROTATEFILE_H_
+}  // namespace ebusd
 
+#endif  // LIB_UTILS_ROTATEFILE_H_

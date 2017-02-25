@@ -22,7 +22,9 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-/** \file notify.h */
+namespace ebusd {
+
+/** \file lib/utils/notify.h */
 
 /**
  * class to notify other thread per pipe.
@@ -69,6 +71,6 @@ class Notify {
   int m_sendfd;
 };
 
+}  // namespace ebusd
+
 #endif  // LIB_UTILS_NOTIFY_H_
-
-

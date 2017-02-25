@@ -30,6 +30,8 @@
 #include "lib/ebus/device.h"
 #include "lib/ebus/result.h"
 
+namespace ebusd {
+
 using std::hex;
 using std::fstream;
 using std::cout;
@@ -130,6 +132,12 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
 }
 
 
+/**
+ * Main function.
+ * @param argc the number of command line arguments.
+ * @param argv the command line arguments.
+ * @return the exit code.
+ */
 int main(int argc, char* argv[]) {
   struct argp argp = { argpoptions, parse_opt, argpargsdoc, argpdoc, NULL, NULL, NULL };
   setenv("ARGP_HELP_FMT", "no-dup-args-note", 0);
@@ -171,3 +179,8 @@ int main(int argc, char* argv[]) {
   exit(EXIT_SUCCESS);
 }
 
+}  // namespace ebusd
+
+int main(int argc, char* argv[]) {
+  return ebusd::main(argc, argv);
+}

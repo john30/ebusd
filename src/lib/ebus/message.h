@@ -30,7 +30,9 @@
 #include "lib/ebus/result.h"
 #include "lib/ebus/symbol.h"
 
-/** @file message.h
+namespace ebusd {
+
+/** @file lib/ebus/message.h
  * Classes and functions for decoding and encoding of complete messages on the
  * eBUS to and from readable values.
  *
@@ -56,8 +58,6 @@
  * the instances from configuration files by inheriting the @a FileReader
  * template class.
  */
-
-namespace ebusd {
 
 using std::binary_function;
 using std::priority_queue;

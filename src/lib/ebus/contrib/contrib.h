@@ -19,12 +19,12 @@
 #ifndef LIB_EBUS_CONTRIB_CONTRIB_H_
 #define LIB_EBUS_CONTRIB_CONTRIB_H_
 
-/** @file contrib.h
+namespace ebusd {
+
+/** @file lib/ebus/contrib/contrib.h
  * Contributed sources that may be excluded from regular builds.
  * configure switch: --without-contrib
  */
-
-namespace ebusd {
 
 /**
  * Registration function that is called once during initialization.

@@ -33,15 +33,15 @@
 #include "lib/utils/queue.h"
 #include "lib/utils/thread.h"
 
-/** @file bushandler.h
+namespace ebusd {
+
+/** @file ebusd/bushandler.h
  * Classes, functions, and constants related to handling of symbols on the eBUS.
  *
  * The following table shows the possible states, symbols, and state transition
  * depending on the kind of message to send/receive:
  * @image html states.png "ebusd BusHandler states"
  */
-
-namespace ebusd {
 
 using std::string;
 

@@ -27,6 +27,8 @@
 #include <string>
 #include "lib/utils/clock.h"
 
+namespace ebusd {
+
 using std::streamsize;
 
 RotateFile::~RotateFile() {
@@ -86,3 +88,5 @@ void RotateFile::write(unsigned char* value, unsigned int size, bool received) {
     }
   }
 }
+
+}  // namespace ebusd

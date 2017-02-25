@@ -19,7 +19,9 @@
 #ifndef LIB_UTILS_LOG_H_
 #define LIB_UTILS_LOG_H_
 
-/** \file log.h */
+namespace ebusd {
+
+/** \file lib/utils/log.h */
 
 /** the available log facilities. */
 enum LogFacility {
@@ -60,7 +62,7 @@ int parseLogFacilities(const char* facilities);
 
 /**
  * Get the log facility as string.
- * @param level the @a LogFacility.
+ * @param facility the @a LogFacility.
  * @return the log facility as string.
  */
 const char* getLogFacilityStr(LogFacility facility);
@@ -162,5 +164,7 @@ void logWrite(const char* facility, const LogLevel level, const char* message, .
 /** A macro for a debug message that calls the logging function only if needed. */
 #define logOtherDebug(facility, ...) \
   (needsLog(lf_other, ll_debug) ? logWrite(facility, ll_debug, __VA_ARGS__) : void(0))
+
+}  // namespace ebusd
 
 #endif  // LIB_UTILS_LOG_H_

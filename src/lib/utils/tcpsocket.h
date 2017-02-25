@@ -24,7 +24,12 @@
 #include <stdint.h>
 #include <string>
 
-/** \file tcpsocket.h */
+/** typedef for referencing @a sockaddr_in within namespace. */
+typedef struct sockaddr_in socketaddress;
+
+namespace ebusd {
+
+/** \file lib/utils/tcpsocket.h */
 
 using std::string;
 
@@ -35,7 +40,7 @@ using std::string;
 #endif
 
 /**
- * class for low level tcp socket operations. (open, close, send, receive).
+ * Class for low level tcp socket operations. (open, close, send, receive).
  */
 class TCPSocket {
  public:
@@ -99,14 +104,14 @@ class TCPSocket {
   uint16_t m_port;
 
   /** ip address of tcp socket */
-  string  m_ip;
+  string m_ip;
 
   /**
    * private constructor, limited access only for friend classes.
-   * @param sfd the file desctriptor of tcp socket.
+   * @param sfd the file descriptor of tcp socket.
    * @param address struct which holds the ip address.
    */
-  TCPSocket(int sfd, struct sockaddr_in* address);
+  TCPSocket(int sfd, socketaddress* address);
 };
 
 /**
@@ -174,5 +179,6 @@ class TCPServer {
   bool m_listening;
 };
 
-#endif  // LIB_UTILS_TCPSOCKET_H_
+}  // namespace ebusd
 
+#endif  // LIB_UTILS_TCPSOCKET_H_

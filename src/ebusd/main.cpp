@@ -1038,9 +1038,6 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
   return RESULT_OK;
 }
 
-}  // namespace ebusd
-
-using namespace ebusd;
 
 /** the version string of the program. */
 const char *argp_program_version = "" PACKAGE_STRING "." REVISION "";
@@ -1049,10 +1046,10 @@ const char *argp_program_version = "" PACKAGE_STRING "." REVISION "";
 const char *argp_program_bug_address = "" PACKAGE_BUGREPORT "";
 
 /**
- * Main method.
- *
+ * Main function.
  * @param argc the number of command line arguments.
  * @param argv the command line arguments.
+ * @return the exit code.
  */
 int main(int argc, char* argv[]) {
   struct argp aargp = { argpoptions, parse_opt, NULL, argpdoc, datahandler_getargs(), NULL, NULL };
@@ -1152,4 +1149,10 @@ int main(int argc, char* argv[]) {
   // shutdown
   shutdown();
   return 0;
+}
+
+}  // namespace ebusd
+
+int main(int argc, char* argv[]) {
+  return ebusd::main(argc, argv);
 }

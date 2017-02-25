@@ -21,7 +21,9 @@
 
 #include <pthread.h>
 
-/** \file thread.h */
+namespace ebusd {
+
+/** \file lib/utils/thread.h */
 
 /**
  * wrapper class for pthread.
@@ -139,5 +141,7 @@ class WaitThread : public Thread {
   /** the condition for waiting. */
   pthread_cond_t m_cond;
 };
+
+}  // namespace ebusd
 
 #endif  // LIB_UTILS_THREAD_H_

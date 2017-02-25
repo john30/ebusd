@@ -21,12 +21,16 @@
 
 #include <time.h>
 
-/** \file clock.h */
+namespace ebusd {
+
+/** \file lib/utils/clock.h */
 
 /**
  * Get the real time system clock.
  * @param t the @a timespec in which to store the time.
  */
 void clockGettime(struct timespec* t);
+
+}  // namespace ebusd
 
 #endif  // LIB_UTILS_CLOCK_H_

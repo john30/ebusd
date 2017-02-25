@@ -30,11 +30,11 @@
 #include "lib/ebus/result.h"
 #include "lib/ebus/datatype.h"
 
-/** @file tem.h
- * Contributed data types for TEM devices not part of regular releases.
- */
-
 namespace ebusd {
+
+/** @file lib/ebus/contrib/tem.h
+ * Contributed data types for TEM devices not necessarily part of regular releases.
+ */
 
 /**
  * A special variant of @a NumberDataType for TEM/Dungs ParamID in master/slave

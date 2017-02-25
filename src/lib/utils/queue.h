@@ -24,7 +24,9 @@
 #include <list>
 #include "lib/utils/clock.h"
 
-/** \file queue.h */
+namespace ebusd {
+
+/** \file lib/utils/queue.h */
 
 using std::list;
 
@@ -151,5 +153,7 @@ class Queue {
   /** condition variable for exclusive lock */
   pthread_cond_t m_cond;
 };
+
+}  // namespace ebusd
 
 #endif  // LIB_UTILS_QUEUE_H_

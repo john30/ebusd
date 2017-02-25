@@ -31,6 +31,7 @@ using std::hex;
 using std::setfill;
 using std::setw;
 
+
 // the string used for answering to a scan request (07h 04h)
 #define SCAN_ANSWER ("ebusd.eu;" PACKAGE_NAME ";" SCAN_VERSION ";100")
 

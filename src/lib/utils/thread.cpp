@@ -23,6 +23,8 @@
 #include "lib/utils/thread.h"
 #include "lib/utils/clock.h"
 
+namespace ebusd {
+
 void* Thread::runThread(void* arg) {
   reinterpret_cast<Thread*>(arg)->enter();
   return NULL;
@@ -102,3 +104,5 @@ bool WaitThread::Wait(int seconds) {
   pthread_mutex_unlock(&m_mutex);
   return isRunning();
 }
+
+}  // namespace ebusd

@@ -26,13 +26,13 @@
 #include "ebusd/bushandler.h"
 #include "lib/ebus/message.h"
 
-/** @file datahandler.h
+namespace ebusd {
+
+/** @file ebusd/datahandler.h
  * Classes and functions for implementing and registering generic data sinks
  * and sources that allow listening to received data updates and sending on
  * the bus.
  */
-
-namespace ebusd {
 
 using std::list;
 using std::map;

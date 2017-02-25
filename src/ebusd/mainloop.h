@@ -31,11 +31,11 @@
 #include "lib/ebus/message.h"
 #include "lib/utils/rotatefile.h"
 
-/** \file mainloop.h
+namespace ebusd {
+
+/** \file ebusd/mainloop.h
  * The main loop for the TCP client interface and regular tasks such as resolving scanned data.
  */
-
-namespace ebusd {
 
 /**
  * Helper class for user authentication.

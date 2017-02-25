@@ -27,11 +27,11 @@
 #include "ebusd/bushandler.h"
 #include "lib/ebus/message.h"
 
-/** @file mqtthandler.h
+namespace ebusd {
+
+/** @file ebusd/mqtthandler.h
  * A data handler enabling MQTT support via mosquitto.
  */
-
-namespace ebusd {
 
 using std::map;
 using std::string;

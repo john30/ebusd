@@ -31,7 +31,9 @@
 #include "lib/ebus/result.h"
 #include "lib/ebus/filereader.h"
 
-/** @file datatype.h
+namespace ebusd {
+
+/** @file lib/ebus/datatype.h
  * Classes, functions, and constants related to decoding/encoding of symbols
  * on the eBUS to/from readable values and registry of data types.
  *
@@ -46,8 +48,6 @@
  * @a ostringstream (see @a DataType#readSymbols() methods) or vice versa from
  * an @a istringstream to a @a SymbolString (see @a DataType#writeSymbols()).
  */
-
-namespace ebusd {
 
 using std::map;
 using std::list;
@@ -80,12 +80,20 @@ using std::list;
 /** the type for data output format options. */
 typedef int OutputFormat;
 
-/* the bit flags for @a OutputFormat. */
-static const unsigned int OF_NAMES = 0x01;    //!< include names.
-static const unsigned int OF_UNITS = 0x02;    //!< include units.
-static const unsigned int OF_COMMENTS = 0x04;  //!< include comments.
-static const unsigned int OF_NUMERIC = 0x08;  //!< numeric format (keep numeric value of value=name pairs).
-static const unsigned int OF_JSON = 0x10;     //!< JSON format.
+/** bit flag for @a OutputFormat: include names. */
+#define OF_NAMES 0x01
+
+/** bit flag for @a OutputFormat: include units. */
+#define OF_UNITS 0x02
+
+/** bit flag for @a OutputFormat: include comments. */
+#define OF_COMMENTS 0x04
+
+/** bit flag for @a OutputFormat: numeric format (keep numeric value of value=name pairs). */
+#define OF_NUMERIC 0x08
+
+/** bit flag for @a OutputFormat: JSON format. */
+#define OF_JSON 0x10
 
 /** the message part in which a data field is stored. */
 enum PartType {
@@ -94,21 +102,44 @@ enum PartType {
   pt_slaveData,    //!< stored in slave data
 };
 
-/* flags for @a DataType. */
-static const unsigned int ADJ = 0x01;  //!< adjustable length, bitCount is maximum length
-static const unsigned int BCD = 0x02;  //!< binary representation is BCD
-static const unsigned int REV = 0x04;  //!< reverted binary representation (most significant byte first)
-static const unsigned int SIG = 0x08;  //!< signed value
-static const unsigned int IGN = 0x10;  //!< ignore value during read and write
-static const unsigned int FIX = 0x20;  //!< fixed width formatting
-static const unsigned int REQ = 0x40;  //!< value may not be NULL
-/** binary representation is hex converted to decimal and interpreted as 2 digits (also requires #BCD). */
-static const unsigned int HCD = 0x80;
-static const unsigned int EXP = 0x100;  //!< exponential numeric representation
-static const unsigned int DAY = 0x200;  //!< forced value list defaulting to week days
-static const unsigned int NUM = 0x400;  //!< numeric type with base class @a NumberDataType
-static const unsigned int SPE = 0x800;  //!< special marker for certain types
-static const unsigned int CON = 0x1000;  //!< marker for a constant value
+/** bit flag for @a DataType: adjustable length, bitCount is maximum length. */
+#define ADJ 0x01
+
+/** bit flag for @a DataType: binary representation is BCD. */
+#define BCD 0x02
+
+/** bit flag for @a DataType: reverted binary representation (most significant byte first). */
+#define REV 0x04
+
+/** bit flag for @a DataType: signed value. */
+#define SIG 0x08
+
+/** bit flag for @a DataType: ignore value during read and write. */
+#define IGN 0x10
+
+/** bit flag for @a DataType: fixed width formatting. */
+#define FIX 0x20
+
+/** bit flag for @a DataType: value may not be NULL. */
+#define REQ 0x40
+
+/** bit flag for @a DataType: binary representation is hex converted to decimal and interpreted as 2 digits (also requires #BCD). */
+#define HCD 0x80
+
+/** bit flag for @a DataType: exponential numeric representation. */
+#define EXP 0x100
+
+/** bit flag for @a DataType: forced value list defaulting to week days. */
+#define DAY 0x200
+
+/** bit flag for @a DataType: numeric type with base class @a NumberDataType. */
+#define NUM 0x400
+
+/** bit flag for @a DataType: special marker for certain types. */
+#define SPE 0x800
+
+/** bit flag for @a DataType: marker for a constant value. */
+#define CON 0x1000
 
 
 /**

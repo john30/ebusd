@@ -27,7 +27,9 @@
 #include <fstream>
 #include "lib/ebus/result.h"
 
-/** @file device.h
+namespace ebusd {
+
+/** @file lib/ebus/device.h
  * Classes providing access to the eBUS.
  *
  * A @a Device is either a @a SerialDevice directly connected to a local tty
@@ -35,8 +37,6 @@
  * send and receive bytes to/from the eBUS while optionally dumping the data
  * to a file and/or forwarding it to a logging function.
  */
-
-namespace ebusd {
 
 /**
  * Interface for listening to data received on/sent to a device.

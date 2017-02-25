@@ -29,7 +29,9 @@
 #include "lib/ebus/symbol.h"
 #include "lib/ebus/result.h"
 
-/** @file filereader.h
+namespace ebusd {
+
+/** @file lib/ebus/filereader.h
  * Helper class and constants for reading configuration files.
  *
  * The @a FileReader template class allows to read CSV compliant text files
@@ -38,8 +40,6 @@
  * well as so called "default values" indicated by the first field starting
  * with a "*" symbol.
  */
-
-namespace ebusd {
 
 using std::string;
 using std::ostream;

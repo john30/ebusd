@@ -25,6 +25,8 @@
 #include <string.h>
 #include "lib/utils/clock.h"
 
+namespace ebusd {
+
 /** the name of each @a LogFacility. */
 static const char *facilityNames[] = {
   "main",
@@ -182,3 +184,5 @@ void logWrite(const char* facility, const LogLevel level, const char* message, .
   logWrite(facility, levelNames[level], message, ap);
   va_end(ap);
 }
+
+}  // namespace ebusd
