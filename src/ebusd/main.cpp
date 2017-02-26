@@ -33,6 +33,13 @@
 #include "ebusd/mainloop.h"
 #include "lib/utils/log.h"
 
+
+/** the version string of the program. */
+const char *argp_program_version = "" PACKAGE_STRING "." REVISION "";
+
+/** the report bugs to address of the program. */
+const char *argp_program_bug_address = "" PACKAGE_BUGREPORT "";
+
 namespace ebusd {
 
 using std::dec;
@@ -1038,12 +1045,6 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
   return RESULT_OK;
 }
 
-
-/** the version string of the program. */
-const char *argp_program_version = "" PACKAGE_STRING "." REVISION "";
-
-/** the report bugs to address of the program. */
-const char *argp_program_bug_address = "" PACKAGE_BUGREPORT "";
 
 /**
  * Main function.
