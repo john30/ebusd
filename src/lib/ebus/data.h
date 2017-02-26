@@ -163,7 +163,7 @@ class DataField {
   /**
    * Reads the numeric value from the @a SymbolString.
    * @param partType the @a PartType of the data.
-   * @param data the unescaped data @a SymbolString for reading binary data.
+   * @param data the data @a SymbolString for reading binary data.
    * @param offset the additional offset to add for reading binary data.
    * @param output the variable in which to store the numeric value.
    * @param fieldName the name of the field to read, or NULL for the first field.
@@ -180,7 +180,7 @@ class DataField {
   /**
    * Reads the value from the @a SymbolString.
    * @param partType the @a PartType of the data.
-   * @param data the unescaped data @a SymbolString for reading binary data.
+   * @param data the data @a SymbolString for reading binary data.
    * @param offset the additional offset to add for reading binary data.
    * @param output the @a ostringstream to append the formatted value to.
    * @param outputFormat the @a OutputFormat options to use.
@@ -332,7 +332,7 @@ class SingleDataField : public DataField {
  protected:
   /**
    * Internal method for reading the field from a @a SymbolString.
-   * @param input the unescaped @a SymbolString to read the binary value from.
+   * @param input the @a SymbolString to read the binary value from.
    * @param isMaster whether the @a SymbolString is the master part.
    * @param offset the offset in the @a SymbolString.
    * @param output the ostringstream to append the formatted value to.
@@ -347,7 +347,7 @@ class SingleDataField : public DataField {
    * Internal method for writing the field to a @a SymbolString.
    * @param input the @a istringstream to parse the formatted value from.
    * @param offset the offset in the @a SymbolString.
-   * @param output the unescaped @a SymbolString to write the binary value to.
+   * @param output the @a SymbolString to write the binary value to.
    * @param isMaster whether the @a SymbolString is the master part.
    * @param usedLength the variable in which to store the used length in bytes, or NULL.
    * @return @a RESULT_OK on success, or an error code.

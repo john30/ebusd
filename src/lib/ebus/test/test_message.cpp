@@ -260,7 +260,7 @@ int main() {
         } else if (mstrs[pos] != NULL) {
           delete mstrs[pos];
         }
-        mstrs[pos] = new SymbolString(false);
+        mstrs[pos] = new SymbolString(true);
         result = mstrs[pos]->parseHex(token);
         if (result != RESULT_OK) {
           cout << "\"" << check[0] << "\": parse \"" << token << "\" error: " << getResultCode(result) << endl;
@@ -277,7 +277,7 @@ int main() {
         } else if (sstrs[pos] != NULL) {
           delete sstrs[pos];
         }
-        sstrs[pos] = new SymbolString(false);
+        sstrs[pos] = new SymbolString();
         result = sstrs[pos]->parseHex(token);
         if (result != RESULT_OK) {
           cout << "\"" << check[0] << "\": parse \"" << token << "\" error: " << getResultCode(result) << endl;
@@ -292,7 +292,7 @@ int main() {
       if (mstrs[0] != NULL) {
         delete mstrs[0];
       }
-      mstrs[0] = new SymbolString(false);
+      mstrs[0] = new SymbolString(true);
       result = mstrs[0]->parseHex(check[2]);
       if (result != RESULT_OK) {
         cout << "\"" << check[0] << "\": parse \"" << check[2] << "\" error: " << getResultCode(result) << endl;
@@ -301,7 +301,7 @@ int main() {
       if (sstrs[0] != NULL) {
         delete sstrs[0];
       }
-      sstrs[0] = new SymbolString(false);
+      sstrs[0] = new SymbolString();
       result = sstrs[0]->parseHex(check[3]);
       if (result != RESULT_OK) {
         cout << "\"" << check[0] << "\": parse \"" << check[3] << "\" error: " << getResultCode(result) << endl;
@@ -419,7 +419,7 @@ int main() {
     }
     if (!message->isPassive() && (withInput || !decode)) {
       istringstream input(inputStr);
-      SymbolString writeMstr(false);
+      SymbolString writeMstr(true);
       result = message->prepareMaster(0xff, writeMstr, input);
       if (failedPrepare) {
         if (result == RESULT_OK) {
@@ -438,8 +438,8 @@ int main() {
       cout << "  \"" << inputStr << "\": prepare OK" << endl;
 
       bool match = writeMstr == *mstrs[0];
-      verify(failedPrepareMatch, "prepare", inputStr, match, mstrs[0]->getDataStr(true, false),
-          writeMstr.getDataStr(true, false));
+      verify(failedPrepareMatch, "prepare", inputStr, match, mstrs[0]->getDataStr(),
+          writeMstr.getDataStr());
     }
   }
 

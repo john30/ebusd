@@ -46,13 +46,17 @@ const char* getStateCode(BusState state) {
   case bs_skip:       return "skip";
   case bs_ready:      return "ready";
   case bs_sendCmd:    return "send command";
+  case bs_recvCmdCrc: return "receive command CRC";
   case bs_recvCmdAck: return "receive command ACK";
   case bs_recvRes:    return "receive response";
+  case bs_recvResCrc: return "receive response CRC";
   case bs_sendResAck: return "send response ACK";
   case bs_recvCmd:    return "receive command";
   case bs_recvResAck: return "receive response ACK";
+  case bs_sendCmdCrc: return "send command CRC";
   case bs_sendCmdAck: return "send command ACK";
   case bs_sendRes:    return "send response";
+  case bs_sendResCrc: return "send response CRC";
   case bs_sendSyn:    return "send SYN";
   default:            return "unknown";
   }
@@ -181,22 +185,22 @@ bool ActiveBusRequest::notify(result_t result, SymbolString& slave) {
     logDebug(lf_bus, "read res: %s", slave.getDataStr().c_str());
   }
   m_result = result;
-  m_slave.addAll(slave, true);
+  m_slave = slave;
   return false;
 }
 
 void GrabbedMessage::setLastData(SymbolString& master, SymbolString& slave) {
-  m_lastMaster.clear(false);
-  m_lastMaster.addAll(master);
-  m_lastSlave.clear(false);
-  m_lastSlave.addAll(slave);
+  m_lastMaster.clear();
+  m_lastMaster = master;
+  m_lastSlave.clear();
+  m_lastSlave = slave;
   m_count++;
 }
 
 /**
  * Decode the input @a SymbolString with the specified @a DataType and length.
  * @param type the @a DataType.
- * @param input the unescaped @a SymbolString to read the binary value from.
+ * @param input the @a SymbolString to read the binary value from.
  * @param isMaster whether the @a SymbolString is the master part.
  * @param baseOffset the base offset in the @a SymbolString.
  * @param length the number of symbols to read.
@@ -208,7 +212,7 @@ void GrabbedMessage::setLastData(SymbolString& master, SymbolString& slave) {
 bool decodeType(DataType* type, SymbolString *input, bool isMaster, unsigned char baseOffset, unsigned char length,
     unsigned char offsets, ostringstream& output, bool firstOnly = false) {
   bool first = true;
-  string in = input->getDataStr(true, true, baseOffset);
+  string in = input->getDataStr(baseOffset);
   for (unsigned char offset = 0; offset <= offsets; offset++) {
     ostringstream out;
     result_t result = type->readSymbols(*input, isMaster, (unsigned char)(baseOffset+offset), (unsigned char)length,
@@ -352,7 +356,7 @@ result_t BusHandler::readFromBus(Message* message, string inputStr, const unsign
   unsigned char masterAddress = srcAddress == SYN ? m_ownMasterAddress : srcAddress;
   result_t ret = RESULT_EMPTY;
   SymbolString master(true);
-  SymbolString slave(false);
+  SymbolString slave;
   for (unsigned char index = 0; index < message->getCount(); index++) {
     istringstream input(inputStr);
     ret = message->prepareMaster(masterAddress, master, input, UI_FIELD_SEPARATOR, dstAddress, index);
@@ -463,11 +467,13 @@ result_t BusHandler::handleSymbol() {
     break;
 
   case bs_recvCmd:
+  case bs_recvCmdCrc:
   case bs_recvCmdAck:
     timeout = m_slaveRecvTimeout;
     break;
 
   case bs_recvRes:
+  case bs_recvResCrc:
     if (m_response.size() > 0 || m_slaveRecvTimeout > SYN_TIMEOUT) {
       timeout = m_slaveRecvTimeout;
     } else {
@@ -481,28 +487,42 @@ result_t BusHandler::handleSymbol() {
 
   case bs_sendCmd:
     if (m_currentRequest != NULL) {
-      sendSymbol = m_currentRequest->m_master[m_nextSendPos];  // escaped command
+      sendSymbol = m_currentRequest->m_master[m_nextSendPos];  // unescaped command
+      sending = true;
+    }
+    break;
+
+  case bs_sendCmdCrc:
+    if (m_currentRequest != NULL) {
+      sendSymbol = m_crc;
       sending = true;
     }
     break;
 
   case bs_sendResAck:
     if (m_currentRequest != NULL) {
-      sendSymbol = m_responseCrcValid ? ACK : NAK;
+      sendSymbol = m_crcValid ? ACK : NAK;
       sending = true;
     }
     break;
 
   case bs_sendCmdAck:
     if (m_answer) {
-      sendSymbol = m_commandCrcValid ? ACK : NAK;
+      sendSymbol = m_crcValid ? ACK : NAK;
       sending = true;
     }
     break;
 
   case bs_sendRes:
     if (m_answer) {
-      sendSymbol = m_response[m_nextSendPos];  // escaped response
+      sendSymbol = m_response[m_nextSendPos];  // unescaped response
+      sending = true;
+    }
+    break;
+
+  case bs_sendResCrc:
+    if (m_currentRequest != NULL) {
+      sendSymbol = m_crc;
       sending = true;
     }
     break;
@@ -516,6 +536,14 @@ result_t BusHandler::handleSymbol() {
   // send symbol if necessary
   result_t result;
   if (sending) {
+    if (m_state != bs_sendSyn && (sendSymbol == ESC || sendSymbol == SYN)) {
+      if (m_escape) {
+        sendSymbol = sendSymbol == ESC ? 0x00 : 0x01;
+      } else {
+        m_escape = sendSymbol;
+        sendSymbol = ESC;
+      }
+    }
     result = m_device->send(sendSymbol);
     if (result == RESULT_OK) {
       if (m_state == bs_ready) {
@@ -587,7 +615,39 @@ result_t BusHandler::handleSymbol() {
     return setState(bs_ready, m_state == bs_skip ? RESULT_OK : RESULT_ERR_SYN);
   }
 
-  unsigned int headerLen, crcPos;
+  switch (m_state) {
+  case bs_ready:
+  case bs_recvCmd:
+  case bs_recvRes:
+  case bs_sendCmd:
+  case bs_sendRes:
+    SymbolString::updateCrc(m_crc, recvSymbol);
+    break;
+  default:
+    break;
+  }
+
+  if (m_escape) {
+    // check escape/unescape state
+    if (sending) {
+      if (recvSymbol != sendSymbol) {
+        return setState(bs_skip, RESULT_ERR_SYMBOL);
+      }
+      if (sendSymbol == ESC) {
+        return RESULT_OK;
+      }
+      sendSymbol = recvSymbol = m_escape;
+    } else {
+      if (recvSymbol > 0x01) {
+        return setState(bs_skip, RESULT_ERR_ESC);
+      }
+      recvSymbol = recvSymbol == 0x00 ? ESC : SYN;
+    }
+    m_escape = 0;
+  } else if (!sending && recvSymbol == ESC) {
+    m_escape = ESC;
+    return RESULT_OK;
+  }
 
   switch (m_state) {
   case bs_noSignal:
@@ -617,59 +677,55 @@ result_t BusHandler::handleSymbol() {
       }
       setState(m_state, RESULT_ERR_BUS_LOST);  // try again later
     }
-    result = m_command.push_back(recvSymbol, false);  // expect no escaping for master address
-    if (result < RESULT_OK) {
-      return setState(bs_skip, result);
-    }
+    m_command.push_back(recvSymbol);
     m_repeat = false;
     return setState(bs_recvCmd, RESULT_OK);
 
   case bs_recvCmd:
-    headerLen = 4;
-    // header symbols are never escaped
-    crcPos = m_command.size() > headerLen ? headerLen + 1 + m_command[headerLen] : 0xff;
-    result = m_command.push_back(recvSymbol, true, m_command.size() < crcPos);
-    if (result < RESULT_OK) {
-      return setState(bs_skip, result);
-    }
-    if (result == RESULT_OK && crcPos != 0xff && m_command.size() == crcPos + 1) {  // CRC received
-      unsigned char dstAddress = m_command[1];
-      // header symbols are never escaped
-      m_commandCrcValid = m_command[headerLen + 1 + m_command[headerLen]] == m_command.getCRC();
-      if (m_commandCrcValid) {
-        if (dstAddress == BROADCAST) {
-          receiveCompleted();
-          return setState(bs_skip, RESULT_OK);
-        }
-        addSeenAddress(m_command[0]);
-        if (m_answer && (dstAddress == m_ownMasterAddress || dstAddress == m_ownSlaveAddress)) {
-          return setState(bs_sendCmdAck, RESULT_OK);
-        }
-        return setState(bs_recvCmdAck, RESULT_OK);
-      }
-      if (dstAddress == BROADCAST) {
-        return setState(bs_skip, RESULT_ERR_CRC);
-      }
-      if (m_answer && (dstAddress == m_ownMasterAddress || dstAddress == m_ownSlaveAddress)) {
-        return setState(bs_sendCmdAck, RESULT_ERR_CRC);
-      }
-      if (m_repeat) {
-        return setState(bs_skip, RESULT_ERR_CRC);
-      }
-      return setState(bs_recvCmdAck, RESULT_ERR_CRC);
+    m_command.push_back(recvSymbol);
+    if (m_command.isComplete()) {  // all data received
+      return setState(bs_recvCmdCrc, RESULT_OK);
     }
     return RESULT_OK;
 
+  case bs_recvCmdCrc:
+    m_crcValid = recvSymbol == m_crc;
+    if (m_command[1] == BROADCAST) {
+      if (m_crcValid) {
+        receiveCompleted();
+        return setState(bs_skip, RESULT_OK);
+      }
+      return setState(bs_skip, RESULT_ERR_CRC);
+    }
+    if (m_answer) {
+      unsigned char dstAddress = m_command[1];
+      if (dstAddress == m_ownMasterAddress || dstAddress == m_ownSlaveAddress) {
+        if (m_crcValid) {
+          addSeenAddress(m_command[0]);
+          return setState(bs_sendCmdAck, RESULT_OK);
+        }
+        return setState(bs_sendCmdAck, RESULT_ERR_CRC);
+      }
+    }
+    if (m_crcValid) {
+      addSeenAddress(m_command[0]);
+      return setState(bs_recvCmdAck, RESULT_OK);
+    }
+    if (m_repeat) {
+      return setState(bs_skip, RESULT_ERR_CRC);
+    }
+    return setState(bs_recvCmdAck, RESULT_ERR_CRC);
+
   case bs_recvCmdAck:
     if (recvSymbol == ACK) {
-      if (!m_commandCrcValid) {
+      if (!m_crcValid) {
         return setState(bs_skip, RESULT_ERR_ACK);
       }
       if (m_currentRequest != NULL) {
         if (isMaster(m_currentRequest->m_master[1])) {
           return setState(bs_sendSyn, RESULT_OK);
         }
-      } else if (isMaster(m_command[1])) {  // header symbols are never escaped
+      } else if (isMaster(m_command[1])) {
         receiveCompleted();
         return setState(bs_skip, RESULT_OK);
       }
@@ -680,6 +736,7 @@ result_t BusHandler::handleSymbol() {
     if (recvSymbol == NAK) {
       if (!m_repeat) {
         m_repeat = true;
+        m_crc = 0;
         m_nextSendPos = 0;
         m_command.clear();
         if (m_currentRequest != NULL) {
@@ -692,36 +749,34 @@ result_t BusHandler::handleSymbol() {
     return setState(bs_skip, RESULT_ERR_ACK);
 
   case bs_recvRes:
-    headerLen = 0;
-    crcPos = m_response.size() > headerLen ? headerLen + 1 + m_response[headerLen] : 0xff;
-    result = m_response.push_back(recvSymbol, true, m_response.size() < crcPos);
-    if (result < RESULT_OK) {
-      return setState(bs_skip, result);
-    }
-    if (result == RESULT_OK && crcPos != 0xff && m_response.size() == crcPos + 1) {  // CRC received
-      m_responseCrcValid = m_response[headerLen + 1 + m_response[headerLen]] == m_response.getCRC();
-      if (m_responseCrcValid) {
-        if (m_currentRequest != NULL) {
-          return setState(bs_sendResAck, RESULT_OK);
-        }
-        return setState(bs_recvResAck, RESULT_OK);
-      }
-      if (m_repeat) {
-        if (m_currentRequest != NULL) {
-          return setState(bs_sendSyn, RESULT_ERR_CRC);
-        }
-        return setState(bs_skip, RESULT_ERR_CRC);
-      }
-      if (m_currentRequest != NULL) {
-        return setState(bs_sendResAck, RESULT_ERR_CRC);
-      }
-      return setState(bs_recvResAck, RESULT_ERR_CRC);
+    m_response.push_back(recvSymbol);
+    if (m_response.isComplete()) {  // all data received
+      return setState(bs_recvResCrc, RESULT_OK);
     }
     return RESULT_OK;
 
+  case bs_recvResCrc:
+    m_crcValid = recvSymbol == m_crc;
+    if (m_crcValid) {
+      if (m_currentRequest != NULL) {
+        return setState(bs_sendResAck, RESULT_OK);
+      }
+      return setState(bs_recvResAck, RESULT_OK);
+    }
+    if (m_repeat) {
+      if (m_currentRequest != NULL) {
+        return setState(bs_sendSyn, RESULT_ERR_CRC);
+      }
+      return setState(bs_skip, RESULT_ERR_CRC);
+    }
+    if (m_currentRequest != NULL) {
+      return setState(bs_sendResAck, RESULT_ERR_CRC);
+    }
+    return setState(bs_recvResAck, RESULT_ERR_CRC);
+
   case bs_recvResAck:
     if (recvSymbol == ACK) {
-      if (!m_responseCrcValid) {
+      if (!m_crcValid) {
         return setState(bs_skip, RESULT_ERR_ACK);
       }
       receiveCompleted();
@@ -738,54 +793,66 @@ result_t BusHandler::handleSymbol() {
     return setState(bs_skip, RESULT_ERR_ACK);
 
   case bs_sendCmd:
-    if (m_currentRequest != NULL && sending && recvSymbol == sendSymbol) {
-      // successfully sent
-      m_nextSendPos++;
-      if (m_nextSendPos >= m_currentRequest->m_master.size()) {
-        // master data completely sent
-        if (m_currentRequest->m_master[1] == BROADCAST) {
-          return setState(bs_sendSyn, RESULT_OK);
-        }
-        m_commandCrcValid = true;
-        return setState(bs_recvCmdAck, RESULT_OK);
-      }
-      return RESULT_OK;
+    if (!sending || m_currentRequest == NULL) {
+      return setState(bs_skip, RESULT_ERR_INVALID_ARG);
     }
-    return setState(bs_skip, RESULT_ERR_INVALID_ARG);
+    if (recvSymbol != sendSymbol) {
+      return setState(bs_skip, RESULT_ERR_SYMBOL);
+    }
+    m_nextSendPos++;
+    if (m_nextSendPos >= m_currentRequest->m_master.size()) {
+      return setState(bs_sendCmdCrc, RESULT_OK);
+    }
+    return RESULT_OK;
 
-  case bs_sendResAck:
-    if (m_currentRequest != NULL && sending && recvSymbol == sendSymbol) {
-      // successfully sent
-      if (!m_responseCrcValid) {
-        if (!m_repeat) {
-          m_repeat = true;
-          m_response.clear();
-          return setState(bs_recvRes, RESULT_ERR_NAK, true);
-        }
-        return setState(bs_sendSyn, RESULT_ERR_ACK);
-      }
+  case bs_sendCmdCrc:
+    if (m_currentRequest->m_master[1] == BROADCAST) {
       return setState(bs_sendSyn, RESULT_OK);
     }
-    return setState(bs_skip, RESULT_ERR_INVALID_ARG);
+    m_crcValid = true;
+    return setState(bs_recvCmdAck, RESULT_OK);
+
+  case bs_sendResAck:
+    if (!sending || m_currentRequest == NULL) {
+      return setState(bs_skip, RESULT_ERR_INVALID_ARG);
+    }
+    if (recvSymbol != sendSymbol) {
+      return setState(bs_skip, RESULT_ERR_SYMBOL);
+    }
+    if (!m_crcValid) {
+      if (!m_repeat) {
+        m_repeat = true;
+        m_response.clear();
+        return setState(bs_recvRes, RESULT_ERR_NAK, true);
+      }
+      return setState(bs_sendSyn, RESULT_ERR_ACK);
+    }
+    return setState(bs_sendSyn, RESULT_OK);
 
   case bs_sendCmdAck:
-    if (sending && m_answer && recvSymbol == sendSymbol) {
-      // successfully sent
-      if (!m_commandCrcValid) {
-        if (!m_repeat) {
-          m_repeat = true;
-          m_command.clear();
-          return setState(bs_recvCmd, RESULT_ERR_NAK, true);
-        }
-        return setState(bs_skip, RESULT_ERR_ACK);
+    if (!sending || !m_answer) {
+      return setState(bs_skip, RESULT_ERR_INVALID_ARG);
+    }
+    if (recvSymbol != sendSymbol) {
+      return setState(bs_skip, RESULT_ERR_SYMBOL);
+    }
+    if (!m_crcValid) {
+      if (!m_repeat) {
+        m_repeat = true;
+        m_crc = 0;
+        m_command.clear();
+        return setState(bs_recvCmd, RESULT_ERR_NAK, true);
       }
-      if (isMaster(m_command[1])) {
-        receiveCompleted();  // decode command and store value
-        return setState(bs_skip, RESULT_OK);
-      }
+      return setState(bs_skip, RESULT_ERR_ACK);
+    }
+    if (isMaster(m_command[1])) {
+      receiveCompleted();  // decode command and store value
+      return setState(bs_skip, RESULT_OK);
+    }
 
-      m_nextSendPos = 0;
-      m_repeat = false;
+    m_nextSendPos = 0;
+    m_repeat = false;
+    {
       Message* message;
       istringstream input;  // TODO create input from database of internal variables
       message = m_messages->find(m_command);
@@ -803,33 +870,45 @@ result_t BusHandler::handleSymbol() {
         input.str(SCAN_ANSWER);
       }
       // build response and store in m_response for sending back to requesting master
-      m_response.clear(true);  // escape while sending response
+      m_response.clear();
       result = message->prepareSlave(input, m_response);
       if (result != RESULT_OK) {
         return setState(bs_skip, result);
       }
-      return setState(bs_sendRes, RESULT_OK);
     }
-    return setState(bs_skip, RESULT_ERR_INVALID_ARG);
+    return setState(bs_sendRes, RESULT_OK);
 
   case bs_sendRes:
-    if (sending && m_answer && recvSymbol == sendSymbol) {
-      // successfully sent
-      m_nextSendPos++;
-      if (m_nextSendPos >= m_response.size()) {
-        // slave data completely sent
-        return setState(bs_recvResAck, RESULT_OK);
-      }
-      return RESULT_OK;
+    if (!sending || !m_answer) {
+      return setState(bs_skip, RESULT_ERR_INVALID_ARG);
     }
-    return setState(bs_skip, RESULT_ERR_INVALID_ARG);
+    if (recvSymbol != sendSymbol) {
+      return setState(bs_skip, RESULT_ERR_SYMBOL);
+    }
+    m_nextSendPos++;
+    if (m_nextSendPos >= m_response.size()) {
+      // slave data completely sent
+      return setState(bs_sendResCrc, RESULT_OK);
+    }
+    return RESULT_OK;
+
+  case bs_sendResCrc:
+    if (!sending || m_currentRequest == NULL) {
+      return setState(bs_skip, RESULT_ERR_INVALID_ARG);
+    }
+    if (recvSymbol != sendSymbol) {
+      return setState(bs_skip, RESULT_ERR_SYMBOL);
+    }
+    return setState(bs_recvResAck, RESULT_OK);
 
   case bs_sendSyn:
-    if (sending && recvSymbol == sendSymbol) {
-      // successfully sent
-      return setState(bs_skip, RESULT_OK);
+    if (!sending) {
+      return setState(bs_skip, RESULT_ERR_INVALID_ARG);
     }
-    return setState(bs_skip, RESULT_ERR_INVALID_ARG);
+    if (recvSymbol != sendSymbol) {
+      return setState(bs_skip, RESULT_ERR_SYMBOL);
+    }
+    return setState(bs_skip, RESULT_OK);
   }
   return RESULT_OK;
 }
@@ -863,7 +942,7 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
   }
 
   if (state == bs_noSignal) {  // notify all requests
-    m_response.clear(false);  // notify with empty response
+    m_response.clear();  // notify with empty response
     while ((m_currentRequest = m_nextRequests.pop()) != NULL) {
       bool restart = m_currentRequest->notify(RESULT_ERR_NO_SIGNAL, m_response);
       if (restart) {  // should not occur with no signal
@@ -877,6 +956,7 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
     }
   }
 
+  m_escape = 0;
   if (state == m_state) {
     return result;
   }
@@ -895,12 +975,13 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 
   if (state == bs_ready || state == bs_skip) {
     m_command.clear();
-    m_commandCrcValid = false;
-    m_response.clear(false);  // unescape while receiving response
-    m_responseCrcValid = false;
+    m_crc = 0;
+    m_crcValid = false;
+    m_response.clear();
     m_nextSendPos = 0;
+  } else if (state == bs_recvRes || state == bs_sendRes) {
+    m_crc = 0;
   }
-
   return result;
 }
 
@@ -1182,7 +1263,7 @@ result_t BusHandler::scanAndWait(unsigned char dstAddress, SymbolString& slave) 
     return RESULT_ERR_NOTFOUND;
   }
   istringstream input;
-  SymbolString master;
+  SymbolString master(true);
   result_t result = scanMessage->prepareMaster(m_ownMasterAddress, master, input, UI_FIELD_SEPARATOR, dstAddress);
   if (result == RESULT_OK) {
     result = sendAndWait(master, slave);

@@ -54,64 +54,103 @@ static const unsigned char CRC_LOOKUP_TABLE[] = {
 };
 
 
-void SymbolString::addAll(const SymbolString& str, bool skipLastSymbol) {
-  bool addCrc = m_unescapeState == 0;
-  bool isEscaped = str.m_unescapeState == 0;
-  vector<unsigned char> data = str.m_data;
-  size_t end = data.size();
-  if (end > 0 && skipLastSymbol) {
-    end--;
+unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue,
+    result_t& result, unsigned int* length) {
+  char* strEnd = NULL;
+
+  unsigned long ret = strtoul(str, &strEnd, base);
+
+  if (strEnd == NULL || strEnd == str || *strEnd != 0) {
+    result = RESULT_ERR_INVALID_NUM;  // invalid value
+    return 0;
   }
-  for (size_t i = 0; i < end; i++) {
-    push_back(data[i], isEscaped, addCrc);
+
+  if (minValue > ret || ret > maxValue) {
+    result = RESULT_ERR_OUT_OF_RANGE;  // invalid value
+    return 0;
   }
-  if (addCrc) {
-    push_back(m_crc, false, false);  // add CRC
+  if (length != NULL) {
+    *length = (unsigned int)(strEnd - str);
   }
+  result = RESULT_OK;
+  return (unsigned int)ret;
 }
 
-result_t SymbolString::parseHex(const string& str, const bool isEscaped) {
-  bool addCrc = m_unescapeState == 0;
-  for (size_t i = 0; i < str.size(); i += 2) {
-    char* strEnd = NULL;
-    const char* strBegin = str.substr(i, 2).c_str();
-    unsigned long value = strtoul(strBegin, &strEnd, 16);
+int parseSignedInt(const char* str, int base, const int minValue, const int maxValue, result_t& result,
+    unsigned int* length) {
+  char* strEnd = NULL;
 
-    if (strEnd == NULL || strEnd != strBegin+2 || value > 0xff) {
-      return RESULT_ERR_INVALID_NUM;  // invalid value
-    }
-    push_back((unsigned char)value, isEscaped, addCrc);
+  long ret = strtol(str, &strEnd, base);
+
+  if (strEnd == NULL || *strEnd != 0) {
+    result = RESULT_ERR_INVALID_NUM;  // invalid value
+    return 0;
   }
-  if (addCrc) {
-    push_back(m_crc, false, false);  // add CRC
+
+  if (minValue > ret || ret > maxValue) {
+    result = RESULT_ERR_OUT_OF_RANGE;  // invalid value
+    return 0;
+  }
+  if (length != NULL) {
+    *length = (unsigned int)(strEnd - str);
+  }
+  result = RESULT_OK;
+  return static_cast<int>(ret);
+}
+
+
+void SymbolString::updateCrc(unsigned char& crc, const unsigned char value) {
+  crc = CRC_LOOKUP_TABLE[crc]^value;
+}
+
+result_t SymbolString::parseHex(const string& str) {
+  result_t result;
+  for (size_t i = 0; i < str.size(); i += 2) {
+    unsigned char value = (unsigned char)parseInt(str.substr(i, 2).c_str(), 16, 0, 0xff, result);
+    if (result != RESULT_OK) {
+      return result;
+    }
+    m_data.push_back(value);
   }
   return RESULT_OK;
 }
 
-const string SymbolString::getDataStr(const bool unescape, const bool skipLastSymbol,
-    unsigned char skipFirstSymbols) {
-  bool previousEscape = false;
+result_t SymbolString::parseHexEscaped(const string& str) {
+  result_t result;
+  bool inEscape = false;
+  for (size_t i = 0; i < str.size(); i += 2) {
+    unsigned char value = (unsigned char)parseInt(str.substr(i, 2).c_str(), 16, 0, 0xff, result);
+    if (result != RESULT_OK) {
+      return result;
+    }
+    if (inEscape) {
+      if (value == 0x00) {
+        m_data.push_back(ESC);
+        inEscape = false;
+      } else if (value == 0x01) {
+        m_data.push_back(SYN);
+        inEscape = false;
+      } else {
+        return RESULT_ERR_ESC;  // invalid escape sequence
+      }
+    } else if (value == ESC) {
+      inEscape = true;
+    } else if (value == SYN) {
+      return RESULT_ERR_ESC;  // invalid escape sequence
+    } else {
+      m_data.push_back(value);
+    }
+  }
+  return inEscape ? RESULT_ERR_ESC : RESULT_OK;
+}
+
+const string SymbolString::getDataStr(unsigned char skipFirstSymbols) {
   ostringstream sstr;
   for (size_t i = 0; i < m_data.size(); i++) {
-    unsigned char value = m_data[i];
-    if (m_unescapeState == 0 && unescape && previousEscape) {
-      if (skipFirstSymbols > 0) {
-        skipFirstSymbols--;
-      } else if (!skipLastSymbol || i+1 < m_data.size()) {
-        if (value == 0x00) {
-          sstr << "a9";  // ESC
-        } else if (value == 0x01) {
-          sstr << "aa";  // SYN
-        } else {
-          sstr << "XX";  // invalid escape sequence
-        }
-      }
-      previousEscape = false;
-    } else if (m_unescapeState == 0 && unescape && value == ESC) {
-      previousEscape = true;  // escape sequence not yet finished
-    } else if (skipFirstSymbols > 0) {
+    if (skipFirstSymbols > 0) {
       skipFirstSymbols--;
-    } else if (!skipLastSymbol || i+1 < m_data.size()) {
+    } else {
+      unsigned char value = m_data[i];
       sstr << nouppercase << setw(2) << hex
           << setfill('0') << static_cast<unsigned>(value);
     }
@@ -119,82 +158,22 @@ const string SymbolString::getDataStr(const bool unescape, const bool skipLastSy
   return sstr.str();
 }
 
-result_t SymbolString::push_back(const unsigned char value, const bool isEscaped, const bool updateCRC) {
-  if (m_unescapeState == 0) {  // store escaped data
-    if (!isEscaped && value == ESC) {
-      m_data.push_back(ESC);
-      m_data.push_back(0x00);
-      if (updateCRC) {
-        addCRC(ESC);
-        addCRC(0x00);
-      }
-    } else if (!isEscaped && value == SYN) {
-      m_data.push_back(ESC);
-      m_data.push_back(0x01);
-      if (updateCRC) {
-        addCRC(ESC);
-        addCRC(0x01);
-      }
+unsigned char SymbolString::calcCrc() const {
+  unsigned char crc = 0;
+  for (size_t i = 0; i < m_data.size(); i++) {
+    unsigned char value = m_data[i];
+    if (value == ESC) {
+      updateCrc(crc, ESC);
+      updateCrc(crc, 0x00);
+    } else if (value == SYN) {
+      updateCrc(crc, ESC);
+      updateCrc(crc, 0x01);
     } else {
-      m_data.push_back(value);
-      if (updateCRC) {
-        addCRC(value);
-      }
+      updateCrc(crc, value);
     }
-    return RESULT_OK;
   }
-  if (!isEscaped) {
-    if (m_unescapeState != 1) {
-      return RESULT_ERR_ESC;  // invalid unescape state
-    }
-    m_data.push_back(value);
-    if (updateCRC) {
-      if (value == ESC) {
-        addCRC(ESC);
-        addCRC(0x00);
-      } else if (value == SYN) {
-        addCRC(ESC);
-        addCRC(0x01);
-      } else {
-        addCRC(value);
-      }
-    }
-    return RESULT_OK;
-  }
-  if (m_unescapeState != 1) {
-    if (updateCRC) {
-      addCRC(value);
-    }
-    if (value == 0x00) {
-      m_data.push_back(ESC);
-      m_unescapeState = 1;
-      return RESULT_OK;
-    }
-    if (value == 0x01) {
-      m_data.push_back(SYN);
-      m_unescapeState = 1;
-      return RESULT_OK;
-    }
-    return RESULT_ERR_ESC;  // invalid escape sequence
-  }
-  if (value == ESC) {
-    if (updateCRC) {
-      addCRC(value);
-    }
-    m_unescapeState = 2;
-    return RESULT_CONTINUE;
-  }
-  if (updateCRC) {
-    addCRC(value);
-  }
-  m_data.push_back(value);
-  return RESULT_OK;
+  return crc;
 }
-
-void SymbolString::addCRC(const unsigned char value) {
-  m_crc = CRC_LOOKUP_TABLE[m_crc]^value;
-}
-
 
 
 /**

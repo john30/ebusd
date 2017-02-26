@@ -233,7 +233,7 @@ void MainLoop::run() {
             result = m_busHandler->startScan(true, "*");
           } else {
             logNotice(lf_main, "starting initial scan for %2.2x", m_initialScan);
-            SymbolString slave(false);
+            SymbolString slave;
             result = m_busHandler->scanAndWait(m_initialScan, slave);
             Message* message = m_messages->getScanMessage(m_initialScan);
             if (result == RESULT_OK && message != NULL) {
@@ -257,7 +257,7 @@ void MainLoop::run() {
           taskDelay = 5;
           lastScanAddress = 0;
         } else {
-          SymbolString slave(false);
+          SymbolString slave;
           if (scanned) {
             Message* message = m_messages->getScanMessage(lastScanAddress);
             slave = message->getLastSlaveData();
@@ -486,13 +486,14 @@ result_t MainLoop::parseHexMaster(vector<string> &args, size_t argPos, SymbolStr
   }
   result_t ret;
   unsigned int length = parseInt(msg.str().substr(3*2, 2).c_str(), 16, 0, MAX_POS, ret);
-  if (ret == RESULT_OK && (4+length)*2 != msg.str().size()) {
+  if (ret != RESULT_OK) {
+    return ret;
+  }
+  if ((4+length)*2 != msg.str().size()) {
     return RESULT_ERR_INVALID_ARG;
   }
-  ret = master.push_back(srcAddress == SYN ? m_address : srcAddress, false);
-  if (ret == RESULT_OK) {
-    ret = master.parseHex(msg.str());
-  }
+  master.push_back(srcAddress == SYN ? m_address : srcAddress);
+  ret = master.parseHex(msg.str());
   if (ret == RESULT_OK && !isValidAddress(master[1])) {
     ret = RESULT_ERR_INVALID_ADDR;
   }
@@ -613,18 +614,18 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
   time(&now);
 
   if (hex && argPos > 0) {
-    SymbolString cacheMaster(false);
-    result_t ret = parseHexMaster(args, argPos, cacheMaster, srcAddress);
+    SymbolString master(true);
+    result_t ret = parseHexMaster(args, argPos, master, srcAddress);
     if (ret != RESULT_OK) {
       return getResultCode(ret);
     }
-    if (cacheMaster[1] == BROADCAST || isMaster(cacheMaster[1])) {
+    if (master[1] == BROADCAST || isMaster(master[1])) {
       return getResultCode(RESULT_ERR_INVALID_ARG);
     }
-    logNotice(lf_main, "read hex cmd: %s", cacheMaster.getDataStr(true, false).c_str());
+    logNotice(lf_main, "read hex cmd: %s", master.getDataStr().c_str());
 
     // find message
-    Message* message = m_messages->find(cacheMaster, false, true, false, false);
+    Message* message = m_messages->find(master, false, true, false, false);
 
     if (message == NULL) {
       return getResultCode(RESULT_ERR_NOTFOUND);
@@ -643,17 +644,15 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
             || (message->isPassive() && message->getLastUpdateTime() != 0))) {
       SymbolString& slave = message->getLastSlaveData();
       logNotice(lf_main, "hex read %s %s from cache", message->getCircuit().c_str(), message->getName().c_str());
-      return slave.getDataStr(true, false);
+      return slave.getDataStr();
     }
 
     // send message
-    SymbolString master(true);
-    master.addAll(cacheMaster);
-    SymbolString slave(false);
+    SymbolString slave;
     ret = m_busHandler->sendAndWait(master, slave);
 
     if (ret == RESULT_OK) {
-      ret = message->storeLastData(cacheMaster, slave);
+      ret = message->storeLastData(master, slave);
       ostringstream result;
       if (ret == RESULT_OK) {
         ret = message->decodeLastData(result);
@@ -665,7 +664,7 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
         logError(lf_main, "read hex %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(),
             getResultCode(ret));
       }
-      return slave.getDataStr(true, false);
+      return slave.getDataStr();
     }
     logError(lf_main, "read hex %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(),
         getResultCode(ret));
@@ -822,15 +821,15 @@ string MainLoop::executeWrite(vector<string> &args, const string levels) {
   }
 
   if (hex && argPos > 0) {
-    SymbolString cacheMaster(false);
-    result_t ret = parseHexMaster(args, argPos, cacheMaster, srcAddress);
+    SymbolString master(true);
+    result_t ret = parseHexMaster(args, argPos, master, srcAddress);
     if (ret != RESULT_OK) {
       return getResultCode(ret);
     }
-    logNotice(lf_main, "write hex cmd: %s", cacheMaster.getDataStr(true, false).c_str());
+    logNotice(lf_main, "write hex cmd: %s", master.getDataStr().c_str());
 
     // find message
-    Message* message = m_messages->find(cacheMaster, false, false, true, false);
+    Message* message = m_messages->find(master, false, false, true, false);
 
     if (message == NULL) {
       return getResultCode(RESULT_ERR_NOTFOUND);
@@ -845,14 +844,12 @@ string MainLoop::executeWrite(vector<string> &args, const string levels) {
       return getResultCode(RESULT_ERR_INVALID_ARG);  // non-matching circuit
     }
     // send message
-    SymbolString master(true);
-    master.addAll(cacheMaster);
-    SymbolString slave(false);
+    SymbolString slave;
     ret = m_busHandler->sendAndWait(master, slave);
 
     if (ret == RESULT_OK) {
       // also update read messages
-      ret = message->storeLastData(cacheMaster, slave);
+      ret = message->storeLastData(master, slave);
       ostringstream result;
       if (ret == RESULT_OK) {
         ret = message->decodeLastData(result);
@@ -870,7 +867,7 @@ string MainLoop::executeWrite(vector<string> &args, const string levels) {
       if (isMaster(master[1])) {
         return getResultCode(RESULT_OK);
       }
-      return slave.getDataStr(true, false);
+      return slave.getDataStr();
     }
     logError(lf_main, "write hex %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(),
         getResultCode(ret));
@@ -959,17 +956,15 @@ string MainLoop::executeHex(vector<string> &args) {
   }
 
   if (argPos > 0) {
-    SymbolString cacheMaster(false);
-    result_t ret = parseHexMaster(args, argPos, cacheMaster, srcAddress);
+    SymbolString master(true);
+    result_t ret = parseHexMaster(args, argPos, master, srcAddress);
     if (ret != RESULT_OK) {
       return getResultCode(ret);
     }
-    logNotice(lf_main, "hex cmd: %s", cacheMaster.getDataStr(true, false).c_str());
+    logNotice(lf_main, "hex cmd: %s", master.getDataStr().c_str());
 
     // send message
-    SymbolString master(true);
-    master.addAll(cacheMaster);
-    SymbolString slave(false);
+    SymbolString slave;
     ret = m_busHandler->sendAndWait(master, slave);
 
     if (ret == RESULT_OK) {
@@ -979,7 +974,7 @@ string MainLoop::executeHex(vector<string> &args) {
       if (isMaster(master[1])) {
         return getResultCode(RESULT_OK);
       }
-      return slave.getDataStr(true, false);
+      return slave.getDataStr();
     }
     logError(lf_main, "hex: %s", getResultCode(ret));
     return getResultCode(ret);
@@ -1171,13 +1166,13 @@ string MainLoop::executeFind(vector<string> &args, string levels) {
         result << "no data stored";
       } else if (hexFormat) {
         result << message->getLastMasterData().getDataStr()
-             << " / " << message->getLastSlaveData().getDataStr(true, false);
+             << " / " << message->getLastSlaveData().getDataStr();
       } else {
         result_t ret = message->decodeLastData(result, verbosity);
         if (ret != RESULT_OK) {
           result << " (" << getResultCode(ret)
                << " for " << message->getLastMasterData().getDataStr()
-               << " / " << message->getLastSlaveData().getDataStr(true, false) << ")";
+               << " / " << message->getLastSlaveData().getDataStr() << ")";
         }
       }
       if (verbosity == (OF_NAMES|OF_UNITS|OF_COMMENTS)) {
@@ -1310,7 +1305,7 @@ string MainLoop::executeScan(vector<string> &args, string levels) {
     if (result != RESULT_OK) {
       return getResultCode(result);
     }
-    SymbolString slave(false);
+    SymbolString slave;
     result = m_busHandler->scanAndWait(dstAddress, slave);
     if (result != RESULT_OK) {
       return getResultCode(result);

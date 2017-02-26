@@ -421,14 +421,14 @@ class Message {
   /**
    * Prepare the master @a SymbolString for sending a query or command to the bus.
    * @param srcAddress the source address to set.
-   * @param masterData the master data @a SymbolString for writing symbols to.
+   * @param master the master data @a SymbolString for writing symbols to.
    * @param input the @a istringstream to parse the formatted value(s) from.
    * @param separator the separator character between multiple fields.
    * @param dstAddress the destination address to set, or @a SYN to keep the address defined during construction.
    * @param index the index of the part to prepare.
    * @return @a RESULT_OK on success, or an error code.
    */
-  result_t prepareMaster(const unsigned char srcAddress, SymbolString& masterData,
+  result_t prepareMaster(const unsigned char srcAddress, SymbolString& master,
       istringstream& input, char separator = UI_FIELD_SEPARATOR,
       const unsigned char dstAddress = SYN, unsigned char index = 0);
 
@@ -449,10 +449,10 @@ class Message {
   /**
    * Prepare the slave @a SymbolString for sending an answer to the bus.
    * @param input the @a istringstream to parse the formatted value(s) from.
-   * @param slaveData the slave data @a SymbolString for writing symbols to.
+   * @param slave the slave data @a SymbolString for writing symbols to.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t prepareSlave(istringstream& input, SymbolString& slaveData);
+  virtual result_t prepareSlave(istringstream& input, SymbolString& slave);
 
   /**
    * Store the last seen master and slave data.
@@ -631,7 +631,7 @@ class Message {
   Condition* m_condition;
 
   /** the last seen master data. */
-  SymbolString m_lastMasterData;
+  SymbolString m_lastMasterData{true};
 
   /** the last seen slave data. */
   SymbolString m_lastSlaveData;

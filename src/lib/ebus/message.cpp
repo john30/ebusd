@@ -590,43 +590,29 @@ bool Message::hasField(const char* fieldName, bool numeric) {
   return m_data->hasField(fieldName, numeric);
 }
 
-result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& masterData,
+result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& master,
     istringstream& input, char separator,
     const unsigned char dstAddress, unsigned char index) {
   if (m_isPassive) {
     return RESULT_ERR_INVALID_ARG;  // prepare not possible
   }
-  SymbolString master(false);
-  result_t result = master.push_back(srcAddress, false, false);
-  if (result != RESULT_OK) {
-    return result;
-  }
+  master.clear();
+  master.push_back(srcAddress);
   if (dstAddress == SYN) {
     if (m_dstAddress == SYN) {
       return RESULT_ERR_INVALID_ADDR;
     }
-    result = master.push_back(m_dstAddress, false, false);
+    master.push_back(m_dstAddress);
   } else {
-    result = master.push_back(dstAddress, false, false);
+    master.push_back(dstAddress);
   }
+  master.push_back(m_id[0]);
+  master.push_back(m_id[1]);
+  result_t result = prepareMasterPart(master, input, separator, index);
   if (result != RESULT_OK) {
     return result;
   }
-  result = master.push_back(m_id[0], false, false);
-  if (result != RESULT_OK) {
-    return result;
-  }
-  result = master.push_back(m_id[1], false, false);
-  if (result != RESULT_OK) {
-    return result;
-  }
-  result = prepareMasterPart(master, input, separator, index);
-  if (result != RESULT_OK) {
-    return result;
-  }
-  masterData.clear();
-  masterData.addAll(master);
-  result = storeLastData(pt_masterData, masterData, index);
+  result = storeLastData(pt_masterData, master, index);
   if (result < RESULT_OK) {
     return result;
   }
@@ -638,17 +624,11 @@ result_t Message::prepareMasterPart(SymbolString& master, istringstream& input, 
     return RESULT_ERR_NOTFOUND;
   }
   unsigned char pos = master.size();
-  result_t result = master.push_back(0, false, false);  // length, will be set later
-  if (result != RESULT_OK) {
-    return result;
-  }
+  master.push_back(0);  // length, will be set later
   for (size_t i = 2; i < m_id.size(); i++) {
-    result = master.push_back(m_id[i], false, false);
-    if (result != RESULT_OK) {
-      return result;
-    }
+    master.push_back(m_id[i]);
   }
-  result = m_data->write(input, pt_masterData, master, getIdLength(), separator);
+  result_t result = m_data->write(input, pt_masterData, master, getIdLength(), separator);
   if (result != RESULT_OK) {
     return result;
   }
@@ -656,16 +636,13 @@ result_t Message::prepareMasterPart(SymbolString& master, istringstream& input, 
   return result;
 }
 
-result_t Message::prepareSlave(istringstream& input, SymbolString& slaveData) {
+result_t Message::prepareSlave(istringstream& input, SymbolString& slave) {
   if (m_isWrite) {
     return RESULT_ERR_INVALID_ARG;  // prepare not possible
   }
-  SymbolString slave(false);
-  result_t result = slave.push_back(0, false, false);  // length, will be set later
-  if (result != RESULT_OK) {
-    return result;
-  }
-  result = m_data->write(input, pt_slaveData, slave, 0);
+  slave.clear();
+  slave.push_back(0);  // length, will be set later
+  result_t result = m_data->write(input, pt_slaveData, slave, 0);
   if (result != RESULT_OK) {
     return result;
   }
@@ -675,8 +652,6 @@ result_t Message::prepareSlave(istringstream& input, SymbolString& slaveData) {
     m_lastChangeTime = m_lastUpdateTime;
     m_lastSlaveData = slave;
   }
-  slaveData.clear();
-  slaveData.addAll(slave);
   return result;
 }
 
@@ -695,7 +670,7 @@ result_t Message::storeLastData(const PartType partType, SymbolString& data, uns
     time(&m_lastUpdateTime);
   }
   if (partType == pt_masterData) {
-    switch (data.compareMaster(m_lastMasterData)) {
+    switch (data.compareTo(m_lastMasterData)) {
     case 1:  // completely different
       m_lastChangeTime = m_lastUpdateTime;
       m_lastMasterData = data;
@@ -903,7 +878,7 @@ ChainedMessage::ChainedMessage(const string circuit, const string level, const s
   m_lastMasterUpdateTimes = reinterpret_cast<time_t*>(calloc(cnt, sizeof(time_t)));
   m_lastSlaveUpdateTimes = reinterpret_cast<time_t*>(calloc(cnt, sizeof(time_t)));
   for (size_t index = 0; index < cnt; index++) {
-    m_lastMasterDatas[index] = new SymbolString();
+    m_lastMasterDatas[index] = new SymbolString(true);
     m_lastSlaveDatas[index] = new SymbolString();
   }
 }
@@ -1000,7 +975,7 @@ result_t ChainedMessage::prepareMasterPart(SymbolString& master, istringstream& 
   if (index >= cnt) {
     return RESULT_ERR_NOTFOUND;
   }
-  SymbolString allData(false);
+  SymbolString allData(true);
   result_t result = m_data->write(input, pt_masterData, allData, 0, separator);
   if (result != RESULT_OK) {
     return result;
@@ -1017,21 +992,12 @@ result_t ChainedMessage::prepareMasterPart(SymbolString& master, istringstream& 
     return RESULT_ERR_INVALID_POS;
   }
   vector<unsigned char> id = m_ids[index];
-  result = master.push_back((unsigned char)(id.size()-2+addData), false, false);  // NN
-  if (result != RESULT_OK) {
-    return result;
-  }
+  master.push_back((unsigned char)(id.size()-2+addData));  // NN
   for (size_t i = 2; i < id.size(); i++) {
-    result = master.push_back(id[i], false, false);
-    if (result != RESULT_OK) {
-      return result;
-    }
+    master.push_back(id[i]);
   }
   for (size_t i = 0; i < addData; i++) {
-    result = master.push_back(allData[pos+i], false, false);
-    if (result != RESULT_OK) {
-      return result;
-    }
+    master.push_back(allData[pos+i]);
   }
   if (index == 0) {
     for (size_t i = 0; i < cnt; i++) {
@@ -1059,7 +1025,7 @@ result_t ChainedMessage::storeLastData(const PartType partType, SymbolString& da
     return RESULT_ERR_INVALID_ARG;
   }
   if (partType == pt_masterData) {
-    switch (data.compareMaster(*m_lastMasterDatas[index])) {
+    switch (data.compareTo(*m_lastMasterDatas[index])) {
     case 1:  // completely different
       *m_lastMasterDatas[index] = data;
       break;
@@ -1098,19 +1064,19 @@ result_t ChainedMessage::storeLastData(const PartType partType, SymbolString& da
     }
   }
   // everything was completely retrieved in short time
-  SymbolString master(false);
-  SymbolString slave(false);
+  SymbolString master(true);
+  SymbolString slave;
   size_t offset = 5+(m_ids[0].size()-2);  // skip QQ, ZZ, PB, SB, NN
   for (index = 0; index < m_ids.size(); index++) {
     SymbolString* add = m_lastMasterDatas[index];
     size_t end = 5+(*add)[4];
     for (size_t pos = index == 0 ? 0 : offset; pos < end; pos++) {
-      master.push_back((*add)[pos], false, false);
+      master.push_back((*add)[pos]);
     }
     add = m_lastSlaveDatas[index];
     end = 1+(*add)[0];
     for (size_t pos = index == 0 ? 0 : 1; pos < end; pos++) {
-      slave.push_back((*add)[pos], false, false);
+      slave.push_back((*add)[pos]);
     }
   }
   // adjust NN

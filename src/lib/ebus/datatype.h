@@ -123,7 +123,8 @@ enum PartType {
 /** bit flag for @a DataType: value may not be NULL. */
 #define REQ 0x40
 
-/** bit flag for @a DataType: binary representation is hex converted to decimal and interpreted as 2 digits (also requires #BCD). */
+/** bit flag for @a DataType: binary representation is hex converted to decimal and interpreted as 2 digits
+ * (also requires #BCD). */
 #define HCD 0x80
 
 /** bit flag for @a DataType: exponential numeric representation. */
@@ -141,32 +142,6 @@ enum PartType {
 /** bit flag for @a DataType: marker for a constant value. */
 #define CON 0x1000
 
-
-/**
- * Parse an unsigned int value.
- * @param str the string to parse.
- * @param base the numerical base.
- * @param minValue the minimum resulting value.
- * @param maxValue the maximum resulting value.
- * @param result the variable in which to store an error code when parsing failed or the value is out of bounds.
- * @param length the optional variable in which to store the number of read characters.
- * @return the parsed value.
- */
-unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue,
-    result_t& result, unsigned int* length = NULL);
-
-/**
- * Parse a signed int value.
- * @param str the string to parse.
- * @param base the numerical base.
- * @param minValue the minimum resulting value.
- * @param maxValue the maximum resulting value.
- * @param result the variable in which to store an error code when parsing failed or the value is out of bounds.
- * @param length the optional variable in which to store the number of read characters.
- * @return the parsed value.
- */
-int parseSignedInt(const char* str, int base, const int minValue, const int maxValue, result_t& result,
-    unsigned int* length = NULL);
 
 /**
  * Print the error position of the iterator.
@@ -253,7 +228,7 @@ class DataType {
 
   /**
    * Internal method for reading the numeric raw value from a @a SymbolString.
-   * @param input the unescaped @a SymbolString to read the binary value from.
+   * @param input the @a SymbolString to read the binary value from.
    * @param offset the offset in the @a SymbolString.
    * @param length the number of symbols to read.
    * @param value the variable in which to store the numeric raw value.
@@ -265,7 +240,7 @@ class DataType {
 
   /**
    * Internal method for reading the field from a @a SymbolString.
-   * @param input the unescaped @a SymbolString to read the binary value from.
+   * @param input the @a SymbolString to read the binary value from.
    * @param isMaster whether the @a SymbolString is the master part.
    * @param offset the offset in the @a SymbolString.
    * @param length the number of symbols to read.
@@ -282,7 +257,7 @@ class DataType {
    * @param input the @a istringstream to parse the formatted value from.
    * @param offset the offset in the @a SymbolString.
    * @param length the number of symbols to write, or @a REMAIN_LEN.
-   * @param output the unescaped @a SymbolString to write the binary value to.
+   * @param output the @a SymbolString to write the binary value to.
    * @param isMaster whether the @a SymbolString is the master part.
    * @param usedLength the variable in which to store the used length in bytes, or NULL.
    * @return @a RESULT_OK on success, or an error code.
@@ -369,7 +344,8 @@ class DateTimeDataType : public DataType {
    */
   DateTimeDataType(const string id, const unsigned char bitCount, const uint16_t flags, const unsigned int replacement,
       const bool hasDate, const bool hasTime, const int16_t resolution)
-    : DataType(id, bitCount, flags, replacement), m_hasDate(hasDate), m_hasTime(hasTime), m_resolution(resolution == 0 ? 1 : resolution) {}
+    : DataType(id, bitCount, flags, replacement), m_hasDate(hasDate), m_hasTime(hasTime),
+      m_resolution(resolution == 0 ? 1 : resolution) {}
 
   /**
    * Destructor.
@@ -521,7 +497,7 @@ class NumberDataType : public DataType {
    * @param value the numeric raw value to write.
    * @param offset the offset in the @a SymbolString.
    * @param length the number of symbols to write, or @a REMAIN_LEN.
-   * @param output the unescaped @a SymbolString to write the binary value to.
+   * @param output the @a SymbolString to write the binary value to.
    * @param usedLength the variable in which to store the used length in bytes,
    * or NULL.
    * @return @a RESULT_OK on success, or an error code.

@@ -66,13 +66,17 @@ enum BusState {
   bs_skip,        //!< skip all symbols until next @a SYN
   bs_ready,       //!< ready for next master (after @a SYN symbol, send/receive QQ)
   bs_recvCmd,     //!< receive command (ZZ, PBSB, master data) [passive set]
+  bs_recvCmdCrc,  //!< receive command CRC [passive set]
   bs_recvCmdAck,  //!< receive command ACK/NACK [passive set + active set+get]
   bs_recvRes,     //!< receive response (slave data) [passive set + active get]
+  bs_recvResCrc,  //!< receive response CRC [passive set + active get]
   bs_recvResAck,  //!< receive response ACK/NACK [passive set]
   bs_sendCmd,     //!< send command (ZZ, PBSB, master data) [active set+get]
+  bs_sendCmdCrc,  //!< send command CRC [active set+get]
   bs_sendResAck,  //!< send response ACK/NACK [active get]
   bs_sendCmdAck,  //!< send command ACK/NACK [passive get]
   bs_sendRes,     //!< send response (slave data) [passive get]
+  bs_sendResCrc,  //!< send response CRC [passive get]
   bs_sendSyn,     //!< send SYN for completed transfer [active set+get]
 };
 
@@ -102,7 +106,7 @@ class BusRequest {
  public:
   /**
    * Constructor.
-   * @param master the escaped master data @a SymbolString to send.
+   * @param master the master data @a SymbolString to send.
    * @param deleteOnFinish whether to automatically delete this @a BusRequest when finished.
    */
   BusRequest(SymbolString& master, const bool deleteOnFinish)
@@ -124,7 +128,7 @@ class BusRequest {
 
 
  protected:
-  /** the escaped master data @a SymbolString to send. */
+  /** the master data @a SymbolString to send. */
   SymbolString& m_master;
 
   /** the number of times a send is repeated due to lost arbitration. */
@@ -166,8 +170,8 @@ class PollRequest : public BusRequest {
 
 
  private:
-  /** the escaped master data @a SymbolString. */
-  SymbolString m_master;
+  /** the master data @a SymbolString. */
+  SymbolString m_master{true};
 
   /** the associated @a Message. */
   Message* m_message;
@@ -218,8 +222,8 @@ class ScanRequest : public BusRequest {
   /** the @a MessageMap instance. */
   MessageMap* m_messageMap;
 
-  /** the escaped master data @a SymbolString. */
-  SymbolString m_master;
+  /** the master data @a SymbolString. */
+  SymbolString m_master{true};
 
   /** the currently queried @a Message. */
   Message* m_message;
@@ -253,7 +257,7 @@ class ActiveBusRequest : public BusRequest {
  public:
   /**
    * Constructor.
-   * @param master the escaped master data @a SymbolString to send.
+   * @param master the master data @a SymbolString to send.
    * @param slave reference to @a SymbolString for filling in the received slave data.
    */
   ActiveBusRequest(SymbolString& master, SymbolString& slave)
@@ -292,8 +296,8 @@ class GrabbedMessage {
    * @param other the @a GrabbedMessage to copy from.
    */
   GrabbedMessage(const GrabbedMessage& other) : m_count(other.m_count) {
-    m_lastMaster.addAll(other.m_lastMaster);
-    m_lastSlave.addAll(other.m_lastSlave);
+    m_lastMaster = other.m_lastMaster;
+    m_lastSlave = other.m_lastSlave;
   }
 
   /**
@@ -364,8 +368,7 @@ class BusHandler : public WaitThread {
       m_pollInterval(pollInterval), m_lastReceive(0), m_lastPoll(0),
       m_currentRequest(NULL), m_runningScans(0), m_nextSendPos(0),
       m_symPerSec(0), m_maxSymPerSec(0),
-      m_state(bs_noSignal), m_repeat(false),
-      m_command(false), m_commandCrcValid(false), m_response(false), m_responseCrcValid(false),
+      m_state(bs_noSignal), m_escape(0), m_crc(0), m_crcValid(false), m_repeat(false),
       m_grabMessages(true) {
     memset(m_seenAddresses, 0, sizeof(m_seenAddresses));
   }
@@ -398,7 +401,7 @@ class BusHandler : public WaitThread {
 
   /**
    * Send a message on the bus and wait for the answer.
-   * @param master the escaped @a SymbolString with the master data to send.
+   * @param master the @a SymbolString with the master data to send.
    * @param slave the @a SymbolString that will be filled with retrieved slave data.
    * @return the result code.
    */
@@ -632,20 +635,23 @@ class BusHandler : public WaitThread {
   /** the current @a BusState. */
   BusState m_state;
 
+  /** 0 when not escaping/unescaping, or @a ESC when receiving, or the original value when sending. */
+  unsigned char m_escape;
+
+  /** the calculated CRC. */
+  unsigned char m_crc;
+
+  /** whether the CRC matched. */
+  bool m_crcValid;
+
   /** whether the current message part is being repeated. */
   bool m_repeat;
 
-  /** the unescaped received command. */
-  SymbolString m_command;
+  /** the received command. */
+  SymbolString m_command{true};
 
-  /** whether the command CRC is valid. */
-  bool m_commandCrcValid;
-
-  /** the unescaped received response or escaped response to send. */
+  /** the received response or response to send. */
   SymbolString m_response;
-
-  /** whether the response CRC is valid. */
-  bool m_responseCrcValid;
 
   /** the participating bus addresses seen so far (0 if not seen yet, or combination of @a SEEN bits). */
   unsigned char m_seenAddresses[256];

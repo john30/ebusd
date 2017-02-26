@@ -40,50 +40,6 @@ using std::setfill;
 using std::setprecision;
 using std::setw;
 
-unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue,
-    result_t& result, unsigned int* length) {
-  char* strEnd = NULL;
-
-  unsigned long ret = strtoul(str, &strEnd, base);
-
-  if (strEnd == NULL || strEnd == str || *strEnd != 0) {
-    result = RESULT_ERR_INVALID_NUM;  // invalid value
-    return 0;
-  }
-
-  if (minValue > ret || ret > maxValue) {
-    result = RESULT_ERR_OUT_OF_RANGE;  // invalid value
-    return 0;
-  }
-  if (length != NULL) {
-    *length = (unsigned int)(strEnd - str);
-  }
-  result = RESULT_OK;
-  return (unsigned int)ret;
-}
-
-int parseSignedInt(const char* str, int base, const int minValue, const int maxValue, result_t& result,
-    unsigned int* length) {
-  char* strEnd = NULL;
-
-  long ret = strtol(str, &strEnd, base);
-
-  if (strEnd == NULL || *strEnd != 0) {
-    result = RESULT_ERR_INVALID_NUM;  // invalid value
-    return 0;
-  }
-
-  if (minValue > ret || ret > maxValue) {
-    result = RESULT_ERR_OUT_OF_RANGE;  // invalid value
-    return 0;
-  }
-  if (length != NULL) {
-    *length = (unsigned int)(strEnd - str);
-  }
-  result = RESULT_OK;
-  return static_cast<int>(ret);
-}
-
 void printErrorPos(ostream& out, vector<string>::iterator begin, const vector<string>::iterator end,
     vector<string>::iterator pos, string filename, size_t lineNo, result_t result) {
   if (pos > begin) {

@@ -33,7 +33,7 @@ namespace ebusd {
 enum result_t {
   RESULT_OK = 0,                    //!< success
 
-  RESULT_CONTINUE = 1,              //!< more input data is needed (e.g. start of escape sequence received)
+  RESULT_CONTINUE = 1,              //!< more input data is needed
   RESULT_EMPTY = 2,                 //!< empty result
 
   RESULT_ERR_GENERIC_IO = -1,       //!< generic I/O error (usually fatal)
@@ -62,8 +62,9 @@ enum result_t {
 
   RESULT_ERR_NO_SIGNAL = -22,       //!< no signal found on the bus
   RESULT_ERR_SYN = -23,             //!< SYN received instead of answer
+  RESULT_ERR_SYMBOL = -24,          //!< wrong symbol received instead of sent symbol
 
-  RESULT_ERR_NOTAUTHORIZED = -24    //!< not authorized for this action
+  RESULT_ERR_NOTAUTHORIZED = -25    //!< not authorized for this action
 };
 
 
