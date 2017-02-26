@@ -71,9 +71,9 @@ result_t PollRequest::prepare(unsigned char ownMasterAddress) {
   return result;
 }
 
-bool PollRequest::notify(result_t result, SymbolString& slave) {
+bool PollRequest::notify(result_t result, SlaveSymbolString& slave) {
   if (result == RESULT_OK) {
-    result = m_message->storeLastData(pt_slaveData, slave, m_index);
+    result = m_message->storeLastData(slave, m_index);
     if (result >= RESULT_OK && m_index+1 < m_message->getCount()) {
       m_index++;
       result = prepare(m_master[0]);
@@ -114,21 +114,21 @@ result_t ScanRequest::prepare(unsigned char ownMasterAddress) {
   return result;
 }
 
-bool ScanRequest::notify(result_t result, SymbolString& slave) {
+bool ScanRequest::notify(result_t result, SlaveSymbolString& slave) {
   unsigned char dstAddress = m_master[1];
   if (result == RESULT_OK) {
     if (m_message == m_messageMap->getScanMessage()) {
       Message* message = m_messageMap->getScanMessage(dstAddress);
       if (message != NULL) {
         m_message = message;
-        m_message->storeLastData(pt_masterData, m_master, m_index);  // expected to work since this is a clone
+        m_message->storeLastData(m_master, m_index);  // expected to work since this is a clone
       }
     } else if (m_message->getDstAddress() == SYN) {
       m_message = m_message->derive(dstAddress, true);
       m_messageMap->add(m_message);
-      m_message->storeLastData(pt_masterData, m_master, m_index);  // expected to work since this is a clone
+      m_message->storeLastData(m_master, m_index);  // expected to work since this is a clone
     }
-    result = m_message->storeLastData(pt_slaveData, slave, m_index);
+    result = m_message->storeLastData(slave, m_index);
     if (result >= RESULT_OK && m_index+1 < m_message->getCount()) {
       m_index++;
       result = prepare(m_master[0]);
@@ -180,7 +180,7 @@ bool ScanRequest::notify(result_t result, SymbolString& slave) {
 }
 
 
-bool ActiveBusRequest::notify(result_t result, SymbolString& slave) {
+bool ActiveBusRequest::notify(result_t result, SlaveSymbolString& slave) {
   if (result == RESULT_OK) {
     logDebug(lf_bus, "read res: %s", slave.getDataStr().c_str());
   }
@@ -189,10 +189,8 @@ bool ActiveBusRequest::notify(result_t result, SymbolString& slave) {
   return false;
 }
 
-void GrabbedMessage::setLastData(SymbolString& master, SymbolString& slave) {
-  m_lastMaster.clear();
+void GrabbedMessage::setLastData(MasterSymbolString& master, SlaveSymbolString& slave) {
   m_lastMaster = master;
-  m_lastSlave.clear();
   m_lastSlave = slave;
   m_count++;
 }
@@ -277,7 +275,12 @@ bool GrabbedMessage::dump(const bool unknown, MessageMap* messages, bool first, 
       return true;
     }
     bool master = isMaster(dstAddress) || dstAddress == BROADCAST || m_lastSlave.size() <= 1 || m_lastSlave[0] == 0;
-    SymbolString *input = master ? &m_lastMaster : &m_lastSlave;
+    SymbolString *input;
+    if (master) {
+      input = &m_lastMaster;
+    } else {
+      input = &m_lastSlave;
+    }
     unsigned char baseOffset = master ? 5 : 1;
     unsigned char remain = input->size();
     if (remain <= baseOffset) {
@@ -324,7 +327,7 @@ void BusHandler::clear() {
   m_scanResults.clear();
 }
 
-result_t BusHandler::sendAndWait(SymbolString& master, SymbolString& slave) {
+result_t BusHandler::sendAndWait(MasterSymbolString& master, SlaveSymbolString& slave) {
   result_t result = RESULT_ERR_NO_SIGNAL;
   slave.clear();
   ActiveBusRequest request(master, slave);
@@ -355,8 +358,8 @@ result_t BusHandler::readFromBus(Message* message, string inputStr, const unsign
     const unsigned char srcAddress) {
   unsigned char masterAddress = srcAddress == SYN ? m_ownMasterAddress : srcAddress;
   result_t ret = RESULT_EMPTY;
-  SymbolString master(true);
-  SymbolString slave;
+  MasterSymbolString master;
+  SlaveSymbolString slave;
   for (unsigned char index = 0; index < message->getCount(); index++) {
     istringstream input(inputStr);
     ret = message->prepareMaster(masterAddress, master, input, UI_FIELD_SEPARATOR, dstAddress, index);
@@ -370,7 +373,7 @@ result_t BusHandler::readFromBus(Message* message, string inputStr, const unsign
       logError(lf_bus, "send message part %d: %s", index, getResultCode(ret));
       break;
     }
-    ret = message->storeLastData(pt_slaveData, slave, index);
+    ret = message->storeLastData(slave, index);
     if (ret < RESULT_OK) {
       logError(lf_bus, "store message part %d: %s", index, getResultCode(ret));
       break;
@@ -1038,16 +1041,16 @@ void BusHandler::receiveCompleted() {
       if (message && (message->getLastUpdateTime() == 0 || message->getLastSlaveData().size() < 10)) {
         // e.g. 10fe07040a b5564149303001248901
         m_seenAddresses[slaveAddress] |= SCAN_INIT;
-        SymbolString idData;
+        MasterSymbolString dummyMaster;
         istringstream input;
-        result_t result = message->prepareMaster(m_ownMasterAddress, idData, input);
+        result_t result = message->prepareMaster(m_ownMasterAddress, dummyMaster, input);
         if (result == RESULT_OK) {
-          idData.clear();
+          SlaveSymbolString idData;
           idData.push_back(9);
           for (size_t i = 5; i <= 5+9; i++) {
             idData.push_back(m_command[i]);
           }
-          result = message->storeLastData(pt_slaveData, idData, 0);
+          result = message->storeLastData(idData, 0);
         }
         if (result == RESULT_OK) {
           m_seenAddresses[slaveAddress] |= SCAN_DONE;
@@ -1253,7 +1256,7 @@ void BusHandler::formatSeenInfo(ostringstream& output) {
   }
 }
 
-result_t BusHandler::scanAndWait(unsigned char dstAddress, SymbolString& slave) {
+result_t BusHandler::scanAndWait(unsigned char dstAddress, SlaveSymbolString& slave) {
   if (!isValidAddress(dstAddress) || isMaster(dstAddress)) {
     return RESULT_ERR_INVALID_ADDR;
   }
@@ -1263,7 +1266,7 @@ result_t BusHandler::scanAndWait(unsigned char dstAddress, SymbolString& slave) 
     return RESULT_ERR_NOTFOUND;
   }
   istringstream input;
-  SymbolString master(true);
+  MasterSymbolString master;
   result_t result = scanMessage->prepareMaster(m_ownMasterAddress, master, input, UI_FIELD_SEPARATOR, dstAddress);
   if (result == RESULT_OK) {
     result = sendAndWait(master, slave);
@@ -1272,7 +1275,7 @@ result_t BusHandler::scanAndWait(unsigned char dstAddress, SymbolString& slave) 
       if (message != NULL && message != scanMessage) {
         scanMessage = message;
         // update the cache, expected to work since this is a clone
-        scanMessage->storeLastData(pt_masterData, master, 0);
+        scanMessage->storeLastData(master, 0);
       }
     }
     if (result != RESULT_ERR_NO_SIGNAL) {
@@ -1282,7 +1285,7 @@ result_t BusHandler::scanAndWait(unsigned char dstAddress, SymbolString& slave) 
   if (result != RESULT_OK || slave.size() == 0) {  // avoid "invalid position" during decode
     return result;
   }
-  return scanMessage->storeLastData(pt_slaveData, slave, 0);  // update the cache
+  return scanMessage->storeLastData(slave, 0);  // update the cache
 }
 
 bool BusHandler::enableGrab(bool enable) {

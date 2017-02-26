@@ -103,12 +103,12 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose = false, bool denyRe
  * @param messages the @a MessageMap to load the messages into.
  * @param address the address of the scan participant
  * (either master for broadcast master data or slave for read slave data).
- * @param data the scan @a SymbolString for which to load the configuration file.
+ * @param data the scan @a SlaveSymbolString for which to load the configuration file.
  * @param relativeFile the string in which the name of the configuration file is stored on success.
  * @param verbose whether to verbosely log problems.
  * @return the result code.
  */
-result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolString& data, string& relativeFile,
+result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SlaveSymbolString& data, string& relativeFile,
     bool verbose = false);
 
 }  // namespace ebusd

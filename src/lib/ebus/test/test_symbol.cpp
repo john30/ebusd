@@ -47,19 +47,19 @@ void verify(bool expectFailMatch, string type, string input,
 }
 
 int main(int argc, char** argv) {
-  SymbolString sstr(true);
+  MasterSymbolString mstr;
 
   if (argc > 1) {
     result_t result;
     if (argc > 2 && strcmp("escaped", argv[1]) == 0) {
-      result = sstr.parseHexEscaped(argv[2]);
+      result = mstr.parseHexEscaped(argv[2]);
     } else {
-      result = sstr.parseHex(argv[1]);
+      result = mstr.parseHex(argv[1]);
     }
     if (result != RESULT_OK) {
       cout << "parse escaped error: " << getResultCode(result) << endl;
     } else {
-      unsigned char gotCrc = sstr.calcCrc();
+      unsigned char gotCrc = mstr.calcCrc();
       cout << "calculated CRC: 0x"
           << nouppercase << setw(2) << hex << setfill('0')
               << static_cast<unsigned>(gotCrc) << endl;
@@ -68,14 +68,14 @@ int main(int argc, char** argv) {
   }
 
   string gotStr, expectStr;
-  result_t result = sstr.parseHex("10feb5050427a915aa");
+  result_t result = mstr.parseHex("10feb5050427a915aa");
   if (result != RESULT_OK) {
     cout << "parse unescaped error: " << getResultCode(result) << endl;
     error = true;
   } else {
-    gotStr = sstr.getDataStr(), expectStr = "10feb5050427a915aa";
+    gotStr = mstr.getDataStr(), expectStr = "10feb5050427a915aa";
     verify(false, "parse unescaped", "10feb5050427a915aa", true, expectStr, gotStr);
-    unsigned char gotCrc = sstr.calcCrc(), expectCrc = 0x77;
+    unsigned char gotCrc = mstr.calcCrc(), expectCrc = 0x77;
     ostringstream ostr;
     ostr << nouppercase << setw(2) << hex << setfill('0') << static_cast<unsigned>(expectCrc);
     expectStr = ostr.str();
@@ -85,24 +85,24 @@ int main(int argc, char** argv) {
     verify(false, "CRC", "10feb5050427a915aa", gotCrc == expectCrc, expectStr, gotStr);
   }
 
-  sstr.clear();
-  result = sstr.parseHexEscaped("10feb5050427a90015a901");
+  mstr.clear();
+  result = mstr.parseHexEscaped("10feb5050427a90015a901");
   if (result != RESULT_OK) {
     cout << "parse escaped error: " << getResultCode(result) << endl;
     error = true;
   } else {
-    gotStr = sstr.getDataStr(), expectStr = "10feb5050427a915aa";
+    gotStr = mstr.getDataStr(), expectStr = "10feb5050427a915aa";
     verify(false, "parse escaped", "10feb5050427a90015a901", true, expectStr, gotStr);
     ostringstream ostr;
     ostr << dec << static_cast<unsigned>(4);
     expectStr = ostr.str();
     ostr.str("");
-    ostr << dec << static_cast<unsigned>(sstr.getDataSize());
+    ostr << dec << static_cast<unsigned>(mstr.getDataSize());
     gotStr = ostr.str();
-    verify(false, "data size", "10feb5050427a90015a901", sstr.getDataSize() == 4, expectStr, gotStr);
+    verify(false, "data size", "10feb5050427a90015a901", mstr.getDataSize() == 4, expectStr, gotStr);
   }
 
-  sstr = SymbolString(); // slave
+  SlaveSymbolString sstr;
   result = sstr.parseHexEscaped("0427a90015a901");
   if (result != RESULT_OK) {
     cout << "parse escaped error: " << getResultCode(result) << endl;

@@ -106,10 +106,10 @@ class BusRequest {
  public:
   /**
    * Constructor.
-   * @param master the master data @a SymbolString to send.
+   * @param master the master data @a MasterSymbolString to send.
    * @param deleteOnFinish whether to automatically delete this @a BusRequest when finished.
    */
-  BusRequest(SymbolString& master, const bool deleteOnFinish)
+  BusRequest(MasterSymbolString& master, const bool deleteOnFinish)
     : m_master(master), m_busLostRetries(0),
       m_deleteOnFinish(deleteOnFinish) {}
 
@@ -121,15 +121,15 @@ class BusRequest {
   /**
    * Notify the request of the specified result.
    * @param result the result of the request.
-   * @param slave the slave data @a SymbolString received.
+   * @param slave the @a SlaveSymbolString received.
    * @return true if the request needs to be restarted.
    */
-  virtual bool notify(result_t result, SymbolString& slave) = 0;
+  virtual bool notify(result_t result, SlaveSymbolString& slave) = 0;
 
 
  protected:
-  /** the master data @a SymbolString to send. */
-  SymbolString& m_master;
+  /** the master data @a MasterSymbolString to send. */
+  MasterSymbolString& m_master;
 
   /** the number of times a send is repeated due to lost arbitration. */
   unsigned int m_busLostRetries;
@@ -166,12 +166,12 @@ class PollRequest : public BusRequest {
   result_t prepare(unsigned char masterAddress);
 
   // @copydoc
-  virtual bool notify(result_t result, SymbolString& slave);
+  virtual bool notify(result_t result, SlaveSymbolString& slave);
 
 
  private:
-  /** the master data @a SymbolString. */
-  SymbolString m_master{true};
+  /** the master data @a MasterSymbolString. */
+  MasterSymbolString m_master;
 
   /** the associated @a Message. */
   Message* m_message;
@@ -215,15 +215,15 @@ class ScanRequest : public BusRequest {
   result_t prepare(unsigned char masterAddress);
 
   // @copydoc
-  virtual bool notify(result_t result, SymbolString& slave);
+  virtual bool notify(result_t result, SlaveSymbolString& slave);
 
 
  private:
   /** the @a MessageMap instance. */
   MessageMap* m_messageMap;
 
-  /** the master data @a SymbolString. */
-  SymbolString m_master{true};
+  /** the master data @a MasterSymbolString. */
+  MasterSymbolString m_master;
 
   /** the currently queried @a Message. */
   Message* m_message;
@@ -257,10 +257,10 @@ class ActiveBusRequest : public BusRequest {
  public:
   /**
    * Constructor.
-   * @param master the master data @a SymbolString to send.
-   * @param slave reference to @a SymbolString for filling in the received slave data.
+   * @param master the master data @a MasterSymbolString to send.
+   * @param slave reference to @a SlaveSymbolString for filling in the received slave data.
    */
-  ActiveBusRequest(SymbolString& master, SymbolString& slave)
+  ActiveBusRequest(MasterSymbolString& master, SlaveSymbolString& slave)
     : BusRequest(master, false), m_result(RESULT_ERR_NO_SIGNAL), m_slave(slave) {}
 
   /**
@@ -269,15 +269,15 @@ class ActiveBusRequest : public BusRequest {
   virtual ~ActiveBusRequest() {}
 
   // @copydoc
-  virtual bool notify(result_t result, SymbolString& slave);
+  virtual bool notify(result_t result, SlaveSymbolString& slave);
 
 
  private:
   /** the result of handling the request. */
   result_t m_result;
 
-  /** reference to @a SymbolString for filling in the received slave data. */
-  SymbolString& m_slave;
+  /** reference to @a SlaveSymbolString for filling in the received slave data. */
+  SlaveSymbolString& m_slave;
 };
 
 
@@ -302,10 +302,10 @@ class GrabbedMessage {
 
   /**
    * Set the last received data.
-   * @param master the last master @a SymbolString.
-   * @param slave the last slave @a SymbolString.
+   * @param master the last @a MasterSymbolString.
+   * @param slave the last @a SymbolString.
    */
-  void setLastData(SymbolString& master, SymbolString& slave);
+  void setLastData(MasterSymbolString& master, SlaveSymbolString& slave);
 
   /**
    * Dump the last received data and message count to the output.
@@ -320,11 +320,11 @@ class GrabbedMessage {
 
 
  private:
-  /** the last master @a SymbolString. */
-  SymbolString m_lastMaster;
+  /** the last @a MasterSymbolString. */
+  MasterSymbolString m_lastMaster;
 
-  /** the last slave @a SymbolString. */
-  SymbolString m_lastSlave;
+  /** the last @a SlaveSymbolString. */
+  SlaveSymbolString m_lastSlave;
 
   /** the number of times this message was seen. */
   unsigned int m_count;
@@ -401,11 +401,11 @@ class BusHandler : public WaitThread {
 
   /**
    * Send a message on the bus and wait for the answer.
-   * @param master the @a SymbolString with the master data to send.
-   * @param slave the @a SymbolString that will be filled with retrieved slave data.
+   * @param master the @a MasterSymbolString with the master data to send.
+   * @param slave the @a SlaveSymbolString that will be filled with retrieved slave data.
    * @return the result code.
    */
-  result_t sendAndWait(SymbolString& master, SymbolString& slave);
+  result_t sendAndWait(MasterSymbolString& master, SlaveSymbolString& slave);
 
   /**
    * Prepare the master part for the @a Message, send it to the bus and wait for the answer.
@@ -458,10 +458,10 @@ class BusHandler : public WaitThread {
   /**
    * Send a scan message on the bus and wait for the answer.
    * @param dstAddress the destination slave address to send to.
-   * @param slave the @a SymbolString that will be filled with retrieved slave data.
+   * @param slave the @a SlaveSymbolString that will be filled with retrieved slave data.
    * @return the result code.
    */
-  result_t scanAndWait(unsigned char dstAddress, SymbolString& slave);
+  result_t scanAndWait(unsigned char dstAddress, SlaveSymbolString& slave);
 
   /**
    * Start or stop grabbing unknown messages.
@@ -647,11 +647,11 @@ class BusHandler : public WaitThread {
   /** whether the current message part is being repeated. */
   bool m_repeat;
 
-  /** the received command. */
-  SymbolString m_command{true};
+  /** the received command @a MasterSymbolString. */
+  MasterSymbolString m_command;
 
-  /** the received response or response to send. */
-  SymbolString m_response;
+  /** the received response @a SlaveSymbolString or response to send. */
+  SlaveSymbolString m_response;
 
   /** the participating bus addresses seen so far (0 if not seen yet, or combination of @a SEEN bits). */
   unsigned char m_seenAddresses[256];

@@ -875,7 +875,7 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
   return RESULT_OK;
 }
 
-result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolString& data, string& relativeFile,
+result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SlaveSymbolString& data, string& relativeFile,
     bool verbose) {
   PartType partType;
   if (isMaster(address)) {
@@ -1053,6 +1053,9 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SymbolS
  * @return the exit code.
  */
 int main(int argc, char* argv[]) {
+  /*  if (argc >= 2 && strcmp(argv[1], "config") == 0) {
+      return config_main(argc, argv);
+    }*/
   struct argp aargp = { argpoptions, parse_opt, NULL, argpdoc, datahandler_getargs(), NULL, NULL };
   int arg_index = -1;
   setenv("ARGP_HELP_FMT", "no-dup-args-note", 0);
@@ -1081,7 +1084,8 @@ int main(int argc, char* argv[]) {
         logError(lf_main, "invalid scan message %s: missing \"/\"", arg.c_str());
         continue;
       }
-      SymbolString master(false), slave(false);
+      MasterSymbolString master;
+      SlaveSymbolString slave;
       result_t res = master.parseHex(arg.substr(0, pos));
       if (res == RESULT_OK) {
         res = slave.parseHex(arg.substr(pos+1));

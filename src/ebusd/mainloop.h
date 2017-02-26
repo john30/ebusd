@@ -145,11 +145,12 @@ class MainLoop : public Thread, DeviceListener {
    * Parse the hex master message from the remaining arguments.
    * @param args the arguments passed to the command.
    * @param argPos the index of the first argument to parse.
-   * @param master the master @a SymbolString to write the data to.
+   * @param master the @a MasterSymbolString to write the data to.
    * @param srcAddress the source address to set, or @a SYN for the own master address.
    * @return the result from parsing the arguments.
    */
-  result_t parseHexMaster(vector<string> &args, size_t argPos, SymbolString& master, unsigned char srcAddress = SYN);
+  result_t parseHexMaster(vector<string> &args, size_t argPos, MasterSymbolString& master,
+      unsigned char srcAddress = SYN);
 
   /**
    * Get the access levels associated with the specified user name.

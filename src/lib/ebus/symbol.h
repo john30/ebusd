@@ -113,13 +113,14 @@ int parseSignedInt(const char* str, int base, const int minValue, const int maxV
  * A string of unescaped bus symbols.
  */
 class SymbolString {
- public:
+ protected:
   /**
    * Creates a new empty instance.
    * @param isMaster whether this instance if for the master part.
    */
   explicit SymbolString(const bool isMaster = false) { m_isMaster = isMaster; }
 
+ public:
   /**
    * Update the CRC by adding a value.
    * @param crc the current CRC to update.
@@ -265,6 +266,30 @@ class SymbolString {
 
   /** whether this instance if for the master part. */
   bool m_isMaster;
+};
+
+
+/**
+ * A string of unescaped master bus symbols.
+ */
+class MasterSymbolString : public SymbolString {
+ public:
+  /**
+   * Creates a new empty instance.
+   */
+  MasterSymbolString() : SymbolString(true) {}
+};
+
+
+/**
+ * A string of unescaped slave bus symbols.
+ */
+class SlaveSymbolString : public SymbolString {
+ public:
+  /**
+   * Creates a new empty instance.
+   */
+  SlaveSymbolString() : SymbolString(false) {}
 };
 
 

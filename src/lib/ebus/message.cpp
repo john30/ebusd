@@ -155,7 +155,7 @@ uint64_t Message::createKey(const vector<unsigned char> id,
   return key;
 }
 
-uint64_t Message::createKey(SymbolString& master, unsigned char maxIdLength, bool anyDestination) {
+uint64_t Message::createKey(MasterSymbolString& master, unsigned char maxIdLength, bool anyDestination) {
   if (master.size() < 5) {
     return INVALID_KEY;
   }
@@ -532,7 +532,7 @@ bool Message::checkIdPrefix(vector<unsigned char>& id) {
   return true;
 }
 
-bool Message::checkId(SymbolString& master, unsigned char* index) {
+bool Message::checkId(MasterSymbolString& master, unsigned char* index) {
   unsigned char idLen = getIdLength();
   if (master.size() < 5+idLen) {  // QQ, ZZ, PB, SB, NN
     return false;
@@ -590,7 +590,7 @@ bool Message::hasField(const char* fieldName, bool numeric) {
   return m_data->hasField(fieldName, numeric);
 }
 
-result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& master,
+result_t Message::prepareMaster(const unsigned char srcAddress, MasterSymbolString& master,
     istringstream& input, char separator,
     const unsigned char dstAddress, unsigned char index) {
   if (m_isPassive) {
@@ -612,14 +612,15 @@ result_t Message::prepareMaster(const unsigned char srcAddress, SymbolString& ma
   if (result != RESULT_OK) {
     return result;
   }
-  result = storeLastData(pt_masterData, master, index);
+  result = storeLastData(master, index);
   if (result < RESULT_OK) {
     return result;
   }
   return RESULT_OK;
 }
 
-result_t Message::prepareMasterPart(SymbolString& master, istringstream& input, char separator, unsigned char index) {
+result_t Message::prepareMasterPart(MasterSymbolString& master, istringstream& input, char separator,
+    unsigned char index) {
   if (index != 0) {
     return RESULT_ERR_NOTFOUND;
   }
@@ -636,7 +637,7 @@ result_t Message::prepareMasterPart(SymbolString& master, istringstream& input, 
   return result;
 }
 
-result_t Message::prepareSlave(istringstream& input, SymbolString& slave) {
+result_t Message::prepareSlave(istringstream& input, SlaveSymbolString& slave) {
   if (m_isWrite) {
     return RESULT_ERR_INVALID_ARG;  // prepare not possible
   }
@@ -655,49 +656,59 @@ result_t Message::prepareSlave(istringstream& input, SymbolString& slave) {
   return result;
 }
 
-result_t Message::storeLastData(SymbolString& master, SymbolString& slave) {
-  result_t result = storeLastData(pt_masterData, master, 0);
+result_t Message::storeLastData(MasterSymbolString& master, SlaveSymbolString& slave) {
+  result_t result = storeLastData(master, 0);
   if (result >= RESULT_OK) {
-    result = storeLastData(pt_slaveData, slave, 0);
+    result = storeLastData(slave, 0);
   }
   return result;
 }
 
-result_t Message::storeLastData(const PartType partType, SymbolString& data, unsigned char index) {
+result_t Message::storeLastData(MasterSymbolString& data, unsigned char index) {
   if (data.size() > 0
-      && (m_isWrite || this->m_dstAddress == BROADCAST || partType == pt_slaveData
-      || (partType == pt_masterData && isMaster(this->m_dstAddress)))) {
+      && (m_isWrite || this->m_dstAddress == BROADCAST || isMaster(this->m_dstAddress))) {
     time(&m_lastUpdateTime);
   }
-  if (partType == pt_masterData) {
-    switch (data.compareTo(m_lastMasterData)) {
-    case 1:  // completely different
-      m_lastChangeTime = m_lastUpdateTime;
-      m_lastMasterData = data;
-      break;
-    case 2:  // only master address is different
-      m_lastMasterData = data;
-      break;
-    }
-  } else if (partType == pt_slaveData) {
-    if (data != m_lastSlaveData) {
-      m_lastChangeTime = m_lastUpdateTime;
-      m_lastSlaveData = data;
-    }
+  switch (data.compareTo(m_lastMasterData)) {
+  case 1:  // completely different
+    m_lastChangeTime = m_lastUpdateTime;
+    m_lastMasterData = data;
+    break;
+  case 2:  // only master address is different
+    m_lastMasterData = data;
+    break;
   }
   return RESULT_OK;
 }
 
-result_t Message::decodeLastData(const PartType partType,
-    ostringstream& output, OutputFormat outputFormat,
-    bool leadingSeparator, const char* fieldName, signed char fieldIndex) {
-  unsigned char offset;
-  if (partType == pt_masterData) {
-    offset = (unsigned char)(m_id.size() - 2);
-  } else {
-    offset = 0;
+result_t Message::storeLastData(SlaveSymbolString& data, unsigned char index) {
+  if (data.size() > 0) {
+    time(&m_lastUpdateTime);
   }
-  result_t result = m_data->read(partType, partType == pt_masterData ? m_lastMasterData : m_lastSlaveData, offset,
+  if (data != m_lastSlaveData) {
+    m_lastChangeTime = m_lastUpdateTime;
+    m_lastSlaveData = data;
+  }
+  return RESULT_OK;
+}
+
+result_t Message::decodeLastMasterData(ostringstream& output, OutputFormat outputFormat,
+    bool leadingSeparator, const char* fieldName, signed char fieldIndex) {
+  unsigned char offset = (unsigned char)(m_id.size() - 2);
+  result_t result = m_data->read(pt_masterData, m_lastMasterData, offset,
+      output, outputFormat, -1, leadingSeparator, fieldName, fieldIndex);
+  if (result < RESULT_OK) {
+    return result;
+  }
+  if (result == RESULT_EMPTY && fieldName != NULL) {
+    return RESULT_ERR_NOTFOUND;
+  }
+  return result;
+}
+
+result_t Message::decodeLastSlaveData(ostringstream& output, OutputFormat outputFormat,
+    bool leadingSeparator, const char* fieldName, signed char fieldIndex) {
+  result_t result = m_data->read(pt_slaveData, m_lastSlaveData, 0,
       output, outputFormat, -1, leadingSeparator, fieldName, fieldIndex);
   if (result < RESULT_OK) {
     return result;
@@ -873,13 +884,13 @@ ChainedMessage::ChainedMessage(const string circuit, const string level, const s
       m_ids(ids), m_lengths(lengths),
       m_maxTimeDiff(m_ids.size()*15) {  // 15 seconds per message
   size_t cnt = ids.size();
-  m_lastMasterDatas = reinterpret_cast<SymbolString**>(calloc(cnt, sizeof(SymbolString*)));
-  m_lastSlaveDatas = reinterpret_cast<SymbolString**>(calloc(cnt, sizeof(SymbolString*)));
+  m_lastMasterDatas = reinterpret_cast<MasterSymbolString**>(calloc(cnt, sizeof(MasterSymbolString*)));
+  m_lastSlaveDatas = reinterpret_cast<SlaveSymbolString**>(calloc(cnt, sizeof(SlaveSymbolString*)));
   m_lastMasterUpdateTimes = reinterpret_cast<time_t*>(calloc(cnt, sizeof(time_t)));
   m_lastSlaveUpdateTimes = reinterpret_cast<time_t*>(calloc(cnt, sizeof(time_t)));
   for (size_t index = 0; index < cnt; index++) {
-    m_lastMasterDatas[index] = new SymbolString(true);
-    m_lastSlaveDatas[index] = new SymbolString();
+    m_lastMasterDatas[index] = new MasterSymbolString;
+    m_lastSlaveDatas[index] = new SlaveSymbolString();
   }
 }
 
@@ -908,7 +919,7 @@ Message* ChainedMessage::derive(const unsigned char dstAddress, const unsigned c
   return result;
 }
 
-bool ChainedMessage::checkId(SymbolString& master, unsigned char* index) {
+bool ChainedMessage::checkId(MasterSymbolString& master, unsigned char* index) {
   unsigned char idLen = getIdLength();
   if (master.size() < 5+idLen) {  // QQ, ZZ, PB, SB, NN
     return false;
@@ -969,13 +980,13 @@ bool ChainedMessage::checkId(Message& other) {
   return false;
 }
 
-result_t ChainedMessage::prepareMasterPart(SymbolString& master, istringstream& input, char separator,
+result_t ChainedMessage::prepareMasterPart(MasterSymbolString& master, istringstream& input, char separator,
     unsigned char index) {
   size_t cnt = getCount();
   if (index >= cnt) {
     return RESULT_ERR_NOTFOUND;
   }
-  SymbolString allData(true);
+  MasterSymbolString allData;
   result_t result = m_data->write(input, pt_masterData, allData, 0, separator);
   if (result != RESULT_OK) {
     return result;
@@ -1007,42 +1018,50 @@ result_t ChainedMessage::prepareMasterPart(SymbolString& master, istringstream& 
   return result;
 }
 
-result_t ChainedMessage::storeLastData(SymbolString& master, SymbolString& slave) {
+result_t ChainedMessage::storeLastData(MasterSymbolString& master, SlaveSymbolString& slave) {
   // determine index from master ID
   unsigned char index = 0;
   if (checkId(master, &index)) {
-    result_t result = storeLastData(pt_masterData, master, index);
+    result_t result = storeLastData(master, index);
     if (result >= RESULT_OK) {
-      result = storeLastData(pt_slaveData, slave, index);
+      result = storeLastData(slave, index);
     }
     return result;
   }
   return RESULT_ERR_INVALID_ARG;
 }
 
-result_t ChainedMessage::storeLastData(const PartType partType, SymbolString& data, unsigned char index) {
+result_t ChainedMessage::storeLastData(MasterSymbolString& data, unsigned char index) {
   if (index >= m_ids.size()) {
     return RESULT_ERR_INVALID_ARG;
   }
-  if (partType == pt_masterData) {
-    switch (data.compareTo(*m_lastMasterDatas[index])) {
-    case 1:  // completely different
-      *m_lastMasterDatas[index] = data;
-      break;
-    case 2:  // only master address is different
-      *m_lastMasterDatas[index] = data;
-      break;
-    }
-    time(&m_lastMasterUpdateTimes[index]);
-  } else if (partType == pt_slaveData) {
-    if (data != *m_lastSlaveDatas[index]) {
-      *m_lastSlaveDatas[index] = data;
-    }
-    time(&m_lastSlaveUpdateTimes[index]);
+  switch (data.compareTo(*m_lastMasterDatas[index])) {
+  case 1:  // completely different
+    *m_lastMasterDatas[index] = data;
+    break;
+  case 2:  // only master address is different
+    *m_lastMasterDatas[index] = data;
+    break;
   }
+  time(&m_lastMasterUpdateTimes[index]);
+  return combineLastParts();
+}
+
+result_t ChainedMessage::storeLastData(SlaveSymbolString& data, unsigned char index) {
+  if (index >= m_ids.size()) {
+    return RESULT_ERR_INVALID_ARG;
+  }
+  if (data != *m_lastSlaveDatas[index]) {
+    *m_lastSlaveDatas[index] = data;
+  }
+  time(&m_lastSlaveUpdateTimes[index]);
+  return combineLastParts();
+}
+
+result_t ChainedMessage::combineLastParts() {
   // check arrival time of all parts
   time_t minTime = 0, maxTime = 0;
-  for (index = 0; index < m_ids.size(); index++) {
+  for (unsigned char index = 0; index < m_ids.size(); index++) {
     if (index == 0) {
       minTime = maxTime = m_lastMasterUpdateTimes[index];
     } else {
@@ -1064,10 +1083,10 @@ result_t ChainedMessage::storeLastData(const PartType partType, SymbolString& da
     }
   }
   // everything was completely retrieved in short time
-  SymbolString master(true);
-  SymbolString slave;
+  MasterSymbolString master;
+  SlaveSymbolString slave;
   size_t offset = 5+(m_ids[0].size()-2);  // skip QQ, ZZ, PB, SB, NN
-  for (index = 0; index < m_ids.size(); index++) {
+  for (unsigned char index = 0; index < m_ids.size(); index++) {
     SymbolString* add = m_lastMasterDatas[index];
     size_t end = 5+(*add)[4];
     for (size_t pos = index == 0 ? 0 : offset; pos < end; pos++) {
@@ -1085,9 +1104,9 @@ result_t ChainedMessage::storeLastData(const PartType partType, SymbolString& da
   }
   master[4] = (unsigned char)(master.size()-5);
   slave[0] = (unsigned char)(slave.size()-1);
-  result_t result = Message::storeLastData(pt_masterData, master, 0);
+  result_t result = Message::storeLastData(master, 0);
   if (result == RESULT_OK) {
-    result = Message::storeLastData(pt_slaveData, slave, 0);
+    result = Message::storeLastData(slave, 0);
   }
   return result;
 }
@@ -1116,9 +1135,9 @@ void ChainedMessage::dumpColumn(ostream& output, column_t column, bool withCondi
 /**
  * Get the first available @a Message from the list.
  * @param messages the list of @a Message instances to check.
- * @param sameIdExtAs the optional @a Message to check for having the same ID.
+ * @param sameIdExtAs the optional @a MasterSymbolString to check for having the same ID.
  */
-Message* getFirstAvailable(vector<Message*> &messages, SymbolString* sameIdExtAs) {
+Message* getFirstAvailable(vector<Message*> &messages, MasterSymbolString* sameIdExtAs) {
   for (vector<Message*>::iterator msgIt = messages.begin(); msgIt != messages.end(); msgIt++) {
     Message* message = *msgIt;
     if (sameIdExtAs && !message->checkId(*sameIdExtAs)) {
@@ -2034,7 +2053,7 @@ deque<Message*> MessageMap::findAll(const string& circuit, const string& name, c
   return ret;
 }
 
-Message* MessageMap::find(SymbolString& master, bool anyDestination,
+Message* MessageMap::find(MasterSymbolString& master, bool anyDestination,
   const bool withRead, const bool withWrite, const bool withPassive) {
   if (master.size() >= 5 && master[4] == 0 && anyDestination && master[2] == 0x07 && master[3] == 0x04) {
     return m_scanMessage;

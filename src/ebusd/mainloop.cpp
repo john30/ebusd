@@ -233,7 +233,7 @@ void MainLoop::run() {
             result = m_busHandler->startScan(true, "*");
           } else {
             logNotice(lf_main, "starting initial scan for %2.2x", m_initialScan);
-            SymbolString slave;
+            SlaveSymbolString slave;
             result = m_busHandler->scanAndWait(m_initialScan, slave);
             Message* message = m_messages->getScanMessage(m_initialScan);
             if (result == RESULT_OK && message != NULL) {
@@ -257,7 +257,7 @@ void MainLoop::run() {
           taskDelay = 5;
           lastScanAddress = 0;
         } else {
-          SymbolString slave;
+          SlaveSymbolString slave;
           if (scanned) {
             Message* message = m_messages->getScanMessage(lastScanAddress);
             slave = message->getLastSlaveData();
@@ -472,7 +472,7 @@ string MainLoop::decodeMessage(const string& data, const bool isHttp, bool& conn
   return "ERR: command not found";
 }
 
-result_t MainLoop::parseHexMaster(vector<string> &args, size_t argPos, SymbolString& master,
+result_t MainLoop::parseHexMaster(vector<string> &args, size_t argPos, MasterSymbolString& master,
     unsigned char srcAddress) {
   ostringstream msg;
   while (argPos < args.size()) {
@@ -614,7 +614,7 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
   time(&now);
 
   if (hex && argPos > 0) {
-    SymbolString master(true);
+    MasterSymbolString master;
     result_t ret = parseHexMaster(args, argPos, master, srcAddress);
     if (ret != RESULT_OK) {
       return getResultCode(ret);
@@ -642,13 +642,13 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
     if (srcAddress == SYN
         && (message->getLastUpdateTime() + maxAge > now
             || (message->isPassive() && message->getLastUpdateTime() != 0))) {
-      SymbolString& slave = message->getLastSlaveData();
+      SlaveSymbolString& slave = message->getLastSlaveData();
       logNotice(lf_main, "hex read %s %s from cache", message->getCircuit().c_str(), message->getName().c_str());
       return slave.getDataStr();
     }
 
     // send message
-    SymbolString slave;
+    SlaveSymbolString slave;
     ret = m_busHandler->sendAndWait(master, slave);
 
     if (ret == RESULT_OK) {
@@ -761,7 +761,7 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
   if (verbosity & OF_NAMES) {
     result << message->getCircuit() << " " << message->getName() << " ";
   }
-  ret = message->decodeLastData(pt_slaveData, result, verbosity|(numeric?OF_NUMERIC:0), false,
+  ret = message->decodeLastSlaveData(result, verbosity|(numeric?OF_NUMERIC:0), false,
       fieldIndex == -2 ? NULL : fieldName.c_str(), fieldIndex);
   if (ret < RESULT_OK) {
     logError(lf_main, "read %s %s: decode %s", message->getCircuit().c_str(), message->getName().c_str(),
@@ -821,7 +821,7 @@ string MainLoop::executeWrite(vector<string> &args, const string levels) {
   }
 
   if (hex && argPos > 0) {
-    SymbolString master(true);
+    MasterSymbolString master;
     result_t ret = parseHexMaster(args, argPos, master, srcAddress);
     if (ret != RESULT_OK) {
       return getResultCode(ret);
@@ -844,7 +844,7 @@ string MainLoop::executeWrite(vector<string> &args, const string levels) {
       return getResultCode(RESULT_ERR_INVALID_ARG);  // non-matching circuit
     }
     // send message
-    SymbolString slave;
+    SlaveSymbolString slave;
     ret = m_busHandler->sendAndWait(master, slave);
 
     if (ret == RESULT_OK) {
@@ -916,7 +916,7 @@ string MainLoop::executeWrite(vector<string> &args, const string levels) {
     return getResultCode(RESULT_OK);
   }
 
-  ret = message->decodeLastData(pt_slaveData, result);  // decode data
+  ret = message->decodeLastSlaveData(result);  // decode data
   if (ret >= RESULT_OK && result.str().empty()) {
     logNotice(lf_main, "write %s %s: decode %s", message->getCircuit().c_str(), message->getName().c_str(),
         getResultCode(ret));
@@ -956,7 +956,7 @@ string MainLoop::executeHex(vector<string> &args) {
   }
 
   if (argPos > 0) {
-    SymbolString master(true);
+    MasterSymbolString master;
     result_t ret = parseHexMaster(args, argPos, master, srcAddress);
     if (ret != RESULT_OK) {
       return getResultCode(ret);
@@ -964,7 +964,7 @@ string MainLoop::executeHex(vector<string> &args) {
     logNotice(lf_main, "hex cmd: %s", master.getDataStr().c_str());
 
     // send message
-    SymbolString slave;
+    SlaveSymbolString slave;
     ret = m_busHandler->sendAndWait(master, slave);
 
     if (ret == RESULT_OK) {
@@ -1305,7 +1305,7 @@ string MainLoop::executeScan(vector<string> &args, string levels) {
     if (result != RESULT_OK) {
       return getResultCode(result);
     }
-    SymbolString slave;
+    SlaveSymbolString slave;
     result = m_busHandler->scanAndWait(dstAddress, slave);
     if (result != RESULT_OK) {
       return getResultCode(result);

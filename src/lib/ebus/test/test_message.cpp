@@ -170,8 +170,8 @@ int main() {
   map<string, Condition*> &conditions = messages->getConditions();
   Message* message = NULL;
   vector<Message*> deleteMessages;
-  vector<SymbolString*> mstrs;
-  vector<SymbolString*> sstrs;
+  vector<MasterSymbolString*> mstrs;
+  vector<SlaveSymbolString*> sstrs;
   mstrs.resize(1);
   sstrs.resize(1);
   for (size_t i = 0; i < sizeof(checks) / sizeof(checks[0]); i++) {
@@ -260,7 +260,7 @@ int main() {
         } else if (mstrs[pos] != NULL) {
           delete mstrs[pos];
         }
-        mstrs[pos] = new SymbolString(true);
+        mstrs[pos] = new MasterSymbolString;
         result = mstrs[pos]->parseHex(token);
         if (result != RESULT_OK) {
           cout << "\"" << check[0] << "\": parse \"" << token << "\" error: " << getResultCode(result) << endl;
@@ -277,7 +277,7 @@ int main() {
         } else if (sstrs[pos] != NULL) {
           delete sstrs[pos];
         }
-        sstrs[pos] = new SymbolString();
+        sstrs[pos] = new SlaveSymbolString();
         result = sstrs[pos]->parseHex(token);
         if (result != RESULT_OK) {
           cout << "\"" << check[0] << "\": parse \"" << token << "\" error: " << getResultCode(result) << endl;
@@ -292,7 +292,7 @@ int main() {
       if (mstrs[0] != NULL) {
         delete mstrs[0];
       }
-      mstrs[0] = new SymbolString(true);
+      mstrs[0] = new MasterSymbolString;
       result = mstrs[0]->parseHex(check[2]);
       if (result != RESULT_OK) {
         cout << "\"" << check[0] << "\": parse \"" << check[2] << "\" error: " << getResultCode(result) << endl;
@@ -301,7 +301,7 @@ int main() {
       if (sstrs[0] != NULL) {
         delete sstrs[0];
       }
-      sstrs[0] = new SymbolString();
+      sstrs[0] = new SlaveSymbolString();
       result = sstrs[0]->parseHex(check[3]);
       if (result != RESULT_OK) {
         cout << "\"" << check[0] << "\": parse \"" << check[3] << "\" error: " << getResultCode(result) << endl;
@@ -419,7 +419,7 @@ int main() {
     }
     if (!message->isPassive() && (withInput || !decode)) {
       istringstream input(inputStr);
-      SymbolString writeMstr(true);
+      MasterSymbolString writeMstr;
       result = message->prepareMaster(0xff, writeMstr, input);
       if (failedPrepare) {
         if (result == RESULT_OK) {
@@ -453,10 +453,10 @@ int main() {
 
   delete templates;
   delete messages;
-  for (vector<SymbolString*>::iterator it = mstrs.begin(); it != mstrs.end(); it++) {
+  for (vector<MasterSymbolString*>::iterator it = mstrs.begin(); it != mstrs.end(); it++) {
     delete *it;
   }
-  for (vector<SymbolString*>::iterator it = sstrs.begin(); it != sstrs.end(); it++) {
+  for (vector<SlaveSymbolString*>::iterator it = sstrs.begin(); it != sstrs.end(); it++) {
     delete *it;
   }
   return 0;

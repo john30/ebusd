@@ -77,14 +77,14 @@ int main() {
     string check[5] = checks[i];
     istringstream isstr(check[0]);
     string expectStr = check[1];
-    SymbolString mstr(true);
+    MasterSymbolString mstr;
     result_t result = mstr.parseHex(check[2]);
     if (result != RESULT_OK) {
       cout << "\"" << check[0] << "\": parse \"" << check[2] << "\" error: " << getResultCode(result) << endl;
       error = true;
       continue;
     }
-    SymbolString sstr;
+    SlaveSymbolString sstr;
     result = sstr.parseHex(check[3]);
     if (result != RESULT_OK) {
       cout << "\"" << check[0] << "\": parse \"" << check[3] << "\" error: " << getResultCode(result) << endl;
@@ -130,14 +130,14 @@ int main() {
     cout << "\": create OK" << endl;
 
     ostringstream output;
-    SymbolString writeMstr(true);
+    MasterSymbolString writeMstr;
     result = writeMstr.parseHex(mstr.getDataStr().substr(0, 10));
     if (result != RESULT_OK) {
       cout << "  parse \"" << mstr.getDataStr().substr(0, 10) << "\" error: " << getResultCode(result)
           << endl;
       error = true;
     }
-    SymbolString writeSstr;
+    SlaveSymbolString writeSstr;
     result = writeSstr.parseHex(sstr.getDataStr().substr(0, 2));
     if (result != RESULT_OK) {
       cout << "  parse \"" << sstr.getDataStr().substr(0, 2) << "\" error: " << getResultCode(result)

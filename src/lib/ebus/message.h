@@ -173,13 +173,13 @@ class Message {
     const unsigned char srcAddress, const unsigned char dstAddress);
 
   /**
-   * Calculate the key for the master @a SymbolString.
-   * @param master the master @a SymbolString.
+   * Calculate the key for the @a MasterSymbolString.
+   * @param master the @a MasterSymbolString.
    * @param maxIdLength the maximum ID length to use
    * @param anyDestination @p true to use the special @a SYN as destination address in the key.
    * @return the key for the ID, or -1LL if the data is invalid.
    */
-  static uint64_t createKey(SymbolString& master,
+  static uint64_t createKey(MasterSymbolString& master,
     unsigned char maxIdLength, bool anyDestination = false);
 
   /**
@@ -349,11 +349,11 @@ class Message {
 
   /**
    * Check the ID against the master @a SymbolString data.
-   * @param master the master @a SymbolString to check against.
+   * @param master the @a MasterSymbolString to check against.
    * @param index the variable in which to store the message part index, or NULL to ignore.
    * @return true if the ID matches, false otherwise.
    */
-  virtual bool checkId(SymbolString& master, unsigned char* index = NULL);
+  virtual bool checkId(MasterSymbolString& master, unsigned char* index = NULL);
 
   /**
    * Check the ID against the other @a Message.
@@ -421,14 +421,14 @@ class Message {
   /**
    * Prepare the master @a SymbolString for sending a query or command to the bus.
    * @param srcAddress the source address to set.
-   * @param master the master data @a SymbolString for writing symbols to.
+   * @param master the @a MasterSymbolString for writing symbols to.
    * @param input the @a istringstream to parse the formatted value(s) from.
    * @param separator the separator character between multiple fields.
    * @param dstAddress the destination address to set, or @a SYN to keep the address defined during construction.
    * @param index the index of the part to prepare.
    * @return @a RESULT_OK on success, or an error code.
    */
-  result_t prepareMaster(const unsigned char srcAddress, SymbolString& master,
+  result_t prepareMaster(const unsigned char srcAddress, MasterSymbolString& master,
       istringstream& input, char separator = UI_FIELD_SEPARATOR,
       const unsigned char dstAddress = SYN, unsigned char index = 0);
 
@@ -436,44 +436,51 @@ class Message {
  protected:
   /**
    * Prepare a part of the master data @a SymbolString for sending (everything including NN).
-   * @param master the master data @a SymbolString for writing symbols to.
+   * @param master the @a MasterSymbolString for writing symbols to.
    * @param input the @a istringstream to parse the formatted value(s) from.
    * @param separator the separator character between multiple fields.
    * @param index the index of the part to prepare.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t prepareMasterPart(SymbolString& master, istringstream& input, char separator, unsigned char index);
+  virtual result_t prepareMasterPart(MasterSymbolString& master, istringstream& input, char separator,
+      unsigned char index);
 
 
  public:
   /**
    * Prepare the slave @a SymbolString for sending an answer to the bus.
    * @param input the @a istringstream to parse the formatted value(s) from.
-   * @param slave the slave data @a SymbolString for writing symbols to.
+   * @param slave the @a SlaveSymbolString for writing symbols to.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t prepareSlave(istringstream& input, SymbolString& slave);
+  virtual result_t prepareSlave(istringstream& input, SlaveSymbolString& slave);
 
   /**
    * Store the last seen master and slave data.
-   * @param master the last seen master data.
-   * @param slave the last seen slave data.
+   * @param master the last seen @a MasterSymbolString.
+   * @param slave the last seen @a SlaveSymbolString.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t storeLastData(SymbolString& master, SymbolString& slave);
+  virtual result_t storeLastData(MasterSymbolString& master, SlaveSymbolString& slave);
 
   /**
-   * Store last seen master or slave data.
-   * @param partType the @a PartType of the data.
-   * @param data the last seen data.
+   * Store last seen master data.
+   * @param data the last @a MasterSymbolString.
    * @param index the index of the part to store.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t storeLastData(const PartType partType, SymbolString& data, unsigned char index);
+  virtual result_t storeLastData(MasterSymbolString& data, unsigned char index);
 
   /**
-   * Decode the value from the last stored data.
-   * @param partType the @a PartType of the data.
+   * Store last seen slave data.
+   * @param data the last seen @a SlaveSymbolString.
+   * @param index the index of the part to store.
+   * @return @a RESULT_OK on success, or an error code.
+   */
+  virtual result_t storeLastData(SlaveSymbolString& data, unsigned char index);
+
+  /**
+   * Decode the value from the last stored master data.
    * @param output the @a ostringstream to append the formatted value to.
    * @param outputFormat the @a OutputFormat options to use.
    * @param leadingSeparator whether to prepend a separator before the formatted value.
@@ -481,8 +488,19 @@ class Message {
    * @param fieldIndex the optional index of the named field to limit the output to, or -1.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t decodeLastData(const PartType partType,
-      ostringstream& output, OutputFormat outputFormat = 0,
+  virtual result_t decodeLastMasterData(ostringstream& output, OutputFormat outputFormat = 0,
+      bool leadingSeparator = false, const char* fieldName = NULL, signed char fieldIndex = -1);
+
+  /**
+   * Decode the value from the last stored slave data.
+   * @param output the @a ostringstream to append the formatted value to.
+   * @param outputFormat the @a OutputFormat options to use.
+   * @param leadingSeparator whether to prepend a separator before the formatted value.
+   * @param fieldName the optional name of a field to limit the output to.
+   * @param fieldIndex the optional index of the named field to limit the output to, or -1.
+   * @return @a RESULT_OK on success, or an error code.
+   */
+  virtual result_t decodeLastSlaveData(ostringstream& output, OutputFormat outputFormat = 0,
       bool leadingSeparator = false, const char* fieldName = NULL, signed char fieldIndex = -1);
 
   /**
@@ -508,15 +526,15 @@ class Message {
 
   /**
    * Get the last seen master data.
-   * @return the last seen master @a SymbolString.
+   * @return the last seen @a MasterSymbolString.
    */
-  SymbolString& getLastMasterData() { return m_lastMasterData; }
+  MasterSymbolString& getLastMasterData() { return m_lastMasterData; }
 
   /**
    * Get the last seen slave data.
-   * @return the last seen slave @a SymbolString.
+   * @return the last seen @a SlaveSymbolString.
    */
-  SymbolString& getLastSlaveData() { return m_lastSlaveData; }
+  SlaveSymbolString& getLastSlaveData() { return m_lastSlaveData; }
 
   /**
    * Get the time when this message was last seen with reasonable data.
@@ -630,11 +648,11 @@ class Message {
   /** the @a Condition for this message, or NULL. */
   Condition* m_condition;
 
-  /** the last seen master data. */
-  SymbolString m_lastMasterData{true};
+  /** the last seen @a MasterSymbolString. */
+  MasterSymbolString m_lastMasterData;
 
-  /** the last seen slave data. */
-  SymbolString m_lastSlaveData;
+  /** the last seen @a SlaveSymbolString. */
+  SlaveSymbolString m_lastSlaveData;
 
   /** the system time when the message was last updated, 0 for never. */
   time_t m_lastUpdateTime;
@@ -691,7 +709,7 @@ class ChainedMessage : public Message {
   virtual unsigned char getIdLength() const { return (unsigned char)(m_ids[0].size() - 2); }
 
   // @copydoc
-  virtual bool checkId(SymbolString& master, unsigned char* index = NULL);
+  virtual bool checkId(MasterSymbolString& master, unsigned char* index = NULL);
 
   // @copydoc
   virtual bool checkId(Message& other);
@@ -702,16 +720,25 @@ class ChainedMessage : public Message {
 
  protected:
   // @copydoc
-  virtual result_t prepareMasterPart(SymbolString& master, istringstream& input, char separator, unsigned char index);
+  virtual result_t prepareMasterPart(MasterSymbolString& master, istringstream& input, char separator,
+      unsigned char index);
 
 
  public:
   // @copydoc
-  virtual result_t storeLastData(SymbolString& master, SymbolString& slave);
+  virtual result_t storeLastData(MasterSymbolString& master, SlaveSymbolString& slave);
 
   // @copydoc
-  virtual result_t storeLastData(const PartType partType, SymbolString& data, unsigned char index);
+  virtual result_t storeLastData(MasterSymbolString& data, unsigned char index);
 
+  // @copydoc
+  virtual result_t storeLastData(SlaveSymbolString& data, unsigned char index);
+
+  /**
+   * Combine all last stored data.
+   * @return the result code.
+   */
+  virtual result_t combineLastParts();
 
  protected:
   // @copydoc
@@ -728,11 +755,11 @@ class ChainedMessage : public Message {
   /** the maximum allowed time difference of any data pair. */
   const time_t m_maxTimeDiff;
 
-  /** array of the last seen master datas. */
-  SymbolString** m_lastMasterDatas;
+  /** array of the last seen @a MasterSymbolString instances. */
+  MasterSymbolString** m_lastMasterDatas;
 
-  /** array of the last seen slave datas. */
-  SymbolString** m_lastSlaveDatas;
+  /** array of the last seen @a SlaveSymbolString instances. */
+  SlaveSymbolString** m_lastSlaveDatas;
 
   /** array of the system times when the corresponding master data was last updated, 0 for never. */
   time_t* m_lastMasterUpdateTimes;
@@ -1337,7 +1364,7 @@ class MessageMap : public FileReader {
 
   /**
    * Find the @a Message instance for the specified master data.
-   * @param master the master @a SymbolString for identifying the @a Message.
+   * @param master the @a MasterSymbolString for identifying the @a Message.
    * @param anyDestination true to only return messages without a particular destination.
    * @param withRead true to include read messages (default true).
    * @param withWrite true to include write messages (default true).
@@ -1345,7 +1372,7 @@ class MessageMap : public FileReader {
    * @return the @a Message instance, or NULL.
    * Note: the caller may not free the returned instance.
    */
-  Message* find(SymbolString& master, bool anyDestination = false,
+  Message* find(MasterSymbolString& master, bool anyDestination = false,
     const bool withRead = true, const bool withWrite = true, const bool withPassive = true);
 
   /**
