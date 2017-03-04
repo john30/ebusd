@@ -95,6 +95,17 @@ class TCPSocket {
    */
   bool isValid();
 
+  /**
+   * Set the timeout for @a send and @a recv.
+   * @param timeout the timeout in seconds.
+   */
+  void setTimeout(int timeout) {
+    struct timeval t;
+    t.tv_usec = 0;
+    t.tv_sec = timeout;
+    setsockopt(m_sfd, SO_RCVTIMEO, SO_REUSEADDR, &t, sizeof(t));
+    setsockopt(m_sfd, SO_SNDTIMEO, SO_REUSEADDR, &t, sizeof(t));
+  }
 
  private:
   /** file descriptor from tcp socket */
