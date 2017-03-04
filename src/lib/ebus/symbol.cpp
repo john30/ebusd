@@ -34,7 +34,7 @@ using std::setfill;
 /**
  * CRC8 lookup table for the polynom 0x9b = x^8 + x^7 + x^4 + x^3 + x^1 + 1.
  */
-static const unsigned char CRC_LOOKUP_TABLE[] = {
+static const symbol_t CRC_LOOKUP_TABLE[] = {
   0x00, 0x9b, 0xad, 0x36, 0xc1, 0x5a, 0x6c, 0xf7, 0x19, 0x82, 0xb4, 0x2f, 0xd8, 0x43, 0x75, 0xee,
   0x32, 0xa9, 0x9f, 0x04, 0xf3, 0x68, 0x5e, 0xc5, 0x2b, 0xb0, 0x86, 0x1d, 0xea, 0x71, 0x47, 0xdc,
   0x64, 0xff, 0xc9, 0x52, 0xa5, 0x3e, 0x08, 0x93, 0x7d, 0xe6, 0xd0, 0x4b, 0xbc, 0x27, 0x11, 0x8a,
@@ -55,7 +55,7 @@ static const unsigned char CRC_LOOKUP_TABLE[] = {
 
 
 unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue,
-    result_t& result, unsigned int* length) {
+    result_t& result, size_t* length) {
   char* strEnd = NULL;
 
   unsigned long ret = strtoul(str, &strEnd, base);
@@ -77,7 +77,7 @@ unsigned int parseInt(const char* str, int base, const unsigned int minValue, co
 }
 
 int parseSignedInt(const char* str, int base, const int minValue, const int maxValue, result_t& result,
-    unsigned int* length) {
+    size_t* length) {
   char* strEnd = NULL;
 
   long ret = strtol(str, &strEnd, base);
@@ -99,14 +99,14 @@ int parseSignedInt(const char* str, int base, const int minValue, const int maxV
 }
 
 
-void SymbolString::updateCrc(unsigned char& crc, const unsigned char value) {
+void SymbolString::updateCrc(symbol_t& crc, const symbol_t value) {
   crc = CRC_LOOKUP_TABLE[crc]^value;
 }
 
 result_t SymbolString::parseHex(const string& str) {
   result_t result;
   for (size_t i = 0; i < str.size(); i += 2) {
-    unsigned char value = (unsigned char)parseInt(str.substr(i, 2).c_str(), 16, 0, 0xff, result);
+    symbol_t value = (symbol_t)parseInt(str.substr(i, 2).c_str(), 16, 0, 0xff, result);
     if (result != RESULT_OK) {
       return result;
     }
@@ -119,7 +119,7 @@ result_t SymbolString::parseHexEscaped(const string& str) {
   result_t result;
   bool inEscape = false;
   for (size_t i = 0; i < str.size(); i += 2) {
-    unsigned char value = (unsigned char)parseInt(str.substr(i, 2).c_str(), 16, 0, 0xff, result);
+    symbol_t value = (symbol_t)parseInt(str.substr(i, 2).c_str(), 16, 0, 0xff, result);
     if (result != RESULT_OK) {
       return result;
     }
@@ -144,24 +144,23 @@ result_t SymbolString::parseHexEscaped(const string& str) {
   return inEscape ? RESULT_ERR_ESC : RESULT_OK;
 }
 
-const string SymbolString::getDataStr(unsigned char skipFirstSymbols) {
+const string SymbolString::getStr(size_t skipFirstSymbols) {
   ostringstream sstr;
   for (size_t i = 0; i < m_data.size(); i++) {
     if (skipFirstSymbols > 0) {
       skipFirstSymbols--;
     } else {
-      unsigned char value = m_data[i];
       sstr << nouppercase << setw(2) << hex
-          << setfill('0') << static_cast<unsigned>(value);
+          << setfill('0') << static_cast<unsigned>(m_data[i]);
     }
   }
   return sstr.str();
 }
 
-unsigned char SymbolString::calcCrc() const {
-  unsigned char crc = 0;
+symbol_t SymbolString::calcCrc() const {
+  symbol_t crc = 0;
   for (size_t i = 0; i < m_data.size(); i++) {
-    unsigned char value = m_data[i];
+    symbol_t value = m_data[i];
     if (value == ESC) {
       updateCrc(crc, ESC);
       updateCrc(crc, 0x00);
@@ -181,7 +180,7 @@ unsigned char SymbolString::calcCrc() const {
  * @param bits the upper or lower 4 bits of the address.
  * @return the 1-based index of the upper or lower 4 bits of a master address (1 to 5), or 0.
  */
-unsigned char getMasterPartIndex(unsigned char bits) {
+unsigned int getMasterPartIndex(symbol_t bits) {
   switch (bits) {
   case 0x0:
     return 1;
@@ -198,18 +197,18 @@ unsigned char getMasterPartIndex(unsigned char bits) {
   }
 }
 
-bool isMaster(unsigned char addr) {
+bool isMaster(symbol_t addr) {
   return getMasterPartIndex(addr & 0x0F) > 0
     && getMasterPartIndex((addr & 0xF0)>>4) > 0;
 }
 
-bool isSlaveMaster(unsigned char addr) {
-  return isMaster((unsigned char)(addr+256-5));
+bool isSlaveMaster(symbol_t addr) {
+  return isMaster((symbol_t)(addr+256-5));
 }
 
-unsigned char getSlaveAddress(unsigned char addr) {
+symbol_t getSlaveAddress(symbol_t addr) {
   if (isMaster(addr)) {
-    return (unsigned char)(addr+5);
+    return (symbol_t)(addr+5);
   }
   if (isValidAddress(addr, false)) {
     return addr;
@@ -217,30 +216,30 @@ unsigned char getSlaveAddress(unsigned char addr) {
   return SYN;
 }
 
-unsigned char getMasterAddress(unsigned char addr) {
+symbol_t getMasterAddress(symbol_t addr) {
   if (isMaster(addr)) {
     return addr;
   }
-  addr = (unsigned char)(addr+256-5);
+  addr = (symbol_t)(addr+256-5);
   if (isMaster(addr)) {
     return addr;
   }
   return SYN;
 }
 
-unsigned char getMasterNumber(unsigned char addr) {
-  unsigned char priority = getMasterPartIndex(addr & 0x0F);
+unsigned int getMasterNumber(symbol_t addr) {
+  unsigned int priority = getMasterPartIndex(addr & 0x0F);
   if (priority == 0) {
     return 0;
   }
-  unsigned char index = getMasterPartIndex((addr & 0xF0) >> 4);
+  unsigned int index = getMasterPartIndex((addr & 0xF0) >> 4);
   if (index == 0) {
     return 0;
   }
-  return (unsigned char)(5*(priority-1) + index);
+  return 5*(priority-1) + index;
 }
 
-bool isValidAddress(unsigned char addr, bool allowBroadcast) {
+bool isValidAddress(symbol_t addr, bool allowBroadcast) {
   return addr != SYN && addr != ESC && (allowBroadcast || addr != BROADCAST);
 }
 

@@ -296,13 +296,13 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       } else if (strcmp("full", arg) == 0) {
         opt->initialScan = SYN;
       } else {
-        opt->initialScan = (unsigned char)parseInt(arg, 16, 0x00, 0xff, result);
+        opt->initialScan = (symbol_t)parseInt(arg, 16, 0x00, 0xff, result);
         if (!isValidAddress(opt->initialScan)) {
           argp_error(state, "invalid initial scan address");
           return EINVAL;
         }
         if (isMaster(opt->initialScan)) {
-          opt->initialScan = (unsigned char)(opt->initialScan+5);
+          opt->initialScan = getSlaveAddress(opt->initialScan);
         }
       }
     }
@@ -328,7 +328,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
 
   // eBUS options:
   case 'a':  // --address=31
-    opt->address = (unsigned char)parseInt(arg, 16, 0, 0xff, result);
+    opt->address = (symbol_t)parseInt(arg, 16, 0, 0xff, result);
     if (result != RESULT_OK || !isMaster(opt->address)) {
       argp_error(state, "invalid address");
       return EINVAL;
@@ -875,32 +875,24 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
   return RESULT_OK;
 }
 
-result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SlaveSymbolString& data, string& relativeFile,
+result_t loadScanConfigFile(MessageMap* messages, symbol_t address, SlaveSymbolString& data, string& relativeFile,
     bool verbose) {
-  PartType partType;
   if (isMaster(address)) {
-    address = (unsigned char)(data[0]+5);  // slave address of sending master
-    partType = pt_masterData;
-    if (data.size() < 5+1+5+2+2) {  // skip QQ ZZ PB SB NN
-      logError(lf_main, "unable to load scan config %2.2x: master part too short", address);
-      return RESULT_EMPTY;
-    }
-  } else {
-    partType = pt_slaveData;
-    if (data.size() < 1+1+5+2+2) {  // skip NN
-      logError(lf_main, "unable to load scan config %2.2x: slave part too short", address);
-      return RESULT_EMPTY;
-    }
+    address = getSlaveAddress(data[0]);  // slave address of sending master
+  }
+  if (data.getDataSize() < 1+5+2+2) {
+    logError(lf_main, "unable to load scan config %2.2x: slave part too short", address);
+    return RESULT_EMPTY;
   }
   DataFieldSet* identFields = DataFieldSet::getIdentFields();
   string path, prefix, ident;  // path: cfgpath/MANUFACTURER, prefix: ZZ., ident: C[C[C[C[C]]]], SW: xxxx, HW: xxxx
   unsigned int sw = 0, hw = 0;
   ostringstream out;
-  unsigned char offset = 0;
-  unsigned char field = 0;
-  result_t result = (*identFields)[field]->read(partType, data, offset, out, 0);  // manufacturer name
+  size_t offset = 0;
+  size_t field = 0;
+  result_t result = (*identFields)[field]->read(data, offset, out, 0);  // manufacturer name
   if (result == RESULT_ERR_NOTFOUND) {
-    result = (*identFields)[field]->read(partType, data, offset, out, OF_NUMERIC);  // manufacturer name
+    result = (*identFields)[field]->read(data, offset, out, OF_NUMERIC);  // manufacturer name
   }
   if (result == RESULT_OK) {
     path = out.str();
@@ -911,26 +903,24 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SlaveSy
     prefix = out.str();
     out.str("");
     out.clear();
-    offset = (unsigned char)(offset+(*identFields)[field++]->getLength(partType));
-    result = (*identFields)[field]->read(partType, data, offset, out, 0);  // identification string
+    offset += (*identFields)[field++]->getLength(pt_slaveData);
+    result = (*identFields)[field]->read(data, offset, out, 0);  // identification string
   }
   if (result == RESULT_OK) {
     ident = out.str();
     out.str("");
-    offset = (unsigned char)(offset+(*identFields)[field++]->getLength(partType));
-    result = (*identFields)[field]->read(partType, data, offset, sw, 0);  // software version number
+    offset += (*identFields)[field++]->getLength(pt_slaveData);
+    result = (*identFields)[field]->read(data, offset, sw, 0);  // software version number
     if (result == RESULT_ERR_OUT_OF_RANGE) {
-      sw = (data[(partType == pt_masterData ? 5 : 1)+offset] << 16)
-           | data[(partType == pt_masterData ? 5 : 1)+offset+1];
+      sw = (data.dataAt(offset) << 16) | data.dataAt(offset+1);  // use hex value instead
       result = RESULT_OK;
     }
   }
   if (result == RESULT_OK) {
-    offset = (unsigned char)(offset+(*identFields)[field++]->getLength(partType));
-    result = (*identFields)[field]->read(partType, data, offset, hw, 0);  // hardware version number
+    offset += (*identFields)[field++]->getLength(pt_slaveData);
+    result = (*identFields)[field]->read(data, offset, hw, 0);  // hardware version number
     if (result == RESULT_ERR_OUT_OF_RANGE) {
-      hw = (data[(partType == pt_masterData ? 5 : 1)+offset] << 16)
-           | data[(partType == pt_masterData ? 5 : 1)+offset+1];
+      hw = (data.dataAt(offset) << 16) | data.dataAt(offset+1);  // use hex value instead
       result = RESULT_OK;
     }
   }
@@ -967,7 +957,7 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SlaveSy
   string best;
   for (vector<string>::iterator it = files.begin(); it != files.end(); it++) {
     string name = *it;
-    unsigned char checkDest;
+    symbol_t checkDest;
     string checkIdent, useCircuit, useSuffix;
     unsigned int checkSw, checkHw;
     if (!FileReader::extractDefaultsFromFilename(name.substr(path.length()+1), checkDest, checkIdent, useCircuit,
@@ -1053,9 +1043,6 @@ result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SlaveSy
  * @return the exit code.
  */
 int main(int argc, char* argv[]) {
-  /*  if (argc >= 2 && strcmp(argv[1], "config") == 0) {
-      return config_main(argc, argv);
-    }*/
   struct argp aargp = { argpoptions, parse_opt, NULL, argpdoc, datahandler_getargs(), NULL, NULL };
   int arg_index = -1;
   setenv("ARGP_HELP_FMT", "no-dup-args-note", 0);
@@ -1098,7 +1085,7 @@ int main(int argc, char* argv[]) {
         logError(lf_main, "invalid scan message %s: master part too short", arg.c_str());
         continue;
       }
-      unsigned char address = master[1];
+      symbol_t address = master[1];
       Message* message = s_messageMap->getScanMessage(address);
       if (!message) {
         logError(lf_main, "invalid scan address %2.2x", address);

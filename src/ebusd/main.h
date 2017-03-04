@@ -44,12 +44,12 @@ struct options {
   bool scanConfig;  //!< pick configuration files matching initial scan
   /** the initial address to scan for scanconfig
    * (@a ESC=none, 0xfe=broadcast ident, @a SYN=full scan, else: single slave address). */
-  unsigned char initialScan;
+  symbol_t initialScan;
   bool checkConfig;  //!< check CSV config files, then stop
   bool dumpConfig;   //!< dump CSV config files, then stop
   unsigned int pollInterval;  //!< poll interval in seconds, 0 to disable [5]
 
-  unsigned char address;  //!< own bus address [31]
+  symbol_t address;  //!< own bus address [31]
   bool answer;  //!< answer to requests from other masters
   unsigned int acquireTimeout;  //!< bus acquisition timeout in us [9400]
   unsigned int acquireRetries;  //!< number of retries for bus acquisition [3]
@@ -108,7 +108,7 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose = false, bool denyRe
  * @param verbose whether to verbosely log problems.
  * @return the result code.
  */
-result_t loadScanConfigFile(MessageMap* messages, unsigned char address, SlaveSymbolString& data, string& relativeFile,
+result_t loadScanConfigFile(MessageMap* messages, symbol_t address, SlaveSymbolString& data, string& relativeFile,
     bool verbose = false);
 
 }  // namespace ebusd

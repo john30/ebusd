@@ -39,7 +39,7 @@ void contrib_tem_register() {
   DataTypeList::getInstance()->add(new TemParamDataType("TEM_P"));
 }
 
-result_t TemParamDataType::derive(int divisor, unsigned char bitCount, NumberDataType* &derived) {
+result_t TemParamDataType::derive(int divisor, size_t bitCount, NumberDataType* &derived) {
   if (divisor == 0) {
     divisor = 1;
   }
@@ -53,8 +53,8 @@ result_t TemParamDataType::derive(int divisor, unsigned char bitCount, NumberDat
   return RESULT_ERR_INVALID_ARG;
 }
 
-result_t TemParamDataType::readSymbols(SymbolString& input, const bool isMaster,
-    const unsigned char offset, const unsigned char length,
+result_t TemParamDataType::readSymbols(SymbolString& input,
+    const size_t offset, const size_t length,
     ostringstream& output, OutputFormat outputFormat) {
   unsigned int value = 0;
 
@@ -72,7 +72,7 @@ result_t TemParamDataType::readSymbols(SymbolString& input, const bool isMaster,
     return RESULT_OK;
   }
   int grp = 0, num = 0;
-  if (isMaster) {
+  if (input.isMaster()) {
     grp = (value & 0x1f);  // grp in bits 0...5
     num = ((value >> 8) & 0x7f);  // num in bits 8...13
   } else {
@@ -91,8 +91,8 @@ result_t TemParamDataType::readSymbols(SymbolString& input, const bool isMaster,
 }
 
 result_t TemParamDataType::writeSymbols(istringstream& input,
-  const unsigned char offset, const unsigned char length,
-  SymbolString& output, const bool isMaster, unsigned char* usedLength) {
+  const size_t offset, const size_t length,
+  SymbolString& output, size_t* usedLength) {
   unsigned int value;
   int grp, num;
   string token;
@@ -128,7 +128,7 @@ result_t TemParamDataType::writeSymbols(istringstream& input,
     if (grp < 0 || grp > 0x1f || num < 0 || num > 0x7f) {
       return RESULT_ERR_OUT_OF_RANGE;  // value out of range
     }
-    if (isMaster) {
+    if (output.isMaster()) {
       value = grp | (num << 8);  // grp in bits 0...5, num in bits 8...13
     } else {
       value = (grp << 7) | num;  // grp in bits 7...11, num in bits 0...6

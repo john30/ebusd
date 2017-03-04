@@ -92,7 +92,7 @@ class DataField {
       DataFieldTemplates* templates, DataField*& returnField,
       const bool isWriteMessage,
       const bool isTemplate, const bool isBroadcastOrMasterDestination,
-      const unsigned char maxFieldLength = MAX_POS);
+      const size_t maxFieldLength = MAX_POS);
 
   /**
    * Dump the @a string optionally embedded in @a TEXT_SEPARATOR to the output.
@@ -115,7 +115,7 @@ class DataField {
    * @param maxLength the maximum length for calculating remainder of input.
    * @return the length of this field (or contained fields) in bytes.
    */
-  virtual unsigned char getLength(PartType partType, unsigned char maxLength = MAX_LEN) = 0;
+  virtual size_t getLength(PartType partType, size_t maxLength = MAX_LEN) = 0;
 
   /**
    * Derive a new @a DataField from this field.
@@ -138,7 +138,7 @@ class DataField {
    * @param fieldIndex the index of the field, or -1 for this.
    * @return the field name, or the index as string if not unique or not available.
    */
-  virtual string getName(signed char fieldIndex = -1) { return m_name; }
+  virtual string getName(ssize_t fieldIndex = -1) { return m_name; }
 
   /**
    * Get the field comment.
@@ -162,7 +162,6 @@ class DataField {
 
   /**
    * Reads the numeric value from the @a SymbolString.
-   * @param partType the @a PartType of the data.
    * @param data the data @a SymbolString for reading binary data.
    * @param offset the additional offset to add for reading binary data.
    * @param output the variable in which to store the numeric value.
@@ -173,13 +172,11 @@ class DataField {
    * not match or ignored, or due to @a fieldName or @a fieldIndex),
    * or an error code.
    */
-  virtual result_t read(const PartType partType,
-      SymbolString& data, unsigned char offset,
-      unsigned int& output, const char* fieldName = NULL, signed char fieldIndex = -1) = 0;
+  virtual result_t read(SymbolString& data, size_t offset,
+      unsigned int& output, const char* fieldName = NULL, ssize_t fieldIndex = -1) = 0;
 
   /**
    * Reads the value from the @a SymbolString.
-   * @param partType the @a PartType of the data.
    * @param data the data @a SymbolString for reading binary data.
    * @param offset the additional offset to add for reading binary data.
    * @param output the @a ostringstream to append the formatted value to.
@@ -192,24 +189,21 @@ class DataField {
    * or @a RESULT_EMPTY if the field was skipped (either ignored or due to @a fieldName or @a fieldIndex),
    * or an error code.
    */
-  virtual result_t read(const PartType partType,
-      SymbolString& data, unsigned char offset,
-      ostringstream& output, OutputFormat outputFormat, signed char outputIndex = -1,
-      bool leadingSeparator = false, const char* fieldName = NULL, signed char fieldIndex = -1) = 0;
+  virtual result_t read(SymbolString& data, size_t offset,
+      ostringstream& output, OutputFormat outputFormat, ssize_t outputIndex = -1,
+      bool leadingSeparator = false, const char* fieldName = NULL, ssize_t fieldIndex = -1) = 0;
 
   /**
    * Writes the value to the master or slave @a SymbolString.
    * @param input the @a istringstream to parse the formatted value from.
-   * @param partType the @a PartType of the data.
    * @param data the unescaped data @a SymbolString for writing binary data.
    * @param offset the additional offset to add for writing binary data.
    * @param separator the separator character between multiple fields.
    * @param length the variable in which to store the used length in bytes, or NULL.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t write(istringstream& input,
-      const PartType partType, SymbolString& data,
-      unsigned char offset, char separator = UI_FIELD_SEPARATOR, unsigned char* length = NULL) = 0;
+  virtual result_t write(istringstream& input, SymbolString& data,
+      size_t offset, char separator = UI_FIELD_SEPARATOR, size_t* length = NULL) = 0;
 
 
  protected:
@@ -237,7 +231,7 @@ class SingleDataField : public DataField {
    */
   SingleDataField(const string name, const string comment,
       const string unit, DataType* dataType, const PartType partType,
-      const unsigned char length)
+      const size_t length)
     : DataField(name, comment),
       m_unit(unit), m_dataType(dataType), m_partType(partType),
       m_length(length) {}
@@ -248,7 +242,7 @@ class SingleDataField : public DataField {
   virtual ~SingleDataField() {}
 
   // @copydoc
-  virtual SingleDataField* clone();
+  virtual SingleDataField* clone() override;
 
   /**
    * Factory method for creating a new @a SingleDataField instance derived from a base type.
@@ -266,7 +260,7 @@ class SingleDataField : public DataField {
    * @return @a RESULT_OK on success, or an error code.
    * Note: the caller needs to free the created instance.
    */
-  static result_t create(const string id, const unsigned char length,
+  static result_t create(const string id, const size_t length,
       const string name, const string comment, const string unit,
       const PartType partType, int divisor, map<unsigned int, string> values,
       const string constantValue, const bool verifyValue, SingleDataField* &returnField);
@@ -290,13 +284,13 @@ class SingleDataField : public DataField {
   PartType getPartType() const { return m_partType; }
 
   // @copydoc
-  virtual unsigned char getLength(PartType partType, unsigned char maxLength = MAX_LEN);
+  virtual size_t getLength(PartType partType, size_t maxLength = MAX_LEN) override;
 
   // @copydoc
   virtual result_t derive(string name, string comment,
       string unit, const PartType partType,
       int divisor, map<unsigned int, string> values,
-      vector<SingleDataField*>& fields);
+      vector<SingleDataField*>& fields) override;
 
   /**
    * Get whether this field uses a full byte offset.
@@ -307,40 +301,36 @@ class SingleDataField : public DataField {
   bool hasFullByteOffset(bool after);
 
   // @copydoc
-  virtual void dump(ostream& output);
+  virtual void dump(ostream& output) override;
 
   // @copydoc
-  virtual bool hasField(const char* fieldName, bool numeric);
+  virtual bool hasField(const char* fieldName, bool numeric) override;
 
   // @copydoc
-  virtual result_t read(const PartType partType,
-      SymbolString& data, unsigned char offset,
-      unsigned int& output, const char* fieldName = NULL, signed char fieldIndex = -1);
+  virtual result_t read(SymbolString& data, size_t offset,
+      unsigned int& output, const char* fieldName = NULL, ssize_t fieldIndex = -1) override;
 
   // @copydoc
-  virtual result_t read(const PartType partType,
-      SymbolString& data, unsigned char offset,
-      ostringstream& output, OutputFormat outputFormat, signed char outputIndex = -1,
-      bool leadingSeparator = false, const char* fieldName = NULL, signed char fieldIndex = -1);
+  virtual result_t read(SymbolString& data, size_t offset,
+      ostringstream& output, OutputFormat outputFormat, ssize_t outputIndex = -1,
+      bool leadingSeparator = false, const char* fieldName = NULL, ssize_t fieldIndex = -1) override;
 
   // @copydoc
-  virtual result_t write(istringstream& input,
-      const PartType partType, SymbolString& data,
-      unsigned char offset, char separator = UI_FIELD_SEPARATOR, unsigned char* length = NULL);
+  virtual result_t write(istringstream& input, SymbolString& data,
+      size_t offset, char separator = UI_FIELD_SEPARATOR, size_t* length = NULL) override;
 
 
  protected:
   /**
    * Internal method for reading the field from a @a SymbolString.
    * @param input the @a SymbolString to read the binary value from.
-   * @param isMaster whether the @a SymbolString is the master part.
    * @param offset the offset in the @a SymbolString.
    * @param output the ostringstream to append the formatted value to.
    * @param outputFormat the @a OutputFormat options to use.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t readSymbols(SymbolString& input, const bool isMaster,
-      const unsigned char offset,
+  virtual result_t readSymbols(SymbolString& input,
+      const size_t offset,
       ostringstream& output, OutputFormat outputFormat);
 
   /**
@@ -348,13 +338,12 @@ class SingleDataField : public DataField {
    * @param input the @a istringstream to parse the formatted value from.
    * @param offset the offset in the @a SymbolString.
    * @param output the @a SymbolString to write the binary value to.
-   * @param isMaster whether the @a SymbolString is the master part.
    * @param usedLength the variable in which to store the used length in bytes, or NULL.
    * @return @a RESULT_OK on success, or an error code.
    */
   virtual result_t writeSymbols(istringstream& input,
-      const unsigned char offset,
-      SymbolString& output, const bool isMaster, unsigned char* usedLength);
+      const size_t offset,
+      SymbolString& output, size_t* usedLength);
 
   /** the value unit. */
   const string m_unit;
@@ -366,7 +355,7 @@ class SingleDataField : public DataField {
   const PartType m_partType;
 
   /** the number of symbols in the message part in which the field is stored. */
-  const unsigned char m_length;
+  const size_t m_length;
 };
 
 
@@ -387,7 +376,7 @@ class ValueListDataField : public SingleDataField {
    */
   ValueListDataField(const string name, const string comment,
     const string unit, NumberDataType* dataType, const PartType partType,
-    const unsigned char length, const map<unsigned int, string> values)
+    const size_t length, const map<unsigned int, string> values)
     : SingleDataField(name, comment, unit, dataType, partType, length),
     m_values(values) {}
 
@@ -397,28 +386,26 @@ class ValueListDataField : public SingleDataField {
   virtual ~ValueListDataField() {}
 
   // @copydoc
-  virtual ValueListDataField* clone();
+  virtual ValueListDataField* clone() override;
 
   // @copydoc
   virtual result_t derive(string name, string comment,
       string unit, const PartType partType, int divisor,
       map<unsigned int, string> values,
-      vector<SingleDataField*>& fields);
+      vector<SingleDataField*>& fields) override;
 
   // @copydoc
-  virtual void dump(ostream& output);
+  virtual void dump(ostream& output) override;
 
 
  protected:
   // @copydoc
-  virtual result_t readSymbols(SymbolString& input, const bool isMaster,
-      const unsigned char offset,
-      ostringstream& output, OutputFormat outputFormat);
+  virtual result_t readSymbols(SymbolString& input, const size_t offset,
+      ostringstream& output, OutputFormat outputFormat) override;
 
   // @copydoc
-  virtual result_t writeSymbols(istringstream& input,
-      const unsigned char offset,
-      SymbolString& output, const bool isMaster, unsigned char* usedLength);
+  virtual result_t writeSymbols(istringstream& input, const size_t offset,
+      SymbolString& output, size_t* usedLength) override;
 
 
  private:
@@ -445,7 +432,7 @@ class ConstantDataField : public SingleDataField {
    */
   ConstantDataField(const string name, const string comment,
     const string unit, DataType* dataType, const PartType partType,
-    const unsigned char length, const string value, const bool verify)
+    const size_t length, const string value, const bool verify)
     : SingleDataField(name, comment, unit, dataType, partType, length),
     m_value(value), m_verify(verify) {}
 
@@ -455,28 +442,26 @@ class ConstantDataField : public SingleDataField {
   virtual ~ConstantDataField() {}
 
   // @copydoc
-  virtual ConstantDataField* clone();
+  virtual ConstantDataField* clone() override;
 
   // @copydoc
   virtual result_t derive(string name, string comment,
       string unit, const PartType partType, int divisor,
       map<unsigned int, string> values,
-      vector<SingleDataField*>& fields);
+      vector<SingleDataField*>& fields) override;
 
   // @copydoc
-  virtual void dump(ostream& output);
+  virtual void dump(ostream& output) override;
 
 
  protected:
   // @copydoc
-  virtual result_t readSymbols(SymbolString& input, const bool isMaster,
-      const unsigned char offset,
-      ostringstream& output, OutputFormat outputFormat);
+  virtual result_t readSymbols(SymbolString& input, const size_t offset,
+      ostringstream& output, OutputFormat outputFormat) override;
 
   // @copydoc
-  virtual result_t writeSymbols(istringstream& input,
-      const unsigned char offset,
-      SymbolString& output, const bool isMaster, unsigned char* usedLength);
+  virtual result_t writeSymbols(istringstream& input, const size_t offset,
+      SymbolString& output, size_t* usedLength) override;
 
 
  private:
@@ -538,19 +523,19 @@ class DataFieldSet : public DataField {
   virtual ~DataFieldSet();
 
   // @copydoc
-  virtual DataFieldSet* clone();
+  virtual DataFieldSet* clone() override;
 
   // @copydoc
-  virtual unsigned char getLength(PartType partType, unsigned char maxLength = MAX_LEN);
+  virtual size_t getLength(PartType partType, size_t maxLength = MAX_LEN) override;
 
   // @copydoc
-  virtual string getName(signed char fieldIndex = -1);
+  virtual string getName(ssize_t fieldIndex = -1) override;
 
   // @copydoc
   virtual result_t derive(string name, string comment,
       string unit, const PartType partType,
       int divisor, map<unsigned int, string> values,
-      vector<SingleDataField*>& fields);
+      vector<SingleDataField*>& fields) override;
 
   /**
    * Returns the @a SingleDataField at the specified index.
@@ -583,26 +568,23 @@ class DataFieldSet : public DataField {
   size_t size() const { return m_fields.size(); }
 
   // @copydoc
-  virtual bool hasField(const char* fieldName, bool numeric);
+  virtual bool hasField(const char* fieldName, bool numeric) override;
 
   // @copydoc
-  virtual void dump(ostream& output);
+  virtual void dump(ostream& output) override;
 
   // @copydoc
-  virtual result_t read(const PartType partType,
-      SymbolString& data, unsigned char offset,
-      unsigned int& output, const char* fieldName = NULL, signed char fieldIndex = -1);
+  virtual result_t read(SymbolString& data, size_t offset,
+      unsigned int& output, const char* fieldName = NULL, ssize_t fieldIndex = -1) override;
 
   // @copydoc
-  virtual result_t read(const PartType partType,
-      SymbolString& data, unsigned char offset,
-      ostringstream& output, OutputFormat outputFormat, signed char outputIndex = -1,
-      bool leadingSeparator = false, const char* fieldName = NULL, signed char fieldIndex = -1);
+  virtual result_t read(SymbolString& data, size_t offset,
+      ostringstream& output, OutputFormat outputFormat, ssize_t outputIndex = -1,
+      bool leadingSeparator = false, const char* fieldName = NULL, ssize_t fieldIndex = -1) override;
 
   // @copydoc
-  virtual result_t write(istringstream& input,
-      const PartType partType, SymbolString& data,
-      unsigned char offset, char separator = UI_FIELD_SEPARATOR, unsigned char* length = NULL);
+  virtual result_t write(istringstream& input, SymbolString& data,
+      size_t offset, char separator = UI_FIELD_SEPARATOR, size_t* length = NULL) override;
 
 
  private:
@@ -658,7 +640,7 @@ class DataFieldTemplates : public FileReader {
   // @copydoc
   virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
     vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit,
-    const string& defaultSuffix, const string& filename, unsigned int lineNo);
+    const string& defaultSuffix, const string& filename, unsigned int lineNo) override;
 
   /**
    * Gets the template @a DataField instance with the specified name.

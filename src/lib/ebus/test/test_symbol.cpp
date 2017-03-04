@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
     if (result != RESULT_OK) {
       cout << "parse escaped error: " << getResultCode(result) << endl;
     } else {
-      unsigned char gotCrc = mstr.calcCrc();
+      symbol_t gotCrc = mstr.calcCrc();
       cout << "calculated CRC: 0x"
           << nouppercase << setw(2) << hex << setfill('0')
               << static_cast<unsigned>(gotCrc) << endl;
@@ -73,9 +73,9 @@ int main(int argc, char** argv) {
     cout << "parse unescaped error: " << getResultCode(result) << endl;
     error = true;
   } else {
-    gotStr = mstr.getDataStr(), expectStr = "10feb5050427a915aa";
+    gotStr = mstr.getStr(), expectStr = "10feb5050427a915aa";
     verify(false, "parse unescaped", "10feb5050427a915aa", true, expectStr, gotStr);
-    unsigned char gotCrc = mstr.calcCrc(), expectCrc = 0x77;
+    symbol_t gotCrc = mstr.calcCrc(), expectCrc = 0x77;
     ostringstream ostr;
     ostr << nouppercase << setw(2) << hex << setfill('0') << static_cast<unsigned>(expectCrc);
     expectStr = ostr.str();
@@ -91,7 +91,7 @@ int main(int argc, char** argv) {
     cout << "parse escaped error: " << getResultCode(result) << endl;
     error = true;
   } else {
-    gotStr = mstr.getDataStr(), expectStr = "10feb5050427a915aa";
+    gotStr = mstr.getStr(), expectStr = "10feb5050427a915aa";
     verify(false, "parse escaped", "10feb5050427a90015a901", true, expectStr, gotStr);
     ostringstream ostr;
     ostr << dec << static_cast<unsigned>(4);
@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
     cout << "parse escaped error: " << getResultCode(result) << endl;
     error = true;
   } else {
-    gotStr = sstr.getDataStr(), expectStr = "0427a915aa";
+    gotStr = sstr.getStr(), expectStr = "0427a915aa";
     verify(false, "parse escaped", "0427a90015a901", true, expectStr, gotStr);
     ostringstream ostr;
     ostr << dec << static_cast<unsigned>(4);

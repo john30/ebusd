@@ -39,7 +39,7 @@ int main() {
     int count = 0;
 
     while (1) {
-      unsigned char byte = 0;
+      symbol_t byte = 0;
       result = device->recv(0, byte);
 
       if (result == RESULT_OK) {

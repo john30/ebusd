@@ -44,7 +44,7 @@ result_t DataField::create(vector<string>::iterator& it,
     DataFieldTemplates* templates, DataField*& returnField,
     const bool isWriteMessage,
     const bool isTemplate, const bool isBroadcastOrMasterDestination,
-    const unsigned char maxFieldLength) {
+    const size_t maxFieldLength) {
   vector<SingleDataField*> fields;
   string firstName, firstComment;
   result_t result = RESULT_OK;
@@ -188,7 +188,7 @@ result_t DataField::create(vector<string>::iterator& it,
         templ = templates->get(token.substr(0, pos));
       }
       if (templ == NULL) {  // basetype[:len]
-        unsigned char length;
+        size_t length;
         string typeName;
         if (pos == string::npos) {
           length = 0;  // no length specified
@@ -197,7 +197,7 @@ result_t DataField::create(vector<string>::iterator& it,
           if (pos+2 == token.length() && token[pos+1] == '*') {
             length = REMAIN_LEN;
           } else {
-            length = (unsigned char)parseInt(token.substr(pos+1).c_str(), 10, 1, maxFieldLength, result);
+            length = (size_t)parseInt(token.substr(pos+1).c_str(), 10, 1, (unsigned int)maxFieldLength, result);
             if (result != RESULT_OK) {
               break;
             }
@@ -271,16 +271,16 @@ string DataField::getDayName(int day) {
   return dayNames[day];
 }
 
-result_t SingleDataField::create(const string id, const unsigned char length,
+result_t SingleDataField::create(const string id, const size_t length,
   const string name, const string comment, const string unit,
   const PartType partType, int divisor, map<unsigned int, string> values,
   const string constantValue, const bool verifyValue, SingleDataField* &returnField) {
-  DataType* dataType = DataTypeList::getInstance()->get(id, length == REMAIN_LEN ? (unsigned char)0 : length);
+  DataType* dataType = DataTypeList::getInstance()->get(id, length == REMAIN_LEN ? 0 : length);
   if (!dataType) {
     return RESULT_ERR_NOTFOUND;
   }
-  unsigned char bitCount = dataType->getBitCount();
-  unsigned char byteCount = (unsigned char)((bitCount + 7) / 8);
+  size_t bitCount = dataType->getBitCount();
+  size_t byteCount = (bitCount + 7) / 8;
   if (dataType->isAdjustableLength()) {
     // check length
     if ((bitCount % 8) != 0) {
@@ -291,7 +291,7 @@ result_t SingleDataField::create(const string id, const unsigned char length,
       } else {
         return RESULT_ERR_OUT_OF_RANGE;  // invalid length
       }
-      byteCount = (unsigned char)((bitCount + 7) / 8);
+      byteCount = (bitCount + 7) / 8;
     } else if (length == 0) {
       byteCount = 1;  // default byte count: 1 byte
     } else if (length <= byteCount || length == REMAIN_LEN) {
@@ -348,24 +348,16 @@ void SingleDataField::dump(ostream& output) {
 }
 
 
-result_t SingleDataField::read(const PartType partType,
-    SymbolString& data, unsigned char offset,
-    unsigned int& output, const char* fieldName, signed char fieldIndex) {
-  if (partType != m_partType) {
-    return RESULT_EMPTY;
-  }
-  switch (m_partType) {
-  case pt_masterData:
-    offset = (unsigned char)(offset + 5);  // skip QQ ZZ PB SB NN
-    break;
-  case pt_slaveData:
-    offset++;  // skip NN
-    break;
-  default:
+result_t SingleDataField::read(SymbolString& data, size_t offset,
+    unsigned int& output, const char* fieldName, ssize_t fieldIndex) {
+  if (m_partType == pt_any) {
     return RESULT_ERR_INVALID_PART;
   }
+  if ((data.isMaster() ? pt_masterData : pt_slaveData) != m_partType) {
+    return RESULT_EMPTY;
+  }
   bool remainder = m_length == REMAIN_LEN && m_dataType->isAdjustableLength();
-  if (offset + (remainder?1:m_length) > data.size()) {
+  if (offset + (remainder?1:m_length) > data.getDataSize()) {
     return RESULT_ERR_INVALID_POS;
   }
   if (isIgnored() || (fieldName != NULL && (m_name != fieldName || fieldIndex > 0))) {
@@ -374,25 +366,17 @@ result_t SingleDataField::read(const PartType partType,
   return m_dataType->readRawValue(data, offset, m_length, output);
 }
 
-result_t SingleDataField::read(const PartType partType,
-    SymbolString& data, unsigned char offset,
-    ostringstream& output, OutputFormat outputFormat, signed char outputIndex,
-    bool leadingSeparator, const char* fieldName, signed char fieldIndex) {
-  if (partType != m_partType) {
-    return RESULT_OK;
-  }
-  switch (m_partType) {
-  case pt_masterData:
-    offset = (unsigned char)(offset + 5);  // skip QQ ZZ PB SB NN
-    break;
-  case pt_slaveData:
-    offset++;  // skip NN
-    break;
-  default:
+result_t SingleDataField::read(SymbolString& data, size_t offset,
+    ostringstream& output, OutputFormat outputFormat, ssize_t outputIndex,
+    bool leadingSeparator, const char* fieldName, ssize_t fieldIndex) {
+  if (m_partType == pt_any) {
     return RESULT_ERR_INVALID_PART;
   }
+  if ((data.isMaster() ? pt_masterData : pt_slaveData) != m_partType) {
+    return RESULT_OK;
+  }
   bool remainder = m_length == REMAIN_LEN && m_dataType->isAdjustableLength();
-  if (offset + (remainder?1:m_length) > data.size()) {
+  if (offset + (remainder?1:m_length) > data.getDataSize()) {
     return RESULT_ERR_INVALID_POS;
   }
   if (isIgnored() || (fieldName != NULL && (m_name != fieldName || fieldIndex > 0))) {
@@ -418,7 +402,7 @@ result_t SingleDataField::read(const PartType partType,
     }
   }
 
-  result_t result = readSymbols(data, m_partType == pt_masterData, offset, output, outputFormat);
+  result_t result = readSymbols(data, offset, output, outputFormat);
   if (result != RESULT_OK) {
     return result;
   }
@@ -442,35 +426,27 @@ result_t SingleDataField::read(const PartType partType,
   return RESULT_OK;
 }
 
-result_t SingleDataField::write(istringstream& input,
-    const PartType partType, SymbolString& data,
-    unsigned char offset, char separator, unsigned char* length) {
-  if (partType != m_partType) {
-    return RESULT_OK;
-  }
-  switch (m_partType) {
-  case pt_masterData:
-    offset = (unsigned char)(offset + 5);  // skip QQ ZZ PB SB NN
-    break;
-  case pt_slaveData:
-    offset++;  // skip NN
-    break;
-  default:
+result_t SingleDataField::write(istringstream& input, SymbolString& data,
+    size_t offset, char separator, size_t* length) {
+  if (m_partType == pt_any) {
     return RESULT_ERR_INVALID_PART;
   }
-  return writeSymbols(input, (const unsigned char)offset, data, m_partType == pt_masterData, length);
+  if ((data.isMaster() ? pt_masterData : pt_slaveData) != m_partType) {
+    return RESULT_OK;
+  }
+  return writeSymbols(input, (const size_t)offset, data, length);
 }
 
-result_t SingleDataField::readSymbols(SymbolString& input, const bool isMaster,
-    const unsigned char offset,
+result_t SingleDataField::readSymbols(SymbolString& input,
+    const size_t offset,
     ostringstream& output, OutputFormat outputFormat) {
-  return m_dataType->readSymbols(input, isMaster, offset, m_length, output, outputFormat);
+  return m_dataType->readSymbols(input, offset, m_length, output, outputFormat);
 }
 
 result_t SingleDataField::writeSymbols(istringstream& input,
-  const unsigned char offset,
-  SymbolString& output, const bool isMaster, unsigned char* usedLength) {
-  return m_dataType->writeSymbols(input, offset, m_length, output, isMaster, usedLength);
+  const size_t offset,
+  SymbolString& output, size_t* usedLength) {
+  return m_dataType->writeSymbols(input, offset, m_length, output, usedLength);
 }
 
 SingleDataField* SingleDataField::clone() {
@@ -522,9 +498,9 @@ bool SingleDataField::hasField(const char* fieldName, bool numeric) {
   return numeric == numericType && (fieldName == NULL || fieldName == m_name);
 }
 
-unsigned char SingleDataField::getLength(PartType partType, unsigned char maxLength) {
+size_t SingleDataField::getLength(PartType partType, size_t maxLength) {
   if (partType != m_partType) {
-    return (unsigned char)0;
+    return 0;
   }
   bool remainder = m_length == REMAIN_LEN && m_dataType->isAdjustableLength();
   return remainder ? maxLength : m_length;
@@ -601,8 +577,8 @@ void ValueListDataField::dump(ostream& output) {
   dumpString(output, m_comment);
 }
 
-result_t ValueListDataField::readSymbols(SymbolString& input, const bool isMaster,
-    const unsigned char offset,
+result_t ValueListDataField::readSymbols(SymbolString& input,
+    const size_t offset,
     ostringstream& output, OutputFormat outputFormat) {
   unsigned int value = 0;
 
@@ -633,8 +609,8 @@ result_t ValueListDataField::readSymbols(SymbolString& input, const bool isMaste
 }
 
 result_t ValueListDataField::writeSymbols(istringstream& input,
-    const unsigned char offset,
-    SymbolString& output, const bool isMaster, unsigned char* usedLength) {
+    const size_t offset,
+    SymbolString& output, size_t* usedLength) {
   NumberDataType* numType = reinterpret_cast<NumberDataType*>(m_dataType);
   if (isIgnored()) {
     // replacement value
@@ -711,11 +687,11 @@ void ConstantDataField::dump(ostream& output) {
   dumpString(output, m_comment);
 }
 
-result_t ConstantDataField::readSymbols(SymbolString& input, const bool isMaster,
-    const unsigned char offset,
+result_t ConstantDataField::readSymbols(SymbolString& input,
+    const size_t offset,
     ostringstream& output, OutputFormat outputFormat) {
   ostringstream coutput;
-  result_t result = SingleDataField::readSymbols(input, isMaster, offset, coutput, 0);
+  result_t result = SingleDataField::readSymbols(input, offset, coutput, 0);
   if (result != RESULT_OK) {
     return result;
   }
@@ -730,10 +706,10 @@ result_t ConstantDataField::readSymbols(SymbolString& input, const bool isMaster
 }
 
 result_t ConstantDataField::writeSymbols(istringstream& input,
-    const unsigned char offset,
-    SymbolString& output, const bool isMaster, unsigned char* usedLength) {
+    const size_t offset,
+    SymbolString& output, size_t* usedLength) {
   istringstream cinput(m_value);
-  return SingleDataField::writeSymbols(cinput, offset, output, isMaster, usedLength);
+  return SingleDataField::writeSymbols(cinput, offset, output, usedLength);
 }
 
 
@@ -795,8 +771,8 @@ DataFieldSet* DataFieldSet::clone() {
   return new DataFieldSet(m_name, m_comment, fields);
 }
 
-unsigned char DataFieldSet::getLength(PartType partType, unsigned char maxLength) {
-  unsigned char length = 0;
+size_t DataFieldSet::getLength(PartType partType, size_t maxLength) {
+  size_t length = 0;
   bool previousFullByteOffset[] = { true, true, true, true };
 
   for (vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
@@ -805,13 +781,13 @@ unsigned char DataFieldSet::getLength(PartType partType, unsigned char maxLength
       if (!previousFullByteOffset[partType] && !field->hasFullByteOffset(false)) {
         length--;
       }
-      unsigned char fieldLength = field->getLength(partType, maxLength);
+      size_t fieldLength = field->getLength(partType, maxLength);
       if (fieldLength >= maxLength) {
         maxLength = 0;
       } else {
-        maxLength = (unsigned char)(maxLength-fieldLength);
+        maxLength = maxLength - fieldLength;
       }
-      length = (unsigned char)(length + fieldLength);
+      length = length + fieldLength;
 
       previousFullByteOffset[partType] = field->hasFullByteOffset(true);
     }
@@ -820,11 +796,11 @@ unsigned char DataFieldSet::getLength(PartType partType, unsigned char maxLength
   return length;
 }
 
-string DataFieldSet::getName(signed char fieldIndex) {
+string DataFieldSet::getName(ssize_t fieldIndex) {
   if (fieldIndex < 0) {
     return m_name;
   }
-  if ((unsigned char)fieldIndex >= m_fields.size()) {
+  if ((size_t)fieldIndex >= m_fields.size()) {
     return "";
   }
   if (m_uniqueNames) {
@@ -876,23 +852,23 @@ void DataFieldSet::dump(ostream& output) {
   }
 }
 
-result_t DataFieldSet::read(const PartType partType,
-    SymbolString& data, unsigned char offset,
-    unsigned int& output, const char* fieldName, signed char fieldIndex) {
+result_t DataFieldSet::read(SymbolString& data, size_t offset,
+    unsigned int& output, const char* fieldName, ssize_t fieldIndex) {
   bool previousFullByteOffset = true, found = false, findFieldIndex = fieldName != NULL && fieldIndex >= 0;
+  PartType partType = data.isMaster() ? pt_masterData : pt_slaveData;
   for (vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
     SingleDataField* field = *it;
-    if (partType != pt_any && field->getPartType() != partType) {
+    if (field->getPartType() != partType) {
       continue;
     }
     if (!previousFullByteOffset && !field->hasFullByteOffset(false)) {
       offset--;
     }
-    result_t result = field->read(partType, data, offset, output, fieldName, fieldIndex);
+    result_t result = field->read(data, offset, output, fieldName, fieldIndex);
     if (result < RESULT_OK) {
       return result;
     }
-    offset = (unsigned char)(offset + field->getLength(partType, (unsigned char)(data.size()-offset)));
+    offset += field->getLength(partType, data.getDataSize()-offset);
     previousFullByteOffset = field->hasFullByteOffset(true);
     if (result != RESULT_EMPTY) {
       found = true;
@@ -915,17 +891,17 @@ result_t DataFieldSet::read(const PartType partType,
   return RESULT_OK;
 }
 
-result_t DataFieldSet::read(const PartType partType,
-    SymbolString& data, unsigned char offset,
-    ostringstream& output, OutputFormat outputFormat, signed char outputIndex,
-    bool leadingSeparator, const char* fieldName, signed char fieldIndex) {
+result_t DataFieldSet::read(SymbolString& data, size_t offset,
+    ostringstream& output, OutputFormat outputFormat, ssize_t outputIndex,
+    bool leadingSeparator, const char* fieldName, ssize_t fieldIndex) {
   bool previousFullByteOffset = true, found = false, findFieldIndex = fieldName != NULL && fieldIndex >= 0;
   if (!m_uniqueNames && outputIndex < 0) {
     outputIndex = 0;
   }
+  PartType partType = data.isMaster() ? pt_masterData : pt_slaveData;
   for (vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
     SingleDataField* field = *it;
-    if (partType != pt_any && field->getPartType() != partType) {
+    if (field->getPartType() != partType) {
       if (outputIndex >= 0 && !field->isIgnored()) {
         outputIndex++;
       }
@@ -934,12 +910,12 @@ result_t DataFieldSet::read(const PartType partType,
     if (!previousFullByteOffset && !field->hasFullByteOffset(false)) {
       offset--;
     }
-    result_t result = field->read(partType, data, offset, output, outputFormat, outputIndex, leadingSeparator,
+    result_t result = field->read(data, offset, output, outputFormat, outputIndex, leadingSeparator,
         fieldName, fieldIndex);
     if (result < RESULT_OK) {
       return result;
     }
-    offset = (unsigned char)(offset + field->getLength(partType, (unsigned char)(data.size()-offset)));
+    offset += field->getLength(partType, data.getDataSize()-offset);
     previousFullByteOffset = field->hasFullByteOffset(true);
     if (result != RESULT_EMPTY) {
       found = true;
@@ -973,23 +949,22 @@ result_t DataFieldSet::read(const PartType partType,
   return RESULT_OK;
 }
 
-result_t DataFieldSet::write(istringstream& input,
-    const PartType partType, SymbolString& data,
-    unsigned char offset, char separator, unsigned char* length) {
+result_t DataFieldSet::write(istringstream& input, SymbolString& data,
+    size_t offset, char separator, size_t* length) {
   string token;
-
+  PartType partType = data.isMaster() ? pt_masterData : pt_slaveData;
   bool previousFullByteOffset = true;
-  unsigned char baseOffset = offset;
+  size_t baseOffset = offset;
   for (vector<SingleDataField*>::iterator it = m_fields.begin(); it < m_fields.end(); it++) {
     SingleDataField* field = *it;
-    if (partType != pt_any && field->getPartType() != partType) {
+    if (field->getPartType() != partType) {
       continue;
     }
     if (!previousFullByteOffset && !field->hasFullByteOffset(false)) {
       offset--;
     }
     result_t result;
-    unsigned char fieldLength;
+    size_t fieldLength;
     if (m_fields.size() > 1) {
       if (field->isIgnored()) {
         token.clear();
@@ -997,19 +972,19 @@ result_t DataFieldSet::write(istringstream& input,
         token.clear();
       }
       istringstream single(token);
-      result = (*it)->write(single, partType, data, offset, separator, &fieldLength);
+      result = (*it)->write(single, data, offset, separator, &fieldLength);
     } else {
-      result = (*it)->write(input, partType, data, offset, separator, &fieldLength);
+      result = (*it)->write(input, data, offset, separator, &fieldLength);
     }
     if (result != RESULT_OK) {
       return result;
     }
-    offset = (unsigned char)(offset+fieldLength);
+    offset += fieldLength;
     previousFullByteOffset = field->hasFullByteOffset(true);
   }
 
   if (length != NULL) {
-    *length = (unsigned char)(offset-baseOffset);
+    *length = offset-baseOffset;
   }
   return RESULT_OK;
 }

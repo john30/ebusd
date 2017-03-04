@@ -399,7 +399,7 @@ int main() {
 
     if (message->isPassive() || decode) {
       ostringstream output;
-      for (unsigned char index = 0; index < message->getCount(); index++) {
+      for (size_t index = 0; index < message->getCount(); index++) {
         message->storeLastData(*mstrs[index], *sstrs[index]);
       }
       if (withMessageDump && !decodeJson) {
@@ -438,8 +438,7 @@ int main() {
       cout << "  \"" << inputStr << "\": prepare OK" << endl;
 
       bool match = writeMstr == *mstrs[0];
-      verify(failedPrepareMatch, "prepare", inputStr, match, mstrs[0]->getDataStr(),
-          writeMstr.getDataStr());
+      verify(failedPrepareMatch, "prepare", inputStr, match, mstrs[0]->getStr(), writeMstr.getStr());
     }
   }
 

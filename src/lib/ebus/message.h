@@ -125,10 +125,10 @@ class Message {
    */
   Message(const string circuit, const string level, const string name,
       const bool isWrite, const bool isPassive, const string comment,
-      const unsigned char srcAddress, const unsigned char dstAddress,
-      const vector<unsigned char> id,
+      const symbol_t srcAddress, const symbol_t dstAddress,
+      const vector<symbol_t> id,
       DataField* data, const bool deleteData,
-      const unsigned char pollPriority = 0,
+      const size_t pollPriority = 0,
       Condition* condition = NULL);
 
 
@@ -148,7 +148,7 @@ class Message {
    */
   Message(const string circuit, const string level, const string name,
       const bool isWrite, const bool isPassive,
-      const unsigned char pb, const unsigned char sb,
+      const symbol_t pb, const symbol_t sb,
       DataField* data, const bool deleteData);
 
 
@@ -168,9 +168,9 @@ class Message {
    * @param dstAddress the destination address, or @a SYN for any (set later).
    * @return the key for the ID.
    */
-  static uint64_t createKey(const vector<unsigned char> id,
+  static uint64_t createKey(const vector<symbol_t> id,
     const bool isWrite, const bool isPassive,
-    const unsigned char srcAddress, const unsigned char dstAddress);
+    const symbol_t srcAddress, const symbol_t dstAddress);
 
   /**
    * Calculate the key for the @a MasterSymbolString.
@@ -180,14 +180,14 @@ class Message {
    * @return the key for the ID, or -1LL if the data is invalid.
    */
   static uint64_t createKey(MasterSymbolString& master,
-    unsigned char maxIdLength, bool anyDestination = false);
+    size_t maxIdLength, bool anyDestination = false);
 
   /**
    * Get the length field from the key.
    * @param key the key.
    * @return the length field from the key.
    */
-  static unsigned char getKeyLength(uint64_t key) { return (unsigned char)(key >> (8 * 7 + 5)); }
+  static size_t getKeyLength(uint64_t key) { return key >> (8 * 7 + 5); }
 
   /**
    * Parse an ID part from the input @a string.
@@ -195,7 +195,7 @@ class Message {
    * @param id the vector to which to add the parsed values.
    * @return @a RESULT_OK on success, or an error code.
    */
-  static result_t parseId(string input, vector<unsigned char>& id);
+  static result_t parseId(string input, vector<symbol_t>& id);
 
   /**
    * Factory method for creating new instances.
@@ -236,7 +236,7 @@ class Message {
    * @param circuit the new circuit name, or empty to use the current circuit name.
    * @return the derived @a Message instance.
    */
-  virtual Message* derive(const unsigned char dstAddress, const unsigned char srcAddress = SYN,
+  virtual Message* derive(const symbol_t dstAddress, const symbol_t srcAddress = SYN,
       const string circuit = "");
 
   /**
@@ -245,7 +245,7 @@ class Message {
    * @param extendCircuit whether to extend the current circuit name with a dot and the new destination address in hex.
    * @return the derived @a ScanMessage instance.
    */
-  Message* derive(const unsigned char dstAddress, const bool extendCircuit);
+  Message* derive(const symbol_t dstAddress, const bool extendCircuit);
 
   /**
    * Get the optional circuit name.
@@ -289,7 +289,7 @@ class Message {
    * @param fieldIndex the index of the field.
    * @return the field name, or the index as string if not unique or not available.
    */
-  virtual string getFieldName(signed char fieldIndex) const { return m_data->getName(fieldIndex); }
+  virtual string getFieldName(ssize_t fieldIndex) const { return m_data->getName(fieldIndex); }
 
   /**
    * Get whether this is a write message.
@@ -314,38 +314,38 @@ class Message {
    * Get the source address.
    * @return the source address, or @a SYN for any.
    */
-  unsigned char getSrcAddress() const { return m_srcAddress; }
+  symbol_t getSrcAddress() const { return m_srcAddress; }
 
   /**
    * Get the destination address.
    * @return the destination address, or @a SYN for any.
    */
-  unsigned char getDstAddress() const { return m_dstAddress; }
+  symbol_t getDstAddress() const { return m_dstAddress; }
 
   /**
    * Get the primary command byte.
    * @return the primary command byte.
    */
-  unsigned char getPrimaryCommand() const { return m_id[0]; }
+  symbol_t getPrimaryCommand() const { return m_id[0]; }
 
   /**
    * Get the secondary command byte.
    * @return the secondary command byte.
    */
-  unsigned char getSecondaryCommand() const { return m_id[1]; }
+  symbol_t getSecondaryCommand() const { return m_id[1]; }
 
   /**
    * Get the length of the ID bytes (without primary and secondary command bytes).
    * @return the length of the ID bytes (without primary and secondary command bytes).
    */
-  virtual unsigned char getIdLength() const { return (unsigned char)(m_id.size() - 2); }
+  virtual size_t getIdLength() const { return m_id.size() - 2; }
 
   /**
    * Check if the full command ID starts with the given value.
    * @param id the ID bytes to check against.
    * @return true if the full command ID starts with the given value.
    */
-  bool checkIdPrefix(vector<unsigned char>& id);
+  bool checkIdPrefix(vector<symbol_t>& id);
 
   /**
    * Check the ID against the master @a SymbolString data.
@@ -353,7 +353,7 @@ class Message {
    * @param index the variable in which to store the message part index, or NULL to ignore.
    * @return true if the ID matches, false otherwise.
    */
-  virtual bool checkId(MasterSymbolString& master, unsigned char* index = NULL);
+  virtual bool checkId(MasterSymbolString& master, size_t* index = NULL);
 
   /**
    * Check the ID against the other @a Message.
@@ -373,20 +373,20 @@ class Message {
    * @param dstAddress the destination address for the derivation.
    * @return the derived key for storing in @a MessageMap.
    */
-  uint64_t getDerivedKey(const unsigned char dstAddress);
+  uint64_t getDerivedKey(const symbol_t dstAddress);
 
   /**
    * Get the polling priority, or 0 for no polling at all.
    * @return the polling priority, or 0 for no polling at all.
    */
-  unsigned char getPollPriority() const { return m_pollPriority; }
+  size_t getPollPriority() const { return m_pollPriority; }
 
   /**
    * Set the polling priority.
    * @param priority the polling priority, or 0 for no polling at all.
    * @return true when the priority was changed and polling was not enabled before, false otherwise.
    */
-  bool setPollPriority(unsigned char priority);
+  bool setPollPriority(size_t priority);
 
   /**
    * Set the poll priority suitable for resolving a @a Condition.
@@ -416,7 +416,7 @@ class Message {
   /**
    * @return the number of parts this message is composed of.
    */
-  virtual unsigned char getCount() { return 1; }
+  virtual size_t getCount() { return 1; }
 
   /**
    * Prepare the master @a SymbolString for sending a query or command to the bus.
@@ -428,9 +428,9 @@ class Message {
    * @param index the index of the part to prepare.
    * @return @a RESULT_OK on success, or an error code.
    */
-  result_t prepareMaster(const unsigned char srcAddress, MasterSymbolString& master,
+  result_t prepareMaster(const symbol_t srcAddress, MasterSymbolString& master,
       istringstream& input, char separator = UI_FIELD_SEPARATOR,
-      const unsigned char dstAddress = SYN, unsigned char index = 0);
+      const symbol_t dstAddress = SYN, size_t index = 0);
 
 
  protected:
@@ -443,7 +443,7 @@ class Message {
    * @return @a RESULT_OK on success, or an error code.
    */
   virtual result_t prepareMasterPart(MasterSymbolString& master, istringstream& input, char separator,
-      unsigned char index);
+      size_t index);
 
 
  public:
@@ -469,7 +469,7 @@ class Message {
    * @param index the index of the part to store.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t storeLastData(MasterSymbolString& data, unsigned char index);
+  virtual result_t storeLastData(MasterSymbolString& data, size_t index);
 
   /**
    * Store last seen slave data.
@@ -477,7 +477,7 @@ class Message {
    * @param index the index of the part to store.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t storeLastData(SlaveSymbolString& data, unsigned char index);
+  virtual result_t storeLastData(SlaveSymbolString& data, size_t index);
 
   /**
    * Decode the value from the last stored master data.
@@ -489,7 +489,7 @@ class Message {
    * @return @a RESULT_OK on success, or an error code.
    */
   virtual result_t decodeLastMasterData(ostringstream& output, OutputFormat outputFormat = 0,
-      bool leadingSeparator = false, const char* fieldName = NULL, signed char fieldIndex = -1);
+      bool leadingSeparator = false, const char* fieldName = NULL, ssize_t fieldIndex = -1);
 
   /**
    * Decode the value from the last stored slave data.
@@ -501,7 +501,7 @@ class Message {
    * @return @a RESULT_OK on success, or an error code.
    */
   virtual result_t decodeLastSlaveData(ostringstream& output, OutputFormat outputFormat = 0,
-      bool leadingSeparator = false, const char* fieldName = NULL, signed char fieldIndex = -1);
+      bool leadingSeparator = false, const char* fieldName = NULL, ssize_t fieldIndex = -1);
 
   /**
    * Decode the value from the last stored data.
@@ -513,7 +513,7 @@ class Message {
    * @return @a RESULT_OK on success, or an error code.
    */
   virtual result_t decodeLastData(ostringstream& output, OutputFormat outputFormat = 0,
-      bool leadingSeparator = false, const char* fieldName = NULL, signed char fieldIndex = -1);
+      bool leadingSeparator = false, const char* fieldName = NULL, ssize_t fieldIndex = -1);
 
   /**
    * Decode a particular numeric field value from the last stored data.
@@ -522,7 +522,7 @@ class Message {
    * @param fieldIndex the optional index of the named field, or -1.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t decodeLastDataNumField(unsigned int& output, const char* fieldName, signed char fieldIndex = -1);
+  virtual result_t decodeLastDataNumField(unsigned int& output, const char* fieldName, ssize_t fieldIndex = -1);
 
   /**
    * Get the last seen master data.
@@ -599,13 +599,13 @@ class Message {
   const string m_comment;
 
   /** the source address, or @a SYN for any (only relevant if passive). */
-  const unsigned char m_srcAddress;
+  const symbol_t m_srcAddress;
 
   /** the destination address, or @a SYN for any (only for temporary scan messages). */
-  const unsigned char m_dstAddress;
+  const symbol_t m_dstAddress;
 
   /** the primary, secondary, and optionally further command ID bytes. */
-  vector<unsigned char> m_id;
+  vector<symbol_t> m_id;
 
   /**
    * the key for storing in @a MessageMap.
@@ -637,7 +637,7 @@ class Message {
   const bool m_deleteData;
 
   /** the priority for polling, or 0 for no polling at all. */
-  unsigned char m_pollPriority;
+  size_t m_pollPriority;
 
   /** whether this message is used by a @a Condition. */
   bool m_usedByCondition;
@@ -692,47 +692,47 @@ class ChainedMessage : public Message {
    */
   ChainedMessage(const string circuit, const string level, const string name,
       const bool isWrite, const string comment,
-      const unsigned char srcAddress, const unsigned char dstAddress,
-      const vector<unsigned char> id,
-      vector< vector<unsigned char> > ids, vector<unsigned char> lengths,
+      const symbol_t srcAddress, const symbol_t dstAddress,
+      const vector<symbol_t> id,
+      vector< vector<symbol_t> > ids, vector<size_t> lengths,
       DataField* data, const bool deleteData,
-      const unsigned char pollPriority,
+      const size_t pollPriority,
       Condition* condition = NULL);
 
   virtual ~ChainedMessage();
 
   // @copydoc
-  virtual Message* derive(const unsigned char dstAddress, const unsigned char srcAddress = SYN,
-      const string circuit = "");
+  virtual Message* derive(const symbol_t dstAddress, const symbol_t srcAddress = SYN,
+      const string circuit = "") override;
 
   // @copydoc
-  virtual unsigned char getIdLength() const { return (unsigned char)(m_ids[0].size() - 2); }
+  virtual size_t getIdLength() const override { return m_ids[0].size() - 2; }
 
   // @copydoc
-  virtual bool checkId(MasterSymbolString& master, unsigned char* index = NULL);
+  virtual bool checkId(MasterSymbolString& master, size_t* index = NULL) override;
 
   // @copydoc
-  virtual bool checkId(Message& other);
+  virtual bool checkId(Message& other) override;
 
   // @copydoc
-  virtual unsigned char getCount() { return (unsigned char)m_ids.size(); }
+  virtual size_t getCount() override { return m_ids.size(); }
 
 
  protected:
   // @copydoc
   virtual result_t prepareMasterPart(MasterSymbolString& master, istringstream& input, char separator,
-      unsigned char index);
+      size_t index) override;
 
 
  public:
   // @copydoc
-  virtual result_t storeLastData(MasterSymbolString& master, SlaveSymbolString& slave);
+  virtual result_t storeLastData(MasterSymbolString& master, SlaveSymbolString& slave) override;
 
   // @copydoc
-  virtual result_t storeLastData(MasterSymbolString& data, unsigned char index);
+  virtual result_t storeLastData(MasterSymbolString& data, size_t index) override;
 
   // @copydoc
-  virtual result_t storeLastData(SlaveSymbolString& data, unsigned char index);
+  virtual result_t storeLastData(SlaveSymbolString& data, size_t index) override;
 
   /**
    * Combine all last stored data.
@@ -742,15 +742,15 @@ class ChainedMessage : public Message {
 
  protected:
   // @copydoc
-  virtual void dumpColumn(ostream& output, column_t column, bool withConditions = false);
+  virtual void dumpColumn(ostream& output, column_t column, bool withConditions = false) override;
 
 
  private:
   /** the primary, secondary, and optional further ID bytes for each part of the chain. */
-  const vector< vector<unsigned char> > m_ids;
+  const vector< vector<symbol_t> > m_ids;
 
   /** the data length for each part of the chain. */
-  const vector<unsigned char> m_lengths;
+  const vector<size_t> m_lengths;
 
   /** the maximum allowed time difference of any data pair. */
   const time_t m_maxTimeDiff;
@@ -899,7 +899,7 @@ class SimpleCondition : public Condition {
    * @param hasValues whether a value has to be checked against.
    */
   SimpleCondition(const string condName, const string refName, const string circuit, const string level,
-      const string name, const unsigned char dstAddress, const string field, const bool hasValues = false)
+      const string name, const symbol_t dstAddress, const string field, const bool hasValues = false)
     : Condition(),
       m_condName(condName), m_refName(refName), m_circuit(circuit), m_level(level), m_name(name),
       m_dstAddress(dstAddress), m_field(field), m_hasValues(hasValues), m_message(NULL) { }
@@ -910,20 +910,20 @@ class SimpleCondition : public Condition {
   virtual ~SimpleCondition() {}
 
   // @copydoc
-  virtual SimpleCondition* derive(string valueList);
+  virtual SimpleCondition* derive(string valueList) override;
 
   // @copydoc
-  virtual void dump(ostream& output, bool matched = false);
+  virtual void dump(ostream& output, bool matched = false) override;
 
   // @copydoc
-  virtual CombinedCondition* combineAnd(Condition* other);
+  virtual CombinedCondition* combineAnd(Condition* other) override;
 
   // @copydoc
   virtual result_t resolve(MessageMap* messages, ostringstream& errorMessage,
-      void (*readMessageFunc)(Message* message) = NULL);
+      void (*readMessageFunc)(Message* message) = NULL) override;
 
   // @copydoc
-  virtual bool isTrue();
+  virtual bool isTrue() override;
 
   /**
    * Return whether the condition is based on a numeric value.
@@ -963,7 +963,7 @@ class SimpleCondition : public Condition {
 
   /** the override destination address, or @a SYN (only for @a Message without specific destination as well as scan
    * message). */
-  const unsigned char m_dstAddress;
+  const symbol_t m_dstAddress;
 
   /** the field name, or empty for first field. */
   const string m_field;
@@ -993,7 +993,7 @@ class SimpleNumericCondition : public SimpleCondition {
    * @param valueRanges the valid value ranges (pairs of from/to inclusive), empty for @a m_message seen check.
    */
   SimpleNumericCondition(const string condName, const string refName, const string circuit, const string level,
-      const string name, const unsigned char dstAddress, const string field, const vector<unsigned int> valueRanges)
+      const string name, const symbol_t dstAddress, const string field, const vector<unsigned int> valueRanges)
     : SimpleCondition(condName, refName, circuit, level, name, dstAddress, field, true),
       m_valueRanges(valueRanges) { }
 
@@ -1005,7 +1005,7 @@ class SimpleNumericCondition : public SimpleCondition {
 
  protected:
   // @copydoc
-  virtual bool checkValue(Message* message, const string field);
+  virtual bool checkValue(Message* message, const string field) override;
 
 
  private:
@@ -1031,7 +1031,7 @@ class SimpleStringCondition : public SimpleCondition {
    * @param values the valid values.
    */
   SimpleStringCondition(const string condName, const string refName, const string circuit, const string level,
-      const string name, const unsigned char dstAddress, const string field, const vector<string> values)
+      const string name, const symbol_t dstAddress, const string field, const vector<string> values)
     : SimpleCondition(condName, refName, circuit, level, name, dstAddress, field, true),
       m_values(values) { }
 
@@ -1041,12 +1041,12 @@ class SimpleStringCondition : public SimpleCondition {
   virtual ~SimpleStringCondition() {}
 
   // @copydoc
-  virtual bool isNumeric() { return false; }
+  virtual bool isNumeric() override { return false; }
 
 
  protected:
   // @copydoc
-  virtual bool checkValue(Message* message, const string field);
+  virtual bool checkValue(Message* message, const string field) override;
 
 
  private:
@@ -1072,17 +1072,17 @@ class CombinedCondition : public Condition {
   virtual ~CombinedCondition() {}
 
   // @copydoc
-  virtual void dump(ostream& output, bool matched = false);
+  virtual void dump(ostream& output, bool matched = false) override;
 
   // @copydoc
-  virtual CombinedCondition* combineAnd(Condition* other) { m_conditions.push_back(other); return this; }
+  virtual CombinedCondition* combineAnd(Condition* other) override { m_conditions.push_back(other); return this; }
 
   // @copydoc
   virtual result_t resolve(MessageMap* messages, ostringstream& errorMessage,
-      void (*readMessageFunc)(Message* message) = NULL);
+      void (*readMessageFunc)(Message* message) = NULL) override;
 
   // @copydoc
-  virtual bool isTrue();
+  virtual bool isTrue() override;
 
 
  private:
@@ -1209,7 +1209,7 @@ class LoadInstruction : public Instruction {
   virtual ~LoadInstruction() { }
 
   // @copydoc
-  virtual result_t execute(MessageMap* messages, ostringstream& log, Condition* condition);
+  virtual result_t execute(MessageMap* messages, ostringstream& log, Condition* condition) override;
 
 
  private:
@@ -1252,7 +1252,7 @@ class MessageMap : public FileReader {
   // @copydoc
   virtual result_t addDefaultFromFile(vector< vector<string> >& defaults, vector<string>& row,
     vector<string>::iterator& begin, string defaultDest, string defaultCircuit, string defaultSuffix,
-    const string& filename, unsigned int lineNo);
+    const string& filename, unsigned int lineNo) override;
 
   /**
    * Read the @a Condition instance(s) from the types field.
@@ -1266,14 +1266,14 @@ class MessageMap : public FileReader {
   // @copydoc
   virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
     vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit,
-    const string& defaultSuffix, const string& filename, unsigned int lineNo);
+    const string& defaultSuffix, const string& filename, unsigned int lineNo) override;
 
   /**
    * Get the scan @a Message instance for the specified address.
    * @param dstAddress the destination address, or @a SYN for the base scan @a Message.
    * @return the scan @a Message instance, or NULL if the dstAddress is no slave.
    */
-  Message* getScanMessage(const unsigned char dstAddress = SYN);
+  Message* getScanMessage(const symbol_t dstAddress = SYN);
 
   /**
    * Resolve all @a Condition instances.
@@ -1305,7 +1305,7 @@ class MessageMap : public FileReader {
    * @param file the name of the file from which a configuration part was loaded for the participant.
    * @param comment an optional comment.
    */
-  void addLoadedFile(unsigned char address, string file, string comment);
+  void addLoadedFile(symbol_t address, string file, string comment);
 
   /**
    * Get the loaded files for a participant.
@@ -1313,7 +1313,7 @@ class MessageMap : public FileReader {
    * @return the name of the file(s) loaded for the participant (separated by comma and enclosed in double quotes),
    * or empty.
    */
-  string getLoadedFiles(unsigned char address);
+  string getLoadedFiles(symbol_t address);
 
   /**
    * Get the stored @a Message instances for the key.
@@ -1452,10 +1452,10 @@ class MessageMap : public FileReader {
   Message* m_scanMessage;
 
   /** the loaded configuration files by slave address. */
-  map<unsigned char, string> m_loadedFiles;
+  map<symbol_t, string> m_loadedFiles;
 
   /** the maximum ID length used by any of the known @a Message instances. */
-  unsigned char m_maxIdLength;
+  size_t m_maxIdLength;
 
   /** the number of distinct @a Message instances stored in @a m_messagesByName. */
   size_t m_messageCount;

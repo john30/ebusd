@@ -66,7 +66,7 @@ extern void printErrorPos(ostream& out, vector<string>::iterator begin, const ve
     vector<string>::iterator pos, string filename, size_t lineNo, result_t result);
 
 extern unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue,
-    result_t& result, unsigned int* length);
+    result_t& result, size_t* length);
 
 /**
  * An abstract class that support reading definitions from a file.
@@ -105,7 +105,7 @@ class FileReader {
     if (lastSep != string::npos) {  // potential destination address, matches "^ZZ."
       // extract defaultDest, defaultCircuit, defaultSuffix from filename:
       // ZZ.IDENT[.CIRCUIT][.SUFFIX].*csv
-      unsigned char checkDest;
+      symbol_t checkDest;
       string checkIdent, useCircuit, useSuffix;
       unsigned int checkSw, checkHw;
       if (extractDefaultsFromFilename(filename.substr(lastSep+1), checkDest, checkIdent, useCircuit, useSuffix,
@@ -320,7 +320,7 @@ class FileReader {
    * @param hardware the hardware version part HWXXXX (BCD digits, set to @a UINT_MAX if not present).
    * @return true if at least the address and the identification part were extracted, false otherwise.
    */
-  static bool extractDefaultsFromFilename(string name, unsigned char& dest, string& ident, string& circuit,
+  static bool extractDefaultsFromFilename(string name, symbol_t& dest, string& ident, string& circuit,
     string& suffix, unsigned int& software, unsigned int& hardware) {
     ident = circuit = suffix = "";
     software = hardware = UINT_MAX;
@@ -332,7 +332,7 @@ class FileReader {
       return false;  // missing "ZZ."
     }
     result_t result = RESULT_OK;
-    dest = (unsigned char)parseInt(name.substr(0, pos).c_str(), 16, 0, 0xff, result, NULL);
+    dest = (symbol_t)parseInt(name.substr(0, pos).c_str(), 16, 0, 0xff, result, NULL);
     if (result != RESULT_OK || !isValidAddress(dest)) {
       return false;  // invalid "ZZ"
     }

@@ -64,20 +64,20 @@ class UserList : public UserInfo, public FileReader {
   // @copydoc
   virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
       vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit,
-      const string& defaultSuffix, const string& filename, unsigned int lineNo);
+      const string& defaultSuffix, const string& filename, unsigned int lineNo) override;
 
   // @copydoc
-  virtual bool hasUser(const string user) {
+  virtual bool hasUser(const string user) override {
     return m_userLevels.find(user) != m_userLevels.end();
   }
 
   // @copydoc
-  virtual bool checkSecret(const string user, const string secret) {
+  virtual bool checkSecret(const string user, const string secret) override {
     return m_userSecrets.find(user) != m_userSecrets.end() && m_userSecrets[user] == secret;
   }
 
   // @copydoc
-  virtual string getLevels(const string user) { return m_userLevels[user]; }
+  virtual string getLevels(const string user) override { return m_userLevels[user]; }
 
  private:
   /** the secret string by user name. */
@@ -119,12 +119,12 @@ class MainLoop : public Thread, DeviceListener {
   void addMessage(NetMessage* message) { m_netQueue.push(message); }
 
   // @copydoc
-  virtual void notifyDeviceData(const unsigned char byte, bool received);
+  virtual void notifyDeviceData(const symbol_t symbol, bool received) override;
 
 
  protected:
   // @copydoc
-  virtual void run();
+  virtual void run() override;
 
 
  private:
@@ -150,7 +150,7 @@ class MainLoop : public Thread, DeviceListener {
    * @return the result from parsing the arguments.
    */
   result_t parseHexMaster(vector<string> &args, size_t argPos, MasterSymbolString& master,
-      unsigned char srcAddress = SYN);
+      symbol_t srcAddress = SYN);
 
   /**
    * Get the access levels associated with the specified user name.
@@ -317,14 +317,14 @@ class MainLoop : public Thread, DeviceListener {
   MessageMap* m_messages;
 
   /** the own master address for sending on the bus. */
-  const unsigned char m_address;
+  const symbol_t m_address;
 
   /** whether to pick configuration files matching initial scan. */
   const bool m_scanConfig;
 
   /** the initial address to scan for @a m_scanConfig
    * (@a ESC=none, 0xfe=broadcast ident, @a SYN=full scan, else: single slave address). */
-  const unsigned char m_initialScan;
+  const symbol_t m_initialScan;
 
   /** whether to enable the hex command. */
   const bool m_enableHex;

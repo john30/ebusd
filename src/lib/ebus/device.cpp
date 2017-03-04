@@ -98,7 +98,7 @@ bool Device::isValid() {
   return m_fd != -1;
 }
 
-result_t Device::send(const unsigned char value) {
+result_t Device::send(const symbol_t value) {
   if (!isValid()) {
     return RESULT_ERR_DEVICE;
   }
@@ -111,7 +111,7 @@ result_t Device::send(const unsigned char value) {
   return RESULT_OK;
 }
 
-result_t Device::recv(const unsigned int timeout, unsigned char& value) {
+result_t Device::recv(const unsigned int timeout, symbol_t& value) {
   if (!isValid()) {
     return RESULT_ERR_DEVICE;
   }
@@ -268,13 +268,13 @@ result_t NetworkDevice::open() {
   int cnt;
   if (ioctl(m_fd, FIONREAD, &cnt) >= 0 && cnt > 1) {
     // skip buffered input
-    unsigned char buf[256];
+    symbol_t buf[256];
     while (::read(m_fd, &buf, 256) > 0) {
     }
   }
   if (m_bufSize == 0) {
     m_bufSize = MAX_LEN+1;
-    m_buffer = (unsigned char*)malloc(m_bufSize);
+    m_buffer = reinterpret_cast<symbol_t*>(malloc(m_bufSize));
     if (!m_buffer) {
       m_bufSize = 0;
     }
@@ -287,7 +287,7 @@ result_t NetworkDevice::open() {
 }
 
 void NetworkDevice::checkDevice() {
-  unsigned char value;
+  symbol_t value;
   ssize_t c = ::recv(m_fd, &value, 1, MSG_PEEK | MSG_DONTWAIT);
   if (c == 0 || (c < 0 && errno != EAGAIN)) {
     m_bufLen = 0;  // flush read buffer
@@ -299,15 +299,15 @@ bool NetworkDevice::available() {
   return m_buffer && m_bufLen > 0;
 }
 
-ssize_t NetworkDevice::write(const unsigned char value) {
+ssize_t NetworkDevice::write(const symbol_t value) {
   m_bufLen = 0;  // flush read buffer
   return Device::write(value);
 }
 
-ssize_t NetworkDevice::read(unsigned char& value) {
+ssize_t NetworkDevice::read(symbol_t& value) {
   if (available()) {
     value = m_buffer[m_bufPos];
-    m_bufPos = (unsigned char)((m_bufPos+1)%m_bufSize);
+    m_bufPos = (m_bufPos+1)%m_bufSize;
     m_bufLen--;
     return 1;
   }
@@ -318,7 +318,7 @@ ssize_t NetworkDevice::read(unsigned char& value) {
     }
     value = m_buffer[0];
     m_bufPos = 1;
-    m_bufLen = (unsigned char)(size-1);
+    m_bufLen = size-1;
     return size;
   }
   return Device::read(value);

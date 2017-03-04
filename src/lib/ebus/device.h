@@ -26,6 +26,7 @@
 #include <iostream>
 #include <fstream>
 #include "lib/ebus/result.h"
+#include "lib/ebus/symbol.h"
 
 namespace ebusd {
 
@@ -49,11 +50,11 @@ class DeviceListener {
   virtual ~DeviceListener() {}
 
   /**
-   * Listener method that is called when a data byte was received/sent.
-   * @param byte the data byte received/sent.
+   * Listener method that is called when a symbol was received/sent.
+   * @param symbol the received/sent symbol.
    * @param received @a true on reception, @a false on sending.
    */
-  virtual void notifyDeviceData(const unsigned char byte, bool received) = 0;  // abstract
+  virtual void notifyDeviceData(const symbol_t symbol, bool received) = 0;  // abstract
 };
 
 
@@ -112,7 +113,7 @@ class Device {
    * @param value the byte value to write.
    * @return the @a result_t code.
    */
-  result_t send(const unsigned char value);
+  result_t send(const symbol_t value);
 
   /**
    * Read a single byte from the device.
@@ -120,7 +121,7 @@ class Device {
    * @param value the reference in which the received byte value is stored.
    * @return the result_t code.
    */
-  result_t recv(const unsigned int timeout, unsigned char& value);
+  result_t recv(const unsigned int timeout, symbol_t& value);
 
   /**
    * Return the device name.
@@ -164,14 +165,14 @@ class Device {
    * @param value the byte value to write.
    * @return the number of bytes written, or -1 on error.
    */
-  virtual ssize_t write(const unsigned char value) { return ::write(m_fd, &value, 1); }
+  virtual ssize_t write(const symbol_t value) { return ::write(m_fd, &value, 1); }
 
   /**
    * Read a single byte.
    * @param value the reference in which the read byte value is stored.
    * @return the number of bytes read, or -1 on error.
    */
-  virtual ssize_t read(unsigned char& value) { return ::read(m_fd, &value, 1); }
+  virtual ssize_t read(symbol_t& value) { return ::read(m_fd, &value, 1); }
 
   /** the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network). */
   const char* m_name;
@@ -210,15 +211,15 @@ class SerialDevice : public Device {
     : Device(name, checkDevice, readOnly, initialSend) {}
 
   // @copydoc
-  virtual result_t open();
+  virtual result_t open() override;
 
   // @copydoc
-  virtual void close();
+  virtual void close() override;
 
 
  protected:
   // @copydoc
-  virtual void checkDevice();
+  virtual void checkDevice() override;
 
 
  private:
@@ -245,24 +246,24 @@ class NetworkDevice : public Device {
       m_buffer(NULL), m_bufSize(0), m_bufLen(0), m_bufPos(0) {}
 
   // @copydoc
-  virtual unsigned int getLatency() const { return 10000; }
+  virtual unsigned int getLatency() const override { return 10000; }
 
   // @copydoc
-  virtual result_t open();
+  virtual result_t open() override;
 
 
  protected:
   // @copydoc
-  virtual void checkDevice();
+  virtual void checkDevice() override;
 
   // @copydoc
-  virtual bool available();
+  virtual bool available() override;
 
   // @copydoc
-  virtual ssize_t write(const unsigned char value);
+  virtual ssize_t write(const symbol_t value) override;
 
   // @copydoc
-  virtual ssize_t read(unsigned char& value);
+  virtual ssize_t read(symbol_t& value) override;
 
 
  private:
@@ -273,16 +274,16 @@ class NetworkDevice : public Device {
   const bool m_udp;
 
   /** the buffer memory, or NULL. */
-  unsigned char* m_buffer;
+  symbol_t* m_buffer;
 
   /** the buffer size. */
-  unsigned char m_bufSize;
+  size_t m_bufSize;
 
   /** the buffer fill length. */
-  unsigned char m_bufLen;
+  size_t m_bufLen;
 
   /** the buffer read position. */
-  unsigned char m_bufPos;
+  size_t m_bufPos;
 };
 
 }  // namespace ebusd

@@ -160,7 +160,7 @@ int main(int argc, char* argv[]) {
     fstream file(opt.dumpFile, ios::in | ios::binary);
     if (file.is_open()) {
       while (true) {
-        unsigned char byte = (unsigned char)file.get();
+        symbol_t byte = (symbol_t)file.get();
         if (file.eof()) {
           break;
         }

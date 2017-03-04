@@ -68,6 +68,9 @@ namespace ebusd {
 using std::string;
 using std::vector;
 
+/** the base type for symbols sent to/from the eBUS. */
+typedef unsigned char symbol_t;
+
 /** escape symbol, either followed by 0x00 for the value 0xA9, or 0x01 for the value 0xAA. */
 #define ESC 0xA9
 
@@ -94,7 +97,7 @@ using std::vector;
  * @return the parsed value.
  */
 unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue,
-    result_t& result, unsigned int* length = NULL);
+    result_t& result, size_t* length = NULL);
 
 /**
  * Parse a signed int value.
@@ -107,7 +110,7 @@ unsigned int parseInt(const char* str, int base, const unsigned int minValue, co
  * @return the parsed value.
  */
 int parseSignedInt(const char* str, int base, const int minValue, const int maxValue, result_t& result,
-    unsigned int* length = NULL);
+    size_t* length = NULL);
 
 /**
  * A string of unescaped bus symbols.
@@ -126,7 +129,13 @@ class SymbolString {
    * @param crc the current CRC to update.
    * @param value the escaped value to add to the current CRC.
    */
-  static void updateCrc(unsigned char& crc, const unsigned char value);
+  static void updateCrc(symbol_t& crc, const symbol_t value);
+
+  /**
+   * Return whether this instance if for the master part.
+   * @return whether this instance if for the master part.
+   */
+  bool isMaster() const { return m_isMaster; }
 
   /**
    * Parse the hex @a string and add all symbols.
@@ -147,14 +156,14 @@ class SymbolString {
    * @param skipFirstSymbols the number of first symbols to skip.
    * @return the symbols as hex string.
    */
-  const string getDataStr(unsigned char skipFirstSymbols = 0);
+  const string getStr(size_t skipFirstSymbols = 0);
 
   /**
    * Return a reference to the symbol at the specified index.
    * @param index the index of the symbol to return.
    * @return the reference to the symbol at the specified index.
    */
-  unsigned char& operator[](const size_t index) {
+  symbol_t& operator[](const size_t index) {
     if (index >= m_data.size()) {
       m_data.resize(index+1, 0);
     }
@@ -209,37 +218,44 @@ class SymbolString {
    * Append a symbol to the end of the symbol string.
    * @param value the symbol to append.
    */
-  void push_back(const unsigned char value) { m_data.push_back(value); }
+  void push_back(const symbol_t value) { m_data.push_back(value); }
 
   /**
    * Return the number of symbols in this symbol string.
    * @return the number of available symbols.
    */
-  unsigned char size() const { return (unsigned char)m_data.size(); }
+  size_t size() const { return m_data.size(); }
 
   /**
    * Return the offset to the first data byte DD.
    * @return the offset to the first data byte DD.
    */
-  unsigned char getDataOffset() const { return m_isMaster ? 5 : 1; }
+  size_t getDataOffset() const { return m_isMaster ? 5 : 1; }
 
   /**
-   * Return the number of data bytes DD.
-   * @return the number of data bytes DD.
+   * Return the number of effectively available data bytes DD.
+   * @return the number of effectively available data bytes DD.
    */
-  unsigned char getDataSize() const { return m_data.size() > (m_isMaster ? 4 : 0) ? m_data[m_isMaster ? 4 : 0] : 0; }
-
-  /**
-   * Return the data byte at the specified index (within DD).
-   * @param index the index of the data byte to return (0 up to NN excluding).
-   * @return the data byte at the specified index, or @a SYN if not available.
-   */
-  unsigned char getDataAt(const size_t index) {
-    size_t offset = m_isMaster ? 5 : 1;
-    if (offset+index >= m_data.size()) {
-      return SYN;
+  size_t getDataSize() const {
+    size_t lengthOffset = (m_isMaster ? 4 : 0);
+    if (m_data.size() <= lengthOffset) {
+      return 0;
     }
-    return m_data[offset+index];
+    size_t ret = m_data[lengthOffset];
+    return m_data.size() < lengthOffset + 1 + ret ? m_data.size() - lengthOffset - 1 : ret;
+  }
+
+  /**
+   * Return a reference to the data byte at the specified index (within DD).
+   * @param index the index of the data byte (within DD) to return.
+   * @return the reference to the data byte at the specified index.
+   */
+  symbol_t& dataAt(const size_t index) {
+    size_t offset = (m_isMaster ? 5 : 1) + index;
+    if (offset >= m_data.size()) {
+      m_data.resize(offset+1, 0);
+    }
+    return m_data[offset];
   }
 
   /**
@@ -258,7 +274,7 @@ class SymbolString {
    * Calculate the CRC.
    * @return the calculated CRC.
    */
-  unsigned char calcCrc() const;
+  symbol_t calcCrc() const;
 
   /**
    * Clear the symbols.
@@ -275,7 +291,7 @@ class SymbolString {
     : m_data(str.m_data), m_isMaster(str.m_isMaster) {}
 
   /** the string of unescaped symbols. */
-  vector<unsigned char> m_data;
+  vector<symbol_t> m_data;
 
   /** whether this instance if for the master part. */
   bool m_isMaster;
@@ -311,14 +327,14 @@ class SlaveSymbolString : public SymbolString {
  * @param addr the address to check.
  * @return <code>true</code> if the specified address is a master address.
  */
-bool isMaster(unsigned char addr);
+bool isMaster(symbol_t addr);
 
 /**
  * Return whether the address is a slave address of one of the 25 masters.
  * @param addr the address to check.
  * @return <code>true</code> if the specified address is a slave address of a master.
  */
-bool isSlaveMaster(unsigned char addr);
+bool isSlaveMaster(symbol_t addr);
 
 /**
  * Return the slave address associated with the specified address (master or slave).
@@ -326,7 +342,7 @@ bool isSlaveMaster(unsigned char addr);
  * @return the slave address, or SYN if the specified address is neither a master address nor a slave address of a
  * master.
  */
-unsigned char getSlaveAddress(unsigned char addr);
+symbol_t getSlaveAddress(symbol_t addr);
 
 /**
  * Return the master address associated with the specified address (master or slave).
@@ -334,14 +350,14 @@ unsigned char getSlaveAddress(unsigned char addr);
  * @return the master address, or SYN if the specified address is neither a master address nor a slave address of a
  * master.
  */
-unsigned char getMasterAddress(unsigned char addr);
+symbol_t getMasterAddress(symbol_t addr);
 
 /**
  * Return the number of the master if the address is a valid bus address.
  * @param addr the bus address.
  * @return the number of the master if the address is a valid bus address (1 to 25), or 0.
  */
-unsigned char getMasterNumber(unsigned char addr);
+unsigned int getMasterNumber(symbol_t addr);
 
 /**
  * Return whether the address is a valid bus address.
@@ -349,7 +365,7 @@ unsigned char getMasterNumber(unsigned char addr);
  * @param allowBroadcast whether to also allow @a addr to be the broadcast address (default true).
  * @return <code>true</code> if the specified address is a valid bus address.
  */
-bool isValidAddress(unsigned char addr, bool allowBroadcast = true);
+bool isValidAddress(symbol_t addr, bool allowBroadcast = true);
 
 }  // namespace ebusd
 

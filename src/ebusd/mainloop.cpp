@@ -193,7 +193,7 @@ void MainLoop::run() {
   bool reload = true;
   time_t lastTaskRun, now, lastSignal = 0, since, sinkSince = 1;
   int taskDelay = 5;
-  unsigned char lastScanAddress = 0;  // 0 is known to be a master
+  symbol_t lastScanAddress = 0;  // 0 is known to be a master
   time(&now);
   lastTaskRun = now;
   ostringstream updates;
@@ -341,17 +341,17 @@ void MainLoop::run() {
   }
 }
 
-void MainLoop::notifyDeviceData(const unsigned char byte, bool received) {
+void MainLoop::notifyDeviceData(const symbol_t symbol, bool received) {
   if (received && m_dumpFile) {
-    m_dumpFile->write((unsigned char*)&byte, 1);
+    m_dumpFile->write((unsigned char*)&symbol, 1);
   }
   if (m_logRawFile) {
-    m_logRawFile->write((unsigned char*)&byte, 1, received);
+    m_logRawFile->write((unsigned char*)&symbol, 1, received);
   } else if (m_logRawEnabled) {
     if (received) {
-      logNotice(lf_bus, "<%02x", byte);
+      logNotice(lf_bus, "<%02x", symbol);
     } else {
-      logNotice(lf_bus, ">%02x", byte);
+      logNotice(lf_bus, ">%02x", symbol);
     }
   }
 }
@@ -473,7 +473,7 @@ string MainLoop::decodeMessage(const string& data, const bool isHttp, bool& conn
 }
 
 result_t MainLoop::parseHexMaster(vector<string> &args, size_t argPos, MasterSymbolString& master,
-    unsigned char srcAddress) {
+    symbol_t srcAddress) {
   ostringstream msg;
   while (argPos < args.size()) {
     if ((args[argPos].length() % 2) != 0) {
@@ -520,7 +520,8 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
   OutputFormat verbosity = 0;
   time_t maxAge = 5*60;
   string circuit, params;
-  unsigned char srcAddress = SYN, dstAddress = SYN, pollPriority = 0;
+  symbol_t srcAddress = SYN, dstAddress = SYN;
+  size_t pollPriority = 0;
   while (args.size() > argPos && args[argPos][0] == '-') {
     if (args[argPos] == "-h") {
       hex = true;
@@ -572,7 +573,7 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
       }
       bool dest = args[argPos] == "-d";
       result_t ret;
-      unsigned char address = (unsigned char)parseInt(args[argPos].c_str(), 16, 0, 0xff, ret);
+      symbol_t address = (symbol_t)parseInt(args[argPos].c_str(), 16, 0, 0xff, ret);
       if (ret != RESULT_OK || !isValidAddress(address, dest) || dest == isMaster(address)) {
         return getResultCode(RESULT_ERR_INVALID_ADDR);
       }
@@ -588,7 +589,7 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
         break;
       }
       result_t ret;
-      pollPriority = (unsigned char)parseInt(args[argPos].c_str(), 10, 1, 9, ret);
+      pollPriority = (size_t)parseInt(args[argPos].c_str(), 10, 1, 9, ret);
       if (ret != RESULT_OK) {
         return getResultCode(RESULT_ERR_INVALID_NUM);
       }
@@ -622,7 +623,7 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
     if (master[1] == BROADCAST || isMaster(master[1])) {
       return getResultCode(RESULT_ERR_INVALID_ARG);
     }
-    logNotice(lf_main, "read hex cmd: %s", master.getDataStr().c_str());
+    logNotice(lf_main, "read hex cmd: %s", master.getStr().c_str());
 
     // find message
     Message* message = m_messages->find(master, false, true, false, false);
@@ -644,7 +645,7 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
             || (message->isPassive() && message->getLastUpdateTime() != 0))) {
       SlaveSymbolString& slave = message->getLastSlaveData();
       logNotice(lf_main, "hex read %s %s from cache", message->getCircuit().c_str(), message->getName().c_str());
-      return slave.getDataStr();
+      return slave.getStr();
     }
 
     // send message
@@ -664,7 +665,7 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
         logError(lf_main, "read hex %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(),
             getResultCode(ret));
       }
-      return slave.getDataStr();
+      return slave.getStr();
     }
     logError(lf_main, "read hex %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(),
         getResultCode(ret));
@@ -695,14 +696,14 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
         "    Dx         data byte(s) to send";
   }
   string fieldName;
-  signed char fieldIndex = -2;
+  ssize_t fieldIndex = -2;
   if (args.size() == argPos + 2) {
     fieldName = args[argPos + 1];
     fieldIndex = -1;
     size_t pos = fieldName.find_last_of('.');
     if (pos != string::npos) {
       result_t result = RESULT_OK;
-      fieldIndex = static_cast<char>(parseInt(fieldName.substr(pos+1).c_str(), 10, 0, MAX_POS, result));
+      fieldIndex = static_cast<ssize_t>(parseInt(fieldName.substr(pos+1).c_str(), 10, 0, MAX_POS, result));
       if (result == RESULT_OK) {
         fieldName = fieldName.substr(0, pos);
       }
@@ -781,7 +782,7 @@ string MainLoop::executeWrite(vector<string> &args, const string levels) {
   size_t argPos = 1;
   bool hex = false;
   string circuit;
-  unsigned char srcAddress = SYN, dstAddress = SYN;
+  symbol_t srcAddress = SYN, dstAddress = SYN;
   while (args.size() > argPos && args[argPos][0] == '-') {
     if (args[argPos] == "-h") {
       hex = true;
@@ -793,7 +794,7 @@ string MainLoop::executeWrite(vector<string> &args, const string levels) {
       }
       bool dest = args[argPos] == "-d";
       result_t ret;
-      unsigned char address = (unsigned char)parseInt(args[argPos].c_str(), 16, 0, 0xff, ret);
+      symbol_t address = (symbol_t)parseInt(args[argPos].c_str(), 16, 0, 0xff, ret);
       if (ret != RESULT_OK || !isValidAddress(address, dest) || dest == isMaster(address)) {
         return getResultCode(RESULT_ERR_INVALID_ADDR);
       }
@@ -826,7 +827,7 @@ string MainLoop::executeWrite(vector<string> &args, const string levels) {
     if (ret != RESULT_OK) {
       return getResultCode(ret);
     }
-    logNotice(lf_main, "write hex cmd: %s", master.getDataStr().c_str());
+    logNotice(lf_main, "write hex cmd: %s", master.getStr().c_str());
 
     // find message
     Message* message = m_messages->find(master, false, false, true, false);
@@ -867,7 +868,7 @@ string MainLoop::executeWrite(vector<string> &args, const string levels) {
       if (isMaster(master[1])) {
         return getResultCode(RESULT_OK);
       }
-      return slave.getDataStr();
+      return slave.getStr();
     }
     logError(lf_main, "write hex %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(),
         getResultCode(ret));
@@ -936,14 +937,14 @@ string MainLoop::executeWrite(vector<string> &args, const string levels) {
 
 string MainLoop::executeHex(vector<string> &args) {
   size_t argPos = 1;
-  unsigned char srcAddress = SYN;
+  symbol_t srcAddress = SYN;
   if (args.size() > argPos && args[argPos] == "-s") {
     argPos++;
     if (argPos >= args.size()) {
       argPos = 0;  // print usage
     } else {
       result_t ret;
-      unsigned char address = (unsigned char)parseInt(args[argPos].c_str(), 16, 0, 0xff, ret);
+      symbol_t address = (symbol_t)parseInt(args[argPos].c_str(), 16, 0, 0xff, ret);
       if (ret != RESULT_OK || !isValidAddress(address, false) || !isMaster(address)) {
         return getResultCode(RESULT_ERR_INVALID_ADDR);
       }
@@ -961,7 +962,7 @@ string MainLoop::executeHex(vector<string> &args) {
     if (ret != RESULT_OK) {
       return getResultCode(ret);
     }
-    logNotice(lf_main, "hex cmd: %s", master.getDataStr().c_str());
+    logNotice(lf_main, "hex cmd: %s", master.getStr().c_str());
 
     // send message
     SlaveSymbolString slave;
@@ -974,7 +975,7 @@ string MainLoop::executeHex(vector<string> &args) {
       if (isMaster(master[1])) {
         return getResultCode(RESULT_OK);
       }
-      return slave.getDataStr();
+      return slave.getStr();
     }
     logError(lf_main, "hex: %s", getResultCode(ret));
     return getResultCode(ret);
@@ -996,7 +997,7 @@ string MainLoop::executeFind(vector<string> &args, string levels) {
   OutputFormat verbosity = 0;
   vector<column_t> columns;
   string circuit;
-  vector<unsigned char> id;
+  vector<symbol_t> id;
   while (args.size() > argPos && args[argPos][0] == '-') {
     if (args[argPos] == "-v") {
       switch (verbosity) {
@@ -1165,18 +1166,17 @@ string MainLoop::executeFind(vector<string> &args, string levels) {
       if (lastup == 0) {
         result << "no data stored";
       } else if (hexFormat) {
-        result << message->getLastMasterData().getDataStr()
-             << " / " << message->getLastSlaveData().getDataStr();
+        result << message->getLastMasterData().getStr() << " / " << message->getLastSlaveData().getStr();
       } else {
         result_t ret = message->decodeLastData(result, verbosity);
         if (ret != RESULT_OK) {
           result << " (" << getResultCode(ret)
-               << " for " << message->getLastMasterData().getDataStr()
-               << " / " << message->getLastSlaveData().getDataStr() << ")";
+               << " for " << message->getLastMasterData().getStr()
+               << " / " << message->getLastSlaveData().getStr() << ")";
         }
       }
       if (verbosity == (OF_NAMES|OF_UNITS|OF_COMMENTS)) {
-        unsigned char dstAddress = message->getDstAddress();
+        symbol_t dstAddress = message->getDstAddress();
         if (dstAddress != SYN) {
           snprintf(str, sizeof(str), "%02x", dstAddress);
         } else if (lastup != 0 && message->getLastMasterData().size() > 1) {
@@ -1298,7 +1298,7 @@ string MainLoop::executeScan(vector<string> &args, string levels) {
     }
 
     result_t result;
-    unsigned char dstAddress = (unsigned char)parseInt(args[1].c_str(), 16, 0, 0xff, result);
+    symbol_t dstAddress = (symbol_t)parseInt(args[1].c_str(), 16, 0, 0xff, result);
     if (result == RESULT_OK && !isValidAddress(dstAddress, false)) {
       result = RESULT_ERR_INVALID_ADDR;
     }
@@ -1475,7 +1475,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
       name = uri.substr(pos + 1);
     }
     time_t since = 0;
-    unsigned char pollPriority = 0;
+    size_t pollPriority = 0;
     bool exact = false;
     string user = "";
     if (args.size() > argPos) {
@@ -1495,7 +1495,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
         if (qname == "since") {
           since = parseInt(value.c_str(), 10, 0, 0xffffffff, ret);
         } else if (qname == "poll") {
-          pollPriority = (unsigned char)parseInt(value.c_str(), 10, 1, 9, ret);
+          pollPriority = (size_t)parseInt(value.c_str(), 10, 1, 9, ret);
         } else if (qname == "exact") {
           exact = value.length() == 0 || value == "1";
         } else if (qname == "verbose") {
@@ -1533,7 +1533,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
       bool first = true;
       for (deque<Message*>::iterator it = messages.begin(); it != messages.end();) {
         Message* message = *it++;
-        unsigned char dstAddress = message->getDstAddress();
+        symbol_t dstAddress = message->getDstAddress();
         if (dstAddress == SYN) {
           continue;
         }

@@ -131,22 +131,20 @@ int main() {
 
     ostringstream output;
     MasterSymbolString writeMstr;
-    result = writeMstr.parseHex(mstr.getDataStr().substr(0, 10));
+    result = writeMstr.parseHex(mstr.getStr().substr(0, 10));
     if (result != RESULT_OK) {
-      cout << "  parse \"" << mstr.getDataStr().substr(0, 10) << "\" error: " << getResultCode(result)
-          << endl;
+      cout << "  parse \"" << mstr.getStr().substr(0, 10) << "\" error: " << getResultCode(result) << endl;
       error = true;
     }
     SlaveSymbolString writeSstr;
-    result = writeSstr.parseHex(sstr.getDataStr().substr(0, 2));
+    result = writeSstr.parseHex(sstr.getStr().substr(0, 2));
     if (result != RESULT_OK) {
-      cout << "  parse \"" << sstr.getDataStr().substr(0, 2) << "\" error: " << getResultCode(result)
-          << endl;
+      cout << "  parse \"" << sstr.getStr().substr(0, 2) << "\" error: " << getResultCode(result) << endl;
       error = true;
     }
-    result = fields->read(pt_masterData, mstr, 0, output, 0, -1, false);
+    result = fields->read(mstr, 0, output, 0, -1, false);
     if (result >= RESULT_OK) {
-      result = fields->read(pt_slaveData, sstr, 0, output, 0, -1, !output.str().empty());
+      result = fields->read(sstr, 0, output, 0, -1, !output.str().empty());
     }
     if (failedRead) {
       if (result >= RESULT_OK) {
@@ -167,9 +165,9 @@ int main() {
     }
 
     istringstream input(expectStr);
-    result = fields->write(input, pt_masterData, writeMstr, 0);
+    result = fields->write(input, writeMstr, 0);
     if (result >= RESULT_OK) {
-      result = fields->write(input, pt_slaveData, writeSstr, 0);
+      result = fields->write(input, writeSstr, 0);
     }
     if (failedWrite) {
       if (result >= RESULT_OK) {
@@ -186,8 +184,8 @@ int main() {
       error = true;
     } else {
       bool match = mstr == writeMstr && sstr == writeSstr;
-      verify(failedWriteMatch, "write", expectStr, match, mstr.getDataStr() + " "
-          + sstr.getDataStr(), writeMstr.getDataStr() + " " + writeSstr.getDataStr());
+      verify(failedWriteMatch, "write", expectStr, match, mstr.getStr() + " " + sstr.getStr(),
+          writeMstr.getStr() + " " + writeSstr.getStr());
     }
     delete fields;
     fields = NULL;

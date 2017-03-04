@@ -60,10 +60,10 @@ extern DataFieldTemplates* getTemplates(const string filename);
 
 Message::Message(const string circuit, const string level, const string name,
     const bool isWrite, const bool isPassive, const string comment,
-    const unsigned char srcAddress, const unsigned char dstAddress,
-    const vector<unsigned char> id,
+    const symbol_t srcAddress, const symbol_t dstAddress,
+    const vector<symbol_t> id,
     DataField* data, const bool deleteData,
-    const unsigned char pollPriority,
+    const size_t pollPriority,
     Condition* condition)
     : m_circuit(circuit), m_level(level), m_name(name), m_isWrite(isWrite),
       m_isPassive(isPassive), m_comment(comment),
@@ -81,7 +81,7 @@ Message::Message(const string circuit, const string level, const string name,
 
 Message::Message(const string circuit, const string level, const string name,
     const bool isWrite, const bool isPassive,
-    const unsigned char pb, const unsigned char sb,
+    const symbol_t pb, const symbol_t sb,
     DataField* data, const bool deleteData)
     : m_circuit(circuit), m_level(level), m_name(name), m_isWrite(isWrite),
       m_isPassive(isPassive), m_comment(),
@@ -135,9 +135,9 @@ string getDefault(const string value, vector<string>* defaults, size_t pos, bool
   return defaultStr.substr(0, insertPos)+value+defaultStr.substr(insertPos+1);
 }
 
-uint64_t Message::createKey(const vector<unsigned char> id,
+uint64_t Message::createKey(const vector<symbol_t> id,
     const bool isWrite, const bool isPassive,
-    const unsigned char srcAddress, const unsigned char dstAddress) {
+    const symbol_t srcAddress, const symbol_t dstAddress) {
   uint64_t key = (uint64_t)(id.size()-2) << (8 * 7 + 5);
   if (isPassive) {
     key |= (uint64_t)getMasterNumber(srcAddress) << (8 * 7);  // 0..25
@@ -146,7 +146,7 @@ uint64_t Message::createKey(const vector<unsigned char> id,
   }
   key |= (uint64_t)dstAddress << (8 * 6);
   int exp = 5;
-  for (vector<unsigned char>::const_iterator it = id.begin(); it < id.end(); it++) {
+  for (vector<symbol_t>::const_iterator it = id.begin(); it < id.end(); it++) {
     key ^= (uint64_t)*it << (8 * exp--);
     if (exp == 0) {
       exp = 3;
@@ -155,15 +155,15 @@ uint64_t Message::createKey(const vector<unsigned char> id,
   return key;
 }
 
-uint64_t Message::createKey(MasterSymbolString& master, unsigned char maxIdLength, bool anyDestination) {
+uint64_t Message::createKey(MasterSymbolString& master, size_t maxIdLength, bool anyDestination) {
   if (master.size() < 5) {
     return INVALID_KEY;
   }
-  unsigned char idLength = master[4];
+  size_t idLength = master.getDataSize();
   if (maxIdLength < idLength) {
     idLength = maxIdLength;
   }
-  if (master.size() < 5+idLength) {
+  if (master.getDataSize() < idLength) {
     return INVALID_KEY;
   }
   uint64_t key = (uint64_t)idLength << (8 * 7 + 5);
@@ -172,8 +172,8 @@ uint64_t Message::createKey(MasterSymbolString& master, unsigned char maxIdLengt
   key |= (uint64_t)master[2] << (8 * 5);  // PB
   key |= (uint64_t)master[3] << (8 * 4);  // SB
   int exp = 3;
-  for (unsigned char i = 0; i < idLength; i++) {
-    key ^= (uint64_t)master[5 + i] << (8 * exp--);
+  for (size_t i = 0; i < idLength; i++) {
+    key ^= (uint64_t)master.dataAt(i) << (8 * exp--);
     if (exp == 0) {
       exp = 3;
     }
@@ -181,7 +181,7 @@ uint64_t Message::createKey(MasterSymbolString& master, unsigned char maxIdLengt
   return key;
 }
 
-result_t Message::parseId(string input, vector<unsigned char>& id) {
+result_t Message::parseId(string input, vector<symbol_t>& id) {
   istringstream in(input);
   while (!in.eof()) {
     while (in.peek() == ' ') {
@@ -198,7 +198,7 @@ result_t Message::parseId(string input, vector<unsigned char>& id) {
     input.push_back(static_cast<char>(in.get()));
 
     result_t result;
-    unsigned char value = (unsigned char)parseInt(input.c_str(), 16, 0, 0xff, result);
+    symbol_t value = (symbol_t)parseInt(input.c_str(), 16, 0, 0xff, result);
     if (result != RESULT_OK) {
       return result;  // invalid hex value
     }
@@ -214,7 +214,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
   result_t result;
   bool isWrite = false, isPassive = false;
   string defaultName;
-  unsigned char pollPriority = 0;
+  size_t pollPriority = 0;
   size_t defaultPos = 1;
   if (it == end) {
     return RESULT_ERR_EOF;
@@ -233,7 +233,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
     if (type == 'r' || type == 'R') {  // active read
       char poll = str[1];
       if (poll >= '0' && poll <= '9') {  // poll priority (=active read)
-        pollPriority = (unsigned char)(poll - '0');
+        pollPriority = poll - '0';
         defaultName.erase(1, 1);  // cut off priority digit
       }
     } else if (type == 'w' || type == 'W') {  // active write
@@ -281,11 +281,11 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
   if (it == end) {
     return RESULT_ERR_EOF;
   }
-  unsigned char srcAddress;
+  symbol_t srcAddress;
   if (*str == 0) {
     srcAddress = SYN;  // no specific source
   } else {
-    srcAddress = (unsigned char)parseInt(str, 16, 0, 0xff, result);
+    srcAddress = (symbol_t)parseInt(str, 16, 0, 0xff, result);
     if (result != RESULT_OK) {
       return result;
     }
@@ -298,7 +298,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
   if (it == end) {
      return RESULT_ERR_EOF;
   }
-  vector<unsigned char> dstAddresses;
+  vector<symbol_t> dstAddresses;
   bool isBroadcastOrMasterDestination = false;
   if (*str == 0) {
     dstAddresses.push_back(SYN);  // no specific destination
@@ -308,7 +308,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
     bool first = true;
     while (getline(stream, token, VALUE_SEPARATOR)) {
       FileReader::trim(token);
-      unsigned char dstAddress = (unsigned char)parseInt(token.c_str(), 16, 0, 0xff, result);
+      symbol_t dstAddress = (symbol_t)parseInt(token.c_str(), 16, 0, 0xff, result);
       if (result != RESULT_OK) {
         return result;
       }
@@ -326,7 +326,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
     }
   }
 
-  vector<unsigned char> id;
+  vector<symbol_t> id;
   string token = *it++;  // [PBSB]
   bool useDefaults = token.empty();
   if (useDefaults) {
@@ -350,8 +350,8 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
     defaultIdPrefix = getDefault("", defaults, defaultPos);
   }
   defaultPos++;
-  vector< vector<unsigned char> > chainIds;
-  vector<unsigned char> chainLengths;
+  vector< vector<symbol_t> > chainIds;
+  vector<size_t> chainLengths;
   istringstream stream(token);
   size_t maxLength = MAX_POS;
   size_t chainLength = 16;
@@ -369,7 +369,7 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
       }
       token.resize(lengthPos);
     }
-    vector<unsigned char> chainId = id;
+    vector<symbol_t> chainId = id;
     result = parseId(token, chainId);
     if (result != RESULT_OK) {
       return result;
@@ -378,12 +378,12 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
       return RESULT_ERR_INVALID_LIST;
     }
     chainIds.push_back(chainId);
-    chainLengths.push_back((unsigned char)chainLength);
+    chainLengths.push_back((symbol_t)chainLength);
     if (first) {
       chainPrefixLength = chainId.size();
       maxLength = 0;
     } else if (chainPrefixLength > 2) {
-      vector<unsigned char>& front = chainIds.front();
+      vector<symbol_t>& front = chainIds.front();
       for (size_t pos = 2; pos < chainPrefixLength; pos++) {
         if (chainId[pos] != front[pos]) {
           chainPrefixLength = pos;
@@ -439,13 +439,13 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
     data = new DataFieldSet("", "", fields);
   } else {
     result = DataField::create(it, realEnd, templates, data, isWrite, false, isBroadcastOrMasterDestination,
-        (unsigned char)maxLength);
+        maxLength);
     if (result != RESULT_OK) {
       return result;
     }
   }
-  if (id.size() + data->getLength(pt_masterData, (unsigned char)maxLength) > 2 + maxLength
-      || data->getLength(pt_slaveData, (unsigned char)maxLength) > maxLength) {
+  if (id.size() + data->getLength(pt_masterData, maxLength) > 2 + maxLength
+      || data->getLength(pt_slaveData, maxLength) > maxLength) {
     // max NN exceeded
     delete data;
     return RESULT_ERR_INVALID_POS;
@@ -453,8 +453,8 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
   unsigned int index = 0;
   bool multiple = dstAddresses.size() > 1;
   char num[10];
-  for (vector<unsigned char>::iterator it = dstAddresses.begin(); it != dstAddresses.end(); it++, index++) {
-    unsigned char dstAddress = *it;
+  for (vector<symbol_t>::iterator it = dstAddresses.begin(); it != dstAddresses.end(); it++, index++) {
+    symbol_t dstAddress = *it;
     string useCircuit = circuit;
     if (multiple) {
       snprintf(num, sizeof(num), ".%d", index);
@@ -477,7 +477,7 @@ Message* Message::createScanMessage() {
   return new Message("scan", "", "", false, false, 0x07, 0x04, DataFieldSet::getIdentFields(), true);
 }
 
-Message* Message::derive(const unsigned char dstAddress, const unsigned char srcAddress, const string circuit) {
+Message* Message::derive(const symbol_t dstAddress, const symbol_t srcAddress, const string circuit) {
   Message* result = new Message(circuit.length() == 0 ? m_circuit : circuit, m_level, m_name,
     m_isWrite, m_isPassive, m_comment,
     srcAddress == SYN ? m_srcAddress : srcAddress, dstAddress,
@@ -489,7 +489,7 @@ Message* Message::derive(const unsigned char dstAddress, const unsigned char src
   return result;
 }
 
-Message* Message::derive(const unsigned char dstAddress, const bool extendCircuit) {
+Message* Message::derive(const symbol_t dstAddress, const bool extendCircuit) {
   if (extendCircuit) {
     ostringstream out;
     out << m_circuit << '.' << hex << setw(2) << setfill('0') << static_cast<unsigned>(dstAddress);
@@ -520,7 +520,7 @@ bool Message::checkLevel(const string level, const string checkLevels) {
   }
   return false;
 }
-bool Message::checkIdPrefix(vector<unsigned char>& id) {
+bool Message::checkIdPrefix(vector<symbol_t>& id) {
   if (id.size() > m_id.size()) {
     return false;
   }
@@ -532,13 +532,13 @@ bool Message::checkIdPrefix(vector<unsigned char>& id) {
   return true;
 }
 
-bool Message::checkId(MasterSymbolString& master, unsigned char* index) {
-  unsigned char idLen = getIdLength();
-  if (master.size() < 5+idLen) {  // QQ, ZZ, PB, SB, NN
+bool Message::checkId(MasterSymbolString& master, size_t* index) {
+  size_t idLen = getIdLength();
+  if (master.getDataSize() < idLen) {
     return false;
   }
-  for (unsigned char pos = 0; pos < idLen; pos++) {
-    if (m_id[2+pos] != master[5+pos]) {
+  for (size_t pos = 0; pos < idLen; pos++) {
+    if (m_id[2+pos] != master.dataAt(pos)) {
       return false;
     }
   }
@@ -549,18 +549,18 @@ bool Message::checkId(MasterSymbolString& master, unsigned char* index) {
 }
 
 bool Message::checkId(Message& other) {
-  unsigned char idLen = getIdLength();
+  size_t idLen = getIdLength();
   if (idLen != other.getIdLength() || getCount() > 1) {  // only equal for non-chained messages
     return false;
   }
   return other.checkIdPrefix(m_id);
 }
 
-uint64_t Message::getDerivedKey(const unsigned char dstAddress) {
+uint64_t Message::getDerivedKey(const symbol_t dstAddress) {
   return (m_key & ~(0xffLL << (8*6))) | (uint64_t)dstAddress << (8*6);
 }
 
-bool Message::setPollPriority(unsigned char priority) {
+bool Message::setPollPriority(size_t priority) {
   if (priority == m_pollPriority || m_isPassive || isScanMessage() || m_dstAddress == SYN) {
     return false;
   }
@@ -590,9 +590,9 @@ bool Message::hasField(const char* fieldName, bool numeric) {
   return m_data->hasField(fieldName, numeric);
 }
 
-result_t Message::prepareMaster(const unsigned char srcAddress, MasterSymbolString& master,
+result_t Message::prepareMaster(const symbol_t srcAddress, MasterSymbolString& master,
     istringstream& input, char separator,
-    const unsigned char dstAddress, unsigned char index) {
+    const symbol_t dstAddress, size_t index) {
   if (m_isPassive) {
     return RESULT_ERR_INVALID_ARG;  // prepare not possible
   }
@@ -620,20 +620,20 @@ result_t Message::prepareMaster(const unsigned char srcAddress, MasterSymbolStri
 }
 
 result_t Message::prepareMasterPart(MasterSymbolString& master, istringstream& input, char separator,
-    unsigned char index) {
+    size_t index) {
   if (index != 0) {
     return RESULT_ERR_NOTFOUND;
   }
-  unsigned char pos = master.size();
+  size_t pos = master.size();
   master.push_back(0);  // length, will be set later
   for (size_t i = 2; i < m_id.size(); i++) {
     master.push_back(m_id[i]);
   }
-  result_t result = m_data->write(input, pt_masterData, master, getIdLength(), separator);
+  result_t result = m_data->write(input, master, getIdLength(), separator);
   if (result != RESULT_OK) {
     return result;
   }
-  master[pos] = (unsigned char)(master.size()-pos-1);
+  master[pos] = (symbol_t)(master.size()-pos-1);
   return result;
 }
 
@@ -643,11 +643,11 @@ result_t Message::prepareSlave(istringstream& input, SlaveSymbolString& slave) {
   }
   slave.clear();
   slave.push_back(0);  // length, will be set later
-  result_t result = m_data->write(input, pt_slaveData, slave, 0);
+  result_t result = m_data->write(input, slave, 0);
   if (result != RESULT_OK) {
     return result;
   }
-  slave[0] = (unsigned char)(slave.size()-1);
+  slave[0] = (symbol_t)(slave.size()-1);
   time(&m_lastUpdateTime);
   if (slave != m_lastSlaveData) {
     m_lastChangeTime = m_lastUpdateTime;
@@ -664,7 +664,7 @@ result_t Message::storeLastData(MasterSymbolString& master, SlaveSymbolString& s
   return result;
 }
 
-result_t Message::storeLastData(MasterSymbolString& data, unsigned char index) {
+result_t Message::storeLastData(MasterSymbolString& data, size_t index) {
   if (data.size() > 0
       && (m_isWrite || this->m_dstAddress == BROADCAST || isMaster(this->m_dstAddress))) {
     time(&m_lastUpdateTime);
@@ -681,7 +681,7 @@ result_t Message::storeLastData(MasterSymbolString& data, unsigned char index) {
   return RESULT_OK;
 }
 
-result_t Message::storeLastData(SlaveSymbolString& data, unsigned char index) {
+result_t Message::storeLastData(SlaveSymbolString& data, size_t index) {
   if (data.size() > 0) {
     time(&m_lastUpdateTime);
   }
@@ -693,9 +693,9 @@ result_t Message::storeLastData(SlaveSymbolString& data, unsigned char index) {
 }
 
 result_t Message::decodeLastMasterData(ostringstream& output, OutputFormat outputFormat,
-    bool leadingSeparator, const char* fieldName, signed char fieldIndex) {
-  unsigned char offset = (unsigned char)(m_id.size() - 2);
-  result_t result = m_data->read(pt_masterData, m_lastMasterData, offset,
+    bool leadingSeparator, const char* fieldName, ssize_t fieldIndex) {
+  size_t offset = m_id.size() - 2;
+  result_t result = m_data->read(m_lastMasterData, offset,
       output, outputFormat, -1, leadingSeparator, fieldName, fieldIndex);
   if (result < RESULT_OK) {
     return result;
@@ -707,8 +707,8 @@ result_t Message::decodeLastMasterData(ostringstream& output, OutputFormat outpu
 }
 
 result_t Message::decodeLastSlaveData(ostringstream& output, OutputFormat outputFormat,
-    bool leadingSeparator, const char* fieldName, signed char fieldIndex) {
-  result_t result = m_data->read(pt_slaveData, m_lastSlaveData, 0,
+    bool leadingSeparator, const char* fieldName, ssize_t fieldIndex) {
+  result_t result = m_data->read(m_lastSlaveData, 0,
       output, outputFormat, -1, leadingSeparator, fieldName, fieldIndex);
   if (result < RESULT_OK) {
     return result;
@@ -720,17 +720,16 @@ result_t Message::decodeLastSlaveData(ostringstream& output, OutputFormat output
 }
 
 result_t Message::decodeLastData(ostringstream& output, OutputFormat outputFormat,
-    bool leadingSeparator, const char* fieldName, signed char fieldIndex) {
+    bool leadingSeparator, const char* fieldName, ssize_t fieldIndex) {
   size_t startPos = output.str().length();
-  result_t result = m_data->read(pt_masterData, m_lastMasterData, getIdLength(), output, outputFormat, -1,
+  result_t result = m_data->read(m_lastMasterData, getIdLength(), output, outputFormat, -1,
       leadingSeparator, fieldName, fieldIndex);
   if (result < RESULT_OK) {
     return result;
   }
   bool empty = result == RESULT_EMPTY;
   leadingSeparator |= output.str().length() > startPos;
-  result = m_data->read(pt_slaveData, m_lastSlaveData, 0, output, outputFormat, -1, leadingSeparator, fieldName,
-      fieldIndex);
+  result = m_data->read(m_lastSlaveData, 0, output, outputFormat, -1, leadingSeparator, fieldName, fieldIndex);
   if (result < RESULT_OK) {
     return result;
   }
@@ -742,13 +741,13 @@ result_t Message::decodeLastData(ostringstream& output, OutputFormat outputForma
   return result;
 }
 
-result_t Message::decodeLastDataNumField(unsigned int& output, const char* fieldName, signed char fieldIndex) {
-  result_t result = m_data->read(pt_masterData, m_lastMasterData, getIdLength(), output, fieldName, fieldIndex);
+result_t Message::decodeLastDataNumField(unsigned int& output, const char* fieldName, ssize_t fieldIndex) {
+  result_t result = m_data->read(m_lastMasterData, getIdLength(), output, fieldName, fieldIndex);
   if (result < RESULT_OK) {
     return result;
   }
   if (result == RESULT_EMPTY) {
-    result = m_data->read(pt_slaveData, m_lastSlaveData, 0, output, fieldName, fieldIndex);
+    result = m_data->read(m_lastSlaveData, 0, output, fieldName, fieldIndex);
   }
   if (result < RESULT_OK) {
     return result;
@@ -760,10 +759,10 @@ result_t Message::decodeLastDataNumField(unsigned int& output, const char* field
 }
 
 bool Message::isLessPollWeight(const Message* other) {
-  unsigned char tprio = m_pollPriority;
-  unsigned char oprio = other->m_pollPriority;
-  unsigned int tw = tprio * m_pollCount;
-  unsigned int ow = oprio * other->m_pollCount;
+  size_t tprio = m_pollPriority;
+  size_t oprio = other->m_pollPriority;
+  size_t tw = tprio * m_pollCount;
+  size_t ow = oprio * other->m_pollCount;
   if (tw > ow) {
     return true;
   }
@@ -851,12 +850,12 @@ void Message::dumpColumn(ostream& output, column_t column, bool withConditions) 
     }
     break;
   case COLUMN_PBSB:
-    for (vector<unsigned char>::const_iterator it = m_id.begin(); it < m_id.begin()+2 && it < m_id.end(); it++) {
+    for (vector<symbol_t>::const_iterator it = m_id.begin(); it < m_id.begin()+2 && it < m_id.end(); it++) {
       output << hex << setw(2) << setfill('0') << static_cast<unsigned>(*it);
     }
     break;
   case COLUMN_ID:
-    for (vector<unsigned char>::const_iterator it = m_id.begin()+2; it < m_id.end(); it++) {
+    for (vector<symbol_t>::const_iterator it = m_id.begin()+2; it < m_id.end(); it++) {
       output << hex << setw(2) << setfill('0') << static_cast<unsigned>(*it);
     }
     break;
@@ -872,11 +871,11 @@ void Message::dumpColumn(ostream& output, column_t column, bool withConditions) 
 
 ChainedMessage::ChainedMessage(const string circuit, const string level, const string name,
     const bool isWrite, const string comment,
-    const unsigned char srcAddress, const unsigned char dstAddress,
-    const vector<unsigned char> id,
-    vector< vector<unsigned char> > ids, vector<unsigned char> lengths,
+    const symbol_t srcAddress, const symbol_t dstAddress,
+    const vector<symbol_t> id,
+    vector< vector<symbol_t> > ids, vector<size_t> lengths,
     DataField* data, const bool deleteData,
-    const unsigned char pollPriority,
+    const size_t pollPriority,
     Condition* condition)
     : Message(circuit, level, name, isWrite, false, comment,
       srcAddress, dstAddress, id,
@@ -895,7 +894,7 @@ ChainedMessage::ChainedMessage(const string circuit, const string level, const s
 }
 
 ChainedMessage::~ChainedMessage() {
-  for (unsigned char index = 0; index < m_ids.size(); index++) {
+  for (size_t index = 0; index < m_ids.size(); index++) {
     delete m_lastMasterDatas[index];
     m_lastMasterDatas[index] = NULL;
     delete m_lastSlaveDatas[index];
@@ -907,7 +906,7 @@ ChainedMessage::~ChainedMessage() {
   free(m_lastSlaveUpdateTimes);
 }
 
-Message* ChainedMessage::derive(const unsigned char dstAddress, const unsigned char srcAddress, const string circuit) {
+Message* ChainedMessage::derive(const symbol_t dstAddress, const symbol_t srcAddress, const string circuit) {
   ChainedMessage* result = new ChainedMessage(circuit.length() == 0 ? m_circuit : circuit, m_level, m_name,
     m_isWrite, m_comment,
     srcAddress == SYN ? m_srcAddress : srcAddress, dstAddress,
@@ -919,22 +918,22 @@ Message* ChainedMessage::derive(const unsigned char dstAddress, const unsigned c
   return result;
 }
 
-bool ChainedMessage::checkId(MasterSymbolString& master, unsigned char* index) {
-  unsigned char idLen = getIdLength();
-  if (master.size() < 5+idLen) {  // QQ, ZZ, PB, SB, NN
+bool ChainedMessage::checkId(MasterSymbolString& master, size_t* index) {
+  size_t idLen = getIdLength();
+  if (master.getDataSize() < idLen) {
     return false;
   }
-  unsigned char chainPrefixLength = Message::getIdLength();
-  for (unsigned char pos = 0; pos < chainPrefixLength; pos++) {
-    if (m_id[2+pos] != master[5+pos]) {
+  size_t chainPrefixLength = Message::getIdLength();
+  for (size_t pos = 0; pos < chainPrefixLength; pos++) {
+    if (m_id[2+pos] != master.dataAt(pos)) {
       return false;  // chain prefix mismatch
     }
   }
-  for (unsigned char checkIndex = 0; checkIndex < m_ids.size(); checkIndex++) {  // check suffix for each part
-    vector<unsigned char> id = m_ids[checkIndex];
+  for (size_t checkIndex = 0; checkIndex < m_ids.size(); checkIndex++) {  // check suffix for each part
+    vector<symbol_t> id = m_ids[checkIndex];
     bool found = false;
-    for (unsigned char pos = chainPrefixLength; pos < idLen; pos++) {
-      if (id[2+pos] != master[5+pos]) {
+    for (size_t pos = chainPrefixLength; pos < idLen; pos++) {
+      if (id[2+pos] != master.dataAt(pos)) {
         found = false;
         break;
       }
@@ -951,21 +950,21 @@ bool ChainedMessage::checkId(MasterSymbolString& master, unsigned char* index) {
 }
 
 bool ChainedMessage::checkId(Message& other) {
-  unsigned char idLen = getIdLength();
+  size_t idLen = getIdLength();
   if (idLen != other.getIdLength() || other.getCount() == 1) {  // only equal for chained messages
     return false;
   }
   if (!other.checkIdPrefix(m_id)) {
     return false;  // chain prefix mismatch
   }
-  vector< vector<unsigned char> > otherIds = ((ChainedMessage&)other).m_ids;
-  unsigned char chainPrefixLength = Message::getIdLength();
-  for (unsigned char checkIndex = 0; checkIndex < m_ids.size(); checkIndex++) {  // check suffix for each part
-    vector<unsigned char> id = m_ids[checkIndex];
-    for (unsigned char otherIndex = 0; otherIndex < otherIds.size(); otherIndex++) {
-      vector<unsigned char> otherId = otherIds[otherIndex];
+  vector< vector<symbol_t> > otherIds = ((ChainedMessage&)other).m_ids;
+  size_t chainPrefixLength = Message::getIdLength();
+  for (size_t checkIndex = 0; checkIndex < m_ids.size(); checkIndex++) {  // check suffix for each part
+    vector<symbol_t> id = m_ids[checkIndex];
+    for (size_t otherIndex = 0; otherIndex < otherIds.size(); otherIndex++) {
+      vector<symbol_t> otherId = otherIds[otherIndex];
       bool found = false;
-      for (unsigned char pos = chainPrefixLength; pos < idLen; pos++) {
+      for (size_t pos = chainPrefixLength; pos < idLen; pos++) {
         if (id[2+pos] != otherId[2+pos]) {
           found = false;
           break;
@@ -981,13 +980,13 @@ bool ChainedMessage::checkId(Message& other) {
 }
 
 result_t ChainedMessage::prepareMasterPart(MasterSymbolString& master, istringstream& input, char separator,
-    unsigned char index) {
+    size_t index) {
   size_t cnt = getCount();
   if (index >= cnt) {
     return RESULT_ERR_NOTFOUND;
   }
   MasterSymbolString allData;
-  result_t result = m_data->write(input, pt_masterData, allData, 0, separator);
+  result_t result = m_data->write(input, allData, 0, separator);
   if (result != RESULT_OK) {
     return result;
   }
@@ -999,16 +998,16 @@ result_t ChainedMessage::prepareMasterPart(MasterSymbolString& master, istringst
       addData = m_lengths[i+1];
     }
   }
-  if (pos+addData > allData.size()) {
+  if (pos+addData > allData.getDataSize()) {
     return RESULT_ERR_INVALID_POS;
   }
-  vector<unsigned char> id = m_ids[index];
-  master.push_back((unsigned char)(id.size()-2+addData));  // NN
+  vector<symbol_t> id = m_ids[index];
+  master.push_back((symbol_t)(id.size()-2+addData));  // NN
   for (size_t i = 2; i < id.size(); i++) {
     master.push_back(id[i]);
   }
   for (size_t i = 0; i < addData; i++) {
-    master.push_back(allData[pos+i]);
+    master.push_back(allData.dataAt(pos+i));
   }
   if (index == 0) {
     for (size_t i = 0; i < cnt; i++) {
@@ -1020,7 +1019,7 @@ result_t ChainedMessage::prepareMasterPart(MasterSymbolString& master, istringst
 
 result_t ChainedMessage::storeLastData(MasterSymbolString& master, SlaveSymbolString& slave) {
   // determine index from master ID
-  unsigned char index = 0;
+  size_t index = 0;
   if (checkId(master, &index)) {
     result_t result = storeLastData(master, index);
     if (result >= RESULT_OK) {
@@ -1031,7 +1030,7 @@ result_t ChainedMessage::storeLastData(MasterSymbolString& master, SlaveSymbolSt
   return RESULT_ERR_INVALID_ARG;
 }
 
-result_t ChainedMessage::storeLastData(MasterSymbolString& data, unsigned char index) {
+result_t ChainedMessage::storeLastData(MasterSymbolString& data, size_t index) {
   if (index >= m_ids.size()) {
     return RESULT_ERR_INVALID_ARG;
   }
@@ -1047,7 +1046,7 @@ result_t ChainedMessage::storeLastData(MasterSymbolString& data, unsigned char i
   return combineLastParts();
 }
 
-result_t ChainedMessage::storeLastData(SlaveSymbolString& data, unsigned char index) {
+result_t ChainedMessage::storeLastData(SlaveSymbolString& data, size_t index) {
   if (index >= m_ids.size()) {
     return RESULT_ERR_INVALID_ARG;
   }
@@ -1061,7 +1060,7 @@ result_t ChainedMessage::storeLastData(SlaveSymbolString& data, unsigned char in
 result_t ChainedMessage::combineLastParts() {
   // check arrival time of all parts
   time_t minTime = 0, maxTime = 0;
-  for (unsigned char index = 0; index < m_ids.size(); index++) {
+  for (size_t index = 0; index < m_ids.size(); index++) {
     if (index == 0) {
       minTime = maxTime = m_lastMasterUpdateTimes[index];
     } else {
@@ -1085,25 +1084,30 @@ result_t ChainedMessage::combineLastParts() {
   // everything was completely retrieved in short time
   MasterSymbolString master;
   SlaveSymbolString slave;
-  size_t offset = 5+(m_ids[0].size()-2);  // skip QQ, ZZ, PB, SB, NN
-  for (unsigned char index = 0; index < m_ids.size(); index++) {
-    SymbolString* add = m_lastMasterDatas[index];
-    size_t end = 5+(*add)[4];
-    for (size_t pos = index == 0 ? 0 : offset; pos < end; pos++) {
-      master.push_back((*add)[pos]);
+  size_t offset = m_ids[0].size()-2;
+  SymbolString* add = m_lastMasterDatas[0];
+  for (size_t pos = 0; pos < 5+offset; pos++) {
+    master.push_back((*add)[pos]);  // copy header
+  }
+  slave.push_back(0);  // NN, set later
+  for (size_t index = 0; index < m_ids.size(); index++) {
+    add = m_lastMasterDatas[index];
+    size_t end = add->getDataSize();
+    for (size_t pos = offset; pos < end; pos++) {
+      master.push_back(add->dataAt(pos));
     }
     add = m_lastSlaveDatas[index];
-    end = 1+(*add)[0];
-    for (size_t pos = index == 0 ? 0 : 1; pos < end; pos++) {
-      slave.push_back((*add)[pos]);
+    end = add->getDataSize();
+    for (size_t pos = 0; pos < end; pos++) {
+      slave.push_back(add->dataAt(pos));
     }
   }
   // adjust NN
   if (master.size()-5 > 255 || slave.size()-1 > 255) {
     return RESULT_ERR_INVALID_POS;
   }
-  master[4] = (unsigned char)(master.size()-5);
-  slave[0] = (unsigned char)(slave.size()-1);
+  master[4] = (symbol_t)(master.size()-5);
+  slave[0] = (symbol_t)(slave.size()-1);
   result_t result = Message::storeLastData(master, 0);
   if (result == RESULT_OK) {
     result = Message::storeLastData(slave, 0);
@@ -1118,8 +1122,8 @@ void ChainedMessage::dumpColumn(ostream& output, column_t column, bool withCondi
   }
   bool first = true;
   for (size_t index = 0; index < m_ids.size(); index++) {
-    vector<unsigned char> id = m_ids[index];
-    for (vector<unsigned char>::const_iterator it = id.begin()+2; it < id.end(); it++) {
+    vector<symbol_t> id = m_ids[index];
+    for (vector<symbol_t>::const_iterator it = id.begin()+2; it < id.end(); it++) {
       if (first) {
         first = false;
       } else {
@@ -1258,13 +1262,13 @@ result_t Condition::create(const string condName, vector<string>::iterator& it, 
   }
   string field = it == end ? "" : *(it++);  // fieldname
   string zz = it == end ? "" : *(it++);  // ZZ
-  unsigned char dstAddress = SYN;
+  symbol_t dstAddress = SYN;
   result_t result = RESULT_OK;
   if (zz.length() == 0) {
     zz = defaultDest;
   }
   if (zz.length() > 0) {
-    dstAddress = (unsigned char)parseInt(zz.c_str(), 16, 0, 0xff, result);
+    dstAddress = (symbol_t)parseInt(zz.c_str(), 16, 0, 0xff, result);
     if (result != RESULT_OK) {
       return result;
     }
@@ -1556,7 +1560,7 @@ result_t LoadInstruction::execute(MessageMap* messages, ostringstream& log, Cond
   log << (isSingleton() ? "loaded \"" : "included \"") << m_filename << "\" for \"" << getDestination() << "\"";
   if (isSingleton() && !m_defaultDest.empty()) {
     result_t temp;
-    unsigned char address = (unsigned char)parseInt(m_defaultDest.c_str(), 16, 0, 0xff, temp);
+    symbol_t address = (symbol_t)parseInt(m_defaultDest.c_str(), 16, 0, 0xff, temp);
     if (temp == RESULT_OK) {
       size_t pos = m_filename.find_last_of('/');
       string filename;
@@ -1640,7 +1644,7 @@ result_t MessageMap::add(Message* message, bool storeByName) {
     }
     addPollMessage(message);
   }
-  unsigned char idLength = message->getIdLength();
+  size_t idLength = message->getIdLength();
   if (idLength > m_maxIdLength) {
     m_maxIdLength = idLength;
   }
@@ -1825,7 +1829,7 @@ result_t MessageMap::addFromFile(vector<string>::iterator& begin, const vector<s
   return result;
 }
 
-Message* MessageMap::getScanMessage(const unsigned char dstAddress) {
+Message* MessageMap::getScanMessage(const symbol_t dstAddress) {
   if (dstAddress == SYN) {
     return m_scanMessage;
   }
@@ -1931,7 +1935,7 @@ result_t MessageMap::executeInstructions(ostringstream& log, void (*readMessageF
   return overallResult;
 }
 
-void MessageMap::addLoadedFile(unsigned char address, string file, string comment) {
+void MessageMap::addLoadedFile(symbol_t address, string file, string comment) {
   if (!file.empty()) {
     string fileComment = "\""+file+"\"";
     if (!comment.empty()) {
@@ -1945,7 +1949,7 @@ void MessageMap::addLoadedFile(unsigned char address, string file, string commen
   }
 }
 
-string MessageMap::getLoadedFiles(unsigned char address) {
+string MessageMap::getLoadedFiles(symbol_t address) {
   if (m_loadedFiles.find(address) == m_loadedFiles.end()) {
     return "";
   }
@@ -2062,16 +2066,16 @@ Message* MessageMap::find(MasterSymbolString& master, bool anyDestination,
   if (baseKey == INVALID_KEY) {
     return NULL;
   }
-  unsigned char maxIdLength = Message::getKeyLength(baseKey);
-  for (unsigned char idLength = maxIdLength; true; idLength--) {
+  size_t maxIdLength = Message::getKeyLength(baseKey);
+  for (size_t idLength = maxIdLength; true; idLength--) {
     uint64_t key = baseKey;
     if (idLength == maxIdLength) {
       baseKey &= ~ID_LENGTH_AND_IDS_MASK;
     } else {
       key |= (uint64_t)idLength << (8 * 7 + 5);
       int exp = 3;
-      for (unsigned char i = 0; i < idLength; i++) {
-        key ^= (uint64_t)master[5 + i] << (8 * exp--);
+      for (size_t i = 0; i < idLength; i++) {
+        key ^= (uint64_t)master.dataAt(i) << (8 * exp--);
         if (exp == 0) {
           exp = 3;
         }
