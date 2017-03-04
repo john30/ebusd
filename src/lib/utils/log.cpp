@@ -16,6 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _GNU_SOURCE
+
 #include "lib/utils/log.h"
 #include <stdlib.h>
 #include <stdio.h>
