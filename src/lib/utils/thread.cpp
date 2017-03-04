@@ -20,10 +20,6 @@
 #  include <config.h>
 #endif
 
-#ifdef HAVE_PTHREAD_SETNAME_NP
-#  define _GNU_SOURCE
-#endif
-
 #include "lib/utils/thread.h"
 #include "lib/utils/clock.h"
 
