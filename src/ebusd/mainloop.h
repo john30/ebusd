@@ -62,22 +62,22 @@ class UserList : public UserInfo, public FileReader {
   virtual ~UserList() {}
 
   // @copydoc
-  virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
+  result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
       vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit,
       const string& defaultSuffix, const string& filename, unsigned int lineNo) override;
 
   // @copydoc
-  virtual bool hasUser(const string user) override {
+  bool hasUser(const string user) override {
     return m_userLevels.find(user) != m_userLevels.end();
   }
 
   // @copydoc
-  virtual bool checkSecret(const string user, const string secret) override {
+  bool checkSecret(const string user, const string secret) override {
     return m_userSecrets.find(user) != m_userSecrets.end() && m_userSecrets[user] == secret;
   }
 
   // @copydoc
-  virtual string getLevels(const string user) override { return m_userLevels[user]; }
+  string getLevels(const string user) override { return m_userLevels[user]; }
 
  private:
   /** the secret string by user name. */
@@ -119,12 +119,12 @@ class MainLoop : public Thread, DeviceListener {
   void addMessage(NetMessage* message) { m_netQueue.push(message); }
 
   // @copydoc
-  virtual void notifyDeviceData(const symbol_t symbol, bool received) override;
+  void notifyDeviceData(const symbol_t symbol, bool received) override;
 
 
  protected:
   // @copydoc
-  virtual void run() override;
+  void run() override;
 
 
  private:

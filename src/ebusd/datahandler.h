@@ -152,7 +152,7 @@ class DataSink : virtual public DataHandler {
   virtual void notifyUpdate(Message* message);
 
   // @copydoc
-  virtual bool isDataSink() override { return true; }
+  bool isDataSink() override { return true; }
 
 
  protected:
@@ -182,7 +182,7 @@ class DataSource : virtual public DataHandler {
   virtual ~DataSource() {}
 
   // @copydoc
-  virtual bool isDataSource() override { return true; }
+  bool isDataSource() override { return true; }
 
 
  protected:

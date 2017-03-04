@@ -166,7 +166,7 @@ class PollRequest : public BusRequest {
   result_t prepare(symbol_t masterAddress);
 
   // @copydoc
-  virtual bool notify(result_t result, SlaveSymbolString& slave) override;
+  bool notify(result_t result, SlaveSymbolString& slave) override;
 
 
  private:
@@ -215,7 +215,7 @@ class ScanRequest : public BusRequest {
   result_t prepare(symbol_t masterAddress);
 
   // @copydoc
-  virtual bool notify(result_t result, SlaveSymbolString& slave) override;
+  bool notify(result_t result, SlaveSymbolString& slave) override;
 
 
  private:
@@ -269,7 +269,7 @@ class ActiveBusRequest : public BusRequest {
   virtual ~ActiveBusRequest() {}
 
   // @copydoc
-  virtual bool notify(result_t result, SlaveSymbolString& slave) override;
+  bool notify(result_t result, SlaveSymbolString& slave) override;
 
 
  private:

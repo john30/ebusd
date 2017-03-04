@@ -211,15 +211,15 @@ class SerialDevice : public Device {
     : Device(name, checkDevice, readOnly, initialSend) {}
 
   // @copydoc
-  virtual result_t open() override;
+  result_t open() override;
 
   // @copydoc
-  virtual void close() override;
+  void close() override;
 
 
  protected:
   // @copydoc
-  virtual void checkDevice() override;
+  void checkDevice() override;
 
 
  private:
@@ -246,24 +246,24 @@ class NetworkDevice : public Device {
       m_buffer(NULL), m_bufSize(0), m_bufLen(0), m_bufPos(0) {}
 
   // @copydoc
-  virtual unsigned int getLatency() const override { return 10000; }
+  unsigned int getLatency() const override { return 10000; }
 
   // @copydoc
-  virtual result_t open() override;
+  result_t open() override;
 
 
  protected:
   // @copydoc
-  virtual void checkDevice() override;
+  void checkDevice() override;
 
   // @copydoc
-  virtual bool available() override;
+  bool available() override;
 
   // @copydoc
-  virtual ssize_t write(const symbol_t value) override;
+  ssize_t write(const symbol_t value) override;
 
   // @copydoc
-  virtual ssize_t read(symbol_t& value) override;
+  ssize_t read(symbol_t& value) override;
 
 
  private:

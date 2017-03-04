@@ -304,17 +304,17 @@ class StringDataType : public DataType {
   virtual ~StringDataType() {}
 
   // @copydoc
-  virtual result_t readRawValue(SymbolString& input,
+  result_t readRawValue(SymbolString& input,
     const size_t offset, const size_t length,
     unsigned int& value) override;
 
   // @copydoc
-  virtual result_t readSymbols(SymbolString& input,
+  result_t readSymbols(SymbolString& input,
     const size_t offset, const size_t length,
     ostringstream& output, OutputFormat outputFormat) override;
 
   // @copydoc
-  virtual result_t writeSymbols(istringstream& input,
+  result_t writeSymbols(istringstream& input,
     const size_t offset, const size_t length,
     SymbolString& output, size_t* usedLength) override;
 
@@ -366,17 +366,17 @@ class DateTimeDataType : public DataType {
   int16_t getResolution() const { return m_resolution; }
 
   // @copydoc
-  virtual result_t readRawValue(SymbolString& input,
+  result_t readRawValue(SymbolString& input,
     const size_t offset, const size_t length,
     unsigned int& value) override;
 
   // @copydoc
-  virtual result_t readSymbols(SymbolString& input,
+  result_t readSymbols(SymbolString& input,
     const size_t offset, const size_t length,
     ostringstream& output, OutputFormat outputFormat) override;
 
   // @copydoc
-  virtual result_t writeSymbols(istringstream& input,
+  result_t writeSymbols(istringstream& input,
     const size_t offset, const size_t length,
     SymbolString& output, size_t* usedLength) override;
 
@@ -441,7 +441,7 @@ class NumberDataType : public DataType {
   static size_t calcPrecision(const int divisor);
 
   // @copydoc
-  virtual bool dump(ostream& output, const size_t length, const bool appendSeparatorDivisor = true) const override;
+  bool dump(ostream& output, const size_t length, const bool appendSeparatorDivisor = true) const override;
 
   /**
    * Derive a new @a NumberDataType from this.
@@ -481,12 +481,12 @@ class NumberDataType : public DataType {
   int16_t getFirstBit() const { return m_firstBit; }
 
   // @copydoc
-  virtual result_t readRawValue(SymbolString& input,
+  result_t readRawValue(SymbolString& input,
     const size_t offset, const size_t length,
     unsigned int& value) override;
 
   // @copydoc
-  virtual result_t readSymbols(SymbolString& input,
+  result_t readSymbols(SymbolString& input,
     const size_t offset, const size_t length,
     ostringstream& output, OutputFormat outputFormat) override;
 
@@ -500,12 +500,12 @@ class NumberDataType : public DataType {
    * or NULL.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t writeRawValue(unsigned int value,
+  result_t writeRawValue(unsigned int value,
     const size_t offset, const size_t length,
     SymbolString& output, size_t* usedLength = NULL);
 
   // @copydoc
-  virtual result_t writeSymbols(istringstream& input,
+  result_t writeSymbols(istringstream& input,
     const size_t offset, const size_t length,
     SymbolString& output, size_t* usedLength) override;
 

@@ -50,15 +50,15 @@ class TemParamDataType : public NumberDataType {
     : NumberDataType(id, 16, 0, 0xffff, 0, 0xffff, 0) {}
 
   // @copydoc
-  virtual result_t derive(int divisor, size_t bitCount, NumberDataType* &derived) override;
+  result_t derive(int divisor, size_t bitCount, NumberDataType* &derived) override;
 
   // @copydoc
-  virtual result_t readSymbols(SymbolString& input,
+  result_t readSymbols(SymbolString& input,
     const size_t offset, const size_t length,
     ostringstream& output, OutputFormat outputFormat) override;
 
   // @copydoc
-  virtual result_t writeSymbols(istringstream& input,
+  result_t writeSymbols(istringstream& input,
     const size_t offset, const size_t length,
     SymbolString& output, size_t* usedLength) override;
 };

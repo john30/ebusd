@@ -242,7 +242,7 @@ class SingleDataField : public DataField {
   virtual ~SingleDataField() {}
 
   // @copydoc
-  virtual SingleDataField* clone() override;
+  SingleDataField* clone() override;
 
   /**
    * Factory method for creating a new @a SingleDataField instance derived from a base type.
@@ -284,10 +284,10 @@ class SingleDataField : public DataField {
   PartType getPartType() const { return m_partType; }
 
   // @copydoc
-  virtual size_t getLength(PartType partType, size_t maxLength = MAX_LEN) override;
+  size_t getLength(PartType partType, size_t maxLength = MAX_LEN) override;
 
   // @copydoc
-  virtual result_t derive(string name, string comment,
+  result_t derive(string name, string comment,
       string unit, const PartType partType,
       int divisor, map<unsigned int, string> values,
       vector<SingleDataField*>& fields) override;
@@ -301,22 +301,22 @@ class SingleDataField : public DataField {
   bool hasFullByteOffset(bool after);
 
   // @copydoc
-  virtual void dump(ostream& output) override;
+  void dump(ostream& output) override;
 
   // @copydoc
-  virtual bool hasField(const char* fieldName, bool numeric) override;
+  bool hasField(const char* fieldName, bool numeric) override;
 
   // @copydoc
-  virtual result_t read(SymbolString& data, size_t offset,
+  result_t read(SymbolString& data, size_t offset,
       unsigned int& output, const char* fieldName = NULL, ssize_t fieldIndex = -1) override;
 
   // @copydoc
-  virtual result_t read(SymbolString& data, size_t offset,
+  result_t read(SymbolString& data, size_t offset,
       ostringstream& output, OutputFormat outputFormat, ssize_t outputIndex = -1,
       bool leadingSeparator = false, const char* fieldName = NULL, ssize_t fieldIndex = -1) override;
 
   // @copydoc
-  virtual result_t write(istringstream& input, SymbolString& data,
+  result_t write(istringstream& input, SymbolString& data,
       size_t offset, char separator = UI_FIELD_SEPARATOR, size_t* length = NULL) override;
 
 
@@ -386,25 +386,25 @@ class ValueListDataField : public SingleDataField {
   virtual ~ValueListDataField() {}
 
   // @copydoc
-  virtual ValueListDataField* clone() override;
+  ValueListDataField* clone() override;
 
   // @copydoc
-  virtual result_t derive(string name, string comment,
+  result_t derive(string name, string comment,
       string unit, const PartType partType, int divisor,
       map<unsigned int, string> values,
       vector<SingleDataField*>& fields) override;
 
   // @copydoc
-  virtual void dump(ostream& output) override;
+  void dump(ostream& output) override;
 
 
  protected:
   // @copydoc
-  virtual result_t readSymbols(SymbolString& input, const size_t offset,
+  result_t readSymbols(SymbolString& input, const size_t offset,
       ostringstream& output, OutputFormat outputFormat) override;
 
   // @copydoc
-  virtual result_t writeSymbols(istringstream& input, const size_t offset,
+  result_t writeSymbols(istringstream& input, const size_t offset,
       SymbolString& output, size_t* usedLength) override;
 
 
@@ -442,25 +442,25 @@ class ConstantDataField : public SingleDataField {
   virtual ~ConstantDataField() {}
 
   // @copydoc
-  virtual ConstantDataField* clone() override;
+  ConstantDataField* clone() override;
 
   // @copydoc
-  virtual result_t derive(string name, string comment,
+  result_t derive(string name, string comment,
       string unit, const PartType partType, int divisor,
       map<unsigned int, string> values,
       vector<SingleDataField*>& fields) override;
 
   // @copydoc
-  virtual void dump(ostream& output) override;
+  void dump(ostream& output) override;
 
 
  protected:
   // @copydoc
-  virtual result_t readSymbols(SymbolString& input, const size_t offset,
+  result_t readSymbols(SymbolString& input, const size_t offset,
       ostringstream& output, OutputFormat outputFormat) override;
 
   // @copydoc
-  virtual result_t writeSymbols(istringstream& input, const size_t offset,
+  result_t writeSymbols(istringstream& input, const size_t offset,
       SymbolString& output, size_t* usedLength) override;
 
 
@@ -523,16 +523,16 @@ class DataFieldSet : public DataField {
   virtual ~DataFieldSet();
 
   // @copydoc
-  virtual DataFieldSet* clone() override;
+  DataFieldSet* clone() override;
 
   // @copydoc
-  virtual size_t getLength(PartType partType, size_t maxLength = MAX_LEN) override;
+  size_t getLength(PartType partType, size_t maxLength = MAX_LEN) override;
 
   // @copydoc
-  virtual string getName(ssize_t fieldIndex = -1) override;
+  string getName(ssize_t fieldIndex = -1) override;
 
   // @copydoc
-  virtual result_t derive(string name, string comment,
+  result_t derive(string name, string comment,
       string unit, const PartType partType,
       int divisor, map<unsigned int, string> values,
       vector<SingleDataField*>& fields) override;
@@ -568,22 +568,22 @@ class DataFieldSet : public DataField {
   size_t size() const { return m_fields.size(); }
 
   // @copydoc
-  virtual bool hasField(const char* fieldName, bool numeric) override;
+  bool hasField(const char* fieldName, bool numeric) override;
 
   // @copydoc
-  virtual void dump(ostream& output) override;
+  void dump(ostream& output) override;
 
   // @copydoc
-  virtual result_t read(SymbolString& data, size_t offset,
+  result_t read(SymbolString& data, size_t offset,
       unsigned int& output, const char* fieldName = NULL, ssize_t fieldIndex = -1) override;
 
   // @copydoc
-  virtual result_t read(SymbolString& data, size_t offset,
+  result_t read(SymbolString& data, size_t offset,
       ostringstream& output, OutputFormat outputFormat, ssize_t outputIndex = -1,
       bool leadingSeparator = false, const char* fieldName = NULL, ssize_t fieldIndex = -1) override;
 
   // @copydoc
-  virtual result_t write(istringstream& input, SymbolString& data,
+  result_t write(istringstream& input, SymbolString& data,
       size_t offset, char separator = UI_FIELD_SEPARATOR, size_t* length = NULL) override;
 
 
@@ -638,7 +638,7 @@ class DataFieldTemplates : public FileReader {
   result_t add(DataField* field, string name = "", bool replace = false);
 
   // @copydoc
-  virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
+  result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
     vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit,
     const string& defaultSuffix, const string& filename, unsigned int lineNo) override;
 

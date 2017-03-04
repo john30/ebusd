@@ -121,10 +121,10 @@ class WaitThread : public Thread {
   virtual ~WaitThread();
 
   // @copydoc
-  virtual void stop() override;
+  void stop() override;
 
   // @copydoc
-  virtual bool join() override;
+  bool join() override;
 
   /**
    * Wait for the specified amount of time.

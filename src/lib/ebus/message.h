@@ -702,37 +702,37 @@ class ChainedMessage : public Message {
   virtual ~ChainedMessage();
 
   // @copydoc
-  virtual Message* derive(const symbol_t dstAddress, const symbol_t srcAddress = SYN,
+  Message* derive(const symbol_t dstAddress, const symbol_t srcAddress = SYN,
       const string circuit = "") override;
 
   // @copydoc
-  virtual size_t getIdLength() const override { return m_ids[0].size() - 2; }
+  size_t getIdLength() const override { return m_ids[0].size() - 2; }
 
   // @copydoc
-  virtual bool checkId(MasterSymbolString& master, size_t* index = NULL) override;
+  bool checkId(MasterSymbolString& master, size_t* index = NULL) override;
 
   // @copydoc
-  virtual bool checkId(Message& other) override;
+  bool checkId(Message& other) override;
 
   // @copydoc
-  virtual size_t getCount() override { return m_ids.size(); }
+  size_t getCount() override { return m_ids.size(); }
 
 
  protected:
   // @copydoc
-  virtual result_t prepareMasterPart(MasterSymbolString& master, istringstream& input, char separator,
+  result_t prepareMasterPart(MasterSymbolString& master, istringstream& input, char separator,
       size_t index) override;
 
 
  public:
   // @copydoc
-  virtual result_t storeLastData(MasterSymbolString& master, SlaveSymbolString& slave) override;
+  result_t storeLastData(MasterSymbolString& master, SlaveSymbolString& slave) override;
 
   // @copydoc
-  virtual result_t storeLastData(MasterSymbolString& data, size_t index) override;
+  result_t storeLastData(MasterSymbolString& data, size_t index) override;
 
   // @copydoc
-  virtual result_t storeLastData(SlaveSymbolString& data, size_t index) override;
+  result_t storeLastData(SlaveSymbolString& data, size_t index) override;
 
   /**
    * Combine all last stored data.
@@ -742,7 +742,7 @@ class ChainedMessage : public Message {
 
  protected:
   // @copydoc
-  virtual void dumpColumn(ostream& output, column_t column, bool withConditions = false) override;
+  void dumpColumn(ostream& output, column_t column, bool withConditions = false) override;
 
 
  private:
@@ -910,20 +910,20 @@ class SimpleCondition : public Condition {
   virtual ~SimpleCondition() {}
 
   // @copydoc
-  virtual SimpleCondition* derive(string valueList) override;
+  SimpleCondition* derive(string valueList) override;
 
   // @copydoc
-  virtual void dump(ostream& output, bool matched = false) override;
+  void dump(ostream& output, bool matched = false) override;
 
   // @copydoc
-  virtual CombinedCondition* combineAnd(Condition* other) override;
+  CombinedCondition* combineAnd(Condition* other) override;
 
   // @copydoc
-  virtual result_t resolve(MessageMap* messages, ostringstream& errorMessage,
+  result_t resolve(MessageMap* messages, ostringstream& errorMessage,
       void (*readMessageFunc)(Message* message) = NULL) override;
 
   // @copydoc
-  virtual bool isTrue() override;
+  bool isTrue() override;
 
   /**
    * Return whether the condition is based on a numeric value.
@@ -1005,7 +1005,7 @@ class SimpleNumericCondition : public SimpleCondition {
 
  protected:
   // @copydoc
-  virtual bool checkValue(Message* message, const string field) override;
+  bool checkValue(Message* message, const string field) override;
 
 
  private:
@@ -1041,12 +1041,12 @@ class SimpleStringCondition : public SimpleCondition {
   virtual ~SimpleStringCondition() {}
 
   // @copydoc
-  virtual bool isNumeric() override { return false; }
+  bool isNumeric() override { return false; }
 
 
  protected:
   // @copydoc
-  virtual bool checkValue(Message* message, const string field) override;
+  bool checkValue(Message* message, const string field) override;
 
 
  private:
@@ -1072,17 +1072,17 @@ class CombinedCondition : public Condition {
   virtual ~CombinedCondition() {}
 
   // @copydoc
-  virtual void dump(ostream& output, bool matched = false) override;
+  void dump(ostream& output, bool matched = false) override;
 
   // @copydoc
-  virtual CombinedCondition* combineAnd(Condition* other) override { m_conditions.push_back(other); return this; }
+  CombinedCondition* combineAnd(Condition* other) override { m_conditions.push_back(other); return this; }
 
   // @copydoc
-  virtual result_t resolve(MessageMap* messages, ostringstream& errorMessage,
+  result_t resolve(MessageMap* messages, ostringstream& errorMessage,
       void (*readMessageFunc)(Message* message) = NULL) override;
 
   // @copydoc
-  virtual bool isTrue() override;
+  bool isTrue() override;
 
 
  private:
@@ -1209,7 +1209,7 @@ class LoadInstruction : public Instruction {
   virtual ~LoadInstruction() { }
 
   // @copydoc
-  virtual result_t execute(MessageMap* messages, ostringstream& log, Condition* condition) override;
+  result_t execute(MessageMap* messages, ostringstream& log, Condition* condition) override;
 
 
  private:
@@ -1250,7 +1250,7 @@ class MessageMap : public FileReader {
   result_t add(Message* message, bool storeByName = true);
 
   // @copydoc
-  virtual result_t addDefaultFromFile(vector< vector<string> >& defaults, vector<string>& row,
+  result_t addDefaultFromFile(vector< vector<string> >& defaults, vector<string>& row,
     vector<string>::iterator& begin, string defaultDest, string defaultCircuit, string defaultSuffix,
     const string& filename, unsigned int lineNo) override;
 
@@ -1264,7 +1264,7 @@ class MessageMap : public FileReader {
   result_t readConditions(string& types, const string& filename, Condition*& condition);
 
   // @copydoc
-  virtual result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
+  result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
     vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit,
     const string& defaultSuffix, const string& filename, unsigned int lineNo) override;
 
