@@ -193,7 +193,7 @@ MainLoop::~MainLoop() {
 #define CHECK_DELAY 24*3600
 
 /** the initial delay for running the update check. */
-#define CHECK_INITIAL_DELAY 5
+#define CHECK_INITIAL_DELAY 2*60
 
 void MainLoop::run() {
   bool reload = true;
