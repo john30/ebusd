@@ -71,7 +71,7 @@ class MqttHandler : public DataSink, public DataSource, public Thread {
   virtual ~MqttHandler();
 
   // @copydoc
-  virtual void start();
+  virtual void start() override;
 
   /**
    * Notify the handler of a received MQTT message.
@@ -83,7 +83,7 @@ class MqttHandler : public DataSink, public DataSource, public Thread {
 
  protected:
   // @copydoc
-  virtual void run();
+  virtual void run() override;
 
 
  private:
