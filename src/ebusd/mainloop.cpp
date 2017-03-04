@@ -189,13 +189,20 @@ MainLoop::~MainLoop() {
   }
 }
 
+/** the delay for running the update check. */
+#define CHECK_DELAY 24*3600
+
+/** the initial delay for running the update check. */
+#define CHECK_INITIAL_DELAY 5
+
 void MainLoop::run() {
   bool reload = true;
-  time_t lastTaskRun, now, lastSignal = 0, since, sinkSince = 1;
+  time_t lastTaskRun, now, lastSignal = 0, since, sinkSince = 1, nextCheckRun;
   int taskDelay = 5;
   symbol_t lastScanAddress = 0;  // 0 is known to be a master
   time(&now);
   lastTaskRun = now;
+  nextCheckRun = now + CHECK_INITIAL_DELAY;
   ostringstream updates;
   list<DataSink*> dataSinks;
   deque<Message*> messages;
@@ -257,6 +264,7 @@ void MainLoop::run() {
           taskDelay = 5;
           lastScanAddress = 0;
         } else {
+          nextCheckRun = now + CHECK_INITIAL_DELAY;
           SlaveSymbolString slave;
           if (scanned) {
             Message* message = m_messages->getScanMessage(lastScanAddress);
@@ -283,6 +291,72 @@ void MainLoop::run() {
             }
           }
         }
+      }
+      if (now > nextCheckRun) {
+        TCPClient client;
+        TCPSocket* socket = client.connect("ebusd.eu", 80);
+        if (socket) {
+          socket->setTimeout(5);
+          ostringstream ostr;
+          ostr << "GET /updatecheck/?v=" << PACKAGE_VERSION << "." << REVISION;
+          if (m_reconnectCount) {
+            ostr << "&c=" << m_reconnectCount;
+          }
+          m_busHandler->formatUpdateInfo(ostr);
+          ostr << " HTTP/1.0\r\n";
+          ostr << "Host: ebusd.eu" << "\r\n";
+          ostr << "User-Agent: " << PACKAGE_NAME << "/" << PACKAGE_VERSION << "\r\n";
+          ostr << "\r\n";
+          string str = ostr.str();
+          const char* cstr = str.c_str();
+          size_t len = str.size();
+          for (size_t pos = 0; pos < len; ) {
+            ssize_t sent = socket->send(cstr + pos, len - pos);
+            if (sent < 0) {
+              len = 0;
+              logError(lf_main, "update check send error");
+              break;
+            }
+            pos += sent;
+          }
+          if (len) {
+            char buf[512];
+            ssize_t received = socket->recv(buf, sizeof(buf));
+            string result;
+            if (received > 15) {  // "HTTP/1.1 200 OK"
+              buf[received - (received == sizeof(buf) ? 1 : 0)] = 0;
+              result = string(buf);
+            }
+            if (result.substr(0, 5) == "HTTP/") {
+              string message;
+              size_t pos = result.find("\r\n\r\n");
+              if (pos != string::npos) {
+                message = result.substr(pos+4);
+              }
+              pos = result.find(" ");
+              if (pos != string::npos) {
+                result = result.substr(pos+1);
+              }
+              pos = result.find("\r\n");
+              if (pos != string::npos) {
+                result = result.substr(0, pos);
+              }
+              if (result == "200 OK") {
+                m_updateCheck = message == "" ? "unknown" : message;
+                logNotice(lf_main, "update check: %s", message.c_str());
+              } else {
+                logError(lf_main, "update check error: %s", result.c_str());
+              }
+            } else {
+              logError(lf_main, "update check receive error");
+            }
+          }
+          delete socket;
+          socket = NULL;
+        } else {
+          logError(lf_main, "update check connect error");
+        }
+        nextCheckRun = now + CHECK_DELAY;
       }
       time(&lastTaskRun);
     }
@@ -1398,6 +1472,9 @@ string MainLoop::executeInfo(vector<string> &args, const string user) {
   }
   ostringstream result;
   result << "version: " << PACKAGE_STRING "." REVISION "\n";
+  if (!m_updateCheck.empty()) {
+    result << "update check: " << m_updateCheck << "\n";
+  }
   if (!user.empty()) {
     result << "user: " << user << "\n";
   }

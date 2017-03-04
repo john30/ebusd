@@ -343,6 +343,9 @@ class MainLoop : public Thread, DeviceListener {
 
   /** the registered @a DataHandler instances. */
   list<DataHandler*> m_dataHandlers;
+
+  /** the result of the last update check, or empty. */
+  string m_updateCheck;
 };
 
 }  // namespace ebusd

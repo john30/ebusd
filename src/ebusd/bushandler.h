@@ -456,6 +456,12 @@ class BusHandler : public WaitThread {
   void formatSeenInfo(ostringstream& output);
 
   /**
+   * Format information for running the update check to the @a ostringstream.
+   * @param output the @a ostringstream to append the info to.
+   */
+  void formatUpdateInfo(ostringstream& output);
+
+  /**
    * Send a scan message on the bus and wait for the answer.
    * @param dstAddress the destination slave address to send to.
    * @param slave the @a SlaveSymbolString that will be filled with retrieved slave data.

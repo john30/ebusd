@@ -1199,47 +1199,86 @@ void BusHandler::formatScanResult(ostringstream& output) {
 void BusHandler::formatSeenInfo(ostringstream& output) {
   symbol_t address = 0;
   for (int index = 0; index < 256; index++, address++) {
-    if (isValidAddress(address, false) && ((m_seenAddresses[address]&SEEN) != 0
-        || (!m_device->isReadOnly() && (address == m_ownMasterAddress || address == m_ownSlaveAddress)))) {
-      output << endl << "address " << setfill('0') << setw(2) << hex << static_cast<unsigned>(address);
-      symbol_t master;
-      if (isMaster(address)) {
-        output << ": master";
-        master = address;
-      } else {
-        output << ": slave";
-        master = getMasterAddress(address);
+    bool self = !m_device->isReadOnly() && (address == m_ownMasterAddress || address == m_ownSlaveAddress);
+    if (!isValidAddress(address, false) || ((m_seenAddresses[address]&SEEN) == 0 && !self)) {
+      continue;
+    }
+    output << endl << "address " << setfill('0') << setw(2) << hex << static_cast<unsigned>(address);
+    symbol_t master;
+    if (isMaster(address)) {
+      output << ": master";
+      master = address;
+    } else {
+      output << ": slave";
+      master = getMasterAddress(address);
+    }
+    if (master != SYN) {
+      output << " #" << setw(0) << dec << static_cast<unsigned>(getMasterNumber(master));
+    }
+    if (self) {
+      output << ", ebusd";
+      if (m_answer) {
+        output << " (answering)";
       }
-      if (master != SYN) {
-        output << " #" << setw(0) << dec << static_cast<unsigned>(getMasterNumber(master));
+      if (m_addressConflict && (m_seenAddresses[address]&SEEN) != 0) {
+        output << ", conflict";
       }
-      if (!m_device->isReadOnly() && (address == m_ownMasterAddress || address == m_ownSlaveAddress)) {
-        output << ", ebusd";
-        if (m_answer) {
-          output << " (answering)";
+    }
+    if ((m_seenAddresses[address]&SCAN_DONE) != 0) {
+      output << ", scanned";
+      Message* message = m_messages->getScanMessage(address);
+      if (message != NULL && message->getLastUpdateTime() > 0) {
+        // add detailed scan info: Manufacturer ID SW HW
+        output << " \"";
+        result_t result = message->decodeLastData(output, OF_NAMES);
+        if (result != RESULT_OK) {
+          output << "\" error: " << getResultCode(result);
+        } else {
+          output << "\"";
         }
-        if (m_addressConflict && (m_seenAddresses[address]&SEEN) != 0) {
-          output << ", conflict";
-        }
       }
-      if ((m_seenAddresses[address]&SCAN_DONE) != 0) {
-        output << ", scanned";
-        Message* message = m_messages->getScanMessage(address);
-        if (message != NULL && message->getLastUpdateTime() > 0) {
-          // add detailed scan info: Manufacturer ID SW HW
-          output << " \"";
-          result_t result = message->decodeLastData(output, OF_NAMES);
-          if (result != RESULT_OK) {
-            output << "\" error: " << getResultCode(result);
-          } else {
-            output << "\"";
-          }
-        }
+    }
+    string loadedFiles = m_messages->getLoadedFiles(address);
+    if (!loadedFiles.empty()) {
+      output << ", loaded " << loadedFiles;
+    }
+  }
+}
+
+void BusHandler::formatUpdateInfo(ostringstream& output) {
+  if (hasSignal()) {
+    output << "&s=" << static_cast<unsigned>(m_symPerSec);
+  }
+  output << "&m=" << static_cast<unsigned>(m_masterCount);
+  output << "&ms=" << m_messages->size();
+  output << "&r=" << (m_device->isReadOnly() ? 1 : 0);
+  output << "&an=" << (m_answer ? 1 : 0);
+  output << "&c=" << (m_addressConflict ? 1 : 0);
+  unsigned char address = 0;
+  for (int index = 0; index < 256; index++, address++) {
+    bool self = !m_device->isReadOnly() && (address == m_ownMasterAddress || address == m_ownSlaveAddress);
+    if (!isValidAddress(address, false) || ((m_seenAddresses[address]&SEEN) == 0 && !self)) {
+      continue;
+    }
+    output << "&a[";
+    output << setfill('0') << setw(2) << hex << static_cast<unsigned>(address);
+    output << "]=";
+    if (self) {
+      output << "self";
+    }
+    map<symbol_t, string>::iterator it = m_scanResults.find(address);
+    if (it != m_scanResults.end()) {
+      output << it->second;
+    } else if ((m_seenAddresses[address]&SCAN_DONE) != 0) {
+      Message* message = m_messages->getScanMessage(address);
+      if (message != NULL && message->getLastUpdateTime() > 0) {
+        // add detailed scan info: Manufacturer ID SW HW
+        message->decodeLastData(output, OF_NUMERIC);
       }
-      string loadedFiles = m_messages->getLoadedFiles(address);
-      if (!loadedFiles.empty()) {
-        output << ", loaded " << loadedFiles;
-      }
+    }
+    string loadedFiles = m_messages->getLoadedFiles(address);
+    if (!loadedFiles.empty()) {
+      output << "|" << loadedFiles;
     }
   }
 }
