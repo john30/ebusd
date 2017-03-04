@@ -560,7 +560,7 @@ void MqttHandler::handleTraffic() {
   }
 }
 
-string MqttHandler::getTopic(Message* message, signed char fieldIndex) {
+string MqttHandler::getTopic(Message* message, ssize_t fieldIndex) {
   ostringstream ret;
   for (size_t i = 0; i < m_topicStrs.size(); i++) {
     ret << m_topicStrs[i];
@@ -586,7 +586,7 @@ void MqttHandler::publishMessage(Message* message, ostringstream& updates) {
     return;
   }
   if (m_publishByField) {
-    signed char index = 0;
+    ssize_t index = 0;
     istringstream input(updates.str());
     string token;
     while (getline(input, token, UI_FIELD_SEPARATOR)) {
