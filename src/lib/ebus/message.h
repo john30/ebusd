@@ -187,7 +187,7 @@ class Message {
    * @param key the key.
    * @return the length field from the key.
    */
-  static size_t getKeyLength(uint64_t key) { return key >> (8 * 7 + 5); }
+  static size_t getKeyLength(uint64_t key) { return (size_t)(key >> (8 * 7 + 5)); }
 
   /**
    * Parse an ID part from the input @a string.
