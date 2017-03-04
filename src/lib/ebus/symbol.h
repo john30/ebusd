@@ -230,6 +230,19 @@ class SymbolString {
   unsigned char getDataSize() const { return m_data.size() > (m_isMaster ? 4 : 0) ? m_data[m_isMaster ? 4 : 0] : 0; }
 
   /**
+   * Return the data byte at the specified index (within DD).
+   * @param index the index of the data byte to return (0 up to NN excluding).
+   * @return the data byte at the specified index, or @a SYN if not available.
+   */
+  unsigned char getDataAt(const size_t index) {
+    size_t offset = m_isMaster ? 5 : 1;
+    if (offset+index >= m_data.size()) {
+      return SYN;
+    }
+    return m_data[offset+index];
+  }
+
+  /**
    * Return whether the byte sequence is complete with regard to the header and length field.
    * @return true if the sequence is complete.
    */
