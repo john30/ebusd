@@ -95,6 +95,9 @@ typedef int OutputFormat;
 /** bit flag for @a OutputFormat: JSON format. */
 #define OF_JSON 0x10
 
+/** bit flag for @a OutputFormat: short format (only name and value, no indentation). */
+#define OF_SHORT 0x20
+
 /** the message part in which a data field is stored. */
 enum PartType {
   pt_any,          //!< stored in any data (master or slave)

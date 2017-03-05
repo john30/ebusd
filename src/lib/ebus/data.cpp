@@ -382,16 +382,24 @@ result_t SingleDataField::read(SymbolString& data, size_t offset,
   if (isIgnored() || (fieldName != NULL && (m_name != fieldName || fieldIndex > 0))) {
     return RESULT_EMPTY;
   }
-
+  bool shortFormat = outputFormat & OF_SHORT;
   if (outputFormat & OF_JSON) {
     if (leadingSeparator) {
       output << ",";
     }
+    if (!shortFormat) {
+      output << "\n    ";
+    }
     if (outputIndex >= 0 || m_name.empty() || !(outputFormat & OF_NAMES)) {
-      output << "\n    \"" << static_cast<signed int>(outputIndex < 0 ? 0 : outputIndex) << "\": {\"name\": \""
-          << m_name << "\"" << ", \"value\": ";
+      output << "\"" << static_cast<signed int>(outputIndex < 0 ? 0 : outputIndex) << "\":";
+      if (!shortFormat) {
+        output << " {\"name\": \"" << m_name << "\"" << ", \"value\": ";
+      }
     } else {
-      output << "\n    \"" << m_name << "\": {\"value\": ";
+      output << "\"" << m_name << "\":";
+      if (!shortFormat) {
+        output << " {\"value\": ";
+      }
     }
   } else {
     if (leadingSeparator) {
@@ -406,21 +414,21 @@ result_t SingleDataField::read(SymbolString& data, size_t offset,
   if (result != RESULT_OK) {
     return result;
   }
-  if ((outputFormat & OF_UNITS) && m_unit.length() > 0) {
+  if (!shortFormat && (outputFormat & OF_UNITS) && m_unit.length() > 0) {
     if (outputFormat & OF_JSON) {
       output << ", \"unit\": \"" << m_unit << '"';
     } else {
       output << " " << m_unit;
     }
   }
-  if ((outputFormat & OF_COMMENTS) && m_comment.length() > 0) {
+  if (!shortFormat && (outputFormat & OF_COMMENTS) && m_comment.length() > 0) {
     if (outputFormat & OF_JSON) {
       output << ", \"comment\": \"" << m_comment << '"';
     } else {
       output << " [" << m_comment << "]";
     }
   }
-  if (outputFormat & OF_JSON) {
+  if (!shortFormat && (outputFormat & OF_JSON)) {
     output << "}";
   }
   return RESULT_OK;
@@ -895,7 +903,7 @@ result_t DataFieldSet::read(SymbolString& data, size_t offset,
     ostringstream& output, OutputFormat outputFormat, ssize_t outputIndex,
     bool leadingSeparator, const char* fieldName, ssize_t fieldIndex) {
   bool previousFullByteOffset = true, found = false, findFieldIndex = fieldName != NULL && fieldIndex >= 0;
-  if (!m_uniqueNames && outputIndex < 0) {
+  if (outputIndex < 0 && (!m_uniqueNames || ((outputFormat & OF_JSON) && !(outputFormat & OF_NAMES)))) {
     outputIndex = 0;
   }
   PartType partType = data.isMaster() ? pt_masterData : pt_slaveData;
@@ -938,7 +946,7 @@ result_t DataFieldSet::read(SymbolString& data, size_t offset,
   if (!found) {
     return RESULT_EMPTY;
   }
-  if ((outputFormat & OF_COMMENTS) && m_comment.length() > 0) {
+  if (!(outputFormat & OF_SHORT) && (outputFormat & OF_COMMENTS) && m_comment.length() > 0) {
     if (outputFormat & OF_JSON) {
       output << ",\"comment\": \"" << m_comment << '"';
     } else {
