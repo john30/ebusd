@@ -875,11 +875,12 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
   return RESULT_OK;
 }
 
-result_t loadScanConfigFile(MessageMap* messages, symbol_t address, SlaveSymbolString& data, string& relativeFile,
-    bool verbose) {
-  if (isMaster(address)) {
-    address = getSlaveAddress(data[0]);  // slave address of sending master
+result_t loadScanConfigFile(MessageMap* messages, symbol_t address, string& relativeFile, bool verbose) {
+  Message* message = messages->getScanMessage(address);
+  if (!message) {
+    return RESULT_ERR_NOTFOUND;
   }
+  SlaveSymbolString& data = message->getLastSlaveData();
   if (data.getDataSize() < 1+5+2+2) {
     logError(lf_main, "unable to load scan config %2.2x: slave part too short", address);
     return RESULT_EMPTY;
@@ -1092,7 +1093,7 @@ int main(int argc, char* argv[]) {
       } else {
         message->storeLastData(master, slave);
         string file;
-        res = loadScanConfigFile(s_messageMap, address, slave, file, true);
+        res = loadScanConfigFile(s_messageMap, address, file, true);
         if (res == RESULT_OK) {
           logInfo(lf_main, "scan config %2.2x: file %s loaded", address, file.c_str());
         }

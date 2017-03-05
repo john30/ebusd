@@ -108,8 +108,7 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose = false, bool denyRe
  * @param verbose whether to verbosely log problems.
  * @return the result code.
  */
-result_t loadScanConfigFile(MessageMap* messages, symbol_t address, SlaveSymbolString& data, string& relativeFile,
-    bool verbose = false);
+result_t loadScanConfigFile(MessageMap* messages, symbol_t address, string& relativeFile, bool verbose = false);
 
 }  // namespace ebusd
 
