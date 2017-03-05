@@ -138,18 +138,15 @@ class Message {
    * @param circuit the circuit name, or empty for not storing by name.
    * @param level the optional access level.
    * @param name the message name (unique within the same circuit and type), or empty for not storing by name.
-   * @param isWrite whether this is a write message.
-   * @param isPassive true if message can only be initiated by a participant other than us,
-   * false if message can be initiated by any participant.
    * @param pb the primary ID byte.
    * @param sb the secondary ID byte.
+   * @param broadcast true for broadcast scan message, false for scan message to be sent to a slave address.
    * @param data the @a DataField for encoding/decoding the message.
    * @param deleteData whether to delete the @a DataField during destruction.
    */
   Message(const string circuit, const string level, const string name,
-      const bool isWrite, const bool isPassive,
       const symbol_t pb, const symbol_t sb,
-      DataField* data, const bool deleteData);
+      const bool broadcast, DataField* data, const bool deleteData);
 
 
  public:
@@ -215,8 +212,9 @@ class Message {
 
   /**
    * Create a new scan @a Message instance.
+   * @param broadcast true for broadcast scan message, false for scan message to be sent to a slave address.
    */
-  static Message* createScanMessage();
+  static Message* createScanMessage(bool broadcast = false);
 
   /**
    * Set that this is a special scanning @a Message instance.
@@ -1228,8 +1226,10 @@ class MessageMap : public FileReader {
    * @param addAll whether to add all messages, even if duplicate.
    */
   explicit MessageMap(const bool addAll = false) : FileReader::FileReader(true),
-    m_addAll(addAll), m_maxIdLength(0), m_messageCount(0), m_conditionalMessageCount(0), m_passiveMessageCount(0) {
+    m_addAll(addAll), m_additionalScanMessages(false), m_maxIdLength(0), m_messageCount(0),
+    m_conditionalMessageCount(0), m_passiveMessageCount(0) {
     m_scanMessage = Message::createScanMessage();
+    m_broadcastScanMessage = Message::createScanMessage(true);
   }
 
   /**
@@ -1237,7 +1237,14 @@ class MessageMap : public FileReader {
    */
   virtual ~MessageMap() {
     clear();
-    delete m_scanMessage;
+    if (m_scanMessage) {
+      delete m_scanMessage;
+      m_scanMessage = NULL;
+    }
+    if (m_broadcastScanMessage) {
+      delete m_broadcastScanMessage;
+      m_broadcastScanMessage = NULL;
+    }
   }
 
   /**
@@ -1276,6 +1283,12 @@ class MessageMap : public FileReader {
   Message* getScanMessage(const symbol_t dstAddress = SYN);
 
   /**
+   * Return whether additional scan @a Message instances are available.
+   * @return whether additional scan @a Message instances are available.
+   */
+  bool hasAdditionalScanMessages() { return m_additionalScanMessages; }
+
+  /**
    * Resolve all @a Condition instances.
    * @param verbose whether to verbosely add all problems to the error message.
    * @return @a RESULT_OK on success, or an error code.
@@ -1310,10 +1323,9 @@ class MessageMap : public FileReader {
   /**
    * Get the loaded files for a participant.
    * @param address the slave address.
-   * @return the name of the file(s) loaded for the participant (separated by comma and enclosed in double quotes),
-   * or empty.
+   * @return the loaded configuration files (pairs of file name and comment).
    */
-  string getLoadedFiles(symbol_t address);
+  vector<string>& getLoadedFiles(symbol_t address);
 
   /**
    * Get the stored @a Message instances for the key.
@@ -1448,11 +1460,17 @@ class MessageMap : public FileReader {
   /** whether to add all messages, even if duplicate. */
   const bool m_addAll;
 
-  /** the @a Message instance used for scanning. */
+  /** the @a Message instance used for scanning a slave. */
   Message* m_scanMessage;
 
-  /** the loaded configuration files by slave address. */
-  map<symbol_t, string> m_loadedFiles;
+  /** the @a Message instance used for sending the broadcast scan request. */
+  Message* m_broadcastScanMessage;
+
+  /** whether additional scan @a Message instances are available. */
+  bool m_additionalScanMessages;
+
+  /** the loaded configuration files by slave address (pairs of file name and comment). */
+  map<symbol_t, vector<string>> m_loadedFiles;
 
   /** the maximum ID length used by any of the known @a Message instances. */
   size_t m_maxIdLength;

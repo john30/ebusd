@@ -80,27 +80,23 @@ Message::Message(const string circuit, const string level, const string name,
 }
 
 Message::Message(const string circuit, const string level, const string name,
-    const bool isWrite, const bool isPassive,
     const symbol_t pb, const symbol_t sb,
-    DataField* data, const bool deleteData)
-    : m_circuit(circuit), m_level(level), m_name(name), m_isWrite(isWrite),
-      m_isPassive(isPassive), m_comment(),
-      m_srcAddress(SYN), m_dstAddress(SYN),
-      m_data(data), m_deleteData(true),
+    const bool broadcast, DataField* data, const bool deleteData)
+    : m_circuit(circuit), m_level(level), m_name(name), m_isWrite(broadcast),
+      m_isPassive(false), m_comment(),
+      m_srcAddress(SYN), m_dstAddress(broadcast ? BROADCAST : SYN),
+      m_data(data), m_deleteData(deleteData),
       m_pollPriority(0),
-      m_usedByCondition(false), m_isScanMessage(false), m_condition(NULL),
+      m_usedByCondition(false), m_isScanMessage(true), m_condition(NULL),
       m_lastUpdateTime(0), m_lastChangeTime(0), m_pollCount(0), m_lastPollTime(0) {
   m_id.push_back(pb);
   m_id.push_back(sb);
   uint64_t key = 0;
-  if (!isPassive) {
-    key |= (isWrite ? 0x1fLL : 0x1eLL) << (8 * 7);  // special values for active
-  }
-  key |= (uint64_t)SYN << (8 * 6);
+  key |= (broadcast ? 0x1fLL : 0x1eLL) << (8 * 7);  // special values for active
+  key |= (uint64_t)(broadcast ? BROADCAST : SYN) << (8 * 6);
   key |= (uint64_t)pb << (8 * 5);
   key |= (uint64_t)sb << (8 * 4);
   m_key = key;
-  setScanMessage();
 }
 
 
@@ -473,8 +469,8 @@ result_t Message::create(vector<string>::iterator& it, const vector<string>::ite
   return RESULT_OK;
 }
 
-Message* Message::createScanMessage() {
-  return new Message("scan", "", "", false, false, 0x07, 0x04, DataFieldSet::getIdentFields(), true);
+Message* Message::createScanMessage(bool broadcast) {
+  return new Message("scan", "", "", 0x07, 0x04, broadcast, DataFieldSet::getIdentFields(), !broadcast);
 }
 
 Message* Message::derive(const symbol_t dstAddress, const symbol_t srcAddress, const string circuit) {
@@ -1605,6 +1601,9 @@ result_t MessageMap::add(Message* message, bool storeByName) {
     bool isWrite = message->isWrite();
     string circuit = message->getCircuit();
     FileReader::tolower(circuit);
+    if (circuit == "scan") {
+      m_additionalScanMessages = true;
+    }
     string name = message->getName();
     FileReader::tolower(name);
     string nameKey = string(isPassive ? "P" : (isWrite ? "W" : "R")) + circuit + FIELD_SEPARATOR + name;
@@ -1833,7 +1832,10 @@ Message* MessageMap::getScanMessage(const symbol_t dstAddress) {
   if (dstAddress == SYN) {
     return m_scanMessage;
   }
-  if (!isValidAddress(dstAddress, false) || isMaster(dstAddress)) {
+  if (dstAddress == BROADCAST) {
+    return m_broadcastScanMessage;
+  }
+  if (!isValidAddress(dstAddress, true) || isMaster(dstAddress)) {
     return NULL;
   }
   uint64_t key = m_scanMessage->getDerivedKey(dstAddress);
@@ -1937,22 +1939,13 @@ result_t MessageMap::executeInstructions(ostringstream& log, void (*readMessageF
 
 void MessageMap::addLoadedFile(symbol_t address, string file, string comment) {
   if (!file.empty()) {
-    string fileComment = "\""+file+"\"";
-    if (!comment.empty()) {
-      fileComment += " ("+comment+")";
-    }
-    if (m_loadedFiles.find(address) == m_loadedFiles.end()) {
-      m_loadedFiles[address] = fileComment;
-    } else {
-      m_loadedFiles[address] += ", "+fileComment;
-    }
+    vector<string>& files = m_loadedFiles[address];
+    files.push_back(file);
+    files.push_back(comment);
   }
 }
 
-string MessageMap::getLoadedFiles(symbol_t address) {
-  if (m_loadedFiles.find(address) == m_loadedFiles.end()) {
-    return "";
-  }
+vector<string>& MessageMap::getLoadedFiles(symbol_t address) {
   return m_loadedFiles[address];
 }
 
@@ -2213,6 +2206,7 @@ void MessageMap::clear() {
   m_conditions.clear();
   m_instructions.clear();
   m_maxIdLength = 0;
+  m_additionalScanMessages = false;
 }
 
 Message* MessageMap::getNextPoll() {
