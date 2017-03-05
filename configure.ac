@@ -3,10 +3,10 @@ m4_ifndef([m4_esyscmd_s], [m4_define([m4_chomp_all], [m4_format([[%.*s]], m4_bre
 m4_ifndef([m4_esyscmd_s], [m4_define([m4_esyscmd_s], [m4_chomp_all(m4_esyscmd([$1]))])])
 AC_PREREQ([2.63])
 AC_INIT([ebusd], m4_esyscmd_s([cat VERSION]), [ebusd@ebusd.eu], [ebusd], [https://github.com/john30/ebusd])
-AC_GNU_SOURCE
 
 AC_CONFIG_AUX_DIR([build])
 AC_CONFIG_MACRO_DIR([m4])
+AC_GNU_SOURCE
 
 if test -z $CXXFLAGS; then
 	CXXFLAGS="-fpic -Wall -Wno-unused-function -Wextra -g -O2"
