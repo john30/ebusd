@@ -190,14 +190,18 @@ class ScanRequest : public BusRequest {
  public:
   /**
    * Constructor.
+   * @param deleteOnFinish whether to automatically delete this @a ScanRequest when finished.
    * @param messageMap the @a MessageMap instance.
    * @param messages the @a Message instances to query starting with the primary one.
    * @param slaves the slave addresses to scan.
    * @param busHandler the @a BusHandler instance to notify of final scan result.
+   * @param notifyIndex the offset to the index for notifying the scan result.
    */
-  ScanRequest(MessageMap* messageMap, deque<Message*> messages, deque<symbol_t> slaves, BusHandler* busHandler)
-    : BusRequest(m_master, true), m_messageMap(messageMap), m_index(0), m_allMessages(messages), m_messages(messages),
-      m_slaves(slaves), m_busHandler(busHandler) {
+  ScanRequest(bool deleteOnFinish, MessageMap* messageMap, deque<Message*> messages, deque<symbol_t> slaves,
+      BusHandler* busHandler, size_t notifyIndex = 0)
+    : BusRequest(m_master, deleteOnFinish), m_messageMap(messageMap), m_index(0), m_allMessages(messages),
+      m_messages(messages), m_slaves(slaves), m_busHandler(busHandler), m_notifyIndex(notifyIndex),
+      m_result(RESULT_ERR_NO_SIGNAL) {
     m_message = m_messages.front();
     m_messages.pop_front();
   }
@@ -240,11 +244,14 @@ class ScanRequest : public BusRequest {
   /** the slave addresses to scan. */
   deque<symbol_t> m_slaves;
 
-  /** the @a ostringstream for building the scan result of a single slave. */
-  ostringstream m_scanResult;
-
   /** the @a BusHandler instance to notify of final scan result. */
   BusHandler* m_busHandler;
+
+  /** the offset to the index for notifying the scan result. */
+  size_t m_notifyIndex;
+
+  /** the overall result of handling the request. */
+  result_t m_result;
 };
 
 
@@ -434,14 +441,24 @@ class BusHandler : public WaitThread {
   /**
    * Set the scan result @a string for a scanned slave address.
    * @param dstAddress the scanned slave address.
+   * @param index the index of the result to set (starting with 0 for the ident message).
    * @param str the scan result @a string to set, or empty if not a single part of the scan was successful.
    */
-  void setScanResult(symbol_t dstAddress, string str);
+  void setScanResult(symbol_t dstAddress, size_t index, string str);
 
   /**
    * Called from @a ScanRequest upon completion.
    */
   void setScanFinished();
+
+  /**
+   * Format the scan result for a single slave to the @a ostringstream.
+   * @param slave the slave address for which to format the scan result.
+   * @param leadingNewline whether to insert a newline before the scan result.
+   * @param output the @a ostringstream to format the scan result to.
+   * @return true when a scan result was formatted, false otherwise.
+   */
+  bool formatScanResult(symbol_t slave, ostringstream& output, bool leadingNewline);
 
   /**
    * Format the scan result to the @a ostringstream.
@@ -464,10 +481,9 @@ class BusHandler : public WaitThread {
   /**
    * Send a scan message on the bus and wait for the answer.
    * @param dstAddress the destination slave address to send to.
-   * @param slave the @a SlaveSymbolString that will be filled with retrieved slave data.
    * @return the result code.
    */
-  result_t scanAndWait(symbol_t dstAddress, SlaveSymbolString& slave);
+  result_t scanAndWait(symbol_t dstAddress, bool loadScanConfig = false, bool reload = false);
 
   /**
    * Start or stop grabbing unknown messages.
@@ -516,10 +532,9 @@ class BusHandler : public WaitThread {
   /**
    * Get the next slave address that still needs to be scanned or loaded.
    * @param lastAddress the last returned slave address, or 0 for returning the first one.
-   * @param scanned set to true when the slave is already scanned but not yet loaded, set to false when it still needs to be scanned and loaded.
    * @return the next slave address that still needs to be scanned or loaded, or @a SYN.
    */
-  symbol_t getNextScanAddress(symbol_t lastAddress, bool& scanned);
+  symbol_t getNextScanAddress(symbol_t lastAddress, bool onlyScanned = false);
 
   /**
    * Set the state of the participant to configuration @a LOADED.
@@ -555,6 +570,17 @@ class BusHandler : public WaitThread {
    * Called when a passive reception was successfully completed.
    */
   void receiveCompleted();
+
+  /**
+   * Prepare a @a ScanRequest.
+   * @param slave the single slave address to scan, or @a SYN for multiple.
+   * @param full true for a full scan (all slaves), false for scanning only already seen slaves.
+   * @param levels the current user's access levels.
+   * @param reload true to force sending the scan message, false to send only if necessary (only for single slave).
+   * @param request the created @a ScanRequest (may be NULL with positive result if scan is not needed).
+   * @return the result code.
+   */
+  result_t prepareScan(symbol_t slave, bool full, string levels, bool& reload, ScanRequest*& request);
 
   /** the @a Device instance for accessing the bus. */
   Device* m_device;
@@ -662,8 +688,8 @@ class BusHandler : public WaitThread {
   /** the participating bus addresses seen so far (0 if not seen yet, or combination of @a SEEN bits). */
   symbol_t m_seenAddresses[256];
 
-  /** the scan results by slave address. */
-  map<symbol_t, string> m_scanResults;
+  /** the scan results by slave address and index. */
+  map<symbol_t, vector<string>> m_scanResults;
 
   /** whether to grab messages. */
   bool m_grabMessages;

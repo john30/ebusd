@@ -22,6 +22,7 @@
 
 #include "ebusd/bushandler.h"
 #include <iomanip>
+#include "ebusd/main.h"
 #include "lib/utils/log.h"
 
 namespace ebusd {
@@ -102,16 +103,12 @@ result_t ScanRequest::prepare(symbol_t ownMasterAddress) {
     return RESULT_ERR_EOF;
   }
   symbol_t dstAddress = m_slaves.front();
-  if (m_index == 0 && m_messages.size() == m_allMessages.size()) {  // first message for this address
-    m_busHandler->setScanResult(dstAddress, "");
-  }
   istringstream input;
-  result_t result = m_message->prepareMaster(ownMasterAddress, m_master, input, UI_FIELD_SEPARATOR, dstAddress,
-      m_index);
-  if (result >= RESULT_OK) {
+  m_result = m_message->prepareMaster(ownMasterAddress, m_master, input, UI_FIELD_SEPARATOR, dstAddress, m_index);
+  if (m_result >= RESULT_OK) {
     logInfo(lf_bus, "scan %2.2x cmd: %s", dstAddress, m_master.getStr().c_str());
   }
-  return result;
+  return m_result;
 }
 
 bool ScanRequest::notify(result_t result, SlaveSymbolString& slave) {
@@ -137,43 +134,52 @@ bool ScanRequest::notify(result_t result, SlaveSymbolString& slave) {
       }
     }
     if (result == RESULT_OK) {
-      result = m_message->decodeLastData(m_scanResult, 0, true);  // decode data
+      ostringstream output;
+      result = m_message->decodeLastData(output, 0, true);  // decode data
+      string str = output.str();
+      m_busHandler->setScanResult(dstAddress, m_notifyIndex+m_index, str);
     }
   }
   if (result < RESULT_OK) {
     if (!m_slaves.empty()) {
       m_slaves.pop_front();
     }
-    if (result == RESULT_ERR_TIMEOUT) {
-      logNotice(lf_bus, "scan %2.2x timed out (%d slaves left)", dstAddress, m_slaves.size());
-    } else {
-      logError(lf_bus, "scan %2.2x failed (%d slaves left): %s", dstAddress, m_slaves.size(), getResultCode(result));
+    if (m_deleteOnFinish) {
+      if (result == RESULT_ERR_TIMEOUT) {
+        logNotice(lf_bus, "scan %2.2x timed out (%d slaves left)", dstAddress, m_slaves.size());
+      } else {
+        logError(lf_bus, "scan %2.2x failed (%d slaves left): %s", dstAddress, m_slaves.size(), getResultCode(result));
+      }
     }
     m_messages.clear();  // skip remaining secondary messages
   } else if (m_messages.empty()) {
     if (!m_slaves.empty()) {
       m_slaves.pop_front();
     }
-    logNotice(lf_bus, "scan %2.2x completed (%d slaves left)", dstAddress, m_slaves.size());
+    if (m_deleteOnFinish) {
+      logNotice(lf_bus, "scan %2.2x completed (%d slaves left)", dstAddress, m_slaves.size());
+    }
   }
-  if (m_messages.empty()) {  // last message for this address
-    m_busHandler->setScanResult(dstAddress, m_scanResult.str());
-  }
+  m_result = result;
   if (m_slaves.empty()) {
-    logNotice(lf_bus, "scan finished");
+    if (m_deleteOnFinish) {
+      logNotice(lf_bus, "scan finished");
+    }
     m_busHandler->setScanFinished();
     return false;
   }
   if (m_messages.empty()) {
     m_messages = m_allMessages;
-    m_scanResult.str("");
-    m_scanResult.clear();
   }
   m_index = 0;
   m_message = m_messages.front();
   m_messages.pop_front();
-  if (prepare(m_master[0]) < RESULT_OK) {
+  result = prepare(m_master[0]);
+  if (result < RESULT_OK) {
     m_busHandler->setScanFinished();
+    if (result != RESULT_ERR_EOF) {
+      m_result = result;
+    }
     return false;  // give up
   }
   return true;
@@ -373,16 +379,16 @@ result_t BusHandler::readFromBus(Message* message, string inputStr, const symbol
 
 void BusHandler::run() {
   unsigned int symCount = 0;
-  time_t lastTime;
+  time_t now, lastTime;
   time(&lastTime);
+  lastTime += 2;
   do {
     if (m_device->isValid() && !m_reconnect) {
       result_t result = handleSymbol();
-      if (result != RESULT_ERR_TIMEOUT) {
+      time(&now);
+      if (result != RESULT_ERR_TIMEOUT && now >= lastTime) {
         symCount++;
       }
-      time_t now;
-      time(&now);
       if (now > lastTime) {
         m_symPerSec = symCount / (unsigned int)(now-lastTime);
         if (m_symPerSec > m_maxSymPerSec) {
@@ -407,6 +413,8 @@ void BusHandler::run() {
         setState(bs_noSignal, result);
       }
       symCount = 0;
+      time(&lastTime);
+      lastTime += 2;
     }
   } while (isRunning());
 }
@@ -1029,7 +1037,6 @@ void BusHandler::receiveCompleted() {
       Message* message = m_messages->getScanMessage(slaveAddress);
       if (message && (message->getLastUpdateTime() == 0 || message->getLastSlaveData().getDataSize() < 10)) {
         // e.g. 10fe07040a b5564149303001248901
-        m_seenAddresses[slaveAddress] |= SCAN_INIT;
         MasterSymbolString dummyMaster;
         istringstream input;
         result_t result = message->prepareMaster(m_ownMasterAddress, dummyMaster, input);
@@ -1040,9 +1047,14 @@ void BusHandler::receiveCompleted() {
             idData.push_back(m_command.dataAt(i));
           }
           result = message->storeLastData(idData, 0);
-        }
-        if (result == RESULT_OK) {
-          m_seenAddresses[slaveAddress] |= SCAN_DONE;
+          if (result == RESULT_OK) {
+            ostringstream output;
+            result = message->decodeLastData(output, 0, true);
+            if (result == RESULT_OK) {
+              string str = output.str();
+              setScanResult(slaveAddress, 0, str);
+            }
+          }
         }
         logNotice(lf_update, "store BC ident: %s", getResultCode(result));
       }
@@ -1103,10 +1115,12 @@ void BusHandler::receiveCompleted() {
   }
 }
 
-result_t BusHandler::startScan(bool full, string levels) {
-  if (m_runningScans > 0) {
-    return RESULT_ERR_DUPLICATE;
+result_t BusHandler::prepareScan(symbol_t slave, bool full, string levels, bool& reload, ScanRequest*& request) {
+  Message* scanMessage = m_messages->getScanMessage();
+  if (scanMessage == NULL) {
+    return RESULT_ERR_NOTFOUND;
   }
+
   deque<Message*> messages = m_messages->findAll("scan", "", levels, true);
   for (deque<Message*>::iterator it = messages.begin(); it < messages.end(); it++) {
     Message* message = *it;
@@ -1115,42 +1129,74 @@ result_t BusHandler::startScan(bool full, string levels) {
     }
   }
 
-  Message* scanMessage = m_messages->getScanMessage();
-  if (scanMessage == NULL) {
-    return RESULT_ERR_NOTFOUND;
-  }
-  m_scanResults.clear();
-
   deque<symbol_t> slaves;
-  for (symbol_t slave = 1; slave != 0; slave++) {  // 0 is known to be a master
-    if (!isValidAddress(slave, false) || isMaster(slave)) {
-      continue;
-    }
-    if (!full && (m_seenAddresses[slave]&SEEN) == 0) {
-      symbol_t master = getMasterAddress(slave);  // check if we saw the corresponding master already
-      if (master == SYN || (m_seenAddresses[master]&SEEN) == 0) {
-        continue;
+  if (slave != SYN) {
+    slaves.push_back(slave);
+    if (!reload) {
+      Message* message = m_messages->getScanMessage(slave);
+      if (message == NULL || message->getLastChangeTime() == 0) {
+        reload = true;
       }
     }
-    slaves.push_back(slave);
+  } else {
+    reload = true;
+    for (slave = 1; slave != 0; slave++) {  // 0 is known to be a master
+      if (!isValidAddress(slave, false) || isMaster(slave)) {
+        continue;
+      }
+      if (!full && (m_seenAddresses[slave]&SEEN) == 0) {
+        symbol_t master = getMasterAddress(slave);  // check if we saw the corresponding master already
+        if (master == SYN || (m_seenAddresses[master]&SEEN) == 0) {
+          continue;
+        }
+      }
+      slaves.push_back(slave);
+    }
   }
-  messages.push_front(scanMessage);
-  ScanRequest* request = new ScanRequest(m_messages, messages, slaves, this);
+  if (reload) {
+    messages.push_front(scanMessage);
+  }
+  if (messages.empty()) {
+    return RESULT_OK;
+  }
+  request = new ScanRequest(slave == SYN, m_messages, messages, slaves, this, reload ? 0 : 1);
   result_t result = request->prepare(m_ownMasterAddress);
   if (result < RESULT_OK) {
     delete request;
+    request = NULL;
     return result == RESULT_ERR_EOF ? RESULT_EMPTY : result;
   }
+  return RESULT_OK;
+}
+
+result_t BusHandler::startScan(bool full, string levels) {
+  if (m_runningScans > 0) {
+    return RESULT_ERR_DUPLICATE;
+  }
+  ScanRequest* request = NULL;
+  bool reload = true;
+  result_t result = prepareScan(SYN, full, levels, reload, request);
+  if (result != RESULT_OK) {
+    return result;
+  }
+  if (!request) {
+    return RESULT_ERR_NOTFOUND;
+  }
+  m_scanResults.clear();
   m_runningScans++;
   m_nextRequests.push(request);
   return RESULT_OK;
 }
 
-void BusHandler::setScanResult(symbol_t dstAddress, string str) {
+void BusHandler::setScanResult(symbol_t dstAddress, size_t index, string str) {
   m_seenAddresses[dstAddress] |= SCAN_INIT;
   if (str.length() > 0) {
     m_seenAddresses[dstAddress] |= SCAN_DONE;
-    m_scanResults[dstAddress] = str;
+    vector<string>& result = m_scanResults[dstAddress];
+    if (index >= result.size()) {
+      result.resize(index+1);
+    }
+    result[index] = str;
     logNotice(lf_bus, "scan %2.2x: %s", dstAddress, str.c_str());
   }
 }
@@ -1161,20 +1207,29 @@ void BusHandler::setScanFinished() {
   }
 }
 
+bool BusHandler::formatScanResult(symbol_t slave, ostringstream& output, bool leadingNewline) {
+  map<symbol_t, vector<string>>::iterator it = m_scanResults.find(slave);
+  if (it == m_scanResults.end()) {
+    return false;
+  }
+  if (leadingNewline) {
+    output << endl;
+  }
+  output << hex << setw(2) << setfill('0') << static_cast<unsigned>(slave);
+  for (auto result : it->second) {
+    output << result;
+  }
+  return true;
+}
+
 void BusHandler::formatScanResult(ostringstream& output) {
   if (m_runningScans > 0) {
     output << m_runningScans << " scan(s) still running" << endl;
   }
   bool first = true;
   for (symbol_t slave = 1; slave != 0; slave++) {  // 0 is known to be a master
-    map<symbol_t, string>::iterator it = m_scanResults.find(slave);
-    if (it != m_scanResults.end()) {
-      if (first) {
-        first = false;
-      } else {
-        output << endl;
-      }
-      output << hex << setw(2) << setfill('0') << static_cast<unsigned>(slave) << it->second;
+    if (formatScanResult(slave, output, !first)) {
+      first = false;
     }
   }
   if (first) {
@@ -1199,8 +1254,8 @@ void BusHandler::formatScanResult(ostringstream& output) {
 void BusHandler::formatSeenInfo(ostringstream& output) {
   symbol_t address = 0;
   for (int index = 0; index < 256; index++, address++) {
-    bool self = !m_device->isReadOnly() && (address == m_ownMasterAddress || address == m_ownSlaveAddress);
-    if (!isValidAddress(address, false) || ((m_seenAddresses[address]&SEEN) == 0 && !self)) {
+    bool ownAddress = !m_device->isReadOnly() && (address == m_ownMasterAddress || address == m_ownSlaveAddress);
+    if (!isValidAddress(address, false) || ((m_seenAddresses[address]&SEEN) == 0 && !ownAddress)) {
       continue;
     }
     output << endl << "address " << setfill('0') << setw(2) << hex << static_cast<unsigned>(address);
@@ -1215,7 +1270,7 @@ void BusHandler::formatSeenInfo(ostringstream& output) {
     if (master != SYN) {
       output << " #" << setw(0) << dec << static_cast<unsigned>(getMasterNumber(master));
     }
-    if (self) {
+    if (ownAddress) {
       output << ", ebusd";
       if (m_answer) {
         output << " (answering)";
@@ -1238,81 +1293,121 @@ void BusHandler::formatSeenInfo(ostringstream& output) {
         }
       }
     }
-    string loadedFiles = m_messages->getLoadedFiles(address);
+    vector<string> loadedFiles = m_messages->getLoadedFiles(address);
     if (!loadedFiles.empty()) {
-      output << ", loaded " << loadedFiles;
+      bool first = true;
+      for (vector<string>::iterator it = loadedFiles.begin(); it != loadedFiles.end(); it++) {
+        if (first) {
+          first = false;
+          output << ", loaded \"";
+        } else {
+          output << ", \"";
+        }
+        output << *it << "\"";
+        it++;
+        if (!(*it).empty()) {
+          output << " (" << *it << ")";
+        }
+      }
     }
   }
 }
 
 void BusHandler::formatUpdateInfo(ostringstream& output) {
   if (hasSignal()) {
-    output << "&s=" << static_cast<unsigned>(m_symPerSec);
+    output << ",\"s\":" << m_maxSymPerSec;
   }
-  output << "&m=" << static_cast<unsigned>(m_masterCount);
-  output << "&ms=" << m_messages->size();
-  output << "&r=" << (m_device->isReadOnly() ? 1 : 0);
-  output << "&an=" << (m_answer ? 1 : 0);
-  output << "&c=" << (m_addressConflict ? 1 : 0);
+  output << ",\"c\":" << m_masterCount;
+  output << ",\"m\":" << m_messages->size();
+  output << ",\"r\":" << (m_device->isReadOnly() ? 1 : 0);
+  output << ",\"an\":" << (m_answer ? 1 : 0);
+  output << ",\"ac\":" << (m_addressConflict ? 1 : 0);
   unsigned char address = 0;
   for (int index = 0; index < 256; index++, address++) {
-    bool self = !m_device->isReadOnly() && (address == m_ownMasterAddress || address == m_ownSlaveAddress);
-    if (!isValidAddress(address, false) || ((m_seenAddresses[address]&SEEN) == 0 && !self)) {
+    bool ownAddress = !m_device->isReadOnly() && (address == m_ownMasterAddress || address == m_ownSlaveAddress);
+    if (!isValidAddress(address, false) || ((m_seenAddresses[address]&SEEN) == 0 && !ownAddress)) {
       continue;
     }
-    output << "&a[";
-    output << setfill('0') << setw(2) << hex << static_cast<unsigned>(address);
-    output << "]=";
-    if (self) {
-      output << "self";
-    }
-    map<symbol_t, string>::iterator it = m_scanResults.find(address);
+    output << ",\"" << setfill('0') << setw(2) << hex << static_cast<unsigned>(address);
+    output << "\":{\"o\":" << (ownAddress ? 1 : 0);
+    map<symbol_t, vector<string>>::iterator it = m_scanResults.find(address);
     if (it != m_scanResults.end()) {
-      output << it->second;
-    } else if ((m_seenAddresses[address]&SCAN_DONE) != 0) {
+      output << ",\"s\":\"";
+      for (auto result : it->second) {
+        output << result;
+      }
+      output << "\"";
+    }
+    if ((m_seenAddresses[address]&SCAN_DONE) != 0) {
       Message* message = m_messages->getScanMessage(address);
       if (message != NULL && message->getLastUpdateTime() > 0) {
         // add detailed scan info: Manufacturer ID SW HW
-        message->decodeLastData(output, OF_NUMERIC);
+        message->decodeLastData(output, OF_NAMES|OF_NUMERIC|OF_JSON|OF_SHORT, true);
       }
     }
-    string loadedFiles = m_messages->getLoadedFiles(address);
+    vector<string> loadedFiles = m_messages->getLoadedFiles(address);
     if (!loadedFiles.empty()) {
-      output << "|" << loadedFiles;
+      output << ",\"f\":[";
+      bool first = true;
+      for (vector<string>::iterator it = loadedFiles.begin(); it != loadedFiles.end(); it++) {
+        if (first) {
+          first = false;
+        } else {
+          output << ",";
+        }
+        output << "{\"f\":\"" << *it << "\"";
+        it++;
+        if (!(*it).empty()) {
+          output << ",\"c\":\"" << *it << "\"";
+        }
+        output << "}";
+      }
+      output << "]";
     }
+    output << "}";
   }
 }
 
-result_t BusHandler::scanAndWait(symbol_t dstAddress, SlaveSymbolString& slave) {
-  if (!isValidAddress(dstAddress) || isMaster(dstAddress)) {
+result_t BusHandler::scanAndWait(symbol_t dstAddress, bool loadScanConfig, bool reload) {
+  if (!isValidAddress(dstAddress, false) || isMaster(dstAddress)) {
     return RESULT_ERR_INVALID_ADDR;
   }
-  m_seenAddresses[dstAddress] |= SCAN_INIT;
-  Message* scanMessage = m_messages->getScanMessage();
-  if (scanMessage == NULL) {
-    return RESULT_ERR_NOTFOUND;
-  }
-  istringstream input;
-  MasterSymbolString master;
-  result_t result = scanMessage->prepareMaster(m_ownMasterAddress, master, input, UI_FIELD_SEPARATOR, dstAddress);
-  if (result == RESULT_OK) {
-    result = sendAndWait(master, slave);
-    if (result == RESULT_OK) {
-      Message* message = m_messages->getScanMessage(dstAddress);
-      if (message != NULL && message != scanMessage) {
-        scanMessage = message;
-        // update the cache, expected to work since this is a clone
-        scanMessage->storeLastData(master, 0);
-      }
-    }
-    if (result != RESULT_ERR_NO_SIGNAL) {
-      m_seenAddresses[dstAddress] |= SCAN_DONE;
-    }
-  }
-  if (result != RESULT_OK || slave.getDataSize() == 0) {  // avoid "invalid position" during decode
+  ScanRequest* request = NULL;
+  bool hasAdditionalScanMessages = m_messages->hasAdditionalScanMessages();
+  result_t result = prepareScan(dstAddress, false, "", reload, request);
+  if (result != RESULT_OK) {
     return result;
   }
-  return scanMessage->storeLastData(slave, 0);  // update the cache
+  if (request) {
+    if (reload) {
+      m_scanResults.erase(dstAddress);
+    } else if (m_scanResults.find(dstAddress) != m_scanResults.end()) {
+      m_scanResults[dstAddress].resize(1);
+    }
+    m_runningScans++;
+    m_nextRequests.push(request);
+    bool success = m_finishedRequests.remove(request, true);
+    result = success ? request->m_result : RESULT_ERR_TIMEOUT;
+    delete request;
+    request = NULL;
+  }
+  if (result != RESULT_OK) {
+    return result;
+  }
+  if (loadScanConfig) {
+    string file;
+    result = loadScanConfigFile(m_messages, dstAddress, file);
+    if (result == RESULT_OK) {
+      setScanConfigLoaded(dstAddress, file);
+      if (!hasAdditionalScanMessages && m_messages->hasAdditionalScanMessages()) {
+        // additional scan messages now available
+        scanAndWait(dstAddress, false, false);
+      }
+    } else {
+      setScanConfigLoaded(dstAddress, "");
+    }
+  }
+  return result;
 }
 
 bool BusHandler::enableGrab(bool enable) {
@@ -1340,7 +1435,7 @@ void BusHandler::formatGrabResult(const bool unknown, ostringstream& output, con
   }
 }
 
-symbol_t BusHandler::getNextScanAddress(symbol_t lastAddress, bool& scanned) {
+symbol_t BusHandler::getNextScanAddress(symbol_t lastAddress, bool onlyScanned) {
   if (lastAddress == SYN) {
     return SYN;
   }
@@ -1348,13 +1443,22 @@ symbol_t BusHandler::getNextScanAddress(symbol_t lastAddress, bool& scanned) {
     if (!isValidAddress(lastAddress, false) || isMaster(lastAddress)) {
       continue;
     }
-    if ((m_seenAddresses[lastAddress]&(SEEN|LOAD_INIT)) == SEEN) {
-      scanned = (m_seenAddresses[lastAddress]&SCAN_INIT) != 0;
+    if (onlyScanned) {
+      if ((m_seenAddresses[lastAddress]&(LOAD_INIT|SCAN_DONE)) == SCAN_DONE) {
+        return lastAddress;
+      }
+    } else if ((m_seenAddresses[lastAddress]&(SEEN|LOAD_INIT)) == SEEN) {
       return lastAddress;
     }
     symbol_t master = getMasterAddress(lastAddress);
-    if (master != SYN && (m_seenAddresses[master]&SEEN) != 0 && (m_seenAddresses[lastAddress]&LOAD_INIT) == 0) {
-      scanned = (m_seenAddresses[lastAddress]&SCAN_INIT) != 0;
+    if (master == SYN || (m_seenAddresses[master]&SEEN) == 0) {
+      continue;
+    }
+    if (onlyScanned) {
+      if ((m_seenAddresses[lastAddress]&(LOAD_INIT|SCAN_DONE)) == SCAN_DONE) {
+        return lastAddress;
+      }
+    } else if ((m_seenAddresses[lastAddress]&LOAD_INIT) == 0) {
       return lastAddress;
     }
   }

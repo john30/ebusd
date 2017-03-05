@@ -197,10 +197,11 @@ MainLoop::~MainLoop() {
 
 void MainLoop::run() {
   bool reload = true;
-  time_t lastTaskRun, now, lastSignal = 0, since, sinkSince = 1, nextCheckRun;
+  time_t lastTaskRun, now, start, lastSignal = 0, since, sinkSince = 1, nextCheckRun;
   int taskDelay = 5;
   symbol_t lastScanAddress = 0;  // 0 is known to be a master
   time(&now);
+  start = now;
   lastTaskRun = now;
   nextCheckRun = now + CHECK_INITIAL_DELAY;
   ostringstream updates;
@@ -233,20 +234,33 @@ void MainLoop::run() {
         m_reconnectCount++;
       }
       if (m_scanConfig) {
+        bool loadDelay = false;
         if (m_initialScan != ESC && reload && m_busHandler->hasSignal()) {
+          loadDelay = true;
           result_t result = RESULT_ERR_NO_SIGNAL;
           if (m_initialScan == SYN) {
-            logNotice(lf_main, "initiating full scan");
+            logNotice(lf_main, "starting initial full scan");
             result = m_busHandler->startScan(true, "*");
+          } else if (m_initialScan == BROADCAST) {
+            logNotice(lf_main, "starting initial broadcast scan");
+            Message* message = m_messages->getScanMessage(BROADCAST);
+            if (message) {
+              MasterSymbolString master;
+              SlaveSymbolString slave;
+              istringstream input;
+              result = message->prepareMaster(m_address, master, input);
+              if (result == RESULT_OK) {
+                result = m_busHandler->sendAndWait(master, slave);
+              }
+            } else {
+              result = RESULT_ERR_NOTFOUND;
+            }
           } else {
             logNotice(lf_main, "starting initial scan for %2.2x", m_initialScan);
-            SlaveSymbolString slave;
-            result = m_busHandler->scanAndWait(m_initialScan, slave);
-            Message* message = m_messages->getScanMessage(m_initialScan);
-            if (result == RESULT_OK && message != NULL) {
+            result = m_busHandler->scanAndWait(m_initialScan, true);
+            if (result == RESULT_OK) {
               ostringstream ret;
-              result = message->decodeLastData(ret, 0, true);  // decode data
-              if (result == RESULT_OK) {
+              if (m_busHandler->formatScanResult(m_initialScan, ret, false)) {
                 logNotice(lf_main, "initial scan result: %2.2x%s", m_initialScan, ret.str().c_str());
               }
             }
@@ -258,36 +272,19 @@ void MainLoop::run() {
             reload = false;
           }
         }
-        bool scanned = false;
-        lastScanAddress = m_busHandler->getNextScanAddress(lastScanAddress, scanned);
-        if (lastScanAddress == SYN) {
-          taskDelay = 5;
-          lastScanAddress = 0;
-        } else {
-          nextCheckRun = now + CHECK_INITIAL_DELAY;
-          SlaveSymbolString slave;
-          if (scanned) {
-            Message* message = m_messages->getScanMessage(lastScanAddress);
-            slave = message->getLastSlaveData();
-            scanned = message->getLastUpdateTime() > 0;
+        if (!loadDelay) {
+          lastScanAddress = m_busHandler->getNextScanAddress(lastScanAddress);
+          if (lastScanAddress == SYN) {
+            taskDelay = 5;
+            lastScanAddress = 0;
           } else {
-            result_t result = m_busHandler->scanAndWait(lastScanAddress, slave);
+            nextCheckRun = now + CHECK_INITIAL_DELAY;
+            result_t result = m_busHandler->scanAndWait(lastScanAddress, true);
             taskDelay = (result == RESULT_ERR_NO_SIGNAL) ? 10 : 1;
             if (result != RESULT_OK) {
-              logError(lf_main, "scan config %2.2x message: %s", lastScanAddress, getResultCode(result));
+              logError(lf_main, "scan config %2.2x: %s", lastScanAddress, getResultCode(result));
             } else {
-              scanned = true;
               logInfo(lf_main, "scan config %2.2x message received", lastScanAddress);
-            }
-          }
-          if (scanned) {
-            string file;
-            result_t result = loadScanConfigFile(m_messages, lastScanAddress, slave, file);
-            if (result == RESULT_OK) {
-              logNotice(lf_main, "scan config %2.2x: file %s loaded", lastScanAddress, file.c_str());
-              m_busHandler->setScanConfigLoaded(lastScanAddress, file);
-            } else {
-              m_busHandler->setScanConfigLoaded(lastScanAddress, "");
             }
           }
         }
@@ -298,16 +295,24 @@ void MainLoop::run() {
         if (socket) {
           socket->setTimeout(5);
           ostringstream ostr;
-          ostr << "GET /updatecheck/?v=" << PACKAGE_VERSION << "." << REVISION;
+          ostr << "{\"v\":\"" << PACKAGE_VERSION << "." << REVISION << "\"";
+          ostr << ",\"u\":" << (now-start);
           if (m_reconnectCount) {
-            ostr << "&c=" << m_reconnectCount;
+            ostr << ",\"c\":" << m_reconnectCount;
           }
           m_busHandler->formatUpdateInfo(ostr);
-          ostr << " HTTP/1.0\r\n";
+          ostr << "}";
+          string str = ostr.str();
+          ostr.clear();
+          ostr.str("");
+          ostr << "POST /updatecheck/ HTTP/1.0\r\n";
           ostr << "Host: ebusd.eu" << "\r\n";
           ostr << "User-Agent: " << PACKAGE_NAME << "/" << PACKAGE_VERSION << "\r\n";
+          ostr << "Content-Type: application/json; charset=utf-8\r\n";
+          ostr << "Content-Length: " << str.length() << "\r\n";
           ostr << "\r\n";
-          string str = ostr.str();
+          ostr << str;
+          str = ostr.str();
           const char* cstr = str.c_str();
           size_t len = str.size();
           for (size_t pos = 0; pos < len; ) {
@@ -1379,18 +1384,13 @@ string MainLoop::executeScan(vector<string> &args, string levels) {
     if (result != RESULT_OK) {
       return getResultCode(result);
     }
-    SlaveSymbolString slave;
-    result = m_busHandler->scanAndWait(dstAddress, slave);
+    result = m_busHandler->scanAndWait(dstAddress);
     if (result != RESULT_OK) {
       return getResultCode(result);
     }
-    Message* message = m_messages->getScanMessage(dstAddress);
-    // never NULL due to scanAndWait() == RESULT_OK && dstAddress != BROADCAST
     ostringstream ret;
-    ret << hex << setw(2) << setfill('0') << static_cast<unsigned>(dstAddress);
-    result = message->decodeLastData(ret, 0, true);  // decode data
-    if (result != RESULT_OK) {
-      return getResultCode(result);
+    if (!m_busHandler->formatScanResult(dstAddress, ret, false)) {
+      return getResultCode(RESULT_EMPTY);
     }
     return ret.str();
   }
@@ -1485,6 +1485,7 @@ string MainLoop::executeInfo(vector<string> &args, const string user) {
   if (m_busHandler->hasSignal()) {
     result << "signal: acquired\n";
     result << "symbol rate: " << m_busHandler->getSymbolRate() << "\n";
+    result << "max symbol rate: " << m_busHandler->getMaxSymbolRate() << "\n";
   } else {
     result << "signal: no signal\n";
   }
