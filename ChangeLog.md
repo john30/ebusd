@@ -4,6 +4,7 @@
 * switched to C++11 compiler
 * separated access level from circuit name
 * introduced access control list and user authentication for access to certain messages
+* added automatic check for updates (ebusd and configuration)
 
 ## Bug Fixes
 * corrected numeric condition formatting
@@ -12,6 +13,7 @@
 * close log file on SIGHUP for better logrotate support
 * only allow a single scan at the same time
 * check allowed value range for base types during decoding
+* ignore first seconds of data when calculating symbols per second
 
 ## Features
 * added support for MQTT handling via libmosquitto (will be compiled in when library is available)
@@ -29,6 +31,8 @@
 * added possibility to define different log level per area on command line and with "log" command
 * added decode option to "grab" command presenting decoding hints for unknown messages
 * added option to use different source address QQ to read/write/hex commands
+* enhanced scan for individual slave
+* wait for broadcast scan answers before doing individual scans
 
 
 # 2.4 (2016-12-17)
