@@ -295,10 +295,24 @@ void MainLoop::run() {
         if (socket) {
           socket->setTimeout(5);
           ostringstream ostr;
-          ostr << "{\"v\":\"" << PACKAGE_VERSION << "." << REVISION << "\"";
+          ostr << "{\"v\":\"" << PACKAGE_VERSION "\"";
+          ostr << ",\"r\":\"" << REVISION << "\"";
+#if defined(__amd64__) || defined(__x86_64__) || defined(__ia64__) || defined(__IA64__)
+          ostr << ",\"a\":\"amd64\"";
+#elif defined(__aarch64__)
+          ostr << ",\"a\":\"aarch64\"";
+#elif defined(__arm__)
+          ostr << ",\"a\":\"arm\"";
+#elif defined(__i386__) || defined(__i686__)
+          ostr << ",\"a\":\"i386\"";
+#elif defined(__mips__)
+          ostr << ",\"a\":\"mips\"";
+#else
+          ostr << ",\"a\":\"other\"";
+#endif
           ostr << ",\"u\":" << (now-start);
           if (m_reconnectCount) {
-            ostr << ",\"c\":" << m_reconnectCount;
+            ostr << ",\"rc\":" << m_reconnectCount;
           }
           m_busHandler->formatUpdateInfo(ostr);
           ostr << "}";
