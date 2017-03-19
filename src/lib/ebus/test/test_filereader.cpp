@@ -254,8 +254,8 @@ int main(int argc, char** argv) {
   TestReader reader2{7};
   lineNo = 0;
   map<string, string> defaults;
-  reader2.getDefaults("")["col 3"] = ";default of col 3";
-  vector< map<string, string> >& subDefaults = reader2.getSubDefaults("");
+  reader2.getDefaults()[""]["col 3"] = ";default of col 3";
+  vector< map<string, string> >& subDefaults = reader2.getSubDefaults()[""];
   subDefaults.resize(1);
   subDefaults[0]["subcol 2"] = ";default of sub 0 subcol 2";
   while (ifs.peek() != EOF) {
