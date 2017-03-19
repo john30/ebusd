@@ -515,12 +515,18 @@ size_t SingleDataField::getLength(PartType partType, size_t maxLength) {
 }
 
 bool SingleDataField::hasFullByteOffset(bool after) {
-  if (m_length > 1 || !m_dataType->isNumeric()) {
+  if (m_length > 1) {
     return true;
   }
-  NumberDataType* num = reinterpret_cast<NumberDataType*>(m_dataType);
-  return (num->getBitCount() % 8) == 0
-  || (after && num->getFirstBit() + (num->getBitCount() % 8) >= 8);
+  int16_t firstBit;
+  if (m_dataType->isNumeric()) {
+    NumberDataType* num = reinterpret_cast<NumberDataType*>(m_dataType);
+    firstBit = num->getFirstBit();
+  } else {
+    firstBit = 0;
+  }
+  return (m_dataType->getBitCount() % 8) == 0
+  || (after && firstBit + (m_dataType->getBitCount() % 8) >= 8);
 }
 
 

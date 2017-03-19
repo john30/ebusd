@@ -349,6 +349,9 @@ result_t DateTimeDataType::readSymbols(SymbolString& input,
         output << setw(2) << dec << setfill('0') << static_cast<unsigned>(hour);
         symbol = (symbol_t)(minutes % 60);
       } else if (length == 1) {  // truncated time
+        if (m_bitCount < 8) {
+          symbol = (symbol_t)((1 << m_bitCount) - 1);
+        }
         if (i == 0) {
           symbol = (symbol_t)(symbol/(60/m_resolution));  // convert to hours
           index -= incr;  // repeat for minutes
