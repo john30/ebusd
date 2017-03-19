@@ -31,7 +31,7 @@ using std::dec;
 using std::hex;
 using std::setfill;
 using std::setw;
-
+using std::endl;
 
 // the string used for answering to a scan request (07h 04h)
 #define SCAN_ANSWER ("ebusd.eu;" PACKAGE_NAME ";" SCAN_VERSION ";100")
@@ -1070,7 +1070,7 @@ void BusHandler::receiveCompleted() {
     if (message) {
       key = message->getKey();
     } else {
-      key = Message::createKey(m_command, 4);  // up to 4 DD bytes
+      key = Message::createKey(m_command, m_command[1] == BROADCAST ? 1 : 4);  // up to 4 DD bytes (1 for broadcast)
     }
     m_grabbedMessages[key].setLastData(m_command, m_response);
   }
@@ -1293,20 +1293,22 @@ void BusHandler::formatSeenInfo(ostringstream& output) {
         }
       }
     }
-    vector<string> loadedFiles = m_messages->getLoadedFiles(address);
+    vector<string>& loadedFiles = m_messages->getLoadedFiles(address);
     if (!loadedFiles.empty()) {
       bool first = true;
-      for (vector<string>::iterator it = loadedFiles.begin(); it != loadedFiles.end(); it++) {
+      for (auto& loadedFile : loadedFiles) {
         if (first) {
           first = false;
           output << ", loaded \"";
         } else {
           output << ", \"";
         }
-        output << *it << "\"";
-        it++;
-        if (!(*it).empty()) {
-          output << " (" << *it << ")";
+        output << loadedFile << "\"";
+        string comment;
+        if (m_messages->getLoadedFileInfo(loadedFile, comment)) {
+          if (!comment.empty()) {
+            output << " (" << comment << ")";
+          }
         }
       }
     }
@@ -1322,13 +1324,24 @@ void BusHandler::formatUpdateInfo(ostringstream& output) {
   output << ",\"r\":" << (m_device->isReadOnly() ? 1 : 0);
   output << ",\"an\":" << (m_answer ? 1 : 0);
   output << ",\"co\":" << (m_addressConflict ? 1 : 0);
+  if (m_grabMessages) {
+    size_t unknownCnt = 0;
+    for (map<uint64_t, GrabbedMessage>::iterator it = m_grabbedMessages.begin(); it != m_grabbedMessages.end();
+        it++) {
+      Message* message = m_messages->find(it->second.getLastMasterData());
+      if (!message) {
+        unknownCnt++;
+      }
+    }
+    output << ",\"gu\":" << unknownCnt;
+  }
   unsigned char address = 0;
   for (int index = 0; index < 256; index++, address++) {
     bool ownAddress = !m_device->isReadOnly() && (address == m_ownMasterAddress || address == m_ownSlaveAddress);
     if (!isValidAddress(address, false) || ((m_seenAddresses[address]&SEEN) == 0 && !ownAddress)) {
       continue;
     }
-    output << ",\"" << setfill('0') << setw(2) << hex << static_cast<unsigned>(address);
+    output << ",\"" << setfill('0') << setw(2) << hex << static_cast<unsigned>(address) << dec << setw(0);
     output << "\":{\"o\":" << (ownAddress ? 1 : 0);
     map<symbol_t, vector<string>>::iterator it = m_scanResults.find(address);
     if (it != m_scanResults.end()) {
@@ -1345,24 +1358,49 @@ void BusHandler::formatUpdateInfo(ostringstream& output) {
         message->decodeLastData(output, OF_NAMES|OF_NUMERIC|OF_JSON|OF_SHORT, true);
       }
     }
-    vector<string> loadedFiles = m_messages->getLoadedFiles(address);
+    vector<string>& loadedFiles = m_messages->getLoadedFiles(address);
     if (!loadedFiles.empty()) {
       output << ",\"f\":[";
       bool first = true;
-      for (vector<string>::iterator it = loadedFiles.begin(); it != loadedFiles.end(); it++) {
+      for (auto& loadedFile : loadedFiles) {
         if (first) {
           first = false;
         } else {
           output << ",";
         }
-        output << "{\"f\":\"" << *it << "\"";
-        it++;
-        if (!(*it).empty()) {
-          output << ",\"c\":\"" << *it << "\"";
+        output << "{\"f\":\"" << loadedFile << "\"";
+        string comment;
+        if (m_messages->getLoadedFileInfo(loadedFile, comment)) {
+          if (!comment.empty()) {
+            output << ",\"c\":\"" << comment << "\"";
+          }
         }
         output << "}";
       }
       output << "]";
+    }
+    output << "}";
+  }
+  vector<string> loadedFiles = m_messages->getLoadedFiles();
+  if (!loadedFiles.empty()) {
+    output << ",\"l\":{";
+    bool first = true;
+    for (auto& loadedFile : loadedFiles) {
+      if (first) {
+        first = false;
+      } else {
+        output << ",";
+      }
+      output << "\"" << loadedFile << "\":{";
+      string comment;
+      size_t hash, size;
+      time_t time;
+      if (m_messages->getLoadedFileInfo(loadedFile, comment, &hash, &size, &time)) {
+        output << "\"h\":\"";
+        MappedFileReader::formatHash(hash, output);
+        output << "\",\"s\":" << size << ",\"t\":" << time;
+      }
+      output << "}";
     }
     output << "}";
   }
