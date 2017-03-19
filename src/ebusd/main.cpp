@@ -47,6 +47,7 @@ using std::hex;
 using std::setfill;
 using std::setw;
 using std::nouppercase;
+using std::cout;
 
 /** the path and name of the PID file. */
 #ifdef PACKAGE_PIDFILE
@@ -762,13 +763,14 @@ static bool readTemplates(const string path, const string extension, bool availa
     // global templates are stored as replacement in order to determine whether the directory was already loaded
     return true;
   }
-  result_t result = templates->readFromFile(path+"/_templates"+extension, verbose);
+  string errorDescription;
+  result_t result = templates->readFromFile(path+"/_templates"+extension, errorDescription, verbose);
   if (result == RESULT_OK) {
     logInfo(lf_main, "read templates in %s", path.c_str());
     return true;
   }
   logError(lf_main, "error reading templates in %s: %s, last error: %s", path.c_str(), getResultCode(result),
-           templates->getLastError().c_str());
+           errorDescription.c_str());
   return false;
 }
 
@@ -782,7 +784,7 @@ static bool readTemplates(const string path, const string extension, bool availa
  * @return the result code.
  */
 static result_t readConfigFiles(const string path, const string extension, MessageMap* messages, bool recursive,
-    bool verbose) {
+    bool verbose, string& errorDescription) {
   vector<string> files, dirs;
   bool hasTemplates = false;
   result_t result = collectConfigFiles(path, "", extension, files, &dirs, &hasTemplates);
@@ -793,7 +795,7 @@ static result_t readConfigFiles(const string path, const string extension, Messa
   for (vector<string>::iterator it = files.begin(); it != files.end(); it++) {
     string name = *it;
     logInfo(lf_main, "reading file %s", name.c_str());
-    result = messages->readFromFile(name, verbose);
+    result = messages->readFromFile(name, errorDescription, verbose);
     if (result != RESULT_OK) {
       return result;
     }
@@ -802,7 +804,7 @@ static result_t readConfigFiles(const string path, const string extension, Messa
     for (vector<string>::iterator it = dirs.begin(); it != dirs.end(); it++) {
       string name = *it;
       logInfo(lf_main, "reading dir  %s", name.c_str());
-      result = readConfigFiles(name, extension, messages, true, verbose);
+      result = readConfigFiles(name, extension, messages, true, verbose, errorDescription);
       if (result != RESULT_OK) {
         return result;
       }
@@ -833,16 +835,17 @@ void readMessage(Message* message) {
  * @param verbose whether to verbosely log all problems.
  */
 void executeInstructions(MessageMap* messages, bool verbose) {
-  result_t result = messages->resolveConditions(verbose);
+  string errorDescription;
+  result_t result = messages->resolveConditions(errorDescription, verbose);
   if (result != RESULT_OK) {
     logError(lf_main, "error resolving conditions: %s, last error: %s", getResultCode(result),
-        messages->getLastError().c_str());
+        errorDescription.c_str());
   }
   ostringstream log;
   result = messages->executeInstructions(log, readMessage);
   if (result != RESULT_OK) {
-    logError(lf_main, "error executing instructions: %s, last error: %s, %s", getResultCode(result),
-        messages->getLastError().c_str(), log.str().c_str());
+    logError(lf_main, "error executing instructions: %s, last error: %s", getResultCode(result),
+        log.str().c_str());
   } else if (verbose && log.tellp() > 0) {
     logInfo(lf_main, log.str().c_str());
   }
@@ -863,13 +866,14 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
   }
   s_templatesByPath.clear();
 
+  string errorDescription;
   result_t result = readConfigFiles(string(opt.configPath), ".csv", messages,
-      (!opt.scanConfig || opt.checkConfig) && !denyRecursive, verbose);
+      (!opt.scanConfig || opt.checkConfig) && !denyRecursive, verbose, errorDescription);
   if (result == RESULT_OK) {
     logInfo(lf_main, "read config files");
   } else {
     logError(lf_main, "error reading config files: %s, last error: %s", getResultCode(result),
-        messages->getLastError().c_str());
+        errorDescription.c_str());
   }
   executeInstructions(messages, verbose);
   return RESULT_OK;
@@ -956,19 +960,20 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, string& rela
   // complete name: cfgpath/MANUFACTURER/ZZ[.C[C[C[C[C]]]]][.circuit][.suffix][.*][.SWxxxx][.HWxxxx][.*].csv
   size_t bestMatch = 0;
   string best;
+  map<string, string> bestDefaults;
   for (vector<string>::iterator it = files.begin(); it != files.end(); it++) {
     string name = *it;
     symbol_t checkDest;
-    string checkIdent, useCircuit, useSuffix;
     unsigned int checkSw, checkHw;
-    if (!FileReader::extractDefaultsFromFilename(name.substr(path.length()+1), checkDest, checkIdent, useCircuit,
-        useSuffix, checkSw, checkHw)) {
+    map<string, string> defaults;
+    if (!messages->extractDefaultsFromFilename(name.substr(path.length()+1), defaults, &checkDest, &checkSw, &checkHw)) {
       continue;
     }
     if (address != checkDest || (checkSw != UINT_MAX && sw != checkSw) || (checkHw != UINT_MAX && hw != checkHw)) {
       continue;
     }
     size_t match = 1;
+    string checkIdent = defaults["name"];
     if (!checkIdent.empty()) {
       string remain = ident;
       bool matches = false;
@@ -990,6 +995,7 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, string& rela
     if (match >= bestMatch) {
       bestMatch = match;
       best = name;
+      bestDefaults = defaults;
     }
     break;
   }
@@ -1014,17 +1020,21 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, string& rela
         }
         if (name.length() < 3 || name.find_first_of('.') != 2) {  // different from the scheme "ZZ."
           name = *it;
-          result = messages->readFromFile(name, opt.checkConfig);
+          string errorDescription;
+          result = messages->readFromFile(name, errorDescription, opt.checkConfig);
           if (result == RESULT_OK) {
             logNotice(lf_main, "read common config file %s", name.c_str());
           } else {
-            logError(lf_main, "error reading common config file %s: %s", name.c_str(), getResultCode(result));
+            logError(lf_main, "error reading common config file %s: %s, %s", name.c_str(), getResultCode(result),
+                errorDescription.c_str());
           }
         }
       }
     }
   }
-  result = messages->readFromFile(best, opt.checkConfig, "", ident);
+  string errorDescription;
+  bestDefaults["name"] = ident;
+  result = messages->readFromFile(best, errorDescription, opt.checkConfig, &bestDefaults);
   if (result != RESULT_OK) {
     logError(lf_main, "error reading scan config file %s for ID \"%s\", SW%4.4d, HW%4.4d: %s", best.c_str(),
         ident.c_str(), sw, hw, getResultCode(result));
