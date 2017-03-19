@@ -154,7 +154,8 @@ int main() {
     string errorDescription;
     TestReader reader{templates, isSet, mstr[1] == BROADCAST || isMaster(mstr[1])};
     lineNo = 0;
-    dummystr = istringstream("#");
+    dummystr.clear();
+    dummystr.str("#");
     result = reader.readLineFromStream(dummystr, errorDescription, "inline", lineNo, row);
     if (result != RESULT_OK) {
       cout << "\"" << check[0] << "\": reader header error: " << getResultCode(result) << ", " << errorDescription
