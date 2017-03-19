@@ -105,7 +105,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
     break;
 
   case 5:  // --mqtttopic=ebusd
-    if (arg == NULL || arg[0] == 0 || arg[0] == '/' || arg[strlen(arg)-1] == '/') {
+    if (arg == NULL || arg[0] == 0 || strchr(arg, '#') || strchr(arg, '+') || arg[strlen(arg)-1] == '/') {
       argp_error(state, "invalid mqtttopic");
       return EINVAL;
     }
