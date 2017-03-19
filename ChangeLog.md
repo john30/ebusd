@@ -33,6 +33,8 @@
 * added option to use different source address QQ to read/write/hex commands
 * enhanced scan for individual slave
 * wait for broadcast scan answers before doing individual scans
+* allow unusually formatted MQTT topics
+* allow TTQ/TTH types to use less than 8 bits
 
 
 # 2.4 (2016-12-17)
