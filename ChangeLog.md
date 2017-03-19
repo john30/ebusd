@@ -14,6 +14,8 @@
 * only allow a single scan at the same time
 * check allowed value range for base types during decoding
 * ignore first seconds of data when calculating symbols per second
+* exclude messages without name
+* fix for potentially zero resolution
 
 ## Features
 * added support for MQTT handling via libmosquitto (will be compiled in when library is available)
@@ -33,6 +35,7 @@
 * added option to use different source address QQ to read/write/hex commands
 * enhanced scan for individual slave
 * wait for broadcast scan answers before doing individual scans
+* enhanced SymbolString to be aware of master/slave and get rid of CRC (instead calculate while sending/receiving)
 * allow unusually formatted MQTT topics
 * allow TTQ/TTH types to use less than 8 bits
 
