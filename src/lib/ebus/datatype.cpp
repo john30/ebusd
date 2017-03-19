@@ -350,7 +350,7 @@ result_t DateTimeDataType::readSymbols(SymbolString& input,
         symbol = (symbol_t)(minutes % 60);
       } else if (length == 1) {  // truncated time
         if (m_bitCount < 8) {
-          symbol = (symbol_t)((1 << m_bitCount) - 1);
+          symbol = (symbol_t)(symbol & ((1 << m_bitCount) - 1));
         }
         if (i == 0) {
           symbol = (symbol_t)(symbol/(60/m_resolution));  // convert to hours
