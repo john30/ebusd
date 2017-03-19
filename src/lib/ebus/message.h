@@ -68,36 +68,41 @@ class SimpleCondition;
 class CombinedCondition;
 class MessageMap;
 
-/**
- * Column type enumeration for CSV.
- */
-enum column_t {
-  /** the column index in @a Message::dump() for the message type. */
-  COLUMN_TYPE,
-  /** the column index in @a Message::dump() for the circuit name. */
-  COLUMN_CIRCUIT,
-  /** the column index in @a Message::dump() for the access level. */
-  COLUMN_LEVEL,
-  /** the column index in @a Message::dump() for the message name. */
-  COLUMN_NAME,
-  /** the column index in @a Message::dump() for the message comment. */
-  COLUMN_COMMENT,
-  /** the column index in @a Message::dump() for the source address QQ. */
-  COLUMN_QQ,
-  /** the column index in @a Message::dump() for the destination address QQ. */
-  COLUMN_ZZ,
-  /** the column index in @a Message::dump() for the PBSB bytes. */
-  COLUMN_PBSB,
-  /** the column index in @a Message::dump() for the ID columns (after the PBSB bytes). */
-  COLUMN_ID,
-  /** the column index in @a Message::dump() for the field(s). */
-  COLUMN_FIELDS,
-  /** the marker column index for the next-to-last element. */
-  COLUMN_LAST,
-};
+/** the field ID in @a Message::dump() for the message type. */
+#define MESSAGEFIELD_TYPE (DATAFIELD_RANGE_MAX+1)
 
-/** A link to the first column of @a column_t. */
-#define COLUMN_FIRST COLUMN_TYPE
+/** the field ID in @a Message::dump() for the circuit name. */
+#define MESSAGEFIELD_CIRCUIT (MESSAGEFIELD_TYPE+1)
+
+/** the field ID in @a Message::dump() for the access level. */
+#define MESSAGEFIELD_LEVEL (MESSAGEFIELD_CIRCUIT+1)
+
+/** the field ID in @a Message::dump() for the message name. */
+#define MESSAGEFIELD_NAME (MESSAGEFIELD_LEVEL+1)
+
+/** the field ID in @a Message::dump() for the message comment. */
+#define MESSAGEFIELD_COMMENT (MESSAGEFIELD_NAME+1)
+
+/** the field ID in @a Message::dump() for the source address QQ. */
+#define MESSAGEFIELD_QQ (MESSAGEFIELD_COMMENT+1)
+
+/** the field ID in @a Message::dump() for the destination address QQ. */
+#define MESSAGEFIELD_ZZ (MESSAGEFIELD_QQ+1)
+
+/** the field ID in @a Message::dump() for the PBSB bytes. */
+#define MESSAGEFIELD_PBSB (MESSAGEFIELD_ZZ+1)
+
+/** the field ID in @a Message::dump() for the ID field (after the PBSB bytes). */
+#define MESSAGEFIELD_ID (MESSAGEFIELD_PBSB+1)
+
+/** the field ID in @a Message::dump() for the data field(s). */
+#define MESSAGEFIELD_DATAFIELDS (MESSAGEFIELD_ID+1)
+
+/** the marker field ID for the minimum field ID. */
+#define MESSAGEFIELD_RANGE_MIN MESSAGEFIELD_TYPE
+
+/** the marker field ID for the maximum field ID. */
+#define MESSAGEFIELD_RANGE_MAX MESSAGEFIELD_DATAFIELDS
 
 
 /**
@@ -206,15 +211,18 @@ class Message {
    * @return @a RESULT_OK on success, or an error code.
    * Note: the caller needs to free the created instances.
    */
-  static result_t create(vector<string>::iterator& it, const vector<string>::iterator end,
-      vector< vector<string> >* defaultsRows, Condition* condition, const string& filename,
-      DataFieldTemplates* templates, vector<Message*>& messages);
+  static result_t create(map<string, string> row, vector< map<string, string> > subRows,
+      map<string, map<string, string> >& rowDefaults, map<string, vector< map<string, string> > >& subRowDefaults,
+      string& errorDescription, Condition* condition, const string filename, DataFieldTemplates* templates,
+      vector<Message*>& messages);
 
   /**
    * Create a new scan @a Message instance.
    * @param broadcast true for broadcast scan message, false for scan message to be sent to a slave address.
    */
   static Message* createScanMessage(bool broadcast = false);
+
+  static bool extractFieldIds(string str, vector<size_t>& fields, bool checkAbbreviated = true);
 
   /**
    * Set that this is a special scanning @a Message instance.
@@ -560,20 +568,27 @@ class Message {
   bool isLessPollWeight(const Message* other);
 
   /**
-   * Write the message definition or parts of it to the @a ostream.
+   * Write the message definition header or parts of it to the @a ostream.
    * @param output the @a ostream to append the formatted value to.
-   * @param columns the list of column indexes to write, or NULL for all (see @p COLUMN_TYPE index constants).
-   * @param withConditions whether to include the optional conditions prefix.
+   * @param fieldIds the list of field IDs to write, or NULL for all (see @p MESSAGEFIELD_TYPE constants).
    */
-  void dump(ostream& output, vector<column_t>* columns = NULL, bool withConditions = false);
+  static void dumpHeader(ostream& output, vector<size_t>* fieldIds = NULL);
 
   /**
-   * Write the specified column to the @a ostream.
+   * Write the message definition or parts of it to the @a ostream.
    * @param output the @a ostream to append the formatted value to.
-   * @param column the column index to write (see @p COLUMN_TYPE index constants).
+   * @param fieldIds the list of field IDs to write, or NULL for all (see @p MESSAGEFIELD_TYPE constants).
    * @param withConditions whether to include the optional conditions prefix.
    */
-  virtual void dumpColumn(ostream& output, column_t column, bool withConditions = false);
+  void dump(ostream& output, vector<size_t>* fieldIds = NULL, bool withConditions = false);
+
+  /**
+   * Write the specified field to the @a ostream.
+   * @param output the @a ostream to append the formatted value to.
+   * @param fieldId the field ID to write (see @p MESSAGEFIELD_TYPE constants).
+   * @param withConditions whether to include the optional conditions prefix.
+   */
+  virtual void dumpField(ostream& output, size_t fieldId, bool withConditions = false);
 
 
  protected:
@@ -740,7 +755,7 @@ class ChainedMessage : public Message {
 
  protected:
   // @copydoc
-  void dumpColumn(ostream& output, column_t column, bool withConditions = false) override;
+  void dumpField(ostream& output, size_t fieldId, bool withConditions = false) override;
 
 
  private:
@@ -829,8 +844,8 @@ class Condition {
    * @param returnValue the variable in which to store the created instance.
    * @return @a RESULT_OK on success, or an error code.
    */
-  static result_t create(const string condName, vector<string>::iterator& it, const vector<string>::iterator end,
-      string defaultDest, string defaultCircuit, SimpleCondition*& returnValue);
+  static result_t create(const string condName, map<string, string> row, map<string, string> rowDefaults,
+      SimpleCondition*& returnValue);
 
   /**
    * Derive a new @a SimpleCondition from this condition.
@@ -1103,10 +1118,8 @@ class Instruction {
    * @param defaultCircuit the default circuit name, or empty.
    * @param defaultSuffix the default circuit name suffix (starting with a "."), or empty.
    */
-  Instruction(Condition* condition, const bool singleton, const string& defaultDest, const string& defaultCircuit,
-      const string& defaultSuffix)
-    : m_condition(condition), m_singleton(singleton), m_defaultDest(defaultDest), m_defaultCircuit(defaultCircuit),
-      m_defaultSuffix(defaultSuffix) { }
+  Instruction(Condition* condition, const bool singleton, map<string, string>& defaults)
+    : m_condition(condition), m_singleton(singleton), m_defaults(defaults) { }
 
   /**
    * Destructor.
@@ -1116,19 +1129,16 @@ class Instruction {
   /**
    * Factory method for creating a new instance.
    * @param contextPath the path and/or filename context being loaded.
-   * @param defaultDest the default destination address, or empty.
-   * @param defaultCircuit the default circuit name, or empty.
-   * @param defaultSuffix the default circuit name suffix (starting with a "."), or empty.
-   * @param condition the @a Condition for the instruction, or NULL.
    * @param type the type of the instruction.
-   * @param it the iterator to traverse for the definition parts.
-   * @param end the iterator pointing to the end of the definition parts.
+   * @param condition the @a Condition for the instruction, or NULL.
+   * @param row the definition row by field name.
+   * @param defaults the default values by name.
    * @param returnValue the variable in which to store the created instance.
    * @return @a RESULT_OK on success, or an error code.
    */
-  static result_t create(const string contextPath, const string& defaultDest, const string& defaultCircuit,
-      const string& defaultSuffix, Condition* condition, const string type, vector<string>::iterator& it,
-      const vector<string>::iterator end, Instruction*& returnValue);
+  static result_t create(const string& contextPath, const string type,
+      Condition* condition, map<string, string>& row, map<string, string>& defaults,
+      Instruction*& returnValue);
 
   /**
    * Return the @a Condition this instruction requires.
@@ -1170,14 +1180,8 @@ class Instruction {
 
 
  protected:
-  /** the default destination address, or empty. */
-  const string m_defaultDest;
-
-  /** the default circuit name, or empty. */
-  const string m_defaultCircuit;
-
-  /** the default circuit name suffix (starting with a "."), or empty. */
-  const string m_defaultSuffix;
+  /** the defaults by field name. */
+  map<string, string> m_defaults;
 };
 
 
@@ -1197,9 +1201,8 @@ class LoadInstruction : public Instruction {
    * empty.
    * @param filename the name of the file to load.
    */
-  LoadInstruction(Condition* condition, const bool singleton, const string& defaultDest, const string& defaultCircuit,
-      const string& defaultSuffix, const string filename)
-    : Instruction(condition, singleton, defaultDest, defaultCircuit, defaultSuffix), m_filename(filename) { }
+  LoadInstruction(Condition* condition, const bool singleton, map<string, string>& defaults, const string filename)
+    : Instruction(condition, singleton, defaults), m_filename(filename) { }
 
   /**
    * Destructor.
@@ -1217,17 +1220,47 @@ class LoadInstruction : public Instruction {
 
 
 /**
+ * Helper class for information about a loaded file.
+ */
+class LoadedFileInfo {
+ public:
+  /**
+   * Constructor.
+   * @param comment the optional comment for the file.
+   * @param hash the hash of the file.
+   * @param size the normalized size of the file.
+   * @param time the modification time of the file.
+   */
+  /*explicit LoadedFileInfo(string comment, size_t hash, size_t size, time_t time)
+      : m_comment(comment), m_hash(hash), m_size(size), m_time(time) {}
+  LoadedFileInfo(const LoadedFileInfo& copyFrom)
+      : m_comment(copyFrom.m_comment), m_hash(copyFrom.m_hash), m_size(copyFrom.m_size), m_time(copyFrom.m_time) {}*/
+  /** the optional comment for the file. */
+  string m_comment;
+
+  /** the hash of the file. */
+  size_t m_hash;
+
+  /** the normalized size of the file. */
+  size_t m_size;
+
+  /** the modification time of the file. */
+  time_t m_time;
+};
+
+
+/**
  * Holds a map of all known @a Message instances.
  */
-class MessageMap : public FileReader {
+class MessageMap : public MappedFileReader {
  public:
   /**
    * Construct a new instance.
    * @param addAll whether to add all messages, even if duplicate.
    */
-  explicit MessageMap(const bool addAll = false) : FileReader::FileReader(true),
-    m_addAll(addAll), m_additionalScanMessages(false), m_maxIdLength(0), m_messageCount(0),
-    m_conditionalMessageCount(0), m_passiveMessageCount(0) {
+  explicit MessageMap(const bool addAll = false) : MappedFileReader::MappedFileReader(true),
+    m_addAll(addAll), m_additionalScanMessages(false), m_maxIdLength(0), m_maxBroadcastIdLength(0),
+    m_messageCount(0), m_conditionalMessageCount(0), m_passiveMessageCount(0) {
     m_scanMessage = Message::createScanMessage();
     m_broadcastScanMessage = Message::createScanMessage(true);
   }
@@ -1257,9 +1290,11 @@ class MessageMap : public FileReader {
   result_t add(Message* message, bool storeByName = true);
 
   // @copydoc
-  result_t addDefaultFromFile(vector< vector<string> >& defaults, vector<string>& row,
-    vector<string>::iterator& begin, string defaultDest, string defaultCircuit, string defaultSuffix,
-    const string& filename, unsigned int lineNo) override;
+  result_t getFieldMap(vector<string>& row, string& errorDescription) override;
+
+  // @copydoc
+  virtual result_t addDefaultFromFile(map<string, string>& row, vector< map<string, string> >& subRows,
+      string& errorDescription, const string filename, unsigned int lineNo) override;
 
   /**
    * Read the @a Condition instance(s) from the types field.
@@ -1268,12 +1303,19 @@ class MessageMap : public FileReader {
    * @param condition the variable in which to store the result.
    * @return @a RESULT_OK on success, or an error code.
    */
-  result_t readConditions(string& types, const string& filename, Condition*& condition);
+  result_t readConditions(string& types, const string filename, string& errorDescription, Condition*& condition);
 
   // @copydoc
-  result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
-    vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit,
-    const string& defaultSuffix, const string& filename, unsigned int lineNo) override;
+  bool extractDefaultsFromFilename(string filename, map<string, string>& defaults,
+      symbol_t* destAddress = NULL, unsigned int* software = NULL, unsigned int* hardware = NULL) override;
+
+  // @copydoc
+  result_t readFromFile(const string filename, string& errorDescription, bool verbose = false,
+      map<string, string>* defaults = NULL, size_t* hash = NULL, size_t* size = NULL, time_t* time = NULL) override;
+
+  // @copydoc
+  result_t addFromFile(map<string, string>& row, vector< map<string, string> >& subRows,
+      string& errorDescription, const string filename, unsigned int lineNo) override;
 
   /**
    * Get the scan @a Message instance for the specified address.
@@ -1293,7 +1335,7 @@ class MessageMap : public FileReader {
    * @param verbose whether to verbosely add all problems to the error message.
    * @return @a RESULT_OK on success, or an error code.
    */
-  result_t resolveConditions(bool verbose = false);
+  result_t resolveConditions(string& errorDescription, bool verbose = false);
 
   /**
    * Resolve a @a Condition.
@@ -1301,7 +1343,8 @@ class MessageMap : public FileReader {
    * @param readMessageFunc the function to call for immediate reading of a @a Message from the bus, or NULL.
    * @return @a RESULT_OK on success, or an error code.
    */
-  result_t resolveCondition(Condition* condition, void (*readMessageFunc)(Message* message) = NULL);
+  result_t resolveCondition(Condition* condition, string& errorDescription,
+      void (*readMessageFunc)(Message* message) = NULL);
 
   /**
    * Run all executable @a Instruction instances.
@@ -1318,14 +1361,32 @@ class MessageMap : public FileReader {
    * @param file the name of the file from which a configuration part was loaded for the participant.
    * @param comment an optional comment.
    */
-  void addLoadedFile(symbol_t address, string file, string comment);
+  void addLoadedFile(symbol_t address, string file, string comment = "");
 
   /**
    * Get the loaded files for a participant.
    * @param address the slave address.
-   * @return the loaded configuration files (pairs of file name and comment).
+   * @return the loaded configuration files (list of file names with relative path).
    */
   vector<string>& getLoadedFiles(symbol_t address);
+
+  /**
+   * Get all loaded files.
+   * @return the loaded configuration files (list of file names with relative path).
+   */
+  vector<string> getLoadedFiles();
+
+  /**
+   * Get the infos for a loaded file.
+   * @param filename the name of the configuration file (including relative path).
+   * @param comment a string in which the comment is stored.
+   * @param hash optional pointer to a @a size_t value for storing the hash of the file, or NULL.
+   * @param size optional pointer to a @a size_t value for storing the normalized size of the file, or NULL.
+   * @param time optional pointer to a @a time_t value for storing the modification time of the file, or NULL.
+   * @return true if the file info was found, false otherwise.
+   */
+  bool getLoadedFileInfo(string filename, string& comment, size_t* hash = NULL, size_t* size = NULL,
+      time_t* time = NULL);
 
   /**
    * Get the stored @a Message instances for the key.
@@ -1381,11 +1442,13 @@ class MessageMap : public FileReader {
    * @param withRead true to include read messages (default true).
    * @param withWrite true to include write messages (default true).
    * @param withPassive true to include passive messages (default true).
+   * @param onlyAvailable true to include only available messages (default true), false to also include messages that
+   * are currently not available (e.g. due to unresolved or false conditions).
    * @return the @a Message instance, or NULL.
    * Note: the caller may not free the returned instance.
    */
-  Message* find(MasterSymbolString& master, bool anyDestination = false,
-    const bool withRead = true, const bool withWrite = true, const bool withPassive = true);
+  Message* find(MasterSymbolString& master, bool anyDestination = false, const bool withRead = true,
+      const bool withWrite = true, const bool withPassive = true, const bool onlyAvailable = true);
 
   /**
    * Invalidate cached data of the @a Message and all other instances with a matching name key.
@@ -1469,11 +1532,17 @@ class MessageMap : public FileReader {
   /** whether additional scan @a Message instances are available. */
   bool m_additionalScanMessages;
 
-  /** the loaded configuration files by slave address (pairs of file name and comment). */
+  /** the loaded configuration files by slave address ((list of file names with relative path). */
   map<symbol_t, vector<string>> m_loadedFiles;
+
+  /** the @a LoadedFileInfo by for load configuration files (by file name with relative path). */
+  map<string, LoadedFileInfo> m_loadedFileInfos;
 
   /** the maximum ID length used by any of the known @a Message instances. */
   size_t m_maxIdLength;
+
+  /** the maximum ID length used by any of the known @a Message instances with destination @a BROADCAST. */
+  size_t m_maxBroadcastIdLength;
 
   /** the number of distinct @a Message instances stored in @a m_messagesByName. */
   size_t m_messageCount;
