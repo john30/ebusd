@@ -146,7 +146,8 @@ int main() {
   templates->readLineFromStream(dummystr, errorDescription, "inline", lineNo, row, false);
   lineNo = 0;
   MessageMap* messages = new MessageMap();
-  dummystr = istringstream("#");
+  dummystr.clear();
+  dummystr.str("#");
   messages->readLineFromStream(dummystr, errorDescription, "inline", lineNo, row, false);
   vector< vector<string> > defaultsRows;
   Message* message = NULL;
