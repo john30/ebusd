@@ -309,7 +309,7 @@ void MainLoop::run() {
           ostr << "Host: ebusd.eu" << "\r\n";
           ostr << "User-Agent: " << PACKAGE_NAME << "/" << PACKAGE_VERSION << "\r\n";
           ostr << "Content-Type: application/json; charset=utf-8\r\n";
-          ostr << "Content-Length: " << str.length() << "\r\n";
+          ostr << "Content-Length: " << dec << str.length() << "\r\n";
           ostr << "\r\n";
           ostr << str;
           str = ostr.str();
