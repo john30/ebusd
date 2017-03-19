@@ -34,68 +34,61 @@ using std::dec;
 using std::hex;
 using std::setfill;
 using std::setw;
+using std::endl;
+using std::ifstream;
 
 /** the number of seconds of permanent missing signal after which to reconnect the device. */
 #define RECONNECT_MISSING_SIGNAL 60
 
-/** the known column names (pairs of full length name and short length name). */
-static const char* columnNames[] = {
-  "type", "t",
-  "circuit", "c",
-  "level", "l",
-  "name", "n",
-  "comment", "co",
-  "qq", "q",
-  "zz", "z",
-  "pbsb", "p",
-  "id", "i",
-  "fields", "f",
-};
 
-/** the known column IDs according to @a columnNames. */
-static const column_t columnIds[] = {
-  COLUMN_TYPE, COLUMN_TYPE,
-  COLUMN_CIRCUIT, COLUMN_CIRCUIT,
-  COLUMN_LEVEL, COLUMN_LEVEL,
-  COLUMN_NAME, COLUMN_NAME,
-  COLUMN_COMMENT, COLUMN_COMMENT,
-  COLUMN_QQ, COLUMN_QQ,
-  COLUMN_ZZ, COLUMN_ZZ,
-  COLUMN_PBSB, COLUMN_PBSB,
-  COLUMN_ID, COLUMN_ID,
-  COLUMN_FIELDS, COLUMN_FIELDS,
-};
-
-/** the number of known column names. */
-static const size_t columnCount = sizeof(columnNames) / sizeof(char*);
-
-
-result_t UserList::addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
-    vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit,
-    const string& defaultSuffix, const string& filename, unsigned int lineNo) {
+result_t UserList::getFieldMap(vector<string>& row, string& errorDescription) {
   // name,secret,level[,level]*
-  if (begin == end) {
-    return RESULT_ERR_EOF;
+  if (row.empty()) {
+    row.push_back("name");
+    row.push_back("secret");
+    row.push_back("*level"); // TODO last repeat is repeated as often as necessary in addFromFile...
+    return RESULT_OK;
   }
-  string name = *begin++;
-  if (begin == end) {
-    return RESULT_ERR_EOF;
+  map<string, string> seen;
+  for (auto &name : row) {
+    tolower(name);
+    if (name == "name" || name == "secret") {
+      if (seen.find(name) != seen.end()) {
+        errorDescription = "duplicate field " + name;
+        return RESULT_ERR_INVALID_ARG;
+      }
+    } else if (name == "level") {
+      name = "*level";
+    } else {
+      errorDescription = "unknown field " + name;
+      return RESULT_ERR_INVALID_ARG;
+    }
+    seen[name] = name;
   }
+  if (seen.find("name") == seen.end() || seen.find("secret") == seen.end()) {
+    return RESULT_ERR_EOF;  // require at least name and secret
+  }
+  return RESULT_OK;
+}
+
+result_t UserList::addFromFile(map<string, string>& row, vector< map<string, string> >& subRows,
+    string& errorDescription, const string filename, unsigned int lineNo) {
+  string name = row["name"];
+  string secret = row["secret"];
   if (name.empty()) {
     return RESULT_ERR_INVALID_ARG;
   }
-  if (name == "*") {  // default levels
-    name = "";
+  if (name == "*") {
+    name = "";  // default levels
   }
-  const string secret = *begin++;
-  if (begin == end) {
-    return RESULT_ERR_EOF;
-  }
-  string levels = *begin++;
-  while (begin != end) {
-    string level = *begin++;
+  string levels;
+  for (auto entry : subRows) {
+    string level = entry["level"];
     if (!level.empty()) {
-      levels += VALUE_SEPARATOR + level;
+      if (!levels.empty()) {
+        levels += VALUE_SEPARATOR;
+      }
+      levels += level;
     }
   }
   m_userSecrets[name] = secret;
@@ -128,7 +121,8 @@ MainLoop::MainLoop(const struct options opt, Device *device, MessageMap* message
   }
   m_logRawEnabled = opt.logRaw;
   if (opt.aclFile[0]) {
-    result_t result = m_userList.readFromFile(opt.aclFile);
+    string errorDescription;
+    result_t result = m_userList.readFromFile(opt.aclFile, errorDescription);
     if (result != RESULT_OK) {
       logError(lf_main, "error reading ACL file \"%s\": %s", opt.aclFile, getResultCode(result));
     }
@@ -1088,7 +1082,7 @@ string MainLoop::executeFind(vector<string> &args, string levels) {
   bool configFormat = false, exact = false, withRead = true, withWrite = false, withPassive = true, first = true,
       onlyWithData = false, hexFormat = false, userLevel = true;
   OutputFormat verbosity = 0;
-  vector<column_t> columns;
+  vector<size_t> fieldIds;
   string circuit;
   vector<symbol_t> id;
   while (args.size() > argPos && args[argPos][0] == '-') {
@@ -1120,23 +1114,7 @@ string MainLoop::executeFind(vector<string> &args, string levels) {
         argPos = 0;  // print usage
         break;
       }
-      istringstream input(args[argPos]);
-      string column;
-      while (getline(input, column, ',')) {
-        size_t idx = columnCount;
-        for (size_t i = 0; i < columnCount; i++) {
-          if (strcasecmp(columnNames[i], column.c_str()) == 0) {
-            idx = i;
-            break;
-          }
-        }
-        if (idx == columnCount) {
-          argPos = 0;  // print usage
-          break;
-        }
-        columns.push_back(columnIds[idx]);
-      }
-      if (columns.empty()) {
+      if (!Message::extractFieldIds(args[argPos], fieldIds)) {
         argPos = 0;  // print usage
         break;
       }
@@ -1246,11 +1224,11 @@ string MainLoop::executeFind(vector<string> &args, string levels) {
         result << endl;
       }
       message->dump(result);
-    } else if (!columns.empty()) {
+    } else if (!fieldIds.empty()) {
       if (found) {
         result << endl;
       }
-      message->dump(result, &columns);
+      message->dump(result, &fieldIds);
     } else {
       if (found) {
         result << endl;

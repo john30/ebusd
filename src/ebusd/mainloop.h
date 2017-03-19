@@ -40,13 +40,13 @@ namespace ebusd {
 /**
  * Helper class for user authentication.
  */
-class UserList : public UserInfo, public FileReader {
+class UserList : public UserInfo, public MappedFileReader {
  public:
   /**
    * Constructor.
    * @param defaultLevels the default access levels.
    */
-  explicit UserList(const string defaultLevels) : FileReader::FileReader(false) {
+  explicit UserList(const string defaultLevels) : MappedFileReader::MappedFileReader(false) {
     if (!defaultLevels.empty()) {
       string levels = defaultLevels;
       transform(levels.begin(), levels.end(), levels.begin(), [](unsigned char c) {
@@ -62,9 +62,11 @@ class UserList : public UserInfo, public FileReader {
   virtual ~UserList() {}
 
   // @copydoc
-  result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
-      vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit,
-      const string& defaultSuffix, const string& filename, unsigned int lineNo) override;
+  result_t getFieldMap(vector<string>& row, string& errorDescription) override;
+
+  // @copydoc
+  result_t addFromFile(map<string, string>& row, vector< map<string, string> >& subRows,
+      string& errorDescription, const string filename, unsigned int lineNo) override;
 
   // @copydoc
   bool hasUser(const string user) override {

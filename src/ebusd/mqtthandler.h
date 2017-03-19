@@ -121,8 +121,8 @@ class MqttHandler : public DataSink, public DataSource, public Thread {
   /** the MQTT topic string parts. */
   vector<string> m_topicStrs;
 
-  /** the MQTT topic column parts. */
-  vector<column_t> m_topicCols;
+  /** the MQTT topic field parts. */
+  vector<size_t> m_topicFields;
 
   /** the global topic prefix. */
   string m_globalTopic;

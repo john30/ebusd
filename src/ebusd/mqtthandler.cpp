@@ -169,56 +169,56 @@ DataHandler* mqtthandler_register(UserInfo* userInfo, BusHandler* busHandler, Me
   return new MqttHandler(userInfo, busHandler, messages);
 }
 
-/** the known topic column names. */
-static const char* columnNames[] = {
+/** the known topic field names. */
+static const char* knownFieldNames[] = {
   "circuit",
   "name",
   "field",
 };
 
-/** the known topic column IDs. */
-static const column_t columnIds[] = {
-  COLUMN_CIRCUIT,
-  COLUMN_NAME,
-  COLUMN_FIELDS,
+/** the known topic field IDs. */
+static const size_t knownFieldIds[] = {
+  MESSAGEFIELD_CIRCUIT,
+  MESSAGEFIELD_NAME,
+  MESSAGEFIELD_DATAFIELDS,
 };
 
-/** the number of known column names. */
-static const size_t columnCount = sizeof(columnNames) / sizeof(char*);
+/** the number of known field names. */
+static const size_t knownFieldCount = sizeof(knownFieldNames) / sizeof(char*);
 
 
 /**
  * Parse the topic template.
  * @param topic the topic template.
  * @param strs the @a vector to which the string parts shall be added.
- * @param cols the @a vector to which the column parts shall be added.
+ * @param fields the @a vector to which the field parts shall be added.
  * @return true on success, false on malformed topic template.
  */
-bool parseTopic(const string topic, vector<string> &strs, vector<column_t> &cols) {
+bool parseTopic(const string topic, vector<string> &strs, vector<size_t> &fields) {
   size_t lastpos = 0;
   size_t end = topic.length();
   vector<string> columns;
   for (size_t pos=topic.find('%', lastpos); pos != string::npos; ) {
-    size_t idx = columnCount;
+    size_t idx = knownFieldCount;
     size_t len = 0;
-    for (size_t i = 0; i < columnCount; i++) {
-      len = strlen(columnNames[i]);
-      if (topic.substr(pos+1, len) == columnNames[i]) {
+    for (size_t i = 0; i < knownFieldCount; i++) {
+      len = strlen(knownFieldNames[i]);
+      if (topic.substr(pos+1, len) == knownFieldNames[i]) {
         idx = i;
         break;
       }
     }
-    if (idx== columnCount) {
+    if (idx== knownFieldCount) {
       return false;
     }
-    column_t col = columnIds[idx];
-    for (vector<column_t>::iterator it=cols.begin(); it != cols.end(); it++) {
-      if (*it == col) {
+    size_t fieldId = knownFieldIds[idx];
+    for (vector<size_t>::iterator it=fields.begin(); it != fields.end(); it++) {
+      if (*it == fieldId) {
         return false;  // duplicate column
       }
     }
     strs.push_back(topic.substr(lastpos, pos-lastpos));
-    cols.push_back(col);
+    fields.push_back(fieldId);
     lastpos = pos+1+len;
     pos = topic.find('%', lastpos);
   }
@@ -265,7 +265,7 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
   bool enabled = g_port != 0;
   m_publishByField = false;
   m_mosquitto = NULL;
-  if (enabled && !parseTopic(g_topic, m_topicStrs, m_topicCols)) {
+  if (enabled && !parseTopic(g_topic, m_topicStrs, m_topicFields)) {
     logOtherError("mqtt", "malformed topic %s", g_topic);
     return;
   }
@@ -278,7 +278,7 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
     logOtherError("mqtt", "invalid mosquitto version %d instead of %d", major, LIBMOSQUITTO_MAJOR);
     return;
   }
-  if (m_topicCols.empty()) {
+  if (m_topicFields.empty()) {
     if (m_topicStrs.empty()) {
       m_topicStrs.push_back("");
     } else {
@@ -287,12 +287,12 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
         m_topicStrs[0] = str+"/";
       }
     }
-    m_topicCols.push_back(COLUMN_CIRCUIT);  // circuit
+    m_topicFields.push_back(MESSAGEFIELD_CIRCUIT);  // circuit
     m_topicStrs.push_back("/");
-    m_topicCols.push_back(COLUMN_NAME);  // name
+    m_topicFields.push_back(MESSAGEFIELD_NAME);  // name
   } else {
-    for (size_t i = 0; i < m_topicCols.size(); i++) {
-      if (m_topicCols[i] == COLUMN_FIELDS) {  // fields
+    for (size_t i = 0; i < m_topicFields.size(); i++) {
+      if (m_topicFields[i] == MESSAGEFIELD_DATAFIELDS) {  // fields
         m_publishByField = true;
         break;
       }
@@ -421,7 +421,7 @@ void MqttHandler::notifyTopic(string topic, string data) {
       if (pos == string::npos) {
         return;
       }
-    } else if (idx-1 < m_topicCols.size()) {
+    } else if (idx-1 < m_topicFields.size()) {
       pos = remain.size();
     } else if (last < remain.size()) {
       return;
@@ -438,14 +438,14 @@ void MqttHandler::notifyTopic(string topic, string data) {
       if (field.empty()) {
         return;
       }
-      switch (m_topicCols[idx-1]) {
-      case COLUMN_CIRCUIT:
+      switch (m_topicFields[idx-1]) {
+      case MESSAGEFIELD_CIRCUIT:
         circuit = field;
         break;
-      case COLUMN_NAME:
+      case MESSAGEFIELD_NAME:
         name = field;
         break;
-      case COLUMN_FIELDS:
+      case MESSAGEFIELD_DATAFIELDS:
         //field = field;  // TODO add support for writing a single field
         break;
       default:
@@ -567,11 +567,11 @@ string MqttHandler::getTopic(Message* message, ssize_t fieldIndex) {
     if (!message) {
       break;
     }
-    if (i < m_topicCols.size()) {
-      if (m_topicCols[i] == COLUMN_FIELDS && fieldIndex >= 0) {
-        ret << message->getFieldName(fieldIndex);
+    if (i < m_topicFields.size()) {
+      if (m_topicFields[i] == MESSAGEFIELD_DATAFIELDS && fieldIndex >= 0) {
+        ret << message->getFieldName(fieldIndex); // TODO skip ignored fields
       } else {
-        message->dumpColumn(ret, m_topicCols[i]);
+        message->dumpField(ret, m_topicFields[i]);
       }
     }
   }

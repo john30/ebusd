@@ -38,147 +38,165 @@ using std::setw;
 /** the week day names. */
 static const char* dayNames[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
 
+size_t getDataFieldId(const string name) {
+  if (name == "name" || name.find("field") != string::npos) {
+    return DATAFIELD_NAME;
+  }
+  if (name.find("part") != string::npos) {
+    return DATAFIELD_PART;
+  }
+  if (name.find("type") != string::npos) {
+    return DATAFIELD_TYPE;
+  }
+  if (name.find("divisor") != string::npos || name.find("values") != string::npos) {
+    return DATAFIELD_DIVISORVALUES;
+  }
+  if (name == "unit") {
+    return DATAFIELD_UNIT;
+  }
+  if (name == "comment") {
+    return DATAFIELD_COMMENT;
+  }
+  return UINT_MAX;
+}
 
-result_t DataField::create(vector<string>::iterator& it,
-    const vector<string>::iterator end,
+string getDataFieldName(const size_t fieldId) {
+  switch (fieldId) {
+  case DATAFIELD_NAME:
+    return "name";
+  case DATAFIELD_PART:
+    return "part";
+  case DATAFIELD_TYPE:
+    return "type";
+  case DATAFIELD_DIVISORVALUES:
+    return "divisor/values";
+  case DATAFIELD_UNIT:
+    return "unit";
+  case DATAFIELD_COMMENT:
+    return "comment";
+  default:
+    return "";
+  };
+}
+
+result_t DataField::create(vector< map<string, string> >& rows, string& errorDescription,
     DataFieldTemplates* templates, DataField*& returnField,
     const bool isWriteMessage,
     const bool isTemplate, const bool isBroadcastOrMasterDestination,
     const size_t maxFieldLength) {
+  // template: name,[,part]basetype[:len]|template[:name][,[divisor|values][,[unit][,[comment]]]]
+  // std: name,part,basetype[:len]|template[:name][,[divisor|values][,[unit][,[comment]]]]
   vector<SingleDataField*> fields;
-  string firstName, firstComment;
+  string firstName;
   result_t result = RESULT_OK;
-  if (it == end) {
+  if (rows.empty()) {
     return RESULT_ERR_EOF;
   }
-  while (it != end && result == RESULT_OK) {
-    string unit, comment;
-    PartType partType;
-    int divisor = 0;
-    bool hasPartStr = false;
-    string token;
-
-    // template: name,basetype[:len]|template[:name][,[divisor|values][,[unit][,[comment]]]]
-    // std: name,part,basetype[:len]|template[:name][,[divisor|values][,[unit][,[comment]]]]
-    const string name = *it++;  // name
-    if (it == end) {
-      if (!name.empty()) {
-        result = RESULT_ERR_MISSING_TYPE;
-      }
+  for (auto row : rows) {
+    if (result != RESULT_OK) {
       break;
     }
-
+    const string name = row["name"];
+    PartType partType;
+    int divisor = 0;
+    bool hasPart = false;
     if (isTemplate) {
       partType = pt_any;
     } else {
-      const char* partStr = (*it++).c_str();  // part
-      hasPartStr = partStr[0] != 0;
-      if (it == end) {
-        if (!name.empty() || hasPartStr) {
-          result = RESULT_ERR_MISSING_TYPE;
-        }
-        break;
+      string part = row["part"];
+      hasPart = !part.empty();
+      if (hasPart) {
+        FileReader::tolower(part);
       }
       if (isBroadcastOrMasterDestination
-        || (isWriteMessage && !hasPartStr)
-        || strcasecmp(partStr, "M") == 0) {  // master data
+        || (isWriteMessage && !hasPart)
+        || part == "m") {  // master data
         partType = pt_masterData;
-      } else if ((!isWriteMessage && !hasPartStr)
-        || strcasecmp(partStr, "S") == 0) {  // slave data
+      } else if ((!isWriteMessage && !hasPart)
+        || part == "s") {  // slave data
         partType = pt_slaveData;
       } else {
-        result = RESULT_ERR_INVALID_PART;
+        errorDescription = "part "+part+" in "+MappedFileReader::combineRow(row);
+        result = hasPart ? RESULT_ERR_INVALID_ARG : RESULT_ERR_MISSING_ARG;
         break;
       }
     }
-
+    string comment = row["comment"];
+    if (comment == NULL_VALUE) {
+      comment = "";
+    }
     if (fields.empty()) {
       firstName = name;
-      firstComment = comment;
     }
 
-    const string typeStr = *it++;  // basetype[:len]|template[:name]
-    vector<string>::iterator typePos = it;
+    const string typeStr = row["type"];  // basetype[:len]|template[:name]
     if (typeStr.empty()) {
-      if (!name.empty() || hasPartStr) {
-        result = RESULT_ERR_MISSING_TYPE;
-      }
+      errorDescription = "field type in "+MappedFileReader::combineRow(row);
+      result = RESULT_ERR_MISSING_ARG;
       break;
     }
 
     map<unsigned int, string> values;
     string constantValue;
     bool verifyValue = false;
-    if (it != end) {
-      const string divisorStr = *it++;  // [divisor|values]
-      if (!divisorStr.empty()) {
-        size_t equalPos = divisorStr.find('=');
-        if (equalPos == string::npos) {
-          divisor = parseSignedInt(divisorStr.c_str(), 10, -MAX_DIVISOR, MAX_DIVISOR, result);
-        } else if (equalPos == 0 && divisorStr.length() > 1) {
-          verifyValue = divisorStr[1] == '=';  // == forced verification of constant value
-          if (verifyValue && divisorStr.length() == 1) {
+    const string divisorStr = row["divisor/values"];  // [divisor|values]
+    if (!divisorStr.empty()) {
+      size_t equalPos = divisorStr.find('=');
+      if (equalPos == string::npos) {
+        divisor = parseSignedInt(divisorStr.c_str(), 10, -MAX_DIVISOR, MAX_DIVISOR, result);
+        if (result != RESULT_OK) {
+          errorDescription = "divisor "+divisorStr+" in "+MappedFileReader::combineRow(row);
+        }
+      } else if (equalPos == 0 && divisorStr.length() > 1) {
+        verifyValue = divisorStr[1] == '=';  // == forced verification of constant value
+        if (verifyValue && divisorStr.length() == 1) {
+          errorDescription = "divisor "+divisorStr+" in "+MappedFileReader::combineRow(row);
+          result = RESULT_ERR_INVALID_LIST;
+          break;
+        }
+        constantValue = divisorStr.substr(equalPos+(verifyValue?2:1));
+      } else {
+        string token;
+        istringstream stream(divisorStr);
+        while (getline(stream, token, VALUE_SEPARATOR)) {
+          FileReader::trim(token);
+          const char* str = token.c_str();
+          char* strEnd = NULL;
+          unsigned long id;
+          if (strncasecmp(str, "0x", 2) == 0) {
+            str += 2;
+            id = strtoul(str, &strEnd, 16);  // hexadecimal
+          } else {
+            id = strtoul(str, &strEnd, 10);  // decimal
+          }
+          if (strEnd == NULL || strEnd == str || id > MAX_VALUE) {
+            errorDescription = "value "+token+" in "+MappedFileReader::combineRow(row);
             result = RESULT_ERR_INVALID_LIST;
             break;
           }
-          constantValue = divisorStr.substr(equalPos+(verifyValue?2:1));
-        } else {
-          istringstream stream(divisorStr);
-          while (getline(stream, token, VALUE_SEPARATOR)) {
-            FileReader::trim(token);
-            const char* str = token.c_str();
-            char* strEnd = NULL;
-            unsigned long id;
-            if (strncasecmp(str, "0x", 2) == 0) {
-              str += 2;
-              id = strtoul(str, &strEnd, 16);  // hexadecimal
-            } else {
-              id = strtoul(str, &strEnd, 10);  // decimal
-            }
-            if (strEnd == NULL || strEnd == str || id > MAX_VALUE) {
-              result = RESULT_ERR_INVALID_LIST;
-              break;
-            }
-            // remove blanks around '=' sign
-            while (*strEnd == ' ') strEnd++;
-            if (*strEnd != '=') {
-              result = RESULT_ERR_INVALID_LIST;
-              break;
-            }
-            token = string(strEnd + 1);
-            FileReader::trim(token);
-            values[(unsigned int)id] = token;
+          // remove blanks around '=' sign
+          while (*strEnd == ' ') strEnd++;
+          if (*strEnd != '=') {
+            errorDescription = "value "+token+" in "+MappedFileReader::combineRow(row);
+            result = RESULT_ERR_INVALID_LIST;
+            break;
           }
+          token = string(strEnd + 1);
+          FileReader::trim(token);
+          values[(unsigned int)id] = token;
         }
-        if (result != RESULT_OK) {
-          break;
-        }
+      }
+      if (result != RESULT_OK) {
+        break;
       }
     }
 
-    if (it == end) {
+    string unit = row["unit"];
+    if (unit == NULL_VALUE) {
       unit = "";
-    } else {
-      const string str = *it++;  // [unit]
-      if (strcasecmp(str.c_str(), NULL_VALUE) == 0) {
-        unit = "";
-      } else {
-        unit = str;
-      }
     }
-
-    if (it == end) {
-      comment = "";
-    } else {
-      const string str = *it++;  // [comment]
-      if (strcasecmp(str.c_str(), NULL_VALUE) == 0) {
-        comment = "";
-      } else {
-        comment = str;
-      }
-    }
-
     bool firstType = true;
+    string token;
     istringstream stream(typeStr);
     while (result == RESULT_OK && getline(stream, token, VALUE_SEPARATOR)) {
       FileReader::trim(token);
@@ -199,6 +217,7 @@ result_t DataField::create(vector<string>::iterator& it,
           } else {
             length = (size_t)parseInt(token.substr(pos+1).c_str(), 10, 1, (unsigned int)maxFieldLength, result);
             if (result != RESULT_OK) {
+              errorDescription = "field type "+token+" in "+MappedFileReader::combineRow(row);
               break;
             }
           }
@@ -211,13 +230,15 @@ result_t DataField::create(vector<string>::iterator& it,
         if (add != NULL) {
           fields.push_back(add);
         } else {
-          it = typePos;  // back to type
           if (result == RESULT_OK) {
+            errorDescription = "field type " + typeName+" in "+MappedFileReader::combineRow(row);
             result = RESULT_ERR_NOTFOUND;  // type not found
+          } else {
+            errorDescription = "create field in "+MappedFileReader::combineRow(row);
           }
         }
       } else if (!constantValue.empty()) {
-        it = typePos;  // back to type
+        errorDescription = "constant value "+constantValue+" in "+MappedFileReader::combineRow(row);
         result = RESULT_ERR_INVALID_ARG;  // invalid value list
       } else {  // template[:name]
         string fieldName;
@@ -230,7 +251,7 @@ result_t DataField::create(vector<string>::iterator& it,
         result = templ->derive(fieldName, firstType ? comment : "", firstType ? unit : "", partType, divisor, values,
             fields);
         if (result != RESULT_OK) {
-          it = typePos;  // back to type
+          errorDescription = "derive field "+fieldName+" in "+MappedFileReader::combineRow(row);
         }
       }
       firstType = false;
@@ -248,7 +269,7 @@ result_t DataField::create(vector<string>::iterator& it,
   if (fields.size() == 1) {
     returnField = fields[0];
   } else {
-    returnField = new DataFieldSet(firstName, firstComment, fields);
+    returnField = new DataFieldSet(firstName, "", fields);
   }
   return RESULT_OK;
 }
@@ -1005,7 +1026,7 @@ result_t DataFieldSet::write(istringstream& input, SymbolString& data,
 
 
 DataFieldTemplates::DataFieldTemplates(DataFieldTemplates& other)
-  : FileReader::FileReader(false) {
+    : MappedFileReader::MappedFileReader(false) {
   for (map<string, DataField*>::iterator it = other.m_fieldsByName.begin(); it != other.m_fieldsByName.end(); it++) {
     m_fieldsByName[it->first] = it->second->clone();
   }
@@ -1037,26 +1058,103 @@ result_t DataFieldTemplates::add(DataField* field, string name, bool replace) {
   return RESULT_OK;
 }
 
-result_t DataFieldTemplates::addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
-    vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit,
-    const string& defaultSuffix, const string& filename, unsigned int lineNo) {
-  vector<string>::iterator restart = begin;
-  DataField* field = NULL;
-  string name;
-  if (begin != end) {
-    size_t colon = begin->find(':');
-    if (colon != string::npos) {
-      name = begin->substr(0, colon);
-      begin->erase(0, colon+1);
+result_t DataFieldTemplates::getFieldMap(vector<string>& row, string& errorDescription) {
+  // name[:usename],basetype[:len]|template[:usename][,[divisor|values][,[unit][,[comment]]]]
+  if (row.empty()) {
+    // default map does not include separate field name
+    row.push_back("name");
+    for (size_t cnt = 0; cnt < 2; cnt++) {
+      bool first = true;
+      for (size_t fieldId = DATAFIELD_RANGE_MIN; fieldId <= DATAFIELD_RANGE_MAX; fieldId++) {
+        if (cnt == 0 && fieldId == DATAFIELD_NAME) {
+          continue;
+        }
+        if (fieldId == DATAFIELD_PART) {  // not included in default map
+          continue;
+        }
+        // subsequent fields start with field name
+        if (first) {
+          first = false;
+          row.push_back("*"+getDataFieldName(fieldId));
+        } else {
+          row.push_back(getDataFieldName(fieldId));
+        }
+      }
     }
+    return RESULT_OK;
   }
-  result_t result = DataField::create(begin, end, this, field, false, true, false);
+  bool inDataFields = false;
+  map<string, string> seen;
+  for (auto &name : row) {
+    tolower(name);
+    size_t fieldId;
+    if (inDataFields) {
+      fieldId = getDataFieldId(name);
+      if (fieldId == UINT_MAX) {
+        errorDescription = "unknown field " + name;
+        return RESULT_ERR_INVALID_ARG;
+      }
+      if (seen.find(name) != seen.end()) {
+        if (seen.find("type") == seen.end()) {
+          return RESULT_ERR_EOF;  // require at least type
+        }
+        seen.clear();
+        name = "*" + getDataFieldName(fieldId);  // data field repetition
+      } else {
+        name = getDataFieldName(fieldId);
+      }
+    } else if (name == "name") {
+      if (seen.find(name) != seen.end()) {
+        errorDescription = "duplicate field " + name;
+        return RESULT_ERR_INVALID_ARG;
+      }
+      name = "name";
+    } else {
+      fieldId = getDataFieldId(name);
+      if (fieldId == UINT_MAX) {
+        errorDescription = "unknown field " + name;
+        return RESULT_ERR_INVALID_ARG;
+      }
+      if (seen.find("name") == seen.end()) {
+        return RESULT_ERR_EOF;  // require at least name
+      }
+      inDataFields = true;
+      seen.clear();
+      name = "*" + getDataFieldName(fieldId);
+    }
+    seen[name] = name;
+  }
+  if (!inDataFields) {
+    return RESULT_ERR_EOF;  // require at least one field
+  }
+  if (seen.find("name") == seen.end() || seen.find("type") == seen.end()) {
+    return RESULT_ERR_EOF;  // require at least name and type
+  }
+  return RESULT_OK;
+}
+
+result_t DataFieldTemplates::addFromFile(map<string, string>& row, vector< map<string, string> >& subRows,
+    string& errorDescription, const string filename, unsigned int lineNo) {
+  string name = row["name"];  // required
+  string firstFieldName;
+  size_t colon = name.find(':');
+  if (colon == string::npos) {
+    firstFieldName = name;
+  } else {
+    firstFieldName = name.substr(colon+1);
+    name = name.substr(0, colon);
+  }
+  DataField* field = NULL;
+  if (!subRows.empty() && subRows[0].find("name") == subRows[0].end()) {
+    subRows[0]["name"] = firstFieldName;
+  }
+  result_t result = DataField::create(subRows, errorDescription, this, field, false, true, false);
   if (result != RESULT_OK) {
     return result;
   }
   result = add(field, name, true);
   if (result == RESULT_ERR_DUPLICATE_NAME) {
-    begin = restart+1;  // mark name as invalid
+    errorDescription = name;
   }
   if (result != RESULT_OK) {
     delete field;

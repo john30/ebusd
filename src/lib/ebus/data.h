@@ -25,6 +25,7 @@
 #include <fstream>
 #include <vector>
 #include <map>
+#include <climits>
 #include "lib/ebus/symbol.h"
 #include "lib/ebus/result.h"
 #include "lib/ebus/filereader.h"
@@ -47,6 +48,45 @@ namespace ebusd {
  * instances from configuration files by inheriting the @a FileReader template
  * class.
  */
+
+/** the field ID for the field name. */
+#define DATAFIELD_NAME 0
+
+/** the field ID for the part filter. */
+#define DATAFIELD_PART (DATAFIELD_NAME+1)
+
+/** the field ID for the data type. */
+#define DATAFIELD_TYPE (DATAFIELD_PART+1)
+
+/** the field ID for the divisor/values. */
+#define DATAFIELD_DIVISORVALUES (DATAFIELD_TYPE+1)
+
+/** the field ID for the unit. */
+#define DATAFIELD_UNIT (DATAFIELD_DIVISORVALUES+1)
+
+/** the field ID for the comment. */
+#define DATAFIELD_COMMENT (DATAFIELD_UNIT+1)
+
+/** the marker field ID for the minimum field ID. */
+#define DATAFIELD_RANGE_MIN DATAFIELD_NAME
+
+/** the marker field ID for the maximum field ID. */
+#define DATAFIELD_RANGE_MAX DATAFIELD_COMMENT
+
+
+/**
+ * Get the data field ID for the given field name.
+ * @param name the field name.
+ * @return the field ID, or @a UINT_MAX if not found.
+ */
+size_t getDataFieldId(const string name);
+
+/**
+ * Get the data field name for the given field ID.
+ * @param fieldId the field ID.
+ * @return the field name, or empty if not found.
+ */
+string getDataFieldName(const size_t fieldId);
 
 class DataFieldTemplates;
 class SingleDataField;
@@ -88,7 +128,7 @@ class DataField {
    * @return @a RESULT_OK on success, or an error code.
    * Note: the caller needs to free the created instance.
    */
-  static result_t create(vector<string>::iterator& it, const vector<string>::iterator end,
+  static result_t create(vector< map<string, string> >& rows, string& errorDescription,
       DataFieldTemplates* templates, DataField*& returnField,
       const bool isWriteMessage,
       const bool isTemplate, const bool isBroadcastOrMasterDestination,
@@ -498,8 +538,7 @@ class DataFieldSet : public DataField {
    */
   DataFieldSet(const string name, const string comment,
       const vector<SingleDataField*> fields)
-    : DataField(name, comment),
-      m_fields(fields) {
+    : DataField(name, comment), m_fields(fields) {
     bool uniqueNames = true;
     map<string, string> names;
     for (vector<SingleDataField*>::const_iterator it = fields.begin(); it != fields.end(); it++) {
@@ -602,12 +641,12 @@ class DataFieldSet : public DataField {
 /**
  * A map of template @a DataField instances.
  */
-class DataFieldTemplates : public FileReader {
+class DataFieldTemplates : public MappedFileReader {
  public:
   /**
    * Constructs a new instance.
    */
-  DataFieldTemplates() : FileReader::FileReader(false) {}
+  DataFieldTemplates() : MappedFileReader::MappedFileReader(false) {}
 
   /**
    * Constructs a new copied instance.
@@ -638,9 +677,11 @@ class DataFieldTemplates : public FileReader {
   result_t add(DataField* field, string name = "", bool replace = false);
 
   // @copydoc
-  result_t addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end,
-    vector< vector<string> >* defaults, const string& defaultDest, const string& defaultCircuit,
-    const string& defaultSuffix, const string& filename, unsigned int lineNo) override;
+  result_t getFieldMap(vector<string>& row, string& errorDescription) override;
+
+  // @copydoc
+  result_t addFromFile(map<string, string>& row, vector< map<string, string> >& subRows,
+      string& errorDescription, const string filename, unsigned int lineNo) override;
 
   /**
    * Gets the template @a DataField instance with the specified name.
