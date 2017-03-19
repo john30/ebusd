@@ -255,7 +255,7 @@ void MainLoop::run() {
             if (result == RESULT_OK) {
               ostringstream ret;
               if (m_busHandler->formatScanResult(m_initialScan, ret, false)) {
-                logNotice(lf_main, "initial scan result: %2.2x%s", m_initialScan, ret.str().c_str());
+                logNotice(lf_main, "initial scan result: %s", ret.str().c_str());
               }
             }
           }
