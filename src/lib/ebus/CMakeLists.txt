@@ -6,6 +6,7 @@ set(libebus_a_SOURCES
     symbol.cpp
     symbol.h
     filereader.h
+    filereader.cpp
     datatype.cpp
     datatype.h
     data.cpp

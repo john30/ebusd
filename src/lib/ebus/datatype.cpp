@@ -39,56 +39,7 @@ using std::fixed;
 using std::setfill;
 using std::setprecision;
 using std::setw;
-
-void printErrorPos(ostream& out, vector<string>::iterator begin, const vector<string>::iterator end,
-    vector<string>::iterator pos, string filename, size_t lineNo, result_t result) {
-  if (pos > begin) {
-    pos--;
-  }
-  out << "Error reading \"" << filename << "\" line " << setw(0) << dec << static_cast<unsigned>(lineNo)
-      << " field " << static_cast<unsigned>(1+pos.base()-begin.base()) << " value \"" << *pos << "\": "
-      << getResultCode(result) << endl;
-  out << "Erroneous item is here:" << endl;
-  bool first = true;
-  int cnt = 0;
-  while (begin != end) {
-    if (first) {
-      first = false;
-    } else {
-      out << FIELD_SEPARATOR;
-      if (begin <= pos) {
-        cnt++;
-      }
-    }
-    string item = *begin;
-    size_t i = item.find(TEXT_SEPARATOR);
-    if (i != string::npos) {
-      do {
-        item.replace(i, 1, TEXT_SEPARATOR_STR TEXT_SEPARATOR_STR);
-        i = item.find(TEXT_SEPARATOR, i+sizeof(TEXT_SEPARATOR_STR)+sizeof(TEXT_SEPARATOR_STR));
-      } while (i != string::npos);
-      i = 0;
-    } else {
-      i = item.find(FIELD_SEPARATOR);
-    }
-    if (i != string::npos) {
-      out << TEXT_SEPARATOR << item << TEXT_SEPARATOR;
-      if (begin < pos) {
-        cnt += 2;
-      } else if (begin == pos) {
-        cnt++;
-      }
-    } else {
-      out << item;
-    }
-    if (begin < pos) {
-      cnt += (unsigned int)(item).length();
-    }
-    begin++;
-  }
-  out << endl;
-  out << setw(cnt) << " " << setw(0) << "^" << endl;
-}
+using std::endl;
 
 
 bool DataType::dump(ostream& output, const size_t length, const bool appendSeparatorDivisor) const {

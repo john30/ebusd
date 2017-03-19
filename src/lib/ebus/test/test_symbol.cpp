@@ -19,6 +19,7 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
+#include <unordered_map>
 #include "lib/ebus/symbol.h"
 
 using namespace std;
@@ -48,7 +49,6 @@ void verify(bool expectFailMatch, string type, string input,
 
 int main(int argc, char** argv) {
   MasterSymbolString mstr;
-
   if (argc > 1) {
     result_t result;
     if (argc > 2 && strcmp("escaped", argv[1]) == 0) {
@@ -119,5 +119,23 @@ int main(int argc, char** argv) {
     verify(false, "data size", "0427a90015a901", sstr.getDataSize() == 4, expectStr, gotStr);
   }
 
+  int masterCnt = 0, slaveCnt = 0;
+  for (int i=0; i<256; i++) {
+    if (isMaster(i)) {
+      masterCnt++;
+    } else if (isValidAddress(i, false)) {
+      slaveCnt++;
+    }
+  }
+  if (masterCnt == 25) {
+    cout << "count master addresses OK" << endl;
+  } else {
+    cout << "count master addresses error: found " << dec << masterCnt << " instead of 25" << endl;
+  }
+  if (slaveCnt == 228) {
+    cout << "count slave addresses OK" << endl;
+  } else {
+    cout << "count slave addresses error: found " << dec << slaveCnt << " instead of 228" << endl;
+  }
   return error ? 1 : 0;
 }

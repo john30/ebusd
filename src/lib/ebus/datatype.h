@@ -51,6 +51,8 @@ namespace ebusd {
 
 using std::map;
 using std::list;
+using std::istringstream;
+using std::ostringstream;
 
 /** the separator character used between base type name and length (in CSV only). */
 #define LENGTH_SEPARATOR ':'
@@ -144,20 +146,6 @@ enum PartType {
 
 /** bit flag for @a DataType: marker for a constant value. */
 #define CON 0x1000
-
-
-/**
- * Print the error position of the iterator.
- * @param out the @a ostream to print to.
- * @param begin the iterator to the beginning of the items.
- * @param end the iterator to the end of the items.
- * @param pos the iterator with the erroneous position.
- * @param filename the name of the file being read.
- * @param lineNo the current line number in the file being read.
- * @param result the result code.
- */
-void printErrorPos(ostream& out, vector<string>::iterator begin, const vector<string>::iterator end,
-    vector<string>::iterator pos, string filename, size_t lineNo, result_t result);
 
 
 /**

@@ -23,6 +23,8 @@
 #include "lib/ebus/data.h"
 
 using namespace ebusd;
+using std::cout;
+using std::endl;
 
 static bool error = false;
 
@@ -31,25 +33,66 @@ void verify(bool expectFailMatch, string type, string input,
   match = match && expectStr == gotStr;
   if (expectFailMatch) {
     if (match) {
+      error = true;
       cout << "  failed " << type << " match >" << input
               << "< error: unexpectedly succeeded" << endl;
-      error = true;
     } else {
       cout << "  failed " << type << " match >" << input << "< OK" << endl;
     }
   } else if (match) {
     cout << "  " << type << " match >" << input << "< OK" << endl;
   } else {
+    error = true;
     cout << "  " << type << " match >" << input << "< error: got >"
             << gotStr << "<, expected >" << expectStr << "<" << endl;
-      error = true;
   }
 }
 
+class TestReader : public MappedFileReader {
+ public:
+  TestReader(DataFieldTemplates* templates, bool isSet, bool isMasterDest)
+  : MappedFileReader::MappedFileReader(true), m_templates(templates), m_isSet(isSet), m_isMasterDest(isMasterDest),
+    m_fields(NULL) {}
+  result_t getFieldMap(vector<string>& row, string& errorDescription) override {
+    if (row.empty()) {
+      row.push_back("*name");
+      row.push_back("part");
+      row.push_back("type");
+      row.push_back("divisor/values");
+      row.push_back("unit");
+      row.push_back("comment");
+      return RESULT_OK;
+    }
+    if (row[0][0] != '*') {
+      return RESULT_ERR_INVALID_ARG;
+    }
+    return RESULT_OK;  // leave it to DataField::create
+  }
+  result_t addFromFile(map<string, string>& row, vector< map<string, string> >& subRows,
+      string& errorDescription, const string filename, unsigned int lineNo) override {
+    if (!row.empty() || subRows.empty()) {
+      cout << "read line " << static_cast<unsigned>(lineNo) << ": read error: got "
+          << static_cast<unsigned>(row.size()) << "/0 main, " << static_cast<unsigned>(subRows.size())
+          << "/>=3 sub" << endl;
+      return RESULT_ERR_EOF;
+    }
+    cout << "read line " << static_cast<unsigned>(lineNo) << ": read OK" << endl;
+    return DataField::create(subRows, errorDescription, m_templates, m_fields, m_isSet, false, m_isMasterDest);
+  }
+ private:
+  DataFieldTemplates* m_templates;
+  const bool m_isSet;
+  const bool m_isMasterDest;
+ public:
+  DataField* m_fields;
+};
+
+
 int main() {
+  // entry: definition, decoded value, master data, slave data, flags
+  // definition: name,part,type[:len][,[divisor|values][,[unit][,[comment]]]]
+  unsigned int baseLine = __LINE__+1;
   string checks[][5] = {
-    // entry: definition, decoded value, master data, slave data, flags
-    // definition: name,part,type[:len][,[divisor|values][,[unit][,[comment]]]]
     {"x,,ign:10",  "",                              "10fe07000a00000000000000000000", "00", ""},
     {"x,,ign:*",   "",                              "10fe07000a00000000000000000000", "00", "W"},
     {"x,,ign,2",   "",                              "",                               "",   "c"},
@@ -59,8 +102,7 @@ int main() {
     {"x,,str:10",  "          ",                    "10fe07000a20202020202020202020", "00", ""},
     {"x,,str:10",  "",                              "10fe07000a20202020202020202020", "00", "R"},
     {"x,,str:11",  "",                              "10fe07000a20202020202020202020", "00", "rW"},
-    {"x,,str:24",  "abcdefghijklmnopqrstuvwx",      "10fe0700186162636465666768696a6b6c6d6e6f707172737475767778",
-        "00", ""},
+    {"x,,str:24",  "abcdefghijklmnopqrstuvwx",      "10fe0700186162636465666768696a6b6c6d6e6f707172737475767778", "00", ""},
     {"x,,str:*",   "abcde",                         "10fe0700056162636465",           "00", ""},
     {"x,,str,2",   "",                              "",                               "",   "c"},
     {"x,,str:10,=dummy", "",                        "10fe07000a48616c6c6f2044752120", "00", "W"},
@@ -74,8 +116,7 @@ int main() {
     {"x,,nts:10",  "",                              "10fe07000a00000000000000000000", "00", ""},
     {"x,,nts:10",  "abc",                           "10fe07000a6162630065666768696a", "00", "W"},
     {"x,,nts:11",  "",                              "10fe07000a20202020202020202020", "00", "rW"},
-    {"x,,nts:24",  "abcdefghijklmnopqrstuvwx",      "10fe0700186162636465666768696a6b6c6d6e6f707172737475767778",
-        "00", ""},
+    {"x,,nts:24",  "abcdefghijklmnopqrstuvwx",      "10fe0700186162636465666768696a6b6c6d6e6f707172737475767778", "00", ""},
     {"x,,nts:*",   "abcde",                         "10fe0700056162636465",           "00", "W"},
     {"x,,nts:*",   "abcde",                         "10fe070006616263646500",         "00", ""},
     {"x,,nts,2",   "",                              "",                               "",   "c"},
@@ -396,8 +437,7 @@ int main() {
     {"x,,ulg", "-",          "10feffff04ffffffff", "00", ""},
     {"x,,ulg,10", "3.8",      "10feffff0426000000", "00", ""},
     {"x,,ulg,-10", "380",     "10feffff0426000000", "00", ""},
-    {"x,,ulg,0x0FF0F00F   =  VRT 350 ;0x33CCCC33=VRT 360;0x3CC3C33C=SD 17;0x66999966=SD 37;0x69969669=VRT 360+",
-          "VRT 350",         "10feffff040FF0F00F", "00", ""},
+    {"x,,ulg,0x0FF0F00F   =  VRT 350 ;0x33CCCC33=VRT 360;0x3CC3C33C=SD 17;0x66999966=SD 37;0x69969669=VRT 360+", "VRT 350",         "10feffff040FF0F00F", "00", ""},
     {"x,,ulg,0x=test", "",   "10feffff040FF0F00F", "00", "c"},
     {"x,,ulr", "38",         "10feffff0400000026", "00", ""},
     {"x,,ulr", "0",          "10feffff0400000000", "00", ""},
@@ -433,19 +473,12 @@ int main() {
     {"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert", "x=on ja/nein [Wahrheitswert]", "10feffff0108", "00", "vvv"},
     {"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert", "x=1 ja/nein [Wahrheitswert]", "10feffff0108", "00", "vvvn"},
     {"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert", "\n    \"x\": {\"value\": \"on\"}", "10feffff0108", "00", "vj"},
-    {",,bi3:2,0=off;1=on,ja/nein,Wahrheitswert",  "\n    \"0\": {\"name\": \"\", \"value\": \"on\"}", "10feffff0108",
-        "00", "vj"},
-    {",,bi3:2,0=off;1=on,ja/nein,Wahrheitswert",  "\n    \"0\": {\"name\": \"\", \"value\": \"on\"}", "10feffff0108",
-        "00", "j"},
-    {"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert",
-        "\n    \"x\": {\"value\": \"on\", \"unit\": \"ja/nein\", \"comment\": \"Wahrheitswert\"}", "10feffff0108",
-        "00", "vvvj"},
+    {",,bi3:2,0=off;1=on,ja/nein,Wahrheitswert",  "\n    \"0\": {\"name\": \"\", \"value\": \"on\"}", "10feffff0108", "00", "vj"},
+    {",,bi3:2,0=off;1=on,ja/nein,Wahrheitswert",  "\n    \"0\": {\"name\": \"\", \"value\": \"on\"}", "10feffff0108", "00", "j"},
+    {"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert", "\n    \"x\": {\"value\": \"on\", \"unit\": \"ja/nein\", \"comment\": \"Wahrheitswert\"}", "10feffff0108", "00", "vvvj"},
     {"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert", "\n    \"x\": {\"value\": 1}", "10feffff0108", "00", "vnj"},
-    {"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert",
-        "\n    \"x\": {\"value\": 1, \"unit\": \"ja/nein\", \"comment\": \"Wahrheitswert\"}", "10feffff0108", "00",
-        "vvvnj"},
-    {"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert", "\n    \"0\": {\"name\": \"x\", \"value\": 1}", "10feffff0108", "00",
-        "nj"},
+    {"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert", "\n    \"x\": {\"value\": 1, \"unit\": \"ja/nein\", \"comment\": \"Wahrheitswert\"}", "10feffff0108", "00", "vvvnj"},
+    {"x,,bi3:2,0=off;1=on,ja/nein,Wahrheitswert", "\n    \"0\": {\"name\": \"x\", \"value\": 1}", "10feffff0108", "00", "nj"},
     {"x,,uch,1=test;2=high;3=off;0x10=on", "on", "10feffff0110", "00", ""},
     {"x,s,uch", "3", "1050ffff00", "0103", ""},
     {"x,,d2b,,°C,Aussentemperatur", "x=18.004 °C [Aussentemperatur]", "10fe0700090112", "00", "vvv"},
@@ -468,10 +501,14 @@ int main() {
     {"x,,temp,,,,y,,d1c", "18.004;9.5", "10fe070003011213", "00", ""},  // reference to template, normal def
     {"x,,temp;HEX:2", "18.004;13 14", "10fe07000401121314", "00", ""},  // reference to template and base type
     {"x,,temp;HEX:2", "temp=18.004;=13 14", "10fe07000401121314", "00", "v"},  // reference to template and base type
-    // reference to template and base type
-    {"x,,temp:degrees;HEX:2", "degrees=18.004;=13 14", "10fe07000401121314", "00", "v"},
+    {"x,,temp:degrees;HEX:2", "degrees=18.004;=13 14", "10fe07000401121314", "00", "v"},  // reference to template and base type
   };
   DataFieldTemplates* templates = new DataFieldTemplates();
+  unsigned int lineNo = 0;
+  istringstream dummystr("#");
+  string errorDescription;
+  vector<string> row;
+  templates->readLineFromStream(dummystr, errorDescription, "inline", lineNo, row);
   DataField* fields = NULL;
   for (size_t i = 0; i < sizeof(checks) / sizeof(checks[0]); i++) {
     string check[5] = checks[i];
@@ -514,18 +551,34 @@ int main() {
     bool numeric = flags.find('n') != string::npos;
     bool isTemplate = flags.find('t') != string::npos;
     string item;
-    vector<string> entries;
-
-    while (getline(isstr, item, FIELD_SEPARATOR))
-      entries.push_back(item);
 
     if (fields != NULL) {
       delete fields;
       fields = NULL;
     }
-    vector<string>::iterator it = entries.begin();
-    result = DataField::create(it, entries.end(), templates, fields, isSet, isTemplate,
-        !isTemplate && (mstr[1] == BROADCAST || isMaster(mstr[1])));
+    if (isTemplate) {
+      lineNo = baseLine + i;
+      result = templates->readLineFromStream(isstr, errorDescription, "inline", lineNo, row, false);
+      if (result != RESULT_OK) {
+        cout << "\"" << check[0] << "\": template read error: " << getResultCode(result) << ", "
+            << errorDescription << endl;
+        error = true;
+      }
+      continue;
+    }
+    TestReader reader{templates, isSet, mstr[1] == BROADCAST || isMaster(mstr[1])};
+    lineNo = 0;
+    dummystr = istringstream("#");
+    result = reader.readLineFromStream(dummystr, errorDescription, "inline", lineNo, row);
+    if (result != RESULT_OK) {
+      cout << "\"" << check[0] << "\": reader header error: " << getResultCode(result) << ", " << errorDescription
+          << endl;
+      error = true;
+      continue;
+    }
+    lineNo = baseLine + i;
+    result = reader.readLineFromStream(isstr, errorDescription, "", lineNo, row);
+    fields = reader.m_fields;
     if (failedCreate) {
       if (result == RESULT_OK) {
         cout << "\"" << check[0] << "\": failed create error: unexpectedly succeeded" << endl;
@@ -536,7 +589,7 @@ int main() {
       continue;
     }
     if (result != RESULT_OK) {
-      cout << "\"" << check[0] << "\": create error: " << getResultCode(result) << endl;
+      cout << "\"" << check[0] << "\": create error: " << getResultCode(result) << ", " << errorDescription << endl;
       error = true;
       continue;
     }
@@ -545,26 +598,9 @@ int main() {
       error = true;
       continue;
     }
-    if (it != entries.end()) {
-      cout << "\"" << check[0] << "\": create error: trailing input" << endl;
-      error = true;
-      continue;
-    }
     cout << "\"" << check[0] << "\"=\"";
     fields->dump(cout);
     cout << "\": create OK" << endl;
-    if (isTemplate) {
-      // store new template
-      result = templates->add(fields, "", true);
-      if (result == RESULT_OK) {
-        fields = NULL;
-        cout << "  store template OK" << endl;
-      } else {
-        cout << "  store template error: " << getResultCode(result) << endl;
-        error = true;
-      }
-      continue;
-    }
 
     ostringstream output;
     MasterSymbolString writeMstr;

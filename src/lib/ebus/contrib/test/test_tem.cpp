@@ -24,6 +24,8 @@
 #include "lib/ebus/data.h"
 
 using namespace ebusd;
+using std::cout;
+using std::endl;
 
 static bool error = false;
 
@@ -47,6 +49,45 @@ void verify(bool expectFailMatch, string type, string input,
   }
 }
 
+class TestReader : public MappedFileReader {
+ public:
+  TestReader(DataFieldTemplates* templates, bool isSet, bool isMasterDest)
+  : MappedFileReader::MappedFileReader(true), m_templates(templates), m_isSet(isSet), m_isMasterDest(isMasterDest),
+    m_fields(NULL) {}
+  result_t getFieldMap(vector<string>& row, string& errorDescription) override {
+    if (row.empty()) {
+      row.push_back("*name");
+      row.push_back("part");
+      row.push_back("type");
+      row.push_back("divisor/values");
+      row.push_back("unit");
+      row.push_back("comment");
+      return RESULT_OK;
+    }
+    if (row[0][0] != '*') {
+      return RESULT_ERR_INVALID_ARG;
+    }
+    return RESULT_OK;  // leave it to DataField::create
+  }
+  result_t addFromFile(map<string, string>& row, vector< map<string, string> >& subRows,
+      string& errorDescription, const string filename, unsigned int lineNo) override {
+    if (!row.empty() || subRows.empty()) {
+      cout << "read line " << static_cast<unsigned>(lineNo) << ": read error: got "
+          << static_cast<unsigned>(row.size()) << "/0 main, " << static_cast<unsigned>(subRows.size())
+          << "/>=3 sub" << endl;
+      return RESULT_ERR_EOF;
+    }
+    cout << "read line " << static_cast<unsigned>(lineNo) << ": read OK" << endl;
+    return DataField::create(subRows, errorDescription, m_templates, m_fields, m_isSet, false, m_isMasterDest);
+  }
+ private:
+  DataFieldTemplates* m_templates;
+  const bool m_isSet;
+  const bool m_isMasterDest;
+ public:
+  DataField* m_fields;
+};
+
 int main() {
   DataType* type = DataTypeList::getInstance()->get("TEM_P");
   if (type == NULL) {
@@ -54,9 +95,10 @@ int main() {
     return 1;
   }
 
+  // entry: definition, decoded value, master data, slave data, flags
+  // definition: name,part,type[:len][,[divisor|values][,[unit][,[comment]]]]
+  unsigned int baseLine = __LINE__+1;
   string checks[][5] = {
-    // entry: definition, decoded value, master data, slave data, flags
-    // definition: name,part,type[:len][,[divisor|values][,[unit][,[comment]]]]
     {"x,,TEM_P", "04-033", "10fe0700020421", "00", ""},
     {"x,,TEM_P", "00-000", "10fe0700020000", "00", ""},
     {"x,,TEM_P", "31-127", "10fe0700021f7f", "00", ""},
@@ -72,6 +114,11 @@ int main() {
     {"x,,TEM_P", "00-128", "1015070000", "020080", "Rw"},
   };
   DataFieldTemplates* templates = new DataFieldTemplates();
+  unsigned int lineNo = 0;
+  istringstream dummystr("#");
+  string errorDescription;
+  vector<string> row;
+  templates->readLineFromStream(dummystr, errorDescription, "inline", lineNo, row);
   DataField* fields = NULL;
   for (size_t i = 0; i < sizeof(checks) / sizeof(checks[0]); i++) {
     string check[5] = checks[i];
@@ -98,30 +145,34 @@ int main() {
     bool failedWrite = flags.find('w') != string::npos;
     bool failedWriteMatch = flags.find('W') != string::npos;
     string item;
-    vector<string> entries;
-
-    while (getline(isstr, item, FIELD_SEPARATOR))
-      entries.push_back(item);
 
     if (fields != NULL) {
       delete fields;
       fields = NULL;
     }
-    vector<string>::iterator it = entries.begin();
-    result = DataField::create(it, entries.end(), templates, fields, isSet, false,
-        (mstr[1] == BROADCAST || isMaster(mstr[1])));
+
+    string errorDescription;
+    TestReader reader{templates, isSet, mstr[1] == BROADCAST || isMaster(mstr[1])};
+    lineNo = 0;
+    dummystr = istringstream("#");
+    result = reader.readLineFromStream(dummystr, errorDescription, "inline", lineNo, row);
     if (result != RESULT_OK) {
-      cout << "\"" << check[0] << "\": create error: " << getResultCode(result) << endl;
+      cout << "\"" << check[0] << "\": reader header error: " << getResultCode(result) << ", " << errorDescription
+          << endl;
+      error = true;
+      continue;
+    }
+    lineNo = baseLine + i;
+    result = reader.readLineFromStream(isstr, errorDescription, "", lineNo, row);
+    fields = reader.m_fields;
+
+    if (result != RESULT_OK) {
+      cout << "\"" << check[0] << "\": create error: " << getResultCode(result) << ", " << errorDescription << endl;
       error = true;
       continue;
     }
     if (fields == NULL) {
       cout << "\"" << check[0] << "\": create error: NULL" << endl;
-      error = true;
-      continue;
-    }
-    if (it != entries.end()) {
-      cout << "\"" << check[0] << "\": create error: trailing input" << endl;
       error = true;
       continue;
     }
