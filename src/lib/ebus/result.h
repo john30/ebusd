@@ -50,7 +50,7 @@ enum result_t {
   RESULT_ERR_INVALID_POS = -11,     //!< invalid position
   RESULT_ERR_OUT_OF_RANGE = -12,    //!< argument value out of valid range
   RESULT_ERR_INVALID_PART = -13,    //!< invalid part type value
-  RESULT_ERR_MISSING_TYPE = -14,    //!< missing data type
+  RESULT_ERR_MISSING_ARG = -14,     //!< missing argument value
   RESULT_ERR_INVALID_LIST = -15,    //!< invalid value list
   RESULT_ERR_DUPLICATE = -16,       //!< duplicate entry
   RESULT_ERR_DUPLICATE_NAME = -17,  //!< duplicate entry (name)

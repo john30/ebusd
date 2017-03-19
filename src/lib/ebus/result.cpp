@@ -39,7 +39,7 @@ const char* getResultCode(result_t resultCode) {
   case RESULT_ERR_INVALID_POS:  return "ERR: invalid position";
   case RESULT_ERR_OUT_OF_RANGE: return "ERR: argument value out of valid range";
   case RESULT_ERR_INVALID_PART: return "ERR: invalid part type";
-  case RESULT_ERR_MISSING_TYPE: return "ERR: missing data type";
+  case RESULT_ERR_MISSING_ARG:  return "ERR: missing argument";
   case RESULT_ERR_INVALID_LIST: return "ERR: invalid value list";
   case RESULT_ERR_DUPLICATE:    return "ERR: duplicate entry";
   case RESULT_ERR_DUPLICATE_NAME: return "ERR: duplicate name";
