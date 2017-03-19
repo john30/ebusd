@@ -1321,7 +1321,7 @@ void BusHandler::formatUpdateInfo(ostringstream& output) {
   output << ",\"m\":" << m_messages->size();
   output << ",\"r\":" << (m_device->isReadOnly() ? 1 : 0);
   output << ",\"an\":" << (m_answer ? 1 : 0);
-  output << ",\"ac\":" << (m_addressConflict ? 1 : 0);
+  output << ",\"co\":" << (m_addressConflict ? 1 : 0);
   unsigned char address = 0;
   for (int index = 0; index < 256; index++, address++) {
     bool ownAddress = !m_device->isReadOnly() && (address == m_ownMasterAddress || address == m_ownSlaveAddress);
