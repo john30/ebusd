@@ -1321,7 +1321,7 @@ void BusHandler::formatUpdateInfo(ostringstream& output) {
   }
   output << ",\"c\":" << m_masterCount;
   output << ",\"m\":" << m_messages->size();
-  output << ",\"r\":" << (m_device->isReadOnly() ? 1 : 0);
+  output << ",\"ro\":" << (m_device->isReadOnly() ? 1 : 0);
   output << ",\"an\":" << (m_answer ? 1 : 0);
   output << ",\"co\":" << (m_addressConflict ? 1 : 0);
   if (m_grabMessages) {
