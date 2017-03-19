@@ -988,9 +988,9 @@ DataTypeList::DataTypeList() {
   // truncated time (only multiple of 10 minutes), 00:00 - 24:00 (minutes div 10 + hour * 6 as integer)
   add(new DateTimeDataType("TTM", 8, 0, 0x90, false, true, 10));
   // truncated time (only multiple of 30 minutes), 00:00 - 24:00 (minutes div 30 + hour * 2 as integer)
-  add(new DateTimeDataType("TTH", 8, 0, 0, false, true, 30));
+  add(new DateTimeDataType("TTH", 6, 0, 0, false, true, 30));
   // truncated time (only multiple of 15 minutes), 00:00 - 24:00 (minutes div 15 + hour * 4 as integer)
-  add(new DateTimeDataType("TTQ", 8, 0, 0, false, true, 15));
+  add(new DateTimeDataType("TTQ", 7, 0, 0, false, true, 15));
   add(new NumberDataType("BDY", 8, DAY, 0x07, 0, 6, 1));  // weekday, "Mon" - "Sun" (0x00 - 0x06) [eBUS type]
   add(new NumberDataType("HDY", 8, DAY, 0x00, 1, 7, 1));  // weekday, "Mon" - "Sun" (0x01 - 0x07) [Vaillant type]
   add(new NumberDataType("BCD", 8, BCD, 0xff, 0, 99, 1));  // unsigned decimal in BCD, 0 - 99
