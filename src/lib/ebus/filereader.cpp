@@ -19,6 +19,8 @@
 #include "lib/ebus/filereader.h"
 #include <sys/stat.h>
 #include <iostream>
+#include <string>
+#include <vector>
 #include <iomanip>
 #include <climits>
 #include <fstream>
@@ -35,7 +37,7 @@ using std::dec;
 
 
 result_t FileReader::readFromFile(const string filename, string& errorDescription, bool verbose,
-    map<string, string>* defaults, size_t* hash, size_t* size, time_t* time) { //TODO use hash etc.
+    map<string, string>* defaults, size_t* hash, size_t* size, time_t* time) {
   struct stat st;
   if (stat(filename.c_str(), &st) != 0) {
     errorDescription = filename;
@@ -132,7 +134,7 @@ bool FileReader::splitFields(istream& ifs, vector<string>& row, unsigned int& li
       *size += length + 1;  // normalized with trailing endl
     }
     if (hash) {
-      *hash ^= (hashFunction(line) << 1) ^ (length << ( 7 * (lineNo % 5)));
+      *hash ^= (hashFunction(line) << 1) ^ (length << (7 * (lineNo % 5)));
     }
     if (!quotedText && (length == 0 || line[0] == '#' || (line.length() > 1 && line[0] == '/' && line[1] == '/'))) {
       if (lineNo == 1) {
@@ -276,11 +278,6 @@ result_t MappedFileReader::addFromFile(vector<string>& row, string& errorDescrip
       subRowsMapped.resize(subRowsMapped.size() - 1);
     }
   }
-/*cout<<"row:"<<MappedFileReader::combineRow(rowMapped);
-for (auto sub : subRowsMapped) {
-  cout<<std::endl<<"  subrow:"<<MappedFileReader::combineRow(sub);
-}
-cout<<std::endl;*/
   if (isDefault) {
     return addDefaultFromFile(rowMapped, subRowsMapped, errorDescription, filename, lineNo);
   }

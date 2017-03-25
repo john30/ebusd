@@ -446,7 +446,7 @@ void MqttHandler::notifyTopic(string topic, string data) {
         name = field;
         break;
       case MESSAGEFIELD_DATAFIELDS:
-        //field = field;  // TODO add support for writing a single field
+        // field = field;  // TODO add support for writing a single field
         break;
       default:
         return;
@@ -569,7 +569,7 @@ string MqttHandler::getTopic(Message* message, ssize_t fieldIndex) {
     }
     if (i < m_topicFields.size()) {
       if (m_topicFields[i] == MESSAGEFIELD_DATAFIELDS && fieldIndex >= 0) {
-        ret << message->getFieldName(fieldIndex); // TODO skip ignored fields
+        ret << message->getFieldName(fieldIndex);  // TODO skip ignored fields
       } else {
         message->dumpField(ret, m_topicFields[i]);
       }

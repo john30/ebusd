@@ -487,6 +487,8 @@ class BusHandler : public WaitThread {
   /**
    * Send a scan message on the bus and wait for the answer.
    * @param dstAddress the destination slave address to send to.
+   * @param loadScanConfig true to immediately load the message definitions matching the scan result.
+   * @param reload true to fully reload the scan results.
    * @return the result code.
    */
   result_t scanAndWait(symbol_t dstAddress, bool loadScanConfig = false, bool reload = false);
@@ -538,6 +540,7 @@ class BusHandler : public WaitThread {
   /**
    * Get the next slave address that still needs to be scanned or loaded.
    * @param lastAddress the last returned slave address, or 0 for returning the first one.
+   * @param onlyScanned true to return only already scanned addresses.
    * @return the next slave address that still needs to be scanned or loaded, or @a SYN.
    */
   symbol_t getNextScanAddress(symbol_t lastAddress, bool onlyScanned = false);

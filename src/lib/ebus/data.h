@@ -117,8 +117,8 @@ class DataField {
 
   /**
    * Factory method for creating new instances.
-   * @param it the iterator to traverse for the definition parts.
-   * @param end the iterator pointing to the end of the definition parts.
+   * @param rows the mapped field definition rows.
+   * @param errorDescription a string in which to store the error description in case of error.
    * @param templates the @a DataFieldTemplates to be referenced by name, or NULL.
    * @param returnField the variable in which to store the created instance.
    * @param isWriteMessage whether the field is part of a write message (default false).

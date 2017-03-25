@@ -46,7 +46,7 @@ result_t UserList::getFieldMap(vector<string>& row, string& errorDescription) {
   if (row.empty()) {
     row.push_back("name");
     row.push_back("secret");
-    row.push_back("*level"); // TODO last repeat is repeated as often as necessary in addFromFile...
+    row.push_back("*level");
     return RESULT_OK;
   }
   map<string, string> seen;

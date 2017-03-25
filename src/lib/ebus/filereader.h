@@ -21,6 +21,8 @@
 
 #include <algorithm>
 #include <map>
+#include <string>
+#include <vector>
 #include <iomanip>
 #include <mutex>
 #include "lib/ebus/symbol.h"
@@ -92,6 +94,7 @@ class FileReader {
    * @param errorDescription a string in which to store the error description in case of error.
    * @param filename the name of the file being read.
    * @param lineNo the last line number (incremented with each line read).
+   * @param row the definition row to clear and update with the read data (for performance reasons only).
    * @param verbose whether to verbosely log problems.
    * @param hash optional pointer to a @a size_t value for updating with the hash of the line, or NULL.
    * @param size optional pointer to a @a size_t value for updating with the normalized length of the line, or NULL.
@@ -147,13 +150,17 @@ class FileReader {
 };
 
 
+/**
+ * An abstract class derived from @a FileReader that additionally allows to using mapped name/value pairs with one
+ * main map and many sub maps.
+ */
 class MappedFileReader : public FileReader {
  public:
   /**
    * Constructor.
    * @param supportsDefaults whether this instance supports rows with defaults (starting with a star).
    */
-  MappedFileReader(bool supportsDefaults) : FileReader(), m_supportsDefaults(supportsDefaults) {}
+  explicit MappedFileReader(bool supportsDefaults) : FileReader(), m_supportsDefaults(supportsDefaults) {}
 
   /**
    * Destructor.
@@ -170,10 +177,11 @@ class MappedFileReader : public FileReader {
 
   /**
    * Extract default values from the file name.
-   * @param name the name of the file (without path)
+   * @param filename the name of the file (without path)
    * @param defaults the default values by name to add to.
-   * @param software the variable in which to store the numeric software version, or NULL.
-   * @param hardware the variable in which to store the numeric software version, or NULL.
+   * @param destAddress a pointer to a variable in which to store the numeric destination address, or NULL.
+   * @param software a pointer to a in which to store the numeric software version, or NULL.
+   * @param hardware a pointer to a in which to store the numeric hardware version, or NULL.
    * @return true if the minimum parts were extracted, false otherwise.
    */
   virtual bool extractDefaultsFromFilename(string filename, map<string, string>& defaults,
@@ -188,7 +196,7 @@ class MappedFileReader : public FileReader {
   /**
    * Get the field mapping from the given first line.
    * @param row the first line from which to extract the field mapping, or empty to use the default mapping.
-   * @param begin an iterator to the first column of the first line to read (for error reporting).
+   * @param errorDescription a string in which to store the error description in case of error.
    * @return @a RESULT_OK on success, or an error code.
    */
   virtual result_t getFieldMap(vector<string>& row, string& errorDescription) = 0;
@@ -197,7 +205,7 @@ class MappedFileReader : public FileReader {
    * Add a default row that was read from a file.
    * @param row the default row by field name.
    * @param subRows the sub default rows, each by field name.
-   * @param subRowDefaults the sub default values by type and field name to add to.
+   * @param errorDescription a string in which to store the error description in case of error.
    * @param filename the name of the file being read.
    * @param lineNo the current line number in the file being read.
    * @return @a RESULT_OK on success, or an error code.
@@ -212,8 +220,6 @@ class MappedFileReader : public FileReader {
    * Add a definition that was read from a file.
    * @param row the main definition row by field name.
    * @param subRows the sub definition rows, each by field name.
-   * @param rowDefaults all previously extracted default values by type and field name.
-   * @param subRowDefaults all previously extracted sub default values by type and field name.
    * @param errorDescription a string in which to store the error description in case of error.
    * @param filename the name of the file being read.
    * @param lineNo the current line number in the file being read.

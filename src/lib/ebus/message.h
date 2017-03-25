@@ -201,9 +201,11 @@ class Message {
 
   /**
    * Factory method for creating new instances.
-   * @param it the iterator to traverse for the definition parts.
-   * @param end the iterator pointing to the end of the definition parts.
-   * @param defaultsRows a @a vector with rows containing defaults, or NULL.
+   * @param row the mapped message definition row.
+   * @param subRows the mapped field definition rows.
+   * @param rowDefaults the mapped message definition defaults.
+   * @param subRowDefaults the mapped field definition defaults.
+   * @param errorDescription a string in which to store the error description in case of error.
    * @param condition the @a Condition instance for the message, or NULL.
    * @param filename the name of the file being read.
    * @param templates the @a DataFieldTemplates to be referenced by name, or NULL.
@@ -219,9 +221,17 @@ class Message {
   /**
    * Create a new scan @a Message instance.
    * @param broadcast true for broadcast scan message, false for scan message to be sent to a slave address.
+   * @return the new scan @a Message instance.
    */
   static Message* createScanMessage(bool broadcast = false);
 
+  /**
+   * Extract the known field IDs from the input string.
+   * @param str the input string with the field names separated by @a FIELD_SEPARATOR.
+   * @param fields the vector to update with the extracted field IDs with.
+   * @param checkAbbreviated true to also check for abbreviated field names.
+   * @return true when all fields are valid.
+   */
   static bool extractFieldIds(string str, vector<size_t>& fields, bool checkAbbreviated = true);
 
   /**
@@ -837,10 +847,8 @@ class Condition {
   /**
    * Factory method for creating a new instance.
    * @param condName the name of the condition.
-   * @param it the iterator to traverse for the definition parts.
-   * @param end the iterator pointing to the end of the definition parts.
-   * @param defaultDest the valid destination address extracted from the file name (from ZZ part), or empty.
-   * @param defaultCircuit the valid circuit name extracted from the file name (from IDENT part), or empty.
+   * @param row the mapped definition row.
+   * @param rowDefaults the mapped definition defaults.
    * @param returnValue the variable in which to store the created instance.
    * @return @a RESULT_OK on success, or an error code.
    */
@@ -1114,9 +1122,7 @@ class Instruction {
    * @param condition the @a Condition this instruction requires, or null.
    * @param singleton whether this @a Instruction belongs to a set of instructions of which only the first one may be
    * executed for the same source file.
-   * @param defaultDest the default destination address, or empty.
-   * @param defaultCircuit the default circuit name, or empty.
-   * @param defaultSuffix the default circuit name suffix (starting with a "."), or empty.
+   * @param defaults the mapped definition defaults.
    */
   Instruction(Condition* condition, const bool singleton, map<string, string>& defaults)
     : m_condition(condition), m_singleton(singleton), m_defaults(defaults) { }
@@ -1195,10 +1201,7 @@ class LoadInstruction : public Instruction {
    * @param condition the @a Condition this instruction requires, or null.
    * @param singleton whether this @a Instruction belongs to a set of instructions of which only the first one may be
    * executed for the same source file.
-   * @param defaultDest the default destination address (may be overwritten by file name), or empty.
-   * @param defaultCircuit the default circuit name (may be overwritten by file name), or empty.
-   * @param defaultSuffix the default circuit name suffix (starting with a ".", may be overwritten by file name), or
-   * empty.
+   * @param defaults the mapped definition defaults.
    * @param filename the name of the file to load.
    */
   LoadInstruction(Condition* condition, const bool singleton, map<string, string>& defaults, const string filename)
@@ -1293,13 +1296,14 @@ class MessageMap : public MappedFileReader {
   result_t getFieldMap(vector<string>& row, string& errorDescription) override;
 
   // @copydoc
-  virtual result_t addDefaultFromFile(map<string, string>& row, vector< map<string, string> >& subRows,
+  result_t addDefaultFromFile(map<string, string>& row, vector< map<string, string> >& subRows,
       string& errorDescription, const string filename, unsigned int lineNo) override;
 
   /**
    * Read the @a Condition instance(s) from the types field.
    * @param types the field from which to read the @a Condition instance(s).
    * @param filename the name of the file being read.
+   * @param errorDescription a string in which to store the error description in case of error.
    * @param condition the variable in which to store the result.
    * @return @a RESULT_OK on success, or an error code.
    */
@@ -1332,6 +1336,7 @@ class MessageMap : public MappedFileReader {
 
   /**
    * Resolve all @a Condition instances.
+   * @param errorDescription a string in which to store the error description in case of error.
    * @param verbose whether to verbosely add all problems to the error message.
    * @return @a RESULT_OK on success, or an error code.
    */
@@ -1340,6 +1345,7 @@ class MessageMap : public MappedFileReader {
   /**
    * Resolve a @a Condition.
    * @param condition the @a Condition to resolve.
+   * @param errorDescription a string in which to store the error description in case of error.
    * @param readMessageFunc the function to call for immediate reading of a @a Message from the bus, or NULL.
    * @return @a RESULT_OK on success, or an error code.
    */

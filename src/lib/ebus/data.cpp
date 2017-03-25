@@ -76,7 +76,7 @@ string getDataFieldName(const size_t fieldId) {
     return "comment";
   default:
     return "";
-  };
+  }
 }
 
 result_t DataField::create(vector< map<string, string> >& rows, string& errorDescription,

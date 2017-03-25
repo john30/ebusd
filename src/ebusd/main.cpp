@@ -966,7 +966,8 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, string& rela
     symbol_t checkDest;
     unsigned int checkSw, checkHw;
     map<string, string> defaults;
-    if (!messages->extractDefaultsFromFilename(name.substr(path.length()+1), defaults, &checkDest, &checkSw, &checkHw)) {
+    const string filename = name.substr(path.length()+1);
+    if (!messages->extractDefaultsFromFilename(filename, defaults, &checkDest, &checkSw, &checkHw)) {
       continue;
     }
     if (address != checkDest || (checkSw != UINT_MAX && sw != checkSw) || (checkHw != UINT_MAX && hw != checkHw)) {

@@ -1413,7 +1413,7 @@ result_t Condition::create(const string condName, map<string, string> row, map<s
   } else if (circuit.empty()) {
     circuit = rowDefaults["circuit"];
   }
-  string valueList = row["id"];  // TODO
+  string valueList = row["id"];
   if (valueList.length() == 0) {
     returnValue = new SimpleCondition(condName, condName, circuit, level, name, dstAddress, field);
     return RESULT_OK;
@@ -1801,7 +1801,8 @@ result_t MessageMap::add(Message* message, bool storeByName) {
 }
 
 result_t MessageMap::getFieldMap(vector<string>& row, string& errorDescription) {
-  // type (r[1-9];w;u),circuit,name,[comment],[QQ],ZZ,PBSB,[ID],field1,part (m/s),datatypes/templates,divider/values,unit,comment
+  // type (r[1-9];w;u),circuit,name,[comment],[QQ],ZZ,PBSB,[ID],field1,part (m/s),datatypes/templates,divider/values,
+  //  unit,comment
   // minimum: type,name,PBSB,field,datatype
   if (row.empty()) {
     for (size_t fieldId = MESSAGEFIELD_RANGE_MIN; fieldId <= MESSAGEFIELD_RANGE_MAX; fieldId++) {
