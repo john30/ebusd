@@ -261,7 +261,8 @@ void on_connect(
 
 
 MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages)
-  : DataSink(userInfo, "mqtt"), DataSource(busHandler), Thread(), m_messages(messages), m_connected(false) {
+  : DataSink(userInfo, "mqtt"), DataSource(busHandler), Thread(), m_messages(messages), m_connected(false),
+    m_lastUpdateCheckResult(".") {
   bool enabled = g_port != 0;
   m_publishByField = false;
   m_mosquitto = NULL;
@@ -476,6 +477,13 @@ void MqttHandler::notifyTopic(string topic, string data) {
   }
   ostringstream ostream;
   publishMessage(message, ostream);
+}
+
+void MqttHandler::notifyUpdateCheckResult(string checkResult) {
+  if (checkResult != m_lastUpdateCheckResult) {
+    m_lastUpdateCheckResult = checkResult;
+    publishTopic(m_globalTopic+"updatecheck", checkResult.empty() ? "OK" : checkResult);
+  }
 }
 
 void MqttHandler::run() {

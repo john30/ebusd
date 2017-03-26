@@ -80,6 +80,8 @@ class MqttHandler : public DataSink, public DataSource, public Thread {
    */
   void notifyTopic(string topic, string data);
 
+  // @copydoc
+  void notifyUpdateCheckResult(string checkResult) override;
 
  protected:
   // @copydoc
@@ -135,6 +137,9 @@ class MqttHandler : public DataSink, public DataSource, public Thread {
 
   /** whether the connection to the broker is established. */
   bool m_connected;
+
+  /** the last update check result. */
+  string m_lastUpdateCheckResult;
 };
 
 }  // namespace ebusd

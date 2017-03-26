@@ -145,15 +145,20 @@ class DataSink : virtual public DataHandler {
    */
   virtual ~DataSink() {}
 
+  // @copydoc
+  bool isDataSink() override { return true; }
+
   /**
    * Notify the sink of an updated @a Message.
    * @param message the updated @a Message.
    */
   virtual void notifyUpdate(Message* message);
 
-  // @copydoc
-  bool isDataSink() override { return true; }
-
+  /**
+   * Notify the sink of the latest update check result.
+   * @param checkResult a string describing available updates, or empty if no update is available.
+   */
+  virtual void notifyUpdateCheckResult(string checkResult) {}
 
  protected:
   /** the allowed access levels. */

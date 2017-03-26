@@ -357,6 +357,11 @@ void MainLoop::run() {
               if (result == "200 OK") {
                 m_updateCheck = message == "" ? "unknown" : message;
                 logNotice(lf_main, "update check: %s", message.c_str());
+                if (!dataSinks.empty()) {
+                  for (list<DataSink*>::iterator it = dataSinks.begin(); it != dataSinks.end(); it++) {
+                    (*it)->notifyUpdateCheckResult(message == "OK" ? "" : m_updateCheck);
+                  }
+                }
               } else {
                 logError(lf_main, "update check error: %s", result.c_str());
               }
