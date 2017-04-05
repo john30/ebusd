@@ -1413,7 +1413,7 @@ result_t Condition::create(const string condName, map<string, string> row, map<s
   } else if (circuit.empty()) {
     circuit = rowDefaults["circuit"];
   }
-  string valueList = row["id"];
+  string valueList = row["pbsb"];
   if (valueList.length() == 0) {
     returnValue = new SimpleCondition(condName, condName, circuit, level, name, dstAddress, field);
     return RESULT_OK;
