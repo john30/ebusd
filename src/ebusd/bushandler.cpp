@@ -854,7 +854,6 @@ result_t BusHandler::handleSymbol() {
     m_repeat = false;
     {
       Message* message;
-      istringstream input;  // TODO create input from database of internal variables
       message = m_messages->find(m_command);
       if (message == NULL) {
         message = m_messages->find(m_command, true);
@@ -866,7 +865,8 @@ result_t BusHandler::handleSymbol() {
         // don't know this request or definition has wrong direction, deny
         return setState(bs_skip, RESULT_ERR_INVALID_ARG);
       }
-      if (message == m_messages->getScanMessage(m_ownSlaveAddress)) {
+      istringstream input;  // TODO create input from database of internal variables
+      if (message == m_messages->getScanMessage()) {
         input.str(SCAN_ANSWER);
       }
       // build response and store in m_response for sending back to requesting master
