@@ -130,7 +130,7 @@ class SymbolString {
    * @param value the escaped value to add to the current CRC.
    */
   static void updateCrc(symbol_t& crc, const symbol_t value);
-
+  // TODO add SymbolString::updateHeader() for adjusting length field
   /**
    * Return whether this instance if for the master part.
    * @return whether this instance if for the master part.
@@ -196,7 +196,7 @@ class SymbolString {
    * 2 if both instances are a master part and the data only differs in the first byte (the master address).
    */
   int compareTo(SymbolString& other) {
-    if (m_data.size() != other.m_data.size()) {
+    if (m_data.size() != other.m_data.size() || m_isMaster != other.m_isMaster) {
       return 1;
     }
     if (m_data == other.m_data) {
@@ -208,7 +208,7 @@ class SymbolString {
     if (m_data.size() == 1) {
       return 2;
     }
-    if (equal(m_data.begin()+1, m_data.end()-1, other.m_data.begin()+1)) {
+    if (equal(m_data.begin()+1, m_data.end(), other.m_data.begin()+1)) {
       return 2;
     }
     return 1;
@@ -293,7 +293,7 @@ class SymbolString {
   /** the string of unescaped symbols. */
   vector<symbol_t> m_data;
 
-  /** whether this instance if for the master part. */
+  /** whether this instance is for the master part. */
   bool m_isMaster;
 };
 
