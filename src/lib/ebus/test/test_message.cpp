@@ -16,6 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <unistd.h>
 #include <iostream>
 #include <fstream>
 #include <iomanip>
@@ -104,6 +105,9 @@ int main() {
     {"", "23.11.2015", "ff15b52406020000003400", "0703003400170b0f", "kd"},
     {"r,700,time,,,15,b524,030000003500,,,IGN:4,,,,,,HTI", "12:29:06", "ff15b52406030000003500", "07030035000c1d06", "d"},
     {"", "12:29:06", "ff15b52406030000003500", "07030035000c1d06", "kd"},
+    {"r,700,mupd,,,15,b524,030000000100,,m,UCH,,,,,,HTI", "1;12:29:07", "ff15b5240703000000010001", "030c1d07", "d"},
+    {"", "2;12:29:07", "ff15b5240703000000010002", "030c1d07", "kdu"},
+    {"", "2;12:29:07", "ff15b5240703000000010002", "030c1d07", "kdU"},
     {"w,700,date,,,15,b524,020000003400,,,date", "23.11.2015", "ff15b52409020000003400170b0f", "00", ""},
     {"r,ehp,error,,,08,b509,0d2800,index,m,UCH,,,,,,time", "3;15:00:17", "ff08b509040d280003", "0311000f", "di"},
     {"r,ehp,error,,,08,b509,0d2800,index,m,UCH,,,,,,time", "index=3;time=15:00:17", "ff08b509040d280003", "0311000f", "D"},
@@ -161,6 +165,8 @@ int main() {
     string flags = check[4];
     bool isTemplate = flags == "template";
     bool keepMessages = flags.find('k') != string::npos;
+    bool checkUpdateTime = flags.find('u') != string::npos;
+    bool checkSameChangeTime = flags.find('U') != string::npos;
     bool onlyMap = flags.find('M') != string::npos;
     bool failedCreate = flags.find('c') != string::npos;
     bool isChain = flags.find('C') != string::npos;
@@ -329,10 +335,15 @@ int main() {
     }
 
     if (message->isPassive() || decode) {
-      ostringstream output;
+      time_t lastUpdateTime = message->getLastUpdateTime();
+      time_t lastChangeTime = message->getLastChangeTime();
+      if (checkUpdateTime || checkSameChangeTime) {
+        sleep(2);
+      }
       for (size_t index = 0; index < message->getCount(); index++) {
         message->storeLastData(*mstrs[index], *sstrs[index]);
       }
+      ostringstream output;
       if (withMessageDump && !decodeJson) {
         message->dump(output, NULL, true);
         output << ": ";
@@ -348,6 +359,28 @@ int main() {
       cout << "  \"" << check[2] << "\" / \"" << check[3] <<  "\": decode OK" << endl;
       bool match = inputStr == output.str();
       verify(false, "decode", check[2] + "/" + check[3], match, inputStr, output.str());
+      if (checkUpdateTime || checkSameChangeTime) {
+        time_t time = message->getLastUpdateTime();
+        if (time == lastUpdateTime) {
+          cout << "  update time error: not updated" << endl;
+        } else {
+          cout << "  update time OK" << endl;
+        }
+        time = message->getLastChangeTime();
+        if (checkSameChangeTime) {
+          if (time != lastChangeTime) {
+            cout << "  same change time error: unexpectedly updated" << endl;
+          } else {
+            cout << "  same change time OK" << endl;
+          }
+        } else {
+          if (time == lastChangeTime) {
+            cout << "  change time error: not updated" << endl;
+          } else {
+            cout << "  change time OK" << endl;
+          }
+        }
+      }
     }
     if (!message->isPassive() && (withInput || !decode)) {
       istringstream input(inputStr);
