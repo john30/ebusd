@@ -612,9 +612,6 @@ class Message : public AttributedItem {
    * false if message can be initiated by any participant. */
   const bool m_isPassive;
 
-  /** the additional named attributes. */
-  const map<string, string> m_attributes;
-
   /** the source address, or @a SYN for any (only relevant if passive). */
   const symbol_t m_srcAddress;
 

@@ -170,11 +170,11 @@ Message::Message(const string circuit, const string level, const string name,
     : AttributedItem(name, attributes), m_circuit(circuit), m_level(level), m_isWrite(isWrite),
       m_isPassive(isPassive),
       m_srcAddress(srcAddress), m_dstAddress(dstAddress),
-      m_id(id), m_data(data), m_deleteData(deleteData),
+      m_id(id), m_key(createKey(id, isWrite, isPassive, srcAddress, dstAddress)),
+      m_data(data), m_deleteData(deleteData),
       m_pollPriority(pollPriority),
       m_usedByCondition(false), m_isScanMessage(false), m_condition(condition),
-      m_lastUpdateTime(0), m_lastChangeTime(0), m_pollCount(0), m_lastPollTime(0),
-      m_key(createKey(id, isWrite, isPassive, srcAddress, dstAddress)) {
+      m_lastUpdateTime(0), m_lastChangeTime(0), m_pollCount(0), m_lastPollTime(0) {
   if (circuit == "scan") {
     setScanMessage();
     m_pollPriority = 0;
@@ -781,7 +781,6 @@ result_t Message::storeLastData(SlaveSymbolString& data, size_t index) {
   if (data != m_lastSlaveData) {
     m_lastChangeTime = m_lastUpdateTime;
     m_lastSlaveData = data;
-    const SlaveSymbolString& chk = getLastSlaveData();
   }
   return RESULT_OK;
 }

@@ -127,7 +127,7 @@ void appendJson(ostringstream& output, const string name, const string value, bo
     if (!plain) {
       const char* str = value.c_str();
       char* strEnd = NULL;
-      double dvalue = strtod(str, &strEnd);
+      strtod(str, &strEnd);
       plain = strEnd && *strEnd;
     }
   }
