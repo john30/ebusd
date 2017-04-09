@@ -62,24 +62,28 @@ class UserList : public UserInfo, public MappedFileReader {
   virtual ~UserList() {}
 
   // @copydoc
-  result_t getFieldMap(vector<string>& row, string& errorDescription) override;
+  result_t getFieldMap(vector<string>& row, string& errorDescription) const override;
 
   // @copydoc
   result_t addFromFile(map<string, string>& row, vector< map<string, string> >& subRows,
       string& errorDescription, const string filename, unsigned int lineNo) override;
 
   // @copydoc
-  bool hasUser(const string user) override {
+  bool hasUser(const string user) const override {
     return m_userLevels.find(user) != m_userLevels.end();
   }
 
   // @copydoc
-  bool checkSecret(const string user, const string secret) override {
-    return m_userSecrets.find(user) != m_userSecrets.end() && m_userSecrets[user] == secret;
+  bool checkSecret(const string user, const string secret) const override {
+    auto it = m_userSecrets.find(user);
+    return it != m_userSecrets.end() && it->second == secret;
   }
 
   // @copydoc
-  string getLevels(const string user) override { return m_userLevels[user]; }
+  string getLevels(const string user) const override {
+    auto it = m_userLevels.find(user);
+    return it == m_userLevels.end() ? "" : it->second;
+  }
 
  private:
   /** the secret string by user name. */

@@ -156,7 +156,7 @@ class SymbolString {
    * @param skipFirstSymbols the number of first symbols to skip.
    * @return the symbols as hex string.
    */
-  const string getStr(size_t skipFirstSymbols = 0);
+  const string getStr(size_t skipFirstSymbols = 0) const;
 
   /**
    * Return a reference to the symbol at the specified index.
@@ -243,6 +243,19 @@ class SymbolString {
     }
     size_t ret = m_data[lengthOffset];
     return m_data.size() < lengthOffset + 1 + ret ? m_data.size() - lengthOffset - 1 : ret;
+  }
+
+  /**
+   * Return the data byte at the specified index (within DD).
+   * @param index the index of the data byte (within DD) to return.
+   * @return the data byte at the specified index, or 0 if not available.
+   */
+  symbol_t dataAt(const size_t index) const {
+    size_t offset = (m_isMaster ? 5 : 1) + index;
+    if (offset < m_data.size()) {
+      return m_data[offset];
+    }
+    return 0;
   }
 
   /**

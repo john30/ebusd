@@ -39,7 +39,7 @@ void contrib_tem_register() {
   DataTypeList::getInstance()->add(new TemParamDataType("TEM_P"));
 }
 
-result_t TemParamDataType::derive(int divisor, size_t bitCount, NumberDataType* &derived) {
+result_t TemParamDataType::derive(int divisor, size_t bitCount, const NumberDataType* &derived) const {
   if (divisor == 0) {
     divisor = 1;
   }
@@ -53,9 +53,9 @@ result_t TemParamDataType::derive(int divisor, size_t bitCount, NumberDataType* 
   return RESULT_ERR_INVALID_ARG;
 }
 
-result_t TemParamDataType::readSymbols(SymbolString& input,
+result_t TemParamDataType::readSymbols(const SymbolString& input,
     const size_t offset, const size_t length,
-    ostringstream& output, OutputFormat outputFormat) {
+    ostringstream& output, OutputFormat outputFormat) const {
   unsigned int value = 0;
 
   result_t result = readRawValue(input, offset, length, value);
@@ -92,7 +92,7 @@ result_t TemParamDataType::readSymbols(SymbolString& input,
 
 result_t TemParamDataType::writeSymbols(istringstream& input,
   const size_t offset, const size_t length,
-  SymbolString& output, size_t* usedLength) {
+  SymbolString& output, size_t* usedLength) const {
   unsigned int value;
   int grp, num;
   string token;

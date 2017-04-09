@@ -41,7 +41,7 @@ using std::ifstream;
 #define RECONNECT_MISSING_SIGNAL 60
 
 
-result_t UserList::getFieldMap(vector<string>& row, string& errorDescription) {
+result_t UserList::getFieldMap(vector<string>& row, string& errorDescription) const {
   // name,secret,level[,level]*
   if (row.empty()) {
     row.push_back("name");
@@ -735,7 +735,7 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
     if (srcAddress == SYN
         && (message->getLastUpdateTime() + maxAge > now
             || (message->isPassive() && message->getLastUpdateTime() != 0))) {
-      SlaveSymbolString& slave = message->getLastSlaveData();
+      const SlaveSymbolString& slave = message->getLastSlaveData();
       logNotice(lf_main, "hex read %s %s from cache", message->getCircuit().c_str(), message->getName().c_str());
       return slave.getStr();
     }
@@ -998,7 +998,7 @@ string MainLoop::executeWrite(vector<string> &args, const string levels) {
         getResultCode(ret));
     return getResultCode(ret);
   }
-  dstAddress = message->getLastMasterData()[1];
+  dstAddress = message->getLastMasterData().dataAt(1);
   ostringstream result;
   if (dstAddress == BROADCAST || isMaster(dstAddress)) {
     logNotice(lf_main, "write %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(),
@@ -1105,8 +1105,10 @@ string MainLoop::executeFind(vector<string> &args, string levels) {
       }
     } else if (args[argPos] == "-vv") {
       verbosity |= OF_NAMES|OF_UNITS;
-    } else if (args[argPos] == "-vvv" || args[argPos] == "-V") {
+    } else if (args[argPos] == "-vvv") {
       verbosity |= OF_NAMES|OF_UNITS|OF_COMMENTS;
+    } else if (args[argPos] == "-V") {
+      verbosity |= OF_NAMES|OF_UNITS|OF_COMMENTS|OF_ALL_ATTRS;
     } else if (args[argPos] == "-f") {
       configFormat = true;
       if (hexFormat) {
@@ -1251,12 +1253,12 @@ string MainLoop::executeFind(vector<string> &args, string levels) {
                << " / " << message->getLastSlaveData().getStr() << ")";
         }
       }
-      if (verbosity == (OF_NAMES|OF_UNITS|OF_COMMENTS)) {
+      if ((verbosity & (OF_NAMES|OF_UNITS|OF_COMMENTS)) == (OF_NAMES|OF_UNITS|OF_COMMENTS)) {
         symbol_t dstAddress = message->getDstAddress();
         if (dstAddress != SYN) {
           snprintf(str, sizeof(str), "%02x", dstAddress);
         } else if (lastup != 0 && message->getLastMasterData().size() > 1) {
-          snprintf(str, sizeof(str), "%02x", message->getLastMasterData()[1]);
+          snprintf(str, sizeof(str), "%02x", message->getLastMasterData().dataAt(1));
         } else {
           snprintf(str, sizeof(str), "any");
         }
@@ -1533,7 +1535,7 @@ string MainLoop::executeHelp() {
 
 string MainLoop::executeGet(vector<string> &args, bool& connected) {
   result_t ret = RESULT_OK;
-  bool numeric = false, required = false;
+  bool numeric = false, required = false, full = false;
   OutputFormat verbosity = OF_NAMES;
   size_t argPos = 1;
   string uri = args[argPos++];
@@ -1583,6 +1585,8 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
           }
         } else if (qname == "numeric") {
           numeric = value.length() == 0 || value == "1";
+        } else if (qname == "full") {
+          full = value.length() == 0 || value == "1";
         } else if (qname == "required") {
           required = value.length() == 0 || value == "1";
         } else if (qname == "user") {
@@ -1639,6 +1643,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
           }
           lastCircuit = message->getCircuit();
           result << "\n \"" << lastCircuit << "\": {";
+          // TODO add circuit specific values
           first = true;
         }
         if (first) {
@@ -1652,7 +1657,8 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
           result << ",\n   \"zz\": \"" << setfill('0') << setw(2) << hex << static_cast<unsigned>(dstAddress) << "\"";
           size_t pos = (size_t) result.tellp();
           result << ",\n   \"fields\": {";
-          result_t dret = message->decodeLastData(result, verbosity | (numeric ? OF_NUMERIC : 0) | OF_JSON);
+          result_t dret = message->decodeLastData(
+              result, verbosity | (numeric ? OF_NUMERIC : 0) | OF_JSON | (full ? OF_ALL_ATTRS : 0));
           if (dret == RESULT_OK) {
             result << "\n   }";
           } else {
@@ -1671,7 +1677,25 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
         result << "\n },";
       }
       result << "\n \"global\": {";
-      result << "\n  \"signal\": " << (m_busHandler->hasSignal() ? "1" : "0");
+      result << "\n  \"version\": \"" << PACKAGE_VERSION "." REVISION "\"";
+      if (!m_updateCheck.empty()) {
+        result << ",\n  \"updatecheck\": \"" << m_updateCheck << "\"";
+      }
+      if (!user.empty()) {
+        result << ",\n  \"user\": \"" << user << "\"";
+      }
+      string levels = getUserLevels(user);
+      if (!user.empty() || !levels.empty()) {
+        result << ",\n  \"access\": \"" << levels << "\"";
+      }
+      result << ",\n  \"signal\": " << (m_busHandler->hasSignal() ? "1" : "0");
+      if (m_busHandler->hasSignal()) {
+        result << ",\n  \"symbolrate\": " << m_busHandler->getSymbolRate();
+        result << ",\n  \"maxsymbolrate\": " << m_busHandler->getMaxSymbolRate();
+      }
+      result << ",\n  \"reconnects\": " << m_reconnectCount;
+      result << ",\n  \"masters\": " << m_busHandler->getMasterCount();
+      result << ",\n  \"messages\": " << m_messages->size();
       result << ",\n  \"lastup\": " << setw(0) << dec << static_cast<unsigned>(maxLastUp);
       result << "\n }";
       result << "\n}";

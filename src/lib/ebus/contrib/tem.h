@@ -47,20 +47,20 @@ class TemParamDataType : public NumberDataType {
    * @param id the type identifier.
    */
   explicit TemParamDataType(const string id)
-    : NumberDataType(id, 16, 0, 0xffff, 0, 0xffff, 0) {}
+    : NumberDataType(id, 16, 0, 0xffff, 0, 0xffff, 0, NULL) {}
 
   // @copydoc
-  result_t derive(int divisor, size_t bitCount, NumberDataType* &derived) override;
+  result_t derive(int divisor, size_t bitCount, const NumberDataType* &derived) const override;
 
   // @copydoc
-  result_t readSymbols(SymbolString& input,
+  result_t readSymbols(const SymbolString& input,
     const size_t offset, const size_t length,
-    ostringstream& output, OutputFormat outputFormat) override;
+    ostringstream& output, OutputFormat outputFormat) const override;
 
   // @copydoc
   result_t writeSymbols(istringstream& input,
     const size_t offset, const size_t length,
-    SymbolString& output, size_t* usedLength) override;
+    SymbolString& output, size_t* usedLength) const override;
 };
 
 /**

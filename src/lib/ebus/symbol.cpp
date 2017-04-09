@@ -144,7 +144,7 @@ result_t SymbolString::parseHexEscaped(const string& str) {
   return inEscape ? RESULT_ERR_ESC : RESULT_OK;
 }
 
-const string SymbolString::getStr(size_t skipFirstSymbols) {
+const string SymbolString::getStr(size_t skipFirstSymbols) const {
   ostringstream sstr;
   for (size_t i = 0; i < m_data.size(); i++) {
     if (skipFirstSymbols > 0) {

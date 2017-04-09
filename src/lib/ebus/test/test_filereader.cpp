@@ -82,7 +82,7 @@ class NoopReader : public FileReader {
 class TestReader : public MappedFileReader {
  public:
   TestReader(size_t expectedCols) : MappedFileReader::MappedFileReader(false), m_expectedCols(expectedCols) {}
-  result_t getFieldMap(vector<string>& row, string& errorDescription) override {
+  result_t getFieldMap(vector<string>& row, string& errorDescription) const override {
     if (row.size() == m_expectedCols) {
       cout << "get field map: split OK" << endl;
       return RESULT_OK;

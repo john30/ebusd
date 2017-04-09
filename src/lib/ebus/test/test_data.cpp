@@ -53,7 +53,7 @@ class TestReader : public MappedFileReader {
   TestReader(DataFieldTemplates* templates, bool isSet, bool isMasterDest)
   : MappedFileReader::MappedFileReader(true), m_templates(templates), m_isSet(isSet), m_isMasterDest(isMasterDest),
     m_fields(NULL) {}
-  result_t getFieldMap(vector<string>& row, string& errorDescription) override {
+  result_t getFieldMap(vector<string>& row, string& errorDescription) const override {
     if (row.empty()) {
       row.push_back("*name");
       row.push_back("part");
@@ -84,7 +84,7 @@ class TestReader : public MappedFileReader {
   const bool m_isSet;
   const bool m_isMasterDest;
  public:
-  DataField* m_fields;
+  const DataField* m_fields;
 };
 
 
@@ -509,7 +509,7 @@ int main() {
   string errorDescription;
   vector<string> row;
   templates->readLineFromStream(dummystr, errorDescription, "inline", lineNo, row);
-  DataField* fields = NULL;
+  const DataField* fields = NULL;
   for (size_t i = 0; i < sizeof(checks) / sizeof(checks[0]); i++) {
     string check[5] = checks[i];
     istringstream isstr(check[0]);

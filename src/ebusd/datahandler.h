@@ -73,7 +73,7 @@ class UserInfo {
    * @param user the user name.
    * @return whether the user exists.
    */
-  virtual bool hasUser(const string user) = 0;  // abstract
+  virtual bool hasUser(const string user) const = 0;  // abstract
 
   /**
    * Check whether the secret string matches the one of the specified user.
@@ -81,14 +81,14 @@ class UserInfo {
    * @param secret the secret to check.
    * @return whether the secret string is valid.
    */
-  virtual bool checkSecret(const string user, const string secret) = 0;  // abstract
+  virtual bool checkSecret(const string user, const string secret) const = 0;  // abstract
 
   /**
    * Get the access levels associated with the specified user.
    * @param user the user name, or empty for default levels.
    * @return the access levels separated by semicolon.
    */
-  virtual string getLevels(const string user) = 0;  // abstract
+  virtual string getLevels(const string user) const = 0;  // abstract
 };
 
 
@@ -116,13 +116,13 @@ class DataHandler {
    * Return whether this is a @a DataSink instance.
    * @return whether this is a @a DataSink instance.
    */
-  virtual bool isDataSink() { return false; }
+  virtual bool isDataSink() const { return false; }
 
   /**
    * Return whether this is a @a DataSource instance.
    * @return whether this is a @a DataSource instance.
    */
-  virtual bool isDataSource() { return false; }
+  virtual bool isDataSource() const { return false; }
 };
 
 
@@ -146,7 +146,7 @@ class DataSink : virtual public DataHandler {
   virtual ~DataSink() {}
 
   // @copydoc
-  bool isDataSink() override { return true; }
+  bool isDataSink() const override { return true; }
 
   /**
    * Notify the sink of an updated @a Message.
@@ -187,7 +187,7 @@ class DataSource : virtual public DataHandler {
   virtual ~DataSource() {}
 
   // @copydoc
-  bool isDataSource() override { return true; }
+  bool isDataSource() const override { return true; }
 
 
  protected:

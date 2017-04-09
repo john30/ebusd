@@ -58,14 +58,14 @@ bool DataType::dump(ostream& output, const size_t length, const bool appendSepar
 }
 
 
-result_t StringDataType::readRawValue(SymbolString& input, const size_t offset,
-    const size_t length, unsigned int& value) {
+result_t StringDataType::readRawValue(const SymbolString& input, const size_t offset,
+    const size_t length, unsigned int& value) const {
   return RESULT_EMPTY;
 }
 
-result_t StringDataType::readSymbols(SymbolString& input,
+result_t StringDataType::readSymbols(const SymbolString& input,
     const size_t offset, const size_t length,
-    ostringstream& output, OutputFormat outputFormat) {
+    ostringstream& output, OutputFormat outputFormat) const {
   size_t start = 0, count = length;
   int incr = 1;
   symbol_t symbol;
@@ -116,7 +116,7 @@ result_t StringDataType::readSymbols(SymbolString& input,
 
 result_t StringDataType::writeSymbols(istringstream& input,
     size_t offset, const size_t length,
-    SymbolString& output, size_t* usedLength) {
+    SymbolString& output, size_t* usedLength) const {
   size_t start = 0, count = length;
   bool remainder = count == REMAIN_LEN && hasFlag(ADJ);
   int incr = 1;
@@ -196,14 +196,14 @@ result_t StringDataType::writeSymbols(istringstream& input,
 }
 
 
-result_t DateTimeDataType::readRawValue(SymbolString& input, const size_t offset,
-    const size_t length, unsigned int& value) {
+result_t DateTimeDataType::readRawValue(const SymbolString& input, const size_t offset,
+    const size_t length, unsigned int& value) const {
   return RESULT_EMPTY;
 }
 
-result_t DateTimeDataType::readSymbols(SymbolString& input,
+result_t DateTimeDataType::readSymbols(const SymbolString& input,
     const size_t offset, const size_t length,
-    ostringstream& output, OutputFormat outputFormat) {
+    ostringstream& output, OutputFormat outputFormat) const {
   size_t start = 0, count = length;
   int incr = 1;
   symbol_t symbol, last = 0, hour = 0;
@@ -335,7 +335,7 @@ result_t DateTimeDataType::readSymbols(SymbolString& input,
 
 result_t DateTimeDataType::writeSymbols(istringstream& input,
     size_t offset, const size_t length,
-    SymbolString& output, size_t* usedLength) {
+    SymbolString& output, size_t* usedLength) const {
   size_t start = 0, count = length;
   bool remainder = count == REMAIN_LEN && hasFlag(ADJ);
   int incr = 1;
@@ -527,7 +527,7 @@ bool NumberDataType::dump(ostream& output, size_t length, const bool appendSepar
   return false;
 }
 
-result_t NumberDataType::derive(int divisor, size_t bitCount, NumberDataType* &derived) {
+result_t NumberDataType::derive(int divisor, size_t bitCount, const NumberDataType* &derived) const {
   if (divisor == 0) {
     divisor = 1;
   }
@@ -570,19 +570,18 @@ result_t NumberDataType::derive(int divisor, size_t bitCount, NumberDataType* &d
   }
   if (m_bitCount < 8) {
     derived = new NumberDataType(m_id, bitCount, m_flags, m_replacement,
-      m_firstBit, divisor);
+      m_firstBit, divisor, m_baseType ? m_baseType : this);
   } else {
     derived = new NumberDataType(m_id, bitCount, m_flags, m_replacement,
-      m_minValue, m_maxValue, divisor);
+      m_minValue, m_maxValue, divisor, m_baseType ? m_baseType : this);
   }
-  derived->m_baseType = m_baseType ? m_baseType : this;
   DataTypeList::getInstance()->addCleanup(derived);
   return RESULT_OK;
 }
 
-result_t NumberDataType::readRawValue(SymbolString& input,
+result_t NumberDataType::readRawValue(const SymbolString& input,
     size_t offset, const size_t length,
-    unsigned int& value) {
+    unsigned int& value) const {
   size_t start = 0, count = length;
   int incr = 1;
   symbol_t symbol;
@@ -629,9 +628,9 @@ result_t NumberDataType::readRawValue(SymbolString& input,
   return RESULT_OK;
 }
 
-result_t NumberDataType::readSymbols(SymbolString& input,
+result_t NumberDataType::readSymbols(const SymbolString& input,
     const size_t offset, const size_t length,
-    ostringstream& output, OutputFormat outputFormat) {
+    ostringstream& output, OutputFormat outputFormat) const {
   unsigned int value = 0;
   int signedValue;
 
@@ -743,7 +742,7 @@ result_t NumberDataType::readSymbols(SymbolString& input,
 
 result_t NumberDataType::writeRawValue(unsigned int value,
     const size_t offset, const size_t length,
-    SymbolString& output, size_t* usedLength) {
+    SymbolString& output, size_t* usedLength) const {
   size_t start = 0, count = length;
   int incr = 1;
   symbol_t symbol;
@@ -789,7 +788,7 @@ result_t NumberDataType::writeRawValue(unsigned int value,
 
 result_t NumberDataType::writeSymbols(istringstream& input,
     const size_t offset, const size_t length,
-    SymbolString& output, size_t* usedLength) {
+    SymbolString& output, size_t* usedLength) const {
   unsigned int value;
 
   const char* str = input.str().c_str();
@@ -906,8 +905,8 @@ bool DataTypeList::s_contrib_initialized = libebus_contrib_register();
 DataTypeList::DataTypeList() {
   add(new StringDataType("STR", MAX_LEN*8, ADJ, ' '));  // >= 1 byte character string filled up with space
   // unsigned decimal in BCD, 0000 - 9999 (fixed length)
-  add(new NumberDataType("PIN", 16, FIX|BCD|REV, 0xffff, 0, 0x9999, 1));
-  add(new NumberDataType("UCH", 8, 0, 0xff, 0, 0xfe, 1));  // unsigned integer, 0 - 254
+  add(new NumberDataType("PIN", 16, FIX|BCD|REV, 0xffff, 0, 0x9999, 1, NULL));
+  add(new NumberDataType("UCH", 8, 0, 0xff, 0, 0xfe, 1, NULL));  // unsigned integer, 0 - 254
   add(new StringDataType("IGN", MAX_LEN*8, IGN|ADJ, 0));  // >= 1 byte ignored data
   // >= 1 byte character string filled up with 0x00 (null terminated string)
   add(new StringDataType("NTS", MAX_LEN*8, ADJ, 0));
@@ -945,56 +944,56 @@ DataTypeList::DataTypeList() {
   add(new DateTimeDataType("TTH", 6, 0, 0, false, true, 30));
   // truncated time (only multiple of 15 minutes), 00:00 - 24:00 (minutes div 15 + hour * 4 as integer)
   add(new DateTimeDataType("TTQ", 7, 0, 0, false, true, 15));
-  add(new NumberDataType("BDY", 8, DAY, 0x07, 0, 6, 1));  // weekday, "Mon" - "Sun" (0x00 - 0x06) [eBUS type]
-  add(new NumberDataType("HDY", 8, DAY, 0x00, 1, 7, 1));  // weekday, "Mon" - "Sun" (0x01 - 0x07) [Vaillant type]
-  add(new NumberDataType("BCD", 8, BCD, 0xff, 0, 99, 1));  // unsigned decimal in BCD, 0 - 99
-  add(new NumberDataType("BCD", 16, BCD, 0xffff, 0, 9999, 1));  // unsigned decimal in BCD, 0 - 9999
-  add(new NumberDataType("BCD", 24, BCD, 0xffffff, 0, 999999, 1));  // unsigned decimal in BCD, 0 - 999999
-  add(new NumberDataType("BCD", 32, BCD, 0xffffffff, 0, 99999999, 1));  // unsigned decimal in BCD, 0 - 99999999
-  add(new NumberDataType("HCD", 32, HCD|BCD|REQ, 0, 0, 99999999, 1));  // unsigned decimal in HCD, 0 - 99999999
-  add(new NumberDataType("HCD", 8, HCD|BCD|REQ, 0, 0, 99, 1));  // unsigned decimal in HCD, 0 - 99
-  add(new NumberDataType("HCD", 16, HCD|BCD|REQ, 0, 0, 9999, 1));  // unsigned decimal in HCD, 0 - 9999
-  add(new NumberDataType("HCD", 24, HCD|BCD|REQ, 0, 0, 999999, 1));  // unsigned decimal in HCD, 0 - 999999
-  add(new NumberDataType("SCH", 8, SIG, 0x80, 0x81, 0x7f, 1));  // signed integer, -127 - +127
-  add(new NumberDataType("D1B", 8, SIG, 0x80, 0x81, 0x7f, 1));  // signed integer, -127 - +127
+  add(new NumberDataType("BDY", 8, DAY, 0x07, 0, 6, 1, NULL));  // weekday, "Mon" - "Sun" (0x00 - 0x06) [eBUS type]
+  add(new NumberDataType("HDY", 8, DAY, 0x00, 1, 7, 1, NULL));  // weekday, "Mon" - "Sun" (0x01 - 0x07) [Vaillant type]
+  add(new NumberDataType("BCD", 8, BCD, 0xff, 0, 99, 1, NULL));  // unsigned decimal in BCD, 0 - 99
+  add(new NumberDataType("BCD", 16, BCD, 0xffff, 0, 9999, 1, NULL));  // unsigned decimal in BCD, 0 - 9999
+  add(new NumberDataType("BCD", 24, BCD, 0xffffff, 0, 999999, 1, NULL));  // unsigned decimal in BCD, 0 - 999999
+  add(new NumberDataType("BCD", 32, BCD, 0xffffffff, 0, 99999999, 1, NULL));  // unsigned decimal in BCD, 0 - 99999999
+  add(new NumberDataType("HCD", 32, HCD|BCD|REQ, 0, 0, 99999999, 1, NULL));  // unsigned decimal in HCD, 0 - 99999999
+  add(new NumberDataType("HCD", 8, HCD|BCD|REQ, 0, 0, 99, 1, NULL));  // unsigned decimal in HCD, 0 - 99
+  add(new NumberDataType("HCD", 16, HCD|BCD|REQ, 0, 0, 9999, 1, NULL));  // unsigned decimal in HCD, 0 - 9999
+  add(new NumberDataType("HCD", 24, HCD|BCD|REQ, 0, 0, 999999, 1, NULL));  // unsigned decimal in HCD, 0 - 999999
+  add(new NumberDataType("SCH", 8, SIG, 0x80, 0x81, 0x7f, 1, NULL));  // signed integer, -127 - +127
+  add(new NumberDataType("D1B", 8, SIG, 0x80, 0x81, 0x7f, 1, NULL));  // signed integer, -127 - +127
   // unsigned number (fraction 1/2), 0 - 100 (0x00 - 0xc8, replacement 0xff)
-  add(new NumberDataType("D1C", 8, 0, 0xff, 0x00, 0xc8, 2));
+  add(new NumberDataType("D1C", 8, 0, 0xff, 0x00, 0xc8, 2, NULL));
   // signed number (fraction 1/256), -127.99 - +127.99
-  add(new NumberDataType("D2B", 16, SIG, 0x8000, 0x8001, 0x7fff, 256));
+  add(new NumberDataType("D2B", 16, SIG, 0x8000, 0x8001, 0x7fff, 256, NULL));
   // signed number (fraction 1/16), -2047.9 - +2047.9
-  add(new NumberDataType("D2C", 16, SIG, 0x8000, 0x8001, 0x7fff, 16));
+  add(new NumberDataType("D2C", 16, SIG, 0x8000, 0x8001, 0x7fff, 16, NULL));
   // signed number (fraction 1/1000), -32.767 - +32.767, little endian
-  add(new NumberDataType("FLT", 16, SIG, 0x8000, 0x8001, 0x7fff, 1000));
+  add(new NumberDataType("FLT", 16, SIG, 0x8000, 0x8001, 0x7fff, 1000, NULL));
   // signed number (fraction 1/1000), -32.767 - +32.767, big endian
-  add(new NumberDataType("FLR", 16, SIG|REV, 0x8000, 0x8001, 0x7fff, 1000));
+  add(new NumberDataType("FLR", 16, SIG|REV, 0x8000, 0x8001, 0x7fff, 1000, NULL));
   // signed number (IEEE 754 binary32: 1 bit sign, 8 bits exponent, 23 bits significand), little endian
-  add(new NumberDataType("EXP", 32, SIG|EXP, 0x7f800000, 0x00000000, 0xffffffff, 1));
+  add(new NumberDataType("EXP", 32, SIG|EXP, 0x7f800000, 0x00000000, 0xffffffff, 1, NULL));
   // signed number (IEEE 754 binary32: 1 bit sign, 8 bits exponent, 23 bits significand), big endian
-  add(new NumberDataType("EXR", 32, SIG|EXP|REV, 0x7f800000, 0x00000000, 0xffffffff, 1));
+  add(new NumberDataType("EXR", 32, SIG|EXP|REV, 0x7f800000, 0x00000000, 0xffffffff, 1, NULL));
   // unsigned integer, 0 - 65534, little endian
-  add(new NumberDataType("UIN", 16, 0, 0xffff, 0, 0xfffe, 1));
+  add(new NumberDataType("UIN", 16, 0, 0xffff, 0, 0xfffe, 1, NULL));
   // unsigned integer, 0 - 65534, big endian
-  add(new NumberDataType("UIR", 16, REV, 0xffff, 0, 0xfffe, 1));
+  add(new NumberDataType("UIR", 16, REV, 0xffff, 0, 0xfffe, 1, NULL));
   // signed integer, -32767 - +32767, little endian
-  add(new NumberDataType("SIN", 16, SIG, 0x8000, 0x8001, 0x7fff, 1));
+  add(new NumberDataType("SIN", 16, SIG, 0x8000, 0x8001, 0x7fff, 1, NULL));
   // signed integer, -32767 - +32767, big endian
-  add(new NumberDataType("SIR", 16, SIG|REV, 0x8000, 0x8001, 0x7fff, 1));
+  add(new NumberDataType("SIR", 16, SIG|REV, 0x8000, 0x8001, 0x7fff, 1, NULL));
   // unsigned 3 bytes int, 0 - 16777214, little endian
-  add(new NumberDataType("U3N", 24, 0, 0xffffff, 0, 0xfffffe, 1));
+  add(new NumberDataType("U3N", 24, 0, 0xffffff, 0, 0xfffffe, 1, NULL));
   // unsigned 3 bytes int, 0 - 16777214, big endian
-  add(new NumberDataType("U3R", 24, REV, 0xffffff, 0, 0xfffffe, 1));
+  add(new NumberDataType("U3R", 24, REV, 0xffffff, 0, 0xfffffe, 1, NULL));
   // signed 3 bytes int, -8388607 - +8388607, little endian
-  add(new NumberDataType("S3N", 24, SIG, 0x800000, 0x800001, 0xffffff, 1));
+  add(new NumberDataType("S3N", 24, SIG, 0x800000, 0x800001, 0xffffff, 1, NULL));
   // signed 3 bytes int, -8388607 - +8388607, big endian
-  add(new NumberDataType("S3R", 24, SIG|REV, 0x800000, 0x800001, 0xffffff, 1));
+  add(new NumberDataType("S3R", 24, SIG|REV, 0x800000, 0x800001, 0xffffff, 1, NULL));
   // unsigned integer, 0 - 4294967294, little endian
-  add(new NumberDataType("ULG", 32, 0, 0xffffffff, 0, 0xfffffffe, 1));
+  add(new NumberDataType("ULG", 32, 0, 0xffffffff, 0, 0xfffffffe, 1, NULL));
   // unsigned integer, 0 - 4294967294, big endian
-  add(new NumberDataType("ULR", 32, REV, 0xffffffff, 0, 0xfffffffe, 1));
+  add(new NumberDataType("ULR", 32, REV, 0xffffffff, 0, 0xfffffffe, 1, NULL));
   // signed integer, -2147483647 - +2147483647, little endian
-  add(new NumberDataType("SLG", 32, SIG, 0x80000000, 0x80000001, 0xffffffff, 1));
+  add(new NumberDataType("SLG", 32, SIG, 0x80000000, 0x80000001, 0xffffffff, 1, NULL));
   // signed integer, -2147483647 - +2147483647, big endian
-  add(new NumberDataType("SLR", 32, SIG|REV, 0x80000000, 0x80000001, 0xffffffff, 1));
+  add(new NumberDataType("SLR", 32, SIG|REV, 0x80000000, 0x80000001, 0xffffffff, 1, NULL));
   add(new NumberDataType("BI0", 7, ADJ|REQ, 0, 0, 1));  // bit 0 (up to 7 bits until bit 6)
   add(new NumberDataType("BI1", 7, ADJ|REQ, 0, 1, 1));  // bit 1 (up to 7 bits until bit 7)
   add(new NumberDataType("BI2", 6, ADJ|REQ, 0, 2, 1));  // bit 2 (up to 6 bits until bit 7)
@@ -1010,21 +1009,20 @@ DataTypeList* DataTypeList::getInstance() {
 }
 
 void DataTypeList::clear() {
-  for (list<DataType*>::iterator it = m_cleanupTypes.begin(); it != m_cleanupTypes.end(); it++) {
-    delete *it;
+  for (auto& it : m_cleanupTypes) {
+    delete it;
   }
   m_cleanupTypes.clear();
   m_typesByIdLength.clear();
   m_typesById.clear();
 }
 
-result_t DataTypeList::add(DataType* dataType) {
+result_t DataTypeList::add(const DataType* dataType) {
   if (!dataType->isAdjustableLength()) {
     ostringstream str;
     size_t bitCount = dataType->getBitCount();
     str << dataType->getId() << LENGTH_SEPARATOR << static_cast<unsigned>(bitCount >= 8?bitCount/8:bitCount);
-    map<string, DataType*>::iterator it = m_typesByIdLength.find(str.str());
-    if (it != m_typesByIdLength.end()) {
+    if (m_typesByIdLength.find(str.str()) != m_typesByIdLength.end()) {
       return RESULT_ERR_DUPLICATE_NAME;  // duplicate key
     }
     m_typesByIdLength[str.str()] = dataType;
@@ -1040,20 +1038,23 @@ result_t DataTypeList::add(DataType* dataType) {
   return RESULT_OK;
 }
 
-DataType* DataTypeList::get(const string id, const size_t length) {
-  DataType* dataType = NULL;
+const DataType* DataTypeList::get(const string id, const size_t length) const {
   if (length > 0) {
     ostringstream str;
     str << id << LENGTH_SEPARATOR << static_cast<unsigned>(length);
-    dataType = m_typesByIdLength[str.str()];
-  }
-  if (!dataType) {
-    dataType = m_typesById[id];
-    if (dataType && length > 0 && !dataType->isAdjustableLength()) {
-      return NULL;
+    auto it = m_typesByIdLength.find(str.str());
+    if (it != m_typesByIdLength.end()) {
+      return it->second;
     }
   }
-  return dataType;
+  auto it = m_typesById.find(id);
+  if (it == m_typesById.end()) {
+    return NULL;
+  }
+  if (length > 0 && !it->second->isAdjustableLength()) {
+    return NULL;
+  }
+  return it->second;
 }
 
 }  // namespace ebusd

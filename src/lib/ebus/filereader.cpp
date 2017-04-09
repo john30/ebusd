@@ -75,11 +75,14 @@ result_t FileReader::readFromFile(const string filename, string& errorDescriptio
 result_t FileReader::readLineFromStream(istream& stream, string& errorDescription,
     const string filename, unsigned int& lineNo, vector<string>& row, bool verbose,
     size_t* hash, size_t* size) {
+  result_t result;
   if (!splitFields(stream, row, lineNo, hash, size)) {
-    return RESULT_ERR_EOF;
+    errorDescription = "blank line";
+    result = RESULT_ERR_EOF;
+  } else {
+    errorDescription = "";
+    result = addFromFile(row, errorDescription, filename, lineNo);
   }
-  errorDescription = "";
-  result_t result = addFromFile(row, errorDescription, filename, lineNo);
   if (result != RESULT_OK) {
     if (!verbose) {
       ostringstream error;
@@ -134,6 +137,7 @@ bool FileReader::splitFields(istream& ifs, vector<string>& row, unsigned int& li
       *size += length + 1;  // normalized with trailing endl
     }
     if (hash) {
+      // TODO ensure 32 bit machine produces same result
       *hash ^= (hashFunction(line) << 1) ^ (length << (7 * (lineNo % 5)));
     }
     if (!quotedText && (length == 0 || line[0] == '#' || (line.length() > 1 && line[0] == '/' && line[1] == '/'))) {

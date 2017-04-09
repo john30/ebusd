@@ -884,9 +884,9 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, string& rela
   if (!message) {
     return RESULT_ERR_NOTFOUND;
   }
-  SlaveSymbolString& data = message->getLastSlaveData();
+  const SlaveSymbolString& data = message->getLastSlaveData();
   if (data.getDataSize() < 1+5+2+2) {
-    logError(lf_main, "unable to load scan config %2.2x: slave part too short", address);
+    logError(lf_main, "unable to load scan config %2.2x: slave part too short (%d)", address, data.getDataSize());
     return RESULT_EMPTY;
   }
   DataFieldSet* identFields = DataFieldSet::getIdentFields();

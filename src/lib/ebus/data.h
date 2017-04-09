@@ -92,17 +92,115 @@ class DataFieldTemplates;
 class SingleDataField;
 
 /**
+ * Base class for named items with optional named attributes.
+ */
+class AttributedItem {
+ protected:
+  /**
+   * Constructs a new instance.
+   * @param name the item name.
+   * @param attributes the additional named attributes.
+   */
+  AttributedItem(const string name, const map<string, string>& attributes)
+    : m_name(name), m_attributes(attributes) {}
+
+  /**
+   * Constructs a new instance (without additional attributes).
+   * @param name the field name.
+   */
+  explicit AttributedItem(const string name)
+    : m_name(name) {}
+
+  /**
+   * Destructor.
+   */
+  virtual ~AttributedItem() {}
+
+
+ public:
+  /**
+   * Remove and return a certain value from a map.
+   * @param row the map to remove the value from.
+   * @param key the name of the value to remove.
+   * @return the named value from the map, or empty if not available.
+   */
+  static const string pluck(map<string, string>& row, const string key);
+
+  /**
+   * Dump the @a string optionally embedded in @a TEXT_SEPARATOR to the output.
+   * @param output the @a ostream to dump to.
+   * @param str the @a string to dump.
+   * @param prependFieldSeparator whether to start with a @a FIELD_SEPARATOR.
+   */
+  static void dumpString(ostream& output, const string str, const bool prependFieldSeparator = true);
+
+  /**
+   * Merge this instance's additional named attributes into the specified attributes.
+   * @param attributes the additional named attributes to merge in this instance's additional named attributes.
+   */
+  void mergeAttributes(map<string, string>& attributes) const;
+
+  /**
+   * Dump the attribute optionally embedded in @a TEXT_SEPARATOR to the output.
+   * @param output the @a ostream to dump to.
+   * @param name the name of the attribute to dump.
+   * @param prependFieldSeparator whether to start with a @a FIELD_SEPARATOR.
+   */
+  void dumpAttribute(ostream& output, const string name, const bool prependFieldSeparator = true) const;
+
+  /**
+   * Append the attribute value to the output.
+   * @param output the @a ostringstream to append the formatted value to.
+   * @param outputFormat the @a OutputFormat options to use.
+   * @param name the name of the attribute to append.
+   * @param onlyIfNonEmpty true to append only if the value is not empty.
+   * @param prefix optional prefix to use (only for non-JSON output).
+   * @param suffix optional suffix to use (only for non-JSON output).
+   */
+  void appendAttribute(ostringstream& output, OutputFormat outputFormat, const string name,
+      const bool onlyIfNonEmpty = true, const string prefix = "", const string suffix = "") const;
+
+  /**
+   * Get the item name.
+   * @return the item name.
+   */
+  string getName() const { return m_name; }
+
+  /**
+   * Get a named attribute.
+   * @param name the name of the attribute.
+   * @return the named attribute value, or empty.
+   */
+  string getAttribute(const string name) const;
+
+
+ protected:
+  /** the field name. */
+  const string m_name;
+
+  /** the additional named attributes. */
+  const map<string, string> m_attributes;
+};
+
+/**
  * Base class for all kinds of data fields.
  */
-class DataField {
+class DataField : public AttributedItem {
  public:
   /**
    * Constructs a new instance.
    * @param name the field name.
-   * @param comment the field comment.
+   * @param attributes the additional named attributes.
    */
-  DataField(const string name, const string comment)
-    : m_name(name), m_comment(comment) {}
+  DataField(const string name, const map<string, string>& attributes)
+    : AttributedItem(name, attributes) {}
+
+  /**
+   * Constructs a new instance (without additional attributes).
+   * @param name the field name.
+   */
+  explicit DataField(const string name)
+    : AttributedItem(name) {}
 
   /**
    * Destructor.
@@ -113,7 +211,7 @@ class DataField {
    * Clone this instance.
    * @return a clone of this instance.
    */
-  virtual DataField* clone() = 0;
+  virtual const DataField* clone() const = 0;
 
   /**
    * Factory method for creating new instances.
@@ -129,18 +227,10 @@ class DataField {
    * Note: the caller needs to free the created instance.
    */
   static result_t create(vector< map<string, string> >& rows, string& errorDescription,
-      DataFieldTemplates* templates, DataField*& returnField,
-      const bool isWriteMessage,
-      const bool isTemplate, const bool isBroadcastOrMasterDestination,
-      const size_t maxFieldLength = MAX_POS);
-
-  /**
-   * Dump the @a string optionally embedded in @a TEXT_SEPARATOR to the output.
-   * @param output the @a ostream to dump to.
-   * @param str the @a string to dump.
-   * @param prependFieldSeparator whether to start with a @a FIELD_SEPARATOR.
-   */
-  static void dumpString(ostream& output, const string str, const bool prependFieldSeparator = true);
+    DataFieldTemplates* templates, const DataField*& returnField,
+    const bool isWriteMessage,
+    const bool isTemplate, const bool isBroadcastOrMasterDestination,
+    const size_t maxFieldLength = MAX_POS);
 
   /**
    * Return the name of the specified day.
@@ -155,42 +245,33 @@ class DataField {
    * @param maxLength the maximum length for calculating remainder of input.
    * @return the length of this field (or contained fields) in bytes.
    */
-  virtual size_t getLength(PartType partType, size_t maxLength = MAX_LEN) = 0;
+  virtual size_t getLength(PartType partType, size_t maxLength = MAX_LEN) const = 0;
 
   /**
    * Derive a new @a DataField from this field.
    * @param name the field name, or empty to use this fields name.
-   * @param comment the field comment, or empty to use this fields comment.
-   * @param unit the value unit, or empty to use this fields unit (if applicable).
+   * @param attributes the additional named attributes to override.
    * @param partType the message part in which the field is stored.
    * @param divisor the extra divisor (negative for reciprocal) to apply on the value, or 1 for none (if applicable).
    * @param values the value=text assignments, or empty to use this fields assignments (if applicable).
    * @param fields the @a vector to which created @a SingleDataField instances shall be added.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t derive(string name, string comment,
-      string unit, const PartType partType,
-      int divisor, map<unsigned int, string> values,
-      vector<SingleDataField*>& fields) = 0;
+  virtual result_t derive(const string name, map<string, string> attributes, const PartType partType,
+    int divisor, map<unsigned int, string> values, vector<const SingleDataField*>& fields) const = 0;
 
   /**
    * Get the specified field name.
    * @param fieldIndex the index of the field, or -1 for this.
    * @return the field name, or the index as string if not unique or not available.
    */
-  virtual string getName(ssize_t fieldIndex = -1) { return m_name; }
-
-  /**
-   * Get the field comment.
-   * @return the field comment.
-   */
-  string getComment() const { return m_comment; }
+  virtual string getName(const ssize_t fieldIndex = -1) const { return m_name; }
 
   /**
    * Dump the field settings to the output.
    * @param output the @a ostream to dump to.
    */
-  virtual void dump(ostream& output) = 0;
+  virtual void dump(ostream& output) const = 0;
 
   /**
    * Return whether the field is available.
@@ -198,7 +279,7 @@ class DataField {
    * @param numeric true for a numeric field, false for a string field.
    * @return true if the field is available.
    */
-  virtual bool hasField(const char* fieldName, bool numeric) = 0;
+  virtual bool hasField(const char* fieldName, bool numeric) const = 0;
 
   /**
    * Reads the numeric value from the @a SymbolString.
@@ -212,8 +293,8 @@ class DataField {
    * not match or ignored, or due to @a fieldName or @a fieldIndex),
    * or an error code.
    */
-  virtual result_t read(SymbolString& data, size_t offset,
-      unsigned int& output, const char* fieldName = NULL, ssize_t fieldIndex = -1) = 0;
+  virtual result_t read(const SymbolString& data, size_t offset,
+    unsigned int& output, const char* fieldName = NULL, ssize_t fieldIndex = -1) const = 0;
 
   /**
    * Reads the value from the @a SymbolString.
@@ -229,9 +310,9 @@ class DataField {
    * or @a RESULT_EMPTY if the field was skipped (either ignored or due to @a fieldName or @a fieldIndex),
    * or an error code.
    */
-  virtual result_t read(SymbolString& data, size_t offset,
-      ostringstream& output, OutputFormat outputFormat, ssize_t outputIndex = -1,
-      bool leadingSeparator = false, const char* fieldName = NULL, ssize_t fieldIndex = -1) = 0;
+  virtual result_t read(const SymbolString& data, size_t offset,
+    ostringstream& output, OutputFormat outputFormat, ssize_t outputIndex = -1,
+    bool leadingSeparator = false, const char* fieldName = NULL, ssize_t fieldIndex = -1) const = 0;
 
   /**
    * Writes the value to the master or slave @a SymbolString.
@@ -243,15 +324,7 @@ class DataField {
    * @return @a RESULT_OK on success, or an error code.
    */
   virtual result_t write(istringstream& input, SymbolString& data,
-      size_t offset, char separator = UI_FIELD_SEPARATOR, size_t* length = NULL) = 0;
-
-
- protected:
-  /** the field name. */
-  const string m_name;
-
-  /** the field comment. */
-  const string m_comment;
+    size_t offset, char separator = UI_FIELD_SEPARATOR, size_t* length = NULL) const = 0;
 };
 
 
@@ -263,18 +336,15 @@ class SingleDataField : public DataField {
   /**
    * Constructs a new instance.
    * @param name the field name.
-   * @param comment the field comment.
-   * @param unit the value unit.
+   * @param attributes the additional named attributes.
    * @param dataType the data type definition.
    * @param partType the message part in which the field is stored.
    * @param length the number of symbols in the message part in which the field is stored.
    */
-  SingleDataField(const string name, const string comment,
-      const string unit, DataType* dataType, const PartType partType,
-      const size_t length)
-    : DataField(name, comment),
-      m_unit(unit), m_dataType(dataType), m_partType(partType),
-      m_length(length) {}
+  SingleDataField(const string name, const map<string, string>& attributes, const DataType* dataType,
+    const PartType partType, const size_t length)
+    : DataField(name, attributes),
+    m_partType(partType), m_dataType(dataType), m_length(length) {}
 
   /**
    * Destructor.
@@ -282,16 +352,15 @@ class SingleDataField : public DataField {
   virtual ~SingleDataField() {}
 
   // @copydoc
-  SingleDataField* clone() override;
+  const SingleDataField* clone() const override;
 
   /**
    * Factory method for creating a new @a SingleDataField instance derived from a base type.
-   * @param id the ID string (excluding optional length suffix).
-   * @param length the base type length, or 0 for default, or @a REMAIN_LEN for remainder within same message part.
    * @param name the field name.
-   * @param comment the field comment.
-   * @param unit the value unit.
+   * @param attributes the additional named attributes.
    * @param partType the message part in which the field is stored.
+   * @param dataType the @a DataType instance.
+   * @param length the base type length, or 0 for default, or @a REMAIN_LEN for remainder within same message part.
    * @param divisor the extra divisor (negative for reciprocal) to apply on the value, or 1 for none (if applicable).
    * @param values the value=text assignments.
    * @param constantValue the constant value as string, or empty.
@@ -300,16 +369,9 @@ class SingleDataField : public DataField {
    * @return @a RESULT_OK on success, or an error code.
    * Note: the caller needs to free the created instance.
    */
-  static result_t create(const string id, const size_t length,
-      const string name, const string comment, const string unit,
-      const PartType partType, int divisor, map<unsigned int, string> values,
-      const string constantValue, const bool verifyValue, SingleDataField* &returnField);
-
-  /**
-   * Get the value unit.
-   * @return the value unit.
-   */
-  string getUnit() const { return m_unit; }
+  static result_t create(const string name, const map<string, string>& attributes, const DataType* dataType,
+    const PartType partType, const size_t length, int divisor, map<unsigned int, string> values,
+    const string constantValue, const bool verifyValue, SingleDataField* &returnField);
 
   /**
    * Get whether this field is ignored.
@@ -324,13 +386,11 @@ class SingleDataField : public DataField {
   PartType getPartType() const { return m_partType; }
 
   // @copydoc
-  size_t getLength(PartType partType, size_t maxLength = MAX_LEN) override;
+  size_t getLength(PartType partType, size_t maxLength = MAX_LEN) const override;
 
   // @copydoc
-  result_t derive(string name, string comment,
-      string unit, const PartType partType,
-      int divisor, map<unsigned int, string> values,
-      vector<SingleDataField*>& fields) override;
+  result_t derive(const string name, map<string, string> attributes, const PartType partType,
+    int divisor, map<unsigned int, string> values, vector<const SingleDataField*>& fields) const override;
 
   /**
    * Get whether this field uses a full byte offset.
@@ -338,26 +398,26 @@ class SingleDataField : public DataField {
    * @return @p true if this field uses a full byte offset, @p false if this field
    * only consumes a part of a byte and a subsequent field may re-use the same offset.
    */
-  bool hasFullByteOffset(bool after);
+  bool hasFullByteOffset(bool after) const;
 
   // @copydoc
-  void dump(ostream& output) override;
+  void dump(ostream& output) const override;
 
   // @copydoc
-  bool hasField(const char* fieldName, bool numeric) override;
+  bool hasField(const char* fieldName, bool numeric) const override;
 
   // @copydoc
-  result_t read(SymbolString& data, size_t offset,
-      unsigned int& output, const char* fieldName = NULL, ssize_t fieldIndex = -1) override;
+  result_t read(const SymbolString& data, size_t offset,
+    unsigned int& output, const char* fieldName = NULL, ssize_t fieldIndex = -1) const override;
 
   // @copydoc
-  result_t read(SymbolString& data, size_t offset,
-      ostringstream& output, OutputFormat outputFormat, ssize_t outputIndex = -1,
-      bool leadingSeparator = false, const char* fieldName = NULL, ssize_t fieldIndex = -1) override;
+  result_t read(const SymbolString& data, size_t offset,
+    ostringstream& output, OutputFormat outputFormat, ssize_t outputIndex = -1,
+    bool leadingSeparator = false, const char* fieldName = NULL, ssize_t fieldIndex = -1) const override;
 
   // @copydoc
   result_t write(istringstream& input, SymbolString& data,
-      size_t offset, char separator = UI_FIELD_SEPARATOR, size_t* length = NULL) override;
+    size_t offset, char separator = UI_FIELD_SEPARATOR, size_t* length = NULL) const override;
 
 
  protected:
@@ -369,9 +429,9 @@ class SingleDataField : public DataField {
    * @param outputFormat the @a OutputFormat options to use.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t readSymbols(SymbolString& input,
-      const size_t offset,
-      ostringstream& output, OutputFormat outputFormat);
+  virtual result_t readSymbols(const SymbolString& input,
+    const size_t offset,
+    ostringstream& output, OutputFormat outputFormat) const;
 
   /**
    * Internal method for writing the field to a @a SymbolString.
@@ -382,17 +442,14 @@ class SingleDataField : public DataField {
    * @return @a RESULT_OK on success, or an error code.
    */
   virtual result_t writeSymbols(istringstream& input,
-      const size_t offset,
-      SymbolString& output, size_t* usedLength);
-
-  /** the value unit. */
-  const string m_unit;
-
-  /** the data type definition. */
-  DataType* m_dataType;
+    const size_t offset,
+    SymbolString& output, size_t* usedLength) const;
 
   /** the message part in which the field is stored. */
   const PartType m_partType;
+
+  /** the data type definition. */
+  const DataType* m_dataType;
 
   /** the number of symbols in the message part in which the field is stored. */
   const size_t m_length;
@@ -407,17 +464,15 @@ class ValueListDataField : public SingleDataField {
   /**
    * Constructs a new instance.
    * @param name the field name.
-   * @param comment the field comment.
-   * @param unit the value unit.
+   * @param attributes the additional named attributes.
    * @param dataType the data type definition.
    * @param partType the message part in which the field is stored.
    * @param length the number of symbols in the message part in which the field is stored.
    * @param values the value=text assignments.
    */
-  ValueListDataField(const string name, const string comment,
-    const string unit, NumberDataType* dataType, const PartType partType,
-    const size_t length, const map<unsigned int, string> values)
-    : SingleDataField(name, comment, unit, dataType, partType, length),
+  ValueListDataField(const string name, const map<string, string>& attributes, const DataType* dataType,
+    const PartType partType, const size_t length, const map<unsigned int, string> values)
+    : SingleDataField(name, attributes, dataType, partType, length),
     m_values(values) {}
 
   /**
@@ -426,31 +481,29 @@ class ValueListDataField : public SingleDataField {
   virtual ~ValueListDataField() {}
 
   // @copydoc
-  ValueListDataField* clone() override;
+  const ValueListDataField* clone() const override;
 
   // @copydoc
-  result_t derive(string name, string comment,
-      string unit, const PartType partType, int divisor,
-      map<unsigned int, string> values,
-      vector<SingleDataField*>& fields) override;
+  result_t derive(const string name, map<string, string> attributes, const PartType partType,
+      int divisor, map<unsigned int, string> values, vector<const SingleDataField*>& fields) const override;
 
   // @copydoc
-  void dump(ostream& output) override;
+  void dump(ostream& output) const override;
 
 
  protected:
   // @copydoc
-  result_t readSymbols(SymbolString& input, const size_t offset,
-      ostringstream& output, OutputFormat outputFormat) override;
+  result_t readSymbols(const SymbolString& input, const size_t offset,
+    ostringstream& output, OutputFormat outputFormat) const override;
 
   // @copydoc
   result_t writeSymbols(istringstream& input, const size_t offset,
-      SymbolString& output, size_t* usedLength) override;
+    SymbolString& output, size_t* usedLength) const override;
 
 
  private:
   /** the value=text assignments. */
-  map<unsigned int, string> m_values;
+  const map<unsigned int, string> m_values;
 };
 
 
@@ -462,18 +515,16 @@ class ConstantDataField : public SingleDataField {
   /**
    * Constructs a new instance.
    * @param name the field name.
-   * @param comment the field comment.
-   * @param unit the value unit.
+   * @param attributes the additional named attributes.
    * @param dataType the data type definition.
    * @param partType the message part in which the field is stored.
    * @param length the number of symbols in the message part in which the field is stored.
    * @param value the constant value.
    * @param verify whether to verify the read value against the constant value.
    */
-  ConstantDataField(const string name, const string comment,
-    const string unit, DataType* dataType, const PartType partType,
-    const size_t length, const string value, const bool verify)
-    : SingleDataField(name, comment, unit, dataType, partType, length),
+  ConstantDataField(const string name, const map<string, string>& attributes, const DataType* dataType,
+    const PartType partType, const size_t length, const string value, const bool verify)
+    : SingleDataField(name, attributes, dataType, partType, length),
     m_value(value), m_verify(verify) {}
 
   /**
@@ -482,26 +533,24 @@ class ConstantDataField : public SingleDataField {
   virtual ~ConstantDataField() {}
 
   // @copydoc
-  ConstantDataField* clone() override;
+  const ConstantDataField* clone() const override;
 
   // @copydoc
-  result_t derive(string name, string comment,
-      string unit, const PartType partType, int divisor,
-      map<unsigned int, string> values,
-      vector<SingleDataField*>& fields) override;
+  result_t derive(const string name, map<string, string> attributes, const PartType partType,
+    int divisor, map<unsigned int, string> values, vector<const SingleDataField*>& fields) const override;
 
   // @copydoc
-  void dump(ostream& output) override;
+  void dump(ostream& output) const override;
 
 
  protected:
   // @copydoc
-  result_t readSymbols(SymbolString& input, const size_t offset,
-      ostringstream& output, OutputFormat outputFormat) override;
+  result_t readSymbols(const SymbolString& input, const size_t offset,
+    ostringstream& output, OutputFormat outputFormat) const override;
 
   // @copydoc
   result_t writeSymbols(istringstream& input, const size_t offset,
-      SymbolString& output, size_t* usedLength) override;
+    SymbolString& output, size_t* usedLength) const override;
 
 
  private:
@@ -533,16 +582,13 @@ class DataFieldSet : public DataField {
   /**
    * Constructs a new instance.
    * @param name the field name.
-   * @param comment the field comment.
    * @param fields the @a vector of @a SingleDataField instances part of this set.
    */
-  DataFieldSet(const string name, const string comment,
-      const vector<SingleDataField*> fields)
-    : DataField(name, comment), m_fields(fields) {
+  DataFieldSet(const string name, const vector<const SingleDataField*> fields)
+    : DataField(name), m_fields(fields) {
     bool uniqueNames = true;
     map<string, string> names;
-    for (vector<SingleDataField*>::const_iterator it = fields.begin(); it != fields.end(); it++) {
-      SingleDataField* field = *it;
+    for (auto field : fields) {
       if (field->isIgnored()) {
         continue;
       }
@@ -562,31 +608,29 @@ class DataFieldSet : public DataField {
   virtual ~DataFieldSet();
 
   // @copydoc
-  DataFieldSet* clone() override;
+  const DataFieldSet* clone() const override;
 
   // @copydoc
-  size_t getLength(PartType partType, size_t maxLength = MAX_LEN) override;
+  size_t getLength(PartType partType, size_t maxLength = MAX_LEN) const override;
 
   // @copydoc
-  string getName(ssize_t fieldIndex = -1) override;
+  string getName(const ssize_t fieldIndex = -1) const override;
 
   // @copydoc
-  result_t derive(string name, string comment,
-      string unit, const PartType partType,
-      int divisor, map<unsigned int, string> values,
-      vector<SingleDataField*>& fields) override;
+  result_t derive(const string name, map<string, string> attributes, const PartType partType,
+    int divisor, map<unsigned int, string> values, vector<const SingleDataField*>& fields) const override;
 
   /**
    * Returns the @a SingleDataField at the specified index.
    * @param index the index of the @a SingleDataField to return.
    * @return the @a SingleDataField at the specified index, or NULL.
    */
-  SingleDataField* operator[](const size_t index) {
+  /*SingleDataField* operator[](const size_t index) {
     if (index >= m_fields.size()) {
       return NULL;
     }
     return m_fields[index];
-  }
+  }*/
 
   /**
    * Returns the @a SingleDataField at the specified index.
@@ -607,23 +651,23 @@ class DataFieldSet : public DataField {
   size_t size() const { return m_fields.size(); }
 
   // @copydoc
-  bool hasField(const char* fieldName, bool numeric) override;
+  bool hasField(const char* fieldName, bool numeric) const override;
 
   // @copydoc
-  void dump(ostream& output) override;
+  void dump(ostream& output) const override;
 
   // @copydoc
-  result_t read(SymbolString& data, size_t offset,
-      unsigned int& output, const char* fieldName = NULL, ssize_t fieldIndex = -1) override;
+  result_t read(const SymbolString& data, size_t offset,
+    unsigned int& output, const char* fieldName = NULL, ssize_t fieldIndex = -1) const override;
 
   // @copydoc
-  result_t read(SymbolString& data, size_t offset,
-      ostringstream& output, OutputFormat outputFormat, ssize_t outputIndex = -1,
-      bool leadingSeparator = false, const char* fieldName = NULL, ssize_t fieldIndex = -1) override;
+  result_t read(const SymbolString& data, size_t offset,
+    ostringstream& output, OutputFormat outputFormat, ssize_t outputIndex = -1,
+    bool leadingSeparator = false, const char* fieldName = NULL, ssize_t fieldIndex = -1) const override;
 
   // @copydoc
   result_t write(istringstream& input, SymbolString& data,
-      size_t offset, char separator = UI_FIELD_SEPARATOR, size_t* length = NULL) override;
+    size_t offset, char separator = UI_FIELD_SEPARATOR, size_t* length = NULL) const override;
 
 
  private:
@@ -631,7 +675,7 @@ class DataFieldSet : public DataField {
   static DataFieldSet* s_identFields;
 
   /** the @a vector of @a SingleDataField instances part of this set. */
-  vector<SingleDataField*> m_fields;
+  const vector<const SingleDataField*> m_fields;
 
   /** whether all fields have a unique name. */
   bool m_uniqueNames;
@@ -674,14 +718,14 @@ class DataFieldTemplates : public MappedFileReader {
    * @return @a RESULT_OK on success, or an error code.
    * Note: the caller may not free the added instance on success.
    */
-  result_t add(DataField* field, string name = "", bool replace = false);
+  result_t add(const DataField* field, string name = "", bool replace = false);
 
   // @copydoc
-  result_t getFieldMap(vector<string>& row, string& errorDescription) override;
+  result_t getFieldMap(vector<string>& row, string& errorDescription) const override;
 
   // @copydoc
   result_t addFromFile(map<string, string>& row, vector< map<string, string> >& subRows,
-      string& errorDescription, const string filename, unsigned int lineNo) override;
+    string& errorDescription, const string filename, unsigned int lineNo) override;
 
   /**
    * Gets the template @a DataField instance with the specified name.
@@ -689,12 +733,12 @@ class DataFieldTemplates : public MappedFileReader {
    * @return the template @a DataField instance, or NULL.
    * Note: the caller may not free the returned instance.
    */
-  DataField* get(string name);
+  const DataField* get(string name) const;
 
 
  private:
   /** the known template @a DataField instances by name. */
-  map<string, DataField*> m_fieldsByName;
+  map<string, const DataField*> m_fieldsByName;
 };
 
 }  // namespace ebusd

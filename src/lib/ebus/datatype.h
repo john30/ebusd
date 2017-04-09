@@ -100,6 +100,9 @@ typedef int OutputFormat;
 /** bit flag for @a OutputFormat: short format (only name and value, no indentation). */
 #define OF_SHORT 0x20
 
+/** bit flag for @a OutputFormat: include all attributes. */
+#define OF_ALL_ATTRS 0x40
+
 /** the message part in which a data field is stored. */
 enum PartType {
   pt_any,          //!< stored in any data (master or slave)
@@ -225,9 +228,9 @@ class DataType {
    * @param value the variable in which to store the numeric raw value.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t readRawValue(SymbolString& input,
+  virtual result_t readRawValue(const SymbolString& input,
     const size_t offset, const size_t length,
-    unsigned int& value) = 0;
+    unsigned int& value) const = 0;
 
   /**
    * Internal method for reading the field from a @a SymbolString.
@@ -238,9 +241,9 @@ class DataType {
    * @param outputFormat the @a OutputFormat options to use.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t readSymbols(SymbolString& input,
+  virtual result_t readSymbols(const SymbolString& input,
     const size_t offset, const size_t length,
-    ostringstream& output, OutputFormat outputFormat) = 0;
+    ostringstream& output, OutputFormat outputFormat) const = 0;
 
   /**
    * Internal method for writing the field to a @a SymbolString.
@@ -253,7 +256,7 @@ class DataType {
    */
   virtual result_t writeSymbols(istringstream& input,
     const size_t offset, const size_t length,
-    SymbolString& output, size_t* usedLength) = 0;
+    SymbolString& output, size_t* usedLength) const = 0;
 
 
  protected:
@@ -295,19 +298,19 @@ class StringDataType : public DataType {
   virtual ~StringDataType() {}
 
   // @copydoc
-  result_t readRawValue(SymbolString& input,
+  result_t readRawValue(const SymbolString& input,
     const size_t offset, const size_t length,
-    unsigned int& value) override;
+    unsigned int& value) const override;
 
   // @copydoc
-  result_t readSymbols(SymbolString& input,
+  result_t readSymbols(const SymbolString& input,
     const size_t offset, const size_t length,
-    ostringstream& output, OutputFormat outputFormat) override;
+    ostringstream& output, OutputFormat outputFormat) const override;
 
   // @copydoc
   result_t writeSymbols(istringstream& input,
     const size_t offset, const size_t length,
-    SymbolString& output, size_t* usedLength) override;
+    SymbolString& output, size_t* usedLength) const override;
 
 
  private:
@@ -357,19 +360,19 @@ class DateTimeDataType : public DataType {
   int16_t getResolution() const { return m_resolution; }
 
   // @copydoc
-  result_t readRawValue(SymbolString& input,
+  result_t readRawValue(const SymbolString& input,
     const size_t offset, const size_t length,
-    unsigned int& value) override;
+    unsigned int& value) const override;
 
   // @copydoc
-  result_t readSymbols(SymbolString& input,
+  result_t readSymbols(const SymbolString& input,
     const size_t offset, const size_t length,
-    ostringstream& output, OutputFormat outputFormat) override;
+    ostringstream& output, OutputFormat outputFormat) const override;
 
   // @copydoc
   result_t writeSymbols(istringstream& input,
     const size_t offset, const size_t length,
-    SymbolString& output, size_t* usedLength) override;
+    SymbolString& output, size_t* usedLength) const override;
 
 
  private:
@@ -398,11 +401,13 @@ class NumberDataType : public DataType {
    * @param minValue the minimum raw value.
    * @param maxValue the maximum raw value.
    * @param divisor the divisor (negative for reciprocal).
+   * @param baseType the base @a NumberDataType for derived instances, or NULL.
    */
   NumberDataType(const string id, const size_t bitCount, const uint16_t flags, const unsigned int replacement,
-      const unsigned int minValue, const unsigned int maxValue, const int divisor)
+      const unsigned int minValue, const unsigned int maxValue, const int divisor,
+      const NumberDataType* baseType)
     : DataType(id, bitCount, flags|NUM, replacement), m_minValue(minValue), m_maxValue(maxValue), m_divisor(divisor),
-      m_precision(calcPrecision(divisor)), m_firstBit(0), m_baseType(NULL) {}
+      m_precision(calcPrecision(divisor)), m_firstBit(0), m_baseType(baseType) {}
 
   /**
    * Constructs a new instance for less than 8 bits.
@@ -412,11 +417,12 @@ class NumberDataType : public DataType {
    * @param replacement the replacement value (no replacement if zero).
    * @param firstBit the offset to the first bit.
    * @param divisor the divisor (negative for reciprocal).
+   * @param baseType the base @a NumberDataType for derived instances, or NULL.
    */
   NumberDataType(const string id, const size_t bitCount, const uint16_t flags, const unsigned int replacement,
-      const int16_t firstBit, const int divisor)
+      const int16_t firstBit, const int divisor, const NumberDataType* baseType = NULL)
     : DataType(id, bitCount, flags|NUM, replacement), m_minValue(0), m_maxValue((1 << bitCount)-1), m_divisor(divisor),
-      m_precision(0), m_firstBit(firstBit), m_baseType(NULL) {}
+      m_precision(0), m_firstBit(firstBit), m_baseType(baseType) {}
 
   /**
    * Destructor.
@@ -444,7 +450,7 @@ class NumberDataType : public DataType {
    * not necessary.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t derive(int divisor, size_t bitCount, NumberDataType* &derived);
+  virtual result_t derive(int divisor, size_t bitCount, const NumberDataType* &derived) const;
 
   /**
    * @return the minimum raw value.
@@ -472,14 +478,14 @@ class NumberDataType : public DataType {
   int16_t getFirstBit() const { return m_firstBit; }
 
   // @copydoc
-  result_t readRawValue(SymbolString& input,
+  result_t readRawValue(const SymbolString& input,
     const size_t offset, const size_t length,
-    unsigned int& value) override;
+    unsigned int& value) const override;
 
   // @copydoc
-  result_t readSymbols(SymbolString& input,
+  result_t readSymbols(const SymbolString& input,
     const size_t offset, const size_t length,
-    ostringstream& output, OutputFormat outputFormat) override;
+    ostringstream& output, OutputFormat outputFormat) const override;
 
   /**
    * Internal method for writing the numeric raw value to a @a SymbolString.
@@ -493,12 +499,12 @@ class NumberDataType : public DataType {
    */
   result_t writeRawValue(unsigned int value,
     const size_t offset, const size_t length,
-    SymbolString& output, size_t* usedLength = NULL);
+    SymbolString& output, size_t* usedLength = NULL) const;
 
   // @copydoc
   result_t writeSymbols(istringstream& input,
     const size_t offset, const size_t length,
-    SymbolString& output, size_t* usedLength) override;
+    SymbolString& output, size_t* usedLength) const override;
 
 
  private:
@@ -518,7 +524,7 @@ class NumberDataType : public DataType {
   const int16_t m_firstBit;
 
   /** the base @a NumberDataType for derived instances. */
-  NumberDataType* m_baseType;
+  const NumberDataType* m_baseType;
 };
 
 
@@ -556,13 +562,13 @@ class DataTypeList {
    * @return @a RESULT_OK on success, or an error code.
    * Note: the caller may not free the added instance on success.
    */
-  result_t add(DataType* dataType);
+  result_t add(const DataType* dataType);
 
   /**
    * Adds a @a DataType instance for later cleanup.
    * @param dataType the @a DataType instance to add.
    */
-  void addCleanup(DataType* dataType) { m_cleanupTypes.push_back(dataType); }
+  void addCleanup(const DataType* dataType) { m_cleanupTypes.push_back(dataType); }
 
   /**
    * Gets the @a DataType instance with the specified ID.
@@ -571,30 +577,30 @@ class DataTypeList {
    * @return the @a DataType instance, or NULL if not available.
    * Note: the caller may not free the instance.
    */
-  DataType* get(const string id, const size_t length = 0);
+  const DataType* get(const string id, const size_t length = 0) const;
 
   /**
    * Returns an iterator pointing to the first ID/@a DataType pair.
    * @return an iterator pointing to the first ID/@a DataType pair.
    */
-  map<string, DataType*>::const_iterator begin() const { return m_typesById.begin(); }
+  map<string, const DataType*>::const_iterator begin() const { return m_typesById.begin(); }
 
   /**
    * Returns an iterator pointing one past the last ID/@a DataType pair.
    * @return an iterator pointing one past the last ID/@a DataType pair.
    */
-  map<string, DataType*>::const_iterator end() const { return m_typesById.end(); }
+  map<string, const DataType*>::const_iterator end() const { return m_typesById.end(); }
 
  private:
   /** the known @a DataType instances by ID only. */
-  map<string, DataType*> m_typesById;
+  map<string, const DataType*> m_typesById;
 
   /** the known @a DataType instances by ID and length (i.e. "ID:BITS").
    * Note: adjustable length types are stored by ID only. */
-  map<string, DataType*> m_typesByIdLength;
+  map<string, const DataType*> m_typesByIdLength;
 
   /** the @a DataType instances to cleanup. */
-  list<DataType*> m_cleanupTypes;
+  list<const DataType*> m_cleanupTypes;
 
   /** the singleton instance. */
   static DataTypeList s_instance;

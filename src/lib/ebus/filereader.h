@@ -185,7 +185,7 @@ class MappedFileReader : public FileReader {
    * @return true if the minimum parts were extracted, false otherwise.
    */
   virtual bool extractDefaultsFromFilename(string filename, map<string, string>& defaults,
-      symbol_t* destAddress = NULL, unsigned int* software = NULL, unsigned int* hardware = NULL) {
+      symbol_t* destAddress = NULL, unsigned int* software = NULL, unsigned int* hardware = NULL) const {
     return false;
   }
 
@@ -199,7 +199,7 @@ class MappedFileReader : public FileReader {
    * @param errorDescription a string in which to store the error description in case of error.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t getFieldMap(vector<string>& row, string& errorDescription) = 0;
+  virtual result_t getFieldMap(vector<string>& row, string& errorDescription) const = 0;
 
   /**
    * Add a default row that was read from a file.
@@ -231,14 +231,14 @@ class MappedFileReader : public FileReader {
   /**
    * @return a reference to all previously extracted default values by type and field name.
    */
-  virtual map<string, map<string, string> >& getDefaults() {
+  map<string, map<string, string> >& getDefaults() {
     return m_lastDefaults;
   }
 
   /**
    * @return a reference to all previously extracted sub default values by type and field name.
    */
-  virtual map<string, vector< map<string, string> > >& getSubDefaults() {
+  map<string, vector< map<string, string> > >& getSubDefaults() {
     return m_lastSubDefaults;
   }
 

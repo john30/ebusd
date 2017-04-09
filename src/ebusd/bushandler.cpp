@@ -211,7 +211,7 @@ void GrabbedMessage::setLastData(MasterSymbolString& master, SlaveSymbolString& 
  * @param firstOnly whether to read only the first non-erroneous offset.
  * @return @a RESULT_OK on success, or an error code.
  */
-bool decodeType(DataType* type, SymbolString *input, size_t length,
+bool decodeType(const DataType* type, SymbolString *input, size_t length,
     size_t offsets, ostringstream& output, bool firstOnly = false) {
   bool first = true;
   string in = input->getStr(input->getDataOffset());
@@ -225,7 +225,7 @@ bool decodeType(DataType* type, SymbolString *input, size_t length,
       unsigned int value = 0;
       if (type->readRawValue(*input, offset, length, value) == RESULT_OK) {
         out.str("");
-        out << DataField::getDayName(reinterpret_cast<NumberDataType*>(type)->getMinValue()+value);
+        out << DataField::getDayName(reinterpret_cast<const NumberDataType*>(type)->getMinValue()+value);
       }
     }
     if (first) {
@@ -288,8 +288,8 @@ bool GrabbedMessage::dump(const bool unknown, MessageMap* messages, bool first, 
     if (remain == 0) {
       return true;
     }
-    for (map<string, DataType*>::const_iterator it = types->begin(); it != types->end(); it++) {
-      DataType* baseType = it->second;
+    for (auto it : *types) {
+      const DataType* baseType = it.second;
       if ((baseType->getBitCount() % 8) != 0 || baseType->isIgnored()) {  // skip bit and ignored types
         continue;
       }
@@ -300,7 +300,7 @@ bool GrabbedMessage::dump(const bool unknown, MessageMap* messages, bool first, 
       }
       if (baseType->isAdjustableLength()) {
         for (size_t length = maxLength; length >= 1; length--) {
-          DataType* type = types->get(baseType->getId(), length);
+          const DataType* type = types->get(baseType->getId(), length);
           if (decodeType(type, input, length, remain-length, output, firstOnly)) {
             if (firstOnly) {
               break;  // only a single offset with maximum length when adjustable maximum size is at least 8 bytes
@@ -1293,7 +1293,7 @@ void BusHandler::formatSeenInfo(ostringstream& output) {
         }
       }
     }
-    vector<string>& loadedFiles = m_messages->getLoadedFiles(address);
+    const vector<string>& loadedFiles = m_messages->getLoadedFiles(address);
     if (!loadedFiles.empty()) {
       bool first = true;
       for (auto& loadedFile : loadedFiles) {
@@ -1358,7 +1358,7 @@ void BusHandler::formatUpdateInfo(ostringstream& output) {
         message->decodeLastData(output, OF_NAMES|OF_NUMERIC|OF_JSON|OF_SHORT, true);
       }
     }
-    vector<string>& loadedFiles = m_messages->getLoadedFiles(address);
+    const vector<string>& loadedFiles = m_messages->getLoadedFiles(address);
     if (!loadedFiles.empty()) {
       output << ",\"f\":[";
       bool first = true;
