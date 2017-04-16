@@ -49,44 +49,13 @@ namespace ebusd {
  * class.
  */
 
-/** the field ID for the field name. */
-#define DATAFIELD_NAME 0
-
-/** the field ID for the part filter. */
-#define DATAFIELD_PART (DATAFIELD_NAME+1)
-
-/** the field ID for the data type. */
-#define DATAFIELD_TYPE (DATAFIELD_PART+1)
-
-/** the field ID for the divisor/values. */
-#define DATAFIELD_DIVISORVALUES (DATAFIELD_TYPE+1)
-
-/** the field ID for the unit. */
-#define DATAFIELD_UNIT (DATAFIELD_DIVISORVALUES+1)
-
-/** the field ID for the comment. */
-#define DATAFIELD_COMMENT (DATAFIELD_UNIT+1)
-
-/** the marker field ID for the minimum field ID. */
-#define DATAFIELD_RANGE_MIN DATAFIELD_NAME
-
-/** the marker field ID for the maximum field ID. */
-#define DATAFIELD_RANGE_MAX DATAFIELD_COMMENT
-
 
 /**
- * Get the data field ID for the given field name.
- * @param name the field name.
- * @return the field ID, or @a UINT_MAX if not found.
+ * Get the normalized data field name for the given name.
+ * @param name the input field name.
+ * @return the normalized data field name, or empty if unknown.
  */
-size_t getDataFieldId(const string name);
-
-/**
- * Get the data field name for the given field ID.
- * @param fieldId the field ID.
- * @return the field name, or empty if not found.
- */
-string getDataFieldName(const size_t fieldId);
+string getDataFieldName(const string name);
 
 class DataFieldTemplates;
 class SingleDataField;
