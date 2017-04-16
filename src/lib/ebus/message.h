@@ -68,42 +68,6 @@ class SimpleCondition;
 class CombinedCondition;
 class MessageMap;
 
-/** the field ID in @a Message::dump() for the message type. */
-#define MESSAGEFIELD_TYPE (DATAFIELD_RANGE_MAX+1)
-
-/** the field ID in @a Message::dump() for the circuit name. */
-#define MESSAGEFIELD_CIRCUIT (MESSAGEFIELD_TYPE+1)
-
-/** the field ID in @a Message::dump() for the access level. */
-#define MESSAGEFIELD_LEVEL (MESSAGEFIELD_CIRCUIT+1)
-
-/** the field ID in @a Message::dump() for the message name. */
-#define MESSAGEFIELD_NAME (MESSAGEFIELD_LEVEL+1)
-
-/** the field ID in @a Message::dump() for the message comment. */
-#define MESSAGEFIELD_COMMENT (MESSAGEFIELD_NAME+1)
-
-/** the field ID in @a Message::dump() for the source address QQ. */
-#define MESSAGEFIELD_QQ (MESSAGEFIELD_COMMENT+1)
-
-/** the field ID in @a Message::dump() for the destination address QQ. */
-#define MESSAGEFIELD_ZZ (MESSAGEFIELD_QQ+1)
-
-/** the field ID in @a Message::dump() for the PBSB bytes. */
-#define MESSAGEFIELD_PBSB (MESSAGEFIELD_ZZ+1)
-
-/** the field ID in @a Message::dump() for the ID field (after the PBSB bytes). */
-#define MESSAGEFIELD_ID (MESSAGEFIELD_PBSB+1)
-
-/** the field ID in @a Message::dump() for the data field(s). */
-#define MESSAGEFIELD_DATAFIELDS (MESSAGEFIELD_ID+1)
-
-/** the marker field ID for the minimum field ID. */
-#define MESSAGEFIELD_RANGE_MIN MESSAGEFIELD_TYPE
-
-/** the marker field ID for the maximum field ID. */
-#define MESSAGEFIELD_RANGE_MAX MESSAGEFIELD_DATAFIELDS
-
 
 /**
  * Defines parameters of a message sent or received on the bus.
@@ -235,13 +199,13 @@ class Message : public AttributedItem {
   static Message* createScanMessage(bool broadcast = false);
 
   /**
-   * Extract the known field IDs from the input string.
+   * Extract the known field names from the input string.
    * @param str the input string with the field names separated by @a FIELD_SEPARATOR.
-   * @param fields the vector to update with the extracted field IDs with.
+   * @param fields the vector to update with the extracted normalized field names with.
    * @param checkAbbreviated true to also check for abbreviated field names.
    * @return true when all fields are valid.
    */
-  static bool extractFieldIds(string str, vector<size_t>& fields, bool checkAbbreviated = true);
+  static bool extractFieldNames(string str, vector<string>& fields, bool checkAbbreviated = true);
 
   /**
    * Set that this is a special scanning @a Message instance.
@@ -577,25 +541,25 @@ class Message : public AttributedItem {
   /**
    * Write the message definition header or parts of it to the @a ostream.
    * @param output the @a ostream to append the formatted value to.
-   * @param fieldIds the list of field IDs to write, or NULL for all (see @p MESSAGEFIELD_TYPE constants).
+   * @param fieldNames the list of field names to write, or NULL for all.
    */
-  static void dumpHeader(ostream& output, vector<size_t>* fieldIds = NULL);
+  static void dumpHeader(ostream& output, vector<string>* fieldNames = NULL);
 
   /**
    * Write the message definition or parts of it to the @a ostream.
    * @param output the @a ostream to append the formatted value to.
-   * @param fieldIds the list of field IDs to write, or NULL for all (see @p MESSAGEFIELD_TYPE constants).
+   * @param fieldNames the list of field names to write, or NULL for all.
    * @param withConditions whether to include the optional conditions prefix.
    */
-  void dump(ostream& output, vector<size_t>* fieldIds = NULL, bool withConditions = false) const;
+  void dump(ostream& output, vector<string>* fieldNames = NULL, bool withConditions = false) const;
 
   /**
    * Write the specified field to the @a ostream.
    * @param output the @a ostream to append the formatted value to.
-   * @param fieldId the field ID to write (see @p MESSAGEFIELD_TYPE constants).
+   * @param fieldName the field name to write.
    * @param withConditions whether to include the optional conditions prefix.
    */
-  virtual void dumpField(ostream& output, size_t fieldId, bool withConditions = false) const;
+  virtual void dumpField(ostream& output, string fieldName, bool withConditions = false) const;
 
   /**
    * Decode the message from the last stored data.
@@ -765,7 +729,7 @@ class ChainedMessage : public Message {
 
  protected:
   // @copydoc
-  void dumpField(ostream& output, size_t fieldId, bool withConditions = false) const override;
+  void dumpField(ostream& output, string fieldName, bool withConditions = false) const override;
 
 
  private:

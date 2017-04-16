@@ -57,108 +57,51 @@ using std::endl;
 /** the maximum poll priority for a @a Message referred to by a @a Condition. */
 #define POLL_PRIORITY_CONDITION 5
 
-/** the known field names (pairs of full length name and short length name). */
-static const char* knownFieldNames[] = {
-  "type", "t",
-  "circuit", "c",
-  "level", "l",
-  "name", "n",
-  "comment", "co",
-  "qq", "q",
-  "zz", "z",
-  "pbsb", "p",
-  "id", "i",
-  "fields", "f",
+/** the known full length field names. */
+static const char* knownFieldNamesFull[] = {
+    "type", "circuit", "level", "name", "comment", "qq", "zz", "pbsb", "id", "fields",
 };
 
-/** the known field IDs according to @a knownFieldNames. */
-static const size_t knownFieldIds[] = {
-  MESSAGEFIELD_TYPE, MESSAGEFIELD_TYPE,
-  MESSAGEFIELD_CIRCUIT, MESSAGEFIELD_CIRCUIT,
-  MESSAGEFIELD_LEVEL, MESSAGEFIELD_LEVEL,
-  MESSAGEFIELD_NAME, MESSAGEFIELD_NAME,
-  MESSAGEFIELD_COMMENT, MESSAGEFIELD_COMMENT,
-  MESSAGEFIELD_QQ, MESSAGEFIELD_QQ,
-  MESSAGEFIELD_ZZ, MESSAGEFIELD_ZZ,
-  MESSAGEFIELD_PBSB, MESSAGEFIELD_PBSB,
-  MESSAGEFIELD_ID, MESSAGEFIELD_ID,
-  MESSAGEFIELD_DATAFIELDS, MESSAGEFIELD_DATAFIELDS,
+/** the known full length field names. */
+static const char* knownFieldNamesShort[] = {
+    "t", "c", "l", "n", "co", "q", "z", "p", "i", "f",
 };
 
 /** the number of known field names. */
-static const size_t knownFieldCount = sizeof(knownFieldNames) / sizeof(char*);
+static const size_t knownFieldCount = sizeof(knownFieldNamesFull) / sizeof(char*);
+
+/** the default field map for messages. */
+static const char* defaultMessageFieldMap[] = {  // access level not included in default map
+    "type", "circuit", "name", "comment", "qq", "zz", "pbsb", "id",
+    "*name", "part", "type", "divisor/values", "unit", "comment",
+};
 
 extern DataFieldTemplates* getTemplates(const string filename);
 
 /**
- * Get the message field ID for the given field name.
- * @param name the field name.
- * @return the field ID, or @a UINT_MAX if not found.
+ * Get the normalized message field name for the given name.
+ * @param name the input field name.
+ * @return the normalized message field name, or empty if unknown.
  */
-size_t getMessageFieldId(const string name) {
+string getMessageFieldName(const string name) {
   if (name.find("type") != string::npos) {
-    return MESSAGEFIELD_TYPE;
-  }
-  if (name == "circuit") {
-    return MESSAGEFIELD_CIRCUIT;
-  }
-  if (name == "level") {
-    return MESSAGEFIELD_LEVEL;
-  }
-  if (name == "name") {
-    return MESSAGEFIELD_NAME;
-  }
-  if (name == "comment") {
-    return MESSAGEFIELD_COMMENT;
-  }
-  if (name == "qq") {
-    return MESSAGEFIELD_QQ;
-  }
-  if (name == "zz") {
-    return MESSAGEFIELD_ZZ;
-  }
-  if (name == "pbsb") {
-    return MESSAGEFIELD_PBSB;
-  }
-  if (name == "id") {
-    return MESSAGEFIELD_ID;
-  }
-  return UINT_MAX;
-}
-
-
-/**
- * Get the message field name for the given field ID.
- * @param fieldId the field ID.
- * @param withDataFields whether to include the data fields ID or not.
- * @return the field name, or empty if not found.
- */
-string getMessageFieldName(size_t fieldId, bool withDataFields = true) {
-  switch (fieldId) {
-  case MESSAGEFIELD_TYPE:
     return "type";
-  case MESSAGEFIELD_CIRCUIT:
-    return "circuit";
-  case MESSAGEFIELD_LEVEL:
-    return "level";
-  case MESSAGEFIELD_NAME:
-    return "name";
-  case MESSAGEFIELD_COMMENT:
-    return "comment";
-  case MESSAGEFIELD_QQ:
-    return "qq";
-  case MESSAGEFIELD_ZZ:
-    return "zz";
-  case MESSAGEFIELD_PBSB:
-    return "pbsb";
-  case MESSAGEFIELD_ID:
-    return "id";
-  case MESSAGEFIELD_DATAFIELDS:
-    return withDataFields ? "fields" : "";
-  default:
-    return "";
   }
+  if (name == "circuit" || name == "level" || name == "qq" || name == "zz" || name == "pbsb" || name == "id") {
+    return name;
+  }
+  if (name.find("name") != string::npos) {
+    return "name";
+  }
+  if (name.find("comment") == 0) {
+    return "comment";
+  }
+  return "";
 }
+
+/*  case MESSAGEFIELD_DATAFIELDS:
+    return withDataFields ? "fields" : "";
+  */
 
 Message::Message(const string circuit, const string level, const string name,
     const bool isWrite, const bool isPassive, const map<string, string>& attributes,
@@ -187,11 +130,11 @@ Message::Message(const string circuit, const string level, const string name,
     : AttributedItem(name), m_circuit(circuit), m_level(level), m_isWrite(broadcast),
       m_isPassive(false),
       m_srcAddress(SYN), m_dstAddress(broadcast ? BROADCAST : SYN),
-      m_id({pb, sb}), m_data(data), m_deleteData(deleteData),
+      m_id({pb, sb}), m_key(createKey(pb, sb, broadcast)),
+      m_data(data), m_deleteData(deleteData),
       m_pollPriority(0),
       m_usedByCondition(false), m_isScanMessage(true), m_condition(NULL),
-      m_lastUpdateTime(0), m_lastChangeTime(0), m_pollCount(0), m_lastPollTime(0),
-      m_key(createKey(pb, sb, broadcast)) {
+      m_lastUpdateTime(0), m_lastChangeTime(0), m_pollCount(0), m_lastPollTime(0) {
 }
 
 
@@ -351,6 +294,10 @@ result_t Message::create(map<string, string> row, vector< map<string, string> > 
   if (pos != string::npos) {
     level = circuit.substr(pos+1);
     circuit.resize(pos);
+  }
+  if (circuit.empty()) {
+    errorDescription = "circuit";
+    return RESULT_ERR_MISSING_ARG;  // empty circuit
   }
   string name = getDefault(pluck(row, "name"), defaults, "name", true, true);  // name
   if (name.empty()) {
@@ -545,25 +492,26 @@ Message* Message::createScanMessage(bool broadcast) {
   return new Message("scan", "", "", 0x07, 0x04, broadcast, DataFieldSet::getIdentFields(), !broadcast);
 }
 
-bool Message::extractFieldIds(string str, vector<size_t>& fields, bool checkAbbreviated) {
+bool Message::extractFieldNames(string str, vector<string>& fields, bool checkAbbreviated) {
   istringstream input(str);
   vector<string> row;
   string column;
   while (getline(input, column, FIELD_SEPARATOR)) {
     size_t idx = knownFieldCount;
     for (size_t i = 0; i < knownFieldCount; i++) {
-      if (column == knownFieldNames[i]) {
+      if (column == knownFieldNamesFull[i]) {
         idx = i;
         break;
       }
-      if (!checkAbbreviated) {
-        i++;
+      if (checkAbbreviated && column == knownFieldNamesShort[i]) {
+        idx = i;
+        break;
       }
     }
-    if (idx == knownFieldCount) {
-      return false;
-    }
-    fields.push_back(knownFieldIds[idx]);
+    if (idx != knownFieldCount) {
+      column = knownFieldNamesFull[idx];
+    }  // else: custom attribute
+    fields.push_back(column);
   }
   return !fields.empty();
 }
@@ -874,11 +822,34 @@ bool Message::isLessPollWeight(const Message* other) const {
   return false;
 }
 
-void Message::dumpHeader(ostream& output, vector<size_t>* fieldIds) {
+void Message::dumpHeader(ostream& output, vector<string>* fieldNames) {
   bool first = true;
-  if (fieldIds == NULL) {
-    for (size_t fieldId = MESSAGEFIELD_RANGE_MIN; fieldId <= MESSAGEFIELD_RANGE_MAX; fieldId++) {
-      if (fieldId == MESSAGEFIELD_LEVEL) {
+  if (fieldNames == NULL) {
+    for (auto fieldName : defaultMessageFieldMap) {
+      if (first) {
+        first = false;
+      } else {
+        output << FIELD_SEPARATOR;
+      }
+      output << fieldName;
+    }
+    return;
+  }
+  for (auto fieldName : *fieldNames) {
+    if (first) {
+      first = false;
+    } else {
+      output << FIELD_SEPARATOR;
+    }
+    output << fieldName;
+  }
+}
+
+void Message::dump(ostream& output, vector<string>* fieldNames, bool withConditions) const {
+  bool first = true;
+  if (fieldNames == NULL) {
+    for (auto fieldName : knownFieldNamesFull) {
+      if (fieldName == "level") {
         continue;  // access level not included in default dump format
       }
       if (first) {
@@ -886,67 +857,22 @@ void Message::dumpHeader(ostream& output, vector<size_t>* fieldIds) {
       } else {
         output << FIELD_SEPARATOR;
       }
-      if (fieldId == MESSAGEFIELD_DATAFIELDS) {
-        bool dataFirst = true;
-        for (size_t dataFieldId = DATAFIELD_RANGE_MIN; dataFieldId <= DATAFIELD_RANGE_MAX; dataFieldId++) {
-          // subsequent fields start with field name
-          if (dataFirst) {
-            dataFirst = false;
-            output << "*";
-          } else {
-            output << FIELD_SEPARATOR;
-          }
-          output << getDataFieldName(dataFieldId);
-        }
-      } else {
-        output << getMessageFieldName(fieldId, false);
-      }
+      dumpField(output, fieldName, withConditions);
     }
     return;
   }
-  for (auto fieldId : *fieldIds) {
+  for (auto fieldName : *fieldNames) {
     if (first) {
       first = false;
     } else {
       output << FIELD_SEPARATOR;
     }
-    string name = getMessageFieldName(fieldId, false);
-    if (name.empty()) {
-      name = getDataFieldName(fieldId);
-    }
-    output << name;
+    dumpField(output, fieldName, withConditions);
   }
 }
 
-void Message::dump(ostream& output, vector<size_t>* fieldIds, bool withConditions) const {
-  bool first = true;
-  if (fieldIds == NULL) {
-    for (size_t fieldId = MESSAGEFIELD_RANGE_MIN; fieldId <= MESSAGEFIELD_RANGE_MAX; fieldId++) {
-      if (fieldId == MESSAGEFIELD_LEVEL) {
-        continue;  // access level not included in default dump format
-      }
-      if (first) {
-        first = false;
-      } else {
-        output << FIELD_SEPARATOR;
-      }
-      dumpField(output, fieldId, withConditions);
-    }
-    return;
-  }
-  for (auto fieldId : *fieldIds) {
-    if (first) {
-      first = false;
-    } else {
-      output << FIELD_SEPARATOR;
-    }
-    dumpField(output, fieldId, withConditions);
-  }
-}
-
-void Message::dumpField(ostream& output, size_t fieldId, bool withConditions) const {
-  switch (fieldId) {
-  case MESSAGEFIELD_TYPE:
+void Message::dumpField(ostream& output, string fieldName, bool withConditions) const {
+  if (fieldName == "type") {
     if (withConditions && m_condition != NULL) {
       m_condition->dump(output);
     }
@@ -963,45 +889,49 @@ void Message::dumpField(ostream& output, size_t fieldId, bool withConditions) co
         output << static_cast<unsigned>(m_pollPriority);
       }
     }
-    break;
-  case MESSAGEFIELD_CIRCUIT:
+    return;
+  }
+  if (fieldName == "circuit") {
     dumpString(output, m_circuit, false);
-    break;
-  case MESSAGEFIELD_LEVEL:
+    return;
+  }
+  if (fieldName == "level") {
     dumpString(output, m_level, false);
-    break;
-  case MESSAGEFIELD_NAME:
+    return;
+  }
+  if (fieldName == "name") {
     dumpString(output, m_name, false);
-    break;
-  case MESSAGEFIELD_COMMENT:
-    dumpAttribute(output, "comment", false);
-    break;
-  case MESSAGEFIELD_QQ:
+    return;
+  }
+  if (fieldName == "qq") {
     if (m_srcAddress != SYN) {
       output << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_srcAddress);
     }
-    break;
-  case MESSAGEFIELD_ZZ:
+    return;
+  }
+  if (fieldName == "zz") {
     if (m_dstAddress != SYN) {
       output << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_dstAddress);
     }
-    break;
-  case MESSAGEFIELD_PBSB:
+    return;
+  }
+  if (fieldName == "pbsb") {
     for (vector<symbol_t>::const_iterator it = m_id.begin(); it < m_id.begin()+2 && it < m_id.end(); it++) {
       output << hex << setw(2) << setfill('0') << static_cast<unsigned>(*it);
     }
-    break;
-  case MESSAGEFIELD_ID:
+    return;
+  }
+  if (fieldName == "id") {
     for (vector<symbol_t>::const_iterator it = m_id.begin()+2; it < m_id.end(); it++) {
       output << hex << setw(2) << setfill('0') << static_cast<unsigned>(*it);
     }
-    break;
-  case MESSAGEFIELD_DATAFIELDS:
-    m_data->dump(output);
-    break;
-  default:
-    break;
+    return;
   }
+  if (fieldName == "fields") {
+    m_data->dump(output);
+    return;
+  }
+  dumpAttribute(output, fieldName, false);
 }
 
 void Message::decode(ostringstream& output, OutputFormat outputFormat, bool leadingSeparator,
@@ -1278,9 +1208,9 @@ result_t ChainedMessage::combineLastParts() {
   return result;
 }
 
-void ChainedMessage::dumpField(ostream& output, size_t fieldId, bool withConditions) const {
-  if (fieldId != MESSAGEFIELD_ID) {
-    Message::dumpField(output, fieldId, withConditions);
+void ChainedMessage::dumpField(ostream& output, string fieldName, bool withConditions) const {
+  if (fieldName != "id") {
+    Message::dumpField(output, fieldName, withConditions);
     return;
   }
   bool first = true;
@@ -1847,21 +1777,8 @@ result_t MessageMap::getFieldMap(vector<string>& row, string& errorDescription) 
   //  unit,comment
   // minimum: type,name,PBSB,field,datatype
   if (row.empty()) {
-    for (size_t fieldId = MESSAGEFIELD_RANGE_MIN; fieldId <= MESSAGEFIELD_RANGE_MAX; fieldId++) {
-      if (fieldId == MESSAGEFIELD_LEVEL) {
-        continue;  // level not part of default field list
-      }
-      if (fieldId == MESSAGEFIELD_DATAFIELDS) {
-        continue;  // data fields are handled below
-      }
-      row.push_back(getMessageFieldName(fieldId));
-    }
-    for (size_t fieldId = DATAFIELD_RANGE_MIN; fieldId <= DATAFIELD_RANGE_MAX; fieldId++) {
-      if (fieldId == DATAFIELD_RANGE_MIN) {
-        row.push_back("*" + getDataFieldName(fieldId));  // field repetition
-      } else {
-        row.push_back(getDataFieldName(fieldId));
-      }
+    for (auto col : defaultMessageFieldMap) {
+      row.push_back(col);
     }
     return RESULT_OK;
   }
@@ -1871,9 +1788,9 @@ result_t MessageMap::getFieldMap(vector<string>& row, string& errorDescription) 
     string useName = name;
     tolower(useName);
     if (inDataFields) {
-      size_t fieldId = getDataFieldId(useName);
-      if (fieldId != UINT_MAX) {
-        useName = getDataFieldName(fieldId);
+      string chkName = getDataFieldName(useName);
+      if (!chkName.empty()) {
+        useName = chkName;
         if (seen.find(useName) != seen.end()) {
           if (seen.find("name") == seen.end() || seen.find("type") == seen.end()) {
             errorDescription = "missing field name/type as of already seen "+useName;
@@ -1883,13 +1800,13 @@ result_t MessageMap::getFieldMap(vector<string>& row, string& errorDescription) 
         }
       }
     } else {
-      size_t fieldId = getMessageFieldId(useName);
-      if (fieldId != UINT_MAX && (fieldId != MESSAGEFIELD_NAME || seen.find("name") == seen.end())) {
-        useName = getMessageFieldName(fieldId);
+      string chkName = getMessageFieldName(useName);
+      if (!chkName.empty() && (chkName != "name" || seen.find("name") == seen.end())) {
+        useName = chkName;
       } else {
-        fieldId = getDataFieldId(useName);
-        if (fieldId != UINT_MAX) {
-          useName = getDataFieldName(fieldId);
+        chkName = getDataFieldName(useName);
+        if (!chkName.empty()) {
+          useName = chkName;
           if (seen.find("type") == seen.end() || seen.find("name") == seen.end() || seen.find("pbsb") == seen.end()) {
             errorDescription = "missing message name/type/pbsb";
             return RESULT_ERR_EOF;  // require at least type, name, and pbsb

@@ -38,45 +38,37 @@ using std::setw;
 /** the week day names. */
 static const char* dayNames[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
 
-size_t getDataFieldId(const string name) {
-  if (name == "name" || name.find("field") != string::npos) {
-    return DATAFIELD_NAME;
+/** the default field map for field templates. */
+static const char* defaultTemplateFieldMap[] = {
+    "name", "*type", "divisor/values", "unit", "comment",
+    "*name", "type", "divisor/values", "unit", "comment",
+};
+
+
+
+string getDataFieldName(const string name) {
+  if (name.find("name") != string::npos || name.find("field") != string::npos) {
+    return "name";
   }
   if (name.find("part") != string::npos) {
-    return DATAFIELD_PART;
+    return "part";
   }
   if (name.find("type") != string::npos) {
-    return DATAFIELD_TYPE;
-  }
-  if (name.find("divisor") != string::npos || name.find("values") != string::npos) {
-    return DATAFIELD_DIVISORVALUES;
-  }
-  if (name == "unit") {
-    return DATAFIELD_UNIT;
-  }
-  if (name == "comment") {
-    return DATAFIELD_COMMENT;
-  }
-  return UINT_MAX;
-}
-
-string getDataFieldName(const size_t fieldId) {
-  switch (fieldId) {
-  case DATAFIELD_NAME:
-    return "name";
-  case DATAFIELD_PART:
-    return "part";
-  case DATAFIELD_TYPE:
     return "type";
-  case DATAFIELD_DIVISORVALUES:
-    return "divisor/values";
-  case DATAFIELD_UNIT:
-    return "unit";
-  case DATAFIELD_COMMENT:
-    return "comment";
-  default:
-    return "";
   }
+  if (name.find("divisor") != string::npos) {
+    if (name.find("values") != string::npos) {
+      return "divisor/values";
+    }
+    return "divisor";
+  }
+  if (name == "values" || name == "unit") {
+    return name;
+  }
+  if (name.find("comment") != string::npos) {
+    return "comment";
+  }
+  return "";
 }
 
 
@@ -117,7 +109,7 @@ void AttributedItem::appendJson(ostream& output, const string name, const string
   if (prependFieldSeparator) {
     output << FIELD_SEPARATOR;
   }
-  output << "\"" << name << "\": ";
+  output << " \"" << name << "\": ";
   if (plain) {
     output << value;
   } else {
@@ -1132,24 +1124,8 @@ result_t DataFieldTemplates::getFieldMap(vector<string>& row, string& errorDescr
   // name[:usename],basetype[:len]|template[:usename][,[divisor|values][,[unit][,[comment]]]]
   if (row.empty()) {
     // default map does not include separate field name
-    row.push_back("name");
-    for (size_t cnt = 0; cnt < 2; cnt++) {
-      bool first = true;
-      for (size_t fieldId = DATAFIELD_RANGE_MIN; fieldId <= DATAFIELD_RANGE_MAX; fieldId++) {
-        if (cnt == 0 && fieldId == DATAFIELD_NAME) {
-          continue;
-        }
-        if (fieldId == DATAFIELD_PART) {  // not included in default map
-          continue;
-        }
-        // subsequent fields start with field name
-        if (first) {
-          first = false;
-          row.push_back("*"+getDataFieldName(fieldId));
-        } else {
-          row.push_back(getDataFieldName(fieldId));
-        }
-      }
+    for (auto col : defaultTemplateFieldMap) {
+      row.push_back(col);
     }
     return RESULT_OK;
   }
@@ -1159,9 +1135,9 @@ result_t DataFieldTemplates::getFieldMap(vector<string>& row, string& errorDescr
     string useName = name;
     tolower(useName);
     if (inDataFields) {
-      size_t fieldId = getDataFieldId(useName);
-      if (fieldId != UINT_MAX) {
-        useName = getDataFieldName(fieldId);
+      string chkName = getDataFieldName(useName);
+      if (!chkName.empty()) {
+        useName = chkName;
         if (seen.find(useName) != seen.end()) {
           if (seen.find("type") == seen.end()) {
             errorDescription = "missing type";
@@ -1174,9 +1150,9 @@ result_t DataFieldTemplates::getFieldMap(vector<string>& row, string& errorDescr
       if (useName == "name" && seen.find("name") == seen.end()) {
         // keep first name for template
       } else {
-        size_t fieldId = getDataFieldId(useName);
-        if (fieldId != UINT_MAX) {
-          useName = getDataFieldName(fieldId);
+        string chkName = getDataFieldName(useName);
+        if (!chkName.empty()) {
+          useName = chkName;
           if (seen.find("name") == seen.end()) {
             errorDescription = "missing name";
             return RESULT_ERR_EOF;  // require at least name

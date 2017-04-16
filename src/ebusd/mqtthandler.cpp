@@ -176,13 +176,6 @@ static const char* knownFieldNames[] = {
   "field",
 };
 
-/** the known topic field IDs. */
-static const size_t knownFieldIds[] = {
-  MESSAGEFIELD_CIRCUIT,
-  MESSAGEFIELD_NAME,
-  MESSAGEFIELD_DATAFIELDS,
-};
-
 /** the number of known field names. */
 static const size_t knownFieldCount = sizeof(knownFieldNames) / sizeof(char*);
 
@@ -194,7 +187,7 @@ static const size_t knownFieldCount = sizeof(knownFieldNames) / sizeof(char*);
  * @param fields the @a vector to which the field parts shall be added.
  * @return true on success, false on malformed topic template.
  */
-bool parseTopic(const string topic, vector<string> &strs, vector<size_t> &fields) {
+bool parseTopic(const string topic, vector<string> &strs, vector<string> &fields) {
   size_t lastpos = 0;
   size_t end = topic.length();
   vector<string> columns;
@@ -208,17 +201,17 @@ bool parseTopic(const string topic, vector<string> &strs, vector<size_t> &fields
         break;
       }
     }
-    if (idx== knownFieldCount) {
+    if (idx == knownFieldCount) {  // TODO could allow custom attributes here
       return false;
     }
-    size_t fieldId = knownFieldIds[idx];
-    for (vector<size_t>::iterator it=fields.begin(); it != fields.end(); it++) {
-      if (*it == fieldId) {
+    string fieldName = knownFieldNames[idx];
+    for (auto& it : fields) {
+      if (it == fieldName) {
         return false;  // duplicate column
       }
     }
     strs.push_back(topic.substr(lastpos, pos-lastpos));
-    fields.push_back(fieldId);
+    fields.push_back(fieldName);
     lastpos = pos+1+len;
     pos = topic.find('%', lastpos);
   }
@@ -288,12 +281,12 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
         m_topicStrs[0] = str+"/";
       }
     }
-    m_topicFields.push_back(MESSAGEFIELD_CIRCUIT);  // circuit
+    m_topicFields.push_back("circuit");
     m_topicStrs.push_back("/");
-    m_topicFields.push_back(MESSAGEFIELD_NAME);  // name
+    m_topicFields.push_back("name");
   } else {
     for (size_t i = 0; i < m_topicFields.size(); i++) {
-      if (m_topicFields[i] == MESSAGEFIELD_DATAFIELDS) {  // fields
+      if (m_topicFields[i] == "fields") {
         m_publishByField = true;
         break;
       }
@@ -439,17 +432,14 @@ void MqttHandler::notifyTopic(string topic, string data) {
       if (field.empty()) {
         return;
       }
-      switch (m_topicFields[idx-1]) {
-      case MESSAGEFIELD_CIRCUIT:
+      string fieldName = m_topicFields[idx-1];
+      if (fieldName == "circuit") {
         circuit = field;
-        break;
-      case MESSAGEFIELD_NAME:
+      } else if (fieldName == "name") {
         name = field;
-        break;
-      case MESSAGEFIELD_DATAFIELDS:
+      } else if (fieldName == "fields") {
         // field = field;  // TODO add support for writing a single field
-        break;
-      default:
+      } else {
         return;
       }
     }
@@ -576,7 +566,7 @@ string MqttHandler::getTopic(Message* message, ssize_t fieldIndex) {
       break;
     }
     if (i < m_topicFields.size()) {
-      if (m_topicFields[i] == MESSAGEFIELD_DATAFIELDS && fieldIndex >= 0) {
+      if (m_topicFields[i] == "fields" && fieldIndex >= 0) {
         ret << message->getFieldName(fieldIndex);  // TODO skip ignored fields
       } else {
         message->dumpField(ret, m_topicFields[i]);

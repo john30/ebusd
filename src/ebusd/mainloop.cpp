@@ -1087,7 +1087,7 @@ string MainLoop::executeFind(vector<string> &args, string levels) {
   bool configFormat = false, exact = false, withRead = true, withWrite = false, withPassive = true, first = true,
       onlyWithData = false, hexFormat = false, userLevel = true;
   OutputFormat verbosity = 0;
-  vector<size_t> fieldIds;
+  vector<string> fieldNames;
   string circuit;
   vector<symbol_t> id;
   while (args.size() > argPos && args[argPos][0] == '-') {
@@ -1121,7 +1121,7 @@ string MainLoop::executeFind(vector<string> &args, string levels) {
         argPos = 0;  // print usage
         break;
       }
-      if (!Message::extractFieldIds(args[argPos], fieldIds)) {
+      if (!Message::extractFieldNames(args[argPos], fieldNames)) {
         argPos = 0;  // print usage
         break;
       }
@@ -1231,11 +1231,11 @@ string MainLoop::executeFind(vector<string> &args, string levels) {
         result << endl;
       }
       message->dump(result);
-    } else if (!fieldIds.empty()) {
+    } else if (!fieldNames.empty()) {
       if (found) {
         result << endl;
       }
-      message->dump(result, &fieldIds);
+      message->dump(result, &fieldNames);
     } else {
       if (found) {
         result << endl;
