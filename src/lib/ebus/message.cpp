@@ -57,9 +57,12 @@ using std::endl;
 /** the maximum poll priority for a @a Message referred to by a @a Condition. */
 #define POLL_PRIORITY_CONDITION 5
 
+/** the field name constant for the message level. */
+static const char* FIELNAME_LEVEL = "level";
+
 /** the known full length field names. */
 static const char* knownFieldNamesFull[] = {
-    "type", "circuit", "level", "name", "comment", "qq", "zz", "pbsb", "id", "fields",
+    "type", "circuit", FIELNAME_LEVEL, "name", "comment", "qq", "zz", "pbsb", "id", "fields",
 };
 
 /** the known full length field names. */
@@ -849,7 +852,7 @@ void Message::dump(ostream& output, vector<string>* fieldNames, bool withConditi
   bool first = true;
   if (fieldNames == NULL) {
     for (auto fieldName : knownFieldNamesFull) {
-      if (fieldName == "level") {
+      if (fieldName == FIELNAME_LEVEL) {
         continue;  // access level not included in default dump format
       }
       if (first) {
