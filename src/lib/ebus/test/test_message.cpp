@@ -82,21 +82,21 @@ int main() {
     {"pumpstate,UCH,0=off;1=on;2=overrun,,Pumpenstatus", "", "", "", "template"},
     {"tempsensor,temp;sensor,,Temperatursensor", "", "", "", "template"},
     {"tempsensorc,temp;sensorc,,Temperatursensor", "", "", "", "template"},
-    {"r,,Status01,VL/RL/AussenTemp/VLWW/SpeicherTemp/Status,,08,B511,01,,,temp1;temp1;temp2;temp1;temp1;pumpstate", "28.0;24.0;4.938;35.0;41.0;4", "ff08b5110101", "093830f00446520400ff", "d"},
+    {"r,cir,Status01,VL/RL/AussenTemp/VLWW/SpeicherTemp/Status,,08,B511,01,,,temp1;temp1;temp2;temp1;temp1;pumpstate", "28.0;24.0;4.938;35.0;41.0;4", "ff08b5110101", "093830f00446520400ff", "d"},
     {"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor", "temp=-14.00 Temperatursensor [Temperatur];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "D"},
     {"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment", "temp=-14.00 field unit [field comment];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "D"},
     {"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment", "\n    \"temp\": {\"value\": -14.00},\n    \"sensor\": {\"value\": \"ok\"}", "ff25b509030d2800", "0320ff00", "j"},
     {"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment", "\n    \"temp\": {\"value\": -14.00, \"unit\": \"field unit\", \"comment\": \"field comment\"},\n" "    \"sensor\": {\"value\": \"ok\", \"comment\": \"Fühlerstatus\"}", "ff25b509030d2800", "0320ff00", "J"},
     {"r,message circuit,message name,message comment,,25,B509,0d2800,,,temp,,field unit,field comment,,,sensor", "temp=-14.00 field unit [field comment];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "D"},
     {"r,message circuit,message name,message comment,,25,B509,0d2800,,,D2C,,°C,Temperatur,,,sensor", "\n    \"0\": {\"name\": \"\", \"value\": -14.00},\n    \"1\": {\"name\": \"sensor\", \"value\": \"ok\"}", "ff25b509030d2800", "0320ff00", "j"},
-    {"r,,name,,,25,B509,0d2800,,,tempsensorc", "-14.00", "ff25b509030d2800", "0320ff55", ""},
-    {"r,,name,,,25,B509,0d28,,m,sensorc,,,,,,temp", "-14.00", "ff25b509030d2855", "0220ff", ""},
-    {"u,,first,,,fe,0700,,x,,bda", "26.10.2014", "fffe07000426100614", "00", "p"},
+    {"r,cir,name,,,25,B509,0d2800,,,tempsensorc", "-14.00", "ff25b509030d2800", "0320ff55", ""},
+    {"r,cir,name,,,25,B509,0d28,,m,sensorc,,,,,,temp", "-14.00", "ff25b509030d2855", "0220ff", ""},
+    {"u,cir,first,,,fe,0700,,x,,bda", "26.10.2014", "fffe07000426100614", "00", "p"},
     {"u,broadcast,hwStatus,,,fe,b505,27,,,UCH,,,,,,UCH,,,,,,UCH,,,", "0;19;0", "10feb505042700130097", "00", ""},
-    {"w,,first,,,15,b509,0400,date,,bda", "26.10.2014", "ff15b50906040026100614", "00", ""},
-    {"w,,first,,,15,b509", "", "ff15b50900", "00", ""},
+    {"w,cir,first,,,15,b509,0400,date,,bda", "26.10.2014", "ff15b50906040026100614", "00", ""},
+    {"w,cir,first,,,15,b509", "", "ff15b50900", "00", ""},
     {"*w,,,,,,b505,2d", "", "", "", ""},
-    {"w,,offset,,,50,,,,,temp", "0.50", "ff50b505042d080000", "00", "kd"},
+    {"w,cir,offset,,,50,,,,,temp", "0.50", "ff50b505042d080000", "00", "kd"},
     {"r,ehp,time,,,08,b509,0d2800,,,time", "15:00:17", "ff08b509030d2800", "0311000f", "d"},
     {"r,ehp,time,,,08;10,b509,0d2800,,,time", "", "", "", "c"},
     {"r,ehp,time,,,08;09,b509,0d2800,,,time", "15:00:17", "ff08b509030d2800", "0311000f", "d*"},
@@ -147,12 +147,12 @@ int main() {
   istringstream dummystr("#");
   string errorDescription;
   vector<string> row;
-  templates->readLineFromStream(dummystr, errorDescription, "inline", lineNo, row, false);
+  templates->readLineFromStream(dummystr, errorDescription, __FILE__, lineNo, row, false);
   lineNo = 0;
   MessageMap* messages = new MessageMap();
   dummystr.clear();
   dummystr.str("#");
-  messages->readLineFromStream(dummystr, errorDescription, "inline", lineNo, row, false);
+  messages->readLineFromStream(dummystr, errorDescription, __FILE__, lineNo, row, false);
   vector< vector<string> > defaultsRows;
   Message* message = NULL;
   vector<MasterSymbolString*> mstrs;
@@ -183,7 +183,7 @@ int main() {
     lineNo = baseLine + i;
     cout << "line " << (lineNo+1) << " ";
     if (isTemplate) {
-      result = templates->readLineFromStream(isstr, errorDescription, "inline", lineNo, row);
+      result = templates->readLineFromStream(isstr, errorDescription, __FILE__, lineNo, row);
       if (result != RESULT_OK) {
         cout << "\"" << check[0] << "\": template read error: " << getResultCode(result) << ", " << errorDescription
             << endl;
@@ -197,7 +197,7 @@ int main() {
     }
     if (isstr.peek() == '*') {
       // store defaults or condition
-      result = messages->readLineFromStream(isstr, errorDescription, "inline", lineNo, row);
+      result = messages->readLineFromStream(isstr, errorDescription, __FILE__, lineNo, row);
       if (result != RESULT_OK) {
         cout << "\"" << check[0] << "\": default read error: " << getResultCode(result) << ", " << errorDescription << endl;
         error = true;
@@ -279,7 +279,7 @@ int main() {
       }
       cout << "\"" << check[2] << "\": find OK" << endl;
     } else {
-      result = messages->readLineFromStream(isstr, errorDescription, "inline", lineNo, row);
+      result = messages->readLineFromStream(isstr, errorDescription, __FILE__, lineNo, row);
       if (failedCreate) {
         if (result == RESULT_OK) {
           cout << "\"" << check[0] << "\": failed create error: unexpectedly succeeded" << endl;
