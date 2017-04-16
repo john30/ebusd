@@ -1004,6 +1004,33 @@ void Message::dumpField(ostream& output, size_t fieldId, bool withConditions) co
   }
 }
 
+void Message::decode(ostringstream& output, OutputFormat outputFormat, bool leadingSeparator,
+    vector<string>* fields) const {
+  if (leadingSeparator) {
+    output << ",";
+  }
+  output << "\n  \"" << getName() << "\": {";
+  output << "\n   \"lastup\": " << setw(0) << dec << static_cast<unsigned>(getLastUpdateTime());
+  if (getLastUpdateTime() != 0) {
+    output << ",\n   \"zz\": \"" << setfill('0') << setw(2) << hex << static_cast<unsigned>(getDstAddress()) << "\"";
+    appendAttributes(output, OF_JSON | outputFormat);
+    size_t pos = (size_t) output.tellp();
+    output << ",\n   \"fields\": {";
+    result_t dret = decodeLastData(output, outputFormat);
+    if (dret == RESULT_OK) {
+      output << "\n   }";
+    } else {
+      string prefix = output.str().substr(0, pos);
+      output.str("");
+      output.clear();  // remove written fields
+      output << prefix << ",\n   \"decodeerror\": \"" << getResultCode(dret) << "\"";
+    }
+  }
+  output << ",\n   \"passive\": " << (isPassive() ? "true" : "false");
+  output << ",\n   \"write\": " << (isWrite() ? "true" : "false");
+  output << "\n  }";
+}
+
 
 ChainedMessage::ChainedMessage(const string circuit, const string level, const string name,
     const bool isWrite, const map<string, string>& attributes,
@@ -1767,7 +1794,8 @@ result_t MessageMap::add(Message* message, bool storeByName) {
     }
     string name = message->getName();
     FileReader::tolower(name);
-    string nameKey = string(isPassive ? "P" : (isWrite ? "W" : "R")) + circuit + FIELD_SEPARATOR + name;
+    string suffix = FIELD_SEPARATOR + name + (isPassive ? "P" : (isWrite ? "W" : "R"));
+    string nameKey = circuit + suffix;
     if (!m_addAll) {
       map<string, vector<Message*> >::iterator nameIt = m_messagesByName.find(nameKey);
       if (nameIt != m_messagesByName.end()) {
@@ -1778,7 +1806,7 @@ result_t MessageMap::add(Message* message, bool storeByName) {
       }
     }
     m_messagesByName[nameKey].push_back(message);
-    nameKey = string(isPassive ? "-P" : (isWrite ? "-W" : "-R")) + name;  // also store without circuit
+    nameKey = suffix;  // also store without circuit
     map<string, vector<Message*> >::iterator nameIt = m_messagesByName.find(nameKey);
     if (nameIt == m_messagesByName.end()) {
       // always store first message without circuit (in order of circuit name)
@@ -1926,11 +1954,14 @@ result_t MessageMap::addDefaultFromFile(map<string, string>& row, vector< map<st
     m_conditions[key] = condition;
     return RESULT_OK;
   }
-  if (type.empty()) {
-    errorDescription = "invalid default definition";
-    return RESULT_ERR_INVALID_ARG;
-  }
   string defaultCircuit = defaults["circuit"];
+  if (type.empty()) {
+    if (defaultCircuit.empty()) {
+      errorDescription = "invalid default definition";
+      return RESULT_ERR_INVALID_ARG;
+    }
+    // circuit level additional attributes
+  }
   string defaultSuffix = defaults["suffix"];
   defaults.erase("suffix");
   for (auto entry : row) {
@@ -1955,6 +1986,16 @@ result_t MessageMap::addDefaultFromFile(map<string, string>& row, vector< map<st
     if (!value.empty() || defaults[entry.first].empty()) {
       defaults[entry.first] = value;
     }
+  }
+  if (type.empty()) {
+    string circuit = defaults["circuit"];
+    defaults.erase("circuit");
+    string name = defaults["name"];
+    defaults.erase("name");
+    if (!name.empty() || !defaults.empty()) {
+      m_circuitData[circuit] = new AttributedItem(name, defaults);
+    }
+    return RESULT_OK;
   }
   getDefaults()[type] = defaults;
   vector< map<string, string> > subDefaults = subRows;  // ensure to have a copy
@@ -2362,16 +2403,17 @@ Message* MessageMap::find(const string& circuit, const string& name, const strin
   FileReader::tolower(lcircuit);
   string lname = name;
   FileReader::tolower(lname);
+  string suffix = FIELD_SEPARATOR + lname + (isPassive ? "P" : (isWrite ? "W" : "R"));
   for (int i = 0; i < 2; i++) {
-    string key;
+    string nameKey;
     if (i == 0) {
-      key = string(isPassive ? "P" : (isWrite ? "W" : "R")) + lcircuit + FIELD_SEPARATOR + lname;
-    } else if (lcircuit.length() == 0) {
-      key = string(isPassive ? "-P" : (isWrite ? "-W" : "-R")) + lname;  // second try: without circuit
+      nameKey = lcircuit + suffix;
+    } else if (lcircuit.empty()) {
+      nameKey = suffix;  // second try: without circuit
     } else {
       continue;  // not allowed without circuit
     }
-    auto it = m_messagesByName.find(key);
+    auto it = m_messagesByName.find(nameKey);
     if (it != m_messagesByName.end()) {
       Message* message = getFirstAvailable(it->second);
       if (message && message->hasLevel(levels)) {
@@ -2395,7 +2437,7 @@ deque<Message*> MessageMap::findAll(const string& circuit, const string& name, c
   bool checkLevel = levels != "*";
   bool checkName = lname.length() > 0;
   for (auto it : m_messagesByName) {
-    if (it.first[0] == '-') {  // avoid duplicates: instances stored multiple times have a key starting with "-"
+    if (it.first[0] == FIELD_SEPARATOR) {  // avoid duplicates: instances stored multiple times have a special key
       continue;
     }
     for (auto message : it.second) {
@@ -2544,6 +2586,19 @@ void MessageMap::addPollMessage(Message* message, bool toFront) {
   }
 }
 
+bool MessageMap::decodeCircuit(const string circuit, ostringstream& output, OutputFormat outputFormat) const {
+  auto it = m_circuitData.find(circuit);
+  if (it == m_circuitData.end()) {
+    return false;
+  }
+  if (outputFormat & OF_JSON) {
+    output << "\"name\": \"" << it->second->getName() << "\"";
+  } else {
+    output << it->second->getName() << "=";
+  }
+  return it->second->appendAttributes(output, outputFormat);
+}
+
 void MessageMap::clear() {
   m_loadedFiles.clear();
   m_loadedFileInfos.clear();
@@ -2553,26 +2608,26 @@ void MessageMap::clear() {
     m_pollMessages.pop();
   }
   // free message instances by name
-  for (map<string, vector<Message*> >::iterator it = m_messagesByName.begin(); it != m_messagesByName.end(); it++) {
-    vector<Message*> nameMessages = it->second;
-    if (it->first[0] != '-') {  // avoid double free: instances stored multiple times have a key starting with "-"
-      for (vector<Message*>::iterator nit = nameMessages.begin(); nit != nameMessages.end(); nit++) {
-        Message* message = *nit;
-        map<uint64_t, vector<Message*> >::iterator keyIt = m_messagesByKey.find(message->getKey());
-        if (keyIt != m_messagesByKey.end()) {
-          vector<Message*>* keyMessages = &keyIt->second;
-          if (!keyMessages->empty()) {
-            for (vector<Message*>::iterator kit = keyMessages->begin(); kit != keyMessages->end(); kit++) {
-              if (*kit == message) {
-                keyMessages->erase(kit--);
-              }
+  for (auto it : m_messagesByName) {
+    vector<Message*> nameMessages = it.second;
+    if (it.first[0] == FIELD_SEPARATOR) {  // avoid double free: instances stored multiple times have a special key
+      continue;
+    }
+    for (Message* message : it.second) {
+      map<uint64_t, vector<Message*> >::iterator keyIt = m_messagesByKey.find(message->getKey());
+      if (keyIt != m_messagesByKey.end()) {
+        vector<Message*>* keyMessages = &keyIt->second;
+        if (!keyMessages->empty()) {
+          for (vector<Message*>::iterator kit = keyMessages->begin(); kit != keyMessages->end(); kit++) {
+            if (*kit == message) {
+              keyMessages->erase(kit--);
             }
           }
         }
-        delete message;
       }
+      delete message;
     }
-    nameMessages.clear();
+    it.second.clear();
   }
   // free remaining message instances by key
   for (map<uint64_t, vector<Message*> >::iterator it = m_messagesByKey.begin(); it != m_messagesByKey.end(); it++) {
@@ -2605,6 +2660,10 @@ void MessageMap::clear() {
   m_messagesByKey.clear();
   m_conditions.clear();
   m_instructions.clear();
+  for (auto& it : m_circuitData) {
+    delete it.second;
+  }
+  m_circuitData.clear();
   m_maxIdLength = m_maxBroadcastIdLength = 0;
   m_additionalScanMessages = false;
 }

@@ -597,6 +597,15 @@ class Message : public AttributedItem {
    */
   virtual void dumpField(ostream& output, size_t fieldId, bool withConditions = false) const;
 
+  /**
+   * Decode the message from the last stored data.
+   * @param output the @a ostringstream to append the decoded value(s) to.
+   * @param outputFormat the @a OutputFormat options to use.
+   * @param leadingSeparator whether to prepend a separator before the first value.
+   * @param fields the list of message and/or data field fields to write, or NULL for all.
+   */
+  virtual void decode(ostringstream& output, OutputFormat outputFormat = 0, bool leadingSeparator = false,
+      vector<string>* fields = NULL) const;
 
  protected:
   /** the optional circuit name. */
@@ -1450,6 +1459,15 @@ class MessageMap : public MappedFileReader {
   void addPollMessage(Message* message, bool toFront = false);
 
   /**
+   * Decode circuit specific data.
+   * @param circuit the name of the circuit.
+   * @param output the @a ostringstream to append the decoded value(s) to.
+   * @param outputFormat the @a OutputFormat options to use.
+   * @return true if data was added, false otherwise.
+   */
+  bool decodeCircuit(const string circuit, ostringstream& output, OutputFormat outputFormat) const;
+
+  /**
    * Removes all @a Message instances.
    */
   void clear();
@@ -1542,7 +1560,7 @@ class MessageMap : public MappedFileReader {
   /** the number of distinct passive @a Message instances stored in @a m_messagesByKey. */
   size_t m_passiveMessageCount;
 
-  /** the known @a Message instances by lowercase circuit and name. */
+  /** the known @a Message instances by lowercase circuit (optional), name, and type. */
   map<string, vector<Message*> > m_messagesByName;
 
   /** the known @a Message instances by key. */
@@ -1556,6 +1574,9 @@ class MessageMap : public MappedFileReader {
 
   /** the list of @a Instruction instances by filename. */
   map<string, vector<Instruction*> > m_instructions;
+
+  /** additional attributes by circuit name. */
+  map<string, AttributedItem*> m_circuitData;
 };
 
 }  // namespace ebusd

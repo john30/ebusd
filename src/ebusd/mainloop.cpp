@@ -1610,6 +1610,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
       deque<Message *> messages = m_messages->findAll(circuit, name, getUserLevels(user), exact, true, false, true);
 
       bool first = true;
+      verbosity |= (numeric ? OF_NUMERIC : 0) | OF_JSON | (full ? OF_ALL_ATTRS : 0);
       for (deque<Message*>::iterator it = messages.begin(); it != messages.end();) {
         Message* message = *it++;
         symbol_t dstAddress = message->getDstAddress();
@@ -1643,34 +1644,12 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
           }
           lastCircuit = message->getCircuit();
           result << "\n \"" << lastCircuit << "\": {";
-          // TODO add circuit specific values
           first = true;
-        }
-        if (first) {
-          first = false;
-        } else {
-          result << ",";
-        }
-        result << "\n  \"" << message->getName() << "\": {";
-        result << "\n   \"lastup\": " << setw(0) << dec << static_cast<unsigned>(lastup);
-        if (lastup != 0) {
-          result << ",\n   \"zz\": \"" << setfill('0') << setw(2) << hex << static_cast<unsigned>(dstAddress) << "\"";
-          size_t pos = (size_t) result.tellp();
-          result << ",\n   \"fields\": {";
-          result_t dret = message->decodeLastData(
-              result, verbosity | (numeric ? OF_NUMERIC : 0) | OF_JSON | (full ? OF_ALL_ATTRS : 0));
-          if (dret == RESULT_OK) {
-            result << "\n   }";
-          } else {
-            string prefix = result.str().substr(0, pos);
-            result.str("");
-            result.clear();  // remove written fields
-            result << prefix << ",\n   \"decodeerror\": \"" << getResultCode(dret) << "\"";
+          if (full && m_messages->decodeCircuit(lastCircuit, result, verbosity)) {  // add circuit specific values
+            first = false;
           }
         }
-        result << ",\n   \"passive\": " << (message->isPassive() ? "true" : "false");
-        result << ",\n   \"write\": " << (message->isWrite() ? "true" : "false");
-        result << "\n  }";
+        message->decode(result, verbosity, !first);
       }
 
       if (lastCircuit.length() > 0) {
