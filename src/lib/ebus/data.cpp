@@ -100,6 +100,31 @@ void AttributedItem::dumpString(ostream& output, const string str, const bool pr
   }
 }
 
+void AttributedItem::appendJson(ostream& output, const string name, const string value,
+    const bool prependFieldSeparator, bool asString) {
+  bool plain;
+  if (asString) {
+    plain = false;
+  } else {
+    plain = value == "false" || value == "true";
+    if (!plain) {
+      const char* str = value.c_str();
+      char* strEnd = NULL;
+      strtod(str, &strEnd);
+      plain = strEnd && !*strEnd;
+    }
+  }
+  if (prependFieldSeparator) {
+    output << FIELD_SEPARATOR;
+  }
+  output << "\"" << name << "\": ";
+  if (plain) {
+    output << value;
+  } else {
+    output << '"' << value << '"';
+  }
+}
+
 void AttributedItem::mergeAttributes(map<string, string>& attributes) const {
   for (auto& entry : m_attributes) {
     auto it = attributes.find(entry.first);
@@ -118,40 +143,43 @@ string AttributedItem::getAttribute(const string name) const {
   return it == m_attributes.end() ? "" : it->second;
 }
 
-void appendJson(ostringstream& output, const string name, const string value, bool asString = false) {
-  bool plain;
-  if (asString) {
-    plain = false;
-  } else {
-    plain = value == "false" || value == "true";
-    if (!plain) {
-      const char* str = value.c_str();
-      char* strEnd = NULL;
-      strtod(str, &strEnd);
-      plain = strEnd && *strEnd;
-    }
-  }
-  output << ", \"" << name << "\": ";
-  if (plain) {
-    output << value;
-  } else {
-    output << '"' << value << '"';
-  }
-}
-
-void AttributedItem::appendAttribute(ostringstream& output, OutputFormat outputFormat, const string name,
+bool AttributedItem::appendAttribute(ostringstream& output, OutputFormat outputFormat, const string name,
     const bool onlyIfNonEmpty, const string prefix, const string suffix) const {
   auto it = m_attributes.find(name);
   string value = it == m_attributes.end() ? "" : it->second;
-  if (!onlyIfNonEmpty || !value.empty()) {
-    if (outputFormat & OF_JSON) {
-      appendJson(output, name, value, true);
-    } else {
-      output << " " << prefix << value << suffix;
-    }
+  if (onlyIfNonEmpty && value.empty()) {
+    return false;
   }
+  if (outputFormat & OF_JSON) {
+    appendJson(output, name, value, true);
+  } else {
+    output << " " << prefix << value << suffix;
+  }
+  return true;
 }
 
+bool AttributedItem::appendAttributes(ostringstream& output, OutputFormat outputFormat) const {
+  bool ret = false;
+  if ((outputFormat & OF_UNITS)) {
+    ret = appendAttribute(output, outputFormat, "unit") || ret;
+  }
+  if ((outputFormat & OF_COMMENTS)) {
+    ret = appendAttribute(output, outputFormat, "comment", true, "[", "]") || ret;
+  }
+  if (outputFormat & OF_ALL_ATTRS) {
+    for (auto& entry : m_attributes) {
+      ret = true;
+      if (!entry.second.empty() && entry.first != "unit" && entry.first != "comment") {
+        if (outputFormat & OF_JSON) {
+          appendJson(output, entry.first, entry.second);
+        } else {
+          output << " " << entry.first << "=" << entry.second;
+        }
+      }
+    }
+  }
+  return ret;
+}
 
 
 string formatInt(size_t value) {
@@ -519,23 +547,7 @@ result_t SingleDataField::read(const SymbolString& data, size_t offset,
     return result;
   }
   if (!shortFormat) {
-    if ((outputFormat & OF_UNITS)) {
-      appendAttribute(output, outputFormat, "unit");
-    }
-    if ((outputFormat & OF_COMMENTS)) {
-      appendAttribute(output, outputFormat, "comment", true, "[", "]");
-    }
-    if (outputFormat & OF_ALL_ATTRS) {
-      for (auto& entry : m_attributes) {
-        if (!entry.second.empty() && entry.first != "unit" && entry.first != "comment") {
-          if (outputFormat & OF_JSON) {
-            appendJson(output, entry.first, entry.second);
-          } else {
-            output << " " << entry.first << "=" << entry.second;
-          }
-        }
-      }
-    }
+    appendAttributes(output, outputFormat);
   }
   if (!shortFormat && (outputFormat & OF_JSON)) {
     output << "}";

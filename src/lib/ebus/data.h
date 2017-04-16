@@ -95,7 +95,7 @@ class SingleDataField;
  * Base class for named items with optional named attributes.
  */
 class AttributedItem {
- protected:
+ public:
   /**
    * Constructs a new instance.
    * @param name the item name.
@@ -117,7 +117,6 @@ class AttributedItem {
   virtual ~AttributedItem() {}
 
 
- public:
   /**
    * Remove and return a certain value from a map.
    * @param row the map to remove the value from.
@@ -133,6 +132,17 @@ class AttributedItem {
    * @param prependFieldSeparator whether to start with a @a FIELD_SEPARATOR.
    */
   static void dumpString(ostream& output, const string str, const bool prependFieldSeparator = true);
+
+  /**
+   * Append a named attribute as JSON to the output.
+   * @param output the @a ostream to append to.
+   * @param name the name of the attribute.
+   * @param value the value of the attribute.
+   * @param prependFieldSeparator whether to start with a @a FIELD_SEPARATOR.
+   * @param asString true to force writing as string, false to detect the type from the value.
+   */
+  static void appendJson(ostream& output, const string name, const string value,
+      const bool prependFieldSeparator = true, bool asString = false);
 
   /**
    * Merge this instance's additional named attributes into the specified attributes.
@@ -156,9 +166,18 @@ class AttributedItem {
    * @param onlyIfNonEmpty true to append only if the value is not empty.
    * @param prefix optional prefix to use (only for non-JSON output).
    * @param suffix optional suffix to use (only for non-JSON output).
+   * @return true if data was added, false otherwise.
    */
-  void appendAttribute(ostringstream& output, OutputFormat outputFormat, const string name,
+  bool appendAttribute(ostringstream& output, OutputFormat outputFormat, const string name,
       const bool onlyIfNonEmpty = true, const string prefix = "", const string suffix = "") const;
+
+  /**
+   * Append the attributes to the output.
+   * @param output the @a ostringstream to append the formatted values to.
+   * @param outputFormat the @a OutputFormat options to use.
+   * @return true if data was added, false otherwise.
+   */
+  bool appendAttributes(ostringstream& output, OutputFormat outputFormat) const;
 
   /**
    * Get the item name.
