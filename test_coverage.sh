@@ -318,7 +318,7 @@ if [ "$status" = 0 ]; then
   kill $lstpid
 fi
 verify=`./src/tools/ebusctl -p 8877 info|egrep "^address 04:"`
-if [ "x$verify" != 'xaddress 04: slave #25, scanned "MF=153;ID=BBBBB;SW=3031;HW=3031' ]; then
+if [ "x$verify" != 'xaddress 04: slave #25, scanned "MF=153;ID=BBBBB;SW=3031;HW=3031"' ]; then
   echo "error unexpected result from info command: $verify"
   kill $pid
   kill $srvpid
