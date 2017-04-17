@@ -277,7 +277,7 @@ bool GrabbedMessage::dump(const bool unknown, MessageMap* messages, bool first, 
     if (!types) {
       return true;
     }
-    bool master = isMaster(dstAddress) || dstAddress == BROADCAST || m_lastSlave.size() <= 1 || m_lastSlave[0] == 0;
+    bool master = isMaster(dstAddress) || dstAddress == BROADCAST || m_lastSlave.getDataSize() <= 0;
     SymbolString *input;
     if (master) {
       input = &m_lastMaster;
@@ -1030,7 +1030,9 @@ void BusHandler::receiveCompleted() {
     logError(lf_bus, "invalid self-addressed message from %2.2x", srcAddress);
     return;
   }
-  addSeenAddress(srcAddress);
+  if (!m_currentRequest) {
+    addSeenAddress(srcAddress);
+  }
   addSeenAddress(dstAddress);
 
   bool master = isMaster(dstAddress);
