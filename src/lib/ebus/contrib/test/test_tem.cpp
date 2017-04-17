@@ -54,7 +54,7 @@ class TestReader : public MappedFileReader {
   TestReader(DataFieldTemplates* templates, bool isSet, bool isMasterDest)
   : MappedFileReader::MappedFileReader(true), m_templates(templates), m_isSet(isSet), m_isMasterDest(isMasterDest),
     m_fields(NULL) {}
-  result_t getFieldMap(vector<string>& row, string& errorDescription) const override {
+  result_t getFieldMap(vector<string>& row, string& errorDescription, const string preferLanguage) const override {
     if (row.empty()) {
       row.push_back("*name");
       row.push_back("part");
