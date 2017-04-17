@@ -170,6 +170,7 @@ if [ ! "$status" = 0 ]; then
 fi
 echo "server: $srvpid"
 cat >contrib/etc/ebusd/test.csv <<EOF
+#no column names
 u,broadcast,outsidetemp,,,fe,b516,01,temp2,m,D2B
 r2,rcc.4,RoomTemp,Raumisttemp,,1c,b509,0d0000,temp,s,D2C,,C
 r,mc.4,OutsideTemp,Sensor,,52,b509,0d0600,temp,s,D2C,,°C
@@ -324,9 +325,8 @@ if [ "x$verify" != 'xaddress 04: slave #25, scanned "MF=153;ID=BBBBB;SW=3031;HW=
   kill $srvpid
   exit 1
 fi
+kill $pid
 echo "ebusd log:"
 cat "$PWD/ebusd.log"
-sleep 5
-kill $pid
 echo "done."
 wait $srvpid
