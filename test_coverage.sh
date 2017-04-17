@@ -92,7 +92,7 @@ $input=$hexinput="";
 echo "server: running\n";
 $endtime=time()+15;
 $firstsend=time()+5;
-$secondsend=time()+10;
+$secondsend=$firstsend+5;
 $expectnext="";
 $error=0;
 while (time()<$endtime) {
@@ -104,8 +104,14 @@ while (time()<$endtime) {
       echo "server: <$output\n";
       if ($expectnext) {
         if ($expectnext!=$output) {
-          echo "server: error unexpected answer (should be $expectnext)\n";
-          $error=1;
+          if (substr($output,0,2)!='ff') {
+            echo "server: arbitration lost for ".substr($output,0,2).", retry\n";
+            $firstsend=time()+5;
+            $secondsend=$firstsend+5;
+          } else {
+            echo "server: error unexpected answer (should be $expectnext)\n";
+            $error=1;
+          }
         }
         $expectnext="";
       }
