@@ -1434,12 +1434,16 @@ result_t BusHandler::scanAndWait(symbol_t dstAddress, bool loadScanConfig, bool 
     delete request;
     request = NULL;
   }
-  if (result != RESULT_OK) {
-    return result;
-  }
   if (loadScanConfig) {
     string file;
-    result = loadScanConfigFile(m_messages, dstAddress, file);
+    if (result == RESULT_ERR_TIMEOUT) {
+      result = loadScanConfigFile(m_messages, dstAddress, file);  // try to load even if one message timed out
+      if (result == RESULT_EMPTY) {
+        result = RESULT_ERR_TIMEOUT;  // back to previous result
+      }
+    } else if (result == RESULT_OK) {
+      result = loadScanConfigFile(m_messages, dstAddress, file);
+    }
     if (result == RESULT_OK) {
       setScanConfigLoaded(dstAddress, file);
       if (!hasAdditionalScanMessages && m_messages->hasAdditionalScanMessages()) {
