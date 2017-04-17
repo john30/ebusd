@@ -468,8 +468,11 @@ result_t BusHandler::handleSymbol() {
 
   case bs_recvCmd:
   case bs_recvCmdCrc:
-  case bs_recvCmdAck:
     timeout = m_slaveRecvTimeout;
+    break;
+
+  case bs_recvCmdAck:
+    timeout = m_slaveRecvTimeout+(m_currentRequest ? m_transferLatency:0);
     break;
 
   case bs_recvRes:
@@ -521,7 +524,7 @@ result_t BusHandler::handleSymbol() {
     break;
 
   case bs_sendResCrc:
-    if (m_currentRequest != NULL) {
+    if (m_answer) {
       sendSymbol = m_crc;
       sending = true;
     }
@@ -893,7 +896,7 @@ result_t BusHandler::handleSymbol() {
     return RESULT_OK;
 
   case bs_sendResCrc:
-    if (!sending || m_currentRequest == NULL) {
+    if (!sending || !m_answer) {
       return setState(bs_skip, RESULT_ERR_INVALID_ARG);
     }
     if (recvSymbol != sendSymbol) {
@@ -960,10 +963,12 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
   if (state == m_state) {
     return result;
   }
-  if (result < RESULT_OK || (result != RESULT_OK && state == bs_skip)) {
+  if ((result < RESULT_OK && !(result == RESULT_ERR_TIMEOUT && state == bs_skip && m_state == bs_ready))
+      || (result != RESULT_OK && state == bs_skip && m_state != bs_ready)) {
     logDebug(lf_bus, "%s during %s, switching to %s", getResultCode(result), getStateCode(m_state),
         getStateCode(state));
-  } else if (m_currentRequest != NULL || state == bs_sendCmd || state == bs_sendResAck || state == bs_sendSyn) {
+  } else if (m_currentRequest != NULL || state == bs_sendCmd || state == bs_sendCmdCrc || state == bs_sendCmdAck
+      || state == bs_sendRes || state == bs_sendResCrc || state == bs_sendResAck || state == bs_sendSyn) {
     logDebug(lf_bus, "switching from %s to %s", getStateCode(m_state), getStateCode(state));
   }
   if (state == bs_noSignal) {
