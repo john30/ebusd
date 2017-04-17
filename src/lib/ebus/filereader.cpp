@@ -202,6 +202,25 @@ bool FileReader::splitFields(istream& ifs, vector<string>& row, unsigned int& li
 }
 
 
+string MappedFileReader::normalizeLanguage(string lang) {
+  tolower(lang);
+  if (lang.size() > 2) {
+    size_t pos = lang.find('.');
+    if (pos == string::npos) {
+      pos = lang.size();
+    }
+    size_t strip = lang.find('_');
+    if (strip == string::npos || strip > pos) {
+      strip = pos;
+    }
+    if (strip > 2) {
+      strip = 2;
+    }
+    lang = lang.substr(0, strip);
+  }
+  return lang;
+}
+
 result_t MappedFileReader::readFromFile(const string filename, string& errorDescription, bool verbose,
     map<string, string>* defaults, size_t* hash, size_t* size, time_t* time) {
   m_mutex.lock();
@@ -223,7 +242,7 @@ result_t MappedFileReader::addFromFile(vector<string>& row, string& errorDescrip
     const string filename, unsigned int lineNo) {
   result_t result;
   if (lineNo == 1) {  // first line defines column names
-    result = getFieldMap(row, errorDescription);
+    result = getFieldMap(row, errorDescription, m_preferLanguage);
     if (result != RESULT_OK) {
       return result;
     }
@@ -271,6 +290,8 @@ result_t MappedFileReader::addFromFile(vector<string>& row, string& errorDescrip
       columnName = columnName.substr(1);
       lastRepeatStart = colNameIdx;
       empty = true;
+    } else if (columnName == SKIP_COLUMN) {
+      continue;
     }
     string value = row[colIdx];
     empty &= value.empty();

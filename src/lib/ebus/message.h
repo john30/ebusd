@@ -1213,8 +1213,9 @@ class MessageMap : public MappedFileReader {
   /**
    * Construct a new instance.
    * @param addAll whether to add all messages, even if duplicate.
+   * @param preferLanguage the preferred language to use, or empty.
    */
-  explicit MessageMap(const bool addAll = false) : MappedFileReader::MappedFileReader(true),
+  explicit MessageMap(const bool addAll = false, const string preferLanguage = "") : MappedFileReader::MappedFileReader(true),
     m_addAll(addAll), m_additionalScanMessages(false), m_maxIdLength(0), m_maxBroadcastIdLength(0),
     m_messageCount(0), m_conditionalMessageCount(0), m_passiveMessageCount(0) {
     m_scanMessage = Message::createScanMessage();
@@ -1246,7 +1247,7 @@ class MessageMap : public MappedFileReader {
   result_t add(Message* message, bool storeByName = true);
 
   // @copydoc
-  result_t getFieldMap(vector<string>& row, string& errorDescription) const override;
+  result_t getFieldMap(vector<string>& row, string& errorDescription, const string preferLanguage) const override;
 
   // @copydoc
   result_t addDefaultFromFile(map<string, string>& row, vector< map<string, string> >& subRows,

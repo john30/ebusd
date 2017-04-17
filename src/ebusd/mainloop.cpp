@@ -41,7 +41,7 @@ using std::ifstream;
 #define RECONNECT_MISSING_SIGNAL 60
 
 
-result_t UserList::getFieldMap(vector<string>& row, string& errorDescription) const {
+result_t UserList::getFieldMap(vector<string>& row, string& errorDescription, const string preferLanguage) const {
   // name,secret,level[,level]*
   if (row.empty()) {
     row.push_back("name");

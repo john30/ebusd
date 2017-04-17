@@ -53,9 +53,10 @@ namespace ebusd {
 /**
  * Get the normalized data field name for the given name.
  * @param name the input field name.
+ * @param supportsLanguage set to true when the field supports multiple language.
  * @return the normalized data field name, or empty if unknown.
  */
-string getDataFieldName(const string name);
+string getDataFieldName(const string name, bool& supportsLanguage);
 
 class DataFieldTemplates;
 class SingleDataField;
@@ -85,6 +86,13 @@ class AttributedItem {
    */
   virtual ~AttributedItem() {}
 
+
+  /**
+   * Format an int value to a string.
+   * @param value the int value.
+   * @return the formatted string.
+   */
+  static const string formatInt(size_t value);
 
   /**
    * Remove and return a certain value from a map.
@@ -709,7 +717,7 @@ class DataFieldTemplates : public MappedFileReader {
   result_t add(const DataField* field, string name = "", bool replace = false);
 
   // @copydoc
-  result_t getFieldMap(vector<string>& row, string& errorDescription) const override;
+  result_t getFieldMap(vector<string>& row, string& errorDescription, const string preferLanguage) const override;
 
   // @copydoc
   result_t addFromFile(map<string, string>& row, vector< map<string, string> >& subRows,

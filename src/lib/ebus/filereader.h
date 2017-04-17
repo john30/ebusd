@@ -58,6 +58,8 @@ using std::mutex;
 /** the separator character used between multiple values (in CSV only). */
 #define VALUE_SEPARATOR ';'
 
+/** special marker string for skipping columns in @a MappedFileReader. */
+static const string SKIP_COLUMN = "\b";
 
 /**
  * An abstract class that support reading definitions from a file.
@@ -159,8 +161,11 @@ class MappedFileReader : public FileReader {
   /**
    * Constructor.
    * @param supportsDefaults whether this instance supports rows with defaults (starting with a star).
+   * @param preferLanguage the preferred language code, or empty.
    */
-  explicit MappedFileReader(bool supportsDefaults) : FileReader(), m_supportsDefaults(supportsDefaults) {}
+  explicit MappedFileReader(bool supportsDefaults, const string preferLanguage = "")
+  : FileReader(), m_supportsDefaults(supportsDefaults), m_preferLanguage(normalizeLanguage(preferLanguage)) {
+  }
 
   /**
    * Destructor.
@@ -170,6 +175,13 @@ class MappedFileReader : public FileReader {
     m_lastDefaults.clear();
     m_lastSubDefaults.clear();
   }
+
+  /**
+   * Normalize the language string to a lower case, max. 2 characters long language code.
+   * @param lang the language string to normalize.
+   * @return the normalized language code.
+   */
+  static string normalizeLanguage(string lang);
 
   // @copydoc
   result_t readFromFile(const string filename, string& errorDescription, bool verbose = false,
@@ -196,10 +208,13 @@ class MappedFileReader : public FileReader {
   /**
    * Get the field mapping from the given first line.
    * @param row the first line from which to extract the field mapping, or empty to use the default mapping.
+   * Columns set to @a SKIP_COLUMN are skipped in @a addFromFile(). Columns starting with a "*" mark the beginning of
+   * a repeated sub row.
    * @param errorDescription a string in which to store the error description in case of error.
+   * @param preferLanguage the preferred language code (up to 2 characters), or empty.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t getFieldMap(vector<string>& row, string& errorDescription) const = 0;
+  virtual result_t getFieldMap(vector<string>& row, string& errorDescription, const string preferLanguage) const = 0;
 
   /**
    * Add a default row that was read from a file.
@@ -252,6 +267,9 @@ class MappedFileReader : public FileReader {
  private:
   /** whether this instance supports rows with defaults (starting with a star). */
   const bool m_supportsDefaults;
+
+  /** the preferred language code (up to 2 characters), or empty. */
+  const string m_preferLanguage;
 
   /** a @a mutex for access to defaults. */
   mutex m_mutex;

@@ -84,9 +84,10 @@ extern DataFieldTemplates* getTemplates(const string filename);
 /**
  * Get the normalized message field name for the given name.
  * @param name the input field name.
+ * @param supportsLanguage set to true when the field supports multiple language.
  * @return the normalized message field name, or empty if unknown.
  */
-string getMessageFieldName(const string name) {
+string getMessageFieldName(const string name, bool& supportsLanguage) {
   if (name.find("type") != string::npos) {
     return "type";
   }
@@ -96,6 +97,7 @@ string getMessageFieldName(const string name) {
   if (name.find("name") != string::npos) {
     return "name";
   }
+  supportsLanguage = true;
   if (name.find("comment") == 0) {
     return "comment";
   }
@@ -1775,7 +1777,7 @@ result_t MessageMap::add(Message* message, bool storeByName) {
   return RESULT_OK;
 }
 
-result_t MessageMap::getFieldMap(vector<string>& row, string& errorDescription) const {
+result_t MessageMap::getFieldMap(vector<string>& row, string& errorDescription, const string preferLanguage) const {
   // type (r[1-9];w;u),circuit,name,[comment],[QQ],ZZ,PBSB,[ID],field1,part (m/s),datatypes/templates,divider/values,
   //  unit,comment
   // minimum: type,name,PBSB,field,datatype
@@ -1786,37 +1788,72 @@ result_t MessageMap::getFieldMap(vector<string>& row, string& errorDescription) 
     return RESULT_OK;
   }
   bool inDataFields = false;
-  map<string, string> seen;
-  for (auto &name : row) {
-    string useName = name;
-    tolower(useName);
+  map<string, size_t> seen;
+  for (size_t col = 0; col < row.size(); col++) {
+    string &name = row[col];
+    string lowerName = name;
+    tolower(lowerName);
+    trim(lowerName);
+    if (lowerName.empty()) {
+      errorDescription = "missing name in column " + AttributedItem::formatInt(col);
+      return RESULT_ERR_INVALID_ARG;
+    }
+    bool supportsLang = false, toDataFields = false;
+    string useName;
     if (inDataFields) {
-      string chkName = getDataFieldName(useName);
-      if (!chkName.empty()) {
-        useName = chkName;
-        if (seen.find(useName) != seen.end()) {
-          if (seen.find("name") == seen.end() || seen.find("type") == seen.end()) {
-            errorDescription = "missing field name/type as of already seen "+useName;
-            return RESULT_ERR_EOF;  // require at least name and type
-          }
-          seen.clear();
+      useName = getDataFieldName(lowerName, supportsLang);
+    } else {
+      useName = getMessageFieldName(lowerName, supportsLang);
+      if (useName.empty()) {
+        useName = getDataFieldName(lowerName, supportsLang);
+        toDataFields = !useName.empty();
+      }
+    }
+    bool unknown = useName.empty();
+    size_t langPos = supportsLang ? lowerName.find_last_of('.') : string::npos;
+    map<string, size_t>::iterator previous;
+    if (langPos == lowerName.length()-3) {
+      string lang = lowerName.substr(langPos+1);
+      if (unknown) {
+        useName = lowerName.substr(0, langPos);
+      }
+      previous = seen.find(useName);
+      if (previous != seen.end()) {
+        if (lang != preferLanguage) {
+          // skip this column
+          name = SKIP_COLUMN;
+          continue;
         }
+        // replace previous
+        row[previous->second] = SKIP_COLUMN;
+        seen.erase(useName);
+        previous = seen.end();
       }
     } else {
-      string chkName = getMessageFieldName(useName);
-      if (!chkName.empty() && (chkName != "name" || seen.find("name") == seen.end())) {
-        useName = chkName;
-      } else {
-        chkName = getDataFieldName(useName);
-        if (!chkName.empty()) {
-          useName = chkName;
-          if (seen.find("type") == seen.end() || seen.find("name") == seen.end() || seen.find("pbsb") == seen.end()) {
-            errorDescription = "missing message name/type/pbsb";
-            return RESULT_ERR_EOF;  // require at least type, name, and pbsb
-          }
-          inDataFields = true;
-          seen.clear();
+      if (unknown) {
+        useName = lowerName;
+      }
+      previous = seen.find(useName);
+    }
+    if (inDataFields) {
+      if (!unknown && previous != seen.end()) {
+        if (seen.find("name") == seen.end() || seen.find("type") == seen.end()) {
+          errorDescription = "missing field name/type as of already seen "+useName;
+          return RESULT_ERR_EOF;  // require at least name and type
         }
+        seen.clear();
+      }
+    } else {
+      /*if (!unknown && (useName != "name" || seen.find("name") == seen.end())) {
+        // keep first name for message
+      } else {*/
+      if (toDataFields) {
+        if (seen.find("type") == seen.end() || seen.find("name") == seen.end() || seen.find("pbsb") == seen.end()) {
+          errorDescription = "missing message name/type/pbsb";
+          return RESULT_ERR_EOF;  // require at least type, name, and pbsb
+        }
+        inDataFields = true;
+        seen.clear();
       }
       if (!inDataFields && seen.find(useName) != seen.end()) {
         errorDescription = "duplicate message " + useName;
@@ -1828,7 +1865,7 @@ result_t MessageMap::getFieldMap(vector<string>& row, string& errorDescription) 
     } else {
       name = useName;
     }
-    seen[useName] = useName;
+    seen[useName] = col;
   }
   if (inDataFields) {
     if (seen.find("name") == seen.end() || seen.find("type") == seen.end()) {

@@ -62,7 +62,7 @@ class UserList : public UserInfo, public MappedFileReader {
   virtual ~UserList() {}
 
   // @copydoc
-  result_t getFieldMap(vector<string>& row, string& errorDescription) const override;
+  result_t getFieldMap(vector<string>& row, string& errorDescription, const string preferLanguage) const override;
 
   // @copydoc
   result_t addFromFile(map<string, string>& row, vector< map<string, string> >& subRows,

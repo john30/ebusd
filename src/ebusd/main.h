@@ -45,6 +45,7 @@ struct options {
   /** the initial address to scan for scanconfig
    * (@a ESC=none, 0xfe=broadcast ident, @a SYN=full scan, else: single slave address). */
   symbol_t initialScan;
+  string preferLanguage;  //!< preferred language in configuration files
   bool checkConfig;  //!< check CSV config files, then stop
   bool dumpConfig;   //!< dump CSV config files, then stop
   unsigned int pollInterval;  //!< poll interval in seconds, 0 to disable [5]

@@ -49,13 +49,13 @@ void verify(bool expectFailMatch, string type, string input,
 
 string resultlines[][3] = {
   {"col 1", "col 2", "col 3"},
-  {"line 2 col 1", "line 2 col 2", "line 2 \"col 3\";default of col 3"},
+  {"line 2 col 1 de", "line 2 col 2", "line 2 \"col 3\";default of col 3"},
   {"", "", ""},
-  {"line 4 col 1", "line 4 col 2 part 1;line 4 col 2 part 2", "line 4 col 3;default of col 3"},
+  {"line 4 col 1 de", "line 4 col 2 part 1;line 4 col 2 part 2", "line 4 col 3;default of col 3"},
   {"", "", ""},
-  {"line 6 col 1", "", "line 6 col 3;default of col 3"},
+  {"line 6 col 1 de", "", "line 6 col 3;default of col 3"},
   {"", "", ""},
-  {"line 8 col 1", "line 8 col 2 part 1;line 8 col 2 part 2", "line 8 col 3;default of col 3"},
+  {"line 8 col 1 de", "line 8 col 2 part 1;line 8 col 2 part 2", "line 8 col 3;default of col 3"},
 };
 
 string resultsublines[][2][4] = {
@@ -81,14 +81,20 @@ class NoopReader : public FileReader {
 
 class TestReader : public MappedFileReader {
  public:
-  TestReader(size_t expectedCols) : MappedFileReader::MappedFileReader(false), m_expectedCols(expectedCols) {}
-  result_t getFieldMap(vector<string>& row, string& errorDescription) const override {
-    if (row.size() == m_expectedCols) {
+  TestReader(size_t expectedCols, size_t langCols)
+  : MappedFileReader::MappedFileReader(false, ""), m_expectedCols(expectedCols), m_langCols(langCols) {}
+  result_t getFieldMap(vector<string>& row, string& errorDescription, const string preferLanguage) const override {
+    if (row.size() == m_expectedCols+m_langCols) {
       cout << "get field map: split OK" << endl;
+      if (m_langCols == 1) {
+        row[0] = SKIP_COLUMN;
+        size_t pos = row[1].find_last_of('.');
+        row[1] = row[1].substr(0, pos);
+      }
       return RESULT_OK;
     }
     cout << "get field map: error got " << static_cast<unsigned>(row.size()) << " columns, expected " <<
-        static_cast<unsigned>(m_expectedCols) << endl;
+        static_cast<unsigned>(m_expectedCols+m_langCols) << endl;
     return RESULT_ERR_EOF;
   }
   result_t addFromFile(map<string, string>& row, vector< map<string, string> >& subRows,
@@ -179,6 +185,7 @@ class TestReader : public MappedFileReader {
   }
  private:
   size_t m_expectedCols;
+  size_t m_langCols;
 };
 
 
@@ -203,17 +210,17 @@ int main(int argc, char** argv) {
   }
   baseLine = __LINE__+1;
   istringstream ifs(
-    "col 1,col 2,col 3\n"
-    "line 2 col 1,\"line 2 col 2\",\"line 2 \"\"col 3\"\";default of col 3\"\n"
-    "line 4 col 1,\"line 4 col 2 part 1\n"
+    "col 1.en,col 1.de,col 2,col 3\n"
+    "line 2 col 1 en,line 2 col 1 de,\"line 2 col 2\",\"line 2 \"\"col 3\"\";default of col 3\"\n"
+    "line 4 col 1 en,line 4 col 1 de,\"line 4 col 2 part 1\n"
     "line 4 col 2 part 2\",line 4 col 3;default of col 3\n"
     ",,,\n"
-    "line 6 col 1,,line 6 col 3;default of col 3\n"
-    "line 8 col 1,\"line 8 col 2 part 1;\n"
+    "line 6 col 1 en,line 6 col 1 de,,line 6 col 3;default of col 3\n"
+    "line 8 col 1 en,line 8 col 1 de,\"line 8 col 2 part 1;\n"
     "line 8 col 2 part 2\",line 8 col 3;default of col 3\n"
   );
-  size_t hash = 0, size = 0, expectHash = 0xfd58724c2984595d, expectSize = 301;
-  TestReader reader{3};
+  size_t hash = 0, size = 0, expectHash = 0x5e5e086475ab3bd9, expectSize = 389;
+  TestReader reader{3, 1};
   unsigned int lineNo = 0;
   vector<string> row;
   string errorDescription;
@@ -242,16 +249,16 @@ int main(int argc, char** argv) {
   baseLine = __LINE__+1;
   ifs.str(
     "col 1,col 2,col 3,*subcol 1,subcol 2,*subcol 2,subcol 3\n"
-    "line 2 col 1,\"line 2 col 2\",\"line 2 \"\"col 3\"\"\",line 2 subcol 1,line 2 subcol 2,line 2 subcol 2,line 2 subcol 3\n"
-    "line 4 col 1,\"line 4 col 2 part 1\n"
+    "line 2 col 1 de,\"line 2 col 2\",\"line 2 \"\"col 3\"\"\",line 2 subcol 1,line 2 subcol 2,line 2 subcol 2,line 2 subcol 3\n"
+    "line 4 col 1 de,\"line 4 col 2 part 1\n"
     "line 4 col 2 part 2\",line 4 col 3,line 4 subcol 1,line 4 subcol 2,line 4 subcol 2,line 4 subcol 3\n"
     ",,,\n"
-    "line 6 col 1,,line 6 col 3,line 6 subcol 1,line 6 subcol 2,line 6 subcol 2,line 6 subcol 3\n"
-    "line 8 col 1,\"line 8 col 2 part 1;\n"
+    "line 6 col 1 de,,line 6 col 3,line 6 subcol 1,line 6 subcol 2,line 6 subcol 2,line 6 subcol 3\n"
+    "line 8 col 1 de,\"line 8 col 2 part 1;\n"
     "line 8 col 2 part 2\",line 8 col 3,line 8 subcol 1,line 8 subcol 2,line 8 subcol 2,line 8 subcol 3\n"
   );
-  hash = 0, size = 0, expectHash = 0xec31914e32c6fb6f, expectSize = 527;
-  TestReader reader2{7};
+  hash = 0, size = 0, expectHash = 0x9a675169d5837bb5, expectSize = 539;
+  TestReader reader2{7, 0};
   lineNo = 0;
   map<string, string> defaults;
   reader2.getDefaults()[""]["col 3"] = ";default of col 3";

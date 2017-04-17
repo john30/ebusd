@@ -46,7 +46,7 @@ static const char* defaultTemplateFieldMap[] = {
 
 
 
-string getDataFieldName(const string name) {
+string getDataFieldName(const string name, bool& supportsLanguage) {
   if (name.find("name") != string::npos || name.find("field") != string::npos) {
     return "name";
   }
@@ -58,10 +58,12 @@ string getDataFieldName(const string name) {
   }
   if (name.find("divisor") != string::npos) {
     if (name.find("values") != string::npos) {
+      supportsLanguage = true;
       return "divisor/values";
     }
     return "divisor";
   }
+  supportsLanguage = true;
   if (name == "values" || name == "unit") {
     return name;
   }
@@ -71,6 +73,12 @@ string getDataFieldName(const string name) {
   return "";
 }
 
+
+const string AttributedItem::formatInt(size_t value) {
+  ostringstream stream;
+  stream << dec << static_cast<unsigned>(value);
+  return stream.str();
+}
 
 const string AttributedItem::pluck(map<string, string>& row, string key) {
   map<string, string>::iterator it = row.find(key);
@@ -173,12 +181,6 @@ bool AttributedItem::appendAttributes(ostringstream& output, OutputFormat output
   return ret;
 }
 
-
-string formatInt(size_t value) {
-  ostringstream stream;
-  stream << dec << static_cast<unsigned>(value);
-  return stream.str();
-}
 
 result_t DataField::create(vector< map<string, string> >& rows, string& errorDescription,
     DataFieldTemplates* templates, const DataField*& returnField,
@@ -1120,7 +1122,8 @@ result_t DataFieldTemplates::add(const DataField* field, string name, bool repla
   return RESULT_OK;
 }
 
-result_t DataFieldTemplates::getFieldMap(vector<string>& row, string& errorDescription) const {
+result_t DataFieldTemplates::getFieldMap(vector<string>& row, string& errorDescription, const string preferLanguage)
+    const {
   // name[:usename],basetype[:len]|template[:usename][,[divisor|values][,[unit][,[comment]]]]
   if (row.empty()) {
     // default map does not include separate field name
@@ -1130,39 +1133,65 @@ result_t DataFieldTemplates::getFieldMap(vector<string>& row, string& errorDescr
     return RESULT_OK;
   }
   bool inDataFields = false;
-  map<string, string> seen;
-  for (auto &name : row) {
-    string useName = name;
-    tolower(useName);
-    if (inDataFields) {
-      string chkName = getDataFieldName(useName);
-      if (!chkName.empty()) {
-        useName = chkName;
-        if (seen.find(useName) != seen.end()) {
-          if (seen.find("type") == seen.end()) {
-            errorDescription = "missing type";
-            return RESULT_ERR_EOF;  // require at least type
-          }
-          seen.clear();
+  map<string, size_t> seen;
+  for (size_t col = 0; col < row.size(); col++) {
+    string &name = row[col];
+    string lowerName = name;
+    tolower(lowerName);
+    trim(lowerName);
+    if (lowerName.empty()) {
+      errorDescription = "missing name in column " + AttributedItem::formatInt(col);
+      return RESULT_ERR_INVALID_ARG;
+    }
+    bool supportsLang = false;
+    string useName = getDataFieldName(lowerName, supportsLang);
+    bool unknown = useName.empty();
+    size_t langPos = supportsLang ? lowerName.find_last_of('.') : string::npos;
+    map<string, size_t>::iterator previous;
+    if (langPos == lowerName.length()-3) {
+      string lang = lowerName.substr(langPos+1);
+      if (unknown) {
+        useName = lowerName.substr(0, langPos);
+      }
+      previous = seen.find(useName);
+      if (previous != seen.end()) {
+        if (lang != preferLanguage) {
+          // skip this column
+          name = SKIP_COLUMN;
+          continue;
         }
+        // replace previous
+        row[previous->second] = SKIP_COLUMN;
+        seen.erase(useName);
+        previous = seen.end();
       }
     } else {
-      if (useName == "name" && seen.find("name") == seen.end()) {
-        // keep first name for template
-      } else {
-        string chkName = getDataFieldName(useName);
-        if (!chkName.empty()) {
-          useName = chkName;
-          if (seen.find("name") == seen.end()) {
-            errorDescription = "missing name";
-            return RESULT_ERR_EOF;  // require at least name
-          }
-          inDataFields = true;
-          seen.clear();
+      if (unknown) {
+        useName = lowerName;
+      }
+      previous = seen.find(useName);
+    }
+    if (inDataFields) {
+      if (!unknown && previous != seen.end()) {
+        if (seen.find("type") == seen.end()) {
+          errorDescription = "missing field type";
+          return RESULT_ERR_EOF;  // require at least type
         }
+        seen.clear();
+      }
+    } else {
+      if (!unknown && useName == "name" && seen.find("name") == seen.end()) {
+        // keep first name for template
+      } else if (!unknown) {
+        if (seen.find("name") == seen.end()) {
+          errorDescription = "missing template name";
+          return RESULT_ERR_EOF;  // require at least name
+        }
+        inDataFields = true;
+        seen.clear();
       }
       if (!inDataFields && seen.find(useName) != seen.end()) {
-        errorDescription = "duplicate " + useName;
+        errorDescription = "duplicate template " + useName;
         return RESULT_ERR_INVALID_ARG;
       }
     }
@@ -1171,14 +1200,14 @@ result_t DataFieldTemplates::getFieldMap(vector<string>& row, string& errorDescr
     } else {
       name = useName;
     }
-    seen[useName] = useName;
+    seen[useName] = col;
   }
   if (!inDataFields) {
-    errorDescription = "missing fields";
+    errorDescription = "missing template fields";
     return RESULT_ERR_EOF;  // require at least one field
   }
   if (seen.find("type") == seen.end()) {
-    errorDescription = "missing type";
+    errorDescription = "missing field type";
     return RESULT_ERR_EOF;  // require at least type
   }
   return RESULT_OK;
