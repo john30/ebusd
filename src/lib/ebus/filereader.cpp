@@ -118,7 +118,13 @@ void FileReader::tolower(string& str) {
   transform(str.begin(), str.end(), str.begin(), ::tolower);
 }
 
-static std::hash<string> hashFunction;
+static size_t hashFunction(const string str) {
+  size_t hash = 0;
+  for (char c : str) {
+    hash = (31 * hash) ^ c;
+  }
+  return hash;
+}
 
 bool FileReader::splitFields(istream& ifs, vector<string>& row, unsigned int& lineNo,
     size_t* hash, size_t* size) {
@@ -137,8 +143,7 @@ bool FileReader::splitFields(istream& ifs, vector<string>& row, unsigned int& li
       *size += length + 1;  // normalized with trailing endl
     }
     if (hash) {
-      // TODO ensure 32 bit machine produces same result
-      *hash ^= (hashFunction(line) << 1) ^ (length << (7 * (lineNo % 5)));
+      *hash ^= (hashFunction(line) ^ (length << (7 * (lineNo % 5)))) & 0xffffffff;
     }
     if (!quotedText && (length == 0 || line[0] == '#' || (line.length() > 1 && line[0] == '/' && line[1] == '/'))) {
       if (lineNo == 1) {

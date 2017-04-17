@@ -219,7 +219,7 @@ int main(int argc, char** argv) {
     "line 8 col 1 en,line 8 col 1 de,\"line 8 col 2 part 1;\n"
     "line 8 col 2 part 2\",line 8 col 3;default of col 3\n"
   );
-  size_t hash = 0, size = 0, expectHash = 0x5e5e086475ab3bd9, expectSize = 389;
+  size_t hash = 0, size = 0, expectHash = 0xb958f1cb, expectSize = 389;
   TestReader reader{3, 1};
   unsigned int lineNo = 0;
   vector<string> row;
@@ -257,7 +257,7 @@ int main(int argc, char** argv) {
     "line 8 col 1 de,\"line 8 col 2 part 1;\n"
     "line 8 col 2 part 2\",line 8 col 3,line 8 subcol 1,line 8 subcol 2,line 8 subcol 2,line 8 subcol 3\n"
   );
-  hash = 0, size = 0, expectHash = 0x9a675169d5837bb5, expectSize = 539;
+  hash = 0, size = 0, expectHash = 0x2584e0f2, expectSize = 539;
   TestReader reader2{7, 0};
   lineNo = 0;
   map<string, string> defaults;
