@@ -792,7 +792,7 @@ result_t NumberDataType::writeSymbols(istringstream& input,
   unsigned int value;
 
   const char* str = input.str().c_str();
-  if (!hasFlag(REQ) && (isIgnored() || strcasecmp(str, NULL_VALUE) == 0)) {
+  if (!hasFlag(REQ) && (isIgnored() || strcmp(str, NULL_VALUE) == 0)) {
     value = m_replacement;  // replacement value
   } else if (str == NULL || *str == 0) {
     return RESULT_ERR_EOF;  // input too short

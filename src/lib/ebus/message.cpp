@@ -669,7 +669,6 @@ result_t Message::prepareMasterPart(MasterSymbolString& master, istringstream& i
   if (index != 0) {
     return RESULT_ERR_NOTFOUND;
   }
-  size_t pos = master.size();
   master.push_back(0);  // length, will be set later
   for (size_t i = 2; i < m_id.size(); i++) {
     master.push_back(m_id[i]);
@@ -678,7 +677,7 @@ result_t Message::prepareMasterPart(MasterSymbolString& master, istringstream& i
   if (result != RESULT_OK) {
     return result;
   }
-  master[pos] = (symbol_t)(master.size()-pos-1);
+  master.adjustHeader();
   return result;
 }
 
@@ -692,7 +691,7 @@ result_t Message::prepareSlave(istringstream& input, SlaveSymbolString& slave) {
   if (result != RESULT_OK) {
     return result;
   }
-  slave[0] = (symbol_t)(slave.size()-1);
+  slave.adjustHeader();
   time(&m_lastUpdateTime);
   if (slave != m_lastSlaveData) {
     m_lastChangeTime = m_lastUpdateTime;
@@ -1201,11 +1200,9 @@ result_t ChainedMessage::combineLastParts() {
     }
   }
   // adjust NN
-  if (master.size()-5 > 255 || slave.size()-1 > 255) {
+  if (!master.adjustHeader() || !slave.adjustHeader()) {
     return RESULT_ERR_INVALID_POS;
   }
-  master[4] = (symbol_t)(master.size()-5);
-  slave[0] = (symbol_t)(slave.size()-1);
   result_t result = Message::storeLastData(master, 0);
   if (result == RESULT_OK) {
     result = Message::storeLastData(slave, 0);
@@ -2449,7 +2446,7 @@ deque<Message*> MessageMap::findAll(const string& circuit, const string& name, c
 
 Message* MessageMap::find(MasterSymbolString& master, bool anyDestination,
   const bool withRead, const bool withWrite, const bool withPassive, const bool onlyAvailable) const {
-  if (master.size() >= 5 && master[4] == 0 && anyDestination && master[2] == 0x07 && master[3] == 0x04) {
+  if (anyDestination && master.size() >= 5 && master[4] == 0 && master[2] == 0x07 && master[3] == 0x04) {
     return m_scanMessage;
   }
   uint64_t baseKey = Message::createKey(master,

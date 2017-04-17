@@ -59,7 +59,7 @@ using std::mutex;
 #define VALUE_SEPARATOR ';'
 
 /** special marker string for skipping columns in @a MappedFileReader. */
-static const string SKIP_COLUMN = "\b";
+static const char SKIP_COLUMN[] = "\b";
 
 /**
  * An abstract class that support reading definitions from a file.

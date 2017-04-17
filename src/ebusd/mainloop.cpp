@@ -1328,16 +1328,16 @@ string MainLoop::executeGrab(vector<string> &args) {
   if (args.size() == 1) {
     return m_busHandler->enableGrab(true) ? "grab started" : "grab continued";
   }
-  if (args.size() == 2 && strcasecmp(args[1].c_str(), "STOP") == 0) {
+  if (args.size() == 2 && args[1] == "stop") {
     return m_busHandler->enableGrab(false) ? "grab stopped" : "grab not running";
   }
-  if (args.size() >= 2 && strcasecmp(args[1].c_str(), "RESULT") == 0) {
-    if (args.size() == 2 || strcasecmp(args[2].c_str(), "ALL") == 0) {
+  if (args.size() >= 2 && args[1] == "result") {
+    if (args.size() == 2 || args[2] == "all") {
       ostringstream result;
       m_busHandler->formatGrabResult(args.size() == 2, result);
       return result.str();
     }
-    if (args.size() == 3 || strcasecmp(args[2].c_str(), "decode") == 0) {  // TODO remove strcasecmp
+    if (args.size() == 3 || args[2] == "decode") {
       ostringstream result;
       m_busHandler->formatGrabResult(true, result, true);
       return result.str();
@@ -1361,7 +1361,7 @@ string MainLoop::executeScan(vector<string> &args, string levels) {
   }
 
   if (args.size() == 2) {
-    if (strcasecmp(args[1].c_str(), "FULL") == 0) {
+    if (args[1] == "full") {
       result_t result = m_busHandler->startScan(true, levels);
       if (result != RESULT_OK) {
         logError(lf_main, "full scan: %s", getResultCode(result));
@@ -1369,7 +1369,7 @@ string MainLoop::executeScan(vector<string> &args, string levels) {
       return getResultCode(result);
     }
 
-    if (strcasecmp(args[1].c_str(), "RESULT") == 0) {
+    if (args[1] == "result") {
       ostringstream ret;
       m_busHandler->formatScanResult(ret);
       return ret.str();

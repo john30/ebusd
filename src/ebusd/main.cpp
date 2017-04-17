@@ -179,7 +179,8 @@ static const struct argp_option argpoptions[] = {
       "\"none\" or empty for no initial scan message, \"full\" for full scan, or a single hex address to scan, "
       "default is broadcast ident message). If combined with --checkconfig, you can add scan message data as "
       "arguments for checking a particular scan configuration, e.g. \"FF08070400/0AB5454850303003277201\".", 0 },
-  {"configlang",     O_CFGLNG, "LANG",  0, "Prefer LANG in multilingual configuration files [system default language]", 0 },
+  {"configlang",     O_CFGLNG, "LANG",  0,
+      "Prefer LANG in multilingual configuration files [system default language]", 0 },
   {"checkconfig",    O_CHKCFG, NULL,    0, "Check CSV config files, then stop", 0 },
   {"dumpconfig",     O_DMPCFG, NULL,    0, "Check and dump CSV config files, then stop", 0 },
   {"pollinterval",   O_POLINT, "SEC",   0, "Poll for data every SEC seconds (0=disable) [5]", 0 },

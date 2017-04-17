@@ -130,7 +130,7 @@ class SymbolString {
    * @param value the escaped value to add to the current CRC.
    */
   static void updateCrc(symbol_t& crc, const symbol_t value);
-  // TODO add SymbolString::updateHeader() for adjusting length field
+
   /**
    * Return whether this instance if for the master part.
    * @return whether this instance if for the master part.
@@ -225,6 +225,21 @@ class SymbolString {
    * @return the number of available symbols.
    */
   size_t size() const { return m_data.size(); }
+
+  /**
+   * Adjust the header NN field to the number of data bytes DD.
+   * @return true on success, false if the number of data bytes DD is too big.
+   */
+  bool adjustHeader() {
+    size_t lengthOffset = (m_isMaster ? 4 : 0);
+    if (m_data.size() <= lengthOffset) {
+      m_data.resize(lengthOffset+1);
+    } else if (m_data.size() >= lengthOffset+255) {
+      return false;
+    }
+    m_data[lengthOffset] = (symbol_t)(m_data.size() - 1 - lengthOffset);
+    return true;
+  }
 
   /**
    * Return the offset to the first data byte DD.

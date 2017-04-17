@@ -98,7 +98,7 @@ result_t TemParamDataType::writeSymbols(istringstream& input,
   string token;
 
   const char* str = input.str().c_str();
-  if (strcasecmp(str, NULL_VALUE) == 0) {
+  if (strcmp(str, NULL_VALUE) == 0) {
     value = m_replacement;  // replacement value
   } else {
     if (input.eof() || !getline(input, token, '-')) {
