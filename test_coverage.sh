@@ -204,6 +204,7 @@ kill -1 $pid
 #client:
 readarray lines <<EOF
 raw
+reload
 log
 log bus,update debug
 log
@@ -282,7 +283,6 @@ r -Z
 r -h fe070400
 w -h fe070400
 nocommand
-reload
 EOF
 while [ ! "$status" = 0 ]; do
   sleep 5
@@ -307,13 +307,13 @@ if [ "$status" = 0 ]; then
   done
   echo "scan result:"
   ./src/tools/ebusctl -p 8877 scan result
-  curl "http://localhost:8878/data/" >/dev/null
-  curl "http://localhost:8878/data/broadcast/?since=1&exact=1&required=" >/dev/null
-  curl "http://localhost:8878/data/mc.4/outsidetemp?poll=1" >/dev/null
-  curl "http://localhost:8878/data/?verbose=1" >/dev/null
-  curl "http://localhost:8878/data/?indexed=1&numeric=1" >/dev/null
-  curl "http://localhost:8878/data/?full" >/dev/null
-  curl "http://localhost:8878/data/mc.5/installparam?poll=1&user=test&secret=testpass" >/dev/null
+  curl -s "http://localhost:8878/data/" >/dev/null
+  curl -s "http://localhost:8878/data/broadcast/?since=1&exact=1&required=" >/dev/null
+  curl -s "http://localhost:8878/data/mc.4/outsidetemp?poll=1" >/dev/null
+  curl -s "http://localhost:8878/data/?verbose=1" >/dev/null
+  curl -s "http://localhost:8878/data/?indexed=1&numeric=1" >/dev/null
+  curl -s "http://localhost:8878/data/?full" >/dev/null
+  curl -s "http://localhost:8878/data/mc.5/installparam?poll=1&user=test&secret=testpass" >/dev/null
   curl -T .travis.yml http://localhost:8878/data/
   echo "commands done"
   kill $lstpid
@@ -324,6 +324,8 @@ if [ "x$verify" != 'xaddress 04: slave #25, scanned "MF=153;ID=BBBBB;SW=3031;HW=
   echo "error unexpected result from info command: $verify"
   kill $pid
   kill $srvpid
+  echo "ebusd log:"
+  cat "$PWD/ebusd.log"
   exit 1
 fi
 kill $pid
