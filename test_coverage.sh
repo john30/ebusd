@@ -67,6 +67,7 @@ rm -f contrib/etc/ebusd/bad.csv
 ./src/tools/ebusctl -s "" >/dev/null 2>/dev/null
 ./src/tools/ebusctl -p "" >/dev/null 2>/dev/null
 ./src/tools/ebusctl -x >/dev/null 2>/dev/null
+#server:
 php -r '
 error_reporting (E_ALL);
 set_time_limit (0);
@@ -169,6 +170,7 @@ cat >"$PWD/contrib/etc/ebusd/153/36.bbb.csv" <<EOF
 r,,SoftwareVersion,,,,,"0000",,,HEX:4,,,
 EOF
 echo "test,testpass,installer" > ./passwd
+#ebusd:
 ./src/ebusd/ebusd -d tcp:127.0.0.1:8876 --initsend --latency 10000 -n -c "$PWD/contrib/etc/ebusd" --pollinterval=10 -s -a 31 --acquireretries 3 --answer --generatesyn --receivetimeout 40000 --sendretries 1 --enablehex --htmlpath "$PWD/contrib/html" --httpport 8878 --localhost --pidfile "$PWD/ebusd.pid" -p 8877 -l "$PWD/ebusd.log" --logareas all --loglevel debug --lograwdata --dumpfile "$PWD/ebusd.dump" --dumpsize 100 -D --scanconfig --aclfile=./passwd
 sleep 1
 pid=`head -n 1 "$PWD/ebusd.pid"`
@@ -180,6 +182,7 @@ if [ -z "$pid" ]; then
 fi
 echo "ebusd: $pid"
 kill -1 $pid
+#client:
 readarray lines <<EOF
 raw
 log
