@@ -5,6 +5,8 @@
 * separated access level from circuit name
 * introduced access control list and user authentication for access to certain messages
 * added automatic check for updates (ebusd and configuration)
+* use CSV header line for determining columns and picking multi-language columns by language preference
+* a circuit name is now required for all message configurations
 
 ## Bug Fixes
 * corrected numeric condition formatting
@@ -16,6 +18,10 @@
 * ignore first seconds of data when calculating symbols per second
 * exclude messages without name
 * fix for potentially zero resolution
+* fix for ebusd not answering scan request from another participant
+* corrected missing update notification on master message part
+* corrected grouping of JSON output by circuit
+* corrected address conflict detection when in answer mode
 
 ## Features
 * added support for MQTT handling via libmosquitto (will be compiled in when library is available)
@@ -38,6 +44,8 @@
 * enhanced SymbolString to be aware of master/slave and get rid of CRC (instead calculate while sending/receiving)
 * allow unusually formatted MQTT topics
 * allow TTQ/TTH types to use less than 8 bits
+* added support for optional user-defined columns to config files
+* added circuit-level attributes to config files for use in JSON
 
 
 # 2.4 (2016-12-17)
