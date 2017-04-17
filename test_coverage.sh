@@ -92,43 +92,58 @@ $input=$hexinput="";
 echo "server: running\n";
 $endtime=time()+20;
 $firstsend=time()+5;
+$secondsend=time()+15;
+$expectnext="";
+$error=0;
 while (time()<$endtime) {
   if (($r=@socket_read($cli, 1))===false) break;
   if (strlen($r)==0) break;
   socket_write($cli, $r, 1);
   if (ord($r[0])==0xaa) {
     if (strlen($output)>0) {
-      echo "server: $output\n";
+      echo "server: <$output\n";
+      if ($expectnext) {
+        if ($expectnext!=$output) {
+          echo "server: error unexpected answer (should be $expectnext)\n";
+          $error=1;
+        }
+        $expectnext="";
+      }
       $output="";
     }
     if ($firstsend && time()>$firstsend) {
+      echo "server: sending ID query to 36\n";
       socket_write($cli, "\xff\x36\x07\x04\x00\x06\xaa",8);
-      socket_write($cli, "\xff\xfe\xb5\x16\x03\x01\x50\x30\x86\xaa",10);
+      $expectnext="000afd6562757364030001006c";
       $firstsend=0;
+    } else if ($secondsend && time()>$secondsend) {
+      echo "server: sending brodcast message\n";
+      socket_write($cli, "\xff\xfe\xb5\x16\x03\x01\x50\x30\x86\xaa",10);
+      $secondsend=0;
     }
   } else {
     $output.=substr(dechex(0x100|ord($r[0])),1);
     if ("31040704006f"==$output) { // answer on first ident query
       socket_write($cli, "\x00\x0a\x99\x42\x42\x42\x42\x42\x30\x31\x30\x31\x71",13);
-      $output.=">answered<";
+      $output.=">answered with ACK 0a99424242424230313031";
     } else if ("315307040091"==$output) { // answer on second ident query
       socket_write($cli, "\x00\x0a\x99\x42\x42\x42\x42\x42\x30\x31\x30\x31\x71",13);
-      $output.=">answered<";
+      $output.=">answered with ACK 0a99424242424230313031";
     } else if ("315407040090"==$output) { // answer on third ident query with invalid CRC
       socket_write($cli, "\x00\x0a\x99\x42\x42\x42\x42\x42\x30\x31\x30\x31\x72",13);
-      $output.=">answered<";
+      $output.=">answered with ACK 0a99424242424230313031 + invalid CRC";
     } else if ("315407040090"==$output) { // answer on fourth ident query with short reply
       socket_write($cli, "\x00\x09\x99\x42\x42\x42\x42\x42\x30\x31\x30\x25",12);
-      $output.=">answered<";
+      $output.=">answered with ACK 09994242424242303130";
     } else if ("3155070400ce"==$output) { // answer NAK on sixth ident query
       socket_write($cli, "\x01",1);
-      $output.=">answered<";
+      $output.=">answered with NACK";
     } else if ("311cb509030d0000e1"==$output || "3152b509030d0600c9"==$output || "3153b509030d060034"==$output) {
       socket_write($cli, "\x00\x02\x40\x50\xb4",5);
-      $output.=">answered<";
+      $output.=">answered with ACK 024050";
     } else if ("3153b505080290909090909003f6"==$output || "3153b509050e3500190030"==$output || "3153b5050802008f030515240161"==$output) {
       socket_write($cli, "\x00\x00\x00",3);
-      $output.=">answered<";
+      $output.=">answered with ACK 00";
     } else {
       $endtime=time()+20; // keep further alive
     }
@@ -137,6 +152,9 @@ while (time()<$endtime) {
 @socket_close($cli);
 @socket_close($srv);
 echo "server: done\n";
+if ($error) {
+  exit($error);
+}
 ' &
 srvpid=$!
 if [ -z "$srvpid" ]; then
@@ -293,6 +311,7 @@ if [ "$status" = 0 ]; then
   curl "http://localhost:8878/data/mc.4/outsidetemp?poll=1" >/dev/null
   curl "http://localhost:8878/data/?verbose=1" >/dev/null
   curl "http://localhost:8878/data/?indexed=1&numeric=1" >/dev/null
+  curl "http://localhost:8878/data/?full" >/dev/null
   curl "http://localhost:8878/data/mc.5/installparam?poll=1&user=test&secret=testpass" >/dev/null
   curl -T .travis.yml http://localhost:8878/data/
   echo "commands done"
