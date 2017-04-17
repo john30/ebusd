@@ -90,9 +90,9 @@ if (($cli=socket_accept($srv))===false) {
 $output="";
 $input=$hexinput="";
 echo "server: running\n";
-$endtime=time()+20;
+$endtime=time()+15;
 $firstsend=time()+5;
-$secondsend=time()+15;
+$secondsend=time()+10;
 $expectnext="";
 $error=0;
 while (time()<$endtime) {
@@ -328,6 +328,5 @@ echo "ebusd log:"
 cat "$PWD/ebusd.log"
 sleep 5
 kill $pid
-kill $srvpid
 echo "done."
 wait $srvpid
