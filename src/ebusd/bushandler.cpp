@@ -382,6 +382,8 @@ void BusHandler::run() {
   time_t now, lastTime;
   time(&lastTime);
   lastTime += 2;
+  logNotice(lf_bus, "bus started with own address %2.2x/%2.2x%s", m_ownMasterAddress, m_ownSlaveAddress,
+      m_answer?" in answer mode":"");
   do {
     if (m_device->isValid() && !m_reconnect) {
       result_t result = handleSymbol();
@@ -705,6 +707,7 @@ result_t BusHandler::handleSymbol() {
       if (dstAddress == m_ownMasterAddress || dstAddress == m_ownSlaveAddress) {
         if (m_crcValid) {
           addSeenAddress(m_command[0]);
+          m_currentAnswering = true;
           return setState(bs_sendCmdAck, RESULT_OK);
         }
         return setState(bs_sendCmdAck, RESULT_ERR_CRC);
@@ -782,12 +785,18 @@ result_t BusHandler::handleSymbol() {
       if (!m_crcValid) {
         return setState(bs_skip, RESULT_ERR_ACK);
       }
-      receiveCompleted();
+      if (!m_currentAnswering) {
+        receiveCompleted();
+      }
       return setState(bs_skip, RESULT_OK);
     }
     if (recvSymbol == NAK) {
       if (!m_repeat) {
         m_repeat = true;
+        if (m_currentAnswering) {
+          m_nextSendPos = 0;
+          return setState(bs_sendRes, RESULT_ERR_NAK, true);
+        }
         m_response.clear();
         return setState(bs_recvRes, RESULT_ERR_NAK, true);
       }
@@ -984,16 +993,18 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
     m_crcValid = false;
     m_response.clear();
     m_nextSendPos = 0;
+    m_currentAnswering = false;
   } else if (state == bs_recvRes || state == bs_sendRes) {
     m_crc = 0;
   }
   return result;
 }
 
-void BusHandler::addSeenAddress(symbol_t address) {
+bool BusHandler::addSeenAddress(symbol_t address) {
   if (!isValidAddress(address, false)) {
-    return;
+    return false;
   }
+  bool hadConflict = m_addressConflict;
   if (!isMaster(address)) {
     if (!m_device->isReadOnly() && address == m_ownSlaveAddress) {
       if (!m_addressConflict) {
@@ -1004,7 +1015,7 @@ void BusHandler::addSeenAddress(symbol_t address) {
     m_seenAddresses[address] |= SEEN;
     address = getMasterAddress(address);
     if (address == SYN) {
-      return;
+      return m_addressConflict && !hadConflict;
     }
   }
   if ((m_seenAddresses[address]&SEEN) == 0) {
@@ -1022,6 +1033,7 @@ void BusHandler::addSeenAddress(symbol_t address) {
     }
     m_seenAddresses[address] |= SEEN;
   }
+  return m_addressConflict && !hadConflict;
 }
 
 void BusHandler::receiveCompleted() {
@@ -1033,7 +1045,9 @@ void BusHandler::receiveCompleted() {
   if (!m_currentRequest) {
     addSeenAddress(srcAddress);
   }
-  addSeenAddress(dstAddress);
+  if (!m_currentAnswering) {
+    addSeenAddress(dstAddress);
+  }
 
   bool master = isMaster(dstAddress);
   if (dstAddress == BROADCAST) {

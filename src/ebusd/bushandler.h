@@ -379,7 +379,7 @@ class BusHandler : public WaitThread {
       m_lockCount(lockCount <= 3 ? 3 : lockCount), m_remainLockCount(m_autoLockCount ? 1 : 0),
       m_generateSynInterval(generateSyn ? SYN_TIMEOUT*getMasterNumber(ownAddress)+SYMBOL_DURATION : 0),
       m_pollInterval(pollInterval), m_lastReceive(0), m_lastPoll(0),
-      m_currentRequest(NULL), m_runningScans(0), m_nextSendPos(0),
+      m_currentRequest(NULL), m_currentAnswering(false), m_runningScans(0), m_nextSendPos(0),
       m_symPerSec(0), m_maxSymPerSec(0),
       m_state(bs_noSignal), m_escape(0), m_crc(0), m_crcValid(false), m_repeat(false),
       m_grabMessages(true) {
@@ -572,8 +572,9 @@ class BusHandler : public WaitThread {
   /**
    * Add a seen bus address.
    * @param address the seen bus address.
+   * @return true if a conflict with the own addresses was detected, false otherwise.
    */
-  void addSeenAddress(symbol_t address);
+  bool addSeenAddress(symbol_t address);
 
   /**
    * Called when a passive reception was successfully completed.
@@ -656,6 +657,9 @@ class BusHandler : public WaitThread {
 
   /** the currently handled BusRequest, or NULL. */
   BusRequest* m_currentRequest;
+
+  /** whether currently answering a request from another participant. */
+  bool m_currentAnswering;
 
   /** the queue of @a BusRequests that are already finished. */
   Queue<BusRequest*> m_finishedRequests;
