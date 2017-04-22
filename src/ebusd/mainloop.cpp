@@ -120,6 +120,9 @@ MainLoop::MainLoop(const struct options opt, Device *device, MessageMap* message
     m_logRawFile = NULL;
   }
   m_logRawEnabled = opt.logRaw;
+  m_logRawBytes = false;
+  m_logRawLastReceived = true;
+  m_logRawLastSymbol = SYN;
   if (opt.aclFile[0]) {
     string errorDescription;
     result_t result = m_userList.readFromFile(opt.aclFile, errorDescription);
@@ -152,6 +155,7 @@ MainLoop::MainLoop(const struct options opt, Device *device, MessageMap* message
 }
 
 MainLoop::~MainLoop() {
+  m_shutdown = true;
   join();
 
   for (list<DataHandler*>::iterator it = m_dataHandlers.begin(); it != m_dataHandlers.end(); it++) {
@@ -208,7 +212,7 @@ void MainLoop::run() {
     }
     (*it)->start();
   }
-  while (true) {
+  while (!m_shutdown) {
     // pick the next message to handle
     NetMessage* netMessage = m_netQueue.pop(taskDelay);
     time(&now);
@@ -437,14 +441,40 @@ void MainLoop::notifyDeviceData(const symbol_t symbol, bool received) {
   if (received && m_dumpFile) {
     m_dumpFile->write((unsigned char*)&symbol, 1);
   }
-  if (m_logRawFile) {
-    m_logRawFile->write((unsigned char*)&symbol, 1, received);
-  } else if (m_logRawEnabled) {
-    if (received) {
-      logNotice(lf_bus, "<%02x", symbol);
-    } else {
-      logNotice(lf_bus, ">%02x", symbol);
+  if (!m_logRawFile && !m_logRawEnabled) {
+    return;
+  }
+  if (m_logRawBytes) {
+    if (m_logRawFile) {
+      m_logRawFile->write((unsigned char*)&symbol, 1, received);
+    } else if (m_logRawEnabled) {
+      if (received) {
+        logNotice(lf_bus, "<%02x", symbol);
+      } else {
+        logNotice(lf_bus, ">%02x", symbol);
+      }
     }
+    return;
+  }
+  if (symbol != SYN) {
+    if (received && !m_logRawLastReceived && symbol == m_logRawLastSymbol) {
+      return; // skip received echo of previously sent symbol
+    }
+    if (m_logRawBuffer.tellp() == 0 || received != m_logRawLastReceived) {
+      m_logRawLastReceived = received;
+      m_logRawBuffer << (received ? "<" : ">");
+    }
+    m_logRawBuffer << setw(2) << setfill('0') << hex << static_cast<unsigned>(symbol);
+    m_logRawLastSymbol = symbol;
+  }
+  if (symbol == SYN && m_logRawBuffer.tellp() > 0) {  // flush
+    if (m_logRawFile) {
+      const char* str = m_logRawBuffer.str().c_str();
+      m_logRawFile->write((const unsigned char*)str, strlen(str), received, false);
+    } else {
+      logNotice(lf_bus, m_logRawBuffer.str().c_str());
+    }
+    m_logRawBuffer.str("");
   }
 }
 
@@ -1431,11 +1461,13 @@ string MainLoop::executeLog(vector<string> &args) {
 }
 
 string MainLoop::executeRaw(vector<string> &args) {
-  if (args.size() != 1) {
-    return "usage: raw\n"
-         " Toggle logging of each byte.";
+  bool bytes = args.size() == 2 && args[1] == "bytes";
+  if (args.size() != 1 && !bytes) {
+    return "usage: raw [bytes]\n"
+         " Toggle logging of messages or each byte.";
   }
   bool enabled;
+  m_logRawBytes = bytes;
   if (m_logRawFile) {
     enabled = !m_logRawFile->isEnabled();
     m_logRawFile->setEnabled(enabled);
@@ -1531,7 +1563,7 @@ string MainLoop::executeHelp() {
       " scan     Scan slaves:           scan [full|ZZ]\n"
       "          Report scan result:    scan result\n"
       " log      Set log area level:    log [AREA[,AREA]* LEVEL]\n"
-      " raw      Toggle logging of each byte\n"
+      " raw      Toggle logging of messages or each byte.\n"
       " dump     Toggle binary dump of received bytes\n"
       " reload   Reload CSV config files\n"
       " quit|q   Close connection\n"

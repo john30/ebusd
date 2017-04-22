@@ -54,7 +54,7 @@ bool RotateFile::setEnabled(bool enabled) {
   return true;
 }
 
-void RotateFile::write(unsigned char* value, unsigned int size, bool received) {
+void RotateFile::write(const unsigned char* value, const size_t size, const bool received, const bool bytes) {
   if (!m_enabled || !m_stream) {
     return;
   }
@@ -63,12 +63,16 @@ void RotateFile::write(unsigned char* value, unsigned int size, bool received) {
     struct tm td;
     clockGettime(&ts);
     localtime_r(&ts.tv_sec, &td);
-    fprintf(m_stream, "%04d-%02d-%02d %02d:%02d:%02d.%03ld %c",
+    fprintf(m_stream, "%04d-%02d-%02d %02d:%02d:%02d.%03ld ",
       td.tm_year+1900, td.tm_mon+1, td.tm_mday,
-      td.tm_hour, td.tm_min, td.tm_sec, ts.tv_nsec/1000000,
-      received ? '<' : '>');
-    for (unsigned int pos = 0; pos < size; pos++) {
-      fprintf(m_stream, "%2.2x ", value[pos]);
+      td.tm_hour, td.tm_min, td.tm_sec, ts.tv_nsec/1000000);
+    if (bytes) {
+      fprintf(m_stream, received ? "<" : ">");
+      for (unsigned int pos = 0; pos < size; pos++) {
+        fprintf(m_stream, "%2.2x ", value[pos]);
+      }
+    } else {
+      fwrite(value, 1, size, m_stream);
     }
     fprintf(m_stream, "\n");
     m_fileSize += 25+3*size+1;
