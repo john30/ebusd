@@ -1542,7 +1542,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
   ostringstream result;
   int type = -1;
 
-  if (strncmp(uri.c_str(), "/data/", 6) == 0) {
+  if (uri.substr(0, 6) == "/data/") {
     string circuit = "", name = "";
     size_t pos = uri.find('/', 6);
     if (pos == string::npos) {
@@ -1650,6 +1650,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
           }
         }
         message->decode(result, verbosity, !first);
+        first = false;
       }
 
       if (lastCircuit.length() > 0) {
