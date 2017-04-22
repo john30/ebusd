@@ -291,13 +291,15 @@ void Network::run() {
 }
 
 void Network::cleanConnections() {
-  list<Connection*>::iterator c_it;
-  for (c_it = m_connections.begin(); c_it != m_connections.end(); c_it++) {
+  list<Connection*>::iterator c_it = m_connections.begin();
+  while (c_it != m_connections.end()) {
     if (!(*c_it)->isRunning()) {
       Connection* connection = *c_it;
       c_it = m_connections.erase(c_it);
       delete connection;
       logDebug(lf_network, "dead connection removed - %d", m_connections.size());
+    } else {
+      c_it++;
     }
   }
 }
