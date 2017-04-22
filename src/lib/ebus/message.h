@@ -1212,11 +1212,13 @@ class MessageMap : public MappedFileReader {
  public:
   /**
    * Construct a new instance.
+   * @param configPath the path to the configuration files.
    * @param addAll whether to add all messages, even if duplicate.
    * @param preferLanguage the preferred language to use, or empty.
    */
-  explicit MessageMap(const bool addAll = false, const string preferLanguage = "")
+  explicit MessageMap(const string configPath, const bool addAll = false, const string preferLanguage = "")
   : MappedFileReader::MappedFileReader(true),
+    m_configPath(configPath),
     m_addAll(addAll), m_additionalScanMessages(false), m_maxIdLength(0), m_maxBroadcastIdLength(0),
     m_messageCount(0), m_conditionalMessageCount(0), m_passiveMessageCount(0) {
     m_scanMessage = Message::createScanMessage();
@@ -1237,6 +1239,13 @@ class MessageMap : public MappedFileReader {
       m_broadcastScanMessage = NULL;
     }
   }
+
+  /**
+   * Return the relative file name of the given filename.
+   * @param filename the name of the configuration file (including relative path).
+   * @return the relative file name.
+   */
+  const string getRelativePath(const string filename) const;
 
   /**
    * Add a @a Message instance to this set.
@@ -1319,17 +1328,17 @@ class MessageMap : public MappedFileReader {
   /**
    * Add a loaded file to a participant.
    * @param address the slave address.
-   * @param file the name of the file from which a configuration part was loaded for the participant.
+   * @param filename the name of the configuration file (including relative path).
    * @param comment an optional comment.
    */
-  void addLoadedFile(symbol_t address, string file, string comment = "");
+  void addLoadedFile(const symbol_t address, const string filename, const string comment = "");
 
   /**
    * Get the loaded files for a participant.
    * @param address the slave address.
    * @return the loaded configuration files (list of file names with relative path).
    */
-  const vector<string>& getLoadedFiles(symbol_t address) const;
+  const vector<string>& getLoadedFiles(const symbol_t address) const;
 
   /**
    * Get all loaded files.
@@ -1408,7 +1417,7 @@ class MessageMap : public MappedFileReader {
    * @return the @a Message instance, or NULL.
    * Note: the caller may not free the returned instance.
    */
-  Message* find(MasterSymbolString& master, bool anyDestination = false, const bool withRead = true,
+  Message* find(MasterSymbolString& master, const bool anyDestination = false, const bool withRead = true,
       const bool withWrite = true, const bool withPassive = true, const bool onlyAvailable = true) const;
 
   /**
@@ -1493,6 +1502,9 @@ class MessageMap : public MappedFileReader {
   /** empty vector for @a getLoadedFiles(). */
   static vector<string> s_noFiles;
 
+  /** the path to the configuration files. */
+  const string m_configPath;
+
   /** whether to add all messages, even if duplicate. */
   const bool m_addAll;
 
@@ -1505,7 +1517,7 @@ class MessageMap : public MappedFileReader {
   /** whether additional scan @a Message instances are available. */
   bool m_additionalScanMessages;
 
-  /** the loaded configuration files by slave address ((list of file names with relative path). */
+  /** the loaded configuration files by slave address (list of file names with relative path). */
   map<symbol_t, vector<string>> m_loadedFiles;
 
   /** the @a LoadedFileInfo by for load configuration files (by file name with relative path). */

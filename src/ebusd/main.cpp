@@ -1076,7 +1076,7 @@ int main(int argc, char* argv[]) {
     setFacilitiesLogLevel(opt.logAreas, opt.logLevel);
   }
 
-  s_messageMap = new MessageMap(opt.checkConfig && opt.scanConfig && arg_index >= argc);
+  s_messageMap = new MessageMap(string(opt.configPath)+"/", opt.checkConfig && opt.scanConfig && arg_index >= argc);
   if (opt.checkConfig) {
     logNotice(lf_main, PACKAGE_STRING "." REVISION " performing configuration check...");
 

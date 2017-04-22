@@ -1676,13 +1676,6 @@ result_t LoadInstruction::execute(MessageMap* messages, ostringstream& log, Cond
     result_t temp;
     symbol_t address = (symbol_t)parseInt(m_defaults["zz"].c_str(), 16, 0, 0xff, temp);
     if (temp == RESULT_OK) {
-      size_t pos = m_filename.find_last_of('/');
-      string filename;
-      if (pos == string::npos) {
-        filename = m_filename;
-      } else {
-        filename = m_filename.substr(pos+1);
-      }
       string comment;
       if (condition) {
         ostringstream out;
@@ -1690,7 +1683,7 @@ result_t LoadInstruction::execute(MessageMap* messages, ostringstream& log, Cond
         comment = out.str();
         log << " ("+comment+")";
       }
-      messages->addLoadedFile(address, filename, comment);
+      messages->addLoadedFile(address, m_filename, comment);
     }
   }
   return result;
@@ -1698,6 +1691,13 @@ result_t LoadInstruction::execute(MessageMap* messages, ostringstream& log, Cond
 
 
 vector<string> MessageMap::s_noFiles;
+
+const string MessageMap::getRelativePath(const string filename) const {
+  if (filename.length() >= m_configPath.length() && filename.substr(0, m_configPath.length()) == m_configPath) {
+    return filename.substr(m_configPath.length());
+  }
+  return filename;
+}
 
 result_t MessageMap::add(Message* message, bool storeByName) {
   uint64_t key = message->getKey();
@@ -2105,9 +2105,10 @@ result_t MessageMap::readFromFile(const string filename, string& errorDescriptio
   }
   result_t result = MappedFileReader::readFromFile(filename, errorDescription, verbose, defaults, hash, size, time);
   if (result == RESULT_OK) {
-    m_loadedFileInfos[filename].m_hash = *hash;
-    m_loadedFileInfos[filename].m_size = *size;
-    m_loadedFileInfos[filename].m_time = *time;
+    const string file = getRelativePath(filename);
+    m_loadedFileInfos[file].m_hash = *hash;
+    m_loadedFileInfos[file].m_size = *size;
+    m_loadedFileInfos[file].m_time = *time;
   }
   return result;
 }
@@ -2296,9 +2297,10 @@ result_t MessageMap::executeInstructions(ostringstream& log, void (*readMessageF
   return overallResult;
 }
 
-void MessageMap::addLoadedFile(symbol_t address, string file, string comment) {
-  if (!file.empty()) {
+void MessageMap::addLoadedFile(const symbol_t address, const string filename, string const comment) {
+  if (!filename.empty()) {
     vector<string>& files = m_loadedFiles[address];
+    const  string file = getRelativePath(filename);
     files.push_back(file);
     if (!comment.empty()) {
       m_loadedFileInfos[file].m_comment = comment;
@@ -2306,7 +2308,7 @@ void MessageMap::addLoadedFile(symbol_t address, string file, string comment) {
   }
 }
 
-const vector<string>& MessageMap::getLoadedFiles(symbol_t address) const {
+const vector<string>& MessageMap::getLoadedFiles(const symbol_t address) const {
   auto files = m_loadedFiles.find(address);
   if (files != m_loadedFiles.end()) {
     return files->second;
@@ -2444,7 +2446,7 @@ deque<Message*> MessageMap::findAll(const string& circuit, const string& name, c
   return ret;
 }
 
-Message* MessageMap::find(MasterSymbolString& master, bool anyDestination,
+Message* MessageMap::find(MasterSymbolString& master, const bool anyDestination,
   const bool withRead, const bool withWrite, const bool withPassive, const bool onlyAvailable) const {
   if (anyDestination && master.size() >= 5 && master[4] == 0 && master[2] == 0x07 && master[3] == 0x04) {
     return m_scanMessage;
