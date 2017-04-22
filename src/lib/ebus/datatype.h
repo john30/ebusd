@@ -94,14 +94,17 @@ typedef int OutputFormat;
 /** bit flag for @a OutputFormat: numeric format (keep numeric value of value=name pairs). */
 #define OF_NUMERIC 0x08
 
+/** bit flag for @a OutputFormat: value=name format for such pairs. */
+#define OF_VALUENAME 0x10
+
 /** bit flag for @a OutputFormat: JSON format. */
-#define OF_JSON 0x10
+#define OF_JSON 0x20
 
 /** bit flag for @a OutputFormat: short format (only name and value, no indentation). */
-#define OF_SHORT 0x20
+#define OF_SHORT 0x40
 
 /** bit flag for @a OutputFormat: include all attributes. */
-#define OF_ALL_ATTRS 0x40
+#define OF_ALL_ATTRS 0x80
 
 /** the message part in which a data field is stored. */
 enum PartType {
