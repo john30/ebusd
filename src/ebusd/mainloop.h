@@ -113,6 +113,11 @@ class MainLoop : public Thread, DeviceListener {
   ~MainLoop();
 
   /**
+   * Shutdown the main loop.
+   */
+  void shutdown() { m_shutdown = true; }
+
+  /**
    * Get the @a BusHandler instance.
    * @return the created @a BusHandler instance.
    */

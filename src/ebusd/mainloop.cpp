@@ -100,7 +100,7 @@ result_t UserList::addFromFile(map<string, string>& row, vector< map<string, str
 MainLoop::MainLoop(const struct options opt, Device *device, MessageMap* messages)
   : Thread(), m_device(device), m_reconnectCount(0), m_userList(opt.accessLevel), m_messages(messages),
     m_address(opt.address), m_scanConfig(opt.scanConfig),
-    m_initialScan(opt.initialScan), m_enableHex(opt.enableHex) {
+    m_initialScan(opt.initialScan), m_enableHex(opt.enableHex), m_shutdown(false) {
   // open Device
   result_t result = m_device->open();
   if (result != RESULT_OK) {
