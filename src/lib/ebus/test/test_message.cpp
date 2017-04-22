@@ -149,7 +149,7 @@ int main() {
   vector<string> row;
   templates->readLineFromStream(dummystr, errorDescription, __FILE__, lineNo, row, false);
   lineNo = 0;
-  MessageMap* messages = new MessageMap();
+  MessageMap* messages = new MessageMap("");
   dummystr.clear();
   dummystr.str("#");
   messages->readLineFromStream(dummystr, errorDescription, __FILE__, lineNo, row, false);
