@@ -85,8 +85,9 @@ const string AttributedItem::pluck(map<string, string>& row, string key) {
   if (it == row.end()) {
     return "";
   }
+  const string ret = it->second;
   row.erase(it);
-  return it->second;
+  return ret;
 }
 
 void AttributedItem::dumpString(ostream& output, const string str, const bool prependFieldSeparator) {
