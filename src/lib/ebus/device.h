@@ -245,6 +245,15 @@ class NetworkDevice : public Device {
     : Device(name, true, readOnly, initialSend), m_address(address), m_udp(udp),
       m_buffer(NULL), m_bufSize(0), m_bufLen(0), m_bufPos(0) {}
 
+  /**
+   * Destructor.
+   */
+  virtual ~NetworkDevice() {
+    if (m_buffer) {
+      free(m_buffer);
+    }
+  }
+
   // @copydoc
   unsigned int getLatency() const override { return 10000; }
 
