@@ -171,6 +171,18 @@ class SymbolString {
   }
 
   /**
+   * Return a reference to the symbol at the specified index.
+   * @param index the index of the symbol to return.
+   * @return the reference to the symbol at the specified index, or SYN if not available.
+   */
+  symbol_t operator[](const size_t index) const {
+    if (index >= m_data.size()) {
+      return SYN;
+    }
+    return m_data[index];
+  }
+
+  /**
    * Return whether this instance is equal to the other instance.
    * @param other the other instance.
    * @return true if this instance is equal to the other instance.
