@@ -119,8 +119,8 @@ MainLoop::MainLoop(const struct options opt, Device *device, MessageMap* message
   } else {
     m_logRawFile = NULL;
   }
-  m_logRawEnabled = opt.logRaw;
-  m_logRawBytes = false;
+  m_logRawEnabled = opt.logRaw != 0;
+  m_logRawBytes = opt.logRaw == 2;
   m_logRawLastReceived = true;
   m_logRawLastSymbol = SYN;
   if (opt.aclFile[0]) {

@@ -74,7 +74,7 @@ struct options {
   LogLevel logLevel;  //!< log level [notice]
   bool multiLog;  //!< multiple log levels adjusted with --log=...
 
-  bool logRaw;  //!< raw log each received/sent byte on the bus
+  unsigned int logRaw;  //!< raw log each received/sent byte on the bus (1=messages, 2=bytes)
   const char* logRawFile;  //!< name of raw log file [/var/log/ebusd.log]
   unsigned int logRawSize;  //!< maximum size of raw log file in kB [100]
 

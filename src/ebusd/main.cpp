@@ -116,7 +116,7 @@ static struct options opt = {
   ll_COUNT,  // logLevel
   false,  // multiLog
 
-  false,  // logRaw
+  0,  // logRaw
   PACKAGE_LOGFILE,  // logRawFile
   100,  // logRawSize
 
@@ -216,7 +216,8 @@ static const struct argp_option argpoptions[] = {
       " [notice]", 0 },
 
   {NULL,             0,        NULL,    0, "Raw logging options:", 6 },
-  {"lograwdata",     O_RAW,    NULL,    0, "Log each received/sent byte on the bus", 0 },
+  {"lograwdata",     O_RAW,    "bytes",  OPTION_ARG_OPTIONAL,
+      "Log messages or all received/sent bytes on the bus", 0 },
   {"lograwdatafile", O_RAWFIL, "FILE",  0, "Write raw log to FILE [" PACKAGE_LOGFILE "]", 0 },
   {"lograwdatasize", O_RAWSIZ, "SIZE",  0, "Make raw log file no larger than SIZE kB [100]", 0 },
 
@@ -504,7 +505,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
 
   // Raw logging options:
   case O_RAW:  // --lograwdata
-    opt->logRaw = true;
+    opt->logRaw = arg && strcmp("bytes", arg) == 0 ? 2 : 1;
     break;
   case O_RAWFIL:  // --lograwdatafile=/var/log/ebusd.log
     if (arg == NULL || arg[0] == 0 || strcmp("/", arg) == 0) {
