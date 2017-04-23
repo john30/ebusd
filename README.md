@@ -20,16 +20,18 @@ The main features of the daemon are:
  * regularly poll for messages
  * cache all messages
  * scan for bus participants
- * parse messages to human readable values by using CSV message configuration files
- * automatically pick CSV message configuration files by scan result
+ * parse messages to human readable values and vice versa via message configuration files
+ * automatically pick message configuration files by scan result
+ * automatically check for updates of daemon and configuration files
+ * pick preferred language for translatable message configuration parts
  * grab all messages on the eBUS and provide decoding hints
  * log messages and problems to a log file
- * capture sent/received bytes to a log file as text
+ * capture messages or sent/received bytes to a log file as text
  * dump received bytes to binary files for later playback/analysis
- * listen for client connections on a dedicated TCP port (command line style and/or HTTP)
- * optionally format messages and data in JSON on dedicated HTTP port
+ * listen for command line client connections on a dedicated TCP port
+ * optionally provide rudimentary HTML interface and allow data retrieval as JSON on HTTP port
  * optionally publish received message data to MQTT topics and vice versa (if authorized)
- * optional ACL and required user authentication for access to certain messages
+ * optional user authentication via ACL file for access to certain messages
 
 
 Installation
@@ -70,7 +72,7 @@ Check the Wiki and/or the configuration repository:
 Docker image
 ------------
 
-A Docker image is available on the hub and it contains the latest German configuration files.
+A Docker image including the latest message configuration files is available on the hub.
 You can use it like this:  
 > docker pull john30/ebusd  
 > docker run -it --rm --device=/dev/ttyUSB0 -p 8888 john30/ebusd

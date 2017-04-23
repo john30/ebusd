@@ -7,6 +7,7 @@
 * added automatic check for updates (ebusd and configuration)
 * use CSV header line for determining columns and picking multi-language columns by language preference
 * a circuit name is now required for all message configurations
+* raw logging allows logging of messages or each sent/received byte defaulting to messages
 
 ## Bug Fixes
 * corrected numeric condition formatting
@@ -22,6 +23,7 @@
 * corrected missing update notification on master message part
 * corrected grouping of JSON output by circuit
 * corrected address conflict detection when in answer mode
+* fixed potential memory leaks and misused iterator
 
 ## Features
 * added support for MQTT handling via libmosquitto (will be compiled in when library is available)
@@ -46,6 +48,7 @@
 * allow TTQ/TTH types to use less than 8 bits
 * added support for optional user-defined columns to config files
 * added circuit-level attributes to config files for use in JSON
+* added -N option to "read" command
 
 
 # 2.4 (2016-12-17)
