@@ -267,7 +267,6 @@ result_t MappedFileReader::addFromFile(vector<string>& row, string& errorDescrip
   }
   map<string, string> rowMapped;
   vector< map<string, string> > subRowsMapped;
-  vector<string>::iterator it = row.begin();
   bool isDefault = m_supportsDefaults && !row[0].empty() && row[0][0] == '*';
   if (isDefault) {
     row[0] = row[0].substr(1);
