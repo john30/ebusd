@@ -57,7 +57,7 @@ class RotateFile {
    * @param enabled @p true to enable writing to the file, @p false to disable it.
    * @return @p true when the state was changed, @p false otherwise.
    */
-  bool setEnabled(bool enabled = true);
+  bool setEnabled(bool enabled);
 
   /**
    * Return whether writing to the file is enabled.
@@ -70,8 +70,10 @@ class RotateFile {
    * @param value the pointer to the bytes to write.
    * @param size the number of bytes to write.
    * @param received @a true on reception, @a false on sending (only relevant in text mode).
+   * @param bytes whether to log single bytes (only relevant in text mode).
    */
-  void write(unsigned char* value, unsigned int size, bool received = true);
+  void write(const unsigned char* value, const size_t size, const bool received = true,
+      const bool bytes = true);
 
 
  private:

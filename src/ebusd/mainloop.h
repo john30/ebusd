@@ -113,6 +113,11 @@ class MainLoop : public Thread, DeviceListener {
   ~MainLoop();
 
   /**
+   * Shutdown the main loop.
+   */
+  void shutdown() { m_shutdown = true; }
+
+  /**
    * Get the @a BusHandler instance.
    * @return the created @a BusHandler instance.
    */
@@ -313,6 +318,18 @@ class MainLoop : public Thread, DeviceListener {
   /** whether raw logging to @p logNotice is enabled (only relevant if m_logRawFile is NULL). */
   bool m_logRawEnabled;
 
+  /** whether to log raw bytes instead of messages with @a m_logRawEnabled. */
+  bool m_logRawBytes;
+
+  /** the buffer for building log raw message. */
+  ostringstream m_logRawBuffer;
+
+  /** true when the last byte in @a m_logRawBuffer was receive, false if it was sent. */
+  bool m_logRawLastReceived;
+
+  /** the last sent/received symbol.*/
+  symbol_t m_logRawLastSymbol;
+
   /** the @a RotateFile for dumping received data, or NULL. */
   RotateFile* m_dumpFile;
 
@@ -334,6 +351,9 @@ class MainLoop : public Thread, DeviceListener {
 
   /** whether to enable the hex command. */
   const bool m_enableHex;
+
+  /** set to true to shutdown. */
+  bool m_shutdown;
 
   /** the created @a BusHandler instance. */
   BusHandler* m_busHandler;

@@ -100,7 +100,7 @@ result_t UserList::addFromFile(map<string, string>& row, vector< map<string, str
 MainLoop::MainLoop(const struct options opt, Device *device, MessageMap* messages)
   : Thread(), m_device(device), m_reconnectCount(0), m_userList(opt.accessLevel), m_messages(messages),
     m_address(opt.address), m_scanConfig(opt.scanConfig),
-    m_initialScan(opt.initialScan), m_enableHex(opt.enableHex) {
+    m_initialScan(opt.initialScan), m_enableHex(opt.enableHex), m_shutdown(false) {
   // open Device
   result_t result = m_device->open();
   if (result != RESULT_OK) {
@@ -120,6 +120,9 @@ MainLoop::MainLoop(const struct options opt, Device *device, MessageMap* message
     m_logRawFile = NULL;
   }
   m_logRawEnabled = opt.logRaw;
+  m_logRawBytes = false;
+  m_logRawLastReceived = true;
+  m_logRawLastSymbol = SYN;
   if (opt.aclFile[0]) {
     string errorDescription;
     result_t result = m_userList.readFromFile(opt.aclFile, errorDescription);
@@ -152,6 +155,7 @@ MainLoop::MainLoop(const struct options opt, Device *device, MessageMap* message
 }
 
 MainLoop::~MainLoop() {
+  m_shutdown = true;
   join();
 
   for (list<DataHandler*>::iterator it = m_dataHandlers.begin(); it != m_dataHandlers.end(); it++) {
@@ -208,7 +212,7 @@ void MainLoop::run() {
     }
     (*it)->start();
   }
-  while (true) {
+  while (!m_shutdown) {
     // pick the next message to handle
     NetMessage* netMessage = m_netQueue.pop(taskDelay);
     time(&now);
@@ -437,14 +441,40 @@ void MainLoop::notifyDeviceData(const symbol_t symbol, bool received) {
   if (received && m_dumpFile) {
     m_dumpFile->write((unsigned char*)&symbol, 1);
   }
-  if (m_logRawFile) {
-    m_logRawFile->write((unsigned char*)&symbol, 1, received);
-  } else if (m_logRawEnabled) {
-    if (received) {
-      logNotice(lf_bus, "<%02x", symbol);
-    } else {
-      logNotice(lf_bus, ">%02x", symbol);
+  if (!m_logRawFile && !m_logRawEnabled) {
+    return;
+  }
+  if (m_logRawBytes) {
+    if (m_logRawFile) {
+      m_logRawFile->write((unsigned char*)&symbol, 1, received);
+    } else if (m_logRawEnabled) {
+      if (received) {
+        logNotice(lf_bus, "<%02x", symbol);
+      } else {
+        logNotice(lf_bus, ">%02x", symbol);
+      }
     }
+    return;
+  }
+  if (symbol != SYN) {
+    if (received && !m_logRawLastReceived && symbol == m_logRawLastSymbol) {
+      return; // skip received echo of previously sent symbol
+    }
+    if (m_logRawBuffer.tellp() == 0 || received != m_logRawLastReceived) {
+      m_logRawLastReceived = received;
+      m_logRawBuffer << (received ? "<" : ">");
+    }
+    m_logRawBuffer << setw(2) << setfill('0') << hex << static_cast<unsigned>(symbol);
+    m_logRawLastSymbol = symbol;
+  }
+  if (symbol == SYN && m_logRawBuffer.tellp() > 0) {  // flush
+    if (m_logRawFile) {
+      const char* str = m_logRawBuffer.str().c_str();
+      m_logRawFile->write((const unsigned char*)str, strlen(str), received, false);
+    } else {
+      logNotice(lf_bus, m_logRawBuffer.str().c_str());
+    }
+    m_logRawBuffer.str("");
   }
 }
 
@@ -608,7 +638,7 @@ string MainLoop::executeAuth(vector<string> &args, string &user) {
 
 string MainLoop::executeRead(vector<string> &args, const string levels) {
   size_t argPos = 1;
-  bool hex = false, numeric = false;
+  bool hex = false, numeric = false, valueName = false;
   OutputFormat verbosity = 0;
   time_t maxAge = 5*60;
   string circuit, params;
@@ -637,6 +667,9 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
       verbosity |= OF_NAMES|OF_UNITS|OF_COMMENTS;
     } else if (args[argPos] == "-n") {
       numeric = true;
+    } else if (args[argPos] == "-N") {
+      numeric = true;
+      valueName = true;
     } else if (args[argPos] == "-m") {
       argPos++;
       if (args.size() > argPos) {
@@ -764,7 +797,7 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
     return getResultCode(ret);
   }
   if (argPos == 0 || args.size() < argPos + 1 || args.size() > argPos + 2) {
-    return "usage: read [-f] [-m SECONDS] [-s QQ] [-d ZZ] [-c CIRCUIT] [-p PRIO] [-v|-V] [-n] [-i VALUE[;VALUE]*]"
+    return "usage: read [-f] [-m SECONDS] [-s QQ] [-d ZZ] [-c CIRCUIT] [-p PRIO] [-v|-V] [-n|-N] [-i VALUE[;VALUE]*]"
         " NAME [FIELD[.N]]\n"
         "  or:  read [-f] [-m SECONDS] [-s QQ] [-c CIRCUIT] -h ZZPBSBNNDx\n"
         " Read value(s) or hex message.\n"
@@ -777,6 +810,7 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
         "  -v           increase verbosity (include names/units/comments)\n"
         "  -V           be very verbose (include names, units, and comments)\n"
         "  -n           use numeric value of value=name pairs\n"
+        "  -N           use numeric and named value of value=name pairs\n"
         "  -i VALUE     read additional message parameters from VALUE\n"
         "  NAME         NAME of the message to send\n"
         "  FIELD        only retrieve the field named FIELD\n"
@@ -808,7 +842,8 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
   if (message != NULL && pollPriority > 0 && message->setPollPriority(pollPriority)) {
     m_messages->addPollMessage(message);
   }
-
+  verbosity |= valueName ? OF_VALUENAME : numeric ? OF_NUMERIC : 0;
+  result_t ret;
   if (srcAddress == SYN && dstAddress == SYN && maxAge > 0 && params.length() == 0) {
     Message* cacheMessage = m_messages->find(circuit, args[argPos], levels, false, true);
     bool hasCache = cacheMessage != NULL;
@@ -821,8 +856,8 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
       if (verbosity & OF_NAMES) {
         result << cacheMessage->getCircuit() << " " << cacheMessage->getName() << " ";
       }
-      result_t ret = cacheMessage->decodeLastData(result, verbosity|(numeric?OF_NUMERIC:0), false,
-          fieldIndex == -2 ? NULL : fieldName.c_str(), fieldIndex);
+      ret = cacheMessage->decodeLastData(result, verbosity, false, fieldIndex == -2 ? NULL : fieldName.c_str(),
+          fieldIndex);
       if (ret != RESULT_OK) {
         if (ret < RESULT_OK) {
           logError(lf_main, "read %s %s cached: %s", cacheMessage->getCircuit().c_str(),
@@ -847,15 +882,15 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
     return getResultCode(RESULT_ERR_INVALID_ADDR);
   }
   // read directly from bus
-  result_t ret = m_busHandler->readFromBus(message, params, dstAddress, srcAddress);
+  ret = m_busHandler->readFromBus(message, params, dstAddress, srcAddress);
   if (ret != RESULT_OK) {
     return getResultCode(ret);
   }
   if (verbosity & OF_NAMES) {
     result << message->getCircuit() << " " << message->getName() << " ";
   }
-  ret = message->decodeLastSlaveData(result, verbosity|(numeric?OF_NUMERIC:0), false,
-      fieldIndex == -2 ? NULL : fieldName.c_str(), fieldIndex);
+  ret = message->decodeLastSlaveData(result, verbosity, false, fieldIndex == -2 ? NULL : fieldName.c_str(),
+      fieldIndex);
   if (ret < RESULT_OK) {
     logError(lf_main, "read %s %s: decode %s", message->getCircuit().c_str(), message->getName().c_str(),
         getResultCode(ret));
@@ -1426,11 +1461,13 @@ string MainLoop::executeLog(vector<string> &args) {
 }
 
 string MainLoop::executeRaw(vector<string> &args) {
-  if (args.size() != 1) {
-    return "usage: raw\n"
-         " Toggle logging of each byte.";
+  bool bytes = args.size() == 2 && args[1] == "bytes";
+  if (args.size() != 1 && !bytes) {
+    return "usage: raw [bytes]\n"
+         " Toggle logging of messages or each byte.";
   }
   bool enabled;
+  m_logRawBytes = bytes;
   if (m_logRawFile) {
     enabled = !m_logRawFile->isEnabled();
     m_logRawFile->setEnabled(enabled);
@@ -1509,7 +1546,7 @@ string MainLoop::executeQuit(vector<string> &args, bool& connected) {
 
 string MainLoop::executeHelp() {
   return "usage:\n"
-      " read|r   Read value(s):         read [-f] [-m SECONDS] [-s QQ] [-d ZZ] [-c CIRCUIT] [-p PRIO] [-v|-V] [-n]"
+      " read|r   Read value(s):         read [-f] [-m SECONDS] [-s QQ] [-d ZZ] [-c CIRCUIT] [-p PRIO] [-v|-V] [-n|-N]"
       " [-i VALUE[;VALUE]*] NAME [FIELD[.N]]\n"
       "          Read hex message:      read [-f] [-m SECONDS] [-s QQ] [-c CIRCUIT] -h ZZPBSBNNDx\n"
       " write|w  Write value(s):        write [-s QQ] [-d ZZ] -c CIRCUIT NAME [VALUE[;VALUE]*]\n"
@@ -1526,7 +1563,7 @@ string MainLoop::executeHelp() {
       " scan     Scan slaves:           scan [full|ZZ]\n"
       "          Report scan result:    scan result\n"
       " log      Set log area level:    log [AREA[,AREA]* LEVEL]\n"
-      " raw      Toggle logging of each byte\n"
+      " raw      Toggle logging of messages or each byte.\n"
       " dump     Toggle binary dump of received bytes\n"
       " reload   Reload CSV config files\n"
       " quit|q   Close connection\n"
@@ -1535,7 +1572,7 @@ string MainLoop::executeHelp() {
 
 string MainLoop::executeGet(vector<string> &args, bool& connected) {
   result_t ret = RESULT_OK;
-  bool numeric = false, required = false, full = false;
+  bool numeric = false, valueName = false, required = false, full = false;
   OutputFormat verbosity = OF_NAMES;
   size_t argPos = 1;
   string uri = args[argPos++];
@@ -1585,6 +1622,8 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
           }
         } else if (qname == "numeric") {
           numeric = value.length() == 0 || value == "1";
+        } else if (qname == "valuename") {
+          valueName = value.length() == 0 || value == "1";
         } else if (qname == "full") {
           full = value.length() == 0 || value == "1";
         } else if (qname == "required") {
@@ -1608,9 +1647,8 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
     time_t maxLastUp = 0;
     if (ret == RESULT_OK) {
       deque<Message *> messages = m_messages->findAll(circuit, name, getUserLevels(user), exact, true, false, true);
-
       bool first = true;
-      verbosity |= (numeric ? OF_NUMERIC : 0) | OF_JSON | (full ? OF_ALL_ATTRS : 0);
+      verbosity |= (valueName ? OF_VALUENAME : numeric ? OF_NUMERIC : 0) | OF_JSON | (full ? OF_ALL_ATTRS : 0);
       for (deque<Message*>::iterator it = messages.begin(); it != messages.end();) {
         Message* message = *it++;
         symbol_t dstAddress = message->getDstAddress();

@@ -718,8 +718,16 @@ result_t ValueListDataField::readSymbols(const SymbolString& input,
   } else if (outputFormat & OF_NUMERIC) {
     output << setw(0) << dec << static_cast<unsigned>(value);
   } else if (outputFormat & OF_JSON) {
-    output << '"' << it->second << '"';
+    if (outputFormat & OF_VALUENAME) {
+      output << "{\"value\":" << setw(0) << dec << static_cast<unsigned>(value);
+      output << ",\"name\":\"" << it->second << "\"}";
+    } else {
+      output << '"' << it->second << '"';
+    }
   } else {
+    if (outputFormat & OF_VALUENAME) {
+      output << setw(0) << dec << static_cast<unsigned>(value) << '=';
+    }
     output << it->second;
   }
   return RESULT_OK;

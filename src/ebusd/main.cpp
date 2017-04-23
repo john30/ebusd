@@ -669,11 +669,11 @@ void signalHandler(int sig) {
     break;
   case SIGINT:
     logNotice(lf_main, "SIGINT received");
-    shutdown();
+    s_mainLoop->shutdown();
     break;
   case SIGTERM:
     logNotice(lf_main, "SIGTERM received");
-    shutdown();
+    s_mainLoop->shutdown();
     break;
   default:
     logNotice(lf_main, "undefined signal %s", strsignal(sig));
