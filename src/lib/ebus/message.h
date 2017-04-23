@@ -145,8 +145,7 @@ class Message : public AttributedItem {
    * @param anyDestination @p true to use the special @a SYN as destination address in the key.
    * @return the key for the ID, or -1LL if the data is invalid.
    */
-  static uint64_t createKey(MasterSymbolString& master,
-    size_t maxIdLength, bool anyDestination = false);
+  static uint64_t createKey(const MasterSymbolString& master, size_t maxIdLength, bool anyDestination = false);
 
   /**
    * Calculate the key for a scan message.
@@ -1355,7 +1354,7 @@ class MessageMap : public MappedFileReader {
    * @param time optional pointer to a @a time_t value for storing the modification time of the file, or NULL.
    * @return true if the file info was found, false otherwise.
    */
-  bool getLoadedFileInfo(string filename, string& comment, size_t* hash = NULL, size_t* size = NULL,
+  bool getLoadedFileInfo(const string filename, string& comment, size_t* hash = NULL, size_t* size = NULL,
       time_t* time = NULL) const;
 
   /**
@@ -1417,7 +1416,7 @@ class MessageMap : public MappedFileReader {
    * @return the @a Message instance, or NULL.
    * Note: the caller may not free the returned instance.
    */
-  Message* find(MasterSymbolString& master, const bool anyDestination = false, const bool withRead = true,
+  Message* find(const MasterSymbolString& master, const bool anyDestination = false, const bool withRead = true,
       const bool withWrite = true, const bool withPassive = true, const bool onlyAvailable = true) const;
 
   /**

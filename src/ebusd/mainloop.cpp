@@ -50,7 +50,7 @@ result_t UserList::getFieldMap(vector<string>& row, string& errorDescription, co
     return RESULT_OK;
   }
   map<string, string> seen;
-  for (auto &name : row) {
+  for (auto& name : row) {
     tolower(name);
     if (name == "name" || name == "secret") {
       if (seen.find(name) != seen.end()) {
@@ -82,13 +82,13 @@ result_t UserList::addFromFile(map<string, string>& row, vector< map<string, str
     name = "";  // default levels
   }
   string levels;
-  for (auto entry : subRows) {
-    string level = entry["level"];
-    if (!level.empty()) {
+  for (const auto& entry : subRows) {
+    const auto it = entry.find("level");
+    if (it != entry.end() && !it->second.empty()) {
       if (!levels.empty()) {
         levels += VALUE_SEPARATOR;
       }
-      levels += level;
+      levels += it->second;
     }
   }
   m_userSecrets[name] = secret;
@@ -158,9 +158,10 @@ MainLoop::~MainLoop() {
   m_shutdown = true;
   join();
 
-  for (list<DataHandler*>::iterator it = m_dataHandlers.begin(); it != m_dataHandlers.end(); it++) {
-    delete *it;
+  for (const auto dataHandler : m_dataHandlers) {
+    delete dataHandler;
   }
+  m_dataHandlers.clear();
   if (m_dumpFile) {
     delete m_dumpFile;
     m_dumpFile = NULL;
@@ -206,11 +207,11 @@ void MainLoop::run() {
   list<DataSink*> dataSinks;
   deque<Message*> messages;
 
-  for (list<DataHandler*>::iterator it = m_dataHandlers.begin(); it != m_dataHandlers.end(); it++) {
-    if ((*it)->isDataSink()) {
-      dataSinks.push_back(dynamic_cast<DataSink*>(*it));
+  for (const auto dataHandler : m_dataHandlers) {
+    if (dataHandler->isDataSink()) {
+      dataSinks.push_back(dynamic_cast<DataSink*>(dataHandler));
     }
-    (*it)->start();
+    dataHandler->start();
   }
   while (!m_shutdown) {
     // pick the next message to handle
@@ -362,8 +363,8 @@ void MainLoop::run() {
                 m_updateCheck = message == "" ? "unknown" : message;
                 logNotice(lf_main, "update check: %s", message.c_str());
                 if (!dataSinks.empty()) {
-                  for (list<DataSink*>::iterator it = dataSinks.begin(); it != dataSinks.end(); it++) {
-                    (*it)->notifyUpdateCheckResult(message == "OK" ? "" : m_updateCheck);
+                  for (const auto dataSink : dataSinks) {
+                    dataSink->notifyUpdateCheckResult(message == "OK" ? "" : m_updateCheck);
                   }
                 }
               } else {
@@ -385,10 +386,9 @@ void MainLoop::run() {
     time(&now);
     if (!dataSinks.empty()) {
       messages = m_messages->findAll("", "", "*", false, true, true, true, true, true, sinkSince, now);
-      for (deque<Message*>::iterator it = messages.begin(); it != messages.end(); it++) {
-        Message* message = *it;
-        for (list<DataSink*>::iterator it = dataSinks.begin(); it != dataSinks.end(); it++) {
-          (*it)->notifyUpdate(message);
+      for (const auto message : messages) {
+        for (const auto dataSink : dataSinks) {
+          dataSink->notifyUpdate(message);
         }
       }
       sinkSince = now;
@@ -425,8 +425,7 @@ void MainLoop::run() {
     if (listening) {
       string levels = getUserLevels(user);
       messages = m_messages->findAll("", "", levels, false, true, true, true, true, true, since, now);
-      for (deque<Message*>::iterator it = messages.begin(); it != messages.end(); it++) {
-        Message* message = *it;
+      for (const auto message : messages) {
         ostream << message->getCircuit() << " " << message->getName() << " = " << dec;
         message->decodeLastData(ostream);
         ostream << endl;
@@ -1252,8 +1251,7 @@ string MainLoop::executeFind(vector<string> &args, string levels) {
   bool found = false;
   ostringstream result;
   char str[32];
-  for (deque<Message*>::iterator it = messages.begin(); it != messages.end();) {
-    Message* message = *it++;
+  for (const auto message : messages) {
     if (!id.empty() && !message->checkIdPrefix(id)) {
       continue;
     }
@@ -1649,8 +1647,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
       deque<Message *> messages = m_messages->findAll(circuit, name, getUserLevels(user), exact, true, false, true);
       bool first = true;
       verbosity |= (valueName ? OF_VALUENAME : numeric ? OF_NUMERIC : 0) | OF_JSON | (full ? OF_ALL_ATTRS : 0);
-      for (deque<Message*>::iterator it = messages.begin(); it != messages.end();) {
-        Message* message = *it++;
+      for (const auto message : messages) {
         symbol_t dstAddress = message->getDstAddress();
         if (dstAddress == SYN) {
           continue;

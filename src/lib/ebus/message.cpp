@@ -163,7 +163,7 @@ string getDefault(const string value, const map<string, string>& defaults, const
   if (value.length() == 0 && replaceStar && required) {
     return value;
   }
-  auto it = defaults.find(fieldName);
+  const auto it = defaults.find(fieldName);
   const string defaultStr = it == defaults.end() ? "" : it->second;
   if (!replaceStar || defaultStr.empty()) {
     return value.length() > 0 ? value : defaultStr;
@@ -186,8 +186,8 @@ uint64_t Message::createKey(const vector<symbol_t> id,
   }
   key |= (uint64_t)dstAddress << (8 * 6);
   int exp = 5;
-  for (vector<symbol_t>::const_iterator it = id.begin(); it < id.end(); it++) {
-    key ^= (uint64_t)*it << (8 * exp--);
+  for (const auto it : id) {
+    key ^= (uint64_t)it << (8 * exp--);
     if (exp == 0) {
       exp = 3;
     }
@@ -195,7 +195,7 @@ uint64_t Message::createKey(const vector<symbol_t> id,
   return key;
 }
 
-uint64_t Message::createKey(MasterSymbolString& master, size_t maxIdLength, bool anyDestination) {
+uint64_t Message::createKey(const MasterSymbolString& master, size_t maxIdLength, bool anyDestination) {
   if (master.size() < 5) {
     return INVALID_KEY;
   }
@@ -473,8 +473,7 @@ result_t Message::create(map<string, string> row, vector< map<string, string> > 
   unsigned int index = 0;
   bool multiple = dstAddresses.size() > 1;
   char num[10];
-  for (vector<symbol_t>::iterator it = dstAddresses.begin(); it != dstAddresses.end(); it++, index++) {
-    symbol_t dstAddress = *it;
+  for (const auto dstAddress : dstAddresses) {
     string useCircuit = circuit;
     if (multiple) {
       snprintf(num, sizeof(num), ".%d", index);
@@ -489,6 +488,7 @@ result_t Message::create(map<string, string> row, vector< map<string, string> > 
           index == 0, pollPriority, condition);
     }
     messages.push_back(message);
+    index++;
   }
   return RESULT_OK;
 }
@@ -829,7 +829,7 @@ bool Message::isLessPollWeight(const Message* other) const {
 void Message::dumpHeader(ostream& output, vector<string>* fieldNames) {
   bool first = true;
   if (fieldNames == NULL) {
-    for (auto fieldName : defaultMessageFieldMap) {
+    for (const auto& fieldName : defaultMessageFieldMap) {
       if (first) {
         first = false;
       } else {
@@ -839,7 +839,7 @@ void Message::dumpHeader(ostream& output, vector<string>* fieldNames) {
     }
     return;
   }
-  for (auto fieldName : *fieldNames) {
+  for (const auto& fieldName : *fieldNames) {
     if (first) {
       first = false;
     } else {
@@ -852,7 +852,7 @@ void Message::dumpHeader(ostream& output, vector<string>* fieldNames) {
 void Message::dump(ostream& output, vector<string>* fieldNames, bool withConditions) const {
   bool first = true;
   if (fieldNames == NULL) {
-    for (auto fieldName : knownFieldNamesFull) {
+    for (const auto& fieldName : knownFieldNamesFull) {
       if (fieldName == FIELNAME_LEVEL) {
         continue;  // access level not included in default dump format
       }
@@ -865,7 +865,7 @@ void Message::dump(ostream& output, vector<string>* fieldNames, bool withConditi
     }
     return;
   }
-  for (auto fieldName : *fieldNames) {
+  for (const auto& fieldName : *fieldNames) {
     if (first) {
       first = false;
     } else {
@@ -920,13 +920,13 @@ void Message::dumpField(ostream& output, string fieldName, bool withConditions) 
     return;
   }
   if (fieldName == "pbsb") {
-    for (vector<symbol_t>::const_iterator it = m_id.begin(); it < m_id.begin()+2 && it < m_id.end(); it++) {
+    for (auto it = m_id.begin(); it < m_id.begin()+2 && it < m_id.end(); it++) {
       output << hex << setw(2) << setfill('0') << static_cast<unsigned>(*it);
     }
     return;
   }
   if (fieldName == "id") {
-    for (vector<symbol_t>::const_iterator it = m_id.begin()+2; it < m_id.end(); it++) {
+    for (auto it = m_id.begin()+2; it < m_id.end(); it++) {
       output << hex << setw(2) << setfill('0') << static_cast<unsigned>(*it);
     }
     return;
@@ -1218,7 +1218,7 @@ void ChainedMessage::dumpField(ostream& output, string fieldName, bool withCondi
   bool first = true;
   for (size_t index = 0; index < m_ids.size(); index++) {
     vector<symbol_t> id = m_ids[index];
-    for (vector<symbol_t>::const_iterator it = id.begin()+2; it < id.end(); it++) {
+    for (auto it = id.begin()+2; it < id.end(); it++) {
       if (first) {
         first = false;
       } else {
@@ -1570,14 +1570,14 @@ bool SimpleStringCondition::checkValue(Message* message, string field) {
 
 
 void CombinedCondition::dump(ostream& output, bool matched) const {
-  for (auto condition : m_conditions) {
+  for (const auto condition : m_conditions) {
     condition->dump(output, matched);
   }
 }
 
 result_t CombinedCondition::resolve(MessageMap* messages, ostringstream& errorMessage,
     void (*readMessageFunc)(Message* message)) {
-  for (auto condition : m_conditions) {
+  for (const auto condition : m_conditions) {
     ostringstream dummy;
     result_t ret = condition->resolve(messages, dummy, readMessageFunc);
     if (ret != RESULT_OK) {
@@ -1589,8 +1589,8 @@ result_t CombinedCondition::resolve(MessageMap* messages, ostringstream& errorMe
 }
 
 bool CombinedCondition::isTrue() {
-  for (vector<Condition*>::iterator it = m_conditions.begin(); it != m_conditions.end(); it++) {
-    if (!(*it)->isTrue()) {
+  for (const auto condition : m_conditions) {
+    if (!condition->isTrue()) {
       return false;
     }
   }
@@ -1616,7 +1616,7 @@ result_t Instruction::create(const string& contextPath, const string type,
     }
     string arg = row["file"];
     row.erase("file");
-    for (auto entry : row) {  // fallback to first field
+    for (const auto entry : row) {  // fallback to first field
       if (!entry.second.empty()) {
         arg = entry.second;
         break;
@@ -1703,7 +1703,7 @@ result_t MessageMap::add(Message* message, bool storeByName) {
   uint64_t key = message->getKey();
   bool conditional = message->isConditional();
   if (!m_addAll) {
-    map<uint64_t, vector<Message*> >::iterator keyIt = m_messagesByKey.find(key);
+    const auto keyIt = m_messagesByKey.find(key);
     if (keyIt != m_messagesByKey.end()) {
       Message* other = getFirstAvailable(keyIt->second, message);
       if (other != NULL) {
@@ -1729,7 +1729,7 @@ result_t MessageMap::add(Message* message, bool storeByName) {
     string suffix = FIELD_SEPARATOR + name + (isPassive ? "P" : (isWrite ? "W" : "R"));
     string nameKey = circuit + suffix;
     if (!m_addAll) {
-      map<string, vector<Message*> >::iterator nameIt = m_messagesByName.find(nameKey);
+      const auto nameIt = m_messagesByName.find(nameKey);
       if (nameIt != m_messagesByName.end()) {
         vector<Message*>* messages = &nameIt->second;
         if (!message->isConditional() || !messages->front()->isConditional()) {
@@ -1739,7 +1739,7 @@ result_t MessageMap::add(Message* message, bool storeByName) {
     }
     m_messagesByName[nameKey].push_back(message);
     nameKey = suffix;  // also store without circuit
-    map<string, vector<Message*> >::iterator nameIt = m_messagesByName.find(nameKey);
+    const auto nameIt = m_messagesByName.find(nameKey);
     if (nameIt == m_messagesByName.end()) {
       // always store first message without circuit (in order of circuit name)
       m_messagesByName[nameKey].push_back(message);
@@ -1779,7 +1779,7 @@ result_t MessageMap::getFieldMap(vector<string>& row, string& errorDescription, 
   //  unit,comment
   // minimum: type,name,PBSB,field,datatype
   if (row.empty()) {
-    for (auto col : defaultMessageFieldMap) {
+    for (const auto& col : defaultMessageFieldMap) {
       row.push_back(col);
     }
     return RESULT_OK;
@@ -1881,7 +1881,7 @@ result_t MessageMap::addDefaultFromFile(map<string, string>& row, vector< map<st
   // check for condition in defaults
   string type = row["type"];
   row.erase("type");
-  auto mainDefaults = getDefaults().find("");
+  const auto& mainDefaults = getDefaults().find("");
   map<string, string> defaults;
   if (mainDefaults != getDefaults().end()) {
     defaults = mainDefaults->second;
@@ -1894,7 +1894,7 @@ result_t MessageMap::addDefaultFromFile(map<string, string>& row, vector< map<st
       return RESULT_ERR_INVALID_ARG;
     }
     string key = filename+":"+type;
-    map<string, Condition*>::iterator it = m_conditions.find(key);
+    const auto it = m_conditions.find(key);
     if (it != m_conditions.end()) {
       errorDescription = "condition "+type+" already defined";
       return RESULT_ERR_DUPLICATE_NAME;
@@ -1918,7 +1918,7 @@ result_t MessageMap::addDefaultFromFile(map<string, string>& row, vector< map<st
   }
   string defaultSuffix = defaults["suffix"];
   defaults.erase("suffix");
-  for (auto entry : row) {
+  for (const auto entry : row) {
     string value = entry.second;
     if (entry.first == "circuit" && !defaultCircuit.empty()) {  // TODO remove some day
       if (value.empty()) {
@@ -1963,7 +1963,7 @@ result_t MessageMap::readConditions(string& types, const string filename, string
   if (types.length() > 0 && types[0] == '[' && (pos=types.find_last_of(']')) != string::npos) {
     // check if combined or simple condition is already known
     const string combinedkey = filename+":"+types.substr(1, pos-1);
-    auto it = m_conditions.find(combinedkey);
+    const auto it = m_conditions.find(combinedkey);
     if (it != m_conditions.end()) {
       condition = it->second;
       types = types.substr(pos+1);
@@ -1973,7 +1973,7 @@ result_t MessageMap::readConditions(string& types, const string filename, string
       while ((pos=types.find(']')) != string::npos) {
         // simple condition
         string key = filename+":"+types.substr(1, pos-1);
-        map<string, Condition*>::iterator it = m_conditions.find(key);
+        auto it = m_conditions.find(key);
         Condition* add = NULL;
         if (it == m_conditions.end()) {
           // check for on-the-fly condition
@@ -2135,7 +2135,7 @@ result_t MessageMap::addFromFile(map<string, string>& row, vector< map<string, s
       errorDescription = "invalid instruction";
       return result;
     }
-    map<string, vector<Instruction*> >::iterator it = m_instructions.find(filename);
+    const auto it = m_instructions.find(filename);
     if (it == m_instructions.end()) {
       vector<Instruction*> instructions;
       instructions.push_back(instruction);
@@ -2162,8 +2162,7 @@ result_t MessageMap::addFromFile(map<string, string>& row, vector< map<string, s
     row["type"] = type;
     result = Message::create(row, subRows, getDefaults(), getSubDefaults(), errorDescription, condition, filename,
         templates, messages);
-    for (vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++) {
-      Message* message = *it;
+    for (const auto message : messages) {
       if (result == RESULT_OK) {
         result = add(message);
         if (result == RESULT_ERR_DUPLICATE_NAME) {
@@ -2205,8 +2204,8 @@ Message* MessageMap::getScanMessage(const symbol_t dstAddress) {
 
 result_t MessageMap::resolveConditions(string& errorDescription, bool verbose) {
   result_t overallResult = RESULT_OK;
-  for (map<string, Condition*>::iterator it = m_conditions.begin(); it != m_conditions.end(); it++) {
-    Condition* condition = it->second;
+  for (const auto it : m_conditions) {
+    Condition* condition = it.second;
     result_t result = resolveCondition(condition, errorDescription);
     if (result != RESULT_OK) {
       overallResult = result;
@@ -2234,11 +2233,11 @@ result_t MessageMap::resolveCondition(Condition* condition, string& errorDescrip
 result_t MessageMap::executeInstructions(ostringstream& log, void (*readMessageFunc)(Message* message)) {
   result_t overallResult = RESULT_OK;
   vector<string> remove;
-  for (auto& it : m_instructions) {
+  for (auto it : m_instructions) {
     auto& instructions = it.second;
     bool removeSingletons = false;
     vector<Instruction*> remain;
-    for (auto instruction : instructions) {
+    for (const auto instruction : instructions) {
       if (removeSingletons && instruction->isSingleton()) {
         delete instruction;
         continue;
@@ -2276,8 +2275,7 @@ result_t MessageMap::executeInstructions(ostringstream& log, void (*readMessageF
     if (removeSingletons && !remain.empty()) {
       instructions = remain;
       remain.clear();
-      for (vector<Instruction*>::iterator lit = instructions.begin(); lit != instructions.end(); lit++) {
-        Instruction* instruction = *lit;
+      for (const auto instruction : instructions) {
         if (!instruction->isSingleton()) {
           remain.push_back(instruction);
           continue;
@@ -2291,7 +2289,7 @@ result_t MessageMap::executeInstructions(ostringstream& log, void (*readMessageF
       it.second = remain;
     }
   }
-  for (auto it : remove) {
+  for (const auto it : remove) {
     m_instructions.erase(it);
   }
   return overallResult;
@@ -2309,23 +2307,23 @@ void MessageMap::addLoadedFile(const symbol_t address, const string filename, st
 }
 
 const vector<string>& MessageMap::getLoadedFiles(const symbol_t address) const {
-  auto files = m_loadedFiles.find(address);
-  if (files != m_loadedFiles.end()) {
-    return files->second;
+  const auto it = m_loadedFiles.find(address);
+  if (it != m_loadedFiles.end()) {
+    return it->second;
   }
   return s_noFiles;
 }
 
 vector<string> MessageMap::getLoadedFiles() const {
   vector<string> ret;
-  for (auto& loadedFile : m_loadedFileInfos) {
+  for (const auto& loadedFile : m_loadedFileInfos) {
     ret.push_back(loadedFile.first);
   }
   return ret;
 }
 
-bool MessageMap::getLoadedFileInfo(string filename, string& comment, size_t* hash, size_t* size, time_t* time) const {
-  auto it = m_loadedFileInfos.find(filename);
+bool MessageMap::getLoadedFileInfo(const string filename, string& comment, size_t* hash, size_t* size, time_t* time) const {
+  const auto it = m_loadedFileInfos.find(filename);
   if (it == m_loadedFileInfos.end()) {
     comment = "";
     hash = size = 0;
@@ -2346,7 +2344,7 @@ bool MessageMap::getLoadedFileInfo(string filename, string& comment, size_t* has
 }
 
 const vector<Message*>* MessageMap::getByKey(const uint64_t key) const {
-  auto it = m_messagesByKey.find(key);
+  const auto it = m_messagesByKey.find(key);
   if (it != m_messagesByKey.end()) {
     return &it->second;
   }
@@ -2369,7 +2367,7 @@ Message* MessageMap::find(const string& circuit, const string& name, const strin
     } else {
       continue;  // not allowed without circuit
     }
-    auto it = m_messagesByName.find(nameKey);
+    const auto it = m_messagesByName.find(nameKey);
     if (it != m_messagesByName.end()) {
       Message* message = getFirstAvailable(it->second);
       if (message && message->hasLevel(levels)) {
@@ -2392,11 +2390,11 @@ deque<Message*> MessageMap::findAll(const string& circuit, const string& name, c
   bool checkCircuit = lcircuit.length() > 0;
   bool checkLevel = levels != "*";
   bool checkName = lname.length() > 0;
-  for (auto it : m_messagesByName) {
+  for (const auto it : m_messagesByName) {
     if (it.first[0] == FIELD_SEPARATOR) {  // avoid duplicates: instances stored multiple times have a special key
       continue;
     }
-    for (auto message : it.second) {
+    for (const auto message : it.second) {
       if (checkLevel && !message->hasLevel(levels, includeEmptyLevel)) {
         continue;
       }
@@ -2446,7 +2444,7 @@ deque<Message*> MessageMap::findAll(const string& circuit, const string& name, c
   return ret;
 }
 
-Message* MessageMap::find(MasterSymbolString& master, const bool anyDestination,
+Message* MessageMap::find(const MasterSymbolString& master, const bool anyDestination,
   const bool withRead, const bool withWrite, const bool withPassive, const bool onlyAvailable) const {
   if (anyDestination && master.size() >= 5 && master[4] == 0 && master[2] == 0x07 && master[3] == 0x04) {
     return m_scanMessage;
@@ -2527,8 +2525,7 @@ void MessageMap::invalidateCache(Message* message) {
   string circuit = message->getCircuit();
   string name = message->getName();
   deque<Message*> messages = findAll(circuit, name, "*", true, true, true, true);
-  for (deque<Message*>::iterator it = messages.begin(); it != messages.end(); it++) {
-    Message* checkMessage = *it;
+  for (auto checkMessage : messages) {
     if (checkMessage != message) {
       checkMessage->m_lastUpdateTime = 0;
     }
@@ -2543,7 +2540,7 @@ void MessageMap::addPollMessage(Message* message, bool toFront) {
 }
 
 bool MessageMap::decodeCircuit(const string circuit, ostringstream& output, OutputFormat outputFormat) const {
-  auto it = m_circuitData.find(circuit);
+  const auto it = m_circuitData.find(circuit);
   if (it == m_circuitData.end()) {
     return false;
   }
@@ -2570,13 +2567,16 @@ void MessageMap::clear() {
       continue;
     }
     for (Message* message : it.second) {
-      map<uint64_t, vector<Message*> >::iterator keyIt = m_messagesByKey.find(message->getKey());
+      const auto keyIt = m_messagesByKey.find(message->getKey());
       if (keyIt != m_messagesByKey.end()) {
         vector<Message*>* keyMessages = &keyIt->second;
         if (!keyMessages->empty()) {
-          for (vector<Message*>::iterator kit = keyMessages->begin(); kit != keyMessages->end(); kit++) {
+          auto kit = keyMessages->begin();
+          while (kit != keyMessages->end()) {
             if (*kit == message) {
-              keyMessages->erase(kit--);
+              kit = keyMessages->erase(kit);
+            } else {
+              kit++;
             }
           }
         }
@@ -2586,23 +2586,21 @@ void MessageMap::clear() {
     it.second.clear();
   }
   // free remaining message instances by key
-  for (map<uint64_t, vector<Message*> >::iterator it = m_messagesByKey.begin(); it != m_messagesByKey.end(); it++) {
-    vector<Message*> keyMessages = it->second;
-    for (vector<Message*>::iterator kit = keyMessages.begin(); kit != keyMessages.end(); kit++) {
-      Message* message = *kit;
+  for (const auto it : m_messagesByKey) {
+    vector<Message*> keyMessages = it.second;
+    for (auto message : keyMessages) {
       delete message;
     }
     keyMessages.clear();
   }
   // free condition instances
-  for (map<string, Condition*>::iterator it = m_conditions.begin(); it != m_conditions.end(); it++) {
-    delete it->second;
+  for (const auto it : m_conditions) {
+    delete it.second;
   }
   // free instruction instances
-  for (map<string, vector<Instruction*> >::iterator it = m_instructions.begin(); it != m_instructions.end(); it++) {
-    vector<Instruction*> instructions = it->second;
-    for (vector<Instruction*>::iterator lit = instructions.begin(); lit != instructions.end(); lit++) {
-      Instruction* instruction = *lit;
+  for (const auto it : m_instructions) {
+    vector<Instruction*> instructions = it.second;
+    for (const auto instruction : instructions) {
       delete instruction;
     }
     instructions.clear();
@@ -2616,7 +2614,7 @@ void MessageMap::clear() {
   m_messagesByKey.clear();
   m_conditions.clear();
   m_instructions.clear();
-  for (auto& it : m_circuitData) {
+  for (const auto it : m_circuitData) {
     delete it.second;
   }
   m_circuitData.clear();
@@ -2640,12 +2638,12 @@ void MessageMap::dump(ostream& output, bool withConditions) const {
   bool first = true;
   Message::dumpHeader(output, NULL);
   output << endl;
-  for (auto it : m_messagesByName) {
+  for (const auto it : m_messagesByName) {
     if (it.first[0] == '-') {  // skip instances stored multiple times (key starting with "-")
       continue;
     }
     if (m_addAll) {
-      for (auto message : it.second) {
+      for (const auto message : it.second) {
         if (!message) {
           continue;
         }

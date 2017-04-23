@@ -81,7 +81,7 @@ const string AttributedItem::formatInt(size_t value) {
 }
 
 const string AttributedItem::pluck(map<string, string>& row, string key) {
-  map<string, string>::iterator it = row.find(key);
+  const auto it = row.find(key);
   if (it == row.end()) {
     return "";
   }
@@ -127,8 +127,8 @@ void AttributedItem::appendJson(ostream& output, const string name, const string
 }
 
 void AttributedItem::mergeAttributes(map<string, string>& attributes) const {
-  for (auto& entry : m_attributes) {
-    auto it = attributes.find(entry.first);
+  for (const auto& entry : m_attributes) {
+    const auto it = attributes.find(entry.first);
     if (it == attributes.end() || it->second.empty()) {
       attributes[entry.first] = entry.second;
     }
@@ -140,13 +140,13 @@ void AttributedItem::dumpAttribute(ostream& output, const string name, const boo
 }
 
 string AttributedItem::getAttribute(const string name) const {
-  auto it = m_attributes.find(name);
+  const auto it = m_attributes.find(name);
   return it == m_attributes.end() ? "" : it->second;
 }
 
 bool AttributedItem::appendAttribute(ostringstream& output, OutputFormat outputFormat, const string name,
     const bool onlyIfNonEmpty, const string prefix, const string suffix) const {
-  auto it = m_attributes.find(name);
+  const auto it = m_attributes.find(name);
   string value = it == m_attributes.end() ? "" : it->second;
   if (onlyIfNonEmpty && value.empty()) {
     return false;
@@ -168,7 +168,7 @@ bool AttributedItem::appendAttributes(ostringstream& output, OutputFormat output
     ret = appendAttribute(output, outputFormat, "comment", true, "[", "]") || ret;
   }
   if (outputFormat & OF_ALL_ATTRS) {
-    for (auto& entry : m_attributes) {
+    for (const auto entry : m_attributes) {
       ret = true;
       if (!entry.second.empty() && entry.first != "unit" && entry.first != "comment") {
         if (outputFormat & OF_JSON) {
@@ -198,7 +198,7 @@ result_t DataField::create(vector< map<string, string> >& rows, string& errorDes
     return RESULT_ERR_EOF;
   }
   size_t fieldIndex = -1;
-  for (auto row : rows) {
+  for (auto& row : rows) {
     if (result != RESULT_OK) {
       break;
     }
@@ -681,7 +681,7 @@ void ValueListDataField::dump(ostream& output) const {
   output << FIELD_SEPARATOR;
   if (!m_dataType->dump(output, m_length)) {  // no divisor appended
     bool first = true;
-    for (auto it : m_values) {
+    for (const auto it : m_values) {
       if (first) {
         first = false;
       } else {
@@ -703,7 +703,7 @@ result_t ValueListDataField::readSymbols(const SymbolString& input,
   if (result != RESULT_OK) {
     return result;
   }
-  auto it = m_values.find(value);
+  const auto it = m_values.find(value);
   if (it == m_values.end() && value != m_dataType->getReplacement()) {
     // fall back to raw value in input
     output << setw(0) << dec << static_cast<unsigned>(value);
@@ -743,7 +743,7 @@ result_t ValueListDataField::writeSymbols(istringstream& input,
   }
   const char* str = input.str().c_str();
 
-  for (auto it : m_values) {
+  for (const auto it : m_values) {
     if (it.second.compare(str) == 0) {
       return numType->writeRawValue(it.first, offset, m_length, output, usedLength);
     }
@@ -775,7 +775,7 @@ result_t ConstantDataField::derive(const string name, map<string, string> attrib
     return RESULT_ERR_INVALID_PART;  // cannot create a template from a concrete instance
   }
   string useName = name.empty() ? m_name : name;
-  for (auto entry : m_attributes) {  // merge with this attributes
+  for (const auto entry : m_attributes) {  // merge with this attributes
     if (attributes[entry.first].empty()) {
       attributes[entry.first] = entry.second;
     }
@@ -881,15 +881,15 @@ DataFieldSet* DataFieldSet::getIdentFields() {
 }
 
 DataFieldSet::~DataFieldSet() {
-  for (auto it : m_fields) {
-    delete it;
+  for (const auto field : m_fields) {
+    delete field;
   }
 }
 
 const DataFieldSet* DataFieldSet::clone() const {
   vector<const SingleDataField*> fields;
-  for (auto it : m_fields) {
-    fields.push_back(it->clone());
+  for (const auto field : m_fields) {
+    fields.push_back(field->clone());
   }
   return new DataFieldSet(m_name, fields);
 }
@@ -898,7 +898,7 @@ size_t DataFieldSet::getLength(PartType partType, size_t maxLength) const {
   size_t length = 0;
   bool previousFullByteOffset[] = { true, true, true, true };
 
-  for (auto field : m_fields) {
+  for (const auto field : m_fields) {
     if (field->getPartType() == partType) {
       if (!previousFullByteOffset[partType] && !field->hasFullByteOffset(false)) {
         length--;
@@ -938,8 +938,8 @@ result_t DataFieldSet::derive(const string name, map<string, string> attributes,
   if (!values.empty()) {
     return RESULT_ERR_INVALID_ARG;  // value list not allowed in set derive
   }
-  for (auto it : m_fields) {
-    result_t result = it->derive("", attributes, partType, divisor, values, fields);
+  for (const auto field : m_fields) {
+    result_t result = field->derive("", attributes, partType, divisor, values, fields);
     if (result != RESULT_OK) {
       return result;
     }
@@ -951,7 +951,7 @@ result_t DataFieldSet::derive(const string name, map<string, string> attributes,
 }
 
 bool DataFieldSet::hasField(const char* fieldName, bool numeric) const {
-  for (auto field : m_fields) {
+  for (const auto field : m_fields) {
     if (field->hasField(fieldName, numeric) == 0) {
       return true;
     }
@@ -961,13 +961,13 @@ bool DataFieldSet::hasField(const char* fieldName, bool numeric) const {
 
 void DataFieldSet::dump(ostream& output) const {
   bool first = true;
-  for (auto it : m_fields) {
+  for (const auto field : m_fields) {
     if (first) {
       first = false;
     } else {
       output << FIELD_SEPARATOR;
     }
-    it->dump(output);
+    field->dump(output);
   }
 }
 
@@ -975,7 +975,7 @@ result_t DataFieldSet::read(const SymbolString& data, size_t offset,
     unsigned int& output, const char* fieldName, ssize_t fieldIndex) const {
   bool previousFullByteOffset = true, found = false, findFieldIndex = fieldName != NULL && fieldIndex >= 0;
   PartType partType = data.isMaster() ? pt_masterData : pt_slaveData;
-  for (auto field : m_fields) {
+  for (const auto field : m_fields) {
     if (field->getPartType() != partType) {
       continue;
     }
@@ -1017,7 +1017,7 @@ result_t DataFieldSet::read(const SymbolString& data, size_t offset,
     outputIndex = 0;
   }
   PartType partType = data.isMaster() ? pt_masterData : pt_slaveData;
-  for (auto field : m_fields) {
+  for (const auto field : m_fields) {
     if (field->getPartType() != partType) {
       if (outputIndex >= 0 && !field->isIgnored()) {
         outputIndex++;
@@ -1064,7 +1064,7 @@ result_t DataFieldSet::write(istringstream& input, SymbolString& data,
   PartType partType = data.isMaster() ? pt_masterData : pt_slaveData;
   bool previousFullByteOffset = true;
   size_t baseOffset = offset;
-  for (auto field : m_fields) {
+  for (const auto field : m_fields) {
     if (field->getPartType() != partType) {
       continue;
     }
@@ -1100,7 +1100,7 @@ result_t DataFieldSet::write(istringstream& input, SymbolString& data,
 
 DataFieldTemplates::DataFieldTemplates(DataFieldTemplates& other)
     : MappedFileReader::MappedFileReader(false) {
-  for (auto it : other.m_fieldsByName) {
+  for (const auto it : other.m_fieldsByName) {
     m_fieldsByName[it.first] = it.second->clone();
   }
 }
@@ -1117,7 +1117,7 @@ result_t DataFieldTemplates::add(const DataField* field, string name, bool repla
   if (name.length() == 0) {
     name = field->getName();
   }
-  auto it = m_fieldsByName.find(name);
+  const auto it = m_fieldsByName.find(name);
   if (it != m_fieldsByName.end()) {
     if (!replace) {
       return RESULT_ERR_DUPLICATE_NAME;  // duplicate key
@@ -1136,7 +1136,7 @@ result_t DataFieldTemplates::getFieldMap(vector<string>& row, string& errorDescr
   // name[:usename],basetype[:len]|template[:usename][,[divisor|values][,[unit][,[comment]]]]
   if (row.empty()) {
     // default map does not include separate field name
-    for (auto col : defaultTemplateFieldMap) {
+    for (const auto& col : defaultTemplateFieldMap) {
       row.push_back(col);
     }
     return RESULT_OK;
@@ -1252,7 +1252,7 @@ result_t DataFieldTemplates::addFromFile(map<string, string>& row, vector< map<s
 }
 
 const DataField* DataFieldTemplates::get(const string name) const {
-  auto ref = m_fieldsByName.find(name);
+  const auto ref = m_fieldsByName.find(name);
   if (ref == m_fieldsByName.end()) {
     return NULL;
   }

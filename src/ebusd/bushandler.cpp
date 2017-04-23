@@ -211,7 +211,7 @@ void GrabbedMessage::setLastData(MasterSymbolString& master, SlaveSymbolString& 
  * @param firstOnly whether to read only the first non-erroneous offset.
  * @return @a RESULT_OK on success, or an error code.
  */
-bool decodeType(const DataType* type, SymbolString *input, size_t length,
+bool decodeType(const DataType* type, const SymbolString *input, size_t length,
     size_t offsets, ostringstream& output, bool firstOnly = false) {
   bool first = true;
   string in = input->getStr(input->getDataOffset());
@@ -255,7 +255,7 @@ bool decodeType(const DataType* type, SymbolString *input, size_t length,
 }
 
 bool GrabbedMessage::dump(const bool unknown, MessageMap* messages, bool first, ostringstream& output,
-    const bool decode) {
+    const bool decode) const {
   Message* message = messages->find(m_lastMaster);
   if (unknown && message) {
     return false;
@@ -278,7 +278,7 @@ bool GrabbedMessage::dump(const bool unknown, MessageMap* messages, bool first, 
       return true;
     }
     bool master = isMaster(dstAddress) || dstAddress == BROADCAST || m_lastSlave.getDataSize() <= 0;
-    SymbolString *input;
+    const SymbolString *input;
     if (master) {
       input = &m_lastMaster;
     } else {
@@ -288,7 +288,7 @@ bool GrabbedMessage::dump(const bool unknown, MessageMap* messages, bool first, 
     if (remain == 0) {
       return true;
     }
-    for (auto it : *types) {
+    for (const auto it : *types) {
       const DataType* baseType = it.second;
       if ((baseType->getBitCount() % 8) != 0 || baseType->isIgnored()) {  // skip bit and ignored types
         continue;
@@ -1143,10 +1143,13 @@ result_t BusHandler::prepareScan(symbol_t slave, bool full, string levels, bool&
   }
 
   deque<Message*> messages = m_messages->findAll("scan", "", levels, true);
-  for (deque<Message*>::iterator it = messages.begin(); it < messages.end(); it++) {
+  auto it = messages.begin();
+  while (it != messages.end()) {
     Message* message = *it;
     if (message->getPrimaryCommand() == 0x07 && message->getSecondaryCommand() == 0x04) {
-      messages.erase(it--);  // query pb 0x07 / sb 0x04 only once
+      it = messages.erase(it);  // query pb 0x07 / sb 0x04 only once
+    } else {
+      it++;
     }
   }
 
@@ -1229,7 +1232,7 @@ void BusHandler::setScanFinished() {
 }
 
 bool BusHandler::formatScanResult(symbol_t slave, ostringstream& output, bool leadingNewline) {
-  map<symbol_t, vector<string>>::iterator it = m_scanResults.find(slave);
+  const auto it = m_scanResults.find(slave);
   if (it == m_scanResults.end()) {
     return false;
   }
@@ -1237,7 +1240,7 @@ bool BusHandler::formatScanResult(symbol_t slave, ostringstream& output, bool le
     output << endl;
   }
   output << hex << setw(2) << setfill('0') << static_cast<unsigned>(slave);
-  for (auto result : it->second) {
+  for (const auto result : it->second) {
     output << result;
   }
   return true;
@@ -1317,7 +1320,7 @@ void BusHandler::formatSeenInfo(ostringstream& output) {
     const vector<string>& loadedFiles = m_messages->getLoadedFiles(address);
     if (!loadedFiles.empty()) {
       bool first = true;
-      for (auto& loadedFile : loadedFiles) {
+      for (const auto& loadedFile : loadedFiles) {
         if (first) {
           first = false;
           output << ", loaded \"";
@@ -1347,9 +1350,8 @@ void BusHandler::formatUpdateInfo(ostringstream& output) {
   output << ",\"co\":" << (m_addressConflict ? 1 : 0);
   if (m_grabMessages) {
     size_t unknownCnt = 0;
-    for (map<uint64_t, GrabbedMessage>::iterator it = m_grabbedMessages.begin(); it != m_grabbedMessages.end();
-        it++) {
-      Message* message = m_messages->find(it->second.getLastMasterData());
+    for (auto it : m_grabbedMessages) {
+      Message* message = m_messages->find(it.second.getLastMasterData());
       if (!message) {
         unknownCnt++;
       }
@@ -1364,10 +1366,10 @@ void BusHandler::formatUpdateInfo(ostringstream& output) {
     }
     output << ",\"" << setfill('0') << setw(2) << hex << static_cast<unsigned>(address) << dec << setw(0);
     output << "\":{\"o\":" << (ownAddress ? 1 : 0);
-    map<symbol_t, vector<string>>::iterator it = m_scanResults.find(address);
+    const auto it = m_scanResults.find(address);
     if (it != m_scanResults.end()) {
       output << ",\"s\":\"";
-      for (auto result : it->second) {
+      for (const auto result : it->second) {
         output << result;
       }
       output << "\"";
@@ -1383,7 +1385,7 @@ void BusHandler::formatUpdateInfo(ostringstream& output) {
     if (!loadedFiles.empty()) {
       output << ",\"f\":[";
       bool first = true;
-      for (auto& loadedFile : loadedFiles) {
+      for (const auto loadedFile : loadedFiles) {
         if (first) {
           first = false;
         } else {
@@ -1406,7 +1408,7 @@ void BusHandler::formatUpdateInfo(ostringstream& output) {
   if (!loadedFiles.empty()) {
     output << ",\"l\":{";
     bool first = true;
-    for (auto& loadedFile : loadedFiles) {
+    for (const auto& loadedFile : loadedFiles) {
       if (first) {
         first = false;
       } else {
@@ -1489,9 +1491,8 @@ void BusHandler::formatGrabResult(const bool unknown, ostringstream& output, con
     output << "grab disabled";
   } else {
     bool first = true;
-    for (map<uint64_t, GrabbedMessage>::iterator it = m_grabbedMessages.begin(); it != m_grabbedMessages.end();
-        it++) {
-      if (it->second.dump(unknown, m_messages, first, output, decode)) {
+    for (const auto& it : m_grabbedMessages) {
+      if (it.second.dump(unknown, m_messages, first, output, decode)) {
         first = false;
       }
     }

@@ -205,7 +205,7 @@ bool parseTopic(const string topic, vector<string> &strs, vector<string> &fields
       return false;
     }
     string fieldName = knownFieldNames[idx];
-    for (auto& it : fields) {
+    for (const auto& it : fields) {
       if (it == fieldName) {
         return false;  // duplicate column
       }
@@ -521,12 +521,11 @@ void MqttHandler::run() {
       time(&lastTaskRun);
     }
     if (m_connected && !m_updatedMessages.empty()) {
-      for (map<Message*, int>::iterator it = m_updatedMessages.begin(); it != m_updatedMessages.end(); it++) {
-        Message* message = it->first;
+      for (const auto it : m_updatedMessages) {
         updates.str("");
         updates.clear();
         updates << dec;
-        publishMessage(message, updates);
+        publishMessage(it.first, updates);
       }
     }
     m_updatedMessages.clear();
