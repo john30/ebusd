@@ -457,7 +457,7 @@ void MainLoop::notifyDeviceData(const symbol_t symbol, bool received) {
   }
   if (symbol != SYN) {
     if (received && !m_logRawLastReceived && symbol == m_logRawLastSymbol) {
-      return; // skip received echo of previously sent symbol
+      return;  // skip received echo of previously sent symbol
     }
     if (m_logRawBuffer.tellp() == 0 || received != m_logRawLastReceived) {
       m_logRawLastReceived = received;

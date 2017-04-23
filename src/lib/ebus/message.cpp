@@ -2322,7 +2322,8 @@ vector<string> MessageMap::getLoadedFiles() const {
   return ret;
 }
 
-bool MessageMap::getLoadedFileInfo(const string filename, string& comment, size_t* hash, size_t* size, time_t* time) const {
+bool MessageMap::getLoadedFileInfo(const string filename, string& comment, size_t* hash, size_t* size, time_t* time)
+    const {
   const auto it = m_loadedFileInfos.find(filename);
   if (it == m_loadedFileInfos.end()) {
     comment = "";
