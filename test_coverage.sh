@@ -209,7 +209,7 @@ echo "ebusd: $pid"
 kill -1 $pid
 #client:
 readarray lines <<EOF
-raw
+raw bytes
 reload
 log
 log bus,update debug
@@ -219,6 +219,8 @@ grab
 info
 state
 read -c "hallo du" ich
+raw
+raw
 h
 h r
 h w
