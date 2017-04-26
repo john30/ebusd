@@ -1963,7 +1963,7 @@ result_t MessageMap::readConditions(string& types, const string filename, string
   if (types.length() > 0 && types[0] == '[' && (pos=types.find_last_of(']')) != string::npos) {
     // check if combined or simple condition is already known
     const string combinedkey = filename+":"+types.substr(1, pos-1);
-    const auto it = m_conditions.find(combinedkey);
+    auto it = m_conditions.find(combinedkey);
     if (it != m_conditions.end()) {
       condition = it->second;
       types = types.substr(pos+1);
@@ -1973,7 +1973,7 @@ result_t MessageMap::readConditions(string& types, const string filename, string
       while ((pos=types.find(']')) != string::npos) {
         // simple condition
         string key = filename+":"+types.substr(1, pos-1);
-        auto it = m_conditions.find(key);
+        it = m_conditions.find(key);
         Condition* add = NULL;
         if (it == m_conditions.end()) {
           // check for on-the-fly condition
@@ -2135,11 +2135,9 @@ result_t MessageMap::addFromFile(map<string, string>& row, vector< map<string, s
       errorDescription = "invalid instruction";
       return result;
     }
-    const auto it = m_instructions.find(filename);
+    auto it = m_instructions.find(filename);
     if (it == m_instructions.end()) {
-      vector<Instruction*> instructions;
-      instructions.push_back(instruction);
-      m_instructions[filename] = instructions;
+      m_instructions[filename].push_back(instruction);
     } else {
       it->second.push_back(instruction);
     }
@@ -2204,7 +2202,7 @@ Message* MessageMap::getScanMessage(const symbol_t dstAddress) {
 
 result_t MessageMap::resolveConditions(string& errorDescription, bool verbose) {
   result_t overallResult = RESULT_OK;
-  for (const auto it : m_conditions) {
+  for (const auto& it : m_conditions) {
     Condition* condition = it.second;
     result_t result = resolveCondition(condition, errorDescription);
     if (result != RESULT_OK) {
@@ -2233,8 +2231,8 @@ result_t MessageMap::resolveCondition(Condition* condition, string& errorDescrip
 result_t MessageMap::executeInstructions(ostringstream& log, void (*readMessageFunc)(Message* message)) {
   result_t overallResult = RESULT_OK;
   vector<string> remove;
-  for (auto it : m_instructions) {
-    auto& instructions = it.second;
+  for (auto& it : m_instructions) {
+    auto instructions = it.second;
     bool removeSingletons = false;
     vector<Instruction*> remain;
     for (const auto instruction : instructions) {
