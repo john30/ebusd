@@ -56,6 +56,7 @@ class NetMessage {
    * Destructor.
    */
   ~NetMessage() {
+    m_resultSet = true;
     pthread_mutex_destroy(&m_mutex);
     pthread_cond_destroy(&m_cond);
   }
@@ -132,9 +133,12 @@ class NetMessage {
   string getResult() {
     pthread_mutex_lock(&m_mutex);
 
-    while (!m_resultSet)
-      pthread_cond_wait(&m_cond, &m_mutex);
-
+    while (!m_resultSet) {
+      int wait = pthread_cond_wait(&m_cond, &m_mutex);
+      if (wait != 0 && wait != ETIMEDOUT) {
+        break;
+      }
+    }
     m_request.clear();
     string result = m_result;
     m_result.clear();
