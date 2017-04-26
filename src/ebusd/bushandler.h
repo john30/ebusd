@@ -329,7 +329,8 @@ class GrabbedMessage {
    * @param decode whether to add decoding hints.
    * @return whether the message was added to the output.
    */
-  bool dump(const bool unknown, MessageMap* messages, bool first, ostringstream& output, const bool decode = false);
+  bool dump(const bool unknown, MessageMap* messages, bool first, ostringstream& output,
+      const bool decode = false) const;
 
 
  private:

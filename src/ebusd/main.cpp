@@ -116,7 +116,7 @@ static struct options opt = {
   ll_COUNT,  // logLevel
   false,  // multiLog
 
-  false,  // logRaw
+  0,  // logRaw
   PACKAGE_LOGFILE,  // logRawFile
   100,  // logRawSize
 
@@ -216,7 +216,8 @@ static const struct argp_option argpoptions[] = {
       " [notice]", 0 },
 
   {NULL,             0,        NULL,    0, "Raw logging options:", 6 },
-  {"lograwdata",     O_RAW,    NULL,    0, "Log each received/sent byte on the bus", 0 },
+  {"lograwdata",     O_RAW,    "bytes",  OPTION_ARG_OPTIONAL,
+      "Log messages or all received/sent bytes on the bus", 0 },
   {"lograwdatafile", O_RAWFIL, "FILE",  0, "Write raw log to FILE [" PACKAGE_LOGFILE "]", 0 },
   {"lograwdatasize", O_RAWSIZ, "SIZE",  0, "Make raw log file no larger than SIZE kB [100]", 0 },
 
@@ -504,7 +505,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
 
   // Raw logging options:
   case O_RAW:  // --lograwdata
-    opt->logRaw = true;
+    opt->logRaw = arg && strcmp("bytes", arg) == 0 ? 2 : 1;
     break;
   case O_RAWFIL:  // --lograwdatafile=/var/log/ebusd.log
     if (arg == NULL || arg[0] == 0 || strcmp("/", arg) == 0) {
@@ -632,11 +633,10 @@ void shutdown() {
     s_messageMap = NULL;
   }
   // free templates
-  for (map<string, DataFieldTemplates*>::iterator it = s_templatesByPath.begin(); it != s_templatesByPath.end(); it++) {
-    if (it->second != &s_globalTemplates) {
-      delete it->second;
+  for (const auto it : s_templatesByPath) {
+    if (it.second != &s_globalTemplates) {
+      delete it.second;
     }
-    it->second = NULL;
   }
   s_templatesByPath.clear();
 
@@ -738,7 +738,7 @@ DataFieldTemplates* getTemplates(const string filename) {
   if (pos != string::npos) {
     path = filename.substr(0, pos);
   }
-  map<string, DataFieldTemplates*>::iterator it = s_templatesByPath.find(path);
+  const auto it = s_templatesByPath.find(path);
   if (it != s_templatesByPath.end()) {
     return it->second;
   }
@@ -755,7 +755,7 @@ DataFieldTemplates* getTemplates(const string filename) {
  * @return the @a DataFieldTemplates.
  */
 static bool readTemplates(const string path, const string extension, bool available, bool verbose = false) {
-  map<string, DataFieldTemplates*>::iterator it = s_templatesByPath.find(path);
+  const auto it = s_templatesByPath.find(path);
   if (it != s_templatesByPath.end()) {
     return false;
   }
@@ -799,8 +799,7 @@ static result_t readConfigFiles(const string path, const string extension, Messa
     return result;
   }
   readTemplates(path, extension, hasTemplates, verbose);
-  for (vector<string>::iterator it = files.begin(); it != files.end(); it++) {
-    string name = *it;
+  for (const auto& name : files) {
     logInfo(lf_main, "reading file %s", name.c_str());
     result = messages->readFromFile(name, errorDescription, verbose);
     if (result != RESULT_OK) {
@@ -808,8 +807,7 @@ static result_t readConfigFiles(const string path, const string extension, Messa
     }
   }
   if (recursive) {
-    for (vector<string>::iterator it = dirs.begin(); it != dirs.end(); it++) {
-      string name = *it;
+    for (const auto& name : dirs) {
       logInfo(lf_main, "reading dir  %s", name.c_str());
       result = readConfigFiles(name, extension, messages, true, verbose, errorDescription);
       if (result != RESULT_OK) {
@@ -864,12 +862,11 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
   logInfo(lf_main, "loading configuration files from %s", opt.configPath);
   messages->clear();
   s_globalTemplates.clear();
-  for (map<string, DataFieldTemplates*>::iterator it = s_templatesByPath.begin(); it != s_templatesByPath.end();
-      it++) {
-    if (it->second != &s_globalTemplates) {
-      delete it->second;
+  for (auto& it : s_templatesByPath) {
+    if (it.second != &s_globalTemplates) {
+      delete it.second;
     }
-    it->second = NULL;
+    it.second = NULL;
   }
   s_templatesByPath.clear();
 
@@ -957,19 +954,20 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, string& rela
   }
   logDebug(lf_main, "found %d matching scan config files from %s with prefix %s: %s", files.size(), path.c_str(),
       prefix.c_str(), getResultCode(result));
-  for (string::iterator it = ident.begin(); it != ident.end(); it++) {
+  auto it = ident.begin();
+  while (it != ident.end()) {
     if (::isspace(*it)) {
-      ident.erase(it--);
+      it = ident.erase(it);
     } else {
       *it = static_cast<char>(::tolower(*it));
+      it++;
     }
   }
   // complete name: cfgpath/MANUFACTURER/ZZ[.C[C[C[C[C]]]]][.circuit][.suffix][.*][.SWxxxx][.HWxxxx][.*].csv
   size_t bestMatch = 0;
   string best;
   map<string, string> bestDefaults;
-  for (vector<string>::iterator it = files.begin(); it != files.end(); it++) {
-    string name = *it;
+  for (const auto& name : files) {
     symbol_t checkDest;
     unsigned int checkSw, checkHw;
     map<string, string> defaults;
@@ -1020,14 +1018,12 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, string& rela
   if (readCommon) {
     result = collectConfigFiles(path, "", ".csv", files);
     if (result == RESULT_OK && !files.empty()) {
-      for (vector<string>::iterator it = files.begin(); it != files.end(); it++) {
-        string name = *it;
-        name = name.substr(path.length()+1, name.length()-path.length()-strlen(".csv"));  // *.
-        if (name == "_templates.") {  // skip templates
+      for (const auto& name : files) {
+        string baseName = name.substr(path.length()+1, name.length()-path.length()-strlen(".csv"));  // *.
+        if (baseName == "_templates.") {  // skip templates
           continue;
         }
-        if (name.length() < 3 || name.find_first_of('.') != 2) {  // different from the scheme "ZZ."
-          name = *it;
+        if (baseName.length() < 3 || baseName.find_first_of('.') != 2) {  // different from the scheme "ZZ."
           string errorDescription;
           result = messages->readFromFile(name, errorDescription, opt.checkConfig);
           if (result == RESULT_OK) {
