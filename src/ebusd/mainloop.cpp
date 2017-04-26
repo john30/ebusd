@@ -223,7 +223,7 @@ void MainLoop::run() {
         lastSignal -= lastTaskRun-now;
       }
       lastTaskRun = now;
-    } else if (now > lastTaskRun+taskDelay) {
+    } else if (!m_shutdown && now > lastTaskRun+taskDelay) {
       logDebug(lf_main, "performing regular tasks");
       if (m_busHandler->hasSignal()) {
         lastSignal = now;
@@ -288,7 +288,7 @@ void MainLoop::run() {
           }
         }
       }
-      if (now > nextCheckRun) {
+      if (!m_shutdown && now > nextCheckRun) {
         TCPClient client;
         TCPSocket* socket = client.connect("ebusd.eu", 80);
         if (socket) {
@@ -395,6 +395,10 @@ void MainLoop::run() {
     }
     if (netMessage == NULL) {
       continue;
+    }
+    if (m_shutdown) {
+      netMessage->setResult("ERR: shutdown", "", false, now, true);
+      break;
     }
     string request = netMessage->getRequest();
     string user = netMessage->getUser();
