@@ -1471,13 +1471,12 @@ result_t BusHandler::scanAndWait(symbol_t dstAddress, bool loadScanConfig, bool 
   }
   if (loadScanConfig) {
     string file;
-    if (result == RESULT_ERR_TIMEOUT) {
+    bool timedOut = result == RESULT_ERR_TIMEOUT;
+    if (timedOut || result == RESULT_OK) {
       result = loadScanConfigFile(m_messages, dstAddress, file);  // try to load even if one message timed out
-      if (result == RESULT_EMPTY) {
+      if (timedOut && result == RESULT_EMPTY) {
         result = RESULT_ERR_TIMEOUT;  // back to previous result
       }
-    } else if (result == RESULT_OK) {
-      result = loadScanConfigFile(m_messages, dstAddress, file);
     }
     if (result == RESULT_OK) {
       executeInstructions(m_messages);
