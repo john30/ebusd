@@ -49,6 +49,8 @@
 * added support for optional user-defined columns to config files
 * added circuit-level attributes to config files for use in JSON
 * added -N option to "read" command
+* added "--inject" option to inject remaining arguments as already seen messages
+* use scans initiated by other participants and allow "--readonly" with "--scanconfig[=none]"
 
 
 # 2.4 (2016-12-17)
