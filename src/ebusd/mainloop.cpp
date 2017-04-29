@@ -1588,11 +1588,11 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
   ostringstream result;
   int type = -1;
 
-  if (uri.substr(0, 6) == "/data/") {
+  if (uri.substr(0, 5) == "/data" && (uri.length() == 5 || uri[5] == '/')) {
     string circuit = "", name = "";
     size_t pos = uri.find('/', 6);
     if (pos == string::npos) {
-      circuit = uri.substr(6);
+      circuit = uri.length() == 5 ? "" : uri.substr(6);
     } else {
       circuit = uri.substr(6, pos - 6);
       name = uri.substr(pos + 1);
@@ -1620,23 +1620,23 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
         } else if (qname == "poll") {
           pollPriority = (size_t)parseInt(value.c_str(), 10, 1, 9, ret);
         } else if (qname == "exact") {
-          exact = value.length() == 0 || value == "1";
+          exact = value.length() == 0 || value == "1" || value == "true";
         } else if (qname == "verbose") {
-          if (value.length() == 0 || value == "1") {
+          if (value.length() == 0 || value == "1" || value == "true") {
             verbosity |= OF_UNITS | OF_COMMENTS;
           }
         } else if (qname == "indexed") {
-          if (value.length() == 0 || value == "1") {
+          if (value.length() == 0 || value == "1" || value == "true") {
             verbosity &= ~OF_NAMES;
           }
         } else if (qname == "numeric") {
-          numeric = value.length() == 0 || value == "1";
+          numeric = value.length() == 0 || value == "1" || value == "true";
         } else if (qname == "valuename") {
-          valueName = value.length() == 0 || value == "1";
+          valueName = value.length() == 0 || value == "1" || value == "true";
         } else if (qname == "full") {
-          full = value.length() == 0 || value == "1";
+          full = value.length() == 0 || value == "1" || value == "true";
         } else if (qname == "required") {
-          required = value.length() == 0 || value == "1";
+          required = value.length() == 0 || value == "1" || value == "true";
         } else if (qname == "user") {
           user = value;
         } else if (qname == "secret") {
@@ -1714,7 +1714,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
       if (!user.empty() || !levels.empty()) {
         result << ",\n  \"access\": \"" << levels << "\"";
       }
-      result << ",\n  \"signal\": " << (m_busHandler->hasSignal() ? "1" : "0");
+      result << ",\n  \"signal\": " << (m_busHandler->hasSignal() ? "true" : "false");
       if (m_busHandler->hasSignal()) {
         result << ",\n  \"symbolrate\": " << m_busHandler->getSymbolRate();
         result << ",\n  \"maxsymbolrate\": " << m_busHandler->getMaxSymbolRate();
@@ -1729,7 +1729,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
     }
     connected = false;
     return formatHttpResult(ret, result, type);
-  }  // request for "/data/..."
+  }  // request for "/data..."
 
   if (uri.length() < 1 || uri[0] != '/' || uri.find("//") != string::npos || uri.find("..") != string::npos) {
     ret = RESULT_ERR_INVALID_ARG;
