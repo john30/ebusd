@@ -87,7 +87,7 @@ class Queue {
       clockGettime(&t);
       t.tv_sec += timeout;
       while (m_queue.empty()) {
-        if (pthread_cond_timedwait(&m_cond, &m_mutex, &t) == ETIMEDOUT) {
+        if (pthread_cond_timedwait(&m_cond, &m_mutex, &t) != 0) {
           break;
         }
       }
@@ -111,6 +111,9 @@ class Queue {
   bool remove(T item, bool wait = false) {
     bool ret = false;
     pthread_mutex_lock(&m_mutex);
+    struct timespec t;
+    clockGettime(&t);
+    t.tv_sec++;  // check thread death every second
     do {
       size_t oldSize = m_queue.size();
       if (oldSize > 0) {
@@ -120,7 +123,10 @@ class Queue {
           break;
         }
       }
-      pthread_cond_wait(&m_cond, &m_mutex);
+      int ret = pthread_cond_timedwait(&m_cond, &m_mutex, &t);
+      if (ret != 0 && ret != ETIMEDOUT) {
+        break;
+      }
     } while (wait);
     pthread_mutex_unlock(&m_mutex);
     return ret;
