@@ -3,19 +3,21 @@
 ./src/ebusd/ebusd -r -f -x >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f -d "" >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f -d "tcp:192.168.999.999:1" >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --scanconfig -r >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --scanconfig=full -r >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --latency 999999 >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f -c "" >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f -r --scanconfig >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f -r --scanconfig=fe >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --pollinterval 999999 >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --address 999 >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f -r --answer >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --acquiretimeout 999999 >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --acquireretries 999999 >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --sendretries 999999 >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --receivetimeout 9999999 >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --numbermasters 999999 >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f -r --answer >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f -r --generatesyn >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f -r --initsend >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f -r --scanconfig=0 >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --pidfile "" >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f -p 999999 >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --httpport 999999 >/dev/null 2>/dev/null
@@ -27,9 +29,9 @@
 ./src/ebusd/ebusd -f --dumpsize 9999999 >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --aclfile=/ >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --accesslevel >/dev/null 2>/dev/null
-./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f "ff08070400/0ab5303132333431313131" >/dev/null
-./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f "ff08070400" >/dev/null 2>/dev/null
-./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f "ff080704/" >/dev/null 2>/dev/null
+./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f -i "ff08070400/0ab5303132333431313131" >/dev/null
+./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f -i "ff08070400" >/dev/null 2>/dev/null
+./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f -i "ff080704/" >/dev/null 2>/dev/null
 cat >contrib/etc/ebusd/bad.csv <<EOF
 u,broadcast,outsidetemp,,,fe,b516,01,temp2,m,UCH,2000000000
 u,broadcast,outsidetemp,,,fe,b516,01,temp2,m,D2B,2000000000=
