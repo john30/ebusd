@@ -86,11 +86,12 @@ static struct options opt = {
 
   CONFIG_PATH,  // configPath
   false,  // scanConfig
-  BROADCAST,  // initialScan
+  0,  // initialScan
   getenv("LANG"),  // preferLanguage
   false,  // checkConfig
   false,  // dumpConfig
   5,  // pollInterval
+  false,  // injectMessages
 
   0x31,  // address
   false,  // answer
@@ -177,13 +178,16 @@ static const struct argp_option argpoptions[] = {
   {"configpath",     'c',      "PATH",  0, "Read CSV config files from PATH [" CONFIG_PATH "]", 0 },
   {"scanconfig",     's',      "ADDR",  OPTION_ARG_OPTIONAL, "Pick CSV config files matching initial scan (ADDR="
       "\"none\" or empty for no initial scan message, \"full\" for full scan, or a single hex address to scan, "
-      "default is broadcast ident message). If combined with --checkconfig, you can add scan message data as "
-      "arguments for checking a particular scan configuration, e.g. \"FF08070400/0AB5454850303003277201\".", 0 },
+      "default is broadcast ident message). If combined with --checkconfig and --inject, you can add scan message "
+      "data as arguments for checking a particular scan configuration, e.g. \"FF08070400/0AB5454850303003277201\".",
+      0 },
   {"configlang",     O_CFGLNG, "LANG",  0,
       "Prefer LANG in multilingual configuration files [system default language]", 0 },
   {"checkconfig",    O_CHKCFG, NULL,    0, "Check CSV config files, then stop", 0 },
   {"dumpconfig",     O_DMPCFG, NULL,    0, "Check and dump CSV config files, then stop", 0 },
   {"pollinterval",   O_POLINT, "SEC",   0, "Poll for data every SEC seconds (0=disable) [5]", 0 },
+  {"inject",         'i',      NULL,    0, "Inject remaining arguments as already seen messages (e.g. "
+      "\"FF08070400/0AB5454850303003277201\")", 0 },
 
   {NULL,             0,        NULL,    0, "eBUS options:", 3 },
   {"address",        'a',      "ADDR",  0, "Use ADDR as own bus address [31]", 0 },
@@ -261,13 +265,18 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     opt->noDeviceCheck = true;
     break;
   case 'r':  // --readonly
-    if (opt->answer || opt->generateSyn) {
-      argp_error(state, "cannot combine readonly with answer/generatesyn");
+    if (opt->answer || opt->generateSyn || opt->initialSend
+        || (opt->scanConfig && opt->initialScan != 0 && opt->initialScan != ESC)) {
+      argp_error(state, "cannot combine readonly with answer/generatesyn/initsend/scanconfig=*");
       return EINVAL;
     }
     opt->readOnly = true;
     break;
   case O_INISND:  // --initsend
+    if (opt->readOnly) {
+      argp_error(state, "cannot combine readonly with answer/generatesyn/initsend/scanconfig=*");
+      return EINVAL;
+    }
     opt->initialSend = true;
     break;
   case O_DEVLAT:  // --latency=10000
@@ -307,6 +316,10 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
           opt->initialScan = getSlaveAddress(opt->initialScan);
         }
       }
+      if (opt->readOnly && opt->initialScan != ESC) {
+        argp_error(state, "cannot combine readonly with answer/generatesyn/initsend/scanconfig=*");
+        return EINVAL;
+      }
     }
     break;
   case O_CFGLNG:  // --configlang=LANG
@@ -330,6 +343,9 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       return EINVAL;
     }
     break;
+  case 'i':  // --inject
+    opt->injectMessages = true;
+    break;
 
   // eBUS options:
   case 'a':  // --address=31
@@ -341,7 +357,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
   case O_ANSWER:  // --answer
     if (opt->readOnly) {
-      argp_error(state, "cannot combine readonly with answer/generatesyn");
+      argp_error(state, "cannot combine readonly with answer/generatesyn/initsend/scanconfig=*");
       return EINVAL;
     }
     opt->answer = true;
@@ -383,7 +399,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
   case O_GENSYN:  // --generatesyn
     if (opt->readOnly) {
-      argp_error(state, "cannot combine readonly with answer/generatesyn");
+      argp_error(state, "cannot combine readonly with answer/generatesyn/initsend/scanconfig=*");
       return EINVAL;
     }
     opt->generateSyn = true;
@@ -539,7 +555,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
 
   case ARGP_KEY_ARG:
-    if (!opt->checkConfig) {
+    if (!opt->injectMessages) {
       argp_error(state, "invalid arguments starting with \"%s\"", arg);
       return EINVAL;
     }
@@ -830,11 +846,6 @@ void readMessage(Message* message) {
   }
 }
 
-/**
- * Helper method for executing all loaded and resolvable instructions.
- * @param messages the @a MessageMap instance.
- * @param verbose whether to verbosely log all problems.
- */
 void executeInstructions(MessageMap* messages, bool verbose) {
   string errorDescription;
   result_t result = messages->resolveConditions(errorDescription, verbose);
@@ -875,13 +886,12 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
     logError(lf_main, "error reading config files: %s, last error: %s", getResultCode(result),
         errorDescription.c_str());
   }
-  executeInstructions(messages, verbose);
   return RESULT_OK;
 }
 
 result_t loadScanConfigFile(MessageMap* messages, symbol_t address, string& relativeFile, bool verbose) {
   Message* message = messages->getScanMessage(address);
-  if (!message) {
+  if (!message || message->getLastUpdateTime() == 0) {
     return RESULT_ERR_NOTFOUND;
   }
   const SlaveSymbolString& data = message->getLastSlaveData();
@@ -1042,10 +1052,33 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, string& rela
   }
   logNotice(lf_main, "read scan config file %s for ID \"%s\", SW%4.4d, HW%4.4d", best.c_str(), ident.c_str(), sw, hw);
   relativeFile = best.substr(strlen(opt.configPath)+1);
-  executeInstructions(messages, verbose);
   return RESULT_OK;
 }
 
+bool parseMessage(const string& arg, MasterSymbolString& master, SlaveSymbolString& slave, bool onlyMasterSlave) {
+  size_t pos = arg.find_first_of('/');
+  if (pos == string::npos) {
+    logError(lf_main, "invalid message %s: missing \"/\"", arg.c_str());
+    return false;
+  }
+  result_t result = master.parseHex(arg.substr(0, pos));
+  if (result == RESULT_OK) {
+    result = slave.parseHex(arg.substr(pos+1));
+  }
+  if (result != RESULT_OK) {
+    logError(lf_main, "invalid message %s: %s", arg.c_str(), getResultCode(result));
+    return false;
+  }
+  if (master.size() < 5) {  // skip QQ ZZ PB SB NN
+    logError(lf_main, "invalid message %s: master part too short", arg.c_str());
+    return false;
+  }
+  if (!isMaster(master[0])) {
+    logError(lf_main, "invalid message %s: QQ is no master", arg.c_str());
+    return false;
+  }
+  return true;
+}
 
 /**
  * Main function.
@@ -1063,6 +1096,9 @@ int main(int argc, char* argv[]) {
     return EINVAL;
   }
 
+  if (!opt.readOnly && opt.scanConfig && opt.initialScan == 0) {
+    opt.initialScan = BROADCAST;
+  }
   if (opt.logAreas != -1 || opt.logLevel != ll_COUNT) {
     setFacilitiesLogLevel(LF_ALL, ll_none);
     setFacilitiesLogLevel(opt.logAreas, opt.logLevel);
@@ -1073,27 +1109,12 @@ int main(int argc, char* argv[]) {
     logNotice(lf_main, PACKAGE_STRING "." REVISION " performing configuration check...");
 
     result_t result = loadConfigFiles(s_messageMap, true, opt.scanConfig && arg_index < argc);
-
+    executeInstructions(s_messageMap, true);
+    MasterSymbolString master;
+    SlaveSymbolString slave;
     while (result == RESULT_OK && opt.scanConfig && arg_index < argc) {
       // check scan config for each passed ident message
-      string arg = argv[arg_index++];
-      size_t pos = arg.find_first_of('/');
-      if (pos == string::npos) {
-        logError(lf_main, "invalid scan message %s: missing \"/\"", arg.c_str());
-        continue;
-      }
-      MasterSymbolString master;
-      SlaveSymbolString slave;
-      result_t res = master.parseHex(arg.substr(0, pos));
-      if (res == RESULT_OK) {
-        res = slave.parseHex(arg.substr(pos+1));
-      }
-      if (res != RESULT_OK) {
-        logError(lf_main, "invalid scan message %s: %s", arg.c_str(), getResultCode(res));
-        continue;
-      }
-      if (master.size() < 5) {  // skip QQ ZZ PB SB NN
-        logError(lf_main, "invalid scan message %s: master part too short", arg.c_str());
+      if (!parseMessage(argv[arg_index++], master, slave, true)) {
         continue;
       }
       symbol_t address = master[1];
@@ -1103,7 +1124,8 @@ int main(int argc, char* argv[]) {
       } else {
         message->storeLastData(master, slave);
         string file;
-        res = loadScanConfigFile(s_messageMap, address, file, true);
+        result_t res = loadScanConfigFile(s_messageMap, address, file, true);
+        executeInstructions(s_messageMap, true);
         if (res == RESULT_OK) {
           logInfo(lf_main, "scan config %2.2x: file %s loaded", address, file.c_str());
         }
@@ -1139,12 +1161,21 @@ int main(int argc, char* argv[]) {
 
   // load configuration files
   loadConfigFiles(s_messageMap);
-  if (s_messageMap->sizeConditions() > 0 && opt.pollInterval == 0) {
-    logError(lf_main, "conditions require a poll interval > 0");
-  }
 
   // create the MainLoop and start it
   s_mainLoop = new MainLoop(opt, device, s_messageMap);
+  if (opt.injectMessages) {
+    BusHandler* busHandler = s_mainLoop->getBusHandler();
+    MasterSymbolString master;
+    SlaveSymbolString slave;
+    while (arg_index < argc) {
+      // add each passed message
+      if (!parseMessage(argv[arg_index++], master, slave, false)) {
+        continue;
+      }
+      busHandler->injectMessage(master, slave);
+    }
+  }
   s_mainLoop->start("mainloop");
 
   // wait for end of MainLoop

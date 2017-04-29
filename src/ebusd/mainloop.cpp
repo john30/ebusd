@@ -99,8 +99,8 @@ result_t UserList::addFromFile(map<string, string>& row, vector< map<string, str
 
 MainLoop::MainLoop(const struct options opt, Device *device, MessageMap* messages)
   : Thread(), m_device(device), m_reconnectCount(0), m_userList(opt.accessLevel), m_messages(messages),
-    m_address(opt.address), m_scanConfig(opt.scanConfig),
-    m_initialScan(opt.initialScan), m_enableHex(opt.enableHex), m_shutdown(false) {
+    m_address(opt.address), m_scanConfig(opt.scanConfig), m_initialScan(opt.readOnly ? ESC : opt.initialScan),
+    m_polling(opt.pollInterval>0), m_enableHex(opt.enableHex), m_shutdown(false) {
   // open Device
   result_t result = m_device->open();
   if (result != RESULT_OK) {
@@ -286,6 +286,13 @@ void MainLoop::run() {
               logInfo(lf_main, "scan config %2.2x message received", lastScanAddress);
             }
           }
+        }
+      } else if (reload && m_busHandler->hasSignal()) {
+        reload = false;
+        // execute initial instructions
+        executeInstructions(m_messages);
+        if (m_messages->sizeConditions() > 0 && !m_polling) {
+          logError(lf_main, "conditions require a poll interval > 0");
         }
       }
       if (!m_shutdown && now > nextCheckRun) {

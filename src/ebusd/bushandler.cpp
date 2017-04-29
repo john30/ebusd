@@ -384,6 +384,7 @@ void BusHandler::run() {
   lastTime += 2;
   logNotice(lf_bus, "bus started with own address %2.2x/%2.2x%s", m_ownMasterAddress, m_ownSlaveAddress,
       m_answer?" in answer mode":"");
+
   do {
     if (m_device->isValid() && !m_reconnect) {
       result_t result = handleSymbol();
@@ -569,7 +570,6 @@ result_t BusHandler::handleSymbol() {
   // receive next symbol (optionally check reception of sent symbol)
   symbol_t recvSymbol;
   result = m_device->recv(timeout+m_transferLatency, recvSymbol);
-
   if (!sending && result == RESULT_ERR_TIMEOUT && m_generateSynInterval > 0
   && timeout >= m_generateSynInterval && (m_state == bs_noSignal || m_state == bs_skip)) {
     // check if acting as AUTO-SYN generator is required
@@ -1102,6 +1102,21 @@ void BusHandler::receiveCompleted() {
       logNotice(lf_update, "unknown MM cmd: %s", m_command.getStr().c_str());
     } else {
       logNotice(lf_update, "unknown MS cmd: %s / %s", m_command.getStr().c_str(), m_response.getStr().c_str());
+      if (m_command.size() >= 5 && m_command[2] == 0x07 && m_command[3] == 0x04) {
+        Message* message = m_messages->getScanMessage(dstAddress);
+        if (message && (message->getLastUpdateTime() == 0 || message->getLastSlaveData().getDataSize() < 10)) {
+          result_t result = message->storeLastData(m_command, m_response);
+          if (result == RESULT_OK) {
+            ostringstream output;
+            result = message->decodeLastData(output, 0, true);
+            if (result == RESULT_OK) {
+              string str = output.str();
+              setScanResult(dstAddress, 0, str);
+            }
+          }
+          logNotice(lf_update, "store %2.2x ident: %s", dstAddress, getResultCode(result));
+        }
+      }
     }
   } else {
     m_messages->invalidateCache(message);
@@ -1141,7 +1156,9 @@ result_t BusHandler::prepareScan(symbol_t slave, bool full, string levels, bool&
   if (scanMessage == NULL) {
     return RESULT_ERR_NOTFOUND;
   }
-
+  if (m_device->isReadOnly()) {
+    return RESULT_OK;
+  }
   deque<Message*> messages = m_messages->findAll("scan", "", levels, true);
   auto it = messages.begin();
   while (it != messages.end()) {
@@ -1463,6 +1480,7 @@ result_t BusHandler::scanAndWait(symbol_t dstAddress, bool loadScanConfig, bool 
       result = loadScanConfigFile(m_messages, dstAddress, file);
     }
     if (result == RESULT_OK) {
+      executeInstructions(m_messages);
       setScanConfigLoaded(dstAddress, file);
       if (!hasAdditionalScanMessages && m_messages->hasAdditionalScanMessages()) {
         // additional scan messages now available
@@ -1499,7 +1517,7 @@ void BusHandler::formatGrabResult(const bool unknown, ostringstream& output, con
   }
 }
 
-symbol_t BusHandler::getNextScanAddress(symbol_t lastAddress, bool onlyScanned) {
+symbol_t BusHandler::getNextScanAddress(symbol_t lastAddress) {
   if (lastAddress == SYN) {
     return SYN;
   }
@@ -1507,22 +1525,14 @@ symbol_t BusHandler::getNextScanAddress(symbol_t lastAddress, bool onlyScanned) 
     if (!isValidAddress(lastAddress, false) || isMaster(lastAddress)) {
       continue;
     }
-    if (onlyScanned) {
-      if ((m_seenAddresses[lastAddress]&(LOAD_INIT|SCAN_DONE)) == SCAN_DONE) {
-        return lastAddress;
-      }
-    } else if ((m_seenAddresses[lastAddress]&(SEEN|LOAD_INIT)) == SEEN) {
+    if ((m_seenAddresses[lastAddress]&(SEEN|LOAD_INIT)) == SEEN) {
       return lastAddress;
     }
     symbol_t master = getMasterAddress(lastAddress);
     if (master == SYN || (m_seenAddresses[master]&SEEN) == 0) {
       continue;
     }
-    if (onlyScanned) {
-      if ((m_seenAddresses[lastAddress]&(LOAD_INIT|SCAN_DONE)) == SCAN_DONE) {
-        return lastAddress;
-      }
-    } else if ((m_seenAddresses[lastAddress]&LOAD_INIT) == 0) {
+    if ((m_seenAddresses[lastAddress]&LOAD_INIT) == 0) {
       return lastAddress;
     }
   }

@@ -414,6 +414,19 @@ class BusHandler : public WaitThread {
   void clear();
 
   /**
+   * Inject a message from outside and treat it as regularly retrieved from the bus.
+   * @param master the @a MasterSymbolString with the master data.
+   * @param slave the @a SlaveSymbolString with the slave data.
+   */
+  void injectMessage(MasterSymbolString& master, SlaveSymbolString& slave) {
+    m_command = master;
+    m_response = slave;
+    m_addressConflict = true;  // avoid conflict messages
+    receiveCompleted();
+    m_addressConflict = false;
+  }
+
+  /**
    * Send a message on the bus and wait for the answer.
    * @param master the @a MasterSymbolString with the master data to send.
    * @param slave the @a SlaveSymbolString that will be filled with retrieved slave data.
@@ -489,7 +502,7 @@ class BusHandler : public WaitThread {
    * Send a scan message on the bus and wait for the answer.
    * @param dstAddress the destination slave address to send to.
    * @param loadScanConfig true to immediately load the message definitions matching the scan result.
-   * @param reload true to fully reload the scan results.
+   * @param reload true to fully reload the scan results, false when the slave ID was already retrieved.
    * @return the result code.
    */
   result_t scanAndWait(symbol_t dstAddress, bool loadScanConfig = false, bool reload = false);
@@ -541,10 +554,9 @@ class BusHandler : public WaitThread {
   /**
    * Get the next slave address that still needs to be scanned or loaded.
    * @param lastAddress the last returned slave address, or 0 for returning the first one.
-   * @param onlyScanned true to return only already scanned addresses.
    * @return the next slave address that still needs to be scanned or loaded, or @a SYN.
    */
-  symbol_t getNextScanAddress(symbol_t lastAddress, bool onlyScanned = false);
+  symbol_t getNextScanAddress(symbol_t lastAddress);
 
   /**
    * Set the state of the participant to configuration @a LOADED.

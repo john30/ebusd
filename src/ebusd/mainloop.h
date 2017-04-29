@@ -349,6 +349,9 @@ class MainLoop : public Thread, DeviceListener {
    * (@a ESC=none, 0xfe=broadcast ident, @a SYN=full scan, else: single slave address). */
   const symbol_t m_initialScan;
 
+  /** true when the poll interval is non zero. */
+  const bool m_polling;
+
   /** whether to enable the hex command. */
   const bool m_enableHex;
 

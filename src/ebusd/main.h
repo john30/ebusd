@@ -49,6 +49,7 @@ struct options {
   bool checkConfig;  //!< check CSV config files, then stop
   bool dumpConfig;   //!< dump CSV config files, then stop
   unsigned int pollInterval;  //!< poll interval in seconds, 0 to disable [5]
+  bool injectMessages;  //!< inject remaining arguments as already seen messages
 
   symbol_t address;  //!< own bus address [31]
   bool answer;  //!< answer to requests from other masters
@@ -110,6 +111,13 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose = false, bool denyRe
  * @return the result code.
  */
 result_t loadScanConfigFile(MessageMap* messages, symbol_t address, string& relativeFile, bool verbose = false);
+
+/**
+ * Helper method for executing all loaded and resolvable instructions.
+ * @param messages the @a MessageMap instance.
+ * @param verbose whether to verbosely log all problems.
+ */
+void executeInstructions(MessageMap* messages, bool verbose = false);
 
 }  // namespace ebusd
 
