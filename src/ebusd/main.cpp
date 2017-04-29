@@ -261,11 +261,11 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     opt->noDeviceCheck = true;
     break;
   case 'r':  // --readonly
-    opt->readOnly = true;
-    if (opt->scanConfig || opt->answer || opt->generateSyn) {
-      argp_error(state, "cannot combine readonly with scanconfig/answer/generatesyn");
+    if (opt->answer || opt->generateSyn) {
+      argp_error(state, "cannot combine readonly with answer/generatesyn");
       return EINVAL;
     }
+    opt->readOnly = true;
     break;
   case O_INISND:  // --initsend
     opt->initialSend = true;
@@ -288,10 +288,6 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
   case 's':  // --scanconfig[=ADDR] (ADDR=<empty>|full|<hexaddr>)
     opt->scanConfig = true;
-    if (opt->readOnly) {
-      argp_error(state, "cannot combine readonly with scanconfig/answer/generatesyn");
-      return EINVAL;
-    }
     if (opt->pollInterval == 0) {
       argp_error(state, "scanconfig without polling may lead to invalid files included for certain products!");
       return EINVAL;
@@ -344,11 +340,11 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     }
     break;
   case O_ANSWER:  // --answer
-    opt->answer = true;
     if (opt->readOnly) {
-      argp_error(state, "cannot combine readonly with scanconfig/answer/generatesyn");
+      argp_error(state, "cannot combine readonly with answer/generatesyn");
       return EINVAL;
     }
+    opt->answer = true;
     break;
   case O_ACQTIM:  // --acquiretimeout=9400
     opt->acquireTimeout = parseInt(arg, 10, 1000, 100000, result);
@@ -386,11 +382,11 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     }
     break;
   case O_GENSYN:  // --generatesyn
-    opt->generateSyn = true;
     if (opt->readOnly) {
-      argp_error(state, "cannot combine readonly with scanconfig/answer/generatesyn");
+      argp_error(state, "cannot combine readonly with answer/generatesyn");
       return EINVAL;
     }
+    opt->generateSyn = true;
     break;
 
   // Daemon options:
@@ -1141,15 +1137,16 @@ int main(int argc, char* argv[]) {
 
   logNotice(lf_main, PACKAGE_STRING "." REVISION " started");
 
-  // create the MainLoop and start it
-  s_mainLoop = new MainLoop(opt, device, s_messageMap);
-  s_mainLoop->start("mainloop");
-
   // load configuration files
   loadConfigFiles(s_messageMap);
   if (s_messageMap->sizeConditions() > 0 && opt.pollInterval == 0) {
     logError(lf_main, "conditions require a poll interval > 0");
   }
+
+  // create the MainLoop and start it
+  s_mainLoop = new MainLoop(opt, device, s_messageMap);
+  s_mainLoop->start("mainloop");
+
   // wait for end of MainLoop
   s_mainLoop->join();
 
