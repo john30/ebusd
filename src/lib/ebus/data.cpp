@@ -193,12 +193,11 @@ result_t DataField::create(bool isWriteMessage, bool isTemplate, bool isBroadcas
     *errorDescription = "no fields";
     return RESULT_ERR_EOF;
   }
-  size_t fieldIndex = -1;
+  size_t fieldIndex = 0;
   for (auto& row : *rows) {
     if (result != RESULT_OK) {
       break;
     }
-    fieldIndex++;
     const string name = pluck("name", &row);
     PartType partType;
     bool hasPart = false;
@@ -377,6 +376,7 @@ result_t DataField::create(bool isWriteMessage, bool isTemplate, bool isBroadcas
       }
       firstType = false;
     }
+    fieldIndex++;
   }
 
   if (result != RESULT_OK) {
@@ -686,7 +686,7 @@ void ValueListDataField::dump(ostream* output) const {
       } else {
         *output << VALUE_SEPARATOR;
       }
-      *output << static_cast<unsigned>(it.first) << "=" << it.second;
+      *output << it.first << "=" << it.second;
     }
   }  // else: impossible since divisor is not allowed for ValueListDataField
   dumpSuffix(output);
@@ -703,7 +703,7 @@ result_t ValueListDataField::readSymbols(const SymbolString& input, size_t offse
   const auto it = m_values.find(value);
   if (it == m_values.end() && value != m_dataType->getReplacement()) {
     // fall back to raw value in input
-    *output << setw(0) << dec << static_cast<unsigned>(value);
+    *output << setw(0) << dec << value;
     return RESULT_OK;
   }
   if (it == m_values.end()) {
@@ -713,17 +713,17 @@ result_t ValueListDataField::readSymbols(const SymbolString& input, size_t offse
       *output << NULL_VALUE;
     }
   } else if (outputFormat & OF_NUMERIC) {
-    *output << setw(0) << dec << static_cast<unsigned>(value);
+    *output << setw(0) << dec << value;
   } else if (outputFormat & OF_JSON) {
     if (outputFormat & OF_VALUENAME) {
-      *output << "{\"value\":" << setw(0) << dec << static_cast<unsigned>(value);
+      *output << "{\"value\":" << setw(0) << dec << value;
       *output << ",\"name\":\"" << it->second << "\"}";
     } else {
       *output << '"' << it->second << '"';
     }
   } else {
     if (outputFormat & OF_VALUENAME) {
-      *output << setw(0) << dec << static_cast<unsigned>(value) << '=';
+      *output << setw(0) << dec << value << '=';
     }
     *output << it->second;
   }

@@ -124,7 +124,7 @@ result_t Device::recv(unsigned int timeout, symbol_t* value) {
     tdiff.tv_nsec = (timeout%1000000)*1000;
 
 #ifdef HAVE_PPOLL
-    int nfds = 1;
+    nfds_t nfds = 1;
     struct pollfd fds[nfds];
 
     memset(fds, 0, sizeof(fds));

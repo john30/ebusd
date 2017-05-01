@@ -81,7 +81,7 @@ result_t TemParamDataType::readSymbols(size_t offset, size_t length, const Symbo
   if (outputFormat & OF_JSON) {
     *output << '"';
   }
-  *output << setfill('0') << setw(2) << dec << static_cast<int>(grp) << '-' << setw(3) << static_cast<int>(num);
+  *output << setfill('0') << setw(2) << dec << grp << '-' << setw(3) << num;
   if (outputFormat & OF_JSON) {
     *output << '"';
   }
@@ -92,7 +92,7 @@ result_t TemParamDataType::readSymbols(size_t offset, size_t length, const Symbo
 result_t TemParamDataType::writeSymbols(const size_t offset, const size_t length, istringstream* input,
     SymbolString* output, size_t* usedLength) const {
   unsigned int value;
-  int grp, num;
+  unsigned int grp, num;
 
   if (input->str() == NULL_VALUE) {
     value = m_replacement;  // replacement value
@@ -122,7 +122,7 @@ result_t TemParamDataType::writeSymbols(const size_t offset, const size_t length
     if (strEnd == NULL || strEnd == str || *strEnd != 0) {
       return RESULT_ERR_INVALID_NUM;  // invalid value
     }
-    if (grp < 0 || grp > 0x1f || num < 0 || num > 0x7f) {
+    if (grp > 0x1f || num > 0x7f) {
       return RESULT_ERR_OUT_OF_RANGE;  // value out of range
     }
     if (output->isMaster()) {

@@ -419,7 +419,7 @@ result_t Message::create(const string& filename, const DataFieldTemplates* templ
       maxLength = 0;
     } else if (chainPrefixLength > 2) {
       vector<symbol_t>& front = chainIds.front();
-      for (size_t pos = 2; pos < chainPrefixLength; pos++) {
+      for (pos = 2; pos < chainPrefixLength; pos++) {
         if (chainId[pos] != front[pos]) {
           chainPrefixLength = pos;
           break;
@@ -812,10 +812,7 @@ bool Message::isLessPollWeight(const Message* other) const {
   if (tprio < oprio) {
     return false;
   }
-  if (m_lastPollTime > other->m_lastPollTime) {
-    return true;
-  }
-  return false;
+  return m_lastPollTime > other->m_lastPollTime;
 }
 
 void Message::dumpHeader(const vector<string>* fieldNames, ostream* output) {
@@ -930,8 +927,7 @@ void Message::dumpField(const string& fieldName, bool withConditions, ostream* o
   dumpAttribute(false, fieldName, output);
 }
 
-void Message::decode(bool leadingSeparator, const vector<string>* fields,
-    OutputFormat outputFormat, ostringstream* output) const {
+void Message::decode(bool leadingSeparator, OutputFormat outputFormat, ostringstream* output) const {
   if (leadingSeparator) {
     *output << ",";
   }
@@ -1541,9 +1537,7 @@ bool SimpleNumericCondition::checkValue(const Message* message, const string& fi
   if (result == RESULT_OK) {
     for (size_t i = 0; i+1 < m_valueRanges.size(); i+=2) {
       if (m_valueRanges[i] <= value && value <= m_valueRanges[i+1]) {
-        ostringstream out;
-        out << static_cast<unsigned>(value);
-        m_matchedValue = out.str();
+        m_matchedValue = AttributedItem::formatInt(value);
         return true;
       }
     }
@@ -1976,14 +1970,14 @@ result_t MessageMap::readConditions(const string& filename, string* types, strin
         Condition* add = NULL;
         if (it == m_conditions.end()) {
           // check for on-the-fly condition
-          size_t pos = key.find_first_of("=<>", filename.length()+1);
-          if (pos != string::npos) {
-            it = m_conditions.find(key.substr(0, pos));
+          size_t sep = key.find_first_of("=<>", filename.length()+1);
+          if (sep != string::npos) {
+            it = m_conditions.find(key.substr(0, sep));
             if (it != m_conditions.end()) {
               // derive from another condition
-              add = it->second->derive(key.substr(pos));
+              add = it->second->derive(key.substr(sep));
               if (add == NULL) {
-                *errorDescription = "derive condition with values "+key.substr(pos)+" failed";
+                *errorDescription = "derive condition with values "+key.substr(sep)+" failed";
                 return RESULT_ERR_INVALID_ARG;
               }
               m_conditions[key] = add;  // store derived condition
@@ -2128,7 +2122,7 @@ result_t MessageMap::addFromFile(const string& filename, unsigned int lineNo, ma
     }
     types = types.substr(1);
     Instruction* instruction = NULL;
-    result_t result = Instruction::create(filename, types, condition, *row, getDefaults()[""], &instruction);
+    result = Instruction::create(filename, types, condition, *row, getDefaults()[""], &instruction);
     if (instruction == NULL || result != RESULT_OK) {
       *errorDescription = "invalid instruction";
       return result;
@@ -2330,8 +2324,15 @@ bool MessageMap::getLoadedFileInfo(const string& filename, string* comment, size
   const auto it = m_loadedFileInfos.find(filename);
   if (it == m_loadedFileInfos.end()) {
     *comment = "";
-    hash = size = 0;
-    time = 0;
+    if (hash) {
+      *hash = 0;
+    }
+    if (size) {
+      *size = 0;
+    }
+    if (time) {
+      *time = 0;
+    }
     return false;
   }
   *comment = it->second.m_comment;

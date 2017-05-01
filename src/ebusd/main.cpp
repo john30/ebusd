@@ -1009,7 +1009,6 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose
       best = name;
       bestDefaults = defaults;
     }
-    break;
   }
 
   if (best.empty()) {
@@ -1031,7 +1030,7 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose
         }
         if (baseName.length() < 3 || baseName.find_first_of('.') != 2) {  // different from the scheme "ZZ."
           string errorDescription;
-          result = messages->readFromFile(name, opt.checkConfig, NULL, &errorDescription, NULL, NULL, NULL);
+          result = messages->readFromFile(name, verbose, NULL, &errorDescription, NULL, NULL, NULL);
           if (result == RESULT_OK) {
             logNotice(lf_main, "read common config file %s", name.c_str());
           } else {
@@ -1044,7 +1043,7 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose
   }
   string errorDescription;
   bestDefaults["name"] = ident;
-  result = messages->readFromFile(best, opt.checkConfig, &bestDefaults, &errorDescription, NULL, NULL, NULL);
+  result = messages->readFromFile(best, verbose, &bestDefaults, &errorDescription, NULL, NULL, NULL);
   if (result != RESULT_OK) {
     logError(lf_main, "error reading scan config file %s for ID \"%s\", SW%4.4d, HW%4.4d: %s, %s", best.c_str(),
         ident.c_str(), sw, hw, getResultCode(result), errorDescription.c_str());

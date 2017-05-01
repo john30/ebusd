@@ -269,7 +269,7 @@ bool GrabbedMessage::dump(bool unknown, MessageMap* messages, bool first, bool d
   if (dstAddress != BROADCAST && !isMaster(dstAddress)) {
     *output << " / " << m_lastSlave.getStr();
   }
-  *output << " = " << static_cast<unsigned>(m_count);
+  *output << " = " << m_count;
   if (message) {
     *output << ": " << message->getCircuit() << " " << message->getName();
   }
@@ -1107,7 +1107,7 @@ void BusHandler::receiveCompleted() {
     } else {
       logNotice(lf_update, "unknown MS cmd: %s / %s", m_command.getStr().c_str(), m_response.getStr().c_str());
       if (m_command.size() >= 5 && m_command[2] == 0x07 && m_command[3] == 0x04) {
-        Message* message = m_messages->getScanMessage(dstAddress);
+        message = m_messages->getScanMessage(dstAddress);
         if (message && (message->getLastUpdateTime() == 0 || message->getLastSlaveData().getDataSize() < 10)) {
           result_t result = message->storeLastData(m_command, m_response);
           if (result == RESULT_OK) {
@@ -1314,7 +1314,7 @@ void BusHandler::formatSeenInfo(ostringstream* output) const {
       master = getMasterAddress(address);
     }
     if (master != SYN) {
-      *output << " #" << setw(0) << dec << static_cast<unsigned>(getMasterNumber(master));
+      *output << " #" << setw(0) << dec << getMasterNumber(master);
     }
     if (ownAddress) {
       *output << ", ebusd";

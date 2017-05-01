@@ -80,7 +80,7 @@ void Connection::run() {
   int sockFD = m_socket->getFD();
 
 #ifdef HAVE_PPOLL
-  int nfds = 2;
+  nfds_t nfds = 2;
   struct pollfd fds[nfds];
 
   memset(fds, 0, sizeof(fds));
@@ -234,7 +234,7 @@ void Network::run() {
   tdiff.tv_nsec = 0;
 #ifdef HAVE_PPOLL
   int socketCount = m_httpServer ? 2 : 1;
-  int nfds = 1+socketCount;
+  nfds_t nfds = 1+socketCount;
   struct pollfd fds[nfds];
 
   memset(fds, 0, sizeof(fds));

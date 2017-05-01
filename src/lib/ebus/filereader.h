@@ -153,7 +153,6 @@ class FileReader {
    * Format the error description with the input data.
    * @param filename the name of the file.
    * @param lineNo the line number in the file.
-   * @param row the definition row.
    * @param result the result code.
    * @param error the error message.
    * @param errorDescription a string in which to store the error description.

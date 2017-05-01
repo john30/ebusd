@@ -208,7 +208,7 @@ result_t FileReader::formatError(const string& filename, unsigned int lineNo, re
   if (!errorDescription->empty()) {
     str << *errorDescription << ", ";
   }
-  str << filename << ":" << static_cast<unsigned>(lineNo) << ": " << getResultCode(result);
+  str << filename << ":" << lineNo << ": " << getResultCode(result);
   if (!error.empty()) {
     str << ", " << error;
   }

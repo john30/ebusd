@@ -125,7 +125,7 @@ MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messag
   m_logRawLastSymbol = SYN;
   if (opt.aclFile[0]) {
     string errorDescription;
-    result_t result = m_userList.readFromFile(opt.aclFile, false, NULL, &errorDescription, NULL, NULL, NULL);
+    result = m_userList.readFromFile(opt.aclFile, false, NULL, &errorDescription, NULL, NULL, NULL);
     if (result != RESULT_OK) {
       logError(lf_main, "error reading ACL file \"%s\": %s", opt.aclFile, getResultCode(result));
     }
@@ -236,7 +236,7 @@ void MainLoop::run() {
         bool loadDelay = false;
         if (m_initialScan != ESC && reload && m_busHandler->hasSignal()) {
           loadDelay = true;
-          result_t result = RESULT_ERR_NO_SIGNAL;
+          result_t result;
           if (m_initialScan == SYN) {
             logNotice(lf_main, "starting initial full scan");
             result = m_busHandler->startScan(true, "*");
@@ -449,14 +449,14 @@ void MainLoop::run() {
 
 void MainLoop::notifyDeviceData(symbol_t symbol, bool received) {
   if (received && m_dumpFile) {
-    m_dumpFile->write((unsigned char*)&symbol, 1);
+    m_dumpFile->write(&symbol, 1);
   }
   if (!m_logRawFile && !m_logRawEnabled) {
     return;
   }
   if (m_logRawBytes) {
     if (m_logRawFile) {
-      m_logRawFile->write((unsigned char*)&symbol, 1, received);
+      m_logRawFile->write(&symbol, 1, received);
     } else if (m_logRawEnabled) {
       if (received) {
         logNotice(lf_bus, "<%02x", symbol);
@@ -1607,7 +1607,7 @@ string MainLoop::executeGet(const vector<string>& args, bool* connected) {
     string user = "";
     if (args.size() > argPos) {
       string secret;
-      string query = args[argPos++];
+      string query = args[argPos];
       istringstream stream(query);
       string token;
       while (getline(stream, token, '&')) {
@@ -1679,7 +1679,6 @@ string MainLoop::executeGet(const vector<string>& args, bool* connected) {
           if (m_busHandler->readFromBus(message, "") != RESULT_OK) {
             continue;
           }
-          lastup = message->getLastUpdateTime();
         } else {
           if (since > 0 && lastup <= since) {
             continue;
@@ -1699,7 +1698,7 @@ string MainLoop::executeGet(const vector<string>& args, bool* connected) {
             first = false;
           }
         }
-        message->decode(!first, NULL, verbosity, &result);
+        message->decode(!first, verbosity, &result);
         first = false;
       }
 

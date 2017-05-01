@@ -551,12 +551,10 @@ class Message : public AttributedItem {
   /**
    * Decode the message from the last stored data.
    * @param leadingSeparator whether to prepend a separator before the first value.
-   * @param fields the list of message and/or data field fields to write, or NULL for all.
    * @param outputFormat the @a OutputFormat options to use.
    * @param output the @a ostringstream to append the decoded value(s) to.
    */
-  virtual void decode(bool leadingSeparator, const vector<string>* fields,
-      OutputFormat outputFormat, ostringstream* output) const;
+  virtual void decode(bool leadingSeparator, OutputFormat outputFormat, ostringstream* output) const;
 
  protected:
   /** the optional circuit name. */

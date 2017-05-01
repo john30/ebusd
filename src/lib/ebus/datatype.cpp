@@ -286,15 +286,15 @@ result_t DateTimeDataType::readSymbols(size_t offset, size_t length, const Symbo
           last = symbol;
           continue;
         }
-        int minutes = symbol*256 + last;
+        unsigned int minutes = symbol*256 + last;
         if (minutes > 24*60) {
           return RESULT_ERR_OUT_OF_RANGE;  // invalid value
         }
-        int hour = minutes / 60;
-        if (hour > 24) {
+        unsigned int minutesHour = minutes / 60;
+        if (minutesHour > 24) {
           return RESULT_ERR_OUT_OF_RANGE;  // invalid hour
         }
-        *output << setw(2) << dec << setfill('0') << static_cast<unsigned>(hour);
+        *output << setw(2) << dec << setfill('0') << minutesHour;
         symbol = (symbol_t)(minutes % 60);
       } else if (length == 1) {  // truncated time
         if (m_bitCount < 8) {
@@ -513,11 +513,11 @@ bool NumberDataType::dump(size_t length, bool appendSeparatorDivisor, ostream* o
   }
   if (m_baseType) {
     if (m_baseType->m_divisor != m_divisor) {
-      *output << static_cast<int>(m_divisor / m_baseType->m_divisor);
+      *output << (m_divisor / m_baseType->m_divisor);
       return true;
     }
   } else if (m_divisor != 1) {
-    *output << static_cast<int>(m_divisor);
+    *output << m_divisor;
     return true;
   }
   return false;
@@ -699,7 +699,7 @@ result_t NumberDataType::readSymbols(size_t offset, size_t length, const SymbolS
       if (m_divisor < 0) {
         *output << (static_cast<float>(value) * static_cast<float>(-m_divisor));
       } else if (m_divisor <= 1) {
-        *output << static_cast<unsigned>(value);
+        *output << value;
       } else {
         *output << setprecision(static_cast<int>(m_precision))
                 << fixed << (static_cast<float>(value) / static_cast<float>(m_divisor));
@@ -719,12 +719,12 @@ result_t NumberDataType::readSymbols(size_t offset, size_t length, const SymbolS
     if (hasFlag(FIX) && hasFlag(BCD)) {
       if (outputFormat & OF_JSON) {
         *output << '"' << setw(static_cast<int>(length * 2))
-                << setfill('0') << static_cast<signed>(signedValue) << setw(0) << '"';
+                << setfill('0') << signedValue << setw(0) << '"';
         return RESULT_OK;
       }
       *output << setw(static_cast<int>(length * 2)) << setfill('0');
     }
-    *output << static_cast<signed>(signedValue) << setw(0);
+    *output << signedValue << setw(0);
   } else {
     *output << setprecision(static_cast<int>(m_precision))
             << fixed << (static_cast<float>(signedValue) / static_cast<float>(m_divisor));
@@ -842,7 +842,6 @@ result_t NumberDataType::writeSymbols(size_t offset, size_t length, istringstrea
         return RESULT_ERR_INVALID_NUM;  // invalid value
       }
     } else {
-      char* strEnd = NULL;
       double dvalue = strtod(str, &strEnd);
       if (strEnd == NULL || strEnd == str || *strEnd != 0) {
         return RESULT_ERR_INVALID_NUM;  // invalid value
