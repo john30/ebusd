@@ -53,34 +53,34 @@ class TestReader : public MappedFileReader {
   TestReader(DataFieldTemplates* templates, bool isSet, bool isMasterDest)
   : MappedFileReader::MappedFileReader(true), m_templates(templates), m_isSet(isSet), m_isMasterDest(isMasterDest),
     m_fields(NULL) {}
-  result_t getFieldMap(vector<string>& row, string& errorDescription, const string preferLanguage) const override {
-    if (row.empty()) {
-      row.push_back("*name");
-      row.push_back("part");
-      row.push_back("type");
-      row.push_back("divisor/values");
-      row.push_back("unit");
-      row.push_back("comment");
+  result_t getFieldMap(const string& preferLanguage, vector<string>* row, string* errorDescription) const override {
+    if (row->empty()) {
+      row->push_back("*name");
+      row->push_back("part");
+      row->push_back("type");
+      row->push_back("divisor/values");
+      row->push_back("unit");
+      row->push_back("comment");
       return RESULT_OK;
     }
-    if (row[0][0] != '*') {
+    if ((*row)[0][0] != '*') {
       return RESULT_ERR_INVALID_ARG;
     }
     return RESULT_OK;  // leave it to DataField::create
   }
-  result_t addFromFile(map<string, string>& row, vector< map<string, string> >& subRows,
-      string& errorDescription, const string filename, unsigned int lineNo) override {
-    if (!row.empty() || subRows.empty()) {
+  result_t addFromFile(const string& filename, unsigned int lineNo, map<string, string>* row,
+      vector< map<string, string> >* subRows, string* errorDescription) override {
+    if (!row->empty() || subRows->empty()) {
       cout << "read line " << static_cast<unsigned>(lineNo) << ": read error: got "
-          << static_cast<unsigned>(row.size()) << "/0 main, " << static_cast<unsigned>(subRows.size())
+          << static_cast<unsigned>(row->size()) << "/0 main, " << static_cast<unsigned>(subRows->size())
           << "/>=3 sub" << endl;
       return RESULT_ERR_EOF;
     }
     cout << "read line " << static_cast<unsigned>(lineNo) << ": read OK" << endl;
-    return DataField::create(subRows, errorDescription, m_templates, m_fields, m_isSet, false, m_isMasterDest);
+    return DataField::create(m_isSet, false, m_isMasterDest, MAX_POS, m_templates, subRows, errorDescription, &m_fields);
   }
  private:
-  DataFieldTemplates* m_templates;
+  const DataFieldTemplates* m_templates;
   const bool m_isSet;
   const bool m_isMasterDest;
  public:
@@ -508,7 +508,7 @@ int main() {
   istringstream dummystr("#");
   string errorDescription;
   vector<string> row;
-  templates->readLineFromStream(dummystr, errorDescription, __FILE__, lineNo, row);
+  templates->readLineFromStream(__FILE__, false, &dummystr, &lineNo, &row, &errorDescription, NULL, NULL);
   const DataField* fields = NULL;
   for (size_t i = 0; i < sizeof(checks) / sizeof(checks[0]); i++) {
     string check[5] = checks[i];
@@ -558,7 +558,7 @@ int main() {
     }
     if (isTemplate) {
       lineNo = baseLine + i;
-      result = templates->readLineFromStream(isstr, errorDescription, __FILE__, lineNo, row, false);
+      result = templates->readLineFromStream(__FILE__, false, &isstr, &lineNo, &row, &errorDescription, NULL, NULL);
       if (result != RESULT_OK) {
         cout << "\"" << check[0] << "\": template read error: " << getResultCode(result) << ", "
             << errorDescription << endl;
@@ -570,7 +570,7 @@ int main() {
     lineNo = 0;
     dummystr.clear();
     dummystr.str("#");
-    result = reader.readLineFromStream(dummystr, errorDescription, __FILE__, lineNo, row);
+    result = reader.readLineFromStream(__FILE__, false, &dummystr, &lineNo, &row, &errorDescription, NULL, NULL);
     if (result != RESULT_OK) {
       cout << "\"" << check[0] << "\": reader header error: " << getResultCode(result) << ", " << errorDescription
           << endl;
@@ -578,7 +578,7 @@ int main() {
       continue;
     }
     lineNo = baseLine + i;
-    result = reader.readLineFromStream(isstr, errorDescription, "", lineNo, row);
+    result = reader.readLineFromStream("", false, &isstr, &lineNo, &row, &errorDescription, NULL, NULL);
     fields = reader.m_fields;
     if (failedCreate) {
       if (result == RESULT_OK) {
@@ -600,7 +600,7 @@ int main() {
       continue;
     }
     cout << "\"" << check[0] << "\"=\"";
-    fields->dump(cout);
+    fields->dump(&cout);
     cout << "\": create OK" << endl;
 
     ostringstream output;
@@ -616,22 +616,21 @@ int main() {
       cout << "  parse \"" << sstr.getStr().substr(0, 2) << "\" error: " << getResultCode(result) << endl;
       error = true;
     }
-    result = fields->read(mstr, 0, output, verbosity|(numeric?OF_NUMERIC:0), -1, false);
+    result = fields->read(mstr, 0, false, NULL, -1, verbosity|(numeric?OF_NUMERIC:0), -1, &output);
     if (result >= RESULT_OK) {
-      result = fields->read(sstr, 0, output, verbosity|(numeric?OF_NUMERIC:0), -1,
-          !output.str().empty());
+      result = fields->read(sstr, 0, !output.str().empty(), NULL, -1, verbosity|(numeric?OF_NUMERIC:0), -1, &output);
     }
     if (failedRead) {
       if (result >= RESULT_OK) {
-        cout << "  failed read " << fields->getName() << " >" << check[2] << " " << check[3]
+        cout << "  failed read " << fields->getName(-1) << " >" << check[2] << " " << check[3]
              << "< error: unexpectedly succeeded" << endl;
         error = true;
       } else {
-        cout << "  failed read " << fields->getName() << " >" << check[2] << " " << check[3]
+        cout << "  failed read " << fields->getName(-1) << " >" << check[2] << " " << check[3]
              << "< OK" << endl;
       }
     } else if (result < RESULT_OK) {
-      cout << "  read " << fields->getName() << " >" << check[2] << " " << check[3]
+      cout << "  read " << fields->getName(-1) << " >" << check[2] << " " << check[3]
            << "< error: " << getResultCode(result) << endl;
       error = true;
     } else {
@@ -641,21 +640,21 @@ int main() {
 
     if (verbosity == 0) {
       istringstream input(expectStr);
-      result = fields->write(input, writeMstr, 0);
+      result = fields->write(UI_FIELD_SEPARATOR, 0, &input, &writeMstr, NULL);
       if (result >= RESULT_OK) {
-        result = fields->write(input, writeSstr, 0);
+        result = fields->write(UI_FIELD_SEPARATOR, 0, &input, &writeSstr, NULL);
       }
       if (failedWrite) {
         if (result >= RESULT_OK) {
-          cout << "  failed write " << fields->getName() << " >"
+          cout << "  failed write " << fields->getName(-1) << " >"
                   << expectStr << "< error: unexpectedly succeeded" << endl;
           error = true;
         } else {
-          cout << "  failed write " << fields->getName() << " >"
+          cout << "  failed write " << fields->getName(-1) << " >"
                   << expectStr << "< OK" << endl;
         }
       } else if (result < RESULT_OK) {
-        cout << "  write " << fields->getName() << " >" << expectStr
+        cout << "  write " << fields->getName(-1) << " >" << expectStr
                 << "< error: " << getResultCode(result) << endl;
         error = true;
       } else {

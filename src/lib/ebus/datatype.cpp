@@ -42,30 +42,29 @@ using std::setw;
 using std::endl;
 
 
-bool DataType::dump(ostream& output, const size_t length, const bool appendSeparatorDivisor) const {
-  output << m_id;
+bool DataType::dump(size_t length, bool appendSeparatorDivisor, ostream* output) const {
+  *output << m_id;
   if (isAdjustableLength()) {
     if (length == REMAIN_LEN) {
-      output << ":*";
+      *output << ":*";
     } else {
-      output << ":" << static_cast<unsigned>(length);
+      *output << ":" << static_cast<unsigned>(length);
     }
   }
   if (appendSeparatorDivisor) {
-    output << FIELD_SEPARATOR;
+    *output << FIELD_SEPARATOR;
   }
   return false;
 }
 
 
-result_t StringDataType::readRawValue(const SymbolString& input, const size_t offset,
-    const size_t length, unsigned int& value) const {
+result_t StringDataType::readRawValue(size_t offset, size_t length, const SymbolString& input,
+    unsigned int* value) const {
   return RESULT_EMPTY;
 }
 
-result_t StringDataType::readSymbols(const SymbolString& input,
-    const size_t offset, const size_t length,
-    ostringstream& output, OutputFormat outputFormat) const {
+result_t StringDataType::readSymbols(size_t offset, size_t length, const SymbolString& input,
+    OutputFormat outputFormat, ostream* output) const {
   size_t start = 0, count = length;
   int incr = 1;
   symbol_t symbol;
@@ -81,16 +80,16 @@ result_t StringDataType::readSymbols(const SymbolString& input,
   }
 
   if (outputFormat & OF_JSON) {
-    output << '"';
+    *output << '"';
   }
-  output << setfill('0') << (m_isHex ? hex : dec);
+  *output << setfill('0') << (m_isHex ? hex : dec);
   for (size_t index = start, i = 0; i < count; index += incr, i++) {
     symbol = input.dataAt(offset + index);
     if (m_isHex) {
       if (i > 0) {
-        output << ' ';
+        *output << ' ';
       }
-      output << setw(2) << static_cast<unsigned>(symbol);
+      *output << setw(2) << static_cast<unsigned>(symbol);
     } else {
       if (symbol == 0x00) {
         terminated = true;
@@ -101,22 +100,21 @@ result_t StringDataType::readSymbols(const SymbolString& input,
           symbol = '?';
         } else if (outputFormat & OF_JSON) {
           if (symbol == '"' || symbol == '\\') {
-            output << '\\';  // escape
+            *output << '\\';  // escape
           }
         }
-        output << static_cast<char>(symbol);
+        *output << static_cast<char>(symbol);
       }
     }
   }
   if (outputFormat & OF_JSON) {
-    output << '"';
+    *output << '"';
   }
   return RESULT_OK;
 }
 
-result_t StringDataType::writeSymbols(istringstream& input,
-    size_t offset, const size_t length,
-    SymbolString& output, size_t* usedLength) const {
+result_t StringDataType::writeSymbols(size_t offset, size_t length, istringstream* input,
+    SymbolString* output, size_t* usedLength) const {
   size_t start = 0, count = length;
   bool remainder = count == REMAIN_LEN && hasFlag(ADJ);
   int incr = 1;
@@ -132,7 +130,7 @@ result_t StringDataType::writeSymbols(istringstream& input,
       count = 1;
     }
     for (size_t index = start, i = 0; i < count; index += incr, i++) {
-      output.dataAt(offset + index) = (symbol_t)m_replacement;  // fill up with replacement
+      output->dataAt(offset + index) = (symbol_t)m_replacement;  // fill up with replacement
     }
     if (usedLength != NULL) {
       *usedLength = count;
@@ -143,39 +141,39 @@ result_t StringDataType::writeSymbols(istringstream& input,
   size_t i = 0, index;
   for (index = start; i < count; index += incr, i++) {
     if (m_isHex) {
-      while (!input.eof() && input.peek() == ' ') {
-        input.get();
+      while (!input->eof() && input->peek() == ' ') {
+        input->get();
       }
-      if (input.eof()) {  // no more digits
+      if (input->eof()) {  // no more digits
         value = m_replacement;  // fill up with replacement
       } else {
         token.clear();
-        token.push_back((symbol_t)input.get());
-        if (input.eof()) {
+        token.push_back((symbol_t)input->get());
+        if (input->eof()) {
           return RESULT_ERR_INVALID_NUM;  // too short hex value
         }
-        token.push_back((symbol_t)input.get());
-        if (input.eof()) {
+        token.push_back((symbol_t)input->get());
+        if (input->eof()) {
           return RESULT_ERR_INVALID_NUM;  // too short hex value
         }
-        value = parseInt(token.c_str(), 16, 0, 0xff, result);
+        value = parseInt(token.c_str(), 16, 0, 0xff, &result);
         if (result != RESULT_OK) {
           return result;  // invalid hex value
         }
       }
     } else {
-      if (input.eof()) {
+      if (input->eof()) {
         value = m_replacement;
       } else {
-        value = input.get();
-        if (input.eof() || value < 0x20) {
+        value = input->get();
+        if (input->eof() || value < 0x20) {
           value = m_replacement;
         }
       }
     }
-    if (remainder && input.eof() && i > 0) {
+    if (remainder && input->eof() && i > 0) {
       if (value == 0x00 && !m_isHex) {
-        output.dataAt(offset + index) = 0;
+        output->dataAt(offset + index) = 0;
         index += incr;
       }
       break;
@@ -183,7 +181,7 @@ result_t StringDataType::writeSymbols(istringstream& input,
     if (value > 0xff) {
       return RESULT_ERR_OUT_OF_RANGE;  // value out of range
     }
-    output.dataAt(offset + index) = (symbol_t)value;
+    output->dataAt(offset + index) = (symbol_t)value;
   }
 
   if (!remainder && i < count) {
@@ -196,14 +194,13 @@ result_t StringDataType::writeSymbols(istringstream& input,
 }
 
 
-result_t DateTimeDataType::readRawValue(const SymbolString& input, const size_t offset,
-    const size_t length, unsigned int& value) const {
+result_t DateTimeDataType::readRawValue(size_t offset, size_t length, const SymbolString& input,
+    unsigned int* value) const {
   return RESULT_EMPTY;
 }
 
-result_t DateTimeDataType::readSymbols(const SymbolString& input,
-    const size_t offset, const size_t length,
-    ostringstream& output, OutputFormat outputFormat) const {
+result_t DateTimeDataType::readSymbols(size_t offset, size_t length, const SymbolString& input,
+    OutputFormat outputFormat, ostream* output) const {
   size_t start = 0, count = length;
   int incr = 1;
   symbol_t symbol, last = 0, hour = 0;
@@ -218,7 +215,7 @@ result_t DateTimeDataType::readSymbols(const SymbolString& input,
   }
 
   if (outputFormat & OF_JSON) {
-    output << '"';
+    *output << '"';
   }
   int type = (m_hasDate?2:0) | (m_hasTime?1:0);
   for (size_t index = start, i = 0; i < count; index += incr, i++) {
@@ -236,13 +233,13 @@ result_t DateTimeDataType::readSymbols(const SymbolString& input,
     case 2:  // date only
       if (!hasFlag(REQ) && symbol == m_replacement) {
         if (i + 1 != length) {
-          output << NULL_VALUE << ".";
+          *output << NULL_VALUE << ".";
           break;
         } else if (last == m_replacement) {
           if (length == 2) {  // number of days since 01.01.1900
-            output << NULL_VALUE << ".";
+            *output << NULL_VALUE << ".";
           }
-          output << NULL_VALUE;
+          *output << NULL_VALUE;
           break;
         }
       }
@@ -259,29 +256,29 @@ result_t DateTimeDataType::readSymbols(const SymbolString& input,
           y++;
           m -= 12;
         }
-        output << dec << setfill('0') << setw(2) << static_cast<unsigned>(d) << "."
-            << setw(2) << static_cast<unsigned>(m) << "." << static_cast<unsigned>(y + 1900);
+        *output << dec << setfill('0') << setw(2) << static_cast<unsigned>(d) << "."
+                << setw(2) << static_cast<unsigned>(m) << "." << static_cast<unsigned>(y + 1900);
         break;
       }
       if (i + 1 == length) {
-        output << (2000 + symbol);
+        *output << (2000 + symbol);
       } else if (symbol < 1 || (i == 0 && symbol > 31) || (i == 1 && symbol > 12)) {
         return RESULT_ERR_OUT_OF_RANGE;  // invalid date
       } else {
-        output << setw(2) << dec << setfill('0') << static_cast<unsigned>(symbol) << ".";
+        *output << setw(2) << dec << setfill('0') << static_cast<unsigned>(symbol) << ".";
       }
       break;
 
     case 1:  // time only
       if (!hasFlag(REQ) && symbol == m_replacement) {
         if (length == 1) {  // truncated time
-          output << NULL_VALUE << ":" << NULL_VALUE;
+          *output << NULL_VALUE << ":" << NULL_VALUE;
           break;
         }
         if (i > 0) {
-          output << ":";
+          *output << ":";
         }
-        output << NULL_VALUE;
+        *output << NULL_VALUE;
         break;
       }
       if (hasFlag(SPE)) {  // minutes since midnight
@@ -297,7 +294,7 @@ result_t DateTimeDataType::readSymbols(const SymbolString& input,
         if (hour > 24) {
           return RESULT_ERR_OUT_OF_RANGE;  // invalid hour
         }
-        output << setw(2) << dec << setfill('0') << static_cast<unsigned>(hour);
+        *output << setw(2) << dec << setfill('0') << static_cast<unsigned>(hour);
         symbol = (symbol_t)(minutes % 60);
       } else if (length == 1) {  // truncated time
         if (m_bitCount < 8) {
@@ -320,22 +317,21 @@ result_t DateTimeDataType::readSymbols(const SymbolString& input,
         return RESULT_ERR_OUT_OF_RANGE;  // invalid time
       }
       if (i > 0) {
-        output << ":";
+        *output << ":";
       }
-      output << setw(2) << dec << setfill('0') << static_cast<unsigned>(symbol);
+      *output << setw(2) << dec << setfill('0') << static_cast<unsigned>(symbol);
       break;
     }
     last = symbol;
   }
   if (outputFormat & OF_JSON) {
-    output << '"';
+    *output << '"';
   }
   return RESULT_OK;
 }
 
-result_t DateTimeDataType::writeSymbols(istringstream& input,
-    size_t offset, const size_t length,
-    SymbolString& output, size_t* usedLength) const {
+result_t DateTimeDataType::writeSymbols(size_t offset, size_t length, istringstream* input,
+    SymbolString* output, size_t* usedLength) const {
   size_t start = 0, count = length;
   bool remainder = count == REMAIN_LEN && hasFlag(ADJ);
   int incr = 1;
@@ -351,7 +347,7 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
       count = 1;
     }
     for (size_t index = start, i = 0; i < count; index += incr, i++) {
-      output.dataAt(offset + index) = (symbol_t)m_replacement;  // fill up with replacement
+      output->dataAt(offset + index) = (symbol_t)m_replacement;  // fill up with replacement
     }
     if (usedLength != NULL) {
       *usedLength = count;
@@ -369,14 +365,14 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
       if (length == 4 && i == 2) {
         continue;  // skip weekday in between
       }
-      if (input.eof() || !getline(input, token, '.')) {
+      if (input->eof() || !getline(*input, token, '.')) {
         return RESULT_ERR_EOF;  // incomplete
       }
-      if (!hasFlag(REQ) && strcmp(token.c_str(), NULL_VALUE) == 0) {
+      if (!hasFlag(REQ) && token == NULL_VALUE) {
         value = m_replacement;
         break;
       }
-      value = parseInt(token.c_str(), 10, 0, 2099, result);
+      value = parseInt(token.c_str(), 10, 0, 2099, &result);
       if (result != RESULT_OK) {
         return result;  // invalid date part
       }
@@ -389,7 +385,7 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
           int l = last <= 2 ? 1 : 0;
           int mjd = 14956 + lastLast + static_cast<int>((y-l)*365.25) + static_cast<int>((last+1+l*12)*30.6001);
           value = mjd - 15020;  // 01.01.1900
-          output.dataAt(offset + index) = (symbol_t)(value&0xff);
+          output->dataAt(offset + index) = (symbol_t)(value&0xff);
           value >>=  8;
           index += incr;
           skip = false;
@@ -404,10 +400,10 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
           int mjd = 14956 + lastLast + static_cast<int>((y-l)*365.25) + static_cast<int>((last+1+l*12)*30.6001);
           int daysSinceSunday = (mjd+3) % 7;  // Sun=0
           if (hasFlag(BCD)) {
-            output.dataAt(offset + index - incr) = (symbol_t)((6+daysSinceSunday) % 7);  // Sun=0x06
+            output->dataAt(offset + index - incr) = (symbol_t)((6+daysSinceSunday) % 7);  // Sun=0x06
           } else {
             // Sun=0x07
-            output.dataAt(offset + index - incr) = (symbol_t)(daysSinceSunday == 0 ? 7 : daysSinceSunday);
+            output->dataAt(offset + index - incr) = (symbol_t)(daysSinceSunday == 0 ? 7 : daysSinceSunday);
           }
         }
         if (value >= 2000) {
@@ -422,10 +418,10 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
       break;
 
     case 1:  // time only
-      if (input.eof() || !getline(input, token, LENGTH_SEPARATOR)) {
+      if (input->eof() || !getline(*input, token, LENGTH_SEPARATOR)) {
         return RESULT_ERR_EOF;  // incomplete
       }
-      if (!hasFlag(REQ) && strcmp(token.c_str(), NULL_VALUE) == 0) {
+      if (!hasFlag(REQ) && token == NULL_VALUE) {
         value = m_replacement;
         if (length == 1) {  // truncated time
           if (i == 0) {
@@ -439,7 +435,7 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
         }
         break;
       }
-      value = parseInt(token.c_str(), 10, 0, 59, result);
+      value = parseInt(token.c_str(), 10, 0, 59, &result);
       if (result != RESULT_OK) {
         return result;  // invalid time part
       }
@@ -452,7 +448,7 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
           break;
         }
         value += last*60;
-        output.dataAt(offset + index) = (symbol_t)(value&0xff);
+        output->dataAt(offset + index) = (symbol_t)(value&0xff);
         value >>=  8;
         index += incr;
       } else if (length == 1) {  // truncated time
@@ -480,7 +476,7 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
       if (value > 0xff) {
         return RESULT_ERR_OUT_OF_RANGE;  // value out of range
       }
-      output.dataAt(offset + index) = (symbol_t)value;
+      output->dataAt(offset + index) = (symbol_t)value;
     }
   }
 
@@ -494,7 +490,7 @@ result_t DateTimeDataType::writeSymbols(istringstream& input,
 }
 
 
-size_t NumberDataType::calcPrecision(const int divisor) {
+size_t NumberDataType::calcPrecision(int divisor) {
   size_t precision = 0;
   if (divisor > 1) {
     for (unsigned int exp = 1; exp < MAX_DIVISOR; exp *= 10, precision++) {
@@ -506,28 +502,28 @@ size_t NumberDataType::calcPrecision(const int divisor) {
   return precision;
 }
 
-bool NumberDataType::dump(ostream& output, size_t length, const bool appendSeparatorDivisor) const {
+bool NumberDataType::dump(size_t length, bool appendSeparatorDivisor, ostream* output) const {
   if (m_bitCount < 8) {
-    DataType::dump(output, m_bitCount, appendSeparatorDivisor);
+    DataType::dump(m_bitCount, appendSeparatorDivisor, output);
   } else {
-    DataType::dump(output, length, appendSeparatorDivisor);
+    DataType::dump(length, appendSeparatorDivisor, output);
   }
   if (!appendSeparatorDivisor) {
     return false;
   }
   if (m_baseType) {
     if (m_baseType->m_divisor != m_divisor) {
-      output << static_cast<int>(m_divisor / m_baseType->m_divisor);
+      *output << static_cast<int>(m_divisor / m_baseType->m_divisor);
       return true;
     }
   } else if (m_divisor != 1) {
-    output << static_cast<int>(m_divisor);
+    *output << static_cast<int>(m_divisor);
     return true;
   }
   return false;
 }
 
-result_t NumberDataType::derive(int divisor, size_t bitCount, const NumberDataType* &derived) const {
+result_t NumberDataType::derive(int divisor, size_t bitCount, const NumberDataType** derived) const {
   if (divisor == 0) {
     divisor = 1;
   }
@@ -549,7 +545,7 @@ result_t NumberDataType::derive(int divisor, size_t bitCount, const NumberDataTy
     }
   }
   if (divisor == m_divisor && bitCount == m_bitCount) {
-    derived = this;
+    *derived = this;
     return RESULT_OK;
   }
   if (-MAX_DIVISOR > divisor || divisor > MAX_DIVISOR) {
@@ -569,19 +565,18 @@ result_t NumberDataType::derive(int divisor, size_t bitCount, const NumberDataTy
     return RESULT_ERR_INVALID_ARG;
   }
   if (m_bitCount < 8) {
-    derived = new NumberDataType(m_id, bitCount, m_flags, m_replacement,
+    *derived = new NumberDataType(m_id, bitCount, m_flags, m_replacement,
       m_firstBit, divisor, m_baseType ? m_baseType : this);
   } else {
-    derived = new NumberDataType(m_id, bitCount, m_flags, m_replacement,
+    *derived = new NumberDataType(m_id, bitCount, m_flags, m_replacement,
       m_minValue, m_maxValue, divisor, m_baseType ? m_baseType : this);
   }
-  DataTypeList::getInstance()->addCleanup(derived);
+  DataTypeList::getInstance()->addCleanup(*derived);
   return RESULT_OK;
 }
 
-result_t NumberDataType::readRawValue(const SymbolString& input,
-    size_t offset, const size_t length,
-    unsigned int& value) const {
+result_t NumberDataType::readRawValue(size_t offset, size_t length, const SymbolString& input,
+    unsigned int* value) const {
   size_t start = 0, count = length;
   int incr = 1;
   symbol_t symbol;
@@ -594,13 +589,13 @@ result_t NumberDataType::readRawValue(const SymbolString& input,
     incr = -1;
   }
 
-  value = 0;
+  *value = 0;
   unsigned int exp = 1;
   for (size_t index = start, i = 0; i < count; index += incr, i++) {
     symbol = input.dataAt(offset + index);
     if (hasFlag(BCD)) {
       if (!hasFlag(REQ) && symbol == (m_replacement & 0xff)) {
-        value = m_replacement;
+        *value = m_replacement;
         return RESULT_OK;
       }
       if (!hasFlag(HCD)) {
@@ -611,40 +606,39 @@ result_t NumberDataType::readRawValue(const SymbolString& input,
       } else if (symbol > 0x63) {
         return RESULT_ERR_OUT_OF_RANGE;  // invalid HCD
       }
-      value += symbol * exp;
+      *value += symbol * exp;
       exp *= 100;
     } else {
-      value |= symbol * exp;
+      *value |= symbol * exp;
       exp <<=  8;
     }
   }
   if (m_firstBit > 0) {
-    value >>=  m_firstBit;
+    *value >>=  m_firstBit;
   }
   if (m_bitCount < 8) {
-    value &= (1 << m_bitCount) - 1;
+    *value &= (1 << m_bitCount) - 1;
   }
 
   return RESULT_OK;
 }
 
-result_t NumberDataType::readSymbols(const SymbolString& input,
-    const size_t offset, const size_t length,
-    ostringstream& output, OutputFormat outputFormat) const {
+result_t NumberDataType::readSymbols(size_t offset, size_t length, const SymbolString& input,
+    OutputFormat outputFormat, ostream* output) const {
   unsigned int value = 0;
   int signedValue;
 
-  result_t result = readRawValue(input, offset, length, value);
+  result_t result = readRawValue(offset, length, input, &value);
   if (result != RESULT_OK) {
     return result;
   }
-  output << setw(0) << dec;  // initialize output
+  *output << setw(0) << dec;  // initialize output
 
   if (!hasFlag(REQ) && value == m_replacement) {
     if (outputFormat & OF_JSON) {
-      output << "null";
+      *output << "null";
     } else {
-      output << NULL_VALUE;
+      *output << NULL_VALUE;
     }
     return RESULT_OK;
   }
@@ -694,21 +688,21 @@ result_t NumberDataType::readSymbols(const SymbolString& input,
         }
       }
       if (m_precision != 0) {
-        output << fixed << setprecision(static_cast<int>(m_precision+6));
+        *output << fixed << setprecision(static_cast<int>(m_precision+6));
       } else if (val == 0) {
-        output << fixed << setprecision(1);
+        *output << fixed << setprecision(1);
       }
-      output << static_cast<double>(val);
+      *output << static_cast<double>(val);
       return RESULT_OK;
     }
     if (!negative) {
       if (m_divisor < 0) {
-        output << (static_cast<float>(value) * static_cast<float>(-m_divisor));
+        *output << (static_cast<float>(value) * static_cast<float>(-m_divisor));
       } else if (m_divisor <= 1) {
-        output << static_cast<unsigned>(value);
+        *output << static_cast<unsigned>(value);
       } else {
-        output << setprecision(static_cast<int>(m_precision))
-               << fixed << (static_cast<float>(value) / static_cast<float>(m_divisor));
+        *output << setprecision(static_cast<int>(m_precision))
+                << fixed << (static_cast<float>(value) / static_cast<float>(m_divisor));
       }
       return RESULT_OK;
     }
@@ -719,30 +713,27 @@ result_t NumberDataType::readSymbols(const SymbolString& input,
     signedValue = static_cast<int>(value);
   }
   if (m_divisor < 0) {
-    output << fixed << setprecision(0)
+    *output << fixed << setprecision(0)
         << (static_cast<float>(signedValue) * static_cast<float>(-m_divisor));
   } else if (m_divisor <= 1) {
     if (hasFlag(FIX) && hasFlag(BCD)) {
       if (outputFormat & OF_JSON) {
-        output << '"';
-        output << setw(static_cast<int>(length * 2)) << setfill('0');
-        output << static_cast<signed>(signedValue) << setw(0);
-        output << '"';
+        *output << '"' << setw(static_cast<int>(length * 2))
+                << setfill('0') << static_cast<signed>(signedValue) << setw(0) << '"';
         return RESULT_OK;
       }
-      output << setw(static_cast<int>(length * 2)) << setfill('0');
+      *output << setw(static_cast<int>(length * 2)) << setfill('0');
     }
-    output << static_cast<signed>(signedValue) << setw(0);
+    *output << static_cast<signed>(signedValue) << setw(0);
   } else {
-    output << setprecision(static_cast<int>(m_precision))
-           << fixed << (static_cast<float>(signedValue) / static_cast<float>(m_divisor));
+    *output << setprecision(static_cast<int>(m_precision))
+            << fixed << (static_cast<float>(signedValue) / static_cast<float>(m_divisor));
   }
   return RESULT_OK;
 }
 
-result_t NumberDataType::writeRawValue(unsigned int value,
-    const size_t offset, const size_t length,
-    SymbolString& output, size_t* usedLength) const {
+result_t NumberDataType::writeRawValue(unsigned int value, size_t offset, size_t length,
+    SymbolString* output, size_t* usedLength) const {
   size_t start = 0, count = length;
   int incr = 1;
   symbol_t symbol;
@@ -774,10 +765,10 @@ result_t NumberDataType::writeRawValue(unsigned int value,
       symbol = (value / exp) & 0xff;
       exp <<=  8;
     }
-    if (index == start && (m_bitCount % 8) != 0 && offset + index < output.getDataSize()) {
-      output.dataAt(offset + index) |= symbol;
+    if (index == start && (m_bitCount % 8) != 0 && offset + index < output->getDataSize()) {
+      output->dataAt(offset + index) |= symbol;
     } else {
-      output.dataAt(offset + index) = symbol;
+      output->dataAt(offset + index) = symbol;
     }
   }
   if (usedLength != NULL) {
@@ -786,17 +777,16 @@ result_t NumberDataType::writeRawValue(unsigned int value,
   return RESULT_OK;
 }
 
-result_t NumberDataType::writeSymbols(istringstream& input,
-    const size_t offset, const size_t length,
-    SymbolString& output, size_t* usedLength) const {
+result_t NumberDataType::writeSymbols(size_t offset, size_t length, istringstream* input,
+    SymbolString* output, size_t* usedLength) const {
   unsigned int value;
 
-  const char* str = input.str().c_str();
-  if (!hasFlag(REQ) && (isIgnored() || strcmp(str, NULL_VALUE) == 0)) {
+  if (!hasFlag(REQ) && (isIgnored() || input->str() == NULL_VALUE)) {
     value = m_replacement;  // replacement value
-  } else if (str == NULL || *str == 0) {
+  } else if (input->str().empty()) {
     return RESULT_ERR_EOF;  // input too short
   } else if (hasFlag(EXP)) {  // IEEE 754 binary32
+    const char* str = input->str().c_str();
     char* strEnd = NULL;
     double dvalue = strtod(str, &strEnd);
     if (strEnd == NULL || strEnd == str || *strEnd != 0) {
@@ -835,6 +825,7 @@ result_t NumberDataType::writeSymbols(istringstream& input,
     }
 #endif
   } else {
+    const char* str = input->str().c_str();
     char* strEnd = NULL;
     if (m_divisor == 1) {
       if (hasFlag(SIG)) {
@@ -1038,7 +1029,7 @@ result_t DataTypeList::add(const DataType* dataType) {
   return RESULT_OK;
 }
 
-const DataType* DataTypeList::get(const string id, const size_t length) const {
+const DataType* DataTypeList::get(const string& id, size_t length) const {
   if (length > 0) {
     ostringstream str;
     str << id << LENGTH_SEPARATOR << static_cast<unsigned>(length);

@@ -89,7 +89,7 @@ struct options {
  * @param filename the full name of the configuration file.
  * @return the @a DataFieldTemplates.
  */
-DataFieldTemplates* getTemplates(const string filename);
+DataFieldTemplates* getTemplates(const string& filename);
 
 /**
  * Load the message definitions from configuration files.
@@ -106,11 +106,11 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose = false, bool denyRe
  * @param address the address of the scan participant
  * (either master for broadcast master data or slave for read slave data).
  * @param data the scan @a SlaveSymbolString for which to load the configuration file.
- * @param relativeFile the string in which the name of the configuration file is stored on success.
  * @param verbose whether to verbosely log problems.
+ * @param relativeFile the string in which the name of the configuration file is stored on success.
  * @return the result code.
  */
-result_t loadScanConfigFile(MessageMap* messages, symbol_t address, string& relativeFile, bool verbose = false);
+result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose, string* relativeFile);
 
 /**
  * Helper method for executing all loaded and resolvable instructions.

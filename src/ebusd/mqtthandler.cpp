@@ -81,7 +81,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
     break;
 
   case 2:  // --mqttport=1883
-    g_port = (uint16_t)parseInt(arg, 10, 1, 65535, result);
+    g_port = (uint16_t)parseInt(arg, 10, 1, 65535, &result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid mqttport");
       return EINVAL;
@@ -187,7 +187,7 @@ static const size_t knownFieldCount = sizeof(knownFieldNames) / sizeof(char*);
  * @param fields the @a vector to which the field parts shall be added.
  * @return true on success, false on malformed topic template.
  */
-bool parseTopic(const string topic, vector<string> &strs, vector<string> &fields) {
+bool parseTopic(const string& topic, vector<string>* strs, vector<string>* fields) {
   size_t lastpos = 0;
   size_t end = topic.length();
   vector<string> columns;
@@ -205,18 +205,18 @@ bool parseTopic(const string topic, vector<string> &strs, vector<string> &fields
       return false;
     }
     string fieldName = knownFieldNames[idx];
-    for (const auto& it : fields) {
+    for (const auto& it : *fields) {
       if (it == fieldName) {
         return false;  // duplicate column
       }
     }
-    strs.push_back(topic.substr(lastpos, pos-lastpos));
-    fields.push_back(fieldName);
+    strs->push_back(topic.substr(lastpos, pos-lastpos));
+    fields->push_back(fieldName);
     lastpos = pos+1+len;
     pos = topic.find('%', lastpos);
   }
   if (lastpos < end) {
-    strs.push_back(topic.substr(lastpos, end-lastpos));
+    strs->push_back(topic.substr(lastpos, end-lastpos));
   }
   return true;
 }
@@ -259,7 +259,7 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
   bool enabled = g_port != 0;
   m_publishByField = false;
   m_mosquitto = NULL;
-  if (enabled && !parseTopic(g_topic, m_topicStrs, m_topicFields)) {
+  if (enabled && !parseTopic(g_topic, &m_topicStrs, &m_topicFields)) {
     logOtherError("mqtt", "malformed topic %s", g_topic);
     return;
   }
@@ -386,7 +386,7 @@ void on_message(
   handler->notifyTopic(topic, data);
 }
 
-void MqttHandler::notifyTopic(string topic, string data) {
+void MqttHandler::notifyTopic(const string& topic, const string& data) {
   size_t pos = topic.rfind('/');
   if (pos == string::npos) {
     return;
@@ -466,10 +466,10 @@ void MqttHandler::notifyTopic(string topic, string data) {
     logOtherNotice("mqtt", "%s %s %s: %s", isWrite?"write":"read", circuit.c_str(), name.c_str(), data.c_str());
   }
   ostringstream ostream;
-  publishMessage(message, ostream);
+  publishMessage(message, &ostream);
 }
 
-void MqttHandler::notifyUpdateCheckResult(string checkResult) {
+void MqttHandler::notifyUpdateCheckResult(const string& checkResult) {
   if (checkResult != m_lastUpdateCheckResult) {
     m_lastUpdateCheckResult = checkResult;
     publishTopic(m_globalTopic+"updatecheck", checkResult.empty() ? "OK" : checkResult);
@@ -525,7 +525,7 @@ void MqttHandler::run() {
         updates.str("");
         updates.clear();
         updates << dec;
-        publishMessage(it.first, updates);
+        publishMessage(it.first, &updates);
       }
     }
     m_updatedMessages.clear();
@@ -557,7 +557,7 @@ void MqttHandler::handleTraffic() {
   }
 }
 
-string MqttHandler::getTopic(Message* message, ssize_t fieldIndex) {
+string MqttHandler::getTopic(const Message* message, ssize_t fieldIndex) {
   ostringstream ret;
   for (size_t i = 0; i < m_topicStrs.size(); i++) {
     ret << m_topicStrs[i];
@@ -568,15 +568,15 @@ string MqttHandler::getTopic(Message* message, ssize_t fieldIndex) {
       if (m_topicFields[i] == "fields" && fieldIndex >= 0) {
         ret << message->getFieldName(fieldIndex);  // TODO skip ignored fields
       } else {
-        message->dumpField(ret, m_topicFields[i]);
+        message->dumpField(m_topicFields[i], false, &ret);
       }
     }
   }
   return ret.str();
 }
 
-void MqttHandler::publishMessage(Message* message, ostringstream& updates) {
-  result_t result = message->decodeLastData(updates);
+void MqttHandler::publishMessage(const Message* message, ostringstream* updates) {
+  result_t result = message->decodeLastData(false, NULL, -1, 0, updates);
   if (result != RESULT_OK) {
     logOtherError("mqtt", "decode %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(),
         getResultCode(result));
@@ -584,7 +584,7 @@ void MqttHandler::publishMessage(Message* message, ostringstream& updates) {
   }
   if (m_publishByField) {
     ssize_t index = 0;
-    istringstream input(updates.str());
+    istringstream input(updates->str());
     string token;
     while (getline(input, token, UI_FIELD_SEPARATOR)) {
       string topic = getTopic(message, index);
@@ -592,11 +592,11 @@ void MqttHandler::publishMessage(Message* message, ostringstream& updates) {
       index++;
     }
   } else {
-    publishTopic(getTopic(message), updates.str());
+    publishTopic(getTopic(message), updates->str());
   }
 }
 
-void MqttHandler::publishTopic(string topic, string data, bool retain) {
+void MqttHandler::publishTopic(const string& topic, const string& data, bool retain) {
   logOtherDebug("mqtt", "publish %s %s", topic.c_str(), data.c_str());
   mosquitto_publish(m_mosquitto, NULL, topic.c_str(), (uint32_t)data.size(),
       reinterpret_cast<const uint8_t*>(data.c_str()), 0, retain);

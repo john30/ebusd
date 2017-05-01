@@ -178,9 +178,8 @@ static const struct argp_option argpoptions[] = {
   {"configpath",     'c',      "PATH",  0, "Read CSV config files from PATH [" CONFIG_PATH "]", 0 },
   {"scanconfig",     's',      "ADDR",  OPTION_ARG_OPTIONAL, "Pick CSV config files matching initial scan (ADDR="
       "\"none\" or empty for no initial scan message, \"full\" for full scan, or a single hex address to scan, "
-      "default is broadcast ident message). If combined with --checkconfig and --inject, you can add scan message "
-      "data as arguments for checking a particular scan configuration, e.g. \"FF08070400/0AB5454850303003277201\".",
-      0 },
+      "default is broadcast ident message). If combined with --checkconfig, you can add scan message data as "
+      "arguments for checking a particular scan configuration, e.g. \"FF08070400/0AB5454850303003277201\".", 0 },
   {"configlang",     O_CFGLNG, "LANG",  0,
       "Prefer LANG in multilingual configuration files [system default language]", 0 },
   {"checkconfig",    O_CHKCFG, NULL,    0, "Check CSV config files, then stop", 0 },
@@ -280,7 +279,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     opt->initialSend = true;
     break;
   case O_DEVLAT:  // --latency=10000
-    opt->latency = parseInt(arg, 10, 0, 200000, result);
+    opt->latency = parseInt(arg, 10, 0, 200000, &result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid latency");
       return EINVAL;
@@ -307,7 +306,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       } else if (strcmp("full", arg) == 0) {
         opt->initialScan = SYN;
       } else {
-        opt->initialScan = (symbol_t)parseInt(arg, 16, 0x00, 0xff, result);
+        opt->initialScan = (symbol_t)parseInt(arg, 16, 0x00, 0xff, &result);
         if (!isValidAddress(opt->initialScan)) {
           argp_error(state, "invalid initial scan address");
           return EINVAL;
@@ -333,7 +332,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     opt->dumpConfig = true;
     break;
   case O_POLINT:  // --pollinterval=5
-    opt->pollInterval = parseInt(arg, 10, 0, 3600, result);
+    opt->pollInterval = parseInt(arg, 10, 0, 3600, &result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid pollinterval");
       return EINVAL;
@@ -349,7 +348,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
 
   // eBUS options:
   case 'a':  // --address=31
-    opt->address = (symbol_t)parseInt(arg, 16, 0, 0xff, result);
+    opt->address = (symbol_t)parseInt(arg, 16, 0, 0xff, &result);
     if (result != RESULT_OK || !isMaster(opt->address)) {
       argp_error(state, "invalid address");
       return EINVAL;
@@ -363,35 +362,35 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     opt->answer = true;
     break;
   case O_ACQTIM:  // --acquiretimeout=9400
-    opt->acquireTimeout = parseInt(arg, 10, 1000, 100000, result);
+    opt->acquireTimeout = parseInt(arg, 10, 1000, 100000, &result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid acquiretimeout");
       return EINVAL;
     }
     break;
   case O_ACQRET:  // --acquireretries=3
-    opt->acquireRetries = parseInt(arg, 10, 0, 10, result);
+    opt->acquireRetries = parseInt(arg, 10, 0, 10, &result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid acquireretries");
       return EINVAL;
     }
     break;
   case O_SNDRET:  // --sendretries=2
-    opt->sendRetries = parseInt(arg, 10, 0, 10, result);
+    opt->sendRetries = parseInt(arg, 10, 0, 10, &result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid sendretries");
       return EINVAL;
     }
     break;
   case O_RCVTIM:  // --receivetimeout=25000
-    opt->receiveTimeout = parseInt(arg, 10, 1000, 100000, result);
+    opt->receiveTimeout = parseInt(arg, 10, 1000, 100000, &result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid receivetimeout");
       return EINVAL;
     }
     break;
   case O_MASCNT:  // --numbermasters=0
-    opt->masterCount = parseInt(arg, 10, 0, 25, result);
+    opt->masterCount = parseInt(arg, 10, 0, 25, &result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid numbermasters");
       return EINVAL;
@@ -434,7 +433,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     opt->pidFile = arg;
     break;
   case 'p':  // --port=8888
-    opt->port = (uint16_t)parseInt(arg, 10, 1, 65535, result);
+    opt->port = (uint16_t)parseInt(arg, 10, 1, 65535, &result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid port");
       return EINVAL;
@@ -444,7 +443,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     opt->localOnly = true;
     break;
   case O_HTTPPT:  // --httpport=0
-    opt->httpPort = (uint16_t)parseInt(arg, 10, 1, 65535, result);
+    opt->httpPort = (uint16_t)parseInt(arg, 10, 1, 65535, &result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid httpport");
       return EINVAL;
@@ -527,7 +526,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     opt->logRawFile = arg;
     break;
   case O_RAWSIZ:  // --lograwdatasize=100
-    opt->logRawSize = parseInt(arg, 10, 1, 1000000, result);
+    opt->logRawSize = parseInt(arg, 10, 1, 1000000, &result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid lograwdatasize");
       return EINVAL;
@@ -547,7 +546,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     opt->dumpFile = arg;
     break;
   case O_DMPSIZ:  // --dumpsize=100
-    opt->dumpSize = parseInt(arg, 10, 1, 1000000, result);
+    opt->dumpSize = parseInt(arg, 10, 1, 1000000, &result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid dumpsize");
       return EINVAL;
@@ -555,11 +554,11 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
 
   case ARGP_KEY_ARG:
-    if (!opt->injectMessages) {
-      argp_error(state, "invalid arguments starting with \"%s\"", arg);
-      return EINVAL;
+    if (opt->injectMessages || (opt->checkConfig && opt->scanConfig)) {
+      return ARGP_ERR_UNKNOWN;
     }
-    return ARGP_ERR_UNKNOWN;
+    argp_error(state, "invalid arguments starting with \"%s\"", arg);
+    return EINVAL;
   default:
     return ARGP_ERR_UNKNOWN;
   }
@@ -704,7 +703,7 @@ void signalHandler(int sig) {
  * @return the result code.
  */
 static result_t collectConfigFiles(const string path, const string prefix, const string extension,
-    vector<string>& files, vector<string>* dirs = NULL, bool* hasTemplates = NULL) {
+    vector<string>* files, vector<string>* dirs = NULL, bool* hasTemplates = NULL) {
   DIR* dir = opendir(path.c_str());
 
   if (dir == NULL) {
@@ -735,7 +734,7 @@ static result_t collectConfigFiles(const string path, const string prefix, const
         }
       } else if (prefix.length() == 0
           || (name.length() >= prefix.length() && name.substr(0, prefix.length()) == prefix)) {
-        files.push_back(p);
+        files->push_back(p);
       }
     }
   }
@@ -744,7 +743,7 @@ static result_t collectConfigFiles(const string path, const string prefix, const
   return RESULT_OK;
 }
 
-DataFieldTemplates* getTemplates(const string filename) {
+DataFieldTemplates* getTemplates(const string& filename) {
   string path;
   size_t pos = filename.find_last_of('/');
   if (pos != string::npos) {
@@ -783,7 +782,8 @@ static bool readTemplates(const string path, const string extension, bool availa
     return true;
   }
   string errorDescription;
-  result_t result = templates->readFromFile(path+"/_templates"+extension, errorDescription, verbose);
+  result_t result = templates->readFromFile(path+"/_templates"+extension, verbose, NULL, &errorDescription,
+      NULL, NULL, NULL);
   if (result == RESULT_OK) {
     logInfo(lf_main, "read templates in %s", path.c_str());
     return true;
@@ -802,18 +802,18 @@ static bool readTemplates(const string path, const string extension, bool availa
  * @param verbose whether to verbosely log problems.
  * @return the result code.
  */
-static result_t readConfigFiles(const string path, const string extension, MessageMap* messages, bool recursive,
-    bool verbose, string& errorDescription) {
+static result_t readConfigFiles(const string& path, const string& extension, const bool recursive,
+    const bool verbose, string* errorDescription, MessageMap* messages) {
   vector<string> files, dirs;
   bool hasTemplates = false;
-  result_t result = collectConfigFiles(path, "", extension, files, &dirs, &hasTemplates);
+  result_t result = collectConfigFiles(path, "", extension, &files, &dirs, &hasTemplates);
   if (result != RESULT_OK) {
     return result;
   }
   readTemplates(path, extension, hasTemplates, verbose);
   for (const auto& name : files) {
     logInfo(lf_main, "reading file %s", name.c_str());
-    result = messages->readFromFile(name, errorDescription, verbose);
+    result = messages->readFromFile(name, verbose, NULL, errorDescription, NULL, NULL, NULL);
     if (result != RESULT_OK) {
       return result;
     }
@@ -821,7 +821,7 @@ static result_t readConfigFiles(const string path, const string extension, Messa
   if (recursive) {
     for (const auto& name : dirs) {
       logInfo(lf_main, "reading dir  %s", name.c_str());
-      result = readConfigFiles(name, extension, messages, true, verbose, errorDescription);
+      result = readConfigFiles(name, extension, true, verbose, errorDescription, messages);
       if (result != RESULT_OK) {
         return result;
       }
@@ -848,13 +848,13 @@ void readMessage(Message* message) {
 
 void executeInstructions(MessageMap* messages, bool verbose) {
   string errorDescription;
-  result_t result = messages->resolveConditions(errorDescription, verbose);
+  result_t result = messages->resolveConditions(verbose, &errorDescription);
   if (result != RESULT_OK) {
     logError(lf_main, "error resolving conditions: %s, last error: %s", getResultCode(result),
         errorDescription.c_str());
   }
   ostringstream log;
-  result = messages->executeInstructions(log, readMessage);
+  result = messages->executeInstructions(readMessage, &log);
   if (result != RESULT_OK) {
     logError(lf_main, "error executing instructions: %s, last error: %s", getResultCode(result),
         log.str().c_str());
@@ -878,8 +878,8 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
   s_templatesByPath.clear();
 
   string errorDescription;
-  result_t result = readConfigFiles(string(opt.configPath), ".csv", messages,
-      (!opt.scanConfig || opt.checkConfig) && !denyRecursive, verbose, errorDescription);
+  result_t result = readConfigFiles(string(opt.configPath), ".csv",
+      (!opt.scanConfig || opt.checkConfig) && !denyRecursive, verbose, &errorDescription, messages);
   if (result == RESULT_OK) {
     logInfo(lf_main, "read config files");
   } else {
@@ -889,7 +889,7 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
   return RESULT_OK;
 }
 
-result_t loadScanConfigFile(MessageMap* messages, symbol_t address, string& relativeFile, bool verbose) {
+result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose, string* relativeFile) {
   Message* message = messages->getScanMessage(address);
   if (!message || message->getLastUpdateTime() == 0) {
     return RESULT_ERR_NOTFOUND;
@@ -905,9 +905,9 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, string& rela
   ostringstream out;
   size_t offset = 0;
   size_t field = 0;
-  result_t result = (*identFields)[field]->read(data, offset, out, 0);  // manufacturer name
+  result_t result = (*identFields)[field]->read(data, offset, false, NULL, -1, 0, -1, &out);  // manufacturer name
   if (result == RESULT_ERR_NOTFOUND) {
-    result = (*identFields)[field]->read(data, offset, out, OF_NUMERIC);  // manufacturer name
+    result = (*identFields)[field]->read(data, offset, false, NULL, -1, OF_NUMERIC, -1, &out);  // manufacturer name
   }
   if (result == RESULT_OK) {
     path = out.str();
@@ -918,22 +918,22 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, string& rela
     prefix = out.str();
     out.str("");
     out.clear();
-    offset += (*identFields)[field++]->getLength(pt_slaveData);
-    result = (*identFields)[field]->read(data, offset, out, 0);  // identification string
+    offset += (*identFields)[field++]->getLength(pt_slaveData, MAX_LEN);
+    result = (*identFields)[field]->read(data, offset, false, NULL, -1, 0, -1, &out);  // identification string
   }
   if (result == RESULT_OK) {
     ident = out.str();
     out.str("");
-    offset += (*identFields)[field++]->getLength(pt_slaveData);
-    result = (*identFields)[field]->read(data, offset, sw, 0);  // software version number
+    offset += (*identFields)[field++]->getLength(pt_slaveData, MAX_LEN);
+    result = (*identFields)[field]->read(data, offset, NULL, -1, &sw);  // software version number
     if (result == RESULT_ERR_OUT_OF_RANGE) {
       sw = (data.dataAt(offset) << 16) | data.dataAt(offset+1);  // use hex value instead
       result = RESULT_OK;
     }
   }
   if (result == RESULT_OK) {
-    offset += (*identFields)[field++]->getLength(pt_slaveData);
-    result = (*identFields)[field]->read(data, offset, hw, 0);  // hardware version number
+    offset += (*identFields)[field++]->getLength(pt_slaveData, MAX_LEN);
+    result = (*identFields)[field]->read(data, offset, NULL, -1, &hw);  // hardware version number
     if (result == RESULT_ERR_OUT_OF_RANGE) {
       hw = (data.dataAt(offset) << 16) | data.dataAt(offset+1);  // use hex value instead
       result = RESULT_OK;
@@ -947,7 +947,7 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, string& rela
   vector<string> files;
   bool hasTemplates = false;
   // find files matching MANUFACTURER/ZZ.*csv in cfgpath
-  result = collectConfigFiles(path, prefix, ".csv", files, NULL, &hasTemplates);
+  result = collectConfigFiles(path, prefix, ".csv", &files, NULL, &hasTemplates);
   if (result != RESULT_OK) {
     logError(lf_main, "unable to load scan config %2.2x: list files in %s %s", address, path.c_str(),
         getResultCode(result));
@@ -978,7 +978,7 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, string& rela
     unsigned int checkSw, checkHw;
     map<string, string> defaults;
     const string filename = name.substr(path.length()+1);
-    if (!messages->extractDefaultsFromFilename(filename, defaults, &checkDest, &checkSw, &checkHw)) {
+    if (!messages->extractDefaultsFromFilename(filename, &defaults, &checkDest, &checkSw, &checkHw)) {
       continue;
     }
     if (address != checkDest || (checkSw != UINT_MAX && sw != checkSw) || (checkHw != UINT_MAX && hw != checkHw)) {
@@ -1022,7 +1022,7 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, string& rela
   // found the right file. load the templates if necessary, then load the file itself
   bool readCommon = readTemplates(path, ".csv", hasTemplates, opt.checkConfig);
   if (readCommon) {
-    result = collectConfigFiles(path, "", ".csv", files);
+    result = collectConfigFiles(path, "", ".csv", &files);
     if (result == RESULT_OK && !files.empty()) {
       for (const auto& name : files) {
         string baseName = name.substr(path.length()+1, name.length()-path.length()-strlen(".csv"));  // *.
@@ -1031,7 +1031,7 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, string& rela
         }
         if (baseName.length() < 3 || baseName.find_first_of('.') != 2) {  // different from the scheme "ZZ."
           string errorDescription;
-          result = messages->readFromFile(name, errorDescription, opt.checkConfig);
+          result = messages->readFromFile(name, opt.checkConfig, NULL, &errorDescription, NULL, NULL, NULL);
           if (result == RESULT_OK) {
             logNotice(lf_main, "read common config file %s", name.c_str());
           } else {
@@ -1044,37 +1044,49 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, string& rela
   }
   string errorDescription;
   bestDefaults["name"] = ident;
-  result = messages->readFromFile(best, errorDescription, opt.checkConfig, &bestDefaults);
+  result = messages->readFromFile(best, opt.checkConfig, &bestDefaults, &errorDescription, NULL, NULL, NULL);
   if (result != RESULT_OK) {
-    logError(lf_main, "error reading scan config file %s for ID \"%s\", SW%4.4d, HW%4.4d: %s", best.c_str(),
-        ident.c_str(), sw, hw, getResultCode(result));
+    logError(lf_main, "error reading scan config file %s for ID \"%s\", SW%4.4d, HW%4.4d: %s, %s", best.c_str(),
+        ident.c_str(), sw, hw, getResultCode(result), errorDescription.c_str());
     return result;
   }
   logNotice(lf_main, "read scan config file %s for ID \"%s\", SW%4.4d, HW%4.4d", best.c_str(), ident.c_str(), sw, hw);
-  relativeFile = best.substr(strlen(opt.configPath)+1);
+  *relativeFile = best.substr(strlen(opt.configPath)+1);
   return RESULT_OK;
 }
 
-bool parseMessage(const string& arg, MasterSymbolString& master, SlaveSymbolString& slave, bool onlyMasterSlave) {
+/**
+ * Helper method for parsing a master/slave message pair from a command line argument.
+ * @param arg the argument to parse.
+ * @param onlyMasterSlave true to parse only a MS message, false to also parse MM and BC message.
+ * @param master the @a MasterSymbolString to parse into.
+ * @param slave the @a SlaveSymbolString to parse into.
+ * @return true when the argument was valid, false otherwise.
+ */
+bool parseMessage(const string& arg, bool onlyMasterSlave, MasterSymbolString* master, SlaveSymbolString* slave) {
   size_t pos = arg.find_first_of('/');
   if (pos == string::npos) {
     logError(lf_main, "invalid message %s: missing \"/\"", arg.c_str());
     return false;
   }
-  result_t result = master.parseHex(arg.substr(0, pos));
+  result_t result = master->parseHex(arg.substr(0, pos));
   if (result == RESULT_OK) {
-    result = slave.parseHex(arg.substr(pos+1));
+    result = slave->parseHex(arg.substr(pos+1));
   }
   if (result != RESULT_OK) {
     logError(lf_main, "invalid message %s: %s", arg.c_str(), getResultCode(result));
     return false;
   }
-  if (master.size() < 5) {  // skip QQ ZZ PB SB NN
+  if (master->size() < 5) {  // skip QQ ZZ PB SB NN
     logError(lf_main, "invalid message %s: master part too short", arg.c_str());
     return false;
   }
-  if (!isMaster(master[0])) {
+  if (!isMaster((*master)[0])) {
     logError(lf_main, "invalid message %s: QQ is no master", arg.c_str());
+    return false;
+  }
+  if (!isValidAddress((*master)[1], !onlyMasterSlave) || (onlyMasterSlave && isMaster((*master)[1]))) {
+    logError(lf_main, "invalid message %s: ZZ is invalid", arg.c_str());
     return false;
   }
   return true;
@@ -1114,7 +1126,7 @@ int main(int argc, char* argv[]) {
     SlaveSymbolString slave;
     while (result == RESULT_OK && opt.scanConfig && arg_index < argc) {
       // check scan config for each passed ident message
-      if (!parseMessage(argv[arg_index++], master, slave, true)) {
+      if (!parseMessage(argv[arg_index++], true, &master, &slave)) {
         continue;
       }
       symbol_t address = master[1];
@@ -1124,7 +1136,7 @@ int main(int argc, char* argv[]) {
       } else {
         message->storeLastData(master, slave);
         string file;
-        result_t res = loadScanConfigFile(s_messageMap, address, file, true);
+        result_t res = loadScanConfigFile(s_messageMap, address, true, &file);
         executeInstructions(s_messageMap, true);
         if (res == RESULT_OK) {
           logInfo(lf_main, "scan config %2.2x: file %s loaded", address, file.c_str());
@@ -1133,7 +1145,7 @@ int main(int argc, char* argv[]) {
     }
     if (result == RESULT_OK && opt.dumpConfig) {
       logNotice(lf_main, "configuration dump:");
-      s_messageMap->dump(cout, true);
+      s_messageMap->dump(true, &cout);
     }
     shutdown();
     return 0;
@@ -1170,7 +1182,7 @@ int main(int argc, char* argv[]) {
     SlaveSymbolString slave;
     while (arg_index < argc) {
       // add each passed message
-      if (!parseMessage(argv[arg_index++], master, slave, false)) {
+      if (!parseMessage(argv[arg_index++], false, &master, &slave)) {
         continue;
       }
       busHandler->injectMessage(master, slave);

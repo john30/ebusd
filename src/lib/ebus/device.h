@@ -54,7 +54,7 @@ class DeviceListener {
    * @param symbol the received/sent symbol.
    * @param received @a true on reception, @a false on sending.
    */
-  virtual void notifyDeviceData(const symbol_t symbol, bool received) = 0;  // abstract
+  virtual void notifyDeviceData(symbol_t symbol, bool received) = 0;  // abstract
 };
 
 
@@ -70,7 +70,7 @@ class Device {
    * @param readOnly whether to allow read access to the device only.
    * @param initialSend whether to send an initial @a ESC symbol in @a open().
    */
-  Device(const char* name, const bool checkDevice, const bool readOnly, const bool initialSend)
+  Device(const char* name, bool checkDevice, bool readOnly, bool initialSend)
     : m_name(name), m_checkDevice(checkDevice), m_readOnly(readOnly), m_initialSend(initialSend), m_fd(-1),
       m_listener(NULL) {}
 
@@ -88,8 +88,8 @@ class Device {
    * @return the new @a Device, or NULL on error.
    * Note: the caller needs to free the created instance.
    */
-  static Device* create(const char* name, const bool checkDevice = true, const bool readOnly = false,
-      const bool initialSend = false);
+  static Device* create(const char* name, bool checkDevice = true, bool readOnly = false,
+      bool initialSend = false);
 
   /**
    * Get the transfer latency of this device.
@@ -113,7 +113,7 @@ class Device {
    * @param value the byte value to write.
    * @return the @a result_t code.
    */
-  result_t send(const symbol_t value);
+  result_t send(symbol_t value);
 
   /**
    * Read a single byte from the device.
@@ -121,7 +121,7 @@ class Device {
    * @param value the reference in which the received byte value is stored.
    * @return the result_t code.
    */
-  result_t recv(const unsigned int timeout, symbol_t& value);
+  result_t recv(unsigned int timeout, symbol_t* value);
 
   /**
    * Return the device name.
@@ -165,14 +165,14 @@ class Device {
    * @param value the byte value to write.
    * @return the number of bytes written, or -1 on error.
    */
-  virtual ssize_t write(const symbol_t value) { return ::write(m_fd, &value, 1); }
+  virtual ssize_t write(symbol_t value) { return ::write(m_fd, &value, 1); }
 
   /**
    * Read a single byte.
    * @param value the reference in which the read byte value is stored.
    * @return the number of bytes read, or -1 on error.
    */
-  virtual ssize_t read(symbol_t& value) { return ::read(m_fd, &value, 1); }
+  virtual ssize_t read(symbol_t* value) { return ::read(m_fd, value, 1); }
 
   /** the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network). */
   const char* m_name;
@@ -207,7 +207,7 @@ class SerialDevice : public Device {
    * @param readOnly whether to allow read access to the device only.
    * @param initialSend whether to send an initial @a ESC symbol in @a open().
    */
-  SerialDevice(const char* name, const bool checkDevice, const bool readOnly, const bool initialSend)
+  SerialDevice(const char* name, bool checkDevice, bool readOnly, bool initialSend)
     : Device(name, checkDevice, readOnly, initialSend) {}
 
   // @copydoc
@@ -240,8 +240,8 @@ class NetworkDevice : public Device {
    * @param initialSend whether to send an initial @a ESC symbol in @a open().
    * @param udp true for UDP, false to TCP.
    */
-  NetworkDevice(const char* name, const struct sockaddr_in address, const bool readOnly, const bool initialSend,
-    const bool udp)
+  NetworkDevice(const char* name, const struct sockaddr_in& address, bool readOnly, bool initialSend,
+    bool udp)
     : Device(name, true, readOnly, initialSend), m_address(address), m_udp(udp),
       m_buffer(NULL), m_bufSize(0), m_bufLen(0), m_bufPos(0) {}
 
@@ -269,10 +269,10 @@ class NetworkDevice : public Device {
   bool available() override;
 
   // @copydoc
-  ssize_t write(const symbol_t value) override;
+  ssize_t write(symbol_t value) override;
 
   // @copydoc
-  ssize_t read(symbol_t& value) override;
+  ssize_t read(symbol_t* value) override;
 
 
  private:

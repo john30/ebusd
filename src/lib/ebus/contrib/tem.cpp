@@ -39,7 +39,7 @@ void contrib_tem_register() {
   DataTypeList::getInstance()->add(new TemParamDataType("TEM_P"));
 }
 
-result_t TemParamDataType::derive(int divisor, size_t bitCount, const NumberDataType* &derived) const {
+result_t TemParamDataType::derive(int divisor, size_t bitCount, const NumberDataType** derived) const {
   if (divisor == 0) {
     divisor = 1;
   }
@@ -47,27 +47,26 @@ result_t TemParamDataType::derive(int divisor, size_t bitCount, const NumberData
     bitCount = m_bitCount;
   }
   if (divisor == 1 && bitCount == 16) {
-    derived = this;
+    *derived = this;
     return RESULT_OK;
   }
   return RESULT_ERR_INVALID_ARG;
 }
 
-result_t TemParamDataType::readSymbols(const SymbolString& input,
-    const size_t offset, const size_t length,
-    ostringstream& output, OutputFormat outputFormat) const {
+result_t TemParamDataType::readSymbols(size_t offset, size_t length, const SymbolString& input,
+    OutputFormat outputFormat, ostream* output) const {
   unsigned int value = 0;
 
-  result_t result = readRawValue(input, offset, length, value);
+  result_t result = readRawValue(offset, length, input, &value);
   if (result != RESULT_OK) {
     return result;
   }
 
   if (value == m_replacement) {
     if (outputFormat & OF_JSON) {
-      output << "null";
+      *output << "null";
     } else {
-      output << NULL_VALUE;
+      *output << NULL_VALUE;
     }
     return RESULT_OK;
   }
@@ -80,31 +79,29 @@ result_t TemParamDataType::readSymbols(const SymbolString& input,
     num = (value & 0x7f);  // num in bits 0...6
   }
   if (outputFormat & OF_JSON) {
-    output << '"';
+    *output << '"';
   }
-  output << setfill('0') << setw(2) << dec << static_cast<int>(grp) << '-' << setw(3) << static_cast<int>(num);
+  *output << setfill('0') << setw(2) << dec << static_cast<int>(grp) << '-' << setw(3) << static_cast<int>(num);
   if (outputFormat & OF_JSON) {
-    output << '"';
+    *output << '"';
   }
-  output << setfill(' ') << setw(0);  // reset
+  *output << setfill(' ') << setw(0);  // reset
   return RESULT_OK;
 }
 
-result_t TemParamDataType::writeSymbols(istringstream& input,
-  const size_t offset, const size_t length,
-  SymbolString& output, size_t* usedLength) const {
+result_t TemParamDataType::writeSymbols(const size_t offset, const size_t length, istringstream* input,
+    SymbolString* output, size_t* usedLength) const {
   unsigned int value;
   int grp, num;
-  string token;
 
-  const char* str = input.str().c_str();
-  if (strcmp(str, NULL_VALUE) == 0) {
+  if (input->str() == NULL_VALUE) {
     value = m_replacement;  // replacement value
   } else {
-    if (input.eof() || !getline(input, token, '-')) {
+    string token;
+    if (input->eof() || !getline(*input, token, '-')) {
       return RESULT_ERR_EOF;  // incomplete
     }
-    str = token.c_str();
+    const char* str = token.c_str();
     if (str == NULL || *str == 0) {
       return RESULT_ERR_EOF;  // input too short
     }
@@ -113,7 +110,7 @@ result_t TemParamDataType::writeSymbols(istringstream& input,
     if (strEnd == NULL || strEnd == str || *strEnd != 0) {
       return RESULT_ERR_INVALID_NUM;  // invalid value
     }
-    if (input.eof() || !getline(input, token, '-')) {
+    if (input->eof() || !getline(*input, token, '-')) {
       return RESULT_ERR_EOF;  // incomplete
     }
     str = token.c_str();
@@ -128,7 +125,7 @@ result_t TemParamDataType::writeSymbols(istringstream& input,
     if (grp < 0 || grp > 0x1f || num < 0 || num > 0x7f) {
       return RESULT_ERR_OUT_OF_RANGE;  // value out of range
     }
-    if (output.isMaster()) {
+    if (output->isMaster()) {
       value = grp | (num << 8);  // grp in bits 0...5, num in bits 8...13
     } else {
       value = (grp << 7) | num;  // grp in bits 7...11, num in bits 0...6

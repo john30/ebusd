@@ -79,7 +79,7 @@ static const char* defaultMessageFieldMap[] = {  // access level not included in
     "*name", "part", "type", "divisor/values", "unit", "comment",
 };
 
-extern DataFieldTemplates* getTemplates(const string filename);
+extern DataFieldTemplates* getTemplates(const string& filename);
 
 /**
  * Get the normalized message field name for the given name.
@@ -87,7 +87,7 @@ extern DataFieldTemplates* getTemplates(const string filename);
  * @param supportsLanguage set to true when the field supports multiple language.
  * @return the normalized message field name, or empty if unknown.
  */
-string getMessageFieldName(const string name, bool& supportsLanguage) {
+string getMessageFieldName(const string& name, bool* supportsLanguage) {
   if (name.find("type") != string::npos) {
     return "type";
   }
@@ -97,23 +97,20 @@ string getMessageFieldName(const string name, bool& supportsLanguage) {
   if (name.find("name") != string::npos) {
     return "name";
   }
-  supportsLanguage = true;
+  *supportsLanguage = true;
   if (name.find("comment") == 0) {
     return "comment";
   }
   return "";
 }
 
-/*  case MESSAGEFIELD_DATAFIELDS:
-    return withDataFields ? "fields" : "";
-  */
 
-Message::Message(const string circuit, const string level, const string name,
-    const bool isWrite, const bool isPassive, const map<string, string>& attributes,
-    const symbol_t srcAddress, const symbol_t dstAddress,
-    const vector<symbol_t> id,
-    const DataField* data, const bool deleteData,
-    const size_t pollPriority,
+Message::Message(const string& circuit, const string& level, const string& name,
+    bool isWrite, bool isPassive, const map<string, string>& attributes,
+    symbol_t srcAddress, symbol_t dstAddress,
+    const vector<symbol_t>& id,
+    const DataField* data, bool deleteData,
+    size_t pollPriority,
     Condition* condition)
     : AttributedItem(name, attributes), m_circuit(circuit), m_level(level), m_isWrite(isWrite),
       m_isPassive(isPassive),
@@ -129,9 +126,9 @@ Message::Message(const string circuit, const string level, const string name,
   }
 }
 
-Message::Message(const string circuit, const string level, const string name,
-    const symbol_t pb, const symbol_t sb,
-    const bool broadcast, const DataField* data, const bool deleteData)
+Message::Message(const string& circuit, const string& level, const string& name,
+    symbol_t pb, symbol_t sb,
+    bool broadcast, const DataField* data, bool deleteData)
     : AttributedItem(name), m_circuit(circuit), m_level(level), m_isWrite(broadcast),
       m_isPassive(false),
       m_srcAddress(SYN), m_dstAddress(broadcast ? BROADCAST : SYN),
@@ -155,7 +152,7 @@ Message::Message(const string circuit, const string level, const string name,
  * empty and @p replaceStar is @p true.
  * @return the default if available and value is empty, or the value.
  */
-string getDefault(const string value, const map<string, string>& defaults, const string fieldName,
+string getDefault(const string& value, const map<string, string>& defaults, const string& fieldName,
     bool replaceStar = false, bool required = false) {
   if (defaults.empty()) {
     return value;
@@ -175,9 +172,8 @@ string getDefault(const string value, const map<string, string>& defaults, const
   return defaultStr.substr(0, insertPos)+value+defaultStr.substr(insertPos+1);
 }
 
-uint64_t Message::createKey(const vector<symbol_t> id,
-    const bool isWrite, const bool isPassive,
-    const symbol_t srcAddress, const symbol_t dstAddress) {
+uint64_t Message::createKey(const vector<symbol_t>& id, bool isWrite, bool isPassive, symbol_t srcAddress,
+    symbol_t dstAddress) {
   uint64_t key = (uint64_t)(id.size()-2) << (8 * 7 + 5);
   if (isPassive) {
     key |= (uint64_t)getMasterNumber(srcAddress) << (8 * 7);  // 0..25
@@ -221,7 +217,7 @@ uint64_t Message::createKey(const MasterSymbolString& master, size_t maxIdLength
   return key;
 }
 
-uint64_t Message::createKey(const symbol_t pb, const symbol_t sb, const bool broadcast) {
+uint64_t Message::createKey(symbol_t pb, symbol_t sb, bool broadcast) {
   uint64_t key = 0;
   key |= (broadcast ? 0x1fLL : 0x1eLL) << (8 * 7);  // special values for active
   key |= (uint64_t)(broadcast ? BROADCAST : SYN) << (8 * 6);
@@ -230,8 +226,9 @@ uint64_t Message::createKey(const symbol_t pb, const symbol_t sb, const bool bro
   return key;
 }
 
-result_t Message::parseId(string input, vector<symbol_t>& id) {
+result_t Message::parseId(const string& input, vector<symbol_t>* id) {
   istringstream in(input);
+  string str;
   while (!in.eof()) {
     while (in.peek() == ' ') {
       in.get();
@@ -239,35 +236,38 @@ result_t Message::parseId(string input, vector<symbol_t>& id) {
     if (in.eof()) {  // no more digits
       break;
     }
-    input.clear();
-    input.push_back(static_cast<char>(in.get()));
+    str.clear();
+    str.push_back(static_cast<char>(in.get()));
     if (in.eof()) {
       return RESULT_ERR_INVALID_ARG;  // too short hex
     }
-    input.push_back(static_cast<char>(in.get()));
+    str.push_back(static_cast<char>(in.get()));
 
     result_t result;
-    symbol_t value = (symbol_t)parseInt(input.c_str(), 16, 0, 0xff, result);
+    symbol_t value = (symbol_t)parseInt(str.c_str(), 16, 0, 0xff, &result);
     if (result != RESULT_OK) {
       return result;  // invalid hex value
     }
-    id.push_back(value);
+    id->push_back(value);
   }
   return RESULT_OK;
 }
 
-result_t Message::create(map<string, string> row, vector< map<string, string> > subRows,
-    map<string, map<string, string> >& rowDefaults, map<string, vector< map<string, string> > >& subRowDefaults,
-    string& errorDescription, Condition* condition, const string filename, DataFieldTemplates* templates,
-    vector<Message*>& messages) {
+static const map<string, string> noDefaults;
+
+result_t Message::create(const string& filename, const DataFieldTemplates* templates,
+    const map<string, map<string, string> >& rowDefaults,
+    const map<string, vector< map<string, string> > >& subRowDefaults,
+    const string& typeStr, Condition* condition,
+    map<string, string>* row, vector< map<string, string> >* subRows,
+    string* errorDescription, vector<Message*>* messages) {
   // [type],[circuit],name,[comment],[QQ[;QQ]*],[ZZ],[PBSB],[ID],fields...
   result_t result;
   bool isWrite = false, isPassive = false;
   string defaultName;
   size_t pollPriority = 0;
-  string typeStr = pluck(row, "type");
   if (typeStr.empty()) {
-    errorDescription = "empty type";
+    *errorDescription = "empty type";
     return RESULT_ERR_EOF;
   }
   if (typeStr.empty()) {  // default: active read
@@ -275,7 +275,7 @@ result_t Message::create(map<string, string> row, vector< map<string, string> > 
   } else {
     defaultName = typeStr;
     string lower = typeStr;
-    FileReader::tolower(lower);
+    FileReader::tolower(&lower);
     char type = lower[0];
     if (type == 'r') {  // active read
       char poll = lower[1];
@@ -292,44 +292,45 @@ result_t Message::create(map<string, string> row, vector< map<string, string> > 
     }
   }
 
-  map<string, string>& defaults = rowDefaults[defaultName];
-  string circuit = getDefault(pluck(row, "circuit"), defaults, "circuit", true);  // [circuit[#level]]
-  string level = getDefault(pluck(row, "level"), defaults, "level", true);
+  auto it = rowDefaults.find(defaultName);
+  const map<string, string>& defaults = it == rowDefaults.end() ? noDefaults : it->second;
+  string circuit = getDefault(pluck("circuit", row), defaults, "circuit", true);  // [circuit[#level]]
+  string level = getDefault(pluck("level", row), defaults, "level", true);
   size_t pos = circuit.find('#');  // TODO remove some day
   if (pos != string::npos) {
     level = circuit.substr(pos+1);
     circuit.resize(pos);
   }
   if (circuit.empty()) {
-    errorDescription = "circuit";
+    *errorDescription = "circuit";
     return RESULT_ERR_MISSING_ARG;  // empty circuit
   }
-  string name = getDefault(pluck(row, "name"), defaults, "name", true, true);  // name
+  string name = getDefault(pluck("name", row), defaults, "name", true, true);  // name
   if (name.empty()) {
-    errorDescription = "name";
+    *errorDescription = "name";
     return RESULT_ERR_MISSING_ARG;  // empty name
   }
-  string comment = getDefault(pluck(row, "comment"), defaults, "comment", true);  // [comment]
+  string comment = getDefault(pluck("comment", row), defaults, "comment", true);  // [comment]
   if (!comment.empty()) {
-    row["comment"] = comment;
+    (*row)["comment"] = comment;
   }
-  string str = getDefault(pluck(row, "qq"), defaults, "qq");  // [QQ[;QQ]*]
+  string str = getDefault(pluck("qq", row), defaults, "qq");  // [QQ[;QQ]*]
   symbol_t srcAddress;
   if (str.empty()) {
     srcAddress = SYN;  // no specific source
   } else {
-    srcAddress = (symbol_t)parseInt(str.c_str(), 16, 0, 0xff, result);
+    srcAddress = (symbol_t)parseInt(str.c_str(), 16, 0, 0xff, &result);
     if (result != RESULT_OK) {
-      errorDescription = "qq "+str;
+      *errorDescription = "qq "+str;
       return result;
     }
     if (!isMaster(srcAddress)) {
-      errorDescription = "qq "+str;
+      *errorDescription = "qq "+str;
       return RESULT_ERR_INVALID_ADDR;
     }
   }
 
-  str = getDefault(pluck(row, "zz"), defaults, "zz");  // [ZZ]
+  str = getDefault(pluck("zz", row), defaults, "zz");  // [ZZ]
   vector<symbol_t> dstAddresses;
   bool isBroadcastOrMasterDestination = false;
   if (str.empty()) {
@@ -339,14 +340,14 @@ result_t Message::create(map<string, string> row, vector< map<string, string> > 
     string token;
     bool first = true;
     while (getline(stream, token, VALUE_SEPARATOR)) {
-      FileReader::trim(token);
-      symbol_t dstAddress = (symbol_t)parseInt(token.c_str(), 16, 0, 0xff, result);
+      FileReader::trim(&token);
+      symbol_t dstAddress = (symbol_t)parseInt(token.c_str(), 16, 0, 0xff, &result);
       if (result != RESULT_OK) {
-        errorDescription = "zz "+token;
+        *errorDescription = "zz "+token;
         return result;
       }
       if (!isValidAddress(dstAddress)) {
-        errorDescription = "zz "+token;
+        *errorDescription = "zz "+token;
         return RESULT_ERR_INVALID_ADDR;
       }
       bool broadcastOrMaster = (dstAddress == BROADCAST) || isMaster(dstAddress);
@@ -354,7 +355,7 @@ result_t Message::create(map<string, string> row, vector< map<string, string> > 
         isBroadcastOrMasterDestination = broadcastOrMaster;
         first = false;
       } else if (isBroadcastOrMasterDestination != broadcastOrMaster) {
-        errorDescription = "zz "+token;
+        *errorDescription = "zz "+token;
         return RESULT_ERR_INVALID_ADDR;
       }
       dstAddresses.push_back(dstAddress);
@@ -362,21 +363,21 @@ result_t Message::create(map<string, string> row, vector< map<string, string> > 
   }
 
   vector<symbol_t> id;
-  str = pluck(row, "pbsb");  // [PBSB]
+  str = pluck("pbsb", row);  // [PBSB]
   bool useDefaults = str.empty();
   if (useDefaults) {
     str = getDefault(str, defaults, "pbsb");
   }
-  result = parseId(str, id);
+  result = parseId(str, &id);
   if (result != RESULT_OK) {
-    errorDescription = "pbsb "+str;
+    *errorDescription = "pbsb "+str;
     return result;
   }
   if (id.size() != 2) {
-    errorDescription = "pbsb "+str;
+    *errorDescription = "pbsb "+str;
     return RESULT_ERR_INVALID_ARG;  // missing/to short/to long PBSB
   }
-  str = pluck(row, "id");  // [ID] (optional master data)
+  str = pluck("id", row);  // [ID] (optional master data)
   string defaultIdPrefix;
   if (useDefaults) {
     defaultIdPrefix = getDefault("", defaults, "id");
@@ -389,26 +390,26 @@ result_t Message::create(map<string, string> row, vector< map<string, string> > 
   size_t chainPrefixLength = id.size();
   bool first = true, lastChainLengthSpecified = false;
   while (getline(stream, str, VALUE_SEPARATOR) || first) {
-    FileReader::trim(str);
+    FileReader::trim(&str);
     str = defaultIdPrefix+str;
     size_t lengthPos = str.find(LENGTH_SEPARATOR);
     lastChainLengthSpecified = lengthPos != string::npos;
     if (lastChainLengthSpecified) {
-      chainLength = parseInt(str.substr(lengthPos+1).c_str(), 10, 0, MAX_POS, result);
+      chainLength = parseInt(str.substr(lengthPos+1).c_str(), 10, 0, MAX_POS, &result);
       if (result != RESULT_OK) {
-        errorDescription = "id "+str;
+        *errorDescription = "id "+str;
         return result;
       }
       str.resize(lengthPos);
     }
     vector<symbol_t> chainId = id;
-    result = parseId(str, chainId);
+    result = parseId(str, &chainId);
     if (result != RESULT_OK) {
-      errorDescription = "id "+str;
+      *errorDescription = "id "+str;
       return result;
     }
     if (!chainIds.empty() && chainId.size() != chainIds.front().size()) {
-      errorDescription = "id length "+str;
+      *errorDescription = "id length "+str;
       return RESULT_ERR_INVALID_LIST;
     }
     chainIds.push_back(chainId);
@@ -426,7 +427,7 @@ result_t Message::create(map<string, string> row, vector< map<string, string> > 
       }
     }
     if (maxLength+chainLength > 255) {
-      errorDescription = "id length "+str;
+      *errorDescription = "id length "+str;
       return RESULT_ERR_INVALID_POS;
     }
     maxLength += chainLength;
@@ -435,7 +436,7 @@ result_t Message::create(map<string, string> row, vector< map<string, string> > 
   id = chainIds.front();
   if (chainIds.size() > 1) {
     if (isPassive) {
-      errorDescription = "id (passive)";
+      *errorDescription = "id (passive)";
       return RESULT_ERR_INVALID_LIST;
     }
     if (id.size() > chainPrefixLength) {
@@ -448,17 +449,17 @@ result_t Message::create(map<string, string> row, vector< map<string, string> > 
     maxLength = MAX_POS;
   }
   vector<string> newTypes;
-  vector< map<string, string> >& subDefaults = subRowDefaults[defaultName];
-  if (!subDefaults.empty()) {
-    subRows.insert(subRows.begin(), subDefaults.begin(), subDefaults.end());
+  auto subIt = subRowDefaults.find(defaultName);
+  if (subIt != subRowDefaults.end()) {
+    subRows->insert(subRows->begin(), subIt->second.begin(), subIt->second.end());
   }
   const DataField* data = NULL;
-  if (subRows.empty()) {
+  if (subRows->empty()) {
     vector<const SingleDataField*> fields;
     data = new DataFieldSet("", fields);
   } else {
-    result = DataField::create(subRows, errorDescription, templates, data, isWrite, false,
-        isBroadcastOrMasterDestination, maxLength);
+    result = DataField::create(isWrite, false, isBroadcastOrMasterDestination, maxLength, templates,
+        subRows, errorDescription, &data);
     if (result != RESULT_OK) {
       return result;
     }
@@ -467,7 +468,7 @@ result_t Message::create(map<string, string> row, vector< map<string, string> > 
       || data->getLength(pt_slaveData, maxLength) > maxLength) {
     // max NN exceeded
     delete data;
-    errorDescription = "data length";
+    *errorDescription = "data length";
     return RESULT_ERR_INVALID_POS;
   }
   unsigned int index = 0;
@@ -481,13 +482,13 @@ result_t Message::create(map<string, string> row, vector< map<string, string> > 
     }
     Message* message;
     if (chainIds.size() > 1) {
-      message = new ChainedMessage(useCircuit, level, name, isWrite, row, srcAddress, dstAddress, id, chainIds,
+      message = new ChainedMessage(useCircuit, level, name, isWrite, *row, srcAddress, dstAddress, id, chainIds,
           chainLengths, data, index == 0, pollPriority, condition);
     } else {
-      message = new Message(useCircuit, level, name, isWrite, isPassive, row, srcAddress, dstAddress, id, data,
+      message = new Message(useCircuit, level, name, isWrite, isPassive, *row, srcAddress, dstAddress, id, data,
           index == 0, pollPriority, condition);
     }
-    messages.push_back(message);
+    messages->push_back(message);
     index++;
   }
   return RESULT_OK;
@@ -497,7 +498,7 @@ Message* Message::createScanMessage(bool broadcast) {
   return new Message("scan", "", "", 0x07, 0x04, broadcast, DataFieldSet::getIdentFields(), !broadcast);
 }
 
-bool Message::extractFieldNames(string str, vector<string>& fields, bool checkAbbreviated) {
+bool Message::extractFieldNames(const string& str, bool checkAbbreviated, vector<string>* fields) {
   istringstream input(str);
   vector<string> row;
   string column;
@@ -516,12 +517,12 @@ bool Message::extractFieldNames(string str, vector<string>& fields, bool checkAb
     if (idx != knownFieldCount) {
       column = knownFieldNamesFull[idx];
     }  // else: custom attribute
-    fields.push_back(column);
+    fields->push_back(column);
   }
-  return !fields.empty();
+  return !fields->empty();
 }
 
-Message* Message::derive(const symbol_t dstAddress, const symbol_t srcAddress, const string circuit) const {
+Message* Message::derive(symbol_t dstAddress, symbol_t srcAddress, const string& circuit) const {
   Message* result = new Message(circuit.length() == 0 ? m_circuit : circuit, m_level, m_name,
     m_isWrite, m_isPassive, m_attributes,
     srcAddress == SYN ? m_srcAddress : srcAddress, dstAddress,
@@ -533,7 +534,7 @@ Message* Message::derive(const symbol_t dstAddress, const symbol_t srcAddress, c
   return result;
 }
 
-Message* Message::derive(const symbol_t dstAddress, const bool extendCircuit) const {
+Message* Message::derive(symbol_t dstAddress, bool extendCircuit) const {
   if (extendCircuit) {
     ostringstream out;
     out << m_circuit << '.' << hex << setw(2) << setfill('0') << static_cast<unsigned>(dstAddress);
@@ -542,7 +543,7 @@ Message* Message::derive(const symbol_t dstAddress, const bool extendCircuit) co
   return derive(dstAddress, SYN, m_circuit);
 }
 
-bool Message::checkLevel(const string level, const string checkLevels) {
+bool Message::checkLevel(const string& level, const string& checkLevels) {
   if (level.empty()) {
     return true;
   }
@@ -593,7 +594,7 @@ bool Message::checkId(const MasterSymbolString& master, size_t* index) const {
   return true;
 }
 
-bool Message::checkId(Message& other) const {
+bool Message::checkId(const Message& other) const {
   size_t idLen = getIdLength();
   if (idLen != other.getIdLength() || getCount() > 1) {  // only equal for non-chained messages
     return false;
@@ -601,7 +602,7 @@ bool Message::checkId(Message& other) const {
   return other.checkIdPrefix(m_id);
 }
 
-uint64_t Message::getDerivedKey(const symbol_t dstAddress) const {
+uint64_t Message::getDerivedKey(symbol_t dstAddress) const {
   return (m_key & ~(0xffLL << (8*6))) | (uint64_t)dstAddress << (8*6);
 }
 
@@ -609,11 +610,12 @@ bool Message::setPollPriority(size_t priority) {
   if (priority == m_pollPriority || m_isPassive || isScanMessage() || m_dstAddress == SYN) {
     return false;
   }
+  size_t usePriority = priority;
   if (m_usedByCondition && (priority == 0 || priority > POLL_PRIORITY_CONDITION)) {
-    priority = POLL_PRIORITY_CONDITION;
+    usePriority = POLL_PRIORITY_CONDITION;
   }
-  bool ret = m_pollPriority == 0 && priority > 0;
-  m_pollPriority = priority;
+  bool ret = m_pollPriority == 0 && usePriority > 0;
+  m_pollPriority = usePriority;
   return ret;
 }
 
@@ -635,80 +637,78 @@ bool Message::hasField(const char* fieldName, bool numeric) const {
   return m_data->hasField(fieldName, numeric);
 }
 
-result_t Message::prepareMaster(const symbol_t srcAddress, MasterSymbolString& master,
-    istringstream& input, char separator,
-    const symbol_t dstAddress, size_t index) {
+result_t Message::prepareMaster(size_t index, symbol_t srcAddress, symbol_t dstAddress,
+    char separator, istringstream* input, MasterSymbolString* master) {
   if (m_isPassive) {
     return RESULT_ERR_INVALID_ARG;  // prepare not possible
   }
-  master.clear();
-  master.push_back(srcAddress);
+  master->clear();
+  master->push_back(srcAddress);
   if (dstAddress == SYN) {
     if (m_dstAddress == SYN) {
       return RESULT_ERR_INVALID_ADDR;
     }
-    master.push_back(m_dstAddress);
+    master->push_back(m_dstAddress);
   } else {
-    master.push_back(dstAddress);
+    master->push_back(dstAddress);
   }
-  master.push_back(m_id[0]);
-  master.push_back(m_id[1]);
-  result_t result = prepareMasterPart(master, input, separator, index);
+  master->push_back(m_id[0]);
+  master->push_back(m_id[1]);
+  result_t result = prepareMasterPart(index, separator, input, master);
   if (result != RESULT_OK) {
     return result;
   }
-  result = storeLastData(master, index);
+  result = storeLastData(index, *master);
   if (result < RESULT_OK) {
     return result;
   }
   return RESULT_OK;
 }
 
-result_t Message::prepareMasterPart(MasterSymbolString& master, istringstream& input, char separator,
-    size_t index) {
+result_t Message::prepareMasterPart(size_t index, char separator, istringstream* input, MasterSymbolString* master) {
   if (index != 0) {
     return RESULT_ERR_NOTFOUND;
   }
-  master.push_back(0);  // length, will be set later
+  master->push_back(0);  // length, will be set later
   for (size_t i = 2; i < m_id.size(); i++) {
-    master.push_back(m_id[i]);
+    master->push_back(m_id[i]);
   }
-  result_t result = m_data->write(input, master, getIdLength(), separator);
+  result_t result = m_data->write(separator, getIdLength(), input, master, NULL);
   if (result != RESULT_OK) {
     return result;
   }
-  master.adjustHeader();
+  master->adjustHeader();
   return result;
 }
 
-result_t Message::prepareSlave(istringstream& input, SlaveSymbolString& slave) {
+result_t Message::prepareSlave(istringstream* input, SlaveSymbolString* slave) {
   if (m_isWrite) {
     return RESULT_ERR_INVALID_ARG;  // prepare not possible
   }
-  slave.clear();
-  slave.push_back(0);  // length, will be set later
-  result_t result = m_data->write(input, slave, 0);
+  slave->clear();
+  slave->push_back(0);  // length, will be set later
+  result_t result = m_data->write(UI_FIELD_SEPARATOR, 0, input, slave, NULL);
   if (result != RESULT_OK) {
     return result;
   }
-  slave.adjustHeader();
+  slave->adjustHeader();
   time(&m_lastUpdateTime);
-  if (slave != m_lastSlaveData) {
+  if (*slave != m_lastSlaveData) {
     m_lastChangeTime = m_lastUpdateTime;
-    m_lastSlaveData = slave;
+    m_lastSlaveData = *slave;
   }
   return result;
 }
 
-result_t Message::storeLastData(MasterSymbolString& master, SlaveSymbolString& slave) {
-  result_t result = storeLastData(master, 0);
+result_t Message::storeLastData(const MasterSymbolString& master, const SlaveSymbolString& slave) {
+  result_t result = storeLastData(0, master);
   if (result >= RESULT_OK) {
-    result = storeLastData(slave, 0);
+    result = storeLastData(0, slave);
   }
   return result;
 }
 
-result_t Message::storeLastData(MasterSymbolString& data, size_t index) {
+result_t Message::storeLastData(size_t index, const MasterSymbolString& data) {
   if (data.size() > 0 && (m_isWrite || this->m_dstAddress == BROADCAST || isMaster(this->m_dstAddress)
       || data.getDataSize() + 2 > m_id.size())) {
     time(&m_lastUpdateTime);
@@ -726,22 +726,27 @@ result_t Message::storeLastData(MasterSymbolString& data, size_t index) {
   return RESULT_OK;
 }
 
-result_t Message::storeLastData(SlaveSymbolString& data, size_t index) {
+result_t Message::storeLastData(size_t index, const SlaveSymbolString& data) {
   if (data.size() > 0) {
     time(&m_lastUpdateTime);
   }
-  if (data != m_lastSlaveData) {
+  if (m_lastSlaveData != data) {
     m_lastChangeTime = m_lastUpdateTime;
     m_lastSlaveData = data;
   }
   return RESULT_OK;
 }
 
-result_t Message::decodeLastMasterData(ostringstream& output, OutputFormat outputFormat,
-    bool leadingSeparator, const char* fieldName, ssize_t fieldIndex) const {
-  size_t offset = m_id.size() - 2;
-  result_t result = m_data->read(m_lastMasterData, offset,
-      output, outputFormat, -1, leadingSeparator, fieldName, fieldIndex);
+result_t Message::decodeLastData(bool master, bool leadingSeparator, const char* fieldName,
+    ssize_t fieldIndex, OutputFormat outputFormat, ostream* output) const {
+  result_t result;
+  if (master) {
+    result = m_data->read(m_lastMasterData, m_id.size() - 2, leadingSeparator, fieldName, fieldIndex,
+        outputFormat, -1, output);
+  } else {
+    result = m_data->read(m_lastSlaveData, 0, leadingSeparator, fieldName, fieldIndex,
+        outputFormat, -1, output);
+  }
   if (result < RESULT_OK) {
     return result;
   }
@@ -751,30 +756,17 @@ result_t Message::decodeLastMasterData(ostringstream& output, OutputFormat outpu
   return result;
 }
 
-result_t Message::decodeLastSlaveData(ostringstream& output, OutputFormat outputFormat,
-    bool leadingSeparator, const char* fieldName, ssize_t fieldIndex) const {
-  result_t result = m_data->read(m_lastSlaveData, 0,
-      output, outputFormat, -1, leadingSeparator, fieldName, fieldIndex);
-  if (result < RESULT_OK) {
-    return result;
-  }
-  if (result == RESULT_EMPTY && fieldName != NULL) {
-    return RESULT_ERR_NOTFOUND;
-  }
-  return result;
-}
-
-result_t Message::decodeLastData(ostringstream& output, OutputFormat outputFormat,
-    bool leadingSeparator, const char* fieldName, ssize_t fieldIndex) const {
-  size_t startPos = output.str().length();
-  result_t result = m_data->read(m_lastMasterData, getIdLength(), output, outputFormat, -1,
-      leadingSeparator, fieldName, fieldIndex);
+result_t Message::decodeLastData(bool leadingSeparator, const char* fieldName,
+    ssize_t fieldIndex, const OutputFormat outputFormat, ostream* output) const {
+  ssize_t startPos = output->tellp();
+  result_t result = m_data->read(m_lastMasterData, getIdLength(), leadingSeparator, fieldName, fieldIndex,
+      outputFormat, -1, output);
   if (result < RESULT_OK) {
     return result;
   }
   bool empty = result == RESULT_EMPTY;
-  leadingSeparator |= output.str().length() > startPos;
-  result = m_data->read(m_lastSlaveData, 0, output, outputFormat, -1, leadingSeparator, fieldName, fieldIndex);
+  bool useLeadingSeparator = leadingSeparator || output->tellp() > startPos;
+  result = m_data->read(m_lastSlaveData, 0, useLeadingSeparator, fieldName, fieldIndex, outputFormat, -1, output);
   if (result < RESULT_OK) {
     return result;
   }
@@ -786,13 +778,13 @@ result_t Message::decodeLastData(ostringstream& output, OutputFormat outputForma
   return result;
 }
 
-result_t Message::decodeLastDataNumField(unsigned int& output, const char* fieldName, ssize_t fieldIndex) const {
-  result_t result = m_data->read(m_lastMasterData, getIdLength(), output, fieldName, fieldIndex);
+result_t Message::decodeLastDataNumField(const char* fieldName, ssize_t fieldIndex, unsigned int* output) const {
+  result_t result = m_data->read(m_lastMasterData, getIdLength(), fieldName, fieldIndex, output);
   if (result < RESULT_OK) {
     return result;
   }
   if (result == RESULT_EMPTY) {
-    result = m_data->read(m_lastSlaveData, 0, output, fieldName, fieldIndex);
+    result = m_data->read(m_lastSlaveData, 0, fieldName, fieldIndex, output);
   }
   if (result < RESULT_OK) {
     return result;
@@ -826,16 +818,16 @@ bool Message::isLessPollWeight(const Message* other) const {
   return false;
 }
 
-void Message::dumpHeader(ostream& output, vector<string>* fieldNames) {
+void Message::dumpHeader(const vector<string>* fieldNames, ostream* output) {
   bool first = true;
   if (fieldNames == NULL) {
     for (const auto& fieldName : defaultMessageFieldMap) {
       if (first) {
         first = false;
       } else {
-        output << FIELD_SEPARATOR;
+        *output << FIELD_SEPARATOR;
       }
-      output << fieldName;
+      *output << fieldName;
     }
     return;
   }
@@ -843,13 +835,13 @@ void Message::dumpHeader(ostream& output, vector<string>* fieldNames) {
     if (first) {
       first = false;
     } else {
-      output << FIELD_SEPARATOR;
+      *output << FIELD_SEPARATOR;
     }
-    output << fieldName;
+    *output << fieldName;
   }
 }
 
-void Message::dump(ostream& output, vector<string>* fieldNames, bool withConditions) const {
+void Message::dump(const vector<string>* fieldNames, bool withConditions, ostream* output) const {
   bool first = true;
   if (fieldNames == NULL) {
     for (const auto& fieldName : knownFieldNamesFull) {
@@ -859,9 +851,9 @@ void Message::dump(ostream& output, vector<string>* fieldNames, bool withConditi
       if (first) {
         first = false;
       } else {
-        output << FIELD_SEPARATOR;
+        *output << FIELD_SEPARATOR;
       }
-      dumpField(output, fieldName, withConditions);
+      dumpField(fieldName, withConditions, output);
     }
     return;
   }
@@ -869,65 +861,65 @@ void Message::dump(ostream& output, vector<string>* fieldNames, bool withConditi
     if (first) {
       first = false;
     } else {
-      output << FIELD_SEPARATOR;
+      *output << FIELD_SEPARATOR;
     }
-    dumpField(output, fieldName, withConditions);
+    dumpField(fieldName, withConditions, output);
   }
 }
 
-void Message::dumpField(ostream& output, string fieldName, bool withConditions) const {
+void Message::dumpField(const string& fieldName, bool withConditions, ostream* output) const {
   if (fieldName == "type") {
     if (withConditions && m_condition != NULL) {
-      m_condition->dump(output);
+      m_condition->dump(false, output);
     }
     if (m_isPassive) {
-      output << "u";
+      *output << "u";
       if (m_isWrite) {
-        output << "w";
+        *output << "w";
       }
     } else if (m_isWrite) {
-      output << "w";
+      *output << "w";
     } else {
-      output << "r";
+      *output << "r";
       if (m_pollPriority > 0) {
-        output << static_cast<unsigned>(m_pollPriority);
+        *output << static_cast<unsigned>(m_pollPriority);
       }
     }
     return;
   }
   if (fieldName == "circuit") {
-    dumpString(output, m_circuit, false);
+    dumpString(false, m_circuit, output);
     return;
   }
   if (fieldName == "level") {
-    dumpString(output, m_level, false);
+    dumpString(false, m_level, output);
     return;
   }
   if (fieldName == "name") {
-    dumpString(output, m_name, false);
+    dumpString(false, m_name, output);
     return;
   }
   if (fieldName == "qq") {
     if (m_srcAddress != SYN) {
-      output << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_srcAddress);
+      *output << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_srcAddress);
     }
     return;
   }
   if (fieldName == "zz") {
     if (m_dstAddress != SYN) {
-      output << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_dstAddress);
+      *output << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_dstAddress);
     }
     return;
   }
   if (fieldName == "pbsb") {
     for (auto it = m_id.begin(); it < m_id.begin()+2 && it < m_id.end(); it++) {
-      output << hex << setw(2) << setfill('0') << static_cast<unsigned>(*it);
+      *output << hex << setw(2) << setfill('0') << static_cast<unsigned>(*it);
     }
     return;
   }
   if (fieldName == "id") {
     for (auto it = m_id.begin()+2; it < m_id.end(); it++) {
-      output << hex << setw(2) << setfill('0') << static_cast<unsigned>(*it);
+      *output << hex << setw(2) << setfill('0') << static_cast<unsigned>(*it);
     }
     return;
   }
@@ -935,44 +927,44 @@ void Message::dumpField(ostream& output, string fieldName, bool withConditions) 
     m_data->dump(output);
     return;
   }
-  dumpAttribute(output, fieldName, false);
+  dumpAttribute(false, fieldName, output);
 }
 
-void Message::decode(ostringstream& output, OutputFormat outputFormat, bool leadingSeparator,
-    vector<string>* fields) const {
+void Message::decode(bool leadingSeparator, const vector<string>* fields,
+    OutputFormat outputFormat, ostringstream* output) const {
   if (leadingSeparator) {
-    output << ",";
+    *output << ",";
   }
-  output << "\n  \"" << getName() << "\": {";
-  output << "\n   \"lastup\": " << setw(0) << dec << static_cast<unsigned>(getLastUpdateTime());
+  *output << "\n  \"" << getName() << "\": {"
+          << "\n   \"lastup\": " << setw(0) << dec << static_cast<unsigned>(getLastUpdateTime());
   if (getLastUpdateTime() != 0) {
-    output << ",\n   \"zz\": \"" << setfill('0') << setw(2) << hex << static_cast<unsigned>(getDstAddress()) << "\"";
-    appendAttributes(output, OF_JSON | outputFormat);
-    size_t pos = (size_t) output.tellp();
-    output << ",\n   \"fields\": {";
-    result_t dret = decodeLastData(output, outputFormat);
+    *output << ",\n   \"zz\": \"" << setfill('0') << setw(2) << hex << static_cast<unsigned>(getDstAddress()) << "\"";
+    appendAttributes(OF_JSON | outputFormat, output);
+    size_t pos = (size_t)output->tellp();
+    *output << ",\n   \"fields\": {";
+    result_t dret = decodeLastData(false, NULL, -1, outputFormat, output);
     if (dret == RESULT_OK) {
-      output << "\n   }";
+      *output << "\n   }";
     } else {
-      string prefix = output.str().substr(0, pos);
-      output.str("");
-      output.clear();  // remove written fields
-      output << prefix << ",\n   \"decodeerror\": \"" << getResultCode(dret) << "\"";
+      string prefix = output->str().substr(0, pos);
+      output->str("");
+      output->clear();  // remove written fields
+      *output << prefix << ",\n   \"decodeerror\": \"" << getResultCode(dret) << "\"";
     }
   }
-  output << ",\n   \"passive\": " << (isPassive() ? "true" : "false");
-  output << ",\n   \"write\": " << (isWrite() ? "true" : "false");
-  output << "\n  }";
+  *output << ",\n   \"passive\": " << (isPassive() ? "true" : "false")
+          << ",\n   \"write\": " << (isWrite() ? "true" : "false")
+          << "\n  }";
 }
 
 
-ChainedMessage::ChainedMessage(const string circuit, const string level, const string name,
-    const bool isWrite, const map<string, string>& attributes,
-    const symbol_t srcAddress, const symbol_t dstAddress,
-    const vector<symbol_t> id,
-    vector< vector<symbol_t> > ids, vector<size_t> lengths,
-    const DataField* data, const bool deleteData,
-    const size_t pollPriority,
+ChainedMessage::ChainedMessage(const string& circuit, const string& level, const string& name,
+    bool isWrite, const map<string, string>& attributes,
+    symbol_t srcAddress, symbol_t dstAddress,
+    const vector<symbol_t>& id,
+    const vector< vector<symbol_t> >& ids, const vector<size_t>& lengths,
+    const DataField* data, bool deleteData,
+    size_t pollPriority,
     Condition* condition)
     : Message(circuit, level, name, isWrite, false, attributes,
       srcAddress, dstAddress, id,
@@ -1003,7 +995,7 @@ ChainedMessage::~ChainedMessage() {
   free(m_lastSlaveUpdateTimes);
 }
 
-Message* ChainedMessage::derive(const symbol_t dstAddress, const symbol_t srcAddress, const string circuit) const {
+Message* ChainedMessage::derive(symbol_t dstAddress, symbol_t srcAddress, const string& circuit) const {
   ChainedMessage* result = new ChainedMessage(circuit.length() == 0 ? m_circuit : circuit, m_level, m_name,
     m_isWrite, m_attributes,
     srcAddress == SYN ? m_srcAddress : srcAddress, dstAddress,
@@ -1046,7 +1038,7 @@ bool ChainedMessage::checkId(const MasterSymbolString& master, size_t* index) co
   return false;
 }
 
-bool ChainedMessage::checkId(Message& other) const {
+bool ChainedMessage::checkId(const Message& other) const {
   size_t idLen = getIdLength();
   if (idLen != other.getIdLength() || other.getCount() == 1) {  // only equal for chained messages
     return false;
@@ -1076,14 +1068,14 @@ bool ChainedMessage::checkId(Message& other) const {
   return false;
 }
 
-result_t ChainedMessage::prepareMasterPart(MasterSymbolString& master, istringstream& input, char separator,
-    size_t index) {
+result_t ChainedMessage::prepareMasterPart(size_t index, char separator, istringstream* input,
+    MasterSymbolString* master) {
   size_t cnt = getCount();
   if (index >= cnt) {
     return RESULT_ERR_NOTFOUND;
   }
   MasterSymbolString allData;
-  result_t result = m_data->write(input, allData, 0, separator);
+  result_t result = m_data->write(separator, 0, input, &allData, NULL);
   if (result != RESULT_OK) {
     return result;
   }
@@ -1099,12 +1091,12 @@ result_t ChainedMessage::prepareMasterPart(MasterSymbolString& master, istringst
     return RESULT_ERR_INVALID_POS;
   }
   vector<symbol_t> id = m_ids[index];
-  master.push_back((symbol_t)(id.size()-2+addData));  // NN
+  master->push_back((symbol_t)(id.size()-2+addData));  // NN
   for (size_t i = 2; i < id.size(); i++) {
-    master.push_back(id[i]);
+    master->push_back(id[i]);
   }
   for (size_t i = 0; i < addData; i++) {
-    master.push_back(allData.dataAt(pos+i));
+    master->push_back(allData.dataAt(pos+i));
   }
   if (index == 0) {
     for (size_t i = 0; i < cnt; i++) {
@@ -1114,20 +1106,20 @@ result_t ChainedMessage::prepareMasterPart(MasterSymbolString& master, istringst
   return result;
 }
 
-result_t ChainedMessage::storeLastData(MasterSymbolString& master, SlaveSymbolString& slave) {
+result_t ChainedMessage::storeLastData(const MasterSymbolString& master, const SlaveSymbolString& slave) {
   // determine index from master ID
   size_t index = 0;
   if (checkId(master, &index)) {
-    result_t result = storeLastData(master, index);
+    result_t result = storeLastData(index, master);
     if (result >= RESULT_OK) {
-      result = storeLastData(slave, index);
+      result = storeLastData(index, slave);
     }
     return result;
   }
   return RESULT_ERR_INVALID_ARG;
 }
 
-result_t ChainedMessage::storeLastData(MasterSymbolString& data, size_t index) {
+result_t ChainedMessage::storeLastData(size_t index, const MasterSymbolString& data) {
   if (index >= m_ids.size()) {
     return RESULT_ERR_INVALID_ARG;
   }
@@ -1143,11 +1135,11 @@ result_t ChainedMessage::storeLastData(MasterSymbolString& data, size_t index) {
   return combineLastParts();
 }
 
-result_t ChainedMessage::storeLastData(SlaveSymbolString& data, size_t index) {
+result_t ChainedMessage::storeLastData(size_t index, const SlaveSymbolString& data) {
   if (index >= m_ids.size()) {
     return RESULT_ERR_INVALID_ARG;
   }
-  if (data != *m_lastSlaveDatas[index]) {
+  if (*m_lastSlaveDatas[index] != data) {
     *m_lastSlaveDatas[index] = data;
   }
   time(&m_lastSlaveUpdateTimes[index]);
@@ -1203,16 +1195,16 @@ result_t ChainedMessage::combineLastParts() {
   if (!master.adjustHeader() || !slave.adjustHeader()) {
     return RESULT_ERR_INVALID_POS;
   }
-  result_t result = Message::storeLastData(master, 0);
+  result_t result = Message::storeLastData(0, master);
   if (result == RESULT_OK) {
-    result = Message::storeLastData(slave, 0);
+    result = Message::storeLastData(0, slave);
   }
   return result;
 }
 
-void ChainedMessage::dumpField(ostream& output, string fieldName, bool withConditions) const {
+void ChainedMessage::dumpField(const string& fieldName, bool withConditions, ostream* output) const {
   if (fieldName != "id") {
-    Message::dumpField(output, fieldName, withConditions);
+    Message::dumpField(fieldName, withConditions, output);
     return;
   }
   bool first = true;
@@ -1222,11 +1214,11 @@ void ChainedMessage::dumpField(ostream& output, string fieldName, bool withCondi
       if (first) {
         first = false;
       } else {
-        output << VALUE_SEPARATOR;
+        *output << VALUE_SEPARATOR;
       }
-      output << hex << setw(2) << setfill('0') << static_cast<unsigned>(*it);
+      *output << hex << setw(2) << setfill('0') << static_cast<unsigned>(*it);
     }
-    output << LENGTH_SEPARATOR << dec << setw(0) << static_cast<unsigned>(m_lengths[index]);
+    *output << LENGTH_SEPARATOR << dec << setw(0) << static_cast<unsigned>(m_lengths[index]);
   }
 }
 
@@ -1238,10 +1230,10 @@ void ChainedMessage::dumpField(ostream& output, string fieldName, bool withCondi
  * @param onlyAvailable true to include only available messages (default true), false to also include messages that
  * are currently not available (e.g. due to unresolved or false conditions).
  */
-Message* getFirstAvailable(const vector<Message*> &messages, const MasterSymbolString* sameIdExtAs,
+Message* getFirstAvailable(const vector<Message*>& messages, const MasterSymbolString* sameIdExtAs,
     const bool onlyAvailable = true) {
   for (auto message : messages) {
-    if (sameIdExtAs && !message->checkId(*sameIdExtAs)) {
+    if (sameIdExtAs && !message->checkId(*sameIdExtAs, NULL)) {
       continue;
     }
     if (!onlyAvailable || message->isAvailable()) {
@@ -1258,7 +1250,7 @@ Message* getFirstAvailable(const vector<Message*> &messages, const MasterSymbolS
  * @param onlyAvailable true to include only available messages (default true), false to also include messages that
  * are currently not available (e.g. due to unresolved or false conditions).
  */
-Message* getFirstAvailable(const vector<Message*> &messages, Message* sameIdExtAs = NULL,
+Message* getFirstAvailable(const vector<Message*>& messages, const Message* sameIdExtAs = NULL,
     const bool onlyAvailable = true) {
   for (auto message : messages) {
     if (sameIdExtAs && !message->checkId(*sameIdExtAs)) {
@@ -1276,14 +1268,14 @@ Message* getFirstAvailable(const vector<Message*> &messages, Message* sameIdExtA
  * @param valueList the input string to split.
  * @param values the output value list to append to.
  */
-result_t splitValues(string valueList, vector<string>& values) {
+result_t splitValues(const string& valueList, vector<string>* values) {
   istringstream stream(valueList);
   string str;
   while (getline(stream, str, VALUE_SEPARATOR)) {
     if (str.length() > 0 && str[0] == '\'' && str[str.length()-1] == '\'') {
       str = str.substr(1, str.length()-2);
     }
-    values.push_back(str);
+    values->push_back(str);
   }
   return RESULT_OK;
 }
@@ -1293,12 +1285,12 @@ result_t splitValues(string valueList, vector<string>& values) {
  * @param valueList the input string to split.
  * @param valueRanges the output list of value ranges to append to (pairs of inclusive from-to values).
  */
-result_t splitValues(string valueList, vector<unsigned int>& valueRanges) {
+result_t splitValues(const string& valueList, vector<unsigned int>* valueRanges) {
   istringstream stream(valueList);
   string str;
   result_t result;
   while (getline(stream, str, VALUE_SEPARATOR)) {
-    FileReader::trim(str);
+    FileReader::trim(&str);
     if (str.length() == 0) {
       return RESULT_ERR_INVALID_ARG;
     }
@@ -1308,63 +1300,66 @@ result_t splitValues(string valueList, vector<unsigned int>& valueRanges) {
         return RESULT_ERR_INVALID_ARG;
       }
       if (upto) {
-        valueRanges.push_back(0);
+        valueRanges->push_back(0);
       }
       bool inclusive = str[1] == '=';
       unsigned int val = parseInt(str.substr(inclusive?2:1).c_str(), 10, inclusive?0:1,
-          inclusive?UINT_MAX:(UINT_MAX-1), result);
+          inclusive?UINT_MAX:(UINT_MAX-1), &result);
       if (result != RESULT_OK) {
         return result;
       }
-      valueRanges.push_back(inclusive ? val : (val+(upto?-1:1)));
+      valueRanges->push_back(inclusive ? val : (val+(upto?-1:1)));
       if (!upto) {
-        valueRanges.push_back(UINT_MAX);
+        valueRanges->push_back(UINT_MAX);
       }
     } else {
       size_t pos = str.find('-');
       if (pos != string::npos && pos > 0) {  // range
-        unsigned int val = parseInt(str.substr(0, pos).c_str(), 10, 0, UINT_MAX, result);
+        unsigned int val = parseInt(str.substr(0, pos).c_str(), 10, 0, UINT_MAX, &result);
         if (result != RESULT_OK) {
           return result;
         }
-        valueRanges.push_back(val);
+        valueRanges->push_back(val);
         pos++;
       } else {  // single value
         pos = 0;
       }
-      unsigned int val = parseInt(str.substr(pos).c_str(), 10, 0, UINT_MAX, result);
+      unsigned int val = parseInt(str.substr(pos).c_str(), 10, 0, UINT_MAX, &result);
       if (result != RESULT_OK) {
         return result;
       }
-      valueRanges.push_back(val);
+      valueRanges->push_back(val);
       if (pos == 0) {
-        valueRanges.push_back(val);  // single value
+        valueRanges->push_back(val);  // single value
       }
     }
   }
   return RESULT_OK;
 }
 
-result_t Condition::create(const string condName, map<string, string> row, map<string, string> rowDefaults,
-    SimpleCondition*& returnValue) {
+result_t Condition::create(const string& condName, const map<string, string>& rowDefaults,
+    map<string, string>* row, SimpleCondition** returnValue) {
   // type=name,circuit,name=messagename,[comment],qq=[fieldname],[ZZ],pbsb=values
-  string circuit = row["circuit"];  // circuit[#level]
+  string circuit = (*row)["circuit"];  // circuit[#level]
   string level;
   size_t pos = circuit.find('#');
   if (pos != string::npos) {
     level = circuit.substr(pos+1);
     circuit.resize(pos);
   }
-  string name = row["name"];  // messagename
-  string field = row["qq"];  // fieldname
-  string zz = row["zz"];  // ZZ
+  string name = (*row)["name"];  // messagename
+  string field = (*row)["qq"];  // fieldname
+  string zz = (*row)["zz"];  // ZZ
   symbol_t dstAddress = SYN;
   result_t result = RESULT_OK;
   if (zz.empty()) {
-    zz = rowDefaults["zz"];
+    auto it = rowDefaults.find("zz");
+    if (it != rowDefaults.end()) {
+      zz = it->second;
+    }
   }
   if (zz.length() > 0) {
-    dstAddress = (symbol_t)parseInt(zz.c_str(), 16, 0, 0xff, result);
+    dstAddress = (symbol_t)parseInt(zz.c_str(), 16, 0, 0xff, &result);
     if (result != RESULT_OK) {
       return result;
     }
@@ -1377,49 +1372,53 @@ result_t Condition::create(const string condName, map<string, string> row, map<s
       return RESULT_ERR_INVALID_ADDR;
     }
   } else if (circuit.empty()) {
-    circuit = rowDefaults["circuit"];
+    auto it = rowDefaults.find("circuit");
+    if (it != rowDefaults.end()) {
+      zz = it->second;
+    }
   }
-  string valueList = row["pbsb"];
+  string valueList = (*row)["pbsb"];
   if (valueList.empty()) {
-    valueList = row["id"];
+    valueList = (*row)["id"];
   }
   if (valueList.empty()) {
-    returnValue = new SimpleCondition(condName, condName, circuit, level, name, dstAddress, field);
+    *returnValue = new SimpleCondition(condName, condName, circuit, level, name, dstAddress, field);
     return RESULT_OK;
   }
   if (valueList[0] == '\'') {
     // strings
     vector<string> values;
-    result = splitValues(valueList, values);
+    result = splitValues(valueList, &values);
     if (result != RESULT_OK) {
       return result;
     }
-    returnValue = new SimpleStringCondition(condName, condName, circuit, level, name, dstAddress, field, values);
+    *returnValue = new SimpleStringCondition(condName, condName, circuit, level, name, dstAddress, field, values);
     return RESULT_OK;
   }
   // numbers
   vector<unsigned int> valueRanges;
-  result = splitValues(valueList, valueRanges);
+  result = splitValues(valueList, &valueRanges);
   if (result != RESULT_OK) {
     return result;
   }
-  returnValue = new SimpleNumericCondition(condName, condName, circuit, level, name, dstAddress, field, valueRanges);
+  *returnValue = new SimpleNumericCondition(condName, condName, circuit, level, name, dstAddress, field, valueRanges);
   return RESULT_OK;
 }
 
-SimpleCondition* SimpleCondition::derive(string valueList) const {
+SimpleCondition* SimpleCondition::derive(const string& valueList) const {
   if (valueList.empty()) {
     return NULL;
   }
-  string name = m_condName+valueList;
-  if (valueList[0] == '=') {
-    valueList.erase(0, 1);
+  string useValueList = valueList;
+  string name = m_condName+useValueList;
+  if (useValueList[0] == '=') {
+    useValueList.erase(0, 1);
   }
   result_t result;
-  if (valueList[0] == '\'') {
+  if (useValueList[0] == '\'') {
     // strings
     vector<string> values;
-    result = splitValues(valueList, values);
+    result = splitValues(useValueList, &values);
     if (result != RESULT_OK) {
       return NULL;
     }
@@ -1430,25 +1429,25 @@ SimpleCondition* SimpleCondition::derive(string valueList) const {
     return NULL;
   }
   vector<unsigned int> valueRanges;
-  result = splitValues(valueList, valueRanges);
+  result = splitValues(useValueList, &valueRanges);
   if (result != RESULT_OK) {
     return NULL;
   }
   return new SimpleNumericCondition(name, m_refName, m_circuit, m_level, m_name, m_dstAddress, m_field, valueRanges);
 }
 
-void SimpleCondition::dump(ostream& output, bool matched) const {
+void SimpleCondition::dump(bool matched, ostream* output) const {
   if (matched) {
     if (!m_isTrue) {
       return;
     }
-    output << "[" << m_refName;
+    *output << "[" << m_refName;
     if (m_hasValues) {
-      output << "=" << m_matchedValue;
+      *output << "=" << m_matchedValue;
     }
-    output << "]";
+    *output << "]";
   } else {
-    output << "[" << m_condName << "]";
+    *output << "[" << m_condName << "]";
   }
 }
 
@@ -1457,32 +1456,32 @@ CombinedCondition* SimpleCondition::combineAnd(Condition* other) {
   return ret->combineAnd(this)->combineAnd(other);
 }
 
-result_t SimpleCondition::resolve(MessageMap* messages, ostringstream& errorMessage,
-    void (*readMessageFunc)(Message* message)) {
+result_t SimpleCondition::resolve(void (*readMessageFunc)(Message* message), MessageMap* messages,
+    ostringstream* errorMessage) {
   if (m_message == NULL) {
     Message* message;
     if (m_name.length() == 0) {
       message = messages->getScanMessage(m_dstAddress);
-      errorMessage << "scan condition " << nouppercase << setw(2) << hex << setfill('0')
+      *errorMessage << "scan condition " << nouppercase << setw(2) << hex << setfill('0')
           << static_cast<unsigned>(m_dstAddress);
     } else {
       message = messages->find(m_circuit, m_name, m_level, false);
       if (!message) {
         message = messages->find(m_circuit, m_name, m_level, false, true);
       }
-      errorMessage << "condition " << m_circuit << " " << m_name;
+      *errorMessage << "condition " << m_circuit << " " << m_name;
     }
     if (!message) {
-      errorMessage << ": message not found";
+      *errorMessage << ": message not found";
       return RESULT_ERR_NOTFOUND;
     }
     if (message->getDstAddress() == SYN) {
       if (message->isPassive()) {
-        errorMessage << ": invalid passive message";
+        *errorMessage << ": invalid passive message";
         return RESULT_ERR_INVALID_ARG;
       }
       if (m_dstAddress == SYN) {
-        errorMessage << ": destination address missing";
+        *errorMessage << ": destination address missing";
         return RESULT_ERR_INVALID_ADDR;
       }
       // clone the message with dedicated dstAddress if necessary
@@ -1490,11 +1489,11 @@ result_t SimpleCondition::resolve(MessageMap* messages, ostringstream& errorMess
       const vector<Message*>* derived = messages->getByKey(key);
       if (derived == NULL) {
         message = message->derive(m_dstAddress, true);
-        messages->add(message);
+        messages->add(true, message);
       } else {
         Message* first = getFirstAvailable(*derived, message);
         if (first == NULL) {
-          errorMessage << ": conditional derived message " << message->getCircuit() << "." << message->getName()
+          *errorMessage << ": conditional derived message " << message->getCircuit() << "." << message->getName()
               << " for " << hex << setw(2) << setfill('0') << static_cast<unsigned>(m_dstAddress) << " not found";
           return RESULT_ERR_INVALID_ARG;
         }
@@ -1504,14 +1503,14 @@ result_t SimpleCondition::resolve(MessageMap* messages, ostringstream& errorMess
 
     if (m_hasValues) {
       if (!message->hasField(m_field.length() > 0 ? m_field.c_str() : NULL, isNumeric())) {
-        errorMessage << (isNumeric() ? ": numeric field " : ": string field ") << m_field << " not found";
+        *errorMessage << (isNumeric() ? ": numeric field " : ": string field ") << m_field << " not found";
         return RESULT_ERR_NOTFOUND;
       }
     }
     m_message = message;
     message->setUsedByCondition();
     if (m_name.length() > 0 && !message->isScanMessage()) {
-      messages->addPollMessage(message, true);
+      messages->addPollMessage(true, message);
     }
   }
   if (m_message->getLastUpdateTime() == 0 && readMessageFunc != NULL) {
@@ -1536,9 +1535,9 @@ bool SimpleCondition::isTrue() {
 }
 
 
-bool SimpleNumericCondition::checkValue(Message* message, string field) {
+bool SimpleNumericCondition::checkValue(const Message* message, const string& field) {
   unsigned int value = 0;
-  result_t result = message->decodeLastDataNumField(value, field.length() == 0 ? NULL : field.c_str());
+  result_t result = message->decodeLastDataNumField(field.length() == 0 ? NULL : field.c_str(), -1, &value);
   if (result == RESULT_OK) {
     for (size_t i = 0; i+1 < m_valueRanges.size(); i+=2) {
       if (m_valueRanges[i] <= value && value <= m_valueRanges[i+1]) {
@@ -1553,9 +1552,9 @@ bool SimpleNumericCondition::checkValue(Message* message, string field) {
 }
 
 
-bool SimpleStringCondition::checkValue(Message* message, string field) {
+bool SimpleStringCondition::checkValue(const Message* message, const string& field) {
   ostringstream output;
-  result_t result = message->decodeLastData(output, 0, false, field.length() == 0 ? NULL : field.c_str());
+  result_t result = message->decodeLastData(false, field.length() == 0 ? NULL : field.c_str(), -1, 0, &output);
   if (result == RESULT_OK) {
     string value = output.str();
     for (size_t i = 0; i < m_values.size(); i++) {
@@ -1569,19 +1568,19 @@ bool SimpleStringCondition::checkValue(Message* message, string field) {
 }
 
 
-void CombinedCondition::dump(ostream& output, bool matched) const {
+void CombinedCondition::dump(bool matched, ostream* output) const {
   for (const auto condition : m_conditions) {
-    condition->dump(output, matched);
+    condition->dump(matched, output);
   }
 }
 
-result_t CombinedCondition::resolve(MessageMap* messages, ostringstream& errorMessage,
-    void (*readMessageFunc)(Message* message)) {
+result_t CombinedCondition::resolve(void (*readMessageFunc)(Message* message), MessageMap* messages,
+    ostringstream* errorMessage) {
   for (const auto condition : m_conditions) {
     ostringstream dummy;
-    result_t ret = condition->resolve(messages, dummy, readMessageFunc);
+    result_t ret = condition->resolve(readMessageFunc, messages, &dummy);
     if (ret != RESULT_OK) {
-      errorMessage << dummy.str();
+      *errorMessage << dummy.str();
       return ret;
     }
   }
@@ -1598,9 +1597,9 @@ bool CombinedCondition::isTrue() {
 }
 
 
-result_t Instruction::create(const string& contextPath, const string type,
-    Condition* condition, map<string, string>& row, map<string, string>& defaults,
-    Instruction*& returnValue) {
+result_t Instruction::create(const string& contextPath, const string& type,
+    Condition* condition, const map<string, string>& row, const map<string, string>& defaults,
+    Instruction** returnValue) {
   // type[,argument]*
   bool singleton = type == "load";
   if (singleton || type == "include") {
@@ -1614,15 +1613,19 @@ result_t Instruction::create(const string& contextPath, const string type,
     } else {
       path = contextPath.substr(0, pos+1);
     }
-    string arg = row["file"];
-    row.erase("file");
-    for (const auto entry : row) {  // fallback to first field
-      if (!entry.second.empty()) {
-        arg = entry.second;
-        break;
+    auto it = row.find("file");
+    string arg;
+    if (it == row.end()) {
+      for (const auto entry : row) {  // fallback to first field
+        if (!entry.second.empty()) {
+          arg = entry.second;
+          break;
+        }
       }
+    } else {
+      arg = it->second;
     }
-    returnValue = new LoadInstruction(condition, singleton, defaults, path+arg);
+    *returnValue = new LoadInstruction(singleton, defaults, path+arg, condition);
     return RESULT_OK;
   }
   // unknown instruction
@@ -1657,31 +1660,31 @@ string Instruction::getDestination() const {
 }
 
 
-result_t LoadInstruction::execute(MessageMap* messages, ostringstream& log, Condition* condition) {
+result_t LoadInstruction::execute(MessageMap* messages, ostringstream* log) {
   string errorDescription;
-  result_t result = messages->readFromFile(m_filename, errorDescription, false, &m_defaults);
-  if (log.tellp() > 0) {
-    log << ", ";
+  result_t result = messages->readFromFile(m_filename, false, &m_defaults, &errorDescription, NULL, NULL, NULL);
+  if (log->tellp() > 0) {
+    *log << ", ";
   }
   if (result != RESULT_OK) {
-    log << "error " << (isSingleton() ? "loading \"" : "including \"") << m_filename << "\" for \""
+    *log << "error " << (isSingleton() ? "loading \"" : "including \"") << m_filename << "\" for \""
         << getDestination() << "\": " << getResultCode(result);
     if (!errorDescription.empty()) {
-      log << " " << errorDescription;
+      *log << " " << errorDescription;
     }
     return result;
   }
-  log << (isSingleton() ? "loaded \"" : "included \"") << m_filename << "\" for \"" << getDestination() << "\"";
+  *log << (isSingleton() ? "loaded \"" : "included \"") << m_filename << "\" for \"" << getDestination() << "\"";
   if (isSingleton() && !m_defaults["zz"].empty()) {
     result_t temp;
-    symbol_t address = (symbol_t)parseInt(m_defaults["zz"].c_str(), 16, 0, 0xff, temp);
+    symbol_t address = (symbol_t)parseInt(m_defaults["zz"].c_str(), 16, 0, 0xff, &temp);
     if (temp == RESULT_OK) {
       string comment;
-      if (condition) {
+      if (m_condition) {
         ostringstream out;
-        condition->dump(out, true);
+        m_condition->dump(true, &out);
         comment = out.str();
-        log << " ("+comment+")";
+        *log << " ("+comment+")";
       }
       messages->addLoadedFile(address, m_filename, comment);
     }
@@ -1692,14 +1695,14 @@ result_t LoadInstruction::execute(MessageMap* messages, ostringstream& log, Cond
 
 vector<string> MessageMap::s_noFiles;
 
-const string MessageMap::getRelativePath(const string filename) const {
+const string MessageMap::getRelativePath(const string& filename) const {
   if (filename.length() >= m_configPath.length() && filename.substr(0, m_configPath.length()) == m_configPath) {
     return filename.substr(m_configPath.length());
   }
   return filename;
 }
 
-result_t MessageMap::add(Message* message, bool storeByName) {
+result_t MessageMap::add(bool storeByName, Message* message) {
   uint64_t key = message->getKey();
   bool conditional = message->isConditional();
   if (!m_addAll) {
@@ -1720,12 +1723,12 @@ result_t MessageMap::add(Message* message, bool storeByName) {
   if (storeByName) {
     bool isWrite = message->isWrite();
     string circuit = message->getCircuit();
-    FileReader::tolower(circuit);
+    FileReader::tolower(&circuit);
     if (circuit == "scan") {
       m_additionalScanMessages = true;
     }
     string name = message->getName();
-    FileReader::tolower(name);
+    FileReader::tolower(&name);
     string suffix = FIELD_SEPARATOR + name + (isPassive ? "P" : (isWrite ? "W" : "R"));
     string nameKey = circuit + suffix;
     if (!m_addAll) {
@@ -1761,7 +1764,7 @@ result_t MessageMap::add(Message* message, bool storeByName) {
     if (isPassive) {
       m_passiveMessageCount++;
     }
-    addPollMessage(message);
+    addPollMessage(false, message);
   }
   size_t idLength = message->getIdLength();
   if (message->getDstAddress() == BROADCAST && idLength > m_maxBroadcastIdLength) {
@@ -1774,35 +1777,35 @@ result_t MessageMap::add(Message* message, bool storeByName) {
   return RESULT_OK;
 }
 
-result_t MessageMap::getFieldMap(vector<string>& row, string& errorDescription, const string preferLanguage) const {
+result_t MessageMap::getFieldMap(const string& preferLanguage, vector<string>* row, string* errorDescription) const {
   // type (r[1-9];w;u),circuit,name,[comment],[QQ],ZZ,PBSB,[ID],field1,part (m/s),datatypes/templates,divider/values,
   //  unit,comment
   // minimum: type,name,PBSB,field,datatype
-  if (row.empty()) {
+  if (row->empty()) {
     for (const auto& col : defaultMessageFieldMap) {
-      row.push_back(col);
+      row->push_back(col);
     }
     return RESULT_OK;
   }
   bool inDataFields = false;
   map<string, size_t> seen;
-  for (size_t col = 0; col < row.size(); col++) {
-    string &name = row[col];
+  for (size_t col = 0; col < row->size(); col++) {
+    string &name = (*row)[col];
     string lowerName = name;
-    tolower(lowerName);
-    trim(lowerName);
+    tolower(&lowerName);
+    trim(&lowerName);
     if (lowerName.empty()) {
-      errorDescription = "missing name in column " + AttributedItem::formatInt(col);
+      *errorDescription = "missing name in column " + AttributedItem::formatInt(col);
       return RESULT_ERR_INVALID_ARG;
     }
     bool supportsLang = false, toDataFields = false;
     string useName;
     if (inDataFields) {
-      useName = getDataFieldName(lowerName, supportsLang);
+      useName = getDataFieldName(lowerName, &supportsLang);
     } else {
-      useName = getMessageFieldName(lowerName, supportsLang);
+      useName = getMessageFieldName(lowerName, &supportsLang);
       if (useName.empty()) {
-        useName = getDataFieldName(lowerName, supportsLang);
+        useName = getDataFieldName(lowerName, &supportsLang);
         toDataFields = !useName.empty();
       }
     }
@@ -1822,7 +1825,7 @@ result_t MessageMap::getFieldMap(vector<string>& row, string& errorDescription, 
           continue;
         }
         // replace previous
-        row[previous->second] = SKIP_COLUMN;
+        (*row)[previous->second] = SKIP_COLUMN;
         seen.erase(useName);
         previous = seen.end();
       }
@@ -1835,7 +1838,7 @@ result_t MessageMap::getFieldMap(vector<string>& row, string& errorDescription, 
     if (inDataFields) {
       if (!unknown && previous != seen.end()) {
         if (seen.find("name") == seen.end() || seen.find("type") == seen.end()) {
-          errorDescription = "missing field name/type as of already seen "+useName;
+          *errorDescription = "missing field name/type as of already seen "+useName;
           return RESULT_ERR_EOF;  // require at least name and type
         }
         seen.clear();
@@ -1846,14 +1849,14 @@ result_t MessageMap::getFieldMap(vector<string>& row, string& errorDescription, 
       } else {*/
       if (toDataFields) {
         if (seen.find("type") == seen.end() || seen.find("name") == seen.end() || seen.find("pbsb") == seen.end()) {
-          errorDescription = "missing message name/type/pbsb";
+          *errorDescription = "missing message name/type/pbsb";
           return RESULT_ERR_EOF;  // require at least type, name, and pbsb
         }
         inDataFields = true;
         seen.clear();
       }
       if (!inDataFields && seen.find(useName) != seen.end()) {
-        errorDescription = "duplicate message " + useName;
+        *errorDescription = "duplicate message " + useName;
         return RESULT_ERR_INVALID_ARG;
       }
     }
@@ -1866,21 +1869,20 @@ result_t MessageMap::getFieldMap(vector<string>& row, string& errorDescription, 
   }
   if (inDataFields) {
     if (seen.find("name") == seen.end() || seen.find("type") == seen.end()) {
-      errorDescription = "missing field name/type";
+      *errorDescription = "missing field name/type";
       return RESULT_ERR_EOF;  // require at least name and type
     }
   } else if (seen.find("type") == seen.end() || seen.find("name") == seen.end() || seen.find("pbsb") == seen.end()) {
-    errorDescription = "missing message name/type/pbsb";
+    *errorDescription = "missing message name/type/pbsb";
     return RESULT_ERR_EOF;  // require at least type, name, and pbsb
   }
   return RESULT_OK;
 }
 
-result_t MessageMap::addDefaultFromFile(map<string, string>& row, vector< map<string, string> >& subRows,
-    string& errorDescription, const string filename, unsigned int lineNo) {
+result_t MessageMap::addDefaultFromFile(const string& filename, unsigned int lineNo, map<string, string>* row,
+    vector< map<string, string> >* subRows, string* errorDescription) {
   // check for condition in defaults
-  string type = row["type"];
-  row.erase("type");
+  string type = AttributedItem::pluck("type", row);
   const auto& mainDefaults = getDefaults().find("");
   map<string, string> defaults;
   if (mainDefaults != getDefaults().end()) {
@@ -1890,19 +1892,19 @@ result_t MessageMap::addDefaultFromFile(map<string, string>& row, vector< map<st
     // condition
     type = type.substr(1, type.length()-2);
     if (type.find('[') != string::npos || type.find(']') != string::npos) {
-      errorDescription = "invalid condition name "+type;
+      *errorDescription = "invalid condition name "+type;
       return RESULT_ERR_INVALID_ARG;
     }
     string key = filename+":"+type;
     const auto it = m_conditions.find(key);
     if (it != m_conditions.end()) {
-      errorDescription = "condition "+type+" already defined";
+      *errorDescription = "condition "+type+" already defined";
       return RESULT_ERR_DUPLICATE_NAME;
     }
     SimpleCondition* condition = NULL;
-    result_t result = Condition::create(type, row, defaults, condition);
+    result_t result = Condition::create(type, defaults, row, &condition);
     if (condition == NULL || result != RESULT_OK) {
-      errorDescription = "invalid condition";
+      *errorDescription = "invalid condition";
       return result;
     }
     m_conditions[key] = condition;
@@ -1911,14 +1913,13 @@ result_t MessageMap::addDefaultFromFile(map<string, string>& row, vector< map<st
   string defaultCircuit = defaults["circuit"];
   if (type.empty()) {
     if (defaultCircuit.empty()) {
-      errorDescription = "invalid default definition";
+      *errorDescription = "invalid default definition";
       return RESULT_ERR_INVALID_ARG;
     }
     // circuit level additional attributes
   }
-  string defaultSuffix = defaults["suffix"];
-  defaults.erase("suffix");
-  for (const auto entry : row) {
+  string defaultSuffix = AttributedItem::pluck("suffix", &defaults);
+  for (const auto entry : *row) {
     string value = entry.second;
     if (entry.first == "circuit" && !defaultCircuit.empty()) {  // TODO remove some day
       if (value.empty()) {
@@ -1942,37 +1943,35 @@ result_t MessageMap::addDefaultFromFile(map<string, string>& row, vector< map<st
     }
   }
   if (type.empty()) {
-    string circuit = defaults["circuit"];
-    defaults.erase("circuit");
-    string name = defaults["name"];
-    defaults.erase("name");
+    string circuit = AttributedItem::pluck("circuit", &defaults);
+    string name = AttributedItem::pluck("name", &defaults);
     if (!name.empty() || !defaults.empty()) {
       m_circuitData[circuit] = new AttributedItem(name, defaults);
     }
     return RESULT_OK;
   }
-  getDefaults()[type] = defaults;
-  vector< map<string, string> > subDefaults = subRows;  // ensure to have a copy
+  getDefaults()[type] = defaults;  // without suffix
+  vector< map<string, string> > subDefaults = *subRows;  // ensure to have a copy
   getSubDefaults()[type] = subDefaults;
   return RESULT_OK;
 }
 
-result_t MessageMap::readConditions(string& types, const string filename, string& errorDescription,
-    Condition*& condition) {
+result_t MessageMap::readConditions(const string& filename, string* types, string* errorDescription,
+    Condition** condition) {
   size_t pos;
-  if (types.length() > 0 && types[0] == '[' && (pos=types.find_last_of(']')) != string::npos) {
+  if (types->length() > 0 && types->at(0) == '[' && (pos=types->find_last_of(']')) != string::npos) {
     // check if combined or simple condition is already known
-    const string combinedkey = filename+":"+types.substr(1, pos-1);
+    const string combinedkey = filename+":"+types->substr(1, pos-1);
     auto it = m_conditions.find(combinedkey);
     if (it != m_conditions.end()) {
-      condition = it->second;
-      types = types.substr(pos+1);
+      *condition = it->second;
+      types->erase(0, pos+1);
     } else {
       bool store = false;
-      condition = NULL;
-      while ((pos=types.find(']')) != string::npos) {
+      *condition = NULL;
+      while ((pos=types->find(']')) != string::npos) {
         // simple condition
-        string key = filename+":"+types.substr(1, pos-1);
+        string key = filename+":"+types->substr(1, pos-1);
         it = m_conditions.find(key);
         Condition* add = NULL;
         if (it == m_conditions.end()) {
@@ -1984,7 +1983,7 @@ result_t MessageMap::readConditions(string& types, const string filename, string
               // derive from another condition
               add = it->second->derive(key.substr(pos));
               if (add == NULL) {
-                errorDescription = "derive condition with values "+key.substr(pos)+" failed";
+                *errorDescription = "derive condition with values "+key.substr(pos)+" failed";
                 return RESULT_ERR_INVALID_ARG;
               }
               m_conditions[key] = add;  // store derived condition
@@ -1992,32 +1991,32 @@ result_t MessageMap::readConditions(string& types, const string filename, string
           }
           if (add == NULL) {
             // shared condition not available
-            errorDescription = "condition "+types.substr(1, pos-1)+" not defined";
+            *errorDescription = "condition "+types->substr(1, pos-1)+" not defined";
             return RESULT_ERR_NOTFOUND;
           }
         } else {
           add = it->second;
         }
-        if (condition) {
-          condition = condition->combineAnd(add);
+        if (*condition) {
+          *condition = (*condition)->combineAnd(add);
           store = true;
         } else {
-          condition = add;
+          *condition = add;
         }
-        types = types.substr(pos+1);
-        if (types.empty() || types[0] != '[') {
+        types->erase(0, pos+1);
+        if (types->empty() || types->at(0) != '[') {
           break;
         }
       }
       if (store) {
-        m_conditions[combinedkey] = condition;  // store combined condition
+        m_conditions[combinedkey] = *condition;  // store combined condition
       }
     }
   }
   return RESULT_OK;
 }
 
-bool MessageMap::extractDefaultsFromFilename(string filename, map<string, string>& defaults,
+bool MessageMap::extractDefaultsFromFilename(const string& filename, map<string, string>* defaults,
     symbol_t* destAddress, unsigned int* software, unsigned int* hardware) const {
   string ident, circuit, suffix;
   unsigned int sw = UINT_MAX, hw = UINT_MAX;
@@ -2031,7 +2030,7 @@ bool MessageMap::extractDefaultsFromFilename(string filename, map<string, string
   }
   result_t result = RESULT_OK;
   string destStr = remain.substr(0, pos);
-  symbol_t dest = (symbol_t)parseInt(destStr.c_str(), 16, 0, 0xff, result, NULL);
+  symbol_t dest = (symbol_t)parseInt(destStr.c_str(), 16, 0, 0xff, &result);
   if (result != RESULT_OK || !isValidAddress(dest)) {
     return false;  // invalid "ZZ"
   }
@@ -2042,7 +2041,7 @@ bool MessageMap::extractDefaultsFromFilename(string filename, map<string, string
   if (remain.length() > 1) {
     pos = remain.rfind(".SW");  // check for ".SWxxxx."
     if (pos != string::npos && remain.find(".", pos+1) == pos+7) {
-      sw = parseInt(remain.substr(pos+3, 4).c_str(), 10, 0, 9999, result, NULL);
+      sw = parseInt(remain.substr(pos+3, 4).c_str(), 10, 0, 9999, &result);
       if (result != RESULT_OK) {
         return false;  // invalid "SWxxxx"
       }
@@ -2055,7 +2054,7 @@ bool MessageMap::extractDefaultsFromFilename(string filename, map<string, string
   if (remain.length() > 1) {
     pos = remain.rfind(".HW");  // check for ".HWxxxx."
     if (pos != string::npos && remain.find(".", pos+1) == pos+7) {
-      hw = parseInt(remain.substr(pos+3, 4).c_str(), 10, 0, 9999, result, NULL);
+      hw = parseInt(remain.substr(pos+3, 4).c_str(), 10, 0, 9999, &result);
       if (result != RESULT_OK) {
         return false;  // invalid "HWxxxx"
       }
@@ -2083,15 +2082,15 @@ bool MessageMap::extractDefaultsFromFilename(string filename, map<string, string
       }
     }
   }
-  defaults["zz"] = destStr;
-  defaults["circuit"] = circuit;
-  defaults["suffix"] = suffix;
-  defaults["name"] = ident;
+  (*defaults)["zz"] = destStr;
+  (*defaults)["circuit"] = circuit;
+  (*defaults)["suffix"] = suffix;
+  (*defaults)["name"] = ident;
   return true;
 }
 
-result_t MessageMap::readFromFile(const string filename, string& errorDescription, bool verbose,
-    map<string, string>* defaults, size_t* hash, size_t* size, time_t* time) {
+result_t MessageMap::readFromFile(const string& filename, bool verbose, map<string, string>* defaults,
+    string* errorDescription, size_t* hash, size_t* size, time_t* time) {
   size_t localHash, localSize;
   time_t localTime;
   if (!hash) {
@@ -2103,7 +2102,7 @@ result_t MessageMap::readFromFile(const string filename, string& errorDescriptio
   if (!time) {
     time = &localTime;
   }
-  result_t result = MappedFileReader::readFromFile(filename, errorDescription, verbose, defaults, hash, size, time);
+  result_t result = MappedFileReader::readFromFile(filename, verbose, defaults, errorDescription, hash, size, time);
   if (result == RESULT_OK) {
     const string file = getRelativePath(filename);
     m_loadedFileInfos[file].m_hash = *hash;
@@ -2113,26 +2112,25 @@ result_t MessageMap::readFromFile(const string filename, string& errorDescriptio
   return result;
 }
 
-result_t MessageMap::addFromFile(map<string, string>& row, vector< map<string, string> >& subRows,
-    string& errorDescription, const string filename, unsigned int lineNo) {
+result_t MessageMap::addFromFile(const string& filename, unsigned int lineNo, map<string, string>* row,
+    vector< map<string, string> >* subRows, string* errorDescription) {
   Condition* condition = NULL;
-  string types = row["type"];
-  result_t result = readConditions(types, filename, errorDescription, condition);
+  string types = AttributedItem::pluck("type", row);
+  result_t result = readConditions(filename, &types, errorDescription, &condition);
   if (result != RESULT_OK) {
     return result;
   }
   if (!types.empty() && types[0] == '!') {
     // instruction
-    if (!subRows.empty()) {
-      errorDescription = "invalid instruction";
+    if (!subRows->empty()) {
+      *errorDescription = "invalid instruction";
       return RESULT_ERR_INVALID_ARG;
     }
     types = types.substr(1);
     Instruction* instruction = NULL;
-    row.erase("type");
-    result_t result = Instruction::create(filename, types, condition, row, getDefaults()[""], instruction);
+    result_t result = Instruction::create(filename, types, condition, *row, getDefaults()[""], &instruction);
     if (instruction == NULL || result != RESULT_OK) {
-      errorDescription = "invalid instruction";
+      *errorDescription = "invalid instruction";
       return result;
     }
     auto it = m_instructions.find(filename);
@@ -2146,27 +2144,34 @@ result_t MessageMap::addFromFile(map<string, string>& row, vector< map<string, s
   if (types.length() == 0) {
     types.append("r");
   } else if (types.find(']') != string::npos) {
-    errorDescription = "invalid type "+types;
+    *errorDescription = "invalid type "+types;
     return RESULT_ERR_INVALID_ARG;
   }
   result = RESULT_ERR_EOF;
   DataFieldTemplates* templates = getTemplates(filename);
+  bool hasMulti = types.find(VALUE_SEPARATOR) != string::npos;
   istringstream stream(types);
   string type;
   vector<Message*> messages;
   while (getline(stream, type, VALUE_SEPARATOR)) {
-    FileReader::trim(type);
+    FileReader::trim(&type);
     messages.clear();
-    row["type"] = type;
-    result = Message::create(row, subRows, getDefaults(), getSubDefaults(), errorDescription, condition, filename,
-        templates, messages);
+    if (hasMulti) {
+      map<string, string> newRow = *row;  // don't let Message::create() consume the row and subRows
+      vector< map<string, string> > newSubRows = *subRows;
+      result = Message::create(filename, templates, getDefaults(), getSubDefaults(), type, condition,
+          &newRow, &newSubRows, errorDescription, &messages);
+    } else {
+      result = Message::create(filename, templates, getDefaults(), getSubDefaults(), type, condition,
+          row, subRows, errorDescription, &messages);
+    }
     for (const auto message : messages) {
       if (result == RESULT_OK) {
-        result = add(message);
+        result = add(true, message);
         if (result == RESULT_ERR_DUPLICATE_NAME) {
-          errorDescription = "invalid name";
+          *errorDescription = "invalid name";
         } else if (result == RESULT_ERR_DUPLICATE) {
-          errorDescription = "duplicate ID";
+          *errorDescription = "duplicate ID";
         }
       }
       if (result != RESULT_OK) {
@@ -2180,7 +2185,7 @@ result_t MessageMap::addFromFile(map<string, string>& row, vector< map<string, s
   return result;
 }
 
-Message* MessageMap::getScanMessage(const symbol_t dstAddress) {
+Message* MessageMap::getScanMessage(symbol_t dstAddress) {
   if (dstAddress == SYN) {
     return m_scanMessage;
   }
@@ -2196,15 +2201,15 @@ Message* MessageMap::getScanMessage(const symbol_t dstAddress) {
     return msgs->front();
   }
   Message* message = m_scanMessage->derive(dstAddress, true);
-  add(message);
+  add(true, message);
   return message;
 }
 
-result_t MessageMap::resolveConditions(string& errorDescription, bool verbose) {
+result_t MessageMap::resolveConditions(bool verbose, string* errorDescription) {
   result_t overallResult = RESULT_OK;
   for (const auto& it : m_conditions) {
     Condition* condition = it.second;
-    result_t result = resolveCondition(condition, errorDescription);
+    result_t result = resolveCondition(NULL, condition, errorDescription);
     if (result != RESULT_OK) {
       overallResult = result;
     }
@@ -2212,23 +2217,23 @@ result_t MessageMap::resolveConditions(string& errorDescription, bool verbose) {
   return overallResult;
 }
 
-result_t MessageMap::resolveCondition(Condition* condition, string& errorDescription,
-    void (*readMessageFunc)(Message* message)) {
+result_t MessageMap::resolveCondition(void (*readMessageFunc)(Message* message), Condition* condition,
+    string* errorDescription) {
   ostringstream error;
-  result_t result = condition->resolve(this, error, readMessageFunc);
+  result_t result = condition->resolve(readMessageFunc, this, &error);
   if (result != RESULT_OK) {
     string errorMessage = error.str();
     if (errorMessage.length() > 0) {
-      if (!errorDescription.empty()) {
-        errorDescription += ", ";
+      if (!errorDescription->empty()) {
+        *errorDescription += ", ";
       }
-      errorDescription += errorMessage;
+      *errorDescription += errorMessage;
     }
   }
   return result;
 }
 
-result_t MessageMap::executeInstructions(ostringstream& log, void (*readMessageFunc)(Message* message)) {
+result_t MessageMap::executeInstructions(void (*readMessageFunc)(Message* message), ostringstream* log) {
   result_t overallResult = RESULT_OK;
   vector<string> remove;
   for (auto& it : m_instructions) {
@@ -2244,14 +2249,14 @@ result_t MessageMap::executeInstructions(ostringstream& log, void (*readMessageF
       bool execute = condition == NULL;
       if (!execute) {
         string errorDescription;
-        result_t result = resolveCondition(condition, errorDescription,
-            instruction->isSingleton()?readMessageFunc:NULL);
+        result_t result = resolveCondition(instruction->isSingleton()?readMessageFunc:NULL, condition,
+            &errorDescription);
         if (result != RESULT_OK) {
           overallResult = result;
-          log << "error resolving condition for \"" << instruction->getDestination() << "\": "
+          *log << "error resolving condition for \"" << instruction->getDestination() << "\": "
               << getResultCode(result);
           if (!errorDescription.empty()) {
-            log << " " << errorDescription;
+            *log << " " << errorDescription;
           }
         } else if (condition->isTrue()) {
           execute = true;
@@ -2261,7 +2266,7 @@ result_t MessageMap::executeInstructions(ostringstream& log, void (*readMessageF
         if (instruction->isSingleton()) {
           removeSingletons = true;
         }
-        result_t result = instruction->execute(this, log, condition);
+        result_t result = instruction->execute(this, log);
         if (result != RESULT_OK) {
           overallResult = result;
         }
@@ -2293,7 +2298,7 @@ result_t MessageMap::executeInstructions(ostringstream& log, void (*readMessageF
   return overallResult;
 }
 
-void MessageMap::addLoadedFile(const symbol_t address, const string filename, string const comment) {
+void MessageMap::addLoadedFile(symbol_t address, const string& filename, const string& comment) {
   if (!filename.empty()) {
     vector<string>& files = m_loadedFiles[address];
     const  string file = getRelativePath(filename);
@@ -2304,7 +2309,7 @@ void MessageMap::addLoadedFile(const symbol_t address, const string filename, st
   }
 }
 
-const vector<string>& MessageMap::getLoadedFiles(const symbol_t address) const {
+const vector<string>& MessageMap::getLoadedFiles(symbol_t address) const {
   const auto it = m_loadedFiles.find(address);
   if (it != m_loadedFiles.end()) {
     return it->second;
@@ -2320,16 +2325,16 @@ vector<string> MessageMap::getLoadedFiles() const {
   return ret;
 }
 
-bool MessageMap::getLoadedFileInfo(const string filename, string& comment, size_t* hash, size_t* size, time_t* time)
-    const {
+bool MessageMap::getLoadedFileInfo(const string& filename, string* comment, size_t* hash, size_t* size,
+    time_t* time) const {
   const auto it = m_loadedFileInfos.find(filename);
   if (it == m_loadedFileInfos.end()) {
-    comment = "";
+    *comment = "";
     hash = size = 0;
     time = 0;
     return false;
   }
-  comment = it->second.m_comment;
+  *comment = it->second.m_comment;
   if (hash) {
     *hash = it->second.m_hash;
   }
@@ -2342,7 +2347,7 @@ bool MessageMap::getLoadedFileInfo(const string filename, string& comment, size_
   return true;
 }
 
-const vector<Message*>* MessageMap::getByKey(const uint64_t key) const {
+const vector<Message*>* MessageMap::getByKey(uint64_t key) const {
   const auto it = m_messagesByKey.find(key);
   if (it != m_messagesByKey.end()) {
     return &it->second;
@@ -2350,12 +2355,12 @@ const vector<Message*>* MessageMap::getByKey(const uint64_t key) const {
   return NULL;
 }
 
-Message* MessageMap::find(const string& circuit, const string& name, const string& levels, const bool isWrite,
-    const bool isPassive) const {
+Message* MessageMap::find(const string& circuit, const string& name, const string& levels, bool isWrite,
+    bool isPassive) const {
   string lcircuit = circuit;
-  FileReader::tolower(lcircuit);
+  FileReader::tolower(&lcircuit);
   string lname = name;
-  FileReader::tolower(lname);
+  FileReader::tolower(&lname);
   string suffix = FIELD_SEPARATOR + lname + (isPassive ? "P" : (isWrite ? "W" : "R"));
   for (int i = 0; i < 2; i++) {
     string nameKey;
@@ -2378,14 +2383,14 @@ Message* MessageMap::find(const string& circuit, const string& name, const strin
 }
 
 deque<Message*> MessageMap::findAll(const string& circuit, const string& name, const string& levels,
-    const bool completeMatch, const bool withRead, const bool withWrite, const bool withPassive,
-    const bool includeEmptyLevel, const bool onlyAvailable,
-    const time_t since, const time_t until) const {
+    bool completeMatch, bool withRead, bool withWrite, bool withPassive,
+    bool includeEmptyLevel, bool onlyAvailable,
+    time_t since, time_t until) const {
   deque<Message*> ret;
   string lcircuit = circuit;
-  FileReader::tolower(lcircuit);
+  FileReader::tolower(&lcircuit);
   string lname = name;
-  FileReader::tolower(lname);
+  FileReader::tolower(&lname);
   bool checkCircuit = lcircuit.length() > 0;
   bool checkLevel = levels != "*";
   bool checkName = lname.length() > 0;
@@ -2399,14 +2404,14 @@ deque<Message*> MessageMap::findAll(const string& circuit, const string& name, c
       }
       if (checkCircuit) {
         string check = message->getCircuit();
-        FileReader::tolower(check);
+        FileReader::tolower(&check);
         if (completeMatch ? (check != lcircuit) : (check.find(lcircuit) == check.npos)) {
           continue;
         }
       }
       if (checkName) {
         string check = message->getName();
-        FileReader::tolower(check);
+        FileReader::tolower(&check);
         if (completeMatch ? (check != lname) : (check.find(lname) == check.npos)) {
           continue;
         }
@@ -2443,8 +2448,8 @@ deque<Message*> MessageMap::findAll(const string& circuit, const string& name, c
   return ret;
 }
 
-Message* MessageMap::find(const MasterSymbolString& master, const bool anyDestination,
-  const bool withRead, const bool withWrite, const bool withPassive, const bool onlyAvailable) const {
+Message* MessageMap::find(const MasterSymbolString& master, bool anyDestination,
+  bool withRead, bool withWrite, bool withPassive, bool onlyAvailable) const {
   if (anyDestination && master.size() >= 5 && master[4] == 0 && master[2] == 0x07 && master[3] == 0x04) {
     return m_scanMessage;
   }
@@ -2531,24 +2536,24 @@ void MessageMap::invalidateCache(Message* message) {
   }
 }
 
-void MessageMap::addPollMessage(Message* message, bool toFront) {
+void MessageMap::addPollMessage(bool toFront, Message* message) {
   if (message != NULL && message->getPollPriority() > 0) {
     message->m_lastPollTime = toFront ? 0 : m_pollMessages.size();
     m_pollMessages.push(message);
   }
 }
 
-bool MessageMap::decodeCircuit(const string circuit, ostringstream& output, OutputFormat outputFormat) const {
+bool MessageMap::decodeCircuit(const string& circuit, OutputFormat outputFormat, ostringstream* output) const {
   const auto it = m_circuitData.find(circuit);
   if (it == m_circuitData.end()) {
     return false;
   }
   if (outputFormat & OF_JSON) {
-    output << "\"name\": \"" << it->second->getName() << "\"";
+    *output << "\"name\": \"" << it->second->getName() << "\"";
   } else {
-    output << it->second->getName() << "=";
+    *output << it->second->getName() << "=";
   }
-  return it->second->appendAttributes(output, outputFormat);
+  return it->second->appendAttributes(outputFormat, output);
 }
 
 void MessageMap::clear() {
@@ -2633,10 +2638,10 @@ Message* MessageMap::getNextPoll() {
   return ret;
 }
 
-void MessageMap::dump(ostream& output, bool withConditions) const {
+void MessageMap::dump(bool withConditions, ostream* output) const {
   bool first = true;
-  Message::dumpHeader(output, NULL);
-  output << endl;
+  Message::dumpHeader(NULL, output);
+  *output << endl;
   for (const auto it : m_messagesByName) {
     if (it.first[0] == '-') {  // skip instances stored multiple times (key starting with "-")
       continue;
@@ -2649,9 +2654,9 @@ void MessageMap::dump(ostream& output, bool withConditions) const {
         if (first) {
           first = false;
         } else {
-          output << endl;
+          *output << endl;
         }
-        message->dump(output, NULL, withConditions);
+        message->dump(NULL, withConditions, output);
       }
     } else {
       Message* message = getFirstAvailable(it.second);
@@ -2661,13 +2666,13 @@ void MessageMap::dump(ostream& output, bool withConditions) const {
       if (first) {
         first = false;
       } else {
-        output << endl;
+        *output << endl;
       }
-      message->dump(output, NULL, withConditions);
+      message->dump(NULL, withConditions, output);
     }
   }
   if (!first) {
-    output << endl;
+    *output << endl;
   }
 }
 

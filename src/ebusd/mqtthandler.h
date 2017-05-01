@@ -78,10 +78,10 @@ class MqttHandler : public DataSink, public DataSource, public Thread {
    * @param topic the topic string.
    * @param data the data string.
    */
-  void notifyTopic(string topic, string data);
+  void notifyTopic(const string& topic, const string& data);
 
   // @copydoc
-  void notifyUpdateCheckResult(string checkResult) override;
+  void notifyUpdateCheckResult(const string& checkResult) override;
 
  protected:
   // @copydoc
@@ -100,14 +100,14 @@ class MqttHandler : public DataSink, public DataSource, public Thread {
    * @param fieldIndex the optional field index for the field column, or -1.
    * @return the topic string.
    */
-  string getTopic(Message* message, ssize_t fieldIndex = -1);
+  string getTopic(const Message* message, ssize_t fieldIndex = -1);
 
   /**
    * Prepare a @a Message and publish as topic.
    * @param message the @a Message to publish.
    * @param updates the @a ostringstream for preparation.
    */
-  void publishMessage(Message* message, ostringstream& updates);
+  void publishMessage(const Message* message, ostringstream* updates);
 
   /**
    * Publish a topic update to MQTT.
@@ -115,7 +115,7 @@ class MqttHandler : public DataSink, public DataSource, public Thread {
    * @param data the data string.
    * @param retain whether the topic shall be retained.
    */
-  void publishTopic(string topic, string data, bool retain = true);
+  void publishTopic(const string& topic, const string& data, bool retain = true);
 
   /** the @a MessageMap instance. */
   MessageMap* m_messages;

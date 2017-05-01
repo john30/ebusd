@@ -120,7 +120,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
   return 0;
 }
 
-string fetchData(ebusd::TCPSocket* socket, bool& listening) {
+string fetchData(ebusd::TCPSocket* socket, bool listening) {
   char data[1024];
   ssize_t datalen;
   ostringstream ostream;

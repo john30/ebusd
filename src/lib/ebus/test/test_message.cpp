@@ -54,7 +54,7 @@ DataFieldTemplates* templates = NULL;
 
 namespace ebusd {
 
-DataFieldTemplates* getTemplates(const string filename) {
+DataFieldTemplates* getTemplates(const string& filename) {
   if (filename == "") {  // avoid compiler warning
     return templates;
   }
@@ -71,7 +71,9 @@ int main() {
   unsigned int baseLine = __LINE__+1;
   string checks[][5] = {
     {"date,HDA:3,,,Datum", "", "", "", "template"},
+    {"bdate:date,BDA,,,Datum", "", "", "", "template"},
     {"time,VTI,,,", "", "", "", "template"},
+    {"btime:time,BTI,,,Uhrzeit", "", "", "", "template"},
     {"dcfstate,UCH,0=nosignal;1=ok;2=sync;3=valid,,", "", "", "", "template"},
     {"temp,D2C,,°C,Temperatur", "", "", "", "template"},
     {"temp1,D1C,,°C,Temperatur", "", "", "", "template"},
@@ -93,6 +95,8 @@ int main() {
     {"r,cir,name,,,25,B509,0d28,,m,sensorc,,,,,,temp", "-14.00", "ff25b509030d2855", "0220ff", ""},
     {"u,cir,first,,,fe,0700,,x,,bda", "26.10.2014", "fffe07000426100614", "00", "p"},
     {"u,broadcast,hwStatus,,,fe,b505,27,,,UCH,,,,,,UCH,,,,,,UCH,,,", "0;19;0", "10feb505042700130097", "00", ""},
+    {"u,broadcast,datetime,Datum/Uhrzeit,,fe,0700,,outsidetemp,,temp2,,°C,Aussentemperatur,time,,btime,,,,date,,BDA,,,Datum", "outsidetemp=14.500 °C [Aussentemperatur];time=12:25:01 [Uhrzeit];date=01.05.2017 [Datum]", "10fe070009800e01251201050017", "", "D"},
+    {"u,broadcast,datetime,Datum Uhrzeit,,fe,0700,,,,temp2;btime;bdate", "temp2=14.500 °C [Temperatur];time=12:25:01 [Uhrzeit];date=01.05.2017 [Datum]", "10fe070009800e01251201050017", "", "D"},
     {"w,cir,first,,,15,b509,0400,date,,bda", "26.10.2014", "ff15b50906040026100614", "00", ""},
     {"w,cir,first,,,15,b509", "", "ff15b50900", "00", ""},
     {"*w,,,,,,b505,2d", "", "", "", ""},
@@ -147,12 +151,12 @@ int main() {
   istringstream dummystr("#");
   string errorDescription;
   vector<string> row;
-  templates->readLineFromStream(dummystr, errorDescription, __FILE__, lineNo, row, false);
+  templates->readLineFromStream(__FILE__, false, &dummystr, &lineNo, &row, &errorDescription, NULL, NULL);
   lineNo = 0;
   MessageMap* messages = new MessageMap("");
   dummystr.clear();
   dummystr.str("#");
-  messages->readLineFromStream(dummystr, errorDescription, __FILE__, lineNo, row, false);
+  messages->readLineFromStream(__FILE__, false, &dummystr, &lineNo, &row, &errorDescription, NULL, NULL);
   vector< vector<string> > defaultsRows;
   Message* message = NULL;
   vector<MasterSymbolString*> mstrs;
@@ -183,7 +187,7 @@ int main() {
     lineNo = baseLine + i;
     cout << "line " << (lineNo+1) << " ";
     if (isTemplate) {
-      result = templates->readLineFromStream(isstr, errorDescription, __FILE__, lineNo, row);
+      result = templates->readLineFromStream(__FILE__, false, &isstr, &lineNo, &row, &errorDescription, NULL, NULL);
       if (result != RESULT_OK) {
         cout << "\"" << check[0] << "\": template read error: " << getResultCode(result) << ", " << errorDescription
             << endl;
@@ -197,7 +201,7 @@ int main() {
     }
     if (isstr.peek() == '*') {
       // store defaults or condition
-      result = messages->readLineFromStream(isstr, errorDescription, __FILE__, lineNo, row);
+      result = messages->readLineFromStream(__FILE__, false, &isstr, &lineNo, &row, &errorDescription, NULL, NULL);
       if (result != RESULT_OK) {
         cout << "\"" << check[0] << "\": default read error: " << getResultCode(result) << ", " << errorDescription << endl;
         error = true;
@@ -279,7 +283,7 @@ int main() {
       }
       cout << "\"" << check[2] << "\": find OK" << endl;
     } else {
-      result = messages->readLineFromStream(isstr, errorDescription, __FILE__, lineNo, row);
+      result = messages->readLineFromStream(__FILE__, false, &isstr, &lineNo, &row, &errorDescription, NULL, NULL);
       if (failedCreate) {
         if (result == RESULT_OK) {
           cout << "\"" << check[0] << "\": failed create error: unexpectedly succeeded" << endl;
@@ -345,11 +349,11 @@ int main() {
       }
       ostringstream output;
       if (withMessageDump && !decodeJson) {
-        message->dump(output, NULL, true);
+        message->dump(NULL, true, &output);
         output << ": ";
       }
-      result = message->decodeLastData(output,
-          (decodeVerbose?OF_NAMES|OF_UNITS|OF_COMMENTS:0)|(decodeJson?OF_NAMES|OF_JSON:0), false);
+      result = message->decodeLastData(false, NULL, -1,
+          (decodeVerbose?OF_NAMES|OF_UNITS|OF_COMMENTS:0)|(decodeJson?OF_NAMES|OF_JSON:0), &output);
       if (result != RESULT_OK) {
         cout << "  \"" << check[2] << "\" / \"" << check[3] << "\": decode error: "
             << getResultCode(result) << endl;
@@ -385,7 +389,7 @@ int main() {
     if (!message->isPassive() && (withInput || !decode)) {
       istringstream input(inputStr);
       MasterSymbolString writeMstr;
-      result = message->prepareMaster(0xff, writeMstr, input);
+      result = message->prepareMaster(0, 0xff, SYN, UI_FIELD_SEPARATOR, &input, &writeMstr);
       if (failedPrepare) {
         if (result == RESULT_OK) {
           cout << "  \"" << inputStr << "\": failed prepare error: unexpectedly succeeded" << endl;

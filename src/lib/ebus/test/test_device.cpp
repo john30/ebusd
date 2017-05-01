@@ -40,7 +40,7 @@ int main() {
 
     while (1) {
       symbol_t byte = 0;
-      result = device->recv(0, byte);
+      result = device->recv(0, &byte);
 
       if (result == RESULT_OK) {
         cout << hex << setw(2) << setfill('0')

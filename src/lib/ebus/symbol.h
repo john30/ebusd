@@ -96,8 +96,8 @@ typedef unsigned char symbol_t;
  * @param length the optional variable in which to store the number of read characters.
  * @return the parsed value.
  */
-unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue,
-    result_t& result, size_t* length = NULL);
+unsigned int parseInt(const char* str, int base, unsigned int minValue, unsigned int maxValue,
+    result_t* result, size_t* length = NULL);
 
 /**
  * Parse a signed int value.
@@ -109,8 +109,8 @@ unsigned int parseInt(const char* str, int base, const unsigned int minValue, co
  * @param length the optional variable in which to store the number of read characters.
  * @return the parsed value.
  */
-int parseSignedInt(const char* str, int base, const int minValue, const int maxValue, result_t& result,
-    size_t* length = NULL);
+int parseSignedInt(const char* str, int base, int minValue, int maxValue,
+    result_t* result, size_t* length = NULL);
 
 /**
  * A string of unescaped bus symbols.
@@ -121,15 +121,15 @@ class SymbolString {
    * Creates a new empty instance.
    * @param isMaster whether this instance if for the master part.
    */
-  explicit SymbolString(const bool isMaster = false) { m_isMaster = isMaster; }
+  explicit SymbolString(bool isMaster = false) { m_isMaster = isMaster; }
 
  public:
   /**
    * Update the CRC by adding a value.
-   * @param crc the current CRC to update.
    * @param value the escaped value to add to the current CRC.
+   * @param crc the current CRC to update.
    */
-  static void updateCrc(symbol_t& crc, const symbol_t value);
+  static void updateCrc(symbol_t value, symbol_t* crc);
 
   /**
    * Return whether this instance if for the master part.
@@ -175,7 +175,7 @@ class SymbolString {
    * @param index the index of the symbol to return.
    * @return the reference to the symbol at the specified index, or SYN if not available.
    */
-  symbol_t operator[](const size_t index) const {
+  symbol_t operator[](size_t index) const {
     if (index >= m_data.size()) {
       return SYN;
     }
@@ -187,7 +187,7 @@ class SymbolString {
    * @param other the other instance.
    * @return true if this instance is equal to the other instance.
    */
-  bool operator == (SymbolString& other) {
+  bool operator == (const SymbolString& other) {
     return m_isMaster == other.m_isMaster && m_data == other.m_data;
   }
 
@@ -196,7 +196,7 @@ class SymbolString {
    * @param other the other instance.
    * @return true if this instance is different from the other instance.
    */
-  bool operator != (SymbolString& other) {
+  bool operator != (const SymbolString& other) {
     return m_isMaster != other.m_isMaster || m_data != other.m_data;
   }
 
@@ -207,7 +207,7 @@ class SymbolString {
    * 1 if the data is completely different,
    * 2 if both instances are a master part and the data only differs in the first byte (the master address).
    */
-  int compareTo(SymbolString& other) {
+  int compareTo(const SymbolString& other) const {
     if (m_data.size() != other.m_data.size() || m_isMaster != other.m_isMaster) {
       return 1;
     }
@@ -230,7 +230,7 @@ class SymbolString {
    * Append a symbol to the end of the symbol string.
    * @param value the symbol to append.
    */
-  void push_back(const symbol_t value) { m_data.push_back(value); }
+  void push_back(symbol_t value) { m_data.push_back(value); }
 
   /**
    * Return the number of symbols in this symbol string.
@@ -277,7 +277,7 @@ class SymbolString {
    * @param index the index of the data byte (within DD) to return.
    * @return the data byte at the specified index, or 0 if not available.
    */
-  symbol_t dataAt(const size_t index) const {
+  symbol_t dataAt(size_t index) const {
     size_t offset = (m_isMaster ? 5 : 1) + index;
     if (offset < m_data.size()) {
       return m_data[offset];
@@ -290,7 +290,7 @@ class SymbolString {
    * @param index the index of the data byte (within DD) to return.
    * @return the reference to the data byte at the specified index.
    */
-  symbol_t& dataAt(const size_t index) {
+  symbol_t& dataAt(size_t index) {
     size_t offset = (m_isMaster ? 5 : 1) + index;
     if (offset >= m_data.size()) {
       m_data.resize(offset+1, 0);

@@ -79,76 +79,88 @@ class FileReader {
   /**
    * Read the definitions from a file.
    * @param filename the name of the file being read.
-   * @param errorDescription a string in which to store the error description in case of error.
    * @param verbose whether to verbosely log problems.
    * @param defaults the default values by name (potentially overwritten by file name), or NULL to not use defaults.
+   * @param errorDescription a string in which to store the error description in case of error.
    * @param hash optional pointer to a @a size_t value for storing the hash of the file, or NULL.
    * @param size optional pointer to a @a size_t value for storing the normalized size of the file, or NULL.
    * @param time optional pointer to a @a time_t value for storing the modification time of the file, or NULL.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t readFromFile(const string filename, string& errorDescription, bool verbose = false,
-      map<string, string>* defaults = NULL, size_t* hash = NULL, size_t* size = NULL, time_t* time = NULL);
+  virtual result_t readFromFile(const string& filename, bool verbose, map<string, string>* defaults,
+      string* errorDescription, size_t* hash, size_t* size, time_t* time);
 
   /**
    * Read a single line definition from the stream.
-   * @param stream the @a istream to read from.
-   * @param errorDescription a string in which to store the error description in case of error.
    * @param filename the name of the file being read.
+   * @param verbose whether to verbosely log problems.
+   * @param stream the @a istream to read from.
    * @param lineNo the last line number (incremented with each line read).
    * @param row the definition row to clear and update with the read data (for performance reasons only).
-   * @param verbose whether to verbosely log problems.
+   * @param errorDescription a string in which to store the error description in case of error.
    * @param hash optional pointer to a @a size_t value for updating with the hash of the line, or NULL.
    * @param size optional pointer to a @a size_t value for updating with the normalized length of the line, or NULL.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t readLineFromStream(istream& stream, string& errorDescription,
-      const string filename, unsigned int& lineNo, vector<string>& row, bool verbose = false,
-      size_t* hash = NULL, size_t* size = NULL);
+  virtual result_t readLineFromStream(const string& filename, bool verbose, istream* stream,
+      unsigned int* lineNo, vector<string>* row, string* errorDescription, size_t* hash, size_t* size);
 
   /**
    * Add a definition that was read from a file.
-   * @param row the definition row.
-   * @param errorDescription a string in which to store the error description in case of error.
    * @param filename the name of the file being read.
    * @param lineNo the current line number in the file being read.
+   * @param row the definition row (allowed to be modified).
+   * @param errorDescription a string in which to store the error description in case of error.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t addFromFile(vector<string>& row, string& errorDescription,
-      const string filename, unsigned int lineNo) = 0;
+  virtual result_t addFromFile(const string& filename, unsigned int lineNo, vector<string>* row,
+      string* errorDescription) = 0;
 
   /**
    * Left and right trim the string.
    * @param str the @a string to trim.
    */
-  static void trim(string& str);
+  static void trim(string* str);
 
   /**
    * Convert all upper case characters in the string to lower case.
    * @param str the @a string to convert.
    */
-  static void tolower(string& str);
+  static void tolower(string* str);
 
   /**
    * Split the next line(s) from the @a istream into fields.
-   * @param ifs the @a istream to read from.
+   * @param stream the @a istream to read from.
    * @param row the @a vector to which to add the fields. This will be empty for completely empty and comment lines.
    * @param lineNo the current line number (incremented with each line read).
    * @param hash optional pointer to a @a size_t value for combining the hash of the line with, or NULL.
    * @param size optional pointer to a @a size_t value to add the trimmed line length to, or NULL.
    * @return true if there are more lines to read, false when there are no more lines left.
    */
-  static bool splitFields(istream& ifs, vector<string>& row, unsigned int& lineNo,
+  static bool splitFields(istream* stream, vector<string>* row, unsigned int* lineNo,
       size_t* hash = NULL, size_t* size = NULL);
 
   /**
    * Format the specified hash as 8 hex digits to the output stream.
    * @param hash the hash code.
-   * @param str the @a ostream to write to.
+   * @param stream the @a ostream to write to.
    */
-  static void formatHash(size_t hash, ostream& str) {
-    str << std::hex << std::setw(8) << std::setfill('0') << (hash & 0xffffffff) << std::dec << std::setw(0);
+  static void formatHash(size_t hash, ostream* stream) {
+    *stream << std::hex << std::setw(8) << std::setfill('0') << (hash & 0xffffffff) << std::dec << std::setw(0);
   }
+
+  /**
+   * Format the error description with the input data.
+   * @param filename the name of the file.
+   * @param lineNo the line number in the file.
+   * @param row the definition row.
+   * @param result the result code.
+   * @param error the error message.
+   * @param errorDescription a string in which to store the error description.
+   * @return the result code.
+   */
+  static result_t formatError(const string& filename, unsigned int lineNo, result_t result,
+      const string& error, string* errorDescription);
 };
 
 
@@ -163,8 +175,8 @@ class MappedFileReader : public FileReader {
    * @param supportsDefaults whether this instance supports rows with defaults (starting with a star).
    * @param preferLanguage the preferred language code, or empty.
    */
-  explicit MappedFileReader(bool supportsDefaults, const string preferLanguage = "")
-  : FileReader(), m_supportsDefaults(supportsDefaults), m_preferLanguage(normalizeLanguage(preferLanguage)) {
+  explicit MappedFileReader(bool supportsDefaults, const string& preferLanguage = "")
+    : FileReader(), m_supportsDefaults(supportsDefaults), m_preferLanguage(normalizeLanguage(preferLanguage)) {
   }
 
   /**
@@ -181,11 +193,11 @@ class MappedFileReader : public FileReader {
    * @param lang the language string to normalize.
    * @return the normalized language code.
    */
-  static string normalizeLanguage(string lang);
+  static const string normalizeLanguage(const string& lang);
 
   // @copydoc
-  result_t readFromFile(const string filename, string& errorDescription, bool verbose = false,
-      map<string, string>* defaults = NULL, size_t* hash = NULL, size_t* size = NULL, time_t* time = NULL) override;
+  result_t readFromFile(const string& filename, bool verbose, map<string, string>* defaults,
+      string* errorDescription, size_t* hash, size_t* size, time_t* time) override;
 
   /**
    * Extract default values from the file name.
@@ -196,14 +208,14 @@ class MappedFileReader : public FileReader {
    * @param hardware a pointer to a in which to store the numeric hardware version, or NULL.
    * @return true if the minimum parts were extracted, false otherwise.
    */
-  virtual bool extractDefaultsFromFilename(string filename, map<string, string>& defaults,
-      symbol_t* destAddress = NULL, unsigned int* software = NULL, unsigned int* hardware = NULL) const {
+  virtual bool extractDefaultsFromFilename(const string& filename, map<string, string>* defaults,
+      symbol_t* destAddress, unsigned int* software, unsigned int* hardware) const {
     return false;
   }
 
   // @copydoc
-  result_t addFromFile(vector<string>& row, string& errorDescription,
-      const string filename, unsigned int lineNo) override;
+  result_t addFromFile(const string& filename, unsigned int lineNo, vector<string>* row,
+      string* errorDescription) override;
 
   /**
    * Get the field mapping from the given first line.
@@ -214,7 +226,7 @@ class MappedFileReader : public FileReader {
    * @param preferLanguage the preferred language code (up to 2 characters), or empty.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t getFieldMap(vector<string>& row, string& errorDescription, const string preferLanguage) const = 0;
+  virtual result_t getFieldMap(const string& preferLanguage, vector<string>* row, string* errorDescription) const = 0;
 
   /**
    * Add a default row that was read from a file.
@@ -225,23 +237,23 @@ class MappedFileReader : public FileReader {
    * @param lineNo the current line number in the file being read.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t addDefaultFromFile(map<string, string>& row, vector< map<string, string> >& subRows,
-      string& errorDescription, const string filename, unsigned int lineNo) {
-    errorDescription = "defaults not supported";
+  virtual result_t addDefaultFromFile(const string& filename, unsigned int lineNo, map<string, string>* row,
+      vector< map<string, string> >* subRows, string* errorDescription) {
+    *errorDescription = "defaults not supported";
     return RESULT_ERR_INVALID_ARG;
   }
 
   /**
    * Add a definition that was read from a file.
-   * @param row the main definition row by field name.
-   * @param subRows the sub definition rows, each by field name.
-   * @param errorDescription a string in which to store the error description in case of error.
    * @param filename the name of the file being read.
    * @param lineNo the current line number in the file being read.
+   * @param row the main definition row by field name (may be modified).
+   * @param subRows the sub definition rows, each by field name (may be modified).
+   * @param errorDescription a string in which to store the error description in case of error.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t addFromFile(map<string, string>& row, vector< map<string, string> >& subRows,
-      string& errorDescription, const string filename, unsigned int lineNo) = 0;
+  virtual result_t addFromFile(const string& filename, unsigned int lineNo, map<string, string>* row,
+      vector< map<string, string> >* subRows, string* errorDescription) = 0;
 
   /**
    * @return a reference to all previously extracted default values by type and field name.
@@ -262,7 +274,7 @@ class MappedFileReader : public FileReader {
    * @param row the mapped row.
    * @return the combined string.
    */
-  static string combineRow(const map<string, string>& row);
+  static const string combineRow(const map<string, string>& row);
 
  private:
   /** whether this instance supports rows with defaults (starting with a star). */

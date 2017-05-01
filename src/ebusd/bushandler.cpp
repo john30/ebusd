@@ -65,16 +65,16 @@ const char* getStateCode(BusState state) {
 
 result_t PollRequest::prepare(symbol_t ownMasterAddress) {
   istringstream input;
-  result_t result = m_message->prepareMaster(ownMasterAddress, m_master, input, UI_FIELD_SEPARATOR, SYN, m_index);
+  result_t result = m_message->prepareMaster(m_index, ownMasterAddress, SYN, UI_FIELD_SEPARATOR, &input, &m_master);
   if (result == RESULT_OK) {
     logInfo(lf_bus, "poll cmd: %s", m_master.getStr().c_str());
   }
   return result;
 }
 
-bool PollRequest::notify(result_t result, SlaveSymbolString& slave) {
+bool PollRequest::notify(result_t result, const SlaveSymbolString& slave) {
   if (result == RESULT_OK) {
-    result = m_message->storeLastData(slave, m_index);
+    result = m_message->storeLastData(m_index, slave);
     if (result >= RESULT_OK && m_index+1 < m_message->getCount()) {
       m_index++;
       result = prepare(m_master[0]);
@@ -85,7 +85,7 @@ bool PollRequest::notify(result_t result, SlaveSymbolString& slave) {
   }
   ostringstream output;
   if (result == RESULT_OK) {
-    result = m_message->decodeLastData(output);  // decode data
+    result = m_message->decodeLastData(false, NULL, -1, 0, &output);  // decode data
   }
   if (result < RESULT_OK) {
     logError(lf_bus, "poll %s %s failed: %s", m_message->getCircuit().c_str(), m_message->getName().c_str(),
@@ -104,28 +104,28 @@ result_t ScanRequest::prepare(symbol_t ownMasterAddress) {
   }
   symbol_t dstAddress = m_slaves.front();
   istringstream input;
-  m_result = m_message->prepareMaster(ownMasterAddress, m_master, input, UI_FIELD_SEPARATOR, dstAddress, m_index);
+  m_result = m_message->prepareMaster(m_index, ownMasterAddress, dstAddress, UI_FIELD_SEPARATOR, &input, &m_master);
   if (m_result >= RESULT_OK) {
     logInfo(lf_bus, "scan %2.2x cmd: %s", dstAddress, m_master.getStr().c_str());
   }
   return m_result;
 }
 
-bool ScanRequest::notify(result_t result, SlaveSymbolString& slave) {
+bool ScanRequest::notify(result_t result, const SlaveSymbolString& slave) {
   symbol_t dstAddress = m_master[1];
   if (result == RESULT_OK) {
     if (m_message == m_messageMap->getScanMessage()) {
       Message* message = m_messageMap->getScanMessage(dstAddress);
       if (message != NULL) {
         m_message = message;
-        m_message->storeLastData(m_master, m_index);  // expected to work since this is a clone
+        m_message->storeLastData(m_index, m_master);  // expected to work since this is a clone
       }
     } else if (m_message->getDstAddress() == SYN) {
       m_message = m_message->derive(dstAddress, true);
-      m_messageMap->add(m_message);
-      m_message->storeLastData(m_master, m_index);  // expected to work since this is a clone
+      m_messageMap->add(true, m_message);
+      m_message->storeLastData(m_index, m_master);  // expected to work since this is a clone
     }
-    result = m_message->storeLastData(slave, m_index);
+    result = m_message->storeLastData(m_index, slave);
     if (result >= RESULT_OK && m_index+1 < m_message->getCount()) {
       m_index++;
       result = prepare(m_master[0]);
@@ -135,7 +135,7 @@ bool ScanRequest::notify(result_t result, SlaveSymbolString& slave) {
     }
     if (result == RESULT_OK) {
       ostringstream output;
-      result = m_message->decodeLastData(output, 0, true);  // decode data
+      result = m_message->decodeLastData(true, NULL, -1, 0, &output);  // decode data
       string str = output.str();
       m_busHandler->setScanResult(dstAddress, m_notifyIndex+m_index, str);
     }
@@ -186,20 +186,22 @@ bool ScanRequest::notify(result_t result, SlaveSymbolString& slave) {
 }
 
 
-bool ActiveBusRequest::notify(result_t result, SlaveSymbolString& slave) {
+bool ActiveBusRequest::notify(result_t result, const SlaveSymbolString& slave) {
   if (result == RESULT_OK) {
     logDebug(lf_bus, "read res: %s", slave.getStr().c_str());
   }
   m_result = result;
-  m_slave = slave;
+  *m_slave = slave;
   return false;
 }
 
-void GrabbedMessage::setLastData(MasterSymbolString& master, SlaveSymbolString& slave) {
+
+void GrabbedMessage::setLastData(const MasterSymbolString& master, const SlaveSymbolString& slave) {
   m_lastMaster = master;
   m_lastSlave = slave;
   m_count++;
 }
+
 
 /**
  * Decode the input @a SymbolString with the specified @a DataType and length.
@@ -207,45 +209,45 @@ void GrabbedMessage::setLastData(MasterSymbolString& master, SlaveSymbolString& 
  * @param input the @a SymbolString to read the binary value from.
  * @param length the number of symbols to read.
  * @param offsets the last offset to the baseOffset to read.
- * @param output the ostringstream to append the formatted value to.
  * @param firstOnly whether to read only the first non-erroneous offset.
+ * @param output the ostringstream to append the formatted value to.
  * @return @a RESULT_OK on success, or an error code.
  */
-bool decodeType(const DataType* type, const SymbolString *input, size_t length,
-    size_t offsets, ostringstream& output, bool firstOnly = false) {
+bool decodeType(const DataType* type, const SymbolString& input, size_t length,
+    size_t offsets, bool firstOnly, ostringstream* output) {
   bool first = true;
-  string in = input->getStr(input->getDataOffset());
+  string in = input.getStr(input.getDataOffset());
   for (size_t offset = 0; offset <= offsets; offset++) {
     ostringstream out;
-    result_t result = type->readSymbols(*input, offset, length, out, 0);
+    result_t result = type->readSymbols(offset, length, input, 0, &out);
     if (result != RESULT_OK) {
       continue;
     }
     if (type->isNumeric() && type->hasFlag(DAY)) {
       unsigned int value = 0;
-      if (type->readRawValue(*input, offset, length, value) == RESULT_OK) {
+      if (type->readRawValue(offset, length, input, &value) == RESULT_OK) {
         out.str("");
         out << DataField::getDayName(reinterpret_cast<const NumberDataType*>(type)->getMinValue()+value);
       }
     }
     if (first) {
       first = false;
-      output << endl << " ";
-      ostringstream::pos_type cnt = output.tellp();
-      type->dump(output, length, false);
-      cnt = output.tellp() - cnt;
+      *output << endl << " ";
+      ostringstream::pos_type cnt = output->tellp();
+      type->dump(length, false, output);
+      cnt = output->tellp() - cnt;
       while (cnt < 5) {
-        output << " ";
+        *output << " ";
         cnt += 1;
       }
     } else {
-      output << ",";
+      *output << ",";
     }
-    output << " " << in.substr(offset*2, length*2);
+    *output << " " << in.substr(offset*2, length*2);
     if (type->isNumeric()) {
-      output << "=" << out.str();
+      *output << "=" << out.str();
     } else {
-      output << "=\"" << out.str() << "\"";
+      *output << "=\"" << out.str() << "\"";
     }
     if (firstOnly) {
       return true;  // only the first offset with maximum length when adjustable maximum size is at least 8 bytes
@@ -254,23 +256,22 @@ bool decodeType(const DataType* type, const SymbolString *input, size_t length,
   return !first;
 }
 
-bool GrabbedMessage::dump(const bool unknown, MessageMap* messages, bool first, ostringstream& output,
-    const bool decode) const {
+bool GrabbedMessage::dump(bool unknown, MessageMap* messages, bool first, bool decode, ostringstream* output) const {
   Message* message = messages->find(m_lastMaster);
   if (unknown && message) {
     return false;
   }
   if (!first) {
-    output << endl;
+    *output << endl;
   }
   symbol_t dstAddress = m_lastMaster[1];
-  output << m_lastMaster.getStr();
+  *output << m_lastMaster.getStr();
   if (dstAddress != BROADCAST && !isMaster(dstAddress)) {
-    output << " / " << m_lastSlave.getStr();
+    *output << " / " << m_lastSlave.getStr();
   }
-  output << " = " << static_cast<unsigned>(m_count);
+  *output << " = " << static_cast<unsigned>(m_count);
   if (message) {
-    output << ": " << message->getCircuit() << " " << message->getName();
+    *output << ": " << message->getCircuit() << " " << message->getName();
   }
   if (decode) {
     DataTypeList *types = DataTypeList::getInstance();
@@ -278,13 +279,7 @@ bool GrabbedMessage::dump(const bool unknown, MessageMap* messages, bool first, 
       return true;
     }
     bool master = isMaster(dstAddress) || dstAddress == BROADCAST || m_lastSlave.getDataSize() <= 0;
-    const SymbolString *input;
-    if (master) {
-      input = &m_lastMaster;
-    } else {
-      input = &m_lastSlave;
-    }
-    size_t remain = input->getDataSize();
+    size_t remain = master ? m_lastMaster.getDataSize() : m_lastSlave.getDataSize();
     if (remain == 0) {
       return true;
     }
@@ -301,14 +296,22 @@ bool GrabbedMessage::dump(const bool unknown, MessageMap* messages, bool first, 
       if (baseType->isAdjustableLength()) {
         for (size_t length = maxLength; length >= 1; length--) {
           const DataType* type = types->get(baseType->getId(), length);
-          if (decodeType(type, input, length, remain-length, output, firstOnly)) {
-            if (firstOnly) {
-              break;  // only a single offset with maximum length when adjustable maximum size is at least 8 bytes
-            }
+          bool decoded;
+          if (master) {
+            decoded = decodeType(type, m_lastMaster, length, remain-length, firstOnly, output);
+          } else {
+            decoded = decodeType(type, m_lastSlave, length, remain-length, firstOnly, output);
+          }
+          if (decoded && firstOnly) {
+            break;  // only a single offset with maximum length when adjustable maximum size is at least 8 bytes
           }
         }
       } else if (maxLength > 0) {
-        decodeType(baseType, input, maxLength, remain-maxLength, output);
+        if (master) {
+          decodeType(baseType, m_lastMaster, maxLength, remain-maxLength, false, output);
+        } else {
+          decodeType(baseType, m_lastSlave, maxLength, remain-maxLength, false, output);
+        }
       }
     }
   }
@@ -322,9 +325,9 @@ void BusHandler::clear() {
   m_scanResults.clear();
 }
 
-result_t BusHandler::sendAndWait(MasterSymbolString& master, SlaveSymbolString& slave) {
+result_t BusHandler::sendAndWait(const MasterSymbolString& master, SlaveSymbolString* slave) {
   result_t result = RESULT_ERR_NO_SIGNAL;
-  slave.clear();
+  slave->clear();
   ActiveBusRequest request(master, slave);
   logInfo(lf_bus, "send message: %s", master.getStr().c_str());
 
@@ -349,26 +352,26 @@ result_t BusHandler::sendAndWait(MasterSymbolString& master, SlaveSymbolString& 
   return result;
 }
 
-result_t BusHandler::readFromBus(Message* message, string inputStr, const symbol_t dstAddress,
-    const symbol_t srcAddress) {
+result_t BusHandler::readFromBus(Message* message, const string& inputStr, symbol_t dstAddress,
+    symbol_t srcAddress) {
   symbol_t masterAddress = srcAddress == SYN ? m_ownMasterAddress : srcAddress;
   result_t ret = RESULT_EMPTY;
   MasterSymbolString master;
   SlaveSymbolString slave;
   for (size_t index = 0; index < message->getCount(); index++) {
     istringstream input(inputStr);
-    ret = message->prepareMaster(masterAddress, master, input, UI_FIELD_SEPARATOR, dstAddress, index);
+    ret = message->prepareMaster(index, masterAddress, dstAddress, UI_FIELD_SEPARATOR, &input, &master);
     if (ret != RESULT_OK) {
       logError(lf_bus, "prepare message part %d: %s", index, getResultCode(ret));
       break;
     }
     // send message
-    ret = sendAndWait(master, slave);
+    ret = sendAndWait(master, &slave);
     if (ret != RESULT_OK) {
       logError(lf_bus, "send message part %d: %s", index, getResultCode(ret));
       break;
     }
-    ret = message->storeLastData(slave, index);
+    ret = message->storeLastData(index, slave);
     if (ret < RESULT_OK) {
       logError(lf_bus, "store message part %d: %s", index, getResultCode(ret));
       break;
@@ -569,14 +572,14 @@ result_t BusHandler::handleSymbol() {
 
   // receive next symbol (optionally check reception of sent symbol)
   symbol_t recvSymbol;
-  result = m_device->recv(timeout+m_transferLatency, recvSymbol);
+  result = m_device->recv(timeout+m_transferLatency, &recvSymbol);
   if (!sending && result == RESULT_ERR_TIMEOUT && m_generateSynInterval > 0
   && timeout >= m_generateSynInterval && (m_state == bs_noSignal || m_state == bs_skip)) {
     // check if acting as AUTO-SYN generator is required
     result = m_device->send(SYN);
     if (result == RESULT_OK) {
       recvSymbol = ESC;
-      result = m_device->recv(SEND_TIMEOUT, recvSymbol);
+      result = m_device->recv(SEND_TIMEOUT, &recvSymbol);
       if (result == RESULT_ERR_TIMEOUT) {
         return setState(bs_noSignal, result);
       }
@@ -626,7 +629,7 @@ result_t BusHandler::handleSymbol() {
   case bs_recvRes:
   case bs_sendCmd:
   case bs_sendRes:
-    SymbolString::updateCrc(m_crc, recvSymbol);
+    SymbolString::updateCrc(recvSymbol, &m_crc);
     break;
   default:
     break;
@@ -883,7 +886,7 @@ result_t BusHandler::handleSymbol() {
       }
       // build response and store in m_response for sending back to requesting master
       m_response.clear();
-      result = message->prepareSlave(input, m_response);
+      result = message->prepareSlave(&input, &m_response);
       if (result != RESULT_OK) {
         return setState(bs_skip, result);
       }
@@ -1060,17 +1063,18 @@ void BusHandler::receiveCompleted() {
         // e.g. 10fe07040a b5564149303001248901
         MasterSymbolString dummyMaster;
         istringstream input;
-        result_t result = message->prepareMaster(m_ownMasterAddress, dummyMaster, input);
+        result_t result = message->prepareMaster(0, m_ownMasterAddress, SYN, UI_FIELD_SEPARATOR, &input,
+            &dummyMaster);
         if (result == RESULT_OK) {
           SlaveSymbolString idData;
           idData.push_back(10);
           for (size_t i = 0; i < 10; i++) {
             idData.push_back(m_command.dataAt(i));
           }
-          result = message->storeLastData(idData, 0);
+          result = message->storeLastData(0, idData);
           if (result == RESULT_OK) {
             ostringstream output;
-            result = message->decodeLastData(output, 0, true);
+            result = message->decodeLastData(true, NULL, -1, 0, &output);
             if (result == RESULT_OK) {
               string str = output.str();
               setScanResult(slaveAddress, 0, str);
@@ -1108,7 +1112,7 @@ void BusHandler::receiveCompleted() {
           result_t result = message->storeLastData(m_command, m_response);
           if (result == RESULT_OK) {
             ostringstream output;
-            result = message->decodeLastData(output, 0, true);
+            result = message->decodeLastData(true, NULL, -1, 0, &output);
             if (result == RESULT_OK) {
               string str = output.str();
               setScanResult(dstAddress, 0, str);
@@ -1125,7 +1129,7 @@ void BusHandler::receiveCompleted() {
     result_t result = message->storeLastData(m_command, m_response);
     ostringstream output;
     if (result == RESULT_OK) {
-      result = message->decodeLastData(output);
+      result = message->decodeLastData(false, NULL, -1, 0, &output);
     }
     if (result < RESULT_OK) {
       logError(lf_update, "unable to parse %s %s from %s / %s: %s", circuit.c_str(), name.c_str(),
@@ -1151,7 +1155,8 @@ void BusHandler::receiveCompleted() {
   }
 }
 
-result_t BusHandler::prepareScan(symbol_t slave, bool full, string levels, bool& reload, ScanRequest*& request) {
+result_t BusHandler::prepareScan(symbol_t slave, bool full, const string& levels, bool* reload,
+    ScanRequest** request) {
   Message* scanMessage = m_messages->getScanMessage();
   if (scanMessage == NULL) {
     return RESULT_ERR_NOTFOUND;
@@ -1173,14 +1178,14 @@ result_t BusHandler::prepareScan(symbol_t slave, bool full, string levels, bool&
   deque<symbol_t> slaves;
   if (slave != SYN) {
     slaves.push_back(slave);
-    if (!reload) {
+    if (!*reload) {
       Message* message = m_messages->getScanMessage(slave);
       if (message == NULL || message->getLastChangeTime() == 0) {
-        reload = true;
+        *reload = true;
       }
     }
   } else {
-    reload = true;
+    *reload = true;
     for (slave = 1; slave != 0; slave++) {  // 0 is known to be a master
       if (!isValidAddress(slave, false) || isMaster(slave)) {
         continue;
@@ -1194,29 +1199,29 @@ result_t BusHandler::prepareScan(symbol_t slave, bool full, string levels, bool&
       slaves.push_back(slave);
     }
   }
-  if (reload) {
+  if (*reload) {
     messages.push_front(scanMessage);
   }
   if (messages.empty()) {
     return RESULT_OK;
   }
-  request = new ScanRequest(slave == SYN, m_messages, messages, slaves, this, reload ? 0 : 1);
-  result_t result = request->prepare(m_ownMasterAddress);
+  *request = new ScanRequest(slave == SYN, m_messages, messages, slaves, this, *reload ? 0 : 1);
+  result_t result = (*request)->prepare(m_ownMasterAddress);
   if (result < RESULT_OK) {
-    delete request;
-    request = NULL;
+    delete *request;
+    *request = NULL;
     return result == RESULT_ERR_EOF ? RESULT_EMPTY : result;
   }
   return RESULT_OK;
 }
 
-result_t BusHandler::startScan(bool full, string levels) {
+result_t BusHandler::startScan(bool full, const string& levels) {
   if (m_runningScans > 0) {
     return RESULT_ERR_DUPLICATE;
   }
   ScanRequest* request = NULL;
   bool reload = true;
-  result_t result = prepareScan(SYN, full, levels, reload, request);
+  result_t result = prepareScan(SYN, full, levels, &reload, &request);
   if (result != RESULT_OK) {
     return result;
   }
@@ -1229,7 +1234,7 @@ result_t BusHandler::startScan(bool full, string levels) {
   return RESULT_OK;
 }
 
-void BusHandler::setScanResult(symbol_t dstAddress, size_t index, string str) {
+void BusHandler::setScanResult(symbol_t dstAddress, size_t index, const string& str) {
   m_seenAddresses[dstAddress] |= SCAN_INIT;
   if (str.length() > 0) {
     m_seenAddresses[dstAddress] |= SCAN_DONE;
@@ -1248,28 +1253,28 @@ void BusHandler::setScanFinished() {
   }
 }
 
-bool BusHandler::formatScanResult(symbol_t slave, ostringstream& output, bool leadingNewline) {
+bool BusHandler::formatScanResult(symbol_t slave, bool leadingNewline, ostringstream* output) const {
   const auto it = m_scanResults.find(slave);
   if (it == m_scanResults.end()) {
     return false;
   }
   if (leadingNewline) {
-    output << endl;
+    *output << endl;
   }
-  output << hex << setw(2) << setfill('0') << static_cast<unsigned>(slave);
+  *output << hex << setw(2) << setfill('0') << static_cast<unsigned>(slave);
   for (const auto result : it->second) {
-    output << result;
+    *output << result;
   }
   return true;
 }
 
-void BusHandler::formatScanResult(ostringstream& output) {
+void BusHandler::formatScanResult(ostringstream* output) const {
   if (m_runningScans > 0) {
-    output << m_runningScans << " scan(s) still running" << endl;
+    *output << m_runningScans << " scan(s) still running" << endl;
   }
   bool first = true;
   for (symbol_t slave = 1; slave != 0; slave++) {  // 0 is known to be a master
-    if (formatScanResult(slave, output, !first)) {
+    if (formatScanResult(slave, !first, output)) {
       first = false;
     }
   }
@@ -1282,55 +1287,55 @@ void BusHandler::formatScanResult(ostringstream& output) {
           if (first) {
             first = false;
           } else {
-            output << endl;
+            *output << endl;
           }
-          output << hex << setw(2) << setfill('0') << static_cast<unsigned>(slave);
-          message->decodeLastData(output, 0, true);
+          *output << hex << setw(2) << setfill('0') << static_cast<unsigned>(slave);
+          message->decodeLastData(true, NULL, -1, 0, output);
         }
       }
     }
   }
 }
 
-void BusHandler::formatSeenInfo(ostringstream& output) {
+void BusHandler::formatSeenInfo(ostringstream* output) const {
   symbol_t address = 0;
   for (int index = 0; index < 256; index++, address++) {
     bool ownAddress = !m_device->isReadOnly() && (address == m_ownMasterAddress || address == m_ownSlaveAddress);
     if (!isValidAddress(address, false) || ((m_seenAddresses[address]&SEEN) == 0 && !ownAddress)) {
       continue;
     }
-    output << endl << "address " << setfill('0') << setw(2) << hex << static_cast<unsigned>(address);
+    *output << endl << "address " << setfill('0') << setw(2) << hex << static_cast<unsigned>(address);
     symbol_t master;
     if (isMaster(address)) {
-      output << ": master";
+      *output << ": master";
       master = address;
     } else {
-      output << ": slave";
+      *output << ": slave";
       master = getMasterAddress(address);
     }
     if (master != SYN) {
-      output << " #" << setw(0) << dec << static_cast<unsigned>(getMasterNumber(master));
+      *output << " #" << setw(0) << dec << static_cast<unsigned>(getMasterNumber(master));
     }
     if (ownAddress) {
-      output << ", ebusd";
+      *output << ", ebusd";
       if (m_answer) {
-        output << " (answering)";
+        *output << " (answering)";
       }
       if (m_addressConflict && (m_seenAddresses[address]&SEEN) != 0) {
-        output << ", conflict";
+        *output << ", conflict";
       }
     }
     if ((m_seenAddresses[address]&SCAN_DONE) != 0) {
-      output << ", scanned";
+      *output << ", scanned";
       Message* message = m_messages->getScanMessage(address);
       if (message != NULL && message->getLastUpdateTime() > 0) {
         // add detailed scan info: Manufacturer ID SW HW
-        output << " \"";
-        result_t result = message->decodeLastData(output, OF_NAMES);
+        *output << " \"";
+        result_t result = message->decodeLastData(false, NULL, -1, OF_NAMES, output);
         if (result != RESULT_OK) {
-          output << "\" error: " << getResultCode(result);
+          *output << "\" error: " << getResultCode(result);
         } else {
-          output << "\"";
+          *output << "\"";
         }
       }
     }
@@ -1340,15 +1345,15 @@ void BusHandler::formatSeenInfo(ostringstream& output) {
       for (const auto& loadedFile : loadedFiles) {
         if (first) {
           first = false;
-          output << ", loaded \"";
+          *output << ", loaded \"";
         } else {
-          output << ", \"";
+          *output << ", \"";
         }
-        output << loadedFile << "\"";
+        *output << loadedFile << "\"";
         string comment;
-        if (m_messages->getLoadedFileInfo(loadedFile, comment)) {
+        if (m_messages->getLoadedFileInfo(loadedFile, &comment)) {
           if (!comment.empty()) {
-            output << " (" << comment << ")";
+            *output << " (" << comment << ")";
           }
         }
       }
@@ -1356,15 +1361,15 @@ void BusHandler::formatSeenInfo(ostringstream& output) {
   }
 }
 
-void BusHandler::formatUpdateInfo(ostringstream& output) {
+void BusHandler::formatUpdateInfo(ostringstream* output) const {
   if (hasSignal()) {
-    output << ",\"s\":" << m_maxSymPerSec;
+    *output << ",\"s\":" << m_maxSymPerSec;
   }
-  output << ",\"c\":" << m_masterCount;
-  output << ",\"m\":" << m_messages->size();
-  output << ",\"ro\":" << (m_device->isReadOnly() ? 1 : 0);
-  output << ",\"an\":" << (m_answer ? 1 : 0);
-  output << ",\"co\":" << (m_addressConflict ? 1 : 0);
+  *output << ",\"c\":" << m_masterCount
+          << ",\"m\":" << m_messages->size()
+          << ",\"ro\":" << (m_device->isReadOnly() ? 1 : 0)
+          << ",\"an\":" << (m_answer ? 1 : 0)
+          << ",\"co\":" << (m_addressConflict ? 1 : 0);
   if (m_grabMessages) {
     size_t unknownCnt = 0;
     for (auto it : m_grabbedMessages) {
@@ -1373,7 +1378,7 @@ void BusHandler::formatUpdateInfo(ostringstream& output) {
         unknownCnt++;
       }
     }
-    output << ",\"gu\":" << unknownCnt;
+    *output << ",\"gu\":" << unknownCnt;
   }
   unsigned char address = 0;
   for (int index = 0; index < 256; index++, address++) {
@@ -1381,68 +1386,68 @@ void BusHandler::formatUpdateInfo(ostringstream& output) {
     if (!isValidAddress(address, false) || ((m_seenAddresses[address]&SEEN) == 0 && !ownAddress)) {
       continue;
     }
-    output << ",\"" << setfill('0') << setw(2) << hex << static_cast<unsigned>(address) << dec << setw(0);
-    output << "\":{\"o\":" << (ownAddress ? 1 : 0);
+    *output << ",\"" << setfill('0') << setw(2) << hex << static_cast<unsigned>(address) << dec << setw(0)
+            << "\":{\"o\":" << (ownAddress ? 1 : 0);
     const auto it = m_scanResults.find(address);
     if (it != m_scanResults.end()) {
-      output << ",\"s\":\"";
+      *output << ",\"s\":\"";
       for (const auto result : it->second) {
-        output << result;
+        *output << result;
       }
-      output << "\"";
+      *output << "\"";
     }
     if ((m_seenAddresses[address]&SCAN_DONE) != 0) {
       Message* message = m_messages->getScanMessage(address);
       if (message != NULL && message->getLastUpdateTime() > 0) {
         // add detailed scan info: Manufacturer ID SW HW
-        message->decodeLastData(output, OF_NAMES|OF_NUMERIC|OF_JSON|OF_SHORT, true);
+        message->decodeLastData(true, NULL, -1, OF_NAMES|OF_NUMERIC|OF_JSON|OF_SHORT, output);
       }
     }
     const vector<string>& loadedFiles = m_messages->getLoadedFiles(address);
     if (!loadedFiles.empty()) {
-      output << ",\"f\":[";
+      *output << ",\"f\":[";
       bool first = true;
       for (const auto loadedFile : loadedFiles) {
         if (first) {
           first = false;
         } else {
-          output << ",";
+          *output << ",";
         }
-        output << "{\"f\":\"" << loadedFile << "\"";
+        *output << "{\"f\":\"" << loadedFile << "\"";
         string comment;
-        if (m_messages->getLoadedFileInfo(loadedFile, comment)) {
+        if (m_messages->getLoadedFileInfo(loadedFile, &comment)) {
           if (!comment.empty()) {
-            output << ",\"c\":\"" << comment << "\"";
+            *output << ",\"c\":\"" << comment << "\"";
           }
         }
-        output << "}";
+        *output << "}";
       }
-      output << "]";
+      *output << "]";
     }
-    output << "}";
+    *output << "}";
   }
   vector<string> loadedFiles = m_messages->getLoadedFiles();
   if (!loadedFiles.empty()) {
-    output << ",\"l\":{";
+    *output << ",\"l\":{";
     bool first = true;
     for (const auto& loadedFile : loadedFiles) {
       if (first) {
         first = false;
       } else {
-        output << ",";
+        *output << ",";
       }
-      output << "\"" << loadedFile << "\":{";
+      *output << "\"" << loadedFile << "\":{";
       string comment;
       size_t hash, size;
       time_t time;
-      if (m_messages->getLoadedFileInfo(loadedFile, comment, &hash, &size, &time)) {
-        output << "\"h\":\"";
+      if (m_messages->getLoadedFileInfo(loadedFile, &comment, &hash, &size, &time)) {
+        *output << "\"h\":\"";
         MappedFileReader::formatHash(hash, output);
-        output << "\",\"s\":" << size << ",\"t\":" << time;
+        *output << "\",\"s\":" << size << ",\"t\":" << time;
       }
-      output << "}";
+      *output << "}";
     }
-    output << "}";
+    *output << "}";
   }
 }
 
@@ -1452,7 +1457,7 @@ result_t BusHandler::scanAndWait(symbol_t dstAddress, bool loadScanConfig, bool 
   }
   ScanRequest* request = NULL;
   bool hasAdditionalScanMessages = m_messages->hasAdditionalScanMessages();
-  result_t result = prepareScan(dstAddress, false, "", reload, request);
+  result_t result = prepareScan(dstAddress, false, "", &reload, &request);
   if (result != RESULT_OK) {
     return result;
   }
@@ -1473,7 +1478,7 @@ result_t BusHandler::scanAndWait(symbol_t dstAddress, bool loadScanConfig, bool 
     string file;
     bool timedOut = result == RESULT_ERR_TIMEOUT;
     if (timedOut || result == RESULT_OK) {
-      result = loadScanConfigFile(m_messages, dstAddress, file);  // try to load even if one message timed out
+      result = loadScanConfigFile(m_messages, dstAddress, false, &file);  // try to load even if one message timed out
       if (timedOut && result == RESULT_EMPTY) {
         result = RESULT_ERR_TIMEOUT;  // back to previous result
       }
@@ -1503,20 +1508,20 @@ bool BusHandler::enableGrab(bool enable) {
   return true;
 }
 
-void BusHandler::formatGrabResult(const bool unknown, ostringstream& output, const bool decode) {
+void BusHandler::formatGrabResult(bool unknown, bool decode, ostringstream* output) const {
   if (!m_grabMessages) {
-    output << "grab disabled";
+    *output << "grab disabled";
   } else {
     bool first = true;
     for (const auto& it : m_grabbedMessages) {
-      if (it.second.dump(unknown, m_messages, first, output, decode)) {
+      if (it.second.dump(unknown, m_messages, first, decode, output)) {
         first = false;
       }
     }
   }
 }
 
-symbol_t BusHandler::getNextScanAddress(symbol_t lastAddress) {
+symbol_t BusHandler::getNextScanAddress(symbol_t lastAddress) const {
   if (lastAddress == SYN) {
     return SYN;
   }
@@ -1538,7 +1543,7 @@ symbol_t BusHandler::getNextScanAddress(symbol_t lastAddress) {
   return SYN;
 }
 
-void BusHandler::setScanConfigLoaded(symbol_t address, string file) {
+void BusHandler::setScanConfigLoaded(symbol_t address, const string& file) {
   m_seenAddresses[address] |= LOAD_INIT;
   if (!file.empty()) {
     m_seenAddresses[address] |= LOAD_DONE;

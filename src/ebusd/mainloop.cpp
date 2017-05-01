@@ -41,26 +41,26 @@ using std::ifstream;
 #define RECONNECT_MISSING_SIGNAL 60
 
 
-result_t UserList::getFieldMap(vector<string>& row, string& errorDescription, const string preferLanguage) const {
+result_t UserList::getFieldMap(const string& preferLanguage, vector<string>* row, string* errorDescription) const {
   // name,secret,level[,level]*
-  if (row.empty()) {
-    row.push_back("name");
-    row.push_back("secret");
-    row.push_back("*level");
+  if (row->empty()) {
+    row->push_back("name");
+    row->push_back("secret");
+    row->push_back("*level");
     return RESULT_OK;
   }
   map<string, string> seen;
-  for (auto& name : row) {
-    tolower(name);
+  for (auto& name : *row) {
+    tolower(&name);
     if (name == "name" || name == "secret") {
       if (seen.find(name) != seen.end()) {
-        errorDescription = "duplicate field " + name;
+        *errorDescription = "duplicate field " + name;
         return RESULT_ERR_INVALID_ARG;
       }
     } else if (name == "level") {
       name = "*level";
     } else {
-      errorDescription = "unknown field " + name;
+      *errorDescription = "unknown field " + name;
       return RESULT_ERR_INVALID_ARG;
     }
     seen[name] = name;
@@ -71,10 +71,10 @@ result_t UserList::getFieldMap(vector<string>& row, string& errorDescription, co
   return RESULT_OK;
 }
 
-result_t UserList::addFromFile(map<string, string>& row, vector< map<string, string> >& subRows,
-    string& errorDescription, const string filename, unsigned int lineNo) {
-  string name = row["name"];
-  string secret = row["secret"];
+result_t UserList::addFromFile(const string& filename, unsigned int lineNo, map<string, string>* row,
+    vector< map<string, string> >* subRows, string* errorDescription) {
+  string name = (*row)["name"];
+  string secret = (*row)["secret"];
   if (name.empty()) {
     return RESULT_ERR_INVALID_ARG;
   }
@@ -82,7 +82,7 @@ result_t UserList::addFromFile(map<string, string>& row, vector< map<string, str
     name = "";  // default levels
   }
   string levels;
-  for (const auto& entry : subRows) {
+  for (const auto& entry : *subRows) {
     const auto it = entry.find("level");
     if (it != entry.end() && !it->second.empty()) {
       if (!levels.empty()) {
@@ -97,10 +97,10 @@ result_t UserList::addFromFile(map<string, string>& row, vector< map<string, str
 }
 
 
-MainLoop::MainLoop(const struct options opt, Device *device, MessageMap* messages)
+MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messages)
   : Thread(), m_device(device), m_reconnectCount(0), m_userList(opt.accessLevel), m_messages(messages),
     m_address(opt.address), m_scanConfig(opt.scanConfig), m_initialScan(opt.readOnly ? ESC : opt.initialScan),
-    m_polling(opt.pollInterval>0), m_enableHex(opt.enableHex), m_shutdown(false) {
+    m_polling(opt.pollInterval > 0), m_enableHex(opt.enableHex), m_shutdown(false) {
   // open Device
   result_t result = m_device->open();
   if (result != RESULT_OK) {
@@ -125,7 +125,7 @@ MainLoop::MainLoop(const struct options opt, Device *device, MessageMap* message
   m_logRawLastSymbol = SYN;
   if (opt.aclFile[0]) {
     string errorDescription;
-    result_t result = m_userList.readFromFile(opt.aclFile, errorDescription);
+    result_t result = m_userList.readFromFile(opt.aclFile, false, NULL, &errorDescription, NULL, NULL, NULL);
     if (result != RESULT_OK) {
       logError(lf_main, "error reading ACL file \"%s\": %s", opt.aclFile, getResultCode(result));
     }
@@ -149,7 +149,7 @@ MainLoop::MainLoop(const struct options opt, Device *device, MessageMap* message
   m_htmlPath = opt.htmlPath;
   m_network = new Network(opt.localOnly, opt.port, opt.httpPort, &m_netQueue);
   m_network->start("network");
-  if (!datahandler_register(&m_userList, m_busHandler, messages, m_dataHandlers)) {
+  if (!datahandler_register(&m_userList, m_busHandler, messages, &m_dataHandlers)) {
     logError(lf_main, "error registering data handlers");
   }
 }
@@ -247,9 +247,9 @@ void MainLoop::run() {
               MasterSymbolString master;
               SlaveSymbolString slave;
               istringstream input;
-              result = message->prepareMaster(m_address, master, input);
+              result = message->prepareMaster(0, m_address, SYN, UI_FIELD_SEPARATOR, &input, &master);
               if (result == RESULT_OK) {
-                result = m_busHandler->sendAndWait(master, slave);
+                result = m_busHandler->sendAndWait(master, &slave);
               }
             } else {
               result = RESULT_ERR_NOTFOUND;
@@ -259,7 +259,7 @@ void MainLoop::run() {
             result = m_busHandler->scanAndWait(m_initialScan, true);
             if (result == RESULT_OK) {
               ostringstream ret;
-              if (m_busHandler->formatScanResult(m_initialScan, ret, false)) {
+              if (m_busHandler->formatScanResult(m_initialScan, false, &ret)) {
                 logNotice(lf_main, "initial scan result: %s", ret.str().c_str());
               }
             }
@@ -301,37 +301,37 @@ void MainLoop::run() {
         if (socket) {
           socket->setTimeout(5);
           ostringstream ostr;
-          ostr << "{\"v\":\"" << PACKAGE_VERSION "\"";
-          ostr << ",\"r\":\"" << REVISION << "\"";
+          ostr << "{\"v\":\"" << PACKAGE_VERSION "\""
+               << ",\"r\":\"" << REVISION << "\""
 #if defined(__amd64__) || defined(__x86_64__) || defined(__ia64__) || defined(__IA64__)
-          ostr << ",\"a\":\"amd64\"";
+               << ",\"a\":\"amd64\""
 #elif defined(__aarch64__)
-          ostr << ",\"a\":\"aarch64\"";
+               << ",\"a\":\"aarch64\""
 #elif defined(__arm__)
-          ostr << ",\"a\":\"arm\"";
+               << ",\"a\":\"arm\""
 #elif defined(__i386__) || defined(__i686__)
-          ostr << ",\"a\":\"i386\"";
+               << ",\"a\":\"i386\""
 #elif defined(__mips__)
-          ostr << ",\"a\":\"mips\"";
+               << ",\"a\":\"mips\""
 #else
-          ostr << ",\"a\":\"other\"";
+               << ",\"a\":\"other\""
 #endif
-          ostr << ",\"u\":" << (now-start);
+               << ",\"u\":" << (now-start);
           if (m_reconnectCount) {
             ostr << ",\"rc\":" << m_reconnectCount;
           }
-          m_busHandler->formatUpdateInfo(ostr);
+          m_busHandler->formatUpdateInfo(&ostr);
           ostr << "}";
           string str = ostr.str();
           ostr.clear();
           ostr.str("");
-          ostr << "POST /updatecheck/ HTTP/1.0\r\n";
-          ostr << "Host: ebusd.eu" << "\r\n";
-          ostr << "User-Agent: " << PACKAGE_NAME << "/" << PACKAGE_VERSION << "\r\n";
-          ostr << "Content-Type: application/json; charset=utf-8\r\n";
-          ostr << "Content-Length: " << dec << str.length() << "\r\n";
-          ostr << "\r\n";
-          ostr << str;
+          ostr << "POST /updatecheck/ HTTP/1.0\r\n"
+               << "Host: ebusd.eu" << "\r\n"
+               << "User-Agent: " << PACKAGE_NAME << "/" << PACKAGE_VERSION << "\r\n"
+               << "Content-Type: application/json; charset=utf-8\r\n"
+               << "Content-Length: " << dec << str.length() << "\r\n"
+               << "\r\n"
+               << str;
           str = ostr.str();
           const char* cstr = str.c_str();
           size_t len = str.size();
@@ -417,7 +417,7 @@ void MainLoop::run() {
     bool connected = true;
     if (request.length() > 0) {
       logDebug(lf_main, ">>> %s", request.c_str());
-      ostream << decodeMessage(request, netMessage->isHttp(), connected, listening, user, reload);
+      ostream << decodeMessage(request, netMessage->isHttp(), &connected, &listening, &user, &reload);
 
       if (ostream.tellp() == 0 && !netMessage->isHttp()) {
         ostream << getResultCode(RESULT_EMPTY);
@@ -438,7 +438,7 @@ void MainLoop::run() {
       messages = m_messages->findAll("", "", levels, false, true, true, true, true, true, since, now);
       for (const auto message : messages) {
         ostream << message->getCircuit() << " " << message->getName() << " = " << dec;
-        message->decodeLastData(ostream);
+        message->decodeLastData(false, NULL, -1, 0, &ostream);
         ostream << endl;
       }
     }
@@ -447,7 +447,7 @@ void MainLoop::run() {
   }
 }
 
-void MainLoop::notifyDeviceData(const symbol_t symbol, bool received) {
+void MainLoop::notifyDeviceData(symbol_t symbol, bool received) {
   if (received && m_dumpFile) {
     m_dumpFile->write((unsigned char*)&symbol, 1);
   }
@@ -488,8 +488,8 @@ void MainLoop::notifyDeviceData(const symbol_t symbol, bool received) {
   }
 }
 
-string MainLoop::decodeMessage(const string& data, const bool isHttp, bool& connected, bool& listening,
-    string& user, bool& reload) {
+string MainLoop::decodeMessage(const string &data, bool isHttp, bool* connected, bool* listening,
+    string* user, bool* reload) {
   string token, previous;
   istringstream stream(data);
   vector<string> args;
@@ -528,7 +528,7 @@ string MainLoop::decodeMessage(const string& data, const bool isHttp, bool& conn
     if (strcmp(str, "GET") == 0) {
       return executeGet(args, connected);
     }
-    connected = false;
+    *connected = false;
     return "HTTP/1.0 405 Method Not Allowed\r\n\r\n";
   }
 
@@ -553,10 +553,10 @@ string MainLoop::decodeMessage(const string& data, const bool isHttp, bool& conn
     return executeAuth(args, user);
   }
   if (cmd == "R" || cmd == "READ") {
-    return executeRead(args, getUserLevels(user));
+    return executeRead(args, getUserLevels(*user));
   }
   if (cmd == "W" || cmd == "WRITE") {
-    return executeWrite(args, getUserLevels(user));
+    return executeWrite(args, getUserLevels(*user));
   }
   if (cmd == "HEX") {
     if (m_enableHex) {
@@ -565,7 +565,7 @@ string MainLoop::decodeMessage(const string& data, const bool isHttp, bool& conn
     return "ERR: command not enabled";
   }
   if (cmd == "F" || cmd == "FIND") {
-    return executeFind(args, getUserLevels(user));
+    return executeFind(args, getUserLevels(*user));
   }
   if (cmd == "L" || cmd == "LISTEN") {
     return executeListen(args, listening);
@@ -577,7 +577,7 @@ string MainLoop::decodeMessage(const string& data, const bool isHttp, bool& conn
     return executeGrab(args);
   }
   if (cmd == "SCAN") {
-    return executeScan(args, getUserLevels(user));
+    return executeScan(args, getUserLevels(*user));
   }
   if (cmd == "LOG") {
     return executeLog(args);
@@ -589,14 +589,14 @@ string MainLoop::decodeMessage(const string& data, const bool isHttp, bool& conn
     return executeDump(args);
   }
   if (cmd == "RELOAD") {
-    reload = true;
+    *reload = true;
     return executeReload(args);
   }
   if (cmd == "Q" || cmd == "QUIT") {
     return executeQuit(args, connected);
   }
   if (cmd == "I" || cmd == "INFO") {
-    return executeInfo(args, user);
+    return executeInfo(args, *user);
   }
   if (cmd == "?" || cmd == "H" || cmd == "HELP") {
     return executeHelp();
@@ -604,8 +604,8 @@ string MainLoop::decodeMessage(const string& data, const bool isHttp, bool& conn
   return "ERR: command not found";
 }
 
-result_t MainLoop::parseHexMaster(vector<string> &args, size_t argPos, MasterSymbolString& master,
-    symbol_t srcAddress) {
+result_t MainLoop::parseHexMaster(const vector<string>& args, size_t argPos, symbol_t srcAddress,
+    MasterSymbolString* master) {
   ostringstream msg;
   while (argPos < args.size()) {
     if ((args[argPos].length() % 2) != 0) {
@@ -617,22 +617,22 @@ result_t MainLoop::parseHexMaster(vector<string> &args, size_t argPos, MasterSym
     return RESULT_ERR_INVALID_ARG;
   }
   result_t ret;
-  unsigned int length = parseInt(msg.str().substr(3*2, 2).c_str(), 16, 0, MAX_POS, ret);
+  unsigned int length = parseInt(msg.str().substr(3*2, 2).c_str(), 16, 0, MAX_POS, &ret);
   if (ret != RESULT_OK) {
     return ret;
   }
   if ((4+length)*2 != msg.str().size()) {
     return RESULT_ERR_INVALID_ARG;
   }
-  master.push_back(srcAddress == SYN ? m_address : srcAddress);
-  ret = master.parseHex(msg.str());
-  if (ret == RESULT_OK && !isValidAddress(master[1])) {
+  master->push_back(srcAddress == SYN ? m_address : srcAddress);
+  ret = master->parseHex(msg.str());
+  if (ret == RESULT_OK && !isValidAddress((*master)[1])) {
     ret = RESULT_ERR_INVALID_ADDR;
   }
   return ret;
 }
 
-string MainLoop::executeAuth(vector<string> &args, string &user) {
+string MainLoop::executeAuth(const vector<string>& args, string *user) {
   if (args.size() != 3) {
     return "usage: auth USER SECRET\n"
            " Authenticate with USER name and SECRET.\n"
@@ -640,13 +640,13 @@ string MainLoop::executeAuth(vector<string> &args, string &user) {
            "  SECRET  the secret string of the user";
   }
   if (m_userList.checkSecret(args[1], args[2])) {
-    user = args[1];
+    *user = args[1];
     return getResultCode(RESULT_OK);
   }
   return "ERR: invalid user name or secret";
 }
 
-string MainLoop::executeRead(vector<string> &args, const string levels) {
+string MainLoop::executeRead(const vector<string>& args, const string& levels) {
   size_t argPos = 1;
   bool hex = false, numeric = false, valueName = false;
   OutputFormat verbosity = 0;
@@ -684,7 +684,7 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
       argPos++;
       if (args.size() > argPos) {
         result_t result;
-        maxAge = parseInt(args[argPos].c_str(), 10, 0, 24*60*60, result);
+        maxAge = parseInt(args[argPos].c_str(), 10, 0, 24*60*60, &result);
         if (result != RESULT_OK) {
           argPos = 0;  // print usage
           break;
@@ -708,7 +708,7 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
       }
       bool dest = args[argPos] == "-d";
       result_t ret;
-      symbol_t address = (symbol_t)parseInt(args[argPos].c_str(), 16, 0, 0xff, ret);
+      symbol_t address = (symbol_t)parseInt(args[argPos].c_str(), 16, 0, 0xff, &ret);
       if (ret != RESULT_OK || !isValidAddress(address, dest) || dest == isMaster(address)) {
         return getResultCode(RESULT_ERR_INVALID_ADDR);
       }
@@ -724,7 +724,7 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
         break;
       }
       result_t ret;
-      pollPriority = (size_t)parseInt(args[argPos].c_str(), 10, 1, 9, ret);
+      pollPriority = (size_t)parseInt(args[argPos].c_str(), 10, 1, 9, &ret);
       if (ret != RESULT_OK) {
         return getResultCode(RESULT_ERR_INVALID_NUM);
       }
@@ -751,7 +751,7 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
 
   if (hex && argPos > 0) {
     MasterSymbolString master;
-    result_t ret = parseHexMaster(args, argPos, master, srcAddress);
+    result_t ret = parseHexMaster(args, argPos, srcAddress, &master);
     if (ret != RESULT_OK) {
       return getResultCode(ret);
     }
@@ -785,13 +785,13 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
 
     // send message
     SlaveSymbolString slave;
-    ret = m_busHandler->sendAndWait(master, slave);
+    ret = m_busHandler->sendAndWait(master, &slave);
 
     if (ret == RESULT_OK) {
       ret = message->storeLastData(master, slave);
       ostringstream result;
       if (ret == RESULT_OK) {
-        ret = message->decodeLastData(result);
+        ret = message->decodeLastData(false, NULL, -1, 0, &result);
       }
       if (ret >= RESULT_OK) {
         logInfo(lf_main, "read hex %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(),
@@ -839,7 +839,7 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
     size_t pos = fieldName.find_last_of('.');
     if (pos != string::npos) {
       result_t result = RESULT_OK;
-      fieldIndex = static_cast<ssize_t>(parseInt(fieldName.substr(pos+1).c_str(), 10, 0, MAX_POS, result));
+      fieldIndex = static_cast<ssize_t>(parseInt(fieldName.substr(pos+1).c_str(), 10, 0, MAX_POS, &result));
       if (result == RESULT_OK) {
         fieldName = fieldName.substr(0, pos);
       }
@@ -850,7 +850,7 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
   Message* message = m_messages->find(circuit, args[argPos], levels, false);
   // adjust poll priority
   if (message != NULL && pollPriority > 0 && message->setPollPriority(pollPriority)) {
-    m_messages->addPollMessage(message);
+    m_messages->addPollMessage(false, message);
   }
   verbosity |= valueName ? OF_VALUENAME : numeric ? OF_NUMERIC : 0;
   result_t ret;
@@ -866,8 +866,8 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
       if (verbosity & OF_NAMES) {
         result << cacheMessage->getCircuit() << " " << cacheMessage->getName() << " ";
       }
-      ret = cacheMessage->decodeLastData(result, verbosity, false, fieldIndex == -2 ? NULL : fieldName.c_str(),
-          fieldIndex);
+      ret = cacheMessage->decodeLastData(false, fieldIndex == -2 ? NULL : fieldName.c_str(), fieldIndex, verbosity,
+          &result);
       if (ret != RESULT_OK) {
         if (ret < RESULT_OK) {
           logError(lf_main, "read %s %s cached: %s", cacheMessage->getCircuit().c_str(),
@@ -899,8 +899,8 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
   if (verbosity & OF_NAMES) {
     result << message->getCircuit() << " " << message->getName() << " ";
   }
-  ret = message->decodeLastSlaveData(result, verbosity, false, fieldIndex == -2 ? NULL : fieldName.c_str(),
-      fieldIndex);
+  ret = message->decodeLastData(false, false, fieldIndex == -2 ? NULL : fieldName.c_str(), fieldIndex, verbosity,
+      &result);
   if (ret < RESULT_OK) {
     logError(lf_main, "read %s %s: decode %s", message->getCircuit().c_str(), message->getName().c_str(),
         getResultCode(ret));
@@ -915,7 +915,7 @@ string MainLoop::executeRead(vector<string> &args, const string levels) {
   return result.str();
 }
 
-string MainLoop::executeWrite(vector<string> &args, const string levels) {
+string MainLoop::executeWrite(const vector<string>& args, const string levels) {
   size_t argPos = 1;
   bool hex = false;
   string circuit;
@@ -931,7 +931,7 @@ string MainLoop::executeWrite(vector<string> &args, const string levels) {
       }
       bool dest = args[argPos] == "-d";
       result_t ret;
-      symbol_t address = (symbol_t)parseInt(args[argPos].c_str(), 16, 0, 0xff, ret);
+      symbol_t address = (symbol_t)parseInt(args[argPos].c_str(), 16, 0, 0xff, &ret);
       if (ret != RESULT_OK || !isValidAddress(address, dest) || dest == isMaster(address)) {
         return getResultCode(RESULT_ERR_INVALID_ADDR);
       }
@@ -960,7 +960,7 @@ string MainLoop::executeWrite(vector<string> &args, const string levels) {
 
   if (hex && argPos > 0) {
     MasterSymbolString master;
-    result_t ret = parseHexMaster(args, argPos, master, srcAddress);
+    result_t ret = parseHexMaster(args, argPos, srcAddress, &master);
     if (ret != RESULT_OK) {
       return getResultCode(ret);
     }
@@ -983,14 +983,14 @@ string MainLoop::executeWrite(vector<string> &args, const string levels) {
     }
     // send message
     SlaveSymbolString slave;
-    ret = m_busHandler->sendAndWait(master, slave);
+    ret = m_busHandler->sendAndWait(master, &slave);
 
     if (ret == RESULT_OK) {
       // also update read messages
       ret = message->storeLastData(master, slave);
       ostringstream result;
       if (ret == RESULT_OK) {
-        ret = message->decodeLastData(result);
+        ret = message->decodeLastData(false, NULL, -1, 0, &result);
       }
       if (ret >= RESULT_OK) {
         logInfo(lf_main, "write hex %s %s cache update: %s", message->getCircuit().c_str(),
@@ -1054,7 +1054,7 @@ string MainLoop::executeWrite(vector<string> &args, const string levels) {
     return getResultCode(RESULT_OK);
   }
 
-  ret = message->decodeLastSlaveData(result);  // decode data
+  ret = message->decodeLastData(false, false, NULL, -1, 0, &result);  // decode data
   if (ret >= RESULT_OK && result.str().empty()) {
     logNotice(lf_main, "write %s %s: decode %s", message->getCircuit().c_str(), message->getName().c_str(),
         getResultCode(ret));
@@ -1072,7 +1072,7 @@ string MainLoop::executeWrite(vector<string> &args, const string levels) {
   return result.str();
 }
 
-string MainLoop::executeHex(vector<string> &args) {
+string MainLoop::executeHex(const vector<string>& args) {
   size_t argPos = 1;
   symbol_t srcAddress = SYN;
   if (args.size() > argPos && args[argPos] == "-s") {
@@ -1081,7 +1081,7 @@ string MainLoop::executeHex(vector<string> &args) {
       argPos = 0;  // print usage
     } else {
       result_t ret;
-      symbol_t address = (symbol_t)parseInt(args[argPos].c_str(), 16, 0, 0xff, ret);
+      symbol_t address = (symbol_t)parseInt(args[argPos].c_str(), 16, 0, 0xff, &ret);
       if (ret != RESULT_OK || !isValidAddress(address, false) || !isMaster(address)) {
         return getResultCode(RESULT_ERR_INVALID_ADDR);
       }
@@ -1095,7 +1095,7 @@ string MainLoop::executeHex(vector<string> &args) {
 
   if (argPos > 0) {
     MasterSymbolString master;
-    result_t ret = parseHexMaster(args, argPos, master, srcAddress);
+    result_t ret = parseHexMaster(args, argPos, srcAddress, &master);
     if (ret != RESULT_OK) {
       return getResultCode(ret);
     }
@@ -1103,7 +1103,7 @@ string MainLoop::executeHex(vector<string> &args) {
 
     // send message
     SlaveSymbolString slave;
-    ret = m_busHandler->sendAndWait(master, slave);
+    ret = m_busHandler->sendAndWait(master, &slave);
 
     if (ret == RESULT_OK) {
       if (master[1] == BROADCAST) {
@@ -1127,10 +1127,11 @@ string MainLoop::executeHex(vector<string> &args) {
        "  Dx     data byte(s) to send";
 }
 
-string MainLoop::executeFind(vector<string> &args, string levels) {
+string MainLoop::executeFind(const vector<string>& args, const string& levels) {
   size_t argPos = 1;
   bool configFormat = false, exact = false, withRead = true, withWrite = false, withPassive = true, first = true,
-      onlyWithData = false, hexFormat = false, userLevel = true;
+      onlyWithData = false, hexFormat = false, userLevel = true, withConditions = false;
+  string useLevels = levels;
   OutputFormat verbosity = 0;
   vector<string> fieldNames;
   string circuit;
@@ -1166,7 +1167,7 @@ string MainLoop::executeFind(vector<string> &args, string levels) {
         argPos = 0;  // print usage
         break;
       }
-      if (!Message::extractFieldNames(args[argPos], fieldNames)) {
+      if (!Message::extractFieldNames(args[argPos], true, &fieldNames)) {
         argPos = 0;  // print usage
         break;
       }
@@ -1191,7 +1192,7 @@ string MainLoop::executeFind(vector<string> &args, string levels) {
       }
       withPassive = true;
     } else if (args[argPos] == "-a") {
-      withRead = withWrite = withPassive = true;
+      withRead = withWrite = withPassive = withConditions = true;
     } else if (args[argPos] == "-d") {
       onlyWithData = true;
     } else if (args[argPos] == "-h") {
@@ -1206,7 +1207,7 @@ string MainLoop::executeFind(vector<string> &args, string levels) {
         argPos = 0;  // print usage
         break;
       }
-      result_t result = Message::parseId(args[argPos], id);
+      result_t result = Message::parseId(args[argPos], &id);
       if (result != RESULT_OK) {
         return getResultCode(result);
       }
@@ -1227,7 +1228,7 @@ string MainLoop::executeFind(vector<string> &args, string levels) {
         argPos = 0;  // print usage
         break;
       }
-      levels = args[argPos];
+      useLevels = args[argPos];
       userLevel = false;
     } else {
       argPos = 0;  // print usage
@@ -1244,7 +1245,7 @@ string MainLoop::executeFind(vector<string> &args, string levels) {
          "  -r             limit to active read messages (default: read + passive)\n"
          "  -w             limit to active write messages (default: read + passive)\n"
          "  -p             limit to passive messages (default: read + passive)\n"
-         "  -a             include all message types (read, passive, and write)\n"
+         "  -a             include all message types (read, passive, and write) and all conditional\n"
          "  -d             only include messages with actual data\n"
          "  -h             show hex data instead of decoded values\n"
          "  -i ID          limit to messages with ID (in hex, PB, SB and further ID bytes)\n"
@@ -1256,8 +1257,8 @@ string MainLoop::executeFind(vector<string> &args, string levels) {
          "  -l LEVEL       limit to messages with access LEVEL (\"*\" for any, default: current level)\n"
          "  NAME           NAME of the messages to find (or a part thereof without '-e')";
   }
-  deque<Message*> messages = m_messages->findAll(
-    circuit, args.size() == argPos ? "" : args[argPos], levels, exact, withRead, withWrite, withPassive, userLevel);
+  deque<Message*> messages = m_messages->findAll(circuit, args.size() == argPos ? "" : args[argPos], useLevels,
+      exact, withRead, withWrite, withPassive, userLevel, !withConditions);
 
   bool found = false;
   ostringstream result;
@@ -1274,12 +1275,12 @@ string MainLoop::executeFind(vector<string> &args, string levels) {
       if (found) {
         result << endl;
       }
-      message->dump(result);
+      message->dump(NULL, withConditions, &result);
     } else if (!fieldNames.empty()) {
       if (found) {
         result << endl;
       }
-      message->dump(result, &fieldNames);
+      message->dump(&fieldNames, withConditions, &result);
     } else {
       if (found) {
         result << endl;
@@ -1287,10 +1288,13 @@ string MainLoop::executeFind(vector<string> &args, string levels) {
       result << message->getCircuit() << " " << message->getName() << " = ";
       if (lastup == 0) {
         result << "no data stored";
+        if (!message->isAvailable()) {
+          result << " (message not available due to condition)";
+        }
       } else if (hexFormat) {
         result << message->getLastMasterData().getStr() << " / " << message->getLastSlaveData().getStr();
       } else {
-        result_t ret = message->decodeLastData(result, verbosity);
+        result_t ret = message->decodeLastData(false, NULL, -1, verbosity, &result);
         if (ret != RESULT_OK) {
           result << " (" << getResultCode(ret)
                << " for " << message->getLastMasterData().getStr()
@@ -1335,12 +1339,12 @@ string MainLoop::executeFind(vector<string> &args, string levels) {
   return result.str();
 }
 
-string MainLoop::executeListen(vector<string> &args, bool& listening) {
+string MainLoop::executeListen(const vector<string>& args, bool* listening) {
   if (args.size() == 1) {
     if (listening) {
       return "listen continued";
     }
-    listening = true;
+    *listening = true;
     return "listen started";
   }
 
@@ -1348,11 +1352,11 @@ string MainLoop::executeListen(vector<string> &args, bool& listening) {
     return "usage: listen [stop]\n"
          " Listen for updates or stop it.";
   }
-  listening = false;
+  *listening = false;
   return "listen stopped";
 }
 
-string MainLoop::executeState(vector<string> &args) {
+string MainLoop::executeState(const vector<string>& args) {
   if (args.size() == 0) {
     return "usage: state\n"
          " Report bus state.";
@@ -1368,7 +1372,7 @@ string MainLoop::executeState(vector<string> &args) {
   return "no signal";
 }
 
-string MainLoop::executeGrab(vector<string> &args) {
+string MainLoop::executeGrab(const vector<string>& args) {
   if (args.size() == 1) {
     return m_busHandler->enableGrab(true) ? "grab started" : "grab continued";
   }
@@ -1378,12 +1382,12 @@ string MainLoop::executeGrab(vector<string> &args) {
   if (args.size() >= 2 && args[1] == "result") {
     if (args.size() == 2 || args[2] == "all") {
       ostringstream result;
-      m_busHandler->formatGrabResult(args.size() == 2, result);
+      m_busHandler->formatGrabResult(args.size() == 2, false, &result);
       return result.str();
     }
     if (args.size() == 3 || args[2] == "decode") {
       ostringstream result;
-      m_busHandler->formatGrabResult(true, result, true);
+      m_busHandler->formatGrabResult(true, true, &result);
       return result.str();
     }
   }
@@ -1392,7 +1396,7 @@ string MainLoop::executeGrab(vector<string> &args) {
        " Start or stop grabbing, or report/decode unknown or all grabbed messages.";
 }
 
-string MainLoop::executeScan(vector<string> &args, string levels) {
+string MainLoop::executeScan(const vector<string>& args, string levels) {
   if (args.size() == 1) {
     result_t result = m_busHandler->startScan(false, levels);
     if (result == RESULT_ERR_DUPLICATE) {
@@ -1415,12 +1419,12 @@ string MainLoop::executeScan(vector<string> &args, string levels) {
 
     if (args[1] == "result") {
       ostringstream ret;
-      m_busHandler->formatScanResult(ret);
+      m_busHandler->formatScanResult(&ret);
       return ret.str();
     }
 
     result_t result;
-    symbol_t dstAddress = (symbol_t)parseInt(args[1].c_str(), 16, 0, 0xff, result);
+    symbol_t dstAddress = (symbol_t)parseInt(args[1].c_str(), 16, 0, 0xff, &result);
     if (result == RESULT_OK && !isValidAddress(dstAddress, false)) {
       result = RESULT_ERR_INVALID_ADDR;
     }
@@ -1432,7 +1436,7 @@ string MainLoop::executeScan(vector<string> &args, string levels) {
       return getResultCode(result);
     }
     ostringstream ret;
-    if (!m_busHandler->formatScanResult(dstAddress, ret, false)) {
+    if (!m_busHandler->formatScanResult(dstAddress, false, &ret)) {
       return getResultCode(RESULT_EMPTY);
     }
     return ret.str();
@@ -1443,7 +1447,7 @@ string MainLoop::executeScan(vector<string> &args, string levels) {
        " Scan seen slaves, all slaves (full), a single slave (address ZZ), or report scan result.";
 }
 
-string MainLoop::executeLog(vector<string> &args) {
+string MainLoop::executeLog(const vector<string>& args) {
   if (args.size() == 1) {
     ostringstream ret;
     for (int val = 0; val < lf_COUNT; val++) {
@@ -1469,7 +1473,7 @@ string MainLoop::executeLog(vector<string> &args) {
   return getResultCode(RESULT_ERR_INVALID_ARG);
 }
 
-string MainLoop::executeRaw(vector<string> &args) {
+string MainLoop::executeRaw(const vector<string>& args) {
   bool bytes = args.size() == 2 && args[1] == "bytes";
   if (args.size() != 1 && !bytes) {
     return "usage: raw [bytes]\n"
@@ -1487,7 +1491,7 @@ string MainLoop::executeRaw(vector<string> &args) {
   return enabled ? "raw logging enabled" : "raw logging disabled";
 }
 
-string MainLoop::executeDump(vector<string> &args) {
+string MainLoop::executeDump(const vector<string>& args) {
   if (args.size() != 1) {
     return "usage: dump\n"
          " Toggle binary dump of received bytes.";
@@ -1500,7 +1504,7 @@ string MainLoop::executeDump(vector<string> &args) {
   return enabled ? "dump enabled" : "dump disabled";
 }
 
-string MainLoop::executeReload(vector<string> &args) {
+string MainLoop::executeReload(const vector<string>& args) {
   if (args.size() != 1) {
     return "usage: reload\n"
          " Reload CSV config files.";
@@ -1510,7 +1514,7 @@ string MainLoop::executeReload(vector<string> &args) {
   return getResultCode(result);
 }
 
-string MainLoop::executeInfo(vector<string> &args, const string user) {
+string MainLoop::executeInfo(const vector<string>& args, const string& user) {
   if (args.size() == 0) {
     return "usage: info\n"
          " Report information about the daemon, the configuration, and seen devices.";
@@ -1528,25 +1532,25 @@ string MainLoop::executeInfo(vector<string> &args, const string user) {
     result << "access: " << levels << "\n";
   }
   if (m_busHandler->hasSignal()) {
-    result << "signal: acquired\n";
-    result << "symbol rate: " << m_busHandler->getSymbolRate() << "\n";
-    result << "max symbol rate: " << m_busHandler->getMaxSymbolRate() << "\n";
+    result << "signal: acquired\n"
+           << "symbol rate: " << m_busHandler->getSymbolRate() << "\n"
+           << "max symbol rate: " << m_busHandler->getMaxSymbolRate() << "\n";
   } else {
     result << "signal: no signal\n";
   }
-  result << "reconnects: " << m_reconnectCount << "\n";
-  result << "masters: " << m_busHandler->getMasterCount() << "\n";
-  result << "messages: " << m_messages->size() << "\n";
-  result << "conditional: " << m_messages->sizeConditional() << "\n";
-  result << "poll: " << m_messages->sizePoll() << "\n";
-  result << "update: " << m_messages->sizePassive();
-  m_busHandler->formatSeenInfo(result);
+  result << "reconnects: " << m_reconnectCount << "\n"
+         << "masters: " << m_busHandler->getMasterCount() << "\n"
+         << "messages: " << m_messages->size() << "\n"
+         << "conditional: " << m_messages->sizeConditional() << "\n"
+         << "poll: " << m_messages->sizePoll() << "\n"
+         << "update: " << m_messages->sizePassive();
+  m_busHandler->formatSeenInfo(&result);
   return result.str();
 }
 
-string MainLoop::executeQuit(vector<string> &args, bool& connected) {
+string MainLoop::executeQuit(const vector<string>& args, bool *connected) {
   if (args.size() == 1) {
-    connected = false;
+    *connected = false;
     return "connection closed";
   }
   return "usage: quit\n"
@@ -1579,7 +1583,7 @@ string MainLoop::executeHelp() {
       " help|?   Print help             help [COMMAND], COMMMAND ?";
 }
 
-string MainLoop::executeGet(vector<string> &args, bool& connected) {
+string MainLoop::executeGet(const vector<string>& args, bool* connected) {
   result_t ret = RESULT_OK;
   bool numeric = false, valueName = false, required = false, full = false;
   OutputFormat verbosity = OF_NAMES;
@@ -1616,9 +1620,9 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
           qname = token;
         }
         if (qname == "since") {
-          since = parseInt(value.c_str(), 10, 0, 0xffffffff, ret);
+          since = parseInt(value.c_str(), 10, 0, 0xffffffff, &ret);
         } else if (qname == "poll") {
-          pollPriority = (size_t)parseInt(value.c_str(), 10, 1, 9, ret);
+          pollPriority = (size_t)parseInt(value.c_str(), 10, 1, 9, &ret);
         } else if (qname == "exact") {
           exact = value.length() == 0 || value == "1" || value == "true";
         } else if (qname == "verbose") {
@@ -1664,7 +1668,7 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
           continue;
         }
         if (pollPriority > 0 && message->setPollPriority(pollPriority)) {
-          m_messages->addPollMessage(message);
+          m_messages->addPollMessage(false, message);
         }
         time_t lastup = message->getLastUpdateTime();
         if (lastup == 0 && required) {
@@ -1691,11 +1695,11 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
           lastCircuit = message->getCircuit();
           result << "\n \"" << lastCircuit << "\": {";
           first = true;
-          if (full && m_messages->decodeCircuit(lastCircuit, result, verbosity)) {  // add circuit specific values
+          if (full && m_messages->decodeCircuit(lastCircuit, verbosity, &result)) {  // add circuit specific values
             first = false;
           }
         }
-        message->decode(result, verbosity, !first);
+        message->decode(!first, NULL, verbosity, &result);
         first = false;
       }
 
@@ -1727,8 +1731,8 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
       result << "\n}";
       type = 6;
     }
-    connected = false;
-    return formatHttpResult(ret, result, type);
+    *connected = false;
+    return formatHttpResult(ret, type, result);
   }  // request for "/data..."
 
   if (uri.length() < 1 || uri[0] != '/' || uri.find("//") != string::npos || uri.find("..") != string::npos) {
@@ -1770,11 +1774,11 @@ string MainLoop::executeGet(vector<string> &args, bool& connected) {
       }
     }
   }
-  connected = false;
-  return formatHttpResult(ret, result, type);
+  *connected = false;
+  return formatHttpResult(ret, type, result);
 }
 
-string MainLoop::formatHttpResult(result_t ret, ostringstream& result, int type) {
+string MainLoop::formatHttpResult(result_t ret, int type, ostringstream &result) {
   string data = ret == RESULT_OK ? result.str() : "";
   result.str("");
   result.clear();

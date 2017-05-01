@@ -55,7 +55,7 @@ const struct argp_child* datahandler_getargs();
  * @return true if registration was successful.
  */
 bool datahandler_register(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages,
-    list<DataHandler*>& handlers);
+    list<DataHandler*>* handlers);
 
 
 /**
@@ -73,7 +73,7 @@ class UserInfo {
    * @param user the user name.
    * @return whether the user exists.
    */
-  virtual bool hasUser(const string user) const = 0;  // abstract
+  virtual bool hasUser(const string& user) const = 0;  // abstract
 
   /**
    * Check whether the secret string matches the one of the specified user.
@@ -81,14 +81,14 @@ class UserInfo {
    * @param secret the secret to check.
    * @return whether the secret string is valid.
    */
-  virtual bool checkSecret(const string user, const string secret) const = 0;  // abstract
+  virtual bool checkSecret(const string& user, const string& secret) const = 0;  // abstract
 
   /**
    * Get the access levels associated with the specified user.
    * @param user the user name, or empty for default levels.
    * @return the access levels separated by semicolon.
    */
-  virtual string getLevels(const string user) const = 0;  // abstract
+  virtual string getLevels(const string& user) const = 0;  // abstract
 };
 
 
@@ -136,7 +136,7 @@ class DataSink : virtual public DataHandler {
    * @param userInfo the @a UserInfo instance.
    * @param user the user name for determining the allowed access levels (fall back to default levels).
    */
-  DataSink(UserInfo* userInfo, string user) {
+  DataSink(const UserInfo* userInfo, const string& user) {
     m_levels = userInfo->getLevels(userInfo->hasUser(user) ? user : "");
   }
 
@@ -158,7 +158,7 @@ class DataSink : virtual public DataHandler {
    * Notify the sink of the latest update check result.
    * @param checkResult a string describing available updates, or empty if no update is available.
    */
-  virtual void notifyUpdateCheckResult(string checkResult) {}
+  virtual void notifyUpdateCheckResult(const string& checkResult) {}
 
  protected:
   /** the allowed access levels. */

@@ -35,6 +35,40 @@ int Connection::m_ids = 0;
 #define POLLRDHUP 0
 #endif
 
+bool NetMessage::add(const char* request) {
+  if (request && request[0]) {
+    string add = request;
+    add.erase(remove(add.begin(), add.end(), '\r'), add.end());
+    m_request.append(add);
+  }
+  size_t pos = m_request.find(m_isHttp ? "\n\n" : "\n");
+  if (pos != string::npos) {
+    if (m_isHttp) {
+      pos = m_request.find("\n");
+      m_request.resize(pos);  // reduce to first line
+      // typical first line: GET /ehp/outsidetemp HTTP/1.1
+      pos = m_request.rfind(" HTTP/");
+      if (pos != string::npos) {
+        m_request.resize(pos);  // remove "HTTP/x.x" suffix
+      }
+      pos = 0;
+      while ((pos=m_request.find('%', pos)) != string::npos && pos+2 <= m_request.length()) {
+        unsigned int value1, value2;
+        if (sscanf("%1x%1x", m_request.c_str()+pos+1, &value1, &value2) < 2) {
+          break;
+        }
+        m_request[pos] = static_cast<char>(((value1&0x0f) << 4) | (value2&0x0f));
+        m_request.erase(pos+1, 2);
+      }
+    } else if (pos+1 == m_request.length()) {
+      m_request.resize(pos);  // reduce to complete lines
+    }
+    return true;
+  }
+  return m_request.length() == 0 && m_listening;
+}
+
+
 void Connection::run() {
   int ret;
   struct timespec tdiff;

@@ -54,59 +54,59 @@ static const symbol_t CRC_LOOKUP_TABLE[] = {
 };
 
 
-unsigned int parseInt(const char* str, int base, const unsigned int minValue, const unsigned int maxValue,
-    result_t& result, size_t* length) {
+unsigned int parseInt(const char* str, int base, unsigned int minValue, unsigned int maxValue,
+    result_t* result, size_t* length) {
   char* strEnd = NULL;
 
   unsigned long ret = strtoul(str, &strEnd, base);
 
   if (strEnd == NULL || strEnd == str || *strEnd != 0) {
-    result = RESULT_ERR_INVALID_NUM;  // invalid value
+    *result = RESULT_ERR_INVALID_NUM;  // invalid value
     return 0;
   }
 
   if (minValue > ret || ret > maxValue) {
-    result = RESULT_ERR_OUT_OF_RANGE;  // invalid value
+    *result = RESULT_ERR_OUT_OF_RANGE;  // invalid value
     return 0;
   }
   if (length != NULL) {
     *length = (unsigned int)(strEnd - str);
   }
-  result = RESULT_OK;
+  *result = RESULT_OK;
   return (unsigned int)ret;
 }
 
-int parseSignedInt(const char* str, int base, const int minValue, const int maxValue, result_t& result,
-    size_t* length) {
+int parseSignedInt(const char* str, int base, int minValue, int maxValue,
+    result_t* result, size_t* length) {
   char* strEnd = NULL;
 
   long ret = strtol(str, &strEnd, base);
 
   if (strEnd == NULL || *strEnd != 0) {
-    result = RESULT_ERR_INVALID_NUM;  // invalid value
+    *result = RESULT_ERR_INVALID_NUM;  // invalid value
     return 0;
   }
 
   if (minValue > ret || ret > maxValue) {
-    result = RESULT_ERR_OUT_OF_RANGE;  // invalid value
+    *result = RESULT_ERR_OUT_OF_RANGE;  // invalid value
     return 0;
   }
   if (length != NULL) {
     *length = (unsigned int)(strEnd - str);
   }
-  result = RESULT_OK;
+  *result = RESULT_OK;
   return static_cast<int>(ret);
 }
 
 
-void SymbolString::updateCrc(symbol_t& crc, const symbol_t value) {
-  crc = CRC_LOOKUP_TABLE[crc]^value;
+void SymbolString::updateCrc(symbol_t value, symbol_t* crc) {
+  *crc = CRC_LOOKUP_TABLE[*crc]^value;
 }
 
 result_t SymbolString::parseHex(const string& str) {
   result_t result;
   for (size_t i = 0; i < str.size(); i += 2) {
-    symbol_t value = (symbol_t)parseInt(str.substr(i, 2).c_str(), 16, 0, 0xff, result);
+    symbol_t value = (symbol_t)parseInt(str.substr(i, 2).c_str(), 16, 0, 0xff, &result);
     if (result != RESULT_OK) {
       return result;
     }
@@ -119,7 +119,7 @@ result_t SymbolString::parseHexEscaped(const string& str) {
   result_t result;
   bool inEscape = false;
   for (size_t i = 0; i < str.size(); i += 2) {
-    symbol_t value = (symbol_t)parseInt(str.substr(i, 2).c_str(), 16, 0, 0xff, result);
+    symbol_t value = (symbol_t)parseInt(str.substr(i, 2).c_str(), 16, 0, 0xff, &result);
     if (result != RESULT_OK) {
       return result;
     }
@@ -162,13 +162,13 @@ symbol_t SymbolString::calcCrc() const {
   for (size_t i = 0; i < m_data.size(); i++) {
     symbol_t value = m_data[i];
     if (value == ESC) {
-      updateCrc(crc, ESC);
-      updateCrc(crc, 0x00);
+      updateCrc(ESC, &crc);
+      updateCrc(0x00, &crc);
     } else if (value == SYN) {
-      updateCrc(crc, ESC);
-      updateCrc(crc, 0x01);
+      updateCrc(ESC, &crc);
+      updateCrc(0x01, &crc);
     } else {
-      updateCrc(crc, value);
+      updateCrc(value, &crc);
     }
   }
   return crc;

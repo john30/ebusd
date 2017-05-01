@@ -73,8 +73,8 @@ static unsigned int baseLine = 0;
 
 class NoopReader : public FileReader {
  public:
-  result_t addFromFile(vector<string>& row, string& errorDescription,
-      const string filename, unsigned int lineNo) override {
+  result_t addFromFile(const string& filename, unsigned int lineNo, vector<string>* row,
+      string* errorDescription) override {
     return RESULT_OK;
   }
 };
@@ -83,25 +83,25 @@ class TestReader : public MappedFileReader {
  public:
   TestReader(size_t expectedCols, size_t langCols)
   : MappedFileReader::MappedFileReader(false, ""), m_expectedCols(expectedCols), m_langCols(langCols) {}
-  result_t getFieldMap(vector<string>& row, string& errorDescription, const string preferLanguage) const override {
-    if (row.size() == m_expectedCols+m_langCols) {
+  result_t getFieldMap(const string& preferLanguage, vector<string>* row, string* errorDescription) const override {
+    if (row->size() == m_expectedCols+m_langCols) {
       cout << "get field map: split OK" << endl;
       if (m_langCols == 1) {
-        row[0] = SKIP_COLUMN;
-        size_t pos = row[1].find_last_of('.');
-        row[1] = row[1].substr(0, pos);
+        (*row)[0] = SKIP_COLUMN;
+        size_t pos = (*row)[1].find_last_of('.');
+        (*row)[1] = (*row)[1].substr(0, pos);
       }
       return RESULT_OK;
     }
-    cout << "get field map: error got " << static_cast<unsigned>(row.size()) << " columns, expected " <<
+    cout << "get field map: error got " << static_cast<unsigned>(row->size()) << " columns, expected " <<
         static_cast<unsigned>(m_expectedCols+m_langCols) << endl;
     return RESULT_ERR_EOF;
   }
-  result_t addFromFile(map<string, string>& row, vector< map<string, string> >& subRows,
-      string& errorDescription, const string filename, unsigned int lineNo) override {
-    if (row.empty() || (m_expectedCols == 3) != subRows.empty()) {
+  result_t addFromFile(const string& filename, unsigned int lineNo, map<string, string>* row,
+      vector< map<string, string> >* subRows, string* errorDescription) override {
+    if (row->empty() || (m_expectedCols == 3) != subRows->empty()) {
       cout << "read line " << static_cast<unsigned>(baseLine + lineNo) << ": read error: got "
-          << static_cast<unsigned>(row.size()) << "/3 main, " << static_cast<unsigned>(subRows.size())
+          << static_cast<unsigned>(row->size()) << "/3 main, " << static_cast<unsigned>(subRows->size())
           << (m_expectedCols == 3 ? "/0 sub" : "/>0 sub") << endl;
       return RESULT_ERR_EOF;
     }
@@ -111,7 +111,7 @@ class TestReader : public MappedFileReader {
     }
     cout << "read line " << static_cast<unsigned>(baseLine + lineNo) << ": split OK" << endl;
     string resultline[3] = resultlines[lineNo - 1];
-    if (row.empty()) {
+    if (row->empty()) {
       cout << "  result empty";
       if (resultline[0] == "") {
         cout << ": OK" << endl;
@@ -127,7 +127,7 @@ class TestReader : public MappedFileReader {
     map<string, string>& defaults = getDefaults()[""];
     for (size_t colIdx = 0; colIdx < 3; colIdx++) {
       string col = colnames[colIdx];
-      string got = row[col] + defaults[col];
+      string got = (*row)[col] + defaults[col];
       string expect = resultline[colIdx];
       ostringstream type;
       type << "line " << static_cast<unsigned>(baseLine + lineNo) << " column \"" << col << "\"";
@@ -137,17 +137,17 @@ class TestReader : public MappedFileReader {
         error = true;
       }
     }
-    if (row.size() > 3) {
+    if (row->size() > 3) {
       ostringstream type;
       type << "line " << static_cast<unsigned>(baseLine + lineNo);
       verify(false, type.str(), "", false, "", "extra column");
       error = true;
     }
 
-    for (size_t subIdx = 0; subIdx < subRows.size(); subIdx++) {
+    for (size_t subIdx = 0; subIdx < subRows->size(); subIdx++) {
       string resultsubline[4] = resultsublines[lineNo - 1][subIdx];
-      row = subRows[subIdx];
-      if (row.empty()) {
+      *row = (*subRows)[subIdx];
+      if (row->empty()) {
         cout << "  sub " << subIdx << " result empty";
         if (resultline[0] == "") {
           cout << ": OK" << endl;
@@ -161,7 +161,7 @@ class TestReader : public MappedFileReader {
       vector< map<string, string> >& subDefaults = getSubDefaults()[""];
       for (size_t colIdx = 0; colIdx < 2; colIdx++) {
         string col = resultsubline[colIdx*2];
-        string got = row[col];
+        string got = (*row)[col];
         if (subIdx < subDefaults.size()) {
           got += subDefaults[subIdx][col];
         }
@@ -174,7 +174,7 @@ class TestReader : public MappedFileReader {
           error = true;
         }
       }
-      if (row.size() > 2) {
+      if (row->size() > 2) {
         ostringstream type;
         type << "line " << static_cast<unsigned>(baseLine + lineNo) << " sub " << subIdx;
         verify(false, type.str(), "", false, "", "extra sub column");
@@ -196,14 +196,14 @@ int main(int argc, char** argv) {
       size_t hash = 0, size = 0;
       time_t time = 0;
       string errorDescription;
-      result_t result = reader.readFromFile(argv[argpos], errorDescription, false, NULL, &hash, &size, &time);
+      result_t result = reader.readFromFile(argv[argpos], false, NULL, &errorDescription, &hash, &size, &time);
       cout << argv[argpos] << " ";
       if (result != RESULT_OK) {
         cout << getResultCode(result) << ", " << errorDescription << endl;
         error = true;
         continue;
       }
-      FileReader::formatHash(hash, cout);
+      FileReader::formatHash(hash, &cout);
       cout << " " << size << " " << time << endl;
     }
     return error ? 1 : 0;
@@ -226,7 +226,7 @@ int main(int argc, char** argv) {
   string errorDescription;
   while (ifs.peek() != EOF) {
     istringstream str;
-    result_t result = reader.readLineFromStream(ifs, errorDescription, "", lineNo, row, true, &hash, &size);
+    result_t result = reader.readLineFromStream("", true, &ifs, &lineNo, &row, &errorDescription, &hash, &size);
     if (result != RESULT_OK) {
       cout << "  error " << getResultCode(result) << endl;
       error = true;
@@ -267,7 +267,7 @@ int main(int argc, char** argv) {
   subDefaults[0]["subcol 2"] = ";default of sub 0 subcol 2";
   while (ifs.peek() != EOF) {
     istringstream str;
-    result_t result = reader2.readLineFromStream(ifs, errorDescription, "", lineNo, row, true, &hash, &size);
+    result_t result = reader2.readLineFromStream("", true, &ifs, &lineNo, &row, &errorDescription, &hash, &size);
     if (result != RESULT_OK) {
       cout << "  error " << getResultCode(result) << endl;
       error = true;

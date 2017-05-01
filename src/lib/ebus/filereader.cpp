@@ -36,21 +36,21 @@ using std::setw;
 using std::dec;
 
 
-result_t FileReader::readFromFile(const string filename, string& errorDescription, bool verbose,
-    map<string, string>* defaults, size_t* hash, size_t* size, time_t* time) {
+result_t FileReader::readFromFile(const string& filename, bool verbose, map<string, string>* defaults,
+    string* errorDescription, size_t* hash, size_t* size, time_t* time) {
   struct stat st;
   if (stat(filename.c_str(), &st) != 0) {
-    errorDescription = filename;
+    *errorDescription = filename;
     return RESULT_ERR_NOTFOUND;
   }
   if (S_ISDIR(st.st_mode)) {
-    errorDescription = filename+" is a directory";
+    *errorDescription = filename+" is a directory";
     return RESULT_ERR_NOTFOUND;
   }
-  ifstream ifs;
-  ifs.open(filename.c_str(), ifstream::in);
-  if (!ifs.is_open()) {
-    errorDescription = filename;
+  ifstream stream;
+  stream.open(filename.c_str(), ifstream::in);
+  if (!stream.is_open()) {
+    *errorDescription = filename;
     return RESULT_ERR_NOTFOUND;
   }
   if (hash) {
@@ -65,60 +65,56 @@ result_t FileReader::readFromFile(const string filename, string& errorDescriptio
   unsigned int lineNo = 0;
   vector<string> row;
   result_t result = RESULT_OK;
-  while (ifs.peek() != EOF && result == RESULT_OK) {
-    result = readLineFromStream(ifs, errorDescription, filename, lineNo, row, verbose, hash, size);
+  while (stream.peek() != EOF && result == RESULT_OK) {
+    result = readLineFromStream(filename, verbose, &stream, &lineNo, &row, errorDescription, hash, size);
   }
-  ifs.close();
+  stream.close();
   return result;
 }
 
-result_t FileReader::readLineFromStream(istream& stream, string& errorDescription,
-    const string filename, unsigned int& lineNo, vector<string>& row, bool verbose,
-    size_t* hash, size_t* size) {
+result_t FileReader::readLineFromStream(const string& filename, bool verbose, istream* stream,
+    unsigned int* lineNo, vector<string>* row, string* errorDescription, size_t* hash, size_t* size) {
   result_t result;
   if (!splitFields(stream, row, lineNo, hash, size)) {
-    errorDescription = "blank line";
+    *errorDescription = "blank line";
     result = RESULT_ERR_EOF;
   } else {
-    errorDescription = "";
-    result = addFromFile(row, errorDescription, filename, lineNo);
+    *errorDescription = "";
+    result = addFromFile(filename, *lineNo, row, errorDescription);
   }
   if (result != RESULT_OK) {
-    if (!verbose) {
-      ostringstream error;
-      error << filename << ":" << lineNo;
-      if (errorDescription.length() > 0) {
-        error << ": " << errorDescription;
+    if (!errorDescription->empty()) {
+      string error;
+      formatError(filename, *lineNo, result, *errorDescription, &error);
+      *errorDescription = error;
+      if (verbose) {
+        cout << error << endl;
       }
-      errorDescription = error.str();
-      return result;
-    }
-    if (!errorDescription.empty()) {
-      cout << "error reading " << filename << ":" << lineNo << ": " << getResultCode(result) << ", "
-          << errorDescription << endl;
+    } else if (!verbose) {
+      return formatError(filename, *lineNo, result, "", errorDescription);
     }
   } else if (!verbose) {
-    errorDescription = "";
+    *errorDescription = "";
   }
   return result;
 }
 
-void FileReader::trim(string& str) {
-  size_t pos = str.find_first_not_of(" \t");
+void FileReader::trim(string* str) {
+  size_t pos = str->find_first_not_of(" \t");
   if (pos != string::npos) {
-    str.erase(0, pos);
+    str->erase(0, pos);
   }
-  pos = str.find_last_not_of(" \t");
+  pos = str->find_last_not_of(" \t");
   if (pos != string::npos) {
-    str.erase(pos+1);
+    str->erase(pos+1);
   }
 }
 
-void FileReader::tolower(string& str) {
-  transform(str.begin(), str.end(), str.begin(), ::tolower);
+void FileReader::tolower(string* str) {
+  transform(str->begin(), str->end(), str->begin(), ::tolower);
 }
 
-static size_t hashFunction(const string str) {
+static size_t hashFunction(const string& str) {
   size_t hash = 0;
   for (char c : str) {
     hash = (31 * hash) ^ c;
@@ -126,27 +122,27 @@ static size_t hashFunction(const string str) {
   return hash;
 }
 
-bool FileReader::splitFields(istream& ifs, vector<string>& row, unsigned int& lineNo,
+bool FileReader::splitFields(istream* stream, vector<string>* row, unsigned int* lineNo,
     size_t* hash, size_t* size) {
-  row.clear();
+  row->clear();
   string line;
   bool quotedText = false, wasQuoted = false;
   ostringstream field;
   char prev = FIELD_SEPARATOR;
   bool empty = true, read = false;
-  while (getline(ifs, line)) {
+  while (getline(*stream, line)) {
     read = true;
-    lineNo++;
-    trim(line);
+    ++(*lineNo);
+    trim(&line);
     size_t length = line.size();
     if (size) {
       *size += length + 1;  // normalized with trailing endl
     }
     if (hash) {
-      *hash ^= (hashFunction(line) ^ (length << (7 * (lineNo % 5)))) & 0xffffffff;
+      *hash ^= (hashFunction(line) ^ (length << (7 * (*lineNo % 5)))) & 0xffffffff;
     }
     if (!quotedText && (length == 0 || line[0] == '#' || (line.length() > 1 && line[0] == '/' && line[1] == '/'))) {
-      if (lineNo == 1) {
+      if (*lineNo == 1) {
         break;  // keep empty first line for applying default header
       }
       continue;  // skip empty lines and comments
@@ -159,9 +155,9 @@ bool FileReader::splitFields(istream& ifs, vector<string>& row, unsigned int& li
           field << ch;
         } else {
           string str = field.str();
-          trim(str);
+          trim(&str);
           empty &= str.empty();
-          row.push_back(str);
+          row->push_back(str);
           field.str("");
           wasQuoted = false;
         }
@@ -197,37 +193,52 @@ bool FileReader::splitFields(istream& ifs, vector<string>& row, unsigned int& li
     }
   }
   string str = field.str();
-  trim(str);
+  trim(&str);
   if (empty && str.empty()) {
-    row.clear();
+    row->clear();
     return read;
   }
-  row.push_back(str);
+  row->push_back(str);
   return true;
 }
 
+result_t FileReader::formatError(const string& filename, unsigned int lineNo, result_t result,
+    const string& error, string* errorDescription) {
+  ostringstream str;
+  if (!errorDescription->empty()) {
+    str << *errorDescription << ", ";
+  }
+  str << filename << ":" << static_cast<unsigned>(lineNo) << ": " << getResultCode(result);
+  if (!error.empty()) {
+    str << ", " << error;
+  }
+  *errorDescription = str.str();
+  return result;
+}
 
-string MappedFileReader::normalizeLanguage(string lang) {
-  tolower(lang);
-  if (lang.size() > 2) {
-    size_t pos = lang.find('.');
+
+const string MappedFileReader::normalizeLanguage(const string& lang) {
+  string normLang = lang;
+  tolower(&normLang);
+  if (normLang.size() > 2) {
+    size_t pos = normLang.find('.');
     if (pos == string::npos) {
-      pos = lang.size();
+      pos = normLang.size();
     }
-    size_t strip = lang.find('_');
+    size_t strip = normLang.find('_');
     if (strip == string::npos || strip > pos) {
       strip = pos;
     }
     if (strip > 2) {
       strip = 2;
     }
-    lang = lang.substr(0, strip);
+    return normLang.substr(0, strip);
   }
-  return lang;
+  return normLang;
 }
 
-result_t MappedFileReader::readFromFile(const string filename, string& errorDescription, bool verbose,
-    map<string, string>* defaults, size_t* hash, size_t* size, time_t* time) {
+result_t MappedFileReader::readFromFile(const string& filename, bool verbose, map<string, string>* defaults,
+    string* errorDescription, size_t* hash, size_t* size, time_t* time) {
   m_mutex.lock();
   m_columnNames.clear();
   m_lastDefaults.clear();
@@ -237,47 +248,47 @@ result_t MappedFileReader::readFromFile(const string filename, string& errorDesc
   }
   size_t lastSep = filename.find_last_of('/');
   string defaultsPart = lastSep == string::npos ? filename : filename.substr(lastSep+1);
-  extractDefaultsFromFilename(defaultsPart, m_lastDefaults[""]);
-  result_t result = FileReader::readFromFile(filename, errorDescription, verbose, defaults, hash, size, time);
+  extractDefaultsFromFilename(defaultsPart, &m_lastDefaults[""], NULL, NULL, NULL);
+  result_t result = FileReader::readFromFile(filename, verbose, defaults, errorDescription, hash, size, time);
   m_mutex.unlock();
   return result;
 }
 
-result_t MappedFileReader::addFromFile(vector<string>& row, string& errorDescription,
-    const string filename, unsigned int lineNo) {
+result_t MappedFileReader::addFromFile(const string& filename, unsigned int lineNo, vector<string>* row,
+    string* errorDescription) {
   result_t result;
   if (lineNo == 1) {  // first line defines column names
-    result = getFieldMap(row, errorDescription, m_preferLanguage);
+    result = getFieldMap(m_preferLanguage, row, errorDescription);
     if (result != RESULT_OK) {
       return result;
     }
-    if (row.empty()) {
-      errorDescription = "missing field map";
+    if (row->empty()) {
+      *errorDescription = "missing field map";
       return RESULT_ERR_EOF;
     }
-    m_columnNames = row;
+    m_columnNames = *row;
     return RESULT_OK;
   }
-  if (row.empty()) {
+  if (row->empty()) {
     return RESULT_OK;
   }
   if (m_columnNames.empty()) {
-    errorDescription = "missing field map";
+    *errorDescription = "missing field map";
     return RESULT_ERR_INVALID_ARG;
   }
   map<string, string> rowMapped;
   vector< map<string, string> > subRowsMapped;
-  bool isDefault = m_supportsDefaults && !row[0].empty() && row[0][0] == '*';
+  bool isDefault = m_supportsDefaults && !(*row)[0].empty() && (*row)[0][0] == '*';
   if (isDefault) {
-    row[0] = row[0].substr(1);
+    (*row)[0].erase(0, 1);
   }
   size_t lastRepeatStart = UINT_MAX;
   map<string, string>* lastMappedRow = &rowMapped;
   bool empty = true;
-  for (size_t colIdx = 0, colNameIdx = 0; colIdx < row.size(); colIdx++, colNameIdx++) {
+  for (size_t colIdx = 0, colNameIdx = 0; colIdx < row->size(); colIdx++, colNameIdx++) {
     if (colNameIdx >= m_columnNames.size()) {
       if (lastRepeatStart == UINT_MAX) {
-        errorDescription = "named columns exceeded";
+        *errorDescription = "named columns exceeded";
         return RESULT_ERR_INVALID_ARG;
       }
       colNameIdx = lastRepeatStart;
@@ -297,7 +308,7 @@ result_t MappedFileReader::addFromFile(vector<string>& row, string& errorDescrip
     } else if (columnName == SKIP_COLUMN) {
       continue;
     }
-    string value = row[colIdx];
+    string value = (*row)[colIdx];
     empty &= value.empty();
     (*lastMappedRow)[columnName] = value;
   }
@@ -308,12 +319,12 @@ result_t MappedFileReader::addFromFile(vector<string>& row, string& errorDescrip
     }
   }
   if (isDefault) {
-    return addDefaultFromFile(rowMapped, subRowsMapped, errorDescription, filename, lineNo);
+    return addDefaultFromFile(filename, lineNo, &rowMapped, &subRowsMapped, errorDescription);
   }
-  return addFromFile(rowMapped, subRowsMapped, errorDescription, filename, lineNo);
+  return addFromFile(filename, lineNo, &rowMapped, &subRowsMapped, errorDescription);
 }
 
-string MappedFileReader::combineRow(const map<string, string>& row) {
+const string MappedFileReader::combineRow(const map<string, string>& row) {
   ostringstream ostream;
   bool first = true;
   for (auto entry : row) {
