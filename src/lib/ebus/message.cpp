@@ -2644,7 +2644,7 @@ void MessageMap::dump(bool withConditions, ostream* output) const {
   Message::dumpHeader(NULL, output);
   *output << endl;
   for (const auto it : m_messagesByName) {
-    if (it.first[0] == '-') {  // skip instances stored multiple times (key starting with "-")
+    if (it.first[0] == FIELD_SEPARATOR) {  // skip instances stored multiple times (key starting with "-")
       continue;
     }
     if (m_addAll) {
