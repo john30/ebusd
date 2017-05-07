@@ -184,8 +184,8 @@ string AttributedItem::getAttribute(const string& name) const {
 result_t DataField::create(bool isWriteMessage, bool isTemplate, bool isBroadcastOrMasterDestination,
     size_t maxFieldLength, const DataFieldTemplates* templates, vector< map<string, string> >* rows,
     string* errorDescription, const DataField** returnField) {
-  // template: name,[,part]basetype[:len]|template[:name][,[divisor|values][,[unit][,[comment]]]]
-  // std: name,part,basetype[:len]|template[:name][,[divisor|values][,[unit][,[comment]]]]
+  // template: name[,part]basetype[:len]|template[:name][,[divisor|values][,[unit][,[comment]]]]
+  // std: name[,part],basetype[:len]|template[:name][,[divisor|values][,[unit][,[comment]]]]
   vector<const SingleDataField*> fields;
   string firstName;
   result_t result = RESULT_OK;
@@ -1130,21 +1130,41 @@ result_t DataFieldTemplates::getFieldMap(const string& preferLanguage, vector<st
     string lowerName = name;
     tolower(&lowerName);
     trim(&lowerName);
+    bool toDataFields;
+    if (!lowerName.empty() && lowerName[0] == '*') {
+      lowerName.erase(0, 1);
+      toDataFields = true;
+    } else {
+      toDataFields = false;
+    }
     if (lowerName.empty()) {
       *errorDescription = "missing name in column " + AttributedItem::formatInt(col);
       return RESULT_ERR_INVALID_ARG;
     }
-    bool supportsLang = false;
-    string useName = getDataFieldName(lowerName, &supportsLang);
-    bool unknown = useName.empty();
-    size_t langPos = supportsLang ? lowerName.find_last_of('.') : string::npos;
-    map<string, size_t>::iterator previous;
-    if (langPos == lowerName.length()-3) {
-      string lang = lowerName.substr(langPos+1);
-      if (unknown) {
-        useName = lowerName.substr(0, langPos);
+    if (toDataFields) {
+      if (inDataFields) {
+        if (seen.find("type") == seen.end()) {
+          *errorDescription = "missing field type";
+          return RESULT_ERR_EOF;  // require at least name and type
+        }
+      } else {
+        if (seen.find("name") == seen.end()) {
+          *errorDescription = "missing template name";
+          return RESULT_ERR_EOF;  // require at least name
+        }
+        if (seen.size() > 1) {
+          *errorDescription = "extra template columns";
+          return RESULT_ERR_INVALID_ARG;
+        }
+        inDataFields = true;
       }
-      previous = seen.find(useName);
+      seen.clear();
+    }
+    size_t langPos = lowerName.find_last_of('.');
+    if (langPos != string::npos && langPos > 0 && langPos == lowerName.length()-3) {
+      string lang = lowerName.substr(langPos+1);
+      lowerName.erase(langPos);
+      map<string, size_t>::iterator previous = seen.find(lowerName);
       if (previous != seen.end()) {
         if (lang != preferLanguage) {
           // skip this column
@@ -1153,45 +1173,21 @@ result_t DataFieldTemplates::getFieldMap(const string& preferLanguage, vector<st
         }
         // replace previous
         (*row)[previous->second] = SKIP_COLUMN;
-        seen.erase(useName);
-        previous = seen.end();
+        seen.erase(lowerName);
       }
     } else {
-      if (unknown) {
-        useName = lowerName;
-      }
-      previous = seen.find(useName);
-    }
-    if (inDataFields) {
-      if (!unknown && previous != seen.end()) {
-        if (seen.find("type") == seen.end()) {
-          *errorDescription = "missing field type";
-          return RESULT_ERR_EOF;  // require at least type
+      map<string, size_t>::iterator previous = seen.find(lowerName);
+      if (seen.find(lowerName) != seen.end()) {
+        if (inDataFields) {
+          *errorDescription = "duplicate field " + name;
+        } else {
+          *errorDescription = "duplicate template " + name;
         }
-        seen.clear();
-      }
-    } else {
-      if (!unknown && useName == "name" && seen.find("name") == seen.end()) {
-        // keep first name for template
-      } else if (!unknown) {
-        if (seen.find("name") == seen.end()) {
-          *errorDescription = "missing template name";
-          return RESULT_ERR_EOF;  // require at least name
-        }
-        inDataFields = true;
-        seen.clear();
-      }
-      if (!inDataFields && seen.find(useName) != seen.end()) {
-        *errorDescription = "duplicate template " + useName;
         return RESULT_ERR_INVALID_ARG;
       }
     }
-    if (seen.empty() && inDataFields) {
-      name = "*" + useName;  // data field repetition
-    } else {
-      name = useName;
-    }
-    seen[useName] = col;
+    name = toDataFields ? "*"+lowerName : lowerName;
+    seen[lowerName] = col;
   }
   if (!inDataFields) {
     *errorDescription = "missing template fields";
@@ -1216,8 +1212,11 @@ result_t DataFieldTemplates::addFromFile(const string& filename, unsigned int li
     name = name.substr(0, colon);
   }
   const DataField* field = NULL;
-  if (!subRows->empty() && (*subRows)[0].find("name") == (*subRows)[0].end()) {
-    (*subRows)[0]["name"] = firstFieldName;
+  if (!subRows->empty()) {
+    map<string, string>::iterator it = (*subRows)[0].find("name");
+    if (it == (*subRows)[0].end() || it->second.empty()) {
+      (*subRows)[0]["name"] = firstFieldName;
+    }
   }
   result_t result = DataField::create(false, true, false, MAX_POS, this, subRows, errorDescription, &field);
   if (result != RESULT_OK) {
