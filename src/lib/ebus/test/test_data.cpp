@@ -347,8 +347,8 @@ int main() {
     {"x,,uir,-10", "380", "10feffff020026", "00", ""},
     {"uin10,uin,-10", "", "", "", "t"},                    // template
     {"x,,uin10",     "380",  "10feffff022600", "00", ""},  // template reference
-    {"x,,uin10,-10", "3800", "10feffff022600", "00", ""},  // template reference, valid divider product
-    {"x,,uin10,10",  "",     "",               "",   "c"},  // template reference, invalid divider product
+    {"x,,uin10,-10", "3800", "10feffff022600", "00", ""},  // template reference, valid divisor product
+    {"x,,uin10,10",  "",     "",               "",   "c"},  // template reference, invalid divisor product
     {"x,,sin", "-90",      "10feffff02a6ff", "00", ""},
     {"x,,sin", "0",        "10feffff020000", "00", ""},
     {"x,,sin", "-1",       "10feffff02ffff", "00", ""},
@@ -492,8 +492,8 @@ int main() {
     {"x,,BI0;BI1;BI2;BI3;BI4;BI5;BI6;BI7", "0;0;1;0;0;0;0;0", "ff75b50900", "0104", ""},  // bits
     {"temp,d2b,,°C,Aussentemperatur", "", "", "", "t"},  // template with relative pos
     {"x,,temp", "18.004", "10fe0700020112", "00", ""},  // reference to template
-    {"x,,temp,10", "1.8004", "10fe0700020112", "00", ""},  // reference to template, valid divider product
-    {"x,,temp,-10", "", "", "", "c"},  // reference to template, invalid divider product
+    {"x,,temp,10", "1.8004", "10fe0700020112", "00", ""},  // reference to template, valid divisor product
+    {"x,,temp,-10", "", "", "", "c"},  // reference to template, invalid divisor product
     {"relrel,d2b,,,,y,d1c", "", "", "", "t"},   // template struct with relative pos
     {"x,,relrel", "18.004;9.5", "10fe070003011213", "00", ""},  // reference to template struct
     {"trelrel,temp;temp", "", "", "", "t"},   // template struct with relative pos and ref to templates
