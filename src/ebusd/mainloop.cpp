@@ -1341,7 +1341,7 @@ string MainLoop::executeFind(const vector<string>& args, const string& levels) {
 
 string MainLoop::executeListen(const vector<string>& args, bool* listening) {
   if (args.size() == 1) {
-    if (listening) {
+    if (*listening) {
       return "listen continued";
     }
     *listening = true;
