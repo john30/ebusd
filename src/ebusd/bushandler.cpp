@@ -1164,7 +1164,8 @@ result_t BusHandler::prepareScan(symbol_t slave, bool full, const string& levels
   if (m_device->isReadOnly()) {
     return RESULT_OK;
   }
-  deque<Message*> messages = m_messages->findAll("scan", "", levels, true);
+  deque<Message*> messages;
+  m_messages->findAll("scan", "", levels, true, true, false, false, true, true, 0, 0, &messages);
   auto it = messages.begin();
   while (it != messages.end()) {
     Message* message = *it;

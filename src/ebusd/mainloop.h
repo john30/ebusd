@@ -147,10 +147,11 @@ class MainLoop : public Thread, DeviceListener {
    * @param listening set to true when the client is in listening mode.
    * @param user set to the new user name when changed by authentication.
    * @param reload set to true when the configuration files were reloaded.
-   * @return result string to send back to the client.
+   * @param ostream the @a ostringstream to format the result string to.
+   * @return the result code.
    */
-  string decodeMessage(const string& data, bool isHttp, bool* connected, bool* listening,
-      string* user, bool* reload);
+  result_t decodeMessage(const string& data, bool isHttp, bool* connected, bool* listening,
+      string* user, bool* reload, ostringstream* ostream);
 
   /**
    * Parse the hex master message from the remaining arguments.
@@ -174,137 +175,154 @@ class MainLoop : public Thread, DeviceListener {
    * Execute the auth command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
    * @param user the current user name to set to the new user name on success.
-   * @return the result string.
+   * @param ostream the @a ostringstream to format the result string to.
+   * @return the result code.
    */
-  string executeAuth(const vector<string>& args, string* user);
+  result_t executeAuth(const vector<string>& args, string* user, ostringstream* ostream);
 
   /**
    * Execute the read command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
    * @param levels the current user's access levels.
-   * @return the result string.
+   * @param ostream the @a ostringstream to format the result string to.
+   * @return the result code.
    */
-  string executeRead(const vector<string>& args, const string& levels);
+  result_t executeRead(const vector<string>& args, const string& levels, ostringstream* ostream);
 
   /**
    * Execute the write command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
    * @param levels the current user's access levels.
-   * @return the result string.
+   * @param ostream the @a ostringstream to format the result string to.
+   * @return the result code.
    */
-  string executeWrite(const vector<string>& args, const string levels);
+  result_t executeWrite(const vector<string>& args, const string levels, ostringstream* ostream);
 
   /**
    * Execute the hex command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
-   * @return the result string.
+   * @param ostream the @a ostringstream to format the result string to.
+   * @return the result code.
    */
-  string executeHex(const vector<string>& args);
+  result_t executeHex(const vector<string>& args, ostringstream* ostream);
 
   /**
    * Execute the find command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
    * @param levels the current user's access levels.
-   * @return the result string.
+   * @param ostream the @a ostringstream to format the result string to.
+   * @return the result code.
    */
-  string executeFind(const vector<string>& args, const string& levels);
+  result_t executeFind(const vector<string>& args, const string& levels, ostringstream* ostream);
 
   /**
    * Execute the listen command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
    * @param listening set to true when the client is in listening mode.
-   * @return the result string.
+   * @param ostream the @a ostringstream to format the result string to.
+   * @return the result code.
    */
-  string executeListen(const vector<string>& args, bool* listening);
+  result_t executeListen(const vector<string>& args, bool* listening, ostringstream* ostream);
 
   /**
    * Execute the state command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
-   * @return the result string.
+   * @param ostream the @a ostringstream to format the result string to.
+   * @return the result code.
    */
-  string executeState(const vector<string>& args);
+  result_t executeState(const vector<string>& args, ostringstream* ostream);
 
   /**
    * Execute the grab command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
-   * @return the result string.
+   * @param ostream the @a ostringstream to format the result string to.
+   * @return the result code.
    */
-  string executeGrab(const vector<string>& args);
+  result_t executeGrab(const vector<string>& args, ostringstream* ostream);
 
   /**
    * Execute the scan command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
    * @param levels the current user's access levels.
-   * @return the result string.
+   * @param ostream the @a ostringstream to format the result string to.
+   * @return the result code.
    */
-  string executeScan(const vector<string>& args, const string levels);
+  result_t executeScan(const vector<string>& args, const string& levels, ostringstream* ostream);
 
   /**
    * Execute the log command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
-   * @return the result string.
+   * @param ostream the @a ostringstream to format the result string to.
+   * @return the result code.
    */
-  string executeLog(const vector<string>& args);
+  result_t executeLog(const vector<string>& args, ostringstream* ostream);
 
   /**
    * Execute the raw command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
-   * @return the result string.
+   * @param ostream the @a ostringstream to format the result string to.
+   * @return the result code.
    */
-  string executeRaw(const vector<string>& args);
+  result_t executeRaw(const vector<string>& args, ostringstream* ostream);
 
   /**
    * Execute the dump command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
-   * @return the result string.
+   * @param ostream the @a ostringstream to format the result string to.
+   * @return the result code.
    */
-  string executeDump(const vector<string>& args);
+  result_t executeDump(const vector<string>& args, ostringstream* ostream);
 
   /**
    * Execute the reload command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
-   * @return the result string.
+   * @param ostream the @a ostringstream to format the result string to.
+   * @return the result code.
    */
-  string executeReload(const vector<string>& args);
+  result_t executeReload(const vector<string>& args, ostringstream* ostream);
 
   /**
    * Execute the info command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
    * @param user the current user name.
-   * @return the result string.
+   * @param ostream the @a ostringstream to format the result string to.
+   * @return the result code.
    */
-  string executeInfo(const vector<string>& args, const string& user);
+  result_t executeInfo(const vector<string>& args, const string& user, ostringstream* ostream);
 
   /**
    * Execute the quit command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
    * @param connected set to false when the client connection shall be closed.
-   * @return the result string.
+   * @param ostream the @a ostringstream to format the result string to.
+   * @return the result code.
    */
-  string executeQuit(const vector<string>& args, bool *connected);
+  result_t executeQuit(const vector<string>& args, bool *connected, ostringstream* ostream);
 
   /**
    * Execute the help command.
-   * @return the result string.
+   * @param ostream the @a ostringstream to format the result string to.
+   * @return the result code.
    */
-  string executeHelp();
+  result_t executeHelp(ostringstream* ostream);
 
   /**
    * Execute the HTTP GET command.
    * @param args the arguments passed to the command (starting with the command itself).
    * @param connected set to false when the client connection shall be closed.
-   * @return the result string.
+   * @param ostream the @a ostringstream to format the result string to.
+   * @return the result code.
    */
-  string executeGet(const vector<string>& args, bool* connected);
+  result_t executeGet(const vector<string>& args, bool* connected, ostringstream* ostream);
 
   /**
    * Format the HTTP answer to the result string.
    * @param ret the result code of handling the request.
    * @param type the content type.
-   * @param result the @a ostringstream containing the successful result.
-   * @return the result string.
+   * @param ostream the @a ostringstream to format the result string to.
+   * @return the result code.
    */
-  string formatHttpResult(result_t ret, int type, ostringstream &result);
+  result_t formatHttpResult(result_t ret, int type, ostringstream* ostream);
 
   /** the @a Device instance. */
   Device* m_device;

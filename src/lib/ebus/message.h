@@ -1109,10 +1109,10 @@ class Instruction {
   bool isSingleton() const { return m_singleton; }
 
   /**
-   * Return a string describing the destination from the stored default values.
-   * @return a string describing the destination.
+   * Format a string describing the destination from the stored default values.
+   * @param ostream the @a ostringstream to format the string to.
    */
-  string getDestination() const;
+  void getDestination(ostringstream* ostream) const;
 
   /**
    * Execute the instruction.
@@ -1363,6 +1363,7 @@ class MessageMap : public MappedFileReader {
 
   /**
    * Find all active get @a Message instances for the specified circuit and name.
+   * Note: the caller may not free the returned instances.
    * @param circuit the circuit name, or empty for any.
    * @param name the message name, or empty for any.
    * @param levels the access levels to match.
@@ -1371,7 +1372,6 @@ class MessageMap : public MappedFileReader {
    * @param withRead true to include read messages (default true).
    * @param withWrite true to include write messages (default false).
    * @param withPassive true to include passive messages (default false).
-   * @return the found @a Message instances.
    * @param includeEmptyLevel true to also include messages with no access level, false to include only messages with
    * the specified level.
    * @param onlyAvailable true to include only available messages (default true), false to also include messages that
@@ -1380,12 +1380,11 @@ class MessageMap : public MappedFileReader {
    * address), or 0 to ignore.
    * @param until the end time to which to add updates (exclusive, also removes messages with unset destination
    * address), or 0 to ignore.
-   * Note: the caller may not free the returned instances.
+   * @param messages the @a deque to which to add the found @a Message instances.
    */
-  deque<Message*> findAll(const string& circuit, const string& name, const string& levels,
-    bool completeMatch = true, bool withRead = true, bool withWrite = false,
-    bool withPassive = false, bool includeEmptyLevel = true, bool onlyAvailable = true,
-    time_t since = 0, time_t until = 0) const;
+  void findAll(const string& circuit, const string& name, const string& levels,
+    bool completeMatch, bool withRead, bool withWrite, bool withPassive, bool includeEmptyLevel, bool onlyAvailable,
+    time_t since, time_t until, deque<Message*>* messages) const;
 
   /**
    * Find the @a Message instance for the specified master data.
