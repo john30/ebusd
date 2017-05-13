@@ -176,7 +176,7 @@ class MainLoop : public Thread, DeviceListener {
    * @param user the current user name to set to the new user name on success.
    * @return the result string.
    */
-  string executeAuth(const vector<string>& args, string *user);
+  string executeAuth(const vector<string>& args, string* user);
 
   /**
    * Execute the read command.
