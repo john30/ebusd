@@ -1839,7 +1839,6 @@ result_t MessageMap::getFieldMap(const string& preferLanguage, vector<string>* r
         return RESULT_ERR_INVALID_ARG;
       }
     }
-//std::cout<<(inDataFields?"data:":"msg:")<<lowerName<<"\n";
     name = toDataFields ? "*"+lowerName : lowerName;
     seen[lowerName] = col;
   }
