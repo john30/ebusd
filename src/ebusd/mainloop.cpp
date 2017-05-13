@@ -632,7 +632,7 @@ result_t MainLoop::parseHexMaster(const vector<string>& args, size_t argPos, sym
   return ret;
 }
 
-string MainLoop::executeAuth(const vector<string>& args, string *user) {
+string MainLoop::executeAuth(const vector<string>& args, string* user) {
   if (args.size() != 3) {
     return "usage: auth USER SECRET\n"
            " Authenticate with USER name and SECRET.\n"
