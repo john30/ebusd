@@ -31,7 +31,7 @@ function checkUpdate($ebusdVersion, $ebusdRelease, $loadedFiles) {
     $v = $versions[$k];
     if ($v) {
       $newer = $v[2]>$val['t'];
-      if ($newer || $v[0]!=$val['h'] || $v[1]!=$val['s']) {
+      if ($v[0]!=$val['h'] || $v[1]!=$val['s']) {
         if ($newer) {
           $newerAvailable++;
         }
