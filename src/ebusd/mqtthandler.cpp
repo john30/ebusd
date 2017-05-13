@@ -292,7 +292,7 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
       }
     }
   }
-  m_globalTopic = getTopic(NULL)+"global/";
+  m_globalTopic = getTopic(NULL, -1, "global/");
   m_mosquitto = NULL;
   if (mosquitto_lib_init() != MOSQ_ERR_SUCCESS) {
     logOtherError("mqtt", "unable to initialize");
@@ -489,7 +489,7 @@ void MqttHandler::run() {
   publishTopic(m_globalTopic+"running", "true");
   publishTopic(signalTopic, "false");
   mosquitto_message_callback_set(m_mosquitto, on_message);
-  string subTopic = getTopic(NULL)+"#";
+  string subTopic = getTopic(NULL, -1, "#");
   mosquitto_subscribe(m_mosquitto, NULL, subTopic.c_str(), 0);
   while (isRunning()) {
     handleTraffic();
@@ -557,7 +557,7 @@ void MqttHandler::handleTraffic() {
   }
 }
 
-string MqttHandler::getTopic(const Message* message, ssize_t fieldIndex) {
+string MqttHandler::getTopic(const Message* message, ssize_t fieldIndex, const string& suffix) {
   ostringstream ret;
   for (size_t i = 0; i < m_topicStrs.size(); i++) {
     ret << m_topicStrs[i];
@@ -571,6 +571,9 @@ string MqttHandler::getTopic(const Message* message, ssize_t fieldIndex) {
         message->dumpField(m_topicFields[i], false, &ret);
       }
     }
+  }
+  if (!suffix.empty()) {
+    ret << suffix;
   }
   return ret.str();
 }

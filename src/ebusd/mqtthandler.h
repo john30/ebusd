@@ -100,7 +100,7 @@ class MqttHandler : public DataSink, public DataSource, public Thread {
    * @param fieldIndex the optional field index for the field column, or -1.
    * @return the topic string.
    */
-  string getTopic(const Message* message, ssize_t fieldIndex = -1);
+  string getTopic(const Message* message, ssize_t fieldIndex = -1, const string& suffix = "");
 
   /**
    * Prepare a @a Message and publish as topic.
