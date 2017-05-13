@@ -1081,13 +1081,28 @@ void BusHandler::receiveCompleted() {
             }
           }
         }
-        logNotice(lf_update, "store BC ident: %s", getResultCode(result));
+        logNotice(lf_update, "store broadcast ident: %s", getResultCode(result));
       }
     }
   } else if (master) {
     logInfo(lf_update, "update MM cmd: %s", m_command.getStr().c_str());
   } else {
     logInfo(lf_update, "update MS cmd: %s / %s", m_command.getStr().c_str(), m_response.getStr().c_str());
+    if (m_command.size() >= 5 && m_command[2] == 0x07 && m_command[3] == 0x04) {
+      Message* message = m_messages->getScanMessage(dstAddress);
+      if (message && (message->getLastUpdateTime() == 0 || message->getLastSlaveData().getDataSize() < 10)) {
+        result_t result = message->storeLastData(m_command, m_response);
+        if (result == RESULT_OK) {
+          ostringstream output;
+          result = message->decodeLastData(true, NULL, -1, 0, &output);
+          if (result == RESULT_OK) {
+            string str = output.str();
+            setScanResult(dstAddress, 0, str);
+          }
+        }
+        logNotice(lf_update, "store %2.2x ident: %s", dstAddress, getResultCode(result));
+      }
+    }
   }
   Message* message = m_messages->find(m_command);
   if (m_grabMessages) {
@@ -1106,21 +1121,6 @@ void BusHandler::receiveCompleted() {
       logNotice(lf_update, "unknown MM cmd: %s", m_command.getStr().c_str());
     } else {
       logNotice(lf_update, "unknown MS cmd: %s / %s", m_command.getStr().c_str(), m_response.getStr().c_str());
-      if (m_command.size() >= 5 && m_command[2] == 0x07 && m_command[3] == 0x04) {
-        message = m_messages->getScanMessage(dstAddress);
-        if (message && (message->getLastUpdateTime() == 0 || message->getLastSlaveData().getDataSize() < 10)) {
-          result_t result = message->storeLastData(m_command, m_response);
-          if (result == RESULT_OK) {
-            ostringstream output;
-            result = message->decodeLastData(true, NULL, -1, 0, &output);
-            if (result == RESULT_OK) {
-              string str = output.str();
-              setScanResult(dstAddress, 0, str);
-            }
-          }
-          logNotice(lf_update, "store %2.2x ident: %s", dstAddress, getResultCode(result));
-        }
-      }
     }
   } else {
     m_messages->invalidateCache(message);
