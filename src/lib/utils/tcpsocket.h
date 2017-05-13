@@ -40,23 +40,28 @@ using std::string;
 #endif
 
 /**
- * Class for low level tcp socket operations. (open, close, send, receive).
+ * Class for low level TCP socket operations (open, close, send, receive).
  */
 class TCPSocket {
- public:
-  /** grant access for friend class TCPClient */
   friend class TCPClient;
-
-  /** grant access for friend class TCPServer */
   friend class TCPServer;
 
+ private:
   /**
-   * destructor.
+   * Constructor.
+   * @param sfd the file descriptor of tcp socket.
+   * @param address struct which holds the ip address.
+   */
+  TCPSocket(int sfd, socketaddress* address);
+
+ public:
+  /**
+   * Destructor.
    */
   ~TCPSocket() { close(m_sfd); }
 
   /**
-   * write bytes to opened file descriptor.
+   * Write bytes to opened file descriptor.
    * @param buffer data to send.
    * @param len number of bytes to send.
    * @return number of written bytes or -1 if an error has occured.
@@ -64,7 +69,7 @@ class TCPSocket {
   ssize_t send(const char* buffer, size_t len) { return ::send(m_sfd, buffer, len, MSG_NOSIGNAL); }
 
   /**
-   * read bytes from opened file descriptor.
+   * Read bytes from opened file descriptor.
    * @param buffer for received bytes.
    * @param len size of the receive buffer.
    * @return number of read bytes or -1 if an error has occured.
@@ -72,25 +77,25 @@ class TCPSocket {
   ssize_t recv(char* buffer, size_t len) { return ::recv(m_sfd, buffer, len, 0); }
 
   /**
-   * returns the tcp port.
-   * @return the tcp port.
+   * Return the TCP port.
+   * @return the TCP port.
    */
   uint16_t getPort() const { return m_port; }
 
   /**
-   * returns the ip address.
-   * @return the ip address.
+   * Return the IP address.
+   * @return the IP address.
    */
-  string getIP() const { return m_ip; }
+  const string& getIP() const { return m_ip; }
 
   /**
-   * returns the file descriptor.
+   * Return the file descriptor.
    * @return the file descriptor.
    */
   int getFD() const { return m_sfd; }
 
   /**
-   * returns status of file descriptor.
+   * Return whether the file descriptor is valid.
    * @return true if file descriptor is valid.
    */
   bool isValid();
@@ -108,25 +113,18 @@ class TCPSocket {
   }
 
  private:
-  /** file descriptor from tcp socket */
+  /** the file descriptor of the socket */
   int m_sfd;
 
-  /** port of tcp socket */
+  /** the port of the socket */
   uint16_t m_port;
 
-  /** ip address of tcp socket */
+  /** the IP address of the socket */
   string m_ip;
-
-  /**
-   * private constructor, limited access only for friend classes.
-   * @param sfd the file descriptor of tcp socket.
-   * @param address struct which holds the ip address.
-   */
-  TCPSocket(int sfd, socketaddress* address);
 };
 
 /**
- * class to initiate a tcp socket connection to a listening server.
+ * class to initiate a TCP socket connection to a listening server.
  */
 class TCPClient {
  public:
@@ -140,7 +138,7 @@ class TCPClient {
 };
 
 /**
- * class for a tcp based network server.
+ * class for a TCP based network server.
  */
 class TCPServer {
  public:
