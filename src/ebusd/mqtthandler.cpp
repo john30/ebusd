@@ -525,7 +525,7 @@ void MqttHandler::run() {
         updates.str("");
         updates.clear();
         updates << dec;
-        publishMessage(it.first, &updates);
+        publishMessage(it.first, &updates);  // TODO avoid using the message while reload command is executed
       }
     }
     m_updatedMessages.clear();
