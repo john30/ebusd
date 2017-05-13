@@ -168,7 +168,8 @@ void Connection::run() {
 
         // wait for result
         logDebug(lf_network, "[%05d] wait for result", getID());
-        string result = message.getResult();
+        string result;
+        message.getResult(&result);
 
         if (!m_socket->isValid()) {
           break;
