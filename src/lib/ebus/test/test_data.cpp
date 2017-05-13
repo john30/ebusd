@@ -510,7 +510,7 @@ int main() {
   vector<string> row;
   templates->readLineFromStream(__FILE__, false, &dummystr, &lineNo, &row, &errorDescription, NULL, NULL);
   const DataField* fields = NULL;
-  for (size_t i = 0; i < sizeof(checks) / sizeof(checks[0]); i++) {
+  for (unsigned int i = 0; i < sizeof(checks) / sizeof(checks[0]); i++) {
     string check[5] = checks[i];
     istringstream isstr(check[0]);
     string expectStr = check[1];

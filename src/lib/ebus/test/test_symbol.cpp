@@ -121,9 +121,10 @@ int main(int argc, char** argv) {
 
   int masterCnt = 0, slaveCnt = 0;
   for (int i=0; i<256; i++) {
-    if (isMaster(i)) {
+    symbol_t address = static_cast<symbol_t>(i);
+    if (isMaster(address)) {
       masterCnt++;
-    } else if (isValidAddress(i, false)) {
+    } else if (isValidAddress(address, false)) {
       slaveCnt++;
     }
   }
