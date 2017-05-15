@@ -160,7 +160,7 @@ class AttributedItem {
    * Get the item name.
    * @return the item name.
    */
-  string getName() const { return m_name; }
+  const string& getName() const { return m_name; }
 
   /**
    * Get a named attribute.
