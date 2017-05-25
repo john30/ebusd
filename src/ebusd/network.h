@@ -103,11 +103,8 @@ class NetMessage {
   void getResult(string* result) {
     pthread_mutex_lock(&m_mutex);
 
-    while (!m_resultSet) {
-      int wait = pthread_cond_wait(&m_cond, &m_mutex);
-      if (wait != 0 && wait != ETIMEDOUT) {
-        break;
-      }
+    if (!m_resultSet) {
+      pthread_cond_wait(&m_cond, &m_mutex);
     }
     m_request.clear();
     *result = m_result;
