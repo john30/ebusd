@@ -549,12 +549,14 @@ class Message : public AttributedItem {
   virtual void dumpField(const string& fieldName, bool withConditions, ostream* output) const;
 
   /**
-   * Decode the message from the last stored data.
+   * Decode the message from the last stored data in JSON format.
    * @param leadingSeparator whether to prepend a separator before the first value.
+   * @param appendDirection whether to append the direction to the name key (for passive and write).
    * @param outputFormat the @a OutputFormat options to use.
    * @param output the @a ostringstream to append the decoded value(s) to.
    */
-  virtual void decode(bool leadingSeparator, OutputFormat outputFormat, ostringstream* output) const;
+  virtual void decode(bool leadingSeparator, bool appendDirection, OutputFormat outputFormat, ostringstream* output)
+      const;
 
  protected:
   /** the optional circuit name. */

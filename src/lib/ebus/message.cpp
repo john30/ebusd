@@ -927,11 +927,21 @@ void Message::dumpField(const string& fieldName, bool withConditions, ostream* o
   dumpAttribute(false, fieldName, output);
 }
 
-void Message::decode(bool leadingSeparator, OutputFormat outputFormat, ostringstream* output) const {
+void Message::decode(bool leadingSeparator, bool appendDirection, OutputFormat outputFormat, ostringstream* output)
+    const {
   if (leadingSeparator) {
     *output << ",";
   }
-  *output << "\n  \"" << getName() << "\": {"  // TODO include read/write/passive for overlapping names
+  *output << "\n  \"" << getName();
+  if (appendDirection) {
+    if (isPassive()) {
+      *output << "-u";
+    } else if (isWrite()) {
+      *output << "-w";
+    }
+  }
+  *output << "\": {"
+          << "\n   \"name\": \"" << getName() << "\""
           << "\n   \"lastup\": " << setw(0) << dec << static_cast<unsigned>(getLastUpdateTime());
   if (getLastUpdateTime() != 0) {
     *output << ",\n   \"zz\": \"" << setfill('0') << setw(2) << hex << static_cast<unsigned>(getDstAddress()) << "\"";

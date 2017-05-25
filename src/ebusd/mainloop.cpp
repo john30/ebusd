@@ -1616,7 +1616,7 @@ result_t MainLoop::executeHelp(ostringstream* ostream) {
 }
 
 result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostringstream* ostream) {
-  bool numeric = false, valueName = false, required = false, full = false;
+  bool numeric = false, valueName = false, required = false, full = false, withWrite = false;
   OutputFormat verbosity = OF_NAMES;
   size_t argPos = 1;
   string uri = args[argPos++];
@@ -1671,6 +1671,8 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
           full = value.length() == 0 || value == "1" || value == "true";
         } else if (qname == "required") {
           required = value.length() == 0 || value == "1" || value == "true";
+        } else if (qname == "write") {
+          withWrite = value.length() == 0 || value == "1" || value == "true";
         } else if (qname == "user") {
           user = value;
         } else if (qname == "secret") {
@@ -1691,9 +1693,12 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
     if (ret == RESULT_OK) {
       bool first = true;
       verbosity |= (valueName ? OF_VALUENAME : numeric ? OF_NUMERIC : 0) | OF_JSON | (full ? OF_ALL_ATTRS : 0);
-      deque<Message *> messages;
-      m_messages->findAll(circuit, name, getUserLevels(user), exact, true, false, true, true, true, 0, 0, &messages);
-      for (const auto message : messages) {
+      deque<Message*> messages;
+      m_messages->findAll(circuit, name, getUserLevels(user), exact, true, withWrite, true, true, true, 0, 0,
+          &messages);
+      string lastName;
+      for (deque<Message*>::iterator it = messages.begin(); it != messages.end(); it++) {
+        Message* message = *it;
         symbol_t dstAddress = message->getDstAddress();
         if (dstAddress == SYN) {
           continue;
@@ -1728,8 +1733,16 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
           if (full && m_messages->decodeCircuit(lastCircuit, verbosity, ostream)) {  // add circuit specific values
             first = false;
           }
+          lastName = "";
         }
-        message->decode(!first, verbosity, ostream);
+        name = message->getName();
+        bool same = name == lastName;
+        if (!same && !lastName.empty() && it+1 != messages.end()) {
+          Message* next = *(it+1);
+          same = next->getCircuit() == lastCircuit && next->getName() == name;
+        }
+        message->decode(!first, same, verbosity, ostream);
+        lastName = name;
         first = false;
       }
 
