@@ -942,7 +942,7 @@ void Message::decode(bool leadingSeparator, bool appendDirection, OutputFormat o
   }
   *output << "\": {"
           << "\n   \"name\": \"" << getName() << "\""
-          << "\n   \"lastup\": " << setw(0) << dec << static_cast<unsigned>(getLastUpdateTime());
+          << ",\n   \"lastup\": " << setw(0) << dec << static_cast<unsigned>(getLastUpdateTime());
   if (getLastUpdateTime() != 0) {
     *output << ",\n   \"zz\": \"" << setfill('0') << setw(2) << hex << static_cast<unsigned>(getDstAddress()) << "\"";
     appendAttributes(OF_JSON | outputFormat, output);
