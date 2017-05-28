@@ -2,7 +2,8 @@ FROM debian
 
 RUN apt-get update && apt-get install -y \
     libmosquitto1 \
-    curl
+    curl \
+    setserial
 
 RUN apt-get update && apt-get install -y \
     autoconf automake g++ make \
