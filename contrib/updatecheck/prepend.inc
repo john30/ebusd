@@ -13,7 +13,7 @@ if ($v) {
   array_walk($v, $func);
 }
 function checkUpdate($ebusdVersion, $ebusdRelease, $loadedFiles) {
-  if (!$ebusdVersion || !$loadedFiles) {
+  if (!$ebusdVersion) {
     return 'invalid request';
   }
   global $versions;
