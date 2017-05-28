@@ -24,6 +24,9 @@
 * corrected grouping of JSON output by circuit
 * corrected address conflict detection when in answer mode
 * fixed potential memory leaks and misused iterator
+* corrected duplicates when using "--dumpconfig"
+* corrected unclean shutdown
+* also use transfer latency for SYN generator
 
 ## Features
 * added support for MQTT handling via libmosquitto (will be compiled in when library is available)
@@ -51,6 +54,7 @@
 * added -N option to "read" command
 * added "--inject" option to inject remaining arguments as already seen messages
 * use scans initiated by other participants and allow "--readonly" with "--scanconfig[=none]"
+* let init script set the low_latency mode on serial device
 
 
 # 2.4 (2016-12-17)
