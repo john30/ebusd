@@ -434,7 +434,7 @@ result_t BusHandler::handleSymbol() {
   // check if another symbol has to be sent and determine timeout for receive
   switch (m_state) {
   case bs_noSignal:
-    timeout = m_generateSynInterval > 0 ? m_generateSynInterval : SIGNAL_TIMEOUT;
+    timeout = m_generateSynInterval > 0 ? m_generateSynInterval+m_transferLatency : SIGNAL_TIMEOUT;
     break;
 
   case bs_skip:
@@ -579,7 +579,7 @@ result_t BusHandler::handleSymbol() {
     result = m_device->send(SYN);
     if (result == RESULT_OK) {
       recvSymbol = ESC;
-      result = m_device->recv(SEND_TIMEOUT, &recvSymbol);
+      result = m_device->recv(SEND_TIMEOUT+m_transferLatency, &recvSymbol);
       if (result == RESULT_ERR_TIMEOUT) {
         return setState(bs_noSignal, result);
       }
