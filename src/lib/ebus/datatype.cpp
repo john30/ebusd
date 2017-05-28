@@ -852,7 +852,7 @@ result_t NumberDataType::writeSymbols(size_t offset, size_t length, istringstrea
         dvalue = round(dvalue * m_divisor);
       }
       if (hasFlag(SIG)) {
-        if (dvalue < -(1LL << (8 * length)) || dvalue >= (1LL << (8 * length))) {
+        if (dvalue < -exp2((8 * (double)length) - 1) || dvalue >= exp2((8 * (double)length) - 1)) {
           return RESULT_ERR_OUT_OF_RANGE;  // value out of range
         }
         if (dvalue < 0 && m_bitCount != 32) {
@@ -861,7 +861,7 @@ result_t NumberDataType::writeSymbols(size_t offset, size_t length, istringstrea
           value = static_cast<int>(dvalue);
         }
       } else {
-        if (dvalue < 0.0 || dvalue >= (1LL << (8 * length))) {
+        if (dvalue < 0.0 || dvalue >= exp2(8 * (double)length)) {
           return RESULT_ERR_OUT_OF_RANGE;  // value out of range
         }
         value = (unsigned int)dvalue;

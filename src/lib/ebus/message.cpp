@@ -758,7 +758,7 @@ result_t Message::decodeLastData(bool master, bool leadingSeparator, const char*
 
 result_t Message::decodeLastData(bool leadingSeparator, const char* fieldName,
     ssize_t fieldIndex, const OutputFormat outputFormat, ostream* output) const {
-  ssize_t startPos = output->tellp();
+  ostream::pos_type startPos = output->tellp();
   result_t result = m_data->read(m_lastMasterData, getIdLength(), leadingSeparator, fieldName, fieldIndex,
       outputFormat, -1, output);
   if (result < RESULT_OK) {
