@@ -1491,7 +1491,7 @@ result_t BusHandler::scanAndWait(symbol_t dstAddress, bool loadScanConfig, bool 
         // additional scan messages now available
         scanAndWait(dstAddress, false, false);
       }
-    } else {
+    } else if (result != RESULT_ERR_NOTFOUND) {
       setScanConfigLoaded(dstAddress, "");
     }
   }
