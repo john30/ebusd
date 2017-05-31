@@ -135,11 +135,11 @@ definitions:
         type: string
         description: the ebusd version (major.minor.sha1 or major.minor.date).
         pattern: '[0-9]+\.[0-9]+\.[0-9a-f]+\.'
-        example: '3.0.abcdefg'
+        example: '3.0.1234abc'
       updatecheck:
         type: string
         description: the result of update check ("OK" or string describing available updates).
-        example: 'revision abcdefh available, 5 newer configuration files available'
+        example: 'revision 1234abd available, 5 newer configuration files available'
       signal:
         type: boolean
         description: whether signal is available.
@@ -188,6 +188,9 @@ definitions:
   Message:
     type: object
     properties:
+      name:
+        type: string
+        description: the message name.
       lastup:
         type: integer
         description: the time in UTC seconds of the last update of the message.
