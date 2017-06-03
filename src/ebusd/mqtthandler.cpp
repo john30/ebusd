@@ -28,20 +28,33 @@ namespace ebusd {
 
 using std::dec;
 
+#define O_HOST 1
+#define O_PORT (O_HOST+1)
+#define O_USER (O_PORT+1)
+#define O_PASS (O_USER+1)
+#define O_TOPI (O_PASS+1)
+#define O_RETA (O_TOPI+1)
+#define O_CAFI (O_RETA+1)
+#define O_CERT (O_CAFI+1)
+#define O_KEYF (O_CERT+1)
+#define O_KEPA (O_KEYF+1)
+
 /** the definition of the MQTT arguments. */
 static const struct argp_option g_mqtt_argp_options[] = {
-  {NULL,          0, NULL,       0, "MQTT options:", 1 },
-  {"mqtthost",    1, "HOST",     0, "Connect to MQTT broker on HOST [localhost]", 0 },
-  {"mqttport",    2, "PORT",     0, "Connect to MQTT broker on PORT (usually 1883), 0 to disable [0]", 0 },
-  {"mqttuser",    3, "USER",     0, "Connect as USER to MQTT broker (no default)", 0 },
-  {"mqttpass",    4, "PASSWORD", 0, "Use PASSWORD when connecting to MQTT broker (no default)", 0 },
-  {"mqtttopic",   5, "TOPIC",    0, "Use MQTT TOPIC (prefix before /%circuit/%name or complete format) [ebusd]", 0 },
+  {NULL,          0,      NULL,       0, "MQTT options:", 1 },
+  {"mqtthost",    O_HOST, "HOST",     0, "Connect to MQTT broker on HOST [localhost]", 0 },
+  {"mqttport",    O_PORT, "PORT",     0, "Connect to MQTT broker on PORT (usually 1883), 0 to disable [0]", 0 },
+  {"mqttuser",    O_USER, "USER",     0, "Connect as USER to MQTT broker (no default)", 0 },
+  {"mqttpass",    O_PASS, "PASSWORD", 0, "Use PASSWORD when connecting to MQTT broker (no default)", 0 },
+  {"mqtttopic",   O_TOPI, "TOPIC",    0, "Use MQTT TOPIC (prefix before /%circuit/%name or complete format) [ebusd]",
+      0 },
+  {"mqttretain",  O_RETA, NULL,       0, "Retain all topics instead of only selected global ones", 0 },
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
-  {"mqttca",      6, "CA",       0, "Use CA file or dir (ending with '/') for MQTT TLS (no default)", 0 },
-  {"mqttcert",    7, "CERTFILE", 0, "Use CERTFILE for MQTT TLS client certificate (no default)", 0 },
-  {"mqttkey",     8, "KEYFILE",  0, "Use KEYFILE for MQTT TLS client certificate (no default)", 0 },
-  {"mqttkeypass", 9, "PASSWORD", 0, "Use PASSWORD for the encrypted KEYFILE (no default)", 0 },
+  {"mqttca",      O_CAFI, "CA",       0, "Use CA file or dir (ending with '/') for MQTT TLS (no default)", 0 },
+  {"mqttcert",    O_CERT, "CERTFILE", 0, "Use CERTFILE for MQTT TLS client certificate (no default)", 0 },
+  {"mqttkey",     O_KEYF, "KEYFILE",  0, "Use KEYFILE for MQTT TLS client certificate (no default)", 0 },
+  {"mqttkeypass", O_KEPA, "PASSWORD", 0, "Use PASSWORD for the encrypted KEYFILE (no default)", 0 },
 #endif
 
   {NULL,          0, NULL,       0, NULL, 0 },
@@ -52,6 +65,7 @@ static uint16_t g_port = 0;               //!< optional port of MQTT broker, 0 t
 static const char* g_username = NULL;     //!< optional user name for MQTT broker (no default)
 static const char* g_password = NULL;     //!< optional password for MQTT broker (no default)
 static const char* g_topic = PACKAGE;     //!< MQTT topic to use (prefix if without wildcards) [ebusd]
+static bool g_retain = false;             //!< whether to retail all topics
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
 static const char* g_cafile = NULL;    //!< CA file for TLS
@@ -72,7 +86,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
   result_t result = RESULT_OK;
 
   switch (key) {
-  case 1:  // --mqtthost=localhost
+  case O_HOST:  // --mqtthost=localhost
     if (arg == NULL || arg[0] == 0) {
       argp_error(state, "invalid mqtthost");
       return EINVAL;
@@ -80,7 +94,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
     g_host = arg;
     break;
 
-  case 2:  // --mqttport=1883
+  case O_PORT:  // --mqttport=1883
     g_port = (uint16_t)parseInt(arg, 10, 1, 65535, &result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid mqttport");
@@ -88,7 +102,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
     }
     break;
 
-  case 3:  // --mqttuser=username
+  case O_USER:  // --mqttuser=username
     if (arg == NULL) {
       argp_error(state, "invalid mqttuser");
       return EINVAL;
@@ -96,7 +110,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
     g_username = arg;
     break;
 
-  case 4:  // --mqttpass=password
+  case O_PASS:  // --mqttpass=password
     if (arg == NULL) {
       argp_error(state, "invalid mqttpass");
       return EINVAL;
@@ -104,7 +118,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
     g_password = arg;
     break;
 
-  case 5:  // --mqtttopic=ebusd
+  case O_TOPI:  // --mqtttopic=ebusd
     if (arg == NULL || arg[0] == 0 || strchr(arg, '#') || strchr(arg, '+') || arg[strlen(arg)-1] == '/') {
       argp_error(state, "invalid mqtttopic");
       return EINVAL;
@@ -112,8 +126,12 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
     g_topic = arg;
     break;
 
+  case O_RETA:  // --mqttretain
+    g_retain = true;
+    break;
+
 #if (LIBMOSQUITTO_MAJOR >= 1)
-    case 6:  // --mqttca=file or --mqttca=dir/
+    case O_CAFI:  // --mqttca=file or --mqttca=dir/
       if (arg == NULL || arg[0] == 0) {
         argp_error(state, "invalid mqttca");
         return EINVAL;
@@ -127,7 +145,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
       }
       break;
 
-    case 7:  // --mqttcert=CERTFILE
+    case O_CERT:  // --mqttcert=CERTFILE
       if (arg == NULL || arg[0] == 0) {
         argp_error(state, "invalid mqttcert");
         return EINVAL;
@@ -135,7 +153,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
       g_certfile = arg;
       break;
 
-    case 8:  // --mqttkey=KEYFILE
+    case O_KEYF:  // --mqttkey=KEYFILE
       if (arg == NULL || arg[0] == 0) {
         argp_error(state, "invalid mqttkey");
         return EINVAL;
@@ -143,7 +161,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
       g_keyfile = arg;
       break;
 
-    case 9:  // --mqttkeypass=PASSWORD
+    case O_KEPA:  // --mqttkeypass=PASSWORD
       if (arg == NULL) {
         argp_error(state, "invalid mqttkeypass");
         return EINVAL;
@@ -472,7 +490,7 @@ void MqttHandler::notifyTopic(const string& topic, const string& data) {
 void MqttHandler::notifyUpdateCheckResult(const string& checkResult) {
   if (checkResult != m_lastUpdateCheckResult) {
     m_lastUpdateCheckResult = checkResult;
-    publishTopic(m_globalTopic+"updatecheck", checkResult.empty() ? "OK" : checkResult);
+    publishTopic(m_globalTopic+"updatecheck", checkResult.empty() ? "OK" : checkResult, true);
   }
 }
 
@@ -611,7 +629,7 @@ void MqttHandler::publishMessage(const Message* message, ostringstream* updates)
 void MqttHandler::publishTopic(const string& topic, const string& data, bool retain) {
   logOtherDebug("mqtt", "publish %s %s", topic.c_str(), data.c_str());
   mosquitto_publish(m_mosquitto, NULL, topic.c_str(), (uint32_t)data.size(),
-      reinterpret_cast<const uint8_t*>(data.c_str()), 0, retain);
+      reinterpret_cast<const uint8_t*>(data.c_str()), 0, g_retain || retain);
 }
 
 }  // namespace ebusd
