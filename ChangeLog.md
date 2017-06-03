@@ -36,7 +36,7 @@
 * added another log facility "other"
 * added support for using cmake in addition to autoconf
 * added Docker support
-* allow invalid SW and HW fields and remove non-alphanum chars from ident when looking for scan config file
+* allow invalid SW and HW fields and remove all but alpha-numeric chars and underscore from ident when looking for scan config file
 * added "auth" command and user/access information to "info" command output
 * added user and secret arguments to HTTP port
 * use ACL in read/write/find/scan commands
