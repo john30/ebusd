@@ -59,7 +59,10 @@ u
 EOF
 ./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig >/dev/null
 rm -f contrib/etc/ebusd/bad.csv
+echo > dump
 ./src/tools/ebusfeed -d tcp:127.0.0.1:8876 -t 10000 dump >/dev/null 2>/dev/null
+./src/tools/ebusfeed -d tcp:127.0.0.1:99999 dump >/dev/null 2>/dev/null
+./src/tools/ebusfeed -d udp:127.0.0.1:8876 -t 10000 dump >/dev/null 2>/dev/null
 ./src/tools/ebusfeed -d "" >/dev/null 2>/dev/null
 ./src/tools/ebusfeed -t 1 >/dev/null 2>/dev/null
 ./src/tools/ebusfeed "" >/dev/null 2>/dev/null
@@ -69,6 +72,7 @@ rm -f contrib/etc/ebusd/bad.csv
 ./src/tools/ebusctl -s "" >/dev/null 2>/dev/null
 ./src/tools/ebusctl -p "" >/dev/null 2>/dev/null
 ./src/tools/ebusctl -x >/dev/null 2>/dev/null
+./src/tools/ebusctl 'help x' >/dev/null 2>/dev/null
 #server:
 php -r '
 error_reporting (E_ALL);
