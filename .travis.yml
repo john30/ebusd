@@ -6,6 +6,7 @@ addons:
     packages:
     - g++-4.8
     - php5-cli
+    - libmosquitto1
 before_install:
   - sudo apt-get -qq update
   - export CXX=g++-4.8
