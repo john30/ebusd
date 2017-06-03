@@ -485,8 +485,8 @@ void MqttHandler::run() {
 
   time(&now);
   start = lastTaskRun = now;
-  publishTopic(m_globalTopic+"version", PACKAGE_STRING "." REVISION);
-  publishTopic(m_globalTopic+"running", "true");
+  publishTopic(m_globalTopic+"version", PACKAGE_STRING "." REVISION, true);
+  publishTopic(m_globalTopic+"running", "true", true);
   publishTopic(signalTopic, "false");
   mosquitto_message_callback_set(m_mosquitto, on_message);
   string subTopic = getTopic(NULL, "#");

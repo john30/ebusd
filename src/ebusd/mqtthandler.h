@@ -116,7 +116,7 @@ class MqttHandler : public DataSink, public DataSource, public Thread {
    * @param data the data string.
    * @param retain whether the topic shall be retained.
    */
-  void publishTopic(const string& topic, const string& data, bool retain = true);
+  void publishTopic(const string& topic, const string& data, bool retain = false);
 
   /** the @a MessageMap instance. */
   MessageMap* m_messages;
