@@ -962,7 +962,7 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose
       prefix.c_str(), getResultCode(result));
   auto it = ident.begin();
   while (it != ident.end()) {
-    if (::isspace(*it)) {
+    if (!::isalnum(*it)) {
       it = ident.erase(it);
     } else {
       *it = static_cast<char>(::tolower(*it));
@@ -994,7 +994,7 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose
           matches = true;
           break;
         }
-        if (remain[remain.length()-1] < '0' || remain[remain.length()-1] > '9') {
+        if (!::isdigit(remain[remain.length()-1])) {
           break;
         }
         remain.erase(remain.length()-1);  // remove trailing digit
