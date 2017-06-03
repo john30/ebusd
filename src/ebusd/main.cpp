@@ -962,7 +962,7 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose
       prefix.c_str(), getResultCode(result));
   auto it = ident.begin();
   while (it != ident.end()) {
-    if (!::isalnum(*it)) {
+    if (*it != '_' && !::isalnum(*it)) {
       it = ident.erase(it);
     } else {
       *it = static_cast<char>(::tolower(*it));
