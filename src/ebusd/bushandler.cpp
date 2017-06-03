@@ -1480,7 +1480,7 @@ result_t BusHandler::scanAndWait(symbol_t dstAddress, bool loadScanConfig, bool 
     bool timedOut = result == RESULT_ERR_TIMEOUT;
     if (timedOut || result == RESULT_OK) {
       result = loadScanConfigFile(m_messages, dstAddress, false, &file);  // try to load even if one message timed out
-      if (timedOut && result == RESULT_EMPTY) {
+      if (timedOut && result != RESULT_OK) {
         result = RESULT_ERR_TIMEOUT;  // back to previous result
       }
     }
