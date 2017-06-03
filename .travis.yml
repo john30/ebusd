@@ -8,7 +8,7 @@ addons:
     - php5-cli
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get install -y libmosquitto0
+  - sudo apt-get install -y libmosquitto0 libmosquitto0-dev
   - export CXX=g++-4.8
 script:
   - ./autogen.sh --enable-coverage && make all test
