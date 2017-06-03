@@ -6,10 +6,10 @@ _gitname=ebusd
 pkgver=2.4
 pkgrel=1
 pkgdesc="ebusd, the daemon for communication with eBUS heating systems."
-arch=('i686' 'x86_64' 'armv6h' 'aarch64')
+arch=('i686' 'x86_64' 'armv6h' 'armv7h' 'aarch64')
 url=https://github.com/john30/ebusd/
 license=('GPL3')
-depends=()
+depends=('setserial')
 makedepends=('git')
 optdepends=()
 conflicts=('ebusd' 'ebusd-git')
@@ -18,6 +18,7 @@ install=ebusd.install
 options=()
 backup=('etc/conf.d/ebusd')
 source=("git://github.com/john30/${_gitname}.git")
+md5sums=('SKIP')
 
 pkgver() {
   cd "$_gitname"
@@ -39,8 +40,8 @@ package() {
   make DESTDIR="$pkgdir" install
   install -d                                              "${pkgdir}/usr/lib/systemd/system"
   install -m 0644 contrib/archlinux/systemd/ebusd.service "${pkgdir}/usr/lib/systemd/system"
+  install -d                                              "${pkgdir}/usr/share/ebusd"                                                   
+  install -m 0755 contrib/archlinux/systemd/init.sh       "${pkgdir}/usr/share/ebusd"                                                   
   install -d                                              "${pkgdir}/etc/conf.d"
   install -m 0644 contrib/archlinux/conf.d/ebusd          "${pkgdir}/etc/conf.d/ebusd"
 }
-
-md5sums=('SKIP')
