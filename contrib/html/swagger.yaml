@@ -33,6 +33,7 @@ paths:
     - $ref: '#/parameters/valuenameQuery'
     - $ref: '#/parameters/fullQuery'
     - $ref: '#/parameters/requiredQuery'
+    - $ref: '#/parameters/writeQuery'
     - $ref: '#/parameters/userQuery'
     - $ref: '#/parameters/secretQuery'
   /data/{circuit}:
@@ -62,6 +63,7 @@ paths:
     - $ref: '#/parameters/valuenameQuery'
     - $ref: '#/parameters/fullQuery'
     - $ref: '#/parameters/requiredQuery'
+    - $ref: '#/parameters/writeQuery'
     - $ref: '#/parameters/userQuery'
     - $ref: '#/parameters/secretQuery'
   /data/{circuit}/{message}:
@@ -86,6 +88,7 @@ paths:
     - $ref: '#/parameters/valuenameQuery'
     - $ref: '#/parameters/fullQuery'
     - $ref: '#/parameters/requiredQuery'
+    - $ref: '#/parameters/writeQuery'
     - $ref: '#/parameters/userQuery'
     - $ref: '#/parameters/secretQuery'
   /{file}:
@@ -304,6 +307,12 @@ parameters:
     name: required
     in: query
     description: retrieve the data from the bus if not yet cached.
+    type: boolean
+    allowEmptyValue: false
+  writeQuery:
+    name: write
+    in: query
+    description: retrieve write messages in addition to read/poll messages.
     type: boolean
     allowEmptyValue: false
   userQuery:
