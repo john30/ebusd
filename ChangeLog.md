@@ -54,7 +54,7 @@
 * added -N option to "read" command
 * added "--inject" option to inject remaining arguments as already seen messages
 * use scans initiated by other participants and allow "--readonly" with "--scanconfig[=none]"
-* let init script set the low_latency mode on serial device
+* set the serial device to low latency mode to fix huge latency found on recent kernel versions
 
 
 # 2.4 (2016-12-17)

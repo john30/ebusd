@@ -29,19 +29,10 @@ instance="EBUSD_OPTS$2"
 instance=${!instance}
 
 start_instance () {
-	local opts suffix dev
+	local opts suffix
 	opts=$1
 	shift
 	suffix="${opts#EBUSD_OPTS}"
-	dev=`echo " ${!opts}"|sed -e 's#^.* -d ##' -e 's# -.*$##'`
-	if [ -z "$dev" ]; then
-		dev=/dev/ttyUSB0
-	fi
-	if [ "${dev:0:5}" == '/dev/' ] && [ -c "$dev" ] && [ -x /bin/setserial ]; then
-		log_daemon_msg "Setting low latency for ebusd${suffix} device"
-		/bin/setserial "$dev" low_latency
-		log_end_msg $?
-	fi
 	log_daemon_msg "Starting ebusd${suffix}" ebusd
 	pidfile=$PIDFILE_PREFIX${suffix}$PIDFILE_SUFFIX
 	start-stop-daemon --start --quiet --oknodo --pidfile $pidfile --exec $DAEMON -- --pidfile $pidfile ${!opts}

@@ -2,8 +2,7 @@ FROM debian
 
 RUN apt-get update && apt-get install -y \
     libmosquitto1 \
-    curl \
-    setserial
+    curl
 
 LABEL maintainer "ebusd@ebusd.eu"
 
