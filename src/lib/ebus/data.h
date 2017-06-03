@@ -258,10 +258,10 @@ class DataField : public AttributedItem {
 
   /**
    * Get the specified field name.
-   * @param fieldIndex the index of the field, or -1 for this.
-   * @return the field name, or the index as string if not unique or not available.
+   * @param fieldIndex the index of the field (excluding ignored fields), or -1 for this.
+   * @return the field name, or the index as string is not unique or not available.
    */
-  virtual string getName(ssize_t fieldIndex) const { return m_name; }
+  virtual string getName(ssize_t fieldIndex) const = 0;
 
   /**
    * Dump the field settings to the output.
@@ -282,7 +282,7 @@ class DataField : public AttributedItem {
    * @param data the data @a SymbolString for reading binary data.
    * @param offset the additional offset to add for reading binary data.
    * @param fieldName the name of the field to read, or NULL for the first field.
-   * @param fieldIndex the optional index of the named field, or -1.
+   * @param fieldIndex the optional index of the field (either named or overall), or -1.
    * @param output the variable in which to store the numeric value.
    * @return @a RESULT_OK on success,
    * or @a RESULT_EMPTY if the field was skipped (either if the partType does
@@ -298,7 +298,7 @@ class DataField : public AttributedItem {
    * @param offset the additional offset to add for reading binary data.
    * @param leadingSeparator whether to prepend a separator before the formatted value.
    * @param fieldName the optional name of a field to limit the output to.
-   * @param fieldIndex the optional index of the named field to limit the output to, or -1.
+   * @param fieldIndex the optional index of the field to limit the output to (either named or overall), or -1.
    * @param outputFormat the @a OutputFormat options to use.
    * @param outputIndex the optional index of the field when using an indexed output format, or -1.
    * @param output the @a ostream to append the formatted value to.
@@ -397,6 +397,11 @@ class SingleDataField : public DataField {
    */
   bool hasFullByteOffset(bool after) const;
 
+  // @copydoc
+  virtual string getName(ssize_t fieldIndex) const {
+    return isIgnored() || fieldIndex > 0 ? "" : m_name;
+  }
+
   /**
    * Dump the common prefix field settings to the output (name and part type).
    * @param output the @a ostream to dump to.
@@ -404,7 +409,7 @@ class SingleDataField : public DataField {
   void dumpPrefix(ostream* output) const;
 
   /**
-   * Dump the common suffix field settings to the output (optiona unit and comment).
+   * Dump the common suffix field settings to the output (optional unit and comment).
    * @param output the @a ostream to dump to.
    */
   void dumpSuffix(ostream* output) const;
@@ -596,9 +601,11 @@ class DataFieldSet : public DataField {
   DataFieldSet(const string& name, const vector<const SingleDataField*> fields)
     : DataField(name), m_fields(fields) {
     bool uniqueNames = true;
+    size_t ignoredCount = 0;
     map<string, string> names;
     for (auto field : fields) {
       if (field->isIgnored()) {
+        ignoredCount++;
         continue;
       }
       string name = field->getName(-1);
@@ -609,6 +616,7 @@ class DataFieldSet : public DataField {
       names[name] = name;
     }
     m_uniqueNames = uniqueNames;
+    m_ignoredCount = ignoredCount;
   }
 
   /**
@@ -677,6 +685,9 @@ class DataFieldSet : public DataField {
 
   /** whether all fields have a unique name. */
   bool m_uniqueNames;
+
+  /** the number of ignored fields. */
+  size_t m_ignoredCount;
 };
 
 

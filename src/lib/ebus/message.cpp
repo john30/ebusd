@@ -741,7 +741,7 @@ result_t Message::decodeLastData(bool master, bool leadingSeparator, const char*
     ssize_t fieldIndex, OutputFormat outputFormat, ostream* output) const {
   result_t result;
   if (master) {
-    result = m_data->read(m_lastMasterData, m_id.size() - 2, leadingSeparator, fieldName, fieldIndex,
+    result = m_data->read(m_lastMasterData, getIdLength(), leadingSeparator, fieldName, fieldIndex,
         outputFormat, -1, output);
   } else {
     result = m_data->read(m_lastSlaveData, 0, leadingSeparator, fieldName, fieldIndex,

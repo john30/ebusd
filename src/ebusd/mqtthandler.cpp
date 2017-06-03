@@ -286,13 +286,13 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
     m_topicFields.push_back("name");
   } else {
     for (size_t i = 0; i < m_topicFields.size(); i++) {
-      if (m_topicFields[i] == "fields") {
+      if (m_topicFields[i] == "field") {
         m_publishByField = true;
         break;
       }
     }
   }
-  m_globalTopic = getTopic(NULL, -1, "global/");
+  m_globalTopic = getTopic(NULL, "global/");
   m_mosquitto = NULL;
   if (mosquitto_lib_init() != MOSQ_ERR_SUCCESS) {
     logOtherError("mqtt", "unable to initialize");
@@ -489,7 +489,7 @@ void MqttHandler::run() {
   publishTopic(m_globalTopic+"running", "true");
   publishTopic(signalTopic, "false");
   mosquitto_message_callback_set(m_mosquitto, on_message);
-  string subTopic = getTopic(NULL, -1, "#");
+  string subTopic = getTopic(NULL, "#");
   mosquitto_subscribe(m_mosquitto, NULL, subTopic.c_str(), 0);
   while (isRunning()) {
     handleTraffic();
@@ -557,7 +557,7 @@ void MqttHandler::handleTraffic() {
   }
 }
 
-string MqttHandler::getTopic(const Message* message, ssize_t fieldIndex, const string& suffix) {
+string MqttHandler::getTopic(const Message* message, const string& suffix, const string& fieldName) {
   ostringstream ret;
   for (size_t i = 0; i < m_topicStrs.size(); i++) {
     ret << m_topicStrs[i];
@@ -565,8 +565,8 @@ string MqttHandler::getTopic(const Message* message, ssize_t fieldIndex, const s
       break;
     }
     if (i < m_topicFields.size()) {
-      if (m_topicFields[i] == "fields" && fieldIndex >= 0) {
-        ret << message->getFieldName(fieldIndex);  // TODO skip ignored fields
+      if (m_topicFields[i] == "field") {
+        ret << fieldName;
       } else {
         message->dumpField(m_topicFields[i], false, &ret);
       }
@@ -579,24 +579,33 @@ string MqttHandler::getTopic(const Message* message, ssize_t fieldIndex, const s
 }
 
 void MqttHandler::publishMessage(const Message* message, ostringstream* updates) {
-  result_t result = message->decodeLastData(false, NULL, -1, 0, updates);
-  if (result != RESULT_OK) {
-    logOtherError("mqtt", "decode %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(),
-        getResultCode(result));
+  if (!m_publishByField) {
+    result_t result = message->decodeLastData(false, NULL, -1, 0, updates);
+    if (result != RESULT_OK) {
+      logOtherError("mqtt", "decode %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(),
+          getResultCode(result));
+      return;
+    }
+    publishTopic(getTopic(message), updates->str());
     return;
   }
-  if (m_publishByField) {
-    ssize_t index = 0;
-    istringstream input(updates->str());
-    string token;
-    while (getline(input, token, UI_FIELD_SEPARATOR)) {
-      string topic = getTopic(message, index);
-      publishTopic(topic, token);
-      index++;
+  ssize_t index = 0;
+  do {
+    string name = message->getFieldName(index);
+    if (name.empty()) {
+      break;
     }
-  } else {
-    publishTopic(getTopic(message), updates->str());
-  }
+    result_t result = message->decodeLastData(false, NULL, index, 0, updates);
+    if (result != RESULT_OK) {
+      logOtherError("mqtt", "decode %s %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(),
+          name.c_str(), getResultCode(result));
+      return;
+    }
+    publishTopic(getTopic(message, "", name), updates->str());
+    updates->str("");
+    updates->clear();
+    index++;
+  } while (index < MAX_LEN);
 }
 
 void MqttHandler::publishTopic(const string& topic, const string& data, bool retain) {

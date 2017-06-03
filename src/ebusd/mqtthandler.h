@@ -97,11 +97,11 @@ class MqttHandler : public DataSink, public DataSource, public Thread {
   /**
    * Build the MQTT topic string for the @a Message.
    * @param message the @a Message to build the topic string for.
-   * @param fieldIndex the optional field index for the field column, or -1.
    * @param suffix the optional suffix string to append.
+   * @param fieldName the name of the singular field, or empty.
    * @return the topic string.
    */
-  string getTopic(const Message* message, ssize_t fieldIndex = -1, const string& suffix = "");
+  string getTopic(const Message* message, const string& suffix = "", const string& fieldName = "");
 
   /**
    * Prepare a @a Message and publish as topic.

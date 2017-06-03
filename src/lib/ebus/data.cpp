@@ -494,7 +494,7 @@ result_t SingleDataField::read(const SymbolString& data, size_t offset,
   if (offset + (remainder?1:m_length) > data.getDataSize()) {
     return RESULT_ERR_INVALID_POS;
   }
-  if (isIgnored() || (fieldName != NULL && (m_name != fieldName || fieldIndex > 0))) {
+  if (isIgnored() || (fieldName != NULL && m_name != fieldName) || fieldIndex > 0) {
     return RESULT_EMPTY;
   }
   result_t res = m_dataType->readRawValue(offset, m_length, data, output);
@@ -514,7 +514,7 @@ result_t SingleDataField::read(const SymbolString& data, size_t offset,
   if (offset + (remainder?1:m_length) > data.getDataSize()) {
     return RESULT_ERR_INVALID_POS;
   }
-  if (isIgnored() || (fieldName != NULL && (m_name != fieldName || fieldIndex > 0))) {
+  if (isIgnored() || (fieldName != NULL && m_name != fieldName) || fieldIndex > 0) {
     return RESULT_EMPTY;
   }
   bool shortFormat = outputFormat & OF_SHORT;
@@ -900,14 +900,26 @@ size_t DataFieldSet::getLength(PartType partType, size_t maxLength) const {
 }
 
 string DataFieldSet::getName(ssize_t fieldIndex) const {
-  if (fieldIndex < 0) {
+  if (fieldIndex < (ssize_t)m_ignoredCount) {
     return m_name;
   }
-  if ((size_t)fieldIndex >= m_fields.size()) {
+  if ((size_t)fieldIndex + m_ignoredCount >= m_fields.size()) {
     return "";
   }
   if (m_uniqueNames) {
-    return m_fields[fieldIndex]->getName(-1);
+    if (m_ignoredCount == 0) {
+      return m_fields[fieldIndex]->getName(-1);
+    }
+    ssize_t remain = fieldIndex;
+    for (const auto field : m_fields) {
+      if (field->isIgnored()) {
+        continue;
+      }
+      remain--;
+      if (remain == 0) {
+        return field->getName(-1);
+      }
+    }
   }
   ostringstream ostream;
   ostream << static_cast<signed>(fieldIndex);
@@ -973,7 +985,7 @@ result_t DataFieldSet::read(const SymbolString& data, size_t offset,
     if (result != RESULT_EMPTY) {
       found = true;
     }
-    if (findFieldIndex && fieldName == field->getName(-1)) {
+    if (findFieldIndex && !field->isIgnored() && (fieldName == NULL || fieldName == field->getName(-1))) {
       if (fieldIndex == 0) {
         if (!found) {
           return RESULT_ERR_NOTFOUND;
@@ -994,7 +1006,7 @@ result_t DataFieldSet::read(const SymbolString& data, size_t offset,
 result_t DataFieldSet::read(const SymbolString& data, size_t offset,
     bool leadingSeparator, const char* fieldName, ssize_t fieldIndex,
     OutputFormat outputFormat, ssize_t outputIndex, ostream* output) const {
-  bool previousFullByteOffset = true, found = false, findFieldIndex = fieldName != NULL && fieldIndex >= 0;
+  bool previousFullByteOffset = true, found = false, findFieldIndex = fieldIndex >= 0;
   if (outputIndex < 0 && (!m_uniqueNames || ((outputFormat & OF_JSON) && !(outputFormat & OF_NAMES)))) {
     outputIndex = 0;
   }
@@ -1020,7 +1032,7 @@ result_t DataFieldSet::read(const SymbolString& data, size_t offset,
       found = true;
       leadingSeparator = true;
     }
-    if (findFieldIndex && fieldName == field->getName(-1)) {
+    if (findFieldIndex && !field->isIgnored() && (fieldName == NULL || fieldName == field->getName(-1))) {
       if (fieldIndex == 0) {
         if (!found) {
           return RESULT_ERR_NOTFOUND;

@@ -269,7 +269,7 @@ class Message : public AttributedItem {
 
   /**
    * Get the specified field name.
-   * @param fieldIndex the index of the field.
+   * @param fieldIndex the index of the field (excluding ignored fields).
    * @return the field name, or the index as string if not unique or not available.
    */
   virtual string getFieldName(ssize_t fieldIndex) const { return m_data->getName(fieldIndex); }
@@ -456,10 +456,10 @@ class Message : public AttributedItem {
 
   /**
    * Decode the value from the last stored master or slave data.
-   * @param master true for deocding the master data, false for slave.
+   * @param master true for decoding the master data, false for slave.
    * @param leadingSeparator whether to prepend a separator before the formatted value.
    * @param fieldName the optional name of a field to limit the output to.
-   * @param fieldIndex the optional index of the named field to limit the output to, or -1.
+   * @param fieldIndex the optional index of the field to limit the output to (either named or overall), or -1.
    * @param outputFormat the @a OutputFormat options to use.
    * @param output the @a ostream to append the formatted value to.
    * @return @a RESULT_OK on success, or an error code.
@@ -471,7 +471,7 @@ class Message : public AttributedItem {
    * Decode the value from the last stored master and slave data.
    * @param leadingSeparator whether to prepend a separator before the formatted value.
    * @param fieldName the optional name of a field to limit the output to.
-   * @param fieldIndex the optional index of the named field to limit the output to, or -1.
+   * @param fieldIndex the optional index of the field to limit the output to (either named or overall), or -1.
    * @param outputFormat the @a OutputFormat options to use.
    * @param output the @a ostream to append the formatted value to.
    * @return @a RESULT_OK on success, or an error code.
@@ -482,7 +482,7 @@ class Message : public AttributedItem {
   /**
    * Decode a particular numeric field value from the last stored data.
    * @param fieldName the name of the field to decode, or NULL for the first field.
-   * @param fieldIndex the optional index of the named field, or -1.
+   * @param fieldIndex the optional index of the field (either named or overall), or -1.
    * @param output the variable in which to store the value.
    * @return @a RESULT_OK on success, or an error code.
    */
