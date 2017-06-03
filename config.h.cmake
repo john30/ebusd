@@ -13,6 +13,9 @@
 /* Defined if pselect() is available. */
 #cmakedefine HAVE_PSELECT
 
+/* Defined if linux/serial.h is available. */
+#cmakedefine HAVE_LINUX_SERIAL
+
 /* Defined if pthread_setname_np is available. */
 #cmakedefine HAVE_PTHREAD_SETNAME_NP
 
