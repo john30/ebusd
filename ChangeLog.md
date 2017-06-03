@@ -36,7 +36,7 @@
 * added another log facility "other"
 * added support for using cmake in addition to autoconf
 * added Docker support
-* allow invalid (non-BCD) coded SW and HW fields when looking for scan config file
+* allow invalid SW and HW fields and remove non-alphanum chars from ident when looking for scan config file
 * added "auth" command and user/access information to "info" command output
 * added user and secret arguments to HTTP port
 * use ACL in read/write/find/scan commands
@@ -47,7 +47,6 @@
 * enhanced scan for individual slave
 * wait for broadcast scan answers before doing individual scans
 * enhanced SymbolString to be aware of master/slave and get rid of CRC (instead calculate while sending/receiving)
-* allow unusually formatted MQTT topics
 * allow TTQ/TTH types to use less than 8 bits
 * added support for optional user-defined columns to config files
 * added circuit-level attributes to config files for use in JSON
