@@ -145,6 +145,25 @@ int main() {
     {"r,,x,,,,,6a00,,,UCH,10,bar,,Bit6,,BI6:1,0=B60;1=B61,,,Bit7,,BI7:1,0=B70;1=B71", "1.9;B60;B70", "ff08b509030d6a00", "02133f", "d" },
     {"*r,cir*cuit#level,na*me,com*ment,ff,75,b509,0d", "", "", "", "" },
     {"r,CIRCUIT,NAME,COMMENT,,,,0100,field,,UCH", "r,cirCIRCUITcuit,naNAMEme,comCOMMENTment,ff,75,b509,0d0100,field,s,UCH,,,: field=42", "ff75b509030d0100", "012a", "DN"},
+    {"r,CIRCUIT,NAME,COMMENT,,,,0100,field,,UCH",
+        // "\"naNAMEme\": {r,cirCIRCUITcuit,naNAMEme,comCOMMENTment,ff,75,b509,0d0100,field,s,UCH,,,: field=42"
+      "\n"
+      "   \"naNAMEme\": {\n"
+      "    \"name\": \"naNAMEme\",\n"
+      "    \"passive\": false,\n"
+      "    \"write\": false,\n"
+      "    \"lastup\": *,\n"
+      "    \"qq\": 255,\n"
+      "    \"zz\": 117,\n"
+      "    \"id\": [181, 9, 13, 1, 0],\n"
+      "    \"fields\": {\n"
+      "    \"0\": {\"name\": \"field\", \"value\": 42}\n"
+      "    },\n"
+      "    \"fielddefs\": [\n"
+      "     { \"name\": \"field\", \"slave\": true, \"type\": \"UCH\", \"isbits\": false, \"length\": 1, \"unit\": \"\", \"comment\": \"\"}\n"
+      "    ]\n"
+      "   }: \n"
+      "    \"field\": {\"value\": 42}", "ff75b509030d0100", "012a", "jN"},
   };
   templates = new DataFieldTemplates();
   unsigned int lineNo = 0;
@@ -349,8 +368,23 @@ int main() {
         message->storeLastData(*mstrs[index], *sstrs[index]);
       }
       ostringstream output;
-      if (withMessageDump && !decodeJson) {
-        message->dump(NULL, true, &output);
+      if (withMessageDump) {
+        if (decodeJson) {
+          message->decodeJson(false, false, false, OF_JSON|OF_DEFINTION, &output);
+          string str = output.str();
+          size_t start = str.find("\"lastup\": ");
+          if (start != string::npos) {
+            start += 10;
+            size_t end = str.find(",", start);
+            if (end != string::npos) {
+              str = str.substr(0, start)+"*"+str.substr(end);
+            }
+          }
+          output.str("");
+          output << str;
+        } else {
+          message->dump(NULL, true, &output);
+        }
         output << ": ";
       }
       result = message->decodeLastData(false, NULL, -1,
@@ -362,6 +396,7 @@ int main() {
         continue;
       }
       cout << "  \"" << check[2] << "\" / \"" << check[3] <<  "\": decode OK" << endl;
+      string outStr = output.str();
       bool match = inputStr == output.str();
       verify(false, "decode", check[2] + "/" + check[3], match, inputStr, output.str());
       if (checkUpdateTime || checkSameChangeTime) {

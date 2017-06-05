@@ -42,17 +42,27 @@ using std::setw;
 using std::endl;
 
 
-bool DataType::dump(size_t length, bool appendSeparatorDivisor, ostream* output) const {
-  *output << m_id;
-  if (isAdjustableLength()) {
-    if (length == REMAIN_LEN) {
-      *output << ":*";
+bool DataType::dump(bool asJson, size_t length, bool appendDivisor, ostream* output) const {
+  if (asJson) {
+    *output << "\"type\": \"" << m_id << "\"" << FIELD_SEPARATOR << " \"isbits\": "
+            << (getBitCount() < 8 ? "true" : "false") << FIELD_SEPARATOR << " \"length\": ";
+    if (isAdjustableLength() && length == REMAIN_LEN) {
+      *output << "-1";
     } else {
-      *output << ":" << static_cast<unsigned>(length);
+      *output << static_cast<unsigned>(length);
     }
-  }
-  if (appendSeparatorDivisor) {
-    *output << FIELD_SEPARATOR;
+  } else {
+    *output << m_id;
+    if (isAdjustableLength()) {
+      if (length == REMAIN_LEN) {
+        *output << ":*";
+      } else {
+        *output << ":" << static_cast<unsigned>(length);
+      }
+    }
+    if (appendDivisor) {
+      *output << FIELD_SEPARATOR;
+    }
   }
   return false;
 }
@@ -502,21 +512,27 @@ size_t NumberDataType::calcPrecision(int divisor) {
   return precision;
 }
 
-bool NumberDataType::dump(size_t length, bool appendSeparatorDivisor, ostream* output) const {
+bool NumberDataType::dump(bool asJson, size_t length, bool appendDivisor, ostream* output) const {
   if (m_bitCount < 8) {
-    DataType::dump(m_bitCount, appendSeparatorDivisor, output);
+    DataType::dump(asJson, m_bitCount, appendDivisor, output);
   } else {
-    DataType::dump(length, appendSeparatorDivisor, output);
+    DataType::dump(asJson, length, appendDivisor, output);
   }
-  if (!appendSeparatorDivisor) {
+  if (!appendDivisor) {
     return false;
   }
   if (m_baseType) {
     if (m_baseType->m_divisor != m_divisor) {
+      if (asJson) {
+        *output << ", \"divisor\": ";
+      }
       *output << (m_divisor / m_baseType->m_divisor);
       return true;
     }
   } else if (m_divisor != 1) {
+    if (asJson) {
+      *output << ", \"divisor\": ";
+    }
     *output << m_divisor;
     return true;
   }

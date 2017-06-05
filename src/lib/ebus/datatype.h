@@ -106,6 +106,9 @@ typedef int OutputFormat;
 /** bit flag for @a OutputFormat: include all attributes. */
 #define OF_ALL_ATTRS 0x80
 
+/** bit flag for @a OutputFormat: include message/field definition. */
+#define OF_DEFINTION 0x100
+
 /** the message part in which a data field is stored. */
 enum PartType {
   pt_any,          //!< stored in any data (master or slave)
@@ -216,12 +219,13 @@ class DataType {
   /**
    * Dump the type identifier with the specified length and optionally the
    * divisor to the output.
+   * @param asJson whether to output in JSON format.
    * @param length the number of symbols to read/write.
-   * @param appendSeparatorDivisor whether to append a @a FIELD_SEPARATOR followed by the divisor (if available).
+   * @param appendDivisor whether to append the divisor (if available).
    * @param output the @a ostream to dump to.
    * @return true when a non-default divisor was written to the output.
    */
-  virtual bool dump(size_t length, bool appendSeparatorDivisor, ostream* output) const;
+  virtual bool dump(bool asJson, size_t length, bool appendDivisor, ostream* output) const;
 
   /**
    * Internal method for reading the numeric raw value from a @a SymbolString.
@@ -432,7 +436,7 @@ class NumberDataType : public DataType {
   static size_t calcPrecision(int divisor);
 
   // @copydoc
-  bool dump(size_t length, bool appendSeparatorDivisor, ostream* output) const override;
+  bool dump(bool asJson, size_t length, bool appendDivisor, ostream* output) const override;
 
   /**
    * Derive a new @a NumberDataType from this.

@@ -81,29 +81,6 @@ static const char* defaultMessageFieldMap[] = {  // access level not included in
 
 extern DataFieldTemplates* getTemplates(const string& filename);
 
-/**
- * Get the normalized message field name for the given name.
- * @param name the input field name.
- * @param supportsLanguage set to true when the field supports multiple language.
- * @return the normalized message field name, or empty if unknown.
- */
-string getMessageFieldName(const string& name, bool* supportsLanguage) {
-  if (name.find("type") != string::npos) {
-    return "type";
-  }
-  if (name == "circuit" || name == "level" || name == "qq" || name == "zz" || name == "pbsb" || name == "id") {
-    return name;
-  }
-  if (name.find("name") != string::npos) {
-    return "name";
-  }
-  *supportsLanguage = true;
-  if (name.find("comment") == 0) {
-    return "comment";
-  }
-  return "";
-}
-
 
 Message::Message(const string& circuit, const string& level, const string& name,
     bool isWrite, bool isPassive, const map<string, string>& attributes,
@@ -921,18 +898,32 @@ void Message::dumpField(const string& fieldName, bool withConditions, ostream* o
     return;
   }
   if (fieldName == "fields") {
-    m_data->dump(output);
+    m_data->dump(false, false, output);
     return;
   }
-  dumpAttribute(false, fieldName, output);
+  dumpAttribute(false, false, fieldName, output);
 }
 
-void Message::decode(bool leadingSeparator, bool appendDirection, OutputFormat outputFormat, ostringstream* output)
-    const {
+void addData(const SymbolString& data, ostringstream* output) {
+  if (data.size() == 0) {
+    return;
+  }
+  *output << ",\n    \"" << (data.isMaster() ? "master" : "slave") << "\": [";
+  for (size_t pos = 0; pos < data.size(); pos++) {
+    if (pos > 0) {
+      *output << ", ";
+    }
+    *output << dec << static_cast<unsigned>(data[pos]);
+  }
+  *output << "]";
+}
+
+void Message::decodeJson(bool leadingSeparator, bool appendDirection, bool addRaw, OutputFormat outputFormat,
+    ostringstream* output) const {
   if (leadingSeparator) {
     *output << ",";
   }
-  *output << "\n  \"" << getName();
+  *output << "\n   \"" << getName();
   if (appendDirection) {
     if (isPassive()) {
       *output << "-u";
@@ -940,27 +931,54 @@ void Message::decode(bool leadingSeparator, bool appendDirection, OutputFormat o
       *output << "-w";
     }
   }
+  bool withDefinition = (outputFormat & OF_DEFINTION) != 0;
   *output << "\": {"
-          << "\n   \"name\": \"" << getName() << "\""
-          << ",\n   \"lastup\": " << setw(0) << dec << static_cast<unsigned>(getLastUpdateTime());
-  if (getLastUpdateTime() != 0) {
-    *output << ",\n   \"zz\": \"" << setfill('0') << setw(2) << hex << static_cast<unsigned>(getDstAddress()) << "\"";
+          << "\n    \"name\": \"" << getName() << "\""
+          << ",\n    \"passive\": " << (isPassive() ? "true" : "false")
+          << ",\n    \"write\": " << (isWrite() ? "true" : "false")
+          << ",\n    \"lastup\": " << setw(0) << dec << m_lastUpdateTime;
+  bool hasData = getLastUpdateTime() != 0;
+  if (hasData || withDefinition) {
+    if (withDefinition && m_srcAddress != SYN) {
+      *output << ",\n    \"qq\": " << dec << static_cast<unsigned>(m_srcAddress);
+    }
+    *output << ",\n    \"zz\": " << dec << static_cast<unsigned>(m_dstAddress);
+    if (withDefinition) {
+      *output << ",\n    \"id\": [" << dec;
+      for (auto it = m_id.begin(); it < m_id.end(); it++) {
+        if (it > m_id.begin()) {
+          *output << ", ";
+        }
+        *output << dec << static_cast<unsigned>(*it);
+      }
+      *output << "]";
+    }
     appendAttributes(OF_JSON | outputFormat, output);
-    size_t pos = (size_t)output->tellp();
-    *output << ",\n   \"fields\": {";
-    result_t dret = decodeLastData(false, NULL, -1, outputFormat, output);
-    if (dret == RESULT_OK) {
-      *output << "\n   }";
-    } else {
-      string prefix = output->str().substr(0, pos);
-      output->str("");
-      output->clear();  // remove written fields
-      *output << prefix << ",\n   \"decodeerror\": \"" << getResultCode(dret) << "\"";
+    if (hasData) {
+      if (addRaw) {
+        addData(m_lastMasterData, output);
+        addData(m_lastSlaveData, output);
+        *output << dec;
+      }
+      size_t pos = (size_t)output->tellp();
+      *output << ",\n    \"fields\": {";
+      result_t dret = decodeLastData(false, NULL, -1, outputFormat, output);
+      if (dret == RESULT_OK) {
+        *output << "\n    }";
+      } else {
+        string prefix = output->str().substr(0, pos);
+        output->str("");
+        output->clear();  // remove written fields
+        *output << prefix << ",\n    \"decodeerror\": \"" << getResultCode(dret) << "\"";
+      }
+    }
+    if (withDefinition) {
+      *output << ",\n    \"fielddefs\": [";
+      m_data->dump(false, true, output);
+      *output << "\n    ]";
     }
   }
-  *output << ",\n   \"passive\": " << (isPassive() ? "true" : "false")
-          << ",\n   \"write\": " << (isWrite() ? "true" : "false")
-          << "\n  }";
+  *output << "\n   }";
 }
 
 
@@ -2091,6 +2109,16 @@ result_t MessageMap::readFromFile(const string& filename, bool verbose, map<stri
     time = &localTime;
   }
   result_t result = MappedFileReader::readFromFile(filename, verbose, defaults, errorDescription, hash, size, time);
+  if (defaults) {
+    string circuit = AttributedItem::pluck("circuit", defaults);
+    if (!circuit.empty() && m_circuitData.find(circuit) == m_circuitData.end()) {
+      string name = AttributedItem::pluck("name", defaults);
+      if (!name.empty() || !defaults->empty()) {
+        AttributedItem::pluck("suffix", defaults);
+        m_circuitData[circuit] = new AttributedItem(name, *defaults);
+      }
+    }
+  }
   if (result == RESULT_OK) {
     const string file = getRelativePath(filename);
     m_loadedFileInfos[file].m_hash = *hash;
@@ -2542,7 +2570,7 @@ bool MessageMap::decodeCircuit(const string& circuit, OutputFormat outputFormat,
     return false;
   }
   if (outputFormat & OF_JSON) {
-    *output << "\"name\": \"" << it->second->getName() << "\"";
+    *output << "\n  \"name\": \"" << it->second->getName() << "\"";
   } else {
     *output << it->second->getName() << "=";
   }

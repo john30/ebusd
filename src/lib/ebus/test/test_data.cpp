@@ -609,7 +609,7 @@ int main() {
       continue;
     }
     cout << "\"" << check[0] << "\"=\"";
-    fields->dump(&cout);
+    fields->dump(false, false, &cout);
     cout << "\": create OK" << endl;
 
     ostringstream output;

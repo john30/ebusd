@@ -50,14 +50,6 @@ namespace ebusd {
  */
 
 
-/**
- * Get the normalized data field name for the given name.
- * @param name the input field name.
- * @param supportsLanguage set to true when the field supports multiple language.
- * @return the normalized data field name, or empty if unknown.
- */
-string getDataFieldName(const string& name, bool* supportsLanguage);
-
 class DataFieldTemplates;
 class SingleDataField;
 
@@ -115,11 +107,11 @@ class AttributedItem {
    * @param prependFieldSeparator whether to start with a @a FIELD_SEPARATOR.
    * @param name the name of the attribute.
    * @param value the value of the attribute.
-   * @param asString true to force writing as string, false to detect the type from the value.
+   * @param forceString true to force writing as string, false to detect the type from the value.
    * @param output the @a ostream to append to.
    */
   static void appendJson(bool prependFieldSeparator, const string& name, const string& value,
-      bool asString, ostream* output);
+      bool forceString, ostream* output);
 
   /**
    * Merge this instance's additional named attributes into the specified attributes.
@@ -130,10 +122,11 @@ class AttributedItem {
   /**
    * Dump the attribute optionally embedded in @a TEXT_SEPARATOR to the output.
    * @param prependFieldSeparator whether to start with a @a FIELD_SEPARATOR.
+   * @param asJson whether to output in JSON format.
    * @param name the name of the attribute to dump.
    * @param output the @a ostream to dump to.
    */
-  void dumpAttribute(bool prependFieldSeparator, const string& name, ostream* output) const;
+  void dumpAttribute(bool prependFieldSeparator, bool asJson, const string& name, ostream* output) const;
 
   /**
    * Append the attribute value to the output.
@@ -265,9 +258,11 @@ class DataField : public AttributedItem {
 
   /**
    * Dump the field settings to the output.
+   * @param prependFieldSeparator whether to start with a @a FIELD_SEPARATOR.
+   * @param asJson whether to output in JSON format.
    * @param output the @a ostream to dump to.
    */
-  virtual void dump(ostream* output) const = 0;
+  virtual void dump(bool prependFieldSeparator, bool asJson, ostream* output) const = 0;
 
   /**
    * Return whether the field is available.
@@ -404,18 +399,21 @@ class SingleDataField : public DataField {
 
   /**
    * Dump the common prefix field settings to the output (name and part type).
+   * @param prependFieldSeparator whether to start with a @a FIELD_SEPARATOR.
+   * @param asJson whether to output in JSON format.
    * @param output the @a ostream to dump to.
    */
-  void dumpPrefix(ostream* output) const;
+  void dumpPrefix(bool prependFieldSeparator, bool asJson, ostream* output) const;
 
   /**
    * Dump the common suffix field settings to the output (optional unit and comment).
+   * @param asJson whether to output in JSON format.
    * @param output the @a ostream to dump to.
    */
-  void dumpSuffix(ostream* output) const;
+  void dumpSuffix(bool asJson, ostream* output) const;
 
   // @copydoc
-  void dump(ostream* output) const override;
+  void dump(bool prependFieldSeparator, bool asJson, ostream* output) const override;
 
   // @copydoc
   bool hasField(const char* fieldName, bool numeric) const override;
@@ -501,7 +499,7 @@ class ValueListDataField : public SingleDataField {
       vector<const SingleDataField*>* fields) const override;
 
   // @copydoc
-  void dump(ostream* output) const override;
+  void dump(bool prependFieldSeparator, bool asJson, ostream* output) const override;
 
 
  protected:
@@ -554,7 +552,7 @@ class ConstantDataField : public SingleDataField {
       vector<const SingleDataField*>* fields) const override;
 
   // @copydoc
-  void dump(ostream* output) const override;
+  void dump(bool prependFieldSeparator, bool asJson, ostream* output) const override;
 
 
  protected:
@@ -660,7 +658,7 @@ class DataFieldSet : public DataField {
   bool hasField(const char* fieldName, bool numeric) const override;
 
   // @copydoc
-  void dump(ostream* output) const override;
+  void dump(bool prependFieldSeparator, bool asJson, ostream* output) const override;
 
   // @copydoc
   result_t read(const SymbolString& data, size_t offset,
