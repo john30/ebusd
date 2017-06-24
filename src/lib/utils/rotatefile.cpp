@@ -71,17 +71,21 @@ void RotateFile::write(const unsigned char* value, const size_t size, const bool
       for (unsigned int pos = 0; pos < size; pos++) {
         fprintf(m_stream, "%2.2x ", value[pos]);
       }
+      m_fileSize += 25+3*size+1;
     } else {
       fwrite(value, 1, size, m_stream);
+      m_fileSize += size+1;
     }
     fprintf(m_stream, "\n");
-    m_fileSize += 25+3*size+1;
+    fflush(m_stream);
   } else {
     fwrite(value, (streamsize)size, 1, m_stream);
     m_fileSize += size;
-  }
-  if ((m_fileSize%1024) == 0) {
-    fflush(m_stream);
+    m_flushSize += size;
+    if (m_flushSize>16) {
+      fflush(m_stream);
+      m_flushSize = 0;
+    }
   }
   if (m_fileSize >= m_maxSize * 1024LL) {
     string oldfile = string(m_fileName)+".old";

@@ -45,7 +45,8 @@ class RotateFile {
    * @param textMode whether to write each byte with prefixed timestamp and direction as text.
    */
   RotateFile(const string fileName, const unsigned int maxSize, const bool textMode = false)
-    : m_enabled(false), m_fileName(fileName), m_maxSize(maxSize), m_textMode(textMode), m_stream(), m_fileSize(0) {}
+    : m_enabled(false), m_fileName(fileName), m_maxSize(maxSize), m_textMode(textMode), m_stream(), m_fileSize(0),
+      m_flushSize(0) {}
 
   /**
    * Destructor.
@@ -92,8 +93,11 @@ class RotateFile {
   /** the @a FILE to writing to. */
   FILE* m_stream;
 
-  /** the number of bytes already written to the @a m_file. */
+  /** the number of bytes written to @a m_file. */
   uint64_t m_fileSize;
+
+  /** the number of bytes written to @a m_file since the last flush. */
+  uint64_t m_flushSize;
 };
 
 }  // namespace ebusd
