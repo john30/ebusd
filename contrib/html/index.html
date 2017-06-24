@@ -328,10 +328,10 @@ jsPlumb.ready(function() {
 			});
 			return ret?ret[0]:null;
 		};
-		var checkCondition = function(condition, allMessages) {
+		var checkCondition = function(condition, allCircuits) {
 			for (var k=0; k+2<condition.length; k+=3) { // "and" loop
 				var found = false;
-				var fields = allMessages[condition[k]][condition[k+1]].fields;
+				var fields = allCircuits[condition[k]].messages[condition[k+1]].fields;
 				var cond = condition[k+2];
 				var key = 0;
 				if (fields && !fields.hasOwnProperty(key)) {
@@ -357,8 +357,8 @@ jsPlumb.ready(function() {
 			}
 			return true;
 		};
-		var addItemFin = function(parent, name, messages, allMessages, needEndpoints, needUris, data) {
-			if (data.hasOwnProperty('condition') && !checkCondition(data.condition, allMessages)) return;
+		var addItemFin = function(parent, name, messages, allCircuits, needEndpoints, needUris, data) {
+			if (data.hasOwnProperty('condition') && !checkCondition(data.condition, allCircuits)) return;
 			var child = document.createElement("div");
 			child.className = "circuit";
 			if (data.hasOwnProperty('image')) {
@@ -387,10 +387,10 @@ jsPlumb.ready(function() {
 				var circuit = name;
 				if (item.circuit) {
 					circuit = item.circuit;
-					if (!allMessages.hasOwnProperty(circuit)) {
+					if (!allCircuits.hasOwnProperty(circuit)) {
 						continue;
 					}
-					cmessages = allMessages[circuit];
+					cmessages = allCircuits[circuit].messages;
 				}
 				if (item.type && item.type=='bar') {
 					var ichild = document.createElement("div");
@@ -494,34 +494,35 @@ jsPlumb.ready(function() {
 			if (data.hasOwnProperty('sub')) {
 				for (var i in data.sub) {
 					var sub = data.sub[i];
-					addItemFin(child, sub.name, [], allMessages, needEndpoints, needUris, sub);
+					addItemFin(child, sub.name, [], allCircuits, needEndpoints, needUris, sub);
 				}
 			}
 		};
-		var addItem = function(parent, name, messages, allMessages, needEndpoints, needUris) {
+		var addItem = function(parent, name, messages, allCircuits, needEndpoints, needUris) {
 			new Ajax.Request('/items/'+name+'.json',{
 				method:'get',
 				asynchronous:false,
 				onSuccess: function(trans) {
-					addItemFin(parent, name, messages, allMessages, needEndpoints, needUris, trans.responseJSON);
+					addItemFin(parent, name, messages, allCircuits, needEndpoints, needUris, trans.responseJSON);
 				}
 			});
 		};
 		var connectionItems = {};
 		var needUpdates = new Array();
 		var updateConnections = {};
-		var allMessages = {};
+		var allCircuits = {};
 		new Ajax.Request('/data/?verbose',{
 			method:'get',
 			onSuccess: function(trans) {
 				var needEndpoints = new Array();
 				var needUris = new Array();
-				allMessages = trans.responseJSON;
+				allCircuits = trans.responseJSON;
 				// create items
-				for (var cname in allMessages) {
-					if (!allMessages.hasOwnProperty(cname) || cname.substring(0, 5)=='scan.')
+				for (var cname in allCircuits) {
+					if (!allCircuits.hasOwnProperty(cname) || cname.substring(0, 5)=='scan.') {
 						continue;
-					addItem(null, cname, allMessages[cname], allMessages, needEndpoints, needUris);
+					}
+					addItem(null, cname, allCircuits[cname].messages, allCircuits, needEndpoints, needUris);
 				}
 				// add endpoints
 				var needConnections = new Array();
@@ -583,7 +584,7 @@ jsPlumb.ready(function() {
 						console.log("dst need update "+conn);
 					}
 					if (data.length>4 && data[3]) { // add label
-						var cmessages = allMessages[data[3]];
+						var cmessages = allCircuits[data[3]].messages;
 						var message = cmessages[data[4]];
 						var over = conn.getOverlay("label");
 						over.setLabel(buildText(data.length>5?data[5]:null, message, data[3], data[4]));
@@ -647,7 +648,7 @@ jsPlumb.ready(function() {
 							}
 							var fields = message.fields;
 							if (fields) {
-								var cmessages = allMessages[cname];
+								var cmessages = allCircuits[cname].messages;
 								if (cmessages) {
 									var msg = cmessages[mname];
 									if (msg) {
@@ -682,7 +683,7 @@ jsPlumb.ready(function() {
 							var dst = Array.isArray(data) ? data[0]==null ? resolveDsts[data[1]]: data[0]+data[1] : data; 
 							var conn = connectionItems[src+"-"+dst];
 							if (conn) {
-								var cond = checkCondition(needUpdate.condition, allMessages);
+								var cond = checkCondition(needUpdate.condition, allCircuits);
 								var type = needUpdate.type[cond?0:1];
 								console.log("need update "+needUpdate.type+": "+conn+" to "+type);
 								conn.conn.setType(type);
