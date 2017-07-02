@@ -1754,9 +1754,9 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
         }
         name = message->getName();
         bool same = sameCircuit && name == lastName;
-        if (!same && sameCircuit && it+1 != messages.end()) {
+        if (!same && it+1 != messages.end()) {
           Message* next = *(it+1);
-          same = next->getName() == name;
+          same = next->getCircuit() == lastCircuit && next->getName() == name;
         }
         message->decodeJson(!first, same, raw, verbosity, ostream);
         lastName = name;
