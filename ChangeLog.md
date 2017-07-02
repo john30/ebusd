@@ -27,6 +27,9 @@
 * corrected duplicates when using "--dumpconfig"
 * corrected unclean shutdown
 * also use transfer latency for SYN generator
+* fix for timeout message when decoding scan result failed
+* corrected flushing in dump and raw files
+* corrected unique keys in JSON port
 
 ## Features
 * added support for MQTT handling via libmosquitto (will be compiled in when library is available)
@@ -38,7 +41,7 @@
 * added Docker support
 * allow invalid SW and HW fields and remove all but alpha-numeric chars and underscore from ident when looking for scan config file
 * added "auth" command and user/access information to "info" command output
-* added user and secret arguments to HTTP port
+* added user and secret arguments to HTTP/JSON port and added options to retrieve message definition and raw messages
 * use ACL in read/write/find/scan commands
 * added -a and -l options to "find" command
 * added possibility to define different log level per area on command line and with "log" command
