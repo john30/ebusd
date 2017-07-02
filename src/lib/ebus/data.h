@@ -250,6 +250,12 @@ class DataField : public AttributedItem {
       vector<const SingleDataField*>* fields) const = 0;
 
   /**
+   * Get the field count (excluding ignored fields).
+   * @return the field count (excluding ignored fields).
+   */
+  virtual size_t getCount() const = 0;
+
+  /**
    * Get the specified field name.
    * @param fieldIndex the index of the field (excluding ignored fields), or -1 for this.
    * @return the field name, or the index as string is not unique or not available.
@@ -391,6 +397,9 @@ class SingleDataField : public DataField {
    * only consumes a part of a byte and a subsequent field may re-use the same offset.
    */
   bool hasFullByteOffset(bool after) const;
+
+  // @copydoc
+  size_t getCount() const override { return isIgnored() ? 0 : 1; }
 
   // @copydoc
   virtual string getName(ssize_t fieldIndex) const {
@@ -627,6 +636,9 @@ class DataFieldSet : public DataField {
 
   // @copydoc
   size_t getLength(PartType partType, size_t maxLength) const override;
+
+  // @copydoc
+  size_t getCount() const override { return m_fields.size() - m_ignoredCount; }
 
   // @copydoc
   string getName(ssize_t fieldIndex) const override;

@@ -268,11 +268,17 @@ class Message : public AttributedItem {
   static bool checkLevel(const string& level, const string& checkLevels);
 
   /**
+   * Get the number of non-ignored fields.
+   * @return the number of non-ignored fields.
+   */
+  size_t getFieldCount() const { return m_data->getCount(); }
+
+  /**
    * Get the specified field name.
    * @param fieldIndex the index of the field (excluding ignored fields).
-   * @return the field name, or the index as string if not unique or not available.
+   * @return the field name, or the index as string if not unique, or empty not available.
    */
-  virtual string getFieldName(ssize_t fieldIndex) const { return m_data->getName(fieldIndex); }
+  string getFieldName(ssize_t fieldIndex) const { return m_data->getName(fieldIndex); }
 
   /**
    * Get whether this is a write message.

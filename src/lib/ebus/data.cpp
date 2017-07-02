@@ -532,16 +532,20 @@ result_t SingleDataField::read(const SymbolString& data, size_t offset,
     if (leadingSeparator) {
       *output << ",";
     }
-    if (!shortFormat) {
-      *output << "\n    ";
+    if (fieldIndex < 0 && !shortFormat) {
+      *output << "\n     ";
     }
     if (outputIndex >= 0 || m_name.empty() || !(outputFormat & OF_NAMES)) {
-      *output << "\"" << static_cast<signed int>(outputIndex < 0 ? 0 : outputIndex) << "\":";
+      if (fieldIndex < 0) {
+        *output << "\"" << static_cast<signed int>(outputIndex < 0 ? 0 : outputIndex) << "\":";
+      }
       if (!shortFormat) {
         *output << " {\"name\": \"" << m_name << "\"" << ", \"value\": ";
       }
     } else {
-      *output << "\"" << m_name << "\":";
+      if (fieldIndex < 0) {
+        *output << "\"" << m_name << "\":";
+      }
       if (!shortFormat) {
         *output << " {\"value\": ";
       }
