@@ -1615,6 +1615,15 @@ result_t MainLoop::executeHelp(ostringstream* ostream) {
   return RESULT_OK;
 }
 
+/**
+ * Parse a boolean query value.
+ * @param value the query value.
+ * @return the parsed boolean.
+ */
+bool parseBoolQuery(const string& value) {
+  return value.length() == 0 || value == "1" || value == "true";
+}
+
 result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostringstream* ostream) {
   bool numeric = false, valueName = false, required = false, full = false, withWrite = false, raw = false;
   bool withDefinition = false;
@@ -1655,29 +1664,29 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
         } else if (qname == "poll") {
           pollPriority = (size_t)parseInt(value.c_str(), 10, 1, 9, &ret);
         } else if (qname == "exact") {
-          exact = value.length() == 0 || value == "1" || value == "true";
+          exact = parseBoolQuery(value);
         } else if (qname == "verbose") {
-          if (value.length() == 0 || value == "1" || value == "true") {
+          if (parseBoolQuery(value)) {
             verbosity |= OF_UNITS | OF_COMMENTS;
           }
         } else if (qname == "indexed") {
-          if (value.length() == 0 || value == "1" || value == "true") {
+          if (parseBoolQuery(value)) {
             verbosity &= ~OF_NAMES;
           }
         } else if (qname == "numeric") {
-          numeric = value.length() == 0 || value == "1" || value == "true";
+          numeric = parseBoolQuery(value);
         } else if (qname == "valuename") {
-          valueName = value.length() == 0 || value == "1" || value == "true";
+          valueName = parseBoolQuery(value);
         } else if (qname == "full") {
-          full = value.length() == 0 || value == "1" || value == "true";
+          full = parseBoolQuery(value);
         } else if (qname == "required") {
-          required = value.length() == 0 || value == "1" || value == "true";
+          required = parseBoolQuery(value);
         } else if (qname == "write") {
-          withWrite = value.length() == 0 || value == "1" || value == "true";
+          withWrite = parseBoolQuery(value);
         } else if (qname == "raw") {
-          raw = value.length() == 0 || value == "1" || value == "true";
+          raw = parseBoolQuery(value);
         } else if (qname == "def") {
-          withDefinition = value.length() == 0 || value == "1" || value == "true";
+          withDefinition = parseBoolQuery(value);
         } else if (qname == "user") {
           user = value;
         } else if (qname == "secret") {
@@ -1729,7 +1738,8 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
             maxLastUp = lastup;
           }
         }
-        if (message->getCircuit() != lastCircuit) {
+        bool sameCircuit = message->getCircuit() == lastCircuit;
+        if (!sameCircuit) {
           if (lastCircuit.length() > 0) {
             *ostream << "\n  }\n },";
           }
@@ -1743,10 +1753,10 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
           first = true;
         }
         name = message->getName();
-        bool same = name == lastName;
-        if (!same && !lastName.empty() && it+1 != messages.end()) {
+        bool same = sameCircuit && name == lastName;
+        if (!same && sameCircuit && it+1 != messages.end()) {
           Message* next = *(it+1);
-          same = next->getCircuit() == lastCircuit && next->getName() == name;
+          same = next->getName() == name;
         }
         message->decodeJson(!first, same, raw, verbosity, ostream);
         lastName = name;
