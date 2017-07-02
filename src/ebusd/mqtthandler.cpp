@@ -34,7 +34,8 @@ using std::dec;
 #define O_PASS (O_USER+1)
 #define O_TOPI (O_PASS+1)
 #define O_RETA (O_TOPI+1)
-#define O_CAFI (O_RETA+1)
+#define O_JSON (O_RETA+1)
+#define O_CAFI (O_JSON+1)
 #define O_CERT (O_CAFI+1)
 #define O_KEYF (O_CERT+1)
 #define O_KEPA (O_KEYF+1)
@@ -49,6 +50,7 @@ static const struct argp_option g_mqtt_argp_options[] = {
   {"mqtttopic",   O_TOPI, "TOPIC",    0, "Use MQTT TOPIC (prefix before /%circuit/%name or complete format) [ebusd]",
       0 },
   {"mqttretain",  O_RETA, NULL,       0, "Retain all topics instead of only selected global ones", 0 },
+  {"mqttjson",    O_JSON, NULL,       0, "Publish in JSON format instead of strings", 0 },
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
   {"mqttca",      O_CAFI, "CA",       0, "Use CA file or dir (ending with '/') for MQTT TLS (no default)", 0 },
@@ -66,6 +68,7 @@ static const char* g_username = NULL;     //!< optional user name for MQTT broke
 static const char* g_password = NULL;     //!< optional password for MQTT broker (no default)
 static const char* g_topic = PACKAGE;     //!< MQTT topic to use (prefix if without wildcards) [ebusd]
 static bool g_retain = false;             //!< whether to retail all topics
+static OutputFormat g_publishFormat = 0;  //!< the OutputFormat for publishing messages
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
 static const char* g_cafile = NULL;    //!< CA file for TLS
@@ -128,6 +131,10 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
 
   case O_RETA:  // --mqttretain
     g_retain = true;
+    break;
+
+  case O_JSON:  // --mqttjson
+    g_publishFormat |= OF_JSON|OF_NAMES;
     break;
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
@@ -490,7 +497,8 @@ void MqttHandler::notifyTopic(const string& topic, const string& data) {
 void MqttHandler::notifyUpdateCheckResult(const string& checkResult) {
   if (checkResult != m_lastUpdateCheckResult) {
     m_lastUpdateCheckResult = checkResult;
-    publishTopic(m_globalTopic+"updatecheck", checkResult.empty() ? "OK" : checkResult, true);
+    const string sep = (g_publishFormat & OF_JSON) ? "\"" : "";
+    publishTopic(m_globalTopic+"updatecheck", sep + (checkResult.empty() ? "OK" : checkResult) + sep, true);
   }
 }
 
@@ -503,7 +511,8 @@ void MqttHandler::run() {
 
   time(&now);
   start = lastTaskRun = now;
-  publishTopic(m_globalTopic+"version", PACKAGE_STRING "." REVISION, true);
+  const string sep = (g_publishFormat & OF_JSON) ? "\"" : "";
+  publishTopic(m_globalTopic+"version", sep + (PACKAGE_STRING "." REVISION) + sep, true);
   publishTopic(m_globalTopic+"running", "true", true);
   publishTopic(signalTopic, "false");
   mosquitto_message_callback_set(m_mosquitto, on_message);
@@ -597,23 +606,30 @@ string MqttHandler::getTopic(const Message* message, const string& suffix, const
 }
 
 void MqttHandler::publishMessage(const Message* message, ostringstream* updates) {
+  OutputFormat outputFormat = g_publishFormat;
+  bool json = outputFormat & OF_JSON;
   if (!m_publishByField) {
-    result_t result = message->decodeLastData(false, NULL, -1, 0, updates);
+    if (json) {
+      *updates << "{";
+    }
+    result_t result = message->decodeLastData(false, NULL, -1, outputFormat, updates);
     if (result != RESULT_OK) {
       logOtherError("mqtt", "decode %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(),
           getResultCode(result));
       return;
     }
+    if (json) {
+      *updates << "}";
+    }
     publishTopic(getTopic(message), updates->str());
     return;
   }
-  ssize_t index = 0;
-  do {
+  if (json) {
+    outputFormat |= OF_SHORT;
+  }
+  for (size_t index = 0; index < message->getFieldCount(); index++) {
     string name = message->getFieldName(index);
-    if (name.empty()) {
-      break;
-    }
-    result_t result = message->decodeLastData(false, NULL, index, 0, updates);
+    result_t result = message->decodeLastData(false, NULL, index, outputFormat, updates);
     if (result != RESULT_OK) {
       logOtherError("mqtt", "decode %s %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(),
           name.c_str(), getResultCode(result));
@@ -622,8 +638,7 @@ void MqttHandler::publishMessage(const Message* message, ostringstream* updates)
     publishTopic(getTopic(message, "", name), updates->str());
     updates->str("");
     updates->clear();
-    index++;
-  } while (index < MAX_LEN);
+  }
 }
 
 void MqttHandler::publishTopic(const string& topic, const string& data, bool retain) {
