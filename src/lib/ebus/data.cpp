@@ -1211,7 +1211,7 @@ result_t DataFieldTemplates::getFieldMap(const string& preferLanguage, vector<st
       }
     } else {
       map<string, size_t>::iterator previous = seen.find(lowerName);
-      if (seen.find(lowerName) != seen.end()) {
+      if (previous != seen.end()) {
         if (inDataFields) {
           *errorDescription = "duplicate field " + name;
         } else {
