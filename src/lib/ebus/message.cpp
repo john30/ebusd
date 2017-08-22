@@ -1861,7 +1861,7 @@ result_t MessageMap::getFieldMap(const string& preferLanguage, vector<string>* r
       }
     } else {
       map<string, size_t>::iterator previous = seen.find(lowerName);
-      if (seen.find(lowerName) != seen.end()) {
+      if (previous != seen.end()) {
         if (inDataFields) {
           *errorDescription = "duplicate field " + name;
         } else {
