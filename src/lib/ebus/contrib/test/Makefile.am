@@ -5,7 +5,7 @@ AM_CXXFLAGS = -I$(top_srcdir)/src \
 noinst_PROGRAMS = test_contrib
 
 test_contrib_SOURCES = test_tem.cpp
-test_contrib_LDADD = ../../libebus.a ../libebuscontrib.a
+test_contrib_LDADD = ../../libebus.a ../libebuscontrib.a -lpthread
 
 distclean-local:
 	-rm -f Makefile.in
