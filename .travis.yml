@@ -1,3 +1,4 @@
+dist: trusty
 language: cpp
 addons:
   apt:
@@ -10,6 +11,7 @@ before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y libmosquitto0 libmosquitto0-dev
   - export CXX=g++-4.8
+  - ping localhost
 script:
   - ./autogen.sh --enable-coverage && make all test
   - (cd src/lib/ebus/test && ./test_symbol && ./test_filereader && ./test_data && ./test_message)
