@@ -336,6 +336,7 @@ if [ "$status" = 0 ]; then
   echo `date` "commands done"
   #kill $lstpid
 fi
+sleep 2
 verify=`./src/tools/ebusctl -p 8877 info|egrep "^address 04:"`
 if [ "x$verify" != 'xaddress 04: slave #25, scanned "MF=153;ID=BBBBB;SW=3031;HW=3031"' ]; then
   echo `date` "error unexpected result from info command: $verify"
@@ -345,6 +346,7 @@ if [ "x$verify" != 'xaddress 04: slave #25, scanned "MF=153;ID=BBBBB;SW=3031;HW=
   cat "$PWD/ebusd.log"
   exit 1
 fi
+sleep 2
 kill $pid
 echo `date` "ebusd log:"
 cat "$PWD/ebusd.log"
