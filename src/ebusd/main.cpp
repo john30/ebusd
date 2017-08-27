@@ -867,6 +867,7 @@ void executeInstructions(MessageMap* messages, bool verbose) {
 
 result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive) {
   logInfo(lf_main, "loading configuration files from %s", opt.configPath);
+  messages->lock();
   messages->clear();
   s_globalTemplates.clear();
   for (auto& it : s_templatesByPath) {
@@ -886,6 +887,7 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
     logError(lf_main, "error reading config files: %s, last error: %s", getResultCode(result),
         errorDescription.c_str());
   }
+  messages->unlock();
   return RESULT_OK;
 }
 

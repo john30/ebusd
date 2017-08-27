@@ -26,6 +26,7 @@
 #include <map>
 #include <queue>
 #include <functional>
+#include <mutex>
 #include "lib/ebus/data.h"
 #include "lib/ebus/result.h"
 #include "lib/ebus/symbol.h"
@@ -1433,6 +1434,16 @@ class MessageMap : public MappedFileReader {
   bool decodeCircuit(const string& circuit, OutputFormat outputFormat, ostringstream* output) const;
 
   /**
+   * Lock this instance against simultaneous modifying access.
+   */
+  void lock() { m_mutex.lock(); }
+
+  /**
+   * Unlock this instance against simultaneous modifying access.
+   */
+  void unlock() { m_mutex.unlock(); }
+
+  /**
    * Removes all @a Message instances.
    */
   void clear();
@@ -1545,6 +1556,9 @@ class MessageMap : public MappedFileReader {
 
   /** additional attributes by circuit name. */
   map<string, AttributedItem*> m_circuitData;
+
+  /** a @a mutex for locking out changes. */
+  mutex m_mutex;
 };
 
 }  // namespace ebusd

@@ -32,10 +32,10 @@ static const struct argp_child g_last_argp_child = {NULL, 0, NULL, 0};
 
 /** the list of @a argp_child structures. */
 static struct argp_child g_argp_children[
-#ifdef HAVE_MQTT
             1
-#endif
+#ifdef HAVE_MQTT
             +1
+#endif
 ];
 
 const struct argp_child* datahandler_getargs() {
@@ -54,10 +54,7 @@ bool datahandler_register(UserInfo* userInfo, BusHandler* busHandler, MessageMap
     list<DataHandler*>* handlers) {
   bool success = true;
 #ifdef HAVE_MQTT
-  DataHandler* handler = mqtthandler_register(userInfo, busHandler, messages);
-  if (handler) {
-    handlers->push_back(handler);
-  } else {
+  if (!mqtthandler_register(userInfo, busHandler, messages, handlers)) {
     success = false;
   }
 #endif
@@ -66,7 +63,7 @@ bool datahandler_register(UserInfo* userInfo, BusHandler* busHandler, MessageMap
 
 void DataSink::notifyUpdate(Message* message) {
   if (message && message->hasLevel(m_levels)) {
-    m_updatedMessages[message]++;
+    m_updatedMessages[message->getKey()]++;
   }
 }
 

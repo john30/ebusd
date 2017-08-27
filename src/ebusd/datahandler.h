@@ -164,8 +164,8 @@ class DataSink : virtual public DataHandler {
   /** the allowed access levels. */
   string m_levels;
 
-  /** a map of updated @p Message instances. */
-  map<Message*, int> m_updatedMessages;
+  /** a map of updated @p Message keys. */
+  map<uint64_t, int> m_updatedMessages;
 };
 
 

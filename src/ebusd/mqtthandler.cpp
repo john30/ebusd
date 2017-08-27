@@ -66,7 +66,10 @@ static const char* g_host = "localhost";  //!< host name of MQTT broker [localho
 static uint16_t g_port = 0;               //!< optional port of MQTT broker, 0 to disable [0]
 static const char* g_username = NULL;     //!< optional user name for MQTT broker (no default)
 static const char* g_password = NULL;     //!< optional password for MQTT broker (no default)
-static const char* g_topic = PACKAGE;     //!< MQTT topic to use (prefix if without wildcards) [ebusd]
+/** the MQTT topic string parts. */
+static vector<string> g_topicStrs;
+/** the MQTT topic field parts. */
+static vector<string> g_topicFields;
 static bool g_retain = false;             //!< whether to retail all topics
 static OutputFormat g_publishFormat = 0;  //!< the OutputFormat for publishing messages
 
@@ -78,10 +81,11 @@ static const char* g_keyfile = NULL;   //!< client key file for TLS
 static const char* g_keypass = NULL;   //!< client key file password for TLS
 #endif
 
+bool parseTopic(const string& topic, vector<string>* strs, vector<string>* fields);
 
 /**
  * The MQTT argument parsing function.
- * @param key the key from @a mqtt_argp_options.
+ * @param key the key from @a g_mqtt_argp_options.
  * @param arg the option argument, or NULL.
  * @param state the parsing state.
  */
@@ -126,7 +130,9 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
       argp_error(state, "invalid mqtttopic");
       return EINVAL;
     }
-    g_topic = arg;
+    if (!parseTopic(arg, &g_topicStrs, &g_topicFields)) {
+      argp_error(state, "malformed mqtttopic");
+    }
     break;
 
   case O_RETA:  // --mqttretain
@@ -186,12 +192,17 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
 static const struct argp g_mqtt_argp = { g_mqtt_argp_options, mqtt_parse_opt, NULL, NULL, NULL, NULL, NULL };
 static const struct argp_child g_mqtt_argp_child = {&g_mqtt_argp, 0, "", 1};
 
+
 const struct argp_child* mqtthandler_getargs() {
   return &g_mqtt_argp_child;
 }
 
-DataHandler* mqtthandler_register(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages) {
-  return new MqttHandler(userInfo, busHandler, messages);
+bool mqtthandler_register(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages,
+    list<DataHandler*>* handlers) {
+  if (g_port > 0) {
+    handlers->push_back(new MqttHandler(userInfo, busHandler, messages));
+  }
+  return true;
 }
 
 /** the known topic field names. */
@@ -216,6 +227,8 @@ bool parseTopic(const string& topic, vector<string>* strs, vector<string>* field
   size_t lastpos = 0;
   size_t end = topic.length();
   vector<string> columns;
+  strs->clear();
+  fields->clear();
   for (size_t pos=topic.find('%', lastpos); pos != string::npos; ) {
     size_t idx = knownFieldCount;
     size_t len = 0;
@@ -281,37 +294,29 @@ void on_connect(
 MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages)
   : DataSink(userInfo, "mqtt"), DataSource(busHandler), Thread(), m_messages(messages), m_connected(false),
     m_lastUpdateCheckResult(".") {
-  bool enabled = g_port != 0;
   m_publishByField = false;
   m_mosquitto = NULL;
-  if (enabled && !parseTopic(g_topic, &m_topicStrs, &m_topicFields)) {
-    logOtherError("mqtt", "malformed topic %s", g_topic);
-    return;
-  }
-  if (!enabled) {
-    return;
-  }
   int major = -1;
   mosquitto_lib_version(&major, NULL, NULL);
   if (major != LIBMOSQUITTO_MAJOR) {
     logOtherError("mqtt", "invalid mosquitto version %d instead of %d", major, LIBMOSQUITTO_MAJOR);
     return;
   }
-  if (m_topicFields.empty()) {
-    if (m_topicStrs.empty()) {
-      m_topicStrs.push_back("");
+  if (g_topicFields.empty()) {
+    if (g_topicStrs.empty()) {
+      g_topicStrs.push_back("");
     } else {
-      string str = m_topicStrs[0];
+      string str = g_topicStrs[0];
       if (str.empty() || str[str.length()-1] != '/') {
-        m_topicStrs[0] = str+"/";
+        g_topicStrs[0] = str+"/";
       }
     }
-    m_topicFields.push_back("circuit");
-    m_topicStrs.push_back("/");
-    m_topicFields.push_back("name");
+    g_topicFields.push_back("circuit");
+    g_topicStrs.push_back("/");
+    g_topicFields.push_back("name");
   } else {
-    for (size_t i = 0; i < m_topicFields.size(); i++) {
-      if (m_topicFields[i] == "field") {
+    for (size_t i = 0; i < g_topicFields.size(); i++) {
+      if (g_topicFields[i] == "field") {
         m_publishByField = true;
         break;
       }
@@ -431,16 +436,16 @@ void MqttHandler::notifyTopic(const string& topic, const string& data) {
   size_t last = 0;
   string circuit, name;
   size_t idx;
-  for (idx = 0; idx < m_topicStrs.size()+1; idx++) {
+  for (idx = 0; idx < g_topicStrs.size()+1; idx++) {
     string field;
     string chk;
-    if (idx < m_topicStrs.size()) {
-      chk = m_topicStrs[idx];
+    if (idx < g_topicStrs.size()) {
+      chk = g_topicStrs[idx];
       pos = remain.find(chk, last);
       if (pos == string::npos) {
         return;
       }
-    } else if (idx-1 < m_topicFields.size()) {
+    } else if (idx-1 < g_topicFields.size()) {
       pos = remain.size();
     } else if (last < remain.size()) {
       return;
@@ -457,7 +462,7 @@ void MqttHandler::notifyTopic(const string& topic, const string& data) {
       if (field.empty()) {
         return;
       }
-      string fieldName = m_topicFields[idx-1];
+      string fieldName = g_topicFields[idx-1];
       if (fieldName == "circuit") {
         circuit = field;
       } else if (fieldName == "name") {
@@ -547,15 +552,28 @@ void MqttHandler::run() {
       publishTopic(uptimeTopic, updates.str());
       time(&lastTaskRun);
     }
-    if (m_connected && !m_updatedMessages.empty()) {
-      for (const auto it : m_updatedMessages) {
-        updates.str("");
-        updates.clear();
-        updates << dec;
-        publishMessage(it.first, &updates);  // TODO avoid using the message while reload command is executed
+    if (!m_updatedMessages.empty()) {
+      if (m_connected) {
+        m_messages->lock();
+        for(auto it = m_updatedMessages.begin(); it != m_updatedMessages.end(); ) {
+          const vector<Message*>* messages = m_messages->getByKey(it->first);
+          if (messages) {
+            updates.str("");
+            updates.clear();
+            updates << dec;
+            for (auto message : *messages) {
+              if (message->getLastChangeTime() > 0 && message->isAvailable()) {
+                publishMessage(message, &updates);
+              }
+            }
+          }
+          it = m_updatedMessages.erase(it);
+        }
+        m_messages->unlock();
+      } else {
+        m_updatedMessages.clear();
       }
     }
-    m_updatedMessages.clear();
   }
 }
 
@@ -586,16 +604,16 @@ void MqttHandler::handleTraffic() {
 
 string MqttHandler::getTopic(const Message* message, const string& suffix, const string& fieldName) {
   ostringstream ret;
-  for (size_t i = 0; i < m_topicStrs.size(); i++) {
-    ret << m_topicStrs[i];
+  for (size_t i = 0; i < g_topicStrs.size(); i++) {
+    ret << g_topicStrs[i];
     if (!message) {
       break;
     }
-    if (i < m_topicFields.size()) {
-      if (m_topicFields[i] == "field") {
+    if (i < g_topicFields.size()) {
+      if (g_topicFields[i] == "field") {
         ret << fieldName;
       } else {
-        message->dumpField(m_topicFields[i], false, &ret);
+        message->dumpField(g_topicFields[i], false, &ret);
       }
     }
   }

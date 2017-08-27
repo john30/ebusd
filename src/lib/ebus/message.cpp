@@ -2559,8 +2559,10 @@ void MessageMap::invalidateCache(Message* message) {
 
 void MessageMap::addPollMessage(bool toFront, Message* message) {
   if (message != NULL && message->getPollPriority() > 0) {
+    lock();
     message->m_lastPollTime = toFront ? 0 : m_pollMessages.size();
     m_pollMessages.push(message);
+    unlock();
   }
 }
 
