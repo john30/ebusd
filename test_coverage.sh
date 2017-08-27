@@ -78,6 +78,7 @@ echo > dump
 ./src/tools/ebusctl -x >/dev/null 2>/dev/null
 ./src/tools/ebusctl 'help x' >/dev/null 2>/dev/null
 #server:
+php -r 'echo "php is available";'
 php -r '
 error_reporting (E_ALL);
 set_time_limit (0);
