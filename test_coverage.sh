@@ -88,11 +88,14 @@ php -r '
 error_reporting(E_ALL);
 set_time_limit(0);
 ob_implicit_flush();
-if (($srv=socket_create(AF_INET, SOCK_STREAM, SOL_TCP))===false) die("server: create socket");
+if (($srv=socket_create(AF_INET, SOCK_STREAM, SOL_TCP))===false) {
+  die("server: create socket");
+}
 if (socket_bind($srv, "127.0.0.1", 18876)===false) {
   @socket_close($srv);
   die("server: bind socket");
 }
+echo "server: listen\n";
 if (socket_listen($srv, 5)===false) {
   @socket_close($srv);
   die("server: listen socket");
