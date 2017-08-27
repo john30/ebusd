@@ -200,6 +200,12 @@ const struct argp_child* mqtthandler_getargs() {
 bool mqtthandler_register(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages,
     list<DataHandler*>* handlers) {
   if (g_port > 0) {
+    int major = -1;
+    mosquitto_lib_version(&major, NULL, NULL);
+    if (major != LIBMOSQUITTO_MAJOR) {
+      logOtherError("mqtt", "invalid mosquitto version %d instead of %d", major, LIBMOSQUITTO_MAJOR);
+      return false;
+    }
     handlers->push_back(new MqttHandler(userInfo, busHandler, messages));
   }
   return true;
@@ -296,12 +302,6 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
     m_lastUpdateCheckResult(".") {
   m_publishByField = false;
   m_mosquitto = NULL;
-  int major = -1;
-  mosquitto_lib_version(&major, NULL, NULL);
-  if (major != LIBMOSQUITTO_MAJOR) {
-    logOtherError("mqtt", "invalid mosquitto version %d instead of %d", major, LIBMOSQUITTO_MAJOR);
-    return;
-  }
   if (g_topicFields.empty()) {
     if (g_topicStrs.empty()) {
       g_topicStrs.push_back("");
