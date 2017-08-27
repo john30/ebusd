@@ -105,4 +105,25 @@ bool WaitThread::Wait(int seconds) {
   return isRunning();
 }
 
+
+Mutex::Mutex() {
+  pthread_mutexattr_t attr;
+  pthread_mutexattr_init(&attr);
+  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+  pthread_mutex_init(&m_mutex, &attr);
+  pthread_mutexattr_destroy(&attr);
+}
+
+Mutex::~Mutex() {
+  pthread_mutex_destroy(&m_mutex);
+}
+
+void Mutex::lock() {
+  pthread_mutex_lock(&m_mutex);
+}
+
+void Mutex::unlock() {
+  pthread_mutex_unlock(&m_mutex);
+}
+
 }  // namespace ebusd

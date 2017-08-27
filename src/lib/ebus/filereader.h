@@ -24,9 +24,9 @@
 #include <string>
 #include <vector>
 #include <iomanip>
-#include <mutex>
 #include "lib/ebus/symbol.h"
 #include "lib/ebus/result.h"
+#include "lib/utils/thread.h"
 
 namespace ebusd {
 
@@ -44,7 +44,6 @@ using std::string;
 using std::map;
 using std::ostream;
 using std::istream;
-using std::mutex;
 
 /** the separator character used between fields. */
 #define FIELD_SEPARATOR ','
@@ -275,15 +274,16 @@ class MappedFileReader : public FileReader {
    */
   static const string combineRow(const map<string, string>& row);
 
+ protected:
+  /** a @a Mutex for access to defaults. */
+  Mutex m_mutex;
+
  private:
   /** whether this instance supports rows with defaults (starting with a star). */
   const bool m_supportsDefaults;
 
   /** the preferred language code (up to 2 characters), or empty. */
   const string m_preferLanguage;
-
-  /** a @a mutex for access to defaults. */
-  mutex m_mutex;
 
   /** the name of each column. */
   vector<string> m_columnNames;

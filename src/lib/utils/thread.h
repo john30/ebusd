@@ -142,6 +142,37 @@ class WaitThread : public Thread {
   pthread_cond_t m_cond;
 };
 
+
+/**
+ * A simple mutex.
+ */
+class Mutex {
+ public:
+  /**
+   * Constructor.
+   */
+  Mutex();
+
+  /**
+   * Destructor.
+   */
+  virtual ~Mutex();
+
+  /**
+   * Lock this mutex.
+   */
+  void lock();
+
+  /**
+   * Unlock this mutex.
+   */
+  void unlock();
+
+ private:
+  /** the mutex for waiting. */
+  pthread_mutex_t m_mutex;
+};
+
 }  // namespace ebusd
 
 #endif  // LIB_UTILS_THREAD_H_

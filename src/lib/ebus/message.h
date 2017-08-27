@@ -26,7 +26,6 @@
 #include <map>
 #include <queue>
 #include <functional>
-#include <mutex>
 #include "lib/ebus/data.h"
 #include "lib/ebus/result.h"
 #include "lib/ebus/symbol.h"
@@ -1556,9 +1555,6 @@ class MessageMap : public MappedFileReader {
 
   /** additional attributes by circuit name. */
   map<string, AttributedItem*> m_circuitData;
-
-  /** a @a mutex for locking out changes. */
-  mutex m_mutex;
 };
 
 }  // namespace ebusd
