@@ -91,6 +91,7 @@ ob_implicit_flush();
 if (($srv=socket_create_listen(18876))===false) {
   die("server: create_listen socket");
 }
+socket_set_block($srv);
 echo "server: waiting\n";
 if (($cli=socket_accept($srv))===false) {
   @socket_close($srv);
@@ -305,6 +306,7 @@ nocommand
 EOF
 while [ ! "$status" = 0 ]; do
   sleep 5
+  echo `date` "check signal"
   ./src/tools/ebusctl -p 8877 state | egrep -q "signal acquired"
   status=$?
 done
@@ -313,7 +315,7 @@ if [ "$status" = 0 ]; then
   sleep 2
   #echo "listen"|./src/tools/ebusctl -p 8877 &
   #lstpid=$!
-  ./src/tools/ebusctl -p 8899 >/dev/null 2>/dev/null
+  #./src/tools/ebusctl -p 8899 >/dev/null 2>/dev/null
   for line in "${lines[@]}"; do
     if [ -n "$line" ]; then
       echo `date` "send: $line"
