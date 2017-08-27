@@ -22,6 +22,7 @@
 #include <mosquitto.h>
 #include <map>
 #include <string>
+#include <list>
 #include <vector>
 #include "ebusd/datahandler.h"
 #include "ebusd/bushandler.h"

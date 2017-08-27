@@ -555,7 +555,7 @@ void MqttHandler::run() {
     if (!m_updatedMessages.empty()) {
       if (m_connected) {
         m_messages->lock();
-        for(auto it = m_updatedMessages.begin(); it != m_updatedMessages.end(); ) {
+        for (auto it = m_updatedMessages.begin(); it != m_updatedMessages.end(); ) {
           const vector<Message*>* messages = m_messages->getByKey(it->first);
           if (messages) {
             updates.str("");
