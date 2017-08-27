@@ -307,7 +307,8 @@ w -h fe070400
 nocommand
 EOF
 status=1
-while [ ! "$status" = 0 ]; do
+cnt=3
+while [ ! "$status" = 0 ] && [ $cnt -gt 0]; do
   sleep 5
   echo `date` "check signal"
   ./src/tools/ebusctl -p 8877 state | egrep -q "signal acquired"
