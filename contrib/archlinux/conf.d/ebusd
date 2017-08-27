@@ -4,13 +4,9 @@
 # Options to pass to ebusd (run "ebusd -?" for more info):
 EBUSD_OPTS="--scanconfig"
 
-# In order to run multiple ebusd instances, simply define several EBUSD_OPTS
-# with a unique suffix for each.
-# Recommended is using a number as suffix for all EBUSD_OPTS settings.
-# That number can then be used as additional "instance" parameter to the init.d
-# script in order to start/stop an individual ebusd instance instead of all
-# instances.
-# Example (uncomment the EBUSD_OPTS above):
-#EBUSD_OPTS1="--scanconfig -d /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port0 -p 8888 -l /var/log/ebusd1.log"
-#EBUSD_OPTS2="--scanconfig -d /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A900acTF-if00-port0 -p 8889 -l /var/log/ebusd2.log"
-#EBUSD_OPTS3="--scanconfig -d /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A900beCG-if00-port0 -p 8890 -l /var/log/ebusd3.log"
+# MULTIPLE EBUSD INSTANCES WITH SYSTEMD
+# In order to run muiltiple ebusd instances on a systemd enabled system, just
+# copy the /usr/lib/systemd/system/ebusd.service file to /etc/systemd/system/
+# with a different name (e.g. ebusd-2.service), remove the line starting with
+# 'EnvironmentFile=', and replace the '$EBUSD_OPTS' with the options for that
+# particular ebusd instance.

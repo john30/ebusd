@@ -54,10 +54,17 @@ echo "*************"
 echo " pack"
 echo "*************"
 echo
-mkdir -p $RELEASE/DEBIAN $RELEASE/etc/init.d $RELEASE/etc/default $RELEASE/etc/ebusd $RELEASE/etc/logrotate.d || exit 1
+mkdir -p $RELEASE/DEBIAN $RELEASE/etc/default $RELEASE/etc/ebusd $RELEASE/etc/logrotate.d || exit 1
 rm $RELEASE/usr/bin/ebusfeed
-cp contrib/debian/init.d/ebusd $RELEASE/etc/init.d/ebusd || exit 1
-cp contrib/debian/default/ebusd $RELEASE/etc/default/ebusd || exit 1
+if [ -d /run/systemd/system ]; then
+  mkdir -p $RELEASE/lib/systemd/system || exit 1
+  cp contrib/debian/systemd/ebusd.service $RELEASE/lib/systemd/system/ebusd.service || exit 1
+  cp contrib/debian/default/ebusd $RELEASE/etc/default/ebusd || exit 1
+else
+  mkdir -p $RELEASE/etc/init.d || exit 1
+  cp contrib/debian/init.d/ebusd $RELEASE/etc/init.d/ebusd || exit 1
+  cp contrib/debian/default/ebusd $RELEASE/etc/default/ebusd || exit 1
+fi
 cp contrib/etc/ebusd/* $RELEASE/etc/ebusd/ || exit 1
 cp contrib/etc/logrotate.d/ebusd $RELEASE/etc/logrotate.d/ || exit 1
 cp ChangeLog.md $RELEASE/DEBIAN/changelog || exit 1
@@ -70,18 +77,23 @@ Architecture: $ARCH
 Maintainer: John Baier <ebusd@ebusd.eu>
 Homepage: https://github.com/john30/ebusd
 Bugs: https://github.com/john30/ebusd/issues
-Depends: libstdc++6 (>= 4.8.1), libc6, libgcc1$extralibs
+Depends: logrotate, libstdc++6 (>= 4.8.1), libc6, libgcc1$extralibs
 Description: eBUS daemon.
  ebusd is a daemon for handling communication with eBUS devices connected to a
  2-wire bus system.
 EOF
 cat <<EOF > $RELEASE/DEBIAN/dirs
 /etc/ebusd
-/etc/init.d
 /etc/default
 /etc/logrotate.d
 /usr/bin
 EOF
+if [ -d /run/systemd/system ]; then
+  echo /lib/systemd/system >> $RELEASE/DEBIAN/dirs
+else
+  echo /etc/init.d >> $RELEASE/DEBIAN/dirs
+fi
+
 cat <<EOF > $RELEASE/DEBIAN/postinst
 #!/bin/sh
 echo "Instructions:"
