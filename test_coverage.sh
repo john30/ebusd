@@ -84,9 +84,9 @@ if [ ! "$?" = 0 ]; then
   exit 1
 fi
 php -r '
-error_reporting (E_ALL);
-set_time_limit (0);
-ob_implicit_flush ();
+error_reporting(E_ALL);
+set_time_limit(0);
+ob_implicit_flush();
 if (($srv=socket_create(AF_INET, SOCK_STREAM, SOL_TCP))===false) die("server: create socket");
 if (socket_bind($srv, "127.0.0.1", 8876)===false) {
   @socket_close($srv);
@@ -101,7 +101,7 @@ if (($cli=socket_accept($srv))===false) {
   @socket_close($srv);
   die("server: socket accept");
 }
-@socket_set_block($cli);
+socket_set_block($cli);
 $output="";
 $input=$hexinput="";
 echo "server: running\n";
