@@ -187,6 +187,7 @@ if [ ! "$status" = 0 ]; then
   exit 1
 fi
 echo `date` "server: $srvpid"
+sudo lsof -p $srvpid
 cat >contrib/etc/ebusd/test.csv <<EOF
 #no column names
 u,broadcast,outsidetemp,,,fe,b516,01,temp2,m,D2B
@@ -209,7 +210,7 @@ EOF
 echo "test,testpass,installer" > ./passwd
 #ebusd:
 ./src/ebusd/ebusd -d tcp:127.0.0.1:18876 --initsend --latency 10000 -n -c "$PWD/contrib/etc/ebusd" --pollinterval=10 -s -a 31 --acquireretries 3 --answer --generatesyn --receivetimeout 40000 --sendretries 1 --enablehex --htmlpath "$PWD/contrib/html" --httpport 8878 --pidfile "$PWD/ebusd.pid" -p 8877 -l "$PWD/ebusd.log" --logareas all --loglevel debug --lograwdata=bytes --lograwdatafile "$PWD/ebusd.raw" --lograwdatasize 1 --dumpfile "$PWD/ebusd.dump" --dumpsize 100 -D --scanconfig --aclfile=./passwd --mqttport=1883
-sleep 1
+sleep 3
 pid=`head -n 1 "$PWD/ebusd.pid"`
 if [ -z "$pid" ]; then
   echo `date` "unable to start ebusd"
@@ -219,6 +220,7 @@ if [ -z "$pid" ]; then
 fi
 echo `date` "ebusd: $pid"
 kill -1 $pid
+sudo lsof -p $pid
 #client:
 readarray lines <<EOF
 raw bytes
