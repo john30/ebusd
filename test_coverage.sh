@@ -83,7 +83,6 @@ if [ ! "$?" = 0 ]; then
   echo `date` "php is not available"
   exit 1
 fi
-netstat
 php -r '
 error_reporting(E_ALL);
 set_time_limit(0);
@@ -187,7 +186,6 @@ if [ ! "$status" = 0 ]; then
   exit 1
 fi
 echo `date` "server: $srvpid"
-sudo lsof -p $srvpid
 cat >contrib/etc/ebusd/test.csv <<EOF
 #no column names
 u,broadcast,outsidetemp,,,fe,b516,01,temp2,m,D2B
@@ -220,7 +218,6 @@ if [ -z "$pid" ]; then
 fi
 echo `date` "ebusd: $pid"
 kill -1 $pid
-sudo lsof -p $pid
 #client:
 readarray lines <<EOF
 raw bytes
