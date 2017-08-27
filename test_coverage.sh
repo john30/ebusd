@@ -91,7 +91,7 @@ if (socket_listen($srv, 5)===false) {
   @socket_close($srv);
   die("server: listen socket");
 }
-echo `date` "server: waiting\n";
+echo "server: waiting\n";
 if (($cli=socket_accept($srv))===false) {
   @socket_close($srv);
   die("server: socket accept");
@@ -99,7 +99,7 @@ if (($cli=socket_accept($srv))===false) {
 @socket_set_block($cli);
 $output="";
 $input=$hexinput="";
-echo `date` "server: running\n";
+echo "server: running\n";
 $endtime=time()+15;
 $firstsend=time()+5;
 $secondsend=$firstsend+5;
@@ -114,7 +114,7 @@ while (time()<$endtime) {
       echo "server: <$output\n";
       if ($expectnext) {
         if ($expectnext!=$output) {
-          if (substr($output,0,2)!='ff') {
+          if (substr($output,0,2)!="ff") {
             echo "server: arbitration lost for ".substr($output,0,2).", retry\n";
             $firstsend=time()+5;
             $secondsend=$firstsend+5;
@@ -167,7 +167,7 @@ while (time()<$endtime) {
 }
 @socket_close($cli);
 @socket_close($srv);
-echo `date` "server: done\n";
+echo "server: done\n";
 if ($error) {
   exit($error);
 }
@@ -338,7 +338,7 @@ if [ "$status" = 0 ]; then
 fi
 verify=`./src/tools/ebusctl -p 8877 info|egrep "^address 04:"`
 if [ "x$verify" != 'xaddress 04: slave #25, scanned "MF=153;ID=BBBBB;SW=3031;HW=3031"' ]; then
-  echo "error unexpected result from info command: $verify"
+  echo `date` "error unexpected result from info command: $verify"
   kill $pid
   kill $srvpid
   echo `date` "ebusd log:"
