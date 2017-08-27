@@ -782,6 +782,7 @@ static bool readTemplates(const string path, const string extension, bool availa
     return true;
   }
   string errorDescription;
+  logInfo(lf_main, "reading templates %s", path.c_str());
   result_t result = templates->readFromFile(path+"/_templates"+extension, verbose, NULL, &errorDescription,
       NULL, NULL, NULL);
   if (result == RESULT_OK) {
@@ -817,6 +818,7 @@ static result_t readConfigFiles(const string& path, const string& extension, con
     if (result != RESULT_OK) {
       return result;
     }
+    logInfo(lf_main, "successfully read file %s", name.c_str());
   }
   if (recursive) {
     for (const auto& name : dirs) {
@@ -825,6 +827,7 @@ static result_t readConfigFiles(const string& path, const string& extension, con
       if (result != RESULT_OK) {
         return result;
       }
+      logInfo(lf_main, "successfully read dir %s", name.c_str());
     }
   }
   return RESULT_OK;
