@@ -310,8 +310,8 @@ done
 if [ "$status" = 0 ]; then
   echo `date` "got signal"
   sleep 2
-  echo "listen"|./src/tools/ebusctl -p 8877 &
-  lstpid=$!
+  #echo "listen"|./src/tools/ebusctl -p 8877 &
+  #lstpid=$!
   ./src/tools/ebusctl -p 8899 >/dev/null 2>/dev/null
   for line in "${lines[@]}"; do
     if [ -n "$line" ]; then
@@ -334,7 +334,7 @@ if [ "$status" = 0 ]; then
   curl -s "http://localhost:8878/data/mc.5/installparam?poll=1&user=test&secret=testpass" >/dev/null
   curl -T .travis.yml http://localhost:8878/data/
   echo `date` "commands done"
-  kill $lstpid
+  #kill $lstpid
 fi
 verify=`./src/tools/ebusctl -p 8877 info|egrep "^address 04:"`
 if [ "x$verify" != 'xaddress 04: slave #25, scanned "MF=153;ID=BBBBB;SW=3031;HW=3031"' ]; then
