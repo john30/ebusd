@@ -313,6 +313,7 @@ while [[ ! "$status" = 0 ]] && [[ $cnt -gt 0 ]]; do
   echo `date` "check signal"
   ./src/tools/ebusctl -p 8877 state | egrep -q "signal acquired"
   status=$?
+  cnt=$((cnt - 1))
 done
 if [ "$status" = 0 ]; then
   echo `date` "got signal"
