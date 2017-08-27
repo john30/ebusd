@@ -304,6 +304,7 @@ r -h fe070400
 w -h fe070400
 nocommand
 EOF
+status=1
 while [ ! "$status" = 0 ]; do
   sleep 5
   echo `date` "check signal"
