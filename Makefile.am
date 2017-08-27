@@ -1,15 +1,15 @@
 ACLOCAL_AMFLAGS = -I m4
 
 SUBDIRS = docs \
-	  src/lib/utils \
-	  src/lib/ebus \
-	  src/ebusd \
-	  src/tools
+	src/lib/utils \
+	src/lib/ebus \
+	src/ebusd \
+	src/tools
 
 EXTRA_DIST = LICENSE \
-	     ChangeLog.md \
-	     README.md \
-	     VERSION
+	ChangeLog.md \
+	README.md \
+	VERSION
 
 test:
 	$(MAKE) -C src/lib/ebus/test
