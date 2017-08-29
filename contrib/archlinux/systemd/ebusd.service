@@ -1,14 +1,14 @@
 [Unit]
 Description=ebusd, the daemon for communication with eBUS heating systems.
-After=local-fs.target
+After=network.target
 ConditionPathExists=/var/log
 
 [Service]
 Type=forking
-EnvironmentFile=-/etc/conf.d/ebusd
-ExecStart=/usr/bin/ebusd $EBUSD_OPTS
 Restart=always
 PIDFile=/run/ebusd.pid
+EnvironmentFile=-/etc/conf.d/ebusd
+ExecStart=/usr/bin/ebusd $EBUSD_OPTS
 
 [Install]
 WantedBy=multi-user.target
