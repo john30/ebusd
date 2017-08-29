@@ -1,4 +1,4 @@
-# 3.0 (2017-08-xx)
+# 3.0 (2017-08-29)
 
 ## Breaking Changes
 * switched to C++11 compiler
