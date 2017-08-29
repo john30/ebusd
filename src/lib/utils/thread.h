@@ -164,7 +164,7 @@ class Mutex {
    */
   virtual inline ~Mutex() {
     pthread_mutex_destroy(&m_mutex);
-  };
+  }
 
   /**
    * Lock this mutex.
