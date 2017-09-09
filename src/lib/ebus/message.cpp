@@ -1234,12 +1234,12 @@ void ChainedMessage::dumpField(const string& fieldName, bool withConditions, ost
   bool first = true;
   for (size_t index = 0; index < m_ids.size(); index++) {
     vector<symbol_t> id = m_ids[index];
+    if (first) {
+      first = false;
+    } else {
+      *output << VALUE_SEPARATOR;
+    }
     for (auto it = id.begin()+2; it < id.end(); it++) {
-      if (first) {
-        first = false;
-      } else {
-        *output << VALUE_SEPARATOR;
-      }
       *output << hex << setw(2) << setfill('0') << static_cast<unsigned>(*it);
     }
     *output << LENGTH_SEPARATOR << dec << setw(0) << static_cast<unsigned>(m_lengths[index]);
@@ -1904,6 +1904,9 @@ result_t MessageMap::addDefaultFromFile(const string& filename, unsigned int lin
     string key = filename+":"+type;
     const auto it = m_conditions.find(key);
     if (it != m_conditions.end()) {
+      if (m_addAll) {
+        return RESULT_OK;
+      }
       *errorDescription = "condition "+type+" already defined";
       return RESULT_ERR_DUPLICATE_NAME;
     }
@@ -2257,12 +2260,12 @@ result_t MessageMap::executeInstructions(void (*readMessageFunc)(Message* messag
     bool removeSingletons = false;
     vector<Instruction*> remain;
     for (const auto instruction : instructions) {
-      if (removeSingletons && instruction->isSingleton()) {
+      if (!m_addAll && removeSingletons && instruction->isSingleton()) {
         delete instruction;
         continue;
       }
       Condition* condition = instruction->getCondition();
-      bool execute = condition == NULL;
+      bool execute = m_addAll || condition == NULL;
       if (!execute) {
         string errorDescription;
         result_t result = resolveCondition(instruction->isSingleton()?readMessageFunc:NULL, condition,
@@ -2280,7 +2283,7 @@ result_t MessageMap::executeInstructions(void (*readMessageFunc)(Message* messag
         }
       }
       if (execute) {
-        if (instruction->isSingleton()) {
+        if (!m_addAll && instruction->isSingleton()) {
           removeSingletons = true;
         }
         result_t result = instruction->execute(this, log);
