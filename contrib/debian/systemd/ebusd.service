@@ -7,7 +7,7 @@ ConditionPathExists=/var/log
 Type=forking
 Restart=always
 PIDFile=/var/run/ebusd.pid
-EnvironmentFile=-/etc/conf.d/ebusd
+EnvironmentFile=-/etc/default/ebusd
 ExecStart=/usr/bin/ebusd $EBUSD_OPTS
 
 [Install]
