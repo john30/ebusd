@@ -111,6 +111,7 @@ static struct options opt = {
   false,  // localOnly
   0,  // httpPort
   "/var/" PACKAGE "/html",  // htmlPath
+  true, // update checks
 
   PACKAGE_LOGFILE,  // logFile
   -1,  // logAreas
@@ -156,7 +157,8 @@ static const char argpdoc[] =
 #define O_LOCAL  (O_PIDFIL+1)
 #define O_HTTPPT (O_LOCAL+1)
 #define O_HTMLPA (O_HTTPPT+1)
-#define O_LOG    (O_HTMLPA+1)
+#define O_UPDATE (O_HTMLPA+1)
+#define O_LOG    (O_UPDATE+1)
 #define O_LOGARE (O_LOG+1)
 #define O_LOGLEV (O_LOGARE+1)
 #define O_RAW    (O_LOGLEV+1)
@@ -208,6 +210,7 @@ static const struct argp_option argpoptions[] = {
   {"localhost",      O_LOCAL,  NULL,    0, "Listen for command line connections on 127.0.0.1 interface only", 0 },
   {"httpport",       O_HTTPPT, "PORT",  0, "Listen for HTTP connections on PORT, 0 to disable [0]", 0 },
   {"htmlpath",       O_HTMLPA, "PATH",  0, "Path for HTML files served by HTTP port [/var/ebusd/html]", 0 },
+  {"no-update-checker",      O_UPDATE, NULL,    0, "Disable automated update checker.", 0 },
 
   {NULL,             0,        NULL,    0, "Log options:", 5 },
   {"logfile",        'l',      "FILE",  0, "Write log to FILE (only for daemon) [" PACKAGE_LOGFILE "]", 0 },
@@ -455,6 +458,9 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       return EINVAL;
     }
     opt->htmlPath = arg;
+    break;
+  case O_UPDATE:  // --no-update-checker
+    opt->update = false;
     break;
 
   // Log options:

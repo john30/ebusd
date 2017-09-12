@@ -373,6 +373,9 @@ class MainLoop : public Thread, DeviceListener {
   /** whether to enable the hex command. */
   const bool m_enableHex;
 
+  /** whether to disable the update checker. */
+  const bool m_update;
+
   /** set to true to shutdown. */
   bool m_shutdown;
 
