@@ -1,3 +1,16 @@
+# next version: 3.1
+
+## Bug Fixes
+* corrected wrong defaults directory in Debian Jessie build
+* corrected dump of chained messages
+
+## Features
+* added helper script for reading all Vaillant registers for a single slave via hex command
+* check all message definitions independent of any condition when checking/dumping configuration
+* added option to disable automatic update check
+* add scan config mode to start log entry
+
+
 # 3.0 (2017-08-29)
 
 ## Breaking Changes
