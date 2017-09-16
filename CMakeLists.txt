@@ -35,7 +35,7 @@ include(CheckFunctionExists)
 include(CheckCXXSourceRuns)
 include(CheckIncludeFile)
 
-add_compile_options(-fpic -Wall -Wno-unused-function -Wextra)
+add_definitions(-fpic -Wall -Wno-unused-function -Wextra)
 
 check_include_file(arpa/inet.h HAVE_ARPA_INET_H)
 check_include_file(dirent.h HAVE_DIRENT_H)
@@ -65,7 +65,7 @@ endif(NOT HAVE_ARGP)
 
 option(coverage "enable code coverage tracking." OFF)
 if(NOT coverage STREQUAL OFF)
-  add_compile_options(-coverage -O0)
+  add_definitions(-coverage -O0)
   message(STATUS "coverage enabled")
 endif(NOT coverage STREQUAL OFF)
 option(contrib "disable inclusion of contributed sources." ON)

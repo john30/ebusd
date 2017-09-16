@@ -1,4 +1,4 @@
-add_compile_options(-Wconversion -Wno-unused-parameter)
+add_definitions(-Wconversion -Wno-unused-parameter)
 
 set(libebus_a_SOURCES
     result.cpp

@@ -1,4 +1,4 @@
-add_compile_options(-Wconversion)
+add_definitions(-Wconversion)
 
 set(libutils_a_SOURCES
     log.cpp
