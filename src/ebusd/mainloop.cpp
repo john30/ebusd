@@ -100,7 +100,7 @@ result_t UserList::addFromFile(const string& filename, unsigned int lineNo, map<
 MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messages)
   : Thread(), m_device(device), m_reconnectCount(0), m_userList(opt.accessLevel), m_messages(messages),
     m_address(opt.address), m_scanConfig(opt.scanConfig), m_initialScan(opt.readOnly ? ESC : opt.initialScan),
-    m_polling(opt.pollInterval > 0), m_enableHex(opt.enableHex), m_shutdown(false) {
+    m_polling(opt.pollInterval > 0), m_enableHex(opt.enableHex), m_shutdown(false), m_runUpdateCheck(opt.updateCheck) {
   // open Device
   result_t result = m_device->open();
   if (result != RESULT_OK) {
@@ -298,7 +298,7 @@ void MainLoop::run() {
           logError(lf_main, "conditions require a poll interval > 0");
         }
       }
-      if (!m_shutdown && now > nextCheckRun) {
+      if (m_runUpdateCheck && !m_shutdown && now > nextCheckRun) {
         TCPClient client;
         TCPSocket* socket = client.connect("ebusd.eu", 80);
         if (socket) {

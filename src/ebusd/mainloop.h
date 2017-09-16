@@ -376,6 +376,9 @@ class MainLoop : public Thread, DeviceListener {
   /** set to true to shutdown. */
   bool m_shutdown;
 
+  /** perform automatic update check. */
+  bool m_runUpdateCheck;
+
   /** the created @a BusHandler instance. */
   BusHandler* m_busHandler;
 

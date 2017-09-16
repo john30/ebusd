@@ -69,6 +69,7 @@ struct options {
   bool localOnly;  //!< listen on 127.0.0.1 interface only
   uint16_t httpPort;  //!< optional port to listen for HTTP connections, 0 to disable [0]
   const char* htmlPath;  //!< path for HTML files served by the HTTP port [/var/ebusd/html]
+  bool updateCheck; //!< perform automatic update check
 
   const char* logFile;  //!< log file name [/var/log/ebusd.log]
   int logAreas;  //!< log areas [all]

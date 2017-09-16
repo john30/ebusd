@@ -111,6 +111,7 @@ static struct options opt = {
   false,  // localOnly
   0,  // httpPort
   "/var/" PACKAGE "/html",  // htmlPath
+  true,  // updateCheck
 
   PACKAGE_LOGFILE,  // logFile
   -1,  // logAreas
@@ -156,7 +157,8 @@ static const char argpdoc[] =
 #define O_LOCAL  (O_PIDFIL+1)
 #define O_HTTPPT (O_LOCAL+1)
 #define O_HTMLPA (O_HTTPPT+1)
-#define O_LOG    (O_HTMLPA+1)
+#define O_UPDCHK (O_HTMLPA+1)
+#define O_LOG    (O_UPDCHK+1)
 #define O_LOGARE (O_LOG+1)
 #define O_LOGLEV (O_LOGARE+1)
 #define O_RAW    (O_LOGLEV+1)
@@ -208,6 +210,7 @@ static const struct argp_option argpoptions[] = {
   {"localhost",      O_LOCAL,  NULL,    0, "Listen for command line connections on 127.0.0.1 interface only", 0 },
   {"httpport",       O_HTTPPT, "PORT",  0, "Listen for HTTP connections on PORT, 0 to disable [0]", 0 },
   {"htmlpath",       O_HTMLPA, "PATH",  0, "Path for HTML files served by HTTP port [/var/ebusd/html]", 0 },
+  {"updatecheck",    O_UPDCHK, "MODE",  0, "Set automatic update check to MODE (on|off) [on]", 0 },
 
   {NULL,             0,        NULL,    0, "Log options:", 5 },
   {"logfile",        'l',      "FILE",  0, "Write log to FILE (only for daemon) [" PACKAGE_LOGFILE "]", 0 },
@@ -455,6 +458,20 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       return EINVAL;
     }
     opt->htmlPath = arg;
+    break;
+  case O_UPDCHK:  // --updatecheck=on
+    if (arg == NULL || arg[0] == 0) {
+      argp_error(state, "invalid updatecheck");
+      return EINVAL;
+    }
+    if (strcmp("on", arg) == 0) {
+      opt->updateCheck = true;
+    } else if (strcmp("off", arg) == 0) {
+      opt->updateCheck = false;
+    } else {
+      argp_error(state, "invalid updatecheck");
+      return EINVAL;
+    }
     break;
 
   // Log options:
@@ -1173,7 +1190,9 @@ int main(int argc, char* argv[]) {
   signal(SIGINT, signalHandler);
   signal(SIGTERM, signalHandler);
 
-  logNotice(lf_main, PACKAGE_STRING "." REVISION " started");
+  logNotice(lf_main, PACKAGE_STRING "." REVISION " started%s",
+      opt.scanConfig ? opt.initialScan==ESC ? " with scan" : opt.initialScan==BROADCAST ? " with broadcast scan"
+      : opt.initialScan==SYN ? " with full scan" : " with single scan" : "");
 
   // load configuration files
   loadConfigFiles(s_messageMap);
