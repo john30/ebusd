@@ -194,6 +194,9 @@ static const struct argp_child g_mqtt_argp_child = {&g_mqtt_argp, 0, "", 1};
 
 
 const struct argp_child* mqtthandler_getargs() {
+  if (g_topicStrs.empty()) {
+    g_topicStrs.push_back(PACKAGE);
+  }
   return &g_mqtt_argp_child;
 }
 
