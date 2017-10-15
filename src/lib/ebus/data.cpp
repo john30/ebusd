@@ -702,7 +702,6 @@ void ValueListDataField::dump(bool prependFieldSeparator, bool asJson, ostream* 
     }
     *output << " }";
   } else {
-    *output << FIELD_SEPARATOR;
     for (const auto it : m_values) {
       if (first) {
         first = false;
@@ -813,7 +812,7 @@ void ConstantDataField::dump(bool prependFieldSeparator, bool asJson, ostream* o
     appendJson(false, "value", m_value, true, output);
     *output << ", \"verify\":" << (m_verify ? "true" : "false");
   } else {
-    *output << FIELD_SEPARATOR << (m_verify?"==":"=") << m_value;
+    *output << (m_verify?"==":"=") << m_value;
   }
   dumpSuffix(asJson, output);
 }
