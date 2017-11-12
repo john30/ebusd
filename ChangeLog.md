@@ -3,13 +3,16 @@
 ## Bug Fixes
 * corrected wrong defaults directory in Debian Jessie build
 * corrected dump of chained messages
+* corrected missing default MQTT topic
+* corrected dump of value list and constant fields
+* fix for input string vanishing on certain compiler versions in write commands
 
 ## Features
 * added helper script for reading all Vaillant registers for a single slave via hex command
 * check all message definitions independent of any condition when checking/dumping configuration
 * added option to disable automatic update check
-* add scan config mode to start log entry
-
+* added scan config mode to start log entry
+* added measurement and logging of min/max send-receive latency and include values in info command and JSON output
 
 # 3.0 (2017-08-29)
 
