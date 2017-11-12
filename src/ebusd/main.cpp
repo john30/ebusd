@@ -1191,8 +1191,8 @@ int main(int argc, char* argv[]) {
   signal(SIGTERM, signalHandler);
 
   logNotice(lf_main, PACKAGE_STRING "." REVISION " started%s",
-      opt.scanConfig ? opt.initialScan==ESC ? " with scan" : opt.initialScan==BROADCAST ? " with broadcast scan"
-      : opt.initialScan==SYN ? " with full scan" : " with single scan" : "");
+      opt.scanConfig ? opt.initialScan == ESC ? " with scan" : opt.initialScan == BROADCAST ? " with broadcast scan"
+      : opt.initialScan == SYN ? " with full scan" : " with single scan" : "");
 
   // load configuration files
   loadConfigFiles(s_messageMap);
