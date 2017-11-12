@@ -378,7 +378,7 @@ class BusHandler : public WaitThread {
       m_masterCount(device->isReadOnly()?0:1), m_autoLockCount(lockCount == 0),
       m_lockCount(lockCount <= 3 ? 3 : lockCount), m_remainLockCount(m_autoLockCount ? 1 : 0),
       m_generateSynInterval(generateSyn ? SYN_TIMEOUT*getMasterNumber(ownAddress)+SYMBOL_DURATION : 0),
-      m_pollInterval(pollInterval), m_lastReceive(0), m_lastPoll(0),
+      m_pollInterval(pollInterval), m_symLatencyMin(-1), m_symLatencyMax(-1), m_lastReceive(0), m_lastPoll(0),
       m_currentRequest(NULL), m_currentAnswering(false), m_runningScans(0), m_nextSendPos(0),
       m_symPerSec(0), m_maxSymPerSec(0),
       m_state(bs_noSignal), m_escape(0), m_crc(0), m_crcValid(false), m_repeat(false),
@@ -545,6 +545,18 @@ class BusHandler : public WaitThread {
   unsigned int getMaxSymbolRate() const { return m_maxSymPerSec; }
 
   /**
+   * Return the minimal measured latency between send and receive of a symbol.
+   * @return the minimal measured latency between send and receive of a symbol in milliseconds, -1 if not yet known.
+   */
+  int getMinSymbolLatency() const { return m_symLatencyMin; }
+
+  /**
+   * Return the maximal measured latency between send and receive of a symbol.
+   * @return the maximal measured latency between send and receive of a symbol in milliseconds, -1 if not yet known.
+   */
+  int getMaxSymbolLatency() const { return m_symLatencyMax; }
+
+  /**
    * Return the number of masters already seen.
    * @return the number of masters already seen (including ebusd itself).
    */
@@ -587,6 +599,13 @@ class BusHandler : public WaitThread {
    * @return true if a conflict with the own addresses was detected, false otherwise.
    */
   bool addSeenAddress(symbol_t address);
+
+  /**
+   * Called to measure the latency between send and receive of a symbol.
+   * @param sentTime the time the symbol was sent.
+   * @param recvTime the time the symbol was received.
+   */
+  void measureLatency(struct timespec* sentTime, struct timespec* recvTime);
 
   /**
    * Called when a passive reception was successfully completed.
@@ -657,6 +676,12 @@ class BusHandler : public WaitThread {
 
   /** the interval in seconds in which poll messages are cycled, or 0 if disabled. */
   const unsigned int m_pollInterval;
+
+  /** the minimal measured latency between send and receive of a symbol in milliseconds, -1 if not yet known. */
+  int m_symLatencyMin;
+
+  /** the maximal measured latency between send and receive of a symbol in milliseconds, -1 if not yet known. */
+  int m_symLatencyMax;
 
   /** the time of the last received symbol, or 0 for never. */
   time_t m_lastReceive;

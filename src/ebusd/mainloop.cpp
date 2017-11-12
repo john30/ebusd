@@ -1567,6 +1567,10 @@ result_t MainLoop::executeInfo(const vector<string>& args, const string& user, o
     *ostream << "signal: acquired\n"
              << "symbol rate: " << m_busHandler->getSymbolRate() << "\n"
              << "max symbol rate: " << m_busHandler->getMaxSymbolRate() << "\n";
+    if (m_busHandler->getMinSymbolLatency() >= 0) {
+      *ostream << "min symbol latency: " << m_busHandler->getMinSymbolLatency() << "\n"
+               << "max symbol latency: " << m_busHandler->getMaxSymbolLatency() << "\n";
+    }
   } else {
     *ostream << "signal: no signal\n";
   }
@@ -1785,6 +1789,10 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
       if (m_busHandler->hasSignal()) {
         *ostream << ",\n  \"symbolrate\": " << m_busHandler->getSymbolRate()
                  << ",\n  \"maxsymbolrate\": " << m_busHandler->getMaxSymbolRate();
+        if (m_busHandler->getMinSymbolLatency() >= 0) {
+          *ostream << ",\n  \"minsymbollatency\": " << m_busHandler->getMinSymbolLatency()
+                   << ",\n  \"maxsymbollatency\": " << m_busHandler->getMaxSymbolLatency();
+        }
       }
       if (!m_device->isReadOnly()) {
         *ostream << ",\n  \"qq\": " << static_cast<unsigned>(m_address);
