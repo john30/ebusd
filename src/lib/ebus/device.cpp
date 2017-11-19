@@ -41,6 +41,8 @@
 
 namespace ebusd {
 
+#define MTU 1540
+
 Device::~Device() {
   close();
 }
@@ -205,7 +207,7 @@ result_t SerialDevice::open() {
   tcgetattr(m_fd, &m_oldSettings);
 
   // create new settings
-  memset(&newSettings, '\0', sizeof(newSettings));
+  memset(&newSettings, 0, sizeof(newSettings));
 
   newSettings.c_cflag |= (B2400 | CS8 | CLOCAL | CREAD);
   newSettings.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);  // non-canonical mode
@@ -269,18 +271,23 @@ result_t NetworkDevice::open() {
     value = 1;
     setsockopt(m_fd, SOL_SOCKET, SO_KEEPALIVE, reinterpret_cast<void*>(&value), sizeof(value));
   }
-  if (ret == 0) {
+  if (ret >= 0) {
     ret = connect(m_fd, (struct sockaddr*)&m_address, sizeof(m_address));
   }
   if (ret < 0) {
     close();
     return RESULT_ERR_GENERIC_IO;
   }
+  if (!m_udp) {
+    usleep(25000); // wait 25ms for potential initial garbage
+  }
   int cnt;
-  if (ioctl(m_fd, FIONREAD, &cnt) >= 0 && cnt > 1) {
+  symbol_t buf[MTU];
+  while (ioctl(m_fd, FIONREAD, &cnt) >= 0 && cnt > 1) {
     // skip buffered input
-    symbol_t buf[256];
-    while (::read(m_fd, &buf, 256) > 0) {
+    ssize_t read = ::read(m_fd, &buf, MTU);
+    if (read <= 0) {
+      break;
     }
   }
   if (m_bufSize == 0) {
@@ -298,9 +305,8 @@ result_t NetworkDevice::open() {
 }
 
 void NetworkDevice::checkDevice() {
-  symbol_t value;
-  ssize_t c = ::recv(m_fd, &value, 1, MSG_PEEK | MSG_DONTWAIT);
-  if (c == 0 || (c < 0 && errno != EAGAIN)) {
+  int cnt;
+  if (ioctl(m_fd, FIONREAD, &cnt) < 0) {
     m_bufLen = 0;  // flush read buffer
     close();
   }
