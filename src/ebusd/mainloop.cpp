@@ -111,15 +111,17 @@ MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messag
   m_device->setListener(this);
   if (opt.dumpFile[0]) {
     m_dumpFile = new RotateFile(opt.dumpFile, opt.dumpSize);
+    m_dumpFile->setEnabled(opt.dump);
   } else {
     m_dumpFile = NULL;
   }
+  m_logRawEnabled = opt.logRaw != 0;
   if (opt.logRawFile[0] && strcmp(opt.logRawFile, opt.logFile) != 0) {
     m_logRawFile = new RotateFile(opt.logRawFile, opt.logRawSize, true);
+    m_logRawFile->setEnabled(m_logRawEnabled);
   } else {
     m_logRawFile = NULL;
   }
-  m_logRawEnabled = opt.logRaw != 0;
   m_logRawBytes = opt.logRaw == 2;
   m_logRawLastReceived = true;
   m_logRawLastSymbol = SYN;
@@ -192,10 +194,10 @@ MainLoop::~MainLoop() {
 }
 
 /** the delay for running the update check. */
-#define CHECK_DELAY 24*3600
+#define CHECK_DELAY (24*3600)
 
 /** the initial delay for running the update check. */
-#define CHECK_INITIAL_DELAY 2*60
+#define CHECK_INITIAL_DELAY (2*60)
 
 void MainLoop::run() {
   bool reload = true;
@@ -1640,7 +1642,7 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
   int type = -1;
   result_t ret = RESULT_OK;
   if (uri.substr(0, 5) == "/data" && (uri.length() == 5 || uri[5] == '/')) {
-    string circuit = "", name = "";
+    string circuit, name;
     size_t pos = uri.find('/', 6);
     if (pos == string::npos) {
       circuit = uri.length() == 5 ? "" : uri.substr(6);
@@ -1651,7 +1653,7 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
     time_t since = 0;
     size_t pollPriority = 0;
     bool exact = false;
-    string user = "";
+    string user;
     if (args.size() > argPos) {
       string secret;
       string query = args[argPos];
@@ -1709,7 +1711,7 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
     }
 
     *ostream << "{";
-    string lastCircuit = "";
+    string lastCircuit;
     time_t maxLastUp = 0;
     if (ret == RESULT_OK) {
       bool first = true;
