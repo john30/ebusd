@@ -1570,8 +1570,8 @@ result_t MainLoop::executeInfo(const vector<string>& args, const string& user, o
              << "symbol rate: " << m_busHandler->getSymbolRate() << "\n"
              << "max symbol rate: " << m_busHandler->getMaxSymbolRate() << "\n";
     if (m_busHandler->getMinArbitrationDelay() >= 0) {
-      *ostream << "min arbitration nanos: " << m_busHandler->getMinArbitrationDelay() << "\n"
-               << "max arbitration nanos: " << m_busHandler->getMaxArbitrationDelay() << "\n";
+      *ostream << "min arbitration micros: " << m_busHandler->getMinArbitrationDelay() << "\n"
+               << "max arbitration micros: " << m_busHandler->getMaxArbitrationDelay() << "\n";
     }
     if (m_busHandler->getMinSymbolLatency() >= 0) {
       *ostream << "min symbol latency: " << m_busHandler->getMinSymbolLatency() << "\n"
@@ -1796,8 +1796,8 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
         *ostream << ",\n  \"symbolrate\": " << m_busHandler->getSymbolRate()
                  << ",\n  \"maxsymbolrate\": " << m_busHandler->getMaxSymbolRate();
         if (m_busHandler->getMinArbitrationDelay() >= 0) {
-          *ostream << ",\n  \"minarbitrationnanos\": " << m_busHandler->getMinArbitrationDelay()
-                   << ",\n  \"minarbitrationnanos\": " << m_busHandler->getMaxArbitrationDelay();
+          *ostream << ",\n  \"minarbitrationmicros\": " << m_busHandler->getMinArbitrationDelay()
+                   << ",\n  \"minarbitrationmicros\": " << m_busHandler->getMaxArbitrationDelay();
         }
         if (m_busHandler->getMinSymbolLatency() >= 0) {
           *ostream << ",\n  \"minsymbollatency\": " << m_busHandler->getMinSymbolLatency()

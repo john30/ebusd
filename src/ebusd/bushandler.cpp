@@ -693,7 +693,7 @@ result_t BusHandler::handleSymbol() {
         - m_lastSynReceiveTime.tv_sec*1000000000 - m_lastSynReceiveTime.tv_nsec)/1000;
         if (latencyLong >= 0 && latencyLong <= 10000) {  // skip clock skew or out of reasonable range
           int latency = (int)latencyLong;
-          logDebug(lf_bus, "arbitration delay %d ns", latency);
+          logDebug(lf_bus, "arbitration delay %d micros", latency);
           if (m_arbitrationDelayMin < 0 || (latency < m_arbitrationDelayMin || latency > m_arbitrationDelayMax)) {
             if (m_arbitrationDelayMin == -1 || latency < m_arbitrationDelayMin) {
               m_arbitrationDelayMin = latency;
@@ -701,7 +701,7 @@ result_t BusHandler::handleSymbol() {
             if (m_arbitrationDelayMax == -1 || latency > m_arbitrationDelayMax) {
               m_arbitrationDelayMax = latency;
             }
-            logInfo(lf_bus, "arbitration delay %d - %d ns", m_arbitrationDelayMin, m_arbitrationDelayMax);
+            logInfo(lf_bus, "arbitration delay %d - %d micros", m_arbitrationDelayMin, m_arbitrationDelayMax);
           }
         }
         m_nextSendPos = 1;

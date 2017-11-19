@@ -560,14 +560,14 @@ class BusHandler : public WaitThread {
   int getMaxSymbolLatency() const { return m_symbolLatencyMax; }
 
   /**
-   * Return the minimal measured delay between received SYN and sent own master address in nanoseconds.
-   * @return the minimal measured delay between received SYN and sent own master address in nanoseconds, -1 if not yet known.
+   * Return the minimal measured delay between received SYN and sent own master address in microseconds.
+   * @return the minimal measured delay between received SYN and sent own master address in microseconds, -1 if not yet known.
    */
   int getMinArbitrationDelay() const { return m_arbitrationDelayMin; }
 
   /**
-   * Return the maximal measured delay between received SYN and sent own master address in nanoseconds.
-   * @return the maximal measured delay between received SYN and sent own master address in nanoseconds, -1 if not yet known.
+   * Return the maximal measured delay between received SYN and sent own master address in microseconds.
+   * @return the maximal measured delay between received SYN and sent own master address in microseconds, -1 if not yet known.
    */
   int getMaxArbitrationDelay() const { return m_arbitrationDelayMax; }
 
@@ -698,10 +698,10 @@ class BusHandler : public WaitThread {
   /** the maximal measured latency between send and receive of a symbol in milliseconds, -1 if not yet known. */
   int m_symbolLatencyMax;
 
-  /** the minimal measured delay between received SYN and sent own master address in nanoseconds, -1 if not yet known. */
+  /** the minimal measured delay between received SYN and sent own master address in microseconds, -1 if not yet known. */
   int m_arbitrationDelayMin;
 
-  /** the maximal measured delay between received SYN and sent own master address in nanoseconds, -1 if not yet known. */
+  /** the maximal measured delay between received SYN and sent own master address in microseconds, -1 if not yet known. */
   int m_arbitrationDelayMax;
 
   /** the time of the last received SYN symbol, or 0 for never. */
