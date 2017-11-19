@@ -1569,6 +1569,10 @@ result_t MainLoop::executeInfo(const vector<string>& args, const string& user, o
     *ostream << "signal: acquired\n"
              << "symbol rate: " << m_busHandler->getSymbolRate() << "\n"
              << "max symbol rate: " << m_busHandler->getMaxSymbolRate() << "\n";
+    if (m_busHandler->getMinArbitrationDelay() >= 0) {
+      *ostream << "min arbitration nanos: " << m_busHandler->getMinArbitrationDelay() << "\n"
+               << "max arbitration nanos: " << m_busHandler->getMaxArbitrationDelay() << "\n";
+    }
     if (m_busHandler->getMinSymbolLatency() >= 0) {
       *ostream << "min symbol latency: " << m_busHandler->getMinSymbolLatency() << "\n"
                << "max symbol latency: " << m_busHandler->getMaxSymbolLatency() << "\n";
@@ -1791,6 +1795,10 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
       if (m_busHandler->hasSignal()) {
         *ostream << ",\n  \"symbolrate\": " << m_busHandler->getSymbolRate()
                  << ",\n  \"maxsymbolrate\": " << m_busHandler->getMaxSymbolRate();
+        if (m_busHandler->getMinArbitrationDelay() >= 0) {
+          *ostream << ",\n  \"minarbitrationnanos\": " << m_busHandler->getMinArbitrationDelay()
+                   << ",\n  \"minarbitrationnanos\": " << m_busHandler->getMaxArbitrationDelay();
+        }
         if (m_busHandler->getMinSymbolLatency() >= 0) {
           *ostream << ",\n  \"minsymbollatency\": " << m_busHandler->getMinSymbolLatency()
                    << ",\n  \"maxsymbollatency\": " << m_busHandler->getMaxSymbolLatency();

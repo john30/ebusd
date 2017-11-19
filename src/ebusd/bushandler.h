@@ -378,12 +378,15 @@ class BusHandler : public WaitThread {
       m_masterCount(device->isReadOnly()?0:1), m_autoLockCount(lockCount == 0),
       m_lockCount(lockCount <= 3 ? 3 : lockCount), m_remainLockCount(m_autoLockCount ? 1 : 0),
       m_generateSynInterval(generateSyn ? SYN_TIMEOUT*getMasterNumber(ownAddress)+SYMBOL_DURATION : 0),
-      m_pollInterval(pollInterval), m_symLatencyMin(-1), m_symLatencyMax(-1), m_lastReceive(0), m_lastPoll(0),
+      m_pollInterval(pollInterval), m_symbolLatencyMin(-1), m_symbolLatencyMax(-1), m_arbitrationDelayMin(-1),
+      m_arbitrationDelayMax(-1), m_lastReceive(0), m_lastPoll(0),
       m_currentRequest(NULL), m_currentAnswering(false), m_runningScans(0), m_nextSendPos(0),
       m_symPerSec(0), m_maxSymPerSec(0),
       m_state(bs_noSignal), m_escape(0), m_crc(0), m_crcValid(false), m_repeat(false),
       m_grabMessages(true) {
     memset(m_seenAddresses, 0, sizeof(m_seenAddresses));
+    m_lastSynReceiveTime.tv_sec = 0;
+    m_lastSynReceiveTime.tv_nsec = 0;
   }
 
   /**
@@ -548,13 +551,25 @@ class BusHandler : public WaitThread {
    * Return the minimal measured latency between send and receive of a symbol.
    * @return the minimal measured latency between send and receive of a symbol in milliseconds, -1 if not yet known.
    */
-  int getMinSymbolLatency() const { return m_symLatencyMin; }
+  int getMinSymbolLatency() const { return m_symbolLatencyMin; }
 
   /**
    * Return the maximal measured latency between send and receive of a symbol.
    * @return the maximal measured latency between send and receive of a symbol in milliseconds, -1 if not yet known.
    */
-  int getMaxSymbolLatency() const { return m_symLatencyMax; }
+  int getMaxSymbolLatency() const { return m_symbolLatencyMax; }
+
+  /**
+   * Return the minimal measured delay between received SYN and sent own master address in nanoseconds.
+   * @return the minimal measured delay between received SYN and sent own master address in nanoseconds, -1 if not yet known.
+   */
+  int getMinArbitrationDelay() const { return m_arbitrationDelayMin; }
+
+  /**
+   * Return the maximal measured delay between received SYN and sent own master address in nanoseconds.
+   * @return the maximal measured delay between received SYN and sent own master address in nanoseconds, -1 if not yet known.
+   */
+  int getMaxArbitrationDelay() const { return m_arbitrationDelayMax; }
 
   /**
    * Return the number of masters already seen.
@@ -678,10 +693,19 @@ class BusHandler : public WaitThread {
   const unsigned int m_pollInterval;
 
   /** the minimal measured latency between send and receive of a symbol in milliseconds, -1 if not yet known. */
-  int m_symLatencyMin;
+  int m_symbolLatencyMin;
 
   /** the maximal measured latency between send and receive of a symbol in milliseconds, -1 if not yet known. */
-  int m_symLatencyMax;
+  int m_symbolLatencyMax;
+
+  /** the minimal measured delay between received SYN and sent own master address in nanoseconds, -1 if not yet known. */
+  int m_arbitrationDelayMin;
+
+  /** the maximal measured delay between received SYN and sent own master address in nanoseconds, -1 if not yet known. */
+  int m_arbitrationDelayMax;
+
+  /** the time of the last received SYN symbol, or 0 for never. */
+  struct timespec m_lastSynReceiveTime;
 
   /** the time of the last received symbol, or 0 for never. */
   time_t m_lastReceive;

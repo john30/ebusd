@@ -419,7 +419,7 @@ void BusHandler::run() {
         setState(bs_noSignal, result);
       }
       symCount = 0;
-      m_symLatencyMin = m_symLatencyMax = -1;
+      m_symbolLatencyMin = m_symbolLatencyMax = m_arbitrationDelayMin = m_arbitrationDelayMax = -1;
       time(&lastTime);
       lastTime += 2;
     }
@@ -603,6 +603,7 @@ result_t BusHandler::handleSymbol() {
           logNotice(lf_bus, "acting as AUTO-SYN generator");
         }
         m_remainLockCount = 0;
+        m_lastSynReceiveTime = recvTime;
         return setState(bs_ready, result);
       }
     }
@@ -629,6 +630,7 @@ result_t BusHandler::handleSymbol() {
     } else if (!sending && m_remainLockCount == 0 && m_command.size() == 1) {
       m_remainLockCount = 1;  // wait for next AUTO-SYN after SYN / address / SYN (bus locked for own priority)
     }
+    clockGettime(&m_lastSynReceiveTime);
     return setState(bs_ready, m_state == bs_skip ? RESULT_OK : RESULT_ERR_SYN);
   }
 
@@ -686,6 +688,22 @@ result_t BusHandler::handleSymbol() {
       m_currentRequest = startRequest;
       // check arbitration
       if (recvSymbol == sendSymbol) {  // arbitration successful
+        // measure arbitration delay
+        long long latencyLong = (sentTime.tv_sec*1000000000 + sentTime.tv_nsec
+        - m_lastSynReceiveTime.tv_sec*1000000000 - m_lastSynReceiveTime.tv_nsec)/1000;
+        if (latencyLong >= 0 && latencyLong <= 10000) {  // skip clock skew or out of reasonable range
+          int latency = (int)latencyLong;
+          logDebug(lf_bus, "arbitration delay %d ns", latency);
+          if (m_arbitrationDelayMin < 0 || (latency < m_arbitrationDelayMin || latency > m_arbitrationDelayMax)) {
+            if (m_arbitrationDelayMin == -1 || latency < m_arbitrationDelayMin) {
+              m_arbitrationDelayMin = latency;
+            }
+            if (m_arbitrationDelayMax == -1 || latency > m_arbitrationDelayMax) {
+              m_arbitrationDelayMax = latency;
+            }
+            logInfo(lf_bus, "arbitration delay %d - %d ns", m_arbitrationDelayMin, m_arbitrationDelayMax);
+          }
+        }
         m_nextSendPos = 1;
         m_repeat = false;
         return setState(bs_sendCmd, RESULT_OK);
@@ -1006,16 +1024,16 @@ void BusHandler::measureLatency(struct timespec* sentTime, struct timespec* recv
   }
   int latency = (int)latencyLong;
   logDebug(lf_bus, "send/receive symbol latency %d ms", latency);
-  if (m_symLatencyMin >= 0 && (latency >= m_symLatencyMin && latency <= m_symLatencyMax)) {
+  if (m_symbolLatencyMin >= 0 && (latency >= m_symbolLatencyMin && latency <= m_symbolLatencyMax)) {
     return;
   }
-  if (m_symLatencyMin == -1 || latency < m_symLatencyMin) {
-    m_symLatencyMin = latency;
+  if (m_symbolLatencyMin == -1 || latency < m_symbolLatencyMin) {
+    m_symbolLatencyMin = latency;
   }
-  if (m_symLatencyMax == -1 || latency > m_symLatencyMax) {
-    m_symLatencyMax = latency;
+  if (m_symbolLatencyMax == -1 || latency > m_symbolLatencyMax) {
+    m_symbolLatencyMax = latency;
   }
-  logInfo(lf_bus, "send/receive symbol latency %lld - %lld ms", m_symLatencyMin, m_symLatencyMax);
+  logInfo(lf_bus, "send/receive symbol latency %d - %d ms", m_symbolLatencyMin, m_symbolLatencyMax);
 }
 
 bool BusHandler::addSeenAddress(symbol_t address) {
