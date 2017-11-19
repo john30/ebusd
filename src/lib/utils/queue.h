@@ -109,27 +109,30 @@ class Queue {
    * @return whether the item was removed.
    */
   bool remove(T item, bool wait = false) {
-    bool ret = false;
+    bool result = false;
     pthread_mutex_lock(&m_mutex);
     struct timespec t;
-    clockGettime(&t);
-    t.tv_sec++;  // check thread death every second
-    do {
+    while (true) {
+      clockGettime(&t);
+      t.tv_sec++;  // check thread death every second
       size_t oldSize = m_queue.size();
       if (oldSize > 0) {
         m_queue.remove(item);
         if (m_queue.size() != oldSize) {
-          ret = true;
+          result = true;
           break;
         }
+      }
+      if (!wait) {
+        break;
       }
       int ret = pthread_cond_timedwait(&m_cond, &m_mutex, &t);
       if (ret != 0 && ret != ETIMEDOUT) {
         break;
       }
-    } while (wait);
+    }
     pthread_mutex_unlock(&m_mutex);
-    return ret;
+    return result;
   }
 
   /**
