@@ -108,8 +108,8 @@ class TCPSocket {
     struct timeval t;
     t.tv_usec = 0;
     t.tv_sec = timeout;
-    setsockopt(m_sfd, SO_RCVTIMEO, SO_REUSEADDR, &t, sizeof(t));
-    setsockopt(m_sfd, SO_SNDTIMEO, SO_REUSEADDR, &t, sizeof(t));
+    setsockopt(m_sfd, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(t));
+    setsockopt(m_sfd, SOL_SOCKET, SO_SNDTIMEO, &t, sizeof(t));
   }
 
  private:
