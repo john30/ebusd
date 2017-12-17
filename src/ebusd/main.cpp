@@ -303,25 +303,23 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       argp_error(state, "scanconfig without polling may lead to invalid files included for certain products!");
       return EINVAL;
     }
-    if (arg != NULL) {
-      if (arg[0] == 0 || strcmp("none", arg) == 0) {
-        opt->initialScan = ESC;
-      } else if (strcmp("full", arg) == 0) {
-        opt->initialScan = SYN;
-      } else {
-        opt->initialScan = (symbol_t)parseInt(arg, 16, 0x00, 0xff, &result);
-        if (!isValidAddress(opt->initialScan)) {
-          argp_error(state, "invalid initial scan address");
-          return EINVAL;
-        }
-        if (isMaster(opt->initialScan)) {
-          opt->initialScan = getSlaveAddress(opt->initialScan);
-        }
-      }
-      if (opt->readOnly && opt->initialScan != ESC) {
-        argp_error(state, "cannot combine readonly with answer/generatesyn/initsend/scanconfig=*");
+    if (!arg || arg[0] == 0 || strcmp("none", arg) == 0) {
+      opt->initialScan = ESC;
+    } else if (strcmp("full", arg) == 0) {
+      opt->initialScan = SYN;
+    } else {
+      opt->initialScan = (symbol_t)parseInt(arg, 16, 0x00, 0xff, &result);
+      if (!isValidAddress(opt->initialScan)) {
+        argp_error(state, "invalid initial scan address");
         return EINVAL;
       }
+      if (isMaster(opt->initialScan)) {
+        opt->initialScan = getSlaveAddress(opt->initialScan);
+      }
+    }
+    if (opt->readOnly && opt->initialScan != ESC) {
+      argp_error(state, "cannot combine readonly with answer/generatesyn/initsend/scanconfig=*");
+      return EINVAL;
     }
     break;
   case O_CFGLNG:  // --configlang=LANG
@@ -1191,7 +1189,7 @@ int main(int argc, char* argv[]) {
   signal(SIGTERM, signalHandler);
 
   logNotice(lf_main, PACKAGE_STRING "." REVISION " started%s",
-      opt.scanConfig ? opt.initialScan == ESC ? " with scan" : opt.initialScan == BROADCAST ? " with broadcast scan"
+      opt.scanConfig ? opt.initialScan == ESC ? " with auto scan" : opt.initialScan == BROADCAST ? " with broadcast scan"
       : opt.initialScan == SYN ? " with full scan" : " with single scan" : "");
 
   // load configuration files
