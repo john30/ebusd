@@ -106,7 +106,7 @@ EOF
 chmod 755 $RELEASE/DEBIAN/postinst
 
 dpkg -b $RELEASE || exit 1
-mv ebusd-$VERSION.deb "../${PACKAGE}.deb" || exit 1
+mv $RELEASE.deb "../${PACKAGE}.deb" || exit 1
 
 echo
 echo "*************"
@@ -118,6 +118,9 @@ rm -rf "$BUILD"
 
 echo
 echo "Package created: ${PACKAGE}.deb"
+echo
+echo "Info:"
+dpkg --info "${PACKAGE}.deb"
 echo
 echo "Content:"
 dpkg -c "${PACKAGE}.deb"
