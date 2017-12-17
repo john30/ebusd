@@ -1495,6 +1495,7 @@ result_t BusHandler::scanAndWait(symbol_t dstAddress, bool loadScanConfig, bool 
   if (result != RESULT_OK) {
     return result;
   }
+  bool requestExecuted = false;
   if (request) {
     if (reload) {
       m_scanResults.erase(dstAddress);
@@ -1503,17 +1504,19 @@ result_t BusHandler::scanAndWait(symbol_t dstAddress, bool loadScanConfig, bool 
     }
     m_runningScans++;
     m_nextRequests.push(request);
-    bool success = m_finishedRequests.remove(request, true);
-    result = success ? request->m_result : RESULT_ERR_TIMEOUT;
+    requestExecuted = m_finishedRequests.remove(request, true);
+    result = requestExecuted ? request->m_result : RESULT_ERR_TIMEOUT;
     delete request;
     request = NULL;
   }
   if (loadScanConfig) {
     string file;
     bool timedOut = result == RESULT_ERR_TIMEOUT;
+    bool loadFailed = false;
     if (timedOut || result == RESULT_OK) {
       result = loadScanConfigFile(m_messages, dstAddress, false, &file);  // try to load even if one message timed out
-      if (timedOut && result != RESULT_OK) {
+      loadFailed = result != RESULT_OK;
+      if (timedOut && loadFailed) {
         result = RESULT_ERR_TIMEOUT;  // back to previous result
       }
     }
@@ -1524,7 +1527,7 @@ result_t BusHandler::scanAndWait(symbol_t dstAddress, bool loadScanConfig, bool 
         // additional scan messages now available
         scanAndWait(dstAddress, false, false);
       }
-    } else if (result != RESULT_ERR_NOTFOUND) {
+    } else if (loadFailed || (requestExecuted && timedOut) || result == RESULT_ERR_NOTAUTHORIZED) {
       setScanConfigLoaded(dstAddress, "");
     }
   }
