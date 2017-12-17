@@ -309,7 +309,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       opt->initialScan = SYN;
     } else {
       opt->initialScan = (symbol_t)parseInt(arg, 16, 0x00, 0xff, &result);
-      if (!isValidAddress(opt->initialScan)) {
+      if (result != RESULT_OK || !isValidAddress(opt->initialScan)) {
         argp_error(state, "invalid initial scan address");
         return EINVAL;
       }
