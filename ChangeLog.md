@@ -6,6 +6,11 @@
 * corrected missing default MQTT topic
 * corrected dump of value list and constant fields
 * fix for input string vanishing on certain compiler versions in write commands
+* fix for potential endless waits
+* corrected initial dumping and raw data logging
+* corrected address check with "-s" or "-d" argument in read and write commands
+* fixed timeout for update check
+* corrected wrong initial scan load message
 
 ## Features
 * added helper script for reading all Vaillant registers for a single slave via hex command
@@ -13,6 +18,11 @@
 * added option to disable automatic update check
 * added scan config mode to start log entry
 * added measurement and logging of min/max send-receive latency and include values in info command and JSON output
+* drop initial potential garbage for UDP/TCP devices
+* better support for cygwin builds
+* added measurement of arbitration delay
+* continue trying to get slave ID in scan config mode in case of communication errors
+
 
 # 3.0 (2017-08-29)
 
