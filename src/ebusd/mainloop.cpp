@@ -722,7 +722,7 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
       result_t ret;
       symbol_t address = (symbol_t)parseInt(args[argPos].c_str(), 16, 0, 0xff, &ret);
       if (ret != RESULT_OK || !isValidAddress(address, dest) || (dest == isMaster(address))) {
-        return RESULT_ERR_INVALID_ADDR; // deny send from slave address and to master addresses
+        return RESULT_ERR_INVALID_ADDR;  // deny send from slave address and to master addresses
       }
       if (dest) {
         dstAddress = address;
@@ -949,7 +949,7 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
       result_t ret;
       symbol_t address = (symbol_t)parseInt(args[argPos].c_str(), 16, 0, 0xff, &ret);
       if (ret != RESULT_OK || !isValidAddress(address, dest) || (!dest && !isMaster(address))) {
-        return RESULT_ERR_INVALID_ADDR; // deny send from slave address
+        return RESULT_ERR_INVALID_ADDR;  // deny send from slave address
       }
       if (dest) {
         dstAddress = address;

@@ -279,7 +279,7 @@ result_t NetworkDevice::open() {
     return RESULT_ERR_GENERIC_IO;
   }
   if (!m_udp) {
-    usleep(25000); // wait 25ms for potential initial garbage
+    usleep(25000);  // wait 25ms for potential initial garbage
   }
   int cnt;
   symbol_t buf[MTU];

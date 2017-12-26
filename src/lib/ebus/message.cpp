@@ -747,7 +747,7 @@ result_t Message::decodeLastData(bool leadingSeparator, const char* fieldName,
     fieldIndex -= m_data->getCount(pt_masterData, fieldName);
     if (fieldIndex < 0) {
       skipSlaveData = true;
-	  fieldIndex = 0;
+      fieldIndex = 0;
     }
   }
   if (!skipSlaveData) {

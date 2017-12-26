@@ -658,7 +658,8 @@ bool SingleDataField::hasFullByteOffset(bool after) const {
 }
 
 size_t SingleDataField::getCount(PartType partType, const char* fieldName) const {
-	return isIgnored() || (partType != pt_any && partType != m_partType) || (fieldName != NULL && m_name != fieldName) ? 0 : 1;
+  return isIgnored() || (partType != pt_any && partType != m_partType) || (fieldName != NULL && m_name != fieldName)
+  ? 0 : 1;
 }
 
 
