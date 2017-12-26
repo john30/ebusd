@@ -1,4 +1,4 @@
-# next version: 3.1
+# 3.1 (2017-12-26)
 
 ## Bug Fixes
 * corrected wrong defaults directory in Debian Jessie build
@@ -11,6 +11,7 @@
 * corrected address check with "-s" or "-d" argument in read and write commands
 * fixed timeout for update check
 * corrected wrong initial scan load message
+* corrected "read" command with field name and MQTT output by field when master and slave part both carry fields
 
 ## Features
 * added helper script for reading all Vaillant registers for a single slave via hex command
