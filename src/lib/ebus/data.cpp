@@ -657,6 +657,10 @@ bool SingleDataField::hasFullByteOffset(bool after) const {
   || (after && firstBit + (m_dataType->getBitCount() % 8) >= 8);
 }
 
+size_t SingleDataField::getCount(PartType partType, const char* fieldName) const {
+	return isIgnored() || (partType != pt_any && partType != m_partType) || (fieldName != NULL && m_name != fieldName) ? 0 : 1;
+}
+
 
 const ValueListDataField* ValueListDataField::clone() const {
   return new ValueListDataField(*this);
@@ -925,6 +929,17 @@ size_t DataFieldSet::getLength(PartType partType, size_t maxLength) const {
   return length;
 }
 
+size_t DataFieldSet::getCount(PartType partType, const char* fieldName) const {
+  if (partType == pt_any && fieldName == NULL) {
+    return m_fields.size() - m_ignoredCount;
+  }
+  size_t count = 0;
+  for (auto field : m_fields) {
+    count += field->getCount(partType, fieldName);
+  }
+  return count;
+}
+
 string DataFieldSet::getName(ssize_t fieldIndex) const {
   if (fieldIndex < (ssize_t)m_ignoredCount) {
     return m_name;
@@ -988,7 +1003,7 @@ void DataFieldSet::dump(bool prependFieldSeparator, bool asJson, ostream* output
 
 result_t DataFieldSet::read(const SymbolString& data, size_t offset,
     const char* fieldName, ssize_t fieldIndex, unsigned int* output) const {
-  bool previousFullByteOffset = true, found = false, findFieldIndex = fieldName != NULL && fieldIndex >= 0;
+  bool previousFullByteOffset = true, found = false, findFieldIndex = fieldIndex >= 0;
   PartType partType = data.isMaster() ? pt_masterData : pt_slaveData;
   for (const auto field : m_fields) {
     if (field->getPartType() != partType) {

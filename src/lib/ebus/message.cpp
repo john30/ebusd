@@ -727,7 +727,7 @@ result_t Message::decodeLastData(bool master, bool leadingSeparator, const char*
   if (result < RESULT_OK) {
     return result;
   }
-  if (result == RESULT_EMPTY && fieldName != NULL) {
+  if (result == RESULT_EMPTY && (fieldName != NULL || fieldIndex >= 0)) {
     return RESULT_ERR_NOTFOUND;
   }
   return result;
@@ -742,14 +742,25 @@ result_t Message::decodeLastData(bool leadingSeparator, const char* fieldName,
     return result;
   }
   bool empty = result == RESULT_EMPTY;
-  bool useLeadingSeparator = leadingSeparator || output->tellp() > startPos;
-  result = m_data->read(m_lastSlaveData, 0, useLeadingSeparator, fieldName, fieldIndex, outputFormat, -1, output);
-  if (result < RESULT_OK) {
-    return result;
+  bool skipSlaveData = false;
+  if (fieldIndex >= 0) {
+    fieldIndex -= m_data->getCount(pt_masterData, fieldName);
+    if (fieldIndex < 0) {
+      skipSlaveData = true;
+	  fieldIndex = 0;
+    }
   }
-  if (result == RESULT_EMPTY && !empty) {
-    result = RESULT_OK;  // OK if at least one part was non-empty
-  } else if (result == RESULT_EMPTY && fieldName != NULL) {
+  if (!skipSlaveData) {
+    bool useLeadingSeparator = leadingSeparator || output->tellp() > startPos;
+    result = m_data->read(m_lastSlaveData, 0, useLeadingSeparator, fieldName, fieldIndex, outputFormat, -1, output);
+    if (result < RESULT_OK) {
+      return result;
+    }
+    if (result == RESULT_EMPTY && !empty) {
+      result = RESULT_OK;  // OK if at least one part was non-empty
+    }
+  }
+  if (result == RESULT_EMPTY && (fieldName != NULL || fieldIndex >= 0)) {
     return RESULT_ERR_NOTFOUND;
   }
   return result;

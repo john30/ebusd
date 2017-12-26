@@ -251,9 +251,11 @@ class DataField : public AttributedItem {
 
   /**
    * Get the field count (excluding ignored fields).
+   * @param partType the optional part to count, or @ pt_any.
+   * @param fieldName the optional field name to count, or NULL.
    * @return the field count (excluding ignored fields).
    */
-  virtual size_t getCount() const = 0;
+  virtual size_t getCount(PartType partType = pt_any, const char* fieldName = NULL) const = 0;
 
   /**
    * Get the specified field name.
@@ -399,7 +401,7 @@ class SingleDataField : public DataField {
   bool hasFullByteOffset(bool after) const;
 
   // @copydoc
-  size_t getCount() const override { return isIgnored() ? 0 : 1; }
+  size_t getCount(PartType partType = pt_any, const char* fieldName = NULL) const override;
 
   // @copydoc
   virtual string getName(ssize_t fieldIndex) const {
@@ -638,7 +640,7 @@ class DataFieldSet : public DataField {
   size_t getLength(PartType partType, size_t maxLength) const override;
 
   // @copydoc
-  size_t getCount() const override { return m_fields.size() - m_ignoredCount; }
+  size_t getCount(PartType partType = pt_any, const char* fieldName = NULL) const override;
 
   // @copydoc
   string getName(ssize_t fieldIndex) const override;
