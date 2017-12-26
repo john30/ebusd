@@ -650,11 +650,11 @@ void closePidFile() {
  */
 void shutdown() {
   // stop main loop and all dependent components
-  if (s_mainLoop != NULL) {
+  if (s_mainLoop) {
     delete s_mainLoop;
     s_mainLoop = NULL;
   }
-  if (s_messageMap != NULL) {
+  if (s_messageMap) {
     delete s_messageMap;
     s_messageMap = NULL;
   }
@@ -695,11 +695,19 @@ void signalHandler(int sig) {
     break;
   case SIGINT:
     logNotice(lf_main, "SIGINT received");
-    s_mainLoop->shutdown();
+    if (s_mainLoop) {
+      s_mainLoop->shutdown();
+    } else {
+      shutdown();
+    }
     break;
   case SIGTERM:
     logNotice(lf_main, "SIGTERM received");
-    s_mainLoop->shutdown();
+    if (s_mainLoop) {
+      s_mainLoop->shutdown();
+    } else {
+      shutdown();
+    }
     break;
   default:
     logNotice(lf_main, "undefined signal %s", strsignal(sig));
