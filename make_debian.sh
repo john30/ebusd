@@ -15,26 +15,55 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+keepbuilddir=
+if [ "x$1" = "x--keepbuilddir" ]; then
+  keepbuilddir=1
+  shift
+fi
+reusebuilddir=
+if [ "x$1" = "x--reusebuilddir" ]; then
+  reusebuilddir=1
+  shift
+fi
+
 echo "*************"
 echo " prepare"
 echo "*************"
 echo
+tags=`git fetch -t`
+if [ -n "$tags" ]; then
+  echo "tags were updated:"
+  echo $tags
+  echo "git pull is recommended. stopped."
+  exit 1
+fi
 VERSION=`head -n 1 VERSION`
 ARCH=`dpkg --print-architecture`
 BUILD="build-$ARCH"
 RELEASE="ebusd-$VERSION"
 PACKAGE="${RELEASE}_${ARCH}"
-rm -rf "$BUILD"
+if [ -n "$reusebuilddir" ]; then
+  echo "reusing build directory $BUILD"
+else
+  if [ -n "$keepbuilddir" ]; then
+    ./autogen.sh $@ || exit 1
+  fi
+  rm -rf "$BUILD"
+fi
 mkdir -p "$BUILD" || exit 1
 cd "$BUILD" || exit 1
-(tar cf - -C .. "--exclude=./$BUILD" --exclude=./.* "--exclude=*.o" "--exclude=*.a" .| tar xf -) || exit 1
+if [ -z "$reusebuilddir" ]; then
+  (tar cf - -C .. "--exclude=./$BUILD" --exclude=./.* "--exclude=*.o" "--exclude=*.a" .| tar xf -) || exit 1
+fi
 
 echo
 echo "*************"
 echo " build"
 echo "*************"
 echo
-./autogen.sh $@ || exit 1
+if [ -n "$reusebuilddir" ] || [ -z "$keepbuilddir" ]; then
+  ./autogen.sh $@ || exit 1
+fi
 make DESTDIR="$PWD/$RELEASE" install-strip || exit 1
 extralibs=
 ldd $RELEASE/usr/bin/ebusd | egrep -q libmosquitto.so.0
@@ -89,20 +118,31 @@ cat <<EOF > $RELEASE/DEBIAN/dirs
 EOF
 if [ -d /run/systemd/system ]; then
   echo /lib/systemd/system >> $RELEASE/DEBIAN/dirs
-else
-  echo /etc/init.d >> $RELEASE/DEBIAN/dirs
-fi
-
-cat <<EOF > $RELEASE/DEBIAN/postinst
+  cat <<EOF > $RELEASE/DEBIAN/postinst
 #!/bin/sh
 echo "Instructions:"
 echo "1. Edit /etc/default/ebusd if necessary"
 echo "   (especially if your device is not /dev/ttyUSB0)"
 echo "2. Place CSV configuration files in /etc/ebusd/"
 echo "   (see https://github.com/john30/ebusd-configuration)"
-echo "3. To start the daemon, enter 'service ebusd start'"
+echo "3. Start the daemon with 'systemctl start ebusd'"
 echo "4. Check the log file /var/log/ebusd.log"
+echo "5. Make the daemon autostart with 'systemctl enable ebusd'"
 EOF
+else
+  echo /etc/init.d >> $RELEASE/DEBIAN/dirs
+  cat <<EOF > $RELEASE/DEBIAN/postinst
+#!/bin/sh
+echo "Instructions:"
+echo "1. Edit /etc/default/ebusd if necessary"
+echo "   (especially if your device is not /dev/ttyUSB0)"
+echo "2. Place CSV configuration files in /etc/ebusd/"
+echo "   (see https://github.com/john30/ebusd-configuration)"
+echo "3. Start the daemon with 'service ebusd start'"
+echo "4. Check the log file /var/log/ebusd.log"
+echo "5. Make the daemon autostart with 'update-rc.d ebusd enable'"
+EOF
+fi
 chmod 755 $RELEASE/DEBIAN/postinst
 
 dpkg -b $RELEASE || exit 1
@@ -114,7 +154,11 @@ echo " cleanup"
 echo "*************"
 echo
 cd ..
-rm -rf "$BUILD"
+if [ -n "$keepbuilddir" ]; then
+  echo "keeping build directory $BUILD"
+else
+  rm -rf "$BUILD"
+fi
 
 echo
 echo "Package created: ${PACKAGE}.deb"
