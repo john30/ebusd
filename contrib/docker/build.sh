@@ -9,7 +9,7 @@ set -e
 echo "creating debian image..."
 docker run --rm -it -v `pwd`/../..:/build ebusd-buildenv ./make_debian.sh
 export EBUSD_VERSION=`cat ../../VERSION`
-export EBUSD_ARCH=`docker version|grep -i "Arch[^:]*server"|head -n 1|sed -e 's#^.*/##'`
+export EBUSD_ARCH=`docker version|grep -i "Arch:"|head -n 1|sed -e 's#^.*/##'`
 mv ../../ebusd-${EBUSD_VERSION}_${EBUSD_ARCH}_mqtt1.deb runtime/
 echo "building docker image..."
 (cd runtime && docker build -t ebusd .)
