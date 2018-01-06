@@ -12,5 +12,5 @@ export EBUSD_VERSION=`cat ../../VERSION`
 export EBUSD_ARCH=`docker version|grep -i "Arch:"|head -n 1|sed -e 's#^.*/##'`
 mv ../../ebusd-${EBUSD_VERSION}_${EBUSD_ARCH}_mqtt1.deb runtime/
 echo "building docker image..."
-(cd runtime && docker build -t ebusd .)
+(cd runtime && docker build -t ebusd --build-arg EBUSD_VERSION=${EBUSD_VERSION} --build-arg EBUSD_ARCH=${EBUSD_ARCH} .)
 echo "docker image created."
