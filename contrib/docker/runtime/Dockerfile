@@ -1,7 +1,7 @@
 FROM debian:jessie
 
 RUN apt-get update && apt-get install -y \
-    logrotate libmosquitto1 \
+    logrotate libmosquitto1 libstdc++6 libc6 libgcc1 \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
