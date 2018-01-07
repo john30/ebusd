@@ -12,7 +12,7 @@ ENV EBUSD_ARCH amd64
 
 LABEL version "${EBUSD_VERSION}-${EBUSD_ARCH}"
 
-RUN curl -SL https://github.com/john30/ebusd/releases/download/v${EBUSD_VERSION}/ebusd-${EBUSD_VERSION}_${EBUSD_ARCH}.deb > ebusd.deb
+RUN curl -SL https://github.com/john30/ebusd/releases/download/v${EBUSD_VERSION}/ebusd-${EBUSD_VERSION}_${EBUSD_ARCH}-jessie_mqtt0.deb > ebusd.deb
 
 RUN dpkg -i ebusd.deb
 
