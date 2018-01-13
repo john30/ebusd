@@ -1,4 +1,4 @@
-FROM debian:jessie
+FROM debian:stretch
 
 RUN apt-get update && apt-get install -y \
     logrotate libmosquitto1 libstdc++6 libc6 libgcc1 \
@@ -12,7 +12,7 @@ ENV EBUSD_ARCH amd64
 
 LABEL version "${EBUSD_VERSION}-${EBUSD_ARCH}"
 
-RUN curl -SL https://github.com/john30/ebusd/releases/download/v${EBUSD_VERSION}/ebusd-${EBUSD_VERSION}_${EBUSD_ARCH}-jessie_mqtt1.deb > ebusd.deb
+RUN curl -SL https://github.com/john30/ebusd/releases/download/v${EBUSD_VERSION}/ebusd-${EBUSD_VERSION}_${EBUSD_ARCH}-stretch_mqtt1.deb > ebusd.deb
 
 RUN dpkg -i ebusd.deb
 
