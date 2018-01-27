@@ -380,9 +380,8 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
 #else
     if (mosquitto_connect(m_mosquitto, g_host, g_port, 60, true) != MOSQ_ERR_SUCCESS) {
 #endif
-      logOtherError("mqtt", "unable to connect");
-      mosquitto_destroy(m_mosquitto);
-      m_mosquitto = NULL;
+      m_connected = false;
+      logOtherNotice("mqtt", "unable to connect - retry...");
     } else {
       m_connected = true;  // assume success until connect_callback says otherwise
       logOtherDebug("mqtt", "connection requested");
