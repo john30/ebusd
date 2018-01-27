@@ -588,6 +588,9 @@ void MqttHandler::handleTraffic() {
 #else
     ret = mosquitto_loop(m_mosquitto, -1);
 #endif
+    if(ret == MOSQ_ERR_NO_CONN) {
+      ret = mosquitto_reconnect(m_mosquitto);
+    }
     if (!m_connected && ret == MOSQ_ERR_SUCCESS) {
       m_connected = true;
       logOtherNotice("mqtt", "connection re-established");
