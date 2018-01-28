@@ -301,7 +301,7 @@ void on_connect(
 
 
 MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages)
-  : DataSink(userInfo, "mqtt"), DataSource(busHandler), Thread(), m_messages(messages), m_connected(false),
+  : DataSink(userInfo, "mqtt"), DataSource(busHandler), WaitThread(), m_messages(messages), m_connected(false),
     m_lastUpdateCheckResult(".") {
   m_publishByField = false;
   m_mosquitto = NULL;
@@ -375,13 +375,25 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
 #endif
 
     mosquitto_connect_callback_set(m_mosquitto, on_connect);
+    int ret;
 #if (LIBMOSQUITTO_MAJOR >= 1)
-    if (mosquitto_connect(m_mosquitto, g_host, g_port, 60) != MOSQ_ERR_SUCCESS) {
+    ret = mosquitto_connect(m_mosquitto, g_host, g_port, 60);
 #else
-    if (mosquitto_connect(m_mosquitto, g_host, g_port, 60, true) != MOSQ_ERR_SUCCESS) {
+    ret = mosquitto_connect(m_mosquitto, g_host, g_port, 60, true);
 #endif
+    if (ret == MOSQ_ERR_INVAL) {
+      logOtherError("mqtt", "unable to connect (invalid parameters)");
+      mosquitto_destroy(m_mosquitto);
+      m_mosquitto = NULL;
+    } else if (ret != MOSQ_ERR_SUCCESS) {
       m_connected = false;
-      logOtherNotice("mqtt", "unable to connect - retry...");
+      char* error;
+      if (ret != MOSQ_ERR_ERRNO) {
+        error = (char*)("unkown mosquitto error");
+      } else {
+        error = strerror(errno);
+      }
+      logOtherError("mqtt", "unable to connect, retrying: %s", error);
     } else {
       m_connected = true;  // assume success until connect_callback says otherwise
       logOtherDebug("mqtt", "connection requested");
@@ -400,7 +412,7 @@ MqttHandler::~MqttHandler() {
 
 void MqttHandler::start() {
   if (m_mosquitto) {
-    Thread::start("MQTT");
+    WaitThread::start("MQTT");
   }
 }
 
@@ -525,8 +537,10 @@ void MqttHandler::run() {
   mosquitto_message_callback_set(m_mosquitto, on_message);
   string subTopic = getTopic(NULL, "#");
   mosquitto_subscribe(m_mosquitto, NULL, subTopic.c_str(), 0);
+  bool allowReconnect = false;
   while (isRunning()) {
-    handleTraffic();
+    handleTraffic(allowReconnect);
+    allowReconnect = false;
     time(&now);
     if (now < start) {
       // clock skew
@@ -535,6 +549,7 @@ void MqttHandler::run() {
       }
       lastTaskRun = now;
     } else if (now > lastTaskRun+15) {
+      allowReconnect = true;
       if (m_busHandler->hasSignal()) {
         lastSignal = now;
         if (!signal) {
@@ -576,18 +591,21 @@ void MqttHandler::run() {
         m_updatedMessages.clear();
       }
     }
+    if (!m_connected && !Wait(5)) {
+      break;
+    }
   }
 }
 
-void MqttHandler::handleTraffic() {
+void MqttHandler::handleTraffic(bool allowReconnect) {
   if (m_mosquitto) {
     int ret;
 #if (LIBMOSQUITTO_MAJOR >= 1)
-    ret = mosquitto_loop(m_mosquitto, -1, 1);
+    ret = mosquitto_loop(m_mosquitto, -1, 1); // waits up to 1 second for network traffic
 #else
-    ret = mosquitto_loop(m_mosquitto, -1);
+    ret = mosquitto_loop(m_mosquitto, -1); // waits up to 1 second for network traffic
 #endif
-    if(ret == MOSQ_ERR_NO_CONN) {
+    if (!m_connected && ret == MOSQ_ERR_NO_CONN && allowReconnect) {
       ret = mosquitto_reconnect(m_mosquitto);
     }
     if (!m_connected && ret == MOSQ_ERR_SUCCESS) {

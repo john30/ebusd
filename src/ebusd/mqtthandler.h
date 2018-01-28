@@ -58,7 +58,7 @@ bool mqtthandler_register(UserInfo* userInfo, BusHandler* busHandler, MessageMap
 /**
  * The main class supporting MQTT data handling.
  */
-class MqttHandler : public DataSink, public DataSource, public Thread {
+class MqttHandler : public DataSink, public DataSource, public WaitThread {
  public:
   /**
    * Constructor.
@@ -94,8 +94,9 @@ class MqttHandler : public DataSink, public DataSource, public Thread {
  private:
   /**
    * Called regularly to handle MQTT traffic.
+   * @param allowReconnect true when reconnecting to the broker is allowed.
    */
-  void handleTraffic();
+  void handleTraffic(bool allowReconnect);
 
   /**
    * Build the MQTT topic string for the @a Message.
