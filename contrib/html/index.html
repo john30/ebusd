@@ -637,6 +637,9 @@ jsPlumb.ready(function() {
 							continue;
 						}
 						var circuit = trans.responseJSON[cname];
+						if (cname!='global' && circuit.hasOwnProperty('messages')) {
+							circuit = circuit['messages'];
+						}
 						for (var mname in circuit) {
 							if (!circuit.hasOwnProperty(mname)) {
 								continue;
@@ -647,7 +650,7 @@ jsPlumb.ready(function() {
 								since = lastup;
 							}
 							var fields = message.fields;
-							if (fields) {
+							if (fields && allCircuits[cname]) {
 								var cmessages = allCircuits[cname].messages;
 								if (cmessages) {
 									var msg = cmessages[mname];
