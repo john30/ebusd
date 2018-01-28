@@ -83,16 +83,9 @@ bool PollRequest::notify(result_t result, const SlaveSymbolString& slave) {
       }
     }
   }
-  ostringstream output;
-  if (result == RESULT_OK) {
-    result = m_message->decodeLastData(false, NULL, -1, 0, &output);  // decode data
-  }
   if (result < RESULT_OK) {
     logError(lf_bus, "poll %s %s failed: %s", m_message->getCircuit().c_str(), m_message->getName().c_str(),
         getResultCode(result));
-  } else {
-    logNotice(lf_bus, "poll %s %s: %s", m_message->getCircuit().c_str(), m_message->getName().c_str(),
-        output.str().c_str());
   }
   return false;
 }
@@ -336,10 +329,6 @@ result_t BusHandler::sendAndWait(const MasterSymbolString& master, SlaveSymbolSt
     bool success = m_finishedRequests.remove(&request, true);
     result = success ? request.m_result : RESULT_ERR_TIMEOUT;
     if (result == RESULT_OK) {
-      Message* message = m_messages->find(master);
-      if (message != NULL) {
-        m_messages->invalidateCache(message);
-      }
       break;
     }
     if (!success || result == RESULT_ERR_NO_SIGNAL || result == RESULT_ERR_SEND || result == RESULT_ERR_DEVICE) {
@@ -731,7 +720,8 @@ result_t BusHandler::handleSymbol() {
     m_crcValid = recvSymbol == m_crc;
     if (m_command[1] == BROADCAST) {
       if (m_crcValid) {
-        receiveCompleted();
+        addSeenAddress(m_command[0]);
+        messageCompleted();
         return setState(bs_skip, RESULT_OK);
       }
       return setState(bs_skip, RESULT_ERR_CRC);
@@ -763,10 +753,11 @@ result_t BusHandler::handleSymbol() {
       }
       if (m_currentRequest != NULL) {
         if (isMaster(m_currentRequest->m_master[1])) {
+          messageCompleted();
           return setState(bs_sendSyn, RESULT_OK);
         }
       } else if (isMaster(m_command[1])) {
-        receiveCompleted();
+        messageCompleted();
         return setState(bs_skip, RESULT_OK);
       }
 
@@ -819,9 +810,7 @@ result_t BusHandler::handleSymbol() {
       if (!m_crcValid) {
         return setState(bs_skip, RESULT_ERR_ACK);
       }
-      if (!m_currentAnswering) {
-        receiveCompleted();
-      }
+      messageCompleted();
       return setState(bs_skip, RESULT_OK);
     }
     if (recvSymbol == NAK) {
@@ -850,6 +839,7 @@ result_t BusHandler::handleSymbol() {
 
   case bs_sendCmdCrc:
     if (m_currentRequest->m_master[1] == BROADCAST) {
+      messageCompleted();
       return setState(bs_sendSyn, RESULT_OK);
     }
     m_crcValid = true;
@@ -867,6 +857,7 @@ result_t BusHandler::handleSymbol() {
       }
       return setState(bs_sendSyn, RESULT_ERR_ACK);
     }
+    messageCompleted();
     return setState(bs_sendSyn, RESULT_OK);
 
   case bs_sendCmdAck:
@@ -883,7 +874,7 @@ result_t BusHandler::handleSymbol() {
       return setState(bs_skip, RESULT_ERR_ACK);
     }
     if (isMaster(m_command[1])) {
-      receiveCompleted();  // decode command and store value
+      messageCompleted();  // TODO decode command and store value into database of internal variables
       return setState(bs_skip, RESULT_OK);
     }
 
@@ -950,10 +941,6 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
       m_currentRequest = NULL;
     } else if (state == bs_sendSyn || (result != RESULT_OK && !firstRepetition)) {
       logDebug(lf_bus, "notify request: %s", getResultCode(result));
-      symbol_t dstAddress = m_currentRequest->m_master[1];
-      if (result == RESULT_OK) {
-        addSeenAddress(dstAddress);
-      }
       bool restart = m_currentRequest->notify(
         result == RESULT_ERR_SYN && (m_state == bs_recvCmdAck || m_state == bs_recvRes)
         ? RESULT_ERR_TIMEOUT : result, m_response);
@@ -1072,14 +1059,15 @@ bool BusHandler::addSeenAddress(symbol_t address) {
   return m_addressConflict && !hadConflict;
 }
 
-void BusHandler::receiveCompleted() {
+void BusHandler::messageCompleted() {
+  const char* prefix = m_currentRequest ? "sent" : "received";
+  if (m_currentRequest) {
+    m_command = m_currentRequest->m_master;
+  }
   symbol_t srcAddress = m_command[0], dstAddress = m_command[1];
   if (srcAddress == dstAddress) {
     logError(lf_bus, "invalid self-addressed message from %2.2x", srcAddress);
     return;
-  }
-  if (!m_currentRequest) {
-    addSeenAddress(srcAddress);
   }
   if (!m_currentAnswering) {
     addSeenAddress(dstAddress);
@@ -1087,7 +1075,7 @@ void BusHandler::receiveCompleted() {
 
   bool master = isMaster(dstAddress);
   if (dstAddress == BROADCAST) {
-    logInfo(lf_update, "update BC cmd: %s", m_command.getStr().c_str());
+    logInfo(lf_update, "%s BC cmd: %s", prefix, m_command.getStr().c_str());
     if (m_command.getDataSize() >= 10 && m_command[2] == 0x07 && m_command[3] == 0x04) {
       symbol_t slaveAddress = getSlaveAddress(srcAddress);
       addSeenAddress(slaveAddress);
@@ -1118,9 +1106,9 @@ void BusHandler::receiveCompleted() {
       }
     }
   } else if (master) {
-    logInfo(lf_update, "update MM cmd: %s", m_command.getStr().c_str());
+    logInfo(lf_update, "%s MM cmd: %s", prefix, m_command.getStr().c_str());
   } else {
-    logInfo(lf_update, "update MS cmd: %s / %s", m_command.getStr().c_str(), m_response.getStr().c_str());
+    logInfo(lf_update, "%s MS cmd: %s / %s", prefix, m_command.getStr().c_str(), m_response.getStr().c_str());
     if (m_command.size() >= 5 && m_command[2] == 0x07 && m_command[3] == 0x04) {
       Message* message = m_messages->getScanMessage(dstAddress);
       if (message && (message->getLastUpdateTime() == 0 || message->getLastSlaveData().getDataSize() < 10)) {
@@ -1149,11 +1137,11 @@ void BusHandler::receiveCompleted() {
   }
   if (message == NULL) {
     if (dstAddress == BROADCAST) {
-      logNotice(lf_update, "unknown BC cmd: %s", m_command.getStr().c_str());
+      logNotice(lf_update, "%s unknown BC cmd: %s", prefix, m_command.getStr().c_str());
     } else if (master) {
-      logNotice(lf_update, "unknown MM cmd: %s", m_command.getStr().c_str());
+      logNotice(lf_update, "%s unknown MM cmd: %s", prefix, m_command.getStr().c_str());
     } else {
-      logNotice(lf_update, "unknown MS cmd: %s / %s", m_command.getStr().c_str(), m_response.getStr().c_str());
+      logNotice(lf_update, "%s unknown MS cmd: %s / %s", prefix, m_command.getStr().c_str(), m_response.getStr().c_str());
     }
   } else {
     m_messages->invalidateCache(message);
@@ -1170,19 +1158,19 @@ void BusHandler::receiveCompleted() {
     } else {
       string data = output.str();
       if (m_answer && dstAddress == (master ? m_ownMasterAddress : m_ownSlaveAddress)) {
-        logNotice(lf_update, "self-update %s %s QQ=%2.2x: %s", circuit.c_str(), name.c_str(), srcAddress,
+        logNotice(lf_update, "%s self-update %s %s QQ=%2.2x: %s", prefix, circuit.c_str(), name.c_str(), srcAddress,
             data.c_str());  // TODO store in database of internal variables
       } else if (message->getDstAddress() == SYN) {  // any destination
         if (message->getSrcAddress() == SYN) {  // any destination and any source
-          logNotice(lf_update, "update %s %s QQ=%2.2x ZZ=%2.2x: %s", circuit.c_str(), name.c_str(), srcAddress,
+          logNotice(lf_update, "%s %s %s QQ=%2.2x ZZ=%2.2x: %s", prefix, circuit.c_str(), name.c_str(), srcAddress,
               dstAddress, data.c_str());
         } else {
-          logNotice(lf_update, "update %s %s ZZ=%2.2x: %s", circuit.c_str(), name.c_str(), dstAddress, data.c_str());
+          logNotice(lf_update, "%s %s %s ZZ=%2.2x: %s", prefix, circuit.c_str(), name.c_str(), dstAddress, data.c_str());
         }
       } else if (message->getSrcAddress() == SYN) {  // any source
-        logNotice(lf_update, "update %s %s QQ=%2.2x: %s", circuit.c_str(), name.c_str(), srcAddress, data.c_str());
+        logNotice(lf_update, "%s %s %s QQ=%2.2x: %s", prefix, circuit.c_str(), name.c_str(), srcAddress, data.c_str());
       } else {
-        logNotice(lf_update, "update %s %s: %s", circuit.c_str(), name.c_str(), data.c_str());
+        logNotice(lf_update, "%s %s %s: %s", prefix, circuit.c_str(), name.c_str(), data.c_str());
       }
     }
   }
