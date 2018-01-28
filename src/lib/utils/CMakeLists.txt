@@ -1,18 +1,13 @@
 add_definitions(-Wconversion)
 
 set(libutils_a_SOURCES
-    log.cpp
-    log.h
-    tcpsocket.cpp
-    tcpsocket.h
-    thread.cpp
-    thread.h
-    clock.cpp
-    clock.h
+    log.h log.cpp
+    tcpsocket.h tcpsocket.cpp
+    thread.h thread.cpp
+    clock.h clock.cpp
     queue.h
     notify.h
-    rotatefile.cpp
-    rotatefile.h
-)
+    rotatefile.h rotatefile.cpp
+    httpclient.h httpclient.cpp)
 
 add_library(utils ${libutils_a_SOURCES})

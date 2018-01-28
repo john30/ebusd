@@ -26,6 +26,7 @@
 #include <algorithm>
 #include "ebusd/main.h"
 #include "lib/utils/log.h"
+#include "lib/utils/httpclient.h"
 #include "lib/ebus/data.h"
 
 namespace ebusd {
@@ -301,13 +302,12 @@ void MainLoop::run() {
         }
       }
       if (m_runUpdateCheck && !m_shutdown && now > nextCheckRun) {
-        TCPClient client;
-        TCPSocket* socket = client.connect("ebusd.eu", 80);
-        if (socket) {
-          socket->setTimeout(5);
+        HttpClient client;
+        if (!client.connect("ebusd.eu", 80, PACKAGE_NAME "/" PACKAGE_VERSION)) {
+          logError(lf_main, "update check connect error");
+        } else {
           ostringstream ostr;
-          ostr << "{\"v\":\"" << PACKAGE_VERSION "\""
-               << ",\"r\":\"" << REVISION << "\""
+          ostr << "{\"v\":\"" PACKAGE_VERSION "\",\"r\":\"" REVISION << "\""
 #if defined(__amd64__) || defined(__x86_64__) || defined(__ia64__) || defined(__IA64__)
                << ",\"a\":\"amd64\""
 #elif defined(__aarch64__)
@@ -327,69 +327,18 @@ void MainLoop::run() {
           }
           m_busHandler->formatUpdateInfo(&ostr);
           ostr << "}";
-          string str = ostr.str();
-          ostr.clear();
-          ostr.str("");
-          ostr << "POST /updatecheck/ HTTP/1.0\r\n"
-               << "Host: ebusd.eu" << "\r\n"
-               << "User-Agent: " << PACKAGE_NAME << "/" << PACKAGE_VERSION << "\r\n"
-               << "Content-Type: application/json; charset=utf-8\r\n"
-               << "Content-Length: " << dec << str.length() << "\r\n"
-               << "\r\n"
-               << str;
-          str = ostr.str();
-          const char* cstr = str.c_str();
-          size_t len = str.size();
-          for (size_t pos = 0; pos < len; ) {
-            ssize_t sent = socket->send(cstr + pos, len - pos);
-            if (sent < 0) {
-              len = 0;
-              logError(lf_main, "update check send error");
-              break;
-            }
-            pos += sent;
-          }
-          if (len) {
-            char buf[512];
-            ssize_t received = socket->recv(buf, sizeof(buf));
-            string result;
-            if (received > 15) {  // "HTTP/1.1 200 OK"
-              buf[received - (received == sizeof(buf) ? 1 : 0)] = 0;
-              result = string(buf);
-            }
-            if (result.substr(0, 5) == "HTTP/") {
-              string message;
-              size_t pos = result.find("\r\n\r\n");
-              if (pos != string::npos) {
-                message = result.substr(pos+4);
+          string response;
+          if (!client.post("/updatecheck/", ostr.str(), response)) {
+            logError(lf_main, "update check error: %s", response.c_str());
+          } else {
+            m_updateCheck = response.empty() ? "unknown" : response;
+            logNotice(lf_main, "update check: %s", response.c_str());
+            if (!dataSinks.empty()) {
+              for (const auto dataSink : dataSinks) {
+                dataSink->notifyUpdateCheckResult(response == "OK" ? "" : m_updateCheck);
               }
-              pos = result.find(" ");
-              if (pos != string::npos) {
-                result = result.substr(pos+1);
-              }
-              pos = result.find("\r\n");
-              if (pos != string::npos) {
-                result = result.substr(0, pos);
-              }
-              if (result == "200 OK") {
-                m_updateCheck = message == "" ? "unknown" : message;
-                logNotice(lf_main, "update check: %s", message.c_str());
-                if (!dataSinks.empty()) {
-                  for (const auto dataSink : dataSinks) {
-                    dataSink->notifyUpdateCheckResult(message == "OK" ? "" : m_updateCheck);
-                  }
-                }
-              } else {
-                logError(lf_main, "update check error: %s", result.c_str());
-              }
-            } else {
-              logError(lf_main, "update check receive error");
             }
           }
-          delete socket;
-          socket = NULL;
-        } else {
-          logError(lf_main, "update check connect error");
         }
         nextCheckRun = now + CHECK_DELAY;
       }
