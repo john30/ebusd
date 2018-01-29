@@ -1503,7 +1503,7 @@ result_t MainLoop::executeInfo(const vector<string>& args, const string& user, o
                 " Report information about the daemon, the configuration, and seen devices.";
     return RESULT_OK;
   }
-  *ostream << "version: " << PACKAGE_STRING "." REVISION "\n";
+  *ostream << "version: " << argp_program_version "\n";
   if (!m_updateCheck.empty()) {
     *ostream << "update check: " << m_updateCheck << "\n";
   }
