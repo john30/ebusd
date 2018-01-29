@@ -35,7 +35,11 @@
 
 
 /** the version string of the program. */
-const char *argp_program_version = "" PACKAGE_STRING "." REVISION "";
+#ifdef HAVE_MQTT
+  const char *argp_program_version = "" PACKAGE_STRING "." REVISION " [MQTT]";
+#else
+  const char *argp_program_version = "" PACKAGE_STRING "." REVISION "";
+#endif
 
 /** the report bugs to address of the program. */
 const char *argp_program_bug_address = "" PACKAGE_BUGREPORT "";
@@ -1145,7 +1149,7 @@ int main(int argc, char* argv[]) {
 
   s_messageMap = new MessageMap(string(opt.configPath)+"/", opt.checkConfig);
   if (opt.checkConfig) {
-    logNotice(lf_main, PACKAGE_STRING "." REVISION " performing configuration check...");
+    logNotice(lf_main, "%s performing configuration check...", argp_program_version);
 
     result_t result = loadConfigFiles(s_messageMap, true, opt.scanConfig && arg_index < argc);
     executeInstructions(s_messageMap, true);
@@ -1196,7 +1200,8 @@ int main(int argc, char* argv[]) {
   signal(SIGINT, signalHandler);
   signal(SIGTERM, signalHandler);
 
-  logNotice(lf_main, PACKAGE_STRING "." REVISION " started%s",
+  logNotice(lf_main, "%s started%s",
+      argp_program_version,
       opt.scanConfig ? opt.initialScan == ESC ? " with auto scan"
       : opt.initialScan == BROADCAST ? " with broadcast scan" : opt.initialScan == SYN ? " with full scan"
       : " with single scan" : "");
