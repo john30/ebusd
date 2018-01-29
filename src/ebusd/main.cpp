@@ -36,9 +36,9 @@
 
 /** the version string of the program. */
 #ifdef HAVE_MQTT
-  const char *argp_program_version = "" PACKAGE_STRING "." REVISION " [MQTT]";
+const char *argp_program_version = "" PACKAGE_STRING "." REVISION " [MQTT]";
 #else
-  const char *argp_program_version = "" PACKAGE_STRING "." REVISION "";
+const char *argp_program_version = "" PACKAGE_STRING "." REVISION "";
 #endif
 
 /** the report bugs to address of the program. */
