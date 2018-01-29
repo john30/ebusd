@@ -531,7 +531,7 @@ void MqttHandler::run() {
   time(&now);
   start = lastTaskRun = now;
   const string sep = (g_publishFormat & OF_JSON) ? "\"" : "";
-  publishTopic(m_globalTopic+"version", sep + (PACKAGE_STRING "." REVISION) + sep, true);
+  publishTopic(m_globalTopic+"version", sep + (argp_program_version) + sep, true);
   publishTopic(m_globalTopic+"running", "true", true);
   publishTopic(signalTopic, "false");
   mosquitto_message_callback_set(m_mosquitto, on_message);
