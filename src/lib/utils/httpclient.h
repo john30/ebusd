@@ -44,21 +44,29 @@ class HttpClient {
   /**
    * Constructor.
    */
-  HttpClient() : m_socket(nullptr), m_bufferSize(0), m_buffer(nullptr) {}
+  HttpClient() : m_port(0), m_timeout(0), m_socket(nullptr), m_bufferSize(0), m_buffer(nullptr) {}
 
   /**
    * Destructor.
    */
   ~HttpClient() {
-    if (m_socket) {
-      delete m_socket;
-      m_socket = nullptr;
-    }
+    disconnect();
     if (m_buffer) {
       free(m_buffer);
       m_buffer = nullptr;
     }
   }
+
+  /**
+   * Parse an HTTP URL.
+   * @param url the URL to parse.
+   * @param proto the extracted protocol.
+   * @param host the extracted host name.
+   * @param port the extracted port (or default).
+   * @param uri the extracted URI starting with '/'.
+   * @return true on success, false on failure.
+   */
+  static bool parseUrl(const string& url, string& proto, string& host, uint16_t& port, string& uri);
 
   /**
    * Connect to the specified server.
@@ -69,6 +77,23 @@ class HttpClient {
    * @return true on success, false on connect failure.
    */
   bool connect(const string& host, uint16_t port, const string& userAgent = "", int timeout = 5);
+
+  /**
+   * Re-connect to the last specified server.
+   * @return true on success, false on connect failure.
+   */
+  bool reconnect();
+
+  /**
+   * Ensure the client is connected to the last specified server.
+   * @return true if still connected or connection was re-established successfully, false on connect failure.
+   */
+  bool ensureConnected();
+
+  /**
+   * Disconnect from the servier.
+   */
+  void disconnect();
 
   /**
    * Execute a GET request.
@@ -98,11 +123,38 @@ class HttpClient {
   bool request(const string& method, const string& uri, const string& body, string& response);
 
 private:
+  /**
+   * Read from the connected socket until the specified delimiter is found or the specified number of bytes was received.
+   * @param delim the delimiter to find, or empty for reading the specified number of bytes.
+   * @param length the maximum number of bytes to receive.
+   * @param result the string to append the read data to and in which to find the delimiter.
+   * @return the position of the delimiter if delimiter was set or the number of bytes received, or string::npos if not found.
+   */
+  size_t readUntil(const string& delim, const size_t length, string& result);
+
+private:
+  /** the @a TCPClient handling the traffic. */
   TCPClient m_client;
+
+  /** the name of the host last successfully connected to. */
   string m_host;
+
+  /** the port last successfully connected to. */
+  uint16_t m_port;
+
+  /** the timeout in seconds. */
+  int m_timeout;
+
+  /** the optional user agent to send in the request header. */
   string m_userAgent;
+
+  /** the currently connected socket. */
   TCPSocket* m_socket;
+
+  /** the size of the @a m_buffer. */
   size_t m_bufferSize;
+
+  /** the buffer for preparing/receiving data. */
   char* m_buffer;
 };
 
