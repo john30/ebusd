@@ -481,7 +481,7 @@ void MqttHandler::notifyTopic(const string& topic, const string& data) {
         circuit = field;
       } else if (fieldName == "name") {
         name = field;
-      } else if (fieldName == "fields") {
+      } else if (fieldName == "field") {
         // field = field;  // TODO add support for writing a single field
       } else {
         return;
