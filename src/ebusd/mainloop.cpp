@@ -480,6 +480,11 @@ result_t MainLoop::decodeMessage(const string &data, bool isHttp, bool* connecte
   }
 
   if (isHttp) {
+    if (args.size() < 2) {
+      *connected = false;
+      *ostream << "HTTP/1.0 400 Bad Request\r\n\r\n";
+      return RESULT_OK;
+    }
     const char* str = args.size() > 0 ? args[0].c_str() : "";
     if (strcmp(str, "GET") == 0) {
       return executeGet(args, connected, ostream);
@@ -1794,6 +1799,8 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
         type = 6;
       } else if (ext == "yaml") {
         type = 7;
+      } else if (ext == "csv") {
+        type = 8;
       }
     }
     if (type < 0) {
@@ -1842,6 +1849,9 @@ result_t MainLoop::formatHttpResult(result_t ret, int type, ostringstream* ostre
       break;
     case 7:
       *ostream << "application/yaml;charset=utf-8";
+      break;
+    case 9:
+      *ostream << "text/comma-separated-values";
       break;
     default:
       *ostream << "text/html";
