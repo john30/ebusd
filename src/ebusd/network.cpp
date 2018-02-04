@@ -323,8 +323,9 @@ void Network::run() {
       Connection* connection = new Connection(socket, isHttp, m_netQueue);
       connection->start("connection");
       m_connections.push_back(connection);
+      string ip = socket->getIP();
       logInfo(lf_network, "[%05d] %s connection opened %s", connection->getID(), isHttp ? "HTTP" : "client",
-          socket->getIP().c_str());
+          ip.c_str());
     }
   }
 }
