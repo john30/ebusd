@@ -20,7 +20,6 @@
 #include <cstring>
 #include <cstdlib>
 #include <sstream>
-#include <ios>
 
 namespace ebusd {
 
@@ -40,13 +39,18 @@ bool HttpClient::parseUrl(const string& url, string& proto, string& host, uint16
     return false;
   }
   size_t pos = url.find('/', hostPos);
-  if (pos == string::npos || pos == hostPos) {
+  if (pos == hostPos) {
     return false;
   }
-  host = url.substr(hostPos, pos - hostPos);
-  uri = url.substr(pos);
-  if (uri[uri.length()-1] != '/') {
-    uri += "/";
+  if (pos == string::npos) {
+    host = url.substr(hostPos);
+    uri = "/";
+  } else {
+    host = url.substr(hostPos, pos - hostPos);
+    uri = url.substr(pos);
+    if (uri[uri.length()-1] != '/') {
+      uri += "/";
+    }
   }
   pos = host.find(':');
   if (pos == 0) {
