@@ -42,20 +42,22 @@ using std::endl;
 
 /** A structure holding all program options. */
 struct options {
-  const char* server;  //!< ebusd server host (name or ip) [localhost]
-  uint16_t port;  //!< ebusd server port [8888]
+  const char* server;     //!< ebusd server host (name or ip) [localhost]
+  uint16_t port;          //!< ebusd server port [8888]
+  uint16_t timeout;       //!< ebusd connect/send/receive timeout
 
-  char* const *args;  //!< arguments to pass to ebusd
+  char* const *args;      //!< arguments to pass to ebusd
   unsigned int argCount;  //!< number of arguments to pass to ebusd
 };
 
 /** the program options. */
 static struct options opt = {
   "localhost",  // server
-  8888,  // port
+  8888,         // port
+  0,            // timeout
 
-  NULL,  // args
-  0  // argCount
+  NULL,         // args
+  0             // argCount
 };
 
 /** the version string of the program. */
@@ -76,11 +78,12 @@ static char argpargsdoc[] = "\nCOMMAND [CMDOPT...]";
 
 /** the definition of the known program arguments. */
 static const struct argp_option argpoptions[] = {
-  {NULL,       0,   NULL, 0, "Options:", 1 },
-  {"server", 's', "HOST", 0, "Connect to HOST running " PACKAGE " (name or IP) [localhost]", 0 },
-  {"port",   'p', "PORT", 0, "Connect to PORT on HOST [8888]", 0 },
+  {NULL,        0,   NULL, 0, "Options:", 1 },
+  {"server",  's', "HOST", 0, "Connect to " PACKAGE " on HOST (name or IP) [localhost]", 0 },
+  {"port",    'p', "PORT", 0, "Connect to " PACKAGE " on PORT [8888]", 0 },
+  {"timeout", 't', "SECS", 0, "Timeout for connection to " PACKAGE ", 0 for none [0]", 0 },
 
-  {NULL,       0,   NULL, 0, NULL, 0 },
+  {NULL,        0,   NULL, 0, NULL, 0 },
 };
 
 /**
@@ -92,7 +95,7 @@ static const struct argp_option argpoptions[] = {
 error_t parse_opt(int key, char *arg, struct argp_state *state) {
   struct options *opt = (struct options*)state->input;
   char* strEnd = NULL;
-  unsigned int port;
+  unsigned int value;
   switch (key) {
   // Device settings:
   case 's':  // --server=localhost
@@ -103,12 +106,20 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     opt->server = arg;
     break;
   case 'p':  // --port=8888
-    port = strtoul(arg, &strEnd, 10);
-    if (strEnd == NULL || strEnd == arg || *strEnd != 0 || port < 1 || port > 65535) {
+    value = strtoul(arg, &strEnd, 10);
+    if (strEnd == NULL || strEnd == arg || *strEnd != 0 || value < 1 || value > 65535) {
       argp_error(state, "invalid port");
       return EINVAL;
     }
-    opt->port = (uint16_t)port;
+    opt->port = (uint16_t)value;
+    break;
+  case 't':  // --timeout=10
+    value = strtoul(arg, &strEnd, 10);
+    if (strEnd == NULL || strEnd == arg || *strEnd != 0 || value < 1 || value > 3600) {
+      argp_error(state, "invalid timeout");
+      return EINVAL;
+    }
+    opt->timeout = (uint16_t)value;
     break;
   case ARGP_KEY_ARGS:
     opt->args = state->argv + state->next;
@@ -232,12 +243,14 @@ string fetchData(ebusd::TCPSocket* socket, bool listening) {
   return ostream.str();
 }
 
-void connect(const char* host, uint16_t port, char* const *args, int argCount) {
+bool connect(const char* host, uint16_t port, int timeout, char* const *args, int argCount) {
   TCPClient* client = new TCPClient();
-  TCPSocket* socket = client->connect(host, port);
+  TCPSocket* socket = client->connect(host, port, timeout);
+  bool ret;
 
   bool once = args != NULL && argCount > 0;
-  if (socket != NULL) {
+  ret = socket != NULL;
+  if (ret) {
     string message, sendmessage;
     do {
       bool listening = false;
@@ -290,6 +303,7 @@ void connect(const char* host, uint16_t port, char* const *args, int argCount) {
     cout << "error connecting to " << host << ":" << port << endl;
   }
   delete client;
+  return ret;
 }
 
 
@@ -305,9 +319,9 @@ int main(int argc, char* argv[]) {
   if (argp_parse(&argp, argc, argv, ARGP_IN_ORDER, NULL, &opt) != 0) {
     return EINVAL;
   }
-  connect(opt.server, opt.port, opt.args, opt.argCount);
+  bool success = connect(opt.server, opt.port, opt.timeout, opt.args, opt.argCount);
 
-  exit(EXIT_SUCCESS);
+  exit(success ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 
 }  // namespace ebusd
