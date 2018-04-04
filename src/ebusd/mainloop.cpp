@@ -1602,6 +1602,7 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
   bool numeric = false, valueName = false, required = false, full = false, withWrite = false, raw = false;
   bool withDefinition = false;
   OutputFormat verbosity = OF_NAMES;
+  time_t maxAge = -1;
   size_t argPos = 1;
   string uri = args[argPos++];
   int type = -1;
@@ -1655,6 +1656,9 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
           full = parseBoolQuery(value);
         } else if (qname == "required") {
           required = parseBoolQuery(value);
+        } else if (qname == "maxage") {
+          maxAge = parseInt(value.c_str(), 10, 0, 24*60*60, &ret);
+          required = true;
         } else if (qname == "write") {
           withWrite = parseBoolQuery(value);
         } else if (qname == "raw") {
@@ -1677,6 +1681,8 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
 
     *ostream << "{";
     string lastCircuit;
+    time_t now;
+    time(&now);
     time_t maxLastUp = 0;
     if (ret == RESULT_OK) {
       bool first = true;
@@ -1696,7 +1702,7 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
           m_messages->addPollMessage(false, message);
         }
         time_t lastup = message->getLastUpdateTime();
-        if (lastup == 0 && required) {
+        if (required && (lastup == 0 || (maxAge >=0 && lastup + maxAge > now))) {
           // read directly from bus
           if (message->isPassive()) {
             continue;  // not possible to actively read this message

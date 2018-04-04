@@ -13,7 +13,7 @@
 * changed docker image to be smaller size and fixed missing library dependencies
 * added automatic reconnect to MQTT broker
 * changed logging for messages from "updated" to "received" and "sent" depending on who initiated the request
-* added support for serving .csv files to HTTP/JSON port
+* added support for serving .csv files and new argument maxage to HTTP/JSON port
 
 
 # 3.1 (2017-12-26)
