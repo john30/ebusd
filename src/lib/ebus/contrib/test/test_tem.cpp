@@ -118,7 +118,7 @@ int main() {
   istringstream dummystr("#");
   string errorDescription;
   vector<string> row;
-  templates->readLineFromStream("inline", false, &dummystr, &lineNo, &row, &errorDescription, NULL, NULL);
+  templates->readLineFromStream(&dummystr, "inline", false, &lineNo, &row, &errorDescription, NULL, NULL);
   const DataField* fields = NULL;
   for (unsigned int i = 0; i < sizeof(checks) / sizeof(checks[0]); i++) {
     string check[5] = checks[i];
@@ -156,7 +156,7 @@ int main() {
     lineNo = 0;
     dummystr.clear();
     dummystr.str("#");
-    result = reader.readLineFromStream("inline", false, &dummystr, &lineNo, &row, &errorDescription, NULL, NULL);
+    result = reader.readLineFromStream(&dummystr, "inline", false, &lineNo, &row, &errorDescription, NULL, NULL);
     if (result != RESULT_OK) {
       cout << "\"" << check[0] << "\": reader header error: " << getResultCode(result) << ", " << errorDescription
           << endl;
@@ -164,7 +164,7 @@ int main() {
       continue;
     }
     lineNo = baseLine + i;
-    result = reader.readLineFromStream(__FILE__, false, &isstr, &lineNo, &row, &errorDescription, NULL, NULL);
+    result = reader.readLineFromStream(&isstr, __FILE__, false, &lineNo, &row, &errorDescription, NULL, NULL);
     fields = reader.m_fields;
 
     if (result != RESULT_OK) {

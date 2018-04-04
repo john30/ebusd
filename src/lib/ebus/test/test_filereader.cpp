@@ -196,7 +196,13 @@ int main(int argc, char** argv) {
       size_t hash = 0, size = 0;
       time_t time = 0;
       string errorDescription;
-      result_t result = reader.readFromFile(argv[argpos], false, NULL, &errorDescription, &hash, &size, &time);
+      istream* stream = FileReader::openFile(argv[argpos], &errorDescription, &time);
+      result_t result;
+      if (!stream) {
+        result = RESULT_ERR_NOTFOUND;
+      } else {
+        result = reader.readFromStream(stream, argv[argpos], time, false, NULL, &errorDescription, &hash, &size);
+      }
       cout << argv[argpos] << " ";
       if (result != RESULT_OK) {
         cout << getResultCode(result) << ", " << errorDescription << endl;
@@ -225,8 +231,7 @@ int main(int argc, char** argv) {
   vector<string> row;
   string errorDescription;
   while (ifs.peek() != EOF) {
-    istringstream str;
-    result_t result = reader.readLineFromStream("", true, &ifs, &lineNo, &row, &errorDescription, &hash, &size);
+    result_t result = reader.readLineFromStream(&ifs, "", true, &lineNo, &row, &errorDescription, &hash, &size);
     if (result != RESULT_OK) {
       cout << "  error " << getResultCode(result) << endl;
       error = true;
@@ -266,8 +271,7 @@ int main(int argc, char** argv) {
   subDefaults.resize(1);
   subDefaults[0]["subcol 2"] = ";default of sub 0 subcol 2";
   while (ifs.peek() != EOF) {
-    istringstream str;
-    result_t result = reader2.readLineFromStream("", true, &ifs, &lineNo, &row, &errorDescription, &hash, &size);
+    result_t result = reader2.readLineFromStream(&ifs, "", true, &lineNo, &row, &errorDescription, &hash, &size);
     if (result != RESULT_OK) {
       cout << "  error " << getResultCode(result) << endl;
       error = true;
