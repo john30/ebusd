@@ -71,11 +71,10 @@ bool HttpClient::parseUrl(const string& url, string& proto, string& host, uint16
 
 bool HttpClient::connect(const string& host, const uint16_t port, const string& userAgent, const int timeout) {
   disconnect();
-  m_socket = m_client.connect(host, port);
+  m_socket = m_client.connect(host, port, timeout);
   if (!m_socket) {
     return false;
   }
-  m_socket->setTimeout(timeout);
   m_host = host;
   m_port = port;
   m_timeout = timeout;
@@ -88,11 +87,10 @@ bool HttpClient::reconnect() {
   if (m_host.empty() || !m_port) {
     return false;
   }
-  m_socket = m_client.connect(m_host, m_port);
+  m_socket = m_client.connect(m_host, m_port, m_timeout);
   if (!m_socket) {
     return false;
   }
-  m_socket->setTimeout(m_timeout);
   return true;
 }
 

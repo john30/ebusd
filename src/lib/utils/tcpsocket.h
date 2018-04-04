@@ -133,9 +133,11 @@ class TCPClient {
    * initiate a tcp socket connection to a listening server.
    * @param server the server name or ip address to connect.
    * @param port the tcp port.
+   * @param timeout the connect, send, and receive timeout in seconds, or 0.
    * @return pointer to an opened tcp socket.
    */
-  TCPSocket* connect(const string& server, const uint16_t& port);
+  TCPSocket* connect(const string& server, const uint16_t& port, int timeout = 0);
+
 };
 
 /**

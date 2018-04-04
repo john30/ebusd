@@ -16,11 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include "lib/utils/tcpsocket.h"
 #include <fcntl.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <string.h>
+#ifdef HAVE_PPOLL
+#  include <poll.h>
+#endif
 #include <cstdlib>
 
 namespace ebusd {
@@ -37,7 +44,7 @@ bool TCPSocket::isValid() {
 }
 
 
-TCPSocket* TCPClient::connect(const string& server, const uint16_t& port) {
+TCPSocket* TCPClient::connect(const string& server, const uint16_t& port, int timeout) {
   socketaddress address;
   int ret;
 
@@ -65,11 +72,53 @@ TCPSocket* TCPClient::connect(const string& server, const uint16_t& port) {
   if (sfd < 0) {
     return NULL;
   }
-  ret = ::connect(sfd, (struct sockaddr*) &address, sizeof(address));
-  if (ret < 0) {
+#ifndef HAVE_PPOLL
+#ifndef HAVE_PSELECT
+  timeout = 0;
+#endif
+#endif
+  if (timeout > 0 && fcntl(sfd, F_SETFL, O_NONBLOCK) < 0) {  // set non-blocking
+    close(sfd);
     return NULL;
   }
-  return new TCPSocket(sfd, &address);
+  ret = ::connect(sfd, (struct sockaddr *) &address, sizeof(address));
+  if (ret != 0) {
+    if (ret < 0 && (timeout <= 0 || errno != EINPROGRESS)) {
+      close(sfd);
+      return NULL;
+    }
+    if (timeout > 0) {
+      struct timespec tdiff;
+      tdiff.tv_sec = timeout;
+      tdiff.tv_nsec = 0;
+#ifdef HAVE_PPOLL
+      nfds_t nfds = 1;
+      struct pollfd fds[nfds];
+      memset(fds, 0, sizeof(fds));
+      fds[0].fd = sfd;
+      fds[0].events = POLLIN|POLLOUT;
+      ret = ppoll(fds, nfds, &tdiff, NULL);
+#else
+      fd_set readfds, writefds;
+      FD_ZERO(&readfds);
+      FD_SET(sfd, &readfds);
+      ret = pselect(sfd + 1, &readfds, &writefds, NULL, &tdiff, NULL);
+#endif
+      if (ret == -1 || ret == 0) {
+        close(sfd);
+        return NULL;
+      }
+    }
+  }
+  if (timeout > 0 && fcntl(sfd, F_SETFL, 0) < 0) {  // set blocking again
+    close(sfd);
+    return NULL;
+  }
+  TCPSocket* s = new TCPSocket(sfd, &address);
+  if (timeout > 0) {
+    s->setTimeout(timeout);
+  }
+  return s;
 }
 
 
