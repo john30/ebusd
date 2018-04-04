@@ -183,7 +183,7 @@ static const struct argp_option argpoptions[] = {
   {"latency",        O_DEVLAT, "USEC",  0, "Transfer latency in us [0 for USB, 10000 for IP]", 0 },
 
   {NULL,             0,        NULL,    0, "Message configuration options:", 2 },
-  {"configpath",     'c',      "PATH",  0, "Read CSV config files from PATH [" CONFIG_PATH "]", 0 },
+  {"configpath",     'c',      "PATH",  0, "Read CSV config files from PATH (local folder or HTTP URL) [" CONFIG_PATH "]", 0 },
   {"scanconfig",     's',      "ADDR",  OPTION_ARG_OPTIONAL, "Pick CSV config files matching initial scan (ADDR="
       "\"none\" or empty for no initial scan message, \"full\" for full scan, or a single hex address to scan, "
       "default is broadcast ident message). If combined with --checkconfig, you can add scan message data as "
@@ -296,7 +296,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
 
   // Message configuration options:
-  case 'c':  // --configpath=/etc/ebusd
+  case 'c':  // --configpath=http://ebusd.eu/config/
     if (arg == NULL || arg[0] == 0 || strcmp("/", arg) == 0) {
       argp_error(state, "invalid configpath");
       return EINVAL;

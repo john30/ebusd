@@ -40,7 +40,7 @@ struct options {
   bool initialSend;  //!< send an initial escape symbol after connecting device
   int latency;  //!< transfer latency in us [0 for USB, 10000 for IP]
 
-  const char* configPath;  //!< path to CSV configuration files [/etc/ebusd]
+  const char* configPath;  //!< path to CSV configuration files [http://ebusd.eu/config/]
   bool scanConfig;  //!< pick configuration files matching initial scan
   /** the initial address to scan for scanconfig
    * (@a ESC=none, 0xfe=broadcast ident, @a SYN=full scan, else: single slave address). */
