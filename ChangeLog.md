@@ -14,6 +14,7 @@
 * added automatic reconnect to MQTT broker
 * changed logging for messages from "updated" to "received" and "sent" depending on who initiated the request
 * added support for serving .csv files and new argument maxage to HTTP/JSON port
+* added timeout argument and error result code to ebusctl
 
 
 # 3.1 (2017-12-26)
