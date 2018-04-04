@@ -83,7 +83,7 @@ echo "*************"
 echo " pack"
 echo "*************"
 echo
-mkdir -p $RELEASE/DEBIAN $RELEASE/etc/default $RELEASE/etc/ebusd $RELEASE/etc/logrotate.d || exit 1
+mkdir -p $RELEASE/DEBIAN $RELEASE/etc/default $RELEASE/etc/logrotate.d || exit 1
 rm $RELEASE/usr/bin/ebusfeed
 if [ -d /run/systemd/system ]; then
   mkdir -p $RELEASE/lib/systemd/system || exit 1
@@ -93,7 +93,6 @@ else
   cp contrib/debian/init.d/ebusd $RELEASE/etc/init.d/ebusd || exit 1
 fi
   cp contrib/debian/default/ebusd $RELEASE/etc/default/ebusd || exit 1
-cp contrib/etc/ebusd/* $RELEASE/etc/ebusd/ || exit 1
 cp contrib/etc/logrotate.d/ebusd $RELEASE/etc/logrotate.d/ || exit 1
 cp ChangeLog.md $RELEASE/DEBIAN/changelog || exit 1
 cat <<EOF > $RELEASE/DEBIAN/control
@@ -123,11 +122,9 @@ if [ -d /run/systemd/system ]; then
 echo "Instructions:"
 echo "1. Edit /etc/default/ebusd if necessary"
 echo "   (especially if your device is not /dev/ttyUSB0)"
-echo "2. Place CSV configuration files in /etc/ebusd/"
-echo "   (see https://github.com/john30/ebusd-configuration)"
-echo "3. Start the daemon with 'systemctl start ebusd'"
-echo "4. Check the log file /var/log/ebusd.log"
-echo "5. Make the daemon autostart with 'systemctl enable ebusd'"
+echo "2. Start the daemon with 'systemctl start ebusd'"
+echo "3. Check the log file /var/log/ebusd.log"
+echo "4. Make the daemon autostart with 'systemctl enable ebusd'"
 EOF
 else
   echo /etc/init.d >> $RELEASE/DEBIAN/dirs
@@ -136,11 +133,9 @@ else
 echo "Instructions:"
 echo "1. Edit /etc/default/ebusd if necessary"
 echo "   (especially if your device is not /dev/ttyUSB0)"
-echo "2. Place CSV configuration files in /etc/ebusd/"
-echo "   (see https://github.com/john30/ebusd-configuration)"
-echo "3. Start the daemon with 'service ebusd start'"
-echo "4. Check the log file /var/log/ebusd.log"
-echo "5. Make the daemon autostart with 'update-rc.d ebusd enable'"
+echo "2. Start the daemon with 'service ebusd start'"
+echo "3. Check the log file /var/log/ebusd.log"
+echo "4. Make the daemon autostart with 'update-rc.d ebusd enable'"
 EOF
 fi
 chmod 755 $RELEASE/DEBIAN/postinst

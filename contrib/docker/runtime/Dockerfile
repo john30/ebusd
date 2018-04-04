@@ -18,9 +18,6 @@ RUN dpkg -i ebusd.deb
 
 RUN rm ebusd.deb
 
-RUN curl -SL https://github.com/john30/ebusd-configuration/archive/master.tar.gz \
-    | tar xz --strip-components=3 -C /etc/ebusd ebusd-configuration-master/ebusd-2.1.x/de
-
 EXPOSE 8888
 
 COPY docker-entrypoint.sh /
