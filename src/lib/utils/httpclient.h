@@ -100,9 +100,10 @@ class HttpClient {
    * @param uri the URI string.
    * @param body the optional body to send.
    * @param response the response body from the server (or the HTTP header on error).
+   * @param time optional pointer to a @a time_t value for storing the modification time of the file, or NULL.
    * @return true on success, false on error.
    */
-  bool get(const string& uri, const string& body, string& response);
+  bool get(const string& uri, const string& body, string& response, time_t* time = NULL);
 
   /**
    * Execute a POST request.
@@ -118,9 +119,10 @@ class HttpClient {
    * @param uri the URI string.
    * @param body the optional body to send.
    * @param response the response body from the server (or the HTTP header on error).
+   * @param time optional pointer to a @a time_t value for storing the modification time of the file, or NULL.
    * @return true on success, false on error.
    */
-  bool request(const string& method, const string& uri, const string& body, string& response);
+  bool request(const string& method, const string& uri, const string& body, string& response, time_t* time = NULL);
 
 private:
   /**

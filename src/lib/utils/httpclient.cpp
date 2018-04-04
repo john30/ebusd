@@ -110,15 +110,22 @@ void HttpClient::disconnect() {
   }
 }
 
-bool HttpClient::get(const string& uri, const string& body, string& response) {
-  return request("GET", uri, body, response);
+bool HttpClient::get(const string& uri, const string& body, string& response, time_t* time) {
+  return request("GET", uri, body, response, time);
 }
 
 bool HttpClient::post(const string& uri, const string& body, string& response) {
   return request("POST", uri, body, response);
 }
 
-bool HttpClient::request(const string& method, const string& uri, const string& body, string& response) {
+const int indexToMonth[] = {
+  -1, -1,  2, 12, -1, -1,  1, -1, // 0-7
+  -1, -1, -1, -1,  7, -1,  6,  8, // 8-15
+   9,  5,  3, -1, 10, -1, 11, -1, // 16-23
+  -1, -1,  4, -1, -1, -1, -1, -1, // 24-31
+};
+
+bool HttpClient::request(const string& method, const string& uri, const string& body, string& response, time_t* time) {
   if (!ensureConnected()) {
     response = "not connected";
     return false;
@@ -169,14 +176,54 @@ bool HttpClient::request(const string& method, const string& uri, const string& 
     return false;
   }
   string headers = result.substr(0, pos+2); // including final \r\n
+  const char* hdrs = headers.c_str();
   response = result.substr(pos+4);
-  pos = headers.find("Content-Length: "); // 16 chars
+  if (time) {
+    pos = headers.find("\r\nLast-Modified: ");
+    if (pos != string::npos && headers.substr(pos+42, 4) == " GMT") {
+      // Last-Modified: Wed, 21 Oct 2015 07:28:00 GMT
+      struct tm t;
+      pos += strlen("\r\nLast-Modified: ") + 5;
+      char* strEnd = NULL;
+      t.tm_mday = (int)strtol(hdrs + pos, &strEnd, 10);
+      if (strEnd != hdrs + pos + 2 || t.tm_mday < 1 || t.tm_mday > 31) {
+        t.tm_mday = -1;
+      }
+      t.tm_mon = indexToMonth[((hdrs[pos+4]&0x10)>>1) | (hdrs[pos+5]&0x17)] - 1;
+      strEnd = NULL;
+      t.tm_year = (int)strtol(hdrs + pos + 7, &strEnd, 10);
+      if (strEnd != hdrs + pos + 11 || t.tm_year < 1970 || t.tm_year >= 3000) {
+        t.tm_year = -1;
+      } else {
+        t.tm_year -= 1900;
+      }
+      strEnd = NULL;
+      t.tm_hour = (int)strtol(hdrs + pos + 12, &strEnd, 10);
+      if (strEnd != hdrs + pos + 14 || t.tm_hour > 23) {
+        t.tm_hour = -1;
+      }
+      strEnd = NULL;
+      t.tm_min = (int)strtol(hdrs + pos + 15, &strEnd, 10);
+      if (strEnd != hdrs + pos + 17 || t.tm_min > 59) {
+        t.tm_min = -1;
+      }
+      strEnd = NULL;
+      t.tm_sec = (int)strtol(hdrs + pos + 18, &strEnd, 10);
+      if (strEnd != hdrs + pos + 20 || t.tm_sec > 59) {
+        t.tm_sec = -1;
+      }
+      if (t.tm_mday > 0 && t.tm_mon >= 0 && t.tm_year >= 0 && t.tm_hour >= 0 && t.tm_min >=0 && t.tm_sec >= 0) {
+        *time = timegm(&t);
+      }
+    };
+  }
+  pos = headers.find("\r\nContent-Length: "); // 16 chars
   if (pos == string::npos) {
     disconnect();
     return true;
   }
   char* strEnd = NULL;
-  unsigned long length = strtoul(headers.c_str()+pos+16, &strEnd, 10);
+  unsigned long length = strtoul(hdrs+pos+strlen("\r\nContent-Length: "), &strEnd, 10);
   if (strEnd == NULL || *strEnd != '\r') {
     disconnect();
     response = "invalid content length ";
