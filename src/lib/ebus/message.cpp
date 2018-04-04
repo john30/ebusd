@@ -2104,7 +2104,7 @@ bool MessageMap::extractDefaultsFromFilename(const string& filename, map<string,
   return true;
 }
 
-result_t MessageMap::readFromStream(istream* stream, const string& filename, time_t& mtime, bool verbose,
+result_t MessageMap::readFromStream(istream* stream, const string& filename, const time_t& mtime, bool verbose,
     map<string, string>* defaults, string* errorDescription, size_t* hash, size_t* size) {
   size_t localHash, localSize;
   if (!hash) {
@@ -2113,7 +2113,8 @@ result_t MessageMap::readFromStream(istream* stream, const string& filename, tim
   if (!size) {
     size = &localSize;
   }
-  result_t result = MappedFileReader::readFromStream(stream, filename, mtime, verbose, defaults, errorDescription, hash, size);
+  result_t result = MappedFileReader::readFromStream(stream, filename, mtime, verbose, defaults, errorDescription, hash,
+                                                     size);
   if (defaults) {
     string circuit = AttributedItem::pluck("circuit", defaults);
     if (!circuit.empty() && m_circuitData.find(circuit) == m_circuitData.end()) {

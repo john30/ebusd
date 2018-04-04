@@ -130,7 +130,7 @@ static MessageMap* s_messageMap = NULL;
 /** the @a MainLoop instance, or NULL. */
 static MainLoop* s_mainLoop = NULL;
 
-/** the path prefix (including trailing "/") for retrieving configuration files from local file system (empty for HTTP). */
+/** the path prefix (including trailing "/") for retrieving configuration files from local files (empty for HTTP). */
 static string s_configLocalPrefix;
 
 /** the URI prefix (including trailing "/") for retrieving configuration files from HTTP (empty for local files). */
@@ -183,7 +183,8 @@ static const struct argp_option argpoptions[] = {
   {"latency",        O_DEVLAT, "USEC",  0, "Transfer latency in us [0 for USB, 10000 for IP]", 0 },
 
   {NULL,             0,        NULL,    0, "Message configuration options:", 2 },
-  {"configpath",     'c',      "PATH",  0, "Read CSV config files from PATH (local folder or HTTP URL) [" CONFIG_PATH "]", 0 },
+  {"configpath",     'c',      "PATH",  0, "Read CSV config files from PATH (local folder or HTTP URL) [" CONFIG_PATH
+      "]", 0 },
   {"scanconfig",     's',      "ADDR",  OPTION_ARG_OPTIONAL, "Pick CSV config files matching initial scan (ADDR="
       "\"none\" or empty for no initial scan message, \"full\" for full scan, or a single hex address to scan, "
       "default is broadcast ident message). If combined with --checkconfig, you can add scan message data as "
@@ -733,12 +734,13 @@ void signalHandler(int sig) {
  * @return the result code.
  */
 static result_t collectConfigFiles(const string& relPath, const string& prefix, const string& extension,
-    vector<string>* files, const bool ignoreAddressPrefix = false, const string& query = "", vector<string>* dirs = NULL,
-    bool* hasTemplates = NULL) {
+    vector<string>* files, const bool ignoreAddressPrefix = false, const string& query = "",
+    vector<string>* dirs = NULL, bool* hasTemplates = NULL) {
   const string relPathWithSlash = relPath.empty() ? "" : relPath + "/";
   if (!s_configUriPrefix.empty()) {
+    string uri = s_configUriPrefix + relPathWithSlash + "?t=" + extension.substr(1) + query;
     string names;
-    if (!s_configHttpClient.get(s_configUriPrefix + relPathWithSlash + "?t=" + (extension.substr(1)) + query, "", names)) {
+    if (!s_configHttpClient.get(uri, "", names)) {
       return RESULT_ERR_NOTFOUND;
     }
     istringstream stream(names);
@@ -929,7 +931,7 @@ void executeInstructions(MessageMap* messages, bool verbose) {
 result_t loadDefinitionsFromConfigPath(FileReader* reader, const string& filename, bool verbose,
     map<string, string>* defaults, string* errorDescription) {
   istream* stream = NULL;
-  time_t mtime;
+  time_t mtime = 0;
   if (s_configUriPrefix.empty()) {
     stream = FileReader::openFile(s_configLocalPrefix + filename, errorDescription, &mtime);
   } else {
@@ -1046,7 +1048,8 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose
   // find files matching MANUFACTURER/ZZ.*csv in cfgpath
   string query;
   if (!fromLocal) {
-    out << "&a=" << addrStr << "&i=" << ident << "&h=" << dec << static_cast<unsigned>(hw) << "&s=" << dec << static_cast<unsigned>(sw);;
+    out << "&a=" << addrStr << "&i=" << ident << "&h=" << dec << static_cast<unsigned>(hw) << "&s=" << dec
+        << static_cast<unsigned>(sw);;
     query = out.str();
     out.str("");
     out.clear();
@@ -1058,8 +1061,8 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose
     return result;
   }
   if (files.empty()) {
-    logError(lf_main, "unable to load scan config %2.2x: no file from %s with prefix %s found", address, manufStr.c_str(),
-             addrStr.c_str());
+    logError(lf_main, "unable to load scan config %2.2x: no file from %s with prefix %s found", address,
+        manufStr.c_str(), addrStr.c_str());
     return RESULT_ERR_NOTFOUND;
   }
   logDebug(lf_main, "found %d matching scan config files from %s with prefix %s: %s", files.size(), manufStr.c_str(),

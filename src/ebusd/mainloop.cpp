@@ -128,7 +128,7 @@ MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messag
   m_logRawLastSymbol = SYN;
   if (opt.aclFile[0]) {
     string errorDescription;
-    time_t mtime;
+    time_t mtime = 0;
     istream* stream = FileReader::openFile(opt.aclFile, &errorDescription, &mtime);
     if (stream) {
       result = m_userList.readFromStream(stream, opt.aclFile, mtime, false, NULL, &errorDescription);

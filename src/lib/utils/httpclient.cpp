@@ -119,10 +119,10 @@ bool HttpClient::post(const string& uri, const string& body, string& response) {
 }
 
 const int indexToMonth[] = {
-  -1, -1,  2, 12, -1, -1,  1, -1, // 0-7
-  -1, -1, -1, -1,  7, -1,  6,  8, // 8-15
-   9,  5,  3, -1, 10, -1, 11, -1, // 16-23
-  -1, -1,  4, -1, -1, -1, -1, -1, // 24-31
+  -1, -1,  2, 12, -1, -1,  1, -1,  // 0-7
+  -1, -1, -1, -1,  7, -1,  6,  8,  // 8-15
+   9,  5,  3, -1, 10, -1, 11, -1,  // 16-23
+  -1, -1,  4, -1, -1, -1, -1, -1,  // 24-31
 };
 
 bool HttpClient::request(const string& method, const string& uri, const string& body, string& response, time_t* time) {
@@ -157,7 +157,7 @@ bool HttpClient::request(const string& method, const string& uri, const string& 
     pos += sent;
   }
   string result;
-  size_t pos = readUntil(" ", 4 * 1024, result); // max 4k headers
+  size_t pos = readUntil(" ", 4 * 1024, result);  // max 4k headers
   if (pos == string::npos || pos > 8 || result.substr(0, 5) != "HTTP/") {
     disconnect();
     response = "receive error (headers)";
@@ -169,13 +169,13 @@ bool HttpClient::request(const string& method, const string& uri, const string& 
     response = "receive error: " + result.substr(pos+1, endpos == string::npos ? endpos : endpos-pos-1);
     return false;
   }
-  pos = readUntil("\r\n\r\n", 4 * 1024, result); // max 4k headers
+  pos = readUntil("\r\n\r\n", 4 * 1024, result);  // max 4k headers
   if (pos == string::npos) {
     disconnect();
     response = "receive error (headers)";
     return false;
   }
-  string headers = result.substr(0, pos+2); // including final \r\n
+  string headers = result.substr(0, pos+2);  // including final \r\n
   const char* hdrs = headers.c_str();
   response = result.substr(pos+4);
   if (time) {
@@ -215,15 +215,15 @@ bool HttpClient::request(const string& method, const string& uri, const string& 
       if (t.tm_mday > 0 && t.tm_mon >= 0 && t.tm_year >= 0 && t.tm_hour >= 0 && t.tm_min >=0 && t.tm_sec >= 0) {
         *time = timegm(&t);
       }
-    };
+    }
   }
-  pos = headers.find("\r\nContent-Length: "); // 16 chars
+  pos = headers.find("\r\nContent-Length: ");
   if (pos == string::npos) {
     disconnect();
     return true;
   }
   char* strEnd = NULL;
-  unsigned long length = strtoul(hdrs+pos+strlen("\r\nContent-Length: "), &strEnd, 10);
+  unsigned long length = strtoul(hdrs + pos + strlen("\r\nContent-Length: "), &strEnd, 10);
   if (strEnd == NULL || *strEnd != '\r') {
     disconnect();
     response = "invalid content length ";

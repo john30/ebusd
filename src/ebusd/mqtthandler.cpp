@@ -601,9 +601,9 @@ void MqttHandler::handleTraffic(bool allowReconnect) {
   if (m_mosquitto) {
     int ret;
 #if (LIBMOSQUITTO_MAJOR >= 1)
-    ret = mosquitto_loop(m_mosquitto, -1, 1); // waits up to 1 second for network traffic
+    ret = mosquitto_loop(m_mosquitto, -1, 1);  // waits up to 1 second for network traffic
 #else
-    ret = mosquitto_loop(m_mosquitto, -1); // waits up to 1 second for network traffic
+    ret = mosquitto_loop(m_mosquitto, -1);  // waits up to 1 second for network traffic
 #endif
     if (!m_connected && ret == MOSQ_ERR_NO_CONN && allowReconnect) {
       ret = mosquitto_reconnect(m_mosquitto);

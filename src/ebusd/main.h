@@ -21,6 +21,7 @@
 
 #include <stdint.h>
 #include <string>
+#include <map>
 #include "lib/ebus/data.h"
 #include "lib/ebus/message.h"
 #include "lib/ebus/result.h"

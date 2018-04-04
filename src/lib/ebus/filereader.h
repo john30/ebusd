@@ -96,7 +96,7 @@ class FileReader {
    * @param size optional pointer to a @a size_t value for storing the normalized size of the file, or NULL.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t readFromStream(istream* stream, const string& filename, time_t& mtime, bool verbose,
+  virtual result_t readFromStream(istream* stream, const string& filename, const time_t& mtime, bool verbose,
       map<string, string>* defaults, string* errorDescription, size_t* hash = NULL, size_t* size = NULL);
 
   /**
@@ -204,7 +204,7 @@ class MappedFileReader : public FileReader {
   static const string normalizeLanguage(const string& lang);
 
   // @copydoc
-  result_t readFromStream(istream* stream, const string& filename, time_t& mtime, bool verbose,
+  result_t readFromStream(istream* stream, const string& filename, const time_t& mtime, bool verbose,
       map<string, string>* defaults, string* errorDescription, size_t* hash = NULL, size_t* size = NULL) override;
 
   /**

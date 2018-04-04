@@ -1261,7 +1261,7 @@ class MessageMap : public MappedFileReader {
       symbol_t* destAddress = NULL, unsigned int* software = NULL, unsigned int* hardware = NULL) const override;
 
   // @copydoc
-  result_t readFromStream(istream* stream, const string& filename, time_t& mtime, bool verbose,
+  result_t readFromStream(istream* stream, const string& filename, const time_t& mtime, bool verbose,
       map<string, string>* defaults, string* errorDescription, size_t* hash = NULL, size_t* size = NULL) override;
 
   // @copydoc

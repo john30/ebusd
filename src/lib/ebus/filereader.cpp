@@ -59,7 +59,7 @@ istream* FileReader::openFile(const string& filename, string* errorDescription, 
   return stream;
 }
 
-result_t FileReader::readFromStream(istream* stream, const string& filename, time_t& mtime, bool verbose,
+result_t FileReader::readFromStream(istream* stream, const string& filename, const time_t& mtime, bool verbose,
     map<string, string>* defaults, string* errorDescription, size_t* hash, size_t* size) {
   if (hash) {
     *hash = 0;
@@ -241,7 +241,7 @@ const string MappedFileReader::normalizeLanguage(const string& lang) {
   return normLang;
 }
 
-result_t MappedFileReader::readFromStream(istream* stream, const string& filename, time_t& mtime, bool verbose,
+result_t MappedFileReader::readFromStream(istream* stream, const string& filename, const time_t& mtime, bool verbose,
     map<string, string>* defaults, string* errorDescription, size_t* hash, size_t* size) {
   m_mutex.lock();
   m_columnNames.clear();
