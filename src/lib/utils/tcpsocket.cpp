@@ -98,11 +98,19 @@ TCPSocket* TCPClient::connect(const string& server, const uint16_t& port, int ti
       fds[0].fd = sfd;
       fds[0].events = POLLIN|POLLOUT;
       ret = ppoll(fds, nfds, &tdiff, NULL);
+      if (ret >= 1 && fds[0].revents & POLLERR) {
+        ret = -1;
+      }
 #else
-      fd_set readfds, writefds;
+      fd_set readfds, writefds, exceptfds;
       FD_ZERO(&readfds);
+      FD_ZERO(&writefds);
+      FD_ZERO(&exceptfds);
       FD_SET(sfd, &readfds);
-      ret = pselect(sfd + 1, &readfds, &writefds, NULL, &tdiff, NULL);
+      ret = pselect(sfd + 1, &readfds, &writefds, &errfds , &tdiff, NULL);
+      if (ret >= 1 && FD_ISSET(sfd, &exceptfds)) {
+        ret = -1;
+      }
 #endif
       if (ret == -1 || ret == 0) {
         close(sfd);
