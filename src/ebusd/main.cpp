@@ -32,6 +32,7 @@
 #include <vector>
 #include "ebusd/mainloop.h"
 #include "lib/utils/log.h"
+#include "lib/utils/httpclient.h"
 
 
 /** the version string of the program. */
@@ -64,11 +65,7 @@ using std::cout;
 #endif
 
 /** the default path of the configuration files. */
-#ifdef PACKAGE_CONFIGPATH
-#define CONFIG_PATH PACKAGE_CONFIGPATH
-#else
-#define CONFIG_PATH "/etc/ebusd"
-#endif
+#define CONFIG_PATH "http://ebusd.eu/config/"
 
 /** the opened PID file, or NULL. */
 static FILE* pidFile = NULL;
@@ -132,6 +129,15 @@ static MessageMap* s_messageMap = NULL;
 
 /** the @a MainLoop instance, or NULL. */
 static MainLoop* s_mainLoop = NULL;
+
+/** the path prefix (including trailing "/") for retrieving configuration files from local file system (empty for HTTP). */
+static string s_configLocalPrefix;
+
+/** the URI prefix (including trailing "/") for retrieving configuration files from HTTP (empty for local files). */
+static string s_configUriPrefix;
+
+/** the @a HttpClient for retrieving configuration files from HTTP. */
+static HttpClient s_configHttpClient;
 
 /** the documentation of the program. */
 static const char argpdoc[] =
@@ -239,7 +245,7 @@ static const struct argp_option argpoptions[] = {
 static DataFieldTemplates s_globalTemplates;
 
 /**
- * the loaded @a DataFieldTemplates by path (may also carry
+ * the loaded @a DataFieldTemplates by relative path (may also carry
  * @a globalTemplates as replacement for missing file).
  */
 static map<string, DataFieldTemplates*> s_templatesByPath;
@@ -717,37 +723,62 @@ void signalHandler(int sig) {
 
 /**
  * Collect configuration files matching the prefix and extension from the specified path.
- * @param path the path from which to collect the files.
+ * @param relPath the relative path from which to collect the files (without trailing "/").
  * @param prefix the filename prefix the files have to match, or empty.
  * @param extension the filename extension the files have to match.
  * @param files the @a vector to which to add the matching files.
+ * @param query the query string suffix for HTTP retrieval starting with "&", or empty.
  * @param dirs the @a vector to which to add found directories (without any name check), or NULL to ignore.
  * @param hasTemplates the bool to set when the templates file was found in the path, or NULL to ignore.
  * @return the result code.
  */
-static result_t collectConfigFiles(const string path, const string prefix, const string extension,
-    vector<string>* files, vector<string>* dirs = NULL, bool* hasTemplates = NULL) {
+static result_t collectConfigFiles(const string& relPath, const string& prefix, const string& extension,
+    vector<string>* files, const bool ignoreAddressPrefix = false, const string& query = "", vector<string>* dirs = NULL,
+    bool* hasTemplates = NULL) {
+  const string relPathWithSlash = relPath.empty() ? "" : relPath + "/";
+  if (!s_configUriPrefix.empty()) {
+    string names;
+    if (!s_configHttpClient.get(s_configUriPrefix + relPathWithSlash + "?t=" + (extension.substr(1)) + query, "", names)) {
+      return RESULT_ERR_NOTFOUND;
+    }
+    istringstream stream(names);
+    string name;
+    while (getline(stream, name)) {
+      if (name.empty()) {
+        continue;
+      }
+      if (name == "_templates"+extension) {
+        if (hasTemplates) {
+          *hasTemplates = true;
+        }
+        continue;
+      }
+      if (prefix.length() == 0 ? (!ignoreAddressPrefix || name.length() < 3 || name.find_first_of('.') != 2)
+      : (name.length() >= prefix.length() && name.substr(0, prefix.length()) == prefix)) {
+        files->push_back(relPathWithSlash + name);
+      }
+    }
+    return RESULT_OK;
+  }
+  const string path = s_configLocalPrefix + relPathWithSlash;
   DIR* dir = opendir(path.c_str());
-
   if (dir == NULL) {
     return RESULT_ERR_NOTFOUND;
   }
   dirent* d;
   while ((d = readdir(dir)) != NULL) {
     string name = d->d_name;
-
     if (name == "." || name == "..") {
       continue;
     }
-    const string p = path + "/" + name;
+    const string p = path + name;
     struct stat stat_buf;
-
     if (stat(p.c_str(), &stat_buf) != 0) {
       continue;
     }
     if (S_ISDIR(stat_buf.st_mode)) {
       if (dirs != NULL) {
-        dirs->push_back(p);
+        dirs->push_back(relPathWithSlash + name);
       }
     } else if (S_ISREG(stat_buf.st_mode) && name.length() >= extension.length()
     && name.substr(name.length()-extension.length()) == extension) {
@@ -755,9 +786,11 @@ static result_t collectConfigFiles(const string path, const string prefix, const
         if (hasTemplates) {
           *hasTemplates = true;
         }
-      } else if (prefix.length() == 0
-          || (name.length() >= prefix.length() && name.substr(0, prefix.length()) == prefix)) {
-        files->push_back(p);
+        continue;
+      }
+      if (prefix.length() == 0 ? (!ignoreAddressPrefix || name.length() < 3 || name.find_first_of('.') != 2)
+          : (name.length() >= prefix.length() && name.substr(0, prefix.length()) == prefix)) {
+        files->push_back(relPathWithSlash + name);
       }
     }
   }
@@ -781,63 +814,65 @@ DataFieldTemplates* getTemplates(const string& filename) {
 
 /**
  * Read the @a DataFieldTemplates for the specified path if necessary.
- * @param path the path from which to read the files.
+ * @param relPath the relative path from which to read the files (without trailing "/").
  * @param extension the filename extension of the files to read.
  * @param available whether the templates file is available in the path.
  * @param verbose whether to verbosely log problems.
  * @return false when the templates for the path were already loaded before, true when the templates for the path were added (independent from @a available).
  * @return the @a DataFieldTemplates.
  */
-static bool readTemplates(const string path, const string extension, bool available, bool verbose = false) {
-  const auto it = s_templatesByPath.find(path);
+static bool readTemplates(const string relPath, const string extension, bool available, bool verbose = false) {
+  const auto it = s_templatesByPath.find(relPath);
   if (it != s_templatesByPath.end()) {
     return false;
   }
   DataFieldTemplates* templates;
-  if (path == opt.configPath || !available) {
+  if (relPath.empty() || !available) {
     templates = &s_globalTemplates;
   } else {
     templates = new DataFieldTemplates(s_globalTemplates);
   }
-  s_templatesByPath[path] = templates;
+  s_templatesByPath[relPath] = templates;
   if (!available) {
     // global templates are stored as replacement in order to determine whether the directory was already loaded
     return true;
   }
   string errorDescription;
-  logInfo(lf_main, "reading templates %s", path.c_str());
-  result_t result = templates->readFromFile(path+"/_templates"+extension, verbose, NULL, &errorDescription,
-      NULL, NULL, NULL);
+  string logPath = relPath.empty() ? "/" : relPath;
+  logInfo(lf_main, "reading templates %s", logPath.c_str());
+  string file = (relPath.empty() ? "" : relPath + "/") + "_templates" + extension;
+  result_t result = loadDefinitionsFromConfigPath(templates, file, verbose, NULL, &errorDescription);
   if (result == RESULT_OK) {
-    logInfo(lf_main, "read templates in %s", path.c_str());
+    logInfo(lf_main, "read templates in %s", logPath.c_str());
     return true;
   }
-  logError(lf_main, "error reading templates in %s: %s, last error: %s", path.c_str(), getResultCode(result),
-           errorDescription.c_str());
+  logError(lf_main, "error reading templates in %s: %s, last error: %s", logPath.c_str(), getResultCode(result),
+       errorDescription.c_str());
   return false;
 }
 
 /**
  * Read the configuration files from the specified path.
- * @param path the path from which to read the files.
+ * @param relPath the relative path from which to read the files (without trailing "/").
  * @param extension the filename extension of the files to read.
  * @param messages the @a MessageMap to load the messages into.
  * @param recursive whether to load all files recursively.
  * @param verbose whether to verbosely log problems.
+ * @param errorDescription a string in which to store the error description in case of error.
  * @return the result code.
  */
-static result_t readConfigFiles(const string& path, const string& extension, const bool recursive,
+static result_t readConfigFiles(const string& relPath, const string& extension, const bool recursive,
     const bool verbose, string* errorDescription, MessageMap* messages) {
   vector<string> files, dirs;
   bool hasTemplates = false;
-  result_t result = collectConfigFiles(path, "", extension, &files, &dirs, &hasTemplates);
+  result_t result = collectConfigFiles(relPath, "", extension, &files, false, "", &dirs, &hasTemplates);
   if (result != RESULT_OK) {
     return result;
   }
-  readTemplates(path, extension, hasTemplates, verbose);
+  readTemplates(relPath, extension, hasTemplates, verbose);
   for (const auto& name : files) {
     logInfo(lf_main, "reading file %s", name.c_str());
-    result = messages->readFromFile(name, verbose, NULL, errorDescription, NULL, NULL, NULL);
+    result_t result = loadDefinitionsFromConfigPath(messages, name, verbose, NULL, errorDescription);
     if (result != RESULT_OK) {
       return result;
     }
@@ -891,6 +926,28 @@ void executeInstructions(MessageMap* messages, bool verbose) {
       messages->sizeConditional(), messages->sizeConditions(), messages->sizePoll(), messages->sizePassive());
 }
 
+result_t loadDefinitionsFromConfigPath(FileReader* reader, const string& filename, bool verbose,
+    map<string, string>* defaults, string* errorDescription) {
+  istream* stream = NULL;
+  time_t mtime;
+  if (s_configUriPrefix.empty()) {
+    stream = FileReader::openFile(s_configLocalPrefix + filename, errorDescription, &mtime);
+  } else {
+    string content;
+    if (s_configHttpClient.get(s_configUriPrefix + filename, "", content, &mtime)) {
+      stream = new istringstream(content);
+    }
+  }
+  result_t result;
+  if (stream) {
+    result = reader->readFromStream(stream, filename, mtime, verbose, defaults, errorDescription);
+    delete(stream);
+  } else {
+    result = RESULT_ERR_NOTFOUND;
+  }
+  return result;
+}
+
 result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive) {
   logInfo(lf_main, "loading configuration files from %s", opt.configPath);
   messages->lock();
@@ -905,7 +962,7 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
   s_templatesByPath.clear();
 
   string errorDescription;
-  result_t result = readConfigFiles(string(opt.configPath), ".csv",
+  result_t result = readConfigFiles("", ".csv",
       (!opt.scanConfig || opt.checkConfig) && !denyRecursive, verbose, &errorDescription, messages);
   if (result == RESULT_OK) {
     logInfo(lf_main, "read config files");
@@ -928,22 +985,22 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose
     return RESULT_EMPTY;
   }
   DataFieldSet* identFields = DataFieldSet::getIdentFields();
-  string path, prefix, ident;  // path: cfgpath/MANUFACTURER, prefix: ZZ., ident: C[C[C[C[C]]]], SW: xxxx, HW: xxxx
+  string manufStr, addrStr, ident;  // path: cfgpath/MANUFACTURER, prefix: ZZ., ident: C[C[C[C[C]]]], SW: xxxx, HW: xxxx
   unsigned int sw = 0, hw = 0;
   ostringstream out;
   size_t offset = 0;
   size_t field = 0;
+  bool fromLocal = s_configUriPrefix.empty();
   result_t result = (*identFields)[field]->read(data, offset, false, NULL, -1, 0, -1, &out);  // manufacturer name
-  if (result == RESULT_ERR_NOTFOUND) {
+  if (result == RESULT_ERR_NOTFOUND && fromLocal) {
     result = (*identFields)[field]->read(data, offset, false, NULL, -1, OF_NUMERIC, -1, &out);  // manufacturer name
   }
   if (result == RESULT_OK) {
-    path = out.str();
-    transform(path.begin(), path.end(), path.begin(), ::tolower);
-    path = string(opt.configPath) + "/" + path;
+    manufStr = out.str();
+    transform(manufStr.begin(), manufStr.end(), manufStr.begin(), ::tolower);
     out.str("");
-    out << setw(2) << hex << setfill('0') << nouppercase << static_cast<unsigned>(address) << ".";
-    prefix = out.str();
+    out << setw(2) << hex << setfill('0') << nouppercase << static_cast<unsigned>(address);
+    addrStr = out.str();
     out.str("");
     out.clear();
     offset += (*identFields)[field++]->getLength(pt_slaveData, MAX_LEN);
@@ -952,6 +1009,7 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose
   if (result == RESULT_OK) {
     ident = out.str();
     out.str("");
+    out.clear();
     offset += (*identFields)[field++]->getLength(pt_slaveData, MAX_LEN);
     result = (*identFields)[field]->read(data, offset, NULL, -1, &sw);  // software version number
     if (result == RESULT_ERR_OUT_OF_RANGE) {
@@ -972,22 +1030,10 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose
              identFields->getName(field).c_str(), getResultCode(result));
     return result;
   }
-  vector<string> files;
   bool hasTemplates = false;
-  // find files matching MANUFACTURER/ZZ.*csv in cfgpath
-  result = collectConfigFiles(path, prefix, ".csv", &files, NULL, &hasTemplates);
-  if (result != RESULT_OK) {
-    logError(lf_main, "unable to load scan config %2.2x: list files in %s %s", address, path.c_str(),
-        getResultCode(result));
-    return result;
-  }
-  if (files.empty()) {
-    logError(lf_main, "unable to load scan config %2.2x: no file from %s with prefix %s found", address, path.c_str(),
-        prefix.c_str());
-    return RESULT_ERR_NOTFOUND;
-  }
-  logDebug(lf_main, "found %d matching scan config files from %s with prefix %s: %s", files.size(), path.c_str(),
-      prefix.c_str(), getResultCode(result));
+  string best;
+  map<string, string> bestDefaults;
+  vector<string> files;
   auto it = ident.begin();
   while (it != ident.end()) {
     if (*it != '_' && !::isalnum(*it)) {
@@ -997,15 +1043,34 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose
       it++;
     }
   }
+  // find files matching MANUFACTURER/ZZ.*csv in cfgpath
+  string query;
+  if (!fromLocal) {
+    out << "&a=" << addrStr << "&i=" << ident << "&h=" << dec << static_cast<unsigned>(hw) << "&s=" << dec << static_cast<unsigned>(sw);;
+    query = out.str();
+    out.str("");
+    out.clear();
+  }
+  result = collectConfigFiles(manufStr, addrStr + ".", ".csv", &files, false, query, NULL, &hasTemplates);
+  if (result != RESULT_OK) {
+    logError(lf_main, "unable to load scan config %2.2x: list files in %s %s", address, manufStr.c_str(),
+        getResultCode(result));
+    return result;
+  }
+  if (files.empty()) {
+    logError(lf_main, "unable to load scan config %2.2x: no file from %s with prefix %s found", address, manufStr.c_str(),
+             addrStr.c_str());
+    return RESULT_ERR_NOTFOUND;
+  }
+  logDebug(lf_main, "found %d matching scan config files from %s with prefix %s: %s", files.size(), manufStr.c_str(),
+           addrStr.c_str(), getResultCode(result));
   // complete name: cfgpath/MANUFACTURER/ZZ[.C[C[C[C[C]]]]][.circuit][.suffix][.*][.SWxxxx][.HWxxxx][.*].csv
   size_t bestMatch = 0;
-  string best;
-  map<string, string> bestDefaults;
   for (const auto& name : files) {
     symbol_t checkDest;
     unsigned int checkSw, checkHw;
     map<string, string> defaults;
-    const string filename = name.substr(path.length()+1);
+    const string filename = name.substr(manufStr.length()+1);
     if (!messages->extractDefaultsFromFilename(filename, &defaults, &checkDest, &checkSw, &checkHw)) {
       continue;
     }
@@ -1042,23 +1107,23 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose
   if (best.empty()) {
     logError(lf_main,
         "unable to load scan config %2.2x: no file from %s with prefix %s matches ID \"%s\", SW%4.4d, HW%4.4d",
-        address, path.c_str(), prefix.c_str(), ident.c_str(), sw, hw);
+        address, manufStr.c_str(), addrStr.c_str(), ident.c_str(), sw, hw);
     return RESULT_ERR_NOTFOUND;
   }
 
   // found the right file. load the templates if necessary, then load the file itself
-  bool readCommon = readTemplates(path, ".csv", hasTemplates, opt.checkConfig);
+  bool readCommon = readTemplates(manufStr, ".csv", hasTemplates, opt.checkConfig);
   if (readCommon) {
-    result = collectConfigFiles(path, "", ".csv", &files);
+    result = collectConfigFiles(manufStr, "", ".csv", &files, true, "&a=-");
     if (result == RESULT_OK && !files.empty()) {
       for (const auto& name : files) {
-        string baseName = name.substr(path.length()+1, name.length()-path.length()-strlen(".csv"));  // *.
+        string baseName = name.substr(manufStr.length()+1, name.length()-manufStr.length()-strlen(".csv"));  // *.
         if (baseName == "_templates.") {  // skip templates
           continue;
         }
         if (baseName.length() < 3 || baseName.find_first_of('.') != 2) {  // different from the scheme "ZZ."
           string errorDescription;
-          result = messages->readFromFile(name, verbose, NULL, &errorDescription, NULL, NULL, NULL);
+          result = loadDefinitionsFromConfigPath(messages, name, verbose, NULL, &errorDescription);
           if (result == RESULT_OK) {
             logNotice(lf_main, "read common config file %s", name.c_str());
           } else {
@@ -1069,16 +1134,16 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose
       }
     }
   }
-  string errorDescription;
   bestDefaults["name"] = ident;
-  result = messages->readFromFile(best, verbose, &bestDefaults, &errorDescription, NULL, NULL, NULL);
+  string errorDescription;
+  result = loadDefinitionsFromConfigPath(messages, best, verbose, &bestDefaults, &errorDescription);
   if (result != RESULT_OK) {
     logError(lf_main, "error reading scan config file %s for ID \"%s\", SW%4.4d, HW%4.4d: %s, %s", best.c_str(),
         ident.c_str(), sw, hw, getResultCode(result), errorDescription.c_str());
     return result;
   }
   logNotice(lf_main, "read scan config file %s for ID \"%s\", SW%4.4d, HW%4.4d", best.c_str(), ident.c_str(), sw, hw);
-  *relativeFile = best.substr(strlen(opt.configPath)+1);
+  *relativeFile = best;
   return RESULT_OK;
 }
 
@@ -1135,6 +1200,26 @@ int main(int argc, char* argv[]) {
     return EINVAL;
   }
 
+  string configPath = string(opt.configPath);
+  if (configPath.find("://") == string::npos) {
+    s_configLocalPrefix = configPath[configPath.length()-1] == '/' ? configPath : configPath + "/";
+  } else {
+    if (!opt.scanConfig) {
+      logError(lf_main, "invalid configpath without scanconfig");
+      return EINVAL;
+    }
+    uint16_t configPort = 80;
+    string proto, configHost;
+    if (!HttpClient::parseUrl(configPath, proto, configHost, configPort, s_configUriPrefix)) {
+      logError(lf_main, "invalid configPath URL");
+      return EINVAL;
+    }
+    if (!s_configHttpClient.connect(configHost, configPort, PACKAGE_NAME "/" PACKAGE_VERSION)) {
+      logError(lf_main, "invalid configPath URL");
+      return EINVAL;
+    }
+    s_configHttpClient.disconnect();
+  }
   if (!opt.readOnly && opt.scanConfig && opt.initialScan == 0) {
     opt.initialScan = BROADCAST;
   }
@@ -1143,7 +1228,7 @@ int main(int argc, char* argv[]) {
     setFacilitiesLogLevel(opt.logAreas, opt.logLevel);
   }
 
-  s_messageMap = new MessageMap(string(opt.configPath)+"/", opt.checkConfig);
+  s_messageMap = new MessageMap(opt.checkConfig);
   if (opt.checkConfig) {
     logNotice(lf_main, PACKAGE_STRING "." REVISION " performing configuration check...");
 
@@ -1177,7 +1262,6 @@ int main(int argc, char* argv[]) {
     shutdown();
     return 0;
   }
-
 
   // open the device
   Device *device = Device::create(opt.device, !opt.noDeviceCheck, opt.readOnly, opt.initialSend);

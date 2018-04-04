@@ -36,43 +36,47 @@ using std::setw;
 using std::dec;
 
 
-result_t FileReader::readFromFile(const string& filename, bool verbose, map<string, string>* defaults,
-    string* errorDescription, size_t* hash, size_t* size, time_t* time) {
+istream* FileReader::openFile(const string& filename, string* errorDescription, time_t* time) {
   struct stat st;
   if (stat(filename.c_str(), &st) != 0) {
     *errorDescription = filename;
-    return RESULT_ERR_NOTFOUND;
+    return NULL;
   }
   if (S_ISDIR(st.st_mode)) {
     *errorDescription = filename+" is a directory";
-    return RESULT_ERR_NOTFOUND;
+    return NULL;
   }
-  ifstream stream;
-  stream.open(filename.c_str(), ifstream::in);
-  if (!stream.is_open()) {
+  ifstream* stream = new ifstream();
+  stream->open(filename.c_str(), ifstream::in);
+  if (!stream->is_open()) {
     *errorDescription = filename;
-    return RESULT_ERR_NOTFOUND;
+    delete(stream);
+    return NULL;
   }
+  if (time) {
+    *time = st.st_mtime;
+  }
+  return stream;
+}
+
+result_t FileReader::readFromStream(istream* stream, const string& filename, time_t& mtime, bool verbose,
+    map<string, string>* defaults, string* errorDescription, size_t* hash, size_t* size) {
   if (hash) {
     *hash = 0;
   }
   if (size) {
     *size = 0;
   }
-  if (time) {
-    *time = st.st_mtime;
-  }
   unsigned int lineNo = 0;
   vector<string> row;
   result_t result = RESULT_OK;
-  while (stream.peek() != EOF && result == RESULT_OK) {
-    result = readLineFromStream(filename, verbose, &stream, &lineNo, &row, errorDescription, hash, size);
+  while (stream->peek() != EOF && result == RESULT_OK) {
+    result = readLineFromStream(stream, filename, verbose, &lineNo, &row, errorDescription, hash, size);
   }
-  stream.close();
   return result;
 }
 
-result_t FileReader::readLineFromStream(const string& filename, bool verbose, istream* stream,
+result_t FileReader::readLineFromStream(istream* stream, const string& filename, bool verbose,
     unsigned int* lineNo, vector<string>* row, string* errorDescription, size_t* hash, size_t* size) {
   result_t result;
   if (!splitFields(stream, row, lineNo, hash, size)) {
@@ -237,8 +241,8 @@ const string MappedFileReader::normalizeLanguage(const string& lang) {
   return normLang;
 }
 
-result_t MappedFileReader::readFromFile(const string& filename, bool verbose, map<string, string>* defaults,
-    string* errorDescription, size_t* hash, size_t* size, time_t* time) {
+result_t MappedFileReader::readFromStream(istream* stream, const string& filename, time_t& mtime, bool verbose,
+    map<string, string>* defaults, string* errorDescription, size_t* hash, size_t* size) {
   m_mutex.lock();
   m_columnNames.clear();
   m_lastDefaults.clear();
@@ -248,8 +252,8 @@ result_t MappedFileReader::readFromFile(const string& filename, bool verbose, ma
   }
   size_t lastSep = filename.find_last_of('/');
   string defaultsPart = lastSep == string::npos ? filename : filename.substr(lastSep+1);
-  extractDefaultsFromFilename(defaultsPart, &m_lastDefaults[""], NULL, NULL, NULL);
-  result_t result = FileReader::readFromFile(filename, verbose, defaults, errorDescription, hash, size, time);
+  extractDefaultsFromFilename(defaultsPart, &m_lastDefaults[""]);
+  result_t result = FileReader::readFromStream(stream, filename, mtime, verbose, defaults, errorDescription, hash, size);
   m_mutex.unlock();
   return result;
 }

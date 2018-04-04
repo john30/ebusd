@@ -1091,7 +1091,7 @@ class Instruction {
 
   /**
    * Factory method for creating a new instance.
-   * @param contextPath the path and/or filename context being loaded.
+   * @param relPath the relative path and/or filename context being loaded.
    * @param type the type of the instruction.
    * @param condition the @a Condition for the instruction, or NULL.
    * @param row the definition row by field name.
@@ -1099,7 +1099,7 @@ class Instruction {
    * @param returnValue the variable in which to store the created instance.
    * @return @a RESULT_OK on success, or an error code.
    */
-  static result_t create(const string& contextPath, const string& type,
+  static result_t create(const string& relPath, const string& type,
       Condition* condition, const map<string, string>& row, const map<string, string>& defaults,
       Instruction** returnValue);
 
@@ -1156,7 +1156,7 @@ class LoadInstruction : public Instruction {
    * @param singleton whether this @a Instruction belongs to a set of instructions of which only the first one may be
    * executed for the same source file.
    * @param defaults the mapped definition defaults.
-   * @param filename the name of the file to load.
+   * @param filename the relative name of the file to load.
    */
   LoadInstruction(bool singleton, const map<string, string>& defaults, const string& filename,
       Condition* condition)
@@ -1172,7 +1172,7 @@ class LoadInstruction : public Instruction {
 
 
  private:
-  /** the name of the file to load. */
+  /** the relative name of the file to load. */
   const string m_filename;
 };
 
@@ -1207,9 +1207,8 @@ class MessageMap : public MappedFileReader {
    * @param addAll whether to add all messages, even if duplicate.
    * @param preferLanguage the preferred language to use, or empty.
    */
-  explicit MessageMap(const string& configPath, bool addAll = false, const string& preferLanguage = "")
+  explicit MessageMap(bool addAll = false, const string& preferLanguage = "")
   : MappedFileReader::MappedFileReader(true),
-    m_configPath(configPath),
     m_addAll(addAll), m_additionalScanMessages(false), m_maxIdLength(0), m_maxBroadcastIdLength(0),
     m_messageCount(0), m_conditionalMessageCount(0), m_passiveMessageCount(0) {
     m_scanMessage = Message::createScanMessage();
@@ -1230,13 +1229,6 @@ class MessageMap : public MappedFileReader {
       m_broadcastScanMessage = NULL;
     }
   }
-
-  /**
-   * Return the relative file name of the given filename.
-   * @param filename the name of the configuration file (including relative path).
-   * @return the relative file name.
-   */
-  const string getRelativePath(const string& filename) const;
 
   /**
    * Add a @a Message instance to this set.
@@ -1266,11 +1258,11 @@ class MessageMap : public MappedFileReader {
 
   // @copydoc
   bool extractDefaultsFromFilename(const string& filename, map<string, string>* defaults,
-      symbol_t* destAddress, unsigned int* software, unsigned int* hardware) const override;
+      symbol_t* destAddress = NULL, unsigned int* software = NULL, unsigned int* hardware = NULL) const override;
 
   // @copydoc
-  result_t readFromFile(const string& filename, bool verbose, map<string, string>* defaults,
-      string* errorDescription, size_t* hash, size_t* size, time_t* time) override;
+  result_t readFromStream(istream* stream, const string& filename, time_t& mtime, bool verbose,
+      map<string, string>* defaults, string* errorDescription, size_t* hash = NULL, size_t* size = NULL) override;
 
   // @copydoc
   result_t addFromFile(const string& filename, unsigned int lineNo, map<string, string>* row,
@@ -1501,9 +1493,6 @@ class MessageMap : public MappedFileReader {
  private:
   /** empty vector for @a getLoadedFiles(). */
   static vector<string> s_noFiles;
-
-  /** the path to the configuration files. */
-  const string m_configPath;
 
   /** whether to add all messages, even if duplicate. */
   const bool m_addAll;

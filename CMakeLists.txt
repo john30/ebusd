@@ -13,7 +13,6 @@ set(PACKAGE_BUGREPORT "ebusd@ebusd.eu")
 set(PACKAGE_URL "https://github.com/john30/ebusd")
 set(PACKAGE_PIDFILE "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/run/${PACKAGE}.pid")
 set(PACKAGE_LOGFILE "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/${PACKAGE}.log")
-set(PACKAGE_CONFIGPATH "${CMAKE_INSTALL_FULL_SYSCONFDIR}/${PACKAGE}")
 execute_process(COMMAND echo -n ${VERSION}
                 COMMAND sed "-e" "s/^\\([0-9]*\\.[0-9]*\\).*/\\1/" "-e" "s/\\.\\([0-9]\\)\$/0\\1/" "-e" "s/\\.//"
                 OUTPUT_VARIABLE SCAN_VERSION)

@@ -76,24 +76,34 @@ class FileReader {
   virtual ~FileReader() {}
 
   /**
-   * Read the definitions from a file.
+   * Open a file as stream for reading.
    * @param filename the name of the file being read.
+   * @param errorDescription a string in which to store the error description in case of error.
+   * @param time optional pointer to a @a time_t value for storing the modification time of the file, or NULL.
+   * @return the opened @a istream on success, or NULL on error.
+   */
+  static istream* openFile(const string& filename, string* errorDescription, time_t* time = NULL);
+
+  /**
+   * Read the definitions from a stream.
+   * @param stream the @a istream to read from.
+   * @param filename the relative name of the file being read.
+   * @param mtime a @a time_t value with the modification time of the file.
    * @param verbose whether to verbosely log problems.
    * @param defaults the default values by name (potentially overwritten by file name), or NULL to not use defaults.
    * @param errorDescription a string in which to store the error description in case of error.
    * @param hash optional pointer to a @a size_t value for storing the hash of the file, or NULL.
    * @param size optional pointer to a @a size_t value for storing the normalized size of the file, or NULL.
-   * @param time optional pointer to a @a time_t value for storing the modification time of the file, or NULL.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t readFromFile(const string& filename, bool verbose, map<string, string>* defaults,
-      string* errorDescription, size_t* hash, size_t* size, time_t* time);
+  virtual result_t readFromStream(istream* stream, const string& filename, time_t& mtime, bool verbose,
+      map<string, string>* defaults, string* errorDescription, size_t* hash = NULL, size_t* size = NULL);
 
   /**
    * Read a single line definition from the stream.
+   * @param stream the @a istream to read from.
    * @param filename the name of the file being read.
    * @param verbose whether to verbosely log problems.
-   * @param stream the @a istream to read from.
    * @param lineNo the last line number (incremented with each line read).
    * @param row the definition row to clear and update with the read data (for performance reasons only).
    * @param errorDescription a string in which to store the error description in case of error.
@@ -101,7 +111,7 @@ class FileReader {
    * @param size optional pointer to a @a size_t value for updating with the normalized length of the line, or NULL.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t readLineFromStream(const string& filename, bool verbose, istream* stream,
+  virtual result_t readLineFromStream(istream* stream, const string& filename, bool verbose,
       unsigned int* lineNo, vector<string>* row, string* errorDescription, size_t* hash, size_t* size);
 
   /**
@@ -194,20 +204,20 @@ class MappedFileReader : public FileReader {
   static const string normalizeLanguage(const string& lang);
 
   // @copydoc
-  result_t readFromFile(const string& filename, bool verbose, map<string, string>* defaults,
-      string* errorDescription, size_t* hash, size_t* size, time_t* time) override;
+  result_t readFromStream(istream* stream, const string& filename, time_t& mtime, bool verbose,
+      map<string, string>* defaults, string* errorDescription, size_t* hash = NULL, size_t* size = NULL) override;
 
   /**
    * Extract default values from the file name.
    * @param filename the name of the file (without path)
    * @param defaults the default values by name to add to.
-   * @param destAddress a pointer to a variable in which to store the numeric destination address, or NULL.
-   * @param software a pointer to a in which to store the numeric software version, or NULL.
-   * @param hardware a pointer to a in which to store the numeric hardware version, or NULL.
+   * @param destAddress optional pointer to a variable in which to store the numeric destination address, or NULL.
+   * @param software optional pointer to a in which to store the numeric software version, or NULL.
+   * @param hardware optional pointer to a in which to store the numeric hardware version, or NULL.
    * @return true if the minimum parts were extracted, false otherwise.
    */
   virtual bool extractDefaultsFromFilename(const string& filename, map<string, string>* defaults,
-      symbol_t* destAddress, unsigned int* software, unsigned int* hardware) const {
+      symbol_t* destAddress = NULL, unsigned int* software = NULL, unsigned int* hardware = NULL) const {
     return false;
   }
 

@@ -25,9 +25,6 @@
 /* The address where bug reports for this package should be sent. */
 #cmakedefine PACKAGE_BUGREPORT "${PACKAGE_BUGREPORT}"
 
-/* The default path of the configuration files. */
-#define PACKAGE_CONFIGPATH SYSCONFDIR "/" PACKAGE
-
 /* The path and name of the log file. */
 #define PACKAGE_LOGFILE LOCALSTATEDIR "/log/" PACKAGE ".log"
 

@@ -120,6 +120,18 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose
  */
 void executeInstructions(MessageMap* messages, bool verbose = false);
 
+/**
+ * Helper method for loading definitions from a relative file from the config path/URL.
+ * @param reader the @a FileReader instance to load with the definitions.
+ * @param filename the relative name of the file being read.
+ * @param verbose whether to verbosely log problems.
+ * @param defaults the default values by name (potentially overwritten by file name), or NULL to not use defaults.
+ * @param errorDescription a string in which to store the error description in case of error.
+ * @return @a RESULT_OK on success, or an error code.
+ */
+result_t loadDefinitionsFromConfigPath(FileReader* reader, const string& filename, bool verbose,
+    map<string, string>* defaults, string* errorDescription);
+
 }  // namespace ebusd
 
 #endif  // EBUSD_MAIN_H_

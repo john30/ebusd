@@ -81,6 +81,9 @@ static const char* defaultMessageFieldMap[] = {  // access level not included in
 
 extern DataFieldTemplates* getTemplates(const string& filename);
 
+extern result_t loadDefinitionsFromConfigPath(FileReader* reader, const string& filename, bool verbose,
+    map<string, string>* defaults, string* errorDescription);
+
 
 Message::Message(const string& circuit, const string& level, const string& name,
     bool isWrite, bool isPassive, const map<string, string>& attributes,
@@ -1692,10 +1695,9 @@ void Instruction::getDestination(ostringstream* ostream) const {
   }
 }
 
-
 result_t LoadInstruction::execute(MessageMap* messages, ostringstream* log) {
   string errorDescription;
-  result_t result = messages->readFromFile(m_filename, false, &m_defaults, &errorDescription, NULL, NULL, NULL);
+  result_t result = loadDefinitionsFromConfigPath(messages, m_filename, false, &m_defaults, &errorDescription);
   if (log->tellp() > 0) {
     *log << ", ";
   }
@@ -1730,13 +1732,6 @@ result_t LoadInstruction::execute(MessageMap* messages, ostringstream* log) {
 
 
 vector<string> MessageMap::s_noFiles;
-
-const string MessageMap::getRelativePath(const string& filename) const {
-  if (filename.length() >= m_configPath.length() && filename.substr(0, m_configPath.length()) == m_configPath) {
-    return filename.substr(m_configPath.length());
-  }
-  return filename;
-}
 
 result_t MessageMap::add(bool storeByName, Message* message) {
   uint64_t key = message->getKey();
@@ -2109,20 +2104,16 @@ bool MessageMap::extractDefaultsFromFilename(const string& filename, map<string,
   return true;
 }
 
-result_t MessageMap::readFromFile(const string& filename, bool verbose, map<string, string>* defaults,
-    string* errorDescription, size_t* hash, size_t* size, time_t* time) {
+result_t MessageMap::readFromStream(istream* stream, const string& filename, time_t& mtime, bool verbose,
+    map<string, string>* defaults, string* errorDescription, size_t* hash, size_t* size) {
   size_t localHash, localSize;
-  time_t localTime;
   if (!hash) {
     hash = &localHash;
   }
   if (!size) {
     size = &localSize;
   }
-  if (!time) {
-    time = &localTime;
-  }
-  result_t result = MappedFileReader::readFromFile(filename, verbose, defaults, errorDescription, hash, size, time);
+  result_t result = MappedFileReader::readFromStream(stream, filename, mtime, verbose, defaults, errorDescription, hash, size);
   if (defaults) {
     string circuit = AttributedItem::pluck("circuit", defaults);
     if (!circuit.empty() && m_circuitData.find(circuit) == m_circuitData.end()) {
@@ -2134,10 +2125,9 @@ result_t MessageMap::readFromFile(const string& filename, bool verbose, map<stri
     }
   }
   if (result == RESULT_OK) {
-    const string file = getRelativePath(filename);
-    m_loadedFileInfos[file].m_hash = *hash;
-    m_loadedFileInfos[file].m_size = *size;
-    m_loadedFileInfos[file].m_time = *time;
+    m_loadedFileInfos[filename].m_hash = *hash;
+    m_loadedFileInfos[filename].m_size = *size;
+    m_loadedFileInfos[filename].m_time = mtime;
   }
   return result;
 }
@@ -2332,10 +2322,9 @@ result_t MessageMap::executeInstructions(void (*readMessageFunc)(Message* messag
 void MessageMap::addLoadedFile(symbol_t address, const string& filename, const string& comment) {
   if (!filename.empty()) {
     vector<string>& files = m_loadedFiles[address];
-    const  string file = getRelativePath(filename);
-    files.push_back(file);
+    files.push_back(filename);
     if (!comment.empty()) {
-      m_loadedFileInfos[file].m_comment = comment;
+      m_loadedFileInfos[filename].m_comment = comment;
     }
   }
 }

@@ -128,7 +128,14 @@ MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messag
   m_logRawLastSymbol = SYN;
   if (opt.aclFile[0]) {
     string errorDescription;
-    result = m_userList.readFromFile(opt.aclFile, false, NULL, &errorDescription, NULL, NULL, NULL);
+    time_t mtime;
+    istream* stream = FileReader::openFile(opt.aclFile, &errorDescription, &mtime);
+    if (stream) {
+      result = m_userList.readFromStream(stream, opt.aclFile, mtime, false, NULL, &errorDescription);
+      delete(stream);
+    } else {
+      result = RESULT_ERR_NOTFOUND;
+    }
     if (result != RESULT_OK) {
       logError(lf_main, "error reading ACL file \"%s\": %s", opt.aclFile, getResultCode(result));
     }
