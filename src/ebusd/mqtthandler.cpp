@@ -620,11 +620,12 @@ void MqttHandler::handleTraffic(bool allowReconnect) {
 #else
         ret = mosquitto_connect(m_mosquitto, g_host, g_port, 60, true);
 #endif
-        if (ret != MOSQ_ERR_SUCCESS) {
+        if (ret == MOSQ_ERR_INVAL) {
           logOtherError("mqtt", "unable to connect (invalid parameters), retrying");
-          return;
         }
-        m_initialConnectFailed = false;
+        if (ret == MOSQ_ERR_SUCCESS) {
+          m_initialConnectFailed = false;
+        }
       } else {
         ret = mosquitto_reconnect(m_mosquitto);
       }
