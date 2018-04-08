@@ -650,7 +650,7 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
       hex = true;
     } else if (args[argPos] == "-def") {
       if (!m_newlyDefinedMessages) {
-        *ostream << "ERR: command not enabled";
+        *ostream << "ERR: option not enabled";
         return RESULT_OK;
       }
       newDefinition = true;
@@ -764,13 +764,9 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
         "  -i VALUE     read additional message parameters from VALUE\n"
         "  NAME         NAME of the message to send\n"
         "  FIELD        only retrieve the field named FIELD\n"
-        "  N            only retrieve the N'th field named FIELD (0-based)\n";
-    if (m_newlyDefinedMessages) {
-      *ostream <<
-          "  -def         read with explicit message definition:\n"
-          "    DEFINITION message definition to use instead of known definition\n";
-    }
-    *ostream <<
+        "  N            only retrieve the N'th field named FIELD (0-based)\n"
+        "  -def         read with explicit message definition:\n"
+        "    DEFINITION message definition to use instead of known definition\n"
         "  -h           send hex read message (or answer from cache):\n"
         "    ZZ         destination address\n"
         "    PB SB      primary/secondary command byte\n"
@@ -956,7 +952,7 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
       hex = true;
     } else if (args[argPos] == "-def") {
       if (!m_newlyDefinedMessages) {
-        *ostream << "ERR: command not enabled";
+        *ostream << "ERR: option not enabled";
         return RESULT_OK;
       }
       newDefinition = true;
