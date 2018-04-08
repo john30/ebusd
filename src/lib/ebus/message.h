@@ -782,6 +782,18 @@ class MessagePriorityQueue
     }
     priority_queue<Message*, vector<Message*>, compareMessagePriority>::push(__x);
   }
+  /**
+   * Remove data from the queue.
+   * @param __x the element to remove.
+   */
+  void remove(const value_type& __x) {
+    for (vector<Message*>::iterator it = c.begin(); it != c.end(); it++) {
+      if (*it == __x) {
+        c.erase(it);
+        break;
+      }
+    }
+  }
 };
 
 
@@ -1233,10 +1245,17 @@ class MessageMap : public MappedFileReader {
    * Add a @a Message instance to this set.
    * @param message the @a Message instance to add.
    * @param storeByName whether to store the @a Message by name.
+   * @param replace whether to replace an already existing entry.
    * @return @a RESULT_OK on success, or an error code.
    * Note: the caller may not free the added instance on success.
    */
-  result_t add(bool storeByName, Message* message);
+  result_t add(bool storeByName, Message* message, bool replace = false);
+
+  /**
+   * Remove a previously added @a Message.
+   * @param message the @a Message to remove.
+   */
+  void remove(Message* message);
 
   // @copydoc
   result_t getFieldMap(const string& preferLanguage, vector<string>* row, string* errorDescription) const override;
@@ -1261,11 +1280,12 @@ class MessageMap : public MappedFileReader {
 
   // @copydoc
   result_t readFromStream(istream* stream, const string& filename, const time_t& mtime, bool verbose,
-      map<string, string>* defaults, string* errorDescription, size_t* hash = NULL, size_t* size = NULL) override;
+      map<string, string>* defaults, string* errorDescription, bool replace = false, size_t* hash = NULL,
+      size_t* size = NULL) override;
 
   // @copydoc
   result_t addFromFile(const string& filename, unsigned int lineNo, map<string, string>* row,
-      vector< map<string, string> >* subRows, string* errorDescription) override;
+      vector< map<string, string> >* subRows, string* errorDescription, bool replace) override;
 
   /**
    * Get the scan @a Message instance for the specified address.

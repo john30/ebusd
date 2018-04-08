@@ -73,7 +73,7 @@ result_t UserList::getFieldMap(const string& preferLanguage, vector<string>* row
 }
 
 result_t UserList::addFromFile(const string& filename, unsigned int lineNo, map<string, string>* row,
-    vector< map<string, string> >* subRows, string* errorDescription) {
+    vector< map<string, string> >* subRows, string* errorDescription, bool replace) {
   string name = (*row)["name"];
   string secret = (*row)["secret"];
   if (name.empty()) {
@@ -165,6 +165,7 @@ MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messag
   } else {
     logError(lf_main, "error registering data handlers");
   }
+  m_newlyDefinedMessages = opt.enableDefine ? new MessageMap(true) : NULL;
 }
 
 MainLoop::~MainLoop() {
@@ -198,6 +199,10 @@ MainLoop::~MainLoop() {
   NetMessage* msg;
   while ((msg = m_netQueue.pop()) != NULL) {
     delete msg;
+  }
+  if (m_newlyDefinedMessages) {
+    delete m_newlyDefinedMessages;
+    m_newlyDefinedMessages = NULL;
   }
 }
 
@@ -546,6 +551,19 @@ result_t MainLoop::decodeMessage(const string &data, bool isHttp, bool* connecte
   if (cmd == "G" || cmd == "GRAB") {
     return executeGrab(args, ostream);
   }
+  if (cmd == "DEFINE") {
+    if (m_newlyDefinedMessages) {
+      return executeDefine(args, ostream);
+    }
+    *ostream << "ERR: command not enabled";
+    return RESULT_OK;
+  }
+  /*if (cmd == "D" || cmd == "DECODE") {
+    return executeDecode(args, ostream);
+  }
+  if (cmd == "E" || cmd == "ENCODE") {
+    return executeEncode(args, ostream);
+  }*/
   if (cmd == "SCAN") {
     return executeScan(args, getUserLevels(*user), ostream);
   }
@@ -621,7 +639,7 @@ result_t MainLoop::executeAuth(const vector<string>& args, string* user, ostring
 
 result_t MainLoop::executeRead(const vector<string>& args, const string& levels, ostringstream* ostream) {
   size_t argPos = 1;
-  bool hex = false, numeric = false, valueName = false;
+  bool hex = false, newDefinition = false, numeric = false, valueName = false;
   OutputFormat verbosity = 0;
   time_t maxAge = 5*60;
   string circuit, params;
@@ -630,8 +648,27 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
   while (args.size() > argPos && args[argPos][0] == '-') {
     if (args[argPos] == "-h") {
       hex = true;
+    } else if (args[argPos] == "-def") {
+      if (!m_newlyDefinedMessages) {
+        *ostream << "ERR: command not enabled";
+        return RESULT_OK;
+      }
+      newDefinition = true;
     } else if (args[argPos] == "-f") {
       maxAge = 0;
+    } else if (args[argPos] == "-m") {
+      argPos++;
+      if (args.size() > argPos) {
+        result_t result;
+        maxAge = parseInt(args[argPos].c_str(), 10, 0, 24*60*60, &result);
+        if (result != RESULT_OK) {
+          argPos = 0;  // print usage
+          break;
+        }
+      } else {
+        argPos = 0;  // print usage
+        break;
+      }
     } else if (args[argPos] == "-v") {
       switch (verbosity) {
       case 0:
@@ -653,19 +690,6 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
     } else if (args[argPos] == "-N") {
       numeric = true;
       valueName = true;
-    } else if (args[argPos] == "-m") {
-      argPos++;
-      if (args.size() > argPos) {
-        result_t result;
-        maxAge = parseInt(args[argPos].c_str(), 10, 0, 24*60*60, &result);
-        if (result != RESULT_OK) {
-          argPos = 0;  // print usage
-          break;
-        }
-      } else {
-        argPos = 0;  // print usage
-        break;
-      }
     } else if (args[argPos] == "-c") {
       argPos++;
       if (argPos >= args.size()) {
@@ -714,15 +738,50 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
     }
     argPos++;
   }
-  if (hex && (dstAddress != SYN || !circuit.empty() || verbosity != 0 || numeric || pollPriority > 0
-      || args.size() < argPos + 1)) {
+  if ((hex && (newDefinition || numeric || verbosity != 0 || !circuit.empty() || !params.empty() || dstAddress != SYN
+      || pollPriority > 0 || args.size() < argPos + 1))
+  || (newDefinition && (hex || !circuit.empty() || pollPriority > 0 || args.size() != argPos + 1))) {
     argPos = 0;  // print usage
   }
 
+  if (argPos == 0 || args.size() < argPos + 1 || args.size() > argPos + 2) {
+    *ostream <<
+        "usage: read [-f] [-m SECONDS] [-s QQ] [-d ZZ] [-c CIRCUIT] [-p PRIO] [-v|-V] [-n|-N] [-i VALUE[;VALUE]*]"
+        " NAME [FIELD[.N]]\n"
+        "  or:  read [-f] [-m SECONDS] [-s QQ] [-d ZZ] [-v|-V] [-n|-N] [-i VALUE[;VALUE]*] -def DEFINITION\n"
+        "  or:  read [-f] [-m SECONDS] [-s QQ] [-c CIRCUIT] -h ZZPBSBNNDx\n"
+        " Read value(s) or hex message.\n"
+        "  -f           force reading from the bus (same as '-m 0')\n"
+        "  -m SECONDS   only return cached value if age is less than SECONDS [300]\n"
+        "  -c CIRCUIT   limit to messages of CIRCUIT\n"
+        "  -s QQ        override source address QQ\n"
+        "  -d ZZ        override destination address ZZ\n"
+        "  -p PRIO      set the message poll priority (1-9)\n"
+        "  -v           increase verbosity (include names/units/comments)\n"
+        "  -V           be very verbose (include names, units, and comments)\n"
+        "  -n           use numeric value of value=name pairs\n"
+        "  -N           use numeric and named value of value=name pairs\n"
+        "  -i VALUE     read additional message parameters from VALUE\n"
+        "  NAME         NAME of the message to send\n"
+        "  FIELD        only retrieve the field named FIELD\n"
+        "  N            only retrieve the N'th field named FIELD (0-based)\n";
+    if (m_newlyDefinedMessages) {
+      *ostream <<
+          "  -def         read with explicit message definition:\n"
+          "    DEFINITION message definition to use instead of known definition\n";
+    }
+    *ostream <<
+        "  -h           send hex read message (or answer from cache):\n"
+        "    ZZ         destination address\n"
+        "    PB SB      primary/secondary command byte\n"
+        "    NN         number of following data bytes\n"
+        "    Dx         data byte(s) to send";
+    return RESULT_OK;
+  }
   time_t now;
   time(&now);
 
-  if (hex && argPos > 0) {
+  if (hex) {
     MasterSymbolString master;
     result_t ret = parseHexMaster(args, argPos, srcAddress, &master);
     if (ret != RESULT_OK) {
@@ -769,48 +828,22 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
       }
       if (ret >= RESULT_OK) {
         logInfo(lf_main, "read hex %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(),
-            result.str().c_str());
+                result.str().c_str());
       } else {
         logError(lf_main, "read hex %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(),
-            getResultCode(ret));
+                 getResultCode(ret));
       }
       *ostream << slave.getStr();
       return RESULT_OK;
     }
     logError(lf_main, "read hex %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(),
-        getResultCode(ret));
+             getResultCode(ret));
     return ret;
   }
-  if (argPos == 0 || args.size() < argPos + 1 || args.size() > argPos + 2) {
-    *ostream <<
-        "usage: read [-f] [-m SECONDS] [-s QQ] [-d ZZ] [-c CIRCUIT] [-p PRIO] [-v|-V] [-n|-N] [-i VALUE[;VALUE]*]"
-        " NAME [FIELD[.N]]\n"
-        "  or:  read [-f] [-m SECONDS] [-s QQ] [-c CIRCUIT] -h ZZPBSBNNDx\n"
-        " Read value(s) or hex message.\n"
-        "  -f           force reading from the bus (same as '-m 0')\n"
-        "  -m SECONDS   only return cached value if age is less than SECONDS [300]\n"
-        "  -c CIRCUIT   limit to messages of CIRCUIT\n"
-        "  -s QQ        override source address QQ\n"
-        "  -d ZZ        override destination address ZZ\n"
-        "  -p PRIO      set the message poll priority (1-9)\n"
-        "  -v           increase verbosity (include names/units/comments)\n"
-        "  -V           be very verbose (include names, units, and comments)\n"
-        "  -n           use numeric value of value=name pairs\n"
-        "  -N           use numeric and named value of value=name pairs\n"
-        "  -i VALUE     read additional message parameters from VALUE\n"
-        "  NAME         NAME of the message to send\n"
-        "  FIELD        only retrieve the field named FIELD\n"
-        "  N            only retrieve the N'th field named FIELD (0-based)\n"
-        "  -h           send hex read message (or answer from cache):\n"
-        "    ZZ         destination address\n"
-        "    PB SB      primary/secondary command byte\n"
-        "    NN         number of following data bytes\n"
-        "    Dx         data byte(s) to send";
-    return RESULT_OK;
-  }
+
   string fieldName;
   ssize_t fieldIndex = -2;
-  if (args.size() == argPos + 2) {
+  if (!newDefinition && args.size() == argPos + 2) {
     fieldName = args[argPos + 1];
     fieldIndex = -1;
     size_t pos = fieldName.find_last_of('.');
@@ -823,44 +856,65 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
     }
   }
 
-  Message* message = m_messages->find(circuit, args[argPos], levels, false);
+  string name;
+  Message* message;
+  result_t ret;
+  if (newDefinition) {
+    time_t now;
+    time(&now);
+    string errorDescription;
+    istringstream istr = istringstream("#\n" + args[argPos]);  // ensure first line is not used for determining col names
+    m_newlyDefinedMessages->clear();
+    ret = m_newlyDefinedMessages->readFromStream(&istr, "temporary", now, true, NULL, &errorDescription);
+    if (ret != RESULT_OK) {
+      *ostream << "ERR: bad definition: " << errorDescription;
+      return RESULT_OK;
+    }
+    deque<Message*> messages;
+    m_newlyDefinedMessages->findAll("", "", levels, false, true, false, false, true, false, 0, 0, &messages);
+    if (messages.empty()) {
+      *ostream << "ERR: bad definition: no read message";
+      return RESULT_OK;
+    }
+    message = *messages.begin();
+  } else {
+    name = args[argPos];
+    message = m_messages->find(circuit, name, levels, false);
+  }
   // adjust poll priority
-  if (message != NULL && pollPriority > 0 && message->setPollPriority(pollPriority)) {
+  if (!newDefinition && message != NULL && pollPriority > 0 && message->setPollPriority(pollPriority)) {
     m_messages->addPollMessage(false, message);
   }
   verbosity |= valueName ? OF_VALUENAME : numeric ? OF_NUMERIC : 0;
-  result_t ret;
-  if (srcAddress == SYN && dstAddress == SYN && maxAge > 0 && params.length() == 0) {
-    Message* cacheMessage = m_messages->find(circuit, args[argPos], levels, false, true);
-    bool hasCache = cacheMessage != NULL;
-    if (!hasCache || (message != NULL && message->getLastUpdateTime() > cacheMessage->getLastUpdateTime())) {
-      cacheMessage = message;  // message is newer/better
-    }
-    if (cacheMessage != NULL
-        && (cacheMessage->getLastUpdateTime() + maxAge > now
-            || (cacheMessage->isPassive() && cacheMessage->getLastUpdateTime() != 0))) {
-      if (verbosity & OF_NAMES) {
-        *ostream << cacheMessage->getCircuit() << " " << cacheMessage->getName() << " ";
-      }
-      ret = cacheMessage->decodeLastData(false, fieldIndex == -2 ? NULL : fieldName.c_str(), fieldIndex, verbosity,
-          ostream);
-      if (ret != RESULT_OK) {
-        if (ret < RESULT_OK) {
-          logError(lf_main, "read %s %s cached: %s", cacheMessage->getCircuit().c_str(),
-              cacheMessage->getName().c_str(), getResultCode(ret));
-        }
-        return ret;
-      }
-      logInfo(lf_main, "read %s %s cached: %s", cacheMessage->getCircuit().c_str(), cacheMessage->getName().c_str(),
-          ostream->str().c_str());
-      return RESULT_OK;
-    }
-
-    if (message == NULL && hasCache) {
-      *ostream << "ERR: no data stored";
-      return RESULT_OK;
-    }  // else: read directly from bus
+  bool allowCache = !newDefinition && srcAddress == SYN && dstAddress == SYN && maxAge > 0 && params.length() == 0;
+  Message* cacheMessage = allowCache ? m_messages->find(circuit, name, levels, false, true) : NULL;
+  bool hasCache = cacheMessage != NULL;
+  if (!hasCache || (allowCache && message && message->getLastUpdateTime() > cacheMessage->getLastUpdateTime())) {
+    cacheMessage = message;  // message is newer/better
   }
+  if (cacheMessage && (cacheMessage->getLastUpdateTime() + maxAge > now
+                       || (cacheMessage->isPassive() && cacheMessage->getLastUpdateTime() != 0))) {
+    if (verbosity & OF_NAMES) {
+      *ostream << cacheMessage->getCircuit() << " " << cacheMessage->getName() << " ";
+    }
+    ret = cacheMessage->decodeLastData(false, fieldIndex == -2 ? NULL : fieldName.c_str(), fieldIndex, verbosity,
+        ostream);
+    if (ret != RESULT_OK) {
+      if (ret < RESULT_OK) {
+        logError(lf_main, "read %s %s cached: %s", cacheMessage->getCircuit().c_str(),
+            cacheMessage->getName().c_str(), getResultCode(ret));
+      }
+      return ret;
+    }
+    logInfo(lf_main, "read %s %s cached: %s", cacheMessage->getCircuit().c_str(), cacheMessage->getName().c_str(),
+        ostream->str().c_str());
+    return RESULT_OK;
+  }
+
+  if (!message && hasCache) {
+    *ostream << "ERR: no data stored";
+    return RESULT_OK;
+  }  // else: read directly from bus
 
   if (message == NULL) {
     return RESULT_ERR_NOTFOUND;
@@ -894,12 +948,18 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
 
 result_t MainLoop::executeWrite(const vector<string>& args, const string levels, ostringstream* ostream) {
   size_t argPos = 1;
-  bool hex = false;
+  bool hex = false, newDefinition = false;
   string circuit;
   symbol_t srcAddress = SYN, dstAddress = SYN;
   while (args.size() > argPos && args[argPos][0] == '-') {
     if (args[argPos] == "-h") {
       hex = true;
+    } else if (args[argPos] == "-def") {
+      if (!m_newlyDefinedMessages) {
+        *ostream << "ERR: command not enabled";
+        return RESULT_OK;
+      }
+      newDefinition = true;
     } else if (args[argPos] == "-s" || args[argPos] == "-d") {
       bool dest = args[argPos] == "-d";
       argPos++;
@@ -931,8 +991,29 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
     argPos++;
   }
 
-  if (hex && (dstAddress != SYN || !circuit.empty() || args.size() < argPos + 1)) {
+  if ((hex && (newDefinition || dstAddress != SYN || !circuit.empty() || args.size() < argPos + 1))
+  || (newDefinition && (hex || !circuit.empty() || args.size() < argPos + 1 || args.size() > argPos + 2))) {
     argPos = 0;  // print usage
+  }
+
+  if (argPos == 0 || (!newDefinition && (circuit.empty() || (args.size() != argPos + 2 && args.size() != argPos + 1)))) {
+    *ostream << "usage: write [-s QQ] [-d ZZ] -c CIRCUIT NAME [VALUE[;VALUE]*]\n"
+        "  or:  write [-s QQ] [-d ZZ] -def DEFINITION [VALUE[;VALUE]*]\n"
+        "  or:  write [-s QQ] [-c CIRCUIT] -h ZZPBSBNNDx\n"
+        " Write value(s) or hex message.\n"
+        "  -s QQ        override source address QQ\n"
+        "  -d ZZ        override destination address ZZ\n"
+        "  -c CIRCUIT   CIRCUIT of the message to send\n"
+        "  NAME         NAME of the message to send\n"
+        "  VALUE        a single field VALUE\n"
+        "  -def         write with explicit message definition:\n"
+        "    DEFINITION message definition to use instead of known definition\n"
+        "  -h           send hex write message:\n"
+        "    ZZ         destination address\n"
+        "    PB SB      primary/secondary command byte\n"
+        "    NN         number of following data bytes\n"
+        "    Dx         data byte(s) to send";
+    return RESULT_OK;
   }
 
   if (hex && argPos > 0) {
@@ -991,23 +1072,29 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
     return ret;
   }
 
-  if (argPos == 0 || circuit.empty() || (args.size() != argPos + 2 && args.size() != argPos + 1)) {
-    *ostream << "usage: write [-s QQ] [-d ZZ] -c CIRCUIT NAME [VALUE[;VALUE]*]\n"
-                "  or:  write [-s QQ] [-c CIRCUIT] -h ZZPBSBNNDx\n"
-                " Write value(s) or hex message.\n"
-                "  -s QQ        override source address QQ\n"
-                "  -d ZZ        override destination address ZZ\n"
-                "  -c CIRCUIT   CIRCUIT of the message to send\n"
-                "  NAME         NAME of the message to send\n"
-                "  VALUE        a single field VALUE\n"
-                "  -h           send hex write message:\n"
-                "    ZZ         destination address\n"
-                "    PB SB      primary/secondary command byte\n"
-                "    NN         number of following data bytes\n"
-                "    Dx         data byte(s) to send";
-    return RESULT_OK;
+  Message* message;
+  result_t ret;
+  if (newDefinition) {
+    time_t now;
+    time(&now);
+    string errorDescription;
+    istringstream istr = istringstream("#\n" + args[argPos]);  // ensure first line is not used for determining col names
+    m_newlyDefinedMessages->clear();
+    ret = m_newlyDefinedMessages->readFromStream(&istr, "temporary", now, true, NULL, &errorDescription);
+    if (ret != RESULT_OK) {
+      *ostream << "ERR: bad definition: " << errorDescription;
+      return RESULT_OK;
+    }
+    deque<Message*> messages;
+    m_newlyDefinedMessages->findAll("", "", levels, false, false, true, false, true, false, 0, 0, &messages);
+    if (messages.empty()) {
+      *ostream << "ERR: bad definition: no write message";
+      return RESULT_OK;
+    }
+    message = *messages.begin();
+  } else {
+    message = m_messages->find(circuit, args[argPos], levels, true);
   }
-  Message* message = m_messages->find(circuit, args[argPos], levels, true);
 
   if (message == NULL) {
     return RESULT_ERR_NOTFOUND;
@@ -1016,8 +1103,7 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
     return RESULT_ERR_INVALID_ADDR;
   }
   // allow missing values
-  result_t ret = m_busHandler->readFromBus(message, args.size() == argPos + 1 ? "" : args[argPos + 1], dstAddress,
-      srcAddress);
+  ret = m_busHandler->readFromBus(message, args.size() == argPos + 1 ? "" : args[argPos + 1], dstAddress, srcAddress);
   if (ret != RESULT_OK) {
     logError(lf_main, "write %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(),
         getResultCode(ret));
@@ -1385,6 +1471,139 @@ result_t MainLoop::executeGrab(const vector<string>& args, ostringstream* ostrea
   return RESULT_OK;
 }
 
+result_t MainLoop::executeDefine(const vector<string>& args, ostringstream* ostream) {
+  size_t argPos = 1;
+  bool replace = false;
+  while (args.size() > argPos && args[argPos][0] == '-') {
+    if (args[argPos] == "-r") {
+      replace = true;
+    } else {
+      argPos = 0;  // print usage
+      break;
+    }
+    argPos++;
+  }
+
+  if (argPos == 0 || args.size() != argPos + 1) {
+    *ostream <<
+         "usage: define [-r] DEFINITION\n"
+         " Define a new message.\n"
+         "  -r          replace an already existing definition\n"
+         "  DEFINITION  message definition to add";
+    return RESULT_OK;
+  }
+
+  time_t now;
+  time(&now);
+  string errorDescription;
+  istringstream istr = istringstream("#\n" + args[argPos]);  // ensure first line is not used for determining col names
+  return m_messages->readFromStream(&istr, "temporary", now, true, NULL, &errorDescription, replace);
+}
+
+
+/*result_t MainLoop::executeDecode(const vector<string>& args, ostringstream* ostream) {
+  size_t argPos = 1;
+  bool numeric = false, valueName = false;
+  OutputFormat verbosity = 0;
+  while (args.size() > argPos && args[argPos][0] == '-') {
+    if (args[argPos] == "-v") {
+      switch (verbosity) {
+        case 0:
+          verbosity = OF_NAMES;
+          break;
+        case OF_NAMES:
+          verbosity |= OF_UNITS;
+          break;
+        case OF_NAMES|OF_UNITS:
+          verbosity |= OF_COMMENTS;
+          break;
+      }
+    } else if (args[argPos] == "-vv") {
+      verbosity |= OF_NAMES|OF_UNITS;
+    } else if (args[argPos] == "-vvv" || args[argPos] == "-V") {
+      verbosity |= OF_NAMES|OF_UNITS|OF_COMMENTS;
+    } else if (args[argPos] == "-n") {
+      numeric = true;
+    } else if (args[argPos] == "-N") {
+      numeric = true;
+      valueName = true;
+    } else {
+      argPos = 0;  // print usage
+      break;
+    }
+    argPos++;
+  }
+  if (args.size() < argPos + 2) {
+    argPos = 0;  // print usage
+  }
+
+  if (argPos == 0 || args.size() != argPos + 2) {
+    *ostream <<
+        "usage: decode [-v|-V] [-n|-N] DEFINITION Dx\n"
+        " Decode a field by definition and hex data.\n"
+        "  -v          increase verbosity (include names/units/comments)\n"
+        "  -V          be very verbose (include names, units, and comments)\n"
+        "  -n          use numeric value of value=name pairs\n"
+        "  -N          use numeric and named value of value=name pairs\n"
+        "  DEFINITION  field definition (type,divisor/values,unit,comment)\n"
+        "  Dx          data byte(s) to decode";
+    return RESULT_OK;
+  }
+
+  time_t now;
+  time(&now);
+  verbosity |= valueName ? OF_VALUENAME : numeric ? OF_NUMERIC : 0;
+  istringstream istr = istringstream("#\n" + args[argPos]);  // ensure first line is not used for determining col names
+  string errorDescription;
+  DataFieldTemplates* templates = getTemplates("*");
+  LoadableDataFieldSet fields("", templates);
+  result_t ret = fields.readFromStream(&istr, "temporary", now, true, NULL, &errorDescription);
+  if (ret != RESULT_OK) {
+    return ret;
+  }
+  SlaveSymbolString slave;
+  slave.push_back(0);  // dummy length
+  ret = slave.parseHex(args[argPos+1]);
+  if (ret != RESULT_OK) {
+    return ret;
+  }
+  slave[0] = slave.size() - 1;  // adjust length
+  return fields.read(slave, 0, false, NULL, -1, verbosity, -1, ostream);
+}
+
+
+result_t MainLoop::executeEncode(const vector<string>& args, ostringstream* ostream) {
+  size_t argPos = 1;
+  if (argPos == 0 || args.size() != argPos + 2) {
+    *ostream <<
+        "usage: encode DEFINITION VALUE\n"
+        " Encode a field by definition and decoded value.\n"
+        "  DEFINITION  field definition (type,divisor/values,unit,comment)\n"
+        "  VALUE       single field VALUE to encode";
+    return RESULT_OK;
+  }
+
+  time_t now;
+  time(&now);
+  istringstream istr = istringstream("#\n" + args[argPos]);  // ensure first line is not used for determining col names
+  string errorDescription;
+  DataFieldTemplates* templates = getTemplates("*");
+  LoadableDataFieldSet fields("", templates);
+  result_t ret = fields.readFromStream(&istr, "temporary", now, true, NULL, &errorDescription);
+  if (ret != RESULT_OK) {
+    return ret;
+  }
+  istr = istringstream(args[argPos+1]);
+  SlaveSymbolString slave;
+  ret = fields.write(FIELD_SEPARATOR, 0, &istr, &slave, NULL);
+  if (ret != RESULT_OK) {
+    return ret;
+  }
+  *ostream << slave.getStr(1);
+  return ret;
+}*/
+
+
 result_t MainLoop::executeScan(const vector<string>& args, const string& levels, ostringstream* ostream) {
   if (args.size() == 1) {
     result_t result = m_busHandler->startScan(false, levels);
@@ -1564,28 +1783,34 @@ result_t MainLoop::executeQuit(const vector<string>& args, bool *connected, ostr
 
 result_t MainLoop::executeHelp(ostringstream* ostream) {
   *ostream << "usage:\n"
-      " read|r   Read value(s):         read [-f] [-m SECONDS] [-s QQ] [-d ZZ] [-c CIRCUIT] [-p PRIO] [-v|-V] [-n|-N]"
+      " read|r    Read value(s):         read [-f] [-m SECONDS] [-s QQ] [-d ZZ] [-c CIRCUIT] [-p PRIO] [-v|-V] [-n|-N]"
       " [-i VALUE[;VALUE]*] NAME [FIELD[.N]]\n"
-      "          Read hex message:      read [-f] [-m SECONDS] [-s QQ] [-c CIRCUIT] -h ZZPBSBNNDx\n"
-      " write|w  Write value(s):        write [-s QQ] [-d ZZ] -c CIRCUIT NAME [VALUE[;VALUE]*]\n"
-      "          Write hex message:     write [-s QQ] [-c CIRCUIT] -h ZZPBSBNNDx\n"
-      " auth|a   Authenticate user:     auth USER SECRET\n"
-      " hex      Send hex data:         hex [-s QQ] ZZPBSBNNDx\n"
-      " find|f   Find message(s):       find [-v|-V] [-r] [-w] [-p] [-a] [-d] [-h] [-i ID] [-f] [-F COL[,COL]*] [-e]"
+      "           Read by new defintion: read [-f] [-m SECONDS] [-s QQ] [-d ZZ] [-v|-V] [-n|-N]"
+      " [-i VALUE[;VALUE]*] -def DEFINITION\n"
+      "           Read hex message:      read [-f] [-m SECONDS] [-s QQ] [-c CIRCUIT] -h ZZPBSBNNDx\n"
+      " write|w   Write value(s):        write [-s QQ] [-d ZZ] -c CIRCUIT NAME [VALUE[;VALUE]*]\n"
+      "           Write by new def.:     write [-s QQ] [-d ZZ] -def DEFINITION [VALUE[;VALUE]*]\n"
+      "           Write hex message:     write [-s QQ] [-c CIRCUIT] -h ZZPBSBNNDx\n"
+      " auth|a    Authenticate user:     auth USER SECRET\n"
+      " hex       Send hex data:         hex [-s QQ] ZZPBSBNNDx\n"
+      " find|f    Find message(s):       find [-v|-V] [-r] [-w] [-p] [-a] [-d] [-h] [-i ID] [-f] [-F COL[,COL]*] [-e]"
       " [-c CIRCUIT] [-l LEVEL] [NAME]\n"
-      " listen|l Listen for updates:    listen [stop]\n"
-      " state|s  Report bus state\n"
-      " info|i   Report information about the daemon, the configuration, and seen devices.\n"
-      " grab|g   Grab messages:         grab [stop]\n"
-      "          Report the messages:   grab result [all]\n"
-      " scan     Scan slaves:           scan [full|ZZ]\n"
-      "          Report scan result:    scan result\n"
-      " log      Set log area level:    log [AREA[,AREA]* LEVEL]\n"
-      " raw      Toggle logging of messages or each byte.\n"
-      " dump     Toggle binary dump of received bytes\n"
-      " reload   Reload CSV config files\n"
-      " quit|q   Close connection\n"
-      " help|?   Print help             help [COMMAND], COMMMAND ?";
+      " listen|l  Listen for updates:    listen [stop]\n"
+      " state|s   Report bus state\n"
+      " info|i    Report information about the daemon, the configuration, and seen devices.\n"
+      " grab|g    Grab messages:         grab [stop]\n"
+      "           Report the messages:   grab result [all]\n"
+      " define    Define new message:    define [-r] DEFINITION\n"
+      //" decode|d  Decode a field:        decode [-v|-V] [-n|-N] DEFINITION Dx\n"
+      //" encode|e  Encode a field:        encode DEFINITION VALUE\n"
+      " scan      Scan slaves:           scan [full|ZZ]\n"
+      "           Report scan result:    scan result\n"
+      " log       Set log area level:    log [AREA[,AREA]* LEVEL]\n"
+      " raw       Toggle logging of messages or each byte.\n"
+      " dump      Toggle binary dump of received bytes\n"
+      " reload    Reload CSV config files\n"
+      " quit|q    Close connection\n"
+      " help|?    Print help             help [COMMAND], COMMMAND ?";
   return RESULT_OK;
 }
 

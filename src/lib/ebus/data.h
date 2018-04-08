@@ -746,7 +746,7 @@ class DataFieldTemplates : public MappedFileReader {
 
   // @copydoc
   result_t addFromFile(const string& filename, unsigned int lineNo, map<string, string>* row,
-      vector< map<string, string> >* subRows, string* errorDescription) override;
+      vector< map<string, string> >* subRows, string* errorDescription, bool replace) override;
 
   /**
    * Gets the template @a DataField instance with the specified name.

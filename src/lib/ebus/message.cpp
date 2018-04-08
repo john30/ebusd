@@ -82,7 +82,7 @@ static const char* defaultMessageFieldMap[] = {  // access level not included in
 extern DataFieldTemplates* getTemplates(const string& filename);
 
 extern result_t loadDefinitionsFromConfigPath(FileReader* reader, const string& filename, bool verbose,
-    map<string, string>* defaults, string* errorDescription);
+    map<string, string>* defaults, string* errorDescription, bool replace = false);
 
 
 Message::Message(const string& circuit, const string& level, const string& name,
@@ -1733,22 +1733,35 @@ result_t LoadInstruction::execute(MessageMap* messages, ostringstream* log) {
 
 vector<string> MessageMap::s_noFiles;
 
-result_t MessageMap::add(bool storeByName, Message* message) {
+result_t MessageMap::add(bool storeByName, Message* message, bool replace) {
   uint64_t key = message->getKey();
   bool conditional = message->isConditional();
   if (!m_addAll) {
+    lock();
     const auto keyIt = m_messagesByKey.find(key);
     if (keyIt != m_messagesByKey.end()) {
-      Message* other = getFirstAvailable(keyIt->second, message);
-      if (other != NULL) {
-        if (!conditional) {
-          return RESULT_ERR_DUPLICATE;  // duplicate key
+      if (replace) {
+        vector<Message*> removeMessages;
+        for (auto other : keyIt->second) {
+          if (!other || !message->checkId(*other)) {
+            continue;
+          }
+          if (!conditional || !other->isConditional() || other->m_condition == message->m_condition) {
+            removeMessages.push_back(other);
+          }
         }
-        if (!other->isConditional()) {
+        for (auto other : removeMessages) {
+          remove(other);
+        }
+      } else {
+        Message *other = getFirstAvailable(keyIt->second, message);
+        if (other != NULL && (!conditional || !other->isConditional())) {
+          unlock();
           return RESULT_ERR_DUPLICATE;  // duplicate key
         }
       }
     }
+    unlock();
   }
   bool isPassive = message->isPassive();
   if (storeByName) {
@@ -1763,13 +1776,29 @@ result_t MessageMap::add(bool storeByName, Message* message) {
     string suffix = FIELD_SEPARATOR + name + (isPassive ? "P" : (isWrite ? "W" : "R"));
     string nameKey = circuit + suffix;
     if (!m_addAll) {
+      lock();
       const auto nameIt = m_messagesByName.find(nameKey);
       if (nameIt != m_messagesByName.end()) {
         vector<Message*>* messages = &nameIt->second;
-        if (!message->isConditional() || !messages->front()->isConditional()) {
+        if (replace) {
+          vector<Message*> removeMessages;
+          for (auto other : *messages) {
+            if (!other) {
+              continue;
+            }
+            if (!conditional || !other->isConditional() || other->m_condition == message->m_condition) {
+              removeMessages.push_back(other);
+            }
+          }
+          for (auto other : removeMessages) {
+            remove(other);
+          }
+        } else if (!conditional || !messages->front()->isConditional()) {
+          unlock();
           return RESULT_ERR_DUPLICATE_NAME;  // duplicate key
         }
       }
+      unlock();
     }
     m_messagesByName[nameKey].push_back(message);
     nameKey = suffix;  // also store without circuit
@@ -1806,6 +1835,71 @@ result_t MessageMap::add(bool storeByName, Message* message) {
   }
   m_messagesByKey[key].push_back(message);
   return RESULT_OK;
+}
+
+void MessageMap::remove(Message* message) {
+  if (message == NULL) {
+    return;
+  }
+  lock();
+  uint64_t key = message->getKey();
+  bool conditional = message->isConditional();
+  const auto keyIt = m_messagesByKey.find(key);
+  bool deleted = false;
+  if (keyIt != m_messagesByKey.end()) {
+    vector<Message*> messages = keyIt->second;
+    for (auto it = messages.begin(); it != messages.end(); ) {
+      Message* other = *it;
+      if (other == message) {
+        if (!deleted) {
+          deleted = true;
+          delete(other);
+        }
+        messages.erase(it);
+      } else {
+        ++it;
+      }
+    }
+    if (messages.empty()) {
+      m_messagesByKey.erase(keyIt);
+    }
+  }
+  bool storedByName = false;
+  for (auto nameIt = m_messagesByName.begin(); nameIt != m_messagesByName.end(); ) {
+    vector<Message*> messages = nameIt->second;
+    for (auto it = messages.begin(); it != messages.end(); ) {
+      Message* other = *it;
+      if (other == message) {
+        storedByName = true;
+        if (!deleted) {
+          deleted = true;
+          delete(other);
+        }
+        messages.erase(it);
+      } else {
+        ++it;
+      }
+    }
+    if (messages.empty()) {
+      m_messagesByName.erase(nameIt);
+    } else {
+      ++nameIt;
+    }
+  }
+  if (storedByName) {
+    bool isPassive = message->isPassive();
+    m_messageCount--;
+    if (conditional) {
+      m_conditionalMessageCount--;
+    }
+    if (isPassive) {
+      m_passiveMessageCount--;
+    }
+  }
+  if (message->getPollPriority() > 0) {
+    m_pollMessages.remove(message);
+  }
+  unlock();
 }
 
 result_t MessageMap::getFieldMap(const string& preferLanguage, vector<string>* row, string* errorDescription) const {
@@ -2105,7 +2199,7 @@ bool MessageMap::extractDefaultsFromFilename(const string& filename, map<string,
 }
 
 result_t MessageMap::readFromStream(istream* stream, const string& filename, const time_t& mtime, bool verbose,
-    map<string, string>* defaults, string* errorDescription, size_t* hash, size_t* size) {
+    map<string, string>* defaults, string* errorDescription, bool replace, size_t* hash, size_t* size) {
   size_t localHash, localSize;
   if (!hash) {
     hash = &localHash;
@@ -2113,8 +2207,8 @@ result_t MessageMap::readFromStream(istream* stream, const string& filename, con
   if (!size) {
     size = &localSize;
   }
-  result_t result = MappedFileReader::readFromStream(stream, filename, mtime, verbose, defaults, errorDescription, hash,
-                                                     size);
+  result_t result
+  = MappedFileReader::readFromStream(stream, filename, mtime, verbose, defaults, errorDescription, replace, hash, size);
   if (defaults) {
     string circuit = AttributedItem::pluck("circuit", defaults);
     if (!circuit.empty() && m_circuitData.find(circuit) == m_circuitData.end()) {
@@ -2134,7 +2228,7 @@ result_t MessageMap::readFromStream(istream* stream, const string& filename, con
 }
 
 result_t MessageMap::addFromFile(const string& filename, unsigned int lineNo, map<string, string>* row,
-    vector< map<string, string> >* subRows, string* errorDescription) {
+    vector< map<string, string> >* subRows, string* errorDescription, bool replace) {
   Condition* condition = NULL;
   string types = AttributedItem::pluck("type", row);
   result_t result = readConditions(filename, &types, errorDescription, &condition);
@@ -2188,7 +2282,7 @@ result_t MessageMap::addFromFile(const string& filename, unsigned int lineNo, ma
     }
     for (const auto message : messages) {
       if (result == RESULT_OK) {
-        result = add(true, message);
+        result = add(true, message, replace);
         if (result == RESULT_ERR_DUPLICATE_NAME) {
           *errorDescription = "invalid name";
         } else if (result == RESULT_ERR_DUPLICATE) {

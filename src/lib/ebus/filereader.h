@@ -92,12 +92,14 @@ class FileReader {
    * @param verbose whether to verbosely log problems.
    * @param defaults the default values by name (potentially overwritten by file name), or NULL to not use defaults.
    * @param errorDescription a string in which to store the error description in case of error.
+   * @param replace whether to replace an already existing entry.
    * @param hash optional pointer to a @a size_t value for storing the hash of the file, or NULL.
    * @param size optional pointer to a @a size_t value for storing the normalized size of the file, or NULL.
    * @return @a RESULT_OK on success, or an error code.
    */
   virtual result_t readFromStream(istream* stream, const string& filename, const time_t& mtime, bool verbose,
-      map<string, string>* defaults, string* errorDescription, size_t* hash = NULL, size_t* size = NULL);
+      map<string, string>* defaults, string* errorDescription, bool replace = false, size_t* hash = NULL,
+      size_t* size = NULL);
 
   /**
    * Read a single line definition from the stream.
@@ -107,12 +109,13 @@ class FileReader {
    * @param lineNo the last line number (incremented with each line read).
    * @param row the definition row to clear and update with the read data (for performance reasons only).
    * @param errorDescription a string in which to store the error description in case of error.
+   * @param replace whether to replace an already existing entry.
    * @param hash optional pointer to a @a size_t value for updating with the hash of the line, or NULL.
    * @param size optional pointer to a @a size_t value for updating with the normalized length of the line, or NULL.
    * @return @a RESULT_OK on success, or an error code.
    */
   virtual result_t readLineFromStream(istream* stream, const string& filename, bool verbose,
-      unsigned int* lineNo, vector<string>* row, string* errorDescription, size_t* hash, size_t* size);
+      unsigned int* lineNo, vector<string>* row, string* errorDescription, bool replace, size_t* hash, size_t* size);
 
   /**
    * Add a definition that was read from a file.
@@ -120,10 +123,11 @@ class FileReader {
    * @param lineNo the current line number in the file being read.
    * @param row the definition row (allowed to be modified).
    * @param errorDescription a string in which to store the error description in case of error.
+   * @param replace whether to replace an already existing entry.
    * @return @a RESULT_OK on success, or an error code.
    */
   virtual result_t addFromFile(const string& filename, unsigned int lineNo, vector<string>* row,
-      string* errorDescription) = 0;
+      string* errorDescription, bool replace) = 0;
 
   /**
    * Left and right trim the string.
@@ -205,7 +209,8 @@ class MappedFileReader : public FileReader {
 
   // @copydoc
   result_t readFromStream(istream* stream, const string& filename, const time_t& mtime, bool verbose,
-      map<string, string>* defaults, string* errorDescription, size_t* hash = NULL, size_t* size = NULL) override;
+      map<string, string>* defaults, string* errorDescription, bool replace = false, size_t* hash = NULL,
+      size_t* size = NULL) override;
 
   /**
    * Extract default values from the file name.
@@ -223,7 +228,7 @@ class MappedFileReader : public FileReader {
 
   // @copydoc
   result_t addFromFile(const string& filename, unsigned int lineNo, vector<string>* row,
-      string* errorDescription) override;
+      string* errorDescription, bool replace) override;
 
   /**
    * Get the field mapping from the given first line.
@@ -258,10 +263,11 @@ class MappedFileReader : public FileReader {
    * @param row the main definition row by field name (may be modified).
    * @param subRows the sub definition rows, each by field name (may be modified).
    * @param errorDescription a string in which to store the error description in case of error.
+   * @param replace whether to replace an already existing entry.
    * @return @a RESULT_OK on success, or an error code.
    */
   virtual result_t addFromFile(const string& filename, unsigned int lineNo, map<string, string>* row,
-      vector< map<string, string> >* subRows, string* errorDescription) = 0;
+      vector< map<string, string> >* subRows, string* errorDescription, bool replace = false) = 0;
 
   /**
    * @return a reference to all previously extracted default values by type and field name.

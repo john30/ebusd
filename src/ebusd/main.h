@@ -65,6 +65,7 @@ struct options {
   const char* aclFile;  //!< ACL file name
   bool foreground;  //!< run in foreground
   bool enableHex;  //!< enable hex command
+  bool enableDefine;  //!< enable define command
   const char* pidFile;  //!< PID file name [/var/run/ebusd.pid]
   uint16_t port;  //!< port to listen for command line connections [8888]
   bool localOnly;  //!< listen on 127.0.0.1 interface only
@@ -88,7 +89,8 @@ struct options {
 
 /**
  * Get the @a DataFieldTemplates for the specified configuration file.
- * @param filename the full name of the configuration file.
+ * @param filename the full name of the configuration file, or "*" to get the non-root templates with the longest name
+ * or the root templates if not available.
  * @return the @a DataFieldTemplates.
  */
 DataFieldTemplates* getTemplates(const string& filename);
@@ -128,10 +130,11 @@ void executeInstructions(MessageMap* messages, bool verbose = false);
  * @param verbose whether to verbosely log problems.
  * @param defaults the default values by name (potentially overwritten by file name), or NULL to not use defaults.
  * @param errorDescription a string in which to store the error description in case of error.
+ * @param replace whether to replace an already existing entry.
  * @return @a RESULT_OK on success, or an error code.
  */
 result_t loadDefinitionsFromConfigPath(FileReader* reader, const string& filename, bool verbose,
-    map<string, string>* defaults, string* errorDescription);
+    map<string, string>* defaults, string* errorDescription, bool replace = false);
 
 }  // namespace ebusd
 

@@ -66,7 +66,7 @@ class UserList : public UserInfo, public MappedFileReader {
 
   // @copydoc
   result_t addFromFile(const string& filename, unsigned int lineNo, map<string, string>* row,
-      vector< map<string, string> >* subRows, string* errorDescription) override;
+      vector< map<string, string> >* subRows, string* errorDescription, bool replace) override;
 
   // @copydoc
   bool hasUser(const string& user) const override {
@@ -241,6 +241,30 @@ class MainLoop : public Thread, DeviceListener {
   result_t executeGrab(const vector<string>& args, ostringstream* ostream);
 
   /**
+   * Execute the define command.
+   * @param args the arguments passed to the command (starting with the command itself), or empty for help.
+   * @param ostream the @a ostringstream to format the result string to.
+   * @return the result code.
+   */
+  result_t executeDefine(const vector<string>& args, ostringstream* ostream);
+
+  /**
+   * Execute the decode command.
+   * @param args the arguments passed to the command (starting with the command itself), or empty for help.
+   * @param ostream the @a ostringstream to format the result string to.
+   * @return the result code.
+   */
+  //result_t executeDecode(const vector<string>& args, ostringstream* ostream);
+
+  /**
+   * Execute the encode command.
+   * @param args the arguments passed to the command (starting with the command itself), or empty for help.
+   * @param ostream the @a ostringstream to format the result string to.
+   * @return the result code.
+   */
+  //result_t executeEncode(const vector<string>& args, ostringstream* ostream);
+
+  /**
    * Execute the scan command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
    * @param levels the current user's access levels.
@@ -372,6 +396,9 @@ class MainLoop : public Thread, DeviceListener {
 
   /** whether to enable the hex command. */
   const bool m_enableHex;
+
+  /** the MessageMap for handling newly defined messages for testing (if enabled), or NULL. */
+  MessageMap* m_newlyDefinedMessages;
 
   /** set to true to shutdown. */
   bool m_shutdown;

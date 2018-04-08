@@ -103,6 +103,7 @@ static struct options opt = {
   "",  // aclFile
   false,  // foreground
   false,  // enableHex
+  false,  // enableDefine
   PID_FILE_NAME,  // pidFile
   8888,  // port
   false,  // localOnly
@@ -159,7 +160,8 @@ static const char argpdoc[] =
 #define O_ACLDEF (O_GENSYN+1)
 #define O_ACLFIL (O_ACLDEF+1)
 #define O_HEXCMD (O_ACLFIL+1)
-#define O_PIDFIL (O_HEXCMD+1)
+#define O_DEFCMD (O_HEXCMD+1)
+#define O_PIDFIL (O_DEFCMD+1)
 #define O_LOCAL  (O_PIDFIL+1)
 #define O_HTTPPT (O_LOCAL+1)
 #define O_HTMLPA (O_HTTPPT+1)
@@ -212,6 +214,7 @@ static const struct argp_option argpoptions[] = {
   {"aclfile",        O_ACLFIL, "FILE",  0, "Read access control list from FILE", 0 },
   {"foreground",     'f',      NULL,    0, "Run in foreground", 0 },
   {"enablehex",      O_HEXCMD, NULL,    0, "Enable hex command", 0 },
+  {"enabledefine",   O_DEFCMD, NULL,    0, "Enable define command", 0 },
   {"pidfile",        O_PIDFIL, "FILE",  0, "PID file name (only for daemon) [" PID_FILE_NAME "]", 0 },
   {"port",           'p',      "PORT",  0, "Listen for command line connections on PORT [8888]", 0 },
   {"localhost",      O_LOCAL,  NULL,    0, "Listen for command line connections on 127.0.0.1 interface only", 0 },
@@ -432,6 +435,9 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
   case O_HEXCMD:  // --enablehex
     opt->enableHex = true;
+    break;
+  case O_DEFCMD:  // --enabledefine
+    opt->enableDefine = true;
     break;
   case O_PIDFIL:  // --pidfile=/var/run/ebusd.pid
     if (arg == NULL || arg[0] == 0 || strcmp("/", arg) == 0) {
@@ -802,14 +808,27 @@ static result_t collectConfigFiles(const string& relPath, const string& prefix, 
 }
 
 DataFieldTemplates* getTemplates(const string& filename) {
-  string path;
-  size_t pos = filename.find_last_of('/');
-  if (pos != string::npos) {
-    path = filename.substr(0, pos);
-  }
-  const auto it = s_templatesByPath.find(path);
-  if (it != s_templatesByPath.end()) {
-    return it->second;
+  if (filename == "*") {
+    unsigned long maxLength = 0;
+    DataFieldTemplates* best = NULL;
+    for (auto it : s_templatesByPath) {
+      if (it.first.size() > maxLength) {
+        best = it.second;
+      }
+    }
+    if (best) {
+      return best;
+    }
+  } else {
+    string path;
+    size_t pos = filename.find_last_of('/');
+    if (pos != string::npos) {
+      path = filename.substr(0, pos);
+    }
+    const auto it = s_templatesByPath.find(path);
+    if (it != s_templatesByPath.end()) {
+      return it->second;
+    }
   }
   return &s_globalTemplates;
 }
@@ -843,7 +862,7 @@ static bool readTemplates(const string relPath, const string extension, bool ava
   string logPath = relPath.empty() ? "/" : relPath;
   logInfo(lf_main, "reading templates %s", logPath.c_str());
   string file = (relPath.empty() ? "" : relPath + "/") + "_templates" + extension;
-  result_t result = loadDefinitionsFromConfigPath(templates, file, verbose, NULL, &errorDescription);
+  result_t result = loadDefinitionsFromConfigPath(templates, file, verbose, NULL, &errorDescription, true);
   if (result == RESULT_OK) {
     logInfo(lf_main, "read templates in %s", logPath.c_str());
     return true;
@@ -929,7 +948,7 @@ void executeInstructions(MessageMap* messages, bool verbose) {
 }
 
 result_t loadDefinitionsFromConfigPath(FileReader* reader, const string& filename, bool verbose,
-    map<string, string>* defaults, string* errorDescription) {
+    map<string, string>* defaults, string* errorDescription, bool replace) {
   istream* stream = NULL;
   time_t mtime = 0;
   if (s_configUriPrefix.empty()) {
@@ -942,7 +961,7 @@ result_t loadDefinitionsFromConfigPath(FileReader* reader, const string& filenam
   }
   result_t result;
   if (stream) {
-    result = reader->readFromStream(stream, filename, mtime, verbose, defaults, errorDescription);
+    result = reader->readFromStream(stream, filename, mtime, verbose, defaults, errorDescription, replace);
     delete(stream);
   } else {
     result = RESULT_ERR_NOTFOUND;

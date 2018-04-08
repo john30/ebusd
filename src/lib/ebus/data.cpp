@@ -1130,7 +1130,7 @@ result_t DataFieldSet::write(char separator, size_t offset, istringstream* input
 
 
 DataFieldTemplates::DataFieldTemplates(const DataFieldTemplates& other)
-    : MappedFileReader::MappedFileReader(false) {
+: MappedFileReader::MappedFileReader(false) {
   for (const auto it : other.m_fieldsByName) {
     m_fieldsByName[it.first] = it.second->clone();
   }
@@ -1250,7 +1250,7 @@ result_t DataFieldTemplates::getFieldMap(const string& preferLanguage, vector<st
 }
 
 result_t DataFieldTemplates::addFromFile(const string& filename, unsigned int lineNo, map<string, string>* row,
-    vector< map<string, string> >* subRows, string* errorDescription) {
+    vector< map<string, string> >* subRows, string* errorDescription, bool replace) {
   string name = (*row)["name"];  // required
   string firstFieldName;
   size_t colon = name.find(':');
@@ -1271,7 +1271,7 @@ result_t DataFieldTemplates::addFromFile(const string& filename, unsigned int li
   if (result != RESULT_OK) {
     return result;
   }
-  result = add(field, name, true);
+  result = add(field, name, replace);
   if (result == RESULT_ERR_DUPLICATE_NAME) {
     *errorDescription = name;
   }

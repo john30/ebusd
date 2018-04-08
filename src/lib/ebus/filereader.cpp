@@ -60,7 +60,7 @@ istream* FileReader::openFile(const string& filename, string* errorDescription, 
 }
 
 result_t FileReader::readFromStream(istream* stream, const string& filename, const time_t& mtime, bool verbose,
-    map<string, string>* defaults, string* errorDescription, size_t* hash, size_t* size) {
+    map<string, string>* defaults, string* errorDescription, bool replace, size_t* hash, size_t* size) {
   if (hash) {
     *hash = 0;
   }
@@ -71,20 +71,20 @@ result_t FileReader::readFromStream(istream* stream, const string& filename, con
   vector<string> row;
   result_t result = RESULT_OK;
   while (stream->peek() != EOF && result == RESULT_OK) {
-    result = readLineFromStream(stream, filename, verbose, &lineNo, &row, errorDescription, hash, size);
+    result = readLineFromStream(stream, filename, verbose, &lineNo, &row, errorDescription, replace, hash, size);
   }
   return result;
 }
 
 result_t FileReader::readLineFromStream(istream* stream, const string& filename, bool verbose,
-    unsigned int* lineNo, vector<string>* row, string* errorDescription, size_t* hash, size_t* size) {
+    unsigned int* lineNo, vector<string>* row, string* errorDescription, bool replace, size_t* hash, size_t* size) {
   result_t result;
   if (!splitFields(stream, row, lineNo, hash, size)) {
     *errorDescription = "blank line";
     result = RESULT_ERR_EOF;
   } else {
     *errorDescription = "";
-    result = addFromFile(filename, *lineNo, row, errorDescription);
+    result = addFromFile(filename, *lineNo, row, errorDescription, replace);
   }
   if (result != RESULT_OK) {
     if (!errorDescription->empty()) {
@@ -242,7 +242,7 @@ const string MappedFileReader::normalizeLanguage(const string& lang) {
 }
 
 result_t MappedFileReader::readFromStream(istream* stream, const string& filename, const time_t& mtime, bool verbose,
-    map<string, string>* defaults, string* errorDescription, size_t* hash, size_t* size) {
+    map<string, string>* defaults, string* errorDescription, bool replace, size_t* hash, size_t* size) {
   m_mutex.lock();
   m_columnNames.clear();
   m_lastDefaults.clear();
@@ -253,13 +253,14 @@ result_t MappedFileReader::readFromStream(istream* stream, const string& filenam
   size_t lastSep = filename.find_last_of('/');
   string defaultsPart = lastSep == string::npos ? filename : filename.substr(lastSep+1);
   extractDefaultsFromFilename(defaultsPart, &m_lastDefaults[""]);
-  result_t result = FileReader::readFromStream(stream, filename, mtime, verbose, defaults, errorDescription, hash, size);
+  result_t result
+  = FileReader::readFromStream(stream, filename, mtime, verbose, defaults, errorDescription, replace, hash, size);
   m_mutex.unlock();
   return result;
 }
 
 result_t MappedFileReader::addFromFile(const string& filename, unsigned int lineNo, vector<string>* row,
-    string* errorDescription) {
+    string* errorDescription, bool replace) {
   result_t result;
   if (lineNo == 1) {  // first line defines column names
     result = getFieldMap(m_preferLanguage, row, errorDescription);
@@ -325,7 +326,7 @@ result_t MappedFileReader::addFromFile(const string& filename, unsigned int line
   if (isDefault) {
     return addDefaultFromFile(filename, lineNo, &rowMapped, &subRowsMapped, errorDescription);
   }
-  return addFromFile(filename, lineNo, &rowMapped, &subRowsMapped, errorDescription);
+  return addFromFile(filename, lineNo, &rowMapped, &subRowsMapped, errorDescription, replace);
 }
 
 const string MappedFileReader::combineRow(const map<string, string>& row) {
