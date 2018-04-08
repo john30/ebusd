@@ -2091,7 +2091,7 @@ bool MessageMap::extractDefaultsFromFilename(const string& filename, map<string,
         remain.erase(0, pos);
         pos = remain.find('.', 1);  // check for ".SUFFIX."
       }
-      if (pos != string::npos && pos == 2 && remain[1] >= '0' && remain[1] <= '9') {
+      if (pos == 2 && remain[1] >= '0' && remain[1] <= '9') {
         suffix = remain.substr(0, 2);
         remain.erase(0, pos);
       }
