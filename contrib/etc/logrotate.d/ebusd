@@ -8,4 +8,5 @@
 	daily
 	postrotate
 		/usr/bin/killall -HUP ebusd
+    endscript
 }
