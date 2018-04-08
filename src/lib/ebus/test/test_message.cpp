@@ -62,7 +62,7 @@ DataFieldTemplates* getTemplates(const string& filename) {
 }
 
 result_t loadDefinitionsFromConfigPath(FileReader* reader, const string& filename, bool verbose,
-    map<string, string>* defaults, string* errorDescription) {
+    map<string, string>* defaults, string* errorDescription, bool replace = false) {
   time_t mtime = 0;
   istream* stream = FileReader::openFile(filename, errorDescription, &mtime);
   result_t result;
@@ -186,12 +186,12 @@ int main() {
   istringstream dummystr("#");
   string errorDescription;
   vector<string> row;
-  templates->readLineFromStream(&dummystr, __FILE__, false, &lineNo, &row, &errorDescription, NULL, NULL);
+  templates->readLineFromStream(&dummystr, __FILE__, false, &lineNo, &row, &errorDescription, false, NULL, NULL);
   lineNo = 0;
   MessageMap* messages = new MessageMap("");
   dummystr.clear();
   dummystr.str("#");
-  messages->readLineFromStream(&dummystr, __FILE__, false, &lineNo, &row, &errorDescription, NULL, NULL);
+  messages->readLineFromStream(&dummystr, __FILE__, false, &lineNo, &row, &errorDescription, false, NULL, NULL);
   vector< vector<string> > defaultsRows;
   Message* message = NULL;
   vector<MasterSymbolString*> mstrs;
@@ -222,7 +222,7 @@ int main() {
     lineNo = baseLine + i;
     cout << "line " << (lineNo+1) << " ";
     if (isTemplate) {
-      result = templates->readLineFromStream(&isstr, __FILE__, false, &lineNo, &row, &errorDescription, NULL, NULL);
+      result = templates->readLineFromStream(&isstr, __FILE__, false, &lineNo, &row, &errorDescription, false, NULL, NULL);
       if (result != RESULT_OK) {
         cout << "\"" << check[0] << "\": template read error: " << getResultCode(result) << ", " << errorDescription
             << endl;
@@ -236,7 +236,7 @@ int main() {
     }
     if (isstr.peek() == '*') {
       // store defaults or condition
-      result = messages->readLineFromStream(&isstr, __FILE__, false, &lineNo, &row, &errorDescription, NULL, NULL);
+      result = messages->readLineFromStream(&isstr, __FILE__, false, &lineNo, &row, &errorDescription, false, NULL, NULL);
       if (result != RESULT_OK) {
         cout << "\"" << check[0] << "\": default read error: " << getResultCode(result) << ", " << errorDescription << endl;
         error = true;
@@ -318,7 +318,7 @@ int main() {
       }
       cout << "\"" << check[2] << "\": find OK" << endl;
     } else {
-      result = messages->readLineFromStream(&isstr, __FILE__, false, &lineNo, &row, &errorDescription, NULL, NULL);
+      result = messages->readLineFromStream(&isstr, __FILE__, false, &lineNo, &row, &errorDescription, false, NULL, NULL);
       if (failedCreate) {
         if (result == RESULT_OK) {
           cout << "\"" << check[0] << "\": failed create error: unexpectedly succeeded" << endl;

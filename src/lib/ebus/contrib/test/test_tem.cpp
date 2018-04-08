@@ -70,7 +70,7 @@ class TestReader : public MappedFileReader {
     return RESULT_OK;  // leave it to DataField::create
   }
   result_t addFromFile(const string& filename, unsigned int lineNo, map<string, string>* row,
-      vector< map<string, string> >* subRows, string* errorDescription) override {
+      vector< map<string, string> >* subRows, string* errorDescription, bool replace) override {
     if (!row->empty() || subRows->empty()) {
       cout << "read line " << static_cast<unsigned>(lineNo) << ": read error: got "
           << static_cast<unsigned>(row->size()) << "/0 main, " << static_cast<unsigned>(subRows->size())
@@ -118,7 +118,7 @@ int main() {
   istringstream dummystr("#");
   string errorDescription;
   vector<string> row;
-  templates->readLineFromStream(&dummystr, "inline", false, &lineNo, &row, &errorDescription, NULL, NULL);
+  templates->readLineFromStream(&dummystr, "inline", false, &lineNo, &row, &errorDescription, false, NULL, NULL);
   const DataField* fields = NULL;
   for (unsigned int i = 0; i < sizeof(checks) / sizeof(checks[0]); i++) {
     string check[5] = checks[i];
@@ -156,7 +156,7 @@ int main() {
     lineNo = 0;
     dummystr.clear();
     dummystr.str("#");
-    result = reader.readLineFromStream(&dummystr, "inline", false, &lineNo, &row, &errorDescription, NULL, NULL);
+    result = reader.readLineFromStream(&dummystr, "inline", false, &lineNo, &row, &errorDescription, false, NULL, NULL);
     if (result != RESULT_OK) {
       cout << "\"" << check[0] << "\": reader header error: " << getResultCode(result) << ", " << errorDescription
           << endl;
@@ -164,7 +164,7 @@ int main() {
       continue;
     }
     lineNo = baseLine + i;
-    result = reader.readLineFromStream(&isstr, __FILE__, false, &lineNo, &row, &errorDescription, NULL, NULL);
+    result = reader.readLineFromStream(&isstr, __FILE__, false, &lineNo, &row, &errorDescription, false, NULL, NULL);
     fields = reader.m_fields;
 
     if (result != RESULT_OK) {

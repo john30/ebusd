@@ -73,8 +73,8 @@ static unsigned int baseLine = 0;
 
 class NoopReader : public FileReader {
  public:
-  result_t addFromFile(const string& filename, unsigned int lineNo, vector<string>* row,
-      string* errorDescription) override {
+  result_t addFromFile(const string& filename, unsigned int lineNo, vector<string>* row, string* errorDescription,
+    bool replace) override {
     return RESULT_OK;
   }
 };
@@ -98,7 +98,7 @@ class TestReader : public MappedFileReader {
     return RESULT_ERR_EOF;
   }
   result_t addFromFile(const string& filename, unsigned int lineNo, map<string, string>* row,
-      vector< map<string, string> >* subRows, string* errorDescription) override {
+      vector< map<string, string> >* subRows, string* errorDescription, bool replace) override {
     if (row->empty() || (m_expectedCols == 3) != subRows->empty()) {
       cout << "read line " << static_cast<unsigned>(baseLine + lineNo) << ": read error: got "
           << static_cast<unsigned>(row->size()) << "/3 main, " << static_cast<unsigned>(subRows->size())
@@ -231,7 +231,7 @@ int main(int argc, char** argv) {
   vector<string> row;
   string errorDescription;
   while (ifs.peek() != EOF) {
-    result_t result = reader.readLineFromStream(&ifs, "", true, &lineNo, &row, &errorDescription, &hash, &size);
+    result_t result = reader.readLineFromStream(&ifs, "", true, &lineNo, &row, &errorDescription, false, &hash, &size);
     if (result != RESULT_OK) {
       cout << "  error " << getResultCode(result) << endl;
       error = true;
@@ -271,7 +271,7 @@ int main(int argc, char** argv) {
   subDefaults.resize(1);
   subDefaults[0]["subcol 2"] = ";default of sub 0 subcol 2";
   while (ifs.peek() != EOF) {
-    result_t result = reader2.readLineFromStream(&ifs, "", true, &lineNo, &row, &errorDescription, &hash, &size);
+    result_t result = reader2.readLineFromStream(&ifs, "", true, &lineNo, &row, &errorDescription, false, &hash, &size);
     if (result != RESULT_OK) {
       cout << "  error " << getResultCode(result) << endl;
       error = true;
