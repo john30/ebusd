@@ -204,6 +204,12 @@ class DataField : public AttributedItem {
   virtual const DataField* clone() const = 0;
 
   /**
+   * Return whether this is a @a DataFieldSet.
+   * @return true if this is a @a DataFieldSet.
+   */
+  virtual bool isSet() const { return false; };
+
+  /**
    * Factory method for creating new instances.
    * @param isWriteMessage whether the field is part of a write message (default false).
    * @param isTemplate true for creating a template @a DataField.
@@ -589,6 +595,7 @@ class ConstantDataField : public SingleDataField {
  * A set of @a DataField instances.
  */
 class DataFieldSet : public DataField {
+ friend class LoadableDataFieldSet;
  public:
   /**
    * Get the @a DataFieldSet for parsing the identification message (service 0x07 0x04).
@@ -635,6 +642,9 @@ class DataFieldSet : public DataField {
 
   // @copydoc
   const DataFieldSet* clone() const override;
+
+  // @copydoc
+  bool isSet() const override { return true; };
 
   // @copydoc
   size_t getLength(PartType partType, size_t maxLength) const override;
@@ -692,14 +702,41 @@ class DataFieldSet : public DataField {
   /** the @a DataFieldSet containing the ident message @a SingleDataField instances, or NULL. */
   static DataFieldSet* s_identFields;
 
+ protected:
   /** the @a vector of @a SingleDataField instances part of this set. */
-  const vector<const SingleDataField*> m_fields;
+  vector<const SingleDataField*> m_fields;
 
   /** whether all fields have a unique name. */
   bool m_uniqueNames;
 
   /** the number of ignored fields. */
   size_t m_ignoredCount;
+};
+
+
+/**
+ * A special @a DataFieldSet that supports loading via @a MappedFileReader.
+ */
+class LoadableDataFieldSet : public DataFieldSet, public MappedFileReader {
+ public:
+  /**
+   * Constructs a new instance.
+   * @param name the field name.
+   * @param fields the @a vector of @a SingleDataField instances part of this set.
+   */
+  LoadableDataFieldSet(const string& name, DataFieldTemplates* templates)
+    : DataFieldSet(name, vector<const SingleDataField*>()), MappedFileReader(false), m_templates(templates) {
+  }
+
+  // @copydoc
+  result_t getFieldMap(const string& preferLanguage, vector<string>* row, string* errorDescription) const override;
+
+  // @copydoc
+  result_t addFromFile(const string& filename, unsigned int lineNo, map<string, string>* row,
+      vector< map<string, string> >* subRows, string* errorDescription, bool replace) override;
+
+ private:
+  DataFieldTemplates* m_templates;
 };
 
 

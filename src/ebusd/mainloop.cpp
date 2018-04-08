@@ -558,12 +558,12 @@ result_t MainLoop::decodeMessage(const string &data, bool isHttp, bool* connecte
     *ostream << "ERR: command not enabled";
     return RESULT_OK;
   }
-  /*if (cmd == "D" || cmd == "DECODE") {
+  if (cmd == "D" || cmd == "DECODE") {
     return executeDecode(args, ostream);
   }
   if (cmd == "E" || cmd == "ENCODE") {
     return executeEncode(args, ostream);
-  }*/
+  }
   if (cmd == "SCAN") {
     return executeScan(args, getUserLevels(*user), ostream);
   }
@@ -749,7 +749,7 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
         "usage: read [-f] [-m SECONDS] [-s QQ] [-d ZZ] [-c CIRCUIT] [-p PRIO] [-v|-V] [-n|-N] [-i VALUE[;VALUE]*]"
         " NAME [FIELD[.N]]\n"
         "  or:  read [-f] [-m SECONDS] [-s QQ] [-d ZZ] [-v|-V] [-n|-N] [-i VALUE[;VALUE]*] -def DEFINITION\n"
-        "  or:  read [-f] [-m SECONDS] [-s QQ] [-c CIRCUIT] -h ZZPBSBNNDx\n"
+        "  or:  read [-f] [-m SECONDS] [-s QQ] [-c CIRCUIT] -h ZZPBSBNN[DD]*\n"
         " Read value(s) or hex message.\n"
         "  -f           force reading from the bus (same as '-m 0')\n"
         "  -m SECONDS   only return cached value if age is less than SECONDS [300]\n"
@@ -775,7 +775,7 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
         "    ZZ         destination address\n"
         "    PB SB      primary/secondary command byte\n"
         "    NN         number of following data bytes\n"
-        "    Dx         data byte(s) to send";
+        "    DD         data byte(s) to send";
     return RESULT_OK;
   }
   time_t now;
@@ -999,7 +999,7 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
   if (argPos == 0 || (!newDefinition && (circuit.empty() || (args.size() != argPos + 2 && args.size() != argPos + 1)))) {
     *ostream << "usage: write [-s QQ] [-d ZZ] -c CIRCUIT NAME [VALUE[;VALUE]*]\n"
         "  or:  write [-s QQ] [-d ZZ] -def DEFINITION [VALUE[;VALUE]*]\n"
-        "  or:  write [-s QQ] [-c CIRCUIT] -h ZZPBSBNNDx\n"
+        "  or:  write [-s QQ] [-c CIRCUIT] -h ZZPBSBNN[DD]*\n"
         " Write value(s) or hex message.\n"
         "  -s QQ        override source address QQ\n"
         "  -d ZZ        override destination address ZZ\n"
@@ -1012,7 +1012,7 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
         "    ZZ         destination address\n"
         "    PB SB      primary/secondary command byte\n"
         "    NN         number of following data bytes\n"
-        "    Dx         data byte(s) to send";
+        "    DD         data byte(s) to send";
     return RESULT_OK;
   }
 
@@ -1185,13 +1185,13 @@ result_t MainLoop::executeHex(const vector<string>& args, ostringstream* ostream
     return ret;
   }
 
-  *ostream << "usage: hex [-s QQ] ZZPBSBNNDx\n"
+  *ostream << "usage: hex [-s QQ] ZZPBSBNN[DD]*\n"
               " Send arbitrary data in hex (only if enabled).\n"
               "  -s QQ  override source address QQ\n"
               "  ZZ     destination address\n"
               "  PB SB  primary/secondary command byte\n"
               "  NN     number of following data bytes\n"
-              "  Dx     data byte(s) to send";
+              "  DD     data byte(s) to send";
   return RESULT_OK;
 }
 
@@ -1501,7 +1501,7 @@ result_t MainLoop::executeDefine(const vector<string>& args, ostringstream* ostr
 }
 
 
-/*result_t MainLoop::executeDecode(const vector<string>& args, ostringstream* ostream) {
+result_t MainLoop::executeDecode(const vector<string>& args, ostringstream* ostream) {
   size_t argPos = 1;
   bool numeric = false, valueName = false;
   OutputFormat verbosity = 0;
@@ -1539,14 +1539,14 @@ result_t MainLoop::executeDefine(const vector<string>& args, ostringstream* ostr
 
   if (argPos == 0 || args.size() != argPos + 2) {
     *ostream <<
-        "usage: decode [-v|-V] [-n|-N] DEFINITION Dx\n"
-        " Decode a field by definition and hex data.\n"
+        "usage: decode [-v|-V] [-n|-N] DEFINITION DD[DD]*\n"
+        " Decode field(s) by definition and hex data.\n"
         "  -v          increase verbosity (include names/units/comments)\n"
         "  -V          be very verbose (include names, units, and comments)\n"
         "  -n          use numeric value of value=name pairs\n"
         "  -N          use numeric and named value of value=name pairs\n"
-        "  DEFINITION  field definition (type,divisor/values,unit,comment)\n"
-        "  Dx          data byte(s) to decode";
+        "  DEFINITION  field definition (type,divisor/values,unit,comment,...)\n"
+        "  DD          data byte(s) to decode";
     return RESULT_OK;
   }
 
@@ -1567,7 +1567,7 @@ result_t MainLoop::executeDefine(const vector<string>& args, ostringstream* ostr
   if (ret != RESULT_OK) {
     return ret;
   }
-  slave[0] = slave.size() - 1;  // adjust length
+  slave.adjustHeader();
   return fields.read(slave, 0, false, NULL, -1, verbosity, -1, ostream);
 }
 
@@ -1576,9 +1576,9 @@ result_t MainLoop::executeEncode(const vector<string>& args, ostringstream* ostr
   size_t argPos = 1;
   if (argPos == 0 || args.size() != argPos + 2) {
     *ostream <<
-        "usage: encode DEFINITION VALUE\n"
-        " Encode a field by definition and decoded value.\n"
-        "  DEFINITION  field definition (type,divisor/values,unit,comment)\n"
+        "usage: encode DEFINITION VALUE[;VALUE]*\n"
+        " Encode field(s) by definition and decoded value(s).\n"
+        "  DEFINITION  field definition (type,divisor/values,unit,comment,...)\n"
         "  VALUE       single field VALUE to encode";
     return RESULT_OK;
   }
@@ -1595,13 +1595,13 @@ result_t MainLoop::executeEncode(const vector<string>& args, ostringstream* ostr
   }
   istr = istringstream(args[argPos+1]);
   SlaveSymbolString slave;
-  ret = fields.write(FIELD_SEPARATOR, 0, &istr, &slave, NULL);
+  ret = fields.write(UI_FIELD_SEPARATOR, 0, &istr, &slave, NULL);
   if (ret != RESULT_OK) {
     return ret;
   }
   *ostream << slave.getStr(1);
   return ret;
-}*/
+}
 
 
 result_t MainLoop::executeScan(const vector<string>& args, const string& levels, ostringstream* ostream) {
@@ -1787,12 +1787,12 @@ result_t MainLoop::executeHelp(ostringstream* ostream) {
       " [-i VALUE[;VALUE]*] NAME [FIELD[.N]]\n"
       "           Read by new defintion: read [-f] [-m SECONDS] [-s QQ] [-d ZZ] [-v|-V] [-n|-N]"
       " [-i VALUE[;VALUE]*] -def DEFINITION\n"
-      "           Read hex message:      read [-f] [-m SECONDS] [-s QQ] [-c CIRCUIT] -h ZZPBSBNNDx\n"
+      "           Read hex message:      read [-f] [-m SECONDS] [-s QQ] [-c CIRCUIT] -h ZZPBSBNN[DD]*\n"
       " write|w   Write value(s):        write [-s QQ] [-d ZZ] -c CIRCUIT NAME [VALUE[;VALUE]*]\n"
       "           Write by new def.:     write [-s QQ] [-d ZZ] -def DEFINITION [VALUE[;VALUE]*]\n"
-      "           Write hex message:     write [-s QQ] [-c CIRCUIT] -h ZZPBSBNNDx\n"
+      "           Write hex message:     write [-s QQ] [-c CIRCUIT] -h ZZPBSBNN[DD]*\n"
       " auth|a    Authenticate user:     auth USER SECRET\n"
-      " hex       Send hex data:         hex [-s QQ] ZZPBSBNNDx\n"
+      " hex       Send hex data:         hex [-s QQ] ZZPBSBNN[DD]*\n"
       " find|f    Find message(s):       find [-v|-V] [-r] [-w] [-p] [-a] [-d] [-h] [-i ID] [-f] [-F COL[,COL]*] [-e]"
       " [-c CIRCUIT] [-l LEVEL] [NAME]\n"
       " listen|l  Listen for updates:    listen [stop]\n"
@@ -1801,8 +1801,8 @@ result_t MainLoop::executeHelp(ostringstream* ostream) {
       " grab|g    Grab messages:         grab [stop]\n"
       "           Report the messages:   grab result [all]\n"
       " define    Define new message:    define [-r] DEFINITION\n"
-      //" decode|d  Decode a field:        decode [-v|-V] [-n|-N] DEFINITION Dx\n"
-      //" encode|e  Encode a field:        encode DEFINITION VALUE\n"
+      " decode|d  Decode field(s):       decode [-v|-V] [-n|-N] DEFINITION DD[DD]*\n"
+      " encode|e  Encode field(s):       encode DEFINITION VALUE[;VALUE]*\n"
       " scan      Scan slaves:           scan [full|ZZ]\n"
       "           Report scan result:    scan result\n"
       " log       Set log area level:    log [AREA[,AREA]* LEVEL]\n"

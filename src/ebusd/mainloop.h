@@ -254,7 +254,7 @@ class MainLoop : public Thread, DeviceListener {
    * @param ostream the @a ostringstream to format the result string to.
    * @return the result code.
    */
-  //result_t executeDecode(const vector<string>& args, ostringstream* ostream);
+  result_t executeDecode(const vector<string>& args, ostringstream* ostream);
 
   /**
    * Execute the encode command.
@@ -262,7 +262,7 @@ class MainLoop : public Thread, DeviceListener {
    * @param ostream the @a ostringstream to format the result string to.
    * @return the result code.
    */
-  //result_t executeEncode(const vector<string>& args, ostringstream* ostream);
+  result_t executeEncode(const vector<string>& args, ostringstream* ostream);
 
   /**
    * Execute the scan command.

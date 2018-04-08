@@ -44,6 +44,11 @@ static const char* defaultTemplateFieldMap[] = {
     "*name", "type", "divisor/values", "unit", "comment",
 };
 
+/** the default field map for fields only. */
+static const char* defaultFieldsFieldMap[] = {
+    "*type", "divisor/values", "unit", "comment",
+};
+
 
 string AttributedItem::formatInt(size_t value) {
   ostringstream stream;
@@ -1126,6 +1131,124 @@ result_t DataFieldSet::write(char separator, size_t offset, istringstream* input
     *usedLength = offset-baseOffset;
   }
   return RESULT_OK;
+}
+
+
+result_t LoadableDataFieldSet::getFieldMap(const string& preferLanguage, vector<string>* row,
+    string* errorDescription) const {
+  // *type,divisor/values,unit,comment
+  if (row->empty()) {
+    for (const auto& col : defaultFieldsFieldMap) {
+      row->push_back(col);
+    }
+    return RESULT_OK;
+  }
+  map<string, size_t> seen;
+  for (size_t col = 0; col < row->size(); col++) {
+    string &name = (*row)[col];
+    string lowerName = name;
+    tolower(&lowerName);
+    trim(&lowerName);
+    bool toDataFields;
+    if (!lowerName.empty() && lowerName[0] == '*') {
+      lowerName.erase(0, 1);
+      toDataFields = true;
+    } else {
+      toDataFields = col == 0;
+    }
+    if (lowerName.empty()) {
+      *errorDescription = "missing name in column " + AttributedItem::formatInt(col);
+      return RESULT_ERR_INVALID_ARG;
+    }
+    if (toDataFields) {
+      if (!seen.empty() && seen.find("type") == seen.end()) {
+        *errorDescription = "missing field type";
+        return RESULT_ERR_EOF;  // require at least name and type
+      }
+      seen.clear();
+    }
+    size_t langPos = lowerName.find_last_of('.');
+    if (langPos != string::npos && langPos > 0 && langPos == lowerName.length()-3) {
+      string lang = lowerName.substr(langPos+1);
+      lowerName.erase(langPos);
+      map<string, size_t>::iterator previous = seen.find(lowerName);
+      if (previous != seen.end()) {
+        if (lang != preferLanguage) {
+          // skip this column
+          name = SKIP_COLUMN;
+          continue;
+        }
+        // replace previous
+        (*row)[previous->second] = SKIP_COLUMN;
+        seen.erase(lowerName);
+      }
+    } else {
+      map<string, size_t>::iterator previous = seen.find(lowerName);
+      if (previous != seen.end()) {
+        *errorDescription = "duplicate field " + name;
+        return RESULT_ERR_INVALID_ARG;
+      }
+    }
+    name = toDataFields ? "*"+lowerName : lowerName;
+    seen[lowerName] = col;
+  }
+  if (seen.find("type") == seen.end()) {
+    *errorDescription = "missing field type";
+    return RESULT_ERR_EOF;  // require at least type
+  }
+  return RESULT_OK;
+}
+
+result_t LoadableDataFieldSet::addFromFile(const string& filename, unsigned int lineNo, map<string, string>* row,
+    vector< map<string, string> >* subRows, string* errorDescription, bool replace) {
+  const DataField* field = NULL;
+  result_t result = DataField::create(false, false, false, MAX_POS, m_templates, subRows, errorDescription, &field);
+  if (result != RESULT_OK) {
+    return result;
+  }
+  if (!field) {
+    return RESULT_ERR_INVALID_ARG;
+  }
+  map<string, string> names;
+  for (auto check : m_fields) {
+    if (check->isIgnored()) {
+      continue;
+    }
+    string name = check->getName(-1);
+    if (!name.empty()) {
+      names[name] = name;
+    }
+  }
+  if (field->isSet()) {
+    const DataFieldSet* fieldSet = dynamic_cast<const DataFieldSet*>(field);
+    for (auto sfield : fieldSet->m_fields) {
+      m_fields.push_back(sfield);
+      if (sfield->isIgnored()) {
+        m_ignoredCount++;
+        continue;
+      }
+      string name = sfield->getName(-1);
+      if (name.empty() || names.find(name) != names.end()) {
+        m_uniqueNames = false;
+      } else {
+        names[name] = name;
+      }
+    }
+  } else {
+    const SingleDataField* sfield = dynamic_cast<const SingleDataField*>(field);
+    m_fields.push_back(sfield);
+    if (sfield->isIgnored()) {
+      m_ignoredCount++;
+    } else {
+      string name = sfield->getName(-1);
+      if (name.empty() || names.find(name) != names.end()) {
+        m_uniqueNames = false;
+      } else {
+        names[name] = name;
+      }
+    }
+  }
+  return result;
 }
 
 

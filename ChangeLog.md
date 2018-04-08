@@ -15,6 +15,8 @@
 * changed logging for messages from "updated" to "received" and "sent" depending on who initiated the request
 * added support for serving .csv files and new argument maxage to HTTP/JSON port
 * added timeout argument and error result code to ebusctl
+* added "-def" option to "read" and "write" commands and "define" command to test message defintions and add new definitions during runtime and disabled all by default (use "--enabledefine" command line option).
+* added "encode" and "decode" commands for testing field definitions
 
 
 # 3.1 (2017-12-26)
@@ -24,20 +26,20 @@
 * corrected dump of chained messages
 * corrected missing default MQTT topic
 * corrected dump of value list and constant fields
-* fix for input string vanishing on certain compiler versions in write commands
+* fix for input string vanishing on certain compiler versions in "write" command
 * fix for potential endless waits
 * corrected initial dumping and raw data logging
-* corrected address check with "-s" or "-d" argument in read and write commands
+* corrected address check with "-s" or "-d" argument in "read" and "write" commands
 * fixed timeout for update check
 * corrected wrong initial scan load message
 * corrected "read" command with field name and MQTT output by field when master and slave part both carry fields
 
 ## Features
-* added helper script for reading all Vaillant registers for a single slave via hex command
+* added helper script for reading all Vaillant registers for a single slave via "hex" command
 * check all message definitions independent of any condition when checking/dumping configuration
 * added option to disable automatic update check
 * added scan config mode to start log entry
-* added measurement and logging of min/max send-receive latency and include values in info command and JSON output
+* added measurement and logging of min/max send-receive latency and include values in "info" command and JSON output
 * drop initial potential garbage for UDP/TCP devices
 * better support for cygwin builds
 * added measurement of arbitration delay
@@ -90,11 +92,11 @@
 * allow invalid SW and HW fields and remove all but alpha-numeric chars and underscore from ident when looking for scan config file
 * added "auth" command and user/access information to "info" command output
 * added user and secret arguments to HTTP/JSON port and added options to retrieve message definition and raw messages
-* use ACL in read/write/find/scan commands
+* use ACL in "read"/"write"/"find"/"scan" commands
 * added -a and -l options to "find" command
 * added possibility to define different log level per area on command line and with "log" command
 * added decode option to "grab" command presenting decoding hints for unknown messages
-* added option to use different source address QQ to read/write/hex commands
+* added option to use different source address QQ to "read"/"write"/"hex" commands
 * enhanced scan for individual slave
 * wait for broadcast scan answers before doing individual scans
 * enhanced SymbolString to be aware of master/slave and get rid of CRC (instead calculate while sending/receiving)
@@ -190,7 +192,7 @@
 * added support for UDP connected devices
 
 ## Bug fixes
-* require "-c" in write command
+* require "-c" in "write" command
 * corrected duplicate messages check with condition
 * corrected maximum values for BCD and HCD types
 * corrected weekday calculation (for smaller systems mainly)
@@ -280,7 +282,7 @@ https://github.com/john30/ebusd/compare/v1.3.0...v2.0
 * trim CSV lines and fields
 * corrected derivation of field name, comment and unit in templates
 * check invalid divisor/values for string and value list based types
-* fix for overriding destination address in read command
+* fix for overriding destination address in "read" command
 * fix for cached master data
 
 ## Features
