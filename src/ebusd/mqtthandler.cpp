@@ -381,11 +381,16 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
 #else
     ret = mosquitto_connect(m_mosquitto, g_host, g_port, 60, true);
 #endif
+/* J0EK3R: user configured ebusd to connect to mqtt-server so do it in any case!
+           If run as microservice (docker-container) it is possible that ebusd starts
+           before mqtt-server (docker-container too) - so retry to connect!
     if (ret == MOSQ_ERR_INVAL) {
       logOtherError("mqtt", "unable to connect (invalid parameters)");
       mosquitto_destroy(m_mosquitto);
       m_mosquitto = NULL;
-    } else if (ret != MOSQ_ERR_SUCCESS) {
+    } else 
+*/
+    if (ret != MOSQ_ERR_SUCCESS) {
       m_connected = false;
       char* error;
       if (ret != MOSQ_ERR_ERRNO) {
