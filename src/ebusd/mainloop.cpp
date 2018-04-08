@@ -165,7 +165,7 @@ MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messag
   } else {
     logError(lf_main, "error registering data handlers");
   }
-  m_newlyDefinedMessages = opt.enableDefine ? new MessageMap(true) : NULL;
+  m_newlyDefinedMessages = opt.enableDefine ? new MessageMap(true, "", false) : NULL;
 }
 
 MainLoop::~MainLoop() {

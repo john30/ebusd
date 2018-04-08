@@ -474,8 +474,8 @@ result_t Message::create(const string& filename, const DataFieldTemplates* templ
   return RESULT_OK;
 }
 
-Message* Message::createScanMessage(bool broadcast) {
-  return new Message("scan", "", "", 0x07, 0x04, broadcast, DataFieldSet::getIdentFields(), !broadcast);
+Message* Message::createScanMessage(bool broadcast, bool deleteData) {
+  return new Message("scan", "", "", 0x07, 0x04, broadcast, DataFieldSet::getIdentFields(), deleteData);
 }
 
 bool Message::extractFieldNames(const string& str, bool checkAbbreviated, vector<string>* fields) {

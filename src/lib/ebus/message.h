@@ -197,7 +197,7 @@ class Message : public AttributedItem {
    * @param broadcast true for broadcast scan message, false for scan message to be sent to a slave address.
    * @return the new scan @a Message instance.
    */
-  static Message* createScanMessage(bool broadcast = false);
+  static Message* createScanMessage(bool broadcast = false, bool deleteData = true);
 
   /**
    * Extract the known field names from the input string.
@@ -1218,12 +1218,12 @@ class MessageMap : public MappedFileReader {
    * @param addAll whether to add all messages, even if duplicate.
    * @param preferLanguage the preferred language to use, or empty.
    */
-  explicit MessageMap(bool addAll = false, const string& preferLanguage = "")
+  explicit MessageMap(bool addAll = false, const string& preferLanguage = "", bool deleteData = true)
   : MappedFileReader::MappedFileReader(true),
     m_addAll(addAll), m_additionalScanMessages(false), m_maxIdLength(0), m_maxBroadcastIdLength(0),
     m_messageCount(0), m_conditionalMessageCount(0), m_passiveMessageCount(0) {
-    m_scanMessage = Message::createScanMessage();
-    m_broadcastScanMessage = Message::createScanMessage(true);
+    m_scanMessage = Message::createScanMessage(false, deleteData);
+    m_broadcastScanMessage = Message::createScanMessage(true, false);
   }
 
   /**
