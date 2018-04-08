@@ -98,7 +98,7 @@ TCPSocket* TCPClient::connect(const string& server, const uint16_t& port, int ti
       fds[0].fd = sfd;
       fds[0].events = POLLIN|POLLOUT;
       ret = ppoll(fds, nfds, &tdiff, NULL);
-      if (ret >= 1 && fds[0].revents & POLLERR) {
+      if (ret == 1 && fds[0].revents & POLLERR) {
         ret = -1;
       }
 #else
