@@ -1203,7 +1203,6 @@ class MessageMap : public MappedFileReader {
  public:
   /**
    * Construct a new instance.
-   * @param configPath the path to the configuration files.
    * @param addAll whether to add all messages, even if duplicate.
    * @param preferLanguage the preferred language to use, or empty.
    */
