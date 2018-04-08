@@ -863,9 +863,9 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
     time_t now;
     time(&now);
     string errorDescription;
-    istringstream istr = istringstream("#\n" + args[argPos]);  // ensure first line is not used for determining col names
+    istringstream defstr("#\n" + args[argPos]);  // ensure first line is not used for determining col names
     m_newlyDefinedMessages->clear();
-    ret = m_newlyDefinedMessages->readFromStream(&istr, "temporary", now, true, NULL, &errorDescription);
+    ret = m_newlyDefinedMessages->readFromStream(&defstr, "temporary", now, true, NULL, &errorDescription);
     if (ret != RESULT_OK) {
       *ostream << "ERR: bad definition: " << errorDescription;
       return RESULT_OK;
@@ -1078,9 +1078,9 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
     time_t now;
     time(&now);
     string errorDescription;
-    istringstream istr = istringstream("#\n" + args[argPos]);  // ensure first line is not used for determining col names
+    istringstream defstr("#\n" + args[argPos]);  // ensure first line is not used for determining col names
     m_newlyDefinedMessages->clear();
-    ret = m_newlyDefinedMessages->readFromStream(&istr, "temporary", now, true, NULL, &errorDescription);
+    ret = m_newlyDefinedMessages->readFromStream(&defstr, "temporary", now, true, NULL, &errorDescription);
     if (ret != RESULT_OK) {
       *ostream << "ERR: bad definition: " << errorDescription;
       return RESULT_OK;
@@ -1496,8 +1496,8 @@ result_t MainLoop::executeDefine(const vector<string>& args, ostringstream* ostr
   time_t now;
   time(&now);
   string errorDescription;
-  istringstream istr = istringstream("#\n" + args[argPos]);  // ensure first line is not used for determining col names
-  return m_messages->readFromStream(&istr, "temporary", now, true, NULL, &errorDescription, replace);
+  istringstream defstr("#\n" + args[argPos]);  // ensure first line is not used for determining col names
+  return m_messages->readFromStream(&defstr, "temporary", now, true, NULL, &errorDescription, replace);
 }
 
 
@@ -1553,11 +1553,11 @@ result_t MainLoop::executeDecode(const vector<string>& args, ostringstream* ostr
   time_t now;
   time(&now);
   verbosity |= valueName ? OF_VALUENAME : numeric ? OF_NUMERIC : 0;
-  istringstream istr = istringstream("#\n" + args[argPos]);  // ensure first line is not used for determining col names
+  istringstream defstr("#\n" + args[argPos]);  // ensure first line is not used for determining col names
   string errorDescription;
   DataFieldTemplates* templates = getTemplates("*");
   LoadableDataFieldSet fields("", templates);
-  result_t ret = fields.readFromStream(&istr, "temporary", now, true, NULL, &errorDescription);
+  result_t ret = fields.readFromStream(&defstr, "temporary", now, true, NULL, &errorDescription);
   if (ret != RESULT_OK) {
     return ret;
   }
@@ -1585,17 +1585,17 @@ result_t MainLoop::executeEncode(const vector<string>& args, ostringstream* ostr
 
   time_t now;
   time(&now);
-  istringstream istr = istringstream("#\n" + args[argPos]);  // ensure first line is not used for determining col names
+  istringstream defstr("#\n" + args[argPos]);  // ensure first line is not used for determining col names
   string errorDescription;
   DataFieldTemplates* templates = getTemplates("*");
   LoadableDataFieldSet fields("", templates);
-  result_t ret = fields.readFromStream(&istr, "temporary", now, true, NULL, &errorDescription);
+  result_t ret = fields.readFromStream(&defstr, "temporary", now, true, NULL, &errorDescription);
   if (ret != RESULT_OK) {
     return ret;
   }
-  istr = istringstream(args[argPos+1]);
+  istringstream datastr(args[argPos+1]);
   SlaveSymbolString slave;
-  ret = fields.write(UI_FIELD_SEPARATOR, 0, &istr, &slave, NULL);
+  ret = fields.write(UI_FIELD_SEPARATOR, 0, &datastr, &slave, NULL);
   if (ret != RESULT_OK) {
     return ret;
   }
