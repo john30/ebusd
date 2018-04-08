@@ -137,6 +137,9 @@ class MqttHandler : public DataSink, public DataSource, public WaitThread {
   /** whether the connection to the broker is established. */
   bool m_connected;
 
+  /** whether the initial connect failed. */
+  bool m_initialConnectFailed;
+
   /** the last update check result. */
   string m_lastUpdateCheckResult;
 };

@@ -35,7 +35,8 @@ using std::dec;
 #define O_TOPI (O_PASS+1)
 #define O_RETA (O_TOPI+1)
 #define O_JSON (O_RETA+1)
-#define O_CAFI (O_JSON+1)
+#define O_IGIN (O_JSON+1)
+#define O_CAFI (O_IGIN+1)
 #define O_CERT (O_CAFI+1)
 #define O_KEYF (O_CERT+1)
 #define O_KEPA (O_KEYF+1)
@@ -51,6 +52,7 @@ static const struct argp_option g_mqtt_argp_options[] = {
       0 },
   {"mqttretain",  O_RETA, NULL,       0, "Retain all topics instead of only selected global ones", 0 },
   {"mqttjson",    O_JSON, NULL,       0, "Publish in JSON format instead of strings", 0 },
+  {"mqttignoreinvalid", O_IGIN, NULL, 0, "Ignore invalid parameters during init (e.g. for DNS not resolvable yet)", 0 },
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
   {"mqttca",      O_CAFI, "CA",       0, "Use CA file or dir (ending with '/') for MQTT TLS (no default)", 0 },
@@ -72,6 +74,7 @@ static vector<string> g_topicStrs;
 static vector<string> g_topicFields;
 static bool g_retain = false;             //!< whether to retail all topics
 static OutputFormat g_publishFormat = 0;  //!< the OutputFormat for publishing messages
+static bool g_ignoreInvalidParams = false; //!< ignore invalid parameters during init
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
 static const char* g_cafile = NULL;    //!< CA file for TLS
@@ -141,6 +144,10 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
 
   case O_JSON:  // --mqttjson
     g_publishFormat |= OF_JSON|OF_NAMES;
+    break;
+
+  case O_IGIN:
+    g_ignoreInvalidParams = true;
     break;
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
@@ -302,7 +309,7 @@ void on_connect(
 
 MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages)
   : DataSink(userInfo, "mqtt"), DataSource(busHandler), WaitThread(), m_messages(messages), m_connected(false),
-    m_lastUpdateCheckResult(".") {
+    m_initialConnectFailed(false), m_lastUpdateCheckResult(".") {
   m_publishByField = false;
   m_mosquitto = NULL;
   if (g_topicFields.empty()) {
@@ -381,12 +388,13 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
 #else
     ret = mosquitto_connect(m_mosquitto, g_host, g_port, 60, true);
 #endif
-    if (ret == MOSQ_ERR_INVAL) {
+    if (ret == MOSQ_ERR_INVAL && !g_ignoreInvalidParams) {
       logOtherError("mqtt", "unable to connect (invalid parameters)");
       mosquitto_destroy(m_mosquitto);
       m_mosquitto = NULL;
     } else if (ret != MOSQ_ERR_SUCCESS) {
       m_connected = false;
+      m_initialConnectFailed = g_ignoreInvalidParams;
       char* error;
       if (ret != MOSQ_ERR_ERRNO) {
         error = (char*)("unkown mosquitto error");
@@ -606,7 +614,20 @@ void MqttHandler::handleTraffic(bool allowReconnect) {
     ret = mosquitto_loop(m_mosquitto, -1);  // waits up to 1 second for network traffic
 #endif
     if (!m_connected && ret == MOSQ_ERR_NO_CONN && allowReconnect) {
-      ret = mosquitto_reconnect(m_mosquitto);
+      if (m_initialConnectFailed) {
+#if (LIBMOSQUITTO_MAJOR >= 1)
+        ret = mosquitto_connect(m_mosquitto, g_host, g_port, 60);
+#else
+        ret = mosquitto_connect(m_mosquitto, g_host, g_port, 60, true);
+#endif
+        if (ret != MOSQ_ERR_SUCCESS) {
+          logOtherError("mqtt", "unable to connect (invalid parameters), retrying");
+          return;
+        }
+        m_initialConnectFailed = false;
+      } else {
+        ret = mosquitto_reconnect(m_mosquitto);
+      }
     }
     if (!m_connected && ret == MOSQ_ERR_SUCCESS) {
       m_connected = true;
