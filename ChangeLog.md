@@ -7,6 +7,7 @@
 * corrected tag name set by make_debian
 * corrected MQTT /get topic on field level
 * corrected weird IP address logging
+* corrected logrotate script
 
 ## Features
 * added support for retrieving configuration files from config web service
@@ -17,6 +18,7 @@
 * added timeout argument and error result code to ebusctl
 * added "-def" option to "read" and "write" commands and "define" command to test message defintions and add new definitions during runtime and disabled all by default (use "--enabledefine" command line option).
 * added "encode" and "decode" commands for testing field definitions
+* added option to ignore failed host name resolution during initialization of MQTT
 
 
 # 3.1 (2017-12-26)
