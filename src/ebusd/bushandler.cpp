@@ -396,7 +396,10 @@ void BusHandler::run() {
         symCount = 0;
       }
     } else {
-      if (!Wait(10)) {
+      if (!m_device->isValid()) {
+        logNotice(lf_bus, "device invalid");
+      }
+      if (!Wait(5)) {
         break;
       }
       m_reconnect = false;
