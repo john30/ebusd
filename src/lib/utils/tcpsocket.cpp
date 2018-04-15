@@ -107,7 +107,7 @@ TCPSocket* TCPClient::connect(const string& server, const uint16_t& port, int ti
       FD_ZERO(&writefds);
       FD_ZERO(&exceptfds);
       FD_SET(sfd, &readfds);
-      ret = pselect(sfd + 1, &readfds, &writefds, &errfds , &tdiff, NULL);
+      ret = pselect(sfd + 1, &readfds, &writefds, &exceptfds, &tdiff, NULL);
       if (ret >= 1 && FD_ISSET(sfd, &exceptfds)) {
         ret = -1;
       }
