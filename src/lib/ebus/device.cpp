@@ -43,6 +43,10 @@ namespace ebusd {
 
 #define MTU 1540
 
+#ifndef POLLRDHUP
+#define POLLRDHUP 0
+#endif
+
 Device::~Device() {
   close();
 }
@@ -135,22 +139,29 @@ result_t Device::recv(unsigned int timeout, symbol_t* value) {
     memset(fds, 0, sizeof(fds));
 
     fds[0].fd = m_fd;
-    fds[0].events = POLLIN;
-
+    fds[0].events = POLLIN | POLLERR | POLLHUP | POLLRDHUP;
     ret = ppoll(fds, nfds, &tdiff, NULL);
+    if (ret >= 0 && fds[0].revents & (POLLERR | POLLHUP | POLLRDHUP)) {
+      ret = -1;
+    }
 #else
 #ifdef HAVE_PSELECT
-    fd_set readfds;
+    fd_set readfds, exceptfds;
 
     FD_ZERO(&readfds);
+    FD_ZERO(&exceptfds);
     FD_SET(m_fd, &readfds);
 
-    ret = pselect(m_fd + 1, &readfds, NULL, NULL, &tdiff, NULL);
+    ret = pselect(m_fd + 1, &readfds, NULL, &exceptfds, &tdiff, NULL);
+    if (ret >= 1 && FD_ISSET(m_fd, &exceptfds)) {
+      ret = -1;
+    }
 #else
     ret = 1;  // ignore timeout if neither ppoll nor pselect are available
 #endif
 #endif
     if (ret == -1) {
+      close();
       return RESULT_ERR_DEVICE;
     }
     if (ret == 0) {
@@ -164,6 +175,7 @@ result_t Device::recv(unsigned int timeout, symbol_t* value) {
     return RESULT_ERR_EOF;
   }
   if (nbytes < 0) {
+    close();
     return RESULT_ERR_DEVICE;
   }
   if (m_listener != NULL) {
@@ -304,10 +316,14 @@ result_t NetworkDevice::open() {
   return RESULT_OK;
 }
 
+void NetworkDevice::close() {
+  m_bufLen = 0;  // flush read buffer
+  Device::close();
+}
+
 void NetworkDevice::checkDevice() {
   int cnt;
   if (ioctl(m_fd, FIONREAD, &cnt) < 0) {
-    m_bufLen = 0;  // flush read buffer
     close();
   }
 }

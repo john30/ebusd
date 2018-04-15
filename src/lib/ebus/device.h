@@ -260,6 +260,8 @@ class NetworkDevice : public Device {
   // @copydoc
   result_t open() override;
 
+  // @copydoc
+  void close() override;
 
  protected:
   // @copydoc
