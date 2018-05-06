@@ -43,7 +43,7 @@ class Thread {
   /**
    * Thread entry helper for pthread_create.
    * @param arg pointer to the @a Thread.
-   * @return NULL.
+   * @return nullptr.
    */
   static void* runThread(void* arg);
 

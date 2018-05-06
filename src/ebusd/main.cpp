@@ -67,8 +67,8 @@ using std::cout;
 /** the default path of the configuration files. */
 #define CONFIG_PATH "http://ebusd.eu/config/"
 
-/** the opened PID file, or NULL. */
-static FILE* pidFile = NULL;
+/** the opened PID file, or nullptr. */
+static FILE* pidFile = nullptr;
 
 /** true when forked into daemon mode. */
 static bool isDaemon = false;
@@ -125,11 +125,11 @@ static struct options opt = {
   100,  // dumpSize
 };
 
-/** the @a MessageMap instance, or NULL. */
-static MessageMap* s_messageMap = NULL;
+/** the @a MessageMap instance, or nullptr. */
+static MessageMap* s_messageMap = nullptr;
 
-/** the @a MainLoop instance, or NULL. */
-static MainLoop* s_mainLoop = NULL;
+/** the @a MainLoop instance, or nullptr. */
+static MainLoop* s_mainLoop = nullptr;
 
 /** the path prefix (including trailing "/") for retrieving configuration files from local files (empty for HTTP). */
 static string s_configLocalPrefix;
@@ -177,72 +177,72 @@ static const char argpdoc[] =
 
 /** the definition of the known program arguments. */
 static const struct argp_option argpoptions[] = {
-  {NULL,             0,        NULL,    0, "Device options:", 1 },
-  {"device",         'd',      "DEV",   0, "Use DEV as eBUS device (serial or [udp:]ip:port) [/dev/ttyUSB0]", 0 },
-  {"nodevicecheck",  'n',      NULL,    0, "Skip serial eBUS device test", 0 },
-  {"readonly",       'r',      NULL,    0, "Only read from device, never write to it", 0 },
-  {"initsend",       O_INISND, NULL,    0, "Send an initial escape symbol after connecting device", 0 },
-  {"latency",        O_DEVLAT, "USEC",  0, "Transfer latency in us [0 for USB, 10000 for IP]", 0 },
+  {nullptr,          0,        nullptr,    0, "Device options:", 1 },
+  {"device",         'd',      "DEV",      0, "Use DEV as eBUS device (serial or [udp:]ip:port) [/dev/ttyUSB0]", 0 },
+  {"nodevicecheck",  'n',      nullptr,    0, "Skip serial eBUS device test", 0 },
+  {"readonly",       'r',      nullptr,    0, "Only read from device, never write to it", 0 },
+  {"initsend",       O_INISND, nullptr,    0, "Send an initial escape symbol after connecting device", 0 },
+  {"latency",        O_DEVLAT, "USEC",     0, "Transfer latency in us [0 for USB, 10000 for IP]", 0 },
 
-  {NULL,             0,        NULL,    0, "Message configuration options:", 2 },
-  {"configpath",     'c',      "PATH",  0, "Read CSV config files from PATH (local folder or HTTP URL) [" CONFIG_PATH
+  {nullptr,          0,        nullptr,    0, "Message configuration options:", 2 },
+  {"configpath",     'c',      "PATH",     0, "Read CSV config files from PATH (local folder or HTTP URL) [" CONFIG_PATH
       "]", 0 },
-  {"scanconfig",     's',      "ADDR",  OPTION_ARG_OPTIONAL, "Pick CSV config files matching initial scan (ADDR="
+  {"scanconfig",     's',      "ADDR", OPTION_ARG_OPTIONAL, "Pick CSV config files matching initial scan (ADDR="
       "\"none\" or empty for no initial scan message, \"full\" for full scan, or a single hex address to scan, "
       "default is broadcast ident message). If combined with --checkconfig, you can add scan message data as "
       "arguments for checking a particular scan configuration, e.g. \"FF08070400/0AB5454850303003277201\".", 0 },
-  {"configlang",     O_CFGLNG, "LANG",  0,
+  {"configlang",     O_CFGLNG, "LANG",     0,
       "Prefer LANG in multilingual configuration files [system default language]", 0 },
-  {"checkconfig",    O_CHKCFG, NULL,    0, "Check CSV config files, then stop", 0 },
-  {"dumpconfig",     O_DMPCFG, NULL,    0, "Check and dump CSV config files, then stop", 0 },
-  {"pollinterval",   O_POLINT, "SEC",   0, "Poll for data every SEC seconds (0=disable) [5]", 0 },
-  {"inject",         'i',      NULL,    0, "Inject remaining arguments as already seen messages (e.g. "
+  {"checkconfig",    O_CHKCFG, nullptr,    0, "Check CSV config files, then stop", 0 },
+  {"dumpconfig",     O_DMPCFG, nullptr,    0, "Check and dump CSV config files, then stop", 0 },
+  {"pollinterval",   O_POLINT, "SEC",      0, "Poll for data every SEC seconds (0=disable) [5]", 0 },
+  {"inject",         'i',      nullptr,    0, "Inject remaining arguments as already seen messages (e.g. "
       "\"FF08070400/0AB5454850303003277201\")", 0 },
 
-  {NULL,             0,        NULL,    0, "eBUS options:", 3 },
-  {"address",        'a',      "ADDR",  0, "Use ADDR as own bus address [31]", 0 },
-  {"answer",         O_ANSWER, NULL,    0, "Actively answer to requests from other masters", 0 },
-  {"acquiretimeout", O_ACQTIM, "USEC",  0, "Stop bus acquisition after USEC us [9400]", 0 },
-  {"acquireretries", O_ACQRET, "COUNT", 0, "Retry bus acquisition COUNT times [3]", 0 },
-  {"sendretries",    O_SNDRET, "COUNT", 0, "Repeat failed sends COUNT times [2]", 0 },
-  {"receivetimeout", O_RCVTIM, "USEC",  0, "Expect a slave to answer within USEC us [25000]", 0 },
-  {"numbermasters",  O_MASCNT, "COUNT", 0, "Expect COUNT masters on the bus, 0 for auto detection [0]", 0 },
-  {"generatesyn",    O_GENSYN, NULL,    0, "Enable AUTO-SYN symbol generation", 0 },
+  {nullptr,          0,        nullptr,    0, "eBUS options:", 3 },
+  {"address",        'a',      "ADDR",     0, "Use ADDR as own bus address [31]", 0 },
+  {"answer",         O_ANSWER, nullptr,    0, "Actively answer to requests from other masters", 0 },
+  {"acquiretimeout", O_ACQTIM, "USEC",     0, "Stop bus acquisition after USEC us [9400]", 0 },
+  {"acquireretries", O_ACQRET, "COUNT",    0, "Retry bus acquisition COUNT times [3]", 0 },
+  {"sendretries",    O_SNDRET, "COUNT",    0, "Repeat failed sends COUNT times [2]", 0 },
+  {"receivetimeout", O_RCVTIM, "USEC",     0, "Expect a slave to answer within USEC us [25000]", 0 },
+  {"numbermasters",  O_MASCNT, "COUNT",    0, "Expect COUNT masters on the bus, 0 for auto detection [0]", 0 },
+  {"generatesyn",    O_GENSYN, nullptr,    0, "Enable AUTO-SYN symbol generation", 0 },
 
-  {NULL,             0,        NULL,    0, "Daemon options:", 4 },
-  {"accesslevel",    O_ACLDEF, "LEVEL", 0, "Set default access level to LEVEL (\"*\" for everything) [\"\"]", 0 },
-  {"aclfile",        O_ACLFIL, "FILE",  0, "Read access control list from FILE", 0 },
-  {"foreground",     'f',      NULL,    0, "Run in foreground", 0 },
-  {"enablehex",      O_HEXCMD, NULL,    0, "Enable hex command", 0 },
-  {"enabledefine",   O_DEFCMD, NULL,    0, "Enable define command", 0 },
-  {"pidfile",        O_PIDFIL, "FILE",  0, "PID file name (only for daemon) [" PID_FILE_NAME "]", 0 },
-  {"port",           'p',      "PORT",  0, "Listen for command line connections on PORT [8888]", 0 },
-  {"localhost",      O_LOCAL,  NULL,    0, "Listen for command line connections on 127.0.0.1 interface only", 0 },
-  {"httpport",       O_HTTPPT, "PORT",  0, "Listen for HTTP connections on PORT, 0 to disable [0]", 0 },
-  {"htmlpath",       O_HTMLPA, "PATH",  0, "Path for HTML files served by HTTP port [/var/ebusd/html]", 0 },
-  {"updatecheck",    O_UPDCHK, "MODE",  0, "Set automatic update check to MODE (on|off) [on]", 0 },
+  {nullptr,          0,        nullptr,    0, "Daemon options:", 4 },
+  {"accesslevel",    O_ACLDEF, "LEVEL",    0, "Set default access level to LEVEL (\"*\" for everything) [\"\"]", 0 },
+  {"aclfile",        O_ACLFIL, "FILE",     0, "Read access control list from FILE", 0 },
+  {"foreground",     'f',      nullptr,    0, "Run in foreground", 0 },
+  {"enablehex",      O_HEXCMD, nullptr,    0, "Enable hex command", 0 },
+  {"enabledefine",   O_DEFCMD, nullptr,    0, "Enable define command", 0 },
+  {"pidfile",        O_PIDFIL, "FILE",     0, "PID file name (only for daemon) [" PID_FILE_NAME "]", 0 },
+  {"port",           'p',      "PORT",     0, "Listen for command line connections on PORT [8888]", 0 },
+  {"localhost",      O_LOCAL,  nullptr,    0, "Listen for command line connections on 127.0.0.1 interface only", 0 },
+  {"httpport",       O_HTTPPT, "PORT",     0, "Listen for HTTP connections on PORT, 0 to disable [0]", 0 },
+  {"htmlpath",       O_HTMLPA, "PATH",     0, "Path for HTML files served by HTTP port [/var/ebusd/html]", 0 },
+  {"updatecheck",    O_UPDCHK, "MODE",     0, "Set automatic update check to MODE (on|off) [on]", 0 },
 
-  {NULL,             0,        NULL,    0, "Log options:", 5 },
-  {"logfile",        'l',      "FILE",  0, "Write log to FILE (only for daemon) [" PACKAGE_LOGFILE "]", 0 },
-  {"log",            O_LOG,    "AREAS LEVEL", 0, "Only write log for matching AREA(S) below or equal to LEVEL"
+  {nullptr,          0,        nullptr,    0, "Log options:", 5 },
+  {"logfile",        'l',      "FILE",     0, "Write log to FILE (only for daemon) [" PACKAGE_LOGFILE "]", 0 },
+  {"log",            O_LOG, "AREAS LEVEL", 0, "Only write log for matching AREA(S) below or equal to LEVEL"
       " (alternative to --logareas/--logevel, may be used multiple times) [all notice]", 0 },
-  {"logareas",       O_LOGARE, "AREAS", 0, "Only write log for matching AREA(S): main|network|bus|update|all"
+  {"logareas",       O_LOGARE, "AREAS",    0, "Only write log for matching AREA(S): main|network|bus|update|all"
       " [all]", 0 },
-  {"loglevel",       O_LOGLEV, "LEVEL", 0, "Only write log below or equal to LEVEL: error|notice|info|debug"
+  {"loglevel",       O_LOGLEV, "LEVEL",    0, "Only write log below or equal to LEVEL: error|notice|info|debug"
       " [notice]", 0 },
 
-  {NULL,             0,        NULL,    0, "Raw logging options:", 6 },
-  {"lograwdata",     O_RAW,    "bytes",  OPTION_ARG_OPTIONAL,
+  {nullptr,          0,        nullptr,    0, "Raw logging options:", 6 },
+  {"lograwdata",     O_RAW,    "bytes", OPTION_ARG_OPTIONAL,
       "Log messages or all received/sent bytes on the bus", 0 },
-  {"lograwdatafile", O_RAWFIL, "FILE",  0, "Write raw log to FILE [" PACKAGE_LOGFILE "]", 0 },
-  {"lograwdatasize", O_RAWSIZ, "SIZE",  0, "Make raw log file no larger than SIZE kB [100]", 0 },
+  {"lograwdatafile", O_RAWFIL, "FILE",     0, "Write raw log to FILE [" PACKAGE_LOGFILE "]", 0 },
+  {"lograwdatasize", O_RAWSIZ, "SIZE",     0, "Make raw log file no larger than SIZE kB [100]", 0 },
 
-  {NULL,             0,        NULL,    0, "Binary dump options:", 7 },
-  {"dump",           'D',      NULL,    0, "Enable binary dump of received bytes", 0 },
-  {"dumpfile",       O_DMPFIL, "FILE",  0, "Dump received bytes to FILE [/tmp/" PACKAGE "_dump.bin]", 0 },
-  {"dumpsize",       O_DMPSIZ, "SIZE",  0, "Make dump file no larger than SIZE kB [100]", 0 },
+  {nullptr,          0,        nullptr,    0, "Binary dump options:", 7 },
+  {"dump",           'D',      nullptr,    0, "Enable binary dump of received bytes", 0 },
+  {"dumpfile",       O_DMPFIL, "FILE",     0, "Dump received bytes to FILE [/tmp/" PACKAGE "_dump.bin]", 0 },
+  {"dumpsize",       O_DMPSIZ, "SIZE",     0, "Make dump file no larger than SIZE kB [100]", 0 },
 
-  {NULL,             0,        NULL,    0, NULL, 0 },
+  {nullptr,          0,        nullptr,    0, nullptr, 0 },
 };
 
 /** the global @a DataFieldTemplates. */
@@ -257,7 +257,7 @@ static map<string, DataFieldTemplates*> s_templatesByPath;
 /**
  * The program argument parsing function.
  * @param key the key from @a argpoptions.
- * @param arg the option argument, or NULL.
+ * @param arg the option argument, or nullptr.
  * @param state the parsing state.
  */
 error_t parse_opt(int key, char *arg, struct argp_state *state) {
@@ -267,7 +267,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
   switch (key) {
   // Device options:
   case 'd':  // --device=/dev/ttyUSB0
-    if (arg == NULL || arg[0] == 0) {
+    if (arg == nullptr || arg[0] == 0) {
       argp_error(state, "invalid device");
       return EINVAL;
     }
@@ -301,7 +301,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
 
   // Message configuration options:
   case 'c':  // --configpath=http://ebusd.eu/config/
-    if (arg == NULL || arg[0] == 0 || strcmp("/", arg) == 0) {
+    if (arg == nullptr || arg[0] == 0 || strcmp("/", arg) == 0) {
       argp_error(state, "invalid configpath");
       return EINVAL;
     }
@@ -417,14 +417,14 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
 
   // Daemon options:
   case O_ACLDEF:  // --accesslevel=*
-    if (arg == NULL) {
+    if (arg == nullptr) {
       argp_error(state, "invalid accesslevel");
       return EINVAL;
     }
     opt->accessLevel = arg;
     break;
   case O_ACLFIL:  // --aclfile=/etc/ebusd/acl
-    if (arg == NULL || arg[0] == 0 || strcmp("/", arg) == 0) {
+    if (arg == nullptr || arg[0] == 0 || strcmp("/", arg) == 0) {
       argp_error(state, "invalid aclfile");
       return EINVAL;
     }
@@ -440,7 +440,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     opt->enableDefine = true;
     break;
   case O_PIDFIL:  // --pidfile=/var/run/ebusd.pid
-    if (arg == NULL || arg[0] == 0 || strcmp("/", arg) == 0) {
+    if (arg == nullptr || arg[0] == 0 || strcmp("/", arg) == 0) {
       argp_error(state, "invalid pidfile");
       return EINVAL;
     }
@@ -464,14 +464,14 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     }
     break;
   case O_HTMLPA:  // --htmlpath=/var/ebusd/html
-    if (arg == NULL || arg[0] == 0 || strcmp("/", arg) == 0) {
+    if (arg == nullptr || arg[0] == 0 || strcmp("/", arg) == 0) {
       argp_error(state, "invalid htmlpath");
       return EINVAL;
     }
     opt->htmlPath = arg;
     break;
   case O_UPDCHK:  // --updatecheck=on
-    if (arg == NULL || arg[0] == 0) {
+    if (arg == nullptr || arg[0] == 0) {
       argp_error(state, "invalid updatecheck");
       return EINVAL;
     }
@@ -487,7 +487,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
 
   // Log options:
   case 'l':  // --logfile=/var/log/ebusd.log
-    if (arg == NULL || arg[0] == 0 || strcmp("/", arg) == 0) {
+    if (arg == nullptr || arg[0] == 0 || strcmp("/", arg) == 0) {
       argp_error(state, "invalid logfile");
       return EINVAL;
     }
@@ -496,7 +496,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case O_LOG:  // --log=area(s) level
     {
       char* pos = strchr(arg, ' ');
-      if (pos == NULL) {
+      if (pos == nullptr) {
         argp_error(state, "invalid log");
         return EINVAL;
       }
@@ -547,7 +547,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     opt->logRaw = arg && strcmp("bytes", arg) == 0 ? 2 : 1;
     break;
   case O_RAWFIL:  // --lograwdatafile=/var/log/ebusd.log
-    if (arg == NULL || arg[0] == 0 || strcmp("/", arg) == 0) {
+    if (arg == nullptr || arg[0] == 0 || strcmp("/", arg) == 0) {
       argp_error(state, "invalid lograwdatafile");
       return EINVAL;
     }
@@ -567,7 +567,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     opt->dump = true;
     break;
   case O_DMPFIL:  // --dumpfile=/tmp/ebusd_dump.bin
-    if (arg == NULL || arg[0] == 0 || strcmp("/", arg) == 0) {
+    if (arg == nullptr || arg[0] == 0 || strcmp("/", arg) == 0) {
       argp_error(state, "invalid dumpfile");
       return EINVAL;
     }
@@ -633,15 +633,15 @@ void daemonize() {
 
   umask(S_IWGRP | S_IRWXO);  // set permissions of newly created files to 750
 
-  if (pidFile != NULL) {
-    setbuf(pidFile, NULL);  // disable buffering
+  if (pidFile != nullptr) {
+    setbuf(pidFile, nullptr);  // disable buffering
     if (lockf(fileno(pidFile), F_TLOCK, 0) < 0
       || fprintf(pidFile, "%d\n", getpid())  <= 0) {
       fclose(pidFile);
-      pidFile = NULL;
+      pidFile = nullptr;
     }
   }
-  if (pidFile == NULL) {
+  if (pidFile == nullptr) {
     logError(lf_main, "can't open pidfile: %s", opt.pidFile);
     exit(EXIT_FAILURE);
   }
@@ -650,7 +650,7 @@ void daemonize() {
 }
 
 void closePidFile() {
-  if (pidFile != NULL) {
+  if (pidFile != nullptr) {
     if (fclose(pidFile) != 0) {
       return;
     }
@@ -665,11 +665,11 @@ void shutdown() {
   // stop main loop and all dependent components
   if (s_mainLoop) {
     delete s_mainLoop;
-    s_mainLoop = NULL;
+    s_mainLoop = nullptr;
   }
   if (s_messageMap) {
     delete s_messageMap;
-    s_messageMap = NULL;
+    s_messageMap = nullptr;
   }
   // free templates
   for (const auto it : s_templatesByPath) {
@@ -735,13 +735,13 @@ void signalHandler(int sig) {
  * @param extension the filename extension the files have to match.
  * @param files the @a vector to which to add the matching files.
  * @param query the query string suffix for HTTP retrieval starting with "&", or empty.
- * @param dirs the @a vector to which to add found directories (without any name check), or NULL to ignore.
- * @param hasTemplates the bool to set when the templates file was found in the path, or NULL to ignore.
+ * @param dirs the @a vector to which to add found directories (without any name check), or nullptr to ignore.
+ * @param hasTemplates the bool to set when the templates file was found in the path, or nullptr to ignore.
  * @return the result code.
  */
 static result_t collectConfigFiles(const string& relPath, const string& prefix, const string& extension,
     vector<string>* files, const bool ignoreAddressPrefix = false, const string& query = "",
-    vector<string>* dirs = NULL, bool* hasTemplates = NULL) {
+    vector<string>* dirs = nullptr, bool* hasTemplates = nullptr) {
   const string relPathWithSlash = relPath.empty() ? "" : relPath + "/";
   if (!s_configUriPrefix.empty()) {
     string uri = s_configUriPrefix + relPathWithSlash + "?t=" + extension.substr(1) + query;
@@ -770,11 +770,11 @@ static result_t collectConfigFiles(const string& relPath, const string& prefix, 
   }
   const string path = s_configLocalPrefix + relPathWithSlash;
   DIR* dir = opendir(path.c_str());
-  if (dir == NULL) {
+  if (dir == nullptr) {
     return RESULT_ERR_NOTFOUND;
   }
   dirent* d;
-  while ((d = readdir(dir)) != NULL) {
+  while ((d = readdir(dir)) != nullptr) {
     string name = d->d_name;
     if (name == "." || name == "..") {
       continue;
@@ -785,7 +785,7 @@ static result_t collectConfigFiles(const string& relPath, const string& prefix, 
       continue;
     }
     if (S_ISDIR(stat_buf.st_mode)) {
-      if (dirs != NULL) {
+      if (dirs != nullptr) {
         dirs->push_back(relPathWithSlash + name);
       }
     } else if (S_ISREG(stat_buf.st_mode) && name.length() >= extension.length()
@@ -810,7 +810,7 @@ static result_t collectConfigFiles(const string& relPath, const string& prefix, 
 DataFieldTemplates* getTemplates(const string& filename) {
   if (filename == "*") {
     unsigned long maxLength = 0;
-    DataFieldTemplates* best = NULL;
+    DataFieldTemplates* best = nullptr;
     for (auto it : s_templatesByPath) {
       if (it.first.size() > maxLength) {
         best = it.second;
@@ -862,7 +862,7 @@ static bool readTemplates(const string relPath, const string extension, bool ava
   string logPath = relPath.empty() ? "/" : relPath;
   logInfo(lf_main, "reading templates %s", logPath.c_str());
   string file = (relPath.empty() ? "" : relPath + "/") + "_templates" + extension;
-  result_t result = loadDefinitionsFromConfigPath(templates, file, verbose, NULL, &errorDescription, true);
+  result_t result = loadDefinitionsFromConfigPath(templates, file, verbose, nullptr, &errorDescription, true);
   if (result == RESULT_OK) {
     logInfo(lf_main, "read templates in %s", logPath.c_str());
     return true;
@@ -893,7 +893,7 @@ static result_t readConfigFiles(const string& relPath, const string& extension, 
   readTemplates(relPath, extension, hasTemplates, verbose);
   for (const auto& name : files) {
     logInfo(lf_main, "reading file %s", name.c_str());
-    result_t result = loadDefinitionsFromConfigPath(messages, name, verbose, NULL, errorDescription);
+    result_t result = loadDefinitionsFromConfigPath(messages, name, verbose, nullptr, errorDescription);
     if (result != RESULT_OK) {
       return result;
     }
@@ -949,7 +949,7 @@ void executeInstructions(MessageMap* messages, bool verbose) {
 
 result_t loadDefinitionsFromConfigPath(FileReader* reader, const string& filename, bool verbose,
     map<string, string>* defaults, string* errorDescription, bool replace) {
-  istream* stream = NULL;
+  istream* stream = nullptr;
   time_t mtime = 0;
   if (s_configUriPrefix.empty()) {
     stream = FileReader::openFile(s_configLocalPrefix + filename, errorDescription, &mtime);
@@ -978,7 +978,7 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
     if (it.second != &s_globalTemplates) {
       delete it.second;
     }
-    it.second = NULL;
+    it.second = nullptr;
   }
   s_templatesByPath.clear();
 
@@ -1012,9 +1012,9 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose
   size_t offset = 0;
   size_t field = 0;
   bool fromLocal = s_configUriPrefix.empty();
-  result_t result = (*identFields)[field]->read(data, offset, false, NULL, -1, 0, -1, &out);  // manufacturer name
+  result_t result = (*identFields)[field]->read(data, offset, false, nullptr, -1, 0, -1, &out);  // manufacturer name
   if (result == RESULT_ERR_NOTFOUND && fromLocal) {
-    result = (*identFields)[field]->read(data, offset, false, NULL, -1, OF_NUMERIC, -1, &out);  // manufacturer name
+    result = (*identFields)[field]->read(data, offset, false, nullptr, -1, OF_NUMERIC, -1, &out);  // manufacturer name
   }
   if (result == RESULT_OK) {
     manufStr = out.str();
@@ -1025,14 +1025,14 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose
     out.str("");
     out.clear();
     offset += (*identFields)[field++]->getLength(pt_slaveData, MAX_LEN);
-    result = (*identFields)[field]->read(data, offset, false, NULL, -1, 0, -1, &out);  // identification string
+    result = (*identFields)[field]->read(data, offset, false, nullptr, -1, 0, -1, &out);  // identification string
   }
   if (result == RESULT_OK) {
     ident = out.str();
     out.str("");
     out.clear();
     offset += (*identFields)[field++]->getLength(pt_slaveData, MAX_LEN);
-    result = (*identFields)[field]->read(data, offset, NULL, -1, &sw);  // software version number
+    result = (*identFields)[field]->read(data, offset, nullptr, -1, &sw);  // software version number
     if (result == RESULT_ERR_OUT_OF_RANGE) {
       sw = (data.dataAt(offset) << 16) | data.dataAt(offset+1);  // use hex value instead
       result = RESULT_OK;
@@ -1040,7 +1040,7 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose
   }
   if (result == RESULT_OK) {
     offset += (*identFields)[field++]->getLength(pt_slaveData, MAX_LEN);
-    result = (*identFields)[field]->read(data, offset, NULL, -1, &hw);  // hardware version number
+    result = (*identFields)[field]->read(data, offset, nullptr, -1, &hw);  // hardware version number
     if (result == RESULT_ERR_OUT_OF_RANGE) {
       hw = (data.dataAt(offset) << 16) | data.dataAt(offset+1);  // use hex value instead
       result = RESULT_OK;
@@ -1073,7 +1073,7 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose
     out.str("");
     out.clear();
   }
-  result = collectConfigFiles(manufStr, addrStr + ".", ".csv", &files, false, query, NULL, &hasTemplates);
+  result = collectConfigFiles(manufStr, addrStr + ".", ".csv", &files, false, query, nullptr, &hasTemplates);
   if (result != RESULT_OK) {
     logError(lf_main, "unable to load scan config %2.2x: list files in %s %s", address, manufStr.c_str(),
         getResultCode(result));
@@ -1145,7 +1145,7 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose
         }
         if (baseName.length() < 3 || baseName.find_first_of('.') != 2) {  // different from the scheme "ZZ."
           string errorDescription;
-          result = loadDefinitionsFromConfigPath(messages, name, verbose, NULL, &errorDescription);
+          result = loadDefinitionsFromConfigPath(messages, name, verbose, nullptr, &errorDescription);
           if (result == RESULT_OK) {
             logNotice(lf_main, "read common config file %s", name.c_str());
           } else {
@@ -1213,7 +1213,7 @@ bool parseMessage(const string& arg, bool onlyMasterSlave, MasterSymbolString* m
  * @return the exit code.
  */
 int main(int argc, char* argv[]) {
-  struct argp aargp = { argpoptions, parse_opt, NULL, argpdoc, datahandler_getargs(), NULL, NULL };
+  struct argp aargp = { argpoptions, parse_opt, nullptr, argpdoc, datahandler_getargs(), nullptr, nullptr };
   int arg_index = -1;
   setenv("ARGP_HELP_FMT", "no-dup-args-note", 0);
 
@@ -1287,7 +1287,7 @@ int main(int argc, char* argv[]) {
 
   // open the device
   Device *device = Device::create(opt.device, !opt.noDeviceCheck, opt.readOnly, opt.initialSend);
-  if (device == NULL) {
+  if (device == nullptr) {
     logError(lf_main, "unable to create device %s", opt.device);
     return EINVAL;
   }

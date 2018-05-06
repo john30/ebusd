@@ -128,7 +128,7 @@ void executeInstructions(MessageMap* messages, bool verbose = false);
  * @param reader the @a FileReader instance to load with the definitions.
  * @param filename the relative name of the file being read.
  * @param verbose whether to verbosely log problems.
- * @param defaults the default values by name (potentially overwritten by file name), or NULL to not use defaults.
+ * @param defaults the default values by name (potentially overwritten by file name), or nullptr to not use defaults.
  * @param errorDescription a string in which to store the error description in case of error.
  * @param replace whether to replace an already existing entry.
  * @return @a RESULT_OK on success, or an error code.

@@ -42,7 +42,7 @@ class DataHandler;
 
 /**
  * Helper function for getting the argp definition for all known @a DataHandler instances.
- * @return a pointer to the argp_child structure, or NULL.
+ * @return a pointer to the argp_child structure, or nullptr.
  */
 const struct argp_child* datahandler_getargs();
 

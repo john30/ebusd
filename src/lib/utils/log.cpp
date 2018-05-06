@@ -39,7 +39,7 @@ static const char *facilityNames[] = {
   "update",
   "other",
   "all",
-  NULL
+  nullptr
 };
 
 /** the name of each @a LogLevel. */
@@ -49,7 +49,7 @@ static const char* levelNames[] = {
   "notice",
   "info",
   "debug",
-  NULL
+  nullptr
 };
 
 /** the current log level by log facility. */
@@ -63,7 +63,7 @@ LogFacility parseLogFacility(const char* facility) {
     return lf_COUNT;
   }
   char *input = strdup(facility);
-  char *opt = reinterpret_cast<char*>(input), *value = NULL;
+  char *opt = reinterpret_cast<char*>(input), *value = nullptr;
   int val = getsubopt(&opt, (char *const *)facilityNames, &value);
   if (val < 0 || val >= lf_COUNT || value || *opt) {
     free(input);
@@ -75,7 +75,7 @@ LogFacility parseLogFacility(const char* facility) {
 
 int parseLogFacilities(const char* facilities) {
   char *input = strdup(facilities);
-  char *opt = reinterpret_cast<char*>(input), *value = NULL;
+  char *opt = reinterpret_cast<char*>(input), *value = nullptr;
   int newFacilites = 0;
   while (*opt) {
     int val = getsubopt(&opt, (char *const *)facilityNames, &value);
@@ -98,7 +98,7 @@ LogLevel parseLogLevel(const char* level) {
     return ll_COUNT;
   }
   char *input = strdup(level);
-  char *opt = reinterpret_cast<char*>(input), *value = NULL;
+  char *opt = reinterpret_cast<char*>(input), *value = nullptr;
   int val = getsubopt(&opt, (char *const *)levelNames, &value);
   if (val < 0 || val >= ll_COUNT || value || *opt) {
     free(input);
@@ -133,7 +133,7 @@ LogLevel getFacilityLogLevel(LogFacility facility) {
 
 bool setLogFile(const char* filename) {
   FILE* newFile = fopen(filename, "a");
-  if (newFile == NULL) {
+  if (newFile == nullptr) {
     return false;
   }
   closeLogFile();
@@ -142,11 +142,11 @@ bool setLogFile(const char* filename) {
 }
 
 void closeLogFile() {
-  if (s_logFile != NULL) {
+  if (s_logFile != nullptr) {
     if (s_logFile != stdout) {
       fclose(s_logFile);
     }
-    s_logFile = NULL;
+    s_logFile = nullptr;
   }
 }
 
@@ -155,7 +155,7 @@ bool needsLog(const LogFacility facility, const LogLevel level) {
 }
 
 void logWrite(const char* facility, const char* level, const char* message, va_list ap) {
-  if (s_logFile == NULL) {
+  if (s_logFile == nullptr) {
     return;
   }
   struct timespec ts;

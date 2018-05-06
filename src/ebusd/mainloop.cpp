@@ -114,14 +114,14 @@ MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messag
     m_dumpFile = new RotateFile(opt.dumpFile, opt.dumpSize);
     m_dumpFile->setEnabled(opt.dump);
   } else {
-    m_dumpFile = NULL;
+    m_dumpFile = nullptr;
   }
   m_logRawEnabled = opt.logRaw != 0;
   if (opt.logRawFile[0] && strcmp(opt.logRawFile, opt.logFile) != 0) {
     m_logRawFile = new RotateFile(opt.logRawFile, opt.logRawSize, true);
     m_logRawFile->setEnabled(m_logRawEnabled);
   } else {
-    m_logRawFile = NULL;
+    m_logRawFile = nullptr;
   }
   m_logRawBytes = opt.logRaw == 2;
   m_logRawLastReceived = true;
@@ -131,7 +131,7 @@ MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messag
     time_t mtime = 0;
     istream* stream = FileReader::openFile(opt.aclFile, &errorDescription, &mtime);
     if (stream) {
-      result = m_userList.readFromStream(stream, opt.aclFile, mtime, false, NULL, &errorDescription);
+      result = m_userList.readFromStream(stream, opt.aclFile, mtime, false, nullptr, &errorDescription);
       delete(stream);
     } else {
       result = RESULT_ERR_NOTFOUND;
@@ -165,7 +165,7 @@ MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messag
   } else {
     logError(lf_main, "error registering data handlers");
   }
-  m_newlyDefinedMessages = opt.enableDefine ? new MessageMap(true, "", false) : NULL;
+  m_newlyDefinedMessages = opt.enableDefine ? new MessageMap(true, "", false) : nullptr;
 }
 
 MainLoop::~MainLoop() {
@@ -178,31 +178,31 @@ MainLoop::~MainLoop() {
   m_dataHandlers.clear();
   if (m_dumpFile) {
     delete m_dumpFile;
-    m_dumpFile = NULL;
+    m_dumpFile = nullptr;
   }
   if (m_logRawFile) {
     delete m_logRawFile;
-    m_logRawFile = NULL;
+    m_logRawFile = nullptr;
   }
-  if (m_network != NULL) {
+  if (m_network != nullptr) {
     delete m_network;
-    m_network = NULL;
+    m_network = nullptr;
   }
-  if (m_busHandler != NULL) {
+  if (m_busHandler != nullptr) {
     delete m_busHandler;
-    m_busHandler = NULL;
+    m_busHandler = nullptr;
   }
-  if (m_device != NULL) {
+  if (m_device != nullptr) {
     delete m_device;
-    m_device = NULL;
+    m_device = nullptr;
   }
   NetMessage* msg;
-  while ((msg = m_netQueue.pop()) != NULL) {
+  while ((msg = m_netQueue.pop()) != nullptr) {
     delete msg;
   }
   if (m_newlyDefinedMessages) {
     delete m_newlyDefinedMessages;
-    m_newlyDefinedMessages = NULL;
+    m_newlyDefinedMessages = nullptr;
   }
 }
 
@@ -367,7 +367,7 @@ void MainLoop::run() {
       }
       sinkSince = now;
     }
-    if (netMessage == NULL) {
+    if (netMessage == nullptr) {
       continue;
     }
     if (m_shutdown) {
@@ -406,7 +406,7 @@ void MainLoop::run() {
       m_messages->findAll("", "", levels, false, true, true, true, true, true, since, now, &messages);
       for (const auto message : messages) {
         ostream << message->getCircuit() << " " << message->getName() << " = " << dec;
-        message->decodeLastData(false, NULL, -1, 0, &ostream);
+        message->decodeLastData(false, nullptr, -1, 0, &ostream);
         ostream << endl;
       }
     }
@@ -791,7 +791,7 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
     // find message
     Message* message = m_messages->find(master, false, true, false, false);
 
-    if (message == NULL) {
+    if (message == nullptr) {
       return RESULT_ERR_NOTFOUND;
     }
     if (!message->hasLevel(levels)) {
@@ -820,7 +820,7 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
       ret = message->storeLastData(master, slave);
       ostringstream result;
       if (ret == RESULT_OK) {
-        ret = message->decodeLastData(false, NULL, -1, 0, &result);
+        ret = message->decodeLastData(false, nullptr, -1, 0, &result);
       }
       if (ret >= RESULT_OK) {
         logInfo(lf_main, "read hex %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(),
@@ -861,7 +861,7 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
     string errorDescription;
     istringstream defstr("#\n" + args[argPos]);  // ensure first line is not used for determining col names
     m_newlyDefinedMessages->clear();
-    ret = m_newlyDefinedMessages->readFromStream(&defstr, "temporary", now, true, NULL, &errorDescription);
+    ret = m_newlyDefinedMessages->readFromStream(&defstr, "temporary", now, true, nullptr, &errorDescription);
     if (ret != RESULT_OK) {
       *ostream << "ERR: bad definition: " << errorDescription;
       return RESULT_OK;
@@ -878,13 +878,13 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
     message = m_messages->find(circuit, name, levels, false);
   }
   // adjust poll priority
-  if (!newDefinition && message != NULL && pollPriority > 0 && message->setPollPriority(pollPriority)) {
+  if (!newDefinition && message != nullptr && pollPriority > 0 && message->setPollPriority(pollPriority)) {
     m_messages->addPollMessage(false, message);
   }
   verbosity |= valueName ? OF_VALUENAME : numeric ? OF_NUMERIC : 0;
   bool allowCache = !newDefinition && srcAddress == SYN && dstAddress == SYN && maxAge > 0 && params.length() == 0;
-  Message* cacheMessage = allowCache ? m_messages->find(circuit, name, levels, false, true) : NULL;
-  bool hasCache = cacheMessage != NULL;
+  Message* cacheMessage = allowCache ? m_messages->find(circuit, name, levels, false, true) : nullptr;
+  bool hasCache = cacheMessage != nullptr;
   if (!hasCache || (allowCache && message && message->getLastUpdateTime() > cacheMessage->getLastUpdateTime())) {
     cacheMessage = message;  // message is newer/better
   }
@@ -893,7 +893,7 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
     if (verbosity & OF_NAMES) {
       *ostream << cacheMessage->getCircuit() << " " << cacheMessage->getName() << " ";
     }
-    ret = cacheMessage->decodeLastData(false, fieldIndex == -2 ? NULL : fieldName.c_str(), fieldIndex, verbosity,
+    ret = cacheMessage->decodeLastData(false, fieldIndex == -2 ? nullptr : fieldName.c_str(), fieldIndex, verbosity,
         ostream);
     if (ret != RESULT_OK) {
       if (ret < RESULT_OK) {
@@ -912,7 +912,7 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
     return RESULT_OK;
   }  // else: read directly from bus
 
-  if (message == NULL) {
+  if (message == nullptr) {
     return RESULT_ERR_NOTFOUND;
   }
   if (message->getDstAddress() == SYN && dstAddress == SYN) {
@@ -926,7 +926,7 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
   if (verbosity & OF_NAMES) {
     *ostream << message->getCircuit() << " " << message->getName() << " ";
   }
-  ret = message->decodeLastData(false, false, fieldIndex == -2 ? NULL : fieldName.c_str(), fieldIndex, verbosity,
+  ret = message->decodeLastData(false, false, fieldIndex == -2 ? nullptr : fieldName.c_str(), fieldIndex, verbosity,
       ostream);
   if (ret < RESULT_OK) {
     logError(lf_main, "read %s %s: decode %s", message->getCircuit().c_str(), message->getName().c_str(),
@@ -1023,7 +1023,7 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
     // find message
     Message* message = m_messages->find(master, false, false, true, false);
 
-    if (message == NULL) {
+    if (message == nullptr) {
       return RESULT_ERR_NOTFOUND;
     }
     if (!message->hasLevel(levels)) {
@@ -1044,7 +1044,7 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
       ret = message->storeLastData(master, slave);
       ostringstream result;
       if (ret == RESULT_OK) {
-        ret = message->decodeLastData(false, NULL, -1, 0, &result);
+        ret = message->decodeLastData(false, nullptr, -1, 0, &result);
       }
       if (ret >= RESULT_OK) {
         logInfo(lf_main, "write hex %s %s cache update: %s", message->getCircuit().c_str(),
@@ -1076,7 +1076,7 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
     string errorDescription;
     istringstream defstr("#\n" + args[argPos]);  // ensure first line is not used for determining col names
     m_newlyDefinedMessages->clear();
-    ret = m_newlyDefinedMessages->readFromStream(&defstr, "temporary", now, true, NULL, &errorDescription);
+    ret = m_newlyDefinedMessages->readFromStream(&defstr, "temporary", now, true, nullptr, &errorDescription);
     if (ret != RESULT_OK) {
       *ostream << "ERR: bad definition: " << errorDescription;
       return RESULT_OK;
@@ -1092,7 +1092,7 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
     message = m_messages->find(circuit, args[argPos], levels, true);
   }
 
-  if (message == NULL) {
+  if (message == nullptr) {
     return RESULT_ERR_NOTFOUND;
   }
   if (message->getDstAddress() == SYN && dstAddress == SYN) {
@@ -1115,7 +1115,7 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
     return RESULT_OK;
   }
 
-  ret = message->decodeLastData(false, false, NULL, -1, 0, ostream);  // decode data
+  ret = message->decodeLastData(false, false, nullptr, -1, 0, ostream);  // decode data
   if (ret >= RESULT_OK && ostream->str().empty()) {
     logNotice(lf_main, "write %s %s: decode %s", message->getCircuit().c_str(), message->getName().c_str(),
         getResultCode(ret));
@@ -1341,7 +1341,7 @@ result_t MainLoop::executeFind(const vector<string>& args, const string& levels,
       if (found) {
         *ostream << endl;
       }
-      message->dump(NULL, withConditions, ostream);
+      message->dump(nullptr, withConditions, ostream);
     } else if (!fieldNames.empty()) {
       if (found) {
         *ostream << endl;
@@ -1360,7 +1360,7 @@ result_t MainLoop::executeFind(const vector<string>& args, const string& levels,
       } else if (hexFormat) {
         *ostream << message->getLastMasterData().getStr() << " / " << message->getLastSlaveData().getStr();
       } else {
-        result_t ret = message->decodeLastData(false, NULL, -1, verbosity, ostream);
+        result_t ret = message->decodeLastData(false, nullptr, -1, verbosity, ostream);
         if (ret != RESULT_OK) {
           *ostream << " (" << getResultCode(ret)
                    << " for " << message->getLastMasterData().getStr()
@@ -1493,7 +1493,7 @@ result_t MainLoop::executeDefine(const vector<string>& args, ostringstream* ostr
   time(&now);
   string errorDescription;
   istringstream defstr("#\n" + args[argPos]);  // ensure first line is not used for determining col names
-  return m_messages->readFromStream(&defstr, "temporary", now, true, NULL, &errorDescription, replace);
+  return m_messages->readFromStream(&defstr, "temporary", now, true, nullptr, &errorDescription, replace);
 }
 
 
@@ -1553,7 +1553,7 @@ result_t MainLoop::executeDecode(const vector<string>& args, ostringstream* ostr
   string errorDescription;
   DataFieldTemplates* templates = getTemplates("*");
   LoadableDataFieldSet fields("", templates);
-  result_t ret = fields.readFromStream(&defstr, "temporary", now, true, NULL, &errorDescription);
+  result_t ret = fields.readFromStream(&defstr, "temporary", now, true, nullptr, &errorDescription);
   if (ret != RESULT_OK) {
     return ret;
   }
@@ -1564,7 +1564,7 @@ result_t MainLoop::executeDecode(const vector<string>& args, ostringstream* ostr
     return ret;
   }
   slave.adjustHeader();
-  return fields.read(slave, 0, false, NULL, -1, verbosity, -1, ostream);
+  return fields.read(slave, 0, false, nullptr, -1, verbosity, -1, ostream);
 }
 
 
@@ -1585,13 +1585,13 @@ result_t MainLoop::executeEncode(const vector<string>& args, ostringstream* ostr
   string errorDescription;
   DataFieldTemplates* templates = getTemplates("*");
   LoadableDataFieldSet fields("", templates);
-  result_t ret = fields.readFromStream(&defstr, "temporary", now, true, NULL, &errorDescription);
+  result_t ret = fields.readFromStream(&defstr, "temporary", now, true, nullptr, &errorDescription);
   if (ret != RESULT_OK) {
     return ret;
   }
   istringstream datastr(args[argPos+1]);
   SlaveSymbolString slave;
-  ret = fields.write(UI_FIELD_SEPARATOR, 0, &datastr, &slave, NULL);
+  ret = fields.write(UI_FIELD_SEPARATOR, 0, &datastr, &slave, nullptr);
   if (ret != RESULT_OK) {
     return ret;
   }

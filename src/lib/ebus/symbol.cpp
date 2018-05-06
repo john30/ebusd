@@ -56,11 +56,11 @@ static const symbol_t CRC_LOOKUP_TABLE[] = {
 
 unsigned int parseInt(const char* str, int base, unsigned int minValue, unsigned int maxValue,
     result_t* result, size_t* length) {
-  char* strEnd = NULL;
+  char* strEnd = nullptr;
 
   unsigned long ret = strtoul(str, &strEnd, base);
 
-  if (strEnd == NULL || strEnd == str || *strEnd != 0) {
+  if (strEnd == nullptr || strEnd == str || *strEnd != 0) {
     *result = RESULT_ERR_INVALID_NUM;  // invalid value
     return 0;
   }
@@ -69,7 +69,7 @@ unsigned int parseInt(const char* str, int base, unsigned int minValue, unsigned
     *result = RESULT_ERR_OUT_OF_RANGE;  // invalid value
     return 0;
   }
-  if (length != NULL) {
+  if (length != nullptr) {
     *length = (unsigned int)(strEnd - str);
   }
   *result = RESULT_OK;
@@ -78,11 +78,11 @@ unsigned int parseInt(const char* str, int base, unsigned int minValue, unsigned
 
 int parseSignedInt(const char* str, int base, int minValue, int maxValue,
     result_t* result, size_t* length) {
-  char* strEnd = NULL;
+  char* strEnd = nullptr;
 
   long ret = strtol(str, &strEnd, base);
 
-  if (strEnd == NULL || *strEnd != 0) {
+  if (strEnd == nullptr || *strEnd != 0) {
     *result = RESULT_ERR_INVALID_NUM;  // invalid value
     return 0;
   }
@@ -91,7 +91,7 @@ int parseSignedInt(const char* str, int base, int minValue, int maxValue,
     *result = RESULT_ERR_OUT_OF_RANGE;  // invalid value
     return 0;
   }
-  if (length != NULL) {
+  if (length != nullptr) {
     *length = (unsigned int)(strEnd - str);
   }
   *result = RESULT_OK;

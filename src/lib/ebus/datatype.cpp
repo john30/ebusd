@@ -142,7 +142,7 @@ result_t StringDataType::writeSymbols(size_t offset, size_t length, istringstrea
     for (size_t index = start, i = 0; i < count; index += incr, i++) {
       output->dataAt(offset + index) = (symbol_t)m_replacement;  // fill up with replacement
     }
-    if (usedLength != NULL) {
+    if (usedLength != nullptr) {
       *usedLength = count;
     }
     return RESULT_OK;
@@ -197,7 +197,7 @@ result_t StringDataType::writeSymbols(size_t offset, size_t length, istringstrea
   if (!remainder && i < count) {
     return RESULT_ERR_EOF;  // input too short
   }
-  if (usedLength != NULL) {
+  if (usedLength != nullptr) {
     *usedLength = (index-start)*incr;
   }
   return RESULT_OK;
@@ -243,13 +243,13 @@ result_t DateTimeDataType::readSymbols(size_t offset, size_t length, const Symbo
     case 2:  // date only
       if (!hasFlag(REQ) && symbol == m_replacement) {
         if (i + 1 != length) {
-          *output << NULL_VALUE << ".";
+          *output << nullptr_VALUE << ".";
           break;
         } else if (last == m_replacement) {
           if (length == 2) {  // number of days since 01.01.1900
-            *output << NULL_VALUE << ".";
+            *output << nullptr_VALUE << ".";
           }
-          *output << NULL_VALUE;
+          *output << nullptr_VALUE;
           break;
         }
       }
@@ -282,13 +282,13 @@ result_t DateTimeDataType::readSymbols(size_t offset, size_t length, const Symbo
     case 1:  // time only
       if (!hasFlag(REQ) && symbol == m_replacement) {
         if (length == 1) {  // truncated time
-          *output << NULL_VALUE << ":" << NULL_VALUE;
+          *output << nullptr_VALUE << ":" << nullptr_VALUE;
           break;
         }
         if (i > 0) {
           *output << ":";
         }
-        *output << NULL_VALUE;
+        *output << nullptr_VALUE;
         break;
       }
       if (hasFlag(SPE)) {  // minutes since midnight
@@ -359,7 +359,7 @@ result_t DateTimeDataType::writeSymbols(size_t offset, size_t length, istringstr
     for (size_t index = start, i = 0; i < count; index += incr, i++) {
       output->dataAt(offset + index) = (symbol_t)m_replacement;  // fill up with replacement
     }
-    if (usedLength != NULL) {
+    if (usedLength != nullptr) {
       *usedLength = count;
     }
     return RESULT_OK;
@@ -378,7 +378,7 @@ result_t DateTimeDataType::writeSymbols(size_t offset, size_t length, istringstr
       if (input->eof() || !getline(*input, token, '.')) {
         return RESULT_ERR_EOF;  // incomplete
       }
-      if (!hasFlag(REQ) && token == NULL_VALUE) {
+      if (!hasFlag(REQ) && token == nullptr_VALUE) {
         value = m_replacement;
         break;
       }
@@ -431,7 +431,7 @@ result_t DateTimeDataType::writeSymbols(size_t offset, size_t length, istringstr
       if (input->eof() || !getline(*input, token, LENGTH_SEPARATOR)) {
         return RESULT_ERR_EOF;  // incomplete
       }
-      if (!hasFlag(REQ) && token == NULL_VALUE) {
+      if (!hasFlag(REQ) && token == nullptr_VALUE) {
         value = m_replacement;
         if (length == 1) {  // truncated time
           if (i == 0) {
@@ -493,7 +493,7 @@ result_t DateTimeDataType::writeSymbols(size_t offset, size_t length, istringstr
   if (!remainder && i < count) {
     return RESULT_ERR_EOF;  // input too short
   }
-  if (usedLength != NULL) {
+  if (usedLength != nullptr) {
     *usedLength = (index-start)*incr;
   }
   return RESULT_OK;
@@ -654,7 +654,7 @@ result_t NumberDataType::readSymbols(size_t offset, size_t length, const SymbolS
     if (outputFormat & OF_JSON) {
       *output << "null";
     } else {
-      *output << NULL_VALUE;
+      *output << nullptr_VALUE;
     }
     return RESULT_OK;
   }
@@ -787,7 +787,7 @@ result_t NumberDataType::writeRawValue(unsigned int value, size_t offset, size_t
       output->dataAt(offset + index) = symbol;
     }
   }
-  if (usedLength != NULL) {
+  if (usedLength != nullptr) {
     *usedLength = length;
   }
   return RESULT_OK;
@@ -797,15 +797,15 @@ result_t NumberDataType::writeSymbols(size_t offset, size_t length, istringstrea
     SymbolString* output, size_t* usedLength) const {
   unsigned int value;
 
-  if (!hasFlag(REQ) && (isIgnored() || input->str() == NULL_VALUE)) {
+  if (!hasFlag(REQ) && (isIgnored() || input->str() == nullptr_VALUE)) {
     value = m_replacement;  // replacement value
   } else if (input->str().empty()) {
     return RESULT_ERR_EOF;  // input too short
   } else if (hasFlag(EXP)) {  // IEEE 754 binary32
     const char* str = input->str().c_str();
-    char* strEnd = NULL;
+    char* strEnd = nullptr;
     double dvalue = strtod(str, &strEnd);
-    if (strEnd == NULL || strEnd == str || *strEnd != 0) {
+    if (strEnd == nullptr || strEnd == str || *strEnd != 0) {
       return RESULT_ERR_INVALID_NUM;  // invalid value
     }
     if (m_divisor < 0) {
@@ -842,7 +842,7 @@ result_t NumberDataType::writeSymbols(size_t offset, size_t length, istringstrea
 #endif
   } else {
     const char* str = input->str().c_str();
-    char* strEnd = NULL;
+    char* strEnd = nullptr;
     if (m_divisor == 1) {
       if (hasFlag(SIG)) {
         long signedValue = strtol(str, &strEnd, 10);
@@ -854,12 +854,12 @@ result_t NumberDataType::writeSymbols(size_t offset, size_t length, istringstrea
       } else {
         value = (unsigned int)strtoul(str, &strEnd, 10);
       }
-      if (strEnd == NULL || strEnd == str || (*strEnd != 0 && *strEnd != '.')) {
+      if (strEnd == nullptr || strEnd == str || (*strEnd != 0 && *strEnd != '.')) {
         return RESULT_ERR_INVALID_NUM;  // invalid value
       }
     } else {
       double dvalue = strtod(str, &strEnd);
-      if (strEnd == NULL || strEnd == str || *strEnd != 0) {
+      if (strEnd == nullptr || strEnd == str || *strEnd != 0) {
         return RESULT_ERR_INVALID_NUM;  // invalid value
       }
       if (m_divisor < 0) {
@@ -912,8 +912,8 @@ bool DataTypeList::s_contrib_initialized = libebus_contrib_register();
 DataTypeList::DataTypeList() {
   add(new StringDataType("STR", MAX_LEN*8, ADJ, ' '));  // >= 1 byte character string filled up with space
   // unsigned decimal in BCD, 0000 - 9999 (fixed length)
-  add(new NumberDataType("PIN", 16, FIX|BCD|REV, 0xffff, 0, 0x9999, 1, NULL));
-  add(new NumberDataType("UCH", 8, 0, 0xff, 0, 0xfe, 1, NULL));  // unsigned integer, 0 - 254
+  add(new NumberDataType("PIN", 16, FIX|BCD|REV, 0xffff, 0, 0x9999, 1, nullptr));
+  add(new NumberDataType("UCH", 8, 0, 0xff, 0, 0xfe, 1, nullptr));  // unsigned integer, 0 - 254
   add(new StringDataType("IGN", MAX_LEN*8, IGN|ADJ, 0));  // >= 1 byte ignored data
   // >= 1 byte character string filled up with 0x00 (null terminated string)
   add(new StringDataType("NTS", MAX_LEN*8, ADJ, 0));
@@ -951,56 +951,56 @@ DataTypeList::DataTypeList() {
   add(new DateTimeDataType("TTH", 6, 0, 0, false, true, 30));
   // truncated time (only multiple of 15 minutes), 00:00 - 24:00 (minutes div 15 + hour * 4 as integer)
   add(new DateTimeDataType("TTQ", 7, 0, 0, false, true, 15));
-  add(new NumberDataType("BDY", 8, DAY, 0x07, 0, 6, 1, NULL));  // weekday, "Mon" - "Sun" (0x00 - 0x06) [eBUS type]
-  add(new NumberDataType("HDY", 8, DAY, 0x00, 1, 7, 1, NULL));  // weekday, "Mon" - "Sun" (0x01 - 0x07) [Vaillant type]
-  add(new NumberDataType("BCD", 8, BCD, 0xff, 0, 99, 1, NULL));  // unsigned decimal in BCD, 0 - 99
-  add(new NumberDataType("BCD", 16, BCD, 0xffff, 0, 9999, 1, NULL));  // unsigned decimal in BCD, 0 - 9999
-  add(new NumberDataType("BCD", 24, BCD, 0xffffff, 0, 999999, 1, NULL));  // unsigned decimal in BCD, 0 - 999999
-  add(new NumberDataType("BCD", 32, BCD, 0xffffffff, 0, 99999999, 1, NULL));  // unsigned decimal in BCD, 0 - 99999999
-  add(new NumberDataType("HCD", 32, HCD|BCD|REQ, 0, 0, 99999999, 1, NULL));  // unsigned decimal in HCD, 0 - 99999999
-  add(new NumberDataType("HCD", 8, HCD|BCD|REQ, 0, 0, 99, 1, NULL));  // unsigned decimal in HCD, 0 - 99
-  add(new NumberDataType("HCD", 16, HCD|BCD|REQ, 0, 0, 9999, 1, NULL));  // unsigned decimal in HCD, 0 - 9999
-  add(new NumberDataType("HCD", 24, HCD|BCD|REQ, 0, 0, 999999, 1, NULL));  // unsigned decimal in HCD, 0 - 999999
-  add(new NumberDataType("SCH", 8, SIG, 0x80, 0x81, 0x7f, 1, NULL));  // signed integer, -127 - +127
-  add(new NumberDataType("D1B", 8, SIG, 0x80, 0x81, 0x7f, 1, NULL));  // signed integer, -127 - +127
+  add(new NumberDataType("BDY", 8, DAY, 0x07, 0, 6, 1, nullptr));  // weekday, "Mon" - "Sun" (0x00 - 0x06) [eBUS type]
+  add(new NumberDataType("HDY", 8, DAY, 0x00, 1, 7, 1, nullptr));  // weekday, "Mon" - "Sun" (0x01 - 0x07) [Vaillant type]
+  add(new NumberDataType("BCD", 8, BCD, 0xff, 0, 99, 1, nullptr));  // unsigned decimal in BCD, 0 - 99
+  add(new NumberDataType("BCD", 16, BCD, 0xffff, 0, 9999, 1, nullptr));  // unsigned decimal in BCD, 0 - 9999
+  add(new NumberDataType("BCD", 24, BCD, 0xffffff, 0, 999999, 1, nullptr));  // unsigned decimal in BCD, 0 - 999999
+  add(new NumberDataType("BCD", 32, BCD, 0xffffffff, 0, 99999999, 1, nullptr));  // unsigned decimal in BCD, 0 - 99999999
+  add(new NumberDataType("HCD", 32, HCD|BCD|REQ, 0, 0, 99999999, 1, nullptr));  // unsigned decimal in HCD, 0 - 99999999
+  add(new NumberDataType("HCD", 8, HCD|BCD|REQ, 0, 0, 99, 1, nullptr));  // unsigned decimal in HCD, 0 - 99
+  add(new NumberDataType("HCD", 16, HCD|BCD|REQ, 0, 0, 9999, 1, nullptr));  // unsigned decimal in HCD, 0 - 9999
+  add(new NumberDataType("HCD", 24, HCD|BCD|REQ, 0, 0, 999999, 1, nullptr));  // unsigned decimal in HCD, 0 - 999999
+  add(new NumberDataType("SCH", 8, SIG, 0x80, 0x81, 0x7f, 1, nullptr));  // signed integer, -127 - +127
+  add(new NumberDataType("D1B", 8, SIG, 0x80, 0x81, 0x7f, 1, nullptr));  // signed integer, -127 - +127
   // unsigned number (fraction 1/2), 0 - 100 (0x00 - 0xc8, replacement 0xff)
-  add(new NumberDataType("D1C", 8, 0, 0xff, 0x00, 0xc8, 2, NULL));
+  add(new NumberDataType("D1C", 8, 0, 0xff, 0x00, 0xc8, 2, nullptr));
   // signed number (fraction 1/256), -127.99 - +127.99
-  add(new NumberDataType("D2B", 16, SIG, 0x8000, 0x8001, 0x7fff, 256, NULL));
+  add(new NumberDataType("D2B", 16, SIG, 0x8000, 0x8001, 0x7fff, 256, nullptr));
   // signed number (fraction 1/16), -2047.9 - +2047.9
-  add(new NumberDataType("D2C", 16, SIG, 0x8000, 0x8001, 0x7fff, 16, NULL));
+  add(new NumberDataType("D2C", 16, SIG, 0x8000, 0x8001, 0x7fff, 16, nullptr));
   // signed number (fraction 1/1000), -32.767 - +32.767, little endian
-  add(new NumberDataType("FLT", 16, SIG, 0x8000, 0x8001, 0x7fff, 1000, NULL));
+  add(new NumberDataType("FLT", 16, SIG, 0x8000, 0x8001, 0x7fff, 1000, nullptr));
   // signed number (fraction 1/1000), -32.767 - +32.767, big endian
-  add(new NumberDataType("FLR", 16, SIG|REV, 0x8000, 0x8001, 0x7fff, 1000, NULL));
+  add(new NumberDataType("FLR", 16, SIG|REV, 0x8000, 0x8001, 0x7fff, 1000, nullptr));
   // signed number (IEEE 754 binary32: 1 bit sign, 8 bits exponent, 23 bits significand), little endian
-  add(new NumberDataType("EXP", 32, SIG|EXP, 0x7f800000, 0x00000000, 0xffffffff, 1, NULL));
+  add(new NumberDataType("EXP", 32, SIG|EXP, 0x7f800000, 0x00000000, 0xffffffff, 1, nullptr));
   // signed number (IEEE 754 binary32: 1 bit sign, 8 bits exponent, 23 bits significand), big endian
-  add(new NumberDataType("EXR", 32, SIG|EXP|REV, 0x7f800000, 0x00000000, 0xffffffff, 1, NULL));
+  add(new NumberDataType("EXR", 32, SIG|EXP|REV, 0x7f800000, 0x00000000, 0xffffffff, 1, nullptr));
   // unsigned integer, 0 - 65534, little endian
-  add(new NumberDataType("UIN", 16, 0, 0xffff, 0, 0xfffe, 1, NULL));
+  add(new NumberDataType("UIN", 16, 0, 0xffff, 0, 0xfffe, 1, nullptr));
   // unsigned integer, 0 - 65534, big endian
-  add(new NumberDataType("UIR", 16, REV, 0xffff, 0, 0xfffe, 1, NULL));
+  add(new NumberDataType("UIR", 16, REV, 0xffff, 0, 0xfffe, 1, nullptr));
   // signed integer, -32767 - +32767, little endian
-  add(new NumberDataType("SIN", 16, SIG, 0x8000, 0x8001, 0x7fff, 1, NULL));
+  add(new NumberDataType("SIN", 16, SIG, 0x8000, 0x8001, 0x7fff, 1, nullptr));
   // signed integer, -32767 - +32767, big endian
-  add(new NumberDataType("SIR", 16, SIG|REV, 0x8000, 0x8001, 0x7fff, 1, NULL));
+  add(new NumberDataType("SIR", 16, SIG|REV, 0x8000, 0x8001, 0x7fff, 1, nullptr));
   // unsigned 3 bytes int, 0 - 16777214, little endian
-  add(new NumberDataType("U3N", 24, 0, 0xffffff, 0, 0xfffffe, 1, NULL));
+  add(new NumberDataType("U3N", 24, 0, 0xffffff, 0, 0xfffffe, 1, nullptr));
   // unsigned 3 bytes int, 0 - 16777214, big endian
-  add(new NumberDataType("U3R", 24, REV, 0xffffff, 0, 0xfffffe, 1, NULL));
+  add(new NumberDataType("U3R", 24, REV, 0xffffff, 0, 0xfffffe, 1, nullptr));
   // signed 3 bytes int, -8388607 - +8388607, little endian
-  add(new NumberDataType("S3N", 24, SIG, 0x800000, 0x800001, 0xffffff, 1, NULL));
+  add(new NumberDataType("S3N", 24, SIG, 0x800000, 0x800001, 0xffffff, 1, nullptr));
   // signed 3 bytes int, -8388607 - +8388607, big endian
-  add(new NumberDataType("S3R", 24, SIG|REV, 0x800000, 0x800001, 0xffffff, 1, NULL));
+  add(new NumberDataType("S3R", 24, SIG|REV, 0x800000, 0x800001, 0xffffff, 1, nullptr));
   // unsigned integer, 0 - 4294967294, little endian
-  add(new NumberDataType("ULG", 32, 0, 0xffffffff, 0, 0xfffffffe, 1, NULL));
+  add(new NumberDataType("ULG", 32, 0, 0xffffffff, 0, 0xfffffffe, 1, nullptr));
   // unsigned integer, 0 - 4294967294, big endian
-  add(new NumberDataType("ULR", 32, REV, 0xffffffff, 0, 0xfffffffe, 1, NULL));
+  add(new NumberDataType("ULR", 32, REV, 0xffffffff, 0, 0xfffffffe, 1, nullptr));
   // signed integer, -2147483647 - +2147483647, little endian
-  add(new NumberDataType("SLG", 32, SIG, 0x80000000, 0x80000001, 0xffffffff, 1, NULL));
+  add(new NumberDataType("SLG", 32, SIG, 0x80000000, 0x80000001, 0xffffffff, 1, nullptr));
   // signed integer, -2147483647 - +2147483647, big endian
-  add(new NumberDataType("SLR", 32, SIG|REV, 0x80000000, 0x80000001, 0xffffffff, 1, NULL));
+  add(new NumberDataType("SLR", 32, SIG|REV, 0x80000000, 0x80000001, 0xffffffff, 1, nullptr));
   add(new NumberDataType("BI0", 7, ADJ|REQ, 0, 0, 1));  // bit 0 (up to 7 bits until bit 6)
   add(new NumberDataType("BI1", 7, ADJ|REQ, 0, 1, 1));  // bit 1 (up to 7 bits until bit 7)
   add(new NumberDataType("BI2", 6, ADJ|REQ, 0, 2, 1));  // bit 2 (up to 6 bits until bit 7)
@@ -1056,10 +1056,10 @@ const DataType* DataTypeList::get(const string& id, size_t length) const {
   }
   auto it = m_typesById.find(id);
   if (it == m_typesById.end()) {
-    return NULL;
+    return nullptr;
   }
   if (length > 0 && !it->second->isAdjustableLength()) {
-    return NULL;
+    return nullptr;
   }
   return it->second;
 }

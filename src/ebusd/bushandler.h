@@ -380,7 +380,7 @@ class BusHandler : public WaitThread {
       m_generateSynInterval(generateSyn ? SYN_TIMEOUT*getMasterNumber(ownAddress)+SYMBOL_DURATION : 0),
       m_pollInterval(pollInterval), m_symbolLatencyMin(-1), m_symbolLatencyMax(-1), m_arbitrationDelayMin(-1),
       m_arbitrationDelayMax(-1), m_lastReceive(0), m_lastPoll(0),
-      m_currentRequest(NULL), m_currentAnswering(false), m_runningScans(0), m_nextSendPos(0),
+      m_currentRequest(nullptr), m_currentAnswering(false), m_runningScans(0), m_nextSendPos(0),
       m_symPerSec(0), m_maxSymPerSec(0),
       m_state(bs_noSignal), m_escape(0), m_crc(0), m_crcValid(false), m_repeat(false),
       m_grabMessages(true) {
@@ -396,17 +396,17 @@ class BusHandler : public WaitThread {
     stop();
     join();
     BusRequest* req;
-    while ((req = m_finishedRequests.pop()) != NULL) {
+    while ((req = m_finishedRequests.pop()) != nullptr) {
       delete req;
     }
-    while ((req = m_nextRequests.pop()) != NULL) {
+    while ((req = m_nextRequests.pop()) != nullptr) {
       if (req->m_deleteOnFinish) {
         delete req;
       }
     }
-    if (m_currentRequest != NULL) {
+    if (m_currentRequest != nullptr) {
       delete m_currentRequest;
-      m_currentRequest = NULL;
+      m_currentRequest = nullptr;
     }
   }
 
@@ -633,7 +633,7 @@ class BusHandler : public WaitThread {
    * @param full true for a full scan (all slaves), false for scanning only already seen slaves.
    * @param levels the current user's access levels.
    * @param reload true to force sending the scan message, false to send only if necessary (only for single slave).
-   * @param request the created @a ScanRequest (may be NULL with positive result if scan is not needed).
+   * @param request the created @a ScanRequest (may be nullptr with positive result if scan is not needed).
    * @return the result code.
    */
   result_t prepareScan(symbol_t slave, bool full, const string& levels, bool* reload, ScanRequest** request);
@@ -722,7 +722,7 @@ class BusHandler : public WaitThread {
   /** the queue of @a BusRequests that shall be handled. */
   Queue<BusRequest*> m_nextRequests;
 
-  /** the currently handled BusRequest, or NULL. */
+  /** the currently handled BusRequest, or nullptr. */
   BusRequest* m_currentRequest;
 
   /** whether currently answering a request from another participant. */

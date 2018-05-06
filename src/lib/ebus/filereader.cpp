@@ -40,18 +40,18 @@ istream* FileReader::openFile(const string& filename, string* errorDescription, 
   struct stat st;
   if (stat(filename.c_str(), &st) != 0) {
     *errorDescription = filename;
-    return NULL;
+    return nullptr;
   }
   if (S_ISDIR(st.st_mode)) {
     *errorDescription = filename+" is a directory";
-    return NULL;
+    return nullptr;
   }
   ifstream* stream = new ifstream();
   stream->open(filename.c_str(), ifstream::in);
   if (!stream->is_open()) {
     *errorDescription = filename;
     delete(stream);
-    return NULL;
+    return nullptr;
   }
   if (time) {
     *time = st.st_mtime;

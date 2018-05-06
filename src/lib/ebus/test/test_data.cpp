@@ -52,7 +52,7 @@ class TestReader : public MappedFileReader {
  public:
   TestReader(DataFieldTemplates* templates, bool isSet, bool isMasterDest)
   : MappedFileReader::MappedFileReader(true), m_templates(templates), m_isSet(isSet), m_isMasterDest(isMasterDest),
-    m_fields(NULL) {}
+    m_fields(nullptr) {}
   result_t getFieldMap(const string& preferLanguage, vector<string>* row, string* errorDescription) const override {
     if (row->empty()) {
       row->push_back("*name");
@@ -512,8 +512,8 @@ int main() {
   istringstream dummystr("#");
   string errorDescription;
   vector<string> row;
-  templates->readLineFromStream(&dummystr, __FILE__, false, &lineNo, &row, &errorDescription, false, NULL, NULL);
-  const DataField* fields = NULL;
+  templates->readLineFromStream(&dummystr, __FILE__, false, &lineNo, &row, &errorDescription, false, nullptr, nullptr);
+  const DataField* fields = nullptr;
   for (unsigned int i = 0; i < sizeof(checks) / sizeof(checks[0]); i++) {
     string check[5] = checks[i];
     istringstream isstr(check[0]);
@@ -539,7 +539,7 @@ int main() {
     bool failedReadMatch = flags.find('R') != string::npos;
     bool failedWrite = flags.find('w') != string::npos;
     bool failedWriteMatch = flags.find('W') != string::npos;
-    const char* findName = flags.find('I') == string::npos ? NULL : "x";
+    const char* findName = flags.find('I') == string::npos ? nullptr : "x";
     ssize_t findIndex = -1;
     if (flags.find('i') != string::npos) {
       findIndex = parseSignedInt(flags.substr(flags.find('i')+1).c_str(), 10, 0, 9, &result);
@@ -561,13 +561,13 @@ int main() {
     bool isTemplate = flags.find('t') != string::npos;
     string item;
 
-    if (fields != NULL) {
+    if (fields != nullptr) {
       delete fields;
-      fields = NULL;
+      fields = nullptr;
     }
     if (isTemplate) {
       lineNo = baseLine + i;
-      result = templates->readLineFromStream(&isstr, __FILE__, false, &lineNo, &row, &errorDescription, false, NULL, NULL);
+      result = templates->readLineFromStream(&isstr, __FILE__, false, &lineNo, &row, &errorDescription, false, nullptr, nullptr);
       if (result != RESULT_OK) {
         cout << "\"" << check[0] << "\": template read error: " << getResultCode(result) << ", "
             << errorDescription << endl;
@@ -579,7 +579,7 @@ int main() {
     lineNo = 0;
     dummystr.clear();
     dummystr.str("#");
-    result = reader.readLineFromStream(&dummystr, __FILE__, false, &lineNo, &row, &errorDescription, false, NULL, NULL);
+    result = reader.readLineFromStream(&dummystr, __FILE__, false, &lineNo, &row, &errorDescription, false, nullptr, nullptr);
     if (result != RESULT_OK) {
       cout << "\"" << check[0] << "\": read header error: " << getResultCode(result) << ", " << errorDescription
           << endl;
@@ -587,7 +587,7 @@ int main() {
       continue;
     }
     lineNo = baseLine + i;
-    result = reader.readLineFromStream(&isstr, "", false, &lineNo, &row, &errorDescription, false, NULL, NULL);
+    result = reader.readLineFromStream(&isstr, "", false, &lineNo, &row, &errorDescription, false, nullptr, nullptr);
     fields = reader.m_fields;
     if (failedCreate) {
       if (result == RESULT_OK) {
@@ -603,8 +603,8 @@ int main() {
       error = true;
       continue;
     }
-    if (fields == NULL) {
-      cout << "\"" << check[0] << "\": create error: NULL" << endl;
+    if (fields == nullptr) {
+      cout << "\"" << check[0] << "\": create error: nullptr" << endl;
       error = true;
       continue;
     }
@@ -649,9 +649,9 @@ int main() {
 
     if (verbosity == 0) {
       istringstream input(expectStr);
-      result = fields->write(UI_FIELD_SEPARATOR, 0, &input, &writeMstr, NULL);
+      result = fields->write(UI_FIELD_SEPARATOR, 0, &input, &writeMstr, nullptr);
       if (result >= RESULT_OK) {
-        result = fields->write(UI_FIELD_SEPARATOR, 0, &input, &writeSstr, NULL);
+        result = fields->write(UI_FIELD_SEPARATOR, 0, &input, &writeSstr, nullptr);
       }
       if (failedWrite) {
         if (result >= RESULT_OK) {
@@ -673,7 +673,7 @@ int main() {
       }
     }
     delete fields;
-    fields = NULL;
+    fields = nullptr;
   }
 
   delete templates;

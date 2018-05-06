@@ -72,7 +72,7 @@ class Device {
    */
   Device(const char* name, bool checkDevice, bool readOnly, bool initialSend)
     : m_name(name), m_checkDevice(checkDevice), m_readOnly(readOnly), m_initialSend(initialSend), m_fd(-1),
-      m_listener(NULL) {}
+      m_listener(nullptr) {}
 
   /**
    * Destructor.
@@ -85,7 +85,7 @@ class Device {
    * @param checkDevice whether to regularly check the device availability (only for serial devices).
    * @param readOnly whether to allow read access to the device only.
    * @param initialSend whether to send an initial @a ESC symbol in @a open().
-   * @return the new @a Device, or NULL on error.
+   * @return the new @a Device, or nullptr on error.
    * Note: the caller needs to free the created instance.
    */
   static Device* create(const char* name, bool checkDevice = true, bool readOnly = false,
@@ -191,7 +191,7 @@ class Device {
 
 
  private:
-  /** the @a DeviceListener, or NULL. */
+  /** the @a DeviceListener, or nullptr. */
   DeviceListener* m_listener;
 };
 
@@ -243,7 +243,7 @@ class NetworkDevice : public Device {
   NetworkDevice(const char* name, const struct sockaddr_in& address, bool readOnly, bool initialSend,
     bool udp)
     : Device(name, true, readOnly, initialSend), m_address(address), m_udp(udp),
-      m_buffer(NULL), m_bufSize(0), m_bufLen(0), m_bufPos(0) {}
+      m_buffer(nullptr), m_bufSize(0), m_bufLen(0), m_bufPos(0) {}
 
   /**
    * Destructor.
@@ -284,7 +284,7 @@ class NetworkDevice : public Device {
   /** true for UDP, false to TCP. */
   const bool m_udp;
 
-  /** the buffer memory, or NULL. */
+  /** the buffer memory, or nullptr. */
   symbol_t* m_buffer;
 
   /** the buffer size. */

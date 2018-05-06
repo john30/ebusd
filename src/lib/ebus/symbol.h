@@ -97,7 +97,7 @@ typedef unsigned char symbol_t;
  * @return the parsed value.
  */
 unsigned int parseInt(const char* str, int base, unsigned int minValue, unsigned int maxValue,
-    result_t* result, size_t* length = NULL);
+    result_t* result, size_t* length = nullptr);
 
 /**
  * Parse a signed int value.
@@ -110,7 +110,7 @@ unsigned int parseInt(const char* str, int base, unsigned int minValue, unsigned
  * @return the parsed value.
  */
 int parseSignedInt(const char* str, int base, int minValue, int maxValue,
-    result_t* result, size_t* length = NULL);
+    result_t* result, size_t* length = nullptr);
 
 /**
  * A string of unescaped bus symbols.

@@ -83,25 +83,25 @@ static char argpargsdoc[] = "[DUMPFILE]";
 
 /** the definition of the known program arguments. */
 static const struct argp_option argpoptions[] = {
-  {"device", 'd', "DEV",  0, "Write to DEV (serial device) [/dev/ttyUSB60]", 0 },
-  {"time",   't', "USEC", 0, "Delay each byte by USEC us [10000]", 0 },
+  {"device", 'd', "DEV",     0, "Write to DEV (serial device) [/dev/ttyUSB60]", 0 },
+  {"time",   't', "USEC",    0, "Delay each byte by USEC us [10000]", 0 },
 
-  {NULL,       0, NULL,   0, NULL, 0 },
+  {nullptr,    0, nullptr,   0, nullptr, 0 },
 };
 
 /**
  * The program argument parsing function.
  * @param key the key from @a argpoptions.
- * @param arg the option argument, or NULL.
+ * @param arg the option argument, or nullptr.
  * @param state the parsing state.
  */
 error_t parse_opt(int key, char *arg, struct argp_state *state) {
   struct options *opt = (struct options*)state->input;
-  char* strEnd = NULL;
+  char* strEnd = nullptr;
   switch (key) {
   // Device settings:
   case 'd':  // --device=/dev/ttyUSB60
-    if (arg == NULL || arg[0] == 0) {
+    if (arg == nullptr || arg[0] == 0) {
       argp_error(state, "invalid device");
       return EINVAL;
     }
@@ -109,14 +109,14 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
   case 't':  // --time=10000
     opt->time = (unsigned int)strtoul(arg, &strEnd, 10);
-    if (strEnd == NULL || strEnd == arg || *strEnd != 0 || opt->time < 1000 || opt->time > 100000000) {
+    if (strEnd == nullptr || strEnd == arg || *strEnd != 0 || opt->time < 1000 || opt->time > 100000000) {
       argp_error(state, "invalid time");
       return EINVAL;
     }
     break;
   case ARGP_KEY_ARG:
     if (state->arg_num == 0) {
-      if (arg == NULL || arg[0] == 0 || strcmp("/", arg) == 0) {
+      if (arg == nullptr || arg[0] == 0 || strcmp("/", arg) == 0) {
         argp_error(state, "invalid dumpfile");
         return EINVAL;
       }
@@ -139,13 +139,13 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
  * @return the exit code.
  */
 int main(int argc, char* argv[]) {
-  struct argp argp = { argpoptions, parse_opt, argpargsdoc, argpdoc, NULL, NULL, NULL };
+  struct argp argp = { argpoptions, parse_opt, argpargsdoc, argpdoc, nullptr, nullptr, nullptr };
   setenv("ARGP_HELP_FMT", "no-dup-args-note", 0);
-  if (argp_parse(&argp, argc, argv, ARGP_IN_ORDER, NULL, &opt) != 0) {
+  if (argp_parse(&argp, argc, argv, ARGP_IN_ORDER, nullptr, &opt) != 0) {
     return EINVAL;
   }
-  Device* device = Device::create(opt.device, false, false, NULL);
-  if (device == NULL) {
+  Device* device = Device::create(opt.device, false, false, false);
+  if (device == nullptr) {
     cout << "unable to create device " << opt.device << endl;
     return EINVAL;
   }

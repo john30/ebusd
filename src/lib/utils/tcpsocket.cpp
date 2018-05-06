@@ -54,14 +54,14 @@ TCPSocket* TCPClient::connect(const string& server, const uint16_t& port, int ti
     struct hostent* he;
 
     he = gethostbyname(server.c_str());
-    if (he == NULL) {
-      return NULL;
+    if (he == nullptr) {
+      return nullptr;
     }
     memcpy(&address.sin_addr, he->h_addr_list[0], he->h_length);
   } else {
     ret = inet_aton(server.c_str(), &address.sin_addr);
     if (ret == 0) {
-      return NULL;
+      return nullptr;
     }
   }
 
@@ -70,7 +70,7 @@ TCPSocket* TCPClient::connect(const string& server, const uint16_t& port, int ti
 
   int sfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sfd < 0) {
-    return NULL;
+    return nullptr;
   }
 #ifndef HAVE_PPOLL
 #ifndef HAVE_PSELECT
@@ -79,13 +79,13 @@ TCPSocket* TCPClient::connect(const string& server, const uint16_t& port, int ti
 #endif
   if (timeout > 0 && fcntl(sfd, F_SETFL, O_NONBLOCK) < 0) {  // set non-blocking
     close(sfd);
-    return NULL;
+    return nullptr;
   }
   ret = ::connect(sfd, (struct sockaddr *) &address, sizeof(address));
   if (ret != 0) {
     if (ret < 0 && (timeout <= 0 || errno != EINPROGRESS)) {
       close(sfd);
-      return NULL;
+      return nullptr;
     }
     if (timeout > 0) {
       struct timespec tdiff;
@@ -97,7 +97,7 @@ TCPSocket* TCPClient::connect(const string& server, const uint16_t& port, int ti
       memset(fds, 0, sizeof(fds));
       fds[0].fd = sfd;
       fds[0].events = POLLIN|POLLOUT;
-      ret = ppoll(fds, nfds, &tdiff, NULL);
+      ret = ppoll(fds, nfds, &tdiff, nullptr);
       if (ret == 1 && fds[0].revents & POLLERR) {
         ret = -1;
       }
@@ -107,20 +107,20 @@ TCPSocket* TCPClient::connect(const string& server, const uint16_t& port, int ti
       FD_ZERO(&writefds);
       FD_ZERO(&exceptfds);
       FD_SET(sfd, &readfds);
-      ret = pselect(sfd + 1, &readfds, &writefds, &exceptfds, &tdiff, NULL);
+      ret = pselect(sfd + 1, &readfds, &writefds, &exceptfds, &tdiff, nullptr);
       if (ret >= 1 && FD_ISSET(sfd, &exceptfds)) {
         ret = -1;
       }
 #endif
       if (ret == -1 || ret == 0) {
         close(sfd);
-        return NULL;
+        return nullptr;
       }
     }
   }
   if (timeout > 0 && fcntl(sfd, F_SETFL, 0) < 0) {  // set blocking again
     close(sfd);
-    return NULL;
+    return nullptr;
   }
   TCPSocket* s = new TCPSocket(sfd, &address);
   if (timeout > 0) {
@@ -164,7 +164,7 @@ int TCPServer::start() {
 
 TCPSocket* TCPServer::newSocket() {
   if (!m_listening) {
-    return NULL;
+    return nullptr;
   }
   socketaddress address;
   socklen_t len = sizeof(address);
@@ -173,7 +173,7 @@ TCPSocket* TCPServer::newSocket() {
 
   int sfd = accept(m_lfd, (struct sockaddr*) &address, &len);
   if (sfd < 0) {
-    return NULL;
+    return nullptr;
   }
   return new TCPSocket(sfd, &address);
 }

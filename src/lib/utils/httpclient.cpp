@@ -58,9 +58,9 @@ bool HttpClient::parseUrl(const string& url, string& proto, string& host, uint16
   }
   port = 80;
   if (pos != string::npos) {
-    char* strEnd = NULL;
+    char* strEnd = nullptr;
     unsigned long value = strtoul(host.c_str()+pos+1, &strEnd, 10);
-    if (strEnd == NULL || *strEnd != '\0' || value < 1 || value > 65535) {
+    if (strEnd == nullptr || *strEnd != '\0' || value < 1 || value > 65535) {
       return false;
     }
     port = static_cast<uint16_t>(value);
@@ -182,30 +182,30 @@ bool HttpClient::request(const string& method, const string& uri, const string& 
       // Last-Modified: Wed, 21 Oct 2015 07:28:00 GMT
       struct tm t;
       pos += strlen("\r\nLast-Modified: ") + 5;
-      char* strEnd = NULL;
+      char* strEnd = nullptr;
       t.tm_mday = (int)strtol(hdrs + pos, &strEnd, 10);
       if (strEnd != hdrs + pos + 2 || t.tm_mday < 1 || t.tm_mday > 31) {
         t.tm_mday = -1;
       }
       t.tm_mon = indexToMonth[((hdrs[pos+4]&0x10)>>1) | (hdrs[pos+5]&0x17)] - 1;
-      strEnd = NULL;
+      strEnd = nullptr;
       t.tm_year = (int)strtol(hdrs + pos + 7, &strEnd, 10);
       if (strEnd != hdrs + pos + 11 || t.tm_year < 1970 || t.tm_year >= 3000) {
         t.tm_year = -1;
       } else {
         t.tm_year -= 1900;
       }
-      strEnd = NULL;
+      strEnd = nullptr;
       t.tm_hour = (int)strtol(hdrs + pos + 12, &strEnd, 10);
       if (strEnd != hdrs + pos + 14 || t.tm_hour > 23) {
         t.tm_hour = -1;
       }
-      strEnd = NULL;
+      strEnd = nullptr;
       t.tm_min = (int)strtol(hdrs + pos + 15, &strEnd, 10);
       if (strEnd != hdrs + pos + 17 || t.tm_min > 59) {
         t.tm_min = -1;
       }
-      strEnd = NULL;
+      strEnd = nullptr;
       t.tm_sec = (int)strtol(hdrs + pos + 18, &strEnd, 10);
       if (strEnd != hdrs + pos + 20 || t.tm_sec > 59) {
         t.tm_sec = -1;
@@ -220,9 +220,9 @@ bool HttpClient::request(const string& method, const string& uri, const string& 
     disconnect();
     return true;
   }
-  char* strEnd = NULL;
+  char* strEnd = nullptr;
   unsigned long length = strtoul(hdrs + pos + strlen("\r\nContent-Length: "), &strEnd, 10);
-  if (strEnd == NULL || *strEnd != '\r') {
+  if (strEnd == nullptr || *strEnd != '\r') {
     disconnect();
     response = "invalid content length ";
     return false;

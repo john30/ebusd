@@ -111,13 +111,13 @@ void Connection::run() {
   while (!closed) {
 #ifdef HAVE_PPOLL
     // wait for new fd event
-    ret = ppoll(fds, nfds, &tdiff, NULL);
+    ret = ppoll(fds, nfds, &tdiff, nullptr);
 #else
 #ifdef HAVE_PSELECT
     // set readfds to inital checkfds
     fd_set readfds = checkfds;
     // wait for new fd event
-    ret = pselect(maxfd + 1, &readfds, NULL, &exceptfds, &tdiff, NULL);
+    ret = pselect(maxfd + 1, &readfds, nullptr, &exceptfds, &tdiff, nullptr);
 #endif
 #endif
     bool newData = false;
@@ -184,7 +184,7 @@ void Connection::run() {
   }
 
   delete m_socket;
-  m_socket = NULL;
+  m_socket = nullptr;
   logInfo(lf_network, "[%05d] connection closed", getID());
 }
 
@@ -193,21 +193,21 @@ Network::Network(const bool local, const uint16_t port, const uint16_t httpPort,
   : Thread(), m_netQueue(netQueue), m_listening(false) {
   m_tcpServer = new TCPServer(port, local ? "127.0.0.1" : "0.0.0.0");
 
-  if (m_tcpServer != NULL && m_tcpServer->start() == 0) {
+  if (m_tcpServer != nullptr && m_tcpServer->start() == 0) {
     m_listening = true;
   }
   if (httpPort > 0) {
     m_httpServer = new TCPServer(httpPort, "0.0.0.0");
     m_httpServer->start();
   } else {
-    m_httpServer = NULL;
+    m_httpServer = nullptr;
   }
 }
 
 Network::~Network() {
   stop();
   NetMessage* netMsg;
-  while ((netMsg = m_netQueue->pop()) != NULL) {
+  while ((netMsg = m_netQueue->pop()) != nullptr) {
     netMsg->setResult("ERR: shutdown", "", false, 0, true);
   }
   while (!m_connections.empty()) {
@@ -218,10 +218,10 @@ Network::~Network() {
     delete connection;
   }
 
-  if (m_tcpServer != NULL) {
+  if (m_tcpServer != nullptr) {
     delete m_tcpServer;
   }
-  if (m_httpServer != NULL) {
+  if (m_httpServer != nullptr) {
     delete m_httpServer;
   }
   join();
@@ -276,13 +276,13 @@ void Network::run() {
   while (true) {
 #ifdef HAVE_PPOLL
     // wait for new fd event
-    ret = ppoll(fds, nfds, &tdiff, NULL);
+    ret = ppoll(fds, nfds, &tdiff, nullptr);
 #else
 #ifdef HAVE_PSELECT
     // set readfds to inital checkfds
     fd_set readfds = checkfds;
     // wait for new fd event
-    ret = pselect(maxfd + 1, &readfds, NULL, NULL, &tdiff, NULL);
+    ret = pselect(maxfd + 1, &readfds, nullptr, nullptr, &tdiff, nullptr);
 #endif
 #endif
     if (ret == 0) {
@@ -317,7 +317,7 @@ void Network::run() {
 #endif
     if (newData) {
       TCPSocket* socket = (isHttp ? m_httpServer : m_tcpServer)->newSocket();
-      if (socket == NULL) {
+      if (socket == nullptr) {
         continue;
       }
       Connection* connection = new Connection(socket, isHttp, m_netQueue);

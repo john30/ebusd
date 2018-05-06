@@ -58,7 +58,7 @@ using std::ostringstream;
 #define LENGTH_SEPARATOR ':'
 
 /** the replacement string for undefined values (in UI and CSV). */
-#define NULL_VALUE "-"
+#define nullptr_VALUE "-"
 
 /** the separator character used between fields (in UI only). */
 #define UI_FIELD_SEPARATOR ';'
@@ -134,7 +134,7 @@ enum PartType {
 /** bit flag for @a DataType: fixed width formatting. */
 #define FIX 0x20
 
-/** bit flag for @a DataType: value may not be NULL. */
+/** bit flag for @a DataType: value may not be nullptr. */
 #define REQ 0x40
 
 /** bit flag for @a DataType: binary representation is hex converted to decimal and interpreted as 2 digits
@@ -256,7 +256,7 @@ class DataType {
    * @param length the number of symbols to write, or @a REMAIN_LEN.
    * @param input the @a istringstream to parse the formatted value from.
    * @param output the @a SymbolString to write the binary value to.
-   * @param usedLength the variable in which to store the used length in bytes, or NULL.
+   * @param usedLength the variable in which to store the used length in bytes, or nullptr.
    * @return @a RESULT_OK on success, or an error code.
    */
   virtual result_t writeSymbols(size_t offset, size_t length, istringstream* input,
@@ -399,7 +399,7 @@ class NumberDataType : public DataType {
    * @param minValue the minimum raw value.
    * @param maxValue the maximum raw value.
    * @param divisor the divisor (negative for reciprocal).
-   * @param baseType the base @a NumberDataType for derived instances, or NULL.
+   * @param baseType the base @a NumberDataType for derived instances, or nullptr.
    */
   NumberDataType(const string& id, size_t bitCount, uint16_t flags, unsigned int replacement,
       unsigned int minValue, unsigned int maxValue, int divisor,
@@ -415,10 +415,10 @@ class NumberDataType : public DataType {
    * @param replacement the replacement value (no replacement if zero).
    * @param firstBit the offset to the first bit.
    * @param divisor the divisor (negative for reciprocal).
-   * @param baseType the base @a NumberDataType for derived instances, or NULL.
+   * @param baseType the base @a NumberDataType for derived instances, or nullptr.
    */
   NumberDataType(const string& id, size_t bitCount, uint16_t flags, unsigned int replacement,
-      int16_t firstBit, int divisor, const NumberDataType* baseType = NULL)
+      int16_t firstBit, int divisor, const NumberDataType* baseType = nullptr)
     : DataType(id, bitCount, flags|NUM, replacement), m_minValue(0), m_maxValue((1 << bitCount)-1), m_divisor(divisor),
       m_precision(0), m_firstBit(firstBit), m_baseType(baseType) {}
 
@@ -490,7 +490,7 @@ class NumberDataType : public DataType {
    * @param length the number of symbols to write, or @a REMAIN_LEN.
    * @param output the @a SymbolString to write the binary value to.
    * @param usedLength the variable in which to store the used length in bytes,
-   * or NULL.
+   * or nullptr.
    * @return @a RESULT_OK on success, or an error code.
    */
   result_t writeRawValue(unsigned int value, size_t offset, size_t length,
@@ -568,7 +568,7 @@ class DataTypeList {
    * Gets the @a DataType instance with the specified ID.
    * @param id the ID string (excluding optional length suffix).
    * @param length the length in bytes, or 0 for default.
-   * @return the @a DataType instance, or NULL if not available.
+   * @return the @a DataType instance, or nullptr if not available.
    * Note: the caller may not free the instance.
    */
   const DataType* get(const string& id, size_t length = 0) const;

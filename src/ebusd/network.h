@@ -48,8 +48,8 @@ class NetMessage {
    */
   explicit NetMessage(bool isHttp)
     : m_isHttp(isHttp), m_resultSet(false), m_disconnect(false), m_listening(false), m_listenSince(0) {
-    pthread_mutex_init(&m_mutex, NULL);
-    pthread_cond_init(&m_cond, NULL);
+    pthread_mutex_init(&m_mutex, nullptr);
+    pthread_cond_init(&m_cond, nullptr);
   }
 
   /**
@@ -138,7 +138,7 @@ class NetMessage {
    * @param listenSince set to the start time from which to add updates (inclusive).
    * @return whether the client is in listening mode.
    */
-  bool isListening(time_t* listenSince = NULL) {
+  bool isListening(time_t* listenSince = nullptr) {
     if (listenSince) {
       *listenSince = m_listenSince;
     }
@@ -278,7 +278,7 @@ class Network : public Thread {
   /** the command line @a TCPServer instance. */
   TCPServer* m_tcpServer;
 
-  /** the HTTP @a TCPServer instance, or NULL. */
+  /** the HTTP @a TCPServer instance, or nullptr. */
   TCPServer* m_httpServer;
 
   /** @a Notify object for shutdown procedure. */

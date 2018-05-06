@@ -53,7 +53,7 @@ class TestReader : public MappedFileReader {
  public:
   TestReader(DataFieldTemplates* templates, bool isSet, bool isMasterDest)
   : MappedFileReader::MappedFileReader(true), m_templates(templates), m_isSet(isSet), m_isMasterDest(isMasterDest),
-    m_fields(NULL) {}
+    m_fields(nullptr) {}
   result_t getFieldMap(const string& preferLanguage, vector<string>* row, string* errorDescription) const override {
     if (row->empty()) {
       row->push_back("*name");
@@ -90,7 +90,7 @@ class TestReader : public MappedFileReader {
 
 int main() {
   const DataType* type = DataTypeList::getInstance()->get("TEM_P");
-  if (type == NULL) {
+  if (type == nullptr) {
     cout << "datatype not registered" << endl;
     return 1;
   }
@@ -118,8 +118,8 @@ int main() {
   istringstream dummystr("#");
   string errorDescription;
   vector<string> row;
-  templates->readLineFromStream(&dummystr, "inline", false, &lineNo, &row, &errorDescription, false, NULL, NULL);
-  const DataField* fields = NULL;
+  templates->readLineFromStream(&dummystr, "inline", false, &lineNo, &row, &errorDescription, false, nullptr, nullptr);
+  const DataField* fields = nullptr;
   for (unsigned int i = 0; i < sizeof(checks) / sizeof(checks[0]); i++) {
     string check[5] = checks[i];
     istringstream isstr(check[0]);
@@ -146,9 +146,9 @@ int main() {
     bool failedWriteMatch = flags.find('W') != string::npos;
     string item;
 
-    if (fields != NULL) {
+    if (fields != nullptr) {
       delete fields;
-      fields = NULL;
+      fields = nullptr;
     }
 
     string errorDescription;
@@ -156,7 +156,7 @@ int main() {
     lineNo = 0;
     dummystr.clear();
     dummystr.str("#");
-    result = reader.readLineFromStream(&dummystr, "inline", false, &lineNo, &row, &errorDescription, false, NULL, NULL);
+    result = reader.readLineFromStream(&dummystr, "inline", false, &lineNo, &row, &errorDescription, false, nullptr, nullptr);
     if (result != RESULT_OK) {
       cout << "\"" << check[0] << "\": reader header error: " << getResultCode(result) << ", " << errorDescription
           << endl;
@@ -164,7 +164,7 @@ int main() {
       continue;
     }
     lineNo = baseLine + i;
-    result = reader.readLineFromStream(&isstr, __FILE__, false, &lineNo, &row, &errorDescription, false, NULL, NULL);
+    result = reader.readLineFromStream(&isstr, __FILE__, false, &lineNo, &row, &errorDescription, false, nullptr, nullptr);
     fields = reader.m_fields;
 
     if (result != RESULT_OK) {
@@ -172,8 +172,8 @@ int main() {
       error = true;
       continue;
     }
-    if (fields == NULL) {
-      cout << "\"" << check[0] << "\": create error: NULL" << endl;
+    if (fields == nullptr) {
+      cout << "\"" << check[0] << "\": create error: nullptr" << endl;
       error = true;
       continue;
     }
@@ -194,9 +194,9 @@ int main() {
       cout << "  parse \"" << sstr.getStr().substr(0, 2) << "\" error: " << getResultCode(result) << endl;
       error = true;
     }
-    result = fields->read(mstr, 0, false, NULL, -1, 0, -1, &output);
+    result = fields->read(mstr, 0, false, nullptr, -1, 0, -1, &output);
     if (result >= RESULT_OK) {
-      result = fields->read(sstr, 0, !output.str().empty(), NULL, -1, 0, -1, &output);
+      result = fields->read(sstr, 0, !output.str().empty(), nullptr, -1, 0, -1, &output);
     }
     if (failedRead) {
       if (result >= RESULT_OK) {
@@ -217,9 +217,9 @@ int main() {
     }
 
     istringstream input(expectStr);
-    result = fields->write(UI_FIELD_SEPARATOR, 0, &input, &writeMstr, NULL);
+    result = fields->write(UI_FIELD_SEPARATOR, 0, &input, &writeMstr, nullptr);
     if (result >= RESULT_OK) {
-      result = fields->write(UI_FIELD_SEPARATOR, 0, &input, &writeSstr, NULL);
+      result = fields->write(UI_FIELD_SEPARATOR, 0, &input, &writeSstr, nullptr);
     }
     if (failedWrite) {
       if (result >= RESULT_OK) {
@@ -240,7 +240,7 @@ int main() {
           writeMstr.getStr() + " " + writeSstr.getStr());
     }
     delete fields;
-    fields = NULL;
+    fields = nullptr;
   }
 
   delete templates;

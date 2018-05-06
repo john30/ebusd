@@ -66,7 +66,7 @@ result_t TemParamDataType::readSymbols(size_t offset, size_t length, const Symbo
     if (outputFormat & OF_JSON) {
       *output << "null";
     } else {
-      *output << NULL_VALUE;
+      *output << nullptr_VALUE;
     }
     return RESULT_OK;
   }
@@ -94,7 +94,7 @@ result_t TemParamDataType::writeSymbols(const size_t offset, const size_t length
   unsigned int value;
   unsigned int grp, num;
 
-  if (input->str() == NULL_VALUE) {
+  if (input->str() == nullptr_VALUE) {
     value = m_replacement;  // replacement value
   } else {
     string token;
@@ -102,24 +102,24 @@ result_t TemParamDataType::writeSymbols(const size_t offset, const size_t length
       return RESULT_ERR_EOF;  // incomplete
     }
     const char* str = token.c_str();
-    if (str == NULL || *str == 0) {
+    if (str == nullptr || *str == 0) {
       return RESULT_ERR_EOF;  // input too short
     }
-    char* strEnd = NULL;
+    char* strEnd = nullptr;
     grp = (unsigned int)strtoul(str, &strEnd, 10);
-    if (strEnd == NULL || strEnd == str || *strEnd != 0) {
+    if (strEnd == nullptr || strEnd == str || *strEnd != 0) {
       return RESULT_ERR_INVALID_NUM;  // invalid value
     }
     if (input->eof() || !getline(*input, token, '-')) {
       return RESULT_ERR_EOF;  // incomplete
     }
     str = token.c_str();
-    if (str == NULL || *str == 0) {
+    if (str == nullptr || *str == 0) {
       return RESULT_ERR_EOF;  // input too short
     }
-    strEnd = NULL;
+    strEnd = nullptr;
     num = (unsigned int)strtoul(str, &strEnd, 10);
-    if (strEnd == NULL || strEnd == str || *strEnd != 0) {
+    if (strEnd == nullptr || strEnd == str || *strEnd != 0) {
       return RESULT_ERR_INVALID_NUM;  // invalid value
     }
     if (grp > 0x1f || num > 0x7f) {

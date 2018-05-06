@@ -28,7 +28,7 @@
 namespace ebusd {
 
 /** the final @a argp_child structure. */
-static const struct argp_child g_last_argp_child = {NULL, 0, NULL, 0};
+static const struct argp_child g_last_argp_child = {nullptr, 0, nullptr, 0};
 
 /** the list of @a argp_child structures. */
 static struct argp_child g_argp_children[
@@ -47,7 +47,7 @@ const struct argp_child* datahandler_getargs() {
     g_argp_children[count] = g_last_argp_child;
     return g_argp_children;
   }
-  return NULL;
+  return nullptr;
 }
 
 bool datahandler_register(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages,

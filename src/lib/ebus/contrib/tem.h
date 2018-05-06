@@ -47,7 +47,7 @@ class TemParamDataType : public NumberDataType {
    * @param id the type identifier.
    */
   explicit TemParamDataType(const string& id)
-    : NumberDataType(id, 16, 0, 0xffff, 0, 0xffff, 0, NULL) {}
+    : NumberDataType(id, 16, 0, 0xffff, 0, 0xffff, 0, nullptr) {}
 
   // @copydoc
   result_t derive(int divisor, size_t bitCount, const NumberDataType** derived) const override;

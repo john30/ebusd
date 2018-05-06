@@ -50,7 +50,7 @@ void verify(bool expectFailMatch, string type, string input,
   }
 }
 
-DataFieldTemplates* templates = NULL;
+DataFieldTemplates* templates = nullptr;
 
 namespace ebusd {
 
@@ -186,14 +186,14 @@ int main() {
   istringstream dummystr("#");
   string errorDescription;
   vector<string> row;
-  templates->readLineFromStream(&dummystr, __FILE__, false, &lineNo, &row, &errorDescription, false, NULL, NULL);
+  templates->readLineFromStream(&dummystr, __FILE__, false, &lineNo, &row, &errorDescription, false, nullptr, nullptr);
   lineNo = 0;
   MessageMap* messages = new MessageMap("");
   dummystr.clear();
   dummystr.str("#");
-  messages->readLineFromStream(&dummystr, __FILE__, false, &lineNo, &row, &errorDescription, false, NULL, NULL);
+  messages->readLineFromStream(&dummystr, __FILE__, false, &lineNo, &row, &errorDescription, false, nullptr, nullptr);
   vector< vector<string> > defaultsRows;
-  Message* message = NULL;
+  Message* message = nullptr;
   vector<MasterSymbolString*> mstrs;
   vector<SlaveSymbolString*> sstrs;
   mstrs.resize(1);
@@ -222,7 +222,7 @@ int main() {
     lineNo = baseLine + i;
     cout << "line " << (lineNo+1) << " ";
     if (isTemplate) {
-      result = templates->readLineFromStream(&isstr, __FILE__, false, &lineNo, &row, &errorDescription, false, NULL, NULL);
+      result = templates->readLineFromStream(&isstr, __FILE__, false, &lineNo, &row, &errorDescription, false, nullptr, nullptr);
       if (result != RESULT_OK) {
         cout << "\"" << check[0] << "\": template read error: " << getResultCode(result) << ", " << errorDescription
             << endl;
@@ -236,7 +236,7 @@ int main() {
     }
     if (isstr.peek() == '*') {
       // store defaults or condition
-      result = messages->readLineFromStream(&isstr, __FILE__, false, &lineNo, &row, &errorDescription, false, NULL, NULL);
+      result = messages->readLineFromStream(&isstr, __FILE__, false, &lineNo, &row, &errorDescription, false, nullptr, nullptr);
       if (result != RESULT_OK) {
         cout << "\"" << check[0] << "\": default read error: " << getResultCode(result) << ", " << errorDescription << endl;
         error = true;
@@ -252,7 +252,7 @@ int main() {
       while (getline(stream, token, VALUE_SEPARATOR)) {
         if (pos >= mstrs.size()) {
           mstrs.resize(pos+1);
-        } else if (mstrs[pos] != NULL) {
+        } else if (mstrs[pos] != nullptr) {
           delete mstrs[pos];
         }
         mstrs[pos] = new MasterSymbolString();
@@ -270,7 +270,7 @@ int main() {
       while (getline(stream, token, VALUE_SEPARATOR)) {
         if (pos >= sstrs.size()) {
           sstrs.resize(pos+1);
-        } else if (sstrs[pos] != NULL) {
+        } else if (sstrs[pos] != nullptr) {
           delete sstrs[pos];
         }
         sstrs[pos] = new SlaveSymbolString();
@@ -287,7 +287,7 @@ int main() {
         continue;
       }
     } else {
-      if (mstrs[0] != NULL) {
+      if (mstrs[0] != nullptr) {
         delete mstrs[0];
       }
       mstrs[0] = new MasterSymbolString();
@@ -297,7 +297,7 @@ int main() {
         error = true;
         continue;
       }
-      if (sstrs[0] != NULL) {
+      if (sstrs[0] != nullptr) {
         delete sstrs[0];
       }
       sstrs[0] = new SlaveSymbolString();
@@ -311,14 +311,14 @@ int main() {
 
     if (isstr.peek() == EOF) {
       message = messages->find(*mstrs[0]);
-      if (message == NULL) {
-        cout << "\"" << check[2] << "\": find error: NULL" << endl;
+      if (message == nullptr) {
+        cout << "\"" << check[2] << "\": find error: nullptr" << endl;
         error = true;
         continue;
       }
       cout << "\"" << check[2] << "\": find OK" << endl;
     } else {
-      result = messages->readLineFromStream(&isstr, __FILE__, false, &lineNo, &row, &errorDescription, false, NULL, NULL);
+      result = messages->readLineFromStream(&isstr, __FILE__, false, &lineNo, &row, &errorDescription, false, nullptr, nullptr);
       if (failedCreate) {
         if (result == RESULT_OK) {
           cout << "\"" << check[0] << "\": failed create error: unexpectedly succeeded" << endl;
@@ -334,7 +334,7 @@ int main() {
         continue;
       }
       if (messages->size() == 0) {
-        cout << "\"" << check[0] << "\": create error: NULL" << endl;
+        cout << "\"" << check[0] << "\": create error: nullptr" << endl;
         error = true;
         continue;
       }
@@ -355,7 +355,7 @@ int main() {
       deque<Message*> msgs;
       messages->findAll("", "", "*", false, true, true, true, true, false, 0, 0, &msgs);
       if (msgs.empty()) {
-        message = NULL;
+        message = nullptr;
         cout << "\"" << check[0] << "\": create error: message not found" << endl;
         error = true;
         continue;
@@ -364,7 +364,7 @@ int main() {
       Message* foundMessage = messages->find(*mstrs[0], false, true, true, true, false);
       if (foundMessage == message) {
         cout << "  find OK" << endl;
-      } else if (foundMessage == NULL) {
+      } else if (foundMessage == nullptr) {
         cout << "  find error: message not found by master " << mstrs[0]->getStr() << endl;
         error = true;
         continue;
@@ -399,11 +399,11 @@ int main() {
           output.str("");
           output << str;
         } else {
-          message->dump(NULL, true, &output);
+          message->dump(nullptr, true, &output);
         }
         output << ": ";
       }
-      result = message->decodeLastData(false, NULL, -1,
+      result = message->decodeLastData(false, nullptr, -1,
           (decodeVerbose?OF_NAMES|OF_UNITS|OF_COMMENTS:0)|(decodeJson?OF_NAMES|OF_JSON:0), &output);
       if (result != RESULT_OK) {
         cout << "  \"" << check[2] << "\" / \"" << check[3] << "\": decode error: "

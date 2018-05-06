@@ -27,7 +27,7 @@ namespace ebusd {
 
 void* Thread::runThread(void* arg) {
   reinterpret_cast<Thread*>(arg)->enter();
-  return NULL;
+  return nullptr;
 }
 
 Thread::~Thread() {
@@ -38,7 +38,7 @@ Thread::~Thread() {
 }
 
 bool Thread::start(const char* name) {
-  int result = pthread_create(&m_threadid, NULL, runThread, this);
+  int result = pthread_create(&m_threadid, nullptr, runThread, this);
   if (result == 0) {
 #ifdef HAVE_PTHREAD_SETNAME_NP
 #ifndef __MACH__
@@ -55,7 +55,7 @@ bool Thread::join() {
   int result = -1;
   if (m_started) {
     m_stopped = true;
-    result = pthread_join(m_threadid, NULL);
+    result = pthread_join(m_threadid, nullptr);
     if (result == 0) {
       m_started = false;
     }
@@ -72,8 +72,8 @@ void Thread::enter() {
 
 WaitThread::WaitThread()
   : Thread() {
-  pthread_mutex_init(&m_mutex, NULL);
-  pthread_cond_init(&m_cond, NULL);
+  pthread_mutex_init(&m_mutex, nullptr);
+  pthread_cond_init(&m_cond, nullptr);
 }
 
 WaitThread::~WaitThread() {

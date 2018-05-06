@@ -34,7 +34,7 @@ using std::streamsize;
 RotateFile::~RotateFile() {
   if (m_stream) {
     fclose(m_stream);
-    m_stream = NULL;
+    m_stream = nullptr;
   }
 }
 
@@ -45,7 +45,7 @@ bool RotateFile::setEnabled(bool enabled) {
   m_enabled = enabled;
   if (m_stream) {
     fclose(m_stream);
-    m_stream = NULL;
+    m_stream = nullptr;
   }
   if (enabled) {
     m_stream = fopen(m_fileName.c_str(), m_textMode ? "w" : "wb");

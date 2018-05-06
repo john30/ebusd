@@ -41,8 +41,8 @@ class Queue {
    * Constructor.
    */
   Queue() {
-    pthread_mutex_init(&m_mutex, NULL);
-    pthread_cond_init(&m_cond, NULL);
+    pthread_mutex_init(&m_mutex, nullptr);
+    pthread_cond_init(&m_cond, nullptr);
   }
 
   /**
@@ -77,7 +77,7 @@ class Queue {
   /**
    * Remove the first item from the queue optionally waiting for the queue being non-empty.
    * @param timeout the maximum time in seconds to wait for the queue being filled, or 0 for no wait.
-   * @return the item, or NULL if no item is available within the specified time.
+   * @return the item, or nullptr if no item is available within the specified time.
    */
   T pop(int timeout = 0) {
     T item;
@@ -93,7 +93,7 @@ class Queue {
       }
     }
     if (m_queue.empty()) {
-      item = NULL;
+      item = nullptr;
     } else {
       item = m_queue.front();
       m_queue.pop_front();
@@ -137,13 +137,13 @@ class Queue {
 
   /**
    * Return the first item in the queue without removing it.
-   * @return the item, or NULL if no item is available.
+   * @return the item, or nullptr if no item is available.
    */
   T peek() {
     T item;
     pthread_mutex_lock(&m_mutex);
     if (m_queue.empty()) {
-      item = NULL;
+      item = nullptr;
     } else {
       item = m_queue.front();
     }

@@ -56,7 +56,7 @@ static struct options opt = {
   8888,         // port
   0,            // timeout
 
-  NULL,         // args
+  nullptr,         // args
   0             // argCount
 };
 
@@ -78,28 +78,28 @@ static char argpargsdoc[] = "\nCOMMAND [CMDOPT...]";
 
 /** the definition of the known program arguments. */
 static const struct argp_option argpoptions[] = {
-  {NULL,        0,   NULL, 0, "Options:", 1 },
-  {"server",  's', "HOST", 0, "Connect to " PACKAGE " on HOST (name or IP) [localhost]", 0 },
-  {"port",    'p', "PORT", 0, "Connect to " PACKAGE " on PORT [8888]", 0 },
-  {"timeout", 't', "SECS", 0, "Timeout for connection to " PACKAGE ", 0 for none [0]", 0 },
+  {nullptr,     0, nullptr, 0, "Options:", 1 },
+  {"server",  's', "HOST",  0, "Connect to " PACKAGE " on HOST (name or IP) [localhost]", 0 },
+  {"port",    'p', "PORT",  0, "Connect to " PACKAGE " on PORT [8888]", 0 },
+  {"timeout", 't', "SECS",  0, "Timeout for connection to " PACKAGE ", 0 for none [0]", 0 },
 
-  {NULL,        0,   NULL, 0, NULL, 0 },
+  {nullptr,     0, nullptr, 0, nullptr, 0 },
 };
 
 /**
  * The program argument parsing function.
  * @param key the key from @a argpoptions.
- * @param arg the option argument, or NULL.
+ * @param arg the option argument, or nullptr.
  * @param state the parsing state.
  */
 error_t parse_opt(int key, char *arg, struct argp_state *state) {
   struct options *opt = (struct options*)state->input;
-  char* strEnd = NULL;
+  char* strEnd = nullptr;
   unsigned int value;
   switch (key) {
   // Device settings:
   case 's':  // --server=localhost
-    if (arg == NULL || arg[0] == 0) {
+    if (arg == nullptr || arg[0] == 0) {
       argp_error(state, "invalid server");
       return EINVAL;
     }
@@ -107,7 +107,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
   case 'p':  // --port=8888
     value = strtoul(arg, &strEnd, 10);
-    if (strEnd == NULL || strEnd == arg || *strEnd != 0 || value < 1 || value > 65535) {
+    if (strEnd == nullptr || strEnd == arg || *strEnd != 0 || value < 1 || value > 65535) {
       argp_error(state, "invalid port");
       return EINVAL;
     }
@@ -115,7 +115,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
   case 't':  // --timeout=10
     value = strtoul(arg, &strEnd, 10);
-    if (strEnd == NULL || strEnd == arg || *strEnd != 0 || value < 1 || value > 3600) {
+    if (strEnd == nullptr || strEnd == arg || *strEnd != 0 || value < 1 || value > 3600) {
       argp_error(state, "invalid timeout");
       return EINVAL;
     }
@@ -173,13 +173,13 @@ string fetchData(ebusd::TCPSocket* socket, bool listening) {
   while (true) {
 #ifdef HAVE_PPOLL
     // wait for new fd event
-    ret = ppoll(fds, nfds, &tdiff, NULL);
+    ret = ppoll(fds, nfds, &tdiff, nullptr);
 #else
 #ifdef HAVE_PSELECT
     // set readfds to inital checkfds
     fd_set readfds = checkfds;
     // wait for new fd event
-    ret = pselect(maxfd + 1, &readfds, NULL, NULL, &tdiff, NULL);
+    ret = pselect(maxfd + 1, &readfds, nullptr, nullptr, &tdiff, nullptr);
 #endif
 #endif
 
@@ -248,8 +248,8 @@ bool connect(const char* host, uint16_t port, int timeout, char* const *args, in
   TCPSocket* socket = client->connect(host, port, timeout);
   bool ret;
 
-  bool once = args != NULL && argCount > 0;
-  ret = socket != NULL;
+  bool once = args != nullptr && argCount > 0;
+  ret = socket != nullptr;
   if (ret) {
     string message, sendmessage;
     do {
@@ -263,7 +263,7 @@ bool connect(const char* host, uint16_t port, int timeout, char* const *args, in
           if (i > 0) {
             message += " ";
           }
-          bool quote = strchr(args[i], ' ') != NULL && strchr(args[i], '"') == NULL;
+          bool quote = strchr(args[i], ' ') != nullptr && strchr(args[i], '"') == nullptr;
           if (quote) {
             message += "\"";
           }
@@ -314,9 +314,9 @@ bool connect(const char* host, uint16_t port, int timeout, char* const *args, in
  * @return the exit code.
  */
 int main(int argc, char* argv[]) {
-  struct argp argp = { argpoptions, parse_opt, argpargsdoc, argpdoc, NULL, NULL, NULL };
+  struct argp argp = { argpoptions, parse_opt, argpargsdoc, argpdoc, nullptr, nullptr, nullptr };
   setenv("ARGP_HELP_FMT", "no-dup-args-note", 0);
-  if (argp_parse(&argp, argc, argv, ARGP_IN_ORDER, NULL, &opt) != 0) {
+  if (argp_parse(&argp, argc, argv, ARGP_IN_ORDER, nullptr, &opt) != 0) {
     return EINVAL;
   }
   bool success = connect(opt.server, opt.port, opt.timeout, opt.args, opt.argCount);
