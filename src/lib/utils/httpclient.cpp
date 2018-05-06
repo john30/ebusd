@@ -28,14 +28,14 @@ using std::ostringstream;
 using std::dec;
 using std::hex;
 
-bool HttpClient::parseUrl(const string& url, string& proto, string& host, uint16_t& port, string& uri) {
+bool HttpClient::parseUrl(const string& url, string* proto, string* host, uint16_t* port, string* uri) {
   size_t hostPos = url.find("://");
   if (hostPos == string::npos) {
     return false;
   }
-  proto = url.substr(0, hostPos);
+  *proto = url.substr(0, hostPos);
   hostPos += 3;
-  if (proto != "http") {
+  if (*proto != "http") {
     return false;
   }
   size_t pos = url.find('/', hostPos);
@@ -43,28 +43,28 @@ bool HttpClient::parseUrl(const string& url, string& proto, string& host, uint16
     return false;
   }
   if (pos == string::npos) {
-    host = url.substr(hostPos);
-    uri = "/";
+    *host = url.substr(hostPos);
+    *uri = "/";
   } else {
-    host = url.substr(hostPos, pos - hostPos);
-    uri = url.substr(pos);
-    if (uri[uri.length()-1] != '/') {
-      uri += "/";
+    *host = url.substr(hostPos, pos - hostPos);
+    *uri = url.substr(pos);
+    if ((*uri)[uri->length()-1] != '/') {
+      *uri += "/";
     }
   }
-  pos = host.find(':');
+  pos = host->find(':');
   if (pos == 0) {
     return false;
   }
-  port = 80;
+  *port = 80;
   if (pos != string::npos) {
     char* strEnd = nullptr;
-    unsigned long value = strtoul(host.c_str()+pos+1, &strEnd, 10);
+    unsigned long value = strtoul(host->c_str()+pos+1, &strEnd, 10);
     if (strEnd == nullptr || *strEnd != '\0' || value < 1 || value > 65535) {
       return false;
     }
-    port = static_cast<uint16_t>(value);
-    host = host.substr(0, pos);
+    *port = static_cast<uint16_t>(value);
+    *host = host->substr(0, pos);
   }
   return true;
 }
@@ -108,11 +108,11 @@ void HttpClient::disconnect() {
   }
 }
 
-bool HttpClient::get(const string& uri, const string& body, string& response, time_t* time) {
+bool HttpClient::get(const string& uri, const string& body, string* response, time_t* time) {
   return request("GET", uri, body, response, time);
 }
 
-bool HttpClient::post(const string& uri, const string& body, string& response) {
+bool HttpClient::post(const string& uri, const string& body, string* response) {
   return request("POST", uri, body, response);
 }
 
@@ -123,9 +123,9 @@ const int indexToMonth[] = {
   -1, -1,  4, -1, -1, -1, -1, -1,  // 24-31
 };
 
-bool HttpClient::request(const string& method, const string& uri, const string& body, string& response, time_t* time) {
+bool HttpClient::request(const string& method, const string& uri, const string& body, string* response, time_t* time) {
   if (!ensureConnected()) {
-    response = "not connected";
+    *response = "not connected";
     return false;
   }
   ostringstream ostr;
@@ -149,33 +149,33 @@ bool HttpClient::request(const string& method, const string& uri, const string& 
     ssize_t sent = m_socket->send(cstr + pos, len - pos);
     if (sent < 0) {
       disconnect();
-      response = "send error";
+      *response = "send error";
       return false;
     }
     pos += sent;
   }
   string result;
-  size_t pos = readUntil(" ", 4 * 1024, result);  // max 4k headers
+  size_t pos = readUntil(" ", 4 * 1024, &result);  // max 4k headers
   if (pos == string::npos || pos > 8 || result.substr(0, 5) != "HTTP/") {
     disconnect();
-    response = "receive error (headers)";
+    *response = "receive error (headers)";
     return false;
   }
   if (result.substr(pos+1, 6) != "200 OK") {
     disconnect();
     size_t endpos = result.find("\r\n", pos+1);
-    response = "receive error: " + result.substr(pos+1, endpos == string::npos ? endpos : endpos-pos-1);
+    *response = "receive error: " + result.substr(pos+1, endpos == string::npos ? endpos : endpos-pos-1);
     return false;
   }
-  pos = readUntil("\r\n\r\n", 4 * 1024, result);  // max 4k headers
+  pos = readUntil("\r\n\r\n", 4 * 1024, &result);  // max 4k headers
   if (pos == string::npos) {
     disconnect();
-    response = "receive error (headers)";
+    *response = "receive error (headers)";
     return false;
   }
   string headers = result.substr(0, pos+2);  // including final \r\n
   const char* hdrs = headers.c_str();
-  response = result.substr(pos+4);
+  *response = result.substr(pos+4);
   if (time) {
     pos = headers.find("\r\nLast-Modified: ");
     if (pos != string::npos && headers.substr(pos+42, 4) == " GMT") {
@@ -224,7 +224,7 @@ bool HttpClient::request(const string& method, const string& uri, const string& 
   unsigned long length = strtoul(hdrs + pos + strlen("\r\nContent-Length: "), &strEnd, 10);
   if (strEnd == nullptr || *strEnd != '\r') {
     disconnect();
-    response = "invalid content length ";
+    *response = "invalid content length ";
     return false;
   }
   pos = readUntil("", length, response);
@@ -232,7 +232,7 @@ bool HttpClient::request(const string& method, const string& uri, const string& 
   return pos == length;
 }
 
-size_t HttpClient::readUntil(const string& delim, const size_t length, string& result) {
+size_t HttpClient::readUntil(const string& delim, const size_t length, string* result) {
   if (!m_buffer) {
     m_buffer = (char*)malloc(1024);
     if (!m_buffer) {
@@ -241,8 +241,8 @@ size_t HttpClient::readUntil(const string& delim, const size_t length, string& r
     m_bufferSize = 1024;
   }
   bool findDelim = !delim.empty();
-  size_t pos = findDelim ? result.find(delim) : string::npos;
-  while (pos == string::npos && result.length() < length) {
+  size_t pos = findDelim ? result->find(delim) : string::npos;
+  while (pos == string::npos && result->length() < length) {
     ssize_t received = m_socket->recv(m_buffer, m_bufferSize);
     if (received < 0) {
       return string::npos;
@@ -250,13 +250,13 @@ size_t HttpClient::readUntil(const string& delim, const size_t length, string& r
     if (received == 0) {
       break;
     }
-    size_t oldLength = result.length();
-    result += string(m_buffer, 0, static_cast<unsigned>(received));
+    size_t oldLength = result->length();
+    *result += string(m_buffer, 0, static_cast<unsigned>(received));
     if (findDelim) {
-      pos = result.find(delim, oldLength - (delim.length() - 1));
+      pos = result->find(delim, oldLength - (delim.length() - 1));
     }
   }
-  return findDelim ? pos : result.length();
+  return findDelim ? pos : result->length();
 }
 
 }  // namespace ebusd

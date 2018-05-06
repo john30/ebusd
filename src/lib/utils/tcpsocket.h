@@ -137,7 +137,6 @@ class TCPClient {
    * @return pointer to an opened tcp socket.
    */
   TCPSocket* connect(const string& server, const uint16_t& port, int timeout = 0);
-
 };
 
 /**

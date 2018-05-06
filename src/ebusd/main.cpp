@@ -746,7 +746,7 @@ static result_t collectConfigFiles(const string& relPath, const string& prefix, 
   if (!s_configUriPrefix.empty()) {
     string uri = s_configUriPrefix + relPathWithSlash + "?t=" + extension.substr(1) + query;
     string names;
-    if (!s_configHttpClient.get(uri, "", names)) {
+    if (!s_configHttpClient.get(uri, "", &names)) {
       return RESULT_ERR_NOTFOUND;
     }
     istringstream stream(names);
@@ -955,7 +955,7 @@ result_t loadDefinitionsFromConfigPath(FileReader* reader, const string& filenam
     stream = FileReader::openFile(s_configLocalPrefix + filename, errorDescription, &mtime);
   } else {
     string content;
-    if (s_configHttpClient.get(s_configUriPrefix + filename, "", content, &mtime)) {
+    if (s_configHttpClient.get(s_configUriPrefix + filename, "", &content, &mtime)) {
       stream = new istringstream(content);
     }
   }
@@ -1232,7 +1232,7 @@ int main(int argc, char* argv[]) {
     }
     uint16_t configPort = 80;
     string proto, configHost;
-    if (!HttpClient::parseUrl(configPath, proto, configHost, configPort, s_configUriPrefix)) {
+    if (!HttpClient::parseUrl(configPath, &proto, &configHost, &configPort, &s_configUriPrefix)) {
       logError(lf_main, "invalid configPath URL");
       return EINVAL;
     }

@@ -207,7 +207,7 @@ class DataField : public AttributedItem {
    * Return whether this is a @a DataFieldSet.
    * @return true if this is a @a DataFieldSet.
    */
-  virtual bool isSet() const { return false; };
+  virtual bool isSet() const { return false; }
 
   /**
    * Factory method for creating new instances.
@@ -595,7 +595,7 @@ class ConstantDataField : public SingleDataField {
  * A set of @a DataField instances.
  */
 class DataFieldSet : public DataField {
- friend class LoadableDataFieldSet;
+  friend class LoadableDataFieldSet;
  public:
   /**
    * Get the @a DataFieldSet for parsing the identification message (service 0x07 0x04).

@@ -1144,7 +1144,8 @@ void BusHandler::messageCompleted() {
     } else if (master) {
       logNotice(lf_update, "%s unknown MM cmd: %s", prefix, m_command.getStr().c_str());
     } else {
-      logNotice(lf_update, "%s unknown MS cmd: %s / %s", prefix, m_command.getStr().c_str(), m_response.getStr().c_str());
+      logNotice(lf_update, "%s unknown MS cmd: %s / %s", prefix, m_command.getStr().c_str(),
+        m_response.getStr().c_str());
     }
   } else {
     m_messages->invalidateCache(message);
@@ -1168,7 +1169,8 @@ void BusHandler::messageCompleted() {
           logNotice(lf_update, "%s %s %s QQ=%2.2x ZZ=%2.2x: %s", prefix, circuit.c_str(), name.c_str(), srcAddress,
               dstAddress, data.c_str());
         } else {
-          logNotice(lf_update, "%s %s %s ZZ=%2.2x: %s", prefix, circuit.c_str(), name.c_str(), dstAddress, data.c_str());
+          logNotice(lf_update, "%s %s %s ZZ=%2.2x: %s", prefix, circuit.c_str(), name.c_str(), dstAddress,
+            data.c_str());
         }
       } else if (message->getSrcAddress() == SYN) {  // any source
         logNotice(lf_update, "%s %s %s QQ=%2.2x: %s", prefix, circuit.c_str(), name.c_str(), srcAddress, data.c_str());

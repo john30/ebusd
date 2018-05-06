@@ -1276,7 +1276,8 @@ class MessageMap : public MappedFileReader {
 
   // @copydoc
   bool extractDefaultsFromFilename(const string& filename, map<string, string>* defaults,
-      symbol_t* destAddress = nullptr, unsigned int* software = nullptr, unsigned int* hardware = nullptr) const override;
+      symbol_t* destAddress = nullptr, unsigned int* software = nullptr, unsigned int* hardware = nullptr) const
+      override;
 
   // @copydoc
   result_t readFromStream(istream* stream, const string& filename, const time_t& mtime, bool verbose,

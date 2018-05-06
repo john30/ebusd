@@ -403,7 +403,7 @@ class NumberDataType : public DataType {
    */
   NumberDataType(const string& id, size_t bitCount, uint16_t flags, unsigned int replacement,
       unsigned int minValue, unsigned int maxValue, int divisor,
-      const NumberDataType* baseType)
+      const NumberDataType* baseType = nullptr)
     : DataType(id, bitCount, flags|NUM, replacement), m_minValue(minValue), m_maxValue(maxValue), m_divisor(divisor),
       m_precision(calcPrecision(divisor)), m_firstBit(0), m_baseType(baseType) {}
 

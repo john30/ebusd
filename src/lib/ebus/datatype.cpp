@@ -912,8 +912,8 @@ bool DataTypeList::s_contrib_initialized = libebus_contrib_register();
 DataTypeList::DataTypeList() {
   add(new StringDataType("STR", MAX_LEN*8, ADJ, ' '));  // >= 1 byte character string filled up with space
   // unsigned decimal in BCD, 0000 - 9999 (fixed length)
-  add(new NumberDataType("PIN", 16, FIX|BCD|REV, 0xffff, 0, 0x9999, 1, nullptr));
-  add(new NumberDataType("UCH", 8, 0, 0xff, 0, 0xfe, 1, nullptr));  // unsigned integer, 0 - 254
+  add(new NumberDataType("PIN", 16, FIX|BCD|REV, 0xffff, 0, 0x9999, 1));
+  add(new NumberDataType("UCH", 8, 0, 0xff, 0, 0xfe, 1));  // unsigned integer, 0 - 254
   add(new StringDataType("IGN", MAX_LEN*8, IGN|ADJ, 0));  // >= 1 byte ignored data
   // >= 1 byte character string filled up with 0x00 (null terminated string)
   add(new StringDataType("NTS", MAX_LEN*8, ADJ, 0));
@@ -951,56 +951,56 @@ DataTypeList::DataTypeList() {
   add(new DateTimeDataType("TTH", 6, 0, 0, false, true, 30));
   // truncated time (only multiple of 15 minutes), 00:00 - 24:00 (minutes div 15 + hour * 4 as integer)
   add(new DateTimeDataType("TTQ", 7, 0, 0, false, true, 15));
-  add(new NumberDataType("BDY", 8, DAY, 0x07, 0, 6, 1, nullptr));  // weekday, "Mon" - "Sun" (0x00 - 0x06) [eBUS type]
-  add(new NumberDataType("HDY", 8, DAY, 0x00, 1, 7, 1, nullptr));  // weekday, "Mon" - "Sun" (0x01 - 0x07) [Vaillant type]
-  add(new NumberDataType("BCD", 8, BCD, 0xff, 0, 99, 1, nullptr));  // unsigned decimal in BCD, 0 - 99
-  add(new NumberDataType("BCD", 16, BCD, 0xffff, 0, 9999, 1, nullptr));  // unsigned decimal in BCD, 0 - 9999
-  add(new NumberDataType("BCD", 24, BCD, 0xffffff, 0, 999999, 1, nullptr));  // unsigned decimal in BCD, 0 - 999999
-  add(new NumberDataType("BCD", 32, BCD, 0xffffffff, 0, 99999999, 1, nullptr));  // unsigned decimal in BCD, 0 - 99999999
-  add(new NumberDataType("HCD", 32, HCD|BCD|REQ, 0, 0, 99999999, 1, nullptr));  // unsigned decimal in HCD, 0 - 99999999
-  add(new NumberDataType("HCD", 8, HCD|BCD|REQ, 0, 0, 99, 1, nullptr));  // unsigned decimal in HCD, 0 - 99
-  add(new NumberDataType("HCD", 16, HCD|BCD|REQ, 0, 0, 9999, 1, nullptr));  // unsigned decimal in HCD, 0 - 9999
-  add(new NumberDataType("HCD", 24, HCD|BCD|REQ, 0, 0, 999999, 1, nullptr));  // unsigned decimal in HCD, 0 - 999999
-  add(new NumberDataType("SCH", 8, SIG, 0x80, 0x81, 0x7f, 1, nullptr));  // signed integer, -127 - +127
-  add(new NumberDataType("D1B", 8, SIG, 0x80, 0x81, 0x7f, 1, nullptr));  // signed integer, -127 - +127
+  add(new NumberDataType("BDY", 8, DAY, 0x07, 0, 6, 1));  // weekday, "Mon" - "Sun" (0x00 - 0x06) [eBUS type]
+  add(new NumberDataType("HDY", 8, DAY, 0x00, 1, 7, 1));  // weekday, "Mon" - "Sun" (0x01 - 0x07) [Vaillant type]
+  add(new NumberDataType("BCD", 8, BCD, 0xff, 0, 99, 1));  // unsigned decimal in BCD, 0 - 99
+  add(new NumberDataType("BCD", 16, BCD, 0xffff, 0, 9999, 1));  // unsigned decimal in BCD, 0 - 9999
+  add(new NumberDataType("BCD", 24, BCD, 0xffffff, 0, 999999, 1));  // unsigned decimal in BCD, 0 - 999999
+  add(new NumberDataType("BCD", 32, BCD, 0xffffffff, 0, 99999999, 1));  // unsigned decimal in BCD, 0 - 99999999
+  add(new NumberDataType("HCD", 32, HCD|BCD|REQ, 0, 0, 99999999, 1));  // unsigned decimal in HCD, 0 - 99999999
+  add(new NumberDataType("HCD", 8, HCD|BCD|REQ, 0, 0, 99, 1));  // unsigned decimal in HCD, 0 - 99
+  add(new NumberDataType("HCD", 16, HCD|BCD|REQ, 0, 0, 9999, 1));  // unsigned decimal in HCD, 0 - 9999
+  add(new NumberDataType("HCD", 24, HCD|BCD|REQ, 0, 0, 999999, 1));  // unsigned decimal in HCD, 0 - 999999
+  add(new NumberDataType("SCH", 8, SIG, 0x80, 0x81, 0x7f, 1));  // signed integer, -127 - +127
+  add(new NumberDataType("D1B", 8, SIG, 0x80, 0x81, 0x7f, 1));  // signed integer, -127 - +127
   // unsigned number (fraction 1/2), 0 - 100 (0x00 - 0xc8, replacement 0xff)
-  add(new NumberDataType("D1C", 8, 0, 0xff, 0x00, 0xc8, 2, nullptr));
+  add(new NumberDataType("D1C", 8, 0, 0xff, 0x00, 0xc8, 2));
   // signed number (fraction 1/256), -127.99 - +127.99
-  add(new NumberDataType("D2B", 16, SIG, 0x8000, 0x8001, 0x7fff, 256, nullptr));
+  add(new NumberDataType("D2B", 16, SIG, 0x8000, 0x8001, 0x7fff, 256));
   // signed number (fraction 1/16), -2047.9 - +2047.9
-  add(new NumberDataType("D2C", 16, SIG, 0x8000, 0x8001, 0x7fff, 16, nullptr));
+  add(new NumberDataType("D2C", 16, SIG, 0x8000, 0x8001, 0x7fff, 16));
   // signed number (fraction 1/1000), -32.767 - +32.767, little endian
-  add(new NumberDataType("FLT", 16, SIG, 0x8000, 0x8001, 0x7fff, 1000, nullptr));
+  add(new NumberDataType("FLT", 16, SIG, 0x8000, 0x8001, 0x7fff, 1000));
   // signed number (fraction 1/1000), -32.767 - +32.767, big endian
-  add(new NumberDataType("FLR", 16, SIG|REV, 0x8000, 0x8001, 0x7fff, 1000, nullptr));
+  add(new NumberDataType("FLR", 16, SIG|REV, 0x8000, 0x8001, 0x7fff, 1000));
   // signed number (IEEE 754 binary32: 1 bit sign, 8 bits exponent, 23 bits significand), little endian
-  add(new NumberDataType("EXP", 32, SIG|EXP, 0x7f800000, 0x00000000, 0xffffffff, 1, nullptr));
+  add(new NumberDataType("EXP", 32, SIG|EXP, 0x7f800000, 0x00000000, 0xffffffff, 1));
   // signed number (IEEE 754 binary32: 1 bit sign, 8 bits exponent, 23 bits significand), big endian
-  add(new NumberDataType("EXR", 32, SIG|EXP|REV, 0x7f800000, 0x00000000, 0xffffffff, 1, nullptr));
+  add(new NumberDataType("EXR", 32, SIG|EXP|REV, 0x7f800000, 0x00000000, 0xffffffff, 1));
   // unsigned integer, 0 - 65534, little endian
-  add(new NumberDataType("UIN", 16, 0, 0xffff, 0, 0xfffe, 1, nullptr));
+  add(new NumberDataType("UIN", 16, 0, 0xffff, 0, 0xfffe, 1));
   // unsigned integer, 0 - 65534, big endian
-  add(new NumberDataType("UIR", 16, REV, 0xffff, 0, 0xfffe, 1, nullptr));
+  add(new NumberDataType("UIR", 16, REV, 0xffff, 0, 0xfffe, 1));
   // signed integer, -32767 - +32767, little endian
-  add(new NumberDataType("SIN", 16, SIG, 0x8000, 0x8001, 0x7fff, 1, nullptr));
+  add(new NumberDataType("SIN", 16, SIG, 0x8000, 0x8001, 0x7fff, 1));
   // signed integer, -32767 - +32767, big endian
-  add(new NumberDataType("SIR", 16, SIG|REV, 0x8000, 0x8001, 0x7fff, 1, nullptr));
+  add(new NumberDataType("SIR", 16, SIG|REV, 0x8000, 0x8001, 0x7fff, 1));
   // unsigned 3 bytes int, 0 - 16777214, little endian
-  add(new NumberDataType("U3N", 24, 0, 0xffffff, 0, 0xfffffe, 1, nullptr));
+  add(new NumberDataType("U3N", 24, 0, 0xffffff, 0, 0xfffffe, 1));
   // unsigned 3 bytes int, 0 - 16777214, big endian
-  add(new NumberDataType("U3R", 24, REV, 0xffffff, 0, 0xfffffe, 1, nullptr));
+  add(new NumberDataType("U3R", 24, REV, 0xffffff, 0, 0xfffffe, 1));
   // signed 3 bytes int, -8388607 - +8388607, little endian
-  add(new NumberDataType("S3N", 24, SIG, 0x800000, 0x800001, 0xffffff, 1, nullptr));
+  add(new NumberDataType("S3N", 24, SIG, 0x800000, 0x800001, 0xffffff, 1));
   // signed 3 bytes int, -8388607 - +8388607, big endian
-  add(new NumberDataType("S3R", 24, SIG|REV, 0x800000, 0x800001, 0xffffff, 1, nullptr));
+  add(new NumberDataType("S3R", 24, SIG|REV, 0x800000, 0x800001, 0xffffff, 1));
   // unsigned integer, 0 - 4294967294, little endian
-  add(new NumberDataType("ULG", 32, 0, 0xffffffff, 0, 0xfffffffe, 1, nullptr));
+  add(new NumberDataType("ULG", 32, 0, 0xffffffff, 0, 0xfffffffe, 1));
   // unsigned integer, 0 - 4294967294, big endian
-  add(new NumberDataType("ULR", 32, REV, 0xffffffff, 0, 0xfffffffe, 1, nullptr));
+  add(new NumberDataType("ULR", 32, REV, 0xffffffff, 0, 0xfffffffe, 1));
   // signed integer, -2147483647 - +2147483647, little endian
-  add(new NumberDataType("SLG", 32, SIG, 0x80000000, 0x80000001, 0xffffffff, 1, nullptr));
+  add(new NumberDataType("SLG", 32, SIG, 0x80000000, 0x80000001, 0xffffffff, 1));
   // signed integer, -2147483647 - +2147483647, big endian
-  add(new NumberDataType("SLR", 32, SIG|REV, 0x80000000, 0x80000001, 0xffffffff, 1, nullptr));
+  add(new NumberDataType("SLR", 32, SIG|REV, 0x80000000, 0x80000001, 0xffffffff, 1));
   add(new NumberDataType("BI0", 7, ADJ|REQ, 0, 0, 1));  // bit 0 (up to 7 bits until bit 6)
   add(new NumberDataType("BI1", 7, ADJ|REQ, 0, 1, 1));  // bit 1 (up to 7 bits until bit 7)
   add(new NumberDataType("BI2", 6, ADJ|REQ, 0, 2, 1));  // bit 2 (up to 6 bits until bit 7)

@@ -340,7 +340,7 @@ void MainLoop::run() {
           m_busHandler->formatUpdateInfo(&ostr);
           ostr << "}";
           string response;
-          if (!client.post("/updatecheck/", ostr.str(), response)) {
+          if (!client.post("/updatecheck/", ostr.str(), &response)) {
             logError(lf_main, "update check error: %s", response.c_str());
           } else {
             m_updateCheck = response.empty() ? "unknown" : response;
@@ -992,7 +992,7 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
     argPos = 0;  // print usage
   }
 
-  if (argPos == 0 || (!newDefinition && (circuit.empty() || (args.size() != argPos + 2 && args.size() != argPos + 1)))) {
+  if (argPos == 0 || (!newDefinition && (circuit.empty() || (args.size() != argPos+2 && args.size() != argPos+1)))) {
     *ostream << "usage: write [-s QQ] [-d ZZ] -c CIRCUIT NAME [VALUE[;VALUE]*]\n"
         "  or:  write [-s QQ] [-d ZZ] -def DEFINITION [VALUE[;VALUE]*]\n"
         "  or:  write [-s QQ] [-c CIRCUIT] -h ZZPBSBNN[DD]*\n"
