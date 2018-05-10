@@ -30,7 +30,7 @@ typedef struct sockaddr_in socketaddress;
 
 namespace ebusd {
 
-/** \file lib/utils/http.h */
+/** \file lib/utils/httpclient.h */
 
 using std::string;
 using std::ifstream;
@@ -115,6 +115,7 @@ class HttpClient {
 
   /**
    * Execute an arbitrary request.
+   * @param method the method string.
    * @param uri the URI string.
    * @param body the optional body to send.
    * @param response the response body from the server (or the HTTP header on error).

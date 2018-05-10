@@ -195,6 +195,7 @@ class Message : public AttributedItem {
   /**
    * Create a new scan @a Message instance.
    * @param broadcast true for broadcast scan message, false for scan message to be sent to a slave address.
+   * @param deleteData whether to delete the @a DataField during @a Message destruction.
    * @return the new scan @a Message instance.
    */
   static Message* createScanMessage(bool broadcast = false, bool deleteData = true);
@@ -1217,6 +1218,7 @@ class MessageMap : public MappedFileReader {
    * Construct a new instance.
    * @param addAll whether to add all messages, even if duplicate.
    * @param preferLanguage the preferred language to use, or empty.
+   * @param deleteData whether to delete the scan message @a DataField during @a Message destruction.
    */
   explicit MessageMap(bool addAll = false, const string& preferLanguage = "", bool deleteData = true)
   : MappedFileReader::MappedFileReader(true),

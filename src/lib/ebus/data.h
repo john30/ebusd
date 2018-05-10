@@ -722,7 +722,7 @@ class LoadableDataFieldSet : public DataFieldSet, public MappedFileReader {
   /**
    * Constructs a new instance.
    * @param name the field name.
-   * @param fields the @a vector of @a SingleDataField instances part of this set.
+   * @param templates the @a DataFieldTemplates instance to use.
    */
   LoadableDataFieldSet(const string& name, DataFieldTemplates* templates)
     : DataFieldSet(name, vector<const SingleDataField*>()), MappedFileReader(false), m_templates(templates) {
@@ -736,6 +736,7 @@ class LoadableDataFieldSet : public DataFieldSet, public MappedFileReader {
       vector< map<string, string> >* subRows, string* errorDescription, bool replace) override;
 
  private:
+  /** the @a DataFieldTemplates instance to use. */
   DataFieldTemplates* m_templates;
 };
 

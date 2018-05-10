@@ -183,30 +183,30 @@ bool HttpClient::request(const string& method, const string& uri, const string& 
       struct tm t;
       pos += strlen("\r\nLast-Modified: ") + 5;
       char* strEnd = nullptr;
-      t.tm_mday = (int)strtol(hdrs + pos, &strEnd, 10);
+      t.tm_mday = static_cast<int>(strtol(hdrs + pos, &strEnd, 10));
       if (strEnd != hdrs + pos + 2 || t.tm_mday < 1 || t.tm_mday > 31) {
         t.tm_mday = -1;
       }
       t.tm_mon = indexToMonth[((hdrs[pos+4]&0x10)>>1) | (hdrs[pos+5]&0x17)] - 1;
       strEnd = nullptr;
-      t.tm_year = (int)strtol(hdrs + pos + 7, &strEnd, 10);
+      t.tm_year = static_cast<int>(strtol(hdrs + pos + 7, &strEnd, 10));
       if (strEnd != hdrs + pos + 11 || t.tm_year < 1970 || t.tm_year >= 3000) {
         t.tm_year = -1;
       } else {
         t.tm_year -= 1900;
       }
       strEnd = nullptr;
-      t.tm_hour = (int)strtol(hdrs + pos + 12, &strEnd, 10);
+      t.tm_hour = static_cast<int>(strtol(hdrs + pos + 12, &strEnd, 10));
       if (strEnd != hdrs + pos + 14 || t.tm_hour > 23) {
         t.tm_hour = -1;
       }
       strEnd = nullptr;
-      t.tm_min = (int)strtol(hdrs + pos + 15, &strEnd, 10);
+      t.tm_min = static_cast<int>(strtol(hdrs + pos + 15, &strEnd, 10));
       if (strEnd != hdrs + pos + 17 || t.tm_min > 59) {
         t.tm_min = -1;
       }
       strEnd = nullptr;
-      t.tm_sec = (int)strtol(hdrs + pos + 18, &strEnd, 10);
+      t.tm_sec = static_cast<int>(strtol(hdrs + pos + 18, &strEnd, 10));
       if (strEnd != hdrs + pos + 20 || t.tm_sec > 59) {
         t.tm_sec = -1;
       }
@@ -234,7 +234,7 @@ bool HttpClient::request(const string& method, const string& uri, const string& 
 
 size_t HttpClient::readUntil(const string& delim, const size_t length, string* result) {
   if (!m_buffer) {
-    m_buffer = (char*)malloc(1024);
+    m_buffer = reinterpret_cast<char*>(malloc(1024));
     if (!m_buffer) {
       return string::npos;
     }

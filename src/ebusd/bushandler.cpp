@@ -1166,18 +1166,19 @@ void BusHandler::messageCompleted() {
     } else {
       string data = output.str();
       if (m_answer && dstAddress == (master ? m_ownMasterAddress : m_ownSlaveAddress)) {
-        logNotice(lf_update, "%s %s self-update %s %s QQ=%2.2x: %s", prefix, mode, circuit.c_str(), name.c_str(), srcAddress,
-            data.c_str());  // TODO store in database of internal variables
+        logNotice(lf_update, "%s %s self-update %s %s QQ=%2.2x: %s", prefix, mode, circuit.c_str(), name.c_str(),
+            srcAddress, data.c_str());  // TODO store in database of internal variables
       } else if (message->getDstAddress() == SYN) {  // any destination
         if (message->getSrcAddress() == SYN) {  // any destination and any source
-          logNotice(lf_update, "%s %s %s %s QQ=%2.2x ZZ=%2.2x: %s", prefix, mode, circuit.c_str(), name.c_str(), srcAddress,
-              dstAddress, data.c_str());
+          logNotice(lf_update, "%s %s %s %s QQ=%2.2x ZZ=%2.2x: %s", prefix, mode, circuit.c_str(), name.c_str(),
+              srcAddress, dstAddress, data.c_str());
         } else {
           logNotice(lf_update, "%s %s %s %s ZZ=%2.2x: %s", prefix, mode, circuit.c_str(), name.c_str(), dstAddress,
-            data.c_str());
+              data.c_str());
         }
       } else if (message->getSrcAddress() == SYN) {  // any source
-        logNotice(lf_update, "%s %s %s %s QQ=%2.2x: %s", prefix, mode, circuit.c_str(), name.c_str(), srcAddress, data.c_str());
+        logNotice(lf_update, "%s %s %s %s QQ=%2.2x: %s", prefix, mode, circuit.c_str(), name.c_str(), srcAddress,
+            data.c_str());
       } else {
         logNotice(lf_update, "%s %s %s %s: %s", prefix, mode, circuit.c_str(), name.c_str(), data.c_str());
       }
