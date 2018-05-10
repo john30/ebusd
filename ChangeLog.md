@@ -1,4 +1,4 @@
-# next version
+# 3.2 (2018-05-10)
 
 ## Breaking Changes
 * changed default configuration file location to config web service at ebusd.eu
@@ -13,12 +13,13 @@
 * added support for retrieving configuration files from config web service
 * changed docker image to be smaller size and fixed missing library dependencies
 * added automatic reconnect to MQTT broker
-* changed logging for messages from "updated" to "received" and "sent" depending on who initiated the request
+* changed logging for messages from "updated" to "received" and "sent" depending on who initiated the request and added message direction/scan/poll/update info
 * added support for serving .csv files and new argument maxage to HTTP/JSON port
 * added timeout argument and error result code to ebusctl
 * added "-def" option to "read" and "write" commands and "define" command to test message defintions and add new definitions during runtime and disabled all by default (use "--enabledefine" command line option).
 * added "encode" and "decode" commands for testing field definitions
 * added option to ignore failed host name resolution during initialization of MQTT
+* added logging when device became invalid and close it on error
 
 
 # 3.1 (2017-12-26)

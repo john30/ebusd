@@ -63,9 +63,9 @@ Usage instructions and further information can be found here:
 Configuration
 -------------
 
-The most important part of each ebusd installation is the message
-configuration. By default, only rudimentary messages are interpreted.
-Check the Wiki and/or the configuration repository:
+The most important part of each ebusd installation is the message configuration.
+Starting with version 3.2, ebusd uses the config web service at ebusd.eu to retrieve
+the latest configuration files that are reflected by the configuration repository:
 > https://github.com/john30/ebusd-configuration
 
 
