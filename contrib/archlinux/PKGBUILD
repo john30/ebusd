@@ -37,4 +37,4 @@ package() {
   install -m 0644 contrib/archlinux/conf.d/ebusd          "${pkgdir}/etc/conf.d/ebusd"
 }
 # update md5sums: updpkgsums
-md5sums=('7288c07f33fd3dd20e1b6b048fc8c1bc')
+md5sums=('413886187f5e93138674cbea916ad1fb')
