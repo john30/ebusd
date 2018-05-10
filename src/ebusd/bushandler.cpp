@@ -1151,31 +1151,35 @@ void BusHandler::messageCompleted() {
     m_messages->invalidateCache(message);
     string circuit = message->getCircuit();
     string name = message->getName();
+    const char* mode = message->isScanMessage() ? message->isWrite() ? "scan-write" : "scan-read"
+      : message->isPassive() ? message->isWrite() ? "update-write" : "update-read"
+      : message->getPollPriority() > 0 ? message->isWrite() ? "poll-write" : "poll-read"
+      : message->isWrite() ? "write" : "read";
     result_t result = message->storeLastData(m_command, m_response);
     ostringstream output;
     if (result == RESULT_OK) {
       result = message->decodeLastData(false, nullptr, -1, 0, &output);
     }
     if (result < RESULT_OK) {
-      logError(lf_update, "unable to parse %s %s from %s / %s: %s", circuit.c_str(), name.c_str(),
+      logError(lf_update, "unable to parse %s %s %s from %s / %s: %s", mode, circuit.c_str(), name.c_str(),
           m_command.getStr().c_str(), m_response.getStr().c_str(), getResultCode(result));
     } else {
       string data = output.str();
       if (m_answer && dstAddress == (master ? m_ownMasterAddress : m_ownSlaveAddress)) {
-        logNotice(lf_update, "%s self-update %s %s QQ=%2.2x: %s", prefix, circuit.c_str(), name.c_str(), srcAddress,
+        logNotice(lf_update, "%s %s self-update %s %s QQ=%2.2x: %s", prefix, mode, circuit.c_str(), name.c_str(), srcAddress,
             data.c_str());  // TODO store in database of internal variables
       } else if (message->getDstAddress() == SYN) {  // any destination
         if (message->getSrcAddress() == SYN) {  // any destination and any source
-          logNotice(lf_update, "%s %s %s QQ=%2.2x ZZ=%2.2x: %s", prefix, circuit.c_str(), name.c_str(), srcAddress,
+          logNotice(lf_update, "%s %s %s %s QQ=%2.2x ZZ=%2.2x: %s", prefix, mode, circuit.c_str(), name.c_str(), srcAddress,
               dstAddress, data.c_str());
         } else {
-          logNotice(lf_update, "%s %s %s ZZ=%2.2x: %s", prefix, circuit.c_str(), name.c_str(), dstAddress,
+          logNotice(lf_update, "%s %s %s %s ZZ=%2.2x: %s", prefix, mode, circuit.c_str(), name.c_str(), dstAddress,
             data.c_str());
         }
       } else if (message->getSrcAddress() == SYN) {  // any source
-        logNotice(lf_update, "%s %s %s QQ=%2.2x: %s", prefix, circuit.c_str(), name.c_str(), srcAddress, data.c_str());
+        logNotice(lf_update, "%s %s %s %s QQ=%2.2x: %s", prefix, mode, circuit.c_str(), name.c_str(), srcAddress, data.c_str());
       } else {
-        logNotice(lf_update, "%s %s %s: %s", prefix, circuit.c_str(), name.c_str(), data.c_str());
+        logNotice(lf_update, "%s %s %s %s: %s", prefix, mode, circuit.c_str(), name.c_str(), data.c_str());
       }
     }
   }
