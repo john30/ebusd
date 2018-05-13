@@ -39,6 +39,16 @@ namespace ebusd {
  * to a file and/or forwarding it to a logging function.
  */
 
+/** the arbitration state handled by @a Device. */
+enum ArbitrationState {
+  as_none,    //!< no arbitration in process
+  as_start,   //!< arbitration start requested
+  as_error,   //!< error while sending master address
+  as_running, //!< arbitration currently running (master address sent, waiting for reception)
+  as_lost,    //!< arbitration lost
+  as_won,     //!< arbitration won
+};
+
 /**
  * Interface for listening to data received on/sent to a device.
  */
@@ -72,7 +82,7 @@ class Device {
    */
   Device(const char* name, bool checkDevice, bool readOnly, bool initialSend)
     : m_name(name), m_checkDevice(checkDevice), m_readOnly(readOnly), m_initialSend(initialSend), m_fd(-1),
-      m_listener(nullptr) {}
+      m_listener(nullptr), m_arbitrationMaster(SYN), m_arbitrationCheck(false) {}
 
   /**
    * Destructor.
@@ -119,9 +129,31 @@ class Device {
    * Read a single byte from the device.
    * @param timeout maximum time to wait for the byte in microseconds, or 0 for infinite.
    * @param value the reference in which the received byte value is stored.
+   * @param arbitrationState the reference in which the current @a ArbitrationState is stored on success. When set to
+   * @a as_won, the received byte is the master address that was successfully arbitrated with.
    * @return the result_t code.
    */
-  result_t recv(unsigned int timeout, symbol_t* value);
+  result_t recv(unsigned int timeout, symbol_t* value, ArbitrationState* arbitrationState);
+
+  /**
+   * Start the arbitration with the specified master address. A subsequent request while an arbitration is currently in
+   * checking state will always result in @a RESULT_ERR_DUPLICATE.
+   * @param masterAddress the master address, or @a SYN to cancel a previous arbitration request.
+   * @return the result_t code.
+   */
+  result_t startArbitration(symbol_t masterAddress) {
+    if (m_arbitrationCheck) {
+      return RESULT_ERR_DUPLICATE;
+    }
+    if (m_readOnly) {
+      return RESULT_ERR_SEND;
+    }
+    m_arbitrationCheck = false;
+    m_arbitrationMaster = masterAddress;
+    return RESULT_OK;
+  }
+
+  bool isArbitrating() const { return m_arbitrationMaster != SYN; };
 
   /**
    * Return the device name.
@@ -193,6 +225,12 @@ class Device {
  private:
   /** the @a DeviceListener, or nullptr. */
   DeviceListener* m_listener;
+
+  /** the arbitration master address to send when in arbitration, or @a SYN. */
+  symbol_t m_arbitrationMaster;
+
+  /** true when in arbitration and the next received symbol needs to be checked against the sent master address. */
+  bool m_arbitrationCheck;
 };
 
 /**

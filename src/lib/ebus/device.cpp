@@ -120,7 +120,7 @@ result_t Device::send(symbol_t value) {
   return RESULT_OK;
 }
 
-result_t Device::recv(unsigned int timeout, symbol_t* value) {
+result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* arbitrationState) {
   if (!isValid()) {
     return RESULT_ERR_DEVICE;
   }
@@ -178,9 +178,36 @@ result_t Device::recv(unsigned int timeout, symbol_t* value) {
     close();
     return RESULT_ERR_DEVICE;
   }
+  if (*value != SYN || m_arbitrationMaster == SYN) {
+    if (m_listener != nullptr) {
+      m_listener->notifyDeviceData(*value, true);
+    }
+    if (m_arbitrationMaster != SYN) {
+      if (m_arbitrationCheck) {
+        *arbitrationState = *value == m_arbitrationMaster ? as_won : as_lost;
+        m_arbitrationMaster = SYN;
+        m_arbitrationCheck = false;
+      } else {
+        *arbitrationState = m_arbitrationMaster == SYN ? as_none : as_start;
+      }
+    }
+    return RESULT_OK;
+  }
+  ssize_t wcnt = write(m_arbitrationMaster);  // send as fast as possible
   if (m_listener != nullptr) {
     m_listener->notifyDeviceData(*value, true);
   }
+  if (wcnt != 1) {
+    *arbitrationState = as_error;
+    m_arbitrationMaster = SYN;
+    m_arbitrationCheck = false;
+    return RESULT_OK;
+  }
+  if (m_listener != NULL) {
+    m_listener->notifyDeviceData(m_arbitrationMaster, false);
+  }
+  m_arbitrationCheck = true;
+  *arbitrationState = as_running;
   return RESULT_OK;
 }
 
