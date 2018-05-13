@@ -72,19 +72,19 @@ using std::vector;
 typedef unsigned char symbol_t;
 
 /** escape symbol, either followed by 0x00 for the value 0xA9, or 0x01 for the value 0xAA. */
-#define ESC 0xA9
+#define ESC ((symbol_t)0xA9)
 
 /** synchronization symbol. */
-#define SYN 0xAA
+#define SYN ((symbol_t)0xAA)
 
 /** positive acknowledge symbol. */
-#define ACK 0x00
+#define ACK ((symbol_t)0x00)
 
 /** negative acknowledge symbol. */
-#define NAK 0xFF
+#define NAK ((symbol_t)0xFF)
 
 /** the broadcast destination address. */
-#define BROADCAST 0xFE
+#define BROADCAST ((symbol_t)0xFE)
 
 /**
  * Parse an unsigned int value.
