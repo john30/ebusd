@@ -79,10 +79,12 @@ class Device {
    * @param checkDevice whether to regularly check the device availability (only for serial devices).
    * @param readOnly whether to allow read access to the device only.
    * @param initialSend whether to send an initial @a ESC symbol in @a open().
+   * @param enhancedProto whether the device supports the ebusd enhanced protocol.
    */
-  Device(const char* name, bool checkDevice, bool readOnly, bool initialSend)
-    : m_name(name), m_checkDevice(checkDevice), m_readOnly(readOnly), m_initialSend(initialSend), m_fd(-1),
-      m_listener(nullptr), m_arbitrationMaster(SYN), m_arbitrationCheck(false) {}
+  Device(const char* name, bool checkDevice, bool readOnly, bool initialSend, bool enhancedProto=false)
+    : m_name(name), m_checkDevice(checkDevice), m_readOnly(readOnly), m_initialSend(initialSend),
+      m_enhancedProto(enhancedProto), m_fd(-1), m_listener(nullptr), m_arbitrationMaster(SYN),
+      m_arbitrationCheck(false) {}
 
   /**
    * Destructor.
@@ -141,17 +143,7 @@ class Device {
    * @param masterAddress the master address, or @a SYN to cancel a previous arbitration request.
    * @return the result_t code.
    */
-  result_t startArbitration(symbol_t masterAddress) {
-    if (m_arbitrationCheck) {
-      return RESULT_ERR_DUPLICATE;
-    }
-    if (m_readOnly) {
-      return RESULT_ERR_SEND;
-    }
-    m_arbitrationCheck = false;
-    m_arbitrationMaster = masterAddress;
-    return RESULT_OK;
-  }
+  result_t startArbitration(symbol_t masterAddress);
 
   bool isArbitrating() const { return m_arbitrationMaster != SYN; };
 
@@ -195,16 +187,16 @@ class Device {
   /**
    * Write a single byte.
    * @param value the byte value to write.
-   * @return the number of bytes written, or -1 on error.
+   * @return true on success, false on error.
    */
-  virtual ssize_t write(symbol_t value) { return ::write(m_fd, &value, 1); }
+  virtual bool write(symbol_t value, bool startArbitration=false);
 
   /**
    * Read a single byte.
    * @param value the reference in which the read byte value is stored.
-   * @return the number of bytes read, or -1 on error.
+   * @return true on success, false on error.
    */
-  virtual ssize_t read(symbol_t* value) { return ::read(m_fd, value, 1); }
+  virtual bool read(symbol_t* value, ArbitrationState* arbitrationState=nullptr);
 
   /** the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network). */
   const char* m_name;
@@ -217,6 +209,9 @@ class Device {
 
   /** whether to send an initial @a ESC symbol in @a open(). */
   const bool m_initialSend;
+
+  /** whether the device supports the ebusd enhanced protocol. */
+  const bool m_enhancedProto;
 
   /** the opened file descriptor, or -1. */
   int m_fd;
@@ -277,10 +272,11 @@ class NetworkDevice : public Device {
    * @param readOnly whether to allow read access to the device only.
    * @param initialSend whether to send an initial @a ESC symbol in @a open().
    * @param udp true for UDP, false to TCP.
+   * @param enhancedProto whether the device supports the ebusd enhanced protocol.
    */
   NetworkDevice(const char* name, const struct sockaddr_in& address, bool readOnly, bool initialSend,
-    bool udp)
-    : Device(name, true, readOnly, initialSend), m_address(address), m_udp(udp),
+    bool udp, bool enhancedProto=false)
+    : Device(name, true, readOnly, initialSend, enhancedProto), m_address(address), m_udp(udp),
       m_buffer(nullptr), m_bufSize(0), m_bufLen(0), m_bufPos(0) {}
 
   /**
@@ -309,10 +305,10 @@ class NetworkDevice : public Device {
   bool available() override;
 
   // @copydoc
-  ssize_t write(symbol_t value) override;
+  bool write(symbol_t value, bool startArbitration=false) override;
 
   // @copydoc
-  ssize_t read(symbol_t* value) override;
+  bool read(symbol_t* value, ArbitrationState* arbitrationState=nullptr) override;
 
 
  private:

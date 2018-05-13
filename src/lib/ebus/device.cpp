@@ -47,6 +47,17 @@ namespace ebusd {
 #define POLLRDHUP 0
 #endif
 
+// ebusd enhanced protocol IDs:
+//TODO use this:
+#define ENH_INIT ((symbol_t)0x00)
+#define ENH_RESETTED ((symbol_t)0x00)
+#define ENH_SEND ((symbol_t)0x01)
+#define ENH_RECEIVED ((symbol_t)0x01)
+#define ENH_START ((symbol_t)0x02)
+#define ENH_STARTED ((symbol_t)0x02)
+#define ENH_FAILED ((symbol_t)0x82)
+
+
 Device::~Device() {
   close();
 }
@@ -55,8 +66,13 @@ Device* Device::create(const char* name, bool checkDevice, bool readOnly, bool i
   if (strchr(name, '/') == nullptr && strchr(name, ':') != nullptr) {
     char* in = strdup(name);
     bool udp = false;
+    bool enhanced = false;
     char* addrpos = in;
     char* portpos = strchr(addrpos, ':');
+    if (portpos >= addrpos+3 && strncmp(addrpos, "enh", 3) == 0) {
+      enhanced = true;
+      addrpos += 3;
+    }
     if (portpos == addrpos+3 && (strncmp(addrpos, "tcp", 3) == 0 || (udp=(strncmp(addrpos, "udp", 3) == 0)))) {
       addrpos += 4;
       portpos = strchr(addrpos, ':');
@@ -85,7 +101,7 @@ Device* Device::create(const char* name, bool checkDevice, bool readOnly, bool i
     free(in);
     address.sin_family = AF_INET;
     address.sin_port = (in_port_t)htons((uint16_t)port);
-    return new NetworkDevice(name, address, readOnly, initialSend, udp);
+    return new NetworkDevice(name, address, readOnly, initialSend, udp, enhanced);
   }
   return new SerialDevice(name, checkDevice, readOnly, initialSend);
 }
@@ -111,7 +127,7 @@ result_t Device::send(symbol_t value) {
   if (!isValid()) {
     return RESULT_ERR_DEVICE;
   }
-  if (m_readOnly || write(value) != 1) {
+  if (m_readOnly || !write(value)) {
     return RESULT_ERR_SEND;
   }
   if (m_listener != nullptr) {
@@ -170,19 +186,21 @@ result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* a
   }
 
   // directly read byte from device
-  ssize_t nbytes = read(value);
-  if (nbytes == 0) {
-    return RESULT_ERR_EOF;
-  }
-  if (nbytes < 0) {
+  if (!read(value, m_enhancedProto ? arbitrationState : nullptr)) {
     close();
     return RESULT_ERR_DEVICE;
   }
-  if (*value != SYN || m_arbitrationMaster == SYN) {
+  ArbitrationState prevState = m_enhancedProto && arbitrationState ? *arbitrationState : as_none;
+  if (*value != SYN || m_arbitrationMaster == SYN || m_enhancedProto) {
     if (m_listener != nullptr) {
       m_listener->notifyDeviceData(*value, true);
     }
-    if (m_arbitrationMaster != SYN) {
+    if (m_enhancedProto) {
+      if (arbitrationState && *arbitrationState != prevState) {
+        m_arbitrationMaster = SYN;
+        m_arbitrationCheck = false;
+      }
+    } else if (m_arbitrationMaster != SYN) {
       if (m_arbitrationCheck) {
         *arbitrationState = *value == m_arbitrationMaster ? as_won : as_lost;
         m_arbitrationMaster = SYN;
@@ -193,11 +211,11 @@ result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* a
     }
     return RESULT_OK;
   }
-  ssize_t wcnt = write(m_arbitrationMaster);  // send as fast as possible
+  bool wrote = write(m_arbitrationMaster);  // send as fast as possible
   if (m_listener != nullptr) {
     m_listener->notifyDeviceData(*value, true);
   }
-  if (wcnt != 1) {
+  if (!wrote) {
     *arbitrationState = as_error;
     m_arbitrationMaster = SYN;
     m_arbitrationCheck = false;
@@ -209,6 +227,35 @@ result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* a
   m_arbitrationCheck = true;
   *arbitrationState = as_running;
   return RESULT_OK;
+}
+
+result_t Device::startArbitration(symbol_t masterAddress) {
+  if (m_arbitrationCheck) {
+    return RESULT_ERR_DUPLICATE;
+  }
+  if (m_readOnly) {
+    return RESULT_ERR_SEND;
+  }
+  m_arbitrationCheck = false;
+  m_arbitrationMaster = masterAddress;
+  if (m_enhancedProto) {
+    if (!write(masterAddress, true)) {
+      m_arbitrationMaster = SYN;
+      m_arbitrationCheck = false;
+      return RESULT_ERR_SEND;
+    }
+    m_arbitrationCheck = true;
+    return RESULT_OK;
+  }
+  return RESULT_OK;
+}
+
+bool Device::write(symbol_t value, bool startArbitration) {
+  return ::write(m_fd, &value, 1) == 1;
+}
+
+bool Device::read(symbol_t* value, ArbitrationState* arbitrationState) {
+  return ::read(m_fd, value, 1) == 1;
 }
 
 
@@ -266,7 +313,7 @@ result_t SerialDevice::open() {
   // set serial device into blocking mode
   fcntl(m_fd, F_SETFL, fcntl(m_fd, F_GETFL) & ~O_NONBLOCK);
 
-  if (m_initialSend && write(ESC) != 1) {
+  if (m_initialSend && !write(ESC)) {
     return RESULT_ERR_SEND;
   }
   return RESULT_OK;
@@ -337,7 +384,7 @@ result_t NetworkDevice::open() {
     }
   }
   m_bufLen = 0;
-  if (m_initialSend && write(ESC) != 1) {
+  if (m_initialSend && !write(ESC)) {
     return RESULT_ERR_SEND;
   }
   return RESULT_OK;
@@ -359,29 +406,70 @@ bool NetworkDevice::available() {
   return m_buffer && m_bufLen > 0;
 }
 
-ssize_t NetworkDevice::write(symbol_t value) {
+bool NetworkDevice::write(symbol_t value, bool startArbitration) {
   m_bufLen = 0;  // flush read buffer
+  if (m_bufSize > 0 && m_enhancedProto) {
+    m_buffer[0] = startArbitration ? ENH_START : ENH_SEND;
+    m_buffer[1] = value;
+    return ::write(m_fd, m_buffer, 2) == 2;
+  }
   return Device::write(value);
 }
 
-ssize_t NetworkDevice::read(symbol_t* value) {
+bool NetworkDevice::read(symbol_t* value, ArbitrationState* arbitrationState) {
   if (available()) {
     *value = m_buffer[m_bufPos];
     m_bufPos = (m_bufPos+1)%m_bufSize;
     m_bufLen--;
-    return 1;
+    return true;
   }
   if (m_bufSize > 0) {
     ssize_t size = ::read(m_fd, m_buffer, m_bufSize);
     if (size <= 0) {
-      return size;
+      return false;
+    }
+    if (m_enhancedProto) {
+      symbol_t* buf = m_buffer;
+      m_bufPos = 0;
+      m_bufLen = 0;
+      while (size > 0) {
+        buf++;
+        size--;
+        switch (*buf) {
+          case ENH_STARTED:
+            if (arbitrationState) {
+              *arbitrationState = as_won;
+            }
+            break;
+          case ENH_FAILED:
+            if (arbitrationState) {
+              *arbitrationState = as_error;
+            }
+            break;
+          case ENH_RECEIVED:
+            m_buffer[m_bufPos++] = *buf;
+            m_bufLen++;
+            break;
+          case ENH_RESETTED: // TODO
+            break;
+          default:
+            return false;
+        }
+      }
+      if (m_bufLen > 0) {
+        *value = m_buffer[0];
+        m_bufPos = 1;
+        m_bufLen--;
+        return true;
+      }
+      return false;
     }
     *value = m_buffer[0];
     m_bufPos = 1;
     m_bufLen = size-1;
-    return size;
+    return true;
   }
-  return Device::read(value);
+  return Device::read(value, arbitrationState);
 }
 
 }  // namespace ebusd
