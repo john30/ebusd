@@ -21,7 +21,7 @@ The main features of the daemon are:
  * cache all messages
  * scan for bus participants
  * parse messages to human readable values and vice versa via message configuration files
- * automatically pick message configuration files by scan result
+ * automatically pick message configuration files by scan result from the config web service at ebusd.eu (or alternatively local files)
  * automatically check for updates of daemon and configuration files
  * pick preferred language for translatable message configuration parts
  * grab all messages on the eBUS and provide decoding hints
@@ -64,15 +64,15 @@ Configuration
 -------------
 
 The most important part of each ebusd installation is the message configuration.
-Starting with version 3.2, ebusd uses the config web service at ebusd.eu to retrieve
-the latest configuration files that are reflected by the configuration repository:
+Starting with version 3.2, **ebusd by default uses the config web service at ebusd.eu to retrieve
+the latest configuration files** that are reflected by the configuration repository (follow the "latest" symlink there):
 > https://github.com/john30/ebusd-configuration
 
 
 Docker image
 ------------
 
-A Docker image including the latest message configuration files is available on the hub.
+A Docker image using the config web service for retrieving the latest message configuration files is available on the hub.
 You can use it like this:  
 > docker pull john30/ebusd  
 > docker run -it --rm --device=/dev/ttyUSB0 -p 8888 john30/ebusd
