@@ -77,6 +77,11 @@ class MqttHandler : public DataSink, public DataSource, public WaitThread {
   void start() override;
 
   /**
+   * Notify the handler of a (re-)established connection to the broker.
+   */
+  void notifyConnected();
+
+  /**
    * Notify the handler of a received MQTT message.
    * @param topic the topic string.
    * @param data the data string.
@@ -127,6 +132,9 @@ class MqttHandler : public DataSink, public DataSource, public WaitThread {
 
   /** the global topic prefix. */
   string m_globalTopic;
+
+  /** the topic to subscribe to. */
+  string m_subscribeTopic;
 
   /** whether to publish a separate topic for each message field. */
   bool m_publishByField;
