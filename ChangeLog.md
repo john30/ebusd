@@ -5,6 +5,9 @@
 * fix for answering to first scan only in answer mode
 * fix don't add transfer latency to receive timeout when acting as SYN generator
 
+## Breaking Changes
+* added support for enhanced network protocol mode for recent [ebusd-esp firmware](https://github.com/john30/ebusd-esp/) that allows the arbitration to be done directly by the Wemos
+
 
 # 3.2 (2018-05-10)
 
