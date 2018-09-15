@@ -1,3 +1,11 @@
+# next version
+
+## Bug Fixes
+* fix for missing MQTT subscription after broker reconnect
+* fix for answering to first scan only in answer mode
+* fix don't add transfer latency to receive timeout when acting as SYN generator
+
+
 # 3.2 (2018-05-10)
 
 ## Breaking Changes
