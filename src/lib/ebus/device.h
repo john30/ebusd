@@ -81,10 +81,7 @@ class Device {
    * @param initialSend whether to send an initial @a ESC symbol in @a open().
    * @param enhancedProto whether the device supports the ebusd enhanced protocol.
    */
-  Device(const char* name, bool checkDevice, bool readOnly, bool initialSend, bool enhancedProto=false)
-    : m_name(name), m_checkDevice(checkDevice), m_readOnly(readOnly), m_initialSend(initialSend),
-      m_enhancedProto(enhancedProto), m_fd(-1), m_listener(nullptr), m_arbitrationMaster(SYN),
-      m_arbitrationCheck(false) {}
+  Device(const char* name, bool checkDevice, bool readOnly, bool initialSend, bool enhancedProto=false);
 
   /**
    * Destructor.
@@ -113,7 +110,7 @@ class Device {
    * Open the file descriptor.
    * @return the @a result_t code.
    */
-  virtual result_t open() = 0;  // abstract
+  virtual result_t open();
 
   /**
    * Close the file descriptor if opened.
@@ -179,12 +176,6 @@ class Device {
   virtual void checkDevice() = 0;  // abstract
 
   /**
-   * Check whether a byte is available immediately (without waiting).
-   * @return true when a a byte is available immediately.
-   */
-  virtual bool available() { return false; }
-
-  /**
    * Write a single byte.
    * @param value the byte value to write.
    * @return true on success, false on error.
@@ -192,11 +183,19 @@ class Device {
   virtual bool write(symbol_t value, bool startArbitration=false);
 
   /**
+   * Check whether a symbol is available for reading immediately (without waiting).
+   * @return true when a symbol is available for reading immediately.
+   */
+  virtual bool available();
+
+  /**
    * Read a single byte.
    * @param value the reference in which the read byte value is stored.
+   * @param isAvailable the result of the immediately preceding call to @a available().
+   * @param arbitrationState the variable in which to store the received arbitration state (mandatory for enhanced proto).
    * @return true on success, false on error.
    */
-  virtual bool read(symbol_t* value, ArbitrationState* arbitrationState=nullptr);
+  virtual bool read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrationState=nullptr);
 
   /** the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network). */
   const char* m_name;
@@ -219,14 +218,27 @@ class Device {
 
  private:
   /** the @a DeviceListener, or nullptr. */
-  DeviceListener* m_listener;
+public: DeviceListener* m_listener;
 
   /** the arbitration master address to send when in arbitration, or @a SYN. */
   symbol_t m_arbitrationMaster;
 
   /** true when in arbitration and the next received symbol needs to be checked against the sent master address. */
   bool m_arbitrationCheck;
+
+  /** the read buffer. */
+  symbol_t* m_buffer;
+
+  /** the read buffer size (multiple of 4). */
+  size_t m_bufSize;
+
+  /** the read buffer fill length. */
+  size_t m_bufLen;
+
+  /** the read buffer read position. */
+  size_t m_bufPos;
 };
+
 
 /**
  * The @a Device for directly connected serial interfaces (tty).
@@ -276,17 +288,12 @@ class NetworkDevice : public Device {
    */
   NetworkDevice(const char* name, const struct sockaddr_in& address, bool readOnly, bool initialSend,
     bool udp, bool enhancedProto=false)
-    : Device(name, true, readOnly, initialSend, enhancedProto), m_address(address), m_udp(udp),
-      m_buffer(nullptr), m_bufSize(0), m_bufLen(0), m_bufPos(0) {}
+    : Device(name, true, readOnly, initialSend, enhancedProto), m_address(address), m_udp(udp) {}
 
   /**
    * Destructor.
    */
-  virtual ~NetworkDevice() {
-    if (m_buffer) {
-      free(m_buffer);
-    }
-  }
+  ~NetworkDevice() override {}
 
   // @copydoc
   unsigned int getLatency() const override { return 10000; }
@@ -294,21 +301,10 @@ class NetworkDevice : public Device {
   // @copydoc
   result_t open() override;
 
-  // @copydoc
-  void close() override;
 
  protected:
   // @copydoc
   void checkDevice() override;
-
-  // @copydoc
-  bool available() override;
-
-  // @copydoc
-  bool write(symbol_t value, bool startArbitration=false) override;
-
-  // @copydoc
-  bool read(symbol_t* value, ArbitrationState* arbitrationState=nullptr) override;
 
 
  private:
@@ -317,18 +313,6 @@ class NetworkDevice : public Device {
 
   /** true for UDP, false to TCP. */
   const bool m_udp;
-
-  /** the buffer memory, or nullptr. */
-  symbol_t* m_buffer;
-
-  /** the buffer size. */
-  size_t m_bufSize;
-
-  /** the buffer fill length. */
-  size_t m_bufLen;
-
-  /** the buffer read position. */
-  size_t m_bufPos;
 };
 
 }  // namespace ebusd
