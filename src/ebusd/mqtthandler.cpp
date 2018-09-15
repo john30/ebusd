@@ -298,6 +298,10 @@ void on_connect(
   void *obj, int rc) {
   if (rc == 0) {
     logOtherNotice("mqtt", "connection established");
+    MqttHandler* handler = reinterpret_cast<MqttHandler*>(obj);
+    if (handler) {
+      handler->notifyConnected();
+    }
   } else {
     if (rc >= 1 && rc <= 3) {
       logOtherError("mqtt", "connection refused: %s",
@@ -335,6 +339,7 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
     }
   }
   m_globalTopic = getTopic(nullptr, "global/");
+  m_subscribeTopic = getTopic(nullptr, "#");
   m_mosquitto = nullptr;
   if (mosquitto_lib_init() != MOSQ_ERR_SUCCESS) {
     logOtherError("mqtt", "unable to initialize");
@@ -382,7 +387,6 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
       }
     }
 #endif
-
     mosquitto_connect_callback_set(m_mosquitto, on_connect);
     int ret;
 #if (LIBMOSQUITTO_MAJOR >= 1)
@@ -423,6 +427,12 @@ MqttHandler::~MqttHandler() {
 void MqttHandler::start() {
   if (m_mosquitto) {
     WaitThread::start("MQTT");
+  }
+}
+
+void MqttHandler::notifyConnected() {
+  if (m_mosquitto && isRunning()) {
+    mosquitto_subscribe(m_mosquitto, nullptr, m_subscribeTopic.c_str(), 0);
   }
 }
 
@@ -545,8 +555,6 @@ void MqttHandler::run() {
   publishTopic(m_globalTopic+"running", "true", true);
   publishTopic(signalTopic, "false");
   mosquitto_message_callback_set(m_mosquitto, on_message);
-  string subTopic = getTopic(nullptr, "#");
-  mosquitto_subscribe(m_mosquitto, nullptr, subTopic.c_str(), 0);
   bool allowReconnect = false;
   while (isRunning()) {
     handleTraffic(allowReconnect);
