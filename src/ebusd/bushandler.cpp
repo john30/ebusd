@@ -572,7 +572,8 @@ result_t BusHandler::handleSymbol() {
   // receive next symbol (optionally check reception of sent symbol)
   symbol_t recvSymbol;
   ArbitrationState arbitrationState = as_none;
-  result = m_device->recv(timeout+m_transferLatency, &recvSymbol, &arbitrationState);
+  bool isAutoSyn = !sending && m_generateSynInterval == SYN_TIMEOUT && (m_state == bs_noSignal || m_state == bs_skip);
+  result = m_device->recv(timeout+(isAutoSyn ? 0 : m_transferLatency), &recvSymbol, &arbitrationState);
   if (sending) {
     clockGettime(&recvTime);
   }
