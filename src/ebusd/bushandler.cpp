@@ -454,11 +454,13 @@ result_t BusHandler::handleSymbol() {
       }
       if (startRequest != nullptr) {  // initiate arbitration
         result_t ret = m_device->startArbitration(startRequest->m_master[0]);
-        if (ret != RESULT_OK) {
+        if (ret == RESULT_OK) {
+          logDebug(lf_bus, "arbitration start with %2.2x", startRequest->m_master[0]);
+        } else {
           logError(lf_bus, "arbitration start: %s", getResultCode(ret));
+          m_nextRequests.remove(startRequest);
           m_currentRequest = startRequest;
           setState(bs_ready, ret);  // force the failed request to be notified
-          startRequest = nullptr;
         }
       }
     }
@@ -476,7 +478,7 @@ result_t BusHandler::handleSymbol() {
     break;
 
   case bs_recvCmdAck:
-    timeout = m_slaveRecvTimeout+(m_currentRequest ? m_transferLatency:0);
+    timeout = m_slaveRecvTimeout+(m_currentRequest ? m_transferLatency : 0);
     break;
 
   case bs_recvRes:
@@ -603,32 +605,46 @@ result_t BusHandler::handleSymbol() {
     m_remainLockCount = 0;
     m_lastSynReceiveTime = recvTime;
     sentAutoSyn = true;
+    setState(bs_ready, RESULT_OK);
   }
-  if (arbitrationState == as_lost) {
-    if (m_currentRequest == nullptr) {
-      BusRequest *startRequest = m_nextRequests.peek();
-      if (startRequest != nullptr && m_nextRequests.remove(startRequest)) {
-        m_currentRequest = startRequest;  // force the failed request to be notified
+  switch (arbitrationState) {
+    case as_lost:
+      logDebug(lf_bus, "arbitration lost");
+      if (m_currentRequest == nullptr) {
+        BusRequest *startRequest = m_nextRequests.peek();
+        if (startRequest != nullptr && m_nextRequests.remove(startRequest)) {
+          m_currentRequest = startRequest;  // force the failed request to be notified
+        }
       }
-    }
-    setState(m_state, RESULT_ERR_BUS_LOST);
-  } else if (arbitrationState == as_won) {  // implies RESULT_OK
-    if (m_currentRequest == nullptr) {
-      m_currentRequest = m_nextRequests.peek();
-    }
-    if (m_currentRequest == nullptr) {
-      logDebug(lf_bus, "arbitration won without request");
-    } else if (m_state == bs_ready) {
-      if (!m_nextRequests.remove(m_currentRequest)) {
-        // request already removed (e.g. due to timeout)
-        return setState(bs_skip, RESULT_ERR_TIMEOUT);
+      setState(m_state, RESULT_ERR_BUS_LOST);
+      break;
+    case as_won:  // implies RESULT_OK
+      if (m_currentRequest != nullptr) {
+        logNotice(lf_bus, "arbitration won while handling another request");
+        setState(bs_ready, RESULT_OK);  // force the current request to be notified
+      } else {
+        BusRequest *startRequest = m_nextRequests.peek();
+        if (m_state != bs_ready || startRequest == nullptr || !m_nextRequests.remove(startRequest)) {
+          logNotice(lf_bus, "arbitration won in invalid state %s", getStateCode(m_state));
+          setState(bs_ready, RESULT_ERR_TIMEOUT);
+        } else {
+          logDebug(lf_bus, "arbitration won");
+          m_currentRequest = startRequest;
+          sendSymbol = m_currentRequest->m_master[0];
+          sending = true;
+        }
       }
-      sendSymbol = m_currentRequest->m_master[0];
-      sending = true;
-    }
+      break;
+    case as_running:
+      break;
+    case as_error:
+      logError(lf_bus, "arbitration start error"); // TODO cancel all requests?
+      break;
+    default: // only as_none
+      break;
   }
-  if (sentAutoSyn) {
-    return setState(bs_ready, RESULT_OK);
+  if (sentAutoSyn && !sending) {
+    return RESULT_OK;
   }
   time_t now;
   time(&now);
@@ -978,6 +994,9 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
       }
       m_currentRequest = nullptr;
     }
+    if (state == bs_skip) {
+      m_device->startArbitration(SYN); // reset arbitration state
+    }
   }
 
   if (state == bs_noSignal) {  // notify all requests
@@ -1012,6 +1031,7 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
   } else if (m_state == bs_noSignal) {
     logNotice(lf_bus, "signal acquired");
   }
+  // logDebug(lf_bus, "state: from %s to %s with %s", getStateCode(m_state), getStateCode(state), getResultCode(result));
   m_state = state;
 
   if (state == bs_ready || state == bs_skip) {
