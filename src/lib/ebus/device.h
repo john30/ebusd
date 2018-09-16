@@ -76,7 +76,7 @@ class Device {
   /**
    * Construct a new instance.
    * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
-   * @param checkDevice whether to regularly check the device availability (only for serial devices).
+   * @param checkDevice whether to regularly check the device availability.
    * @param readOnly whether to allow read access to the device only.
    * @param initialSend whether to send an initial @a ESC symbol in @a open().
    * @param enhancedProto whether to use the ebusd enhanced protocol.
@@ -200,7 +200,7 @@ class Device {
   /** the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network). */
   const char* m_name;
 
-  /** whether to regularly check the device availability (only for serial devices). */
+  /** whether to regularly check the device availability. */
   const bool m_checkDevice;
 
   /** whether to allow read access to the device only. */
@@ -248,7 +248,7 @@ class SerialDevice : public Device {
   /**
    * Construct a new instance.
    * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
-   * @param checkDevice whether to regularly check the device availability (only for serial devices).
+   * @param checkDevice whether to regularly check the device availability.
    * @param readOnly whether to allow read access to the device only.
    * @param initialSend whether to send an initial @a ESC symbol in @a open().
    * @param enhancedProto whether to use the ebusd enhanced protocol.
