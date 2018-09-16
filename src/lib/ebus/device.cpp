@@ -64,7 +64,7 @@ namespace ebusd {
  * @param readOnly whether to allow read access to the device only.
  * @param initialSend whether to send an initial @a ESC symbol in @a open().
  * @param udp true for UDP, false to TCP.
- * @param enhancedProto whether the device supports the ebusd enhanced protocol.
+ * @param enhancedProto whether to use the ebusd enhanced protocol.
  */
 Device::Device(const char* name, bool checkDevice, bool readOnly, bool initialSend, bool enhancedProto)
   : m_name(name), m_checkDevice(checkDevice), m_readOnly(readOnly), m_initialSend(initialSend),
@@ -84,20 +84,23 @@ Device::~Device() {
 }
 
 Device* Device::create(const char* name, bool checkDevice, bool readOnly, bool initialSend) {
+  bool enhanced = strncmp(name, "enh:", 4) == 0;
+  if (enhanced) {
+    name += 4;
+  }
   if (strchr(name, '/') == nullptr && strchr(name, ':') != nullptr) {
     char* in = strdup(name);
     bool udp = false;
-    bool enhanced = false;
     char* addrpos = in;
     char* portpos = strchr(addrpos, ':');
-    if (portpos >= addrpos+3 && strncmp(addrpos, "enh", 3) == 0) {
-      enhanced = true;
+    if (!enhanced && portpos >= addrpos+3 && strncmp(addrpos, "enh", 3) == 0) {
+      enhanced = true; // support enhtcp:<ip>:<port> and enhudp:<ip>:<port>
       addrpos += 3;
       if (portpos == addrpos) {
         addrpos++;
         portpos = strchr(addrpos, ':');
       }
-    }
+    } // else: support enh:<ip>:<port> defaulting to TCP
     if (portpos == addrpos+3 && (strncmp(addrpos, "tcp", 3) == 0 || (udp=(strncmp(addrpos, "udp", 3) == 0)))) {
       addrpos += 4;
       portpos = strchr(addrpos, ':');
@@ -128,7 +131,8 @@ Device* Device::create(const char* name, bool checkDevice, bool readOnly, bool i
     address.sin_port = (in_port_t)htons((uint16_t)port);
     return new NetworkDevice(name, address, readOnly, initialSend, udp, enhanced);
   }
-  return new SerialDevice(name, checkDevice, readOnly, initialSend);
+  // support enh:/dev/<device>
+  return new SerialDevice(name, checkDevice, readOnly, initialSend, enhanced);
 }
 
 result_t Device::open() {

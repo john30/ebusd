@@ -79,7 +79,7 @@ class Device {
    * @param checkDevice whether to regularly check the device availability (only for serial devices).
    * @param readOnly whether to allow read access to the device only.
    * @param initialSend whether to send an initial @a ESC symbol in @a open().
-   * @param enhancedProto whether the device supports the ebusd enhanced protocol.
+   * @param enhancedProto whether to use the ebusd enhanced protocol.
    */
   Device(const char* name, bool checkDevice, bool readOnly, bool initialSend, bool enhancedProto=false);
 
@@ -251,9 +251,10 @@ class SerialDevice : public Device {
    * @param checkDevice whether to regularly check the device availability (only for serial devices).
    * @param readOnly whether to allow read access to the device only.
    * @param initialSend whether to send an initial @a ESC symbol in @a open().
+   * @param enhancedProto whether to use the ebusd enhanced protocol.
    */
-  SerialDevice(const char* name, bool checkDevice, bool readOnly, bool initialSend)
-    : Device(name, checkDevice, readOnly, initialSend) {}
+  SerialDevice(const char* name, bool checkDevice, bool readOnly, bool initialSend, bool enhancedProto=false)
+    : Device(name, checkDevice, readOnly, initialSend, enhancedProto) {}
 
   // @copydoc
   result_t open() override;
@@ -284,7 +285,7 @@ class NetworkDevice : public Device {
    * @param readOnly whether to allow read access to the device only.
    * @param initialSend whether to send an initial @a ESC symbol in @a open().
    * @param udp true for UDP, false to TCP.
-   * @param enhancedProto whether the device supports the ebusd enhanced protocol.
+   * @param enhancedProto whether to use the ebusd enhanced protocol.
    */
   NetworkDevice(const char* name, const struct sockaddr_in& address, bool readOnly, bool initialSend,
     bool udp, bool enhancedProto=false)
