@@ -421,7 +421,7 @@ result_t SerialDevice::open() {
   // create new settings
   memset(&newSettings, 0, sizeof(newSettings));
 
-  newSettings.c_cflag |= (B2400 | CS8 | CLOCAL | CREAD);
+  newSettings.c_cflag |= ((m_enhancedProto ? B115200 : B2400) | CS8 | CLOCAL | CREAD);
   newSettings.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);  // non-canonical mode
   newSettings.c_iflag |= IGNPAR;  // ignore parity errors
   newSettings.c_oflag &= ~OPOST;
