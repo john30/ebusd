@@ -249,7 +249,7 @@ class SymbolString {
     } else if (m_data.size() >= lengthOffset+255) {
       return false;
     }
-    m_data[lengthOffset] = (symbol_t)(m_data.size() - 1 - lengthOffset);
+    m_data[lengthOffset] = (symbol_t)(m_data.size() - lengthOffset - 1);
     return true;
   }
 
@@ -270,6 +270,18 @@ class SymbolString {
     }
     size_t ret = m_data[lengthOffset];
     return m_data.size() < lengthOffset + 1 + ret ? m_data.size() - lengthOffset - 1 : ret;
+  }
+
+  /**
+   * Return the calculated number of data bytes DD (nnot yet revealed in the length field).
+   * @return the calculated number of data bytes DD.
+   */
+  size_t getCalculatedDataSize() const {
+    size_t lengthOffset = (m_isMaster ? 4 : 0);
+    if (m_data.size() <= lengthOffset) {
+      return 0;
+    }
+    return m_data.size() - lengthOffset - 1;
   }
 
   /**

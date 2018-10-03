@@ -781,7 +781,7 @@ result_t NumberDataType::writeRawValue(unsigned int value, size_t offset, size_t
       symbol = (value / exp) & 0xff;
       exp <<=  8;
     }
-    if (index == start && (m_bitCount % 8) != 0 && offset + index < output->getDataSize()) {
+    if (index == start && (m_bitCount % 8) != 0 && offset + index < output->getCalculatedDataSize()) {
       output->dataAt(offset + index) |= symbol;
     } else {
       output->dataAt(offset + index) = symbol;
