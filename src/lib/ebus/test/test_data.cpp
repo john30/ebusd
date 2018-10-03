@@ -298,7 +298,7 @@ int main() {
     {"x,,hcd", "99999999",  "10feffff0463636363", "00", ""},
     {"x,,hcd", "100000000", "10feffff0463636363", "00", "Rw"},
     {"x,,hcd", "",          "10feffff0400006400", "00", "rw"},
-    {"x,,str:16", "0123456789ABCDEF", "10feffff1130313233343536373839414243444546", "00", ""},
+    {"x,,str:16", "0123456789ABCDEF", "10feffff1030313233343536373839414243444546", "00", ""},
     {"x,,uch:17", "",      "10feffff00", "00", "c"},
     {"x,s,uch", "0",       "1025ffff0310111213", "0300010203", "W"},
     {"x,s,uch", "0",       "1025ffff00", "0100", ""},
@@ -419,13 +419,13 @@ int main() {
     {"x,,exr", "-32.767", "10feffff04c2031168", "00", ""},
     {"x,,exr,1000", "-0.000090000", "10feffff04bdb851ec", "00", ""},
     {"x,,exr,-100", "-9",  "10feffff04bdb851ec", "00", ""},
-    {"x,,d2b", "18.004",   "10fe0700090112", "00", ""},
+    {"x,,d2b", "18.004",   "10fe0700020112", "00", ""},
     {"x,,d2b", "0.000",    "10feffff020000", "00", ""},
     {"x,,d2b", "-0.004",   "10feffff02ffff", "00", ""},
     {"x,,d2b", "-",        "10feffff020080", "00", ""},
     {"x,,d2b", "-127.996", "10feffff020180", "00", ""},
     {"x,,d2b", "127.996",  "10feffff02ff7f", "00", ""},
-    {"x,,d2c", "288.06",   "10fe0700090112", "00", ""},
+    {"x,,d2c", "288.06",   "10fe0700020112", "00", ""},
     {"x,,d2c", "0.00",     "10feffff020000", "00", ""},
     {"x,,d2c", "-0.06",    "10feffff02ffff", "00", ""},
     {"x,,d2c", "-",        "10feffff020080", "00", ""},
@@ -490,6 +490,15 @@ int main() {
     {"x,,bi3,,,,y,,bi7,,,,t,,uch", "0;0;9", "10feffff020009", "00", ""},  // bit combination
     {"x,,bi6:2,,,,y,,bi0:2,,,,t,,uch", "2;1;9", "10feffff03800109", "00", ""},  // bit combination
     {"x,,BI0;BI1;BI2;BI3;BI4;BI5;BI6;BI7", "0;0;1;0;0;0;0;0", "ff75b50900", "0104", ""},  // bits
+    {"x,,BI0;BI7;BI0", "0;0;0", "ff75b50900", "020000", ""},  // bits
+    {"x,,BI0;BI7;BI0", "0;0;1", "ff75b50900", "020001", ""},  // bits
+    {"x,,BI0;BI7;BI0", "0;1;0", "ff75b50900", "028000", ""},  // bits
+    {"x,,BI0;BI7;BI0", "0;1;1", "ff75b50900", "028001", ""},  // bits
+    {"x,m,BI0;BI1;BI2;BI3;BI4;BI5;BI6;BI7", "0;0;1;0;0;0;0;0", "ff75b5090104", "00", ""},  // bits
+    {"x,m,BI0;BI7;BI0", "0;0;0", "ff75b509020000", "00", ""},  // bits
+    {"x,m,BI0;BI7;BI0", "0;0;1", "ff75b509020001", "00", ""},  // bits
+    {"x,m,BI0;BI7;BI0", "0;1;0", "ff75b509028000", "00", ""},  // bits
+    {"x,m,BI0;BI7;BI0", "0;1;1", "ff75b509028001", "00", ""},  // bits
     {"temp,d2b,,°C,Aussentemperatur", "", "", "", "t"},  // template with relative pos
     {"x,,temp", "18.004", "10fe0700020112", "00", ""},  // reference to template
     {"x,,temp,10", "1.8004", "10fe0700020112", "00", ""},  // reference to template, valid divisor product
@@ -613,42 +622,51 @@ int main() {
     cout << "\": create OK" << endl;
 
     ostringstream output;
-    MasterSymbolString writeMstr;
-    result = writeMstr.parseHex(mstr.getStr().substr(0, 10));
-    if (result != RESULT_OK) {
-      cout << "  parse \"" << mstr.getStr().substr(0, 10) << "\" error: " << getResultCode(result) << endl;
-      error = true;
-    }
-    SlaveSymbolString writeSstr;
-    result = writeSstr.parseHex(sstr.getStr().substr(0, 2));
-    if (result != RESULT_OK) {
-      cout << "  parse \"" << sstr.getStr().substr(0, 2) << "\" error: " << getResultCode(result) << endl;
-      error = true;
-    }
-    result = fields->read(mstr, 0, false, findName, findIndex, verbosity|(numeric?OF_NUMERIC:0), -1, &output);
-    if (result >= RESULT_OK) {
-      result = fields->read(sstr, 0, !output.str().empty(), findName, findIndex, verbosity|(numeric?OF_NUMERIC:0), -1, &output);
-    }
-    if (failedRead) {
+    {
+      MasterSymbolString writeMstr;
+      result = writeMstr.parseHex(mstr.getStr().substr(0, 10));
+      if (result != RESULT_OK) {
+        cout << "  parse \"" << mstr.getStr().substr(0, 10) << "\" error: " << getResultCode(result) << endl;
+        error = true;
+      }
+      SlaveSymbolString writeSstr;
+      result = writeSstr.parseHex(sstr.getStr().substr(0, 2));
+      if (result != RESULT_OK) {
+        cout << "  parse \"" << sstr.getStr().substr(0, 2) << "\" error: " << getResultCode(result) << endl;
+        error = true;
+      }
+      result = fields->read(mstr, 0, false, findName, findIndex, verbosity|(numeric?OF_NUMERIC:0), -1, &output);
       if (result >= RESULT_OK) {
-        cout << "  failed read " << fields->getName(-1) << " >" << check[2] << " " << check[3]
-             << "< error: unexpectedly succeeded" << endl;
+        result = fields->read(sstr, 0, !output.str().empty(), findName, findIndex, verbosity|(numeric?OF_NUMERIC:0), -1, &output);
+      }
+      if (failedRead) {
+        if (result >= RESULT_OK) {
+          cout << "  failed read " << fields->getName(-1) << " >" << check[2] << " " << check[3]
+               << "< error: unexpectedly succeeded" << endl;
+          error = true;
+        } else {
+          cout << "  failed read " << fields->getName(-1) << " >" << check[2] << " " << check[3]
+               << "< OK" << endl;
+        }
+      } else if (result < RESULT_OK) {
+        cout << "  read " << fields->getName(-1) << " >" << check[2] << " " << check[3]
+             << "< error: " << getResultCode(result) << endl;
         error = true;
       } else {
-        cout << "  failed read " << fields->getName(-1) << " >" << check[2] << " " << check[3]
-             << "< OK" << endl;
+        bool match = strcasecmp(output.str().c_str(), expectStr.c_str()) == 0;
+        verify(failedReadMatch, "read", check[2], match, expectStr, output.str());
       }
-    } else if (result < RESULT_OK) {
-      cout << "  read " << fields->getName(-1) << " >" << check[2] << " " << check[3]
-           << "< error: " << getResultCode(result) << endl;
-      error = true;
-    } else {
-      bool match = strcasecmp(output.str().c_str(), expectStr.c_str()) == 0;
-      verify(failedReadMatch, "read", check[2], match, expectStr, output.str());
     }
 
     if (verbosity == 0) {
       istringstream input(expectStr);
+      MasterSymbolString writeMstr;
+      result = writeMstr.parseHex(mstr.getStr().substr(0, 8));
+      if (result != RESULT_OK) {
+        cout << "  parse \"" << mstr.getStr().substr(0, 8) << "\" error: " << getResultCode(result) << endl;
+        error = true;
+      }
+      SlaveSymbolString writeSstr;
       result = fields->write(UI_FIELD_SEPARATOR, 0, &input, &writeMstr, nullptr);
       if (result >= RESULT_OK) {
         result = fields->write(UI_FIELD_SEPARATOR, 0, &input, &writeSstr, nullptr);
@@ -667,6 +685,8 @@ int main() {
                 << "< error: " << getResultCode(result) << endl;
         error = true;
       } else {
+        writeMstr.adjustHeader();
+        writeSstr.adjustHeader();
         bool match = mstr == writeMstr && sstr == writeSstr;
         verify(failedWriteMatch, "write", expectStr, match, mstr.getStr() + " " + sstr.getStr(),
             writeMstr.getStr() + " " + writeSstr.getStr());
