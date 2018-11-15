@@ -36,6 +36,7 @@ using std::dec;
 #define O_RETA (O_TOPI+1)
 #define O_JSON (O_RETA+1)
 #define O_IGIN (O_JSON+1)
+#define O_CLID (O_KEYF+1)
 #define O_CAFI (O_IGIN+1)
 #define O_CERT (O_CAFI+1)
 #define O_KEYF (O_CERT+1)
@@ -43,23 +44,24 @@ using std::dec;
 
 /** the definition of the MQTT arguments. */
 static const struct argp_option g_mqtt_argp_options[] = {
-  {nullptr,       0,      nullptr,       0, "MQTT options:", 1 },
-  {"mqtthost",    O_HOST, "HOST",        0, "Connect to MQTT broker on HOST [localhost]", 0 },
-  {"mqttport",    O_PORT, "PORT",        0, "Connect to MQTT broker on PORT (usually 1883), 0 to disable [0]", 0 },
-  {"mqttuser",    O_USER, "USER",        0, "Connect as USER to MQTT broker (no default)", 0 },
-  {"mqttpass",    O_PASS, "PASSWORD",    0, "Use PASSWORD when connecting to MQTT broker (no default)", 0 },
-  {"mqtttopic",   O_TOPI, "TOPIC",       0,
+  {nullptr,        0,      nullptr,       0, "MQTT options:", 1 },
+  {"mqtthost",     O_HOST, "HOST",        0, "Connect to MQTT broker on HOST [localhost]", 0 },
+  {"mqttport",     O_PORT, "PORT",        0, "Connect to MQTT broker on PORT (usually 1883), 0 to disable [0]", 0 },
+  {"mqttuser",     O_USER, "USER",        0, "Connect as USER to MQTT broker (no default)", 0 },
+  {"mqttpass",     O_PASS, "PASSWORD",    0, "Use PASSWORD when connecting to MQTT broker (no default)", 0 },
+  {"mqtttopic",    O_TOPI, "TOPIC",       0,
    "Use MQTT TOPIC (prefix before /%circuit/%name or complete format) [ebusd]", 0 },
-  {"mqttretain",  O_RETA, nullptr,       0, "Retain all topics instead of only selected global ones", 0 },
-  {"mqttjson",    O_JSON, nullptr,       0, "Publish in JSON format instead of strings", 0 },
+  {"mqttretain",   O_RETA, nullptr,       0, "Retain all topics instead of only selected global ones", 0 },
+  {"mqttjson",     O_JSON, nullptr,       0, "Publish in JSON format instead of strings", 0 },
   {"mqttignoreinvalid", O_IGIN, nullptr, 0,
    "Ignore invalid parameters during init (e.g. for DNS not resolvable yet)", 0 },
+  {"mqttclientid", O_CLID, nullptr,       0, "Set the MQTT Client-ID, defaults to PACKAGE_NAME_PACKAGE_VERSION_PID", 0 },
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
-  {"mqttca",      O_CAFI, "CA",          0, "Use CA file or dir (ending with '/') for MQTT TLS (no default)", 0 },
-  {"mqttcert",    O_CERT, "CERTFILE",    0, "Use CERTFILE for MQTT TLS client certificate (no default)", 0 },
-  {"mqttkey",     O_KEYF, "KEYFILE",     0, "Use KEYFILE for MQTT TLS client certificate (no default)", 0 },
-  {"mqttkeypass", O_KEPA, "PASSWORD",    0, "Use PASSWORD for the encrypted KEYFILE (no default)", 0 },
+  {"mqttca",       O_CAFI, "CA",          0, "Use CA file or dir (ending with '/') for MQTT TLS (no default)", 0 },
+  {"mqttcert",     O_CERT, "CERTFILE",    0, "Use CERTFILE for MQTT TLS client certificate (no default)", 0 },
+  {"mqttkey",      O_KEYF, "KEYFILE",     0, "Use KEYFILE for MQTT TLS client certificate (no default)", 0 },
+  {"mqttkeypass",  O_KEPA, "PASSWORD",    0, "Use PASSWORD for the encrypted KEYFILE (no default)", 0 },
 #endif
 
   {nullptr,       0,      nullptr,       0, nullptr, 0 },
@@ -69,6 +71,7 @@ static const char* g_host = "localhost";  //!< host name of MQTT broker [localho
 static uint16_t g_port = 0;               //!< optional port of MQTT broker, 0 to disable [0]
 static const char* g_username = nullptr;  //!< optional user name for MQTT broker (no default)
 static const char* g_password = nullptr;  //!< optional password for MQTT broker (no default)
+static const char* g_clientId = nullptr;  //!< optional clientid, defaults to PACKAGE_NAME_PACKAGE_VERSION_PID
 /** the MQTT topic string parts. */
 static vector<string> g_topicStrs;
 /** the MQTT topic field parts. */
@@ -149,6 +152,14 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
 
   case O_IGIN:
     g_ignoreInvalidParams = true;
+    break;
+
+  case O_CLID:  // --mqttclientid=clientid
+    if (arg == nullptr) {
+      argp_error(state, "invalid client id");
+      return EINVAL;
+    }
+    g_clientId = arg;
     break;
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
@@ -346,7 +357,11 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
   } else {
     signal(SIGPIPE, SIG_IGN);  // needed before libmosquitto v. 1.1.3
     ostringstream clientId;
-    clientId << PACKAGE_NAME << '_' << PACKAGE_VERSION << '_' << static_cast<unsigned>(getpid());
+    if (g_clientId.empty()) { // if no clientid has been set create default clientid
+      clientId << PACKAGE_NAME << '_' << PACKAGE_VERSION << '_' << static_cast<unsigned>(getpid());
+    } else {
+      clientId << g_clientId.str()
+    }
 #if (LIBMOSQUITTO_MAJOR >= 1)
     m_mosquitto = mosquitto_new(clientId.str().c_str(), true, this);
 #else
