@@ -36,8 +36,8 @@ using std::dec;
 #define O_RETA (O_TOPI+1)
 #define O_JSON (O_RETA+1)
 #define O_IGIN (O_JSON+1)
-#define O_CLID (O_KEYF+1)
-#define O_CAFI (O_IGIN+1)
+#define O_CLID (O_IGIN+1)
+#define O_CAFI (O_CLID+1)
 #define O_CERT (O_CAFI+1)
 #define O_KEYF (O_CERT+1)
 #define O_KEPA (O_KEYF+1)
@@ -53,9 +53,9 @@ static const struct argp_option g_mqtt_argp_options[] = {
    "Use MQTT TOPIC (prefix before /%circuit/%name or complete format) [ebusd]", 0 },
   {"mqttretain",   O_RETA, nullptr,       0, "Retain all topics instead of only selected global ones", 0 },
   {"mqttjson",     O_JSON, nullptr,       0, "Publish in JSON format instead of strings", 0 },
-  {"mqttignoreinvalid", O_IGIN, nullptr, 0,
+  {"mqttignoreinvalid", O_IGIN, nullptr,  0,
    "Ignore invalid parameters during init (e.g. for DNS not resolvable yet)", 0 },
-  {"mqttclientid", O_CLID, nullptr,       0, "Set the MQTT Client-ID, defaults to PACKAGE_NAME_PACKAGE_VERSION_PID", 0 },
+  {"mqttclientid", O_CLID, "CLIENTID",    0, "Set the MQTT CLIENTID, defaults to PACKAGE_NAME_PACKAGE_VERSION_PID", 0 },
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
   {"mqttca",       O_CAFI, "CA",          0, "Use CA file or dir (ending with '/') for MQTT TLS (no default)", 0 },
@@ -357,10 +357,10 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
   } else {
     signal(SIGPIPE, SIG_IGN);  // needed before libmosquitto v. 1.1.3
     ostringstream clientId;
-    if (g_clientId.empty()) { // if no clientid has been set create default clientid
+    if (!g_clientId) { // if no clientid has been set create default clientid
       clientId << PACKAGE_NAME << '_' << PACKAGE_VERSION << '_' << static_cast<unsigned>(getpid());
     } else {
-      clientId << g_clientId.str()
+      clientId << g_clientId;
     }
 #if (LIBMOSQUITTO_MAJOR >= 1)
     m_mosquitto = mosquitto_new(clientId.str().c_str(), true, this);
