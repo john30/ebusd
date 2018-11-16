@@ -13,7 +13,19 @@ DAEMON=/usr/bin/ebusd
 PIDFILE_PREFIX=/var/run/ebusd
 PIDFILE_SUFFIX=.pid
 
-. /lib/lsb/init-functions
+if test -f /lib/lsb/init-functions; then
+	. /lib/lsb/init-functions
+else
+	. /etc/init.d/functions
+
+	log_daemon_msg()  { logger "$@"; }
+	log_end_msg()     { [ $1 -eq 0 ] && RES=OK; logger ${RES:=FAIL}; }
+	log_failure_msg() { logger "FAIL $@"; }
+	log_warning_msg() { logger "WARN $@"; }
+	status_of_proc () { status $3; }
+
+fi
+
 [ -r /etc/default/ebusd ] && . /etc/default/ebusd
 
 if [ ! -x $DAEMON ]; then
