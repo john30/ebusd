@@ -35,7 +35,8 @@ using std::dec;
 #define O_TOPI (O_PASS+1)
 #define O_RETA (O_TOPI+1)
 #define O_JSON (O_RETA+1)
-#define O_IGIN (O_JSON+1)
+#define O_V311 (O_JSON+1)
+#define O_IGIN (O_V311+1)
 #define O_CAFI (O_IGIN+1)
 #define O_CERT (O_CAFI+1)
 #define O_KEYF (O_CERT+1)
@@ -50,9 +51,10 @@ static const struct argp_option g_mqtt_argp_options[] = {
   {"mqttpass",    O_PASS, "PASSWORD",    0, "Use PASSWORD when connecting to MQTT broker (no default)", 0 },
   {"mqtttopic",   O_TOPI, "TOPIC",       0,
    "Use MQTT TOPIC (prefix before /%circuit/%name or complete format) [ebusd]", 0 },
-  {"mqttretain",  O_RETA, nullptr,       0, "Retain all topics instead of only selected global ones", 0 },
-  {"mqttjson",    O_JSON, nullptr,       0, "Publish in JSON format instead of strings", 0 },
-  {"mqttignoreinvalid", O_IGIN, nullptr, 0,
+  {"mqttretain",   O_RETA, nullptr,       0, "Retain all topics instead of only selected global ones", 0 },
+  {"mqttjson",     O_JSON, nullptr,       0, "Publish in JSON format instead of strings", 0 },
+  {"mqttv311",     O_V311, nullptr,       0, "Use MQTT protocol 3.1.1 rather than 3.1", 0 },
+  {"mqttignoreinvalid", O_IGIN, nullptr,  0,
    "Ignore invalid parameters during init (e.g. for DNS not resolvable yet)", 0 },
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
@@ -76,6 +78,7 @@ static vector<string> g_topicFields;
 static bool g_retain = false;             //!< whether to retail all topics
 static OutputFormat g_publishFormat = 0;  //!< the OutputFormat for publishing messages
 static bool g_ignoreInvalidParams = false;  //!< ignore invalid parameters during init
+static bool g_isMqttV311 = false;
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
 static const char* g_cafile = nullptr;    //!< CA file for TLS
@@ -145,6 +148,10 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
 
   case O_JSON:  // --mqttjson
     g_publishFormat |= OF_JSON|OF_NAMES;
+    break;
+
+  case O_V311:  // --mqttv311
+    g_isMqttV311 = true;
     break;
 
   case O_IGIN:
@@ -370,6 +377,15 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
     string willTopic = m_globalTopic+"running";
     string willData = "false";
     size_t len = willData.length();
+
+    if (g_isMqttV311) {
+      // set the MQTT protocol version to 3.1.1 as libmosquitto defaults to 3.1 otherwise
+      int mqttProtocolVersion = MQTT_PROTOCOL_V311;
+
+      if (mosquitto_opts_set(m_mosquitto, MOSQ_OPT_PROTOCOL_VERSION, &mqttProtocolVersion) != MOSQ_ERR_SUCCESS) {
+          logOtherError("mqtt", "unable to set MQTT protocol version, defaulting to V31");
+      }
+    }
 #if (LIBMOSQUITTO_MAJOR >= 1)
     mosquitto_will_set(m_mosquitto, willTopic.c_str(), (uint32_t)len,
         reinterpret_cast<const uint8_t*>(willData.c_str()), 0, true);
