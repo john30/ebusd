@@ -1,6 +1,6 @@
 [Unit]
 Description=ebusd, the daemon for communication with eBUS heating systems.
-After=network.target
+After=network-online.target
 ConditionPathExists=/var/log
 
 [Service]
