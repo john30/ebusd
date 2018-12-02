@@ -36,7 +36,8 @@ using std::dec;
 #define O_RETA (O_TOPI+1)
 #define O_JSON (O_RETA+1)
 #define O_IGIN (O_JSON+1)
-#define O_CAFI (O_IGIN+1)
+#define O_CHGS (O_IGIN+1)
+#define O_CAFI (O_CHGS+1)
 #define O_CERT (O_CAFI+1)
 #define O_KEYF (O_CERT+1)
 #define O_KEPA (O_KEYF+1)
@@ -54,6 +55,7 @@ static const struct argp_option g_mqtt_argp_options[] = {
   {"mqttjson",    O_JSON, nullptr,       0, "Publish in JSON format instead of strings", 0 },
   {"mqttignoreinvalid", O_IGIN, nullptr, 0,
    "Ignore invalid parameters during init (e.g. for DNS not resolvable yet)", 0 },
+  {"mqttchanges", O_CHGS, nullptr,       0, "Whether to only publish changed messages instead of all received", 0 },
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
   {"mqttca",      O_CAFI, "CA",          0, "Use CA file or dir (ending with '/') for MQTT TLS (no default)", 0 },
@@ -76,6 +78,7 @@ static vector<string> g_topicFields;
 static bool g_retain = false;             //!< whether to retail all topics
 static OutputFormat g_publishFormat = 0;  //!< the OutputFormat for publishing messages
 static bool g_ignoreInvalidParams = false;  //!< ignore invalid parameters during init
+static bool g_onlyChanges = true;         //!< whether to only publish changed messages instead of all received
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
 static const char* g_cafile = nullptr;    //!< CA file for TLS
@@ -149,6 +152,10 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
 
   case O_IGIN:
     g_ignoreInvalidParams = true;
+    break;
+
+  case O_CHGS:
+    g_onlyChanges = true;
     break;
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
@@ -546,7 +553,7 @@ void MqttHandler::notifyUpdateCheckResult(const string& checkResult) {
 }
 
 void MqttHandler::run() {
-  time_t lastTaskRun, now, start, lastSignal = 0;
+  time_t lastTaskRun, now, start, lastSignal = 0, lastUpdates = 0;
   bool signal = false;
   string signalTopic = m_globalTopic+"signal";
   string uptimeTopic = m_globalTopic+"uptime";
@@ -602,7 +609,8 @@ void MqttHandler::run() {
             updates.clear();
             updates << dec;
             for (auto message : *messages) {
-              if (message->getLastChangeTime() > 0 && message->isAvailable()) {
+              if (message->getLastChangeTime() > 0 && message->isAvailable()
+              && (!g_onlyChanges || message->getLastChangeTime() > lastUpdates)) {
                 publishMessage(message, &updates);
               }
             }
@@ -610,6 +618,7 @@ void MqttHandler::run() {
           it = m_updatedMessages.erase(it);
         }
         m_messages->unlock();
+        time(&lastUpdates);
       } else {
         m_updatedMessages.clear();
       }
