@@ -30,13 +30,15 @@ using std::dec;
 
 #define O_HOST 1
 #define O_PORT (O_HOST+1)
-#define O_USER (O_PORT+1)
+#define O_CLID (O_PORT+1)
+#define O_USER (O_CLID+1)
 #define O_PASS (O_USER+1)
 #define O_TOPI (O_PASS+1)
 #define O_RETA (O_TOPI+1)
 #define O_JSON (O_RETA+1)
 #define O_IGIN (O_JSON+1)
-#define O_CAFI (O_IGIN+1)
+#define O_CHGS (O_IGIN+1)
+#define O_CAFI (O_CHGS+1)
 #define O_CERT (O_CAFI+1)
 #define O_KEYF (O_CERT+1)
 #define O_KEPA (O_KEYF+1)
@@ -46,6 +48,8 @@ static const struct argp_option g_mqtt_argp_options[] = {
   {nullptr,       0,      nullptr,       0, "MQTT options:", 1 },
   {"mqtthost",    O_HOST, "HOST",        0, "Connect to MQTT broker on HOST [localhost]", 0 },
   {"mqttport",    O_PORT, "PORT",        0, "Connect to MQTT broker on PORT (usually 1883), 0 to disable [0]", 0 },
+  {"mqttclientid",O_CLID, "ID",          0, "Set client ID for connection to MQTT broker [" PACKAGE_NAME "_"
+   PACKAGE_VERSION "_<pid>]", 0 },
   {"mqttuser",    O_USER, "USER",        0, "Connect as USER to MQTT broker (no default)", 0 },
   {"mqttpass",    O_PASS, "PASSWORD",    0, "Use PASSWORD when connecting to MQTT broker (no default)", 0 },
   {"mqtttopic",   O_TOPI, "TOPIC",       0,
@@ -54,6 +58,7 @@ static const struct argp_option g_mqtt_argp_options[] = {
   {"mqttjson",    O_JSON, nullptr,       0, "Publish in JSON format instead of strings", 0 },
   {"mqttignoreinvalid", O_IGIN, nullptr, 0,
    "Ignore invalid parameters during init (e.g. for DNS not resolvable yet)", 0 },
+  {"mqttchanges", O_CHGS, nullptr,       0, "Whether to only publish changed messages instead of all received", 0 },
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
   {"mqttca",      O_CAFI, "CA",          0, "Use CA file or dir (ending with '/') for MQTT TLS (no default)", 0 },
@@ -67,6 +72,7 @@ static const struct argp_option g_mqtt_argp_options[] = {
 
 static const char* g_host = "localhost";  //!< host name of MQTT broker [localhost]
 static uint16_t g_port = 0;               //!< optional port of MQTT broker, 0 to disable [0]
+static const char* g_clientId = nullptr;  //!< optional clientid override for MQTT broker
 static const char* g_username = nullptr;  //!< optional user name for MQTT broker (no default)
 static const char* g_password = nullptr;  //!< optional password for MQTT broker (no default)
 /** the MQTT topic string parts. */
@@ -76,6 +82,7 @@ static vector<string> g_topicFields;
 static bool g_retain = false;             //!< whether to retail all topics
 static OutputFormat g_publishFormat = 0;  //!< the OutputFormat for publishing messages
 static bool g_ignoreInvalidParams = false;  //!< ignore invalid parameters during init
+static bool g_onlyChanges = true;         //!< whether to only publish changed messages instead of all received
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
 static const char* g_cafile = nullptr;    //!< CA file for TLS
@@ -111,6 +118,14 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
       argp_error(state, "invalid mqttport");
       return EINVAL;
     }
+    break;
+
+  case O_CLID:  // --mqttclientid=clientid
+    if (arg == nullptr || arg[0] == 0) {
+      argp_error(state, "invalid mqttclientid");
+      return EINVAL;
+    }
+    g_clientId = arg;
     break;
 
   case O_USER:  // --mqttuser=username
@@ -149,6 +164,10 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
 
   case O_IGIN:
     g_ignoreInvalidParams = true;
+    break;
+
+  case O_CHGS:
+    g_onlyChanges = true;
     break;
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
@@ -346,7 +365,11 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
   } else {
     signal(SIGPIPE, SIG_IGN);  // needed before libmosquitto v. 1.1.3
     ostringstream clientId;
-    clientId << PACKAGE_NAME << '_' << PACKAGE_VERSION << '_' << static_cast<unsigned>(getpid());
+    if (g_clientId) {
+      clientId << g_clientId;
+    } else {
+      clientId << PACKAGE_NAME << '_' << PACKAGE_VERSION << '_' << static_cast<unsigned>(getpid());
+    }
 #if (LIBMOSQUITTO_MAJOR >= 1)
     m_mosquitto = mosquitto_new(clientId.str().c_str(), true, this);
 #else
@@ -430,12 +453,6 @@ void MqttHandler::start() {
   }
 }
 
-void MqttHandler::notifyConnected() {
-  if (m_mosquitto && isRunning()) {
-    mosquitto_subscribe(m_mosquitto, nullptr, m_subscribeTopic.c_str(), 0);
-  }
-}
-
 void on_message(
 #if (LIBMOSQUITTO_MAJOR >= 1)
   struct mosquitto *mosq,
@@ -448,6 +465,16 @@ void on_message(
   string topic(message->topic);
   string data(message->payloadlen > 0 ? reinterpret_cast<char*>(message->payload) : "");
   handler->notifyTopic(topic, data);
+}
+
+void MqttHandler::notifyConnected() {
+  if (m_mosquitto && isRunning()) {
+    const string sep = (g_publishFormat & OF_JSON) ? "\"" : "";
+    publishTopic(m_globalTopic+"version", sep + (PACKAGE_STRING "." REVISION) + sep, true);
+    publishTopic(m_globalTopic+"running", "true", true);
+    mosquitto_message_callback_set(m_mosquitto, on_message);
+    mosquitto_subscribe(m_mosquitto, nullptr, m_subscribeTopic.c_str(), 0);
+  }
 }
 
 void MqttHandler::notifyTopic(const string& topic, const string& data) {
@@ -508,7 +535,7 @@ void MqttHandler::notifyTopic(const string& topic, const string& data) {
       }
     }
   }
-  if (circuit.empty() || name.empty()) {
+  if (name.empty()) {
     return;
   }
   logOtherInfo("mqtt", "received topic for %s %s", circuit.c_str(), name.c_str());
@@ -542,7 +569,7 @@ void MqttHandler::notifyUpdateCheckResult(const string& checkResult) {
 }
 
 void MqttHandler::run() {
-  time_t lastTaskRun, now, start, lastSignal = 0;
+  time_t lastTaskRun, now, start, lastSignal = 0, lastUpdates = 0;
   bool signal = false;
   string signalTopic = m_globalTopic+"signal";
   string uptimeTopic = m_globalTopic+"uptime";
@@ -550,16 +577,14 @@ void MqttHandler::run() {
 
   time(&now);
   start = lastTaskRun = now;
-  const string sep = (g_publishFormat & OF_JSON) ? "\"" : "";
-  publishTopic(m_globalTopic+"version", sep + (PACKAGE_STRING "." REVISION) + sep, true);
-  publishTopic(m_globalTopic+"running", "true", true);
-  publishTopic(signalTopic, "false");
-  mosquitto_message_callback_set(m_mosquitto, on_message);
   bool allowReconnect = false;
   while (isRunning()) {
+    bool wasConnected = m_connected;
     handleTraffic(allowReconnect);
+    bool reconnected = !wasConnected && m_connected;
     allowReconnect = false;
     time(&now);
+    bool sendSignal = reconnected;
     if (now < start) {
       // clock skew
       if (now < lastSignal) {
@@ -568,24 +593,27 @@ void MqttHandler::run() {
       lastTaskRun = now;
     } else if (now > lastTaskRun+15) {
       allowReconnect = true;
-      if (m_busHandler->hasSignal()) {
-        lastSignal = now;
-        if (!signal) {
-          signal = true;
-          publishTopic(signalTopic, "true");
-        }
-      } else {
-        if (signal) {
-          signal = false;
-          publishTopic(signalTopic, "false");
-        }
-      }
+      sendSignal = true;
       time_t uptime = now-start;
       updates.str("");
       updates.clear();
       updates << dec << static_cast<unsigned>(uptime);
       publishTopic(uptimeTopic, updates.str());
       time(&lastTaskRun);
+    }
+    if (sendSignal) {
+      if (m_busHandler->hasSignal()) {
+        lastSignal = now;
+        if (!signal || reconnected) {
+          signal = true;
+          publishTopic(signalTopic, "true");
+        }
+      } else {
+        if (signal || reconnected) {
+          signal = false;
+          publishTopic(signalTopic, "false");
+        }
+      }
     }
     if (!m_updatedMessages.empty()) {
       if (m_connected) {
@@ -597,7 +625,8 @@ void MqttHandler::run() {
             updates.clear();
             updates << dec;
             for (auto message : *messages) {
-              if (message->getLastChangeTime() > 0 && message->isAvailable()) {
+              if (message->getLastChangeTime() > 0 && message->isAvailable()
+              && (!g_onlyChanges || message->getLastChangeTime() > lastUpdates)) {
                 publishMessage(message, &updates);
               }
             }
@@ -605,6 +634,7 @@ void MqttHandler::run() {
           it = m_updatedMessages.erase(it);
         }
         m_messages->unlock();
+        time(&lastUpdates);
       } else {
         m_updatedMessages.clear();
       }

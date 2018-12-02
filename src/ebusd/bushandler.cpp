@@ -1238,7 +1238,7 @@ result_t BusHandler::prepareScan(symbol_t slave, bool full, const string& levels
     return RESULT_OK;
   }
   deque<Message*> messages;
-  m_messages->findAll("scan", "", levels, true, true, false, false, true, true, 0, 0, &messages);
+  m_messages->findAll("scan", "", levels, true, true, false, false, true, true, 0, 0, false, &messages);
   auto it = messages.begin();
   while (it != messages.end()) {
     Message* message = *it;
