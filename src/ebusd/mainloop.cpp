@@ -359,7 +359,7 @@ void MainLoop::run() {
     time(&now);
     if (!dataSinks.empty()) {
       messages.clear();
-      m_messages->findAll("", "", "*", false, true, true, true, true, true, sinkSince, now, &messages);
+      m_messages->findAll("", "", "*", false, true, true, true, true, true, sinkSince, now, false, &messages);
       for (const auto message : messages) {
         for (const auto dataSink : dataSinks) {
           dataSink->notifyUpdate(message);
@@ -403,7 +403,7 @@ void MainLoop::run() {
     if (listening) {
       string levels = getUserLevels(user);
       messages.clear();
-      m_messages->findAll("", "", levels, false, true, true, true, true, true, since, now, &messages);
+      m_messages->findAll("", "", levels, false, true, true, true, true, true, since, now, true, &messages);
       for (const auto message : messages) {
         ostream << message->getCircuit() << " " << message->getName() << " = " << dec;
         message->decodeLastData(false, nullptr, -1, 0, &ostream);
@@ -867,7 +867,7 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
       return RESULT_OK;
     }
     deque<Message*> messages;
-    m_newlyDefinedMessages->findAll("", "", levels, false, true, false, false, true, false, 0, 0, &messages);
+    m_newlyDefinedMessages->findAll("", "", levels, false, true, false, false, true, false, 0, 0, false, &messages);
     if (messages.empty()) {
       *ostream << "ERR: bad definition: no read message";
       return RESULT_OK;
@@ -1082,7 +1082,7 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
       return RESULT_OK;
     }
     deque<Message*> messages;
-    m_newlyDefinedMessages->findAll("", "", levels, false, false, true, false, true, false, 0, 0, &messages);
+    m_newlyDefinedMessages->findAll("", "", levels, false, false, true, false, true, false, 0, 0, false, &messages);
     if (messages.empty()) {
       *ostream << "ERR: bad definition: no write message";
       return RESULT_OK;
@@ -1325,7 +1325,7 @@ result_t MainLoop::executeFind(const vector<string>& args, const string& levels,
   }
   deque<Message*> messages;
   m_messages->findAll(circuit, args.size() == argPos ? "" : args[argPos], useLevels,
-      exact, withRead, withWrite, withPassive, userLevel, !withConditions, 0, 0, &messages);
+      exact, withRead, withWrite, withPassive, userLevel, !withConditions, 0, 0, false, &messages);
 
   bool found = false;
   char str[32];
@@ -1910,8 +1910,8 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
       verbosity |= (valueName ? OF_VALUENAME : numeric ? OF_NUMERIC : 0) | OF_JSON | (full ? OF_ALL_ATTRS : 0)
                    | (withDefinition ? OF_DEFINTION : 0);
       deque<Message*> messages;
-      m_messages->findAll(circuit, name, getUserLevels(user), exact, true, withWrite, true, true, true, 0, 0,
-          &messages);
+      m_messages->findAll(circuit, name, getUserLevels(user), exact, true, withWrite, true, true, true, 0, 0, false,
+                          &messages);
       string lastName;
       for (deque<Message*>::iterator it = messages.begin(); it != messages.end(); it++) {
         Message* message = *it;

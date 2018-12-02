@@ -2506,7 +2506,7 @@ Message* MessageMap::find(const string& circuit, const string& name, const strin
 
 void MessageMap::findAll(const string& circuit, const string& name, const string& levels,
     bool completeMatch, bool withRead, bool withWrite, bool withPassive, bool includeEmptyLevel, bool onlyAvailable,
-    time_t since, time_t until, deque<Message*>* messages) const {
+    time_t since, time_t until, bool changedSince, deque<Message*>* messages) const {
   string lcircuit = circuit;
   FileReader::tolower(&lcircuit);
   string lname = name;
@@ -2553,7 +2553,7 @@ void MessageMap::findAll(const string& circuit, const string& name, const string
         if (message->getDstAddress() == SYN) {
           continue;
         }
-        time_t lastchg = message->getLastChangeTime();
+        time_t lastchg = changedSince ? message->getLastChangeTime() : message->getLastUpdateTime();
         if ((since != 0 && lastchg < since)
         || (until != 0 && lastchg >= until)) {
           continue;
@@ -2647,7 +2647,7 @@ void MessageMap::invalidateCache(Message* message) {
   string circuit = message->getCircuit();
   string name = message->getName();
   deque<Message*> messages;
-  findAll(circuit, name, "*", true, true, true, true, true, true, 0, 0, &messages);
+  findAll(circuit, name, "*", true, true, true, true, true, true, 0, 0, false, &messages);
   for (auto checkMessage : messages) {
     if (checkMessage != message) {
       checkMessage->m_lastUpdateTime = 0;

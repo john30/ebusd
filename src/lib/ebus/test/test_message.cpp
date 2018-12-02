@@ -367,7 +367,7 @@ int main() {
         continue;
       }
       deque<Message*> msgs;
-      messages->findAll("", "", "*", false, true, true, true, true, false, 0, 0, &msgs);
+      messages->findAll("", "", "*", false, true, true, true, true, false, 0, 0, false, &msgs);
       if (msgs.empty()) {
         message = nullptr;
         cout << "\"" << check[0] << "\": create error: message not found" << endl;

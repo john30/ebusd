@@ -149,7 +149,7 @@ class DataSink : virtual public DataHandler {
   bool isDataSink() const override { return true; }
 
   /**
-   * Notify the sink of an updated @a Message.
+   * Notify the sink of an updated @a Message (not necessarily changed though).
    * @param message the updated @a Message.
    */
   virtual void notifyUpdate(Message* message);
