@@ -25,6 +25,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <string.h>
+#include <errno.h>
 #ifdef HAVE_PPOLL
 #  include <poll.h>
 #endif
