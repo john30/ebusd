@@ -430,12 +430,6 @@ void MqttHandler::start() {
   }
 }
 
-void MqttHandler::notifyConnected() {
-  if (m_mosquitto && isRunning()) {
-    mosquitto_subscribe(m_mosquitto, nullptr, m_subscribeTopic.c_str(), 0);
-  }
-}
-
 void on_message(
 #if (LIBMOSQUITTO_MAJOR >= 1)
   struct mosquitto *mosq,
@@ -448,6 +442,16 @@ void on_message(
   string topic(message->topic);
   string data(message->payloadlen > 0 ? reinterpret_cast<char*>(message->payload) : "");
   handler->notifyTopic(topic, data);
+}
+
+void MqttHandler::notifyConnected() {
+  if (m_mosquitto && isRunning()) {
+    const string sep = (g_publishFormat & OF_JSON) ? "\"" : "";
+    publishTopic(m_globalTopic+"version", sep + (PACKAGE_STRING "." REVISION) + sep, true);
+    publishTopic(m_globalTopic+"running", "true", true);
+    mosquitto_message_callback_set(m_mosquitto, on_message);
+    mosquitto_subscribe(m_mosquitto, nullptr, m_subscribeTopic.c_str(), 0);
+  }
 }
 
 void MqttHandler::notifyTopic(const string& topic, const string& data) {
@@ -550,16 +554,14 @@ void MqttHandler::run() {
 
   time(&now);
   start = lastTaskRun = now;
-  const string sep = (g_publishFormat & OF_JSON) ? "\"" : "";
-  publishTopic(m_globalTopic+"version", sep + (PACKAGE_STRING "." REVISION) + sep, true);
-  publishTopic(m_globalTopic+"running", "true", true);
-  publishTopic(signalTopic, "false");
-  mosquitto_message_callback_set(m_mosquitto, on_message);
   bool allowReconnect = false;
   while (isRunning()) {
+    bool wasConnected = m_connected;
     handleTraffic(allowReconnect);
+    bool reconnected = !wasConnected && m_connected;
     allowReconnect = false;
     time(&now);
+    bool sendSignal = reconnected;
     if (now < start) {
       // clock skew
       if (now < lastSignal) {
@@ -568,24 +570,27 @@ void MqttHandler::run() {
       lastTaskRun = now;
     } else if (now > lastTaskRun+15) {
       allowReconnect = true;
-      if (m_busHandler->hasSignal()) {
-        lastSignal = now;
-        if (!signal) {
-          signal = true;
-          publishTopic(signalTopic, "true");
-        }
-      } else {
-        if (signal) {
-          signal = false;
-          publishTopic(signalTopic, "false");
-        }
-      }
+      sendSignal = true;
       time_t uptime = now-start;
       updates.str("");
       updates.clear();
       updates << dec << static_cast<unsigned>(uptime);
       publishTopic(uptimeTopic, updates.str());
       time(&lastTaskRun);
+    }
+    if (sendSignal) {
+      if (m_busHandler->hasSignal()) {
+        lastSignal = now;
+        if (!signal || reconnected) {
+          signal = true;
+          publishTopic(signalTopic, "true");
+        }
+      } else {
+        if (signal || reconnected) {
+          signal = false;
+          publishTopic(signalTopic, "false");
+        }
+      }
     }
     if (!m_updatedMessages.empty()) {
       if (m_connected) {
