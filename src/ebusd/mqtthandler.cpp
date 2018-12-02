@@ -508,7 +508,7 @@ void MqttHandler::notifyTopic(const string& topic, const string& data) {
       }
     }
   }
-  if (circuit.empty() || name.empty()) {
+  if (name.empty()) {
     return;
   }
   logOtherInfo("mqtt", "received topic for %s %s", circuit.c_str(), name.c_str());
