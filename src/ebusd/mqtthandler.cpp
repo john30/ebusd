@@ -30,7 +30,8 @@ using std::dec;
 
 #define O_HOST 1
 #define O_PORT (O_HOST+1)
-#define O_USER (O_PORT+1)
+#define O_CLID (O_PORT+1)
+#define O_USER (O_CLID+1)
 #define O_PASS (O_USER+1)
 #define O_TOPI (O_PASS+1)
 #define O_RETA (O_TOPI+1)
@@ -47,6 +48,8 @@ static const struct argp_option g_mqtt_argp_options[] = {
   {nullptr,       0,      nullptr,       0, "MQTT options:", 1 },
   {"mqtthost",    O_HOST, "HOST",        0, "Connect to MQTT broker on HOST [localhost]", 0 },
   {"mqttport",    O_PORT, "PORT",        0, "Connect to MQTT broker on PORT (usually 1883), 0 to disable [0]", 0 },
+  {"mqttclientid",O_CLID, "ID",          0, "Set client ID for connection to MQTT broker [" PACKAGE_NAME "_"
+   PACKAGE_VERSION "_<pid>]", 0 },
   {"mqttuser",    O_USER, "USER",        0, "Connect as USER to MQTT broker (no default)", 0 },
   {"mqttpass",    O_PASS, "PASSWORD",    0, "Use PASSWORD when connecting to MQTT broker (no default)", 0 },
   {"mqtttopic",   O_TOPI, "TOPIC",       0,
@@ -69,6 +72,7 @@ static const struct argp_option g_mqtt_argp_options[] = {
 
 static const char* g_host = "localhost";  //!< host name of MQTT broker [localhost]
 static uint16_t g_port = 0;               //!< optional port of MQTT broker, 0 to disable [0]
+static const char* g_clientId = nullptr;  //!< optional clientid override for MQTT broker
 static const char* g_username = nullptr;  //!< optional user name for MQTT broker (no default)
 static const char* g_password = nullptr;  //!< optional password for MQTT broker (no default)
 /** the MQTT topic string parts. */
@@ -114,6 +118,14 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
       argp_error(state, "invalid mqttport");
       return EINVAL;
     }
+    break;
+
+  case O_CLID:  // --mqttclientid=clientid
+    if (arg == nullptr || arg[0] == 0) {
+      argp_error(state, "invalid mqttclientid");
+      return EINVAL;
+    }
+    g_clientId = arg;
     break;
 
   case O_USER:  // --mqttuser=username
@@ -353,7 +365,11 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
   } else {
     signal(SIGPIPE, SIG_IGN);  // needed before libmosquitto v. 1.1.3
     ostringstream clientId;
-    clientId << PACKAGE_NAME << '_' << PACKAGE_VERSION << '_' << static_cast<unsigned>(getpid());
+    if (g_clientId) {
+      clientId << g_clientId;
+    } else {
+      clientId << PACKAGE_NAME << '_' << PACKAGE_VERSION << '_' << static_cast<unsigned>(getpid());
+    }
 #if (LIBMOSQUITTO_MAJOR >= 1)
     m_mosquitto = mosquitto_new(clientId.str().c_str(), true, this);
 #else
