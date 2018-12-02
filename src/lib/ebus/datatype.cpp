@@ -696,6 +696,14 @@ result_t NumberDataType::readSymbols(size_t offset, size_t length, const SymbolS
         }
       }
 #endif
+      if (isnan(val)) {
+        if (outputFormat & OF_JSON) {
+          *output << "null";
+        } else {
+          *output << nullptr_VALUE;
+        }
+        return RESULT_OK;
+      }
       if (val != 0.0) {
         if (m_divisor < 0) {
           val *= static_cast<float>(-m_divisor);
