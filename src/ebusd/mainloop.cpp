@@ -461,26 +461,26 @@ result_t MainLoop::decodeMessage(const string &data, bool isHttp, bool* connecte
   string token, previous;
   istringstream stream(data);
   vector<string> args;
-  bool escaped = false;
+  char escaped = 0;
 
   char delim = ' ';
   while (getline(stream, token, delim)) {
     if (!isHttp) {
       if (escaped) {
         args.pop_back();
-        if (token.length() > 0 && token[token.length()-1] == '"') {
+        if (token.length() > 0 && token[token.length()-1] == escaped) {
           token.erase(token.length() - 1, 1);
-          escaped = false;
+          escaped = 0;
         }
         token = previous + " " + token;
       } else if (token.length() == 0) {  // allow multiple space chars for a single delimiter
         continue;
-      } else if (token[0] == '"') {
+      } else if (token[0] == '"' || token[0] == '\'') {
         token.erase(0, 1);
-        if (token.length() > 0 && token[token.length()-1] == '"') {
+        if (token.length() > 0 && token[token.length()-1] == token[0]) {
           token.erase(token.length() - 1, 1);
         } else {
-          escaped = true;
+          escaped = token[0];
         }
       }
     }
