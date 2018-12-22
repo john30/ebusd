@@ -696,7 +696,7 @@ result_t NumberDataType::readSymbols(size_t offset, size_t length, const SymbolS
         }
       }
 #endif
-      if (isnan(val)) {
+      if (val!=val) { // !isnan(val)
         if (outputFormat & OF_JSON) {
           *output << "null";
         } else {
