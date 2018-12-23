@@ -331,6 +331,20 @@ void on_connect(
   }
 }
 
+void on_message(
+#if (LIBMOSQUITTO_MAJOR >= 1)
+  struct mosquitto *mosq,
+#endif
+  void *obj, const struct mosquitto_message *message) {
+  MqttHandler* handler = reinterpret_cast<MqttHandler*>(obj);
+  if (!handler || !message || !handler->isRunning()) {
+    return;
+  }
+  string topic(message->topic);
+  string data(message->payloadlen > 0 ? reinterpret_cast<char*>(message->payload) : "");
+  handler->notifyTopic(topic, data);
+}
+
 
 MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages)
   : DataSink(userInfo, "mqtt"), DataSource(busHandler), WaitThread(), m_messages(messages), m_connected(false),
@@ -411,6 +425,7 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
     }
 #endif
     mosquitto_connect_callback_set(m_mosquitto, on_connect);
+    mosquitto_message_callback_set(m_mosquitto, on_message);
     int ret;
 #if (LIBMOSQUITTO_MAJOR >= 1)
     ret = mosquitto_connect(m_mosquitto, g_host, g_port, 60);
@@ -453,26 +468,11 @@ void MqttHandler::start() {
   }
 }
 
-void on_message(
-#if (LIBMOSQUITTO_MAJOR >= 1)
-  struct mosquitto *mosq,
-#endif
-  void *obj, const struct mosquitto_message *message) {
-  MqttHandler* handler = reinterpret_cast<MqttHandler*>(obj);
-  if (!handler || !message || !handler->isRunning()) {
-    return;
-  }
-  string topic(message->topic);
-  string data(message->payloadlen > 0 ? reinterpret_cast<char*>(message->payload) : "");
-  handler->notifyTopic(topic, data);
-}
-
 void MqttHandler::notifyConnected() {
   if (m_mosquitto && isRunning()) {
     const string sep = (g_publishFormat & OF_JSON) ? "\"" : "";
     publishTopic(m_globalTopic+"version", sep + (PACKAGE_STRING "." REVISION) + sep, true);
     publishTopic(m_globalTopic+"running", "true", true);
-    mosquitto_message_callback_set(m_mosquitto, on_message);
     mosquitto_subscribe(m_mosquitto, nullptr, m_subscribeTopic.c_str(), 0);
   }
 }
