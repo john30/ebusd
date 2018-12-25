@@ -463,7 +463,7 @@ void SingleDataField::dumpPrefix(bool prependFieldSeparator, bool asJson, ostrea
     if (prependFieldSeparator) {
       *output << FIELD_SEPARATOR;
     }
-    *output << "\n     {";
+    *output << " {";
     appendJson(false, "name", m_name, true, output);
   } else {
     dumpString(prependFieldSeparator, m_name, output);
@@ -538,7 +538,7 @@ result_t SingleDataField::read(const SymbolString& data, size_t offset,
       *output << ",";
     }
     if (fieldIndex < 0 && !shortFormat) {
-      *output << "\n     ";
+      *output << " ";
     }
     if (outputIndex >= 0 || m_name.empty() || !(outputFormat & OF_NAMES)) {
       if (fieldIndex < 0) {

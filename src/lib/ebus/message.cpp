@@ -937,7 +937,7 @@ void Message::decodeJson(bool leadingSeparator, bool appendDirection, bool addRa
   if (leadingSeparator) {
     *output << ",";
   }
-  *output << "\n   \"" << getName();
+  *output << " \"" << getName();
   if (appendDirection) {
     if (isPassive()) {
       *output << "-u";
@@ -947,18 +947,18 @@ void Message::decodeJson(bool leadingSeparator, bool appendDirection, bool addRa
   }
   bool withDefinition = (outputFormat & OF_DEFINTION) != 0;
   *output << "\": {"
-          << "\n    \"name\": \"" << getName() << "\""
-          << ",\n    \"passive\": " << (isPassive() ? "true" : "false")
-          << ",\n    \"write\": " << (isWrite() ? "true" : "false")
-          << ",\n    \"lastup\": " << setw(0) << dec << m_lastUpdateTime;
+          << " \"name\": \"" << getName() << "\""
+          << ", \"passive\": " << (isPassive() ? "true" : "false")
+          << ", \"write\": " << (isWrite() ? "true" : "false")
+          << ", \"lastup\": " << setw(0) << dec << m_lastUpdateTime;
   bool hasData = getLastUpdateTime() != 0;
   if (hasData || withDefinition) {
     if (withDefinition && m_srcAddress != SYN) {
-      *output << ",\n    \"qq\": " << dec << static_cast<unsigned>(m_srcAddress);
+      *output << ", \"qq\": " << dec << static_cast<unsigned>(m_srcAddress);
     }
-    *output << ",\n    \"zz\": " << dec << static_cast<unsigned>(m_dstAddress);
+    *output << ", \"zz\": " << dec << static_cast<unsigned>(m_dstAddress);
     if (withDefinition) {
-      *output << ",\n    \"id\": [" << dec;
+      *output << ", \"id\": [" << dec;
       for (auto it = m_id.begin(); it < m_id.end(); it++) {
         if (it > m_id.begin()) {
           *output << ", ";
@@ -975,24 +975,24 @@ void Message::decodeJson(bool leadingSeparator, bool appendDirection, bool addRa
         *output << dec;
       }
       size_t pos = (size_t)output->tellp();
-      *output << ",\n    \"fields\": {";
+      *output << ", \"fields\": {";
       result_t dret = decodeLastData(false, nullptr, -1, outputFormat, output);
       if (dret == RESULT_OK) {
-        *output << "\n    }";
+        *output << "}";
       } else {
         string prefix = output->str().substr(0, pos);
         output->str("");
         output->clear();  // remove written fields
-        *output << prefix << ",\n    \"decodeerror\": \"" << getResultCode(dret) << "\"";
+        *output << prefix << ", \"decodeerror\": \"" << getResultCode(dret) << "\"";
       }
     }
     if (withDefinition) {
-      *output << ",\n    \"fielddefs\": [";
+      *output << ", \"fielddefs\": [";
       m_data->dump(false, true, output);
-      *output << "\n    ]";
+      *output << "]";
     }
   }
-  *output << "\n   }";
+  *output << "}";
 }
 
 
@@ -2670,7 +2670,7 @@ bool MessageMap::decodeCircuit(const string& circuit, OutputFormat outputFormat,
     return false;
   }
   if (outputFormat & OF_JSON) {
-    *output << "\n  \"name\": \"" << it->second->getName() << "\"";
+    *output << " \"name\": \"" << it->second->getName() << "\"";
   } else {
     *output << it->second->getName() << "=";
   }
