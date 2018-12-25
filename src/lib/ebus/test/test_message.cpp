@@ -103,10 +103,10 @@ int main() {
     {"r,cir,Status01,VL/RL/AussenTemp/VLWW/SpeicherTemp/Status,,08,B511,01,,,temp1;temp1;temp2;temp1;temp1;pumpstate", "28.0;24.0;4.938;35.0;41.0;4", "ff08b5110101", "093830f00446520400ff", "d"},
     {"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor", "temp=-14.00 Temperatursensor [Temperatur];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "D"},
     {"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment", "temp=-14.00 field unit [field comment];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "D"},
-    {"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment", "\n     \"temp\": {\"value\": -14.00},\n     \"sensor\": {\"value\": \"ok\"}", "ff25b509030d2800", "0320ff00", "j"},
-    {"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment", "\n     \"temp\": {\"value\": -14.00, \"unit\": \"field unit\", \"comment\": \"field comment\"},\n" "     \"sensor\": {\"value\": \"ok\", \"comment\": \"Fühlerstatus\"}", "ff25b509030d2800", "0320ff00", "J"},
+    {"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment", " \"temp\": {\"value\": -14.00}, \"sensor\": {\"value\": \"ok\"}", "ff25b509030d2800", "0320ff00", "j"},
+    {"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment", " \"temp\": {\"value\": -14.00, \"unit\": \"field unit\", \"comment\": \"field comment\"}," " \"sensor\": {\"value\": \"ok\", \"comment\": \"Fühlerstatus\"}", "ff25b509030d2800", "0320ff00", "J"},
     {"r,message circuit,message name,message comment,,25,B509,0d2800,,,temp,,field unit,field comment,,,sensor", "temp=-14.00 field unit [field comment];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "D"},
-    {"r,message circuit,message name,message comment,,25,B509,0d2800,,,D2C,,°C,Temperatur,,,sensor", "\n     \"0\": {\"name\": \"\", \"value\": -14.00},\n     \"1\": {\"name\": \"sensor\", \"value\": \"ok\"}", "ff25b509030d2800", "0320ff00", "j"},
+    {"r,message circuit,message name,message comment,,25,B509,0d2800,,,D2C,,°C,Temperatur,,,sensor", " \"0\": {\"name\": \"\", \"value\": -14.00}, \"1\": {\"name\": \"sensor\", \"value\": \"ok\"}", "ff25b509030d2800", "0320ff00", "j"},
     {"r,cir,name,,,25,B509,0d2800,,,tempsensorc", "-14.00", "ff25b509030d2800", "0320ff55", ""},
     {"r,cir,name,,,25,B509,0d28,,m,sensorc,,,,,,temp", "-14.00", "ff25b509030d2855", "0220ff", ""},
     {"u,cir,first,,,fe,0700,,x,,bda", "26.10.2014", "fffe07000426100614", "00", "p"},
@@ -177,23 +177,22 @@ int main() {
     {"r,CIRCUIT,NAME,COMMENT,,,,0100,field,,UCH", "r,cirCIRCUITcuit,naNAMEme,comCOMMENTment,ff,75,b509,0d0100,field,s,UCH,,,: field=42", "ff75b509030d0100", "012a", "DN"},
     {"r,CIRCUIT,NAME,COMMENT,,,,0100,field,,UCH",
         // "\"naNAMEme\": {r,cirCIRCUITcuit,naNAMEme,comCOMMENTment,ff,75,b509,0d0100,field,s,UCH,,,: field=42"
-      "\n"
-      "   \"naNAMEme\": {\n"
-      "    \"name\": \"naNAMEme\",\n"
-      "    \"passive\": false,\n"
-      "    \"write\": false,\n"
-      "    \"lastup\": *,\n"
-      "    \"qq\": 255,\n"
-      "    \"zz\": 117,\n"
-      "    \"id\": [181, 9, 13, 1, 0],\n"
-      "    \"fields\": {\n"
-      "     \"0\": {\"name\": \"field\", \"value\": 42}\n"
-      "    },\n"
-      "    \"fielddefs\": [\n"
-      "     { \"name\": \"field\", \"slave\": true, \"type\": \"UCH\", \"isbits\": false, \"length\": 1, \"unit\": \"\", \"comment\": \"\"}\n"
-      "    ]\n"
-      "   }: \n"
-      "     \"field\": {\"value\": 42}", "ff75b509030d0100", "012a", "jN"},
+      " \"naNAMEme\": {"
+      " \"name\": \"naNAMEme\","
+      " \"passive\": false,"
+      " \"write\": false,"
+      " \"lastup\": *,"
+      " \"qq\": 255,"
+      " \"zz\": 117,"
+      " \"id\": [181, 9, 13, 1, 0],"
+      " \"fields\": {"
+      " \"0\": {\"name\": \"field\", \"value\": 42}"
+      "},"
+      " \"fielddefs\": ["
+      " { \"name\": \"field\", \"slave\": true, \"type\": \"UCH\", \"isbits\": false, \"length\": 1, \"unit\": \"\", \"comment\": \"\"}"
+      "]"
+      "}: "
+      " \"field\": {\"value\": 42}", "ff75b509030d0100", "012a", "jN"},
   };
   templates = new DataFieldTemplates();
   unsigned int lineNo = 0;
