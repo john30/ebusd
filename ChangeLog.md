@@ -3,7 +3,18 @@
 ## Bug Fixes
 * fix for missing MQTT subscription after broker reconnect
 * fix for answering to first scan only in answer mode
-* fix don't add transfer latency to receive timeout when acting as SYN generator
+* fix dont add transfer latency to receive timeout when acting as SYN generator
+* fix for bit combinations during write to SymbolString
+* fix for MQTT handling after broker disconnect
+* fix for NaN in JSON
+* fix for deadlock in libmosquitto
+
+## Features
+* wait for being online before starting and automatically restart after 30 seconds
+* added "--mqttchanges" option to only publish changed messages and changed to publish all messages by default
+* added "--mqttclientid" to set own client ID instead of using the default
+* added support for single quotes to all commands
+* added "--mqttlog" and "--mqttversion" options
 
 
 # 3.2 (2018-05-10)
