@@ -15,7 +15,6 @@
 * added "--mqttclientid" to set own client ID instead of using the default
 * added support for single quotes to all commands
 * added "--mqttlog" and "--mqttversion" options
-* removed newline from JSON output for supporting e.g. https://fhem.de/commandref.html#MQTT2_CLIENT
 
 
 # 3.2 (2018-05-10)
