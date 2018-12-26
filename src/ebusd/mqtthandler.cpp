@@ -50,7 +50,7 @@ static const struct argp_option g_mqtt_argp_options[] = {
   {nullptr,       0,      nullptr,       0, "MQTT options:", 1 },
   {"mqtthost",    O_HOST, "HOST",        0, "Connect to MQTT broker on HOST [localhost]", 0 },
   {"mqttport",    O_PORT, "PORT",        0, "Connect to MQTT broker on PORT (usually 1883), 0 to disable [0]", 0 },
-  {"mqttclientid",O_CLID, "ID",          0, "Set client ID for connection to MQTT broker [" PACKAGE_NAME "_"
+  {"mqttclientid", O_CLID, "ID",         0, "Set client ID for connection to MQTT broker [" PACKAGE_NAME "_"
    PACKAGE_VERSION "_<pid>]", 0 },
   {"mqttuser",    O_USER, "USER",        0, "Connect as USER to MQTT broker (no default)", 0 },
   {"mqttpass",    O_PASS, "PASSWORD",    0, "Use PASSWORD when connecting to MQTT broker (no default)", 0 },
@@ -93,7 +93,7 @@ static OutputFormat g_publishFormat = 0;  //!< the OutputFormat for publishing m
 static bool g_logFromLib = false;         //!< log library events
 #endif
 #if (LIBMOSQUITTO_VERSION_NUMBER >= 1004001)
-static int g_version = MQTT_PROTOCOL_V31; //!< protocol version to use
+static int g_version = MQTT_PROTOCOL_V31;  //!< protocol version to use
 #endif
 static bool g_ignoreInvalidParams = false;  //!< ignore invalid parameters during init
 static bool g_onlyChanges = true;         //!< whether to only publish changed messages instead of all received
@@ -184,11 +184,11 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
 
 #if (LIBMOSQUITTO_VERSION_NUMBER >= 1004001)
   case O_VERS:  // --mqttversion=3.1.1
-    if (arg == nullptr || arg[0] == 0 || (strcmp(arg, "3.1")!=0 && strcmp(arg, "3.1.1")!=0)) {
+    if (arg == nullptr || arg[0] == 0 || (strcmp(arg, "3.1") != 0 && strcmp(arg, "3.1.1") != 0)) {
       argp_error(state, "invalid mqttversion");
       return EINVAL;
     }
-    g_version = strcmp(arg, "3.1.1")==0 ? MQTT_PROTOCOL_V311 : MQTT_PROTOCOL_V31;
+    g_version = strcmp(arg, "3.1.1") == 0 ? MQTT_PROTOCOL_V311 : MQTT_PROTOCOL_V31;
     break;
 #endif
 
@@ -472,7 +472,8 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
     check(mosquitto_threaded_set(m_mosquitto, true), "threaded_set");
 #endif
 #if (LIBMOSQUITTO_VERSION_NUMBER >= 1004001)
-    check(mosquitto_opts_set(m_mosquitto, MOSQ_OPT_PROTOCOL_VERSION, (void*)(&g_version)), "opts_set protocol version");
+    check(mosquitto_opts_set(m_mosquitto, MOSQ_OPT_PROTOCOL_VERSION, reinterpret_cast<void*>(&g_version)),
+       "opts_set protocol version");
 #endif
     if (g_username || g_password) {
       if (!g_username) {
