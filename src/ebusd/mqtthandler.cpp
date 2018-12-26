@@ -468,10 +468,8 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
     }
   }
   if (m_mosquitto) {
-#if (LIBMOSQUITTO_VERSION_NUMBER >= 1003002)
-    check(mosquitto_threaded_set(m_mosquitto, true), "threaded_set");
-#endif
 #if (LIBMOSQUITTO_VERSION_NUMBER >= 1004001)
+    check(mosquitto_threaded_set(m_mosquitto, true), "threaded_set");
     check(mosquitto_opts_set(m_mosquitto, MOSQ_OPT_PROTOCOL_VERSION, reinterpret_cast<void*>(&g_version)),
        "opts_set protocol version");
 #endif
