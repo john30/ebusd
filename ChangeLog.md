@@ -1,4 +1,4 @@
-# next version
+# 3.3 (2018-12-26)
 
 ## Bug Fixes
 * fix for missing MQTT subscription after broker reconnect
