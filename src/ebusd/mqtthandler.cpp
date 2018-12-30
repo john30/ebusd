@@ -96,7 +96,7 @@ static bool g_logFromLib = false;         //!< log library events
 static int g_version = MQTT_PROTOCOL_V31;  //!< protocol version to use
 #endif
 static bool g_ignoreInvalidParams = false;  //!< ignore invalid parameters during init
-static bool g_onlyChanges = true;         //!< whether to only publish changed messages instead of all received
+static bool g_onlyChanges = false;        //!< whether to only publish changed messages instead of all received
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
 static const char* g_cafile = nullptr;    //!< CA file for TLS

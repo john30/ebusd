@@ -1,3 +1,9 @@
+# next version
+
+## Bug Fixes
+* fix for always enabled "--mqttchanges" option
+
+
 # 3.3 (2018-12-26)
 
 ## Bug Fixes
