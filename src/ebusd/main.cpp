@@ -292,7 +292,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     opt->initialSend = true;
     break;
   case O_DEVLAT:  // --latency=10000
-    opt->latency = parseInt(arg, 10, 0, 200000, &result);
+    opt->latency = parseInt(arg, 10, 0, 2000000, &result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid latency");
       return EINVAL;
