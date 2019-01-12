@@ -567,7 +567,7 @@ void MqttHandler::notifyTopic(const string& topic, const string& data) {
     return;
   }
 
-  logOtherDebug("mqtt", "received topic %s", topic.c_str(), data.c_str());
+  logOtherDebug("mqtt", "received topic %s with data %s", topic.c_str(), data.c_str());
   string remain = topic.substr(0, pos);
   size_t last = 0;
   string circuit, name;
@@ -623,7 +623,25 @@ void MqttHandler::notifyTopic(const string& topic, const string& data) {
     return;
   }
   if (!message->isPassive()) {
-    result_t result = m_busHandler->readFromBus(message, data);
+    string useData = data;
+    if (!isWrite && !data.empty()) {
+      size_t pos = useData.find_last_of('?');
+      if (pos != string::npos && pos > 0 && useData[pos-1] != UI_FIELD_SEPARATOR) {
+        pos = string::npos;
+      }
+      if (pos != string::npos) {
+        string args = useData.substr(pos + 1);
+        useData = useData.substr(0, pos > 0 ? pos - 1 : pos);
+        if (!args.empty()) {
+          result_t ret = RESULT_OK;
+          size_t pollPriority = (size_t)parseInt(args.c_str(), 10, 1, 9, &ret);
+          if (ret == RESULT_OK && pollPriority > 0 && message->setPollPriority(pollPriority)) {
+            m_messages->addPollMessage(false, message);
+          }
+        }
+      }
+    }
+    result_t result = m_busHandler->readFromBus(message, useData);
     if (result != RESULT_OK) {
       logOtherError("mqtt", "%s %s %s: %s", isWrite?"write":"read", circuit.c_str(), name.c_str(),
           getResultCode(result));
