@@ -699,12 +699,12 @@ void MqttHandler::run() {
         lastSignal = now;
         if (!signal || reconnected) {
           signal = true;
-          publishTopic(signalTopic, "true");
+          publishTopic(signalTopic, "true", true);
         }
       } else {
         if (signal || reconnected) {
           signal = false;
-          publishTopic(signalTopic, "false");
+          publishTopic(signalTopic, "false", true);
         }
       }
     }
@@ -736,6 +736,7 @@ void MqttHandler::run() {
       break;
     }
   }
+  publishTopic(signalTopic, "false", true);
 }
 
 void MqttHandler::handleTraffic(bool allowReconnect) {
