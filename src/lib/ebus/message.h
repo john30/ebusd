@@ -642,8 +642,8 @@ class Message : public AttributedItem {
   /** the system time when the message content was last changed, 0 for never. */
   time_t m_lastChangeTime;
 
-  /** the number of times this messages was already polled for. */
-  unsigned int m_pollCount;
+  /** the polling order of this message (roughly number of polls * priority). */
+  unsigned int m_pollOrder;
 
   /** the system time when this message was last polled for, 0 for never. */
   time_t m_lastPollTime;

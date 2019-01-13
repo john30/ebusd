@@ -79,6 +79,9 @@ static const char* defaultMessageFieldMap[] = {  // access level not included in
     "*name", "part", "type", "divisor/values", "unit", "comment",
 };
 
+/** the m_pollOrder of the last polled message. */
+static unsigned int g_lastPollOrder = 0;
+
 extern DataFieldTemplates* getTemplates(const string& filename);
 
 extern result_t loadDefinitionsFromConfigPath(FileReader* reader, const string& filename, bool verbose,
@@ -99,7 +102,7 @@ Message::Message(const string& circuit, const string& level, const string& name,
       m_data(data), m_deleteData(deleteData),
       m_pollPriority(pollPriority),
       m_usedByCondition(false), m_isScanMessage(false), m_condition(condition),
-      m_lastUpdateTime(0), m_lastChangeTime(0), m_pollCount(0), m_lastPollTime(0) {
+      m_lastUpdateTime(0), m_lastChangeTime(0), m_pollOrder(0), m_lastPollTime(0) {
   if (circuit == "scan") {
     setScanMessage();
     m_pollPriority = 0;
@@ -116,7 +119,7 @@ Message::Message(const string& circuit, const string& level, const string& name,
       m_data(data), m_deleteData(deleteData),
       m_pollPriority(0),
       m_usedByCondition(false), m_isScanMessage(true), m_condition(nullptr),
-      m_lastUpdateTime(0), m_lastChangeTime(0), m_pollCount(0), m_lastPollTime(0) {
+      m_lastUpdateTime(0), m_lastChangeTime(0), m_pollOrder(0), m_lastPollTime(0) {
 }
 
 
@@ -596,7 +599,27 @@ bool Message::setPollPriority(size_t priority) {
   }
   bool ret = m_pollPriority == 0 && usePriority > 0;
   m_pollPriority = usePriority;
+  if (ret || m_pollOrder > g_lastPollOrder+(unsigned int)m_pollPriority) {
+    // ensure a later increased or newly set priority does not prefer that message before all others
+    m_pollOrder = g_lastPollOrder+(unsigned int)m_pollPriority;
+  }
   return ret;
+}
+
+bool Message::isLessPollWeight(const Message* other) const {
+  if (m_pollOrder > other->m_pollOrder) {
+    return true;
+  }
+  if (m_pollOrder < other->m_pollOrder) {
+    return false;
+  }
+  if (m_pollPriority > other->m_pollPriority) {
+    return true;
+  }
+  if (m_pollPriority < m_pollPriority) {
+    return false;
+  }
+  return m_lastPollTime > other->m_lastPollTime;
 }
 
 void Message::setUsedByCondition() {
@@ -784,26 +807,6 @@ result_t Message::decodeLastDataNumField(const char* fieldName, ssize_t fieldInd
     return RESULT_ERR_NOTFOUND;
   }
   return result;
-}
-
-bool Message::isLessPollWeight(const Message* other) const {
-  size_t tprio = m_pollPriority;
-  size_t oprio = other->m_pollPriority;
-  size_t tw = tprio * m_pollCount;
-  size_t ow = oprio * other->m_pollCount;
-  if (tw > ow) {
-    return true;
-  }
-  if (tw < ow) {
-    return false;
-  }
-  if (tprio > oprio) {
-    return true;
-  }
-  if (tprio < oprio) {
-    return false;
-  }
-  return m_lastPollTime > other->m_lastPollTime;
 }
 
 void Message::dumpHeader(const vector<string>* fieldNames, ostream* output) {
@@ -2751,11 +2754,16 @@ Message* MessageMap::getNextPoll() {
   if (m_pollMessages.empty()) {
     return nullptr;
   }
+  lock();
   Message* ret = m_pollMessages.top();
   m_pollMessages.pop();
-  ret->m_pollCount++;
+  if (ret->m_pollOrder > g_lastPollOrder) {
+    g_lastPollOrder = ret->m_pollOrder;
+  }
+  ret->m_pollOrder += (unsigned int)ret->m_pollPriority;
   time(&(ret->m_lastPollTime));
   m_pollMessages.push(ret);  // re-insert at new position
+  unlock();
   return ret;
 }
 
