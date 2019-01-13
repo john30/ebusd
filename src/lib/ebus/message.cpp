@@ -616,7 +616,7 @@ bool Message::isLessPollWeight(const Message* other) const {
   if (m_pollPriority > other->m_pollPriority) {
     return true;
   }
-  if (m_pollPriority < m_pollPriority) {
+  if (m_pollPriority < other->m_pollPriority) {
     return false;
   }
   return m_lastPollTime > other->m_lastPollTime;
