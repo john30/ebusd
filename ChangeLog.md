@@ -2,6 +2,11 @@
 
 ## Bug Fixes
 * fix for always enabled "--mqttchanges" option
+* fix for dynamically adjusted poll priority
+* fix for enhanced escape chars
+
+## Features
+* added option to set poll priority with MQTT get topic
 
 
 # 3.3 (2018-12-26)
