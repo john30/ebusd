@@ -476,11 +476,11 @@ result_t MainLoop::decodeMessage(const string &data, bool isHttp, bool* connecte
       } else if (token.length() == 0) {  // allow multiple space chars for a single delimiter
         continue;
       } else if (token[0] == '"' || token[0] == '\'') {
+        escaped = token[0];
         token.erase(0, 1);
-        if (token.length() > 0 && token[token.length()-1] == token[0]) {
+        if (token.length() > 0 && token[token.length()-1] == escaped) {
           token.erase(token.length() - 1, 1);
-        } else {
-          escaped = token[0];
+          escaped = 0;
         }
       }
     }
