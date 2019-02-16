@@ -425,7 +425,7 @@ void on_message(
 
 MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages)
   : DataSink(userInfo, "mqtt"), DataSource(busHandler), WaitThread(), m_messages(messages), m_connected(false),
-    m_initialConnectFailed(false), m_lastUpdateCheckResult(".") {
+    m_initialConnectFailed(false), m_lastUpdateCheckResult("."), m_lastErrorLogTime(0) {
   m_publishByField = false;
   m_mosquitto = nullptr;
   if (g_topicFields.empty()) {
@@ -673,7 +673,7 @@ void MqttHandler::run() {
   bool allowReconnect = false;
   while (isRunning()) {
     bool wasConnected = m_connected;
-    handleTraffic(allowReconnect);
+    bool needsWait = handleTraffic(allowReconnect);
     bool reconnected = !wasConnected && m_connected;
     allowReconnect = false;
     time(&now);
@@ -732,16 +732,16 @@ void MqttHandler::run() {
         m_updatedMessages.clear();
       }
     }
-    if (!m_connected && !Wait(5)) {
+    if ((!m_connected && !Wait(5)) || (needsWait && !Wait(1))) {
       break;
     }
   }
   publishTopic(signalTopic, "false", true);
 }
 
-void MqttHandler::handleTraffic(bool allowReconnect) {
+bool MqttHandler::handleTraffic(bool allowReconnect) {
   if (!m_mosquitto) {
-    return;
+    return false;
   }
   int ret;
 #if (LIBMOSQUITTO_MAJOR >= 1)
@@ -771,15 +771,21 @@ void MqttHandler::handleTraffic(bool allowReconnect) {
     logOtherNotice("mqtt", "connection re-established");
   }
   if (!m_connected || ret == MOSQ_ERR_SUCCESS) {
-    return;
+    return false;
   }
   if (ret == MOSQ_ERR_NO_CONN || ret == MOSQ_ERR_CONN_LOST || ret == MOSQ_ERR_CONN_REFUSED) {
     logOtherError("mqtt", "communication error: %s", ret == MOSQ_ERR_NO_CONN ? "not connected"
                   : (ret == MOSQ_ERR_CONN_LOST ? "connection lost" : "connection refused"));
     m_connected = false;
   } else {
-    check(ret, "communication error");
+    time_t now;
+    time(&now);
+    if (now > m_lastErrorLogTime + 10) {  // log at most every 10 seconds
+      m_lastErrorLogTime = now;
+      check(ret, "communication error");
+    }
   }
+  return true;
 }
 
 string MqttHandler::getTopic(const Message* message, const string& suffix, const string& fieldName) {

@@ -100,8 +100,9 @@ class MqttHandler : public DataSink, public DataSource, public WaitThread {
   /**
    * Called regularly to handle MQTT traffic.
    * @param allowReconnect true when reconnecting to the broker is allowed.
+   * @return true on error for waiting a bit until next call, or false otherwise.
    */
-  void handleTraffic(bool allowReconnect);
+  bool handleTraffic(bool allowReconnect);
 
   /**
    * Build the MQTT topic string for the @a Message.
@@ -150,6 +151,9 @@ class MqttHandler : public DataSink, public DataSource, public WaitThread {
 
   /** the last update check result. */
   string m_lastUpdateCheckResult;
+
+  /** the last system time when a communication error was logged. */
+  time_t m_lastErrorLogTime;
 };
 
 }  // namespace ebusd
