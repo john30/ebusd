@@ -4,6 +4,8 @@
 * fix for always enabled "--mqttchanges" option
 * fix for dynamically adjusted poll priority
 * fix for enhanced escape chars
+* fix for too frequent logging on MQTT broker communication error
+* fix for unexpected "different version available" message during update check
 
 ## Features
 * added option to set poll priority with MQTT get topic
