@@ -120,7 +120,7 @@ void FileReader::tolower(string* str) {
 
 static size_t hashFunction(const string& str) {
   size_t hash = 0;
-  for (char c : str) {
+  for (unsigned char c : str) {
     hash = (31 * hash) ^ c;
   }
   return hash;
