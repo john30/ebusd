@@ -190,6 +190,7 @@ bool ActiveBusRequest::notify(result_t result, const SlaveSymbolString& slave) {
 
 
 void GrabbedMessage::setLastData(const MasterSymbolString& master, const SlaveSymbolString& slave) {
+  time(&m_lastTime);
   m_lastMaster = master;
   m_lastSlave = slave;
   m_count++;
@@ -249,7 +250,8 @@ bool decodeType(const DataType* type, const SymbolString& input, size_t length,
   return !first;
 }
 
-bool GrabbedMessage::dump(bool unknown, MessageMap* messages, bool first, bool decode, ostringstream* output) const {
+bool GrabbedMessage::dump(bool unknown, MessageMap* messages, bool first, bool decode, ostringstream* output,
+    bool isDirectMode) const {
   Message* message = messages->find(m_lastMaster);
   if (unknown && message) {
     return false;
@@ -260,11 +262,13 @@ bool GrabbedMessage::dump(bool unknown, MessageMap* messages, bool first, bool d
   symbol_t dstAddress = m_lastMaster[1];
   *output << m_lastMaster.getStr();
   if (dstAddress != BROADCAST && !isMaster(dstAddress)) {
-    *output << " / " << m_lastSlave.getStr();
+    *output << (isDirectMode ? " " : " / ") << m_lastSlave.getStr();
   }
-  *output << " = " << m_count;
-  if (message) {
-    *output << ": " << message->getCircuit() << " " << message->getName();
+  if (!isDirectMode) {
+    *output << " = " << m_count;
+    if (message) {
+      *output << ": " << message->getCircuit() << " " << message->getName();
+    }
   }
   if (decode) {
     DataTypeList *types = DataTypeList::getInstance();
@@ -1544,16 +1548,26 @@ bool BusHandler::enableGrab(bool enable) {
   return true;
 }
 
-void BusHandler::formatGrabResult(bool unknown, bool decode, ostringstream* output) const {
+void BusHandler::formatGrabResult(bool unknown, bool decode, ostringstream* output, bool isDirectMode,
+    time_t since, time_t until) const {
   if (!m_grabMessages) {
-    *output << "grab disabled";
-  } else {
-    bool first = true;
-    for (const auto& it : m_grabbedMessages) {
-      if (it.second.dump(unknown, m_messages, first, decode, output)) {
-        first = false;
-      }
+    if (!isDirectMode) {
+      *output << "grab disabled";
     }
+    return;
+  }
+  bool first = true;
+  for (const auto& it : m_grabbedMessages) {
+    if (since > 0 && it.second.getLastTime() < since
+    ||  until > 0 && it.second.getLastTime() >= until) {
+      continue;
+    }
+    if (it.second.dump(unknown, m_messages, first, decode, output, isDirectMode)) {
+      first = false;
+    }
+  }
+  if (isDirectMode && !first) {
+    *output << endl;
   }
 }
 

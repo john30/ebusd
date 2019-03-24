@@ -296,7 +296,7 @@ class GrabbedMessage {
   /**
    * Construct a new instance.
    */
-  GrabbedMessage() : m_count(0) {}
+  GrabbedMessage() : m_lastTime(0), m_count(0) {}
 
   /**
    * Copy constructor.
@@ -315,6 +315,12 @@ class GrabbedMessage {
   void setLastData(const MasterSymbolString& master, const SlaveSymbolString& slave);
 
   /**
+   * Get the last received time.
+   * @return the last received time.
+   */
+  time_t getLastTime() const { return m_lastTime; }
+
+  /**
    * Get the last @a MasterSymbolString.
    * @return the last @a MasterSymbolString.
    */
@@ -327,12 +333,17 @@ class GrabbedMessage {
    * @param first whether this is the first message to be added to the output.
    * @param decode whether to add decoding hints.
    * @param output the @a ostringstream to format the messages to.
+   * @param isDirectMode true for direct mode, false for grab command.
    * @return whether the message was added to the output.
    */
-  bool dump(bool unknown, MessageMap* messages, bool first, bool decode, ostringstream* output) const;
+  bool dump(bool unknown, MessageMap* messages, bool first, bool decode, ostringstream* output,
+      bool isDirectMode = false) const;
 
 
  private:
+  /** the last received time. */
+  time_t m_lastTime;
+
   /** the last @a MasterSymbolString. */
   MasterSymbolString m_lastMaster;
 
@@ -517,12 +528,22 @@ class BusHandler : public WaitThread {
   bool enableGrab(bool enable = true);
 
   /**
+   * Return whether grabbing unknown messages is enabled.
+   * @return whether grabbing unknown messages is enabled.
+   */
+  bool isGrabEnabled() { return m_grabMessages; }
+
+  /**
    * Format the grabbed messages to the @a ostringstream.
    * @param unknown whether to dump only unknown messages.
    * @param decode whether to add decoding hints.
    * @param output the @a ostringstream to format the messages to.
+   * @param isDirectMode true for direct mode, false for grab command.
+   * @param since the start time from which to add received messages (inclusive), or 0 for all.
+   * @param until the end time to which to add received messages (exclusive), or 0 for all.
    */
-  void formatGrabResult(bool unknown, bool decode, ostringstream* output) const;
+  void formatGrabResult(bool unknown, bool decode, ostringstream* output, bool isDirectMode = false,
+      time_t since = 0, time_t until = 0) const;
 
   /**
    * Return true when a signal on the bus is available.
