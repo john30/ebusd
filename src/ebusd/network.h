@@ -37,6 +37,13 @@ namespace ebusd {
 /** Forward declaration for @a Connection. */
 class Connection;
 
+/** the possible client modes. */
+enum ClientMode {
+  cm_normal,  //!< normal mode
+  cm_listen,  //!< listening mode
+  cm_direct,  //!< direct mode
+};
+
 /**
  * Class for data/message transfer between @a Connection and @a MainLoop.
  */
@@ -47,7 +54,7 @@ class NetMessage {
    * @param isHttp whether this is a HTTP message.
    */
   explicit NetMessage(bool isHttp)
-    : m_isHttp(isHttp), m_resultSet(false), m_disconnect(false), m_listening(false), m_listenSince(0) {
+    : m_isHttp(isHttp), m_resultSet(false), m_disconnect(false), m_mode(cm_normal), m_listenSince(0) {
     pthread_mutex_init(&m_mutex, nullptr);
     pthread_cond_init(&m_cond, nullptr);
   }
@@ -117,16 +124,16 @@ class NetMessage {
    * Set the result string and notify the waiting thread.
    * @param result the result string.
    * @param user the new user name.
-   * @param listening whether the client is in listening mode.
+   * @param mode the new client mode.
    * @param listenUntil the end time to which to updates were added (exclusive).
    * @param disconnect true when the client shall be disconnected.
    */
-  void setResult(const string& result, const string& user, bool listening, time_t listenUntil, bool disconnect) {
+  void setResult(const string& result, const string& user, ClientMode mode, time_t listenUntil, bool disconnect) {
     pthread_mutex_lock(&m_mutex);
     m_result = result;
     m_user = user;
     m_disconnect = disconnect;
-    m_listening = listening;
+    m_mode = mode;
     m_listenSince = listenUntil;
     m_resultSet = true;
     pthread_cond_signal(&m_cond);
@@ -134,16 +141,22 @@ class NetMessage {
   }
 
   /**
-   * Return whether the client is in listening mode.
-   * @param listenSince set to the start time from which to add updates (inclusive).
-   * @return whether the client is in listening mode.
+   * Return the client mode.
+   * @param listenSince set listening to the specified start time from which to add updates (inclusive).
+   * @return the client mode.
    */
-  bool isListening(time_t* listenSince = nullptr) {
+  ClientMode getMode(time_t* listenSince = nullptr) {
     if (listenSince) {
       *listenSince = m_listenSince;
     }
-    return m_listening;
+    return m_mode;
   }
+
+  /**
+   * Return whether this instance is in one of the listening modes.
+   * @return whether this instance is in one of the listening modes.
+   */
+  bool isListeningMode() { return m_mode == cm_listen || m_mode == cm_direct; }
 
   /**
    * Return whether the client shall be disconnected.
@@ -177,8 +190,8 @@ class NetMessage {
   /** condition variable for exclusive lock. */
   pthread_cond_t m_cond;
 
-  /** whether the client is in listening mode. */
-  bool m_listening;
+  /** the client mode. */
+  ClientMode m_mode;
 
   /** start timestamp of listening update. */
   time_t m_listenSince;
@@ -284,7 +297,7 @@ class Network : public Thread {
   /** @a Notify object for shutdown procedure. */
   Notify m_notify;
 
-  /** true if this instance is listening */
+  /** true if this instance is listening. */
   bool m_listening;
 
   /**

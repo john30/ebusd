@@ -371,22 +371,24 @@ void MainLoop::run() {
       continue;
     }
     if (m_shutdown) {
-      netMessage->setResult("ERR: shutdown", "", false, now, true);
+      netMessage->setResult("ERR: shutdown", "", cm_normal, now, true);
       break;
     }
     string request = netMessage->getRequest();
     string user = netMessage->getUser();
-    bool listening = netMessage->isListening(&since);
-    if (!listening) {
+    ClientMode mode = netMessage->getMode(&since);
+    if (!netMessage->isListeningMode()) {
       since = now;
     }
     ostringstream ostream;
     bool connected = true;
     if (request.length() > 0) {
       logDebug(lf_main, ">>> %s", request.c_str());
-      result_t result = decodeMessage(request, netMessage->isHttp(), &connected, &listening, &user, &reload, &ostream);
+      result_t result = decodeMessage(request, netMessage->isHttp(), &connected, &mode, &user, &reload, &ostream);
       if (!netMessage->isHttp() && (ostream.tellp() == 0 || result != RESULT_OK)) {
-        ostream.str("");
+        if (mode != cm_direct) {
+          ostream.str("");
+        }
         ostream << getResultCode(result);
       }
       if (ostream.tellp() > 100) {
@@ -397,10 +399,10 @@ void MainLoop::run() {
       if (ostream.tellp() == 0) {
         ostream << "\n";  // only for HTTP
       } else if (!netMessage->isHttp()) {
-        ostream << "\n\n";
+        ostream << (mode == cm_direct ? "\n" : "\n\n");
       }
     }
-    if (listening) {
+    if (mode == cm_listen) {
       string levels = getUserLevels(user);
       messages.clear();
       m_messages->findAll("", "", levels, false, true, true, true, true, true, since, now, true, &messages);
@@ -409,9 +411,13 @@ void MainLoop::run() {
         message->decodeLastData(false, nullptr, -1, 0, &ostream);
         ostream << endl;
       }
+    } else if (mode == cm_direct) {
+      if (m_busHandler->isGrabEnabled()) {
+        m_busHandler->formatGrabResult(false, false, &ostream, true, since, now);
+      }
     }
     // send result to client
-    netMessage->setResult(ostream.str(), user, listening, now, !connected);
+    netMessage->setResult(ostream.str(), user, mode, now, !connected);
   }
 }
 
@@ -456,7 +462,7 @@ void MainLoop::notifyDeviceData(symbol_t symbol, bool received) {
   }
 }
 
-result_t MainLoop::decodeMessage(const string &data, bool isHttp, bool* connected, bool* listening,
+result_t MainLoop::decodeMessage(const string &data, bool isHttp, bool* connected, ClientMode* mode,
     string* user, bool* reload, ostringstream* ostream) {
   string token, previous;
   istringstream stream(data);
@@ -506,20 +512,24 @@ result_t MainLoop::decodeMessage(const string &data, bool isHttp, bool* connecte
     return RESULT_OK;
   }
 
-  if (args.size() == 0) {
+  string cmd = args.size() > 0 ? args[0] : "";
+  transform(cmd.begin(), cmd.end(), cmd.begin(), ::toupper);
+  if (cmd == "?" || cmd == "H" || cmd == "HELP") {
+    // found "HELP CMD"
+    cmd = args.size() > 1 ? args[1] : "";
+    transform(cmd.begin(), cmd.end(), cmd.begin(), ::toupper);
+    args.clear();  // empty args is used as command help indicator
+  }
+  if (*mode == cm_direct) {
+    return executeDirect(args, mode, ostream);
+  }
+  if (cmd.empty() && args.size() == 0) {
     return executeHelp(ostream);
   }
-  string cmd = args[0];
-  transform(cmd.begin(), cmd.end(), cmd.begin(), ::toupper);
   if (args.size() == 2) {
     string arg = args[1];
     if (arg == "?" || arg == "-?" || arg == "--help") {
       // found "CMD HELP"
-      args.clear();  // empty args is used as command help indicator
-    } else if (cmd == "?" || cmd == "H" || cmd == "HELP") {
-      // found "HELP CMD"
-      cmd = args[1];
-      transform(cmd.begin(), cmd.end(), cmd.begin(), ::toupper);
       args.clear();  // empty args is used as command help indicator
     }
   }
@@ -543,7 +553,10 @@ result_t MainLoop::decodeMessage(const string &data, bool isHttp, bool* connecte
     return executeFind(args, getUserLevels(*user), ostream);
   }
   if (cmd == "L" || cmd == "LISTEN") {
-    return executeListen(args, listening, ostream);
+    return executeListen(args, mode, ostream);
+  }
+  if (cmd == "DIRECT") {
+    return executeDirect(args, mode, ostream);
   }
   if (cmd == "S" || cmd == "STATE") {
     return executeState(args, ostream);
@@ -748,7 +761,8 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
     *ostream <<
         "usage: read [-f] [-m SECONDS] [-s QQ] [-d ZZ] [-c CIRCUIT] [-p PRIO] [-v|-V] [-n|-N] [-i VALUE[;VALUE]*]"
         " NAME [FIELD[.N]]\n"
-        "  or:  read [-f] [-m SECONDS] [-s QQ] [-d ZZ] [-v|-V] [-n|-N] [-i VALUE[;VALUE]*] -def DEFINITION\n"
+        "  or:  read [-f] [-m SECONDS] [-s QQ] [-d ZZ] [-v|-V] [-n|-N] [-i VALUE[;VALUE]*] -def DEFINITION "
+        "(only if enabled)\n"
         "  or:  read [-f] [-m SECONDS] [-s QQ] [-c CIRCUIT] -h ZZPBSBNN[DD]*\n"
         " Read value(s) or hex message.\n"
         "  -f           force reading from the bus (same as '-m 0')\n"
@@ -765,7 +779,7 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
         "  NAME         NAME of the message to send\n"
         "  FIELD        only retrieve the field named FIELD\n"
         "  N            only retrieve the N'th field named FIELD (0-based)\n"
-        "  -def         read with explicit message definition:\n"
+        "  -def         read with explicit message definition (only if enabled):\n"
         "    DEFINITION message definition to use instead of known definition\n"
         "  -h           send hex read message (or answer from cache):\n"
         "    ZZ         destination address\n"
@@ -994,7 +1008,7 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
 
   if (argPos == 0 || (!newDefinition && (circuit.empty() || (args.size() != argPos+2 && args.size() != argPos+1)))) {
     *ostream << "usage: write [-s QQ] [-d ZZ] -c CIRCUIT NAME [VALUE[;VALUE]*]\n"
-        "  or:  write [-s QQ] [-d ZZ] -def DEFINITION [VALUE[;VALUE]*]\n"
+        "  or:  write [-s QQ] [-d ZZ] -def DEFINITION [VALUE[;VALUE]*] (only if enabled)\n"
         "  or:  write [-s QQ] [-c CIRCUIT] -h ZZPBSBNN[DD]*\n"
         " Write value(s) or hex message.\n"
         "  -s QQ        override source address QQ\n"
@@ -1002,7 +1016,7 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
         "  -c CIRCUIT   CIRCUIT of the message to send\n"
         "  NAME         NAME of the message to send\n"
         "  VALUE        a single field VALUE\n"
-        "  -def         write with explicit message definition:\n"
+        "  -def         write with explicit message definition (only if enabled):\n"
         "    DEFINITION message definition to use instead of known definition\n"
         "  -h           send hex write message:\n"
         "    ZZ         destination address\n"
@@ -1133,56 +1147,114 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
   return RESULT_OK;
 }
 
-result_t MainLoop::executeHex(const vector<string>& args, ostringstream* ostream) {
-  size_t argPos = 1;
+result_t MainLoop::parseHexAndSend(const vector<string>& args, size_t& argPos, bool isDirectMode,
+    ostringstream* ostream) {
   symbol_t srcAddress = SYN;
   if (args.size() > argPos && args[argPos] == "-s") {
     argPos++;
     if (argPos >= args.size()) {
       argPos = 0;  // print usage
-    } else {
-      result_t ret;
-      symbol_t address = (symbol_t)parseInt(args[argPos].c_str(), 16, 0, 0xff, &ret);
-      if (ret != RESULT_OK || !isValidAddress(address, false) || !isMaster(address)) {
-        return RESULT_ERR_INVALID_ADDR;
-      }
-      srcAddress = address == m_address ? SYN : address;
+      return RESULT_OK;
     }
+    result_t ret;
+    symbol_t address = (symbol_t)parseInt(args[argPos].c_str(), 16, 0, 0xff, &ret);
+    if (ret != RESULT_OK || !isValidAddress(address, false) || !isMaster(address)) {
+      return RESULT_ERR_INVALID_ADDR;
+    }
+    srcAddress = address == m_address ? SYN : address;
     argPos++;
   }
   if (args.size() < argPos + 1 || (args.size() > argPos && args[argPos][0] == '-')) {
     argPos = 0;  // print usage
+    return RESULT_OK;
   }
 
-  if (argPos > 0) {
-    MasterSymbolString master;
-    result_t ret = parseHexMaster(args, argPos, srcAddress, &master);
-    if (ret != RESULT_OK) {
-      return ret;
-    }
-    logNotice(lf_main, "hex cmd: %s", master.getStr().c_str());
-
-    // send message
-    SlaveSymbolString slave;
-    ret = m_busHandler->sendAndWait(master, &slave);
-
-    if (ret == RESULT_OK) {
-      if (master[1] == BROADCAST) {
-        *ostream << "done broadcast";
-        return RESULT_OK;
-      }
-      if (isMaster(master[1])) {
-        return RESULT_OK;
-      }
-      *ostream << slave.getStr();
-      return RESULT_OK;
-    }
-    logError(lf_main, "hex: %s", getResultCode(ret));
+  MasterSymbolString master;
+  result_t ret = parseHexMaster(args, argPos, srcAddress, &master);
+  argPos = args.size();  // mark as successfully parsed
+  if (ret != RESULT_OK) {
     return ret;
   }
+  logNotice(lf_main, isDirectMode ? "direct cmd: %s" : "hex cmd: %s", master.getStr().c_str());
 
+  // send message
+  SlaveSymbolString slave;
+  ret = m_busHandler->sendAndWait(master, &slave);
+
+  if (ret == RESULT_OK) {
+    if (master[1] == BROADCAST) {
+      *ostream << "done broadcast";
+      return RESULT_OK;
+    }
+    if (isMaster(master[1])) {
+      *ostream << "done";
+      return RESULT_OK;
+    }
+    *ostream << slave.getStr();
+    return RESULT_OK;
+  }
+  logError(lf_main, isDirectMode ? "direct: %s" : "hex: %s", getResultCode(ret));
+  return ret;
+}
+
+result_t MainLoop::executeHex(const vector<string>& args, ostringstream* ostream) {
+  size_t argPos = 1;
+  result_t ret = parseHexAndSend(args, argPos, false, ostream);
+  if (argPos == args.size()) {
+    return ret;
+  }
   *ostream << "usage: hex [-s QQ] ZZPBSBNN[DD]*\n"
-              " Send arbitrary data in hex (only if enabled).\n"
+              " Send arbitrary data in hex.\n"
+              "  -s QQ  override source address QQ\n"
+              "  ZZ     destination address\n"
+              "  PB SB  primary/secondary command byte\n"
+              "  NN     number of following data bytes\n"
+              "  DD     data byte(s) to send";
+  return RESULT_OK;
+}
+
+result_t MainLoop::executeDirect(const vector<string>& args, ClientMode* mode, ostringstream* ostream) {
+  if (*mode != cm_direct) {
+    if (args.size() == 1) {
+      *mode = cm_direct;
+      m_busHandler->enableGrab(true);  // needed for listening to all messages
+      *ostream << "direct mode started";
+      return RESULT_OK;
+    }
+    *ostream << "usage: direct\n"
+                " Enter direct mode.";
+    return RESULT_OK;
+  }
+  if (args.size() > 0) {
+    string firstArg = args[0];
+    if (firstArg == "stop") {
+      *mode = cm_normal;
+      *ostream << "direct mode stopped";
+      return RESULT_OK;
+    }
+    if (firstArg != "") {
+      for (size_t argPos = 0; argPos < args.size(); argPos++) {
+        if (argPos > 0) {
+          *ostream << " ";
+        }
+        *ostream << args[argPos];
+      }
+      *ostream << ":";
+      if (!m_enableHex) {
+        *ostream << "ERR: command not enabled";
+        return RESULT_OK;
+      }
+      size_t argPos = 0;
+      result_t ret = parseHexAndSend(args, argPos, true, ostream);
+      if (ret == RESULT_OK && argPos != args.size()) {
+        ret = RESULT_ERR_INVALID_ARG;
+      }
+      return ret;
+    }
+  }
+  *ostream << "usage: [-s QQ] ZZPBSBNN[DD]*\n"
+              "  or: stop\n"
+              " Send arbitrary data in hex (only if enabled) or stop direct mode.\n"
               "  -s QQ  override source address QQ\n"
               "  ZZ     destination address\n"
               "  PB SB  primary/secondary command byte\n"
@@ -1405,13 +1477,13 @@ result_t MainLoop::executeFind(const vector<string>& args, const string& levels,
   return RESULT_OK;
 }
 
-result_t MainLoop::executeListen(const vector<string>& args, bool* listening, ostringstream* ostream) {
+result_t MainLoop::executeListen(const vector<string>& args, ClientMode* mode, ostringstream* ostream) {
   if (args.size() == 1) {
-    if (*listening) {
+    if (*mode == cm_listen) {
       *ostream << "listen continued";
       return RESULT_OK;
     }
-    *listening = true;
+    *mode = cm_listen;
     *ostream << "listen started";
     return RESULT_OK;
   }
@@ -1421,7 +1493,7 @@ result_t MainLoop::executeListen(const vector<string>& args, bool* listening, os
                 " Listen for updates or stop it.";
     return RESULT_OK;
   }
-  *listening = false;
+  *mode = cm_normal;
   *ostream << "listen stopped";
   return RESULT_OK;
 }
@@ -1781,17 +1853,18 @@ result_t MainLoop::executeHelp(ostringstream* ostream) {
   *ostream << "usage:\n"
       " read|r    Read value(s):         read [-f] [-m SECONDS] [-s QQ] [-d ZZ] [-c CIRCUIT] [-p PRIO] [-v|-V] [-n|-N]"
       " [-i VALUE[;VALUE]*] NAME [FIELD[.N]]\n"
-      "           Read by new defintion: read [-f] [-m SECONDS] [-s QQ] [-d ZZ] [-v|-V] [-n|-N]"
+      "           Read by new defintion: read [-f] [-m SECONDS] [-s QQ] [-d ZZ] [-v|-V] [-n|-N] (if enabled)"
       " [-i VALUE[;VALUE]*] -def DEFINITION\n"
       "           Read hex message:      read [-f] [-m SECONDS] [-s QQ] [-c CIRCUIT] -h ZZPBSBNN[DD]*\n"
       " write|w   Write value(s):        write [-s QQ] [-d ZZ] -c CIRCUIT NAME [VALUE[;VALUE]*]\n"
-      "           Write by new def.:     write [-s QQ] [-d ZZ] -def DEFINITION [VALUE[;VALUE]*]\n"
+      "           Write by new def.:     write [-s QQ] [-d ZZ] -def DEFINITION [VALUE[;VALUE]*] (if enabled)\n"
       "           Write hex message:     write [-s QQ] [-c CIRCUIT] -h ZZPBSBNN[DD]*\n"
       " auth|a    Authenticate user:     auth USER SECRET\n"
-      " hex       Send hex data:         hex [-s QQ] ZZPBSBNN[DD]*\n"
+      " hex       Send hex data:         hex [-s QQ] ZZPBSBNN[DD]* (if enabled)\n"
       " find|f    Find message(s):       find [-v|-V] [-r] [-w] [-p] [-a] [-d] [-h] [-i ID] [-f] [-F COL[,COL]*] [-e]"
       " [-c CIRCUIT] [-l LEVEL] [NAME]\n"
       " listen|l  Listen for updates:    listen [stop]\n"
+      " direct    Enter direct mode\n"
       " state|s   Report bus state\n"
       " info|i    Report information about the daemon, the configuration, and seen devices.\n"
       " grab|g    Grab messages:         grab [stop]\n"
