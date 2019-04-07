@@ -117,8 +117,9 @@ class MqttHandler : public DataSink, public DataSource, public WaitThread {
    * Prepare a @a Message and publish as topic.
    * @param message the @a Message to publish.
    * @param updates the @a ostringstream for preparation.
+   * @param includeWithoutData whether to publish messages without data as well.
    */
-  void publishMessage(const Message* message, ostringstream* updates);
+  void publishMessage(const Message* message, ostringstream* updates, bool includeWithoutData = false);
 
   /**
    * Publish a topic update to MQTT.
@@ -127,6 +128,12 @@ class MqttHandler : public DataSink, public DataSource, public WaitThread {
    * @param retain whether the topic shall be retained.
    */
   void publishTopic(const string& topic, const string& data, bool retain = false);
+
+  /**
+   * Publish a topic update to MQTT without any data.
+   * @param topic the topic string.
+   */
+  void publishEmptyTopic(const string& topic);
 
   /** the @a MessageMap instance. */
   MessageMap* m_messages;

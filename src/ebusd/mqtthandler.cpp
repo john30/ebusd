@@ -558,12 +558,12 @@ void MqttHandler::notifyTopic(const string& topic, const string& data) {
     return;
   }
   string direction = topic.substr(pos+1);
-  bool isWrite = false;
   if (direction.empty()) {
     return;
   }
-  isWrite = direction == "set";
-  if (!isWrite && direction != "get") {
+  bool isWrite = direction == "set";
+  bool isList = !isWrite && direction == "list";
+  if (!isWrite && !isList && direction != "get") {
     return;
   }
 
@@ -571,20 +571,30 @@ void MqttHandler::notifyTopic(const string& topic, const string& data) {
   string remain = topic.substr(0, pos);
   size_t last = 0;
   string circuit, name;
-  size_t idx;
-  for (idx = 0; idx < g_topicStrs.size()+1; idx++) {
+  bool finalField = false;
+  for (size_t idx = 0; idx < g_topicStrs.size()+1 && !finalField; idx++) {
     string field;
     string chk;
     if (idx < g_topicStrs.size()) {
       chk = g_topicStrs[idx];
       pos = remain.find(chk, last);
       if (pos == string::npos) {
-        return;
+        if (!isList) {
+          return;
+        }
+        if (idx == 0 && remain+"/" == chk) {  // check for only first prefix, e.g. "ebusd/"
+          break;
+        }
+        pos = remain.size();
+        finalField = true;
       }
     } else if (idx-1 < g_topicFields.size()) {
       pos = remain.size();
     } else if (last < remain.size()) {
-      return;
+      if (!isList) {
+        return;
+      }
+      break;
     } else {
       break;
     }
@@ -596,7 +606,10 @@ void MqttHandler::notifyTopic(const string& topic, const string& data) {
       }
     } else {
       if (field.empty()) {
-        return;
+        if (!isList) {
+          return;
+        }
+        continue;
       }
       string fieldName = g_topicFields[idx-1];
       if (fieldName == "circuit") {
@@ -610,10 +623,25 @@ void MqttHandler::notifyTopic(const string& topic, const string& data) {
       }
     }
   }
+  if (isList) {
+    logOtherInfo("mqtt", "received list topic for %s %s", circuit.c_str(), name.c_str());
+    deque<Message*> messages;
+    m_messages->findAll(circuit, name, m_levels, true, true, true, true, true, true, 0, 0, false, &messages);
+    bool onlyWithData = !data.empty();
+    for (const auto message : messages) {
+      time_t lastup = message->getLastUpdateTime();
+      if (onlyWithData && lastup == 0) {
+        continue;
+      }
+      ostringstream ostream;
+      publishMessage(message, &ostream, true);
+    }
+    return;
+  }
   if (name.empty()) {
     return;
   }
-  logOtherInfo("mqtt", "received topic for %s %s", circuit.c_str(), name.c_str());
+  logOtherInfo("mqtt", "received %s topic for %s %s", direction.c_str(), circuit.c_str(), name.c_str());
   Message* message = m_messages->find(circuit, name, m_levels, isWrite);
   if (message == nullptr) {
     message = m_messages->find(circuit, name, m_levels, isWrite, true);
@@ -809,10 +837,15 @@ string MqttHandler::getTopic(const Message* message, const string& suffix, const
   return ret.str();
 }
 
-void MqttHandler::publishMessage(const Message* message, ostringstream* updates) {
+void MqttHandler::publishMessage(const Message* message, ostringstream* updates, bool includeWithoutData) {
   OutputFormat outputFormat = g_publishFormat;
   bool json = outputFormat & OF_JSON;
+  bool noData = includeWithoutData && message->getLastUpdateTime() == 0;
   if (!m_publishByField) {
+    if (noData) {
+      publishEmptyTopic(getTopic(message));  // alternatively: , json ? "null" : "");
+      return;
+    }
     if (json) {
       *updates << "{";
     }
@@ -833,6 +866,10 @@ void MqttHandler::publishMessage(const Message* message, ostringstream* updates)
   }
   for (size_t index = 0; index < message->getFieldCount(); index++) {
     string name = message->getFieldName(index);
+    if (noData) {
+      publishEmptyTopic(getTopic(message, "", name));  // alternatively: , json ? "null" : "");
+      continue;
+    }
     result_t result = message->decodeLastData(false, nullptr, index, outputFormat, updates);
     if (result != RESULT_OK) {
       logOtherError("mqtt", "decode %s %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(),
@@ -850,8 +887,14 @@ void MqttHandler::publishTopic(const string& topic, const string& data, bool ret
   const char* dataStr = data.c_str();
   const size_t len = strlen(dataStr);
   logOtherDebug("mqtt", "publish %s %s", topicStr, dataStr);
-  check(mosquitto_publish(m_mosquitto, nullptr, topic.c_str(), (uint32_t)len,
+  check(mosquitto_publish(m_mosquitto, nullptr, topicStr, (uint32_t)len,
       reinterpret_cast<const uint8_t*>(dataStr), 0, g_retain || retain), "publish");
+}
+
+void MqttHandler::publishEmptyTopic(const string& topic) {
+  const char* topicStr = topic.c_str();
+  logOtherDebug("mqtt", "publish empty %s", topicStr);
+  check(mosquitto_publish(m_mosquitto, nullptr, topicStr, 0, nullptr, 0, g_retain), "publish empty");
 }
 
 }  // namespace ebusd
