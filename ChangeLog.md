@@ -6,9 +6,12 @@
 * fix for enhanced escape chars
 * fix for too frequent logging on MQTT broker communication error
 * fix for unexpected "different version available" message during update check
+* fix for detecting subsequent fields with less than 8 bits not fitting into 1 byte
 
 ## Features
 * added option to set poll priority with MQTT get topic
+* added "direct" command for listening to all valid messages from the bus
+* added MQTT /list topic for retrieval of all known messages
 
 
 # 3.3 (2018-12-26)
