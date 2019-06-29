@@ -647,8 +647,11 @@ size_t SingleDataField::getLength(PartType partType, size_t maxLength) const {
   return remainder ? maxLength : m_length;
 }
 
-bool SingleDataField::hasFullByteOffset(bool after) const {
+bool SingleDataField::hasFullByteOffset(bool after, int16_t& previousFirstBit) const {
   if (m_length > 1) {
+    if (after) {
+      previousFirstBit = -1;
+    }
     return true;
   }
   int16_t firstBit;
@@ -658,8 +661,13 @@ bool SingleDataField::hasFullByteOffset(bool after) const {
   } else {
     firstBit = 0;
   }
-  return (m_dataType->getBitCount() % 8) == 0
-  || (after && firstBit + (m_dataType->getBitCount() % 8) >= 8);
+  bool ret = (m_dataType->getBitCount() % 8) == 0
+  || (firstBit == previousFirstBit) || (after && firstBit + (m_dataType->getBitCount() % 8) >= 8);
+  // std::cout<<(after?"after,":"before,")<<"prev="<<static_cast<unsigned>(previousFirstBit)<<",first="<<static_cast<unsigned>(firstBit)<<",length="<<static_cast<unsigned>(m_dataType->getBitCount())<<" => "<<(ret?"true":"false")<<"\n";
+  if (after) {
+    previousFirstBit = ret ? -1 : firstBit;
+  }
+  return ret;
 }
 
 size_t SingleDataField::getCount(PartType partType, const char* fieldName) const {
@@ -915,9 +923,10 @@ const DataFieldSet* DataFieldSet::clone() const {
 size_t DataFieldSet::getLength(PartType partType, size_t maxLength) const {
   size_t length = 0;
   bool previousFullByteOffset[] = { true, true, true, true };
+  int16_t previousFirstBit[] = { -1, -1, -1, -1 };
   for (const auto field : m_fields) {
     if (field->getPartType() == partType) {
-      if (!previousFullByteOffset[partType] && !field->hasFullByteOffset(false)) {
+      if (!previousFullByteOffset[partType] && !field->hasFullByteOffset(false, previousFirstBit[partType])) {
         length--;
       }
       size_t fieldLength = field->getLength(partType, maxLength);
@@ -928,7 +937,7 @@ size_t DataFieldSet::getLength(PartType partType, size_t maxLength) const {
       }
       length = length + fieldLength;
 
-      previousFullByteOffset[partType] = field->hasFullByteOffset(true);
+      previousFullByteOffset[partType] = field->hasFullByteOffset(true, previousFirstBit[partType]);
     }
   }
 
@@ -1010,12 +1019,13 @@ void DataFieldSet::dump(bool prependFieldSeparator, bool asJson, ostream* output
 result_t DataFieldSet::read(const SymbolString& data, size_t offset,
     const char* fieldName, ssize_t fieldIndex, unsigned int* output) const {
   bool previousFullByteOffset = true, found = false, findFieldIndex = fieldIndex >= 0;
+  int16_t previousFirstBit = -1;
   PartType partType = data.isMaster() ? pt_masterData : pt_slaveData;
   for (const auto field : m_fields) {
     if (field->getPartType() != partType) {
       continue;
     }
-    if (!previousFullByteOffset && !field->hasFullByteOffset(false)) {
+    if (!previousFullByteOffset && !field->hasFullByteOffset(false, previousFirstBit)) {
       offset--;
     }
     result_t result = field->read(data, offset, fieldName, fieldIndex, output);
@@ -1023,7 +1033,7 @@ result_t DataFieldSet::read(const SymbolString& data, size_t offset,
       return result;
     }
     offset += field->getLength(partType, data.getDataSize()-offset);
-    previousFullByteOffset = field->hasFullByteOffset(true);
+    previousFullByteOffset = field->hasFullByteOffset(true, previousFirstBit);
     if (result != RESULT_EMPTY) {
       found = true;
     }
@@ -1049,6 +1059,7 @@ result_t DataFieldSet::read(const SymbolString& data, size_t offset,
     bool leadingSeparator, const char* fieldName, ssize_t fieldIndex,
     OutputFormat outputFormat, ssize_t outputIndex, ostream* output) const {
   bool previousFullByteOffset = true, found = false, findFieldIndex = fieldIndex >= 0;
+  int16_t previousFirstBit = -1;
   if (outputIndex < 0 && (!m_uniqueNames || ((outputFormat & OF_JSON) && !(outputFormat & OF_NAMES)))) {
     outputIndex = 0;
   }
@@ -1060,7 +1071,7 @@ result_t DataFieldSet::read(const SymbolString& data, size_t offset,
       }
       continue;
     }
-    if (!previousFullByteOffset && !field->hasFullByteOffset(false)) {
+    if (!previousFullByteOffset && !field->hasFullByteOffset(false, previousFirstBit)) {
       offset--;
     }
     result_t result = field->read(data, offset, leadingSeparator, fieldName, fieldIndex,
@@ -1069,7 +1080,7 @@ result_t DataFieldSet::read(const SymbolString& data, size_t offset,
       return result;
     }
     offset += field->getLength(partType, data.getDataSize()-offset);
-    previousFullByteOffset = field->hasFullByteOffset(true);
+    previousFullByteOffset = field->hasFullByteOffset(true, previousFirstBit);
     if (result != RESULT_EMPTY) {
       found = true;
       leadingSeparator = true;
@@ -1099,12 +1110,13 @@ result_t DataFieldSet::write(char separator, size_t offset, istringstream* input
   string token;
   PartType partType = data->isMaster() ? pt_masterData : pt_slaveData;
   bool previousFullByteOffset = true;
+  int16_t previousFirstBit = -1;
   size_t baseOffset = offset;
   for (const auto field : m_fields) {
     if (field->getPartType() != partType) {
       continue;
     }
-    if (!previousFullByteOffset && !field->hasFullByteOffset(false)) {
+    if (!previousFullByteOffset && !field->hasFullByteOffset(false, previousFirstBit)) {
       offset--;
     }
     result_t result;
@@ -1124,7 +1136,7 @@ result_t DataFieldSet::write(char separator, size_t offset, istringstream* input
       return result;
     }
     offset += fieldLength;
-    previousFullByteOffset = field->hasFullByteOffset(true);
+    previousFullByteOffset = field->hasFullByteOffset(true, previousFirstBit);
   }
 
   if (usedLength != nullptr) {
