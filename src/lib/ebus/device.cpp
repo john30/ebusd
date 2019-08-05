@@ -192,7 +192,7 @@ result_t SerialDevice::open() {
   struct termios newSettings;
 
   // open file descriptor
-  m_fd = ::open(m_name, O_RDWR | O_NOCTTY);
+  m_fd = ::open(m_name, O_RDWR | O_NOCTTY | O_NDELAY);
 
   if (m_fd < 0) {
     return RESULT_ERR_NOTFOUND;
@@ -221,7 +221,8 @@ result_t SerialDevice::open() {
   // create new settings
   memset(&newSettings, 0, sizeof(newSettings));
 
-  newSettings.c_cflag |= (B2400 | CS8 | CLOCAL | CREAD);
+  cfsetspeed(&newSettings, B2400);
+  newSettings.c_cflag |= (CS8 | CLOCAL | CREAD);
   newSettings.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);  // non-canonical mode
   newSettings.c_iflag |= IGNPAR;  // ignore parity errors
   newSettings.c_oflag &= ~OPOST;
@@ -234,7 +235,10 @@ result_t SerialDevice::open() {
   tcflush(m_fd, TCIFLUSH);
 
   // activate new settings of serial device
-  tcsetattr(m_fd, TCSAFLUSH, &newSettings);
+  if (tcsetattr(m_fd, TCSAFLUSH, &newSettings)) {
+    close();
+    return RESULT_ERR_DEVICE;
+  }
 
   // set serial device into blocking mode
   fcntl(m_fd, F_SETFL, fcntl(m_fd, F_GETFL) & ~O_NONBLOCK);
