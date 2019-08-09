@@ -30,6 +30,9 @@
 #ifdef HAVE_LINUX_SERIAL
 #  include <linux/serial.h>
 #endif
+#ifdef HAVE_FREEBSD_UFTDI
+#  include <dev/usb/uftdiio.h>
+#endif
 #include <errno.h>
 #ifdef HAVE_PPOLL
 #  include <poll.h>
@@ -212,6 +215,16 @@ result_t SerialDevice::open() {
   if (ioctl(m_fd, TIOCGSERIAL, &serial) == 0) {
     serial.flags |= ASYNC_LOW_LATENCY;
     ioctl(m_fd, TIOCSSERIAL, &serial);
+  }
+#endif
+
+#ifdef HAVE_FREEBSD_UFTDI
+  int param = 0;
+  // flush tx/rx and set low latency on uftdi device
+  if (ioctl(m_fd, UFTDIIOC_GET_LATENCY, &param) == 0) {
+    ioctl(m_fd, UFTDIIOC_RESET_IO, &param);
+    param = 1;
+    ioctl(m_fd, UFTDIIOC_SET_LATENCY, &param);
   }
 #endif
 
