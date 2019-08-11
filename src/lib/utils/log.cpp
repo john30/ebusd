@@ -134,6 +134,7 @@ LogLevel getFacilityLogLevel(LogFacility facility) {
 bool setLogFile(const char* filename) {
   FILE* newFile = fopen(filename, "a");
   if (newFile == nullptr) {
+    s_logFile = nullptr;
     return false;
   }
   closeLogFile();
