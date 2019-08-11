@@ -35,6 +35,7 @@ AC_SUBST(EXTRA_LIBS)
 
 AC_CHECK_FUNC([pselect], [AC_DEFINE(HAVE_PSELECT, [1], [Defined if pselect() is available.])])
 AC_CHECK_FUNC([ppoll], [AC_DEFINE(HAVE_PPOLL, [1], [Defined if ppoll() is available.])])
+AC_CHECK_HEADER([linux/serial.h], [AC_DEFINE(HAVE_LINUX_SERIAL, [1], [Defined if linux/serial.h is available.])])
 AC_CHECK_HEADER([dev/usb/uftdiio.h], [AC_DEFINE(HAVE_FREEBSD_UFTDI, [1], [Defined if dev/usb/uftdiio.h is available.])])
 
 AC_ARG_ENABLE(coverage, AS_HELP_STRING([--enable-coverage], [enable code coverage tracking]), [CXXFLAGS+=" -coverage -O0"], [])
