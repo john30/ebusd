@@ -1558,8 +1558,8 @@ void BusHandler::formatGrabResult(bool unknown, bool decode, ostringstream* outp
   }
   bool first = true;
   for (const auto& it : m_grabbedMessages) {
-    if (since > 0 && it.second.getLastTime() < since
-    ||  until > 0 && it.second.getLastTime() >= until) {
+    if ((since > 0 && it.second.getLastTime() < since)
+    || (until > 0 && it.second.getLastTime() >= until)) {
       continue;
     }
     if (it.second.dump(unknown, m_messages, first, decode, output, isDirectMode)) {
