@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include <termios.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
 #include <netdb.h>
 #include <iostream>
 #include <fstream>

@@ -16,6 +16,9 @@
 /* Defined if linux/serial.h is available. */
 #cmakedefine HAVE_LINUX_SERIAL
 
+/* Defined if dev/usb/uftdiio.h is available. */
+#cmakedefine HAVE_FREEBSD_UFTDI
+
 /* Defined if pthread_setname_np is available. */
 #cmakedefine HAVE_PTHREAD_SETNAME_NP
 
