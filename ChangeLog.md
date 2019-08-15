@@ -7,11 +7,14 @@
 * fix for too frequent logging on MQTT broker communication error
 * fix for unexpected "different version available" message during update check
 * fix for detecting subsequent fields with less than 8 bits not fitting into 1 byte
+* fix for compilation and running on FreeBSD and MacOS with low latency setting for FTDI device (thanks to samm-git)
+* fix for switching to daemon mode when log file was not opened
 
 ## Features
 * added option to set poll priority with MQTT get topic
 * added "direct" command for listening to all valid messages from the bus
 * added MQTT /list topic for retrieval of all known messages
+* added support for init scripts on non-LSB distributions (thanks to andr2000)
 
 
 # 3.3 (2018-12-26)
