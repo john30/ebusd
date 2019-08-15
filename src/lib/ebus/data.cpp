@@ -663,7 +663,9 @@ bool SingleDataField::hasFullByteOffset(bool after, int16_t& previousFirstBit) c
   }
   bool ret = (m_dataType->getBitCount() % 8) == 0
   || (firstBit == previousFirstBit) || (after && firstBit + (m_dataType->getBitCount() % 8) >= 8);
-  // std::cout<<(after?"after,":"before,")<<"prev="<<static_cast<unsigned>(previousFirstBit)<<",first="<<static_cast<unsigned>(firstBit)<<",length="<<static_cast<unsigned>(m_dataType->getBitCount())<<" => "<<(ret?"true":"false")<<"\n";
+  // std::cout<<(after?"after,":"before,")<<"prev="<<static_cast<unsigned>(previousFirstBit)<<",first="
+  // <<static_cast<unsigned>(firstBit)<<",length="<<static_cast<unsigned>(m_dataType->getBitCount())
+  // <<" => "<<(ret?"true":"false")<<"\n";
   if (after) {
     previousFirstBit = ret ? -1 : firstBit;
   }
