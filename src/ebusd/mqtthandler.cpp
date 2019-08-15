@@ -22,6 +22,7 @@
 
 #include "ebusd/mqtthandler.h"
 #include <csignal>
+#include <deque>
 #include "lib/utils/log.h"
 
 namespace ebusd {
