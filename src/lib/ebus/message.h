@@ -1411,6 +1411,17 @@ class MessageMap : public MappedFileReader {
     time_t since, time_t until, bool changedSince, deque<Message*>* messages) const;
 
   /**
+   * Get the first available @a Message from the first map iterator entry.
+   * @param it the map iterator with list of @a Message instances to check.
+   * @param sameIdExtAs the optional @a MasterSymbolString to check for having the same ID.
+   * @param onlyAvailable true to include only available messages (default true), false to also include messages that
+   * are currently not available (e.g. due to unresolved or false conditions).
+   * @return the first available @a Message from the first map iterator entry.
+   */
+  Message* getFirstAvailableFromIterator(const map<uint64_t, vector<Message*> >::const_iterator& it,
+    const MasterSymbolString* sameIdExtAs, bool onlyAvailable) const;
+
+  /**
    * Find the @a Message instance for the specified master data.
    * @param master the @a MasterSymbolString for identifying the @a Message.
    * @param anyDestination true to only return messages without a particular destination.
