@@ -1293,7 +1293,10 @@ int main(int argc, char* argv[]) {
   }
 
   if (!opt.foreground) {
-    setLogFile(opt.logFile);
+    if (!setLogFile(opt.logFile)) {
+      logError(lf_main, "unable to open log file %s", opt.logFile);
+      return EINVAL;
+    }
     daemonize();  // make me daemon
   }
 
