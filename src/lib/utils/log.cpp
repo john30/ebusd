@@ -27,6 +27,7 @@
 #include <sys/time.h>
 #include <stdarg.h>
 #include <string.h>
+#include <syslog.h>
 #include "lib/utils/clock.h"
 
 namespace ebusd {
@@ -52,11 +53,24 @@ static const char* levelNames[] = {
   nullptr
 };
 
+/** syslog map for the levels. */
+static const int levelToSyslog[] = {
+  LOG_INFO,
+  LOG_ERR,
+  LOG_NOTICE,
+  LOG_INFO,
+  LOG_DEBUG,
+  0
+};
+
 /** the current log level by log facility. */
 static LogLevel s_facilityLogLevel[] = { ll_notice, ll_notice, ll_notice, ll_notice, ll_notice, };
 
 /** the current log FILE. */
 static FILE* s_logFile = stdout;
+
+/** use syslog instead of file. */
+static int s_syslog = 0;
 
 LogFacility parseLogFacility(const char* facility) {
   if (!facility) {
@@ -132,12 +146,20 @@ LogLevel getFacilityLogLevel(LogFacility facility) {
 }
 
 bool setLogFile(const char* filename) {
-  FILE* newFile = fopen(filename, "a");
-  if (newFile == nullptr) {
-    return false;
+  if(!strcmp(filename, "syslog"))
+  {
+    s_syslog = 1;
+    s_logFile = nullptr;
+    openlog("ebusd", LOG_NDELAY, LOG_USER);
   }
-  closeLogFile();
-  s_logFile = newFile;
+  else {
+    FILE* newFile = fopen(filename, "a");
+    if (newFile == nullptr) {
+      return false;
+    }
+    closeLogFile();
+    s_logFile = newFile;
+  }
   return true;
 }
 
@@ -155,7 +177,7 @@ bool needsLog(const LogFacility facility, const LogLevel level) {
 }
 
 void logWrite(const char* facility, const char* level, const char* message, va_list ap) {
-  if (s_logFile == nullptr) {
+  if (s_logFile == nullptr && s_syslog == 0) {
     return;
   }
   struct timespec ts;
@@ -164,11 +186,17 @@ void logWrite(const char* facility, const char* level, const char* message, va_l
   localtime_r(&ts.tv_sec, &td);
   char* buf;
   if (vasprintf(&buf, message, ap) >= 0 && buf) {
-    fprintf(s_logFile, "%04d-%02d-%02d %02d:%02d:%02d.%03ld [%s %s] %s\n",
-      td.tm_year+1900, td.tm_mon+1, td.tm_mday,
-      td.tm_hour, td.tm_min, td.tm_sec, ts.tv_nsec/1000000,
-      facility, level, buf);
-    fflush(s_logFile);
+    if (s_syslog) {
+      int syslogLevel = levelToSyslog[parseLogLevel(level)];
+      syslog(syslogLevel, "[%s %s] %s\n", facility, level, buf);
+    }
+    else {
+      fprintf(s_logFile, "%04d-%02d-%02d %02d:%02d:%02d.%03ld [%s %s] %s\n",
+        td.tm_year+1900, td.tm_mon+1, td.tm_mday,
+        td.tm_hour, td.tm_min, td.tm_sec, ts.tv_nsec/1000000,
+        facility, level, buf);
+      fflush(s_logFile);
+    }
   }
   if (buf) {
     free(buf);

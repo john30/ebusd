@@ -223,7 +223,7 @@ static const struct argp_option argpoptions[] = {
   {"updatecheck",    O_UPDCHK, "MODE",     0, "Set automatic update check to MODE (on|off) [on]", 0 },
 
   {nullptr,          0,        nullptr,    0, "Log options:", 5 },
-  {"logfile",        'l',      "FILE",     0, "Write log to FILE (only for daemon) [" PACKAGE_LOGFILE "]", 0 },
+  {"logfile",        'l',      "FILE",     0, "Write log to FILE (only for daemon) [" PACKAGE_LOGFILE "] or to syslogd \"syslog\"", 0 },
   {"log",            O_LOG, "AREAS LEVEL", 0, "Only write log for matching AREA(S) below or equal to LEVEL"
       " (alternative to --logareas/--logevel, may be used multiple times) [all notice]", 0 },
   {"logareas",       O_LOGARE, "AREAS",    0, "Only write log for matching AREA(S): main|network|bus|update|all"
@@ -486,7 +486,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
 
   // Log options:
-  case 'l':  // --logfile=/var/log/ebusd.log
+  case 'l':  // --logfile=/var/log/ebusd.log or "syslog"
     if (arg == nullptr || arg[0] == 0 || strcmp("/", arg) == 0) {
       argp_error(state, "invalid logfile");
       return EINVAL;
