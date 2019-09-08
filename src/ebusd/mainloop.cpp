@@ -1001,12 +1001,14 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
     argPos++;
   }
 
-  if ((hex && (newDefinition || dstAddress != SYN || !circuit.empty() || args.size() < argPos + 1))
-  || (newDefinition && (hex || !circuit.empty() || args.size() < argPos + 1 || args.size() > argPos + 2))) {
+  if ((args.size() < argPos + 1)
+  || (hex && (newDefinition || dstAddress != SYN))
+  || (newDefinition && (hex || !circuit.empty() || args.size() > argPos + 2))
+  || (!newDefinition && !hex && (circuit.empty() || args.size() > argPos + 2))) {
     argPos = 0;  // print usage
   }
 
-  if (argPos == 0 || (!newDefinition && (circuit.empty() || (args.size() != argPos+2 && args.size() != argPos+1)))) {
+  if (argPos == 0) {
     *ostream << "usage: write [-s QQ] [-d ZZ] -c CIRCUIT NAME [VALUE[;VALUE]*]\n"
         "  or:  write [-s QQ] [-d ZZ] -def DEFINITION [VALUE[;VALUE]*] (only if enabled)\n"
         "  or:  write [-s QQ] [-c CIRCUIT] -h ZZPBSBNN[DD]*\n"
