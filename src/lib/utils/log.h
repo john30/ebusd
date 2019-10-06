@@ -98,7 +98,7 @@ LogLevel getFacilityLogLevel(LogFacility facility);
 
 /**
  * Set the log file to use.
- * @param filename the name of the log file to use.
+ * @param filename the name of the log file to use, or the empty string for syslog.
  * @return true on success, false on error.
  */
 bool setLogFile(const char* filename);
