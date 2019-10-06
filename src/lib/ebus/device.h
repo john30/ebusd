@@ -143,6 +143,10 @@ class Device {
    */
   result_t startArbitration(symbol_t masterAddress);
 
+  /**
+   * Return whether the device is currently in arbitration.
+   * @return true when the device is currently in arbitration.
+   */
   bool isArbitrating() const { return m_arbitrationMaster != SYN; };
 
   /**
@@ -179,6 +183,7 @@ class Device {
   /**
    * Write a single byte.
    * @param value the byte value to write.
+   * @param startArbitration true to start arbitration.
    * @return true on success, false on error.
    */
   virtual bool write(symbol_t value, bool startArbitration=false);
