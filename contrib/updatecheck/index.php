@@ -5,7 +5,7 @@ if (substr($agent, 0, 5)==='ebusd') {
   $r = @file_get_contents('php://input');
   header('Content-Type: text/plain');
   $r = @json_decode($r, true);
-  echo checkUpdate(@$r['v'], @$r['r'], @$r['l']);
+  echo checkUpdate(@$r['v'], @$r['r'], @$r['a'], @$r['l']);
   exit;
 }
 header('HTTP/1.1 404 Not Found');

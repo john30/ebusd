@@ -27,12 +27,13 @@
 #include <sys/time.h>
 #include <stdarg.h>
 #include <string.h>
+#include <syslog.h>
 #include "lib/utils/clock.h"
 
 namespace ebusd {
 
 /** the name of each @a LogFacility. */
-static const char *facilityNames[] = {
+static const char *s_facilityNames[] = {
   "main",
   "network",
   "bus",
@@ -43,7 +44,7 @@ static const char *facilityNames[] = {
 };
 
 /** the name of each @a LogLevel. */
-static const char* levelNames[] = {
+static const char* s_levelNames[] = {
   "none",
   "error",
   "notice",
@@ -52,11 +53,24 @@ static const char* levelNames[] = {
   nullptr
 };
 
+/** the syslog level of each @a LogLevel. */
+static const int s_syslogLevels[] = {
+  LOG_INFO,
+  LOG_ERR,
+  LOG_NOTICE,
+  LOG_INFO,
+  LOG_DEBUG,
+  0
+};
+
 /** the current log level by log facility. */
 static LogLevel s_facilityLogLevel[] = { ll_notice, ll_notice, ll_notice, ll_notice, ll_notice, };
 
-/** the current log FILE. */
+/** the current log FILE, or nullptr if closed or syslog is used. */
 static FILE* s_logFile = stdout;
+
+/** whether to log to syslog. */
+static bool s_useSyslog = false;
 
 LogFacility parseLogFacility(const char* facility) {
   if (!facility) {
@@ -64,7 +78,7 @@ LogFacility parseLogFacility(const char* facility) {
   }
   char *input = strdup(facility);
   char *opt = reinterpret_cast<char*>(input), *value = nullptr;
-  int val = getsubopt(&opt, (char *const *)facilityNames, &value);
+  int val = getsubopt(&opt, (char *const *)s_facilityNames, &value);
   if (val < 0 || val >= lf_COUNT || value || *opt) {
     free(input);
     return lf_COUNT;
@@ -78,7 +92,7 @@ int parseLogFacilities(const char* facilities) {
   char *opt = reinterpret_cast<char*>(input), *value = nullptr;
   int newFacilites = 0;
   while (*opt) {
-    int val = getsubopt(&opt, (char *const *)facilityNames, &value);
+    int val = getsubopt(&opt, (char *const *)s_facilityNames, &value);
     if (val < 0 || val > lf_COUNT || value) {
       free(input);
       return -1;
@@ -99,7 +113,7 @@ LogLevel parseLogLevel(const char* level) {
   }
   char *input = strdup(level);
   char *opt = reinterpret_cast<char*>(input), *value = nullptr;
-  int val = getsubopt(&opt, (char *const *)levelNames, &value);
+  int val = getsubopt(&opt, (char *const *)s_levelNames, &value);
   if (val < 0 || val >= ll_COUNT || value || *opt) {
     free(input);
     return ll_COUNT;
@@ -109,11 +123,11 @@ LogLevel parseLogLevel(const char* level) {
 }
 
 const char* getLogFacilityStr(LogFacility facility) {
-  return facilityNames[facility];
+  return s_facilityNames[facility];
 }
 
 const char* getLogLevelStr(LogLevel level) {
-  return levelNames[level];
+  return s_levelNames[level];
 }
 
 bool setFacilitiesLogLevel(int facilities, LogLevel level) {
@@ -132,6 +146,12 @@ LogLevel getFacilityLogLevel(LogFacility facility) {
 }
 
 bool setLogFile(const char* filename) {
+  if (filename[0] == 0) {
+    closeLogFile();
+    openlog("ebusd", LOG_NDELAY|LOG_PID, LOG_USER);
+    s_useSyslog = true;
+    return true;
+  }
   FILE* newFile = fopen(filename, "a");
   if (newFile == nullptr) {
     return false;
@@ -148,27 +168,35 @@ void closeLogFile() {
     }
     s_logFile = nullptr;
   }
+  if (s_useSyslog) {
+    closelog();
+    s_useSyslog = false;
+  }
 }
 
 bool needsLog(const LogFacility facility, const LogLevel level) {
   return s_facilityLogLevel[facility] >= level;
 }
 
-void logWrite(const char* facility, const char* level, const char* message, va_list ap) {
-  if (s_logFile == nullptr) {
+void logWrite(const char* facility, const LogLevel level, const char* message, va_list ap) {
+  if (s_logFile == nullptr && !s_useSyslog) {
     return;
   }
-  struct timespec ts;
-  struct tm td;
-  clockGettime(&ts);
-  localtime_r(&ts.tv_sec, &td);
   char* buf;
   if (vasprintf(&buf, message, ap) >= 0 && buf) {
-    fprintf(s_logFile, "%04d-%02d-%02d %02d:%02d:%02d.%03ld [%s %s] %s\n",
-      td.tm_year+1900, td.tm_mon+1, td.tm_mday,
-      td.tm_hour, td.tm_min, td.tm_sec, ts.tv_nsec/1000000,
-      facility, level, buf);
-    fflush(s_logFile);
+    if (s_useSyslog) {
+      syslog(s_syslogLevels[level], "[%s %s] %s", facility, s_levelNames[level], buf);
+    } else {
+      struct timespec ts;
+      struct tm td;
+      clockGettime(&ts);
+      localtime_r(&ts.tv_sec, &td);
+      fprintf(s_logFile, "%04d-%02d-%02d %02d:%02d:%02d.%03ld [%s %s] %s\n",
+        td.tm_year+1900, td.tm_mon+1, td.tm_mday,
+        td.tm_hour, td.tm_min, td.tm_sec, ts.tv_nsec/1000000,
+        facility, s_levelNames[level], buf);
+      fflush(s_logFile);
+    }
   }
   if (buf) {
     free(buf);
@@ -178,14 +206,14 @@ void logWrite(const char* facility, const char* level, const char* message, va_l
 void logWrite(const LogFacility facility, const LogLevel level, const char* message, ...) {
   va_list ap;
   va_start(ap, message);
-  logWrite(facilityNames[facility], levelNames[level], message, ap);
+  logWrite(s_facilityNames[facility], level, message, ap);
   va_end(ap);
 }
 
 void logWrite(const char* facility, const LogLevel level, const char* message, ...) {
   va_list ap;
   va_start(ap, message);
-  logWrite(facility, levelNames[level], message, ap);
+  logWrite(facility, level, message, ap);
   va_end(ap);
 }
 

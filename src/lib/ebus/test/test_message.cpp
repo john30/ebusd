@@ -173,7 +173,11 @@ int main() {
     {"w,,x,,,,,,b0,,BI0:1,,,,b1,,BI1:1,,,,b2,,BI2:6,,,,c0,,BI0:1,,,,c1,,BI1:1,,,,c2,,BI2:1", "1;1;1;0;0;0", "ff08b509030e0700", "00", "di" },
     {"w,,x,,,,,,b0,,BI0:1,,,,b1,,BI1:1,,,,b2,,BI2:6,,,,c0,,BI0:1,,,,c1,,BI1:1,,,,c2,,BI2:1", "1;0;0;0;0;1", "ff08b509030e0104", "00", "di" },
     {"w,,x,,,,,,b0,,BI0:1,,,,b1,,BI1:1,,,,b2,,BI2:6,,,,c0,,BI0:1,,,,c1,,BI1:1,,,,c2,,BI2:1", "0;0;1;0;1;1", "ff08b509030e0406", "00", "di" },
-    {"*r,cir*cuit#level,na*me,com*ment,ff,75,b509,0d", "", "", "", "" },
+    {"r,470,ccTimer.Monday,,,15,B515,0002,,,IGN:1,,,,from,,TTM", "", "", "", "M"},
+    {"w,470,ccTimer.Monday,,,10,B515,0002,from,,TTM", "", "", "", "kM*"},
+    {"", "19:00", "3115b515020002", "080272", "kd"},
+    {"", "19:00", "3110b51503000272", "00", "kd"},
+    {"*r,cir*cuit#level,na*me,com*ment,ff,75,b509,0d", "", "", "", ""},
     {"r,CIRCUIT,NAME,COMMENT,,,,0100,field,,UCH", "r,cirCIRCUITcuit,naNAMEme,comCOMMENTment,ff,75,b509,0d0100,field,s,UCH,,,: field=42", "ff75b509030d0100", "012a", "DN"},
     {"r,CIRCUIT,NAME,COMMENT,,,,0100,field,,UCH",
         // "\"naNAMEme\": {r,cirCIRCUITcuit,naNAMEme,comCOMMENTment,ff,75,b509,0d0100,field,s,UCH,,,: field=42"
@@ -420,7 +424,7 @@ int main() {
       result = message->decodeLastData(false, nullptr, -1,
           (decodeVerbose?OF_NAMES|OF_UNITS|OF_COMMENTS:0)|(decodeJson?OF_NAMES|OF_JSON:0), &output);
       if (result != RESULT_OK) {
-        cout << "  \"" << check[2] << "\" / \"" << check[3] << "\": decode error: "
+        cout << "  \"" << check[2] << "\" / \"" << check[3] << "\": decode error " << (message->isWrite() ? "write: " : "read: ")
             << getResultCode(result) << endl;
         error = true;
         continue;

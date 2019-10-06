@@ -1,4 +1,4 @@
-FROM debian:jessie
+FROM debian:stretch
 
 RUN apt-get update && apt-get install -y \
     logrotate libmosquitto1 libstdc++6 libc6 libgcc1 \
@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y \
 
 LABEL maintainer "ebusd@ebusd.eu"
 
-ENV EBUSD_VERSION 3.2
+ENV EBUSD_VERSION 3.3
 ENV EBUSD_ARCH amd64
 
 LABEL version "${EBUSD_VERSION}-${EBUSD_ARCH}-devel"
@@ -30,6 +30,6 @@ RUN rm -rf /build
 
 EXPOSE 8888
 
-COPY runtime/docker-entrypoint.sh /
+COPY release/docker-entrypoint.sh /
 ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["-f", "--scanconfig"]

@@ -38,7 +38,7 @@ Installation
 ------------
 
 Either pick the [latest release package](https://github.com/john30/ebusd/releases/latest)
-suitable for your system or build it yourself.
+suitable for your system, use the Debian repository as [described here](https://github.com/john30/ebusd-debian/blob/master/README.md), or build it yourself.
 
 Building ebusd from the source requires the following packages and/or features:
  * autoconf (>=2.63) + automake (>=1.11) or cmake

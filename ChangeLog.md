@@ -1,9 +1,41 @@
-# next version
+# 3.4 (2019-10-?)
+
+## Bug Fixes
+* fix for always enabled "--mqttchanges" option
+* fix for dynamically adjusted poll priority
+* fix for enhanced escape chars
+* fix for too frequent logging on MQTT broker communication error
+* fix for unexpected "different version available" message during update check
+* fix for detecting subsequent fields with less than 8 bits not fitting into 1 byte
+* fix for compilation and running on FreeBSD and MacOS with low latency setting for FTDI device (thanks to samm-git)
+* fix for switching to daemon mode when log file was not opened
+* fix for checking required arguments of "write" command with "-h"
+
+## Features
+* added option to set poll priority with MQTT get topic
+* added "direct" command for listening to all valid messages from the bus
+* added MQTT /list topic for retrieval of all known messages
+* added support for init scripts on non-LSB distributions (thanks to andr2000)
+* added support for logging to syslog instead of file (thanks to samm-git)
+
+
+# 3.3 (2018-12-26)
 
 ## Bug Fixes
 * fix for missing MQTT subscription after broker reconnect
 * fix for answering to first scan only in answer mode
-* fix don't add transfer latency to receive timeout when acting as SYN generator
+* fix dont add transfer latency to receive timeout when acting as SYN generator
+* fix for bit combinations during write to SymbolString
+* fix for MQTT handling after broker disconnect
+* fix for NaN in JSON
+* fix for deadlock in libmosquitto
+
+## Features
+* wait for being online before starting and automatically restart after 30 seconds
+* added "--mqttchanges" option to only publish changed messages and changed to publish all messages by default
+* added "--mqttclientid" to set own client ID instead of using the default
+* added support for single quotes to all commands
+* added "--mqttlog" and "--mqttversion" options
 
 ## Breaking Changes
 * added support for enhanced network protocol mode for recent [ebusd-esp firmware](https://github.com/john30/ebusd-esp/) that allows the arbitration to be done directly by the Wemos

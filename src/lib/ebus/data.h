@@ -401,10 +401,13 @@ class SingleDataField : public DataField {
   /**
    * Get whether this field uses a full byte offset.
    * @param after @p true to check after consuming the bits, @p false to check before.
+   * @param previousFirstBit the index to the first bit of the previous field, or -1
+   * if the previous field used a full byte offset. Will be updated during the call
+   * when after was true.
    * @return @p true if this field uses a full byte offset, @p false if this field
    * only consumes a part of a byte and a subsequent field may re-use the same offset.
    */
-  bool hasFullByteOffset(bool after) const;
+  bool hasFullByteOffset(bool after, int16_t& previousFirstBit) const;
 
   // @copydoc
   size_t getCount(PartType partType = pt_any, const char* fieldName = nullptr) const override;

@@ -223,7 +223,7 @@ static const struct argp_option argpoptions[] = {
   {"updatecheck",    O_UPDCHK, "MODE",     0, "Set automatic update check to MODE (on|off) [on]", 0 },
 
   {nullptr,          0,        nullptr,    0, "Log options:", 5 },
-  {"logfile",        'l',      "FILE",     0, "Write log to FILE (only for daemon) [" PACKAGE_LOGFILE "]", 0 },
+  {"logfile",        'l',      "FILE",     0, "Write log to FILE (only for daemon, empty string for using syslog) [" PACKAGE_LOGFILE "]", 0 },
   {"log",            O_LOG, "AREAS LEVEL", 0, "Only write log for matching AREA(S) below or equal to LEVEL"
       " (alternative to --logareas/--logevel, may be used multiple times) [all notice]", 0 },
   {"logareas",       O_LOGARE, "AREAS",    0, "Only write log for matching AREA(S): main|network|bus|update|all"
@@ -487,7 +487,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
 
   // Log options:
   case 'l':  // --logfile=/var/log/ebusd.log
-    if (arg == nullptr || arg[0] == 0 || strcmp("/", arg) == 0) {
+    if (arg == nullptr || strcmp("/", arg) == 0) {
       argp_error(state, "invalid logfile");
       return EINVAL;
     }
@@ -599,7 +599,7 @@ void daemonize() {
   pid_t pid = fork();
 
   if (pid < 0) {
-    logError(lf_main, "fork() failed");
+    logError(lf_main, "fork() failed, exiting");
     exit(EXIT_FAILURE);
   }
 
@@ -612,14 +612,14 @@ void daemonize() {
   // Create a new SID for the child process and
   // detach the process from the parent (normally a shell)
   if (setsid() < 0) {
-    logError(lf_main, "setsid() failed");
+    logError(lf_main, "setsid() failed, exiting");
     exit(EXIT_FAILURE);
   }
 
   // Change the current working directory. This prevents the current
   // directory from being locked; hence not being able to remove it.
   if (chdir("/tmp") < 0) {
-    logError(lf_main, "daemon chdir() failed");
+    logError(lf_main, "daemon chdir() failed, exiting");
     exit(EXIT_FAILURE);
   }
 
@@ -642,7 +642,7 @@ void daemonize() {
     }
   }
   if (pidFile == nullptr) {
-    logError(lf_main, "can't open pidfile: %s", opt.pidFile);
+    logError(lf_main, "can't open pidfile: %s, exiting", opt.pidFile);
     exit(EXIT_FAILURE);
   }
 
@@ -701,7 +701,7 @@ void signalHandler(int sig) {
   switch (sig) {
   case SIGHUP:
     logNotice(lf_main, "SIGHUP received");
-    if (!opt.foreground) {
+    if (!opt.foreground && opt.logFile && opt.logFile[0] != 0) { // for log file rotation
       closeLogFile();
       setLogFile(opt.logFile);
     }
@@ -988,8 +988,8 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
   if (result == RESULT_OK) {
     logInfo(lf_main, "read config files");
   } else {
-    logError(lf_main, "error reading config files: %s, last error: %s", getResultCode(result),
-        errorDescription.c_str());
+    logError(lf_main, "error reading config files from %s: %s, last error: %s", opt.configPath,
+        getResultCode(result), errorDescription.c_str());
   }
   messages->unlock();
   return RESULT_OK;
@@ -1293,7 +1293,10 @@ int main(int argc, char* argv[]) {
   }
 
   if (!opt.foreground) {
-    setLogFile(opt.logFile);
+    if (!setLogFile(opt.logFile)) {
+      logError(lf_main, "unable to open log file %s", opt.logFile);
+      return EINVAL;
+    }
     daemonize();  // make me daemon
   }
 

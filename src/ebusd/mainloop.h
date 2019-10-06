@@ -144,13 +144,13 @@ class MainLoop : public Thread, DeviceListener {
    * @param data the data string to decode (may be empty).
    * @param connected set to false when the client connection shall be closed.
    * @param isHttp true for HTTP message.
-   * @param listening set to true when the client is in listening mode.
+   * @param mode set to the new client mode.
    * @param user set to the new user name when changed by authentication.
    * @param reload set to true when the configuration files were reloaded.
    * @param ostream the @a ostringstream to format the result string to.
    * @return the result code.
    */
-  result_t decodeMessage(const string& data, bool isHttp, bool* connected, bool* listening,
+  result_t decodeMessage(const string& data, bool isHttp, bool* connected, ClientMode* mode,
       string* user, bool* reload, ostringstream* ostream);
 
   /**
@@ -199,12 +199,32 @@ class MainLoop : public Thread, DeviceListener {
   result_t executeWrite(const vector<string>& args, const string levels, ostringstream* ostream);
 
   /**
+   * Parse a hex or direct command and send it on the bus.
+   * @param args the arguments passed to the command.
+   * @param argPos the position in the arguments to the first parameter, will be set to other than args.size() on
+   * invalid input.
+   * @param isDirectMode true for direct mode, false for hex command.
+   * @param ostream the @a ostringstream to format the result string to.
+   * @return the result code.
+   */
+  result_t parseHexAndSend(const vector<string>& args, size_t& argPos, bool isDirectMode, ostringstream* ostream);
+
+  /**
    * Execute the hex command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
    * @param ostream the @a ostringstream to format the result string to.
    * @return the result code.
    */
   result_t executeHex(const vector<string>& args, ostringstream* ostream);
+
+  /**
+   * Execute the direct command.
+   * @param args the arguments passed to the command (starting with the command itself), or empty for help.
+   * @param mode set to the new client mode.
+   * @param ostream the @a ostringstream to format the result string to.
+   * @return the result code.
+   */
+  result_t executeDirect(const vector<string>& args, ClientMode* mode, ostringstream* ostream);
 
   /**
    * Execute the find command.
@@ -218,11 +238,11 @@ class MainLoop : public Thread, DeviceListener {
   /**
    * Execute the listen command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
-   * @param listening set to true when the client is in listening mode.
+   * @param mode set to the new client mode.
    * @param ostream the @a ostringstream to format the result string to.
    * @return the result code.
    */
-  result_t executeListen(const vector<string>& args, bool* listening, ostringstream* ostream);
+  result_t executeListen(const vector<string>& args, ClientMode* mode, ostringstream* ostream);
 
   /**
    * Execute the state command.

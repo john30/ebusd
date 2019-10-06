@@ -45,11 +45,23 @@ using std::endl;
 /** the bit mask for the ID length and combined ID bytes in the message key. */
 #define ID_LENGTH_AND_IDS_MASK ((7LL << (8 * 7 + 5)) | 0xffffffffLL)
 
-/** the bits in the @a ID_SOURCE_MASK for arbitrary source and active read message. */
+/** the bits in the @a ID_SOURCE_MASK for arbitrary source and active write message. */
 #define ID_SOURCE_ACTIVE_WRITE (0x1fLL << (8 * 7))
 
-/** the bits in the @a ID_SOURCE_MASK for arbitrary source and active write message. */
+/** the bits in the @a ID_SOURCE_MASK for arbitrary source and active read message. */
 #define ID_SOURCE_ACTIVE_READ (0x1eLL << (8 * 7))
+
+/**
+ * the bits in the @a ID_SOURCE_MASK for arbitrary source and active write message
+ * to a master (same value as ID_SOURCE_ACTIVE_WRITE for now).
+ */
+#define ID_SOURCE_ACTIVE_WRITE_MASTER (0x1fLL << (8 * 7))
+
+/**
+ * the bits in the @a ID_SOURCE_MASK for arbitrary source and active read message
+ * to a master (same value as ID_SOURCE_ACTIVE_WRITE for now).
+ */
+#define ID_SOURCE_ACTIVE_READ_MASTER (0x1eLL << (8 * 7))
 
 /** special value for invalid message key. */
 #define INVALID_KEY 0xffffffffffffffffLL
@@ -79,6 +91,9 @@ static const char* defaultMessageFieldMap[] = {  // access level not included in
     "*name", "part", "type", "divisor/values", "unit", "comment",
 };
 
+/** the m_pollOrder of the last polled message. */
+static unsigned int g_lastPollOrder = 0;
+
 extern DataFieldTemplates* getTemplates(const string& filename);
 
 extern result_t loadDefinitionsFromConfigPath(FileReader* reader, const string& filename, bool verbose,
@@ -99,7 +114,7 @@ Message::Message(const string& circuit, const string& level, const string& name,
       m_data(data), m_deleteData(deleteData),
       m_pollPriority(pollPriority),
       m_usedByCondition(false), m_isScanMessage(false), m_condition(condition),
-      m_lastUpdateTime(0), m_lastChangeTime(0), m_pollCount(0), m_lastPollTime(0) {
+      m_lastUpdateTime(0), m_lastChangeTime(0), m_pollOrder(0), m_lastPollTime(0) {
   if (circuit == "scan") {
     setScanMessage();
     m_pollPriority = 0;
@@ -116,7 +131,7 @@ Message::Message(const string& circuit, const string& level, const string& name,
       m_data(data), m_deleteData(deleteData),
       m_pollPriority(0),
       m_usedByCondition(false), m_isScanMessage(true), m_condition(nullptr),
-      m_lastUpdateTime(0), m_lastChangeTime(0), m_pollCount(0), m_lastPollTime(0) {
+      m_lastUpdateTime(0), m_lastChangeTime(0), m_pollOrder(0), m_lastPollTime(0) {
 }
 
 
@@ -158,7 +173,8 @@ uint64_t Message::createKey(const vector<symbol_t>& id, bool isWrite, bool isPas
   if (isPassive) {
     key |= (uint64_t)getMasterNumber(srcAddress) << (8 * 7);  // 0..25
   } else {
-    key |= (isWrite ? 0x1fLL : 0x1eLL) << (8 * 7);  // special values for active
+    key |= isMaster(dstAddress) ? (isWrite ? ID_SOURCE_ACTIVE_WRITE_MASTER : ID_SOURCE_ACTIVE_READ_MASTER)
+           : (isWrite ? ID_SOURCE_ACTIVE_WRITE : ID_SOURCE_ACTIVE_READ);  // special values for active
   }
   key |= (uint64_t)dstAddress << (8 * 6);
   int exp = 5;
@@ -199,7 +215,7 @@ uint64_t Message::createKey(const MasterSymbolString& master, size_t maxIdLength
 
 uint64_t Message::createKey(symbol_t pb, symbol_t sb, bool broadcast) {
   uint64_t key = 0;
-  key |= (broadcast ? 0x1fLL : 0x1eLL) << (8 * 7);  // special values for active
+  key |= broadcast ? ID_SOURCE_ACTIVE_WRITE : ID_SOURCE_ACTIVE_READ;  // special values for active
   key |= (uint64_t)(broadcast ? BROADCAST : SYN) << (8 * 6);
   key |= (uint64_t)pb << (8 * 5);
   key |= (uint64_t)sb << (8 * 4);
@@ -596,7 +612,27 @@ bool Message::setPollPriority(size_t priority) {
   }
   bool ret = m_pollPriority == 0 && usePriority > 0;
   m_pollPriority = usePriority;
+  if (ret || m_pollOrder > g_lastPollOrder+(unsigned int)m_pollPriority) {
+    // ensure a later increased or newly set priority does not prefer that message before all others
+    m_pollOrder = g_lastPollOrder+(unsigned int)m_pollPriority;
+  }
   return ret;
+}
+
+bool Message::isLessPollWeight(const Message* other) const {
+  if (m_pollOrder > other->m_pollOrder) {
+    return true;
+  }
+  if (m_pollOrder < other->m_pollOrder) {
+    return false;
+  }
+  if (m_pollPriority > other->m_pollPriority) {
+    return true;
+  }
+  if (m_pollPriority < other->m_pollPriority) {
+    return false;
+  }
+  return m_lastPollTime > other->m_lastPollTime;
 }
 
 void Message::setUsedByCondition() {
@@ -784,26 +820,6 @@ result_t Message::decodeLastDataNumField(const char* fieldName, ssize_t fieldInd
     return RESULT_ERR_NOTFOUND;
   }
   return result;
-}
-
-bool Message::isLessPollWeight(const Message* other) const {
-  size_t tprio = m_pollPriority;
-  size_t oprio = other->m_pollPriority;
-  size_t tw = tprio * m_pollCount;
-  size_t ow = oprio * other->m_pollCount;
-  if (tw > ow) {
-    return true;
-  }
-  if (tw < ow) {
-    return false;
-  }
-  if (tprio > oprio) {
-    return true;
-  }
-  if (tprio < oprio) {
-    return false;
-  }
-  return m_lastPollTime > other->m_lastPollTime;
 }
 
 void Message::dumpHeader(const vector<string>* fieldNames, ostream* output) {
@@ -1267,6 +1283,7 @@ void ChainedMessage::dumpField(const string& fieldName, bool withConditions, ost
  * @param sameIdExtAs the optional @a MasterSymbolString to check for having the same ID.
  * @param onlyAvailable true to include only available messages (default true), false to also include messages that
  * are currently not available (e.g. due to unresolved or false conditions).
+ * @return the first available @a Message from the list.
  */
 Message* getFirstAvailable(const vector<Message*>& messages, const MasterSymbolString* sameIdExtAs,
     const bool onlyAvailable = true) {
@@ -1287,6 +1304,7 @@ Message* getFirstAvailable(const vector<Message*>& messages, const MasterSymbolS
  * @param sameIdExtAs the optional @a Message to check for having the same ID.
  * @param onlyAvailable true to include only available messages (default true), false to also include messages that
  * are currently not available (e.g. due to unresolved or false conditions).
+ * @return the first available @a Message from the list.
  */
 Message* getFirstAvailable(const vector<Message*>& messages, const Message* sameIdExtAs = nullptr,
     const bool onlyAvailable = true) {
@@ -2566,6 +2584,14 @@ void MessageMap::findAll(const string& circuit, const string& name, const string
   }
 }
 
+Message* MessageMap::getFirstAvailableFromIterator(const map<uint64_t, vector<Message*> >::const_iterator& it,
+    const MasterSymbolString* sameIdExtAs, bool onlyAvailable) const {
+  if (it != m_messagesByKey.end()) {
+    return getFirstAvailable(it->second, sameIdExtAs, onlyAvailable);
+  }
+  return nullptr;
+}
+
 Message* MessageMap::find(const MasterSymbolString& master, bool anyDestination,
   bool withRead, bool withWrite, bool withPassive, bool onlyAvailable) const {
   if (anyDestination && master.size() >= 5 && master[4] == 0 && master[2] == 0x07 && master[3] == 0x04) {
@@ -2576,6 +2602,7 @@ Message* MessageMap::find(const MasterSymbolString& master, bool anyDestination,
   if (baseKey == INVALID_KEY) {
     return nullptr;
   }
+  bool isWriteDest = isMaster(master[1]) || master[1] == BROADCAST;
   size_t maxIdLength = Message::getKeyLength(baseKey);
   for (size_t idLength = maxIdLength; true; idLength--) {
     uint64_t key = baseKey;
@@ -2591,44 +2618,39 @@ Message* MessageMap::find(const MasterSymbolString& master, bool anyDestination,
         }
       }
     }
-    map<uint64_t, vector<Message*> >::const_iterator it;
+    Message* message;
     if (withPassive) {
-      it = m_messagesByKey.find(key);
-      if (it != m_messagesByKey.end()) {
-        Message* message = getFirstAvailable(it->second, &master, onlyAvailable);
+      message = getFirstAvailableFromIterator(m_messagesByKey.find(key), &master, onlyAvailable);
+      if (message) {
+        return message;
+      }
+    }
+    if ((key & ID_SOURCE_MASK) != 0) {
+      key &= ~ID_SOURCE_MASK;
+      if (withPassive) {
+        // try again without specific source master
+        message = getFirstAvailableFromIterator(m_messagesByKey.find(key), &master, onlyAvailable);
         if (message) {
           return message;
         }
       }
-      if ((key & ID_SOURCE_MASK) != 0) {
-        key &= ~ID_SOURCE_MASK;
-        it = m_messagesByKey.find(key & ~ID_SOURCE_MASK);  // try again without specific source master
-        if (it != m_messagesByKey.end()) {
-          Message* message = getFirstAvailable(it->second, &master, onlyAvailable);
-          if (message) {
-            return message;
-          }
-        }
-      }
-    } else {
-      key &= ~ID_SOURCE_MASK;
     }
     if (withRead) {
-      it = m_messagesByKey.find(key | ID_SOURCE_ACTIVE_READ);  // try again with special value for active read
-      if (it != m_messagesByKey.end()) {
-        Message* message = getFirstAvailable(it->second, &master, onlyAvailable);
-        if (message) {
-          return message;
-        }
+      // try again with special value for active read
+      message = getFirstAvailableFromIterator(
+        m_messagesByKey.find(key | (isWriteDest ? ID_SOURCE_ACTIVE_READ_MASTER : ID_SOURCE_ACTIVE_READ)),
+        &master, onlyAvailable);
+      if (message) {
+        return message;
       }
     }
     if (withWrite) {
-      it = m_messagesByKey.find(key | ID_SOURCE_ACTIVE_WRITE);  // try again with special value for active write
-      if (it != m_messagesByKey.end()) {
-        Message* message = getFirstAvailable(it->second, &master, onlyAvailable);
-        if (message) {
-          return message;
-        }
+      // try again with special value for active write
+      message = getFirstAvailableFromIterator(
+        m_messagesByKey.find(key | (isWriteDest ? ID_SOURCE_ACTIVE_WRITE_MASTER : ID_SOURCE_ACTIVE_WRITE)),
+        &master, onlyAvailable);
+      if (message) {
+        return message;
       }
     }
     if (idLength == 0) {
@@ -2751,11 +2773,16 @@ Message* MessageMap::getNextPoll() {
   if (m_pollMessages.empty()) {
     return nullptr;
   }
+  lock();
   Message* ret = m_pollMessages.top();
   m_pollMessages.pop();
-  ret->m_pollCount++;
+  if (ret->m_pollOrder > g_lastPollOrder) {
+    g_lastPollOrder = ret->m_pollOrder;
+  }
+  ret->m_pollOrder += (unsigned int)ret->m_pollPriority;
   time(&(ret->m_lastPollTime));
   m_pollMessages.push(ret);  // re-insert at new position
+  unlock();
   return ret;
 }
 

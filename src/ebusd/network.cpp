@@ -65,7 +65,7 @@ bool NetMessage::add(const char* request) {
     }
     return true;
   }
-  return m_request.length() == 0 && m_listening;
+  return m_request.length() == 0 && isListeningMode();
 }
 
 
@@ -144,7 +144,7 @@ void Connection::run() {
 #endif
     }
 
-    if (newData || message.isListening()) {
+    if (newData || message.isListeningMode()) {
       char data[256];
 
       if (!m_socket->isValid()) {
@@ -208,7 +208,7 @@ Network::~Network() {
   stop();
   NetMessage* netMsg;
   while ((netMsg = m_netQueue->pop()) != nullptr) {
-    netMsg->setResult("ERR: shutdown", "", false, 0, true);
+    netMsg->setResult("ERR: shutdown", "", cm_normal, 0, true);
   }
   while (!m_connections.empty()) {
     Connection* connection = m_connections.back();
