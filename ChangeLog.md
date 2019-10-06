@@ -1,4 +1,4 @@
-# next version
+# 3.4 (2019-10-?)
 
 ## Bug Fixes
 * fix for always enabled "--mqttchanges" option
@@ -9,12 +9,14 @@
 * fix for detecting subsequent fields with less than 8 bits not fitting into 1 byte
 * fix for compilation and running on FreeBSD and MacOS with low latency setting for FTDI device (thanks to samm-git)
 * fix for switching to daemon mode when log file was not opened
+* fix for checking required arguments of "write" command with "-h"
 
 ## Features
 * added option to set poll priority with MQTT get topic
 * added "direct" command for listening to all valid messages from the bus
 * added MQTT /list topic for retrieval of all known messages
 * added support for init scripts on non-LSB distributions (thanks to andr2000)
+* added support for logging to syslog instead of file (thanks to samm-git)
 
 
 # 3.3 (2018-12-26)
