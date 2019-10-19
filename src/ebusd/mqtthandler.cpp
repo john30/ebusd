@@ -778,7 +778,7 @@ bool MqttHandler::handleTraffic(bool allowReconnect) {
 #else
   ret = mosquitto_loop(m_mosquitto, -1);  // waits up to 1 second for network traffic
 #endif
-  if (!m_connected && ret == MOSQ_ERR_NO_CONN && allowReconnect) {
+  if (!m_connected && (ret == MOSQ_ERR_NO_CONN || ret == MOSQ_ERR_CONN_LOST) && allowReconnect) {
     if (m_initialConnectFailed) {
 #if (LIBMOSQUITTO_MAJOR >= 1)
       ret = mosquitto_connect(m_mosquitto, g_host, g_port, 60);
