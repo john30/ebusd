@@ -112,7 +112,7 @@ bool parseTopic(const string& topic, vector<string>* strs, vector<string>* field
 static char* replaceSecret(char *arg) {
   char* ret = strdup(arg);
   int cnt = 0;
-  while (*arg && cnt++<256) {
+  while (*arg && cnt++ < 256) {
     *arg++ = ' ';
   }
   return ret;

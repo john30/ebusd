@@ -702,7 +702,7 @@ void signalHandler(int sig) {
   switch (sig) {
   case SIGHUP:
     logNotice(lf_main, "SIGHUP received");
-    if (!opt.foreground && opt.logFile && opt.logFile[0] != 0) { // for log file rotation
+    if (!opt.foreground && opt.logFile && opt.logFile[0] != 0) {  // for log file rotation
       closeLogFile();
       setLogFile(opt.logFile);
     }
