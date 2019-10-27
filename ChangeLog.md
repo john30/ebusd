@@ -10,6 +10,7 @@
 * fix for compilation and running on FreeBSD and MacOS with low latency setting for FTDI device (thanks to samm-git)
 * fix for switching to daemon mode when log file was not opened
 * fix for checking required arguments of "write" command with "-h"
+* fix for potential MQTT reconnect issue after lost connection
 
 ## Features
 * added option to set poll priority with MQTT get topic
@@ -17,6 +18,7 @@
 * added MQTT /list topic for retrieval of all known messages
 * added support for init scripts on non-LSB distributions (thanks to andr2000)
 * added support for logging to syslog instead of file (thanks to samm-git)
+* added adjustable verbosity and option to include unknown messages to "listen" command
 
 
 # 3.3 (2018-12-26)
