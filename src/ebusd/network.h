@@ -49,8 +49,10 @@ enum ClientMode {
  * Combination of client settings.
  */
 struct ClientSettings {
-  ClientMode mode;      //!< the current client mode
-  OutputFormat format;  //!< the output format settings for listen mode
+  ClientMode mode;         //!< the current client mode
+  OutputFormat format;     //!< the output format settings for listen mode
+  bool listenWithUnknown;  //!< include unknown messages in listen mode
+  bool listenOnlyUnknown;  //!< only print unknown messages in listen mode
 };
 
 /**
@@ -66,6 +68,8 @@ class NetMessage {
     : m_isHttp(isHttp), m_resultSet(false), m_disconnect(false), m_listenSince(0) {
     m_settings.mode = cm_normal;
     m_settings.format = 0;
+    m_settings.listenWithUnknown = false;
+    m_settings.listenOnlyUnknown = false;
     pthread_mutex_init(&m_mutex, nullptr);
     pthread_cond_init(&m_cond, nullptr);
   }

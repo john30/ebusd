@@ -403,13 +403,22 @@ void MainLoop::run() {
       }
     }
     if (settings.mode == cm_listen) {
-      string levels = getUserLevels(user);
-      messages.clear();
-      m_messages->findAll("", "", levels, false, true, true, true, true, true, since, now, true, &messages);
-      for (const auto message : messages) {
-        ostream << message->getCircuit() << " " << message->getName() << " = " << dec;
-        message->decodeLastData(false, nullptr, -1, settings.format, &ostream);
-        ostream << endl;
+      if (!settings.listenOnlyUnknown) {
+        string levels = getUserLevels(user);
+        messages.clear();
+        m_messages->findAll("", "", levels, false, true, true, true, true, true, since, now, true, &messages);
+        for (const auto message : messages) {
+          ostream << message->getCircuit() << " " << message->getName() << " = " << dec;
+          message->decodeLastData(false, nullptr, -1, settings.format, &ostream);
+          ostream << endl;
+        }
+      }
+      if (settings.listenWithUnknown || settings.listenOnlyUnknown) {
+        if (m_busHandler->isGrabEnabled()) {
+          m_busHandler->formatGrabResult(true, false, &ostream, true, since, now);
+        } else {
+          m_busHandler->enableGrab(true);  // needed for listening to all messages
+        }
       }
     } else if (settings.mode == cm_direct) {
       if (m_busHandler->isGrabEnabled()) {
@@ -1480,6 +1489,8 @@ result_t MainLoop::executeFind(const vector<string>& args, const string& levels,
 result_t MainLoop::executeListen(const vector<string>& args, ClientSettings* settings, ostringstream* ostream) {
   size_t argPos = 1;
   OutputFormat verbosity = 0;
+  bool listenWithUnknown = false;
+  bool listenOnlyUnknown = false;
   while (args.size() > argPos && args[argPos][0] == '-') {
     if (args[argPos] == "-v") {
       switch (verbosity) {
@@ -1501,6 +1512,11 @@ result_t MainLoop::executeListen(const vector<string>& args, ClientSettings* set
       verbosity = (verbosity & ~OF_VALUENAME) | OF_NUMERIC;
     } else if (args[argPos] == "-N") {
       verbosity = (verbosity & ~OF_NUMERIC) | OF_VALUENAME;
+    } else if (args[argPos] == "-u") {
+      listenWithUnknown = true;
+      listenOnlyUnknown = false;
+    } else if (args[argPos] == "-U") {
+      listenOnlyUnknown = true;
     } else {
       argPos = 0;  // print usage
       break;
@@ -1509,6 +1525,11 @@ result_t MainLoop::executeListen(const vector<string>& args, ClientSettings* set
   }
   if (argPos > 0 && args.size() == argPos) {
     settings->format = verbosity;
+    settings->listenWithUnknown = listenWithUnknown;
+    settings->listenOnlyUnknown = listenOnlyUnknown;
+    if (listenWithUnknown || listenOnlyUnknown) {
+      m_busHandler->enableGrab(true);  // needed for listening to all messages
+    }
     if (settings->mode == cm_listen) {
       *ostream << "listen continued";
       return RESULT_OK;
@@ -1519,12 +1540,14 @@ result_t MainLoop::executeListen(const vector<string>& args, ClientSettings* set
   }
 
   if (argPos == 0 || args.size() != argPos + 1 || args[argPos] != "stop") {
-    *ostream << "usage: listen [-v|-V] [-n|-N] [stop]\n"
+    *ostream << "usage: listen [-v|-V] [-n|-N] [-u|-U] [stop]\n"
                 " Listen for updates or stop it.\n"
                 "  -v  increase verbosity (include names/units/comments)\n"
                 "  -V  be very verbose (include names, units, and comments)\n"
                 "  -n  use numeric value of value=name pairs\n"
-                "  -N  use numeric and named value of value=name pairs";
+                "  -N  use numeric and named value of value=name pairs\n"
+                "  -u  include unknown messages\n"
+                "  -U  only show unknown messages";
     return RESULT_OK;
   }
   settings->mode = cm_normal;
@@ -1894,7 +1917,7 @@ result_t MainLoop::executeHelp(ostringstream* ostream) {
       " hex       Send hex data:         hex [-s QQ] ZZPBSBNN[DD]* (if enabled)\n"
       " find|f    Find message(s):       find [-v|-V] [-r] [-w] [-p] [-a] [-d] [-h] [-i ID] [-f] [-F COL[,COL]*] [-e]"
       " [-c CIRCUIT] [-l LEVEL] [NAME]\n"
-      " listen|l  Listen for updates:    listen [-v|-V] [-n|-N] [stop]\n"
+      " listen|l  Listen for updates:    listen [-v|-V] [-n|-N] [-u|-U] [stop]\n"
       " direct    Enter direct mode\n"
       " state|s   Report bus state\n"
       " info|i    Report information about the daemon, the configuration, and seen devices.\n"
