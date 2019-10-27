@@ -1,4 +1,4 @@
-# 3.4 (2019-10-?)
+# 3.4 (2019-10-27)
 
 ## Bug Fixes
 * fix for always enabled "--mqttchanges" option
