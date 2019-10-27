@@ -109,11 +109,13 @@ static const char* g_keypass = nullptr;   //!< client key file password for TLS
 
 bool parseTopic(const string& topic, vector<string>* strs, vector<string>* fields);
 
-static void replaceSecret(char *arg) {
+static char* replaceSecret(char *arg) {
+  char* ret = strdup(arg);
   int cnt = 0;
-  while (*arg) {
-    *arg++ = (cnt++<4 ? '*' : 0);
+  while (*arg && cnt++<256) {
+    *arg++ = ' ';
   }
+  return ret;
 }
 
 /**
@@ -163,8 +165,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
       argp_error(state, "invalid mqttpass");
       return EINVAL;
     }
-    g_password = strdup(arg);
-    replaceSecret(arg);
+    g_password = replaceSecret(arg);
     break;
 
   case O_TOPI:  // --mqtttopic=ebusd
@@ -245,8 +246,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
         argp_error(state, "invalid mqttkeypass");
         return EINVAL;
       }
-      g_keypass = strdup(arg);
-      replaceSecret(arg);
+      g_keypass = replaceSecret(arg);
       break;
 #endif
 
