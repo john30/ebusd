@@ -752,12 +752,12 @@ void MqttHandler::run() {
         for (auto it = m_updatedMessages.begin(); it != m_updatedMessages.end(); ) {
           const vector<Message*>* messages = m_messages->getByKey(it->first);
           if (messages) {
-            updates.str("");
-            updates.clear();
-            updates << dec;
             for (auto message : *messages) {
               if (message->getLastChangeTime() > 0 && message->isAvailable()
               && (!g_onlyChanges || message->getLastChangeTime() > lastUpdates)) {
+                updates.str("");
+                updates.clear();
+                updates << dec;
                 publishMessage(message, &updates);
               }
             }
