@@ -144,13 +144,13 @@ class MainLoop : public Thread, DeviceListener {
    * @param data the data string to decode (may be empty).
    * @param connected set to false when the client connection shall be closed.
    * @param isHttp true for HTTP message.
-   * @param mode set to the new client mode.
+   * @param settings set to the new client settings.
    * @param user set to the new user name when changed by authentication.
    * @param reload set to true when the configuration files were reloaded.
    * @param ostream the @a ostringstream to format the result string to.
    * @return the result code.
    */
-  result_t decodeMessage(const string& data, bool isHttp, bool* connected, ClientMode* mode,
+  result_t decodeMessage(const string& data, bool isHttp, bool* connected, ClientSettings* settings,
       string* user, bool* reload, ostringstream* ostream);
 
   /**
@@ -238,11 +238,11 @@ class MainLoop : public Thread, DeviceListener {
   /**
    * Execute the listen command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
-   * @param mode set to the new client mode.
+   * @param settings set to the new client settings.
    * @param ostream the @a ostringstream to format the result string to.
    * @return the result code.
    */
-  result_t executeListen(const vector<string>& args, ClientMode* mode, ostringstream* ostream);
+  result_t executeListen(const vector<string>& args, ClientSettings* settings, ostringstream* ostream);
 
   /**
    * Execute the state command.

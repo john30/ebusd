@@ -2,7 +2,7 @@
 # Contributor: Milan Knizek <knizek volny cz>
 # Usage: makepkg
 pkgname=ebusd
-pkgver=3.3
+pkgver=3.4
 pkgrel=1
 pkgdesc="ebusd, the daemon for communication with eBUS heating systems."
 arch=('i686' 'x86_64' 'armv6h' 'armv7h' 'aarch64')
@@ -37,4 +37,4 @@ package() {
   install -m 0644 contrib/archlinux/conf.d/ebusd          "${pkgdir}/etc/conf.d/ebusd"
 }
 # update md5sums: updpkgsums
-md5sums=('f65252d59ccce4c244d3c4c5597a6b8e')
+md5sums=('0ce4e4646445612373d5114bb2f99fa8')
