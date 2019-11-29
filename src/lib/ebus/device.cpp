@@ -51,14 +51,19 @@ namespace ebusd {
 #endif
 
 // ebusd enhanced protocol IDs:
-//TODO use this:
-#define ENH_INIT ((symbol_t)0x00)
-#define ENH_RESETTED ((symbol_t)0x00)
-#define ENH_SEND ((symbol_t)0x01)
-#define ENH_RECEIVED ((symbol_t)0x01)
-#define ENH_START ((symbol_t)0x02)
-#define ENH_STARTED ((symbol_t)0x02)
-#define ENH_FAILED ((symbol_t)0x82)
+#define ENH_REQ_INIT ((uint8_t)0x0)
+#define ENH_RES_RESETTED ((uint8_t)0x0)
+#define ENH_REQ_SEND ((uint8_t)0x1)
+#define ENH_RES_RECEIVED ((uint8_t)0x1)
+#define ENH_REQ_START ((uint8_t)0x2)
+#define ENH_RES_STARTED ((uint8_t)0x2)
+#define ENH_RES_FAILED ((uint8_t)0xa)
+
+#define ENH_BYTE_FLAG ((uint8_t)0x80)
+#define ENH_BYTE_MASK ((uint8_t)0xc0)
+#define ENH_BYTE1 ((uint8_t)0xc0)
+#define ENH_BYTE2 ((uint8_t)0x80)
+#define makeEnhancedSequence(cmd, data) {(uint8_t)(ENH_BYTE1 | ((cmd)<<2) | (((data)&0xc0)>>6)), (uint8_t)(ENH_BYTE2 | ((data)&0x3f))}
 
 /**
  * Construct a new instance.
@@ -289,7 +294,7 @@ result_t Device::startArbitration(symbol_t masterAddress) {
 
 bool Device::write(symbol_t value, bool startArbitration) {
   if (m_enhancedProto) {
-    symbol_t buf[2] = {startArbitration ? ENH_START : ENH_SEND, value};
+    symbol_t buf[2] = makeEnhancedSequence(startArbitration ? ENH_REQ_START : ENH_REQ_SEND, value);
     return ::write(m_fd, buf, 2) == 2;
   }
   return ::write(m_fd, &value, 1) == 1;
@@ -305,9 +310,13 @@ bool Device::available() {
   // peek into the received enhanced proto bytes to determine symbol availability
   for (size_t pos = 0; pos < m_bufLen; pos++) {
     symbol_t ch = m_buffer[(pos+m_bufPos)%m_bufSize];
-    if (ch == ENH_RECEIVED) {
+    if (!(ch&ENH_BYTE_FLAG)) {
+      return true;
+    }
+    if ((ch&ENH_BYTE_MASK) == ENH_BYTE1) {
       return pos+1 < m_bufLen;
     }
+    // TODO check protocol error
   }
   return false;
 }
@@ -316,6 +325,7 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
   if (!isAvailable) {
     if (m_bufLen > 0 && m_bufPos != 0) {
       if (m_bufLen > m_bufSize / 2) {
+        // more than half of input buffer consumed is taken as signal that ebusd is too slow
         m_bufLen = 0; // TODO report error
       } else {
         size_t tail;
@@ -350,36 +360,56 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
   }
   while (m_bufLen > 0) {
     symbol_t ch = m_buffer[m_bufPos];
+    if (!(ch&ENH_BYTE_FLAG)) {
+      *value = ch;
+      m_bufPos = (m_bufPos+1)%m_bufSize;
+      m_bufLen--;
+      return true;
+    }
+    uint8_t kind = ch&ENH_BYTE_MASK;
+    if (kind == ENH_BYTE1 && m_bufLen<2) {
+      return false; // transfer not complete yet
+    }
     m_bufPos = (m_bufPos+1)%m_bufSize;
     m_bufLen--;
+    if (kind == ENH_BYTE2) {
+      return false; // TODO protocol error
+    }
+    // kind is ENH_BYTE1
+    symbol_t ch2 = m_buffer[m_bufPos];
+    if ((ch2 & ENH_BYTE_MASK) != ENH_BYTE2) {
+      return false; // TODO protocol error
+    }
+    m_bufPos = (m_bufPos + 1) % m_bufSize;
+    m_bufLen--;
+    ch2 = (symbol_t)(((ch&0x03)<<6) | (ch&0x3f));
+    ch = (ch>>2)&0xf;
     switch (ch) {
-      case ENH_STARTED:
+      case ENH_RES_STARTED:
         *arbitrationState = as_won;
         if (m_listener != NULL) {
-          m_listener->notifyDeviceData(m_arbitrationMaster, false);
+          m_listener->notifyDeviceData(ch2, false);
         }
         m_arbitrationMaster = SYN;
         break;
-      case ENH_FAILED:
+      case ENH_RES_FAILED:
         *arbitrationState = as_error;
         if (m_listener != NULL) {
-          m_listener->notifyDeviceData(m_arbitrationMaster, false);
+          m_listener->notifyDeviceData(ch2, false);
         }
         m_arbitrationMaster = SYN;
         break;
-      case ENH_RECEIVED:
-        if (m_bufLen <= 0) {
-          return false;
-        }
-        *value = m_buffer[m_bufPos];
-        m_bufPos = (m_bufPos+1)%m_bufSize;
-        m_bufLen--;
+      case ENH_RES_RECEIVED:
+        *value = ch2;
         return true;
-      case ENH_RESETTED: // TODO
-        *arbitrationState = as_error;
+      case ENH_RES_RESETTED: // TODO
+        if (*arbitrationState != as_none) {
+          *arbitrationState = as_error;
+        }
+        // TODO define additional feature flags
         break;
       default:
-        // TODO proto error
+        // TODO protocol error
         return false;
     }
   }
@@ -434,7 +464,7 @@ result_t SerialDevice::open() {
   // create new settings
   memset(&newSettings, 0, sizeof(newSettings));
 
-  cfsetspeed(&newSettings, m_enhancedProto ? B115200 : B2400);
+  cfsetspeed(&newSettings, m_enhancedProto ? B9600 : B2400);
   newSettings.c_cflag |= (CS8 | CLOCAL | CREAD);
   newSettings.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);  // non-canonical mode
   newSettings.c_iflag |= IGNPAR;  // ignore parity errors
@@ -456,7 +486,12 @@ result_t SerialDevice::open() {
   // set serial device into blocking mode
   fcntl(m_fd, F_SETFL, fcntl(m_fd, F_GETFL) & ~O_NONBLOCK);
 
-  if (m_initialSend && !write(ESC)) {
+  if (m_enhancedProto) {
+    symbol_t buf[2] = makeEnhancedSequence(ENH_REQ_INIT, 0); // TODO define additional feature flags
+    if (::write(m_fd, buf, 2) != 2) {
+      return RESULT_ERR_SEND;
+    }
+  } else if (m_initialSend && !write(ESC)) {
     return RESULT_ERR_SEND;
   }
   return RESULT_OK;
