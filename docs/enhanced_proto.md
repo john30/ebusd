@@ -42,9 +42,9 @@ first    second
     Indicates that the specified data byte in `d` was received from the eBUS.  
     For data byte values <0x80, the short form without the `<RECEIVED>` prefix is allowed as well.
   * arbitration start succeeded
-    `<STARTED> <info>`  
+    `<STARTED> <master>`  
     Indicates the the last arbitration request succeeded (arbitration was won).  
-    The data byte in `d` may contain additional information (tbd).
+    The data byte in `d` contains the master address that was successfully used during arbitration.
   * arbitration start failed  
     `<FAILED> <master>`  
     Indicates that the last arbitration request failed (arbitration was lost or sending failed).  
