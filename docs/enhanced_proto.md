@@ -68,3 +68,62 @@ These are the predefined symbols as used above.
  * RECEIVED 0x1
  * STARTED 0x2
  * FAILED 0xa
+
+
+## Examples
+
+### Passive receive
+The data sequence (without SYN, ACK, and CRC) `1508951200 / 0164` when ebusd is only listening to traffic on the bus would usually be transferred as follows (with all extra symbols seen on the bus):
+
+|order|eBUS proto|eBUS byte|sender|enhanced proto|enhanced byte|
+|----:|-----|-----|-----|-----|-----|
+|1|`SYN`|0xAA|interface|`<RECEIVED> <0xAA>`|0xC6 0xAA|
+|2|`QQ`|0x15|interface|`<0x15>`|0x15|
+|3|`ZZ`|0x08|interface|`<0x08>`|0x08|
+|4|`PB`|0x95|interface|`<RECEIVED> <0x95>`|0xC6 0x95|
+|5|`SB`|0x12|interface|`<0x12>`|0x12|
+|6|`NN`|0x00|interface|`<0x00>`|0x00|
+|7|`CRC`|0xAF|interface|`<RECEIVED> <0xAF>`|0xC6 0xAF|
+|8|`ACK`|0x00|interface|`<0x00>`|0x00|
+|9|`NN`|0x01|interface|`<0x01>`|0x01|
+|10|`DD`|0x64|interface|`<0x64>`|0x64|
+|11|`CRC`|0xFF|interface|`<RECEIVED> <0xFF>`|0xC7 0xBF|
+|12|`ACK`|0x00|interface|`<0x00>`|0x00|
+|13|`SYN`|0xAA|interface|`<RECEIVED> <0xAA>`|0xC6 0xAA|
+
+### Active successful send
+The same data sequence (without SYN, ACK, and CRC) `1508951200 / 0164` when initiated by ebusd as master (with address 0x15) would usually be transferred as follows (with all extra symbols seen on the bus):
+
+|order|eBUS proto|eBUS byte|sender|enhanced proto|enhanced byte|
+|----:|-----|-----|-----|-----|-----|
+|1| |0x15|ebusd|`<START> <0x15>`|0xC8 0x95|
+|2|`SYN`|0xAA|interface|`<RECEIVED> <0xAA>`|0xC6 0xAA|
+|3|`QQ`|0x15|interface|`<0x15>`|0x15|
+|4| |0x15|ebusd|`<STARTED> <0x15>`|0xC8 0x95|
+|5|`ZZ`|0x08|ebusd|`<0x08>`|0x08|
+|6|`ZZ`|0x08|interface|`<0x08>`|0x08|
+|7|`PB`|0x95|ebusd|`<RECEIVED> <0x95>`|0xC6 0x95|
+|8|`PB`|0x95|interface|`<RECEIVED> <0x95>`|0xC6 0x95|
+|9|`SB`|0x12|ebusd|`<0x12>`|0x12|
+|10|`SB`|0x12|interface|`<0x12>`|0x12|
+|11|`NN`|0x00|ebusd|`<0x00>`|0x00|
+|12|`NN`|0x00|interface|`<0x00>`|0x00|
+|13|`CRC`|0xAF|ebusd|`<RECEIVED> <0xAF>`|0xC6 0xAF|
+|14|`CRC`|0xAF|interface|`<RECEIVED> <0xAF>`|0xC6 0xAF|
+|15|`ACK`|0x00|interface|`<0x00>`|0x00|
+|16|`NN`|0x01|interface|`<0x01>`|0x01|
+|17|`DD`|0x64|interface|`<0x64>`|0x64|
+|18|`CRC`|0xFF|interface|`<RECEIVED> <0xFF>`|0xC7 0xBF|
+|19|`ACK`|0x00|ebusd|`<0x00>`|0x00|
+|20|`ACK`|0x00|interface|`<0x00>`|0x00|
+|21|`SYN`|0xAA|interface|`<RECEIVED> <0xAA>`|0xC6 0xAA|
+
+### Active failed traffic
+A failed arbitration when initiated by ebusd as master (with address 0x15) would usually be transferred as follows (with all extra symbols seen on the bus):
+
+|order|eBUS proto|eBUS byte|sender|enhanced proto|enhanced byte|
+|----:|-----|-----|-----|-----|-----|
+|1| |0x15|ebusd|`<START> <0x15>`|0xC8 0x95|
+|2|`SYN`|0xAA|interface|`<RECEIVED> <0xAA>`|0xC6 0xAA|
+|3|`QQ`|0x03|interface|`<0x03>`|0x03|
+|4| |0x15|ebusd|`<FAILED> <0x15>`|0xE8 0x95|
