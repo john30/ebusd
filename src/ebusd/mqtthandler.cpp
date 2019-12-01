@@ -747,8 +747,8 @@ void MqttHandler::run() {
       }
     }
     if (!m_updatedMessages.empty()) {
+      m_messages->lock();
       if (m_connected) {
-        m_messages->lock();
         for (auto it = m_updatedMessages.begin(); it != m_updatedMessages.end(); ) {
           const vector<Message*>* messages = m_messages->getByKey(it->first);
           if (messages) {
@@ -764,11 +764,11 @@ void MqttHandler::run() {
           }
           it = m_updatedMessages.erase(it);
         }
-        m_messages->unlock();
         time(&lastUpdates);
       } else {
         m_updatedMessages.clear();
       }
+      m_messages->unlock();
     }
     if ((!m_connected && !Wait(5)) || (needsWait && !Wait(1))) {
       break;

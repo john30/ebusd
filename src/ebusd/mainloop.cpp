@@ -359,12 +359,14 @@ void MainLoop::run() {
     time(&now);
     if (!dataSinks.empty()) {
       messages.clear();
+      m_messages->lock();
       m_messages->findAll("", "", "*", false, true, true, true, true, true, sinkSince, now, false, &messages);
       for (const auto message : messages) {
         for (const auto dataSink : dataSinks) {
           dataSink->notifyUpdate(message);
         }
       }
+      m_messages->unlock();
       sinkSince = now;
     }
     if (netMessage == nullptr) {
