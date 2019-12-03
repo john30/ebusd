@@ -382,7 +382,7 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
     }
     m_bufPos = (m_bufPos + 1) % m_bufSize;
     m_bufLen--;
-    ch2 = (symbol_t)(((ch&0x03)<<6) | (ch&0x3f));
+    ch2 = (symbol_t)(((ch&0x03)<<6) | (ch2&0x3f));
     ch = (ch>>2)&0xf;
     switch (ch) {
       case ENH_RES_STARTED:
