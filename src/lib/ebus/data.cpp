@@ -774,13 +774,15 @@ result_t ValueListDataField::readSymbols(const SymbolString& input, size_t offse
 
 result_t ValueListDataField::writeSymbols(size_t offset, istringstream* input,
     SymbolString* output, size_t* usedLength) const {
+  string str_input = input->str();
+
   const NumberDataType* numType = reinterpret_cast<const NumberDataType*>(m_dataType);
-  if (isIgnored() || input->str() == nullptr_VALUE) {
+  if (isIgnored() || str_input == nullptr_VALUE) {
     // replacement value
     return numType->writeRawValue(numType->getReplacement(), offset, m_length, output, usedLength);
   }
 
-  const char* str = input->str().c_str();
+  const char* str = str_input.c_str();
   for (map<unsigned int, string>::const_iterator it = m_values.begin(); it != m_values.end(); ++it) {
     if (it->second.compare(str) == 0) {
       return numType->writeRawValue(it->first, offset, m_length, output, usedLength);
