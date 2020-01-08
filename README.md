@@ -79,6 +79,7 @@ You can use it like this:
 
 For more details, see [Docker Readme](https://github.com/john30/ebusd/blob/master/contrib/docker/README.md).
 
+Docker image will be automatically build using Jenkins.
 
 Contact
 -------
