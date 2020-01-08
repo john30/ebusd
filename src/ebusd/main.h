@@ -120,8 +120,9 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose
  * Helper method for executing all loaded and resolvable instructions.
  * @param messages the @a MessageMap instance.
  * @param verbose whether to verbosely log all problems.
+ * @return the result code.
  */
-void executeInstructions(MessageMap* messages, bool verbose = false);
+result_t executeInstructions(MessageMap* messages, bool verbose = false);
 
 /**
  * Helper method for loading definitions from a relative file from the config path/URL.

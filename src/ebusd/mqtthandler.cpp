@@ -109,6 +109,15 @@ static const char* g_keypass = nullptr;   //!< client key file password for TLS
 
 bool parseTopic(const string& topic, vector<string>* strs, vector<string>* fields);
 
+static char* replaceSecret(char *arg) {
+  char* ret = strdup(arg);
+  int cnt = 0;
+  while (*arg && cnt++ < 256) {
+    *arg++ = ' ';
+  }
+  return ret;
+}
+
 /**
  * The MQTT argument parsing function.
  * @param key the key from @a g_mqtt_argp_options.
@@ -156,7 +165,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
       argp_error(state, "invalid mqttpass");
       return EINVAL;
     }
-    g_password = arg;
+    g_password = replaceSecret(arg);
     break;
 
   case O_TOPI:  // --mqtttopic=ebusd
@@ -237,7 +246,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
         argp_error(state, "invalid mqttkeypass");
         return EINVAL;
       }
-      g_keypass = arg;
+      g_keypass = replaceSecret(arg);
       break;
 #endif
 
@@ -738,28 +747,28 @@ void MqttHandler::run() {
       }
     }
     if (!m_updatedMessages.empty()) {
+      m_messages->lock();
       if (m_connected) {
-        m_messages->lock();
         for (auto it = m_updatedMessages.begin(); it != m_updatedMessages.end(); ) {
           const vector<Message*>* messages = m_messages->getByKey(it->first);
           if (messages) {
-            updates.str("");
-            updates.clear();
-            updates << dec;
             for (auto message : *messages) {
               if (message->getLastChangeTime() > 0 && message->isAvailable()
               && (!g_onlyChanges || message->getLastChangeTime() > lastUpdates)) {
+                updates.str("");
+                updates.clear();
+                updates << dec;
                 publishMessage(message, &updates);
               }
             }
           }
           it = m_updatedMessages.erase(it);
         }
-        m_messages->unlock();
         time(&lastUpdates);
       } else {
         m_updatedMessages.clear();
       }
+      m_messages->unlock();
     }
     if ((!m_connected && !Wait(5)) || (needsWait && !Wait(1))) {
       break;
@@ -778,7 +787,7 @@ bool MqttHandler::handleTraffic(bool allowReconnect) {
 #else
   ret = mosquitto_loop(m_mosquitto, -1);  // waits up to 1 second for network traffic
 #endif
-  if (!m_connected && ret == MOSQ_ERR_NO_CONN && allowReconnect) {
+  if (!m_connected && (ret == MOSQ_ERR_NO_CONN || ret == MOSQ_ERR_CONN_LOST) && allowReconnect) {
     if (m_initialConnectFailed) {
 #if (LIBMOSQUITTO_MAJOR >= 1)
       ret = mosquitto_connect(m_mosquitto, g_host, g_port, 60);

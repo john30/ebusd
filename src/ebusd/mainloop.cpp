@@ -359,24 +359,26 @@ void MainLoop::run() {
     time(&now);
     if (!dataSinks.empty()) {
       messages.clear();
+      m_messages->lock();
       m_messages->findAll("", "", "*", false, true, true, true, true, true, sinkSince, now, false, &messages);
       for (const auto message : messages) {
         for (const auto dataSink : dataSinks) {
           dataSink->notifyUpdate(message);
         }
       }
+      m_messages->unlock();
       sinkSince = now;
     }
     if (netMessage == nullptr) {
       continue;
     }
     if (m_shutdown) {
-      netMessage->setResult("ERR: shutdown", "", cm_normal, now, true);
+      netMessage->setResult("ERR: shutdown", "", nullptr, now, true);
       break;
     }
     string request = netMessage->getRequest();
     string user = netMessage->getUser();
-    ClientMode mode = netMessage->getMode(&since);
+    ClientSettings settings = netMessage->getSettings(&since);
     if (!netMessage->isListeningMode()) {
       since = now;
     }
@@ -384,9 +386,9 @@ void MainLoop::run() {
     bool connected = true;
     if (request.length() > 0) {
       logDebug(lf_main, ">>> %s", request.c_str());
-      result_t result = decodeMessage(request, netMessage->isHttp(), &connected, &mode, &user, &reload, &ostream);
+      result_t result = decodeMessage(request, netMessage->isHttp(), &connected, &settings, &user, &reload, &ostream);
       if (!netMessage->isHttp() && (ostream.tellp() == 0 || result != RESULT_OK)) {
-        if (mode != cm_direct) {
+        if (settings.mode != cm_direct) {
           ostream.str("");
         }
         ostream << getResultCode(result);
@@ -399,25 +401,34 @@ void MainLoop::run() {
       if (ostream.tellp() == 0) {
         ostream << "\n";  // only for HTTP
       } else if (!netMessage->isHttp()) {
-        ostream << (mode == cm_direct ? "\n" : "\n\n");
+        ostream << (settings.mode == cm_direct ? "\n" : "\n\n");
       }
     }
-    if (mode == cm_listen) {
-      string levels = getUserLevels(user);
-      messages.clear();
-      m_messages->findAll("", "", levels, false, true, true, true, true, true, since, now, true, &messages);
-      for (const auto message : messages) {
-        ostream << message->getCircuit() << " " << message->getName() << " = " << dec;
-        message->decodeLastData(false, nullptr, -1, 0, &ostream);
-        ostream << endl;
+    if (settings.mode == cm_listen) {
+      if (!settings.listenOnlyUnknown) {
+        string levels = getUserLevels(user);
+        messages.clear();
+        m_messages->findAll("", "", levels, false, true, true, true, true, true, since, now, true, &messages);
+        for (const auto message : messages) {
+          ostream << message->getCircuit() << " " << message->getName() << " = " << dec;
+          message->decodeLastData(false, nullptr, -1, settings.format, &ostream);
+          ostream << endl;
+        }
       }
-    } else if (mode == cm_direct) {
+      if (settings.listenWithUnknown || settings.listenOnlyUnknown) {
+        if (m_busHandler->isGrabEnabled()) {
+          m_busHandler->formatGrabResult(true, false, &ostream, true, since, now);
+        } else {
+          m_busHandler->enableGrab(true);  // needed for listening to all messages
+        }
+      }
+    } else if (settings.mode == cm_direct) {
       if (m_busHandler->isGrabEnabled()) {
         m_busHandler->formatGrabResult(false, false, &ostream, true, since, now);
       }
     }
     // send result to client
-    netMessage->setResult(ostream.str(), user, mode, now, !connected);
+    netMessage->setResult(ostream.str(), user, &settings, now, !connected);
   }
 }
 
@@ -462,7 +473,7 @@ void MainLoop::notifyDeviceData(symbol_t symbol, bool received) {
   }
 }
 
-result_t MainLoop::decodeMessage(const string &data, bool isHttp, bool* connected, ClientMode* mode,
+result_t MainLoop::decodeMessage(const string &data, bool isHttp, bool* connected, ClientSettings* settings,
     string* user, bool* reload, ostringstream* ostream) {
   string token, previous;
   istringstream stream(data);
@@ -520,8 +531,8 @@ result_t MainLoop::decodeMessage(const string &data, bool isHttp, bool* connecte
     transform(cmd.begin(), cmd.end(), cmd.begin(), ::toupper);
     args.clear();  // empty args is used as command help indicator
   }
-  if (*mode == cm_direct) {
-    return executeDirect(args, mode, ostream);
+  if (settings->mode == cm_direct) {
+    return executeDirect(args, &settings->mode, ostream);
   }
   if (cmd.empty() && args.size() == 0) {
     return executeHelp(ostream);
@@ -553,10 +564,10 @@ result_t MainLoop::decodeMessage(const string &data, bool isHttp, bool* connecte
     return executeFind(args, getUserLevels(*user), ostream);
   }
   if (cmd == "L" || cmd == "LISTEN") {
-    return executeListen(args, mode, ostream);
+    return executeListen(args, settings, ostream);
   }
   if (cmd == "DIRECT") {
-    return executeDirect(args, mode, ostream);
+    return executeDirect(args, &settings->mode, ostream);
   }
   if (cmd == "S" || cmd == "STATE") {
     return executeState(args, ostream);
@@ -652,7 +663,7 @@ result_t MainLoop::executeAuth(const vector<string>& args, string* user, ostring
 
 result_t MainLoop::executeRead(const vector<string>& args, const string& levels, ostringstream* ostream) {
   size_t argPos = 1;
-  bool hex = false, newDefinition = false, numeric = false, valueName = false;
+  bool hex = false, newDefinition = false;
   OutputFormat verbosity = 0;
   time_t maxAge = 5*60;
   string circuit, params;
@@ -699,10 +710,9 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
     } else if (args[argPos] == "-vvv" || args[argPos] == "-V") {
       verbosity |= OF_NAMES|OF_UNITS|OF_COMMENTS;
     } else if (args[argPos] == "-n") {
-      numeric = true;
+      verbosity = (verbosity & ~OF_VALUENAME) | OF_NUMERIC;
     } else if (args[argPos] == "-N") {
-      numeric = true;
-      valueName = true;
+      verbosity = (verbosity & ~OF_NUMERIC) | OF_VALUENAME;
     } else if (args[argPos] == "-c") {
       argPos++;
       if (argPos >= args.size()) {
@@ -751,7 +761,7 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
     }
     argPos++;
   }
-  if ((hex && (newDefinition || numeric || verbosity != 0 || !circuit.empty() || !params.empty() || dstAddress != SYN
+  if ((hex && (newDefinition || verbosity != 0 || !circuit.empty() || !params.empty() || dstAddress != SYN
       || pollPriority > 0 || args.size() < argPos + 1))
   || (newDefinition && (hex || !circuit.empty() || pollPriority > 0 || args.size() != argPos + 1))) {
     argPos = 0;  // print usage
@@ -895,7 +905,6 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
   if (!newDefinition && message != nullptr && pollPriority > 0 && message->setPollPriority(pollPriority)) {
     m_messages->addPollMessage(false, message);
   }
-  verbosity |= valueName ? OF_VALUENAME : numeric ? OF_NUMERIC : 0;
   bool allowCache = !newDefinition && srcAddress == SYN && dstAddress == SYN && maxAge > 0 && params.length() == 0;
   Message* cacheMessage = allowCache ? m_messages->find(circuit, name, levels, false, true) : nullptr;
   bool hasCache = cacheMessage != nullptr;
@@ -1479,23 +1488,71 @@ result_t MainLoop::executeFind(const vector<string>& args, const string& levels,
   return RESULT_OK;
 }
 
-result_t MainLoop::executeListen(const vector<string>& args, ClientMode* mode, ostringstream* ostream) {
-  if (args.size() == 1) {
-    if (*mode == cm_listen) {
+result_t MainLoop::executeListen(const vector<string>& args, ClientSettings* settings, ostringstream* ostream) {
+  size_t argPos = 1;
+  OutputFormat verbosity = 0;
+  bool listenWithUnknown = false;
+  bool listenOnlyUnknown = false;
+  while (args.size() > argPos && args[argPos][0] == '-') {
+    if (args[argPos] == "-v") {
+      switch (verbosity) {
+      case 0:
+        verbosity = OF_NAMES;
+        break;
+      case OF_NAMES:
+        verbosity |= OF_UNITS;
+        break;
+      case OF_NAMES|OF_UNITS:
+        verbosity |= OF_COMMENTS;
+        break;
+      }
+    } else if (args[argPos] == "-vv") {
+      verbosity |= OF_NAMES|OF_UNITS;
+    } else if (args[argPos] == "-vvv" || args[argPos] == "-V") {
+      verbosity |= OF_NAMES|OF_UNITS|OF_COMMENTS;
+    } else if (args[argPos] == "-n") {
+      verbosity = (verbosity & ~OF_VALUENAME) | OF_NUMERIC;
+    } else if (args[argPos] == "-N") {
+      verbosity = (verbosity & ~OF_NUMERIC) | OF_VALUENAME;
+    } else if (args[argPos] == "-u") {
+      listenWithUnknown = true;
+      listenOnlyUnknown = false;
+    } else if (args[argPos] == "-U") {
+      listenOnlyUnknown = true;
+    } else {
+      argPos = 0;  // print usage
+      break;
+    }
+    argPos++;
+  }
+  if (argPos > 0 && args.size() == argPos) {
+    settings->format = verbosity;
+    settings->listenWithUnknown = listenWithUnknown;
+    settings->listenOnlyUnknown = listenOnlyUnknown;
+    if (listenWithUnknown || listenOnlyUnknown) {
+      m_busHandler->enableGrab(true);  // needed for listening to all messages
+    }
+    if (settings->mode == cm_listen) {
       *ostream << "listen continued";
       return RESULT_OK;
     }
-    *mode = cm_listen;
+    settings->mode = cm_listen;
     *ostream << "listen started";
     return RESULT_OK;
   }
 
-  if (args.size() != 2 || args[1] != "stop") {
-    *ostream << "usage: listen [stop]\n"
-                " Listen for updates or stop it.";
+  if (argPos == 0 || args.size() != argPos + 1 || args[argPos] != "stop") {
+    *ostream << "usage: listen [-v|-V] [-n|-N] [-u|-U] [stop]\n"
+                " Listen for updates or stop it.\n"
+                "  -v  increase verbosity (include names/units/comments)\n"
+                "  -V  be very verbose (include names, units, and comments)\n"
+                "  -n  use numeric value of value=name pairs\n"
+                "  -N  use numeric and named value of value=name pairs\n"
+                "  -u  include unknown messages\n"
+                "  -U  only show unknown messages";
     return RESULT_OK;
   }
-  *mode = cm_normal;
+  settings->mode = cm_normal;
   *ostream << "listen stopped";
   return RESULT_OK;
 }
@@ -1573,7 +1630,6 @@ result_t MainLoop::executeDefine(const vector<string>& args, ostringstream* ostr
 
 result_t MainLoop::executeDecode(const vector<string>& args, ostringstream* ostream) {
   size_t argPos = 1;
-  bool numeric = false, valueName = false;
   OutputFormat verbosity = 0;
   while (args.size() > argPos && args[argPos][0] == '-') {
     if (args[argPos] == "-v") {
@@ -1593,10 +1649,9 @@ result_t MainLoop::executeDecode(const vector<string>& args, ostringstream* ostr
     } else if (args[argPos] == "-vvv" || args[argPos] == "-V") {
       verbosity |= OF_NAMES|OF_UNITS|OF_COMMENTS;
     } else if (args[argPos] == "-n") {
-      numeric = true;
+      verbosity = (verbosity & ~OF_VALUENAME) | OF_NUMERIC;
     } else if (args[argPos] == "-N") {
-      numeric = true;
-      valueName = true;
+      verbosity = (verbosity & ~OF_NUMERIC) | OF_VALUENAME;
     } else {
       argPos = 0;  // print usage
       break;
@@ -1622,7 +1677,6 @@ result_t MainLoop::executeDecode(const vector<string>& args, ostringstream* ostr
 
   time_t now;
   time(&now);
-  verbosity |= valueName ? OF_VALUENAME : numeric ? OF_NUMERIC : 0;
   istringstream defstr("#\n" + args[argPos]);  // ensure first line is not used for determining col names
   string errorDescription;
   DataFieldTemplates* templates = getTemplates("*");
@@ -1865,7 +1919,7 @@ result_t MainLoop::executeHelp(ostringstream* ostream) {
       " hex       Send hex data:         hex [-s QQ] ZZPBSBNN[DD]* (if enabled)\n"
       " find|f    Find message(s):       find [-v|-V] [-r] [-w] [-p] [-a] [-d] [-h] [-i ID] [-f] [-F COL[,COL]*] [-e]"
       " [-c CIRCUIT] [-l LEVEL] [NAME]\n"
-      " listen|l  Listen for updates:    listen [stop]\n"
+      " listen|l  Listen for updates:    listen [-v|-V] [-n|-N] [-u|-U] [stop]\n"
       " direct    Enter direct mode\n"
       " state|s   Report bus state\n"
       " info|i    Report information about the daemon, the configuration, and seen devices.\n"
@@ -1895,7 +1949,7 @@ bool parseBoolQuery(const string& value) {
 }
 
 result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostringstream* ostream) {
-  bool numeric = false, valueName = false, required = false, full = false, withWrite = false, raw = false;
+  bool required = false, full = false, withWrite = false, raw = false;
   bool withDefinition = false;
   OutputFormat verbosity = OF_NAMES;
   time_t maxAge = -1;
@@ -1945,9 +1999,13 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
             verbosity &= ~OF_NAMES;
           }
         } else if (qname == "numeric") {
-          numeric = parseBoolQuery(value);
+          if (parseBoolQuery(value)) {
+            verbosity = (verbosity & ~OF_VALUENAME) | OF_NUMERIC;
+          }
         } else if (qname == "valuename") {
-          valueName = parseBoolQuery(value);
+          if (parseBoolQuery(value)) {
+            verbosity = (verbosity & ~OF_NUMERIC) | OF_VALUENAME;
+          }
         } else if (qname == "full") {
           full = parseBoolQuery(value);
         } else if (qname == "required") {
@@ -1982,8 +2040,7 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
     time_t maxLastUp = 0;
     if (ret == RESULT_OK) {
       bool first = true;
-      verbosity |= (valueName ? OF_VALUENAME : numeric ? OF_NUMERIC : 0) | OF_JSON | (full ? OF_ALL_ATTRS : 0)
-                   | (withDefinition ? OF_DEFINTION : 0);
+      verbosity |= OF_JSON | (full ? OF_ALL_ATTRS : 0) | (withDefinition ? OF_DEFINTION : 0);
       deque<Message*> messages;
       m_messages->findAll(circuit, name, getUserLevels(user), exact, true, withWrite, true, true, true, 0, 0, false,
                           &messages);

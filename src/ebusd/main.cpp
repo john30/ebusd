@@ -223,11 +223,12 @@ static const struct argp_option argpoptions[] = {
   {"updatecheck",    O_UPDCHK, "MODE",     0, "Set automatic update check to MODE (on|off) [on]", 0 },
 
   {nullptr,          0,        nullptr,    0, "Log options:", 5 },
-  {"logfile",        'l',      "FILE",     0, "Write log to FILE (only for daemon, empty string for using syslog) [" PACKAGE_LOGFILE "]", 0 },
+  {"logfile",        'l',      "FILE",     0, "Write log to FILE (only for daemon, empty string for using syslog) ["
+      PACKAGE_LOGFILE "]", 0 },
   {"log",            O_LOG, "AREAS LEVEL", 0, "Only write log for matching AREA(S) below or equal to LEVEL"
       " (alternative to --logareas/--logevel, may be used multiple times) [all notice]", 0 },
-  {"logareas",       O_LOGARE, "AREAS",    0, "Only write log for matching AREA(S): main|network|bus|update|all"
-      " [all]", 0 },
+  {"logareas",       O_LOGARE, "AREAS",    0, "Only write log for matching AREA(S): main|network|bus|update|other"
+      "|all [all]", 0 },
   {"loglevel",       O_LOGLEV, "LEVEL",    0, "Only write log below or equal to LEVEL: error|notice|info|debug"
       " [notice]", 0 },
 
@@ -661,7 +662,7 @@ void closePidFile() {
 /**
  * Helper method performing shutdown.
  */
-void shutdown() {
+void shutdown(bool error = false) {
   // stop main loop and all dependent components
   if (s_mainLoop) {
     delete s_mainLoop;
@@ -690,7 +691,7 @@ void shutdown() {
   logNotice(lf_main, "ebusd stopped");
   closeLogFile();
 
-  exit(EXIT_SUCCESS);
+  exit(error ? EXIT_FAILURE : EXIT_SUCCESS);
 }
 
 /**
@@ -701,7 +702,7 @@ void signalHandler(int sig) {
   switch (sig) {
   case SIGHUP:
     logNotice(lf_main, "SIGHUP received");
-    if (!opt.foreground && opt.logFile && opt.logFile[0] != 0) { // for log file rotation
+    if (!opt.foreground && opt.logFile && opt.logFile[0] != 0) {  // for log file rotation
       closeLogFile();
       setLogFile(opt.logFile);
     }
@@ -928,7 +929,7 @@ void readMessage(Message* message) {
   }
 }
 
-void executeInstructions(MessageMap* messages, bool verbose) {
+result_t executeInstructions(MessageMap* messages, bool verbose) {
   string errorDescription;
   result_t result = messages->resolveConditions(verbose, &errorDescription);
   if (result != RESULT_OK) {
@@ -945,6 +946,7 @@ void executeInstructions(MessageMap* messages, bool verbose) {
   }
   logNotice(lf_main, "found messages: %d (%d conditional on %d conditions, %d poll, %d update)", messages->size(),
       messages->sizeConditional(), messages->sizeConditions(), messages->sizePoll(), messages->sizePassive());
+  return result;
 }
 
 result_t loadDefinitionsFromConfigPath(FileReader* reader, const string& filename, bool verbose,
@@ -992,7 +994,7 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
         getResultCode(result), errorDescription.c_str());
   }
   messages->unlock();
-  return RESULT_OK;
+  return opt.checkConfig ? result : RESULT_OK;
 }
 
 result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose, string* relativeFile) {
@@ -1255,7 +1257,7 @@ int main(int argc, char* argv[]) {
     logNotice(lf_main, PACKAGE_STRING "." REVISION " performing configuration check...");
 
     result_t result = loadConfigFiles(s_messageMap, true, opt.scanConfig && arg_index < argc);
-    executeInstructions(s_messageMap, true);
+    result_t overallResult = executeInstructions(s_messageMap, true);
     MasterSymbolString master;
     SlaveSymbolString slave;
     while (result == RESULT_OK && opt.scanConfig && arg_index < argc) {
@@ -1267,21 +1269,33 @@ int main(int argc, char* argv[]) {
       Message* message = s_messageMap->getScanMessage(address);
       if (!message) {
         logError(lf_main, "invalid scan address %2.2x", address);
+        if (overallResult == RESULT_OK) {
+          overallResult = RESULT_ERR_INVALID_ADDR;
+        }
       } else {
         message->storeLastData(master, slave);
         string file;
         result_t res = loadScanConfigFile(s_messageMap, address, true, &file);
-        executeInstructions(s_messageMap, true);
+        result_t instrRes = executeInstructions(s_messageMap, true);
         if (res == RESULT_OK) {
           logInfo(lf_main, "scan config %2.2x: file %s loaded", address, file.c_str());
+        } else if (overallResult == RESULT_OK) {
+          overallResult = res;
+        }
+        if (overallResult == RESULT_OK && instrRes != RESULT_OK) {
+          overallResult = instrRes;
         }
       }
+    }
+    if (result != RESULT_OK) {
+      overallResult = result;
     }
     if (result == RESULT_OK && opt.dumpConfig) {
       logNotice(lf_main, "configuration dump:");
       s_messageMap->dump(true, &cout);
     }
-    shutdown();
+
+    shutdown(overallResult != RESULT_OK);
     return 0;
   }
 
