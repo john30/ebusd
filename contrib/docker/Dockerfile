@@ -1,4 +1,4 @@
-FROM debian:stretch
+FROM debian:stretch-slim
 
 RUN apt-get update && apt-get install -y \
     logrotate libmosquitto1 libstdc++6 libc6 libgcc1 \
