@@ -19,8 +19,8 @@ pipeline {
         stage('Make Container') {
 
             steps {
-                sh "docker build -t comdata456/ebusd:${env.BUILD_ID} contrib/docker"
-                sh "docker tag comdata456/ebusd:${env.BUILD_ID} comdata456/ebusd:latest"
+                sh "docker build -t ${registry}:${env.BUILD_ID} contrib/docker"
+                sh "docker tag ${registry}:${env.BUILD_ID} ${registry}:latest"
             }
         }
           stage('Publish') {
@@ -28,8 +28,8 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
                     sh "docker login -u ${USERNAME} -p ${PASSWORD}"
-                    sh "docker push comdata456/ebusd:${env.BUILD_ID}"
-                    sh "docker push comdata456/ebusd:latest"
+                    sh "docker push ${registry}:${env.BUILD_ID}"
+                    sh "docker push ${registry}:latest"
                 }
             }
         }
