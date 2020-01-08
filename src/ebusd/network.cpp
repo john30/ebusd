@@ -208,7 +208,7 @@ Network::~Network() {
   stop();
   NetMessage* netMsg;
   while ((netMsg = m_netQueue->pop()) != nullptr) {
-    netMsg->setResult("ERR: shutdown", "", cm_normal, 0, true);
+    netMsg->setResult("ERR: shutdown", "", nullptr, 0, true);
   }
   while (!m_connections.empty()) {
     Connection* connection = m_connections.back();

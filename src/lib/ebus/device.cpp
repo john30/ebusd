@@ -299,6 +299,12 @@ result_t NetworkDevice::open() {
     ret = setsockopt(m_fd, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<void*>(&value), sizeof(value));
     value = 1;
     setsockopt(m_fd, SOL_SOCKET, SO_KEEPALIVE, reinterpret_cast<void*>(&value), sizeof(value));
+    value = 3; // send keepalive after 3 seconds of silence
+    setsockopt(m_fd, IPPROTO_TCP, TCP_KEEPIDLE, reinterpret_cast<void*>(&value), sizeof(value));
+    value = 2; // send keepalive in interval of 2 seconds
+    setsockopt(m_fd, IPPROTO_TCP, TCP_KEEPINTVL, reinterpret_cast<void*>(&value), sizeof(value));
+    value = 2; // drop connection after 2 failed keep alive sends
+    setsockopt(m_fd, IPPROTO_TCP, TCP_KEEPCNT, reinterpret_cast<void*>(&value), sizeof(value));
   }
   if (ret >= 0) {
     ret = connect(m_fd, (struct sockaddr*)&m_address, sizeof(m_address));
@@ -312,12 +318,17 @@ result_t NetworkDevice::open() {
   }
   int cnt;
   symbol_t buf[MTU];
-  while (ioctl(m_fd, FIONREAD, &cnt) >= 0 && cnt > 1) {
+  int ioerr;
+  while ((ioerr=ioctl(m_fd, FIONREAD, &cnt)) >= 0 && cnt > 1) {
     // skip buffered input
     ssize_t read = ::read(m_fd, &buf, MTU);
     if (read <= 0) {
       break;
     }
+  }
+  if (ioerr < 0) {
+    close();
+    return RESULT_ERR_GENERIC_IO;
   }
   if (m_bufSize == 0) {
     m_bufSize = MAX_LEN+1;

@@ -227,6 +227,9 @@ string fetchData(ebusd::TCPSocket* socket, bool listening) {
       }
     } else if (newInput) {
       getline(cin, message);
+      if (message.length()==0) {
+        continue;
+      }
       sendmessage = message+'\n';
       socket->send(sendmessage.c_str(), sendmessage.size());
 
