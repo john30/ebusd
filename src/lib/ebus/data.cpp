@@ -752,7 +752,7 @@ result_t ValueListDataField::readSymbols(const SymbolString& input, size_t offse
     if (outputFormat & OF_JSON) {
       *output << "null";
     } else if (value == m_dataType->getReplacement()) {
-      *output << nullptr_VALUE;
+      *output << NULL_VALUE;
     }
   } else if (outputFormat & OF_NUMERIC) {
     *output << setw(0) << dec << value;
@@ -776,7 +776,7 @@ result_t ValueListDataField::writeSymbols(size_t offset, istringstream* input,
     SymbolString* output, size_t* usedLength) const {
   const NumberDataType* numType = reinterpret_cast<const NumberDataType*>(m_dataType);
   const string inputStr = input->str();
-  if (isIgnored() || inputStr == nullptr_VALUE) {
+  if (isIgnored() || inputStr == NULL_VALUE) {
     // replacement value
     return numType->writeRawValue(numType->getReplacement(), offset, m_length, output, usedLength);
   }

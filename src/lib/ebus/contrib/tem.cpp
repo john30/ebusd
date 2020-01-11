@@ -66,7 +66,7 @@ result_t TemParamDataType::readSymbols(size_t offset, size_t length, const Symbo
     if (outputFormat & OF_JSON) {
       *output << "null";
     } else {
-      *output << nullptr_VALUE;
+      *output << NULL_VALUE;
     }
     return RESULT_OK;
   }
@@ -94,7 +94,7 @@ result_t TemParamDataType::writeSymbols(const size_t offset, const size_t length
   unsigned int value;
   unsigned int grp, num;
 
-  if (input->str() == nullptr_VALUE) {
+  if (input->str() == NULL_VALUE) {
     value = m_replacement;  // replacement value
   } else {
     string token;

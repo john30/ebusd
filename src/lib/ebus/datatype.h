@@ -58,7 +58,7 @@ using std::ostringstream;
 #define LENGTH_SEPARATOR ':'
 
 /** the replacement string for undefined values (in UI and CSV). */
-#define nullptr_VALUE "-"
+#define NULL_VALUE "-"
 
 /** the separator character used between fields (in UI only). */
 #define UI_FIELD_SEPARATOR ';'
@@ -134,7 +134,7 @@ enum PartType {
 /** bit flag for @a DataType: fixed width formatting. */
 #define FIX 0x20
 
-/** bit flag for @a DataType: value may not be nullptr. */
+/** bit flag for @a DataType: value may not be NULL. */
 #define REQ 0x40
 
 /** bit flag for @a DataType: binary representation is hex converted to decimal and interpreted as 2 digits
