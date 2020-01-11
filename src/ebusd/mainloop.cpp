@@ -2117,7 +2117,7 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
                  << ",\n  \"maxsymbolrate\": " << m_busHandler->getMaxSymbolRate();
         if (m_busHandler->getMinArbitrationDelay() >= 0) {
           *ostream << ",\n  \"minarbitrationmicros\": " << m_busHandler->getMinArbitrationDelay()
-                   << ",\n  \"minarbitrationmicros\": " << m_busHandler->getMaxArbitrationDelay();
+                   << ",\n  \"maxarbitrationmicros\": " << m_busHandler->getMaxArbitrationDelay();
         }
         if (m_busHandler->getMinSymbolLatency() >= 0) {
           *ostream << ",\n  \"minsymbollatency\": " << m_busHandler->getMinSymbolLatency()
