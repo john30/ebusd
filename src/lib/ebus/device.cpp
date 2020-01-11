@@ -280,6 +280,17 @@ void SerialDevice::checkDevice() {
   }
 }
 
+#ifdef __CYGWIN__
+  #ifndef TCP_KEEPCNT
+    #define TCP_KEEPCNT 8
+  #endif
+  #ifndef TCP_KEEPINTVL
+    #define TCP_KEEPINTVL 150
+  #endif
+  #ifndef TCP_KEEPIDLE
+    #define TCP_KEEPIDLE 14400
+  #endif
+#endif
 
 result_t NetworkDevice::open() {
   if (m_fd != -1) {
