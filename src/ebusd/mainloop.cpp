@@ -463,11 +463,12 @@ void MainLoop::notifyDeviceData(symbol_t symbol, bool received) {
     m_logRawLastSymbol = symbol;
   }
   if (symbol == SYN && m_logRawBuffer.tellp() > 0) {  // flush
+    const string bufStr = m_logRawBuffer.str();
+    const char* str = bufStr.c_str();
     if (m_logRawFile) {
-      const char* str = m_logRawBuffer.str().c_str();
       m_logRawFile->write((const unsigned char*)str, strlen(str), received, false);
     } else {
-      logNotice(lf_bus, m_logRawBuffer.str().c_str());
+      logNotice(lf_bus, str);
     }
     m_logRawBuffer.str("");
   }

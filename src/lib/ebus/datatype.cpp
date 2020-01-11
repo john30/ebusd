@@ -805,12 +805,13 @@ result_t NumberDataType::writeSymbols(size_t offset, size_t length, istringstrea
     SymbolString* output, size_t* usedLength) const {
   unsigned int value;
 
-  if (!hasFlag(REQ) && (isIgnored() || input->str() == nullptr_VALUE)) {
+  const string inputStr = input->str();
+  if (!hasFlag(REQ) && (isIgnored() || inputStr == nullptr_VALUE)) {
     value = m_replacement;  // replacement value
-  } else if (input->str().empty()) {
+  } else if (inputStr.empty()) {
     return RESULT_ERR_EOF;  // input too short
   } else if (hasFlag(EXP)) {  // IEEE 754 binary32
-    const char* str = input->str().c_str();
+    const char* str = inputStr.c_str();
     char* strEnd = nullptr;
     double dvalue = strtod(str, &strEnd);
     if (strEnd == nullptr || strEnd == str || *strEnd != 0) {
@@ -849,7 +850,7 @@ result_t NumberDataType::writeSymbols(size_t offset, size_t length, istringstrea
     }
 #endif
   } else {
-    const char* str = input->str().c_str();
+    const char* str = inputStr.c_str();
     char* strEnd = nullptr;
     if (m_divisor == 1) {
       if (hasFlag(SIG)) {
