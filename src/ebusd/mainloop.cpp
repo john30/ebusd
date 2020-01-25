@@ -111,7 +111,7 @@ MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messag
   }
   m_device->setListener(this);
   if (opt.dumpFile[0]) {
-    m_dumpFile = new RotateFile(opt.dumpFile, opt.dumpSize);
+    m_dumpFile = new RotateFile(opt.dumpFile, opt.dumpSize, false, opt.dumpFlush ? 1 : 16);
     m_dumpFile->setEnabled(opt.dump);
   } else {
     m_dumpFile = nullptr;
