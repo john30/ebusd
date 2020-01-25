@@ -183,58 +183,68 @@ result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* a
   if (!isValid()) {
     return RESULT_ERR_DEVICE;
   }
-  bool isAvailable = available();
-  if (!isAvailable && timeout > 0) {
-    int ret;
-    struct timespec tdiff;
+  bool repeat = false;
+  bool repeated = false;
+  ArbitrationState prevState = *arbitrationState;
+  do {
+    repeat = false;
+    bool isAvailable = available();
+    if (!isAvailable && timeout > 0) {
+      int ret;
+      struct timespec tdiff;
 
-    // set select timeout
-    tdiff.tv_sec = timeout/1000000;
-    tdiff.tv_nsec = (timeout%1000000)*1000;
+      // set select timeout
+      tdiff.tv_sec = timeout/1000000;
+      tdiff.tv_nsec = (timeout%1000000)*1000;
 
 #ifdef HAVE_PPOLL
-    nfds_t nfds = 1;
-    struct pollfd fds[nfds];
+      nfds_t nfds = 1;
+      struct pollfd fds[nfds];
 
-    memset(fds, 0, sizeof(fds));
+      memset(fds, 0, sizeof(fds));
 
-    fds[0].fd = m_fd;
-    fds[0].events = POLLIN | POLLERR | POLLHUP | POLLRDHUP;
-    ret = ppoll(fds, nfds, &tdiff, nullptr);
-    if (ret >= 0 && fds[0].revents & (POLLERR | POLLHUP | POLLRDHUP)) {
-      ret = -1;
-    }
+      fds[0].fd = m_fd;
+      fds[0].events = POLLIN | POLLERR | POLLHUP | POLLRDHUP;
+      ret = ppoll(fds, nfds, &tdiff, nullptr);
+      if (ret >= 0 && fds[0].revents & (POLLERR | POLLHUP | POLLRDHUP)) {
+        ret = -1;
+      }
 #else
 #ifdef HAVE_PSELECT
-    fd_set readfds, exceptfds;
+      fd_set readfds, exceptfds;
 
-    FD_ZERO(&readfds);
-    FD_ZERO(&exceptfds);
-    FD_SET(m_fd, &readfds);
+      FD_ZERO(&readfds);
+      FD_ZERO(&exceptfds);
+      FD_SET(m_fd, &readfds);
 
-    ret = pselect(m_fd + 1, &readfds, nullptr, &exceptfds, &tdiff, nullptr);
-    if (ret >= 1 && FD_ISSET(m_fd, &exceptfds)) {
-      ret = -1;
-    }
+      ret = pselect(m_fd + 1, &readfds, nullptr, &exceptfds, &tdiff, nullptr);
+      if (ret >= 1 && FD_ISSET(m_fd, &exceptfds)) {
+        ret = -1;
+      }
 #else
-    ret = 1;  // ignore timeout if neither ppoll nor pselect are available
+      ret = 1;  // ignore timeout if neither ppoll nor pselect are available
 #endif
 #endif
-    if (ret == -1) {
-      close();
-      return RESULT_ERR_DEVICE;
+      if (ret == -1) {
+        close();
+        return RESULT_ERR_DEVICE;
+      }
+      if (ret == 0) {
+        return RESULT_ERR_TIMEOUT;
+      }
     }
-    if (ret == 0) {
+
+    // directly read byte from device
+    bool incomplete = false;
+    if (!read(value, isAvailable, arbitrationState, &incomplete)) {
+      if (!isAvailable && incomplete && !repeated) {
+        // for a two-byte transfer another poll is needed
+        repeat = true;
+        continue;
+      }
       return RESULT_ERR_TIMEOUT;
     }
-  }
-
-  ArbitrationState prevState = *arbitrationState;
-  // directly read byte from device
-  if (!read(value, isAvailable, arbitrationState)) {
-    close();
-    return RESULT_ERR_DEVICE;
-  }
+  } while (repeat);
   if (m_enhancedProto || *value != SYN || m_arbitrationMaster == SYN) {
     if (m_listener != nullptr) {
       m_listener->notifyDeviceData(*value, true);
@@ -316,12 +326,16 @@ bool Device::available() {
     if ((ch&ENH_BYTE_MASK) == ENH_BYTE1) {
       return pos+1 < m_bufLen;
     }
-    // TODO check protocol error
+    // TODO protocol error
+    // skip byte from erroneous protocol
+    m_bufPos = (m_bufPos+1)%m_bufSize;
+    m_bufLen--;
+    pos--;
   }
   return false;
 }
 
-bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrationState) {
+bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrationState, bool* incomplete) {
   if (!isAvailable) {
     if (m_bufLen > 0 && m_bufPos != 0) {
       if (m_bufLen > m_bufSize / 2) {
@@ -350,6 +364,9 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
     m_bufLen += size;
   }
   if (!available()) {
+    if (incomplete) {
+      *incomplete = m_enhancedProto && m_bufLen > 0;
+    }
     return false;
   }
   if (!m_enhancedProto) {
@@ -377,11 +394,11 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
     }
     // kind is ENH_BYTE1
     symbol_t ch2 = m_buffer[m_bufPos];
+    m_bufPos = (m_bufPos + 1) % m_bufSize;
+    m_bufLen--;
     if ((ch2 & ENH_BYTE_MASK) != ENH_BYTE2) {
       return false; // TODO protocol error
     }
-    m_bufPos = (m_bufPos + 1) % m_bufSize;
-    m_bufLen--;
     ch2 = (symbol_t)(((ch&0x03)<<6) | (ch2&0x3f));
     ch = (ch>>2)&0xf;
     switch (ch) {
@@ -576,13 +593,6 @@ result_t NetworkDevice::open() {
   if (ioerr < 0) {
     close();
     return RESULT_ERR_GENERIC_IO;
-  }
-  if (m_bufSize == 0) {
-    m_bufSize = MAX_LEN+1;
-    m_buffer = reinterpret_cast<symbol_t*>(malloc(m_bufSize));
-    if (!m_buffer) {
-      m_bufSize = 0;
-    }
   }
   m_bufLen = 0;
   if (m_initialSend && !write(ESC)) {

@@ -199,9 +199,10 @@ class Device {
    * @param value the reference in which the read byte value is stored.
    * @param isAvailable the result of the immediately preceding call to @a available().
    * @param arbitrationState the variable in which to store the received arbitration state (mandatory for enhanced proto).
+   * @param incomplete the variable in which to store when a partial transfer needs another poll.
    * @return true on success, false on error.
    */
-  virtual bool read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrationState=nullptr);
+  virtual bool read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrationState=nullptr, bool* incomplete=nullptr);
 
   /** the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network). */
   const char* m_name;
