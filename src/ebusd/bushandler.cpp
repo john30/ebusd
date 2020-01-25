@@ -328,7 +328,7 @@ result_t BusHandler::sendAndWait(const MasterSymbolString& master, SlaveSymbolSt
   ActiveBusRequest request(master, slave);
   logInfo(lf_bus, "send message: %s", master.getStr().c_str());
 
-  for (int sendRetries = m_failedSendRetries + 1; sendRetries >= 0; sendRetries--) {
+  for (int sendRetries = m_failedSendRetries + 1; sendRetries > 0; sendRetries--) {
     m_nextRequests.push(&request);
     bool success = m_finishedRequests.remove(&request, true);
     result = success ? request.m_result : RESULT_ERR_TIMEOUT;
@@ -339,7 +339,7 @@ result_t BusHandler::sendAndWait(const MasterSymbolString& master, SlaveSymbolSt
       logError(lf_bus, "send to %2.2x: %s, give up", master[1], getResultCode(result));
       break;
     }
-    logError(lf_bus, "send to %2.2x: %s%s", master[1], getResultCode(result), sendRetries > 0 ? ", retry" : "");
+    logError(lf_bus, "send to %2.2x: %s%s", master[1], getResultCode(result), sendRetries > 1 ? ", retry" : "");
     request.m_busLostRetries = 0;
   }
   return result;

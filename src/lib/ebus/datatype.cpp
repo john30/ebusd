@@ -243,13 +243,13 @@ result_t DateTimeDataType::readSymbols(size_t offset, size_t length, const Symbo
     case 2:  // date only
       if (!hasFlag(REQ) && symbol == m_replacement) {
         if (i + 1 != length) {
-          *output << nullptr_VALUE << ".";
+          *output << NULL_VALUE << ".";
           break;
         } else if (last == m_replacement) {
           if (length == 2) {  // number of days since 01.01.1900
-            *output << nullptr_VALUE << ".";
+            *output << NULL_VALUE << ".";
           }
-          *output << nullptr_VALUE;
+          *output << NULL_VALUE;
           break;
         }
       }
@@ -282,13 +282,13 @@ result_t DateTimeDataType::readSymbols(size_t offset, size_t length, const Symbo
     case 1:  // time only
       if (!hasFlag(REQ) && symbol == m_replacement) {
         if (length == 1) {  // truncated time
-          *output << nullptr_VALUE << ":" << nullptr_VALUE;
+          *output << NULL_VALUE << ":" << NULL_VALUE;
           break;
         }
         if (i > 0) {
           *output << ":";
         }
-        *output << nullptr_VALUE;
+        *output << NULL_VALUE;
         break;
       }
       if (hasFlag(SPE)) {  // minutes since midnight
@@ -378,7 +378,7 @@ result_t DateTimeDataType::writeSymbols(size_t offset, size_t length, istringstr
       if (input->eof() || !getline(*input, token, '.')) {
         return RESULT_ERR_EOF;  // incomplete
       }
-      if (!hasFlag(REQ) && token == nullptr_VALUE) {
+      if (!hasFlag(REQ) && token == NULL_VALUE) {
         value = m_replacement;
         break;
       }
@@ -431,7 +431,7 @@ result_t DateTimeDataType::writeSymbols(size_t offset, size_t length, istringstr
       if (input->eof() || !getline(*input, token, LENGTH_SEPARATOR)) {
         return RESULT_ERR_EOF;  // incomplete
       }
-      if (!hasFlag(REQ) && token == nullptr_VALUE) {
+      if (!hasFlag(REQ) && token == NULL_VALUE) {
         value = m_replacement;
         if (length == 1) {  // truncated time
           if (i == 0) {
@@ -654,7 +654,7 @@ result_t NumberDataType::readSymbols(size_t offset, size_t length, const SymbolS
     if (outputFormat & OF_JSON) {
       *output << "null";
     } else {
-      *output << nullptr_VALUE;
+      *output << NULL_VALUE;
     }
     return RESULT_OK;
   }
@@ -700,7 +700,7 @@ result_t NumberDataType::readSymbols(size_t offset, size_t length, const SymbolS
         if (outputFormat & OF_JSON) {
           *output << "null";
         } else {
-          *output << nullptr_VALUE;
+          *output << NULL_VALUE;
         }
         return RESULT_OK;
       }
@@ -805,12 +805,13 @@ result_t NumberDataType::writeSymbols(size_t offset, size_t length, istringstrea
     SymbolString* output, size_t* usedLength) const {
   unsigned int value;
 
-  if (!hasFlag(REQ) && (isIgnored() || input->str() == nullptr_VALUE)) {
+  const string inputStr = input->str();
+  if (!hasFlag(REQ) && (isIgnored() || inputStr == NULL_VALUE)) {
     value = m_replacement;  // replacement value
-  } else if (input->str().empty()) {
+  } else if (inputStr.empty()) {
     return RESULT_ERR_EOF;  // input too short
   } else if (hasFlag(EXP)) {  // IEEE 754 binary32
-    const char* str = input->str().c_str();
+    const char* str = inputStr.c_str();
     char* strEnd = nullptr;
     double dvalue = strtod(str, &strEnd);
     if (strEnd == nullptr || strEnd == str || *strEnd != 0) {
@@ -849,7 +850,7 @@ result_t NumberDataType::writeSymbols(size_t offset, size_t length, istringstrea
     }
 #endif
   } else {
-    const char* str = input->str().c_str();
+    const char* str = inputStr.c_str();
     char* strEnd = nullptr;
     if (m_divisor == 1) {
       if (hasFlag(SIG)) {
