@@ -85,6 +85,7 @@ struct options {
   bool dump;  //!< binary dump received bytes
   const char* dumpFile;  //!< name of dump file [/tmp/ebusd_dump.bin]
   unsigned int dumpSize;  //!< maximum size of dump file in kB [100]
+  bool dumpFlush;  //!< flush each byte
 };
 
 /**

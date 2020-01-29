@@ -123,6 +123,7 @@ static struct options opt = {
   false,  // dump
   "/tmp/" PACKAGE "_dump.bin",  // dumpFile
   100,  // dumpSize
+  false,  // dumpFlush
 };
 
 /** the @a MessageMap instance, or nullptr. */
@@ -174,6 +175,7 @@ static const char argpdoc[] =
 #define O_RAWSIZ (O_RAWFIL+1)
 #define O_DMPFIL (O_RAWSIZ+1)
 #define O_DMPSIZ (O_DMPFIL+1)
+#define O_DMPFLU (O_DMPSIZ+1)
 
 /** the definition of the known program arguments. */
 static const struct argp_option argpoptions[] = {
@@ -242,6 +244,7 @@ static const struct argp_option argpoptions[] = {
   {"dump",           'D',      nullptr,    0, "Enable binary dump of received bytes", 0 },
   {"dumpfile",       O_DMPFIL, "FILE",     0, "Dump received bytes to FILE [/tmp/" PACKAGE "_dump.bin]", 0 },
   {"dumpsize",       O_DMPSIZ, "SIZE",     0, "Make dump file no larger than SIZE kB [100]", 0 },
+  {"dumpflush",      O_DMPFLU, nullptr,    0, "Flush each byte", 0 },
 
   {nullptr,          0,        nullptr,    0, nullptr, 0 },
 };
@@ -580,6 +583,9 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       argp_error(state, "invalid dumpsize");
       return EINVAL;
     }
+    break;
+  case O_DMPFLU:  // --dumpflush
+    opt->dumpFlush = true;
     break;
 
   case ARGP_KEY_ARG:

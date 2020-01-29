@@ -82,7 +82,7 @@ void RotateFile::write(const unsigned char* value, const size_t size, const bool
     fwrite(value, (streamsize)size, 1, m_stream);
     m_fileSize += size;
     m_flushSize += size;
-    if (m_flushSize > 16) {
+    if (m_flushSize >= m_flushBuffer) {
       fflush(m_stream);
       m_flushSize = 0;
     }

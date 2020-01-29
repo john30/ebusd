@@ -111,7 +111,7 @@ MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messag
   }
   m_device->setListener(this);
   if (opt.dumpFile[0]) {
-    m_dumpFile = new RotateFile(opt.dumpFile, opt.dumpSize);
+    m_dumpFile = new RotateFile(opt.dumpFile, opt.dumpSize, false, opt.dumpFlush ? 1 : 16);
     m_dumpFile->setEnabled(opt.dump);
   } else {
     m_dumpFile = nullptr;
@@ -463,11 +463,12 @@ void MainLoop::notifyDeviceData(symbol_t symbol, bool received) {
     m_logRawLastSymbol = symbol;
   }
   if (symbol == SYN && m_logRawBuffer.tellp() > 0) {  // flush
+    const string bufStr = m_logRawBuffer.str();
+    const char* str = bufStr.c_str();
     if (m_logRawFile) {
-      const char* str = m_logRawBuffer.str().c_str();
       m_logRawFile->write((const unsigned char*)str, strlen(str), received, false);
     } else {
-      logNotice(lf_bus, m_logRawBuffer.str().c_str());
+      logNotice(lf_bus, str);
     }
     m_logRawBuffer.str("");
   }
@@ -2117,7 +2118,7 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
                  << ",\n  \"maxsymbolrate\": " << m_busHandler->getMaxSymbolRate();
         if (m_busHandler->getMinArbitrationDelay() >= 0) {
           *ostream << ",\n  \"minarbitrationmicros\": " << m_busHandler->getMinArbitrationDelay()
-                   << ",\n  \"minarbitrationmicros\": " << m_busHandler->getMaxArbitrationDelay();
+                   << ",\n  \"maxarbitrationmicros\": " << m_busHandler->getMaxArbitrationDelay();
         }
         if (m_busHandler->getMinSymbolLatency() >= 0) {
           *ostream << ",\n  \"minsymbollatency\": " << m_busHandler->getMinSymbolLatency()
