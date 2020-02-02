@@ -179,6 +179,12 @@ result_t Device::send(symbol_t value) {
   return RESULT_OK;
 }
 
+/**
+ * the maximum duration to wait for an enhanced sequence to complete after the first part was already retrieved:
+ * Start+8Bit+Stop+Extra @ 9600Bd.
+ */
+#define ENHANCED_COMPLETE_WAIT_DURATION 1150
+
 result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* arbitrationState) {
   if (!isValid()) {
     return RESULT_ERR_DEVICE;
@@ -240,6 +246,7 @@ result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* a
       if (!isAvailable && incomplete && !repeated) {
         // for a two-byte transfer another poll is needed
         repeat = true;
+        timeout = ENHANCED_COMPLETE_WAIT_DURATION;
         continue;
       }
       return RESULT_ERR_TIMEOUT;
