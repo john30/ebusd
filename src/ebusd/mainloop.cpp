@@ -474,6 +474,14 @@ void MainLoop::notifyDeviceData(symbol_t symbol, bool received) {
   }
 }
 
+void MainLoop::notifyStatus(bool error, const char* message) {
+  if (error) {
+    logError(lf_bus, "device status: %s", message);
+  } else {
+    logNotice(lf_bus, "device status: %s", message);
+  }
+}
+
 result_t MainLoop::decodeMessage(const string &data, bool isHttp, bool* connected, ClientSettings* settings,
     string* user, bool* reload, ostringstream* ostream) {
   string token, previous;

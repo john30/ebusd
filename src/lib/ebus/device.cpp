@@ -148,6 +148,22 @@ result_t Device::open() {
   return m_bufSize == 0 ? RESULT_ERR_DEVICE : RESULT_OK;
 }
 
+result_t Device::afterOpen() {
+  m_bufLen = 0;
+  if (m_enhancedProto) {
+    symbol_t buf[2] = makeEnhancedSequence(ENH_REQ_INIT, 0); // TODO define additional feature flags
+    if (::write(m_fd, buf, 2) != 2) {
+      return RESULT_ERR_SEND;
+    }
+    if (m_listener != nullptr) {
+      m_listener->notifyStatus(false, "resetting");
+    }
+  } else if (m_initialSend && !write(ESC)) {
+    return RESULT_ERR_SEND;
+  }
+  return RESULT_OK;
+}
+
 void Device::close() {
   if (m_fd != -1) {
     ::close(m_fd);
@@ -181,9 +197,10 @@ result_t Device::send(symbol_t value) {
 
 /**
  * the maximum duration to wait for an enhanced sequence to complete after the first part was already retrieved:
- * Start+8Bit+Stop+Extra @ 9600Bd.
+ * 2* (Start+8Bit+Stop+Extra @ 9600Bd)
  */
-#define ENHANCED_COMPLETE_WAIT_DURATION 1150
+#define ENHANCED_COMPLETE_WAIT_DURATION (2*1150)
+
 
 result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* arbitrationState) {
   if (!isValid()) {
@@ -272,6 +289,7 @@ result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* a
     }
     return RESULT_OK;
   }
+  // non-enhanced: arbitration executed by ebusd itself
   bool wrote = write(m_arbitrationMaster);  // send as fast as possible
   if (m_listener != nullptr) {
     m_listener->notifyDeviceData(*value, true);
@@ -282,7 +300,7 @@ result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* a
     m_arbitrationCheck = false;
     return RESULT_OK;
   }
-  if (m_listener != NULL) {
+  if (m_listener != nullptr) {
     m_listener->notifyDeviceData(m_arbitrationMaster, false);
   }
   m_arbitrationCheck = true;
@@ -292,7 +310,7 @@ result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* a
 
 result_t Device::startArbitration(symbol_t masterAddress) {
   if (m_arbitrationCheck) {
-    return RESULT_ERR_DUPLICATE;
+    return RESULT_ERR_SEND; // should not occur
   }
   if (m_readOnly) {
     return RESULT_ERR_SEND;
@@ -331,9 +349,26 @@ bool Device::available() {
       return true;
     }
     if ((ch&ENH_BYTE_MASK) == ENH_BYTE1) {
-      return pos+1 < m_bufLen;
+      if (pos+1 >= m_bufLen) {
+        return false;
+      }
+      // peek into next byte to check if enhanced sequence is ok
+      ch = m_buffer[(pos+m_bufPos+1)%m_bufSize];
+      if (!(ch&ENH_BYTE_FLAG) || (ch&ENH_BYTE_MASK) != ENH_BYTE2) {
+        if (m_listener != nullptr) {
+          m_listener->notifyStatus(true, "unexpected available enhanced following byte 1");
+        }
+        // drop first byte of invalid sequence
+        m_bufPos = (m_bufPos + 1) % m_bufSize;
+        m_bufLen--;
+        pos--;
+        continue;
+      }
+      return true;
     }
-    // TODO protocol error
+    if (m_listener != nullptr) {
+      m_listener->notifyStatus(true, "unexpected available enhanced byte 2");
+    }
     // skip byte from erroneous protocol
     m_bufPos = (m_bufPos+1)%m_bufSize;
     m_bufLen--;
@@ -347,7 +382,10 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
     if (m_bufLen > 0 && m_bufPos != 0) {
       if (m_bufLen > m_bufSize / 2) {
         // more than half of input buffer consumed is taken as signal that ebusd is too slow
-        m_bufLen = 0; // TODO report error
+        m_bufLen = 0;
+        if (m_listener != nullptr) {
+          m_listener->notifyStatus(true, "buffer overflow");
+        }
       } else {
         size_t tail;
         if (m_bufPos+m_bufLen > m_bufSize) {
@@ -397,31 +435,33 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
     m_bufPos = (m_bufPos+1)%m_bufSize;
     m_bufLen--;
     if (kind == ENH_BYTE2) {
-      return false; // TODO protocol error
+      if (m_listener != nullptr) {
+        m_listener->notifyStatus(true, "unexpected enhanced byte 2");
+      }
+      return false;
     }
     // kind is ENH_BYTE1
     symbol_t ch2 = m_buffer[m_bufPos];
     m_bufPos = (m_bufPos + 1) % m_bufSize;
     m_bufLen--;
     if ((ch2 & ENH_BYTE_MASK) != ENH_BYTE2) {
-      return false; // TODO protocol error
+      if (m_listener != nullptr) {
+        m_listener->notifyStatus(true, "missing enhanced byte 2");
+      }
+      return false;
     }
     ch2 = (symbol_t)(((ch&0x03)<<6) | (ch2&0x3f));
     ch = (ch>>2)&0xf;
     switch (ch) {
       case ENH_RES_STARTED:
         *arbitrationState = as_won;
-        if (m_listener != NULL) {
-          m_listener->notifyDeviceData(ch2, false);
-        }
         m_arbitrationMaster = SYN;
+        m_arbitrationCheck = false;
         break;
       case ENH_RES_FAILED:
-        *arbitrationState = as_error;
-        if (m_listener != NULL) {
-          m_listener->notifyDeviceData(ch2, false);
-        }
+        *arbitrationState = as_lost;
         m_arbitrationMaster = SYN;
+        m_arbitrationCheck = false;
         break;
       case ENH_RES_RECEIVED:
         *value = ch2;
@@ -431,9 +471,14 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
           *arbitrationState = as_error;
         }
         // TODO define additional feature flags
+        if (m_listener != nullptr) {
+          m_listener->notifyStatus(false, "reset");
+        }
         break;
       default:
-        // TODO protocol error
+        if (m_listener != nullptr) {
+          m_listener->notifyStatus(true, "unexpected enhanced command");
+        }
         return false;
     }
   }
@@ -510,15 +555,7 @@ result_t SerialDevice::open() {
   // set serial device into blocking mode
   fcntl(m_fd, F_SETFL, fcntl(m_fd, F_GETFL) & ~O_NONBLOCK);
 
-  if (m_enhancedProto) {
-    symbol_t buf[2] = makeEnhancedSequence(ENH_REQ_INIT, 0); // TODO define additional feature flags
-    if (::write(m_fd, buf, 2) != 2) {
-      return RESULT_ERR_SEND;
-    }
-  } else if (m_initialSend && !write(ESC)) {
-    return RESULT_ERR_SEND;
-  }
-  return RESULT_OK;
+  return afterOpen();
 }
 
 void SerialDevice::close() {
@@ -601,11 +638,7 @@ result_t NetworkDevice::open() {
     close();
     return RESULT_ERR_GENERIC_IO;
   }
-  m_bufLen = 0;
-  if (m_initialSend && !write(ESC)) {
-    return RESULT_ERR_SEND;
-  }
-  return RESULT_OK;
+  return afterOpen();
 }
 
 void NetworkDevice::checkDevice() {

@@ -66,6 +66,13 @@ class DeviceListener {
    * @param received @a true on reception, @a false on sending.
    */
   virtual void notifyDeviceData(symbol_t symbol, bool received) = 0;  // abstract
+
+  /**
+   * Called to notify a status message from the device.
+   * @param error true for an error message, false for an info message.
+   * @param message the message string.
+   */
+  virtual void notifyStatus(bool error, const char* message) = 0;  // abstract
 };
 
 
@@ -112,6 +119,12 @@ class Device {
    * @return the @a result_t code.
    */
   virtual result_t open();
+
+  /**
+   * Has to be called by subclasses upon successful opening the device as last action in open().
+   * @return the @a result_t code.
+   */
+  result_t afterOpen();
 
   /**
    * Close the file descriptor if opened.
@@ -225,7 +238,7 @@ class Device {
 
  private:
   /** the @a DeviceListener, or nullptr. */
-public: DeviceListener* m_listener;
+  DeviceListener* m_listener;
 
   /** the arbitration master address to send when in arbitration, or @a SYN. */
   symbol_t m_arbitrationMaster;
