@@ -495,7 +495,7 @@ result_t SerialDevice::open() {
   tcflush(m_fd, TCIFLUSH);
 
   // activate new settings of serial device
-  if (tcsetattr(m_fd, TCSAFLUSH, &newSettings)) {
+  if (tcsetattr(m_fd, TCSANOW, &newSettings)) {
     close();
     return RESULT_ERR_DEVICE;
   }
