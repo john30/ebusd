@@ -455,11 +455,17 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
     switch (ch) {
       case ENH_RES_STARTED:
         *arbitrationState = as_won;
+        if (m_listener != NULL) {
+          m_listener->notifyDeviceData(ch2, false);
+        }
         m_arbitrationMaster = SYN;
         m_arbitrationCheck = false;
         break;
       case ENH_RES_FAILED:
         *arbitrationState = as_lost;
+        if (m_listener != NULL) {
+          m_listener->notifyDeviceData(ch2, false);
+        }
         m_arbitrationMaster = SYN;
         m_arbitrationCheck = false;
         break;

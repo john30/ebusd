@@ -41,6 +41,7 @@ first    second
     `<RECEIVED> <data>`  
     Indicates that the specified data byte in `d` was received from the eBUS.  
     For data byte values <0x80, the short form without the `<RECEIVED>` prefix is allowed as well.
+    Note that this message shall not be sent when the byte received was part of an arbitration request initiated by ebusd.
   * arbitration start succeeded
     `<STARTED> <master>`  
     Indicates the the last arbitration request succeeded (arbitration was won).  
@@ -48,7 +49,7 @@ first    second
   * arbitration start failed  
     `<FAILED> <master>`  
     Indicates that the last arbitration request failed (arbitration was lost or sending failed).  
-    The data byte in `d` contains the master address that was sent to eBUS during arbitration.
+    The data byte in `d` contains the master address that has won the arbitration.
 
 
 ## Symbols
@@ -98,25 +99,24 @@ The same data sequence `1008951200 / 0164` when initiated by ebusd as master (wi
 |----:|-----|-----|-----|-----|-----|
 |1| | |ebusd|`<START> <0x10>`|0xC8 0x90|
 |2|`SYN`|0xAA|interface|`<RECEIVED> <0xAA>`|0xC6 0xAA|
-|3| | |interface|`<STARTED> <0x10>`|0xC8 0x90|
-|4|`QQ`|0x10|interface|`<0x10>`|0x10|
-|5|`ZZ`|0x08|ebusd|`<0x08>`|0x08|
-|6|`ZZ`|0x08|interface|`<0x08>`|0x08|
-|7|`PB`|0x95|ebusd|`<SEND> <0x95>`|0xC6 0x95|
-|8|`PB`|0x95|interface|`<RECEIVED> <0x95>`|0xC6 0x95|
-|9|`SB`|0x12|ebusd|`<0x12>`|0x12|
-|10|`SB`|0x12|interface|`<0x12>`|0x12|
-|11|`NN`|0x00|ebusd|`<0x00>`|0x00|
-|12|`NN`|0x00|interface|`<0x00>`|0x00|
-|13|`CRC`|0xB1|ebusd|`<SEND> <0xB1>`|0xC6 0xB1|
-|14|`CRC`|0xB1|interface|`<RECEIVED> <0xB1>`|0xC6 0xB1|
-|15|`ACK`|0x00|interface|`<0x00>`|0x00|
-|16|`NN`|0x01|interface|`<0x01>`|0x01|
-|17|`DD`|0x64|interface|`<0x64>`|0x64|
-|18|`CRC`|0xFF|interface|`<RECEIVED> <0xFF>`|0xC7 0xBF|
-|19|`ACK`|0x00|ebusd|`<0x00>`|0x00|
-|20|`ACK`|0x00|interface|`<0x00>`|0x00|
-|21|`SYN`|0xAA|interface|`<RECEIVED> <0xAA>`|0xC6 0xAA|
+|3|`QQ`|0x10|interface|`<STARTED> <0x10>`|0xC8 0x90|
+|4|`ZZ`|0x08|ebusd|`<0x08>`|0x08|
+|5|`ZZ`|0x08|interface|`<0x08>`|0x08|
+|6|`PB`|0x95|ebusd|`<SEND> <0x95>`|0xC6 0x95|
+|7|`PB`|0x95|interface|`<RECEIVED> <0x95>`|0xC6 0x95|
+|8|`SB`|0x12|ebusd|`<0x12>`|0x12|
+|9|`SB`|0x12|interface|`<0x12>`|0x12|
+|10|`NN`|0x00|ebusd|`<0x00>`|0x00|
+|11|`NN`|0x00|interface|`<0x00>`|0x00|
+|12|`CRC`|0xB1|ebusd|`<SEND> <0xB1>`|0xC6 0xB1|
+|13|`CRC`|0xB1|interface|`<RECEIVED> <0xB1>`|0xC6 0xB1|
+|14|`ACK`|0x00|interface|`<0x00>`|0x00|
+|15|`NN`|0x01|interface|`<0x01>`|0x01|
+|16|`DD`|0x64|interface|`<0x64>`|0x64|
+|17|`CRC`|0xFF|interface|`<RECEIVED> <0xFF>`|0xC7 0xBF|
+|18|`ACK`|0x00|ebusd|`<0x00>`|0x00|
+|19|`ACK`|0x00|interface|`<0x00>`|0x00|
+|20|`SYN`|0xAA|interface|`<RECEIVED> <0xAA>`|0xC6 0xAA|
 
 
 ### Active successful send as SYN generator
@@ -127,14 +127,13 @@ The same data sequence `1008951200 / 0164` when initiated by ebusd as master (wi
 |1| | |ebusd|`<START> <0x10>`|0xC8 0x90|
 |2|`SYN`|0xAA|ebusd|`<SEND> <0xAA>`|0xC6 0xAA|
 |3|`SYN`|0xAA|interface|`<RECEIVED> <0xAA>`|0xC6 0xAA|
-|4| | |interface|`<STARTED> <0x10>`|0xC8 0x90|
-|5|`QQ`|0x10|interface|`<0x10>`|0x10|
+|4|`QQ`|0x10|interface|`<STARTED> <0x10>`|0xC8 0x90|
 |...|see above| | | | |
-The rest of the communcation is the same as before (from 5.)
+The rest of the communcation is the same as before (from 4.)
 
 
 ### Active failed traffic
-A failed arbitration when initiated by ebusd as master (with address 0x15) would usually be transferred as follows (with all extra symbols seen on the bus):
+A failed arbitration when initiated by ebusd as master (with address 0x10) would usually be transferred as follows (with all extra symbols seen on the bus):
 
 |order|eBUS proto|eBUS byte|sender|enhanced proto|enhanced byte|
 |----:|-----|-----|-----|-----|-----|
