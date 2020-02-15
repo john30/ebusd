@@ -468,7 +468,8 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
         }
         m_arbitrationMaster = SYN;
         m_arbitrationCheck = false;
-        break;
+        *value = data;
+        return true;
       case ENH_RES_FAILED:
         *arbitrationState = as_lost;
         if (m_listener != NULL) {
@@ -476,7 +477,8 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
         }
         m_arbitrationMaster = SYN;
         m_arbitrationCheck = false;
-        break;
+        *value = data;
+        return true;
       case ENH_RES_RECEIVED:
         *value = data;
         return true;
