@@ -50,6 +50,14 @@ first    second
     `<FAILED> <master>`  
     Indicates that the last arbitration request failed (arbitration was lost or sending failed).  
     The data byte in `d` contains the master address that has won the arbitration.
+  * eBUS communication error  
+    `<ERROR_EBUS> <error>`  
+    Indicates an error in the eBUS UART.  
+    The data byte in `d` contains the error message.
+  * host communication error  
+    `<ERROR_HOST> <error>`  
+    Indicates an error in the host UART.  
+    The data byte in `d` contains the error message.
 
 
 ## Symbols
@@ -69,6 +77,10 @@ These are the predefined symbols as used above.
  * RECEIVED 0x1
  * STARTED 0x2
  * FAILED 0xa
+
+### Error codes (from interface to ebusd)
+ * ERR_FRAMING 0x00: framing error
+ * ERR_OVERRUN 0x00: buffer overrun error
 
 
 ## Examples

@@ -40,6 +40,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
+#include <ios>
+#include <iomanip>
 #include "lib/ebus/data.h"
 
 namespace ebusd {
@@ -58,6 +60,12 @@ namespace ebusd {
 #define ENH_REQ_START ((uint8_t)0x2)
 #define ENH_RES_STARTED ((uint8_t)0x2)
 #define ENH_RES_FAILED ((uint8_t)0xa)
+#define ENH_RES_ERROR_EBUS ((uint8_t)0xb)
+#define ENH_RES_ERROR_HOST ((uint8_t)0xc)
+
+// ebusd enhanced error codes for the ERROR_* responses
+#define ENH_ERR_FRAMING ((uint8_t)0x00)
+#define ENH_ERR_OVERRUN ((uint8_t)0x01)
 
 #define ENH_BYTE_FLAG ((uint8_t)0x80)
 #define ENH_BYTE_MASK ((uint8_t)0xc0)
@@ -450,13 +458,13 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
       }
       return false;
     }
-    ch2 = (symbol_t)(((ch&0x03)<<6) | (ch2&0x3f));
-    ch = (ch>>2)&0xf;
-    switch (ch) {
+    symbol_t data = (symbol_t)(((ch&0x03)<<6) | (ch2&0x3f));
+    symbol_t cmd = (ch>>2)&0xf;
+    switch (cmd) {
       case ENH_RES_STARTED:
         *arbitrationState = as_won;
         if (m_listener != NULL) {
-          m_listener->notifyDeviceData(ch2, false);
+          m_listener->notifyDeviceData(data, false);
         }
         m_arbitrationMaster = SYN;
         m_arbitrationCheck = false;
@@ -464,15 +472,15 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
       case ENH_RES_FAILED:
         *arbitrationState = as_lost;
         if (m_listener != NULL) {
-          m_listener->notifyDeviceData(ch2, false);
+          m_listener->notifyDeviceData(data, false);
         }
         m_arbitrationMaster = SYN;
         m_arbitrationCheck = false;
         break;
       case ENH_RES_RECEIVED:
-        *value = ch2;
+        *value = data;
         return true;
-      case ENH_RES_RESETTED: // TODO
+      case ENH_RES_RESETTED:
         if (*arbitrationState != as_none) {
           *arbitrationState = as_error;
         }
@@ -481,9 +489,35 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
           m_listener->notifyStatus(false, "reset");
         }
         break;
+      case ENH_RES_ERROR_EBUS:
+      case ENH_RES_ERROR_HOST:
+        if (m_listener != nullptr) {
+          ostringstream stream;
+          stream << (cmd==ENH_RES_ERROR_EBUS ? "eBUS comm error: " : "host comm error: ");
+          switch (data) {
+            case ENH_ERR_FRAMING:
+              stream << "framing";
+              break;
+            case ENH_ERR_OVERRUN:
+              stream << "overrun";
+              break;
+            default:
+              stream << "unknown 0x" << std::setw(2) << std::setfill('0') << std::hex << static_cast<unsigned>(data);
+              break;
+          }
+          string str = stream.str();
+          m_listener->notifyStatus(true, str.c_str());
+        }
+        if (*arbitrationState != as_none) {
+          *arbitrationState = as_error;
+        }
+        break;
       default:
         if (m_listener != nullptr) {
-          m_listener->notifyStatus(true, "unexpected enhanced command");
+          ostringstream stream;
+          stream << "unexpected enhanced command 0x" << std::setw(2) << std::setfill('0') << std::hex << static_cast<unsigned>(cmd);
+          string str = stream.str();
+          m_listener->notifyStatus(true, str.c_str());
         }
         return false;
     }
