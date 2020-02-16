@@ -216,7 +216,6 @@ result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* a
   }
   bool repeat = false;
   bool repeated = false;
-  ArbitrationState prevState = *arbitrationState;
   do {
     repeat = false;
     bool isAvailable = available();
@@ -271,6 +270,7 @@ result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* a
       if (!isAvailable && incomplete && !repeated) {
         // for a two-byte transfer another poll is needed
         repeat = true;
+        repeated = true;
         timeout = ENHANCED_COMPLETE_WAIT_DURATION;
         continue;
       }
@@ -281,12 +281,7 @@ result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* a
     if (m_listener != nullptr) {
       m_listener->notifyDeviceData(*value, true);
     }
-    if (m_enhancedProto) {
-      if (*arbitrationState != prevState) {
-        m_arbitrationMaster = SYN;
-        m_arbitrationCheck = false;
-      }
-    } else if (m_arbitrationMaster != SYN) {
+    if (!m_enhancedProto && m_arbitrationMaster != SYN) {
       if (m_arbitrationCheck) {
         *arbitrationState = *value == m_arbitrationMaster ? as_won : as_lost;
         m_arbitrationMaster = SYN;
@@ -485,6 +480,8 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
       case ENH_RES_RESETTED:
         if (*arbitrationState != as_none) {
           *arbitrationState = as_error;
+          m_arbitrationMaster = SYN;
+          m_arbitrationCheck = false;
         }
         // TODO define additional feature flags
         if (m_listener != nullptr) {
@@ -512,6 +509,8 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
         }
         if (*arbitrationState != as_none) {
           *arbitrationState = as_error;
+          m_arbitrationMaster = SYN;
+          m_arbitrationCheck = false;
         }
         break;
       default:
