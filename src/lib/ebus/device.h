@@ -241,9 +241,9 @@ class NetworkDevice : public Device {
    * @param initialSend whether to send an initial @a ESC symbol in @a open().
    * @param udp true for UDP, false to TCP.
    */
-  NetworkDevice(const char* name, const struct sockaddr_in& address, bool readOnly, bool initialSend,
-    bool udp)
-    : Device(name, true, readOnly, initialSend), m_address(address), m_udp(udp),
+  NetworkDevice(const char* name, const char* address, in_port_t port, bool readOnly,
+    bool initialSend, bool udp)
+    : Device(name, true, readOnly, initialSend), m_address(address), m_port(port), m_udp(udp),
       m_buffer(nullptr), m_bufSize(0), m_bufLen(0), m_bufPos(0) {}
 
   /**
@@ -279,8 +279,11 @@ class NetworkDevice : public Device {
 
 
  private:
-  /** the socket address of the device. */
-  const struct sockaddr_in m_address;
+  /** the network address of the device. */
+  const char* m_address;
+
+  /** the TCP/UDP port of the device. */
+  in_port_t m_port;
 
   /** true for UDP, false to TCP. */
   const bool m_udp;
