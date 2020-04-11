@@ -45,6 +45,7 @@ using std::dec;
 #define O_CERT (O_CAFI+1)
 #define O_KEYF (O_CERT+1)
 #define O_KEPA (O_KEYF+1)
+#define O_INSE (O_KEPA+1)
 
 /** the definition of the MQTT arguments. */
 static const struct argp_option g_mqtt_argp_options[] = {
@@ -74,6 +75,7 @@ static const struct argp_option g_mqtt_argp_options[] = {
   {"mqttcert",    O_CERT, "CERTFILE",    0, "Use CERTFILE for MQTT TLS client certificate (no default)", 0 },
   {"mqttkey",     O_KEYF, "KEYFILE",     0, "Use KEYFILE for MQTT TLS client certificate (no default)", 0 },
   {"mqttkeypass", O_KEPA, "PASSWORD",    0, "Use PASSWORD for the encrypted KEYFILE (no default)", 0 },
+  {"mqttinsecure",O_INSE, nullptr,       0, "Allow insecure TLS connection (e.g. using a self signed certificate)", 0 },
 #endif
 
   {nullptr,       0,      nullptr,       0, nullptr, 0 },
@@ -105,6 +107,7 @@ static const char* g_capath = nullptr;    //!< CA path for TLS
 static const char* g_certfile = nullptr;  //!< client certificate file for TLS
 static const char* g_keyfile = nullptr;   //!< client key file for TLS
 static const char* g_keypass = nullptr;   //!< client key file password for TLS
+static bool g_insecure = false;           //!< whether to allow insecure TLS connection
 #endif
 
 bool parseTopic(const string& topic, vector<string>* strs, vector<string>* fields);
@@ -247,6 +250,9 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
         return EINVAL;
       }
       g_keypass = replaceSecret(arg);
+      break;
+    case O_INSE: //--mqttinsecure
+      g_insecure = true;
       break;
 #endif
 
@@ -508,6 +514,11 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
       ret = mosquitto_tls_set(m_mosquitto, g_cafile, g_capath, g_certfile, g_keyfile, on_keypassword);
       if (ret != MOSQ_ERR_SUCCESS) {
         logOtherError("mqtt", "unable to set TLS: %d", ret);
+      } else if (g_insecure) {
+        ret = mosquitto_tls_insecure_set(m_mosquitto, true);
+        if (ret != MOSQ_ERR_SUCCESS) {
+          logOtherError("mqtt", "unable to set TLS insecure: %d", ret);
+        }
       }
     }
 #endif
