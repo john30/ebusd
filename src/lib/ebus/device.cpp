@@ -316,7 +316,7 @@ result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* a
 
 result_t Device::startArbitration(symbol_t masterAddress) {
   if (m_arbitrationCheck) {
-    return RESULT_ERR_SEND; // should not occur
+    return RESULT_ERR_ARB_RUNNING; // should not occur
   }
   if (m_readOnly) {
     return RESULT_ERR_SEND;
