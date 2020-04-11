@@ -160,6 +160,12 @@ class DataSink : virtual public DataHandler {
    */
   virtual void notifyUpdateCheckResult(const string& checkResult) {}
 
+  /**
+   * Notify the sink of the latest scan status.
+   * @param scanStatus a string describing the scan status.
+   */
+  virtual void notifyScanStatus(const string& scanStatus) {}
+
  protected:
   /** the allowed access levels. */
   string m_levels;
