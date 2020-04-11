@@ -256,6 +256,9 @@ result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* a
 #endif
 #endif
       if (ret == -1) {
+#ifdef DEBUG_RAW_TRAFFIC
+        fprintf(stdout, "poll error %d\n", errno);
+#endif
         close();
         return RESULT_ERR_DEVICE;
       }
@@ -349,6 +352,9 @@ bool Device::available() {
   for (size_t pos = 0; pos < m_bufLen; pos++) {
     symbol_t ch = m_buffer[(pos+m_bufPos)%m_bufSize];
     if (!(ch&ENH_BYTE_FLAG)) {
+#ifdef DEBUG_RAW_TRAFFIC
+      fprintf(stdout, "raw avail direct\n");
+#endif
       return true;
     }
     if ((ch&ENH_BYTE_MASK) == ENH_BYTE1) {
@@ -358,6 +364,9 @@ bool Device::available() {
       // peek into next byte to check if enhanced sequence is ok
       ch = m_buffer[(pos+m_bufPos+1)%m_bufSize];
       if (!(ch&ENH_BYTE_FLAG) || (ch&ENH_BYTE_MASK) != ENH_BYTE2) {
+#ifdef DEBUG_RAW_TRAFFIC
+        fprintf(stdout, "raw avail enhanced following bad\n");
+#endif
         if (m_listener != nullptr) {
           m_listener->notifyStatus(true, "unexpected available enhanced following byte 1");
         }
@@ -367,8 +376,14 @@ bool Device::available() {
         pos--;
         continue;
       }
+#ifdef DEBUG_RAW_TRAFFIC
+      fprintf(stdout, "raw avail enhanced\n");
+#endif
       return true;
     }
+#ifdef DEBUG_RAW_TRAFFIC
+    fprintf(stdout, "raw avail enhanced bad\n");
+#endif
     if (m_listener != nullptr) {
       m_listener->notifyStatus(true, "unexpected available enhanced byte 2");
     }
@@ -409,6 +424,13 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
     if (size <= 0) {
       return false;
     }
+#ifdef DEBUG_RAW_TRAFFIC
+    fprintf(stdout, "raw <");
+    for (int pos=0; pos<size; pos++) {
+      fprintf(stdout, " %2.2x", m_buffer[m_bufLen+pos]);
+    }
+    fprintf(stdout, "\n");
+#endif
     m_bufLen += size;
   }
   if (!available()) {
