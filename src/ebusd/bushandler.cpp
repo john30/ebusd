@@ -67,7 +67,8 @@ result_t PollRequest::prepare(symbol_t ownMasterAddress) {
   istringstream input;
   result_t result = m_message->prepareMaster(m_index, ownMasterAddress, SYN, UI_FIELD_SEPARATOR, &input, &m_master);
   if (result == RESULT_OK) {
-    logInfo(lf_bus, "poll cmd: %s", m_master.getStr().c_str());
+    string str = m_master.getStr();
+    logInfo(lf_bus, "poll cmd: %s", str.c_str());
   }
   return result;
 }
@@ -99,7 +100,8 @@ result_t ScanRequest::prepare(symbol_t ownMasterAddress) {
   istringstream input;
   m_result = m_message->prepareMaster(m_index, ownMasterAddress, dstAddress, UI_FIELD_SEPARATOR, &input, &m_master);
   if (m_result >= RESULT_OK) {
-    logInfo(lf_bus, "scan %2.2x cmd: %s", dstAddress, m_master.getStr().c_str());
+    string str = m_master.getStr();
+    logInfo(lf_bus, "scan %2.2x cmd: %s", dstAddress, str.c_str());
   }
   return m_result;
 }
@@ -181,7 +183,8 @@ bool ScanRequest::notify(result_t result, const SlaveSymbolString& slave) {
 
 bool ActiveBusRequest::notify(result_t result, const SlaveSymbolString& slave) {
   if (result == RESULT_OK) {
-    logDebug(lf_bus, "read res: %s", slave.getStr().c_str());
+    string str = m_master.getStr();
+    logDebug(lf_bus, "read res: %s", str.c_str());
   }
   m_result = result;
   *m_slave = slave;
