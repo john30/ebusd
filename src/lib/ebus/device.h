@@ -237,19 +237,23 @@ class NetworkDevice : public Device {
    * Construct a new instance.
    * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
    * @param address the socket address of the device.
+   * @param hostOrIp the host name or IP address of the device.
+   * @param port the TCP or UDP port of the device.
    * @param readOnly whether to allow read access to the device only.
    * @param initialSend whether to send an initial @a ESC symbol in @a open().
    * @param udp true for UDP, false to TCP.
    */
-  NetworkDevice(const char* name, const struct sockaddr_in& address, bool readOnly, bool initialSend,
-    bool udp)
-    : Device(name, true, readOnly, initialSend), m_address(address), m_udp(udp),
+  NetworkDevice(const char* name, const char* hostOrIp, uint16_t port, bool readOnly, bool initialSend, bool udp)
+    : Device(name, true, readOnly, initialSend), m_hostOrIp(hostOrIp), m_port(port), m_udp(udp),
       m_buffer(nullptr), m_bufSize(0), m_bufLen(0), m_bufPos(0) {}
 
   /**
    * Destructor.
    */
   virtual ~NetworkDevice() {
+    if (m_hostOrIp) {
+      free((void*)m_hostOrIp);
+    }
     if (m_buffer) {
       free(m_buffer);
     }
@@ -279,8 +283,11 @@ class NetworkDevice : public Device {
 
 
  private:
-  /** the socket address of the device. */
-  const struct sockaddr_in m_address;
+  /** the host name or IP address of the device. */
+  const char* m_hostOrIp;
+
+  /** the TCP or UDP port of the device. */
+  const uint16_t m_port;
 
   /** true for UDP, false to TCP. */
   const bool m_udp;
