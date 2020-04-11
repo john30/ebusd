@@ -91,7 +91,10 @@ class MqttHandler : public DataSink, public DataSource, public WaitThread {
   // @copydoc
   void notifyUpdateCheckResult(const string& checkResult) override;
 
- protected:
+  // @copydoc
+  void notifyScanStatus(const string& scanStatus) override;
+
+protected:
   // @copydoc
   void run() override;
 
@@ -158,6 +161,9 @@ class MqttHandler : public DataSink, public DataSource, public WaitThread {
 
   /** the last update check result. */
   string m_lastUpdateCheckResult;
+
+  /** the last scan status. */
+  string m_lastScanStatus;
 
   /** the last system time when a communication error was logged. */
   time_t m_lastErrorLogTime;

@@ -441,7 +441,7 @@ void on_message(
 
 MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages)
   : DataSink(userInfo, "mqtt"), DataSource(busHandler), WaitThread(), m_messages(messages), m_connected(false),
-    m_initialConnectFailed(false), m_lastUpdateCheckResult("."), m_lastErrorLogTime(0) {
+    m_initialConnectFailed(false), m_lastUpdateCheckResult("."), m_lastScanStatus("."), m_lastErrorLogTime(0) {
   m_publishByField = false;
   m_mosquitto = nullptr;
   if (g_topicFields.empty()) {
@@ -722,6 +722,14 @@ void MqttHandler::notifyUpdateCheckResult(const string& checkResult) {
   }
 }
 
+void MqttHandler::notifyScanStatus(const string& scanStatus) {
+  if (scanStatus != m_lastScanStatus) {
+    m_lastScanStatus = scanStatus;
+    const string sep = (g_publishFormat & OF_JSON) ? "\"" : "";
+    publishTopic(m_globalTopic+"scan", sep + (scanStatus.empty() ? "OK" : scanStatus) + sep, true);
+  }
+}
+
 void MqttHandler::run() {
   time_t lastTaskRun, now, start, lastSignal = 0, lastUpdates = 0;
   bool signal = false;
@@ -798,6 +806,7 @@ void MqttHandler::run() {
     }
   }
   publishTopic(signalTopic, "false", true);
+  publishTopic(m_globalTopic+"scan", "", true); // clear retain of scan status
 }
 
 bool MqttHandler::handleTraffic(bool allowReconnect) {
