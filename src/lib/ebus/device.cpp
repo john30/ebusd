@@ -126,7 +126,7 @@ Device* Device::create(const char* name, bool checkDevice, bool readOnly, bool i
       return nullptr;  // invalid protocol or missing port
     }
     result_t result = RESULT_OK;
-    unsigned int port = parseInt(portpos+1, 10, 1, 65535, &result);
+    uint16_t port = (uint16_t)parseInt(portpos+1, 10, 1, 65535, &result);
     if (result != RESULT_OK) {
       free(in);
       return nullptr;  // invalid port
