@@ -1,4 +1,9 @@
 pipeline {
+    triggers {
+        cron('H 3 * * *')
+        pollSCM('H */3 * * 1-5')
+    }
+    
     environment {
         registry = "comdata456/ebusd"
         registryCredential = 'docker-hub-credentials'
