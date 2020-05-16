@@ -415,6 +415,7 @@ int main() {
     {"x,,exp", "-32.767", "10feffff04681103c2", "00", ""},
     {"x,,exp,1000", "-0.000090000",  "10feffff04ec51b8bd", "00", ""},
     {"x,,exp,-100", "-9",  "10feffff04ec51b8bd", "00", ""},
+    {"x,,exp", "0.25",  "10feffff040000803e", "00", ""},
     {"x,,exp", "-",      "10feffff040000c07f", "00", "W"},
     {"x,,exr", "-0.09",  "10feffff04bdb851ec", "00", ""},
     {"x,,exr", "0.0",    "10feffff0400000000", "00", ""},
@@ -528,7 +529,7 @@ int main() {
   templates->readLineFromStream(&dummystr, __FILE__, false, &lineNo, &row, &errorDescription, false, nullptr, nullptr);
   const DataField* fields = nullptr;
   for (unsigned int i = 0; i < sizeof(checks) / sizeof(checks[0]); i++) {
-    string check[5] = checks[i];
+    string* check = checks[i];
     istringstream isstr(check[0]);
     string expectStr = check[1];
     MasterSymbolString mstr;
