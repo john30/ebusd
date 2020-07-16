@@ -46,6 +46,7 @@ using std::dec;
 #define O_KEYF (O_CERT+1)
 #define O_KEPA (O_KEYF+1)
 #define O_INSE (O_KEPA+1)
+#define O_AZUR (O_INSE+1)
 
 /** the definition of the MQTT arguments. */
 static const struct argp_option g_mqtt_argp_options[] = {
@@ -69,6 +70,7 @@ static const struct argp_option g_mqtt_argp_options[] = {
   {"mqttignoreinvalid", O_IGIN, nullptr, 0,
    "Ignore invalid parameters during init (e.g. for DNS not resolvable yet)", 0 },
   {"mqttchanges", O_CHGS, nullptr,       0, "Whether to only publish changed messages instead of all received", 0 },
+  {"mqttazureiot",O_AZUR, nullptr,       0, "User Azure IoT Hub compatibility mode: disable dynamic topics and include circuit/name in payload", 0 },
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
   {"mqttca",      O_CAFI, "CA",          0, "Use CA file or dir (ending with '/') for MQTT TLS (no default)", 0 },
@@ -109,6 +111,8 @@ static const char* g_keyfile = nullptr;   //!< client key file for TLS
 static const char* g_keypass = nullptr;   //!< client key file password for TLS
 static bool g_insecure = false;           //!< whether to allow insecure TLS connection
 #endif
+
+static bool g_azureIoTcompat = false;
 
 bool parseTopic(const string& topic, vector<string>* strs, vector<string>* fields);
 
@@ -211,6 +215,10 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
 
   case O_CHGS:
     g_onlyChanges = true;
+    break;
+
+  case O_AZUR:
+    g_azureIoTcompat = true;
     break;
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
@@ -464,7 +472,7 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
       }
     }
   }
-  m_globalTopic = getTopic(nullptr, "global/");
+  m_globalTopic = getTopic(nullptr, "global/") + (g_azureIoTcompat?"&":"");
   m_subscribeTopic = getTopic(nullptr, "#");
   if (check(mosquitto_lib_init(), "unable to initialize")) {
     signal(SIGPIPE, SIG_IGN);  // needed before libmosquitto v. 1.1.3
@@ -493,10 +501,13 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
       if (!g_username) {
         g_username = PACKAGE;
       }
+      logOtherDebug("mqtt", "PW: '%s' User: '%s'", g_password, g_username);
       if (mosquitto_username_pw_set(m_mosquitto, g_username, g_password) != MOSQ_ERR_SUCCESS) {
         logOtherError("mqtt", "unable to set username/password, trying without");
       }
     }
+    if (!g_azureIoTcompat) {
+// TODO: post a last will to the global topic
     string willTopic = m_globalTopic+"running";
     string willData = "false";
     size_t len = willData.length();
@@ -507,7 +518,7 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
     mosquitto_will_set(m_mosquitto, true, willTopic.c_str(), (uint32_t)len,
         reinterpret_cast<const uint8_t*>(willData.c_str()), 0, true);
 #endif
-
+   }
 #if (LIBMOSQUITTO_MAJOR >= 1)
     if (g_cafile || g_capath) {
       int ret;
@@ -519,6 +530,8 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
         if (ret != MOSQ_ERR_SUCCESS) {
           logOtherError("mqtt", "unable to set TLS insecure: %d", ret);
         }
+      } else {
+          logOtherDebug("mqtt", "TLS success");
       }
     }
 #endif
@@ -860,21 +873,27 @@ bool MqttHandler::handleTraffic(bool allowReconnect) {
 
 string MqttHandler::getTopic(const Message* message, const string& suffix, const string& fieldName) {
   ostringstream ret;
-  for (size_t i = 0; i < g_topicStrs.size(); i++) {
-    ret << g_topicStrs[i];
-    if (!message) {
-      break;
-    }
-    if (i < g_topicFields.size()) {
-      if (g_topicFields[i] == "field") {
-        ret << fieldName;
-      } else {
-        message->dumpField(g_topicFields[i], false, &ret);
+  if (!g_azureIoTcompat) {
+    for (size_t i = 0; i < g_topicStrs.size(); i++) {
+      ret << g_topicStrs[i];
+      if (!message) {
+        break;
+      }
+      if (i < g_topicFields.size()) {
+        if (g_topicFields[i] == "field") {
+          ret << fieldName;
+        } else {
+          message->dumpField(g_topicFields[i], false, &ret);
+        }
       }
     }
+    if (!suffix.empty()) {
+      ret << suffix;
+    }
   }
-  if (!suffix.empty()) {
-    ret << suffix;
+  else {
+	  // need to set system properties to make sure the body is not base64 encoded
+	  ret << g_topicStrs[0] << "$.ct=application%2Fjson&$.ce=utf-8";
   }
   return ret.str();
 }
@@ -890,6 +909,15 @@ void MqttHandler::publishMessage(const Message* message, ostringstream* updates,
     }
     if (json) {
       *updates << "{";
+
+      if (g_azureIoTcompat) {
+        for (size_t i = 0; i < g_topicFields.size(); i++) {
+	  *updates << "\"" << g_topicFields[i] << "\": \"";
+          message->dumpField(g_topicFields[i], false, updates);
+	  *updates << "\",\n";
+        }
+	*updates << "\"data\":{";
+      }
     }
     result_t result = message->decodeLastData(false, nullptr, -1, outputFormat, updates);
     if (result != RESULT_OK) {
@@ -898,6 +926,9 @@ void MqttHandler::publishMessage(const Message* message, ostringstream* updates,
       return;
     }
     if (json) {
+      if (g_azureIoTcompat) {
+        *updates << "}";
+      }
       *updates << "}";
     }
     publishTopic(getTopic(message), updates->str());
