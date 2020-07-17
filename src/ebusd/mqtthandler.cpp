@@ -501,14 +501,12 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
       if (!g_username) {
         g_username = PACKAGE;
       }
-      logOtherDebug("mqtt", "PW: '%s' User: '%s'", g_password, g_username);
       if (mosquitto_username_pw_set(m_mosquitto, g_username, g_password) != MOSQ_ERR_SUCCESS) {
         logOtherError("mqtt", "unable to set username/password, trying without");
       }
     }
-    if (!g_azureIoTcompat) {
-// TODO: post a last will to the global topic
-    string willTopic = m_globalTopic+"running";
+    // Azure IoT compat: need to be set to the global topic
+    string willTopic = m_globalTopic+(g_azureIoTcompat?"":"running");
     string willData = "false";
     size_t len = willData.length();
 #if (LIBMOSQUITTO_MAJOR >= 1)
@@ -518,7 +516,7 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
     mosquitto_will_set(m_mosquitto, true, willTopic.c_str(), (uint32_t)len,
         reinterpret_cast<const uint8_t*>(willData.c_str()), 0, true);
 #endif
-   }
+   
 #if (LIBMOSQUITTO_MAJOR >= 1)
     if (g_cafile || g_capath) {
       int ret;
@@ -530,8 +528,6 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
         if (ret != MOSQ_ERR_SUCCESS) {
           logOtherError("mqtt", "unable to set TLS insecure: %d", ret);
         }
-      } else {
-          logOtherDebug("mqtt", "TLS success");
       }
     }
 #endif
@@ -911,6 +907,7 @@ void MqttHandler::publishMessage(const Message* message, ostringstream* updates,
       *updates << "{";
 
       if (g_azureIoTcompat) {
+        // encode fields like circuit, name, ... into JSON body
         for (size_t i = 0; i < g_topicFields.size(); i++) {
 	  *updates << "\"" << g_topicFields[i] << "\": \"";
           message->dumpField(g_topicFields[i], false, updates);
