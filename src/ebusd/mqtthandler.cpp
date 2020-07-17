@@ -70,7 +70,7 @@ static const struct argp_option g_mqtt_argp_options[] = {
   {"mqttignoreinvalid", O_IGIN, nullptr, 0,
    "Ignore invalid parameters during init (e.g. for DNS not resolvable yet)", 0 },
   {"mqttchanges", O_CHGS, nullptr,       0, "Whether to only publish changed messages instead of all received", 0 },
-  {"mqttazureiot",O_AZUR, nullptr,       0, "User Azure IoT Hub compatibility mode: disable dynamic topics and include circuit/name in payload", 0 },
+  {"mqttazureiot",O_AZUR, nullptr,       0, "Use Azure IoT Hub compatibility mode: disable dynamic topics and include circuit/name in payload", 0 },
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
   {"mqttca",      O_CAFI, "CA",          0, "Use CA file or dir (ending with '/') for MQTT TLS (no default)", 0 },
