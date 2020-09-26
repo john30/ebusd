@@ -47,6 +47,7 @@ using std::dec;
 #define O_KEPA (O_KEYF+1)
 #define O_INSE (O_KEPA+1)
 #define O_AZUR (O_INSE+1)
+#define O_JCTN (O_AZUR+1)
 
 /** the definition of the MQTT arguments. */
 static const struct argp_option g_mqtt_argp_options[] = {
@@ -70,7 +71,9 @@ static const struct argp_option g_mqtt_argp_options[] = {
   {"mqttignoreinvalid", O_IGIN, nullptr, 0,
    "Ignore invalid parameters during init (e.g. for DNS not resolvable yet)", 0 },
   {"mqttchanges", O_CHGS, nullptr,       0, "Whether to only publish changed messages instead of all received", 0 },
-  {"mqttazureiot",O_AZUR, nullptr,       0, "Use Azure IoT Hub compatibility mode: disable dynamic topics and include circuit/name in payload", 0 },
+  {"mqttazureiot",O_AZUR, nullptr,       0, "Use Azure IoT Hub compatibility mode: disable dynamic topics and include circuit/name in payload. "
+                                            "Make sure to append '$.ct=application%2Fjson&$.ce=utf-8' to the topic name.", 0 },
+  {"mqttjsoncircuitname", O_JCTN, nullptr, 0, "Embed circuit name into JSON payload", 0 },
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
   {"mqttca",      O_CAFI, "CA",          0, "Use CA file or dir (ending with '/') for MQTT TLS (no default)", 0 },
@@ -113,6 +116,7 @@ static bool g_insecure = false;           //!< whether to allow insecure TLS con
 #endif
 
 static bool g_azureIoTcompat = false;
+static bool g_jsonCircuitName = false;
 
 bool parseTopic(const string& topic, vector<string>* strs, vector<string>* fields);
 
@@ -220,6 +224,9 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
   case O_AZUR:
     g_azureIoTcompat = true;
     break;
+
+  case O_JCTN:
+    g_jsonCircuitName = true;
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
     case O_CAFI:  // --mqttca=file or --mqttca=dir/
@@ -869,27 +876,21 @@ bool MqttHandler::handleTraffic(bool allowReconnect) {
 
 string MqttHandler::getTopic(const Message* message, const string& suffix, const string& fieldName) {
   ostringstream ret;
-  if (!g_azureIoTcompat) {
-    for (size_t i = 0; i < g_topicStrs.size(); i++) {
-      ret << g_topicStrs[i];
-      if (!message) {
-        break;
-      }
-      if (i < g_topicFields.size()) {
-        if (g_topicFields[i] == "field") {
-          ret << fieldName;
-        } else {
-          message->dumpField(g_topicFields[i], false, &ret);
-        }
-      }
+  for (size_t i = 0; i < g_topicStrs.size(); i++) {
+    ret << g_topicStrs[i];
+    if (!message) {
+      break;
     }
-    if (!suffix.empty()) {
-      ret << suffix;
+    if (i < g_topicFields.size()) {
+      if (g_topicFields[i] == "field") {
+        ret << fieldName;
+      } else {
+        message->dumpField(g_topicFields[i], false, &ret);
+      }
     }
   }
-  else {
-	  // need to set system properties to make sure the body is not base64 encoded
-	  ret << g_topicStrs[0] << "$.ct=application%2Fjson&$.ce=utf-8";
+  if (!suffix.empty()) {
+    ret << suffix;
   }
   return ret.str();
 }
@@ -906,14 +907,14 @@ void MqttHandler::publishMessage(const Message* message, ostringstream* updates,
     if (json) {
       *updates << "{";
 
-      if (g_azureIoTcompat) {
+      if (g_jsonCircuitName) {
         // encode fields like circuit, name, ... into JSON body
         for (size_t i = 0; i < g_topicFields.size(); i++) {
-	  *updates << "\"" << g_topicFields[i] << "\": \"";
+          *updates << "\"" << g_topicFields[i] << "\": \"";
           message->dumpField(g_topicFields[i], false, updates);
-	  *updates << "\",\n";
+          *updates << "\",\n";
         }
-	*updates << "\"data\":{";
+        *updates << "\"data\":{";
       }
     }
     result_t result = message->decodeLastData(false, nullptr, -1, outputFormat, updates);
@@ -923,7 +924,7 @@ void MqttHandler::publishMessage(const Message* message, ostringstream* updates,
       return;
     }
     if (json) {
-      if (g_azureIoTcompat) {
+      if (g_jsonCircuitName) {
         *updates << "}";
       }
       *updates << "}";
