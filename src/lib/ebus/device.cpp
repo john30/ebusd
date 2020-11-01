@@ -473,7 +473,7 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
       case ENH_RES_FAILED:
         *arbitrationState = as_lost;
         if (m_listener != NULL) {
-          m_listener->notifyDeviceData(data, false);
+          m_listener->notifyDeviceData(m_arbitrationMaster, false);
         }
         m_arbitrationMaster = SYN;
         m_arbitrationCheck = false;
