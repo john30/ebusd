@@ -647,7 +647,17 @@ result_t BusHandler::handleSymbol() {
     case as_running:
       break;
     case as_error:
-      logError(lf_bus, "arbitration start error"); // TODO cancel all requests?
+      logError(lf_bus, "arbitration start error");
+      // cancel request
+      if (!m_currentRequest) {
+        BusRequest *startRequest = m_nextRequests.peek();
+        if (startRequest && m_nextRequests.remove(startRequest)) {
+          m_currentRequest = startRequest;
+        }
+      }
+      if (m_currentRequest) {
+        setState(m_state, RESULT_ERR_BUS_LOST);
+      }
       break;
     default: // only as_none
       break;
