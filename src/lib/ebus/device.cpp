@@ -73,17 +73,9 @@ namespace ebusd {
 #define ENH_BYTE2 ((uint8_t)0x80)
 #define makeEnhancedSequence(cmd, data) {(uint8_t)(ENH_BYTE1 | ((cmd)<<2) | (((data)&0xc0)>>6)), (uint8_t)(ENH_BYTE2 | ((data)&0x3f))}
 
-/**
- * Construct a new instance.
- * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
- * @param address the socket address of the device.
- * @param readOnly whether to allow read access to the device only.
- * @param initialSend whether to send an initial @a ESC symbol in @a open().
- * @param udp true for UDP, false to TCP.
- * @param enhancedProto whether to use the ebusd enhanced protocol.
- */
-Device::Device(const char* name, bool checkDevice, bool readOnly, bool initialSend, bool enhancedProto)
-  : m_name(name), m_checkDevice(checkDevice), m_readOnly(readOnly), m_initialSend(initialSend),
+Device::Device(const char* name, bool checkDevice, unsigned int latency, bool readOnly, bool initialSend,
+    bool enhancedProto)
+  : m_name(name), m_checkDevice(checkDevice), m_latency(latency), m_readOnly(readOnly), m_initialSend(initialSend),
     m_enhancedProto(enhancedProto), m_fd(-1), m_listener(nullptr), m_arbitrationMaster(SYN),
     m_arbitrationCheck(false), m_bufSize(((MAX_LEN+1+3)/4)*4), m_bufLen(0), m_bufPos(0) {
   m_buffer = reinterpret_cast<symbol_t*>(malloc(m_bufSize));
@@ -99,7 +91,7 @@ Device::~Device() {
   }
 }
 
-Device* Device::create(const char* name, bool checkDevice, bool readOnly, bool initialSend) {
+Device* Device::create(const char* name, unsigned int extraLatency, bool checkDevice, bool readOnly, bool initialSend) {
   bool enhanced = strncmp(name, "enh:", 4) == 0;
   if (enhanced) {
     name += 4;
@@ -134,10 +126,10 @@ Device* Device::create(const char* name, bool checkDevice, bool readOnly, bool i
     *portpos = 0;
     char* hostOrIp = strdup(addrpos);
     free(in);
-    return new NetworkDevice(name, hostOrIp, port, readOnly, initialSend, udp, enhanced);
+    return new NetworkDevice(name, hostOrIp, port, extraLatency, readOnly, initialSend, udp, enhanced);
   }
   // support enh:/dev/<device>
-  return new SerialDevice(name, checkDevice, readOnly, initialSend, enhanced);
+  return new SerialDevice(name, checkDevice, extraLatency, readOnly, initialSend, enhanced);
 }
 
 result_t Device::open() {
@@ -205,6 +197,7 @@ result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* a
   }
   bool repeat = false;
   bool repeated = false;
+  timeout += m_latency;
   do {
     repeat = false;
     bool isAvailable = available();
@@ -263,7 +256,7 @@ result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* a
         // for a two-byte transfer another poll is needed
         repeat = true;
         repeated = true;
-        timeout = ENHANCED_COMPLETE_WAIT_DURATION;
+        timeout = m_latency+ENHANCED_COMPLETE_WAIT_DURATION;
         continue;
       }
       return RESULT_ERR_TIMEOUT;

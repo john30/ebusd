@@ -141,16 +141,10 @@ MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messag
     }
   }
   // create BusHandler
-  unsigned int latency;
-  if (opt.latency < 0) {
-    latency = device->getLatency();
-  } else {
-    latency = (unsigned int)opt.latency;
-  }
   m_busHandler = new BusHandler(m_device, m_messages,
       m_address, opt.answer,
       opt.acquireRetries, opt.sendRetries,
-      latency, opt.acquireTimeout, opt.receiveTimeout,
+      opt.acquireTimeout, opt.receiveTimeout,
       opt.masterCount, opt.generateSyn,
       opt.pollInterval);
   m_busHandler->start("bushandler");

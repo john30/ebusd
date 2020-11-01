@@ -433,7 +433,7 @@ result_t BusHandler::handleSymbol() {
   // check if another symbol has to be sent and determine timeout for receive
   switch (m_state) {
   case bs_noSignal:
-    timeout = m_generateSynInterval > 0 ? m_generateSynInterval+m_transferLatency : SIGNAL_TIMEOUT;
+    timeout = m_generateSynInterval > 0 ? m_generateSynInterval : SIGNAL_TIMEOUT;
     break;
 
   case bs_skip:
@@ -485,7 +485,7 @@ result_t BusHandler::handleSymbol() {
     break;
 
   case bs_recvCmdAck:
-    timeout = m_slaveRecvTimeout+(m_currentRequest ? m_transferLatency : 0);
+    timeout = m_slaveRecvTimeout;
     break;
 
   case bs_recvRes:
@@ -498,7 +498,7 @@ result_t BusHandler::handleSymbol() {
     break;
 
   case bs_recvResAck:
-    timeout = m_slaveRecvTimeout+m_transferLatency;
+    timeout = m_slaveRecvTimeout;
     break;
 
   case bs_sendCmd:
@@ -565,9 +565,9 @@ result_t BusHandler::handleSymbol() {
     clockGettime(&sentTime);
     if (result == RESULT_OK) {
       if (m_state == bs_ready) {
-        timeout = m_transferLatency+m_busAcquireTimeout;
+        timeout = m_busAcquireTimeout;
       } else {
-        timeout = m_transferLatency+SEND_TIMEOUT;
+        timeout = SEND_TIMEOUT;
       }
     } else {
       sending = false;
@@ -579,7 +579,7 @@ result_t BusHandler::handleSymbol() {
   // receive next symbol (optionally check reception of sent symbol)
   symbol_t recvSymbol;
   ArbitrationState arbitrationState = as_none;
-  result = m_device->recv(timeout+m_transferLatency, &recvSymbol, &arbitrationState);
+  result = m_device->recv(timeout, &recvSymbol, &arbitrationState);
   if (sending) {
     clockGettime(&recvTime);
   }
@@ -593,7 +593,7 @@ result_t BusHandler::handleSymbol() {
     }
     clockGettime(&sentTime);
     recvSymbol = ESC;
-    result = m_device->recv(SEND_TIMEOUT+m_transferLatency, &recvSymbol, &arbitrationState);
+    result = m_device->recv(SEND_TIMEOUT, &recvSymbol, &arbitrationState);
     clockGettime(&recvTime);
     if (result != RESULT_OK) {
       logError(lf_bus, "unable to receive sent AUTO-SYN symbol: %s", getResultCode(result));

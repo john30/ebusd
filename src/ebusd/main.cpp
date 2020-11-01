@@ -1306,7 +1306,11 @@ int main(int argc, char* argv[]) {
   }
 
   // open the device
-  Device *device = Device::create(opt.device, !opt.noDeviceCheck, opt.readOnly, opt.initialSend);
+  unsigned int latency = 0;
+  if (opt.latency >= 0) {
+    latency = (unsigned int)opt.latency;
+  }
+  Device *device = Device::create(opt.device, latency, !opt.noDeviceCheck, opt.readOnly, opt.initialSend);
   if (device == nullptr) {
     logError(lf_main, "unable to create device %s", opt.device);
     return EINVAL;

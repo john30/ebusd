@@ -378,14 +378,14 @@ class BusHandler : public WaitThread {
   BusHandler(Device* device, MessageMap* messages,
       symbol_t ownAddress, bool answer,
       unsigned int busLostRetries, unsigned int failedSendRetries,
-      unsigned int transferLatency, unsigned int busAcquireTimeout, unsigned int slaveRecvTimeout,
+      unsigned int busAcquireTimeout, unsigned int slaveRecvTimeout,
       unsigned int lockCount, bool generateSyn,
       unsigned int pollInterval)
     : WaitThread(), m_device(device), m_reconnect(false), m_messages(messages),
       m_ownMasterAddress(ownAddress), m_ownSlaveAddress(getSlaveAddress(ownAddress)),
       m_answer(answer), m_addressConflict(false),
       m_busLostRetries(busLostRetries), m_failedSendRetries(failedSendRetries),
-      m_transferLatency(transferLatency), m_busAcquireTimeout(busAcquireTimeout), m_slaveRecvTimeout(slaveRecvTimeout),
+      m_busAcquireTimeout(busAcquireTimeout), m_slaveRecvTimeout(slaveRecvTimeout),
       m_masterCount(device->isReadOnly()?0:1), m_autoLockCount(lockCount == 0),
       m_lockCount(lockCount <= 3 ? 3 : lockCount), m_remainLockCount(m_autoLockCount ? 1 : 0),
       m_generateSynInterval(generateSyn ? SYN_TIMEOUT*getMasterNumber(ownAddress)+SYMBOL_DURATION : 0),
@@ -685,9 +685,6 @@ class BusHandler : public WaitThread {
 
   /** the number of times a failed send is repeated (other than lost arbitration). */
   const unsigned int m_failedSendRetries;
-
-  /** the bus transfer latency in microseconds. */
-  const unsigned int m_transferLatency;
 
   /** the maximum time in microseconds for bus acquisition. */
   const unsigned int m_busAcquireTimeout;

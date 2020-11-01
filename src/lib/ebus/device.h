@@ -40,6 +40,9 @@ namespace ebusd {
  * to a file and/or forwarding it to a logging function.
  */
 
+/** the transfer latency of the network device [ms]. */
+#define NETWORK_LATENCY_MS 10
+
 /** the arbitration state handled by @a Device. */
 enum ArbitrationState {
   as_none,    //!< no arbitration in process
@@ -80,17 +83,20 @@ class DeviceListener {
  * The base class for accessing an eBUS.
  */
 class Device {
- public:
+ protected:
   /**
    * Construct a new instance.
    * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
    * @param checkDevice whether to regularly check the device availability.
+   * @param latency the bus transfer latency in milliseconds.
    * @param readOnly whether to allow read access to the device only.
    * @param initialSend whether to send an initial @a ESC symbol in @a open().
    * @param enhancedProto whether to use the ebusd enhanced protocol.
    */
-  Device(const char* name, bool checkDevice, bool readOnly, bool initialSend, bool enhancedProto=false);
+  Device(const char* name, bool checkDevice, unsigned int latency, bool readOnly, bool initialSend,
+      bool enhancedProto=false);
 
+ public:
   /**
    * Destructor.
    */
@@ -99,20 +105,21 @@ class Device {
   /**
    * Factory method for creating a new instance.
    * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
+   * @param extraLatency the extra bus transfer latency in milliseconds.
    * @param checkDevice whether to regularly check the device availability (only for serial devices).
    * @param readOnly whether to allow read access to the device only.
    * @param initialSend whether to send an initial @a ESC symbol in @a open().
    * @return the new @a Device, or nullptr on error.
    * Note: the caller needs to free the created instance.
    */
-  static Device* create(const char* name, bool checkDevice = true, bool readOnly = false,
-      bool initialSend = false);
+  static Device* create(const char* name, unsigned int extraLatency = 0, bool checkDevice = true,
+      bool readOnly = false, bool initialSend = false);
 
   /**
    * Get the transfer latency of this device.
    * @return the transfer latency in microseconds.
    */
-  virtual unsigned int getLatency() const { return 0; }
+  virtual unsigned int getLatency() const { return m_latency; }
 
   /**
    * Open the file descriptor.
@@ -223,6 +230,9 @@ class Device {
   /** whether to regularly check the device availability. */
   const bool m_checkDevice;
 
+  /** the bus transfer latency in milliseconds. */
+  const unsigned int m_latency;
+
   /** whether to allow read access to the device only. */
   const bool m_readOnly;
 
@@ -269,12 +279,14 @@ class SerialDevice : public Device {
    * Construct a new instance.
    * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
    * @param checkDevice whether to regularly check the device availability.
+   * @param extraLatency the extra bus transfer latency in milliseconds.
    * @param readOnly whether to allow read access to the device only.
    * @param initialSend whether to send an initial @a ESC symbol in @a open().
    * @param enhancedProto whether to use the ebusd enhanced protocol.
    */
-  SerialDevice(const char* name, bool checkDevice, bool readOnly, bool initialSend, bool enhancedProto=false)
-    : Device(name, checkDevice, readOnly, initialSend, enhancedProto) {}
+  SerialDevice(const char* name, bool checkDevice, unsigned int extraLatency, bool readOnly, bool initialSend,
+      bool enhancedProto=false)
+    : Device(name, checkDevice, extraLatency, readOnly, initialSend, enhancedProto) {}
 
   // @copydoc
   result_t open() override;
@@ -304,14 +316,16 @@ class NetworkDevice : public Device {
    * @param address the socket address of the device.
    * @param hostOrIp the host name or IP address of the device.
    * @param port the TCP or UDP port of the device.
+   * @param extraLatency the extra bus transfer latency in milliseconds.
    * @param readOnly whether to allow read access to the device only.
    * @param initialSend whether to send an initial @a ESC symbol in @a open().
    * @param udp true for UDP, false to TCP.
    * @param enhancedProto whether to use the ebusd enhanced protocol.
    */
-  NetworkDevice(const char* name, const char* hostOrIp, uint16_t port, bool readOnly, bool initialSend,
-    bool udp, bool enhancedProto=false)
-    : Device(name, true, readOnly, initialSend, enhancedProto), m_hostOrIp(hostOrIp), m_port(port), m_udp(udp) {}
+  NetworkDevice(const char* name, const char* hostOrIp, uint16_t port, unsigned int extraLatency, bool readOnly,
+      bool initialSend, bool udp, bool enhancedProto=false)
+    : Device(name, true, NETWORK_LATENCY_MS+extraLatency, readOnly, initialSend, enhancedProto),
+    m_hostOrIp(hostOrIp), m_port(port), m_udp(udp) {}
 
   /**
    * Destructor.
@@ -321,9 +335,6 @@ class NetworkDevice : public Device {
       free((void*)m_hostOrIp);
     }
   }
-
-  // @copydoc
-  unsigned int getLatency() const override { return 10000; }
 
   // @copydoc
   result_t open() override;
