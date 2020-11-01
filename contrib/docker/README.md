@@ -41,7 +41,7 @@ Using a network device
 ----------------------
 
 When using a network device, the "--device" argument to docker can be omitted, but the device information has to be passed on to ebusd:
-> docker run --rm -it -p 8888 john30/ebusd -f --scanconfig -d udp:192.168.178.123:10000 --latency=80000
+> docker run --rm -it -p 8888 john30/ebusd -f --scanconfig -d udp:192.168.178.123:10000 --latency=80
 
 Note: the "-f" and "--scanconfig" arguments are only passed to ebusd if it is called without any additional arguments. So when passing further arguments, these two usually need to be added as well.
 

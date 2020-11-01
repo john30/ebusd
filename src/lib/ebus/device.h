@@ -117,7 +117,7 @@ class Device {
 
   /**
    * Get the transfer latency of this device.
-   * @return the transfer latency in microseconds.
+   * @return the transfer latency in milliseconds.
    */
   virtual unsigned int getLatency() const { return m_latency; }
 
@@ -147,7 +147,7 @@ class Device {
 
   /**
    * Read a single byte from the device.
-   * @param timeout maximum time to wait for the byte in microseconds, or 0 for infinite.
+   * @param timeout maximum time to wait for the byte in milliseconds, or 0 for infinite.
    * @param value the reference in which the received byte value is stored.
    * @param arbitrationState the reference in which the current @a ArbitrationState is stored on success. When set to
    * @a as_won, the received byte is the master address that was successfully arbitrated with.

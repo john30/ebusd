@@ -185,10 +185,10 @@ result_t Device::send(symbol_t value) {
 }
 
 /**
- * the maximum duration to wait for an enhanced sequence to complete after the first part was already retrieved:
- * 2* (Start+8Bit+Stop+Extra @ 9600Bd)
+ * the maximum duration in milliseconds to wait for an enhanced sequence to complete after the first part was already
+ * retrieved: 2* (Start+8Bit+Stop+Extra @ 9600Bd)
  */
-#define ENHANCED_COMPLETE_WAIT_DURATION (2*1150)
+#define ENHANCED_COMPLETE_WAIT_DURATION 3
 
 
 result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* arbitrationState) {
@@ -206,8 +206,8 @@ result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* a
       struct timespec tdiff;
 
       // set select timeout
-      tdiff.tv_sec = timeout/1000000;
-      tdiff.tv_nsec = (timeout%1000000)*1000;
+      tdiff.tv_sec = timeout/1000;
+      tdiff.tv_nsec = (timeout%1000)*1000000;
 
 #ifdef HAVE_PPOLL
       nfds_t nfds = 1;
