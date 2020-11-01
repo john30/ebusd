@@ -193,6 +193,9 @@ result_t Device::send(symbol_t value) {
 
 
 result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* arbitrationState) {
+  if (m_arbitrationMaster!=SYN) {
+    *arbitrationState = as_running;
+  }
   if (!isValid()) {
     return RESULT_ERR_DEVICE;
   }
