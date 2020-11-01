@@ -225,7 +225,7 @@ class Device {
    * Read a single byte.
    * @param value the reference in which the read byte value is stored.
    * @param isAvailable the result of the immediately preceding call to @a available().
-   * @param arbitrationState the variable in which to store the received arbitration state (mandatory for enhanced proto).
+   * @param arbitrationState the variable in which to store the current/received arbitration state (mandatory for enhanced proto).
    * @param incomplete the variable in which to store when a partial transfer needs another poll.
    * @return true on success, false on error.
    */
