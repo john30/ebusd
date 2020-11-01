@@ -472,7 +472,10 @@ void MainLoop::notifyDeviceData(symbol_t symbol, bool received) {
     m_logRawBuffer << setw(2) << setfill('0') << hex << static_cast<unsigned>(symbol);
     m_logRawLastSymbol = symbol;
   }
-  if (symbol == SYN && m_logRawBuffer.tellp() > 0) {  // flush
+  if (m_logRawBuffer.tellp() > (symbol == SYN ? 0 : 61)) {  // flush: (direction+5 hdr+24 max data+crc)*2
+    if (symbol != SYN) {
+      m_logRawBuffer << "...";
+    }
     const string bufStr = m_logRawBuffer.str();
     const char* str = bufStr.c_str();
     if (m_logRawFile) {
@@ -481,6 +484,9 @@ void MainLoop::notifyDeviceData(symbol_t symbol, bool received) {
       logNotice(lf_bus, str);
     }
     m_logRawBuffer.str("");
+    if (symbol != SYN) {
+      m_logRawBuffer << "...";
+    }
   }
 }
 
