@@ -460,6 +460,7 @@ result_t BusHandler::handleSymbol() {
         }
       }
       if (startRequest != nullptr) {  // initiate arbitration
+        logDebug(lf_bus, "start request %2.2x", startRequest->m_master[0]);
         result_t ret = m_device->startArbitration(startRequest->m_master[0]);
         if (ret == RESULT_OK) {
           logDebug(lf_bus, "arbitration start with %2.2x", startRequest->m_master[0]);
