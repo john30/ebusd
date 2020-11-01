@@ -574,6 +574,8 @@ result_t BusHandler::handleSymbol() {
       timeout = SYN_TIMEOUT;
       setState(bs_skip, result);
     }
+  } else {
+    clockGettime(&sentTime); // for measuring arbitration delay in enhanced protocol
   }
 
   // receive next symbol (optionally check reception of sent symbol)
