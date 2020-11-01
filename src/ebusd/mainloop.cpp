@@ -467,12 +467,15 @@ void MainLoop::notifyDeviceData(symbol_t symbol, bool received) {
     }
     if (m_logRawBuffer.tellp() == 0 || received != m_logRawLastReceived) {
       m_logRawLastReceived = received;
+      if (m_logRawBuffer.tellp() == 0 && m_logRawLastSymbol != SYN) {
+        m_logRawBuffer << "...";
+      }
       m_logRawBuffer << (received ? "<" : ">");
     }
     m_logRawBuffer << setw(2) << setfill('0') << hex << static_cast<unsigned>(symbol);
-    m_logRawLastSymbol = symbol;
   }
-  if (m_logRawBuffer.tellp() > (symbol == SYN ? 0 : 61)) {  // flush: (direction+5 hdr+24 max data+crc)*2
+  m_logRawLastSymbol = symbol;
+  if (m_logRawBuffer.tellp() > (symbol == SYN ? 0 : 64)) {  // flush: direction+5 hdr+24 max data+crc+direction+ack+1
     if (symbol != SYN) {
       m_logRawBuffer << "...";
     }
@@ -484,9 +487,6 @@ void MainLoop::notifyDeviceData(symbol_t symbol, bool received) {
       logNotice(lf_bus, str);
     }
     m_logRawBuffer.str("");
-    if (symbol != SYN) {
-      m_logRawBuffer << "...";
-    }
   }
 }
 
