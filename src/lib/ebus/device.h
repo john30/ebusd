@@ -43,6 +43,13 @@ namespace ebusd {
 /** the transfer latency of the network device [ms]. */
 #define NETWORK_LATENCY_MS 10
 
+/** the latency of the host [ms]. */
+#ifdef __CYGWIN__
+#define HOST_LATENCY_MS 20
+#else
+#define HOST_LATENCY_MS 0
+#endif
+
 /** the arbitration state handled by @a Device. */
 enum ArbitrationState {
   as_none,    //!< no arbitration in process

@@ -75,7 +75,8 @@ namespace ebusd {
 
 Device::Device(const char* name, bool checkDevice, unsigned int latency, bool readOnly, bool initialSend,
     bool enhancedProto)
-  : m_name(name), m_checkDevice(checkDevice), m_latency(latency), m_readOnly(readOnly), m_initialSend(initialSend),
+  : m_name(name), m_checkDevice(checkDevice),
+    m_latency(HOST_LATENCY_MS+latency), m_readOnly(readOnly), m_initialSend(initialSend),
     m_enhancedProto(enhancedProto), m_fd(-1), m_listener(nullptr), m_arbitrationMaster(SYN),
     m_arbitrationCheck(false), m_bufSize(((MAX_LEN+1+3)/4)*4), m_bufLen(0), m_bufPos(0) {
   m_buffer = reinterpret_cast<symbol_t*>(malloc(m_bufSize));
