@@ -217,7 +217,7 @@ int main() {
   mstrs.resize(1);
   sstrs.resize(1);
   for (unsigned int i = 0; i < sizeof(checks) / sizeof(checks[0]); i++) {
-    string check[5] = checks[i];
+    string* check = checks[i];
     string inputStr = check[1];
     string flags = check[4];
     bool isTemplate = flags == "template";

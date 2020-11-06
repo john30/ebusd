@@ -110,7 +110,7 @@ class TestReader : public MappedFileReader {
       return RESULT_ERR_INVALID_ARG;
     }
     cout << "read line " << static_cast<unsigned>(baseLine + lineNo) << ": split OK" << endl;
-    string resultline[3] = resultlines[lineNo - 1];
+    string* resultline = resultlines[lineNo - 1];
     if (row->empty()) {
       cout << "  result empty";
       if (resultline[0] == "") {
@@ -123,7 +123,7 @@ class TestReader : public MappedFileReader {
     }
 
     bool error = false;
-    string colnames[3] = resultlines[0];
+    string* colnames = resultlines[0];
     map<string, string>& defaults = getDefaults()[""];
     for (size_t colIdx = 0; colIdx < 3; colIdx++) {
       string col = colnames[colIdx];
@@ -145,7 +145,7 @@ class TestReader : public MappedFileReader {
     }
 
     for (size_t subIdx = 0; subIdx < subRows->size(); subIdx++) {
-      string resultsubline[4] = resultsublines[lineNo - 1][subIdx];
+      string* resultsubline = resultsublines[lineNo - 1][subIdx];
       *row = (*subRows)[subIdx];
       if (row->empty()) {
         cout << "  sub " << subIdx << " result empty";

@@ -217,6 +217,7 @@ void MainLoop::run() {
   time_t lastTaskRun, now, start, lastSignal = 0, since, sinkSince = 1, nextCheckRun;
   int taskDelay = 5;
   symbol_t lastScanAddress = 0;  // 0 is known to be a master
+  string lastScanStatus = ".";
   time(&now);
   start = now;
   lastTaskRun = now;
@@ -252,12 +253,16 @@ void MainLoop::run() {
       }
       if (m_scanConfig) {
         bool loadDelay = false;
+        string scanStatus = lastScanStatus;
         if (m_initialScan != ESC && reload && m_busHandler->hasSignal()) {
           loadDelay = true;
           result_t result;
           if (m_initialScan == SYN) {
             logNotice(lf_main, "starting initial full scan");
             result = m_busHandler->startScan(true, "*");
+            if (result == RESULT_OK) {
+              scanStatus = "running";
+            }
           } else if (m_initialScan == BROADCAST) {
             logNotice(lf_main, "starting initial broadcast scan");
             Message* message = m_messages->getScanMessage(BROADCAST);
@@ -280,6 +285,7 @@ void MainLoop::run() {
               if (m_busHandler->formatScanResult(m_initialScan, false, &ret)) {
                 logNotice(lf_main, "initial scan result: %s", ret.str().c_str());
               }
+              scanStatus = "running";
             }
           }
           if (result != RESULT_OK) {
@@ -294,7 +300,11 @@ void MainLoop::run() {
           if (lastScanAddress == SYN) {
             taskDelay = 5;
             lastScanAddress = 0;
+            scanStatus = "finished";
           } else {
+            if (scanStatus!="running") {
+              scanStatus = "running";
+            }
             nextCheckRun = now + CHECK_INITIAL_DELAY;
             result_t result = m_busHandler->scanAndWait(lastScanAddress, true);
             taskDelay = (result == RESULT_ERR_NO_SIGNAL) ? 10 : 1;
@@ -303,6 +313,12 @@ void MainLoop::run() {
             } else {
               logInfo(lf_main, "scan config %2.2x message received", lastScanAddress);
             }
+          }
+        }
+        if (scanStatus != lastScanStatus && !dataSinks.empty()) {
+          lastScanStatus = scanStatus;
+          for (const auto dataSink : dataSinks) {
+            dataSink->notifyScanStatus(scanStatus);
           }
         }
       } else if (reload && m_busHandler->hasSignal()) {

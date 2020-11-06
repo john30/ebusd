@@ -74,21 +74,10 @@ Device* Device::create(const char* name, bool checkDevice, bool readOnly, bool i
       free(in);
       return nullptr;  // invalid port
     }
-    struct sockaddr_in address;
-    memset(reinterpret_cast<char*>(&address), 0, sizeof(address));
     *portpos = 0;
-    if (inet_aton(addrpos, &address.sin_addr) == 0) {
-      struct hostent* h = gethostbyname(addrpos);
-      if (h == nullptr) {
-        free(in);
-        return nullptr;  // invalid host
-      }
-      memcpy(&address.sin_addr, h->h_addr_list[0], h->h_length);
-    }
+    char* hostOrIp = strdup(addrpos);
     free(in);
-    address.sin_family = AF_INET;
-    address.sin_port = (in_port_t)htons((uint16_t)port);
-    return new NetworkDevice(name, address, readOnly, initialSend, udp);
+    return new NetworkDevice(name, hostOrIp, port, readOnly, initialSend, udp);
   }
   return new SerialDevice(name, checkDevice, readOnly, initialSend);
 }
@@ -296,13 +285,24 @@ result_t NetworkDevice::open() {
   if (m_fd != -1) {
     close();
   }
+  struct sockaddr_in address;
+  memset(reinterpret_cast<char*>(&address), 0, sizeof(address));
+  if (inet_aton(m_hostOrIp, &address.sin_addr) == 0) {
+    struct hostent* h = gethostbyname(m_hostOrIp);
+    if (h == nullptr) {
+      return RESULT_ERR_GENERIC_IO;  // invalid host
+    }
+    memcpy(&address.sin_addr, h->h_addr_list[0], h->h_length);
+  }
+  address.sin_family = AF_INET;
+  address.sin_port = (in_port_t)htons(m_port);
+
   m_fd = socket(AF_INET, m_udp ? SOCK_DGRAM : SOCK_STREAM, 0);
   if (m_fd < 0) {
     return RESULT_ERR_GENERIC_IO;
   }
   int ret;
   if (m_udp) {
-    struct sockaddr_in address = m_address;
     address.sin_addr.s_addr = INADDR_ANY;
     ret = bind(m_fd, (struct sockaddr*)&address, sizeof(address));
   } else {
@@ -318,7 +318,7 @@ result_t NetworkDevice::open() {
     setsockopt(m_fd, IPPROTO_TCP, TCP_KEEPCNT, reinterpret_cast<void*>(&value), sizeof(value));
   }
   if (ret >= 0) {
-    ret = connect(m_fd, (struct sockaddr*)&m_address, sizeof(m_address));
+    ret = connect(m_fd, (struct sockaddr*)&address, sizeof(address));
   }
   if (ret < 0) {
     close();
