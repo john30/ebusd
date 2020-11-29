@@ -208,6 +208,13 @@ class Device {
   virtual void checkDevice() = 0;  // abstract
 
   /**
+   * Cancel a running arbitration.
+   * @param arbitrationState the reference in which @a as_error is stored when cancelled.
+   * @return true if it was cancelled, false if not.
+   */
+  bool cancelRunningArbitration(ArbitrationState* arbitrationState);
+
+  /**
    * Write a single byte.
    * @param value the byte value to write.
    * @param startArbitration true to start arbitration.
