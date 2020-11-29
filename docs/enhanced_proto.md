@@ -31,6 +31,7 @@ first    second
  * arbitration start request  
    `<START> <master>`  
    Requests the start of the arbitration process after the next received `<SYN>` symbol with the specified master address in `d`.
+   If the master address is `<SYN>`, the current arbitration is supposed to be cancelled.
 
 #### from interface to ebusd
   * initialization response  
