@@ -287,7 +287,6 @@ ssize_t sendReceiveFrame(int fd, frame_t& frame, size_t sendDataLen, ssize_t fix
   usleep(WAIT_BITRATE_DETECTION_MILLIS*1000);
   uint8_t writeCommand = frame.command;
   size_t len = FRAME_HEADER_LEN+sendDataLen;
-  size_t noData = 0;
   for (size_t pos=0; pos<len; ) {
     cnt = waitWrite(fd, frame.buffer+pos, len-pos, WAIT_BYTE_TRANSFERRED_MILLIS);
     if (cnt<0) {
@@ -326,7 +325,6 @@ ssize_t sendReceiveFrame(int fd, frame_t& frame, size_t sendDataLen, ssize_t fix
   }
   // read the answer from the device
   len = FRAME_HEADER_LEN; // start with the header itself
-  noData = 0;
   for (size_t pos=0; pos<len; ) {
     cnt = waitRead(fd, frame.buffer+pos, len-pos, WAIT_BYTE_TRANSFERRED_MILLIS);
     if (cnt<0) {
@@ -707,7 +705,6 @@ bool flashPic(int fd) {
 void readIpSettings(int fd) {
   uint8_t mac[] = {0xae, 0xb0, 0x53, 0xef, 0xfe, 0xef}; // "Adapter-eBUS3" + (UserID or MUI)
   uint8_t ip[4] = {0, 0, 0, 0};
-  uint8_t mask[4] = {255, 255, 255, 0};
   bool useMUI = true;
   uint8_t maskLen = 0;
   uint8_t configData[8];
@@ -788,7 +785,7 @@ int main(int argc, char* argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  if (setIp != setMask || setMacFromIp && !setIp) {
+  if (setIp != setMask || (setMacFromIp && !setIp)) {
     std::cerr<<"incomplete IP arguments"<<std::endl;
     arg_index = argc; // force help output
   }
