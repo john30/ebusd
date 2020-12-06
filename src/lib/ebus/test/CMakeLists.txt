@@ -11,6 +11,10 @@ add_executable(test_filereader test_filereader.cpp)
 target_link_libraries(test_filereader ebus pthread)
 add_test(filereader test_filereader)
 
+add_executable(test_device test_device.cpp)
+target_link_libraries(test_device ebus pthread ${test_LIBS})
+add_test(device test_device)
+
 add_executable(test_symbol test_symbol.cpp)
 target_link_libraries(test_symbol ebus pthread)
 add_test(symbol test_symbol)
