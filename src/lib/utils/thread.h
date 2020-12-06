@@ -1,6 +1,6 @@
 /*
  * ebusd - daemon for communication with eBUS heating systems.
- * Copyright (C) 2014-2018 John Baier <ebusd@ebusd.eu>, Roland Jax 2012-2014 <ebusd@liwest.at>
+ * Copyright (C) 2014-2020 John Baier <ebusd@ebusd.eu>, Roland Jax 2012-2014 <ebusd@liwest.at>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ namespace ebusd {
 /** \file lib/utils/thread.h */
 
 /**
- * wrapper class for pthread.
+ * Wrapper class for pthread.
  */
 class Thread {
  public:
@@ -82,7 +82,7 @@ class Thread {
   /**
    * Thread entry method to be overridden by derived class.
    */
-  virtual void run() = 0;
+  virtual void run() = 0;  // abstract
 
 
  private:
@@ -134,12 +134,41 @@ class WaitThread : public Thread {
   bool Wait(int seconds);
 
 
- private:
+ protected:
   /** the mutex for waiting. */
   pthread_mutex_t m_mutex;
 
   /** the condition for waiting. */
   pthread_cond_t m_cond;
+};
+
+
+/**
+ * A @a WaitThread that can be waited on.
+ */
+class NotifiableThread : public WaitThread {
+ public:
+  /**
+   * Constructor.
+   */
+  NotifiableThread();
+
+  /**
+   * Notify another thread currently in @a wait().
+   */
+  void notify();
+
+  /**
+   * Wait for getting notified up to the specified amount of time.
+   * @param millis the maximum number of milliseconds to wait.
+   * @return true if @a notify() was called while waiting.
+   */
+  bool waitNotified(int millis);
+
+
+ private:
+  /** whether @a notify() was called while waiting. */
+  bool m_notified;
 };
 
 
