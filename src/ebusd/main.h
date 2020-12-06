@@ -39,7 +39,7 @@ struct options {
   bool noDeviceCheck;  //!< skip serial eBUS device test
   bool readOnly;  //!< read-only access to the device
   bool initialSend;  //!< send an initial escape symbol after connecting device
-  int latency;  //!< transfer latency in us [0 for USB, 10000 for IP]
+  unsigned int extraLatency;  //!< extra transfer latency in ms [0 for USB, 10 for IP]
 
   const char* configPath;  //!< path to CSV configuration files [http://ebusd.eu/config/]
   bool scanConfig;  //!< pick configuration files matching initial scan
@@ -54,10 +54,10 @@ struct options {
 
   symbol_t address;  //!< own bus address [31]
   bool answer;  //!< answer to requests from other masters
-  unsigned int acquireTimeout;  //!< bus acquisition timeout in us [9400]
+  unsigned int acquireTimeout;  //!< bus acquisition timeout in ms [10]
   unsigned int acquireRetries;  //!< number of retries for bus acquisition [3]
   unsigned int sendRetries;  //!< number of retries for failed sends [2]
-  unsigned int receiveTimeout;  //!< timeout for receiving answer from slave in us [25000]
+  unsigned int receiveTimeout;  //!< timeout for receiving answer from slave in ms [25]
   unsigned int masterCount;  //!< expected number of masters for arbitration [0]
   bool generateSyn;  //!< enable AUTO-SYN symbol generation
 

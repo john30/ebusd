@@ -39,6 +39,9 @@
 * added support for single quotes to all commands
 * added "--mqttlog" and "--mqttversion" options
 
+## Breaking Changes
+* added support for enhanced network protocol mode for recent [ebusd-esp firmware](https://github.com/john30/ebusd-esp/) that allows the arbitration to be done directly by the Wemos
+
 
 # 3.2 (2018-05-10)
 
