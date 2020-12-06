@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <sys/stat.h>
+#include <time.h>
 #include <termios.h>
 #include <unistd.h>
 #include <cstdlib>
@@ -208,7 +209,7 @@ typedef union
 #define WAIT_RESPONSE_TIMEOUT_MILLIS 100
 
 long long getTime() {
-  timespec_t ts;
+  struct timespec ts;
   clock_gettime(CLOCK_MONOTONIC, &ts);
   return ts.tv_sec*1000+ts.tv_nsec/1000000;
 }
