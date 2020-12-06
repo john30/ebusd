@@ -12,7 +12,7 @@ ebusfeed_SOURCES = ebusfeed.cpp
 ebusfeed_LDADD = ../lib/utils/libutils.a \
 	         ../lib/ebus/libebus.a
 
-ebuspicloader_SOURCES = ebuspicloader.cpp
+ebuspicloader_SOURCES = ebuspicloader.cpp intelhex/intelhexclass.cpp
 
 if CONTRIB
 ebusfeed_LDADD += ../lib/ebus/contrib/libebuscontrib.a
