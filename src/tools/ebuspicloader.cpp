@@ -568,23 +568,28 @@ int openSerial(std::string port) {
     return -1;
   }
 
-  // backup terminal settings
-  if (tcgetattr(fd, &termios_original)!=0) {
-    memset(&termios_original, 0, sizeof(termios_original));
+  if (flock(fd, LOCK_EX|LOCK_NB)) {
+    close(fd);
+    std::cerr<<"unable to lock "<<port<<std::endl;
+    return -1;
   }
 
+  // backup terminal settings
+  tcgetattr(fd, &termios_original);
+
   // configure terminal settings
-  struct termios termios = termios_original;
+  struct termios termios;
+  memset(&termios, 0, sizeof(termios));
 
   if (cfsetspeed(&termios, BAUDRATE)!=0) {
     std::cerr<<"unable to set speed "<<std::endl;
     close(fd);
     return -1;
   }
-  termios.c_iflag = 0;//IGNPAR;//IGNBRK|IGNPAR|IGNCR;
-  termios.c_oflag = 0;
-  termios.c_cflag = CS8 | CREAD | CLOCAL;
-  termios.c_lflag = 0;
+  termios.c_iflag |= 0;//IGNPAR;//IGNBRK|IGNPAR|IGNCR;
+  termios.c_oflag |= 0;
+  termios.c_cflag |= CS8 | CREAD | CLOCAL;
+  termios.c_lflag |= 0;
   termios.c_cc[VMIN] = 1;
   termios.c_cc[VTIME] = 0;
   if (tcsetattr(fd, TCSANOW, &termios)!=0) {
