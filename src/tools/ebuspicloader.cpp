@@ -34,6 +34,7 @@ static const struct argp_option argpoptions[] = {
     {"macip",   'M', nullptr, 0, "set the MAC address suffix from the IP address", 0 },
     {"flash",   'f', "FILE",  0, "flash the FILE to the device", 0 },
     {"reset",   'r', nullptr, 0, "reset the device at the end on success", 0 },
+    {"speed",   's', nullptr, 0, "enable high speed transfer", 0 },
     {nullptr,          0,        nullptr,    0, nullptr, 0 },
 };
 
@@ -46,6 +47,7 @@ static bool setMask = false;
 static uint8_t setMaskLen = 0x1f;
 static char* flashFile = nullptr;
 static bool reset = false;
+static bool highSpeed = false;
 
 bool parseByte(const char *arg, uint8_t minValue, uint8_t maxValue, uint8_t *result) {
   char* strEnd = nullptr;
@@ -146,6 +148,9 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     case 'r':
       reset = true;
       break;
+    case 's':
+      highSpeed = true;
+      break;
     default:
       return ARGP_ERR_UNKNOWN;
   }
@@ -204,9 +209,10 @@ typedef union
 
 #define FRAME_HEADER_LEN 9
 #define FRAME_MAX_LEN (FRAME_HEADER_LEN+2*WRITE_FLASH_BLOCKSIZE)
-#define BAUDRATE B115200
+#define BAUDRATE_NORMAL B115200
+#define BAUDRATE_HIGH B921600
 #define WAIT_BYTE_TRANSFERRED_MILLIS 200
-#define WAIT_BITRATE_DETECTION_MILLIS 80
+#define WAIT_BITRATE_DETECTION_MICROS 100
 #define WAIT_RESPONSE_TIMEOUT_MILLIS 100
 
 long long getTime() {
@@ -285,7 +291,7 @@ ssize_t sendReceiveFrame(int fd, frame_t& frame, size_t sendDataLen, ssize_t fix
     return cnt;
   }
   // wait for bitrate detection to finish in PIC
-  usleep(WAIT_BITRATE_DETECTION_MILLIS*1000);
+  usleep(WAIT_BITRATE_DETECTION_MICROS);
   uint8_t writeCommand = frame.command;
   size_t len = FRAME_HEADER_LEN+sendDataLen;
   for (size_t pos=0; pos<len; ) {
@@ -582,7 +588,7 @@ int openSerial(std::string port) {
   struct termios termios;
   memset(&termios, 0, sizeof(termios));
 
-  if (cfsetspeed(&termios, BAUDRATE)!=0) {
+  if (cfsetspeed(&termios, highSpeed ? BAUDRATE_HIGH : BAUDRATE_NORMAL)!=0) {
     std::cerr<<"unable to set speed "<<std::endl;
     close(fd);
     return -1;
