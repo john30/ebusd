@@ -214,6 +214,12 @@ typedef union
 #define WAIT_BYTE_TRANSFERRED_MILLIS 200
 #define WAIT_BITRATE_DETECTION_MICROS 100
 #define WAIT_RESPONSE_TIMEOUT_MILLIS 100
+// size of flash in bytes
+#define END_FLASH_BYTES (END_FLASH*2)
+// size of boot block in words
+#define END_BOOT 0x0400
+// size of boot block in bytes
+#define END_BOOT_BYTES (END_BOOT*2)
 
 long long getTime() {
   struct timespec ts;
@@ -612,6 +618,65 @@ void closeSerial(int fd) {
   close(fd);
 }
 
+int calcFileChecksum(uint8_t* storeFirstBlock=nullptr) {
+  std::ifstream inStream;
+  inStream.open(flashFile, ifstream::in);
+  if (!inStream.good()) {
+    std::cerr<<"unable to open file"<<std::endl;
+    return -1;
+  }
+  intelhex ih;
+  inStream >> ih;
+  if (ih.getNoErrors()>0 || ih.getNoWarnings()>0) {
+    std::cerr<<"unable to read file"<<std::endl;
+    return -1;
+  }
+  unsigned long startAddr = 0, endAddr = 0;
+  if (!ih.startAddress(&startAddr) || !ih.endAddress(&endAddr)) {
+    std::cerr<<"unable to read file"<<std::endl;
+    return -1;
+  }
+  if (startAddr<END_BOOT_BYTES || endAddr>=END_FLASH_BYTES || endAddr<startAddr || (startAddr&0xf)!=0) {
+    std::cerr<<"invalid address range"<<std::endl;
+    return -1;
+  }
+  ih.begin();
+  unsigned long nextAddr = ih.currentAddress();
+  if (nextAddr!=END_BOOT_BYTES) {
+    std::cerr<<"unexpected start address in file."<<std::endl;
+    return -1;
+  }
+  unsigned long blockStart = END_BOOT_BYTES;
+  uint16_t checkSum = 0;
+  while (blockStart<endAddr && nextAddr<END_FLASH_BYTES) {
+    for (int pos = 0; pos < WRITE_FLASH_BLOCKSIZE; pos++, nextAddr++) {
+      unsigned long addr = ih.currentAddress();
+      uint8_t value = (pos&0x1)==1?0x3f:0xff;
+      if (addr == nextAddr && ih.getData(&value)) {
+        ih.incrementAddress();
+      }
+      if (storeFirstBlock && nextAddr<END_BOOT_BYTES+0x10) {
+        storeFirstBlock[pos] = value;
+      }
+      checkSum += ((uint16_t)value)<<((pos&0x1)*8);
+    }
+    blockStart += WRITE_FLASH_BLOCKSIZE;
+  }
+  return checkSum;
+}
+
+void printFileChecksum() {
+  uint8_t data[0x10];
+  int checkSum = calcFileChecksum(data);
+  int newFirmwareVersion = -1;
+  if (data[0x2*2]==0xae && data[0x2*2+1]==0x34 && data[0x3*2+1]==0x34) {
+    newFirmwareVersion = data[0x3*2];
+  }
+  std::cout
+    << "New firmware version: " << static_cast<unsigned>(newFirmwareVersion)
+    << " [" << std::hex << std::setw (4) << std::setfill('0') << static_cast<signed>(checkSum) << "]" << std::endl;
+}
+
 bool flashPic(int fd) {
   std::ifstream inStream;
   inStream.open(flashFile, ifstream::in);
@@ -647,18 +712,18 @@ bool flashPic(int fd) {
               << std::hex << std::setfill('0') << std::setw(4) << static_cast<unsigned>(endAddr)
               << std::endl;
   }
-  if (startAddr<0x800 || endAddr>=0x8000 || endAddr<startAddr || (startAddr&0xf)!=0) {
+  if (startAddr<END_BOOT_BYTES || endAddr>=END_FLASH_BYTES || endAddr<startAddr || (startAddr&0xf)!=0) {
     std::cerr<<"invalid address range"<<std::endl;
     return false;
   }
   ih.begin();
   uint8_t buf[WRITE_FLASH_BLOCKSIZE];
   unsigned long nextAddr = ih.currentAddress();
-  if (nextAddr!=0x800) {
+  if (nextAddr!=END_BOOT_BYTES) {
     std::cerr<<"unexpected start address in file: 0x"<<std::hex<<std::setfill('0')<<std::setw(4)<<static_cast<unsigned>(nextAddr)<<std::endl;
     return false;
   }
-  unsigned long blockStart = 0x800;
+  unsigned long blockStart = END_BOOT_BYTES;
   uint16_t checkSum = 0;
   int eraseRes = eraseFlash(fd, blockStart/2, (endAddr-blockStart)/2);
   if (eraseRes!=0) {
@@ -802,8 +867,13 @@ int main(int argc, char* argv[]) {
     arg_index = argc; // force help output
   }
   if (argc-arg_index<1) {
-    argp_help(&aargp, stderr, 0, nullptr);
-    exit(EXIT_FAILURE);
+    if (flashFile) {
+      printFileChecksum();
+      exit(EXIT_SUCCESS);
+    } else {
+      argp_help(&aargp, stderr, ARGP_HELP_STD_ERR, "ebuspicloader");
+      exit(EXIT_FAILURE);
+    }
   }
 
   int fd = openSerial(argv[arg_index]);
@@ -812,61 +882,72 @@ int main(int argc, char* argv[]) {
   }
 
   // read version
-  if (readVersion(fd, verbose)==0) {
-    uint8_t data[0x10];
-    if (verbose) {
-      std::cout << "User ID:" << std::endl;
-      readConfig(fd, 0x0000, 8); // User ID
-      std::cout << "Rev ID, Device ID:" << std::endl;
+  if (readVersion(fd, verbose)!=0) {
+    closeSerial(fd);
+    exit(EXIT_FAILURE);
+  }
+  uint8_t data[0x10];
+  if (verbose) {
+    std::cout << "User ID:" << std::endl;
+    readConfig(fd, 0x0000, 8); // User ID
+    std::cout << "Rev ID, Device ID:" << std::endl;
+  }
+  readConfig(fd, 0x0005, 4, false, verbose, data); // Rev ID and Device ID
+  std::cout << "Device revision: " << static_cast<unsigned>(((data[1]&0xf)<<2) | ((data[0]&0xc0)>>6))
+            << "." << static_cast<unsigned>(data[0]&0x3f) << std::endl;
+  if (verbose) {
+    std::cout << "Configuration words:" << std::endl;
+    readConfig(fd, 0x0007, 5*2); // Configuration Words
+    std::cout << "MUI:" << std::endl;
+    readConfig(fd, 0x0100, 9*2, true); // MUI
+    std::cout<<"EUI:"<<std::endl;
+    readConfig(fd, 0x010a, 8*2); // EUI
+  }
+  if (verbose) {
+    std::cout<<"Flash:"<<std::endl;
+  }
+  readFlash(fd, 0x0000, false, false, data);
+  int bootloaderVersion = -1;
+  if (data[0x2*2]==0xab && data[0x2*2+1]==0x34 && data[0x3*2+1]==0x34) {
+    bootloaderVersion = data[0x3*2];
+    int picSum = calcChecksum(fd, 0x0000, END_BOOT_BYTES);
+    std::cout
+      << "Bootloader version: " << static_cast<unsigned>(bootloaderVersion)
+      << " [" << std::hex << std::setw (4) << std::setfill('0') << static_cast<signed>(picSum) << "]" << std::endl;
+  } else {
+    std::cerr<<"Bootloader version not found"<<std::endl;
+  }
+  readFlash(fd, END_BOOT, false, false, data);
+  int firmwareVersion = -1;
+  if (data[0x2*2]==0xae && data[0x2*2+1]==0x34 && data[0x3*2+1]==0x34) {
+    firmwareVersion = data[0x3*2];
+    int picSum = calcChecksum(fd, END_BOOT, END_FLASH_BYTES-END_BOOT_BYTES);
+    std::cout
+      << "Firmware version: " << static_cast<unsigned>(firmwareVersion)
+      << " [" << std::hex << std::setw (4) << std::setfill('0') << static_cast<signed>(picSum) << "]" << std::endl;
+  } else {
+    std::cout<<"Firmware version not found"<<std::endl;
+  }
+  readIpSettings(fd);
+  std::cout<<std::endl;
+  bool success = true;
+  if (flashFile) {
+    printFileChecksum();
+    if (!flashPic(fd)) {
+      success = false;
     }
-    readConfig(fd, 0x0005, 4, false, verbose, data); // Rev ID and Device ID
-    std::cout << "Device revision: " << static_cast<unsigned>(((data[1]&0xf)<<2) | ((data[0]&0xc0)>>6))
-              << "." << static_cast<unsigned>(data[0]&0x3f) << std::endl;
-    if (verbose) {
-      std::cout << "Configuration words:" << std::endl;
-      readConfig(fd, 0x0007, 5*2); // Configuration Words
-      std::cout << "MUI:" << std::endl;
-      readConfig(fd, 0x0100, 9*2, true); // MUI
-      std::cout<<"EUI:"<<std::endl;
-      readConfig(fd, 0x010a, 8*2); // EUI
-    }
-    if (verbose) {
-      std::cout<<"Flash:"<<std::endl;
-    }
-    readFlash(fd, 0x0000, false, false, data);
-    int bootloaderVersion = -1;
-    if (data[0x2*2]==0xab && data[0x2*2+1]==0x34 && data[0x3*2+1]==0x34) {
-      bootloaderVersion = data[0x3*2];
-      std::cout<<"Bootloader version: "<< static_cast<unsigned>(bootloaderVersion) <<std::endl;
+  }
+  if (setIp || setDhcp) {
+    if (writeIpSettings(fd)) {
+      std::cout << "IP settings changed to:" << std::endl;
+      readIpSettings(fd);
     } else {
-      std::cerr<<"Bootloader version not found"<<std::endl;
+      success = false;
     }
-    readFlash(fd, 0x0400, false, false, data);
-    int firmwareVersion = -1;
-    if (data[0x2*2]==0xae && data[0x2*2+1]==0x34 && data[0x3*2+1]==0x34) {
-      firmwareVersion = data[0x3*2];
-      std::cout<<"Firmware version: "<< static_cast<unsigned>(firmwareVersion) <<std::endl;
-    } else {
-      std::cout<<"Firmware version not found"<<std::endl;
-    }
-    readIpSettings(fd);
-    bool success = true;
-    if (flashFile) {
-      if (!flashPic(fd)) {
-        success = false;
-      }
-    }
-    if (setIp || setDhcp) {
-      if (writeIpSettings(fd)) {
-        readIpSettings(fd);
-      } else {
-        success = false;
-      }
-    }
-    if (reset && success) {
-      std::cout << "resetting device." << std::endl;
-      resetDevice(fd);
-    }
+  }
+  if (reset && success) {
+    std::cout << "resetting device." << std::endl;
+    resetDevice(fd);
   }
 
   closeSerial(fd);
