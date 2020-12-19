@@ -26,6 +26,7 @@ A tool for loading firmware to the eBUS adapter PIC.
   -m, --mask=MASK            set IP mask (e.g. 24)
   -M, --macip                set the MAC address suffix from the IP address
   -r, --reset                reset the device at the end on success
+  -s, --speed                enable high speed transfer
   -v, --verbose              enable verbose output
   -?, --help                 give this help list
       --usage                give a short usage message
@@ -43,16 +44,19 @@ On success, the output looks like this:
 ```
 Device ID: 30b0 (PIC16F15356)
 Device revision: 0.1
-Bootloader version: 1
+Bootloader version: 1 [0a6c]
 Firmware version not found
 MAC address: ae:b0:53:26:15:80
 IP address: DHCP
+
+New firmware version: 1 [d5d7]
 erasing flash: done.
 flashing:
 
 0x0400 ................................................................
 ...
-0x2d90 ........................................
+0x2c00 ................................................................
+0x3000 .
 flashing finished.
 flashing succeeded.
 ```
@@ -67,11 +71,13 @@ On success, the output looks like this:
 ```
 Device ID: 30b0 (PIC16F15356)
 Device revision: 0.1
-Bootloader version: 1
-Firmware version: 1
+Bootloader version: 1 [0a6c]
+Firmware version: 1 [d5d7]
 MAC address: ae:b0:53:26:15:80
 IP address: DHCP
+
 Writing IP settings: done.
+IP settings changed to:
 MAC address: ae:80:53:26:15:80
 IP address: 192.168.1.10/24
 ```
