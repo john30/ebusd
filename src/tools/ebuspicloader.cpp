@@ -648,7 +648,7 @@ int calcFileChecksum(uint8_t* storeFirstBlock=nullptr) {
   }
   unsigned long blockStart = END_BOOT_BYTES;
   uint16_t checkSum = 0;
-  while (blockStart<endAddr && nextAddr<END_FLASH_BYTES) {
+  while (blockStart<END_FLASH_BYTES && nextAddr<END_FLASH_BYTES) {
     for (int pos = 0; pos < WRITE_FLASH_BLOCKSIZE; pos++, nextAddr++) {
       unsigned long addr = ih.currentAddress();
       uint8_t value = (pos&0x1)==1?0x3f:0xff;
@@ -731,7 +731,8 @@ bool flashPic(int fd) {
     return false;
   }
   std::cout << "erasing flash: done." << std::endl;
-  std::cout << "flashing:" << std::endl;
+  std::cout << "flashing: 0x" << std::hex << std::setfill('0') << std::setw(4) << static_cast<unsigned>(nextAddr/2)
+            << " - 0x" << static_cast<unsigned>(endAddr/2) << std::endl;
   size_t blocks = 0;
   while (blockStart<endAddr) {
     bool blank = true;
