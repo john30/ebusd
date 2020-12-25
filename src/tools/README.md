@@ -20,10 +20,10 @@ Usage
 Usage: ebuspicloader [OPTION...] PORT
 A tool for loading firmware to the eBUS adapter PIC.
 
-  -d, --dhcp                 set IP address to DHCP
+  -d, --dhcp                 set dynamic IP address via DHCP
   -f, --flash=FILE           flash the FILE to the device
-  -i, --ip=IP                set IP address (e.g. 192.168.0.10)
-  -m, --mask=MASK            set IP mask (e.g. 24)
+  -i, --ip=IP                set fix IP address (e.g. 192.168.0.10)
+  -m, --mask=MASK            set fix IP mask (e.g. 24)
   -M, --macip                set the MAC address suffix from the IP address
   -r, --reset                reset the device at the end on success
   -s, --slow                 use low speed for transfer

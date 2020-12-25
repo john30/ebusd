@@ -28,9 +28,9 @@ static const char argpargsdoc[] = "PORT";
 /** the definition of the known program arguments. */
 static const struct argp_option argpoptions[] = {
     {"verbose", 'v', nullptr, 0, "enable verbose output", 0 },
-    {"dhcp",    'd', nullptr, 0, "set IP address to DHCP", 0 },
-    {"ip",      'i', "IP",    0, "set IP address (e.g. 192.168.0.10)", 0 },
-    {"mask",    'm', "MASK",  0, "set IP mask (e.g. 24)", 0 },
+    {"dhcp",    'd', nullptr, 0, "set dynamic IP address via DHCP", 0 },
+    {"ip",      'i', "IP",    0, "set fix IP address (e.g. 192.168.0.10)", 0 },
+    {"mask",    'm', "MASK",  0, "set fix IP mask (e.g. 24)", 0 },
     {"macip",   'M', nullptr, 0, "set the MAC address suffix from the IP address", 0 },
     {"flash",   'f', "FILE",  0, "flash the FILE to the device", 0 },
     {"reset",   'r', nullptr, 0, "reset the device at the end on success", 0 },
