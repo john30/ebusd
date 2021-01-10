@@ -132,9 +132,6 @@ class MainLoop : public Thread, DeviceListener {
   // @copydoc
   void notifyDeviceData(symbol_t symbol, bool received) override;
 
-  // @copydoc
-  void notifyStatus(bool error, const char* message) override;
-
 
  protected:
   // @copydoc

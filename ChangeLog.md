@@ -1,3 +1,21 @@
+# 3.5 (2020-12-?)
+
+## Bug Fixes
+* fix for publishing several MQTT updates at once
+* optimized keep alive option for net devices
+* fix for duplicate entry "minarbitrationmicros" in HTTP GET
+* fix for extra send retry
+* fix for newer compiler versions
+* fix for potential illegal string usages
+* fix for named net device not being resolvable during startup
+
+## Features
+* added Raspberry Pi docker image
+* added support for Cygwin build
+* added option to use "\*" as trailing wildcard for circuit and name in MQTT /list topic
+* added "--mqttinsecure" option
+
+
 # 3.4 (2019-10-27)
 
 ## Bug Fixes
@@ -38,9 +56,6 @@
 * added "--mqttclientid" to set own client ID instead of using the default
 * added support for single quotes to all commands
 * added "--mqttlog" and "--mqttversion" options
-
-## Breaking Changes
-* added support for enhanced network protocol mode for recent [ebusd-esp firmware](https://github.com/john30/ebusd-esp/) that allows the arbitration to be done directly by the Wemos
 
 
 # 3.2 (2018-05-10)

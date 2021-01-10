@@ -50,22 +50,6 @@ bool RotateFile::setEnabled(bool enabled) {
   if (enabled) {
     m_stream = fopen(m_fileName.c_str(), m_textMode ? "w" : "wb");
     m_fileSize = 0;
-#ifdef FORWARD_RAW_TTY
-    if (!m_textMode && isatty(fileno(m_stream)) == 1) {
-      int fd = fileno(m_stream);
-      struct termios newSettings;
-      memset(&newSettings, 0, sizeof(newSettings));
-
-      cfsetspeed(&newSettings, B2400);
-      newSettings.c_cflag |= (CS8 | CLOCAL);
-      newSettings.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);  // non-canonical mode
-      newSettings.c_iflag |= IGNPAR;  // ignore parity errors
-      newSettings.c_oflag &= ~OPOST;
-
-      // activate new settings of serial device
-      tcsetattr(fd, TCSANOW, &newSettings);
-    }
-#endif
   }
   return true;
 }

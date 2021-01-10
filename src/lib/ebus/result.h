@@ -56,16 +56,15 @@ enum result_t {
   RESULT_ERR_DUPLICATE_NAME = -17,  //!< duplicate entry (name)
 
   RESULT_ERR_BUS_LOST = -18,        //!< arbitration lost
-  RESULT_ERR_ARB_RUNNING = -19,     //!< arbitration running
-  RESULT_ERR_CRC = -20,             //!< CRC error
-  RESULT_ERR_ACK = -21,             //!< ACK error
-  RESULT_ERR_NAK = -22,             //!< NAK received
+  RESULT_ERR_CRC = -19,             //!< CRC error
+  RESULT_ERR_ACK = -20,             //!< ACK error
+  RESULT_ERR_NAK = -21,             //!< NAK received
 
-  RESULT_ERR_NO_SIGNAL = -23,       //!< no signal found on the bus
-  RESULT_ERR_SYN = -24,             //!< SYN received instead of answer
-  RESULT_ERR_SYMBOL = -25,          //!< wrong symbol received instead of sent symbol
+  RESULT_ERR_NO_SIGNAL = -22,       //!< no signal found on the bus
+  RESULT_ERR_SYN = -23,             //!< SYN received instead of answer
+  RESULT_ERR_SYMBOL = -24,          //!< wrong symbol received instead of sent symbol
 
-  RESULT_ERR_NOTAUTHORIZED = -26    //!< not authorized for this action
+  RESULT_ERR_NOTAUTHORIZED = -25    //!< not authorized for this action
 };
 
 

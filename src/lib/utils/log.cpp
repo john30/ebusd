@@ -175,9 +175,6 @@ void closeLogFile() {
 }
 
 bool needsLog(const LogFacility facility, const LogLevel level) {
-  if (s_logFile == nullptr && !s_useSyslog) {
-    return false;
-  }
   return s_facilityLogLevel[facility] >= level;
 }
 
