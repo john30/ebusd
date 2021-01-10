@@ -258,15 +258,15 @@ ssize_t waitWrite(int fd, uint8_t *data, size_t len, int timeoutMillis) {
     return ret;
   }
   ret = write(fd, data, len);
-  if (ret<0) {
+  if (ret < 0) {
     return ret;
   }
 #ifdef DEBUG_RAW
-  std::cout<<"> "<<std::dec<<static_cast<unsigned>(ret)<<"/"<<static_cast<unsigned>(len)<<":"<<std::hex;
-  for (int pos = 0; pos<ret; pos++) {
-    std::cout<<" "<<std::setw(2)<<std::setfill('0')<<static_cast<unsigned>(data[pos]);
+  std::cout << "> " << std::dec << static_cast<unsigned>(ret) << "/" << static_cast<unsigned>(len) << ":" << std::hex;
+  for (int pos = 0; pos < ret; pos++) {
+    std::cout << " " << std::setw(2) << std::setfill('0') << static_cast<unsigned>(data[pos]);
   }
-  std::cout<<std::endl;
+  std::cout << std::endl;
 #endif
   return ret;
 }
@@ -284,21 +284,21 @@ ssize_t waitRead(int fd, uint8_t *data, size_t len, int timeoutMillis) {
     return ret;
   }
   ret = read(fd, data, len);
-  if (ret<0) {
+  if (ret < 0) {
     return ret;
   }
 #ifdef DEBUG_RAW
-  std::cout<<"< "<<std::dec<<static_cast<unsigned>(ret)<<"/"<<static_cast<unsigned>(len)<<":"<<std::hex;
-  for (int pos = 0; pos<ret; pos++) {
-    std::cout<<" "<<std::setw(2)<<std::setfill('0')<<static_cast<unsigned>(data[pos]);
+  std::cout << "< " << std::dec << static_cast<unsigned>(ret) << "/" << static_cast<unsigned>(len) << ":" << std::hex;
+  for (int pos = 0; pos < ret; pos++) {
+    std::cout << " " << std::setw(2) << std::setfill('0') << static_cast<unsigned>(data[pos]);
   }
-  std::cout<<std::endl;
+  std::cout << std::endl;
 #endif
   return ret;
 }
 
 ssize_t sendReceiveFrame(int fd, frame_t& frame, size_t sendDataLen, ssize_t fixReceiveDataLen,
-                         int responseTimeoutExtraMillis=0, bool hideErrors=false) {
+                         int responseTimeoutExtraMillis = 0, bool hideErrors = false) {
   // send 0x55 for auto baud detection in PIC
   unsigned char ch = STX;
   ssize_t cnt = waitWrite(fd, &ch, 1, WAIT_BYTE_TRANSFERRED_MILLIS);
@@ -318,9 +318,9 @@ ssize_t sendReceiveFrame(int fd, frame_t& frame, size_t sendDataLen, ssize_t fix
   usleep(WAIT_BITRATE_DETECTION_MICROS);
   uint8_t writeCommand = frame.command;
   size_t len = FRAME_HEADER_LEN+sendDataLen;
-  for (size_t pos=0; pos<len; ) {
+  for (size_t pos=0; pos < len; ) {
     cnt = waitWrite(fd, frame.buffer+pos, len-pos, WAIT_BYTE_TRANSFERRED_MILLIS);
-    if (cnt<0) {
+    if (cnt < 0) {
       if (!hideErrors) {
         std::cerr << "write data failed" << std::endl;
       }
@@ -335,7 +335,7 @@ ssize_t sendReceiveFrame(int fd, frame_t& frame, size_t sendDataLen, ssize_t fix
     pos += cnt;
   }
   cnt = waitRead(fd, &ch, 1, WAIT_RESPONSE_TIMEOUT_MILLIS + responseTimeoutExtraMillis);
-  if (cnt<0) {
+  if (cnt < 0) {
     if (!hideErrors) {
       std::cerr << "read sync failed" << std::endl;
     }
@@ -355,10 +355,10 @@ ssize_t sendReceiveFrame(int fd, frame_t& frame, size_t sendDataLen, ssize_t fix
     return -1;
   }
   // read the answer from the device
-  len = FRAME_HEADER_LEN; // start with the header itself
-  for (size_t pos=0; pos<len; ) {
+  len = FRAME_HEADER_LEN;  // start with the header itself
+  for (size_t pos=0; pos < len; ) {
     cnt = waitRead(fd, frame.buffer+pos, len-pos, WAIT_BYTE_TRANSFERRED_MILLIS);
-    if (cnt<0) {
+    if (cnt < 0) {
       if (!hideErrors) {
         std::cerr << "read data failed" << std::endl;
       }
@@ -372,7 +372,7 @@ ssize_t sendReceiveFrame(int fd, frame_t& frame, size_t sendDataLen, ssize_t fix
     }
     pos += cnt;
     if (pos == FRAME_HEADER_LEN) {
-      if (fixReceiveDataLen<0) {
+      if (fixReceiveDataLen < 0) {
         len += frame.data_length;
       } else {
         len += fixReceiveDataLen;
@@ -381,7 +381,7 @@ ssize_t sendReceiveFrame(int fd, frame_t& frame, size_t sendDataLen, ssize_t fix
     }
   }
   uint8_t dummy[4];
-  waitRead(fd, dummy, 4, WAIT_BYTE_TRANSFERRED_MILLIS); // read away potential nonsense tail
+  waitRead(fd, dummy, 4, WAIT_BYTE_TRANSFERRED_MILLIS);  // read away potential nonsense tail
   if (frame.command != writeCommand) {
     if (!hideErrors) {
       std::cerr << "unexpected answer" << std::endl;
@@ -391,7 +391,7 @@ ssize_t sendReceiveFrame(int fd, frame_t& frame, size_t sendDataLen, ssize_t fix
   return 0;
 }
 
-int readVersion(int fd, bool verbose=true) {
+int readVersion(int fd, bool verbose = true) {
   frame_t frame;
   memset(frame.buffer, 0, FRAME_MAX_LEN);
   frame.command = READ_VERSION;
@@ -406,7 +406,8 @@ int readVersion(int fd, bool verbose=true) {
   if (verbose) {
     std::cout << "Max packet size: " << static_cast<unsigned>(frame.data[2] | (frame.data[3] << 8)) << std::endl;
   }
-  std::cout << "Device ID: " << std::setfill('0') << std::setw(4) << std::hex << static_cast<unsigned>(frame.data[6] | (frame.data[7] << 8));
+  std::cout << "Device ID: " << std::setfill('0') << std::setw(4) << std::hex
+            << static_cast<unsigned>(frame.data[6] | (frame.data[7] << 8));
   if (frame.data[6] == 0xb0 && frame.data[7] == 0x30) {
     std::cout << " (PIC16F15356)";
   }
@@ -414,10 +415,14 @@ int readVersion(int fd, bool verbose=true) {
   if (verbose) {
     std::cout << "Blocksize erase: " << std::dec << static_cast<unsigned>(frame.data[10]) << std::endl;
     std::cout << "Blocksize write: " << std::dec << static_cast<unsigned>(frame.data[11]) << std::endl;
-    std::cout << "User ID 1: " << std::setfill('0') << std::setw(2) << std::hex << static_cast<unsigned>(frame.data[12]) << std::endl;
-    std::cout << "User ID 2: " << std::setfill('0') << std::setw(2) << std::hex << static_cast<unsigned>(frame.data[13]) << std::endl;
-    std::cout << "User ID 3: " << std::setfill('0') << std::setw(2) << std::hex << static_cast<unsigned>(frame.data[14]) << std::endl;
-    std::cout << "User ID 4: " << std::setfill('0') << std::setw(2) << std::hex << static_cast<unsigned>(frame.data[15]) << std::endl;
+    std::cout << "User ID 1: " << std::setfill('0') << std::setw(2) << std::hex
+              << static_cast<unsigned>(frame.data[12]) << std::endl;
+    std::cout << "User ID 2: " << std::setfill('0') << std::setw(2) << std::hex
+              << static_cast<unsigned>(frame.data[13]) << std::endl;
+    std::cout << "User ID 3: " << std::setfill('0') << std::setw(2) << std::hex
+              << static_cast<unsigned>(frame.data[14]) << std::endl;
+    std::cout << "User ID 4: " << std::setfill('0') << std::setw(2) << std::hex
+              << static_cast<unsigned>(frame.data[15]) << std::endl;
   }
   return 0;
 }
@@ -426,14 +431,14 @@ int printFrameData(frame_t frame, bool skipHigh) {
   uint16_t address = (frame.address_H << 8)|frame.address_L;
   int pos;
   std::cout << std::hex;
-  for (pos = 0; pos<frame.data_length;) {
+  for (pos = 0; pos < frame.data_length;) {
     if ((pos%16) == 0) {
       std::cout << std::setw(4) << static_cast<unsigned>(address) << ":";
     }
     std::cout << " " << std::setw(2) << static_cast<unsigned>(frame.data[pos++]);
     if (skipHigh) {
       pos++;
-    } else if (pos<frame.data_length) {
+    } else if (pos < frame.data_length) {
       std::cout << " " << std::setw(2) << static_cast<unsigned>(frame.data[pos++]);
     }
     address++;
@@ -448,10 +453,12 @@ int printFrameData(frame_t frame, bool skipHigh) {
 }
 
 int printFrame(frame_t frame) {
-  std::cout << "command:     0x" << std::setfill('0') << std::setw(2) << std::hex << static_cast<unsigned>(frame.command) << std::endl;
+  std::cout << "command:     0x" << std::setfill('0') << std::setw(2) << std::hex
+            << static_cast<unsigned>(frame.command) << std::endl;
   std::cout << "data_length: " << std::dec << static_cast<unsigned>(frame.data_length) << std::endl;
-  std::cout << "address:     0x" << std::setw(2) << std::hex << static_cast<unsigned>(frame.address_H) << std::setw(2) << std::hex << static_cast<unsigned>(frame.address_L);
-  for (int pos = 0; pos<frame.data_length; ) {
+  std::cout << "address:     0x" << std::setw(2) << std::hex << static_cast<unsigned>(frame.address_H) << std::setw(2)
+            << std::hex << static_cast<unsigned>(frame.address_L);
+  for (int pos = 0; pos < frame.data_length; ) {
     if ((pos%16) == 0) {
       std::cout << std::endl << std::setw(4) << static_cast<unsigned>(pos) << ":" << std::endl;
     }
@@ -462,7 +469,8 @@ int printFrame(frame_t frame) {
   return 0;
 }
 
-int readConfig(int fd, uint16_t address, uint16_t len, bool skipHigh=false, bool print=true, uint8_t* storeData=nullptr) {
+int readConfig(int fd, uint16_t address, uint16_t len, bool skipHigh = false, bool print = true,
+               uint8_t* storeData = nullptr) {
   frame_t frame;
   memset(frame.buffer, 0, FRAME_MAX_LEN);
   frame.command = READ_CONFIG;
@@ -502,7 +510,7 @@ int writeConfig(int fd, uint16_t address, uint16_t len, uint8_t* data) {
   return 0;
 }
 
-int readFlash(int fd, uint16_t address, bool skipHigh=false, bool print=true, uint8_t* storeData=nullptr) {
+int readFlash(int fd, uint16_t address, bool skipHigh = false, bool print = true, uint8_t* storeData = nullptr) {
   frame_t frame;
   memset(frame.buffer, 0, FRAME_MAX_LEN);
   frame.command = READ_FLASH;
@@ -522,7 +530,7 @@ int readFlash(int fd, uint16_t address, bool skipHigh=false, bool print=true, ui
   return 0;
 }
 
-int writeFlash(int fd, uint16_t address, uint16_t len, uint8_t* data, bool hideErrors=false) {
+int writeFlash(int fd, uint16_t address, uint16_t len, uint8_t* data, bool hideErrors = false) {
   frame_t frame;
   memset(frame.buffer, 0, FRAME_MAX_LEN);
   frame.command = WRITE_FLASH;
@@ -593,7 +601,7 @@ struct termios termios_original;
 
 int openSerial(std::string port) {
   // open serial port
-  int fd = open(port.c_str(), O_RDWR | O_NOCTTY | O_NDELAY); // non-blocking IO: | O_NONBLOCK);
+  int fd = open(port.c_str(), O_RDWR | O_NOCTTY | O_NDELAY);  // non-blocking IO: | O_NONBLOCK);
   if (fd == -1) {
     std::cerr << "unable to open " << port << std::endl;
     return -1;
@@ -617,7 +625,7 @@ int openSerial(std::string port) {
     close(fd);
     return -1;
   }
-  termios.c_iflag |= 0;//IGNPAR;//IGNBRK|IGNPAR|IGNCR;
+  termios.c_iflag |= 0;
   termios.c_oflag |= 0;
   termios.c_cflag |= CS8 | CREAD | CLOCAL;
   termios.c_lflag |= 0;
@@ -636,7 +644,7 @@ void closeSerial(int fd) {
   close(fd);
 }
 
-int calcFileChecksum(uint8_t* storeFirstBlock=nullptr) {
+int calcFileChecksum(uint8_t* storeFirstBlock = nullptr) {
   std::ifstream inStream;
   inStream.open(flashFile, ifstream::in);
   if (!inStream.good()) {
@@ -645,7 +653,7 @@ int calcFileChecksum(uint8_t* storeFirstBlock=nullptr) {
   }
   intelhex ih;
   inStream >> ih;
-  if (ih.getNoErrors()>0 || ih.getNoWarnings()>0) {
+  if (ih.getNoErrors() > 0 || ih.getNoWarnings() > 0) {
     std::cerr << "unable to read file" << std::endl;
     return -1;
   }
@@ -654,7 +662,7 @@ int calcFileChecksum(uint8_t* storeFirstBlock=nullptr) {
     std::cerr << "unable to read file" << std::endl;
     return -1;
   }
-  if (startAddr<END_BOOT_BYTES || endAddr>=END_FLASH_BYTES || endAddr<startAddr || (startAddr&0xf) != 0) {
+  if (startAddr < END_BOOT_BYTES || endAddr >= END_FLASH_BYTES || endAddr < startAddr || (startAddr&0xf) != 0) {
     std::cerr << "invalid address range" << std::endl;
     return -1;
   }
@@ -666,14 +674,14 @@ int calcFileChecksum(uint8_t* storeFirstBlock=nullptr) {
   }
   unsigned long blockStart = END_BOOT_BYTES;
   uint16_t checkSum = 0;
-  while (blockStart<END_FLASH_BYTES && nextAddr<END_FLASH_BYTES) {
+  while (blockStart < END_FLASH_BYTES && nextAddr < END_FLASH_BYTES) {
     for (int pos = 0; pos < WRITE_FLASH_BLOCKSIZE; pos++, nextAddr++) {
       unsigned long addr = ih.currentAddress();
       uint8_t value = (pos&0x1) == 1 ? 0x3f : 0xff;
       if (addr == nextAddr && ih.getData(&value)) {
         ih.incrementAddress();
       }
-      if (storeFirstBlock && nextAddr<END_BOOT_BYTES+0x10) {
+      if (storeFirstBlock && nextAddr < END_BOOT_BYTES+0x10) {
         storeFirstBlock[pos] = value;
       }
       checkSum += ((uint16_t)value) << ((pos&0x1)*8);
@@ -707,7 +715,7 @@ bool flashPic(int fd) {
 //    ih.verboseOn();
 //  }
   inStream >> ih;
-  if (ih.getNoErrors()>0 || ih.getNoWarnings()>0) {
+  if (ih.getNoErrors() > 0 || ih.getNoWarnings() > 0) {
     std::cerr << "errors or warnings while reading the file:" << std::endl;
     string str;
     while (ih.popNextWarning(str)) {
@@ -730,7 +738,7 @@ bool flashPic(int fd) {
               << std::hex << std::setfill('0') << std::setw(4) << static_cast<unsigned>(endAddr)
               << std::endl;
   }
-  if (startAddr<END_BOOT_BYTES || endAddr>=END_FLASH_BYTES || endAddr<startAddr || (startAddr&0xf) != 0) {
+  if (startAddr < END_BOOT_BYTES || endAddr >= END_FLASH_BYTES || endAddr < startAddr || (startAddr&0xf) != 0) {
     std::cerr << "invalid address range" << std::endl;
     return false;
   }
@@ -738,7 +746,8 @@ bool flashPic(int fd) {
   uint8_t buf[WRITE_FLASH_BLOCKSIZE];
   unsigned long nextAddr = ih.currentAddress();
   if (nextAddr != END_BOOT_BYTES) {
-    std::cerr << "unexpected start address in file: 0x" << std::hex << std::setfill('0') << std::setw(4) << static_cast<unsigned>(nextAddr) << std::endl;
+    std::cerr << "unexpected start address in file: 0x" << std::hex << std::setfill('0') << std::setw(4)
+              << static_cast<unsigned>(nextAddr) << std::endl;
     return false;
   }
   unsigned long blockStart = END_BOOT_BYTES;
@@ -752,7 +761,7 @@ bool flashPic(int fd) {
   std::cout << "flashing: 0x" << std::hex << std::setfill('0') << std::setw(4) << static_cast<unsigned>(nextAddr/2)
             << " - 0x" << static_cast<unsigned>(endAddr/2) << std::endl;
   size_t blocks = 0;
-  while (blockStart<endAddr) {
+  while (blockStart < endAddr) {
     bool blank = true;
     for (int pos = 0; pos < WRITE_FLASH_BLOCKSIZE; pos++, nextAddr++) {
       unsigned long addr = ih.currentAddress();
@@ -766,7 +775,8 @@ bool flashPic(int fd) {
     }
     if (!blank) {
       if (blocks == 0) {
-        std::cout << std::endl << "0x" << std::hex << std::setfill('0') << std::setw(4) << static_cast<unsigned>(blockStart/2) << " ";
+        std::cout << std::endl << "0x" << std::hex << std::setfill('0') << std::setw(4)
+                  << static_cast<unsigned>(blockStart/2) << " ";
       }
       if (writeFlash(fd, blockStart/2, WRITE_FLASH_BLOCKSIZE, buf, true) != 0) {
         // repeat once silently:
@@ -777,7 +787,7 @@ bool flashPic(int fd) {
         }
       }
       std::cout << ".";
-      if (++blocks>=64) {
+      if (++blocks >= 64) {
         blocks = 0;
       }
       std::cout.flush();
@@ -786,7 +796,7 @@ bool flashPic(int fd) {
   }
   std::cout << std::endl << "flashing finished." << std::endl;
   int picSum = calcChecksum(fd, startAddr/2, blockStart-startAddr);
-  if (picSum<0) {
+  if (picSum < 0) {
     std::cout << "unable to read checksum." << std::endl;
     return false;
   }
@@ -799,30 +809,30 @@ bool flashPic(int fd) {
 }
 
 void readIpSettings(int fd) {
-  uint8_t mac[] = {0xae, 0xb0, 0x53, 0xef, 0xfe, 0xef}; // "Adapter-eBUS3" + (UserID or MUI)
+  uint8_t mac[] = {0xae, 0xb0, 0x53, 0xef, 0xfe, 0xef};  // "Adapter-eBUS3" + (UserID or MUI)
   uint8_t ip[4] = {0, 0, 0, 0};
   bool useMUI = true;
   uint8_t maskLen = 0;
   uint8_t configData[8];
-  readConfig(fd, 0x0000, 8, false, false, configData); // User ID
-  useMUI = (configData[1]&0x20) != 0; // if highest bit is set, then use MUI. if cleared, use User ID
+  readConfig(fd, 0x0000, 8, false, false, configData);  // User ID
+  useMUI = (configData[1]&0x20) != 0;  // if highest bit is set, then use MUI. if cleared, use User ID
   maskLen = configData[1]&0x1f;
-  for (int i=0; i<4; i++) {
+  for (int i=0; i < 4; i++) {
     ip[i] = configData[i*2];
-    if (!useMUI && i>0) {
+    if (!useMUI && i > 0) {
       mac[2+i] = configData[i*2];
     }
   }
   if (useMUI) {
     // read MUI to build uniqueMAC address
     // start with MUI6, end with MUI8 (MUI9 is reserved)
-    readConfig(fd, 0x0106, 8, true, false, configData); // MUI
-    for (int i=0; i<3; i++) {
+    readConfig(fd, 0x0106, 8, true, false, configData);  // MUI
+    for (int i=0; i < 3; i++) {
       mac[3+i] = configData[i*2];
     }
   }
   std::cout << "MAC address:";
-  for (int i=0; i<6; i++) {
+  for (int i=0; i < 6; i++) {
     std::cout << (i == 0?' ':':') << std::hex << std::setw(2) << std::setfill('0') << static_cast<unsigned>(mac[i]);
   }
   std::cout << std::endl;
@@ -830,20 +840,20 @@ void readIpSettings(int fd) {
     std::cout << "IP address: DHCP" << std::endl;
   } else {
     std::cout << "IP address:";
-    for (int i=0; i<4; i++) {
+    for (int i=0; i < 4; i++) {
       std::cout << (i == 0?' ':'.') << std::dec << static_cast<unsigned>(ip[i]);
     }
     std::cout << "/" << std::dec << static_cast<unsigned>(maskLen) << std::endl;
     /*
     // build gateway
-    for (uint8_t pos=0; pos<4; pos++) {
-      mask[pos] = maskLen>=8 ? 255 : maskLen<=0 ? 0 : (255^((1 << (8-maskLen))-1));
+    for (uint8_t pos=0; pos < 4; pos++) {
+      mask[pos] = maskLen >= 8 ? 255 : maskLen<=0 ? 0 : (255^((1 << (8-maskLen))-1));
       ip[pos] &= mask[pos];
-      maskLen = maskLen>=8 ? maskLen-8 : 0;
+      maskLen = maskLen >= 8 ? maskLen-8 : 0;
     }
     ip[3] |= 1; // first address in network is used as gateway (not needed anyway))
     std::cout << "IP gateway:";
-    for (int i=0; i<4; i++) {
+    for (int i=0; i < 4; i++) {
       std::cout << (i == 0?' ':'.') << std::dec << static_cast<unsigned>(ip[i]);
     }
     std::cout << std::endl;
@@ -855,7 +865,7 @@ bool writeIpSettings(int fd) {
   std::cout << "Writing IP settings: ";
   uint8_t configData[] = {0xff, 0x3f, 0xff, 0x3f, 0xff, 0x3f, 0xff, 0x3f};
   if (setMacFromIp) {
-    configData[1] &= ~0x20; // set useMUI
+    configData[1] &= ~0x20;  // set useMUI
   }
   configData[1] = (configData[1]&~0x1f) | (setMaskLen&0x1f);
   if (setIp) {
@@ -883,9 +893,9 @@ int main(int argc, char* argv[]) {
 
   if (setIp != setMask || (setMacFromIp && !setIp)) {
     std::cerr << "incomplete IP arguments" << std::endl;
-    arg_index = argc; // force help output
+    arg_index = argc;  // force help output
   }
-  if (argc-arg_index<1) {
+  if (argc-arg_index < 1) {
     if (flashFile) {
       printFileChecksum();
       exit(EXIT_SUCCESS);
@@ -896,7 +906,7 @@ int main(int argc, char* argv[]) {
   }
 
   int fd = openSerial(argv[arg_index]);
-  if (fd<0) {
+  if (fd < 0) {
     exit(EXIT_FAILURE);
   }
 
@@ -908,19 +918,19 @@ int main(int argc, char* argv[]) {
   uint8_t data[0x10];
   if (verbose) {
     std::cout << "User ID:" << std::endl;
-    readConfig(fd, 0x0000, 8); // User ID
+    readConfig(fd, 0x0000, 8);  // User ID
     std::cout << "Rev ID, Device ID:" << std::endl;
   }
-  readConfig(fd, 0x0005, 4, false, verbose, data); // Rev ID and Device ID
+  readConfig(fd, 0x0005, 4, false, verbose, data);  // Rev ID and Device ID
   std::cout << "Device revision: " << static_cast<unsigned>(((data[1]&0xf) << 2) | ((data[0]&0xc0)>>6))
             << "." << static_cast<unsigned>(data[0]&0x3f) << std::endl;
   if (verbose) {
     std::cout << "Configuration words:" << std::endl;
-    readConfig(fd, 0x0007, 5*2); // Configuration Words
+    readConfig(fd, 0x0007, 5*2);  // Configuration Words
     std::cout << "MUI:" << std::endl;
-    readConfig(fd, 0x0100, 9*2, true); // MUI
+    readConfig(fd, 0x0100, 9*2, true);  // MUI
     std::cout << "EUI:"<< std::endl;
-    readConfig(fd, 0x010a, 8*2); // EUI
+    readConfig(fd, 0x010a, 8*2);  // EUI
   }
   if (verbose) {
     std::cout << "Flash:" << std::endl;

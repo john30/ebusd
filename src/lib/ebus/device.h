@@ -52,12 +52,12 @@ namespace ebusd {
 
 /** the arbitration state handled by @a Device. */
 enum ArbitrationState {
-  as_none,    //!< no arbitration in process
-  as_start,   //!< arbitration start requested
-  as_error,   //!< error while sending master address
-  as_running, //!< arbitration currently running (master address sent, waiting for reception)
-  as_lost,    //!< arbitration lost
-  as_won,     //!< arbitration won
+  as_none,     //!< no arbitration in process
+  as_start,    //!< arbitration start requested
+  as_error,    //!< error while sending master address
+  as_running,  //!< arbitration currently running (master address sent, waiting for reception)
+  as_lost,     //!< arbitration lost
+  as_won,      //!< arbitration won
 };
 
 /**
@@ -101,7 +101,7 @@ class Device {
    * @param enhancedProto whether to use the ebusd enhanced protocol.
    */
   Device(const char* name, bool checkDevice, unsigned int latency, bool readOnly, bool initialSend,
-      bool enhancedProto=false);
+      bool enhancedProto = false);
 
  public:
   /**
@@ -174,7 +174,7 @@ class Device {
    * Return whether the device is currently in arbitration.
    * @return true when the device is currently in arbitration.
    */
-  bool isArbitrating() const { return m_arbitrationMaster != SYN; };
+  bool isArbitrating() const { return m_arbitrationMaster != SYN; }
 
   /**
    * Return the device name.
@@ -220,7 +220,7 @@ class Device {
    * @param startArbitration true to start arbitration.
    * @return true on success, false on error.
    */
-  virtual bool write(symbol_t value, bool startArbitration=false);
+  virtual bool write(symbol_t value, bool startArbitration = false);
 
   /**
    * Check whether a symbol is available for reading immediately (without waiting).
@@ -236,7 +236,8 @@ class Device {
    * @param incomplete the variable in which to store when a partial transfer needs another poll.
    * @return true on success, false on error.
    */
-  virtual bool read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrationState=nullptr, bool* incomplete=nullptr);
+  virtual bool read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrationState = nullptr,
+                    bool* incomplete = nullptr);
 
   /** the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network). */
   const char* m_name;
@@ -299,7 +300,7 @@ class SerialDevice : public Device {
    * @param enhancedProto whether to use the ebusd enhanced protocol.
    */
   SerialDevice(const char* name, bool checkDevice, unsigned int extraLatency, bool readOnly, bool initialSend,
-      bool enhancedProto=false)
+      bool enhancedProto = false)
     : Device(name, checkDevice, extraLatency, readOnly, initialSend, enhancedProto) {}
 
   // @copydoc
@@ -337,7 +338,7 @@ class NetworkDevice : public Device {
    * @param enhancedProto whether to use the ebusd enhanced protocol.
    */
   NetworkDevice(const char* name, const char* hostOrIp, uint16_t port, unsigned int extraLatency, bool readOnly,
-      bool initialSend, bool udp, bool enhancedProto=false)
+      bool initialSend, bool udp, bool enhancedProto = false)
     : Device(name, true, NETWORK_LATENCY_MS+extraLatency, readOnly, initialSend, enhancedProto),
     m_hostOrIp(hostOrIp), m_port(port), m_udp(udp) {}
 

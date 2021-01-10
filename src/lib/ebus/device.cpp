@@ -692,11 +692,11 @@ result_t NetworkDevice::open() {
     ret = setsockopt(m_fd, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<void*>(&value), sizeof(value));
     value = 1;
     setsockopt(m_fd, SOL_SOCKET, SO_KEEPALIVE, reinterpret_cast<void*>(&value), sizeof(value));
-    value = 3; // send keepalive after 3 seconds of silence
+    value = 3;  // send keepalive after 3 seconds of silence
     setsockopt(m_fd, IPPROTO_TCP, TCP_KEEPIDLE, reinterpret_cast<void*>(&value), sizeof(value));
-    value = 2; // send keepalive in interval of 2 seconds
+    value = 2;  // send keepalive in interval of 2 seconds
     setsockopt(m_fd, IPPROTO_TCP, TCP_KEEPINTVL, reinterpret_cast<void*>(&value), sizeof(value));
-    value = 2; // drop connection after 2 failed keep alive sends
+    value = 2;  // drop connection after 2 failed keep alive sends
     setsockopt(m_fd, IPPROTO_TCP, TCP_KEEPCNT, reinterpret_cast<void*>(&value), sizeof(value));
   }
   if (ret >= 0) {
