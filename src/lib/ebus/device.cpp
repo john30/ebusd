@@ -685,8 +685,9 @@ result_t NetworkDevice::open() {
   }
   int ret;
   if (m_udp) {
-    address.sin_addr.s_addr = INADDR_ANY;
-    ret = bind(m_fd, (struct sockaddr*)&address, sizeof(address));
+    struct sockaddr_in bindAddress = address;
+    bindAddress.sin_addr.s_addr = INADDR_ANY;
+    ret = bind(m_fd, (struct sockaddr*)&bindAddress, sizeof(address));
   } else {
     int value = 1;
     ret = setsockopt(m_fd, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<void*>(&value), sizeof(value));
