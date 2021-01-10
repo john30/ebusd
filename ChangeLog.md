@@ -1,4 +1,4 @@
-# 3.5 (2020-12-?)
+# 21.1 (2021-01-?)
 
 ## Bug Fixes
 * fix for publishing several MQTT updates at once
@@ -14,6 +14,8 @@
 * added support for Cygwin build
 * added option to use "\*" as trailing wildcard for circuit and name in MQTT /list topic
 * added "--mqttinsecure" option
+* updated to newest version of enhanced protocol
+* added adapter 3 PIC tool "ebuspicloader" for uploading new firmware and configuring fix IP address
 
 
 # 3.4 (2019-10-27)
