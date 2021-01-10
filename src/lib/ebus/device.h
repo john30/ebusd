@@ -41,10 +41,10 @@ namespace ebusd {
  */
 
 /** the transfer latency of the network device [ms]. */
-#define NETWORK_LATENCY_MS 10
+#define NETWORK_LATENCY_MS 30
 
 /** the latency of the host [ms]. */
-#ifdef __CYGWIN__
+#if defined(__CYGWIN__) || defined(_WIN32)
 #define HOST_LATENCY_MS 20
 #else
 #define HOST_LATENCY_MS 0
