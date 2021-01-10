@@ -251,7 +251,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
       }
       g_keypass = replaceSecret(arg);
       break;
-    case O_INSE: //--mqttinsecure
+    case O_INSE:  //--mqttinsecure
       g_insecure = true;
       break;
 #endif
@@ -647,19 +647,25 @@ void MqttHandler::notifyTopic(const string& topic, const string& data) {
   if (isList) {
     logOtherInfo("mqtt", "received list topic for %s %s", circuit.c_str(), name.c_str());
     deque<Message*> messages;
-    bool circuitPrefix = circuit.length()>0 && circuit.find_last_of('*')==circuit.length()-1;
+    bool circuitPrefix = circuit.length()>0 && circuit.find_last_of('*') == circuit.length()-1;
     if (circuitPrefix) {
       circuit = circuit.substr(0, circuit.length()-1);
     }
-    bool namePrefix = name.length()>0 && name.find_last_of('*')==name.length()-1;
+    bool namePrefix = name.length()>0 && name.find_last_of('*') == name.length()-1;
     if (namePrefix) {
       name = name.substr(0, name.length()-1);
     }
-    m_messages->findAll(circuit, name, m_levels, !(circuitPrefix || namePrefix), true, true, true, true, true, 0, 0, false, &messages);
+    m_messages->findAll(circuit, name, m_levels, !(circuitPrefix || namePrefix), true, true,
+                        true, true, true, 0, 0, false, &messages);
     bool onlyWithData = !data.empty();
     for (const auto message : messages) {
-      if (circuitPrefix && (message->getCircuit().substr(0, circuit.length())!=circuit || !namePrefix && name.length()>0 && message->getName()!=name)
-      || namePrefix && (message->getName().substr(0, name.length())!=name || !circuitPrefix && circuit.length()>0 && message->getCircuit()!=circuit)) {
+      if ((circuitPrefix && (
+          message->getCircuit().substr(0, circuit.length()) != circuit
+          || (!namePrefix && name.length() > 0 && message->getName() != name)))
+      || (namePrefix && (
+          message->getName().substr(0, name.length()) != name
+          || (!circuitPrefix && circuit.length() > 0 && message->getCircuit() != circuit)))
+      ) {
         continue;
       }
       time_t lastup = message->getLastUpdateTime();
@@ -806,7 +812,7 @@ void MqttHandler::run() {
     }
   }
   publishTopic(signalTopic, "false", true);
-  publishTopic(m_globalTopic+"scan", "", true); // clear retain of scan status
+  publishTopic(m_globalTopic+"scan", "", true);  // clear retain of scan status
 }
 
 bool MqttHandler::handleTraffic(bool allowReconnect) {

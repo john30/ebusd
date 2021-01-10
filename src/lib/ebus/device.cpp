@@ -39,6 +39,7 @@
 #endif
 #include <cstdlib>
 #include <cstring>
+#include <string>
 #include <fstream>
 #include <ios>
 #include <iomanip>
@@ -103,13 +104,13 @@ Device* Device::create(const char* name, unsigned int extraLatency, bool checkDe
     char* addrpos = in;
     char* portpos = strchr(addrpos, ':');
     if (!enhanced && portpos >= addrpos+3 && strncmp(addrpos, "enh", 3) == 0) {
-      enhanced = true; // support enhtcp:<ip>:<port> and enhudp:<ip>:<port>
+      enhanced = true;  // support enhtcp:<ip>:<port> and enhudp:<ip>:<port>
       addrpos += 3;
       if (portpos == addrpos) {
         addrpos++;
         portpos = strchr(addrpos, ':');
       }
-    } // else: support enh:<ip>:<port> defaulting to TCP
+    }  // else: support enh:<ip>:<port> defaulting to TCP
     if (portpos == addrpos+3 && (strncmp(addrpos, "tcp", 3) == 0 || (udp=(strncmp(addrpos, "udp", 3) == 0)))) {
       addrpos += 4;
       portpos = strchr(addrpos, ':');
@@ -141,7 +142,7 @@ result_t Device::open() {
 result_t Device::afterOpen() {
   m_bufLen = 0;
   if (m_enhancedProto) {
-    symbol_t buf[2] = makeEnhancedSequence(ENH_REQ_INIT, 0); // TODO define additional feature flags
+    symbol_t buf[2] = makeEnhancedSequence(ENH_REQ_INIT, 0);  // TODO define additional feature flags
     if (::write(m_fd, buf, 2) != 2) {
       return RESULT_ERR_SEND;
     }
@@ -210,7 +211,7 @@ bool Device::cancelRunningArbitration(ArbitrationState* arbitrationState) {
 }
 
 result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* arbitrationState) {
-  if (m_arbitrationMaster!=SYN) {
+  if (m_arbitrationMaster != SYN) {
     *arbitrationState = as_running;
   }
   if (!isValid()) {
@@ -320,7 +321,7 @@ result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* a
 result_t Device::startArbitration(symbol_t masterAddress) {
   if (m_arbitrationCheck) {
     if (masterAddress != SYN) {
-      return RESULT_ERR_ARB_RUNNING; // should not occur
+      return RESULT_ERR_ARB_RUNNING;  // should not occur
     }
     m_arbitrationCheck = false;
     m_arbitrationMaster = SYN;
@@ -439,7 +440,7 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
     }
 #ifdef DEBUG_RAW_TRAFFIC
     fprintf(stdout, "raw <");
-    for (int pos=0; pos<size; pos++) {
+    for (int pos=0; pos < size; pos++) {
       fprintf(stdout, " %2.2x", m_buffer[m_bufLen+pos]);
     }
     fprintf(stdout, "\n");
@@ -467,8 +468,8 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
       return true;
     }
     uint8_t kind = ch&ENH_BYTE_MASK;
-    if (kind == ENH_BYTE1 && m_bufLen<2) {
-      return false; // transfer not complete yet
+    if (kind == ENH_BYTE1 && m_bufLen < 2) {
+      return false;  // transfer not complete yet
     }
     m_bufPos = (m_bufPos+1)%m_bufSize;
     m_bufLen--;
@@ -488,8 +489,8 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
       }
       return false;
     }
-    symbol_t data = (symbol_t)(((ch&0x03)<<6) | (ch2&0x3f));
-    symbol_t cmd = (ch>>2)&0xf;
+    symbol_t data = (symbol_t)(((ch&0x03) << 6) | (ch2&0x3f));
+    symbol_t cmd = (ch >> 2)&0xf;
     switch (cmd) {
       case ENH_RES_STARTED:
         *arbitrationState = as_won;
@@ -527,7 +528,7 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
       case ENH_RES_ERROR_HOST:
         if (m_listener != nullptr) {
           ostringstream stream;
-          stream << (cmd==ENH_RES_ERROR_EBUS ? "eBUS comm error: " : "host comm error: ");
+          stream << (cmd == ENH_RES_ERROR_EBUS ? "eBUS comm error: " : "host comm error: ");
           switch (data) {
             case ENH_ERR_FRAMING:
               stream << "framing";
@@ -547,7 +548,8 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
       default:
         if (m_listener != nullptr) {
           ostringstream stream;
-          stream << "unexpected enhanced command 0x" << std::setw(2) << std::setfill('0') << std::hex << static_cast<unsigned>(cmd);
+          stream << "unexpected enhanced command 0x" << std::setw(2) << std::setfill('0') << std::hex
+                 << static_cast<unsigned>(cmd);
           string str = stream.str();
           m_listener->notifyStatus(true, str.c_str());
         }

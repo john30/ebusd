@@ -297,12 +297,12 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     opt->initialSend = true;
     break;
   case O_DEVLAT:  // --latency=10
-    value = parseInt(arg, 10, 0, 200000, &result); // backwards compatible (micros)
-    if (result != RESULT_OK || (value<=1000 && value>200)) { // backwards compatible (micros)
+    value = parseInt(arg, 10, 0, 200000, &result);  // backwards compatible (micros)
+    if (result != RESULT_OK || (value <= 1000 && value > 200)) {  // backwards compatible (micros)
       argp_error(state, "invalid latency");
       return EINVAL;
     }
-    opt->extraLatency = value > 1000 ? value/1000 : value; // backwards compatible (micros)
+    opt->extraLatency = value > 1000 ? value/1000 : value;  // backwards compatible (micros)
     break;
 
   // Message configuration options:
@@ -379,12 +379,12 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     opt->answer = true;
     break;
   case O_ACQTIM:  // --acquiretimeout=10
-    value = parseInt(arg, 10, 1, 100000, &result); // backwards compatible (micros)
-    if (result != RESULT_OK || (value<=1000 && value>100)) { // backwards compatible (micros)
+    value = parseInt(arg, 10, 1, 100000, &result);  // backwards compatible (micros)
+    if (result != RESULT_OK || (value <= 1000 && value > 100)) {  // backwards compatible (micros)
       argp_error(state, "invalid acquiretimeout");
       return EINVAL;
     }
-    opt->acquireTimeout = value > 1000 ? value/1000 : value; // backwards compatible (micros)
+    opt->acquireTimeout = value > 1000 ? value/1000 : value;  // backwards compatible (micros)
     break;
   case O_ACQRET:  // --acquireretries=3
     opt->acquireRetries = parseInt(arg, 10, 0, 10, &result);
@@ -401,12 +401,12 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     }
     break;
   case O_RCVTIM:  // --receivetimeout=25
-    value = parseInt(arg, 10, 1, 100000, &result); // backwards compatible (micros)
-    if (result != RESULT_OK || (value<=1000 && value>100)) { // backwards compatible (micros)
+    value = parseInt(arg, 10, 1, 100000, &result);  // backwards compatible (micros)
+    if (result != RESULT_OK || (value <= 1000 && value > 100)) {  // backwards compatible (micros)
       argp_error(state, "invalid receivetimeout");
       return EINVAL;
     }
-    opt->receiveTimeout =  value > 1000 ? value/1000 : value; // backwards compatible (micros)
+    opt->receiveTimeout =  value > 1000 ? value/1000 : value;  // backwards compatible (micros)
     break;
   case O_MASCNT:  // --numbermasters=0
     opt->masterCount = parseInt(arg, 10, 0, 25, &result);
