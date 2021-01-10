@@ -438,6 +438,10 @@ result_t BusHandler::handleSymbol() {
 
   case bs_skip:
     timeout = SYN_TIMEOUT;
+  case bs_ready:
+    if (m_currentRequest != nullptr) {
+      setState(bs_ready, RESULT_ERR_TIMEOUT);  // just to be sure an old BusRequest is cleaned up
+    }
     if (!m_device->isArbitrating() && m_currentRequest == nullptr && m_remainLockCount == 0) {
       BusRequest* startRequest = m_nextRequests.peek();
       if (startRequest == nullptr && m_pollInterval > 0) {  // check for poll/scan
@@ -471,12 +475,6 @@ result_t BusHandler::handleSymbol() {
           setState(bs_ready, ret);  // force the failed request to be notified
         }
       }
-    }
-    break;
-
-  case bs_ready:
-    if (m_currentRequest != nullptr) {
-      setState(bs_ready, RESULT_ERR_TIMEOUT);  // just to be sure an old BusRequest is cleaned up
     }
     break;
 
