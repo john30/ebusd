@@ -39,6 +39,5 @@ app.info
 /docs/Doxyfile
 /docs/doxyfile.stamp
 /docs/html
-/cmake-build-debug/
-/cmake-build-debug-remote-l/
+/cmake-build-debug*/
 /.idea/
