@@ -45,20 +45,23 @@ namespace ebusd {
 
 using std::string;
 
-/** the default time [us] for retrieving a symbol from an addressed slave. */
-#define SLAVE_RECV_TIMEOUT 15000
+/** the default time [ms] for retrieving a symbol from an addressed slave. */
+#define SLAVE_RECV_TIMEOUT 15
 
-/** the maximum allowed time [us] for retrieving the AUTO-SYN symbol (45ms + 2*1,2% + 1 Symbol). */
-#define SYN_TIMEOUT 50800
+/** the maximum allowed time [ms] for retrieving the AUTO-SYN symbol (45ms + 2*1,2% + 1 Symbol). */
+#define SYN_TIMEOUT 51
 
-/** the time [us] for determining bus signal availability (AUTO-SYN timeout * 5). */
-#define SIGNAL_TIMEOUT 250000
+/** the time [ms] for determining bus signal availability (AUTO-SYN timeout * 5). */
+#define SIGNAL_TIMEOUT 250
 
 /** the maximum duration [us] of a single symbol (Start+8Bit+Stop+Extra @ 2400Bd-2*1,2%). */
-#define SYMBOL_DURATION 4700
+#define SYMBOL_DURATION_MICROS 4700
 
-/** the maximum allowed time [us] for retrieving back a sent symbol (2x symbol duration). */
-#define SEND_TIMEOUT (2*SYMBOL_DURATION)
+/** the maximum duration [ms] of a single symbol (Start+8Bit+Stop+Extra @ 2400Bd-2*1,2%). */
+#define SYMBOL_DURATION 5
+
+/** the maximum allowed time [ms] for retrieving back a sent symbol (2x symbol duration). */
+#define SEND_TIMEOUT ((int)((2*SYMBOL_DURATION_MICROS+999)/1000))
 
 /** the possible bus states. */
 enum BusState {
@@ -368,9 +371,8 @@ class BusHandler : public WaitThread {
    * @param answer whether to answer queries for the own master/slave address.
    * @param busLostRetries the number of times a send is repeated due to lost arbitration.
    * @param failedSendRetries the number of times a failed send is repeated (other than lost arbitration).
-   * @param transferLatency the bus transfer latency in microseconds.
-   * @param busAcquireTimeout the maximum time in microseconds for bus acquisition.
-   * @param slaveRecvTimeout the maximum time in microseconds an addressed slave is expected to acknowledge.
+   * @param busAcquireTimeout the maximum time in milliseconds for bus acquisition.
+   * @param slaveRecvTimeout the maximum time in milliseconds an addressed slave is expected to acknowledge.
    * @param lockCount the number of AUTO-SYN symbols before sending is allowed after lost arbitration, or 0 for auto detection.
    * @param generateSyn whether to enable AUTO-SYN symbol generation.
    * @param pollInterval the interval in seconds in which poll messages are cycled, or 0 if disabled.
@@ -378,14 +380,14 @@ class BusHandler : public WaitThread {
   BusHandler(Device* device, MessageMap* messages,
       symbol_t ownAddress, bool answer,
       unsigned int busLostRetries, unsigned int failedSendRetries,
-      unsigned int transferLatency, unsigned int busAcquireTimeout, unsigned int slaveRecvTimeout,
+      unsigned int busAcquireTimeout, unsigned int slaveRecvTimeout,
       unsigned int lockCount, bool generateSyn,
       unsigned int pollInterval)
     : WaitThread(), m_device(device), m_reconnect(false), m_messages(messages),
       m_ownMasterAddress(ownAddress), m_ownSlaveAddress(getSlaveAddress(ownAddress)),
       m_answer(answer), m_addressConflict(false),
       m_busLostRetries(busLostRetries), m_failedSendRetries(failedSendRetries),
-      m_transferLatency(transferLatency), m_busAcquireTimeout(busAcquireTimeout), m_slaveRecvTimeout(slaveRecvTimeout),
+      m_busAcquireTimeout(busAcquireTimeout), m_slaveRecvTimeout(slaveRecvTimeout),
       m_masterCount(device->isReadOnly()?0:1), m_autoLockCount(lockCount == 0),
       m_lockCount(lockCount <= 3 ? 3 : lockCount), m_remainLockCount(m_autoLockCount ? 1 : 0),
       m_generateSynInterval(generateSyn ? SYN_TIMEOUT*getMasterNumber(ownAddress)+SYMBOL_DURATION : 0),
@@ -686,13 +688,10 @@ class BusHandler : public WaitThread {
   /** the number of times a failed send is repeated (other than lost arbitration). */
   const unsigned int m_failedSendRetries;
 
-  /** the bus transfer latency in microseconds. */
-  const unsigned int m_transferLatency;
-
-  /** the maximum time in microseconds for bus acquisition. */
+  /** the maximum time in milliseconds for bus acquisition. */
   const unsigned int m_busAcquireTimeout;
 
-  /** the maximum time in microseconds an addressed slave is expected to acknowledge. */
+  /** the maximum time in milliseconds an addressed slave is expected to acknowledge. */
   const unsigned int m_slaveRecvTimeout;
 
   /** the number of masters already seen. */
@@ -707,7 +706,7 @@ class BusHandler : public WaitThread {
   /** the remaining number of AUTO-SYN symbols before sending is allowed again. */
   unsigned int m_remainLockCount;
 
-  /** the interval in microseconds after which to generate an AUTO-SYN symbol, or 0 if disabled. */
+  /** the interval in milliseconds after which to generate an AUTO-SYN symbol, or 0 if disabled. */
   unsigned int m_generateSynInterval;
 
   /** the interval in seconds in which poll messages are cycled, or 0 if disabled. */

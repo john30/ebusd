@@ -79,7 +79,7 @@ static struct options opt = {
   false,  // noDeviceCheck
   false,  // readOnly
   false,  // initialSend
-  -1,  // latency
+  0,  // extraLatency
 
   CONFIG_PATH,  // configPath
   false,  // scanConfig
@@ -92,7 +92,7 @@ static struct options opt = {
 
   0x31,  // address
   false,  // answer
-  9400,  // acquireTimeout
+  10,  // acquireTimeout
   3,  // acquireRetries
   2,  // sendRetries
   SLAVE_RECV_TIMEOUT*5/3,  // receiveTimeout
@@ -184,7 +184,7 @@ static const struct argp_option argpoptions[] = {
   {"nodevicecheck",  'n',      nullptr,    0, "Skip serial eBUS device test", 0 },
   {"readonly",       'r',      nullptr,    0, "Only read from device, never write to it", 0 },
   {"initsend",       O_INISND, nullptr,    0, "Send an initial escape symbol after connecting device", 0 },
-  {"latency",        O_DEVLAT, "USEC",     0, "Transfer latency in us [0 for USB, 10000 for IP]", 0 },
+  {"latency",        O_DEVLAT, "MSEC",     0, "Extra transfer latency in ms [0]", 0 },
 
   {nullptr,          0,        nullptr,    0, "Message configuration options:", 2 },
   {"configpath",     'c',      "PATH",     0, "Read CSV config files from PATH (local folder or HTTP URL) [" CONFIG_PATH
@@ -204,10 +204,10 @@ static const struct argp_option argpoptions[] = {
   {nullptr,          0,        nullptr,    0, "eBUS options:", 3 },
   {"address",        'a',      "ADDR",     0, "Use ADDR as own bus address [31]", 0 },
   {"answer",         O_ANSWER, nullptr,    0, "Actively answer to requests from other masters", 0 },
-  {"acquiretimeout", O_ACQTIM, "USEC",     0, "Stop bus acquisition after USEC us [9400]", 0 },
+  {"acquiretimeout", O_ACQTIM, "MSEC",     0, "Stop bus acquisition after MSEC ms [10]", 0 },
   {"acquireretries", O_ACQRET, "COUNT",    0, "Retry bus acquisition COUNT times [3]", 0 },
   {"sendretries",    O_SNDRET, "COUNT",    0, "Repeat failed sends COUNT times [2]", 0 },
-  {"receivetimeout", O_RCVTIM, "USEC",     0, "Expect a slave to answer within USEC us [25000]", 0 },
+  {"receivetimeout", O_RCVTIM, "MSEC",     0, "Expect a slave to answer within MSEC us [25]", 0 },
   {"numbermasters",  O_MASCNT, "COUNT",    0, "Expect COUNT masters on the bus, 0 for auto detection [0]", 0 },
   {"generatesyn",    O_GENSYN, nullptr,    0, "Enable AUTO-SYN symbol generation", 0 },
 
@@ -267,6 +267,7 @@ static map<string, DataFieldTemplates*> s_templatesByPath;
 error_t parse_opt(int key, char *arg, struct argp_state *state) {
   struct options *opt = (struct options*)state->input;
   result_t result = RESULT_OK;
+  unsigned int value;
 
   switch (key) {
   // Device options:
@@ -295,12 +296,13 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     }
     opt->initialSend = true;
     break;
-  case O_DEVLAT:  // --latency=10000
-    opt->latency = parseInt(arg, 10, 0, 200000, &result);
-    if (result != RESULT_OK) {
+  case O_DEVLAT:  // --latency=10
+    value = parseInt(arg, 10, 0, 200000, &result); // backwards compatible (micros)
+    if (result != RESULT_OK || (value<=1000 && value>200)) { // backwards compatible (micros)
       argp_error(state, "invalid latency");
       return EINVAL;
     }
+    opt->extraLatency = value > 1000 ? value/1000 : value; // backwards compatible (micros)
     break;
 
   // Message configuration options:
@@ -376,12 +378,13 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     }
     opt->answer = true;
     break;
-  case O_ACQTIM:  // --acquiretimeout=9400
-    opt->acquireTimeout = parseInt(arg, 10, 1000, 100000, &result);
-    if (result != RESULT_OK) {
+  case O_ACQTIM:  // --acquiretimeout=10
+    value = parseInt(arg, 10, 1, 100000, &result); // backwards compatible (micros)
+    if (result != RESULT_OK || (value<=1000 && value>100)) { // backwards compatible (micros)
       argp_error(state, "invalid acquiretimeout");
       return EINVAL;
     }
+    opt->acquireTimeout = value > 1000 ? value/1000 : value; // backwards compatible (micros)
     break;
   case O_ACQRET:  // --acquireretries=3
     opt->acquireRetries = parseInt(arg, 10, 0, 10, &result);
@@ -397,12 +400,13 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       return EINVAL;
     }
     break;
-  case O_RCVTIM:  // --receivetimeout=25000
-    opt->receiveTimeout = parseInt(arg, 10, 1000, 100000, &result);
-    if (result != RESULT_OK) {
+  case O_RCVTIM:  // --receivetimeout=25
+    value = parseInt(arg, 10, 1, 100000, &result); // backwards compatible (micros)
+    if (result != RESULT_OK || (value<=1000 && value>100)) { // backwards compatible (micros)
       argp_error(state, "invalid receivetimeout");
       return EINVAL;
     }
+    opt->receiveTimeout =  value > 1000 ? value/1000 : value; // backwards compatible (micros)
     break;
   case O_MASCNT:  // --numbermasters=0
     opt->masterCount = parseInt(arg, 10, 0, 25, &result);
@@ -1306,7 +1310,7 @@ int main(int argc, char* argv[]) {
   }
 
   // open the device
-  Device *device = Device::create(opt.device, !opt.noDeviceCheck, opt.readOnly, opt.initialSend);
+  Device *device = Device::create(opt.device, opt.extraLatency, !opt.noDeviceCheck, opt.readOnly, opt.initialSend);
   if (device == nullptr) {
     logError(lf_main, "unable to create device %s", opt.device);
     return EINVAL;

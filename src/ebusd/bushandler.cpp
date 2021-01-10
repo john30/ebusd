@@ -478,12 +478,6 @@ result_t BusHandler::handleSymbol() {
     }
     break;
 
-  case bs_ready:
-    if (m_currentRequest != nullptr) {
-      setState(bs_ready, RESULT_ERR_TIMEOUT);  // just to be sure an old BusRequest is cleaned up
-    }
-    break;
-
   case bs_recvCmd:
   case bs_recvCmdCrc:
     timeout = m_slaveRecvTimeout;
