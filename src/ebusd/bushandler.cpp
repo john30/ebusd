@@ -574,7 +574,7 @@ result_t BusHandler::handleSymbol() {
       setState(bs_skip, result);
     }
   } else {
-    clockGettime(&sentTime); // for measuring arbitration delay in enhanced protocol
+    clockGettime(&sentTime);  // for measuring arbitration delay in enhanced protocol
   }
 
   // receive next symbol (optionally check reception of sent symbol)
@@ -658,7 +658,7 @@ result_t BusHandler::handleSymbol() {
         setState(m_state, RESULT_ERR_BUS_LOST);
       }
       break;
-    default: // only as_none
+    default:  // only as_none
       break;
   }
   if (sentAutoSyn && !sending) {
@@ -1013,7 +1013,7 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
       m_currentRequest = nullptr;
     }
     if (state == bs_skip) {
-      m_device->startArbitration(SYN); // reset arbitration state
+      m_device->startArbitration(SYN);  // reset arbitration state
     }
   }
 
@@ -1049,7 +1049,6 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
   } else if (m_state == bs_noSignal) {
     logNotice(lf_bus, "signal acquired");
   }
-  // logDebug(lf_bus, "state: from %s to %s with %s", getStateCode(m_state), getStateCode(state), getResultCode(result));
   m_state = state;
 
   if (state == bs_ready || state == bs_skip) {

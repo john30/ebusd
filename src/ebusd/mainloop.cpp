@@ -296,7 +296,7 @@ void MainLoop::run() {
             lastScanAddress = 0;
             scanStatus = "finished";
           } else {
-            if (scanStatus!="running") {
+            if (scanStatus != "running") {
               scanStatus = "running";
             }
             nextCheckRun = now + CHECK_INITIAL_DELAY;

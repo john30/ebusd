@@ -94,7 +94,7 @@ class MqttHandler : public DataSink, public DataSource, public WaitThread {
   // @copydoc
   void notifyScanStatus(const string& scanStatus) override;
 
-protected:
+ protected:
   // @copydoc
   void run() override;
 

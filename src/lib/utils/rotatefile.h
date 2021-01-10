@@ -45,7 +45,8 @@ class RotateFile {
    * @param textMode whether to write each byte with prefixed timestamp and direction as text.
    * @param flushBuffer the size of the flush buffer.
    */
-  RotateFile(const string fileName, const unsigned int maxSize, const bool textMode = false, const unsigned int flushBuffer = 16)
+  RotateFile(const string fileName, const unsigned int maxSize, const bool textMode = false,
+             const unsigned int flushBuffer = 16)
     : m_enabled(false), m_fileName(fileName), m_maxSize(maxSize), m_textMode(textMode), m_stream(), m_fileSize(0),
       m_flushSize(0), m_flushBuffer(flushBuffer) {}
 
