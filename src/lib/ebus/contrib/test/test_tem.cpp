@@ -121,7 +121,7 @@ int main() {
   templates->readLineFromStream(&dummystr, "inline", false, &lineNo, &row, &errorDescription, false, nullptr, nullptr);
   const DataField* fields = nullptr;
   for (unsigned int i = 0; i < sizeof(checks) / sizeof(checks[0]); i++) {
-    string check[5] = checks[i];
+    string* check = checks[i];
     istringstream isstr(check[0]);
     string expectStr = check[1];
     MasterSymbolString mstr;
