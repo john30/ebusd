@@ -1,4 +1,4 @@
-# 21.1 (2021-01-?)
+# 21.1 (2021-01-10)
 
 ## Bug Fixes
 * fix for publishing several MQTT updates at once
