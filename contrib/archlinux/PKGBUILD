@@ -2,7 +2,7 @@
 # Contributor: Milan Knizek <knizek volny cz>
 # Usage: makepkg
 pkgname=ebusd
-pkgver=3.4
+pkgver=21.1
 pkgrel=1
 pkgdesc="ebusd, the daemon for communication with eBUS heating systems."
 arch=('i686' 'x86_64' 'armv6h' 'armv7h' 'aarch64')

@@ -40,6 +40,26 @@ namespace ebusd {
  * to a file and/or forwarding it to a logging function.
  */
 
+/** the transfer latency of the network device [ms]. */
+#define NETWORK_LATENCY_MS 30
+
+/** the latency of the host [ms]. */
+#if defined(__CYGWIN__) || defined(_WIN32)
+#define HOST_LATENCY_MS 20
+#else
+#define HOST_LATENCY_MS 0
+#endif
+
+/** the arbitration state handled by @a Device. */
+enum ArbitrationState {
+  as_none,     //!< no arbitration in process
+  as_start,    //!< arbitration start requested
+  as_error,    //!< error while sending master address
+  as_running,  //!< arbitration currently running (master address sent, waiting for reception)
+  as_lost,     //!< arbitration lost
+  as_won,      //!< arbitration won
+};
+
 /**
  * Interface for listening to data received on/sent to a device.
  */
@@ -56,6 +76,13 @@ class DeviceListener {
    * @param received @a true on reception, @a false on sending.
    */
   virtual void notifyDeviceData(symbol_t symbol, bool received) = 0;  // abstract
+
+  /**
+   * Called to notify a status message from the device.
+   * @param error true for an error message, false for an info message.
+   * @param message the message string.
+   */
+  virtual void notifyStatus(bool error, const char* message) = 0;  // abstract
 };
 
 
@@ -63,18 +90,20 @@ class DeviceListener {
  * The base class for accessing an eBUS.
  */
 class Device {
- public:
+ protected:
   /**
    * Construct a new instance.
    * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
-   * @param checkDevice whether to regularly check the device availability (only for serial devices).
+   * @param checkDevice whether to regularly check the device availability.
+   * @param latency the bus transfer latency in milliseconds.
    * @param readOnly whether to allow read access to the device only.
    * @param initialSend whether to send an initial @a ESC symbol in @a open().
+   * @param enhancedProto whether to use the ebusd enhanced protocol.
    */
-  Device(const char* name, bool checkDevice, bool readOnly, bool initialSend)
-    : m_name(name), m_checkDevice(checkDevice), m_readOnly(readOnly), m_initialSend(initialSend), m_fd(-1),
-      m_listener(nullptr) {}
+  Device(const char* name, bool checkDevice, unsigned int latency, bool readOnly, bool initialSend,
+      bool enhancedProto = false);
 
+ public:
   /**
    * Destructor.
    */
@@ -83,26 +112,33 @@ class Device {
   /**
    * Factory method for creating a new instance.
    * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
+   * @param extraLatency the extra bus transfer latency in milliseconds.
    * @param checkDevice whether to regularly check the device availability (only for serial devices).
    * @param readOnly whether to allow read access to the device only.
    * @param initialSend whether to send an initial @a ESC symbol in @a open().
    * @return the new @a Device, or nullptr on error.
    * Note: the caller needs to free the created instance.
    */
-  static Device* create(const char* name, bool checkDevice = true, bool readOnly = false,
-      bool initialSend = false);
+  static Device* create(const char* name, unsigned int extraLatency = 0, bool checkDevice = true,
+      bool readOnly = false, bool initialSend = false);
 
   /**
    * Get the transfer latency of this device.
-   * @return the transfer latency in microseconds.
+   * @return the transfer latency in milliseconds.
    */
-  virtual unsigned int getLatency() const { return 0; }
+  virtual unsigned int getLatency() const { return m_latency; }
 
   /**
    * Open the file descriptor.
    * @return the @a result_t code.
    */
-  virtual result_t open() = 0;  // abstract
+  virtual result_t open();
+
+  /**
+   * Has to be called by subclasses upon successful opening the device as last action in open().
+   * @return the @a result_t code.
+   */
+  result_t afterOpen();
 
   /**
    * Close the file descriptor if opened.
@@ -118,11 +154,27 @@ class Device {
 
   /**
    * Read a single byte from the device.
-   * @param timeout maximum time to wait for the byte in microseconds, or 0 for infinite.
+   * @param timeout maximum time to wait for the byte in milliseconds, or 0 for infinite.
    * @param value the reference in which the received byte value is stored.
+   * @param arbitrationState the reference in which the current @a ArbitrationState is stored on success. When set to
+   * @a as_won, the received byte is the master address that was successfully arbitrated with.
    * @return the result_t code.
    */
-  result_t recv(unsigned int timeout, symbol_t* value);
+  result_t recv(unsigned int timeout, symbol_t* value, ArbitrationState* arbitrationState);
+
+  /**
+   * Start the arbitration with the specified master address. A subsequent request while an arbitration is currently in
+   * checking state will always result in @a RESULT_ERR_DUPLICATE.
+   * @param masterAddress the master address, or @a SYN to cancel a previous arbitration request.
+   * @return the result_t code.
+   */
+  result_t startArbitration(symbol_t masterAddress);
+
+  /**
+   * Return whether the device is currently in arbitration.
+   * @return true when the device is currently in arbitration.
+   */
+  bool isArbitrating() const { return m_arbitrationMaster != SYN; }
 
   /**
    * Return the device name.
@@ -156,36 +208,54 @@ class Device {
   virtual void checkDevice() = 0;  // abstract
 
   /**
-   * Check whether a byte is available immediately (without waiting).
-   * @return true when a a byte is available immediately.
+   * Cancel a running arbitration.
+   * @param arbitrationState the reference in which @a as_error is stored when cancelled.
+   * @return true if it was cancelled, false if not.
    */
-  virtual bool available() { return false; }
+  bool cancelRunningArbitration(ArbitrationState* arbitrationState);
 
   /**
    * Write a single byte.
    * @param value the byte value to write.
-   * @return the number of bytes written, or -1 on error.
+   * @param startArbitration true to start arbitration.
+   * @return true on success, false on error.
    */
-  virtual ssize_t write(symbol_t value) { return ::write(m_fd, &value, 1); }
+  virtual bool write(symbol_t value, bool startArbitration = false);
+
+  /**
+   * Check whether a symbol is available for reading immediately (without waiting).
+   * @return true when a symbol is available for reading immediately.
+   */
+  virtual bool available();
 
   /**
    * Read a single byte.
    * @param value the reference in which the read byte value is stored.
-   * @return the number of bytes read, or -1 on error.
+   * @param isAvailable the result of the immediately preceding call to @a available().
+   * @param arbitrationState the variable in which to store the current/received arbitration state (mandatory for enhanced proto).
+   * @param incomplete the variable in which to store when a partial transfer needs another poll.
+   * @return true on success, false on error.
    */
-  virtual ssize_t read(symbol_t* value) { return ::read(m_fd, value, 1); }
+  virtual bool read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrationState = nullptr,
+                    bool* incomplete = nullptr);
 
   /** the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network). */
   const char* m_name;
 
-  /** whether to regularly check the device availability (only for serial devices). */
+  /** whether to regularly check the device availability. */
   const bool m_checkDevice;
+
+  /** the bus transfer latency in milliseconds. */
+  const unsigned int m_latency;
 
   /** whether to allow read access to the device only. */
   const bool m_readOnly;
 
   /** whether to send an initial @a ESC symbol in @a open(). */
   const bool m_initialSend;
+
+  /** whether the device supports the ebusd enhanced protocol. */
+  const bool m_enhancedProto;
 
   /** the opened file descriptor, or -1. */
   int m_fd;
@@ -194,7 +264,26 @@ class Device {
  private:
   /** the @a DeviceListener, or nullptr. */
   DeviceListener* m_listener;
+
+  /** the arbitration master address to send when in arbitration, or @a SYN. */
+  symbol_t m_arbitrationMaster;
+
+  /** true when in arbitration and the next received symbol needs to be checked against the sent master address. */
+  bool m_arbitrationCheck;
+
+  /** the read buffer. */
+  symbol_t* m_buffer;
+
+  /** the read buffer size (multiple of 4). */
+  size_t m_bufSize;
+
+  /** the read buffer fill length. */
+  size_t m_bufLen;
+
+  /** the read buffer read position. */
+  size_t m_bufPos;
 };
+
 
 /**
  * The @a Device for directly connected serial interfaces (tty).
@@ -204,12 +293,15 @@ class SerialDevice : public Device {
   /**
    * Construct a new instance.
    * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
-   * @param checkDevice whether to regularly check the device availability (only for serial devices).
+   * @param checkDevice whether to regularly check the device availability.
+   * @param extraLatency the extra bus transfer latency in milliseconds.
    * @param readOnly whether to allow read access to the device only.
    * @param initialSend whether to send an initial @a ESC symbol in @a open().
+   * @param enhancedProto whether to use the ebusd enhanced protocol.
    */
-  SerialDevice(const char* name, bool checkDevice, bool readOnly, bool initialSend)
-    : Device(name, checkDevice, readOnly, initialSend) {}
+  SerialDevice(const char* name, bool checkDevice, unsigned int extraLatency, bool readOnly, bool initialSend,
+      bool enhancedProto = false)
+    : Device(name, checkDevice, extraLatency, readOnly, initialSend, enhancedProto) {}
 
   // @copydoc
   result_t open() override;
@@ -239,47 +331,33 @@ class NetworkDevice : public Device {
    * @param address the socket address of the device.
    * @param hostOrIp the host name or IP address of the device.
    * @param port the TCP or UDP port of the device.
+   * @param extraLatency the extra bus transfer latency in milliseconds.
    * @param readOnly whether to allow read access to the device only.
    * @param initialSend whether to send an initial @a ESC symbol in @a open().
    * @param udp true for UDP, false to TCP.
+   * @param enhancedProto whether to use the ebusd enhanced protocol.
    */
-  NetworkDevice(const char* name, const char* hostOrIp, uint16_t port, bool readOnly, bool initialSend, bool udp)
-    : Device(name, true, readOnly, initialSend), m_hostOrIp(hostOrIp), m_port(port), m_udp(udp),
-      m_buffer(nullptr), m_bufSize(0), m_bufLen(0), m_bufPos(0) {}
+  NetworkDevice(const char* name, const char* hostOrIp, uint16_t port, unsigned int extraLatency, bool readOnly,
+      bool initialSend, bool udp, bool enhancedProto = false)
+    : Device(name, true, NETWORK_LATENCY_MS+extraLatency, readOnly, initialSend, enhancedProto),
+    m_hostOrIp(hostOrIp), m_port(port), m_udp(udp) {}
 
   /**
    * Destructor.
    */
-  virtual ~NetworkDevice() {
+  ~NetworkDevice() override {
     if (m_hostOrIp) {
       free((void*)m_hostOrIp);
-    }
-    if (m_buffer) {
-      free(m_buffer);
     }
   }
 
   // @copydoc
-  unsigned int getLatency() const override { return 10000; }
-
-  // @copydoc
   result_t open() override;
 
-  // @copydoc
-  void close() override;
 
  protected:
   // @copydoc
   void checkDevice() override;
-
-  // @copydoc
-  bool available() override;
-
-  // @copydoc
-  ssize_t write(symbol_t value) override;
-
-  // @copydoc
-  ssize_t read(symbol_t* value) override;
 
 
  private:
@@ -291,18 +369,6 @@ class NetworkDevice : public Device {
 
   /** true for UDP, false to TCP. */
   const bool m_udp;
-
-  /** the buffer memory, or nullptr. */
-  symbol_t* m_buffer;
-
-  /** the buffer size. */
-  size_t m_bufSize;
-
-  /** the buffer fill length. */
-  size_t m_bufLen;
-
-  /** the buffer read position. */
-  size_t m_bufPos;
 };
 
 }  // namespace ebusd

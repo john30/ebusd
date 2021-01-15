@@ -30,7 +30,6 @@ app.info
 /src/lib/utils/libutils.a
 /src/lib/ebus/libebus.a
 /src/lib/ebus/contrib/test/test_tem
-/src/lib/ebus/test/test_device
 /src/lib/ebus/test/test_symbol
 /src/lib/ebus/test/test_data
 /src/lib/ebus/test/test_message
@@ -40,3 +39,5 @@ app.info
 /docs/Doxyfile
 /docs/doxyfile.stamp
 /docs/html
+/cmake-build-debug*/
+/.idea/

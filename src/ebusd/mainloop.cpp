@@ -141,16 +141,10 @@ MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messag
     }
   }
   // create BusHandler
-  unsigned int latency;
-  if (opt.latency < 0) {
-    latency = device->getLatency();
-  } else {
-    latency = (unsigned int)opt.latency;
-  }
   m_busHandler = new BusHandler(m_device, m_messages,
       m_address, opt.answer,
       opt.acquireRetries, opt.sendRetries,
-      latency, opt.acquireTimeout, opt.receiveTimeout,
+      opt.acquireTimeout, opt.receiveTimeout,
       opt.masterCount, opt.generateSyn,
       opt.pollInterval);
   m_busHandler->start("bushandler");
@@ -302,7 +296,7 @@ void MainLoop::run() {
             lastScanAddress = 0;
             scanStatus = "finished";
           } else {
-            if (scanStatus!="running") {
+            if (scanStatus != "running") {
               scanStatus = "running";
             }
             nextCheckRun = now + CHECK_INITIAL_DELAY;
@@ -473,12 +467,18 @@ void MainLoop::notifyDeviceData(symbol_t symbol, bool received) {
     }
     if (m_logRawBuffer.tellp() == 0 || received != m_logRawLastReceived) {
       m_logRawLastReceived = received;
+      if (m_logRawBuffer.tellp() == 0 && m_logRawLastSymbol != SYN) {
+        m_logRawBuffer << "...";
+      }
       m_logRawBuffer << (received ? "<" : ">");
     }
     m_logRawBuffer << setw(2) << setfill('0') << hex << static_cast<unsigned>(symbol);
-    m_logRawLastSymbol = symbol;
   }
-  if (symbol == SYN && m_logRawBuffer.tellp() > 0) {  // flush
+    m_logRawLastSymbol = symbol;
+  if (m_logRawBuffer.tellp() > (symbol == SYN ? 0 : 64)) {  // flush: direction+5 hdr+24 max data+crc+direction+ack+1
+    if (symbol != SYN) {
+      m_logRawBuffer << "...";
+  }
     const string bufStr = m_logRawBuffer.str();
     const char* str = bufStr.c_str();
     if (m_logRawFile) {
@@ -487,6 +487,14 @@ void MainLoop::notifyDeviceData(symbol_t symbol, bool received) {
       logNotice(lf_bus, str);
     }
     m_logRawBuffer.str("");
+  }
+}
+
+void MainLoop::notifyStatus(bool error, const char* message) {
+  if (error) {
+    logError(lf_bus, "device status: %s", message);
+  } else {
+    logNotice(lf_bus, "device status: %s", message);
   }
 }
 

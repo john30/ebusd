@@ -84,25 +84,54 @@ WaitThread::~WaitThread() {
 void WaitThread::stop() {
   pthread_mutex_lock(&m_mutex);
   pthread_cond_signal(&m_cond);
-  pthread_mutex_unlock(&m_mutex);
   Thread::stop();
+  pthread_mutex_unlock(&m_mutex);
 }
 
 bool WaitThread::join() {
-  pthread_mutex_lock(&m_mutex);
-  pthread_cond_signal(&m_cond);
-  pthread_mutex_unlock(&m_mutex);
+  stop();
   return Thread::join();
 }
 
 bool WaitThread::Wait(int seconds) {
+  pthread_mutex_lock(&m_mutex);
   struct timespec t;
   clockGettime(&t);
   t.tv_sec += seconds;
-  pthread_mutex_lock(&m_mutex);
   pthread_cond_timedwait(&m_cond, &m_mutex, &t);
   pthread_mutex_unlock(&m_mutex);
   return isRunning();
+}
+
+
+NotifiableThread::NotifiableThread()
+    : WaitThread(), m_notified(false) {
+}
+
+void NotifiableThread::notify() {
+  pthread_mutex_lock(&m_mutex);
+  pthread_cond_signal(&m_cond);
+  m_notified = true;
+  pthread_mutex_unlock(&m_mutex);
+}
+
+bool NotifiableThread::waitNotified(int millis) {
+  pthread_mutex_lock(&m_mutex);
+  if (!m_notified) {
+    struct timespec t;
+    clockGettime(&t);
+    t.tv_sec += millis / 1000000000;
+    t.tv_nsec += (millis % 1000000000) * 1000000;
+    if (t.tv_nsec > 1000000000) {
+      t.tv_sec++;
+      t.tv_nsec -= 1000000000;
+    }
+    pthread_cond_timedwait(&m_cond, &m_mutex, &t);
+  }
+  bool notified = m_notified;
+  m_notified = false;
+  pthread_mutex_unlock(&m_mutex);
+  return notified;
 }
 
 }  // namespace ebusd
