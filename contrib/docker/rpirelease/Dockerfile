@@ -1,4 +1,6 @@
-FROM balenalib/raspberrypi3
+FROM balenalib/raspberrypi3:stretch
+
+RUN [ "cross-build-start" ]
 
 RUN install_packages \
     logrotate libmosquitto1 libstdc++6 libc6 libgcc1 \
@@ -16,6 +18,8 @@ RUN curl -SL https://github.com/john30/ebusd/releases/download/v${EBUSD_VERSION}
 RUN dpkg -i ebusd.deb
 
 RUN rm ebusd.deb
+
+RUN [ "cross-build-end" ]
 
 EXPOSE 8888
 
