@@ -3,13 +3,14 @@ curl -sLo manifest-tool "https://github.com/estesp/manifest-tool/releases/downlo
 chmod +x manifest-tool
 image_name="${IMAGE_NAME%%-*}"
 set +e
+
 sed -e "s#%image_name%#${image_name}#" manifest.template > manifest.yaml
 ./manifest-tool push from-spec manifest.yaml
 if [ $? -ne 0 ]; then
   echo "manifest failed, post_push step ignored"
   exit 0
 fi
-latest
+
 if [ "${image_name##*:v}" != "$image_name" ]; then
   latest="${image_name%%:v*}:latest"
   sed -e "s#%image_name%#${latest}#" manifest.template > manifest.yaml
