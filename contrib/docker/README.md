@@ -7,7 +7,7 @@ An [ebusd](https://github.com/john30/ebusd/) Docker image is available on the
 
 It allows you to run ebusd without actually installing (or even building) it on your system.
 You might even be able to run it on a non-Linux operating system, which is at least known to
-work well on a  (this is known to work on a Synology Diskstation).
+work well on a Synology Diskstation as well as Windows with Docker Desktop.
 
 
 Getting the image
