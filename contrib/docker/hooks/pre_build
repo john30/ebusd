@@ -1,0 +1,9 @@
+#!/bin/bash
+arch=$(echo "$DOCKERFILE_PATH" | cut -d '.' -f 2)
+if [ "$arch" == "Dockerfile" ]; then
+  echo "QEMU not needed"
+  exit 0
+fi
+echo "registering QEMU for $arch"
+docker run --rm --privileged multiarch/qemu-user-static:register --reset
+echo "QEMU registered for $arch"
