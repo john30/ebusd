@@ -17,7 +17,8 @@ RUN git clone https://github.com/john30/ebusd.git /build \
 
 ARG UPLOAD_URL
 ARG UPLOAD_CREDENTIALS
-RUN if [ -n "$UPLOAD_URL" ] && [ -n "$UPLOAD_CREDENTIALS" ]; then for img in ebusd-*.deb; do echo "upload $img"; curl -u "$UPLOAD_CREDENTIALS" -s -X POST --data-binary "@$img" -H "Content-Type: application/octet-stream" "$UPLOAD_URL/$img?a=$EBUSD_ARCH&v=$EBUSD_VERSION"; done; fi
+ARG UPLOAD_ONLY
+RUN if [ -n "$UPLOAD_URL" ] && [ -n "$UPLOAD_CREDENTIALS" ]; then for img in ebusd-*.deb; do echo "upload $img"; curl -u "$UPLOAD_CREDENTIALS" -s -X POST --data-binary "@$img" -H "Content-Type: application/octet-stream" "$UPLOAD_URL/$img?a=$EBUSD_ARCH&v=$EBUSD_VERSION"; done; if [ -n "$UPLOAD_ONLY" ]; then echo "stopping for upload only"; exit 139; fi fi
 
 
 FROM debian:stretch-slim
