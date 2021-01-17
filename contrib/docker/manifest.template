@@ -1,0 +1,11 @@
+image: %image_name%
+manifests:
+  - image: %image_name%-amd64
+    platform:
+      architecture: amd64
+      os: linux
+  - image: %image_name%-arm32v7
+    platform:
+      architecture: arm
+      os: linux
+      variant: v7
