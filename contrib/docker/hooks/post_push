@@ -1,10 +1,21 @@
 #!/bin/bash
 curl -sLo manifest-tool "https://github.com/estesp/manifest-tool/releases/download/v1.0.3/manifest-tool-linux-amd64"
 chmod +x manifest-tool
-sed -e "s#%image_name%#${IMAGE_NAME%%-*}#" manifest.template > manifest.yaml
+image_name="${IMAGE_NAME%%-*}"
 set +e
+sed -e "s#%image_name%#${image_name}#" manifest.template > manifest.yaml
 ./manifest-tool push from-spec manifest.yaml
 if [ $? -ne 0 ]; then
   echo "manifest failed, post_push step ignored"
   exit 0
+fi
+latest
+if [ "${image_name##*:v}" != "$image_name" ]; then
+  latest="${image_name%%:v*}:latest"
+  sed -e "s#%image_name%#${latest}#" manifest.template > manifest.yaml
+  ./manifest-tool push from-spec manifest.yaml
+  if [ $? -ne 0 ]; then
+    echo "manifest failed for latest, post_push step ignored"
+    exit 0
+  fi
 fi
