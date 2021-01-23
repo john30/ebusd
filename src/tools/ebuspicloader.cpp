@@ -20,6 +20,8 @@
 #include <poll.h>
 #include <sys/stat.h>
 #include <sys/file.h>
+#include <sys/types.h>
+#include <dirent.h>
 #include <time.h>
 #include <termios.h>
 #include <unistd.h>
@@ -881,6 +883,8 @@ bool writeIpSettings(int fd) {
   return true;
 }
 
+int run(int fd);
+
 int main(int argc, char* argv[]) {
   struct argp aargp = { argpoptions, parse_opt, argpargsdoc, argpdoc, nullptr, nullptr, nullptr };
   int arg_index = -1;
@@ -904,16 +908,47 @@ int main(int argc, char* argv[]) {
       exit(EXIT_FAILURE);
     }
   }
+  std::string port = argv[arg_index];
+  std::string::size_type pos = port.find('*');
+  if (pos==std::string::npos || pos != port.length()-1) {
+    int fd = openSerial(argv[arg_index]);
+    if (fd < 0) {
+      exit(EXIT_FAILURE);
+    }
+    return run(fd);
+  }
 
-  int fd = openSerial(argv[arg_index]);
-  if (fd < 0) {
+  std::string::size_type sep = port.find_last_of('/');
+  std::string base = sep==std::string::npos ? "" : port.substr(0, sep);
+  DIR* dir = opendir(base.c_str());
+  if (!dir) {
+    std::cerr << "Unable to open directory " << base << std::endl;
     exit(EXIT_FAILURE);
   }
 
+  std::string prefix = sep==std::string::npos ? port.substr(0, pos) : port.substr(sep + 1, pos - 1 - sep);
+  struct dirent* ent;
+  while ((ent = readdir(dir))) {
+    if (std::string(ent->d_name).substr(0, prefix.length()) != prefix) {
+      continue;
+    }
+    std::string name = base + "/" + ent->d_name;
+    std::cout << "Trying " << name << "..." << std::endl;
+    int fd = openSerial(name);
+    if (fd < 0) {
+      std::cerr << "Unable to open " << name << std::endl;
+      continue;
+    }
+    run(fd);
+  }
+  return 0;
+}
+
+int run(int fd) {
   // read version
   if (readVersion(fd, verbose) != 0) {
     closeSerial(fd);
-    exit(EXIT_FAILURE);
+    return EXIT_FAILURE;
   }
   uint8_t data[0x10];
   if (verbose) {
