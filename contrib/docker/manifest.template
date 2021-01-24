@@ -4,8 +4,17 @@ manifests:
     platform:
       architecture: amd64
       os: linux
+  - image: %image_name%-i386
+    platform:
+      architecture: i386
+      os: linux
   - image: %image_name%-arm32v7
     platform:
       architecture: arm
       os: linux
       variant: v7
+  - image: %image_name%-arm64v8
+    platform:
+      architecture: arm64
+      os: linux
+      variant: v8

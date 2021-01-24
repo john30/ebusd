@@ -6,6 +6,7 @@
 ## Features
 * changed docker image to multi-architecture including Raspberry Pi, reduced image size
 * added trailing wildcard to "ebuspicloader" port
+* added i386 and arm64 architectures to docker image
 
 
 # 21.1 (2021-01-10)

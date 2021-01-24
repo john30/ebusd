@@ -17,7 +17,9 @@ To download the latest release image from the hub, use the following command:
 
 The image is able to run on any of the following architectures and the right image will be picked automatically:
 * amd64
+* i386
 * arm32v7
+* arm64v8
 
 In addition to the default "latest" tag, a development set of images is available with "devel" tag. This is built
 automatically with every commit to the git repository. Run the following command to use it: 
