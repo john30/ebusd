@@ -1,3 +1,13 @@
+# 21.2 (tbd)
+
+## Bug Fixes
+* fix for UDP device connection issue
+
+## Features
+* changed docker image to multi-architecture including Raspberry Pi, reduced image size
+* added trailing wildcard to "ebuspicloader" port
+
+
 # 21.1 (2021-01-10)
 
 ## Bug Fixes
