@@ -1608,17 +1608,27 @@ result_t MainLoop::executeGrab(const vector<string>& args, ostringstream* ostrea
     return RESULT_OK;
   }
   if (args.size() >= 2 && args[1] == "result") {
-    if (args.size() == 2 || args[2] == "all") {
-      m_busHandler->formatGrabResult(args.size() == 2, false, ostream);
-      return RESULT_OK;
+    bool onlyUnknown = true;
+    bool decode = false;
+    bool invalid = false;
+    for (size_t i = args.size() - 1; i >= 2; i--) {
+      string arg = args[i];
+      if (arg == "all") {
+        onlyUnknown = false;
+      } else if (arg == "decode") {
+        decode = true;
+      } else {
+        invalid = true;
+        break;
+      }
     }
-    if (args.size() == 3 || args[2] == "decode") {
-      m_busHandler->formatGrabResult(true, true, ostream);
+    if (!invalid) {
+      m_busHandler->formatGrabResult(onlyUnknown, decode, ostream);
       return RESULT_OK;
     }
   }
   *ostream << "usage: grab [stop]\n"
-              "  or:  grab result [all|decode]\n"
+              "  or:  grab result [all|decode]*\n"
               " Start or stop grabbing, or report/decode unknown or all grabbed messages.";
   return RESULT_OK;
 }
