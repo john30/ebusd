@@ -195,6 +195,12 @@ class Device {
   bool isReadOnly() const { return m_readOnly; }
 
   /**
+   * Return whether the device supports the ebusd enhanced protocol.
+   * @return whether the device supports the ebusd enhanced protocol.
+   */
+  bool isEnhancedProto() const { return m_enhancedProto; }
+
+  /**
    * Set the @a DeviceListener.
    * @param listener the @a DeviceListener.
    */

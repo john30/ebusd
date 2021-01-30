@@ -1329,10 +1329,14 @@ int main(int argc, char* argv[]) {
   signal(SIGINT, signalHandler);
   signal(SIGTERM, signalHandler);
 
-  logNotice(lf_main, PACKAGE_STRING "." REVISION " started%s",
+  logNotice(lf_main, PACKAGE_STRING "." REVISION " started%s%s on%s device %s",
+      device->isReadOnly() ? " read only" : "",
       opt.scanConfig ? opt.initialScan == ESC ? " with auto scan"
       : opt.initialScan == BROADCAST ? " with broadcast scan" : opt.initialScan == SYN ? " with full scan"
-      : " with single scan" : "");
+      : " with single scan" : "",
+      device->isEnhancedProto() ? " enhanced" : "",
+      device->getName()
+  );
 
   // load configuration files
   loadConfigFiles(s_messageMap);
