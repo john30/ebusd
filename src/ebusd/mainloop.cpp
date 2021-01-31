@@ -2090,7 +2090,7 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
           m_messages->addPollMessage(false, message);
         }
         time_t lastup = message->getLastUpdateTime();
-        if (required && (lastup == 0 || (maxAge >=0 && lastup + maxAge > now))) {
+        if (required && (lastup == 0 || (maxAge >=0 && lastup + maxAge <= now))) {
           // read directly from bus
           if (message->isPassive()) {
             continue;  // not possible to actively read this message
