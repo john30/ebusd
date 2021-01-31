@@ -180,7 +180,9 @@ static const char argpdoc[] =
 /** the definition of the known program arguments. */
 static const struct argp_option argpoptions[] = {
   {nullptr,          0,        nullptr,    0, "Device options:", 1 },
-  {"device",         'd',      "DEV",      0, "Use DEV as eBUS device (serial or [udp:]ip:port) [/dev/ttyUSB0]", 0 },
+  {"device",         'd',      "DEV",      0, "Use DEV as eBUS device ("
+      "\"enh:DEVICE\" or \"enh:IP:PORT\" for enhanced device,"
+      "\"DEVICE\" for serial device, or \"[udp:]IP:PORT\" for network device) [/dev/ttyUSB0]", 0 },
   {"nodevicecheck",  'n',      nullptr,    0, "Skip serial eBUS device test", 0 },
   {"readonly",       'r',      nullptr,    0, "Only read from device, never write to it", 0 },
   {"initsend",       O_INISND, nullptr,    0, "Send an initial escape symbol after connecting device", 0 },
