@@ -9,15 +9,12 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /build
 
-ENV EBUSD_VERSION 21.1
 ENV EBUSD_ARCH arm32v7
+ENV EBUSD_VERSION 21.1
 
 RUN git clone https://github.com/john30/ebusd.git /build \
     && ./make_debian.sh
 
-ARG UPLOAD_URL
-ARG UPLOAD_CREDENTIALS
-ARG UPLOAD_ONLY
 
 
 

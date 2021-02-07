@@ -1,8 +1,8 @@
 #!/bin/bash
-BASE_IMAGE=debian:stretch
+DEFAULT_IMAGE=debian:stretch
 EBUSD_VERSION=`cat ../../VERSION`
 
-archs='amd64 i386 arm32v7:arm arm64v8:aarch64'
+archs='amd64 i386 arm32v5:arm arm32v7:arm arm64v8:aarch64'
 
 function replaceTemplate () {
   prefix=
@@ -21,32 +21,36 @@ function replaceTemplate () {
   fi
   sed \
     -e "s#%QEMU_FROM_LINE%#${qemu_from_line}#g" \
-    -e "s#%BASE_IMAGE%#${prefix}${BASE_IMAGE}#g" \
+    -e "s#%BASE_IMAGE%#${prefix}${BASE_IMAGE:-$DEFAULT_IMAGE}#g" \
     -e "s#%QEMU_FROM_COPY%#${qemu_from_copy}#g" \
     -e "s#%EBUSD_MAKE%#${make}#g" \
     -e "s#%EBUSD_VERSION%#${EBUSD_VERSION}#g" \
     -e "s#%EBUSD_VERSION_VARIANT%#${version_variant}#g" \
     -e "s#%EBUSD_ARCH%#${arch}#g" \
     -e "s#%EXTRA_RM%#${extra_rm}#g" \
-    -e "s#%EBUSD_UPLOAD_LINE%#${upload_line}#g" \
+    -e "s#%EBUSD_UPLOAD_LINES%#${upload_lines}#g" \
     Dockerfile.template > "${dir}Dockerfile${suffix}"
   echo "updated ${dir}Dockerfile${suffix}"
 }
 
-# devel updates
-version_variant='-devel'
-make='./make_debian.sh'
-dir=''
-upload_line=''
-for arch in $archs; do
-  replaceTemplate
-done
+if [[ -z "$1" ]]; then
+  # devel updates
+  version_variant='-devel'
+  make='./make_debian.sh'
+  dir=''
+  upload_line=''
+  for arch in $archs; do
+    replaceTemplate
+  done
+fi
 
 # release updates
 version_variant=''
 make='./make_all.sh'
-dir='release/'
-upload_line='RUN if [ -n "\$UPLOAD_URL" ] \&\& [ -n "\$UPLOAD_CREDENTIALS" ]; then for img in ebusd-*.deb; do echo "upload \$img"; curl -u "\$UPLOAD_CREDENTIALS" -s -X POST --data-binary "@\$img" -H "Content-Type: application/octet-stream" "\$UPLOAD_URL/\$img?a=\$EBUSD_ARCH\&v=\$EBUSD_VERSION"; done; if [ -n "\$UPLOAD_ONLY" ]; then echo "stopping for upload only"; exit 139; fi fi'
+dir=${1:-release/}
+if [[ -n "$1" ]]; then
+  upload_lines='ARG UPLOAD_URL\nARG UPLOAD_CREDENTIALS\nARG UPLOAD_OS\nARG UPLOAD_ONLY\nRUN if [ -n "\$UPLOAD_URL" ] \&\& [ -n "\$UPLOAD_CREDENTIALS" ]; then for img in ebusd-*.deb; do echo -n "upload \$img: "; curl -fs -u "\$UPLOAD_CREDENTIALS" -X POST --data-binary "@\$img" -H "Content-Type: application/octet-stream" "\$UPLOAD_URL/\$img?a=\$EBUSD_ARCH\&o=\$UPLOAD_OS\&v=\$EBUSD_VERSION" || echo "failed"; done; if [ -n "\$UPLOAD_ONLY" ]; then echo "stopping for upload only"; exit 139; fi fi'
+fi
 for arch in $archs; do
   replaceTemplate
 done

@@ -18,6 +18,7 @@ To download the latest release image from the hub, use the following command:
 The image is able to run on any of the following architectures and the right image will be picked automatically:
 * amd64
 * i386
+* arm32v5
 * arm32v7
 * arm64v8
 
