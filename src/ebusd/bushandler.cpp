@@ -550,7 +550,7 @@ result_t BusHandler::handleSymbol() {
 
   // send symbol if necessary
   result_t result;
-  struct timespec sentTime = {}, recvTime = {};
+  struct timespec sentTime, recvTime;
   if (sending) {
     if (m_state != bs_sendSyn && (sendSymbol == ESC || sendSymbol == SYN)) {
       if (m_escape) {
