@@ -9,6 +9,7 @@
 * added trailing wildcard to "ebuspicloader" port
 * added i386 and arm64 architectures to docker image
 * added more startup logging
+* added colon as additional separator for "--log" option
 
 
 # 21.1 (2021-01-10)

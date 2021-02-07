@@ -229,8 +229,8 @@ static const struct argp_option argpoptions[] = {
   {nullptr,          0,        nullptr,    0, "Log options:", 5 },
   {"logfile",        'l',      "FILE",     0, "Write log to FILE (only for daemon, empty string for using syslog) ["
       PACKAGE_LOGFILE "]", 0 },
-  {"log",            O_LOG, "AREAS LEVEL", 0, "Only write log for matching AREA(S) below or equal to LEVEL"
-      " (alternative to --logareas/--logevel, may be used multiple times) [all notice]", 0 },
+  {"log",            O_LOG, "AREAS:LEVEL", 0, "Only write log for matching AREA(S) below or equal to LEVEL"
+      " (alternative to --logareas/--logevel, may be used multiple times) [all:notice]", 0 },
   {"logareas",       O_LOGARE, "AREAS",    0, "Only write log for matching AREA(S): main|network|bus|update|other"
       "|all [all]", 0 },
   {"loglevel",       O_LOGLEV, "LEVEL",    0, "Only write log below or equal to LEVEL: error|notice|info|debug"
@@ -503,12 +503,15 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     }
     opt->logFile = arg;
     break;
-  case O_LOG:  // --log=area(s) level
+  case O_LOG:  // --log=area(s):level
     {
-      char* pos = strchr(arg, ' ');
+      char* pos = strchr(arg, ':');
       if (pos == nullptr) {
-        argp_error(state, "invalid log");
-        return EINVAL;
+        pos = strchr(arg, ' ');
+        if (pos == nullptr) {
+          argp_error(state, "invalid log");
+          return EINVAL;
+        }
       }
       *pos = 0;
       int facilities = parseLogFacilities(arg);
