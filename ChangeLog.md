@@ -2,11 +2,13 @@
 
 ## Bug Fixes
 * fix for UDP device connection issue
+* fix maxage check in HTTP/JSON port
 
 ## Features
 * changed docker image to multi-architecture including Raspberry Pi, reduced image size
 * added trailing wildcard to "ebuspicloader" port
 * added i386 and arm64 architectures to docker image
+* added more startup logging
 
 
 # 21.1 (2021-01-10)
