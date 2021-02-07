@@ -49,7 +49,7 @@ version_variant=''
 make='./make_all.sh'
 dir=${1:-release/}
 if [[ -n "$1" ]]; then
-  upload_lines='ARG UPLOAD_URL\nARG UPLOAD_CREDENTIALS\nARG UPLOAD_OS\nARG UPLOAD_ONLY\nRUN if [ -n "\$UPLOAD_URL" ] \&\& [ -n "\$UPLOAD_CREDENTIALS" ]; then for img in ebusd-*.deb; do echo -n "upload \$img: "; curl -fs -u "\$UPLOAD_CREDENTIALS" -X POST --data-binary "@\$img" -H "Content-Type: application/octet-stream" "\$UPLOAD_URL/\$img?a=\$EBUSD_ARCH\&o=\$UPLOAD_OS\&v=\$EBUSD_VERSION" || echo "failed"; done; if [ -n "\$UPLOAD_ONLY" ]; then echo "stopping for upload only"; exit 139; fi fi'
+  upload_lines='ARG UPLOAD_URL\nARG UPLOAD_CREDENTIALS\nARG UPLOAD_OS\nRUN if [ -n "\$UPLOAD_URL" ] \&\& [ -n "\$UPLOAD_CREDENTIALS" ]; then for img in ebusd-*.deb; do echo -n "upload \$img: "; curl -fs -u "\$UPLOAD_CREDENTIALS" -X POST --data-binary "@\$img" -H "Content-Type: application/octet-stream" "\$UPLOAD_URL/\$img?a=\$EBUSD_ARCH\&o=\$UPLOAD_OS\&v=\$EBUSD_VERSION" || echo "failed"; done; fi'
 fi
 for arch in $archs; do
   replaceTemplate

@@ -13,7 +13,7 @@ for image in $images; do
     else
       suffix=''
     fi
-    docker build --build-arg "UPLOAD_URL=$UPLOAD_URL" --build-arg "UPLOAD_CREDENTIALS=$UPLOAD_CREDENTIALS" --build-arg "UPLOAD_OS=$image" --build-arg "UPLOAD_ONLY=1" -f $dir/Dockerfile$suffix .
+    docker build $@ --target build --build-arg "UPLOAD_URL=$UPLOAD_URL" --build-arg "UPLOAD_CREDENTIALS=$UPLOAD_CREDENTIALS" --build-arg "UPLOAD_OS=$image" -f $dir/Dockerfile$suffix .
   done
   rm -rf $dir
 done
