@@ -1,4 +1,4 @@
-# 21.2 (2021-02-07)
+# 21.2 (2021-02-08)
 
 ## Bug Fixes
 * fix for UDP device connection issue

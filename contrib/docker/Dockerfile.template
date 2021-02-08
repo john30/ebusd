@@ -13,7 +13,7 @@ ENV EBUSD_ARCH %EBUSD_ARCH%
 ENV EBUSD_VERSION %EBUSD_VERSION%
 
 RUN git clone https://github.com/john30/ebusd.git /build \
-    && %EBUSD_MAKE%
+    && ./make_debian.sh
 
 %EBUSD_UPLOAD_LINES%
 

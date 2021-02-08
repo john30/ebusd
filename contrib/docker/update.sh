@@ -23,22 +23,21 @@ function replaceTemplate () {
     -e "s#%QEMU_FROM_LINE%#${qemu_from_line}#g" \
     -e "s#%BASE_IMAGE%#${prefix}${BASE_IMAGE:-$DEFAULT_IMAGE}#g" \
     -e "s#%QEMU_FROM_COPY%#${qemu_from_copy}#g" \
-    -e "s#%EBUSD_MAKE%#${make}#g" \
     -e "s#%EBUSD_VERSION%#${EBUSD_VERSION}#g" \
     -e "s#%EBUSD_VERSION_VARIANT%#${version_variant}#g" \
     -e "s#%EBUSD_ARCH%#${arch}#g" \
     -e "s#%EXTRA_RM%#${extra_rm}#g" \
     -e "s#%EBUSD_UPLOAD_LINES%#${upload_lines}#g" \
-    Dockerfile.template > "${dir}Dockerfile${suffix}"
+    Dockerfile.template > "${dir}Dockerfile${namesuffix}${suffix}"
   echo "updated ${dir}Dockerfile${suffix}"
 }
 
 if [[ -z "$1" ]]; then
   # devel updates
   version_variant='-devel'
-  make='./make_debian.sh'
   dir=''
   upload_line=''
+  namesuffix=''
   for arch in $archs; do
     replaceTemplate
   done
@@ -46,10 +45,12 @@ fi
 
 # release updates
 version_variant=''
-make='./make_all.sh'
-dir=${1:-release/}
+dir="$1"
 if [[ -n "$1" ]]; then
   upload_lines='ARG UPLOAD_URL\nARG UPLOAD_CREDENTIALS\nARG UPLOAD_OS\nRUN if [ -n "\$UPLOAD_URL" ] \&\& [ -n "\$UPLOAD_CREDENTIALS" ]; then for img in ebusd-*.deb; do echo -n "upload \$img: "; curl -fs -u "\$UPLOAD_CREDENTIALS" -X POST --data-binary "@\$img" -H "Content-Type: application/octet-stream" "\$UPLOAD_URL/\$img?a=\$EBUSD_ARCH\&o=\$UPLOAD_OS\&v=\$EBUSD_VERSION" || echo "failed"; done; fi'
+  namesuffix=''
+else
+  namesuffix='.release'
 fi
 for arch in $archs; do
   replaceTemplate
