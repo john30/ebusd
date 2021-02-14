@@ -13,6 +13,6 @@ if [ "x$1" = "x-a" ]; then
 fi
 for (( i=0; i<512; i++ )) ; do
   h=`printf "%4.4X" $i`
-  ret=`echo "hex ${addr}b509030d${h##??}${h%%??}"|nc localhost $port|head -n 1`
+  ret=`echo "hex ${addr}b509030d${h##??}${h%%??}"|nc -q 1 localhost $port|head -n 1`
   echo $i "=" $ret
 done
