@@ -70,10 +70,22 @@ void AttributedItem::dumpString(bool prependFieldSeparator, const string& str, o
   if (prependFieldSeparator) {
     *output << FIELD_SEPARATOR;
   }
-  if (str.find_first_of(FIELD_SEPARATOR) == string::npos) {
+  string::size_type pos = str.find_first_of(TEXT_SEPARATOR);
+  if (str.find_first_of(FIELD_SEPARATOR) == string::npos
+  && (pos == string::npos || (pos > 0 && pos < str.length() - 1))) {
     *output << str;
-  } else {
+  } else if (pos == string::npos) {
     *output << TEXT_SEPARATOR << str << TEXT_SEPARATOR;
+  } else {
+    *output << TEXT_SEPARATOR;
+    string::size_type last = 0;
+    while (pos != string::npos) {
+      *output << str.substr(last, pos - last);
+      *output << TEXT_SEPARATOR << TEXT_SEPARATOR;
+      last = pos+1;
+      pos = str.find_first_of(TEXT_SEPARATOR, last);
+    }
+    *output << str.substr(last) << TEXT_SEPARATOR;
   }
 }
 
