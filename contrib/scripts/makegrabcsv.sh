@@ -10,7 +10,7 @@ if [ "x$1" = "x-m" ]; then
   shift
   maxidlen=$1
 fi
-echo "grab result"|nc localhost $port|awk -vmaxidlen=$maxidlen '
+echo "grab result"|nc -N localhost $port|awk -vmaxidlen=$maxidlen '
 BEGIN{
   sdatas[""]=0
   delete sdatas[""]
@@ -27,8 +27,8 @@ BEGIN{
   exit
 }
 /.+/ {
-  m=gensub(" ", "", "g", gensub("=.*$", "", "", $1))
-  s=gensub(" ", "", "g", gensub("=.*$", "", "", $2))
+  m=gensub(" ", "", "g", gensub("=.*$", "", 1, $1))
+  s=gensub(" ", "", "g", gensub("=.*$", "", 1, $2))
   pbsbnnid=substr(m,5,(3+maxidlen)*2)
   if (!shorted[pbsbnnid]) {
     shorted[pbsbnnid]=1
