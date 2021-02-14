@@ -33,13 +33,24 @@ else
   find="hours"
   skip="mc.4:|mc.5:"
 fi
-result=`echo "find $find"|nc localhost 8888 2>/dev/null`
+nc -z 127.0.0.1 8888 2>&1 >/dev/null
+if [[ $? -ne 0 ]]; then
+  echo "error: no connection"
+  exit 1
+fi
+nc -N -z 127.0.0.1 8888 2>&1 >/dev/null
+if [[ $? -eq 0 ]]; then
+  cmd='nc -N -w 5 127.0.0.1 8888'
+else
+  cmd='nc -w 5 127.0.0.1 8888'
+fi
+result=`echo "find $find"|$cmd 2>/dev/null`
 if [ -z "$result" -o "x${result##ERR:*}" = "x" ]; then
   echo "error: $result"
   exit 1
 fi
 if [ -n "$find2" ]; then
-  result2=`echo "find $find2"|nc localhost 8888 2>/dev/null`
+  result2=`echo "find $find2"|$cmd 2>/dev/null`
   if [ -z "$result2" -o "x${result2##ERR:*}" = "x" ]; then
     echo "error: $result2"
     exit 1
@@ -107,7 +118,7 @@ if [ "$1" = "config" ]; then
   fi
   echo "graph_category $lang_catheat"
   for sensor in $sensors; do
-    result=`echo "read -c ${sensor/:/ }"|nc localhost 8888 2>/dev/null|head -n 1|sed -e 's#;.*$##'`
+    result=`echo "read -c ${sensor/:/ }"|$cmd 2>/dev/null|head -n 1|sed -e 's#;.*$##'`
     if [ "x$result" = "x-" -o "x${result##ERR:*}" = "x" ]; then
       continue
     fi
@@ -126,7 +137,7 @@ if [ "$1" = "config" ]; then
   exit 0
 fi
 for sensor in $sensors; do
-  result=`echo "read -c ${sensor/:/ }"|nc localhost 8888 2>/dev/null|head -n 1|sed -e 's#;.*$##'`
+  result=`echo "read -c ${sensor/:/ }"|$cmd 2>/dev/null|head -n 1|sed -e 's#;.*$##'`
   if [ ! "x$result" = "x-" ]; then
     name=${sensor/:/_}
     name=${name/./_}
