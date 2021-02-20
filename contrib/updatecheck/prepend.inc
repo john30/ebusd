@@ -20,7 +20,7 @@ function checkUpdate($ebusdVersion, $ebusdRelease, $architecture, $loadedFiles) 
   if (!$ebusdVersion) {
     return 'invalid request';
   }
-  readVersions($architecture && substr($architecture, 0, 3)!=='arm' && ($ebusdVersion<'3.3' || ($ebusdVersion==='3.3' && ($ebusdRelease==='v3.3' || (strtok($ebusdRelease, '-')==='v3.3') && strtok('-')<18))));
+  readVersions($architecture && substr($architecture, 0, 3)!=='arm' && (((float)$ebusdVersion)<3.3 || ($ebusdVersion==='3.3' && ($ebusdRelease==='v3.3' || (strtok($ebusdRelease, '-')==='v3.3') && strtok('-')<18))));
   global $versions;
   $ret = 'unknown';
   if ($ebusdVersion==$versions['ebusd'][0] && $ebusdRelease==$versions['ebusd'][1]) {
