@@ -3,9 +3,10 @@
 ## Bug Fixes
 * fix for escaping double quote in CSV format
 * adjusted helper shell scripts and Munin plugin to newer netcat
+* fix for weekday in BDA data type (for sending only)
 
 ## Features
-* added DTM data type
+* added DTM and BDZ data types
 
 
 # 21.2 (2021-02-08)

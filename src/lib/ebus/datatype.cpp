@@ -69,12 +69,12 @@ bool DataType::dump(bool asJson, size_t length, bool appendDivisor, ostream* out
 
 
 result_t StringDataType::readRawValue(size_t offset, size_t length, const SymbolString& input,
-    unsigned int* value) const {
+                                      unsigned int* value) const {
   return RESULT_EMPTY;
 }
 
 result_t StringDataType::readSymbols(size_t offset, size_t length, const SymbolString& input,
-    OutputFormat outputFormat, ostream* output) const {
+                                     OutputFormat outputFormat, ostream* output) const {
   size_t start = 0, count = length;
   int incr = 1;
   symbol_t symbol;
@@ -124,7 +124,7 @@ result_t StringDataType::readSymbols(size_t offset, size_t length, const SymbolS
 }
 
 result_t StringDataType::writeSymbols(size_t offset, size_t length, istringstream* input,
-    SymbolString* output, size_t* usedLength) const {
+                                      SymbolString* output, size_t* usedLength) const {
   size_t start = 0, count = length;
   bool remainder = count == REMAIN_LEN && hasFlag(ADJ);
   int incr = 1;
@@ -205,12 +205,12 @@ result_t StringDataType::writeSymbols(size_t offset, size_t length, istringstrea
 
 
 result_t DateTimeDataType::readRawValue(size_t offset, size_t length, const SymbolString& input,
-    unsigned int* value) const {
+                                        unsigned int* value) const {
   return RESULT_EMPTY;
 }
 
 result_t DateTimeDataType::readSymbols(size_t offset, size_t length, const SymbolString& input,
-    OutputFormat outputFormat, ostream* output) const {
+                                       OutputFormat outputFormat, ostream* output) const {
   size_t start = 0, count = length;
   int incr = 1;
   symbol_t symbol, last = 0, hour = 0;
@@ -241,44 +241,44 @@ result_t DateTimeDataType::readSymbols(size_t offset, size_t length, const Symbo
       symbol = (symbol_t)((symbol >> 4) * 10 + (symbol & 0x0f));
     }
     switch (type) {
-    case 2:  // date only
-      if (!hasFlag(REQ) && symbol == m_replacement) {
-        if (i + 1 != length) {
-          *output << NULL_VALUE << ".";
-          break;
-        } else if (last == m_replacement) {
-          if (length == 2) {  // number of days since 01.01.1900
+      case 2:  // date only
+        if (!hasFlag(REQ) && symbol == m_replacement) {
+          if (i + 1 != length) {
             *output << NULL_VALUE << ".";
+            break;
+          } else if (last == m_replacement) {
+            if (length == 2) {  // number of days since 01.01.1900
+              *output << NULL_VALUE << ".";
+            }
+            *output << NULL_VALUE;
+            break;
           }
-          *output << NULL_VALUE;
+        }
+        if (length == 2) {  // number of days since 01.01.1900
+          if (i == 0) {
+            break;
+          }
+          int mjd = last + symbol*256 + 15020;  // 01.01.1900
+          int y = static_cast<int>((mjd-15078.2)/365.25);
+          int m = static_cast<int>((mjd-14956.1-static_cast<int>(y*365.25))/30.6001);
+          int d = mjd-14956-static_cast<int>(y*365.25)-static_cast<int>(m*30.6001);
+          m--;
+          if (m >= 13) {
+            y++;
+            m -= 12;
+          }
+          *output << dec << setfill('0') << setw(2) << static_cast<unsigned>(d) << "."
+                  << setw(2) << static_cast<unsigned>(m) << "." << static_cast<unsigned>(y + 1900);
           break;
         }
-      }
-      if (length == 2) {  // number of days since 01.01.1900
-        if (i == 0) {
-          break;
+        if (i + 1 == length) {
+          *output << (2000 + symbol);
+        } else if (symbol < 1 || (i == 0 && symbol > 31) || (i == 1 && symbol > 12)) {
+          return RESULT_ERR_OUT_OF_RANGE;  // invalid date
+        } else {
+          *output << setw(2) << dec << setfill('0') << static_cast<unsigned>(symbol) << ".";
         }
-        int mjd = last + symbol*256 + 15020;  // 01.01.1900
-        int y = static_cast<int>((mjd-15078.2)/365.25);
-        int m = static_cast<int>((mjd-14956.1-static_cast<int>(y*365.25))/30.6001);
-        int d = mjd-14956-static_cast<int>(y*365.25)-static_cast<int>(m*30.6001);
-        m--;
-        if (m >= 13) {
-          y++;
-          m -= 12;
-        }
-        *output << dec << setfill('0') << setw(2) << static_cast<unsigned>(d) << "."
-                << setw(2) << static_cast<unsigned>(m) << "." << static_cast<unsigned>(y + 1900);
         break;
-      }
-      if (i + 1 == length) {
-        *output << (2000 + symbol);
-      } else if (symbol < 1 || (i == 0 && symbol > 31) || (i == 1 && symbol > 12)) {
-        return RESULT_ERR_OUT_OF_RANGE;  // invalid date
-      } else {
-        *output << setw(2) << dec << setfill('0') << static_cast<unsigned>(symbol) << ".";
-      }
-      break;
 
       case 1:  // time only
         if (!hasFlag(REQ) && symbol == m_replacement) {
@@ -369,7 +369,7 @@ result_t DateTimeDataType::readSymbols(size_t offset, size_t length, const Symbo
 }
 
 result_t DateTimeDataType::writeSymbols(size_t offset, size_t length, istringstream* input,
-    SymbolString* output, size_t* usedLength) const {
+                                        SymbolString* output, size_t* usedLength) const {
   size_t start = 0, count = length;
   bool remainder = count == REMAIN_LEN && hasFlag(ADJ);
   int incr = 1;
@@ -447,7 +447,7 @@ result_t DateTimeDataType::writeSymbols(size_t offset, size_t length, istringstr
             } else {
               // calculate local week day
               int daysSinceSunday = (mjd + 3) % 7;  // Sun=0
-              if (hasFlag(BCD)) {
+              if (hasFlag(SPE)) {
                 output->dataAt(offset + index - incr) = (symbol_t) ((6 + daysSinceSunday) % 7);  // Sun=0x06
               } else {
                 // Sun=0x07
@@ -638,17 +638,17 @@ result_t NumberDataType::derive(int divisor, size_t bitCount, const NumberDataTy
   }
   if (m_bitCount < 8) {
     *derived = new NumberDataType(m_id, bitCount, m_flags, m_replacement,
-      m_firstBit, divisor, m_baseType ? m_baseType : this);
+                                  m_firstBit, divisor, m_baseType ? m_baseType : this);
   } else {
     *derived = new NumberDataType(m_id, bitCount, m_flags, m_replacement,
-      m_minValue, m_maxValue, divisor, m_baseType ? m_baseType : this);
+                                  m_minValue, m_maxValue, divisor, m_baseType ? m_baseType : this);
   }
   DataTypeList::getInstance()->addCleanup(*derived);
   return RESULT_OK;
 }
 
 result_t NumberDataType::readRawValue(size_t offset, size_t length, const SymbolString& input,
-    unsigned int* value) const {
+                                      unsigned int* value) const {
   size_t start = 0, count = length;
   int incr = 1;
   symbol_t symbol;
@@ -696,7 +696,7 @@ result_t NumberDataType::readRawValue(size_t offset, size_t length, const Symbol
 }
 
 result_t NumberDataType::readSymbols(size_t offset, size_t length, const SymbolString& input,
-    OutputFormat outputFormat, ostream* output) const {
+                                     OutputFormat outputFormat, ostream* output) const {
   unsigned int value = 0;
   int signedValue;
 
@@ -794,7 +794,7 @@ result_t NumberDataType::readSymbols(size_t offset, size_t length, const SymbolS
   }
   if (m_divisor < 0) {
     *output << fixed << setprecision(0)
-        << (static_cast<float>(signedValue) * static_cast<float>(-m_divisor));
+            << (static_cast<float>(signedValue) * static_cast<float>(-m_divisor));
   } else if (m_divisor <= 1) {
     if (hasFlag(FIX) && hasFlag(BCD)) {
       if (outputFormat & OF_JSON) {
@@ -813,7 +813,7 @@ result_t NumberDataType::readSymbols(size_t offset, size_t length, const SymbolS
 }
 
 result_t NumberDataType::writeRawValue(unsigned int value, size_t offset, size_t length,
-    SymbolString* output, size_t* usedLength) const {
+                                       SymbolString* output, size_t* usedLength) const {
   size_t start = 0, count = length;
   int incr = 1;
   symbol_t symbol;
@@ -858,7 +858,7 @@ result_t NumberDataType::writeRawValue(unsigned int value, size_t offset, size_t
 }
 
 result_t NumberDataType::writeSymbols(size_t offset, size_t length, istringstream* input,
-    SymbolString* output, size_t* usedLength) const {
+                                      SymbolString* output, size_t* usedLength) const {
   unsigned int value;
 
   const string inputStr = input->str();
@@ -985,10 +985,13 @@ DataTypeList::DataTypeList() {
   // >= 1 byte hex digit string, usually separated by space, e.g. 0a 1b 2c 3d
   add(new StringDataType("HEX", MAX_LEN*8, ADJ, 0, true));
   // date with weekday in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99,
-  // WW is weekday Mon=0x00 - Sun=0x06, replacement 0xff)
+  // WW is weekday Mon=0x01 - Sun=0x07, replacement 0xff)
   add(new DateTimeDataType("BDA", 32, BCD, 0xff, true, false, 0));
   // date in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99, replacement 0xff)
   add(new DateTimeDataType("BDA", 24, BCD, 0xff, true, false, 0));
+  // date with zero-based weekday in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,WZ,0x00 - 0x31,0x12,WZ,0x99,
+  // WZ is zero-based weekday Mon=0x00 - Sun=0x06, replacement 0xff)
+  add(new DateTimeDataType("BDZ", 32, BCD|SPE, 0xff, true, false, 0));
   // date with weekday, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x1f,0x0c,WW,0x63,
   // WW is weekday Mon=0x01 - Sun=0x07, replacement 0xff)
   add(new DateTimeDataType("HDA", 32, 0, 0xff, true, false, 0));
@@ -996,7 +999,7 @@ DataTypeList::DataTypeList() {
   add(new DateTimeDataType("HDA", 24, 0, 0xff, true, false, 0));
   // date, days since 01.01.1900, 01.01.1900 - 06.06.2079 (0x00,0x00 - 0xff,0xff)
   add(new DateTimeDataType("DAY", 16, 0, 0xff, true, false, 0));
-  // date+time in minutes since 01.01.2009, 01.01.2009 - 31.12.2099
+  // date+time in minutes since 01.01.2009, 01.01.2009 - 31.12.2099 (0x00,0x00,0x00,0x00 - 0x02,0xda,0x4e,0x1f)
   add(new DateTimeDataType("DTM", 32, REQ, 0x100, true, true, 0));
   // time in BCD, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x59,0x59,0x23)
   add(new DateTimeDataType("BTI", 24, BCD|REV, 0xff, false, true, 0));
