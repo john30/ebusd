@@ -214,6 +214,7 @@ result_t DateTimeDataType::readSymbols(size_t offset, size_t length, const Symbo
   size_t start = 0, count = length;
   int incr = 1;
   symbol_t symbol, last = 0, hour = 0;
+  unsigned long minutes = 0;
   if (count == REMAIN_LEN && input.getDataSize() > offset) {
     count = input.getDataSize() - offset;
   } else if (offset + count > input.getDataSize()) {
@@ -229,7 +230,7 @@ result_t DateTimeDataType::readSymbols(size_t offset, size_t length, const Symbo
   }
   int type = (m_hasDate?2:0) | (m_hasTime?1:0);
   for (size_t index = start, i = 0; i < count; index += incr, i++) {
-    if (length == 4 && i == 2 && m_hasDate) {
+    if (length == 4 && i == 2 && m_hasDate && !m_hasTime) {
       continue;  // skip weekday in between
     }
     symbol = input.dataAt(offset + index);
@@ -279,58 +280,85 @@ result_t DateTimeDataType::readSymbols(size_t offset, size_t length, const Symbo
       }
       break;
 
-    case 1:  // time only
-      if (!hasFlag(REQ) && symbol == m_replacement) {
-        if (length == 1) {  // truncated time
-          *output << NULL_VALUE << ":" << NULL_VALUE;
+      case 1:  // time only
+        if (!hasFlag(REQ) && symbol == m_replacement) {
+          if (length == 1) {  // truncated time
+            *output << NULL_VALUE << ":" << NULL_VALUE;
+            break;
+          }
+          if (i > 0) {
+            *output << ":";
+          }
+          *output << NULL_VALUE;
           break;
+        }
+        if (hasFlag(SPE)) {  // minutes since midnight
+          if (i == 0) {
+            last = symbol;
+            continue;
+          }
+          unsigned int minutes = symbol*256 + last;
+          if (minutes > 24*60) {
+            return RESULT_ERR_OUT_OF_RANGE;  // invalid value
+          }
+          unsigned int minutesHour = minutes / 60;
+          if (minutesHour > 24) {
+            return RESULT_ERR_OUT_OF_RANGE;  // invalid hour
+          }
+          *output << setw(2) << dec << setfill('0') << minutesHour;
+          symbol = (symbol_t)(minutes % 60);
+        } else if (length == 1) {  // truncated time
+          if (m_bitCount < 8) {
+            symbol = (symbol_t)(symbol & ((1 << m_bitCount) - 1));
+          }
+          if (i == 0) {
+            symbol = (symbol_t)(symbol/(60/m_resolution));  // convert to hours
+            index -= incr;  // repeat for minutes
+            count++;
+          } else {
+            symbol = (symbol_t)((symbol % (60/m_resolution)) * m_resolution);  // convert to minutes
+          }
+        }
+        if (i == 0) {
+          if (symbol > 24) {
+            return RESULT_ERR_OUT_OF_RANGE;  // invalid hour
+          }
+          hour = symbol;
+        } else if (symbol > 59 || (hour == 24 && symbol > 0)) {
+          return RESULT_ERR_OUT_OF_RANGE;  // invalid time
         }
         if (i > 0) {
           *output << ":";
         }
-        *output << NULL_VALUE;
+        *output << setw(2) << dec << setfill('0') << static_cast<unsigned>(symbol);
         break;
-      }
-      if (hasFlag(SPE)) {  // minutes since midnight
-        if (i == 0) {
-          last = symbol;
-          continue;
+
+      case 3:  // date+time
+        if (length != 4) {
+          return RESULT_ERR_INVALID_POS;
         }
-        unsigned int minutes = symbol*256 + last;
-        if (minutes > 24*60) {
-          return RESULT_ERR_OUT_OF_RANGE;  // invalid value
+        // number of minutes since 01.01.2009
+        minutes |= symbol*(1<<(8*i));
+        if (i<3) {
+          break;
         }
-        unsigned int minutesHour = minutes / 60;
-        if (minutesHour > 24) {
-          return RESULT_ERR_OUT_OF_RANGE;  // invalid hour
+        int mjd = static_cast<int>(minutes/(24*60)) + 54832;  // 01.01.2009
+        int y = static_cast<int>((mjd-15078.2)/365.25);
+        int m = static_cast<int>((mjd-14956.1-static_cast<int>(y*365.25))/30.6001);
+        int d = mjd-14956-static_cast<int>(y*365.25)-static_cast<int>(m*30.6001);
+        m--;
+        if (m >= 13) {
+          y++;
+          m -= 12;
         }
-        *output << setw(2) << dec << setfill('0') << minutesHour;
-        symbol = (symbol_t)(minutes % 60);
-      } else if (length == 1) {  // truncated time
-        if (m_bitCount < 8) {
-          symbol = (symbol_t)(symbol & ((1 << m_bitCount) - 1));
-        }
-        if (i == 0) {
-          symbol = (symbol_t)(symbol/(60/m_resolution));  // convert to hours
-          index -= incr;  // repeat for minutes
-          count++;
-        } else {
-          symbol = (symbol_t)((symbol % (60/m_resolution)) * m_resolution);  // convert to minutes
-        }
-      }
-      if (i == 0) {
-        if (symbol > 24) {
-          return RESULT_ERR_OUT_OF_RANGE;  // invalid hour
-        }
-        hour = symbol;
-      } else if (symbol > 59 || (hour == 24 && symbol > 0)) {
-        return RESULT_ERR_OUT_OF_RANGE;  // invalid time
-      }
-      if (i > 0) {
-        *output << ":";
-      }
-      *output << setw(2) << dec << setfill('0') << static_cast<unsigned>(symbol);
-      break;
+        *output << dec << setfill('0') << setw(2) << static_cast<unsigned>(d) << "."
+                << setw(2) << static_cast<unsigned>(m) << "." << static_cast<unsigned>(y + 1900);
+        m = minutes%(24*60);
+        d = m/60;
+        *output << " " << setw(2) << dec << setfill('0') << static_cast<unsigned>(d);
+        m -= d*60;
+        *output << ":" << setw(2) << dec << setfill('0') << static_cast<unsigned>(m);
+        break;
     }
     last = symbol;
   }
@@ -366,113 +394,141 @@ result_t DateTimeDataType::writeSymbols(size_t offset, size_t length, istringstr
   }
   result_t result;
   size_t i = 0, index;
-  int type = (m_hasDate?2:0) | (m_hasTime?1:0);
+  int type = m_hasDate ? 2 : (m_hasTime ? 1 : 0);
   bool skip = false;
   for (index = start; i < count; index += skip ? 0 : incr, i++) {
     skip = false;
     switch (type) {
-    case 2:  // date only
-      if (length == 4 && i == 2) {
-        continue;  // skip weekday in between
-      }
-      if (input->eof() || !getline(*input, token, '.')) {
-        return RESULT_ERR_EOF;  // incomplete
-      }
-      if (!hasFlag(REQ) && token == NULL_VALUE) {
-        value = m_replacement;
+      case 2:  // date only
+        if (length == 4 && i == 2 && !m_hasTime) {
+          continue;  // skip weekday in between
+        }
+        if (input->eof() || !getline(*input, token, m_hasTime && i==2 ? ' ' : '.')) {
+          return RESULT_ERR_EOF;  // incomplete
+        }
+        if (!hasFlag(REQ) && token == NULL_VALUE) {
+          value = m_replacement;
+          break;
+        }
+        value = parseInt(token.c_str(), 10, 0, 2099, &result);
+        if (result != RESULT_OK) {
+          return result;  // invalid date part
+        }
+        if (length == 2) {  // number of days since 01.01.1900
+          skip = true;
+          if (i == 0) {
+            count++;
+          } else if (i + 1 == count) {
+            int y = (value < 100 ? value + 2000 : value) - 1900;
+            int l = last <= 2 ? 1 : 0;
+            int mjd = 14956 + lastLast + static_cast<int>((y-l)*365.25) + static_cast<int>((last+1+l*12)*30.6001);
+            value = mjd - 15020;  // 01.01.1900
+            output->dataAt(offset + index) = (symbol_t)(value&0xff);
+            value >>=  8;
+            index += incr;
+            skip = false;
+            break;
+          }
+        }
+        if (i + 1 == (m_hasTime ? count-1 : count)) {
+          if (length == 4) {
+            int y = (value < 100 ? value + 2000 : value) - 1900;
+            int l = last <= 2 ? 1 : 0;
+            int mjd = 14956 + lastLast + static_cast<int>((y-l)*365.25) + static_cast<int>((last+1+l*12)*30.6001);
+            if (m_hasTime) {
+              if (mjd < 54832) {  // 01.01.2009
+                return RESULT_ERR_OUT_OF_RANGE;  // invalid date
+              }
+              last = mjd - 54832;
+              index = start + incr;
+              i = 1;
+              type = 1;
+              skip = true; // switch to second pass for parsing the time
+            } else {
+              // calculate local week day
+              int daysSinceSunday = (mjd + 3) % 7;  // Sun=0
+              if (hasFlag(BCD)) {
+                output->dataAt(offset + index - incr) = (symbol_t) ((6 + daysSinceSunday) % 7);  // Sun=0x06
+              } else {
+                // Sun=0x07
+                output->dataAt(offset + index - incr) = (symbol_t) (daysSinceSunday == 0 ? 7 : daysSinceSunday);
+              }
+            }
+          }
+          if (value >= 2000) {
+            value -= 2000;
+          }
+          if (value > 99) {
+            return RESULT_ERR_OUT_OF_RANGE;  // invalid year
+          }
+        } else if (value < 1 || (i == 0 && value > 31) || (i == 1 && value > 12)) {
+          return RESULT_ERR_OUT_OF_RANGE;  // invalid date part
+        }
         break;
-      }
-      value = parseInt(token.c_str(), 10, 0, 2099, &result);
-      if (result != RESULT_OK) {
-        return result;  // invalid date part
-      }
-      if (length == 2) {  // number of days since 01.01.1900
-        skip = true;
-        if (i == 0) {
-          count++;
-        } else if (i + 1 == count) {
-          int y = (value < 100 ? value + 2000 : value) - 1900;
-          int l = last <= 2 ? 1 : 0;
-          int mjd = 14956 + lastLast + static_cast<int>((y-l)*365.25) + static_cast<int>((last+1+l*12)*30.6001);
-          value = mjd - 15020;  // 01.01.1900
+
+      case 1:  // time only
+        if (input->eof() || !getline(*input, token, LENGTH_SEPARATOR)) {
+          return RESULT_ERR_EOF;  // incomplete
+        }
+        if (!hasFlag(REQ) && token == NULL_VALUE) {
+          value = m_replacement;
+          if (length == 1) {  // truncated time
+            if (i == 0) {
+              skip = true;  // repeat for minutes
+              count++;
+              break;
+            }
+            if (last != m_replacement) {
+              return RESULT_ERR_INVALID_NUM;  // invalid truncated time minutes
+            }
+          }
+          break;
+        }
+        value = parseInt(token.c_str(), 10, 0, 59, &result);
+        if (result != RESULT_OK) {
+          return result;  // invalid time part
+        }
+        if ((i == 0 && value > 24) || (i > 0 && (last == 24 && value > 0) )) {
+          return RESULT_ERR_OUT_OF_RANGE;  // invalid time part
+        }
+        if (hasFlag(SPE)) {  // minutes since midnight
+          if (i == 0) {
+            skip = true;  // repeat for minutes
+            break;
+          }
+          value += last*60;
           output->dataAt(offset + index) = (symbol_t)(value&0xff);
           value >>=  8;
           index += incr;
-          skip = false;
-          break;
-        }
-      }
-      if (i + 1 == count) {
-        if (length == 4) {
-          // calculate local week day
-          int y = (value < 100 ? value + 2000 : value) - 1900;
-          int l = last <= 2 ? 1 : 0;
-          int mjd = 14956 + lastLast + static_cast<int>((y-l)*365.25) + static_cast<int>((last+1+l*12)*30.6001);
-          int daysSinceSunday = (mjd+3) % 7;  // Sun=0
-          if (hasFlag(BCD)) {
-            output->dataAt(offset + index - incr) = (symbol_t)((6+daysSinceSunday) % 7);  // Sun=0x06
-          } else {
-            // Sun=0x07
-            output->dataAt(offset + index - incr) = (symbol_t)(daysSinceSunday == 0 ? 7 : daysSinceSunday);
-          }
-        }
-        if (value >= 2000) {
-          value -= 2000;
-        }
-        if (value > 99) {
-          return RESULT_ERR_OUT_OF_RANGE;  // invalid year
-        }
-      } else if (value < 1 || (i == 0 && value > 31) || (i == 1 && value > 12)) {
-        return RESULT_ERR_OUT_OF_RANGE;  // invalid date part
-      }
-      break;
-
-    case 1:  // time only
-      if (input->eof() || !getline(*input, token, LENGTH_SEPARATOR)) {
-        return RESULT_ERR_EOF;  // incomplete
-      }
-      if (!hasFlag(REQ) && token == NULL_VALUE) {
-        value = m_replacement;
-        if (length == 1) {  // truncated time
+        } else if (length == 1) {  // truncated time
           if (i == 0) {
             skip = true;  // repeat for minutes
             count++;
             break;
           }
-          if (last != m_replacement) {
-            return RESULT_ERR_INVALID_NUM;  // invalid truncated time minutes
+          value = (last * 60 + value + m_resolution/2)/m_resolution;
+          if (value > 24 * 6) {
+            return RESULT_ERR_OUT_OF_RANGE;  // invalid time
+          }
+        } else if (m_hasDate) {
+          if (i + 1 == count) {
+            last = (lastLast * 24 + last) * 60 + value;
+            value = last & 0xff;
+            last >>= 8;
+            index = start;
+            i = 0;
+            type = 3;
+          } else {
+            last = lastLast;
+            skip = true;
           }
         }
         break;
-      }
-      value = parseInt(token.c_str(), 10, 0, 59, &result);
-      if (result != RESULT_OK) {
-        return result;  // invalid time part
-      }
-      if ((i == 0 && value > 24) || (i > 0 && (last == 24 && value > 0) )) {
-        return RESULT_ERR_OUT_OF_RANGE;  // invalid time part
-      }
-      if (hasFlag(SPE)) {  // minutes since midnight
-        if (i == 0) {
-          skip = true;  // repeat for minutes
-          break;
-        }
-        value += last*60;
-        output->dataAt(offset + index) = (symbol_t)(value&0xff);
-        value >>=  8;
-        index += incr;
-      } else if (length == 1) {  // truncated time
-        if (i == 0) {
-          skip = true;  // repeat for minutes
-          count++;
-          break;
-        }
-        value = (last * 60 + value + m_resolution/2)/m_resolution;
-        if (value > 24 * 6) {
-          return RESULT_ERR_OUT_OF_RANGE;  // invalid time
-        }
-      }
-      break;
+
+      case 3: // date and time in store phase
+        value = lastLast & 0xff;
+        last = lastLast >> 8;
+        break;
     }
     lastLast = last;
     last = value;
@@ -940,6 +996,8 @@ DataTypeList::DataTypeList() {
   add(new DateTimeDataType("HDA", 24, 0, 0xff, true, false, 0));
   // date, days since 01.01.1900, 01.01.1900 - 06.06.2079 (0x00,0x00 - 0xff,0xff)
   add(new DateTimeDataType("DAY", 16, 0, 0xff, true, false, 0));
+  // date+time in minutes since 01.01.2009, 01.01.2009 - 31.12.2099
+  add(new DateTimeDataType("DTM", 32, REQ, 0x100, true, true, 0));
   // time in BCD, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x59,0x59,0x23)
   add(new DateTimeDataType("BTI", 24, BCD|REV, 0xff, false, true, 0));
   // time, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x17,0x3b,0x3b)

@@ -1,3 +1,13 @@
+# 21.3 (tbd)
+
+## Bug Fixes
+* fix for escaping double quote in CSV format
+* adjusted helper shell scripts and Munin plugin to newer netcat
+
+## Features
+* added DTM data type
+
+
 # 21.2 (2021-02-08)
 
 ## Bug Fixes
