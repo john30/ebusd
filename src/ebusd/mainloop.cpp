@@ -642,7 +642,7 @@ result_t MainLoop::decodeMessage(const string &data, bool isHttp, bool* connecte
   return RESULT_OK;
 }
 
-result_t MainLoop::parseHexMaster(const vector<string>& args, size_t argPos, symbol_t srcAddress,
+result_t MainLoop::parseHexMaster(const vector<string>& args, size_t argPos, symbol_t srcAddress, bool autoLength,
     MasterSymbolString* master) {
   ostringstream msg;
   while (argPos < args.size()) {
@@ -651,22 +651,35 @@ result_t MainLoop::parseHexMaster(const vector<string>& args, size_t argPos, sym
     }
     msg << args[argPos++];
   }
-  if (msg.str().size() < 4*2) {  // at least ZZ, PB, SB, NN
+  string str = msg.str();
+  unsigned int length = static_cast<unsigned int>(str.size());
+  if (length < (autoLength ? 3 : 4)*2) {  // at least ZZ, PB, SB[, NN]
     return RESULT_ERR_INVALID_ARG;
   }
   result_t ret;
-  unsigned int length = parseInt(msg.str().substr(3*2, 2).c_str(), 16, 0, MAX_POS, &ret);
-  if (ret != RESULT_OK) {
-    return ret;
+  if (autoLength) {
+    length = length/2 - 3;
+  } else {
+    length = parseInt(str.substr(3*2, 2).c_str(), 16, 0, MAX_POS, &ret);
+    if (ret != RESULT_OK) {
+      return ret;
+    }
   }
-  if ((4+length)*2 != msg.str().size()) {
+  if (((autoLength ? 3 : 4)+length)*2 != str.size()) {
     return RESULT_ERR_INVALID_ARG;
   }
   master->push_back(srcAddress == SYN ? m_address : srcAddress);
-  ret = master->parseHex(msg.str());
+  ret = master->parseHex(str.substr(0, 3*2));
   if (ret == RESULT_OK && !isValidAddress((*master)[1])) {
     ret = RESULT_ERR_INVALID_ADDR;
   }
+  if (ret != RESULT_OK) {
+    return ret;
+  }
+  if (autoLength) {
+    master->push_back(static_cast<symbol_t>(length));
+  }
+  ret = master->parseHex(str.substr(3*2));
   return ret;
 }
 
@@ -828,7 +841,7 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
 
   if (hex) {
     MasterSymbolString master;
-    result_t ret = parseHexMaster(args, argPos, srcAddress, &master);
+    result_t ret = parseHexMaster(args, argPos, srcAddress, false, &master);
     if (ret != RESULT_OK) {
       return ret;
     }
@@ -1064,7 +1077,7 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
 
   if (hex && argPos > 0) {
     MasterSymbolString master;
-    result_t ret = parseHexMaster(args, argPos, srcAddress, &master);
+    result_t ret = parseHexMaster(args, argPos, srcAddress, false, &master);
     if (ret != RESULT_OK) {
       return ret;
     }
@@ -1186,27 +1199,31 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
 result_t MainLoop::parseHexAndSend(const vector<string>& args, size_t& argPos, bool isDirectMode,
     ostringstream* ostream) {
   symbol_t srcAddress = SYN;
-  if (args.size() > argPos && args[argPos] == "-s") {
-    argPos++;
-    if (argPos >= args.size()) {
+  bool autoLength = false;
+  while (args.size() > argPos && args[argPos][0] == '-') {
+    if (args[argPos] == "-s" && argPos + 1 < args.size()) {
+      result_t ret;
+      argPos++;
+      symbol_t address = (symbol_t)parseInt(args[argPos].c_str(), 16, 0, 0xff, &ret);
+      if (ret != RESULT_OK || !isValidAddress(address, false) || !isMaster(address)) {
+        return RESULT_ERR_INVALID_ADDR;
+      }
+      srcAddress = address == m_address ? SYN : address;
+    } else if (args[argPos] == "-n") {
+      autoLength = true;
+    } else {
       argPos = 0;  // print usage
       return RESULT_OK;
     }
-    result_t ret;
-    symbol_t address = (symbol_t)parseInt(args[argPos].c_str(), 16, 0, 0xff, &ret);
-    if (ret != RESULT_OK || !isValidAddress(address, false) || !isMaster(address)) {
-      return RESULT_ERR_INVALID_ADDR;
-    }
-    srcAddress = address == m_address ? SYN : address;
     argPos++;
   }
-  if (args.size() < argPos + 1 || (args.size() > argPos && args[argPos][0] == '-')) {
+  if (argPos >= args.size()) {
     argPos = 0;  // print usage
     return RESULT_OK;
   }
 
   MasterSymbolString master;
-  result_t ret = parseHexMaster(args, argPos, srcAddress, &master);
+  result_t ret = parseHexMaster(args, argPos, srcAddress, autoLength, &master);
   argPos = args.size();  // mark as successfully parsed
   if (ret != RESULT_OK) {
     return ret;
@@ -1240,8 +1257,10 @@ result_t MainLoop::executeHex(const vector<string>& args, ostringstream* ostream
     return ret;
   }
   *ostream << "usage: hex [-s QQ] ZZPBSBNN[DD]*\n"
+              "  or:  hex [-s QQ] -n ZZPBSB[DD]*\n"
               " Send arbitrary data in hex.\n"
               "  -s QQ  override source address QQ\n"
+              "  -n     automatically determine the number of data bytes\n"
               "  ZZ     destination address\n"
               "  PB SB  primary/secondary command byte\n"
               "  NN     number of following data bytes\n"
@@ -1289,9 +1308,11 @@ result_t MainLoop::executeDirect(const vector<string>& args, ClientMode* mode, o
     }
   }
   *ostream << "usage: [-s QQ] ZZPBSBNN[DD]*\n"
+              "  or: [-s QQ] -n ZZPBSB[DD]*\n"
               "  or: stop\n"
               " Send arbitrary data in hex (only if enabled) or stop direct mode.\n"
               "  -s QQ  override source address QQ\n"
+              "  -n     automatically determine the number of data bytes\n"
               "  ZZ     destination address\n"
               "  PB SB  primary/secondary command byte\n"
               "  NN     number of following data bytes\n"
@@ -1951,7 +1972,7 @@ result_t MainLoop::executeHelp(ostringstream* ostream) {
       "           Write by new def.:     write [-s QQ] [-d ZZ] -def DEFINITION [VALUE[;VALUE]*] (if enabled)\n"
       "           Write hex message:     write [-s QQ] [-c CIRCUIT] -h ZZPBSBNN[DD]*\n"
       " auth|a    Authenticate user:     auth USER SECRET\n"
-      " hex       Send hex data:         hex [-s QQ] ZZPBSBNN[DD]* (if enabled)\n"
+      " hex       Send hex data:         hex [-s QQ] [-n] ZZPBSB[NN][DD]* (if enabled)\n"
       " find|f    Find message(s):       find [-v|-V] [-r] [-w] [-p] [-a] [-d] [-h] [-i ID] [-f] [-F COL[,COL]*] [-e]"
       " [-c CIRCUIT] [-l LEVEL] [NAME]\n"
       " listen|l  Listen for updates:    listen [-v|-V] [-n|-N] [-u|-U] [stop]\n"
