@@ -25,7 +25,8 @@ execute_process(COMMAND echo -n ${VERSION}
 
 execute_process(COMMAND git describe --always
                 OUTPUT_VARIABLE REVISION
-                OUTPUT_STRIP_TRAILING_WHITESPACE)
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+                WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 if(NOT REVISION)
   execute_process(COMMAND date +p%Y%m%d
                   OUTPUT_VARIABLE REVISION
