@@ -68,8 +68,7 @@ bool DataType::dump(OutputFormat outputFormat, size_t length, bool appendDivisor
 }
 
 
-result_t StringDataType::readRawValue(size_t offset, size_t length, const SymbolString& input,
-                                      unsigned int* value) const {
+result_t StringDataType::readRawValue(size_t, size_t, const SymbolString&, unsigned int*) const {
   return RESULT_EMPTY;
 }
 
@@ -204,8 +203,7 @@ result_t StringDataType::writeSymbols(size_t offset, size_t length, istringstrea
 }
 
 
-result_t DateTimeDataType::readRawValue(size_t offset, size_t length, const SymbolString& input,
-                                        unsigned int* value) const {
+result_t DateTimeDataType::readRawValue(size_t, size_t, const SymbolString&, unsigned int*) const {
   return RESULT_EMPTY;
 }
 
