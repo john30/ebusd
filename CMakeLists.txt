@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 2.8.12 FATAL_ERROR)
 
+# CMP0075 Include file check macros honor CMAKE_REQUIRED_LIBRARIES
+# For more information see: https://cmake.org/cmake/help/latest/policy/CMP0075.html
+if(POLICY CMP0075)
+    cmake_policy(SET CMP0075 NEW)
+endif()
+
 file(STRINGS "VERSION" VERSION)
 
 project(ebusd)
