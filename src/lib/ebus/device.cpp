@@ -143,6 +143,9 @@ result_t Device::afterOpen() {
   m_bufLen = 0;
   if (m_enhancedProto) {
     symbol_t buf[2] = makeEnhancedSequence(ENH_REQ_INIT, 0);  // TODO define additional feature flags
+#ifdef DEBUG_RAW_TRAFFIC
+    fprintf(stdout, "raw enhanced > %2.2x %2.2x\n", buf[0], buf[1]);
+#endif
     if (::write(m_fd, buf, 2) != 2) {
       return RESULT_ERR_SEND;
     }
@@ -350,8 +353,14 @@ result_t Device::startArbitration(symbol_t masterAddress) {
 bool Device::write(symbol_t value, bool startArbitration) {
   if (m_enhancedProto) {
     symbol_t buf[2] = makeEnhancedSequence(startArbitration ? ENH_REQ_START : ENH_REQ_SEND, value);
+#ifdef DEBUG_RAW_TRAFFIC
+    fprintf(stdout, "raw enhanced > %2.2x %2.2x\n", buf[0], buf[1]);
+#endif
     return ::write(m_fd, buf, 2) == 2;
   }
+#ifdef DEBUG_RAW_TRAFFIC
+  fprintf(stdout, "raw > %2.2x\n", value);
+#endif
   return ::write(m_fd, &value, 1) == 1;
 }
 
