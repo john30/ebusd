@@ -78,36 +78,61 @@ using std::ostringstream;
 /** the maximum value for value lists. */
 #define MAX_VALUE (0xFFFFFFFFu)
 
+typedef unsigned int OutputFormatBaseType;
 
-/** the type for data output format options. */
-typedef int OutputFormat;
+enum OutputFormat : OutputFormatBaseType {
+  /** no bit set at all. */
+  OF_NONE = 0,
 
-/** bit flag for @a OutputFormat: include names. */
-#define OF_NAMES 0x01
+  /** bit flag for @a OutputFormat: include names. */
+  OF_NAMES = 1 << 0,
 
-/** bit flag for @a OutputFormat: include units. */
-#define OF_UNITS 0x02
+  /** bit flag for @a OutputFormat: include units. */
+  OF_UNITS = 1 << 1,
 
-/** bit flag for @a OutputFormat: include comments. */
-#define OF_COMMENTS 0x04
+  /** bit flag for @a OutputFormat: include comments. */
+  OF_COMMENTS = 1 << 2,
 
-/** bit flag for @a OutputFormat: numeric format (keep numeric value of value=name pairs). */
-#define OF_NUMERIC 0x08
+  /** bit flag for @a OutputFormat: numeric format (keep numeric value of value=name pairs). */
+  OF_NUMERIC = 1 << 3,
 
-/** bit flag for @a OutputFormat: value=name format for such pairs. */
-#define OF_VALUENAME 0x10
+  /** bit flag for @a OutputFormat: value=name format for such pairs. */
+  OF_VALUENAME = 1 << 4,
 
-/** bit flag for @a OutputFormat: JSON format. */
-#define OF_JSON 0x20
+  /** bit flag for @a OutputFormat: JSON format. */
+  OF_JSON = 1 << 5,
 
-/** bit flag for @a OutputFormat: short format (only name and value, no indentation). */
-#define OF_SHORT 0x40
+  /** bit flag for @a OutputFormat: short format (only name and value for fields). */
+  OF_SHORT = 1 << 6,
 
-/** bit flag for @a OutputFormat: include all attributes. */
-#define OF_ALL_ATTRS 0x80
+  /** bit flag for @a OutputFormat: include all attributes. */
+  OF_ALL_ATTRS = 1 << 7,
 
-/** bit flag for @a OutputFormat: include message/field definition. */
-#define OF_DEFINTION 0x100
+  /** bit flag for @a OutputFormat: include message/field definition. */
+  OF_DEFINITION = 1 << 8,
+};
+
+constexpr inline enum OutputFormat operator| (enum OutputFormat self, enum OutputFormat other) {
+  return (enum OutputFormat)((OutputFormatBaseType)self | (OutputFormatBaseType)other);
+}
+
+inline enum OutputFormat& operator|= (enum OutputFormat& self, enum OutputFormat other) {
+  self = self | other;
+  return self;
+}
+
+constexpr inline enum OutputFormat operator& (enum OutputFormat self, enum OutputFormat other) {
+  return (enum OutputFormat)((OutputFormatBaseType)self & (OutputFormatBaseType)other);
+}
+
+inline enum OutputFormat& operator&= (enum OutputFormat& self, enum OutputFormat other) {
+  self = self & other;
+  return self;
+}
+
+constexpr inline enum OutputFormat operator~ (enum OutputFormat self) {
+  return (enum OutputFormat)(~(OutputFormatBaseType)self);
+}
 
 /** the message part in which a data field is stored. */
 enum PartType {
@@ -219,13 +244,13 @@ class DataType {
   /**
    * Dump the type identifier with the specified length and optionally the
    * divisor to the output.
-   * @param asJson whether to output in JSON format.
+   * @param outputFormat the @a OutputFormat options.
    * @param length the number of symbols to read/write.
    * @param appendDivisor whether to append the divisor (if available).
    * @param output the @a ostream to dump to.
    * @return true when a non-default divisor was written to the output.
    */
-  virtual bool dump(bool asJson, size_t length, bool appendDivisor, ostream* output) const;
+  virtual bool dump(OutputFormat outputFormat, size_t length, bool appendDivisor, ostream* output) const;
 
   /**
    * Internal method for reading the numeric raw value from a @a SymbolString.
@@ -436,7 +461,7 @@ class NumberDataType : public DataType {
   static size_t calcPrecision(int divisor);
 
   // @copydoc
-  bool dump(bool asJson, size_t length, bool appendDivisor, ostream* output) const override;
+  bool dump(OutputFormat outputFormat, size_t length, bool appendDivisor, ostream* output) const override;
 
   /**
    * Derive a new @a NumberDataType from this.

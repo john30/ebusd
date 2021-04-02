@@ -130,7 +130,7 @@ bool ScanRequest::notify(result_t result, const SlaveSymbolString& slave) {
     }
     if (result == RESULT_OK) {
       ostringstream output;
-      result = m_message->decodeLastData(true, nullptr, -1, 0, &output);  // decode data
+      result = m_message->decodeLastData(true, nullptr, -1, OF_NONE, &output);  // decode data
       string str = output.str();
       m_busHandler->setScanResult(dstAddress, m_notifyIndex+m_index, str);
     }
@@ -216,7 +216,7 @@ bool decodeType(const DataType* type, const SymbolString& input, size_t length,
   string in = input.getStr(input.getDataOffset());
   for (size_t offset = 0; offset <= offsets; offset++) {
     ostringstream out;
-    result_t result = type->readSymbols(offset, length, input, 0, &out);
+    result_t result = type->readSymbols(offset, length, input, OF_NONE, &out);
     if (result != RESULT_OK) {
       continue;
     }
@@ -231,7 +231,7 @@ bool decodeType(const DataType* type, const SymbolString& input, size_t length,
       first = false;
       *output << endl << " ";
       ostringstream::pos_type cnt = output->tellp();
-      type->dump(false, length, false, output);
+      type->dump(OF_NONE, length, false, output);
       cnt = output->tellp() - cnt;
       while (cnt < 5) {
         *output << " ";
@@ -1156,7 +1156,7 @@ void BusHandler::messageCompleted() {
           result = message->storeLastData(0, idData);
           if (result == RESULT_OK) {
             ostringstream output;
-            result = message->decodeLastData(true, nullptr, -1, 0, &output);
+            result = message->decodeLastData(true, nullptr, -1, OF_NONE, &output);
             if (result == RESULT_OK) {
               string str = output.str();
               setScanResult(slaveAddress, 0, str);
@@ -1176,7 +1176,7 @@ void BusHandler::messageCompleted() {
         result_t result = message->storeLastData(m_command, m_response);
         if (result == RESULT_OK) {
           ostringstream output;
-          result = message->decodeLastData(true, nullptr, -1, 0, &output);
+          result = message->decodeLastData(true, nullptr, -1, OF_NONE, &output);
           if (result == RESULT_OK) {
             string str = output.str();
             setScanResult(dstAddress, 0, str);
@@ -1216,7 +1216,7 @@ void BusHandler::messageCompleted() {
     result_t result = message->storeLastData(m_command, m_response);
     ostringstream output;
     if (result == RESULT_OK) {
-      result = message->decodeLastData(false, nullptr, -1, 0, &output);
+      result = message->decodeLastData(false, nullptr, -1, OF_NONE, &output);
     }
     if (result < RESULT_OK) {
       logError(lf_update, "unable to parse %s %s %s from %s / %s: %s", mode, circuit.c_str(), name.c_str(),
@@ -1380,7 +1380,7 @@ void BusHandler::formatScanResult(ostringstream* output) const {
             *output << endl;
           }
           *output << hex << setw(2) << setfill('0') << static_cast<unsigned>(slave);
-          message->decodeLastData(true, nullptr, -1, 0, output);
+          message->decodeLastData(true, nullptr, -1, OF_NONE, output);
         }
       }
     }

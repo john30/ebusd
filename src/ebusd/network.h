@@ -67,7 +67,7 @@ class NetMessage {
   explicit NetMessage(bool isHttp)
     : m_isHttp(isHttp), m_resultSet(false), m_disconnect(false), m_listenSince(0) {
     m_settings.mode = cm_normal;
-    m_settings.format = 0;
+    m_settings.format = OF_NONE;
     m_settings.listenWithUnknown = false;
     m_settings.listenOnlyUnknown = false;
     pthread_mutex_init(&m_mutex, nullptr);

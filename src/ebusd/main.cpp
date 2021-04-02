@@ -1029,7 +1029,7 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose
   size_t offset = 0;
   size_t field = 0;
   bool fromLocal = s_configUriPrefix.empty();
-  result_t result = (*identFields)[field]->read(data, offset, false, nullptr, -1, 0, -1, &out);  // manufacturer name
+  result_t result = (*identFields)[field]->read(data, offset, false, nullptr, -1, OF_NONE, -1, &out);  // manufacturer name
   if (result == RESULT_ERR_NOTFOUND && fromLocal) {
     result = (*identFields)[field]->read(data, offset, false, nullptr, -1, OF_NUMERIC, -1, &out);  // manufacturer name
   }
@@ -1042,7 +1042,7 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose
     out.str("");
     out.clear();
     offset += (*identFields)[field++]->getLength(pt_slaveData, MAX_LEN);
-    result = (*identFields)[field]->read(data, offset, false, nullptr, -1, 0, -1, &out);  // identification string
+    result = (*identFields)[field]->read(data, offset, false, nullptr, -1, OF_NONE, -1, &out);  // identification string
   }
   if (result == RESULT_OK) {
     ident = out.str();
@@ -1307,7 +1307,7 @@ int main(int argc, char* argv[]) {
     }
     if (result == RESULT_OK && opt.dumpConfig) {
       logNotice(lf_main, "configuration dump:");
-      s_messageMap->dump(true, &cout);
+      s_messageMap->dump(true, OF_NONE, &cout);
     }
 
     shutdown(overallResult != RESULT_OK);

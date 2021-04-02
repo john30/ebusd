@@ -98,6 +98,13 @@ result_t UserList::addFromFile(const string& filename, unsigned int lineNo, map<
 }
 
 
+#define VERBOSITY_0 OF_NONE
+#define VERBOSITY_1 OF_NAMES
+#define VERBOSITY_2 (VERBOSITY_1 | OF_UNITS)
+#define VERBOSITY_3 (VERBOSITY_2 | OF_COMMENTS)
+#define VERBOSITY_4 (VERBOSITY_3 | OF_ALL_ATTRS)
+
+
 MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messages)
   : Thread(), m_device(device), m_reconnectCount(0), m_userList(opt.accessLevel), m_messages(messages),
     m_address(opt.address), m_scanConfig(opt.scanConfig), m_initialScan(opt.readOnly ? ESC : opt.initialScan),
@@ -702,7 +709,7 @@ result_t MainLoop::executeAuth(const vector<string>& args, string* user, ostring
 result_t MainLoop::executeRead(const vector<string>& args, const string& levels, ostringstream* ostream) {
   size_t argPos = 1;
   bool hex = false, newDefinition = false;
-  OutputFormat verbosity = 0;
+  OutputFormat verbosity = OF_NONE;
   time_t maxAge = 5*60;
   string circuit, params;
   symbol_t srcAddress = SYN, dstAddress = SYN;
@@ -732,21 +739,17 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
         break;
       }
     } else if (args[argPos] == "-v") {
-      switch (verbosity) {
-      case 0:
-        verbosity = OF_NAMES;
-        break;
-      case OF_NAMES:
-        verbosity |= OF_UNITS;
-        break;
-      case OF_NAMES|OF_UNITS:
-        verbosity |= OF_COMMENTS;
-        break;
+      if ((verbosity & VERBOSITY_3) == VERBOSITY_0) {
+        verbosity |= VERBOSITY_1;
+      } else if ((verbosity & VERBOSITY_3) == VERBOSITY_1) {
+        verbosity |= VERBOSITY_2;
+      } else {
+        verbosity |= VERBOSITY_3;
       }
     } else if (args[argPos] == "-vv") {
-      verbosity |= OF_NAMES|OF_UNITS;
+      verbosity |= VERBOSITY_2;
     } else if (args[argPos] == "-vvv" || args[argPos] == "-V") {
-      verbosity |= OF_NAMES|OF_UNITS|OF_COMMENTS;
+      verbosity |= VERBOSITY_3;
     } else if (args[argPos] == "-n") {
       verbosity = (verbosity & ~OF_VALUENAME) | OF_NUMERIC;
     } else if (args[argPos] == "-N") {
@@ -799,7 +802,7 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
     }
     argPos++;
   }
-  if ((hex && (newDefinition || verbosity != 0 || !circuit.empty() || !params.empty() || dstAddress != SYN
+  if ((hex && (newDefinition || verbosity != OF_NONE || !circuit.empty() || !params.empty() || dstAddress != SYN
       || pollPriority > 0 || args.size() < argPos + 1))
   || (newDefinition && (hex || !circuit.empty() || pollPriority > 0 || args.size() != argPos + 1))) {
     argPos = 0;  // print usage
@@ -882,7 +885,7 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
       ret = message->storeLastData(master, slave);
       ostringstream result;
       if (ret == RESULT_OK) {
-        ret = message->decodeLastData(false, nullptr, -1, 0, &result);
+        ret = message->decodeLastData(false, nullptr, -1, OF_NONE, &result);
       }
       if (ret >= RESULT_OK) {
         logInfo(lf_main, "read hex %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(),
@@ -1107,7 +1110,7 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
       ret = message->storeLastData(master, slave);
       ostringstream result;
       if (ret == RESULT_OK) {
-        ret = message->decodeLastData(false, nullptr, -1, 0, &result);
+        ret = message->decodeLastData(false, nullptr, -1, OF_NONE, &result);
       }
       if (ret >= RESULT_OK) {
         logInfo(lf_main, "write hex %s %s cache update: %s", message->getCircuit().c_str(),
@@ -1178,7 +1181,7 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
     return RESULT_OK;
   }
 
-  ret = message->decodeLastData(false, false, nullptr, -1, 0, ostream);  // decode data
+  ret = message->decodeLastData(false, false, nullptr, -1, OF_NONE, ostream);  // decode data
   if (ret >= RESULT_OK && ostream->str().empty()) {
     logNotice(lf_main, "write %s %s: decode %s", message->getCircuit().c_str(), message->getName().c_str(),
         getResultCode(ret));
@@ -1325,29 +1328,27 @@ result_t MainLoop::executeFind(const vector<string>& args, const string& levels,
   bool configFormat = false, exact = false, withRead = true, withWrite = false, withPassive = true, first = true,
       onlyWithData = false, hexFormat = false, userLevel = true, withConditions = false;
   string useLevels = levels;
-  OutputFormat verbosity = 0;
+  OutputFormat verbosity = OF_NONE;
   vector<string> fieldNames;
   string circuit;
   vector<symbol_t> id;
   while (args.size() > argPos && args[argPos][0] == '-') {
     if (args[argPos] == "-v") {
-      switch (verbosity) {
-      case 0:
-        verbosity |= OF_NAMES;
-        break;
-      case OF_NAMES:
-        verbosity |= OF_UNITS;
-        break;
-      case OF_NAMES|OF_UNITS:
-        verbosity |= OF_COMMENTS;
-        break;
+      if ((verbosity & VERBOSITY_4) == VERBOSITY_0) {
+        verbosity |= VERBOSITY_1;
+      } else if ((verbosity & VERBOSITY_4) == VERBOSITY_1) {
+        verbosity |= VERBOSITY_2;
+      } else if ((verbosity & VERBOSITY_4) == VERBOSITY_2) {
+        verbosity |= VERBOSITY_3;
+      } else {
+        verbosity |= VERBOSITY_4;
       }
     } else if (args[argPos] == "-vv") {
-      verbosity |= OF_NAMES|OF_UNITS;
+      verbosity |= VERBOSITY_2;
     } else if (args[argPos] == "-vvv") {
-      verbosity |= OF_NAMES|OF_UNITS|OF_COMMENTS;
-    } else if (args[argPos] == "-V") {
-      verbosity |= OF_NAMES|OF_UNITS|OF_COMMENTS|OF_ALL_ATTRS;
+      verbosity |= VERBOSITY_3;
+    } else if (args[argPos] == "-vvvv" || args[argPos] == "-V") {
+      verbosity |= VERBOSITY_4;
     } else if (args[argPos] == "-f") {
       configFormat = true;
       if (hexFormat) {
@@ -1470,12 +1471,12 @@ result_t MainLoop::executeFind(const vector<string>& args, const string& levels,
       if (found) {
         *ostream << endl;
       }
-      message->dump(nullptr, withConditions, ostream);
+      message->dump(nullptr, withConditions, verbosity, ostream);
     } else if (!fieldNames.empty()) {
       if (found) {
         *ostream << endl;
       }
-      message->dump(&fieldNames, withConditions, ostream);
+      message->dump(&fieldNames, withConditions, verbosity, ostream);
     } else {
       if (found) {
         *ostream << endl;
@@ -1496,7 +1497,7 @@ result_t MainLoop::executeFind(const vector<string>& args, const string& levels,
                    << " / " << message->getLastSlaveData().getStr() << ")";
         }
       }
-      if ((verbosity & (OF_NAMES|OF_UNITS|OF_COMMENTS)) == (OF_NAMES|OF_UNITS|OF_COMMENTS)) {
+      if ((verbosity & VERBOSITY_3) == VERBOSITY_3) {
         symbol_t dstAddress = message->getDstAddress();
         if (dstAddress != SYN) {
           snprintf(str, sizeof(str), "%02x", dstAddress);
@@ -1536,26 +1537,22 @@ result_t MainLoop::executeFind(const vector<string>& args, const string& levels,
 
 result_t MainLoop::executeListen(const vector<string>& args, ClientSettings* settings, ostringstream* ostream) {
   size_t argPos = 1;
-  OutputFormat verbosity = 0;
+  OutputFormat verbosity = OF_NONE;
   bool listenWithUnknown = false;
   bool listenOnlyUnknown = false;
   while (args.size() > argPos && args[argPos][0] == '-') {
     if (args[argPos] == "-v") {
-      switch (verbosity) {
-      case 0:
-        verbosity = OF_NAMES;
-        break;
-      case OF_NAMES:
-        verbosity |= OF_UNITS;
-        break;
-      case OF_NAMES|OF_UNITS:
-        verbosity |= OF_COMMENTS;
-        break;
+      if ((verbosity & VERBOSITY_3) == VERBOSITY_0) {
+        verbosity |= VERBOSITY_1;
+      } else if ((verbosity & VERBOSITY_3) == VERBOSITY_1) {
+        verbosity |= VERBOSITY_2;
+      } else {
+        verbosity |= VERBOSITY_3;
       }
     } else if (args[argPos] == "-vv") {
-      verbosity |= OF_NAMES|OF_UNITS;
+      verbosity |= VERBOSITY_2;
     } else if (args[argPos] == "-vvv" || args[argPos] == "-V") {
-      verbosity |= OF_NAMES|OF_UNITS|OF_COMMENTS;
+      verbosity |= VERBOSITY_3;
     } else if (args[argPos] == "-n") {
       verbosity = (verbosity & ~OF_VALUENAME) | OF_NUMERIC;
     } else if (args[argPos] == "-N") {
@@ -1686,24 +1683,20 @@ result_t MainLoop::executeDefine(const vector<string>& args, ostringstream* ostr
 
 result_t MainLoop::executeDecode(const vector<string>& args, ostringstream* ostream) {
   size_t argPos = 1;
-  OutputFormat verbosity = 0;
+  OutputFormat verbosity = OF_NONE;
   while (args.size() > argPos && args[argPos][0] == '-') {
     if (args[argPos] == "-v") {
-      switch (verbosity) {
-        case 0:
-          verbosity = OF_NAMES;
-          break;
-        case OF_NAMES:
-          verbosity |= OF_UNITS;
-          break;
-        case OF_NAMES|OF_UNITS:
-          verbosity |= OF_COMMENTS;
-          break;
+      if ((verbosity & VERBOSITY_3) == VERBOSITY_0) {
+        verbosity |= VERBOSITY_1;
+      } else if ((verbosity & VERBOSITY_3) == VERBOSITY_1) {
+        verbosity |= VERBOSITY_2;
+      } else {
+        verbosity |= VERBOSITY_3;
       }
     } else if (args[argPos] == "-vv") {
-      verbosity |= OF_NAMES|OF_UNITS;
+      verbosity |= VERBOSITY_2;
     } else if (args[argPos] == "-vvv" || args[argPos] == "-V") {
-      verbosity |= OF_NAMES|OF_UNITS|OF_COMMENTS;
+      verbosity |= VERBOSITY_3;
     } else if (args[argPos] == "-n") {
       verbosity = (verbosity & ~OF_VALUENAME) | OF_NUMERIC;
     } else if (args[argPos] == "-N") {
@@ -2096,7 +2089,7 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
     time_t maxLastUp = 0;
     if (ret == RESULT_OK) {
       bool first = true;
-      verbosity |= OF_JSON | (full ? OF_ALL_ATTRS : 0) | (withDefinition ? OF_DEFINTION : 0);
+      verbosity |= OF_JSON | (full ? OF_ALL_ATTRS : OF_NONE) | (withDefinition ? OF_DEFINITION : OF_NONE);
       deque<Message*> messages;
       m_messages->findAll(circuit, name, getUserLevels(user), exact, true, withWrite, true, true, true, 0, 0, false,
                           &messages);
@@ -2147,7 +2140,7 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
           Message* next = *(it+1);
           same = next->getCircuit() == lastCircuit && next->getName() == name;
         }
-        message->decodeJson(!first, same, raw, verbosity, ostream);
+        message->decodeJson(!first, same, true, raw, verbosity, ostream);
         lastName = name;
         first = false;
       }

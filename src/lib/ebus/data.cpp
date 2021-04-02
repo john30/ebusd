@@ -67,6 +67,7 @@ string AttributedItem::pluck(const string& key, map<string, string>* row) {
 }
 
 void AttributedItem::dumpString(bool prependFieldSeparator, const string& str, ostream* output) {
+  // not to be used for JSON format
   if (prependFieldSeparator) {
     *output << FIELD_SEPARATOR;
   }
@@ -102,7 +103,7 @@ void AttributedItem::appendJson(bool prependFieldSeparator, const string& name, 
     }
   }
   if (prependFieldSeparator) {
-    *output << FIELD_SEPARATOR;
+    *output << ",";
   }
   *output << " \"" << name << "\": ";
   if (plain) {
@@ -129,9 +130,9 @@ void AttributedItem::mergeAttributes(map<string, string>* attributes) const {
   }
 }
 
-void AttributedItem::dumpAttribute(bool prependFieldSeparator, bool asJson, const string& name, ostream* output)
+void AttributedItem::dumpAttribute(bool prependFieldSeparator, OutputFormat outputFormat, const string& name, ostream* output)
     const {
-  if (asJson) {
+  if (outputFormat & OF_JSON) {
     appendJson(prependFieldSeparator, name, getAttribute(name), false, output);
   } else {
     dumpString(prependFieldSeparator, getAttribute(name), output);
@@ -171,7 +172,7 @@ bool AttributedItem::appendAttributes(OutputFormat outputFormat, ostream* output
             result_t result = RESULT_EMPTY;
             size_t addr = parseInt(entry.second.c_str(), 16, 0, 255, &result);
             if (result == RESULT_OK) {
-              *output << FIELD_SEPARATOR << " \"" << key << "\": " << addr;
+              *output << ", \"" << key << "\": " << addr;
               continue;
             }
           }
@@ -469,44 +470,43 @@ result_t SingleDataField::create(const string& name, const map<string, string>& 
   return RESULT_OK;
 }
 
-void SingleDataField::dumpPrefix(bool prependFieldSeparator, bool asJson, ostream* output) const {
+void SingleDataField::dumpPrefix(bool prependFieldSeparator, OutputFormat outputFormat, ostream* output) const {
   *output << setw(0) << dec;  // initialize formatting
-  if (asJson) {
+  if (outputFormat & OF_JSON) {
     if (prependFieldSeparator) {
-      *output << FIELD_SEPARATOR;
+      *output << ",";
     }
     *output << "\n     {";
     appendJson(false, "name", m_name, true, output);
   } else {
     dumpString(prependFieldSeparator, m_name, output);
   }
-  *output << FIELD_SEPARATOR;
-  if (asJson) {
-    *output << " \"slave\": " << (m_partType == pt_slaveData ? "true" : "false") << ", ";
+  if (outputFormat & OF_JSON) {
+    *output << ", \"slave\": " << (m_partType == pt_slaveData ? "true" : "false") << ", ";
   } else {
+    *output << FIELD_SEPARATOR;
     if (m_partType == pt_masterData) {
       *output << "m";
     } else if (m_partType == pt_slaveData) {
       *output << "s";
     }
-  }
-  if (!asJson) {
     *output << FIELD_SEPARATOR;
   }
-  m_dataType->dump(asJson, m_length, true, output);
+  m_dataType->dump(outputFormat, m_length, true, output);
 }
 
-void SingleDataField::dumpSuffix(bool asJson, ostream* output) const {
-  dumpAttribute(true, asJson, "unit", output);
-  dumpAttribute(true, asJson, "comment", output);
-  if (asJson) {
+void SingleDataField::dumpSuffix(OutputFormat outputFormat, ostream* output) const {
+  dumpAttribute(true, outputFormat, "unit", output);
+  dumpAttribute(true, outputFormat, "comment", output);
+  if (outputFormat & OF_JSON) {
+    appendAttributes(outputFormat & ~(OF_UNITS|OF_COMMENTS), output);
     *output << "}";
   }
 }
 
-void SingleDataField::dump(bool prependFieldSeparator, bool asJson, ostream* output) const {
-  dumpPrefix(prependFieldSeparator, asJson, output);
-  dumpSuffix(asJson, output);
+void SingleDataField::dump(bool prependFieldSeparator, OutputFormat outputFormat, ostream* output) const {
+  dumpPrefix(prependFieldSeparator, outputFormat, output);
+  dumpSuffix(outputFormat, output);
 }
 
 result_t SingleDataField::read(const SymbolString& data, size_t offset,
@@ -557,7 +557,7 @@ result_t SingleDataField::read(const SymbolString& data, size_t offset,
         *output << "\"" << static_cast<signed int>(outputIndex < 0 ? 0 : outputIndex) << "\":";
       }
       if (!shortFormat) {
-        *output << " {\"name\": \"" << m_name << "\"" << ", \"value\": ";
+        *output << " {\"name\": \"" << m_name << "\", \"value\": ";
       }
     } else {
       if (fieldIndex < 0) {
@@ -722,11 +722,11 @@ result_t ValueListDataField::derive(const string& name, PartType partType, int d
   return RESULT_OK;
 }
 
-void ValueListDataField::dump(bool prependFieldSeparator, bool asJson, ostream* output) const {
-  dumpPrefix(prependFieldSeparator, asJson, output);
+void ValueListDataField::dump(bool prependFieldSeparator, OutputFormat outputFormat, ostream* output) const {
+  dumpPrefix(prependFieldSeparator, outputFormat, output);
   // no divisor appended since it is not allowed for ValueListDataField
   bool first = true;
-  if (asJson) {
+  if (outputFormat & OF_JSON) {
     *output << ", \"values\": {";
     for (const auto it : m_values) {
       appendJson(!first, formatInt(it.first), it.second, true, output);  // TODO optimize?
@@ -743,7 +743,7 @@ void ValueListDataField::dump(bool prependFieldSeparator, bool asJson, ostream* 
       *output << it.first << "=" << it.second;
     }
   }
-  dumpSuffix(asJson, output);
+  dumpSuffix(outputFormat, output);
 }
 
 result_t ValueListDataField::readSymbols(const SymbolString& input, size_t offset,
@@ -838,22 +838,22 @@ result_t ConstantDataField::derive(const string& name, PartType partType, int di
   return RESULT_OK;
 }
 
-void ConstantDataField::dump(bool prependFieldSeparator, bool asJson, ostream* output) const {
-  dumpPrefix(prependFieldSeparator, asJson, output);
+void ConstantDataField::dump(bool prependFieldSeparator, OutputFormat outputFormat, ostream* output) const {
+  dumpPrefix(prependFieldSeparator, outputFormat, output);
   // no divisor appended since it is not allowed for ConstantDataField
-  if (asJson) {
+  if (outputFormat & OF_JSON) {
     appendJson(false, "value", m_value, true, output);
-    *output << ", \"verify\":" << (m_verify ? "true" : "false");
+    *output << ", \"verify\": " << (m_verify ? "true" : "false");
   } else {
     *output << (m_verify?"==":"=") << m_value;
   }
-  dumpSuffix(asJson, output);
+  dumpSuffix(outputFormat, output);
 }
 
 result_t ConstantDataField::readSymbols(const SymbolString& input, size_t offset,
     OutputFormat outputFormat, ostream* output) const {
   ostringstream coutput;
-  result_t result = SingleDataField::readSymbols(input, offset, 0, &coutput);
+  result_t result = SingleDataField::readSymbols(input, offset, outputFormat, &coutput);
   if (result != RESULT_OK) {
     return result;
   }
@@ -1024,9 +1024,9 @@ bool DataFieldSet::hasField(const char* fieldName, bool numeric) const {
   return false;
 }
 
-void DataFieldSet::dump(bool prependFieldSeparator, bool asJson, ostream* output) const {
+void DataFieldSet::dump(bool prependFieldSeparator, OutputFormat outputFormat, ostream* output) const {
   for (const auto field : m_fields) {
-    field->dump(prependFieldSeparator, asJson, output);
+    field->dump(prependFieldSeparator, outputFormat, output);
     prependFieldSeparator = true;
   }
 }

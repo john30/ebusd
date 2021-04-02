@@ -183,8 +183,6 @@ int main() {
     {"*r,cir*cuit#level,na*me,com*ment,ff,75,b509,0d", "", "", "", ""},
     {"r,CIRCUIT,NAME,COMMENT,,,,0100,field,,UCH", "r,cirCIRCUITcuit,naNAMEme,comCOMMENTment,ff,75,b509,0d0100,field,s,UCH,,,: field=42", "ff75b509030d0100", "012a", "DN"},
     {"r,CIRCUIT,NAME,COMMENT,,,,0100,field,,UCH",
-        // "\"naNAMEme\": {r,cirCIRCUITcuit,naNAMEme,comCOMMENTment,ff,75,b509,0d0100,field,s,UCH,,,: field=42"
-      "\n"
       "   \"naNAMEme\": {\n"
       "    \"name\": \"naNAMEme\",\n"
       "    \"passive\": false,\n"
@@ -407,7 +405,7 @@ int main() {
       ostringstream output;
       if (withMessageDump) {
         if (decodeJson) {
-          message->decodeJson(false, false, false, OF_JSON|OF_DEFINTION, &output);
+          message->decodeJson(false, false, true, false, OF_JSON|OF_DEFINITION, &output);
           string str = output.str();
           size_t start = str.find("\"lastup\": ");
           if (start != string::npos) {
@@ -420,12 +418,12 @@ int main() {
           output.str("");
           output << str;
         } else {
-          message->dump(nullptr, true, &output);
+          message->dump(nullptr, true, OF_NONE, &output);
         }
         output << ": ";
       }
       result = message->decodeLastData(false, nullptr, -1,
-          (decodeVerbose?OF_NAMES|OF_UNITS|OF_COMMENTS:0)|(decodeJson?OF_NAMES|OF_JSON:0), &output);
+          (decodeVerbose?OF_NAMES|OF_UNITS|OF_COMMENTS:OF_NONE)|(decodeJson?OF_NAMES|OF_JSON:OF_NONE), &output);
       if (result != RESULT_OK) {
         cout << "  \"" << check[2] << "\" / \"" << check[3] << "\": decode error " << (message->isWrite() ? "write: " : "read: ")
             << getResultCode(result) << endl;

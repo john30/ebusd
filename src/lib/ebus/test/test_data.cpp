@@ -568,7 +568,7 @@ int main() {
     if (flags.find('i') != string::npos) {
       findIndex = parseSignedInt(flags.substr(flags.find('i')+1).c_str(), 10, 0, 9, &result);
     }
-    OutputFormat verbosity = 0;
+    OutputFormat verbosity = OF_NONE;
     if (flags.find("v") != string::npos) {
       verbosity |= OF_NAMES;
     }
@@ -633,7 +633,7 @@ int main() {
       continue;
     }
     cout << "\"" << check[0] << "\"=\"";
-    fields->dump(false, false, &cout);
+    fields->dump(false, OF_NONE, &cout);
     cout << "\": create OK" << endl;
 
     ostringstream output;
@@ -650,9 +650,9 @@ int main() {
         cout << "  parse \"" << sstr.getStr().substr(0, 2) << "\" error: " << getResultCode(result) << endl;
         error = true;
       }
-      result = fields->read(mstr, 0, false, findName, findIndex, verbosity|(numeric?OF_NUMERIC:0), -1, &output);
+      result = fields->read(mstr, 0, false, findName, findIndex, verbosity|(numeric?OF_NUMERIC:OF_NONE), -1, &output);
       if (result >= RESULT_OK) {
-        result = fields->read(sstr, 0, !output.str().empty(), findName, findIndex, verbosity|(numeric?OF_NUMERIC:0), -1, &output);
+        result = fields->read(sstr, 0, !output.str().empty(), findName, findIndex, verbosity|(numeric?OF_NUMERIC:OF_NONE), -1, &output);
       }
       if (failedRead) {
         if (result >= RESULT_OK) {

@@ -845,7 +845,8 @@ void Message::dumpHeader(const vector<string>* fieldNames, ostream* output) {
   }
 }
 
-void Message::dump(const vector<string>* fieldNames, bool withConditions, ostream* output) const {
+void Message::dump(const vector<string>* fieldNames, bool withConditions, OutputFormat outputFormat, ostream* output) const {
+  // not to be used together with OF_JSON
   bool first = true;
   if (fieldNames == nullptr) {
     for (const auto& fieldName : knownFieldNamesFull) {
@@ -857,7 +858,7 @@ void Message::dump(const vector<string>* fieldNames, bool withConditions, ostrea
       } else {
         *output << FIELD_SEPARATOR;
       }
-      dumpField(fieldName, withConditions, output);
+      dumpField(fieldName, withConditions, outputFormat, output);
     }
     return;
   }
@@ -867,11 +868,11 @@ void Message::dump(const vector<string>* fieldNames, bool withConditions, ostrea
     } else {
       *output << FIELD_SEPARATOR;
     }
-    dumpField(fieldName, withConditions, output);
+    dumpField(fieldName, withConditions, outputFormat, output);
   }
 }
 
-void Message::dumpField(const string& fieldName, bool withConditions, ostream* output) const {
+void Message::dumpField(const string& fieldName, bool withConditions, OutputFormat outputFormat, ostream* output) const {
   if (fieldName == "type") {
     if (withConditions && m_condition != nullptr) {
       m_condition->dump(false, output);
@@ -928,10 +929,10 @@ void Message::dumpField(const string& fieldName, bool withConditions, ostream* o
     return;
   }
   if (fieldName == "fields") {
-    m_data->dump(false, false, output);
+    m_data->dump(false, outputFormat, output);
     return;
   }
-  dumpAttribute(false, false, fieldName, output);
+  dumpAttribute(false, outputFormat, fieldName, output);
 }
 
 void addData(const SymbolString& data, ostringstream* output) {
@@ -948,26 +949,44 @@ void addData(const SymbolString& data, ostringstream* output) {
   *output << "]";
 }
 
-void Message::decodeJson(bool leadingSeparator, bool appendDirection, bool addRaw, OutputFormat outputFormat,
-    ostringstream* output) const {
+void Message::decodeJson(bool leadingSeparator, bool appendDirectionCondition, bool withData, bool addRaw,
+                         OutputFormat outputFormat, ostringstream* output) const {
+  outputFormat |= OF_JSON;
   if (leadingSeparator) {
-    *output << ",";
+    *output << ",\n";
   }
-  *output << "\n   \"" << getName();
-  if (appendDirection) {
+  *output << "   \"";
+  *output << getName();
+  if (appendDirectionCondition) {
     if (isPassive()) {
       *output << "-u";
     } else if (isWrite()) {
       *output << "-w";
     }
+    if (isConditional()) {
+      m_condition->dump(false, output);
+    }
   }
-  bool withDefinition = (outputFormat & OF_DEFINTION) != 0;
+  bool withDefinition = outputFormat & OF_DEFINITION;
   *output << "\": {"
           << "\n    \"name\": \"" << getName() << "\""
           << ",\n    \"passive\": " << (isPassive() ? "true" : "false")
-          << ",\n    \"write\": " << (isWrite() ? "true" : "false")
-          << ",\n    \"lastup\": " << setw(0) << dec << m_lastUpdateTime;
-  bool hasData = getLastUpdateTime() != 0;
+          << ",\n    \"write\": " << (isWrite() ? "true" : "false");
+  if (outputFormat & OF_ALL_ATTRS) {
+    *output << ",\n    \"level\": \"" << getLevel() << "\"";
+    if (getPollPriority()>0) {
+      *output << ",\n    \"pollprio\": " << setw(0) << dec << getPollPriority();
+    }
+    if (isConditional()) {
+      *output << ",\n    \"condition\": \"";
+      m_condition->dump(false, output);
+      *output << "\"";
+    }
+  }
+  if (withData) {
+    *output << ",\n    \"lastup\": " << setw(0) << dec << getLastUpdateTime();
+  }
+  bool hasData = withData && (getLastUpdateTime() != 0);
   if (hasData || withDefinition) {
     if (withDefinition && m_srcAddress != SYN) {
       *output << ",\n    \"qq\": " << dec << static_cast<unsigned>(m_srcAddress);
@@ -983,7 +1002,7 @@ void Message::decodeJson(bool leadingSeparator, bool appendDirection, bool addRa
       }
       *output << "]";
     }
-    appendAttributes(OF_JSON | outputFormat, output);
+    appendAttributes(outputFormat, output);
     if (hasData) {
       if (addRaw) {
         addData(m_lastMasterData, output);
@@ -1004,7 +1023,7 @@ void Message::decodeJson(bool leadingSeparator, bool appendDirection, bool addRa
     }
     if (withDefinition) {
       *output << ",\n    \"fielddefs\": [";
-      m_data->dump(false, true, output);
+      m_data->dump(false, outputFormat, output);
       *output << "\n    ]";
     }
   }
@@ -1256,9 +1275,9 @@ result_t ChainedMessage::combineLastParts() {
   return result;
 }
 
-void ChainedMessage::dumpField(const string& fieldName, bool withConditions, ostream* output) const {
+void ChainedMessage::dumpField(const string& fieldName, bool withConditions, OutputFormat outputFormat, ostream* output) const {
   if (fieldName != "id") {
-    Message::dumpField(fieldName, withConditions, output);
+    Message::dumpField(fieldName, withConditions, outputFormat, output);
     return;
   }
   bool first = true;
@@ -1608,7 +1627,7 @@ bool SimpleNumericCondition::checkValue(const Message* message, const string& fi
 
 bool SimpleStringCondition::checkValue(const Message* message, const string& field) {
   ostringstream output;
-  result_t result = message->decodeLastData(false, field.length() == 0 ? nullptr : field.c_str(), -1, 0, &output);
+  result_t result = message->decodeLastData(false, field.length() == 0 ? nullptr : field.c_str(), -1, OF_NONE, &output);
   if (result == RESULT_OK) {
     string value = output.str();
     for (size_t i = 0; i < m_values.size(); i++) {
@@ -2786,10 +2805,17 @@ Message* MessageMap::getNextPoll() {
   return ret;
 }
 
-void MessageMap::dump(bool withConditions, ostream* output) const {
+void MessageMap::dump(bool withConditions, OutputFormat outputFormat, ostream* output) const {
   bool first = true;
-  Message::dumpHeader(nullptr, output);
-  *output << endl;
+  bool isJson = (outputFormat & OF_JSON) != 0;
+  if (isJson) {
+    *output << "{";
+  } else {
+    Message::dumpHeader(nullptr, output);
+  }
+  if (!(outputFormat & OF_SHORT)) {
+    *output << endl;
+  }
   for (const auto it : m_messagesByName) {
     if (it.first[0] == FIELD_SEPARATOR) {  // skip instances stored multiple times (key starting with "-")
       continue;
@@ -2799,28 +2825,46 @@ void MessageMap::dump(bool withConditions, ostream* output) const {
         if (!message) {
           continue;
         }
+        bool wasFirst = first;
         if (first) {
           first = false;
         } else {
           *output << endl;
         }
-        message->dump(nullptr, withConditions, output);
+        if (isJson) {
+          ostringstream str;
+          message->decodeJson(!wasFirst, true, false, false, outputFormat, &str);
+          *output << str.str();
+        } else {
+          message->dump(nullptr, withConditions, outputFormat, output);
+        }
       }
     } else {
       Message* message = getFirstAvailable(it.second);
       if (!message) {
         continue;
       }
+      bool wasFirst = first;
       if (first) {
         first = false;
       } else {
         *output << endl;
       }
-      message->dump(nullptr, withConditions, output);
+      if (isJson) {
+        ostringstream str;
+        message->decodeJson(!wasFirst, true, false, false, outputFormat, &str);
+        *output << str.str();
+      } else {
+        message->dump(nullptr, withConditions, outputFormat, output);
+      }
     }
   }
-  if (!first) {
-    *output << endl;
+  if (isJson) {
+    *output << "}" << endl;
+  } else {
+    if (!first) {
+      *output << endl;
+    }
   }
 }
 

@@ -42,10 +42,10 @@ using std::setw;
 using std::endl;
 
 
-bool DataType::dump(bool asJson, size_t length, bool appendDivisor, ostream* output) const {
-  if (asJson) {
-    *output << "\"type\": \"" << m_id << "\"" << FIELD_SEPARATOR << " \"isbits\": "
-            << (getBitCount() < 8 ? "true" : "false") << FIELD_SEPARATOR << " \"length\": ";
+bool DataType::dump(OutputFormat outputFormat, size_t length, bool appendDivisor, ostream* output) const {
+  if (outputFormat & OF_JSON) {
+    *output << "\"type\": \"" << m_id << "\", \"isbits\": "
+            << (getBitCount() < 8 ? "true" : "false") << ", \"length\": ";
     if (isAdjustableLength() && length == REMAIN_LEN) {
       *output << "-1";
     } else {
@@ -297,11 +297,11 @@ result_t DateTimeDataType::readSymbols(size_t offset, size_t length, const Symbo
             last = symbol;
             continue;
           }
-          unsigned int minutes = symbol*256 + last;
+          minutes = symbol*256 + last;
           if (minutes > 24*60) {
             return RESULT_ERR_OUT_OF_RANGE;  // invalid value
           }
-          unsigned int minutesHour = minutes / 60;
+          unsigned int minutesHour = (unsigned int)(minutes / 60);
           if (minutesHour > 24) {
             return RESULT_ERR_OUT_OF_RANGE;  // invalid hour
           }
@@ -353,7 +353,7 @@ result_t DateTimeDataType::readSymbols(size_t offset, size_t length, const Symbo
         }
         *output << dec << setfill('0') << setw(2) << static_cast<unsigned>(d) << "."
                 << setw(2) << static_cast<unsigned>(m) << "." << static_cast<unsigned>(y + 1900);
-        m = minutes%(24*60);
+        m = (int)(minutes%(24*60));
         d = m/60;
         *output << " " << setw(2) << dec << setfill('0') << static_cast<unsigned>(d);
         m -= d*60;
@@ -568,25 +568,25 @@ size_t NumberDataType::calcPrecision(int divisor) {
   return precision;
 }
 
-bool NumberDataType::dump(bool asJson, size_t length, bool appendDivisor, ostream* output) const {
+bool NumberDataType::dump(OutputFormat outputFormat, size_t length, bool appendDivisor, ostream* output) const {
   if (m_bitCount < 8) {
-    DataType::dump(asJson, m_bitCount, appendDivisor, output);
+    DataType::dump(outputFormat, m_bitCount, appendDivisor, output);
   } else {
-    DataType::dump(asJson, length, appendDivisor, output);
+    DataType::dump(outputFormat, length, appendDivisor, output);
   }
   if (!appendDivisor) {
     return false;
   }
   if (m_baseType) {
     if (m_baseType->m_divisor != m_divisor) {
-      if (asJson) {
+      if (outputFormat & OF_JSON) {
         *output << ", \"divisor\": ";
       }
       *output << (m_divisor / m_baseType->m_divisor);
       return true;
     }
   } else if (m_divisor != 1) {
-    if (asJson) {
+    if (outputFormat & OF_JSON) {
       *output << ", \"divisor\": ";
     }
     *output << m_divisor;

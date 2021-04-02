@@ -543,28 +543,31 @@ class Message : public AttributedItem {
    * Write the message definition or parts of it to the @a ostream.
    * @param fieldNames the list of field names to write, or nullptr for all.
    * @param withConditions whether to include the optional conditions prefix.
+   * @param outputFormat the @a OutputFormat options.
    * @param output the @a ostream to append the formatted value to.
    */
-  void dump(const vector<string>* fieldNames, bool withConditions, ostream* output) const;
+  void dump(const vector<string>* fieldNames, bool withConditions, OutputFormat outputFormat, ostream* output) const;
 
   /**
    * Write the specified field to the @a ostream.
    * @param fieldName the field name to write.
    * @param withConditions whether to include the optional conditions prefix.
+   * @param outputFormat the @a OutputFormat options.
    * @param output the @a ostream to append the formatted value to.
    */
-  virtual void dumpField(const string& fieldName, bool withConditions, ostream* output) const;
+  virtual void dumpField(const string& fieldName, bool withConditions, OutputFormat outputFormat, ostream* output) const;
 
   /**
    * Decode the message from the last stored data in JSON format.
    * @param leadingSeparator whether to prepend a separator before the first value.
-   * @param appendDirection whether to append the direction to the name key (for passive and write).
+   * @param appendDirectionCondition whether to append the direction and condition to the name key.
+   * @param withData whether to add the last data as well.
    * @param addRaw whether to add the raw symbols as well.
    * @param outputFormat the @a OutputFormat options to use.
    * @param output the @a ostringstream to append the decoded value(s) to.
    */
-  virtual void decodeJson(bool leadingSeparator, bool appendDirection, bool addRaw, OutputFormat outputFormat,
-      ostringstream* output) const;
+  virtual void decodeJson(bool leadingSeparator, bool appendDirectionCondition, bool withData, bool addRaw,
+                          OutputFormat outputFormat, ostringstream* output) const;
 
  protected:
   /** the optional circuit name. */
@@ -723,7 +726,7 @@ class ChainedMessage : public Message {
 
  protected:
   // @copydoc
-  void dumpField(const string& fieldName, bool withConditions, ostream* output) const override;
+  void dumpField(const string& fieldName, bool withConditions, OutputFormat outputFormat, ostream* output) const override;
 
 
  private:
@@ -1519,9 +1522,10 @@ class MessageMap : public MappedFileReader {
   /**
    * Write the message definitions to the @a ostream.
    * @param withConditions whether to include the optional conditions prefix.
+   * @param outputFormat the @a OutputFormat options.
    * @param output the @a ostream to append the formatted messages to.
    */
-  void dump(bool withConditions, ostream* output) const;
+  void dump(bool withConditions, OutputFormat outputFormat, ostream* output) const;
 
 
  private:
