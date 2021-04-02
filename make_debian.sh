@@ -135,7 +135,7 @@ echo "1. Edit /etc/default/ebusd if necessary"
 echo "   (especially if your device is not /dev/ttyUSB0)"
 echo "2. Start the daemon with 'service ebusd start'"
 echo "3. Check the log file /var/log/ebusd.log"
-echo "4. Make the daemon autostart with 'update-rc.d ebusd enable'"
+echo "4. Make the daemon autostart with 'update-rc.d ebusd defaults'"
 EOF
 fi
 chmod 755 $RELEASE/DEBIAN/postinst
