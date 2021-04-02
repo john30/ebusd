@@ -875,7 +875,7 @@ string MqttHandler::getTopic(const Message* message, const string& suffix, const
       if (g_topicFields[i] == "field") {
         ret << fieldName;
       } else {
-        message->dumpField(g_topicFields[i], false, &ret);
+        message->dumpField(g_topicFields[i], false, OF_NONE, &ret);
       }
     }
   }
