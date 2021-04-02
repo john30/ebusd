@@ -86,7 +86,7 @@ static struct options opt = {
   0,  // initialScan
   getenv("LANG"),  // preferLanguage
   false,  // checkConfig
-  false,  // dumpConfig
+  OF_NONE,  // dumpConfig
   5,  // pollInterval
   false,  // injectMessages
 
@@ -197,8 +197,8 @@ static const struct argp_option argpoptions[] = {
       "arguments for checking a particular scan configuration, e.g. \"FF08070400/0AB5454850303003277201\".", 0 },
   {"configlang",     O_CFGLNG, "LANG",     0,
       "Prefer LANG in multilingual configuration files [system default language]", 0 },
-  {"checkconfig",    O_CHKCFG, nullptr,    0, "Check CSV config files, then stop", 0 },
-  {"dumpconfig",     O_DMPCFG, nullptr,    0, "Check and dump CSV config files, then stop", 0 },
+  {"checkconfig",    O_CHKCFG, nullptr,    0, "Check config files, then stop", 0 },
+  {"dumpconfig",     O_DMPCFG, "FORMAT", OPTION_ARG_OPTIONAL, "Check and dump config files in FORMAT (\"json\" or \"csv\"), then stop", 0 },
   {"pollinterval",   O_POLINT, "SEC",      0, "Poll for data every SEC seconds (0=disable) [5]", 0 },
   {"inject",         'i',      nullptr,    0, "Inject remaining arguments as already seen messages (e.g. "
       "\"FF08070400/0AB5454850303003277201\")", 0 },
@@ -346,9 +346,17 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case O_CHKCFG:  // --checkconfig
     opt->checkConfig = true;
     break;
-  case O_DMPCFG:  // --dumpconfig
+  case O_DMPCFG:  // --dumpconfig[=json|csv]
+    opt->dumpConfig = OF_DEFINITION;
+    if (!arg || arg[0] == 0 || strcmp("csv", arg) == 0) {
+      // no further flags
+    } else if (strcmp("json", arg) == 0) {
+      opt->dumpConfig |= OF_NAMES | OF_UNITS | OF_COMMENTS | OF_VALUENAME | OF_ALL_ATTRS | OF_JSON;
+    } else {
+      argp_error(state, "invalid dumpconfig");
+      return EINVAL;
+    }
     opt->checkConfig = true;
-    opt->dumpConfig = true;
     break;
   case O_POLINT:  // --pollinterval=5
     opt->pollInterval = parseInt(arg, 10, 0, 3600, &result);
@@ -1307,7 +1315,7 @@ int main(int argc, char* argv[]) {
     }
     if (result == RESULT_OK && opt.dumpConfig) {
       logNotice(lf_main, "configuration dump:");
-      s_messageMap->dump(true, OF_NONE, &cout);
+      s_messageMap->dump(true, opt.dumpConfig, &cout);
     }
 
     shutdown(overallResult != RESULT_OK);
