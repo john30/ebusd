@@ -109,6 +109,7 @@ MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messag
   : Thread(), m_device(device), m_reconnectCount(0), m_userList(opt.accessLevel), m_messages(messages),
     m_address(opt.address), m_scanConfig(opt.scanConfig), m_initialScan(opt.readOnly ? ESC : opt.initialScan),
     m_polling(opt.pollInterval > 0), m_enableHex(opt.enableHex), m_shutdown(false), m_runUpdateCheck(opt.updateCheck) {
+  m_device->setListener(this);
   // open Device
   result_t result = m_device->open();
   if (result != RESULT_OK) {
@@ -116,7 +117,6 @@ MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messag
   } else if (!m_device->isValid()) {
     logError(lf_bus, "device %s not available", m_device->getName());
   }
-  m_device->setListener(this);
   if (opt.dumpFile[0]) {
     m_dumpFile = new RotateFile(opt.dumpFile, opt.dumpSize, false, opt.dumpFlush ? 1 : 16);
     m_dumpFile->setEnabled(opt.dump);
