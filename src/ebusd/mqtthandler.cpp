@@ -91,7 +91,7 @@ static vector<string> g_topicStrs;
 /** the MQTT topic field parts. */
 static vector<string> g_topicFields;
 static bool g_retain = false;             //!< whether to retail all topics
-static OutputFormat g_publishFormat = 0;  //!< the OutputFormat for publishing messages
+static OutputFormat g_publishFormat = OF_NONE;  //!< the OutputFormat for publishing messages
 #if (LIBMOSQUITTO_VERSION_NUMBER >= 1003001)
 static bool g_logFromLib = false;         //!< log library events
 #endif
@@ -875,7 +875,7 @@ string MqttHandler::getTopic(const Message* message, const string& suffix, const
       if (g_topicFields[i] == "field") {
         ret << fieldName;
       } else {
-        message->dumpField(g_topicFields[i], false, &ret);
+        message->dumpField(g_topicFields[i], false, OF_NONE, &ret);
       }
     }
   }
