@@ -334,7 +334,7 @@ class SymbolString {
   void clear() { m_data.clear(); }
 
 
- private:
+ protected:
   /**
    * Hidden copy constructor.
    * @param str the @a SymbolString to copy from.
@@ -359,6 +359,25 @@ class MasterSymbolString : public SymbolString {
    * Creates a new empty instance.
    */
   MasterSymbolString() : SymbolString(true) {}
+
+  MasterSymbolString& operator=(const MasterSymbolString& other) {
+    this->m_data = other.m_data;
+    this->m_isMaster = other.m_isMaster;
+    return *this;
+  }
+
+  MasterSymbolString& operator=(const MasterSymbolString* other) {
+    this->m_data = other->m_data;
+    this->m_isMaster = other->m_isMaster;
+    return *this;
+  }
+
+ private:
+  /**
+   * Copy constructor.
+   * @param str the @a MasterSymbolString to copy from.
+   */
+  MasterSymbolString(const MasterSymbolString& str) : SymbolString(str) {}
 };
 
 
@@ -371,6 +390,25 @@ class SlaveSymbolString : public SymbolString {
    * Creates a new empty instance.
    */
   SlaveSymbolString() : SymbolString(false) {}
+
+  SlaveSymbolString& operator=(const SlaveSymbolString& other) {
+    this->m_data = other.m_data;
+    this->m_isMaster = other.m_isMaster;
+    return *this;
+  }
+
+  SlaveSymbolString& operator=(const SlaveSymbolString* other) {
+    this->m_data = other->m_data;
+    this->m_isMaster = other->m_isMaster;
+    return *this;
+  }
+
+ private:
+  /**
+   * Copy constructor.
+   * @param str the @a SlaveSymbolString to copy from.
+   */
+  SlaveSymbolString(const SlaveSymbolString& str) : SymbolString(str) {}
 };
 
 
