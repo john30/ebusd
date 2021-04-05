@@ -183,7 +183,7 @@ bool ScanRequest::notify(result_t result, const SlaveSymbolString& slave) {
 
 bool ActiveBusRequest::notify(result_t result, const SlaveSymbolString& slave) {
   if (result == RESULT_OK) {
-    string str = m_master.getStr();
+    string str = slave.getStr();
     logDebug(lf_bus, "read res: %s", str.c_str());
   }
   m_result = result;
