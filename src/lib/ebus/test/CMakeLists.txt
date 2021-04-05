@@ -22,3 +22,5 @@ add_test(data test_data)
 add_executable(test_message test_message.cpp)
 target_link_libraries(test_message ebus pthread ${test_LIBS})
 add_test(message test_message)
+
+include(CTest)
