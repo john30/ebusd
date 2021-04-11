@@ -34,6 +34,7 @@ LABEL version "${EBUSD_VERSION}-${EBUSD_ARCH}%EBUSD_VERSION_VARIANT%"
 COPY --from=build /build/ebusd-*_mqtt1.deb ebusd.deb
 
 RUN dpkg -i ebusd.deb \
+    && ebusd -V \
     && rm -f ebusd.deb%EXTRA_RM%
 
 EXPOSE 8888
