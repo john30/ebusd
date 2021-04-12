@@ -351,7 +351,7 @@ result_t DateTimeDataType::readSymbols(size_t offset, size_t length, const Symbo
         }
         *output << dec << setfill('0') << setw(2) << static_cast<unsigned>(d) << "."
                 << setw(2) << static_cast<unsigned>(m) << "." << static_cast<unsigned>(y + 1900);
-        m = (int)(minutes%(24*60));
+        m = static_cast<int>(minutes%(24*60));
         d = m/60;
         *output << " " << setw(2) << dec << setfill('0') << static_cast<unsigned>(d);
         m -= d*60;
