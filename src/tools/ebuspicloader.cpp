@@ -966,6 +966,10 @@ int run(int fd) {
     readConfig(fd, 0x0100, 9*2, true);  // MUI
     std::cout << "EUI:"<< std::endl;
     readConfig(fd, 0x010a, 8*2);  // EUI
+    readConfig(fd, 0x0116, 14, false, false, data);  // TSHR2...FVRC2X
+    std::cout << "TSHR2: " << std::dec << static_cast<unsigned>(((data[1]&0xff) << 8) | (data[0]&0xff)) << std::endl;
+    std::cout << "FVRA2X: " << static_cast<unsigned>(((data[7]&0xff) << 8) | (data[6]&0xff)) << std::endl;
+    std::cout << "FVRC2X: " << static_cast<unsigned>(((data[13]&0xff) << 8) | (data[12]&0xff)) << std::endl;
   }
   if (verbose) {
     std::cout << "Flash:" << std::endl;
