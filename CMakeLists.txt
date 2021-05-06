@@ -1,4 +1,10 @@
-cmake_minimum_required(VERSION 2.8.4 FATAL_ERROR)
+cmake_minimum_required(VERSION 2.8.12 FATAL_ERROR)
+
+# CMP0075 Include file check macros honor CMAKE_REQUIRED_LIBRARIES
+# For more information see: https://cmake.org/cmake/help/latest/policy/CMP0075.html
+if(POLICY CMP0075)
+    cmake_policy(SET CMP0075 NEW)
+endif()
 
 file(STRINGS "VERSION" VERSION)
 
@@ -19,7 +25,8 @@ execute_process(COMMAND echo -n ${VERSION}
 
 execute_process(COMMAND git describe --always
                 OUTPUT_VARIABLE REVISION
-                OUTPUT_STRIP_TRAILING_WHITESPACE)
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+                WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 if(NOT REVISION)
   execute_process(COMMAND date +p%Y%m%d
                   OUTPUT_VARIABLE REVISION
