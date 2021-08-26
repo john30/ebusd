@@ -1,5 +1,5 @@
 
-FROM debian:stretch as build
+FROM debian:bullseye as build
 
 RUN apt-get update && apt-get install -y \
     libmosquitto-dev libstdc++6 libc6 libgcc1 \
@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /build
 
 ENV EBUSD_ARCH amd64
-ENV EBUSD_VERSION 21.2
+ENV EBUSD_VERSION 21.3
 
 RUN git clone https://github.com/john30/ebusd.git /build \
     && ./make_debian.sh
@@ -18,7 +18,7 @@ RUN git clone https://github.com/john30/ebusd.git /build \
 
 
 
-FROM debian:stretch-slim
+FROM debian:bullseye-slim
 
 RUN apt-get update && apt-get install -y \
     logrotate libmosquitto1 libstdc++6 libc6 libgcc1 \
@@ -26,7 +26,7 @@ RUN apt-get update && apt-get install -y \
 
 LABEL maintainer "ebusd@ebusd.eu"
 
-ENV EBUSD_VERSION 21.2
+ENV EBUSD_VERSION 21.3
 ENV EBUSD_ARCH amd64
 
 LABEL version "${EBUSD_VERSION}-${EBUSD_ARCH}"

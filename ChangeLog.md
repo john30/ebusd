@@ -4,6 +4,7 @@
 * fix for escaping double quote in CSV format
 * adjusted helper shell scripts and Munin plugin to newer netcat
 * fix for weekday in BDA data type (for sending only)
+* fix for checking mqtt version
 
 ## Features
 * added DTM and BDZ data types

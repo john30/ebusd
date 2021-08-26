@@ -1,5 +1,5 @@
 #!/bin/bash
-DEFAULT_IMAGE=debian:stretch
+DEFAULT_IMAGE=debian:bullseye
 EBUSD_VERSION=`cat ../../VERSION`
 
 archs='amd64 i386 arm32v5:arm arm32v7:arm arm64v8:aarch64'
