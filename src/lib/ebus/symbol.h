@@ -362,13 +362,13 @@ class MasterSymbolString : public SymbolString {
 
   MasterSymbolString& operator=(const MasterSymbolString& other) {
     this->m_data = other.m_data;
-    this->m_isMaster = other.m_isMaster;
+    this->m_isMaster = true;
     return *this;
   }
 
   MasterSymbolString& operator=(const MasterSymbolString* other) {
     this->m_data = other->m_data;
-    this->m_isMaster = other->m_isMaster;
+    this->m_isMaster = true;
     return *this;
   }
 
@@ -393,13 +393,13 @@ class SlaveSymbolString : public SymbolString {
 
   SlaveSymbolString& operator=(const SlaveSymbolString& other) {
     this->m_data = other.m_data;
-    this->m_isMaster = other.m_isMaster;
+    this->m_isMaster = false;
     return *this;
   }
 
   SlaveSymbolString& operator=(const SlaveSymbolString* other) {
     this->m_data = other->m_data;
-    this->m_isMaster = other->m_isMaster;
+    this->m_isMaster = false;
     return *this;
   }
 
