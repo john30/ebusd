@@ -206,6 +206,9 @@ class Device {
    */
   void setListener(DeviceListener* listener) { m_listener = listener; }
 
+  result_t requestEnhancedInfo(symbol_t infoId);
+
+  string getEnhancedInfos();
 
  protected:
   /**
@@ -288,6 +291,21 @@ class Device {
 
   /** the read buffer read position. */
   size_t m_bufPos;
+
+  /** the extra features supported by the device. */
+  symbol_t m_extraFatures;
+
+  /** the ID of the last requested info. */
+  symbol_t m_infoId;
+
+  /** the info buffer expected length. */
+  size_t m_infoLen;
+
+  /** the info buffer write position. */
+  size_t m_infoPos;
+
+  /** the info buffer. */
+  symbol_t m_infoBuf[16];
 };
 
 

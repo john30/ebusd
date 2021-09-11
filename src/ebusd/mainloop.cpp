@@ -1911,6 +1911,10 @@ result_t MainLoop::executeInfo(const vector<string>& args, const string& user, o
   if (!m_updateCheck.empty()) {
     *ostream << "update check: " << m_updateCheck << "\n";
   }
+  string info = m_device->getEnhancedInfos();
+  if (!info.empty()) {
+    *ostream << "device: " << info << "\n";
+  }
   if (!user.empty()) {
     *ostream << "user: " << user << "\n";
   }

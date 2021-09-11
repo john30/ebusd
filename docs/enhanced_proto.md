@@ -23,7 +23,9 @@ first    second
 #### from ebusd to interface
  * initialization request  
    `<INIT> <features>`  
-   Requests an initialization of the interface and requests special features in the data byte (tbd).
+   Requests an initialization of the interface and optionally requests special features.  
+   The data byte `d` indicates interest in certain features (like full message sending instead of arbitration only).
+   The feature bits are defined below in the symbols section.
  * send data request  
    `<SEND> <data>`  
    Requests the specified data byte in `d` to be sent to the eBUS.  
@@ -32,12 +34,19 @@ first    second
    `<START> <master>`  
    Requests the start of the arbitration process after the next received `<SYN>` symbol with the specified master address in `d`.
    If the master address is `<SYN>`, the current arbitration is supposed to be cancelled.
+ * information request  
+  `<INFO> <info_id>`  
+   Requests the transfer of additional info identified by `info_id`.
+   The possible `info_id` values are defined below in the symbols section.
+   Sending a new info request while the response for the previous one is still in progress immediately terminates the
+   transfer of the previous response.
 
 #### from interface to ebusd
   * initialization response  
     `<RESETTED> <features>`  
     Indicates a reboot or an initial ebusd connection on the interface and is expected to be returned after an `<INIT`> request.  
-    The data byte `d` indicates availability of certain features (like full message sending instead of arbitration only, tbd).
+    The data byte `d` indicates availability of certain features (like full message sending instead of arbitration only).
+    The feature bits are defined below in the symbols section.
   * receive data notification  
     `<RECEIVED> <data>`  
     Indicates that the specified data byte in `d` was received from the eBUS.  
@@ -51,6 +60,12 @@ first    second
     `<FAILED> <master>`  
     Indicates that the last arbitration request failed (arbitration was lost or sending failed).  
     The data byte in `d` contains the master address that has won the arbitration.
+  * information response  
+    `<INFO> <data>`  
+    Transfers one data byte in response to the INFO request. The first byte transferred in response is the number of
+    data bytes to be transferred (excluding the length itself). The format of the data sequence depends on the `info_id`
+    value from the request.
+    The possible `info_id` values are defined below in the symbols section.
   * eBUS communication error  
     `<ERROR_EBUS> <error>`  
     Indicates an error in the eBUS UART.  
@@ -72,86 +87,47 @@ These are the predefined symbols as used above.
  * INIT 0x0
  * SEND 0x1
  * START 0x2
+ * INFO 0x3
 
 ### Command response symbols (from interface to ebusd)
  * RESETTED 0x0
  * RECEIVED 0x1
  * STARTED 0x2
+ * INFO 0x3
  * FAILED 0xa
 
 ### Error codes (from interface to ebusd)
  * ERR_FRAMING 0x00: framing error
- * ERR_OVERRUN 0x00: buffer overrun error
+ * ERR_OVERRUN 0x01: buffer overrun error
 
+### Feature bits (both directions)
+ * bit 7-1: tbd
+ * bit 2: full message sending (complete sequence instead of single bytes)
+ * bit 1: high speed transfer at 115200 Bd  
+   When requested, the UART speed is changed to 115200 Bd immediately after sending the complete RESETTED reponse.
+ * bit 0: additional infos (version, PIC ID, etc.)
 
-## Examples
-
-### Passive receive
-The master-slave data sequence (without SYN, ACK, and CRC) `1008951200 / 0164` when ebusd is only listening to traffic on the bus would usually be transferred as follows (with all extra symbols seen on the bus):
-
-|order|eBUS proto|eBUS byte|sender|enhanced proto|enhanced bytes|
-|----:|-----|-----|-----|-----|-----|
-|1|`SYN`|0xAA|interface|`<RECEIVED> <0xAA>`|0xC6 0xAA|
-|2|`QQ`|0x10|interface|`<0x10>`|0x10|
-|3|`ZZ`|0x08|interface|`<0x08>`|0x08|
-|4|`PB`|0x95|interface|`<RECEIVED> <0x95>`|0xC6 0x95|
-|5|`SB`|0x12|interface|`<0x12>`|0x12|
-|6|`NN`|0x00|interface|`<0x00>`|0x00|
-|7|`CRC`|0xB1|interface|`<RECEIVED> <0xB1>`|0xC6 0xB1|
-|8|`ACK`|0x00|interface|`<0x00>`|0x00|
-|9|`NN`|0x01|interface|`<0x01>`|0x01|
-|10|`DD`|0x64|interface|`<0x64>`|0x64|
-|11|`CRC`|0xFF|interface|`<RECEIVED> <0xFF>`|0xC7 0xBF|
-|12|`ACK`|0x00|interface|`<0x00>`|0x00|
-|13|`SYN`|0xAA|interface|`<RECEIVED> <0xAA>`|0xC6 0xAA|
-
-### Active successful send
-The same data sequence `1008951200 / 0164` when initiated by ebusd as master (with address 0x10) would usually be transferred as follows (with all extra symbols seen on the bus):
-
-|order|eBUS proto|eBUS byte|sender|enhanced proto|enhanced bytes|
-|----:|-----|-----|-----|-----|-----|
-|1| | |ebusd|`<START> <0x10>`|0xC8 0x90|
-|2|`SYN`|0xAA|interface|`<RECEIVED> <0xAA>`|0xC6 0xAA|
-|3|`QQ`|0x10|interface|`<STARTED> <0x10>`|0xC8 0x90|
-|4|`ZZ`|0x08|ebusd|`<0x08>`|0x08|
-|5|`ZZ`|0x08|interface|`<0x08>`|0x08|
-|6|`PB`|0x95|ebusd|`<SEND> <0x95>`|0xC6 0x95|
-|7|`PB`|0x95|interface|`<RECEIVED> <0x95>`|0xC6 0x95|
-|8|`SB`|0x12|ebusd|`<0x12>`|0x12|
-|9|`SB`|0x12|interface|`<0x12>`|0x12|
-|10|`NN`|0x00|ebusd|`<0x00>`|0x00|
-|11|`NN`|0x00|interface|`<0x00>`|0x00|
-|12|`CRC`|0xB1|ebusd|`<SEND> <0xB1>`|0xC6 0xB1|
-|13|`CRC`|0xB1|interface|`<RECEIVED> <0xB1>`|0xC6 0xB1|
-|14|`ACK`|0x00|interface|`<0x00>`|0x00|
-|15|`NN`|0x01|interface|`<0x01>`|0x01|
-|16|`DD`|0x64|interface|`<0x64>`|0x64|
-|17|`CRC`|0xFF|interface|`<RECEIVED> <0xFF>`|0xC7 0xBF|
-|18|`ACK`|0x00|ebusd|`<0x00>`|0x00|
-|19|`ACK`|0x00|interface|`<0x00>`|0x00|
-|20|`SYN`|0xAA|interface|`<RECEIVED> <0xAA>`|0xC6 0xAA|
-
-
-### Active successful send as SYN generator
-The same data sequence `1008951200 / 0164` when initiated by ebusd as master (with address 0x10) and acting as SYN generator would usually be transferred as follows (with all extra symbols seen on the bus):
-
-|order|eBUS proto|eBUS byte|sender|enhanced proto|enhanced bytes|
-|----:|-----|-----|-----|-----|-----|
-|1| | |ebusd|`<START> <0x10>`|0xC8 0x90|
-|2|`SYN`|0xAA|ebusd|`<SEND> <0xAA>`|0xC6 0xAA|
-|3|`SYN`|0xAA|interface|`<RECEIVED> <0xAA>`|0xC6 0xAA|
-|4|`QQ`|0x10|interface|`<STARTED> <0x10>`|0xC8 0x90|
-|...|see above| | | | |
-The rest of the communcation is the same as before (from 4.)
-
-
-### Active failed traffic
-A failed arbitration when initiated by ebusd as master (with address 0x10) would usually be transferred as follows (with all extra symbols seen on the bus):
-
-|order|eBUS proto|eBUS byte|sender|enhanced proto|enhanced byte|
-|----:|-----|-----|-----|-----|-----|
-|1| | |ebusd|`<START> <0x10>`|0xC8 0x90|
-|2|`SYN`|0xAA|interface|`<RECEIVED> <0xAA>`|0xC6 0xAA|
-|3| |0x10|ebusd|`<FAILED> <0x10>`|0xE0 0x90|
-|4|`QQ`|0x03|interface|`<0x03>`|0x03|
+### Information IDs (both directions)
+The first level below is the `info_id` value and the second level describes the response data byte sequence.
+The first byte transferred in response is always the number of data bytes to be transferred (excluding the length itself).
+ * 0x00: version  
+   * `length`: =2
+   * `version`: version number
+   * `features`: feature bits
+ * 0x01: PIC ID
+   * `length`: =9
+   * 9*`mui`: PIC MUI
+ * 0x02: PIC config
+   * `length`: =8
+   * 8*`config_H` `config_L`: PIC config
+ * 0x03: PIC temperature
+   * `length`: =1
+   * `temp`: temperature in degrees Celsius
+ * 0x04: PIC supply voltage
+   * `length`: =2
+   * `millivolt_H` `millivolt_L`: voltage value in mV
+ * 0x05: bus voltage
+   * `length`: =2
+   * `voltage_max`: maximum bus voltage in 10th volts
+   * `voltage_min`: minimum bus voltage in 10th volts
 
