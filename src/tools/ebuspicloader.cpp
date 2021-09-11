@@ -904,7 +904,7 @@ int main(int argc, char* argv[]) {
       printFileChecksum();
       exit(EXIT_SUCCESS);
     } else {
-      argp_help(&aargp, stderr, ARGP_HELP_STD_ERR, "ebuspicloader");
+      argp_help(&aargp, stderr, ARGP_HELP_STD_ERR, const_cast<char*>("ebuspicloader"));
       exit(EXIT_FAILURE);
     }
   }

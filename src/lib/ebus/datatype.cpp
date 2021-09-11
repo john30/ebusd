@@ -68,8 +68,7 @@ bool DataType::dump(OutputFormat outputFormat, size_t length, bool appendDivisor
 }
 
 
-result_t StringDataType::readRawValue(size_t offset, size_t length, const SymbolString& input,
-                                      unsigned int* value) const {
+result_t StringDataType::readRawValue(size_t, size_t, const SymbolString&, unsigned int*) const {
   return RESULT_EMPTY;
 }
 
@@ -204,8 +203,7 @@ result_t StringDataType::writeSymbols(size_t offset, size_t length, istringstrea
 }
 
 
-result_t DateTimeDataType::readRawValue(size_t offset, size_t length, const SymbolString& input,
-                                        unsigned int* value) const {
+result_t DateTimeDataType::readRawValue(size_t, size_t, const SymbolString&, unsigned int*) const {
   return RESULT_EMPTY;
 }
 
@@ -353,7 +351,7 @@ result_t DateTimeDataType::readSymbols(size_t offset, size_t length, const Symbo
         }
         *output << dec << setfill('0') << setw(2) << static_cast<unsigned>(d) << "."
                 << setw(2) << static_cast<unsigned>(m) << "." << static_cast<unsigned>(y + 1900);
-        m = (int)(minutes%(24*60));
+        m = static_cast<int>(minutes%(24*60));
         d = m/60;
         *output << " " << setw(2) << dec << setfill('0') << static_cast<unsigned>(d);
         m -= d*60;
