@@ -306,6 +306,15 @@ class Device {
 
   /** the info buffer. */
   symbol_t m_infoBuf[16];
+
+  /** a string describing the enhanced device temperature. */
+  string m_enhInfoTemperature;
+
+  /** a string describing the enhanced device supply voltage. */
+  string m_enhInfoSupplyVoltage;
+
+  /** a string describing the enhanced device bus voltage. */
+  string m_enhInfoBusVoltage;
 };
 
 

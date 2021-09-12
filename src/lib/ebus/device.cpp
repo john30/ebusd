@@ -184,11 +184,14 @@ result_t Device::requestEnhancedInfo(symbol_t infoId) {
   if (!m_enhancedProto || m_extraFatures == 0 || infoId == 0xff) {
     return RESULT_ERR_INVALID_ARG;
   }
-  if (m_infoId != 0xff) {
-    usleep(40000);
-    if (m_infoId != 0xff) {
-      return RESULT_ERR_DUPLICATE;
+  for (unsigned int i=0; i<4; i++) {
+    if (m_infoId == 0xff) {
+      break;
     }
+    usleep(40000 + i*40000);
+  }
+  if (m_infoId != 0xff) {
+    return RESULT_ERR_DUPLICATE;
   }
   symbol_t buf[2] = makeEnhancedSequence(ENH_REQ_INFO, infoId);
 #ifdef DEBUG_RAW_TRAFFIC
@@ -206,19 +209,38 @@ string Device::getEnhancedInfos() {
   if (!m_enhancedProto || m_extraFatures == 0) {
     return "";
   }
-  result_t res = requestEnhancedInfo(0);
-  if (res != RESULT_OK) {
-    return "cannot request info";
+  result_t res;
+  if (m_enhInfoTemperature.empty()) {
+    res = requestEnhancedInfo(0);
+    if (res != RESULT_OK) {
+      return "cannot request version";
+    }
+    res = requestEnhancedInfo(1);
+    if (res != RESULT_OK) {
+      return "cannot request ID";
+    }
+    res = requestEnhancedInfo(2);
+    if (res != RESULT_OK) {
+      return "cannot request config";
+    }
   }
-  res = requestEnhancedInfo(1);
-  res = requestEnhancedInfo(2);
   res = requestEnhancedInfo(3);
+  if (res != RESULT_OK) {
+    return "cannot request temperature";
+  }
   res = requestEnhancedInfo(4);
+  if (res != RESULT_OK) {
+    return "cannot request supply voltage";
+  }
   res = requestEnhancedInfo(5);
+  if (res != RESULT_OK) {
+    return "cannot request bus voltage";
+  }
+  usleep(8*40000);
   if (m_infoPos == 0) {
     return "did not get info";
   }
-  return "";
+  return m_enhInfoTemperature + ", " + m_enhInfoSupplyVoltage + ", " + m_enhInfoBusVoltage;
 }
 
 result_t Device::send(symbol_t value) {
@@ -589,10 +611,9 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
           if (m_infoPos >= m_infoLen) {
             unsigned int val;
             ostringstream stream;
-            stream << "extra info: ";
             switch ((m_infoLen<<8) | m_infoId) {
               case 0x0200:
-                stream << "firmware " << static_cast<unsigned>(m_infoBuf[0]) << "." << std::hex << static_cast<unsigned>(m_infoBuf[1]) << ".";
+                stream << "firmware " << static_cast<unsigned>(m_infoBuf[0]) << "." << std::hex << static_cast<unsigned>(m_infoBuf[1]);
                 break;
               case 0x0901:
               case 0x0802:
@@ -605,22 +626,25 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
               case 0x0203:
                 val = (static_cast<unsigned>(m_infoBuf[0])<<8) | static_cast<unsigned>(m_infoBuf[1]);
                 stream << "temperature " << static_cast<unsigned>(val) << " °C";
+                m_enhInfoTemperature = stream.str();
                 break;
               case 0x0204:
                 val = (static_cast<unsigned>(m_infoBuf[0])<<8) | static_cast<unsigned>(m_infoBuf[1]);
                 stream << "supply voltage " << static_cast<unsigned>(val) << " mV";
+                m_enhInfoSupplyVoltage = stream.str();
                 break;
               case 0x0205:
                 stream << "bus voltage " << std::fixed << std::setprecision(1)
                        << static_cast<float>(m_infoBuf[1] / 10.0) << " V - "
                        << static_cast<float>(m_infoBuf[0] / 10.0) << " V";
+                m_enhInfoBusVoltage = stream.str();
                 break;
               default:
                 stream << "unknown 0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<unsigned>(m_infoId)
                        << ", len " << std::dec << std::setw(0) << static_cast<unsigned>(m_infoPos);
                 break;
             }
-            m_listener->notifyStatus(false, stream.str().c_str());
+            m_listener->notifyStatus(false, ("extra info: "+stream.str()).c_str());
             m_infoLen = 0;
             m_infoId = 0xff;
           }
