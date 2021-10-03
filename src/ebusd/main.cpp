@@ -708,7 +708,7 @@ void shutdown(bool error = false) {
     s_messageMap = nullptr;
   }
   // free templates
-  for (const auto it : s_templatesByPath) {
+  for (const auto& it : s_templatesByPath) {
     if (it.second != &s_globalTemplates) {
       delete it.second;
     }
