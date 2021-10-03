@@ -82,6 +82,7 @@ static struct options opt = {
   0,  // extraLatency
 
   CONFIG_PATH,  // configPath
+  "",  // overridePath
   false,  // scanConfig
   0,  // initialScan
   getenv("LANG"),  // preferLanguage
@@ -134,6 +135,9 @@ static MainLoop* s_mainLoop = nullptr;
 
 /** the path prefix (including trailing "/") for retrieving configuration files from local files (empty for HTTP). */
 static string s_configLocalPrefix;
+
+/** the path prefix (including trailing "/") for overriding configuration files from local files (empty if unset). */
+static string s_configOverridePrefix;
 
 /** the URI prefix (including trailing "/") for retrieving configuration files from HTTP (empty for local files). */
 static string s_configUriPrefix;
@@ -191,6 +195,7 @@ static const struct argp_option argpoptions[] = {
   {nullptr,          0,        nullptr,    0, "Message configuration options:", 2 },
   {"configpath",     'c',      "PATH",     0, "Read CSV config files from PATH (local folder or HTTP URL) [" CONFIG_PATH
       "]", 0 },
+  {"overridepath",   'o',      "PATH",     0, "Read override CSV config files from PATH (local folder only) []", 0 },
   {"scanconfig",     's',      "ADDR", OPTION_ARG_OPTIONAL, "Pick CSV config files matching initial scan (ADDR="
       "\"none\" or empty for no initial scan message, \"full\" for full scan, or a single hex address to scan, "
       "default is broadcast ident message). If combined with --checkconfig, you can add scan message data as "
@@ -314,6 +319,13 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       return EINVAL;
     }
     opt->configPath = arg;
+    break;
+  case 'o':  // --overridepath=/etc/ebusd/
+    if (arg == nullptr || arg[0] == 0 || strcmp("/", arg) == 0) {
+      argp_error(state, "invalid overridepath");
+      return EINVAL;
+    }
+    opt->overridePath = arg;
     break;
   case 's':  // --scanconfig[=ADDR] (ADDR=<empty>|full|<hexaddr>)
     opt->scanConfig = true;
@@ -764,10 +776,11 @@ void signalHandler(int sig) {
  * @return the result code.
  */
 static result_t collectConfigFiles(const string& relPath, const string& prefix, const string& extension,
-    vector<string>* files, const bool ignoreAddressPrefix = false, const string& query = "",
-    vector<string>* dirs = nullptr, bool* hasTemplates = nullptr) {
+                                   bool fromOverride, vector<string>* files,
+                                   bool ignoreAddressPrefix = false, const string& query = "",
+                                   vector<string>* dirs = nullptr, bool* hasTemplates = nullptr) {
   const string relPathWithSlash = relPath.empty() ? "" : relPath + "/";
-  if (!s_configUriPrefix.empty()) {
+  if (!fromOverride && !s_configUriPrefix.empty()) {
     string uri = s_configUriPrefix + relPathWithSlash + "?t=" + extension.substr(1) + query;
     string names;
     if (!s_configHttpClient.get(uri, "", &names)) {
@@ -792,7 +805,7 @@ static result_t collectConfigFiles(const string& relPath, const string& prefix, 
     }
     return RESULT_OK;
   }
-  const string path = s_configLocalPrefix + relPathWithSlash;
+  const string path = (fromOverride ? s_configOverridePrefix : s_configLocalPrefix) + relPathWithSlash;
   DIR* dir = opendir(path.c_str());
   if (dir == nullptr) {
     return RESULT_ERR_NOTFOUND;
@@ -901,16 +914,17 @@ static bool readTemplates(const string relPath, const string extension, bool ava
  * @param relPath the relative path from which to read the files (without trailing "/").
  * @param extension the filename extension of the files to read.
  * @param messages the @a MessageMap to load the messages into.
+ * @param fromOverride whether to load from the override path.
  * @param recursive whether to load all files recursively.
  * @param verbose whether to verbosely log problems.
  * @param errorDescription a string in which to store the error description in case of error.
  * @return the result code.
  */
-static result_t readConfigFiles(const string& relPath, const string& extension, const bool recursive,
-    const bool verbose, string* errorDescription, MessageMap* messages) {
+static result_t readConfigFiles(const string& relPath, const string& extension, bool fromOverride, bool recursive,
+                                bool verbose, string* errorDescription, MessageMap* messages) {
   vector<string> files, dirs;
   bool hasTemplates = false;
-  result_t result = collectConfigFiles(relPath, "", extension, &files, false, "", &dirs, &hasTemplates);
+  result_t result = collectConfigFiles(relPath, "", extension, fromOverride, &files, false, "", &dirs, &hasTemplates);
   if (result != RESULT_OK) {
     return result;
   }
@@ -926,7 +940,7 @@ static result_t readConfigFiles(const string& relPath, const string& extension, 
   if (recursive) {
     for (const auto& name : dirs) {
       logInfo(lf_main, "reading dir  %s", name.c_str());
-      result = readConfigFiles(name, extension, true, verbose, errorDescription, messages);
+      result = readConfigFiles(name, extension, fromOverride, true, verbose, errorDescription, messages);
       if (result != RESULT_OK) {
         return result;
       }
@@ -1008,13 +1022,24 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
   s_templatesByPath.clear();
 
   string errorDescription;
-  result_t result = readConfigFiles("", ".csv",
+  result_t result = readConfigFiles("", ".csv", false,
       (!opt.scanConfig || opt.checkConfig) && !denyRecursive, verbose, &errorDescription, messages);
   if (result == RESULT_OK) {
     logInfo(lf_main, "read config files");
   } else {
     logError(lf_main, "error reading config files from %s: %s, last error: %s", opt.configPath,
         getResultCode(result), errorDescription.c_str());
+  }
+  if (s_configOverridePrefix.length() > 0) {
+    logInfo(lf_main, "loading override config files from %s", opt.overridePath);
+    result = readConfigFiles("", ".csv", true,
+        (!opt.scanConfig || opt.checkConfig) && !denyRecursive, verbose, &errorDescription, messages);
+    if (result == RESULT_OK) {
+      logInfo(lf_main, "read override config files");
+    } else {
+      logError(lf_main, "error reading config files from %s: %s, last error: %s", opt.overridePath,
+          getResultCode(result), errorDescription.c_str());
+    }
   }
   messages->unlock();
   return opt.checkConfig ? result : RESULT_OK;
@@ -1098,7 +1123,7 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose
     out.str("");
     out.clear();
   }
-  result = collectConfigFiles(manufStr, addrStr + ".", ".csv", &files, false, query, nullptr, &hasTemplates);
+  result = collectConfigFiles(manufStr, addrStr + ".", ".csv", false, &files, false, query, nullptr, &hasTemplates);
   if (result != RESULT_OK) {
     logError(lf_main, "unable to load scan config %2.2x: list files in %s %s", address, manufStr.c_str(),
         getResultCode(result));
@@ -1161,7 +1186,7 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose
   // found the right file. load the templates if necessary, then load the file itself
   bool readCommon = readTemplates(manufStr, ".csv", hasTemplates, opt.checkConfig);
   if (readCommon) {
-    result = collectConfigFiles(manufStr, "", ".csv", &files, true, "&a=-");
+    result = collectConfigFiles(manufStr, "", ".csv", false, &files, true, "&a=-");
     if (result == RESULT_OK && !files.empty()) {
       for (const auto& name : files) {
         string baseName = name.substr(manufStr.length()+1, name.length()-manufStr.length()-strlen(".csv"));  // *.
@@ -1267,6 +1292,11 @@ int main(int argc, char* argv[]) {
     }
     s_configHttpClient.disconnect();
   }
+  configPath = string(opt.overridePath);
+  if (configPath.length() > 0) {
+    configPath[configPath.length()-1] == '/' ? configPath : configPath + "/";
+  }
+  s_configOverridePrefix = configPath;
   if (!opt.readOnly && opt.scanConfig && opt.initialScan == 0) {
     opt.initialScan = BROADCAST;
   }
