@@ -163,7 +163,7 @@ bool AttributedItem::appendAttributes(OutputFormat outputFormat, ostream* output
     ret = appendAttribute(outputFormat, "comment", true, "[", "]", output) || ret;
   }
   if (outputFormat & OF_ALL_ATTRS) {
-    for (const auto entry : m_attributes) {
+    for (const auto& entry : m_attributes) {
       ret = true;
       if (!entry.second.empty() && entry.first != "unit" && entry.first != "comment") {
         const string& key = entry.first;
@@ -728,13 +728,13 @@ void ValueListDataField::dump(bool prependFieldSeparator, OutputFormat outputFor
   bool first = true;
   if (outputFormat & OF_JSON) {
     *output << ", \"values\": {";
-    for (const auto it : m_values) {
+    for (const auto& it : m_values) {
       appendJson(!first, formatInt(it.first), it.second, true, output);  // TODO optimize?
       first = false;
     }
     *output << " }";
   } else {
-    for (const auto it : m_values) {
+    for (const auto& it : m_values) {
       if (first) {
         first = false;
       } else {
@@ -823,7 +823,7 @@ result_t ConstantDataField::derive(const string& name, PartType partType, int di
     return RESULT_ERR_INVALID_PART;  // cannot create a template from a concrete instance
   }
   string useName = name.empty() ? m_name : name;
-  for (const auto entry : m_attributes) {  // merge with this attributes
+  for (const auto& entry : m_attributes) {  // merge with this attributes
     if ((*attributes)[entry.first].empty()) {
       (*attributes)[entry.first] = entry.second;
     }
@@ -1281,7 +1281,7 @@ result_t LoadableDataFieldSet::addFromFile(const string& filename, unsigned int 
 
 DataFieldTemplates::DataFieldTemplates(const DataFieldTemplates& other)
 : MappedFileReader::MappedFileReader(false) {
-  for (const auto it : other.m_fieldsByName) {
+  for (const auto& it : other.m_fieldsByName) {
     m_fieldsByName[it.first] = it.second->clone();
   }
 }

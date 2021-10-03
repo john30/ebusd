@@ -1689,7 +1689,7 @@ result_t Instruction::create(const string& contextPath, const string& type,
     auto it = row.find("file");
     string arg;
     if (it == row.end()) {
-      for (const auto entry : row) {  // fallback to first field
+      for (const auto& entry : row) {  // fallback to first field
         if (!entry.second.empty()) {
           arg = entry.second;
           break;
@@ -2065,7 +2065,7 @@ result_t MessageMap::addDefaultFromFile(const string& filename, unsigned int lin
     // circuit level additional attributes
   }
   string defaultSuffix = AttributedItem::pluck("suffix", &defaults);
-  for (const auto entry : *row) {
+  for (const auto& entry : *row) {
     string value = entry.second;
     if (entry.first == "circuit" && !defaultCircuit.empty()) {  // TODO remove some day
       if (value.empty()) {
@@ -2445,7 +2445,7 @@ result_t MessageMap::executeInstructions(void (*readMessageFunc)(Message* messag
       it.second = remain;
     }
   }
-  for (const auto it : remove) {
+  for (const auto& it : remove) {
     m_instructions.erase(it);
   }
   return overallResult;
@@ -2551,7 +2551,7 @@ void MessageMap::findAll(const string& circuit, const string& name, const string
   bool checkCircuit = lcircuit.length() > 0;
   bool checkLevel = levels != "*";
   bool checkName = lname.length() > 0;
-  for (const auto it : m_messagesByName) {
+  for (const auto& it : m_messagesByName) {
     if (it.first[0] == FIELD_SEPARATOR) {  // avoid duplicates: instances stored multiple times have a special key
       continue;
     }
@@ -2752,7 +2752,7 @@ void MessageMap::clear() {
     it.second.clear();
   }
   // free remaining message instances by key
-  for (const auto it : m_messagesByKey) {
+  for (const auto& it : m_messagesByKey) {
     vector<Message*> keyMessages = it.second;
     for (auto message : keyMessages) {
       delete message;
@@ -2760,11 +2760,11 @@ void MessageMap::clear() {
     keyMessages.clear();
   }
   // free condition instances
-  for (const auto it : m_conditions) {
+  for (const auto& it : m_conditions) {
     delete it.second;
   }
   // free instruction instances
-  for (const auto it : m_instructions) {
+  for (const auto& it : m_instructions) {
     vector<Instruction*> instructions = it.second;
     for (const auto instruction : instructions) {
       delete instruction;
@@ -2780,7 +2780,7 @@ void MessageMap::clear() {
   m_messagesByKey.clear();
   m_conditions.clear();
   m_instructions.clear();
-  for (const auto it : m_circuitData) {
+  for (const auto& it : m_circuitData) {
     delete it.second;
   }
   m_circuitData.clear();
@@ -2816,7 +2816,7 @@ void MessageMap::dump(bool withConditions, OutputFormat outputFormat, ostream* o
   if (!(outputFormat & OF_SHORT)) {
     *output << endl;
   }
-  for (const auto it : m_messagesByName) {
+  for (const auto& it : m_messagesByName) {
     if (it.first[0] == FIELD_SEPARATOR) {  // skip instances stored multiple times (key starting with "-")
       continue;
     }
