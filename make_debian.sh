@@ -85,7 +85,11 @@ echo "*************"
 echo " test"
 echo "*************"
 echo
-(cd src/lib/ebus/test && make test >/dev/null && ./test_filereader && ./test_data && ./test_message && ./test_symbol) || (echo "test failed"; exit 1)
+testdie() {
+  echo "test failed"
+  exit 1
+}
+(cd src/lib/ebus/test && make >/dev/null && ./test_filereader && ./test_data && ./test_message && ./test_symbol) || testdie
 
 echo
 echo "*************"
