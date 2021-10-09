@@ -80,6 +80,13 @@ fi
 
 echo
 echo "*************"
+echo " test"
+echo "*************"
+echo
+(cd src/lib/ebus/test && make >/dev/null && ./test_filereader && ./test_data && ./test_message && ./test_symbol) || (echo "test failed"; exit 1)
+
+echo
+echo "*************"
 echo " pack"
 echo "*************"
 echo
@@ -112,30 +119,26 @@ EOF
 cat <<EOF > $RELEASE/DEBIAN/dirs
 /etc/ebusd
 /etc/default
+/etc/init.d
 /etc/logrotate.d
+/lib/systemd/system
 /usr/bin
 EOF
+cat <<EOF > $RELEASE/DEBIAN/postinst
+#!/bin/sh
 if [ -d /run/systemd/system ]; then
-  echo /lib/systemd/system >> $RELEASE/DEBIAN/dirs
-  cat <<EOF > $RELEASE/DEBIAN/postinst
-#!/bin/sh
-echo "Instructions:"
-echo "1. Edit /etc/default/ebusd if necessary"
-echo "   (especially if your device is not /dev/ttyUSB0)"
-echo "2. Start the daemon with 'systemctl start ebusd'"
-echo "3. Check the log file /var/log/ebusd.log"
-echo "4. Make the daemon autostart with 'systemctl enable ebusd'"
-EOF
+  start='systemctl start ebusd'
+  autostart='systemctl enable ebusd'
 else
-  echo /etc/init.d >> $RELEASE/DEBIAN/dirs
-  cat <<EOF > $RELEASE/DEBIAN/postinst
-#!/bin/sh
+  start='service ebusd start'
+  autostart='update-rc.d ebusd defaults'
+fi
 echo "Instructions:"
 echo "1. Edit /etc/default/ebusd if necessary"
 echo "   (especially if your device is not /dev/ttyUSB0)"
-echo "2. Start the daemon with 'service ebusd start'"
+echo "2. Start the daemon with '$start'"
 echo "3. Check the log file /var/log/ebusd.log"
-echo "4. Make the daemon autostart with 'update-rc.d ebusd defaults'"
+echo "4. Make the daemon autostart with '$autostart'"
 EOF
 fi
 chmod 755 $RELEASE/DEBIAN/postinst
