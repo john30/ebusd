@@ -92,14 +92,11 @@ echo "*************"
 echo
 mkdir -p $RELEASE/DEBIAN $RELEASE/etc/default $RELEASE/etc/logrotate.d || exit 1
 rm $RELEASE/usr/bin/ebusfeed
-if [ -d /run/systemd/system ]; then
-  mkdir -p $RELEASE/lib/systemd/system || exit 1
-  cp contrib/debian/systemd/ebusd.service $RELEASE/lib/systemd/system/ebusd.service || exit 1
-else
-  mkdir -p $RELEASE/etc/init.d || exit 1
-  cp contrib/debian/init.d/ebusd $RELEASE/etc/init.d/ebusd || exit 1
-fi
-  cp contrib/debian/default/ebusd $RELEASE/etc/default/ebusd || exit 1
+mkdir -p $RELEASE/lib/systemd/system || exit 1
+cp contrib/debian/systemd/ebusd.service $RELEASE/lib/systemd/system/ebusd.service || exit 1
+mkdir -p $RELEASE/etc/init.d || exit 1
+cp contrib/debian/init.d/ebusd $RELEASE/etc/init.d/ebusd || exit 1
+cp contrib/debian/default/ebusd $RELEASE/etc/default/ebusd || exit 1
 cp contrib/etc/logrotate.d/ebusd $RELEASE/etc/logrotate.d/ || exit 1
 cp ChangeLog.md $RELEASE/DEBIAN/changelog || exit 1
 cat <<EOF > $RELEASE/DEBIAN/control
@@ -140,7 +137,6 @@ echo "2. Start the daemon with '$start'"
 echo "3. Check the log file /var/log/ebusd.log"
 echo "4. Make the daemon autostart with '$autostart'"
 EOF
-fi
 chmod 755 $RELEASE/DEBIAN/postinst
 
 dpkg -b $RELEASE || exit 1
