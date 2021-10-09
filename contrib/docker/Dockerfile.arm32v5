@@ -6,9 +6,9 @@ RUN apt-get update && apt-get install -y \
     curl \
     autoconf automake g++ make git \
     && rm -rf /var/lib/apt/lists/*
+ADD . /build
+WORKDIR /build
 RUN ls && pwd
-#WORKDIR /build
-
 ENV EBUSD_ARCH arm32v5
 ENV EBUSD_VERSION 21.2
 
