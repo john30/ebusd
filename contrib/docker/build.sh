@@ -1,6 +1,6 @@
 #!/bin/bash
 archs='amd64 i386 arm32v5 arm32v7 arm64v8'
-images='jessie stretch buster'
+images='stretch buster bullseye'
 UPLOAD_URL='http://'`hostname`'/ebusdreleaseupload.php'
 UPLOAD_CREDENTIALS='anonymous:build'
 for image in $images; do

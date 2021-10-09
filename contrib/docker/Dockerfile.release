@@ -1,5 +1,5 @@
 
-FROM debian:stretch as build
+FROM debian:bullseye as build
 
 RUN apt-get update && apt-get install -y \
     libmosquitto-dev libstdc++6 libc6 libgcc1 \
@@ -18,7 +18,7 @@ RUN git clone https://github.com/john30/ebusd.git /build \
 
 
 
-FROM debian:stretch-slim
+FROM debian:bullseye-slim
 
 RUN apt-get update && apt-get install -y \
     logrotate libmosquitto1 libstdc++6 libc6 libgcc1 \
