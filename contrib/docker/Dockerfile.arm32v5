@@ -12,8 +12,7 @@ RUN ls && pwd
 ENV EBUSD_ARCH arm32v5
 ENV EBUSD_VERSION 21.2
 
-RUN ./make_debian.sh
-
+RUN ./make_debian.sh --host `gcc -dumpmachine`
 
 
 
@@ -31,6 +30,7 @@ ENV EBUSD_ARCH arm32v5
 LABEL version "${EBUSD_VERSION}-${EBUSD_ARCH}-devel"
 
 COPY --from=build /build/ebusd-*_mqtt1.deb ebusd.deb
+COPY --from=build /build/src/lib/ebus/test/test_data /test_data
 
 RUN dpkg -i ebusd.deb \
     && ebusd -V \
