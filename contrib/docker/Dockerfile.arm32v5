@@ -1,5 +1,5 @@
 FROM multiarch/qemu-user-static as qemu
-FROM arm32v5/debian:bullseye as build
+FROM arm32v5/debian:jessie as build
 COPY --from=qemu /usr/bin/qemu-arm-static /usr/bin/
 RUN apt-get update && apt-get install -y \
     libmosquitto-dev libstdc++6 libc6 libgcc1 \
@@ -16,7 +16,7 @@ RUN ./make_debian.sh --host `gcc -dumpmachine`
 
 
 
-FROM arm32v5/debian:bullseye-slim
+FROM arm32v5/debian:jessie-slim
 COPY --from=qemu /usr/bin/qemu-arm-static /usr/bin/
 RUN apt-get update && apt-get install -y \
     logrotate libmosquitto1 libstdc++6 libc6 libgcc1 \
