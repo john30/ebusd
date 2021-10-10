@@ -89,7 +89,7 @@ testdie() {
   echo "test failed"
   exit 1
 }
-(cd src/lib/ebus/test && make >/dev/null && ./test_filereader && ./test_data && ./test_message && ./test_symbol) || testdie
+(cd src/lib/ebus/test && make test_data >/dev/null && ./test_data) || testdie
 
 echo
 echo "*************"
