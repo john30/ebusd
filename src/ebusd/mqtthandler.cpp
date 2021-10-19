@@ -186,7 +186,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
     break;
 
   case O_JSON:  // --mqttjson
-    g_publishFormat |= OF_JSON|OF_NAMES;
+    g_publishFormat |= OF_JSON|OF_NAMES|OF_UNITS|OF_COMMENTS|OF_ALL_ATTRS;
     break;
 
 #if (LIBMOSQUITTO_VERSION_NUMBER >= 1003001)
@@ -903,6 +903,7 @@ void MqttHandler::publishMessage(const Message* message, ostringstream* updates,
           getResultCode(result));
       return;
     }
+    message->appendAttributes(outputFormat, updates)
     if (json) {
       *updates << "}";
     }
@@ -924,6 +925,7 @@ void MqttHandler::publishMessage(const Message* message, ostringstream* updates,
           name.c_str(), getResultCode(result));
       return;
     }
+    message->appendAttributes(outputFormat, updates);
     publishTopic(getTopic(message, "", name), updates->str());
     updates->str("");
     updates->clear();
