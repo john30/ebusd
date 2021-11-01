@@ -12,7 +12,7 @@ WORKDIR /build
 ENV EBUSD_ARCH arm32v5
 ENV EBUSD_VERSION 21.2
 
-RUN ./make_debian.sh 
+RUN ./make_debian.sh --host `gcc -dumpmachine`
 
 
 
