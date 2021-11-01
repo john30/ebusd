@@ -43,6 +43,9 @@ namespace ebusd {
 /** the transfer latency of the network device [ms]. */
 #define NETWORK_LATENCY_MS 30
 
+/** the extra transfer latency to take into account for enhanced protocol. */
+#define ENHANCED_LATENCY_MS 10
+
 /** the latency of the host [ms]. */
 #if defined(__CYGWIN__) || defined(_WIN32)
 #define HOST_LATENCY_MS 20
