@@ -19,7 +19,7 @@
 * added config override path
 
 ## Breaking Changes
-* remove support for debian stretch
+* remove support for Debian 8 Jessie in docker
 
 
 # 21.2 (2021-02-08)
