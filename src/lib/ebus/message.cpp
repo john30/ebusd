@@ -1884,27 +1884,27 @@ void MessageMap::remove(Message* message) {
   const auto keyIt = m_messagesByKey.find(key);
   bool deleted = false;
   if (keyIt != m_messagesByKey.end()) {
-    vector<Message*> messages = keyIt->second;
-    for (auto it = messages.begin(); it != messages.end(); ) {
+    vector<Message*>* messages = &keyIt->second;
+    for (auto it = messages->begin(); it != messages->end(); ) {
       Message* other = *it;
       if (other == message) {
         if (!deleted) {
           deleted = true;
           delete(other);
         }
-        messages.erase(it);
+        it = messages->erase(it);
       } else {
         ++it;
       }
     }
-    if (messages.empty()) {
+    if (messages->empty()) {
       m_messagesByKey.erase(keyIt);
     }
   }
   bool storedByName = false;
   for (auto nameIt = m_messagesByName.begin(); nameIt != m_messagesByName.end(); ) {
-    vector<Message*> messages = nameIt->second;
-    for (auto it = messages.begin(); it != messages.end(); ) {
+    vector<Message*>* messages = &nameIt->second;
+    for (auto it = messages->begin(); it != messages->end(); ) {
       Message* other = *it;
       if (other == message) {
         storedByName = true;
@@ -1912,13 +1912,13 @@ void MessageMap::remove(Message* message) {
           deleted = true;
           delete(other);
         }
-        messages.erase(it);
+        it = messages->erase(it);
       } else {
         ++it;
       }
     }
-    if (messages.empty()) {
-      m_messagesByName.erase(nameIt);
+    if (messages->empty()) {
+      nameIt = m_messagesByName.erase(nameIt);
     } else {
       ++nameIt;
     }
