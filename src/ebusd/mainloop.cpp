@@ -921,8 +921,6 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
   Message* message;
   result_t ret;
   if (newDefinition) {
-    time_t now;
-    time(&now);
     string errorDescription;
     istringstream defstr("#\n" + args[argPos]);  // ensure first line is not used for determining col names
     m_newlyDefinedMessages->clear();
@@ -2004,6 +2002,7 @@ bool parseBoolQuery(const string& value) {
 result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostringstream* ostream) {
   bool required = false, full = false, withWrite = false, raw = false;
   bool withDefinition = false;
+  string newDefinition;
   OutputFormat verbosity = OF_NAMES;
   time_t maxAge = -1;
   size_t argPos = 1;
@@ -2072,6 +2071,18 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
           raw = parseBoolQuery(value);
         } else if (qname == "def") {
           withDefinition = parseBoolQuery(value);
+        } else if (qname == "define") {
+          if (!m_newlyDefinedMessages || circuit.empty() || name.empty() || value.empty()) {
+            ret = RESULT_ERR_INVALID_ARG;
+            break;
+          }
+          size_t comma = value.find(',');
+          if (comma == string::npos || comma == 0
+          || value.find(circuit+","+name+",") != comma+1) { // ensure same circuit+name
+            ret = RESULT_ERR_INVALID_ARG;
+            break;
+          }
+          newDefinition = value;
         } else if (qname == "user") {
           user = value;
         } else if (qname == "secret") {
@@ -2091,6 +2102,11 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
     time_t now;
     time(&now);
     time_t maxLastUp = 0;
+    if (ret == RESULT_OK && !newDefinition.empty()) {
+      string errorDescription;
+      istringstream defstr("#\n" + newDefinition);  // ensure first line is not used for determining col names
+      ret = m_messages->readFromStream(&defstr, "temporary", now, true, nullptr, &errorDescription, true);
+    }
     if (ret == RESULT_OK) {
       bool first = true;
       verbosity |= OF_JSON | (full ? OF_ALL_ATTRS : OF_NONE) | (withDefinition ? OF_DEFINITION : OF_NONE);
