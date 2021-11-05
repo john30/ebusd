@@ -181,25 +181,25 @@ paths:
         500:
           description: General error.
           content: { }
-    head:
-      summary: Retrieve headers for a certain file.
-      parameters:
-        - name: file
-          in: path
-          description: the file to retrieve.
-          required: true
-          schema:
-            type: string
-      responses:
-        200:
-          description: Success
-          content:
-            application/json;charset=utf-8:
-              schema:
-                $ref: '#/components/schemas/Data'
-        400:
-          description: Circuit or message not found.
-          content: { }
+#    head:
+#      summary: Retrieve headers for a certain file.
+#      parameters:
+#        - name: file
+#          in: path
+#          description: the file to retrieve.
+#          required: true
+#          schema:
+#            type: string
+#      responses:
+#        200:
+#          description: Success
+#          content:
+#            application/json;charset=utf-8:
+#              schema:
+#                $ref: '#/components/schemas/Data'
+#        400:
+#          description: Circuit or message not found.
+#          content: { }
 
 components:
   schemas:
@@ -554,4 +554,3 @@ components:
       allowEmptyValue: false
       schema:
         type: string
-
