@@ -192,7 +192,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
     break;
 
   case O_VERB:  // --mqttverbose
-    g_publishFormat |= OF_NAMES|OF_UNITS|OF_COMMENTS|OF_ALL_ATTRS
+    g_publishFormat |= OF_NAMES|OF_UNITS|OF_COMMENTS|OF_ALL_ATTRS;
     break;
 
 #if (LIBMOSQUITTO_VERSION_NUMBER >= 1003001)
