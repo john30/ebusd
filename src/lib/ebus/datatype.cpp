@@ -1025,7 +1025,7 @@ DataTypeList::DataTypeList() {
   add(new DateTimeDataType("HDA", 32, 0, 0xff, true, false, 0));
   add(new DateTimeDataType("HDA:4", 32, DUP, 0xff, true, false, 0));
   // date, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x1f,0x0c,0x63, replacement 0xff)
-  add(new DateTimeDataType("HDA", 24, 0, 0xff, true, false, 0));
+  add(new DateTimeDataType("HDA:3", 24, 0, 0xff, true, false, 0));
   // date, days since 01.01.1900, 01.01.1900 - 06.06.2079 (0x00,0x00 - 0xff,0xff)
   add(new DateTimeDataType("DAY", 16, 0, 0xff, true, false, 0));
   // date+time in minutes since 01.01.2009, 01.01.2009 - 31.12.2099 (0x00,0x00,0x00,0x00 - 0x02,0xda,0x4e,0x1f)
