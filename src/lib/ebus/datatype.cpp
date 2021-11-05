@@ -1116,6 +1116,31 @@ DataTypeList* DataTypeList::getInstance() {
   return &s_instance;
 }
 
+void DataTypeList::dump(OutputFormat outputFormat, bool appendDivisor, ostream* output) const {
+  bool json = outputFormat & OF_JSON;
+  string sep = "\n";
+  for (int withLength=0; withLength<2; withLength++) {
+    const map<string, const DataType*>* types = withLength==0 ? &m_typesById : &m_typesByIdLength;
+    for (const auto &it: *types) {
+      const DataType *dataType = it.second;
+      if (json) {
+        *output << sep << "    {";
+      }
+      if ((dataType->getBitCount() % 8) != 0) {
+        dataType->dump(outputFormat, dataType->getBitCount(), appendDivisor, output);
+      } else {
+        dataType->dump(outputFormat, dataType->getBitCount() / 8, appendDivisor, output);
+      }
+      if (json) {
+        *output << "}";
+        sep = ",\n";
+      } else {
+        *output << "\n";
+      }
+    }
+  }
+}
+
 void DataTypeList::clear() {
   for (auto& it : m_cleanupTypes) {
     delete it;

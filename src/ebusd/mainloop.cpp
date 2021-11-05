@@ -2199,8 +2199,13 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
       *ostream << ",\n  \"reconnects\": " << m_reconnectCount
                << ",\n  \"masters\": " << m_busHandler->getMasterCount()
                << ",\n  \"messages\": " << m_messages->size()
-               << ",\n  \"lastup\": " << static_cast<unsigned>(maxLastUp)
-               << "\n }"
+               << ",\n  \"lastup\": " << static_cast<unsigned>(maxLastUp);
+      if (withDefinition) {
+        *ostream << ",\n  \"types\": [";
+        DataTypeList::getInstance()->dump(verbosity, true, ostream);
+        *ostream << "\n  ]";
+      }
+      *ostream << "\n }"
                << "\n}";
       type = 6;
     }

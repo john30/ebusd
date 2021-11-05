@@ -7,16 +7,19 @@
 * fix some compiler warnings
 * fix non-unique message keys in HTTP JSON output with "full" query parameter
 * fix for message after debian install
+* fix for replacing already existing message definitions
+* fix missing length in CSV dump for some data types
 
 ## Features
 * added DTM and BDZ data types
 * added "-n" argument to "hex" and "direct" commands for automatically determining message length from input
-* added level/pollprio/condition to HTTP JSON output
+* added level/pollprio/condition/field flags and field result type as well as list of types to HTTP JSON output
 * added message dump from commandline in JSON format
 * added support for newer MQTT broker versions
 * added some PIC calibration data to "ebuspicloader" verbose output
 * added support for upcoming adapter 3 firmware enhancements
 * added config override path
+* added support for adding message definition via HTTP port
 
 ## Breaking Changes
 * remove support for Debian 8 Jessie in docker

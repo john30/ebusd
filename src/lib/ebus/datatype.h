@@ -576,6 +576,14 @@ class DataTypeList {
   static DataTypeList* getInstance();
 
   /**
+   * Dump the type list optionally including the divisor to the output.
+   * @param outputFormat the @a OutputFormat options.
+   * @param appendDivisor whether to append the divisor (if available).
+   * @param output the @a ostream to dump to.
+   */
+  void dump(OutputFormat outputFormat, bool appendDivisor, ostream* output) const;
+
+  /**
    * Removes all @a DataType instances.
    */
   void clear();
