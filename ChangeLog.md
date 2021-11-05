@@ -20,6 +20,7 @@
 * added support for upcoming adapter 3 firmware enhancements
 * added config override path
 * added support for adding message definition via HTTP port
+* added "--mqttverbose" option
 
 ## Breaking Changes
 * remove support for Debian 8 Jessie in docker
