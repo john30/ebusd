@@ -1125,7 +1125,7 @@ void DataTypeList::dump(OutputFormat outputFormat, bool appendDivisor, ostream* 
       continue;
     }
     if (json) {
-      *output << sep << "    {";
+      *output << sep << "  {";
     }
     if ((dataType->getBitCount() % 8) != 0) {
       dataType->dump(outputFormat, dataType->getBitCount(), appendDivisor, output);

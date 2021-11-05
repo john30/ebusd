@@ -2000,10 +2000,6 @@ bool parseBoolQuery(const string& value) {
 }
 
 result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostringstream* ostream) {
-  bool required = false, full = false, withWrite = false, raw = false;
-  bool withDefinition = false;
-  string newDefinition;
-  OutputFormat verbosity = OF_NAMES;
   time_t maxAge = -1;
   size_t argPos = 1;
   string uri = args[argPos++];
@@ -2018,6 +2014,10 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
       circuit = uri.substr(6, pos - 6);
       name = uri.substr(pos + 1);
     }
+    bool required = false, full = false, withWrite = false, raw = false;
+    bool withDefinition = false;
+    string newDefinition;
+    OutputFormat verbosity = OF_NAMES;
     time_t since = 0;
     size_t pollPriority = 0;
     bool exact = false;
@@ -2199,19 +2199,24 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
       *ostream << ",\n  \"reconnects\": " << m_reconnectCount
                << ",\n  \"masters\": " << m_busHandler->getMasterCount()
                << ",\n  \"messages\": " << m_messages->size()
-               << ",\n  \"lastup\": " << static_cast<unsigned>(maxLastUp);
-      if (withDefinition && since <= 0) {
-        *ostream << ",\n  \"types\": [";
-        DataTypeList::getInstance()->dump(verbosity, true, ostream);
-        *ostream << "\n  ]";
-      }
-      *ostream << "\n }"
+               << ",\n  \"lastup\": " << static_cast<unsigned>(maxLastUp)
+               << "\n }"
                << "\n}";
       type = 6;
     }
     *connected = false;
     return formatHttpResult(ret, type, ostream);
   }  // request for "/data..."
+
+  if (uri == "/datatypes") {
+    *ostream << "[";
+    OutputFormat verbosity = OF_NAMES|OF_JSON|OF_ALL_ATTRS;
+    DataTypeList::getInstance()->dump(verbosity, true, ostream);
+    *ostream << "\n]";
+    type = 6;
+    *connected = false;
+    return formatHttpResult(ret, type, ostream);
+  }
 
   if (uri.length() < 1 || uri[0] != '/' || uri.find("//") != string::npos || uri.find("..") != string::npos) {
     ret = RESULT_ERR_INVALID_ARG;

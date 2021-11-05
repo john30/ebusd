@@ -123,6 +123,28 @@ paths:
         500:
           description: Circuit or message not found.
           content: { }
+  /datatypes:
+    get:
+      summary: Get all known field data types.
+      responses:
+        200:
+          description: Success.
+          content:
+            application/json;charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/DataTypes'
+        400:
+          description: Invalid request parameters.
+          content: { }
+        403:
+          description: User not authorized.
+          content: { }
+        404:
+          description: Circuit or message not found.
+          content: { }
+        500:
+          description: General error.
+          content: { }
   /{file}:
     get:
       summary: Retrieve a particular file.
@@ -289,51 +311,6 @@ components:
           type: integer
           description: the time in UTC seconds of the last update of any message.
           example: 1493483370
-        types:
-          type: array
-          description: the known field data types (only with definition and without since).
-          items:
-            type: object
-            properties:
-              type:
-                type: string
-                description: the type name.
-                example: UCH
-              isbits:
-                type: boolean
-                description: true when the length is in bits.
-              isadjustable:
-                type: boolean
-                description: whether the length is adjustable.
-              isignored:
-                type: boolean
-                description: whether the result is ignored.
-              length:
-                type: number
-                minimum: -1
-                maximum: 31
-                description: the field length in bytes (-1 for remainder, number
-                  of bits when isbits is true).
-              result:
-                enum:
-                  - void
-                  - string
-                  - number
-                  - date
-                  - time
-                  - datetime
-                description: the result type.
-              divisor:
-                type: number
-                description: the divisor for numeric types (only if applicable, positive
-                  for divisor, negative for reciprocal i.e. 1/-divisor).
-              precision:
-                type: number
-                description: the precision (number of fraction digits) when divisor is >1.
-            required:
-              - type
-              - isbits
-              - length
     Circuit:
       type: object
       properties:
@@ -497,6 +474,54 @@ components:
         comment:
           type: string
           description: the field comment.
+    DataType:
+      description: a known field data type.
+      type: object
+      properties:
+        type:
+          type: string
+          description: the type name.
+          example: UCH
+        isbits:
+          type: boolean
+          description: true when the length is in bits.
+        isadjustable:
+          type: boolean
+          description: whether the length is adjustable.
+        isignored:
+          type: boolean
+          description: whether the result is ignored.
+        length:
+          type: number
+          minimum: -1
+          maximum: 31
+          description: the field length in bytes (-1 for remainder, number
+            of bits when isbits is true).
+        result:
+          enum:
+            - void
+            - string
+            - number
+            - date
+            - time
+            - datetime
+          description: the result type.
+        divisor:
+          type: number
+          description: the divisor for numeric types (only if applicable, positive
+            for divisor, negative for reciprocal i.e. 1/-divisor).
+        precision:
+          type: number
+          description: the precision (number of fraction digits) when divisor is >1.
+      required:
+        - type
+        - isbits
+        - length
+    DataTypes:
+      type: array
+      description: the known field data types.
+      items:
+        $ref: '#/components/schemas/DataType'
     Data:
       required:
         - global
