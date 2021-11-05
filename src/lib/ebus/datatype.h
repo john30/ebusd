@@ -178,8 +178,8 @@ enum PartType {
 /** bit flag for @a DataType: special marker for certain types. */
 #define SPE 0x800
 
-/** bit flag for @a DataType: stored and dumped with length suffix (only when not @a ADJ). */
-#define WLS 0x1000
+/** bit flag for @a DataType: stored duplicate for backwards compatibility, not to be traversed in lists any more. */
+#define DUP 0x1000
 
 /**
  * Base class for all kinds of data types.
@@ -624,12 +624,9 @@ class DataTypeList {
   map<string, const DataType*>::const_iterator end() const { return m_typesById.end(); }
 
  private:
-  /** the known @a DataType instances by ID only. */
-  map<string, const DataType*> m_typesById;
-
-  /** the known @a DataType instances by ID and length (i.e. "ID:BITS").
+  /** the known @a DataType instances by ID (e.g. "ID:BITS" or just "ID").
    * Note: adjustable length types are stored by ID only. */
-  map<string, const DataType*> m_typesByIdLength;
+  map<string, const DataType*> m_typesById;
 
   /** the @a DataType instances to cleanup. */
   list<const DataType*> m_cleanupTypes;

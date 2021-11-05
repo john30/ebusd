@@ -44,11 +44,7 @@ using std::endl;
 
 bool DataType::dump(OutputFormat outputFormat, size_t length, bool appendDivisor, ostream* output) const {
   if (outputFormat & OF_JSON) {
-    *output << "\"type\": \"" << m_id;
-    if (!isAdjustableLength() && hasFlag(WLS)) {
-      *output << LENGTH_SEPARATOR << static_cast<unsigned>(length);
-    }
-    *output << "\", \"isbits\": "
+    *output << "\"type\": \"" << m_id << "\", \"isbits\": "
             << (getBitCount() < 8 ? "true" : "false");
     if (outputFormat & OF_ALL_ATTRS) {
       *output << ", \"isadjustable\": " << (isAdjustableLength() ? "true" : "false");
@@ -62,7 +58,7 @@ bool DataType::dump(OutputFormat outputFormat, size_t length, bool appendDivisor
     }
   } else {
     *output << m_id;
-    if (isAdjustableLength() || hasFlag(WLS)) {
+    if (isAdjustableLength()) {
       *output << LENGTH_SEPARATOR;
       if (length == REMAIN_LEN) {
         *output << "*";
@@ -1018,16 +1014,18 @@ DataTypeList::DataTypeList() {
   // date with weekday in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x31,0x12,WW,0x99,
   // WW is weekday Mon=0x01 - Sun=0x07, replacement 0xff)
   add(new DateTimeDataType("BDA", 32, BCD, 0xff, true, false, 0));
+  add(new DateTimeDataType("BDA:4", 32, BCD|DUP, 0xff, true, false, 0));
   // date in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99, replacement 0xff)
-  add(new DateTimeDataType("BDA", 24, BCD|WLS, 0xff, true, false, 0));
+  add(new DateTimeDataType("BDA:3", 24, BCD, 0xff, true, false, 0));
   // date with zero-based weekday in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,WZ,0x00 - 0x31,0x12,WZ,0x99,
   // WZ is zero-based weekday Mon=0x00 - Sun=0x06, replacement 0xff)
   add(new DateTimeDataType("BDZ", 32, BCD|SPE, 0xff, true, false, 0));
   // date with weekday, 01.01.2000 - 31.12.2099 (0x01,0x01,WW,0x00 - 0x1f,0x0c,WW,0x63,
   // WW is weekday Mon=0x01 - Sun=0x07, replacement 0xff)
   add(new DateTimeDataType("HDA", 32, 0, 0xff, true, false, 0));
+  add(new DateTimeDataType("HDA:4", 32, DUP, 0xff, true, false, 0));
   // date, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x1f,0x0c,0x63, replacement 0xff)
-  add(new DateTimeDataType("HDA", 24, WLS, 0xff, true, false, 0));
+  add(new DateTimeDataType("HDA", 24, 0, 0xff, true, false, 0));
   // date, days since 01.01.1900, 01.01.1900 - 06.06.2079 (0x00,0x00 - 0xff,0xff)
   add(new DateTimeDataType("DAY", 16, 0, 0xff, true, false, 0));
   // date+time in minutes since 01.01.2009, 01.01.2009 - 31.12.2099 (0x00,0x00,0x00,0x00 - 0x02,0xda,0x4e,0x1f)
@@ -1055,13 +1053,15 @@ DataTypeList::DataTypeList() {
   add(new NumberDataType("BDY", 8, DAY, 0x07, 0, 6, 1));  // weekday, "Mon" - "Sun" (0x00 - 0x06) [eBUS type]
   add(new NumberDataType("HDY", 8, DAY, 0x00, 1, 7, 1));  // weekday, "Mon" - "Sun" (0x01 - 0x07) [Vaillant type]
   add(new NumberDataType("BCD", 8, BCD, 0xff, 0, 99, 1));  // unsigned decimal in BCD, 0 - 99
-  add(new NumberDataType("BCD", 16, BCD|WLS, 0xffff, 0, 9999, 1));  // unsigned decimal in BCD, 0 - 9999
-  add(new NumberDataType("BCD", 24, BCD|WLS, 0xffffff, 0, 999999, 1));  // unsigned decimal in BCD, 0 - 999999
-  add(new NumberDataType("BCD", 32, BCD|WLS, 0xffffffff, 0, 99999999, 1));  // unsigned decimal in BCD, 0 - 99999999
+  add(new NumberDataType("BCD:1", 8, BCD|DUP, 0xff, 0, 99, 1));  // unsigned decimal in BCD, 0 - 99
+  add(new NumberDataType("BCD:2", 16, BCD, 0xffff, 0, 9999, 1));  // unsigned decimal in BCD, 0 - 9999
+  add(new NumberDataType("BCD:3", 24, BCD, 0xffffff, 0, 999999, 1));  // unsigned decimal in BCD, 0 - 999999
+  add(new NumberDataType("BCD:4", 32, BCD, 0xffffffff, 0, 99999999, 1));  // unsigned decimal in BCD, 0 - 99999999
   add(new NumberDataType("HCD", 32, HCD|BCD|REQ, 0, 0, 99999999, 1));  // unsigned decimal in HCD, 0 - 99999999
-  add(new NumberDataType("HCD", 8, HCD|BCD|REQ|WLS, 0, 0, 99, 1));  // unsigned decimal in HCD, 0 - 99
-  add(new NumberDataType("HCD", 16, HCD|BCD|REQ|WLS, 0, 0, 9999, 1));  // unsigned decimal in HCD, 0 - 9999
-  add(new NumberDataType("HCD", 24, HCD|BCD|REQ|WLS, 0, 0, 999999, 1));  // unsigned decimal in HCD, 0 - 999999
+  add(new NumberDataType("HCD:4", 32, HCD|BCD|REQ|DUP, 0, 0, 99999999, 1));  // unsigned decimal in HCD, 0 - 99999999
+  add(new NumberDataType("HCD:1", 8, HCD|BCD|REQ, 0, 0, 99, 1));  // unsigned decimal in HCD, 0 - 99
+  add(new NumberDataType("HCD:2", 16, HCD|BCD|REQ, 0, 0, 9999, 1));  // unsigned decimal in HCD, 0 - 9999
+  add(new NumberDataType("HCD:3", 24, HCD|BCD|REQ, 0, 0, 999999, 1));  // unsigned decimal in HCD, 0 - 999999
   add(new NumberDataType("SCH", 8, SIG, 0x80, 0x81, 0x7f, 1));  // signed integer, -127 - +127
   add(new NumberDataType("D1B", 8, SIG, 0x80, 0x81, 0x7f, 1));  // signed integer, -127 - +127
   // unsigned number (fraction 1/2), 0 - 100 (0x00 - 0xc8, replacement 0xff)
@@ -1119,24 +1119,24 @@ DataTypeList* DataTypeList::getInstance() {
 void DataTypeList::dump(OutputFormat outputFormat, bool appendDivisor, ostream* output) const {
   bool json = outputFormat & OF_JSON;
   string sep = "\n";
-  for (int withLength=0; withLength<2; withLength++) {
-    const map<string, const DataType*>* types = withLength==0 ? &m_typesById : &m_typesByIdLength;
-    for (const auto &it: *types) {
-      const DataType *dataType = it.second;
-      if (json) {
-        *output << sep << "    {";
-      }
-      if ((dataType->getBitCount() % 8) != 0) {
-        dataType->dump(outputFormat, dataType->getBitCount(), appendDivisor, output);
-      } else {
-        dataType->dump(outputFormat, dataType->getBitCount() / 8, appendDivisor, output);
-      }
-      if (json) {
-        *output << "}";
-        sep = ",\n";
-      } else {
-        *output << "\n";
-      }
+  for (const auto &it: m_typesById) {
+    const DataType *dataType = it.second;
+    if (dataType->hasFlag(DUP)) {
+      continue;
+    }
+    if (json) {
+      *output << sep << "    {";
+    }
+    if ((dataType->getBitCount() % 8) != 0) {
+      dataType->dump(outputFormat, dataType->getBitCount(), appendDivisor, output);
+    } else {
+      dataType->dump(outputFormat, dataType->getBitCount() / 8, appendDivisor, output);
+    }
+    if (json) {
+      *output << "}";
+      sep = ",\n";
+    } else {
+      *output << "\n";
     }
   }
 }
@@ -1146,24 +1146,11 @@ void DataTypeList::clear() {
     delete it;
   }
   m_cleanupTypes.clear();
-  m_typesByIdLength.clear();
   m_typesById.clear();
 }
 
 result_t DataTypeList::add(const DataType* dataType) {
-  if (!dataType->isAdjustableLength()) {
-    ostringstream str;
-    size_t bitCount = dataType->getBitCount();
-    str << dataType->getId() << LENGTH_SEPARATOR << static_cast<unsigned>(bitCount >= 8 ? bitCount/8 : bitCount);
-    if (m_typesByIdLength.find(str.str()) != m_typesByIdLength.end()) {
-      return RESULT_ERR_DUPLICATE_NAME;  // duplicate key
-    }
-    m_typesByIdLength[str.str()] = dataType;
-    if (dataType->hasFlag(WLS) || m_typesById.find(dataType->getId()) != m_typesById.end()) {
-      m_cleanupTypes.push_back(dataType);
-      return RESULT_OK;  // only store first one without WLS flag as default
-    }
-  } else if (m_typesById.find(dataType->getId()) != m_typesById.end()) {
+  if (m_typesById.find(dataType->getId()) != m_typesById.end()) {
     return RESULT_ERR_DUPLICATE_NAME;  // duplicate key
   }
   m_typesById[dataType->getId()] = dataType;
@@ -1175,8 +1162,8 @@ const DataType* DataTypeList::get(const string& id, size_t length) const {
   if (length > 0) {
     ostringstream str;
     str << id << LENGTH_SEPARATOR << static_cast<unsigned>(length);
-    auto it = m_typesByIdLength.find(str.str());
-    if (it != m_typesByIdLength.end()) {
+    auto it = m_typesById.find(str.str());
+    if (it != m_typesById.end()) {
       return it->second;
     }
   }
