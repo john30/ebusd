@@ -615,17 +615,19 @@ class DataTypeList {
    * Returns an iterator pointing to the first ID/@a DataType pair.
    * @return an iterator pointing to the first ID/@a DataType pair.
    */
-  map<string, const DataType*>::const_iterator begin() const { return m_typesByIdLength.begin(); }
+  map<string, const DataType*>::const_iterator begin() const { return m_typesById.begin(); }
 
   /**
    * Returns an iterator pointing one past the last ID/@a DataType pair.
    * @return an iterator pointing one past the last ID/@a DataType pair.
    */
-  map<string, const DataType*>::const_iterator end() const { return m_typesByIdLength.end(); }
+  map<string, const DataType*>::const_iterator end() const { return m_typesById.end(); }
 
  private:
-  /** the known @a DataType instances by ID and length (i.e. "ID:BITS") as well
-   * as without length for those without @a WLS flag.
+  /** the known @a DataType instances by ID only. */
+  map<string, const DataType*> m_typesById;
+
+  /** the known @a DataType instances by ID and length (i.e. "ID:BITS").
    * Note: adjustable length types are stored by ID only. */
   map<string, const DataType*> m_typesByIdLength;
 
