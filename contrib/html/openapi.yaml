@@ -10,86 +10,19 @@ paths:
     get:
       summary: Get all messages of all circuits.
       parameters:
-        - name: since
-          in: query
-          description: limit to messages that have changed since the specified UTC seconds.
-          allowEmptyValue: false
-          schema:
-            minimum: 0
-            type: integer
-        - name: poll
-          in: query
-          description: set the poll priority of matching message(s) to prio.
-          allowEmptyValue: false
-          schema:
-            minimum: 0
-            type: integer
-        - name: verbose
-          in: query
-          description: include comments and field units.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: indexed
-          in: query
-          description: always return field indexes instead of names.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: numeric
-          in: query
-          description: return numeric values of value list entries.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: valuename
-          in: query
-          description: include value and name for named values.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: full
-          in: query
-          description: include all available attributes.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: required
-          in: query
-          description: retrieve the data from the bus if not yet cached.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: write
-          in: query
-          description: retrieve write messages in addition to read/poll messages.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: raw
-          in: query
-          description: include raw master/slave data.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: def
-          in: query
-          description: include message and field definition.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: user
-          in: query
-          description: authenticate with user name.
-          allowEmptyValue: false
-          schema:
-            type: string
-        - name: secret
-          in: query
-          description: authenticate with user secret.
-          allowEmptyValue: false
-          schema:
-            type: string
+        - $ref: '#/components/parameters/sinceQuery'
+        - $ref: '#/components/parameters/pollQuery'
+        - $ref: '#/components/parameters/verboseQuery'
+        - $ref: '#/components/parameters/indexedQuery'
+        - $ref: '#/components/parameters/numericQuery'
+        - $ref: '#/components/parameters/valuenameQuery'
+        - $ref: '#/components/parameters/fullQuery'
+        - $ref: '#/components/parameters/requiredQuery'
+        - $ref: '#/components/parameters/writeQuery'
+        - $ref: '#/components/parameters/rawQuery'
+        - $ref: '#/components/parameters/defQuery'
+        - $ref: '#/components/parameters/userQuery'
+        - $ref: '#/components/parameters/secretQuery'
       responses:
         200:
           description: Success.
@@ -118,92 +51,20 @@ paths:
           required: true
           schema:
             type: string
-        - name: since
-          in: query
-          description: limit to messages that have changed since the specified UTC seconds.
-          allowEmptyValue: false
-          schema:
-            minimum: 0
-            type: integer
-        - name: poll
-          in: query
-          description: set the poll priority of matching message(s) to prio.
-          allowEmptyValue: false
-          schema:
-            minimum: 0
-            type: integer
-        - name: exact
-          in: query
-          description: exact search for circuit/message name.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: verbose
-          in: query
-          description: include comments and field units.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: indexed
-          in: query
-          description: always return field indexes instead of names.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: numeric
-          in: query
-          description: return numeric values of value list entries.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: valuename
-          in: query
-          description: include value and name for named values.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: full
-          in: query
-          description: include all available attributes.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: required
-          in: query
-          description: retrieve the data from the bus if not yet cached.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: write
-          in: query
-          description: retrieve write messages in addition to read/poll messages.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: raw
-          in: query
-          description: include raw master/slave data.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: def
-          in: query
-          description: include message and field definition.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: user
-          in: query
-          description: authenticate with user name.
-          allowEmptyValue: false
-          schema:
-            type: string
-        - name: secret
-          in: query
-          description: authenticate with user secret.
-          allowEmptyValue: false
-          schema:
-            type: string
+        - $ref: '#/components/parameters/sinceQuery'
+        - $ref: '#/components/parameters/pollQuery'
+        - $ref: '#/components/parameters/exactQuery'
+        - $ref: '#/components/parameters/verboseQuery'
+        - $ref: '#/components/parameters/indexedQuery'
+        - $ref: '#/components/parameters/numericQuery'
+        - $ref: '#/components/parameters/valuenameQuery'
+        - $ref: '#/components/parameters/fullQuery'
+        - $ref: '#/components/parameters/requiredQuery'
+        - $ref: '#/components/parameters/writeQuery'
+        - $ref: '#/components/parameters/rawQuery'
+        - $ref: '#/components/parameters/defQuery'
+        - $ref: '#/components/parameters/userQuery'
+        - $ref: '#/components/parameters/secretQuery'
       responses:
         200:
           description: Success.
@@ -237,92 +98,21 @@ paths:
           required: true
           schema:
             type: string
-        - name: since
-          in: query
-          description: limit to messages that have changed since the specified UTC seconds.
-          allowEmptyValue: false
-          schema:
-            minimum: 0
-            type: integer
-        - name: poll
-          in: query
-          description: set the poll priority of matching message(s) to prio.
-          allowEmptyValue: false
-          schema:
-            minimum: 0
-            type: integer
-        - name: exact
-          in: query
-          description: exact search for circuit/message name.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: verbose
-          in: query
-          description: include comments and field units.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: indexed
-          in: query
-          description: always return field indexes instead of names.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: numeric
-          in: query
-          description: return numeric values of value list entries.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: valuename
-          in: query
-          description: include value and name for named values.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: full
-          in: query
-          description: include all available attributes.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: required
-          in: query
-          description: retrieve the data from the bus if not yet cached.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: write
-          in: query
-          description: retrieve write messages in addition to read/poll messages.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: raw
-          in: query
-          description: include raw master/slave data.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: def
-          in: query
-          description: include message and field definition.
-          allowEmptyValue: false
-          schema:
-            type: boolean
-        - name: user
-          in: query
-          description: authenticate with user name.
-          allowEmptyValue: false
-          schema:
-            type: string
-        - name: secret
-          in: query
-          description: authenticate with user secret.
-          allowEmptyValue: false
-          schema:
-            type: string
+        - $ref: '#/components/parameters/sinceQuery'
+        - $ref: '#/components/parameters/pollQuery'
+        - $ref: '#/components/parameters/exactQuery'
+        - $ref: '#/components/parameters/verboseQuery'
+        - $ref: '#/components/parameters/indexedQuery'
+        - $ref: '#/components/parameters/numericQuery'
+        - $ref: '#/components/parameters/valuenameQuery'
+        - $ref: '#/components/parameters/fullQuery'
+        - $ref: '#/components/parameters/requiredQuery'
+        - $ref: '#/components/parameters/writeQuery'
+        - $ref: '#/components/parameters/rawQuery'
+        - $ref: '#/components/parameters/defQuery'
+        - $ref: '#/components/parameters/defineQuery'
+        - $ref: '#/components/parameters/userQuery'
+        - $ref: '#/components/parameters/secretQuery'
       responses:
         200:
           description: Success
@@ -676,72 +466,80 @@ components:
       name: exact
       in: query
       description: exact search for circuit/message name.
-      allowEmptyValue: false
+      allowEmptyValue: true
       schema:
         type: boolean
     verboseQuery:
       name: verbose
       in: query
       description: include comments and field units.
-      allowEmptyValue: false
+      allowEmptyValue: true
       schema:
         type: boolean
     indexedQuery:
       name: indexed
       in: query
       description: always return field indexes instead of names.
-      allowEmptyValue: false
+      allowEmptyValue: true
       schema:
         type: boolean
     numericQuery:
       name: numeric
       in: query
       description: return numeric values of value list entries.
-      allowEmptyValue: false
+      allowEmptyValue: true
       schema:
         type: boolean
     valuenameQuery:
       name: valuename
       in: query
       description: include value and name for named values.
-      allowEmptyValue: false
+      allowEmptyValue: true
       schema:
         type: boolean
     fullQuery:
       name: full
       in: query
       description: include all available attributes.
-      allowEmptyValue: false
+      allowEmptyValue: true
       schema:
         type: boolean
     requiredQuery:
       name: required
       in: query
       description: retrieve the data from the bus if not yet cached.
-      allowEmptyValue: false
+      allowEmptyValue: true
       schema:
         type: boolean
     writeQuery:
       name: write
       in: query
       description: retrieve write messages in addition to read/poll messages.
-      allowEmptyValue: false
+      allowEmptyValue: true
       schema:
         type: boolean
     rawQuery:
       name: raw
       in: query
       description: include raw master/slave data.
-      allowEmptyValue: false
+      allowEmptyValue: true
       schema:
         type: boolean
     defQuery:
       name: def
       in: query
       description: include message and field definition.
-      allowEmptyValue: false
+      allowEmptyValue: true
       schema:
         type: boolean
+    defineQuery:
+      name: define
+      in: query
+      description: update/replace a message definition.
+      allowEmptyValue: false
+      schema:
+        type: string
+        description: message definition in CSV format.
     userQuery:
       name: user
       in: query
