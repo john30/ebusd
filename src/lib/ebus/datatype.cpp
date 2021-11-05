@@ -1151,7 +1151,7 @@ void DataTypeList::clear() {
 }
 
 result_t DataTypeList::add(const DataType* dataType) {
-  if (!dataType->isAdjustableLength() && dataType->hasFlag(WLS)) {
+  if (!dataType->isAdjustableLength()) {
     ostringstream str;
     size_t bitCount = dataType->getBitCount();
     str << dataType->getId() << LENGTH_SEPARATOR << static_cast<unsigned>(bitCount >= 8 ? bitCount/8 : bitCount);
@@ -1159,9 +1159,9 @@ result_t DataTypeList::add(const DataType* dataType) {
       return RESULT_ERR_DUPLICATE_NAME;  // duplicate key
     }
     m_typesByIdLength[str.str()] = dataType;
-    if (m_typesById.find(dataType->getId()) != m_typesById.end()) {
+    if (dataType->hasFlag(WLS) || m_typesById.find(dataType->getId()) != m_typesById.end()) {
       m_cleanupTypes.push_back(dataType);
-      return RESULT_OK;  // only store first one as default
+      return RESULT_OK;  // only store first one without WLS flag as default
     }
   } else if (m_typesById.find(dataType->getId()) != m_typesById.end()) {
     return RESULT_ERR_DUPLICATE_NAME;  // duplicate key
