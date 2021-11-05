@@ -425,6 +425,14 @@ void BusHandler::run() {
   } while (isRunning());
 }
 
+#ifndef FALLTHROUGH
+#if defined(__GNUC__) && __GNUC__ >= 7
+#define FALLTHROUGH [[fallthrough]];
+#else
+#define FALLTHROUGH
+#endif
+#endif
+
 result_t BusHandler::handleSymbol() {
   unsigned int timeout = SYN_TIMEOUT;
   symbol_t sendSymbol = ESC;
@@ -438,6 +446,7 @@ result_t BusHandler::handleSymbol() {
 
   case bs_skip:
     timeout = SYN_TIMEOUT;
+    FALLTHROUGH
   case bs_ready:
     if (m_currentRequest != nullptr) {
       setState(bs_ready, RESULT_ERR_TIMEOUT);  // just to be sure an old BusRequest is cleaned up
