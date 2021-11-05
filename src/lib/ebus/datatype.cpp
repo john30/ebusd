@@ -1119,24 +1119,21 @@ DataTypeList* DataTypeList::getInstance() {
 void DataTypeList::dump(OutputFormat outputFormat, bool appendDivisor, ostream* output) const {
   bool json = outputFormat & OF_JSON;
   string sep = "\n";
-  for (int withLength=0; withLength<2; withLength++) {
-    const map<string, const DataType*>* types = withLength==0 ? &m_typesById : &m_typesByIdLength;
-    for (const auto &it: *types) {
-      const DataType *dataType = it.second;
-      if (json) {
-        *output << sep << "    {";
-      }
-      if ((dataType->getBitCount() % 8) != 0) {
-        dataType->dump(outputFormat, dataType->getBitCount(), appendDivisor, output);
-      } else {
-        dataType->dump(outputFormat, dataType->getBitCount() / 8, appendDivisor, output);
-      }
-      if (json) {
-        *output << "}";
-        sep = ",\n";
-      } else {
-        *output << "\n";
-      }
+  for (const auto &it: m_typesByIdLength) {
+    const DataType *dataType = it.second;
+    if (json) {
+      *output << sep << "    {";
+    }
+    if ((dataType->getBitCount() % 8) != 0) {
+      dataType->dump(outputFormat, dataType->getBitCount(), appendDivisor, output);
+    } else {
+      dataType->dump(outputFormat, dataType->getBitCount() / 8, appendDivisor, output);
+    }
+    if (json) {
+      *output << "}";
+      sep = ",\n";
+    } else {
+      *output << "\n";
     }
   }
 }
@@ -1147,7 +1144,6 @@ void DataTypeList::clear() {
   }
   m_cleanupTypes.clear();
   m_typesByIdLength.clear();
-  m_typesById.clear();
 }
 
 result_t DataTypeList::add(const DataType* dataType) {
@@ -1159,14 +1155,14 @@ result_t DataTypeList::add(const DataType* dataType) {
       return RESULT_ERR_DUPLICATE_NAME;  // duplicate key
     }
     m_typesByIdLength[str.str()] = dataType;
-    if (dataType->hasFlag(WLS) || m_typesById.find(dataType->getId()) != m_typesById.end()) {
+    if (dataType->hasFlag(WLS) || m_typesByIdLength.find(dataType->getId()) != m_typesByIdLength.end()) {
       m_cleanupTypes.push_back(dataType);
       return RESULT_OK;  // only store first one without WLS flag as default
     }
-  } else if (m_typesById.find(dataType->getId()) != m_typesById.end()) {
+  } else if (m_typesByIdLength.find(dataType->getId()) != m_typesByIdLength.end()) {
     return RESULT_ERR_DUPLICATE_NAME;  // duplicate key
   }
-  m_typesById[dataType->getId()] = dataType;
+  m_typesByIdLength[dataType->getId()] = dataType;
   m_cleanupTypes.push_back(dataType);
   return RESULT_OK;
 }
@@ -1180,8 +1176,8 @@ const DataType* DataTypeList::get(const string& id, size_t length) const {
       return it->second;
     }
   }
-  auto it = m_typesById.find(id);
-  if (it == m_typesById.end()) {
+  auto it = m_typesByIdLength.find(id);
+  if (it == m_typesByIdLength.end()) {
     return nullptr;
   }
   if (length > 0 && !it->second->isAdjustableLength()) {
