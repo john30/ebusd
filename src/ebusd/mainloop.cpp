@@ -1675,7 +1675,7 @@ result_t MainLoop::executeDefine(const vector<string>& args, ostringstream* ostr
   time(&now);
   string errorDescription;
   istringstream defstr("#\n" + args[argPos]);  // ensure first line is not used for determining col names
-  return m_messages->readFromStream(&defstr, "temporary", now, true, nullptr, &errorDescription, replace);
+  return m_messages->readFromStream(&defstr, "tcp", now, true, nullptr, &errorDescription, replace);
 }
 
 
@@ -2105,7 +2105,7 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
     if (ret == RESULT_OK && !newDefinition.empty()) {
       string errorDescription;
       istringstream defstr("#\n" + newDefinition);  // ensure first line is not used for determining col names
-      ret = m_messages->readFromStream(&defstr, "temporary", now, true, nullptr, &errorDescription, true);
+      ret = m_messages->readFromStream(&defstr, "http", now, true, nullptr, &errorDescription, true);
     }
     if (ret == RESULT_OK) {
       bool first = true;
@@ -2200,7 +2200,7 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
                << ",\n  \"masters\": " << m_busHandler->getMasterCount()
                << ",\n  \"messages\": " << m_messages->size()
                << ",\n  \"lastup\": " << static_cast<unsigned>(maxLastUp);
-      if (withDefinition) {
+      if (withDefinition && since <= 0) {
         *ostream << ",\n  \"types\": [";
         DataTypeList::getInstance()->dump(verbosity, true, ostream);
         *ostream << "\n  ]";
