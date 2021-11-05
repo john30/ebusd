@@ -1154,7 +1154,7 @@ result_t DataTypeList::add(const DataType* dataType) {
   if (!dataType->isAdjustableLength() && dataType->hasFlag(WLS)) {
     ostringstream str;
     size_t bitCount = dataType->getBitCount();
-    str << dataType->getId() << LENGTH_SEPARATOR << static_cast<unsigned>(bitCount >= 8?bitCount/8:bitCount);
+    str << dataType->getId() << LENGTH_SEPARATOR << static_cast<unsigned>(bitCount >= 8 ? bitCount/8 : bitCount);
     if (m_typesByIdLength.find(str.str()) != m_typesByIdLength.end()) {
       return RESULT_ERR_DUPLICATE_NAME;  // duplicate key
     }
