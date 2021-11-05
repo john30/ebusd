@@ -253,65 +253,87 @@ bool decodeType(const DataType* type, const SymbolString& input, size_t length,
   return !first;
 }
 
-bool GrabbedMessage::dump(bool unknown, MessageMap* messages, bool first, bool decode, ostringstream* output,
-    bool isDirectMode) const {
+bool GrabbedMessage::dump(bool unknown, MessageMap* messages, bool first, OutputFormat outputFormat,
+    ostringstream* output, bool isDirectMode) const {
   Message* message = messages->find(m_lastMaster);
   if (unknown && message) {
     return false;
   }
   if (!first) {
-    *output << endl;
+    if (outputFormat & OF_JSON) {
+      *output << ",";
+    } else {
+      *output << endl;
+    }
   }
   symbol_t dstAddress = m_lastMaster[1];
-  *output << m_lastMaster.getStr();
-  if (dstAddress != BROADCAST && !isMaster(dstAddress)) {
-    *output << (isDirectMode ? " " : " / ") << m_lastSlave.getStr();
-  }
-  if (!isDirectMode) {
-    *output << " = " << m_count;
+  if (outputFormat & OF_JSON) {
+    *output << "\n{";
+    if (m_lastMaster.dumpJson(false, output)) {
+      *output << ", ";
+      if (dstAddress != BROADCAST && !isMaster(dstAddress) && m_lastSlave.dumpJson(false, output)) {
+        *output << ", ";
+      }
+    }
+    *output << "\"count\": " << static_cast<unsigned>(m_count);
+    *output << ", \"lastup\": " << setw(0) << dec << m_lastTime;
     if (message) {
-      *output << ": " << message->getCircuit() << " " << message->getName();
+      *output << ", \"circuit\": \"" << message->getCircuit() << "\""
+              << ", \"name\": \"" << message->getName() << "\"";
+    }
+    *output << "}";
+  } else {
+    *output << m_lastMaster.getStr();
+    if (dstAddress != BROADCAST && !isMaster(dstAddress)) {
+      *output << (isDirectMode ? " " : " / ") << m_lastSlave.getStr();
+    }
+    if (!isDirectMode) {
+      *output << " = " << m_count;
+      if (message) {
+        *output << ": " << message->getCircuit() << " " << message->getName();
+      }
     }
   }
-  if (decode) {
-    DataTypeList *types = DataTypeList::getInstance();
-    if (!types) {
-      return true;
+  if (!(outputFormat & OF_DEFINITION) || (outputFormat & OF_JSON)) {
+    return true;
+  }
+  DataTypeList *types = DataTypeList::getInstance();
+  if (!types) {
+    return true;
+  }
+  bool master = isMaster(dstAddress) || dstAddress == BROADCAST || m_lastSlave.getDataSize() <= 0;
+  size_t remain = master ? m_lastMaster.getDataSize() : m_lastSlave.getDataSize();
+  if (remain == 0) {
+    return true;
+  }
+  for (const auto& it : *types) {
+    const DataType* baseType = it.second;
+    if ((baseType->getBitCount() % 8) != 0 || baseType->isIgnored() || baseType->hasFlag(DUP)) {  // skip bit and ignored types
+      continue;
     }
-    bool master = isMaster(dstAddress) || dstAddress == BROADCAST || m_lastSlave.getDataSize() <= 0;
-    size_t remain = master ? m_lastMaster.getDataSize() : m_lastSlave.getDataSize();
-    if (remain == 0) {
-      return true;
+    size_t maxLength = baseType->getBitCount()/8;
+    bool firstOnly = maxLength >= 8;
+    if (maxLength > remain) {
+      maxLength = remain;
     }
-    for (const auto& it : *types) {
-      const DataType* baseType = it.second;
-      if ((baseType->getBitCount() % 8) != 0 || baseType->isIgnored() || baseType->hasFlag(DUP)) {  // skip bit and ignored types
-        continue;
-      }
-      size_t maxLength = baseType->getBitCount()/8;
-      bool firstOnly = maxLength >= 8;
-      if (maxLength > remain) {
-        maxLength = remain;
-      }
-      if (baseType->isAdjustableLength()) {
-        for (size_t length = maxLength; length >= 1; length--) {
-          const DataType* type = types->get(baseType->getId(), length);
-          bool decoded;
-          if (master) {
-            decoded = decodeType(type, m_lastMaster, length, remain-length, firstOnly, output);
-          } else {
-            decoded = decodeType(type, m_lastSlave, length, remain-length, firstOnly, output);
-          }
-          if (decoded && firstOnly) {
-            break;  // only a single offset with maximum length when adjustable maximum size is at least 8 bytes
-          }
-        }
-      } else if (maxLength > 0) {
+    if (baseType->isAdjustableLength()) {
+      for (size_t length = maxLength; length >= 1; length--) {
+        const DataType* type = types->get(baseType->getId(), length);
+        bool decoded;
         if (master) {
-          decodeType(baseType, m_lastMaster, maxLength, remain-maxLength, false, output);
+          decoded = decodeType(type, m_lastMaster, length, remain-length, firstOnly, output);
         } else {
-          decodeType(baseType, m_lastSlave, maxLength, remain-maxLength, false, output);
+          decoded = decodeType(type, m_lastSlave, length, remain-length, firstOnly, output);
         }
+        if (decoded && firstOnly) {
+          break;  // only a single offset with maximum length when adjustable maximum size is at least 8 bytes
+        }
+      }
+    } else if (maxLength > 0) {
+      if (master) {
+        decodeType(baseType, m_lastMaster, maxLength, remain-maxLength, false, output);
+      } else {
+        decodeType(baseType, m_lastSlave, maxLength, remain-maxLength, false, output);
       }
     }
   }
@@ -1610,10 +1632,10 @@ bool BusHandler::enableGrab(bool enable) {
   return true;
 }
 
-void BusHandler::formatGrabResult(bool unknown, bool decode, ostringstream* output, bool isDirectMode,
+void BusHandler::formatGrabResult(bool unknown, OutputFormat outputFormat, ostringstream* output, bool isDirectMode,
     time_t since, time_t until) const {
   if (!m_grabMessages) {
-    if (!isDirectMode) {
+    if (!isDirectMode && !(outputFormat & OF_JSON)) {
       *output << "grab disabled";
     }
     return;
@@ -1624,7 +1646,7 @@ void BusHandler::formatGrabResult(bool unknown, bool decode, ostringstream* outp
     || (until > 0 && it.second.getLastTime() >= until)) {
       continue;
     }
-    if (it.second.dump(unknown, m_messages, first, decode, output, isDirectMode)) {
+    if (it.second.dump(unknown, m_messages, first, outputFormat, output, isDirectMode)) {
       first = false;
     }
   }

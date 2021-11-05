@@ -145,6 +145,18 @@ paths:
         500:
           description: General error.
           content: { }
+  /raw:
+    get:
+      summary: Retrieve raw data from grabbed and/or decoded messages.
+      parameters:
+        - $ref: '#/components/parameters/sinceQuery'
+      responses:
+        200:
+          description: Success
+          content:
+            application/json;charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/RawMessages'
   /{file}:
     get:
       summary: Retrieve a particular file.
@@ -384,19 +396,11 @@ components:
           type: string
           description: the message comment (only with verbose).
         master:
-          type: array
+          $ref: '#/components/schemas/Symbols'
           description: the last seen master data bytes (only with raw and if available).
-          items:
-            maximum: 255
-            minimum: 0
-            type: integer
         slave:
-          type: array
+          $ref: '#/components/schemas/Symbols'
           description: the last seen slave data bytes (only with raw and if available).
-          items:
-            maximum: 255
-            minimum: 0
-            type: integer
         fields:
           type: object
           additionalProperties:
@@ -411,6 +415,15 @@ components:
             def).
           items:
             $ref: '#/components/schemas/FieldDef'
+    Symbols:
+      description: master or slave data bytes.
+      type: array
+      minItems: 1
+      maximum: 32
+      items:
+        maximum: 255
+        minimum: 0
+        type: integer
     Field:
       type: object
       properties:
@@ -531,6 +544,38 @@ components:
           $ref: '#/components/schemas/Global'
       additionalProperties:
         $ref: '#/components/schemas/Circuit'
+    RawMessage:
+      type: object
+      description: raw message seen on the bus.
+      properties:
+        master:
+          $ref: '#/components/schemas/Symbols'
+          description: the last seen master data bytes (only with raw and if available).
+        slave:
+          $ref: '#/components/schemas/Symbols'
+          description: the last seen slave data bytes (only with raw and if available).
+        lastup:
+          minimum: 0
+          type: integer
+          description: the time in UTC seconds of the last update of the message (0
+            for never).
+        count:
+          type: number
+          description: number of times the master part was seen.
+        circuit:
+          type: string
+          description: name of the circuit in case of an already associated message definition.
+        name:
+          type: string
+          description: name of the message in case of an already associated message definition.
+      required:
+        - master
+        - count
+    RawMessages:
+      type: array
+      description: raw messages seen on the bus.
+      items:
+        $ref: '#/components/schemas/RawMessage'
   responses:
     BadRequest:
       description: Invalid request parameters.

@@ -9,6 +9,8 @@
 * fix for message after debian install
 * fix for replacing already existing message definitions
 * fix missing length in CSV dump for some data types
+* fix some missing data type lengths in "grab decode" result
+* fix for injecting several messages via command line args
 
 ## Features
 * added DTM and BDZ data types
@@ -19,7 +21,7 @@
 * added some PIC calibration data to "ebuspicloader" verbose output
 * added support for upcoming adapter 3 firmware enhancements
 * added config override path
-* added support for adding message definition via HTTP port
+* added support for adding message definition, retrieving data types and raw messages to HTTP port
 * added "--mqttverbose" option
 
 ## Breaking Changes

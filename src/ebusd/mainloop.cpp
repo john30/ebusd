@@ -434,14 +434,14 @@ void MainLoop::run() {
       }
       if (settings.listenWithUnknown || settings.listenOnlyUnknown) {
         if (m_busHandler->isGrabEnabled()) {
-          m_busHandler->formatGrabResult(true, false, &ostream, true, since, now);
+          m_busHandler->formatGrabResult(true, OF_NONE, &ostream, true, since, now);
         } else {
           m_busHandler->enableGrab(true);  // needed for listening to all messages
         }
       }
     } else if (settings.mode == cm_direct) {
       if (m_busHandler->isGrabEnabled()) {
-        m_busHandler->formatGrabResult(false, false, &ostream, true, since, now);
+        m_busHandler->formatGrabResult(false, OF_NONE, &ostream, true, since, now);
       }
     }
     // send result to client
@@ -1639,7 +1639,7 @@ result_t MainLoop::executeGrab(const vector<string>& args, ostringstream* ostrea
       }
     }
     if (!invalid) {
-      m_busHandler->formatGrabResult(onlyUnknown, decode, ostream);
+      m_busHandler->formatGrabResult(onlyUnknown, decode ? OF_DEFINITION : OF_NONE, ostream);
       return RESULT_OK;
     }
   }
@@ -2214,6 +2214,47 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
     DataTypeList::getInstance()->dump(verbosity, true, ostream);
     *ostream << "\n]";
     type = 6;
+    *connected = false;
+    return formatHttpResult(ret, type, ostream);
+  }
+
+  if (uri == "/raw") {
+    time_t since = 0, until = 0;
+    bool onlyUnknown = false;
+    if (args.size() > argPos) {
+      string query = args[argPos];
+      istringstream stream(query);
+      string token;
+      while (getline(stream, token, '&')) {
+        size_t pos = token.find('=');
+        string qname, value;
+        if (pos != string::npos) {
+          qname = token.substr(0, pos);
+          value = token.substr(pos + 1);
+        } else {
+          qname = token;
+        }
+        if (qname == "since") {
+          since = parseInt(value.c_str(), 10, 0, 0xffffffff, &ret);
+        } else if (qname == "unknown") {
+          onlyUnknown = parseBoolQuery(value);
+        }
+        if (ret != RESULT_OK) {
+          break;
+        }
+      }
+    }
+    if (ret == RESULT_OK) {
+      *ostream << "[";
+      if (since > 0) {
+        time_t now;
+        time(&now);
+        until = now-1;
+      }
+      m_busHandler->formatGrabResult(onlyUnknown, OF_JSON, ostream, false, since, until);
+      *ostream << "\n]";
+      type = 6;
+    }
     *connected = false;
     return formatHttpResult(ret, type, ostream);
   }
