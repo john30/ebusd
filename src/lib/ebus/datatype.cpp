@@ -1077,7 +1077,7 @@ DataTypeList::DataTypeList() {
   add(new NumberDataType("BI4", 4, ADJ|REQ, 0, 4, 1));  // bit 4 (up to 4 bits until bit 7)
   add(new NumberDataType("BI5", 3, ADJ|REQ, 0, 5, 1));  // bit 5 (up to 3 bits until bit 7)
   add(new NumberDataType("BI6", 2, ADJ|REQ, 0, 6, 1));  // bit 6 (up to 2 bits until bit 7)
-  add(new NumberDataType("BI7", 1, ADJ|REQ, 0, 7, 1));  // bit 7
+  add(new NumberDataType("BI7", 1, REQ, 0, 7, 1));  // bit 7
 }
 
 DataTypeList* DataTypeList::getInstance() {
