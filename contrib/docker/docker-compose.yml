@@ -1,0 +1,33 @@
+version: '3'
+services:
+  ebusd:
+    container_name: ebusd
+    image: john30/ebusd
+    restart: unless-stopped
+    tty: true
+    devices:
+      #- '/dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_62928ffa24deea119e8ccf149a583cc7-if00-port0:/dev/ttyUSB0'
+      - '/dev/ttyUSB0:/dev/ttyUSB0'
+    ports:
+      - 8888:8888
+    #configuration colume if you need to customize it (also add --configpath=/config to command param)
+    #volumes:
+    #  - ~/ebusd:/config
+    depends_on:
+      - mosquitto
+    command: -f --scanconfig -d enh:/dev/ttyUSB0 --mqtthost=mosquitto --mqttport=1883 --mqttuser=XXXXX --mqttpass=XXXXXX --mqttlog --mqttjson
+
+  mosquitto:
+    container_name: mosquitto
+    image: eclipse-mosquitto
+    environment:
+      - TZ=Europe/Warsaw
+    restart: unless-stopped
+    ports:
+      - 1883:1883
+      - 8883:8883
+      - 9001:9001
+    volumes:
+      - ~/mosquitto/config:/mosquitto/config
+      - ~/mosquitto/data:/mosquitto/data
+      - ~/mosquitto/logs:/mosquitto/log
