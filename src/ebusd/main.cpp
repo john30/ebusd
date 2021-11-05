@@ -1388,10 +1388,10 @@ int main(int argc, char* argv[]) {
   s_mainLoop = new MainLoop(opt, device, s_messageMap);
   if (opt.injectMessages) {
     BusHandler* busHandler = s_mainLoop->getBusHandler();
-    MasterSymbolString master;
-    SlaveSymbolString slave;
     while (arg_index < argc) {
       // add each passed message
+      MasterSymbolString master;
+      SlaveSymbolString slave;
       if (!parseMessage(argv[arg_index++], false, &master, &slave)) {
         continue;
       }
