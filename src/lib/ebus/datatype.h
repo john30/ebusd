@@ -178,9 +178,8 @@ enum PartType {
 /** bit flag for @a DataType: special marker for certain types. */
 #define SPE 0x800
 
-/** bit flag for @a DataType: marker for a constant value. */
-#define CON 0x1000
-
+/** bit flag for @a DataType: stored and dumped with length suffix (only when not @a ADJ). */
+#define WLS 0x1000
 
 /**
  * Base class for all kinds of data types.

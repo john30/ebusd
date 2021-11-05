@@ -53,11 +53,12 @@ bool DataType::dump(OutputFormat outputFormat, size_t length, bool appendDivisor
     }
   } else {
     *output << m_id;
-    if (isAdjustableLength()) {
+    if (isAdjustableLength() || hasFlag(WLS)) {
+      *output << LENGTH_SEPARATOR;
       if (length == REMAIN_LEN) {
-        *output << ":*";
+        *output << "*";
       } else {
-        *output << ":" << static_cast<unsigned>(length);
+        *output << static_cast<unsigned>(length);
       }
     }
     if (appendDivisor) {
@@ -986,7 +987,7 @@ DataTypeList::DataTypeList() {
   // WW is weekday Mon=0x01 - Sun=0x07, replacement 0xff)
   add(new DateTimeDataType("BDA", 32, BCD, 0xff, true, false, 0));
   // date in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x31,0x12,0x99, replacement 0xff)
-  add(new DateTimeDataType("BDA", 24, BCD, 0xff, true, false, 0));
+  add(new DateTimeDataType("BDA", 24, BCD|WLS, 0xff, true, false, 0));
   // date with zero-based weekday in BCD, 01.01.2000 - 31.12.2099 (0x01,0x01,WZ,0x00 - 0x31,0x12,WZ,0x99,
   // WZ is zero-based weekday Mon=0x00 - Sun=0x06, replacement 0xff)
   add(new DateTimeDataType("BDZ", 32, BCD|SPE, 0xff, true, false, 0));
@@ -994,7 +995,7 @@ DataTypeList::DataTypeList() {
   // WW is weekday Mon=0x01 - Sun=0x07, replacement 0xff)
   add(new DateTimeDataType("HDA", 32, 0, 0xff, true, false, 0));
   // date, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x1f,0x0c,0x63, replacement 0xff)
-  add(new DateTimeDataType("HDA", 24, 0, 0xff, true, false, 0));
+  add(new DateTimeDataType("HDA", 24, WLS, 0xff, true, false, 0));
   // date, days since 01.01.1900, 01.01.1900 - 06.06.2079 (0x00,0x00 - 0xff,0xff)
   add(new DateTimeDataType("DAY", 16, 0, 0xff, true, false, 0));
   // date+time in minutes since 01.01.2009, 01.01.2009 - 31.12.2099 (0x00,0x00,0x00,0x00 - 0x02,0xda,0x4e,0x1f)
@@ -1022,13 +1023,13 @@ DataTypeList::DataTypeList() {
   add(new NumberDataType("BDY", 8, DAY, 0x07, 0, 6, 1));  // weekday, "Mon" - "Sun" (0x00 - 0x06) [eBUS type]
   add(new NumberDataType("HDY", 8, DAY, 0x00, 1, 7, 1));  // weekday, "Mon" - "Sun" (0x01 - 0x07) [Vaillant type]
   add(new NumberDataType("BCD", 8, BCD, 0xff, 0, 99, 1));  // unsigned decimal in BCD, 0 - 99
-  add(new NumberDataType("BCD", 16, BCD, 0xffff, 0, 9999, 1));  // unsigned decimal in BCD, 0 - 9999
-  add(new NumberDataType("BCD", 24, BCD, 0xffffff, 0, 999999, 1));  // unsigned decimal in BCD, 0 - 999999
-  add(new NumberDataType("BCD", 32, BCD, 0xffffffff, 0, 99999999, 1));  // unsigned decimal in BCD, 0 - 99999999
+  add(new NumberDataType("BCD", 16, BCD|WLS, 0xffff, 0, 9999, 1));  // unsigned decimal in BCD, 0 - 9999
+  add(new NumberDataType("BCD", 24, BCD|WLS, 0xffffff, 0, 999999, 1));  // unsigned decimal in BCD, 0 - 999999
+  add(new NumberDataType("BCD", 32, BCD|WLS, 0xffffffff, 0, 99999999, 1));  // unsigned decimal in BCD, 0 - 99999999
   add(new NumberDataType("HCD", 32, HCD|BCD|REQ, 0, 0, 99999999, 1));  // unsigned decimal in HCD, 0 - 99999999
-  add(new NumberDataType("HCD", 8, HCD|BCD|REQ, 0, 0, 99, 1));  // unsigned decimal in HCD, 0 - 99
-  add(new NumberDataType("HCD", 16, HCD|BCD|REQ, 0, 0, 9999, 1));  // unsigned decimal in HCD, 0 - 9999
-  add(new NumberDataType("HCD", 24, HCD|BCD|REQ, 0, 0, 999999, 1));  // unsigned decimal in HCD, 0 - 999999
+  add(new NumberDataType("HCD", 8, HCD|BCD|REQ|WLS, 0, 0, 99, 1));  // unsigned decimal in HCD, 0 - 99
+  add(new NumberDataType("HCD", 16, HCD|BCD|REQ|WLS, 0, 0, 9999, 1));  // unsigned decimal in HCD, 0 - 9999
+  add(new NumberDataType("HCD", 24, HCD|BCD|REQ|WLS, 0, 0, 999999, 1));  // unsigned decimal in HCD, 0 - 999999
   add(new NumberDataType("SCH", 8, SIG, 0x80, 0x81, 0x7f, 1));  // signed integer, -127 - +127
   add(new NumberDataType("D1B", 8, SIG, 0x80, 0x81, 0x7f, 1));  // signed integer, -127 - +127
   // unsigned number (fraction 1/2), 0 - 100 (0x00 - 0xc8, replacement 0xff)
@@ -1093,7 +1094,7 @@ void DataTypeList::clear() {
 }
 
 result_t DataTypeList::add(const DataType* dataType) {
-  if (!dataType->isAdjustableLength()) {
+  if (!dataType->isAdjustableLength() && dataType->hasFlag(WLS)) {
     ostringstream str;
     size_t bitCount = dataType->getBitCount();
     str << dataType->getId() << LENGTH_SEPARATOR << static_cast<unsigned>(bitCount >= 8?bitCount/8:bitCount);
