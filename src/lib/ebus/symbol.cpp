@@ -28,6 +28,7 @@ namespace ebusd {
 using std::ostringstream;
 using std::nouppercase;
 using std::setw;
+using std::dec;
 using std::hex;
 using std::setfill;
 
@@ -155,6 +156,24 @@ const string SymbolString::getStr(size_t skipFirstSymbols) const {
     }
   }
   return sstr.str();
+}
+
+bool SymbolString::dumpJson(bool withSeparator, ostringstream* output) const {
+  if (size() == 0) {
+    return false;
+  }
+  if (withSeparator) {
+    *output << ",\n    ";
+  }
+  *output << "\"" << (isMaster() ? "master" : "slave") << "\": [";
+  for (size_t pos = 0; pos < size(); pos++) {
+    if (pos > 0) {
+      *output << ", ";
+    }
+    *output << dec << static_cast<unsigned>(m_data[pos]);
+  }
+  *output << "]";
+  return true;
 }
 
 symbol_t SymbolString::calcCrc() const {
