@@ -607,7 +607,7 @@ result_t MainLoop::decodeMessage(const string &data, bool isHttp, bool* connecte
   if (cmd == "G" || cmd == "GRAB") {
     return executeGrab(args, ostream);
   }
-  if (cmd == "DEFINE") {
+  if (cmd == "DEF" || cmd == "DEFINE") {
     if (m_newlyDefinedMessages) {
       return executeDefine(args, ostream);
     }
