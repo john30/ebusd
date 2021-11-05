@@ -44,8 +44,17 @@ using std::endl;
 
 bool DataType::dump(OutputFormat outputFormat, size_t length, bool appendDivisor, ostream* output) const {
   if (outputFormat & OF_JSON) {
-    *output << "\"type\": \"" << m_id << "\", \"isbits\": "
-            << (getBitCount() < 8 ? "true" : "false") << ", \"length\": ";
+    *output << "\"type\": \"" << m_id;
+    if (!isAdjustableLength() && hasFlag(WLS)) {
+      *output << LENGTH_SEPARATOR << static_cast<unsigned>(length);
+    }
+    *output << "\", \"isbits\": "
+            << (getBitCount() < 8 ? "true" : "false");
+    if (outputFormat & OF_ALL_ATTRS) {
+      *output << ", \"isadjustable\": " << (isAdjustableLength() ? "true" : "false");
+      *output << ", \"isignored\": " << (isIgnored() ? "true" : "false");
+    }
+    *output << ", \"length\": ";
     if (isAdjustableLength() && length == REMAIN_LEN) {
       *output << "-1";
     } else {
@@ -68,6 +77,14 @@ bool DataType::dump(OutputFormat outputFormat, size_t length, bool appendDivisor
   return false;
 }
 
+
+bool StringDataType::dump(OutputFormat outputFormat, size_t length, bool appendDivisor, ostream* output) const {
+  DataType::dump(outputFormat, length, appendDivisor, output);
+  if ((outputFormat & OF_JSON) && (outputFormat & OF_ALL_ATTRS)) {
+    *output << ", \"result\": \"" << (isIgnored() ? "void" : "string") << "\"";
+  }
+  return false;
+}
 
 result_t StringDataType::readRawValue(size_t, size_t, const SymbolString&, unsigned int*) const {
   return RESULT_EMPTY;
@@ -203,6 +220,14 @@ result_t StringDataType::writeSymbols(size_t offset, size_t length, istringstrea
   return RESULT_OK;
 }
 
+
+bool DateTimeDataType::dump(OutputFormat outputFormat, size_t length, bool appendDivisor, ostream* output) const {
+  DataType::dump(outputFormat, length, appendDivisor, output);
+  if ((outputFormat & OF_JSON) && (outputFormat & OF_ALL_ATTRS)) {
+    *output << ", \"result\": \"" << (hasDate() ? hasTime() ? "datetime" : "date" : "time") << "\"";
+  }
+  return false;
+}
 
 result_t DateTimeDataType::readRawValue(size_t, size_t, const SymbolString&, unsigned int*) const {
   return RESULT_EMPTY;
@@ -573,25 +598,32 @@ bool NumberDataType::dump(OutputFormat outputFormat, size_t length, bool appendD
   } else {
     DataType::dump(outputFormat, length, appendDivisor, output);
   }
+  if ((outputFormat & OF_JSON) && (outputFormat & OF_ALL_ATTRS)) {
+    *output << ", \"result\": \"number\"";
+  }
   if (!appendDivisor) {
     return false;
   }
+  bool ret = false;
   if (m_baseType) {
     if (m_baseType->m_divisor != m_divisor) {
       if (outputFormat & OF_JSON) {
         *output << ", \"divisor\": ";
       }
       *output << (m_divisor / m_baseType->m_divisor);
-      return true;
+      ret = true;
     }
   } else if (m_divisor != 1) {
     if (outputFormat & OF_JSON) {
       *output << ", \"divisor\": ";
     }
     *output << m_divisor;
-    return true;
+    ret = true;
   }
-  return false;
+  if (ret && (outputFormat & OF_JSON) && (outputFormat & OF_ALL_ATTRS)) {
+    *output << ", \"precision\": " << static_cast<unsigned>(getPrecision());
+  }
+  return ret;
 }
 
 result_t NumberDataType::derive(int divisor, size_t bitCount, const NumberDataType** derived) const {

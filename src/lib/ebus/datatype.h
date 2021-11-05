@@ -326,6 +326,9 @@ class StringDataType : public DataType {
   virtual ~StringDataType() {}
 
   // @copydoc
+  bool dump(OutputFormat outputFormat, size_t length, bool appendDivisor, ostream* output) const override;
+
+  // @copydoc
   result_t readRawValue(size_t offset, size_t length, const SymbolString& input,
       unsigned int* value) const override;
 
@@ -368,6 +371,9 @@ class DateTimeDataType : public DataType {
    * Destructor.
    */
   virtual ~DateTimeDataType() {}
+
+  // @copydoc
+  bool dump(OutputFormat outputFormat, size_t length, bool appendDivisor, ostream* output) const override;
 
   /**
    * @return true if date part is present.
