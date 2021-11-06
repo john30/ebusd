@@ -431,7 +431,7 @@ components:
           type: string
           description: the field name.
         value:
-          type: object
+          $ref: '#/components/schemas/FieldValue'
           description: the field value.
         unit:
           type: string
@@ -439,6 +439,12 @@ components:
         comment:
           type: string
           description: the field comment (only with verbose).
+    FieldValue:
+      description: the field value.
+      oneOf:
+        - type: string
+        - type: number
+      nullable: true
     FieldDef:
       required:
         - name
