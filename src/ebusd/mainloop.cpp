@@ -2259,6 +2259,56 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
     return formatHttpResult(ret, type, ostream);
   }
 
+  if (uri == "/decode") {
+    string def;
+    string raw;
+    if (args.size() > argPos) {
+      string query = args[argPos];
+      istringstream stream(query);
+      string token;
+      while (getline(stream, token, '&')) {
+        size_t pos = token.find('=');
+        string qname, value;
+        if (pos != string::npos) {
+          qname = token.substr(0, pos);
+          value = token.substr(pos + 1);
+        } else {
+          qname = token;
+        }
+        if (qname == "def") {
+          def = value;
+        } else if (qname == "raw") {
+          raw = value;
+        }
+        if (ret != RESULT_OK) {
+          break;
+        }
+      }
+    }
+    if (ret == RESULT_OK) {
+      time_t now;
+      time(&now);
+      istringstream defstr("#\n" + def);  // ensure first line is not used for determining col names
+      string errorDescription;
+      DataFieldTemplates* templates = getTemplates("*");
+      LoadableDataFieldSet fields("", templates);
+      ret = fields.readFromStream(&defstr, "temporary", now, true, nullptr, &errorDescription);
+      if (ret == RESULT_OK) {
+        const SingleDataField* field = fields[0];
+        SlaveSymbolString slave;
+        slave.push_back(0);  // dummy length
+        ret = slave.parseHex(raw);
+        if (ret == RESULT_OK) {
+          slave.adjustHeader();
+          ret = field->read(slave, 0, false, nullptr, 0, OF_JSON|OF_SHORT, 0, ostream);
+        }
+      }
+      type = 6;
+    }
+    *connected = false;
+    return formatHttpResult(ret, type, ostream);
+  }
+
   if (uri.length() < 1 || uri[0] != '/' || uri.find("//") != string::npos || uri.find("..") != string::npos) {
     ret = RESULT_ERR_INVALID_ARG;
   } else {

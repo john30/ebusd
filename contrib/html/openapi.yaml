@@ -157,6 +157,32 @@ paths:
             application/json;charset=utf-8:
               schema:
                 $ref: '#/components/schemas/RawMessages'
+  /decode:
+    get:
+      summary: Decode raw data with the specified field defintion.
+      parameters:
+        - name: def
+          in: query
+          description: the field definition (starting with type).
+          allowEmptyValue: false
+          required: true
+          schema:
+            type: string
+        - name: raw
+          in: query
+          description: the raw symbols to decode as hex sequence.
+          required: true
+          allowEmptyValue: false
+          schema:
+            type: string
+            pattern: '^([0-9a-f][0-9a-f])+$'
+      responses:
+        200:
+          description: Success
+          content:
+            application/json;charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/FieldValue'
   /{file}:
     get:
       summary: Retrieve a particular file.

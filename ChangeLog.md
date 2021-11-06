@@ -21,7 +21,7 @@
 * added some PIC calibration data to "ebuspicloader" verbose output
 * added support for upcoming adapter 3 firmware enhancements
 * added config override path
-* added support for adding message definition, retrieving data types and raw messages to HTTP port
+* added support for adding message definition, retrieving data types and raw messages, and decode data types from raw values to HTTP port
 * added "--mqttverbose" option
 
 ## Breaking Changes
