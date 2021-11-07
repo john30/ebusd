@@ -23,6 +23,7 @@
 * added config override path
 * added support for adding message definition, retrieving data types and raw messages, and decode data types from raw values to HTTP port
 * added "--mqttverbose" option
+* added verbose option to "info" command
 
 ## Breaking Changes
 * remove support for Debian 8 Jessie in docker

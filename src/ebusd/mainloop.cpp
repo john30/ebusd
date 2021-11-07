@@ -1900,19 +1900,30 @@ result_t MainLoop::executeReload(const vector<string>& args, ostringstream* ostr
 }
 
 result_t MainLoop::executeInfo(const vector<string>& args, const string& user, ostringstream* ostream) {
-  if (args.size() == 0) {
-    *ostream << "usage: info\n"
-                " Report information about the daemon, the configuration, and seen devices.";
+  bool verbose = args.size() == 2 && args[1] == "verbose";
+  if (args.size() != 1 && !verbose) {
+    *ostream << "usage: info [verbose]\n"
+                " Report information about the daemon, configuration, seen participants, and the device.";
     return RESULT_OK;
   }
   *ostream << "version: " << PACKAGE_STRING "." REVISION "\n";
   if (!m_updateCheck.empty()) {
     *ostream << "update check: " << m_updateCheck << "\n";
   }
-  string info = m_device->getEnhancedInfos();
-  if (!info.empty()) {
-    *ostream << "device: " << info << "\n";
+  *ostream << "device: " << m_device->getName();
+  if (m_device->isEnhancedProto()) {
+    *ostream << ", enhanced";
   }
+  if (m_device->isReadOnly()) {
+    *ostream << ", readonly";
+  }
+  if (verbose) {
+    string info = m_device->getEnhancedInfos();
+    if (!info.empty()) {
+      *ostream << ", " << info;
+    }
+  }
+  *ostream << "\n";
   if (!user.empty()) {
     *ostream << "user: " << user << "\n";
   }
@@ -1973,7 +1984,7 @@ result_t MainLoop::executeHelp(ostringstream* ostream) {
       " listen|l  Listen for updates:    listen [-v|-V] [-n|-N] [-u|-U] [stop]\n"
       " direct    Enter direct mode\n"
       " state|s   Report bus state\n"
-      " info|i    Report information about the daemon, the configuration, and seen devices.\n"
+      " info|i    Report information about the daemon, configuration, seen participants, and the device.\n"
       " grab|g    Grab messages:         grab [stop]\n"
       "           Report the messages:   grab result [all]\n"
       " define    Define new message:    define [-r] DEFINITION\n"
