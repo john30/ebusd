@@ -13,3 +13,8 @@ jobs:
     - uses: actions/checkout@v2
     - name: configure and build
       run: ./make_debian.sh
+    - name: upload result
+      uses: actions/upload-artifact@v2
+      with:
+        name: debian packages
+        path: ebusd*.deb
