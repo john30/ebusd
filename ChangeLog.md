@@ -1,4 +1,4 @@
-# 21.3 (tbd)
+# 21.3 (2021-11-07)
 
 ## Bug Fixes
 * fix for escaping double quote in CSV format
