@@ -1254,7 +1254,7 @@ result_t MainLoop::parseHexAndSend(const vector<string>& args, size_t& argPos, b
 result_t MainLoop::executeHex(const vector<string>& args, ostringstream* ostream) {
   size_t argPos = 1;
   result_t ret = parseHexAndSend(args, argPos, false, ostream);
-  if (argPos == args.size()) {
+  if (argPos != 0 && argPos == args.size()) {
     return ret;
   }
   *ostream << "usage: hex [-s QQ] ZZPBSBNN[DD]*\n"
