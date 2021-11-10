@@ -1,11 +1,11 @@
-name: Build
+name: Release
 
 on:
-  push:
-    branches: [ master ]
+  release:
+    types: [ published ]
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
     steps:
       -
@@ -28,4 +28,4 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       -
         name: build
-        run: cd contrib/docker && ./build.sh
+        run: cd contrib/docker && ./build.sh release
