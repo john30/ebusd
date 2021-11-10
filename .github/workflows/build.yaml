@@ -10,11 +10,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: configure and build
-      run: ./make_debian.sh
-    - name: upload result
-      uses: actions/upload-artifact@v2
-      with:
-        name: debian packages
-        path: ebusd*.deb
+       - name: checkout
+        uses: actions/checkout@v2
+      - name: set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: set up buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+        with:
+          buildkitd-flags: --debug
+      - name: platforms
+        run: echo ${{ steps.buildx.outputs.platforms }}
+      - name: build
+        run: cd contrib/docker && ./build.sh release
+#      - name: configure and build
+#        run: ./make_debian.sh
+#      - name: upload result
+#        uses: actions/upload-artifact@v2
+#        with:
+#          name: debian packages
+#          path: ebusd*.deb
