@@ -1,5 +1,5 @@
 #!/bin/bash
-if [[ -z "$1" ]]; then
+if [[ "$1" == "-h" ]]; then
   echo "usage: $0 [release|UPLOADHOST]"
   echo "  without arguments: build and push devel docker images"
   echo "  release: build and push release docker images from latest release binaries"
