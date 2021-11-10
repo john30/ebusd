@@ -119,7 +119,6 @@ Description: eBUS daemon.
  2-wire bus system.
 EOF
 cat <<EOF > $RELEASE/DEBIAN/dirs
-/etc/ebusd
 /etc/default
 /etc/init.d
 /etc/logrotate.d
