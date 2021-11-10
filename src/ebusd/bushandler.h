@@ -334,12 +334,12 @@ class GrabbedMessage {
    * @param unknown whether to dump only if this message is unknown.
    * @param messages the @a MessageMap instance for resolving known @a Message instances.
    * @param first whether this is the first message to be added to the output.
-   * @param decode whether to add decoding hints.
+   * @param outputFormat the @a OutputFormat options to use.
    * @param output the @a ostringstream to format the messages to.
    * @param isDirectMode true for direct mode, false for grab command.
    * @return whether the message was added to the output.
    */
-  bool dump(bool unknown, MessageMap* messages, bool first, bool decode, ostringstream* output,
+  bool dump(bool unknown, MessageMap* messages, bool first, OutputFormat outputFormat, ostringstream* output,
       bool isDirectMode = false) const;
 
 
@@ -538,13 +538,13 @@ class BusHandler : public WaitThread {
   /**
    * Format the grabbed messages to the @a ostringstream.
    * @param unknown whether to dump only unknown messages.
-   * @param decode whether to add decoding hints.
+   * @param outputFormat the @a OutputFormat options to use.
    * @param output the @a ostringstream to format the messages to.
    * @param isDirectMode true for direct mode, false for grab command.
    * @param since the start time from which to add received messages (inclusive), or 0 for all.
    * @param until the end time to which to add received messages (exclusive), or 0 for all.
    */
-  void formatGrabResult(bool unknown, bool decode, ostringstream* output, bool isDirectMode = false,
+  void formatGrabResult(bool unknown, OutputFormat outputFormat, ostringstream* output, bool isDirectMode = false,
       time_t since = 0, time_t until = 0) const;
 
   /**

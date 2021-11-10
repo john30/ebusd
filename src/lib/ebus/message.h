@@ -122,7 +122,11 @@ class Message : public AttributedItem {
   /**
    * Destructor.
    */
-  virtual ~Message() { if (m_deleteData) { delete m_data; } }
+  virtual ~Message() {
+    if (m_deleteData) {
+      delete m_data;
+    }
+  }
 
   /**
    * Calculate the key for the ID.

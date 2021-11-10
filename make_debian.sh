@@ -15,8 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pwd
-ls -la
 keepbuilddir=
 if [ "x$1" = "x--keepbuilddir" ]; then
   keepbuilddir=1
@@ -80,16 +78,21 @@ else
   fi
 fi
 
-echo
-echo "*************"
-echo " test"
-echo "*************"
-echo
-testdie() {
-  echo "test failed"
-  exit 1
-}
-(cd src/lib/ebus/test && make test_data >/dev/null && ./test_data) || testdie
+if [ -n "$RUNTEST" ]; then
+  echo
+  echo "*************"
+  echo " test"
+  echo "*************"
+  echo
+  testdie() {
+    echo "test failed"
+    exit 1
+  }
+  ($RELEASE/usr/bin/ebusd -f -c src/lib/ebus/test -d /dev/null --checkconfig -i 10fe0900040000803e/ | egrep "received update-read broadcast test QQ=10: 0\.25$") || testdie
+  if [ "$RUNTEST" == "full" ]; then
+    (cd src/lib/ebus/test && make >/dev/null && ./test_filereader && ./test_data && ./test_message && ./test_symbol) || testdie
+  fi
+fi
 
 echo
 echo "*************"
@@ -97,7 +100,6 @@ echo " pack"
 echo "*************"
 echo
 mkdir -p $RELEASE/DEBIAN $RELEASE/etc/default $RELEASE/etc/logrotate.d || exit 1
-rm $RELEASE/usr/bin/ebusfeed
 mkdir -p $RELEASE/lib/systemd/system || exit 1
 cp contrib/debian/systemd/ebusd.service $RELEASE/lib/systemd/system/ebusd.service || exit 1
 mkdir -p $RELEASE/etc/init.d || exit 1
@@ -114,13 +116,13 @@ Architecture: $ARCH
 Maintainer: John Baier <ebusd@ebusd.eu>
 Homepage: https://github.com/john30/ebusd
 Bugs: https://github.com/john30/ebusd/issues
-Depends: logrotate, libstdc++6 (>= 4.8.1), libc6, libgcc1$extralibs
+Depends: libstdc++6 (>= 4.8.1), libc6, libgcc1$extralibs
+Recommends: logrotate
 Description: eBUS daemon.
  ebusd is a daemon for handling communication with eBUS devices connected to a
  2-wire bus system.
 EOF
 cat <<EOF > $RELEASE/DEBIAN/dirs
-/etc/ebusd
 /etc/default
 /etc/init.d
 /etc/logrotate.d

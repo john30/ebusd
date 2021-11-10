@@ -1,12 +1,32 @@
-# 21.3 (tbd)
+# 21.3 (2021-11-07)
 
 ## Bug Fixes
 * fix for escaping double quote in CSV format
 * adjusted helper shell scripts and Munin plugin to newer netcat
 * fix for weekday in BDA data type (for sending only)
+* fix some compiler warnings
+* fix non-unique message keys in HTTP JSON output with "full" query parameter
+* fix for message after debian install
+* fix for replacing already existing message definitions
+* fix missing length in CSV dump for some data types
+* fix some missing data type lengths in "grab decode" result
+* fix for injecting several messages via command line args
 
 ## Features
 * added DTM and BDZ data types
+* added "-n" argument to "hex" and "direct" commands for automatically determining message length from input
+* added level/pollprio/condition/field flags and field result type as well as list of types to HTTP JSON output
+* added message dump from commandline in JSON format
+* added support for newer MQTT broker versions
+* added some PIC calibration data to "ebuspicloader" verbose output
+* added support for upcoming adapter 3 firmware enhancements
+* added config override path
+* added support for adding message definition, retrieving data types and raw messages, and decode data types from raw values to HTTP port
+* added "--mqttverbose" option
+* added verbose option to "info" command
+
+## Breaking Changes
+* remove support for Debian 8 Jessie in docker
 
 
 # 21.2 (2021-02-08)

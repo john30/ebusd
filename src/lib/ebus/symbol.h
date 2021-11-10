@@ -67,6 +67,7 @@ namespace ebusd {
 
 using std::string;
 using std::vector;
+using std::ostringstream;
 
 /** the base type for symbols sent to/from the eBUS. */
 typedef unsigned char symbol_t;
@@ -157,6 +158,14 @@ class SymbolString {
    * @return the symbols as hex string.
    */
   const string getStr(size_t skipFirstSymbols = 0) const;
+
+  /**
+   * Dump the data in JSON format to the output.
+   * @param withSeparator true to prepend the field separator.
+   * @param output the @a ostringstream to format the messages to.
+   * @return true if something was written to the output.
+   */
+  bool dumpJson(bool withSeparator, ostringstream* output) const;
 
   /**
    * Return a reference to the symbol at the specified index.

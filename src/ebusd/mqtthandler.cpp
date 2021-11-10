@@ -46,6 +46,7 @@ using std::dec;
 #define O_KEYF (O_CERT+1)
 #define O_KEPA (O_KEYF+1)
 #define O_INSE (O_KEPA+1)
+#define O_VERB (O_INSE+1)
 
 /** the definition of the MQTT arguments. */
 static const struct argp_option g_mqtt_argp_options[] = {
@@ -60,6 +61,7 @@ static const struct argp_option g_mqtt_argp_options[] = {
    "Use MQTT TOPIC (prefix before /%circuit/%name or complete format) [ebusd]", 0 },
   {"mqttretain",   O_RETA, nullptr,       0, "Retain all topics instead of only selected global ones", 0 },
   {"mqttjson",     O_JSON, nullptr,       0, "Publish in JSON format instead of strings", 0 },
+  {"mqttverbose",  O_VERB, nullptr,       0, "Publish all available attributes", 0 },
 #if (LIBMOSQUITTO_VERSION_NUMBER >= 1003001)
   {"mqttlog",      O_LOGL, nullptr,       0, "Log library events", 0 },
 #endif
@@ -75,7 +77,7 @@ static const struct argp_option g_mqtt_argp_options[] = {
   {"mqttcert",     O_CERT, "CERTFILE",    0, "Use CERTFILE for MQTT TLS client certificate (no default)", 0 },
   {"mqttkey",      O_KEYF, "KEYFILE",     0, "Use KEYFILE for MQTT TLS client certificate (no default)", 0 },
   {"mqttkeypass",  O_KEPA, "PASSWORD",    0, "Use PASSWORD for the encrypted KEYFILE (no default)", 0 },
-  {"mqttinsecure", O_INSE, nullptr,      0, "Allow insecure TLS connection (e.g. using a self signed certificate)", 0 },
+  {"mqttinsecure", O_INSE, nullptr,       0, "Allow insecure TLS connection (e.g. using a self signed certificate)", 0 },
 #endif
 
   {nullptr,        0,      nullptr,       0, nullptr, 0 },
@@ -187,6 +189,10 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
 
   case O_JSON:  // --mqttjson
     g_publishFormat |= OF_JSON|OF_NAMES;
+    break;
+
+  case O_VERB:  // --mqttverbose
+    g_publishFormat |= OF_NAMES|OF_UNITS|OF_COMMENTS|OF_ALL_ATTRS;
     break;
 
 #if (LIBMOSQUITTO_VERSION_NUMBER >= 1003001)
@@ -909,7 +915,7 @@ void MqttHandler::publishMessage(const Message* message, ostringstream* updates,
     publishTopic(getTopic(message), updates->str());
     return;
   }
-  if (json) {
+  if (json && !(outputFormat & OF_ALL_ATTRS)) {
     outputFormat |= OF_SHORT;
   }
   for (size_t index = 0; index < message->getFieldCount(); index++) {

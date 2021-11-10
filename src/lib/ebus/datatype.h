@@ -178,9 +178,8 @@ enum PartType {
 /** bit flag for @a DataType: special marker for certain types. */
 #define SPE 0x800
 
-/** bit flag for @a DataType: marker for a constant value. */
-#define CON 0x1000
-
+/** bit flag for @a DataType: stored duplicate for backwards compatibility, not to be traversed in lists any more. */
+#define DUP 0x1000
 
 /**
  * Base class for all kinds of data types.
@@ -327,6 +326,9 @@ class StringDataType : public DataType {
   virtual ~StringDataType() {}
 
   // @copydoc
+  bool dump(OutputFormat outputFormat, size_t length, bool appendDivisor, ostream* output) const override;
+
+  // @copydoc
   result_t readRawValue(size_t offset, size_t length, const SymbolString& input,
       unsigned int* value) const override;
 
@@ -369,6 +371,9 @@ class DateTimeDataType : public DataType {
    * Destructor.
    */
   virtual ~DateTimeDataType() {}
+
+  // @copydoc
+  bool dump(OutputFormat outputFormat, size_t length, bool appendDivisor, ostream* output) const override;
 
   /**
    * @return true if date part is present.
@@ -429,7 +434,7 @@ class NumberDataType : public DataType {
   NumberDataType(const string& id, size_t bitCount, uint16_t flags, unsigned int replacement,
       unsigned int minValue, unsigned int maxValue, int divisor,
       const NumberDataType* baseType = nullptr)
-    : DataType(id, bitCount, flags|NUM, replacement), m_minValue(minValue), m_maxValue(maxValue), m_divisor(divisor),
+    : DataType(id, bitCount, flags|NUM, replacement), m_minValue(minValue), m_maxValue(maxValue), m_divisor(divisor==0 ? 1 : divisor),
       m_precision(calcPrecision(divisor)), m_firstBit(0), m_baseType(baseType) {}
 
   /**
@@ -444,7 +449,7 @@ class NumberDataType : public DataType {
    */
   NumberDataType(const string& id, size_t bitCount, uint16_t flags, unsigned int replacement,
       int16_t firstBit, int divisor, const NumberDataType* baseType = nullptr)
-    : DataType(id, bitCount, flags|NUM, replacement), m_minValue(0), m_maxValue((1 << bitCount)-1), m_divisor(divisor),
+    : DataType(id, bitCount, flags|NUM, replacement), m_minValue(0), m_maxValue((1 << bitCount)-1), m_divisor(divisor==0 ? 1 : divisor),
       m_precision(0), m_firstBit(firstBit), m_baseType(baseType) {}
 
   /**
@@ -571,6 +576,14 @@ class DataTypeList {
   static DataTypeList* getInstance();
 
   /**
+   * Dump the type list optionally including the divisor to the output.
+   * @param outputFormat the @a OutputFormat options.
+   * @param appendDivisor whether to append the divisor (if available).
+   * @param output the @a ostream to dump to.
+   */
+  void dump(OutputFormat outputFormat, bool appendDivisor, ostream* output) const;
+
+  /**
    * Removes all @a DataType instances.
    */
   void clear();
@@ -611,12 +624,9 @@ class DataTypeList {
   map<string, const DataType*>::const_iterator end() const { return m_typesById.end(); }
 
  private:
-  /** the known @a DataType instances by ID only. */
-  map<string, const DataType*> m_typesById;
-
-  /** the known @a DataType instances by ID and length (i.e. "ID:BITS").
+  /** the known @a DataType instances by ID (e.g. "ID:BITS" or just "ID").
    * Note: adjustable length types are stored by ID only. */
-  map<string, const DataType*> m_typesByIdLength;
+  map<string, const DataType*> m_typesById;
 
   /** the @a DataType instances to cleanup. */
   list<const DataType*> m_cleanupTypes;

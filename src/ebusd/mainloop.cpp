@@ -434,14 +434,14 @@ void MainLoop::run() {
       }
       if (settings.listenWithUnknown || settings.listenOnlyUnknown) {
         if (m_busHandler->isGrabEnabled()) {
-          m_busHandler->formatGrabResult(true, false, &ostream, true, since, now);
+          m_busHandler->formatGrabResult(true, OF_NONE, &ostream, true, since, now);
         } else {
           m_busHandler->enableGrab(true);  // needed for listening to all messages
         }
       }
     } else if (settings.mode == cm_direct) {
       if (m_busHandler->isGrabEnabled()) {
-        m_busHandler->formatGrabResult(false, false, &ostream, true, since, now);
+        m_busHandler->formatGrabResult(false, OF_NONE, &ostream, true, since, now);
       }
     }
     // send result to client
@@ -607,7 +607,7 @@ result_t MainLoop::decodeMessage(const string &data, bool isHttp, bool* connecte
   if (cmd == "G" || cmd == "GRAB") {
     return executeGrab(args, ostream);
   }
-  if (cmd == "DEFINE") {
+  if (cmd == "DEF" || cmd == "DEFINE") {
     if (m_newlyDefinedMessages) {
       return executeDefine(args, ostream);
     }
@@ -921,8 +921,6 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
   Message* message;
   result_t ret;
   if (newDefinition) {
-    time_t now;
-    time(&now);
     string errorDescription;
     istringstream defstr("#\n" + args[argPos]);  // ensure first line is not used for determining col names
     m_newlyDefinedMessages->clear();
@@ -1256,7 +1254,7 @@ result_t MainLoop::parseHexAndSend(const vector<string>& args, size_t& argPos, b
 result_t MainLoop::executeHex(const vector<string>& args, ostringstream* ostream) {
   size_t argPos = 1;
   result_t ret = parseHexAndSend(args, argPos, false, ostream);
-  if (argPos == args.size()) {
+  if (argPos != 0 && argPos == args.size()) {
     return ret;
   }
   *ostream << "usage: hex [-s QQ] ZZPBSBNN[DD]*\n"
@@ -1641,7 +1639,7 @@ result_t MainLoop::executeGrab(const vector<string>& args, ostringstream* ostrea
       }
     }
     if (!invalid) {
-      m_busHandler->formatGrabResult(onlyUnknown, decode, ostream);
+      m_busHandler->formatGrabResult(onlyUnknown, decode ? OF_DEFINITION : OF_NONE, ostream);
       return RESULT_OK;
     }
   }
@@ -1677,7 +1675,7 @@ result_t MainLoop::executeDefine(const vector<string>& args, ostringstream* ostr
   time(&now);
   string errorDescription;
   istringstream defstr("#\n" + args[argPos]);  // ensure first line is not used for determining col names
-  return m_messages->readFromStream(&defstr, "temporary", now, true, nullptr, &errorDescription, replace);
+  return m_messages->readFromStream(&defstr, "tcp", now, true, nullptr, &errorDescription, replace);
 }
 
 
@@ -1902,19 +1900,30 @@ result_t MainLoop::executeReload(const vector<string>& args, ostringstream* ostr
 }
 
 result_t MainLoop::executeInfo(const vector<string>& args, const string& user, ostringstream* ostream) {
-  if (args.size() == 0) {
-    *ostream << "usage: info\n"
-                " Report information about the daemon, the configuration, and seen devices.";
+  bool verbose = args.size() == 2 && args[1] == "verbose";
+  if (args.size() != 1 && !verbose) {
+    *ostream << "usage: info [verbose]\n"
+                " Report information about the daemon, configuration, seen participants, and the device.";
     return RESULT_OK;
   }
   *ostream << "version: " << PACKAGE_STRING "." REVISION "\n";
   if (!m_updateCheck.empty()) {
     *ostream << "update check: " << m_updateCheck << "\n";
   }
-  string info = m_device->getEnhancedInfos();
-  if (!info.empty()) {
-    *ostream << "device: " << info << "\n";
+  *ostream << "device: " << m_device->getName();
+  if (m_device->isEnhancedProto()) {
+    *ostream << ", enhanced";
   }
+  if (m_device->isReadOnly()) {
+    *ostream << ", readonly";
+  }
+  if (verbose) {
+    string info = m_device->getEnhancedInfos();
+    if (!info.empty()) {
+      *ostream << ", " << info;
+    }
+  }
+  *ostream << "\n";
   if (!user.empty()) {
     *ostream << "user: " << user << "\n";
   }
@@ -1962,8 +1971,8 @@ result_t MainLoop::executeHelp(ostringstream* ostream) {
   *ostream << "usage:\n"
       " read|r    Read value(s):         read [-f] [-m SECONDS] [-s QQ] [-d ZZ] [-c CIRCUIT] [-p PRIO] [-v|-V] [-n|-N]"
       " [-i VALUE[;VALUE]*] NAME [FIELD[.N]]\n"
-      "           Read by new defintion: read [-f] [-m SECONDS] [-s QQ] [-d ZZ] [-v|-V] [-n|-N] (if enabled)"
-      " [-i VALUE[;VALUE]*] -def DEFINITION\n"
+      "           Read by new defintion: read [-f] [-m SECONDS] [-s QQ] [-d ZZ] [-v|-V] [-n|-N]"
+      " [-i VALUE[;VALUE]*] -def DEFINITION (if enabled)\n"
       "           Read hex message:      read [-f] [-m SECONDS] [-s QQ] [-c CIRCUIT] -h ZZPBSBNN[DD]*\n"
       " write|w   Write value(s):        write [-s QQ] [-d ZZ] -c CIRCUIT NAME [VALUE[;VALUE]*]\n"
       "           Write by new def.:     write [-s QQ] [-d ZZ] -def DEFINITION [VALUE[;VALUE]*] (if enabled)\n"
@@ -1975,7 +1984,7 @@ result_t MainLoop::executeHelp(ostringstream* ostream) {
       " listen|l  Listen for updates:    listen [-v|-V] [-n|-N] [-u|-U] [stop]\n"
       " direct    Enter direct mode\n"
       " state|s   Report bus state\n"
-      " info|i    Report information about the daemon, the configuration, and seen devices.\n"
+      " info|i    Report information about the daemon, configuration, seen participants, and the device.\n"
       " grab|g    Grab messages:         grab [stop]\n"
       "           Report the messages:   grab result [all]\n"
       " define    Define new message:    define [-r] DEFINITION\n"
@@ -2002,9 +2011,6 @@ bool parseBoolQuery(const string& value) {
 }
 
 result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostringstream* ostream) {
-  bool required = false, full = false, withWrite = false, raw = false;
-  bool withDefinition = false;
-  OutputFormat verbosity = OF_NAMES;
   time_t maxAge = -1;
   size_t argPos = 1;
   string uri = args[argPos++];
@@ -2019,6 +2025,10 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
       circuit = uri.substr(6, pos - 6);
       name = uri.substr(pos + 1);
     }
+    bool required = false, full = false, withWrite = false, raw = false;
+    bool withDefinition = false;
+    string newDefinition;
+    OutputFormat verbosity = OF_NAMES;
     time_t since = 0;
     size_t pollPriority = 0;
     bool exact = false;
@@ -2072,6 +2082,18 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
           raw = parseBoolQuery(value);
         } else if (qname == "def") {
           withDefinition = parseBoolQuery(value);
+        } else if (qname == "define") {
+          if (!m_newlyDefinedMessages || circuit.empty() || name.empty() || value.empty()) {
+            ret = RESULT_ERR_INVALID_ARG;
+            break;
+          }
+          size_t comma = value.find(',');
+          if (comma == string::npos || comma == 0
+          || value.find(circuit+","+name+",") != comma+1) { // ensure same circuit+name
+            ret = RESULT_ERR_INVALID_ARG;
+            break;
+          }
+          newDefinition = value;
         } else if (qname == "user") {
           user = value;
         } else if (qname == "secret") {
@@ -2091,6 +2113,11 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
     time_t now;
     time(&now);
     time_t maxLastUp = 0;
+    if (ret == RESULT_OK && !newDefinition.empty()) {
+      string errorDescription;
+      istringstream defstr("#\n" + newDefinition);  // ensure first line is not used for determining col names
+      ret = m_messages->readFromStream(&defstr, "http", now, true, nullptr, &errorDescription, true);
+    }
     if (ret == RESULT_OK) {
       bool first = true;
       verbosity |= OF_JSON | (full ? OF_ALL_ATTRS : OF_NONE) | (withDefinition ? OF_DEFINITION : OF_NONE);
@@ -2191,6 +2218,107 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
     *connected = false;
     return formatHttpResult(ret, type, ostream);
   }  // request for "/data..."
+
+  if (uri == "/datatypes") {
+    *ostream << "[";
+    OutputFormat verbosity = OF_NAMES|OF_JSON|OF_ALL_ATTRS;
+    DataTypeList::getInstance()->dump(verbosity, true, ostream);
+    *ostream << "\n]";
+    type = 6;
+    *connected = false;
+    return formatHttpResult(ret, type, ostream);
+  }
+
+  if (uri == "/raw") {
+    time_t since = 0, until = 0;
+    bool onlyUnknown = false;
+    if (args.size() > argPos) {
+      string query = args[argPos];
+      istringstream stream(query);
+      string token;
+      while (getline(stream, token, '&')) {
+        size_t pos = token.find('=');
+        string qname, value;
+        if (pos != string::npos) {
+          qname = token.substr(0, pos);
+          value = token.substr(pos + 1);
+        } else {
+          qname = token;
+        }
+        if (qname == "since") {
+          since = parseInt(value.c_str(), 10, 0, 0xffffffff, &ret);
+        } else if (qname == "unknown") {
+          onlyUnknown = parseBoolQuery(value);
+        }
+        if (ret != RESULT_OK) {
+          break;
+        }
+      }
+    }
+    if (ret == RESULT_OK) {
+      *ostream << "[";
+      if (since > 0) {
+        time_t now;
+        time(&now);
+        until = now-1;
+      }
+      m_busHandler->formatGrabResult(onlyUnknown, OF_JSON, ostream, false, since, until);
+      *ostream << "\n]";
+      type = 6;
+    }
+    *connected = false;
+    return formatHttpResult(ret, type, ostream);
+  }
+
+  if (uri == "/decode") {
+    string def;
+    string raw;
+    if (args.size() > argPos) {
+      string query = args[argPos];
+      istringstream stream(query);
+      string token;
+      while (getline(stream, token, '&')) {
+        size_t pos = token.find('=');
+        string qname, value;
+        if (pos != string::npos) {
+          qname = token.substr(0, pos);
+          value = token.substr(pos + 1);
+        } else {
+          qname = token;
+        }
+        if (qname == "def") {
+          def = value;
+        } else if (qname == "raw") {
+          raw = value;
+        }
+        if (ret != RESULT_OK) {
+          break;
+        }
+      }
+    }
+    if (ret == RESULT_OK) {
+      time_t now;
+      time(&now);
+      istringstream defstr("#\n" + def);  // ensure first line is not used for determining col names
+      string errorDescription;
+      DataFieldTemplates* templates = getTemplates("*");
+      LoadableDataFieldSet fields("", templates);
+      ret = fields.readFromStream(&defstr, "temporary", now, true, nullptr, &errorDescription);
+      if (ret == RESULT_OK) {
+        const SingleDataField* field = fields[0];
+        SlaveSymbolString slave;
+        slave.push_back(0);  // dummy length
+        ret = slave.parseHex(raw);
+        if (ret == RESULT_OK) {
+          slave.adjustHeader();
+          ret = field->read(slave, 0, false, nullptr, 0, OF_JSON|OF_SHORT, 0, ostream);
+        }
+      }
+      type = 6;
+    }
+    *connected = false;
+    return formatHttpResult(ret, type, ostream);
+  }
 
   if (uri.length() < 1 || uri[0] != '/' || uri.find("//") != string::npos || uri.find("..") != string::npos) {
     ret = RESULT_ERR_INVALID_ARG;

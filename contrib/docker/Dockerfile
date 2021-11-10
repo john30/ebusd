@@ -1,5 +1,6 @@
+ARG BASE_IMAGE
 
-FROM debian:bullseye as build
+FROM $BASE_IMAGE as build
 
 RUN apt-get update && apt-get install -y \
     libmosquitto-dev libstdc++6 libc6 libgcc1 \
@@ -9,25 +10,34 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /build
 
-ENV EBUSD_ARCH amd64
-ENV EBUSD_VERSION 21.2
+ARG TARGETARCH
+ARG TARGETVARIANT
+ARG EBUSD_VERSION
 
-RUN git clone https://github.com/john30/ebusd.git /build \
-    && ./make_debian.sh
+ENV EBUSD_ARCH $TARGETARCH$TARGETVARIANT
+ENV EBUSD_VERSION $EBUSD_VERSION
+
+ADD . /build
+RUN ./make_debian.sh
 
 
 
 
-FROM debian:bullseye-slim
+FROM $BASE_IMAGE-slim as image
 
 RUN apt-get update && apt-get install -y \
-    logrotate libmosquitto1 libstdc++6 libc6 libgcc1 \
+    libmosquitto1 libstdc++6 libc6 libgcc1 \
     && rm -rf /var/lib/apt/lists/*
 
 LABEL maintainer "ebusd@ebusd.eu"
 
-ENV EBUSD_VERSION 21.2
-ENV EBUSD_ARCH amd64
+ARG TARGETARCH
+ARG TARGETVARIANT
+ARG EBUSD_VERSION
+ARG EBUSD_IMAGE
+
+ENV EBUSD_ARCH $TARGETARCH$TARGETVARIANT
+ENV EBUSD_VERSION $EBUSD_VERSION
 
 LABEL version "${EBUSD_VERSION}-${EBUSD_ARCH}-devel"
 
@@ -39,6 +49,6 @@ RUN dpkg -i ebusd.deb \
 
 EXPOSE 8888
 
-COPY docker-entrypoint.sh /
+COPY --from=build /build/contrib/docker/docker-entrypoint.sh /
 ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["-f", "--scanconfig"]
