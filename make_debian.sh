@@ -91,7 +91,6 @@ echo " pack"
 echo "*************"
 echo
 mkdir -p $RELEASE/DEBIAN $RELEASE/etc/default $RELEASE/etc/logrotate.d || exit 1
-rm $RELEASE/usr/bin/ebusfeed
 mkdir -p $RELEASE/lib/systemd/system || exit 1
 cp contrib/debian/systemd/ebusd.service $RELEASE/lib/systemd/system/ebusd.service || exit 1
 mkdir -p $RELEASE/etc/init.d || exit 1
