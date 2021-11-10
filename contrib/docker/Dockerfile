@@ -21,7 +21,7 @@ RUN git clone https://github.com/john30/ebusd.git /build \
 FROM debian:bullseye-slim
 
 RUN apt-get update && apt-get install -y \
-    logrotate libmosquitto1 libstdc++6 libc6 libgcc1 \
+    libmosquitto1 libstdc++6 libc6 libgcc1 \
     && rm -rf /var/lib/apt/lists/*
 
 LABEL maintainer "ebusd@ebusd.eu"
