@@ -16,6 +16,8 @@ UPLOAD_CREDENTIALS='anonymous:build'
 version=`cat ../../VERSION`
 source='../..'
 images='bullseye'
+tagprefix=docker.io/john30/ebusd
+extratag=
 
 if [[ -z "$1" ]]; then
   namesuffix=''
@@ -26,8 +28,9 @@ elif [[ "x$1" = "xrelease" ]]; then
   archs=linux/amd64
   namesuffix='.release'
   target=image
-  outputFmt='-o type=docker,type=registry'
+  outputFmt='-o type=registry'
   tagsuffix=":v$version"
+  extratag="-t $tagprefix:latest"
 else
   namesuffix='.build'
   target=build
@@ -49,7 +52,8 @@ for image in $images; do
     --build-arg "UPLOAD_URL=$UPLOAD_URL" \
     --build-arg "UPLOAD_CREDENTIALS=$UPLOAD_CREDENTIALS" \
     --build-arg "UPLOAD_OS=$image" \
-    -t ebusd$tagsuffix \
+    -t $tagprefix$tagsuffix \
+    $extratag \
     $output \
     $source
 done
