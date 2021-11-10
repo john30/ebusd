@@ -2,8 +2,8 @@ ebusd Docker image
 ==================
 
 An [ebusd](https://github.com/john30/ebusd/) Docker image is available on the
-[Docker Hub](https://hub.docker.com/r/john30/ebusd/) and comes with the latest German
-[configuration files](https://github.com/john30/ebusd-configuration/).
+[Docker Hub](https://hub.docker.com/r/john30/ebusd/) and is able to download the latest released German
+[configuration files](https://github.com/john30/ebusd-configuration/) from a dedicated webservice.
 
 It allows you to run ebusd without actually installing (or even building) it on your system.
 You might even be able to run it on a non-Linux operating system, which is at least known to
@@ -18,12 +18,11 @@ To download the latest release image from the hub, use the following command:
 The image is able to run on any of the following architectures and the right image will be picked automatically:
 * amd64
 * i386
-* arm32v5
 * arm32v7
 * arm64v8
 
-In addition to the default "latest" tag, a development set of images is available with "devel" tag. This is built
-automatically with every commit to the git repository. Run the following command to use it: 
+Due to changes of docker hub policies, the development set of images with "devel" tag are currently not automatically
+built with every commit to the git repository. Run the following command to use it: 
 
 > docker pull john30/ebusd:devel
 

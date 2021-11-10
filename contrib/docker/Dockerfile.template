@@ -1,6 +1,7 @@
-%QEMU_FROM_LINE%
-FROM %BASE_IMAGE% as build
-%QEMU_FROM_COPY%
+ARG BASE_IMAGE
+
+FROM $BASE_IMAGE as build
+
 RUN apt-get update && apt-get install -y \
     libmosquitto-dev libstdc++6 libc6 libgcc1 \
     curl \
@@ -9,36 +10,45 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /build
 
-ENV EBUSD_ARCH %EBUSD_ARCH%
-ENV EBUSD_VERSION %EBUSD_VERSION%
+ARG TARGETARCH
+ARG TARGETVARIANT
+ARG EBUSD_VERSION
 
-RUN git clone https://github.com/john30/ebusd.git /build \
-    && %EBUSD_MAKE%
+ENV EBUSD_ARCH $TARGETARCH$TARGETVARIANT
+ENV EBUSD_VERSION $EBUSD_VERSION
+
+ADD . /build
+RUN %EBUSD_MAKE%
 
 %EBUSD_UPLOAD_LINES%
 
 
-FROM %BASE_IMAGE%-slim
-%QEMU_FROM_COPY%
+FROM $BASE_IMAGE-slim as image
+
 RUN apt-get update && apt-get install -y \
     libmosquitto1 libstdc++6 libc6 libgcc1 \
     && rm -rf /var/lib/apt/lists/*
 
 LABEL maintainer "ebusd@ebusd.eu"
 
-ENV EBUSD_VERSION %EBUSD_VERSION%
-ENV EBUSD_ARCH %EBUSD_ARCH%
+ARG TARGETARCH
+ARG TARGETVARIANT
+ARG EBUSD_VERSION
+ARG EBUSD_IMAGE
+
+ENV EBUSD_ARCH $TARGETARCH$TARGETVARIANT
+ENV EBUSD_VERSION $EBUSD_VERSION
 
 LABEL version "${EBUSD_VERSION}-${EBUSD_ARCH}%EBUSD_VERSION_VARIANT%"
 
-COPY --from=build /build/ebusd-*_mqtt1.deb ebusd.deb
+%EBUSD_COPYDEB%
 
 RUN dpkg -i ebusd.deb \
     && ebusd -V \
-    && rm -f ebusd.deb%EXTRA_RM%
+    && rm -f ebusd.deb
 
 EXPOSE 8888
 
-COPY docker-entrypoint.sh /
+%EBUSD_COPYENTRY%
 ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["-f", "--scanconfig"]
