@@ -34,10 +34,3 @@ jobs:
       -
         name: build
         run: cd contrib/docker && ./build.sh release
-#      - name: configure and build
-#        run: ./make_debian.sh
-#      - name: upload result
-#        uses: actions/upload-artifact@v2
-#        with:
-#          name: debian packages
-#          path: ebusd*.deb
