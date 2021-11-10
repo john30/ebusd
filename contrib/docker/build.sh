@@ -25,7 +25,6 @@ if [[ -z "$1" ]]; then
   outputFmt='-o type=docker,type=registry'
   tagsuffix=':devel'
 elif [[ "x$1" = "xrelease" ]]; then
-  archs=linux/amd64
   namesuffix='.release'
   target=image
   outputFmt='-o type=registry'
