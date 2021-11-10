@@ -78,12 +78,17 @@ else
   fi
 fi
 
-echo
-echo "*************"
-echo " test"
-echo "*************"
-echo
-(cd src/lib/ebus/test && make >/dev/null && ./test_filereader && ./test_data && ./test_message && ./test_symbol) || (echo "test failed"; exit 1)
+if [ -n "$RUNTEST" ]; then
+  echo
+  echo "*************"
+  echo " test"
+  echo "*************"
+  echo
+  $RELEASE/usr/bin/ebusd -f -c src/lib/ebus/test -d /dev/null --checkconfig -i 10fe0900040000803e/ | egrep "received update-read broadcast test QQ=10: 0\.25"
+  if [ "$RUNTEST" == "full" ]; then
+    (cd src/lib/ebus/test && make >/dev/null && ./test_filereader && ./test_data && ./test_message && ./test_symbol) || (echo "test failed"; exit 1)
+  fi
+fi
 
 echo
 echo "*************"
