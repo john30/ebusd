@@ -216,7 +216,7 @@ r,,SoftwareVersion,,,,,"0000",,,HEX:4,,,
 EOF
 echo "test,testpass,installer" > ./passwd
 #ebusd:
-./src/ebusd/ebusd -d tcp:127.0.0.1:8876 --initsend --latency 10 -n -c "$PWD/contrib/etc/ebusd" --pollinterval=10 -s -a 31 --acquireretries 3 --answer --generatesyn --receivetimeout 40000 --sendretries 1 --enablehex --htmlpath "$PWD/contrib/html" --httpport 8878 --pidfile "$PWD/ebusd.pid" --localhost -p 8877 -l "$PWD/ebusd.log" --logareas all --loglevel debug --lograwdata=bytes --lograwdatafile "$PWD/ebusd.raw" --lograwdatasize 1 --dumpfile "$PWD/ebusd.dump" --dumpsize 100 -D --scanconfig --aclfile=./passwd --mqttport=1883
+./src/ebusd/ebusd -d tcp:127.0.0.1:8876 --initsend --latency 10 -n -c "$PWD/contrib/etc/ebusd" --pollinterval=10 -s -a 31 --acquireretries 3 --answer --generatesyn --receivetimeout 40000 --sendretries 1 --enablehex --htmlpath "$PWD/contrib/html" --httpport 8878 --pidfile "$PWD/ebusd.pid" --localhost -p 8877 -l "$PWD/ebusd.log" --logareas all --loglevel debug --lograwdata=bytes --lograwdatafile "$PWD/ebusd.raw" --lograwdatasize 1 --dumpfile "$PWD/ebusd.dump" --dumpsize 100 -D --scanconfig --aclfile=./passwd
 sleep 3
 pid=`head -n 1 "$PWD/ebusd.pid"`
 if [ -z "$pid" ]; then
@@ -245,18 +245,21 @@ h
 h r
 h w
 h a
+h a
 h hex
 h f
 h l
 h s
 h i
 h g
+h define
+h d
+h e
 h scan
 h log
 h raw
 h dump
 h reload
-h stop
 h q
 h h
 l &
@@ -268,10 +271,13 @@ r -v -v outsidetemp
 r -v -v -v outsidetemp
 r -V outsidetemp
 r -c broadcast outsidetemp
+r -s f0 -c broadcast outsidetemp
 r -c mc.4 -d 53 -p 2 outsidetemp
 r -c mc.4 -d 53 -p 2 -i 1 outsidetemp temp.1
 r -c mc.4 -d 53 -p 2 -i 1 outsidetemp temp.0
 r -n -c mc.4 -d 53 -p 2 -i 1 outsidetemp temp.0
+r -N -c mc.4 -d 53 -p 2 -i 1 outsidetemp temp.0
+r -N -c mc.4 -d 53 -p 2 -i 1 -def "r,cir,nam,cmt,,08,b509,,,,UCH" outsidetemp temp.0
 r -h
 r -h 53070400
 f -f outsidetemp
@@ -290,15 +296,18 @@ f -e -c mc.5 -l installer
 r -c mc.5 Timer.Monday
 w -c mc.5 Timer.Monday "-:-;-:-;-:-;-:-;-:-;-:-;Mo-So"
 w -c mc.5 Timer.Monday "00:00;23:50;00:30;00:50;03:30;06:00;Mo-Fr"
-w -c mc.5 -d 53 HeatingCurve 0.25
+w -c mc.5 -s f0 -d 53 HeatingCurve 0.25
 w -c mc.5 -d 53 installparam 123
 a b
 a test testpass
 w -c mc.5 -d 53 installparam 123
 hex fe070400
 hex 53070400
+listen -v -n -u
 dump
 grab result
+grab result all
+grab result decode
 scan full
 r -c mc.5 -d g3 HeatingCurve
 r -c mc.5 -d 00 HeatingCurve
@@ -310,7 +319,19 @@ r -i
 r -Z
 r -h fe070400
 w -h fe070400
+s
+i
+g
+listen stop
+define -r "r,cir,nam,cmt,,08,b509,,,,UCH"
+decode -V -N UCH 102030
+encode UCH 10;1
+log all debug
+raw bytes
+raw
+reload
 nocommand
+q
 EOF
 status=1
 cnt=3
