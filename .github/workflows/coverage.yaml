@@ -16,7 +16,7 @@ jobs:
 #        run: sudo apt-get install -y libmosquitto1 libmosquitto1-dev
       -
         name: build
-        run: cmake -Dcoverage=ON -DBUILD_TESTING . && make
+        run: cmake -Dcoverage=ON -DBUILD_TESTING=1 . && make
       -
         name: test regular
         run: cd src/lib/ebus/test && ./test_symbol && ./test_filereader && ./test_data && ./test_message
