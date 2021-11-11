@@ -331,7 +331,6 @@ raw bytes
 raw
 reload
 nocommand
-q
 EOF
 status=1
 cnt=3
