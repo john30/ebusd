@@ -303,7 +303,6 @@ a test testpass
 w -c mc.5 -d 53 installparam 123
 hex fe070400
 hex 53070400
-listen -v -n -u
 dump
 grab result
 grab result all
@@ -322,6 +321,7 @@ w -h fe070400
 s
 i
 g
+listen -v -n -u
 listen stop
 define -r "r,cir,nam,cmt,,08,b509,,,,UCH"
 decode -V -N UCH 102030
@@ -329,7 +329,6 @@ encode UCH 10;1
 log all debug
 raw bytes
 raw
-reload
 nocommand
 EOF
 status=1
