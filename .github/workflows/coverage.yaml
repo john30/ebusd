@@ -11,9 +11,9 @@ jobs:
       -
         name: checkout
         uses: actions/checkout@v2
-#      -
-#        name: packages
-#        run: sudo apt-get install -y libmosquitto1 libmosquitto1-dev
+      -
+        name: packages
+        run: sudo apt-get update && sudo apt-get install -y libmosquitto1 libmosquitto1-dev
       -
         name: build
         run: cmake -Dcoverage=ON -DBUILD_TESTING=1 . && make
