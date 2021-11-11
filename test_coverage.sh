@@ -3,11 +3,17 @@
 ./src/ebusd/ebusd -r -f -x >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f -d "" >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f -d "tcp:192.168.999.999:1" >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f -d "enh:192.168.999.999:1" >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f -d "/dev/ttyUSBx9" >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --nodevicecheck >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --readonly >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --scanconfig=full -r >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --latency 999999 >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f -c "" >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f -r --scanconfig=fe >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f -r --configlang=en >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --pollinterval 999999 >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --inject 01fe030400/ >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --address 999 >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --acquiretimeout 999999 >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --acquireretries 999999 >/dev/null 2>/dev/null
@@ -20,18 +26,30 @@
 ./src/ebusd/ebusd -f -r --scanconfig=0 >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --pidfile "" >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f -p 999999 >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --localhost >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --httpport 999999 >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --htmlpath "" >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --updatecheck=off >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f -l "" >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --log "all debug" >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --logareas some >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --loglevel unknown >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --lograwdata >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --lograwdata=bytes >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --lograwdatafile=/xyz >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --lograwdatasize=9999999 >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --dump >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --dumpfile "" >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --dumpsize 9999999 >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --dumpflush >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --accesslevel=inst >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --aclfile=/ >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --accesslevel >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --enablehex >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --enabledefine >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --mqttport= >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --mqttport=9999999 >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --mqttuser=username --mqttpass=password --mqttport=1883 --mqtttopic=ebusd --mqtthost "" >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --mqttuser=username --mqttpass=password --mqttclientid=1234 --mqttport=1883 --mqtttopic=ebusd/%circuit/%name/%field --mqttretain --mqttjson --mqttverbose --mqttlog --mqttignoreinvalid --mqttchanges --mqtthost "" >/dev/null 2>/dev/null
+./src/ebusd/ebusd -f --mqttca=/cafile/ --mqttcert=/cert --mqttkey=12345678 --mqttkeypass=secret --mqttinsecure >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f -i "ff08070400/0ab5303132333431313131" >/dev/null
 ./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f -i "ff08070400" >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f -i "ff080704/" >/dev/null 2>/dev/null
