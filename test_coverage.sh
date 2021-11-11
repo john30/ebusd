@@ -324,9 +324,9 @@ g
 define -r "r,cir,nam,cmt,,08,b509,,,,UCH"
 decode -V -N UCH 102030
 encode UCH 10;1
-log all debug
 raw bytes
 raw
+log all debug
 nocommand
 EOF
 status=1
