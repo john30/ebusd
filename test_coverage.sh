@@ -368,7 +368,10 @@ curl -s "http://localhost:8878/data/broadcast/?since=1&exact=1&required=" >/dev/
 curl -s "http://localhost:8878/data/mc.4/outsidetemp?poll=1" >/dev/null
 curl -s "http://localhost:8878/data/?verbose=1" >/dev/null
 curl -s "http://localhost:8878/data/?indexed=1&numeric=1" >/dev/null
-curl -s "http://localhost:8878/data/?full" >/dev/null
+curl -s "http://localhost:8878/data/?full&valuename&write&raw&def" >/dev/null
+curl -s "http://localhost:8878/datatypes" >/dev/null
+curl -s "http://localhost:8878/raw" >/dev/null
+curl -s "http://localhost:8878/decode?def=UCH&raw=1f" >/dev/null
 curl -s "http://localhost:8878/data/mc.5/installparam?poll=1&user=test&secret=testpass" >/dev/null
 curl -T test_coverage.sh http://localhost:8878/data/
 echo `date` "commands done"
