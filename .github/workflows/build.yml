@@ -3,6 +3,13 @@ name: Build
 on:
   push:
     branches: [ master ]
+    paths:
+      - 'src/**'
+      - 'autogen.sh'
+      - 'config*'
+      - 'Makefile*'
+      - 'make_debian.sh'
+      - 'contrib/docker/**'
 
 jobs:
   build:
