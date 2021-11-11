@@ -335,7 +335,7 @@ curl -s "http://localhost:8878/data/?verbose=1" >/dev/null
 curl -s "http://localhost:8878/data/?indexed=1&numeric=1" >/dev/null
 curl -s "http://localhost:8878/data/?full" >/dev/null
 curl -s "http://localhost:8878/data/mc.5/installparam?poll=1&user=test&secret=testpass" >/dev/null
-curl -T .travis.yml http://localhost:8878/data/
+curl -T test_coverage.sh http://localhost:8878/data/
 echo `date` "commands done"
 kill $lstpid
 verify=`./src/tools/ebusctl -p 8877 info|egrep "^address 04:"`

@@ -1,0 +1,34 @@
+name: Coverage
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: checkout
+        uses: actions/checkout@v2
+      -
+        name: packages
+        run: apt-get update && apt-get install -y libmosquitto1 libmosquitto1-dev
+      -
+        name: build
+        run: cmake -Dcoverage=ON -DBUILD_TESTING . && make
+      -
+        name: test regular
+        run: cd src/lib/ebus/test && ./test_symbol && ./test_filereader && ./test_data && ./test_message
+      -
+        name: test contrib
+        run: cd src/lib/ebus/contrib/test && ./test_contrib
+      -
+        name: test coverage
+        run: ./test_coverage.sh
+      -
+        name: prepare result
+        run: find . -type f -name '*.gcno' -exec bash -c "(f={}; ls -l \$f; cd \${f%/*}; gcov -pb \${f##*/})" \;
+      -
+        name: push result
+        run: bash <(curl -s https://codecov.io/bash) -X gcov
