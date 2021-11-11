@@ -321,8 +321,6 @@ w -h fe070400
 s
 i
 g
-listen -v -n -u
-listen stop
 define -r "r,cir,nam,cmt,,08,b509,,,,UCH"
 decode -V -N UCH 102030
 encode UCH 10;1
