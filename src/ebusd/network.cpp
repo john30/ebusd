@@ -183,8 +183,10 @@ void Connection::run() {
     }
   }
 
-  delete m_socket;
-  m_socket = nullptr;
+  if (m_socket) {
+    delete m_socket;
+    m_socket = nullptr;
+  }
   logInfo(lf_network, "[%05d] connection closed", getID());
 }
 

@@ -231,7 +231,12 @@ class Connection : public Thread {
     m_id = ++m_ids;
   }
 
-  virtual ~Connection() { if (m_socket) delete m_socket; }
+  virtual ~Connection() {
+    if (m_socket) {
+      delete m_socket;
+      m_socket = nullptr;
+    }
+  }
   /**
    * endless loop for connection instance.
    */
