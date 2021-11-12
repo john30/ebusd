@@ -327,6 +327,7 @@ decode -V -N UCH 102030
 encode UCH 10;1
 raw bytes
 raw
+reload
 nocommand
 EOF
 status=1
