@@ -275,7 +275,11 @@ void Network::run() {
   }
 #endif
 #endif
+  int cleanupCnt = 0;
   while (true) {
+    if (++cleanupCnt > 10) {
+      cleanConnections();
+    }
 #ifdef HAVE_PPOLL
     // wait for new fd event
     ret = ppoll(fds, nfds, &tdiff, nullptr);
@@ -289,6 +293,7 @@ void Network::run() {
 #endif
     if (ret == 0) {
       cleanConnections();
+      cleanupCnt = 0;
       continue;
     }
     bool newData = false, isHttp = false;
