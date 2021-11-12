@@ -1986,7 +1986,7 @@ result_t MainLoop::executeHelp(ostringstream* ostream) {
       " state|s   Report bus state\n"
       " info|i    Report information about the daemon, configuration, seen participants, and the device.\n"
       " grab|g    Grab messages:         grab [stop]\n"
-      "           Report the messages:   grab result [all]\n"
+      "           Report the messages:   grab result [all|decode]\n"
       " define    Define new message:    define [-r] DEFINITION\n"
       " decode|d  Decode field(s):       decode [-v|-V] [-n|-N] DEFINITION DD[DD]*\n"
       " encode|e  Encode field(s):       encode DEFINITION VALUE[;VALUE]*\n"
