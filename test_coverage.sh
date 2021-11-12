@@ -367,13 +367,15 @@ scancnt=0
 failed=0
 while [ "$status" = 0 ]; do
   sleep 3
-  ./src/tools/ebusctl -p 8877 scan result | egrep -q "still running"
+  output=$(./src/tools/ebusctl -p 8877 scan result)
   status=$?
   if [ $status -ne 0 ]; then
     echo "scan result status=$status"
     failed=1
     break
   fi
+  echo $output | egrep -q "still running"
+  status=$?
   scancnt=$(( scancnt + 1 ))
 done
 echo `date` "scan result after $scancnt checks:"
