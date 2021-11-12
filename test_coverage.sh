@@ -207,10 +207,12 @@ w,mc.5,HeatingCurve,,,53,b509,0e3500,curve,m,UIN,100
 w,mc.5#installer,installparam,,,53,b509,0e3f00,param,m,UCH
 EOF
 mkdir -p "$PWD/contrib/etc/ebusd/153"
-cat >"$PWD/contrib/etc/ebusd/153/_templates" <<EOF
+cat >"$PWD/contrib/etc/ebusd/153/_templates.csv" <<EOF
+#
 temps,SCH,,°C,Temperatur
 EOF
-cat >"$PWD/contrib/etc/ebusd/153/36.bbb.csv" <<EOF
+cat >"$PWD/contrib/etc/ebusd/153/53.bbbbb.csv" <<EOF
+#
 *r,,,,,,"9900",,,,,,,
 r,,SoftwareVersion,,,,,"0000",,,HEX:4,,,
 EOF
@@ -244,7 +246,6 @@ raw
 h
 h r
 h w
-h a
 h a
 h hex
 h f
@@ -326,7 +327,6 @@ decode -V -N UCH 102030
 encode UCH 10;1
 raw bytes
 raw
-log all debug
 nocommand
 EOF
 status=1
@@ -355,14 +355,32 @@ for line in "${lines[@]}"; do
   if [ -n "$line" ]; then
     echo `date` "send: $line"
     ./src/tools/ebusctl -p 8877 $line
+    if [ $? -eq 1 ]; then
+      echo "not connectable, exit"
+      status=1
+      failed=1
+      break
+    fi
   fi
 done
+scancnt=0
+failed=0
 while [ "$status" = 0 ]; do
+  sleep 3
   ./src/tools/ebusctl -p 8877 scan result | egrep -q "still running"
   status=$?
+  if [ $status -ne 0 ]; then
+    echo "scan result status=$status"
+    failed=1
+    break
+  fi
+  scancnt=$(( scancnt + 1 ))
 done
-echo `date` "scan result:"
+echo `date` "scan result after $scancnt checks:"
 ./src/tools/ebusctl -p 8877 scan result
+if [ $? -ne 0 ]; then
+  failed=1
+fi
 curl -s "http://localhost:8878/data/" >/dev/null
 curl -s "http://localhost:8878/data/broadcast/?since=1&exact=1&required=" >/dev/null
 curl -s "http://localhost:8878/data/mc.4/outsidetemp?poll=1" >/dev/null
@@ -391,3 +409,4 @@ echo `date` "ebusd log:"
 cat "$PWD/ebusd.log"
 echo `date` "done."
 wait $srvpid
+exit $failed
