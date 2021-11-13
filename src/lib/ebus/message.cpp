@@ -1868,16 +1868,13 @@ void MessageMap::remove(Message* message) {
   uint64_t key = message->getKey();
   bool conditional = message->isConditional();
   const auto keyIt = m_messagesByKey.find(key);
-  bool deleted = false;
+  bool needDelete = false;
   if (keyIt != m_messagesByKey.end()) {
     vector<Message*>* messages = &keyIt->second;
     for (auto it = messages->begin(); it != messages->end(); ) {
       Message* other = *it;
       if (other == message) {
-        if (!deleted) {
-          deleted = true;
-          delete(other);
-        }
+        needDelete = true;
         it = messages->erase(it);
       } else {
         ++it;
@@ -1894,10 +1891,7 @@ void MessageMap::remove(Message* message) {
       Message* other = *it;
       if (other == message) {
         storedByName = true;
-        if (!deleted) {
-          deleted = true;
-          delete(other);
-        }
+        needDelete = true;
         it = messages->erase(it);
       } else {
         ++it;
@@ -1921,6 +1915,9 @@ void MessageMap::remove(Message* message) {
   }
   if (message->getPollPriority() > 0) {
     m_pollMessages.remove(message);
+  }
+  if (needDelete) {
+    delete message;
   }
   unlock();
 }
