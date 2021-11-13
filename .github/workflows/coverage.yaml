@@ -3,7 +3,12 @@ name: Coverage
 on:
   push:
     branches: [ master ]
-
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Run with tmate'
+        required: false
+        default: ''
 jobs:
   coverage:
     runs-on: ubuntu-latest
@@ -23,6 +28,13 @@ jobs:
       -
         name: test contrib
         run: cd src/lib/ebus/contrib/test && ./test_contrib
+      -
+        name: setup tmate
+        uses: mxschmitt/action-tmate@v3
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
+        timeout-minutes: 5
+        with:
+          sudo: false
       -
         name: test coverage
         run: ./test_coverage.sh
