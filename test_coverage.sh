@@ -346,16 +346,20 @@ nocommand
 EOF
 status=1
 cnt=3
+function send() {
+  #./src/tools/ebusctl -p 8877 -t 10 "$@"
+  echo "$@" | nc -N -w 10 localhost 8877
+}
 while [[ ! "$status" = 0 ]] && [[ $cnt -gt 0 ]]; do
   sleep 5
   echo `date` "check signal"
-  ./src/tools/ebusctl -p 8877 -t 10 state | egrep -q "signal acquired"
+  send state | egrep -q "signal acquired"
   status=$?
   cnt=$((cnt - 1))
 done
 if [ "$status" != 0 ]; then
-  echo `date` "unable to acquire signal, stete:"
-  ./src/tools/ebusctl -p 8877 -t 10 state
+  echo `date` "unable to acquire signal, state:"
+  send state
   kill $pid
   kill $srvpid
   echo `date` "ebusd log:"
@@ -370,7 +374,7 @@ lstpid=$!
 for line in "${lines[@]}"; do
   if [ -n "$line" ]; then
     echo `date` "send: $line"
-    ./src/tools/ebusctl -p 8877 -t 10 $line
+    send $line
     if [ $? -eq 1 ]; then
       echo "not connectable, exit"
       status=1
@@ -383,7 +387,7 @@ scancnt=0
 failed=0
 while [ "$status" = 0 ]; do
   sleep 3
-  output=$(./src/tools/ebusctl -p 8877 -t 10 scan result)
+  output=$(send scan result)
   status=$?
   if [ $status -ne 0 ]; then
     echo "scan result status=$status"
@@ -395,7 +399,7 @@ while [ "$status" = 0 ]; do
   scancnt=$(( scancnt + 1 ))
 done
 echo `date` "scan result after $scancnt checks:"
-./src/tools/ebusctl -p 8877 -t 10 scan result
+send scan result
 if [ $? -ne 0 ]; then
   failed=1
 fi
@@ -412,7 +416,7 @@ curl -s "http://localhost:8878/data/mc.5/installparam?poll=1&user=test&secret=te
 curl -s -T test_coverage.sh http://localhost:8878/data/
 echo `date` "commands done"
 kill $lstpid
-verify=`./src/tools/ebusctl -p 8877 -t 10 info|egrep "^address 04:"`
+verify=`send info|egrep "^address 04:"`
 if [ "x$verify" != 'xaddress 04: slave #25, scanned "MF=153;ID=BBBBB;SW=3031;HW=3031"' ]; then
   echo `date` "error unexpected result from info command: $verify"
   ls -latr
