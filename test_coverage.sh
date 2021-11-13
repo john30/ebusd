@@ -422,12 +422,13 @@ if [ "x$verify" != 'xaddress 04: slave #25, scanned "MF=153;ID=BBBBB;SW=3031;HW=
   exit 1
 fi
 sleep 2
-kill $pid
 echo `date` "ebusd log:"
 cat "$PWD/ebusd.log"
 echo `date` "done."
 if [[ -n "$1" ]]; then
   kill $pid
+else
+  kill -9 $pid
 fi
 wait $srvpid
 exit $failed
