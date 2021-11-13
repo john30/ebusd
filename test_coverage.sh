@@ -425,7 +425,7 @@ if [ "x$verify" != 'xaddress 04: slave #25, scanned "MF=153;ID=BBBBB;SW=3031;HW=
   cat "$PWD/ebusd.log"
   exit 1
 fi
-send log all:debug
+send log all debug
 if [[ -z "$1" ]]; then
   kill $pid
 else
