@@ -124,8 +124,8 @@ void Connection::run() {
     if (ret != 0) {
 #ifdef HAVE_PPOLL
       // new data from notify
-      if (ret < 0 || (fds[0].revents & (POLLIN | POLLERR | POLLHUP | POLLRDHUP))
-          || (fds[1].revents & (POLLERR | POLLHUP))) {
+      if (ret < 0 || (ret > 0 && ((fds[0].revents & (POLLIN | POLLERR | POLLHUP | POLLRDHUP))
+          || (fds[1].revents & (POLLERR | POLLHUP))))) {
         break;
       }
       // new data from socket
