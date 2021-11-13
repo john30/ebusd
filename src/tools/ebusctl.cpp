@@ -154,10 +154,10 @@ string fetchData(ebusd::TCPSocket* socket, bool listening, uint16_t timeout) {
   memset(fds, 0, sizeof(fds));
 
   fds[0].fd = STDIN_FILENO;
-  fds[0].events = POLLIN;
+  fds[0].events = POLLIN | POLLERR | POLLHUP | POLLRDHUP;
 
   fds[1].fd = socket->getFD();
-  fds[1].events = POLLIN;
+  fds[1].events = POLLIN | POLLERR | POLLHUP | POLLRDHUP;
 #else
 #ifdef HAVE_PSELECT
   int maxfd;
@@ -177,6 +177,10 @@ string fetchData(ebusd::TCPSocket* socket, bool listening, uint16_t timeout) {
 #ifdef HAVE_PPOLL
     // wait for new fd event
     ret = ppoll(fds, nfds, &tdiff, nullptr);
+    if (ret < 0 || (fds[0].revents & (POLLIN | POLLERR | POLLHUP | POLLRDHUP))
+        || (fds[1].revents & (POLLERR | POLLHUP | POLLRDHUP))) {
+      break;
+    }
 #else
 #ifdef HAVE_PSELECT
     // set readfds to inital checkfds
