@@ -218,9 +218,11 @@ r,,SoftwareVersion,,,,,"0000",,,HEX:4,,,
 EOF
 echo "test,testpass,installer" > ./passwd
 #ebusd:
-./src/ebusd/ebusd -d tcp:127.0.0.1:8876 --initsend --latency 10 -n -c "$PWD/contrib/etc/ebusd" --pollinterval=10 -s -a 31 --acquireretries 3 --answer --generatesyn --receivetimeout 40000 --sendretries 1 --enablehex --htmlpath "$PWD/contrib/html" --httpport 8878 --pidfile "$PWD/ebusd.pid" --localhost -p 8877 -l "$PWD/ebusd.log" --logareas all --loglevel debug --lograwdata=bytes --lograwdatafile "$PWD/ebusd.raw" --lograwdatasize 1 --dumpfile "$PWD/ebusd.dump" --dumpsize 100 -D --scanconfig --aclfile=./passwd --mqttport=1883
+#./src/ebusd/ebusd -d tcp:127.0.0.1:8876 --initsend --latency 10 -n -c "$PWD/contrib/etc/ebusd" --pollinterval=10 -s -a 31 --acquireretries 3 --answer --generatesyn --receivetimeout 40000 --sendretries 1 --enablehex --htmlpath "$PWD/contrib/html" --httpport 8878 --pidfile "$PWD/ebusd.pid" --localhost -p 8877 -l "$PWD/ebusd.log" --logareas all --loglevel debug --lograwdata=bytes --lograwdatafile "$PWD/ebusd.raw" --lograwdatasize 1 --dumpfile "$PWD/ebusd.dump" --dumpsize 100 -D --scanconfig --aclfile=./passwd --mqttport=1883
+./src/ebusd/ebusd -f -d tcp:127.0.0.1:8876 --initsend --latency 10 -n -c "$PWD/contrib/etc/ebusd" --pollinterval=10 -s -a 31 --acquireretries 3 --answer --generatesyn --receivetimeout 40000 --sendretries 1 --enablehex --htmlpath "$PWD/contrib/html" --httpport 8878 --pidfile "$PWD/ebusd.pid" --localhost -p 8877 --logareas all --loglevel debug --lograwdata=bytes --lograwdatafile "$PWD/ebusd.raw" --lograwdatasize 1 --dumpfile "$PWD/ebusd.dump" --dumpsize 100 -D --scanconfig --aclfile=./passwd --mqttport=1883 >"$PWD/ebusd.log" 2>&1 &
+pid=$!
 sleep 3
-pid=`head -n 1 "$PWD/ebusd.pid"`
+#pid=`head -n 1 "$PWD/ebusd.pid"`
 if [ -z "$pid" ]; then
   echo `date` "unable to start ebusd"
   kill $srvpid
