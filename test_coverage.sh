@@ -354,7 +354,8 @@ while [[ ! "$status" = 0 ]] && [[ $cnt -gt 0 ]]; do
   cnt=$((cnt - 1))
 done
 if [ "$status" != 0 ]; then
-  echo `date` "unable to acquire signal"
+  echo `date` "unable to acquire signal, stete:"
+  ./src/tools/ebusctl -p 8877 -t 10 state
   kill $pid
   kill $srvpid
   echo `date` "ebusd log:"
