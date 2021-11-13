@@ -409,7 +409,7 @@ curl -s "http://localhost:8878/datatypes" >/dev/null
 curl -s "http://localhost:8878/raw" >/dev/null
 curl -s "http://localhost:8878/decode?def=UCH&raw=1f" >/dev/null
 curl -s "http://localhost:8878/data/mc.5/installparam?poll=1&user=test&secret=testpass" >/dev/null
-curl -T test_coverage.sh http://localhost:8878/data/
+curl -s -T test_coverage.sh http://localhost:8878/data/
 echo `date` "commands done"
 kill $lstpid
 verify=`./src/tools/ebusctl -p 8877 -t 10 info|egrep "^address 04:"`
