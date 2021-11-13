@@ -30,7 +30,7 @@ jobs:
         run: cd src/lib/ebus/contrib/test && ./test_contrib
       -
         name: setup tmate
-        uses: mxschmitt/action-tmate@v3
+        uses: mxschmitt/action-tmate@v3.7
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
         timeout-minutes: 5
         with:
