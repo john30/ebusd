@@ -38,9 +38,9 @@ jobs:
       -
         name: test coverage
         run: ./test_coverage.sh
-      -
-        name: prepare result
-        run: find . -type f -name '*.gcno' -exec bash -c "(f={}; ls -l \$f; cd \${f%/*}; gcov -pb \${f##*/})" \;
+#      -
+#        name: prepare result
+#        run: find . -type f -name '*.gcno' -exec bash -c "(f={}; ls -l \$f; cd \${f%/*}; gcov -pb \${f##*/})" \;
       -
         name: push result
-        run: bash <(curl -s https://codecov.io/bash) -X gcov
+        run: bash <(curl -s https://codecov.io/bash) -Z -a '-pb'
