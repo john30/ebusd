@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@v2
       -
         name: packages
-        run: sudo apt-get update && sudo apt-get install -y libmosquitto1 libmosquitto-dev
+        run: sudo apt-get update && sudo apt-get install -y libmosquitto1 libmosquitto-dev gdb screen sed
       -
         name: build
         run: cmake -Dcoverage=ON -DBUILD_TESTING=1 . && make
@@ -32,7 +32,7 @@ jobs:
         name: setup tmate
         uses: mxschmitt/action-tmate@v3.7
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
-        timeout-minutes: 5
+        timeout-minutes: 15
         with:
           limit-access-to-actor: true
       -
