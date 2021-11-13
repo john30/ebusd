@@ -180,14 +180,15 @@ string fetchData(ebusd::TCPSocket* socket, bool &listening, uint16_t timeout) {
       listening = false;
       break; // remote hung up
     }
+    // check previous error
+    if (ret > 0 && ((fds[0].revents & POLLERR) || (fds[1].revents & POLLERR))) {
+      listening = false;
+      break;
+    }
     // wait for new fd event
     ret = ppoll(fds, nfds, &tdiff, nullptr);
     if (ret < 0) {
       perror("ebusctl poll");
-      listening = false;
-      break;
-    }
-    if (ret > 0 && ((fds[0].revents & POLLERR) || (fds[1].revents & POLLERR))) {
       listening = false;
       break;
     }
@@ -221,27 +222,22 @@ string fetchData(ebusd::TCPSocket* socket, bool &listening, uint16_t timeout) {
     }
 
     if (newData) {
-      if (socket->isValid()) {
-        datalen = socket->recv(data, sizeof(data));
+      datalen = socket->recv(data, sizeof(data));
 
-        if (datalen < 0) {
-          perror("ebusctl recv");
-          break;
-        }
-
-        for (int i = 0; i < datalen; i++) {
-          ostream << data[i];
-        }
-        string str = ostream.str();
-        if (listening) {
-          return str;
-        }
-        if (str.length() >= 2 && str[str.length()-2] == '\n' && str[str.length()-1] == '\n') {
-          return str;
-        }
-      } else {
-        listening = false;
+      if (datalen < 0) {
+        perror("ebusctl recv");
         break;
+      }
+
+      for (int i = 0; i < datalen; i++) {
+        ostream << data[i];
+      }
+      string str = ostream.str();
+      if (listening) {
+        return str;
+      }
+      if (str.length() >= 2 && str[str.length()-2] == '\n' && str[str.length()-1] == '\n') {
+        return str;
       }
     } else if (newInput) {
       getline(cin, message);
