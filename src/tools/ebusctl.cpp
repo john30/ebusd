@@ -54,7 +54,7 @@ struct options {
 static struct options opt = {
   "localhost",  // server
   8888,         // port
-  0,            // timeout
+  60,            // timeout
 
   nullptr,         // args
   0             // argCount
@@ -81,7 +81,8 @@ static const struct argp_option argpoptions[] = {
   {nullptr,     0, nullptr, 0, "Options:", 1 },
   {"server",  's', "HOST",  0, "Connect to " PACKAGE " on HOST (name or IP) [localhost]", 0 },
   {"port",    'p', "PORT",  0, "Connect to " PACKAGE " on PORT [8888]", 0 },
-  {"timeout", 't', "SECS",  0, "Timeout for connection to " PACKAGE ", 0 for none [0]", 0 },
+  {"timeout", 't', "SECS",  0, "Timeout for connecting to/receiving from " PACKAGE
+                               ", 0 for none [60]", 0 },
 
   {nullptr,     0, nullptr, 0, nullptr, 0 },
 };
@@ -115,7 +116,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
   case 't':  // --timeout=10
     value = strtoul(arg, &strEnd, 10);
-    if (strEnd == nullptr || strEnd == arg || *strEnd != 0 || value < 1 || value > 3600) {
+    if (strEnd == nullptr || strEnd == arg || *strEnd != 0 || value > 3600) {
       argp_error(state, "invalid timeout");
       return EINVAL;
     }
@@ -131,7 +132,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
   return 0;
 }
 
-string fetchData(ebusd::TCPSocket* socket, bool listening) {
+string fetchData(ebusd::TCPSocket* socket, bool listening, uint16_t timeout) {
   char data[1024];
   ssize_t datalen;
   ostringstream ostream;
@@ -143,7 +144,9 @@ string fetchData(ebusd::TCPSocket* socket, bool listening) {
   // set timeout
   tdiff.tv_sec = 0;
   tdiff.tv_nsec = 1E8;
-
+  time_t now;
+  time(&now);
+  time_t endTime = now + timeout;
 #ifdef HAVE_PPOLL
   int nfds = 2;
   struct pollfd fds[nfds];
@@ -170,7 +173,7 @@ string fetchData(ebusd::TCPSocket* socket, bool listening) {
 #endif
 #endif
 
-  while (true) {
+  while (time(&now) && now < endTime) {
 #ifdef HAVE_PPOLL
     // wait for new fd event
     ret = ppoll(fds, nfds, &tdiff, nullptr);
@@ -246,7 +249,7 @@ string fetchData(ebusd::TCPSocket* socket, bool listening) {
   return ostream.str();
 }
 
-bool connect(const char* host, uint16_t port, int timeout, char* const *args, int argCount) {
+bool connect(const char* host, uint16_t port, uint16_t timeout, char* const *args, int argCount) {
   TCPClient* client = new TCPClient();
   TCPSocket* socket = client->connect(host, port, timeout);
   bool ret;
@@ -290,14 +293,14 @@ bool connect(const char* host, uint16_t port, int timeout, char* const *args, in
         || strcasecmp(message.c_str(), "LISTEN") == 0) {
           listening = true;
           while (listening && !cin.eof()) {
-            string result(fetchData(socket, listening));
+            string result(fetchData(socket, listening, timeout));
             cout << result;
             if (strcasecmp(result.c_str(), "LISTEN STOPPED") == 0) {
               break;
             }
           }
         } else {
-          cout << fetchData(socket, listening);
+          cout << fetchData(socket, listening, timeout);
         }
       }
     } while (!once && !cin.eof());
