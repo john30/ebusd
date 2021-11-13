@@ -227,7 +227,7 @@ class Connection : public Thread {
    * @param netQueue the reference to the @a NetMessage @a Queue.
    */
   Connection(TCPSocket* socket, const bool isHttp, Queue<NetMessage*>* netQueue)
-    : Thread(), m_isHttp(isHttp), m_socket(socket), m_netQueue(netQueue) {
+    : Thread(), m_isHttp(isHttp), m_socket(socket), m_netQueue(netQueue), m_endedAt(0) {
     m_id = ++m_ids;
   }
 
@@ -253,6 +253,12 @@ class Connection : public Thread {
    */
   int getID() { return m_id; }
 
+  /**
+   * Return whether this connection has ended before the specified time.
+   * @param time the time to check against.
+   * @return true when this connection has ended before the specified time.
+   */
+  bool endedBefore(const time_t* time) const { return m_endedAt > 0 && time && m_endedAt < *time; }
 
  private:
   /** whether this is a HTTP connection. */
@@ -269,6 +275,9 @@ class Connection : public Thread {
 
   /** the ID of this connection. */
   int m_id;
+
+  /** the time when this connected ended, or 0 if not yet. */
+  time_t m_endedAt;
 
   /** the IF of the last opened connection. */
   static int m_ids;

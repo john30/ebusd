@@ -187,6 +187,7 @@ void Connection::run() {
     delete m_socket;
     m_socket = nullptr;
   }
+  time(&m_endedAt);
   logInfo(lf_network, "[%05d] connection closed", getID());
 }
 
@@ -339,9 +340,12 @@ void Network::run() {
 
 void Network::cleanConnections() {
   auto it = m_connections.begin();
+  time_t endBefore;
+  time(&endBefore);
+  endBefore += 5;  // after 5 seconds grace period
   while (it != m_connections.end()) {
-    if (!(*it)->isRunning()) {
-      Connection* connection = *it;
+    Connection* connection = *it;
+    if (connection && !connection->isRunning() && connection->endedBefore(&endBefore)) {
       it = m_connections.erase(it);
       delete connection;
       logDebug(lf_network, "dead connection removed - %d", m_connections.size());
