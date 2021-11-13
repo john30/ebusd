@@ -73,7 +73,7 @@ endif(NOT HAVE_ARGP)
 
 option(coverage "enable code coverage tracking." OFF)
 if(NOT coverage STREQUAL OFF)
-  add_definitions(-coverage -O0)
+  add_definitions(-g -O0 --coverage -Wall)
   link_libraries(gcov)
   message(STATUS "coverage enabled")
 endif(NOT coverage STREQUAL OFF)
