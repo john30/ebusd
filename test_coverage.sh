@@ -407,6 +407,7 @@ curl -s "http://localhost:8878/data/mc.4/outsidetemp?poll=1" >/dev/null
 curl -s "http://localhost:8878/data/?verbose=1" >/dev/null
 curl -s "http://localhost:8878/data/?indexed=1&numeric=1" >/dev/null
 curl -s "http://localhost:8878/data/?full&valuename&write&raw&def" >/dev/null
+curl -s "http://localhost:8878/data/mc.4/outsidetemp2?define=r,mc.4,outsidetemp2,,,52,0102,,,,UCH" >/dev/null
 curl -s "http://localhost:8878/datatypes" >/dev/null
 curl -s "http://localhost:8878/raw" >/dev/null
 curl -s "http://localhost:8878/decode?def=UCH&raw=1f" >/dev/null
