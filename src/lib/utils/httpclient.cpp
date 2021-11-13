@@ -234,7 +234,7 @@ bool HttpClient::request(const string& method, const string& uri, const string& 
 
 size_t HttpClient::readUntil(const string& delim, const size_t length, string* result) {
   if (!m_buffer) {
-    m_buffer = reinterpret_cast<char*>(malloc(1024));
+    m_buffer = reinterpret_cast<char*>(malloc(1024+1)); // 1 extra for final terminator
     if (!m_buffer) {
       return string::npos;
     }
@@ -250,8 +250,12 @@ size_t HttpClient::readUntil(const string& delim, const size_t length, string* r
     if (received == 0) {
       break;
     }
+    if (static_cast<unsigned>(received) > m_bufferSize) {
+      return string::npos;  // error in recv
+    }
+    m_buffer[received] = 0;
     size_t oldLength = result->length();
-    *result += string(m_buffer, 0, static_cast<unsigned>(received));
+    *result += m_buffer;
     if (findDelim) {
       pos = result->find(delim, oldLength - (delim.length() - 1));
     }
