@@ -132,7 +132,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
   return 0;
 }
 
-string fetchData(ebusd::TCPSocket* socket, bool &listening, uint16_t timeout) {
+string fetchData(ebusd::TCPSocket* socket, bool &listening, uint16_t timeout, bool &errored) {
   char data[1024];
   ssize_t datalen;
   ostringstream ostream;
@@ -173,24 +173,19 @@ string fetchData(ebusd::TCPSocket* socket, bool &listening, uint16_t timeout) {
 #endif
 #endif
 
-  while (time(&now) && now < endTime) {
+  while (!errored && time(&now) && now < endTime) {
 #ifdef HAVE_PPOLL
-    // check previous hangup
-    if (ret > 0 && ((fds[0].revents & (POLLHUP | POLLRDHUP)) || (fds[1].revents & (POLLHUP | POLLRDHUP)))) {
-      listening = false;
-      break; // remote hung up
-    }
-    // check previous error
-    if (ret > 0 && ((fds[0].revents & POLLERR) || (fds[1].revents & POLLERR))) {
-      listening = false;
-      break;
-    }
     // wait for new fd event
     ret = ppoll(fds, nfds, &tdiff, nullptr);
     if (ret < 0) {
       perror("ebusctl poll");
-      listening = false;
+      errored = true;
       break;
+    }
+    if (ret > 0 && ((fds[0].revents & POLLERR) || (fds[1].revents & POLLERR))) {
+      errored = true;
+    } else if (ret > 0 && ((fds[0].revents & (POLLHUP | POLLRDHUP)) || (fds[1].revents & (POLLHUP | POLLRDHUP)))) {
+      errored = true;
     }
 #else
 #ifdef HAVE_PSELECT
@@ -226,6 +221,7 @@ string fetchData(ebusd::TCPSocket* socket, bool &listening, uint16_t timeout) {
 
       if (datalen < 0) {
         perror("ebusctl recv");
+        errored = true;
         break;
       }
 
@@ -247,7 +243,7 @@ string fetchData(ebusd::TCPSocket* socket, bool &listening, uint16_t timeout) {
       sendmessage = message+'\n';
       if (socket->send(sendmessage.c_str(), sendmessage.size()) < 0) {
         perror("ebusctl send in fetch");
-        listening = false;
+        errored = true;
         break;
       }
 
@@ -273,6 +269,7 @@ bool connect(const char* host, uint16_t port, uint16_t timeout, char* const *arg
   ret = socket != nullptr;
   if (ret) {
     string message, sendmessage;
+    bool errored = false;
     do {
       bool listening = false;
 
@@ -298,6 +295,8 @@ bool connect(const char* host, uint16_t port, uint16_t timeout, char* const *arg
       sendmessage = message+'\n';
       if (socket->send(sendmessage.c_str(), sendmessage.size()) < 0) {
         perror("ebusctl send");
+        ret = false;
+        break;
       }
 
       if (strcasecmp(message.c_str(), "Q") == 0
@@ -309,18 +308,20 @@ bool connect(const char* host, uint16_t port, uint16_t timeout, char* const *arg
         if (strcasecmp(message.c_str(), "L") == 0
         || strcasecmp(message.c_str(), "LISTEN") == 0) {
           listening = true;
-          while (listening && !cin.eof()) {
-            string result(fetchData(socket, listening, timeout));
+          while (!errored && listening && !cin.eof()) {
+            string result(fetchData(socket, listening, timeout, errored));
             cout << result;
+            cout.flush();
             if (strcasecmp(result.c_str(), "LISTEN STOPPED") == 0) {
               break;
             }
           }
         } else {
-          cout << fetchData(socket, listening, timeout);
+          cout << fetchData(socket, listening, timeout, errored);
+          cout.flush();
         }
       }
-    } while (!once && !cin.eof());
+    } while (!errored && !once && !cin.eof());
     delete socket;
   } else {
     cout << "error connecting to " << host << ":" << port << endl;
