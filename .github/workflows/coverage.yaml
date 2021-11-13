@@ -34,7 +34,7 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
         timeout-minutes: 5
         with:
-          sudo: false
+          limit-access-to-actor: true
       -
         name: test coverage
         run: ./test_coverage.sh
