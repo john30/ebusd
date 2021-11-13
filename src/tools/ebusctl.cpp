@@ -132,7 +132,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
   return 0;
 }
 
-string fetchData(ebusd::TCPSocket* socket, bool listening, uint16_t timeout) {
+string fetchData(ebusd::TCPSocket* socket, bool &listening, uint16_t timeout) {
   char data[1024];
   ssize_t datalen;
   ostringstream ostream;
@@ -177,11 +177,18 @@ string fetchData(ebusd::TCPSocket* socket, bool listening, uint16_t timeout) {
 #ifdef HAVE_PPOLL
     // check previous hangup
     if (ret > 0 && ((fds[0].revents & (POLLHUP | POLLRDHUP)) || (fds[1].revents & (POLLHUP | POLLRDHUP)))) {
+      listening = false;
       break; // remote hung up
     }
     // wait for new fd event
     ret = ppoll(fds, nfds, &tdiff, nullptr);
-    if (ret < 0 || (ret > 0 && ((fds[0].revents & POLLERR) || (fds[1].revents & POLLERR)))) {
+    if (ret < 0) {
+      perror("ebusctl poll");
+      listening = false;
+      break;
+    }
+    if (ret > 0 && ((fds[0].revents & POLLERR) || (fds[1].revents & POLLERR))) {
+      listening = false;
       break;
     }
 #else
@@ -218,7 +225,7 @@ string fetchData(ebusd::TCPSocket* socket, bool listening, uint16_t timeout) {
         datalen = socket->recv(data, sizeof(data));
 
         if (datalen < 0) {
-          perror("recv");
+          perror("ebusctl recv");
           break;
         }
 
@@ -233,6 +240,7 @@ string fetchData(ebusd::TCPSocket* socket, bool listening, uint16_t timeout) {
           return str;
         }
       } else {
+        listening = false;
         break;
       }
     } else if (newInput) {
@@ -241,7 +249,11 @@ string fetchData(ebusd::TCPSocket* socket, bool listening, uint16_t timeout) {
         continue;
       }
       sendmessage = message+'\n';
-      socket->send(sendmessage.c_str(), sendmessage.size());
+      if (socket->send(sendmessage.c_str(), sendmessage.size()) < 0) {
+        perror("ebusctl send in fetch");
+        listening = false;
+        break;
+      }
 
       if (strcasecmp(message.c_str(), "Q") == 0
       || strcasecmp(message.c_str(), "QUIT") == 0
@@ -288,7 +300,9 @@ bool connect(const char* host, uint16_t port, uint16_t timeout, char* const *arg
       }
 
       sendmessage = message+'\n';
-      socket->send(sendmessage.c_str(), sendmessage.size());
+      if (socket->send(sendmessage.c_str(), sendmessage.size()) < 0) {
+        perror("ebusctl send");
+      }
 
       if (strcasecmp(message.c_str(), "Q") == 0
       || strcasecmp(message.c_str(), "QUIT") == 0
