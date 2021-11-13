@@ -58,8 +58,11 @@ Building ebusd from the source requires the following packages and/or features:
 
 To start the build process, run these commands:  
 > ./autogen.sh  
-> make install  
+> make install-strip  
 
+Or alternatively with cmake:  
+> cmake .  
+> make install/strip  
 
 Documentation
 -------------
