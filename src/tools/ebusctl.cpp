@@ -138,7 +138,7 @@ string fetchData(ebusd::TCPSocket* socket, bool listening, uint16_t timeout) {
   ostringstream ostream;
   string message, sendmessage;
 
-  int ret;
+  int ret = 0;
   struct timespec tdiff;
 
   // set timeout
@@ -175,10 +175,13 @@ string fetchData(ebusd::TCPSocket* socket, bool listening, uint16_t timeout) {
 
   while (time(&now) && now < endTime) {
 #ifdef HAVE_PPOLL
+    // check previous hangup
+    if (ret > 0 && ((fds[0].revents & (POLLHUP | POLLRDHUP)) || (fds[1].revents & (POLLHUP | POLLRDHUP)))) {
+      break; // remote hung up
+    }
     // wait for new fd event
     ret = ppoll(fds, nfds, &tdiff, nullptr);
-    if (ret < 0 || (fds[0].revents & (POLLERR | POLLHUP | POLLRDHUP))
-        || (fds[1].revents & (POLLERR | POLLHUP | POLLRDHUP))) {
+    if (ret < 0 || (ret > 0 && ((fds[0].revents & POLLERR) || (fds[1].revents & POLLERR)))) {
       break;
     }
 #else
