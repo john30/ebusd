@@ -177,7 +177,7 @@ string fetchData(ebusd::TCPSocket* socket, bool listening, uint16_t timeout) {
 #ifdef HAVE_PPOLL
     // wait for new fd event
     ret = ppoll(fds, nfds, &tdiff, nullptr);
-    if (ret < 0 || (fds[0].revents & (POLLIN | POLLERR | POLLHUP | POLLRDHUP))
+    if (ret < 0 || (fds[0].revents & (POLLERR | POLLHUP | POLLRDHUP))
         || (fds[1].revents & (POLLERR | POLLHUP | POLLRDHUP))) {
       break;
     }
