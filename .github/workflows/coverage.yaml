@@ -16,7 +16,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libmosquitto1 libmosquitto-dev
       -
         name: build
-        run: cmake -Dcoverage=ON -DBUILD_TESTING=1 . && make
+        run: cmake -DCMAKE_BUILD_TYPE=Debug -Dcoverage=ON -DBUILD_TESTING=1 . && make
       -
         name: test regular
         run: cd src/lib/ebus/test && ./test_symbol && ./test_filereader && ./test_data && ./test_message
