@@ -345,8 +345,8 @@ EOF
 status=1
 cnt=3
 function send() {
-  ./src/tools/ebusctl -p 8877 -t 10 "$@"
-#  echo "$@" | nc -N -w 10 localhost 8877
+#  ./src/tools/ebusctl -p 8877 -t 10 "$@"
+  echo "$@" | nc -N -w 10 localhost 8877
 }
 while [[ ! "$status" = 0 ]] && [[ $cnt -gt 0 ]]; do
   sleep 5
