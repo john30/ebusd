@@ -216,7 +216,7 @@ cat >"$PWD/contrib/etc/ebusd/153/53.bbbbb.csv" <<EOF
 *r,,,,,,"9900",,,,,,,
 r,,SoftwareVersion,,,,,"0000",,,HEX:4,,,
 EOF
-echo "test,testpass,installer" > ./passwd
+echo -e "#\ntest,testpass,installer" > ./passwd
 #ebusd:
 if [[ "$1" == "manual" ]]; then
   echo -e "\n\n\nSTART EBUSD NOW, enter the PID and press enter\n"
@@ -228,7 +228,7 @@ elif [[ -n "$1" ]]; then
   done
 else
   #./src/ebusd/ebusd -d tcp:127.0.0.1:8876 --initsend --latency 10 -n -c "$PWD/contrib/etc/ebusd" --pollinterval=10 -s -a 31 --acquireretries 3 --answer --generatesyn --receivetimeout 40000 --sendretries 1 --enablehex --htmlpath "$PWD/contrib/html" --httpport 8878 --pidfile "$PWD/ebusd.pid" --localhost -p 8877 -l "$PWD/ebusd.log" --logareas all --loglevel debug --lograwdata=bytes --lograwdatafile "$PWD/ebusd.raw" --lograwdatasize 1 --dumpfile "$PWD/ebusd.dump" --dumpsize 100 -D --scanconfig --aclfile=./passwd --mqttport=1883
-  ./src/ebusd/ebusd -f -d tcp:127.0.0.1:8876 --initsend --latency 10 -n -c "$PWD/contrib/etc/ebusd" --pollinterval=10 -s -a 31 --acquireretries 3 --answer --generatesyn --receivetimeout 40000 --sendretries 1 --enablehex --htmlpath "$PWD/contrib/html" --httpport 8878 --pidfile "$PWD/ebusd.pid" --localhost -p 8877 --logareas all --loglevel debug --lograwdata=bytes --lograwdatafile "$PWD/ebusd.raw" --lograwdatasize 1 --dumpfile "$PWD/ebusd.dump" --dumpsize 100 -D --scanconfig --aclfile=./passwd --mqttport=1883 >"$PWD/ebusd.log" 2>&1 &
+  ./src/ebusd/ebusd -f -d tcp:127.0.0.1:8876 --initsend --latency 10 -n -c "$PWD/contrib/etc/ebusd" --pollinterval=10 -s -a 31 --acquireretries 3 --answer --generatesyn --receivetimeout 40000 --sendretries 1 --enablehex --htmlpath "$PWD/contrib/html" --httpport 8878 --pidfile "$PWD/ebusd.pid" --localhost -p 8877 --logareas all --loglevel debug --lograwdata=bytes --lograwdatafile "$PWD/ebusd.raw" --lograwdatasize 1 --dumpfile "$PWD/ebusd.dump" --dumpsize 100 -D --scanconfig --aclfile=./passwd --mqttport=1883 &
   pid=$!
   sleep 3
   #pid=`head -n 1 "$PWD/ebusd.pid"`
