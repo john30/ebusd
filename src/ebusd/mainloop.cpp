@@ -1917,7 +1917,7 @@ result_t MainLoop::executeInfo(const vector<string>& args, const string& user, o
   if (m_device->isReadOnly()) {
     *ostream << ", readonly";
   }
-  if (m_device->isValid()) {
+  if (!m_device->isValid()) {
     *ostream << ", invalid";
   }
   if (verbose) {
