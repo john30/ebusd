@@ -108,10 +108,11 @@ unsigned int parseInt(const char* str, int base, unsigned int minValue, unsigned
  * @param maxValue the maximum resulting value.
  * @param result the variable in which to store an error code when parsing failed or the value is out of bounds.
  * @param length the optional variable in which to store the number of read characters.
+ * @param allowIncomplete true to allow parsing less than the complete string.
  * @return the parsed value.
  */
 int parseSignedInt(const char* str, int base, int minValue, int maxValue,
-    result_t* result, size_t* length = nullptr);
+    result_t* result, size_t* length = nullptr, bool allowIncomplete = false);
 
 /**
  * A string of unescaped bus symbols.

@@ -78,12 +78,12 @@ unsigned int parseInt(const char* str, int base, unsigned int minValue, unsigned
 }
 
 int parseSignedInt(const char* str, int base, int minValue, int maxValue,
-    result_t* result, size_t* length) {
+    result_t* result, size_t* length, bool allowIncomplete) {
   char* strEnd = nullptr;
 
   long ret = strtol(str, &strEnd, base);
 
-  if (strEnd == nullptr || *strEnd != 0) {
+  if (strEnd == nullptr || (!allowIncomplete && *strEnd != 0)) {
     *result = RESULT_ERR_INVALID_NUM;  // invalid value
     return 0;
   }
