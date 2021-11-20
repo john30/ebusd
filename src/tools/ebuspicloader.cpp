@@ -52,6 +52,8 @@ static const struct argp_option argpoptions[] = {
     {"ip",      'i', "IP",    0, "set fix IP address (e.g. 192.168.0.10)", 0 },
     {"mask",    'm', "MASK",  0, "set fix IP mask (e.g. 24)", 0 },
     {"macip",   'M', nullptr, 0, "set the MAC address suffix from the IP address", 0 },
+    {"arbdel",  'a', "NANOS", 0, "set arbitration delay to NANOS ns (0-3500 in steps of 250, default 100"
+                                 ", since firmware 20211120)", 0 },
     {"flash",   'f', "FILE",  0, "flash the FILE to the device", 0 },
     {"reset",   'r', nullptr, 0, "reset the device at the end on success", 0 },
     {"slow",    's', nullptr, 0, "use low speed for transfer", 0 },
@@ -65,6 +67,8 @@ static uint8_t setIpAddress[] = {0, 0, 0, 0};
 static bool setMacFromIp = false;
 static bool setMask = false;
 static uint8_t setMaskLen = 0x1f;
+static bool setArbitrationDelay = false;
+static uint16_t setArbitrationDelayNanos = 0;
 static char* flashFile = nullptr;
 static bool reset = false;
 static bool lowSpeed = false;
@@ -157,6 +161,17 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       break;
     case 'M': // --macip
       setMacFromIp = true;
+      break;
+    case 'a': // --arbdel=1000
+      if (arg == nullptr || arg[0] == 0) {
+        argp_error(state, "invalid arbitration delay");
+        return EINVAL;
+      }
+      if (!parseShort(arg, 0, 3500, &setArbitrationDelayNanos)) {
+        argp_error(state, "invalid arbitration delay");
+        return EINVAL;
+      }
+      setArbitrationDelay = true;
       break;
     case 'f': // --flash=firmware.hex
       if (arg == nullptr || arg[0] == 0 || stat(arg, &st) != 0 || !S_ISREG(st.st_mode)) {
@@ -826,7 +841,7 @@ bool flashPic(int fd) {
   return true;
 }
 
-void readIpSettings(int fd) {
+void readSettings(int fd) {
   uint8_t mac[] = {0xae, 0xb0, 0x53, 0xef, 0xfe, 0xef};  // "Adapter-eBUS3" + (UserID or MUI)
   uint8_t ip[4] = {0, 0, 0, 0};
   bool useMUI = true;
@@ -844,9 +859,10 @@ void readIpSettings(int fd) {
   if (useMUI) {
     // read MUI to build uniqueMAC address
     // start with MUI6, end with MUI8 (MUI9 is reserved)
-    readConfig(fd, 0x0106, 8, true, false, configData);  // MUI
+    uint8_t mui[8];
+    readConfig(fd, 0x0106, 8, true, false, mui);  // MUI
     for (int i=0; i < 3; i++) {
-      mac[3+i] = configData[i*2];
+      mac[3+i] = mui[i*2];
     }
   }
   std::cout << "MAC address:";
@@ -877,10 +893,18 @@ void readIpSettings(int fd) {
     std::cout << std::endl;
     */
   }
+  uint16_t arbitrationDelay = configData[3]&0x0f;
+  std::cout << "Arbitration delay: ";
+  if (arbitrationDelay==0x0f) {
+    std::cout << "100 ns (default)" << std::endl;
+  } else {
+    arbitrationDelay *= 250; // steps of 250ns
+    std::cout << std::dec << static_cast<unsigned>(arbitrationDelay) << " ns" << std::endl;
+  }
 }
 
-bool writeIpSettings(int fd) {
-  std::cout << "Writing IP settings: ";
+bool writeSettings(int fd) {
+  std::cout << "Writing settings: ";
   uint8_t configData[] = {0xff, 0x3f, 0xff, 0x3f, 0xff, 0x3f, 0xff, 0x3f};
   if (setMacFromIp) {
     configData[1] &= ~0x20;  // set useMUI
@@ -890,6 +914,9 @@ bool writeIpSettings(int fd) {
     for (int i = 0; i < 4; i++) {
       configData[i * 2] = setIpAddress[i];
     }
+  }
+  if (setArbitrationDelay) {
+    configData[3] = 0x30 | (setArbitrationDelayNanos/250);
   }
   if (writeConfig(fd, 0x0000, 8, configData) != 0) {
     std::cerr << "failed" << std::endl;
@@ -1012,7 +1039,7 @@ int run(int fd) {
   } else {
     std::cout << "Firmware version not found" << std::endl;
   }
-  readIpSettings(fd);
+  readSettings(fd);
   std::cout << std::endl;
   bool success = true;
   if (flashFile) {
@@ -1021,10 +1048,10 @@ int run(int fd) {
       success = false;
     }
   }
-  if (setIp || setDhcp) {
-    if (writeIpSettings(fd)) {
-      std::cout << "IP settings changed to:" << std::endl;
-      readIpSettings(fd);
+  if (setIp || setDhcp || setArbitrationDelay) {
+    if (writeSettings(fd)) {
+      std::cout << "Settings changed to:" << std::endl;
+      readSettings(fd);
     } else {
       success = false;
     }
