@@ -676,12 +676,15 @@ int calcFileChecksum(uint8_t* storeFirstBlock = nullptr) {
   }
   unsigned long blockStart = END_BOOT_BYTES;
   uint16_t checkSum = 0;
+  uint16_t skipped = 0;
   while (blockStart < END_FLASH_BYTES && nextAddr < END_FLASH_BYTES) {
     for (int pos = 0; pos < WRITE_FLASH_BLOCKSIZE; pos++, nextAddr++) {
       unsigned long addr = ih.currentAddress();
       uint8_t value = (pos&0x1) == 1 ? 0x3f : 0xff;
       if (addr == nextAddr && ih.getData(&value)) {
         ih.incrementAddress();
+      } else {
+        skipped++;
       }
       if (storeFirstBlock && nextAddr < END_BOOT_BYTES+0x10) {
         storeFirstBlock[pos] = value;
@@ -690,12 +693,19 @@ int calcFileChecksum(uint8_t* storeFirstBlock = nullptr) {
     }
     blockStart += WRITE_FLASH_BLOCKSIZE;
   }
+  if (nextAddr-END_BOOT_BYTES != ih.size()+skipped) {
+    std::cout << "unable to fully read file." << std::endl;
+    return -1;
+  }
   return checkSum;
 }
 
 void printFileChecksum() {
   uint8_t data[0x10];
   int checkSum = calcFileChecksum(data);
+  if (checkSum < 0) {
+    return;
+  }
   int newFirmwareVersion = -1;
   if (data[0x2*2] == 0xae && data[0x2*2+1] == 0x34 && data[0x3*2+1] == 0x34) {
     newFirmwareVersion = data[0x3*2];
@@ -754,6 +764,7 @@ bool flashPic(int fd) {
   }
   unsigned long blockStart = END_BOOT_BYTES;
   uint16_t checkSum = 0;
+  uint16_t skipped = 0;
   int eraseRes = eraseFlash(fd, blockStart/2, (endAddr-blockStart)/2);
   if (eraseRes != 0) {
     std::cerr << "erasing flash failed: " << static_cast<signed>(-eraseRes-1) << std::endl;
@@ -771,6 +782,8 @@ bool flashPic(int fd) {
       if (addr == nextAddr && ih.getData(&value)) {
         ih.incrementAddress();
         blank = false;
+      } else {
+        skipped++;
       }
       buf[pos] = value;
       checkSum += ((uint16_t)value) << ((pos&0x1)*8);
@@ -797,6 +810,9 @@ bool flashPic(int fd) {
     blockStart += WRITE_FLASH_BLOCKSIZE;
   }
   std::cout << std::endl << "flashing finished." << std::endl;
+  if (nextAddr-END_BOOT_BYTES != ih.size()+skipped) {
+    std::cout << "unable to fully read file." << std::endl;
+  }
   int picSum = calcChecksum(fd, startAddr/2, blockStart-startAddr);
   if (picSum < 0) {
     std::cout << "unable to read checksum." << std::endl;
