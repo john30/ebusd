@@ -140,7 +140,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       }
       setIp = true;
       break;
-    case 'm':
+    case 'm': // --mask=24
       if (arg == nullptr || arg[0] == 0) {
         argp_error(state, "invalid IP mask");
         return EINVAL;
@@ -155,20 +155,20 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       }
       setMask = true;
       break;
-    case 'M':
+    case 'M': // --macip
       setMacFromIp = true;
       break;
-    case 'f':
+    case 'f': // --flash=firmware.hex
       if (arg == nullptr || arg[0] == 0 || stat(arg, &st) != 0 || !S_ISREG(st.st_mode)) {
         argp_error(state, "invalid flash file");
         return EINVAL;
       }
       flashFile = arg;
       break;
-    case 'r':
+    case 'r': // --reset
       reset = true;
       break;
-    case 's':
+    case 's': // --slow
       lowSpeed = true;
       break;
     default:
