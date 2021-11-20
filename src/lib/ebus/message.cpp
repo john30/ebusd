@@ -119,6 +119,7 @@ Message::Message(const string& circuit, const string& level, const string& name,
     setScanMessage();
     m_pollPriority = 0;
   }
+  time(&m_createTime);
 }
 
 Message::Message(const string& circuit, const string& level, const string& name,
@@ -132,6 +133,7 @@ Message::Message(const string& circuit, const string& level, const string& name,
       m_pollPriority(0),
       m_usedByCondition(false), m_isScanMessage(true), m_condition(nullptr),
       m_lastUpdateTime(0), m_lastChangeTime(0), m_pollOrder(0), m_lastPollTime(0) {
+  time(&m_createTime);
 }
 
 

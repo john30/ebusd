@@ -512,6 +512,12 @@ class Message : public AttributedItem {
   const SlaveSymbolString& getLastSlaveData() const { return m_lastSlaveData; }
 
   /**
+   * Get the time when this message was created.
+   * @return the time when this message was created.
+   */
+  time_t getCreateTime() const { return m_createTime; }
+
+  /**
    * Get the time when this message was last seen with reasonable data.
    * @return the time when this message was last seen, or 0.
    */
@@ -642,6 +648,9 @@ class Message : public AttributedItem {
 
   /** the last seen @a SlaveSymbolString. */
   SlaveSymbolString m_lastSlaveData;
+
+  /** the system time when the message was created. */
+  time_t m_createTime;
 
   /** the system time when the message was last updated, 0 for never. */
   time_t m_lastUpdateTime;
