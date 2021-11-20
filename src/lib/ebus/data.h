@@ -271,6 +271,13 @@ class DataField : public AttributedItem {
   virtual string getName(ssize_t fieldIndex) const = 0;
 
   /**
+   * Get the specified field.
+   * @param fieldIndex the index of the field (excluding ignored fields).
+   * @return the field, or @a nullptr if not available.
+   */
+  virtual const SingleDataField* getField(ssize_t fieldIndex) const = 0;
+
+  /**
    * Dump the field settings to the output.
    * @param prependFieldSeparator whether to start with a @a FIELD_SEPARATOR.
    * @param outputFormat the @a OutputFormat options.
@@ -416,6 +423,20 @@ class SingleDataField : public DataField {
   virtual string getName(ssize_t fieldIndex) const {
     return isIgnored() || fieldIndex > 0 ? "" : m_name;
   }
+
+  // @copydoc
+  virtual const SingleDataField* getField(ssize_t fieldIndex) const {
+    if (isIgnored() || fieldIndex > 0) {
+      return nullptr;
+    }
+    return const_cast<SingleDataField*>(this);
+  }
+
+  /**
+   * Return the data type definition.
+   * @return the data type definition.
+   */
+  const DataType* getDataType() const { return m_dataType; }
 
   /**
    * Dump the common prefix field settings to the output (name and part type).
@@ -657,6 +678,9 @@ class DataFieldSet : public DataField {
 
   // @copydoc
   string getName(ssize_t fieldIndex) const override;
+
+  // @copydoc
+  const SingleDataField* getField(ssize_t fieldIndex) const override;
 
   // @copydoc
   result_t derive(const string& name, PartType partType, int divisor,

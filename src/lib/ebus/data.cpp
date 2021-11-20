@@ -997,6 +997,29 @@ string DataFieldSet::getName(ssize_t fieldIndex) const {
   return ostream.str();
 }
 
+const SingleDataField* DataFieldSet::getField(ssize_t fieldIndex) const {
+  if (fieldIndex < (ssize_t)m_ignoredCount) {
+    return nullptr;
+  }
+  if ((size_t)fieldIndex + m_ignoredCount >= m_fields.size()) {
+    return nullptr;
+  }
+  if (m_ignoredCount == 0) {
+    return m_fields[fieldIndex];
+  }
+  ssize_t remain = fieldIndex;
+  for (const auto field : m_fields) {
+    if (field->isIgnored()) {
+      continue;
+    }
+    remain--;
+    if (remain == 0) {
+      return field;
+    }
+  }
+  return nullptr;
+}
+
 result_t DataFieldSet::derive(const string& name, PartType partType, int divisor,
     const map<unsigned int, string>& values, map<string, string>* attributes,
     vector<const SingleDataField*>* fields) const {

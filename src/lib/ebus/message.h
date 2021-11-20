@@ -286,6 +286,13 @@ class Message : public AttributedItem {
   string getFieldName(ssize_t fieldIndex) const { return m_data->getName(fieldIndex); }
 
   /**
+   * Get the specified field.
+   * @param fieldIndex the index of the field (excluding ignored fields).
+   * @return the field, or @a nullptr if not available.
+   */
+  const SingleDataField* getField(ssize_t fieldIndex) const { return m_data->getField(fieldIndex); }
+
+  /**
    * Get whether this is a write message.
    * @return whether this is a write message.
    */
