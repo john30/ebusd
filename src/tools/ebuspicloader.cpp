@@ -52,8 +52,8 @@ static const struct argp_option argpoptions[] = {
     {"ip",      'i', "IP",    0, "set fix IP address (e.g. 192.168.0.10)", 0 },
     {"mask",    'm', "MASK",  0, "set fix IP mask (e.g. 24)", 0 },
     {"macip",   'M', nullptr, 0, "set the MAC address suffix from the IP address", 0 },
-    {"arbdel",  'a', "NANOS", 0, "set arbitration delay to NANOS ns (0-3500 in steps of 250, default 100"
-                                 ", since firmware 20211120)", 0 },
+    {"arbdel",  'a', "US",    0, "set arbitration delay to US microseconds (0-620 in steps of 10, default 200"
+                                 ", since firmware 20211128)", 0 },
     {"flash",   'f', "FILE",  0, "flash the FILE to the device", 0 },
     {"reset",   'r', nullptr, 0, "reset the device at the end on success", 0 },
     {"slow",    's', nullptr, 0, "use low speed for transfer", 0 },
@@ -68,7 +68,7 @@ static bool setMacFromIp = false;
 static bool setMask = false;
 static uint8_t setMaskLen = 0x1f;
 static bool setArbitrationDelay = false;
-static uint16_t setArbitrationDelayNanos = 0;
+static uint16_t setArbitrationDelayMicros = 0;
 static char* flashFile = nullptr;
 static bool reset = false;
 static bool lowSpeed = false;
@@ -167,7 +167,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
         argp_error(state, "invalid arbitration delay");
         return EINVAL;
       }
-      if (!parseShort(arg, 0, 3500, &setArbitrationDelayNanos)) {
+      if (!parseShort(arg, 0, 620, &setArbitrationDelayMicros)) {
         argp_error(state, "invalid arbitration delay");
         return EINVAL;
       }
@@ -896,10 +896,10 @@ void readSettings(int fd) {
   uint16_t arbitrationDelay = configData[3]&0x0f;
   std::cout << "Arbitration delay: ";
   if (arbitrationDelay==0x0f) {
-    std::cout << "100 ns (default)" << std::endl;
+    std::cout << "100 us (default)" << std::endl;
   } else {
-    arbitrationDelay *= 250; // steps of 250ns
-    std::cout << std::dec << static_cast<unsigned>(arbitrationDelay) << " ns" << std::endl;
+    arbitrationDelay *= 10; // steps of 10us
+    std::cout << std::dec << static_cast<unsigned>(arbitrationDelay) << " us" << std::endl;
   }
 }
 
@@ -916,7 +916,7 @@ bool writeSettings(int fd) {
     }
   }
   if (setArbitrationDelay) {
-    configData[3] = 0x30 | (setArbitrationDelayNanos/250);
+    configData[3] = setArbitrationDelayMicros/10;
   }
   if (writeConfig(fd, 0x0000, 8, configData) != 0) {
     std::cerr << "failed" << std::endl;

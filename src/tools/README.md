@@ -20,8 +20,8 @@ Usage
 Usage: ebuspicloader [OPTION...] PORT
 A tool for loading firmware to the eBUS adapter PIC.
 
-  -a, --arbdel=NANOS         set arbitration delay to NANOS ns (0-3500 in steps
-                             of 250, default 100, since firmware 20211120)
+  -a, --arbdel=US            set arbitration delay to US microseconds (0-620 in
+                             steps of 10, default 200, since firmware 20211128)
   -d, --dhcp                 set dynamic IP address via DHCP
   -f, --flash=FILE           flash the FILE to the device
   -i, --ip=IP                set fix IP address (e.g. 192.168.0.10)
