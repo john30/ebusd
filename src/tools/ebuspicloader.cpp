@@ -893,7 +893,7 @@ void readSettings(int fd) {
     std::cout << std::endl;
     */
   }
-  uint16_t arbitrationDelay = configData[3]&0x0f;
+  uint16_t arbitrationDelay = configData[3]&0x3f;
   std::cout << "Arbitration delay: ";
   if (arbitrationDelay==0x3f) {
     std::cout << "200 us (default)" << std::endl;
