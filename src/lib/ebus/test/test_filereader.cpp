@@ -202,6 +202,7 @@ int main(int argc, char** argv) {
         result = RESULT_ERR_NOTFOUND;
       } else {
         result = reader.readFromStream(stream, argv[argpos], time, false, nullptr, &errorDescription, false, &hash, &size);
+        delete stream;
       }
       cout << argv[argpos] << " ";
       if (result != RESULT_OK) {
