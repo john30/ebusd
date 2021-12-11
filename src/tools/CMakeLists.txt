@@ -10,4 +10,10 @@ add_executable(ebuspicloader ${ebuspicloader_SOURCES})
 target_link_libraries(ebusctl utils ebus ${LIB_ARGP} ${ebusctl_LIBS})
 target_link_libraries(ebuspicloader ${LIB_ARGP})
 
+if(WITH_EBUSFEED)
+  set(ebusfeed_SOURCES ebusfeed.cpp)
+  add_executable(ebusfeed ${ebusfeed_SOURCES})
+  target_link_libraries(ebusfeed ebus ${LIB_ARGP} ${ebusfeed_LIBS})
+endif(WITH_EBUSFEED)
+
 install(TARGETS ebusctl ebuspicloader EXPORT ebusd DESTINATION usr/bin)

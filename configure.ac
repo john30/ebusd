@@ -43,6 +43,8 @@ AC_ARG_WITH(contrib, AS_HELP_STRING([--without-contrib], [disable inclusion of c
 if test "x$with_contrib" != "xno"; then
 	AC_DEFINE_UNQUOTED(HAVE_CONTRIB, [1], [Defined if contributed sources are enabled.])
 fi
+AC_ARG_WITH(ebusfeed, AS_HELP_STRING([--with-ebusfeed], [enable inclusion of ebusfeed tool]), [with_ebusfeed=yes], [])
+AM_CONDITIONAL([WITH_EBUSFEED], [test "x$with_ebusfeed" == "xyes"])
 AC_ARG_WITH(argp-lib, AS_HELP_STRING([--with-argp-lib=PATH], [path to argp libraries]), [LDFLAGS+="-L$with_argp_lib"])
 AC_ARG_WITH(argp-include, AS_HELP_STRING([--with-argp-include=PATH], [path to argp includes]), [CXXFLAGS+="-I$with_argp_include"])
 AC_CHECK_FUNC([argp_parse], [have_argp=yes], AC_CHECK_LIB([argp], [argp_parse], [have_argp=yes; LIBS="-largp $LIBS"], [have_argp=no]))
