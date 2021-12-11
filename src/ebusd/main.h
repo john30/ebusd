@@ -41,7 +41,7 @@ struct options {
   bool initialSend;  //!< send an initial escape symbol after connecting device
   unsigned int extraLatency;  //!< extra transfer latency in ms [0 for USB, 10 for IP]
 
-  const char* configPath;  //!< path to CSV configuration files [http://ebusd.eu/config/]
+  const char* configPath;  //!< path to CSV configuration files [http://cfg.ebusd.eu/]
   const char* overridePath;  //!< path to CSV configuration files to override the main files with
   bool scanConfig;  //!< pick configuration files matching initial scan
   /** the initial address to scan for scanconfig

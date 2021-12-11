@@ -1,7 +1,7 @@
 <?php
 $agent = $_SERVER['HTTP_USER_AGENT'];
 if (substr($agent, 0, 5)!=='ebusd') {
-  header('HTTP/1.1 404 Not Found');
+  header('Location: https://upd.ebusd.eu/', true, 301);
   exit;
 }
 $p=@$_REQUEST['p'];

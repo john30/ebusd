@@ -65,7 +65,7 @@ using std::cout;
 #endif
 
 /** the default path of the configuration files. */
-#define CONFIG_PATH "http://ebusd.eu/config/"
+#define CONFIG_PATH "http://cfg.ebusd.eu/"
 
 /** the opened PID file, or nullptr. */
 static FILE* pidFile = nullptr;
@@ -313,7 +313,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
 
   // Message configuration options:
-  case 'c':  // --configpath=http://ebusd.eu/config/
+  case 'c':  // --configpath=http://cfg.ebusd.eu/
     if (arg == nullptr || arg[0] == 0 || strcmp("/", arg) == 0) {
       argp_error(state, "invalid configpath");
       return EINVAL;

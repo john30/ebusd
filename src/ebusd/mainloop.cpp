@@ -332,7 +332,7 @@ void MainLoop::run() {
       }
       if (m_runUpdateCheck && !m_shutdown && now > nextCheckRun) {
         HttpClient client;
-        if (!client.connect("ebusd.eu", 80, PACKAGE_NAME "/" PACKAGE_VERSION)) {
+        if (!client.connect("upd.ebusd.eu", 80, PACKAGE_NAME "/" PACKAGE_VERSION)) {
           logError(lf_main, "update check connect error");
         } else {
           ostringstream ostr;
@@ -357,7 +357,7 @@ void MainLoop::run() {
           m_busHandler->formatUpdateInfo(&ostr);
           ostr << "}";
           string response;
-          if (!client.post("/updatecheck/", ostr.str(), &response)) {
+          if (!client.post("/", ostr.str(), &response)) {
             logError(lf_main, "update check error: %s", response.c_str());
           } else {
             m_updateCheck = response.empty() ? "unknown" : response;
