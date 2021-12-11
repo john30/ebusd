@@ -50,7 +50,7 @@ namespace ebusd {
 #if defined(__CYGWIN__) || defined(_WIN32)
 #define HOST_LATENCY_MS 20
 #else
-#define HOST_LATENCY_MS 0
+#define HOST_LATENCY_MS 10
 #endif
 
 /** the arbitration state handled by @a Device. */
