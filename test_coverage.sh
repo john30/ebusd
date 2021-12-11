@@ -85,7 +85,12 @@ echo > dump
 ./src/tools/ebusctl -s "" >/dev/null 2>/dev/null
 ./src/tools/ebusctl -p "" >/dev/null 2>/dev/null
 ./src/tools/ebusctl -x >/dev/null 2>/dev/null
+./src/tools/ebusctl --help >/dev/null
 ./src/tools/ebusctl 'help x' >/dev/null 2>/dev/null
+./src/tools/ebuspicloader --help >/dev/null
+./src/tools/ebuspicloader -a 150 -f ./src/tools/ebuspicloader -i 192.168.0.10 -m 24 -M -r -s -v /dev/zero >/dev/null 2>/dev/null
+echo -e ':100800008431542CAE3401347E1484314E01961E52\n:00000001FF' > firmware.hex
+./src/tools/ebuspicloader -f firmware.hex >/dev/null
 #server:
 php -r 'echo "php is available";'|egrep 'php is available'
 if [ ! "$?" = 0 ]; then
