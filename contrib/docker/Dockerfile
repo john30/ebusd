@@ -29,7 +29,7 @@ RUN apt-get update && apt-get install -y \
     libmosquitto1 libstdc++6 libc6 libgcc1 \
     && rm -rf /var/lib/apt/lists/*
 
-LABEL maintainer "ebusd@ebusd.eu"
+LABEL maintainer="ebusd@ebusd.eu"
 
 ARG TARGETARCH
 ARG TARGETVARIANT
@@ -39,7 +39,7 @@ ARG EBUSD_IMAGE
 ENV EBUSD_ARCH $TARGETARCH$TARGETVARIANT
 ENV EBUSD_VERSION $EBUSD_VERSION
 
-LABEL version "${EBUSD_VERSION}-${EBUSD_ARCH}-devel"
+LABEL version="${EBUSD_VERSION}-${EBUSD_ARCH}-devel"
 
 COPY --from=build /build/ebusd-*_mqtt1.deb ebusd.deb
 
