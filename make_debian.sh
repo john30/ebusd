@@ -129,6 +129,9 @@ cat <<EOF > $RELEASE/DEBIAN/dirs
 /lib/systemd/system
 /usr/bin
 EOF
+cat <<EOF > $RELEASE/DEBIAN/conffiles
+/etc/default/ebusd
+EOF
 cat <<EOF > $RELEASE/DEBIAN/postinst
 #!/bin/sh
 if [ -d /run/systemd/system ]; then
