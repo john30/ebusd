@@ -30,3 +30,5 @@ comment:
 
 ignore:
   - src/tools/intelhex
+  - src/lib/ebus/test
+  - src/lib/ebus/contrib/test
