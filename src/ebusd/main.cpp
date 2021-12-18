@@ -382,6 +382,10 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     }
     break;
   case 'i':  // --inject
+    if (opt->injectMessages) {
+      argp_error(state, "invalid inject");
+      return EINVAL;
+    }
     opt->injectMessages = true;
     break;
 
@@ -1264,9 +1268,48 @@ bool parseMessage(const string& arg, bool onlyMasterSlave, MasterSymbolString* m
  */
 int main(int argc, char* argv[]) {
   struct argp aargp = { argpoptions, parse_opt, nullptr, argpdoc, datahandler_getargs(), nullptr, nullptr };
-  int arg_index = -1;
   setenv("ARGP_HELP_FMT", "no-dup-args-note", 0);
 
+  char envname[32] = "--";  // needs to cover at least max length of any option name plus "--"
+  char* envopt = envname+2;
+  for (char ** env = environ; *env; env++) {
+    char* pos = strchr(*env, '=');
+    if (!pos || strncmp(*env, "EBUSD_", sizeof("EBUSD_")-1)!=0) {
+      continue;
+    }
+    char* start = *env+sizeof("EBUSD_")-1;
+    size_t len = pos-start;
+    if (len<=1 || len>sizeof(envname)-3) { // no single char long args
+      continue;
+    }
+    strncpy(envopt, start, len);
+    envopt[len] = 0;
+    strlwr(envopt);
+    if (strcmp(envopt, "version")==0 || strcmp(envopt, "image")==0 || strcmp(envopt, "arch")==0
+       || strcmp(envopt, "opts")==0 || strcmp(envopt, "inject")==0
+       || strcmp(envopt, "checkconfig")==0 || strcmp(envopt, "dumpconfig")==0
+    ) {
+      // ignore those defined in Dockerfile, EBUSD_OPTS, those with final args, and interactive ones
+      continue;
+    }
+    char* envargv[] = {envname, pos+1};
+    int cnt = pos[1] ? 2 : 1;
+    if (strcmp(envopt, "scanconfig")==0 && pos[1] && strlen(*env)<sizeof(envname)-3) {
+      // only really special case: OPTION_ARG_OPTIONAL with non-empty arg needs to use "=" syntax
+      cnt = 1;
+      strcat(envopt, pos);
+    }
+    int idx = -1;
+    opt.injectMessages = true; // for skipping unknown values
+    error_t err = argp_parse(&aargp, cnt, envargv, ARGP_PARSE_ARGV0|ARGP_SILENT|ARGP_IN_ORDER,
+                   &idx, &opt);
+    if (err!=0 && idx==-1) { // ignore args for non-arg boolean options
+      logError(lf_main, "invalid/unknown argument in env: %s", envopt);
+    }
+    opt.injectMessages = false; // restore
+  }
+
+  int arg_index = -1;
   if (argp_parse(&aargp, argc, argv, ARGP_IN_ORDER, &arg_index, &opt) != 0) {
     logError(lf_main, "invalid arguments");
     return EINVAL;

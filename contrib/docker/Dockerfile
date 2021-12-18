@@ -51,4 +51,6 @@ EXPOSE 8888
 
 COPY --from=build /build/contrib/docker/docker-entrypoint.sh /
 ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["-f", "--scanconfig"]
+
+ENV EBUSD_FOREGROUND ""
+CMD ["--scanconfig"]
