@@ -1282,9 +1282,10 @@ int main(int argc, char* argv[]) {
     if (len<=1 || len>sizeof(envname)-3) { // no single char long args
       continue;
     }
-    strncpy(envopt, start, len);
+    for (size_t i=0; i<len; i++) {
+      envopt[i] = (char)tolower(start[i]);
+    }
     envopt[len] = 0;
-    strlwr(envopt);
     if (strcmp(envopt, "version")==0 || strcmp(envopt, "image")==0 || strcmp(envopt, "arch")==0
        || strcmp(envopt, "opts")==0 || strcmp(envopt, "inject")==0
        || strcmp(envopt, "checkconfig")==0 || strcmp(envopt, "dumpconfig")==0
