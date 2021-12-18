@@ -1,3 +1,15 @@
+# 21.4 (tbd)
+## Bug Fixes
+* fix smaller bugs related to cleanup
+* add more device latency to unix build
+
+## Features
+* added arbitration delay setting to ebuspicloader
+* updated new location of config and update check web service
+* remove ebusfeed from regular build
+* add support for picking up environment variables as command line options
+
+
 # 21.3 (2021-11-07)
 
 ## Bug Fixes
