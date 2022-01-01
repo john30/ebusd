@@ -88,7 +88,18 @@ echo > dump
 ./src/tools/ebusctl --help >/dev/null
 ./src/tools/ebusctl 'help x' >/dev/null 2>/dev/null
 ./src/tools/ebuspicloader --help >/dev/null
+./src/tools/ebuspicloader -i "" >/dev/null 2>/dev/null
+./src/tools/ebuspicloader -i x >/dev/null 2>/dev/null
+./src/tools/ebuspicloader -i 192.168.0.10.1 >/dev/null 2>/dev/null
+./src/tools/ebuspicloader -i 192.168.0.10 -d >/dev/null 2>/dev/null
+./src/tools/ebuspicloader -m "" >/dev/null 2>/dev/null
+./src/tools/ebuspicloader -m 65 >/dev/null 2>/dev/null
+./src/tools/ebuspicloader -d -i 192.168.0.10 >/dev/null 2>/dev/null
+./src/tools/ebuspicloader -d -m "" >/dev/null 2>/dev/null
+./src/tools/ebuspicloader -d >/dev/null 2>/dev/null
+./src/tools/ebuspicloader -a 9000 >/dev/null 2>/dev/null
 ./src/tools/ebuspicloader -a 150 -f ./src/tools/ebuspicloader -i 192.168.0.10 -m 24 -M -r -s -v /dev/zero >/dev/null 2>/dev/null
+./src/tools/ebuspicloader -f x >/dev/null 2>/dev/null
 echo -e ':100800008431542CAE3401347E1484314E01961E52\n:00000001FF' > firmware.hex
 ./src/tools/ebuspicloader -f firmware.hex >/dev/null
 #server:
