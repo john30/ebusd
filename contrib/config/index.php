@@ -1,5 +1,7 @@
 <?php
+define('CSV_MEDIATYPE', 'text/csv');
 $agent = $_SERVER['HTTP_USER_AGENT'];
+
 if (substr($agent, 0, 5)!=='ebusd') {
   header('Location: https://upd.ebusd.eu/', true, 301);
   exit;
@@ -14,7 +16,7 @@ if ($p && $p[strlen($p)-1]==='/') {
   $p=substr($p, 0, strlen($p)-1);
 }
 if ($p && $p[0]!=='/' && strpos($p, '..')===FALSE && is_file($p)) {
-  header('Content-Type: text/comma-separated-values');
+  header('Content-Type: ' . CSV_MEDIATYPE);
   header('Cache-Control: Private');
   $t=@filemtime($p);
   if ($t) {
@@ -43,7 +45,7 @@ if ($dir===FALSE) {
   header('HTTP/1.1 404 Not Found');
   exit;
 }
-header('Content-Type: text/comma-separated-values');
+header('Content-Type: ' . CSV_MEDIATYPE);
 header('Cache-Control: Private');
 ob_start();
 while(($f=@readdir())!==FALSE) {
