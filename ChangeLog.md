@@ -1,7 +1,8 @@
-# 21.4 (tbd)
+# 22.1 (tbd)
 ## Bug Fixes
 * fix smaller bugs related to cleanup
 * add more device latency to unix build
+* fix for debian package overwriting previous conf files
 
 ## Features
 * added arbitration delay setting to ebuspicloader
