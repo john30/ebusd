@@ -2798,7 +2798,7 @@ void MessageMap::dump(bool withConditions, OutputFormat outputFormat, ostream* o
   bool first = true;
   bool isJson = (outputFormat & OF_JSON) != 0;
   if (isJson) {
-    *output << "{";
+    *output << (m_addAll ? "[" : "}");
   } else {
     Message::dumpHeader(nullptr, output);
   }
@@ -2821,9 +2821,14 @@ void MessageMap::dump(bool withConditions, OutputFormat outputFormat, ostream* o
           *output << endl;
         }
         if (isJson) {
+          if (!wasFirst) {
+            *output << ",\n";
+          }
           ostringstream str;
-          message->decodeJson(!wasFirst, true, false, false, outputFormat, &str);
-          *output << str.str();
+          message->decodeJson(false, false, false, false, outputFormat, &str);
+          string add = str.str();
+          size_t pos = add.find('{');
+          *output << "\n    {\"circuit\": \"" << message->getCircuit() << "\", " << add.substr(pos+1);
         } else {
           message->dump(nullptr, withConditions, outputFormat, output);
         }
@@ -2849,7 +2854,7 @@ void MessageMap::dump(bool withConditions, OutputFormat outputFormat, ostream* o
     }
   }
   if (isJson) {
-    *output << "}" << endl;
+    *output << (m_addAll ? "]" : "}") << endl;
   } else {
     if (!first) {
       *output << endl;
