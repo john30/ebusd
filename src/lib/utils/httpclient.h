@@ -90,7 +90,7 @@ class HttpClient {
   bool ensureConnected();
 
   /**
-   * Disconnect from the servier.
+   * Disconnect from the server.
    */
   void disconnect();
 
