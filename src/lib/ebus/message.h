@@ -77,6 +77,7 @@ class Message : public AttributedItem {
  public:
   /**
    * Construct a new instance.
+   * @param filename the source filename.
    * @param circuit the optional circuit name.
    * @param level the optional access level.
    * @param name the message name (unique within the same circuit and type).
@@ -92,7 +93,7 @@ class Message : public AttributedItem {
    * @param pollPriority the priority for polling, or 0 for no polling at all.
    * @param condition the @a Condition for this message, or nullptr.
    */
-  Message(const string& circuit, const string& level, const string& name,
+  Message(const string& filename, const string& circuit, const string& level, const string& name,
       bool isWrite, bool isPassive, const map<string, string>& attributes,
       symbol_t srcAddress, symbol_t dstAddress,
       const vector<symbol_t>& id,
@@ -587,6 +588,9 @@ class Message : public AttributedItem {
                           OutputFormat outputFormat, ostringstream* output) const;
 
  protected:
+  /** the source filename. */
+  const string m_filename;
+
   /** the optional circuit name. */
   const string m_circuit;
 
@@ -680,6 +684,7 @@ class ChainedMessage : public Message {
  public:
   /**
    * Construct a new instance.
+   * @param filename the source filename.
    * @param circuit the optional circuit name.
    * @param level the optional access level.
    * @param name the message name (unique within the same circuit and type).
@@ -695,7 +700,7 @@ class ChainedMessage : public Message {
    * @param pollPriority the priority for polling, or 0 for no polling at all.
    * @param condition the @a Condition for this message, or nullptr.
    */
-  ChainedMessage(const string& circuit, const string& level, const string& name,
+  ChainedMessage(const string& filename, const string& circuit, const string& level, const string& name,
       bool isWrite, const map<string, string>& attributes,
       symbol_t srcAddress, symbol_t dstAddress,
       const vector<symbol_t>& id,

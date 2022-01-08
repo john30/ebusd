@@ -100,14 +100,15 @@ extern result_t loadDefinitionsFromConfigPath(FileReader* reader, const string& 
     map<string, string>* defaults, string* errorDescription, bool replace = false);
 
 
-Message::Message(const string& circuit, const string& level, const string& name,
+Message::Message(const string& filename, const string& circuit, const string& level, const string& name,
     bool isWrite, bool isPassive, const map<string, string>& attributes,
     symbol_t srcAddress, symbol_t dstAddress,
     const vector<symbol_t>& id,
     const DataField* data, bool deleteData,
     size_t pollPriority,
     Condition* condition)
-    : AttributedItem(name, attributes), m_circuit(circuit), m_level(level), m_isWrite(isWrite),
+    : AttributedItem(name, attributes),
+      m_filename(filename), m_circuit(circuit), m_level(level), m_isWrite(isWrite),
       m_isPassive(isPassive),
       m_srcAddress(srcAddress), m_dstAddress(dstAddress),
       m_id(id), m_key(createKey(id, isWrite, isPassive, srcAddress, dstAddress)),
@@ -125,7 +126,9 @@ Message::Message(const string& circuit, const string& level, const string& name,
 Message::Message(const string& circuit, const string& level, const string& name,
     symbol_t pb, symbol_t sb,
     bool broadcast, const DataField* data, bool deleteData)
-    : AttributedItem(name), m_circuit(circuit), m_level(level), m_isWrite(broadcast),
+    : AttributedItem(name),
+      m_filename(""),
+      m_circuit(circuit), m_level(level), m_isWrite(broadcast),
       m_isPassive(false),
       m_srcAddress(SYN), m_dstAddress(broadcast ? BROADCAST : SYN),
       m_id({pb, sb}), m_key(createKey(pb, sb, broadcast)),
@@ -480,10 +483,10 @@ result_t Message::create(const string& filename, const DataFieldTemplates* templ
     }
     Message* message;
     if (chainIds.size() > 1) {
-      message = new ChainedMessage(useCircuit, level, name, isWrite, *row, srcAddress, dstAddress, id, chainIds,
+      message = new ChainedMessage(filename, useCircuit, level, name, isWrite, *row, srcAddress, dstAddress, id, chainIds,
           chainLengths, data, index == 0, pollPriority, condition);
     } else {
-      message = new Message(useCircuit, level, name, isWrite, isPassive, *row, srcAddress, dstAddress, id, data,
+      message = new Message(filename, useCircuit, level, name, isWrite, isPassive, *row, srcAddress, dstAddress, id, data,
           index == 0, pollPriority, condition);
     }
     messages->push_back(message);
@@ -521,7 +524,7 @@ bool Message::extractFieldNames(const string& str, bool checkAbbreviated, vector
 }
 
 Message* Message::derive(symbol_t dstAddress, symbol_t srcAddress, const string& circuit) const {
-  Message* result = new Message(circuit.length() == 0 ? m_circuit : circuit, m_level, m_name,
+  Message* result = new Message(m_filename, circuit.length() == 0 ? m_circuit : circuit, m_level, m_name,
     m_isWrite, m_isPassive, m_attributes,
     srcAddress == SYN ? m_srcAddress : srcAddress, dstAddress,
     m_id, m_data, false,
@@ -961,6 +964,7 @@ void Message::decodeJson(bool leadingSeparator, bool appendDirectionCondition, b
           << ",\n    \"passive\": " << (isPassive() ? "true" : "false")
           << ",\n    \"write\": " << (isWrite() ? "true" : "false");
   if (outputFormat & OF_ALL_ATTRS) {
+    *output << ",\n    \"filename\": \"" << m_filename << "\"";
     *output << ",\n    \"level\": \"" << getLevel() << "\"";
     if (getPollPriority()>0) {
       *output << ",\n    \"pollprio\": " << setw(0) << dec << getPollPriority();
@@ -1019,7 +1023,7 @@ void Message::decodeJson(bool leadingSeparator, bool appendDirectionCondition, b
 }
 
 
-ChainedMessage::ChainedMessage(const string& circuit, const string& level, const string& name,
+ChainedMessage::ChainedMessage(const string& filename, const string& circuit, const string& level, const string& name,
     bool isWrite, const map<string, string>& attributes,
     symbol_t srcAddress, symbol_t dstAddress,
     const vector<symbol_t>& id,
@@ -1027,7 +1031,7 @@ ChainedMessage::ChainedMessage(const string& circuit, const string& level, const
     const DataField* data, bool deleteData,
     size_t pollPriority,
     Condition* condition)
-    : Message(circuit, level, name, isWrite, false, attributes,
+    : Message(filename, circuit, level, name, isWrite, false, attributes,
       srcAddress, dstAddress, id,
       data, deleteData, pollPriority, condition),
       m_ids(ids), m_lengths(lengths),
@@ -1057,7 +1061,7 @@ ChainedMessage::~ChainedMessage() {
 }
 
 Message* ChainedMessage::derive(symbol_t dstAddress, symbol_t srcAddress, const string& circuit) const {
-  ChainedMessage* result = new ChainedMessage(circuit.length() == 0 ? m_circuit : circuit, m_level, m_name,
+  ChainedMessage* result = new ChainedMessage(m_filename, circuit.length() == 0 ? m_circuit : circuit, m_level, m_name,
     m_isWrite, m_attributes,
     srcAddress == SYN ? m_srcAddress : srcAddress, dstAddress,
     m_id, m_ids, m_lengths, m_data, false,
