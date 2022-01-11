@@ -10,7 +10,7 @@
 ### END INIT INFO
 
 DAEMON=/usr/bin/ebusd
-PIDFILE_PREFIX=/var/run/ebusd
+PIDFILE_PREFIX=/run/ebusd
 PIDFILE_SUFFIX=.pid
 
 if test -f /lib/lsb/init-functions; then
