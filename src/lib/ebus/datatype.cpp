@@ -34,6 +34,7 @@
 namespace ebusd {
 
 using std::dec;
+using std::defaultfloat;
 using std::hex;
 using std::fixed;
 using std::setfill;
@@ -731,7 +732,7 @@ result_t NumberDataType::readSymbols(size_t offset, size_t length, const SymbolS
   if (result != RESULT_OK) {
     return result;
   }
-  *output << setw(0) << dec;  // initialize output
+  *output << defaultfloat << setw(0) << dec;  // initialize output
 
   if (!hasFlag(REQ) && value == m_replacement) {
     if (outputFormat & OF_JSON) {
