@@ -24,6 +24,7 @@
 #include <csignal>
 #include <deque>
 #include "lib/utils/log.h"
+#include "lib/ebus/symbol.h"
 
 namespace ebusd {
 
@@ -573,16 +574,26 @@ MqttReplacer& MqttReplacers::get(const string& key) {
   return m_replacers[key];
 }
 
-string MqttReplacers::get(const string& key, bool untilFirstEmpty, bool onlyAlphanum) const {
+string MqttReplacers::get(const string& key, bool untilFirstEmpty, bool onlyAlphanum, const string& fallbackKey) const {
   auto itc = m_constants.find(key);
   if (itc!=m_constants.end()) {
     return itc->second;
   }
   auto itv = m_replacers.find(key);
-  if (itv==m_replacers.end()) {
-    return "";
+  if (itv!=m_replacers.end()) {
+    return itv->second.get(m_constants, untilFirstEmpty, onlyAlphanum);
   }
-  return itv->second.get(m_constants, untilFirstEmpty, onlyAlphanum);
+  if (!fallbackKey.empty()) {
+    itc = m_constants.find(fallbackKey);
+    if (itc!=m_constants.end()) {
+      return itc->second;
+    }
+    itv = m_replacers.find(fallbackKey);
+    if (itv!=m_replacers.end()) {
+      return itv->second.get(m_constants, untilFirstEmpty, onlyAlphanum);
+    }
+  }
+  return "";
 }
 
 bool MqttReplacers::set(const string& key, const string& value, bool removeReplacer) {
@@ -590,7 +601,7 @@ bool MqttReplacers::set(const string& key, const string& value, bool removeRepla
   if (removeReplacer) {
     m_replacers.erase(key);
   }
-  if (key.find('_')!=string::npos) {
+  if (key.find_first_of("-_")!=string::npos) {
     return false;
   }
   string upper = key;
@@ -779,10 +790,10 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
       m_replacers.reduce();
     }
   }
-  m_hasDefinitionTopic = !m_replacers.get("definition_topic", false, false).empty();
+  m_hasDefinitionTopic = !m_replacers.get("definition-topic", false, false).empty();
   m_hasDefinitionFieldsPayload = m_replacers.uses("fields_payload");
-  m_subscribeConfigRestartTopic = m_replacers.get("config_restart_topic", false, false);
-  m_subscribeConfigRestartPayload = m_replacers.get("config_restart_payload", false, false);
+  m_subscribeConfigRestartTopic = m_replacers.get("config_restart-topic", false, false);
+  m_subscribeConfigRestartPayload = m_replacers.get("config_restart-payload", false, false);
   m_globalTopic = getTopic(nullptr, "global/");
   m_subscribeTopic = getTopic(nullptr, "#");
   if (check(mosquitto_lib_init(), "unable to initialize")) {
@@ -1047,50 +1058,95 @@ void MqttHandler::run() {
         updates << dec << static_cast<unsigned>(uptime);
         publishTopic(uptimeTopic, updates.str());
       }
+      if (m_connected && m_definitionsSince == 0) {
+        publishDefinition(m_replacers, "def_global_running-", m_globalTopic + "running", "global", "running", "def_global-");
+        publishDefinition(m_replacers, "def_global_version-", m_globalTopic + "version", "global", "version", "def_global-");
+        publishDefinition(m_replacers, "def_global_signal-", signalTopic, "global", "signal", "def_global-");
+        publishDefinition(m_replacers, "def_global_uptime-", uptimeTopic, "global", "uptime", "def_global-");
+        publishDefinition(m_replacers, "def_global_updatecheck-", m_globalTopic + "updatecheck", "global", "updatecheck", "def_global-");
+        publishDefinition(m_replacers, "def_global_scan-", m_globalTopic + "scan", "global", "scan", "def_global-");
+        m_definitionsSince = 1;
+      }
       if (m_connected && m_hasDefinitionTopic) {
         deque<Message*> messages;
+        result_t result = RESULT_OK;
+        unsigned int filterPriority = parseInt(m_replacers["filter-priority"].c_str(), 10, 0, 9, &result);
+        if (result != RESULT_OK) {
+          filterPriority = 0;
+        }
+        string filterCircuit = m_replacers["filter-circuit"];
+        FileReader::tolower(&filterCircuit);
+        string filterName = m_replacers["filter-name"];
+        FileReader::tolower(&filterName);
+        string filterLevel = m_replacers["filter-level"];
+        FileReader::tolower(&filterLevel);
+        string filterField = m_replacers["filter-field"];
+        FileReader::tolower(&filterField);
         m_messages->findAll("", "", "", false, true, true, true, true, true, 0, 0, false, &messages);
         for (const auto& message : messages) {
           if (message->getCreateTime() <= m_definitionsSince) { // only newer defined
             continue;
           }
+          if ((filterPriority>0 && (message->getPollPriority()==0 || message->getPollPriority()>filterPriority))
+          || !FileReader::matches(message->getCircuit(), filterCircuit, true, true)
+          || !FileReader::matches(message->getName(), filterName, true, true)
+          || !FileReader::matches(message->getLevel(), filterLevel, true, true)) {
+            continue;
+          }
           MqttReplacers msgValues = m_replacers;  // need a copy here as the contents are manipulated
           msgValues.set("circuit", message->getCircuit());
           msgValues.set("name", message->getName());
+          msgValues.set("priority", static_cast<int>(message->getPollPriority()));
+          msgValues.set("level", message->getLevel());
+          msgValues.set("direction", message->isWrite() ? (message->isPassive() ? "uw" : "w") : (message->isPassive() ? "r" : "u"));
           if (!m_publishByField) {
             msgValues.set("topic", getTopic(message, "", "")); // TODO already present?
           }
           msgValues.reduce();
           ostringstream fields;
-          for (size_t index = 0; index < message->getFieldCount(); index++) {
+          size_t fieldCount = message->getFieldCount();
+          for (size_t index = 0; index < fieldCount; index++) {
             const SingleDataField* field = message->getField(index);
             if (!field || field->isIgnored()) {
+              continue;
+            }
+            string fieldName = message->getFieldName(index);
+            if (fieldName.empty() && fieldCount == 1) {
+              fieldName = "0";  // TODO should not occur
+            }
+            if (!FileReader::matches(fieldName, filterField, true, true)) {
               continue;
             }
             const DataType* dataType = field->getDataType();
             string typeSuffix;
             if (dataType->isNumeric()) {
-              typeSuffix = "number";
+              typeSuffix = dataType->getBitCount()<8 ? "bits" : "number";
+            } else if (dataType->hasFlag(DAT)) {
+              auto dt = dynamic_cast<const DateTimeDataType*>(dataType);
+              if (dt->hasDate()) {
+                typeSuffix = dt->hasDate() ? "datetime" : "date";
+              } else {
+                typeSuffix = "time";
+              }
             } else {
               typeSuffix = "string";
             }
-            //TODO valuelists => binary_sensor, date/time => device_class=date/timestamp, energy, power, current, gas, humidity, power_factor, pressure, temperature, voltage
-            string str = msgValues.get("type_"+typeSuffix, false, false);
+            //TODO energy, power, current, gas, humidity, power_factor, pressure, temperature, voltage
+            string str = msgValues.get("type-"+typeSuffix, false, false);
             if (str.empty()) {
               continue;
             }
             MqttReplacers values = msgValues;  // need a copy here as the contents are manipulated
             values.set("type", str);
             values.set("index", static_cast<signed>(index));
-            string fieldName = message->getFieldName(index);
             values.set("field", fieldName);
             values.set("fieldcomment", field->getAttribute("comment"));
             values.set("unit", field->getAttribute("unit"));
-            if (dataType->isNumeric()) {
-              auto dt = dynamic_cast<const NumberDataType*>(dataType);
-              values.set("min", static_cast<signed>(dt->getMinValue()));
-              values.set("max", static_cast<signed>(dt->getMaxValue()));
-            }
+//            if (dataType->isNumeric()) {
+//              auto dt = dynamic_cast<const NumberDataType*>(dataType);
+//              values.set("min", static_cast<signed>(dt->getMinValue()));
+//              values.set("max", static_cast<signed>(dt->getMaxValue()));
+//            }
             values.reduce();
             str = values.get("type_part_"+typeSuffix, false, false);
             values.set("type_part", str);
@@ -1106,29 +1162,14 @@ void MqttHandler::run() {
                   fields << values["field_separator"];
                 }
                 fields << value;
-                // TODO str << ",\"value_template\":\"{{value_json." << fieldName << ".value}}\"";
               }
               continue;
             }
-            string topic = values.get("definition_topic", false, false);
-            if (!topic.empty()) {
-              values.set("definition_topic", topic);
-              string payload = values.get("definition_payload", false, false);
-              string retainStr = values.get("definition_retain", false, false);
-              bool retain = !retainStr.empty() && !(retainStr=="0" || retainStr=="no" || retainStr=="false");
-              publishTopic(topic, payload, retain);
-            }
+            publishDefinition(values);
           }
           if (fields.tellp()>0) {
             msgValues.set("fields_payload", fields.str());
-            string topic = msgValues.get("definition_topic", false, false);
-            if (!topic.empty()) {
-              msgValues.set("definition_topic", topic);
-              string payload = msgValues.get("definition_payload", false, false);
-              string retainStr = msgValues.get("definition_retain", false, false);
-              bool retain = !retainStr.empty() && !(retainStr == "0" || retainStr == "no" || retainStr == "false");
-              publishTopic(topic, payload, retain);
-            }
+            publishDefinition(msgValues);
           }
         }
         time(&m_definitionsSince);
@@ -1179,6 +1220,38 @@ void MqttHandler::run() {
   }
   publishTopic(signalTopic, "false", true);
   publishTopic(m_globalTopic+"scan", "", true);  // clear retain of scan status
+}
+
+void MqttHandler::publishDefinition(MqttReplacers values, const string& prefix, const string& topic,
+                                    const string& circuit, const string& name, const string& fallbackPrefix) {
+  bool reduce = false;
+  if (!topic.empty()) {
+    values.set("topic", topic);
+    reduce = true;
+  }
+  if (!circuit.empty()) {
+    values.set("circuit", circuit);
+    reduce = true;
+  }
+  if (!name.empty()) {
+    values.set("name", name);
+    reduce = true;
+  }
+  if (reduce) {
+    values.reduce();
+  }
+  bool noFallback = fallbackPrefix.empty();
+  string defTopic = values.get(prefix+"topic", false, false,
+                               noFallback ? "" : fallbackPrefix+"topic");
+  if (defTopic.empty()) {
+    return;
+  }
+  string payload = values.get(prefix+"payload", false, false,
+                              noFallback ? "" : fallbackPrefix+"payload");
+  string retainStr = values.get(prefix+"retain", false, false,
+                                noFallback ? "" : fallbackPrefix+"retain");
+  bool retain = !retainStr.empty() && !(retainStr=="0" || retainStr=="no" || retainStr=="false");
+  publishTopic(defTopic, payload, retain);
 }
 
 bool MqttHandler::handleTraffic(bool allowReconnect) {

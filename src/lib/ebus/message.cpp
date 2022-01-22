@@ -615,6 +615,9 @@ bool Message::setPollPriority(size_t priority) {
   if (m_usedByCondition && (priority == 0 || priority > POLL_PRIORITY_CONDITION)) {
     usePriority = POLL_PRIORITY_CONDITION;
   }
+  if (m_pollPriority != usePriority) {
+    time(&m_createTime);  // mis-use creation time for this update
+  }
   bool ret = m_pollPriority == 0 && usePriority > 0;
   m_pollPriority = usePriority;
   if (ret || m_pollOrder > g_lastPollOrder+(unsigned int)m_pollPriority) {

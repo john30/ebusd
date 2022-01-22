@@ -142,6 +142,20 @@ class FileReader {
   static void tolower(string* str);
 
   /**
+   * Check the input string against the search pattern.
+   * @param input the input string to check.
+   * @param search the search pattern to match against. May contain alternatives separated by a "|".
+   * Each alternative may
+   * - start with "^" to match the beginning of the input,
+   * - end with "$" to match the end of the input,
+   * - contain a single "*" (between other characters) to match an arbitrary number of characters.
+   * @param ignoreCase true to ignore case differences.
+   * @param searchIsLower true if search is already known to be in lowercase only.
+   * @return true if the input string matches the search pattern.
+   */
+  static bool matches(const string& input, const string& search, bool ignoreCase = false, bool searchIsLower = false);
+
+  /**
    * Split the next line(s) from the @a istream into fields.
    * @param stream the @a istream to read from.
    * @param row the @a vector to which to add the fields. This will be empty for completely empty and comment lines.

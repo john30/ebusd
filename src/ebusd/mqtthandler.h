@@ -180,9 +180,12 @@ class MqttReplacers {
   /**
    * Get the variable or constant value of the specified key.
    * @param key the key for which to get the value.
-   * @param value the value string or empty.
+   * @param untilFirstEmpty true to only return the prefix before the first empty field.
+   * @param onlyAlphanum whether to only allow alpha numeric characters plus underscore.
+   * @param fallbackKey optional fallback key to use when key value is undefined.
+   * @return the value string or empty.
    */
-  string get(const string& key, bool untilFirstEmpty, bool onlyAlphanum = false) const;
+  string get(const string& key, bool untilFirstEmpty, bool onlyAlphanum = false, const string& fallbackKey = "") const;
 
   /**
    * Set the constant value of the specified key and additionally normalized with uppercase key only (if the key does
@@ -264,6 +267,19 @@ class MqttHandler : public DataSink, public DataSource, public WaitThread {
 
 
  private:
+  /**
+   * Publish a definition topic as specified in the given values.
+   * @param values the values with the message specification.
+   * @param prefix the prefix for picking the message specification from the values (before "topic", "payload", and
+   * "retain").
+   * @param topic optional data topic (not the definition topic) to set before building the topic/payload, or empty.
+   * @param circuit optional circuit to set before building the topic/payload, or empty.
+   * @param name optional name to set before building the topic/payload, or empty.
+   * @param fallbackPrefix optional fallback prefix to use when topic/payload/retain with prefix above is not defined.
+   */
+  void publishDefinition(MqttReplacers values, const string& prefix = "definition-", const string& topic = "",
+                         const string& circuit = "", const string& name = "", const string& fallbackPrefix = "");
+
   /**
    * Called regularly to handle MQTT traffic.
    * @param allowReconnect true when reconnecting to the broker is allowed.

@@ -175,11 +175,14 @@ enum PartType {
 /** bit flag for @a DataType: numeric type with base class @a NumberDataType. */
 #define NUM 0x400
 
+/** bit flag for @a DataType: numeric type with base class @a DateTimeDataType. */
+#define DAT 0x800
+
 /** bit flag for @a DataType: special marker for certain types. */
-#define SPE 0x800
+#define SPE 0x1000
 
 /** bit flag for @a DataType: stored duplicate for backwards compatibility, not to be traversed in lists any more. */
-#define DUP 0x1000
+#define DUP 0x2000
 
 /**
  * Base class for all kinds of data types.
@@ -364,7 +367,7 @@ class DateTimeDataType : public DataType {
    */
   DateTimeDataType(const string& id, size_t bitCount, uint16_t flags, unsigned int replacement,
       bool hasDate, bool hasTime, int16_t resolution)
-    : DataType(id, bitCount, flags, replacement), m_hasDate(hasDate), m_hasTime(hasTime),
+    : DataType(id, bitCount, flags|DAT, replacement), m_hasDate(hasDate), m_hasTime(hasTime),
       m_resolution(resolution == 0 ? 1 : resolution) {}
 
   /**

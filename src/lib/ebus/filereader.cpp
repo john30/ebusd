@@ -118,6 +118,98 @@ void FileReader::tolower(string* str) {
   transform(str->begin(), str->end(), str->begin(), ::tolower);
 }
 
+bool FileReader::matches(const string& input, const string& search, bool ignoreCase, bool searchIsLower) {
+  if (search.empty()) {
+    return true;  // empty pattern matches everything
+  }
+  if (ignoreCase) {
+    string inputSub = input;
+    tolower(&inputSub);
+    if (searchIsLower) {
+      return matches(inputSub, search, false, true);
+    }
+    string searchSub = search;
+    tolower(&inputSub);
+    return matches(inputSub, searchSub, false, false);
+  }
+  // walk through alternatives
+  size_t from = 0;
+  bool found = false;
+  do {
+    size_t to = search.find('|', from);
+    if (to == string::npos) {
+      to = search.length();
+    } else {
+      found = true;
+    }
+    if (from==to) {
+      return true;  // empty pattern matches everything
+    }
+    size_t nextStart = to+1;
+    bool matchStart = search[from] == '^';
+    if (matchStart) {
+      from++;
+    }
+    bool matchEnd = from<to && search[to-1] == '$';
+    if (matchEnd) {
+      to--;
+    }
+    if (matchEnd && matchStart && from==to) {  // pattern is "^$"
+      if (input.empty()) {
+        return true;
+      }
+    } else {
+      string prefix = search.substr(from, to-from);
+      size_t star = prefix.find('*');
+      size_t checkEnd = input.length();
+      if (star != string::npos) {
+        string suffix = prefix.substr(star + 1);
+        prefix = prefix.substr(0, star);
+        if (suffix.empty()) {
+          // empty suffix matches everything
+        } else {
+          if (checkEnd < suffix.length()) {
+            checkEnd = string::npos;  // no-match
+          } else {
+            checkEnd -= suffix.length();
+            if (matchEnd) {
+              if (input.find(suffix, checkEnd) == string::npos) {
+                checkEnd = string::npos;  // no-match
+              }
+            } else {
+              checkEnd = input.rfind(suffix, checkEnd);
+            }
+          }
+        }
+        matchEnd = false;  // prefix is no longer required to match at the end
+      }  // else: no star, check prefix only
+      if (checkEnd != string::npos) {
+        if (prefix.empty()) {
+          return true;  // empty prefix matches everything
+        }
+        if (prefix.length() <= checkEnd) {
+          if (matchStart) {
+            if (input.substr(0, prefix.length()) == prefix && (!matchEnd || prefix.length()==checkEnd)) {
+              return true;
+            }
+          } else {
+            string remain = input.substr(0, checkEnd);
+            if (matchEnd) {
+              if (remain.find(prefix, checkEnd-prefix.length()) != string::npos) {
+                return true;
+              }
+            } else if (remain.find(prefix) != string::npos) {
+              return true;
+            }
+          }
+        }  // else: prefix is longer than remainder
+      }
+    }
+    from = nextStart;
+  } while (from < search.length()+(found?1:0));
+  return false;
+}
+
 static size_t hashFunction(const string& str) {
   size_t hash = 0;
   for (unsigned char c : str) {
