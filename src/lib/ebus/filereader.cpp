@@ -130,7 +130,7 @@ bool FileReader::matches(const string& input, const string& search, bool ignoreC
     }
     string searchSub = search;
     tolower(&inputSub);
-    return matches(inputSub, searchSub, false, false);
+    return matches(inputSub, searchSub, false, true);
   }
   // walk through alternatives
   size_t from = 0;

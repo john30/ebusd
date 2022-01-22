@@ -88,9 +88,11 @@ class MqttReplacer {
    * @param templateStr the template string.
    * @param onlyKnown true to allow only known field names from @a knownFieldNames.
    * @param noKnownDuplicates true to now allow duplicates from @a knownFieldNames.
+   * @param emptyIfMissing true when the complete result is supposed to be empty when at least one referenced variable
+   * is empty or not defined.
    * @return true on success, false on malformed template string.
    */
-  bool parse(const string& templateStr, bool onlyKnown = true, bool noKnownDuplicates = true);
+  bool parse(const string& templateStr, bool onlyKnown = true, bool noKnownDuplicates = true, bool emptyIfMissing = false);
 
  private:
   /**
@@ -148,6 +150,10 @@ class MqttReplacer {
    * @a knownFieldNames for an unknown field.
    */
   vector<std::pair<string, int>> m_parts;
+
+  /** true when the complete result is supposed to be empty when at least one referenced variable
+   * is empty or not defined. */
+  bool m_emptyIfMissing;
 };
 
 
@@ -338,6 +344,9 @@ class MqttHandler : public DataSink, public DataSource, public WaitThread {
 
   /** whether the @a m_replacers uses the fields_payload variable. */
   bool m_hasDefinitionFieldsPayload;
+
+  /** map of type name to a list of pairs of wildcard string and mapped value. */
+  map<string, vector<std::pair<string, string>>> m_typeSwitches;
 
   /** the subscribed configuration restart topic, or empty. */
   string m_subscribeConfigRestartTopic;
