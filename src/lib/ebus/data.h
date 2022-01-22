@@ -266,7 +266,7 @@ class DataField : public AttributedItem {
   /**
    * Get the specified field name.
    * @param fieldIndex the index of the field (excluding ignored fields), or -1 for this.
-   * @return the field name, or the index as string is not unique or not available.
+   * @return the field name, or the index as string if not unique or not available.
    */
   virtual string getName(ssize_t fieldIndex) const = 0;
 

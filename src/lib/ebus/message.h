@@ -282,7 +282,7 @@ class Message : public AttributedItem {
   /**
    * Get the specified field name.
    * @param fieldIndex the index of the field (excluding ignored fields).
-   * @return the field name, or the index as string if not unique, or empty not available.
+   * @return the field name, or the index as string if not unique or not available.
    */
   string getFieldName(ssize_t fieldIndex) const { return m_data->getName(fieldIndex); }
 
