@@ -708,16 +708,16 @@ result_t ValueListDataField::derive(const string& name, PartType partType, int d
   if (!m_dataType->isNumeric()) {
     return RESULT_ERR_INVALID_ARG;
   }
+  const NumberDataType* num = reinterpret_cast<const NumberDataType*>(m_dataType);
   if (!values.empty()) {
-    const NumberDataType* num = reinterpret_cast<const NumberDataType*>(m_dataType);
     if (values.begin()->first < num->getMinValue() || values.rbegin()->first > num->getMaxValue()) {
       return RESULT_ERR_INVALID_ARG;  // cannot use divisor != 1 for value list field
     }
     fields->push_back(new ValueListDataField(useName, *attributes,
-        reinterpret_cast<const NumberDataType*>(m_dataType), partType, m_length, values));
+        num, partType, m_length, values));
   } else {
     fields->push_back(new ValueListDataField(useName, *attributes,
-        reinterpret_cast<const NumberDataType*>(m_dataType), partType, m_length, m_values));
+        num, partType, m_length, m_values));
   }
   return RESULT_OK;
 }
