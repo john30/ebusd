@@ -494,6 +494,15 @@ class NumberDataType : public DataType {
   unsigned int getMaxValue() const { return m_maxValue; }
 
   /**
+   * Get the minimum or maximum value.
+   * @param getMax true for the maximum, false for the minimum.
+   * @param outputFormat the @a OutputFormat options to use.
+   * @param output the ostream to append the formatted value to.
+   * @return @a RESULT_OK on success, or an error code.
+   */
+  result_t getMinMax(bool getMax, const OutputFormat outputFormat, ostream* output) const;
+
+  /**
    * @return the divisor (negative for reciprocal).
    */
   int getDivisor() const { return m_divisor; }
@@ -515,6 +524,16 @@ class NumberDataType : public DataType {
   // @copydoc
   result_t readSymbols(size_t offset, size_t length, const SymbolString& input,
       const OutputFormat outputFormat, ostream* output) const override;
+
+  /**
+   * Internal method for interpreting a numeric raw value.
+   * @param value the numeric raw value.
+   * @param outputFormat the @a OutputFormat options to use.
+   * @param output the ostream to append the formatted value to.
+   * @return @a RESULT_OK on success, or an error code.
+   */
+  result_t readFromRawValue(size_t length, unsigned int value,
+                            OutputFormat outputFormat, ostream* output) const;
 
   /**
    * Internal method for writing the numeric raw value to a @a SymbolString.

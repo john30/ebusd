@@ -61,22 +61,6 @@ bool mqtthandler_register(UserInfo* userInfo, BusHandler* busHandler, MessageMap
 class MqttReplacer {
  public:
   /**
-   * Constructor.
-   * @param fillDefault true to fill in the default topic.
-   */
-  explicit MqttReplacer(bool fillDefault = true);
-
-  /**
-   * Create a new replacer.
-   * @param templateStr the template string.
-   * @param ensureDefault true to ensure the default topic parts are present.
-   * @param onlyKnown true to allow only known field names from @a knownFieldNames.
-   * @param noKnownDuplicates true to now allow duplicates from @a knownFieldNames.
-   * @return the replacer, or null if the parameters are invalid.
-   */
-  static MqttReplacer* create(const string& templateStr, bool ensureDefault = true, bool onlyKnown = true, bool noKnownDuplicates = true);
-
-  /**
    * Normalize the string to contain only alpha numeric characters plus underscore by replacing other characters with
    * an underscore.
    * @param str the string to normalize.
@@ -94,17 +78,21 @@ class MqttReplacer {
    */
   bool parse(const string& templateStr, bool onlyKnown = true, bool noKnownDuplicates = true, bool emptyIfMissing = false);
 
- private:
   /**
    * Ensure the default topic parts are present (circuit and message).
    */
   void ensureDefault();
 
- public:
+  /**
+   * Return whether this replacer is completely empty.
+   * @return true when empty.
+   */
+  bool empty() const;
+
   /**
    * Return whether the specified field is used.
    * @param field the field name to check.
-   * @return true when the specified field is used
+   * @return true when the specified field is used.
    */
   bool has(const string& field) const;
 
@@ -134,13 +122,14 @@ class MqttReplacer {
   bool reduce(const map<string, string>& values, string& result, bool onlyAlphanum = false) const;
 
   /**
-   *
-   * @param remain
-   * @param circuit
-   * @param name
+   * Match a topic string against the constant and variables parts.
+   * @param topic the topic string to match.
+   * @param circuit pointer to the string receiving the circuit name if present.
+   * @param name pointer to the string receiving the message name if present.
+   * @param field pointer to the string receiving the field name if present.
    * @return the index of the last unmatched part, or the negative index minus one for extra non-matched non-field parts.
    */
-  ssize_t matchTopic(const string& remain, string* circuit, string* name, string* field) const;
+  ssize_t matchTopic(const string& topic, string* circuit, string* name, string* field) const;
 
  private:
   /**

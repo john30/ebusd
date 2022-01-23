@@ -674,6 +674,16 @@ result_t NumberDataType::derive(int divisor, size_t bitCount, const NumberDataTy
   return RESULT_OK;
 }
 
+result_t NumberDataType::getMinMax(bool getMax, const OutputFormat outputFormat, ostream* output) const {
+  size_t length;
+  if (m_bitCount<8) {
+    length = 1;
+  } else {
+    length = m_bitCount/8;
+  }
+  return readFromRawValue(length, getMax ? m_maxValue : m_minValue, outputFormat, output);
+}
+
 result_t NumberDataType::readRawValue(size_t offset, size_t length, const SymbolString& input,
                                       unsigned int* value) const {
   size_t start = 0, count = length;
@@ -725,12 +735,17 @@ result_t NumberDataType::readRawValue(size_t offset, size_t length, const Symbol
 result_t NumberDataType::readSymbols(size_t offset, size_t length, const SymbolString& input,
                                      OutputFormat outputFormat, ostream* output) const {
   unsigned int value = 0;
-  int signedValue;
 
   result_t result = readRawValue(offset, length, input, &value);
   if (result != RESULT_OK) {
     return result;
   }
+  return readFromRawValue(length, value, outputFormat, output);
+}
+
+result_t NumberDataType::readFromRawValue(size_t length, unsigned int value,
+                                          OutputFormat outputFormat, ostream* output) const {
+  int signedValue;
   *output << setw(0) << dec;  // initialize output
 
   if (!hasFlag(REQ) && value == m_replacement) {

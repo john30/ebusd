@@ -210,6 +210,12 @@ class DataField : public AttributedItem {
   virtual bool isSet() const { return false; }
 
   /**
+   * Return whether this is a @a ValueListDataField.
+   * @return true if this is a @a DataFieldSet.
+   */
+  virtual bool isList() const { return false; }
+
+  /**
    * Factory method for creating new instances.
    * @param isWriteMessage whether the field is part of a write message (default false).
    * @param isTemplate true for creating a template @a DataField.
@@ -533,6 +539,9 @@ class ValueListDataField : public SingleDataField {
 
   // @copydoc
   const ValueListDataField* clone() const override;
+
+  // @copydoc
+  bool isList() const override { return true; }
 
   // @copydoc
   result_t derive(const string& name, PartType partType, int divisor,
