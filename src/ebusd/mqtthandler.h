@@ -113,6 +113,12 @@ class MqttReplacer {
   bool isReducable(const map<string, string>& values) const;
 
   /**
+   * Compress all subsequent constant values to a single constant value if possible.
+   * @param values the named values for replacement.
+   */
+  void compress(const map<string, string>& values);
+
+  /**
    * Reduce the fields to a constant value if possible.
    * @param values the named values for replacement.
    * @param result the string to store the result in.
@@ -201,8 +207,9 @@ class MqttReplacers {
 
   /**
    * Reduce as many variables to constants as possible.
+   * @param compress true to compress non-reducable replacers if possible.
    */
-  void reduce();
+  void reduce(bool compress = false);
 
  private:
   /** constant values from the integration file. */

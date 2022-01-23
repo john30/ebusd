@@ -115,7 +115,7 @@ Message::Message(const string& filename, const string& circuit, const string& le
       m_data(data), m_deleteData(deleteData),
       m_pollPriority(pollPriority),
       m_usedByCondition(false), m_isScanMessage(false), m_condition(condition),
-      m_lastUpdateTime(0), m_lastChangeTime(0), m_pollOrder(0), m_lastPollTime(0) {
+      m_dataHandlerState(0), m_lastUpdateTime(0), m_lastChangeTime(0), m_pollOrder(0), m_lastPollTime(0) {
   if (circuit == "scan") {
     setScanMessage();
     m_pollPriority = 0;
@@ -1023,6 +1023,14 @@ void Message::decodeJson(bool leadingSeparator, bool appendDirectionCondition, b
     }
   }
   *output << "\n   }";
+}
+
+bool Message::setDataHandlerState(int state) {
+  if (state == m_dataHandlerState) {
+    return false;
+  }
+  m_dataHandlerState = state;
+  return true;
 }
 
 

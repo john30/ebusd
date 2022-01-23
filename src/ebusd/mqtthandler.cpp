@@ -478,6 +478,28 @@ bool MqttReplacer::isReducable(const map<string, string>& values) const {
   return true;
 }
 
+void MqttReplacer::compress(const map<string, string>& values) {
+  bool lastConstant = false;
+  for (auto it = m_parts.begin(); it != m_parts.end(); ) {
+    bool isConstant = it->second < 0;
+    if (!isConstant) {
+      const auto pos = values.find(it->first);
+      if (pos!=values.cend()) {
+        it->second = -1;
+        it->first = pos->second;
+        isConstant = true;
+      }
+    }
+    if (!lastConstant || !isConstant) {
+      lastConstant = isConstant;
+      ++it;
+      continue;
+    }
+    (it-1)->first += it->first;
+    it = m_parts.erase(it);
+  }
+}
+
 bool MqttReplacer::reduce(const map<string, string>& values, string& result, bool onlyAlphanum) const {
   ostringstream ret;
   for (const auto &it: m_parts) {
@@ -631,7 +653,7 @@ void MqttReplacers::set(const string& key, int value) {
   m_constants[key] = str.str();
 }
 
-void MqttReplacers::reduce() {
+void MqttReplacers::reduce(bool compress) {
   // iterate through variables and reduce as many to constants as possible
   bool reduced = false;
   do {
@@ -640,6 +662,9 @@ void MqttReplacers::reduce() {
       string str;
       if (!it->second.isReducable(m_constants)
       || !it->second.reduce(m_constants, str)) {
+        if (compress) {
+          it->second.compress(m_constants);
+        }
         ++it;
         continue;
       }
@@ -835,7 +860,7 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
       m_replacers.set("prefix", line);
       m_replacers.set("prefixn", removeTrailingNonTopicPart(line));
     }
-    m_replacers.reduce();
+    m_replacers.reduce(true);
     if (m_replacers.uses("type_switch")) {
       for (auto typeName: typeNames) {
         string str = m_replacers.get("type_switch-" + string(typeName), false, false, "type_switch");
@@ -1154,6 +1179,7 @@ void MqttHandler::run() {
         if (result != RESULT_OK) {
           filterPriority = 0;
         }
+        bool filterSeen = parseBool(m_replacers["filter-seen"]);
         string filterCircuit = m_replacers["filter-circuit"];
         FileReader::tolower(&filterCircuit);
         string filterName = m_replacers["filter-name"];
@@ -1167,7 +1193,18 @@ void MqttHandler::run() {
         bool usesTypeSwitch = !m_typeSwitches.empty();
         m_messages->findAll("", "", "", false, true, true, true, true, true, 0, 0, false, &messages);
         for (const auto& message : messages) {
-          if (message->getCreateTime() <= m_definitionsSince) { // only newer defined
+          if (filterSeen) {
+            if (message->getLastUpdateTime()==0) {
+              continue;  // no data ever
+            }
+            if (message->getDataHandlerState()==1) {
+              // already seen in the past, check for poll prio update
+              if (message->getCreateTime() <= m_definitionsSince) {
+                continue;
+              }
+            }
+            message->setDataHandlerState(1);
+          } else if (message->getCreateTime() <= m_definitionsSince) {  // only newer defined
             continue;
           }
           if ((filterPriority>0 && (message->getPollPriority()==0 || message->getPollPriority()>filterPriority))
@@ -1191,10 +1228,10 @@ void MqttHandler::run() {
           if (!m_publishByField) {
             msgValues.set("topic", getTopic(message, "", "")); // TODO already present?
           }
-          msgValues.reduce();
+          msgValues.reduce(true);
           string str = msgValues.get("direction_map-"+direction, false, false);
           msgValues.set("direction_map", str);
-          msgValues.reduce();
+          msgValues.reduce(true);
           ostringstream fields;
           size_t fieldCount = message->getFieldCount();
           for (size_t index = 0; index < fieldCount; index++) {

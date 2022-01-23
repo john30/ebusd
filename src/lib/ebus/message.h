@@ -526,6 +526,19 @@ class Message : public AttributedItem {
   time_t getCreateTime() const { return m_createTime; }
 
   /**
+   * Get the arbitrary state value for data handlers.
+   * @return the state value.
+   */
+  int getDataHandlerState() const { return m_dataHandlerState; }
+
+  /**
+   * Set the arbitrary state value for data handlers.
+   * @param state the new state value.
+   * @return true when the state was changed.
+   */
+  bool setDataHandlerState(int state);
+
+  /**
    * Get the time when this message was last seen with reasonable data.
    * @return the time when this message was last seen, or 0.
    */
@@ -660,8 +673,11 @@ class Message : public AttributedItem {
   /** the last seen @a SlaveSymbolString. */
   SlaveSymbolString m_lastSlaveData;
 
-  /** the system time when the message was created. */
+  /** the system time when the message was created or changed in poll priority. */
   time_t m_createTime;
+
+  /** an arbitrary state for data handlers. */
+  int m_dataHandlerState;
 
   /** the system time when the message was last updated, 0 for never. */
   time_t m_lastUpdateTime;
