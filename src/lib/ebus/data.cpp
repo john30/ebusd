@@ -971,7 +971,7 @@ size_t DataFieldSet::getCount(PartType partType, const char* fieldName) const {
 }
 
 string DataFieldSet::getName(ssize_t fieldIndex) const {
-  if (fieldIndex < (ssize_t)m_ignoredCount) {
+  if (fieldIndex < 0) {
     return m_name;
   }
   if ((size_t)fieldIndex + m_ignoredCount >= m_fields.size()) {
@@ -987,7 +987,7 @@ string DataFieldSet::getName(ssize_t fieldIndex) const {
         continue;
       }
       remain--;
-      if (remain == 0) {
+      if (remain <= 0) {
         return field->getName(-1);
       }
     }
@@ -998,10 +998,7 @@ string DataFieldSet::getName(ssize_t fieldIndex) const {
 }
 
 const SingleDataField* DataFieldSet::getField(ssize_t fieldIndex) const {
-  if (fieldIndex < (ssize_t)m_ignoredCount) {
-    return nullptr;
-  }
-  if ((size_t)fieldIndex + m_ignoredCount >= m_fields.size()) {
+  if (fieldIndex < 0 || (size_t)fieldIndex + m_ignoredCount >= m_fields.size()) {
     return nullptr;
   }
   if (m_ignoredCount == 0) {
@@ -1013,7 +1010,7 @@ const SingleDataField* DataFieldSet::getField(ssize_t fieldIndex) const {
       continue;
     }
     remain--;
-    if (remain == 0) {
+    if (remain <= 0) {
       return field;
     }
   }
