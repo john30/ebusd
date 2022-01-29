@@ -1251,6 +1251,7 @@ void MqttHandler::run() {
         m_definitionsSince = 1;
       }
       if (m_connected && m_hasDefinitionTopic) {
+        ostringstream ostr;
         deque<Message*> messages;
         m_messages->findAll("", "", "", false, true, true, true, true, true, 0, 0, false, &messages);
         for (const auto& message : messages) {
@@ -1286,9 +1287,6 @@ void MqttHandler::run() {
           msgValues.set("level", message->getLevel());
           msgValues.set("direction", direction);
           msgValues.set("messagecomment", message->getAttribute("comment"));
-          if (!m_publishByField) {
-            msgValues.set("topic", getTopic(message, "", "")); // TODO already present?
-          }
           msgValues.reduce(true);
           string str = msgValues.get("direction_map-"+direction, false, false);
           msgValues.set("direction_map", str);
@@ -1325,7 +1323,7 @@ void MqttHandler::run() {
             } else {
               typeStr = "string";
             }
-            ostringstream ostr;
+            ostr.str("");
             ostr << "type_map-" << direction << "-" << typeStr;
             str = msgValues.get(ostr.str(), false, false);
             if (str.empty()) {
@@ -1337,11 +1335,11 @@ void MqttHandler::run() {
               continue;
             }
             MqttReplacers values = msgValues;  // need a copy here as the contents are manipulated
+            values.set("index", static_cast<signed>(index));
+            values.set("field", fieldName);
             values.set("type", typeStr);
             values.set("type_map", str);
             values.set("basetype", dataType->getId());
-            values.set("index", static_cast<signed>(index));
-            values.set("field", fieldName);
             values.set("comment", field->getAttribute("comment"));
             values.set("unit", field->getAttribute("unit"));
             if (dataType->isNumeric()) {
@@ -1390,9 +1388,6 @@ void MqttHandler::run() {
             }
             str = values.get("type_part-" + typePartSuffix, false, false);
             values.set("type_part", str);
-            if (m_publishByField) {
-              values.set("topic", getTopic(message, "", fieldName)); // TODO already present?
-            }
             values.reduce();
             if (m_hasDefinitionFieldsPayload) {
               string value = values["field_payload"];
