@@ -411,6 +411,17 @@ void MqttReplacer::normalize(string& str) {
   });
 }
 
+const string MqttReplacer::str() const {
+  ostringstream ret;
+  for (const auto &it: m_parts) {
+    if (it.second >= 0) {
+      ret << '%';
+    }
+    ret << it.first;
+  }
+  return ret.str();
+}
+
 void MqttReplacer::ensureDefault() {
   if (m_parts.empty()) {
     m_parts.emplace_back(string(PACKAGE) + "/", -1);
@@ -451,8 +462,16 @@ string MqttReplacer::get(const map<string, string>& values, bool untilFirstEmpty
       if (untilFirstEmpty) {
         break;
       }
-    } else if (untilFirstEmpty && pos->second.empty()) {
-      break;
+      if (m_emptyIfMissing) {
+        return "";
+      }
+    } else if (pos->second.empty()) {
+      if (untilFirstEmpty) {
+        break;
+      }
+      if (m_emptyIfMissing) {
+        return "";
+      }
     } else {
       ret << pos->second;
     }
@@ -601,6 +620,14 @@ MqttReplacer& MqttReplacers::get(const string& key) {
     m_constants.erase(it);
   }
   return ret;
+}
+
+MqttReplacer MqttReplacers::get(const string& key) const {
+  const auto& it = m_replacers.find(key);
+  if (it != m_replacers.cend()) {
+    return it->second;
+  }
+  return MqttReplacer();
 }
 
 string MqttReplacers::get(const string& key, bool untilFirstEmpty, bool onlyAlphanum, const string& fallbackKey) const {
@@ -784,11 +811,21 @@ void MqttHandler::parseIntegration(const string& line) {
   }
 }
 
+/**
+ * possible data type names.
+ */
 static const char* typeNames[] = {
-    "number", "bits", "string", "date", "time", "datetime",
+    "number", "list", "string", "date", "time", "datetime",
 };
 
-const string removeTrailingNonTopicPart(const string& str) {
+/**
+ * possible message direction names by (write*2) + (passive*1).
+ */
+static const char* directionNames[] = {
+    "r", "u", "w", "uw",
+};
+
+string removeTrailingNonTopicPart(const string& str) {
   size_t pos = str.find_last_not_of("/_");
   if (pos==string::npos) {
     return str;
@@ -861,37 +898,44 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
       m_replacers.set("prefixn", removeTrailingNonTopicPart(line));
     }
     m_replacers.reduce(true);
-    if (m_replacers.uses("type_switch")) {
-      for (auto typeName: typeNames) {
-        string str = m_replacers.get("type_switch-" + string(typeName), false, false, "type_switch");
-        if (str.empty()) {
-          continue;
-        }
-        str += '\n'; // add trailing newline to ease the split
-        size_t from = 0;
-        do {
-          size_t pos = str.find('\n', from);
-          string line = str.substr(from, pos-from);
-          from = pos+1;
-          FileReader::trim(&line);
-          if (!line.empty()) {
-            pos = line.find('=');
-            if (pos!=string::npos && pos>0) {
-              string left = line.substr(0, pos);
-              FileReader::trim(&left);
-              if (!left.empty()) {
-                string right = line.substr(pos+1);
+    if (!m_replacers["type_switch-names"].empty() || m_replacers.uses("type_switch")) {
+      ostringstream ostr;
+      for (int i=-1; i<static_cast<signed>(sizeof(directionNames)/sizeof(char*)); i++) {
+        for (auto typeName : typeNames) {
+          ostr.str("");
+          if (i>=0) {
+            ostr << directionNames[i] << '-';
+          }
+          ostr << typeName;
+          const string suffix = ostr.str();
+          string str = m_replacers.get("type_switch-" + suffix, false, false, "type_switch");
+          if (str.empty()) {
+            continue;
+          }
+          str += '\n'; // add trailing newline to ease the split
+          size_t from = 0;
+          do {
+            size_t pos = str.find('\n', from);
+            string line = str.substr(from, pos - from);
+            from = pos + 1;
+            FileReader::trim(&line);
+            if (!line.empty()) {
+              pos = line.find('=');
+              if (pos != string::npos && pos > 0) {
+                string left = line.substr(0, pos);
+                FileReader::trim(&left);
+                string right = line.substr(pos + 1);
                 FileReader::trim(&right);
                 FileReader::tolower(&right);
-                m_typeSwitches[typeName].push_back({left, right});
+                m_typeSwitches[suffix].push_back({left, right});
               }
             }
-          }
-        } while (from<str.length());
+          } while (from < str.length());
+        }
       }
     }
   }
-  m_hasDefinitionTopic = !m_replacers.get("definition-topic", false, false).empty();
+  m_hasDefinitionTopic = !m_replacers.get("definition-topic", true, false).empty();
   m_hasDefinitionFieldsPayload = m_replacers.uses("fields_payload");
   m_subscribeConfigRestartTopic = m_replacers.get("config_restart-topic", false, false);
   m_subscribeConfigRestartPayload = m_replacers.get("config_restart-payload", false, false);
@@ -1130,13 +1174,47 @@ bool parseBool(const string& str) {
   return !str.empty() && !(str=="0" || str=="no" || str=="false");
 }
 
+void splitFields(const string& str, vector<string>* row) {
+  std::istringstream istr;
+  istr.str(str);
+  unsigned int lineNo = 0;
+  FileReader::splitFields(&istr, row, &lineNo);
+  if (row->size() == 1 && (*row)[0].empty()) {
+    row->clear();
+  }
+}
+
 void MqttHandler::run() {
   time_t lastTaskRun, now, start, lastSignal = 0, lastUpdates = 0;
   bool signal = false;
-  string signalTopic = m_globalTopic+"signal";
-  string uptimeTopic = m_globalTopic+"uptime";
+  string signalTopic = m_globalTopic + "signal";
+  string uptimeTopic = m_globalTopic + "uptime";
   ostringstream updates;
-
+  unsigned int filterPriority = 0;
+  bool filterSeen = false;
+  string filterCircuit, filterName, filterLevel, filterField, filterDirection;
+  vector<string> typeSwitchNames;
+  if (m_hasDefinitionTopic) {
+    result_t result = RESULT_OK;
+    filterPriority = parseInt(m_replacers["filter-priority"].c_str(), 10, 0, 9, &result);
+    if (result != RESULT_OK) {
+      filterPriority = 0;
+    }
+    filterSeen = parseBool(m_replacers["filter-seen"]);
+    filterCircuit = m_replacers["filter-circuit"];
+    FileReader::tolower(&filterCircuit);
+    filterName = m_replacers["filter-name"];
+    FileReader::tolower(&filterName);
+    filterLevel = m_replacers["filter-level"];
+    FileReader::tolower(&filterLevel);
+    filterField = m_replacers["filter-field"];
+    FileReader::tolower(&filterField);
+    filterDirection = m_replacers["filter-direction"];
+    FileReader::tolower(&filterDirection);
+    if (!m_typeSwitches.empty()) {
+      splitFields(m_replacers["type_switch-names"], &typeSwitchNames);
+    }
+  }
   time(&now);
   start = lastTaskRun = now;
   bool allowReconnect = false;
@@ -1174,23 +1252,6 @@ void MqttHandler::run() {
       }
       if (m_connected && m_hasDefinitionTopic) {
         deque<Message*> messages;
-        result_t result = RESULT_OK;
-        unsigned int filterPriority = parseInt(m_replacers["filter-priority"].c_str(), 10, 0, 9, &result);
-        if (result != RESULT_OK) {
-          filterPriority = 0;
-        }
-        bool filterSeen = parseBool(m_replacers["filter-seen"]);
-        string filterCircuit = m_replacers["filter-circuit"];
-        FileReader::tolower(&filterCircuit);
-        string filterName = m_replacers["filter-name"];
-        FileReader::tolower(&filterName);
-        string filterLevel = m_replacers["filter-level"];
-        FileReader::tolower(&filterLevel);
-        string filterField = m_replacers["filter-field"];
-        FileReader::tolower(&filterField);
-        string filterDirection = m_replacers["filter-direction"];
-        FileReader::tolower(&filterDirection);
-        bool usesTypeSwitch = !m_typeSwitches.empty();
         m_messages->findAll("", "", "", false, true, true, true, true, true, 0, 0, false, &messages);
         for (const auto& message : messages) {
           if (filterSeen) {
@@ -1199,7 +1260,7 @@ void MqttHandler::run() {
             }
             if (message->getDataHandlerState()==1) {
               // already seen in the past, check for poll prio update
-              if (message->getCreateTime() <= m_definitionsSince) {
+              if (m_definitionsSince>1 && message->getCreateTime() <= m_definitionsSince) {
                 continue;
               }
             }
@@ -1213,7 +1274,7 @@ void MqttHandler::run() {
           || !FileReader::matches(message->getLevel(), filterLevel, true, true)) {
             continue;
           }
-          string direction = message->isWrite() ? (message->isPassive() ? "uw" : "w") : (message->isPassive() ? "r" : "u");
+          const string direction = directionNames[(message->isWrite() ? 2 : 0) + (message->isPassive() ? 1 : 0)];
           if (!FileReader::matches(direction, filterDirection, true, true)) {
             continue;
           }
@@ -1294,20 +1355,40 @@ void MqttHandler::run() {
                 values.set("max", ostr.str());
               };
             }
-            if (usesTypeSwitch) {
-              values.reduce();
+            if (!m_typeSwitches.empty()) {
+              values.reduce(true);
               str = values.get("type_switch-by", false, false);
               string typeSwitch;
-              for (auto& check : m_typeSwitches[typeStr]) {
-                if (FileReader::matches(str, check.second, true, true)) {
-                  typeSwitch = check.first;
-                  break;
+              for (int i=0; i<2; i++) {
+                ostr.str("");
+                if (i==0) {
+                  ostr << direction << '-';
+                }
+                ostr << typeStr;
+                const string key = ostr.str();
+                for (auto const &check: m_typeSwitches[key]) {
+                  if (FileReader::matches(str, check.second, true, true)) {
+                    typeSwitch = check.first;
+                    i = 2; // early exit
+                    break;
+                  }
                 }
               }
               values.set("type_switch", typeSwitch);
+              if (!typeSwitchNames.empty()) {
+                vector<string> strs;
+                splitFields(typeSwitch, &strs);
+                for (size_t pos = 0; pos<strs.size() && pos<typeSwitchNames.size(); pos++) {
+                  values.set(typeSwitchNames[pos], strs[pos]);
+                }
+              }
             }
-            values.reduce();
-            str = values.get("type_part-" + typeStr, false, false);
+            values.reduce(true);
+            string typePartSuffix = values["type_part-by"];
+            if (typePartSuffix.empty()) {
+              typePartSuffix = typeStr;
+            }
+            str = values.get("type_part-" + typePartSuffix, false, false);
             values.set("type_part", str);
             if (m_publishByField) {
               values.set("topic", getTopic(message, "", fieldName)); // TODO already present?
@@ -1328,6 +1409,10 @@ void MqttHandler::run() {
           if (fields.tellp()>0) {
             msgValues.set("fields_payload", fields.str());
             publishDefinition(msgValues);
+          }
+          if (filterSeen && message->getLastUpdateTime()>message->getCreateTime()) {
+            // ensure data is published as well
+            m_updatedMessages[message->getKey()]++;
           }
         }
         time(&m_definitionsSince);
@@ -1409,6 +1494,21 @@ void MqttHandler::publishDefinition(MqttReplacers values, const string& prefix, 
                               noFallback ? "" : fallbackPrefix+"payload");
   string retainStr = values.get(prefix+"retain", false, false,
                                 noFallback ? "" : fallbackPrefix+"retain");
+  bool retain = parseBool(retainStr);
+  publishTopic(defTopic, payload, retain);
+}
+
+void MqttHandler::publishDefinition(const MqttReplacers& values) {
+  string defTopic = values.get("definition-topic", false);
+  if (defTopic.empty()) {
+    if (needsLog(lf_other, ll_debug)) {
+      const string str = values.get("definition-topic").str();
+      logOtherDebug("mqtt", "cannot publish incomplete definition topic %s", str.c_str());
+    }
+    return;
+  }
+  string payload = values.get("definition-payload", false);
+  string retainStr = values.get("definition-retain", false);
   bool retain = parseBool(retainStr);
   publishTopic(defTopic, payload, retain);
 }

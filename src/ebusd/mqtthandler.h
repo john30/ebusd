@@ -68,6 +68,12 @@ class MqttReplacer {
   static void normalize(string& str);
 
   /**
+   * Get the template string.
+   * @return the template string (might already be partially reduced).
+   */
+  const string str() const;
+
+  /**
    * Parse the template string.
    * @param templateStr the template string.
    * @param onlyKnown true to allow only known field names from @a knownFieldNames.
@@ -179,6 +185,13 @@ class MqttReplacers {
   MqttReplacer& get(const string& key);
 
   /**
+   * Get the variable value of the specified key.
+   * @param key the key for which to get the value.
+   * @return the value @a MqttReplacer.
+   */
+  MqttReplacer get(const string& key) const;
+
+  /**
    * Get the variable or constant value of the specified key.
    * @param key the key for which to get the value.
    * @param untilFirstEmpty true to only return the prefix before the first empty field.
@@ -279,8 +292,14 @@ class MqttHandler : public DataSink, public DataSource, public WaitThread {
    * @param name optional name to set before building the topic/payload, or empty.
    * @param fallbackPrefix optional fallback prefix to use when topic/payload/retain with prefix above is not defined.
    */
-  void publishDefinition(MqttReplacers values, const string& prefix = "definition-", const string& topic = "",
-                         const string& circuit = "", const string& name = "", const string& fallbackPrefix = "");
+  void publishDefinition(MqttReplacers values, const string& prefix, const string& topic,
+                         const string& circuit, const string& name, const string& fallbackPrefix);
+
+  /**
+   * Publish a definition topic as specified in the given values.
+   * @param values the values with the message specification.
+   */
+  void publishDefinition(const MqttReplacers& values);
 
   /**
    * Called regularly to handle MQTT traffic.
