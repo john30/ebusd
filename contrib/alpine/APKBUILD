@@ -3,7 +3,7 @@
 pkgname=ebusd
 pkgver=21.3
 pkgrel=1
-pkgdesc="Daemon for communication with eBUS heating systems"
+pkgdesc="ebusd, the daemon for communication with eBUS heating systems."
 url="https://github.com/john30/ebusd"
 # Upstream only supports these archs.
 arch="x86 x86_64 aarch64 armhf armv7"
