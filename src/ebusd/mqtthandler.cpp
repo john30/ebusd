@@ -593,7 +593,7 @@ ssize_t MqttReplacer::matchTopic(const string& topic, string* circuit, string* n
         // non-name in remainder found
         return -static_cast<ssize_t>(idx)-1;
       }
-      value = topic;
+      value = topic.substr(last);
     }
     last += value.length();
     switch (part.second) {
@@ -1092,7 +1092,7 @@ void MqttHandler::notifyTopic(const string& topic, const string& data) {
   logOtherDebug("mqtt", "received topic %s with data %s", topic.c_str(), data.c_str());
   string circuit, name, field;
   ssize_t match = m_replacers.get("topic").matchTopic(topic.substr(0, pos), &circuit, &name, &field);
-  if (match<0 && !isList) { // TODO
+  if (match<0 && !isList) {
     logOtherError("mqtt", "received unmatchable topic %s", topic.c_str());
   }
   if (isList) {
