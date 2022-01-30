@@ -42,7 +42,7 @@ for image in $images; do
   output=$(echo "$outputFmt"|sed -e "s#%IMAGE%#$image#g")
   docker buildx build \
     --target $target \
-    --progress pain \
+    --progress plain \
     --platform $archs \
     -f Dockerfile${namesuffix} \
     --build-arg "BASE_IMAGE=debian:$image" \
