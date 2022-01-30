@@ -129,7 +129,7 @@ bool FileReader::matches(const string& input, const string& search, bool ignoreC
       return matches(inputSub, search, false, true);
     }
     string searchSub = search;
-    tolower(&inputSub);
+    tolower(&searchSub);
     return matches(inputSub, searchSub, false, true);
   }
   // walk through alternatives
