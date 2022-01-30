@@ -66,15 +66,18 @@ if [ -n "$reusebuilddir" ] || [ -z "$keepbuilddir" ]; then
 fi
 make DESTDIR="$PWD/$RELEASE" install-strip || exit 1
 extralibs=
+mqtt=
 ldd $RELEASE/usr/bin/ebusd | egrep -q libmosquitto.so.0
 if [ $? -eq 0 ]; then
   extralibs=', libmosquitto0'
   PACKAGE="${PACKAGE}_mqtt0"
+  mqtt=1
 else
   ldd $RELEASE/usr/bin/ebusd | egrep -q libmosquitto.so.1
   if [ $? -eq 0 ]; then
     extralibs=', libmosquitto1'
     PACKAGE="${PACKAGE}_mqtt1"
+    mqtt=1
   fi
 fi
 
@@ -105,6 +108,10 @@ cp contrib/debian/systemd/ebusd.service $RELEASE/lib/systemd/system/ebusd.servic
 mkdir -p $RELEASE/etc/init.d || exit 1
 cp contrib/debian/init.d/ebusd $RELEASE/etc/init.d/ebusd || exit 1
 cp contrib/debian/default/ebusd $RELEASE/etc/default/ebusd || exit 1
+if [ -n "$mqtt" ]; then
+  mkdir -p $RELEASE/etc/ebusd || exit 1
+  cp contrib/etc/ebusd/mqtt*.cfg $RELEASE/etc/ebusd/ || exit 1
+fi
 cp contrib/etc/logrotate.d/ebusd $RELEASE/etc/logrotate.d/ || exit 1
 cp ChangeLog.md $RELEASE/DEBIAN/changelog || exit 1
 cat <<EOF > $RELEASE/DEBIAN/control
@@ -132,6 +139,12 @@ EOF
 cat <<EOF > $RELEASE/DEBIAN/conffiles
 /etc/default/ebusd
 EOF
+if [ -n "$mqtt" ]; then
+  echo '/etc/ebusd' >> $RELEASE/DEBIAN/dirs
+  for i in contrib/etc/ebusd/mqtt*.cfg; do
+    echo "${i##contrib}" >> $RELEASE/DEBIAN/conffiles
+  done
+fi
 cat <<EOF > $RELEASE/DEBIAN/postinst
 #!/bin/sh
 if [ -d /run/systemd/system ]; then

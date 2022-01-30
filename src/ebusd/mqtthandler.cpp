@@ -338,7 +338,7 @@ static const char* knownFieldNames[] = {
 /** the number of known field names. */
 static const size_t knownFieldCount = sizeof(knownFieldNames) / sizeof(char*);
 
-std::pair<string, int> makeField(const string name, bool isField) {
+std::pair<string, int> makeField(const string& name, bool isField) {
   if (!isField) {
     return {name, -1};
   }
@@ -350,38 +350,55 @@ std::pair<string, int> makeField(const string name, bool isField) {
   return {name, knownFieldCount};
 }
 
+void addPart(ostringstream& stack, int inField, vector<std::pair<string, int>>& parts) {
+  string str = stack.str();
+  if (inField == 1 && str == "_") {
+    inField = 0; // single "%_" pattern to reduce to "_"
+  } else if (inField == 2) {
+    str = "%{" + str;
+    inField = 0;
+  }
+  if (inField == 0 && str.empty()) {
+    return;
+  }
+  stack.str("");
+  if (inField == 0 && !parts.empty() && parts[parts.size()-1].second < 0) {
+    // append constant to previous constant
+    parts[parts.size()-1].first += str;
+    return;
+  }
+  parts.push_back(makeField(str, inField>0));
+}
 
 bool MqttReplacer::parse(const string& templateStr, bool onlyKnown, bool noKnownDuplicates, bool emptyIfMissing) {
   m_parts.clear();
-  size_t end = templateStr.length();
-  bool inField = false;
+  int inField = 0; // 1 after '%', 2 after '%{'
   ostringstream stack;
-  for (size_t pos = 0; pos < end+1; pos++) {
-    char ch = pos<end ? templateStr[pos] : '\0';
+  for (auto ch : templateStr) {
     bool empty = stack.tellp()<=0;
-    if (ch=='%' || ch=='\0') {
-      if (inField && empty) {  // %% for plain %
-        inField = false;
+    if (ch=='%') {
+      if (inField==1 && empty) {  // %% for plain %
+        inField = 0;
         stack << ch;
       } else {
-        if (!empty) {
-          m_parts.push_back(makeField(stack.str(), inField));
-          stack.str("");
-        }
-        inField = true;
+        addPart(stack, inField, m_parts);
+        inField = 1;
       }
+    } else if (ch=='{' && inField==1 && empty) {
+      inField = 2;
+    } else if (ch=='}' && inField==2) {
+      addPart(stack, 1, m_parts);
+      inField = 0;
     } else {
-      if (inField && !((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_')) {
+      if (inField>0 && !((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_')) {
         // invalid field character
-        if (stack.tellp()>0) {
-          m_parts.push_back(makeField(stack.str(), true));
-          stack.str("");
-        }
-        inField = false;
+        addPart(stack, inField, m_parts);
+        inField = 0;
       }
       stack << ch;
     }
   }
+  addPart(stack, inField, m_parts);
   if (onlyKnown || noKnownDuplicates) {
     int foundMask = 0;
     int knownCount = knownFieldCount;
@@ -576,7 +593,7 @@ ssize_t MqttReplacer::matchTopic(const string& topic, string* circuit, string* n
         // non-name in remainder found
         return -static_cast<ssize_t>(idx)-1;
       }
-      value = topic;
+      value = topic.substr(last);
     }
     last += value.length();
     switch (part.second) {
@@ -1075,7 +1092,7 @@ void MqttHandler::notifyTopic(const string& topic, const string& data) {
   logOtherDebug("mqtt", "received topic %s with data %s", topic.c_str(), data.c_str());
   string circuit, name, field;
   ssize_t match = m_replacers.get("topic").matchTopic(topic.substr(0, pos), &circuit, &name, &field);
-  if (match<0 && !isList) { // TODO
+  if (match<0 && !isList) {
     logOtherError("mqtt", "received unmatchable topic %s", topic.c_str());
   }
   if (isList) {
@@ -1251,12 +1268,16 @@ void MqttHandler::run() {
         m_definitionsSince = 1;
       }
       if (m_connected && m_hasDefinitionTopic) {
+        ostringstream ostr;
         deque<Message*> messages;
         m_messages->findAll("", "", "", false, true, true, true, true, true, 0, 0, false, &messages);
         for (const auto& message : messages) {
           if (filterSeen) {
             if (message->getLastUpdateTime()==0) {
-              continue;  // no data ever
+              if (message->isPassive() || !message->isWrite()) {
+                // only wait for data on passive or read messages
+                continue;  // no data ever
+              }
             }
             if (message->getDataHandlerState()==1) {
               // already seen in the past, check for poll prio update
@@ -1286,9 +1307,6 @@ void MqttHandler::run() {
           msgValues.set("level", message->getLevel());
           msgValues.set("direction", direction);
           msgValues.set("messagecomment", message->getAttribute("comment"));
-          if (!m_publishByField) {
-            msgValues.set("topic", getTopic(message, "", "")); // TODO already present?
-          }
           msgValues.reduce(true);
           string str = msgValues.get("direction_map-"+direction, false, false);
           msgValues.set("direction_map", str);
@@ -1325,7 +1343,7 @@ void MqttHandler::run() {
             } else {
               typeStr = "string";
             }
-            ostringstream ostr;
+            ostr.str("");
             ostr << "type_map-" << direction << "-" << typeStr;
             str = msgValues.get(ostr.str(), false, false);
             if (str.empty()) {
@@ -1337,11 +1355,11 @@ void MqttHandler::run() {
               continue;
             }
             MqttReplacers values = msgValues;  // need a copy here as the contents are manipulated
+            values.set("index", static_cast<signed>(index));
+            values.set("field", fieldName);
             values.set("type", typeStr);
             values.set("type_map", str);
             values.set("basetype", dataType->getId());
-            values.set("index", static_cast<signed>(index));
-            values.set("field", fieldName);
             values.set("comment", field->getAttribute("comment"));
             values.set("unit", field->getAttribute("unit"));
             if (dataType->isNumeric()) {
@@ -1390,9 +1408,6 @@ void MqttHandler::run() {
             }
             str = values.get("type_part-" + typePartSuffix, false, false);
             values.set("type_part", str);
-            if (m_publishByField) {
-              values.set("topic", getTopic(message, "", fieldName)); // TODO already present?
-            }
             values.reduce();
             if (m_hasDefinitionFieldsPayload) {
               string value = values["field_payload"];
@@ -1413,6 +1428,12 @@ void MqttHandler::run() {
           if (filterSeen && message->getLastUpdateTime()>message->getCreateTime()) {
             // ensure data is published as well
             m_updatedMessages[message->getKey()]++;
+          } else if (filterSeen && direction=="w") {
+            // publish data for read pendant of write message
+            Message* read = m_messages->find(message->getCircuit(), message->getName(), "", true);
+            if (read && read->getLastUpdateTime()>0) {
+              m_updatedMessages[read->getKey()]++;
+            }
           }
         }
         time(&m_definitionsSince);
