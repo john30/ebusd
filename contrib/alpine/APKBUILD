@@ -1,0 +1,32 @@
+# Contributor: Tim <timstanleydev@gmail.com>
+# Maintainer: Tim <timstanleydev@gmail.com>
+pkgname=ebusd
+pkgver=21.3
+pkgrel=1
+pkgdesc="Daemon for communication with eBUS heating systems"
+url="https://github.com/john30/ebusd"
+# Upstream only supports these archs.
+arch="x86 x86_64 aarch64 armhf armv7"
+license="GPL-3.0-only"
+makedepends="argp-standalone cmake mosquitto-dev"
+source="$pkgname-$pkgver.tar.gz::https://github.com/john30/ebusd/archive/refs/tags/v$pkgver.tar.gz"
+
+build() {
+	cmake -B build \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_BUILD_TYPE=MinSizeRel \
+		-DBUILD_TESTING=ON
+	cmake --build build
+}
+
+check() {
+	ctest --output-on-failure --test-dir build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+sha512sums="
+e742abe5cfa68f140a0db59fa4ea73cc0c099a5f8a663bc76f8c1932852adb5e5385c153186b7c43bac0feb529d745fcd3047bb8465fae158fef0bb9072d9fc9  ebusd-21.3.tar.gz
+"
