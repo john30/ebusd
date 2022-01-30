@@ -1274,7 +1274,10 @@ void MqttHandler::run() {
         for (const auto& message : messages) {
           if (filterSeen) {
             if (message->getLastUpdateTime()==0) {
-              continue;  // no data ever
+              if (message->isPassive() || !message->isWrite()) {
+                // only wait for data on passive or read messages
+                continue;  // no data ever
+              }
             }
             if (message->getDataHandlerState()==1) {
               // already seen in the past, check for poll prio update
@@ -1425,6 +1428,12 @@ void MqttHandler::run() {
           if (filterSeen && message->getLastUpdateTime()>message->getCreateTime()) {
             // ensure data is published as well
             m_updatedMessages[message->getKey()]++;
+          } else if (filterSeen && direction=="w") {
+            // publish data for read pendant of write message
+            Message* read = m_messages->find(message->getCircuit(), message->getName(), "", true);
+            if (read && read->getLastUpdateTime()>0) {
+              m_updatedMessages[read->getKey()]++;
+            }
           }
         }
         time(&m_definitionsSince);
