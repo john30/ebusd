@@ -1692,6 +1692,8 @@ void MqttHandler::publishMessage(const Message* message, ostringstream* updates,
       if (m_staticTopic) {
         *updates << "\"circuit\":\"" << message->getCircuit() << "\",\"name\":\"" << message->getName() << "\",\"fields\":{";
       }
+    } else {
+      *updates << message->getCircuit() << UI_FIELD_SEPARATOR << message->getName() << UI_FIELD_SEPARATOR;
     }
     result_t result = message->decodeLastData(false, nullptr, -1, outputFormat, updates);
     if (result != RESULT_OK) {
