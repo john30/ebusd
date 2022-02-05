@@ -1271,7 +1271,8 @@ int main(int argc, char* argv[]) {
     }
     char* envargv[] = {envname, pos+1};
     int cnt = pos[1] ? 2 : 1;
-    if (strcmp(envopt, "scanconfig")==0 && pos[1] && strlen(*env)<sizeof(envname)-3) {
+    if (pos[1] && strlen(*env)<sizeof(envname)-3
+    && (strcmp(envopt, "scanconfig")==0 || strcmp(envopt, "lograwdata")==0)) {
       // only really special case: OPTION_ARG_OPTIONAL with non-empty arg needs to use "=" syntax
       cnt = 1;
       strcat(envopt, pos);
