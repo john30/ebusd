@@ -11,5 +11,3 @@ Personally, I use them for checking mainly temperatures, pressures and earned en
   - sudo munin-node-configure --shell
   - run all "ln -s" commands printed by munin-node-configure and containing "ebusd_"
   - sudo service munin-node reload
-
-
