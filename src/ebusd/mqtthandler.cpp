@@ -1439,6 +1439,7 @@ void MqttHandler::run() {
             MqttReplacers values = msgValues;  // need a copy here as the contents are manipulated
             values.set("index", static_cast<signed>(index));
             values.set("field", fieldName);
+            values.set("fieldname", field->getName(-1));
             values.set("type", typeStr);
             values.set("type_map", str);
             values.set("basetype", dataType->getId());
