@@ -37,13 +37,13 @@ The main features of the daemon are:
  * log messages and problems to a log file
  * capture messages or sent/received bytes to a log file as text
  * dump received bytes to binary files for later playback/analysis
- * listen for command line client connections on a dedicated TCP port
+ * listen for [command line client](3.1.-TCP-client-commands) connections on a dedicated TCP port
  * provide a rudimentary HTML interface
- * format messages and data in JSON on dedicated HTTP port
- * publish received data to MQTT topics and vice versa (if authorized)
- * announce message definitions and status by MQTT to e.g. integrate with Home Assistant using MQTT discovery
- * support MQTT publish to Azure IoT hub
- * user authentication via ACL file for access to certain messages
+ * format messages and data in [JSON on dedicated HTTP port](https://github.com/john30/ebusd/wiki/3.2.-HTTP-client)
+ * publish received data to [MQTT topics](https://github.com/john30/ebusd/wiki/3.3.-MQTT-client) and vice versa (if authorized)
+ * announce [message definitions and status by MQTT](https://github.com/john30/ebusd/wiki/MQTT-integration) to e.g. integrate with [Home Assistant](https://www.home-assistant.io/) using [MQTT Discovery](https://www.home-assistant.io/docs/mqtt/discovery/)
+ * support MQTT publish to [Azure IoT hub](https://docs.microsoft.com/en-us/azure/iot-hub/) (see [MQTT integration](https://github.com/john30/ebusd/wiki/MQTT-integration))
+ * [user authentication](https://github.com/john30/ebusd/wiki/3.1.-TCP-client-commands#auth) via [ACL file](https://github.com/john30/ebusd/wiki/2.-Run#daemon-options) for access control to certain messages
 
 
 Installation
