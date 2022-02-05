@@ -112,6 +112,23 @@ class MqttReplacer {
   string get(const map<string, string>& values, bool untilFirstEmpty = true, bool onlyAlphanum = false) const;
 
   /**
+   * Get the replaced template string.
+   * @param circuit the circuit name for replacement.
+   * @param name the message name for replacement.
+   * @param fieldName the field name for replacement.
+   * @return the replaced template string.
+   */
+  string get(const string& circuit, const string& name, const string& fieldName="") const;
+
+  /**
+   * Get the replaced template string.
+   * @param message the Message from which to extract the values for replacement.
+   * @param fieldName the field name for replacement.
+   * @return the replaced template string.
+   */
+  string get(const Message* message, const string& fieldName="") const;
+
+  /**
    * Check if the fields can be reduced to a constant value.
    * @param values the named values for replacement.
    * @return true if the result is final.
@@ -342,11 +359,14 @@ class MqttHandler : public DataSink, public DataSource, public WaitThread {
   /** the @a MessageMap instance. */
   MessageMap* m_messages;
 
-  /** the global topic prefix. */
-  string m_globalTopic;
+  /** the global topic replacer. */
+  MqttReplacer m_globalTopic;
 
   /** the topic to subscribe to. */
   string m_subscribeTopic;
+
+  /** whether to use a single topic for all messages. */
+  bool m_staticTopic;
 
   /** whether to publish a separate topic for each message field. */
   bool m_publishByField;
