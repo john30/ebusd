@@ -2164,11 +2164,15 @@ result_t MessageMap::readConditions(const string& filename, string* types, strin
 
 bool MessageMap::extractDefaultsFromFilename(const string& filename, map<string, string>* defaults,
     symbol_t* destAddress, unsigned int* software, unsigned int* hardware) const {
+  // check filename to match (glob style with optionals in brackets): ZZ.[ID.][*.][CIRCUIT.[?.]][*.][HW????.][*.][SW????.][*.]csv
+  // ZZ is the address, ID is the 5 char identifier (reduced by trailing 0 one by one for finding a match), CIRCUIT is
+  // the optional circuit name, ? behind the circuit name is the circuit number suffix (when having more than one of these),
+  // ???? behind HW is the hardware version, ???? behind SW is the software version
   string ident, circuit, suffix;
   unsigned int sw = UINT_MAX, hw = UINT_MAX;
   string remain = filename;
   if (remain.length() > 4 && remain.substr(remain.length()-4) == ".csv") {
-    remain = remain.substr(0, remain.length()-3);  // including trailing "."
+    remain = remain.substr(0, remain.length()-3);  // keep trailing "."
   }
   size_t pos = remain.find('.');
   if (pos != 2) {
@@ -2185,8 +2189,8 @@ bool MessageMap::extractDefaultsFromFilename(const string& filename, map<string,
   }
   remain.erase(0, pos);
   if (remain.length() > 1) {
-    pos = remain.rfind(".SW");  // check for ".SWxxxx."
-    if (pos != string::npos && remain.find(".", pos+1) == pos+7) {
+    pos = remain.rfind(".SW");  // check for ".SWxxxx." from the end
+    if (pos != string::npos && remain.find('.', pos+1) == pos+7) {
       sw = parseInt(remain.substr(pos+3, 4).c_str(), 10, 0, 9999, &result);
       if (result != RESULT_OK) {
         return false;  // invalid "SWxxxx"
@@ -2198,8 +2202,8 @@ bool MessageMap::extractDefaultsFromFilename(const string& filename, map<string,
     *software = sw;
   }
   if (remain.length() > 1) {
-    pos = remain.rfind(".HW");  // check for ".HWxxxx."
-    if (pos != string::npos && remain.find(".", pos+1) == pos+7) {
+    pos = remain.rfind(".HW");  // check for ".HWxxxx." from the end
+    if (pos != string::npos && remain.find('.', pos+1) == pos+7) {
       hw = parseInt(remain.substr(pos+3, 4).c_str(), 10, 0, 9999, &result);
       if (result != RESULT_OK) {
         return false;  // invalid "HWxxxx"
