@@ -533,7 +533,7 @@ int main() {
       {"x,,uch,,,,y,,uch,,,,x,,ign,,,,x,,uch,,,,", "41", "1008ffff00", "0426272829", "wIi1"},
       {"x,,uch,,,,y,,uch,,,,z,,ign,,,,x,,uch,,,,", "41", "1008ffff00", "0426272829", "wIi1"},
   };
-  DataFieldTemplates* templates = new DataFieldTemplates();
+  auto templates = new DataFieldTemplates();
   unsigned int lineNo = 0;
   istringstream dummystr("#");
   string errorDescription;
@@ -571,7 +571,7 @@ int main() {
       findIndex = parseSignedInt(flags.substr(flags.find('i')+1).c_str(), 10, 0, 9, &result);
     }
     OutputFormat verbosity = OF_NONE;
-    if (flags.find("v") != string::npos) {
+    if (flags.find('v') != string::npos) {
       verbosity |= OF_NAMES;
     }
     if (flags.find("vv") != string::npos) {

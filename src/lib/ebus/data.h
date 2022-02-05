@@ -426,12 +426,12 @@ class SingleDataField : public DataField {
   size_t getCount(PartType partType = pt_any, const char* fieldName = nullptr) const override;
 
   // @copydoc
-  virtual string getName(ssize_t fieldIndex) const {
+  virtual string getName(ssize_t fieldIndex) const override {
     return isIgnored() || fieldIndex > 0 ? "" : m_name;
   }
 
   // @copydoc
-  virtual const SingleDataField* getField(ssize_t fieldIndex) const {
+  virtual const SingleDataField* getField(ssize_t fieldIndex) const override {
     if (isIgnored() || fieldIndex > 0) {
       return nullptr;
     }
