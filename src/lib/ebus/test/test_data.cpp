@@ -671,7 +671,7 @@ int main() {
         error = true;
       } else {
         bool match = strcasecmp(output.str().c_str(), expectStr.c_str()) == 0;
-        verify(failedReadMatch, "read", check[2], match, expectStr, output.str());
+        verify(failedReadMatch, "read", check[2] + " " + check[3], match, expectStr, output.str());
       }
     }
 
