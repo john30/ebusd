@@ -1353,7 +1353,7 @@ void MqttHandler::run() {
       if (m_connected && m_hasDefinitionTopic) {
         ostringstream ostr;
         deque<Message*> messages;
-        m_messages->findAll("", "", "", false, true, true, true, true, true, 0, 0, false, &messages);
+        m_messages->findAll("", "", m_levels, false, true, true, true, true, true, 0, 0, false, &messages);
         for (const auto& message : messages) {
           if (filterSeen) {
             if (message->getLastUpdateTime()==0) {
