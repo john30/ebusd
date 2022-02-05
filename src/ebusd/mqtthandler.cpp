@@ -1021,8 +1021,7 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
   if (m_globalTopic.has("circuit")) {
     map<string, string> values;
     values["circuit"] = "global";
-    string result;
-    m_globalTopic.reduce(values, result);
+    m_globalTopic.compress(values);
   }
   m_subscribeTopic = getTopic(nullptr, "#");
   if (check(mosquitto_lib_init(), "unable to initialize")) {
