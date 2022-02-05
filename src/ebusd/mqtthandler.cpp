@@ -1402,7 +1402,7 @@ void MqttHandler::run() {
             }
             string fieldName = message->getFieldName(index);
             if (fieldName.empty() && fieldCount == 1) {
-              fieldName = "0";  // TODO should not occur
+              fieldName = "0";  // might occur for unnamed single field sets
             }
             if (!FileReader::matches(fieldName, filterField, true, true)) {
               continue;
