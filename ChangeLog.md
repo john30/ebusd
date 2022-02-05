@@ -3,12 +3,19 @@
 * fix smaller bugs related to cleanup
 * add more device latency to unix build
 * fix for debian package overwriting previous conf files
+* fix for potentially truncated float representation
+* fix for determining unique field names in a message
 
 ## Features
 * added arbitration delay setting to ebuspicloader
 * updated new location of config and update check web service
 * remove ebusfeed from regular build
 * add support for picking up environment variables as command line options
+* add support for generic MQTT integration by allowing publish of message definition content
+* add support for Home Assistant MQTT discovery feature
+* add Alpine Linux APKBUILD (thanks to tim-devel)
+* add QoS setting and adjustable global topic to MQTT
+* add option to move dynamic circuit and name parts to MQTT payload allowing to push to e.g. Azure IoT hub
 
 
 # 21.3 (2021-11-07)
