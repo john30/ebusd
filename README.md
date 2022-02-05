@@ -29,9 +29,8 @@ The main features of the daemon are:
  * passively listen to messages sent on the eBUS
  * regularly poll for messages
  * cache all messages
- * scan for bus participants
+ * scan for bus participants and automatically pick matching message configuration files from config web service at ebusd.eu (or alternatively local files)
  * parse messages to human readable values and vice versa via message configuration files
- * automatically pick message configuration files by scan result from the config web service at ebusd.eu (or alternatively local files)
  * automatically check for updates of daemon and configuration files
  * pick preferred language for translatable message configuration parts
  * grab all messages on the eBUS and provide decoding hints
@@ -39,10 +38,12 @@ The main features of the daemon are:
  * capture messages or sent/received bytes to a log file as text
  * dump received bytes to binary files for later playback/analysis
  * listen for command line client connections on a dedicated TCP port
- * optionally provide rudimentary HTML interface and allow data retrieval as JSON on HTTP port
- * optionally format messages and data in JSON on dedicated HTTP port
- * optionally publish received message data to MQTT topics and vice versa (if authorized)
- * optional user authentication via ACL file for access to certain messages
+ * provide a rudimentary HTML interface
+ * format messages and data in JSON on dedicated HTTP port
+ * publish received data to MQTT topics and vice versa (if authorized)
+ * announce message definitions and status by MQTT to e.g. integrate with Home Assistant using MQTT discovery
+ * support MQTT publish to Azure IoT hub
+ * user authentication via ACL file for access to certain messages
 
 
 Installation
@@ -50,6 +51,7 @@ Installation
 
 Either pick the [latest release package](https://github.com/john30/ebusd/releases/latest) suitable for your system,
 use the Debian repository as [described here](https://github.com/john30/ebusd-debian/blob/master/README.md),
+use the Archlinux makepkg files or pick the package from the Alpine Linux repository,
 build it yourself, or use a docker image (see below).
 
 Building ebusd from the source requires the following packages and/or features:
