@@ -1508,9 +1508,12 @@ result_t MainLoop::executeFind(const vector<string>& args, const string& levels,
           struct tm td;
           localtime_r(&lastup, &td);
           size_t len = strlen(str);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
           snprintf(str+len, sizeof(str)-len, ", lastup=%04d-%02d-%02d %02d:%02d:%02d",
             td.tm_year+1900, td.tm_mon+1, td.tm_mday,
             td.tm_hour, td.tm_min, td.tm_sec);
+#pragma GCC diagnostic pop
         }
         *ostream << " [ZZ=" << str;
         if (message->isPassive()) {
