@@ -102,12 +102,7 @@ echo "*************"
 echo " pack"
 echo "*************"
 echo
-mkdir -p $RELEASE/DEBIAN $RELEASE/etc/default $RELEASE/etc/logrotate.d || exit 1
-mkdir -p $RELEASE/lib/systemd/system || exit 1
-cp contrib/debian/systemd/ebusd.service $RELEASE/lib/systemd/system/ebusd.service || exit 1
-mkdir -p $RELEASE/etc/init.d || exit 1
-cp contrib/debian/init.d/ebusd $RELEASE/etc/init.d/ebusd || exit 1
-cp contrib/debian/default/ebusd $RELEASE/etc/default/ebusd || exit 1
+mkdir -p $RELEASE/DEBIAN $RELEASE/etc/logrotate.d || exit 1
 if [ -n "$mqtt" ]; then
   mkdir -p $RELEASE/etc/ebusd || exit 1
   cp contrib/etc/ebusd/mqtt*.cfg $RELEASE/etc/ebusd/ || exit 1
