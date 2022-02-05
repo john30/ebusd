@@ -40,7 +40,8 @@ using std::dec;
 #define O_RETA (O_GTOP+1)
 #define O_PQOS (O_RETA+1)
 #define O_INTF (O_PQOS+1)
-#define O_JSON (O_INTF+1)
+#define O_IVAR (O_INTF+1)
+#define O_JSON (O_IVAR+1)
 #define O_LOGL (O_JSON+1)
 #define O_VERS (O_LOGL+1)
 #define O_IGIN (O_VERS+1)
@@ -67,6 +68,7 @@ static const struct argp_option g_mqtt_argp_options[] = {
   {"mqttretain",   O_RETA, nullptr,       0, "Retain all topics instead of only selected global ones", 0 },
   {"mqttqos",      O_PQOS, "QOS",         0, "Set the QoS value for all topics (0-2) [0]", 0 },
   {"mqttint",      O_INTF, "FILE",        0, "Read MQTT integration settings from FILE (no default)", 0 },
+  {"mqttvar",      O_IVAR, "NAME=VALUE[,...]", 0, "Add variable(s) to the read MQTT integration settings", 0 },
   {"mqttjson",     O_JSON, nullptr,       0, "Publish in JSON format instead of strings", 0 },
   {"mqttverbose",  O_VERB, nullptr,       0, "Publish all available attributes", 0 },
 #if (LIBMOSQUITTO_VERSION_NUMBER >= 1003001)
@@ -98,6 +100,7 @@ static const char* g_password = nullptr;  //!< optional password for MQTT broker
 static const char* g_topic = nullptr;     //!< optional topic template
 static const char* g_globalTopic = nullptr; //!< optional global topic
 static const char* g_integrationFile = nullptr;  //!< the integration settings file
+static const char* g_integrationVars = nullptr;  //!< the integration settings variables
 static bool g_retain = false;             //!< whether to retail all topics
 static int g_qos = 0;                     //!< the qos value for all topics
 static OutputFormat g_publishFormat = OF_NONE;  //!< the OutputFormat for publishing messages
@@ -228,6 +231,14 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
       return EINVAL;
     }
     g_integrationFile = arg;
+    break;
+
+  case O_IVAR:  // --mqttvar=NAME=VALUE[,NAME=VALUE]*
+    if (arg == nullptr || arg[0] == 0 || !strchr(arg, '=')) {
+      argp_error(state, "invalid mqttvar");
+      return EINVAL;
+    }
+    g_integrationVars = arg;
     break;
 
   case O_JSON:  // --mqttjson
@@ -898,6 +909,8 @@ string removeTrailingNonTopicPart(const string& str) {
   return str.substr(0, pos + 1);
 }
 
+void splitFields(const string& str, vector<string>* row);
+
 MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages)
   : DataSink(userInfo, "mqtt"), DataSource(busHandler), WaitThread(), m_messages(messages), m_connected(false),
     m_initialConnectFailed(false), m_lastUpdateCheckResult("."), m_lastScanStatus("."), m_lastErrorLogTime(0) {
@@ -933,6 +946,17 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
       stream.close();
       parseIntegration(last);
       hasIntegration = true;
+      if (g_integrationVars) {
+        vector<string> strs;
+        splitFields(g_integrationVars, &strs);
+        for (auto& str : strs) {
+          size_t pos = str.find('=');
+          if (pos==string::npos || pos==0) {
+            continue;
+          }
+          m_replacers.set(str.substr(0, pos), str.substr(pos+1));
+        }
+      }
     }
   }
   // determine topic and prefix
