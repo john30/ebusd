@@ -987,7 +987,7 @@ string DataFieldSet::getName(ssize_t fieldIndex) const {
         continue;
       }
       remain--;
-      if (remain <= 0) {
+      if (remain < 0) {
         return field->getName(-1);
       }
     }
@@ -1010,7 +1010,7 @@ const SingleDataField* DataFieldSet::getField(ssize_t fieldIndex) const {
       continue;
     }
     remain--;
-    if (remain <= 0) {
+    if (remain < 0) {
       return field;
     }
   }
