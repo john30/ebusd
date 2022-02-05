@@ -663,7 +663,6 @@ class DataFieldSet : public DataField {
       string name = field->getName(-1);
       if (name.empty() || names.find(name) != names.end()) {
         uniqueNames = false;
-        break;
       }
       names[name] = name;
     }

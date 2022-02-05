@@ -532,6 +532,8 @@ int main() {
       {"x,,uch,,,,x,,uch,,,,x,,ign,,,,x,,uch,,,,", "41", "1008ffff00", "0426272829", "wi2"},
       {"x,,uch,,,,y,,uch,,,,x,,ign,,,,x,,uch,,,,", "41", "1008ffff00", "0426272829", "wIi1"},
       {"x,,uch,,,,y,,uch,,,,z,,ign,,,,x,,uch,,,,", "41", "1008ffff00", "0426272829", "wIi1"},
+      {"temp0,,UCH,,,,mcmode,,UCH,0=disabled;1=on;2=off;3=auto,,,days,,UCH,,,,temp0,,UCH,,,,mcmode,,UCH,0=disabled;1=on;2=off,,,mctype7,,BI0:7,0=inactive;1=mixer;2=fixed,,,,,IGN:1,,,,daynight,,UCH,0=night;1=day", "20;on;0;0;disabled;mixer;day", "1008ffff00", "081401000000010001", "FN"},
+      {"temp0,,UCH,,,,mcmode,,UCH,0=disabled;1=on;2=off;3=auto,,,days,,UCH,,,,temp1,,UCH,,,,mcmode1,,UCH,0=disabled;1=on;2=off,,,mctype7,,BI0:7,0=inactive;1=mixer;2=fixed,,,,,IGN:1,,,,daynight,,UCH,0=night;1=day", "20;on;0;0;disabled;mixer;day", "1008ffff00", "081401000000010001", "F"},
   };
   auto templates = new DataFieldTemplates();
   unsigned int lineNo = 0;
@@ -560,6 +562,7 @@ int main() {
     }
     string flags = check[4];
     bool isSet = flags.find('s') != string::npos;
+    bool testFields = flags.find('F') != string::npos;
     bool failedCreate = flags.find('c') != string::npos;
     bool failedRead = flags.find('r') != string::npos;
     bool failedReadMatch = flags.find('R') != string::npos;
@@ -674,7 +677,39 @@ int main() {
         verify(failedReadMatch, "read", check[2] + " " + check[3], match, expectStr, output.str());
       }
     }
-
+    if (testFields) {
+      ssize_t cnt = static_cast<signed>(fields->getCount());
+      bool numbered = flags.find('N') != string::npos;
+      for (ssize_t idx=0; idx<cnt; idx++) {
+        string name = fields->getName(idx);
+        auto field = fields->getField(idx);
+        cout << "  field #" << static_cast<signed>(idx) << " \"" << name << "\" ";
+        string expectName;
+        if (numbered) {
+          ostringstream ostr;
+          ostr << static_cast<signed>(idx);
+          expectName = ostr.str();
+        }
+        if (!field) {
+          cout << "error: not found" << endl;
+          error = true;
+        } else if (name.empty()) {
+          cout << "error: no name" << endl;
+          error = true;
+        } else if (numbered && name != expectName) {
+          cout << "error: unexpected numbered name instead of \"" << expectName << "\"" << endl;
+          error = true;
+        } else if (!numbered && field->getName(-1) != name) {
+          cout << "error: different name \"" << field->getName(-1) << "\"" << endl;
+          error = true;
+        } else if (field->isIgnored()) {
+          cout << "error: ignored" << endl;
+          error = true;
+        } else {
+          cout << "OK" << endl;
+        }
+      }
+    }
     if (verbosity == 0) {
       istringstream input(expectStr);
       MasterSymbolString writeMstr;
