@@ -209,8 +209,17 @@ class Device {
    */
   void setListener(DeviceListener* listener) { m_listener = listener; }
 
+  /**
+   * Send a request for extra infos to enhanced device.
+   * @param infoId the ID of the info to request.
+   * @return @a RESULT_OK on success, or an error code otherwise.
+   */
   result_t requestEnhancedInfo(symbol_t infoId);
 
+  /**
+   * Retrieve/update all extra infos from an enhanced device.
+   * @return @a a string with the extra infos, or empty.
+   */
   string getEnhancedInfos();
 
  protected:
