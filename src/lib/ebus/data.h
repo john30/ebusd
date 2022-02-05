@@ -647,14 +647,17 @@ class DataFieldSet : public DataField {
    * @param name the field name.
    * @param fields the @a vector of @a SingleDataField instances part of this set.
    */
-  DataFieldSet(const string& name, const vector<const SingleDataField*> fields)
-    : DataField(name), m_fields(fields) {
+  DataFieldSet(const string& fieldName, const vector<const SingleDataField*> fields)
+    : DataField(fieldName), m_fields(fields) {
     bool uniqueNames = true;
     size_t ignoredCount = 0;
     map<string, string> names;
     for (auto field : fields) {
       if (field->isIgnored()) {
         ignoredCount++;
+        continue;
+      }
+      if (!uniqueNames) {
         continue;
       }
       string name = field->getName(-1);
