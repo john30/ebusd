@@ -1,6 +1,6 @@
 /*
  * ebusd - daemon for communication with eBUS heating systems.
- * Copyright (C) 2016-2021 John Baier <ebusd@ebusd.eu>
+ * Copyright (C) 2016-2022 John Baier <ebusd@ebusd.eu>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
