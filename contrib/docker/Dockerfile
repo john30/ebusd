@@ -43,7 +43,7 @@ LABEL version="${EBUSD_VERSION}-${EBUSD_ARCH}-devel"
 
 COPY --from=build /build/ebusd-*_mqtt1.deb ebusd.deb
 
-RUN dpkg -i ebusd.deb \
+RUN dpkg -i "--path-exclude=/etc/default/*" "--path-exclude=/etc/init.d/*" "--path-exclude=/lib/systemd/*" ebusd.deb \
     && ebusd -V \
     && rm -f ebusd.deb
 
