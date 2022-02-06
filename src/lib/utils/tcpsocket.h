@@ -45,7 +45,6 @@ using std::string;
  * Class for low level TCP socket operations (open, close, send, receive).
  */
 class TCPSocket {
-  friend class TCPClient;
   friend class TCPServer;
 
  private:
@@ -61,6 +60,15 @@ class TCPSocket {
    * Destructor.
    */
   ~TCPSocket() { close(m_sfd); }
+
+  /**
+   * initiate a tcp socket connection to a listening server.
+   * @param server the server name or ip address to connect.
+   * @param port the tcp port.
+   * @param timeout the connect, send, and receive timeout in seconds, or 0.
+   * @return pointer to an opened tcp socket.
+   */
+  static TCPSocket* connect(const string& server, const uint16_t& port, int timeout = 0);
 
   /**
    * Write bytes to opened file descriptor.
@@ -123,21 +131,6 @@ class TCPSocket {
 
   /** the IP address of the socket */
   string m_ip;
-};
-
-/**
- * class to initiate a TCP socket connection to a listening server.
- */
-class TCPClient {
- public:
-  /**
-   * initiate a tcp socket connection to a listening server.
-   * @param server the server name or ip address to connect.
-   * @param port the tcp port.
-   * @param timeout the connect, send, and receive timeout in seconds, or 0.
-   * @return pointer to an opened tcp socket.
-   */
-  TCPSocket* connect(const string& server, const uint16_t& port, int timeout = 0);
 };
 
 /**

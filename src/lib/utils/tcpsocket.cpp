@@ -45,7 +45,7 @@ bool TCPSocket::isValid() {
 }
 
 
-TCPSocket* TCPClient::connect(const string& server, const uint16_t& port, int timeout) {
+TCPSocket* TCPSocket::connect(const string& server, const uint16_t& port, int timeout) {
   socketaddress address;
   int ret;
 

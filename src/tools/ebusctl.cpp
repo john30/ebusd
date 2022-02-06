@@ -261,8 +261,7 @@ string fetchData(ebusd::TCPSocket* socket, bool &listening, uint16_t timeout, bo
 }
 
 bool connect(const char* host, uint16_t port, uint16_t timeout, char* const *args, int argCount) {
-  TCPClient* client = new TCPClient();
-  TCPSocket* socket = client->connect(host, port, timeout);
+  TCPSocket* socket = TCPSocket::connect(host, port, timeout);
   bool ret;
 
   bool once = args != nullptr && argCount > 0;

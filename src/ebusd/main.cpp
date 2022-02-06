@@ -65,7 +65,11 @@ using std::cout;
 #endif
 
 /** the default path of the configuration files. */
+#ifdef HAVE_SSL
+#define CONFIG_PATH "https://cfg.ebusd.eu/"
+#else
 #define CONFIG_PATH "http://cfg.ebusd.eu/"
+#endif
 
 /** the opened PID file, or nullptr. */
 static FILE* pidFile = nullptr;
@@ -189,7 +193,7 @@ static const struct argp_option argpoptions[] = {
   {"latency",        O_DEVLAT, "MSEC",     0, "Extra transfer latency in ms [0]", 0 },
 
   {nullptr,          0,        nullptr,    0, "Message configuration options:", 2 },
-  {"configpath",     'c',      "PATH",     0, "Read CSV config files from PATH (local folder or HTTP URL) [" CONFIG_PATH
+  {"configpath",     'c',      "PATH",     0, "Read CSV config files from PATH (local folder or HTTPS URL) [" CONFIG_PATH
       "]", 0 },
   {"scanconfig",     's',      "ADDR", OPTION_ARG_OPTIONAL, "Pick CSV config files matching initial scan (ADDR="
       "\"none\" or empty for no initial scan message, \"full\" for full scan, or a single hex address to scan, "
@@ -308,7 +312,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
 
   // Message configuration options:
-  case 'c':  // --configpath=http://cfg.ebusd.eu/
+  case 'c':  // --configpath=https://cfg.ebusd.eu/
     if (arg == nullptr || arg[0] == 0 || strcmp("/", arg) == 0) {
       argp_error(state, "invalid configpath");
       return EINVAL;
@@ -1307,7 +1311,7 @@ int main(int argc, char* argv[]) {
       logError(lf_main, "invalid configPath URL");
       return EINVAL;
     }
-    if (!s_configHttpClient.connect(configHost, configPort, PACKAGE_NAME "/" PACKAGE_VERSION)) {
+    if (!s_configHttpClient.connect(configHost, configPort, proto=="https", PACKAGE_NAME "/" PACKAGE_VERSION)) {
       logError(lf_main, "invalid configPath URL");
       return EINVAL;
     }

@@ -7,6 +7,9 @@
 /* Defined if MQTT handling is enabled. */
 #cmakedefine HAVE_MQTT
 
+/* Defined if SSL is enabled. */
+#cmakedefine HAVE_SSL
+
 /* Defined if ppoll() is available. */
 #cmakedefine HAVE_PPOLL
 

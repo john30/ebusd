@@ -332,7 +332,13 @@ void MainLoop::run() {
       }
       if (m_runUpdateCheck && !m_shutdown && now > nextCheckRun) {
         HttpClient client;
-        if (!client.connect("upd.ebusd.eu", 80, PACKAGE_NAME "/" PACKAGE_VERSION)) {
+        if (!client.connect("upd.ebusd.eu",
+#ifdef HAVE_SSL
+                            443, true,
+#else
+                            80, false,
+#endif
+                            PACKAGE_NAME "/" PACKAGE_VERSION)) {
           logError(lf_main, "update check connect error");
         } else {
           ostringstream ostr;

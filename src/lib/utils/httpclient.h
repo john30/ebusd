@@ -19,11 +19,20 @@
 #ifndef LIB_UTILS_HTTPCLIENT_H_
 #define LIB_UTILS_HTTPCLIENT_H_
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <unistd.h>
 #include <cstdint>
 #include <string>
 #include "lib/utils/tcpsocket.h"
 
+#ifdef HAVE_SSL
+#  include <openssl/ssl.h>
+#  include <openssl/bio.h>
+#  include <openssl/err.h>
+#endif
 
 /** typedef for referencing @a sockaddr_in within namespace. */
 typedef struct sockaddr_in socketaddress;
@@ -35,6 +44,70 @@ namespace ebusd {
 using std::string;
 using std::ifstream;
 
+#ifdef HAVE_SSL
+class SSLSocket {
+ private:
+  /**
+   * Constructor.
+   * @param ctx the SSL_CTX for cleanup, or nullptr.
+   * @param bio the BIO instance, or nullptr.
+   */
+  SSLSocket(SSL_CTX *ctx, BIO *bio) : m_ctx(ctx), m_bio(bio) {}
+
+ public:
+  /**
+   * Destructor.
+   */
+  virtual ~SSLSocket();
+
+  /**
+   * Connect to the host on the specified port.
+   * @param host the host name or ip address to connect to.
+   * @param port the port number.
+   * @param https true for HTTPS, false for HTTP.
+   * @param timeout the connect, send, and receive timeout in seconds, or 0 for blocking mode.
+   * @return the connected SSLSocket, or nullptr on error.
+   */
+  static SSLSocket* connect(const string& server, const uint16_t& port, const bool https, int timeout = 0);
+
+  /**
+   * Write bytes to the socket.
+   * @param data the data to send.
+   * @param len number of bytes to send.
+   * @return number of bytes written, or -1 on error.
+   */
+  ssize_t send(const char* data, size_t len);
+
+  /**
+   * Read bytes from the socket.
+   * @param data the buffer for the received bytes.
+   * @param len size of the buffer.
+   * @return number of bytes read, or -1 on error.
+   */
+  ssize_t recv(char* data, size_t len);
+
+  /**
+   * Return whether the socket is still valid.
+   * @return true if the socket is still valid.
+   */
+  bool isValid();
+
+ private:
+  /** the SSL_CTX for cleanup, or nullptr. */
+  SSL_CTX *m_ctx;
+
+  /** the BIO instance for communication. */
+  BIO *m_bio;
+};
+
+#define SocketClass SSLSocket
+
+#else // HAVE_SSL
+
+#define SocketClass TCPSocket
+
+#endif // HAVE_SSL
+
 /**
  * Helper class for handling HTTP client requests.
  */
@@ -43,7 +116,7 @@ class HttpClient {
   /**
    * Constructor.
    */
-  HttpClient() : m_port(0), m_timeout(0), m_socket(nullptr), m_bufferSize(0), m_buffer(nullptr) {}
+  HttpClient() : m_socket(nullptr), m_port(0), m_timeout(0), m_bufferSize(0), m_buffer(nullptr) {}
 
   /**
    * Destructor.
@@ -55,6 +128,11 @@ class HttpClient {
       m_buffer = nullptr;
     }
   }
+
+  /**
+   * Initialize HttpClient.
+   */
+  static void initialize();
 
   /**
    * Parse an HTTP URL.
@@ -71,11 +149,12 @@ class HttpClient {
    * Connect to the specified server.
    * @param host the host name to connect to.
    * @param port the port to connect to.
+   * @param https true for HTTPS, false for HTTP.
    * @param timeout the timeout in seconds, defaults to 5 seconds.
    * @param userAgent the optional user agent to send in the request header.
    * @return true on success, false on connect failure.
    */
-  bool connect(const string& host, uint16_t port, const string& userAgent = "", int timeout = 5);
+  bool connect(const string& host, uint16_t port, const bool https = false, const string& userAgent = "", int timeout = 5);
 
   /**
    * Re-connect to the last specified server.
@@ -135,8 +214,8 @@ class HttpClient {
   size_t readUntil(const string& delim, const size_t length, string* result);
 
  private:
-  /** the @a TCPClient handling the traffic. */
-  TCPClient m_client;
+  /** the currently connected socket. */
+  SocketClass* m_socket;
 
   /** the name of the host last successfully connected to. */
   string m_host;
@@ -149,9 +228,6 @@ class HttpClient {
 
   /** the optional user agent to send in the request header. */
   string m_userAgent;
-
-  /** the currently connected socket. */
-  TCPSocket* m_socket;
 
   /** the size of the @a m_buffer. */
   size_t m_bufferSize;

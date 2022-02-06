@@ -18,6 +18,10 @@ if(HAVE_MQTT)
   set(ebusd_LIBS ${ebusd_LIBS} mosquitto)
 endif(HAVE_MQTT)
 
+if(HAVE_SSL)
+  set(ebusd_LIBS ${ebusd_LIBS} ssl crypto)
+endif(HAVE_SSL)
+
 if(HAVE_CONTRIB)
   set(ebusd_LIBS ${ebusd_LIBS} ebuscontrib)
 endif(HAVE_CONTRIB)
