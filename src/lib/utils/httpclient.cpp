@@ -32,11 +32,13 @@ using std::hex;
 
 #ifdef HAVE_SSL
 
+#define SLEEP_NANOS 50000
+
 bool checkError(const char* call) {
   unsigned long err = ERR_get_error();
   if (err) {
     const char *const str = ERR_reason_error_string(err);
-    logError(lf_network, "SSL error %s: %ld=%s", call, err, str);
+    logError(lf_network, "HTTP %s: %ld=%s", call, err, str);
     return true;
   }
   return false;
@@ -47,7 +49,7 @@ bool isError(const char* call, bool result) {
     return true;
   }
   if (!result) {
-    logError(lf_network, "SSL error %s: invalid result", call);
+    logError(lf_network, "HTTP %s: invalid result", call);
     return true;
   }
   return false;
@@ -58,7 +60,7 @@ bool isError(const char* call, long result, long expected) {
     return true;
   }
   if (result!=expected) {
-    logError(lf_network, "SSL error %s: invalid result %d", call, result);
+    logError(lf_network, "HTTP %s: invalid result %d", call, result);
     return true;
   }
   return false;
@@ -80,13 +82,14 @@ ssize_t SSLSocket::send(const char* data, size_t len) {
       return static_cast<signed>(part);
     }
     if (!BIO_should_retry(m_bio)) {
-      if (isError("write", true)) {
+      if (isError("send", true)) {
         return -1;
       }
       return 0;
     }
-    usleep(50000);
-  } while (true);
+    usleep(SLEEP_NANOS);
+  } while (time(nullptr)<m_until);
+  return -1; // timeout
 }
 
 ssize_t SSLSocket::recv(char* data, size_t len) {
@@ -97,25 +100,30 @@ ssize_t SSLSocket::recv(char* data, size_t len) {
       return static_cast<signed>(part);
     }
     if (!BIO_should_retry(m_bio)) {
-      if (isError("read", true)) {
+      if (isError("recv", true)) {
         return -1;
       }
       return 0;
     }
-    usleep(50000);
-  } while (true);
+    usleep(SLEEP_NANOS);
+  } while (time(nullptr)<m_until);
+  return -1; // timeout
 }
 
 bool SSLSocket::isValid() {
-  return !BIO_eof(m_bio);
+  return time(nullptr)<m_until && !BIO_eof(m_bio);
 }
 
-SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, const bool https, int timeout) {
+// general switch for future insecure option
+static const bool verifyPeer = true;
+
+SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool https, int timeout) {
   BIO *bio = nullptr;
   SSL_CTX *ctx = nullptr;
   ostringstream ostr;
   ostr << host << ':' << static_cast<unsigned>(port);
   const string hostPort = ostr.str();
+  time_t until = time(nullptr) + (timeout<=2 ? 2 : timeout);  // at least 2 seconds
   if (!https) {
     do {
       bio = BIO_new_connect(hostPort.c_str());
@@ -123,7 +131,7 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, const bo
         break;
       }
       BIO_set_nbio(bio, 1); // set non-blocking
-      return new SSLSocket(nullptr, bio);
+      return new SSLSocket(nullptr, bio, until);
     } while (false);
   } else {
     SSL *ssl = nullptr;
@@ -136,15 +144,14 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, const bo
       if (isError("ctx_new", ctx)) {
         break;
       }
-      SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER, nullptr);
-      if (isError("verify_loc", SSL_CTX_load_verify_locations(ctx, nullptr, "/etc/ssl/certs"), 1)) {
+      SSL_CTX_set_verify(ctx, verifyPeer ? SSL_VERIFY_PEER : SSL_VERIFY_NONE, nullptr);
+      if (verifyPeer && isError("verify_loc", SSL_CTX_load_verify_locations(ctx, nullptr, "/etc/ssl/certs"), 1)) {
         break;
       }
-      SSL_CTX_set_verify_depth(ctx, 2);
       const long flags = SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION;
       SSL_CTX_set_options(ctx, flags);
       bio = BIO_new_ssl_connect(ctx);
-      if (isError("new_ssl_connect", bio)) {
+      if (isError("new_ssl_conn", bio)) {
         break;
       }
       if (isError("conn_hostname", BIO_set_conn_hostname(bio, hostPort.c_str()), 1)) {
@@ -156,13 +163,12 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, const bo
         break;
       }
       const char *hostname = host.c_str();
-      if (isError("tlsext_host_name", SSL_set_tlsext_host_name(ssl, hostname), 1)) {
+      if (isError("tls_host", SSL_set_tlsext_host_name(ssl, hostname), 1)) {
         break;
       }
-      time_t until = time(nullptr) + (timeout<=0 ? 1 : timeout);
       long res = BIO_do_connect(bio);
       while (res != 1 && BIO_should_retry(bio) && time(nullptr)<until) {
-        usleep(50000);
+        usleep(SLEEP_NANOS);
         res = BIO_do_connect(bio);
       }
       if (isError("connect", res, 1)) {
@@ -175,22 +181,22 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, const bo
       if (isError("peer_cert", cert)) {
         break;
       }
-      if (isError("verify", SSL_get_verify_result(ssl), X509_V_OK)) {
+      if (verifyPeer && isError("verify", SSL_get_verify_result(ssl), X509_V_OK)) {
         break;
       }
       // check hostname
       X509_NAME *sname = X509_get_subject_name(cert);
-      if (isError("subject_name", sname)) {
+      if (isError("get_subject", sname)) {
         break;
       }
       char peerName[64];
-      if (isError("extract subject", X509_NAME_get_text_by_NID(sname, NID_commonName, peerName, sizeof(peerName)) > 0)) {
+      if (isError("subject name", X509_NAME_get_text_by_NID(sname, NID_commonName, peerName, sizeof(peerName)) > 0)) {
         break;
       }
       if (isError("subject", strcmp(peerName, hostname), 0)) {
         break;
       }
-      return new SSLSocket(ctx, bio);
+      return new SSLSocket(ctx, bio, until);
     } while (false);
   }
   if (bio) {
