@@ -325,7 +325,6 @@ bool connect(const char* host, uint16_t port, uint16_t timeout, char* const *arg
   } else {
     cout << "error connecting to " << host << ":" << port << endl;
   }
-  delete client;
   return ret;
 }
 
