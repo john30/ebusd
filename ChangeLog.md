@@ -16,6 +16,7 @@
 * add Alpine Linux APKBUILD (thanks to tim-devel)
 * add QoS setting and adjustable global topic to MQTT
 * add option to move dynamic circuit and name parts to MQTT payload allowing to push to e.g. Azure IoT hub
+* add SSL support to HTTP client
 
 
 # 21.3 (2021-11-07)
