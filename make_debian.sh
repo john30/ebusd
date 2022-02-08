@@ -80,6 +80,10 @@ else
     mqtt=1
   fi
 fi
+ldd $RELEASE/usr/bin/ebusd | egrep -q libssl.so.1.1
+if [ $? -eq 0 ]; then
+  extralibs="$extralibs, libssl1.1 (>= 1.1.1)"
+fi
 
 if [ -n "$RUNTEST" ]; then
   echo

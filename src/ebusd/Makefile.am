@@ -26,6 +26,10 @@ ebusd_LDADD = ../lib/utils/libutils.a \
 	      -lpthread \
 	      @EXTRA_LIBS@
 
+if SSL
+ebusd_LDADD += -lssl -lcrypto
+endif
+
 if CONTRIB
 ebusd_LDADD += ../lib/ebus/contrib/libebuscontrib.a
 endif

@@ -61,6 +61,7 @@ Building ebusd from the source requires the following packages and/or features:
  * kernel with pselect or ppoll support
  * glibc with argp support or argp-standalone
  * libmosquitto-dev for MQTT support
+ * libssl-dev for SSL support
 
 To start the build process, run these commands:  
 > ./autogen.sh  

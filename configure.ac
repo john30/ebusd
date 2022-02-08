@@ -63,6 +63,18 @@ if test "x$with_mqtt" != "xno"; then
 fi
 AM_CONDITIONAL([MQTT], [test "x$with_mqtt" != "xno"])
 
+AC_ARG_WITH(ssl, AS_HELP_STRING([--without-ssl], [disable support for SSL]), [], [with_ssl=yes])
+if test "x$with_ssl" != "xno"; then
+	AC_CHECK_LIB([ssl], [OPENSSL_init_ssl],
+		[AC_CHECK_LIB([crypto], [CRYPTO_new_ex_data],
+         		[AC_DEFINE_UNQUOTED(HAVE_SSL, [1], [Defined if SSL is enabled.])],
+         		[AC_MSG_RESULT([Could not find CRYPTO_new_ex_data in libcrypto.])
+         		with_ssl="no"])],
+		[AC_MSG_RESULT([Could not find SSL_library_init in libssl.])
+		with_ssl="no"])
+fi
+AM_CONDITIONAL([SSL], [test "x$with_ssl" != "xno"])
+
 AC_MSG_CHECKING([for direct float format conversion])
 AC_TRY_RUN(
 	[
