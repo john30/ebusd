@@ -1415,7 +1415,9 @@ void MqttHandler::run() {
               }
               if (!message->isWrite()) {
                 // only wait for data on read messages or set their poll prio
-                if (filterSeen > 1 && (!message->getPollPriority() || message->getPollPriority() > filterSeen)) {
+                if (filterSeen > 1 && (!message->getPollPriority() || message->getPollPriority() > filterSeen)
+                  && (filterPriority == 0 || filterSeen <= filterPriority)
+                ) {
                   // check for poll prio adjustment after all other filters
                   checkPollAdjust = true;
                 } else {
@@ -1442,8 +1444,13 @@ void MqttHandler::run() {
           if (!FileReader::matches(direction, filterDirection, true, true)) {
             continue;
           }
-          if ((checkPollAdjust && !message->setPollPriority(filterSeen))
-          || (filterPriority>0 && (message->getPollPriority()==0 || message->getPollPriority()>filterPriority))) {
+          if (checkPollAdjust) {
+            if (!message->setPollPriority(filterSeen)) {
+              continue;
+            }
+            m_messages->addPollMessage(false, message);
+          }
+          if (filterPriority>0 && (message->getPollPriority()==0 || message->getPollPriority()>filterPriority)) {
             continue;
           }
 
