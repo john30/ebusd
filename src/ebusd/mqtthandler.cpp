@@ -197,7 +197,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
       return EINVAL;
     } else {
       MqttReplacer replacer;
-      if (!replacer.parse(arg)) {
+      if (!replacer.parse(arg, true)) {
         argp_error(state, "malformed mqtttopic");
         return EINVAL;
       }
@@ -624,6 +624,18 @@ bool MqttReplacer::reduce(const map<string, string>& values, string& result, boo
   return true;
 }
 
+bool MqttReplacer::checkMatch() const {
+  bool lastField = false;
+  for (const auto& part : m_parts) {
+    bool field = part.second >= 0;
+    if (field && lastField) {
+      return false;
+    }
+    lastField = field;
+  }
+  return true;
+}
+
 ssize_t MqttReplacer::matchTopic(const string& topic, string* circuit, string* name, string* field) const {
   size_t last = 0;
   size_t count = m_parts.size();
@@ -967,18 +979,23 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
     if (noDefault) {
       str.resize(str.size()-1);
     }
+    bool parse = true;
     if (hasIntegration && !topic.empty()) {
       // topic defined in cmdline and integration file.
-      if (str.find('%')!=string::npos) {
-        // cmdline topic is more than just a prefix => override integration topic completely
-        topic.parse(str);
-      } else {
+      if (str.find('%')==string::npos) {
         // cmdline topic is only the prefix, use it
         m_replacers.set("prefix", str);
         m_replacers.set("prefixn", removeTrailingNonTopicPart(str));
+        parse = false;
+      } // else: cmdline topic is more than just a prefix => override integration topic completely
+    }
+    if (parse) {
+      if (!topic.parse(str, true, true)) {
+        logOtherNotice("mqtt", "unknown or duplicate topic parts potentially prevent matching incoming topics");
+        topic.parse(str, true);
+      } else if (!topic.checkMatch()) {
+        logOtherNotice("mqtt", "missing separators between topic parts potentially prevent matching incoming topics");
       }
-    } else {
-      topic.parse(str);
     }
     if (!noDefault) {
       topic.ensureDefault();
@@ -1038,9 +1055,9 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
   m_subscribeConfigRestartTopic = m_replacers.get("config_restart-topic", false, false);
   m_subscribeConfigRestartPayload = m_replacers.get("config_restart-payload", false, false);
   if (g_globalTopic) {
-    m_globalTopic.parse(g_globalTopic, true);
+    m_globalTopic.parse(g_globalTopic);
   } else {
-    m_globalTopic.parse(getTopic(nullptr, "%circuit/%name"), true);
+    m_globalTopic.parse(getTopic(nullptr, "%circuit/%name"));
   }
   if (m_globalTopic.has("circuit")) {
     map<string, string> values;

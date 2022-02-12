@@ -82,7 +82,7 @@ class MqttReplacer {
    * is empty or not defined.
    * @return true on success, false on malformed template string.
    */
-  bool parse(const string& templateStr, bool onlyKnown = true, bool noKnownDuplicates = true, bool emptyIfMissing = false);
+  bool parse(const string& templateStr, bool onlyKnown = false, bool noKnownDuplicates = false, bool emptyIfMissing = false);
 
   /**
    * Ensure the default topic parts are present (circuit and message).
@@ -149,6 +149,12 @@ class MqttReplacer {
    * @return true if the result is final.
    */
   bool reduce(const map<string, string>& values, string& result, bool onlyAlphanum = false) const;
+
+  /**
+   * Check match-ability against topics.
+   * @return true on success, false on bad match-ability.
+   */
+  bool checkMatch() const;
 
   /**
    * Match a topic string against the constant and variables parts.
