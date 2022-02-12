@@ -76,11 +76,18 @@ SSLSocket::~SSLSocket() {
 
 ssize_t SSLSocket::send(const char* data, size_t len) {
   do {
+#if OPENSSL_VERSION_NUMBER >= 0x10101000L
     size_t part = 0;
     int res = BIO_write_ex(m_bio, data, len, &part);
     if (res == 1) {
       return static_cast<signed>(part);
     }
+#else
+    int res = BIO_write(m_bio, data, static_cast<int>(len));
+    if (res > 0) {
+      return static_cast<ssize_t>(res);
+    }
+#endif
     if (!BIO_should_retry(m_bio)) {
       if (isError("send", true)) {
         return -1;
@@ -94,11 +101,18 @@ ssize_t SSLSocket::send(const char* data, size_t len) {
 
 ssize_t SSLSocket::recv(char* data, size_t len) {
   do {
+#if OPENSSL_VERSION_NUMBER >= 0x10101000L
     size_t part = 0;
     int res = BIO_read_ex(m_bio, data, len, &part);
     if (res == 1) {
       return static_cast<signed>(part);
     }
+#else
+    int res = BIO_read(m_bio, data, static_cast<int>(len));
+    if (res > 0) {
+      return static_cast<ssize_t>(res);
+    }
+#endif
     if (!BIO_should_retry(m_bio)) {
       if (isError("recv", true)) {
         return -1;
