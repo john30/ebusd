@@ -1,0 +1,112 @@
+---
+name: Bug report
+description: Create a report to help us improve
+labels:
+  - needs analysis
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of what the bug is. Anything related to actual message definitions in ebusd-configuration, serial bridge in ebusd-esp, or adapter v3/v2 do not belong here! Use the appropriate repository for those.
+      placeholder: e.g. during startup, an error message as described below is reported instead of...
+    validations:
+      required: true
+  - type: textarea
+    id: actual_behaviour
+    attributes:
+      label: Actual behavior
+      description: A clear and concise description of what you expected to happen.
+      placeholder: e.g. when starting ebusd, it gives an error message...
+    validations:
+      required: true
+  - type: textarea
+    id: expected_behaviour
+    attributes:
+      label: Expected behavior
+      description: A clear and concise description of what you expected to happen.
+      placeholder: e.g. when starting ebusd, it should not give an error message...
+    validations:
+      required: true
+  - type: dropdown
+    id: version
+    attributes:
+      label: ebusd version
+      description: the ebusd version in use
+      options:
+        - current source from git
+        - latest release
+        - '21.3'
+        - '21.2'
+        - other
+    validations:
+      required: true
+  - type: input
+    id: args
+    attributes:
+      label: ebusd arguments
+      description: the arguments with which ebusd is started (including the ENV vars if running in docker)
+      placeholder: e.g. copy the EBUSD_OPTS line from /etc/default/ebusd
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      description: the operating system in use
+      options:
+        - Debian 11 (Bullseye) / Raspbian 11 / Ubuntu 20-21
+        - Debian 10 (Buster) / Raspbian 10 / Ubuntu 18-19
+        - Debian 9 (Stretch) / Raspbian 9 / Ubuntu 16-17
+        - other
+    validations:
+      required: true
+  - type: dropdown
+    id: architecture
+    attributes:
+      label: CPU architecture
+      description: the CPU architecture in use (output of `dpkg --print-architecture` or `uname -m`)
+      options:
+        - x64
+        - i386
+        - armv7l
+        - arm64
+        - other
+    validations:
+      required: true
+  - type: dropdown
+    id: interface
+    attributes:
+      label: Hardware interface
+      description: the eBUS hardware interface in use
+      options:
+        - adapter 3 USB
+        - adapter 3 WiFi
+        - adapter 3 Ethernet
+        - adapter 3 RPi
+        - adapter 2
+        - Esera USB
+        - Esera Ethernet
+        - other
+    validations:
+      required: true
+  - type: dropdown
+    id: integration
+    attributes:
+      label: Related integration
+      description: the integration to which this issue is related
+      multiple: true
+      options:
+        - TCP (cmdline client like ebusctl or netcat)
+        - HTTP
+        - MQTT generic
+        - MQTT Home Assistant via mqtt-hassio.cfg
+        - other
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant ebusd log lines found in /var/log/ebusd.log
+      placeholder: e.g. paste the lines from /var/log/ebusd.log
+    validations:
+      required: true

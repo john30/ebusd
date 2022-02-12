@@ -1,0 +1,14 @@
+---
+name: Feature request
+description: Suggest an idea for this project
+labels:
+  - needs analysis
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of the requested feature, additional behaviour, different functionality. Anything related to actual message definitions in ebusd-configuration, serial bridge in ebusd-esp, or adapter v3/v2 do not belong here! Use the appropriate repository for those.
+      placeholder: e.g. during startup, an error message as described below is reported instead of...
+    validations:
+      required: true
