@@ -9,10 +9,10 @@ fi
 archs=linux/amd64,linux/386,linux/arm/v7,linux/arm64
 if [[ -z "$1" ]] || [[ "x$1" == "xrelease" ]]; then
   UPLOAD_URL=
-else
+elif [[ -z "$UPLOAD_URL" ]]; then
   UPLOAD_URL="http://$1/ebusdreleaseupload.php"
 fi
-UPLOAD_CREDENTIALS='anonymous:build'
+UPLOAD_CREDENTIALS=${UPLOAD_CREDENTIALS:-'anonymous:build'}
 version=`cat ../../VERSION`
 source='../..'
 images='bullseye'
@@ -34,7 +34,7 @@ else
   namesuffix='.build'
   target=build
   images='bullseye buster stretch'
-  outputFmt=-q
+  outputFmt=
   tagsuffix=":v$version-prep"
 fi
 
