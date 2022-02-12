@@ -651,7 +651,6 @@ ssize_t MqttReplacer::matchTopic(const string& topic, string* circuit, string* n
     }
     string value;
     if (idx+1 < count) {
-      // TODO require topic fields to be separated by non-empty string? e.g. %circuit%name is not parseable here
       size_t pos = topic.find(m_parts[idx+1].first, last);
       if (pos == string::npos) {
         // next part not found
@@ -1324,7 +1323,7 @@ void MqttHandler::run() {
   string uptimeTopic = m_globalTopic.get("", "uptime");
   ostringstream updates;
   unsigned int filterPriority = 0;
-  bool filterSeen = false;
+  unsigned int filterSeen = 0;
   string filterCircuit, filterName, filterLevel, filterField, filterDirection;
   vector<string> typeSwitchNames;
   if (m_hasDefinitionTopic) {
@@ -1333,7 +1332,10 @@ void MqttHandler::run() {
     if (result != RESULT_OK) {
       filterPriority = 0;
     }
-    filterSeen = parseBool(m_replacers["filter-seen"]);
+    filterSeen = parseInt(m_replacers["filter-seen"].c_str(), 10, 0, 9, &result);
+    if (result != RESULT_OK) {
+      filterSeen = 0;
+    }
     filterCircuit = m_replacers["filter-circuit"];
     FileReader::tolower(&filterCircuit);
     filterName = m_replacers["filter-name"];
@@ -1395,11 +1397,21 @@ void MqttHandler::run() {
         deque<Message*> messages;
         m_messages->findAll("", "", m_levels, false, true, true, true, true, true, 0, 0, false, &messages);
         for (const auto& message : messages) {
-          if (filterSeen) {
+          bool checkPollAdjust = false;
+          if (filterSeen > 0) {
             if (message->getLastUpdateTime()==0) {
-              if (message->isPassive() || !message->isWrite()) {
-                // only wait for data on passive or read messages
+              if (message->isPassive()) {
+                // only wait for data on passive messages
                 continue;  // no data ever
+              }
+              if (!message->isWrite()) {
+                // only wait for data on read messages or set their poll prio
+                if (filterSeen > 1 && (!message->getPollPriority() || message->getPollPriority() > filterSeen)) {
+                  // check for poll prio adjustment after all other filters
+                  checkPollAdjust = true;
+                } else {
+                  continue;  // no poll adjustment
+                }
               }
             }
             if (message->getDataHandlerState()==1) {
@@ -1412,14 +1424,17 @@ void MqttHandler::run() {
           } else if (message->getCreateTime() <= m_definitionsSince) {  // only newer defined
             continue;
           }
-          if ((filterPriority>0 && (message->getPollPriority()==0 || message->getPollPriority()>filterPriority))
-          || !FileReader::matches(message->getCircuit(), filterCircuit, true, true)
+          if (!FileReader::matches(message->getCircuit(), filterCircuit, true, true)
           || !FileReader::matches(message->getName(), filterName, true, true)
           || !FileReader::matches(message->getLevel(), filterLevel, true, true)) {
             continue;
           }
           const string direction = directionNames[(message->isWrite() ? 2 : 0) + (message->isPassive() ? 1 : 0)];
           if (!FileReader::matches(direction, filterDirection, true, true)) {
+            continue;
+          }
+          if ((checkPollAdjust && !message->setPollPriority(filterSeen))
+          || (filterPriority>0 && (message->getPollPriority()==0 || message->getPollPriority()>filterPriority))) {
             continue;
           }
 
