@@ -1,0 +1,26 @@
+name: Prepare Release
+
+on:
+  release:
+    types: [ created ]
+  workflow_dispatch:
+
+jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: checkout
+        uses: actions/checkout@v2
+      -
+        name: set up QEMU
+        uses: docker/setup-qemu-action@v1
+      -
+        name: set up buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+        with:
+          buildkitd-flags: --debug
+      -
+        name: build
+        run: cd contrib/docker && ./update.sh all && ./build.sh deb
