@@ -482,14 +482,17 @@ result_t BusHandler::handleSymbol() {
           Message* message = m_messages->getNextPoll();
           if (message != nullptr) {
             m_lastPoll = now;
-            auto request = new PollRequest(message);
-            result_t ret = request->prepare(m_ownMasterAddress);
-            if (ret != RESULT_OK) {
-              logError(lf_bus, "prepare poll message: %s", getResultCode(ret));
-              delete request;
-            } else {
-              startRequest = request;
-              m_nextRequests.push(request);
+            if (difftime(now, message->getLastUpdateTime()) > m_pollInterval) {
+              // only poll this message if it was not updated already by other means within the interval
+              auto request = new PollRequest(message);
+              result_t ret = request->prepare(m_ownMasterAddress);
+              if (ret != RESULT_OK) {
+                logError(lf_bus, "prepare poll message: %s", getResultCode(ret));
+                delete request;
+              } else {
+                startRequest = request;
+                m_nextRequests.push(request);
+              }
             }
           }
         }
