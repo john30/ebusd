@@ -6,7 +6,7 @@ on:
   push:
     branches: [ master ]
     paths:
-      - ''.github/workflows/release.yml'
+      - '.github/workflows/release.yml'
 
 jobs:
   release:
