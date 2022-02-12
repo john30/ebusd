@@ -8,7 +8,7 @@ url="https://github.com/john30/ebusd"
 # Upstream only supports these archs.
 arch="x86 x86_64 aarch64 armhf armv7"
 license="GPL-3.0-only"
-makedepends="argp-standalone cmake mosquitto-dev"
+makedepends="argp-standalone cmake mosquitto-dev openssl-dev"
 source="$pkgname-$pkgver.tar.gz::https://github.com/john30/ebusd/archive/refs/tags/v$pkgver.tar.gz"
 
 build() {
