@@ -1193,6 +1193,13 @@ void MqttHandler::notifyTopic(const string& topic, const string& data) {
   if (direction.empty()) {
     return;
   }
+  pos = direction.find('?');
+  string args;
+  if (pos != string::npos) {
+    // support e.g. ?1 in topic for poll prio
+    args = direction.substr(pos+1);
+    direction = direction.substr(0, pos);
+  }
   bool isWrite = direction == "set";
   bool isList = !isWrite && direction == "list";
   if (!isWrite && !isList && direction != "get") {
@@ -1258,15 +1265,17 @@ void MqttHandler::notifyTopic(const string& topic, const string& data) {
         pos = string::npos;
       }
       if (pos != string::npos) {
-        string args = useData.substr(pos + 1);
-        useData = useData.substr(0, pos > 0 ? pos - 1 : pos);
-        if (!args.empty()) {
-          result_t ret = RESULT_OK;
-          auto pollPriority = (size_t)parseInt(args.c_str(), 10, 1, 9, &ret);
-          if (ret == RESULT_OK && pollPriority > 0 && message->setPollPriority(pollPriority)) {
-            m_messages->addPollMessage(false, message);
-          }
+        if (args.empty()) {
+          args = useData.substr(pos + 1);
         }
+        useData = useData.substr(0, pos > 0 ? pos - 1 : pos);
+      }
+    }
+    if (!args.empty()) {
+      result_t ret = RESULT_OK;
+      auto pollPriority = (size_t)parseInt(args.c_str(), 10, 1, 9, &ret);
+      if (ret == RESULT_OK && pollPriority > 0 && message->setPollPriority(pollPriority)) {
+        m_messages->addPollMessage(false, message);
       }
     }
     result_t result = m_busHandler->readFromBus(message, useData);
