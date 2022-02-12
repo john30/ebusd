@@ -1,4 +1,4 @@
-# 22.1 (tbd)
+# 22.1 (2022-02-12)
 ## Bug Fixes
 * fix smaller bugs related to cleanup
 * add more device latency to unix build

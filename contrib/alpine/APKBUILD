@@ -1,7 +1,7 @@
 # Contributor: Tim <timstanleydev@gmail.com>
 # Maintainer: Tim <timstanleydev@gmail.com>
 pkgname=ebusd
-pkgver=21.3
+pkgver=22.1
 pkgrel=1
 pkgdesc="ebusd, the daemon for communication with eBUS heating systems."
 url="https://github.com/john30/ebusd"
