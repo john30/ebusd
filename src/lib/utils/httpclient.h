@@ -120,7 +120,9 @@ class HttpClient {
   /**
    * Constructor.
    */
-  HttpClient() : m_socket(nullptr), m_port(0), m_timeout(0), m_bufferSize(0), m_buffer(nullptr) {}
+  HttpClient() : m_socket(nullptr), m_port(0), m_timeout(0), m_bufferSize(0), m_buffer(nullptr) {
+    initialize();
+  }
 
   /**
    * Destructor.
@@ -218,6 +220,11 @@ class HttpClient {
   size_t readUntil(const string& delim, const size_t length, string* result);
 
  private:
+#ifdef HAVE_SSL
+  /** true once @a initialize() was called. */
+  static bool s_initialized;
+#endif
+
   /** the currently connected socket. */
   SocketClass* m_socket;
 

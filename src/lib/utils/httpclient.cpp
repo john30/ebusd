@@ -208,7 +208,13 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool htt
   return nullptr;
 }
 
+bool HttpClient::s_initialized = false;
+
 void HttpClient::initialize() {
+  if (s_initialized) {
+    return;
+  }
+  s_initialized = true;
   SSL_library_init();
   SSL_load_error_strings();
   signal(SIGPIPE, SIG_IGN); // needed to avoid SIGPIPE when writing to a closed pipe
