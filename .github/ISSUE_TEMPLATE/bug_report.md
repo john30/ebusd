@@ -27,6 +27,11 @@ Anything related to actual message definitions in ebusd-configuration, serial br
   - [ ] HTTP
   - [ ] MQTT
   - [ ] other
+- Hardware interface:
+  - [ ] adapter 3
+  - [ ] adapter 2
+  - [ ] Esera
+  - [ ] other
 
 #### Logs
 <!-- Add some logging e.g. relevent lines found in /var/log/ebusd.log and ensure to wrap it with:
