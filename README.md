@@ -7,11 +7,10 @@ ebusd is a daemon for handling communication with eBUS devices connected to a
 [![Build](https://github.com/john30/ebusd/actions/workflows/build.yml/badge.svg)](https://github.com/john30/ebusd/actions/workflows/build.yml)
 [![Coverage](https://github.com/john30/ebusd/actions/workflows/coverage.yml/badge.svg)](https://github.com/john30/ebusd/actions/workflows/coverage.yml)
 [![codecov](https://codecov.io/gh/john30/ebusd/branch/master/graph/badge.svg)](https://codecov.io/gh/john30/ebusd)
-[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/john30/ebusd?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 [![Release Downloads](https://img.shields.io/github/downloads/john30/ebusd/total)](https://github.com/john30/ebusd/releases/latest)
 [![Docker Downloads](https://img.shields.io/docker/pulls/john30/ebusd)](https://hub.docker.com/repository/docker/john30/ebusd)
 [![Release](https://img.shields.io/github/v/release/john30/ebusd)](https://github.com/john30/ebusd/releases/latest)
-
+[![GitHub Discussions](https://img.shields.io/github/discussions/john30/ebusd)](https://github.com/john30/ebusd/discussions)
 
 Features
 --------
@@ -51,7 +50,8 @@ Installation
 
 Either pick the [latest release package](https://github.com/john30/ebusd/releases/latest) suitable for your system,
 use the Debian repository as [described here](https://github.com/john30/ebusd-debian/blob/master/README.md),
-use the Archlinux makepkg files or pick the package from the Alpine Linux repository,
+use `makepkg` for [Archlinux](https://github.com/john30/ebusd/tree/master/contrib/archlinux)
+or pick the [package from the Alpine Linux repository](https://pkgs.alpinelinux.org/package/edge/community/x86/ebusd),
 build it yourself, or use a docker image (see below).
 
 Building ebusd from the source requires the following packages and/or features:
