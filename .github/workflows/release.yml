@@ -2,7 +2,11 @@ name: Release
 
 on:
   release:
-    types: [ published ]
+    types: [ published, edited ]
+  push:
+    branches: [ master ]
+    paths:
+      - '.github/workflows/release.yml'
 
 jobs:
   release:
