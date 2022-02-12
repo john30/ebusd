@@ -308,7 +308,8 @@ bool GrabbedMessage::dump(bool unknown, MessageMap* messages, bool first, Output
   }
   for (const auto& it : *types) {
     const DataType* baseType = it.second;
-    if ((baseType->getBitCount() % 8) != 0 || baseType->isIgnored() || baseType->hasFlag(DUP)) {  // skip bit and ignored types
+    if ((baseType->getBitCount() % 8) != 0 || baseType->isIgnored() || baseType->hasFlag(DUP)) {
+      // skip bit and ignored types
       continue;
     }
     size_t maxLength = baseType->getBitCount()/8;

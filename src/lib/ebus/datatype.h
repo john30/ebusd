@@ -437,8 +437,8 @@ class NumberDataType : public DataType {
   NumberDataType(const string& id, size_t bitCount, uint16_t flags, unsigned int replacement,
       unsigned int minValue, unsigned int maxValue, int divisor,
       const NumberDataType* baseType = nullptr)
-    : DataType(id, bitCount, flags|NUM, replacement), m_minValue(minValue), m_maxValue(maxValue), m_divisor(divisor==0 ? 1 : divisor),
-      m_precision(calcPrecision(divisor)), m_firstBit(0), m_baseType(baseType) {}
+    : DataType(id, bitCount, flags|NUM, replacement), m_minValue(minValue), m_maxValue(maxValue),
+      m_divisor(divisor == 0 ? 1 : divisor), m_precision(calcPrecision(divisor)), m_firstBit(0), m_baseType(baseType) {}
 
   /**
    * Constructs a new instance for less than 8 bits.
@@ -452,8 +452,8 @@ class NumberDataType : public DataType {
    */
   NumberDataType(const string& id, size_t bitCount, uint16_t flags, unsigned int replacement,
       int16_t firstBit, int divisor, const NumberDataType* baseType = nullptr)
-    : DataType(id, bitCount, flags|NUM, replacement), m_minValue(0), m_maxValue((1 << bitCount)-1), m_divisor(divisor==0 ? 1 : divisor),
-      m_precision(0), m_firstBit(firstBit), m_baseType(baseType) {}
+    : DataType(id, bitCount, flags|NUM, replacement), m_minValue(0), m_maxValue((1 << bitCount)-1),
+      m_divisor(divisor == 0 ? 1 : divisor), m_precision(0), m_firstBit(firstBit), m_baseType(baseType) {}
 
   /**
    * Destructor.

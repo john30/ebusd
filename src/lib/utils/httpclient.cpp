@@ -17,11 +17,11 @@
  */
 
 #include "lib/utils/httpclient.h"
-#include "lib/utils/log.h"
 #include <cstring>
 #include <cstdlib>
 #include <sstream>
 #include <csignal>
+#include "lib/utils/log.h"
 
 namespace ebusd {
 
@@ -59,7 +59,7 @@ bool isError(const char* call, long result, long expected) {
   if (checkError(call)) {
     return true;
   }
-  if (result!=expected) {
+  if (result != expected) {
     logError(lf_network, "HTTP %s: invalid result %d", call, result);
     return true;
   }
@@ -78,7 +78,7 @@ ssize_t SSLSocket::send(const char* data, size_t len) {
   do {
     size_t part = 0;
     int res = BIO_write_ex(m_bio, data, len, &part);
-    if (res==1) {
+    if (res == 1) {
       return static_cast<signed>(part);
     }
     if (!BIO_should_retry(m_bio)) {
@@ -88,15 +88,15 @@ ssize_t SSLSocket::send(const char* data, size_t len) {
       return 0;
     }
     usleep(SLEEP_NANOS);
-  } while (time(nullptr)<m_until);
-  return -1; // timeout
+  } while (time(nullptr) < m_until);
+  return -1;  // timeout
 }
 
 ssize_t SSLSocket::recv(char* data, size_t len) {
   do {
     size_t part = 0;
     int res = BIO_read_ex(m_bio, data, len, &part);
-    if (res==1) {
+    if (res == 1) {
       return static_cast<signed>(part);
     }
     if (!BIO_should_retry(m_bio)) {
@@ -106,12 +106,12 @@ ssize_t SSLSocket::recv(char* data, size_t len) {
       return 0;
     }
     usleep(SLEEP_NANOS);
-  } while (time(nullptr)<m_until);
-  return -1; // timeout
+  } while (time(nullptr) < m_until);
+  return -1;  // timeout
 }
 
 bool SSLSocket::isValid() {
-  return time(nullptr)<m_until && !BIO_eof(m_bio);
+  return time(nullptr) < m_until && !BIO_eof(m_bio);
 }
 
 // general switch for future insecure option
@@ -123,14 +123,14 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool htt
   ostringstream ostr;
   ostr << host << ':' << static_cast<unsigned>(port);
   const string hostPort = ostr.str();
-  time_t until = time(nullptr) + (timeout<=2 ? 2 : timeout);  // at least 2 seconds
+  time_t until = time(nullptr) + (timeout <= 2 ? 2 : timeout);  // at least 2 seconds
   if (!https) {
     do {
       bio = BIO_new_connect(hostPort.c_str());
       if (isError("connect", bio)) {
         break;
       }
-      BIO_set_nbio(bio, 1); // set non-blocking
+      BIO_set_nbio(bio, 1);  // set non-blocking
       return new SSLSocket(nullptr, bio, until);
     } while (false);
   } else {
@@ -157,7 +157,7 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool htt
       if (isError("conn_hostname", BIO_set_conn_hostname(bio, hostPort.c_str()), 1)) {
         break;
       }
-      BIO_set_nbio(bio, 1); // set non-blocking
+      BIO_set_nbio(bio, 1);  // set non-blocking
       BIO_get_ssl(bio, &ssl);
       if (isError("get_ssl", ssl)) {
         break;
@@ -217,13 +217,13 @@ void HttpClient::initialize() {
   s_initialized = true;
   SSL_library_init();
   SSL_load_error_strings();
-  signal(SIGPIPE, SIG_IGN); // needed to avoid SIGPIPE when writing to a closed pipe
+  signal(SIGPIPE, SIG_IGN);  // needed to avoid SIGPIPE when writing to a closed pipe
 }
-#else // HAVE_SSL
+#else  // HAVE_SSL
 void HttpClient::initialize() {
   // empty
 }
-#endif // HAVE_SSL
+#endif  // HAVE_SSL
 
 bool HttpClient::parseUrl(const string& url, string* proto, string* host, uint16_t* port, string* uri) {
   size_t hostPos = url.find("://");
@@ -273,7 +273,8 @@ bool HttpClient::parseUrl(const string& url, string* proto, string* host, uint16
   return true;
 }
 
-bool HttpClient::connect(const string& host, const uint16_t port, const bool https, const string& userAgent, const int timeout) {
+bool HttpClient::connect(const string& host, const uint16_t port, bool https, const string& userAgent,
+                         const int timeout) {
   disconnect();
 #ifdef HAVE_SSL
   m_socket = SSLSocket::connect(host, port, https, timeout);
@@ -445,7 +446,7 @@ bool HttpClient::request(const string& method, const string& uri, const string& 
 
 size_t HttpClient::readUntil(const string& delim, const size_t length, string* result) {
   if (!m_buffer) {
-    m_buffer = reinterpret_cast<char*>(malloc(1024+1)); // 1 extra for final terminator
+    m_buffer = reinterpret_cast<char*>(malloc(1024+1));  // 1 extra for final terminator
     if (!m_buffer) {
       return string::npos;
     }

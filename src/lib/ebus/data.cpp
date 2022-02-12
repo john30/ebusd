@@ -130,8 +130,8 @@ void AttributedItem::mergeAttributes(map<string, string>* attributes) const {
   }
 }
 
-void AttributedItem::dumpAttribute(bool prependFieldSeparator, OutputFormat outputFormat, const string& name, ostream* output)
-    const {
+void AttributedItem::dumpAttribute(bool prependFieldSeparator, OutputFormat outputFormat, const string& name,
+                                   ostream* output) const {
   if (outputFormat & OF_JSON) {
     appendJson(prependFieldSeparator, name, getAttribute(name), false, output);
   } else {

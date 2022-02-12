@@ -26,6 +26,7 @@
 #include <netdb.h>
 #include <iostream>
 #include <fstream>
+#include <string>
 #include "lib/ebus/result.h"
 #include "lib/ebus/symbol.h"
 

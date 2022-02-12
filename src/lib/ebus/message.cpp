@@ -483,11 +483,11 @@ result_t Message::create(const string& filename, const DataFieldTemplates* templ
     }
     Message* message;
     if (chainIds.size() > 1) {
-      message = new ChainedMessage(filename, useCircuit, level, name, isWrite, *row, srcAddress, dstAddress, id, chainIds,
-          chainLengths, data, index == 0, pollPriority, condition);
+      message = new ChainedMessage(filename, useCircuit, level, name, isWrite, *row, srcAddress, dstAddress, id,
+                                   chainIds, chainLengths, data, index == 0, pollPriority, condition);
     } else {
-      message = new Message(filename, useCircuit, level, name, isWrite, isPassive, *row, srcAddress, dstAddress, id, data,
-          index == 0, pollPriority, condition);
+      message = new Message(filename, useCircuit, level, name, isWrite, isPassive, *row, srcAddress, dstAddress, id,
+                            data, index == 0, pollPriority, condition);
     }
     messages->push_back(message);
     index++;
@@ -853,7 +853,8 @@ void Message::dumpHeader(const vector<string>* fieldNames, ostream* output) {
   }
 }
 
-void Message::dump(const vector<string>* fieldNames, bool withConditions, OutputFormat outputFormat, ostream* output) const {
+void Message::dump(const vector<string>* fieldNames, bool withConditions, OutputFormat outputFormat, ostream* output)
+                   const {
   // not to be used together with OF_JSON
   bool first = true;
   if (fieldNames == nullptr) {
@@ -880,7 +881,8 @@ void Message::dump(const vector<string>* fieldNames, bool withConditions, Output
   }
 }
 
-void Message::dumpField(const string& fieldName, bool withConditions, OutputFormat outputFormat, ostream* output) const {
+void Message::dumpField(const string& fieldName, bool withConditions, OutputFormat outputFormat, ostream* output)
+                        const {
   if (fieldName == "type") {
     if (withConditions && m_condition != nullptr) {
       m_condition->dump(false, output);
@@ -969,7 +971,7 @@ void Message::decodeJson(bool leadingSeparator, bool appendDirectionCondition, b
   if (outputFormat & OF_ALL_ATTRS) {
     *output << ",\n    \"filename\": \"" << m_filename << "\"";
     *output << ",\n    \"level\": \"" << getLevel() << "\"";
-    if (getPollPriority()>0) {
+    if (getPollPriority() > 0) {
       *output << ",\n    \"pollprio\": " << setw(0) << dec << getPollPriority();
     }
     if (isConditional()) {
@@ -1278,7 +1280,8 @@ result_t ChainedMessage::combineLastParts() {
   return result;
 }
 
-void ChainedMessage::dumpField(const string& fieldName, bool withConditions, OutputFormat outputFormat, ostream* output) const {
+void ChainedMessage::dumpField(const string& fieldName, bool withConditions, OutputFormat outputFormat, ostream* output)
+                               const {
   if (fieldName != "id") {
     Message::dumpField(fieldName, withConditions, outputFormat, output);
     return;
@@ -2164,10 +2167,11 @@ result_t MessageMap::readConditions(const string& filename, string* types, strin
 
 bool MessageMap::extractDefaultsFromFilename(const string& filename, map<string, string>* defaults,
     symbol_t* destAddress, unsigned int* software, unsigned int* hardware) const {
-  // check filename to match (glob style with optionals in brackets): ZZ.[ID.][*.][CIRCUIT.[?.]][*.][HW????.][*.][SW????.][*.]csv
+  // check filename to match (glob style with optionals in brackets):
+  // ZZ.[ID.][*.][CIRCUIT.[?.]][*.][HW????.][*.][SW????.][*.]csv
   // ZZ is the address, ID is the 5 char identifier (reduced by trailing 0 one by one for finding a match), CIRCUIT is
-  // the optional circuit name, ? behind the circuit name is the circuit number suffix (when having more than one of these),
-  // ???? behind HW is the hardware version, ???? behind SW is the software version
+  // the optional circuit name, ? behind the circuit name is the circuit number suffix (when having more than one of
+  // these), ???? behind HW is the hardware version, ???? behind SW is the software version
   string ident, circuit, suffix;
   unsigned int sw = UINT_MAX, hw = UINT_MAX;
   string remain = filename;

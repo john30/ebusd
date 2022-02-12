@@ -1046,7 +1046,8 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose
   size_t offset = 0;
   size_t field = 0;
   bool fromLocal = s_configUriPrefix.empty();
-  result_t result = (*identFields)[field]->read(data, offset, false, nullptr, -1, OF_NONE, -1, &out);  // manufacturer name
+  // manufacturer name
+  result_t result = (*identFields)[field]->read(data, offset, false, nullptr, -1, OF_NONE, -1, &out);
   if (result == RESULT_ERR_NOTFOUND && fromLocal) {
     result = (*identFields)[field]->read(data, offset, false, nullptr, -1, OF_NUMERIC, -1, &out);  // manufacturer name
   }
@@ -1254,41 +1255,41 @@ int main(int argc, char* argv[]) {
   char* envopt = envname+2;
   for (char ** env = environ; *env; env++) {
     char* pos = strchr(*env, '=');
-    if (!pos || strncmp(*env, "EBUSD_", sizeof("EBUSD_")-1)!=0) {
+    if (!pos || strncmp(*env, "EBUSD_", sizeof("EBUSD_")-1) != 0) {
       continue;
     }
     char* start = *env+sizeof("EBUSD_")-1;
     size_t len = pos-start;
-    if (len<=1 || len>sizeof(envname)-3) { // no single char long args
+    if (len <= 1 || len > sizeof(envname)-3) {  // no single char long args
       continue;
     }
     for (size_t i=0; i<len; i++) {
-      envopt[i] = (char)tolower(start[i]);
+      envopt[i] = static_cast<char>(tolower(start[i]));
     }
     envopt[len] = 0;
-    if (strcmp(envopt, "version")==0 || strcmp(envopt, "image")==0 || strcmp(envopt, "arch")==0
-       || strcmp(envopt, "opts")==0 || strcmp(envopt, "inject")==0
-       || strcmp(envopt, "checkconfig")==0 || strcmp(envopt, "dumpconfig")==0
+    if (strcmp(envopt, "version") == 0 || strcmp(envopt, "image") == 0 || strcmp(envopt, "arch") == 0
+       || strcmp(envopt, "opts") == 0 || strcmp(envopt, "inject") == 0
+       || strcmp(envopt, "checkconfig") == 0 || strcmp(envopt, "dumpconfig") == 0
     ) {
       // ignore those defined in Dockerfile, EBUSD_OPTS, those with final args, and interactive ones
       continue;
     }
     char* envargv[] = {envname, pos+1};
     int cnt = pos[1] ? 2 : 1;
-    if (pos[1] && strlen(*env)<sizeof(envname)-3
-    && (strcmp(envopt, "scanconfig")==0 || strcmp(envopt, "lograwdata")==0)) {
+    if (pos[1] && strlen(*env) < sizeof(envname)-3
+    && (strcmp(envopt, "scanconfig") == 0 || strcmp(envopt, "lograwdata") == 0)) {
       // only really special case: OPTION_ARG_OPTIONAL with non-empty arg needs to use "=" syntax
       cnt = 1;
       strcat(envopt, pos);
     }
     int idx = -1;
-    opt.injectMessages = true; // for skipping unknown values
+    opt.injectMessages = true;  // for skipping unknown values
     error_t err = argp_parse(&aargp, cnt, envargv, ARGP_PARSE_ARGV0|ARGP_SILENT|ARGP_IN_ORDER,
                    &idx, &opt);
-    if (err!=0 && idx==-1) { // ignore args for non-arg boolean options
+    if (err!=0 && idx==-1) {  // ignore args for non-arg boolean options
       logError(lf_main, "invalid/unknown argument in env: %s", envopt);
     }
-    opt.injectMessages = false; // restore
+    opt.injectMessages = false;  // restore
   }
 
   int arg_index = -1;
@@ -1398,8 +1399,7 @@ int main(int argc, char* argv[]) {
       : opt.initialScan == BROADCAST ? " with broadcast scan" : opt.initialScan == SYN ? " with full scan"
       : " with single scan" : "",
       device->isEnhancedProto() ? " enhanced" : "",
-      device->getName()
-  );
+      device->getName());
 
   // load configuration files
   loadConfigFiles(s_messageMap);

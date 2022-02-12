@@ -24,6 +24,7 @@
 #include <string>
 #include <list>
 #include <vector>
+#include <utility>
 #include "ebusd/datahandler.h"
 #include "ebusd/bushandler.h"
 #include "lib/ebus/message.h"
@@ -118,7 +119,7 @@ class MqttReplacer {
    * @param fieldName the field name for replacement.
    * @return the replaced template string.
    */
-  string get(const string& circuit, const string& name, const string& fieldName="") const;
+  string get(const string& circuit, const string& name, const string& fieldName = "") const;
 
   /**
    * Get the replaced template string.
@@ -126,7 +127,7 @@ class MqttReplacer {
    * @param fieldName the field name for replacement.
    * @return the replaced template string.
    */
-  string get(const Message* message, const string& fieldName="") const;
+  string get(const Message* message, const string& fieldName = "") const;
 
   /**
    * Check if the fields can be reduced to a constant value.

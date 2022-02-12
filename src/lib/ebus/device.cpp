@@ -79,8 +79,8 @@ namespace ebusd {
 Device::Device(const char* name, bool checkDevice, unsigned int latency, bool readOnly, bool initialSend,
     bool enhancedProto)
   : m_name(name), m_checkDevice(checkDevice),
-    m_latency(HOST_LATENCY_MS+(enhancedProto?ENHANCED_LATENCY_MS:0)+latency), m_readOnly(readOnly), m_initialSend(initialSend),
-    m_enhancedProto(enhancedProto), m_fd(-1), m_listener(nullptr), m_arbitrationMaster(SYN),
+    m_latency(HOST_LATENCY_MS+(enhancedProto?ENHANCED_LATENCY_MS:0)+latency), m_readOnly(readOnly),
+    m_initialSend(initialSend), m_enhancedProto(enhancedProto), m_fd(-1), m_listener(nullptr), m_arbitrationMaster(SYN),
     m_arbitrationCheck(false), m_bufSize(((MAX_LEN+1+3)/4)*4), m_bufLen(0), m_bufPos(0),
     m_extraFatures(0), m_infoId(0xff), m_infoLen(0), m_infoPos(0) {
   m_buffer = reinterpret_cast<symbol_t*>(malloc(m_bufSize));
@@ -184,7 +184,7 @@ result_t Device::requestEnhancedInfo(symbol_t infoId) {
   if (!m_enhancedProto || m_extraFatures == 0 || infoId == 0xff) {
     return RESULT_ERR_INVALID_ARG;
   }
-  for (unsigned int i=0; i<4; i++) {
+  for (unsigned int i = 0; i < 4; i++) {
     if (m_infoId == 0xff) {
       break;
     }
@@ -602,7 +602,7 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
         break;
       case ENH_RES_INFO:
         if (m_infoLen == 0) {
-          if (data<=16) { // max length
+          if (data <= 16) {  // max length
             m_infoLen = data;
             m_infoPos = 0;
           }
@@ -611,9 +611,10 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
           if (m_infoPos >= m_infoLen) {
             unsigned int val;
             ostringstream stream;
-            switch ((m_infoLen<<8) | m_infoId) {
+            switch ((m_infoLen << 8) | m_infoId) {
               case 0x0200:
-                stream << "firmware " << static_cast<unsigned>(m_infoBuf[0]) << "." << std::hex << static_cast<unsigned>(m_infoBuf[1]);
+                stream << "firmware " << static_cast<unsigned>(m_infoBuf[0]) << "." << std::hex
+                       << static_cast<unsigned>(m_infoBuf[1]);
                 break;
               case 0x0901:
               case 0x0802:
@@ -624,12 +625,12 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
                 }
                 break;
               case 0x0203:
-                val = (static_cast<unsigned>(m_infoBuf[0])<<8) | static_cast<unsigned>(m_infoBuf[1]);
+                val = (static_cast<unsigned>(m_infoBuf[0]) << 8) | static_cast<unsigned>(m_infoBuf[1]);
                 stream << "temperature " << static_cast<unsigned>(val) << " °C";
                 m_enhInfoTemperature = stream.str();
                 break;
               case 0x0204:
-                val = (static_cast<unsigned>(m_infoBuf[0])<<8) | static_cast<unsigned>(m_infoBuf[1]);
+                val = (static_cast<unsigned>(m_infoBuf[0]) << 8) | static_cast<unsigned>(m_infoBuf[1]);
                 stream << "supply voltage " << static_cast<unsigned>(val) << " mV";
                 m_enhInfoSupplyVoltage = stream.str();
                 break;
@@ -640,8 +641,9 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
                 m_enhInfoBusVoltage = stream.str();
                 break;
               default:
-                stream << "unknown 0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<unsigned>(m_infoId)
-                       << ", len " << std::dec << std::setw(0) << static_cast<unsigned>(m_infoPos);
+                stream << "unknown 0x" << std::hex << std::setfill('0') << std::setw(2)
+                       << static_cast<unsigned>(m_infoId) << ", len " << std::dec << std::setw(0)
+                       << static_cast<unsigned>(m_infoPos);
                 break;
             }
             m_listener->notifyStatus(false, ("extra info: "+stream.str()).c_str());

@@ -359,8 +359,8 @@ result_t DateTimeDataType::readSymbols(size_t offset, size_t length, const Symbo
           return RESULT_ERR_INVALID_POS;
         }
         // number of minutes since 01.01.2009
-        minutes |= symbol*(1<<(8*i));
-        if (i<3) {
+        minutes |= symbol*(1 << (8*i));
+        if (i < 3) {
           break;
         }
         int mjd = static_cast<int>(minutes/(24*60)) + 54832;  // 01.01.2009
@@ -424,7 +424,7 @@ result_t DateTimeDataType::writeSymbols(size_t offset, size_t length, istringstr
         if (length == 4 && i == 2 && !m_hasTime) {
           continue;  // skip weekday in between
         }
-        if (input->eof() || !getline(*input, token, m_hasTime && i==2 ? ' ' : '.')) {
+        if (input->eof() || !getline(*input, token, m_hasTime && i == 2 ? ' ' : '.')) {
           return RESULT_ERR_EOF;  // incomplete
         }
         if (!hasFlag(REQ) && token == NULL_VALUE) {
@@ -464,7 +464,7 @@ result_t DateTimeDataType::writeSymbols(size_t offset, size_t length, istringstr
               index = start + incr;
               i = 1;
               type = 1;
-              skip = true; // switch to second pass for parsing the time
+              skip = true;  // switch to second pass for parsing the time
             } else {
               // calculate local week day
               int daysSinceSunday = (mjd + 3) % 7;  // Sun=0
@@ -546,7 +546,7 @@ result_t DateTimeDataType::writeSymbols(size_t offset, size_t length, istringstr
         }
         break;
 
-      case 3: // date and time in store phase
+      case 3:  // date and time in store phase
         value = lastLast & 0xff;
         last = lastLast >> 8;
         break;
@@ -677,7 +677,7 @@ result_t NumberDataType::derive(int divisor, size_t bitCount, const NumberDataTy
 
 result_t NumberDataType::getMinMax(bool getMax, const OutputFormat outputFormat, ostream* output) const {
   size_t length;
-  if (m_bitCount<8) {
+  if (m_bitCount < 8) {
     length = 1;
   } else {
     length = m_bitCount/8;
@@ -1135,7 +1135,7 @@ DataTypeList* DataTypeList::getInstance() {
 void DataTypeList::dump(OutputFormat outputFormat, bool appendDivisor, ostream* output) const {
   bool json = outputFormat & OF_JSON;
   string sep = "\n";
-  for (const auto &it: m_typesById) {
+  for (const auto &it : m_typesById) {
     const DataType *dataType = it.second;
     if (dataType->hasFlag(DUP)) {
       continue;

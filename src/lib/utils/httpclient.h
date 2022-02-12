@@ -106,11 +106,11 @@ class SSLSocket {
 
 #define SocketClass SSLSocket
 
-#else // HAVE_SSL
+#else  // HAVE_SSL
 
 #define SocketClass TCPSocket
 
-#endif // HAVE_SSL
+#endif  // HAVE_SSL
 
 /**
  * Helper class for handling HTTP client requests.
@@ -160,7 +160,7 @@ class HttpClient {
    * @param userAgent the optional user agent to send in the request header.
    * @return true on success, false on connect failure.
    */
-  bool connect(const string& host, uint16_t port, const bool https = false, const string& userAgent = "", int timeout = 5);
+  bool connect(const string& host, uint16_t port, bool https = false, const string& userAgent = "", int timeout = 5);
 
   /**
    * Re-connect to the last specified server.

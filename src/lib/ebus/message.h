@@ -586,7 +586,8 @@ class Message : public AttributedItem {
    * @param outputFormat the @a OutputFormat options.
    * @param output the @a ostream to append the formatted value to.
    */
-  virtual void dumpField(const string& fieldName, bool withConditions, OutputFormat outputFormat, ostream* output) const;
+  virtual void dumpField(const string& fieldName, bool withConditions, OutputFormat outputFormat, ostream* output)
+                         const;
 
   /**
    * Decode the message from the last stored data in JSON format.
@@ -767,7 +768,8 @@ class ChainedMessage : public Message {
 
  protected:
   // @copydoc
-  void dumpField(const string& fieldName, bool withConditions, OutputFormat outputFormat, ostream* output) const override;
+  void dumpField(const string& fieldName, bool withConditions, OutputFormat outputFormat, ostream* output) const
+                 override;
 
 
  private:

@@ -142,7 +142,7 @@ bool FileReader::matches(const string& input, const string& search, bool ignoreC
     } else {
       found = true;
     }
-    if (from==to) {
+    if (from == to) {
       return true;  // empty pattern matches everything
     }
     size_t nextStart = to+1;
@@ -150,11 +150,11 @@ bool FileReader::matches(const string& input, const string& search, bool ignoreC
     if (matchStart) {
       from++;
     }
-    bool matchEnd = from<to && search[to-1] == '$';
+    bool matchEnd = from < to && search[to-1] == '$';
     if (matchEnd) {
       to--;
     }
-    if (matchEnd && matchStart && from==to) {  // pattern is "^$"
+    if (matchEnd && matchStart && from == to) {  // pattern is "^$"
       if (input.empty()) {
         return true;
       }
@@ -189,7 +189,7 @@ bool FileReader::matches(const string& input, const string& search, bool ignoreC
         }
         if (prefix.length() <= checkEnd) {
           if (matchStart) {
-            if (input.substr(0, prefix.length()) == prefix && (!matchEnd || prefix.length()==checkEnd)) {
+            if (input.substr(0, prefix.length()) == prefix && (!matchEnd || prefix.length() == checkEnd)) {
               return true;
             }
           } else {

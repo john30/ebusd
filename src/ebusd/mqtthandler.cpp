@@ -23,6 +23,8 @@
 #include "ebusd/mqtthandler.h"
 #include <csignal>
 #include <deque>
+#include <algorithm>
+#include <utility>
 #include "lib/utils/log.h"
 #include "lib/ebus/symbol.h"
 
@@ -55,38 +57,39 @@ using std::dec;
 
 /** the definition of the MQTT arguments. */
 static const struct argp_option g_mqtt_argp_options[] = {
-  {nullptr,        0,      nullptr,       0, "MQTT options:", 1 },
-  {"mqtthost",     O_HOST, "HOST",        0, "Connect to MQTT broker on HOST [localhost]", 0 },
-  {"mqttport",     O_PORT, "PORT",        0, "Connect to MQTT broker on PORT (usually 1883), 0 to disable [0]", 0 },
-  {"mqttclientid", O_CLID, "ID",          0, "Set client ID for connection to MQTT broker [" PACKAGE_NAME "_"
+  {nullptr,        0,      nullptr,      0, "MQTT options:", 1 },
+  {"mqtthost",     O_HOST, "HOST",       0, "Connect to MQTT broker on HOST [localhost]", 0 },
+  {"mqttport",     O_PORT, "PORT",       0, "Connect to MQTT broker on PORT (usually 1883), 0 to disable [0]", 0 },
+  {"mqttclientid", O_CLID, "ID",         0, "Set client ID for connection to MQTT broker [" PACKAGE_NAME "_"
    PACKAGE_VERSION "_<pid>]", 0 },
-  {"mqttuser",     O_USER, "USER",        0, "Connect as USER to MQTT broker (no default)", 0 },
-  {"mqttpass",     O_PASS, "PASSWORD",    0, "Use PASSWORD when connecting to MQTT broker (no default)", 0 },
-  {"mqtttopic",    O_TOPI, "TOPIC",       0,
+  {"mqttuser",     O_USER, "USER",       0, "Connect as USER to MQTT broker (no default)", 0 },
+  {"mqttpass",     O_PASS, "PASSWORD",   0, "Use PASSWORD when connecting to MQTT broker (no default)", 0 },
+  {"mqtttopic",    O_TOPI, "TOPIC",      0,
    "Use MQTT TOPIC (prefix before /%circuit/%name or complete format) [ebusd]", 0 },
-  {"mqttglobal",   O_GTOP, "TOPIC",       0, "Use TOPIC for global data (default is \"global/\" suffix to mqtttopic prefix)", 0 },
-  {"mqttretain",   O_RETA, nullptr,       0, "Retain all topics instead of only selected global ones", 0 },
-  {"mqttqos",      O_PQOS, "QOS",         0, "Set the QoS value for all topics (0-2) [0]", 0 },
-  {"mqttint",      O_INTF, "FILE",        0, "Read MQTT integration settings from FILE (no default)", 0 },
+  {"mqttglobal",   O_GTOP, "TOPIC",      0,
+   "Use TOPIC for global data (default is \"global/\" suffix to mqtttopic prefix)", 0 },
+  {"mqttretain",   O_RETA, nullptr,      0, "Retain all topics instead of only selected global ones", 0 },
+  {"mqttqos",      O_PQOS, "QOS",        0, "Set the QoS value for all topics (0-2) [0]", 0 },
+  {"mqttint",      O_INTF, "FILE",       0, "Read MQTT integration settings from FILE (no default)", 0 },
   {"mqttvar",      O_IVAR, "NAME=VALUE[,...]", 0, "Add variable(s) to the read MQTT integration settings", 0 },
-  {"mqttjson",     O_JSON, nullptr,       0, "Publish in JSON format instead of strings", 0 },
-  {"mqttverbose",  O_VERB, nullptr,       0, "Publish all available attributes", 0 },
+  {"mqttjson",     O_JSON, nullptr,      0, "Publish in JSON format instead of strings", 0 },
+  {"mqttverbose",  O_VERB, nullptr,      0, "Publish all available attributes", 0 },
 #if (LIBMOSQUITTO_VERSION_NUMBER >= 1003001)
-  {"mqttlog",      O_LOGL, nullptr,       0, "Log library events", 0 },
+  {"mqttlog",      O_LOGL, nullptr,      0, "Log library events", 0 },
 #endif
 #if (LIBMOSQUITTO_VERSION_NUMBER >= 1004001)
-  {"mqttversion",  O_VERS, "VERSION",     0, "Use protocol VERSION [3.1]", 0 },
+  {"mqttversion",  O_VERS, "VERSION",    0, "Use protocol VERSION [3.1]", 0 },
 #endif
   {"mqttignoreinvalid", O_IGIN, nullptr, 0,
    "Ignore invalid parameters during init (e.g. for DNS not resolvable yet)", 0 },
-  {"mqttchanges",  O_CHGS, nullptr,       0, "Whether to only publish changed messages instead of all received", 0 },
+  {"mqttchanges",  O_CHGS, nullptr,      0, "Whether to only publish changed messages instead of all received", 0 },
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
-  {"mqttca",       O_CAFI, "CA",          0, "Use CA file or dir (ending with '/') for MQTT TLS (no default)", 0 },
-  {"mqttcert",     O_CERT, "CERTFILE",    0, "Use CERTFILE for MQTT TLS client certificate (no default)", 0 },
-  {"mqttkey",      O_KEYF, "KEYFILE",     0, "Use KEYFILE for MQTT TLS client certificate (no default)", 0 },
-  {"mqttkeypass",  O_KEPA, "PASSWORD",    0, "Use PASSWORD for the encrypted KEYFILE (no default)", 0 },
-  {"mqttinsecure", O_INSE, nullptr,       0, "Allow insecure TLS connection (e.g. using a self signed certificate)", 0 },
+  {"mqttca",       O_CAFI, "CA",         0, "Use CA file or dir (ending with '/') for MQTT TLS (no default)", 0 },
+  {"mqttcert",     O_CERT, "CERTFILE",   0, "Use CERTFILE for MQTT TLS client certificate (no default)", 0 },
+  {"mqttkey",      O_KEYF, "KEYFILE",    0, "Use KEYFILE for MQTT TLS client certificate (no default)", 0 },
+  {"mqttkeypass",  O_KEPA, "PASSWORD",   0, "Use PASSWORD for the encrypted KEYFILE (no default)", 0 },
+  {"mqttinsecure", O_INSE, nullptr,      0, "Allow insecure TLS connection (e.g. using a self signed certificate)", 0 },
 #endif
 
   {nullptr,        0,      nullptr,       0, nullptr, 0 },
@@ -98,7 +101,7 @@ static const char* g_clientId = nullptr;  //!< optional clientid override for MQ
 static const char* g_username = nullptr;  //!< optional user name for MQTT broker (no default)
 static const char* g_password = nullptr;  //!< optional password for MQTT broker (no default)
 static const char* g_topic = nullptr;     //!< optional topic template
-static const char* g_globalTopic = nullptr; //!< optional global topic
+static const char* g_globalTopic = nullptr;  //!< optional global topic
 static const char* g_integrationFile = nullptr;  //!< the integration settings file
 static const char* g_integrationVars = nullptr;  //!< the integration settings variables
 static bool g_retain = false;             //!< whether to retail all topics
@@ -381,8 +384,8 @@ std::pair<string, int> makeField(const string& name, bool isField) {
   if (!isField) {
     return {name, -1};
   }
-  for (int idx = 0; idx < (int)knownFieldCount; idx++) {
-    if (name==knownFieldNames[idx]) {
+  for (int idx = 0; idx < static_cast<int>(knownFieldCount); idx++) {
+    if (name == knownFieldNames[idx]) {
       return {name, idx};
     }
   }
@@ -406,30 +409,30 @@ void addPart(ostringstream& stack, int inField, vector<std::pair<string, int>>& 
     parts[parts.size()-1].first += str;
     return;
   }
-  parts.push_back(makeField(str, inField>0));
+  parts.push_back(makeField(str, inField > 0));
 }
 
 bool MqttReplacer::parse(const string& templateStr, bool onlyKnown, bool noKnownDuplicates, bool emptyIfMissing) {
   m_parts.clear();
-  int inField = 0; // 1 after '%', 2 after '%{'
+  int inField = 0;  // 1 after '%', 2 after '%{'
   ostringstream stack;
   for (auto ch : templateStr) {
-    bool empty = stack.tellp()<=0;
-    if (ch=='%') {
-      if (inField==1 && empty) {  // %% for plain %
+    bool empty = stack.tellp() <= 0;
+    if (ch == '%') {
+      if (inField == 1 && empty) {  // %% for plain %
         inField = 0;
         stack << ch;
       } else {
         addPart(stack, inField, m_parts);
         inField = 1;
       }
-    } else if (ch=='{' && inField==1 && empty) {
+    } else if (ch == '{' && inField == 1 && empty) {
       inField = 2;
-    } else if (ch=='}' && inField==2) {
+    } else if (ch == '}' && inField == 2) {
       addPart(stack, 1, m_parts);
       inField = 0;
     } else {
-      if (inField>0 && !((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_')) {
+      if (inField > 0 && !((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_')) {
         // invalid field character
         addPart(stack, inField, m_parts);
         inField = 0;
@@ -449,7 +452,7 @@ bool MqttReplacer::parse(const string& templateStr, bool onlyKnown, bool noKnown
         return false;
       }
       if (noKnownDuplicates && it.second < knownCount) {
-        int bit = 1<<it.second;
+        int bit = 1 << it.second;
         if (foundMask & bit) {
           return false;  // duplicate known field
         }
@@ -469,7 +472,7 @@ void MqttReplacer::normalize(string& str) {
 
 const string MqttReplacer::str() const {
   ostringstream ret;
-  for (const auto &it: m_parts) {
+  for (const auto &it : m_parts) {
     if (it.second >= 0) {
       ret << '%';
     }
@@ -481,8 +484,8 @@ const string MqttReplacer::str() const {
 void MqttReplacer::ensureDefault() {
   if (m_parts.empty()) {
     m_parts.emplace_back(string(PACKAGE) + "/", -1);
-  } else if (m_parts.size()==1 && m_parts[0].second<0 && m_parts[0].first.find('/')==string::npos) {
-    m_parts[0] = {m_parts[0].first + "/", -1}; // ensure trailing slash
+  } else if (m_parts.size() == 1 && m_parts[0].second < 0 && m_parts[0].first.find('/') == string::npos) {
+    m_parts[0] = {m_parts[0].first + "/", -1};  // ensure trailing slash
   }
   if (!has("circuit")) {
     m_parts.emplace_back("circuit", 0);  // index of circuit in knownFieldNames
@@ -498,7 +501,7 @@ bool MqttReplacer::empty() const {
 }
 
 bool MqttReplacer::has(const string& field) const {
-  for (const auto &it: m_parts) {
+  for (const auto &it : m_parts) {
     if (it.second >= 0 && it.first == field) {
       return true;
     }
@@ -508,13 +511,13 @@ bool MqttReplacer::has(const string& field) const {
 
 string MqttReplacer::get(const map<string, string>& values, bool untilFirstEmpty, bool onlyAlphanum) const {
   ostringstream ret;
-  for (const auto &it: m_parts) {
+  for (const auto &it : m_parts) {
     if (it.second < 0) {
       ret << it.first;
       continue;
     }
     const auto pos = values.find(it.first);
-    if (pos==values.cend()) {
+    if (pos == values.cend()) {
       if (untilFirstEmpty) {
         break;
       }
@@ -561,12 +564,12 @@ string MqttReplacer::get(const Message* message, const string& fieldName) const 
 }
 
 bool MqttReplacer::isReducable(const map<string, string>& values) const {
-  for (const auto &it: m_parts) {
+  for (const auto &it : m_parts) {
     if (it.second < 0) {
       continue;
     }
     const auto pos = values.find(it.first);
-    if (pos==values.cend()) {
+    if (pos == values.cend()) {
       return false;
     }
   }
@@ -579,7 +582,7 @@ void MqttReplacer::compress(const map<string, string>& values) {
     bool isConstant = it->second < 0;
     if (!isConstant) {
       const auto pos = values.find(it->first);
-      if (pos!=values.cend()) {
+      if (pos != values.cend()) {
         it->second = -1;
         it->first = pos->second;
         isConstant = true;
@@ -597,13 +600,13 @@ void MqttReplacer::compress(const map<string, string>& values) {
 
 bool MqttReplacer::reduce(const map<string, string>& values, string& result, bool onlyAlphanum) const {
   ostringstream ret;
-  for (const auto &it: m_parts) {
+  for (const auto &it : m_parts) {
     if (it.second < 0) {
       ret << it.first;
       continue;
     }
     const auto pos = values.find(it.first);
-    if (pos==values.cend()) {
+    if (pos == values.cend()) {
       if (m_emptyIfMissing) {
         result = "";
       } else {
@@ -670,7 +673,7 @@ ssize_t MqttReplacer::matchTopic(const string& topic, string* circuit, string* n
       case 0: *circuit = value; break;
       case 1: *name = value; break;
       case 2: *field = value; break;
-      default: // unknown field
+      default:  // unknown field
         break;
     }
   }
@@ -681,7 +684,7 @@ static const string EMPTY = "";
 
 const string& MqttReplacers::operator[](const string& key) const {
   auto itc = m_constants.find(key);
-  if (itc==m_constants.end()) {
+  if (itc == m_constants.end()) {
     return EMPTY;
   }
   return itc->second;
@@ -719,20 +722,20 @@ MqttReplacer MqttReplacers::get(const string& key) const {
 
 string MqttReplacers::get(const string& key, bool untilFirstEmpty, bool onlyAlphanum, const string& fallbackKey) const {
   auto itc = m_constants.find(key);
-  if (itc!=m_constants.end()) {
+  if (itc != m_constants.end()) {
     return itc->second;
   }
   auto itv = m_replacers.find(key);
-  if (itv!=m_replacers.end()) {
+  if (itv != m_replacers.end()) {
     return itv->second.get(m_constants, untilFirstEmpty, onlyAlphanum);
   }
   if (!fallbackKey.empty()) {
     itc = m_constants.find(fallbackKey);
-    if (itc!=m_constants.end()) {
+    if (itc != m_constants.end()) {
       return itc->second;
     }
     itv = m_replacers.find(fallbackKey);
-    if (itv!=m_replacers.end()) {
+    if (itv != m_replacers.end()) {
       return itv->second.get(m_constants, untilFirstEmpty, onlyAlphanum);
     }
   }
@@ -744,12 +747,12 @@ bool MqttReplacers::set(const string& key, const string& value, bool removeRepla
   if (removeReplacer) {
     m_replacers.erase(key);
   }
-  if (key.find_first_of("-_")!=string::npos) {
+  if (key.find_first_of("-_") != string::npos) {
     return false;
   }
   string upper = key;
   transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
-  if (upper==key) {
+  if (upper == key) {
     return false;
   }
   string val = value;
@@ -788,7 +791,7 @@ void MqttReplacers::reduce(bool compress) {
       if (restart) {
         string upper = it->first;
         transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
-        if (m_replacers.erase(upper)>0) {
+        if (m_replacers.erase(upper) > 0) {
           break;  // restart as iterator is now invalid
         }
       }
@@ -876,7 +879,7 @@ void MqttHandler::parseIntegration(const string& line) {
     return;
   }
   size_t pos = line.find('=');
-  if (pos==string::npos || pos==0) {
+  if (pos == string::npos || pos == 0) {
     return;
   }
   bool emptyIfMissing = false;
@@ -890,7 +893,7 @@ void MqttHandler::parseIntegration(const string& line) {
   FileReader::trim(&key);
   string value = line.substr(pos+1);
   FileReader::trim(&value);
-  if (value.find('%')==string::npos) {
+  if (value.find('%') == string::npos) {
     m_replacers.set(key, value); // constant value
   } else {
     // simple variable
@@ -914,7 +917,7 @@ static const char* directionNames[] = {
 
 string removeTrailingNonTopicPart(const string& str) {
   size_t pos = str.find_last_not_of("/_");
-  if (pos==string::npos) {
+  if (pos == string::npos) {
     return str;
   }
   return str.substr(0, pos + 1);
@@ -947,7 +950,7 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
         }
         if (last.empty()) {
           last = line;
-        } else if (line[0] == '\t' || line[0] == ' ') { // continuation
+        } else if (line[0] == '\t' || line[0] == ' ') {  // continuation
           last += "\n" + line;
         } else {
           parseIntegration(last);
@@ -962,7 +965,7 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
         splitFields(g_integrationVars, &strs);
         for (auto& str : strs) {
           size_t pos = str.find('=');
-          if (pos==string::npos || pos==0) {
+          if (pos == string::npos || pos == 0) {
             continue;
           }
           m_replacers.set(str.substr(0, pos), str.substr(pos+1));
@@ -974,19 +977,19 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
   MqttReplacer& topic = m_replacers.get("topic");
   if (g_topic) {
     string str = g_topic;
-    bool noDefault = str[str.size()-1]=='#';
+    bool noDefault = str[str.size()-1] == '#';
     if (noDefault) {
       str.resize(str.size()-1);
     }
     bool parse = true;
     if (hasIntegration && !topic.empty()) {
       // topic defined in cmdline and integration file.
-      if (str.find('%')==string::npos) {
+      if (str.find('%') == string::npos) {
         // cmdline topic is only the prefix, use it
         m_replacers.set("prefix", str);
         m_replacers.set("prefixn", removeTrailingNonTopicPart(str));
         parse = false;
-      } // else: cmdline topic is more than just a prefix => override integration topic completely
+      }  // else: cmdline topic is more than just a prefix => override integration topic completely
     }
     if (parse) {
       if (!topic.parse(str, true, true)) {
@@ -1017,7 +1020,7 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
       for (int i=-1; i<static_cast<signed>(sizeof(directionNames)/sizeof(char*)); i++) {
         for (auto typeName : typeNames) {
           ostr.str("");
-          if (i>=0) {
+          if (i >= 0) {
             ostr << directionNames[i] << '-';
           }
           ostr << typeName;
@@ -1026,7 +1029,7 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
           if (str.empty()) {
             continue;
           }
-          str += '\n'; // add trailing newline to ease the split
+          str += '\n';  // add trailing newline to ease the split
           size_t from = 0;
           do {
             size_t pos = str.find('\n', from);
@@ -1172,7 +1175,7 @@ void MqttHandler::notifyConnected() {
     if (!m_staticTopic) {
       check(mosquitto_subscribe(m_mosquitto, nullptr, m_subscribeTopic.c_str(), 0), "subscribe");
       if (!m_subscribeConfigRestartTopic.empty()) {
-        check(mosquitto_subscribe(m_mosquitto, nullptr, m_subscribeConfigRestartTopic.c_str(), 0), "subscribe definition");
+        check(mosquitto_subscribe(m_mosquitto, nullptr, m_subscribeConfigRestartTopic.c_str(), 0), "subscribe def.");
       }
     }
   }
@@ -1209,7 +1212,7 @@ void MqttHandler::notifyTopic(const string& topic, const string& data) {
   logOtherDebug("mqtt", "received topic %s with data %s", topic.c_str(), data.c_str());
   string circuit, name, field;
   ssize_t match = m_replacers.get("topic").matchTopic(topic.substr(0, pos), &circuit, &name, &field);
-  if (match<0 && !isList) {
+  if (match < 0 && !isList) {
     logOtherError("mqtt", "received unmatchable topic %s", topic.c_str());
   }
   if (isList) {
@@ -1311,7 +1314,7 @@ void MqttHandler::notifyScanStatus(const string& scanStatus) {
 }
 
 bool parseBool(const string& str) {
-  return !str.empty() && !(str=="0" || str=="no" || str=="false");
+  return !str.empty() && !(str == "0" || str == "no" || str == "false");
 }
 
 void splitFields(const string& str, vector<string>* row) {
@@ -1388,7 +1391,8 @@ void MqttHandler::run() {
         }
       }
       if (m_connected && m_definitionsSince == 0) {
-        publishDefinition(m_replacers, "def_global_running-", m_globalTopic.get("", "running"), "global", "running", "def_global-");
+        publishDefinition(m_replacers, "def_global_running-", m_globalTopic.get("", "running"), "global", "running",
+                          "def_global-");
         if (globalHasName) {
           publishDefinition(m_replacers, "def_global_version-", m_globalTopic.get("", "version"), "global", "version",
                             "def_global-");
@@ -1408,7 +1412,7 @@ void MqttHandler::run() {
         for (const auto& message : messages) {
           bool checkPollAdjust = false;
           if (filterSeen > 0) {
-            if (message->getLastUpdateTime()==0) {
+            if (message->getLastUpdateTime() == 0) {
               if (message->isPassive()) {
                 // only wait for data on passive messages
                 continue;  // no data ever
@@ -1425,9 +1429,9 @@ void MqttHandler::run() {
                 }
               }
             }
-            if (message->getDataHandlerState()==1) {
+            if (message->getDataHandlerState() == 1) {
               // already seen in the past, check for poll prio update
-              if (m_definitionsSince>1 && message->getCreateTime() <= m_definitionsSince) {
+              if (m_definitionsSince > 1 && message->getCreateTime() <= m_definitionsSince) {
                 continue;
               }
             }
@@ -1450,7 +1454,7 @@ void MqttHandler::run() {
             }
             m_messages->addPollMessage(false, message);
           }
-          if (filterPriority>0 && (message->getPollPriority()==0 || message->getPollPriority()>filterPriority)) {
+          if (filterPriority > 0 && (message->getPollPriority() == 0 || message->getPollPriority() > filterPriority)) {
             continue;
           }
 
@@ -1523,26 +1527,26 @@ void MqttHandler::run() {
               if (dt->getMinMax(false, OF_NONE, &ostr) == RESULT_OK) {
                 values.set("min", ostr.str());
                 ostr.str("");
-              };
+              }
               if (dt->getMinMax(true, OF_NONE, &ostr) == RESULT_OK) {
                 values.set("max", ostr.str());
-              };
+              }
             }
             if (!m_typeSwitches.empty()) {
               values.reduce(true);
               str = values.get("type_switch-by", false, false);
               string typeSwitch;
-              for (int i=0; i<2; i++) {
+              for (int i = 0; i < 2; i++) {
                 ostr.str("");
-                if (i==0) {
+                if (i == 0) {
                   ostr << direction << '-';
                 }
                 ostr << typeStr;
                 const string key = ostr.str();
-                for (auto const &check: m_typeSwitches[key]) {
+                for (auto const &check : m_typeSwitches[key]) {
                   if (FileReader::matches(str, check.second, true, true)) {
                     typeSwitch = check.first;
-                    i = 2; // early exit
+                    i = 2;  // early exit
                     break;
                   }
                 }
@@ -1551,7 +1555,7 @@ void MqttHandler::run() {
               if (!typeSwitchNames.empty()) {
                 vector<string> strs;
                 splitFields(typeSwitch, &strs);
-                for (size_t pos = 0; pos<strs.size() && pos<typeSwitchNames.size(); pos++) {
+                for (size_t pos = 0; pos<strs.size() && pos < typeSwitchNames.size(); pos++) {
                   values.set(typeSwitchNames[pos], strs[pos]);
                 }
               }
@@ -1567,7 +1571,7 @@ void MqttHandler::run() {
             if (m_hasDefinitionFieldsPayload) {
               string value = values["field_payload"];
               if (!value.empty()) {
-                if (fields.tellp()>0) {
+                if (fields.tellp() > 0) {
                   fields << values["field-separator"];
                 }
                 fields << value;
@@ -1576,17 +1580,17 @@ void MqttHandler::run() {
             }
             publishDefinition(values);
           }
-          if (fields.tellp()>0) {
+          if (fields.tellp() > 0) {
             msgValues.set("fields_payload", fields.str());
             publishDefinition(msgValues);
           }
-          if (filterSeen && message->getLastUpdateTime()>message->getCreateTime()) {
+          if (filterSeen && message->getLastUpdateTime() > message->getCreateTime()) {
             // ensure data is published as well
             m_updatedMessages[message->getKey()]++;
-          } else if (filterSeen && direction=="w") {
+          } else if (filterSeen && direction == "w") {
             // publish data for read pendant of write message
             Message* read = m_messages->find(message->getCircuit(), message->getName(), "", true);
-            if (read && read->getLastUpdateTime()>0) {
+            if (read && read->getLastUpdateTime() > 0) {
               m_updatedMessages[read->getKey()]++;
             }
           }
@@ -1763,7 +1767,8 @@ void MqttHandler::publishMessage(const Message* message, ostringstream* updates,
     if (json) {
       *updates << "{";
       if (m_staticTopic) {
-        *updates << "\"circuit\":\"" << message->getCircuit() << "\",\"name\":\"" << message->getName() << "\",\"fields\":{";
+        *updates << "\"circuit\":\"" << message->getCircuit() << "\",\"name\":\"" << message->getName()
+                 << "\",\"fields\":{";
       }
     } else {
       *updates << message->getCircuit() << UI_FIELD_SEPARATOR << message->getName() << UI_FIELD_SEPARATOR;

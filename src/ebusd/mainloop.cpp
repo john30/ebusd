@@ -2101,7 +2101,7 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
           }
           size_t comma = value.find(',');
           if (comma == string::npos || comma == 0
-          || value.find(circuit+","+name+",") != comma+1) { // ensure same circuit+name
+          || value.find(circuit+","+name+",") != comma+1) {  // ensure same circuit+name
             ret = RESULT_ERR_INVALID_ARG;
             break;
           }
