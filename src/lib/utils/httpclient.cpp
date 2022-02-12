@@ -167,7 +167,7 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool htt
         break;
       }
       long res = BIO_do_connect(bio);
-      while (res != 1 && BIO_should_retry(bio) && time(nullptr)<until) {
+      while (res != 1 && BIO_should_retry(bio) && time(nullptr) < until) {
         usleep(SLEEP_NANOS);
         res = BIO_do_connect(bio);
       }

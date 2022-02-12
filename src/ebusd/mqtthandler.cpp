@@ -395,7 +395,7 @@ std::pair<string, int> makeField(const string& name, bool isField) {
 void addPart(ostringstream& stack, int inField, vector<std::pair<string, int>>& parts) {
   string str = stack.str();
   if (inField == 1 && str == "_") {
-    inField = 0; // single "%_" pattern to reduce to "_"
+    inField = 0;  // single "%_" pattern to reduce to "_"
   } else if (inField == 2) {
     str = "%{" + str;
     inField = 0;
@@ -894,7 +894,7 @@ void MqttHandler::parseIntegration(const string& line) {
   string value = line.substr(pos+1);
   FileReader::trim(&value);
   if (value.find('%') == string::npos) {
-    m_replacers.set(key, value); // constant value
+    m_replacers.set(key, value);  // constant value
   } else {
     // simple variable
     m_replacers.get(key).parse(value, false, false, emptyIfMissing);
@@ -1555,7 +1555,7 @@ void MqttHandler::run() {
               if (!typeSwitchNames.empty()) {
                 vector<string> strs;
                 splitFields(typeSwitch, &strs);
-                for (size_t pos = 0; pos<strs.size() && pos < typeSwitchNames.size(); pos++) {
+                for (size_t pos = 0; pos < strs.size() && pos < typeSwitchNames.size(); pos++) {
                   values.set(typeSwitchNames[pos], strs[pos]);
                 }
               }

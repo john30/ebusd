@@ -620,7 +620,7 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
               case 0x0802:
                 stream << (m_infoId == 1 ? "ID" : "config");
                 stream << std::hex << std::setfill('0');
-                for (uint8_t pos = 0; pos<m_infoPos; pos++) {
+                for (uint8_t pos = 0; pos < m_infoPos; pos++) {
                   stream << " " << std::setw(2) << static_cast<unsigned>(m_infoBuf[pos]);
                 }
                 break;

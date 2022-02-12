@@ -193,8 +193,8 @@ static const struct argp_option argpoptions[] = {
   {"latency",        O_DEVLAT, "MSEC",     0, "Extra transfer latency in ms [0]", 0 },
 
   {nullptr,          0,        nullptr,    0, "Message configuration options:", 2 },
-  {"configpath",     'c',      "PATH",     0, "Read CSV config files from PATH (local folder or HTTPS URL) [" CONFIG_PATH
-      "]", 0 },
+  {"configpath",     'c',      "PATH",     0, "Read CSV config files from PATH (local folder or HTTPS URL) ["
+      CONFIG_PATH "]", 0 },
   {"scanconfig",     's',      "ADDR", OPTION_ARG_OPTIONAL, "Pick CSV config files matching initial scan (ADDR="
       "\"none\" or empty for no initial scan message, \"full\" for full scan, or a single hex address to scan, "
       "default is broadcast ident message). If combined with --checkconfig, you can add scan message data as "
@@ -202,7 +202,8 @@ static const struct argp_option argpoptions[] = {
   {"configlang",     O_CFGLNG, "LANG",     0,
       "Prefer LANG in multilingual configuration files [system default language]", 0 },
   {"checkconfig",    O_CHKCFG, nullptr,    0, "Check config files, then stop", 0 },
-  {"dumpconfig",     O_DMPCFG, "FORMAT", OPTION_ARG_OPTIONAL, "Check and dump config files in FORMAT (\"json\" or \"csv\"), then stop", 0 },
+  {"dumpconfig",     O_DMPCFG, "FORMAT", OPTION_ARG_OPTIONAL,
+      "Check and dump config files in FORMAT (\"json\" or \"csv\"), then stop", 0 },
   {"pollinterval",   O_POLINT, "SEC",      0, "Poll for data every SEC seconds (0=disable) [5]", 0 },
   {"inject",         'i',      nullptr,    0, "Inject remaining arguments as already seen messages (e.g. "
       "\"FF08070400/0AB5454850303003277201\")", 0 },
@@ -1263,7 +1264,7 @@ int main(int argc, char* argv[]) {
     if (len <= 1 || len > sizeof(envname)-3) {  // no single char long args
       continue;
     }
-    for (size_t i=0; i<len; i++) {
+    for (size_t i=0; i < len; i++) {
       envopt[i] = static_cast<char>(tolower(start[i]));
     }
     envopt[len] = 0;
@@ -1286,7 +1287,7 @@ int main(int argc, char* argv[]) {
     opt.injectMessages = true;  // for skipping unknown values
     error_t err = argp_parse(&aargp, cnt, envargv, ARGP_PARSE_ARGV0|ARGP_SILENT|ARGP_IN_ORDER,
                    &idx, &opt);
-    if (err!=0 && idx==-1) {  // ignore args for non-arg boolean options
+    if (err != 0 && idx == -1) {  // ignore args for non-arg boolean options
       logError(lf_main, "invalid/unknown argument in env: %s", envopt);
     }
     opt.injectMessages = false;  // restore
@@ -1312,7 +1313,7 @@ int main(int argc, char* argv[]) {
       logError(lf_main, "invalid configPath URL");
       return EINVAL;
     }
-    if (!s_configHttpClient.connect(configHost, configPort, proto=="https", PACKAGE_NAME "/" PACKAGE_VERSION)) {
+    if (!s_configHttpClient.connect(configHost, configPort, proto == "https", PACKAGE_NAME "/" PACKAGE_VERSION)) {
       logError(lf_main, "invalid configPath URL");
       return EINVAL;
     }
