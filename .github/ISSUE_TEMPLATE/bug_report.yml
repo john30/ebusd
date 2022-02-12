@@ -74,16 +74,16 @@ body:
         - other
     validations:
       required: true
-  - type: checkboxes
+  - type: dropdown
     id: docker
     attributes:
       label: Dockerized
       description: indicate if a docker container is used
       options:
-        - label: devel
-        - label: latest (release)
-        - label: same as ebusd version
-        - label: other
+        - devel
+        - latest
+        - same as ebusd version
+        - other
   - type: dropdown
     id: interface
     attributes:
