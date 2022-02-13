@@ -747,7 +747,8 @@ result_t NumberDataType::readSymbols(size_t offset, size_t length, const SymbolS
 result_t NumberDataType::readFromRawValue(size_t length, unsigned int value,
                                           OutputFormat outputFormat, ostream* output) const {
   int signedValue;
-  *output << defaultfloat << setw(0) << dec << setprecision(0);  // initialize output
+  // initialize output
+  *output << setw(0) << std::resetiosflags(output->flags()) << dec << std::skipws << setprecision(6);
 
   if (!hasFlag(REQ) && value == m_replacement) {
     if (outputFormat & OF_JSON) {
@@ -836,7 +837,7 @@ result_t NumberDataType::readFromRawValue(size_t length, unsigned int value,
     signedValue = static_cast<int>(value);
   }
   if (m_divisor < 0) {
-    *output << fixed
+    *output << fixed << setprecision(0)
             << (static_cast<float>(signedValue) * static_cast<float>(-m_divisor));
   } else if (m_divisor <= 1) {
     if (hasFlag(FIX) && hasFlag(BCD)) {
