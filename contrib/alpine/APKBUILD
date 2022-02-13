@@ -2,8 +2,8 @@
 # Maintainer: Tim <timstanleydev@gmail.com>
 pkgname=ebusd
 pkgver=22.1
-pkgrel=1
-pkgdesc="ebusd, the daemon for communication with eBUS heating systems."
+pkgrel=0
+pkgdesc="Daemon for communication with eBUS heating systems"
 url="https://github.com/john30/ebusd"
 # Upstream only supports these archs.
 arch="x86 x86_64 aarch64 armhf armv7"
@@ -25,6 +25,8 @@ check() {
 
 package() {
 	DESTDIR="$pkgdir" cmake --install build
+        install -D -m 644 "$srcdir"/"$pkgname-$pkgver"/contrib/etc/ebusd/mqtt-hassio.cfg "$pkgdir"/etc/ebusd/mqtt-hassio.cfg
+        install -D -m 644 "$srcdir"/"$pkgname-$pkgver"/contrib/etc/ebusd/mqtt-integration.cfg "$pkgdir"/etc/ebusd/mqtt-integration.cfg
 }
 
 sha512sums="
