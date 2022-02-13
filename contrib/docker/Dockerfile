@@ -26,7 +26,7 @@ RUN ./make_debian.sh
 FROM $BASE_IMAGE-slim as image
 
 RUN apt-get update && apt-get install -y \
-    libmosquitto1 libssl1.1 libstdc++6 libc6 libgcc1 \
+    libmosquitto1 libssl1.1 ca-certificates libstdc++6 libc6 libgcc1 \
     && rm -rf /var/lib/apt/lists/*
 
 LABEL maintainer="ebusd@ebusd.eu"
