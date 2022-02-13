@@ -826,6 +826,7 @@ static result_t collectConfigFiles(const string& relPath, const string& prefix, 
     return RESULT_OK;
   }
   const string path = s_configLocalPrefix + relPathWithSlash;
+  logDebug(lf_main, "reading directory %s", path.c_str());
   DIR* dir = opendir(path.c_str());
   if (dir == nullptr) {
     return RESULT_ERR_NOTFOUND;
@@ -837,10 +838,13 @@ static result_t collectConfigFiles(const string& relPath, const string& prefix, 
       continue;
     }
     const string p = path + name;
-    struct stat stat_buf;
+    struct stat stat_buf = {};
     if (stat(p.c_str(), &stat_buf) != 0) {
+      logError(lf_main, "unable to stat file %s", p.c_str());
       continue;
     }
+    logDebug(lf_main, "file type of %s is %s", p.c_str(),
+             S_ISDIR(stat_buf.st_mode) ? "dir" : S_ISREG(stat_buf.st_mode) ? "file" : "other");
     if (S_ISDIR(stat_buf.st_mode)) {
       if (dirs != nullptr) {
         dirs->push_back(relPathWithSlash + name);
@@ -1044,7 +1048,7 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
   result_t result = readConfigFiles("", ".csv",
       (!s_opt.scanConfig || s_opt.checkConfig) && !denyRecursive, verbose, &errorDescription, messages);
   if (result == RESULT_OK) {
-    logInfo(lf_main, "read config files");
+    logInfo(lf_main, "read config files, got %d messages", messages->size());
   } else {
     logError(lf_main, "error reading config files from %s: %s, last error: %s", s_opt.configPath,
         getResultCode(result), errorDescription.c_str());
