@@ -58,7 +58,7 @@ fi
 
 echo
 echo "*************"
-echo " build"
+echo " build $ARCH"
 echo "*************"
 echo
 if [ -n "$reusebuilddir" ] || [ -z "$keepbuilddir" ]; then
@@ -96,13 +96,13 @@ if [ -n "$RUNTEST" ]; then
     cat test.txt || true
     exit 1
   }
-  ($RELEASE/usr/bin/ebusd -f -c src/lib/ebus/test -d /dev/null --inject=stop 10fe0900040000803e/ > src/lib/ebus/test/test.txt) || testdie "float conversion"
-  egrep "received update-read broadcast test QQ=10: 0\.25$" src/lib/ebus/test/test.txt || testdir "float result"
+  ($RELEASE/usr/bin/ebusd -f -c src/lib/ebus/test -d /dev/null --log=all:debug --inject=stop 10fe0900040000803e/ > test.txt) || testdie "float conversion"
+  egrep "received update-read broadcast test QQ=10: 0\.25$" test.txt || testdie "float result"
   if [ "$RUNTEST" = "full" ]; then
-    (cd src/lib/ebus/test && make test_filereader && ./test_filereader > test.txt) || testdie "filereader"
-    (cd src/lib/ebus/test && make test_data && ./test_data > test.txt) || testdie "data"
-    (cd src/lib/ebus/test && make test_message && ./test_message > test.txt) || testdie "message"
-    (cd src/lib/ebus/test && make test_symbol && ./test_symbol > test.txt) || testdie "symbol"
+    (cd src/lib/ebus/test && make test_filereader && ./test_filereader) > test.txt || testdie "filereader"
+    (cd src/lib/ebus/test && make test_data && ./test_data) > test.txt || testdie "data"
+    (cd src/lib/ebus/test && make test_message && ./test_message) > test.txt || testdie "message"
+    (cd src/lib/ebus/test && make test_symbol && ./test_symbol) > test.txt || testdie "symbol"
   fi
 fi
 
