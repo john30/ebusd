@@ -72,13 +72,10 @@ using std::cout;
 #endif
 
 /** the opened PID file, or nullptr. */
-static FILE* pidFile = nullptr;
-
-/** true when forked into daemon mode. */
-static bool isDaemon = false;
+static FILE* s_pidFile = nullptr;
 
 /** the program options. */
-static struct options opt = {
+static struct options s_opt = {
   "/dev/ttyUSB0",  // device
   false,  // noDeviceCheck
   false,  // readOnly
@@ -137,14 +134,14 @@ static MessageMap* s_messageMap = nullptr;
 /** the @a MainLoop instance, or nullptr. */
 static MainLoop* s_mainLoop = nullptr;
 
-/** the path prefix (including trailing "/") for retrieving configuration files from local files (empty for HTTP). */
+/** the path prefix (including trailing "/") for retrieving configuration files from local files (empty for HTTPS). */
 static string s_configLocalPrefix;
 
-/** the URI prefix (including trailing "/") for retrieving configuration files from HTTP (empty for local files). */
+/** the URI prefix (including trailing "/") for retrieving configuration files from HTTPS (empty for local files). */
 static string s_configUriPrefix;
 
-/** the @a HttpClient for retrieving configuration files from HTTP. */
-static HttpClient s_configHttpClient;
+/** the @a HttpClient for retrieving configuration files from HTTPS. */
+static HttpClient* s_configHttpClient = nullptr;
 
 /** the documentation of the program. */
 static const char argpdoc[] =
@@ -636,6 +633,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
 
   return 0;
 }
+void shutdown(bool error = false);
 
 void daemonize() {
   // fork off the parent process
@@ -672,40 +670,28 @@ void daemonize() {
   close(STDERR_FILENO);
 
   // create pid file and try to lock it
-  pidFile = fopen(opt.pidFile, "w+");
+  s_pidFile = fopen(s_opt.pidFile, "w+");
 
   umask(S_IWGRP | S_IRWXO);  // set permissions of newly created files to 750
 
-  if (pidFile != nullptr) {
-    setbuf(pidFile, nullptr);  // disable buffering
-    if (lockf(fileno(pidFile), F_TLOCK, 0) < 0
-      || fprintf(pidFile, "%d\n", getpid())  <= 0) {
-      fclose(pidFile);
-      pidFile = nullptr;
+  if (s_pidFile != nullptr) {
+    setbuf(s_pidFile, nullptr);  // disable buffering
+    if (lockf(fileno(s_pidFile), F_TLOCK, 0) < 0
+      || fprintf(s_pidFile, "%d\n", getpid())  <= 0) {
+      fclose(s_pidFile);
+      s_pidFile = nullptr;
     }
   }
-  if (pidFile == nullptr) {
-    logError(lf_main, "can't open pidfile: %s, exiting", opt.pidFile);
-    exit(EXIT_FAILURE);
-  }
-
-  isDaemon = true;
-}
-
-void closePidFile() {
-  if (pidFile != nullptr) {
-    if (fclose(pidFile) != 0) {
-      return;
-    }
-    remove(opt.pidFile);
+  if (s_pidFile == nullptr) {
+    logError(lf_main, "can't open pidfile: %s, exiting", s_opt.pidFile);
+    shutdown(true);
   }
 }
 
 /**
- * Helper method performing shutdown.
+ * Clean up all dynamically allocated and stop main loop and all dependent components.
  */
-void shutdown(bool error = false) {
-  // stop main loop and all dependent components
+void cleanup() {
   if (s_mainLoop) {
     delete s_mainLoop;
     s_mainLoop = nullptr;
@@ -721,14 +707,30 @@ void shutdown(bool error = false) {
     }
   }
   s_templatesByPath.clear();
+  if (s_configHttpClient) {
+    delete s_configHttpClient;
+    s_configHttpClient = nullptr;
+  }
+}
+
+/**
+ * Clean up resources and shutdown.
+ */
+void shutdown(bool error) {
+  cleanup();
 
   // reset all signal handlers to default
   signal(SIGHUP, SIG_DFL);
   signal(SIGINT, SIG_DFL);
   signal(SIGTERM, SIG_DFL);
 
-  // delete daemon pid file if necessary
-  closePidFile();
+  // close and delete pid file if necessary
+  if (s_pidFile != nullptr) {
+    if (fclose(s_pidFile) == 0) {
+      remove(s_opt.pidFile);
+    }
+    s_pidFile = nullptr;
+  }
 
   logNotice(lf_main, "ebusd stopped");
   closeLogFile();
@@ -744,9 +746,9 @@ void signalHandler(int sig) {
   switch (sig) {
   case SIGHUP:
     logNotice(lf_main, "SIGHUP received");
-    if (!opt.foreground && opt.logFile && opt.logFile[0] != 0) {  // for log file rotation
+    if (!s_opt.foreground && s_opt.logFile && s_opt.logFile[0] != 0) {  // for log file rotation
       closeLogFile();
-      setLogFile(opt.logFile);
+      setLogFile(s_opt.logFile);
     }
     break;
   case SIGINT:
@@ -772,12 +774,23 @@ void signalHandler(int sig) {
 }
 
 /**
+ * Lazy create the s_configHttpClient if not already done.
+ * @return true (always).
+ */
+bool lazyHttpClient() {
+  if (!s_configHttpClient) {
+    s_configHttpClient = new HttpClient();
+  }
+  return true;
+}
+
+/**
  * Collect configuration files matching the prefix and extension from the specified path.
  * @param relPath the relative path from which to collect the files (without trailing "/").
  * @param prefix the filename prefix the files have to match, or empty.
  * @param extension the filename extension the files have to match.
  * @param files the @a vector to which to add the matching files.
- * @param query the query string suffix for HTTP retrieval starting with "&", or empty.
+ * @param query the query string suffix for HTTPS retrieval starting with "&", or empty.
  * @param dirs the @a vector to which to add found directories (without any name check), or nullptr to ignore.
  * @param hasTemplates the bool to set when the templates file was found in the path, or nullptr to ignore.
  * @return the result code.
@@ -790,7 +803,7 @@ static result_t collectConfigFiles(const string& relPath, const string& prefix, 
   if (!s_configUriPrefix.empty()) {
     string uri = s_configUriPrefix + relPathWithSlash + "?t=" + extension.substr(1) + query;
     string names;
-    if (!s_configHttpClient.get(uri, "", &names)) {
+    if (!lazyHttpClient() || !s_configHttpClient->get(uri, "", &names)) {
       return RESULT_ERR_NOTFOUND;
     }
     istringstream stream(names);
@@ -937,7 +950,7 @@ static result_t readConfigFiles(const string& relPath, const string& extension, 
   readTemplates(relPath, extension, hasTemplates, verbose);
   for (const auto& name : files) {
     logInfo(lf_main, "reading file %s", name.c_str());
-    result_t result = loadDefinitionsFromConfigPath(messages, name, verbose, nullptr, errorDescription);
+    result = loadDefinitionsFromConfigPath(messages, name, verbose, nullptr, errorDescription);
     if (result != RESULT_OK) {
       return result;
     }
@@ -1000,7 +1013,7 @@ result_t loadDefinitionsFromConfigPath(FileReader* reader, const string& filenam
     stream = FileReader::openFile(s_configLocalPrefix + filename, errorDescription, &mtime);
   } else {
     string content;
-    if (s_configHttpClient.get(s_configUriPrefix + filename, "", &content, &mtime)) {
+    if (lazyHttpClient() && s_configHttpClient->get(s_configUriPrefix + filename, "", &content, &mtime)) {
       stream = new istringstream(content);
     }
   }
@@ -1015,7 +1028,7 @@ result_t loadDefinitionsFromConfigPath(FileReader* reader, const string& filenam
 }
 
 result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive) {
-  logInfo(lf_main, "loading configuration files from %s", opt.configPath);
+  logInfo(lf_main, "loading configuration files from %s", s_opt.configPath);
   messages->lock();
   messages->clear();
   s_globalTemplates.clear();
@@ -1029,15 +1042,15 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
 
   string errorDescription;
   result_t result = readConfigFiles("", ".csv",
-      (!opt.scanConfig || opt.checkConfig) && !denyRecursive, verbose, &errorDescription, messages);
+      (!s_opt.scanConfig || s_opt.checkConfig) && !denyRecursive, verbose, &errorDescription, messages);
   if (result == RESULT_OK) {
     logInfo(lf_main, "read config files");
   } else {
-    logError(lf_main, "error reading config files from %s: %s, last error: %s", opt.configPath,
+    logError(lf_main, "error reading config files from %s: %s, last error: %s", s_opt.configPath,
         getResultCode(result), errorDescription.c_str());
   }
   messages->unlock();
-  return opt.checkConfig ? result : RESULT_OK;
+  return s_opt.checkConfig ? result : RESULT_OK;
 }
 
 result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose, string* relativeFile) {
@@ -1180,7 +1193,7 @@ result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose
   }
 
   // found the right file. load the templates if necessary, then load the file itself
-  bool readCommon = readTemplates(manufStr, ".csv", hasTemplates, opt.checkConfig);
+  bool readCommon = readTemplates(manufStr, ".csv", hasTemplates, s_opt.checkConfig);
   if (readCommon) {
     result = collectConfigFiles(manufStr, "", ".csv", &files, true, "&a=-");
     if (result == RESULT_OK && !files.empty()) {
@@ -1294,26 +1307,26 @@ int main(int argc, char* argv[]) {
       strcat(envopt, pos);
     }
     int idx = -1;
-    opt.injectMessages = true;  // for skipping unknown values
+    s_opt.injectMessages = true;  // for skipping unknown values
     error_t err = argp_parse(&aargp, cnt, envargv, ARGP_PARSE_ARGV0|ARGP_SILENT|ARGP_IN_ORDER,
-                   &idx, &opt);
+                   &idx, &s_opt);
     if (err != 0 && idx == -1) {  // ignore args for non-arg boolean options
       logError(lf_main, "invalid/unknown argument in env: %s", envopt);
     }
-    opt.injectMessages = false;  // restore (was not parsed from cmdline args yet)
+    s_opt.injectMessages = false;  // restore (was not parsed from cmdline args yet)
   }
 
   int arg_index = -1;
-  if (argp_parse(&aargp, argc, argv, ARGP_IN_ORDER, &arg_index, &opt) != 0) {
+  if (argp_parse(&aargp, argc, argv, ARGP_IN_ORDER, &arg_index, &s_opt) != 0) {
     logError(lf_main, "invalid arguments");
     return EINVAL;
   }
 
-  string configPath = string(opt.configPath);
+  string configPath = string(s_opt.configPath);
   if (configPath.find("://") == string::npos) {
     s_configLocalPrefix = configPath[configPath.length()-1] == '/' ? configPath : configPath + "/";
   } else {
-    if (!opt.scanConfig) {
+    if (!s_opt.scanConfig) {
       logError(lf_main, "invalid configpath without scanconfig");
       return EINVAL;
     }
@@ -1323,29 +1336,31 @@ int main(int argc, char* argv[]) {
       logError(lf_main, "invalid configPath URL");
       return EINVAL;
     }
-    if (!s_configHttpClient.connect(configHost, configPort, proto == "https", PACKAGE_NAME "/" PACKAGE_VERSION)) {
+    if (!lazyHttpClient()
+    || !s_configHttpClient->connect(configHost, configPort, proto == "https", PACKAGE_NAME "/" PACKAGE_VERSION)) {
       logError(lf_main, "invalid configPath URL");
+      cleanup();
       return EINVAL;
     }
-    s_configHttpClient.disconnect();
+    s_configHttpClient->disconnect();
   }
-  if (!opt.readOnly && opt.scanConfig && opt.initialScan == 0) {
-    opt.initialScan = BROADCAST;
+  if (!s_opt.readOnly && s_opt.scanConfig && s_opt.initialScan == 0) {
+    s_opt.initialScan = BROADCAST;
   }
-  if (opt.logAreas != -1 || opt.logLevel != ll_COUNT) {
+  if (s_opt.logAreas != -1 || s_opt.logLevel != ll_COUNT) {
     setFacilitiesLogLevel(LF_ALL, ll_none);
-    setFacilitiesLogLevel(opt.logAreas, opt.logLevel);
+    setFacilitiesLogLevel(s_opt.logAreas, s_opt.logLevel);
   }
 
-  s_messageMap = new MessageMap(opt.checkConfig);
-  if (opt.checkConfig) {
+  s_messageMap = new MessageMap(s_opt.checkConfig);
+  if (s_opt.checkConfig) {
     logNotice(lf_main, PACKAGE_STRING "." REVISION " performing configuration check...");
 
-    result_t result = loadConfigFiles(s_messageMap, true, opt.scanConfig && arg_index < argc);
+    result_t result = loadConfigFiles(s_messageMap, true, s_opt.scanConfig && arg_index < argc);
     result_t overallResult = executeInstructions(s_messageMap, true);
     MasterSymbolString master;
     SlaveSymbolString slave;
-    while (result == RESULT_OK && opt.scanConfig && arg_index < argc) {
+    while (result == RESULT_OK && s_opt.scanConfig && arg_index < argc) {
       // check scan config for each passed ident message
       if (!parseMessage(argv[arg_index++], true, &master, &slave)) {
         continue;
@@ -1375,28 +1390,31 @@ int main(int argc, char* argv[]) {
     if (result != RESULT_OK) {
       overallResult = result;
     }
-    if (result == RESULT_OK && opt.dumpConfig) {
+    if (result == RESULT_OK && s_opt.dumpConfig) {
       logNotice(lf_main, "configuration dump:");
-      s_messageMap->dump(true, opt.dumpConfig, &cout);
+      s_messageMap->dump(true, s_opt.dumpConfig, &cout);
     }
 
-    shutdown(overallResult != RESULT_OK);
-    return 0;
+    cleanup();
+    return overallResult == RESULT_OK ? EXIT_SUCCESS : EXIT_FAILURE;
   }
 
   // open the device
-  Device *device = Device::create(opt.device, opt.extraLatency, !opt.noDeviceCheck, opt.readOnly, opt.initialSend);
+  Device *device = Device::create(s_opt.device, s_opt.extraLatency, !s_opt.noDeviceCheck, s_opt.readOnly,
+                                  s_opt.initialSend);
   if (device == nullptr) {
-    logError(lf_main, "unable to create device %s", opt.device);
+    logError(lf_main, "unable to create device %s", s_opt.device);
+    cleanup();
     return EINVAL;
   }
 
-  if (!opt.foreground) {
-    if (!setLogFile(opt.logFile)) {
-      logError(lf_main, "unable to open log file %s", opt.logFile);
+  if (!s_opt.foreground) {
+    if (!setLogFile(s_opt.logFile)) {
+      logError(lf_main, "unable to open log file %s", s_opt.logFile);
+      cleanup();
       return EINVAL;
     }
-    daemonize();  // make me daemon
+    daemonize();  // make daemon
   }
 
   // trap signals that we expect to receive
@@ -1406,8 +1424,8 @@ int main(int argc, char* argv[]) {
 
   logNotice(lf_main, PACKAGE_STRING "." REVISION " started%s%s on%s device %s",
       device->isReadOnly() ? " read only" : "",
-      opt.scanConfig ? opt.initialScan == ESC ? " with auto scan"
-      : opt.initialScan == BROADCAST ? " with broadcast scan" : opt.initialScan == SYN ? " with full scan"
+      s_opt.scanConfig ? s_opt.initialScan == ESC ? " with auto scan"
+      : s_opt.initialScan == BROADCAST ? " with broadcast scan" : s_opt.initialScan == SYN ? " with full scan"
       : " with single scan" : "",
       device->isEnhancedProto() ? " enhanced" : "",
       device->getName());
@@ -1416,8 +1434,8 @@ int main(int argc, char* argv[]) {
   loadConfigFiles(s_messageMap);
 
   // create the MainLoop and start it
-  s_mainLoop = new MainLoop(opt, device, s_messageMap);
-  if (opt.injectMessages) {
+  s_mainLoop = new MainLoop(s_opt, device, s_messageMap);
+  if (s_opt.injectMessages) {
     BusHandler* busHandler = s_mainLoop->getBusHandler();
     while (arg_index < argc) {
       // add each passed message
@@ -1428,7 +1446,7 @@ int main(int argc, char* argv[]) {
       }
       busHandler->injectMessage(master, slave);
     }
-    if (opt.stopAfterInject) {
+    if (s_opt.stopAfterInject) {
       shutdown();
       return 0;
     }
