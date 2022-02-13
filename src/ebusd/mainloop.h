@@ -30,6 +30,7 @@
 #include "lib/ebus/filereader.h"
 #include "lib/ebus/message.h"
 #include "lib/utils/rotatefile.h"
+#include "lib/utils/httpclient.h"
 
 namespace ebusd {
 
@@ -429,6 +430,9 @@ class MainLoop : public Thread, DeviceListener {
 
   /** perform automatic update check. */
   bool m_runUpdateCheck;
+
+  /** the @a HttpClient for performing the update check. */
+  HttpClient m_httpClient;
 
   /** the created @a BusHandler instance. */
   BusHandler* m_busHandler;

@@ -21,6 +21,11 @@
 #include <cstdlib>
 #include <sstream>
 #include <csignal>
+#ifdef HAVE_SSL
+#if OPENSSL_VERSION_NUMBER < 0x10101000L
+#include <sys/stat.h>
+#endif
+#endif  // HAVE_SSL
 #include "lib/utils/log.h"
 
 namespace ebusd {
@@ -32,6 +37,15 @@ using std::hex;
 
 #ifdef HAVE_SSL
 
+#if OPENSSL_VERSION_NUMBER < 0x10101000L
+//  default CA path
+#define DEFAULT_CAFILE "/etc/ssl/certs/ca-certificates.crt"
+
+//  default CA path
+#define DEFAULT_CAPATH "/etc/ssl/certs"
+#endif
+
+// the time slice to sleep between repeated SSL reads/writes
 #define SLEEP_NANOS 50000
 
 bool checkError(const char* call) {
@@ -131,7 +145,8 @@ bool SSLSocket::isValid() {
 // general switch for future insecure option
 static const bool verifyPeer = true;
 
-SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool https, int timeout) {
+SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool https, int timeout, const char* caFile,
+                              const char* caPath) {
   BIO *bio = nullptr;
   SSL_CTX *ctx = nullptr;
   ostringstream ostr;
@@ -159,8 +174,21 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool htt
         break;
       }
       SSL_CTX_set_verify(ctx, verifyPeer ? SSL_VERIFY_PEER : SSL_VERIFY_NONE, nullptr);
-      if (verifyPeer && isError("verify_loc", SSL_CTX_load_verify_locations(ctx, nullptr, "/etc/ssl/certs"), 1)) {
-        break;
+      if (verifyPeer) {
+#if OPENSSL_VERSION_NUMBER >= 0x10101000L
+        SSL_CTX_set_default_verify_paths(ctx);
+#else
+        struct stat stat_buf = {};
+        if (!caFile && stat(DEFAULT_CAFILE, &stat_buf) == 0) {
+          caFile = DEFAULT_CAFILE;  // use default CA file
+        }
+        if (!caPath && stat(DEFAULT_CAPATH, &stat_buf) == 0) {
+          caPath = DEFAULT_CAPATH;  // use default CA path
+        }
+#endif
+        if ((caFile || caPath) && isError("verify_loc", SSL_CTX_load_verify_locations(ctx, caFile, caPath), 1)) {
+          break;
+        }
       }
       const long flags = SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION;
       SSL_CTX_set_options(ctx, flags);
@@ -291,7 +319,8 @@ bool HttpClient::connect(const string& host, const uint16_t port, bool https, co
                          const int timeout) {
   disconnect();
 #ifdef HAVE_SSL
-  m_socket = SSLSocket::connect(host, port, https, timeout);
+  m_socket = SSLSocket::connect(host, port, https, timeout, m_caFile, m_caPath);
+  m_https = https;
 #else
   if (https) {
     return false;
@@ -313,7 +342,11 @@ bool HttpClient::reconnect() {
   if (m_host.empty() || !m_port) {
     return false;
   }
-  m_socket = SocketClass::connect(m_host, m_port, m_timeout);
+#ifdef HAVE_SSL
+  m_socket = SSLSocket::connect(m_host, m_port, m_https, m_timeout, m_caFile, m_caPath);
+#else
+  m_socket = TCPSocket::connect(m_host, m_port, m_timeout);
+#endif
   if (!m_socket) {
     return false;
   }
@@ -458,7 +491,7 @@ bool HttpClient::request(const string& method, const string& uri, const string& 
   return pos == length;
 }
 
-size_t HttpClient::readUntil(const string& delim, const size_t length, string* result) {
+size_t HttpClient::readUntil(const string& delim, size_t length, string* result) {
   if (!m_buffer) {
     m_buffer = reinterpret_cast<char*>(malloc(1024+1));  // 1 extra for final terminator
     if (!m_buffer) {

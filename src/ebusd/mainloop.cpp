@@ -26,7 +26,6 @@
 #include <algorithm>
 #include "ebusd/main.h"
 #include "lib/utils/log.h"
-#include "lib/utils/httpclient.h"
 #include "lib/ebus/data.h"
 
 namespace ebusd {
@@ -108,7 +107,8 @@ result_t UserList::addFromFile(const string& filename, unsigned int lineNo, map<
 MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messages)
   : Thread(), m_device(device), m_reconnectCount(0), m_userList(opt.accessLevel), m_messages(messages),
     m_address(opt.address), m_scanConfig(opt.scanConfig), m_initialScan(opt.readOnly ? ESC : opt.initialScan),
-    m_polling(opt.pollInterval > 0), m_enableHex(opt.enableHex), m_shutdown(false), m_runUpdateCheck(opt.updateCheck) {
+    m_polling(opt.pollInterval > 0), m_enableHex(opt.enableHex), m_shutdown(false), m_runUpdateCheck(opt.updateCheck),
+    m_httpClient(nullptr, nullptr) {
   m_device->setListener(this);
   // open Device
   result_t result = m_device->open();
@@ -331,8 +331,7 @@ void MainLoop::run() {
         }
       }
       if (m_runUpdateCheck && !m_shutdown && now > nextCheckRun) {
-        HttpClient client;
-        if (!client.connect("upd.ebusd.eu",
+        if (!m_httpClient.connect("upd.ebusd.eu",
 #ifdef HAVE_SSL
                             443, true,
 #else
@@ -363,7 +362,7 @@ void MainLoop::run() {
           m_busHandler->formatUpdateInfo(&ostr);
           ostr << "}";
           string response;
-          if (!client.post("/", ostr.str(), &response)) {
+          if (!m_httpClient.post("/", ostr.str(), &response)) {
             logError(lf_main, "update check error: %s", response.c_str());
           } else {
             m_updateCheck = response.empty() ? "unknown" : response;

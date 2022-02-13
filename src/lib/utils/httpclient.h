@@ -67,9 +67,12 @@ class SSLSocket {
    * @param port the port number.
    * @param https true for HTTPS, false for HTTP.
    * @param timeout the connect, send, and receive timeout in seconds, or 0 for blocking mode.
+   * @param caFile the CA file to use (uses defaults if neither caFile nor caPath are set).
+   * @param caPath the path with CA files to use (uses defaults if neither caFile nor caPath are set).
    * @return the connected SSLSocket, or nullptr on error.
    */
-  static SSLSocket* connect(const string& server, const uint16_t& port, const bool https, int timeout = 0);
+  static SSLSocket* connect(const string& server, const uint16_t& port, bool https, int timeout,
+                            const char* caFile = nullptr, const char* caPath = nullptr);
 
   /**
    * Write bytes to the socket.
@@ -119,8 +122,17 @@ class HttpClient {
  public:
   /**
    * Constructor.
+   * @param caFile the CA file to use (uses defaults if neither caFile nor caPath are set).
+   * @param caPath the path with CA files to use (uses defaults if neither caFile nor caPath are set).
    */
-  HttpClient() : m_socket(nullptr), m_port(0), m_timeout(0), m_bufferSize(0), m_buffer(nullptr) {
+  explicit HttpClient(const char* caFile = nullptr, const char* caPath = nullptr) :
+#ifdef HAVE_SSL
+    m_https(false),
+    m_caFile(caFile),
+    m_caPath(caPath),
+#endif
+    m_socket(nullptr), m_port(0), m_timeout(0), m_bufferSize(0), m_buffer(nullptr)
+  {
     initialize();
   }
 
@@ -156,8 +168,8 @@ class HttpClient {
    * @param host the host name to connect to.
    * @param port the port to connect to.
    * @param https true for HTTPS, false for HTTP.
-   * @param timeout the timeout in seconds, defaults to 5 seconds.
    * @param userAgent the optional user agent to send in the request header.
+   * @param timeout the timeout in seconds, defaults to 5 seconds.
    * @return true on success, false on connect failure.
    */
   bool connect(const string& host, uint16_t port, bool https = false, const string& userAgent = "", int timeout = 5);
@@ -217,12 +229,21 @@ class HttpClient {
    * @param result the string to append the read data to and in which to find the delimiter.
    * @return the position of the delimiter if delimiter was set or the number of bytes received, or string::npos if not found.
    */
-  size_t readUntil(const string& delim, const size_t length, string* result);
+  size_t readUntil(const string& delim, size_t length, string* result);
 
  private:
 #ifdef HAVE_SSL
   /** true once @a initialize() was called. */
   static bool s_initialized;
+
+  /** true for HTTPS, false for HTTP. */
+  bool m_https;
+
+  /** the CA file to use. */
+  const char* m_caFile;
+
+  /** the path with CA files to use. */
+  const char* m_caPath;
 #endif
 
   /** the currently connected socket. */
