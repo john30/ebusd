@@ -3,6 +3,10 @@ name: Release
 on:
   release:
     types: [ published, edited ]
+  push:
+    branches: [ master ]
+    paths:
+      - 'contrib/docker/Dockerfile.release'
   workflow_dispatch:
 
 jobs:
