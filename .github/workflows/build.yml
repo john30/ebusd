@@ -17,6 +17,7 @@ on:
         required: false
         type: choice
         options:
+          - ''
           - amd64
           - '386'
           - arm/v7
@@ -45,4 +46,4 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       -
         name: build
-        run: cd contrib/docker && LIMITARCH=${{ inputs.limitarch }} ./build.sh
+        run: cd contrib/docker && LIMITARCH=${{ github.event.inputs.limitarch }} ./build.sh
