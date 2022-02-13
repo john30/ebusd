@@ -14,7 +14,7 @@ EXTRA_DIST = LICENSE \
 install-data-hook:
 	@if [ -f "/etc/debian_version" ]; then \
 	  mkdir -p $(DESTDIR)/etc/default/ $(DESTDIR)/etc/init.d/ $(DESTDIR)/lib/systemd/system/; \
-	  cp $(srcdir)/contrib/debian/default/ebusd $(DESTDIR)/etc/default/; \
+	  cp -n $(srcdir)/contrib/debian/default/ebusd $(DESTDIR)/etc/default/; \
 	  cp $(srcdir)/contrib/debian/init.d/ebusd $(DESTDIR)/etc/init.d/; \
 	  cp $(srcdir)/contrib/debian/systemd/ebusd.service $(DESTDIR)/lib/systemd/system/; \
 	fi
