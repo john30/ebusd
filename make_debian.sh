@@ -96,7 +96,8 @@ if [ -n "$RUNTEST" ]; then
     cat test.txt || true
     exit 1
   }
-  ($RELEASE/usr/bin/ebusd -f -c src/lib/ebus/test -d /dev/null --inject=stop 10fe0900040000803e/ | egrep "received update-read broadcast test QQ=10: 0\.25$") || testdie "float conversion"
+  ($RELEASE/usr/bin/ebusd -f -c src/lib/ebus/test -d /dev/null --inject=stop 10fe0900040000803e/ > src/lib/ebus/test/test.txt) || testdie "float conversion"
+  egrep "received update-read broadcast test QQ=10: 0\.25$" src/lib/ebus/test/test.txt || testdir "float result"
   if [ "$RUNTEST" = "full" ]; then
     (cd src/lib/ebus/test && make test_filereader && ./test_filereader > test.txt) || testdie "filereader"
     (cd src/lib/ebus/test && make test_data && ./test_data > test.txt) || testdie "data"
