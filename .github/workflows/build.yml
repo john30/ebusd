@@ -10,7 +10,17 @@ on:
       - 'Makefile*'
       - 'make_debian.sh'
       - 'contrib/docker/**'
-
+  workflow_dispatch:
+    inputs:
+      limitarch:
+        description: Limit to this architecture
+        required: false
+        type: choice
+        options:
+          - amd64
+          - '386'
+          - arm/v7
+          - arm64
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -35,4 +45,4 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       -
         name: build
-        run: cd contrib/docker && ./build.sh
+        run: cd contrib/docker && LIMITARCH=${{ inputs.limitarch }} ./build.sh

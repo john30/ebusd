@@ -7,6 +7,9 @@ if [[ "$1" == "-h" ]]; then
   exit 1
 fi
 archs=linux/amd64,linux/386,linux/arm/v7,linux/arm64
+if [[ -n "$LIMITARCH" ]]; then
+  archs=$(echo ",$archs," | sed -e "s#.*,\([^,/]*/$LIMITARCH\),.*#\1#")
+fi
 if [[ -z "$1" ]] || [[ "x$1" == "xrelease" ]]; then
   UPLOAD_URL=
 elif [[ -z "$UPLOAD_URL" ]]; then
