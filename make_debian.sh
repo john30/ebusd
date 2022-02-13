@@ -92,12 +92,16 @@ if [ -n "$RUNTEST" ]; then
   echo "*************"
   echo
   testdie() {
-    echo "test failed"
+    echo "test failed: $1"
+    cat test.txt || true
     exit 1
   }
-  ($RELEASE/usr/bin/ebusd -f -c src/lib/ebus/test -d /dev/null --inject=stop 10fe0900040000803e/ | egrep "received update-read broadcast test QQ=10: 0\.25$") || testdie
+  ($RELEASE/usr/bin/ebusd -f -c src/lib/ebus/test -d /dev/null --inject=stop 10fe0900040000803e/ | egrep "received update-read broadcast test QQ=10: 0\.25$") || testdie "float conversion"
   if [ "$RUNTEST" = "full" ]; then
-    (cd src/lib/ebus/test && make >/dev/null && ./test_filereader && ./test_data && ./test_message && ./test_symbol) || testdie
+    (cd src/lib/ebus/test && make test_filereader && ./test_filereader > test.txt) || testdie "filereader"
+    (cd src/lib/ebus/test && make test_data && ./test_data > test.txt) || testdie "data"
+    (cd src/lib/ebus/test && make test_message && ./test_message > test.txt) || testdie "message"
+    (cd src/lib/ebus/test && make test_symbol && ./test_symbol > test.txt) || testdie "symbol"
   fi
 fi
 
