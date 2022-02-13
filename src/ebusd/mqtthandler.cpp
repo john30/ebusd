@@ -643,7 +643,8 @@ ssize_t MqttReplacer::matchTopic(const string& topic, string* circuit, string* n
   size_t last = 0;
   size_t count = m_parts.size();
   size_t idx;
-  for (idx = 0; idx < count; idx++) {
+  bool incomplete = false;
+  for (idx = 0; idx < count && !incomplete; idx++) {
     const auto part = m_parts[idx];
     if (part.second < 0) {
       if (topic.substr(last, part.first.length()) != part.first) {
@@ -656,10 +657,12 @@ ssize_t MqttReplacer::matchTopic(const string& topic, string* circuit, string* n
     if (idx+1 < count) {
       size_t pos = topic.find(m_parts[idx+1].first, last);
       if (pos == string::npos) {
-        // next part not found
-        return -static_cast<ssize_t>(idx)-1;
+        // next part not found, consume the rest and mark incomplete
+        value = topic.substr(last);
+        incomplete = true;
+      } else {
+        value = topic.substr(last, pos - last);
       }
-      value = topic.substr(last, pos-last);
     } else {
       // last part is a field name
       if (topic.find('/', last) != string::npos) {
@@ -676,6 +679,9 @@ ssize_t MqttReplacer::matchTopic(const string& topic, string* circuit, string* n
       default:  // unknown field
         break;
     }
+  }
+  if (incomplete) {
+    return -static_cast<ssize_t>(idx)-1;
   }
   return static_cast<ssize_t>(idx);
 }
@@ -1196,6 +1202,7 @@ void MqttHandler::notifyTopic(const string& topic, const string& data) {
   if (direction.empty()) {
     return;
   }
+  string matchTopic = topic.substr(0, pos);
   pos = direction.find('?');
   string args;
   if (pos != string::npos) {
@@ -1211,7 +1218,7 @@ void MqttHandler::notifyTopic(const string& topic, const string& data) {
 
   logOtherDebug("mqtt", "received topic %s with data %s", topic.c_str(), data.c_str());
   string circuit, name, field;
-  ssize_t match = m_replacers.get("topic").matchTopic(topic.substr(0, pos), &circuit, &name, &field);
+  ssize_t match = m_replacers.get("topic").matchTopic(matchTopic, &circuit, &name, &field);
   if (match < 0 && !isList) {
     logOtherError("mqtt", "received unmatchable topic %s", topic.c_str());
   }
