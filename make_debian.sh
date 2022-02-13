@@ -95,7 +95,7 @@ if [ -n "$RUNTEST" ]; then
     echo "test failed"
     exit 1
   }
-  ($RELEASE/usr/bin/ebusd -f -c src/lib/ebus/test -d /dev/null --checkconfig -i 10fe0900040000803e/ | egrep "received update-read broadcast test QQ=10: 0\.25$") || testdie
+  ($RELEASE/usr/bin/ebusd -f -c src/lib/ebus/test -d /dev/null --inject=stop 10fe0900040000803e/ | egrep "received update-read broadcast test QQ=10: 0\.25$") || testdie
   if [ "$RUNTEST" = "full" ]; then
     (cd src/lib/ebus/test && make >/dev/null && ./test_filereader && ./test_data && ./test_message && ./test_symbol) || testdie
   fi

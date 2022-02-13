@@ -51,6 +51,7 @@ struct options {
   OutputFormat dumpConfig;   //!< dump config files, then stop
   unsigned int pollInterval;  //!< poll interval in seconds, 0 to disable [5]
   bool injectMessages;  //!< inject remaining arguments as already seen messages
+  bool stopAfterInject;  //!< only inject messages once, then stop
 
   symbol_t address;  //!< own bus address [31]
   bool answer;  //!< answer to requests from other masters

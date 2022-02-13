@@ -93,6 +93,7 @@ static struct options opt = {
   OF_NONE,  // dumpConfig
   5,  // pollInterval
   false,  // injectMessages
+  false,  // stopAfterInject
 
   0x31,  // address
   false,  // answer
@@ -205,8 +206,8 @@ static const struct argp_option argpoptions[] = {
   {"dumpconfig",     O_DMPCFG, "FORMAT", OPTION_ARG_OPTIONAL,
       "Check and dump config files in FORMAT (\"json\" or \"csv\"), then stop", 0 },
   {"pollinterval",   O_POLINT, "SEC",      0, "Poll for data every SEC seconds (0=disable) [5]", 0 },
-  {"inject",         'i',      nullptr,    0, "Inject remaining arguments as already seen messages (e.g. "
-      "\"FF08070400/0AB5454850303003277201\")", 0 },
+  {"inject",         'i',      "stop", OPTION_ARG_OPTIONAL, "Inject remaining arguments as already seen messages (e.g. "
+      "\"FF08070400/0AB5454850303003277201\"), optionally stop afterwards", 0 },
 
   {nullptr,          0,        nullptr,    0, "eBUS options:", 3 },
   {"address",        'a',      "ADDR",     0, "Use ADDR as own bus address [31]", 0 },
@@ -349,9 +350,17 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     opt->preferLanguage = arg;
     break;
   case O_CHKCFG:  // --checkconfig
+    if (opt->injectMessages) {
+      argp_error(state, "invalid checkconfig");
+      return EINVAL;
+    }
     opt->checkConfig = true;
     break;
   case O_DMPCFG:  // --dumpconfig[=json|csv]
+    if (opt->injectMessages) {
+      argp_error(state, "invalid checkconfig");
+      return EINVAL;
+    }
     opt->dumpConfig = OF_DEFINITION;
     if (!arg || arg[0] == 0 || strcmp("csv", arg) == 0) {
       // no further flags
@@ -374,12 +383,13 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       return EINVAL;
     }
     break;
-  case 'i':  // --inject
-    if (opt->injectMessages) {
+  case 'i':  // --inject[=stop]
+    if (opt->injectMessages || opt->checkConfig) {
       argp_error(state, "invalid inject");
       return EINVAL;
     }
     opt->injectMessages = true;
+    opt->stopAfterInject = arg && strcmp("stop", arg) == 0;
     break;
 
   // eBUS options:
@@ -1290,7 +1300,7 @@ int main(int argc, char* argv[]) {
     if (err != 0 && idx == -1) {  // ignore args for non-arg boolean options
       logError(lf_main, "invalid/unknown argument in env: %s", envopt);
     }
-    opt.injectMessages = false;  // restore
+    opt.injectMessages = false;  // restore (was not parsed from cmdline args yet)
   }
 
   int arg_index = -1;
@@ -1417,6 +1427,10 @@ int main(int argc, char* argv[]) {
         continue;
       }
       busHandler->injectMessage(master, slave);
+    }
+    if (opt.stopAfterInject) {
+      shutdown();
+      return 0;
     }
   }
   s_mainLoop->start("mainloop");
