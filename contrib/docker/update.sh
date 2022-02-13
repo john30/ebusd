@@ -14,7 +14,7 @@ function replaceTemplate () {
 
 # devel update
 version_variant='-devel'
-make='./make_debian.sh'
+make='RUNTEST=full ./make_debian.sh'
 upload_lines=''
 copydeb='COPY --from=build /build/ebusd-*_mqtt1.deb ebusd.deb'
 copyentry='COPY --from=build /build/contrib/docker/docker-entrypoint.sh /'
@@ -23,6 +23,7 @@ replaceTemplate
 
 # release update
 version_variant=''
+make='./make_debian.sh'
 copydeb="ADD https://github.com/john30/ebusd/releases/download/v\${EBUSD_VERSION}/ebusd-\${EBUSD_VERSION}_\${TARGETARCH}\${TARGETVARIANT}-\${EBUSD_IMAGE}_mqtt1.deb ebusd.deb"
 copyentry='COPY contrib/docker/docker-entrypoint.sh /'
 namesuffix='.release'

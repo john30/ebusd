@@ -18,7 +18,7 @@ ENV EBUSD_ARCH $TARGETARCH$TARGETVARIANT
 ENV EBUSD_VERSION $EBUSD_VERSION
 
 ADD . /build
-RUN ./make_debian.sh
+RUN RUNTEST=full ./make_debian.sh
 
 
 
