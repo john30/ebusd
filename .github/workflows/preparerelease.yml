@@ -23,4 +23,7 @@ jobs:
           buildkitd-flags: --debug
       -
         name: build
-        run: cd contrib/docker && ./update.sh all && ./build.sh deb
+        run: cd contrib/docker && ./update.sh all && LIMITARCH=${{ github.event.inputs.limitarch }} ./build.sh deb
+        env:
+          UPLOAD_URL: ${{ secrets.UPLOAD_URL }}
+          UPLOAD_CREDENTIALS: ${{ secrets.UPLOAD_CREDENTIALS }}
