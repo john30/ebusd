@@ -7,6 +7,7 @@ function replaceTemplate () {
     -e "s#%EBUSD_VERSION_VARIANT%#${version_variant}#g" \
     -e "s#%EBUSD_UPLOAD_LINES%#${upload_lines}#g" \
     -e "s#%EBUSD_COPYDEB%#${copydeb}#g" \
+    -e "s#%EBUSD_DEBSRC%#${debsrc}#g" \
     -e "s#%EBUSD_COPYENTRY%#${copyentry}#g" \
     Dockerfile.template > "$file"
   echo "updated $file"
@@ -17,6 +18,7 @@ version_variant='-devel'
 make='RUNTEST=full ./make_debian.sh'
 upload_lines=''
 copydeb='COPY --from=build /build/ebusd-*_mqtt1.deb ebusd.deb'
+debsrc='ebusd.deb \&\& rm -f ebusd.deb'
 copyentry='COPY --from=build /build/contrib/docker/docker-entrypoint.sh /'
 namesuffix=''
 replaceTemplate
