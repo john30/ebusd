@@ -8,11 +8,6 @@ manifests:
     platform:
       architecture: 386
       os: linux
-  - image: %image_name%-arm32v5
-    platform:
-      architecture: arm
-      os: linux
-      variant: v5
   - image: %image_name%-arm32v7
     platform:
       architecture: arm
