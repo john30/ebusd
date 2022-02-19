@@ -3,4 +3,5 @@ cmake-*
 **/CMakeFiles
 contrib/*
 !contrib/debian
+!contrib/docker/docker-entrypoint.sh
 !contrib/etc
