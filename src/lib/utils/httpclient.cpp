@@ -142,9 +142,6 @@ bool SSLSocket::isValid() {
   return time(nullptr) < m_until && !BIO_eof(m_bio);
 }
 
-// general switch for future insecure option
-static const bool verifyPeer = true;
-
 SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool https, int timeout, const char* caFile,
                               const char* caPath) {
   BIO *bio = nullptr;
@@ -173,6 +170,7 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool htt
       if (isError("ctx_new", ctx)) {
         break;
       }
+      bool verifyPeer = !caFile || strcmp(caFile, "#")!=0;
       SSL_CTX_set_verify(ctx, verifyPeer ? SSL_VERIFY_PEER : SSL_VERIFY_NONE, nullptr);
       if (verifyPeer) {
 #if OPENSSL_VERSION_NUMBER >= 0x10101000L

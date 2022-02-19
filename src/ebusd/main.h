@@ -52,6 +52,8 @@ struct options {
   unsigned int pollInterval;  //!< poll interval in seconds, 0 to disable [5]
   bool injectMessages;  //!< inject remaining arguments as already seen messages
   bool stopAfterInject;  //!< only inject messages once, then stop
+  const char* caFile;  //!< the CA file to use (uses defaults if neither caFile nor caPath are set), or "#" for insecure
+  const char* caPath;  //!< the path with CA files to use (uses defaults if neither caFile nor caPath are set)
 
   symbol_t address;  //!< own bus address [31]
   bool answer;  //!< answer to requests from other masters

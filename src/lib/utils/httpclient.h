@@ -67,7 +67,7 @@ class SSLSocket {
    * @param port the port number.
    * @param https true for HTTPS, false for HTTP.
    * @param timeout the connect, send, and receive timeout in seconds, or 0 for blocking mode.
-   * @param caFile the CA file to use (uses defaults if neither caFile nor caPath are set).
+   * @param caFile the CA file to use (uses defaults if neither caFile nor caPath are set), or "#" for insecure.
    * @param caPath the path with CA files to use (uses defaults if neither caFile nor caPath are set).
    * @return the connected SSLSocket, or nullptr on error.
    */
@@ -122,7 +122,7 @@ class HttpClient {
  public:
   /**
    * Constructor.
-   * @param caFile the CA file to use (uses defaults if neither caFile nor caPath are set).
+   * @param caFile the CA file to use (uses defaults if neither caFile nor caPath are set), or "#" for insecure.
    * @param caPath the path with CA files to use (uses defaults if neither caFile nor caPath are set).
    */
   explicit HttpClient(const char* caFile = nullptr, const char* caPath = nullptr) :

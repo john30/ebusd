@@ -91,6 +91,8 @@ static struct options s_opt = {
   5,  // pollInterval
   false,  // injectMessages
   false,  // stopAfterInject
+  nullptr,  // caFile
+  nullptr,  // caPath
 
   0x31,  // address
   false,  // answer
@@ -135,10 +137,10 @@ static MessageMap* s_messageMap = nullptr;
 static MainLoop* s_mainLoop = nullptr;
 
 /** the path prefix (including trailing "/") for retrieving configuration files from local files (empty for HTTPS). */
-static string s_configLocalPrefix;
+static string s_configLocalPrefix = "";
 
 /** the URI prefix (including trailing "/") for retrieving configuration files from HTTPS (empty for local files). */
-static string s_configUriPrefix;
+static string s_configUriPrefix = "";
 
 /** the @a HttpClient for retrieving configuration files from HTTPS. */
 static HttpClient* s_configHttpClient = nullptr;
@@ -153,7 +155,9 @@ static const char argpdoc[] =
 #define O_CHKCFG (O_CFGLNG+1)
 #define O_DMPCFG (O_CHKCFG+1)
 #define O_POLINT (O_DMPCFG+1)
-#define O_ANSWER (O_POLINT+1)
+#define O_CAFILE (O_POLINT+1)
+#define O_CAPATH (O_CAFILE+1)
+#define O_ANSWER (O_CAPATH+1)
 #define O_ACQTIM (O_ANSWER+1)
 #define O_ACQRET (O_ACQTIM+1)
 #define O_SNDRET (O_ACQRET+1)
@@ -205,6 +209,10 @@ static const struct argp_option argpoptions[] = {
   {"pollinterval",   O_POLINT, "SEC",      0, "Poll for data every SEC seconds (0=disable) [5]", 0 },
   {"inject",         'i',      "stop", OPTION_ARG_OPTIONAL, "Inject remaining arguments as already seen messages (e.g. "
       "\"FF08070400/0AB5454850303003277201\"), optionally stop afterwards", 0 },
+#ifdef HAVE_SSL
+  {"cafile",         O_CAFILE, "FILE",     0, "Use CA FILE for checking certificates (uses defaults, \"#\" for insecure)", 0 },
+  {"capath",         O_CAPATH, "PATH",     0, "Use CA PATH for checking certificates (uses defaults)", 0 },
+#endif  // HAVE_SSL
 
   {nullptr,          0,        nullptr,    0, "eBUS options:", 3 },
   {"address",        'a',      "ADDR",     0, "Use ADDR as own bus address [31]", 0 },
@@ -387,6 +395,12 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     }
     opt->injectMessages = true;
     opt->stopAfterInject = arg && strcmp("stop", arg) == 0;
+    break;
+  case O_CAFILE:  // --cafile=FILE
+    opt->caFile = arg;
+    break;
+  case O_CAPATH:  // --capath=PATH
+    opt->caPath = arg;
     break;
 
   // eBUS options:
@@ -779,7 +793,7 @@ void signalHandler(int sig) {
  */
 bool lazyHttpClient() {
   if (!s_configHttpClient) {
-    s_configHttpClient = new HttpClient();
+    s_configHttpClient = new HttpClient(s_opt.caFile, s_opt.caPath);
   }
   return true;
 }
