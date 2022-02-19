@@ -1,0 +1,6 @@
+.github
+cmake-*
+**/CMakeFiles
+contrib/*
+!contrib/debian
+!contrib/etc
