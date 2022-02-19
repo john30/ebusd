@@ -12,10 +12,9 @@ if [[ -n "$LIMITARCH" ]]; then
 fi
 if [[ -z "$1" ]] || [[ "x$1" == "xrelease" ]]; then
   UPLOAD_URL=
-elif [[ -z "$UPLOAD_URL" ]]; then
-  UPLOAD_URL="http://$1/ebusdreleaseupload.php"
+else
+  UPLOAD_CREDENTIALS=${UPLOAD_CREDENTIALS:-'anonymous:build'}
 fi
-UPLOAD_CREDENTIALS=${UPLOAD_CREDENTIALS:-'anonymous:build'}
 version=`cat ../../VERSION`
 source='../..'
 images='bullseye'
@@ -35,9 +34,12 @@ elif [[ "x$1" = "xrelease" ]]; then
   extratag="-t $tagprefix:latest"
 else
   namesuffix='.build'
-  target=build
+  target=deb
   images='bullseye buster stretch'
-  outputFmt=
+  if [[ -n "$LIMITIMG" ]]; then
+    images=$(echo " $images " | sed -e "s#.* \($LIMITIMG\) .*#\1#")
+  fi
+  outputFmt='-o out/%IMAGE%'
   tagsuffix=":v$version-prep"
 fi
 

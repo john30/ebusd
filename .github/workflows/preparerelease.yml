@@ -3,6 +3,10 @@ name: Prepare Release
 on:
   release:
     types: [ created ]
+  push:
+    branches: [ master ]
+    paths:
+      - 'VERSION'
   workflow_dispatch:
     inputs:
       limitarch:
@@ -15,6 +19,15 @@ on:
           - '386'
           - arm/v7
           - arm64
+      limitimg:
+        description: Limit to this image
+        required: false
+        type: choice
+        options:
+          - ''
+          - bullseye
+          - buster
+          - stretch
 
 jobs:
   prepare-release:
@@ -34,7 +47,16 @@ jobs:
           buildkitd-flags: --debug
       -
         name: build
-        run: cd contrib/docker && ./update.sh all && LIMITARCH=${{ github.event.inputs.limitarch }} ./build.sh deb
+        run: cd contrib/docker && ./update.sh all && ./build.sh deb
         env:
           UPLOAD_URL: ${{ secrets.UPLOAD_URL }}
           UPLOAD_CREDENTIALS: ${{ secrets.UPLOAD_CREDENTIALS }}
+          LIMITARCH: ${{ github.event.inputs.limitarch }}
+          LIMITIMG: ${{ github.event.inputs.limitimg }}
+      -
+        name: archive
+        uses: actions/upload-artifact@v2
+        with:
+          name: debian packages
+          path: |
+            contrib/docker/out
