@@ -45,7 +45,8 @@ COPY --from=build /build/ebusd-*_mqtt1.deb ebusd.deb
 
 RUN dpkg -i "--path-exclude=/etc/default/*" "--path-exclude=/etc/init.d/*" "--path-exclude=/lib/systemd/*" ebusd.deb \
     && ebusd -V \
-    && rm -f ebusd.deb
+    && rm -f ebusd.deb \
+    && update-ca-certificates
 
 EXPOSE 8888
 
