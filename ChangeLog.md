@@ -1,3 +1,14 @@
+# 22.2 (tbd)
+## Bug Fixes
+* fix for reconnect in HTTPS client
+* fix for potentially truncated float representation
+* fix for unmatchable incoming MQTT topics
+* fix for non-JSON MQTT payload format
+
+## Features
+* add --cafile and --capath options with support for insecure HTTPS connections
+
+
 # 22.1 (2022-02-12)
 ## Bug Fixes
 * fix smaller bugs related to cleanup
