@@ -52,7 +52,7 @@ jobs:
       -
         name: setup tmate
         uses: mxschmitt/action-tmate@v3.7
-        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled == 'true' }}
         timeout-minutes: 15
         with:
           limit-access-to-actor: true
