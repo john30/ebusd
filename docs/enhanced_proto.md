@@ -111,9 +111,11 @@ These are the predefined symbols as used above.
 The first level below is the `info_id` value and the second level describes the response data byte sequence.
 The first byte transferred in response is always the number of data bytes to be transferred (excluding the length itself).
  * 0x00: version  
-   * `length`: =2
+   * `length`: =5 (2 before 20220220)
    * `version`: version number
    * `features`: feature bits
+   * `checksum_H` `checksum_L`: checksum (since 20220220)
+   * `jumpers`: jumper settings
  * 0x01: PIC ID
    * `length`: =9
    * 9*`mui`: PIC MUI

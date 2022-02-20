@@ -613,8 +613,14 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
             ostringstream stream;
             switch ((m_infoLen << 8) | m_infoId) {
               case 0x0200:
+              case 0x0500: // with firmware version and jumper info
                 stream << "firmware " << static_cast<unsigned>(m_infoBuf[0]) << "." << std::hex
                        << static_cast<unsigned>(m_infoBuf[1]);
+                if (m_infoLen>4) {
+                  stream << " [" << std::hex << static_cast<unsigned>(m_infoBuf[2])
+                         << static_cast<unsigned>(m_infoBuf[3]) << "]";
+                  stream << ", jumpers 0x" << std::hex << static_cast<unsigned>(m_infoBuf[4]);
+                }
                 break;
               case 0x0901:
               case 0x0802:
@@ -622,6 +628,11 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
                 stream << std::hex << std::setfill('0');
                 for (uint8_t pos = 0; pos < m_infoPos; pos++) {
                   stream << " " << std::setw(2) << static_cast<unsigned>(m_infoBuf[pos]);
+                }
+                if (m_infoId == 2 && m_infoBuf[2]!=0x3f) {
+                  // non-default arbitration delay
+                  val = (m_infoBuf[2]&0x3f)*10;  // steps of 10us
+                  stream << ", arbitration delay " << std::dec << static_cast<unsigned>(val) << " us";
                 }
                 break;
               case 0x0203:
