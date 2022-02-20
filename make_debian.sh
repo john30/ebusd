@@ -102,11 +102,11 @@ if [ -n "$RUNTEST" ]; then
     (cd src/lib/ebus/test && make test_message && ./test_message) > test.txt || testdie "message"
     (cd src/lib/ebus/test && make test_symbol && ./test_symbol) > test.txt || testdie "symbol"
   fi
-  if [ "${ARCH#*arm}" = "$ARCH" ]; then
+#  if [ "${ARCH#*arm}" = "$ARCH" ]; then
     # only run on non-arm as crossbuild can't read some files
     ("$RELEASE/usr/bin/ebusd" -f -c src/lib/ebus/test -d /dev/null --log=all:debug --inject=stop 10fe0900040000803e/ > test.txt) || testdie "float conversion"
     egrep "received update-read broadcast test QQ=10: 0\.25$" test.txt || testdie "float result"
-  fi
+#  fi
 fi
 
 echo
