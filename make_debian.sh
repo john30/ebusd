@@ -94,6 +94,9 @@ if [ -n "$RUNTEST" ]; then
   testdie() {
     echo "test failed: $1"
     cat test.txt || true
+    ls -la src/lib/ebus/test
+    cat src/lib/ebus/test/test.csv || true
+    ls -la "$RELEASE/usr/bin/ebusd"
     exit 1
   }
   if [ "$RUNTEST" = "full" ]; then
