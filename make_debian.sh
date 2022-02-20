@@ -97,6 +97,22 @@ if [ -n "$RUNTEST" ]; then
     ls -la src/lib/ebus/test
     cat src/lib/ebus/test/test.csv || true
     ls -la "$RELEASE/usr/bin/ebusd"
+    cat > test.c << EOF
+#include <stdio.h>
+#include <string.h>
+int main() {
+  FILE* f = fopen("src/lib/ebus/test/test.csv", "r");
+  if (!f) {
+    return 1;
+  }
+  unsigned char buf[1024] = {};
+  int ret = fread(buf, 1023, 1, f);
+  fclose(f);
+  buf[1023] = 0;
+  printf("ret %d, buf len %ld=%s\n", ret, strlen(buf), buf);
+}
+EOF
+    gcc test.c && ./a.out
     exit 1
   }
   if [ "$RUNTEST" = "full" ]; then
