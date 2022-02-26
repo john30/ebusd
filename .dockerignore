@@ -1,7 +1,16 @@
+.cmake
+.git
 .github
+.idea
+.run
 cmake-*
 **/CMakeFiles
 contrib/*
 !contrib/debian
 !contrib/docker/docker-entrypoint.sh
 !contrib/etc
+dump*
+gen
+Testing
+src/ebusd/ebusd*
+*.deb
