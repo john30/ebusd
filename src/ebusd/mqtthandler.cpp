@@ -1347,7 +1347,8 @@ void MqttHandler::run() {
   ostringstream updates;
   unsigned int filterPriority = 0;
   unsigned int filterSeen = 0;
-  string filterCircuit, filterName, filterLevel, filterField, filterDirection;
+  string filterCircuit, filterNonCircuit, filterName, filterNonName, filterField, filterNonField,
+      filterLevel, filterDirection;
   vector<string> typeSwitchNames;
   if (m_hasDefinitionTopic) {
     result_t result = RESULT_OK;
@@ -1361,12 +1362,18 @@ void MqttHandler::run() {
     }
     filterCircuit = m_replacers["filter-circuit"];
     FileReader::tolower(&filterCircuit);
+    filterNonCircuit = m_replacers["filter-non-circuit"];
+    FileReader::tolower(&filterNonCircuit);
     filterName = m_replacers["filter-name"];
     FileReader::tolower(&filterName);
-    filterLevel = m_replacers["filter-level"];
-    FileReader::tolower(&filterLevel);
+    filterNonName = m_replacers["filter-non-name"];
+    FileReader::tolower(&filterNonName);
     filterField = m_replacers["filter-field"];
     FileReader::tolower(&filterField);
+    filterNonField = m_replacers["filter-non-field"];
+    FileReader::tolower(&filterNonField);
+    filterLevel = m_replacers["filter-level"];
+    FileReader::tolower(&filterLevel);
     filterDirection = m_replacers["filter-direction"];
     FileReader::tolower(&filterDirection);
     if (!m_typeSwitches.empty()) {
@@ -1451,7 +1458,9 @@ void MqttHandler::run() {
             continue;
           }
           if (!FileReader::matches(message->getCircuit(), filterCircuit, true, true)
+          || (!filterNonCircuit.empty() && FileReader::matches(message->getCircuit(), filterNonCircuit, true, true))
           || !FileReader::matches(message->getName(), filterName, true, true)
+          || (!filterNonName.empty() && FileReader::matches(message->getName(), filterNonName, true, true))
           || !FileReader::matches(message->getLevel(), filterLevel, true, true)) {
             continue;
           }
@@ -1491,7 +1500,8 @@ void MqttHandler::run() {
             if (fieldName.empty() && fieldCount == 1) {
               fieldName = "0";  // might occur for unnamed single field sets
             }
-            if (!FileReader::matches(fieldName, filterField, true, true)) {
+            if (!FileReader::matches(fieldName, filterField, true, true)
+            || (!filterNonField.empty() && FileReader::matches(fieldName, filterNonField, true, true))) {
               continue;
             }
             const DataType* dataType = field->getDataType();
