@@ -6,7 +6,11 @@
 * fix for non-JSON MQTT payload format
 
 ## Features
-* add --cafile and --capath options with support for insecure HTTPS connections
+* add "--cafile" and "--capath" options with support for insecure HTTPS connections
+* add support for extra infos of current adapter 3 firmware
+* add option to send message dump to a file
+* add "--mqttjson=short" option for smaller message payload
+* add negative filtering to MQTT integration
 
 
 # 22.1 (2022-02-12)
