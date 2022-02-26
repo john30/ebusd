@@ -9,6 +9,7 @@ fi
 archs=linux/amd64,linux/386,linux/arm/v7,linux/arm64
 if [[ -n "$LIMITARCH" ]]; then
   archs=$(echo ",$archs," | sed -e "s#.*,\([^,/]*/$LIMITARCH\),.*#\1#")
+  echo "limiting to arch $archs"
 fi
 if [[ -z "$1" ]] || [[ "x$1" == "xrelease" ]]; then
   UPLOAD_URL=
@@ -38,6 +39,7 @@ else
   images='bullseye buster stretch'
   if [[ -n "$LIMITIMG" ]]; then
     images=$(echo " $images " | sed -e "s#.* \($LIMITIMG\) .*#\1#")
+    echo "limiting to image $images"
   fi
   outputFmt='-o out/%IMAGE%'
   tagsuffix=":v$version-prep"
