@@ -2833,21 +2833,19 @@ void MessageMap::dump(bool withConditions, OutputFormat outputFormat, ostream* o
         if (!message) {
           continue;
         }
-        bool wasFirst = first;
         if (first) {
           first = false;
+        } else if (isJson) {
+          *output << ",\n";
         } else {
           *output << endl;
         }
         if (isJson) {
-          if (!wasFirst) {
-            *output << ",\n";
-          }
           ostringstream str;
           message->decodeJson(false, false, false, false, outputFormat, &str);
           string add = str.str();
           size_t pos = add.find('{');
-          *output << "\n    {\"circuit\": \"" << message->getCircuit() << "\", " << add.substr(pos+1);
+          *output << "   {\n    \"circuit\": \"" << message->getCircuit() << "\", " << add.substr(pos+1);
         } else {
           message->dump(nullptr, withConditions, outputFormat, output);
         }

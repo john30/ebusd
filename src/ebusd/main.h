@@ -48,7 +48,8 @@ struct options {
   symbol_t initialScan;
   const char* preferLanguage;  //!< preferred language in configuration files
   bool checkConfig;  //!< check config files, then stop
-  OutputFormat dumpConfig;   //!< dump config files, then stop
+  OutputFormat dumpConfig;  //!< dump config files, then stop
+  const char* dumpConfigTo;  //!< file to dump config to
   unsigned int pollInterval;  //!< poll interval in seconds, 0 to disable [5]
   bool injectMessages;  //!< inject remaining arguments as already seen messages
   bool stopAfterInject;  //!< only inject messages once, then stop

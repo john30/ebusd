@@ -88,6 +88,7 @@ static struct options s_opt = {
   getenv("LANG"),  // preferLanguage
   false,  // checkConfig
   OF_NONE,  // dumpConfig
+  nullptr,  // dumpConfigTo
   5,  // pollInterval
   false,  // injectMessages
   false,  // stopAfterInject
@@ -154,7 +155,8 @@ static const char argpdoc[] =
 #define O_CFGLNG (O_DEVLAT+1)
 #define O_CHKCFG (O_CFGLNG+1)
 #define O_DMPCFG (O_CHKCFG+1)
-#define O_POLINT (O_DMPCFG+1)
+#define O_DMPCTO (O_DMPCFG+1)
+#define O_POLINT (O_DMPCTO+1)
 #define O_CAFILE (O_POLINT+1)
 #define O_CAPATH (O_CAFILE+1)
 #define O_ANSWER (O_CAPATH+1)
@@ -206,6 +208,7 @@ static const struct argp_option argpoptions[] = {
   {"checkconfig",    O_CHKCFG, nullptr,    0, "Check config files, then stop", 0 },
   {"dumpconfig",     O_DMPCFG, "FORMAT", OPTION_ARG_OPTIONAL,
       "Check and dump config files in FORMAT (\"json\" or \"csv\"), then stop", 0 },
+  {"dumpconfigto",   O_DMPCTO, "FILE",     0, "Dump config files to FILE", 0 },
   {"pollinterval",   O_POLINT, "SEC",      0, "Poll for data every SEC seconds (0=disable) [5]", 0 },
   {"inject",         'i',      "stop", OPTION_ARG_OPTIONAL, "Inject remaining arguments as already seen messages (e.g. "
       "\"FF08070400/0AB5454850303003277201\"), optionally stop afterwards", 0 },
@@ -376,6 +379,13 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       return EINVAL;
     }
     opt->checkConfig = true;
+    break;
+  case O_DMPCTO:  // --dumpconfigto=FILE
+    if (!arg || arg[0] == 0) {
+      argp_error(state, "invalid dumpconfigto");
+      return EINVAL;
+    }
+    opt->dumpConfigTo = arg;
     break;
   case O_POLINT:  // --pollinterval=5
     opt->pollInterval = parseInt(arg, 10, 0, 3600, &result);
@@ -1409,8 +1419,25 @@ int main(int argc, char* argv[]) {
       overallResult = result;
     }
     if (result == RESULT_OK && s_opt.dumpConfig) {
-      logNotice(lf_main, "configuration dump:");
-      s_messageMap->dump(true, s_opt.dumpConfig, &cout);
+      ostream* out = &cout;
+      std::ofstream fout;
+      if (s_opt.dumpConfigTo) {
+        fout.open(s_opt.dumpConfigTo);
+        if (!fout.is_open()) {
+          logError(lf_main, "error dumping config to %s", s_opt.dumpConfigTo);
+        } else {
+          out = &fout;
+        }
+      }
+      if (fout.is_open()) {
+        logNotice(lf_main, "saving configuration dump to %s", s_opt.dumpConfigTo);
+      } else {
+        logNotice(lf_main, "configuration dump:");
+      }
+      s_messageMap->dump(true, s_opt.dumpConfig, out);
+      if (fout.is_open()) {
+        fout.close();
+      }
     }
 
     cleanup();
