@@ -72,7 +72,8 @@ static const struct argp_option g_mqtt_argp_options[] = {
   {"mqttqos",      O_PQOS, "QOS",        0, "Set the QoS value for all topics (0-2) [0]", 0 },
   {"mqttint",      O_INTF, "FILE",       0, "Read MQTT integration settings from FILE (no default)", 0 },
   {"mqttvar",      O_IVAR, "NAME=VALUE[,...]", 0, "Add variable(s) to the read MQTT integration settings", 0 },
-  {"mqttjson",     O_JSON, nullptr,      0, "Publish in JSON format instead of strings", 0 },
+  {"mqttjson",     O_JSON, "short", OPTION_ARG_OPTIONAL,
+   "Publish in JSON format instead of strings, optionally in short (value directly below field key)", 0 },
   {"mqttverbose",  O_VERB, nullptr,      0, "Publish all available attributes", 0 },
 #if (LIBMOSQUITTO_VERSION_NUMBER >= 1003001)
   {"mqttlog",      O_LOGL, nullptr,      0, "Log library events", 0 },
@@ -244,12 +245,15 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
     g_integrationVars = arg;
     break;
 
-  case O_JSON:  // --mqttjson
+  case O_JSON:  // --mqttjson[=short]
     g_publishFormat |= OF_JSON|OF_NAMES;
+    if (arg && strcmp("short", arg) == 0) {
+      g_publishFormat = (g_publishFormat & ~(OF_NAMES|OF_UNITS|OF_COMMENTS|OF_ALL_ATTRS)) | OF_SHORT;
+    }
     break;
 
   case O_VERB:  // --mqttverbose
-    g_publishFormat |= OF_NAMES|OF_UNITS|OF_COMMENTS|OF_ALL_ATTRS;
+    g_publishFormat = (g_publishFormat & ~OF_SHORT) | OF_NAMES|OF_UNITS|OF_COMMENTS|OF_ALL_ATTRS;
     break;
 
 #if (LIBMOSQUITTO_VERSION_NUMBER >= 1003001)
