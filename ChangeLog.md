@@ -11,6 +11,7 @@
 * add option to send message dump to a file
 * add "--mqttjson=short" option for smaller message payload
 * add negative filtering to MQTT integration
+* add rewrite outdated config path with the new one
 
 
 # 22.1 (2022-02-12)
