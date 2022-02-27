@@ -1,4 +1,4 @@
-# 22.2 (tbd)
+# 22.2 (2022-02-27)
 ## Bug Fixes
 * fix for reconnect in HTTPS client
 * fix for potentially truncated float representation
