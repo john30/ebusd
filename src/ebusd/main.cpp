@@ -64,11 +64,17 @@ using std::cout;
 #define LOG_FILE_NAME "/var/log/ebusd.log"
 #endif
 
+/** the config path part behind the scheme (scheme without "://"). */
+#define CONFIG_PATH_SUFFIX "://cfg.ebusd.eu/"
+
+/** the previous config path part to rewrite to the current one. */
+#define PREVIOUS_CONFIG_PATH_SUFFIX "://ebusd.eu/config/"
+
 /** the default path of the configuration files. */
 #ifdef HAVE_SSL
-#define CONFIG_PATH "https://cfg.ebusd.eu/"
+#define CONFIG_PATH "https" CONFIG_PATH_SUFFIX
 #else
-#define CONFIG_PATH "http://cfg.ebusd.eu/"
+#define CONFIG_PATH "http" CONFIG_PATH_SUFFIX
 #endif
 
 /** the opened PID file, or nullptr. */
@@ -82,7 +88,6 @@ static struct options s_opt = {
   false,  // initialSend
   0,  // extraLatency
 
-  CONFIG_PATH,  // configPath
   false,  // scanConfig
   0,  // initialScan
   getenv("LANG"),  // preferLanguage
@@ -136,6 +141,9 @@ static MessageMap* s_messageMap = nullptr;
 
 /** the @a MainLoop instance, or nullptr. */
 static MainLoop* s_mainLoop = nullptr;
+
+/** the (optionally corrected) config path for retrieving configuration files from. */
+static string s_configPath = CONFIG_PATH;
 
 /** the path prefix (including trailing "/") for retrieving configuration files from local files (empty for HTTPS). */
 static string s_configLocalPrefix = "";
@@ -327,7 +335,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       argp_error(state, "invalid configpath");
       return EINVAL;
     }
-    opt->configPath = arg;
+    s_configPath = arg;
     break;
   case 's':  // --scanconfig[=ADDR] (ADDR=<empty>|full|<hexaddr>)
     opt->scanConfig = true;
@@ -1056,7 +1064,7 @@ result_t loadDefinitionsFromConfigPath(FileReader* reader, const string& filenam
 }
 
 result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive) {
-  logInfo(lf_main, "loading configuration files from %s", s_opt.configPath);
+  logInfo(lf_main, "loading configuration files from %s", s_configPath.c_str());
   messages->lock();
   messages->clear();
   s_globalTemplates.clear();
@@ -1074,8 +1082,8 @@ result_t loadConfigFiles(MessageMap* messages, bool verbose, bool denyRecursive)
   if (result == RESULT_OK) {
     logInfo(lf_main, "read config files, got %d messages", messages->size());
   } else {
-    logError(lf_main, "error reading config files from %s: %s, last error: %s", s_opt.configPath,
-        getResultCode(result), errorDescription.c_str());
+    logError(lf_main, "error reading config files from %s: %s, last error: %s", s_configPath.c_str(),
+             getResultCode(result), errorDescription.c_str());
   }
   messages->unlock();
   return s_opt.checkConfig ? result : RESULT_OK;
@@ -1350,17 +1358,25 @@ int main(int argc, char* argv[]) {
     return EINVAL;
   }
 
-  string configPath = string(s_opt.configPath);
-  if (configPath.find("://") == string::npos) {
-    s_configLocalPrefix = configPath[configPath.length()-1] == '/' ? configPath : configPath + "/";
+  if (!s_configPath.empty() && s_configPath[s_configPath.length()-1] != '/') {
+    s_configPath += "/";
+  }
+  if (s_configPath.find("://") == string::npos) {
+    s_configLocalPrefix = s_configPath;
   } else {
     if (!s_opt.scanConfig) {
       logError(lf_main, "invalid configpath without scanconfig");
       return EINVAL;
     }
+    size_t pos = s_configPath.find(PREVIOUS_CONFIG_PATH_SUFFIX);
+    if (pos != string::npos) {
+      string newPath = s_configPath.substr(0, pos) + CONFIG_PATH_SUFFIX + s_configPath.substr(pos+strlen(PREVIOUS_CONFIG_PATH_SUFFIX));
+      logNotice(lf_main, "replaced old configPath %s with new one: %s", s_configPath.c_str(), newPath.c_str());
+      s_configPath = newPath;
+    }
     uint16_t configPort = 80;
     string proto, configHost;
-    if (!HttpClient::parseUrl(configPath, &proto, &configHost, &configPort, &s_configUriPrefix)) {
+    if (!HttpClient::parseUrl(s_configPath, &proto, &configHost, &configPort, &s_configUriPrefix)) {
       logError(lf_main, "invalid configPath URL");
       return EINVAL;
     }
