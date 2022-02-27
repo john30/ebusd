@@ -8,7 +8,8 @@ pkgdesc="ebusd, the daemon for communication with eBUS heating systems."
 arch=('i686' 'x86_64' 'armv6h' 'armv7h' 'aarch64')
 url=https://github.com/john30/ebusd/
 license=('GPL3')
-depends=()
+depends=('mosquitto' 'openssl' 'ca-certificates')
+makedepends=()
 optdepends=()
 conflicts=('ebusd' 'ebusd-git')
 provides=('ebusd')
@@ -35,6 +36,9 @@ package() {
   install -m 0644 contrib/archlinux/systemd/ebusd.service "${pkgdir}/usr/lib/systemd/system"
   install -d                                              "${pkgdir}/etc/conf.d"
   install -m 0644 contrib/archlinux/conf.d/ebusd          "${pkgdir}/etc/conf.d/ebusd"
+  install -d                                              "${pkgdir}/etc/ebusd"
+  install -m 0644 contrib/etc/ebusd/mqtt-hassio.cfg       "${pkgdir}/etc/ebusd/mqtt-hassio.cfg"
+  install -m 0644 contrib/etc/ebusd/mqtt-integration.cfg  "${pkgdir}/etc/ebusd/mqtt-integration.cfg"
 }
 # update md5sums: updpkgsums
 md5sums=('a18ebd8f16cefdf9e50f277fe2cb2348')
