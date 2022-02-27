@@ -17,7 +17,7 @@ EBUSD_OPTS="--scanconfig"
 
 # MULTIPLE EBUSD INSTANCES WITH SYSTEMD
 # In order to run muiltiple ebusd instances on a systemd enabled system, just
-# copy the /usr/lib/systemd/system/ebusd.service file to /etc/systemd/system/
+# copy the /lib/systemd/system/ebusd.service file to /etc/systemd/system/
 # with a different name (e.g. ebusd-2.service), remove the line starting with
 # 'EnvironmentFile=', and replace the '$EBUSD_OPTS' with the options for that
 # particular ebusd instance.
