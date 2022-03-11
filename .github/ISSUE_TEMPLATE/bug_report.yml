@@ -36,6 +36,8 @@ body:
       options:
         - current source from git
         - latest release
+        - '22.2'
+        - '22.1'
         - '21.3'
         - '21.2'
         - other
