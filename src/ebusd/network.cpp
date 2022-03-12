@@ -24,6 +24,8 @@
 #ifdef HAVE_PPOLL
 #  include <poll.h>
 #endif
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <cstring>
 #include "lib/utils/log.h"
 
@@ -184,8 +186,7 @@ void Connection::run() {
   }
 
   if (m_socket) {
-    delete m_socket;
-    m_socket = nullptr;
+    shutdown(sockFD, SHUT_RD);
   }
   time(&m_endedAt);
   logInfo(lf_network, "[%05d] connection closed", getID());
