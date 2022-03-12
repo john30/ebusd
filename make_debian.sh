@@ -102,11 +102,9 @@ if [ -n "$RUNTEST" ]; then
     (cd src/lib/ebus/test && make test_message && ./test_message) > test.txt || testdie "message"
     (cd src/lib/ebus/test && make test_symbol && ./test_symbol) > test.txt || testdie "symbol"
   fi
-  if [ "${ARCH#*arm}" = "$ARCH" ]; then
-    # only run on non-arm as crossbuild can't read some files
-    ("$RELEASE/usr/bin/ebusd" -f -c src/lib/ebus/test -d /dev/null --log=all:debug --inject=stop 10fe0900040000803e/ > test.txt) || testdie "float conversion"
-    egrep "received update-read broadcast test QQ=10: 0\.25$" test.txt || testdie "float result"
-  fi
+  # note: this can't run on file system base when using qemu for arm 32bit and host is 64bit due to glibc readdir() inode 32 bit values (see https://bugs.launchpad.net/qemu/+bug/1805913), thus using test end point instead:
+  ("$RELEASE/usr/bin/ebusd" -f -s -c https://cfg.ebusd.eu/test -d /dev/null --log=all:debug --inject=stop 10fe0900040000803e/ > test.txt) || testdie "float conversion"
+  egrep "received update-read broadcast test QQ=10: 0\.25$" test.txt || testdie "float result"
 fi
 
 echo
