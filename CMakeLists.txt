@@ -155,6 +155,6 @@ add_subdirectory(src/tools)
 
 if(EXISTS "${ROOT}/etc/debian_version")
   install(FILES ${CMAKE_SOURCE_DIR}/contrib/debian/default/ebusd DESTINATION /etc/default/)
-  install(FILES ${CMAKE_SOURCE_DIR}/contrib/debian/init.d/ebusd  DESTINATION /etc/init.d/)
-  install(FILES ${CMAKE_SOURCE_DIR}/contrib/debian/systemd/ebusd.service  DESTINATION /lib/systemd/system/)
+  install(FILES ${CMAKE_SOURCE_DIR}/contrib/debian/init.d/ebusd DESTINATION /etc/init.d/)
+  install(FILES ${CMAKE_SOURCE_DIR}/contrib/debian/systemd/ebusd.service DESTINATION /lib/systemd/system/)
 endif()
