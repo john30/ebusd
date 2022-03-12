@@ -143,7 +143,7 @@ string fetchData(ebusd::TCPSocket* socket, bool &listening, uint16_t timeout, bo
 
   // set timeout
   tdiff.tv_sec = 0;
-  tdiff.tv_nsec = 1E8;
+  tdiff.tv_nsec = 200000000;  // 200 ms
   time_t now;
   time(&now);
   time_t endTime = now + timeout;
@@ -153,11 +153,14 @@ string fetchData(ebusd::TCPSocket* socket, bool &listening, uint16_t timeout, bo
 
   memset(fds, 0, sizeof(fds));
 
-  fds[0].fd = STDIN_FILENO;
-  fds[0].events = POLLIN | POLLERR | POLLHUP | POLLRDHUP;
+#define IDX_STDIN 1
+#define IDX_SOCK 0
 
-  fds[1].fd = socket->getFD();
-  fds[1].events = POLLIN | POLLERR | POLLHUP | POLLRDHUP;
+  fds[IDX_STDIN].fd = STDIN_FILENO;
+  fds[IDX_STDIN].events = POLLIN | POLLERR | POLLHUP | POLLRDHUP;
+
+  fds[IDX_SOCK].fd = socket->getFD();
+  fds[IDX_SOCK].events = POLLIN | POLLERR | POLLHUP | POLLRDHUP;
 #else
 #ifdef HAVE_PSELECT
   int maxfd;
@@ -173,6 +176,7 @@ string fetchData(ebusd::TCPSocket* socket, bool &listening, uint16_t timeout, bo
 #endif
 #endif
 
+  bool inputClosed = false;
   while (!errored && time(&now) && now < endTime) {
 #ifdef HAVE_PPOLL
     // wait for new fd event
@@ -182,9 +186,17 @@ string fetchData(ebusd::TCPSocket* socket, bool &listening, uint16_t timeout, bo
       errored = true;
       break;
     }
-    if (ret > 0 && ((fds[0].revents & POLLERR) || (fds[1].revents & POLLERR))) {
+    if (ret > 0 && ((fds[IDX_STDIN].revents & POLLERR) || (fds[IDX_SOCK].revents & POLLERR))) {
       errored = true;
-    } else if (ret > 0 && ((fds[0].revents & (POLLHUP | POLLRDHUP)) || (fds[1].revents & (POLLHUP | POLLRDHUP)))) {
+      break;
+    }
+    if (ret > 0 && (fds[IDX_STDIN].revents & (POLLHUP | POLLRDHUP))) {
+      inputClosed = true;  // wait once more for data to arrive
+      nfds = 1;  // stop polling stdin
+    } else if (inputClosed && !errored) {
+      errored = true;
+    }
+    if (ret > 0 && (fds[IDX_SOCK].revents & (POLLHUP | POLLRDHUP))) {
       errored = true;
     }
 #else
@@ -201,10 +213,10 @@ string fetchData(ebusd::TCPSocket* socket, bool &listening, uint16_t timeout, bo
     if (ret != 0) {
 #ifdef HAVE_PPOLL
       // new data from notify
-      newInput = fds[0].revents & POLLIN;
+      newInput = fds[IDX_STDIN].revents & POLLIN;
 
       // new data from socket
-      newData = fds[1].revents & POLLIN;
+      newData = fds[IDX_SOCK].revents & POLLIN;
 #else
 #ifdef HAVE_PSELECT
       // new data from notify
