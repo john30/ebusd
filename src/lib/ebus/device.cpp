@@ -596,10 +596,10 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
       case ENH_RES_RECEIVED:
         *value = data;
         if (data == SYN && *arbitrationState == as_running && m_arbitrationCheck) {
-          if (m_arbitrationCheck < 2) {  // wait for two SYN symbols before switching to timeout
+          if (m_arbitrationCheck < 3) {  // wait for three SYN symbols before switching to timeout
             m_arbitrationCheck++;
           } else {
-            *arbitrationState = as_lost;
+            *arbitrationState = as_timeout;
             m_arbitrationMaster = SYN;
             m_arbitrationCheck = 0;
           }

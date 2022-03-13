@@ -652,7 +652,8 @@ result_t BusHandler::handleSymbol() {
   }
   switch (arbitrationState) {
     case as_lost:
-      logDebug(lf_bus, "arbitration lost");
+    case as_timeout:
+      logDebug(lf_bus, arbitrationState == as_lost ? "arbitration lost" : "arbitration lost (timed out)");
       if (m_currentRequest == nullptr) {
         BusRequest *startRequest = m_nextRequests.peek();
         if (startRequest != nullptr && m_nextRequests.remove(startRequest)) {

@@ -61,6 +61,7 @@ enum ArbitrationState {
   as_error,    //!< error while sending master address
   as_running,  //!< arbitration currently running (master address sent, waiting for reception)
   as_lost,     //!< arbitration lost
+  as_timeout,  //!< arbitration timed out
   as_won,      //!< arbitration won
 };
 
