@@ -149,6 +149,7 @@ result_t Device::afterOpen() {
     symbol_t buf[2] = makeEnhancedSequence(ENH_REQ_INIT, 0x01);  // extra feature: info
 #ifdef DEBUG_RAW_TRAFFIC
     fprintf(stdout, "raw enhanced > %2.2x %2.2x\n", buf[0], buf[1]);
+    fflush(stdout);
 #endif
     if (::write(m_fd, buf, 2) != 2) {
       return RESULT_ERR_SEND;
@@ -196,6 +197,7 @@ result_t Device::requestEnhancedInfo(symbol_t infoId) {
   symbol_t buf[2] = makeEnhancedSequence(ENH_REQ_INFO, infoId);
 #ifdef DEBUG_RAW_TRAFFIC
   fprintf(stdout, "raw enhanced > %2.2x %2.2x\n", buf[0], buf[1]);
+  fflush(stdout);
 #endif
   m_infoPos = 0;
   m_infoId = infoId;
@@ -422,11 +424,13 @@ bool Device::write(symbol_t value, bool startArbitration) {
     symbol_t buf[2] = makeEnhancedSequence(startArbitration ? ENH_REQ_START : ENH_REQ_SEND, value);
 #ifdef DEBUG_RAW_TRAFFIC
     fprintf(stdout, "raw enhanced > %2.2x %2.2x\n", buf[0], buf[1]);
+    fflush(stdout);
 #endif
     return ::write(m_fd, buf, 2) == 2;
   }
 #ifdef DEBUG_RAW_TRAFFIC
   fprintf(stdout, "raw > %2.2x\n", value);
+  fflush(stdout);
 #endif
   return ::write(m_fd, &value, 1) == 1;
 }
@@ -444,6 +448,7 @@ bool Device::available() {
     if (!(ch&ENH_BYTE_FLAG)) {
 #ifdef DEBUG_RAW_TRAFFIC
       fprintf(stdout, "raw avail direct\n");
+      fflush(stdout);
 #endif
       return true;
     }
@@ -456,6 +461,7 @@ bool Device::available() {
       if (!(ch&ENH_BYTE_FLAG) || (ch&ENH_BYTE_MASK) != ENH_BYTE2) {
 #ifdef DEBUG_RAW_TRAFFIC
         fprintf(stdout, "raw avail enhanced following bad\n");
+        fflush(stdout);
 #endif
         if (m_listener != nullptr) {
           m_listener->notifyStatus(true, "unexpected available enhanced following byte 1");
@@ -468,11 +474,13 @@ bool Device::available() {
       }
 #ifdef DEBUG_RAW_TRAFFIC
       fprintf(stdout, "raw avail enhanced\n");
+      fflush(stdout);
 #endif
       return true;
     }
 #ifdef DEBUG_RAW_TRAFFIC
     fprintf(stdout, "raw avail enhanced bad\n");
+    fflush(stdout);
 #endif
     if (m_listener != nullptr) {
       m_listener->notifyStatus(true, "unexpected available enhanced byte 2");
@@ -515,11 +523,12 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
       return false;
     }
 #ifdef DEBUG_RAW_TRAFFIC
-    fprintf(stdout, "raw <");
+    fprintf(stdout, "raw %ld+%ld <", m_bufLen, size);
     for (int pos=0; pos < size; pos++) {
       fprintf(stdout, " %2.2x", m_buffer[m_bufLen+pos]);
     }
     fprintf(stdout, "\n");
+    fflush(stdout);
 #endif
     m_bufLen += size;
   }
