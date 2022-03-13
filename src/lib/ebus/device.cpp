@@ -290,11 +290,9 @@ result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* a
     cancelRunningArbitration(arbitrationState);
     return RESULT_ERR_DEVICE;
   }
-  bool repeat = false;
   bool repeated = false;
   timeout += m_latency;
   do {
-    repeat = false;
     bool isAvailable = available();
     if (!isAvailable && timeout > 0) {
       int ret;
@@ -347,17 +345,17 @@ result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* a
 
     // directly read byte from device
     bool incomplete = false;
-    if (!read(value, isAvailable, arbitrationState, &incomplete)) {
-      if (!isAvailable && incomplete && !repeated) {
-        // for a two-byte transfer another poll is needed
-        repeat = true;
-        repeated = true;
-        timeout = m_latency+ENHANCED_COMPLETE_WAIT_DURATION;
-        continue;
-      }
-      return RESULT_ERR_TIMEOUT;
+    if (read(value, isAvailable, arbitrationState, &incomplete)) {
+      break;  // don't repeat on successful read
     }
-  } while (repeat);
+    if (!isAvailable && incomplete && !repeated) {
+      // for a two-byte transfer another poll is needed
+      repeated = true;
+      timeout = m_latency+ENHANCED_COMPLETE_WAIT_DURATION;
+      continue;
+    }
+    return RESULT_ERR_TIMEOUT;
+  } while (true);
   if (m_enhancedProto || *value != SYN || m_arbitrationMaster == SYN) {
     if (m_listener != nullptr) {
       m_listener->notifyDeviceData(*value, true);
