@@ -364,8 +364,7 @@ bool mqtthandler_register(UserInfo* userInfo, BusHandler* busHandler, MessageMap
     int revision = -1;
     mosquitto_lib_version(&major, &minor, &revision);
     if (major < LIBMOSQUITTO_MAJOR) {
-      logOtherError("mqtt", "invalid mosquitto version %d instead of %d", major, LIBMOSQUITTO_MAJOR);
-      return false;
+      logOtherError("mqtt", "invalid mosquitto version %d instead of %d, will try connecting anyway", major, LIBMOSQUITTO_MAJOR);
     }
     logOtherInfo("mqtt", "mosquitto version %d.%d.%d (compiled with %d.%d.%d)", major, minor, revision,
       LIBMOSQUITTO_MAJOR, LIBMOSQUITTO_MINOR, LIBMOSQUITTO_REVISION);
