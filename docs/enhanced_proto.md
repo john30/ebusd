@@ -95,6 +95,8 @@ These are the predefined symbols as used above.
  * STARTED 0x2
  * INFO 0x3
  * FAILED 0xa
+ * ERROR_EBUS 0xb
+ * ERROR_HOST 0xc
 
 ### Error codes (from interface to ebusd)
  * ERR_FRAMING 0x00: framing error
