@@ -290,8 +290,9 @@ class Device {
   /** the arbitration master address to send when in arbitration, or @a SYN. */
   symbol_t m_arbitrationMaster;
 
-  /** true when in arbitration and the next received symbol needs to be checked against the sent master address. */
-  bool m_arbitrationCheck;
+  /** >0 when in arbitration and the next received symbol needs to be checked against the sent master address,
+   * incremented with each received SYN when arbitration was not performed as expected and needs to be stopped. */
+  size_t m_arbitrationCheck;
 
   /** the read buffer. */
   symbol_t* m_buffer;

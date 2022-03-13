@@ -81,7 +81,7 @@ Device::Device(const char* name, bool checkDevice, unsigned int latency, bool re
   : m_name(name), m_checkDevice(checkDevice),
     m_latency(HOST_LATENCY_MS+(enhancedProto?ENHANCED_LATENCY_MS:0)+latency), m_readOnly(readOnly),
     m_initialSend(initialSend), m_enhancedProto(enhancedProto), m_fd(-1), m_listener(nullptr), m_arbitrationMaster(SYN),
-    m_arbitrationCheck(false), m_bufSize(((MAX_LEN+1+3)/4)*4), m_bufLen(0), m_bufPos(0),
+    m_arbitrationCheck(0), m_bufSize(((MAX_LEN+1+3)/4)*4), m_bufLen(0), m_bufPos(0),
     m_extraFatures(0), m_infoId(0xff), m_infoLen(0), m_infoPos(0) {
   m_buffer = reinterpret_cast<symbol_t*>(malloc(m_bufSize));
   if (!m_buffer) {
@@ -269,7 +269,7 @@ bool Device::cancelRunningArbitration(ArbitrationState* arbitrationState) {
   if (m_enhancedProto && m_arbitrationMaster != SYN) {
     *arbitrationState = as_error;
     m_arbitrationMaster = SYN;
-    m_arbitrationCheck = false;
+    m_arbitrationCheck = 0;
     write(SYN, true);
     return true;
   }
@@ -278,7 +278,7 @@ bool Device::cancelRunningArbitration(ArbitrationState* arbitrationState) {
   }
   *arbitrationState = as_error;
   m_arbitrationMaster = SYN;
-  m_arbitrationCheck = false;
+  m_arbitrationCheck = 0;
   return true;
 }
 
@@ -366,7 +366,7 @@ result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* a
       if (m_arbitrationCheck) {
         *arbitrationState = *value == m_arbitrationMaster ? as_won : as_lost;
         m_arbitrationMaster = SYN;
-        m_arbitrationCheck = false;
+        m_arbitrationCheck = 0;
       } else {
         *arbitrationState = m_arbitrationMaster == SYN ? as_none : as_start;
       }
@@ -385,7 +385,7 @@ result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* a
   if (m_listener != nullptr) {
     m_listener->notifyDeviceData(m_arbitrationMaster, false);
   }
-  m_arbitrationCheck = true;
+  m_arbitrationCheck = 1;
   *arbitrationState = as_running;
   return RESULT_OK;
 }
@@ -395,7 +395,7 @@ result_t Device::startArbitration(symbol_t masterAddress) {
     if (masterAddress != SYN) {
       return RESULT_ERR_ARB_RUNNING;  // should not occur
     }
-    m_arbitrationCheck = false;
+    m_arbitrationCheck = 0;
     m_arbitrationMaster = SYN;
     if (m_enhancedProto) {
       // cancel running arbitration
@@ -414,7 +414,7 @@ result_t Device::startArbitration(symbol_t masterAddress) {
       m_arbitrationMaster = SYN;
       return RESULT_ERR_SEND;
     }
-    m_arbitrationCheck = true;
+    m_arbitrationCheck = 1;
   }
   return RESULT_OK;
 }
@@ -583,7 +583,7 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
           m_listener->notifyDeviceData(data, false);
         }
         m_arbitrationMaster = SYN;
-        m_arbitrationCheck = false;
+        m_arbitrationCheck = 0;
         *value = data;
         return true;
       case ENH_RES_FAILED:
@@ -592,17 +592,26 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
           m_listener->notifyDeviceData(m_arbitrationMaster, false);
         }
         m_arbitrationMaster = SYN;
-        m_arbitrationCheck = false;
+        m_arbitrationCheck = 0;
         *value = data;
         return true;
       case ENH_RES_RECEIVED:
         *value = data;
+        if (data == SYN && *arbitrationState == as_running && m_arbitrationCheck) {
+          if (m_arbitrationCheck < 2) {  // wait for two SYN symbols before switching to timeout
+            m_arbitrationCheck++;
+          } else {
+            *arbitrationState = as_lost;
+            m_arbitrationMaster = SYN;
+            m_arbitrationCheck = 0;
+          }
+        }
         return true;
       case ENH_RES_RESETTED:
         if (*arbitrationState != as_none) {
           *arbitrationState = as_error;
           m_arbitrationMaster = SYN;
-          m_arbitrationCheck = false;
+          m_arbitrationCheck = 0;
         }
         m_extraFatures = data;
         if (m_listener != nullptr) {
