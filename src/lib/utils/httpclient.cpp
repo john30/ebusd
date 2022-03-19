@@ -46,7 +46,7 @@ using std::hex;
 #endif
 
 // the time slice to sleep between repeated SSL reads/writes
-#define SLEEP_NANOS 50000
+#define SLEEP_NANOS 20000
 
 bool checkError(const char* call) {
   unsigned long err = ERR_get_error();
@@ -149,7 +149,7 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool htt
   ostringstream ostr;
   ostr << host << ':' << static_cast<unsigned>(port);
   const string hostPort = ostr.str();
-  time_t until = time(nullptr) + (timeout <= 2 ? 2 : timeout);  // at least 2 seconds
+  time_t until = time(nullptr) + (timeout <= 3 ? 3 : timeout);  // at least 3 seconds
   if (!https) {
     do {
       bio = BIO_new_connect(hostPort.c_str());
@@ -207,7 +207,7 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool htt
         break;
       }
       long res = BIO_do_connect(bio);
-      while (res != 1 && BIO_should_retry(bio) && time(nullptr) < until) {
+      while (res <= 0 && BIO_should_retry(bio) && time(nullptr) < until) {
         usleep(SLEEP_NANOS);
         res = BIO_do_connect(bio);
       }

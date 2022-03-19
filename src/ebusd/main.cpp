@@ -1382,7 +1382,7 @@ int main(int argc, char* argv[]) {
     }
     if (!lazyHttpClient()
     || !s_configHttpClient->connect(configHost, configPort, proto == "https", PACKAGE_NAME "/" PACKAGE_VERSION)) {
-      logError(lf_main, "invalid configPath URL");
+      logError(lf_main, "invalid configPath URL (connect)");
       cleanup();
       return EINVAL;
     }
