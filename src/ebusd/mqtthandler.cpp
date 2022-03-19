@@ -1020,6 +1020,9 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
     m_replacers.set("version", PACKAGE_VERSION);
     if (m_replacers["prefix"].empty()) {
       string line = m_replacers.get("topic", true);
+      if (line.empty() || line=="/") {
+        line = string(PACKAGE);  // ensure prefix if cmdline topic is absent
+      }
       m_replacers.set("prefix", line);
       m_replacers.set("prefixn", removeTrailingNonTopicPart(line));
     }
