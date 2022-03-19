@@ -1,3 +1,14 @@
+# 22.3 (tbd)
+## Bug Fixes
+* fix potential race condition in connection handling
+* fix ebusctl final read
+* fix missing MQTT topic prefix with "--mqttint=..."
+
+## Features
+* add timeout check to arbitration
+* add allow using older libmosquitto version
+
+
 # 22.2 (2022-02-27)
 ## Bug Fixes
 * fix for reconnect in HTTPS client
