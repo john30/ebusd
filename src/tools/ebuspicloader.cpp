@@ -673,20 +673,24 @@ int openNet(std::string host, uint16_t port) {
     struct hostent* he;
     he = gethostbyname(host.c_str());
     if (he == nullptr) {
+      std::cerr << "unable to resolve host " << host << std::endl;
       return -1;
     }
     memcpy(&address.sin_addr, he->h_addr_list[0], he->h_length);
   } else if (inet_aton(host.c_str(), &address.sin_addr) == 0) {
+    std::cerr << "unable to resolve IP " << host << std::endl;
     return -1;
   }
   address.sin_family = AF_INET;
   address.sin_port = (in_port_t)htons(port);
   int fd = socket(AF_INET, SOCK_STREAM, 0);
   if (fd < 0) {
+    std::cerr << "unable to open " << host << std::endl;
     return -1;
   }
   if (connect(fd, (struct sockaddr *) &address, sizeof(address)) != 0) {
     close(fd);
+    std::cerr << "unable to connect to " << host << std::endl;
     return -1;
   }
   fcntl(fd, F_SETFL, O_NONBLOCK);  // set non-blocking
