@@ -82,7 +82,7 @@ else
 fi
 ldd $RELEASE/usr/bin/ebusd | egrep -q libssl.so.1.1
 if [ $? -eq 0 ]; then
-  extralibs="$extralibs, libssl1.1 (>= 1.1.0)"
+  extralibs="$extralibs, libssl1.1 (>= 1.1.0), ca-certificates"
 fi
 
 if [ -n "$RUNTEST" ]; then
