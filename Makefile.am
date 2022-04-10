@@ -22,7 +22,7 @@ install-data-hook:
 	  cp -n $(srcdir)/contrib/debian/default/ebusd $(DESTDIR)/etc/default/; \
 	  cp $(srcdir)/contrib/debian/init.d/ebusd $(DESTDIR)/etc/init.d/; \
 	  cp $(srcdir)/contrib/debian/systemd/ebusd.service $(DESTDIR)/lib/systemd/system/; \
-	fi \
+	fi; \
 	$(MQTT_INST_ADD)
 
 test:
