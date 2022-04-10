@@ -50,6 +50,7 @@ bool DataType::dump(OutputFormat outputFormat, size_t length, bool appendDivisor
     if (outputFormat & OF_ALL_ATTRS) {
       *output << ", \"isadjustable\": " << (isAdjustableLength() ? "true" : "false");
       *output << ", \"isignored\": " << (isIgnored() ? "true" : "false");
+      *output << ", \"isreverse\": " << (hasFlag(REV) ? "true" : "false");
     }
     *output << ", \"length\": ";
     if (isAdjustableLength() && length == REMAIN_LEN) {

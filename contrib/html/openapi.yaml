@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: ebusd-http
   description: The API that ebusd provides on HTTP port.
-  version: "21.3"
+  version: "22.3"
 servers:
   - url: http://127.0.0.1:8080/
 paths:
@@ -530,6 +530,9 @@ components:
         isignored:
           type: boolean
           description: whether the result is ignored.
+        isreverse:
+          type: boolean
+          description: whether the symbols are in reverse order (most significant byte first).
         length:
           type: number
           minimum: -1
