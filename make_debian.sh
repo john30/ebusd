@@ -140,7 +140,7 @@ EOF
 cat <<EOF > $RELEASE/DEBIAN/conffiles
 /etc/default/ebusd
 EOF
-if [ -d "$RELEASE/etc/ebusd" ]; then
+if ls $RELEASE/etc/ebusd/* >/dev/null 2>&1 ; then
   echo '/etc/ebusd' >> $RELEASE/DEBIAN/dirs
   (cd $RELEASE && for i in etc/ebusd/*; do echo "/$i"; done) >> $RELEASE/DEBIAN/conffiles
 fi

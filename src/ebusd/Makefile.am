@@ -37,6 +37,3 @@ endif
 distclean-local:
 	-rm -f Makefile.in
 	-rm -rf .libs
-
-install-data-local:
-	[ -d $(DESTDIR)$(sysconfdir)/ebusd ] || mkdir -p $(DESTDIR)$(sysconfdir)/ebusd

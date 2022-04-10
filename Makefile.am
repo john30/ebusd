@@ -12,12 +12,12 @@ EXTRA_DIST = LICENSE \
 	VERSION
 
 if MQTT
-MQTT_INST_ADD = mkdir -p $(DESTDIR)/etc/ebusd/; \
-	cp -n $(srcdir)/contrib/etc/ebusd/mqtt-*.cfg $(DESTDIR)/etc/ebusd
+MQTT_INST_ADD = cp -n $(srcdir)/contrib/etc/ebusd/mqtt-*.cfg $(DESTDIR)$(sysconfdir)/ebusd
 endif
 
 install-data-hook:
-	@if [ -f "/etc/debian_version" ]; then \
+	@[ -d $(DESTDIR)$(sysconfdir)/ebusd ] || mkdir -p $(DESTDIR)$(sysconfdir)/ebusd; \
+	if [ -f "/etc/debian_version" ]; then \
 	  mkdir -p $(DESTDIR)/etc/default/ $(DESTDIR)/etc/init.d/ $(DESTDIR)/lib/systemd/system/; \
 	  cp -n $(srcdir)/contrib/debian/default/ebusd $(DESTDIR)/etc/default/; \
 	  cp $(srcdir)/contrib/debian/init.d/ebusd $(DESTDIR)/etc/init.d/; \
