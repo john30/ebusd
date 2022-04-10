@@ -346,10 +346,12 @@ class SerialDevice : public Device {
    * @param readOnly whether to allow read access to the device only.
    * @param initialSend whether to send an initial @a ESC symbol in @a open().
    * @param enhancedProto whether to use the ebusd enhanced protocol.
+   * @param enhancedHighSpeed whether to use ebusd enhanced protocol in high speed mode.
    */
   SerialDevice(const char* name, bool checkDevice, unsigned int extraLatency, bool readOnly, bool initialSend,
-      bool enhancedProto = false)
-    : Device(name, checkDevice, extraLatency, readOnly, initialSend, enhancedProto) {}
+               bool enhancedProto = false, bool enhancedHighSpeed = false)
+    : Device(name, checkDevice, extraLatency, readOnly, initialSend, enhancedProto), m_enhancedHighSpeed(enhancedHighSpeed) {
+  }
 
   // @copydoc
   result_t open() override;
@@ -364,6 +366,9 @@ class SerialDevice : public Device {
 
 
  private:
+  /** whether to use ebusd enhanced protocol in high speed mode. */
+  bool m_enhancedHighSpeed;
+
   /** the previous settings of the device for restoring. */
   termios m_oldSettings;
 };

@@ -97,7 +97,8 @@ Device::~Device() {
 }
 
 Device* Device::create(const char* name, unsigned int extraLatency, bool checkDevice, bool readOnly, bool initialSend) {
-  bool enhanced = strncmp(name, "enh:", 4) == 0;
+  bool highSpeed = strncmp(name, "ens:", 4) == 0;
+  bool enhanced = highSpeed || strncmp(name, "enh:", 4) == 0;
   if (enhanced) {
     name += 4;
   }
@@ -762,7 +763,7 @@ result_t SerialDevice::open() {
   // create new settings
   memset(&newSettings, 0, sizeof(newSettings));
 
-  cfsetspeed(&newSettings, m_enhancedProto ? B9600 : B2400);
+  cfsetspeed(&newSettings, m_enhancedProto ? (m_enhancedHighSpeed ? B115200 : B9600) : B2400);
   newSettings.c_cflag |= (CS8 | CLOCAL | CREAD);
   newSettings.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);  // non-canonical mode
   newSettings.c_iflag |= IGNPAR;  // ignore parity errors

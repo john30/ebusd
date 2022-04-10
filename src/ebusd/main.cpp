@@ -197,7 +197,8 @@ static const char argpdoc[] =
 static const struct argp_option argpoptions[] = {
   {nullptr,          0,        nullptr,    0, "Device options:", 1 },
   {"device",         'd',      "DEV",      0, "Use DEV as eBUS device ("
-      "\"enh:DEVICE\" or \"enh:IP:PORT\" for enhanced device,"
+      "\"enh:DEVICE\" or \"enh:IP:PORT\" for enhanced device, "
+      "\"ens:DEVICE\" for enhanced high speed serial device, "
       "\"DEVICE\" for serial device, or \"[udp:]IP:PORT\" for network device) [/dev/ttyUSB0]", 0 },
   {"nodevicecheck",  'n',      nullptr,    0, "Skip serial eBUS device test", 0 },
   {"readonly",       'r',      nullptr,    0, "Only read from device, never write to it", 0 },
