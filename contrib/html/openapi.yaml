@@ -387,7 +387,7 @@ components:
         level:
           type: string
           description: the access level for the message (only with full).
-        pollprios:
+        pollprio:
           description: the poll priority of the message (only with full).
           type: integer
           minimum: 0
