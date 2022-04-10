@@ -113,10 +113,6 @@ echo " pack"
 echo "*************"
 echo
 mkdir -p $RELEASE/DEBIAN $RELEASE/etc/logrotate.d || exit 1
-if [ -n "$mqtt" ]; then
-  mkdir -p $RELEASE/etc/ebusd || exit 1
-  cp contrib/etc/ebusd/mqtt*.cfg $RELEASE/etc/ebusd/ || exit 1
-fi
 cp contrib/etc/logrotate.d/ebusd $RELEASE/etc/logrotate.d/ || exit 1
 cp ChangeLog.md $RELEASE/DEBIAN/changelog || exit 1
 cat <<EOF > $RELEASE/DEBIAN/control
@@ -144,11 +140,9 @@ EOF
 cat <<EOF > $RELEASE/DEBIAN/conffiles
 /etc/default/ebusd
 EOF
-if [ -n "$mqtt" ]; then
+if [ -d "$RELEASE/etc/ebusd" ]; then
   echo '/etc/ebusd' >> $RELEASE/DEBIAN/dirs
-  for i in contrib/etc/ebusd/mqtt*.cfg; do
-    echo "${i##contrib}" >> $RELEASE/DEBIAN/conffiles
-  done
+  (cd $RELEASE && for i in etc/ebusd/*; do echo "/$i"; done) >> $RELEASE/DEBIAN/conffiles
 fi
 cat <<EOF > $RELEASE/DEBIAN/postinst
 #!/bin/sh
