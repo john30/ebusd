@@ -3,10 +3,15 @@
 * fix potential race condition in connection handling
 * fix ebusctl final read
 * fix missing MQTT topic prefix with "--mqttint=..."
+* fix weird SSL connect errors
+* fix for /decode endpoint
 
 ## Features
 * add timeout check to arbitration
 * add allow using older libmosquitto version
+* add "isreverse" to /datatype endpoint
+* add high speed serial mode to enhanced protocol
+* add support for flashing via network to ebuspicloader
 
 
 # 22.2 (2022-02-27)
