@@ -21,6 +21,10 @@
 #include <sys/stat.h>
 #include <sys/file.h>
 #include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 #include <dirent.h>
 #include <time.h>
 #include <termios.h>
@@ -41,7 +45,8 @@ const char *argp_program_version = "eBUS adapter PIC firmware loader";
 /** the documentation of the program. */
 static const char argpdoc[] =
     "A tool for loading firmware to the eBUS adapter PIC."
-    "\vPORT is the serial port to use (e.g./dev/ttyUSB0) also supporting a trailing wildcard '*' for testing multiple ports.";
+    "\vPORT is either the serial port to use (e.g./dev/ttyUSB0) that also supports a trailing wildcard '*' for testing multiple ports,"
+    "or a network port as \"ip:port\" for use with e.g. socat.";
 
 static const char argpargsdoc[] = "PORT";
 
@@ -256,6 +261,10 @@ typedef union
 // size of boot block in bytes
 #define END_BOOT_BYTES (END_BOOT*2)
 
+static bool isSerial = true;
+static int timeoutFactor = 1;
+static int timeoutAddend = 0;
+
 long long getTime() {
   struct timespec ts;
   clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -267,7 +276,7 @@ ssize_t waitWrite(int fd, uint8_t *data, size_t len, int timeoutMillis) {
   struct pollfd pfd;
   pfd.fd = fd;
   pfd.events = POLLOUT | POLLERR | POLLHUP;
-  ret = poll(&pfd, 1, timeoutMillis);
+  ret = poll(&pfd, 1, timeoutMillis*timeoutFactor + timeoutAddend);
   if (ret >= 0 && pfd.revents & (POLLERR | POLLHUP)) {
     return -1;
   }
@@ -293,7 +302,7 @@ ssize_t waitRead(int fd, uint8_t *data, size_t len, int timeoutMillis) {
   struct pollfd pfd;
   pfd.fd = fd;
   pfd.events = POLLIN | POLLERR | POLLHUP;
-  ret = poll(&pfd, 1, timeoutMillis);
+  ret = poll(&pfd, 1, timeoutMillis*timeoutFactor + timeoutAddend);
   if (ret >= 0 && pfd.revents & (POLLERR | POLLHUP)) {
     return -1;
   }
@@ -618,7 +627,7 @@ struct termios termios_original;
 
 int openSerial(std::string port) {
   // open serial port
-  int fd = open(port.c_str(), O_RDWR | O_NOCTTY | O_NDELAY);  // non-blocking IO: | O_NONBLOCK);
+  int fd = open(port.c_str(), O_RDWR | O_NOCTTY | O_NDELAY);  // non-blocking IO
   if (fd == -1) {
     std::cerr << "unable to open " << port << std::endl;
     return -1;
@@ -656,8 +665,38 @@ int openSerial(std::string port) {
   return fd;
 }
 
-void closeSerial(int fd) {
-  tcsetattr(fd, TCSANOW, &termios_original);
+int openNet(std::string host, uint16_t port) {
+  // open network port
+  struct sockaddr_in address;
+  memset(reinterpret_cast<char*>(&address), 0, sizeof(address));
+  if (inet_addr(host.c_str()) == INADDR_NONE) {
+    struct hostent* he;
+    he = gethostbyname(host.c_str());
+    if (he == nullptr) {
+      return -1;
+    }
+    memcpy(&address.sin_addr, he->h_addr_list[0], he->h_length);
+  } else if (inet_aton(host.c_str(), &address.sin_addr) == 0) {
+    return -1;
+  }
+  address.sin_family = AF_INET;
+  address.sin_port = (in_port_t)htons(port);
+  int fd = socket(AF_INET, SOCK_STREAM, 0);
+  if (fd < 0) {
+    return -1;
+  }
+  if (connect(fd, (struct sockaddr *) &address, sizeof(address)) != 0) {
+    close(fd);
+    return -1;
+  }
+  fcntl(fd, F_SETFL, O_NONBLOCK);  // set non-blocking
+  return fd;
+}
+
+void closeConnection(int fd) {
+  if (isSerial) {
+    tcsetattr(fd, TCSANOW, &termios_original);
+  }
   close(fd);
 }
 
@@ -954,7 +993,21 @@ int main(int argc, char* argv[]) {
   std::string port = argv[arg_index];
   std::string::size_type pos = port.find('*');
   if (pos==std::string::npos || pos != port.length()-1) {
-    int fd = openSerial(argv[arg_index]);
+    int fd;
+    pos = port.find(':');
+    if (pos != std::string::npos) {
+      string host = port.substr(0, pos);
+      uint16_t portNum = 0;
+      if (!parseShort(port.substr(pos+1).c_str(), 1, 65535, &portNum)) {
+        exit(EXIT_FAILURE);
+      }
+      isSerial = false;
+      timeoutFactor = 2;
+      timeoutAddend = 100;
+      fd = openNet(host, portNum);
+    } else {
+      fd = openSerial(port);
+    }
     if (fd < 0) {
       exit(EXIT_FAILURE);
     }
@@ -990,7 +1043,7 @@ int main(int argc, char* argv[]) {
 int run(int fd) {
   // read version
   if (readVersion(fd, verbose) != 0) {
-    closeSerial(fd);
+    closeConnection(fd);
     return EXIT_FAILURE;
   }
   uint8_t data[0x10];
@@ -1061,6 +1114,6 @@ int run(int fd) {
     resetDevice(fd);
   }
 
-  closeSerial(fd);
+  closeConnection(fd);
   return 0;
 }
