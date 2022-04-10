@@ -263,6 +263,11 @@ paths:
 
 components:
   schemas:
+    Seconds:
+      minimum: 0
+      type: integer
+      description: the time in UTC seconds (0 for never).
+      example: 1493483370
     Global:
       required:
         - version
@@ -324,9 +329,7 @@ components:
           description: the maximum symbol latency in milliseconds.
           example: 9
         qq:
-          maximum: 255
-          minimum: 0
-          type: integer
+          $ref: '#/components/schemas/Symbol'
           description: the ebusd master address (only if not readonly).
           example: 49
         reconnects:
@@ -345,10 +348,8 @@ components:
           description: the number of known message definitions.
           example: 893
         lastup:
-          minimum: 0
-          type: integer
+          $ref: '#/components/schemas/Seconds'
           description: the time in UTC seconds of the last update of any message.
-          example: 1493483370
     Circuit:
       type: object
       properties:
@@ -394,30 +395,20 @@ components:
           type: string
           description: the condition string in case of a conditional message (only with full).
         lastup:
-          minimum: 0
-          type: integer
+          $ref: '#/components/schemas/Seconds'
           description: the time in UTC seconds of the last update of the message (0
             for never).
         qq:
-          maximum: 255
-          minimum: 0
-          type: integer
+          $ref: '#/components/schemas/Symbol'
           description: limited source master address (only with def or data).
           example: 49
         zz:
-          maximum: 255
-          minimum: 0
-          type: integer
+          $ref: '#/components/schemas/Symbol'
           description: destination master or slave address.
           example: 8
         id:
-          type: array
-          description: the message ID composed of PBSB and further master data bytes
-            (only with def).
-          items:
-            maximum: 255
-            minimum: 0
-            type: integer
+          $ref: '#/components/schemas/Symbols'
+          description: the message ID composed of PBSB and further master data bytes (only with def).
         comment:
           type: string
           description: the message comment (only with verbose).
@@ -441,15 +432,18 @@ components:
             def).
           items:
             $ref: '#/components/schemas/FieldDef'
+    Symbol:
+      description: a single master or slave data byte.
+      type: integer
+      minimum: 0
+      maximum: 255
     Symbols:
-      description: master or slave data bytes.
+      description: a sequence of master or slave data bytes.
       type: array
       minItems: 1
       maximum: 32
       items:
-        maximum: 255
-        minimum: 0
-        type: integer
+        $ref: '#/components/schemas/Symbol'
     Field:
       type: object
       properties:
@@ -587,8 +581,7 @@ components:
           $ref: '#/components/schemas/Symbols'
           description: the last seen slave data bytes (only with raw and if available).
         lastup:
-          minimum: 0
-          type: integer
+          $ref: '#/components/schemas/Seconds'
           description: the time in UTC seconds of the last update of the message (0
             for never).
         count:
@@ -640,8 +633,7 @@ components:
       description: limit to messages that have changed since the specified UTC seconds.
       allowEmptyValue: false
       schema:
-        minimum: 0
-        type: integer
+        $ref: '#/components/schemas/Seconds'
     pollQuery:
       name: poll
       in: query
