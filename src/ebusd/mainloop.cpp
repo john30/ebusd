@@ -2301,13 +2301,17 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
           def = value;
         } else if (qname == "raw") {
           raw = value;
+        } else {
+          ret = RESULT_ERR_INVALID_ARG;
         }
         if (ret != RESULT_OK) {
           break;
         }
       }
     }
-    if (ret == RESULT_OK) {
+    if (def.empty() || raw.empty()) {
+      ret = RESULT_ERR_INVALID_ARG;
+    } else if (ret == RESULT_OK) {
       time_t now;
       time(&now);
       istringstream defstr("#\n" + def);  // ensure first line is not used for determining col names
@@ -2315,15 +2319,17 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
       DataFieldTemplates* templates = getTemplates("*");
       LoadableDataFieldSet fields("", templates);
       ret = fields.readFromStream(&defstr, "temporary", now, true, nullptr, &errorDescription);
-      if (ret == RESULT_OK) {
-        const SingleDataField* field = fields[0];
+      if (ret == RESULT_OK && fields.size()) {
         SlaveSymbolString slave;
         slave.push_back(0);  // dummy length
         ret = slave.parseHex(raw);
-        if (ret == RESULT_OK) {
+        const SingleDataField* field = fields[0];
+        if (ret == RESULT_OK && field) {
           slave.adjustHeader();
           ret = field->read(slave, 0, false, nullptr, 0, OF_JSON|OF_SHORT, 0, ostream);
         }
+      } else {
+        ret = RESULT_ERR_INVALID_ARG;
       }
       type = 6;
     }
@@ -2422,7 +2428,11 @@ result_t MainLoop::formatHttpResult(result_t ret, int type, ostringstream* ostre
     break;
   case RESULT_ERR_INVALID_ARG:
   case RESULT_ERR_INVALID_NUM:
+  case RESULT_ERR_INVALID_POS:
   case RESULT_ERR_OUT_OF_RANGE:
+  case RESULT_ERR_INVALID_PART:
+  case RESULT_ERR_MISSING_ARG:
+  case RESULT_ERR_INVALID_LIST:
     *ostream << "400 Bad Request";
     break;
   case RESULT_ERR_NOTAUTHORIZED:
