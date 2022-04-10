@@ -110,7 +110,7 @@ class DataHandler {
   /**
    * Called to start the @a DataHandler.
    */
-  virtual void start() = 0;
+  virtual void startHandler() = 0;
 
   /**
    * Return whether this is a @a DataSink instance.

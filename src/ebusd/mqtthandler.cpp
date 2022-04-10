@@ -1171,7 +1171,7 @@ MqttHandler::~MqttHandler() {
   mosquitto_lib_cleanup();
 }
 
-void MqttHandler::start() {
+void MqttHandler::startHandler() {
   if (m_mosquitto) {
     WaitThread::start("MQTT");
   }

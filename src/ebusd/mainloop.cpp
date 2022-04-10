@@ -231,7 +231,7 @@ void MainLoop::run() {
     if (dataHandler->isDataSink()) {
       dataSinks.push_back(dynamic_cast<DataSink*>(dataHandler));
     }
-    dataHandler->start();
+    dataHandler->startHandler();
   }
   while (!m_shutdown) {
     // pick the next message to handle

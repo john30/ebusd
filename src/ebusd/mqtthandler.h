@@ -281,7 +281,7 @@ class MqttHandler : public DataSink, public DataSource, public WaitThread {
   virtual ~MqttHandler();
 
   // @copydoc
-  void start() override;
+  void startHandler() override;
 
   /**
    * Notify the handler of a (re-)established connection to the broker.
