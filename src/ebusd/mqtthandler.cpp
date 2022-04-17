@@ -126,6 +126,11 @@ static const char* g_keypass = nullptr;   //!< client key file password for TLS
 static bool g_insecure = false;           //!< whether to allow insecure TLS connection
 #endif
 
+/**
+ * Replace all characters in the string with a space and return a copy of the original string.
+ * @param arg the string to replace.
+ * @return a copy of the original string.
+ */
 static char* replaceSecret(char *arg) {
   char* ret = strdup(arg);
   int cnt = 0;
