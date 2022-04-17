@@ -180,6 +180,22 @@ class MqttReplacer {
   /** true when the complete result is supposed to be empty when at least one referenced variable
    * is empty or not defined. */
   bool m_emptyIfMissing;
+
+  /**
+   * Create a named field or constant.
+   * @param name the plain string or the name of the field.
+   * @param isField true when it is a field.
+   * @return the created pair.
+   */
+  static std::pair<string, int> makeField(const string& name, bool isField);
+
+  /**
+   * Add a part to the list of parts.
+   * @param stack the parsing stack.
+   * @param inField 1 after '%', 2 after '%{', 0 otherwise.
+   */
+  void addPart(ostringstream& stack, int inField);
+
 };
 
 

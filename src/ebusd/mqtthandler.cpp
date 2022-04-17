@@ -388,7 +388,7 @@ static const char* knownFieldNames[] = {
 /** the number of known field names. */
 static const size_t knownFieldCount = sizeof(knownFieldNames) / sizeof(char*);
 
-std::pair<string, int> makeField(const string& name, bool isField) {
+std::pair<string, int> MqttReplacer::makeField(const string& name, bool isField) {
   if (!isField) {
     return {name, -1};
   }
@@ -400,7 +400,7 @@ std::pair<string, int> makeField(const string& name, bool isField) {
   return {name, knownFieldCount};
 }
 
-void addPart(ostringstream& stack, int inField, vector<std::pair<string, int>>& parts) {
+void MqttReplacer::addPart(ostringstream& stack, int inField) {
   string str = stack.str();
   if (inField == 1 && str == "_") {
     inField = 0;  // single "%_" pattern to reduce to "_"
@@ -412,12 +412,12 @@ void addPart(ostringstream& stack, int inField, vector<std::pair<string, int>>& 
     return;
   }
   stack.str("");
-  if (inField == 0 && !parts.empty() && parts[parts.size()-1].second < 0) {
+  if (inField == 0 && !m_parts.empty() && m_parts[m_parts.size()-1].second < 0) {
     // append constant to previous constant
-    parts[parts.size()-1].first += str;
+    m_parts[m_parts.size()-1].first += str;
     return;
   }
-  parts.push_back(makeField(str, inField > 0));
+  m_parts.push_back(makeField(str, inField > 0));
 }
 
 bool MqttReplacer::parse(const string& templateStr, bool onlyKnown, bool noKnownDuplicates, bool emptyIfMissing) {
@@ -431,24 +431,24 @@ bool MqttReplacer::parse(const string& templateStr, bool onlyKnown, bool noKnown
         inField = 0;
         stack << ch;
       } else {
-        addPart(stack, inField, m_parts);
+        addPart(stack, inField);
         inField = 1;
       }
     } else if (ch == '{' && inField == 1 && empty) {
       inField = 2;
     } else if (ch == '}' && inField == 2) {
-      addPart(stack, 1, m_parts);
+      addPart(stack, 1);
       inField = 0;
     } else {
       if (inField > 0 && !((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_')) {
         // invalid field character
-        addPart(stack, inField, m_parts);
+        addPart(stack, inField);
         inField = 0;
       }
       stack << ch;
     }
   }
-  addPart(stack, inField, m_parts);
+  addPart(stack, inField);
   if (onlyKnown || noKnownDuplicates) {
     int foundMask = 0;
     int knownCount = knownFieldCount;
