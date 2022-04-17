@@ -205,7 +205,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
       argp_error(state, "duplicate mqtttopic");
       return EINVAL;
     } else {
-      MqttReplacer replacer;
+      StringReplacer replacer;
       if (!replacer.parse(arg, true)) {
         argp_error(state, "malformed mqtttopic");
         return EINVAL;
@@ -378,441 +378,6 @@ bool mqtthandler_register(UserInfo* userInfo, BusHandler* busHandler, MessageMap
   return true;
 }
 
-/** the known topic field names. */
-static const char* knownFieldNames[] = {
-  "circuit",
-  "name",
-  "field",
-};
-
-/** the number of known field names. */
-static const size_t knownFieldCount = sizeof(knownFieldNames) / sizeof(char*);
-
-std::pair<string, int> MqttReplacer::makeField(const string& name, bool isField) {
-  if (!isField) {
-    return {name, -1};
-  }
-  for (int idx = 0; idx < static_cast<int>(knownFieldCount); idx++) {
-    if (name == knownFieldNames[idx]) {
-      return {name, idx};
-    }
-  }
-  return {name, knownFieldCount};
-}
-
-void MqttReplacer::addPart(ostringstream& stack, int inField) {
-  string str = stack.str();
-  if (inField == 1 && str == "_") {
-    inField = 0;  // single "%_" pattern to reduce to "_"
-  } else if (inField == 2) {
-    str = "%{" + str;
-    inField = 0;
-  }
-  if (inField == 0 && str.empty()) {
-    return;
-  }
-  stack.str("");
-  if (inField == 0 && !m_parts.empty() && m_parts[m_parts.size()-1].second < 0) {
-    // append constant to previous constant
-    m_parts[m_parts.size()-1].first += str;
-    return;
-  }
-  m_parts.push_back(makeField(str, inField > 0));
-}
-
-bool MqttReplacer::parse(const string& templateStr, bool onlyKnown, bool noKnownDuplicates, bool emptyIfMissing) {
-  m_parts.clear();
-  int inField = 0;  // 1 after '%', 2 after '%{'
-  ostringstream stack;
-  for (auto ch : templateStr) {
-    bool empty = stack.tellp() <= 0;
-    if (ch == '%') {
-      if (inField == 1 && empty) {  // %% for plain %
-        inField = 0;
-        stack << ch;
-      } else {
-        addPart(stack, inField);
-        inField = 1;
-      }
-    } else if (ch == '{' && inField == 1 && empty) {
-      inField = 2;
-    } else if (ch == '}' && inField == 2) {
-      addPart(stack, 1);
-      inField = 0;
-    } else {
-      if (inField > 0 && !((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_')) {
-        // invalid field character
-        addPart(stack, inField);
-        inField = 0;
-      }
-      stack << ch;
-    }
-  }
-  addPart(stack, inField);
-  if (onlyKnown || noKnownDuplicates) {
-    int foundMask = 0;
-    int knownCount = knownFieldCount;
-    for (const auto &it : m_parts) {
-      if (it.second < 0) {
-        continue;  // unknown field
-      }
-      if (onlyKnown && it.second >= knownCount) {
-        return false;
-      }
-      if (noKnownDuplicates && it.second < knownCount) {
-        int bit = 1 << it.second;
-        if (foundMask & bit) {
-          return false;  // duplicate known field
-        }
-        foundMask |= bit;
-      }
-    }
-  }
-  m_emptyIfMissing = emptyIfMissing;
-  return true;
-}
-
-void MqttReplacer::normalize(string& str) {
-  transform(str.begin(), str.end(), str.begin(), [](unsigned char c){
-    return isalnum(c) ? c : '_';
-  });
-}
-
-const string MqttReplacer::str() const {
-  ostringstream ret;
-  for (const auto &it : m_parts) {
-    if (it.second >= 0) {
-      ret << '%';
-    }
-    ret << it.first;
-  }
-  return ret.str();
-}
-
-void MqttReplacer::ensureDefault() {
-  if (m_parts.empty()) {
-    m_parts.emplace_back(string(PACKAGE) + "/", -1);
-  } else if (m_parts.size() == 1 && m_parts[0].second < 0 && m_parts[0].first.find('/') == string::npos) {
-    m_parts[0] = {m_parts[0].first + "/", -1};  // ensure trailing slash
-  }
-  if (!has("circuit")) {
-    m_parts.emplace_back("circuit", 0);  // index of circuit in knownFieldNames
-    m_parts.emplace_back("/", -1);
-  }
-  if (!has("name")) {
-    m_parts.emplace_back("name", 1);  // index of name in knownFieldNames
-  }
-}
-
-bool MqttReplacer::empty() const {
-  return m_parts.empty();
-}
-
-bool MqttReplacer::has(const string& field) const {
-  for (const auto &it : m_parts) {
-    if (it.second >= 0 && it.first == field) {
-      return true;
-    }
-  }
-  return false;
-}
-
-string MqttReplacer::get(const map<string, string>& values, bool untilFirstEmpty, bool onlyAlphanum) const {
-  ostringstream ret;
-  for (const auto &it : m_parts) {
-    if (it.second < 0) {
-      ret << it.first;
-      continue;
-    }
-    const auto pos = values.find(it.first);
-    if (pos == values.cend()) {
-      if (untilFirstEmpty) {
-        break;
-      }
-      if (m_emptyIfMissing) {
-        return "";
-      }
-    } else if (pos->second.empty()) {
-      if (untilFirstEmpty) {
-        break;
-      }
-      if (m_emptyIfMissing) {
-        return "";
-      }
-    } else {
-      ret << pos->second;
-    }
-  }
-  if (!onlyAlphanum) {
-    return ret.str();
-  }
-  string str = ret.str();
-  normalize(str);
-  return str;
-}
-
-string MqttReplacer::get(const string& circuit, const string& name, const string& fieldName) const {
-  map <string, string> values;
-  values["circuit"] = circuit;
-  values["name"] = name;
-  if (!fieldName.empty()) {
-    values["field"] = fieldName;
-  }
-  return get(values, true);
-}
-
-string MqttReplacer::get(const Message* message, const string& fieldName) const {
-  map<string, string> values;
-  values["circuit"] = message->getCircuit();
-  values["name"] = message->getName();
-  if (!fieldName.empty()) {
-    values["field"] = fieldName;
-  }
-  return get(message->getCircuit(), message->getName(), fieldName);
-}
-
-bool MqttReplacer::isReducable(const map<string, string>& values) const {
-  for (const auto &it : m_parts) {
-    if (it.second < 0) {
-      continue;
-    }
-    const auto pos = values.find(it.first);
-    if (pos == values.cend()) {
-      return false;
-    }
-  }
-  return true;
-}
-
-void MqttReplacer::compress(const map<string, string>& values) {
-  bool lastConstant = false;
-  for (auto it = m_parts.begin(); it != m_parts.end(); ) {
-    bool isConstant = it->second < 0;
-    if (!isConstant) {
-      const auto pos = values.find(it->first);
-      if (pos != values.cend()) {
-        it->second = -1;
-        it->first = pos->second;
-        isConstant = true;
-      }
-    }
-    if (!lastConstant || !isConstant) {
-      lastConstant = isConstant;
-      ++it;
-      continue;
-    }
-    (it-1)->first += it->first;
-    it = m_parts.erase(it);
-  }
-}
-
-bool MqttReplacer::reduce(const map<string, string>& values, string& result, bool onlyAlphanum) const {
-  ostringstream ret;
-  for (const auto &it : m_parts) {
-    if (it.second < 0) {
-      ret << it.first;
-      continue;
-    }
-    const auto pos = values.find(it.first);
-    if (pos == values.cend()) {
-      if (m_emptyIfMissing) {
-        result = "";
-      } else {
-        result = ret.str();
-      }
-      return false;
-    }
-    if (m_emptyIfMissing && pos->second.empty()) {
-      result = "";
-      return true;
-    }
-    ret << pos->second;
-  }
-  result = ret.str();
-  if (onlyAlphanum) {
-    normalize(result);
-  }
-  return true;
-}
-
-bool MqttReplacer::checkMatch() const {
-  bool lastField = false;
-  for (const auto& part : m_parts) {
-    bool field = part.second >= 0;
-    if (field && lastField) {
-      return false;
-    }
-    lastField = field;
-  }
-  return true;
-}
-
-ssize_t MqttReplacer::matchTopic(const string& topic, string* circuit, string* name, string* field) const {
-  size_t last = 0;
-  size_t count = m_parts.size();
-  size_t idx;
-  bool incomplete = false;
-  for (idx = 0; idx < count && !incomplete; idx++) {
-    const auto part = m_parts[idx];
-    if (part.second < 0) {
-      if (topic.substr(last, part.first.length()) != part.first) {
-        return static_cast<ssize_t>(idx);
-      }
-      last += part.first.length();
-      continue;
-    }
-    string value;
-    if (idx+1 < count) {
-      size_t pos = topic.find(m_parts[idx+1].first, last);
-      if (pos == string::npos) {
-        // next part not found, consume the rest and mark incomplete
-        value = topic.substr(last);
-        incomplete = true;
-      } else {
-        value = topic.substr(last, pos - last);
-      }
-    } else {
-      // last part is a field name
-      if (topic.find('/', last) != string::npos) {
-        // non-name in remainder found
-        return -static_cast<ssize_t>(idx)-1;
-      }
-      value = topic.substr(last);
-    }
-    last += value.length();
-    switch (part.second) {
-      case 0: *circuit = value; break;
-      case 1: *name = value; break;
-      case 2: *field = value; break;
-      default:  // unknown field
-        break;
-    }
-  }
-  if (incomplete) {
-    return -static_cast<ssize_t>(idx)-1;
-  }
-  return static_cast<ssize_t>(idx);
-}
-
-static const string EMPTY = "";
-
-const string& MqttReplacers::operator[](const string& key) const {
-  auto itc = m_constants.find(key);
-  if (itc == m_constants.end()) {
-    return EMPTY;
-  }
-  return itc->second;
-}
-
-bool MqttReplacers::uses(const string& field) const {
-  for (const auto &it : m_replacers) {
-    if (it.second.has(field)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-MqttReplacer& MqttReplacers::get(const string& key) {
-  MqttReplacer& ret = m_replacers[key];
-  auto it = m_constants.find(key);
-  if (it != m_constants.end()) {
-    // constant with the same name found
-    if (ret.empty()) {
-      ret.parse(it->second);  // convert to replacer
-    }
-    m_constants.erase(it);
-  }
-  return ret;
-}
-
-MqttReplacer MqttReplacers::get(const string& key) const {
-  const auto& it = m_replacers.find(key);
-  if (it != m_replacers.cend()) {
-    return it->second;
-  }
-  return MqttReplacer();
-}
-
-string MqttReplacers::get(const string& key, bool untilFirstEmpty, bool onlyAlphanum, const string& fallbackKey) const {
-  auto itc = m_constants.find(key);
-  if (itc != m_constants.end()) {
-    return itc->second;
-  }
-  auto itv = m_replacers.find(key);
-  if (itv != m_replacers.end()) {
-    return itv->second.get(m_constants, untilFirstEmpty, onlyAlphanum);
-  }
-  if (!fallbackKey.empty()) {
-    itc = m_constants.find(fallbackKey);
-    if (itc != m_constants.end()) {
-      return itc->second;
-    }
-    itv = m_replacers.find(fallbackKey);
-    if (itv != m_replacers.end()) {
-      return itv->second.get(m_constants, untilFirstEmpty, onlyAlphanum);
-    }
-  }
-  return "";
-}
-
-bool MqttReplacers::set(const string& key, const string& value, bool removeReplacer) {
-  m_constants[key] = value;
-  if (removeReplacer) {
-    m_replacers.erase(key);
-  }
-  if (key.find_first_of("-_") != string::npos) {
-    return false;
-  }
-  string upper = key;
-  transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
-  if (upper == key) {
-    return false;
-  }
-  string val = value;
-  MqttReplacer::normalize(val);
-  m_constants[upper] = val;
-  if (removeReplacer) {
-    m_replacers.erase(upper);
-  }
-  return true;
-}
-
-void MqttReplacers::set(const string& key, int value) {
-  std::ostringstream str;
-  str << static_cast<signed>(value);
-  m_constants[key] = str.str();
-}
-
-void MqttReplacers::reduce(bool compress) {
-  // iterate through variables and reduce as many to constants as possible
-  bool reduced = false;
-  do {
-    reduced = false;
-    for (auto it = m_replacers.begin(); it != m_replacers.end(); ) {
-      string str;
-      if (!it->second.isReducable(m_constants)
-      || !it->second.reduce(m_constants, str)) {
-        if (compress) {
-          it->second.compress(m_constants);
-        }
-        ++it;
-        continue;
-      }
-      bool restart = set(it->first, str, false);
-      it = m_replacers.erase(it);
-      reduced = true;
-      if (restart) {
-        string upper = it->first;
-        transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
-        if (m_replacers.erase(upper) > 0) {
-          break;  // restart as iterator is now invalid
-        }
-      }
-    }
-  } while (reduced);
-}
-
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
 int on_keypassword(char *buf, int size, int rwflag, void *userdata) {
@@ -888,33 +453,6 @@ void on_message(
   handler->notifyTopic(topic, data);
 }
 
-void MqttHandler::parseIntegration(const string& line) {
-  if (line.empty()) {
-    return;
-  }
-  size_t pos = line.find('=');
-  if (pos == string::npos || pos == 0) {
-    return;
-  }
-  bool emptyIfMissing = false;
-  string key;
-  if (line[pos-1] == '?') {
-    emptyIfMissing = true;
-    key = line.substr(0, pos-1);
-  } else {
-    key = line.substr(0, pos);
-  }
-  FileReader::trim(&key);
-  string value = line.substr(pos+1);
-  FileReader::trim(&value);
-  if (value.find('%') == string::npos) {
-    m_replacers.set(key, value);  // constant value
-  } else {
-    // simple variable
-    m_replacers.get(key).parse(value, false, false, emptyIfMissing);
-  }
-}
-
 /**
  * possible data type names.
  */
@@ -946,49 +484,21 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
   m_mosquitto = nullptr;
   bool hasIntegration = false;
   if (g_integrationFile != nullptr) {
-    std::ifstream stream;
-    stream.open(g_integrationFile, std::ifstream::in);
-    if (!stream.is_open()) {
+    if (!m_replacers.parseFile(g_integrationFile)) {
       logOtherError("mqtt", "unable to open integration file %s", g_integrationFile);
     } else {
-      string line, last;
-      while (stream.peek() != EOF && getline(stream, line)) {
-        if (line.empty()) {
-          parseIntegration(last);
-          last = "";
-          continue;
-        }
-        if (line[0] == '#') {
-          // only ignore it to allow commented lines in the middle of e.g. payload
-          continue;
-        }
-        if (last.empty()) {
-          last = line;
-        } else if (line[0] == '\t' || line[0] == ' ') {  // continuation
-          last += "\n" + line;
-        } else {
-          parseIntegration(last);
-          last = line;
-        }
-      }
-      stream.close();
-      parseIntegration(last);
       hasIntegration = true;
       if (g_integrationVars) {
         vector<string> strs;
         splitFields(g_integrationVars, &strs);
         for (auto& str : strs) {
-          size_t pos = str.find('=');
-          if (pos == string::npos || pos == 0) {
-            continue;
-          }
-          m_replacers.set(str.substr(0, pos), str.substr(pos+1));
+          m_replacers.parseLine(str);
         }
       }
     }
   }
   // determine topic and prefix
-  MqttReplacer& topic = m_replacers.get("topic");
+  StringReplacer& topic = m_replacers.get("topic");
   if (g_topic) {
     string str = g_topic;
     bool noDefault = str[str.size()-1] == '#';
@@ -1009,7 +519,7 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
       if (!topic.parse(str, true, true)) {
         logOtherNotice("mqtt", "unknown or duplicate topic parts potentially prevent matching incoming topics");
         topic.parse(str, true);
-      } else if (!topic.checkMatch()) {
+      } else if (!topic.checkMatchability()) {
         logOtherNotice("mqtt", "missing separators between topic parts potentially prevent matching incoming topics");
       }
     }
@@ -1229,7 +739,7 @@ void MqttHandler::notifyTopic(const string& topic, const string& data) {
 
   logOtherDebug("mqtt", "received topic %s with data %s", topic.c_str(), data.c_str());
   string circuit, name, field;
-  ssize_t match = m_replacers.get("topic").matchTopic(matchTopic, &circuit, &name, &field);
+  ssize_t match = m_replacers.get("topic").match(matchTopic, &circuit, &name, &field);
   if (match < 0 && !isList) {
     logOtherError("mqtt", "received unmatchable topic %s", topic.c_str());
   }
@@ -1485,7 +995,7 @@ void MqttHandler::run() {
             continue;
           }
 
-          MqttReplacers msgValues = m_replacers;  // need a copy here as the contents are manipulated
+          StringReplacers msgValues = m_replacers;  // need a copy here as the contents are manipulated
           msgValues.set("circuit", message->getCircuit());
           msgValues.set("name", message->getName());
           msgValues.set("priority", static_cast<int>(message->getPollPriority()));
@@ -1540,7 +1050,7 @@ void MqttHandler::run() {
             if (str.empty()) {
               continue;
             }
-            MqttReplacers values = msgValues;  // need a copy here as the contents are manipulated
+            StringReplacers values = msgValues;  // need a copy here as the contents are manipulated
             values.set("index", static_cast<signed>(index));
             values.set("field", fieldName);
             values.set("fieldname", field->getName(-1));
@@ -1680,7 +1190,7 @@ void MqttHandler::run() {
   }
 }
 
-void MqttHandler::publishDefinition(MqttReplacers values, const string& prefix, const string& topic,
+void MqttHandler::publishDefinition(StringReplacers values, const string& prefix, const string& topic,
                                     const string& circuit, const string& name, const string& fallbackPrefix) {
   bool reduce = false;
   if (!topic.empty()) {
@@ -1712,7 +1222,7 @@ void MqttHandler::publishDefinition(MqttReplacers values, const string& prefix, 
   publishTopic(defTopic, payload, retain);
 }
 
-void MqttHandler::publishDefinition(const MqttReplacers& values) {
+void MqttHandler::publishDefinition(const StringReplacers& values) {
   string defTopic = values.get("definition-topic", false);
   if (defTopic.empty()) {
     if (needsLog(lf_other, ll_debug)) {

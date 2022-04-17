@@ -17,7 +17,8 @@ libebus_a_SOURCES = result.cpp \
 		    device.cpp \
 		    device.h \
 		    message.cpp \
-		    message.h
+		    message.h \
+		    stringhelper.h stringhelper.cpp
 
 if CONTRIB
 SUBDIRS = contrib

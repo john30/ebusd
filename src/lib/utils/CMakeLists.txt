@@ -8,6 +8,7 @@ set(libutils_a_SOURCES
     queue.h
     notify.h
     rotatefile.h rotatefile.cpp
-    httpclient.h httpclient.cpp)
+    httpclient.h httpclient.cpp
+)
 
 add_library(utils ${libutils_a_SOURCES})
