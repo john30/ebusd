@@ -4,20 +4,14 @@ AM_CXXFLAGS = -I$(top_srcdir)/src \
 
 noinst_LIBRARIES = libebus.a
 
-libebus_a_SOURCES = result.cpp \
-		    result.h \
-		    symbol.cpp \
-		    symbol.h \
-		    filereader.h \
-		    filereader.cpp \
-		    datatype.cpp \
-		    datatype.h \
-		    data.cpp \
-		    data.h \
-		    device.cpp \
-		    device.h \
-		    message.cpp \
-		    message.h \
+libebus_a_SOURCES = \
+		    result.h result.cpp \
+		    symbol.h symbol.cpp \
+		    filereader.h filereader.cpp \
+		    datatype.h datatype.cpp \
+		    data.h data.cpp \
+		    device.h device.cpp \
+		    message.h message.cpp \
 		    stringhelper.h stringhelper.cpp
 
 if CONTRIB

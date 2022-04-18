@@ -6,16 +6,12 @@ AM_CXXFLAGS = -I$(top_srcdir)/src \
 
 bin_PROGRAMS = ebusd
 
-ebusd_SOURCES = bushandler.cpp \
-		bushandler.h \
-		datahandler.cpp \
-		datahandler.h \
-		network.cpp \
-		network.h \
-		mainloop.cpp \
-		mainloop.h \
-		main.h \
-		main.cpp
+ebusd_SOURCES = \
+		bushandler.h bushandler.cpp \
+		datahandler.h datahandler.cpp \
+		network.h network.cpp \
+		mainloop.h mainloop.cpp \
+		main.h main.cpp
 
 if MQTT
 ebusd_SOURCES += mqtthandler.cpp mqtthandler.h

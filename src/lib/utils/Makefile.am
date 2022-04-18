@@ -4,7 +4,8 @@ AM_CXXFLAGS = -I$(top_srcdir)/src \
 
 noinst_LIBRARIES = libutils.a
 
-libutils_a_SOURCES = log.h log.cpp \
+libutils_a_SOURCES = \
+		     log.h log.cpp \
 		     tcpsocket.h tcpsocket.cpp \
 		     thread.h thread.cpp \
 		     clock.h clock.cpp \

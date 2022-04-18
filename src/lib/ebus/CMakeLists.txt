@@ -7,8 +7,7 @@ set(libebus_a_SOURCES
     datatype.h datatype.cpp
     data.h data.cpp
     device.h device.cpp
-    message.cpp
-    message.h
+    message.h message.cpp
     stringhelper.h stringhelper.cpp
 )
 

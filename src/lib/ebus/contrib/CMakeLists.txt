@@ -1,10 +1,8 @@
 add_definitions(-Wno-unused-parameter)
 
 set(libebuscontrib_a_SOURCES
-    contrib.cpp
-    contrib.h
-    tem.cpp
-    tem.h
+    contrib.h contrib.cpp
+    tem.h tem.cpp
 )
 
 include_directories(..)

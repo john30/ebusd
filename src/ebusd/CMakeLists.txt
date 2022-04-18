@@ -1,16 +1,11 @@
 add_definitions(-Wconversion -Wno-unused-parameter)
 
 set(ebusd_SOURCES
-    bushandler.cpp
-    bushandler.h
-    datahandler.h
-    datahandler.cpp
-    network.cpp
-    network.h
-    mainloop.cpp
-    mainloop.h
-    main.h
-    main.cpp
+    bushandler.h bushandler.cpp
+    datahandler.h datahandler.cpp
+    network.h network.cpp
+    mainloop.h mainloop.cpp
+    main.h main.cpp
 )
 
 if(HAVE_MQTT)
