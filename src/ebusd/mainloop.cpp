@@ -291,6 +291,7 @@ void MainLoop::run() {
           }
           if (result != RESULT_OK) {
             logError(lf_main, "initial scan failed: %s", getResultCode(result));
+            m_shutdown = true;
           }
           if (result != RESULT_ERR_NO_SIGNAL) {
             reload = false;
