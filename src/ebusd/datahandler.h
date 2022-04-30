@@ -40,6 +40,14 @@ using std::map;
 class UserInfo;
 class DataHandler;
 
+/** type for scan status. */
+enum scanStatus_t {
+  SCAN_STATUS_NONE = 0,      //!< no scan status (never started before)
+  SCAN_STATUS_RUNNING = 1,   //!< scan is currently running
+  SCAN_STATUS_FINISHED = 2,  //!< scan is finished
+};
+
+
 /**
  * Helper function for getting the argp definition for all known @a DataHandler instances.
  * @return a pointer to the argp_child structure, or nullptr.
@@ -162,9 +170,9 @@ class DataSink : virtual public DataHandler {
 
   /**
    * Notify the sink of the latest scan status.
-   * @param scanStatus a string describing the scan status.
+   * @param scanStatus the scan status.
    */
-  virtual void notifyScanStatus(const string& scanStatus) {}
+  virtual void notifyScanStatus(scanStatus_t scanStatus) {}
 
  protected:
   /** the allowed access levels. */

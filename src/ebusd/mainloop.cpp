@@ -218,7 +218,7 @@ void MainLoop::run() {
   time_t lastTaskRun, now, start, lastSignal = 0, since, sinkSince = 1, nextCheckRun;
   int taskDelay = 5;
   symbol_t lastScanAddress = 0;  // 0 is known to be a master
-  string lastScanStatus = ".";
+  scanStatus_t lastScanStatus = SCAN_STATUS_NONE;
   time(&now);
   start = now;
   lastTaskRun = now;
@@ -254,7 +254,7 @@ void MainLoop::run() {
       }
       if (m_scanConfig) {
         bool loadDelay = false;
-        string scanStatus = lastScanStatus;
+        scanStatus_t scanStatus = lastScanStatus;
         if (m_initialScan != ESC && reload && m_busHandler->hasSignal()) {
           loadDelay = true;
           result_t result;
@@ -262,7 +262,7 @@ void MainLoop::run() {
             logNotice(lf_main, "starting initial full scan");
             result = m_busHandler->startScan(true, "*");
             if (result == RESULT_OK) {
-              scanStatus = "running";
+              scanStatus = SCAN_STATUS_RUNNING;
             }
           } else if (m_initialScan == BROADCAST) {
             logNotice(lf_main, "starting initial broadcast scan");
@@ -286,7 +286,7 @@ void MainLoop::run() {
               if (m_busHandler->formatScanResult(m_initialScan, false, &ret)) {
                 logNotice(lf_main, "initial scan result: %s", ret.str().c_str());
               }
-              scanStatus = "running";
+              scanStatus = SCAN_STATUS_RUNNING;
             }
           }
           if (result != RESULT_OK) {
@@ -301,11 +301,9 @@ void MainLoop::run() {
           if (lastScanAddress == SYN) {
             taskDelay = 5;
             lastScanAddress = 0;
-            scanStatus = "finished";
+            scanStatus = SCAN_STATUS_FINISHED;
           } else {
-            if (scanStatus != "running") {
-              scanStatus = "running";
-            }
+            scanStatus = SCAN_STATUS_RUNNING;
             nextCheckRun = now + CHECK_INITIAL_DELAY;
             result_t result = m_busHandler->scanAndWait(lastScanAddress, true);
             taskDelay = (result == RESULT_ERR_NO_SIGNAL) ? 10 : 1;

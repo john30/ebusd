@@ -479,7 +479,7 @@ void splitFields(const string& str, vector<string>* row);
 
 MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages)
   : DataSink(userInfo, "mqtt"), DataSource(busHandler), WaitThread(), m_messages(messages), m_connected(false),
-    m_initialConnectFailed(false), m_lastUpdateCheckResult("."), m_lastScanStatus("."), m_lastErrorLogTime(0) {
+    m_initialConnectFailed(false), m_lastUpdateCheckResult("."), m_lastScanStatus(SCAN_STATUS_NONE), m_lastErrorLogTime(0) {
   m_definitionsSince = 0;
   m_mosquitto = nullptr;
   bool hasIntegration = false;
@@ -831,12 +831,23 @@ void MqttHandler::notifyUpdateCheckResult(const string& checkResult) {
   }
 }
 
-void MqttHandler::notifyScanStatus(const string& scanStatus) {
+void MqttHandler::notifyScanStatus(scanStatus_t scanStatus) {
   if (scanStatus != m_lastScanStatus) {
     m_lastScanStatus = scanStatus;
     if (m_globalTopic.has("name")) {
       const string sep = (g_publishFormat & OF_JSON) ? "\"" : "";
-      publishTopic(m_globalTopic.get("", "scan"), sep + (scanStatus.empty() ? "OK" : scanStatus) + sep, true);
+      string message;
+      switch (scanStatus) {
+        case SCAN_STATUS_RUNNING:
+          message = "running";
+          break;
+        case SCAN_STATUS_FINISHED:
+          message = "finished";
+          break;
+        default:
+          message = "OK";
+      }
+      publishTopic(m_globalTopic.get("", "scan"), sep + message + sep, true);
     }
   }
 }
