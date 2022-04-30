@@ -521,4 +521,15 @@ void StringReplacers::reduce(bool compress) {
   } while (reduced);
 }
 
+vector<string> StringReplacers::keys() const {
+  vector<string> ret;
+  for (auto& it : m_constants) {
+    ret.push_back(it.first);
+  }
+  for (auto& it : m_replacers) {
+    ret.push_back(it.first);
+  }
+  return ret;
+}
+
 }  // namespace ebusd

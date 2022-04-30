@@ -263,6 +263,12 @@ class StringReplacers {
    */
   void reduce(bool compress = false);
 
+  /**
+   * Get all set keys.
+   * @return the set keys.
+   */
+  vector<string> keys() const;
+
  private:
   /** constant values from the integration file. */
   map<string, string> m_constants;
