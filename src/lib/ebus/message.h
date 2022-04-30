@@ -534,9 +534,10 @@ class Message : public AttributedItem {
   /**
    * Set the arbitrary state value for data handlers.
    * @param state the new state value.
+   * @param addBits true to add the new state value bits to the existing state.
    * @return true when the state was changed.
    */
-  bool setDataHandlerState(int state);
+  bool setDataHandlerState(int state, bool addBits = false);
 
   /**
    * Get the time when this message was last seen with reasonable data.

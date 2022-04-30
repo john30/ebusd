@@ -1027,11 +1027,11 @@ void Message::decodeJson(bool leadingSeparator, bool appendDirectionCondition, b
   *output << "\n   }";
 }
 
-bool Message::setDataHandlerState(int state) {
-  if (state == m_dataHandlerState) {
+bool Message::setDataHandlerState(int state, bool addBits) {
+  if (addBits ? state == (m_dataHandlerState&state) : state == m_dataHandlerState) {
     return false;
   }
-  m_dataHandlerState = state;
+  m_dataHandlerState = addBits ? m_dataHandlerState|state : state;
   return true;
 }
 
