@@ -977,13 +977,13 @@ void MqttHandler::run() {
                 }
               }
             }
-            if (message->getDataHandlerState() == 1) {
+            if (message->getDataHandlerState()&1) {
               // already seen in the past, check for poll prio update
               if (m_definitionsSince > 1 && message->getCreateTime() <= m_definitionsSince) {
                 continue;
               }
             }
-            message->setDataHandlerState(1);
+            message->setDataHandlerState(1, true);
           } else if (message->getCreateTime() <= m_definitionsSince) {  // only newer defined
             continue;
           }
