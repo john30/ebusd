@@ -104,7 +104,7 @@ static const char* g_password = nullptr;  //!< optional password for MQTT broker
 static const char* g_topic = nullptr;     //!< optional topic template
 static const char* g_globalTopic = nullptr;  //!< optional global topic
 static const char* g_integrationFile = nullptr;  //!< the integration settings file
-static const char* g_integrationVars = nullptr;  //!< the integration settings variables
+static vector<string>* g_integrationVars = nullptr;  //!< the integration settings variables
 static bool g_retain = false;             //!< whether to retail all topics
 static int g_qos = 0;                     //!< the qos value for all topics
 static OutputFormat g_publishFormat = OF_NONE;  //!< the OutputFormat for publishing messages
@@ -139,6 +139,8 @@ static char* replaceSecret(char *arg) {
   }
   return ret;
 }
+
+void splitFields(const string& str, vector<string>* row);
 
 /**
  * The MQTT argument parsing function.
@@ -247,7 +249,10 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
       argp_error(state, "invalid mqttvar");
       return EINVAL;
     }
-    g_integrationVars = arg;
+    if (!g_integrationVars) {
+      g_integrationVars = new vector<string>();
+    }
+    splitFields(arg, g_integrationVars);
     break;
 
   case O_JSON:  // --mqttjson[=short]
@@ -475,8 +480,6 @@ string removeTrailingNonTopicPart(const string& str) {
   return str.substr(0, pos + 1);
 }
 
-void splitFields(const string& str, vector<string>* row);
-
 MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages)
   : DataSink(userInfo, "mqtt"), DataSource(busHandler), WaitThread(), m_messages(messages), m_connected(false),
     m_initialConnectFailed(false), m_lastUpdateCheckResult("."), m_lastScanStatus(SCAN_STATUS_NONE), m_lastErrorLogTime(0) {
@@ -489,13 +492,15 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
     } else {
       hasIntegration = true;
       if (g_integrationVars) {
-        vector<string> strs;
-        splitFields(g_integrationVars, &strs);
-        for (auto& str : strs) {
+        for (auto& str : *g_integrationVars) {
           m_replacers.parseLine(str);
         }
       }
     }
+  }
+  if (g_integrationVars) {
+    delete g_integrationVars;
+    g_integrationVars = nullptr;
   }
   // determine topic and prefix
   StringReplacer& topic = m_replacers.get("topic");
@@ -860,10 +865,7 @@ void splitFields(const string& str, vector<string>* row) {
   std::istringstream istr;
   istr.str(str);
   unsigned int lineNo = 0;
-  FileReader::splitFields(&istr, row, &lineNo);
-  if (row->size() == 1 && (*row)[0].empty()) {
-    row->clear();
-  }
+  FileReader::splitFields(&istr, row, &lineNo, nullptr, nullptr, false);
 }
 
 void MqttHandler::run() {
