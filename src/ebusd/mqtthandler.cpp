@@ -1144,7 +1144,7 @@ void MqttHandler::run() {
             }
           }
         }
-        time(&m_definitionsSince);
+        m_definitionsSince = now+1;  // +1 to not do the same ones again
         needsWait = true;
       }
       time(&lastTaskRun);
