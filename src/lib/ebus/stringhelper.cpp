@@ -469,7 +469,7 @@ bool StringReplacers::set(const string& key, const string& value, bool removeRep
   if (removeReplacer) {
     m_replacers.erase(key);
   }
-  if (key.find_first_of("-_") != string::npos) {
+  if (key.find_first_of("-_/") != string::npos) {
     return false;
   }
   string upper = key;
