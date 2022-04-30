@@ -219,8 +219,10 @@ static size_t hashFunction(const string& str) {
 }
 
 bool FileReader::splitFields(istream* stream, vector<string>* row, unsigned int* lineNo,
-    size_t* hash, size_t* size) {
-  row->clear();
+    size_t* hash, size_t* size, bool clear) {
+  if (clear) {
+    row->clear();
+  }
   string line;
   bool quotedText = false, wasQuoted = false;
   ostringstream field;

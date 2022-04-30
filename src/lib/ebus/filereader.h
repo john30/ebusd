@@ -162,10 +162,11 @@ class FileReader {
    * @param lineNo the current line number (incremented with each line read).
    * @param hash optional pointer to a @a size_t value for combining the hash of the line with, or nullptr.
    * @param size optional pointer to a @a size_t value to add the trimmed line length to, or nullptr.
+   * @param clear whether to clear the fields before adding any.
    * @return true if there are more lines to read, false when there are no more lines left.
    */
   static bool splitFields(istream* stream, vector<string>* row, unsigned int* lineNo,
-      size_t* hash = nullptr, size_t* size = nullptr);
+      size_t* hash = nullptr, size_t* size = nullptr, bool clear = true);
 
   /**
    * Format the specified hash as 8 hex digits to the output stream.
