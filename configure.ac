@@ -135,6 +135,8 @@ AM_COND_IF([CONTRIB], [AC_CONFIG_FILES([
 AC_DEFINE_UNQUOTED(PACKAGE_PIDFILE, LOCALSTATEDIR "/run/" PACKAGE ".pid", [The path and name of the PID file.])
 AC_DEFINE_UNQUOTED(PACKAGE_LOGFILE, LOCALSTATEDIR "/log/" PACKAGE ".log", [The path and name of the log file.])
 AC_DEFINE(SCAN_VERSION, "[m4_esyscmd_s([sed -e 's#^\([0-9]*\.[0-9]*\).*#\1#' -e 's#\.\([0-9]\)$#0\1#' -e 's#\.##' VERSION])]", [The version of the package formatted for the scan result.])
+AC_DEFINE(PACKAGE_VERSION_MAJOR, "[m4_esyscmd_s([sed -e 's#^\([0-9]*\)\..*$#\1#' VERSION])]", [The major version of the package.])
+AC_DEFINE(PACKAGE_VERSION_MINOR, "[m4_esyscmd_s([sed -e 's#^.*\.\([0-9]*\)$#\1#' VERSION])]", [The minor version of the package.])
 AC_DEFINE(REVISION, "[m4_esyscmd_s([git describe --always 2>/dev/null || (date +p%Y%m%d)])]", [The revision of the package.])
 
 AC_CHECK_PROGS([HAVE_DOXYGEN], [doxygen], [])

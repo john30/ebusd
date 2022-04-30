@@ -22,6 +22,12 @@ set(PACKAGE_LOGFILE "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/${PACKAGE}.log")
 execute_process(COMMAND echo -n ${VERSION}
                 COMMAND sed "-e" "s/^\\([0-9]*\\.[0-9]*\\).*/\\1/" "-e" "s/\\.\\([0-9]\\)\$/0\\1/" "-e" "s/\\.//"
                 OUTPUT_VARIABLE SCAN_VERSION)
+execute_process(COMMAND echo -n ${VERSION}
+                COMMAND sed "-e" "s/^\\([0-9]*\\.[0-9]*\\).*/\\1/" "-e" "s/^\\([0-9]*\\)\\..*$/\\1/"
+                OUTPUT_VARIABLE PACKAGE_VERSION_MAJOR)
+execute_process(COMMAND echo -n ${VERSION}
+                COMMAND sed "-e" "s/^\\([0-9]*\\.[0-9]*\\).*/\\1/" "-e" "s/^.*\\.\\([0-9]*\\)$/\\1/"
+                OUTPUT_VARIABLE PACKAGE_VERSION_MINOR)
 
 execute_process(COMMAND git describe --always
                 OUTPUT_VARIABLE REVISION

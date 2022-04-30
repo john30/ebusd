@@ -60,3 +60,9 @@
 
 /* The version of the package. */
 #cmakedefine VERSION "${VERSION}"
+
+/* The major version of the package. */
+#cmakedefine PACKAGE_VERSION_MAJOR ${PACKAGE_VERSION_MAJOR}
+
+/* The minor version of the package. */
+#cmakedefine PACKAGE_VERSION_MINOR ${PACKAGE_VERSION_MINOR}
