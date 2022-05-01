@@ -24,6 +24,9 @@
 #ifdef HAVE_MQTT
 #  include "ebusd/mqtthandler.h"
 #endif
+#ifdef HAVE_KNX
+#  include "ebusd/knxhandler.h"
+#endif
 
 namespace ebusd {
 
@@ -36,12 +39,18 @@ static struct argp_child g_argp_children[
 #ifdef HAVE_MQTT
             +1
 #endif
+#ifdef HAVE_KNX
+            +1
+#endif
 ];
 
 const struct argp_child* datahandler_getargs() {
   size_t count = 0;
 #ifdef HAVE_MQTT
   g_argp_children[count++] = *mqtthandler_getargs();
+#endif
+#ifdef HAVE_KNX
+  g_argp_children[count++] = *knxhandler_getargs();
 #endif
   if (count > 0) {
     g_argp_children[count] = g_last_argp_child;
@@ -55,6 +64,11 @@ bool datahandler_register(UserInfo* userInfo, BusHandler* busHandler, MessageMap
   bool success = true;
 #ifdef HAVE_MQTT
   if (!mqtthandler_register(userInfo, busHandler, messages, handlers)) {
+    success = false;
+  }
+#endif
+#ifdef HAVE_KNX
+  if (!knxhandler_register(userInfo, busHandler, messages, handlers)) {
     success = false;
   }
 #endif

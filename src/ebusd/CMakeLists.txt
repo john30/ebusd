@@ -13,6 +13,11 @@ if(HAVE_MQTT)
   set(ebusd_LIBS ${ebusd_LIBS} mosquitto)
 endif(HAVE_MQTT)
 
+if(HAVE_KNX)
+  set(ebusd_SOURCES ${ebusd_SOURCES} knxhandler.cpp knxhandler.h)
+  set(ebusd_LIBS ${ebusd_LIBS} eibclient)
+endif(HAVE_KNX)
+
 if(HAVE_SSL)
   set(ebusd_LIBS ${ebusd_LIBS} ssl crypto)
 endif(HAVE_SSL)

@@ -540,6 +540,22 @@ class NumberDataType : public DataType {
       const OutputFormat outputFormat, ostream* output) const override;
 
   /**
+   * Convert the numeric raw value to its float representation (including optional divisor).
+   * @param value the numeric raw value.
+   * @param output the float variable to write the value to.
+   * @return @a RESULT_OK on success, or an error code.
+   */
+  result_t getFloatFromRawValue(unsigned int value, float* output) const;
+
+  /**
+   * Convert the float value to the numeric raw value (including optional divisor).
+   * @param value the float value.
+   * @param output the variable to write the numeric raw value to.
+   * @return @a RESULT_OK on success, or an error code.
+   */
+  result_t getRawValueFromFloat(float value, unsigned int* output) const;
+
+  /**
    * Internal method for interpreting a numeric raw value.
    * @param value the numeric raw value.
    * @param outputFormat the @a OutputFormat options to use.

@@ -63,6 +63,16 @@ if test "x$with_mqtt" != "xno"; then
 fi
 AM_CONDITIONAL([MQTT], [test "x$with_mqtt" != "xno"])
 
+AC_ARG_WITH(knx, AS_HELP_STRING([--without-knx], [disable support for KNX handling]), [], [with_knx=yes])
+if test "x$with_knx" != "xno"; then
+	AC_CHECK_LIB([eibclient], [EIBSocketURL],
+		[AC_DEFINE_UNQUOTED(HAVE_KNX, [1], [Defined if KNX handling is enabled.])
+		EXTRA_LIBS+=" -leibclient"],
+		[AC_MSG_RESULT([Could not find EIBSocketURL in libeibclient.])
+		with_knx="no"])
+fi
+AM_CONDITIONAL([KNX], [test "x$with_knx" != "xno"])
+
 AC_ARG_WITH(ssl, AS_HELP_STRING([--without-ssl], [disable support for SSL]), [], [with_ssl=yes])
 if test "x$with_ssl" != "xno"; then
 	AC_CHECK_LIB([ssl], [OPENSSL_init_ssl],

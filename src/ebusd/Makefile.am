@@ -16,6 +16,9 @@ ebusd_SOURCES = \
 if MQTT
 ebusd_SOURCES += mqtthandler.cpp mqtthandler.h
 endif
+if KNX
+ebusd_SOURCES += knxhandler.cpp knxhandler.h
+endif
 
 ebusd_LDADD = ../lib/utils/libutils.a \
               ../lib/ebus/libebus.a \
