@@ -185,6 +185,20 @@ enum PartType {
 #define DUP 0x2000
 
 /**
+ * Parse a float value from the 32 bit representation (IEEE 754).
+ * @param value the 32 bit representation of the float value.
+ * @return the float value.
+ */
+float uintToFloat(unsigned int value);
+
+/**
+ * Format a float value to the 32 bit representation (IEEE 754).
+ * @param val the float value.
+ * @return the 32 bit representation of the float value, or 0xffffffff if NaN.
+ */
+uint32_t floatToUint(float val);
+
+/**
  * Base class for all kinds of data types.
  */
 class DataType {

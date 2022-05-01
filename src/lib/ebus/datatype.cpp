@@ -43,6 +43,60 @@ using std::setw;
 using std::endl;
 
 
+float uintToFloat(unsigned int value) {
+#ifdef HAVE_DIRECT_FLOAT_FORMAT
+#  if HAVE_DIRECT_FLOAT_FORMAT == 2
+  value = __builtin_bswap32(value);
+#  endif
+  auto* pval = reinterpret_cast<symbol_t*>(&value);
+  return *reinterpret_cast<float*>(pval);
+#else
+  int exp = (value >> 23) & 0xff;  // 8 bits, signed
+  if (exp == 0) {
+    return 0.0;
+  }
+  exp -= 127;
+  unsigned int sig = value & ((1 << 23) - 1);
+  float val = (1.0f + static_cast<float>(sig / exp2(23))) * static_cast<float>(exp2(exp));
+  if (negative) {
+    return -val;
+  }
+  return val;
+#endif
+}
+
+uint32_t floatToUint(float val) {
+#ifdef HAVE_DIRECT_FLOAT_FORMAT
+  auto* pval = reinterpret_cast<symbol_t*>(&val);
+  uint32_t value = *reinterpret_cast<uint32_t*>(pval);
+#  if HAVE_DIRECT_FLOAT_FORMAT == 2
+  return __builtin_bswap32(value);
+#  endif
+  return value;
+#else
+  if (val != 0) {
+    bool negative = val < 0;
+    if (negative) {
+      val = -val;
+    }
+    int exp = ilogb(val);
+    if (exp < -126 || exp > 127) {
+      return 0xffffffff;  // invalid value (NaN)
+    }
+    val = scalbln(val, -exp) - 1.0;
+    unsigned int sig = (unsigned int)(val * exp2(23));
+    exp += 127;
+    uint32_t value = (exp << 23) | sig;
+    if (negative) {
+      return value | 0x80000000;
+    }
+    return value;
+  }
+  return 0;
+#endif
+}
+
+
 bool DataType::dump(OutputFormat outputFormat, size_t length, bool appendDivisor, ostream* output) const {
   if (outputFormat & OF_JSON) {
     *output << "\"type\": \"" << m_id << "\", \"isbits\": "
@@ -777,26 +831,7 @@ result_t NumberDataType::readFromRawValue(size_t length, unsigned int value,
   }
   if (m_bitCount == 32) {
     if (hasFlag(EXP)) {  // IEEE 754 binary32
-      float val;
-#ifdef HAVE_DIRECT_FLOAT_FORMAT
-#  if HAVE_DIRECT_FLOAT_FORMAT == 2
-      value = __builtin_bswap32(value);
-#  endif
-      symbol_t* pval = reinterpret_cast<symbol_t*>(&value);
-      val = *reinterpret_cast<float*>(pval);
-#else
-      int exp = (value >> 23) & 0xff;  // 8 bits, signed
-      if (exp == 0) {
-        val = 0.0;
-      } else {
-        exp -= 127;
-        unsigned int sig = value & ((1 << 23) - 1);
-        val = (1.0f + static_cast<float>(sig / exp2(23))) * static_cast<float>(exp2(exp));
-        if (negative) {
-          val = -val;
-        }
-      }
-#endif
+      float val = uintToFloat(value);
       if (val != val) {  // !isnan(val)
         if (outputFormat & OF_JSON) {
           *output << "null";
@@ -923,33 +958,10 @@ result_t NumberDataType::writeSymbols(size_t offset, size_t length, istringstrea
     } else if (m_divisor > 1) {
       dvalue *= m_divisor;
     }
-#ifdef HAVE_DIRECT_FLOAT_FORMAT
-    float val = static_cast<float>(dvalue);
-    symbol_t* pval = reinterpret_cast<symbol_t*>(&val);
-    value = *reinterpret_cast<int32_t*>(pval);
-#  if HAVE_DIRECT_FLOAT_FORMAT == 2
-    value = __builtin_bswap32(value);
-#  endif
-#else
-    value = 0;
-    if (dvalue != 0) {
-      bool negative = dvalue < 0;
-      if (negative) {
-        dvalue = -dvalue;
-      }
-      int exp = ilogb(dvalue);
-      if (exp < -126 || exp > 127) {
-        return RESULT_ERR_INVALID_NUM;  // invalid value
-      }
-      dvalue = scalbln(dvalue, -exp) - 1.0;
-      unsigned int sig = (unsigned int)(dvalue * exp2(23));
-      exp += 127;
-      value = (exp << 23) | sig;
-      if (negative) {
-        value |= 0x80000000;
-      }
+    value = floatToUint(static_cast<float>(dvalue));
+    if (value == 0xffffffff) {
+      return RESULT_ERR_INVALID_NUM;
     }
-#endif
   } else {
     const char* str = inputStr.c_str();
     char* strEnd = nullptr;
