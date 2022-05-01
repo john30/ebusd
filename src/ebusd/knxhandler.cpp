@@ -265,7 +265,9 @@ result_t getFieldLength(const SingleDataField *field, dtlf_t *length) {
     .hasDivisor = nt->getDivisor()!=1,
     .isFloat = dt->hasFlag(EXP),
     .isSigned = dt->hasFlag(SIG),
+    .lastValueSent = false,
     .length = static_cast<uint8_t>(bitCnt/8),
+    .lastValue = 0,
   }};
   return RESULT_OK;
 }
@@ -801,7 +803,6 @@ void KnxHandler::run() {
               continue;
             }
             for (auto destFlags : mit->second) {
-              bool isWrite = (destFlags&FLAG_WRITE)!=0;  // from KNX perspective
               auto sit = m_subscribedGroups.find(destFlags);
               if (sit == m_subscribedGroups.end()) {
                 continue;
