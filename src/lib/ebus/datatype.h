@@ -546,7 +546,7 @@ class NumberDataType : public DataType {
    * @param output the ostream to append the formatted value to.
    * @return @a RESULT_OK on success, or an error code.
    */
-  result_t readFromRawValue(size_t length, unsigned int value,
+  result_t readFromRawValue(unsigned int value,
                             OutputFormat outputFormat, ostream* output) const;
 
   /**

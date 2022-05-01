@@ -731,13 +731,7 @@ result_t NumberDataType::derive(int divisor, size_t bitCount, const NumberDataTy
 }
 
 result_t NumberDataType::getMinMax(bool getMax, const OutputFormat outputFormat, ostream* output) const {
-  size_t length;
-  if (m_bitCount < 8) {
-    length = 1;
-  } else {
-    length = m_bitCount/8;
-  }
-  return readFromRawValue(length, getMax ? m_maxValue : m_minValue, outputFormat, output);
+  return readFromRawValue(getMax ? m_maxValue : m_minValue, outputFormat, output);
 }
 
 result_t NumberDataType::readRawValue(size_t offset, size_t length, const SymbolString& input,
@@ -796,11 +790,12 @@ result_t NumberDataType::readSymbols(size_t offset, size_t length, const SymbolS
   if (result != RESULT_OK) {
     return result;
   }
-  return readFromRawValue(length, value, outputFormat, output);
+  return readFromRawValue(value, outputFormat, output);
 }
 
-result_t NumberDataType::readFromRawValue(size_t length, unsigned int value,
+result_t NumberDataType::readFromRawValue(unsigned int value,
                                           OutputFormat outputFormat, ostream* output) const {
+  size_t length = (m_bitCount < 8) ? 1 : (m_bitCount/8);
   int signedValue;
   // initialize output
   *output << setw(0) << std::resetiosflags(output->flags()) << dec << std::skipws << setprecision(6);
