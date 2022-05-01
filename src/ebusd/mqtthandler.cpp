@@ -1140,7 +1140,7 @@ void MqttHandler::run() {
             m_updatedMessages[message->getKey()]++;
           } else if (filterSeen && direction == "w") {
             // publish data for read pendant of write message
-            Message* read = m_messages->find(message->getCircuit(), message->getName(), "", true);
+            Message* read = m_messages->find(message->getCircuit(), message->getName(), "", false);
             if (read && read->getLastUpdateTime() > 0) {
               m_updatedMessages[read->getKey()]++;
             }
