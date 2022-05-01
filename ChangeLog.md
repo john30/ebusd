@@ -5,6 +5,7 @@
 * fix missing MQTT topic prefix with "--mqttint=..."
 * fix weird SSL connect errors
 * fix for /decode endpoint
+* fix for Home Assistant MQTT discovery config to truncate long updatecheck string
 
 ## Features
 * add timeout check to arbitration
@@ -12,6 +13,7 @@
 * add "isreverse" to /datatype endpoint
 * add high speed serial mode to enhanced protocol
 * add support for flashing via network to ebuspicloader
+* add possibility to use "--mqttvar=..." multiple times to easy overriding integration settings
 
 
 # 22.2 (2022-02-27)
