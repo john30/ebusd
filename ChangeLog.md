@@ -1,10 +1,11 @@
-# 22.3 (tbd)
+# 22.3 (2022-05-08)
 ## Bug Fixes
 * fix potential race condition in connection handling
 * fix ebusctl final read
 * fix missing MQTT topic prefix with "--mqttint=..."
 * fix weird SSL connect errors
 * fix for /decode endpoint
+* fix long updatecheck result string for Home Assistant MQTT integration
 
 ## Features
 * add timeout check to arbitration
@@ -12,6 +13,7 @@
 * add "isreverse" to /datatype endpoint
 * add high speed serial mode to enhanced protocol
 * add support for flashing via network to ebuspicloader
+* add allow using "--mqttvar=" multiple times
 
 
 # 22.2 (2022-02-27)
