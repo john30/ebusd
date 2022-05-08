@@ -1,4 +1,4 @@
-# 22.3 (tbd)
+# 22.3 (2022-05-08)
 ## Bug Fixes
 * fix potential race condition in connection handling
 * fix ebusctl final read
@@ -13,7 +13,7 @@
 * add "isreverse" to /datatype endpoint
 * add high speed serial mode to enhanced protocol
 * add support for flashing via network to ebuspicloader
-* add possibility to use "--mqttvar=..." multiple times to easy overriding integration settings
+* add allow using "--mqttvar=..." multiple times to ease overriding integration settings
 
 
 # 22.2 (2022-02-27)
