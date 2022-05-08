@@ -268,6 +268,18 @@ bool GrabbedMessage::dump(bool unknown, MessageMap* messages, bool first, Output
   }
   symbol_t dstAddress = m_lastMaster[1];
   if (outputFormat & OF_JSON) {
+    if (outputFormat & OF_SHORT) {
+      *output << '"' << m_lastMaster.getStr() << '/';
+      if (dstAddress != BROADCAST && !isMaster(dstAddress)) {
+        *output << m_lastSlave.getStr();
+      }
+      *output << '/' << static_cast<unsigned>(m_count);
+      if (message) {
+        *output << '/' << message->getName();
+      }
+      *output << '"';
+      return true;
+    }
     *output << "\n{";
     if (m_lastMaster.dumpJson(false, output)) {
       *output << ", ";
@@ -1498,13 +1510,18 @@ void BusHandler::formatUpdateInfo(ostringstream* output) const {
           << ",\"co\":" << (m_addressConflict ? 1 : 0);
   if (m_grabMessages) {
     size_t unknownCnt = 0;
+    *output << ",\"gm\":[";
+    bool first = true;
     for (auto it : m_grabbedMessages) {
+      if (it.second.dump(false, m_messages, first, OF_JSON|OF_SHORT, output)) {
+        first = false;
+      }
       Message* message = m_messages->find(it.second.getLastMasterData());
       if (!message) {
         unknownCnt++;
       }
     }
-    *output << ",\"gu\":" << unknownCnt;
+    *output << "],\"gu\":" << unknownCnt;
   }
   unsigned char address = 0;
   for (int index = 0; index < 256; index++, address++) {
