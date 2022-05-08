@@ -11,6 +11,7 @@ ebusd is a daemon for handling communication with eBUS devices connected to a
 [![Docker Downloads](https://img.shields.io/docker/pulls/john30/ebusd)](https://hub.docker.com/repository/docker/john30/ebusd)
 [![Release](https://img.shields.io/github/v/release/john30/ebusd)](https://github.com/john30/ebusd/releases/latest)
 [![GitHub Discussions](https://img.shields.io/github/discussions/john30/ebusd)](https://github.com/john30/ebusd/discussions)
+[![Sponsors](https://img.shields.io/github/sponsors/john30)](https://github.com/sponsors/john30)
 
 Features
 --------
