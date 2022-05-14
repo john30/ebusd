@@ -552,7 +552,9 @@ void KnxHandler::handleReceivedTelegram(eibaddr_t src, eibaddr_t dest, int len, 
       continue;
     }
     if ((message->isWrite() && !message->isPassive()) != isWrite) {
-      continue;
+      if (isWrite || message->getLastUpdateTime() <= 0) {
+        continue;
+      }  // else: allow potential "write-read" association to read the last written value
     }
     field = message->getField(fieldIndex);
     if (!field) {
@@ -752,12 +754,18 @@ void KnxHandler::run() {
               continue;
             }
             // store association
-            // TODO add "foreign" associations as well, i.e. read for a write msg and write for read msg?
             eibaddr_t dest = git->second;
             auto subKey = static_cast<uint32_t>(dest | (isWrite ? FLAG_WRITE : FLAG_READ));
             auto sit = m_subscribedGroups.find(subKey);
             if (sit != m_subscribedGroups.cend()) {
-              continue;
+              if (isWrite) {
+                logOtherDebug("knx", "ignored already subscribed %s", key.c_str());
+                continue;
+              }
+              if (sit->second.messageKey == message->getKey()) {
+                continue;
+              }  // else: overwrite "write-read" with readable message
+              logOtherDebug("knx", "replacing write-read association %s to %4.4x", key.c_str(), dest);
             }
             m_subscribedGroups[subKey] = {
                 .messageKey = message->getKey(),
@@ -765,6 +773,21 @@ void KnxHandler::run() {
                 .lengthFlag = lengthFlag,
             };
             m_subscribedMessages[message->getKey()].push_back(subKey);
+            logOtherDebug("knx", "added %s association %s to %4.4x", isWrite ? "write" : "read", key.c_str(), dest);
+            if (isWrite) {
+              // add "write-read" association to allow reading the last written value of a writable message
+              // when there is no readable message set directly yet
+              subKey = static_cast<uint32_t>(dest | FLAG_READ);
+              sit = m_subscribedGroups.find(subKey);
+              if (sit == m_subscribedGroups.cend()) {
+                m_subscribedGroups[subKey] = {
+                    .messageKey = message->getKey(),
+                    .fieldIndex = static_cast<uint8_t>(index),
+                    .lengthFlag = lengthFlag,
+                };
+                logOtherDebug("knx", "added write-read association %s to %4.4x", key.c_str(), dest);
+              }
+            }
             added = true;
             addCnt++;
           }
