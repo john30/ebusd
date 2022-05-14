@@ -40,21 +40,27 @@ using std::dec;
 // 6 bits minor, using minor multiplied by 10 to have space for micro versioning in future
 #define VERSION_INT ((PACKAGE_VERSION_MAJOR<<6)|(PACKAGE_VERSION_MINOR*10))
 
-#define O_URL 1
-#define O_INT (O_URL+1)
-#define O_VAR (O_INT+1)
+#define O_URL -2
+#define O_AGR (O_URL-1)
+#define O_AGW (O_AGR-1)
+#define O_INT (O_AGW-1)
+#define O_VAR (O_INT-1)
 
 /** the definition of the KNX arguments. */
 static const struct argp_option g_knx_argp_options[] = {
   {nullptr,      0, nullptr,      0, "KNX options:", 1 },
-  {"knxurl", O_URL,   "URL",      0, "Connect to KNX daemon on URL (i.e. \"ip:host:[port]\" or \"local:/socketpath\") []", 0 },
-  {"knxint", O_INT,  "FILE",      0, "Read KNX integration settings from FILE [/etc/ebusd/knx.cfg]", 0 },
+  {"knxurl", O_URL, "URL",        0, "Connect to KNX daemon on URL (i.e. \"ip:host:[port]\" or \"local:/socketpath\") []", 0 },
+  {"knxrage", O_AGR, "SEC",       0, "Maximum age in seconds for using the last value of read messages (0=disable) [5]", 0 },
+  {"knxwage", O_AGW, "SEC",       0, "Maximum age in seconds for using the last value for reads on write messages (0=disable), [99999999]", 0 },
+  {"knxint", O_INT, "FILE",       0, "Read KNX integration settings from FILE [/etc/ebusd/knx.cfg]", 0 },
   {"knxvar", O_VAR, "NAME=VALUE", 0, "Add a variable to the read KNX integration settings", 0 },
 
   {nullptr,      0, nullptr,      0, nullptr, 0 },
 };
 
 static const char* g_url = nullptr;  //!< URL of KNX daemon
+static unsigned int g_maxReadAge = 5;  //!< max age in seconds for using the last value of read messages
+static unsigned int g_maxWriteAge = 99999999;  //!< max age in seconds for using the last value for reads on write messages
 static const char* g_integrationFile = nullptr;  //!< the integration settings file
 static vector<string>* g_integrationVars = nullptr;  //!< the integration settings variables
 
@@ -65,6 +71,7 @@ static vector<string>* g_integrationVars = nullptr;  //!< the integration settin
  * @param state the parsing state.
  */
 static error_t knx_parse_opt(int key, char *arg, struct argp_state *state) {
+  result_t result;
   switch (key) {
   case O_URL:  // --knxurl=localhost
     if (arg == nullptr || arg[0] == 0) {
@@ -72,6 +79,30 @@ static error_t knx_parse_opt(int key, char *arg, struct argp_state *state) {
       return EINVAL;
     }
     g_url = arg;
+    break;
+
+  case O_AGR:  // --knxrage=5
+    if (arg == nullptr || arg[0] == 0) {
+      argp_error(state, "invalid knxrage value");
+      return EINVAL;
+    }
+    g_maxReadAge = parseInt(arg, 10, 0, 99999999, &result);
+    if (result != RESULT_OK) {
+      argp_error(state, "invalid knxrage");
+      return EINVAL;
+    }
+    break;
+
+  case O_AGW:  // --knxwage=5
+    if (arg == nullptr || arg[0] == 0) {
+      argp_error(state, "invalid knxwage value");
+      return EINVAL;
+    }
+    g_maxWriteAge = parseInt(arg, 10, 0, 99999999, &result);
+    if (result != RESULT_OK) {
+      argp_error(state, "invalid knxwage");
+      return EINVAL;
+    }
     break;
 
   case O_INT:  // --knxint=/etc/ebusd/knx.cfg
@@ -592,7 +623,7 @@ void KnxHandler::handleReceivedTelegram(eibaddr_t src, eibaddr_t dest, int len, 
     if (len>5) {
       value = (value<<8) | data[5]; // up to 32 bits
     }
-    // TODO write from KNX updates the message and thus re-sends the write later on again
+    // note: a write from KNX updates the message and thus re-sends the write later on again during update check
     logOtherNotice("knx", "received write request from %4.4x to %4.4x for %s/%s/%s, value %d",
                    src, dest, circuit.c_str(), name.c_str(), fieldName.c_str(), value);
     // write new field value to bus if possible
@@ -636,7 +667,14 @@ void KnxHandler::handleReceivedTelegram(eibaddr_t src, eibaddr_t dest, int len, 
   }
   logOtherNotice("knx", "received read request from %4.4x to %4.4x for %s/%s/%s",
                  src, dest, circuit.c_str(), name.c_str(), fieldName.c_str());
-  if (msg->getLastUpdateTime() <= 0) {  // TODO adjustable max age
+  time_t now;
+  time(&now);
+  if (msg->isWrite() && !msg->isPassive()) {  // reading last value of a write message
+    if (now >= msg->getLastUpdateTime() + g_maxWriteAge) {
+      logOtherInfo("knx", "unable to answer read request to %4.4x on write message", dest);
+      return;  // impossible to answer
+    }
+  } else if (now >= msg->getLastUpdateTime() + g_maxReadAge) {
     res = m_busHandler->readFromBus(msg, "");
     if (res != RESULT_OK) {
       return;
