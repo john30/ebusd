@@ -134,6 +134,7 @@ KnxHandler::KnxHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* m
   }
   // parse all group to message field assignments
   vector<string> keys = m_replacers.keys();
+  int messageCnt = 0, globalCnt = 0;
   for (auto& key : keys) {
     auto pos = key.find('/');
     if (pos == string::npos) {
@@ -149,6 +150,7 @@ KnxHandler::KnxHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* m
     unsigned int v;
     v = parseInt(val.substr(0, pos).c_str(), 10, 0, 0x1f, &res);
     if (res != RESULT_OK) {
+      logOtherError("knx", "invalid assignment %s to %s", key.c_str(), val.c_str());
       continue;
     }
     auto dest = static_cast<eibaddr_t>(v << 11);
@@ -156,6 +158,7 @@ KnxHandler::KnxHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* m
       // 2 level
       v = parseInt(val.substr(pos+1).c_str(), 10, 0, 0x7ff, &res);
       if (res != RESULT_OK) {
+        logOtherError("knx", "invalid 2-level assignment %s to %s", key.c_str(), val.c_str());
         continue;
       }
       dest |= static_cast<eibaddr_t>(v);
@@ -163,16 +166,19 @@ KnxHandler::KnxHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* m
       // 3 level
       v = parseInt(val.substr(pos+1, pos2).c_str(), 10, 0, 0x07, &res);
       if (res != RESULT_OK) {
+        logOtherError("knx", "invalid 3-level assignment %s to %s", key.c_str(), val.c_str());
         continue;
       }
       dest |= static_cast<eibaddr_t>(v << 8);
       v = parseInt(val.substr(pos+1, pos2).c_str(), 10, 0, 0xff, &res);
       if (res != RESULT_OK) {
+        logOtherError("knx", "invalid 3-level assignment %s to %s", key.c_str(), val.c_str());
         continue;
       }
       dest |= static_cast<eibaddr_t>(v);
     }
     if (key.substr(0, 7) != "global/") {
+      messageCnt++;
       m_messageFieldGroupAddress[key] = dest;
       continue;
     }
@@ -194,6 +200,7 @@ KnxHandler::KnxHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* m
     } else if (key == "updatecheck") {
       index = GLOBAL_UPDATECHECK;
     } else {
+      logOtherError("knx", "invalid assignment global/%s to %s", key.c_str(), val.c_str());
       continue;
     }
     m_subscribedGlobals[index] = dest|FLAG_READ;
@@ -202,7 +209,9 @@ KnxHandler::KnxHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* m
         .globalIndex = index,
         .lengthFlag = lengthFlag,
     };
+    globalCnt++;
   }
+  logOtherInfo("knx", "parsed %d global and %d message assignments", globalCnt, messageCnt);
 }
 
 KnxHandler::~KnxHandler() {
@@ -369,8 +378,14 @@ result_t KnxHandler::sendGroupValue(eibaddr_t dest, apci_t apci, dtlf_t& lengthF
   }
   len += lengthFlag.length;
   if (EIBSendGroup(m_con, dest, len, data) < 0) {
+    logOtherError("knx", "unable to send %s, dest %4.4x, len %d",
+                  apci==APCI_GROUPVALUE_WRITE ? "write" : apci==APCI_GROUPVALUE_READ ? "read" : "response",
+                  dest, len);
     return RESULT_ERR_SEND;
   }
+  logOtherDebug("knx", "sent %s, dest %4.4x, len %d",
+               apci==APCI_GROUPVALUE_WRITE ? "write" : apci==APCI_GROUPVALUE_READ ? "read" : "response",
+               dest, len);
   return RESULT_OK;
 }
 
@@ -456,8 +471,12 @@ result_t KnxHandler::receiveTelegram(int maxlen, uint8_t *buf, int *recvlen,
   return RESULT_OK;
 }
 
+/*
 void printResponse(eibaddr_t src, eibaddr_t dest, int len, const uint8_t *data) {
-  int apci = ((data[0]&0x03)<<2) | ((data[1]&0xc0)>>6);
+  int apci = ((data[0]&0x03)<<8) | data[1];
+  if ((apci & APCI_GROUPVALUE_READ_MASK) == 0) {
+    apci &= ~APCI_GROUPVALUE_READ_MASK;
+  }
   int value = len==2 ? data[1]&0x3f : data[2]; // 6 bits or full octet
   if (len>3) {
     value = (value<<8) | data[3]; // up to 16 bits
@@ -468,9 +487,12 @@ void printResponse(eibaddr_t src, eibaddr_t dest, int len, const uint8_t *data) 
   if (len>5) {
     value = (value<<8) | data[5]; // up to 32 bits
   }
-  logOtherDebug("knx", "recv from %4.4x to %4.4x, %d=%s, len %d, value %d", src, dest,
-                apci, apci==0?"read":apci==2?"write":apci==1?"resp":"other", len, value);
+  logOtherDebug("knx", "recv from %4.4x to %4.4x, %s (%d), len %d", src, dest,
+                apci==APCI_GROUPVALUE_WRITE ? "write" : apci==APCI_GROUPVALUE_READ ? "read"
+                  : apci==APCI_GROUPVALUE_RESPONSE ? "response" : "other",
+                apci, len);
 }
+ */
 
 void KnxHandler::handleReceivedTelegram(eibaddr_t src, eibaddr_t dest, int len, const uint8_t *data) {
   int apci = ((data[0]&0x03)<<8) | data[1];
@@ -483,6 +505,12 @@ void KnxHandler::handleReceivedTelegram(eibaddr_t src, eibaddr_t dest, int len, 
   }
   const auto subKey = static_cast<uint32_t>(dest | (isWrite ? FLAG_WRITE : FLAG_READ));
   auto sit = m_subscribedGroups.find(subKey);
+  if (needsLog(lf_other, ll_debug)) {
+    logOtherDebug("knx", "received %ssubscribed %s from %4.4x to %4.4x, len %d",
+                  sit == m_subscribedGroups.end() ? "un" : "",
+                  apci==APCI_GROUPVALUE_WRITE ? "write" : apci==APCI_GROUPVALUE_READ ? "read" : "response",
+                  src, dest, len);
+  }
   if (sit == m_subscribedGroups.end()) {
     return;  // address+direction not subscribed
   }
@@ -546,6 +574,7 @@ void KnxHandler::handleReceivedTelegram(eibaddr_t src, eibaddr_t dest, int len, 
     }
   }
   if (!msg) {
+    logOtherInfo("knx", "unable to answer %s request to %4.4x", isWrite ? "write" : "read", dest);
     return;
   }
   result_t res;
@@ -578,6 +607,8 @@ void KnxHandler::handleReceivedTelegram(eibaddr_t src, eibaddr_t dest, int len, 
         // convert from IEEE 754
         fval = uintToFloat(value);
       } else {
+        logOtherNotice("knx", "unable to decode write request from %4.4x to %4.4x for %s/%s/%s, value %d",
+                       src, dest, circuit.c_str(), name.c_str(), fieldName.c_str(), value);
         return;  // not decodable
       }
       str << static_cast<float>(fval);
@@ -594,7 +625,9 @@ void KnxHandler::handleReceivedTelegram(eibaddr_t src, eibaddr_t dest, int len, 
       }
     }
     res = m_busHandler->readFromBus(msg, str.str());
-    if (res != RESULT_OK) {
+    if (res == RESULT_OK) {
+      logOtherDebug("knx", "wrote %s %s", circuit.c_str(), name.c_str());
+    } else {
       logOtherError("knx", "write %s %s: %s", circuit.c_str(), name.c_str(), getResultCode(res));
     }
     return;
@@ -610,7 +643,10 @@ void KnxHandler::handleReceivedTelegram(eibaddr_t src, eibaddr_t dest, int len, 
   unsigned int value = 0;
   res = msg->decodeLastDataNumField(nullptr, fieldIndex, &value);
   if (res == RESULT_OK) {
+    logOtherDebug("knx", "read %s %s", circuit.c_str(), name.c_str());
     res = sendGroupValue(dest, APCI_GROUPVALUE_RESPONSE, sit->second.lengthFlag, value, field);
+  } else {
+    logOtherError("knx", "read %s %s: %s", circuit.c_str(), name.c_str(), getResultCode(res));
   }
 }
 
@@ -676,13 +712,14 @@ void KnxHandler::run() {
       if (m_con) {
         deque<Message*> messages;
         m_messages->findAll("", "", m_levels, false, true, true, true, true, true, 0, 0, true, &messages);
+        int addCnt = 0;
         for (const auto& message : messages) {
           const auto mit = m_subscribedMessages.find(message->getKey());
           if (mit != m_subscribedMessages.cend()) {
             continue;  // already subscribed
           }
           if (message->getDstAddress() == SYN) {
-            continue;
+            continue;  // not usable in absence of destination address
           }
           bool isWrite = message->isWrite() && !message->isPassive();  // from KNX perspective
           if (message->getCreateTime() <= definitionsSince) {  // only newer defined
@@ -729,6 +766,7 @@ void KnxHandler::run() {
             };
             m_subscribedMessages[message->getKey()].push_back(subKey);
             added = true;
+            addCnt++;
           }
           if (!added) {
             continue;
@@ -743,6 +781,9 @@ void KnxHandler::run() {
               m_updatedMessages[read->getKey()]++;
             }
           }
+        }
+        if (addCnt>0) {
+          logOtherInfo("knx", "added %d associations, %d active now", addCnt, m_subscribedGroups.size());
         }
         definitionsSince = now;
         needsWait = true;
@@ -776,7 +817,6 @@ void KnxHandler::run() {
           }
         } else {
           needsWait = false;
-          printResponse(src, dest, len, data);
           handleReceivedTelegram(src, dest, len, data);
         }
       } while (res == RESULT_OK);
