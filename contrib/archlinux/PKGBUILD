@@ -2,7 +2,7 @@
 # Contributor: Milan Knizek <knizek volny cz>
 # Usage: makepkg
 pkgname=ebusd
-pkgver=22.2
+pkgver=22.3
 pkgrel=1
 pkgdesc="ebusd, the daemon for communication with eBUS heating systems."
 arch=('i686' 'x86_64' 'armv6h' 'armv7h' 'aarch64')
@@ -41,4 +41,4 @@ package() {
   install -m 0644 contrib/etc/ebusd/mqtt-integration.cfg  "${pkgdir}/etc/ebusd/mqtt-integration.cfg"
 }
 # update md5sums: updpkgsums
-md5sums=('88c67b36d4fc90d1e2026cdbb9b496e3')
+md5sums=('8e2d7e6fe8021dc792e381f4a7468e9d')

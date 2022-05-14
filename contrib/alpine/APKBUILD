@@ -1,7 +1,7 @@
 # Contributor: Tim <timstanleydev@gmail.com>
 # Maintainer: Tim <timstanleydev@gmail.com>
 pkgname=ebusd
-pkgver=22.2
+pkgver=22.3
 pkgrel=0
 pkgdesc="Daemon for communication with eBUS heating systems"
 url="https://github.com/john30/ebusd"
@@ -25,10 +25,8 @@ check() {
 
 package() {
 	DESTDIR="$pkgdir" cmake --install build
-        install -D -m 644 "$srcdir"/"$pkgname-$pkgver"/contrib/etc/ebusd/mqtt-hassio.cfg "$pkgdir"/etc/ebusd/mqtt-hassio.cfg
-        install -D -m 644 "$srcdir"/"$pkgname-$pkgver"/contrib/etc/ebusd/mqtt-integration.cfg "$pkgdir"/etc/ebusd/mqtt-integration.cfg
 }
 
 sha512sums="
-e98471b56d1a875f1fdc966a1f91776d8675d244836c7c8e2987fef9dce48d76b55b612fe51dfeab4a134763f20ca9ec6e1ef5f814690f63505c8c56570432cb  ebusd-22.2.tar.gz
+565a2a95841680825a29a67dfed2277188951574b3bee7ac75667e264163288d7ebda03112ca5dbeafa96f44e22480203dcde50a46b8cc82597e385e4fa134c2  ebusd-22.3.tar.gz
 "
