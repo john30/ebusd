@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.12 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.7.1 FATAL_ERROR)
 
 # CMP0075 Include file check macros honor CMAKE_REQUIRED_LIBRARIES
 # For more information see: https://cmake.org/cmake/help/latest/policy/CMP0075.html
@@ -42,7 +42,9 @@ endif(NOT REVISION)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_FLAGS_DEBUG_INIT "-g -O0 -ggdb -fsanitize=address -fno-omit-frame-pointer")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-set(CMAKE_INSTALL_PREFIX "")
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  set(CMAKE_INSTALL_PREFIX "" CACHE PATH "..." FORCE)
+endif()
 include(GNUInstallDirs)
 include(CheckFunctionExists)
 include(CheckCXXSourceRuns)
