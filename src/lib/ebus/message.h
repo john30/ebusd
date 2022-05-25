@@ -25,7 +25,6 @@
 #include <deque>
 #include <map>
 #include <queue>
-#include <functional>
 #include "lib/ebus/data.h"
 #include "lib/ebus/result.h"
 #include "lib/ebus/symbol.h"
@@ -800,7 +799,7 @@ class ChainedMessage : public Message {
 /**
  * A function that compares the weighted poll priority of two @a Message instances.
  */
-struct compareMessagePriority : binary_function<Message*, Message*, bool> {
+struct compareMessagePriority {
   /**
    * Compare the weighted poll priority of the two @a Message instances.
    * @param x the first @a Message.
