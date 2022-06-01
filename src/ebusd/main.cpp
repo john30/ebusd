@@ -232,7 +232,7 @@ static const struct argp_option argpoptions[] = {
   {"acquiretimeout", O_ACQTIM, "MSEC",     0, "Stop bus acquisition after MSEC ms [10]", 0 },
   {"acquireretries", O_ACQRET, "COUNT",    0, "Retry bus acquisition COUNT times [3]", 0 },
   {"sendretries",    O_SNDRET, "COUNT",    0, "Repeat failed sends COUNT times [2]", 0 },
-  {"receivetimeout", O_RCVTIM, "MSEC",     0, "Expect a slave to answer within MSEC us [25]", 0 },
+  {"receivetimeout", O_RCVTIM, "MSEC",     0, "Expect a slave to answer within MSEC ms [25]", 0 },
   {"numbermasters",  O_MASCNT, "COUNT",    0, "Expect COUNT masters on the bus, 0 for auto detection [0]", 0 },
   {"generatesyn",    O_GENSYN, nullptr,    0, "Enable AUTO-SYN symbol generation", 0 },
 
