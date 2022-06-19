@@ -75,3 +75,10 @@ environment variables with the prefix `EBUSD_`, e.g. the following line can be u
 > docker run -d --name=ebusd --device=/dev/ttyUSB0 -p 8888 -e EBUSD_SCANCONFIG= -e EBUSD_DEVICE=/dev/ttyUSB0 -e EBUSD_MQTTPORT=1883 -e EBUSD_MQTTHOST=BROKERHOST john30/ebusd
 
 This eases use of e.g. docker-compose files.
+
+
+Hints for running on arm32v7 host with Ubuntu 20.04
+---------------------------------------------------
+If the system time in the container is invalid, then retrieval of CSVs from the config webservice through HTTPS does not
+work. This is due to an issue with an outdated [libseccomp library](https://github.com/moby/moby/issues/40734) on the host.
+To circumvent this behaviour, updating the library might help as mentioned [here](https://serverfault.com/questions/1037146/docker-container-with-random-date/1048351#1048351).
