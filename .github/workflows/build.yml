@@ -30,6 +30,10 @@ jobs:
         name: checkout
         uses: actions/checkout@v2
       -
+        name: gh-describe
+        id: gittag
+        uses: proudust/gh-describe@v1.4.6
+      -
         name: set up QEMU
         uses: docker/setup-qemu-action@v1
       -
@@ -46,4 +50,4 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       -
         name: build
-        run: cd contrib/docker && LIMITARCH=${{ github.event.inputs.limitarch }} ./build.sh
+        run: cd contrib/docker && LIMITARCH=${{ github.event.inputs.limitarch }} GIT_REVISION=${{ steps.gittag.outputs.describe }} ./build.sh
