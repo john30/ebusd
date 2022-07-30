@@ -134,8 +134,8 @@ Device* Device::create(const char* name, unsigned int extraLatency, bool checkDe
     free(in);
     return new NetworkDevice(name, hostOrIp, port, extraLatency, readOnly, initialSend, udp, enhanced);
   }
-  // support enh:/dev/<device>
-  return new SerialDevice(name, checkDevice, extraLatency, readOnly, initialSend, enhanced);
+  // support enh:/dev/<device>, ens:/dev/<device>, and /dev/<device>
+  return new SerialDevice(name, checkDevice, extraLatency, readOnly, initialSend, enhanced, highSpeed);
 }
 
 result_t Device::open() {
