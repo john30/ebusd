@@ -58,6 +58,7 @@ for image in $images; do
     --build-arg "UPLOAD_URL=$UPLOAD_URL" \
     --build-arg "UPLOAD_CREDENTIALS=$UPLOAD_CREDENTIALS" \
     --build-arg "UPLOAD_OS=$image" \
+    --build-arg "GIT_REVISION=$GIT_REVISION" \
     -t $tagprefix$tagsuffix \
     $extratag \
     $output \

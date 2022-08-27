@@ -43,7 +43,7 @@ using std::setw;
 using std::endl;
 
 
-float uintToFloat(unsigned int value) {
+float uintToFloat(unsigned int value, bool negative) {
 #ifdef HAVE_DIRECT_FLOAT_FORMAT
 #  if HAVE_DIRECT_FLOAT_FORMAT == 2
   value = __builtin_bswap32(value);
@@ -890,7 +890,7 @@ result_t NumberDataType::readFromRawValue(unsigned int value,
   }
   if (m_bitCount == 32) {
     if (hasFlag(EXP)) {  // IEEE 754 binary32
-      float val = uintToFloat(value);
+      float val = uintToFloat(value, negative);
       if (val != val) {  // !isnan(val)
         if (outputFormat & OF_JSON) {
           *output << "null";

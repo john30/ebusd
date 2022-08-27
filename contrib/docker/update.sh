@@ -15,7 +15,7 @@ function replaceTemplate () {
 
 # devel update
 version_variant='-devel'
-make='RUNTEST=full ./make_debian.sh'
+make='RUNTEST=full GIT_REVISION=\$GIT_REVISION ./make_debian.sh'
 upload_lines=''
 copydeb='COPY --from=build /build/ebusd-*_mqtt1.deb ebusd.deb'
 debsrc='ebusd.deb \&\& rm -f ebusd.deb'
@@ -25,7 +25,7 @@ replaceTemplate
 
 # release update
 version_variant=''
-make='./make_debian.sh'
+make='GIT_REVISION=\$GIT_REVISION ./make_debian.sh'
 copydeb="ADD https://github.com/john30/ebusd/releases/download/v\${EBUSD_VERSION}/ebusd-\${EBUSD_VERSION}_\${TARGETARCH}\${TARGETVARIANT}-\${EBUSD_IMAGE}_mqtt1.deb ebusd.deb"
 copyentry='COPY contrib/docker/docker-entrypoint.sh /'
 namesuffix='.release'
@@ -33,7 +33,7 @@ replaceTemplate
 
 if [[ -n "$1" ]]; then
   # build releases update
-  make='./make_all.sh'
+  make='GIT_REVISION=\$GIT_REVISION ./make_all.sh'
   upload_lines='ARG UPLOAD_URL\nARG UPLOAD_CREDENTIALS\nARG UPLOAD_OS\nRUN if [ -n "\$UPLOAD_URL" ] \&\& [ -n "\$UPLOAD_CREDENTIALS" ]; then for img in ebusd-*.deb; do echo -n "upload \$img: "; curl -fsSk -u "\$UPLOAD_CREDENTIALS" -X POST --data-binary "@\$img" -H "Content-Type: application/octet-stream" "\$UPLOAD_URL/\$img?a=\$EBUSD_ARCH\&o=\$UPLOAD_OS\&v=\$EBUSD_VERSION" || echo "failed"; done; fi'
   upload_lines+='\n\n\nFROM scratch as deb\nCOPY --from=build /build/*.deb /'
   namesuffix='.build'

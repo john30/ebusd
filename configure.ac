@@ -147,8 +147,12 @@ AC_DEFINE_UNQUOTED(PACKAGE_LOGFILE, LOCALSTATEDIR "/log/" PACKAGE ".log", [The p
 AC_DEFINE(SCAN_VERSION, "[m4_esyscmd_s([sed -e 's#^\([0-9]*\.[0-9]*\).*#\1#' -e 's#\.\([0-9]\)$#0\1#' -e 's#\.##' VERSION])]", [The version of the package formatted for the scan result.])
 AC_DEFINE(PACKAGE_VERSION_MAJOR, "[m4_esyscmd_s([sed -e 's#^\([0-9]*\)\..*$#\1#' VERSION])]", [The major version of the package.])
 AC_DEFINE(PACKAGE_VERSION_MINOR, "[m4_esyscmd_s([sed -e 's#^.*\.\([0-9]*\)$#\1#' VERSION])]", [The minor version of the package.])
-AC_DEFINE(REVISION, "[m4_esyscmd_s([git describe --always 2>/dev/null || (date +p%Y%m%d)])]", [The revision of the package.])
-
+AC_ARG_VAR(GIT_REVISION, [Predefined value to use for revision instead of running git describe.])
+if test -n "$GIT_REVISION"; then
+	AC_DEFINE(REVISION, "[m4_esyscmd_s([echo "$GIT_REVISION"])]", [The revision of the package.])
+else
+	AC_DEFINE(REVISION, "[m4_esyscmd_s([git describe --always 2>/dev/null || (date +p%Y%m%d)])]", [The revision of the package.])
+fi
 AC_CHECK_PROGS([HAVE_DOXYGEN], [doxygen], [])
 if test -z "$HAVE_DOXYGEN"; then
 	AC_MSG_WARN([Doxygen not found - continuing without Doxygen support.])

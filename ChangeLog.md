@@ -1,3 +1,12 @@
+# 22.4 (tbd)
+## Bug Fixes
+* fix some smaller glitches
+* fix revision in gh build for update check
+
+## Features
+* add continuation of initial scan until it succeeded
+
+
 # 22.3 (2022-05-08)
 ## Bug Fixes
 * fix potential race condition in connection handling
