@@ -80,7 +80,8 @@ Device::Device(const char* name, bool checkDevice, unsigned int latency, bool re
     bool enhancedProto)
   : m_name(name), m_checkDevice(checkDevice),
     m_latency(HOST_LATENCY_MS+(enhancedProto?ENHANCED_LATENCY_MS:0)+latency), m_readOnly(readOnly),
-    m_initialSend(initialSend), m_enhancedProto(enhancedProto), m_fd(-1), m_listener(nullptr), m_arbitrationMaster(SYN),
+    m_initialSend(initialSend), m_enhancedProto(enhancedProto), m_fd(-1), m_resetRequested(false),
+    m_listener(nullptr), m_arbitrationMaster(SYN),
     m_arbitrationCheck(0), m_bufSize(((MAX_LEN+1+3)/4)*4), m_bufLen(0), m_bufPos(0),
     m_extraFatures(0), m_infoId(0xff), m_infoLen(0), m_infoPos(0) {
   m_buffer = reinterpret_cast<symbol_t*>(malloc(m_bufSize));
@@ -158,6 +159,7 @@ result_t Device::afterOpen() {
     if (m_listener != nullptr) {
       m_listener->notifyStatus(false, "resetting");
     }
+    m_resetRequested = true;
   } else if (m_initialSend && !write(ESC)) {
     return RESULT_ERR_SEND;
   }
@@ -611,6 +613,16 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
           *arbitrationState = as_error;
           m_arbitrationMaster = SYN;
           m_arbitrationCheck = 0;
+        }
+        m_enhInfoTemperature = "";
+        m_enhInfoSupplyVoltage = "";
+        m_enhInfoBusVoltage = "";
+        m_infoId = 0xff;
+        if (m_resetRequested) {
+          m_resetRequested = false;
+        } else {
+          close();  // on self-reset of device close and reopen it to have a clean startup
+          cancelRunningArbitration(arbitrationState);
         }
         m_extraFatures = data;
         if (m_listener != nullptr) {

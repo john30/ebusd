@@ -283,6 +283,8 @@ class Device {
   /** the opened file descriptor, or -1. */
   int m_fd;
 
+  /** whether the reset of an enhanced device was already requested. */
+  bool m_resetRequested;
 
  private:
   /** the @a DeviceListener, or nullptr. */
