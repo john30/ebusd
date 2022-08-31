@@ -1,6 +1,7 @@
 ## Transfer speed
 
-In order to compensate potential overhead of transfer encoding, the transfer speed is set to 9600 Baud with 8 bits, no parity, and 1 stop bit.
+In order to compensate potential overhead of transfer encoding, the transfer speed is set to 9600 Baud or 115200 Baud
+with 8 bits, no parity, and 1 stop bit.
 
 
 ## Protocol
@@ -103,10 +104,8 @@ These are the predefined symbols as used above.
  * ERR_OVERRUN 0x01: buffer overrun error
 
 ### Feature bits (both directions)
- * bit 7-1: tbd
- * bit 2: full message sending (complete sequence instead of single bytes)
- * bit 1: high speed transfer at 115200 Bd  
-   When requested, the UART speed is changed to 115200 Bd immediately after sending the complete RESETTED reponse.
+ * bit 7-2: tbd
+ * // planned: bit 1: full message sending (complete sequence instead of single bytes)
  * bit 0: additional infos (version, PIC ID, etc.)
 
 ### Information IDs (both directions)
