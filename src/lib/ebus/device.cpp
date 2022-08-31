@@ -229,6 +229,10 @@ string Device::getEnhancedInfos() {
       return "cannot request config";
     }
   }
+  res = requestEnhancedInfo(6);
+  if (res != RESULT_OK) {
+    return "cannot request reset info";
+  }
   res = requestEnhancedInfo(3);
   if (res != RESULT_OK) {
     return "cannot request temperature";
@@ -448,7 +452,7 @@ bool Device::available() {
     symbol_t ch = m_buffer[(pos+m_bufPos)%m_bufSize];
     if (!(ch&ENH_BYTE_FLAG)) {
 #ifdef DEBUG_RAW_TRAFFIC
-      fprintf(stdout, "raw avail direct\n");
+      fprintf(stdout, "raw avail direct @%d+%d %2.2x\n", m_bufPos, pos, ch);
       fflush(stdout);
 #endif
       return true;
@@ -461,7 +465,7 @@ bool Device::available() {
       ch = m_buffer[(pos+m_bufPos+1)%m_bufSize];
       if (!(ch&ENH_BYTE_FLAG) || (ch&ENH_BYTE_MASK) != ENH_BYTE2) {
 #ifdef DEBUG_RAW_TRAFFIC
-        fprintf(stdout, "raw avail enhanced following bad\n");
+        fprintf(stdout, "raw avail enhanced following bad @%d+%d %2.2x %2.2x\n", m_bufPos, pos, m_buffer[(pos+m_bufPos)%m_bufSize], ch);
         fflush(stdout);
 #endif
         if (m_listener != nullptr) {
@@ -474,13 +478,13 @@ bool Device::available() {
         continue;
       }
 #ifdef DEBUG_RAW_TRAFFIC
-      fprintf(stdout, "raw avail enhanced\n");
+      fprintf(stdout, "raw avail enhanced @%d+%d %2.2x %2.2x\n", m_bufPos, pos, m_buffer[(pos+m_bufPos)%m_bufSize], ch);
       fflush(stdout);
 #endif
       return true;
     }
 #ifdef DEBUG_RAW_TRAFFIC
-    fprintf(stdout, "raw avail enhanced bad\n");
+    fprintf(stdout, "raw avail enhanced bad @%d+%d %2.2x\n", m_bufPos, pos, ch);
     fflush(stdout);
 #endif
     if (m_listener != nullptr) {
@@ -510,11 +514,19 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
           tail = (m_bufPos+m_bufLen) % m_bufSize;
           size_t head = m_bufLen-tail;
           memmove(m_buffer+head, m_buffer, tail);
+#ifdef DEBUG_RAW_TRAFFIC
+          fprintf(stdout, "raw move tail %d @0 to @%d\n", tail, head);
+          fflush(stdout);
+#endif
         } else {
           tail = 0;
         }
         // move head to first position
         memmove(m_buffer, m_buffer + m_bufPos, m_bufLen - tail);
+#ifdef DEBUG_RAW_TRAFFIC
+        fprintf(stdout, "raw move head %d @%d to 0\n", m_bufLen - tail, m_bufPos);
+        fflush(stdout);
+#endif
       }
     }
     m_bufPos = 0;
@@ -526,7 +538,7 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
 #ifdef DEBUG_RAW_TRAFFIC
     fprintf(stdout, "raw %ld+%ld <", m_bufLen, size);
     for (int pos=0; pos < size; pos++) {
-      fprintf(stdout, " %2.2x", m_buffer[m_bufLen+pos]);
+      fprintf(stdout, " %2.2x", m_buffer[(m_bufLen+pos)%m_bufSize]);
     }
     fprintf(stdout, "\n");
     fflush(stdout);
@@ -643,12 +655,19 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
             switch ((m_infoLen << 8) | m_infoId) {
               case 0x0200:
               case 0x0500: // with firmware version and jumper info
-                stream << "firmware " << static_cast<unsigned>(m_infoBuf[0]) << "." << std::hex
-                       << static_cast<unsigned>(m_infoBuf[1]);
-                if (m_infoLen>4) {
-                  stream << " [" << std::hex << static_cast<unsigned>(m_infoBuf[2])
-                         << static_cast<unsigned>(m_infoBuf[3]) << "]";
-                  stream << ", jumpers 0x" << std::hex << static_cast<unsigned>(m_infoBuf[4]);
+              case 0x0800: // with firmware version, jumper info, and bootloader version
+                stream << "firmware " << static_cast<unsigned>(m_infoBuf[0]) << "." // version minor
+                       << std::hex << static_cast<unsigned>(m_infoBuf[1]); // features mask
+                if (m_infoLen>=5) {
+                  stream << " [" << std::setfill('0') << std::setw(2) << std::hex << static_cast<unsigned>(m_infoBuf[2])
+                         << std::setw(2) << static_cast<unsigned>(m_infoBuf[3]) << "]";
+                  stream << ", jumpers 0x" << std::setw(2) << static_cast<unsigned>(m_infoBuf[4]);
+                  stream << std::setfill(' ');  // reset
+                }
+                if (m_infoLen>=8) {
+                  stream << ", bootloader " << std::dec << static_cast<unsigned>(m_infoBuf[5]);
+                  stream << " [" << std::setfill('0') << std::setw(2) << std::hex << static_cast<unsigned>(m_infoBuf[6])
+                         << std::setw(2) << static_cast<unsigned>(m_infoBuf[7]) << "]";
                 }
                 break;
               case 0x0901:
@@ -658,7 +677,7 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
                 for (uint8_t pos = 0; pos < m_infoPos; pos++) {
                   stream << " " << std::setw(2) << static_cast<unsigned>(m_infoBuf[pos]);
                 }
-                if (m_infoId == 2 && m_infoBuf[2]!=0x3f) {
+                if (m_infoId == 2 && (m_infoBuf[2]&0x3f)!=0x3f) {
                   // non-default arbitration delay
                   val = (m_infoBuf[2]&0x3f)*10;  // steps of 10us
                   stream << ", arbitration delay " << std::dec << static_cast<unsigned>(val) << " us";
@@ -679,6 +698,25 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
                        << static_cast<float>(m_infoBuf[1] / 10.0) << " V - "
                        << static_cast<float>(m_infoBuf[0] / 10.0) << " V";
                 m_enhInfoBusVoltage = stream.str();
+                break;
+              case 0x0206:
+                stream << "reset cause ";
+                if (m_infoBuf[0]) {
+                  stream << static_cast<unsigned>(m_infoBuf[0]) << "=";
+                  switch (m_infoBuf[0]) {
+                    case 1: stream << "power-on"; break;
+                    case 2: stream << "brown-out"; break;
+                    case 3: stream << "watchdog"; break;
+                    case 4: stream << "clear"; break;
+                    case 5: stream << "reset"; break;
+                    case 6: stream << "stack"; break;
+                    case 7: stream << "memory"; break;
+                    default: stream << "other"; break;
+                  }
+                  stream << ", restart count " << static_cast<unsigned>(m_infoBuf[1]);
+                } else {
+                  stream << "unknown";
+                }
                 break;
               default:
                 stream << "unknown 0x" << std::hex << std::setfill('0') << std::setw(2)
