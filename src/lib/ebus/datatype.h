@@ -187,9 +187,10 @@ enum PartType {
 /**
  * Parse a float value from the 32 bit representation (IEEE 754).
  * @param value the 32 bit representation of the float value.
+ * @param negative true if the value is negative.
  * @return the float value.
  */
-float uintToFloat(unsigned int value);
+float uintToFloat(unsigned int value, bool negative);
 
 /**
  * Format a float value to the 32 bit representation (IEEE 754).
