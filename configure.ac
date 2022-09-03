@@ -65,13 +65,18 @@ AM_CONDITIONAL([MQTT], [test "x$with_mqtt" != "xno"])
 
 AC_ARG_WITH(knx, AS_HELP_STRING([--without-knx], [disable support for KNX handling]), [], [with_knx=yes])
 if test "x$with_knx" != "xno"; then
-	AC_CHECK_LIB([eibclient], [EIBSocketURL],
-		[AC_DEFINE_UNQUOTED(HAVE_KNX, [1], [Defined if KNX handling is enabled.])
-		EXTRA_LIBS+=" -leibclient"],
-		[AC_MSG_RESULT([Could not find EIBSocketURL in libeibclient.])
-		with_knx="no"])
+	AC_DEFINE_UNQUOTED(HAVE_KNX, [1], [Defined if KNX handling is enabled.])
+	AC_ARG_WITH(knxd, AS_HELP_STRING([--with-knxd], [enable support for KNX handling via knxd]), [
+		AS_IF([test "x$with_knxd" == "xyes"],
+			[AC_CHECK_LIB([eibclient], [EIBSocketURL],
+				[AC_DEFINE_UNQUOTED(HAVE_KNXD, [1], [Defined if KNX handling via knxd is enabled.])],
+				[AC_MSG_RESULT([Could not find EIBSocketURL in libeibclient.])
+				with_knxd="no"])
+			])
+	], [])
 fi
 AM_CONDITIONAL([KNX], [test "x$with_knx" != "xno"])
+AM_CONDITIONAL([KNXD], [test "x$with_knxd" == "xyes"])
 
 AC_ARG_WITH(ssl, AS_HELP_STRING([--without-ssl], [disable support for SSL]), [], [with_ssl=yes])
 if test "x$with_ssl" != "xno"; then
@@ -140,6 +145,9 @@ AM_CONDITIONAL([CONTRIB], [test "x$with_contrib" != "xno"])
 AM_COND_IF([CONTRIB], [AC_CONFIG_FILES([
 		src/lib/ebus/contrib/Makefile
 		src/lib/ebus/contrib/test/Makefile
+	])])
+AM_COND_IF([KNX], [AC_CONFIG_FILES([
+		src/lib/knx/Makefile
 	])])
 
 AC_DEFINE_UNQUOTED(PACKAGE_PIDFILE, LOCALSTATEDIR "/run/" PACKAGE ".pid", [The path and name of the PID file.])

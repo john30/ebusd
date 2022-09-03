@@ -2,7 +2,13 @@ ACLOCAL_AMFLAGS = -I m4
 
 SUBDIRS = docs \
 	src/lib/utils \
-	src/lib/ebus \
+	src/lib/ebus
+
+if KNX
+SUBDIRS += src/lib/knx
+endif
+
+SUBDIRS += \
 	src/ebusd \
 	src/tools
 

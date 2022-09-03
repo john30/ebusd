@@ -184,7 +184,7 @@ KnxHandler::KnxHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* m
       logOtherError("knx", "invalid assignment %s to %s", key.c_str(), val.c_str());
       continue;
     }
-    auto dest = static_cast<eibaddr_t>(v << 11);
+    auto dest = static_cast<knx_addr_t>(v << 11);
     if (pos2 == string::npos) {
       // 2 level
       v = parseInt(val.substr(pos+1).c_str(), 10, 0, 0x7ff, &res);
@@ -192,7 +192,7 @@ KnxHandler::KnxHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* m
         logOtherError("knx", "invalid 2-level assignment %s to %s", key.c_str(), val.c_str());
         continue;
       }
-      dest |= static_cast<eibaddr_t>(v);
+      dest |= static_cast<knx_addr_t>(v);
     } else {
       // 3 level
       v = parseInt(val.substr(pos+1, pos2).c_str(), 10, 0, 0x07, &res);
@@ -200,13 +200,13 @@ KnxHandler::KnxHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* m
         logOtherError("knx", "invalid 3-level assignment %s to %s", key.c_str(), val.c_str());
         continue;
       }
-      dest |= static_cast<eibaddr_t>(v << 8);
+      dest |= static_cast<knx_addr_t>(v << 8);
       v = parseInt(val.substr(pos+1, pos2).c_str(), 10, 0, 0xff, &res);
       if (res != RESULT_OK) {
         logOtherError("knx", "invalid 3-level assignment %s to %s", key.c_str(), val.c_str());
         continue;
       }
-      dest |= static_cast<eibaddr_t>(v);
+      dest |= static_cast<knx_addr_t>(v);
     }
     if (key.substr(0, 7) != "global/") {
       messageCnt++;
@@ -248,7 +248,7 @@ KnxHandler::KnxHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* m
 KnxHandler::~KnxHandler() {
   join();
   if (m_con) {
-    EIBClose(m_con);
+    delete m_con;
     m_con = nullptr;
   }
 }
@@ -348,7 +348,10 @@ float int16ToFloat(uint16_t val) {
   return static_cast<float>(sig * exp2(exp) * (negative ? -0.01 : 0.01));
 }
 
-result_t KnxHandler::sendGroupValue(eibaddr_t dest, apci_t apci, dtlf_t& lengthFlag, unsigned int value, const SingleDataField *field) const {
+result_t KnxHandler::sendGroupValue(knx_addr_t dest, apci_t apci, dtlf_t& lengthFlag, unsigned int value, const SingleDataField *field) const {
+  if (!m_con || !m_con->isConnected() || !m_con->getAddress()) {
+    return RESULT_EMPTY;
+  }
   uint8_t data[] = {0, 0, 0, 0, 0, 0};
   data[0] = static_cast<uint8_t>(apci>>8);
   data[1] = static_cast<uint8_t>(apci&0xff);
@@ -408,7 +411,8 @@ result_t KnxHandler::sendGroupValue(eibaddr_t dest, apci_t apci, dtlf_t& lengthF
       return RESULT_ERR_INVALID_NUM;
   }
   len += lengthFlag.length;
-  if (EIBSendGroup(m_con, dest, len, data) < 0) {
+  const char* err = m_con->sendGroup(dest, len, data);
+  if (err) {
     logOtherError("knx", "unable to send %s, dest %4.4x, len %d",
                   apci==APCI_GROUPVALUE_WRITE ? "write" : apci==APCI_GROUPVALUE_READ ? "read" : "response",
                   dest, len);
@@ -421,7 +425,7 @@ result_t KnxHandler::sendGroupValue(eibaddr_t dest, apci_t apci, dtlf_t& lengthF
 }
 
 void KnxHandler::sendGlobalValue(global_t index, unsigned int value, bool response) {
-  if (!m_con) {
+  if (!m_con || !m_con->isConnected() || !m_con->getAddress()) {
     return;
   }
   const auto vit = m_subscribedGlobals.find(index);
@@ -432,18 +436,18 @@ void KnxHandler::sendGlobalValue(global_t index, unsigned int value, bool respon
   if (git == m_subscribedGroups.end()) {
     return;
   }
-  sendGroupValue(static_cast<eibaddr_t>(vit->second&0xffff),
+  sendGroupValue(static_cast<knx_addr_t>(vit->second&0xffff),
                  response ? APCI_GROUPVALUE_RESPONSE : APCI_GROUPVALUE_WRITE,
                  git->second.lengthFlag, value);
 }
 
-result_t KnxHandler::receiveTelegram(int maxlen, uint8_t *buf, int *recvlen,
-                                  eibaddr_t *src, eibaddr_t *dest) {
+result_t KnxHandler::receiveTelegram(int maxlen, knx_transfer_t* typ, uint8_t *buf, int *recvlen,
+                                     knx_addr_t *src, knx_addr_t *dest) {
   struct timespec tdiff = {
       .tv_sec = 2,
       .tv_nsec = 0,
   };
-  int fd = EIB_Poll_FD(m_con);
+  int fd = m_con->getPollFd();
 #ifdef HAVE_PPOLL
   nfds_t nfds = 1;
   struct pollfd fds[nfds];
@@ -482,28 +486,17 @@ result_t KnxHandler::receiveTelegram(int maxlen, uint8_t *buf, int *recvlen,
   newData = FD_ISSET(fd, &readfds);
 #endif
 #endif
-  int len = EIB_Poll_Complete(m_con);
-  if (len == -1) {
-    // read failed
-    return RESULT_ERR_GENERIC_IO;
-  }
   if (!newData) {
     // timeout
     return RESULT_ERR_TIMEOUT;
   }
-  len = EIBGetGroup_Src(m_con, maxlen, buf, src, dest);
-  if (len < 0) {
-    return RESULT_ERR_GENERIC_IO;
-  }
-  if (len < 2) {
-    return RESULT_ERR_GENERIC_IO;
-  }
-  *recvlen = len;
-  return RESULT_OK;
+  *typ = m_con->getPollData(maxlen, buf, recvlen, src, dest);
+  return *typ == KNX_TRANSFER_NONE ? RESULT_EMPTY : RESULT_OK;
 }
 
 /*
-void printResponse(eibaddr_t src, eibaddr_t dest, int len, const uint8_t *data) {
+void printResponse(knx_addr_t src, knx_addr_t dest, int len, const uint8_t *data) {
+  int tctrl = data[0]>>2;
   int apci = ((data[0]&0x03)<<8) | data[1];
   if ((apci & APCI_GROUPVALUE_READ_MASK) == 0) {
     apci &= ~APCI_GROUPVALUE_READ_MASK;
@@ -518,17 +511,22 @@ void printResponse(eibaddr_t src, eibaddr_t dest, int len, const uint8_t *data) 
   if (len>5) {
     value = (value<<8) | data[5]; // up to 32 bits
   }
-  logOtherDebug("knx", "recv from %4.4x to %4.4x, %s (%d), len %d", src, dest,
+  logOtherDebug("knx", "recv from %4.4x to %4.4x, %s (0x%3.3x, tctrl 0x%2.2x), len %d", src, dest,
                 apci==APCI_GROUPVALUE_WRITE ? "write" : apci==APCI_GROUPVALUE_READ ? "read"
                   : apci==APCI_GROUPVALUE_RESPONSE ? "response" : "other",
-                apci, len);
+                apci, tctrl, len);
 }
- */
+*/
 
-void KnxHandler::handleReceivedTelegram(eibaddr_t src, eibaddr_t dest, int len, const uint8_t *data) {
+void KnxHandler::handleReceivedTelegram(knx_transfer_t typ, knx_addr_t src, knx_addr_t dest, int len, const uint8_t *data) {
+  if (typ != KNX_TRANSFER_GROUP) {
+    logOtherNotice("knx", "skipping non-group PDU %3.3x", typ);
+    return;
+  }
   int apci = ((data[0]&0x03)<<8) | data[1];
-  if ((apci & APCI_GROUPVALUE_READ_MASK) == 0) {
-    apci &= ~APCI_GROUPVALUE_READ_MASK;
+  int groupReadWriteApci = apci & APCI_GROUPVALUE_READ_WRITE_MASK;
+  if (groupReadWriteApci == APCI_GROUPVALUE_WRITE || groupReadWriteApci == APCI_GROUPVALUE_READ) {
+    apci = groupReadWriteApci;
   }
   bool isWrite = apci==APCI_GROUPVALUE_WRITE;
   if (apci!=APCI_GROUPVALUE_READ && !isWrite) {
@@ -638,7 +636,8 @@ void KnxHandler::handleReceivedTelegram(eibaddr_t src, eibaddr_t dest, int len, 
         fval = int16ToFloat(static_cast<uint16_t>(value));
       } else if (lengthFlag.length == 4) {
         // convert from IEEE 754
-        fval = uintToFloat(value);
+        bool negative = (value & (1u << 31)) != 0;
+        fval = uintToFloat(value, negative);
       } else {
         logOtherNotice("knx", "unable to decode write request from %4.4x to %4.4x for %s/%s/%s, value %d",
                        src, dest, circuit.c_str(), name.c_str(), fieldName.c_str(), value);
@@ -703,24 +702,22 @@ void KnxHandler::run() {
   int len = 0;
   time_t definitionsSince = 0;
   while (isRunning()) {
-    bool wasConnected = m_con != nullptr;
+    bool wasConnected = m_con != nullptr && m_con->isConnected();
     bool needsWait = true;
     if (!m_con) {
-      m_con = EIBSocketURL(g_url);
-      const char* err = nullptr;
-      if (!m_con) {
-        err = "open error";
-      } else if (EIBOpen_GroupSocket(m_con, 0) < 0) {
-        err = "open group error";
-        EIBClose_sync(m_con);
-        m_con = nullptr;
-      } else {
+      m_con = KnxConnection::create();
+      const char* err = m_con->open(g_url);
+      if (!err) {
         m_lastErrorLogTime = 0;
         logOtherNotice("knx", "connected");
         sendGlobalValue(GLOBAL_VERSION, VERSION_INT);
         sendGlobalValue(GLOBAL_RUNNING, 1);
       }
       if (err) {
+        if (m_con) {
+          delete m_con;
+          m_con = nullptr;
+        }
         time(&now);
         if (now > m_lastErrorLogTime + 10) {  // log at most every 10 seconds
           m_lastErrorLogTime = now;
@@ -792,7 +789,7 @@ void KnxHandler::run() {
               continue;
             }
             // store association
-            eibaddr_t dest = git->second;
+            knx_addr_t dest = git->second;
             auto subKey = static_cast<uint32_t>(dest | (isWrite ? FLAG_WRITE : FLAG_READ));
             auto sit = m_subscribedGroups.find(subKey);
             if (sit != m_subscribedGroups.cend()) {
@@ -866,19 +863,20 @@ void KnxHandler::run() {
       }
     }
     if (m_con) {
-      eibaddr_t src, dest;
+      knx_addr_t src, dest;
+      knx_transfer_t typ;
       // APDU data starting with octet 6 according to spec, contains 2 bits of application layer
       result_t res = RESULT_OK;
       do {
-        res = receiveTelegram(8, data, &len, &src, &dest);
+        res = receiveTelegram(sizeof(data), &typ, data, &len, &src, &dest);
         if (res != RESULT_OK) {
           if (res == RESULT_ERR_GENERIC_IO) {
-            EIBClose_sync(m_con);
+            delete m_con;
             m_con = nullptr;
           }
         } else {
           needsWait = false;
-          handleReceivedTelegram(src, dest, len, data);
+          handleReceivedTelegram(typ, src, dest, len, data);
         }
       } while (res == RESULT_OK);
     }
@@ -913,7 +911,7 @@ void KnxHandler::run() {
               if (!field || field->isIgnored()) {
                 continue;
               }
-              eibaddr_t dest = destFlags&0xffff;
+              knx_addr_t dest = destFlags&0xffff;
               unsigned int value = 0;
               result = message->decodeLastDataNumField(nullptr, index, &value);
               sendGroupValue(dest, APCI_GROUPVALUE_WRITE, sit->second.lengthFlag, value, field);

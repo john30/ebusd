@@ -19,7 +19,6 @@
 #ifndef EBUSD_KNXHANDLER_H_
 #define EBUSD_KNXHANDLER_H_
 
-#include <eibclient.h>
 #include <map>
 #include <string>
 #include <list>
@@ -29,11 +28,12 @@
 #include "ebusd/bushandler.h"
 #include "lib/ebus/message.h"
 #include "lib/ebus/stringhelper.h"
+#include "lib/knx/knx.h"
 
 namespace ebusd {
 
 /** @file ebusd/knxhandler.h
- * A data handler enabling KNX support via knx.
+ * A data handler enabling KNX support.
  */
 
 using std::map;
@@ -65,7 +65,7 @@ enum apci_t {
   APCI_GROUPVALUE_WRITE = 0x080,     //!< A_GroupValue_Write-PDU
 };
 
-#define APCI_GROUPVALUE_READ_MASK 0x3c0
+#define APCI_GROUPVALUE_READ_WRITE_MASK 0x3c0
 
 #define FLAG_READ 0x400000
 #define FLAG_WRITE 0x800000
@@ -144,7 +144,7 @@ class KnxHandler : public DataSink, public DataSource, public WaitThread {
    * @param field the message field or nullptr for non field related.
    * @return the result code.
    */
-  result_t sendGroupValue(eibaddr_t dest, apci_t apci, dtlf_t& lengthFlag, unsigned int value, const SingleDataField *field = nullptr) const;
+  result_t sendGroupValue(knx_addr_t dest, apci_t apci, dtlf_t& lengthFlag, unsigned int value, const SingleDataField *field = nullptr) const;
 
   /**
    * Send a global value to the registered group address.
@@ -164,16 +164,17 @@ class KnxHandler : public DataSink, public DataSource, public WaitThread {
    * @return the result code, either RESULT_OK on success, RESULT_ERR_GENERIC_IO on I/O error (e.g. socket closed),
    * or RESULT_ERR_TIMEOUT if no data is available.
    */
-  result_t receiveTelegram(int maxlen, uint8_t *buf, int *recvlen, eibaddr_t *src, eibaddr_t *dest);
+  result_t receiveTelegram(int maxlen, knx_transfer_t* typ, uint8_t *buf, int *recvlen, knx_addr_t *src, knx_addr_t *dest);
 
   /**
    * Handle a received KNX telegram.
+   * @param typ the poll data type.
    * @param src the source address.
    * @param dest the destination group address.
    * @param len the telegram length (starting with ovctet 6).
    * @param data the telegram data buffer.
    */
-  void handleReceivedTelegram(eibaddr_t src, eibaddr_t dest, int len, const uint8_t *data);
+  void handleReceivedTelegram(knx_transfer_t typ, knx_addr_t src, knx_addr_t dest, int len, const uint8_t *data);
 
  protected:
   // @copydoc
@@ -188,7 +189,7 @@ class KnxHandler : public DataSink, public DataSource, public WaitThread {
   StringReplacers m_replacers;
 
   /** the group address for relevant message fields before being subscribed to by "circuit/message/field" name. */
-  map<string, eibaddr_t> m_messageFieldGroupAddress;
+  map<string, knx_addr_t> m_messageFieldGroupAddress;
 
   /**
    * the group addresses that need to be responded to.
@@ -209,8 +210,8 @@ class KnxHandler : public DataSink, public DataSource, public WaitThread {
   /** the time the run thread was entered. */
   time_t m_start;
 
-  /** the knx structure if initialized, or nullptr. */
-  EIBConnection* m_con;
+  /** the knx connection if initialized, or nullptr. */
+  KnxConnection* m_con;
 
   /** the last update check result. */
   string m_lastUpdateCheckResult;

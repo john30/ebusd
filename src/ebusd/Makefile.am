@@ -16,14 +16,16 @@ ebusd_SOURCES = \
 if MQTT
 ebusd_SOURCES += mqtthandler.cpp mqtthandler.h
 endif
-if KNX
-ebusd_SOURCES += knxhandler.cpp knxhandler.h
-endif
 
 ebusd_LDADD = ../lib/utils/libutils.a \
               ../lib/ebus/libebus.a \
 	      -lpthread \
 	      @EXTRA_LIBS@
+
+if KNX
+ebusd_SOURCES += knxhandler.cpp knxhandler.h
+ebusd_LDADD += ../lib/knx/libknx.a
+endif
 
 if SSL
 ebusd_LDADD += -lssl -lcrypto

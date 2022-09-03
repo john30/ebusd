@@ -7,8 +7,11 @@
 /* Defined if MQTT handling is enabled. */
 #cmakedefine HAVE_MQTT
 
-/* Defined if KNX is enabled. */
+/* Defined if KNX handling is enabled. */
 #cmakedefine HAVE_KNX
+
+/* Defined if KNX handling via knxd is enabled. */
+#cmakedefine HAVE_KNXD
 
 /* Defined if SSL is enabled. */
 #cmakedefine HAVE_SSL

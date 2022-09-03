@@ -15,7 +15,8 @@ endif(HAVE_MQTT)
 
 if(HAVE_KNX)
   set(ebusd_SOURCES ${ebusd_SOURCES} knxhandler.cpp knxhandler.h)
-  set(ebusd_LIBS ${ebusd_LIBS} eibclient)
+  set(ebusd_LIBS ${ebusd_LIBS} knx)
+  include_directories(../lib/knx)
 endif(HAVE_KNX)
 
 if(HAVE_SSL)

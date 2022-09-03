@@ -794,7 +794,6 @@ result_t NumberDataType::readSymbols(size_t offset, size_t length, const SymbolS
 }
 
 result_t NumberDataType::getFloatFromRawValue(unsigned int value, float* output) const {
-  int signedValue;
   if (!hasFlag(REQ) && value == m_replacement) {
     return RESULT_EMPTY;
   }
@@ -814,9 +813,10 @@ result_t NumberDataType::getFloatFromRawValue(unsigned int value, float* output)
   } else {
     negative = false;
   }
+  int signedValue;
   if (m_bitCount == 32) {
     if (hasFlag(EXP)) {  // IEEE 754 binary32
-      float val = uintToFloat(value);
+      float val = uintToFloat(value, negative);
       if (val != val) {  // !isnan(val)
         return RESULT_EMPTY;
       }
@@ -830,7 +830,6 @@ result_t NumberDataType::getFloatFromRawValue(unsigned int value, float* output)
       *output = static_cast<float>(val);
       return RESULT_OK;
     }
-    // less than 32 bit
     if (!negative) {
       if (m_divisor < 0) {
         *output = static_cast<float>(value) * static_cast<float>(-m_divisor);
@@ -860,7 +859,6 @@ result_t NumberDataType::getFloatFromRawValue(unsigned int value, float* output)
 result_t NumberDataType::readFromRawValue(unsigned int value,
                                           OutputFormat outputFormat, ostream* output) const {
   size_t length = (m_bitCount < 8) ? 1 : (m_bitCount/8);
-  int signedValue;
   // initialize output
   *output << setw(0) << std::resetiosflags(output->flags()) << dec << std::skipws << setprecision(6);
 
@@ -888,6 +886,7 @@ result_t NumberDataType::readFromRawValue(unsigned int value,
   } else {
     negative = false;
   }
+  int signedValue;
   if (m_bitCount == 32) {
     if (hasFlag(EXP)) {  // IEEE 754 binary32
       float val = uintToFloat(value, negative);
