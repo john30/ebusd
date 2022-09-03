@@ -15,16 +15,16 @@ AC_PROG_CXX([g++-6 g++-5 g++-4.9 g++-4.8 g++])
 AX_CXX_COMPILE_STDCXX([11], [ext], [mandatory])
 
 AC_CHECK_HEADERS([arpa/inet.h \
-		  dirent.h \
-		  fcntl.h \
-		  netdb.h \
-		  poll.h \
-		  pthread.h \
-		  sys/ioctl.h \
-		  sys/select.h \
-		  sys/time.h \
-		  time.h \
-		  termios.h])
+	dirent.h \
+	fcntl.h \
+	netdb.h \
+	poll.h \
+	pthread.h \
+	sys/ioctl.h \
+	sys/select.h \
+	sys/time.h \
+	time.h \
+	termios.h])
 
 AC_CHECK_LIB([pthread], [pthread_setname_np],
 	AC_DEFINE([HAVE_PTHREAD_SETNAME_NP], [1], [Defined if pthread_setname_np is available.]),
@@ -67,9 +67,9 @@ AC_ARG_WITH(ssl, AS_HELP_STRING([--without-ssl], [disable support for SSL]), [],
 if test "x$with_ssl" != "xno"; then
 	AC_CHECK_LIB([ssl], [OPENSSL_init_ssl],
 		[AC_CHECK_LIB([crypto], [CRYPTO_new_ex_data],
-         		[AC_DEFINE_UNQUOTED(HAVE_SSL, [1], [Defined if SSL is enabled.])],
-         		[AC_MSG_RESULT([Could not find CRYPTO_new_ex_data in libcrypto.])
-         		with_ssl="no"])],
+		 	[AC_DEFINE_UNQUOTED(HAVE_SSL, [1], [Defined if SSL is enabled.])],
+		 	[AC_MSG_RESULT([Could not find CRYPTO_new_ex_data in libcrypto.])
+		 	with_ssl="no"])],
 		[AC_MSG_RESULT([Could not find SSL_library_init in libssl.])
 		with_ssl="no"])
 fi
@@ -135,8 +135,8 @@ AM_COND_IF([CONTRIB], [AC_CONFIG_FILES([
 AC_DEFINE_UNQUOTED(PACKAGE_PIDFILE, LOCALSTATEDIR "/run/" PACKAGE ".pid", [The path and name of the PID file.])
 AC_DEFINE_UNQUOTED(PACKAGE_LOGFILE, LOCALSTATEDIR "/log/" PACKAGE ".log", [The path and name of the log file.])
 AC_DEFINE(SCAN_VERSION, "[m4_esyscmd_s([sed -e 's#^\([0-9]*\.[0-9]*\).*#\1#' -e 's#\.\([0-9]\)$#0\1#' -e 's#\.##' VERSION])]", [The version of the package formatted for the scan result.])
-AC_DEFINE(PACKAGE_VERSION_MAJOR, "[m4_esyscmd_s([sed -e 's#^\([0-9]*\)\..*$#\1#' VERSION])]", [The major version of the package.])
-AC_DEFINE(PACKAGE_VERSION_MINOR, "[m4_esyscmd_s([sed -e 's#^.*\.\([0-9]*\)$#\1#' VERSION])]", [The minor version of the package.])
+AC_DEFINE(PACKAGE_VERSION_MAJOR, [m4_esyscmd_s([sed -e 's#^\([0-9]*\)\..*$#\1#' VERSION])], [The major version of the package.])
+AC_DEFINE(PACKAGE_VERSION_MINOR, [m4_esyscmd_s([sed -e 's#^.*\.\([0-9]*\)$#\1#' VERSION])], [The minor version of the package.])
 AC_ARG_VAR(GIT_REVISION, [Predefined value to use for revision instead of running git describe.])
 if test -n "$GIT_REVISION"; then
 	AC_DEFINE(REVISION, "[m4_esyscmd_s([echo "$GIT_REVISION"])]", [The revision of the package.])
