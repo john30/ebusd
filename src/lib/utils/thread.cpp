@@ -93,11 +93,18 @@ bool WaitThread::join() {
   return Thread::join();
 }
 
-bool WaitThread::Wait(int seconds) {
+bool WaitThread::Wait(int seconds, int millis) {
   pthread_mutex_lock(&m_mutex);
   struct timespec t;
   clockGettime(&t);
   t.tv_sec += seconds;
+  long newMillis = t.tv_nsec/1000000 + millis;
+  if (newMillis >= 1000) {
+    t.tv_sec += newMillis / 1000;
+    t.tv_nsec = (newMillis%1000) * 1000000; // rounds down to whole millis
+  } else {
+    t.tv_nsec += millis * 1000000;
+  }
   pthread_cond_timedwait(&m_cond, &m_mutex, &t);
   pthread_mutex_unlock(&m_mutex);
   return isRunning();
@@ -120,11 +127,11 @@ bool NotifiableThread::waitNotified(int millis) {
   if (!m_notified) {
     struct timespec t;
     clockGettime(&t);
-    t.tv_sec += millis / 1000000000;
-    t.tv_nsec += (millis % 1000000000) * 1000000;
-    if (t.tv_nsec > 1000000000) {
-      t.tv_sec++;
-      t.tv_nsec -= 1000000000;
+    t.tv_sec += millis / 1000;
+    t.tv_nsec += (millis % 1000) * 1000000;
+    if (t.tv_nsec >= 1000000000) {
+      t.tv_sec += t.tv_nsec / 1000000000;
+      t.tv_nsec %= 1000000000;
     }
     pthread_cond_timedwait(&m_cond, &m_mutex, &t);
   }
