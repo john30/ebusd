@@ -324,9 +324,6 @@ class LastFrames {
 
 #ifdef DEBUG
 #define PRINTF printf
-#else
-#define PRINTF(...)
-#endif
 
 // helper method to log received/sent telegrams
 void logTelegram(bool sent, knxnet_cemi_header_t* c, knxnet_l_data_header_t* l, uint8_t* d) {
@@ -359,6 +356,10 @@ void logTelegram(bool sent, knxnet_cemi_header_t* c, knxnet_l_data_header_t* l, 
   }
   PRINTF("\n");
 }
+#else
+#define PRINTF(...)
+#define logTelegram(...)
+#endif
 
 
 /**
