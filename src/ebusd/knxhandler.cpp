@@ -30,6 +30,11 @@
 #include "lib/utils/log.h"
 #include "lib/ebus/symbol.h"
 
+#ifndef POLLRDHUP
+#define POLLRDHUP 0
+#endif
+
+
 namespace ebusd {
 
 using std::dec;
@@ -49,7 +54,11 @@ using std::dec;
 /** the definition of the KNX arguments. */
 static const struct argp_option g_knx_argp_options[] = {
   {nullptr,      0, nullptr,      0, "KNX options:", 1 },
-  {"knxurl", O_URL, "URL",        0, "Connect to KNX daemon on URL (i.e. \"ip:host:[port]\" or \"local:/socketpath\") []", 0 },
+  {"knxurl", O_URL, "URL",        0, "Connect to KNX daemon on URL (i.e. \"[multicast][@interface]\" for KNXnet/IP"
+#ifdef HAVE_KNXD
+                                     " or \"ip:host[:port]\" / \"local:/socketpath\" for knxd"
+#endif
+                                     ") []", 0 },
   {"knxrage", O_AGR, "SEC",       0, "Maximum age in seconds for using the last value of read messages (0=disable) [5]", 0 },
   {"knxwage", O_AGW, "SEC",       0, "Maximum age in seconds for using the last value for reads on write messages (0=disable), [99999999]", 0 },
   {"knxint", O_INT, "FILE",       0, "Read KNX integration settings from FILE [/etc/ebusd/knx.cfg]", 0 },
@@ -149,8 +158,9 @@ bool knxhandler_register(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
 
 KnxHandler::KnxHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages)
   : DataSink(userInfo, "knx"), DataSource(busHandler), WaitThread(), m_messages(messages),
-    m_start(0), m_con(nullptr), m_lastUpdateCheckResult("."),
+    m_start(0), m_lastUpdateCheckResult("."),
     m_lastScanStatus(SCAN_STATUS_NONE), m_scanFinishReceived(false), m_lastErrorLogTime(0) {
+  m_con = KnxConnection::create(g_url);
   if (g_integrationFile != nullptr) {
     if (!m_replacers.parseFile(g_integrationFile)) {
       logOtherError("knx", "unable to open integration file %s", g_integrationFile);
@@ -162,6 +172,22 @@ KnxHandler::KnxHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* m
     }
     delete g_integrationVars;
     g_integrationVars = nullptr;
+  }
+  if (m_con->isProgrammable()) {
+    string addrStr = m_replacers.get("address", false);
+    knx_addr_t address = 0;
+    if (!addrStr.empty()) {
+      address = parseAddress(addrStr, false);
+      if (!address) {
+        logOtherError("knx", "invalid address: %s", addrStr.c_str());
+      }
+    }
+    if (address) {
+      m_con->setAddress(address);
+    } else {
+      logOtherNotice("knx", "address not assigned yet, entering programming mode");
+      m_con->setProgrammingMode(true);
+    }
   }
   // parse all group to message field assignments
   vector<string> keys = m_replacers.keys();
@@ -176,37 +202,10 @@ KnxHandler::KnxHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* m
     if (pos == string::npos) {
       continue;
     }
-    auto pos2 = val.find('/', pos+1);
-    result_t res = RESULT_OK;
-    unsigned int v;
-    v = parseInt(val.substr(0, pos).c_str(), 10, 0, 0x1f, &res);
-    if (res != RESULT_OK) {
+    auto dest = parseAddress(val);
+    if (!dest) {
       logOtherError("knx", "invalid assignment %s to %s", key.c_str(), val.c_str());
       continue;
-    }
-    auto dest = static_cast<knx_addr_t>(v << 11);
-    if (pos2 == string::npos) {
-      // 2 level
-      v = parseInt(val.substr(pos+1).c_str(), 10, 0, 0x7ff, &res);
-      if (res != RESULT_OK) {
-        logOtherError("knx", "invalid 2-level assignment %s to %s", key.c_str(), val.c_str());
-        continue;
-      }
-      dest |= static_cast<knx_addr_t>(v);
-    } else {
-      // 3 level
-      v = parseInt(val.substr(pos+1, pos2).c_str(), 10, 0, 0x07, &res);
-      if (res != RESULT_OK) {
-        logOtherError("knx", "invalid 3-level assignment %s to %s", key.c_str(), val.c_str());
-        continue;
-      }
-      dest |= static_cast<knx_addr_t>(v << 8);
-      v = parseInt(val.substr(pos+1, pos2).c_str(), 10, 0, 0xff, &res);
-      if (res != RESULT_OK) {
-        logOtherError("knx", "invalid 3-level assignment %s to %s", key.c_str(), val.c_str());
-        continue;
-      }
-      dest |= static_cast<knx_addr_t>(v);
     }
     if (key.substr(0, 7) != "global/") {
       messageCnt++;
@@ -425,7 +424,7 @@ result_t KnxHandler::sendGroupValue(knx_addr_t dest, apci_t apci, dtlf_t& length
 }
 
 void KnxHandler::sendGlobalValue(global_t index, unsigned int value, bool response) {
-  if (!m_con || !m_con->isConnected() || !m_con->getAddress()) {
+  if (!m_con->isConnected() || !m_con->getAddress()) {
     return;
   }
   const auto vit = m_subscribedGlobals.find(index);
@@ -447,6 +446,9 @@ result_t KnxHandler::receiveTelegram(int maxlen, knx_transfer_t* typ, uint8_t *b
       .tv_sec = 2,
       .tv_nsec = 0,
   };
+  if (!m_con->isConnected()) {
+    return RESULT_ERR_GENERIC_IO;
+  }
   int fd = m_con->getPollFd();
 #ifdef HAVE_PPOLL
   nfds_t nfds = 1;
@@ -519,10 +521,34 @@ void printResponse(knx_addr_t src, knx_addr_t dest, int len, const uint8_t *data
 */
 
 void KnxHandler::handleReceivedTelegram(knx_transfer_t typ, knx_addr_t src, knx_addr_t dest, int len, const uint8_t *data) {
-  if (typ != KNX_TRANSFER_GROUP) {
-    logOtherNotice("knx", "skipping non-group PDU %3.3x", typ);
+  if (typ == KNX_TRANSFER_GROUP) {
+    handleGroupTelegram(src, dest, len, data);
     return;
   }
+  if (m_con->isProgrammable() && src && m_con->getAddress()) {
+    handleNonGroupTelegram(typ, src, dest, len, data);
+  }
+}
+
+void KnxHandler::sendNonGroupDisconnect(knx_addr_t dest) {
+  uint8_t buf[] = {0x00};
+  if (m_con->sendTyp(KNX_TRANSFER_DISCONNECT, dest, 1, buf)) {
+    logOtherDebug("knx", "cannot send");
+  }
+  m_lastConnectTime = 0;  // state=closed
+  m_waitForAck = false;
+}
+
+// the connection timeout in millis (6 seconds)
+#define CONNECTION_TIMEOUT 6000
+
+void KnxHandler::handleNonGroupTelegram(knx_transfer_t typ, knx_addr_t src, knx_addr_t dest, int len, const uint8_t *data) {
+  logOtherNotice("knx", "skipping non-group PDU %3.3x", typ);
+}
+
+void KnxHandler::handleGroupTelegram(knx_addr_t src, knx_addr_t dest, int len, const uint8_t *data) {
+  time_t now;
+  time(&now);
   int apci = ((data[0]&0x03)<<8) | data[1];
   int groupReadWriteApci = apci & APCI_GROUPVALUE_READ_WRITE_MASK;
   if (groupReadWriteApci == APCI_GROUPVALUE_WRITE || groupReadWriteApci == APCI_GROUPVALUE_READ) {
@@ -530,6 +556,21 @@ void KnxHandler::handleReceivedTelegram(knx_transfer_t typ, knx_addr_t src, knx_
   }
   bool isWrite = apci==APCI_GROUPVALUE_WRITE;
   if (apci!=APCI_GROUPVALUE_READ && !isWrite) {
+    if (m_con->isProgrammingMode()) {
+      if (apci == APCI_INDIVIDUALADDRESS_READ && m_lastIndividualAddressResponseTime<now-3) { // timeout 3 seconds
+        uint8_t buf[] = {APCI_INDIVIDUALADDRESS_RESPONSE>>8, APCI_INDIVIDUALADDRESS_RESPONSE&0xff};
+        logOtherNotice("knx", "answering to A_IndividualAddress_Read");
+        if (m_con->sendGroup(0, 2, buf)) {
+          logOtherDebug("knx", "cannot send");
+        } else {
+          m_lastIndividualAddressResponseTime = now;
+        }
+      } else if (apci==APCI_INDIVIDUALADDRESS_WRITE && len==4 && !m_con->getAddress() && (data[2]|data[3])) {
+        m_con->setAddress((data[2]<<8)|data[3]);
+        m_lastIndividualAddressResponseTime = 0;
+        logOtherNotice("knx", "received new address %x", m_con->getAddress());
+      }
+    }
     return;  // neither A_GroupValue_Read nor A_GroupValue_Write (A_GroupValue_Response not used at all)
   }
   const auto subKey = static_cast<uint32_t>(dest | (isWrite ? FLAG_WRITE : FLAG_READ));
@@ -666,8 +707,6 @@ void KnxHandler::handleReceivedTelegram(knx_transfer_t typ, knx_addr_t src, knx_
   }
   logOtherNotice("knx", "received read request from %4.4x to %4.4x for %s/%s/%s",
                  src, dest, circuit.c_str(), name.c_str(), fieldName.c_str());
-  time_t now;
-  time(&now);
   if (msg->isWrite() && !msg->isPassive()) {  // reading last value of a write message
     if (now >= msg->getLastUpdateTime() + g_maxWriteAge) {
       logOtherInfo("knx", "unable to answer read request to %4.4x on write message", dest);
@@ -698,26 +737,22 @@ void KnxHandler::run() {
   result_t result = RESULT_OK;
   time(&now);
   m_start = lastTaskRun = now;
-  uint8_t data[] = {0, 0, 0, 0, 0, 0, 0, 0};
+  uint8_t data[256];
   int len = 0;
   time_t definitionsSince = 0;
   while (isRunning()) {
-    bool wasConnected = m_con != nullptr && m_con->isConnected();
+    bool wasConnected = m_con->isConnected();
     bool needsWait = true;
-    if (!m_con) {
-      m_con = KnxConnection::create();
-      const char* err = m_con->open(g_url);
+    if (!wasConnected) {
+      const char* err = m_con->open();
       if (!err) {
         m_lastErrorLogTime = 0;
-        logOtherNotice("knx", "connected");
+        logOtherNotice("knx", "connected to %s", m_con->getInfo());
         sendGlobalValue(GLOBAL_VERSION, VERSION_INT);
         sendGlobalValue(GLOBAL_RUNNING, 1);
       }
       if (err) {
-        if (m_con) {
-          delete m_con;
-          m_con = nullptr;
-        }
+        m_con->close();
         time(&now);
         if (now > m_lastErrorLogTime + 10) {  // log at most every 10 seconds
           m_lastErrorLogTime = now;
@@ -725,7 +760,7 @@ void KnxHandler::run() {
         }
       }
     }
-    bool reconnected = !wasConnected && m_con != nullptr;
+    bool reconnected = !wasConnected && m_con->isConnected();
     time(&now);
     bool sendSignal = reconnected;
     if (now < m_start) {
@@ -736,17 +771,17 @@ void KnxHandler::run() {
       lastTaskRun = now;
     } else if (now > lastTaskRun+(m_scanFinishReceived ? 1 : 15)) {
       m_scanFinishReceived = false;
-      if (m_con) {
+      if (m_con->isConnected()) {
         sendSignal = true;
         if (now > lastUptime + UPTIME_INTERVAL) {
           lastUptime = now;
           sendGlobalValue(GLOBAL_UPTIME, static_cast<unsigned int>(now - m_start));
         }
       }
-      if (m_con && definitionsSince == 0) {
+      if (m_con->isConnected() && definitionsSince == 0) {
         definitionsSince = 1;
       }
-      if (m_con) {
+      if (m_con->isConnected()) {
         deque<Message*> messages;
         m_messages->findAll("", "", m_levels, false, true, true, true, true, true, 0, 0, true, &messages);
         int addCnt = 0;
@@ -862,7 +897,13 @@ void KnxHandler::run() {
         }
       }
     }
-    if (m_con) {
+    if (m_con->isConnected()) {
+      if (reconnected) {
+        // reset the state machine
+        m_lastConnectTime = 0;
+        m_waitForAck = false;
+      }
+      handleReceivedTelegram(KNX_TRANSFER_NONE, 1, 0, 0, data);  // check timeout
       knx_addr_t src, dest;
       knx_transfer_t typ;
       // APDU data starting with octet 6 according to spec, contains 2 bits of application layer
@@ -871,8 +912,7 @@ void KnxHandler::run() {
         res = receiveTelegram(sizeof(data), &typ, data, &len, &src, &dest);
         if (res != RESULT_OK) {
           if (res == RESULT_ERR_GENERIC_IO) {
-            delete m_con;
-            m_con = nullptr;
+            m_con->close();
           }
         } else {
           needsWait = false;
@@ -882,7 +922,7 @@ void KnxHandler::run() {
     }
     if (!m_updatedMessages.empty()) {
       m_messages->lock();
-      if (m_con) {
+      if (m_con->isConnected()) {
         for (auto it = m_updatedMessages.begin(); it != m_updatedMessages.end(); ) {
           const vector<Message*>* messages = m_messages->getByKey(it->first);
           if (!messages) {
@@ -925,7 +965,8 @@ void KnxHandler::run() {
       }
       m_messages->unlock();
     }
-    if ((!m_con && !Wait(5)) || (needsWait && !Wait(1))) {
+    if ((!m_con->isConnected() && !Wait(5)) || (needsWait && !Wait(0, 100))
+    ) {
       break;
     }
   }

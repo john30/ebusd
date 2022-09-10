@@ -60,9 +60,20 @@ bool knxhandler_register(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
 
 /** type for KNX APCI values (application control field). */
 enum apci_t {
+  // within KNX_TRANSFER_GROUP:
   APCI_GROUPVALUE_READ = 0x000,      //!< A_GroupValue_Read-PDU
-  APCI_GROUPVALUE_RESPONSE = 0x040,  //!< A_GroupValue_Response-PDU
-  APCI_GROUPVALUE_WRITE = 0x080,     //!< A_GroupValue_Write-PDU
+  APCI_GROUPVALUE_RESPONSE = 0x040,  //!< A_GroupValue_Response-PDU (mask APCI_GROUPVALUE_READ_WRITE_MASK)
+  APCI_GROUPVALUE_WRITE = 0x080,     //!< A_GroupValue_Write-PDU (mask APCI_GROUPVALUE_READ_WRITE_MASK)
+  APCI_INDIVIDUALADDRESS_READ = 0x100,  //!< A_IndividualAddress_Read-PDU
+  APCI_INDIVIDUALADDRESS_RESPONSE = 0x140,  //!< A_IndividualAddress_Response-PDU
+  APCI_INDIVIDUALADDRESS_WRITE = 0x0c0,  //!< A_IndividualAddress_Write-PDU
+  // within KNX_TRANSFER_CONNECTED:
+  APCI_DEVICEDESCRIPTOR_READ = 0x300,  //!< A_DeviceDescriptor_Read-PDU
+  APCI_DEVICEDESCRIPTOR_RESPONSE = 0x340,  //!< A_DeviceDescriptor_Read-PDU (mask should be 0x3c0)
+  APCI_PROPERTYVALUE_READ = 0x3d5,  //!< A_PropertyValue_Read-PDU
+  APCI_PROPERTYVALUE_RESPONSE = 0x3d6,  //!< A_PropertyValue_Response-PDU
+  APCI_PROPERTYVALUE_WRITE = 0x3d7,  //!< A_PropertyValue_Write-PDU
+  APCI_RESTART = 0x380,  //!< A_Restart-PDU
 };
 
 #define APCI_GROUPVALUE_READ_WRITE_MASK 0x3c0
@@ -168,11 +179,11 @@ class KnxHandler : public DataSink, public DataSource, public WaitThread {
 
   /**
    * Handle a received KNX telegram.
-   * @param typ the poll data type.
+   * @param typ the transfer data type.
    * @param src the source address.
    * @param dest the destination group address.
-   * @param len the telegram length (starting with ovctet 6).
-   * @param data the telegram data buffer.
+   * @param len the data length (including the TPCI/APCI octet 6, i.e. transport control field).
+   * @param data the data buffer (starting with the TPCI/APCI octet 6, i.e. transport control field).
    */
   void handleReceivedTelegram(knx_transfer_t typ, knx_addr_t src, knx_addr_t dest, int len, const uint8_t *data);
 
@@ -180,6 +191,30 @@ class KnxHandler : public DataSink, public DataSource, public WaitThread {
   // @copydoc
   void run() override;
 
+  /**
+   * Handle a received non-group telegram when the device has an individual address and is programmable.
+   * @param typ the transfer data type.
+   * @param src the source address (ensured to be non-zero).
+   * @param dest the destination address (group or individual according to address type encoded in the transfer data type).
+   * @param len the data length (including the TPCI/APCI octet 6, i.e. transport control field).
+   * @param data the data buffer (starting with the TPCI/APCI octet 6, i.e. transport control field).
+   */
+  void handleNonGroupTelegram(knx_transfer_t typ, knx_addr_t src, knx_addr_t dest, int len, const uint8_t *data);
+
+  /**
+   * Send a DISCONNECT to the destination and reset the connected state.
+   * @param dest the destination individual address to send to.
+   */
+  void sendNonGroupDisconnect(knx_addr_t dest);
+
+  /**
+   * Handle a received group telegram.
+   * @param src the source address.
+   * @param dest the destination group address.
+   * @param len the data length (including the TPCI/APCI octet 6, i.e. transport control field).
+   * @param data the data buffer (starting with the TPCI/APCI octet 6, i.e. transport control field).
+   */
+  void handleGroupTelegram(knx_addr_t src, knx_addr_t dest, int len, const uint8_t *data);
 
  private:
   /** the @a MessageMap instance. */
@@ -210,8 +245,26 @@ class KnxHandler : public DataSink, public DataSource, public WaitThread {
   /** the time the run thread was entered. */
   time_t m_start;
 
-  /** the knx connection if initialized, or nullptr. */
+  /** the knx connection as long as initialized, or nullptr. */
   KnxConnection* m_con;
+
+  /** the time of the last sent individual address response, or 0. */
+  time_t m_lastIndividualAddressResponseTime = 0;
+
+  /** the time of the last connection, or 0 if not connected. */
+  long long m_lastConnectTime = 0;
+
+  /** the source address of the last connection, or 0. */
+  knx_addr_t m_lastConnectSource = 0;
+
+  /** the SeqNo for reception of the last connection. */
+  uint8_t m_lastConnectRecvSeq = 0;
+
+  /** the SeqNo for sending of the last connection. */
+  uint8_t m_lastConnectSendSeq = 0;
+
+  /** true when last connection is in state OPEN_WAIT. */
+  bool m_waitForAck = false;
 
   /** the last update check result. */
   string m_lastUpdateCheckResult;
@@ -223,7 +276,7 @@ class KnxHandler : public DataSink, public DataSource, public WaitThread {
   bool m_scanFinishReceived;
 
   /** the last system time when a communication error was logged. */
-  time_t m_lastErrorLogTime;
+  long long m_lastErrorLogTime;
 };
 
 }  // namespace ebusd

@@ -22,13 +22,20 @@
 #include <eibclient.h>
 #include "lib/knx/knx.h"
 
+namespace ebusd {
+
+/**
+ * A KnxConnection based on libeibclient using the group communication interface of the connected KNXd.
+ * Unfortunately, this does not allow acting as a KNX device, i.e. enter programming mode and make individual address
+ * and group association table writable from ETS. As such, an KNXnet/IP implementation is available as well.
+ */
 class KnxdConnection : public KnxConnection {
  public:
   /**
    * Construct a new instance.
    */
-  KnxdConnection()
-      : KnxConnection(), m_con(nullptr) {}
+  KnxdConnection(const char *url)
+      : KnxConnection(), m_url(url), m_con(nullptr) {}
 
   /**
    * Destructor.
@@ -38,9 +45,14 @@ class KnxdConnection : public KnxConnection {
   }
 
   // @copydoc
-  const char* open(const char* url) override {
+  const char* getInfo() const override {
+    return "KNXd";
+  }
+
+  // @copydoc
+  const char* open() override {
     close();
-    m_con = EIBSocketURL(url);
+    m_con = EIBSocketURL(m_url);
     if (!m_con) {
       return "open error";
     }
@@ -94,9 +106,19 @@ class KnxdConnection : public KnxConnection {
     return nullptr;
   }
 
+  // @copydoc
+  const char* sendTyp(knx_transfer_t typ, knx_addr_t dst, int len, const uint8_t* data) override {
+    return "not available";
+  }
+
  private:
+  /** the URL to connect to. */
+  const char* m_url;
+
   /** the knx structure if connected, or nullptr. */
   EIBConnection* m_con;
 };
+
+}  // namespace ebusd
 
 #endif  // LIB_KNX_KNXD_H_
