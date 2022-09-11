@@ -9,7 +9,6 @@ libknx_a_SOURCES = \
 
 if KNXD
 libknx_a_SOURCES += knxd.h
-libknx_a_LIBADD = -leibclient
 else
 libknx_a_SOURCES += knxnet.h
 endif

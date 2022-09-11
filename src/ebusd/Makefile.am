@@ -25,6 +25,9 @@ ebusd_LDADD = ../lib/utils/libutils.a \
 if KNX
 ebusd_SOURCES += knxhandler.cpp knxhandler.h
 ebusd_LDADD += ../lib/knx/libknx.a
+if KNXD
+ebusd_LDADD += -leibclient
+endif
 endif
 
 if SSL
