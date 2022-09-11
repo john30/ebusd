@@ -543,6 +543,9 @@ void KnxHandler::sendNonGroupDisconnect(knx_addr_t dest) {
 #define CONNECTION_TIMEOUT 6000
 
 void KnxHandler::handleNonGroupTelegram(knx_transfer_t typ, knx_addr_t src, knx_addr_t dest, int len, const uint8_t *data) {
+  if (typ == KNX_TRANSFER_NONE) {
+    return;
+  }
   logOtherNotice("knx", "skipping non-group PDU %3.3x", typ);
 }
 
