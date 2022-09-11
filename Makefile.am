@@ -18,11 +18,11 @@ EXTRA_DIST = LICENSE \
 	VERSION
 
 if MQTT
-MQTT_INST_ADD = cp -n $(srcdir)/contrib/etc/ebusd/mqtt-*.cfg $(DESTDIR)$(sysconfdir)/ebusd
+MQTT_INST_ADD = cp -n $(srcdir)/contrib/etc/ebusd/mqtt-*.cfg $(DESTDIR)$(sysconfdir)/ebusd;
 endif
 
 if KNX
-KNX_INST_ADD = cp -n $(srcdir)/contrib/etc/ebusd/knx*.cfg $(DESTDIR)$(sysconfdir)/ebusd
+KNX_INST_ADD = cp -n $(srcdir)/contrib/etc/ebusd/knx*.cfg $(DESTDIR)$(sysconfdir)/ebusd;
 endif
 
 install-data-hook:
