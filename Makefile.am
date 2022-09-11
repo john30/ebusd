@@ -21,6 +21,10 @@ if MQTT
 MQTT_INST_ADD = cp -n $(srcdir)/contrib/etc/ebusd/mqtt-*.cfg $(DESTDIR)$(sysconfdir)/ebusd
 endif
 
+if KNX
+KNX_INST_ADD = cp -n $(srcdir)/contrib/etc/ebusd/knx*.cfg $(DESTDIR)$(sysconfdir)/ebusd
+endif
+
 install-data-hook:
 	@[ -d $(DESTDIR)$(sysconfdir)/ebusd ] || mkdir -p $(DESTDIR)$(sysconfdir)/ebusd; \
 	if [ -f "/etc/debian_version" ]; then \
@@ -29,7 +33,8 @@ install-data-hook:
 	  cp $(srcdir)/contrib/debian/init.d/ebusd $(DESTDIR)/etc/init.d/; \
 	  cp $(srcdir)/contrib/debian/systemd/ebusd.service $(DESTDIR)/lib/systemd/system/; \
 	fi; \
-	$(MQTT_INST_ADD)
+	$(MQTT_INST_ADD) \
+	$(KNX_INST_ADD)
 
 test:
 	$(MAKE) -C src/lib/ebus/test
