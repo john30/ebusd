@@ -20,14 +20,14 @@
 #  include <config.h>
 #endif
 
+#include <string.h>
+
 #include "lib/knx/knx.h"
 
 #ifdef HAVE_KNXD
 #include "lib/knx/knxd.h"
 #endif
 #include "lib/knx/knxnet.h"
-
-#include <string.h>
 
 namespace ebusd {
 

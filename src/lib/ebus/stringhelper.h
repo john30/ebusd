@@ -24,6 +24,7 @@
 #include <map>
 #include <string>
 #include <sstream>
+#include <utility>
 #include <vector>
 #include "lib/ebus/message.h"
 
@@ -34,6 +35,7 @@ namespace ebusd {
  */
 
 using std::map;
+using std::pair;
 using std::ostringstream;
 using std::string;
 using std::vector;
@@ -172,7 +174,7 @@ class StringReplacer {
    * @param isField true when it is a field.
    * @return the created pair.
    */
-  static std::pair<string, int> makeField(const string& name, bool isField);
+  static pair<string, int> makeField(const string& name, bool isField);
 
   /**
    * Add a part to the list of parts.
@@ -180,7 +182,6 @@ class StringReplacer {
    * @param inField 1 after '%', 2 after '%{', 0 otherwise.
    */
   void addPart(ostringstream& stack, int inField);
-
 };
 
 

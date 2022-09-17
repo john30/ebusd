@@ -45,8 +45,8 @@ const char *argp_program_version = "eBUS adapter PIC firmware loader";
 /** the documentation of the program. */
 static const char argpdoc[] =
     "A tool for loading firmware to the eBUS adapter PIC."
-    "\vPORT is either the serial port to use (e.g./dev/ttyUSB0) that also supports a trailing wildcard '*' for testing multiple ports,"
-    "or a network port as \"ip:port\" for use with e.g. socat.";
+    "\vPORT is either the serial port to use (e.g./dev/ttyUSB0) that also supports a trailing wildcard '*' for testing"
+    " multiple ports, or a network port as \"ip:port\" for use with e.g. socat.";
 
 static const char argpargsdoc[] = "PORT";
 
@@ -149,7 +149,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       }
       setIp = true;
       break;
-    case 'm': // --mask=24
+    case 'm':  // --mask=24
       if (arg == nullptr || arg[0] == 0) {
         argp_error(state, "invalid IP mask");
         return EINVAL;
@@ -164,10 +164,10 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       }
       setMask = true;
       break;
-    case 'M': // --macip
+    case 'M':  // --macip
       setMacFromIp = true;
       break;
-    case 'a': // --arbdel=1000
+    case 'a':  // --arbdel=1000
       if (arg == nullptr || arg[0] == 0) {
         argp_error(state, "invalid arbitration delay");
         return EINVAL;
@@ -178,17 +178,17 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       }
       setArbitrationDelay = true;
       break;
-    case 'f': // --flash=firmware.hex
+    case 'f':  // --flash=firmware.hex
       if (arg == nullptr || arg[0] == 0 || stat(arg, &st) != 0 || !S_ISREG(st.st_mode)) {
         argp_error(state, "invalid flash file");
         return EINVAL;
       }
       flashFile = arg;
       break;
-    case 'r': // --reset
+    case 'r':  // --reset
       reset = true;
       break;
-    case 's': // --slow
+    case 's':  // --slow
       lowSpeed = true;
       break;
     default:
@@ -264,12 +264,6 @@ typedef union
 static bool isSerial = true;
 static int timeoutFactor = 1;
 static int timeoutAddend = 0;
-
-long long getTime() {
-  struct timespec ts;
-  clock_gettime(CLOCK_MONOTONIC, &ts);
-  return ts.tv_sec*1000+ts.tv_nsec/1000000;
-}
 
 ssize_t waitWrite(int fd, uint8_t *data, size_t len, int timeoutMillis) {
   int ret;
@@ -770,7 +764,7 @@ void printFileChecksum() {
   }
   std::cout
     << "New firmware version: " << static_cast<unsigned>(newFirmwareVersion)
-    << " [" << std::hex << std::setw (4) << std::setfill('0') << static_cast<signed>(checkSum) << "]" << std::endl;
+    << " [" << std::hex << std::setw(4) << std::setfill('0') << static_cast<signed>(checkSum) << "]" << std::endl;
 }
 
 bool flashPic(int fd) {
@@ -938,10 +932,10 @@ void readSettings(int fd) {
   }
   uint16_t arbitrationDelay = configData[3]&0x3f;
   std::cout << "Arbitration delay: ";
-  if (arbitrationDelay==0x3f) {
+  if (arbitrationDelay == 0x3f) {
     std::cout << "200 us (default)" << std::endl;
   } else {
-    arbitrationDelay *= 10; // steps of 10us
+    arbitrationDelay *= 10;  // steps of 10us
     std::cout << std::dec << static_cast<unsigned>(arbitrationDelay) << " us" << std::endl;
   }
 }
@@ -996,7 +990,7 @@ int main(int argc, char* argv[]) {
   }
   std::string port = argv[arg_index];
   std::string::size_type pos = port.find('*');
-  if (pos==std::string::npos || pos != port.length()-1) {
+  if (pos == std::string::npos || pos != port.length()-1) {
     int fd;
     pos = port.find(':');
     if (pos != std::string::npos) {
@@ -1019,14 +1013,14 @@ int main(int argc, char* argv[]) {
   }
 
   std::string::size_type sep = port.find_last_of('/');
-  std::string base = sep==std::string::npos ? "" : port.substr(0, sep);
+  std::string base = sep == std::string::npos ? "" : port.substr(0, sep);
   DIR* dir = opendir(base.c_str());
   if (!dir) {
     std::cerr << "Unable to open directory " << base << std::endl;
     exit(EXIT_FAILURE);
   }
 
-  std::string prefix = sep==std::string::npos ? port.substr(0, pos) : port.substr(sep + 1, pos - 1 - sep);
+  std::string prefix = sep == std::string::npos ? port.substr(0, pos) : port.substr(sep + 1, pos - 1 - sep);
   struct dirent* ent;
   while ((ent = readdir(dir))) {
     if (std::string(ent->d_name).substr(0, prefix.length()) != prefix) {
@@ -1081,7 +1075,7 @@ int run(int fd) {
     int picSum = calcChecksum(fd, 0x0000, END_BOOT_BYTES);
     std::cout
       << "Bootloader version: " << static_cast<unsigned>(bootloaderVersion)
-      << " [" << std::hex << std::setw (4) << std::setfill('0') << static_cast<signed>(picSum) << "]" << std::endl;
+      << " [" << std::hex << std::setw(4) << std::setfill('0') << static_cast<signed>(picSum) << "]" << std::endl;
   } else {
     std::cerr << "Bootloader version not found" << std::endl;
   }
@@ -1092,7 +1086,7 @@ int run(int fd) {
     int picSum = calcChecksum(fd, END_BOOT, END_FLASH_BYTES-END_BOOT_BYTES);
     std::cout
       << "Firmware version: " << static_cast<unsigned>(firmwareVersion)
-      << " [" << std::hex << std::setw (4) << std::setfill('0') << static_cast<signed>(picSum) << "]" << std::endl;
+      << " [" << std::hex << std::setw(4) << std::setfill('0') << static_cast<signed>(picSum) << "]" << std::endl;
   } else {
     std::cout << "Firmware version not found" << std::endl;
   }

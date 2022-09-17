@@ -98,10 +98,10 @@ bool WaitThread::Wait(int seconds, int millis) {
   struct timespec t;
   clockGettime(&t);
   t.tv_sec += seconds;
-  long newMillis = t.tv_nsec/1000000 + millis;
+  long int newMillis = t.tv_nsec/1000000 + millis;
   if (newMillis >= 1000) {
     t.tv_sec += newMillis / 1000;
-    t.tv_nsec = (newMillis%1000) * 1000000; // rounds down to whole millis
+    t.tv_nsec = (newMillis%1000) * 1000000;  // rounds down to whole millis
   } else {
     t.tv_nsec += millis * 1000000;
   }

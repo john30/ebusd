@@ -170,7 +170,7 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool htt
       if (isError("ctx_new", ctx)) {
         break;
       }
-      bool verifyPeer = !caFile || strcmp(caFile, "#")!=0;
+      bool verifyPeer = !caFile || strcmp(caFile, "#") != 0;
       SSL_CTX_set_verify(ctx, verifyPeer ? SSL_VERIFY_PEER : SSL_VERIFY_NONE, nullptr);
       if (verifyPeer) {
 #if OPENSSL_VERSION_NUMBER >= 0x10101000L

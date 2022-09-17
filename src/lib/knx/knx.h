@@ -150,12 +150,12 @@ class KnxConnection {
   /**
    * @return true if connection allows programming via ETS.
    */
-  virtual bool isProgrammable() const { return false; };
+  virtual bool isProgrammable() const { return false; }
 
   /**
    * @return the individual address, or 0 if not programmed yet, or any non-zero value if not programmable.
    */
-  virtual knx_addr_t getAddress() { return DEFAULT_ADDRESS; };
+  virtual knx_addr_t getAddress() const { return DEFAULT_ADDRESS; }
 
   /**
    * @param address the individual address to set.
@@ -168,7 +168,7 @@ class KnxConnection {
    * Get the programming mode.
    * @return true when in programming mode, false if not.
    */
-  virtual bool isProgrammingMode() {
+  virtual bool isProgrammingMode() const {
     return false;
   }
 
@@ -184,3 +184,4 @@ class KnxConnection {
 }  // namespace ebusd
 
 #endif  // LIB_KNX_KNX_H_
+

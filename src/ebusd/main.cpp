@@ -222,7 +222,8 @@ static const struct argp_option argpoptions[] = {
   {"inject",         'i',      "stop", OPTION_ARG_OPTIONAL, "Inject remaining arguments as already seen messages (e.g. "
       "\"FF08070400/0AB5454850303003277201\"), optionally stop afterwards", 0 },
 #ifdef HAVE_SSL
-  {"cafile",         O_CAFILE, "FILE",     0, "Use CA FILE for checking certificates (uses defaults, \"#\" for insecure)", 0 },
+  {"cafile",         O_CAFILE, "FILE",     0, "Use CA FILE for checking certificates (uses defaults,"
+                                              " \"#\" for insecure)", 0 },
   {"capath",         O_CAPATH, "PATH",     0, "Use CA PATH for checking certificates (uses defaults)", 0 },
 #endif  // HAVE_SSL
 
@@ -1371,7 +1372,8 @@ int main(int argc, char* argv[]) {
     }
     size_t pos = s_configPath.find(PREVIOUS_CONFIG_PATH_SUFFIX);
     if (pos != string::npos) {
-      string newPath = s_configPath.substr(0, pos) + CONFIG_PATH_SUFFIX + s_configPath.substr(pos+strlen(PREVIOUS_CONFIG_PATH_SUFFIX));
+      string newPath = s_configPath.substr(0, pos) + CONFIG_PATH_SUFFIX
+        + s_configPath.substr(pos+strlen(PREVIOUS_CONFIG_PATH_SUFFIX));
       logNotice(lf_main, "replaced old configPath %s with new one: %s", s_configPath.c_str(), newPath.c_str());
       s_configPath = newPath;
     }

@@ -1011,7 +1011,7 @@ result_t NumberDataType::getRawValueFromFloat(float val, unsigned int* output) c
   } else {
     if (m_divisor == 1) {
       if (hasFlag(SIG)) {
-        long signedValue = static_cast<long>(val); // TODO static_c?
+        long signedValue = static_cast<long>(val);  // TODO static_c?
         if (signedValue < 0 && m_bitCount != 32) {
           value = (unsigned int)(signedValue + (1 << m_bitCount));
         } else {

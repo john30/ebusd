@@ -19,7 +19,6 @@
 #ifndef LIB_KNX_KNXNET_H_
 #define LIB_KNX_KNXNET_H_
 
-#include <string>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/ioctl.h>
@@ -33,6 +32,7 @@
 #include <errno.h>
 #include <string.h>
 #include <endian.h>
+#include <string>
 #include <cstdio>
 #include "lib/knx/knx.h"
 
@@ -62,10 +62,10 @@ typedef union __attribute__ ((packed)) {
 
 // KNXnet/IP header
 typedef struct __attribute__ ((packed)) {
-  uint8_t headerLength; // =6
-  uint8_t protocolVersion; // =0x10
+  uint8_t headerLength;  // =6
+  uint8_t protocolVersion;  // =0x10
   uint16be_t serviceTypeIdentifier;
-  uint16be_t totalLength; // complete length including header
+  uint16be_t totalLength;  // complete length including header
 } knxnet_header_t;
 
 /** service types. */
@@ -92,7 +92,8 @@ typedef enum {
 // cEMI frame header (external message interface)
 typedef struct __attribute__ ((packed)) {
   uint8_t messageCode;
-  uint8_t additionalInfoLength; // optional immediately following additional bytes, usually =0. fixed to 0 in cEMI management messages
+  // optional immediately following additional bytes, usually =0. fixed to 0 in cEMI management messages
+  uint8_t additionalInfoLength;
 } knxnet_cemi_header_t;
 
 /* cEMI message codes. */
@@ -128,21 +129,21 @@ typedef struct __attribute__ ((packed)) {
     uint8_t raw;
     struct {
 #if __BYTE_ORDER == __BIG_ENDIAN
-      bool frameType: 1; // 0=extended, 1=standard
+      bool frameType: 1;  // 0=extended, 1=standard
       bool reserved: 1;
-      bool repeat: 1; // 0=repeat, 1=do not repeat
-      bool systemBroadcast: 1; // 0=system broadcast, 1=broadcast
-      uint8_t priority: 2; // 0=system, 1=normal, 2=urgent, 3=low
-      bool acknowledgeRequest: 1; // 1=ack requested
-      bool confirm: 1; // 0=no error, 1=error
+      bool repeat: 1;  // 0=repeat, 1=do not repeat
+      bool systemBroadcast: 1;  // 0=system broadcast, 1=broadcast
+      uint8_t priority: 2;  // 0=system, 1=normal, 2=urgent, 3=low
+      bool acknowledgeRequest: 1;  // 1=ack requested
+      bool confirm: 1;  // 0=no error, 1=error
 #else
-      bool confirm: 1; // 0=no error, 1=error
-      bool acknowledgeRequest: 1; // 1=ack requested
-      uint8_t priority: 2; // 0=system, 1=normal, 2=urgent, 3=low
-      bool systemBroadcast: 1; // 0=system broadcast, 1=broadcast
-      bool repeat: 1; // 0=repeat, 1=do not repeat
+      bool confirm: 1;  // 0=no error, 1=error
+      bool acknowledgeRequest: 1;  // 1=ack requested
+      uint8_t priority: 2;  // 0=system, 1=normal, 2=urgent, 3=low
+      bool systemBroadcast: 1;  // 0=system broadcast, 1=broadcast
+      bool repeat: 1;  // 0=repeat, 1=do not repeat
       bool reserved: 1;
-      bool frameType: 1; // 0=extended, 1=standard
+      bool frameType: 1;  // 0=extended, 1=standard
 #endif
     };
   } controlField1;
@@ -150,19 +151,19 @@ typedef struct __attribute__ ((packed)) {
     uint8_t raw;
     struct {
 #if __BYTE_ORDER == __BIG_ENDIAN
-      bool addressType: 1; // 0=individual, 1=group
+      bool addressType: 1;  // 0=individual, 1=group
       uint8_t hopCount: 3;
-      uint8_t extendedFrameFormat: 4; // 0=standard frame, 0xf=escape
+      uint8_t extendedFrameFormat: 4;  // 0=standard frame, 0xf=escape
 #else
-      uint8_t extendedFrameFormat: 4; // 0=standard frame, 0xf=escape
+      uint8_t extendedFrameFormat: 4;  // 0=standard frame, 0xf=escape
       uint8_t hopCount: 3;
-      bool addressType: 1; // 0=individual, 1=group
+      bool addressType: 1;  // 0=individual, 1=group
 #endif
     };
   } controlField2;
   uint16be_t sourceAddress;
   uint16be_t destinationAddress;
-  uint8_t informationLength; // number of NPDU octets (not including the TPCI/APCI octet)
+  uint8_t informationLength;  // number of NPDU octets (not including the TPCI/APCI octet)
 } knxnet_l_data_header_t;
 
 
@@ -170,22 +171,22 @@ typedef union __attribute__ ((packed)) {
   uint8_t raw;
   struct {
 #if __BYTE_ORDER == __BIG_ENDIAN
-    bool controlFlag: 1; // 0=data, 1=control
-    bool numbered: 1; // 1=has sequence, 0=no sequence
-    uint8_t sequence: 4; // optional sequence number
-    uint8_t apci: 2; // highest 2 bits of APCI
+    bool controlFlag: 1;  // 0=data, 1=control
+    bool numbered: 1;  // 1=has sequence, 0=no sequence
+    uint8_t sequence: 4;  // optional sequence number
+    uint8_t apci: 2;  // highest 2 bits of APCI
 #else
-    uint8_t apci: 2; // highest 2 bits of APCI
-    uint8_t sequence: 4; // optional sequence number
-    bool numbered: 1; // 1=has sequence, 0=no sequence
-    bool controlFlag: 1; // 0=data, 1=control
+    uint8_t apci: 2;  // highest 2 bits of APCI
+    uint8_t sequence: 4;  // optional sequence number
+    bool numbered: 1;  // 1=has sequence, 0=no sequence
+    bool controlFlag: 1;  // 0=data, 1=control
 #endif
   };
 } knxnet_tpci_apci_t;
 
 typedef struct __attribute__ ((packed)) {
   uint8_t length;
-  uint8_t protocolCode; // 0x01=UDP over IPv4
+  uint8_t protocolCode;  // 0x01=UDP over IPv4
   uint32be_t ipAddressV4;
   uint16be_t port;
 } knxnet_hpai_t;
@@ -194,9 +195,9 @@ typedef struct __attribute__ ((packed)) {
 
 typedef struct __attribute__ ((packed)) {
   uint8_t length;
-  uint8_t descriptionCode; // 0x01=device info
-  uint8_t medium; // 0x20=IP
-  uint8_t status; // bit 0=programming mode
+  uint8_t descriptionCode;  // 0x01=device info
+  uint8_t medium;  // 0x20=IP
+  uint8_t status;  // bit 0=programming mode
   uint16be_t individualAddress;
   uint16be_t projInstId;
   uint8_t serial[6];
@@ -207,11 +208,11 @@ typedef struct __attribute__ ((packed)) {
 
 typedef struct __attribute__ ((packed)) {
   uint8_t length;
-  uint8_t descriptionCode; // 0x02=services
+  uint8_t descriptionCode;  // 0x02=services
   struct {
     uint8_t familyId;
     uint8_t familyVersion;
-  }; // just one for now
+  };  // just one for now
 } knxnet_dib_services_t;
 
 // the default system port
@@ -227,7 +228,7 @@ class LastFrame {
 
  public:
   void set(uint8_t* data, size_t len, size_t lOffset, time_t now) {
-    if (len>=sizeof(m_data)) {
+    if (len >= sizeof(m_data)) {
       return;
     }
     memcpy(m_data, data, len);
@@ -237,7 +238,7 @@ class LastFrame {
   }
 
   bool isValid(time_t now) {
-    return m_len && m_time>=now-LAST_FRAME_TIMEOUT;
+    return m_len && m_time >= now-LAST_FRAME_TIMEOUT;
   }
 
   bool isSameAs(uint8_t* data, size_t len, size_t lOffset, time_t now, bool isSend = false) {
@@ -250,10 +251,10 @@ class LastFrame {
     }
     int oldHopCount = (m_data[lOffset+1]&0x70)>>4;
     int newHopCount = (data[lOffset+1]&0x70)>>4;
-    if (newHopCount < 6 // top hop count is always tolerated TODO bad idea?
-      && memcmp(data, m_data, lOffset+1) == 0 // including first byte of l_data header
-      && (data[lOffset+1]&~0x70)==(m_data[lOffset+1]&~0x70) // ignore hop count
-      && (isSend ? newHopCount<=oldHopCount : newHopCount<oldHopCount) // decremented hop count?
+    if (newHopCount < 6  // top hop count is always tolerated TODO bad idea?
+      && memcmp(data, m_data, lOffset+1) == 0  // including first byte of l_data header
+      && (data[lOffset+1]&~0x70) == (m_data[lOffset+1]&~0x70)  // ignore hop count
+      && (isSend ? newHopCount <= oldHopCount : newHopCount < oldHopCount)  // decremented hop count?
       && memcmp(data+lOffset+2, m_data+lOffset+2, len-(lOffset+2)) == 0
     ) {
       m_time = now;
@@ -286,7 +287,7 @@ class LastFrame {
 class LastFrames {
  public:
   bool isRepetition(uint8_t* data, size_t len, size_t lOffset, time_t now, bool isSend = false) {
-    for (int i=0; i<CHECK_REPETITION_COUNT; i++) {
+    for (int i=0; i < CHECK_REPETITION_COUNT; i++) {
       if (m_lastFrames[i].isValid(now)
       && m_lastFrames[i].isSameAs(data, len, lOffset, now, isSend)) {
         return true;
@@ -298,12 +299,12 @@ class LastFrames {
   void add(uint8_t* data, size_t len, size_t lOffset, time_t now) {
     int oldestPos = -1;
     time_t oldestAge = 0;
-    for (int i=0; i<CHECK_REPETITION_COUNT; i++) {
+    for (int i=0; i < CHECK_REPETITION_COUNT; i++) {
       if (!m_lastFrames[i].isValid(now)) {
         m_lastFrames[i].set(data, len, lOffset, now);
         return;
       }
-      if (oldestPos<0 || m_lastFrames[i].m_time < oldestAge) {
+      if (oldestPos < 0 || m_lastFrames[i].m_time < oldestAge) {
         oldestPos = i;
         oldestAge = m_lastFrames[i].m_time;
       }
@@ -312,7 +313,7 @@ class LastFrames {
   }
 
   void reset() {
-    for (int i=0; i<CHECK_REPETITION_COUNT; i++) {
+    for (int i=0; i < CHECK_REPETITION_COUNT; i++) {
       m_lastFrames[i].reset();
     }
   }
@@ -328,7 +329,8 @@ class LastFrames {
 // helper method to log received/sent telegrams
 void logTelegram(bool sent, knxnet_cemi_header_t* c, knxnet_l_data_header_t* l, uint8_t* d) {
   bool isGrp = l->controlField2.addressType;
-  PRINTF("%s msgcode=%2.2x, %d.%d.%d > %d%c%d%c%d, repeat=%s, ack=%s, hopcnt=%d, prio=%s, frame=%s, %sbroad, confirm=%s, tpci/apci=%2.2x",
+  PRINTF("%s msgcode=%2.2x, %d.%d.%d > %d%c%d%c%d, repeat=%s, ack=%s, hopcnt=%d, prio=%s, frame=%s, %sbroad, "
+    "confirm=%s, tpci/apci=%2.2x",
          sent ? "send" : "recv",
          c->messageCode,
          l->sourceAddress.high>>4,
@@ -342,15 +344,15 @@ void logTelegram(bool sent, knxnet_cemi_header_t* c, knxnet_l_data_header_t* l, 
          l->controlField1.repeat ? "yes" : "no",
          l->controlField1.acknowledgeRequest ? "yes" : "no",
          l->controlField2.hopCount,
-         l->controlField1.priority==1 ? "normal" : l->controlField1.priority==2 ? "urgent" : l->controlField1.priority==3 ? "low" : "system",
+         l->controlField1.priority == 1 ? "normal" : l->controlField1.priority == 2 ? "urgent" :
+           l->controlField1.priority == 3 ? "low" : "system",
          l->controlField1.frameType ? "std" : "ext",
          l->controlField1.systemBroadcast ? "" : "sys ",
          l->controlField1.confirm ? "error" : "no err",
-         d[0]
-  );
+         d[0]);
   if (d) {
     PRINTF(", data=");
-    for (int i=0; i<l->informationLength; i++) {
+    for (int i=0; i < l->informationLength; i++) {
       PRINTF("%2.2x ", d[1+i]);
     }
   }
@@ -371,7 +373,7 @@ class KnxNetConnection : public KnxConnection {
   /**
    * Construct a new instance.
    */
-  KnxNetConnection(const char* url)
+  explicit KnxNetConnection(const char* url)
       : KnxConnection(), m_url(url), m_sock(0), m_programmingMode(false), m_addr(0) {}
 
   /**
@@ -395,7 +397,7 @@ class KnxNetConnection : public KnxConnection {
     m_interface.s_addr = INADDR_ANY;
     m_port = SYSTEM_MULTICAST_PORT;
     if (m_url && m_url[0]) {  // non-empty
-      string urlStr = m_url; // "[mcast][@intf]" for non-default 224.0.23.12:3671)
+      string urlStr = m_url;  // "[mcast][@intf]" for non-default 224.0.23.12:3671)
       if (!urlStr.empty()) {
         auto pos = urlStr.find('@');
         if (pos != string::npos) {
@@ -504,11 +506,12 @@ class KnxNetConnection : public KnxConnection {
   // @copydoc
   knx_transfer_t getPollData(int size, uint8_t* data, int* recvlen, knx_addr_t* src, knx_addr_t* dst) override {
     uint8_t buf[128];
-    ssize_t len = recv(m_sock, buf, sizeof(buf), 0);
-    if (len < sizeof(knxnet_header_t)) {
+    ssize_t slen = recv(m_sock, buf, sizeof(buf), 0);
+    if (slen < 0 || static_cast<unsigned>(slen) < sizeof(knxnet_header_t)) {
       PRINTF("#skip recv short hdr len=%d\n", len);
       return KNX_TRANSFER_NONE;
     }
+    size_t len = static_cast<unsigned>(slen);
     auto h = (knxnet_header_t*)buf;
     if (h->headerLength != sizeof(knxnet_header_t) || h->protocolVersion != 0x10) {
       PRINTF("#skip recv short/proto len=%d\n", len);
@@ -583,16 +586,16 @@ class KnxNetConnection : public KnxConnection {
     // all fine
     int ret = d[0];
     if (l->controlField2.addressType) {
-      ret |= 0x100; // address type group
+      ret |= 0x100;  // address type group
     }
     if (!(ret&0x80)) {
-      ret &= ~0x03; // remove two apci bits
+      ret &= ~0x03;  // remove two apci bits
     }
     if (ret&0x40) {
-      ret &= ~0x3c; // remove sequence number
+      ret &= ~0x3c;  // remove sequence number
     }
     *recvlen = size > dataLen ? dataLen : size;
-    memcpy(data, d, *recvlen); // including the TPCI/APCI octet 6
+    memcpy(data, d, *recvlen);  // including the TPCI/APCI octet 6
     if (src) {
       *src = htons(l->sourceAddress.raw);
     }
@@ -638,27 +641,27 @@ class KnxNetConnection : public KnxConnection {
     c->additionalInfoLength = 0;
     auto lOffset = sizeof(knxnet_header_t)+sizeof(knxnet_cemi_header_t)+c->additionalInfoLength;
     auto l = (knxnet_l_data_header_t*)(((uint8_t*)h)+lOffset);
-    l->controlField1.raw = 0xbc; // standard frame, no repeat, broadcast, low prio, no ack, no err
-    l->controlField2.raw = 0xe0; // group address, hop count 6, standard frame
-    l->controlField2.addressType = (typ&0x100)!=0;
+    l->controlField1.raw = 0xbc;  // standard frame, no repeat, broadcast, low prio, no ack, no err
+    l->controlField2.raw = 0xe0;  // group address, hop count 6, standard frame
+    l->controlField2.addressType = (typ&0x100) != 0;
     l->sourceAddress.raw = htons(m_addr);
     l->destinationAddress.raw = htons(dst);
     if (typ&0x100) {
       // ensure at least default individual address
       if (!m_addr) {
-        l->sourceAddress.raw = 0xffff; // for "unregistered device" in S-Mode
+        l->sourceAddress.raw = 0xffff;  // for "unregistered device" in S-Mode
       }
     }
-    l->informationLength = len-1; // subtracting the TPCI/APCI
+    l->informationLength = len-1;  // subtracting the TPCI/APCI
     uint8_t* d = buf+sizeof(knxnet_header_t)+sizeof(knxnet_cemi_header_t)+sizeof(knxnet_l_data_header_t);
     // first byte of data is expected to hold the APCI upper byte, copy remainder:
     memcpy(d, data, len);
-    int tpci = typ&0xff; // TPCI/APCI
-    if ((typ&0x080)==0) {
-      tpci |= (d[0]&0x03); // highest 2 bits of APCI
+    int tpci = typ&0xff;  // TPCI/APCI
+    if ((typ&0x080) == 0) {
+      tpci |= (d[0]&0x03);  // highest 2 bits of APCI
     }
     if (typ&0x040) {
-      tpci |= d[0]&((0x0f)<<2); // SeqNo
+      tpci |= d[0]&((0x0f) << 2);  // SeqNo
     }
     d[0] = tpci;
     logTelegram(true, c, l, d);
@@ -673,7 +676,7 @@ class KnxNetConnection : public KnxConnection {
   }
 
   // copydoc
-  knx_addr_t getAddress() override {
+  knx_addr_t getAddress() const override {
     return m_addr;
   }
 
@@ -686,7 +689,7 @@ class KnxNetConnection : public KnxConnection {
   }
 
   // copydoc
-  bool isProgrammingMode() override {
+  bool isProgrammingMode() const override {
     return m_programmingMode;
   }
 

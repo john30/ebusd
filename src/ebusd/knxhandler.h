@@ -88,7 +88,7 @@ typedef union {
     bool isFloat: 1;
     bool isSigned: 1;
     bool lastValueSent: 1;
-    uint8_t length; // 0 for 1-6 bits, number of bytes otherwise
+    uint8_t length;  // 0 for 1-6 bits, number of bytes otherwise
     uint32_t lastValue;
   };
   uint64_t value;
@@ -155,7 +155,8 @@ class KnxHandler : public DataSink, public DataSource, public WaitThread {
    * @param field the message field or nullptr for non field related.
    * @return the result code.
    */
-  result_t sendGroupValue(knx_addr_t dest, apci_t apci, dtlf_t& lengthFlag, unsigned int value, const SingleDataField *field = nullptr) const;
+  result_t sendGroupValue(knx_addr_t dest, apci_t apci, dtlf_t& lengthFlag, unsigned int value,
+  const SingleDataField *field = nullptr) const;
 
   /**
    * Send a global value to the registered group address.
@@ -175,7 +176,8 @@ class KnxHandler : public DataSink, public DataSource, public WaitThread {
    * @return the result code, either RESULT_OK on success, RESULT_ERR_GENERIC_IO on I/O error (e.g. socket closed),
    * or RESULT_ERR_TIMEOUT if no data is available.
    */
-  result_t receiveTelegram(int maxlen, knx_transfer_t* typ, uint8_t *buf, int *recvlen, knx_addr_t *src, knx_addr_t *dest);
+  result_t receiveTelegram(int maxlen, knx_transfer_t* typ, uint8_t *buf, int *recvlen, knx_addr_t *src,
+  knx_addr_t *dest);
 
   /**
    * Handle a received KNX telegram.
@@ -237,7 +239,7 @@ class KnxHandler : public DataSink, public DataSource, public WaitThread {
   map<uint32_t, groupInfo_t>m_subscribedGroups;
 
   /** the group address and flags (key of m_subscribedGroups) by subscribed message key. */
-  map<uint64_t, list<uint32_t>>m_subscribedMessages;
+  map<uint64_t, list<uint32_t> >m_subscribedMessages;
 
   /** the group address and flags (key of m_subscribedGroups) by subscribed global values. */
   map<global_t, uint32_t>m_subscribedGlobals;
@@ -252,7 +254,7 @@ class KnxHandler : public DataSink, public DataSource, public WaitThread {
   time_t m_lastIndividualAddressResponseTime = 0;
 
   /** the time of the last connection, or 0 if not connected. */
-  long long m_lastConnectTime = 0;
+  uint64_t m_lastConnectTime = 0;
 
   /** the source address of the last connection, or 0. */
   knx_addr_t m_lastConnectSource = 0;
@@ -276,7 +278,7 @@ class KnxHandler : public DataSink, public DataSource, public WaitThread {
   bool m_scanFinishReceived;
 
   /** the last system time when a communication error was logged. */
-  long long m_lastErrorLogTime;
+  time_t m_lastErrorLogTime;
 };
 
 }  // namespace ebusd

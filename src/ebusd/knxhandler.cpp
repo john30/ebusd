@@ -43,7 +43,7 @@ using std::dec;
 // 5 bits magic (to be incremented with incompatible changes, not shown)
 // 5 bits major, using major directly
 // 6 bits minor, using minor multiplied by 10 to have space for micro versioning in future
-#define VERSION_INT ((PACKAGE_VERSION_MAJOR<<6)|(PACKAGE_VERSION_MINOR*10))
+#define VERSION_INT ((PACKAGE_VERSION_MAJOR << 6) |(PACKAGE_VERSION_MINOR*10))
 
 #define O_URL -2
 #define O_AGR (O_URL-1)
@@ -59,8 +59,10 @@ static const struct argp_option g_knx_argp_options[] = {
                                      " or \"ip:host[:port]\" / \"local:/socketpath\" for knxd"
 #endif
                                      ") []", 0 },
-  {"knxrage", O_AGR, "SEC",       0, "Maximum age in seconds for using the last value of read messages (0=disable) [5]", 0 },
-  {"knxwage", O_AGW, "SEC",       0, "Maximum age in seconds for using the last value for reads on write messages (0=disable), [99999999]", 0 },
+  {"knxrage", O_AGR, "SEC",       0, "Maximum age in seconds for using the last value of read messages (0=disable)"
+                                     " [5]", 0 },
+  {"knxwage", O_AGW, "SEC",       0, "Maximum age in seconds for using the last value for reads on write messages"
+                                     " (0=disable), [99999999]", 0 },
   {"knxint", O_INT, "FILE",       0, "Read KNX integration settings from FILE [/etc/ebusd/knx.cfg]", 0 },
   {"knxvar", O_VAR, "NAME=VALUE", 0, "Add a variable to the read KNX integration settings", 0 },
 
@@ -69,7 +71,8 @@ static const struct argp_option g_knx_argp_options[] = {
 
 static const char* g_url = nullptr;  //!< URL of KNX daemon
 static unsigned int g_maxReadAge = 5;  //!< max age in seconds for using the last value of read messages
-static unsigned int g_maxWriteAge = 99999999;  //!< max age in seconds for using the last value for reads on write messages
+// max age in seconds for using the last value for reads on write messages
+static unsigned int g_maxWriteAge = 99999999;
 static const char* g_integrationFile = nullptr;  //!< the integration settings file
 static vector<string>* g_integrationVars = nullptr;  //!< the integration settings variables
 
@@ -259,7 +262,7 @@ void KnxHandler::startHandler() {
 void KnxHandler::notifyUpdateCheckResult(const string& checkResult) {
   if (checkResult != m_lastUpdateCheckResult) {
     m_lastUpdateCheckResult = checkResult;
-    sendGlobalValue(GLOBAL_UPDATECHECK, checkResult.empty() || checkResult=="OK" ? 0 : 1);
+    sendGlobalValue(GLOBAL_UPDATECHECK, checkResult.empty() || checkResult == "OK" ? 0 : 1);
   }
 }
 
@@ -269,7 +272,7 @@ void KnxHandler::notifyScanStatus(scanStatus_t scanStatus) {
   }
   if (scanStatus != m_lastScanStatus) {
     m_lastScanStatus = scanStatus;
-    sendGlobalValue(GLOBAL_SCAN, m_lastScanStatus==SCAN_STATUS_RUNNING ? 1 : 0);
+    sendGlobalValue(GLOBAL_SCAN, m_lastScanStatus == SCAN_STATUS_RUNNING ? 1 : 0);
   }
 }
 
@@ -288,20 +291,20 @@ result_t getFieldLength(const SingleDataField *field, dtlf_t *length) {
     return RESULT_OK;
   }
   const auto nt = dynamic_cast<const NumberDataType*>(dt);
-  if (nt->getDivisor()!=1) {
+  if (nt->getDivisor() != 1) {
     // adjust bit count to 2 octet or 4 octet float DPT
-    if (bitCnt>=24 && bitCnt<31) {
+    if (bitCnt >= 24 && bitCnt < 31) {
       bitCnt = 32;
-    } else if (bitCnt<16) {
+    } else if (bitCnt < 16) {
       bitCnt = 16;
     }
     // TODO uncommon divisor (e.g. >100) may not fit into KNX 2-octet float or truncates precision
-  } else if (bitCnt>=24 && bitCnt<31) {
+  } else if (bitCnt >= 24 && bitCnt < 31) {
     // adjust bit count for non-existent 24 bit KNX type
     bitCnt = 32;
   }
   *length = {{
-    .hasDivisor = nt->getDivisor()!=1,
+    .hasDivisor = nt->getDivisor() != 1,
     .isFloat = dt->hasFlag(EXP),
     .isSigned = dt->hasFlag(SIG),
     .lastValueSent = false,
@@ -339,7 +342,7 @@ float int16ToFloat(uint16_t val) {
     return 0;
   }
   if (val == 0x7fff) {
-    return static_cast<float>(0xffffffff); // NaN
+    return static_cast<float>(0xffffffff);  // NaN
   }
   bool negative = val&0x8000;
   int exp = (val>>11)&0xf;
@@ -347,7 +350,8 @@ float int16ToFloat(uint16_t val) {
   return static_cast<float>(sig * exp2(exp) * (negative ? -0.01 : 0.01));
 }
 
-result_t KnxHandler::sendGroupValue(knx_addr_t dest, apci_t apci, dtlf_t& lengthFlag, unsigned int value, const SingleDataField *field) const {
+result_t KnxHandler::sendGroupValue(knx_addr_t dest, apci_t apci, dtlf_t& lengthFlag, unsigned int value,
+const SingleDataField *field) const {
   if (!m_con || !m_con->isConnected() || !m_con->getAddress()) {
     return RESULT_EMPTY;
   }
@@ -365,7 +369,7 @@ result_t KnxHandler::sendGroupValue(knx_addr_t dest, apci_t apci, dtlf_t& length
     result_t ret = nt->getFloatFromRawValue(value, &fval);
     if (ret == RESULT_EMPTY) {
       // replacement value:
-      if (lengthFlag.length==2) {
+      if (lengthFlag.length == 2) {
         // shall have 0x7fff for DPT 9
         value = 0x7fff;
       } else {
@@ -384,7 +388,7 @@ result_t KnxHandler::sendGroupValue(knx_addr_t dest, apci_t apci, dtlf_t& length
     }
   }
   // else signed values: fine as long as length is identical
-  if (apci==APCI_GROUPVALUE_WRITE && lengthFlag.lastValueSent && lengthFlag.lastValue==value) {
+  if (apci == APCI_GROUPVALUE_WRITE && lengthFlag.lastValueSent && lengthFlag.lastValue == value) {
     return RESULT_EMPTY;  // no need to send the same group value again
   }
   lengthFlag.lastValue = value;
@@ -413,12 +417,12 @@ result_t KnxHandler::sendGroupValue(knx_addr_t dest, apci_t apci, dtlf_t& length
   const char* err = m_con->sendGroup(dest, len, data);
   if (err) {
     logOtherError("knx", "unable to send %s, dest %4.4x, len %d",
-                  apci==APCI_GROUPVALUE_WRITE ? "write" : apci==APCI_GROUPVALUE_READ ? "read" : "response",
+                  apci == APCI_GROUPVALUE_WRITE ? "write" : apci == APCI_GROUPVALUE_READ ? "read" : "response",
                   dest, len);
     return RESULT_ERR_SEND;
   }
   logOtherDebug("knx", "sent %s, dest %4.4x, len %d",
-               apci==APCI_GROUPVALUE_WRITE ? "write" : apci==APCI_GROUPVALUE_READ ? "read" : "response",
+               apci == APCI_GROUPVALUE_WRITE ? "write" : apci == APCI_GROUPVALUE_READ ? "read" : "response",
                dest, len);
   return RESULT_OK;
 }
@@ -503,24 +507,25 @@ void printResponse(knx_addr_t src, knx_addr_t dest, int len, const uint8_t *data
   if ((apci & APCI_GROUPVALUE_READ_MASK) == 0) {
     apci &= ~APCI_GROUPVALUE_READ_MASK;
   }
-  int value = len==2 ? data[1]&0x3f : data[2]; // 6 bits or full octet
+  int value = len == 2 ? data[1]&0x3f : data[2];  // 6 bits or full octet
   if (len>3) {
-    value = (value<<8) | data[3]; // up to 16 bits
+    value = (value<<8) | data[3];  // up to 16 bits
   }
   if (len>4) {
-    value = (value<<8) | data[4]; // up to 24 bits
+    value = (value<<8) | data[4];  // up to 24 bits
   }
   if (len>5) {
-    value = (value<<8) | data[5]; // up to 32 bits
+    value = (value<<8) | data[5];  // up to 32 bits
   }
   logOtherDebug("knx", "recv from %4.4x to %4.4x, %s (0x%3.3x, tctrl 0x%2.2x), len %d", src, dest,
-                apci==APCI_GROUPVALUE_WRITE ? "write" : apci==APCI_GROUPVALUE_READ ? "read"
-                  : apci==APCI_GROUPVALUE_RESPONSE ? "response" : "other",
+                apci == APCI_GROUPVALUE_WRITE ? "write" : apci == APCI_GROUPVALUE_READ ? "read"
+                  : apci == APCI_GROUPVALUE_RESPONSE ? "response" : "other",
                 apci, tctrl, len);
 }
 */
 
-void KnxHandler::handleReceivedTelegram(knx_transfer_t typ, knx_addr_t src, knx_addr_t dest, int len, const uint8_t *data) {
+void KnxHandler::handleReceivedTelegram(knx_transfer_t typ, knx_addr_t src, knx_addr_t dest, int len,
+const uint8_t *data) {
   if (typ == KNX_TRANSFER_GROUP) {
     handleGroupTelegram(src, dest, len, data);
     return;
@@ -542,7 +547,8 @@ void KnxHandler::sendNonGroupDisconnect(knx_addr_t dest) {
 // the connection timeout in millis (6 seconds)
 #define CONNECTION_TIMEOUT 6000
 
-void KnxHandler::handleNonGroupTelegram(knx_transfer_t typ, knx_addr_t src, knx_addr_t dest, int len, const uint8_t *data) {
+void KnxHandler::handleNonGroupTelegram(knx_transfer_t typ, knx_addr_t src, knx_addr_t dest, int len,
+const uint8_t *data) {
   if (typ == KNX_TRANSFER_NONE) {
     return;
   }
@@ -552,24 +558,24 @@ void KnxHandler::handleNonGroupTelegram(knx_transfer_t typ, knx_addr_t src, knx_
 void KnxHandler::handleGroupTelegram(knx_addr_t src, knx_addr_t dest, int len, const uint8_t *data) {
   time_t now;
   time(&now);
-  int apci = ((data[0]&0x03)<<8) | data[1];
+  int apci = ((data[0]&0x03) << 8) | data[1];
   int groupReadWriteApci = apci & APCI_GROUPVALUE_READ_WRITE_MASK;
   if (groupReadWriteApci == APCI_GROUPVALUE_WRITE || groupReadWriteApci == APCI_GROUPVALUE_READ) {
     apci = groupReadWriteApci;
   }
-  bool isWrite = apci==APCI_GROUPVALUE_WRITE;
-  if (apci!=APCI_GROUPVALUE_READ && !isWrite) {
+  bool isWrite = apci == APCI_GROUPVALUE_WRITE;
+  if (apci != APCI_GROUPVALUE_READ && !isWrite) {
     if (m_con->isProgrammingMode()) {
-      if (apci == APCI_INDIVIDUALADDRESS_READ && m_lastIndividualAddressResponseTime<now-3) { // timeout 3 seconds
-        uint8_t buf[] = {APCI_INDIVIDUALADDRESS_RESPONSE>>8, APCI_INDIVIDUALADDRESS_RESPONSE&0xff};
+      if (apci == APCI_INDIVIDUALADDRESS_READ && m_lastIndividualAddressResponseTime < now-3) {  // timeout 3 seconds
+        uint8_t buf[] = {APCI_INDIVIDUALADDRESS_RESPONSE >> 8, APCI_INDIVIDUALADDRESS_RESPONSE&0xff};
         logOtherNotice("knx", "answering to A_IndividualAddress_Read");
         if (m_con->sendGroup(0, 2, buf)) {
           logOtherDebug("knx", "cannot send");
         } else {
           m_lastIndividualAddressResponseTime = now;
         }
-      } else if (apci==APCI_INDIVIDUALADDRESS_WRITE && len==4 && !m_con->getAddress() && (data[2]|data[3])) {
-        m_con->setAddress((data[2]<<8)|data[3]);
+      } else if (apci == APCI_INDIVIDUALADDRESS_WRITE && len == 4 && !m_con->getAddress() && (data[2]|data[3])) {
+        m_con->setAddress(static_cast<knx_addr_t>((data[2] << 8)|data[3]));
         m_lastIndividualAddressResponseTime = 0;
         logOtherNotice("knx", "received new address %x", m_con->getAddress());
       }
@@ -581,7 +587,7 @@ void KnxHandler::handleGroupTelegram(knx_addr_t src, knx_addr_t dest, int len, c
   if (needsLog(lf_other, ll_debug)) {
     logOtherDebug("knx", "received %ssubscribed %s from %4.4x to %4.4x, len %d",
                   sit == m_subscribedGroups.end() ? "un" : "",
-                  apci==APCI_GROUPVALUE_WRITE ? "write" : apci==APCI_GROUPVALUE_READ ? "read" : "response",
+                  apci == APCI_GROUPVALUE_WRITE ? "write" : apci == APCI_GROUPVALUE_READ ? "read" : "response",
                   src, dest, len);
   }
   if (sit == m_subscribedGroups.end()) {
@@ -603,10 +609,11 @@ void KnxHandler::handleGroupTelegram(knx_addr_t src, knx_addr_t dest, int len, c
         sendGlobalValue(GLOBAL_SIGNAL, m_busHandler->hasSignal() ? 1 : 0, true);
         break;
       case GLOBAL_SCAN:
-        sendGlobalValue(GLOBAL_SCAN, m_lastScanStatus==SCAN_STATUS_RUNNING ? 1 : 0, true);
+        sendGlobalValue(GLOBAL_SCAN, m_lastScanStatus == SCAN_STATUS_RUNNING ? 1 : 0, true);
         break;
       case GLOBAL_UPDATECHECK:
-        sendGlobalValue(GLOBAL_UPDATECHECK, m_lastUpdateCheckResult.empty() || m_lastUpdateCheckResult=="OK" || m_lastUpdateCheckResult=="." ? 0 : 1, true);
+        sendGlobalValue(GLOBAL_UPDATECHECK, m_lastUpdateCheckResult.empty() || m_lastUpdateCheckResult == "OK"
+        || m_lastUpdateCheckResult == "." ? 0 : 1, true);
         break;
       default:
         return;  // ignore
@@ -655,15 +662,15 @@ void KnxHandler::handleGroupTelegram(knx_addr_t src, knx_addr_t dest, int len, c
   result_t res;
   const string circuit = msg->getCircuit(), name = msg->getName(), fieldName = msg->getFieldName(fieldIndex);
   if (isWrite) {
-    unsigned int value = len==2 ? data[1]&0x3f : data[2]; // <=6 bits or full octet
-    if (len>3) {
-      value = (value<<8) | data[3]; // up to 16 bits
+    unsigned int value = len == 2 ? data[1]&0x3f : data[2];  // <=6 bits or full octet
+    if (len > 3) {
+      value = (value << 8) | data[3];  // up to 16 bits
     }
-    if (len>4) {
-      value = (value<<8) | data[4]; // up to 24 bits
+    if (len > 4) {
+      value = (value << 8) | data[4];  // up to 24 bits
     }
-    if (len>5) {
-      value = (value<<8) | data[5]; // up to 32 bits
+    if (len > 5) {
+      value = (value << 8) | data[5];  // up to 32 bits
     }
     // note: a write from KNX updates the message and thus re-sends the write later on again during update check
     logOtherNotice("knx", "received write request from %4.4x to %4.4x for %s/%s/%s, value %d",
@@ -691,7 +698,7 @@ void KnxHandler::handleGroupTelegram(knx_addr_t src, knx_addr_t dest, int len, c
     } else {
       if (lengthFlag.isSigned) {
         // signed values: determine sign
-        uint32_t bit = 1<<(lengthFlag.length*8-1);
+        uint32_t bit = 1 << (lengthFlag.length*8-1);
         if (value & bit) {
           value = -(value&~bit);
         }
@@ -801,7 +808,7 @@ void KnxHandler::run() {
             continue;
           }
           ssize_t fieldCount = static_cast<signed>(message->getFieldCount());
-          if (isWrite && fieldCount>1) {
+          if (isWrite && fieldCount > 1) {
             // impossible with more than one field
             continue;
           }
@@ -878,7 +885,7 @@ void KnxHandler::run() {
             }
           }
         }
-        if (addCnt>0) {
+        if (addCnt > 0) {
           logOtherInfo("knx", "added %d associations, %d active now", addCnt, m_subscribedGroups.size());
         }
         definitionsSince = now;

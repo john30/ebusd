@@ -374,7 +374,8 @@ bool mqtthandler_register(UserInfo* userInfo, BusHandler* busHandler, MessageMap
     int revision = -1;
     mosquitto_lib_version(&major, &minor, &revision);
     if (major < LIBMOSQUITTO_MAJOR) {
-      logOtherError("mqtt", "invalid mosquitto version %d instead of %d, will try connecting anyway", major, LIBMOSQUITTO_MAJOR);
+      logOtherError("mqtt", "invalid mosquitto version %d instead of %d, will try connecting anyway", major,
+        LIBMOSQUITTO_MAJOR);
     }
     logOtherInfo("mqtt", "mosquitto version %d.%d.%d (compiled with %d.%d.%d)", major, minor, revision,
       LIBMOSQUITTO_MAJOR, LIBMOSQUITTO_MINOR, LIBMOSQUITTO_REVISION);
@@ -482,7 +483,8 @@ string removeTrailingNonTopicPart(const string& str) {
 
 MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages)
   : DataSink(userInfo, "mqtt"), DataSource(busHandler), WaitThread(), m_messages(messages), m_connected(false),
-    m_initialConnectFailed(false), m_lastUpdateCheckResult("."), m_lastScanStatus(SCAN_STATUS_NONE), m_lastErrorLogTime(0) {
+    m_initialConnectFailed(false), m_lastUpdateCheckResult("."), m_lastScanStatus(SCAN_STATUS_NONE),
+    m_lastErrorLogTime(0) {
   m_definitionsSince = 0;
   m_mosquitto = nullptr;
   bool hasIntegration = false;
@@ -540,7 +542,7 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
     m_replacers.set("version", PACKAGE_VERSION);
     if (m_replacers["prefix"].empty()) {
       string line = m_replacers.get("topic", true);
-      if (line.empty() || line=="/") {
+      if (line.empty() || line == "/") {
         line = string(PACKAGE);  // ensure prefix if cmdline topic is absent
       }
       m_replacers.set("prefix", line);

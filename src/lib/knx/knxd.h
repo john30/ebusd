@@ -34,7 +34,7 @@ class KnxdConnection : public KnxConnection {
   /**
    * Construct a new instance.
    */
-  KnxdConnection(const char *url)
+  explicit KnxdConnection(const char *url)
       : KnxConnection(), m_url(url), m_con(nullptr) {}
 
   /**

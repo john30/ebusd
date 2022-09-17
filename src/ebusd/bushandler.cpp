@@ -784,7 +784,7 @@ result_t BusHandler::handleSymbol() {
       // check arbitration
       if (recvSymbol == sendSymbol) {  // arbitration successful
         // measure arbitration delay
-        long long latencyLong = (sentTime.tv_sec*1000000000 + sentTime.tv_nsec
+        int64_t latencyLong = (sentTime.tv_sec*1000000000 + sentTime.tv_nsec
         - m_lastSynReceiveTime.tv_sec*1000000000 - m_lastSynReceiveTime.tv_nsec)/1000;
         if (latencyLong >= 0 && latencyLong <= 10000) {  // skip clock skew or out of reasonable range
           auto latency = static_cast<int>(latencyLong);
@@ -1113,7 +1113,7 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 }
 
 void BusHandler::measureLatency(struct timespec* sentTime, struct timespec* recvTime) {
-  long long latencyLong = (recvTime->tv_sec*1000000000 + recvTime->tv_nsec
+  int64_t latencyLong = (recvTime->tv_sec*1000000000 + recvTime->tv_nsec
       - sentTime->tv_sec*1000000000 - sentTime->tv_nsec)/1000000;
   if (latencyLong < 0 || latencyLong > 1000) {
     return;  // clock skew or out of reasonable range

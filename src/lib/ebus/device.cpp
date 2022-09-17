@@ -465,7 +465,8 @@ bool Device::available() {
       ch = m_buffer[(pos+m_bufPos+1)%m_bufSize];
       if (!(ch&ENH_BYTE_FLAG) || (ch&ENH_BYTE_MASK) != ENH_BYTE2) {
 #ifdef DEBUG_RAW_TRAFFIC
-        fprintf(stdout, "raw avail enhanced following bad @%d+%d %2.2x %2.2x\n", m_bufPos, pos, m_buffer[(pos+m_bufPos)%m_bufSize], ch);
+        fprintf(stdout, "raw avail enhanced following bad @%d+%d %2.2x %2.2x\n", m_bufPos, pos,
+          m_buffer[(pos+m_bufPos)%m_bufSize], ch);
         fflush(stdout);
 #endif
         if (m_listener != nullptr) {
@@ -654,17 +655,17 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
             ostringstream stream;
             switch ((m_infoLen << 8) | m_infoId) {
               case 0x0200:
-              case 0x0500: // with firmware version and jumper info
-              case 0x0800: // with firmware version, jumper info, and bootloader version
-                stream << "firmware " << static_cast<unsigned>(m_infoBuf[0]) << "." // version minor
-                       << std::hex << static_cast<unsigned>(m_infoBuf[1]); // features mask
-                if (m_infoLen>=5) {
+              case 0x0500:  // with firmware version and jumper info
+              case 0x0800:  // with firmware version, jumper info, and bootloader version
+                stream << "firmware " << static_cast<unsigned>(m_infoBuf[0]) << "."  // version minor
+                       << std::hex << static_cast<unsigned>(m_infoBuf[1]);  // features mask
+                if (m_infoLen >= 5) {
                   stream << " [" << std::setfill('0') << std::setw(2) << std::hex << static_cast<unsigned>(m_infoBuf[2])
                          << std::setw(2) << static_cast<unsigned>(m_infoBuf[3]) << "]";
                   stream << ", jumpers 0x" << std::setw(2) << static_cast<unsigned>(m_infoBuf[4]);
                   stream << std::setfill(' ');  // reset
                 }
-                if (m_infoLen>=8) {
+                if (m_infoLen >= 8) {
                   stream << ", bootloader " << std::dec << static_cast<unsigned>(m_infoBuf[5]);
                   stream << " [" << std::setfill('0') << std::setw(2) << std::hex << static_cast<unsigned>(m_infoBuf[6])
                          << std::setw(2) << static_cast<unsigned>(m_infoBuf[7]) << "]";
@@ -677,7 +678,7 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
                 for (uint8_t pos = 0; pos < m_infoPos; pos++) {
                   stream << " " << std::setw(2) << static_cast<unsigned>(m_infoBuf[pos]);
                 }
-                if (m_infoId == 2 && (m_infoBuf[2]&0x3f)!=0x3f) {
+                if (m_infoId == 2 && (m_infoBuf[2]&0x3f) != 0x3f) {
                   // non-default arbitration delay
                   val = (m_infoBuf[2]&0x3f)*10;  // steps of 10us
                   stream << ", arbitration delay " << std::dec << static_cast<unsigned>(val) << " us";

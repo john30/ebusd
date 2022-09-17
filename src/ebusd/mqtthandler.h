@@ -20,9 +20,10 @@
 #define EBUSD_MQTTHANDLER_H_
 
 #include <mosquitto.h>
+#include <list>
 #include <map>
 #include <string>
-#include <list>
+#include <utility>
 #include <vector>
 #include "ebusd/datahandler.h"
 #include "ebusd/bushandler.h"
@@ -36,6 +37,7 @@ namespace ebusd {
  */
 
 using std::map;
+using std::pair;
 using std::string;
 using std::vector;
 
@@ -185,7 +187,7 @@ class MqttHandler : public DataSink, public DataSource, public WaitThread {
   bool m_hasDefinitionFieldsPayload;
 
   /** map of type name to a list of pairs of wildcard string and mapped value. */
-  map<string, vector<std::pair<string, string>>> m_typeSwitches;
+  map<string, vector<pair<string, string>>> m_typeSwitches;
 
   /** the subscribed configuration restart topic, or empty. */
   string m_subscribeConfigRestartTopic;

@@ -352,7 +352,8 @@ class SerialDevice : public Device {
    */
   SerialDevice(const char* name, bool checkDevice, unsigned int extraLatency, bool readOnly, bool initialSend,
                bool enhancedProto = false, bool enhancedHighSpeed = false)
-    : Device(name, checkDevice, extraLatency, readOnly, initialSend, enhancedProto), m_enhancedHighSpeed(enhancedHighSpeed) {
+    : Device(name, checkDevice, extraLatency, readOnly, initialSend, enhancedProto),
+    m_enhancedHighSpeed(enhancedHighSpeed) {
   }
 
   // @copydoc

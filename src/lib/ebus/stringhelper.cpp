@@ -22,6 +22,7 @@
 
 #include "lib/ebus/stringhelper.h"
 #include <algorithm>
+#include <stack>
 
 namespace ebusd {
 
@@ -296,7 +297,8 @@ bool StringReplacer::checkMatchability() const {
   return true;
 }
 
-ssize_t StringReplacer::match(const string& str, string* circuit, string* name, string* field, const string& separator) const {
+ssize_t StringReplacer::match(const string& str, string* circuit, string* name, string* field,
+  const string& separator) const {
   size_t last = 0;
   size_t count = m_parts.size();
   size_t idx;
@@ -442,7 +444,8 @@ StringReplacer StringReplacers::get(const string& key) const {
   return StringReplacer();
 }
 
-string StringReplacers::get(const string& key, bool untilFirstEmpty, bool onlyAlphanum, const string& fallbackKey) const {
+string StringReplacers::get(const string& key, bool untilFirstEmpty, bool onlyAlphanum,
+  const string& fallbackKey) const {
   auto itc = m_constants.find(key);
   if (itc != m_constants.end()) {
     return itc->second;
