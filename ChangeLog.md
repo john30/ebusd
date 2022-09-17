@@ -5,6 +5,8 @@
 
 ## Features
 * add continuation of initial scan until it succeeded
+* add restart of device state when connection was reset
+* add KNX integration directly via KNXnet/IP multicast routing as well as via knxd client
 
 
 # 22.3 (2022-05-08)
