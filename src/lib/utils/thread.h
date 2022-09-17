@@ -129,9 +129,10 @@ class WaitThread : public Thread {
   /**
    * Wait for the specified amount of time.
    * @param seconds the number of seconds to wait.
+   * @param millis the optional number of milliseconds to wait.
    * @return true if this @a WaitThread is still running and not yet stopped.
    */
-  bool Wait(int seconds);
+  bool Wait(int seconds, int millis = 0);
 
 
  protected:

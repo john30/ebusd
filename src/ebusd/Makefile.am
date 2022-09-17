@@ -22,6 +22,14 @@ ebusd_LDADD = ../lib/utils/libutils.a \
 	      -lpthread \
 	      @EXTRA_LIBS@
 
+if KNX
+ebusd_SOURCES += knxhandler.cpp knxhandler.h
+ebusd_LDADD += ../lib/knx/libknx.a
+if KNXD
+ebusd_LDADD += -leibclient
+endif
+endif
+
 if SSL
 ebusd_LDADD += -lssl -lcrypto
 endif

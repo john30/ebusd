@@ -2,7 +2,13 @@ ACLOCAL_AMFLAGS = -I m4
 
 SUBDIRS = docs \
 	src/lib/utils \
-	src/lib/ebus \
+	src/lib/ebus
+
+if KNX
+SUBDIRS += src/lib/knx
+endif
+
+SUBDIRS += \
 	src/ebusd \
 	src/tools
 
@@ -12,7 +18,11 @@ EXTRA_DIST = LICENSE \
 	VERSION
 
 if MQTT
-MQTT_INST_ADD = cp -n $(srcdir)/contrib/etc/ebusd/mqtt-*.cfg $(DESTDIR)$(sysconfdir)/ebusd
+MQTT_INST_ADD = cp -n $(srcdir)/contrib/etc/ebusd/mqtt-*.cfg $(DESTDIR)$(sysconfdir)/ebusd;
+endif
+
+if KNX
+KNX_INST_ADD = cp -n $(srcdir)/contrib/etc/ebusd/knx*.cfg $(DESTDIR)$(sysconfdir)/ebusd;
 endif
 
 install-data-hook:
@@ -23,7 +33,8 @@ install-data-hook:
 	  cp $(srcdir)/contrib/debian/init.d/ebusd $(DESTDIR)/etc/init.d/; \
 	  cp $(srcdir)/contrib/debian/systemd/ebusd.service $(DESTDIR)/lib/systemd/system/; \
 	fi; \
-	$(MQTT_INST_ADD)
+	$(MQTT_INST_ADD) \
+	$(KNX_INST_ADD)
 
 test:
 	$(MAKE) -C src/lib/ebus/test

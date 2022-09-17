@@ -326,6 +326,10 @@ void MainLoop::run() {
         if (m_messages->sizeConditions() > 0 && !m_polling) {
           logError(lf_main, "conditions require a poll interval > 0");
         }
+        // notify data sinks to make them update the messages
+        for (const auto dataSink : dataSinks) {
+          dataSink->notifyScanStatus(SCAN_STATUS_FINISHED);
+        }
       }
       if (m_runUpdateCheck && !m_shutdown && now > nextCheckRun) {
         if (!m_httpClient.connect("upd.ebusd.eu",

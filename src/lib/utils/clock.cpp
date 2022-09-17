@@ -44,4 +44,10 @@ void clockGettime(struct timespec* t) {
 #endif
 }
 
+long long clockGetMillis() {
+  struct timespec t;
+  clockGettime(&t);
+  return t.tv_sec*1000LL + t.tv_nsec / 1000000;
+}
+
 }  // namespace ebusd

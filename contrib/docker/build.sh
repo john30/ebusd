@@ -27,6 +27,9 @@ if [[ -z "$1" ]]; then
   target=image
   outputFmt='-o type=docker,type=registry'
   tagsuffix=':devel'
+  if [[ -n "$GIT_BRANCH" ]] && [[ "x$GIT_BRANCH" != "xmaster" ]]; then
+    tagsuffix="$tagsuffix-$GIT_BRANCH"
+  fi
 elif [[ "x$1" = "xrelease" ]]; then
   namesuffix='.release'
   target=image

@@ -31,6 +31,11 @@ namespace ebusd {
  */
 void clockGettime(struct timespec* t);
 
+/**
+ * Get the current system time in milliseconds since the Epoch.
+ */
+long long clockGetMillis();
+
 }  // namespace ebusd
 
 #endif  // LIB_UTILS_CLOCK_H_
