@@ -54,7 +54,7 @@ using std::dec;
 /** the definition of the KNX arguments. */
 static const struct argp_option g_knx_argp_options[] = {
   {nullptr,      0, nullptr,      0, "KNX options:", 1 },
-  {"knxurl", O_URL, "URL",        0, "Connect to KNX daemon on URL (i.e. \"[multicast][@interface]\" for KNXnet/IP"
+  {"knxurl", O_URL, "URL",        0, "URL to open (i.e. \"[multicast][@interface]\" for KNXnet/IP"
 #ifdef HAVE_KNXD
                                      " or \"ip:host[:port]\" / \"local:/socketpath\" for knxd"
 #endif
@@ -82,8 +82,8 @@ static vector<string>* g_integrationVars = nullptr;  //!< the integration settin
 static error_t knx_parse_opt(int key, char *arg, struct argp_state *state) {
   result_t result;
   switch (key) {
-  case O_URL:  // --knxurl=localhost
-    if (arg == nullptr || arg[0] == 0) {
+  case O_URL:  // --knxurl=[multicast][@interface]
+    if (arg == nullptr) {  // empty is allowed
       argp_error(state, "invalid knxurl");
       return EINVAL;
     }
