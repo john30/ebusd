@@ -265,9 +265,9 @@ result_t Device::send(symbol_t value) {
 
 /**
  * the maximum duration in milliseconds to wait for an enhanced sequence to complete after the first part was already
- * retrieved: 2* (Start+8Bit+Stop+Extra @ 9600Bd)
+ * retrieved (3ms rounded up to the next 10ms): 2* (Start+8Bit+Stop+Extra @ 9600Bd)
  */
-#define ENHANCED_COMPLETE_WAIT_DURATION 3
+#define ENHANCED_COMPLETE_WAIT_DURATION 10
 
 
 bool Device::cancelRunningArbitration(ArbitrationState* arbitrationState) {
