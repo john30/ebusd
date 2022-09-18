@@ -1,4 +1,4 @@
-# 22.4 (tbd)
+# 22.4 (2022-09-18)
 ## Bug Fixes
 * fix some smaller glitches (short argument names, compilation on small devices, argument help)
 * fix revision in gh build for update check
