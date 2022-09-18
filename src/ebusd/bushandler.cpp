@@ -1689,7 +1689,7 @@ symbol_t BusHandler::getNextScanAddress(symbol_t lastAddress, bool withUnfinishe
       continue;
     }
     if ((m_seenAddresses[lastAddress]&(SEEN|LOAD_INIT)) == SEEN
-    || (withUnfinished && (m_seenAddresses[lastAddress]&(SEEN|SCAN_INIT|LOAD_INIT)) == (SEEN|LOAD_INIT))) {
+    || (withUnfinished && (m_seenAddresses[lastAddress]&(SEEN|SCAN_DONE|LOAD_INIT)) == (SEEN|LOAD_INIT))) {
       return lastAddress;
     }
     symbol_t master = getMasterAddress(lastAddress);
@@ -1697,7 +1697,7 @@ symbol_t BusHandler::getNextScanAddress(symbol_t lastAddress, bool withUnfinishe
       continue;
     }
     if ((m_seenAddresses[lastAddress]&LOAD_INIT) == 0
-    || (withUnfinished && (m_seenAddresses[lastAddress]&(SCAN_INIT|LOAD_INIT)) == LOAD_INIT)) {
+    || (withUnfinished && (m_seenAddresses[lastAddress]&(SCAN_DONE|LOAD_INIT)) == LOAD_INIT)) {
       return lastAddress;
     }
   }
