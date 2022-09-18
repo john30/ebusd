@@ -13,6 +13,7 @@ on:
         description: Limit to this architecture
         required: false
         type: choice
+        default: ''
         options:
           - ''
           - amd64
@@ -23,6 +24,7 @@ on:
         description: Limit to this image
         required: false
         type: choice
+        default: ''
         options:
           - ''
           - bullseye
