@@ -94,8 +94,8 @@ typedef union {
   uint64_t value;
 } dtlf_t;
 
-#define DTLF_1BIT {.length = 0}
-#define DTLF_8BIT {.length = 1}
+#define DTLF_1BIT dtlf_t{.length = 0}
+#define DTLF_8BIT dtlf_t{.length = 1}
 
 /** type for global values not associated with an ebus message. */
 enum global_t {

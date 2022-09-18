@@ -152,7 +152,7 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool htt
   time_t until = time(nullptr) + (timeout <= 3 ? 3 : timeout);  // at least 3 seconds
   if (!https) {
     do {
-      bio = BIO_new_connect(hostPort.c_str());
+      bio = BIO_new_connect((char*)hostPort.c_str());
       if (isError("connect", bio)) {
         break;
       }

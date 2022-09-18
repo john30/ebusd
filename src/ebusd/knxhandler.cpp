@@ -237,11 +237,11 @@ KnxHandler::KnxHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* m
       continue;
     }
     m_subscribedGlobals[index] = dest|FLAG_READ;
-    m_subscribedGroups[dest|FLAG_READ] = {
-        .messageKey = 0,
-        .globalIndex = index,
-        .lengthFlag = lengthFlag,
-    };
+    groupInfo_t grpInfo;
+    grpInfo.messageKey = 0;
+    grpInfo.globalIndex = index;
+    grpInfo.lengthFlag = lengthFlag;
+    m_subscribedGroups[dest|FLAG_READ] = grpInfo;
     globalCnt++;
   }
   logOtherInfo("knx", "parsed %d global and %d message assignments", globalCnt, messageCnt);
@@ -847,11 +847,11 @@ void KnxHandler::run() {
               }  // else: overwrite "write-read" with readable message
               logOtherDebug("knx", "replacing write-read association %s to %4.4x", key.c_str(), dest);
             }
-            m_subscribedGroups[subKey] = {
-                .messageKey = message->getKey(),
-                .fieldIndex = static_cast<uint8_t>(index),
-                .lengthFlag = lengthFlag,
-            };
+            groupInfo_t grpInfo;
+            grpInfo.messageKey = message->getKey();
+            grpInfo.globalIndex = static_cast<global_t>(index);
+            grpInfo.lengthFlag = lengthFlag;
+            m_subscribedGroups[subKey] = grpInfo;
             m_subscribedMessages[message->getKey()].push_back(subKey);
             logOtherDebug("knx", "added %s association %s to %4.4x", isWrite ? "write" : "read", key.c_str(), dest);
             if (isWrite) {
@@ -860,11 +860,7 @@ void KnxHandler::run() {
               subKey = static_cast<uint32_t>(dest | FLAG_READ);
               sit = m_subscribedGroups.find(subKey);
               if (sit == m_subscribedGroups.cend()) {
-                m_subscribedGroups[subKey] = {
-                    .messageKey = message->getKey(),
-                    .fieldIndex = static_cast<uint8_t>(index),
-                    .lengthFlag = lengthFlag,
-                };
+                m_subscribedGroups[subKey] = grpInfo;
                 logOtherDebug("knx", "added write-read association %s to %4.4x", key.c_str(), dest);
               }
             }
