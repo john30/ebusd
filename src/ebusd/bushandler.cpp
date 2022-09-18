@@ -108,6 +108,7 @@ result_t ScanRequest::prepare(symbol_t ownMasterAddress) {
 
 bool ScanRequest::notify(result_t result, const SlaveSymbolString& slave) {
   symbol_t dstAddress = m_master[1];
+  m_busHandler->setScanResult(dstAddress, 0, "");
   if (result == RESULT_OK) {
     if (m_message == m_messageMap->getScanMessage()) {
       Message* message = m_messageMap->getScanMessage(dstAddress);
@@ -1476,6 +1477,8 @@ void BusHandler::formatSeenInfo(ostringstream* output) const {
           *output << "\"";
         }
       }
+    } else if ((m_seenAddresses[address]&SCAN_INIT) != 0) {
+      *output << ", scanning";
     }
     const vector<string>& loadedFiles = m_messages->getLoadedFiles(address);
     if (!loadedFiles.empty()) {
