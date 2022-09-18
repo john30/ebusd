@@ -51,4 +51,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       -
         name: build
-        run: cd contrib/docker && GIT_BRANCH=${GITHUB_REF##*/} LIMITARCH=${{ github.event.inputs.limitarch }} GIT_REVISION=${{ steps.gittag.outputs.describe }} ./build.sh
+        run: cd contrib/docker && GIT_BRANCH=${GITHUB_REF##*/} ./build.sh
+        env:
+          GIT_REVISION: ${{ steps.gittag.outputs.describe }}
+          LIMITARCH: ${{ github.event.inputs.limitarch }}

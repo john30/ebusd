@@ -37,6 +37,10 @@ jobs:
         name: checkout
         uses: actions/checkout@v2
       -
+        name: gh-describe
+        id: gittag
+        uses: proudust/gh-describe@v1.4.6
+      -
         name: set up QEMU
         uses: docker/setup-qemu-action@v1
       -
@@ -51,6 +55,7 @@ jobs:
         env:
           UPLOAD_URL: ${{ secrets.UPLOAD_URL }}
           UPLOAD_CREDENTIALS: ${{ secrets.UPLOAD_CREDENTIALS }}
+          GIT_REVISION: ${{ steps.gittag.outputs.describe }}
           LIMITARCH: ${{ github.event.inputs.limitarch }}
           LIMITIMG: ${{ github.event.inputs.limitimg }}
       -
