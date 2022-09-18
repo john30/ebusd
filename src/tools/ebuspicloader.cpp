@@ -37,7 +37,9 @@
 #include <string>
 #include <cstring>
 #include "intelhex/intelhexclass.h"
+#include "lib/utils/tcpsocket.h"
 
+using ebusd::socketConnect;
 
 /** the version string of the program. */
 const char *argp_program_version = "eBUS adapter PIC firmware loader";
@@ -661,30 +663,9 @@ int openSerial(std::string port) {
 
 int openNet(std::string host, uint16_t port) {
   // open network port
-  struct sockaddr_in address;
-  memset(reinterpret_cast<char*>(&address), 0, sizeof(address));
-  if (inet_addr(host.c_str()) == INADDR_NONE) {
-    struct hostent* he;
-    he = gethostbyname(host.c_str());
-    if (he == nullptr) {
-      std::cerr << "unable to resolve host " << host << std::endl;
-      return -1;
-    }
-    memcpy(&address.sin_addr, he->h_addr_list[0], he->h_length);
-  } else if (inet_aton(host.c_str(), &address.sin_addr) == 0) {
-    std::cerr << "unable to resolve IP " << host << std::endl;
-    return -1;
-  }
-  address.sin_family = AF_INET;
-  address.sin_port = (in_port_t)htons(port);
-  int fd = socket(AF_INET, SOCK_STREAM, 0);
+  int fd = socketConnect(host.c_str(), port, false, nullptr, 5);
   if (fd < 0) {
     std::cerr << "unable to open " << host << std::endl;
-    return -1;
-  }
-  if (connect(fd, (struct sockaddr *) &address, sizeof(address)) != 0) {
-    close(fd);
-    std::cerr << "unable to connect to " << host << std::endl;
     return -1;
   }
   fcntl(fd, F_SETFL, O_NONBLOCK);  // set non-blocking

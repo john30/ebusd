@@ -24,12 +24,14 @@
 #include <fcntl.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <string.h>
 #include <errno.h>
 #ifdef HAVE_PPOLL
 #  include <poll.h>
 #endif
-#include <cstdlib>
 
 namespace ebusd {
 
@@ -45,52 +47,73 @@ bool TCPSocket::isValid() {
 }
 
 
-TCPSocket* TCPSocket::connect(const string& server, const uint16_t& port, int timeout) {
-  socketaddress address;
-  int ret;
+int socketConnect(const char* server, uint16_t port, bool udp, socketaddress* storeAddress, int tcpConnectTimeout,
+int tcpKeepAliveInterval) {
+  socketaddress localAddress;
+  socketaddress* address = storeAddress ? storeAddress : &localAddress;
+  memset(reinterpret_cast<char*>(address), 0, sizeof(*address));
 
-  memset(reinterpret_cast<char*>(&address), 0, sizeof(address));
-
-  if (inet_addr(server.c_str()) == INADDR_NONE) {
-    struct hostent* he;
-
-    he = gethostbyname(server.c_str());
+  if (inet_aton(server, &address->sin_addr) == 0) {
+    struct hostent* he = gethostbyname(server);
     if (he == nullptr) {
-      return nullptr;
+      return -1;
     }
-    memcpy(&address.sin_addr, he->h_addr_list[0], he->h_length);
-  } else {
-    ret = inet_aton(server.c_str(), &address.sin_addr);
-    if (ret == 0) {
-      return nullptr;
+    memcpy(&address->sin_addr, he->h_addr_list[0], he->h_length);
+  }
+  address->sin_family = AF_INET;
+  address->sin_port = (in_port_t)htons(port);
+
+  int sfd = socket(AF_INET, udp ? SOCK_DGRAM : SOCK_STREAM, 0);
+  if (sfd < 0) {
+    return -1;
+  }
+  int ret;
+  if (udp) {
+    struct sockaddr_in bindAddress = *address;
+    bindAddress.sin_addr.s_addr = INADDR_ANY;
+    ret = bind(sfd, (struct sockaddr*)&bindAddress, sizeof(bindAddress));
+    if (ret >= 0) {
+      ret = ::connect(sfd, (struct sockaddr*)address, sizeof(*address));
+    }
+    if (ret < 0) {
+      close(sfd);
+      return -1;
     }
   }
-
-  address.sin_family = AF_INET;
-  address.sin_port = (in_port_t)htons(port);
-
-  int sfd = socket(AF_INET, SOCK_STREAM, 0);
-  if (sfd < 0) {
-    return nullptr;
+  int value = 1;
+  ret = setsockopt(sfd, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<void*>(&value), sizeof(value));
+  if (ret < 0) {
+    close(sfd);
+    return -1;
+  }
+  if (tcpKeepAliveInterval > 0) {
+    value = 1;
+    setsockopt(sfd, SOL_SOCKET, SO_KEEPALIVE, reinterpret_cast<void*>(&value), sizeof(value));
+    value = tcpKeepAliveInterval+1;  // send keepalive after interval + 1 seconds of silence
+    setsockopt(sfd, IPPROTO_TCP, TCP_KEEPIDLE, reinterpret_cast<void*>(&value), sizeof(value));
+    value = tcpKeepAliveInterval;  // send keepalive in given interval
+    setsockopt(sfd, IPPROTO_TCP, TCP_KEEPINTVL, reinterpret_cast<void*>(&value), sizeof(value));
+    value = 2;  // drop connection after 2 failed keep alive sends
+    setsockopt(sfd, IPPROTO_TCP, TCP_KEEPCNT, reinterpret_cast<void*>(&value), sizeof(value));
   }
 #ifndef HAVE_PPOLL
 #ifndef HAVE_PSELECT
   timeout = 0;
 #endif
 #endif
-  if (timeout > 0 && fcntl(sfd, F_SETFL, O_NONBLOCK) < 0) {  // set non-blocking
+  if (tcpConnectTimeout > 0 && fcntl(sfd, F_SETFL, O_NONBLOCK) < 0) {  // set non-blocking
     close(sfd);
-    return nullptr;
+    return -1;
   }
-  ret = ::connect(sfd, (struct sockaddr *) &address, sizeof(address));
+  ret = ::connect(sfd, (struct sockaddr*)address, sizeof(*address));
   if (ret != 0) {
-    if (ret < 0 && (timeout <= 0 || errno != EINPROGRESS)) {
+    if (ret < 0 && (tcpConnectTimeout <= 0 || errno != EINPROGRESS)) {
       close(sfd);
-      return nullptr;
+      return -1;
     }
-    if (timeout > 0) {
+    if (tcpConnectTimeout > 0) {
       struct timespec tdiff;
-      tdiff.tv_sec = timeout;
+      tdiff.tv_sec = tcpConnectTimeout;
       tdiff.tv_nsec = 0;
 #ifdef HAVE_PPOLL
       nfds_t nfds = 1;
@@ -115,12 +138,22 @@ TCPSocket* TCPSocket::connect(const string& server, const uint16_t& port, int ti
 #endif
       if (ret == -1 || ret == 0) {
         close(sfd);
-        return nullptr;
+        return -1;
+      }
+      if (fcntl(sfd, F_SETFL, 0) < 0) {  // set blocking again
+        close(sfd);
+        return -1;
       }
     }
   }
-  if (timeout > 0 && fcntl(sfd, F_SETFL, 0) < 0) {  // set blocking again
-    close(sfd);
+  return sfd;
+}
+
+
+TCPSocket* TCPSocket::connect(const string& server, const uint16_t& port, int timeout) {
+  socketaddress address;
+  int sfd = socketConnect(server.c_str(), port, false, &address, timeout);
+  if (sfd < 0) {
     return nullptr;
   }
   TCPSocket* s = new TCPSocket(sfd, &address);
@@ -137,21 +170,18 @@ int TCPServer::start() {
   }
   m_lfd = socket(AF_INET, SOCK_STREAM, 0);
   socketaddress address;
-
   memset(&address, 0, sizeof(address));
 
   address.sin_family = AF_INET;
   address.sin_port = (in_port_t)htons(m_port);
 
-  if (m_address.size() > 0) {
-    inet_pton(AF_INET, m_address.c_str(), &(address.sin_addr));
-  } else {
+  if (!m_address.empty() && inet_pton(AF_INET, m_address.c_str(), &address.sin_addr) != 1) {
     address.sin_addr.s_addr = INADDR_ANY;
   }
-  int optval = 1;
-  setsockopt(m_lfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+  int value = 1;
+  setsockopt(m_lfd, SOL_SOCKET, SO_REUSEADDR, &value, sizeof(value));
 
-  int result = bind(m_lfd, (struct sockaddr*) &address, sizeof(address));
+  int result = bind(m_lfd, (struct sockaddr*)&address, sizeof(address));
   if (result != 0) {
     return result;
   }
@@ -169,10 +199,9 @@ TCPSocket* TCPServer::newSocket() {
   }
   socketaddress address;
   socklen_t len = sizeof(address);
-
   memset(&address, 0, sizeof(address));
 
-  int sfd = accept(m_lfd, (struct sockaddr*) &address, &len);
+  int sfd = accept(m_lfd, (struct sockaddr*)&address, &len);
   if (sfd < 0) {
     return nullptr;
   }

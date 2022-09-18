@@ -24,16 +24,13 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/file.h>
-#include <sys/socket.h>
 #include <netinet/in.h>
-#include <netinet/tcp.h>
 #ifdef HAVE_LINUX_SERIAL
 #  include <linux/serial.h>
 #endif
 #ifdef HAVE_FREEBSD_UFTDI
 #  include <dev/usb/uftdiio.h>
 #endif
-#include <errno.h>
 #ifdef HAVE_PPOLL
 #  include <poll.h>
 #endif
@@ -44,6 +41,7 @@
 #include <ios>
 #include <iomanip>
 #include "lib/ebus/data.h"
+#include "lib/utils/tcpsocket.h"
 
 namespace ebusd {
 
@@ -874,44 +872,8 @@ result_t NetworkDevice::open() {
   if (result != RESULT_OK) {
     return result;
   }
-  struct sockaddr_in address;
-  memset(reinterpret_cast<char*>(&address), 0, sizeof(address));
-  if (inet_aton(m_hostOrIp, &address.sin_addr) == 0) {
-    struct hostent* h = gethostbyname(m_hostOrIp);
-    if (h == nullptr) {
-      return RESULT_ERR_GENERIC_IO;  // invalid host
-    }
-    memcpy(&address.sin_addr, h->h_addr_list[0], h->h_length);
-  }
-  address.sin_family = AF_INET;
-  address.sin_port = (in_port_t)htons(m_port);
-
-  m_fd = socket(AF_INET, m_udp ? SOCK_DGRAM : SOCK_STREAM, 0);
+  m_fd = socketConnect(m_hostOrIp, m_port, m_udp, nullptr, 5, 2);  // wait up to 5 seconds for established connection
   if (m_fd < 0) {
-    return RESULT_ERR_GENERIC_IO;
-  }
-  int ret;
-  if (m_udp) {
-    struct sockaddr_in bindAddress = address;
-    bindAddress.sin_addr.s_addr = INADDR_ANY;
-    ret = bind(m_fd, (struct sockaddr*)&bindAddress, sizeof(address));
-  } else {
-    int value = 1;
-    ret = setsockopt(m_fd, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<void*>(&value), sizeof(value));
-    value = 1;
-    setsockopt(m_fd, SOL_SOCKET, SO_KEEPALIVE, reinterpret_cast<void*>(&value), sizeof(value));
-    value = 3;  // send keepalive after 3 seconds of silence
-    setsockopt(m_fd, IPPROTO_TCP, TCP_KEEPIDLE, reinterpret_cast<void*>(&value), sizeof(value));
-    value = 2;  // send keepalive in interval of 2 seconds
-    setsockopt(m_fd, IPPROTO_TCP, TCP_KEEPINTVL, reinterpret_cast<void*>(&value), sizeof(value));
-    value = 2;  // drop connection after 2 failed keep alive sends
-    setsockopt(m_fd, IPPROTO_TCP, TCP_KEEPCNT, reinterpret_cast<void*>(&value), sizeof(value));
-  }
-  if (ret >= 0) {
-    ret = connect(m_fd, (struct sockaddr*)&address, sizeof(address));
-  }
-  if (ret < 0) {
-    close();
     return RESULT_ERR_GENERIC_IO;
   }
   if (!m_udp) {

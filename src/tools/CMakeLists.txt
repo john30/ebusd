@@ -8,7 +8,7 @@ include_directories(intelhex)
 add_executable(ebusctl ${ebusctl_SOURCES})
 add_executable(ebuspicloader ${ebuspicloader_SOURCES})
 target_link_libraries(ebusctl utils ebus ${LIB_ARGP} ${ebusctl_LIBS})
-target_link_libraries(ebuspicloader ${LIB_ARGP})
+target_link_libraries(ebuspicloader utils ${LIB_ARGP} ${ebuspicloader_LIBS})
 
 if(WITH_EBUSFEED)
   set(ebusfeed_SOURCES ebusfeed.cpp)

@@ -42,6 +42,20 @@ using std::string;
 #endif
 
 /**
+ * Connect a TCP or UDP socket.
+ * @param server the server name or ip address to connect to.
+ * @param port the port number.
+ * @param udp true for UDP, false for TCP.
+ * @param storeAddress optional pointer to where the socket address will be stored.
+ * @param tcpConnectTimeout the TCP connect timeout in seconds, or 0.
+ * @param tcpKeepAliveInterval optional interval in seconds for sending TCP keepalive.
+ * @return the connected socket file descriptor on success, or -1 on error.
+ */
+int socketConnect(const char* server, uint16_t port, bool udp, socketaddress* storeAddress = nullptr,
+int tcpConnectTimeout = 0, int tcpKeepAliveInterval = 0);
+
+
+/**
  * Class for low level TCP socket operations (open, close, send, receive).
  */
 class TCPSocket {

@@ -8,6 +8,7 @@ ebusctl_SOURCES = ebusctl.cpp
 ebusctl_LDADD = ../lib/utils/libutils.a
 
 ebuspicloader_SOURCES = ebuspicloader.cpp intelhex/intelhexclass.cpp
+ebusctl_LDADD = ../lib/utils/libutils.a
 
 if WITH_EBUSFEED
 bin_PROGRAMS += ebusfeed
