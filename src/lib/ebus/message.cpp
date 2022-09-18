@@ -1687,11 +1687,9 @@ result_t Instruction::create(const string& contextPath, const string& type,
     }
     size_t pos = contextPath.find_last_of('/');
     string path;
-    if (pos == string::npos) {
-      path = contextPath;
-    } else {
+    if (pos != string::npos) {
       path = contextPath.substr(0, pos+1);
-    }
+    }  // else: assume contextPath is a file without path
     auto it = row.find("file");
     string arg;
     if (it == row.end()) {
