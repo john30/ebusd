@@ -213,12 +213,16 @@ MainLoop::~MainLoop() {
 /** the initial delay for running the update check. */
 #define CHECK_INITIAL_DELAY (2*60)
 
+/** the number of completed scan runs after which to try again failed ones. */
+#define SCAN_REPEAT_COUNT 6
+
 void MainLoop::run() {
   bool reload = true;
   time_t lastTaskRun, now, start, lastSignal = 0, since, sinkSince = 1, nextCheckRun;
   int taskDelay = 5;
   symbol_t lastScanAddress = 0;  // 0 is known to be a master
   scanStatus_t lastScanStatus = SCAN_STATUS_NONE;
+  int scanCompleted = 0;
   time(&now);
   start = now;
   lastTaskRun = now;
@@ -296,11 +300,15 @@ void MainLoop::run() {
           }
         }
         if (!loadDelay) {
-          lastScanAddress = m_busHandler->getNextScanAddress(lastScanAddress);
+          lastScanAddress = m_busHandler->getNextScanAddress(lastScanAddress, scanCompleted >= SCAN_REPEAT_COUNT);
           if (lastScanAddress == SYN) {
             taskDelay = 5;
             lastScanAddress = 0;
             scanStatus = SCAN_STATUS_FINISHED;
+            scanCompleted++;
+            if (scanCompleted > SCAN_REPEAT_COUNT) {  // repeat failed scan only every Nth time
+              scanCompleted = 0;
+            }
           } else {
             scanStatus = SCAN_STATUS_RUNNING;
             nextCheckRun = now + CHECK_INITIAL_DELAY;

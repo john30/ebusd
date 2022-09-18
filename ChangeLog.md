@@ -1,12 +1,14 @@
 # 22.4 (tbd)
 ## Bug Fixes
-* fix some smaller glitches
+* fix some smaller glitches (short argument names, compilation on small devices, argument help)
 * fix revision in gh build for update check
+* fix for include instruction without subdirectory
+* add timeout to network device connection
 
 ## Features
-* add continuation of initial scan until it succeeded
-* add restart of device state when connection was reset
-* add KNX integration directly via KNXnet/IP multicast routing as well as via knxd client
+* add continuation to initial scan until succeeded as well as repetition to incomplete regular scan
+* add restart of enhanced device state when connection was reset
+* add KNX integration via KNXnet/IP multicast routing and optionally via knxd client
 
 
 # 22.3 (2022-05-08)

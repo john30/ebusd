@@ -1677,7 +1677,7 @@ void BusHandler::formatGrabResult(bool unknown, OutputFormat outputFormat, ostri
   }
 }
 
-symbol_t BusHandler::getNextScanAddress(symbol_t lastAddress) const {
+symbol_t BusHandler::getNextScanAddress(symbol_t lastAddress, bool withUnfinished) const {
   if (lastAddress == SYN) {
     return SYN;
   }
@@ -1685,14 +1685,16 @@ symbol_t BusHandler::getNextScanAddress(symbol_t lastAddress) const {
     if (!isValidAddress(lastAddress, false) || isMaster(lastAddress)) {
       continue;
     }
-    if ((m_seenAddresses[lastAddress]&(SEEN|LOAD_INIT)) == SEEN) {
+    if ((m_seenAddresses[lastAddress]&(SEEN|LOAD_INIT)) == SEEN
+    || (withUnfinished && (m_seenAddresses[lastAddress]&(SEEN|SCAN_INIT|LOAD_INIT)) == (SEEN|LOAD_INIT))) {
       return lastAddress;
     }
     symbol_t master = getMasterAddress(lastAddress);
     if (master == SYN || (m_seenAddresses[master]&SEEN) == 0) {
       continue;
     }
-    if ((m_seenAddresses[lastAddress]&LOAD_INIT) == 0) {
+    if ((m_seenAddresses[lastAddress]&LOAD_INIT) == 0
+    || (withUnfinished && (m_seenAddresses[lastAddress]&(SCAN_INIT|LOAD_INIT)) == LOAD_INIT)) {
       return lastAddress;
     }
   }

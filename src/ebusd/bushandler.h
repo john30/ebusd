@@ -603,9 +603,10 @@ class BusHandler : public WaitThread {
   /**
    * Get the next slave address that still needs to be scanned or loaded.
    * @param lastAddress the last returned slave address, or 0 for returning the first one.
+   * @param withUnfinished whether to include slave addresses that were not scanned yet.
    * @return the next slave address that still needs to be scanned or loaded, or @a SYN.
    */
-  symbol_t getNextScanAddress(symbol_t lastAddress) const;
+  symbol_t getNextScanAddress(symbol_t lastAddress, bool withUnfinished) const;
 
   /**
    * Set the state of the participant to configuration @a LOADED.
