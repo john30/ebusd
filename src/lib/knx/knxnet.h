@@ -35,6 +35,7 @@
 #include <string>
 #include <cstdio>
 #include "lib/knx/knx.h"
+#include <time.h>
 
 namespace ebusd {
 
