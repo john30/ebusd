@@ -34,6 +34,7 @@
 #include <endian.h>
 #include <string>
 #include <cstdio>
+#include <ctime>
 #include "lib/knx/knx.h"
 
 namespace ebusd {
