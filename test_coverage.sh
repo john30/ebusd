@@ -50,9 +50,9 @@
 ./src/ebusd/ebusd -f --mqttport=9999999 >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --mqttuser=username --mqttpass=password --mqttclientid=1234 --mqttport=1883 --mqtttopic=ebusd/%circuit/%name/%field --mqttretain --mqttjson --mqttverbose --mqttlog --mqttignoreinvalid --mqttchanges --mqtthost "" >/dev/null 2>/dev/null
 ./src/ebusd/ebusd -f --mqttca=/cafile/ --mqttcert=/cert --mqttkey=12345678 --mqttkeypass=secret --mqttinsecure >/dev/null 2>/dev/null
-./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f -i "ff08070400/0ab5303132333431313131" >/dev/null
-./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f -i "ff08070400" >/dev/null 2>/dev/null
-./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig --dumpconfig -s -f -i "ff080704/" >/dev/null 2>/dev/null
+./src/ebusd/ebusd -c contrib/etc/ebusd -s -f --inject=stop "ff08070400/0ab5303132333431313131" >/dev/null 2>/dev/null
+./src/ebusd/ebusd -c contrib/etc/ebusd -s -f --inject=stop "ff08070400" >/dev/null 2>/dev/null
+./src/ebusd/ebusd -c contrib/etc/ebusd -s -f --inject=stop "ff080704/" >/dev/null 2>/dev/null
 cat >contrib/etc/ebusd/bad.csv <<EOF
 u,broadcast,outsidetemp,,,fe,b516,01,temp2,m,UCH,2000000000
 u,broadcast,outsidetemp,,,fe,b516,01,temp2,m,D2B,2000000000=
