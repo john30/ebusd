@@ -64,7 +64,7 @@ static const struct argp_option g_knx_argp_options[] = {
   {"knxwage", O_AGW, "SEC",       0, "Maximum age in seconds for using the last value for reads on write messages"
                                      " (0=disable), [99999999]", 0 },
   {"knxint", O_INT, "FILE",       0, "Read KNX integration settings from FILE [/etc/ebusd/knx.cfg]", 0 },
-  {"knxvar", O_VAR, "NAME=VALUE", 0, "Add a variable to the read KNX integration settings", 0 },
+  {"knxvar", O_VAR, "NAME=VALUE[,...]", 0, "Add variable(s) to the read KNX integration settings", 0 },
 
   {nullptr,      0, nullptr,      0, nullptr, 0 },
 };
@@ -128,7 +128,8 @@ static error_t knx_parse_opt(int key, char *arg, struct argp_state *state) {
     g_integrationFile = arg;
     break;
 
-  case O_VAR:  // --knxvar=NAME=VALUE
+  case O_VAR:  // --knxvar=NAME=VALUE[,NAME=VALUE]*
+  {
     if (arg == nullptr || arg[0] == 0 || !strchr(arg, '=')) {
       argp_error(state, "invalid knxvar");
       return EINVAL;
@@ -136,8 +137,12 @@ static error_t knx_parse_opt(int key, char *arg, struct argp_state *state) {
     if (!g_integrationVars) {
       g_integrationVars = new vector<string>();
     }
-    g_integrationVars->push_back(string(arg));
+    std::istringstream istr;
+    istr.str(arg);
+    unsigned int lineNo = 0;
+    FileReader::splitFields(&istr, g_integrationVars, &lineNo, nullptr, nullptr, false);
     break;
+  }
 
   default:
     return ARGP_ERR_UNKNOWN;
