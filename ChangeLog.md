@@ -1,3 +1,10 @@
+# next (tbd)
+## Buf Fixes
+* fix potentially invalid settings picked up from environment variables
+## Features
+* tbd
+
+
 # 22.4 (2022-09-18)
 ## Bug Fixes
 * fix some smaller glitches (short argument names, compilation on small devices, argument help)

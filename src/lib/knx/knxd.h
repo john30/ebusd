@@ -24,6 +24,10 @@
 
 namespace ebusd {
 
+/** @file lib/knx/knxd.h
+ * KNXd based implementation of the @a KnxConnection interface.
+ */
+
 /**
  * A KnxConnection based on libeibclient using the group communication interface of the connected KNXd.
  * Unfortunately, this does not allow acting as a KNX device, i.e. enter programming mode and make individual address

@@ -39,6 +39,10 @@
 
 namespace ebusd {
 
+/** @file lib/knx/knxnet.h
+ * KNXnet/IP implementation of the @a KnxConnection interface based on UDP multicast.
+ */
+
 using std::string;
 
 // 16 bit unsigned big endian
