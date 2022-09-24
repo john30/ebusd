@@ -361,7 +361,7 @@ result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* a
     }
     return RESULT_ERR_TIMEOUT;
   } while (true);
-  if (m_enhancedProto || *value != SYN || m_arbitrationMaster == SYN) {
+  if (m_enhancedProto || *value != SYN || m_arbitrationMaster == SYN || m_arbitrationCheck) {
     if (m_listener != nullptr) {
       m_listener->notifyDeviceData(*value, true);
     }
@@ -435,7 +435,11 @@ bool Device::write(symbol_t value, bool startArbitration) {
   fprintf(stdout, "raw > %2.2x\n", value);
   fflush(stdout);
 #endif
+#ifdef SIMULATE_NON_WRITABILITY
+  return true;
+#else
   return ::write(m_fd, &value, 1) == 1;
+#endif
 }
 
 bool Device::available() {
