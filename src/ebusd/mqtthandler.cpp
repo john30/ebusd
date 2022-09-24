@@ -150,7 +150,7 @@ void splitFields(const string& str, vector<string>* row);
  */
 static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
   result_t result = RESULT_OK;
-
+  unsigned int value;
   switch (key) {
   case O_HOST:  // --mqtthost=localhost
     if (arg == nullptr || arg[0] == 0) {
@@ -161,11 +161,12 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
     break;
 
   case O_PORT:  // --mqttport=1883
-    g_port = (uint16_t)parseInt(arg, 10, 1, 65535, &result);
+    value = parseInt(arg, 10, 1, 65535, &result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid mqttport");
       return EINVAL;
     }
+    g_port = (uint16_t)value;
     break;
 
   case O_CLID:  // --mqttclientid=clientid
@@ -193,28 +194,28 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
     break;
 
   case O_TOPI:  // --mqtttopic=ebusd
+  {
     if (arg == nullptr || arg[0] == 0 || strchr(arg, '+') || arg[strlen(arg)-1] == '/') {
       argp_error(state, "invalid mqtttopic");
       return EINVAL;
-    } else {
-      char *pos = strchr(arg, '#');
-      if (pos && (pos == arg || pos[1])) {  // allow # only at very last position (to indicate not using any default)
-        argp_error(state, "invalid mqtttopic");
-        return EINVAL;
-      }
+    }
+    char *pos = strchr(arg, '#');
+    if (pos && (pos == arg || pos[1])) {  // allow # only at very last position (to indicate not using any default)
+      argp_error(state, "invalid mqtttopic");
+      return EINVAL;
     }
     if (g_topic) {
       argp_error(state, "duplicate mqtttopic");
       return EINVAL;
-    } else {
-      StringReplacer replacer;
-      if (!replacer.parse(arg, true)) {
-        argp_error(state, "malformed mqtttopic");
-        return EINVAL;
-      }
-      g_topic = arg;
     }
+    StringReplacer replacer;
+    if (!replacer.parse(arg, true)) {
+      argp_error(state, "malformed mqtttopic");
+      return ESRCH;  // abort in any case due to the above potentially being destructive
+    }
+    g_topic = arg;
     break;
+  }
 
   case O_GTOP:  // --mqttglobal=global/
     if (arg == nullptr || strchr(arg, '+') || strchr(arg, '#')) {
@@ -229,11 +230,12 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
     break;
 
   case O_PQOS:  // --mqttqos=0
-    g_qos = parseSignedInt(arg, 10, 0, 2, &result);
+    value = parseInt(arg, 10, 0, 2, &result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid mqttqos value");
       return EINVAL;
     }
+    g_qos = static_cast<signed>(value);
     break;
 
   case O_INTF:  // --mqttint=/etc/ebusd/mqttint.cfg

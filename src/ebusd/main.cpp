@@ -340,23 +340,25 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     s_configPath = arg;
     break;
   case 's':  // --scanconfig[=ADDR] (ADDR=<empty>|full|<hexaddr>)
-    opt->scanConfig = true;
     if (opt->pollInterval == 0) {
       argp_error(state, "scanconfig without polling may lead to invalid files included for certain products!");
       return EINVAL;
     }
+    opt->scanConfig = true;
     if (!arg || arg[0] == 0 || strcmp("none", arg) == 0) {
       opt->initialScan = ESC;
     } else if (strcmp("full", arg) == 0) {
       opt->initialScan = SYN;
     } else {
-      opt->initialScan = (symbol_t)parseInt(arg, 16, 0x00, 0xff, &result);
-      if (result != RESULT_OK || !isValidAddress(opt->initialScan)) {
+      symbol_t address = (symbol_t)parseInt(arg, 16, 0x00, 0xff, &result);
+      if (result != RESULT_OK || !isValidAddress(address)) {
         argp_error(state, "invalid initial scan address");
         return EINVAL;
       }
-      if (isMaster(opt->initialScan)) {
-        opt->initialScan = getSlaveAddress(opt->initialScan);
+      if (isMaster(address)) {
+        opt->initialScan = getSlaveAddress(address);
+      } else {
+        opt->initialScan = address;
       }
     }
     if (opt->readOnly && opt->initialScan != ESC) {
@@ -379,11 +381,11 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       argp_error(state, "invalid checkconfig");
       return EINVAL;
     }
-    opt->dumpConfig = OF_DEFINITION;
     if (!arg || arg[0] == 0 || strcmp("csv", arg) == 0) {
       // no further flags
+      opt->dumpConfig = OF_DEFINITION;
     } else if (strcmp("json", arg) == 0) {
-      opt->dumpConfig |= OF_NAMES | OF_UNITS | OF_COMMENTS | OF_VALUENAME | OF_ALL_ATTRS | OF_JSON;
+      opt->dumpConfig = OF_DEFINITION | OF_NAMES | OF_UNITS | OF_COMMENTS | OF_VALUENAME | OF_ALL_ATTRS | OF_JSON;
     } else {
       argp_error(state, "invalid dumpconfig");
       return EINVAL;
@@ -398,15 +400,16 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     opt->dumpConfigTo = arg;
     break;
   case O_POLINT:  // --pollinterval=5
-    opt->pollInterval = parseInt(arg, 10, 0, 3600, &result);
+    value = parseInt(arg, 10, 0, 3600, &result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid pollinterval");
       return EINVAL;
     }
-    if (opt->pollInterval == 0 && opt->scanConfig) {
+    if (value == 0 && opt->scanConfig) {
       argp_error(state, "scanconfig without polling may lead to invalid files included for certain products!");
       return EINVAL;
     }
+    opt->pollInterval = value;
     break;
   case 'i':  // --inject[=stop]
     if (opt->injectMessages || opt->checkConfig) {
@@ -425,12 +428,15 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
 
   // eBUS options:
   case 'a':  // --address=31
-    opt->address = (symbol_t)parseInt(arg, 16, 0, 0xff, &result);
-    if (result != RESULT_OK || !isMaster(opt->address)) {
+  {
+    symbol_t address = (symbol_t)parseInt(arg, 16, 0, 0xff, &result);
+    if (result != RESULT_OK || !isMaster(address)) {
       argp_error(state, "invalid address");
       return EINVAL;
     }
+    opt->address = address;
     break;
+  }
   case O_ANSWER:  // --answer
     if (opt->readOnly) {
       argp_error(state, "cannot combine readonly with answer/generatesyn/initsend/scanconfig=*");
@@ -447,18 +453,20 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     opt->acquireTimeout = value > 1000 ? value/1000 : value;  // backwards compatible (micros)
     break;
   case O_ACQRET:  // --acquireretries=3
-    opt->acquireRetries = parseInt(arg, 10, 0, 10, &result);
+    value = parseInt(arg, 10, 0, 10, &result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid acquireretries");
       return EINVAL;
     }
+    opt->acquireRetries = value;
     break;
   case O_SNDRET:  // --sendretries=2
-    opt->sendRetries = parseInt(arg, 10, 0, 10, &result);
+    value = parseInt(arg, 10, 0, 10, &result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid sendretries");
       return EINVAL;
     }
+    opt->sendRetries = value;
     break;
   case O_RCVTIM:  // --receivetimeout=25
     value = parseInt(arg, 10, 1, 100000, &result);  // backwards compatible (micros)
@@ -469,11 +477,12 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     opt->receiveTimeout =  value > 1000 ? value/1000 : value;  // backwards compatible (micros)
     break;
   case O_MASCNT:  // --numbermasters=0
-    opt->masterCount = parseInt(arg, 10, 0, 25, &result);
+    value = parseInt(arg, 10, 0, 25, &result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid numbermasters");
       return EINVAL;
     }
+    opt->masterCount = value;
     break;
   case O_GENSYN:  // --generatesyn
     if (opt->readOnly) {
@@ -515,21 +524,23 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     opt->pidFile = arg;
     break;
   case 'p':  // --port=8888
-    opt->port = (uint16_t)parseInt(arg, 10, 1, 65535, &result);
+    value = parseInt(arg, 10, 1, 65535, &result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid port");
       return EINVAL;
     }
+    opt->port = (uint16_t)value;
     break;
   case O_LOCAL:  // --localhost
     opt->localOnly = true;
     break;
   case O_HTTPPT:  // --httpport=0
-    opt->httpPort = (uint16_t)parseInt(arg, 10, 1, 65535, &result);
+    value = parseInt(arg, 10, 1, 65535, &result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid httpport");
       return EINVAL;
     }
+    opt->httpPort = (uint16_t)value;
     break;
   case O_HTMLPA:  // --htmlpath=/var/ebusd/html
     if (arg == nullptr || arg[0] == 0 || strcmp("/", arg) == 0) {
@@ -562,37 +573,38 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     opt->logFile = arg;
     break;
   case O_LOG:  // --log=area(s):level
-    {
-      char* pos = strchr(arg, ':');
+  {
+    char* pos = strchr(arg, ':');
+    if (pos == nullptr) {
+      pos = strchr(arg, ' ');
       if (pos == nullptr) {
-        pos = strchr(arg, ' ');
-        if (pos == nullptr) {
-          argp_error(state, "invalid log");
-          return EINVAL;
-        }
-      }
-      *pos = 0;
-      int facilities = parseLogFacilities(arg);
-      if (facilities == -1) {
-        argp_error(state, "invalid log: areas");
+        argp_error(state, "invalid log");
         return EINVAL;
       }
-      LogLevel level = parseLogLevel(pos + 1);
-      if (level == ll_COUNT) {
-        argp_error(state, "invalid log: level");
-        return EINVAL;
-      }
-      if (opt->logAreas != -1 || opt->logLevel != ll_COUNT) {
-        argp_error(state, "invalid log (combined with logareas or loglevel)");
-        return EINVAL;
-      }
-      setFacilitiesLogLevel(facilities, level);
-      opt->multiLog = true;
     }
+    *pos = 0;
+    int facilities = parseLogFacilities(arg);
+    if (facilities == -1) {
+      argp_error(state, "invalid log: areas");
+      return EINVAL;
+    }
+    LogLevel level = parseLogLevel(pos + 1);
+    if (level == ll_COUNT) {
+      argp_error(state, "invalid log: level");
+      return EINVAL;
+    }
+    if (opt->logAreas != -1 || opt->logLevel != ll_COUNT) {
+      argp_error(state, "invalid log (combined with logareas or loglevel)");
+      return EINVAL;
+    }
+    setFacilitiesLogLevel(facilities, level);
+    opt->multiLog = true;
     break;
+  }
   case O_LOGARE:  // --logareas=all
-    opt->logAreas = parseLogFacilities(arg);
-    if (opt->logAreas == -1) {
+  {
+    int facilities = parseLogFacilities(arg);
+    if (facilities == -1) {
       argp_error(state, "invalid logareas");
       return EINVAL;
     }
@@ -600,9 +612,12 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       argp_error(state, "invalid logareas (combined with log)");
       return EINVAL;
     }
+    opt->logAreas = facilities;
     break;
+  }
   case O_LOGLEV:  // --loglevel=notice
-    opt->logLevel = parseLogLevel(arg);
+  {
+    LogLevel logLevel = parseLogLevel(arg);
     if (opt->logLevel == ll_COUNT) {
       argp_error(state, "invalid loglevel");
       return EINVAL;
@@ -611,7 +626,9 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       argp_error(state, "invalid loglevel (combined with log)");
       return EINVAL;
     }
+    opt->logLevel = logLevel;
     break;
+  }
 
   // Raw logging options:
   case O_RAW:  // --lograwdata
@@ -625,11 +642,12 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     opt->logRawFile = arg;
     break;
   case O_RAWSIZ:  // --lograwdatasize=100
-    opt->logRawSize = parseInt(arg, 10, 1, 1000000, &result);
+    value = parseInt(arg, 10, 1, 1000000, &result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid lograwdatasize");
       return EINVAL;
     }
+    opt->logRawSize = value;
     break;
 
 
@@ -645,11 +663,12 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     opt->dumpFile = arg;
     break;
   case O_DMPSIZ:  // --dumpsize=100
-    opt->dumpSize = parseInt(arg, 10, 1, 1000000, &result);
+    value = parseInt(arg, 10, 1, 1000000, &result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid dumpsize");
       return EINVAL;
     }
+    opt->dumpSize = value;
     break;
   case O_DMPFLU:  // --dumpflush
     opt->dumpFlush = true;
@@ -1345,11 +1364,14 @@ int main(int argc, char* argv[]) {
       strcat(envopt, pos);
     }
     int idx = -1;
-    s_opt.injectMessages = true;  // for skipping unknown values
-    error_t err = argp_parse(&aargp, cnt, envargv, ARGP_PARSE_ARGV0|ARGP_SILENT|ARGP_IN_ORDER,
-                   &idx, &s_opt);
+    s_opt.injectMessages = true;  // for skipping unknown values via ARGP_ERR_UNKNOWN
+    error_t err = argp_parse(&aargp, cnt, envargv, ARGP_PARSE_ARGV0|ARGP_SILENT|ARGP_IN_ORDER, &idx, &s_opt);
     if (err != 0 && idx == -1) {  // ignore args for non-arg boolean options
-      logError(lf_main, "invalid/unknown argument in env: %s", envopt);
+      if (err == ESRCH) {  // special value to abort immediately
+        logError(lf_main, "invalid argument in env: %s", envopt);
+        return EINVAL;
+      }
+      logError(lf_main, "invalid/unknown argument in env (ignored): %s", envopt);
     }
     s_opt.injectMessages = false;  // restore (was not parsed from cmdline args yet)
   }

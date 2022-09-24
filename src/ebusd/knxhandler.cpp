@@ -84,6 +84,7 @@ static vector<string>* g_integrationVars = nullptr;  //!< the integration settin
  */
 static error_t knx_parse_opt(int key, char *arg, struct argp_state *state) {
   result_t result;
+  unsigned int value;
   switch (key) {
   case O_URL:  // --knxurl=[multicast][@interface]
     if (arg == nullptr) {  // empty is allowed
@@ -98,11 +99,12 @@ static error_t knx_parse_opt(int key, char *arg, struct argp_state *state) {
       argp_error(state, "invalid knxrage value");
       return EINVAL;
     }
-    g_maxReadAge = parseInt(arg, 10, 0, 99999999, &result);
+    value = parseInt(arg, 10, 0, 99999999, &result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid knxrage");
       return EINVAL;
     }
+    g_maxReadAge = value;
     break;
 
   case O_AGW:  // --knxwage=5
@@ -110,11 +112,12 @@ static error_t knx_parse_opt(int key, char *arg, struct argp_state *state) {
       argp_error(state, "invalid knxwage value");
       return EINVAL;
     }
-    g_maxWriteAge = parseInt(arg, 10, 0, 99999999, &result);
+    value = parseInt(arg, 10, 0, 99999999, &result);
     if (result != RESULT_OK) {
       argp_error(state, "invalid knxwage");
       return EINVAL;
     }
+    g_maxWriteAge = value;
     break;
 
   case O_INT:  // --knxint=/etc/ebusd/knx.cfg
