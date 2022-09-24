@@ -153,6 +153,10 @@ string fetchData(ebusd::TCPSocket* socket, bool &listening, uint16_t timeout, bo
 
   memset(fds, 0, sizeof(fds));
 
+#ifndef POLLRDHUP
+#define POLLRDHUP 0
+#endif
+
 #define IDX_STDIN 1
 #define IDX_SOCK 0
 
