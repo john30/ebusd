@@ -340,32 +340,36 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     s_configPath = arg;
     break;
   case 's':  // --scanconfig[=ADDR] (ADDR=<empty>|full|<hexaddr>)
+  {
     if (opt->pollInterval == 0) {
       argp_error(state, "scanconfig without polling may lead to invalid files included for certain products!");
       return EINVAL;
     }
-    opt->scanConfig = true;
+    symbol_t initialScan = ESC;
     if (!arg || arg[0] == 0 || strcmp("none", arg) == 0) {
-      opt->initialScan = ESC;
+      // no further setting needed
     } else if (strcmp("full", arg) == 0) {
-      opt->initialScan = SYN;
+      initialScan = SYN;
     } else {
-      symbol_t address = (symbol_t)parseInt(arg, 16, 0x00, 0xff, &result);
+      auto address = (symbol_t)parseInt(arg, 16, 0x00, 0xff, &result);
       if (result != RESULT_OK || !isValidAddress(address)) {
         argp_error(state, "invalid initial scan address");
         return EINVAL;
       }
       if (isMaster(address)) {
-        opt->initialScan = getSlaveAddress(address);
+        initialScan = getSlaveAddress(address);
       } else {
-        opt->initialScan = address;
+        initialScan = address;
       }
     }
-    if (opt->readOnly && opt->initialScan != ESC) {
+    if (opt->readOnly && initialScan != ESC) {
       argp_error(state, "cannot combine readonly with answer/generatesyn/initsend/scanconfig=*");
       return EINVAL;
     }
+    opt->scanConfig = true;
+    opt->initialScan = initialScan;
     break;
+  }
   case O_CFGLNG:  // --configlang=LANG
     opt->preferLanguage = arg;
     break;
@@ -429,7 +433,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
   // eBUS options:
   case 'a':  // --address=31
   {
-    symbol_t address = (symbol_t)parseInt(arg, 16, 0, 0xff, &result);
+    auto address = (symbol_t)parseInt(arg, 16, 0, 0xff, &result);
     if (result != RESULT_OK || !isMaster(address)) {
       argp_error(state, "invalid address");
       return EINVAL;
@@ -618,7 +622,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case O_LOGLEV:  // --loglevel=notice
   {
     LogLevel logLevel = parseLogLevel(arg);
-    if (opt->logLevel == ll_COUNT) {
+    if (logLevel == ll_COUNT) {
       argp_error(state, "invalid loglevel");
       return EINVAL;
     }
