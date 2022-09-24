@@ -43,7 +43,7 @@ The main features of the daemon are:
  * publish received data to [MQTT topics](https://github.com/john30/ebusd/wiki/3.3.-MQTT-client) and vice versa (if authorized)
  * announce [message definitions and status by MQTT](https://github.com/john30/ebusd/wiki/MQTT-integration) to e.g. integrate with [Home Assistant](https://www.home-assistant.io/) using [MQTT Discovery](https://www.home-assistant.io/docs/mqtt/discovery/)
  * support MQTT publish to [Azure IoT hub](https://docs.microsoft.com/en-us/azure/iot-hub/) (see [MQTT integration](https://github.com/john30/ebusd/wiki/MQTT-integration))
- * act as a [KNX device]((https://github.com/john30/ebusd/wiki/3.4.-KNX-device)) by publishing received data to KNX groups and answer to read/write requests from KNX, i.e. build an eBUS-KNX bridge
+ * act as a [KNX device](https://github.com/john30/ebusd/wiki/3.4.-KNX-device) by publishing received data to KNX groups and answer to read/write requests from KNX, i.e. build an eBUS-KNX bridge
  * [user authentication](https://github.com/john30/ebusd/wiki/3.1.-TCP-client-commands#auth) via [ACL file](https://github.com/john30/ebusd/wiki/2.-Run#daemon-options) for access control to certain messages
 
 
