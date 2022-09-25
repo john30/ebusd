@@ -1,0 +1,189 @@
+services:
+  ebusd:
+    image: john30/ebusd
+    container_name: ebusd
+    restart: unless-stopped
+    ports:
+      - 8888:8888
+      # when enabling the HTTP port, add it to the published ports as well:
+      #- 8080:8080
+    devices:
+      # when using an USB device, make sure to hand it in to the container like this:
+      - /dev/ttyUSB0:/dev/ttyUSB0
+    environment:
+      # Device options:
+
+      # Use DEV as eBUS device ("enh:DEVICE" or "enh:IP:PORT" for enhanced device, "ens:DEVICE" for enhanced high speed
+      # serial device, "DEVICE" for serial device, or "[udp:]IP:PORT" for network device)
+      EBUSD_DEVICE: "/dev/ttyUSB0"
+      # Skip serial eBUS device test
+      #EBUSD_NODEVICECHECK: ""
+      # Only read from device, never write to it
+      #EBUSD_READONLY: ""
+      # Send an initial escape symbol after connecting device
+      #EBUSD_INITSEND: ""
+      # Extra transfer latency in ms
+      #EBUSD_LATENCY: 40
+
+      # Message configuration options:
+
+      # Read CSV config files from PATH (local folder or HTTPS URL)
+      #EBUSD_CONFIGPATH: "/path/to/local/configs"
+      # Pick CSV config files matching initial scan (ADDR="none" or empty for no initial scan message, "full" for full
+      # scan, or a single hex address to scan, default is broadcast ident message).
+      EBUSD_SCANCONFIG: ""
+      # Prefer LANG in multilingual configuration files
+      #EBUSD_CONFIGLANG: "en"
+      # Poll for data every SEC seconds (0=disable)
+      #EBUSD_POLLINTERVAL: 10
+      # Use CA FILE for checking certificates (uses defaults, "#" for insecure)
+      #EBUSD_CAFILE: "/path/to/cafile"
+      # Use CA PATH for checking certificates (uses defaults)
+      #EBUSD_CAPATH: "/path/to/cafiles"
+
+      # eBUS options:
+
+      # Use ADDR as own bus address
+      #EBUSD_ADDRESS: ff
+      # Actively answer to requests from other masters
+      #EBUSD_ANSWER: ""
+      # Stop bus acquisition after MSEC ms
+      #EBUSD_ACQUIRETIMEOUT: 10
+      # Retry bus acquisition COUNT times
+      #EBUSD_ACQUIRERETRIES: 3
+      # Repeat failed sends COUNT times
+      #EBUSD_SENDRETRIES: 2
+      # Expect a slave to answer within MSEC ms
+      #EBUSD_RECEIVETIMEOUT: 50
+      # Expect COUNT masters on the bus, 0 for auto detection
+      #EBUSD_NUMBERMASTERS: 0
+      # Enable AUTO-SYN symbol generation
+      #EBUSD_GENERATESYN: ""
+
+      # Daemon options:
+
+      # Set default access level to LEVEL ("*" for everything)
+      #EBUSD_ACCESSLEVEL: "*"
+      # Read access control list from FILE
+      #EBUSD_ACLFILE: "/path/to/aclfile"
+      # Enable hex command
+      #EBUSD_ENABLEHEX: ""
+      # Enable define command
+      #EBUSD_ENABLEDEFINE: ""
+      # PID file name (only for daemon)
+      #EBUSD_PIDFILE: "/var/run/ebusd.pid"
+      # Listen for command line connections on PORT
+      #EBUSD_PORT: 8888
+      # Listen for command line connections on 127.0.0.1 interface only
+      #EBUSD_LOCALHOST: ""
+      # Listen for HTTP connections on PORT, 0 to disable
+      #EBUSD_HTTPPORT: 8080
+      # Path for HTML files served by HTTP port
+      #EBUSD_HTMLPATH: "/var/ebusd/html"
+      # Set automatic update check to MODE (on|off)
+      #EBUSD_UPDATECHECK: "on"
+
+      # Log options:
+
+      # Write log to FILE (only for daemon, empty string for using syslog)
+      #EBUSD_LOGFILE: "/var/log/ebusd.log"
+      # Only write log for matching AREA(S) below or equal to LEVEL (alternative to EBUSD_LOGAREAS/EBUSD_LOGLEVEL, may
+      # be used multiple times)
+      #EBUSD_LOG: "all:notice"
+      # Only write log for matching AREA(S): main|network|bus|update|other|all
+      #EBUSD_LOGAREAS: "all"
+      # Only write log below or equal to LEVEL: error|notice|info|debug
+      #EBUSD_LOGLEVEL: "notice"
+
+      # Raw logging options:
+
+      # Log messages or all received/sent bytes on the bus
+      #EBUSD_LOGRAWDATA: ""
+      # Write raw log to FILE
+      #EBUSD_LOGRAWDATAFILE: "/var/log/ebusd.log"
+      # Make raw log file no larger than SIZE kB
+      #EBUSD_LOGRAWDATASIZE: 100
+
+      # Binary dump options:
+
+      # Enable binary dump of received bytes
+      #EBUSD_DUMP: ""
+      # Dump received bytes to FILE
+      #EBUSD_DUMPFILE: "/tmp/ebusd_dump.bin"
+      # Make dump file no larger than SIZE kB
+      #EBUSD_DUMPSIZE: 100
+      # Flush each byte
+      #EBUSD_DUMPFLUSH: ""
+
+      # MQTT options:
+
+      # Connect to MQTT broker on HOST
+      #EBUSD_MQTTHOST: "localhost"
+      # Connect to MQTT broker on PORT (usually 1883), 0 to disable
+      #EBUSD_MQTTPORT: 1883
+      # Set client ID for connection to MQTT broker
+      #EBUSD_MQTTCLIENTID: "ebusd"
+      # Connect as USER to MQTT broker (no default)
+      #EBUSD_MQTTUSER: "some-user"
+      # Use PASSWORD when connecting to MQTT broker (no default)
+      #EBUSD_MQTTPASS: "some-password"
+      # Use MQTT TOPIC (prefix before /%circuit/%name or complete format)
+      #EBUSD_MQTTTOPIC: "ebusd"
+      # Use TOPIC for global data (default is "global/" suffix to mqtttopic prefix)
+      #EBUSD_MQTTGLOBAL: "ebusd/global/"
+      # Retain all topics instead of only selected global ones
+      #EBUSD_MQTTRETAIN: ""
+      # Set the QoS value for all topics (0-2)
+      #EBUSD_MQTTQOS: 0
+      # Read MQTT integration settings from FILE (no default)
+      #EBUSD_MQTTINT: "/etc/ebusd/mqtt-hassio.cfg"
+      # Add variable(s) to the read MQTT integration settings
+      #EBUSD_MQTTVAR: "key=value"
+      # Publish in JSON format instead of strings, optionally in short (value directly below field key)
+      #EBUSD_MQTTJSON: ""
+      # Publish all available attributes
+      #EBUSD_MQTTVERBOSE: ""
+      # Log library events
+      #EBUSD_MQTTLOG: ""
+      # Use protocol VERSION
+      #EBUSD_MQTTVERSION: "3.1"
+      # Ignore invalid parameters during init (e.g. for DNS not resolvable yet)
+      #EBUSD_MQTTIGNOREINVALID: ""
+      # Whether to only publish changed messages instead of all received
+      #EBUSD_MQTTCHANGES: ""
+      # Use CA file or dir (ending with '/') for MQTT TLS (no default)
+      #EBUSD_MQTTCA: "/path/to/cafile"
+      # Use CERTFILE for MQTT TLS client certificate (no default)
+      #EBUSD_MQTTCERT: "/path/to/certfile"
+      # Use KEYFILE for MQTT TLS client certificate (no default)
+      #EBUSD_MQTTKEY: "/path/to/keyfile"
+      # Use PASSWORD for the encrypted KEYFILE (no default)
+      #EBUSD_MQTTKEYPASS: "some-passwort"
+      # Allow insecure TLS connection (e.g. using a self signed certificate)
+      #EBUSD_MQTTINSECURE: ""
+
+      # KNX options:
+
+      # URL to open (i.e. "[multicast][@interface]" for KNXnet/IP)
+      #EBUSD_KNXURL: ""
+      # Maximum age in seconds for using the last value of read messages (0=disable)
+      #EBUSD_KNXRAGE: 30
+      # Maximum age in seconds for using the last value for reads on write messages (0=disable),
+      #EBUSD_KNXWAGE: 7200
+      # Read KNX integration settings from FILE
+      #EBUSD_KNXINT: "/etc/ebusd/knx.cfg"
+      # Add variable(s) to the read KNX integration settings
+      #EBUSD_KNXVAR: "address=1.1.1"
+
+    # when using the optional mqtt container below, add the dependency here:
+    #depends_on:
+    #  - mqtt
+
+#   optional container for having an MQTT broker inside the composition as well:
+#  mqtt:
+#    image: eclipse-mosquitto
+#    restart: unless-stopped
+#    ports:
+#      - 1883:1883
+#      - 9883:9883
+#
