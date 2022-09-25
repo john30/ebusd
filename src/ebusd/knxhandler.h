@@ -82,20 +82,17 @@ enum apci_t {
 #define FLAG_WRITE 0x800000
 
 /** datatype length flags (byte length on KNX in bits 0-3, extra info in higher bits). */
-typedef union {
-  struct {
-    bool hasDivisor: 1;
-    bool isFloat: 1;
-    bool isSigned: 1;
-    bool lastValueSent: 1;
-    uint8_t length;  // 0 for 1-6 bits, number of bytes otherwise
-    uint32_t lastValue;
-  };
-  uint64_t value;
+typedef struct {
+  bool hasDivisor: 1;
+  bool isFloat: 1;
+  bool isSigned: 1;
+  bool lastValueSent: 1;
+  uint8_t length;  // 0 for 1-6 bits, number of bytes otherwise
+  uint32_t lastValue;
 } dtlf_t;
 
-#define DTLF_1BIT dtlf_t{.length = 0}
-#define DTLF_8BIT dtlf_t{.length = 1}
+#define DTLF_1BIT dtlf_t{.hasDivisor = false, .isFloat = false, .isSigned = false, .lastValueSent = false, .length = 0, .lastValue = 0}
+#define DTLF_8BIT dtlf_t{.hasDivisor = false, .isFloat = false, .isSigned = false, .lastValueSent = false, .length = 1, .lastValue = 0}
 
 /** type for global values not associated with an ebus message. */
 enum global_t {

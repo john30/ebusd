@@ -311,14 +311,14 @@ result_t getFieldLength(const SingleDataField *field, dtlf_t *length) {
     // adjust bit count for non-existent 24 bit KNX type
     bitCnt = 32;
   }
-  *length = {{
+  *length = {
     .hasDivisor = nt->getDivisor() != 1,
     .isFloat = dt->hasFlag(EXP),
     .isSigned = dt->hasFlag(SIG),
     .lastValueSent = false,
     .length = static_cast<uint8_t>(bitCnt/8),
     .lastValue = 0,
-  }};
+  };
   return RESULT_OK;
 }
 
