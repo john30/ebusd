@@ -54,11 +54,11 @@ using std::dec;
 /** the definition of the KNX arguments. */
 static const struct argp_option g_knx_argp_options[] = {
   {nullptr,      0, nullptr,      0, "KNX options:", 1 },
-  {"knxurl", O_URL, "URL",        0, "URL to open (i.e. \"[multicast][@interface]\" for KNXnet/IP"
+  {"knxurl", O_URL, "URL", OPTION_ARG_OPTIONAL, "URL to open (i.e. \"[multicast][@interface]\" for KNXnet/IP"
 #ifdef HAVE_KNXD
                                      " or \"ip:host[:port]\" / \"local:/socketpath\" for knxd"
 #endif
-                                     ") []", 0 },
+                                     ") (no default)", 0 },
   {"knxrage", O_AGR, "SEC",       0, "Maximum age in seconds for using the last value of read messages (0=disable)"
                                      " [5]", 0 },
   {"knxwage", O_AGW, "SEC",       0, "Maximum age in seconds for using the last value for reads on write messages"
@@ -70,6 +70,7 @@ static const struct argp_option g_knx_argp_options[] = {
 };
 
 static const char* g_url = nullptr;  //!< URL of KNX daemon
+const char* emptyUrl = "";
 static unsigned int g_maxReadAge = 5;  //!< max age in seconds for using the last value of read messages
 // max age in seconds for using the last value for reads on write messages
 static unsigned int g_maxWriteAge = 99999999;
@@ -86,12 +87,9 @@ static error_t knx_parse_opt(int key, char *arg, struct argp_state *state) {
   result_t result;
   unsigned int value;
   switch (key) {
-  case O_URL:  // --knxurl=[multicast][@interface]
-    if (arg == nullptr) {  // empty is allowed
-      argp_error(state, "invalid knxurl");
-      return EINVAL;
-    }
-    g_url = arg;
+  case O_URL:  // --knxurl[=[multicast][@interface]]
+    // empty is allowed
+    g_url = arg ? arg : emptyUrl;
     break;
 
   case O_AGR:  // --knxrage=5
