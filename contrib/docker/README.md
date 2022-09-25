@@ -77,8 +77,17 @@ environment variables with the prefix `EBUSD_`, e.g. the following line can be u
 This eases use of e.g. docker-compose files.
 
 
-Hints for running on arm32v7 host with Ubuntu 20.04
----------------------------------------------------
-If the system time in the container is invalid, then retrieval of CSVs from the config webservice through HTTPS does not
-work. This is due to an issue with an outdated [libseccomp library](https://github.com/moby/moby/issues/40734) on the host.
-To circumvent this behaviour, updating the library might help as mentioned [here](https://serverfault.com/questions/1037146/docker-container-with-random-date/1048351#1048351).
+Running newer images on older operating systems
+-----------------------------------------------
+When running a newer image on an older operating system, the container might face several issues like invalid system
+date or access restrictions, which e.g. prevents using the HTTPS based config webservice.
+
+In order to test if this is the case for the current setup, starting the image like this will reveal a date of 1970:
+> docker run -it --rm john30/ebusd date
+
+If that's the case, the easiest way to circumvent it is to run the container without the default security constraints
+set by docker, i.e. add the following argument to the docker run command:
+> --security-opt seccomp=unconfined
+
+Another option is to update docker and/or the [libseccomp library](https://github.com/moby/moby/issues/40734) on the
+host. See also [here](https://serverfault.com/questions/1037146/docker-container-with-random-date/1048351#1048351).
