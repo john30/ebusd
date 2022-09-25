@@ -1354,7 +1354,7 @@ int main(int argc, char* argv[]) {
     envopt[len] = 0;
     if (strcmp(envopt, "version") == 0 || strcmp(envopt, "image") == 0 || strcmp(envopt, "arch") == 0
        || strcmp(envopt, "opts") == 0 || strcmp(envopt, "inject") == 0
-       || strcmp(envopt, "checkconfig") == 0 || strcmp(envopt, "dumpconfig") == 0
+       || strcmp(envopt, "checkconfig") == 0 || strncmp(envopt, "dumpconfig", 10) == 0
     ) {
       // ignore those defined in Dockerfile, EBUSD_OPTS, those with final args, and interactive ones
       continue;
