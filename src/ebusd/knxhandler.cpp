@@ -728,7 +728,7 @@ void KnxHandler::handleGroupTelegram(knx_addr_t src, knx_addr_t dest, int len, c
       logOtherInfo("knx", "unable to answer read request to %4.4x on write message", dest);
       return;  // impossible to answer
     }
-  } else if (now >= msg->getLastUpdateTime() + g_maxReadAge) {
+  } else if (!msg->isPassive() && now >= msg->getLastUpdateTime() + g_maxReadAge) {
     res = m_busHandler->readFromBus(msg, "");
     if (res != RESULT_OK) {
       return;
