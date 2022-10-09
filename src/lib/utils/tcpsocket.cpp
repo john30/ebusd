@@ -90,7 +90,11 @@ int tcpKeepAliveInterval) {
     value = 1;
     setsockopt(sfd, SOL_SOCKET, SO_KEEPALIVE, reinterpret_cast<void*>(&value), sizeof(value));
     value = tcpKeepAliveInterval+1;  // send keepalive after interval + 1 seconds of silence
+#if defined(__APPLE__) 
+    setsockopt(sfd, IPPROTO_TCP, TCP_KEEPALIVE, reinterpret_cast<void*>(&value), sizeof(value));
+#else
     setsockopt(sfd, IPPROTO_TCP, TCP_KEEPIDLE, reinterpret_cast<void*>(&value), sizeof(value));
+#endif
     value = tcpKeepAliveInterval;  // send keepalive in given interval
     setsockopt(sfd, IPPROTO_TCP, TCP_KEEPINTVL, reinterpret_cast<void*>(&value), sizeof(value));
     value = 2;  // drop connection after 2 failed keep alive sends

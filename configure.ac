@@ -2,7 +2,7 @@
 m4_ifndef([m4_esyscmd_s], [m4_define([m4_chomp_all], [m4_format([[%.*s]], m4_bregexp(m4_translit([[$1]], [/], [/ ]), [/*$]), [$1])])])
 m4_ifndef([m4_esyscmd_s], [m4_define([m4_esyscmd_s], [m4_chomp_all(m4_esyscmd([$1]))])])
 AC_PREREQ([2.63])
-AC_INIT([ebusd], m4_esyscmd_s([cat VERSION]), [ebusd@ebusd.eu], [ebusd], [https://github.com/john30/ebusd])
+AC_INIT([ebusd], m4_esyscmd_s([cat VERSION_FILE]), [ebusd@ebusd.eu], [ebusd], [https://github.com/john30/ebusd])
 
 AC_CONFIG_AUX_DIR([build])
 AC_CONFIG_MACRO_DIR([m4])
@@ -152,9 +152,9 @@ AM_COND_IF([KNX], [AC_CONFIG_FILES([
 
 AC_DEFINE_UNQUOTED(PACKAGE_PIDFILE, LOCALSTATEDIR "/run/" PACKAGE ".pid", [The path and name of the PID file.])
 AC_DEFINE_UNQUOTED(PACKAGE_LOGFILE, LOCALSTATEDIR "/log/" PACKAGE ".log", [The path and name of the log file.])
-AC_DEFINE(SCAN_VERSION, "[m4_esyscmd_s([sed -e 's#^\([0-9]*\.[0-9]*\).*#\1#' -e 's#\.\([0-9]\)$#0\1#' -e 's#\.##' VERSION])]", [The version of the package formatted for the scan result.])
-AC_DEFINE(PACKAGE_VERSION_MAJOR, [m4_esyscmd_s([sed -e 's#^\([0-9]*\)\..*$#\1#' VERSION])], [The major version of the package.])
-AC_DEFINE(PACKAGE_VERSION_MINOR, [m4_esyscmd_s([sed -e 's#^.*\.\([0-9]*\)$#\1#' VERSION])], [The minor version of the package.])
+AC_DEFINE(SCAN_VERSION, "[m4_esyscmd_s([sed -e 's#^\([0-9]*\.[0-9]*\).*#\1#' -e 's#\.\([0-9]\)$#0\1#' -e 's#\.##' VERSION_FILE])]", [The version of the package formatted for the scan result.])
+AC_DEFINE(PACKAGE_VERSION_MAJOR, [m4_esyscmd_s([sed -e 's#^\([0-9]*\)\..*$#\1#' VERSION_FILE])], [The major version of the package.])
+AC_DEFINE(PACKAGE_VERSION_MINOR, [m4_esyscmd_s([sed -e 's#^.*\.\([0-9]*\)$#\1#' VERSION_FILE])], [The minor version of the package.])
 AC_ARG_VAR(GIT_REVISION, [Predefined value to use for revision instead of running git describe.])
 if test -n "$GIT_REVISION"; then
 	AC_DEFINE(REVISION, "[m4_esyscmd_s([echo "$GIT_REVISION"])]", [The revision of the package.])

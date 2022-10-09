@@ -37,7 +37,7 @@ if [ -n "$tags" ]; then
   echo "git pull is recommended. stopped."
   exit 1
 fi
-VERSION=`head -n 1 VERSION`
+VERSION=`head -n 1 VERSION_FILE`
 ARCH=`dpkg --print-architecture`
 BUILD="build-$ARCH"
 RELEASE="ebusd-$VERSION"

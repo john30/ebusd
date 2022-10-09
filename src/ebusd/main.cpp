@@ -34,6 +34,12 @@
 #include "lib/utils/log.h"
 #include "lib/utils/httpclient.h"
 
+// Apple doesn't provide the environ global variable
+#if defined(__APPLE__) && !defined(environ)
+#   include <crt_externs.h>
+#   define environ (*_NSGetEnviron())
+#endif
+
 
 /** the version string of the program. */
 const char *argp_program_version = "" PACKAGE_STRING "." REVISION "";

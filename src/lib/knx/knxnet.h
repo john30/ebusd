@@ -31,7 +31,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
-#include <endian.h>
+#include <machine/types.h>
 #include <string>
 #include <cstdio>
 #include <ctime>
