@@ -1406,6 +1406,12 @@ int main(int argc, char* argv[]) {
     uint16_t configPort = 80;
     string proto, configHost;
     if (!HttpClient::parseUrl(s_configPath, &proto, &configHost, &configPort, &s_configUriPrefix)) {
+#ifndef HAVE_SSL
+      if (proto=="https") {
+        logError(lf_main, "invalid configPath URL (HTTPS not supported)");
+        return EINVAL;
+      }
+#endif
       logError(lf_main, "invalid configPath URL");
       return EINVAL;
     }
