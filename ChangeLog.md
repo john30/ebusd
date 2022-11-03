@@ -1,6 +1,8 @@
 # next (tbd)
 ## Buf Fixes
 * fix potentially invalid settings picked up from environment variables
+* fix potentially unnecessary arbitration start for non-enhanced proto
+* fix smaller issues in KNX integration
 ## Features
 * tbd
 

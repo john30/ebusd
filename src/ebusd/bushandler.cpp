@@ -1094,9 +1094,13 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
     logDebug(lf_bus, "switching from %s to %s", getStateCode(m_state), getStateCode(state));
   }
   if (state == bs_noSignal) {
-    logError(lf_bus, "signal lost");
+    if (m_generateSynInterval == 0 || m_state != bs_skip) {
+      logError(lf_bus, "signal lost");
+    }
   } else if (m_state == bs_noSignal) {
-    logNotice(lf_bus, "signal acquired");
+    if (m_generateSynInterval == 0 || state != bs_skip) {
+      logNotice(lf_bus, "signal acquired");
+    }
   }
   m_state = state;
 
