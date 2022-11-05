@@ -35,7 +35,6 @@ body:
       description: the ebusd version in use
       options:
         - current source from git
-        - latest release
         - '22.4'
         - '22.3'
         - '22.2'
@@ -49,7 +48,7 @@ body:
     id: args
     attributes:
       label: ebusd arguments
-      description: the arguments with which ebusd is started (including the ENV vars if running in docker)
+      description: the arguments with which ebusd is started (including the ENV vars starting with EBUSD_)
       placeholder: e.g. copy the EBUSD_OPTS line from /etc/default/ebusd
     validations:
       required: true
@@ -59,9 +58,9 @@ body:
       label: Operating system
       description: the operating system in use
       options:
-        - Debian 11 (Bullseye) / Raspbian 11 / Ubuntu 20-21
-        - Debian 10 (Buster) / Raspbian 10 / Ubuntu 18-19
-        - Debian 9 (Stretch) / Raspbian 9 / Ubuntu 16-17
+        - Debian 11 (Bullseye) / Ubuntu 20-21 / Raspbian 11 / Raspberry Pi OS 11 (including lite)
+        - Debian 10 (Buster) / Ubuntu 18-19 / Raspbian 10 / Raspberry Pi OS 10 (including lite)
+        - Debian 9 (Stretch) / Ubuntu 16-17 / Raspbian 9 / Raspberry Pi OS 9 (including lite)
         - other
     validations:
       required: true
@@ -94,10 +93,14 @@ body:
       label: Hardware interface
       description: the eBUS hardware interface in use
       options:
-        - adapter 3 USB
-        - adapter 3 WiFi
-        - adapter 3 Ethernet
-        - adapter 3 RPi
+        - adapter 3.1 USB
+        - adapter 3.1 WiFi
+        - adapter 3.1 Ethernet
+        - adapter 3.1 RPi
+        - adapter 3.0 USB
+        - adapter 3.0 WiFi
+        - adapter 3.0 Ethernet
+        - adapter 3.0 RPi
         - adapter 2
         - Esera USB
         - Esera Ethernet
@@ -115,6 +118,7 @@ body:
         - HTTP
         - MQTT generic
         - MQTT Home Assistant via mqtt-hassio.cfg
+        - KNX
         - other
   - type: textarea
     id: logs
