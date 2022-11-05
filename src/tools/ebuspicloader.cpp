@@ -58,6 +58,7 @@ static const struct argp_option argpoptions[] = {
     {"dhcp",    'd', nullptr, 0, "set dynamic IP address via DHCP", 0 },
     {"ip",      'i', "IP",    0, "set fix IP address (e.g. 192.168.0.10)", 0 },
     {"mask",    'm', "MASK",  0, "set fix IP mask (e.g. 24)", 0 },
+    {"gateway", 'g', "GW",    0, "set fix IP gateway to GW (if necessary and other than net address + 1)", 0 },
     {"macip",   'M', nullptr, 0, "set the MAC address suffix from the IP address", 0 },
     {"arbdel",  'a', "US",    0, "set arbitration delay to US microseconds (0-620 in steps of 10, default 200"
                                  ", since firmware 20211128)", 0 },
@@ -76,6 +77,8 @@ static uint8_t setIpAddress[] = {0, 0, 0, 0};
 static bool setMacFromIp = false;
 static bool setMask = false;
 static uint8_t setMaskLen = 0x1f;
+static bool setGateway = false;
+uint32_t setGatewayBits = 0;
 static bool setArbitrationDelay = false;
 static uint16_t setArbitrationDelayMicros = 0;
 static bool setVisualPing = false;
@@ -118,6 +121,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
   char *ip = nullptr, *part = nullptr;
   int pos = 0, sum = 0;
   struct stat st;
+  uint32_t hostBits = 0;
   switch (key) {
     case 'v':  // --verbose
       verbose = true;
@@ -136,6 +140,10 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       }
       if (setDhcp) {
         argp_error(state, "either DHCP or IP address is needed");
+        return EINVAL;
+      }
+      if (setIp) {
+        argp_error(state, "IP address was specified twice");
         return EINVAL;
       }
       ip = strdup(arg);
@@ -164,12 +172,91 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
         argp_error(state, "either DHCP or IP address is needed");
         return EINVAL;
       }
+      if (setMask) {
+        argp_error(state, "mask was specified twice");
+        return EINVAL;
+      }
       if (!parseByte(arg, 0, 0x1e, &setMaskLen)) {
         argp_error(state, "invalid IP mask");
         return EINVAL;
       }
       setMask = true;
       break;
+    case 'g':  // --gateway=192.168.0.11
+      if (arg == nullptr || arg[0] == 0) {
+        argp_error(state, "invalid gateway");
+        return EINVAL;
+      }
+      if (setDhcp) {
+        argp_error(state, "either DHCP or IP address is needed");
+        return EINVAL;
+      }
+      if (!setIp || !setMask) {
+        argp_error(state, "IP and mask need to be specified before gateway");
+        return EINVAL;
+      }
+      ip = strdup(arg);
+      part = strtok(ip, ".");
+      setGatewayBits = 0;
+      hostBits = 0;
+      for (pos=0; part && pos < 4; pos++) {
+        uint8_t address = 0;
+        if (!parseByte(part, 0, 255, &address)) {
+          break;
+        }
+        sum += address;
+        part = strtok(nullptr, ".");
+        uint8_t maskRemain = setMaskLen-pos*8;
+        uint8_t mask = maskRemain >= 8 ? 255 : maskRemain == 0 ? 0 : (255^((1 << (8 - maskRemain)) - 1));
+        if ((address & mask) != (setIpAddress[pos] & mask)) {
+          argp_error(state, "invalid gateway (different network)");
+          free(ip);
+          return EINVAL;
+        }
+        setGatewayBits = (setGatewayBits << 8) | (address & ~mask);
+        hostBits = (hostBits << 8) | (setIpAddress[pos] & ~mask);
+      }
+      free(ip);
+      if (pos != 4 || part || sum == 0 || setGatewayBits == 0) {
+        argp_error(state, "invalid gateway");
+        return EINVAL;
+      }
+      if (setGatewayBits == hostBits) {
+        argp_error(state, "invalid gateway (same as address)");
+        return EINVAL;
+      }
+      if (!setGatewayBits || setGatewayBits == ((1 << (32 - setMaskLen)) - 1)) {
+        argp_error(state, "invalid gateway (net or broadcast address)");
+        return EINVAL;
+      }
+      if (setGatewayBits == 1) {  // default
+        setGatewayBits = 0x3f;
+        setGateway = true;
+        break;
+      }
+      if (setMaskLen >= 27) {
+        // fine: all bits are available
+        setGateway = true;
+        break;
+      }
+      if (!(setGatewayBits >> 5)) {
+        if (!(setGatewayBits & 0x1f)) {
+          argp_error(state, "invalid gateway (net address)");
+          return EINVAL;
+        }
+        // fine: host part above max gateway adjustable bits is the same and remainder non-zero
+        setGatewayBits &= 0x1f;
+        setGateway = true;
+        break;
+      }
+      if ((setGatewayBits >> 5) == ((1<<((32-setMaskLen)-5))-1)) {
+        // fine: host part above max gateway adjustable bits is all 1
+        setGatewayBits = 0x20 | (setGatewayBits & 0x1f);
+        setGateway = true;
+        break;
+      }
+      argp_error(state, "invalid gateway (out of possible range of first/last 31 hosts in subnet)");
+      return EINVAL;
     case 'M':  // --macip
       setMacFromIp = true;
       break;
@@ -885,6 +972,7 @@ int readSettings(int fd, uint8_t* currentData = nullptr) {
   }
   useMUI = (configData[1]&0x20) != 0;  // if highest bit is set, then use MUI. if cleared, use User ID
   maskLen = configData[1]&0x1f;
+  uint8_t gw = configData[7]&0x3f;
   for (int i=0; i < 4; i++) {
     ip[i] = configData[i*2];
     if (!useMUI && i > 0) {
@@ -909,24 +997,39 @@ int readSettings(int fd, uint8_t* currentData = nullptr) {
     std::cout << "IP address: DHCP" << std::endl;
   } else {
     std::cout << "IP address:";
-    for (int i=0; i < 4; i++) {
-      std::cout << (i == 0?' ':'.') << std::dec << static_cast<unsigned>(ip[i]);
+    for (uint8_t pos = 0, maskRemain = maskLen; pos < 4; pos++, maskRemain -= maskRemain >= 8 ? 8 : maskRemain) {
+      std::cout << (pos == 0?' ':'.') << std::dec << static_cast<unsigned>(ip[pos]);
+      uint8_t mask = maskRemain >= 8 ? 255 : maskRemain == 0 ? 0 : (255 ^ ((1 << (8 - maskRemain)) - 1));
+      ip[pos] &= mask;  // prepare for gateway
     }
-    std::cout << "/" << std::dec << static_cast<unsigned>(maskLen) << std::endl;
-    /*
+    std::cout << "/" << std::dec << static_cast<unsigned>(maskLen) << ", gateway:";
     // build gateway
-    for (uint8_t pos=0; pos < 4; pos++) {
-      mask[pos] = maskLen >= 8 ? 255 : maskLen<=0 ? 0 : (255^((1 << (8-maskLen))-1));
-      ip[pos] &= mask[pos];
-      maskLen = maskLen >= 8 ? maskLen-8 : 0;
+    if (gw == 0x3f) {
+      // default: first address in network is used as gateway
+      ip[3] |= 1;
+    } else if (gw & 0x20) {
+      // end of subnet
+      // non-mask bits outside of |gw reach
+      uint8_t mask = maskLen <= 24 ? 0 : (255^((1 << (8 - (maskLen-24))) - 1));
+      ip[3] |= ((~mask)^0x1f) | (gw&0x1f);
+      if (maskLen<24) {
+        // more than just the last IP byte are affected: set non-mask bits to 1 as well in bytes 0-2
+        for (uint8_t pos = 0, maskRemain = maskLen; pos < 3; pos++, maskRemain -= maskRemain >= 8 ? 8 : maskRemain) {
+          mask = maskRemain >= 8 ? 255 : maskRemain == 0 ? 0 : (255^((1 << (8 - maskRemain)) - 1));
+          ip[pos] |= ~mask;
+        }
+      }
+    } else {
+      // start of subnet
+      ip[3] |= gw&0x1f;
     }
-    ip[3] |= 1; // first address in network is used as gateway (not needed anyway))
-    std::cout << "IP gateway:";
     for (int i=0; i < 4; i++) {
       std::cout << (i == 0?' ':'.') << std::dec << static_cast<unsigned>(ip[i]);
+    }
+    if (gw == 0x3f) {
+      std::cout << " (default)";
     }
     std::cout << std::endl;
-    */
   }
   uint16_t arbitrationDelay = configData[3]&0x3f;
   std::cout << "Arbitration delay: ";
@@ -958,6 +1061,9 @@ bool writeSettings(int fd, uint8_t* currentData = nullptr) {
   if (setIp) {
     for (int i = 0; i < 4; i++) {
       configData[i * 2] = setIpAddress[i];
+    }
+    if (setGateway) {
+      configData[7] = setGatewayBits;
     }
   }
   if (setArbitrationDelay) {

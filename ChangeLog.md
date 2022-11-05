@@ -3,8 +3,9 @@
 * fix potentially invalid settings picked up from environment variables
 * fix potentially unnecessary arbitration start for non-enhanced proto
 * fix smaller issues in KNX integration
+
 ## Features
-* tbd
+* add support for setting visual ping and IP gateway to ebuspicloader
 
 
 # 22.4 (2022-09-18)
