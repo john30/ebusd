@@ -46,9 +46,9 @@ const char *argp_program_version = "eBUS adapter PIC firmware loader";
 
 /** the documentation of the program. */
 static const char argpdoc[] =
-    "A tool for loading firmware to the eBUS adapter PIC."
+    "A tool for loading firmware to the eBUS adapter PIC and configure some adjustable settings."
     "\vPORT is either the serial port to use (e.g./dev/ttyUSB0) that also supports a trailing wildcard '*' for testing"
-    " multiple ports, or a network port as \"ip:port\" for use with e.g. socat.";
+    " multiple ports, or a network port as \"ip:port\" for use with e.g. socat or ebusd-esp.";
 
 static const char argpargsdoc[] = "PORT";
 
@@ -61,6 +61,8 @@ static const struct argp_option argpoptions[] = {
     {"macip",   'M', nullptr, 0, "set the MAC address suffix from the IP address", 0 },
     {"arbdel",  'a', "US",    0, "set arbitration delay to US microseconds (0-620 in steps of 10, default 200"
                                  ", since firmware 20211128)", 0 },
+    {"pingon",  'p', nullptr, 0, "enable visual ping", 0 },
+    {"pingoff", 'o', nullptr, 0, "disable visual ping", 0 },
     {"flash",   'f', "FILE",  0, "flash the FILE to the device", 0 },
     {"reset",   'r', nullptr, 0, "reset the device at the end on success", 0 },
     {"slow",    's', nullptr, 0, "use low speed for transfer", 0 },
@@ -76,6 +78,8 @@ static bool setMask = false;
 static uint8_t setMaskLen = 0x1f;
 static bool setArbitrationDelay = false;
 static uint16_t setArbitrationDelayMicros = 0;
+static bool setVisualPing = false;
+static bool setVisualPingOn = false;
 static char* flashFile = nullptr;
 static bool reset = false;
 static bool lowSpeed = false;
@@ -179,6 +183,14 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
         return EINVAL;
       }
       setArbitrationDelay = true;
+      break;
+    case 'p':  // --pingon
+      setVisualPing = true;
+      setVisualPingOn = true;
+      break;
+    case 'o':  // --pingoff
+      setVisualPing = true;
+      setVisualPingOn = false;
       break;
     case 'f':  // --flash=firmware.hex
       if (arg == nullptr || arg[0] == 0 || stat(arg, &st) != 0 || !S_ISREG(st.st_mode)) {
@@ -924,6 +936,12 @@ int readSettings(int fd, uint8_t* currentData = nullptr) {
     arbitrationDelay *= 10;  // steps of 10us
     std::cout << std::dec << static_cast<unsigned>(arbitrationDelay) << " us" << std::endl;
   }
+  std::cout << "Visual ping: ";
+  if (configData[5]&0x20) {
+    std::cout << "on (default)" << std::endl;
+  } else {
+    std::cout << "off" << std::endl;
+  }
   return 0;
 }
 
@@ -944,6 +962,9 @@ bool writeSettings(int fd, uint8_t* currentData = nullptr) {
   }
   if (setArbitrationDelay) {
     configData[3] = setArbitrationDelayMicros/10;
+  }
+  if (setVisualPing) {
+    configData[5] = (configData[5]&0x1f) | (setVisualPingOn?0x20:0);
   }
   if (writeConfig(fd, 0x0000, 8, configData) != 0) {
     std::cerr << "failed" << std::endl;
@@ -1094,7 +1115,7 @@ int run(int fd) {
       success = false;
     }
   }
-  if (setIp || setDhcp || setArbitrationDelay) {
+  if (setIp || setDhcp || setArbitrationDelay || setVisualPing) {
     if (writeSettings(fd, useCurrentConfigData ? currentConfigData : nullptr)) {
       std::cout << "Settings changed to:" << std::endl;
       readSettings(fd);
