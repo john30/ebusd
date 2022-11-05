@@ -859,13 +859,18 @@ bool flashPic(int fd) {
   return true;
 }
 
-void readSettings(int fd) {
+int readSettings(int fd, uint8_t* currentData = nullptr) {
   uint8_t mac[] = {0xae, 0xb0, 0x53, 0xef, 0xfe, 0xef};  // "Adapter-eBUS3" + (UserID or MUI)
   uint8_t ip[4] = {0, 0, 0, 0};
   bool useMUI = true;
   uint8_t maskLen = 0;
   uint8_t configData[8];
-  readConfig(fd, 0x0000, 8, false, false, configData);  // User ID
+  if (readConfig(fd, 0x0000, 8, false, false, configData) != 0) {  // User ID
+    return -1;
+  }
+  if (currentData) {
+    memcpy(currentData, configData, sizeof(configData));
+  }
   useMUI = (configData[1]&0x20) != 0;  // if highest bit is set, then use MUI. if cleared, use User ID
   maskLen = configData[1]&0x1f;
   for (int i=0; i < 4; i++) {
@@ -919,11 +924,15 @@ void readSettings(int fd) {
     arbitrationDelay *= 10;  // steps of 10us
     std::cout << std::dec << static_cast<unsigned>(arbitrationDelay) << " us" << std::endl;
   }
+  return 0;
 }
 
-bool writeSettings(int fd) {
+bool writeSettings(int fd, uint8_t* currentData = nullptr) {
   std::cout << "Writing settings: ";
   uint8_t configData[] = {0xff, 0x3f, 0xff, 0x3f, 0xff, 0x3f, 0xff, 0x3f};
+  if (currentData) {
+    memcpy(configData, currentData, sizeof(configData));
+  }
   if (setMacFromIp) {
     configData[1] &= ~0x20;  // set useMUI
   }
@@ -1071,7 +1080,12 @@ int run(int fd) {
   } else {
     std::cout << "Firmware version not found" << std::endl;
   }
-  readSettings(fd);
+  uint8_t currentConfigData[8];
+  bool useCurrentConfigData = true;
+  if (readSettings(fd, currentConfigData) != 0) {
+    std::cerr << "Settings could not be retrieved" << std::endl;
+    useCurrentConfigData = false;
+  }
   std::cout << std::endl;
   bool success = true;
   if (flashFile) {
@@ -1081,7 +1095,7 @@ int run(int fd) {
     }
   }
   if (setIp || setDhcp || setArbitrationDelay) {
-    if (writeSettings(fd)) {
+    if (writeSettings(fd, useCurrentConfigData ? currentConfigData : nullptr)) {
       std::cout << "Settings changed to:" << std::endl;
       readSettings(fd);
     } else {
