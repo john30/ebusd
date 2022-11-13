@@ -41,6 +41,7 @@ using std::setfill;
 using std::setprecision;
 using std::setw;
 using std::endl;
+using std::isfinite;
 
 
 float uintToFloat(unsigned int value, bool negative) {
@@ -801,12 +802,14 @@ result_t NumberDataType::getFloatFromRawValue(unsigned int value, float* output)
   bool negative;
   if (hasFlag(SIG)) {  // signed value
     negative = (value & (1 << (m_bitCount - 1))) != 0;
-    if (negative) {  // negative signed value
-      if (value < m_minValue) {
+    if (!hasFlag(EXP)) {
+      if (negative) {  // negative signed value
+        if (value < m_minValue) {
+          return RESULT_ERR_OUT_OF_RANGE;  // value out of range
+        }
+      } else if (value > m_maxValue) {
         return RESULT_ERR_OUT_OF_RANGE;  // value out of range
       }
-    } else if (value > m_maxValue) {
-      return RESULT_ERR_OUT_OF_RANGE;  // value out of range
     }
   } else if (value < m_minValue || value > m_maxValue) {
     return RESULT_ERR_OUT_OF_RANGE;  // value out of range
@@ -817,12 +820,16 @@ result_t NumberDataType::getFloatFromRawValue(unsigned int value, float* output)
   if (m_bitCount == 32) {
     if (hasFlag(EXP)) {  // IEEE 754 binary32
       float val = uintToFloat(value, negative);
-      if (val != val) {  // !isnan(val)
+      if (!isfinite(val)) {
         return RESULT_EMPTY;
       }
       if (val != 0.0) {
         if (m_divisor < 0) {
           val *= static_cast<float>(-m_divisor);
+          if (!isfinite(val)) {
+            // reached beyond infinity
+            return RESULT_ERR_OUT_OF_RANGE;
+          }
         } else if (m_divisor > 1) {
           val /= static_cast<float>(m_divisor);
         }
@@ -874,12 +881,14 @@ result_t NumberDataType::readFromRawValue(unsigned int value,
   bool negative;
   if (hasFlag(SIG)) {  // signed value
     negative = (value & (1 << (m_bitCount - 1))) != 0;
-    if (negative) {  // negative signed value
-      if (value < m_minValue) {
+    if (!hasFlag(EXP)) {
+      if (negative) {  // negative signed value
+        if (value < m_minValue) {
+          return RESULT_ERR_OUT_OF_RANGE;  // value out of range
+        }
+      } else if (value > m_maxValue) {
         return RESULT_ERR_OUT_OF_RANGE;  // value out of range
       }
-    } else if (value > m_maxValue) {
-      return RESULT_ERR_OUT_OF_RANGE;  // value out of range
     }
   } else if (value < m_minValue || value > m_maxValue) {
     return RESULT_ERR_OUT_OF_RANGE;  // value out of range
@@ -890,7 +899,7 @@ result_t NumberDataType::readFromRawValue(unsigned int value,
   if (m_bitCount == 32) {
     if (hasFlag(EXP)) {  // IEEE 754 binary32
       float val = uintToFloat(value, negative);
-      if (val != val) {  // !isnan(val)
+      if (!isfinite(val)) {
         if (outputFormat & OF_JSON) {
           *output << "null";
         } else {
@@ -901,6 +910,10 @@ result_t NumberDataType::readFromRawValue(unsigned int value,
       if (val != 0.0) {
         if (m_divisor < 0) {
           val *= static_cast<float>(-m_divisor);
+          if (!isfinite(val)) {
+            // reached beyond infinity
+            return RESULT_ERR_OUT_OF_RANGE;
+          }
         } else if (m_divisor > 1) {
           val /= static_cast<float>(m_divisor);
         }
@@ -1232,9 +1245,9 @@ DataTypeList::DataTypeList() {
   // signed number (fraction 1/1000), -32.767 - +32.767, big endian
   add(new NumberDataType("FLR", 16, SIG|REV, 0x8000, 0x8001, 0x7fff, 1000));
   // signed number (IEEE 754 binary32: 1 bit sign, 8 bits exponent, 23 bits significand), little endian
-  add(new NumberDataType("EXP", 32, SIG|EXP, 0x7f800000, 0x00000000, 0xffffffff, 1));
+  add(new NumberDataType("EXP", 32, SIG|EXP, 0x7f800000, 0xfeffffff, 0x7effffff, 1));
   // signed number (IEEE 754 binary32: 1 bit sign, 8 bits exponent, 23 bits significand), big endian
-  add(new NumberDataType("EXR", 32, SIG|EXP|REV, 0x7f800000, 0x00000000, 0xffffffff, 1));
+  add(new NumberDataType("EXR", 32, SIG|EXP|REV, 0x7f800000, 0xfeffffff, 0x7effffff, 1));
   // unsigned integer, 0 - 65534, little endian
   add(new NumberDataType("UIN", 16, 0, 0xffff, 0, 0xfffe, 1));
   // unsigned integer, 0 - 65534, big endian
