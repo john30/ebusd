@@ -1079,11 +1079,11 @@ void MqttHandler::run() {
             if (dataType->isNumeric()) {
               auto dt = dynamic_cast<const NumberDataType*>(dataType);
               ostr.str("");
-              if (dt->getMinMax(false, OF_NONE, &ostr) == RESULT_OK) {
+              if (dt->getMinMax(false, g_publishFormat, &ostr) == RESULT_OK) {
                 values.set("min", ostr.str());
                 ostr.str("");
               }
-              if (dt->getMinMax(true, OF_NONE, &ostr) == RESULT_OK) {
+              if (dt->getMinMax(true, g_publishFormat, &ostr) == RESULT_OK) {
                 values.set("max", ostr.str());
               }
             }
