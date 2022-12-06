@@ -55,15 +55,21 @@ static const char argpargsdoc[] = "PORT";
 /** the definition of the known program arguments. */
 static const struct argp_option argpoptions[] = {
     {"verbose", 'v', nullptr, 0, "enable verbose output", 0 },
-    {"dhcp",    'd', nullptr, 0, "set dynamic IP address via DHCP", 0 },
+    {"dhcp",    'd', nullptr, 0, "set dynamic IP address via DHCP (default)", 0 },
     {"ip",      'i', "IP",    0, "set fix IP address (e.g. 192.168.0.10)", 0 },
     {"mask",    'm', "MASK",  0, "set fix IP mask (e.g. 24)", 0 },
     {"gateway", 'g', "GW",    0, "set fix IP gateway to GW (if necessary and other than net address + 1)", 0 },
     {"macip",   'M', nullptr, 0, "set the MAC address suffix from the IP address", 0 },
+    {"macid",   'I', nullptr, 0, "set the MAC address suffix from internal ID (default)", 0 },
     {"arbdel",  'a', "US",    0, "set arbitration delay to US microseconds (0-620 in steps of 10, default 200"
                                  ", since firmware 20211128)", 0 },
-    {"pingon",  'p', nullptr, 0, "enable visual ping", 0 },
+    {"pingon",  'p', nullptr, 0, "enable visual ping (default)", 0 },
     {"pingoff", 'o', nullptr, 0, "disable visual ping", 0 },
+    {"softvar", -3, "VARIANT", 0, "set the soft jumpers VARIANT to U=USB/RPI (default), W=WIFI, E=Ethernet,"
+                                  " N=non-enhanced USB/RPI/WIFI, F=non-enhanced Ethernet"
+                                  " (prefer hard jumpers in lowercase, ignore hard jumpers in uppercase"
+                                  ", since firmware 20221206)", 0 },
+    {"hardvar", -4,  nullptr, 0, "set the variant from hard jumpers only (ignore soft jumpers)", 0 },
     {"flash",   'f', "FILE",  0, "flash the FILE to the device", 0 },
     {"reset",   'r', nullptr, 0, "reset the device at the end on success", 0 },
     {"slow",    's', nullptr, 0, "use low speed for transfer", 0 },
@@ -75,6 +81,7 @@ static bool setDhcp = false;
 static bool setIp = false;
 static uint8_t setIpAddress[] = {0, 0, 0, 0};
 static bool setMacFromIp = false;
+static bool setMacFromIpValue = true;
 static bool setMask = false;
 static uint8_t setMaskLen = 0x1f;
 static bool setGateway = false;
@@ -83,6 +90,10 @@ static bool setArbitrationDelay = false;
 static uint16_t setArbitrationDelayMicros = 0;
 static bool setVisualPing = false;
 static bool setVisualPingOn = false;
+static bool setSoftVariant = false;
+static uint8_t setSoftVariantValue = 0;
+static bool setSoftVariantForced = false;
+static bool setHardVariant = false;
 static char* flashFile = nullptr;
 static bool reset = false;
 static bool lowSpeed = false;
@@ -127,7 +138,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       verbose = true;
       break;
     case 'd':  // --dhcp
-      if (setIp || setMask) {
+      if (setIp || setMask || setGateway) {
         argp_error(state, "either DHCP or IP address is needed");
         return EINVAL;
       }
@@ -176,7 +187,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
         argp_error(state, "mask was specified twice");
         return EINVAL;
       }
-      if (!parseByte(arg, 0, 0x1e, &setMaskLen)) {
+      if (!parseByte(arg, 1, 0x1e, &setMaskLen)) {
         argp_error(state, "invalid IP mask");
         return EINVAL;
       }
@@ -259,6 +270,11 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       return EINVAL;
     case 'M':  // --macip
       setMacFromIp = true;
+      setMacFromIpValue = true;
+      break;
+    case 'I':  // --macid
+      setMacFromIp = true;
+      setMacFromIpValue = false;
       break;
     case 'a':  // --arbdel=1000
       if (arg == nullptr || arg[0] == 0) {
@@ -278,6 +294,41 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     case 'o':  // --pingoff
       setVisualPing = true;
       setVisualPingOn = false;
+      break;
+    case -3:  // --softvar=U|W|E|F|N|u|w|e|f|n
+      if (setHardVariant) {
+        argp_error(state, "can't set hard and soft jumpers");
+        return EINVAL;
+      }
+      if (arg == nullptr || arg[0] == 0) {
+        argp_error(state, "invalid variant");
+        return EINVAL;
+      }
+      if (arg[0] == 'u' || arg[0] == 'U') {
+        setSoftVariantValue = 3;
+      } else if (arg[0] == 'w' || arg[0] == 'W') {
+        setSoftVariantValue = 2;
+      } else if (arg[0] == 'e' || arg[0] == 'E') {
+        setSoftVariantValue = 1;
+      } else if (arg[0] == 'f' || arg[0] == 'F') {
+        setSoftVariantValue = 4;
+      } else if (arg[0] == 'n' || arg[0] == 'N') {
+        setSoftVariantValue = 0;
+      } else {
+        argp_error(state, "invalid variant");
+        return EINVAL;
+      }
+      setSoftVariantForced = arg[0]<'a';
+      setSoftVariant = true;
+      break;
+    case -4:  // --hardvar
+      if (setSoftVariant) {
+        argp_error(state, "can't set hard and soft jumpers");
+        return EINVAL;
+      }
+      setSoftVariantValue = 3;
+      setSoftVariantForced = false;
+      setHardVariant = true;
       break;
     case 'f':  // --flash=firmware.hex
       if (arg == nullptr || arg[0] == 0 || stat(arg, &st) != 0 || !S_ISREG(st.st_mode)) {
@@ -1045,6 +1096,35 @@ int readSettings(int fd, uint8_t* currentData = nullptr) {
   } else {
     std::cout << "off" << std::endl;
   }
+  std::cout << "Variant: "; // since firmware 20221206
+  if ((configData[5]&0x07)==0x07) {
+    std::cout << "hard jumpers only (includes USB/RPI enhanced when no jumpers are set)" << std::endl;
+  } else {
+    switch (configData[5]&0x03) {
+      case 3:
+        std::cout << "USB/RPI";
+        break;
+      case 2:
+        std::cout << "WIFI";
+        break;
+      case 1:
+        std::cout << "Ethernet";
+        break;
+      default:
+        std::cout << "non-enhanced ";
+        if (maskLen) {
+          std::cout << "Ethernet";
+        } else {
+          std::cout << "USB/RPI/WIFI";
+        }
+    }
+    if (configData[5]&0x04) {
+      std::cout << ", prefer hard jumpers";
+    } else {
+      std::cout << ", ignore hard jumpers";
+    }
+    std::cout << std::endl;
+  }
   return 0;
 }
 
@@ -1055,10 +1135,12 @@ bool writeSettings(int fd, uint8_t* currentData = nullptr) {
     memcpy(configData, currentData, sizeof(configData));
   }
   if (setMacFromIp) {
-    configData[1] &= ~0x20;  // set useMUI
+    configData[1] = (configData[1]&~0x20) | (setMacFromIpValue ? 0 : 0x20);  // set useMUI
   }
-  configData[1] = (configData[1]&~0x1f) | (setMaskLen&0x1f);
   if (setIp) {
+    if (setMask) {
+      configData[1] = (configData[1]&~0x1f) | (setMaskLen&0x1f);
+    }
     for (int i = 0; i < 4; i++) {
       configData[i * 2] = setIpAddress[i];
     }
@@ -1071,6 +1153,14 @@ bool writeSettings(int fd, uint8_t* currentData = nullptr) {
   }
   if (setVisualPing) {
     configData[5] = (configData[5]&0x1f) | (setVisualPingOn?0x20:0);
+  }
+  if (setSoftVariant) {
+    configData[5] = (configData[5]&0x38) | (setSoftVariantForced?0:0x04) | (setSoftVariantValue&0x03);
+    if (setSoftVariantValue==0) {
+      configData[1] = (configData[1]&~0x1f); // set mask=0 to disable Ethernet
+    }
+  } else if (setHardVariant) {
+    configData[5] = (configData[5]&0x38) | 0x07;
   }
   if (writeConfig(fd, 0x0000, 8, configData) != 0) {
     std::cerr << "failed" << std::endl;
@@ -1221,7 +1311,7 @@ int run(int fd) {
       success = false;
     }
   }
-  if (setIp || setDhcp || setArbitrationDelay || setVisualPing) {
+  if (setMacFromIp || setIp || setDhcp || setArbitrationDelay || setVisualPing || setSoftVariant || setHardVariant) {
     if (writeSettings(fd, useCurrentConfigData ? currentConfigData : nullptr)) {
       std::cout << "Settings changed to:" << std::endl;
       readSettings(fd);
