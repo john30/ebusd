@@ -1047,7 +1047,7 @@ int readSettings(int fd, uint8_t* currentData = nullptr) {
   }
   std::cout << std::endl;
   if (maskLen == 0x1f || (ip[0]|ip[1]|ip[2]|ip[3]) == 0) {
-    std::cout << "IP address: DHCP" << std::endl;
+    std::cout << "IP address: DHCP (default)" << std::endl;
   } else {
     std::cout << "IP address:";
     for (uint8_t pos = 0, maskRemain = maskLen; pos < 4; pos++, maskRemain -= maskRemain >= 8 ? 8 : maskRemain) {
@@ -1078,9 +1078,6 @@ int readSettings(int fd, uint8_t* currentData = nullptr) {
     }
     for (int i=0; i < 4; i++) {
       std::cout << (i == 0?' ':'.') << std::dec << static_cast<unsigned>(ip[i]);
-    }
-    if (gw == 0x3f) {
-      std::cout << " (default)";
     }
     std::cout << std::endl;
   }
@@ -1139,7 +1136,9 @@ bool writeSettings(int fd, uint8_t* currentData = nullptr) {
   if (setMacFromIp) {
     configData[1] = (configData[1]&~0x20) | (setMacFromIpValue ? 0 : 0x20);  // set useMUI
   }
-  if (setIp) {
+  if (setDhcp) {
+    configData[1] |= 0x1f;
+  } else if (setIp) {
     if (setMask) {
       configData[1] = (configData[1]&~0x1f) | (setMaskLen&0x1f);
     }
