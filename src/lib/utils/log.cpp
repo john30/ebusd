@@ -27,7 +27,9 @@
 #include <sys/time.h>
 #include <stdarg.h>
 #include <string.h>
+#ifdef HAVE_SYSLOG_H
 #include <syslog.h>
+#endif
 #include "lib/utils/clock.h"
 
 namespace ebusd {
@@ -53,6 +55,7 @@ static const char* s_levelNames[] = {
   nullptr
 };
 
+#ifdef HAVE_SYSLOG_H
 /** the syslog level of each @a LogLevel. */
 static const int s_syslogLevels[] = {
   LOG_INFO,
@@ -62,6 +65,7 @@ static const int s_syslogLevels[] = {
   LOG_DEBUG,
   0
 };
+#endif
 
 /** the current log level by log facility. */
 static LogLevel s_facilityLogLevel[] = { ll_notice, ll_notice, ll_notice, ll_notice, ll_notice, };
@@ -69,8 +73,10 @@ static LogLevel s_facilityLogLevel[] = { ll_notice, ll_notice, ll_notice, ll_not
 /** the current log FILE, or nullptr if closed or syslog is used. */
 static FILE* s_logFile = stdout;
 
+#ifdef HAVE_SYSLOG_H
 /** whether to log to syslog. */
 static bool s_useSyslog = false;
+#endif
 
 LogFacility parseLogFacility(const char* facility) {
   if (!facility) {
@@ -148,8 +154,12 @@ LogLevel getFacilityLogLevel(LogFacility facility) {
 bool setLogFile(const char* filename) {
   if (filename[0] == 0) {
     closeLogFile();
+#ifdef HAVE_SYSLOG_H
     openlog("ebusd", LOG_NDELAY|LOG_PID, LOG_USER);
     s_useSyslog = true;
+#else
+    s_logFile = stdout;
+#endif
     return true;
   }
   FILE* newFile = fopen(filename, "a");
@@ -168,28 +178,40 @@ void closeLogFile() {
     }
     s_logFile = nullptr;
   }
+#ifdef HAVE_SYSLOG_H
   if (s_useSyslog) {
     closelog();
     s_useSyslog = false;
   }
+#endif
 }
 
 bool needsLog(const LogFacility facility, const LogLevel level) {
-  if (s_logFile == nullptr && !s_useSyslog) {
+  if (s_logFile == nullptr
+#ifdef HAVE_SYSLOG_H
+    && !s_useSyslog
+#endif
+  ) {
     return false;
   }
   return s_facilityLogLevel[facility] >= level;
 }
 
 void logWrite(const char* facility, const LogLevel level, const char* message, va_list ap) {
-  if (s_logFile == nullptr && !s_useSyslog) {
+  if (s_logFile == nullptr
+#ifdef HAVE_SYSLOG_H
+    && !s_useSyslog
+#endif
+  ) {
     return;
   }
   char* buf;
   if (vasprintf(&buf, message, ap) >= 0 && buf) {
+#ifdef HAVE_SYSLOG_H
     if (s_useSyslog) {
       syslog(s_syslogLevels[level], "[%s %s] %s", facility, s_levelNames[level], buf);
     } else {
+#endif
       struct timespec ts;
       struct tm td;
       clockGettime(&ts);
@@ -199,7 +221,9 @@ void logWrite(const char* facility, const LogLevel level, const char* message, v
         td.tm_hour, td.tm_min, td.tm_sec, ts.tv_nsec/1000000,
         facility, s_levelNames[level], buf);
       fflush(s_logFile);
+#ifdef HAVE_SYSLOG_H
     }
+#endif
   }
   if (buf) {
     free(buf);

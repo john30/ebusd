@@ -23,6 +23,7 @@ AC_CHECK_HEADERS([arpa/inet.h \
 	sys/ioctl.h \
 	sys/select.h \
 	sys/time.h \
+	syslog.h \
 	time.h \
 	termios.h])
 

@@ -61,6 +61,7 @@ check_include_file(pthread.h HAVE_PTHREAD_H)
 check_include_file(sys/ioctl.h HAVE_SYS_IOCTL_H)
 check_include_file(sys/select.h HAVE_SYS_SELECT_H)
 check_include_file(sys/time.h HAVE_SYS_TIME_H)
+check_include_file(syslog.h HAVE_SYSLOG_H)
 check_include_file(time.h HAVE_TIME_H)
 check_include_file(termios.h HAVE_TERMIOS_H)
 
