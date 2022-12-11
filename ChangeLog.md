@@ -7,6 +7,7 @@
 
 ## Features
 * add support for setting visual ping, IP gateway, MAC from ID, and variant to ebuspicloader
+* add step variable for numeric values to message definition in MQTT integration
 
 
 # 22.4 (2022-09-18)

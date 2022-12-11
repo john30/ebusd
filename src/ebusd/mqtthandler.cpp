@@ -1085,7 +1085,20 @@ void MqttHandler::run() {
               }
               if (dt->getMinMax(true, g_publishFormat, &ostr) == RESULT_OK) {
                 values.set("max", ostr.str());
+                ostr.str("");
               }
+              if (dt->readFromRawValue(1, g_publishFormat, &ostr) != RESULT_OK) {
+                // fallback method, when smallest number didn't work
+                int divisor = dt->getDivisor();
+                float step = 1.0f;
+                if (divisor > 1) {
+                  step /= static_cast<float>(divisor);
+                } else if (divisor < 0) {
+                  step *= static_cast<float>(-divisor);
+                }
+                ostr << static_cast<float>(step);
+              }
+              values.set("step", ostr.str());
             }
             if (!m_typeSwitches.empty()) {
               values.reduce(true);
