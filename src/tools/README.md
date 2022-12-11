@@ -3,7 +3,7 @@ eBUS Adapter 3 PIC Loader
 
 This is a tool for loading new firmware to the
 [eBUS adapter 3 PIC](https://adapter.ebusd.eu/)
-and to configure IP settings for the Ethernet variant.
+and to configure the variant, IP settings for the Ethernet variant, and other settings.
 
 All of this is done via the bootloader on the PIC. Consequently, when the
 bootloader is not running, this tool can't do anything.
@@ -18,23 +18,45 @@ Usage
 `ebuspicloader --help` reveals the options:
 ```
 Usage: ebuspicloader [OPTION...] PORT
-A tool for loading firmware to the eBUS adapter PIC.
+A tool for loading firmware to the eBUS adapter PIC and configure adjustable
+settings.
 
-  -a, --arbdel=US            set arbitration delay to US microseconds (0-620 in
-                             steps of 10, default 200, since firmware 20211128)
-  -d, --dhcp                 set dynamic IP address via DHCP
-  -f, --flash=FILE           flash the FILE to the device
+ IP options:
+  -d, --dhcp                 set dynamic IP address via DHCP (default)
+  -g, --gateway=GW           set fix IP gateway to GW (if necessary and other
+                             than net address + 1)
   -i, --ip=IP                set fix IP address (e.g. 192.168.0.10)
   -m, --mask=MASK            set fix IP mask (e.g. 24)
   -M, --macip                set the MAC address suffix from the IP address
+  -N, --macid                set the MAC address suffix from internal ID
+                             (default)
+
+ eBUS options:
+  -a, --arbdel=US            set arbitration delay to US microseconds (0-620 in
+                             steps of 10, default 200, since firmware
+                             20211128)
+
+ PIC options:
+  -f, --flash=FILE           flash the FILE to the device
+  -o, --pingoff              disable visual ping
+  -p, --pingon               enable visual ping (default)
   -r, --reset                reset the device at the end on success
+      --variant=VARIANT      set the VARIANT to U=USB/RPI, W=WIFI, E=Ethernet,
+                             N=non-enhanced USB/RPI/WIFI, F=non-enhanced
+                             Ethernet (lowercase to allow hardware jumpers,
+                             default "u", since firmware 20221206)
+
+ Tool options:
   -s, --slow                 use low speed for transfer
   -v, --verbose              enable verbose output
+
   -?, --help                 give this help list
       --usage                give a short usage message
   -V, --version              print program version
 
-PORT is the serial port to use (e.g./dev/ttyUSB0) also supporting a trailing wildcard '*' for testing multiple ports.
+PORT is either the serial port to use (e.g./dev/ttyUSB0) that also supports a
+trailing wildcard '*' for testing multiple ports, or a network port as
+"ip:port" for use with e.g. socat or ebusd-esp in PIC pass-through mode.
 ```
 
 Flash firmware
@@ -42,16 +64,19 @@ Flash firmware
 For flashing a new firmware, you would typically do something like this:  
 `ebuspicloader -f firmware.hex /dev/ttyUSB0`
 
-On success, the output looks like this:
+On success, the output looks similar to this:
 ```
 Device ID: 30b0 (PIC16F15356)
-Device revision: 0.1
-Bootloader version: 1 [0a6c]
+Device revision: 0.2
+Bootloader version: 2 [73c8]
 Firmware version not found
 MAC address: ae:b0:53:26:15:80
-IP address: DHCP
+IP address: DHCP (default)
+Arbitration delay: 200 us (default)
+Visual ping: on (default)
+Variant: USB/RPI, allow hardware jumpers (default)
 
-New firmware version: 1 [c5e7]
+New firmware version: 1 [7f16]
 erasing flash: done.
 flashing:
 
@@ -65,21 +90,26 @@ flashing succeeded.
 
 Configure IP
 ------------
-For changing the IP address of an Ethernet enabled adapter, you would do
-something like this:  
+Changing the IP address of an Ethernet enabled adapter, would be done like this:
 `ebuspicloader -i 192.168.1.10 -m 24 /dev/ttyUSB0`
 
-On success, the output looks like this:
+On success, the output looks similar to this:
 ```
 Device ID: 30b0 (PIC16F15356)
-Device revision: 0.1
-Bootloader version: 1 [0a6c]
-Firmware version: 1 [c5e7]
+Device revision: 0.2
+Bootloader version: 2 [73c8]
+Firmware version: 1 [7f16]
 MAC address: ae:b0:53:26:15:80
-IP address: DHCP
+IP address: DHCP (default)
+Arbitration delay: 200 us (default)
+Visual ping: on (default)
+Variant: Ethernet, ignore hardware jumpers
 
-Writing IP settings: done.
-IP settings changed to:
+Writing settings: done.
+Settings changed to:
 MAC address: ae:80:53:26:15:80
 IP address: 192.168.1.10/24
+Arbitration delay: 200 us (default)
+Visual ping: on (default)
+Variant: Ethernet, ignore hardware jumpers
 ```
