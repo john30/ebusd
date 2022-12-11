@@ -3,9 +3,10 @@
 * fix potentially invalid settings picked up from environment variables
 * fix potentially unnecessary arbitration start for non-enhanced proto
 * fix smaller issues in KNX integration
+* fix numeric replacement+infinite and float min/max values in MQTT JSON payload format
 
 ## Features
-* add support for setting visual ping and IP gateway to ebuspicloader
+* add support for setting visual ping, IP gateway, MAC from ID, and variant to ebuspicloader
 
 
 # 22.4 (2022-09-18)
