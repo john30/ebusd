@@ -46,32 +46,35 @@ const char *argp_program_version = "eBUS adapter PIC firmware loader";
 
 /** the documentation of the program. */
 static const char argpdoc[] =
-    "A tool for loading firmware to the eBUS adapter PIC and configure some adjustable settings."
+    "A tool for loading firmware to the eBUS adapter PIC and configure adjustable settings."
     "\vPORT is either the serial port to use (e.g./dev/ttyUSB0) that also supports a trailing wildcard '*' for testing"
-    " multiple ports, or a network port as \"ip:port\" for use with e.g. socat or ebusd-esp.";
+    " multiple ports, or a network port as \"ip:port\" for use with e.g. socat or ebusd-esp in PIC pass-through mode.";
 
 static const char argpargsdoc[] = "PORT";
 
 /** the definition of the known program arguments. */
 static const struct argp_option argpoptions[] = {
-    {"verbose", 'v', nullptr, 0, "enable verbose output", 0 },
+    {nullptr,     0, nullptr, 0, "IP options:", 1 },
     {"dhcp",    'd', nullptr, 0, "set dynamic IP address via DHCP (default)", 0 },
     {"ip",      'i', "IP",    0, "set fix IP address (e.g. 192.168.0.10)", 0 },
     {"mask",    'm', "MASK",  0, "set fix IP mask (e.g. 24)", 0 },
     {"gateway", 'g', "GW",    0, "set fix IP gateway to GW (if necessary and other than net address + 1)", 0 },
     {"macip",   'M', nullptr, 0, "set the MAC address suffix from the IP address", 0 },
-    {"macid",   'I', nullptr, 0, "set the MAC address suffix from internal ID (default)", 0 },
+    {"macid",   'N', nullptr, 0, "set the MAC address suffix from internal ID (default)", 0 },
+    {nullptr,     0, nullptr, 0, "eBUS options:", 2 },
     {"arbdel",  'a', "US",    0, "set arbitration delay to US microseconds (0-620 in steps of 10, default 200"
                                  ", since firmware 20211128)", 0 },
+    {nullptr,     0, nullptr, 0, "PIC options:", 3 },
     {"pingon",  'p', nullptr, 0, "enable visual ping (default)", 0 },
     {"pingoff", 'o', nullptr, 0, "disable visual ping", 0 },
-    {"softvar", -3, "VARIANT", 0, "set the soft jumpers VARIANT to U=USB/RPI (default), W=WIFI, E=Ethernet,"
-                                  " N=non-enhanced USB/RPI/WIFI, F=non-enhanced Ethernet"
-                                  " (prefer hard jumpers in lowercase, ignore hard jumpers in uppercase"
-                                  ", since firmware 20221206)", 0 },
-    {"hardvar", -4,  nullptr, 0, "set the variant from hard jumpers only (ignore soft jumpers)", 0 },
+    {"variant", -3, "VARIANT", 0, "set the VARIANT to U=USB/RPI, W=WIFI, E=Ethernet,"
+                                 " N=non-enhanced USB/RPI/WIFI, F=non-enhanced Ethernet"
+                                 " (lowercase to allow hardware jumpers, default \"u\""
+                                 ", since firmware 20221206)", 0 },
     {"flash",   'f', "FILE",  0, "flash the FILE to the device", 0 },
     {"reset",   'r', nullptr, 0, "reset the device at the end on success", 0 },
+    {nullptr,     0, nullptr, 0, "Tool options:", 9 },
+    {"verbose", 'v', nullptr, 0, "enable verbose output", 0 },
     {"slow",    's', nullptr, 0, "use low speed for transfer", 0 },
     {nullptr,          0,        nullptr,    0, nullptr, 0 },
 };
@@ -90,10 +93,9 @@ static bool setArbitrationDelay = false;
 static uint16_t setArbitrationDelayMicros = 0;
 static bool setVisualPing = false;
 static bool setVisualPingOn = false;
-static bool setSoftVariant = false;
-static uint8_t setSoftVariantValue = 0;
-static bool setSoftVariantForced = false;
-static bool setHardVariant = false;
+static bool setVariant = false;
+static uint8_t setVariantValue = 0;
+static bool setVariantForced = false;
 static char* flashFile = nullptr;
 static bool reset = false;
 static bool lowSpeed = false;
@@ -272,7 +274,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       setMacFromIp = true;
       setMacFromIpValue = true;
       break;
-    case 'I':  // --macid
+    case 'N':  // --macid
       setMacFromIp = true;
       setMacFromIpValue = false;
       break;
@@ -295,40 +297,27 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       setVisualPing = true;
       setVisualPingOn = false;
       break;
-    case -3:  // --softvar=U|W|E|F|N|u|w|e|f|n
-      if (setHardVariant) {
-        argp_error(state, "can't set hard and soft jumpers");
-        return EINVAL;
-      }
+    case -3:  // --variant=U|W|E|F|N|u|w|e|f|n
       if (arg == nullptr || arg[0] == 0) {
         argp_error(state, "invalid variant");
         return EINVAL;
       }
       if (arg[0] == 'u' || arg[0] == 'U') {
-        setSoftVariantValue = 3;
+        setVariantValue = 3;
       } else if (arg[0] == 'w' || arg[0] == 'W') {
-        setSoftVariantValue = 2;
+        setVariantValue = 2;
       } else if (arg[0] == 'e' || arg[0] == 'E') {
-        setSoftVariantValue = 1;
+        setVariantValue = 1;
       } else if (arg[0] == 'f' || arg[0] == 'F') {
-        setSoftVariantValue = 4;
+        setVariantValue = 4;
       } else if (arg[0] == 'n' || arg[0] == 'N') {
-        setSoftVariantValue = 0;
+        setVariantValue = 0;
       } else {
         argp_error(state, "invalid variant");
         return EINVAL;
       }
-      setSoftVariantForced = arg[0]<'a';
-      setSoftVariant = true;
-      break;
-    case -4:  // --hardvar
-      if (setSoftVariant) {
-        argp_error(state, "can't set hard and soft jumpers");
-        return EINVAL;
-      }
-      setSoftVariantValue = 3;
-      setSoftVariantForced = false;
-      setHardVariant = true;
+      setVariantForced = arg[0]<'a';
+      setVariant = true;
       break;
     case 'f':  // --flash=firmware.hex
       if (arg == nullptr || arg[0] == 0 || stat(arg, &st) != 0 || !S_ISREG(st.st_mode)) {
@@ -1096,34 +1085,33 @@ int readSettings(int fd, uint8_t* currentData = nullptr) {
     std::cout << "off" << std::endl;
   }
   std::cout << "Variant: "; // since firmware 20221206
-  if ((configData[5]&0x07)==0x07) {
-    std::cout << "hard jumpers only (includes USB/RPI enhanced when no jumpers are set)" << std::endl;
-  } else {
-    switch (configData[5]&0x03) {
-      case 3:
-        std::cout << "USB/RPI";
-        break;
-      case 2:
-        std::cout << "WIFI";
-        break;
-      case 1:
+  switch (configData[5]&0x03) {
+    case 3:
+      std::cout << "USB/RPI";
+      break;
+    case 2:
+      std::cout << "WIFI";
+      break;
+    case 1:
+      std::cout << "Ethernet";
+      break;
+    default:
+      std::cout << "non-enhanced ";
+      if (maskLen) {
         std::cout << "Ethernet";
-        break;
-      default:
-        std::cout << "non-enhanced ";
-        if (maskLen) {
-          std::cout << "Ethernet";
-        } else {
-          std::cout << "USB/RPI/WIFI";
-        }
-    }
-    if (configData[5]&0x04) {
-      std::cout << ", prefer hard jumpers";
-    } else {
-      std::cout << ", ignore hard jumpers";
-    }
-    std::cout << std::endl;
+      } else {
+        std::cout << "USB/RPI/WIFI";
+      }
   }
+  if (configData[5]&0x04) {
+    std::cout << ", allow hardware jumpers";
+  } else {
+    std::cout << ", ignore hardware jumpers";
+  }
+  if ((configData[5]&0x07)==0x07) {
+    std::cout << " (default)";
+  }
+  std::cout << std::endl;
   return 0;
 }
 
@@ -1155,13 +1143,11 @@ bool writeSettings(int fd, uint8_t* currentData = nullptr) {
   if (setVisualPing) {
     configData[5] = (configData[5]&0x1f) | (setVisualPingOn?0x20:0);
   }
-  if (setSoftVariant) {
-    configData[5] = (configData[5]&0x38) | (setSoftVariantForced?0:0x04) | (setSoftVariantValue&0x03);
-    if (setSoftVariantValue==0) {
+  if (setVariant) {
+    configData[5] = (configData[5]&0x38) | (setVariantForced?0:0x04) | (setVariantValue&0x03);
+    if (setVariantValue==0) {
       configData[1] = (configData[1]&~0x1f); // set mask=0 to disable Ethernet
     }
-  } else if (setHardVariant) {
-    configData[5] = (configData[5]&0x38) | 0x07;
   }
   if (writeConfig(fd, 0x0000, 8, configData) != 0) {
     std::cerr << "failed" << std::endl;
@@ -1313,7 +1299,7 @@ int run(int fd) {
       success = false;
     }
   }
-  if (setMacFromIp || setIp || setDhcp || setArbitrationDelay || setVisualPing || setSoftVariant || setHardVariant) {
+  if (setMacFromIp || setIp || setDhcp || setArbitrationDelay || setVisualPing || setVariant) {
     if (writeSettings(fd, useCurrentConfigData ? currentConfigData : nullptr)) {
       std::cout << "Settings changed to:" << std::endl;
       readSettings(fd);
