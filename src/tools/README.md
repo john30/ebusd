@@ -10,8 +10,15 @@ bootloader is not running, this tool can't do anything.
 Check the [eBUS adapter 3 documentation](https://adapter.ebusd.eu/picfirmware)
 on how to start the bootloader.
 
-This tool was developed due to very unreadable output of the MPLAB bootloader
-host application.
+The binary is part of the ebusd release and a Windows binary based on Cygwin is available for download here:
+[ebuspicloader-windows.zip](https://adapter.ebusd.eu/firmware/ebuspicloader-windows.zip)  
+It can be started from within Windows `cmd.exe` after extracting the files to a folder and `cd` into that folder.
+If Cygwin is already installed, only the `ebuspicloader.exe` needs to be extracted and can be called directly
+from within a Cygwin shell. 
+
+This tool is an alternative to the MPLAB bootloader host application that produces a lot
+of unreadable output.
+
 
 Usage
 -----
