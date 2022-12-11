@@ -808,6 +808,7 @@ int openSerial(std::string port) {
     close(fd);
     return -1;
   }
+  std::cout << "opened " << port << std::endl;
   return fd;
 }
 
@@ -819,6 +820,7 @@ int openNet(std::string host, uint16_t port) {
     return -1;
   }
   fcntl(fd, F_SETFL, O_NONBLOCK);  // set non-blocking
+  std::cout << "opened " << host << ":" << static_cast<unsigned>(port) << std::endl;
   return fd;
 }
 
@@ -1241,6 +1243,7 @@ int main(int argc, char* argv[]) {
       continue;
     }
     run(fd);
+    std::cout << std::endl;
   }
   return 0;
 }
