@@ -961,6 +961,7 @@ void MqttHandler::run() {
         ostringstream ostr;
         deque<Message*> messages;
         m_messages->findAll("", "", m_levels, false, true, true, true, true, true, 0, 0, false, &messages);
+        bool includeActiveWrite = FileReader::matches("w", filterDirection, true, true);
         for (const auto& message : messages) {
           bool checkPollAdjust = false;
           if (filterSeen > 0) {
@@ -1011,7 +1012,13 @@ void MqttHandler::run() {
           if (filterPriority > 0 && (message->getPollPriority() == 0 || message->getPollPriority() > filterPriority)) {
             continue;
           }
-
+          if (includeActiveWrite && !message->isWrite()) {
+            // check for existance of write message with same name
+            Message* write = m_messages->find(message->getCircuit(), message->getName(), "", true);
+            if (write) {
+              continue;  // avoid sending definition of read AND write message with the same key
+            }
+          }
           StringReplacers msgValues = m_replacers;  // need a copy here as the contents are manipulated
           msgValues.set("circuit", message->getCircuit());
           msgValues.set("name", message->getName());

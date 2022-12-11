@@ -4,6 +4,7 @@
 * fix potentially unnecessary arbitration start for non-enhanced proto
 * fix smaller issues in KNX integration
 * fix numeric replacement+infinite and float min/max values in MQTT JSON payload format
+* fix duplicate definition sent for same message when writable messages are included in MQTT integration
 
 ## Features
 * add support for setting visual ping, IP gateway, MAC from ID, and variant to ebuspicloader
