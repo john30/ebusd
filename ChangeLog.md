@@ -5,11 +5,15 @@
 * fix smaller issues in KNX integration
 * fix numeric replacement+infinite and float min/max values in MQTT JSON payload format
 * fix duplicate definition sent for same message when writable messages are included in MQTT integration
+* fix UDP based devices no longer working since 22.4
+* fix for older SSL libraries not automatically retrying if necessary
+* fix enhanced side data transfer from device to host
 
 ## Features
 * add support for setting visual ping, IP gateway, MAC from ID, and variant to ebuspicloader
 * add step variable for numeric values to message definition in MQTT integration
 * add yes/no values and heating curve (when writable) to Home Assistant MQTT discovery integration
+* add device version to update check and switch to Home Assistant update integration for current update check and additionally for device 
 
 
 # 22.4 (2022-09-18)
