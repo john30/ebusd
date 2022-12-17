@@ -79,6 +79,7 @@ int tcpKeepAliveInterval) {
       close(sfd);
       return -1;
     }
+    return sfd;
   }
   int value = 1;
   ret = setsockopt(sfd, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<void*>(&value), sizeof(value));
