@@ -668,11 +668,9 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
         break;
       case ENH_RES_INFO:
         if (m_infoLen == 0) {
-          if (data <= 16) {  // max length
-            m_infoLen = data;
-            m_infoPos = 0;
-          }
-        } else if (m_infoPos < m_infoLen) {
+          m_infoLen = data;
+          m_infoPos = 0;
+        } else if (m_infoPos < m_infoLen && m_infoPos < sizeof(m_infoBuf)) {
           m_infoBuf[m_infoPos++] = data;
           if (m_infoPos >= m_infoLen) {
             unsigned int val;
@@ -758,6 +756,9 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
             m_infoLen = 0;
             m_infoId = 0xff;
           }
+        } else {
+          m_infoLen = 0;  // reset on invalid response
+          m_infoId = 0xff;
         }
         break;
       case ENH_RES_ERROR_EBUS:
