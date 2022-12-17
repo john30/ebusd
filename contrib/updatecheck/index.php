@@ -23,10 +23,11 @@ $ref = @file_get_contents('ebusd-configuration/.git/refs/heads/master');
   }
 ?>
   <p>latest ebusd version: <?=$versions['ebusd'][0]?></p>
+  <p>latest device firmware: <?=$versions['device'][0]?></p>
   <p>config files:
 <?php
   $func = function($v, $k) {
-    if ($k==='ebusd') {
+    if ($k==='ebusd' || $k==='device') {
       return;
     }
     global $ref;
