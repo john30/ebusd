@@ -126,8 +126,8 @@ The first byte transferred in response is always the number of data bytes to be 
    * `length`: =8
    * 8*`config_H` `config_L`: PIC config
  * 0x03: PIC temperature
-   * `length`: =1
-   * `temp`: temperature in degrees Celsius
+   * `length`: =2
+   * `temp_H` `temp_L`: temperature in degrees Celsius
  * 0x04: PIC supply voltage
    * `length`: =2
    * `millivolt_H` `millivolt_L`: voltage value in mV
