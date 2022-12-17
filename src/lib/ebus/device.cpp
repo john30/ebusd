@@ -567,6 +567,11 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
 #endif
     m_bufLen += size;
   }
+  if (m_enhancedProto) {
+    if (handleEnhancedBufferedData(value, arbitrationState)) {
+      return true;
+    }
+  }
   if (!available()) {
     if (incomplete) {
       *incomplete = m_enhancedProto && m_bufLen > 0;
@@ -579,6 +584,10 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
     m_bufLen--;
     return true;
   }
+  return handleEnhancedBufferedData(value, arbitrationState);
+}
+
+bool Device::handleEnhancedBufferedData(symbol_t* value, ArbitrationState* arbitrationState) {
   while (m_bufLen > 0) {
     symbol_t ch = m_buffer[m_bufPos];
     if (!(ch&ENH_BYTE_FLAG)) {

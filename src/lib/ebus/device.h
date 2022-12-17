@@ -301,6 +301,14 @@ class Device {
   bool m_resetRequested;
 
  private:
+  /**
+   * Handle the already buffered enhanced data.
+   * @param value the reference in which the read byte value is stored.
+   * @param arbitrationState the variable in which to store the current/received arbitration state (mandatory for enhanced proto).
+   * @return true if the value was set, false otherwise.
+   */
+  bool handleEnhancedBufferedData(symbol_t* value, ArbitrationState* arbitrationState);
+
   /** the @a DeviceListener, or nullptr. */
   DeviceListener* m_listener;
 
