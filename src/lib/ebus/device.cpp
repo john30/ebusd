@@ -41,6 +41,7 @@
 #include <ios>
 #include <iomanip>
 #include "lib/ebus/data.h"
+#include "lib/utils/clock.h"
 #include "lib/utils/tcpsocket.h"
 
 namespace ebusd {
@@ -297,6 +298,7 @@ result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* a
   }
   bool repeated = false;
   timeout += m_latency;
+  uint64_t until = clockGetMillis() + timeout;
   do {
     bool isAvailable = available();
     if (!isAvailable && timeout > 0) {
@@ -359,7 +361,11 @@ result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* a
       timeout = m_latency+ENHANCED_COMPLETE_WAIT_DURATION;
       continue;
     }
-    return RESULT_ERR_TIMEOUT;
+    uint64_t now = clockGetMillis();
+    if (now >= until) {
+      return RESULT_ERR_TIMEOUT;
+    }
+    timeout = static_cast<unsigned>(until - now);
   } while (true);
   if (m_enhancedProto || *value != SYN || m_arbitrationMaster == SYN || m_arbitrationCheck) {
     if (m_listener != nullptr) {
@@ -449,7 +455,7 @@ bool Device::available() {
   if (!m_enhancedProto) {
     return true;
   }
-  // peek into the received enhanced proto bytes to determine symbol availability
+  // peek into the received enhanced proto bytes to determine received bus symbol availability
   for (size_t pos = 0; pos < m_bufLen; pos++) {
     symbol_t ch = m_buffer[(pos+m_bufPos)%m_bufSize];
     if (!(ch&ENH_BYTE_FLAG)) {
@@ -463,6 +469,7 @@ bool Device::available() {
       if (pos+1 >= m_bufLen) {
         return false;
       }
+      symbol_t cmd = (ch >> 2)&0xf;
       // peek into next byte to check if enhanced sequence is ok
       ch = m_buffer[(pos+m_bufPos+1)%m_bufSize];
       if (!(ch&ENH_BYTE_FLAG) || (ch&ENH_BYTE_MASK) != ENH_BYTE2) {
@@ -478,6 +485,10 @@ bool Device::available() {
         m_bufPos = (m_bufPos + 1) % m_bufSize;
         m_bufLen--;
         pos--;
+        continue;
+      }
+      if (cmd != ENH_RES_RECEIVED && cmd != ENH_RES_STARTED && cmd != ENH_RES_FAILED) {
+        pos++;
         continue;
       }
 #ifdef DEBUG_RAW_TRAFFIC
