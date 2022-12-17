@@ -202,6 +202,7 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool htt
       if (isError("get_ssl", ssl)) {
         break;
       }
+      SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
       const char *hostname = host.c_str();
       if (isError("tls_host", SSL_set_tlsext_host_name(ssl, hostname), 1)) {
         break;
