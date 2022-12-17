@@ -16,7 +16,7 @@ function readVersions($old=false) {
     array_walk($v, $func);
   }
 }
-function checkUpdate($ebusdVersion, $ebusdRelease, $architecture, $loadedFiles) {
+function checkUpdate($ebusdVersion, $ebusdRelease, $architecture, $deviceVersion, $loadedFiles) {
   if (!$ebusdVersion) {
     return 'invalid request';
   }
@@ -29,6 +29,13 @@ function checkUpdate($ebusdVersion, $ebusdRelease, $architecture, $loadedFiles) 
     $ret = 'revision '.$versions['ebusd'][1].' available';
   } else {
     $ret = 'version '.$versions['ebusd'][0].' available';
+  }
+  if ($deviceVersion && @$versions['device']) {
+    $feat = strtok($deviceVersion, '.');
+    $ver = strtok('.');
+    if ($ver && $ver!==$versions['device'][0]) {
+      $ret .= ', device firmware '.$versions['device'][0].' available';
+    }
   }
   $newerAvailable = 0;
   $configs = '';
