@@ -212,11 +212,25 @@ class Device {
   void setListener(DeviceListener* listener) { m_listener = listener; }
 
   /**
-   * Send a request for extra infos to enhanced device.
+   * Check for a running extra infos request, wait for it to complete,
+   * and then send a new request for extra infos to enhanced device.
    * @param infoId the ID of the info to request.
    * @return @a RESULT_OK on success, or an error code otherwise.
    */
   result_t requestEnhancedInfo(symbol_t infoId);
+
+  /**
+   * Send a request for extra infos to enhanced device.
+   * @param infoId the ID of the info to request.
+   * @return @a RESULT_OK on success, or an error code otherwise.
+   */
+  result_t sendEnhancedInfoRequest(symbol_t infoId);
+
+  /**
+   * Get the enhanced device version.
+   * @return @a a string with the version infos, or empty.
+   */
+  string getEnhancedVersion() const { return m_enhInfoVersion; }
 
   /**
    * Retrieve/update all extra infos from an enhanced device.
@@ -323,6 +337,9 @@ class Device {
 
   /** the info buffer. */
   symbol_t m_infoBuf[16];
+
+  /** a string describing the enhanced device version. */
+  string m_enhInfoVersion;
 
   /** a string describing the enhanced device temperature. */
   string m_enhInfoTemperature;

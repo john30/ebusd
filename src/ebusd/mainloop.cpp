@@ -365,6 +365,12 @@ void MainLoop::run() {
                << ",\"a\":\"other\""
 #endif
                << ",\"u\":" << (now-start);
+          if (m_device->isEnhancedProto()) {
+            string ver = m_device->getEnhancedVersion();
+            if (!ver.empty()) {
+              ostr << ",\"dv\":\"" << ver << "\"";
+            }
+          }
           if (m_reconnectCount) {
             ostr << ",\"rc\":" << m_reconnectCount;
           }
@@ -1937,12 +1943,21 @@ result_t MainLoop::executeInfo(const vector<string>& args, const string& user, o
   if (!m_device->isValid()) {
     *ostream << ", invalid";
   }
+  bool infoAdded = false;
   if (verbose) {
     string info = m_device->getEnhancedInfos();
     if (!info.empty()) {
       *ostream << ", " << info;
+      infoAdded = true;
     }
   }
+  if (!infoAdded) {
+    string info = m_device->getEnhancedVersion();
+    if (!info.empty()) {
+      *ostream << ", firmware " << info;
+    }
+  }
+
   *ostream << "\n";
   if (!user.empty()) {
     *ostream << "user: " << user << "\n";

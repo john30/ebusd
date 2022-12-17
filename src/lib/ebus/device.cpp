@@ -184,7 +184,7 @@ bool Device::isValid() {
 }
 
 result_t Device::requestEnhancedInfo(symbol_t infoId) {
-  if (!m_enhancedProto || m_extraFatures == 0 || infoId == 0xff) {
+  if (!m_enhancedProto || m_extraFatures == 0) {
     return RESULT_ERR_INVALID_ARG;
   }
   for (unsigned int i = 0; i < 4; i++) {
@@ -196,16 +196,24 @@ result_t Device::requestEnhancedInfo(symbol_t infoId) {
   if (m_infoId != 0xff) {
     return RESULT_ERR_DUPLICATE;
   }
+  if (infoId == 0xff) {
+    // just waited for completion
+    return RESULT_OK;
+  }
+  return sendEnhancedInfoRequest(infoId);
+}
+
+result_t Device::sendEnhancedInfoRequest(symbol_t infoId) {
   symbol_t buf[2] = makeEnhancedSequence(ENH_REQ_INFO, infoId);
 #ifdef DEBUG_RAW_TRAFFIC
   fprintf(stdout, "raw enhanced > %2.2x %2.2x\n", buf[0], buf[1]);
   fflush(stdout);
 #endif
-  m_infoPos = 0;
-  m_infoId = infoId;
   if (::write(m_fd, buf, 2) != 2) {
     return RESULT_ERR_DEVICE;
   }
+  m_infoPos = 0;
+  m_infoId = infoId;
   return RESULT_OK;
 }
 
@@ -214,7 +222,7 @@ string Device::getEnhancedInfos() {
     return "";
   }
   result_t res;
-  if (m_enhInfoTemperature.empty()) {
+  if (m_enhInfoTemperature.empty()) {  // use empty temperature for potential refresh after reset
     res = requestEnhancedInfo(0);
     if (res != RESULT_OK) {
       return "cannot request version";
@@ -244,11 +252,11 @@ string Device::getEnhancedInfos() {
   if (res != RESULT_OK) {
     return "cannot request bus voltage";
   }
-  usleep(8*40000);
-  if (m_infoPos == 0) {
-    return "did not get info";
+  res = requestEnhancedInfo(0xff);
+  if (res != RESULT_OK) {
+    m_enhInfoBusVoltage = "bus voltage unknown";
   }
-  return m_enhInfoTemperature + ", " + m_enhInfoSupplyVoltage + ", " + m_enhInfoBusVoltage;
+  return "firmware " + m_enhInfoVersion + ", " + m_enhInfoTemperature + ", " + m_enhInfoSupplyVoltage + ", " + m_enhInfoBusVoltage;
 }
 
 result_t Device::send(symbol_t value) {
@@ -644,13 +652,16 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
         m_enhInfoSupplyVoltage = "";
         m_enhInfoBusVoltage = "";
         m_infoId = 0xff;
+        m_extraFatures = data;
         if (m_resetRequested) {
           m_resetRequested = false;
+          if (m_extraFatures&0x01) {
+            sendEnhancedInfoRequest(0);  // request version, ignore result
+          }
         } else {
           close();  // on self-reset of device close and reopen it to have a clean startup
           cancelRunningArbitration(arbitrationState);
         }
-        m_extraFatures = data;
         if (m_listener != nullptr) {
           m_listener->notifyStatus(false, (m_extraFatures&0x01) ? "reset, supports info" : "reset");
         }
@@ -670,19 +681,24 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
               case 0x0200:
               case 0x0500:  // with firmware version and jumper info
               case 0x0800:  // with firmware version, jumper info, and bootloader version
-                stream << "firmware " << static_cast<unsigned>(m_infoBuf[0]) << "."  // version minor
+                stream << static_cast<unsigned>(m_infoBuf[0]) << "."  // version minor
                        << std::hex << static_cast<unsigned>(m_infoBuf[1]);  // features mask
                 if (m_infoLen >= 5) {
-                  stream << " [" << std::setfill('0') << std::setw(2) << std::hex << static_cast<unsigned>(m_infoBuf[2])
+                  stream << "[" << std::setfill('0') << std::setw(2) << std::hex << static_cast<unsigned>(m_infoBuf[2])
                          << std::setw(2) << static_cast<unsigned>(m_infoBuf[3]) << "]";
-                  stream << ", jumpers 0x" << std::setw(2) << static_cast<unsigned>(m_infoBuf[4]);
-                  stream << std::setfill(' ');  // reset
                 }
                 if (m_infoLen >= 8) {
-                  stream << ", bootloader " << std::dec << static_cast<unsigned>(m_infoBuf[5]);
-                  stream << " [" << std::setfill('0') << std::setw(2) << std::hex << static_cast<unsigned>(m_infoBuf[6])
+                  stream << "." << std::dec << static_cast<unsigned>(m_infoBuf[5]);
+                  stream << "[" << std::setfill('0') << std::setw(2) << std::hex << static_cast<unsigned>(m_infoBuf[6])
                          << std::setw(2) << static_cast<unsigned>(m_infoBuf[7]) << "]";
                 }
+                m_enhInfoVersion = stream.str();
+                stream.str(" ");
+                stream << "firmware " << m_enhInfoVersion;
+                if (m_infoLen >= 5) {
+                  stream << ", jumpers 0x" << std::setw(2) << static_cast<unsigned>(m_infoBuf[4]);
+                }
+                stream << std::setfill(' ');  // reset
                 break;
               case 0x0901:
               case 0x0802:
