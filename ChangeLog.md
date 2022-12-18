@@ -12,7 +12,7 @@
 ## Features
 * add support for setting visual ping, IP gateway, MAC from ID, and variant to ebuspicloader
 * add step variable for numeric values to message definition in MQTT integration
-* add yes/no values and heating curve (when writable) to Home Assistant MQTT discovery integration
+* add yes/no values and writable heating curve to Home Assistant MQTT discovery integration
 * add device version to update check and switch to Home Assistant update integration for current update check and additionally for device 
 
 
