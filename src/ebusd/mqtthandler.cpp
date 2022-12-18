@@ -952,8 +952,10 @@ void MqttHandler::run() {
           publishDefinition(m_replacers, "def_global_uptime-", uptimeTopic, "global", "uptime", "def_global-");
           publishDefinition(m_replacers, "def_global_updatecheck-", m_globalTopic.get("", "updatecheck"), "global",
                             "updatecheck", "def_global-");
-          publishDefinition(m_replacers, "def_global_updatecheck_device-", m_globalTopic.get("", "updatecheck"), "global",
-                            "updatecheck_device", "");
+          if (m_busHandler->getDevice()->supportsEnhancedInfos()) {
+            publishDefinition(m_replacers, "def_global_updatecheck_device-", m_globalTopic.get("", "updatecheck"),
+                              "global", "updatecheck_device", "");
+          }
           publishDefinition(m_replacers, "def_global_scan-", m_globalTopic.get("", "scan"), "global", "scan",
                             "def_global-");
         }

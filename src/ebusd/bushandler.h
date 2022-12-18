@@ -424,6 +424,11 @@ class BusHandler : public WaitThread {
   }
 
   /**
+   * @return the @a Device instance for accessing the bus.
+   */
+  const Device* getDevice() const { return m_device; }
+
+  /**
    * Clear stored values (e.g. scan results).
    */
   void clear();

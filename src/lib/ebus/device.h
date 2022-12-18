@@ -206,6 +206,11 @@ class Device {
   bool isEnhancedProto() const { return m_enhancedProto; }
 
   /**
+   * @return whether the device supports the ebusd enhanced protocol and supports querying extra infos.
+   */
+  bool supportsEnhancedInfos() const { return m_enhancedProto && m_extraFatures & 0x01; }
+
+  /**
    * Set the @a DeviceListener.
    * @param listener the @a DeviceListener.
    */
