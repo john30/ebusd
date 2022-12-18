@@ -1132,8 +1132,8 @@ void MqttHandler::run() {
               if (!typeSwitchNames.empty()) {
                 vector<string> strs;
                 splitFields(typeSwitch, &strs);
-                for (size_t pos = 0; pos < strs.size() && pos < typeSwitchNames.size(); pos++) {
-                  values.set(typeSwitchNames[pos], strs[pos]);
+                for (size_t pos = 0; pos < typeSwitchNames.size(); pos++) {
+                  values.set(typeSwitchNames[pos], pos < strs.size() ? strs[pos] : "");
                 }
               }
             }
