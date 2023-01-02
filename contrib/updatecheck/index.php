@@ -5,7 +5,7 @@ if (substr($agent, 0, 5)==='ebusd') {
   $r = @file_get_contents('php://input');
   header('Content-Type: text/plain');
   $r = @json_decode($r, true);
-  echo checkUpdate(@$r['v'], @$r['r'], @$r['a'], @$r['dv'], @$r['l']);
+  echo checkUpdate(@$r['v'], @$r['r'], @$r['a'], @$r['dv'], @$r['l'], @$r['lc']);
   exit;
 }
 readVersions();
@@ -24,21 +24,28 @@ $ref = @file_get_contents('ebusd-configuration/.git/refs/heads/master');
 ?>
   <p>latest ebusd version: <?=$versions['ebusd'][0]?></p>
   <p>latest device firmware: <?=$versions['device'][0]?></p>
-  <p>config files:
+  <p>config files:<table><thead><th>File</th><th>German</th><th>English</th></thead><tbody>
 <?php
   $func = function($v, $k) {
     if ($k==='ebusd' || $k==='device') {
       return;
     }
+    echo "<tr><td>$k</td>";
     global $ref;
-    $str = "$k: ".date('d.m.Y H:i:s', $v[2]);
+    $str = date('d.m.Y H:i:s', $v[2]);
     if ($ref) {
-      echo "  <br><a href=\"https://github.com/john30/ebusd-configuration/blob/$ref/ebusd-2.1.x/de/$k\">$str</a>\n";
+      echo "<td><a href=\"https://github.com/john30/ebusd-configuration/blob/$ref/ebusd-2.1.x/de/$k\">$str</a></td>\n";
     } else {
-      echo "  <br>$str\n";
+      echo "<td>$str</td>\n";
+    }
+    $str = date('d.m.Y H:i:s', $v[5]);
+    if ($ref) {
+      echo "<td><a href=\"https://github.com/john30/ebusd-configuration/blob/$ref/ebusd-2.1.x/en/$k\">$str</a></td>\n";
+    } else {
+      echo "<td>$str</td>\n";
     }
   };
   array_walk($versions, $func);
 ?>
-  </p>
+  </tbody></table></p>
 </body>

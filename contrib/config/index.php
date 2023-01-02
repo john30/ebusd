@@ -1,19 +1,29 @@
 <?php
-$agent = $_SERVER['HTTP_USER_AGENT'];
+$agent = @$_SERVER['HTTP_USER_AGENT'];
 if (substr($agent, 0, 5)!=='ebusd') {
   header('Location: https://upd.ebusd.eu/', true, 301);
   exit;
 }
+$dir=realpath('.');
 $p=@$_REQUEST['p'];
 $e=@$_REQUEST['t'];
 $a=@$_REQUEST['a'];
-if ($p && $p[0]==='/') {
+$l=@$_REQUEST['l'];
+while ($p && $p[0]==='/') {
   $p=substr($p, 1);
 }
 if ($p && $p[strlen($p)-1]==='/') {
   $p=substr($p, 0, strlen($p)-1);
 }
-if ($p && $p[0]!=='/' && strpos($p, '..')===FALSE && is_file($p)) {
+if ($l && strlen($l)===2 && ctype_alpha($l) && is_dir($l)) {
+  $l=strtolower($l).'/';
+} else {
+  $l='de/';
+}
+$p=$l.($p ? $p : '.');
+if ($p && strpos($p, '..')===FALSE && is_file($p) && (substr($p, -4)==='.csv' || substr($p, -4)==='.inc')
+  && strncmp(realpath($p), $dir, strlen($dir))===0
+) {
   header('Content-Type: text/comma-separated-values');
   header('Cache-Control: Private');
   $t=@filemtime($p);
@@ -31,9 +41,7 @@ if (!$e) {
   exit;
 }
 $e=".$e";
-if (!$p) {
-  $p='.';
-} else if (strpos($p, '/')!==FALSE || strpos($p, '\\')!==FALSE || strpos($p, '..')!==FALSE) {
+if (strpos($p, '/', strlen($l))!==FALSE || strpos($p, '\\')!==FALSE || strpos($p, '..')!==FALSE) {
   header('HTTP/1.1 400 Bad Request');
   exit;
 }

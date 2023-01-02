@@ -6,6 +6,12 @@ echo "ebusd=${version},${revision}" > oldversions.txt
 devver=`curl -s https://adapter.ebusd.eu/firmware/ChangeLog|grep "Version "|head -n 1|sed -e 's#.*<code[^>]*>##' -e 's#<.*##' -e 's# ##'`
 devbl=`curl -s https://adapter.ebusd.eu/firmware/ChangeLog|grep "Bootloader "|head -n 1|sed -e 's#.*<code[^>]*>##' -e 's#<.*##' -e 's# ##'`
 echo "device=${devver},${devbl}" >> versions.txt
-files=`find config/ -type f -or -type l`
-../../src/lib/ebus/test/test_filereader $files|sed -e 's#^config/##' -e 's#^\([^ ]*\) #\1=#' -e 's# #,#g'|sort >> versions.txt
+files=`find config/de -type f -or -type l`
+../../src/lib/ebus/test/test_filereader $files|sed -e 's#^config/de/##' -e 's#^\([^ ]*\) #\1=#' -e 's# #,#g'|sort >> versions.txt
+files=`find config/en -type f -or -type l`
+for filever in $(../../src/lib/ebus/test/test_filereader $files|sed -e 's#^config/en/##' -e 's#^\([^ ]*\) #\1=#' -e 's# #,#g'); do
+  file=${filever%%=*}
+  ver=${filever#*=}
+  sed -i -e "s#^$file=\(.*\)\$#$file=\1,$ver#" versions.txt
+done
 #./oldtest_filereader $files|sed -e 's#^config/##' -e 's#^\([^ ]*\) #\1=#' -e 's# #,#g'|sort >> oldversions.txt
