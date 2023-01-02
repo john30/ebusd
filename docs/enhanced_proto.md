@@ -114,9 +114,9 @@ The first byte transferred in response is always the number of data bytes to be 
  * 0x00: version  
    * `length`: =8 (2 before 20220220, 5 before 20220831)
    * `version`: version number
-   * `features`: feature bits
+   * `features`: feature bits (see above)
    * `checksum_H` `checksum_L`: checksum (since 20220220)
-   * `jumpers`: jumper settings
+   * `jumpers`: jumper settings (0x01=enhanced, 0x02=high speed, 0x04=Ethernet, 0x08=WIFI, 0x10=v3.1, 0x20=ignore hard jumpers)
    * `bootloader_version`: bootloader version (since 20220831)
    * `bootloader_checksum_H` `bootloader_checksum_L`: bootloader checksum
  * 0x01: PIC ID
