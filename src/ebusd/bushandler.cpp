@@ -1530,6 +1530,9 @@ void BusHandler::formatUpdateInfo(ostringstream* output) const {
     }
     *output << "],\"gu\":" << unknownCnt;
   }
+  if (!m_messages->getPreferLanguage().empty()) {
+    *output << ",\"lc\":\"" << m_messages->getPreferLanguage() << "\"";
+  }
   unsigned char address = 0;
   for (int index = 0; index < 256; index++, address++) {
     bool ownAddress = !m_device->isReadOnly() && (address == m_ownMasterAddress || address == m_ownSlaveAddress);

@@ -222,6 +222,11 @@ class MappedFileReader : public FileReader {
    */
   static const string normalizeLanguage(const string& lang);
 
+  /**
+   * @return the preferred language code (up to 2 characters), or empty.
+   */
+  const string getPreferLanguage() const { return m_preferLanguage; }
+
   // @copydoc
   result_t readFromStream(istream* stream, const string& filename, const time_t& mtime, bool verbose,
       map<string, string>* defaults, string* errorDescription, bool replace = false, size_t* hash = nullptr,

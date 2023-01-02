@@ -1267,7 +1267,7 @@ class MessageMap : public MappedFileReader {
    * @param deleteData whether to delete the scan message @a DataField during @a Message destruction.
    */
   explicit MessageMap(bool addAll = false, const string& preferLanguage = "", bool deleteData = true)
-  : MappedFileReader::MappedFileReader(true),
+  : MappedFileReader::MappedFileReader(true, preferLanguage),
     m_addAll(addAll), m_additionalScanMessages(false), m_maxIdLength(0), m_maxBroadcastIdLength(0),
     m_messageCount(0), m_conditionalMessageCount(0), m_passiveMessageCount(0) {
     m_scanMessage = Message::createScanMessage(false, deleteData);

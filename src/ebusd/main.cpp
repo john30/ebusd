@@ -151,6 +151,9 @@ static string s_configLocalPrefix = "";
 /** the URI prefix (including trailing "/") for retrieving configuration files from HTTPS (empty for local files). */
 static string s_configUriPrefix = "";
 
+/** the optional language query part for retrieving configuration files from HTTPS (empty for local files). */
+static string s_configLangQuery = "";
+
 /** the @a HttpClient for retrieving configuration files from HTTPS. */
 static HttpClient* s_configHttpClient = nullptr;
 
@@ -858,7 +861,8 @@ static result_t collectConfigFiles(const string& relPath, const string& prefix, 
                                    vector<string>* dirs = nullptr, bool* hasTemplates = nullptr) {
   const string relPathWithSlash = relPath.empty() ? "" : relPath + "/";
   if (!s_configUriPrefix.empty()) {
-    string uri = s_configUriPrefix + relPathWithSlash + "?t=" + extension.substr(1) + query;
+    string uri = s_configUriPrefix + relPathWithSlash + s_configLangQuery + (s_configLangQuery.empty() ? "?" : "&")
+      + "t=" + extension.substr(1) + query;
     string names;
     if (!lazyHttpClient() || !s_configHttpClient->get(uri, "", &names)) {
       return RESULT_ERR_NOTFOUND;
@@ -1074,7 +1078,7 @@ result_t loadDefinitionsFromConfigPath(FileReader* reader, const string& filenam
     stream = FileReader::openFile(s_configLocalPrefix + filename, errorDescription, &mtime);
   } else {
     string content;
-    if (lazyHttpClient() && s_configHttpClient->get(s_configUriPrefix + filename, "", &content, &mtime)) {
+    if (lazyHttpClient() && s_configHttpClient->get(s_configUriPrefix + filename + s_configLangQuery, "", &content, &mtime)) {
       stream = new istringstream(content);
     }
   }
@@ -1423,6 +1427,12 @@ int main(int argc, char* argv[]) {
     }
     s_configHttpClient->disconnect();
   }
+  const string lang = MappedFileReader::normalizeLanguage(
+    s_opt.preferLanguage==nullptr || !s_opt.preferLanguage[0] ? "" : s_opt.preferLanguage
+  );
+  if (!lang.empty()) {
+    s_configLangQuery = "?l=" + lang;
+  }
   if (!s_opt.readOnly && s_opt.scanConfig && s_opt.initialScan == 0) {
     s_opt.initialScan = BROADCAST;
   }
@@ -1431,7 +1441,7 @@ int main(int argc, char* argv[]) {
     setFacilitiesLogLevel(s_opt.logAreas, s_opt.logLevel);
   }
 
-  s_messageMap = new MessageMap(s_opt.checkConfig);
+  s_messageMap = new MessageMap(s_opt.checkConfig, lang);
   if (s_opt.checkConfig) {
     logNotice(lf_main, PACKAGE_STRING "." REVISION " performing configuration check...");
 
