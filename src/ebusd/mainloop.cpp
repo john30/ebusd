@@ -299,7 +299,7 @@ void MainLoop::run() {
             reload = false;
           }
         }
-        if (!loadDelay) {
+        if (!loadDelay && m_busHandler->hasSignal()) {
           lastScanAddress = m_busHandler->getNextScanAddress(lastScanAddress, scanCompleted >= SCAN_REPEAT_COUNT);
           if (lastScanAddress == SYN) {
             taskDelay = 5;
@@ -1825,6 +1825,9 @@ result_t MainLoop::executeScan(const vector<string>& args, const string& levels,
       return RESULT_OK;
     }
 
+    if (!m_busHandler->hasSignal()) {
+      return RESULT_ERR_NO_SIGNAL;
+    }
     result_t result;
     symbol_t dstAddress = (symbol_t)parseInt(args[1].c_str(), 16, 0, 0xff, &result);
     if (result == RESULT_OK && !isValidAddress(dstAddress, false)) {

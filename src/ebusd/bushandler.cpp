@@ -362,6 +362,9 @@ void BusHandler::clear() {
 }
 
 result_t BusHandler::sendAndWait(const MasterSymbolString& master, SlaveSymbolString* slave) {
+  if (m_state == bs_noSignal) {
+    return RESULT_ERR_NO_SIGNAL;  // don't wait when there is no signal
+  }
   result_t result = RESULT_ERR_NO_SIGNAL;
   slave->clear();
   ActiveBusRequest request(master, slave);
