@@ -10,11 +10,12 @@ bootloader is not running, this tool can't do anything.
 Check the [eBUS adapter 3 documentation](https://adapter.ebusd.eu/picfirmware)
 on how to start the bootloader.
 
-The binary is part of the ebusd release and a Windows binary based on Cygwin is available for download here:
+The binary is part of the [release](https://github.com/john30/ebusd/releases) and a Windows binary based on Cygwin is available for download here:
 [ebuspicloader-windows.zip](https://adapter.ebusd.eu/firmware/ebuspicloader-windows.zip)  
 It can be started from within Windows `cmd.exe` after extracting the files to a folder and `cd` into that folder.
 If Cygwin is already installed, only the `ebuspicloader.exe` needs to be extracted and can be called directly
-from within a Cygwin shell. 
+from within a Cygwin shell.  
+In Cygwin, Windows COM ports are mapped under `/dev/ttyS*`, e.g. `COM1` would be `/dev/ttyS0`.
 
 This tool is an alternative to the MPLAB bootloader host application that produces a lot
 of unreadable output.
@@ -61,7 +62,7 @@ settings.
       --usage                give a short usage message
   -V, --version              print program version
 
-PORT is either the serial port to use (e.g./dev/ttyUSB0) that also supports a
+PORT is either the serial port to use (e.g. /dev/ttyUSB0) that also supports a
 trailing wildcard '*' for testing multiple ports, or a network port as
 "ip:port" for use with e.g. socat or ebusd-esp in PIC pass-through mode.
 ```
