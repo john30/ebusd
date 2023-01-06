@@ -1334,15 +1334,16 @@ bool parseMessage(const string& arg, bool onlyMasterSlave, MasterSymbolString* m
  * Main function.
  * @param argc the number of command line arguments.
  * @param argv the command line arguments.
+ * @param envp the environment variables.
  * @return the exit code.
  */
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[], char* envp[]) {
   struct argp aargp = { argpoptions, parse_opt, nullptr, argpdoc, datahandler_getargs(), nullptr, nullptr };
   setenv("ARGP_HELP_FMT", "no-dup-args-note", 0);
 
   char envname[32] = "--";  // needs to cover at least max length of any option name plus "--"
   char* envopt = envname+2;
-  for (char ** env = environ; *env; env++) {
+  for (char ** env = envp; *env; env++) {
     char* pos = strchr(*env, '=');
     if (!pos || strncmp(*env, "EBUSD_", sizeof("EBUSD_")-1) != 0) {
       continue;
@@ -1569,6 +1570,6 @@ int main(int argc, char* argv[]) {
 
 }  // namespace ebusd
 
-int main(int argc, char* argv[]) {
-  return ebusd::main(argc, argv);
+int main(int argc, char* argv[], char* envp[]) {
+  return ebusd::main(argc, argv, envp);
 }

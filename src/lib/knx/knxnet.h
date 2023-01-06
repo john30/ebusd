@@ -31,7 +31,11 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
-#include <endian.h>
+#ifdef __FreeBSD__
+  #include <machine/endian.h>
+#else
+  #include <endian.h>
+#endif
 #include <string>
 #include <cstdio>
 #include <ctime>
