@@ -256,7 +256,8 @@ string Device::getEnhancedInfos() {
   if (res != RESULT_OK) {
     m_enhInfoBusVoltage = "bus voltage unknown";
   }
-  return "firmware " + m_enhInfoVersion + ", " + m_enhInfoTemperature + ", " + m_enhInfoSupplyVoltage + ", " + m_enhInfoBusVoltage;
+  return "firmware " + m_enhInfoVersion + ", " + m_enhInfoTemperature + ", " + m_enhInfoSupplyVoltage + ", "
+  + m_enhInfoBusVoltage;
 }
 
 result_t Device::send(symbol_t value) {

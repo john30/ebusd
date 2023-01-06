@@ -1078,7 +1078,8 @@ result_t loadDefinitionsFromConfigPath(FileReader* reader, const string& filenam
     stream = FileReader::openFile(s_configLocalPrefix + filename, errorDescription, &mtime);
   } else {
     string content;
-    if (lazyHttpClient() && s_configHttpClient->get(s_configUriPrefix + filename + s_configLangQuery, "", &content, &mtime)) {
+    if (lazyHttpClient()
+    && s_configHttpClient->get(s_configUriPrefix + filename + s_configLangQuery, "", &content, &mtime)) {
       stream = new istringstream(content);
     }
   }
@@ -1412,7 +1413,7 @@ int main(int argc, char* argv[], char* envp[]) {
     string proto, configHost;
     if (!HttpClient::parseUrl(s_configPath, &proto, &configHost, &configPort, &s_configUriPrefix)) {
 #ifndef HAVE_SSL
-      if (proto=="https") {
+      if (proto == "https") {
         logError(lf_main, "invalid configPath URL (HTTPS not supported)");
         return EINVAL;
       }
@@ -1433,7 +1434,7 @@ int main(int argc, char* argv[], char* envp[]) {
     s_configHttpClient->disconnect();
   }
   const string lang = MappedFileReader::normalizeLanguage(
-    s_opt.preferLanguage==nullptr || !s_opt.preferLanguage[0] ? "" : s_opt.preferLanguage
+    s_opt.preferLanguage == nullptr || !s_opt.preferLanguage[0] ? "" : s_opt.preferLanguage
   );
   if (!lang.empty()) {
     s_configLangQuery = "?l=" + lang;
