@@ -1420,8 +1420,12 @@ int main(int argc, char* argv[], char* envp[]) {
       logError(lf_main, "invalid configPath URL");
       return EINVAL;
     }
-    if (!lazyHttpClient()
-    || !s_configHttpClient->connect(configHost, configPort, proto == "https", PACKAGE_NAME "/" PACKAGE_VERSION)) {
+    if (!lazyHttpClient() || (
+      // check with low timeout of 1 second initially:
+      !s_configHttpClient->connect(configHost, configPort, proto == "https", PACKAGE_NAME "/" PACKAGE_VERSION, 1)
+      // if that did not work, issue a single retry with default timeout:
+      && !s_configHttpClient->connect(configHost, configPort, proto == "https", PACKAGE_NAME "/" PACKAGE_VERSION)
+    )) {
       logError(lf_main, "invalid configPath URL (connect)");
       cleanup();
       return EINVAL;
