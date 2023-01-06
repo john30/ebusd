@@ -43,7 +43,7 @@ package() {
   install -m 0644 contrib/archlinux/conf.d/ebusd          "${pkgdir}/etc/conf.d/ebusd"
   install -d                                              "${pkgdir}/etc/ebusd"
   install -m 0644 contrib/etc/ebusd/mqtt-hassio.cfg       "${pkgdir}/etc/ebusd/mqtt-hassio.cfg"
-  install -m 0644 contrib/etc/ebusd/mqtt-integration.cfg  "${pkgdir}/etc/ebusd/mqtt-integration.cfg
+  install -m 0644 contrib/etc/ebusd/mqtt-integration.cfg  "${pkgdir}/etc/ebusd/mqtt-integration.cfg"
 }
 
 md5sums=('SKIP')

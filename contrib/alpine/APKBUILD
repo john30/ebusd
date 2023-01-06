@@ -9,7 +9,7 @@ url="https://github.com/john30/ebusd"
 arch="x86 x86_64 aarch64 armhf armv7"
 license="GPL-3.0-only"
 makedepends="argp-standalone cmake mosquitto-dev openssl-dev"
-source="$pkgname-$pkgver.tar.gz::https://github.com/john30/ebusd/archive/refs/tags/v$pkgver.tar.gz"
+source="$pkgname-$pkgver.tar.gz::https://github.com/john30/${pkgname}/archive/refs/tags/${pkgver}.tar.gz"
 
 build() {
 	cmake -B build \
@@ -28,5 +28,5 @@ package() {
 }
 
 sha512sums="
-f625a8813eb5f844d1148eb9d683b9b730573e8c2bc1e3e2fec6462b3943340cfa1cfaf4cd50ff48b45aac47841189ad5d699316907b6abb6e7d1c20a0352842  ebusd-22.4.tar.gz
+3cb1aab16aa4ad596138e48fb1df030f986f948a87db8608fd184b582077d86b818c5b18cfa59e5a538191f3aa25787dadcb3bc5fd325728cdab77371d86d719  ebusd-23.1.tar.gz
 "
