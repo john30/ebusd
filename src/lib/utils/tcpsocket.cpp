@@ -89,13 +89,40 @@ int tcpKeepAliveInterval) {
   }
   if (tcpKeepAliveInterval > 0) {
     value = 1;
-    setsockopt(sfd, SOL_SOCKET, SO_KEEPALIVE, reinterpret_cast<void*>(&value), sizeof(value));
+    if (setsockopt(sfd, SOL_SOCKET, SO_KEEPALIVE, reinterpret_cast<void*>(&value), sizeof(value)) != 0) {
+      perror("setsockopt KEEPALIVE");
+    }
+#ifndef TCP_KEEPIDLE
+  #ifdef TCP_KEEPALIVE
+    #define TCP_KEEPIDLE TCP_KEEPALIVE
+  #else
+    #define TCP_KEEPIDLE 4
+  #endif
+#endif
+#ifndef TCP_KEEPINTVL
+  #define TCP_KEEPINTVL 5
+#endif
+#ifndef TCP_KEEPCNT
+  #define TCP_KEEPCNT 6
+#endif
     value = tcpKeepAliveInterval+1;  // send keepalive after interval + 1 seconds of silence
-    setsockopt(sfd, IPPROTO_TCP, TCP_KEEPIDLE, reinterpret_cast<void*>(&value), sizeof(value));
+    if (setsockopt(sfd, IPPROTO_TCP, TCP_KEEPIDLE, reinterpret_cast<void*>(&value), sizeof(value)) != 0) {
+      perror("setsockopt KEEPIDLE");
+    }
     value = tcpKeepAliveInterval;  // send keepalive in given interval
-    setsockopt(sfd, IPPROTO_TCP, TCP_KEEPINTVL, reinterpret_cast<void*>(&value), sizeof(value));
+    if (setsockopt(sfd, IPPROTO_TCP, TCP_KEEPINTVL, reinterpret_cast<void*>(&value), sizeof(value)) != 0) {
+      perror("setsockopt KEEPINTVL");
+    }
     value = 2;  // drop connection after 2 failed keep alive sends
-    setsockopt(sfd, IPPROTO_TCP, TCP_KEEPCNT, reinterpret_cast<void*>(&value), sizeof(value));
+    if (setsockopt(sfd, IPPROTO_TCP, TCP_KEEPCNT, reinterpret_cast<void*>(&value), sizeof(value)) != 0) {
+      perror("setsockopt KEEPCNT");
+    }
+#ifdef TCP_USER_TIMEOUT
+    value = (2+tcpKeepAliveInterval*3)*1000;  // 1 second higher than keepalive timeout
+    if (setsockopt(sfd, IPPROTO_TCP, TCP_USER_TIMEOUT, reinterpret_cast<void*>(&value), sizeof(value)) != 0) {
+       perror("setsockopt USER_TIMEOUT");
+    }
+#endif
   }
 #ifndef HAVE_PPOLL
 #ifndef HAVE_PSELECT
