@@ -47,7 +47,13 @@ const char *argp_program_version = "eBUS adapter PIC firmware loader";
 /** the documentation of the program. */
 static const char argpdoc[] =
     "A tool for loading firmware to the eBUS adapter PIC and configure adjustable settings."
-    "\vPORT is either the serial port to use (e.g./dev/ttyUSB0) that also supports a trailing wildcard '*' for testing"
+    "\vPORT is either the serial port to use (e.g. "
+#ifdef __CYGWIN__
+    "/dev/ttyS0 for COM1 on Windows"
+#else
+    "/dev/ttyUSB0"
+#endif
+    ") that also supports a trailing wildcard '*' for testing"
     " multiple ports, or a network port as \"ip:port\" for use with e.g. socat or ebusd-esp in PIC pass-through mode.";
 
 static const char argpargsdoc[] = "PORT";
