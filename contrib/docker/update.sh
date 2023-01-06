@@ -26,7 +26,7 @@ replaceTemplate
 # release update
 version_variant=''
 make='GIT_REVISION=\$GIT_REVISION ./make_debian.sh'
-copydeb="ADD https://github.com/john30/ebusd/releases/download/v\${EBUSD_VERSION}/ebusd-\${EBUSD_VERSION}_\${TARGETARCH}\${TARGETVARIANT}-\${EBUSD_IMAGE}_mqtt1.deb ebusd.deb"
+copydeb="ADD https://github.com/john30/ebusd/releases/download/\${EBUSD_VERSION}/ebusd-\${EBUSD_VERSION}_\${TARGETARCH}\${TARGETVARIANT}-\${EBUSD_IMAGE}_mqtt1.deb ebusd.deb"
 copyentry='COPY contrib/docker/docker-entrypoint.sh /'
 namesuffix='.release'
 replaceTemplate
