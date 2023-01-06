@@ -74,7 +74,7 @@ check_include_file(dev/usb/uftdiio.h HAVE_FREEBSD_UFTDI -DHAVE_FREEBSD_UFTDI=1)
 
 check_function_exists(argp_parse HAVE_ARGP)
 if(NOT HAVE_ARGP)
-  find_library(LIB_ARGP argp)
+  find_library(LIB_ARGP NAMES argp argp-standalone)
   if (NOT LIB_ARGP)
     message(FATAL_ERROR "argp library not available")
   endif(NOT LIB_ARGP)
