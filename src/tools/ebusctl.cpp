@@ -85,7 +85,7 @@ static const struct argp_option argpoptions[] = {
   {"port",    'p', "PORT",  0, "Connect to " PACKAGE " on PORT [8888]", 0 },
   {"timeout", 't', "SECS",  0, "Timeout for connecting to/receiving from " PACKAGE
                                ", 0 for none [60]", 0 },
-  {"error",   'e', nullptr, 0, "Exit non-zero if the connection was fine but the response indicates non-success"},
+  {"error",   'e', nullptr, 0, "Exit non-zero if the connection was fine but the response indicates non-success", 0},
 
   {nullptr,     0, nullptr, 0, nullptr, 0 },
 };
