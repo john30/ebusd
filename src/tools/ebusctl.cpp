@@ -45,6 +45,7 @@ struct options {
   const char* server;     //!< ebusd server host (name or ip) [localhost]
   uint16_t port;          //!< ebusd server port [8888]
   uint16_t timeout;       //!< ebusd connect/send/receive timeout
+  bool errorResponse;     //!< non-zero exit on error response
 
   char* const *args;      //!< arguments to pass to ebusd
   unsigned int argCount;  //!< number of arguments to pass to ebusd
@@ -54,9 +55,10 @@ struct options {
 static struct options opt = {
   "localhost",  // server
   8888,         // port
-  60,            // timeout
+  60,           // timeout
+  false,        // non-zero exit on error response
 
-  nullptr,         // args
+  nullptr,      // args
   0             // argCount
 };
 
@@ -83,6 +85,7 @@ static const struct argp_option argpoptions[] = {
   {"port",    'p', "PORT",  0, "Connect to " PACKAGE " on PORT [8888]", 0 },
   {"timeout", 't', "SECS",  0, "Timeout for connecting to/receiving from " PACKAGE
                                ", 0 for none [60]", 0 },
+  {"error",   'e', nullptr, 0, "Exit non-zero if the connection was fine but the response indicates non-success"},
 
   {nullptr,     0, nullptr, 0, nullptr, 0 },
 };
@@ -121,6 +124,9 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       return EINVAL;
     }
     opt->timeout = (uint16_t)value;
+    break;
+  case 'e':  // --error
+    opt->errorResponse = true;
     break;
   case ARGP_KEY_ARGS:
     opt->args = state->argv + state->next;
@@ -332,8 +338,12 @@ bool connect(const char* host, uint16_t port, uint16_t timeout, char* const *arg
             }
           }
         } else {
-          cout << fetchData(socket, listening, timeout, errored);
+          string response = fetchData(socket, listening, timeout, errored);
+          cout << response;
           cout.flush();
+          if (errored || (opt.errorResponse && response.substr(0, 4) == "ERR:")) {
+            ret = false;
+          }
         }
       }
     } while (!errored && !once && !cin.eof());

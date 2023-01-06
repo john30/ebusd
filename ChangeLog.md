@@ -9,6 +9,7 @@
 * fix for older SSL libraries not automatically retrying if necessary
 * fix enhanced side data transfer from device to host
 * fix for fast participants starting immediately after own SYN at the end of a sent command
+* add a single retry when initial config location check fails
 
 ## Features
 * add support for setting visual ping, IP gateway, MAC from ID, and variant to ebuspicloader
@@ -16,6 +17,7 @@
 * add yes/no values and writable heating curve to Home Assistant MQTT discovery integration
 * add device version to update check and switch to Home Assistant update integration for current update check and additionally for device
 * add preferred language support to web services and use it instead of default LANG environment with fallback to German
+* add option to exit non-zero on non-success response from ebusd to ebusctl
 
 
 # 22.4 (2022-09-18)
