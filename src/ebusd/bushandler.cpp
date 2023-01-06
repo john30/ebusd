@@ -1032,9 +1032,9 @@ result_t BusHandler::handleSymbol() {
 
   case bs_sendSyn:
     if (!sending) {
-      return setState(bs_skip, RESULT_ERR_INVALID_ARG);
+      return setState(bs_ready, RESULT_ERR_INVALID_ARG);
     }
-    return setState(bs_skip, RESULT_OK);
+    return setState(bs_ready, RESULT_OK);
   }
   return RESULT_OK;
 }
@@ -1090,7 +1090,8 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
     logDebug(lf_bus, "%s during %s, switching to %s", getResultCode(result), getStateCode(m_state),
         getStateCode(state));
   } else if (m_currentRequest != nullptr || state == bs_sendCmd || state == bs_sendCmdCrc || state == bs_sendCmdAck
-      || state == bs_sendRes || state == bs_sendResCrc || state == bs_sendResAck || state == bs_sendSyn) {
+      || state == bs_sendRes || state == bs_sendResCrc || state == bs_sendResAck || state == bs_sendSyn
+      || m_state == bs_sendSyn) {
     logDebug(lf_bus, "switching from %s to %s", getStateCode(m_state), getStateCode(state));
   }
   if (state == bs_noSignal) {
