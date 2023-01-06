@@ -1,5 +1,5 @@
-# next (tbd)
-## Buf Fixes
+# 23.1 (tbd)
+## Bug Fixes
 * fix potentially invalid settings picked up from environment variables
 * fix potentially unnecessary arbitration start for non-enhanced proto
 * fix smaller issues in KNX integration
@@ -8,13 +8,14 @@
 * fix UDP based devices no longer working since 22.4
 * fix for older SSL libraries not automatically retrying if necessary
 * fix enhanced side data transfer from device to host
+* fix for fast participants starting immediately after own SYN at the end of a sent command
 
 ## Features
 * add support for setting visual ping, IP gateway, MAC from ID, and variant to ebuspicloader
 * add step variable for numeric values to message definition in MQTT integration
 * add yes/no values and writable heating curve to Home Assistant MQTT discovery integration
 * add device version to update check and switch to Home Assistant update integration for current update check and additionally for device
-* add preferred language support to web services and use it instead of DE when configured
+* add preferred language support to web services and use it instead of default LANG environment with fallback to German
 
 
 # 22.4 (2022-09-18)
