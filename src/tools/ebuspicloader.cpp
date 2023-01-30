@@ -81,7 +81,7 @@ static const struct argp_option argpoptions[] = {
     {"reset",   'r', nullptr, 0, "reset the device at the end on success", 0 },
     {nullptr,     0, nullptr, 0, "Tool options:", 9 },
     {"verbose", 'v', nullptr, 0, "enable verbose output", 0 },
-    {"slow",    's', nullptr, 0, "use low speed for transfer", 0 },
+    {"slow",    's', nullptr, 0, "low speed mode for transfer (115kBd instead of 921kBd)", 0 },
     {nullptr,          0,        nullptr,    0, nullptr, 0 },
 };
 

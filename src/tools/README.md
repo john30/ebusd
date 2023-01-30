@@ -17,7 +17,7 @@ If Cygwin is already installed, only the `ebuspicloader.exe` needs to be extract
 from within a Cygwin shell.  
 In Cygwin, Windows COM ports are mapped under `/dev/ttyS*`, e.g. `COM1` would be `/dev/ttyS0`.
 
-This tool is an alternative to the MPLAB bootloader host application that produces a lot
+This tool is an alternative to and extension of the MPLAB bootloader host application that produces a lot
 of unreadable output.
 
 
@@ -56,7 +56,8 @@ settings.
                              20221206)
 
  Tool options:
-  -s, --slow                 use low speed for transfer
+  -s, --slow                 low speed mode for transfer (115kBd instead of
+                             921kBd)
   -v, --verbose              enable verbose output
 
   -?, --help                 give this help list
