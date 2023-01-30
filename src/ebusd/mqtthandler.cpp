@@ -1087,7 +1087,7 @@ void MqttHandler::run() {
             values.set("basetype", dataType->getId());
             values.set("comment", field->getAttribute("comment"));
             values.set("unit", field->getAttribute("unit"));
-            if (dataType->isNumeric()) {
+            if (dataType->isNumeric() && !dataType->hasFlag(EXP)) {
               auto dt = dynamic_cast<const NumberDataType*>(dataType);
               ostr.str("");
               if (dt->getMinMax(false, g_publishFormat, &ostr) == RESULT_OK) {
