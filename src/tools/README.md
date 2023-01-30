@@ -49,10 +49,11 @@ settings.
   -o, --pingoff              disable visual ping
   -p, --pingon               enable visual ping (default)
   -r, --reset                reset the device at the end on success
-      --variant=VARIANT      set the VARIANT to U=USB/RPI, W=WIFI, E=Ethernet,
-                             N=non-enhanced USB/RPI/WIFI, F=non-enhanced
-                             Ethernet (lowercase to allow hardware jumpers,
-                             default "u", since firmware 20221206)
+      --variant=VARIANT      set the VARIANT to U=USB/RPI (high-speed), W=WIFI,
+                             E=Ethernet, N=non-enhanced USB/RPI/WIFI,
+                             F=non-enhanced Ethernet (lowercase to allow
+                             hardware jumpers, default "u", since firmware
+                             20221206)
 
  Tool options:
   -s, --slow                 use low speed for transfer
@@ -82,7 +83,7 @@ MAC address: ae:b0:53:26:15:80
 IP address: DHCP (default)
 Arbitration delay: 200 us (default)
 Visual ping: on (default)
-Variant: USB/RPI, allow hardware jumpers (default)
+Variant: USB/RPI (high-speed), allow hardware jumpers (default)
 
 New firmware version: 1 [7f16]
 erasing flash: done.

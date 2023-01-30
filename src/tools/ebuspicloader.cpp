@@ -73,7 +73,7 @@ static const struct argp_option argpoptions[] = {
     {nullptr,     0, nullptr, 0, "PIC options:", 3 },
     {"pingon",  'p', nullptr, 0, "enable visual ping (default)", 0 },
     {"pingoff", 'o', nullptr, 0, "disable visual ping", 0 },
-    {"variant", -3, "VARIANT", 0, "set the VARIANT to U=USB/RPI, W=WIFI, E=Ethernet,"
+    {"variant", -3, "VARIANT", 0, "set the VARIANT to U=USB/RPI (high-speed), W=WIFI, E=Ethernet,"
                                  " N=non-enhanced USB/RPI/WIFI, F=non-enhanced Ethernet"
                                  " (lowercase to allow hardware jumpers, default \"u\""
                                  ", since firmware 20221206)", 0 },
@@ -1093,7 +1093,7 @@ int readSettings(int fd, uint8_t* currentData = nullptr) {
   std::cout << "Variant: "; // since firmware 20221206
   switch (configData[5]&0x03) {
     case 3:
-      std::cout << "USB/RPI";
+      std::cout << "USB/RPI (high-speed)";
       break;
     case 2:
       std::cout << "WIFI";
