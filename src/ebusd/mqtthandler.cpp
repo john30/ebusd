@@ -1098,7 +1098,7 @@ void MqttHandler::run() {
                 values.set("max", ostr.str());
                 ostr.str("");
               }
-              if (dt->readFromRawValue(1, g_publishFormat, &ostr) != RESULT_OK) {
+              if (dt->getStep(g_publishFormat, &ostr) != RESULT_OK) {
                 // fallback method, when smallest number didn't work
                 int divisor = dt->getDivisor();
                 float step = 1.0f;

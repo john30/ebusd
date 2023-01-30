@@ -735,6 +735,10 @@ result_t NumberDataType::getMinMax(bool getMax, const OutputFormat outputFormat,
   return readFromRawValue(getMax ? m_maxValue : m_minValue, outputFormat, output);
 }
 
+result_t NumberDataType::getStep(const OutputFormat outputFormat, ostream* output) const {
+  return readFromRawValue(hasFlag(EXP) ? floatToUint(1.0f) : 1, outputFormat, output);
+}
+
 result_t NumberDataType::readRawValue(size_t offset, size_t length, const SymbolString& input,
                                       unsigned int* value) const {
   size_t start = 0, count = length;

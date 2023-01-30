@@ -518,6 +518,14 @@ class NumberDataType : public DataType {
   result_t getMinMax(bool getMax, const OutputFormat outputFormat, ostream* output) const;
 
   /**
+   * Get the smallest step value for increment/decrement.
+   * @param outputFormat the @a OutputFormat options to use.
+   * @param output the ostream to append the formatted value to.
+   * @return @a RESULT_OK on success, or an error code.
+   */
+  result_t getStep(const OutputFormat outputFormat, ostream* output) const;
+
+  /**
    * @return the divisor (negative for reciprocal).
    */
   int getDivisor() const { return m_divisor; }
