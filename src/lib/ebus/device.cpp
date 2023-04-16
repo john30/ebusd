@@ -82,7 +82,7 @@ Device::Device(const char* name, bool checkDevice, unsigned int latency, bool re
     m_initialSend(initialSend), m_enhancedProto(enhancedProto), m_fd(-1), m_resetRequested(false),
     m_listener(nullptr), m_arbitrationMaster(SYN),
     m_arbitrationCheck(0), m_bufSize(((MAX_LEN+1+3)/4)*4), m_bufLen(0), m_bufPos(0),
-    m_extraFatures(0), m_infoId(0xff), m_infoLen(0), m_infoPos(0) {
+    m_extraFatures(0), m_infoId(0xff), m_infoReqTime(0), m_infoLen(0), m_infoPos(0) {
   m_buffer = reinterpret_cast<symbol_t*>(malloc(m_bufSize));
   if (!m_buffer) {
     m_bufSize = 0;
@@ -194,7 +194,16 @@ result_t Device::requestEnhancedInfo(symbol_t infoId) {
     usleep(40000 + i*40000);
   }
   if (m_infoId != 0xff) {
-    return RESULT_ERR_DUPLICATE;
+    if (m_infoReqTime > 0 && time(NULL) > m_infoReqTime+5) {
+      // request timed out
+      if (m_listener != nullptr) {
+        m_listener->notifyStatus(false, "info request timed out");
+      }
+      m_infoId = 0xff;
+      m_infoReqTime = 0;
+    } else {
+      return RESULT_ERR_DUPLICATE;
+    }
   }
   if (infoId == 0xff) {
     // just waited for completion
@@ -214,6 +223,7 @@ result_t Device::sendEnhancedInfoRequest(symbol_t infoId) {
   }
   m_infoPos = 0;
   m_infoId = infoId;
+  time(&m_infoReqTime);
   return RESULT_OK;
 }
 
@@ -222,6 +232,7 @@ string Device::getEnhancedInfos() {
     return "";
   }
   result_t res;
+  string fails = "";
   if (m_enhInfoTemperature.empty()) {  // use empty temperature for potential refresh after reset
     res = requestEnhancedInfo(0);
     if (res != RESULT_OK) {
@@ -233,7 +244,10 @@ string Device::getEnhancedInfos() {
     }
     res = requestEnhancedInfo(2);
     if (res != RESULT_OK) {
-      return "cannot request config";
+      fails += ", cannot request config";
+      requestEnhancedInfo(0xff); // wait for completion
+      m_infoPos = 0;
+      m_infoId = 0xff;
     }
   }
   res = requestEnhancedInfo(6);
@@ -250,11 +264,13 @@ string Device::getEnhancedInfos() {
   }
   res = requestEnhancedInfo(5);
   if (res != RESULT_OK) {
-    return "cannot request bus voltage";
+    fails += ", cannot request bus voltage";
   }
-  res = requestEnhancedInfo(0xff);
+  res = requestEnhancedInfo(0xff); // wait for completion
   if (res != RESULT_OK) {
     m_enhInfoBusVoltage = "bus voltage unknown";
+    m_infoPos = 0;
+    m_infoId = 0xff;
   }
   return "firmware " + m_enhInfoVersion + ", " + m_enhInfoTemperature + ", " + m_enhInfoSupplyVoltage + ", "
   + m_enhInfoBusVoltage;
@@ -493,18 +509,23 @@ bool Device::available() {
         // drop first byte of invalid sequence
         m_bufPos = (m_bufPos + 1) % m_bufSize;
         m_bufLen--;
-        pos--;
+        pos--; // check same pos again
         continue;
       }
-      if (cmd != ENH_RES_RECEIVED && cmd != ENH_RES_STARTED && cmd != ENH_RES_FAILED) {
-        pos++;
-        continue;
+      if (cmd == ENH_RES_RECEIVED || cmd == ENH_RES_STARTED || cmd == ENH_RES_FAILED) {
+        // found a sequence that yields in available bus byte
+#ifdef DEBUG_RAW_TRAFFIC
+        fprintf(stdout, "raw avail enhanced @%d+%d %2.2x %2.2x\n", m_bufPos, pos, m_buffer[(pos+m_bufPos)%m_bufSize], ch);
+        fflush(stdout);
+#endif
+        return true;
       }
 #ifdef DEBUG_RAW_TRAFFIC
-      fprintf(stdout, "raw avail enhanced @%d+%d %2.2x %2.2x\n", m_bufPos, pos, m_buffer[(pos+m_bufPos)%m_bufSize], ch);
+      fprintf(stdout, "raw avail enhanced skip cmd %d @%d+%d %2.2x\n", cmd, m_bufPos, pos, ch);
       fflush(stdout);
 #endif
-      return true;
+      pos++; // skip enhanced sequence of 2 bytes
+      continue;
     }
 #ifdef DEBUG_RAW_TRAFFIC
     fprintf(stdout, "raw avail enhanced bad @%d+%d %2.2x\n", m_bufPos, pos, ch);
@@ -516,7 +537,7 @@ bool Device::available() {
     // skip byte from erroneous protocol
     m_bufPos = (m_bufPos+1)%m_bufSize;
     m_bufLen--;
-    pos--;
+    pos--; // check byte 2 again from scratch and allow as byte 1
   }
   return false;
 }
@@ -710,6 +731,7 @@ bool Device::handleEnhancedBufferedData(symbol_t* value, ArbitrationState* arbit
                 break;
               case 0x0901:
               case 0x0802:
+              case 0x0302:
                 stream << (m_infoId == 1 ? "ID" : "config");
                 stream << std::hex << std::setfill('0');
                 for (uint8_t pos = 0; pos < m_infoPos; pos++) {
@@ -727,14 +749,24 @@ bool Device::handleEnhancedBufferedData(symbol_t* value, ArbitrationState* arbit
                 m_enhInfoTemperature = stream.str();
                 break;
               case 0x0204:
-                val = (static_cast<unsigned>(m_infoBuf[0]) << 8) | static_cast<unsigned>(m_infoBuf[1]);
-                stream << "supply voltage " << static_cast<unsigned>(val) << " mV";
+                stream << "supply voltage ";
+                if (m_infoBuf[0] | m_infoBuf[1]) {
+                  val = (static_cast<unsigned>(m_infoBuf[0]) << 8) | static_cast<unsigned>(m_infoBuf[1]);
+                  stream << static_cast<unsigned>(val) << " mV";
+                } else {
+                  stream << "unknown";
+                }
                 m_enhInfoSupplyVoltage = stream.str();
                 break;
               case 0x0205:
-                stream << "bus voltage " << std::fixed << std::setprecision(1)
-                       << static_cast<float>(m_infoBuf[1] / 10.0) << " V - "
-                       << static_cast<float>(m_infoBuf[0] / 10.0) << " V";
+                stream << "bus voltage ";
+                if (m_infoBuf[0] | m_infoBuf[1]) {
+                  stream << std::fixed << std::setprecision(1)
+                         << static_cast<float>(m_infoBuf[1] / 10.0) << " V - "
+                         << static_cast<float>(m_infoBuf[0] / 10.0) << " V";
+                } else {
+                  stream << "unknown";
+                }
                 m_enhInfoBusVoltage = stream.str();
                 break;
               case 0x0206:
@@ -864,6 +896,7 @@ result_t SerialDevice::open() {
   newSettings.c_cc[VMIN]  = 1;
   newSettings.c_cc[VTIME] = 0;
 
+  // int flag = TIOCM_RTS|TIOCM_DTR;
   // empty device buffer
   tcflush(m_fd, TCIFLUSH);
 

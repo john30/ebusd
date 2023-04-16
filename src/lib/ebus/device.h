@@ -342,6 +342,9 @@ class Device {
   /** the ID of the last requested info. */
   symbol_t m_infoId;
 
+  /** the time of the last info request. */
+  time_t m_infoReqTime;
+
   /** the info buffer expected length. */
   size_t m_infoLen;
 
