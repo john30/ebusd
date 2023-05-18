@@ -199,10 +199,14 @@ Network::Network(const bool local, const uint16_t port, const uint16_t httpPort,
 
   if (m_tcpServer != nullptr && m_tcpServer->start() == 0) {
     m_listening = true;
+  } else {
+    logError(lf_network, "unable to start TCP server on port %d: error %d", port, errno);
   }
   if (httpPort > 0) {
     m_httpServer = new TCPServer(httpPort, "0.0.0.0");
-    m_httpServer->start();
+    if (m_httpServer->start() != 0) {
+      logError(lf_network, "unable to start HTTP server on port %d: error %d", httpPort, errno);
+    }
   } else {
     m_httpServer = nullptr;
   }
