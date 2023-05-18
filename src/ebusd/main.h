@@ -23,7 +23,6 @@
 #include <string>
 #include <map>
 #include "lib/ebus/data.h"
-#include "lib/ebus/message.h"
 #include "lib/ebus/result.h"
 #include "lib/utils/log.h"
 
@@ -90,56 +89,6 @@ struct options {
   unsigned int dumpSize;  //!< maximum size of dump file in kB [100]
   bool dumpFlush;  //!< flush each byte
 };
-
-/**
- * Get the @a DataFieldTemplates for the specified configuration file.
- * @param filename the full name of the configuration file, or "*" to get the non-root templates with the longest name
- * or the root templates if not available.
- * @return the @a DataFieldTemplates.
- */
-DataFieldTemplates* getTemplates(const string& filename);
-
-/**
- * Load the message definitions from configuration files.
- * @param messages the @a MessageMap to load the messages into.
- * @param verbose whether to verbosely log problems.
- * @param denyRecursive whether to avoid loading all files recursively (e.g. for scan config check).
- * @return the result code.
- */
-result_t loadConfigFiles(MessageMap* messages, bool verbose = false, bool denyRecursive = false);
-
-/**
- * Load the message definitions from a configuration file matching the scan result.
- * @param messages the @a MessageMap to load the messages into.
- * @param address the address of the scan participant
- * (either master for broadcast master data or slave for read slave data).
- * @param data the scan @a SlaveSymbolString for which to load the configuration file.
- * @param verbose whether to verbosely log problems.
- * @param relativeFile the string in which the name of the configuration file is stored on success.
- * @return the result code.
- */
-result_t loadScanConfigFile(MessageMap* messages, symbol_t address, bool verbose, string* relativeFile);
-
-/**
- * Helper method for executing all loaded and resolvable instructions.
- * @param messages the @a MessageMap instance.
- * @param verbose whether to verbosely log all problems.
- * @return the result code.
- */
-result_t executeInstructions(MessageMap* messages, bool verbose = false);
-
-/**
- * Helper method for loading definitions from a relative file from the config path/URL.
- * @param reader the @a FileReader instance to load with the definitions.
- * @param filename the relative name of the file being read.
- * @param verbose whether to verbosely log problems.
- * @param defaults the default values by name (potentially overwritten by file name), or nullptr to not use defaults.
- * @param errorDescription a string in which to store the error description in case of error.
- * @param replace whether to replace an already existing entry.
- * @return @a RESULT_OK on success, or an error code.
- */
-result_t loadDefinitionsFromConfigPath(FileReader* reader, const string& filename, bool verbose,
-    map<string, string>* defaults, string* errorDescription, bool replace = false);
 
 }  // namespace ebusd
 

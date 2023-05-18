@@ -22,7 +22,6 @@
 
 #include "ebusd/bushandler.h"
 #include <iomanip>
-#include "ebusd/main.h"
 #include "lib/utils/log.h"
 
 namespace ebusd {
@@ -1637,14 +1636,14 @@ result_t BusHandler::scanAndWait(symbol_t dstAddress, bool loadScanConfig, bool 
     bool timedOut = result == RESULT_ERR_TIMEOUT;
     bool loadFailed = false;
     if (timedOut || result == RESULT_OK) {
-      result = loadScanConfigFile(m_messages, dstAddress, false, &file);  // try to load even if one message timed out
+      result = m_scanHelper->loadScanConfigFile(dstAddress, &file);  // try to load even if one message timed out
       loadFailed = result != RESULT_OK;
       if (timedOut && loadFailed) {
         result = RESULT_ERR_TIMEOUT;  // back to previous result
       }
     }
     if (result == RESULT_OK) {
-      executeInstructions(m_messages);
+      m_scanHelper->executeInstructions(this);
       setScanConfigLoaded(dstAddress, file);
       if (!hasAdditionalScanMessages && m_messages->hasAdditionalScanMessages()) {
         // additional scan messages now available

@@ -1256,6 +1256,43 @@ class LoadedFileInfo {
 
 
 /**
+ * Interface for resolving templates and loading additional message definitions.
+ */
+class Resolver {
+ public:
+  /**
+   * Constructor.
+   */
+  Resolver() {}
+
+  /**
+   * Destructor.
+   */
+  virtual ~Resolver() {}
+
+  /**
+   * Get the @a DataFieldTemplates for the specified configuration file.
+   * @param filename the full name of the configuration file, or "*" to get the non-root templates with the longest name
+   * or the root templates if not available.
+   * @return the @a DataFieldTemplates.
+   */
+  virtual DataFieldTemplates* getTemplates(const string& filename) = 0;
+
+  /**
+   * Load definitions from a relative file from the config path/URL.
+   * @param reader the @a FileReader instance to load with the definitions.
+   * @param filename the relative name of the file being read.
+   * @param defaults the default values by name (potentially overwritten by file name), or nullptr to not use defaults.
+   * @param errorDescription a string in which to store the error description in case of error.
+   * @param replace whether to replace an already existing entry.
+   * @return @a RESULT_OK on success, or an error code.
+   */
+  virtual result_t loadDefinitionsFromConfigPath(FileReader* reader, const string& filename,
+      map<string, string>* defaults, string* errorDescription, bool replace = false) = 0;
+};
+
+
+/**
  * Holds a map of all known @a Message instances.
  */
 class MessageMap : public MappedFileReader {
@@ -1267,7 +1304,7 @@ class MessageMap : public MappedFileReader {
    * @param deleteData whether to delete the scan message @a DataField during @a Message destruction.
    */
   explicit MessageMap(bool addAll = false, const string& preferLanguage = "", bool deleteData = true)
-  : MappedFileReader::MappedFileReader(true, preferLanguage),
+  : MappedFileReader::MappedFileReader(true, preferLanguage), m_resolver(nullptr),
     m_addAll(addAll), m_additionalScanMessages(false), m_maxIdLength(0), m_maxBroadcastIdLength(0),
     m_messageCount(0), m_conditionalMessageCount(0), m_passiveMessageCount(0) {
     m_scanMessage = Message::createScanMessage(false, deleteData);
@@ -1288,6 +1325,17 @@ class MessageMap : public MappedFileReader {
       m_broadcastScanMessage = nullptr;
     }
   }
+
+  /**
+   * Set the @a Resolver instance.
+   * @param the @a Resolver instance.
+   */
+  void setResolver(Resolver* resolver) { m_resolver = resolver; }
+
+  /**
+   * @return the @a Resolver instance.
+   */
+  Resolver* getResolver() const { return m_resolver; }
 
   /**
    * Add a @a Message instance to this set.
@@ -1574,6 +1622,9 @@ class MessageMap : public MappedFileReader {
  private:
   /** empty vector for @a getLoadedFiles(). */
   static vector<string> s_noFiles;
+
+  /** the @a Resolver instance. */
+  Resolver* m_resolver;
 
   /** whether to add all messages, even if duplicate. */
   const bool m_addAll;

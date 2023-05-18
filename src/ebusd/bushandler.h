@@ -25,6 +25,7 @@
 #include <vector>
 #include <map>
 #include <deque>
+#include "ebusd/scan.h"
 #include "lib/ebus/message.h"
 #include "lib/ebus/data.h"
 #include "lib/ebus/symbol.h"
@@ -367,6 +368,7 @@ class BusHandler : public WaitThread {
    * Construct a new instance.
    * @param device the @a Device instance for accessing the bus.
    * @param messages the @a MessageMap instance with all known @a Message instances.
+   * @param scanHelper the @a ScanHelper instance.
    * @param ownAddress the own master address.
    * @param answer whether to answer queries for the own master/slave address.
    * @param busLostRetries the number of times a send is repeated due to lost arbitration.
@@ -377,13 +379,13 @@ class BusHandler : public WaitThread {
    * @param generateSyn whether to enable AUTO-SYN symbol generation.
    * @param pollInterval the interval in seconds in which poll messages are cycled, or 0 if disabled.
    */
-  BusHandler(Device* device, MessageMap* messages,
+  BusHandler(Device* device, MessageMap* messages, ScanHelper* scanHelper,
       symbol_t ownAddress, bool answer,
       unsigned int busLostRetries, unsigned int failedSendRetries,
       unsigned int busAcquireTimeout, unsigned int slaveRecvTimeout,
       unsigned int lockCount, bool generateSyn,
       unsigned int pollInterval)
-    : WaitThread(), m_device(device), m_reconnect(false), m_messages(messages),
+    : WaitThread(), m_device(device), m_reconnect(false), m_messages(messages), m_scanHelper(scanHelper),
       m_ownMasterAddress(ownAddress), m_ownSlaveAddress(getSlaveAddress(ownAddress)),
       m_answer(answer), m_addressConflict(false),
       m_busLostRetries(busLostRetries), m_failedSendRetries(failedSendRetries),
@@ -675,6 +677,9 @@ class BusHandler : public WaitThread {
 
   /** the @a MessageMap instance with all known @a Message instances. */
   MessageMap* m_messages;
+
+  /** the @a ScanHelper instance. */
+  ScanHelper* m_scanHelper;
 
   /** the own master address. */
   const symbol_t m_ownMasterAddress;

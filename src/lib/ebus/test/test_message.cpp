@@ -54,27 +54,29 @@ DataFieldTemplates* templates = nullptr;
 
 namespace ebusd {
 
-DataFieldTemplates* getTemplates(const string& filename) {
-  if (filename == "") {  // avoid compiler warning
+class TestResolver : public Resolver {
+ public:
+  virtual DataFieldTemplates* getTemplates(const string& filename) {
+    if (filename == "") {  // avoid compiler warning
+      return templates;
+    }
     return templates;
   }
-  return templates;
-}
 
-result_t loadDefinitionsFromConfigPath(FileReader* reader, const string& filename, bool verbose,
-    map<string, string>* defaults, string* errorDescription, bool replace = false) {
-  time_t mtime = 0;
-  istream* stream = FileReader::openFile(filename, errorDescription, &mtime);
-  result_t result;
-  if (stream) {
-    result = reader->readFromStream(stream, filename, mtime, verbose, defaults, errorDescription);
-    delete(stream);
-  } else {
-    result = RESULT_ERR_NOTFOUND;
+  virtual result_t loadDefinitionsFromConfigPath(FileReader* reader, const string& filename,
+      map<string, string>* defaults, string* errorDescription, bool replace = false) {
+    time_t mtime = 0;
+    istream* stream = FileReader::openFile(filename, errorDescription, &mtime);
+    result_t result;
+    if (stream) {
+      result = reader->readFromStream(stream, filename, mtime, false, defaults, errorDescription);
+      delete(stream);
+    } else {
+      result = RESULT_ERR_NOTFOUND;
+    }
+    return result;
   }
-  return result;
-}
-
+};
 
 }  // namespace ebusd
 
@@ -208,6 +210,7 @@ int main() {
   templates->readLineFromStream(&dummystr, __FILE__, false, &lineNo, &row, &errorDescription, false, nullptr, nullptr);
   lineNo = 0;
   MessageMap* messages = new MessageMap("");
+  messages->setResolver(new TestResolver());
   dummystr.clear();
   dummystr.str("#");
   messages->readLineFromStream(&dummystr, __FILE__, false, &lineNo, &row, &errorDescription, false, nullptr, nullptr);

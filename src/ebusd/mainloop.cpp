@@ -21,6 +21,7 @@
 #endif
 
 #include "ebusd/mainloop.h"
+#include "ebusd/scan.h"
 #include <iomanip>
 #include <deque>
 #include <algorithm>
@@ -104,8 +105,8 @@ result_t UserList::addFromFile(const string& filename, unsigned int lineNo, map<
 #define VERBOSITY_4 (VERBOSITY_3 | OF_ALL_ATTRS)
 
 
-MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messages)
-  : Thread(), m_device(device), m_reconnectCount(0), m_userList(opt.accessLevel), m_messages(messages),
+MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messages, ScanHelper* scanHelper)
+  : Thread(), m_device(device), m_reconnectCount(0), m_userList(opt.accessLevel), m_messages(messages), m_scanHelper(scanHelper),
     m_address(opt.address), m_scanConfig(opt.scanConfig), m_initialScan(opt.readOnly ? ESC : opt.initialScan),
     m_polling(opt.pollInterval > 0), m_enableHex(opt.enableHex), m_shutdown(false), m_runUpdateCheck(opt.updateCheck),
     m_httpClient(opt.caFile, opt.caPath) {
@@ -148,7 +149,7 @@ MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messag
     }
   }
   // create BusHandler
-  m_busHandler = new BusHandler(m_device, m_messages,
+  m_busHandler = new BusHandler(m_device, m_messages, scanHelper,
       m_address, opt.answer,
       opt.acquireRetries, opt.sendRetries,
       opt.acquireTimeout, opt.receiveTimeout,
@@ -166,7 +167,12 @@ MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messag
   } else {
     logError(lf_main, "error registering data handlers");
   }
-  m_newlyDefinedMessages = opt.enableDefine ? new MessageMap(true, "", false) : nullptr;
+  if (opt.enableDefine) {
+    m_newlyDefinedMessages = new MessageMap(true, "", false);
+    m_newlyDefinedMessages->setResolver(scanHelper);
+   } else {
+    m_newlyDefinedMessages = nullptr;
+   }
 }
 
 MainLoop::~MainLoop() {
@@ -330,7 +336,7 @@ void MainLoop::run() {
       } else if (reload && m_busHandler->hasSignal()) {
         reload = false;
         // execute initial instructions
-        executeInstructions(m_messages);
+        m_scanHelper->executeInstructions(m_busHandler);
         if (m_messages->sizeConditions() > 0 && !m_polling) {
           logError(lf_main, "conditions require a poll interval > 0");
         }
@@ -1749,7 +1755,7 @@ result_t MainLoop::executeDecode(const vector<string>& args, ostringstream* ostr
   time(&now);
   istringstream defstr("#\n" + args[argPos]);  // ensure first line is not used for determining col names
   string errorDescription;
-  DataFieldTemplates* templates = getTemplates("*");
+  DataFieldTemplates* templates = m_scanHelper->getTemplates("*");
   LoadableDataFieldSet fields("", templates);
   result_t ret = fields.readFromStream(&defstr, "temporary", now, true, nullptr, &errorDescription);
   if (ret != RESULT_OK) {
@@ -1781,7 +1787,7 @@ result_t MainLoop::executeEncode(const vector<string>& args, ostringstream* ostr
   time(&now);
   istringstream defstr("#\n" + args[argPos]);  // ensure first line is not used for determining col names
   string errorDescription;
-  DataFieldTemplates* templates = getTemplates("*");
+  DataFieldTemplates* templates = m_scanHelper->getTemplates("*");
   LoadableDataFieldSet fields("", templates);
   result_t ret = fields.readFromStream(&defstr, "temporary", now, true, nullptr, &errorDescription);
   if (ret != RESULT_OK) {
@@ -1922,7 +1928,8 @@ result_t MainLoop::executeReload(const vector<string>& args, ostringstream* ostr
     return RESULT_OK;
   }
   m_busHandler->clear();
-  return loadConfigFiles(m_messages);
+  m_scanHelper->loadConfigFiles(!m_scanConfig);
+  return RESULT_OK;
 }
 
 result_t MainLoop::executeInfo(const vector<string>& args, const string& user, ostringstream* ostream) {
@@ -2343,7 +2350,7 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
       time(&now);
       istringstream defstr("#\n" + def);  // ensure first line is not used for determining col names
       string errorDescription;
-      DataFieldTemplates* templates = getTemplates("*");
+      DataFieldTemplates* templates = m_scanHelper->getTemplates("*");
       LoadableDataFieldSet fields("", templates);
       ret = fields.readFromStream(&defstr, "temporary", now, true, nullptr, &errorDescription);
       if (ret == RESULT_OK && fields.size()) {

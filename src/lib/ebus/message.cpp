@@ -94,11 +94,6 @@ static const char* defaultMessageFieldMap[] = {  // access level not included in
 /** the m_pollOrder of the last polled message. */
 static unsigned int g_lastPollOrder = 0;
 
-extern DataFieldTemplates* getTemplates(const string& filename);
-
-extern result_t loadDefinitionsFromConfigPath(FileReader* reader, const string& filename, bool verbose,
-    map<string, string>* defaults, string* errorDescription, bool replace = false);
-
 
 Message::Message(const string& filename, const string& circuit, const string& level, const string& name,
     bool isWrite, bool isPassive, const map<string, string>& attributes,
@@ -1738,7 +1733,11 @@ void Instruction::getDestination(ostringstream* ostream) const {
 
 result_t LoadInstruction::execute(MessageMap* messages, ostringstream* log) {
   string errorDescription;
-  result_t result = loadDefinitionsFromConfigPath(messages, m_filename, false, &m_defaults, &errorDescription);
+  Resolver* resolver = messages->getResolver();
+  if (!resolver) {
+    return RESULT_ERR_MISSING_ARG;
+  }
+  result_t result = resolver->loadDefinitionsFromConfigPath(messages, m_filename, &m_defaults, &errorDescription);
   if (log->tellp() > 0) {
     *log << ", ";
   }
@@ -2306,7 +2305,10 @@ result_t MessageMap::addFromFile(const string& filename, unsigned int lineNo, ma
     return RESULT_ERR_INVALID_ARG;
   }
   result = RESULT_ERR_EOF;
-  DataFieldTemplates* templates = getTemplates(filename);
+  if (!m_resolver) {
+    return result;
+  }
+  DataFieldTemplates* templates = m_resolver->getTemplates(filename);
   bool hasMulti = types.find(VALUE_SEPARATOR) != string::npos;
   istringstream stream(types);
   string type;

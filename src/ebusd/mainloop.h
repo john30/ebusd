@@ -27,6 +27,7 @@
 #include "ebusd/bushandler.h"
 #include "ebusd/datahandler.h"
 #include "ebusd/network.h"
+#include "ebusd/scan.h"
 #include "lib/ebus/filereader.h"
 #include "lib/ebus/message.h"
 #include "lib/utils/rotatefile.h"
@@ -105,8 +106,9 @@ class MainLoop : public Thread, DeviceListener {
    * @param opt the program options.
    * @param device the @a Device instance.
    * @param messages the @a MessageMap instance.
+   * @param scanHelper the @a ScanHelper instance.
    */
-  MainLoop(const struct options& opt, Device *device, MessageMap* messages);
+  MainLoop(const struct options& opt, Device *device, MessageMap* messages, ScanHelper* scanHelper);
 
   /**
    * Destructor.
@@ -405,6 +407,9 @@ class MainLoop : public Thread, DeviceListener {
 
   /** the @a MessageMap instance. */
   MessageMap* m_messages;
+
+  /** the @a ScanHelper instance. */
+  ScanHelper* m_scanHelper;
 
   /** the own master address for sending on the bus. */
   const symbol_t m_address;
