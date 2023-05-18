@@ -435,6 +435,7 @@ bool HttpClient::request(const string& method, const string& uri, const string& 
   string headers = result.substr(0, pos+2);  // including final \r\n
   const char* hdrs = headers.c_str();
   *response = result.substr(pos+4);
+#ifdef HAVE_TIME_H
   if (time) {
     pos = headers.find("\r\nLast-Modified: ");
     if (pos != string::npos && headers.substr(pos+42, 4) == " GMT") {
@@ -474,6 +475,7 @@ bool HttpClient::request(const string& method, const string& uri, const string& 
       }
     }
   }
+#endif
   pos = headers.find("\r\nContent-Length: ");
   if (pos == string::npos) {
     disconnect();

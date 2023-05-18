@@ -27,6 +27,8 @@ AC_CHECK_HEADERS([arpa/inet.h \
 	time.h \
 	termios.h])
 
+AC_CHECK_FUNC([cfsetspeed], [AC_DEFINE(HAVE_CFSETSPEED, [1], [Defined if cfsetspeed() is available.])])
+
 AC_CHECK_LIB([pthread], [pthread_setname_np],
 	AC_DEFINE([HAVE_PTHREAD_SETNAME_NP], [1], [Defined if pthread_setname_np is available.]),
 	AC_MSG_RESULT([Could not find pthread_setname_np in pthread.]))

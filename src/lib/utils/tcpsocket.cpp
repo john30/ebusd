@@ -124,11 +124,6 @@ int tcpKeepAliveInterval) {
     }
 #endif
   }
-#ifndef HAVE_PPOLL
-#ifndef HAVE_PSELECT
-  timeout = 0;
-#endif
-#endif
   if (tcpConnectTimeout > 0 && fcntl(sfd, F_SETFL, O_NONBLOCK) < 0) {  // set non-blocking
     close(sfd);
     return -1;
@@ -140,9 +135,15 @@ int tcpKeepAliveInterval) {
       return -1;
     }
     if (tcpConnectTimeout > 0) {
+#if defined(HAVE_PPOLL) || defined(HAVE_PSELECT)
       struct timespec tdiff;
       tdiff.tv_sec = tcpConnectTimeout;
       tdiff.tv_nsec = 0;
+#else
+      struct timeval tdiff;
+      tdiff.tv_sec = tcpConnectTimeout;
+      tdiff.tv_usec = 0;
+#endif
 #ifdef HAVE_PPOLL
       nfds_t nfds = 1;
       struct pollfd fds[nfds];
@@ -159,7 +160,11 @@ int tcpKeepAliveInterval) {
       FD_ZERO(&writefds);
       FD_ZERO(&exceptfds);
       FD_SET(sfd, &readfds);
+#ifdef HAVE_PSELECT
       ret = pselect(sfd + 1, &readfds, &writefds, &exceptfds, &tdiff, nullptr);
+#else
+      ret = select(sfd + 1, &readfds, &writefds, &exceptfds, &tdiff);
+#endif
       if (ret >= 1 && FD_ISSET(sfd, &exceptfds)) {
         ret = -1;
       }

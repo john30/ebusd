@@ -64,6 +64,7 @@ check_include_file(sys/time.h HAVE_SYS_TIME_H)
 check_include_file(syslog.h HAVE_SYSLOG_H)
 check_include_file(time.h HAVE_TIME_H)
 check_include_file(termios.h HAVE_TERMIOS_H)
+check_function_exists(cfsetspeed HAVE_CFSETSPEED)
 
 set(CMAKE_REQUIRED_LIBRARIES pthread rt)
 check_function_exists(pthread_setname_np HAVE_PTHREAD_SETNAME_NP)
