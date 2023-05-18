@@ -875,8 +875,7 @@ int main(int argc, char* argv[], char* envp[]) {
     s_configPath += "/";
   }
   const string lang = MappedFileReader::normalizeLanguage(
-    s_opt.preferLanguage == nullptr || !s_opt.preferLanguage[0] ? "" : s_opt.preferLanguage
-  );
+    s_opt.preferLanguage == nullptr || !s_opt.preferLanguage[0] ? "" : s_opt.preferLanguage);
   string configLocalPrefix, configUriPrefix;
   HttpClient* configHttpClient = nullptr;
   if (s_configPath.find("://") == string::npos) {

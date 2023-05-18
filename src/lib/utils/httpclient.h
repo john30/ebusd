@@ -132,8 +132,7 @@ class HttpClient {
     m_caFile(caFile),
     m_caPath(caPath),
 #endif
-    m_socket(nullptr), m_port(0), m_timeout(0), m_bufferSize(0), m_buffer(nullptr)
-  {
+    m_socket(nullptr), m_port(0), m_timeout(0), m_bufferSize(0), m_buffer(nullptr) {
     if (init) {
       initialize();
     }

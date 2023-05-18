@@ -245,7 +245,7 @@ string Device::getEnhancedInfos() {
     res = requestEnhancedInfo(2);
     if (res != RESULT_OK) {
       fails += ", cannot request config";
-      requestEnhancedInfo(0xff); // wait for completion
+      requestEnhancedInfo(0xff);  // wait for completion
       m_infoPos = 0;
       m_infoId = 0xff;
     }
@@ -266,7 +266,7 @@ string Device::getEnhancedInfos() {
   if (res != RESULT_OK) {
     fails += ", cannot request bus voltage";
   }
-  res = requestEnhancedInfo(0xff); // wait for completion
+  res = requestEnhancedInfo(0xff);  // wait for completion
   if (res != RESULT_OK) {
     m_enhInfoBusVoltage = "bus voltage unknown";
     m_infoPos = 0;
@@ -509,7 +509,7 @@ bool Device::available() {
         // drop first byte of invalid sequence
         m_bufPos = (m_bufPos + 1) % m_bufSize;
         m_bufLen--;
-        pos--; // check same pos again
+        pos--;  // check same pos again
         continue;
       }
       if (cmd == ENH_RES_RECEIVED || cmd == ENH_RES_STARTED || cmd == ENH_RES_FAILED) {
@@ -524,7 +524,7 @@ bool Device::available() {
       fprintf(stdout, "raw avail enhanced skip cmd %d @%d+%d %2.2x\n", cmd, m_bufPos, pos, ch);
       fflush(stdout);
 #endif
-      pos++; // skip enhanced sequence of 2 bytes
+      pos++;  // skip enhanced sequence of 2 bytes
       continue;
     }
 #ifdef DEBUG_RAW_TRAFFIC
@@ -537,7 +537,7 @@ bool Device::available() {
     // skip byte from erroneous protocol
     m_bufPos = (m_bufPos+1)%m_bufSize;
     m_bufLen--;
-    pos--; // check byte 2 again from scratch and allow as byte 1
+    pos--;  // check byte 2 again from scratch and allow as byte 1
   }
   return false;
 }

@@ -21,7 +21,6 @@
 #endif
 
 #include "ebusd/scan.h"
-#include "ebusd/bushandler.h"
 #include <dirent.h>
 #include <sys/stat.h>
 #include <iostream>
@@ -30,6 +29,7 @@
 #include <map>
 #include <vector>
 #include <functional>
+#include "ebusd/bushandler.h"
 #include "lib/utils/log.h"
 
 
@@ -133,7 +133,7 @@ result_t ScanHelper::collectConfigFiles(const string& relPath, const string& pre
 
 DataFieldTemplates* ScanHelper::getTemplates(const string& filename) {
   if (filename == "*") {
-    unsigned long maxLength = 0;
+    size_t maxLength = 0;
     DataFieldTemplates* best = nullptr;
     for (auto it : m_templatesByPath) {
       if (it.first.size() > maxLength) {
@@ -478,7 +478,8 @@ result_t ScanHelper::loadScanConfigFile(symbol_t address, string* relativeFile) 
   return RESULT_OK;
 }
 
-bool ScanHelper::parseMessage(const string& arg, bool onlyMasterSlave, MasterSymbolString* master, SlaveSymbolString* slave) {
+bool ScanHelper::parseMessage(const string& arg, bool onlyMasterSlave, MasterSymbolString* master,
+  SlaveSymbolString* slave) {
   size_t pos = arg.find_first_of('/');
   if (pos == string::npos) {
     logError(lf_main, "invalid message %s: missing \"/\"", arg.c_str());

@@ -21,6 +21,7 @@
 
 #include <stdint.h>
 #include <string>
+#include <vector>
 #include <map>
 #include "lib/ebus/data.h"
 #include "lib/ebus/message.h"
@@ -40,7 +41,6 @@ class BusHandler;
  * Helper class for handling device scanning and config loading.
  */
 class ScanHelper : public Resolver {
-
  public:
   /**
    * Constructor.

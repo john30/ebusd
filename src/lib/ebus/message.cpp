@@ -460,7 +460,7 @@ result_t Message::create(const string& filename, const DataFieldTemplates* templ
       return result;
     }
   }
-  if (id.size() + data->getLength(pt_masterData, maxLength==MAX_POS ? MAX_POS-id.size() : maxLength) > 2 + maxLength
+  if (id.size() + data->getLength(pt_masterData, maxLength == MAX_POS ? MAX_POS-id.size() : maxLength) > 2 + maxLength
       || data->getLength(pt_slaveData, maxLength) > maxLength) {
     // max NN exceeded
     delete data;

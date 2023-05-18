@@ -21,11 +21,11 @@
 #endif
 
 #include "ebusd/mainloop.h"
-#include "ebusd/scan.h"
 #include <iomanip>
 #include <deque>
 #include <algorithm>
 #include "ebusd/main.h"
+#include "ebusd/scan.h"
 #include "lib/utils/log.h"
 #include "lib/ebus/data.h"
 
@@ -106,10 +106,10 @@ result_t UserList::addFromFile(const string& filename, unsigned int lineNo, map<
 
 
 MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messages, ScanHelper* scanHelper)
-  : Thread(), m_device(device), m_reconnectCount(0), m_userList(opt.accessLevel), m_messages(messages), m_scanHelper(scanHelper),
-    m_address(opt.address), m_scanConfig(opt.scanConfig), m_initialScan(opt.readOnly ? ESC : opt.initialScan),
-    m_polling(opt.pollInterval > 0), m_enableHex(opt.enableHex), m_shutdown(false), m_runUpdateCheck(opt.updateCheck),
-    m_httpClient(opt.caFile, opt.caPath) {
+  : Thread(), m_device(device), m_reconnectCount(0), m_userList(opt.accessLevel), m_messages(messages),
+    m_scanHelper(scanHelper), m_address(opt.address), m_scanConfig(opt.scanConfig),
+    m_initialScan(opt.readOnly ? ESC : opt.initialScan), m_polling(opt.pollInterval > 0), m_enableHex(opt.enableHex),
+    m_shutdown(false), m_runUpdateCheck(opt.updateCheck), m_httpClient(opt.caFile, opt.caPath) {
   m_device->setListener(this);
   // open Device
   result_t result = m_device->open();
@@ -170,9 +170,9 @@ MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messag
   if (opt.enableDefine) {
     m_newlyDefinedMessages = new MessageMap(true, "", false);
     m_newlyDefinedMessages->setResolver(scanHelper);
-   } else {
+  } else {
     m_newlyDefinedMessages = nullptr;
-   }
+  }
 }
 
 MainLoop::~MainLoop() {
