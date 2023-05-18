@@ -124,8 +124,9 @@ class HttpClient {
    * Constructor.
    * @param caFile the CA file to use (uses defaults if neither caFile nor caPath are set), or "#" for insecure.
    * @param caPath the path with CA files to use (uses defaults if neither caFile nor caPath are set).
+   * @param init whether to immediately initialize the library (instead of during connect()).
    */
-  explicit HttpClient(const char* caFile = nullptr, const char* caPath = nullptr) :
+  explicit HttpClient(const char* caFile = nullptr, const char* caPath = nullptr, bool init = true) :
 #ifdef HAVE_SSL
     m_https(false),
     m_caFile(caFile),
@@ -133,7 +134,9 @@ class HttpClient {
 #endif
     m_socket(nullptr), m_port(0), m_timeout(0), m_bufferSize(0), m_buffer(nullptr)
   {
-    initialize();
+    if (init) {
+      initialize();
+    }
   }
 
   /**

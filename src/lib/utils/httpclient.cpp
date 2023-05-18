@@ -316,6 +316,7 @@ bool HttpClient::parseUrl(const string& url, string* proto, string* host, uint16
 
 bool HttpClient::connect(const string& host, const uint16_t port, bool https, const string& userAgent,
                          const int timeout) {
+  initialize();
   disconnect();
 #ifdef HAVE_SSL
   m_socket = SSLSocket::connect(host, port, https, timeout, m_caFile, m_caPath);
