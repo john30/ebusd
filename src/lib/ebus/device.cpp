@@ -886,7 +886,12 @@ result_t SerialDevice::open() {
   // create new settings
   memset(&newSettings, 0, sizeof(newSettings));
 
+#ifdef HAVE_CFSETSPEED
   cfsetspeed(&newSettings, m_enhancedProto ? (m_enhancedHighSpeed ? B115200 : B9600) : B2400);
+#else
+  cfsetispeed(&newSettings, m_enhancedProto ? (m_enhancedHighSpeed ? B115200 : B9600) : B2400);
+  cfsetospeed(&newSettings, m_enhancedProto ? (m_enhancedHighSpeed ? B115200 : B9600) : B2400);
+#endif
   newSettings.c_cflag |= (CS8 | CLOCAL | CREAD);
   newSettings.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);  // non-canonical mode
   newSettings.c_iflag |= IGNPAR;  // ignore parity errors
@@ -924,8 +929,8 @@ void SerialDevice::close() {
 }
 
 void SerialDevice::checkDevice() {
-  int port;
-  if (ioctl(m_fd, TIOCMGET, &port) == -1) {
+  int cnt;
+  if (ioctl(m_fd, FIONREAD, &cnt) == -1) {
     close();
   }
 }

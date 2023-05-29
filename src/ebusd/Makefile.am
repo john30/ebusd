@@ -11,6 +11,7 @@ ebusd_SOURCES = \
 		datahandler.h datahandler.cpp \
 		network.h network.cpp \
 		mainloop.h mainloop.cpp \
+		scan.h scan.cpp \
 		main.h main.cpp
 
 if MQTT
