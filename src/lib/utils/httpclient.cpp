@@ -153,7 +153,7 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool htt
   if (!https) {
     do {
       bio = BIO_new_connect(static_cast<const char*>(hostPort.c_str()));
-      if (isError("connect", bio!=nullptr)) {
+      if (isError("connect", bio != nullptr)) {
         break;
       }
       BIO_set_nbio(bio, 1);  // set non-blocking
@@ -163,11 +163,11 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool htt
     SSL *ssl = nullptr;
     do {
       const SSL_METHOD *method = SSLv23_method();
-      if (isError("method", method!=nullptr)) {
+      if (isError("method", method != nullptr)) {
         break;
       }
       ctx = SSL_CTX_new(method);
-      if (isError("ctx_new", ctx!=nullptr)) {
+      if (isError("ctx_new", ctx != nullptr)) {
         break;
       }
       bool verifyPeer = !caFile || strcmp(caFile, "#") != 0;
@@ -191,7 +191,7 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool htt
       const long flags = SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION;
       SSL_CTX_set_options(ctx, flags);
       bio = BIO_new_ssl_connect(ctx);
-      if (isError("new_ssl_conn", bio!=nullptr)) {
+      if (isError("new_ssl_conn", bio != nullptr)) {
         break;
       }
       if (isError("conn_hostname", BIO_set_conn_hostname(bio, hostPort.c_str()), 1)) {
@@ -199,7 +199,7 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool htt
       }
       BIO_set_nbio(bio, 1);  // set non-blocking
       BIO_get_ssl(bio, &ssl);
-      if (isError("get_ssl", ssl!=nullptr)) {
+      if (isError("get_ssl", ssl != nullptr)) {
         break;
       }
       SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
@@ -224,7 +224,7 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool htt
         break;
       }
       X509 *cert = SSL_get_peer_certificate(ssl);
-      if (isError("peer_cert", cert!=nullptr)) {
+      if (isError("peer_cert", cert != nullptr)) {
         break;
       }
       X509_free(cert);  // decrement reference count incremented by above call
@@ -233,16 +233,17 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool htt
       }
       // check hostname
       X509_NAME *sname = X509_get_subject_name(cert);
-      if (isError("get_subject", sname!=nullptr)) {
+      if (isError("get_subject", sname != nullptr)) {
         break;
       }
       char peerName[64];
       if (isError("subject name", X509_NAME_get_text_by_NID(sname, NID_commonName, peerName, sizeof(peerName)) > 0)) {
         break;
       }
-      if (strcmp(peerName, hostname)!=0) {
+      if (strcmp(peerName, hostname) != 0) {
         char* dotpos = NULL;
-        if (peerName[0]=='*' && peerName[1]=='.' && (dotpos=strchr((char*)hostname, '.')) && strcmp(peerName+2, dotpos+1)==0) {
+        if (peerName[0] == '*' && peerName[1] == '.' && (dotpos=strchr((char*)hostname, '.'))
+          && strcmp(peerName+2, dotpos+1) == 0) {
           // wildcard matches
         } else if (isError("subject", 1, 0)) {
           break;
