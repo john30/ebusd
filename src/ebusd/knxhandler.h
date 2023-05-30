@@ -170,11 +170,12 @@ class KnxHandler : public DataSink, public DataSource, public WaitThread {
    * @param recvlen pointer to a variable in which to store the actually received length.
    * @param src pointer to a variable in which to store the source address.
    * @param dest pointer to a variable in which to store the destination group address.
+   * @param wait true to wait up to 2 seconds for a new telegram, false to not wait.
    * @return the result code, either RESULT_OK on success, RESULT_ERR_GENERIC_IO on I/O error (e.g. socket closed),
    * or RESULT_ERR_TIMEOUT if no data is available.
    */
   result_t receiveTelegram(int maxlen, knx_transfer_t* typ, uint8_t *buf, int *recvlen, knx_addr_t *src,
-  knx_addr_t *dest);
+  knx_addr_t *dest, bool wait = true);
 
   /**
    * Handle a received KNX telegram.

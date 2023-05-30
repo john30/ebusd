@@ -451,10 +451,10 @@ void KnxHandler::sendGlobalValue(global_t index, unsigned int value, bool respon
 }
 
 result_t KnxHandler::receiveTelegram(int maxlen, knx_transfer_t* typ, uint8_t *buf, int *recvlen,
-                                     knx_addr_t *src, knx_addr_t *dest) {
+                                     knx_addr_t *src, knx_addr_t *dest, bool wait) {
   struct timespec tdiff = {
-      .tv_sec = 2,
-      .tv_nsec = 0,
+      .tv_sec = wait ? 2 : 0,  // 2 seconds when waiting
+      .tv_nsec = wait ? 0 : 1000,  // 1 milliseond when not waiting
   };
   if (!m_con->isConnected()) {
     return RESULT_ERR_GENERIC_IO;
@@ -919,18 +919,19 @@ void KnxHandler::run() {
       knx_addr_t src, dest;
       knx_transfer_t typ;
       // APDU data starting with octet 6 according to spec, contains 2 bits of application layer
-      result_t res = RESULT_OK;
-      do {
-        res = receiveTelegram(sizeof(data), &typ, data, &len, &src, &dest);
+      // limit number of read telegrams in order to give back control to outer loop for checking updates etc
+      for (int count = 0; count < 10; count++) {
+        // wait for telegram on first iteration only
+        result_t res = receiveTelegram(sizeof(data), &typ, data, &len, &src, &dest, count == 0);
         if (res != RESULT_OK) {
           if (res == RESULT_ERR_GENERIC_IO) {
             m_con->close();
           }
-        } else {
-          needsWait = false;
-          handleReceivedTelegram(typ, src, dest, len, data);
+          break;
         }
-      } while (res == RESULT_OK);
+        needsWait = false;
+        handleReceivedTelegram(typ, src, dest, len, data);
+      }
     }
     if (!m_updatedMessages.empty()) {
       m_messages->lock();
