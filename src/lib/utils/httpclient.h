@@ -49,11 +49,10 @@ class SSLSocket {
  private:
   /**
    * Constructor.
-   * @param ctx the SSL_CTX for cleanup, or nullptr.
    * @param bio the BIO instance, or nullptr.
    * @param until the system time until the socket is allowed to be used.
    */
-  SSLSocket(SSL_CTX *ctx, BIO *bio, time_t until) : m_ctx(ctx), m_bio(bio), m_until(until) {}
+  SSLSocket(BIO *bio, time_t until) : m_bio(bio), m_until(until) {}
 
  public:
   /**
@@ -97,9 +96,6 @@ class SSLSocket {
   bool isValid();
 
  private:
-  /** the SSL_CTX for cleanup, or nullptr. */
-  SSL_CTX *m_ctx;
-
   /** the BIO instance for communication. */
   BIO *m_bio;
 

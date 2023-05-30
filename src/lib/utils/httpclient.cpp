@@ -83,9 +83,6 @@ bool isError(const char* call, long result, long expected) {
 
 SSLSocket::~SSLSocket() {
   BIO_free_all(m_bio);
-  if (m_ctx) {
-    SSL_CTX_free(m_ctx);
-  }
 }
 
 ssize_t SSLSocket::send(const char* data, size_t len) {
@@ -142,26 +139,56 @@ bool SSLSocket::isValid() {
   return time(nullptr) < m_until && !BIO_eof(m_bio);
 }
 
+void sslInfoCallback(const SSL *ssl, int type, int val) {
+  if (!needsLog(lf_network, (val == 0) ? ll_error : ll_debug)) {
+    return;
+  }
+  logWrite(lf_network,
+    (val == 0) ? ll_error : ll_debug,
+    "SSL state %s: type 0x%x=%s%s%s%s%s%s%s%s%s val %d=%s",
+    SSL_state_string_long(ssl),
+    type,
+    (type & SSL_CB_LOOP) ? "loop," : "",
+    (type & SSL_CB_EXIT) ? "exit," : "",
+    (type & SSL_CB_READ) ? "read," : "",
+    (type & SSL_CB_WRITE) ? "write," : "",
+    (type & SSL_CB_ALERT) ? "alert," : "",
+    (type & SSL_ST_ACCEPT) ? "accept," : "",
+    (type & SSL_ST_CONNECT) ? "connect," : "",
+    (type & SSL_CB_HANDSHAKE_START) ? "start," : "",
+    (type & SSL_CB_HANDSHAKE_DONE) ? "done," : "",
+    val,
+    (type & SSL_CB_ALERT) ? SSL_alert_desc_string_long(val) : "?");
+}
+
 SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool https, int timeout, const char* caFile,
                               const char* caPath) {
-  BIO *bio = nullptr;
-  SSL_CTX *ctx = nullptr;
   ostringstream ostr;
   ostr << host << ':' << static_cast<unsigned>(port);
   const string hostPort = ostr.str();
   time_t until = time(nullptr) + 1 + (timeout <= 5 ? 5 : timeout);  // at least 5 seconds, 1 extra for rounding
   if (!https) {
     do {
-      bio = BIO_new_connect(static_cast<const char*>(hostPort.c_str()));
+      BIO *bio = BIO_new_connect(static_cast<const char*>(hostPort.c_str()));
       if (isError("connect", bio != nullptr)) {
         break;
       }
       BIO_set_nbio(bio, 1);  // set non-blocking
-      return new SSLSocket(nullptr, bio, until);
+      return new SSLSocket(bio, until);
     } while (false);
-  } else {
-    SSL *ssl = nullptr;
-    do {
+    return nullptr;
+  }
+  BIO *bio = nullptr;
+  static SSL_CTX *ctx = nullptr;
+  static int sslContextInitTries = 0;
+  do {
+    // const SSL_METHOD *method = TLS_client_method();
+    static bool verifyPeer = true;
+    if (ctx == nullptr) {  // according to openssl manpage, ctx is global and should be created once only
+      if (sslContextInitTries > 2) {  // give it up to 3 tries to initialize the context
+        break;
+      }
+      sslContextInitTries++;
       const SSL_METHOD *method = SSLv23_method();
       if (isError("method", method != nullptr)) {
         break;
@@ -170,7 +197,8 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool htt
       if (isError("ctx_new", ctx != nullptr)) {
         break;
       }
-      bool verifyPeer = !caFile || strcmp(caFile, "#") != 0;
+      SSL_CTX_set_info_callback(ctx, sslInfoCallback);
+      verifyPeer = !caFile || strcmp(caFile, "#") != 0;
       SSL_CTX_set_verify(ctx, verifyPeer ? SSL_VERIFY_PEER : SSL_VERIFY_NONE, nullptr);
       if (verifyPeer) {
 #if OPENSSL_VERSION_NUMBER >= 0x10101000L
@@ -185,78 +213,77 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool htt
         }
 #endif
         if ((caFile || caPath) && isError("verify_loc", SSL_CTX_load_verify_locations(ctx, caFile, caPath), 1)) {
+          SSL_CTX_free(ctx);
+          ctx = nullptr;
           break;
         }
       }
-      const long flags = SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION;
-      SSL_CTX_set_options(ctx, flags);
-      bio = BIO_new_ssl_connect(ctx);
-      if (isError("new_ssl_conn", bio != nullptr)) {
+      SSL_CTX_set_options(ctx, SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION);
+    }
+    bio = BIO_new_ssl_connect(ctx);
+    if (isError("new_ssl_conn", bio != nullptr)) {
+      break;
+    }
+    if (isError("conn_hostname", BIO_set_conn_hostname(bio, hostPort.c_str()), 1)) {
+      break;
+    }
+    BIO_set_nbio(bio, 1);  // set non-blocking
+    SSL *ssl = nullptr;
+    BIO_get_ssl(bio, &ssl);
+    if (isError("get_ssl", ssl != nullptr)) {
+      break;
+    }
+    SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
+    const char *hostname = host.c_str();
+    if (isError("tls_host", SSL_set_tlsext_host_name(ssl, hostname), 1)) {
+      break;
+    }
+    long res = BIO_do_connect(bio);
+    time_t now = 0;
+    while (res <= 0 && (BIO_should_retry(bio) || now == 0)) {  // always repeat on first failure
+      if ((now=time(nullptr)) > until) {
         break;
       }
-      if (isError("conn_hostname", BIO_set_conn_hostname(bio, hostPort.c_str()), 1)) {
+      usleep(SLEEP_NANOS);
+      res = BIO_do_connect(bio);
+    }
+    if (res <= 0 && now > until) {
+      logError(lf_network, "HTTP connect: timed out after %d sec", now-until);
+      break;
+    }
+    if (isError("connect", res, 1)) {
+      break;
+    }
+    X509 *cert = SSL_get_peer_certificate(ssl);
+    if (isError("peer_cert", cert != nullptr)) {
+      break;
+    }
+    X509_free(cert);  // decrement reference count incremented by above call
+    if (verifyPeer && isError("verify", SSL_get_verify_result(ssl), X509_V_OK)) {
+      break;
+    }
+    // check hostname
+    X509_NAME *sname = X509_get_subject_name(cert);
+    if (isError("get_subject", sname != nullptr)) {
+      break;
+    }
+    char peerName[64];
+    if (isError("subject name", X509_NAME_get_text_by_NID(sname, NID_commonName, peerName, sizeof(peerName)) > 0)) {
+      break;
+    }
+    if (strcmp(peerName, hostname) != 0) {
+      char* dotpos = NULL;
+      if (peerName[0] == '*' && peerName[1] == '.' && (dotpos=strchr((char*)hostname, '.'))
+        && strcmp(peerName+2, dotpos+1) == 0) {
+        // wildcard matches
+      } else if (isError("subject", 1, 0)) {
         break;
       }
-      BIO_set_nbio(bio, 1);  // set non-blocking
-      BIO_get_ssl(bio, &ssl);
-      if (isError("get_ssl", ssl != nullptr)) {
-        break;
-      }
-      SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
-      const char *hostname = host.c_str();
-      if (isError("tls_host", SSL_set_tlsext_host_name(ssl, hostname), 1)) {
-        break;
-      }
-      long res = BIO_do_connect(bio);
-      time_t now = 0;
-      while (res <= 0 && (BIO_should_retry(bio) || now == 0)) {  // always repeat on first failure
-        if ((now=time(nullptr)) > until) {
-          break;
-        }
-        usleep(SLEEP_NANOS);
-        res = BIO_do_connect(bio);
-      }
-      if (res <= 0 && now > until) {
-        logError(lf_network, "HTTP connect: timed out after %d sec", now-until);
-        break;
-      }
-      if (isError("connect", res, 1)) {
-        break;
-      }
-      X509 *cert = SSL_get_peer_certificate(ssl);
-      if (isError("peer_cert", cert != nullptr)) {
-        break;
-      }
-      X509_free(cert);  // decrement reference count incremented by above call
-      if (verifyPeer && isError("verify", SSL_get_verify_result(ssl), X509_V_OK)) {
-        break;
-      }
-      // check hostname
-      X509_NAME *sname = X509_get_subject_name(cert);
-      if (isError("get_subject", sname != nullptr)) {
-        break;
-      }
-      char peerName[64];
-      if (isError("subject name", X509_NAME_get_text_by_NID(sname, NID_commonName, peerName, sizeof(peerName)) > 0)) {
-        break;
-      }
-      if (strcmp(peerName, hostname) != 0) {
-        char* dotpos = NULL;
-        if (peerName[0] == '*' && peerName[1] == '.' && (dotpos=strchr((char*)hostname, '.'))
-          && strcmp(peerName+2, dotpos+1) == 0) {
-          // wildcard matches
-        } else if (isError("subject", 1, 0)) {
-          break;
-        }
-      }
-      return new SSLSocket(ctx, bio, until);
-    } while (false);
-  }
+    }
+    return new SSLSocket(bio, until);
+  } while (false);
   if (bio) {
     BIO_free_all(bio);
-  }
-  if (ctx) {
-    SSL_CTX_free(ctx);
   }
   return nullptr;
 }
