@@ -1031,6 +1031,8 @@ int main(int argc, char* argv[], char* envp[]) {
   s_mainLoop = new MainLoop(s_opt, device, s_messageMap, s_scanHelper);
   if (s_opt.injectMessages) {
     BusHandler* busHandler = s_mainLoop->getBusHandler();
+    int scanAdrCount = 0;
+    bool scanAddresses[256] = {};
     while (arg_index < argc) {
       // add each passed message
       MasterSymbolString master;
@@ -1039,6 +1041,18 @@ int main(int argc, char* argv[], char* envp[]) {
         continue;
       }
       busHandler->injectMessage(master, slave);
+      if (s_opt.scanConfig && master.size() >= 5 && master[4] == 0 && master[2] == 0x07 && master[3] == 0x04
+        && isValidAddress(master[1], false) && !isMaster(master[1]) && !scanAddresses[master[1]]) {
+        // scan message, simulate scanning
+        scanAddresses[master[1]] = true;
+        scanAdrCount++;
+      }
+    }
+    for (symbol_t address = 0; scanAdrCount > 0; address++) {
+      if (scanAddresses[address]) {
+        scanAdrCount--;
+        busHandler->scanAndWait(address, true);
+      }
     }
     if (s_opt.stopAfterInject) {
       shutdown();
