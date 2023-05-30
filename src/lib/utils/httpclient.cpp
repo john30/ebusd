@@ -209,7 +209,7 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool htt
       }
       long res = BIO_do_connect(bio);
       time_t now = 0;
-      while (res <= 0 && BIO_should_retry(bio)) {
+      while (res <= 0 && (BIO_should_retry(bio) || now == 0)) {  // always repeat on first failure
         if ((now=time(nullptr)) > until) {
           break;
         }
