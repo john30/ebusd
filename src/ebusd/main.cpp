@@ -1025,7 +1025,7 @@ int main(int argc, char* argv[], char* envp[]) {
       device->getName());
 
   // load configuration files
-  s_scanHelper->loadConfigFiles(s_messageMap);
+  s_scanHelper->loadConfigFiles(!s_opt.scanConfig);
 
   // create the MainLoop and start it
   s_mainLoop = new MainLoop(s_opt, device, s_messageMap, s_scanHelper);
