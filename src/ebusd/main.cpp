@@ -857,18 +857,23 @@ int main(int argc, char* argv[], char* envp[]) {
     error_t err = argp_parse(&aargp, cnt, envargv, ARGP_PARSE_ARGV0|ARGP_SILENT|ARGP_IN_ORDER, &idx, &s_opt);
     if (err != 0 && idx == -1) {  // ignore args for non-arg boolean options
       if (err == ESRCH) {  // special value to abort immediately
-        logError(lf_main, "invalid argument in env: %s", envopt);
+        logWrite(lf_main, ll_error, "invalid argument in env: %s", envopt);  // force logging on exit
         return EINVAL;
       }
-      logError(lf_main, "invalid/unknown argument in env (ignored): %s", envopt);
+      logWrite(lf_main, ll_error, "invalid/unknown argument in env (ignored): %s", envopt);  // force logging
     }
     s_opt.injectMessages = false;  // restore (was not parsed from cmdline args yet)
   }
 
   int arg_index = -1;
   if (argp_parse(&aargp, argc, argv, ARGP_IN_ORDER, &arg_index, &s_opt) != 0) {
-    logError(lf_main, "invalid arguments");
+    logWrite(lf_main, ll_error, "invalid arguments");  // force logging on exit
     return EINVAL;
+  }
+
+  if (s_opt.logAreas != -1 || s_opt.logLevel != ll_COUNT) {
+    setFacilitiesLogLevel(LF_ALL, ll_none);
+    setFacilitiesLogLevel(s_opt.logAreas, s_opt.logLevel);
   }
 
   if (!s_configPath.empty() && s_configPath[s_configPath.length()-1] != '/') {
@@ -882,7 +887,7 @@ int main(int argc, char* argv[], char* envp[]) {
     configLocalPrefix = s_configPath;
   } else {
     if (!s_opt.scanConfig) {
-      logError(lf_main, "invalid configpath without scanconfig");
+      logWrite(lf_main, ll_error, "invalid configpath without scanconfig");  // force logging on exit
       return EINVAL;
     }
     size_t pos = s_configPath.find(PREVIOUS_CONFIG_PATH_SUFFIX);
@@ -897,11 +902,11 @@ int main(int argc, char* argv[], char* envp[]) {
     if (!HttpClient::parseUrl(s_configPath, &proto, &configHost, &configPort, &configUriPrefix)) {
 #ifndef HAVE_SSL
       if (proto == "https") {
-        logError(lf_main, "invalid configPath URL (HTTPS not supported)");
+        logWrite(lf_main, ll_error, "invalid configPath URL (HTTPS not supported)");  // force logging on exit
         return EINVAL;
       }
 #endif
-      logError(lf_main, "invalid configPath URL");
+      logWrite(lf_main, ll_error, "invalid configPath URL");  // force logging on exit
       return EINVAL;
     }
     configHttpClient = new HttpClient(s_opt.caFile, s_opt.caPath);
@@ -911,19 +916,16 @@ int main(int argc, char* argv[], char* envp[]) {
       // if that did not work, issue a single retry with default timeout:
       && !configHttpClient->connect(configHost, configPort, proto == "https", PACKAGE_NAME "/" PACKAGE_VERSION)
     ) {
-      logError(lf_main, "invalid configPath URL (connect)");
+      logWrite(lf_main, ll_error, "invalid configPath URL (connect)");  // force logging on exit
       delete configHttpClient;
       cleanup();
       return EINVAL;
     }
+    logInfo(lf_main, "configPath URL is valid");
     configHttpClient->disconnect();
   }
   if (!s_opt.readOnly && s_opt.scanConfig && s_opt.initialScan == 0) {
     s_opt.initialScan = BROADCAST;
-  }
-  if (s_opt.logAreas != -1 || s_opt.logLevel != ll_COUNT) {
-    setFacilitiesLogLevel(LF_ALL, ll_none);
-    setFacilitiesLogLevel(s_opt.logAreas, s_opt.logLevel);
   }
 
   s_messageMap = new MessageMap(s_opt.checkConfig, lang);
@@ -997,14 +999,14 @@ int main(int argc, char* argv[], char* envp[]) {
   Device *device = Device::create(s_opt.device, s_opt.extraLatency, !s_opt.noDeviceCheck, s_opt.readOnly,
                                   s_opt.initialSend);
   if (device == nullptr) {
-    logError(lf_main, "unable to create device %s", s_opt.device);
+    logWrite(lf_main, ll_error, "unable to create device %s", s_opt.device);  // force logging on exit
     cleanup();
     return EINVAL;
   }
 
   if (!s_opt.foreground) {
     if (!setLogFile(s_opt.logFile)) {
-      logError(lf_main, "unable to open log file %s", s_opt.logFile);
+      logWrite(lf_main, ll_error, "unable to open log file %s", s_opt.logFile);  // force logging on exit
       cleanup();
       return EINVAL;
     }
