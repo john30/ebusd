@@ -118,20 +118,12 @@ class HttpClient {
  public:
   /**
    * Constructor.
-   * @param caFile the CA file to use (uses defaults if neither caFile nor caPath are set), or "#" for insecure.
-   * @param caPath the path with CA files to use (uses defaults if neither caFile nor caPath are set).
-   * @param init whether to immediately initialize the library (instead of during connect()).
    */
-  explicit HttpClient(const char* caFile = nullptr, const char* caPath = nullptr, bool init = true) :
+  HttpClient() :
 #ifdef HAVE_SSL
     m_https(false),
-    m_caFile(caFile),
-    m_caPath(caPath),
 #endif
     m_socket(nullptr), m_port(0), m_timeout(0), m_bufferSize(0), m_buffer(nullptr) {
-    if (init) {
-      initialize();
-    }
   }
 
   /**
@@ -146,9 +138,11 @@ class HttpClient {
   }
 
   /**
-   * Initialize HttpClient.
+   * Initialize the underlying SSL library.
+   * @param caFile the CA file to use (uses defaults if neither caFile nor caPath are set), or "#" for insecure.
+   * @param caPath the path with CA files to use (uses defaults if neither caFile nor caPath are set).
    */
-  static void initialize();
+  static void initialize(const char* caFile = nullptr, const char* caPath = nullptr);
 
   /**
    * Parse an HTTP URL.
@@ -238,10 +232,10 @@ class HttpClient {
   bool m_https;
 
   /** the CA file to use. */
-  const char* m_caFile;
+  static const char* s_caFile;
 
   /** the path with CA files to use. */
-  const char* m_caPath;
+  static const char* s_caPath;
 #endif
 
   /** the currently connected socket. */

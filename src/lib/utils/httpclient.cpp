@@ -300,18 +300,22 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool htt
 }
 
 bool HttpClient::s_initialized = false;
+const char* HttpClient::s_caFile = nullptr;
+const char* HttpClient::s_caPath = nullptr;
 
-void HttpClient::initialize() {
+void HttpClient::initialize(const char* caFile, const char* caPath) {
   if (s_initialized) {
     return;
   }
   s_initialized = true;
+  s_caFile = caFile;
+  s_caPath = caPath;
   SSL_library_init();
   SSL_load_error_strings();
   signal(SIGPIPE, SIG_IGN);  // needed to avoid SIGPIPE when writing to a closed pipe
 }
 #else  // HAVE_SSL
-void HttpClient::initialize() {
+void HttpClient::initialize(const char* caFile, const char* caPath) {
   // empty
 }
 #endif  // HAVE_SSL
@@ -369,7 +373,7 @@ bool HttpClient::connect(const string& host, const uint16_t port, bool https, co
   initialize();
   disconnect();
 #ifdef HAVE_SSL
-  m_socket = SSLSocket::connect(host, port, https, timeout, m_caFile, m_caPath);
+  m_socket = SSLSocket::connect(host, port, https, timeout, s_caFile, s_caPath);
   m_https = https;
 #else
   if (https) {
@@ -393,7 +397,7 @@ bool HttpClient::reconnect() {
     return false;
   }
 #ifdef HAVE_SSL
-  m_socket = SSLSocket::connect(m_host, m_port, m_https, m_timeout, m_caFile, m_caPath);
+  m_socket = SSLSocket::connect(m_host, m_port, m_https, m_timeout, s_caFile, s_caPath);
 #else
   m_socket = TCPSocket::connect(m_host, m_port, m_timeout);
 #endif

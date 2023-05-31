@@ -882,6 +882,7 @@ int main(int argc, char* argv[], char* envp[]) {
   const string lang = MappedFileReader::normalizeLanguage(
     s_opt.preferLanguage == nullptr || !s_opt.preferLanguage[0] ? "" : s_opt.preferLanguage);
   string configLocalPrefix, configUriPrefix;
+  HttpClient::initialize(s_opt.caFile, s_opt.caPath);
   HttpClient* configHttpClient = nullptr;
   if (s_configPath.find("://") == string::npos) {
     configLocalPrefix = s_configPath;
@@ -909,7 +910,7 @@ int main(int argc, char* argv[], char* envp[]) {
       logWrite(lf_main, ll_error, "invalid configPath URL");  // force logging on exit
       return EINVAL;
     }
-    configHttpClient = new HttpClient(s_opt.caFile, s_opt.caPath);
+    configHttpClient = new HttpClient();
     if (
       // check with low timeout of 1 second initially:
       !configHttpClient->connect(configHost, configPort, proto == "https", PACKAGE_NAME "/" PACKAGE_VERSION, 1)
