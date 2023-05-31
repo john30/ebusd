@@ -234,6 +234,7 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool htt
       break;
     }
     BIO_set_info_callback(bio, bioInfoCallback);
+    BIO_set_conn_ip_family(bio, 4);  // force IPv4 to circumvent docker IPv6 routing issues
     if (isError("conn_hostname", BIO_set_conn_hostname(bio, hostPort.c_str()), 1)) {
       break;
     }
