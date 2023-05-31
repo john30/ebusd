@@ -145,7 +145,8 @@ void sslInfoCallback(const SSL *ssl, int type, int val) {
   }
   logWrite(lf_network,
     (val == 0) ? ll_error : ll_debug,
-    "SSL state %s: type 0x%x=%s%s%s%s%s%s%s%s%s val %d=%s",
+    "SSL state %d=%s: type 0x%x=%s%s%s%s%s%s%s%s%s val %d=%s",
+    SSL_get_state(ssl),
     SSL_state_string_long(ssl),
     type,
     (type & SSL_CB_LOOP) ? "loop," : "",
@@ -159,6 +160,14 @@ void sslInfoCallback(const SSL *ssl, int type, int val) {
     (type & SSL_CB_HANDSHAKE_DONE) ? "done," : "",
     val,
     (type & SSL_CB_ALERT) ? SSL_alert_desc_string_long(val) : "?");
+}
+
+int bioInfoCallback(BIO *bio, int state, int res) {
+  logDebug(lf_network,
+    "SSL BIO state %d res %d",
+    state,
+    res);
+  return 1;
 }
 
 SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool https, int timeout, const char* caFile,
@@ -224,16 +233,17 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool htt
     if (isError("new_ssl_conn", bio != nullptr)) {
       break;
     }
+    BIO_set_info_callback(bio, bioInfoCallback);
     if (isError("conn_hostname", BIO_set_conn_hostname(bio, hostPort.c_str()), 1)) {
       break;
     }
-    BIO_set_nbio(bio, 1);  // set non-blocking
+    isError("set_nbio", BIO_set_nbio(bio, 1), 1);  // set non-blocking
     SSL *ssl = nullptr;
     BIO_get_ssl(bio, &ssl);
     if (isError("get_ssl", ssl != nullptr)) {
       break;
     }
-    SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
+    SSL_clear_mode(ssl, SSL_MODE_AUTO_RETRY);
     const char *hostname = host.c_str();
     if (isError("tls_host", SSL_set_tlsext_host_name(ssl, hostname), 1)) {
       break;
