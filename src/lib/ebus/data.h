@@ -551,6 +551,10 @@ class ValueListDataField : public SingleDataField {
   // @copydoc
   void dump(bool prependFieldSeparator, OutputFormat outputFormat, ostream* output) const override;
 
+  /**
+   * @return the value=text assignments.
+   */
+  const map<unsigned int, string>& getList() const { return m_values; }
 
  protected:
   // @copydoc

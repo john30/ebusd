@@ -1111,6 +1111,34 @@ void MqttHandler::run() {
               }
               values.set("step", ostr.str());
             }
+            if (dataType->isNumeric() && field->isList() && !values["field_values-entry"].empty()) {
+              auto vl = (dynamic_cast<const ValueListDataField*>(field))->getList();
+              string entryFormat = values["field_values-entry"];
+              string::size_type pos = -1;
+              while ((pos = entryFormat.find('$', pos+1)) != std::string::npos) {
+                if (entryFormat.substr(pos+1, 4) == "text" || entryFormat.substr(pos+1, 5) == "value") {
+                  entryFormat.replace(pos, 1, "%");
+                }
+              }
+              entryFormat.replace(0, 0, "entry = ");
+              string result = values["field_values-prefix"];
+              bool first = true;
+              for (const auto& it : vl) {
+                StringReplacers entry;
+                entry.parseLine(entryFormat);
+                entry.set("value", it.first);
+                entry.set("text", it.second);
+                entry.reduce();
+                if (first) {
+                  first = false;
+                } else {
+                  result += values["field_values-separator"];
+                }
+                result += entry.get("entry", false, false);
+              }
+              result += values["field_values-suffix"];
+              values.set("field_values", result);
+            }
             if (!m_typeSwitches.empty()) {
               values.reduce(true);
               str = values.get("type_switch-by", false, false);
