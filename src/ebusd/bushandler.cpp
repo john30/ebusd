@@ -1178,10 +1178,10 @@ bool BusHandler::addSeenAddress(symbol_t address) {
 
 void BusHandler::messageCompleted() {
   const char* prefix = m_currentRequest ? "sent" : "received";
-  if (m_currentRequest) {
-    m_command = m_currentRequest->m_master;
-  }
-  symbol_t srcAddress = m_command[0], dstAddress = m_command[1];
+  // do an explicit copy here in case being called by another thread
+  const MasterSymbolString command = m_currentRequest ? m_currentRequest->m_master : m_command;
+  SlaveSymbolString response = m_response;
+  symbol_t srcAddress = command[0], dstAddress = command[1];
   if (srcAddress == dstAddress) {
     logError(lf_bus, "invalid self-addressed message from %2.2x", srcAddress);
     return;
@@ -1192,8 +1192,8 @@ void BusHandler::messageCompleted() {
 
   bool master = isMaster(dstAddress);
   if (dstAddress == BROADCAST) {
-    logInfo(lf_update, "%s BC cmd: %s", prefix, m_command.getStr().c_str());
-    if (m_command.getDataSize() >= 10 && m_command[2] == 0x07 && m_command[3] == 0x04) {
+    logInfo(lf_update, "%s BC cmd: %s", prefix, command.getStr().c_str());
+    if (command.getDataSize() >= 10 && command[2] == 0x07 && command[3] == 0x04) {
       symbol_t slaveAddress = getSlaveAddress(srcAddress);
       addSeenAddress(slaveAddress);
       Message* message = m_messages->getScanMessage(slaveAddress);
@@ -1207,7 +1207,7 @@ void BusHandler::messageCompleted() {
           SlaveSymbolString idData;
           idData.push_back(10);
           for (size_t i = 0; i < 10; i++) {
-            idData.push_back(m_command.dataAt(i));
+            idData.push_back(command.dataAt(i));
           }
           result = message->storeLastData(0, idData);
           if (result == RESULT_OK) {
@@ -1223,13 +1223,13 @@ void BusHandler::messageCompleted() {
       }
     }
   } else if (master) {
-    logInfo(lf_update, "%s MM cmd: %s", prefix, m_command.getStr().c_str());
+    logInfo(lf_update, "%s MM cmd: %s", prefix, command.getStr().c_str());
   } else {
-    logInfo(lf_update, "%s MS cmd: %s / %s", prefix, m_command.getStr().c_str(), m_response.getStr().c_str());
-    if (m_command.size() >= 5 && m_command[2] == 0x07 && m_command[3] == 0x04) {
+    logInfo(lf_update, "%s MS cmd: %s / %s", prefix, command.getStr().c_str(), response.getStr().c_str());
+    if (command.size() >= 5 && command[2] == 0x07 && command[3] == 0x04) {
       Message* message = m_messages->getScanMessage(dstAddress);
       if (message && (message->getLastUpdateTime() == 0 || message->getLastSlaveData().getDataSize() < 10)) {
-        result_t result = message->storeLastData(m_command, m_response);
+        result_t result = message->storeLastData(command, response);
         if (result == RESULT_OK) {
           ostringstream output;
           result = message->decodeLastData(true, nullptr, -1, OF_NONE, &output);
@@ -1242,24 +1242,24 @@ void BusHandler::messageCompleted() {
       }
     }
   }
-  Message* message = m_messages->find(m_command);
+  Message* message = m_messages->find(command);
   if (m_grabMessages) {
     uint64_t key;
     if (message) {
       key = message->getKey();
     } else {
-      key = Message::createKey(m_command, m_command[1] == BROADCAST ? 1 : 4);  // up to 4 DD bytes (1 for broadcast)
+      key = Message::createKey(command, command[1] == BROADCAST ? 1 : 4);  // up to 4 DD bytes (1 for broadcast)
     }
-    m_grabbedMessages[key].setLastData(m_command, m_response);
+    m_grabbedMessages[key].setLastData(command, response);
   }
   if (message == nullptr) {
     if (dstAddress == BROADCAST) {
-      logNotice(lf_update, "%s unknown BC cmd: %s", prefix, m_command.getStr().c_str());
+      logNotice(lf_update, "%s unknown BC cmd: %s", prefix, command.getStr().c_str());
     } else if (master) {
-      logNotice(lf_update, "%s unknown MM cmd: %s", prefix, m_command.getStr().c_str());
+      logNotice(lf_update, "%s unknown MM cmd: %s", prefix, command.getStr().c_str());
     } else {
-      logNotice(lf_update, "%s unknown MS cmd: %s / %s", prefix, m_command.getStr().c_str(),
-        m_response.getStr().c_str());
+      logNotice(lf_update, "%s unknown MS cmd: %s / %s", prefix, command.getStr().c_str(),
+        response.getStr().c_str());
     }
   } else {
     m_messages->invalidateCache(message);
@@ -1269,14 +1269,14 @@ void BusHandler::messageCompleted() {
       : message->isPassive() ? message->isWrite() ? "update-write" : "update-read"
       : message->getPollPriority() > 0 ? message->isWrite() ? "poll-write" : "poll-read"
       : message->isWrite() ? "write" : "read";
-    result_t result = message->storeLastData(m_command, m_response);
+    result_t result = message->storeLastData(command, response);
     ostringstream output;
     if (result == RESULT_OK) {
       result = message->decodeLastData(false, nullptr, -1, OF_NONE, &output);
     }
     if (result < RESULT_OK) {
       logError(lf_update, "unable to parse %s %s %s from %s / %s: %s", mode, circuit.c_str(), name.c_str(),
-          m_command.getStr().c_str(), m_response.getStr().c_str(), getResultCode(result));
+          command.getStr().c_str(), response.getStr().c_str(), getResultCode(result));
     } else {
       string data = output.str();
       if (m_answer && dstAddress == (master ? m_ownMasterAddress : m_ownSlaveAddress)) {
