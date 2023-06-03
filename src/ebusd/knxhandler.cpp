@@ -939,6 +939,7 @@ void KnxHandler::run() {
         for (auto it = m_updatedMessages.begin(); it != m_updatedMessages.end(); ) {
           const vector<Message*>* messages = m_messages->getByKey(it->first);
           if (!messages) {
+            it = m_updatedMessages.erase(it);
             continue;
           }
           for (const auto& message : *messages) {
