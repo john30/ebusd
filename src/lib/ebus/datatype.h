@@ -676,13 +676,13 @@ class DataTypeList {
    * Returns an iterator pointing to the first ID/@a DataType pair.
    * @return an iterator pointing to the first ID/@a DataType pair.
    */
-  map<string, const DataType*>::const_iterator begin() const { return m_typesById.begin(); }
+  map<string, const DataType*>::const_iterator begin() const { return m_typesById.cbegin(); }
 
   /**
    * Returns an iterator pointing one past the last ID/@a DataType pair.
    * @return an iterator pointing one past the last ID/@a DataType pair.
    */
-  map<string, const DataType*>::const_iterator end() const { return m_typesById.end(); }
+  map<string, const DataType*>::const_iterator end() const { return m_typesById.cend(); }
 
  private:
   /** the known @a DataType instances by ID (e.g. "ID:BITS" or just "ID").
