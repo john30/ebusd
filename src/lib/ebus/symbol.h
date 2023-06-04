@@ -370,6 +370,12 @@ class MasterSymbolString : public SymbolString {
    */
   MasterSymbolString() : SymbolString(true) {}
 
+  /**
+   * Copy constructor.
+   * @param str the @a MasterSymbolString to copy from.
+   */
+  MasterSymbolString(const MasterSymbolString& str) : SymbolString(str) {}
+
   MasterSymbolString& operator=(const MasterSymbolString& other) {
     this->m_data = other.m_data;
     this->m_isMaster = true;
@@ -381,13 +387,6 @@ class MasterSymbolString : public SymbolString {
     this->m_isMaster = true;
     return *this;
   }
-
- private:
-  /**
-   * Copy constructor.
-   * @param str the @a MasterSymbolString to copy from.
-   */
-  MasterSymbolString(const MasterSymbolString& str) : SymbolString(str) {}
 };
 
 
@@ -401,6 +400,12 @@ class SlaveSymbolString : public SymbolString {
    */
   SlaveSymbolString() : SymbolString(false) {}
 
+  /**
+   * Copy constructor.
+   * @param str the @a SlaveSymbolString to copy from.
+   */
+  SlaveSymbolString(const SlaveSymbolString& str) : SymbolString(str) {}
+
   SlaveSymbolString& operator=(const SlaveSymbolString& other) {
     this->m_data = other.m_data;
     this->m_isMaster = false;
@@ -412,13 +417,6 @@ class SlaveSymbolString : public SymbolString {
     this->m_isMaster = false;
     return *this;
   }
-
- private:
-  /**
-   * Copy constructor.
-   * @param str the @a SlaveSymbolString to copy from.
-   */
-  SlaveSymbolString(const SlaveSymbolString& str) : SymbolString(str) {}
 };
 
 

@@ -1179,8 +1179,8 @@ bool BusHandler::addSeenAddress(symbol_t address) {
 void BusHandler::messageCompleted() {
   const char* prefix = m_currentRequest ? "sent" : "received";
   // do an explicit copy here in case being called by another thread
-  const MasterSymbolString command = m_currentRequest ? m_currentRequest->m_master : m_command;
-  SlaveSymbolString response = m_response;
+  const MasterSymbolString command(m_currentRequest ? m_currentRequest->m_master : m_command);
+  const SlaveSymbolString response(m_response);
   symbol_t srcAddress = command[0], dstAddress = command[1];
   if (srcAddress == dstAddress) {
     logError(lf_bus, "invalid self-addressed message from %2.2x", srcAddress);
