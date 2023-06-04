@@ -94,6 +94,10 @@ body:
       label: Hardware interface
       description: the eBUS hardware interface in use
       options:
+        - adapter 5 via USB
+        - adapter 5 via WiFi
+        - adapter 5 via Ethernet
+        - adapter 5 via Raspberry GPIO
         - adapter 3.1 USB
         - adapter 3.1 WiFi
         - adapter 3.1 Ethernet
@@ -103,8 +107,6 @@ body:
         - adapter 3.0 Ethernet
         - adapter 3.0 RPi
         - adapter 2
-        - Esera USB
-        - Esera Ethernet
         - other
     validations:
       required: true
