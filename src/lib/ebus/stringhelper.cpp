@@ -510,13 +510,13 @@ void StringReplacers::reduce(bool compress) {
         ++it;
         continue;
       }
-      bool restart = set(it->first, str, false);
+      string key = it->first;
       it = m_replacers.erase(it);
+      bool restart = set(key, str, false);
       reduced = true;
       if (restart) {
-        string upper = it->first;
-        transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
-        if (m_replacers.erase(upper) > 0) {
+        transform(key.begin(), key.end(), key.begin(), ::toupper);
+        if (m_replacers.erase(key) > 0) {
           break;  // restart as iterator is now invalid
         }
       }
