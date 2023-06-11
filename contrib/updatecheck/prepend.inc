@@ -10,7 +10,12 @@ function readVersions($old=false) {
       global $versions;
       $val = explode('=', $val);
       if (count($val)>1) {
-        $versions[$val[0]] = explode(',', $val[1]);
+        $key = $val[0];
+        $val = explode(',', $val[1]);
+        if ($key==='device' && count($val)===2 && $val[0]===$val[1]) {
+          $key = 'devicesame';
+        }
+        $versions[$key] = $val;
       }
     };
     array_walk($v, $func);
@@ -33,8 +38,11 @@ function checkUpdate($ebusdVersion, $ebusdRelease, $architecture, $deviceVersion
   if ($deviceVersion && @$versions['device']) {
     $feat = strtok($deviceVersion, '.');
     $ver = strtok('.');
-    if ($ver && $ver!==$versions['device'][0]) {
-      $ret .= ', device firmware '.$versions['device'][0].' available';
+    if ($ver) {
+      $key = ($ver===strtok('.')) ? 'devicesame' : 'device';
+      if ($ver!==$versions[$key][0]) {
+        $ret .= ', device firmware '.$versions[$key][0].' available';
+      }
     }
   }
   $newerAvailable = 0;
