@@ -23,7 +23,7 @@ The main features of the daemon are:
    * TCP
    * UDP
    * enhanced ebusd protocol allowing arbitration to be done directly by the hardware, e.g. for recent
-     * [ebus adapter 3](https://adapter.ebusd.eu/), or
+     * [ebus adapter 5](https://adapter.ebusd.eu/v5/), or
      * [ebusd-esp firmware](https://github.com/john30/ebusd-esp/)
  * actively send messages to and receive answers from the eBUS
  * passively listen to messages sent on the eBUS
