@@ -317,13 +317,13 @@ void MainLoop::run() {
             }
           } else {
             scanStatus = SCAN_STATUS_RUNNING;
-            nextCheckRun = now + CHECK_INITIAL_DELAY;
             result_t result = m_busHandler->scanAndWait(lastScanAddress, true);
             taskDelay = (result == RESULT_ERR_NO_SIGNAL) ? 10 : 1;
             if (result != RESULT_OK) {
               logError(lf_main, "scan config %2.2x: %s", lastScanAddress, getResultCode(result));
             } else {
               logInfo(lf_main, "scan config %2.2x message received", lastScanAddress);
+              nextCheckRun = now + CHECK_INITIAL_DELAY;  // delay update check due to new scan data
             }
           }
         }
@@ -354,6 +354,7 @@ void MainLoop::run() {
 #endif
                             PACKAGE_NAME "/" PACKAGE_VERSION)) {
           logError(lf_main, "update check connect error");
+          nextCheckRun = now + CHECK_INITIAL_DELAY;
         } else {
           ostringstream ostr;
           ostr << "{\"v\":\"" PACKAGE_VERSION "\",\"r\":\"" REVISION << "\""
@@ -394,8 +395,8 @@ void MainLoop::run() {
               }
             }
           }
+          nextCheckRun = now + CHECK_DELAY;
         }
-        nextCheckRun = now + CHECK_DELAY;
       }
       time(&lastTaskRun);
     }
