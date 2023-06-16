@@ -711,7 +711,7 @@ bool Device::handleEnhancedBufferedData(symbol_t* value, ArbitrationState* arbit
               case 0x0500:  // with firmware version and jumper info
               case 0x0800:  // with firmware version, jumper info, and bootloader version
                 stream << std::hex << static_cast<unsigned>(m_infoBuf[1])  // features mask
-                       << static_cast<unsigned>(m_infoBuf[0]) << ".";  // version minor
+                       << "." << static_cast<unsigned>(m_infoBuf[0]);  // version minor
                 if (m_infoLen >= 5) {
                   stream << "[" << std::setfill('0') << std::setw(2) << std::hex << static_cast<unsigned>(m_infoBuf[2])
                          << std::setw(2) << static_cast<unsigned>(m_infoBuf[3]) << "]";
