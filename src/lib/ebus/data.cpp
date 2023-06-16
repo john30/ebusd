@@ -793,9 +793,9 @@ result_t ValueListDataField::writeSymbols(size_t offset, istringstream* input,
     return numType->writeRawValue(numType->getReplacement(), offset, m_length, output, usedLength);
   }
 
-  for (map<unsigned int, string>::const_iterator it = m_values.begin(); it != m_values.end(); ++it) {
-    if (it->second == inputStr) {
-      return numType->writeRawValue(it->first, offset, m_length, output, usedLength);
+  for (const auto& it : m_values) {
+    if (it.second == inputStr) {
+      return numType->writeRawValue(it.first, offset, m_length, output, usedLength);
     }
   }
   const char* str = inputStr.c_str();
