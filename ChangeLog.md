@@ -1,4 +1,20 @@
-# 23.1 (2022-12-06)
+# 23.2 (tbd)
+## Bug Fixes
+* fix bounds check for variable length datatypes
+* add timeout for enhanced protocol info exchange and allow more of them being optional
+* fix some warnings in Home Assistant MQTT discovery integration
+* fix for high traffic on KNX integration
+* add workaround for libssl issues, add debug logging and force it using IPv4
+* fix log level potentially set too late during startup
+
+## Features
+* add log entry for unstartable TCP ports
+* add support for injecting scan messages being used for scan procedure
+* add value lists support to MQTT integration and use it for Home Assistant MQTT discovery integration
+* add update check for v5 device
+
+
+# 23.1 (2023-01-06)
 ## Bug Fixes
 * fix potentially invalid settings picked up from environment variables
 * fix potentially unnecessary arbitration start for non-enhanced proto
