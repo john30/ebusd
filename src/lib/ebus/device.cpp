@@ -75,25 +75,8 @@ namespace ebusd {
 #define ENH_BYTE2 ((uint8_t)0x80)
 #define makeEnhancedSequence(cmd, data) {(uint8_t)(ENH_BYTE1 | ((cmd)<<2) | (((data)&0xc0)>>6)), (uint8_t)(ENH_BYTE2 | ((data)&0x3f))}
 
-Device::Device(const char* name, bool checkDevice, unsigned int latency, bool readOnly, bool initialSend,
-    bool enhancedProto)
-  : m_name(name), m_checkDevice(checkDevice),
-    m_latency(HOST_LATENCY_MS+(enhancedProto?ENHANCED_LATENCY_MS:0)+latency), m_readOnly(readOnly),
-    m_initialSend(initialSend), m_enhancedProto(enhancedProto), m_fd(-1), m_resetRequested(false),
-    m_listener(nullptr), m_arbitrationMaster(SYN),
-    m_arbitrationCheck(0), m_bufSize(((MAX_LEN+1+3)/4)*4), m_bufLen(0), m_bufPos(0),
-    m_extraFatures(0), m_infoId(0xff), m_infoReqTime(0), m_infoLen(0), m_infoPos(0) {
-  m_buffer = reinterpret_cast<symbol_t*>(malloc(m_bufSize));
-  if (!m_buffer) {
-    m_bufSize = 0;
-  }
-}
-
-Device::~Device() {
-  close();
-  if (m_buffer) {
-    free(m_buffer);
-  }
+Device::Device(const char* name, bool readOnly, bool initialSend)
+  : m_name(name), m_readOnly(readOnly), m_initialSend(initialSend), m_listener(nullptr) {
 }
 
 Device* Device::create(const char* name, unsigned int extraLatency, bool checkDevice, bool readOnly, bool initialSend) {
@@ -138,14 +121,82 @@ Device* Device::create(const char* name, unsigned int extraLatency, bool checkDe
   return new SerialDevice(name, checkDevice, extraLatency, readOnly, initialSend, enhanced, highSpeed);
 }
 
-result_t Device::open() {
+result_t Device::afterOpen() {
+  if (m_initialSend && !send(ESC)) {
+    return RESULT_ERR_SEND;
+  }
+  return RESULT_OK;
+}
+
+
+FileDevice::FileDevice(const char* name, bool checkDevice, unsigned int latency, bool readOnly, bool initialSend,
+    bool enhancedProto)
+  : Device(name, readOnly, initialSend),
+    m_checkDevice(checkDevice),
+    m_latency(HOST_LATENCY_MS+(enhancedProto?ENHANCED_LATENCY_MS:0)+latency),
+    m_enhancedProto(enhancedProto), m_fd(-1), m_resetRequested(false),
+    m_arbitrationMaster(SYN),
+    m_arbitrationCheck(0), m_bufSize(((MAX_LEN+1+3)/4)*4), m_bufLen(0), m_bufPos(0),
+    m_extraFatures(0), m_infoId(0xff), m_infoReqTime(0), m_infoLen(0), m_infoPos(0) {
+  m_buffer = reinterpret_cast<symbol_t*>(malloc(m_bufSize));
+  if (!m_buffer) {
+    m_bufSize = 0;
+  }
+}
+
+FileDevice::~FileDevice() {
+  close();
+  if (m_buffer) {
+    free(m_buffer);
+  }
+}
+
+void FileDevice::formatInfo(ostringstream* ostream, bool verbose, bool asJson, bool noWait) {
+  if (asJson) {
+    if (m_enhancedProto) {
+      string ver = getEnhancedVersion();
+      if (!ver.empty()) {
+        *ostream << ",\"dv\":\"" << ver << "\"";
+      }
+    }
+    return;
+  }
+  *ostream << m_name;
+  string info = getEnhancedProtoInfo();
+  if (!info.empty()) {
+    *ostream << ", " << info;
+  }
+  if (isReadOnly()) {
+    *ostream << ", readonly";
+  }
+  if (noWait) {
+    return;
+  }
+  if (!isValid()) {
+    *ostream << ", invalid";
+  }
+  bool infoAdded = false;
+  if (verbose) {
+    info = getEnhancedInfos();
+    if (!info.empty()) {
+      *ostream << ", " << info;
+      infoAdded = true;
+    }
+  }
+  if (!infoAdded) {
+    string ver = getEnhancedVersion();
+    if (!ver.empty()) {
+      *ostream << ", firmware " << ver;
+    }
+  }
+}
+
+result_t FileDevice::open() {
   close();
   return m_bufSize == 0 ? RESULT_ERR_DEVICE : RESULT_OK;
 }
 
-result_t Device::afterOpen() {
-  m_bufLen = 0;
-  m_extraFatures = 0;
+result_t FileDevice::afterOpen() {
   if (m_enhancedProto) {
     symbol_t buf[2] = makeEnhancedSequence(ENH_REQ_INIT, 0x01);  // extra feature: info
 #ifdef DEBUG_RAW_TRAFFIC
@@ -165,15 +216,16 @@ result_t Device::afterOpen() {
   return RESULT_OK;
 }
 
-void Device::close() {
+void FileDevice::close() {
   if (m_fd != -1) {
     ::close(m_fd);
     m_fd = -1;
   }
   m_bufLen = 0;  // flush read buffer
+  m_extraFatures = 0;  // reset state
 }
 
-bool Device::isValid() {
+bool FileDevice::isValid() {
   if (m_fd == -1) {
     return false;
   }
@@ -183,7 +235,7 @@ bool Device::isValid() {
   return m_fd != -1;
 }
 
-result_t Device::requestEnhancedInfo(symbol_t infoId) {
+result_t FileDevice::requestEnhancedInfo(symbol_t infoId) {
   if (!m_enhancedProto || m_extraFatures == 0) {
     return RESULT_ERR_INVALID_ARG;
   }
@@ -212,7 +264,7 @@ result_t Device::requestEnhancedInfo(symbol_t infoId) {
   return sendEnhancedInfoRequest(infoId);
 }
 
-result_t Device::sendEnhancedInfoRequest(symbol_t infoId) {
+result_t FileDevice::sendEnhancedInfoRequest(symbol_t infoId) {
   symbol_t buf[2] = makeEnhancedSequence(ENH_REQ_INFO, infoId);
 #ifdef DEBUG_RAW_TRAFFIC
   fprintf(stdout, "raw enhanced > %2.2x %2.2x\n", buf[0], buf[1]);
@@ -227,7 +279,7 @@ result_t Device::sendEnhancedInfoRequest(symbol_t infoId) {
   return RESULT_OK;
 }
 
-string Device::getEnhancedInfos() {
+string FileDevice::getEnhancedInfos() {
   if (!m_enhancedProto || m_extraFatures == 0) {
     return "";
   }
@@ -276,7 +328,7 @@ string Device::getEnhancedInfos() {
   + m_enhInfoBusVoltage;
 }
 
-result_t Device::send(symbol_t value) {
+result_t FileDevice::send(symbol_t value) {
   if (!isValid()) {
     return RESULT_ERR_DEVICE;
   }
@@ -296,7 +348,7 @@ result_t Device::send(symbol_t value) {
 #define ENHANCED_COMPLETE_WAIT_DURATION 10
 
 
-bool Device::cancelRunningArbitration(ArbitrationState* arbitrationState) {
+bool FileDevice::cancelRunningArbitration(ArbitrationState* arbitrationState) {
   if (m_enhancedProto && m_arbitrationMaster != SYN) {
     *arbitrationState = as_error;
     m_arbitrationMaster = SYN;
@@ -313,7 +365,7 @@ bool Device::cancelRunningArbitration(ArbitrationState* arbitrationState) {
   return true;
 }
 
-result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* arbitrationState) {
+result_t FileDevice::recv(unsigned int timeout, symbol_t* value, ArbitrationState* arbitrationState) {
   if (m_arbitrationMaster != SYN) {
     *arbitrationState = as_running;
   }
@@ -424,7 +476,7 @@ result_t Device::recv(unsigned int timeout, symbol_t* value, ArbitrationState* a
   return RESULT_OK;
 }
 
-result_t Device::startArbitration(symbol_t masterAddress) {
+result_t FileDevice::startArbitration(symbol_t masterAddress) {
   if (m_arbitrationCheck) {
     if (masterAddress != SYN) {
       return RESULT_ERR_ARB_RUNNING;  // should not occur
@@ -453,7 +505,7 @@ result_t Device::startArbitration(symbol_t masterAddress) {
   return RESULT_OK;
 }
 
-bool Device::write(symbol_t value, bool startArbitration) {
+bool FileDevice::write(symbol_t value, bool startArbitration) {
   if (m_enhancedProto) {
     symbol_t buf[2] = makeEnhancedSequence(startArbitration ? ENH_REQ_START : ENH_REQ_SEND, value);
 #ifdef DEBUG_RAW_TRAFFIC
@@ -473,7 +525,7 @@ bool Device::write(symbol_t value, bool startArbitration) {
 #endif
 }
 
-bool Device::available() {
+bool FileDevice::available() {
   if (m_bufLen <= 0) {
     return false;
   }
@@ -542,7 +594,7 @@ bool Device::available() {
   return false;
 }
 
-bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrationState, bool* incomplete) {
+bool FileDevice::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrationState, bool* incomplete) {
   if (!isAvailable) {
     if (m_bufLen > 0 && m_bufPos != 0) {
       if (m_bufLen > m_bufSize / 2) {
@@ -609,7 +661,7 @@ bool Device::read(symbol_t* value, bool isAvailable, ArbitrationState* arbitrati
   return handleEnhancedBufferedData(value, arbitrationState);
 }
 
-bool Device::handleEnhancedBufferedData(symbol_t* value, ArbitrationState* arbitrationState) {
+bool FileDevice::handleEnhancedBufferedData(symbol_t* value, ArbitrationState* arbitrationState) {
   while (m_bufLen > 0) {
     symbol_t ch = m_buffer[m_bufPos];
     if (!(ch&ENH_BYTE_FLAG)) {
@@ -840,7 +892,7 @@ bool Device::handleEnhancedBufferedData(symbol_t* value, ArbitrationState* arbit
 
 
 result_t SerialDevice::open() {
-  result_t result = Device::open();
+  result_t result = FileDevice::open();
   if (result != RESULT_OK) {
     return result;
   }
@@ -857,7 +909,7 @@ result_t SerialDevice::open() {
     return RESULT_ERR_NOTFOUND;
   }
 
-  if (flock(m_fd, LOCK_EX|LOCK_NB)) {
+  if (flock(m_fd, LOCK_EX|LOCK_NB) != 0) {
     close();
     return RESULT_ERR_DEVICE;
   }
@@ -925,7 +977,7 @@ void SerialDevice::close() {
     // restore previous settings of the device
     tcsetattr(m_fd, TCSANOW, &m_oldSettings);
   }
-  Device::close();
+  FileDevice::close();
 }
 
 void SerialDevice::checkDevice() {
@@ -936,7 +988,7 @@ void SerialDevice::checkDevice() {
 }
 
 result_t NetworkDevice::open() {
-  result_t result = Device::open();
+  result_t result = FileDevice::open();
   if (result != RESULT_OK) {
     return result;
   }

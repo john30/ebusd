@@ -1019,13 +1019,14 @@ int main(int argc, char* argv[], char* envp[]) {
   signal(SIGINT, signalHandler);
   signal(SIGTERM, signalHandler);
 
-  logNotice(lf_main, PACKAGE_STRING "." REVISION " started%s%s on%s device %s",
-      device->isReadOnly() ? " read only" : "",
+  ostringstream ostream;
+  device->formatInfo(&ostream, false, false, true);
+  string deviceInfoStr = ostream.str();
+  logNotice(lf_main, PACKAGE_STRING "." REVISION " started%s on device: %s",
       s_opt.scanConfig ? s_opt.initialScan == ESC ? " with auto scan"
       : s_opt.initialScan == BROADCAST ? " with broadcast scan" : s_opt.initialScan == SYN ? " with full scan"
       : " with single scan" : "",
-      device->isEnhancedProto() ? " enhanced" : "",
-      device->getName());
+      deviceInfoStr.c_str());
 
   // load configuration files
   s_scanHelper->loadConfigFiles(!s_opt.scanConfig);

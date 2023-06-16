@@ -372,12 +372,7 @@ void MainLoop::run() {
                << ",\"a\":\"other\""
 #endif
                << ",\"u\":" << (now-start);
-          if (m_device->isEnhancedProto()) {
-            string ver = m_device->getEnhancedVersion();
-            if (!ver.empty()) {
-              ostr << ",\"dv\":\"" << ver << "\"";
-            }
-          }
+          m_device->formatInfo(&ostr, false, true, true);
           if (m_reconnectCount) {
             ostr << ",\"rc\":" << m_reconnectCount;
           }
@@ -1944,31 +1939,8 @@ result_t MainLoop::executeInfo(const vector<string>& args, const string& user, o
   if (!m_updateCheck.empty()) {
     *ostream << "update check: " << m_updateCheck << "\n";
   }
-  *ostream << "device: " << m_device->getName();
-  if (m_device->isEnhancedProto()) {
-    *ostream << ", enhanced";
-  }
-  if (m_device->isReadOnly()) {
-    *ostream << ", readonly";
-  }
-  if (!m_device->isValid()) {
-    *ostream << ", invalid";
-  }
-  bool infoAdded = false;
-  if (verbose) {
-    string info = m_device->getEnhancedInfos();
-    if (!info.empty()) {
-      *ostream << ", " << info;
-      infoAdded = true;
-    }
-  }
-  if (!infoAdded) {
-    string info = m_device->getEnhancedVersion();
-    if (!info.empty()) {
-      *ostream << ", firmware " << info;
-    }
-  }
-
+  *ostream << "device: ";
+  m_device->formatInfo(ostream, verbose);
   *ostream << "\n";
   if (!user.empty()) {
     *ostream << "user: " << user << "\n";
