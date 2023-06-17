@@ -1,58 +1,63 @@
-#!/bin/bash
-./src/ebusd/ebusd --help >/dev/null
-./src/ebusd/ebusd -r -f -x >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f -d "" >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f -d "tcp:192.168.999.999:1" >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f -d "enh:192.168.999.999:1" >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f -d "/dev/ttyUSBx9" >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --nodevicecheck >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --readonly >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --scanconfig=full -r >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --latency 999999 >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f -c "" >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f -r --scanconfig=fe >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f -r --configlang=en >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --pollinterval 999999 >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --inject 01fe030400/ >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --address 999 >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --acquiretimeout 999999 >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --acquireretries 999999 >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --sendretries 999999 >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --receivetimeout 9999999 >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --numbermasters 999999 >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f -r --answer >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f -r --generatesyn >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f -r --initsend >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f -r --scanconfig=0 >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --pidfile "" >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f -p 999999 >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --localhost >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --httpport 999999 >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --htmlpath "" >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --updatecheck=off >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f -l "" >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --log "all debug" >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --logareas some >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --loglevel unknown >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --lograwdata >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --lograwdata=bytes >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --lograwdatafile=/xyz >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --lograwdatasize=9999999 >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --dump >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --dumpfile "" >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --dumpsize 9999999 >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --dumpflush >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --accesslevel=inst >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --aclfile=/ >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --enablehex >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --enabledefine >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --mqttport= >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --mqttport=9999999 >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --mqttuser=username --mqttpass=password --mqttclientid=1234 --mqttport=1883 --mqtttopic=ebusd/%circuit/%name/%field --mqttretain --mqttjson --mqttverbose --mqttlog --mqttignoreinvalid --mqttchanges --mqtthost "" >/dev/null 2>/dev/null
-./src/ebusd/ebusd -f --mqttca=/cafile/ --mqttcert=/cert --mqttkey=12345678 --mqttkeypass=secret --mqttinsecure >/dev/null 2>/dev/null
-./src/ebusd/ebusd -c contrib/etc/ebusd -s -f --inject=stop "ff08070400/0ab5303132333431313131" >/dev/null 2>/dev/null
-./src/ebusd/ebusd -c contrib/etc/ebusd -s -f --inject=stop "ff08070400" >/dev/null 2>/dev/null
-./src/ebusd/ebusd -c contrib/etc/ebusd -s -f --inject=stop "ff080704/" >/dev/null 2>/dev/null
+#!/bin/bash -x
+prefix=.
+ebusd=$prefix/src/ebusd/ebusd
+ebusctl=$prefix/src/tools/ebusctl
+ebuspicloader=$prefix/src/tools/ebuspicloader
+
+$ebusd --help >/dev/null
+$ebusd -r -f -x >/dev/null 2>/dev/null
+$ebusd -f -d "" >/dev/null 2>/dev/null
+$ebusd -f -d "tcp:192.168.999.999:1" >/dev/null 2>/dev/null
+$ebusd -f -d "enh:192.168.999.999:1" >/dev/null 2>/dev/null
+$ebusd -f -d "/dev/ttyUSBx9" >/dev/null 2>/dev/null
+$ebusd -f --nodevicecheck >/dev/null 2>/dev/null
+$ebusd -f --readonly >/dev/null 2>/dev/null
+$ebusd -f --scanconfig=full -r >/dev/null 2>/dev/null
+$ebusd -f --latency 999999 >/dev/null 2>/dev/null
+$ebusd -f -c "" >/dev/null 2>/dev/null
+$ebusd -f -r --scanconfig=fe >/dev/null 2>/dev/null
+$ebusd -f -r --configlang=en >/dev/null 2>/dev/null
+$ebusd -f --pollinterval 999999 >/dev/null 2>/dev/null
+$ebusd -f --inject 01fe030400/ >/dev/null 2>/dev/null
+$ebusd -f --address 999 >/dev/null 2>/dev/null
+$ebusd -f --acquiretimeout 999999 >/dev/null 2>/dev/null
+$ebusd -f --acquireretries 999999 >/dev/null 2>/dev/null
+$ebusd -f --sendretries 999999 >/dev/null 2>/dev/null
+$ebusd -f --receivetimeout 9999999 >/dev/null 2>/dev/null
+$ebusd -f --numbermasters 999999 >/dev/null 2>/dev/null
+$ebusd -f -r --answer >/dev/null 2>/dev/null
+$ebusd -f -r --generatesyn >/dev/null 2>/dev/null
+$ebusd -f -r --initsend >/dev/null 2>/dev/null
+$ebusd -f -r --scanconfig=0 >/dev/null 2>/dev/null
+$ebusd -f --pidfile "" >/dev/null 2>/dev/null
+$ebusd -f -p 999999 >/dev/null 2>/dev/null
+$ebusd -f --localhost >/dev/null 2>/dev/null
+$ebusd -f --httpport 999999 >/dev/null 2>/dev/null
+$ebusd -f --htmlpath "" >/dev/null 2>/dev/null
+$ebusd -f --updatecheck=off >/dev/null 2>/dev/null
+$ebusd -f -l "" >/dev/null 2>/dev/null
+$ebusd -f --log "all debug" >/dev/null 2>/dev/null
+$ebusd -f --logareas some >/dev/null 2>/dev/null
+$ebusd -f --loglevel unknown >/dev/null 2>/dev/null
+$ebusd -f --lograwdata >/dev/null 2>/dev/null
+$ebusd -f --lograwdata=bytes >/dev/null 2>/dev/null
+$ebusd -f --lograwdatafile=/xyz >/dev/null 2>/dev/null
+$ebusd -f --lograwdatasize=9999999 >/dev/null 2>/dev/null
+$ebusd -f --dump >/dev/null 2>/dev/null
+$ebusd -f --dumpfile "" >/dev/null 2>/dev/null
+$ebusd -f --dumpsize 9999999 >/dev/null 2>/dev/null
+$ebusd -f --dumpflush >/dev/null 2>/dev/null
+$ebusd -f --accesslevel=inst >/dev/null 2>/dev/null
+$ebusd -f --aclfile=/ >/dev/null 2>/dev/null
+$ebusd -f --enablehex >/dev/null 2>/dev/null
+$ebusd -f --enabledefine >/dev/null 2>/dev/null
+$ebusd -f --mqttport= >/dev/null 2>/dev/null
+$ebusd -f --mqttport=9999999 >/dev/null 2>/dev/null
+$ebusd -f --mqttuser=username --mqttpass=password --mqttclientid=1234 --mqttport=1883 --mqtttopic=ebusd/%circuit/%name/%field --mqttretain --mqttjson --mqttverbose --mqttlog --mqttignoreinvalid --mqttchanges --mqtthost "" >/dev/null 2>/dev/null
+$ebusd -f --mqttca=/cafile/ --mqttcert=/cert --mqttkey=12345678 --mqttkeypass=secret --mqttinsecure >/dev/null 2>/dev/null
+$ebusd -c contrib/etc/ebusd -s -f --inject=stop "ff08070400/0ab5303132333431313131" >/dev/null 2>/dev/null
+$ebusd -c contrib/etc/ebusd -s -f --inject=stop "ff08070400" >/dev/null 2>/dev/null
+$ebusd -c contrib/etc/ebusd -s -f --inject=stop "ff080704/" >/dev/null 2>/dev/null
 cat >contrib/etc/ebusd/bad.csv <<EOF
 u,broadcast,outsidetemp,,,fe,b516,01,temp2,m,UCH,2000000000
 u,broadcast,outsidetemp,,,fe,b516,01,temp2,m,D2B,2000000000=
@@ -78,30 +83,29 @@ u,broadcast
 u,
 u
 EOF
-./src/ebusd/ebusd -c contrib/etc/ebusd --checkconfig >/dev/null
+$ebusd -c contrib/etc/ebusd --checkconfig >/dev/null
 rm -f contrib/etc/ebusd/bad.csv
-echo > dump
-./src/tools/ebusctl -s testserver -p 100000 >/dev/null 2>/dev/null
-./src/tools/ebusctl -s "" >/dev/null 2>/dev/null
-./src/tools/ebusctl -p "" >/dev/null 2>/dev/null
-./src/tools/ebusctl -x >/dev/null 2>/dev/null
-./src/tools/ebusctl --help >/dev/null
-./src/tools/ebusctl 'help x' >/dev/null 2>/dev/null
-./src/tools/ebuspicloader --help >/dev/null
-./src/tools/ebuspicloader -i "" >/dev/null 2>/dev/null
-./src/tools/ebuspicloader -i x >/dev/null 2>/dev/null
-./src/tools/ebuspicloader -i 192.168.0.10.1 >/dev/null 2>/dev/null
-./src/tools/ebuspicloader -i 192.168.0.10 -d >/dev/null 2>/dev/null
-./src/tools/ebuspicloader -m "" >/dev/null 2>/dev/null
-./src/tools/ebuspicloader -m 65 >/dev/null 2>/dev/null
-./src/tools/ebuspicloader -d -i 192.168.0.10 >/dev/null 2>/dev/null
-./src/tools/ebuspicloader -d -m "" >/dev/null 2>/dev/null
-./src/tools/ebuspicloader -d >/dev/null 2>/dev/null
-./src/tools/ebuspicloader -a 9000 >/dev/null 2>/dev/null
-./src/tools/ebuspicloader -a 150 -f ./src/tools/ebuspicloader -i 192.168.0.10 -m 24 -M -r -s -v /dev/zero >/dev/null 2>/dev/null
-./src/tools/ebuspicloader -f x >/dev/null 2>/dev/null
+$ebusctl -s testserver -p 100000 >/dev/null 2>/dev/null
+$ebusctl -s "" >/dev/null 2>/dev/null
+$ebusctl -p "" >/dev/null 2>/dev/null
+$ebusctl -x >/dev/null 2>/dev/null
+$ebusctl --help >/dev/null
+$ebusctl 'help x' >/dev/null 2>/dev/null
+$ebuspicloader --help >/dev/null
+$ebuspicloader -i "" >/dev/null 2>/dev/null
+$ebuspicloader -i x >/dev/null 2>/dev/null
+$ebuspicloader -i 192.168.0.10.1 >/dev/null 2>/dev/null
+$ebuspicloader -i 192.168.0.10 -d >/dev/null 2>/dev/null
+$ebuspicloader -m "" >/dev/null 2>/dev/null
+$ebuspicloader -m 65 >/dev/null 2>/dev/null
+$ebuspicloader -d -i 192.168.0.10 >/dev/null 2>/dev/null
+$ebuspicloader -d -m "" >/dev/null 2>/dev/null
+$ebuspicloader -d >/dev/null 2>/dev/null
+$ebuspicloader -a 9000 >/dev/null 2>/dev/null
+$ebuspicloader -a 150 -f $ebuspicloader -i 192.168.0.10 -m 24 -M -r -s -v /dev/zero >/dev/null 2>/dev/null
+$ebuspicloader -f x >/dev/null 2>/dev/null
 echo -e ':100800008431542CAE3401347E1484314E01961E52\n:00000001FF' > firmware.hex
-./src/tools/ebuspicloader -f firmware.hex >/dev/null
+$ebuspicloader -f firmware.hex >/dev/null
 #server:
 php -r 'echo "php is available";'|egrep 'php is available'
 if [ ! "$?" = 0 ]; then
@@ -243,7 +247,7 @@ elif [[ -n "$1" ]]; then
     pid=$(ps -C ebusd -o pid=)
   done
 else
-  ./src/ebusd/ebusd -d tcp:127.0.0.1:8876 --initsend --latency 10 -n -c "$PWD/contrib/etc/ebusd" --pollinterval=10 -s -a 31 --acquireretries 3 --answer --generatesyn --receivetimeout 40000 --sendretries 1 --enablehex --htmlpath "$PWD/contrib/html" --httpport 8878 --pidfile "$PWD/ebusd.pid" --localhost -p 8877 -l "$PWD/ebusd.log" --logareas all --loglevel debug --lograwdata=bytes --lograwdatafile "$PWD/ebusd.raw" --lograwdatasize 1 --dumpfile "$PWD/ebusd.dump" --dumpsize 100 -D --scanconfig --aclfile="$PWD/acl.csv" --mqttport=1883 --enablehex --enabledefine
+  $ebusd -d tcp:127.0.0.1:8876 --initsend --latency 10 -n -c "$PWD/contrib/etc/ebusd" --pollinterval=10 -s -a 31 --acquireretries 3 --answer --generatesyn --receivetimeout 40000 --sendretries 1 --enablehex --htmlpath "$PWD/contrib/html" --httpport 8878 --pidfile "$PWD/ebusd.pid" --localhost -p 8877 -l "$PWD/ebusd.log" --logareas all --loglevel debug --lograwdata=bytes --lograwdatafile "$PWD/ebusd.raw" --lograwdatasize 1 --dumpfile "$PWD/ebusd.dump" --dumpsize 100 -D --scanconfig --aclfile="$PWD/acl.csv" --mqttport=1883 --enablehex --enabledefine
   sleep 3
   pid=`head -n 1 "$PWD/ebusd.pid"`
 fi
@@ -352,7 +356,7 @@ i
 g
 define -r "r,cir,nam,cmt,,08,b509,,,,UCH"
 decode -V -N UCH 102030
-encode UCH 10;1
+encode UCH,,,,uch 10;1
 raw bytes
 raw
 reload
@@ -361,7 +365,7 @@ EOF
 status=1
 cnt=3
 function send() {
-#  ./src/tools/ebusctl -p 8877 -t 10 "$@"
+#  $ebusctl -p 8877 -t 10 "$@"
   echo "$@" | nc -N -w 10 localhost 8877
 }
 while [[ ! "$status" = 0 ]] && [[ $cnt -gt 0 ]]; do
@@ -382,9 +386,9 @@ if [ "$status" != 0 ]; then
 fi
 echo `date` "got signal"
 sleep 2
-echo "listen"|./src/tools/ebusctl -p 8877 &
+echo "listen"|$ebusctl -p 8877 &
 lstpid=$!
-./src/tools/ebusctl -p 8899 >/dev/null 2>/dev/null
+$ebusctl -p 8899 >/dev/null 2>/dev/null
 for line in "${lines[@]}"; do
   if [ -n "$line" ]; then
     echo `date` "send: $line"
