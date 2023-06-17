@@ -6,6 +6,7 @@
 * fix for high traffic on KNX integration
 * add workaround for libssl issues, add debug logging and force it using IPv4
 * fix log level potentially set too late during startup
+* fix too low timeout for config web service
 
 ## Features
 * add log entry for unstartable TCP ports

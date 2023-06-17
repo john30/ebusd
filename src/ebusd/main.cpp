@@ -912,10 +912,9 @@ int main(int argc, char* argv[], char* envp[]) {
     }
     configHttpClient = new HttpClient();
     if (
-      // check with low timeout of 1 second initially:
-      !configHttpClient->connect(configHost, configPort, proto == "https", PACKAGE_NAME "/" PACKAGE_VERSION, 1)
-      // if that did not work, issue a single retry with default timeout:
-      && !configHttpClient->connect(configHost, configPort, proto == "https", PACKAGE_NAME "/" PACKAGE_VERSION)
+      !configHttpClient->connect(configHost, configPort, proto == "https", PACKAGE_NAME "/" PACKAGE_VERSION)
+      // if that did not work, issue a single retry with higher timeout:
+      && !configHttpClient->connect(configHost, configPort, proto == "https", PACKAGE_NAME "/" PACKAGE_VERSION, 8)
     ) {
       logWrite(lf_main, ll_error, "invalid configPath URL (connect)");  // force logging on exit
       delete configHttpClient;

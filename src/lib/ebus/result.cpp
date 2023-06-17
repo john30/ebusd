@@ -44,7 +44,7 @@ const char* getResultCode(result_t resultCode) {
   case RESULT_ERR_DUPLICATE:    return "ERR: duplicate entry";
   case RESULT_ERR_DUPLICATE_NAME: return "ERR: duplicate name";
   case RESULT_ERR_BUS_LOST:     return "ERR: arbitration lost";
-  case RESULT_ERR_ARB_RUNNING:     return "ERR: arbitration running";
+  case RESULT_ERR_ARB_RUNNING:  return "ERR: arbitration running";
   case RESULT_ERR_CRC:          return "ERR: CRC error";
   case RESULT_ERR_ACK:          return "ERR: ACK error";
   case RESULT_ERR_NAK:          return "ERR: NAK received";
