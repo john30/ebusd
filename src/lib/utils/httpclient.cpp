@@ -86,6 +86,7 @@ SSLSocket::~SSLSocket() {
 }
 
 ssize_t SSLSocket::send(const char* data, size_t len) {
+  time_t now = 0;
   do {
 #if OPENSSL_VERSION_NUMBER >= 0x10101000L
     size_t part = 0;
@@ -99,18 +100,23 @@ ssize_t SSLSocket::send(const char* data, size_t len) {
       return static_cast<ssize_t>(res);
     }
 #endif
-    if (!BIO_should_retry(m_bio)) {
+    if (!BIO_should_retry(m_bio) && now > 0) {  // always repeat on first failure
       if (isError("send", true)) {
         return -1;
       }
       return 0;
     }
+    if ((now=time(nullptr)) > m_until) {
+      logError(lf_network, "HTTP send: timed out after %d sec", now-m_until);
+      break;
+    }
     usleep(SLEEP_NANOS);
-  } while (time(nullptr) < m_until);
+  } while (true);
   return -1;  // timeout
 }
 
 ssize_t SSLSocket::recv(char* data, size_t len) {
+  time_t now = 0;
   do {
 #if OPENSSL_VERSION_NUMBER >= 0x10101000L
     size_t part = 0;
@@ -124,14 +130,18 @@ ssize_t SSLSocket::recv(char* data, size_t len) {
       return static_cast<ssize_t>(res);
     }
 #endif
-    if (!BIO_should_retry(m_bio)) {
+    if (!BIO_should_retry(m_bio) && now > 0) {  // always repeat on first failure
       if (isError("recv", true)) {
         return -1;
       }
       return 0;
     }
+    if ((now=time(nullptr)) > m_until) {
+      logError(lf_network, "HTTP recv: timed out after %d sec", now-m_until);
+      break;
+    }
     usleep(SLEEP_NANOS);
-  } while (time(nullptr) < m_until);
+  } while (true);
   return -1;  // timeout
 }
 
