@@ -108,7 +108,8 @@ result_t UserList::addFromFile(const string& filename, unsigned int lineNo, map<
 MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messages, ScanHelper* scanHelper)
   : Thread(), m_device(device), m_reconnectCount(0), m_userList(opt.accessLevel), m_messages(messages),
     m_scanHelper(scanHelper), m_address(opt.address), m_scanConfig(opt.scanConfig),
-    m_initialScan(opt.readOnly ? ESC : opt.initialScan), m_polling(opt.pollInterval > 0), m_enableHex(opt.enableHex),
+    m_initialScan(opt.readOnly ? ESC : opt.initialScan), m_scanStatus(SCAN_STATUS_NONE),
+    m_polling(opt.pollInterval > 0), m_enableHex(opt.enableHex),
     m_shutdown(false), m_runUpdateCheck(opt.updateCheck), m_httpClient() {
   m_device->setListener(this);
   // open Device
@@ -227,7 +228,7 @@ void MainLoop::run() {
   time_t lastTaskRun, now, start, lastSignal = 0, since, sinkSince = 1, nextCheckRun;
   int taskDelay = 5;
   symbol_t lastScanAddress = 0;  // 0 is known to be a master
-  scanStatus_t lastScanStatus = SCAN_STATUS_NONE;
+  scanStatus_t lastScanStatus = m_scanStatus;
   int scanCompleted = 0;
   time(&now);
   start = now;
@@ -264,7 +265,6 @@ void MainLoop::run() {
       }
       if (m_scanConfig) {
         bool loadDelay = false;
-        scanStatus_t scanStatus = lastScanStatus;
         if (m_initialScan != ESC && reload && m_busHandler->hasSignal()) {
           loadDelay = true;
           result_t result;
@@ -272,7 +272,7 @@ void MainLoop::run() {
             logNotice(lf_main, "starting initial full scan");
             result = m_busHandler->startScan(true, "*");
             if (result == RESULT_OK) {
-              scanStatus = SCAN_STATUS_RUNNING;
+              m_scanStatus = SCAN_STATUS_RUNNING;
             }
           } else if (m_initialScan == BROADCAST) {
             logNotice(lf_main, "starting initial broadcast scan");
@@ -296,7 +296,7 @@ void MainLoop::run() {
               if (m_busHandler->formatScanResult(m_initialScan, false, &ret)) {
                 logNotice(lf_main, "initial scan result: %s", ret.str().c_str());
               }
-              scanStatus = SCAN_STATUS_RUNNING;
+              m_scanStatus = SCAN_STATUS_RUNNING;
             }
           }
           if (result != RESULT_OK) {
@@ -310,13 +310,13 @@ void MainLoop::run() {
           if (lastScanAddress == SYN) {
             taskDelay = 5;
             lastScanAddress = 0;
-            scanStatus = SCAN_STATUS_FINISHED;
+            m_scanStatus = SCAN_STATUS_FINISHED;
             scanCompleted++;
             if (scanCompleted > SCAN_REPEAT_COUNT) {  // repeat failed scan only every Nth time
               scanCompleted = 0;
             }
           } else {
-            scanStatus = SCAN_STATUS_RUNNING;
+            m_scanStatus = SCAN_STATUS_RUNNING;
             result_t result = m_busHandler->scanAndWait(lastScanAddress, true);
             taskDelay = (result == RESULT_ERR_NO_SIGNAL) ? 10 : 1;
             if (result != RESULT_OK) {
@@ -327,10 +327,10 @@ void MainLoop::run() {
             }
           }
         }
-        if (scanStatus != lastScanStatus && !dataSinks.empty()) {
-          lastScanStatus = scanStatus;
+        if (lastScanStatus != m_scanStatus && !dataSinks.empty()) {
+          lastScanStatus = m_scanStatus;
           for (const auto dataSink : dataSinks) {
-            dataSink->notifyScanStatus(scanStatus);
+            dataSink->notifyScanStatus(lastScanStatus);
           }
         }
       } else if (reload && m_busHandler->hasSignal()) {
@@ -1827,6 +1827,25 @@ result_t MainLoop::executeScan(const vector<string>& args, const string& levels,
       return RESULT_OK;
     }
 
+    if (args[1] == "status") {
+      switch (m_scanStatus) {
+        case SCAN_STATUS_RUNNING:
+          *ostream << "running";
+          break;
+        case SCAN_STATUS_FINISHED:
+          *ostream << "finished";
+          break;
+        default:
+          *ostream << "unused";
+          break;
+      }
+      unsigned int running = m_busHandler->getRunningScans();
+      if (running > 0) {
+        *ostream << ", some messages pending";
+      }
+      return RESULT_OK;
+    }
+
     if (!m_busHandler->hasSignal()) {
       return RESULT_ERR_NO_SIGNAL;
     }
@@ -1850,7 +1869,8 @@ result_t MainLoop::executeScan(const vector<string>& args, const string& levels,
 
   *ostream << "usage: scan [full|ZZ]\n"
               "  or:  scan result\n"
-              " Scan seen slaves, all slaves (full), a single slave (address ZZ), or report scan result.";
+              "  or:  scan status\n"
+              " Scan seen slaves, all slaves (full), a single slave (address ZZ), or report scan result or status.";
   return RESULT_OK;
 }
 
@@ -1961,6 +1981,14 @@ result_t MainLoop::executeInfo(const vector<string>& args, const string& user, o
       *ostream << "min symbol latency: " << m_busHandler->getMinSymbolLatency() << "\n"
                << "max symbol latency: " << m_busHandler->getMaxSymbolLatency() << "\n";
     }
+    if (m_scanStatus != SCAN_STATUS_NONE) {
+      *ostream << "scan: " << (m_scanStatus == SCAN_STATUS_FINISHED ? "finished" : "running");
+      unsigned int running = m_busHandler->getRunningScans();
+      if (running > 0) {
+        *ostream << ", some messages pending";
+      }
+      *ostream << "\n";
+    }
   } else {
     *ostream << "signal: no signal\n";
   }
@@ -2010,6 +2038,7 @@ result_t MainLoop::executeHelp(ostringstream* ostream) {
       " encode|e  Encode field(s):       encode DEFINITION VALUE[;VALUE]*\n"
       " scan      Scan slaves:           scan [full|ZZ]\n"
       "           Report scan result:    scan result\n"
+      "           Report scan status:    scan status\n"
       " log       Set log area level:    log [AREA[,AREA]* LEVEL]\n"
       " raw       Toggle logging of messages or each byte.\n"
       " dump      Toggle binary dump of received bytes\n"

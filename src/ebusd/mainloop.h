@@ -421,6 +421,9 @@ class MainLoop : public Thread, DeviceListener {
    * (@a ESC=none, 0xfe=broadcast ident, @a SYN=full scan, else: single slave address). */
   const symbol_t m_initialScan;
 
+  /** the current scan status. */
+  scanStatus_t m_scanStatus;
+
   /** true when the poll interval is non zero. */
   const bool m_polling;
 

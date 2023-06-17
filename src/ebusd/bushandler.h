@@ -494,6 +494,12 @@ class BusHandler : public WaitThread {
   void setScanFinished();
 
   /**
+   * Get the number of scan requests currently running.
+   * @eturn the number of scan requests currently running.
+   */
+  unsigned int getRunningScans() const { return m_runningScans; }
+
+  /**
    * Format the scan result for a single slave to the @a ostringstream.
    * @param slave the slave address for which to format the scan result.
    * @param leadingNewline whether to insert a newline before the scan result.
@@ -762,7 +768,7 @@ class BusHandler : public WaitThread {
   /** the queue of @a BusRequests that are already finished. */
   Queue<BusRequest*> m_finishedRequests;
 
-  /** the number of scan request currently running. */
+  /** the number of scan requests currently running. */
   unsigned int m_runningScans;
 
   /** the offset of the next symbol that needs to be sent from the command or response,

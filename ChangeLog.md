@@ -12,6 +12,7 @@
 * add support for injecting scan messages being used for scan procedure
 * add value lists support to MQTT integration and use it for Home Assistant MQTT discovery integration
 * add update check for v5 device
+* add "scan status" command and add the status to "info" command
 
 
 # 23.1 (2023-01-06)
