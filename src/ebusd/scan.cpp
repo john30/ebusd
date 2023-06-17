@@ -57,6 +57,9 @@ ScanHelper::~ScanHelper() {
   }
 }
 
+// the time slice to sleep when repeating an HTTP request
+#define REPEAT_NANOS 1000000
+
 result_t ScanHelper::collectConfigFiles(const string& relPath, const string& prefix, const string& extension,
     vector<string>* files,
     bool ignoreAddressPrefix, const string& query,
@@ -66,8 +69,19 @@ result_t ScanHelper::collectConfigFiles(const string& relPath, const string& pre
     string uri = m_configUriPrefix + relPathWithSlash + m_configLangQuery + (m_configLangQuery.empty() ? "?" : "&")
       + "t=" + extension.substr(1) + query;
     string names;
-    if (!m_configHttpClient->get(uri, "", &names)) {
-      return RESULT_ERR_NOTFOUND;
+    bool repeat = false;
+    if (!m_configHttpClient->get(uri, "", &names, &repeat)) {
+      if (!names.empty()) {
+        logError(lf_main, "HTTP failure%s: %s", repeat ? ", repeating" : "", names.c_str());
+        names = "";
+      }
+      if (!repeat) {
+        return RESULT_ERR_NOTFOUND;
+      }
+      usleep(REPEAT_NANOS);
+      if (!m_configHttpClient->get(uri, "", &names)) {
+        return RESULT_ERR_NOTFOUND;
+      }
     }
     istringstream stream(names);
     string name;
@@ -261,11 +275,23 @@ result_t ScanHelper::loadDefinitionsFromConfigPath(FileReader* reader, const str
   time_t mtime = 0;
   if (m_configUriPrefix.empty()) {
     stream = FileReader::openFile(m_configLocalPrefix + filename, errorDescription, &mtime);
-  } else {
+  } else if (m_configHttpClient) {
+    string uri = m_configUriPrefix + filename + m_configLangQuery;
     string content;
-    if (m_configHttpClient
-    && m_configHttpClient->get(m_configUriPrefix + filename + m_configLangQuery, "", &content, &mtime)) {
+    bool repeat = false;
+    if (m_configHttpClient->get(uri, "", &content, &repeat, &mtime)) {
       stream = new istringstream(content);
+    } else {
+      if (!content.empty()) {
+        logError(lf_main, "HTTP failure%s: %s", repeat ? ", repeating" : "", content.c_str());
+        content = "";
+      }
+      if (repeat) {
+        usleep(REPEAT_NANOS);
+        if (m_configHttpClient->get(uri, "", &content, nullptr, &mtime)) {
+          stream = new istringstream(content);
+        }
+      }
     }
   }
   result_t result;

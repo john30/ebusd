@@ -431,12 +431,12 @@ void HttpClient::disconnect() {
   }
 }
 
-bool HttpClient::get(const string& uri, const string& body, string* response, time_t* time) {
-  return request("GET", uri, body, response, time);
+bool HttpClient::get(const string& uri, const string& body, string* response, bool* repeatable, time_t* time) {
+  return request("GET", uri, body, response, repeatable, time);
 }
 
-bool HttpClient::post(const string& uri, const string& body, string* response) {
-  return request("POST", uri, body, response);
+bool HttpClient::post(const string& uri, const string& body, string* response, bool* repeatable) {
+  return request("POST", uri, body, response, repeatable);
 }
 
 const int indexToMonth[] = {
@@ -446,9 +446,13 @@ const int indexToMonth[] = {
   -1, -1,  4, -1, -1, -1, -1, -1,  // 24-31
 };
 
-bool HttpClient::request(const string& method, const string& uri, const string& body, string* response, time_t* time) {
+bool HttpClient::request(const string& method, const string& uri, const string& body, string* response,
+bool* repeatable, time_t* time) {
   if (!ensureConnected()) {
     *response = "not connected";
+    if (repeatable) {
+      *repeatable = true;
+    }
     return false;
   }
   ostringstream ostr;
@@ -473,6 +477,9 @@ bool HttpClient::request(const string& method, const string& uri, const string& 
     if (sent < 0) {
       disconnect();
       *response = "send error";
+      if (repeatable) {
+        *repeatable = true;
+      }
       return false;
     }
     pos += sent;

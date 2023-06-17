@@ -379,8 +379,10 @@ void MainLoop::run() {
           m_busHandler->formatUpdateInfo(&ostr);
           ostr << "}";
           string response;
-          if (!m_httpClient.post("/", ostr.str(), &response)) {
+          bool repeat = false;
+          if (!m_httpClient.post("/", ostr.str(), &response, &repeat)) {
             logError(lf_main, "update check error: %s", response.c_str());
+            nextCheckRun = now + (repeat ? CHECK_INITIAL_DELAY : CHECK_DELAY);
           } else {
             m_updateCheck = response.empty() ? "unknown" : response;
             logNotice(lf_main, "update check: %s", response.c_str());
@@ -389,8 +391,8 @@ void MainLoop::run() {
                 dataSink->notifyUpdateCheckResult(response == "OK" ? "" : m_updateCheck);
               }
             }
+            nextCheckRun = now + CHECK_DELAY;
           }
-          nextCheckRun = now + CHECK_DELAY;
         }
       }
       time(&lastTaskRun);

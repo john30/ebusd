@@ -188,19 +188,24 @@ class HttpClient {
    * @param uri the URI string.
    * @param body the optional body to send.
    * @param response the response body from the server (or the HTTP header on error).
+   * @param repeatable optional pointer to a bool in which to store whether the request should be repeated later on
+   * (e.g. due to temporary connectivity issues).
    * @param time optional pointer to a @a time_t value for storing the modification time of the file, or nullptr.
    * @return true on success, false on error.
    */
-  bool get(const string& uri, const string& body, string* response, time_t* time = nullptr);
+  bool get(const string& uri, const string& body, string* response, bool* repeatable = nullptr,
+  time_t* time = nullptr);
 
   /**
    * Execute a POST request.
    * @param uri the URI string.
    * @param body the optional body to send.
    * @param response the response body from the server (or the HTTP header on error).
+   * @param repeatable optional pointer to a bool in which to store whether the request should be repeated later on
+   * (e.g. due to temporary connectivity issues).
    * @return true on success, false on error.
    */
-  bool post(const string& uri, const string& body, string* response);
+  bool post(const string& uri, const string& body, string* response, bool* repeatable = nullptr);
 
   /**
    * Execute an arbitrary request.
@@ -208,10 +213,13 @@ class HttpClient {
    * @param uri the URI string.
    * @param body the optional body to send.
    * @param response the response body from the server (or the HTTP header on error).
+   * @param repeatable optional pointer to a bool in which to store whether the request should be repeated later on
+   * (e.g. due to temporary connectivity issues).
    * @param time optional pointer to a @a time_t value for storing the modification time of the file, or nullptr.
    * @return true on success, false on error.
    */
-  bool request(const string& method, const string& uri, const string& body, string* response, time_t* time = nullptr);
+  bool request(const string& method, const string& uri, const string& body, string* response,
+  bool* repeatable = nullptr, time_t* time = nullptr);
 
  private:
   /**
