@@ -33,7 +33,7 @@ namespace ebusd {
  */
 
 /** A structure holding all program options. */
-struct options {
+typedef struct options {
   const char* device;  //!< eBUS device (serial device or [udp:]ip:port) [/dev/ttyUSB0]
   bool noDeviceCheck;  //!< skip serial eBUS device test
   bool readOnly;  //!< read-only access to the device
@@ -88,7 +88,7 @@ struct options {
   const char* dumpFile;  //!< name of dump file [/tmp/ebusd_dump.bin]
   unsigned int dumpSize;  //!< maximum size of dump file in kB [100]
   bool dumpFlush;  //!< flush each byte
-};
+} options_t;
 
 }  // namespace ebusd
 
