@@ -9,6 +9,7 @@ bin_PROGRAMS = ebusd
 ebusd_SOURCES = \
 		bushandler.h bushandler.cpp \
 		datahandler.h datahandler.cpp \
+		request.h request.cpp \
 		network.h network.cpp \
 		mainloop.h mainloop.cpp \
 		scan.h scan.cpp \
