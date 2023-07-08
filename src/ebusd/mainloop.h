@@ -26,7 +26,7 @@
 #include <algorithm>
 #include "ebusd/bushandler.h"
 #include "ebusd/datahandler.h"
-#include "ebusd/network.h"
+#include "ebusd/request.h"
 #include "ebusd/scan.h"
 #include "lib/ebus/filereader.h"
 #include "lib/ebus/message.h"
@@ -102,13 +102,15 @@ class UserList : public UserInfo, public MappedFileReader {
 class MainLoop : public Thread, DeviceListener {
  public:
   /**
-   * Construct the main loop and create network and bus handling components.
+   * Construct the main loop and create bus handling components.
    * @param opt the program options.
    * @param device the @a Device instance.
    * @param messages the @a MessageMap instance.
    * @param scanHelper the @a ScanHelper instance.
+   * @param requestQueue the reference to the @a Request @a Queue.
    */
-  MainLoop(const struct options& opt, Device *device, MessageMap* messages, ScanHelper* scanHelper);
+  MainLoop(const struct options& opt, Device *device, MessageMap* messages, ScanHelper* scanHelper,
+      Queue<Request*>* requestQueue);
 
   /**
    * Destructor.
@@ -126,12 +128,6 @@ class MainLoop : public Thread, DeviceListener {
    */
   BusHandler* getBusHandler() { return m_busHandler; }
 
-  /**
-   * Add a client @a NetMessage to the queue.
-   * @param message the client @a NetMessage to handle.
-   */
-  void addMessage(NetMessage* message) { m_netQueue.push(message); }
-
   // @copydoc
   void notifyDeviceData(symbol_t symbol, bool received) override;
 
@@ -146,17 +142,16 @@ class MainLoop : public Thread, DeviceListener {
 
  private:
   /**
-   * Decode and execute client message.
-   * @param data the data string to decode (may be empty).
+   * Decode and execute client request.
+   * @param req the @a Request to decode.
    * @param connected set to false when the client connection shall be closed.
-   * @param isHttp true for HTTP message.
-   * @param settings set to the new client settings.
+   * @param reqMode the @a RequestMode to use and update.
    * @param user set to the new user name when changed by authentication.
    * @param reload set to true when the configuration files were reloaded.
    * @param ostream the @a ostringstream to format the result string to.
    * @return the result code.
    */
-  result_t decodeMessage(const string& data, bool isHttp, bool* connected, ClientSettings* settings,
+  result_t decodeRequest(Request* req, bool* connected, RequestMode* reqMode,
       string* user, bool* reload, ostringstream* ostream);
 
   /**
@@ -227,11 +222,11 @@ class MainLoop : public Thread, DeviceListener {
   /**
    * Execute the direct command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
-   * @param mode set to the new client mode.
+   * @param reqMode the @a RequestMode to use and update.
    * @param ostream the @a ostringstream to format the result string to.
    * @return the result code.
    */
-  result_t executeDirect(const vector<string>& args, ClientMode* mode, ostringstream* ostream);
+  result_t executeDirect(const vector<string>& args, RequestMode* reqMode, ostringstream* ostream);
 
   /**
    * Execute the find command.
@@ -245,11 +240,11 @@ class MainLoop : public Thread, DeviceListener {
   /**
    * Execute the listen command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
-   * @param settings set to the new client settings.
+   * @param reqMode the @a RequestMode to use and update.
    * @param ostream the @a ostringstream to format the result string to.
    * @return the result code.
    */
-  result_t executeListen(const vector<string>& args, ClientSettings* settings, ostringstream* ostream);
+  result_t executeListen(const vector<string>& args, RequestMode* reqMode, ostringstream* ostream);
 
   /**
    * Execute the state command.
@@ -445,11 +440,8 @@ class MainLoop : public Thread, DeviceListener {
   /** the created @a BusHandler instance. */
   BusHandler* m_busHandler;
 
-  /** the created @a Network instance. */
-  Network* m_network;
-
-  /** the @a NetMessage @a Queue. */
-  Queue<NetMessage*> m_netQueue;
+  /** the reference to the @a Request @a Queue. */
+  Queue<Request*>* m_requestQueue;
 
   /** the path for HTML files served by the HTTP port. */
   string m_htmlPath;

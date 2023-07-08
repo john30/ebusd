@@ -31,6 +31,7 @@
 #include <map>
 #include <vector>
 #include "ebusd/mainloop.h"
+#include "ebusd/network.h"
 #include "lib/utils/log.h"
 #include "lib/utils/httpclient.h"
 #include "ebusd/scan.h"
@@ -143,8 +144,14 @@ static MessageMap* s_messageMap = nullptr;
 /** the @a ScanHelper instance, or nullptr. */
 static ScanHelper* s_scanHelper = nullptr;
 
+/** the @a Request @a Queue instance, or nullptr. */
+static Queue<Request*>* s_requestQueue = nullptr;
+
 /** the @a MainLoop instance, or nullptr. */
 static MainLoop* s_mainLoop = nullptr;
+
+/** the @a Network instance, or nullptr. */
+static Network* s_network = nullptr;
 
 /** the (optionally corrected) config path for retrieving configuration files from. */
 static string s_configPath = CONFIG_PATH;
@@ -735,15 +742,27 @@ void daemonize() {
  * Clean up all dynamically allocated and stop main loop and all dependent components.
  */
 void cleanup() {
-  if (s_mainLoop) {
+  if (s_network != nullptr) {
+    delete s_network;
+    s_network = nullptr;
+  }
+  if (s_mainLoop != nullptr) {
     delete s_mainLoop;
     s_mainLoop = nullptr;
   }
-  if (s_messageMap) {
+  if (s_requestQueue != nullptr) {
+    Request* msg;
+    while ((msg = s_requestQueue->pop()) != nullptr) {
+      delete msg;
+    }
+    delete s_requestQueue;
+    s_requestQueue = nullptr;
+  }
+  if (s_messageMap != nullptr) {
     delete s_messageMap;
     s_messageMap = nullptr;
   }
-  if (s_scanHelper) {
+  if (s_scanHelper != nullptr) {
     delete s_scanHelper;
     s_scanHelper = nullptr;
   }
@@ -1030,8 +1049,10 @@ int main(int argc, char* argv[], char* envp[]) {
   // load configuration files
   s_scanHelper->loadConfigFiles(!s_opt.scanConfig);
 
+  s_requestQueue = new Queue<Request*>();
+
   // create the MainLoop and start it
-  s_mainLoop = new MainLoop(s_opt, device, s_messageMap, s_scanHelper);
+  s_mainLoop = new MainLoop(s_opt, device, s_messageMap, s_scanHelper, s_requestQueue);
   if (s_opt.injectMessages) {
     BusHandler* busHandler = s_mainLoop->getBusHandler();
     int scanAdrCount = 0;
@@ -1063,6 +1084,9 @@ int main(int argc, char* argv[], char* envp[]) {
     }
   }
   s_mainLoop->start("mainloop");
+
+  s_network = new Network(s_opt.localOnly, s_opt.port, s_opt.httpPort, s_requestQueue);
+  s_network->start("network");
 
   // wait for end of MainLoop
   s_mainLoop->join();

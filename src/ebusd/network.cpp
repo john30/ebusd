@@ -37,39 +37,6 @@ int Connection::m_ids = 0;
 #define POLLRDHUP 0
 #endif
 
-bool NetMessage::add(const char* request) {
-  if (request && request[0]) {
-    string add = request;
-    add.erase(remove(add.begin(), add.end(), '\r'), add.end());
-    m_request.append(add);
-  }
-  size_t pos = m_request.find(m_isHttp ? "\n\n" : "\n");
-  if (pos != string::npos) {
-    if (m_isHttp) {
-      pos = m_request.find("\n");
-      m_request.resize(pos);  // reduce to first line
-      // typical first line: GET /ehp/outsidetemp HTTP/1.1
-      pos = m_request.rfind(" HTTP/");
-      if (pos != string::npos) {
-        m_request.resize(pos);  // remove "HTTP/x.x" suffix
-      }
-      pos = 0;
-      while ((pos=m_request.find('%', pos)) != string::npos && pos+2 <= m_request.length()) {
-        unsigned int value1, value2;
-        if (sscanf("%1x%1x", m_request.c_str()+pos+1, &value1, &value2) < 2) {
-          break;
-        }
-        m_request[pos] = static_cast<char>(((value1&0x0f) << 4) | (value2&0x0f));
-        m_request.erase(pos+1, 2);
-      }
-    } else if (pos+1 == m_request.length()) {
-      m_request.resize(pos);  // reduce to complete lines
-    }
-    return true;
-  }
-  return m_request.length() == 0 && isListeningMode();
-}
-
 
 void Connection::run() {
   int ret;
@@ -108,7 +75,7 @@ void Connection::run() {
 #endif
 
   bool closed = false;
-  NetMessage message(m_isHttp);
+  RequestImpl req(m_isHttp);
 
   while (!closed) {
 #ifdef HAVE_PPOLL
@@ -146,7 +113,7 @@ void Connection::run() {
 #endif
     }
 
-    if (newData || message.isListeningMode()) {
+    if (newData || req.getMode().listenMode != lm_none) {
       char data[256];
 
       if (!m_socket->isValid()) {
@@ -165,21 +132,24 @@ void Connection::run() {
       }
 
       // decode client data
-      if (message.add(data)) {
-        m_netQueue->push(&message);
+      if (req.add(data)) {
+        m_requestQueue->push(&req);
 
         // wait for result
         logDebug(lf_network, "[%05d] wait for result", getID());
         string result;
-        message.getResult(&result);
+        bool disconnect = req.waitResponse(&result);
 
         if (!m_socket->isValid()) {
           break;
         }
         m_socket->send(result.c_str(), result.size());
+        if (disconnect) {
+          break;
+        }
       }
 
-      if (message.isDisconnect() || !m_socket->isValid()) {
+      if (!m_socket->isValid()) {
         break;
       }
     }
@@ -193,8 +163,8 @@ void Connection::run() {
 }
 
 
-Network::Network(const bool local, const uint16_t port, const uint16_t httpPort, Queue<NetMessage*>* netQueue)
-  : Thread(), m_netQueue(netQueue), m_listening(false) {
+Network::Network(const bool local, const uint16_t port, const uint16_t httpPort, Queue<Request*>* requestQueue)
+  : Thread(), m_requestQueue(requestQueue), m_listening(false) {
   m_tcpServer = new TCPServer(port, local ? "127.0.0.1" : "0.0.0.0");
 
   if (m_tcpServer != nullptr && m_tcpServer->start() == 0) {
@@ -214,9 +184,9 @@ Network::Network(const bool local, const uint16_t port, const uint16_t httpPort,
 
 Network::~Network() {
   stop();
-  NetMessage* netMsg;
-  while ((netMsg = m_netQueue->pop()) != nullptr) {
-    netMsg->setResult("ERR: shutdown", "", nullptr, 0, true);
+  Request* req;
+  while ((req = m_requestQueue->pop()) != nullptr) {
+    req->setResult("ERR: shutdown", "", nullptr, 0, true);
   }
   while (!m_connections.empty()) {
     Connection* connection = m_connections.back();
@@ -333,7 +303,7 @@ void Network::run() {
       if (socket == nullptr) {
         continue;
       }
-      Connection* connection = new Connection(socket, isHttp, m_netQueue);
+      Connection* connection = new Connection(socket, isHttp, m_requestQueue);
       string ip = socket->getIP();
       connection->start("connection");
       m_connections.push_back(connection);

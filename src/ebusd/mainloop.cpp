@@ -105,12 +105,13 @@ result_t UserList::addFromFile(const string& filename, unsigned int lineNo, map<
 #define VERBOSITY_4 (VERBOSITY_3 | OF_ALL_ATTRS)
 
 
-MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messages, ScanHelper* scanHelper)
+MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messages, ScanHelper* scanHelper,
+  Queue<Request*>* requestQueue)
   : Thread(), m_device(device), m_reconnectCount(0), m_userList(opt.accessLevel), m_messages(messages),
     m_scanHelper(scanHelper), m_address(opt.address), m_scanConfig(opt.scanConfig),
     m_initialScan(opt.readOnly ? ESC : opt.initialScan), m_scanStatus(SCAN_STATUS_NONE),
     m_polling(opt.pollInterval > 0), m_enableHex(opt.enableHex),
-    m_shutdown(false), m_runUpdateCheck(opt.updateCheck), m_httpClient() {
+    m_shutdown(false), m_runUpdateCheck(opt.updateCheck), m_httpClient(), m_requestQueue(requestQueue) {
   m_device->setListener(this);
   // open Device
   result_t result = m_device->open();
@@ -160,8 +161,6 @@ MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messag
 
   // create network
   m_htmlPath = opt.htmlPath;
-  m_network = new Network(opt.localOnly, opt.port, opt.httpPort, &m_netQueue);
-  m_network->start("network");
   logInfo(lf_main, "registering data handlers");
   if (datahandler_register(&m_userList, m_busHandler, messages, &m_dataHandlers)) {
     logInfo(lf_main, "registered data handlers");
@@ -192,10 +191,6 @@ MainLoop::~MainLoop() {
     delete m_logRawFile;
     m_logRawFile = nullptr;
   }
-  if (m_network != nullptr) {
-    delete m_network;
-    m_network = nullptr;
-  }
   if (m_busHandler != nullptr) {
     delete m_busHandler;
     m_busHandler = nullptr;
@@ -203,10 +198,6 @@ MainLoop::~MainLoop() {
   if (m_device != nullptr) {
     delete m_device;
     m_device = nullptr;
-  }
-  NetMessage* msg;
-  while ((msg = m_netQueue.pop()) != nullptr) {
-    delete msg;
   }
   if (m_newlyDefinedMessages) {
     delete m_newlyDefinedMessages;
@@ -245,8 +236,8 @@ void MainLoop::run() {
     dataHandler->startHandler();
   }
   while (!m_shutdown) {
-    // pick the next message to handle
-    NetMessage* netMessage = m_netQueue.pop(taskDelay);
+    // pick the next request to handle
+    Request* req = m_requestQueue->pop(taskDelay);
     time(&now);
     if (now < lastTaskRun) {
       // clock skew
@@ -410,66 +401,62 @@ void MainLoop::run() {
       m_messages->unlock();
       sinkSince = now;
     }
-    if (netMessage == nullptr) {
+    if (req == nullptr) {
       continue;
     }
     if (m_shutdown) {
-      netMessage->setResult("ERR: shutdown", "", nullptr, now, true);
+      req->setResult("ERR: shutdown", "", nullptr, now, true);
       break;
     }
-    string request = netMessage->getRequest();
-    string user = netMessage->getUser();
-    ClientSettings settings = netMessage->getSettings(&since);
-    if (!netMessage->isListeningMode()) {
+    string user = req->getUser();
+    RequestMode reqMode = req->getMode(&since);
+    if (reqMode.listenMode == lm_none) {
       since = now;
     }
     ostringstream ostream;
     bool connected = true;
-    if (request.length() > 0) {
-      logDebug(lf_main, ">>> %s", request.c_str());
-      result_t result = decodeMessage(request, netMessage->isHttp(), &connected, &settings, &user, &reload, &ostream);
-      if (!netMessage->isHttp() && (ostream.tellp() == 0 || result != RESULT_OK)) {
-        if (settings.mode != cm_direct) {
+    if (!req->empty()) {
+      req->log();
+      result_t result = decodeRequest(req, &connected, &reqMode, &user, &reload, &ostream);
+      if (!req->isHttp() && (ostream.tellp() == 0 || result != RESULT_OK)) {
+        if (reqMode.listenMode != lm_direct) {
           ostream.str("");
         }
         ostream << getResultCode(result);
       }
-      if (ostream.tellp() > 100) {
-        logDebug(lf_main, "<<< %s ...", ostream.str().substr(0, 100).c_str());
-      } else {
-        logDebug(lf_main, "<<< %s", ostream.str().c_str());
-      }
+      const auto resp = ostream.str();
+      req->log(&resp);
       if (ostream.tellp() == 0) {
         ostream << "\n";  // only for HTTP
-      } else if (!netMessage->isHttp()) {
-        ostream << (settings.mode == cm_direct ? "\n" : "\n\n");
+      } else if (!req->isHttp()) {
+        ostream << (reqMode.listenMode == lm_direct ? "\n" : "\n\n");
       }
     }
-    if (settings.mode == cm_listen) {
-      if (!settings.listenOnlyUnknown) {
+    if (reqMode.listenMode == lm_listen) {
+      if (!reqMode.listenOnlyUnknown) {
         string levels = getUserLevels(user);
         messages.clear();
         m_messages->findAll("", "", levels, false, true, true, true, true, true, since, now, true, &messages);
         for (const auto message : messages) {
           ostream << message->getCircuit() << " " << message->getName() << " = " << dec;
-          message->decodeLastData(false, nullptr, -1, settings.format, &ostream);
+          message->decodeLastData(false, nullptr, -1, reqMode.format, &ostream);
           ostream << endl;
         }
       }
-      if (settings.listenWithUnknown || settings.listenOnlyUnknown) {
+      if (reqMode.listenWithUnknown || reqMode.listenOnlyUnknown) {
         if (m_busHandler->isGrabEnabled()) {
           m_busHandler->formatGrabResult(true, OF_NONE, &ostream, true, since, now);
         } else {
           m_busHandler->enableGrab(true);  // needed for listening to all messages
         }
       }
-    } else if (settings.mode == cm_direct) {
+    } else if (reqMode.listenMode == lm_direct) {
       if (m_busHandler->isGrabEnabled()) {
         m_busHandler->formatGrabResult(false, OF_NONE, &ostream, true, since, now);
       }
     }
     // send result to client
-    netMessage->setResult(ostream.str(), user, &settings, now, !connected);
+    req->setResult(ostream.str(), user, &reqMode, now, !connected);
   }
 }
 
@@ -529,49 +516,18 @@ void MainLoop::notifyStatus(bool error, const char* message) {
   }
 }
 
-result_t MainLoop::decodeMessage(const string &data, bool isHttp, bool* connected, ClientSettings* settings,
+result_t MainLoop::decodeRequest(Request* req, bool* connected, RequestMode* reqMode,
     string* user, bool* reload, ostringstream* ostream) {
-  string token, previous;
-  istringstream stream(data);
   vector<string> args;
-  char escaped = 0;
-
-  char delim = ' ';
-  while (getline(stream, token, delim)) {
-    if (!isHttp) {
-      if (escaped) {
-        args.pop_back();
-        if (token.length() > 0 && token[token.length()-1] == escaped) {
-          token.erase(token.length() - 1, 1);
-          escaped = 0;
-        }
-        token = previous + " " + token;
-      } else if (token.length() == 0) {  // allow multiple space chars for a single delimiter
-        continue;
-      } else if (token[0] == '"' || token[0] == '\'') {
-        escaped = token[0];
-        token.erase(0, 1);
-        if (token.length() > 0 && token[token.length()-1] == escaped) {
-          token.erase(token.length() - 1, 1);
-          escaped = 0;
-        }
-      }
-    }
-    args.push_back(token);
-    previous = token;
-    if (isHttp) {
-      delim = (args.size() == 1) ? '?' : '\n';
-    }
-  }
-
-  if (isHttp) {
+  req->split(&args);
+  string cmd = args.size() > 0 ? args[0] : "";
+  if (req->isHttp()) {
     if (args.size() < 2) {
       *connected = false;
       *ostream << "HTTP/1.0 400 Bad Request\r\n\r\n";
       return RESULT_OK;
     }
-    const char* str = args.size() > 0 ? args[0].c_str() : "";
-    if (strcmp(str, "GET") == 0) {
+    if (cmd == "GET") {
       return executeGet(args, connected, ostream);
     }
     *connected = false;
@@ -579,7 +535,6 @@ result_t MainLoop::decodeMessage(const string &data, bool isHttp, bool* connecte
     return RESULT_OK;
   }
 
-  string cmd = args.size() > 0 ? args[0] : "";
   transform(cmd.begin(), cmd.end(), cmd.begin(), ::toupper);
   if (cmd == "?" || cmd == "H" || cmd == "HELP") {
     // found "HELP CMD"
@@ -587,8 +542,8 @@ result_t MainLoop::decodeMessage(const string &data, bool isHttp, bool* connecte
     transform(cmd.begin(), cmd.end(), cmd.begin(), ::toupper);
     args.clear();  // empty args is used as command help indicator
   }
-  if (settings->mode == cm_direct) {
-    return executeDirect(args, &settings->mode, ostream);
+  if (reqMode->listenMode == lm_direct) {
+    return executeDirect(args, reqMode, ostream);
   }
   if (cmd.empty() && args.size() == 0) {
     return executeHelp(ostream);
@@ -620,10 +575,10 @@ result_t MainLoop::decodeMessage(const string &data, bool isHttp, bool* connecte
     return executeFind(args, getUserLevels(*user), ostream);
   }
   if (cmd == "L" || cmd == "LISTEN") {
-    return executeListen(args, settings, ostream);
+    return executeListen(args, reqMode, ostream);
   }
   if (cmd == "DIRECT") {
-    return executeDirect(args, &settings->mode, ostream);
+    return executeDirect(args, reqMode, ostream);
   }
   if (cmd == "S" || cmd == "STATE") {
     return executeState(args, ostream);
@@ -1293,10 +1248,10 @@ result_t MainLoop::executeHex(const vector<string>& args, ostringstream* ostream
   return RESULT_OK;
 }
 
-result_t MainLoop::executeDirect(const vector<string>& args, ClientMode* mode, ostringstream* ostream) {
-  if (*mode != cm_direct) {
+result_t MainLoop::executeDirect(const vector<string>& args, RequestMode* reqMode, ostringstream* ostream) {
+  if (reqMode->listenMode != lm_direct) {
     if (args.size() == 1) {
-      *mode = cm_direct;
+      reqMode->listenMode = lm_direct;
       m_busHandler->enableGrab(true);  // needed for listening to all messages
       *ostream << "direct mode started";
       return RESULT_OK;
@@ -1308,7 +1263,7 @@ result_t MainLoop::executeDirect(const vector<string>& args, ClientMode* mode, o
   if (args.size() > 0) {
     string firstArg = args[0];
     if (firstArg == "stop") {
-      *mode = cm_normal;
+      reqMode->listenMode = lm_none;
       *ostream << "direct mode stopped";
       return RESULT_OK;
     }
@@ -1321,7 +1276,7 @@ result_t MainLoop::executeDirect(const vector<string>& args, ClientMode* mode, o
       }
       *ostream << ":";
       if (!m_enableHex) {
-        *ostream << "ERR: command not enabled";
+        *ostream << "ERR: hex command not enabled";
         return RESULT_OK;
       }
       size_t argPos = 0;
@@ -1560,7 +1515,7 @@ result_t MainLoop::executeFind(const vector<string>& args, const string& levels,
   return RESULT_OK;
 }
 
-result_t MainLoop::executeListen(const vector<string>& args, ClientSettings* settings, ostringstream* ostream) {
+result_t MainLoop::executeListen(const vector<string>& args, RequestMode* reqMode, ostringstream* ostream) {
   size_t argPos = 1;
   OutputFormat verbosity = OF_NONE;
   bool listenWithUnknown = false;
@@ -1594,17 +1549,17 @@ result_t MainLoop::executeListen(const vector<string>& args, ClientSettings* set
     argPos++;
   }
   if (argPos > 0 && args.size() == argPos) {
-    settings->format = verbosity;
-    settings->listenWithUnknown = listenWithUnknown;
-    settings->listenOnlyUnknown = listenOnlyUnknown;
+    reqMode->format = verbosity;
+    reqMode->listenWithUnknown = listenWithUnknown;
+    reqMode->listenOnlyUnknown = listenOnlyUnknown;
     if (listenWithUnknown || listenOnlyUnknown) {
       m_busHandler->enableGrab(true);  // needed for listening to all messages
     }
-    if (settings->mode == cm_listen) {
+    if (reqMode->listenMode == lm_listen) {
       *ostream << "listen continued";
       return RESULT_OK;
     }
-    settings->mode = cm_listen;
+    reqMode->listenMode = lm_listen;
     *ostream << "listen started";
     return RESULT_OK;
   }
@@ -1620,7 +1575,7 @@ result_t MainLoop::executeListen(const vector<string>& args, ClientSettings* set
                 "  -U  only show unknown messages";
     return RESULT_OK;
   }
-  settings->mode = cm_normal;
+  reqMode->listenMode = lm_none;
   *ostream << "listen stopped";
   return RESULT_OK;
 }
