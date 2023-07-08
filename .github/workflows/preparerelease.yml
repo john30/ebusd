@@ -26,9 +26,9 @@ on:
         type: choice
         options:
           - ''
+          - bookworm
           - bullseye
           - buster
-          - stretch
 
 jobs:
   prepare-release:

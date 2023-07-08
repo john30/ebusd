@@ -39,7 +39,7 @@ elif [[ "x$1" = "xrelease" ]]; then
 else
   namesuffix='.build'
   target=deb
-  images='bullseye buster stretch'
+  images='bookworm bullseye buster'
   if [[ -n "$LIMITIMG" ]]; then
     images=$(echo " $images " | sed -e "s#.* \($LIMITIMG\) .*#\1#")
     echo "limiting to image $images"
