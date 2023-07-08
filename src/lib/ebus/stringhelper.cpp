@@ -142,14 +142,23 @@ const string StringReplacer::str() const {
 void StringReplacer::ensureDefault(const string& separator) {
   if (m_parts.empty()) {
     m_parts.emplace_back(string(PACKAGE) + separator, -1);
-  } else if (m_parts.size() == 1 && m_parts[0].second < 0 && m_parts[0].first.find('/') == string::npos) {
-    m_parts[0] = {m_parts[0].first + separator, -1};  // ensure trailing slash
   }
   if (!has("circuit")) {
+    if (m_parts.back().second >= 0) {
+      // add separator between two variables
+      m_parts.emplace_back(separator, -1);
+    } else if (m_parts.back().first.back() != '/') {
+      m_parts[m_parts.size() - 1] = {m_parts.back().first + separator, -1};  // ensure trailing slash
+    }
     m_parts.emplace_back("circuit", 0);  // index of circuit in knownFieldNames
-    m_parts.emplace_back(separator, -1);
   }
   if (!has("name")) {
+    if (m_parts.back().second >= 0) {
+      // add separator between two variables
+      m_parts.emplace_back(separator, -1);
+    } else if (m_parts.back().first.back() != '/') {
+      m_parts[m_parts.size() - 1] = {m_parts.back().first + separator, -1};  // ensure trailing slash
+    }
     m_parts.emplace_back("name", 1);  // index of name in knownFieldNames
   }
 }
