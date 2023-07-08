@@ -1,4 +1,4 @@
-# 23.2 (tbd)
+# 23.2 (2023-07-08)
 ## Bug Fixes
 * fix bounds check for variable length datatypes
 * add timeout for enhanced protocol info exchange and allow more of them being optional
@@ -7,6 +7,7 @@
 * add workaround for libssl issues, add debug logging and force it using IPv4
 * fix log level potentially set too late during startup
 * fix too low timeout for config web service
+* fix MQTT topic construction with prefix containing a separator
 
 ## Features
 * add log entry for unstartable TCP ports
