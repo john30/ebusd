@@ -67,22 +67,20 @@ fi
 make DESTDIR="$PWD/$RELEASE" install-strip || exit 1
 extralibs=
 mqtt=
-ldd $RELEASE/usr/bin/ebusd | egrep -q libmosquitto.so.0
+ldd $RELEASE/usr/bin/ebusd | egrep -q libmosquitto.so.1
 if [ $? -eq 0 ]; then
-  extralibs=', libmosquitto0'
-  PACKAGE="${PACKAGE}_mqtt0"
+  extralibs=', libmosquitto1'
+  PACKAGE="${PACKAGE}_mqtt1"
   mqtt=1
-else
-  ldd $RELEASE/usr/bin/ebusd | egrep -q libmosquitto.so.1
-  if [ $? -eq 0 ]; then
-    extralibs=', libmosquitto1'
-    PACKAGE="${PACKAGE}_mqtt1"
-    mqtt=1
-  fi
 fi
-ldd $RELEASE/usr/bin/ebusd | egrep -q libssl.so.1.1
+ldd $RELEASE/usr/bin/ebusd | egrep -q libssl.so.3
 if [ $? -eq 0 ]; then
-  extralibs="$extralibs, libssl1.1 (>= 1.1.0), ca-certificates"
+  extralibs="$extralibs, libssl3 (>= 3.0.0), ca-certificates"
+else
+  ldd $RELEASE/usr/bin/ebusd | egrep -q libssl.so.1.1
+  if [ $? -eq 0 ]; then
+    extralibs="$extralibs, libssl1.1 (>= 1.1.0), ca-certificates"
+  fi
 fi
 
 if [ -n "$RUNTEST" ]; then
