@@ -443,6 +443,7 @@ void BusHandler::run() {
     } else {
       if (!m_device->isValid()) {
         logNotice(lf_bus, "device invalid");
+        setState(bs_noSignal, RESULT_ERR_DEVICE);
       }
       if (!Wait(5)) {
         break;
