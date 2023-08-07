@@ -3,7 +3,7 @@ ebusd Docker image
 
 An [ebusd](https://github.com/john30/ebusd/) Docker image is available on the
 [Docker Hub](https://hub.docker.com/r/john30/ebusd/) and is able to download the latest released German
-[configuration files](https://github.com/john30/ebusd-configuration/) from a dedicated webservice.
+[configuration files](https://github.com/john30/ebusd-configuration/) from a [dedicated webservice](https://upd.ebusd.eu/).
 
 It allows you to run ebusd without actually installing (or even building) it on your system.
 You might even be able to run it on a non-Linux operating system, which is at least known to
@@ -29,7 +29,6 @@ built with every commit to the git repository. Run the following command to use 
 
 Running interactively
 ---------------------
-
 To run an ebusd container interactively, e.g. on serial device /dev/ttyUSB1, use the following command:
 > docker run --rm -it --device=/dev/ttyUSB1:/dev/ttyUSB0 -p 8888 john30/ebusd
 
@@ -38,7 +37,6 @@ This will show the ebusd output directly in the terminal.
 
 Running in background
 ---------------------
-
 To start an ebusd container and have it run in the background, e.g. on serial device /dev/ttyUSB1, use the following command:
 > docker run -d --name=ebusd --device=/dev/ttyUSB1:/dev/ttyUSB0 -p 8888 john30/ebusd
 
@@ -50,7 +48,6 @@ In order to get the log output from ebusd, use the following command:
 
 Using a network device
 ----------------------
-
 When using a network device, the "--device" argument to docker can be omitted, but the device information has to be
 passed on to ebusd:
 > docker run --rm -it -p 8888 john30/ebusd --scanconfig -d 192.168.178.123:10000 --latency=20
@@ -75,6 +72,8 @@ environment variables with the prefix `EBUSD_`, e.g. the following line can be u
 > docker run -d --name=ebusd --device=/dev/ttyUSB0 -p 8888 -e EBUSD_SCANCONFIG= -e EBUSD_DEVICE=/dev/ttyUSB0 -e EBUSD_MQTTPORT=1883 -e EBUSD_MQTTHOST=BROKERHOST john30/ebusd
 
 This eases use of e.g. docker-compose files.
+
+See [docker-compose.example.yaml](https://github.com/john30/ebusd/blob/master/contrib/docker/docker-compose.example.yaml) for further environment variables.
 
 
 Running newer images on older operating systems
