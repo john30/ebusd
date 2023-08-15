@@ -58,7 +58,6 @@ namespace ebusd {
  * template class.
  */
 
-using std::binary_function;
 using std::priority_queue;
 using std::deque;
 
