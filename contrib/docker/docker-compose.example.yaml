@@ -1,5 +1,6 @@
 services:
   ebusd:
+    # alternatively, use "john30/ebusd:devel" for the latest build of the current source code
     image: john30/ebusd
     container_name: ebusd
     restart: unless-stopped
