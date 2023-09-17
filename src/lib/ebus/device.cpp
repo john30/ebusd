@@ -75,6 +75,19 @@ namespace ebusd {
 #define ENH_BYTE2 ((uint8_t)0x80)
 #define makeEnhancedSequence(cmd, data) {(uint8_t)(ENH_BYTE1 | ((cmd)<<2) | (((data)&0xc0)>>6)), (uint8_t)(ENH_BYTE2 | ((data)&0x3f))}
 
+#ifdef DEBUG_RAW_TRAFFIC
+  #define DEBUG_RAW_TRAFFIC_HEAD(format, args...) fprintf(stdout, "%lld raw: " format, clockGetMillis(), args)
+  #define DEBUG_RAW_TRAFFIC_ITEM(args...) fprintf(stdout, args)
+  #define DEBUG_RAW_TRAFFIC_FINAL() fprintf(stdout, "\n"); fflush(stdout)
+  #undef DEBUG_RAW_TRAFFIC
+  #define DEBUG_RAW_TRAFFIC(format, args...) fprintf(stdout, "%lld raw: " format "\n", clockGetMillis(), args); fflush(stdout)
+#else
+  #define DEBUG_RAW_TRAFFIC_HEAD(format, args...)
+  #undef DEBUG_RAW_TRAFFIC_ITEM
+  #define DEBUG_RAW_TRAFFIC_FINAL()
+  #define DEBUG_RAW_TRAFFIC(format, args...)
+#endif
+
 Device::Device(const char* name, bool readOnly, bool initialSend)
   : m_name(name), m_readOnly(readOnly), m_initialSend(initialSend), m_listener(nullptr) {
 }
@@ -199,10 +212,7 @@ result_t FileDevice::open() {
 result_t FileDevice::afterOpen() {
   if (m_enhancedProto) {
     symbol_t buf[2] = makeEnhancedSequence(ENH_REQ_INIT, 0x01);  // extra feature: info
-#ifdef DEBUG_RAW_TRAFFIC
-    fprintf(stdout, "raw enhanced > %2.2x %2.2x\n", buf[0], buf[1]);
-    fflush(stdout);
-#endif
+    DEBUG_RAW_TRAFFIC("enhanced > %2.2x %2.2x", buf[0], buf[1]);
     if (::write(m_fd, buf, 2) != 2) {
       return RESULT_ERR_SEND;
     }
@@ -266,10 +276,7 @@ result_t FileDevice::requestEnhancedInfo(symbol_t infoId) {
 
 result_t FileDevice::sendEnhancedInfoRequest(symbol_t infoId) {
   symbol_t buf[2] = makeEnhancedSequence(ENH_REQ_INFO, infoId);
-#ifdef DEBUG_RAW_TRAFFIC
-  fprintf(stdout, "raw enhanced > %2.2x %2.2x\n", buf[0], buf[1]);
-  fflush(stdout);
-#endif
+  DEBUG_RAW_TRAFFIC("enhanced > %2.2x %2.2x", buf[0], buf[1]);
   if (::write(m_fd, buf, 2) != 2) {
     return RESULT_ERR_DEVICE;
   }
@@ -415,9 +422,7 @@ result_t FileDevice::recv(unsigned int timeout, symbol_t* value, ArbitrationStat
 #endif
 #endif
       if (ret == -1) {
-#ifdef DEBUG_RAW_TRAFFIC
-        fprintf(stdout, "poll error %d\n", errno);
-#endif
+        DEBUG_RAW_TRAFFIC("poll error %d", errno);
         close();
         cancelRunningArbitration(arbitrationState);
         return RESULT_ERR_DEVICE;
@@ -508,16 +513,10 @@ result_t FileDevice::startArbitration(symbol_t masterAddress) {
 bool FileDevice::write(symbol_t value, bool startArbitration) {
   if (m_enhancedProto) {
     symbol_t buf[2] = makeEnhancedSequence(startArbitration ? ENH_REQ_START : ENH_REQ_SEND, value);
-#ifdef DEBUG_RAW_TRAFFIC
-    fprintf(stdout, "raw enhanced > %2.2x %2.2x\n", buf[0], buf[1]);
-    fflush(stdout);
-#endif
+    DEBUG_RAW_TRAFFIC("enhanced > %2.2x %2.2x", buf[0], buf[1]);
     return ::write(m_fd, buf, 2) == 2;
   }
-#ifdef DEBUG_RAW_TRAFFIC
-  fprintf(stdout, "raw > %2.2x\n", value);
-  fflush(stdout);
-#endif
+  DEBUG_RAW_TRAFFIC("> %2.2x", value);
 #ifdef SIMULATE_NON_WRITABILITY
   return true;
 #else
@@ -536,10 +535,7 @@ bool FileDevice::available() {
   for (size_t pos = 0; pos < m_bufLen; pos++) {
     symbol_t ch = m_buffer[(pos+m_bufPos)%m_bufSize];
     if (!(ch&ENH_BYTE_FLAG)) {
-#ifdef DEBUG_RAW_TRAFFIC
-      fprintf(stdout, "raw avail direct @%d+%d %2.2x\n", m_bufPos, pos, ch);
-      fflush(stdout);
-#endif
+      DEBUG_RAW_TRAFFIC("avail direct @%d+%d %2.2x", m_bufPos, pos, ch);
       return true;
     }
     if ((ch&ENH_BYTE_MASK) == ENH_BYTE1) {
@@ -550,11 +546,8 @@ bool FileDevice::available() {
       // peek into next byte to check if enhanced sequence is ok
       ch = m_buffer[(pos+m_bufPos+1)%m_bufSize];
       if (!(ch&ENH_BYTE_FLAG) || (ch&ENH_BYTE_MASK) != ENH_BYTE2) {
-#ifdef DEBUG_RAW_TRAFFIC
-        fprintf(stdout, "raw avail enhanced following bad @%d+%d %2.2x %2.2x\n", m_bufPos, pos,
+        DEBUG_RAW_TRAFFIC("avail enhanced following bad @%d+%d %2.2x %2.2x", m_bufPos, pos,
           m_buffer[(pos+m_bufPos)%m_bufSize], ch);
-        fflush(stdout);
-#endif
         if (m_listener != nullptr) {
           m_listener->notifyStatus(true, "unexpected available enhanced following byte 1");
         }
@@ -566,23 +559,14 @@ bool FileDevice::available() {
       }
       if (cmd == ENH_RES_RECEIVED || cmd == ENH_RES_STARTED || cmd == ENH_RES_FAILED) {
         // found a sequence that yields in available bus byte
-#ifdef DEBUG_RAW_TRAFFIC
-        fprintf(stdout, "raw avail enhanced @%d+%d %2.2x %2.2x\n", m_bufPos, pos, m_buffer[(pos+m_bufPos)%m_bufSize], ch);
-        fflush(stdout);
-#endif
+        DEBUG_RAW_TRAFFIC("avail enhanced @%d+%d %2.2x %2.2x", m_bufPos, pos, m_buffer[(pos+m_bufPos)%m_bufSize], ch);
         return true;
       }
-#ifdef DEBUG_RAW_TRAFFIC
-      fprintf(stdout, "raw avail enhanced skip cmd %d @%d+%d %2.2x\n", cmd, m_bufPos, pos, ch);
-      fflush(stdout);
-#endif
+      DEBUG_RAW_TRAFFIC("avail enhanced skip cmd %d @%d+%d %2.2x", cmd, m_bufPos, pos, ch);
       pos++;  // skip enhanced sequence of 2 bytes
       continue;
     }
-#ifdef DEBUG_RAW_TRAFFIC
-    fprintf(stdout, "raw avail enhanced bad @%d+%d %2.2x\n", m_bufPos, pos, ch);
-    fflush(stdout);
-#endif
+    DEBUG_RAW_TRAFFIC("avail enhanced bad @%d+%d %2.2x", m_bufPos, pos, ch);
     if (m_listener != nullptr) {
       m_listener->notifyStatus(true, "unexpected available enhanced byte 2");
     }
@@ -610,19 +594,13 @@ bool FileDevice::read(symbol_t* value, bool isAvailable, ArbitrationState* arbit
           tail = (m_bufPos+m_bufLen) % m_bufSize;
           size_t head = m_bufLen-tail;
           memmove(m_buffer+head, m_buffer, tail);
-#ifdef DEBUG_RAW_TRAFFIC
-          fprintf(stdout, "raw move tail %d @0 to @%d\n", tail, head);
-          fflush(stdout);
-#endif
+          DEBUG_RAW_TRAFFIC("move tail %d @0 to @%d", tail, head);
         } else {
           tail = 0;
         }
         // move head to first position
         memmove(m_buffer, m_buffer + m_bufPos, m_bufLen - tail);
-#ifdef DEBUG_RAW_TRAFFIC
-        fprintf(stdout, "raw move head %d @%d to 0\n", m_bufLen - tail, m_bufPos);
-        fflush(stdout);
-#endif
+        DEBUG_RAW_TRAFFIC("move head %d @%d to 0", m_bufLen - tail, m_bufPos);
       }
     }
     m_bufPos = 0;
@@ -631,13 +609,12 @@ bool FileDevice::read(symbol_t* value, bool isAvailable, ArbitrationState* arbit
     if (size <= 0) {
       return false;
     }
-#ifdef DEBUG_RAW_TRAFFIC
-    fprintf(stdout, "raw %ld+%ld <", m_bufLen, size);
+#ifdef DEBUG_RAW_TRAFFIC_ITEM
+    DEBUG_RAW_TRAFFIC_HEAD("%d+%d <", m_bufLen, size);
     for (int pos=0; pos < size; pos++) {
-      fprintf(stdout, " %2.2x", m_buffer[(m_bufLen+pos)%m_bufSize]);
+      DEBUG_RAW_TRAFFIC_ITEM(" %2.2x", m_buffer[(m_bufLen+pos)%m_bufSize]);
     }
-    fprintf(stdout, "\n");
-    fflush(stdout);
+    DEBUG_RAW_TRAFFIC_FINAL();
 #endif
     m_bufLen += size;
   }
@@ -953,7 +930,6 @@ result_t SerialDevice::open() {
   newSettings.c_cc[VMIN]  = 1;
   newSettings.c_cc[VTIME] = 0;
 
-  // int flag = TIOCM_RTS|TIOCM_DTR;
   // empty device buffer
   tcflush(m_fd, TCIFLUSH);
 
