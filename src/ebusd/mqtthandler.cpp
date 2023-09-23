@@ -1381,6 +1381,10 @@ void MqttHandler::publishMessage(const Message* message, ostringstream* updates,
       *updates << message->getCircuit() << UI_FIELD_SEPARATOR << message->getName() << UI_FIELD_SEPARATOR;
     }
     result_t result = message->decodeLastData(false, nullptr, -1, outputFormat, updates);
+    if (result == RESULT_EMPTY) {
+      publishEmptyTopic(getTopic(message));  // alternatively: , json ? "null" : "");
+      return;
+    }
     if (result != RESULT_OK) {
       logOtherError("mqtt", "decode %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(),
           getResultCode(result));
