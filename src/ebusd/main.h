@@ -41,8 +41,13 @@ typedef struct options {
   unsigned int extraLatency;  //!< extra transfer latency in ms [0 for USB, 10 for IP]
 
   bool scanConfig;  //!< pick configuration files matching initial scan
-  /** the initial address to scan for scanconfig
-   * (@a ESC=none, 0xfe=broadcast ident, @a SYN=full scan, else: single slave address). */
+  /**
+   * initial address(es) to scan:
+   * @a ESC=none (no explicit active scanning),
+   * 0xfe=broadcast ident,
+   * @a SYN=full scan (all slave addresses),
+   * else: single slave address.
+   */
   symbol_t initialScan;
   const char* preferLanguage;  //!< preferred language in configuration files
   bool checkConfig;  //!< check config files, then stop

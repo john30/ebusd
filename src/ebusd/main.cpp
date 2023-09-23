@@ -156,6 +156,9 @@ static Network* s_network = nullptr;
 /** the (optionally corrected) config path for retrieving configuration files from. */
 static string s_configPath = CONFIG_PATH;
 
+/** whether scanConfig or configPath were set by arguments. */
+static bool s_scanConfigOrPathSet = false;
+
 /** the documentation of the program. */
 static const char argpdoc[] =
   "A daemon for communication with eBUS heating systems.";
@@ -199,9 +202,11 @@ static const char argpdoc[] =
 static const struct argp_option argpoptions[] = {
   {nullptr,          0,        nullptr,    0, "Device options:", 1 },
   {"device",         'd',      "DEV",      0, "Use DEV as eBUS device ("
-      "\"enh:DEVICE\" or \"enh:IP:PORT\" for enhanced device, "
-      "\"ens:DEVICE\" for enhanced high speed serial device, "
-      "\"DEVICE\" for serial device, or \"[udp:]IP:PORT\" for network device) [/dev/ttyUSB0]", 0 },
+      "prefix \"ens:\" for enhanced high speed device or "
+      "\"enh:\" for enhanced device, with "
+      "\"IP:PORT\" for network device or "
+      "\"DEVICE\" for serial device"
+      ") [/dev/ttyUSB0]", 0 },
   {"nodevicecheck",  'n',      nullptr,    0, "Skip serial eBUS device test", 0 },
   {"readonly",       'r',      nullptr,    0, "Only read from device, never write to it", 0 },
   {"initsend",       O_INISND, nullptr,    0, "Send an initial escape symbol after connecting device", 0 },
@@ -210,9 +215,13 @@ static const struct argp_option argpoptions[] = {
   {nullptr,          0,        nullptr,    0, "Message configuration options:", 2 },
   {"configpath",     'c',      "PATH",     0, "Read CSV config files from PATH (local folder or HTTPS URL) ["
       CONFIG_PATH "]", 0 },
-  {"scanconfig",     's',      "ADDR", OPTION_ARG_OPTIONAL, "Pick CSV config files matching initial scan (ADDR="
-      "\"none\" or empty for no initial scan message, \"full\" for full scan, or a single hex address to scan, "
-      "default is broadcast ident message). If combined with --checkconfig, you can add scan message data as "
+  {"scanconfig",     's',      "ADDR", OPTION_ARG_OPTIONAL, "Pick CSV config files matching initial scan ADDR: "
+      "empty for broadcast ident message (default when configpath is not given), "
+      "\"none\" for no initial scan message, "
+      "\"full\" for full scan, "
+      "a single hex address to scan, or "
+      "\"off\" for not picking CSV files by scan result (default when configpath is given).\n"
+      "If combined with --checkconfig, you can add scan message data as "
       "arguments for checking a particular scan configuration, e.g. \"FF08070400/0AB5454850303003277201\".", 0 },
   {"configlang",     O_CFGLNG, "LANG",     0,
       "Prefer LANG in multilingual configuration files [system default language]", 0 },
@@ -230,7 +239,7 @@ static const struct argp_option argpoptions[] = {
 #endif  // HAVE_SSL
 
   {nullptr,          0,        nullptr,    0, "eBUS options:", 3 },
-  {"address",        'a',      "ADDR",     0, "Use ADDR as own bus address [31]", 0 },
+  {"address",        'a',      "ADDR",     0, "Use hex ADDR as own master bus address [31]", 0 },
   {"answer",         O_ANSWER, nullptr,    0, "Actively answer to requests from other masters", 0 },
   {"acquiretimeout", O_ACQTIM, "MSEC",     0, "Stop bus acquisition after MSEC ms [10]", 0 },
   {"acquireretries", O_ACQRET, "COUNT",    0, "Retry bus acquisition COUNT times [3]", 0 },
@@ -301,18 +310,9 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     opt->noDeviceCheck = true;
     break;
   case 'r':  // --readonly
-    if (opt->answer || opt->generateSyn || opt->initialSend
-        || (opt->scanConfig && opt->initialScan != 0 && opt->initialScan != ESC)) {
-      argp_error(state, "cannot combine readonly with answer/generatesyn/initsend/scanconfig=*");
-      return EINVAL;
-    }
     opt->readOnly = true;
     break;
   case O_INISND:  // --initsend
-    if (opt->readOnly) {
-      argp_error(state, "cannot combine readonly with answer/generatesyn/initsend/scanconfig=*");
-      return EINVAL;
-    }
     opt->initialSend = true;
     break;
   case O_DEVLAT:  // --latency=10
@@ -331,18 +331,19 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       return EINVAL;
     }
     s_configPath = arg;
+    s_scanConfigOrPathSet = true;
     break;
-  case 's':  // --scanconfig[=ADDR] (ADDR=<empty>|full|<hexaddr>)
+  case 's':  // --scanconfig[=ADDR] (ADDR=<empty>|none|full|<hexaddr>|off)
   {
-    if (opt->pollInterval == 0) {
-      argp_error(state, "scanconfig without polling may lead to invalid files included for certain products!");
-      return EINVAL;
-    }
-    symbol_t initialScan = ESC;
-    if (!arg || arg[0] == 0 || strcmp("none", arg) == 0) {
-      // no further setting needed
+    symbol_t initialScan = 0;
+    if (!arg || arg[0] == 0) {
+      initialScan = BROADCAST;  // default for no or empty argument
+    } else if (strcmp("none", arg) == 0) {
+      initialScan = ESC;
     } else if (strcmp("full", arg) == 0) {
       initialScan = SYN;
+    } else if (strcmp("off", arg) == 0) {
+      // zero turns scanConfig off
     } else {
       auto address = (symbol_t)parseInt(arg, 16, 0x00, 0xff, &result);
       if (result != RESULT_OK || !isValidAddress(address)) {
@@ -355,29 +356,18 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
         initialScan = address;
       }
     }
-    if (opt->readOnly && initialScan != ESC) {
-      argp_error(state, "cannot combine readonly with answer/generatesyn/initsend/scanconfig=*");
-      return EINVAL;
-    }
-    opt->scanConfig = true;
+    opt->scanConfig = initialScan != 0;
     opt->initialScan = initialScan;
+    s_scanConfigOrPathSet = true;
     break;
   }
   case O_CFGLNG:  // --configlang=LANG
     opt->preferLanguage = arg;
     break;
   case O_CHKCFG:  // --checkconfig
-    if (opt->injectMessages) {
-      argp_error(state, "invalid checkconfig");
-      return EINVAL;
-    }
     opt->checkConfig = true;
     break;
   case O_DMPCFG:  // --dumpconfig[=json|csv]
-    if (opt->injectMessages) {
-      argp_error(state, "invalid checkconfig");
-      return EINVAL;
-    }
     if (!arg || arg[0] == 0 || strcmp("csv", arg) == 0) {
       // no further flags
       opt->dumpConfig = OF_DEFINITION;
@@ -402,17 +392,9 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       argp_error(state, "invalid pollinterval");
       return EINVAL;
     }
-    if (value == 0 && opt->scanConfig) {
-      argp_error(state, "scanconfig without polling may lead to invalid files included for certain products!");
-      return EINVAL;
-    }
     opt->pollInterval = value;
     break;
   case 'i':  // --inject[=stop]
-    if (opt->injectMessages || opt->checkConfig) {
-      argp_error(state, "invalid inject");
-      return EINVAL;
-    }
     opt->injectMessages = true;
     opt->stopAfterInject = arg && strcmp("stop", arg) == 0;
     break;
@@ -435,10 +417,6 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
   }
   case O_ANSWER:  // --answer
-    if (opt->readOnly) {
-      argp_error(state, "cannot combine readonly with answer/generatesyn/initsend/scanconfig=*");
-      return EINVAL;
-    }
     opt->answer = true;
     break;
   case O_ACQTIM:  // --acquiretimeout=10
@@ -482,10 +460,6 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     opt->masterCount = value;
     break;
   case O_GENSYN:  // --generatesyn
-    if (opt->readOnly) {
-      argp_error(state, "cannot combine readonly with answer/generatesyn/initsend/scanconfig=*");
-      return EINVAL;
-    }
     opt->generateSyn = true;
     break;
 
@@ -681,6 +655,21 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     return ARGP_ERR_UNKNOWN;
   }
 
+
+  // check for invalid arg combinations
+  if (opt->readOnly && (opt->answer || opt->generateSyn || opt->initialSend
+      || (opt->scanConfig && opt->initialScan != ESC))) {
+    argp_error(state, "cannot combine readonly with answer/generatesyn/initsend/scanconfig");
+    return EINVAL;
+  }
+  if (opt->scanConfig && opt->pollInterval == 0) {
+    argp_error(state, "scanconfig without polling may lead to invalid files included for certain products!");
+    return EINVAL;
+  }
+  if (opt->injectMessages && (opt->checkConfig || opt->dumpConfig)) {
+    argp_error(state, "cannot combine inject with checkconfig/dumpconfig");
+    return EINVAL;
+  }
   return 0;
 }
 void shutdown(bool error = false);
@@ -895,6 +884,10 @@ int main(int argc, char* argv[], char* envp[]) {
     setFacilitiesLogLevel(s_opt.logAreas, s_opt.logLevel);
   }
 
+  if (!s_opt.readOnly && !s_scanConfigOrPathSet) {
+    s_opt.scanConfig = true;
+    s_opt.initialScan = BROADCAST;
+  }
   if (!s_configPath.empty() && s_configPath[s_configPath.length()-1] != '/') {
     s_configPath += "/";
   }
@@ -942,9 +935,6 @@ int main(int argc, char* argv[], char* envp[]) {
     }
     logInfo(lf_main, "configPath URL is valid");
     configHttpClient->disconnect();
-  }
-  if (!s_opt.readOnly && s_opt.scanConfig && s_opt.initialScan == 0) {
-    s_opt.initialScan = BROADCAST;
   }
 
   s_messageMap = new MessageMap(s_opt.checkConfig, lang);
