@@ -92,6 +92,7 @@ static struct options s_opt = {
 
   false,  // scanConfig
   0,  // initialScan
+  5,  // scanRetries
   getenv("LANG"),  // preferLanguage
   false,  // checkConfig
   OF_NONE,  // dumpConfig
@@ -165,7 +166,8 @@ static const char argpdoc[] =
 
 #define O_INISND -2
 #define O_DEVLAT (O_INISND-1)
-#define O_CFGLNG (O_DEVLAT-1)
+#define O_SCNRET (O_DEVLAT-1)
+#define O_CFGLNG (O_SCNRET-1)
 #define O_CHKCFG (O_CFGLNG-1)
 #define O_DMPCFG (O_CHKCFG-1)
 #define O_DMPCTO (O_DMPCFG-1)
@@ -223,6 +225,7 @@ static const struct argp_option argpoptions[] = {
       "\"off\" for not picking CSV files by scan result (default when configpath is given).\n"
       "If combined with --checkconfig, you can add scan message data as "
       "arguments for checking a particular scan configuration, e.g. \"FF08070400/0AB5454850303003277201\".", 0 },
+  {"scanretries",    O_SCNRET, "COUNT",    0, "Retry scanning devices COUNT times [5]", 0 },
   {"configlang",     O_CFGLNG, "LANG",     0,
       "Prefer LANG in multilingual configuration files [system default language]", 0 },
   {"checkconfig",    O_CHKCFG, nullptr,    0, "Check config files, then stop", 0 },
@@ -361,6 +364,14 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
     s_scanConfigOrPathSet = true;
     break;
   }
+  case O_SCNRET:  // --scanretries=10
+    value = parseInt(arg, 10, 0, 100, &result);
+    if (result != RESULT_OK) {
+      argp_error(state, "invalid scanretries");
+      return EINVAL;
+    }
+    opt->scanRetries = value;
+    break;
   case O_CFGLNG:  // --configlang=LANG
     opt->preferLanguage = arg;
     break;

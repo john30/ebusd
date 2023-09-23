@@ -49,6 +49,7 @@ typedef struct options {
    * else: single slave address.
    */
   symbol_t initialScan;
+  int scanRetries;  //!< number of retries for scanning devices [10]
   const char* preferLanguage;  //!< preferred language in configuration files
   bool checkConfig;  //!< check config files, then stop
   OutputFormat dumpConfig;  //!< dump config files, then stop

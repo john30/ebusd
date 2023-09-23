@@ -109,8 +109,8 @@ MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messag
   Queue<Request*>* requestQueue)
   : Thread(), m_device(device), m_reconnectCount(0), m_userList(opt.accessLevel), m_messages(messages),
     m_scanHelper(scanHelper), m_address(opt.address), m_scanConfig(opt.scanConfig),
-    m_initialScan(opt.readOnly ? ESC : opt.initialScan), m_scanStatus(SCAN_STATUS_NONE),
-    m_polling(opt.pollInterval > 0), m_enableHex(opt.enableHex),
+    m_initialScan(opt.readOnly ? ESC : opt.initialScan), m_scanRetries(opt.scanRetries),
+    m_scanStatus(SCAN_STATUS_NONE), m_polling(opt.pollInterval > 0), m_enableHex(opt.enableHex),
     m_shutdown(false), m_runUpdateCheck(opt.updateCheck), m_httpClient(), m_requestQueue(requestQueue) {
   m_device->setListener(this);
   // open Device
@@ -228,6 +228,7 @@ void MainLoop::run() {
   symbol_t lastScanAddress = 0;  // 0 is known to be a master
   scanStatus_t lastScanStatus = m_scanStatus;
   int scanCompleted = 0;
+  int scanRetry = 0;
   time(&now);
   start = now;
   lastTaskRun = now;
@@ -261,7 +262,7 @@ void MainLoop::run() {
         m_busHandler->reconnect();
         m_reconnectCount++;
       }
-      if (m_scanConfig) {
+      if (m_scanConfig && scanRetry <= m_scanRetries) {
         bool loadDelay = false;
         if (m_initialScan != ESC && reload && m_busHandler->hasSignal()) {
           loadDelay = true;
@@ -312,6 +313,8 @@ void MainLoop::run() {
             scanCompleted++;
             if (scanCompleted > SCAN_REPEAT_COUNT) {  // repeat failed scan only every Nth time
               scanCompleted = 0;
+              scanRetry++;
+              logNotice(lf_main, "scan completed %d time(s), %s", scanRetry, scanRetry <= m_scanRetries ? "check again" : "end");
             }
           } else {
             m_scanStatus = SCAN_STATUS_RUNNING;
@@ -424,7 +427,11 @@ void MainLoop::run() {
     bool connected = true;
     if (!req->empty()) {
       req->log();
+      bool currentReload = reload;
       result_t result = decodeRequest(req, &connected, &reqMode, &user, &reload, &ostream);
+      if (reload && !currentReload) {
+        scanRetry = 0;  // restart scan counting
+      }
       if (!req->isHttp() && (ostream.tellp() == 0 || result != RESULT_OK)) {
         if (reqMode.listenMode != lm_direct) {
           ostream.str("");
