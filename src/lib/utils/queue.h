@@ -65,11 +65,13 @@ class Queue {
  public:
   /**
    * Add an item to the end of queue.
-   * @param item the item to add.
+   * @param item the item to add, or nullptr for notifying only.
    */
   void push(T item) {
     pthread_mutex_lock(&m_mutex);
-    m_queue.push_back(item);
+    if (item) {
+      m_queue.push_back(item);
+    }
     pthread_cond_broadcast(&m_cond);
     pthread_mutex_unlock(&m_mutex);
   }
@@ -82,15 +84,11 @@ class Queue {
   T pop(int timeout = 0) {
     T item;
     pthread_mutex_lock(&m_mutex);
-    if (timeout > 0) {
+    if (timeout > 0 && m_queue.empty()) {
       struct timespec t;
       clockGettime(&t);
       t.tv_sec += timeout;
-      while (m_queue.empty()) {
-        if (pthread_cond_timedwait(&m_cond, &m_mutex, &t) != 0) {
-          break;
-        }
-      }
+      pthread_cond_timedwait(&m_cond, &m_mutex, &t);
     }
     if (m_queue.empty()) {
       item = nullptr;

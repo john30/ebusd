@@ -205,6 +205,13 @@ MainLoop::~MainLoop() {
   }
 }
 
+void MainLoop::shutdown() {
+  m_shutdown = true;
+  if (m_requestQueue != nullptr) {
+    m_requestQueue->push(nullptr); // just to notify potentially waiting thread
+  }
+}
+
 /** the delay for running the update check. */
 #define CHECK_DELAY (24*3600)
 

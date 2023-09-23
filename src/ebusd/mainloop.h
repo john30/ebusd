@@ -120,7 +120,7 @@ class MainLoop : public Thread, DeviceListener {
   /**
    * Shutdown the main loop.
    */
-  void shutdown() { m_shutdown = true; }
+  void shutdown();
 
   /**
    * Get the @a BusHandler instance.
