@@ -865,10 +865,10 @@ int main(int argc, char* argv[], char* envp[]) {
     error_t err = argp_parse(&aargp, cnt, envargv, ARGP_PARSE_ARGV0|ARGP_SILENT|ARGP_IN_ORDER, &idx, &s_opt);
     if (err != 0 && idx == -1) {  // ignore args for non-arg boolean options
       if (err == ESRCH) {  // special value to abort immediately
-        logWrite(lf_main, ll_error, "invalid argument in env: %s", envopt);  // force logging on exit
+        logWrite(lf_main, ll_error, "invalid argument in env: %s", *env);  // force logging on exit
         return EINVAL;
       }
-      logWrite(lf_main, ll_error, "invalid/unknown argument in env (ignored): %s", envopt);  // force logging
+      logWrite(lf_main, ll_error, "invalid/unknown argument in env (ignored): %s", *env);  // force logging
     }
     s_opt.injectMessages = false;  // restore (was not parsed from cmdline args yet)
   }
