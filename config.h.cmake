@@ -50,13 +50,13 @@
 #cmakedefine PACKAGE_BUGREPORT "${PACKAGE_BUGREPORT}"
 
 /* The path and name of the log file. */
-#define PACKAGE_LOGFILE LOCALSTATEDIR "/log/" PACKAGE ".log"
+#cmakedefine PACKAGE_LOGFILE "${PACKAGE_LOGFILE}"
 
 /* The full name of this package. */
 #cmakedefine PACKAGE_NAME "${PACKAGE_NAME}"
 
 /* The path and name of the PID file. */
-#define PACKAGE_PIDFILE LOCALSTATEDIR "/run/" PACKAGE ".pid"
+#cmakedefine PACKAGE_PIDFILE "${PACKAGE_PIDFILE}"
 
 /* The full name and version of this package. */
 #cmakedefine PACKAGE_STRING "${PACKAGE_STRING}"

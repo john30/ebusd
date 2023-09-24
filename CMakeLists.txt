@@ -10,6 +10,11 @@ file(STRINGS "VERSION" VERSION)
 
 project(ebusd)
 
+include(GNUInstallDirs)
+include(CheckFunctionExists)
+include(CheckCXXSourceRuns)
+include(CheckIncludeFile)
+
 set(PACKAGE ${CMAKE_PROJECT_NAME})
 set(PACKAGE_NAME ${CMAKE_PROJECT_NAME})
 set(PACKAGE_TARNAME ${CMAKE_PROJECT_NAME})
@@ -45,10 +50,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX "" CACHE PATH "..." FORCE)
 endif()
-include(GNUInstallDirs)
-include(CheckFunctionExists)
-include(CheckCXXSourceRuns)
-include(CheckIncludeFile)
 
 add_definitions(-fpic -Wall -Wno-unused-function -Wextra)
 
@@ -172,7 +173,7 @@ int main() {
   endif(HAVE_DIRECT_FLOAT_FORMAT_REV)
 endif(NOT HAVE_DIRECT_FLOAT_FORMAT)
 
-add_definitions(-D_GNU_SOURCE -DHAVE_CONFIG_H -DSYSCONFDIR="${CMAKE_INSTALL_FULL_SYSCONFDIR}" -DLOCALSTATEDIR="${CMAKE_INSTALL_FULL_LOCALSTATEDIR}")
+add_definitions(-D_GNU_SOURCE -DHAVE_CONFIG_H)
 configure_file(config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${ebusd_SOURCE_DIR}/src)

@@ -52,20 +52,6 @@ using std::setw;
 using std::nouppercase;
 using std::cout;
 
-/** the path and name of the PID file. */
-#ifdef PACKAGE_PIDFILE
-#define PID_FILE_NAME PACKAGE_PIDFILE
-#else
-#define PID_FILE_NAME "/var/run/ebusd.pid"
-#endif
-
-/** the path and name of the log file. */
-#ifdef PACKAGE_LOGFILE
-#define LOG_FILE_NAME PACKAGE_LOGFILE
-#else
-#define LOG_FILE_NAME "/var/log/ebusd.log"
-#endif
-
 /** the config path part behind the scheme (scheme without "://"). */
 #define CONFIG_PATH_SUFFIX "://cfg.ebusd.eu/"
 
@@ -117,7 +103,7 @@ static struct options s_opt = {
   false,  // foreground
   false,  // enableHex
   false,  // enableDefine
-  PID_FILE_NAME,  // pidFile
+  PACKAGE_PIDFILE,  // pidFile
   8888,  // port
   false,  // localOnly
   0,  // httpPort
@@ -257,7 +243,7 @@ static const struct argp_option argpoptions[] = {
   {"foreground",     'f',      nullptr,    0, "Run in foreground", 0 },
   {"enablehex",      O_HEXCMD, nullptr,    0, "Enable hex command", 0 },
   {"enabledefine",   O_DEFCMD, nullptr,    0, "Enable define command", 0 },
-  {"pidfile",        O_PIDFIL, "FILE",     0, "PID file name (only for daemon) [" PID_FILE_NAME "]", 0 },
+  {"pidfile",        O_PIDFIL, "FILE",     0, "PID file name (only for daemon) [" PACKAGE_PIDFILE "]", 0 },
   {"port",           'p',      "PORT",     0, "Listen for command line connections on PORT [8888]", 0 },
   {"localhost",      O_LOCAL,  nullptr,    0, "Listen for command line connections on 127.0.0.1 interface only", 0 },
   {"httpport",       O_HTTPPT, "PORT",     0, "Listen for HTTP connections on PORT, 0 to disable [0]", 0 },

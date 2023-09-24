@@ -1,8 +1,6 @@
 AM_CXXFLAGS = -I$(top_srcdir)/src \
 	      -isystem$(top_srcdir) \
-	      -Wconversion -Wno-unused-parameter \
-	      -DSYSCONFDIR=\"$(sysconfdir)\" \
-	      -DLOCALSTATEDIR=\"$(localstatedir)\"
+	      -Wconversion -Wno-unused-parameter
 
 bin_PROGRAMS = ebusd
 
