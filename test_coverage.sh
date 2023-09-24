@@ -7,10 +7,10 @@ ebuspicloader=$prefix/src/tools/ebuspicloader
 $ebusd --help >/dev/null
 $ebusd -r -f -x >/dev/null 2>/dev/null
 $ebusd -f -d "" >/dev/null 2>/dev/null
-$ebusd -f -d "tcp:192.168.999.999:1" >/dev/null 2>/dev/null
-$ebusd -f -d "enh:192.168.999.999:1" >/dev/null 2>/dev/null
-$ebusd -f -d "/dev/ttyUSBx9" >/dev/null 2>/dev/null
-$ebusd -f --nodevicecheck >/dev/null 2>/dev/null
+$ebusd -f -d "tcp:192.168.999.999:1" --log bad >/dev/null 2>/dev/null
+$ebusd -f -d "enh:192.168.999.999:1" --log bad >/dev/null 2>/dev/null
+$ebusd -f -d "/dev/ttyUSBx9" --log bad >/dev/null 2>/dev/null
+$ebusd -f --nodevicecheck --log bad >/dev/null 2>/dev/null
 $ebusd -f --readonly >/dev/null 2>/dev/null
 $ebusd -f --scanconfig=full -r >/dev/null 2>/dev/null
 $ebusd -f --latency 999999 >/dev/null 2>/dev/null
@@ -18,7 +18,7 @@ $ebusd -f -c "" >/dev/null 2>/dev/null
 $ebusd -f -r --scanconfig=fe >/dev/null 2>/dev/null
 $ebusd -f -r --configlang=en >/dev/null 2>/dev/null
 $ebusd -f --pollinterval 999999 >/dev/null 2>/dev/null
-$ebusd -f --inject 01fe030400/ >/dev/null 2>/dev/null
+$ebusd -f --inject --checkconfig=stop 01fe030400/ >/dev/null 2>/dev/null
 $ebusd -f --address 999 >/dev/null 2>/dev/null
 $ebusd -f --acquiretimeout 999999 >/dev/null 2>/dev/null
 $ebusd -f --acquireretries 999999 >/dev/null 2>/dev/null
@@ -31,30 +31,30 @@ $ebusd -f -r --initsend >/dev/null 2>/dev/null
 $ebusd -f -r --scanconfig=0 >/dev/null 2>/dev/null
 $ebusd -f --pidfile "" >/dev/null 2>/dev/null
 $ebusd -f -p 999999 >/dev/null 2>/dev/null
-$ebusd -f --localhost >/dev/null 2>/dev/null
+$ebusd -f --localhost --log bad >/dev/null 2>/dev/null
 $ebusd -f --httpport 999999 >/dev/null 2>/dev/null
 $ebusd -f --htmlpath "" >/dev/null 2>/dev/null
-$ebusd -f --updatecheck=off >/dev/null 2>/dev/null
-$ebusd -f -l "" >/dev/null 2>/dev/null
-$ebusd -f --log "all debug" >/dev/null 2>/dev/null
+$ebusd -f --updatecheck=off --log bad >/dev/null 2>/dev/null
+$ebusd -f -l "" --log bad >/dev/null 2>/dev/null
+$ebusd -f --log "all debug" --log bad >/dev/null 2>/dev/null
 $ebusd -f --logareas some >/dev/null 2>/dev/null
 $ebusd -f --loglevel unknown >/dev/null 2>/dev/null
-$ebusd -f --lograwdata >/dev/null 2>/dev/null
-$ebusd -f --lograwdata=bytes >/dev/null 2>/dev/null
-$ebusd -f --lograwdatafile=/xyz >/dev/null 2>/dev/null
+$ebusd -f --lograwdata --log bad >/dev/null 2>/dev/null
+$ebusd -f --lograwdata=bytes --log bad >/dev/null 2>/dev/null
+$ebusd -f --lograwdatafile=/notexist/xyz --log bad >/dev/null 2>/dev/null
 $ebusd -f --lograwdatasize=9999999 >/dev/null 2>/dev/null
-$ebusd -f --dump >/dev/null 2>/dev/null
+$ebusd -f --dump --log bad >/dev/null 2>/dev/null
 $ebusd -f --dumpfile "" >/dev/null 2>/dev/null
 $ebusd -f --dumpsize 9999999 >/dev/null 2>/dev/null
-$ebusd -f --dumpflush >/dev/null 2>/dev/null
-$ebusd -f --accesslevel=inst >/dev/null 2>/dev/null
+$ebusd -f --dumpflush --log bad >/dev/null 2>/dev/null
+$ebusd -f --accesslevel=inst --log bad >/dev/null 2>/dev/null
 $ebusd -f --aclfile=/ >/dev/null 2>/dev/null
-$ebusd -f --enablehex >/dev/null 2>/dev/null
-$ebusd -f --enabledefine >/dev/null 2>/dev/null
+$ebusd -f --enablehex --log bad >/dev/null 2>/dev/null
+$ebusd -f --enabledefine --log bad >/dev/null 2>/dev/null
 $ebusd -f --mqttport= >/dev/null 2>/dev/null
 $ebusd -f --mqttport=9999999 >/dev/null 2>/dev/null
 $ebusd -f --mqttuser=username --mqttpass=password --mqttclientid=1234 --mqttport=1883 --mqtttopic=ebusd/%circuit/%name/%field --mqttretain --mqttjson --mqttverbose --mqttlog --mqttignoreinvalid --mqttchanges --mqtthost "" >/dev/null 2>/dev/null
-$ebusd -f --mqttca=/cafile/ --mqttcert=/cert --mqttkey=12345678 --mqttkeypass=secret --mqttinsecure >/dev/null 2>/dev/null
+$ebusd -f --mqttca=/cafile/ --mqttcert=/cert --mqttkey=12345678 --mqttkeypass=secret --mqttinsecure --log bad >/dev/null 2>/dev/null
 $ebusd -c contrib/etc/ebusd -s -f --inject=stop "ff08070400/0ab5303132333431313131" >/dev/null 2>/dev/null
 $ebusd -c contrib/etc/ebusd -s -f --inject=stop "ff08070400" >/dev/null 2>/dev/null
 $ebusd -c contrib/etc/ebusd -s -f --inject=stop "ff080704/" >/dev/null 2>/dev/null
@@ -386,7 +386,7 @@ if [ "$status" != 0 ]; then
 fi
 echo `date` "got signal"
 sleep 2
-echo "listen"|$ebusctl -p 8877 &
+echo "listen"|nc -w 10 localhost 8877 &
 lstpid=$!
 $ebusctl -p 8899 >/dev/null 2>/dev/null
 for line in "${lines[@]}"; do
@@ -436,8 +436,9 @@ curl -s -T test_coverage.sh http://localhost:8878/data/
 echo `date` "commands done"
 kill $lstpid
 verify=`send info|egrep "^address 04:"`
-if [ "x$verify" != 'xaddress 04: slave #25, scanned "MF=153;ID=BBBBB;SW=3031;HW=3031"' ]; then
-  echo `date` "error unexpected result from info command: $verify"
+expect='address 04: slave #25, scanned "MF=153;ID=BBBBB;SW=3031;HW=3031"'
+if [ "x$verify" != "x$expect" ]; then
+  echo -e `date` "error unexpected result from info command:\n  expected: >$expect<\n  got: >$verify<"
   ls -latr
   kill $pid
   kill $srvpid
