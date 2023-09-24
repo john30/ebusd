@@ -1,3 +1,15 @@
+# next (tbd)
+## Bug Fixes
+* fix MQTT topic string validation
+* fix lost scanconfig default behaviour
+* fix send empty message instead of logging an error for MQTT on messages without any field
+* fix MacOS build
+
+## Features
+* add temperatures in Kelvin and ... to Home Assistant MQTT discovery integration
+* add options to turn off scanconfig and limit number of retries
+
+
 # 23.2 (2023-07-08)
 ## Bug Fixes
 * fix bounds check for variable length datatypes
