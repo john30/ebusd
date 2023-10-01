@@ -451,7 +451,7 @@ result_t KnxHandler::receiveTelegram(int maxlen, knx_transfer_t* typ, uint8_t *b
                                      knx_addr_t *src, knx_addr_t *dest, bool wait) {
   struct timespec tdiff = {
       .tv_sec = wait ? 2 : 0,  // 2 seconds when waiting
-      .tv_nsec = wait ? 0 : 1000,  // 1 milliseond when not waiting
+      .tv_nsec = wait ? 0 : 1000000,  // 1 millisecond when not waiting
   };
   if (!m_con->isConnected()) {
     return RESULT_ERR_GENERIC_IO;
