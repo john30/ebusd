@@ -32,6 +32,9 @@ namespace ebusd {
  * The main entry method doing all the startup handling.
  */
 
+/** the config path part behind the scheme (scheme without "://"). */
+#define CONFIG_PATH_SUFFIX "://cfg.ebusd.eu/"
+
 /** A structure holding all program options. */
 typedef struct options {
   const char* device;  //!< eBUS device (serial device or [udp:]ip:port) [/dev/ttyUSB0]
@@ -40,6 +43,8 @@ typedef struct options {
   bool initialSend;  //!< send an initial escape symbol after connecting device
   unsigned int extraLatency;  //!< extra transfer latency in ms [0 for USB, 10 for IP]
 
+  const char* configPath;  //!< the configuration files path or URL
+  bool scanConfigOrPathSet;  //!< whether scanConfig or configPath were set by arguments.
   bool scanConfig;  //!< pick configuration files matching initial scan
   /**
    * initial address(es) to scan:
@@ -95,6 +100,18 @@ typedef struct options {
   unsigned int dumpSize;  //!< maximum size of dump file in kB [100]
   bool dumpFlush;  //!< flush each byte
 } options_t;
+
+/**
+ * Parse the main command line arguments in @a argv.
+ * @param argc the number of command line arguments.
+ * @param argv the command line arguments.
+ * @param envp the environment variables to parse before the args, or nullptr.
+ * @param opt pointer to the parsed arguments (will be initialized to defaults first).
+ * @param argIndex optional pointer for storing the index to the first non-argument found in argv.
+ * @return 0 on success, '!' for an invalid argument value, ':' for a missing argument value,
+ * '?' when "-?" was given, or the result of the parse function if non-zero.
+ */
+int parse_main_args(int argc, char* argv[], char* envp[], options_t* opt, int* argIndex);
 
 }  // namespace ebusd
 

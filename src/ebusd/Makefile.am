@@ -11,8 +11,7 @@ ebusd_SOURCES = \
 		network.h network.cpp \
 		mainloop.h mainloop.cpp \
 		scan.h scan.cpp \
-		main.h main.cpp
-
+		main.h main.cpp main_args.cpp
 if MQTT
 ebusd_SOURCES += mqtthandler.cpp mqtthandler.h
 endif
