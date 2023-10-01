@@ -53,20 +53,20 @@ using std::dec;
 
 /** the definition of the KNX arguments. */
 static const argDef g_knx_argDefs[] = {
-  {nullptr,      0, nullptr,      0, "KNX options:", 1 },
+  {nullptr,      0, nullptr,      0, "KNX options:"},
   {"knxurl", O_URL, "URL", af_optional, "URL to open (i.e. \"[multicast][@interface]\" for KNXnet/IP"
 #ifdef HAVE_KNXD
                                      " or \"ip:host[:port]\" / \"local:/socketpath\" for knxd"
 #endif
-                                     ") (no default)", 0 },
+                                     ") (no default)"},
   {"knxrage", O_AGR, "SEC",       0, "Maximum age in seconds for using the last value of read messages (0=disable)"
-                                     " [5]", 0 },
+                                     " [5]"},
   {"knxwage", O_AGW, "SEC",       0, "Maximum age in seconds for using the last value for reads on write messages"
-                                     " (0=disable), [99999999]", 0 },
-  {"knxint", O_INT, "FILE",       0, "Read KNX integration settings from FILE [/etc/ebusd/knx.cfg]", 0 },
-  {"knxvar", O_VAR, "NAME=VALUE[,...]", 0, "Add variable(s) to the read KNX integration settings", 0 },
+                                     " (0=disable), [99999999]"},
+  {"knxint", O_INT, "FILE",       0, "Read KNX integration settings from FILE [/etc/ebusd/knx.cfg]"},
+  {"knxvar", O_VAR, "NAME=VALUE[,...]", 0, "Add variable(s) to the read KNX integration settings"},
 
-  {nullptr,      0, nullptr,      0, nullptr, 0 },
+  {nullptr,      0, nullptr,      0, nullptr},
 };
 
 static const char* g_url = nullptr;  //!< URL of KNX daemon

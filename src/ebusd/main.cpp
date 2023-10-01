@@ -177,21 +177,21 @@ static bool s_scanConfigOrPathSet = false;
 
 /** the definition of the known program arguments. */
 static const argDef argDefs[] = {
-  {nullptr,          0,        nullptr,    0, "Device options:", 1 },
+  {nullptr,          0,        nullptr,    0, "Device options:"},
   {"device",         'd',      "DEV",      0, "Use DEV as eBUS device ("
       "prefix \"ens:\" for enhanced high speed device or "
       "\"enh:\" for enhanced device, with "
       "\"IP:PORT\" for network device or "
       "\"DEVICE\" for serial device"
-      ") [/dev/ttyUSB0]", 0 },
-  {"nodevicecheck",  'n',      nullptr,    0, "Skip serial eBUS device test", 0 },
-  {"readonly",       'r',      nullptr,    0, "Only read from device, never write to it", 0 },
-  {"initsend",       O_INISND, nullptr,    0, "Send an initial escape symbol after connecting device", 0 },
-  {"latency",        O_DEVLAT, "MSEC",     0, "Extra transfer latency in ms [0]", 0 },
+      ") [/dev/ttyUSB0]"},
+  {"nodevicecheck",  'n',      nullptr,    0, "Skip serial eBUS device test"},
+  {"readonly",       'r',      nullptr,    0, "Only read from device, never write to it"},
+  {"initsend",       O_INISND, nullptr,    0, "Send an initial escape symbol after connecting device"},
+  {"latency",        O_DEVLAT, "MSEC",     0, "Extra transfer latency in ms [0]"},
 
-  {nullptr,          0,        nullptr,    0, "Message configuration options:", 2 },
+  {nullptr,          0,        nullptr,    0, "Message configuration options:"},
   {"configpath",     'c',      "PATH",     0, "Read CSV config files from PATH (local folder or HTTPS URL) ["
-      CONFIG_PATH "]", 0 },
+      CONFIG_PATH "]"},
   {"scanconfig",     's',      "ADDR", af_optional, "Pick CSV config files matching initial scan ADDR: "
       "empty for broadcast ident message (default when configpath is not given), "
       "\"none\" for no initial scan message, "
@@ -199,69 +199,69 @@ static const argDef argDefs[] = {
       "a single hex address to scan, or "
       "\"off\" for not picking CSV files by scan result (default when configpath is given).\n"
       "If combined with --checkconfig, you can add scan message data as "
-      "arguments for checking a particular scan configuration, e.g. \"FF08070400/0AB5454850303003277201\".", 0 },
-  {"scanretries",    O_SCNRET, "COUNT",    0, "Retry scanning devices COUNT times [5]", 0 },
+      "arguments for checking a particular scan configuration, e.g. \"FF08070400/0AB5454850303003277201\"."},
+  {"scanretries",    O_SCNRET, "COUNT",    0, "Retry scanning devices COUNT times [5]"},
   {"configlang",     O_CFGLNG, "LANG",     0,
-      "Prefer LANG in multilingual configuration files [system default language]", 0 },
-  {"checkconfig",    O_CHKCFG, nullptr,    0, "Check config files, then stop", 0 },
+      "Prefer LANG in multilingual configuration files [system default language]"},
+  {"checkconfig",    O_CHKCFG, nullptr,    0, "Check config files, then stop"},
   {"dumpconfig",     O_DMPCFG, "FORMAT", af_optional,
-      "Check and dump config files in FORMAT (\"json\" or \"csv\"), then stop", 0 },
-  {"dumpconfigto",   O_DMPCTO, "FILE",     0, "Dump config files to FILE", 0 },
-  {"pollinterval",   O_POLINT, "SEC",      0, "Poll for data every SEC seconds (0=disable) [5]", 0 },
+      "Check and dump config files in FORMAT (\"json\" or \"csv\"), then stop"},
+  {"dumpconfigto",   O_DMPCTO, "FILE",     0, "Dump config files to FILE"},
+  {"pollinterval",   O_POLINT, "SEC",      0, "Poll for data every SEC seconds (0=disable) [5]"},
   {"inject",         'i',      "stop", af_optional, "Inject remaining arguments as already seen messages (e.g. "
-      "\"FF08070400/0AB5454850303003277201\"), optionally stop afterwards", 0 },
+      "\"FF08070400/0AB5454850303003277201\"), optionally stop afterwards"},
 #ifdef HAVE_SSL
   {"cafile",         O_CAFILE, "FILE",     0, "Use CA FILE for checking certificates (uses defaults,"
-                                              " \"#\" for insecure)", 0 },
-  {"capath",         O_CAPATH, "PATH",     0, "Use CA PATH for checking certificates (uses defaults)", 0 },
+                                              " \"#\" for insecure)"},
+  {"capath",         O_CAPATH, "PATH",     0, "Use CA PATH for checking certificates (uses defaults)"},
 #endif  // HAVE_SSL
 
-  {nullptr,          0,        nullptr,    0, "eBUS options:", 3 },
-  {"address",        'a',      "ADDR",     0, "Use hex ADDR as own master bus address [31]", 0 },
-  {"answer",         O_ANSWER, nullptr,    0, "Actively answer to requests from other masters", 0 },
-  {"acquiretimeout", O_ACQTIM, "MSEC",     0, "Stop bus acquisition after MSEC ms [10]", 0 },
-  {"acquireretries", O_ACQRET, "COUNT",    0, "Retry bus acquisition COUNT times [3]", 0 },
-  {"sendretries",    O_SNDRET, "COUNT",    0, "Repeat failed sends COUNT times [2]", 0 },
-  {"receivetimeout", O_RCVTIM, "MSEC",     0, "Expect a slave to answer within MSEC ms [25]", 0 },
-  {"numbermasters",  O_MASCNT, "COUNT",    0, "Expect COUNT masters on the bus, 0 for auto detection [0]", 0 },
-  {"generatesyn",    O_GENSYN, nullptr,    0, "Enable AUTO-SYN symbol generation", 0 },
+  {nullptr,          0,        nullptr,    0, "eBUS options:"},
+  {"address",        'a',      "ADDR",     0, "Use hex ADDR as own master bus address [31]"},
+  {"answer",         O_ANSWER, nullptr,    0, "Actively answer to requests from other masters"},
+  {"acquiretimeout", O_ACQTIM, "MSEC",     0, "Stop bus acquisition after MSEC ms [10]"},
+  {"acquireretries", O_ACQRET, "COUNT",    0, "Retry bus acquisition COUNT times [3]"},
+  {"sendretries",    O_SNDRET, "COUNT",    0, "Repeat failed sends COUNT times [2]"},
+  {"receivetimeout", O_RCVTIM, "MSEC",     0, "Expect a slave to answer within MSEC ms [25]"},
+  {"numbermasters",  O_MASCNT, "COUNT",    0, "Expect COUNT masters on the bus, 0 for auto detection [0]"},
+  {"generatesyn",    O_GENSYN, nullptr,    0, "Enable AUTO-SYN symbol generation"},
 
-  {nullptr,          0,        nullptr,    0, "Daemon options:", 4 },
-  {"accesslevel",    O_ACLDEF, "LEVEL",    0, "Set default access level to LEVEL (\"*\" for everything) [\"\"]", 0 },
-  {"aclfile",        O_ACLFIL, "FILE",     0, "Read access control list from FILE", 0 },
-  {"foreground",     'f',      nullptr,    0, "Run in foreground", 0 },
-  {"enablehex",      O_HEXCMD, nullptr,    0, "Enable hex command", 0 },
-  {"enabledefine",   O_DEFCMD, nullptr,    0, "Enable define command", 0 },
-  {"pidfile",        O_PIDFIL, "FILE",     0, "PID file name (only for daemon) [" PACKAGE_PIDFILE "]", 0 },
-  {"port",           'p',      "PORT",     0, "Listen for command line connections on PORT [8888]", 0 },
-  {"localhost",      O_LOCAL,  nullptr,    0, "Listen for command line connections on 127.0.0.1 interface only", 0 },
-  {"httpport",       O_HTTPPT, "PORT",     0, "Listen for HTTP connections on PORT, 0 to disable [0]", 0 },
-  {"htmlpath",       O_HTMLPA, "PATH",     0, "Path for HTML files served by HTTP port [/var/ebusd/html]", 0 },
-  {"updatecheck",    O_UPDCHK, "MODE",     0, "Set automatic update check to MODE (on|off) [on]", 0 },
+  {nullptr,          0,        nullptr,    0, "Daemon options:"},
+  {"accesslevel",    O_ACLDEF, "LEVEL",    0, "Set default access level to LEVEL (\"*\" for everything) [\"\"]"},
+  {"aclfile",        O_ACLFIL, "FILE",     0, "Read access control list from FILE"},
+  {"foreground",     'f',      nullptr,    0, "Run in foreground"},
+  {"enablehex",      O_HEXCMD, nullptr,    0, "Enable hex command"},
+  {"enabledefine",   O_DEFCMD, nullptr,    0, "Enable define command"},
+  {"pidfile",        O_PIDFIL, "FILE",     0, "PID file name (only for daemon) [" PACKAGE_PIDFILE "]"},
+  {"port",           'p',      "PORT",     0, "Listen for command line connections on PORT [8888]"},
+  {"localhost",      O_LOCAL,  nullptr,    0, "Listen for command line connections on 127.0.0.1 interface only"},
+  {"httpport",       O_HTTPPT, "PORT",     0, "Listen for HTTP connections on PORT, 0 to disable [0]"},
+  {"htmlpath",       O_HTMLPA, "PATH",     0, "Path for HTML files served by HTTP port [/var/ebusd/html]"},
+  {"updatecheck",    O_UPDCHK, "MODE",     0, "Set automatic update check to MODE (on|off) [on]"},
 
-  {nullptr,          0,        nullptr,    0, "Log options:", 5 },
+  {nullptr,          0,        nullptr,    0, "Log options:"},
   {"logfile",        'l',      "FILE",     0, "Write log to FILE (only for daemon, empty string for using syslog) ["
-      PACKAGE_LOGFILE "]", 0 },
+      PACKAGE_LOGFILE "]"},
   {"log",            O_LOG, "AREAS:LEVEL", 0, "Only write log for matching AREA(S) below or equal to LEVEL"
-      " (alternative to --logareas/--logevel, may be used multiple times) [all:notice]", 0 },
+      " (alternative to --logareas/--logevel, may be used multiple times) [all:notice]"},
   {"logareas",       O_LOGARE, "AREAS",    0, "Only write log for matching AREA(S): main|network|bus|update|other"
-      "|all [all]", 0 },
+      "|all [all]"},
   {"loglevel",       O_LOGLEV, "LEVEL",    0, "Only write log below or equal to LEVEL: error|notice|info|debug"
-      " [notice]", 0 },
+      " [notice]"},
 
-  {nullptr,          0,        nullptr,    0, "Raw logging options:", 6 },
+  {nullptr,          0,        nullptr,    0, "Raw logging options:"},
   {"lograwdata",     O_RAW,    "bytes", af_optional,
-      "Log messages or all received/sent bytes on the bus", 0 },
-  {"lograwdatafile", O_RAWFIL, "FILE",     0, "Write raw log to FILE [" PACKAGE_LOGFILE "]", 0 },
-  {"lograwdatasize", O_RAWSIZ, "SIZE",     0, "Make raw log file no larger than SIZE kB [100]", 0 },
+      "Log messages or all received/sent bytes on the bus"},
+  {"lograwdatafile", O_RAWFIL, "FILE",     0, "Write raw log to FILE [" PACKAGE_LOGFILE "]"},
+  {"lograwdatasize", O_RAWSIZ, "SIZE",     0, "Make raw log file no larger than SIZE kB [100]"},
 
-  {nullptr,          0,        nullptr,    0, "Binary dump options:", 7 },
-  {"dump",           'D',      nullptr,    0, "Enable binary dump of received bytes", 0 },
-  {"dumpfile",       O_DMPFIL, "FILE",     0, "Dump received bytes to FILE [/tmp/" PACKAGE "_dump.bin]", 0 },
-  {"dumpsize",       O_DMPSIZ, "SIZE",     0, "Make dump file no larger than SIZE kB [100]", 0 },
-  {"dumpflush",      O_DMPFLU, nullptr,    0, "Flush each byte", 0 },
+  {nullptr,          0,        nullptr,    0, "Binary dump options:"},
+  {"dump",           'D',      nullptr,    0, "Enable binary dump of received bytes"},
+  {"dumpfile",       O_DMPFIL, "FILE",     0, "Dump received bytes to FILE [/tmp/" PACKAGE "_dump.bin]"},
+  {"dumpsize",       O_DMPSIZ, "SIZE",     0, "Make dump file no larger than SIZE kB [100]"},
+  {"dumpflush",      O_DMPFLU, nullptr,    0, "Flush each byte"},
 
-  {nullptr,          0,        nullptr,    0, nullptr, 0 },
+  {nullptr,          0,        nullptr,    0, nullptr},
 };
 
 /**

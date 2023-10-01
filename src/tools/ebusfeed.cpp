@@ -60,10 +60,10 @@ static struct options opt = {
 
 /** the definition of the known program arguments. */
 static const ebusd::argDef argDefs[] = {
-  {"device", 'd', "DEV",     0, "Write to DEV (serial device) [/dev/ttyUSB60]", 0 },
-  {"time",   't', "USEC",    0, "Delay each byte by USEC us [10000]", 0 },
+  {"device", 'd', "DEV",     0, "Write to DEV (serial device) [/dev/ttyUSB60]"},
+  {"time",   't', "USEC",    0, "Delay each byte by USEC us [10000]"},
 
-  {nullptr,    0, nullptr,   0, nullptr, 0 },
+  {nullptr,    0, nullptr,   0, nullptr},
 };
 
 /**

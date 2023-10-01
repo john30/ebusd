@@ -75,13 +75,13 @@ void buildOpts(const argDef *argDefs, int &count, int &shortCharsCount, int &sho
   }
 }
 
-static const argDef endArgDef = {nullptr, 0, nullptr, 0, nullptr, 0 };
-static const argDef helpArgDef = {"help", '?', nullptr, 0, "Give this help list", 0 };
+static const argDef endArgDef = {nullptr, 0, nullptr, 0, nullptr};
+static const argDef helpArgDef = {"help", '?', nullptr, 0, "Give this help list"};
 static const argDef helpArgDefs[] = {
   helpArgDef,
   endArgDef
 };
-static const argDef versionArgDef = {"version", 'V', nullptr, 0, "Print program version", 0 };
+static const argDef versionArgDef = {"version", 'V', nullptr, 0, "Print program version"};
 static const argDef versionArgDefs[] = {
   versionArgDef,
   endArgDef

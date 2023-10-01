@@ -64,14 +64,14 @@ static struct options opt = {
 
 /** the definition of the known program arguments. */
 static const argDef argDefs[] = {
-  {nullptr,     0, nullptr, 0, "Options:", 1 },
-  {"server",  's', "HOST",  0, "Connect to " PACKAGE " on HOST (name or IP) [localhost]", 0 },
-  {"port",    'p', "PORT",  0, "Connect to " PACKAGE " on PORT [8888]", 0 },
+  {nullptr,     0, nullptr, 0, "Options:"},
+  {"server",  's', "HOST",  0, "Connect to " PACKAGE " on HOST (name or IP) [localhost]"},
+  {"port",    'p', "PORT",  0, "Connect to " PACKAGE " on PORT [8888]"},
   {"timeout", 't', "SECS",  0, "Timeout for connecting to/receiving from " PACKAGE
-                               ", 0 for none [60]", 0 },
-  {"error",   'e', nullptr, 0, "Exit non-zero if the connection was fine but the response indicates non-success", 0},
+                               ", 0 for none [60]"},
+  {"error",   'e', nullptr, 0, "Exit non-zero if the connection was fine but the response indicates non-success"},
 
-  {nullptr,     0, nullptr, 0, nullptr, 0 },
+  {nullptr,     0, nullptr, 0, nullptr},
 };
 
 /**

@@ -43,29 +43,29 @@ using ebusd::socketConnect;
 
 /** the definition of the known program arguments. */
 static const ebusd::argDef argDefs[] = {
-    {nullptr,     0, nullptr, 0, "IP options:", 1 },
-    {"dhcp",    'd', nullptr, 0, "set dynamic IP address via DHCP (default)", 0 },
-    {"ip",      'i', "IP",    0, "set fix IP address (e.g. 192.168.0.10)", 0 },
-    {"mask",    'm', "MASK",  0, "set fix IP mask (e.g. 24)", 0 },
-    {"gateway", 'g', "GW",    0, "set fix IP gateway to GW (if necessary and other than net address + 1)", 0 },
-    {"macip",   'M', nullptr, 0, "set the MAC address suffix from the IP address", 0 },
-    {"macid",   'N', nullptr, 0, "set the MAC address suffix from internal ID (default)", 0 },
-    {nullptr,     0, nullptr, 0, "eBUS options:", 2 },
+    {nullptr,     0, nullptr, 0, "IP options:"},
+    {"dhcp",    'd', nullptr, 0, "set dynamic IP address via DHCP (default)"},
+    {"ip",      'i', "IP",    0, "set fix IP address (e.g. 192.168.0.10)"},
+    {"mask",    'm', "MASK",  0, "set fix IP mask (e.g. 24)"},
+    {"gateway", 'g', "GW",    0, "set fix IP gateway to GW (if necessary and other than net address + 1)"},
+    {"macip",   'M', nullptr, 0, "set the MAC address suffix from the IP address"},
+    {"macid",   'N', nullptr, 0, "set the MAC address suffix from internal ID (default)"},
+    {nullptr,     0, nullptr, 0, "eBUS options:"},
     {"arbdel",  'a', "US",    0, "set arbitration delay to US microseconds (0-620 in steps of 10, default 200"
-                                 ", since firmware 20211128)", 0 },
-    {nullptr,     0, nullptr, 0, "PIC options:", 3 },
-    {"pingon",  'p', nullptr, 0, "enable visual ping (default)", 0 },
-    {"pingoff", 'o', nullptr, 0, "disable visual ping", 0 },
+                                 ", since firmware 20211128)"},
+    {nullptr,     0, nullptr, 0, "PIC options:"},
+    {"pingon",  'p', nullptr, 0, "enable visual ping (default)"},
+    {"pingoff", 'o', nullptr, 0, "disable visual ping"},
     {"variant", -3, "VARIANT", 0, "set the VARIANT to U=USB/RPI (high-speed), W=WIFI, E=Ethernet,"
                                  " N=non-enhanced USB/RPI/WIFI, F=non-enhanced Ethernet"
                                  " (lowercase to allow hardware jumpers, default \"u\""
-                                 ", since firmware 20221206)", 0 },
-    {"flash",   'f', "FILE",  0, "flash the FILE to the device", 0 },
-    {"reset",   'r', nullptr, 0, "reset the device at the end on success", 0 },
-    {nullptr,     0, nullptr, 0, "Tool options:", 9 },
-    {"verbose", 'v', nullptr, 0, "enable verbose output", 0 },
-    {"slow",    's', nullptr, 0, "low speed mode for transfer (115kBd instead of 921kBd)", 0 },
-    {nullptr,     0, nullptr, 0, nullptr, 0 },
+                                 ", since firmware 20221206)"},
+    {"flash",   'f', "FILE",  0, "flash the FILE to the device"},
+    {"reset",   'r', nullptr, 0, "reset the device at the end on success"},
+    {nullptr,     0, nullptr, 0, "Tool options:"},
+    {"verbose", 'v', nullptr, 0, "enable verbose output"},
+    {"slow",    's', nullptr, 0, "low speed mode for transfer (115kBd instead of 921kBd)"},
+    {nullptr,     0, nullptr, 0, nullptr},
 };
 
 static bool verbose = false;

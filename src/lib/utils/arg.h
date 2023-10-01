@@ -37,7 +37,6 @@ typedef struct argDef {
   const char* valueName;  //!< the optional argument value name
   int flags;  //!< flags for the argument, bit combination of @a ArgFlag
   const char* help;  //!< help text (mandatory)
-  int unused;  //!< currently unused (kept for compatibility to argp)
 } argDef;
 
 struct argParseOpt;

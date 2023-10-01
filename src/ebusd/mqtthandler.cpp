@@ -57,43 +57,43 @@ using std::dec;
 
 /** the definition of the MQTT arguments. */
 static const argDef g_mqtt_argDefs[] = {
-  {nullptr,        0,      nullptr,      0, "MQTT options:", 1 },
-  {"mqtthost",     O_HOST, "HOST",       0, "Connect to MQTT broker on HOST [localhost]", 0 },
-  {"mqttport",     O_PORT, "PORT",       0, "Connect to MQTT broker on PORT (usually 1883), 0 to disable [0]", 0 },
+  {nullptr,        0,      nullptr,      0, "MQTT options:"},
+  {"mqtthost",     O_HOST, "HOST",       0, "Connect to MQTT broker on HOST [localhost]"},
+  {"mqttport",     O_PORT, "PORT",       0, "Connect to MQTT broker on PORT (usually 1883), 0 to disable [0]"},
   {"mqttclientid", O_CLID, "ID",         0, "Set client ID for connection to MQTT broker [" PACKAGE_NAME "_"
-   PACKAGE_VERSION "_<pid>]", 0 },
-  {"mqttuser",     O_USER, "USER",       0, "Connect as USER to MQTT broker (no default)", 0 },
-  {"mqttpass",     O_PASS, "PASSWORD",   0, "Use PASSWORD when connecting to MQTT broker (no default)", 0 },
+   PACKAGE_VERSION "_<pid>]"},
+  {"mqttuser",     O_USER, "USER",       0, "Connect as USER to MQTT broker (no default)"},
+  {"mqttpass",     O_PASS, "PASSWORD",   0, "Use PASSWORD when connecting to MQTT broker (no default)"},
   {"mqtttopic",    O_TOPI, "TOPIC",      0,
-   "Use MQTT TOPIC (prefix before /%circuit/%name or complete format) [ebusd]", 0 },
+   "Use MQTT TOPIC (prefix before /%circuit/%name or complete format) [ebusd]"},
   {"mqttglobal",   O_GTOP, "TOPIC",      0,
-   "Use TOPIC for global data (default is \"global/\" suffix to mqtttopic prefix)", 0 },
-  {"mqttretain",   O_RETA, nullptr,      0, "Retain all topics instead of only selected global ones", 0 },
-  {"mqttqos",      O_PQOS, "QOS",        0, "Set the QoS value for all topics (0-2) [0]", 0 },
-  {"mqttint",      O_INTF, "FILE",       0, "Read MQTT integration settings from FILE (no default)", 0 },
-  {"mqttvar",      O_IVAR, "NAME=VALUE[,...]", 0, "Add variable(s) to the read MQTT integration settings", 0 },
+   "Use TOPIC for global data (default is \"global/\" suffix to mqtttopic prefix)"},
+  {"mqttretain",   O_RETA, nullptr,      0, "Retain all topics instead of only selected global ones"},
+  {"mqttqos",      O_PQOS, "QOS",        0, "Set the QoS value for all topics (0-2) [0]"},
+  {"mqttint",      O_INTF, "FILE",       0, "Read MQTT integration settings from FILE (no default)"},
+  {"mqttvar",      O_IVAR, "NAME=VALUE[,...]", 0, "Add variable(s) to the read MQTT integration settings"},
   {"mqttjson",     O_JSON, "short", af_optional,
-   "Publish in JSON format instead of strings, optionally in short (value directly below field key)", 0 },
-  {"mqttverbose",  O_VERB, nullptr,      0, "Publish all available attributes", 0 },
+   "Publish in JSON format instead of strings, optionally in short (value directly below field key)"},
+  {"mqttverbose",  O_VERB, nullptr,      0, "Publish all available attributes"},
 #if (LIBMOSQUITTO_VERSION_NUMBER >= 1003001)
-  {"mqttlog",      O_LOGL, nullptr,      0, "Log library events", 0 },
+  {"mqttlog",      O_LOGL, nullptr,      0, "Log library events"},
 #endif
 #if (LIBMOSQUITTO_VERSION_NUMBER >= 1004001)
-  {"mqttversion",  O_VERS, "VERSION",    0, "Use protocol VERSION [3.1]", 0 },
+  {"mqttversion",  O_VERS, "VERSION",    0, "Use protocol VERSION [3.1]"},
 #endif
   {"mqttignoreinvalid", O_IGIN, nullptr, 0,
-   "Ignore invalid parameters during init (e.g. for DNS not resolvable yet)", 0 },
-  {"mqttchanges",  O_CHGS, nullptr,      0, "Whether to only publish changed messages instead of all received", 0 },
+   "Ignore invalid parameters during init (e.g. for DNS not resolvable yet)"},
+  {"mqttchanges",  O_CHGS, nullptr,      0, "Whether to only publish changed messages instead of all received"},
 
 #if (LIBMOSQUITTO_MAJOR >= 1)
-  {"mqttca",       O_CAFI, "CA",         0, "Use CA file or dir (ending with '/') for MQTT TLS (no default)", 0 },
-  {"mqttcert",     O_CERT, "CERTFILE",   0, "Use CERTFILE for MQTT TLS client certificate (no default)", 0 },
-  {"mqttkey",      O_KEYF, "KEYFILE",    0, "Use KEYFILE for MQTT TLS client certificate (no default)", 0 },
-  {"mqttkeypass",  O_KEPA, "PASSWORD",   0, "Use PASSWORD for the encrypted KEYFILE (no default)", 0 },
-  {"mqttinsecure", O_INSE, nullptr,      0, "Allow insecure TLS connection (e.g. using a self signed certificate)", 0 },
+  {"mqttca",       O_CAFI, "CA",         0, "Use CA file or dir (ending with '/') for MQTT TLS (no default)"},
+  {"mqttcert",     O_CERT, "CERTFILE",   0, "Use CERTFILE for MQTT TLS client certificate (no default)"},
+  {"mqttkey",      O_KEYF, "KEYFILE",    0, "Use KEYFILE for MQTT TLS client certificate (no default)"},
+  {"mqttkeypass",  O_KEPA, "PASSWORD",   0, "Use PASSWORD for the encrypted KEYFILE (no default)"},
+  {"mqttinsecure", O_INSE, nullptr,      0, "Allow insecure TLS connection (e.g. using a self signed certificate)"},
 #endif
 
-  {nullptr,        0,      nullptr,       0, nullptr, 0 },
+  {nullptr,        0,      nullptr,       0, nullptr},
 };
 
 static const char* g_host = "localhost";  //!< host name of MQTT broker [localhost]

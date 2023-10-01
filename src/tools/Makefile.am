@@ -1,5 +1,6 @@
 AM_CXXFLAGS = -I$(top_srcdir)/src \
-	      -isystem$(top_srcdir)
+	      -isystem$(top_srcdir) \
+          -Wno-unused-parameter
 
 bin_PROGRAMS = ebusctl \
 	       ebuspicloader
