@@ -29,6 +29,7 @@
 #include "ebusd/bushandler.h"
 #include "lib/ebus/message.h"
 #include "lib/ebus/stringhelper.h"
+#include "lib/utils/arg.h"
 
 namespace ebusd {
 
@@ -42,10 +43,10 @@ using std::string;
 using std::vector;
 
 /**
- * Helper function for getting the argp definition for MQTT.
- * @return a pointer to the argp_child structure.
+ * Helper function for getting the arg definition for MQTT.
+ * @return a pointer to the child argument options, or nullptr.
  */
-const struct argp_child* mqtthandler_getargs();
+const argParseChildOpt* mqtthandler_getargs();
 
 /**
  * Registration function that is called once during initialization.

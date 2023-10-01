@@ -61,7 +61,7 @@ Building ebusd from the source requires the following packages and/or features:
  * g++ with C++11 support (>=4.8.1)
  * make
  * kernel with pselect or ppoll support
- * glibc with argp support or argp-standalone
+ * glibc with getopt_long support
  * libmosquitto-dev for MQTT support
  * libssl-dev for SSL support
 

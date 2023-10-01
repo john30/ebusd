@@ -29,7 +29,6 @@
 #include <time.h>
 #include <termios.h>
 #include <unistd.h>
-#include <argp.h>
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
@@ -37,29 +36,13 @@
 #include <string>
 #include <cstring>
 #include "intelhex/intelhexclass.h"
+#include "lib/utils/arg.h"
 #include "lib/utils/tcpsocket.h"
 
 using ebusd::socketConnect;
 
-/** the version string of the program. */
-const char *argp_program_version = "eBUS adapter PIC firmware loader";
-
-/** the documentation of the program. */
-static const char argpdoc[] =
-    "A tool for loading firmware to the eBUS adapter PIC and configure adjustable settings."
-    "\vPORT is either the serial port to use (e.g. "
-#ifdef __CYGWIN__
-    "/dev/ttyS0 for COM1 on Windows"
-#else
-    "/dev/ttyUSB0"
-#endif
-    ") that also supports a trailing wildcard '*' for testing"
-    " multiple ports, or a network port as \"ip:port\" for use with e.g. socat or ebusd-esp in PIC pass-through mode.";
-
-static const char argpargsdoc[] = "PORT";
-
 /** the definition of the known program arguments. */
-static const struct argp_option argpoptions[] = {
+static const ebusd::argDef argDefs[] = {
     {nullptr,     0, nullptr, 0, "IP options:", 1 },
     {"dhcp",    'd', nullptr, 0, "set dynamic IP address via DHCP (default)", 0 },
     {"ip",      'i', "IP",    0, "set fix IP address (e.g. 192.168.0.10)", 0 },
@@ -82,7 +65,7 @@ static const struct argp_option argpoptions[] = {
     {nullptr,     0, nullptr, 0, "Tool options:", 9 },
     {"verbose", 'v', nullptr, 0, "enable verbose output", 0 },
     {"slow",    's', nullptr, 0, "low speed mode for transfer (115kBd instead of 921kBd)", 0 },
-    {nullptr,          0,        nullptr,    0, nullptr, 0 },
+    {nullptr,     0, nullptr, 0, nullptr, 0 },
 };
 
 static bool verbose = false;
@@ -136,7 +119,13 @@ bool parseShort(const char *arg, uint16_t minValue, uint16_t maxValue, uint16_t 
   return true;
 }
 
-error_t parse_opt(int key, char *arg, struct argp_state *state) {
+/**
+ * The program argument parsing function.
+ * @param key the key from @a argDefs.
+ * @param arg the option argument, or nullptr.
+ * @param parseOpt the parse options.
+ */
+static int parse_opt(int key, char *arg, const ebusd::argParseOpt *parseOpt) {
   char *ip = nullptr, *part = nullptr;
   int pos = 0, sum = 0;
   struct stat st;
@@ -147,22 +136,22 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       break;
     case 'd':  // --dhcp
       if (setIp || setMask || setGateway) {
-        argp_error(state, "either DHCP or IP address is needed");
+        argParseError(parseOpt, "either DHCP or IP address is needed");
         return EINVAL;
       }
       setDhcp = true;
       break;
     case 'i':  // --ip=192.168.0.10
       if (arg == nullptr || arg[0] == 0) {
-        argp_error(state, "invalid IP address");
+        argParseError(parseOpt, "invalid IP address");
         return EINVAL;
       }
       if (setDhcp) {
-        argp_error(state, "either DHCP or IP address is needed");
+        argParseError(parseOpt, "either DHCP or IP address is needed");
         return EINVAL;
       }
       if (setIp) {
-        argp_error(state, "IP address was specified twice");
+        argParseError(parseOpt, "IP address was specified twice");
         return EINVAL;
       }
       ip = strdup(arg);
@@ -177,41 +166,41 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       }
       free(ip);
       if (pos != 4 || part || sum == 0) {
-        argp_error(state, "invalid IP address");
+        argParseError(parseOpt, "invalid IP address");
         return EINVAL;
       }
       setIp = true;
       break;
     case 'm':  // --mask=24
       if (arg == nullptr || arg[0] == 0) {
-        argp_error(state, "invalid IP mask");
+        argParseError(parseOpt, "invalid IP mask");
         return EINVAL;
       }
       if (setDhcp) {
-        argp_error(state, "either DHCP or IP address is needed");
+        argParseError(parseOpt, "either DHCP or IP address is needed");
         return EINVAL;
       }
       if (setMask) {
-        argp_error(state, "mask was specified twice");
+        argParseError(parseOpt, "mask was specified twice");
         return EINVAL;
       }
       if (!parseByte(arg, 1, 0x1e, &setMaskLen)) {
-        argp_error(state, "invalid IP mask");
+        argParseError(parseOpt, "invalid IP mask");
         return EINVAL;
       }
       setMask = true;
       break;
     case 'g':  // --gateway=192.168.0.11
       if (arg == nullptr || arg[0] == 0) {
-        argp_error(state, "invalid gateway");
+        argParseError(parseOpt, "invalid gateway");
         return EINVAL;
       }
       if (setDhcp) {
-        argp_error(state, "either DHCP or IP address is needed");
+        argParseError(parseOpt, "either DHCP or IP address is needed");
         return EINVAL;
       }
       if (!setIp || !setMask) {
-        argp_error(state, "IP and mask need to be specified before gateway");
+        argParseError(parseOpt, "IP and mask need to be specified before gateway");
         return EINVAL;
       }
       ip = strdup(arg);
@@ -228,7 +217,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
         uint8_t maskRemain = setMaskLen-pos*8;
         uint8_t mask = maskRemain >= 8 ? 255 : maskRemain == 0 ? 0 : (255^((1 << (8 - maskRemain)) - 1));
         if ((address & mask) != (setIpAddress[pos] & mask)) {
-          argp_error(state, "invalid gateway (different network)");
+          argParseError(parseOpt, "invalid gateway (different network)");
           free(ip);
           return EINVAL;
         }
@@ -237,15 +226,15 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       }
       free(ip);
       if (pos != 4 || part || sum == 0 || setGatewayBits == 0) {
-        argp_error(state, "invalid gateway");
+        argParseError(parseOpt, "invalid gateway");
         return EINVAL;
       }
       if (setGatewayBits == hostBits) {
-        argp_error(state, "invalid gateway (same as address)");
+        argParseError(parseOpt, "invalid gateway (same as address)");
         return EINVAL;
       }
       if (!setGatewayBits || setGatewayBits == ((1 << (32 - setMaskLen)) - 1)) {
-        argp_error(state, "invalid gateway (net or broadcast address)");
+        argParseError(parseOpt, "invalid gateway (net or broadcast address)");
         return EINVAL;
       }
       if (setGatewayBits == 1) {  // default
@@ -260,7 +249,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       }
       if (!(setGatewayBits >> 5)) {
         if (!(setGatewayBits & 0x1f)) {
-          argp_error(state, "invalid gateway (net address)");
+          argParseError(parseOpt, "invalid gateway (net address)");
           return EINVAL;
         }
         // fine: host part above max gateway adjustable bits is the same and remainder non-zero
@@ -274,7 +263,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
         setGateway = true;
         break;
       }
-      argp_error(state, "invalid gateway (out of possible range of first/last 31 hosts in subnet)");
+      argParseError(parseOpt, "invalid gateway (out of possible range of first/last 31 hosts in subnet)");
       return EINVAL;
     case 'M':  // --macip
       setMacFromIp = true;
@@ -286,11 +275,11 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       break;
     case 'a':  // --arbdel=1000
       if (arg == nullptr || arg[0] == 0) {
-        argp_error(state, "invalid arbitration delay");
+        argParseError(parseOpt, "invalid arbitration delay");
         return EINVAL;
       }
       if (!parseShort(arg, 0, 620, &setArbitrationDelayMicros)) {
-        argp_error(state, "invalid arbitration delay");
+        argParseError(parseOpt, "invalid arbitration delay");
         return EINVAL;
       }
       setArbitrationDelay = true;
@@ -305,7 +294,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       break;
     case -3:  // --variant=U|W|E|F|N|u|w|e|f|n
       if (arg == nullptr || arg[0] == 0) {
-        argp_error(state, "invalid variant");
+        argParseError(parseOpt, "invalid variant");
         return EINVAL;
       }
       if (arg[0] == 'u' || arg[0] == 'U') {
@@ -319,7 +308,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       } else if (arg[0] == 'n' || arg[0] == 'N') {
         setVariantValue = 0;
       } else {
-        argp_error(state, "invalid variant");
+        argParseError(parseOpt, "invalid variant");
         return EINVAL;
       }
       setVariantForced = arg[0]<'a';
@@ -327,7 +316,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       break;
     case 'f':  // --flash=firmware.hex
       if (arg == nullptr || arg[0] == 0 || stat(arg, &st) != 0 || !S_ISREG(st.st_mode)) {
-        argp_error(state, "invalid flash file");
+        argParseError(parseOpt, "invalid flash file");
         return EINVAL;
       }
       flashFile = arg;
@@ -339,7 +328,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
       lowSpeed = true;
       break;
     default:
-      return ARGP_ERR_UNKNOWN;
+      return ESRCH;
   }
   return 0;
 }
@@ -1094,7 +1083,7 @@ int readSettings(int fd, uint8_t* currentData = nullptr) {
   } else {
     std::cout << "off" << std::endl;
   }
-  std::cout << "Variant: "; // since firmware 20221206
+  std::cout << "Variant: ";  // since firmware 20221206
   switch (configData[5]&0x03) {
     case 3:
       std::cout << "USB/RPI (high-speed)";
@@ -1156,7 +1145,7 @@ bool writeSettings(int fd, uint8_t* currentData = nullptr) {
   if (setVariant) {
     configData[5] = (configData[5]&0x38) | (setVariantForced?0:0x04) | (setVariantValue&0x03);
     if (setVariantValue==0) {
-      configData[1] = (configData[1]&~0x1f); // set mask=0 to disable Ethernet
+      configData[1] = (configData[1]&~0x1f);  // set mask=0 to disable Ethernet
     }
   }
   if (writeConfig(fd, 0x0000, 8, configData) != 0) {
@@ -1170,13 +1159,32 @@ bool writeSettings(int fd, uint8_t* currentData = nullptr) {
 int run(int fd);
 
 int main(int argc, char* argv[]) {
-  struct argp aargp = { argpoptions, parse_opt, argpargsdoc, argpdoc, nullptr, nullptr, nullptr };
+  ebusd::argParseOpt parseOpt = {
+    argDefs,
+    parse_opt,
+    ebusd::af_noVersion,
+    "ebuspicloader",
+    "[PORT]",
+    "A tool for loading firmware to the eBUS adapter PIC and configure adjustable settings.",
+    "PORT is either the serial port to use (e.g. "
+#ifdef __CYGWIN__
+    "/dev/ttyS0 for COM1 on Windows"
+#else
+    "/dev/ttyUSB0"
+#endif
+    ") that also supports a trailing wildcard '*' for testing"
+    " multiple ports, or a network port as \"ip:port\" for use with e.g. socat or ebusd-esp in PIC pass-through mode.",
+    nullptr,
+    nullptr
+  };
   int arg_index = -1;
-  setenv("ARGP_HELP_FMT", "no-dup-args-note", 0);
-
-  if (argp_parse(&aargp, argc, argv, ARGP_IN_ORDER, &arg_index, nullptr) != 0) {
-    std::cerr << "invalid arguments" << std::endl;
-    exit(EXIT_FAILURE);
+  switch (ebusd::argParse(&parseOpt, argc, argv, &arg_index)) {
+    case 0:  // OK
+      break;
+    case '?':  // help printed
+      return 0;
+    default:
+      return EINVAL;
   }
 
   if (setIp != setMask || (setMacFromIp && !setIp)) {
@@ -1188,7 +1196,7 @@ int main(int argc, char* argv[]) {
       printFileChecksum();
       exit(EXIT_SUCCESS);
     } else {
-      argp_help(&aargp, stderr, ARGP_HELP_STD_ERR, const_cast<char*>("ebuspicloader"));
+      ebusd::argHelp(&parseOpt);
       exit(EXIT_FAILURE);
     }
   }

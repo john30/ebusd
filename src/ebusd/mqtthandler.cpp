@@ -56,7 +56,7 @@ using std::dec;
 #define O_VERB (O_INSE+1)
 
 /** the definition of the MQTT arguments. */
-static const struct argp_option g_mqtt_argp_options[] = {
+static const argDef g_mqtt_argDefs[] = {
   {nullptr,        0,      nullptr,      0, "MQTT options:", 1 },
   {"mqtthost",     O_HOST, "HOST",       0, "Connect to MQTT broker on HOST [localhost]", 0 },
   {"mqttport",     O_PORT, "PORT",       0, "Connect to MQTT broker on PORT (usually 1883), 0 to disable [0]", 0 },
@@ -72,7 +72,7 @@ static const struct argp_option g_mqtt_argp_options[] = {
   {"mqttqos",      O_PQOS, "QOS",        0, "Set the QoS value for all topics (0-2) [0]", 0 },
   {"mqttint",      O_INTF, "FILE",       0, "Read MQTT integration settings from FILE (no default)", 0 },
   {"mqttvar",      O_IVAR, "NAME=VALUE[,...]", 0, "Add variable(s) to the read MQTT integration settings", 0 },
-  {"mqttjson",     O_JSON, "short", OPTION_ARG_OPTIONAL,
+  {"mqttjson",     O_JSON, "short", af_optional,
    "Publish in JSON format instead of strings, optionally in short (value directly below field key)", 0 },
   {"mqttverbose",  O_VERB, nullptr,      0, "Publish all available attributes", 0 },
 #if (LIBMOSQUITTO_VERSION_NUMBER >= 1003001)
@@ -144,17 +144,17 @@ void splitFields(const string& str, vector<string>* row);
 
 /**
  * The MQTT argument parsing function.
- * @param key the key from @a g_mqtt_argp_options.
+ * @param key the key from @a g_mqtt_argDefs.
  * @param arg the option argument, or nullptr.
  * @param state the parsing state.
  */
-static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
+static int mqtt_parse_opt(int key, char *arg, const argParseOpt *parseOpt) {
   result_t result = RESULT_OK;
   unsigned int value;
   switch (key) {
   case O_HOST:  // --mqtthost=localhost
     if (arg == nullptr || arg[0] == 0) {
-      argp_error(state, "invalid mqtthost");
+      argParseError(parseOpt, "invalid mqtthost");
       return EINVAL;
     }
     g_host = arg;
@@ -163,7 +163,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
   case O_PORT:  // --mqttport=1883
     value = parseInt(arg, 10, 1, 65535, &result);
     if (result != RESULT_OK) {
-      argp_error(state, "invalid mqttport");
+      argParseError(parseOpt, "invalid mqttport");
       return EINVAL;
     }
     g_port = (uint16_t)value;
@@ -171,7 +171,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
 
   case O_CLID:  // --mqttclientid=clientid
     if (arg == nullptr || arg[0] == 0) {
-      argp_error(state, "invalid mqttclientid");
+      argParseError(parseOpt, "invalid mqttclientid");
       return EINVAL;
     }
     g_clientId = arg;
@@ -179,7 +179,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
 
   case O_USER:  // --mqttuser=username
     if (arg == nullptr) {
-      argp_error(state, "invalid mqttuser");
+      argParseError(parseOpt, "invalid mqttuser");
       return EINVAL;
     }
     g_username = arg;
@@ -187,7 +187,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
 
   case O_PASS:  // --mqttpass=password
     if (arg == nullptr) {
-      argp_error(state, "invalid mqttpass");
+      argParseError(parseOpt, "invalid mqttpass");
       return EINVAL;
     }
     g_password = replaceSecret(arg);
@@ -196,21 +196,21 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
   case O_TOPI:  // --mqtttopic=ebusd
   {
     if (arg == nullptr || arg[0] == 0 || arg[0] == '/' || strchr(arg, '+') || arg[strlen(arg)-1] == '/') {
-      argp_error(state, "invalid mqtttopic");
+      argParseError(parseOpt, "invalid mqtttopic");
       return EINVAL;
     }
     char *pos = strchr(arg, '#');
     if (pos && (pos == arg || pos[1])) {  // allow # only at very last position (to indicate not using any default)
-      argp_error(state, "invalid mqtttopic");
+      argParseError(parseOpt, "invalid mqtttopic");
       return EINVAL;
     }
     if (g_topic) {
-      argp_error(state, "duplicate mqtttopic");
+      argParseError(parseOpt, "duplicate mqtttopic");
       return EINVAL;
     }
     StringReplacer replacer;
     if (!replacer.parse(arg, true)) {
-      argp_error(state, "malformed mqtttopic");
+      argParseError(parseOpt, "malformed mqtttopic");
       return ESRCH;  // abort in any case due to the above potentially being destructive
     }
     g_topic = arg;
@@ -219,7 +219,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
 
   case O_GTOP:  // --mqttglobal=global/
     if (arg == nullptr || strchr(arg, '+') || strchr(arg, '#')) {
-      argp_error(state, "invalid mqttglobal");
+      argParseError(parseOpt, "invalid mqttglobal");
       return EINVAL;
     }
     g_globalTopic = arg;
@@ -232,7 +232,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
   case O_PQOS:  // --mqttqos=0
     value = parseInt(arg, 10, 0, 2, &result);
     if (result != RESULT_OK) {
-      argp_error(state, "invalid mqttqos value");
+      argParseError(parseOpt, "invalid mqttqos value");
       return EINVAL;
     }
     g_qos = static_cast<signed>(value);
@@ -240,7 +240,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
 
   case O_INTF:  // --mqttint=/etc/ebusd/mqttint.cfg
     if (arg == nullptr || arg[0] == 0 || strcmp("/", arg) == 0) {
-      argp_error(state, "invalid mqttint file");
+      argParseError(parseOpt, "invalid mqttint file");
       return EINVAL;
     }
     g_integrationFile = arg;
@@ -248,7 +248,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
 
   case O_IVAR:  // --mqttvar=NAME=VALUE[,NAME=VALUE]*
     if (arg == nullptr || arg[0] == 0 || !strchr(arg, '=')) {
-      argp_error(state, "invalid mqttvar");
+      argParseError(parseOpt, "invalid mqttvar");
       return EINVAL;
     }
     if (!g_integrationVars) {
@@ -277,7 +277,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
 #if (LIBMOSQUITTO_VERSION_NUMBER >= 1004001)
   case O_VERS:  // --mqttversion=3.1.1
     if (arg == nullptr || arg[0] == 0 || (strcmp(arg, "3.1") != 0 && strcmp(arg, "3.1.1") != 0)) {
-      argp_error(state, "invalid mqttversion");
+      argParseError(parseOpt, "invalid mqttversion");
       return EINVAL;
     }
     g_version = strcmp(arg, "3.1.1") == 0 ? MQTT_PROTOCOL_V311 : MQTT_PROTOCOL_V31;
@@ -295,7 +295,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
 #if (LIBMOSQUITTO_MAJOR >= 1)
     case O_CAFI:  // --mqttca=file or --mqttca=dir/
       if (arg == nullptr || arg[0] == 0) {
-        argp_error(state, "invalid mqttca");
+        argParseError(parseOpt, "invalid mqttca");
         return EINVAL;
       }
       if (arg[strlen(arg)-1] == '/') {
@@ -309,7 +309,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
 
     case O_CERT:  // --mqttcert=CERTFILE
       if (arg == nullptr || arg[0] == 0) {
-        argp_error(state, "invalid mqttcert");
+        argParseError(parseOpt, "invalid mqttcert");
         return EINVAL;
       }
       g_certfile = arg;
@@ -317,7 +317,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
 
     case O_KEYF:  // --mqttkey=KEYFILE
       if (arg == nullptr || arg[0] == 0) {
-        argp_error(state, "invalid mqttkey");
+        argParseError(parseOpt, "invalid mqttkey");
         return EINVAL;
       }
       g_keyfile = arg;
@@ -325,7 +325,7 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
 
     case O_KEPA:  // --mqttkeypass=PASSWORD
       if (arg == nullptr) {
-        argp_error(state, "invalid mqttkeypass");
+        argParseError(parseOpt, "invalid mqttkeypass");
         return EINVAL;
       }
       g_keypass = replaceSecret(arg);
@@ -336,18 +336,18 @@ static error_t mqtt_parse_opt(int key, char *arg, struct argp_state *state) {
 #endif
 
   default:
-    return ARGP_ERR_UNKNOWN;
+    return EINVAL;
   }
   return 0;
 }
 
-static const struct argp g_mqtt_argp = { g_mqtt_argp_options, mqtt_parse_opt, nullptr, nullptr, nullptr, nullptr,
-  nullptr };
-static const struct argp_child g_mqtt_argp_child = {&g_mqtt_argp, 0, "", 1};
+static const argParseChildOpt g_mqtt_arg_child = {
+  g_mqtt_argDefs, mqtt_parse_opt
+};
 
 
-const struct argp_child* mqtthandler_getargs() {
-  return &g_mqtt_argp_child;
+const argParseChildOpt* mqtthandler_getargs() {
+  return &g_mqtt_arg_child;
 }
 
 bool check(int code, const char* method) {

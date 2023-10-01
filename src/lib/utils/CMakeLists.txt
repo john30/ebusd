@@ -1,6 +1,7 @@
 add_definitions(-Wconversion)
 
 set(libutils_a_SOURCES
+    arg.h arg.cpp
     log.h log.cpp
     tcpsocket.h tcpsocket.cpp
     thread.h thread.cpp

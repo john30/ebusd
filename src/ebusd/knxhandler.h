@@ -29,6 +29,7 @@
 #include "lib/ebus/message.h"
 #include "lib/ebus/stringhelper.h"
 #include "lib/knx/knx.h"
+#include "lib/utils/arg.h"
 
 namespace ebusd {
 
@@ -41,10 +42,10 @@ using std::string;
 using std::vector;
 
 /**
- * Helper function for getting the argp definition for KNX.
- * @return a pointer to the argp_child structure.
+ * Helper function for getting the arg definition for KNX.
+ * @return a pointer to the child argument options, or nullptr.
  */
-const struct argp_child* knxhandler_getargs();
+const argParseChildOpt* knxhandler_getargs();
 
 /**
  * Registration function that is called once during initialization.

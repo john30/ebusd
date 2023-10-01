@@ -40,9 +40,6 @@
 /* Defined if syslog.h is available. */
 #cmakedefine HAVE_SYSLOG_H
 
-/* Defined if argp.h is available. */
-#cmakedefine HAVE_ARGP_H
-
 /* The name of package. */
 #cmakedefine PACKAGE "${PACKAGE_NAME}"
 

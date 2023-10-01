@@ -19,12 +19,12 @@
 #ifndef EBUSD_DATAHANDLER_H_
 #define EBUSD_DATAHANDLER_H_
 
-#include <argp.h>
 #include <map>
 #include <list>
 #include <string>
 #include "ebusd/bushandler.h"
 #include "lib/ebus/message.h"
+#include "lib/utils/arg.h"
 
 namespace ebusd {
 
@@ -49,10 +49,10 @@ enum scanStatus_t {
 
 
 /**
- * Helper function for getting the argp definition for all known @a DataHandler instances.
- * @return a pointer to the argp_child structure, or nullptr.
+ * Helper function for getting the arg definition for all known @a DataHandler instances.
+ * @return a pointer to the child argument options, or nullptr.
  */
-const struct argp_child* datahandler_getargs();
+const argParseChildOpt* datahandler_getargs();
 
 /**
  * Registration function that is called once during initialization.

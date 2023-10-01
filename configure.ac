@@ -48,14 +48,6 @@ if test "x$with_contrib" != "xno"; then
 fi
 AC_ARG_WITH(ebusfeed, AS_HELP_STRING([--with-ebusfeed], [enable inclusion of ebusfeed tool]), [with_ebusfeed=yes], [])
 AM_CONDITIONAL([WITH_EBUSFEED], [test "x$with_ebusfeed" == "xyes"])
-AC_ARG_WITH(argp-lib, AS_HELP_STRING([--with-argp-lib=PATH], [path to argp libraries]), [LDFLAGS+="-L$with_argp_lib"])
-AC_ARG_WITH(argp-include, AS_HELP_STRING([--with-argp-include=PATH], [path to argp includes]), [CXXFLAGS+="-I$with_argp_include"])
-AC_CHECK_FUNC([argp_parse], [have_argp=yes], AC_CHECK_LIB([argp], [argp_parse], [have_argp=yes; LIBS="-largp $LIBS"], [have_argp=no]))
-if test "x$have_argp" = "xyes"; then
-	AC_CHECK_HEADER([argp.h], AC_DEFINE([HAVE_ARGP_H], [1], [Defined if argp.h is available.]), AC_MSG_ERROR([argp.h not found]))
-else
-	AC_MSG_ERROR([argp library not found, specify argp-standalone location in --with-argp-lib= and --with-argp-include= options.])
-fi
 AC_ARG_WITH(mqtt, AS_HELP_STRING([--without-mqtt], [disable support for MQTT handling]), [], [with_mqtt=yes])
 if test "x$with_mqtt" != "xno"; then
 	AC_CHECK_LIB([mosquitto], [mosquitto_lib_init],

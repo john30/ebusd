@@ -30,11 +30,11 @@
 
 namespace ebusd {
 
-/** the final @a argp_child structure. */
-static const struct argp_child g_last_argp_child = {nullptr, 0, nullptr, 0};
+/** the final @a argParseChildOpt structure. */
+static const argParseChildOpt g_last_arg_child = {nullptr, nullptr};
 
-/** the list of @a argp_child structures. */
-static struct argp_child g_argp_children[
+/** the list of @a argParseChildOpt structures. */
+static argParseChildOpt g_arg_children[
             1
 #ifdef HAVE_MQTT
             +1
@@ -44,17 +44,17 @@ static struct argp_child g_argp_children[
 #endif
 ];
 
-const struct argp_child* datahandler_getargs() {
+const argParseChildOpt* datahandler_getargs() {
   size_t count = 0;
 #ifdef HAVE_MQTT
-  g_argp_children[count++] = *mqtthandler_getargs();
+  g_arg_children[count++] = *mqtthandler_getargs();
 #endif
 #ifdef HAVE_KNX
-  g_argp_children[count++] = *knxhandler_getargs();
+  g_arg_children[count++] = *knxhandler_getargs();
 #endif
   if (count > 0) {
-    g_argp_children[count] = g_last_argp_child;
-    return g_argp_children;
+    g_arg_children[count] = g_last_arg_child;
+    return g_arg_children;
   }
   return nullptr;
 }

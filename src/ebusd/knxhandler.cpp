@@ -52,9 +52,9 @@ using std::dec;
 #define O_VAR (O_INT-1)
 
 /** the definition of the KNX arguments. */
-static const struct argp_option g_knx_argp_options[] = {
+static const argDef g_knx_argDefs[] = {
   {nullptr,      0, nullptr,      0, "KNX options:", 1 },
-  {"knxurl", O_URL, "URL", OPTION_ARG_OPTIONAL, "URL to open (i.e. \"[multicast][@interface]\" for KNXnet/IP"
+  {"knxurl", O_URL, "URL", af_optional, "URL to open (i.e. \"[multicast][@interface]\" for KNXnet/IP"
 #ifdef HAVE_KNXD
                                      " or \"ip:host[:port]\" / \"local:/socketpath\" for knxd"
 #endif
@@ -79,11 +79,11 @@ static vector<string>* g_integrationVars = nullptr;  //!< the integration settin
 
 /**
  * The KNX argument parsing function.
- * @param key the key from @a g_knx_argp_options.
+ * @param key the key from @a g_knx_arg_options.
  * @param arg the option argument, or nullptr.
  * @param state the parsing state.
  */
-static error_t knx_parse_opt(int key, char *arg, struct argp_state *state) {
+static int knx_parse_opt(int key, char *arg, const argParseOpt *parseOpt) {
   result_t result;
   unsigned int value;
   switch (key) {
@@ -94,12 +94,12 @@ static error_t knx_parse_opt(int key, char *arg, struct argp_state *state) {
 
   case O_AGR:  // --knxrage=5
     if (arg == nullptr || arg[0] == 0) {
-      argp_error(state, "invalid knxrage value");
+      argParseError(parseOpt, "invalid knxrage value");
       return EINVAL;
     }
     value = parseInt(arg, 10, 0, 99999999, &result);
     if (result != RESULT_OK) {
-      argp_error(state, "invalid knxrage");
+      argParseError(parseOpt, "invalid knxrage");
       return EINVAL;
     }
     g_maxReadAge = value;
@@ -107,12 +107,12 @@ static error_t knx_parse_opt(int key, char *arg, struct argp_state *state) {
 
   case O_AGW:  // --knxwage=5
     if (arg == nullptr || arg[0] == 0) {
-      argp_error(state, "invalid knxwage value");
+      argParseError(parseOpt, "invalid knxwage value");
       return EINVAL;
     }
     value = parseInt(arg, 10, 0, 99999999, &result);
     if (result != RESULT_OK) {
-      argp_error(state, "invalid knxwage");
+      argParseError(parseOpt, "invalid knxwage");
       return EINVAL;
     }
     g_maxWriteAge = value;
@@ -120,7 +120,7 @@ static error_t knx_parse_opt(int key, char *arg, struct argp_state *state) {
 
   case O_INT:  // --knxint=/etc/ebusd/knx.cfg
     if (arg == nullptr || arg[0] == 0 || strcmp("/", arg) == 0) {
-      argp_error(state, "invalid knxint file");
+      argParseError(parseOpt, "invalid knxint file");
       return EINVAL;
     }
     g_integrationFile = arg;
@@ -129,7 +129,7 @@ static error_t knx_parse_opt(int key, char *arg, struct argp_state *state) {
   case O_VAR:  // --knxvar=NAME=VALUE[,NAME=VALUE]*
   {
     if (arg == nullptr || arg[0] == 0 || !strchr(arg, '=')) {
-      argp_error(state, "invalid knxvar");
+      argParseError(parseOpt, "invalid knxvar");
       return EINVAL;
     }
     if (!g_integrationVars) {
@@ -143,18 +143,15 @@ static error_t knx_parse_opt(int key, char *arg, struct argp_state *state) {
   }
 
   default:
-    return ARGP_ERR_UNKNOWN;
+    return ESRCH;
   }
   return 0;
 }
 
-static const struct argp g_knx_argp = { g_knx_argp_options, knx_parse_opt, nullptr, nullptr, nullptr, nullptr,
-  nullptr };
-static const struct argp_child g_knx_argp_child = {&g_knx_argp, 0, "", 1};
+static const argParseChildOpt g_knx_arg_child = { g_knx_argDefs, knx_parse_opt };
 
-
-const struct argp_child* knxhandler_getargs() {
-  return &g_knx_argp_child;
+const argParseChildOpt* knxhandler_getargs() {
+  return &g_knx_arg_child;
 }
 
 bool knxhandler_register(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages,

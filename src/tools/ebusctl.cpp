@@ -20,7 +20,6 @@
 #  include <config.h>
 #endif
 
-#include <argp.h>
 #include <string.h>
 #ifdef HAVE_PPOLL
 #  include <poll.h>
@@ -30,6 +29,7 @@
 #include <cstdlib>
 #include <sstream>
 #include <string>
+#include "lib/utils/arg.h"
 #include "lib/utils/tcpsocket.h"
 
 namespace ebusd {
@@ -62,24 +62,8 @@ static struct options opt = {
   0             // argCount
 };
 
-/** the version string of the program. */
-const char *argp_program_version = "ebusctl of """ PACKAGE_STRING "";
-
-/** the report bugs to address of the program. */
-const char *argp_program_bug_address = "" PACKAGE_BUGREPORT "";
-
-/** the documentation of the program. */
-static const char argpdoc[] =
-  "Client for acessing " PACKAGE " via TCP.\n"
-  "\v"
-  "If given, send COMMAND together with CMDOPT options to " PACKAGE ".\n"
-  "Use 'help' as COMMAND for help on available " PACKAGE " commands.";
-
-/** the description of the accepted arguments. */
-static char argpargsdoc[] = "\nCOMMAND [CMDOPT...]";
-
 /** the definition of the known program arguments. */
-static const struct argp_option argpoptions[] = {
+static const argDef argDefs[] = {
   {nullptr,     0, nullptr, 0, "Options:", 1 },
   {"server",  's', "HOST",  0, "Connect to " PACKAGE " on HOST (name or IP) [localhost]", 0 },
   {"port",    'p', "PORT",  0, "Connect to " PACKAGE " on PORT [8888]", 0 },
@@ -92,19 +76,19 @@ static const struct argp_option argpoptions[] = {
 
 /**
  * The program argument parsing function.
- * @param key the key from @a argpoptions.
+ * @param key the key from @a argDefs.
  * @param arg the option argument, or nullptr.
- * @param state the parsing state.
+ * @param parseOpt the parse options.
  */
-error_t parse_opt(int key, char *arg, struct argp_state *state) {
-  struct options *opt = (struct options*)state->input;
+static int parse_opt(int key, char *arg, const argParseOpt *parseOpt) {
+  struct options *opt = (struct options*)parseOpt->userArg;
   char* strEnd = nullptr;
   unsigned int value;
   switch (key) {
   // Device settings:
   case 's':  // --server=localhost
     if (arg == nullptr || arg[0] == 0) {
-      argp_error(state, "invalid server");
+      argParseError(parseOpt, "invalid server");
       return EINVAL;
     }
     opt->server = arg;
@@ -112,7 +96,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case 'p':  // --port=8888
     value = strtoul(arg, &strEnd, 10);
     if (strEnd == nullptr || strEnd == arg || *strEnd != 0 || value < 1 || value > 65535) {
-      argp_error(state, "invalid port");
+      argParseError(parseOpt, "invalid port");
       return EINVAL;
     }
     opt->port = (uint16_t)value;
@@ -120,7 +104,7 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case 't':  // --timeout=10
     value = strtoul(arg, &strEnd, 10);
     if (strEnd == nullptr || strEnd == arg || *strEnd != 0 || value > 3600) {
-      argp_error(state, "invalid timeout");
+      argParseError(parseOpt, "invalid timeout");
       return EINVAL;
     }
     opt->timeout = (uint16_t)value;
@@ -128,12 +112,8 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case 'e':  // --error
     opt->errorResponse = true;
     break;
-  case ARGP_KEY_ARGS:
-    opt->args = state->argv + state->next;
-    opt->argCount = state->argc - state->next;
-    break;
   default:
-    return ARGP_ERR_UNKNOWN;
+    return ESRCH;
   }
   return 0;
 }
@@ -362,11 +342,32 @@ bool connect(const char* host, uint16_t port, uint16_t timeout, char* const *arg
  * @return the exit code.
  */
 int main(int argc, char* argv[]) {
-  struct argp argp = { argpoptions, parse_opt, argpargsdoc, argpdoc, nullptr, nullptr, nullptr };
-  setenv("ARGP_HELP_FMT", "no-dup-args-note", 0);
-  if (argp_parse(&argp, argc, argv, ARGP_IN_ORDER, nullptr, &opt) != 0) {
-    return EINVAL;
+  argParseOpt parseOpt = {
+    argDefs,
+    parse_opt,
+    af_noVersion,
+    "ebusctl",
+    "[COMMAND [CMDOPT...]]",
+    "Client for accessing " PACKAGE " via TCP.",
+    "If given, send COMMAND together with CMDOPT options to " PACKAGE ".\n"
+    "Use 'help' as COMMAND for help on available " PACKAGE " commands.",
+    nullptr,
+    &opt
+  };
+  int arg_index = -1;
+  switch (argParse(&parseOpt, argc, argv, &arg_index)) {
+    case 0:  // OK
+      break;
+    case '?':  // help printed
+      return 0;
+    default:
+      return EINVAL;
   }
+  if (arg_index >= 0) {
+    opt.args = argv + arg_index;
+    opt.argCount = argc - arg_index;
+  }
+
   bool success = connect(opt.server, opt.port, opt.timeout, opt.args, opt.argCount);
 
   exit(success ? EXIT_SUCCESS : EXIT_FAILURE);

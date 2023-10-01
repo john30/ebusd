@@ -20,7 +20,6 @@
 #  include <config.h>
 #endif
 
-#include <argp.h>
 #include <unistd.h>
 #include <string.h>
 #include <iostream>
@@ -29,6 +28,7 @@
 #include <iomanip>
 #include "lib/ebus/device.h"
 #include "lib/ebus/result.h"
+#include "lib/utils/arg.h"
 
 namespace ebusd {
 
@@ -58,31 +58,8 @@ static struct options opt = {
   "/tmp/ebus_dump.bin",  // dumpFile
 };
 
-/** the version string of the program. */
-const char *argp_program_version = "ebusfeed of """ PACKAGE_STRING "";
-
-/** the report bugs to address of the program. */
-const char *argp_program_bug_address = "" PACKAGE_BUGREPORT "";
-
-/** the documentation of the program. */
-static const char argpdoc[] =
-  "Feed data from an " PACKAGE " DUMPFILE to a serial device.\n"
-  "\v"
-  "With no DUMPFILE, /tmp/ebus_dump.bin is used.\n"
-  "\n"
-  "Example for setting up two pseudo terminals with 'socat':\n"
-  "  1. 'socat -d -d pty,raw,echo=0 pty,raw,echo=0'\n"
-  "  2. create symbol links to appropriate devices, e.g.\n"
-  "     'ln -s /dev/pts/2 /dev/ttyUSB60'\n"
-  "     'ln -s /dev/pts/3 /dev/ttyUSB20'\n"
-  "  3. start " PACKAGE ": '" PACKAGE " -f -d /dev/ttyUSB20 --nodevicecheck'\n"
-  "  4. start ebusfeed: 'ebusfeed /path/to/ebus_dump.bin'\n";
-
-/** the description of the accepted arguments. */
-static char argpargsdoc[] = "[DUMPFILE]";
-
 /** the definition of the known program arguments. */
-static const struct argp_option argpoptions[] = {
+static const ebusd::argDef argDefs[] = {
   {"device", 'd', "DEV",     0, "Write to DEV (serial device) [/dev/ttyUSB60]", 0 },
   {"time",   't', "USEC",    0, "Delay each byte by USEC us [10000]", 0 },
 
@@ -91,18 +68,18 @@ static const struct argp_option argpoptions[] = {
 
 /**
  * The program argument parsing function.
- * @param key the key from @a argpoptions.
+ * @param key the key from @a argDefs.
  * @param arg the option argument, or nullptr.
- * @param state the parsing state.
+ * @param parseOpt the parse options.
  */
-error_t parse_opt(int key, char *arg, struct argp_state *state) {
-  struct options *opt = (struct options*)state->input;
+static int parse_opt(int key, char *arg, const ebusd::argParseOpt *parseOpt) {
+  struct options *opt = (struct options*)parseOpt->userArg;
   char* strEnd = nullptr;
   switch (key) {
   // Device settings:
   case 'd':  // --device=/dev/ttyUSB60
     if (arg == nullptr || arg[0] == 0) {
-      argp_error(state, "invalid device");
+      argParseError(parseOpt, "invalid device");
       return EINVAL;
     }
     opt->device = arg;
@@ -110,23 +87,12 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
   case 't':  // --time=10000
     opt->time = (unsigned int)strtoul(arg, &strEnd, 10);
     if (strEnd == nullptr || strEnd == arg || *strEnd != 0 || opt->time < 1000 || opt->time > 100000000) {
-      argp_error(state, "invalid time");
+      argParseError(parseOpt, "invalid time");
       return EINVAL;
     }
     break;
-  case ARGP_KEY_ARG:
-    if (state->arg_num == 0) {
-      if (arg == nullptr || arg[0] == 0 || strcmp("/", arg) == 0) {
-        argp_error(state, "invalid dumpfile");
-        return EINVAL;
-      }
-      opt->dumpFile = arg;
-    } else {
-      return ARGP_ERR_UNKNOWN;
-    }
-    break;
   default:
-    return ARGP_ERR_UNKNOWN;
+    return ESRCH;
   }
   return 0;
 }
@@ -139,11 +105,45 @@ error_t parse_opt(int key, char *arg, struct argp_state *state) {
  * @return the exit code.
  */
 int main(int argc, char* argv[]) {
-  struct argp argp = { argpoptions, parse_opt, argpargsdoc, argpdoc, nullptr, nullptr, nullptr };
-  setenv("ARGP_HELP_FMT", "no-dup-args-note", 0);
-  if (argp_parse(&argp, argc, argv, ARGP_IN_ORDER, nullptr, &opt) != 0) {
-    return EINVAL;
+  ebusd::argParseOpt parseOpt = {
+    argDefs,
+    parse_opt,
+    "ebusfeed",
+    "[DUMPFILE]",
+    "Feed data from an " PACKAGE " DUMPFILE to a serial device.",
+    "With no DUMPFILE, /tmp/ebus_dump.bin is used.\n"
+    "\n"
+    "Example for setting up two pseudo terminals with 'socat':\n"
+    "  1. 'socat -d -d pty,raw,echo=0 pty,raw,echo=0'\n"
+    "  2. create symbol links to appropriate devices, e.g.\n"
+    "     'ln -s /dev/pts/2 /dev/ttyUSB60'\n"
+    "     'ln -s /dev/pts/3 /dev/ttyUSB20'\n"
+    "  3. start " PACKAGE ": '" PACKAGE " -f -d /dev/ttyUSB20 --nodevicecheck'\n"
+    "  4. start ebusfeed: 'ebusfeed /path/to/ebus_dump.bin'",
+    &opt
+  };
+  int arg_index = -1;
+  switch (ebusd::argParse(&parseOpt, argc, argv, &arg_index)) {
+    case 0:  // OK
+      break;
+    case '?':  // help printed
+      return 0;
+    default:
+      return EINVAL;
   }
+  if (arg_index >= 0) {
+    if (argv[arg_index][0] == 0 || strcmp("/", argv[arg_index]) == 0) {
+      argParseError(parseOpt, "invalid dumpfile");
+      return EINVAL;
+    }
+    if (arg_index != argc -1) {
+      // more than one arg
+      argParseError(parseOpt, "multiple dumpfile");
+      return EINVAL;
+    }
+    opt.dumpFile = argv[arg_index];
+  }
+
   Device* device = Device::create(opt.device, false, false, false);
   if (device == nullptr) {
     cout << "unable to create device " << opt.device << endl;
