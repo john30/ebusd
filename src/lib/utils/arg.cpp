@@ -48,7 +48,8 @@ void calcCounts(const argDef *argDefs, int &count, int &shortCharsCount, int &sh
   }
 }
 
-void buildOpts(const argDef *argDefs, int &count, int &shortCharsCount, int &shortOptsCount, struct option *longOpts, char *shortChars, int *shortIndexes, char *shortOpts, int argDefIdx) {
+void buildOpts(const argDef *argDefs, int &count, int &shortCharsCount, int &shortOptsCount,
+  struct option *longOpts, char *shortChars, int *shortIndexes, char *shortOpts, int argDefIdx) {
   struct option *opt = longOpts+count;
   for (const argDef *arg = argDefs; arg && arg->help; arg++, argDefIdx++) {
     if (!arg->name) {
@@ -108,15 +109,19 @@ int argParse(const argParseOpt *parseOpt, int argc, char **argv, int *argIndex) 
   shortOpts[shortOptsCount++] = '+';  // posix mode to stop at first non-option
   shortOpts[shortOptsCount++] = ':';  // return ':' for missing option
   if (!(parseOpt->flags & af_noHelp)) {
-    buildOpts(helpArgDefs, count, shortCharsCount, shortOptsCount, longOpts, shortChars, shortIndexes, shortOpts, 0xff00);
+    buildOpts(helpArgDefs, count, shortCharsCount, shortOptsCount, longOpts, shortChars,
+      shortIndexes, shortOpts, 0xff00);
   }
   if (!(parseOpt->flags & af_noVersion)) {
-    buildOpts(versionArgDefs, count, shortCharsCount, shortOptsCount, longOpts, shortChars, shortIndexes, shortOpts, 0xff01);
+    buildOpts(versionArgDefs, count, shortCharsCount, shortOptsCount, longOpts, shortChars,
+      shortIndexes, shortOpts, 0xff01);
   }
-  buildOpts(parseOpt->argDefs, count, shortCharsCount, shortOptsCount, longOpts, shortChars, shortIndexes, shortOpts, 0);
+  buildOpts(parseOpt->argDefs, count, shortCharsCount, shortOptsCount, longOpts, shortChars,
+    shortIndexes, shortOpts, 0);
   int children = 0;
   for (const argParseChildOpt *child = parseOpt->childOpts; child && child->argDefs; child++) {
-    buildOpts(child->argDefs, count, shortCharsCount, shortOptsCount, longOpts, shortChars, shortIndexes, shortOpts, 0x100*(++children));
+    buildOpts(child->argDefs, count, shortCharsCount, shortOptsCount, longOpts, shortChars,
+      shortIndexes, shortOpts, 0x100*(++children));
   }
   optind = 1;  // setting to 0 does not work
   int c = 0, longIdx = -1, ret = 0;
@@ -320,8 +325,7 @@ void argHelp(const argParseOpt *parseOpt) {
   }
   printf("Usage: %s [OPTION...] %s\n",
     parseOpt->name,
-    parseOpt->positional ? parseOpt->positional : ""
-  );
+    parseOpt->positional ? parseOpt->positional : "");
   wrap(parseOpt->help, 0, 0);
   printArgs(parseOpt->argDefs, indent);
   for (const argParseChildOpt *child = parseOpt->childOpts; child && child->argDefs; child++) {

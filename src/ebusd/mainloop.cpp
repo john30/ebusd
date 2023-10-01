@@ -208,7 +208,7 @@ MainLoop::~MainLoop() {
 void MainLoop::shutdown() {
   m_shutdown = true;
   if (m_requestQueue != nullptr) {
-    m_requestQueue->push(nullptr); // just to notify potentially waiting thread
+    m_requestQueue->push(nullptr);  // just to notify potentially waiting thread
   }
 }
 
@@ -314,7 +314,8 @@ void MainLoop::run() {
             if (scanCompleted > SCAN_REPEAT_COUNT) {  // repeat failed scan only every Nth time
               scanCompleted = 0;
               scanRetry++;
-              logNotice(lf_main, "scan completed %d time(s), %s", scanRetry, scanRetry <= m_scanRetries ? "check again" : "end");
+              logNotice(lf_main, "scan completed %d time(s), %s", scanRetry,
+                        scanRetry <= m_scanRetries ? "check again" : "end");
             }
           } else {
             m_scanStatus = SCAN_STATUS_RUNNING;

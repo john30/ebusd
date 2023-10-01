@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIB_UTILS_ARGS_H_
-#define LIB_UTILS_ARGS_H_
+#ifndef LIB_UTILS_ARG_H_
+#define LIB_UTILS_ARG_H_
 
 namespace ebusd {
 
@@ -94,4 +94,4 @@ void argHelp(const argParseOpt *parseOpt);
 
 }  // namespace ebusd
 
-#endif  // LIB_UTILS_ARGS_H_
+#endif  // LIB_UTILS_ARG_H_

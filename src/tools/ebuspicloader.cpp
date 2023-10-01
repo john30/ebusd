@@ -1053,7 +1053,7 @@ int readSettings(int fd, uint8_t* currentData = nullptr) {
       // non-mask bits outside of |gw reach
       uint8_t mask = maskLen <= 24 ? 0 : (255^((1 << (8 - (maskLen-24))) - 1));
       ip[3] |= ((~mask)^0x1f) | (gw&0x1f);
-      if (maskLen<24) {
+      if (maskLen < 24) {
         // more than just the last IP byte are affected: set non-mask bits to 1 as well in bytes 0-2
         for (uint8_t pos = 0, maskRemain = maskLen; pos < 3; pos++, maskRemain -= maskRemain >= 8 ? 8 : maskRemain) {
           mask = maskRemain >= 8 ? 255 : maskRemain == 0 ? 0 : (255^((1 << (8 - maskRemain)) - 1));
@@ -1107,7 +1107,7 @@ int readSettings(int fd, uint8_t* currentData = nullptr) {
   } else {
     std::cout << ", ignore hardware jumpers";
   }
-  if ((configData[5]&0x07)==0x07) {
+  if ((configData[5]&0x07) == 0x07) {
     std::cout << " (default)";
   }
   std::cout << std::endl;
@@ -1144,7 +1144,7 @@ bool writeSettings(int fd, uint8_t* currentData = nullptr) {
   }
   if (setVariant) {
     configData[5] = (configData[5]&0x38) | (setVariantForced?0:0x04) | (setVariantValue&0x03);
-    if (setVariantValue==0) {
+    if (setVariantValue == 0) {
       configData[1] = (configData[1]&~0x1f);  // set mask=0 to disable Ethernet
     }
   }
@@ -1191,7 +1191,7 @@ int main(int argc, char* argv[]) {
     std::cerr << "incomplete IP arguments" << std::endl;
     arg_index = argc;  // force help output
   }
-  if (argc-arg_index < 1) {
+  if (arg_index < 0 || argc-arg_index < 1) {
     if (flashFile) {
       printFileChecksum();
       exit(EXIT_SUCCESS);
