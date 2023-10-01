@@ -108,6 +108,7 @@ int main(int argc, char* argv[]) {
   ebusd::argParseOpt parseOpt = {
     argDefs,
     parse_opt,
+    af_noVersion,
     "ebusfeed",
     "[DUMPFILE]",
     "Feed data from an " PACKAGE " DUMPFILE to a serial device.",
@@ -120,6 +121,7 @@ int main(int argc, char* argv[]) {
     "     'ln -s /dev/pts/3 /dev/ttyUSB20'\n"
     "  3. start " PACKAGE ": '" PACKAGE " -f -d /dev/ttyUSB20 --nodevicecheck'\n"
     "  4. start ebusfeed: 'ebusfeed /path/to/ebus_dump.bin'",
+    nullptr,
     &opt
   };
   int arg_index = -1;

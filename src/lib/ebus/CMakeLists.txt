@@ -16,6 +16,7 @@ if(HAVE_CONTRIB)
 endif(HAVE_CONTRIB)
 
 add_library(ebus ${libebus_a_SOURCES})
+target_link_libraries(ebus utils ${libebus_a_LIBS})
 
 if(BUILD_TESTING)
   add_subdirectory(test)
