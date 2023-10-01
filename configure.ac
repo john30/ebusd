@@ -27,6 +27,7 @@ AC_CHECK_HEADERS([arpa/inet.h \
 	time.h \
 	termios.h])
 
+AC_CHECK_FUNC([timegm], [AC_DEFINE(HAVE_TIMEGM, [1], [Defined if timegm() is available.])])
 AC_CHECK_FUNC([cfsetspeed], [AC_DEFINE(HAVE_CFSETSPEED, [1], [Defined if cfsetspeed() is available.])])
 
 AC_CHECK_LIB([pthread], [pthread_setname_np],

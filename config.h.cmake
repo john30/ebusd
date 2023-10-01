@@ -37,6 +37,9 @@
 /* Defined if time.h is available. */
 #cmakedefine HAVE_TIME_H
 
+/* Defined if timegm() is available. */
+#cmakedefine HAVE_TIMEGM
+
 /* Defined if syslog.h is available. */
 #cmakedefine HAVE_SYSLOG_H
 

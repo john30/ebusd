@@ -506,7 +506,7 @@ bool* repeatable, time_t* time) {
   string headers = result.substr(0, pos+2);  // including final \r\n
   const char* hdrs = headers.c_str();
   *response = result.substr(pos+4);
-#ifdef HAVE_TIME_H
+#if defined(HAVE_TIME_H) && defined(HAVE_TIMEGM)
   if (time) {
     pos = headers.find("\r\nLast-Modified: ");
     if (pos != string::npos && headers.substr(pos+42, 4) == " GMT") {

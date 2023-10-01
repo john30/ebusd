@@ -71,6 +71,7 @@ set(CMAKE_REQUIRED_LIBRARIES pthread rt)
 check_function_exists(pthread_setname_np HAVE_PTHREAD_SETNAME_NP)
 check_function_exists(pselect HAVE_PSELECT)
 check_function_exists(ppoll HAVE_PPOLL)
+check_function_exists(timegm HAVE_TIMEGM)
 check_include_file(linux/serial.h HAVE_LINUX_SERIAL -DHAVE_LINUX_SERIAL=1)
 check_include_file(dev/usb/uftdiio.h HAVE_FREEBSD_UFTDI -DHAVE_FREEBSD_UFTDI=1)
 
