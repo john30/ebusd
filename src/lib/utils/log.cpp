@@ -212,6 +212,9 @@ void logWrite(const char* facility, const LogLevel level, const char* message, v
       syslog(s_syslogLevels[level], "[%s %s] %s", facility, s_levelNames[level], buf);
     } else {
 #endif
+#ifdef LOG_WITHOUT_TIMEPREFIX
+      fprintf(s_logFile, "[%s %s] %s\n",
+#else
       struct timespec ts;
       struct tm td;
       clockGettime(&ts);
@@ -219,6 +222,7 @@ void logWrite(const char* facility, const LogLevel level, const char* message, v
       fprintf(s_logFile, "%04d-%02d-%02d %02d:%02d:%02d.%03ld [%s %s] %s\n",
         td.tm_year+1900, td.tm_mon+1, td.tm_mday,
         td.tm_hour, td.tm_min, td.tm_sec, ts.tv_nsec/1000000,
+#endif
         facility, s_levelNames[level], buf);
       fflush(s_logFile);
 #ifdef HAVE_SYSLOG_H
