@@ -633,7 +633,7 @@ int parse_main_args(int argc, char* argv[], char* envp[], options_t *opt, int *a
 
   char envname[32] = "--";  // needs to cover at least max length of any option name plus "--"
   char* envopt = envname+2;
-  for (char ** env = envp; *env; env++) {
+  for (char ** env = envp; env && *env; env++) {
     char* pos = strchr(*env, '=');
     if (!pos || strncmp(*env, "EBUSD_", sizeof("EBUSD_")-1) != 0) {
       continue;
