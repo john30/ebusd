@@ -11,7 +11,8 @@ set(ebusd_SOURCES
 )
 
 if(HAVE_MQTT)
-  set(ebusd_SOURCES ${ebusd_SOURCES} mqtthandler.cpp mqtthandler.h)
+  set(ebusd_SOURCES ${ebusd_SOURCES} mqtthandler.cpp mqtthandler.h mqttclient.cpp mqttclient.h)
+  set(ebusd_SOURCES ${ebusd_SOURCES} mqttclient_mosquitto.cpp mqttclient_mosquitto.h)
   set(ebusd_LIBS ${ebusd_LIBS} mosquitto)
 endif(HAVE_MQTT)
 

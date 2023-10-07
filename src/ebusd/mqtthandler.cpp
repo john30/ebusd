@@ -75,32 +75,40 @@ static const argDef g_mqtt_argDefs[] = {
   {"mqttjson",     O_JSON, "short", af_optional,
    "Publish in JSON format instead of strings, optionally in short (value directly below field key)"},
   {"mqttverbose",  O_VERB, nullptr,      0, "Publish all available attributes"},
-#if (LIBMOSQUITTO_VERSION_NUMBER >= 1003001)
   {"mqttlog",      O_LOGL, nullptr,      0, "Log library events"},
-#endif
-#if (LIBMOSQUITTO_VERSION_NUMBER >= 1004001)
   {"mqttversion",  O_VERS, "VERSION",    0, "Use protocol VERSION [3.1]"},
-#endif
   {"mqttignoreinvalid", O_IGIN, nullptr, 0,
    "Ignore invalid parameters during init (e.g. for DNS not resolvable yet)"},
   {"mqttchanges",  O_CHGS, nullptr,      0, "Whether to only publish changed messages instead of all received"},
 
-#if (LIBMOSQUITTO_MAJOR >= 1)
   {"mqttca",       O_CAFI, "CA",         0, "Use CA file or dir (ending with '/') for MQTT TLS (no default)"},
   {"mqttcert",     O_CERT, "CERTFILE",   0, "Use CERTFILE for MQTT TLS client certificate (no default)"},
   {"mqttkey",      O_KEYF, "KEYFILE",    0, "Use KEYFILE for MQTT TLS client certificate (no default)"},
   {"mqttkeypass",  O_KEPA, "PASSWORD",   0, "Use PASSWORD for the encrypted KEYFILE (no default)"},
   {"mqttinsecure", O_INSE, nullptr,      0, "Allow insecure TLS connection (e.g. using a self signed certificate)"},
-#endif
 
   {nullptr,        0,      nullptr,       0, nullptr},
 };
 
-static const char* g_host = "localhost";  //!< host name of MQTT broker [localhost]
-static uint16_t g_port = 0;               //!< optional port of MQTT broker, 0 to disable [0]
-static const char* g_clientId = nullptr;  //!< optional clientid override for MQTT broker
-static const char* g_username = nullptr;  //!< optional user name for MQTT broker (no default)
-static const char* g_password = nullptr;  //!< optional password for MQTT broker (no default)
+// options for the MQTT client
+static mqtt_client_config_t g_opt = {
+  .host = "localhost",
+  .port = 0,
+  .clientId = nullptr,
+  .username = nullptr,
+  .password = nullptr,
+  .logEvents = false,
+  .version311 = false,
+  .ignoreInvalidParams = false,
+  .cafile = nullptr,
+  .capath = nullptr,
+  .certfile = nullptr,
+  .keyfile = nullptr,
+  .keypass = nullptr,
+  .insecure = false,
+  .lastWillTopic = nullptr,
+  .lastWillData = nullptr,
+};
 static const char* g_topic = nullptr;     //!< optional topic template
 static const char* g_globalTopic = nullptr;  //!< optional global topic
 static const char* g_integrationFile = nullptr;  //!< the integration settings file
@@ -108,23 +116,7 @@ static vector<string>* g_integrationVars = nullptr;  //!< the integration settin
 static bool g_retain = false;             //!< whether to retail all topics
 static int g_qos = 0;                     //!< the qos value for all topics
 static OutputFormat g_publishFormat = OF_NONE;  //!< the OutputFormat for publishing messages
-#if (LIBMOSQUITTO_VERSION_NUMBER >= 1003001)
-static bool g_logFromLib = false;         //!< log library events
-#endif
-#if (LIBMOSQUITTO_VERSION_NUMBER >= 1004001)
-static int g_version = MQTT_PROTOCOL_V31;  //!< protocol version to use
-#endif
-static bool g_ignoreInvalidParams = false;  //!< ignore invalid parameters during init
 static bool g_onlyChanges = false;        //!< whether to only publish changed messages instead of all received
-
-#if (LIBMOSQUITTO_MAJOR >= 1)
-static const char* g_cafile = nullptr;    //!< CA file for TLS
-static const char* g_capath = nullptr;    //!< CA path for TLS
-static const char* g_certfile = nullptr;  //!< client certificate file for TLS
-static const char* g_keyfile = nullptr;   //!< client key file for TLS
-static const char* g_keypass = nullptr;   //!< client key file password for TLS
-static bool g_insecure = false;           //!< whether to allow insecure TLS connection
-#endif
 
 /**
  * Replace all characters in the string with a space and return a copy of the original string.
@@ -157,7 +149,7 @@ static int mqtt_parse_opt(int key, char *arg, const argParseOpt *parseOpt) {
       argParseError(parseOpt, "invalid mqtthost");
       return EINVAL;
     }
-    g_host = arg;
+    g_opt.host = arg;
     break;
 
   case O_PORT:  // --mqttport=1883
@@ -166,7 +158,7 @@ static int mqtt_parse_opt(int key, char *arg, const argParseOpt *parseOpt) {
       argParseError(parseOpt, "invalid mqttport");
       return EINVAL;
     }
-    g_port = (uint16_t)value;
+    g_opt.port = (uint16_t)value;
     break;
 
   case O_CLID:  // --mqttclientid=clientid
@@ -174,7 +166,7 @@ static int mqtt_parse_opt(int key, char *arg, const argParseOpt *parseOpt) {
       argParseError(parseOpt, "invalid mqttclientid");
       return EINVAL;
     }
-    g_clientId = arg;
+    g_opt.clientId = arg;
     break;
 
   case O_USER:  // --mqttuser=username
@@ -182,7 +174,7 @@ static int mqtt_parse_opt(int key, char *arg, const argParseOpt *parseOpt) {
       argParseError(parseOpt, "invalid mqttuser");
       return EINVAL;
     }
-    g_username = arg;
+    g_opt.username = arg;
     break;
 
   case O_PASS:  // --mqttpass=password
@@ -190,7 +182,7 @@ static int mqtt_parse_opt(int key, char *arg, const argParseOpt *parseOpt) {
       argParseError(parseOpt, "invalid mqttpass");
       return EINVAL;
     }
-    g_password = replaceSecret(arg);
+    g_opt.password = replaceSecret(arg);
     break;
 
   case O_TOPI:  // --mqtttopic=ebusd
@@ -268,72 +260,66 @@ static int mqtt_parse_opt(int key, char *arg, const argParseOpt *parseOpt) {
     g_publishFormat = (g_publishFormat & ~OF_SHORT) | OF_NAMES|OF_UNITS|OF_COMMENTS|OF_ALL_ATTRS;
     break;
 
-#if (LIBMOSQUITTO_VERSION_NUMBER >= 1003001)
   case O_LOGL:
-    g_logFromLib = true;
+    g_opt.logEvents = true;
     break;
-#endif
 
-#if (LIBMOSQUITTO_VERSION_NUMBER >= 1004001)
   case O_VERS:  // --mqttversion=3.1.1
     if (arg == nullptr || arg[0] == 0 || (strcmp(arg, "3.1") != 0 && strcmp(arg, "3.1.1") != 0)) {
       argParseError(parseOpt, "invalid mqttversion");
       return EINVAL;
     }
-    g_version = strcmp(arg, "3.1.1") == 0 ? MQTT_PROTOCOL_V311 : MQTT_PROTOCOL_V31;
+    g_opt.version311 = strcmp(arg, "3.1.1") == 0;
     break;
-#endif
 
   case O_IGIN:
-    g_ignoreInvalidParams = true;
+    g_opt.ignoreInvalidParams = true;
     break;
 
   case O_CHGS:
     g_onlyChanges = true;
     break;
 
-#if (LIBMOSQUITTO_MAJOR >= 1)
-    case O_CAFI:  // --mqttca=file or --mqttca=dir/
-      if (arg == nullptr || arg[0] == 0) {
-        argParseError(parseOpt, "invalid mqttca");
-        return EINVAL;
-      }
-      if (arg[strlen(arg)-1] == '/') {
-        g_cafile = nullptr;
-        g_capath = arg;
-      } else {
-        g_cafile = arg;
-        g_capath = nullptr;
-      }
-      break;
+  case O_CAFI:  // --mqttca=file or --mqttca=dir/
+    if (arg == nullptr || arg[0] == 0) {
+      argParseError(parseOpt, "invalid mqttca");
+      return EINVAL;
+    }
+    if (arg[strlen(arg)-1] == '/') {
+      g_opt.cafile = nullptr;
+      g_opt.capath = arg;
+    } else {
+      g_opt.cafile = arg;
+      g_opt.capath = nullptr;
+    }
+    break;
 
-    case O_CERT:  // --mqttcert=CERTFILE
-      if (arg == nullptr || arg[0] == 0) {
-        argParseError(parseOpt, "invalid mqttcert");
-        return EINVAL;
-      }
-      g_certfile = arg;
-      break;
+  case O_CERT:  // --mqttcert=CERTFILE
+    if (arg == nullptr || arg[0] == 0) {
+      argParseError(parseOpt, "invalid mqttcert");
+      return EINVAL;
+    }
+    g_opt.certfile = arg;
+    break;
 
-    case O_KEYF:  // --mqttkey=KEYFILE
-      if (arg == nullptr || arg[0] == 0) {
-        argParseError(parseOpt, "invalid mqttkey");
-        return EINVAL;
-      }
-      g_keyfile = arg;
-      break;
+  case O_KEYF:  // --mqttkey=KEYFILE
+    if (arg == nullptr || arg[0] == 0) {
+      argParseError(parseOpt, "invalid mqttkey");
+      return EINVAL;
+    }
+    g_opt.keyfile = arg;
+    break;
 
-    case O_KEPA:  // --mqttkeypass=PASSWORD
-      if (arg == nullptr) {
-        argParseError(parseOpt, "invalid mqttkeypass");
-        return EINVAL;
-      }
-      g_keypass = replaceSecret(arg);
-      break;
-    case O_INSE:  // --mqttinsecure
-      g_insecure = true;
-      break;
-#endif
+  case O_KEPA:  // --mqttkeypass=PASSWORD
+    if (arg == nullptr) {
+      argParseError(parseOpt, "invalid mqttkeypass");
+      return EINVAL;
+    }
+    g_opt.keypass = replaceSecret(arg);
+    break;
+  case O_INSE:  // --mqttinsecure
+    g_opt.insecure = true;
+    break;
 
   default:
     return EINVAL;
@@ -350,116 +336,14 @@ const argParseChildOpt* mqtthandler_getargs() {
   return &g_mqtt_arg_child;
 }
 
-bool check(int code, const char* method) {
-  if (code == MOSQ_ERR_SUCCESS) {
-    return true;
-  }
-  if (code == MOSQ_ERR_ERRNO) {
-    char* error = strerror(errno);
-    logOtherError("mqtt", "%s: errno %d=%s", method, errno, error);
-    return false;
-  }
-#if (LIBMOSQUITTO_VERSION_NUMBER >= 1003001)
-  const char* msg = mosquitto_strerror(code);
-  logOtherError("mqtt", "%s: %s", method, msg);
-#else
-  logOtherError("mqtt", "%s: error code %d", method, code);
-#endif
-  return false;
-}
-
 bool mqtthandler_register(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages,
     list<DataHandler*>* handlers) {
-  if (g_port > 0) {
-    int major = -1;
-    int minor = -1;
-    int revision = -1;
-    mosquitto_lib_version(&major, &minor, &revision);
-    if (major < LIBMOSQUITTO_MAJOR) {
-      logOtherError("mqtt", "invalid mosquitto version %d instead of %d, will try connecting anyway", major,
-        LIBMOSQUITTO_MAJOR);
-    }
-    logOtherInfo("mqtt", "mosquitto version %d.%d.%d (compiled with %d.%d.%d)", major, minor, revision,
-      LIBMOSQUITTO_MAJOR, LIBMOSQUITTO_MINOR, LIBMOSQUITTO_REVISION);
+  if (g_opt.port > 0) {
     handlers->push_back(new MqttHandler(userInfo, busHandler, messages));
   }
   return true;
 }
 
-
-#if (LIBMOSQUITTO_MAJOR >= 1)
-int on_keypassword(char *buf, int size, int rwflag, void *userdata) {
-  if (!g_keypass) {
-    return 0;
-  }
-  int len = static_cast<int>(strlen(g_keypass));
-  if (len > size) {
-    len = size;
-  }
-  memcpy(buf, g_keypass, len);
-  return len;
-}
-#endif
-
-void on_connect(
-#if (LIBMOSQUITTO_MAJOR >= 1)
-  struct mosquitto *mosq,
-#endif
-  void *obj, int rc) {
-  if (rc == 0) {
-    logOtherNotice("mqtt", "connection established");
-    MqttHandler* handler = reinterpret_cast<MqttHandler*>(obj);
-    if (handler) {
-      handler->notifyConnected();
-    }
-  } else {
-    if (rc >= 1 && rc <= 3) {
-      logOtherError("mqtt", "connection refused: %s",
-                    rc == 1 ? "wrong protocol" : (rc == 2 ? "wrong username/password" : "broker down"));
-    } else {
-      logOtherError("mqtt", "connection refused: %d", rc);
-    }
-  }
-}
-
-#if (LIBMOSQUITTO_VERSION_NUMBER >= 1003001)
-void on_log(struct mosquitto *mosq, void *obj, int level, const char* msg) {
-  switch (level) {
-  case MOSQ_LOG_DEBUG:
-    logOtherDebug("mqtt", "log %s", msg);
-    break;
-  case MOSQ_LOG_INFO:
-    logOtherInfo("mqtt", "log %s", msg);
-    break;
-  case MOSQ_LOG_NOTICE:
-    logOtherNotice("mqtt", "log %s", msg);
-    break;
-  case MOSQ_LOG_WARNING:
-    logOtherNotice("mqtt", "log warning %s", msg);
-    break;
-  case MOSQ_LOG_ERR:
-    logOtherError("mqtt", "log %s", msg);
-    break;
-  default:
-    logOtherError("mqtt", "log other %s", msg);
-    break;
-  }
-}
-#endif
-
-void on_message(
-#if (LIBMOSQUITTO_MAJOR >= 1)
-  struct mosquitto *mosq,
-#endif
-  void *obj, const struct mosquitto_message *message) {
-  MqttHandler* handler = reinterpret_cast<MqttHandler*>(obj);
-  if (!handler || !message || !handler->isRunning()) {
-    return;
-  }
-  string topic(message->topic);
-  string data(message->payloadlen > 0 ? reinterpret_cast<char*>(message->payload) : "");
-  handler->notifyTopic(topic, data);
-}
 
 /**
  * possible data type names.
@@ -485,10 +369,9 @@ string removeTrailingNonTopicPart(const string& str) {
 
 MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages)
   : DataSink(userInfo, "mqtt"), DataSource(busHandler), WaitThread(), m_messages(messages), m_connected(false),
-    m_initialConnectFailed(false), m_lastUpdateCheckResult("."), m_lastScanStatus(SCAN_STATUS_NONE),
-    m_lastErrorLogTime(0) {
+    m_lastUpdateCheckResult("."), m_lastScanStatus(SCAN_STATUS_NONE) {
   m_definitionsSince = 0;
-  m_mosquitto = nullptr;
+  m_client = nullptr;
   bool hasIntegration = false;
   if (g_integrationFile != nullptr) {
     if (!m_replacers.parseFile(g_integrationFile)) {
@@ -603,121 +486,60 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
     m_globalTopic.compress(values);
   }
   m_subscribeTopic = getTopic(nullptr, "#");
-  if (check(mosquitto_lib_init(), "unable to initialize")) {
-    signal(SIGPIPE, SIG_IGN);  // needed before libmosquitto v. 1.1.3
+  if (!g_opt.clientId) {
     ostringstream clientId;
-    if (g_clientId) {
-      clientId << g_clientId;
-    } else {
-      clientId << PACKAGE_NAME << '_' << PACKAGE_VERSION << '_' << static_cast<unsigned>(getpid());
-    }
-#if (LIBMOSQUITTO_MAJOR >= 1)
-    m_mosquitto = mosquitto_new(clientId.str().c_str(), true, this);
-#else
-    m_mosquitto = mosquitto_new(clientId.str().c_str(), this);
-#endif
-    if (!m_mosquitto) {
-      logOtherError("mqtt", "unable to instantiate");
-    }
+    clientId << PACKAGE_NAME << '_' << PACKAGE_VERSION << '_' << static_cast<unsigned>(getpid());
+    g_opt.clientId = strdup(clientId.str().c_str());
   }
-  if (m_mosquitto) {
-#if (LIBMOSQUITTO_VERSION_NUMBER >= 1004001)
-    check(mosquitto_threaded_set(m_mosquitto, true), "threaded_set");
-    check(mosquitto_opts_set(m_mosquitto, MOSQ_OPT_PROTOCOL_VERSION, reinterpret_cast<void*>(&g_version)),
-       "opts_set protocol version");
-#endif
-    if (g_username || g_password) {
-      if (!g_username) {
-        g_username = PACKAGE;
-      }
-      if (mosquitto_username_pw_set(m_mosquitto, g_username, g_password) != MOSQ_ERR_SUCCESS) {
-        logOtherError("mqtt", "unable to set username/password, trying without");
-      }
-    }
-    string willTopic = m_globalTopic.get("", "running");
-    string willData = "false";
-    size_t len = willData.length();
-#if (LIBMOSQUITTO_MAJOR >= 1)
-    mosquitto_will_set(m_mosquitto, willTopic.c_str(), (uint32_t)len,
-        reinterpret_cast<const uint8_t*>(willData.c_str()), 0, true);
-#else
-    mosquitto_will_set(m_mosquitto, true, willTopic.c_str(), (uint32_t)len,
-        reinterpret_cast<const uint8_t*>(willData.c_str()), 0, true);
-#endif
-
-#if (LIBMOSQUITTO_MAJOR >= 1)
-    if (g_cafile || g_capath) {
-      int ret;
-      ret = mosquitto_tls_set(m_mosquitto, g_cafile, g_capath, g_certfile, g_keyfile, on_keypassword);
-      if (ret != MOSQ_ERR_SUCCESS) {
-        logOtherError("mqtt", "unable to set TLS: %d", ret);
-      } else if (g_insecure) {
-        ret = mosquitto_tls_insecure_set(m_mosquitto, true);
-        if (ret != MOSQ_ERR_SUCCESS) {
-          logOtherError("mqtt", "unable to set TLS insecure: %d", ret);
-        }
-      }
-    }
-#endif
-#if (LIBMOSQUITTO_VERSION_NUMBER >= 1003001)
-    if (g_logFromLib) {
-      mosquitto_log_callback_set(m_mosquitto, on_log);
-    }
-#endif
-    mosquitto_connect_callback_set(m_mosquitto, on_connect);
-    mosquitto_message_callback_set(m_mosquitto, on_message);
-    int ret;
-#if (LIBMOSQUITTO_MAJOR >= 1)
-    ret = mosquitto_connect(m_mosquitto, g_host, g_port, 60);
-#else
-    ret = mosquitto_connect(m_mosquitto, g_host, g_port, 60, true);
-#endif
-    if (ret == MOSQ_ERR_INVAL && !g_ignoreInvalidParams) {
-      logOtherError("mqtt", "unable to connect (invalid parameters)");
-      mosquitto_destroy(m_mosquitto);
-      m_mosquitto = nullptr;
-    } else if (!check(ret, "unable to connect, retrying")) {
-      m_connected = false;
-      m_initialConnectFailed = g_ignoreInvalidParams;
-    } else {
-      m_connected = true;  // assume success until connect_callback says otherwise
-      logOtherDebug("mqtt", "connection requested");
-    }
+  if (g_opt.password && !g_opt.username) {
+    g_opt.username = PACKAGE;
+  }
+  string willTopic = m_globalTopic.get("", "running");
+  if (!willTopic.empty()) {
+    g_opt.lastWillTopic = strdup(willTopic.c_str());
+    g_opt.lastWillData = "false";
+  }
+  m_client = MqttClient::create(g_opt, this);
+  m_isAsync = false;
+  bool ret = m_client->connect(m_isAsync, m_connected);
+  if (!ret) {
+    logOtherError("mqtt", "unable to connect (invalid parameters)");
+    delete m_client;
+    m_client = nullptr;
   }
 }
 
 MqttHandler::~MqttHandler() {
   join();
-  if (m_mosquitto) {
-    mosquitto_destroy(m_mosquitto);
-    m_mosquitto = nullptr;
+  if (m_client) {
+    delete m_client;
+    m_client = nullptr;
   }
-  mosquitto_lib_cleanup();
 }
 
 void MqttHandler::startHandler() {
-  if (m_mosquitto) {
+  if (m_client) {
     WaitThread::start("MQTT");
   }
 }
 
-void MqttHandler::notifyConnected() {
-  if (m_mosquitto && isRunning()) {
+void MqttHandler::notifyMqttStatus(bool connected) {
+  if (connected && m_client && isRunning()) {
     const string sep = (g_publishFormat & OF_JSON) ? "\"" : "";
     if (m_globalTopic.has("name")) {
-      publishTopic(m_globalTopic.get("", "version"), sep + (PACKAGE_STRING "." REVISION) + sep, true);
+      m_client->publishTopic(m_globalTopic.get("", "version"), sep + (PACKAGE_STRING "." REVISION) + sep, true);
     }
     publishTopic(m_globalTopic.get("", "running"), "true", true);
     if (!m_staticTopic) {
-      check(mosquitto_subscribe(m_mosquitto, nullptr, m_subscribeTopic.c_str(), 0), "subscribe");
+      m_client->subscribeTopic(m_subscribeTopic);
       if (!m_subscribeConfigRestartTopic.empty()) {
-        check(mosquitto_subscribe(m_mosquitto, nullptr, m_subscribeConfigRestartTopic.c_str(), 0), "subscribe def.");
+        m_client->subscribeTopic(m_subscribeConfigRestartTopic);
       }
     }
   }
 }
 
-void MqttHandler::notifyTopic(const string& topic, const string& data) {
+void MqttHandler::notifyMqttTopic(const string& topic, const string& data) {
   size_t pos = topic.rfind('/');
   if (pos == string::npos) {
     return;
@@ -919,7 +741,7 @@ void MqttHandler::run() {
   bool allowReconnect = false;
   while (isRunning()) {
     bool wasConnected = m_connected;
-    bool needsWait = handleTraffic(allowReconnect);
+    bool needsWait = m_isAsync || handleTraffic(allowReconnect);
     bool reconnected = !wasConnected && m_connected;
     allowReconnect = false;
     time(&now);
@@ -1307,52 +1129,10 @@ void MqttHandler::publishDefinition(const StringReplacers& values) {
 }
 
 bool MqttHandler::handleTraffic(bool allowReconnect) {
-  if (!m_mosquitto) {
+  if (!m_client) {
     return false;
   }
-  int ret;
-#if (LIBMOSQUITTO_MAJOR >= 1)
-  ret = mosquitto_loop(m_mosquitto, -1, 1);  // waits up to 1 second for network traffic
-#else
-  ret = mosquitto_loop(m_mosquitto, -1);  // waits up to 1 second for network traffic
-#endif
-  if (!m_connected && (ret == MOSQ_ERR_NO_CONN || ret == MOSQ_ERR_CONN_LOST) && allowReconnect) {
-    if (m_initialConnectFailed) {
-#if (LIBMOSQUITTO_MAJOR >= 1)
-      ret = mosquitto_connect(m_mosquitto, g_host, g_port, 60);
-#else
-      ret = mosquitto_connect(m_mosquitto, g_host, g_port, 60, true);
-#endif
-      if (ret == MOSQ_ERR_INVAL) {
-        logOtherError("mqtt", "unable to connect (invalid parameters), retrying");
-      }
-      if (ret == MOSQ_ERR_SUCCESS) {
-        m_initialConnectFailed = false;
-      }
-    } else {
-      ret = mosquitto_reconnect(m_mosquitto);
-    }
-  }
-  if (!m_connected && ret == MOSQ_ERR_SUCCESS) {
-    m_connected = true;
-    logOtherNotice("mqtt", "connection re-established");
-  }
-  if (!m_connected || ret == MOSQ_ERR_SUCCESS) {
-    return false;
-  }
-  if (ret == MOSQ_ERR_NO_CONN || ret == MOSQ_ERR_CONN_LOST || ret == MOSQ_ERR_CONN_REFUSED) {
-    logOtherError("mqtt", "communication error: %s", ret == MOSQ_ERR_NO_CONN ? "not connected"
-                  : (ret == MOSQ_ERR_CONN_LOST ? "connection lost" : "connection refused"));
-    m_connected = false;
-  } else {
-    time_t now;
-    time(&now);
-    if (now > m_lastErrorLogTime + 10) {  // log at most every 10 seconds
-      m_lastErrorLogTime = now;
-      check(ret, "communication error");
-    }
-  }
-  return true;
+  return m_client->run(allowReconnect, m_connected);
 }
 
 string MqttHandler::getTopic(const Message* message, const string& suffix, const string& fieldName) {
@@ -1423,16 +1203,14 @@ void MqttHandler::publishMessage(const Message* message, ostringstream* updates,
 void MqttHandler::publishTopic(const string& topic, const string& data, bool retain) {
   const char* topicStr = topic.c_str();
   const char* dataStr = data.c_str();
-  const size_t len = strlen(dataStr);
   logOtherDebug("mqtt", "publish %s %s", topicStr, dataStr);
-  check(mosquitto_publish(m_mosquitto, nullptr, topicStr, (uint32_t)len,
-      reinterpret_cast<const uint8_t*>(dataStr), g_qos, g_retain || retain), "publish");
+  m_client->publishTopic(topicStr, data, g_qos, g_retain || retain);
 }
 
 void MqttHandler::publishEmptyTopic(const string& topic) {
   const char* topicStr = topic.c_str();
   logOtherDebug("mqtt", "publish empty %s", topicStr);
-  check(mosquitto_publish(m_mosquitto, nullptr, topicStr, 0, nullptr, 0, g_retain), "publish empty");
+  m_client->publishEmptyTopic(topic, 0, g_retain);
 }
 
 }  // namespace ebusd

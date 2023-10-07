@@ -52,8 +52,7 @@ AM_CONDITIONAL([WITH_EBUSFEED], [test "x$with_ebusfeed" == "xyes"])
 AC_ARG_WITH(mqtt, AS_HELP_STRING([--without-mqtt], [disable support for MQTT handling]), [], [with_mqtt=yes])
 if test "x$with_mqtt" != "xno"; then
 	AC_CHECK_LIB([mosquitto], [mosquitto_lib_init],
-		[AC_DEFINE_UNQUOTED(HAVE_MQTT, [1], [Defined if MQTT handling is enabled.])
-		EXTRA_LIBS+=" -lmosquitto"],
+		[AC_DEFINE_UNQUOTED(HAVE_MQTT, [1], [Defined if MQTT handling is enabled.])],
 		[AC_MSG_RESULT([Could not find mosquitto_lib_init in libmosquitto.])
 		with_mqtt="no"])
 fi

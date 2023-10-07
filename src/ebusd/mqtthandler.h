@@ -19,7 +19,6 @@
 #ifndef EBUSD_MQTTHANDLER_H_
 #define EBUSD_MQTTHANDLER_H_
 
-#include <mosquitto.h>
 #include <list>
 #include <map>
 #include <string>
@@ -27,6 +26,7 @@
 #include <vector>
 #include "ebusd/datahandler.h"
 #include "ebusd/bushandler.h"
+#include "ebusd/mqttclient.h"
 #include "lib/ebus/message.h"
 #include "lib/ebus/stringhelper.h"
 #include "lib/utils/arg.h"
@@ -63,7 +63,7 @@ bool mqtthandler_register(UserInfo* userInfo, BusHandler* busHandler, MessageMap
 /**
  * The main class supporting MQTT data handling.
  */
-class MqttHandler : public DataSink, public DataSource, public WaitThread {
+class MqttHandler : public DataSink, public DataSource, public WaitThread, public MqttClientListener {
  public:
   /**
    * Constructor.
@@ -82,17 +82,11 @@ class MqttHandler : public DataSink, public DataSource, public WaitThread {
   // @copydoc
   void startHandler() override;
 
-  /**
-   * Notify the handler of a (re-)established connection to the broker.
-   */
-  void notifyConnected();
+  // @copydoc
+  void notifyMqttStatus(bool connected) override;
 
-  /**
-   * Notify the handler of a received MQTT message.
-   * @param topic the topic string.
-   * @param data the data string.
-   */
-  void notifyTopic(const string& topic, const string& data);
+  // @copydoc
+  void notifyMqttTopic(const string& topic, const string& data) override;
 
   // @copydoc
   void notifyUpdateCheckResult(const string& checkResult) override;
@@ -199,23 +193,24 @@ class MqttHandler : public DataSink, public DataSource, public WaitThread {
   /** the last system time when the message definitions were published. */
   time_t m_definitionsSince;
 
-  /** the mosquitto structure if initialized, or nullptr. */
-  struct mosquitto* m_mosquitto;
+  /** the @a MqttClient instance. */
+  MqttClient* m_client;
+
+  /**
+   * true if the client is asynchronous and its @a run() method does not
+   * have to be called at all, false if the client is synchronous and does
+   * it's work in its @a run() method only.
+   */
+  bool m_isAsync;
 
   /** whether the connection to the broker is established. */
   bool m_connected;
-
-  /** whether the initial connect failed. */
-  bool m_initialConnectFailed;
 
   /** the last update check result. */
   string m_lastUpdateCheckResult;
 
   /** the last scan status. */
   scanStatus_t m_lastScanStatus;
-
-  /** the last system time when a communication error was logged. */
-  time_t m_lastErrorLogTime;
 };
 
 }  // namespace ebusd

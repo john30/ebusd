@@ -12,14 +12,18 @@ ebusd_SOURCES = \
 		mainloop.h mainloop.cpp \
 		scan.h scan.cpp \
 		main.h main.cpp main_args.cpp
-if MQTT
-ebusd_SOURCES += mqtthandler.cpp mqtthandler.h
-endif
+
 
 ebusd_LDADD = ../lib/utils/libutils.a \
               ../lib/ebus/libebus.a \
 	      -lpthread \
 	      @EXTRA_LIBS@
+
+if MQTT
+ebusd_SOURCES += mqtthandler.cpp mqtthandler.h mqttclient.cpp mqttclient.h
+ebusd_SOURCES += mqttclient_mosquitto.cpp mqttclient_mosquitto.h
+ebusd_LDADD += -lmosquitto
+endif
 
 if KNX
 ebusd_SOURCES += knxhandler.cpp knxhandler.h
