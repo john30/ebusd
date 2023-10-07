@@ -838,11 +838,21 @@ void MqttHandler::run() {
           if (filterPriority > 0 && (message->getPollPriority() == 0 || message->getPollPriority() > filterPriority)) {
             continue;
           }
-          if (includeActiveWrite && !message->isWrite()) {
-            // check for existance of write message with same name
-            Message* write = m_messages->find(message->getCircuit(), message->getName(), "", true);
-            if (write) {
-              continue;  // avoid sending definition of read AND write message with the same key
+          if (includeActiveWrite) {
+            if (message->isWrite()) {
+              bool skipMultiFieldWrite = (!m_hasDefinitionFieldsPayload || m_publishByField) && !message->isPassive() && message->getFieldCount() > 1;
+              if (skipMultiFieldWrite) {
+                continue;  // multi-field message is not writable when publishing by field or combining multiple fields in one definition, so skip it
+              }
+            } else {
+              // check for existance of write message with same name
+              Message* write = m_messages->find(message->getCircuit(), message->getName(), "", true);
+              if (write) {
+                bool skipMultiFieldWrite = (!m_hasDefinitionFieldsPayload || m_publishByField) && write->getFieldCount() > 1;
+                if (!skipMultiFieldWrite) {
+                  continue;  // avoid sending definition of read AND write message with the same key
+                }  // else: multi-field write message is not writable when publishing by field or combining multiple fields in one definition, so skip it
+              }
             }
           }
           StringReplacers msgValues = m_replacers;  // need a copy here as the contents are manipulated
