@@ -545,6 +545,7 @@ void MqttHandler::notifyMqttTopic(const string& topic, const string& data) {
     return;
   }
   if (!m_subscribeConfigRestartTopic.empty() && topic == m_subscribeConfigRestartTopic) {
+    logOtherDebug("mqtt", "received restart topic %s with data %s", topic.c_str(), data.c_str());
     if (m_subscribeConfigRestartPayload.empty() || data == m_subscribeConfigRestartPayload) {
       m_definitionsSince = 0;
     }
