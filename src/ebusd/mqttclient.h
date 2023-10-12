@@ -91,7 +91,7 @@ class MqttClient {
    * @param config the client configuration to use.
    * @param listener the client listener to use.
    */
-  MqttClient(mqtt_client_config_t config, MqttClientListener *listener)
+  MqttClient(const mqtt_client_config_t config, MqttClientListener *listener)
   : m_config(config), m_listener(listener) {}
 
   /**
@@ -146,7 +146,7 @@ class MqttClient {
 
  public:
   /** the client configuration to use. */
-  mqtt_client_config_t m_config;
+  const mqtt_client_config_t m_config;
 
   /** the @a MqttClientListener instance. */
   MqttClientListener* m_listener;

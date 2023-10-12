@@ -26,7 +26,7 @@
 
 namespace ebusd {
 
-// copydoc
+// @copydoc
 MqttClient* MqttClient::create(mqtt_client_config_t config, MqttClientListener *listener) {
   return new MqttClientMosquitto(config, listener);
 }

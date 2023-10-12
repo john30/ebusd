@@ -60,9 +60,9 @@ void buildOpts(const argDef *argDefs, int &count, int &shortCharsCount, int &sho
     opt->flag = nullptr;
     opt->val = argDefIdx;
     if (isAlpha(arg->key)) {
-      shortChars[shortCharsCount] = (char)arg->key;
+      shortChars[shortCharsCount] = static_cast<char>(arg->key);
       shortIndexes[shortCharsCount++] = count;
-      shortOpts[shortOptsCount++] = (char)arg->key;
+      shortOpts[shortOptsCount++] = static_cast<char>(arg->key);
       if (arg->valueName) {
         shortOpts[shortOptsCount++] = ':';
         if (arg->flags & af_optional) {
@@ -100,9 +100,9 @@ int argParse(const argParseOpt *parseOpt, int argc, char **argv, int *argIndex) 
     calcCounts(child->argDefs, count, shortCharsCount, shortOptsCount);
   }
   struct option *longOpts = (struct option*)calloc(count+1, sizeof(struct option));  // room for EOF
-  char *shortChars = (char*)calloc(shortCharsCount+1, sizeof(char));  // room for \0
-  int *shortIndexes = (int*)calloc(shortCharsCount, sizeof(int));
-  char *shortOpts = (char*)calloc(2+shortOptsCount+1, sizeof(char));  // room for +, :, and \0
+  char *shortChars = reinterpret_cast<char*>(calloc(shortCharsCount+1, sizeof(char)));  // room for \0
+  int *shortIndexes = reinterpret_cast<int*>(calloc(shortCharsCount, sizeof(int)));
+  char *shortOpts = reinterpret_cast<char*>(calloc(2+shortOptsCount+1, sizeof(char)));  // room for +, :, and \0
   count = 0;
   shortCharsCount = 0;
   shortOptsCount = 0;
@@ -144,7 +144,7 @@ int argParse(const argParseOpt *parseOpt, int argc, char **argv, int *argIndex) 
     }
     if (isAlpha(c)) {
       // short name
-      int idx = (int)(strchr(shortChars, c) - shortChars);
+      int idx = static_cast<int>(strchr(shortChars, c) - shortChars);
       if (idx >= 0 && idx < shortCharsCount) {
         longIdx = shortIndexes[idx];
       } else {
@@ -206,7 +206,7 @@ void wrap(const char* str, size_t pos, size_t indent) {
   while (*str && str < end) {
     if (!first) {
       if (indent) {
-        printf("%*c", (int)indent, ' ');
+        printf("%*c", static_cast<int>(indent), ' ');
       }
       pos = indent;
     }
@@ -299,7 +299,7 @@ void printArgs(const argDef *argDefs, size_t indent) {
       printf(" ");
       wrap(arg->help, taken+1, indent);
     } else {
-      printf("%*c", (int)(indent - taken), ' ');
+      printf("%*c", static_cast<int>(indent - taken), ' ');
       wrap(arg->help, indent, indent);
     }
   }

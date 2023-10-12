@@ -684,12 +684,12 @@ class KnxNetConnection : public KnxConnection {
     return nullptr;
   }
 
-  // copydoc
+  // @copydoc
   knx_addr_t getAddress() const override {
     return m_addr;
   }
 
-  // copydoc
+  // @copydoc
   void setAddress(knx_addr_t address) override {
     m_addr = address;
     // flush duplication check buffers
@@ -697,12 +697,12 @@ class KnxNetConnection : public KnxConnection {
     m_lastSentFrames.reset();
   }
 
-  // copydoc
+  // @copydoc
   bool isProgrammingMode() const override {
     return m_programmingMode;
   }
 
-  // copydoc
+  // @copydoc
   void setProgrammingMode(bool on) override {
     m_programmingMode = on;
   }

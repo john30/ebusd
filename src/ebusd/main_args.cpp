@@ -21,14 +21,7 @@
 #endif
 
 #include "ebusd/main.h"
-#include <dirent.h>
-#include <sys/stat.h>
-#include <csignal>
-#include <iostream>
-#include <algorithm>
-#include <iomanip>
-#include <map>
-#include <vector>
+#include <string>
 #include "ebusd/datahandler.h"
 #include "lib/utils/log.h"
 #include "lib/utils/arg.h"

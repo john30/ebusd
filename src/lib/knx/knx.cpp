@@ -88,7 +88,7 @@ knx_addr_t parseAddress(const string &str, bool isGroup, bool* error) {
   return 0;
 }
 
-// copydoc
+// @copydoc
 KnxConnection *KnxConnection::create(const char *url) {
 #ifdef HAVE_KNXD
   if (strchr(url, ':')) {
