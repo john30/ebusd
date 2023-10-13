@@ -191,10 +191,13 @@ class HttpClient {
    * @param repeatable optional pointer to a bool in which to store whether the request should be repeated later on
    * (e.g. due to temporary connectivity issues).
    * @param time optional pointer to a @a time_t value for storing the modification time of the file, or nullptr.
+   * @param jsonString optional pointer to a bool value. When returning, it is set to whether the retrieved
+   * content-type indicates JSON. When true upon entry, content is JSON, and response is a single JSON string, it
+   * will be de-escaped to a pure string and the value set to false.
    * @return true on success, false on error.
    */
   bool get(const string& uri, const string& body, string* response, bool* repeatable = nullptr,
-  time_t* time = nullptr);
+  time_t* time = nullptr, bool* jsonString = nullptr);
 
   /**
    * Execute a POST request.
@@ -216,10 +219,13 @@ class HttpClient {
    * @param repeatable optional pointer to a bool in which to store whether the request should be repeated later on
    * (e.g. due to temporary connectivity issues).
    * @param time optional pointer to a @a time_t value for storing the modification time of the file, or nullptr.
+   * @param jsonString optional pointer to a bool value. When returning, it is set to whether the retrieved
+   * content-type indicates JSON. When true upon entry, content is JSON, and response is a single JSON string, it
+   * will be de-escaped to a pure string and the value set to false.
    * @return true on success, false on error.
    */
   bool request(const string& method, const string& uri, const string& body, string* response,
-  bool* repeatable = nullptr, time_t* time = nullptr);
+  bool* repeatable = nullptr, time_t* time = nullptr, bool* jsonString = nullptr);
 
  private:
   /**

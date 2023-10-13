@@ -431,8 +431,8 @@ void HttpClient::disconnect() {
   }
 }
 
-bool HttpClient::get(const string& uri, const string& body, string* response, bool* repeatable, time_t* time) {
-  return request("GET", uri, body, response, repeatable, time);
+bool HttpClient::get(const string& uri, const string& body, string* response, bool* repeatable, time_t* time, bool* jsonString) {
+  return request("GET", uri, body, response, repeatable, time, jsonString);
 }
 
 bool HttpClient::post(const string& uri, const string& body, string* response, bool* repeatable) {
@@ -447,7 +447,7 @@ const int indexToMonth[] = {
 };
 
 bool HttpClient::request(const string& method, const string& uri, const string& body, string* response,
-bool* repeatable, time_t* time) {
+bool* repeatable, time_t* time, bool* jsonString) {
   if (!ensureConnected()) {
     *response = "not connected";
     if (repeatable) {
@@ -559,9 +559,49 @@ bool* repeatable, time_t* time) {
     *response = "invalid content length ";
     return false;
   }
+  bool isJson = headers.find("\r\nContent-Type: application/json") != string::npos;
+  if (pos == string::npos) {
+    disconnect();
+    return true;
+  }
   pos = readUntil("", length, response);
   disconnect();
-  return pos == length;
+  if (pos != length) {
+    return false;
+  }
+  if (jsonString && isJson && *jsonString && length >= 2 && response->at(0) == '"') {
+    // check for inline conversion of JSON to string expecting a single string to de-escape
+    pos = length;
+    while (pos > 1 && (response->at(pos-1) == '\r' || response->at(pos-1) == '\n')) {
+      pos--;
+    }
+    if (pos > 2 && response->at(pos-1) == '"') {
+      response->erase(pos-1);
+      response->erase(0, 1);
+      size_t from = 0;
+      while ((pos = response->find_first_of("\\", from)) != string::npos) {
+        response->erase(pos, 1);  // pos is now pointing at the char behind the backslash
+        switch (response->at(pos)) {
+          case 'r':
+            response->erase(pos, 1);  // removed
+            from = pos;
+            continue;
+          case 'n':
+            (*response)[pos] = '\n';  // replaced
+            from = pos+1;
+            break;
+          default:
+            from = pos+1;
+            break;  // kept
+        }
+      }
+      isJson = false;
+    }
+  }
+  if (jsonString) {
+    *jsonString = isJson;
+  }
+  return true;
 }
 
 size_t HttpClient::readUntil(const string& delim, size_t length, string* result) {

@@ -70,8 +70,9 @@ result_t ScanHelper::collectConfigFiles(const string& relPath, const string& pre
       + "t=" + extension.substr(1) + query;
     string names;
     bool repeat = false;
-    if (!m_configHttpClient->get(uri, "", &names, &repeat)) {
-      if (!names.empty()) {
+    bool json = true;
+    if (!m_configHttpClient->get(uri, "", &names, &repeat, nullptr, &json)) {
+      if (!names.empty() || json) {
         logError(lf_main, "HTTP failure%s: %s", repeat ? ", repeating" : "", names.c_str());
         names = "";
       }
