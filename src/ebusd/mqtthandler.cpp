@@ -1041,7 +1041,7 @@ void MqttHandler::run() {
       time(&lastTaskRun);
     }
     if (sendSignal) {
-      if (m_busHandler->hasSignal()) {
+      if (m_busHandler->getProtocol()->hasSignal()) {
         lastSignal = now;
         if (!signal || reconnected) {
           signal = true;

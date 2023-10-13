@@ -412,7 +412,7 @@ int main(int argc, char* argv[], char* envp[]) {
       if (!s_scanHelper->parseMessage(argv[arg_index++], false, &master, &slave)) {
         continue;
       }
-      busHandler->injectMessage(master, slave);
+      busHandler->getProtocol()->injectMessage(master, slave);
       if (s_opt.scanConfig && master.size() >= 5 && master[4] == 0 && master[2] == 0x07 && master[3] == 0x04
         && isValidAddress(master[1], false) && !isMaster(master[1]) && !scanAddresses[master[1]]) {
         // scan message, simulate scanning

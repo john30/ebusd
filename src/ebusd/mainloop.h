@@ -443,6 +443,9 @@ class MainLoop : public Thread, DeviceListener {
   /** the created @a BusHandler instance. */
   BusHandler* m_busHandler;
 
+  /** the created @a ProtocolHandler instance. */
+  ProtocolHandler* m_protocol;
+
   /** the reference to the @a Request @a Queue. */
   Queue<Request*>* m_requestQueue;
 

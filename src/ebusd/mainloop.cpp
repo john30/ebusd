@@ -151,13 +151,20 @@ MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messag
     }
   }
   // create BusHandler
+  ebus_protocol_config_t config = {
+    .ownAddress = m_address,
+    .answer = opt.answer,
+    .busLostRetries = opt.acquireRetries,
+    .failedSendRetries = opt.sendRetries,
+    .busAcquireTimeout = opt.acquireTimeout,
+    .slaveRecvTimeout = opt.receiveTimeout,
+    .lockCount = opt.masterCount,
+    .generateSyn = opt.generateSyn,
+  };
   m_busHandler = new BusHandler(m_device, m_messages, scanHelper,
-      m_address, opt.answer,
-      opt.acquireRetries, opt.sendRetries,
-      opt.acquireTimeout, opt.receiveTimeout,
-      opt.masterCount, opt.generateSyn,
-      opt.pollInterval);
-  m_busHandler->start("bushandler");
+      config, opt.pollInterval);
+  m_protocol = m_busHandler->getProtocol();
+  m_protocol->start("bushandler");
 
   // create network
   m_htmlPath = opt.htmlPath;
@@ -194,6 +201,7 @@ MainLoop::~MainLoop() {
   if (m_busHandler != nullptr) {
     delete m_busHandler;
     m_busHandler = nullptr;
+    m_protocol = nullptr;  // ProtocolHandler is freed by BusHandler
   }
   if (m_device != nullptr) {
     delete m_device;
@@ -255,16 +263,16 @@ void MainLoop::run() {
       lastTaskRun = now;
     } else if (!m_shutdown && now > lastTaskRun+taskDelay) {
       logDebug(lf_main, "performing regular tasks");
-      if (m_busHandler->hasSignal()) {
+      if (m_protocol->hasSignal()) {
         lastSignal = now;
       } else if (lastSignal && now > lastSignal+RECONNECT_MISSING_SIGNAL) {
         lastSignal = 0;
-        m_busHandler->reconnect();
+        m_protocol->reconnect();
         m_reconnectCount++;
       }
       if (m_scanConfig && scanRetry <= m_scanRetries) {
         bool loadDelay = false;
-        if (m_initialScan != ESC && reload && m_busHandler->hasSignal()) {
+        if (m_initialScan != ESC && reload && m_protocol->hasSignal()) {
           loadDelay = true;
           result_t result;
           if (m_initialScan == SYN) {
@@ -282,7 +290,7 @@ void MainLoop::run() {
               istringstream input;
               result = message->prepareMaster(0, m_address, SYN, UI_FIELD_SEPARATOR, &input, &master);
               if (result == RESULT_OK) {
-                result = m_busHandler->sendAndWait(master, &slave);
+                result = m_protocol->sendAndWait(master, &slave);
               }
             } else {
               result = RESULT_ERR_NOTFOUND;
@@ -304,7 +312,7 @@ void MainLoop::run() {
             reload = false;
           }
         }
-        if (!loadDelay && m_busHandler->hasSignal()) {
+        if (!loadDelay && m_protocol->hasSignal()) {
           lastScanAddress = m_busHandler->getNextScanAddress(lastScanAddress, scanCompleted >= SCAN_REPEAT_COUNT);
           if (lastScanAddress == SYN) {
             taskDelay = 5;
@@ -335,7 +343,7 @@ void MainLoop::run() {
             dataSink->notifyScanStatus(lastScanStatus);
           }
         }
-      } else if (reload && m_busHandler->hasSignal()) {
+      } else if (reload && m_protocol->hasSignal()) {
         reload = false;
         // execute initial instructions
         m_scanHelper->executeInstructions(m_busHandler);
@@ -873,7 +881,7 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
 
     // send message
     SlaveSymbolString slave;
-    ret = m_busHandler->sendAndWait(master, &slave);
+    ret = m_protocol->sendAndWait(master, &slave);
 
     if (ret == RESULT_OK) {
       ret = message->storeLastData(master, slave);
@@ -1095,7 +1103,7 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
     }
     // send message
     SlaveSymbolString slave;
-    ret = m_busHandler->sendAndWait(master, &slave);
+    ret = m_protocol->sendAndWait(master, &slave);
 
     if (ret == RESULT_OK) {
       // also update read messages
@@ -1227,7 +1235,7 @@ result_t MainLoop::parseHexAndSend(const vector<string>& args, size_t& argPos, b
 
   // send message
   SlaveSymbolString slave;
-  ret = m_busHandler->sendAndWait(master, &slave);
+  ret = m_protocol->sendAndWait(master, &slave);
 
   if (ret == RESULT_OK) {
     if (master[1] == BROADCAST) {
@@ -1601,11 +1609,11 @@ result_t MainLoop::executeState(const vector<string>& args, ostringstream* ostre
                 " Report bus state.";
     return RESULT_OK;
   }
-  if (m_busHandler->hasSignal()) {
+  if (m_protocol->hasSignal()) {
     *ostream << "signal acquired, "
-             << m_busHandler->getSymbolRate() << " symbols/sec ("
-             << m_busHandler->getMaxSymbolRate() << " max), "
-             << m_busHandler->getMasterCount() << " masters";
+             << m_protocol->getSymbolRate() << " symbols/sec ("
+             << m_protocol->getMaxSymbolRate() << " max), "
+             << m_protocol->getMasterCount() << " masters";
     return RESULT_OK;
   }
   return RESULT_ERR_NO_SIGNAL;
@@ -1818,7 +1826,7 @@ result_t MainLoop::executeScan(const vector<string>& args, const string& levels,
       return RESULT_OK;
     }
 
-    if (!m_busHandler->hasSignal()) {
+    if (!m_protocol->hasSignal()) {
       return RESULT_ERR_NO_SIGNAL;
     }
     result_t result;
@@ -1941,17 +1949,17 @@ result_t MainLoop::executeInfo(const vector<string>& args, const string& user, o
   if (!user.empty() || !levels.empty()) {
     *ostream << "access: " << levels << "\n";
   }
-  if (m_busHandler->hasSignal()) {
+  if (m_protocol->hasSignal()) {
     *ostream << "signal: acquired\n"
-             << "symbol rate: " << m_busHandler->getSymbolRate() << "\n"
-             << "max symbol rate: " << m_busHandler->getMaxSymbolRate() << "\n";
-    if (m_busHandler->getMinArbitrationDelay() >= 0) {
-      *ostream << "min arbitration micros: " << m_busHandler->getMinArbitrationDelay() << "\n"
-               << "max arbitration micros: " << m_busHandler->getMaxArbitrationDelay() << "\n";
+             << "symbol rate: " << m_protocol->getSymbolRate() << "\n"
+             << "max symbol rate: " << m_protocol->getMaxSymbolRate() << "\n";
+    if (m_protocol->getMinArbitrationDelay() >= 0) {
+      *ostream << "min arbitration micros: " << m_protocol->getMinArbitrationDelay() << "\n"
+               << "max arbitration micros: " << m_protocol->getMaxArbitrationDelay() << "\n";
     }
-    if (m_busHandler->getMinSymbolLatency() >= 0) {
-      *ostream << "min symbol latency: " << m_busHandler->getMinSymbolLatency() << "\n"
-               << "max symbol latency: " << m_busHandler->getMaxSymbolLatency() << "\n";
+    if (m_protocol->getMinSymbolLatency() >= 0) {
+      *ostream << "min symbol latency: " << m_protocol->getMinSymbolLatency() << "\n"
+               << "max symbol latency: " << m_protocol->getMaxSymbolLatency() << "\n";
     }
     if (m_scanStatus != SCAN_STATUS_NONE) {
       *ostream << "scan: " << (m_scanStatus == SCAN_STATUS_FINISHED ? "finished" : "running");
@@ -1965,7 +1973,7 @@ result_t MainLoop::executeInfo(const vector<string>& args, const string& user, o
     *ostream << "signal: no signal\n";
   }
   *ostream << "reconnects: " << m_reconnectCount << "\n"
-           << "masters: " << m_busHandler->getMasterCount() << "\n"
+           << "masters: " << m_protocol->getMasterCount() << "\n"
            << "messages: " << m_messages->size() << "\n"
            << "conditional: " << m_messages->sizeConditional() << "\n"
            << "poll: " << m_messages->sizePoll() << "\n"
@@ -2210,24 +2218,24 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
       if (!user.empty() || !levels.empty()) {
         *ostream << ",\n  \"access\": \"" << levels << "\"";
       }
-      *ostream << ",\n  \"signal\": " << (m_busHandler->hasSignal() ? "true" : "false");
-      if (m_busHandler->hasSignal()) {
-        *ostream << ",\n  \"symbolrate\": " << m_busHandler->getSymbolRate()
-                 << ",\n  \"maxsymbolrate\": " << m_busHandler->getMaxSymbolRate();
-        if (m_busHandler->getMinArbitrationDelay() >= 0) {
-          *ostream << ",\n  \"minarbitrationmicros\": " << m_busHandler->getMinArbitrationDelay()
-                   << ",\n  \"maxarbitrationmicros\": " << m_busHandler->getMaxArbitrationDelay();
+      *ostream << ",\n  \"signal\": " << (m_protocol->hasSignal() ? "true" : "false");
+      if (m_protocol->hasSignal()) {
+        *ostream << ",\n  \"symbolrate\": " << m_protocol->getSymbolRate()
+                 << ",\n  \"maxsymbolrate\": " << m_protocol->getMaxSymbolRate();
+        if (m_protocol->getMinArbitrationDelay() >= 0) {
+          *ostream << ",\n  \"minarbitrationmicros\": " << m_protocol->getMinArbitrationDelay()
+                   << ",\n  \"maxarbitrationmicros\": " << m_protocol->getMaxArbitrationDelay();
         }
-        if (m_busHandler->getMinSymbolLatency() >= 0) {
-          *ostream << ",\n  \"minsymbollatency\": " << m_busHandler->getMinSymbolLatency()
-                   << ",\n  \"maxsymbollatency\": " << m_busHandler->getMaxSymbolLatency();
+        if (m_protocol->getMinSymbolLatency() >= 0) {
+          *ostream << ",\n  \"minsymbollatency\": " << m_protocol->getMinSymbolLatency()
+                   << ",\n  \"maxsymbollatency\": " << m_protocol->getMaxSymbolLatency();
         }
       }
       if (!m_device->isReadOnly()) {
         *ostream << ",\n  \"qq\": " << static_cast<unsigned>(m_address);
       }
       *ostream << ",\n  \"reconnects\": " << m_reconnectCount
-               << ",\n  \"masters\": " << m_busHandler->getMasterCount()
+               << ",\n  \"masters\": " << m_protocol->getMasterCount()
                << ",\n  \"messages\": " << m_messages->size()
                << ",\n  \"lastup\": " << static_cast<unsigned>(maxLastUp)
                << "\n }"

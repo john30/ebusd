@@ -19,7 +19,6 @@
 #ifndef EBUSD_BUSHANDLER_H_
 #define EBUSD_BUSHANDLER_H_
 
-#include <pthread.h>
 #include <stdint.h>
 #include <string>
 #include <vector>
@@ -31,58 +30,15 @@
 #include "lib/ebus/symbol.h"
 #include "lib/ebus/result.h"
 #include "lib/ebus/device.h"
-#include "lib/utils/queue.h"
-#include "lib/utils/thread.h"
+#include "lib/ebus/protocol.h"
 
 namespace ebusd {
 
 /** @file ebusd/bushandler.h
- * Classes, functions, and constants related to handling of symbols on the eBUS.
- *
- * The following table shows the possible states, symbols, and state transition
- * depending on the kind of message to send/receive:
- * @image html states.png "ebusd BusHandler states"
+ * Classes, functions, and constants related to handling messages on the eBUS.
  */
 
 using std::string;
-
-/** the default time [ms] for retrieving a symbol from an addressed slave. */
-#define SLAVE_RECV_TIMEOUT 15
-
-/** the maximum allowed time [ms] for retrieving the AUTO-SYN symbol (45ms + 2*1,2% + 1 Symbol). */
-#define SYN_TIMEOUT 51
-
-/** the time [ms] for determining bus signal availability (AUTO-SYN timeout * 5). */
-#define SIGNAL_TIMEOUT 250
-
-/** the maximum duration [us] of a single symbol (Start+8Bit+Stop+Extra @ 2400Bd-2*1,2%). */
-#define SYMBOL_DURATION_MICROS 4700
-
-/** the maximum duration [ms] of a single symbol (Start+8Bit+Stop+Extra @ 2400Bd-2*1,2%). */
-#define SYMBOL_DURATION 5
-
-/** the maximum allowed time [ms] for retrieving back a sent symbol (2x symbol duration). */
-#define SEND_TIMEOUT ((int)((2*SYMBOL_DURATION_MICROS+999)/1000))
-
-/** the possible bus states. */
-enum BusState {
-  bs_noSignal,  //!< no signal on the bus
-  bs_skip,        //!< skip all symbols until next @a SYN
-  bs_ready,       //!< ready for next master (after @a SYN symbol, send/receive QQ)
-  bs_recvCmd,     //!< receive command (ZZ, PBSB, master data) [passive set]
-  bs_recvCmdCrc,  //!< receive command CRC [passive set]
-  bs_recvCmdAck,  //!< receive command ACK/NACK [passive set + active set+get]
-  bs_recvRes,     //!< receive response (slave data) [passive set + active get]
-  bs_recvResCrc,  //!< receive response CRC [passive set + active get]
-  bs_recvResAck,  //!< receive response ACK/NACK [passive set]
-  bs_sendCmd,     //!< send command (ZZ, PBSB, master data) [active set+get]
-  bs_sendCmdCrc,  //!< send command CRC [active set+get]
-  bs_sendResAck,  //!< send response ACK/NACK [active get]
-  bs_sendCmdAck,  //!< send command ACK/NACK [passive get]
-  bs_sendRes,     //!< send response (slave data) [passive get]
-  bs_sendResCrc,  //!< send response CRC [passive get]
-  bs_sendSyn,     //!< send SYN for completed transfer [active set+get]
-};
 
 /** bit for the seen state: seen. */
 #define SEEN 0x01
@@ -100,47 +56,6 @@ enum BusState {
 #define LOAD_DONE 0x10
 
 class BusHandler;
-
-/**
- * Generic request for sending to and receiving from the bus.
- */
-class BusRequest {
-  friend class BusHandler;
-
- public:
-  /**
-   * Constructor.
-   * @param master the master data @a MasterSymbolString to send.
-   * @param deleteOnFinish whether to automatically delete this @a BusRequest when finished.
-   */
-  BusRequest(const MasterSymbolString& master, bool deleteOnFinish)
-    : m_master(master), m_busLostRetries(0),
-      m_deleteOnFinish(deleteOnFinish) {}
-
-  /**
-   * Destructor.
-   */
-  virtual ~BusRequest() {}
-
-  /**
-   * Notify the request of the specified result.
-   * @param result the result of the request.
-   * @param slave the @a SlaveSymbolString received.
-   * @return true if the request needs to be restarted.
-   */
-  virtual bool notify(result_t result, const SlaveSymbolString& slave) = 0;
-
-
- protected:
-  /** the master data @a MasterSymbolString to send. */
-  const MasterSymbolString& m_master;
-
-  /** the number of times a send is repeated due to lost arbitration. */
-  unsigned int m_busLostRetries;
-
-  /** whether to automatically delete this @a BusRequest when finished. */
-  const bool m_deleteOnFinish;
-};
 
 
 /**
@@ -260,39 +175,6 @@ class ScanRequest : public BusRequest {
 
 
 /**
- * An active @a BusRequest that can be waited for.
- */
-class ActiveBusRequest : public BusRequest {
-  friend class BusHandler;
-
- public:
-  /**
-   * Constructor.
-   * @param master the master data @a MasterSymbolString to send.
-   * @param slave reference to @a SlaveSymbolString for filling in the received slave data.
-   */
-  ActiveBusRequest(const MasterSymbolString& master, SlaveSymbolString* slave)
-    : BusRequest(master, false), m_result(RESULT_ERR_NO_SIGNAL), m_slave(slave) {}
-
-  /**
-   * Destructor.
-   */
-  virtual ~ActiveBusRequest() {}
-
-  // @copydoc
-  bool notify(result_t result, const SlaveSymbolString& slave) override;
-
-
- private:
-  /** the result of handling the request. */
-  result_t m_result;
-
-  /** reference to @a SlaveSymbolString for filling in the received slave data. */
-  SlaveSymbolString* m_slave;
-};
-
-
-/**
  * Helper class for keeping track of grabbed messages.
  */
 class GrabbedMessage {
@@ -362,7 +244,7 @@ class GrabbedMessage {
 /**
  * Handles input from and output to the bus with respect to the eBUS protocol.
  */
-class BusHandler : public WaitThread {
+class BusHandler : public ProtocolListener {
  public:
   /**
    * Construct a new instance.
@@ -380,81 +262,38 @@ class BusHandler : public WaitThread {
    * @param pollInterval the interval in seconds in which poll messages are cycled, or 0 if disabled.
    */
   BusHandler(Device* device, MessageMap* messages, ScanHelper* scanHelper,
-      symbol_t ownAddress, bool answer,
-      unsigned int busLostRetries, unsigned int failedSendRetries,
-      unsigned int busAcquireTimeout, unsigned int slaveRecvTimeout,
-      unsigned int lockCount, bool generateSyn,
-      unsigned int pollInterval)
-    : WaitThread(), m_device(device), m_reconnect(false), m_messages(messages), m_scanHelper(scanHelper),
-      m_ownMasterAddress(ownAddress), m_ownSlaveAddress(getSlaveAddress(ownAddress)),
-      m_answer(answer), m_addressConflict(false),
-      m_busLostRetries(busLostRetries), m_failedSendRetries(failedSendRetries),
-      m_busAcquireTimeout(busAcquireTimeout), m_slaveRecvTimeout(slaveRecvTimeout),
-      m_masterCount(device->isReadOnly()?0:1), m_autoLockCount(lockCount == 0),
-      m_lockCount(lockCount <= 3 ? 3 : lockCount), m_remainLockCount(m_autoLockCount ? 1 : 0),
-      m_generateSynInterval(generateSyn ? SYN_TIMEOUT*getMasterNumber(ownAddress)+SYMBOL_DURATION : 0),
-      m_pollInterval(pollInterval), m_symbolLatencyMin(-1), m_symbolLatencyMax(-1), m_arbitrationDelayMin(-1),
-      m_arbitrationDelayMax(-1), m_lastReceive(0), m_lastPoll(0),
-      m_currentRequest(nullptr), m_currentAnswering(false), m_runningScans(0), m_nextSendPos(0),
-      m_symPerSec(0), m_maxSymPerSec(0),
-      m_state(bs_noSignal), m_escape(0), m_crc(0), m_crcValid(false), m_repeat(false),
+      const ebus_protocol_config_t config, unsigned int pollInterval)
+    : m_messages(messages), m_scanHelper(scanHelper),
+      m_pollInterval(pollInterval), m_lastPoll(0), m_runningScans(0),
       m_grabMessages(true) {
+    m_protocol = ProtocolHandler::create(config, device, this);
     memset(m_seenAddresses, 0, sizeof(m_seenAddresses));
-    m_lastSynReceiveTime.tv_sec = 0;
-    m_lastSynReceiveTime.tv_nsec = 0;
   }
 
   /**
    * Destructor.
    */
   virtual ~BusHandler() {
-    stop();
-    join();
-    BusRequest* req;
-    while ((req = m_finishedRequests.pop()) != nullptr) {
-      delete req;
-    }
-    while ((req = m_nextRequests.pop()) != nullptr) {
-      if (req->m_deleteOnFinish) {
-        delete req;
-      }
-    }
-    if (m_currentRequest != nullptr) {
-      delete m_currentRequest;
-      m_currentRequest = nullptr;
+    if (m_protocol) {
+      delete m_protocol;
+      m_protocol = nullptr;
     }
   }
 
   /**
+   * @return the @a ProtocolHandler instance for accessing the bus.
+   */
+  ProtocolHandler* getProtocol() const { return m_protocol; }
+
+  /**
    * @return the @a Device instance for accessing the bus.
    */
-  const Device* getDevice() const { return m_device; }
+  const Device* getDevice() const { return m_protocol->getDevice(); }
 
   /**
    * Clear stored values (e.g. scan results).
    */
   void clear();
-
-  /**
-   * Inject a message from outside and treat it as regularly retrieved from the bus.
-   * @param master the @a MasterSymbolString with the master data.
-   * @param slave the @a SlaveSymbolString with the slave data.
-   */
-  void injectMessage(const MasterSymbolString& master, const SlaveSymbolString& slave) {
-    m_command = master;
-    m_response = slave;
-    m_addressConflict = true;  // avoid conflict messages
-    messageCompleted();
-    m_addressConflict = false;
-  }
-
-  /**
-   * Send a message on the bus and wait for the answer.
-   * @param master the @a MasterSymbolString with the master data to send.
-   * @param slave the @a SlaveSymbolString that will be filled with retrieved slave data.
-   * @return the result code.
-   */
-  result_t sendAndWait(const MasterSymbolString& master, SlaveSymbolString* slave);
 
   /**
    * Prepare the master part for the @a Message, send it to the bus and wait for the answer.
@@ -466,11 +305,6 @@ class BusHandler : public WaitThread {
    */
   result_t readFromBus(Message* message, const string& inputStr, symbol_t dstAddress = SYN,
       symbol_t srcAddress = SYN);
-
-  /**
-   * Main thread entry.
-   */
-  virtual void run();
 
   /**
    * Initiate a scan of the slave addresses.
@@ -561,59 +395,6 @@ class BusHandler : public WaitThread {
       time_t since = 0, time_t until = 0) const;
 
   /**
-   * Return true when a signal on the bus is available.
-   * @return true when a signal on the bus is available.
-   */
-  bool hasSignal() const { return m_state != bs_noSignal; }
-
-  /**
-   * Reconnect the device.
-   */
-  void reconnect() { m_reconnect = true; }
-
-  /**
-   * Return the current symbol rate.
-   * @return the number of received symbols in the last second.
-   */
-  unsigned int getSymbolRate() const { return m_symPerSec; }
-
-  /**
-   * Return the maximum seen symbol rate.
-   * @return the maximum number of received symbols per second ever seen.
-   */
-  unsigned int getMaxSymbolRate() const { return m_maxSymPerSec; }
-
-  /**
-   * Return the minimal measured latency between send and receive of a symbol.
-   * @return the minimal measured latency between send and receive of a symbol in milliseconds, -1 if not yet known.
-   */
-  int getMinSymbolLatency() const { return m_symbolLatencyMin; }
-
-  /**
-   * Return the maximal measured latency between send and receive of a symbol.
-   * @return the maximal measured latency between send and receive of a symbol in milliseconds, -1 if not yet known.
-   */
-  int getMaxSymbolLatency() const { return m_symbolLatencyMax; }
-
-  /**
-   * Return the minimal measured delay between received SYN and sent own master address in microseconds.
-   * @return the minimal measured delay between received SYN and sent own master address in microseconds, -1 if not yet known.
-   */
-  int getMinArbitrationDelay() const { return m_arbitrationDelayMin; }
-
-  /**
-   * Return the maximal measured delay between received SYN and sent own master address in microseconds.
-   * @return the maximal measured delay between received SYN and sent own master address in microseconds, -1 if not yet known.
-   */
-  int getMaxArbitrationDelay() const { return m_arbitrationDelayMax; }
-
-  /**
-   * Return the number of masters already seen.
-   * @return the number of masters already seen (including ebusd itself).
-   */
-  unsigned int getMasterCount() const { return m_masterCount; }
-
-  /**
    * Get the next slave address that still needs to be scanned or loaded.
    * @param lastAddress the last returned slave address, or 0 for returning the first one.
    * @param withUnfinished whether to include slave addresses that were not scanned yet.
@@ -628,42 +409,19 @@ class BusHandler : public WaitThread {
    */
   void setScanConfigLoaded(symbol_t address, const string& file);
 
+  // @copydoc
+  void notifyProtocolStatus(bool signal) override;
+
+  // @copydoc
+  result_t notifyProtocolAnswer(const MasterSymbolString& master, SlaveSymbolString* slave) override;
+
+  // @copydoc
+  void notifyProtocolSeenAddress(symbol_t address) override;
+
+  // @copydoc
+  void notifyProtocolMessage(bool sent, const MasterSymbolString& master, const SlaveSymbolString& slave) override;
 
  private:
-  /**
-   * Handle the next symbol on the bus.
-   * @return RESULT_OK on success, or an error code.
-   */
-  result_t handleSymbol();
-
-  /**
-   * Set a new @a BusState and add a log message if necessary.
-   * @param state the new @a BusState.
-   * @param result the result code.
-   * @param firstRepetition true if the first repetition of a message part is being started.
-   * @return the result code.
-   */
-  result_t setState(BusState state, result_t result, bool firstRepetition = false);
-
-  /**
-   * Add a seen bus address.
-   * @param address the seen bus address.
-   * @return true if a conflict with the own addresses was detected, false otherwise.
-   */
-  bool addSeenAddress(symbol_t address);
-
-  /**
-   * Called to measure the latency between send and receive of a symbol.
-   * @param sentTime the time the symbol was sent.
-   * @param recvTime the time the symbol was received.
-   */
-  void measureLatency(struct timespec* sentTime, struct timespec* recvTime);
-
-  /**
-   * Called when a message sending or reception was successfully completed.
-   */
-  void messageCompleted();
-
   /**
    * Prepare a @a ScanRequest.
    * @param slave the single slave address to scan, or @a SYN for multiple.
@@ -675,11 +433,8 @@ class BusHandler : public WaitThread {
    */
   result_t prepareScan(symbol_t slave, bool full, const string& levels, bool* reload, ScanRequest** request);
 
-  /** the @a Device instance for accessing the bus. */
-  Device* m_device;
-
-  /** set to @p true when the device shall be reconnected. */
-  bool m_reconnect;
+  /** the @a ProtocolHandler instance for accessing the bus. */
+  ProtocolHandler* m_protocol;
 
   /** the @a MessageMap instance with all known @a Message instances. */
   MessageMap* m_messages;
@@ -687,120 +442,14 @@ class BusHandler : public WaitThread {
   /** the @a ScanHelper instance. */
   ScanHelper* m_scanHelper;
 
-  /** the own master address. */
-  const symbol_t m_ownMasterAddress;
-
-  /** the own slave address. */
-  const symbol_t m_ownSlaveAddress;
-
-  /** whether to answer queries for the own master/slave address. */
-  const bool m_answer;
-
-  /** set to @p true once an address conflict with the own addresses was detected. */
-  bool m_addressConflict;
-
-  /** the number of times a send is repeated due to lost arbitration. */
-  const unsigned int m_busLostRetries;
-
-  /** the number of times a failed send is repeated (other than lost arbitration). */
-  const unsigned int m_failedSendRetries;
-
-  /** the maximum time in milliseconds for bus acquisition. */
-  const unsigned int m_busAcquireTimeout;
-
-  /** the maximum time in milliseconds an addressed slave is expected to acknowledge. */
-  const unsigned int m_slaveRecvTimeout;
-
-  /** the number of masters already seen. */
-  unsigned int m_masterCount;
-
-  /** whether m_lockCount shall be detected automatically. */
-  const bool m_autoLockCount;
-
-  /** the number of AUTO-SYN symbols before sending is allowed after lost arbitration. */
-  unsigned int m_lockCount;
-
-  /** the remaining number of AUTO-SYN symbols before sending is allowed again. */
-  unsigned int m_remainLockCount;
-
-  /** the interval in milliseconds after which to generate an AUTO-SYN symbol, or 0 if disabled. */
-  unsigned int m_generateSynInterval;
-
   /** the interval in seconds in which poll messages are cycled, or 0 if disabled. */
   const unsigned int m_pollInterval;
-
-  /** the minimal measured latency between send and receive of a symbol in milliseconds, -1 if not yet known. */
-  int m_symbolLatencyMin;
-
-  /** the maximal measured latency between send and receive of a symbol in milliseconds, -1 if not yet known. */
-  int m_symbolLatencyMax;
-
-  /**
-   * the minimal measured delay between received SYN and sent own master address in microseconds,
-   * -1 if not yet known.
-   */
-  int m_arbitrationDelayMin;
-
-  /**
-   * the maximal measured delay between received SYN and sent own master address in microseconds,
-   * -1 if not yet known.
-   */
-  int m_arbitrationDelayMax;
-
-  /** the time of the last received SYN symbol, or 0 for never. */
-  struct timespec m_lastSynReceiveTime;
-
-  /** the time of the last received symbol, or 0 for never. */
-  time_t m_lastReceive;
 
   /** the time of the last poll, or 0 for never. */
   time_t m_lastPoll;
 
-  /** the queue of @a BusRequests that shall be handled. */
-  Queue<BusRequest*> m_nextRequests;
-
-  /** the currently handled BusRequest, or nullptr. */
-  BusRequest* m_currentRequest;
-
-  /** whether currently answering a request from another participant. */
-  bool m_currentAnswering;
-
-  /** the queue of @a BusRequests that are already finished. */
-  Queue<BusRequest*> m_finishedRequests;
-
   /** the number of scan requests currently running. */
   unsigned int m_runningScans;
-
-  /** the offset of the next symbol that needs to be sent from the command or response,
-   * (only relevant if m_request is set and state is @a bs_command or @a bs_response). */
-  size_t m_nextSendPos;
-
-  /** the number of received symbols in the last second. */
-  unsigned int m_symPerSec;
-
-  /** the maximum number of received symbols per second ever seen. */
-  unsigned int m_maxSymPerSec;
-
-  /** the current @a BusState. */
-  BusState m_state;
-
-  /** 0 when not escaping/unescaping, or @a ESC when receiving, or the original value when sending. */
-  symbol_t m_escape;
-
-  /** the calculated CRC. */
-  symbol_t m_crc;
-
-  /** whether the CRC matched. */
-  bool m_crcValid;
-
-  /** whether the current message part is being repeated. */
-  bool m_repeat;
-
-  /** the received command @a MasterSymbolString. */
-  MasterSymbolString m_command;
-
-  /** the received response @a SlaveSymbolString or response to send. */
-  SlaveSymbolString m_response;
 
   /** the participating bus addresses seen so far (0 if not seen yet, or combination of @a SEEN bits). */
   symbol_t m_seenAddresses[256];

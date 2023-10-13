@@ -609,7 +609,7 @@ void KnxHandler::handleGroupTelegram(knx_addr_t src, knx_addr_t dest, int len, c
         sendGlobalValue(GLOBAL_UPTIME, static_cast<unsigned>(time(nullptr) - m_start), true);
         break;
       case GLOBAL_SIGNAL:
-        sendGlobalValue(GLOBAL_SIGNAL, m_busHandler->hasSignal() ? 1 : 0, true);
+        sendGlobalValue(GLOBAL_SIGNAL, m_busHandler->getProtocol()->hasSignal() ? 1 : 0, true);
         break;
       case GLOBAL_SCAN:
         sendGlobalValue(GLOBAL_SCAN, m_lastScanStatus == SCAN_STATUS_RUNNING ? 1 : 0, true);
@@ -893,7 +893,7 @@ void KnxHandler::run() {
       time(&lastTaskRun);
     }
     if (sendSignal) {
-      if (m_busHandler->hasSignal()) {
+      if (m_busHandler->getProtocol()->hasSignal()) {
         lastSignal = now;
         if (!signal || reconnected) {
           signal = true;
