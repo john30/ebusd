@@ -841,18 +841,24 @@ void MqttHandler::run() {
           }
           if (includeActiveWrite) {
             if (message->isWrite()) {
-              bool skipMultiFieldWrite = (!m_hasDefinitionFieldsPayload || m_publishByField) && !message->isPassive() && message->getFieldCount() > 1;
+              bool skipMultiFieldWrite = (!m_hasDefinitionFieldsPayload || m_publishByField)
+              && !message->isPassive() && message->getFieldCount() > 1;
               if (skipMultiFieldWrite) {
-                continue;  // multi-field message is not writable when publishing by field or combining multiple fields in one definition, so skip it
+                // multi-field message is not writable when publishing by field or combining
+                // multiple fields in one definition, so skip it
+                continue;
               }
             } else {
               // check for existance of write message with same name
               Message* write = m_messages->find(message->getCircuit(), message->getName(), "", true);
               if (write) {
-                bool skipMultiFieldWrite = (!m_hasDefinitionFieldsPayload || m_publishByField) && write->getFieldCount() > 1;
+                bool skipMultiFieldWrite = (!m_hasDefinitionFieldsPayload || m_publishByField)
+                && write->getFieldCount() > 1;
                 if (!skipMultiFieldWrite) {
                   continue;  // avoid sending definition of read AND write message with the same key
-                }  // else: multi-field write message is not writable when publishing by field or combining multiple fields in one definition, so skip it
+                }
+                // else: multi-field write message is not writable when publishing by field or combining
+                // multiple fields in one definition, so skip it
               }
             }
           }

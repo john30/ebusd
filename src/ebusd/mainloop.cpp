@@ -1095,9 +1095,10 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
     if (!message->isWrite()) {
       return RESULT_ERR_INVALID_ARG;
     }
-    if (circuit.length() > 0 && circuit != message->getCircuit()) {
+    if (!circuit.empty() && circuit != message->getCircuit()) {
       return RESULT_ERR_INVALID_ARG;  // non-matching circuit
     }
+
     // send message
     SlaveSymbolString slave;
     ret = m_protocol->sendAndWait(master, &slave);
