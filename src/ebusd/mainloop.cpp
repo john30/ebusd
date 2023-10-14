@@ -164,7 +164,6 @@ MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messag
   m_busHandler = new BusHandler(m_device, m_messages, scanHelper,
       config, opt.pollInterval);
   m_protocol = m_busHandler->getProtocol();
-  m_protocol->start("bushandler");
 
   // create network
   m_htmlPath = opt.htmlPath;

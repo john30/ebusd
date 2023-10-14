@@ -247,7 +247,7 @@ elif [[ -n "$1" ]]; then
     pid=$(ps -C ebusd -o pid=)
   done
 else
-  $ebusd -d tcp:127.0.0.1:8876 --initsend --latency 10 -n -c "$PWD/contrib/etc/ebusd" --pollinterval=10 -s -a 31 --acquireretries 3 --answer --generatesyn --receivetimeout 40000 --sendretries 1 --enablehex --htmlpath "$PWD/contrib/html" --httpport 8878 --pidfile "$PWD/ebusd.pid" --localhost -p 8877 -l "$PWD/ebusd.log" --logareas all --loglevel debug --lograwdata=bytes --lograwdatafile "$PWD/ebusd.raw" --lograwdatasize 1 --dumpfile "$PWD/ebusd.dump" --dumpsize 100 -D --scanconfig --aclfile="$PWD/acl.csv" --mqttport=1883 --enablehex --enabledefine
+  $ebusd -d tcp:127.0.0.1:8876 --initsend --latency 10 -n -c "$PWD/contrib/etc/ebusd" --pollinterval=10 -s --scanretries=0 -a 31 --acquireretries 3 --answer --generatesyn --receivetimeout 40000 --sendretries 1 --enablehex --htmlpath "$PWD/contrib/html" --httpport 8878 --pidfile "$PWD/ebusd.pid" --localhost -p 8877 -l "$PWD/ebusd.log" --logareas all --loglevel debug --lograwdata=bytes --lograwdatafile "$PWD/ebusd.raw" --lograwdatasize 1 --dumpfile "$PWD/ebusd.dump" --dumpsize 100 -D --scanconfig --aclfile="$PWD/acl.csv" --mqttport=1883 --enablehex --enabledefine
   sleep 3
   pid=`head -n 1 "$PWD/ebusd.pid"`
 fi
@@ -359,7 +359,6 @@ decode -V -N UCH 102030
 encode UCH,,,,uch 10;1
 raw bytes
 raw
-reload
 nocommand
 EOF
 status=1

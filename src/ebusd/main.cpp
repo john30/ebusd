@@ -401,8 +401,8 @@ int main(int argc, char* argv[], char* envp[]) {
 
   // create the MainLoop and start it
   s_mainLoop = new MainLoop(s_opt, device, s_messageMap, s_scanHelper, s_requestQueue);
+  BusHandler* busHandler = s_mainLoop->getBusHandler();
   if (s_opt.injectMessages) {
-    BusHandler* busHandler = s_mainLoop->getBusHandler();
     int scanAdrCount = 0;
     bool scanAddresses[256] = {};
     while (arg_index < argc) {
@@ -420,6 +420,7 @@ int main(int argc, char* argv[], char* envp[]) {
         scanAdrCount++;
       }
     }
+    busHandler->getProtocol()->start("bushandler");
     for (symbol_t address = 0; scanAdrCount > 0; address++) {
       if (scanAddresses[address]) {
         scanAdrCount--;
@@ -430,6 +431,8 @@ int main(int argc, char* argv[], char* envp[]) {
       shutdown();
       return 0;
     }
+  } else {
+    busHandler->getProtocol()->start("bushandler");
   }
   s_mainLoop->start("mainloop");
 

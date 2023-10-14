@@ -245,7 +245,6 @@ class ProtocolHandler : public WaitThread {
    * Destructor.
    */
   virtual ~ProtocolHandler() {
-    stop();
     join();
     BusRequest* req;
     while ((req = m_finishedRequests.pop()) != nullptr) {
