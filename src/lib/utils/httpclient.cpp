@@ -241,6 +241,9 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool htt
     }
     bio = BIO_new_ssl_connect(ctx);
     if (isError("new_ssl_conn", bio != nullptr)) {
+      // in this case the ctx seems to be in an invalid state and it never comes out of that again on its own
+      SSL_CTX_free(ctx);
+      ctx = nullptr;
       break;
     }
     BIO_set_info_callback(bio, bioInfoCallback);
