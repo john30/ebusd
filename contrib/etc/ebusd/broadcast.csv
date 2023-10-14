@@ -4,8 +4,7 @@
 *w,broadcast,,,,FE,,,,,,,,,,,,,,,,,,,,,,,,,,
 b,,datetime,date/time,,,0700,,outsidetemp,,D2B,,,°C,time,,BTI,,,,date,,BDA,,,,,,,,,
 r;b,,id,identification,,,0704,,manufacturer,,UCH,0x06=Dungs;0x0f=FH Ostfalia;0x10=TEM;0x11=Lamberti;0x14=CEB;0x15=Landis-Staefa;0x16=FERRO;0x17=MONDIAL;0x18=Wikon;0x19=Wolf;0x20=RAWE;0x30=Satronic;0x40=ENCON;0x50=Kromschröder;0x60=Eberle;0x65=EBV;0x75=Grässlin;0x85=ebm-papst;0x95=SIG;0xa5=Theben;0xa7=Thermowatt;0xb5=Vaillant;0xc0=Toby;0xc5=Weishaupt;0xfd=ebusd.eu,,device manufacturer,id,,STR:5,,,device id,software,,PIN,,,software version,hardware,,PIN,,,hardware version
-w,,id,identification,,FE,0704,,,,,,,,,,,,,,,,,,,,,,,,,
-w,,queryexistence,Inquiry of existence,,FE,07FE,,,,,,,,,,,,,,,,,,,,,,,,,
+w,,queryexistence,Inquiry of existence,,,07FE,,,,,,,,,,,,,,,,,,,,,,,,,
 b,,signoflife,sign of life,,,07FF,,,,,,,,,,,,,,,,,,,,,,,,,
 b,,error,error message,,,FE01,,error,,STR:10,,,,,,,,,,,,,,,,,,,,,
 b,,netresetstate,reset network start,,,FF00,,,,,,,,,,,,,,,,,,,,,,,,,

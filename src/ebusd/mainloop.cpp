@@ -282,18 +282,14 @@ void MainLoop::run() {
             }
           } else if (m_initialScan == BROADCAST) {
             logNotice(lf_main, "starting initial broadcast scan");
-            Message* message = m_messages->getScanMessage(BROADCAST);
-            if (message) {
-              MasterSymbolString master;
-              SlaveSymbolString slave;
-              istringstream input;
-              result = message->prepareMaster(0, m_address, SYN, UI_FIELD_SEPARATOR, &input, &master);
-              if (result == RESULT_OK) {
-                result = m_protocol->sendAndWait(master, &slave);
-              }
-            } else {
-              result = RESULT_ERR_NOTFOUND;
-            }
+            MasterSymbolString master;
+            SlaveSymbolString slave;
+            master.push_back(m_address);
+            master.push_back(BROADCAST);
+            master.push_back(0x07);
+            master.push_back(0xfe);  // query existance message
+            master.adjustHeader();
+            result = m_protocol->sendAndWait(master, &slave);
           } else {
             logNotice(lf_main, "starting initial scan for %2.2x", m_initialScan);
             result = m_busHandler->scanAndWait(m_initialScan, true);
