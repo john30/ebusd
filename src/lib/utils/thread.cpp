@@ -94,6 +94,9 @@ bool WaitThread::join() {
 }
 
 bool WaitThread::Wait(int seconds, int millis) {
+  if (!isRunning()) {
+    return false;
+  }
   pthread_mutex_lock(&m_mutex);
   struct timespec t;
   clockGettime(&t);
@@ -123,6 +126,9 @@ void NotifiableThread::notify() {
 }
 
 bool NotifiableThread::waitNotified(int millis) {
+  if (!isRunning()) {
+    return false;
+  }
   pthread_mutex_lock(&m_mutex);
   if (!m_notified) {
     struct timespec t;
