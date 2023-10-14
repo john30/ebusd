@@ -4,10 +4,14 @@
 * fix lost scanconfig default behaviour
 * fix send empty message instead of logging an error for MQTT on messages without any field
 * fix MacOS build
+* fix name prefix warnings in Home Assistant MQTT discovery integration
+* fix impossible usage of multi-field writes in MQTT integration
 
 ## Features
 * add temperatures in Kelvin and ... to Home Assistant MQTT discovery integration
 * add options to turn off scanconfig and limit number of retries
+* remove dependency on argp
+* add time fields to Home Assistant MQTT discovery integration
 
 
 # 23.2 (2023-07-08)
