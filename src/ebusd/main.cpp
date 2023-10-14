@@ -402,6 +402,7 @@ int main(int argc, char* argv[], char* envp[]) {
   // create the MainLoop and start it
   s_mainLoop = new MainLoop(s_opt, device, s_messageMap, s_scanHelper, s_requestQueue);
   BusHandler* busHandler = s_mainLoop->getBusHandler();
+  ProtocolHandler* protocol = busHandler->getProtocol();
   if (s_opt.injectMessages) {
     int scanAdrCount = 0;
     bool scanAddresses[256] = {};
@@ -412,7 +413,7 @@ int main(int argc, char* argv[], char* envp[]) {
       if (!s_scanHelper->parseMessage(argv[arg_index++], false, &master, &slave)) {
         continue;
       }
-      busHandler->getProtocol()->injectMessage(master, slave);
+      protocol->injectMessage(master, slave);
       if (s_opt.scanConfig && master.size() >= 5 && master[4] == 0 && master[2] == 0x07 && master[3] == 0x04
         && isValidAddress(master[1], false) && !isMaster(master[1]) && !scanAddresses[master[1]]) {
         // scan message, simulate scanning
@@ -420,7 +421,7 @@ int main(int argc, char* argv[], char* envp[]) {
         scanAdrCount++;
       }
     }
-    busHandler->getProtocol()->start("bushandler");
+    protocol->start("bushandler");
     for (symbol_t address = 0; scanAdrCount > 0; address++) {
       if (scanAddresses[address]) {
         scanAdrCount--;
@@ -432,7 +433,7 @@ int main(int argc, char* argv[], char* envp[]) {
       return 0;
     }
   } else {
-    busHandler->getProtocol()->start("bushandler");
+    protocol->start("bushandler");
   }
   s_mainLoop->start("mainloop");
 

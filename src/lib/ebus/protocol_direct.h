@@ -80,6 +80,7 @@ class DirectProtocolHandler : public ProtocolHandler {
    * Destructor.
    */
   virtual ~DirectProtocolHandler() {
+    join();
     if (m_currentRequest != nullptr) {
       delete m_currentRequest;
       m_currentRequest = nullptr;
