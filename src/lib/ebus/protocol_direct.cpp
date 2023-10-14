@@ -91,6 +91,9 @@ void DirectProtocolHandler::run() {
       result_t result = m_device->open();
       if (result == RESULT_OK) {
         logNotice(lf_bus, "re-opened %s", m_device->getName());
+        if (m_config.initialSend && !m_config.readOnly) {
+          m_device->send(ESC);
+        }
       } else {
         logError(lf_bus, "unable to open %s: %s", m_device->getName(), getResultCode(result));
         setState(bs_noSignal, result);
@@ -131,6 +134,10 @@ result_t DirectProtocolHandler::handleSymbol() {
     }
     if (!m_device->isArbitrating() && m_currentRequest == nullptr && m_remainLockCount == 0) {
       BusRequest* startRequest = m_nextRequests.peek();
+      if (startRequest == nullptr) {
+        m_listener->notifyProtocolStatus(ps_empty);
+        startRequest = m_nextRequests.peek();
+      }
       if (startRequest != nullptr) {  // initiate arbitration
         symbol_t master = startRequest->getMaster()[0];
         logDebug(lf_bus, "start request %2.2x", master);
@@ -220,7 +227,7 @@ result_t DirectProtocolHandler::handleSymbol() {
   // send symbol if necessary
   result_t result;
   struct timespec sentTime, recvTime;
-  if (sending) {
+  if (sending && !m_config.readOnly) {
     if (m_state != bs_sendSyn && (sendSymbol == ESC || sendSymbol == SYN)) {
       if (m_escape) {
         sendSymbol = (symbol_t)(sendSymbol == ESC ? 0x00 : 0x01);
@@ -254,7 +261,7 @@ result_t DirectProtocolHandler::handleSymbol() {
     clockGettime(&recvTime);
   }
   bool sentAutoSyn = false;
-  if (!sending && result == RESULT_ERR_TIMEOUT && m_generateSynInterval > 0
+  if (!sending && !m_config.readOnly && result == RESULT_ERR_TIMEOUT && m_generateSynInterval > 0
       && timeout >= m_generateSynInterval && (m_state == bs_noSignal || m_state == bs_skip)) {
     // check if acting as AUTO-SYN generator is required
     result = m_device->send(SYN);
@@ -671,7 +678,7 @@ result_t DirectProtocolHandler::setState(BusState state, result_t result, bool f
 
   if (state == bs_noSignal) {  // notify all requests
     if (m_state != bs_noSignal) {
-      m_listener->notifyProtocolStatus(false);
+      m_listener->notifyProtocolStatus(ps_idle);
     }
     m_response.clear();  // notify with empty response
     while ((m_currentRequest = m_nextRequests.pop()) != nullptr) {
@@ -686,7 +693,7 @@ result_t DirectProtocolHandler::setState(BusState state, result_t result, bool f
       }
     }
   } else if (m_state == bs_noSignal) {
-    m_listener->notifyProtocolStatus(true);
+    m_listener->notifyProtocolStatus(ps_noSignal);
   }
 
   m_escape = 0;

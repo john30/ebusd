@@ -43,14 +43,35 @@ ProtocolHandler* ProtocolHandler::create(const ebus_protocol_config_t config,
   return new DirectProtocolHandler(config, device, listener);
 }
 
+void ProtocolHandler::formatInfo(ostringstream* ostream, bool verbose, bool noWait) {
+  m_device->formatInfo(ostream, verbose, true);
+  if (isReadOnly()) {
+    *ostream << ", readonly";
+  }
+  if (noWait) {
+    return;
+  }
+  m_device->formatInfo(ostream, verbose, false);
+}
+
+void ProtocolHandler::formatInfoJson(ostringstream* ostream) {
+  m_device->formatInfoJson(ostream);
+}
+
 void ProtocolHandler::clear() {
   memset(m_seenAddresses, 0, sizeof(m_seenAddresses));
   m_masterCount = 1;
 }
 
-bool ProtocolHandler::addRequest(BusRequest* request, bool wait) {
+result_t ProtocolHandler::addRequest(BusRequest* request, bool wait) {
+  if (m_config.readOnly) {
+    return RESULT_ERR_DEVICE;
+  }
   m_nextRequests.push(request);
-  return !wait || m_finishedRequests.remove(request, true);
+  if (!wait || m_finishedRequests.remove(request, true)) {
+    return RESULT_OK;
+  }
+  return RESULT_ERR_TIMEOUT;
 }
 
 result_t ProtocolHandler::sendAndWait(const MasterSymbolString& master, SlaveSymbolString* slave) {
@@ -63,8 +84,11 @@ result_t ProtocolHandler::sendAndWait(const MasterSymbolString& master, SlaveSym
   logInfo(lf_bus, "send message: %s", master.getStr().c_str());
 
   for (int sendRetries = m_config.failedSendRetries + 1; sendRetries > 0; sendRetries--) {
-    bool success = addRequest(&request, true);
-    result = success ? request.m_result : RESULT_ERR_TIMEOUT;
+    result = addRequest(&request, true);
+    bool success = result == RESULT_OK;
+    if (success) {
+      result = request.m_result;
+    }
     if (result == RESULT_OK) {
       break;
     }
@@ -103,7 +127,7 @@ bool ProtocolHandler::addSeenAddress(symbol_t address) {
     return false;
   }
   if (!isMaster(address)) {
-    if (!m_device->isReadOnly() && address == m_ownSlaveAddress) {
+    if (!m_config.readOnly && address == m_ownSlaveAddress) {
       if (!m_addressConflict) {
         m_addressConflict = true;
         logError(lf_bus, "own slave address %2.2x is used by another participant", address);
@@ -122,7 +146,7 @@ bool ProtocolHandler::addSeenAddress(symbol_t address) {
     return false;
   }
   bool ret = false;
-  if (!m_device->isReadOnly() && address == m_ownMasterAddress) {
+  if (!m_config.readOnly && address == m_ownMasterAddress) {
     if (!m_addressConflict) {
       m_addressConflict = true;
       logError(lf_bus, "own master address %2.2x is used by another participant", address);

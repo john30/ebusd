@@ -350,8 +350,32 @@ result_t BusHandler::readFromBus(Message* message, const string& inputStr, symbo
   return ret;
 }
 
-void BusHandler::notifyProtocolStatus(bool signal) {
-  // ignored
+void BusHandler::notifyProtocolStatus(ProtocolState state) {
+  if (state == ps_empty && m_pollInterval > 0) {  // check for poll/scan
+    time_t now;
+    time(&now);
+    if (m_lastPoll == 0 || difftime(now, m_lastPoll) > m_pollInterval) {
+      Message* message = m_messages->getNextPoll();
+      if (message != nullptr) {
+        m_lastPoll = now;
+        if (difftime(now, message->getLastUpdateTime()) > m_pollInterval) {
+          // only poll this message if it was not updated already by other means within the interval
+          auto request = new PollRequest(message);
+          result_t ret = request->prepare(m_protocol->getOwnMasterAddress());
+          if (ret != RESULT_OK) {
+            logError(lf_bus, "prepare poll message: %s", getResultCode(ret));
+            delete request;
+          } else {
+            ret = m_protocol->addRequest(request, false);
+            if (ret != RESULT_OK) {
+              logError(lf_bus, "push poll message: %s", getResultCode(ret));
+              delete request;
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 result_t BusHandler::notifyProtocolAnswer(const MasterSymbolString& command, SlaveSymbolString* response) {
@@ -494,7 +518,7 @@ result_t BusHandler::prepareScan(symbol_t slave, bool full, const string& levels
   if (scanMessage == nullptr) {
     return RESULT_ERR_NOTFOUND;
   }
-  if (m_protocol->getDevice()->isReadOnly()) {
+  if (m_protocol->isReadOnly()) {
     return RESULT_OK;
   }
   deque<Message*> messages;
@@ -564,9 +588,8 @@ result_t BusHandler::startScan(bool full, const string& levels) {
   }
   m_scanResults.clear();
   m_runningScans++;
-  m_protocol->addRequest(request, false);
   // request is deleted by ProtocolHandler after finish
-  return RESULT_OK;
+  return m_protocol->addRequest(request, false);
 }
 
 void BusHandler::setScanResult(symbol_t dstAddress, size_t index, const string& str) {
@@ -704,7 +727,7 @@ void BusHandler::formatUpdateInfo(ostringstream* output) const {
   }
   *output << ",\"c\":" << m_protocol->getMasterCount()
           << ",\"m\":" << m_messages->size()
-          << ",\"ro\":" << (m_protocol->getDevice()->isReadOnly() ? 1 : 0)
+          << ",\"ro\":" << (m_protocol->isReadOnly() ? 1 : 0)
           << ",\"an\":" << (m_protocol->isAnswering() ? 1 : 0)
           << ",\"co\":" << (m_protocol->isAddressConflict(SYN) ? 1 : 0);
   if (m_grabMessages) {
@@ -727,8 +750,7 @@ void BusHandler::formatUpdateInfo(ostringstream* output) const {
   }
   unsigned char address = 0;
   for (int index = 0; index < 256; index++, address++) {
-    bool ownAddress = !m_protocol->getDevice()->isReadOnly()
-    && (address == m_protocol->getOwnMasterAddress() || address == m_protocol->getOwnSlaveAddress());
+    bool ownAddress = !m_protocol->isOwnAddress(address);
     if (!isValidAddress(address, false) || ((m_seenAddresses[address]&SEEN) == 0 && !ownAddress)) {
       continue;
     }
@@ -815,8 +837,11 @@ result_t BusHandler::scanAndWait(symbol_t dstAddress, bool loadScanConfig, bool 
       m_scanResults[dstAddress].resize(1);
     }
     m_runningScans++;
-    requestExecuted = m_protocol->addRequest(request, true);
-    result = requestExecuted ? request->m_result : RESULT_ERR_TIMEOUT;
+    result = m_protocol->addRequest(request, true);
+    requestExecuted = result == RESULT_OK;
+    if (requestExecuted) {
+      result = request->m_result;
+    }
     delete request;
     request = nullptr;
   }

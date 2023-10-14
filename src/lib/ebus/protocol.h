@@ -52,6 +52,8 @@ namespace ebusd {
 
 /** settings for the eBUS protocol handler. */
 typedef struct ebus_protocol_config {
+  /** whether to allow read access to the device only. */
+  bool readOnly;
   /** the own master address. */
   symbol_t ownAddress;
   /** whether to answer queries for the own master/slave address. */
@@ -68,7 +70,17 @@ typedef struct ebus_protocol_config {
   unsigned int lockCount;
   /** whether to enable AUTO-SYN symbol generation. */
   bool generateSyn;
+  /** whether to send an initial escape symbol after connecting device. */
+  bool initialSend;
 } ebus_protocol_config_t;
+
+
+/** the possible protocol states. */
+enum ProtocolState {
+  ps_noSignal,   //!< no signal on the bus
+  ps_idle,       //!< idle (after @a SYN symbol)
+  ps_empty,      //!< idle, no more lock remaining, and no other request queued
+};
 
 
 class ProtocolHandler;
@@ -185,9 +197,9 @@ class ProtocolListener {
 
   /**
    * Called to notify a status update from the protocol.
-   * @param signal true when signal is acquired, false otherwise.
+   * @param state the current protocol state.
    */
-  virtual void notifyProtocolStatus(bool signal) = 0;  // abstract
+  virtual void notifyProtocolStatus(ProtocolState state) = 0;  // abstract
 
   /**
    * Called to notify a new valid seen address on the bus.
@@ -234,7 +246,7 @@ class ProtocolHandler : public WaitThread {
       m_reconnect(false),
       m_ownMasterAddress(config.ownAddress), m_ownSlaveAddress(getSlaveAddress(config.ownAddress)),
       m_addressConflict(false),
-      m_masterCount(device->isReadOnly()?0:1),
+      m_masterCount(config.readOnly ? 0 : 1),
       m_symbolLatencyMin(-1), m_symbolLatencyMax(-1), m_arbitrationDelayMin(-1),
       m_arbitrationDelayMax(-1), m_lastReceive(0),
       m_symPerSec(0), m_maxSymPerSec(0) {
@@ -267,6 +279,25 @@ class ProtocolHandler : public WaitThread {
   static ProtocolHandler* create(const ebus_protocol_config_t config, Device* device, ProtocolListener* listener);
 
   /**
+   * Format device/protocol infos in plain text.
+   * @param output the @a ostringstream to append the infos to.
+   * @param verbose whether to add verbose infos.
+   * @param noWait true to not wait for any response asynchronously and return immediately.
+   */
+  virtual void formatInfo(ostringstream* output, bool verbose, bool noWait);
+
+  /**
+   * Format device/protocol infos in JSON format.
+   * @param output the @a ostringstream to append the infos to.
+   */
+  virtual void formatInfoJson(ostringstream* output);
+
+  /**
+   * @return whether to allow read access to the device only.
+   */
+  bool isReadOnly() const { return m_config.readOnly; }
+
+  /**
    * @return the own master address.
    */
   symbol_t getOwnMasterAddress() const { return m_ownMasterAddress; }
@@ -286,7 +317,7 @@ class ProtocolHandler : public WaitThread {
    * @return @p true when the address is the own master or slave address (if not readonly).
    */
   bool isOwnAddress(symbol_t address) const {
-    return !m_device->isReadOnly() && (address == m_ownMasterAddress || address == m_ownSlaveAddress);
+    return !m_config.readOnly && (address == m_ownMasterAddress || address == m_ownSlaveAddress);
   }
 
   /**
@@ -324,9 +355,9 @@ class ProtocolHandler : public WaitThread {
    * Add a @a BusRequest to the internal queue and optionally wait for it to complete.
    * @param request the @a BusRequest to add.
    * @param wait true to wait for it to complete, false to return immediately.
-   * @return true when it was not waited for or when it was completed.
+   * @return the result code of adding the request (i.e. RESULT_OK when it was not waited for or when it was completed).
    */
-  virtual bool addRequest(BusRequest* request, bool wait);
+  virtual result_t addRequest(BusRequest* request, bool wait);
 
   /**
    * Send a message on the bus and wait for the answer.

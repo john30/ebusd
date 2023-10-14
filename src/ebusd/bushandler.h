@@ -410,7 +410,7 @@ class BusHandler : public ProtocolListener {
   void setScanConfigLoaded(symbol_t address, const string& file);
 
   // @copydoc
-  void notifyProtocolStatus(bool signal) override;
+  void notifyProtocolStatus(ProtocolState state) override;
 
   // @copydoc
   result_t notifyProtocolAnswer(const MasterSymbolString& master, SlaveSymbolString* slave) override;

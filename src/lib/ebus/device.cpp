@@ -88,11 +88,11 @@ namespace ebusd {
   #define DEBUG_RAW_TRAFFIC(format, args...)
 #endif
 
-Device::Device(const char* name, bool readOnly, bool initialSend)
-  : m_name(name), m_readOnly(readOnly), m_initialSend(initialSend), m_listener(nullptr) {
+Device::Device(const char* name)
+  : m_name(name), m_listener(nullptr) {
 }
 
-Device* Device::create(const char* name, unsigned int extraLatency, bool checkDevice, bool readOnly, bool initialSend) {
+Device* Device::create(const char* name, unsigned int extraLatency, bool checkDevice) {
   bool highSpeed = strncmp(name, "ens:", 4) == 0;
   bool enhanced = highSpeed || strncmp(name, "enh:", 4) == 0;
   if (enhanced) {
@@ -128,23 +128,17 @@ Device* Device::create(const char* name, unsigned int extraLatency, bool checkDe
     *portpos = 0;
     char* hostOrIp = strdup(addrpos);
     free(in);
-    return new NetworkDevice(name, hostOrIp, port, extraLatency, readOnly, initialSend, udp, enhanced);
+    return new NetworkDevice(name, hostOrIp, port, extraLatency, udp, enhanced);
   }
   // support enh:/dev/<device>, ens:/dev/<device>, and /dev/<device>
-  return new SerialDevice(name, checkDevice, extraLatency, readOnly, initialSend, enhanced, highSpeed);
-}
-
-result_t Device::afterOpen() {
-  if (m_initialSend && !send(ESC)) {
-    return RESULT_ERR_SEND;
-  }
-  return RESULT_OK;
+  return new SerialDevice(name, checkDevice, extraLatency, enhanced, highSpeed);
 }
 
 
-FileDevice::FileDevice(const char* name, bool checkDevice, unsigned int latency, bool readOnly, bool initialSend,
+
+FileDevice::FileDevice(const char* name, bool checkDevice, unsigned int latency,
     bool enhancedProto)
-  : Device(name, readOnly, initialSend),
+  : Device(name),
     m_checkDevice(checkDevice),
     m_latency(HOST_LATENCY_MS+(enhancedProto?ENHANCED_LATENCY_MS:0)+latency),
     m_enhancedProto(enhancedProto), m_fd(-1), m_resetRequested(false),
@@ -164,33 +158,24 @@ FileDevice::~FileDevice() {
   }
 }
 
-void FileDevice::formatInfo(ostringstream* ostream, bool verbose, bool asJson, bool noWait) {
-  if (asJson) {
-    if (m_enhancedProto) {
-      string ver = getEnhancedVersion();
-      if (!ver.empty()) {
-        *ostream << ",\"dv\":\"" << ver << "\"";
-      }
+void FileDevice::formatInfo(ostringstream* ostream, bool verbose, bool prefix) {
+  if (prefix) {
+    *ostream << m_name;
+    string info = getEnhancedProtoInfo();
+    if (!info.empty()) {
+      *ostream << ", " << info;
     }
-    return;
-  }
-  *ostream << m_name;
-  string info = getEnhancedProtoInfo();
-  if (!info.empty()) {
-    *ostream << ", " << info;
-  }
-  if (isReadOnly()) {
-    *ostream << ", readonly";
-  }
-  if (noWait) {
     return;
   }
   if (!isValid()) {
     *ostream << ", invalid";
   }
+  if (!m_enhancedProto) {
+    return;
+  }
   bool infoAdded = false;
   if (verbose) {
-    info = getEnhancedInfos();
+    string info = getEnhancedInfos();
     if (!info.empty()) {
       *ostream << ", " << info;
       infoAdded = true;
@@ -200,6 +185,15 @@ void FileDevice::formatInfo(ostringstream* ostream, bool verbose, bool asJson, b
     string ver = getEnhancedVersion();
     if (!ver.empty()) {
       *ostream << ", firmware " << ver;
+    }
+  }
+}
+
+void FileDevice::formatInfoJson(ostringstream* ostream) {
+  if (m_enhancedProto) {
+    string ver = getEnhancedVersion();
+    if (!ver.empty()) {
+      *ostream << ",\"dv\":\"" << ver << "\"";
     }
   }
 }
@@ -220,8 +214,6 @@ result_t FileDevice::afterOpen() {
       m_listener->notifyStatus(false, "resetting");
     }
     m_resetRequested = true;
-  } else if (m_initialSend && !write(ESC)) {
-    return RESULT_ERR_SEND;
   }
   return RESULT_OK;
 }
@@ -339,7 +331,7 @@ result_t FileDevice::send(symbol_t value) {
   if (!isValid()) {
     return RESULT_ERR_DEVICE;
   }
-  if (m_readOnly || !write(value)) {
+  if (!write(value)) {
     return RESULT_ERR_SEND;
   }
   if (m_listener != nullptr) {
@@ -495,9 +487,6 @@ result_t FileDevice::startArbitration(symbol_t masterAddress) {
       }
     }
     return RESULT_OK;
-  }
-  if (m_readOnly) {
-    return RESULT_ERR_SEND;
   }
   m_arbitrationMaster = masterAddress;
   if (m_enhancedProto && masterAddress != SYN) {

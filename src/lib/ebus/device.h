@@ -99,10 +99,8 @@ class Device {
   /**
    * Construct a new instance.
    * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
-   * @param readOnly whether to allow read access to the device only.
-   * @param initialSend whether to send an initial @a ESC symbol in @a open().
    */
-  Device(const char* name, bool readOnly, bool initialSend);
+  explicit Device(const char* name);
 
  public:
   /**
@@ -115,13 +113,10 @@ class Device {
    * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
    * @param extraLatency the extra bus transfer latency in milliseconds.
    * @param checkDevice whether to regularly check the device availability (only for serial devices).
-   * @param readOnly whether to allow read access to the device only.
-   * @param initialSend whether to send an initial @a ESC symbol in @a open().
    * @return the new @a Device, or nullptr on error.
    * Note: the caller needs to free the created instance.
    */
-  static Device* create(const char* name, unsigned int extraLatency = 0, bool checkDevice = true,
-      bool readOnly = false, bool initialSend = false);
+  static Device* create(const char* name, unsigned int extraLatency = 0, bool checkDevice = true);
 
   /**
    * Get the device name.
@@ -130,25 +125,24 @@ class Device {
   const char* getName() const { return m_name; }
 
   /**
-   * Return whether to allow read access to the device only.
-   * @return whether to allow read access to the device only.
-   */
-  bool isReadOnly() const { return m_readOnly; }
-
-  /**
    * Set the @a DeviceListener.
    * @param listener the @a DeviceListener.
    */
   void setListener(DeviceListener* listener) { m_listener = listener; }
 
   /**
-   * Format device infos in plain text or JSON format.
+   * Format device infos in plain text.
    * @param output the @a ostringstream to append the infos to.
    * @param verbose whether to add verbose infos.
-   * @param asJson whether to format as JSON rather than plain text.
-   * @param noWait true to not wait for any response asynchronously and return immediately.
+   * @param prefix true for the synchronously retrievable prefix, false for the potentially asynchronous suffix.
    */
-  virtual void formatInfo(ostringstream* output, bool verbose, bool asJson = false, bool noWait = false) = 0;
+  virtual void formatInfo(ostringstream* output, bool verbose, bool prefix) = 0;
+
+  /**
+   * Format device infos in JSON format.
+   * @param output the @a ostringstream to append the infos to.
+   */
+  virtual void formatInfoJson(ostringstream* output) = 0;
 
   /**
    * Open the file descriptor.
@@ -160,7 +154,7 @@ class Device {
    * Has to be called by subclasses upon successful opening the device as last action in open().
    * @return the @a result_t code.
    */
-  virtual result_t afterOpen();
+  virtual result_t afterOpen() { return RESULT_OK; }
 
   /**
    * Close the file descriptor if opened.
@@ -213,12 +207,6 @@ class Device {
   /** the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network). */
   const char* m_name;
 
-  /** whether to allow read access to the device only. */
-  const bool m_readOnly;
-
-  /** whether to send an initial @a ESC symbol in @a open(). */
-  const bool m_initialSend;
-
   /** the @a DeviceListener, or nullptr. */
   DeviceListener* m_listener;
 };
@@ -234,11 +222,9 @@ class FileDevice : public Device {
    * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
    * @param checkDevice whether to regularly check the device availability.
    * @param latency the bus transfer latency in milliseconds.
-   * @param readOnly whether to allow read access to the device only.
-   * @param initialSend whether to send an initial @a ESC symbol in @a open().
    * @param enhancedProto whether to use the ebusd enhanced protocol.
    */
-  FileDevice(const char* name, bool checkDevice, unsigned int latency, bool readOnly, bool initialSend,
+  FileDevice(const char* name, bool checkDevice, unsigned int latency,
       bool enhancedProto = false);
 
  public:
@@ -248,7 +234,10 @@ class FileDevice : public Device {
   virtual ~FileDevice();
 
   // @copydoc
-  void formatInfo(ostringstream* output, bool verbose, bool asJson = false, bool noWait = false) override;
+  void formatInfo(ostringstream* output, bool verbose, bool prefix) override;
+
+  // @copydoc
+  void formatInfoJson(ostringstream* output) override;
 
   // @copydoc
   result_t open() override;
@@ -450,14 +439,12 @@ class SerialDevice : public FileDevice {
    * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
    * @param checkDevice whether to regularly check the device availability.
    * @param extraLatency the extra bus transfer latency in milliseconds.
-   * @param readOnly whether to allow read access to the device only.
-   * @param initialSend whether to send an initial @a ESC symbol in @a open().
    * @param enhancedProto whether to use the ebusd enhanced protocol.
    * @param enhancedHighSpeed whether to use ebusd enhanced protocol in high speed mode.
    */
-  SerialDevice(const char* name, bool checkDevice, unsigned int extraLatency, bool readOnly, bool initialSend,
+  SerialDevice(const char* name, bool checkDevice, unsigned int extraLatency,
                bool enhancedProto = false, bool enhancedHighSpeed = false)
-    : FileDevice(name, checkDevice, extraLatency, readOnly, initialSend, enhancedProto),
+    : FileDevice(name, checkDevice, extraLatency, enhancedProto),
     m_enhancedHighSpeed(enhancedHighSpeed) {
   }
 
@@ -498,14 +485,12 @@ class NetworkDevice : public FileDevice {
    * @param hostOrIp the host name or IP address of the device.
    * @param port the TCP or UDP port of the device.
    * @param extraLatency the extra bus transfer latency in milliseconds.
-   * @param readOnly whether to allow read access to the device only.
-   * @param initialSend whether to send an initial @a ESC symbol in @a open().
    * @param udp true for UDP, false to TCP.
    * @param enhancedProto whether to use the ebusd enhanced protocol.
    */
-  NetworkDevice(const char* name, const char* hostOrIp, uint16_t port, unsigned int extraLatency, bool readOnly,
-      bool initialSend, bool udp, bool enhancedProto = false)
-    : FileDevice(name, true, NETWORK_LATENCY_MS+extraLatency, readOnly, initialSend, enhancedProto),
+  NetworkDevice(const char* name, const char* hostOrIp, uint16_t port, unsigned int extraLatency,
+      bool udp, bool enhancedProto = false)
+    : FileDevice(name, true, NETWORK_LATENCY_MS+extraLatency, enhancedProto),
     m_hostOrIp(hostOrIp), m_port(port), m_udp(udp) {}
 
   /**
@@ -514,6 +499,7 @@ class NetworkDevice : public FileDevice {
   ~NetworkDevice() override {
     if (m_hostOrIp) {
       free((void*)m_hostOrIp);
+      m_hostOrIp = nullptr;
     }
   }
 

@@ -363,8 +363,7 @@ int main(int argc, char* argv[], char* envp[]) {
   }
 
   // open the device
-  Device *device = Device::create(s_opt.device, s_opt.extraLatency, !s_opt.noDeviceCheck, s_opt.readOnly,
-                                  s_opt.initialSend);
+  Device *device = Device::create(s_opt.device, s_opt.extraLatency, !s_opt.noDeviceCheck);
   if (device == nullptr) {
     logWrite(lf_main, ll_error, "unable to create device %s", s_opt.device);  // force logging on exit
     cleanup();
@@ -385,8 +384,14 @@ int main(int argc, char* argv[], char* envp[]) {
   signal(SIGINT, signalHandler);
   signal(SIGTERM, signalHandler);
 
+  // create the MainLoop
+  s_requestQueue = new Queue<Request*>();
+  s_mainLoop = new MainLoop(s_opt, device, s_messageMap, s_scanHelper, s_requestQueue);
+  BusHandler* busHandler = s_mainLoop->getBusHandler();
+  ProtocolHandler* protocol = busHandler->getProtocol();
+
   ostringstream ostream;
-  device->formatInfo(&ostream, false, false, true);
+  protocol->formatInfo(&ostream, false, true);
   string deviceInfoStr = ostream.str();
   logNotice(lf_main, PACKAGE_STRING "." REVISION " started%s on device: %s",
       s_opt.scanConfig ? s_opt.initialScan == ESC ? " with auto scan"
@@ -397,12 +402,7 @@ int main(int argc, char* argv[], char* envp[]) {
   // load configuration files
   s_scanHelper->loadConfigFiles(!s_opt.scanConfig);
 
-  s_requestQueue = new Queue<Request*>();
-
-  // create the MainLoop and start it
-  s_mainLoop = new MainLoop(s_opt, device, s_messageMap, s_scanHelper, s_requestQueue);
-  BusHandler* busHandler = s_mainLoop->getBusHandler();
-  ProtocolHandler* protocol = busHandler->getProtocol();
+  // start the MainLoop
   if (s_opt.injectMessages) {
     int scanAdrCount = 0;
     bool scanAddresses[256] = {};

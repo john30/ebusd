@@ -152,6 +152,7 @@ MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messag
   }
   // create BusHandler
   ebus_protocol_config_t config = {
+    .readOnly = opt.readOnly,
     .ownAddress = m_address,
     .answer = opt.answer,
     .busLostRetries = opt.acquireRetries,
@@ -160,6 +161,7 @@ MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messag
     .slaveRecvTimeout = opt.receiveTimeout,
     .lockCount = opt.masterCount,
     .generateSyn = opt.generateSyn,
+    .initialSend = opt.initialSend,
   };
   m_busHandler = new BusHandler(m_device, m_messages, scanHelper,
       config, opt.pollInterval);
@@ -377,7 +379,7 @@ void MainLoop::run() {
                << ",\"a\":\"other\""
 #endif
                << ",\"u\":" << (now-start);
-          m_device->formatInfo(&ostr, false, true, true);
+          m_protocol->formatInfoJson(&ostr);
           if (m_reconnectCount) {
             ostr << ",\"rc\":" << m_reconnectCount;
           }
@@ -1935,7 +1937,7 @@ result_t MainLoop::executeInfo(const vector<string>& args, const string& user, o
     *ostream << "update check: " << m_updateCheck << "\n";
   }
   *ostream << "device: ";
-  m_device->formatInfo(ostream, verbose);
+  m_protocol->formatInfo(ostream, verbose, false);
   *ostream << "\n";
   if (!user.empty()) {
     *ostream << "user: " << user << "\n";
@@ -2226,7 +2228,7 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
                    << ",\n  \"maxsymbollatency\": " << m_protocol->getMaxSymbolLatency();
         }
       }
-      if (!m_device->isReadOnly()) {
+      if (!m_protocol->isReadOnly()) {
         *ostream << ",\n  \"qq\": " << static_cast<unsigned>(m_address);
       }
       *ostream << ",\n  \"reconnects\": " << m_reconnectCount
