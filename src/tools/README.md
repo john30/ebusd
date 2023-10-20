@@ -2,16 +2,16 @@ eBUS Adapter 3 PIC Loader
 =========================
 
 This is a tool for loading new firmware to the
-[eBUS adapter 3 PIC](https://adapter.ebusd.eu/)
+[eBUS adapter 3 PIC](https://adapter.ebusd.eu/v31)
 and to configure the variant, IP settings for the Ethernet variant, and other settings.
 
 All of this is done via the bootloader on the PIC. Consequently, when the
 bootloader is not running, this tool can't do anything.
-Check the [eBUS adapter 3 documentation](https://adapter.ebusd.eu/picfirmware)
+Check the [eBUS adapter 3 documentation](https://adapter.ebusd.eu/v31/picfirmware)
 on how to start the bootloader.
 
 The binary is part of the [release](https://github.com/john30/ebusd/releases) and a Windows binary based on Cygwin is available for download here:
-[ebuspicloader-windows.zip](https://adapter.ebusd.eu/firmware/ebuspicloader-windows.zip)  
+[ebuspicloader-windows.zip](https://adapter.ebusd.eu/v31/firmware/ebuspicloader-windows.zip)  
 It can be started from within Windows `cmd.exe` after extracting the files to a folder and `cd` into that folder.
 If Cygwin is already installed, only the `ebuspicloader.exe` needs to be extracted and can be called directly
 from within a Cygwin shell.  
