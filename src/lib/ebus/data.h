@@ -836,6 +836,14 @@ class DataFieldTemplates : public MappedFileReader {
    */
   const DataField* get(const string& name) const;
 
+  /**
+   * Dump the templates to the output.
+   * @param outputFormat the @a OutputFormat options.
+   * @param output the @a ostream to dump to.
+   * @return true when a template was written to the output.
+   */
+  bool dump(OutputFormat outputFormat, ostream* output) const;
+
 
  private:
   /** the known template @a DataField instances by name. */

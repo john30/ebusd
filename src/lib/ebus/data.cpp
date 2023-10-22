@@ -482,7 +482,10 @@ void SingleDataField::dumpPrefix(bool prependFieldSeparator, OutputFormat output
     dumpString(prependFieldSeparator, m_name, output);
   }
   if (outputFormat & OF_JSON) {
-    *output << ", \"slave\": " << (m_partType == pt_slaveData ? "true" : "false") << ", ";
+    if (m_partType != pt_any) {
+      *output << ", \"slave\": " << (m_partType == pt_slaveData ? "true" : "false");
+    }
+    *output << ", ";
   } else {
     *output << FIELD_SEPARATOR;
     if (m_partType == pt_masterData) {
@@ -1457,6 +1460,29 @@ const DataField* DataFieldTemplates::get(const string& name) const {
     return nullptr;
   }
   return ref->second;
+}
+
+bool DataFieldTemplates::dump(OutputFormat outputFormat, ostream* output) const {
+  bool prependFieldSeparator = false;
+  for (const auto &it : m_fieldsByName) {
+    const DataField *dataField = it.second;
+    if (outputFormat & OF_JSON) {
+      if (dataField->isSet()) {
+        if (prependFieldSeparator) {
+          *output << ",\n";  
+        }
+        *output << "{\"name\":\"" << dataField->getName(-1) << "\", \"sequence\": [";
+        dataField->dump(false, outputFormat, output);
+        *output << "]}";
+      } else {
+        dataField->dump(prependFieldSeparator, outputFormat, output);
+      }
+    } else {
+      dataField->dump(prependFieldSeparator, outputFormat, output);
+    }
+    prependFieldSeparator = true;
+  }
+  return !prependFieldSeparator;
 }
 
 }  // namespace ebusd

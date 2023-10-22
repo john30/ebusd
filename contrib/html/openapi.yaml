@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: ebusd-http
   description: The API that ebusd provides on HTTP port.
-  version: "23.2"
+  version: "23.3"
 servers:
   - url: http://127.0.0.1:8080/
 paths:
@@ -141,6 +141,50 @@ paths:
           content: { }
         404:
           description: Circuit or message not found.
+          content: { }
+        500:
+          description: General error.
+          content: { }
+  /templates:
+    get:
+      summary: Get all known field templates for the root.
+      responses:
+        200:
+          description: Success.
+          content:
+            application/json;charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/Templates'
+        400:
+          description: Invalid request parameters.
+          content: { }
+        403:
+          description: User not authorized.
+          content: { }
+        500:
+          description: General error.
+          content: { }
+  /templates/{path}:
+    get:
+      summary: Get all known field templates for the path.
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success.
+          content:
+            application/json;charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/Templates'
+        400:
+          description: Invalid request parameters.
+          content: { }
+        403:
+          description: User not authorized.
           content: { }
         500:
           description: General error.
@@ -392,8 +436,12 @@ components:
           type: integer
           minimum: 0
         condition:
-          type: string
-          description: the condition string in case of a conditional message (only with full).
+          description: the condition(s) in case of a conditional message (only with full).
+          oneOf:
+            - $ref: '#/components/schemas/Condition'
+            - type: array
+              items:
+                $ref: '#/components/schemas/Condition'
         lastup:
           $ref: '#/components/schemas/Seconds'
           description: the time in UTC seconds of the last update of the message (0
@@ -407,8 +455,12 @@ components:
           description: destination master or slave address.
           example: 8
         id:
-          $ref: '#/components/schemas/Symbols'
-          description: the message ID composed of PBSB and further master data bytes (only with def).
+          description: the message ID composed of PBSB and further master data bytes (only with def), or an array thereof in case of a chained message.
+          oneOf:
+            - $ref: '#/components/schemas/Symbols'
+            - type: array
+              items:
+                $ref: '#/components/schemas/Symbols'
         comment:
           type: string
           description: the message comment (only with verbose).
@@ -465,10 +517,10 @@ components:
         - type: string
         - type: number
       nullable: true
-    FieldDef:
+    FieldTemplate:
+      description: a single field template.
       required:
         - name
-        - slave
         - type
         - isbits
         - length
@@ -477,9 +529,6 @@ components:
         name:
           type: string
           description: the field name.
-        slave:
-          type: boolean
-          description: whether the field is part of the slave data.
         type:
           type: string
           description: the field type.
@@ -513,6 +562,66 @@ components:
         comment:
           type: string
           description: the field comment.
+    FieldDef:
+      description: a single field definition.
+      allOf:
+        - $ref: '#/components/schemas/FieldTemplate'
+        - type: object
+          required:
+            - slave
+          properties:
+            slave:
+              type: boolean
+              description: whether the field is part of the slave data.
+    Templates:
+      type: array
+      description: list of known field templates.
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/FieldTemplate'
+          - type: object
+            required:
+              - name
+              - sequence
+            properties:
+              name:
+                type: string
+                description: the template set name.
+              sequence:
+                type: array
+                description: the sequence of fields.
+                items:
+                  $ref: '#/components/schemas/FieldTemplate'
+    Condition:
+      description: a single condition.
+      required:
+        - name
+        - message
+      properties:
+        name:
+          type: string
+          description: name of the condition.
+        message:
+          type: string
+          description: name of the referenced message.
+        circuit:
+          type: string
+          description: name of the referenced circuit.
+        zz:
+          maximum: 255
+          minimum: 0
+          type: integer
+          description: the circuit slave address.
+        field:
+          type: string
+          description: the field name in the referenced message.
+        value:
+          type: array
+          description: the value ranges for the condition.
+          items:
+            oneOf:
+              - type: number
+              - type: string
     DataType:
       description: a known field data type.
       type: object

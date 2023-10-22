@@ -2254,6 +2254,18 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
     return formatHttpResult(ret, type, ostream);
   }
 
+  if (uri == "/templates" || uri.substr(0, 11) == "/templates/") {
+    *ostream << "[";
+    OutputFormat verbosity = OF_NAMES|OF_JSON|OF_ALL_ATTRS;
+    string name = uri == "/templates" ? "" : uri.substr(11) + "/";
+    const auto tmpl = m_scanHelper->getTemplates(name);
+    tmpl->dump(verbosity, ostream);
+    *ostream << "\n]";
+    type = 6;
+    *connected = false;
+    return formatHttpResult(ret, type, ostream);
+  }
+
   if (uri == "/raw") {
     time_t since = 0, until = 0;
     bool onlyUnknown = false;

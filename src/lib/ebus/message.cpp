@@ -970,9 +970,8 @@ void Message::decodeJson(bool leadingSeparator, bool appendDirectionCondition, b
       *output << ",\n    \"pollprio\": " << setw(0) << dec << getPollPriority();
     }
     if (isConditional()) {
-      *output << ",\n    \"condition\": \"";
-      m_condition->dump(false, output);
-      *output << "\"";
+      *output << ",\n    \"condition\": ";
+      m_condition->dumpJson(output);
     }
   }
   if (withData) {
@@ -985,13 +984,8 @@ void Message::decodeJson(bool leadingSeparator, bool appendDirectionCondition, b
     }
     *output << ",\n    \"zz\": " << dec << static_cast<unsigned>(m_dstAddress);
     if (withDefinition) {
-      *output << ",\n    \"id\": [" << dec;
-      for (auto it = m_id.begin(); it < m_id.end(); it++) {
-        if (it > m_id.begin()) {
-          *output << ", ";
-        }
-        *output << dec << static_cast<unsigned>(*it);
-      }
+      *output << ",\n    \"id\": [";
+      dumpIdsJson(output);
       *output << "]";
     }
     appendAttributes(outputFormat, output);
@@ -1020,6 +1014,15 @@ void Message::decodeJson(bool leadingSeparator, bool appendDirectionCondition, b
     }
   }
   *output << "\n   }";
+}
+
+void Message::dumpIdsJson(ostringstream* output) const {
+  for (auto it = m_id.begin(); it < m_id.end(); it++) {
+    if (it > m_id.begin()) {
+      *output << ", ";
+    }
+    *output << dec << static_cast<unsigned>(*it);
+  }
 }
 
 bool Message::setDataHandlerState(int state, bool addBits) {
@@ -1296,6 +1299,22 @@ void ChainedMessage::dumpField(const string& fieldName, bool withConditions, Out
   }
 }
 
+void ChainedMessage::dumpIdsJson(ostringstream* output) const {
+  for (auto idsit = m_ids.begin(); idsit < m_ids.end(); idsit++) {
+    if (idsit > m_ids.begin()) {
+      *output << ",";
+    }
+    *output << "[";
+    for (auto it = (*idsit).begin(); it < (*idsit).end(); it++) {
+      if (it > (*idsit).begin()) {
+        *output << ", ";
+      }
+      *output << dec << static_cast<unsigned>(*it);
+    }
+    *output << "]";
+  }
+}
+
 
 /**
  * Get the first available @a Message from the list.
@@ -1527,6 +1546,27 @@ void SimpleCondition::dump(bool matched, ostream* output) const {
   }
 }
 
+void SimpleCondition::dumpJson(ostream* output) const {
+  *output << "{\"name\": \"" << m_refName << "\"";
+  if (!m_circuit.empty()) {
+    *output << ",\"circuit\":\"" << m_circuit << "\"";
+  }
+  *output << ",\"message\":\"" << (m_name.empty() ? "scan" : m_name) << "\"";
+  if (m_dstAddress != SYN) {
+    *output << ",\"zz\":" << dec << static_cast<unsigned>(m_dstAddress);
+  }
+  if (!m_field.empty()) {
+    *output << ",\"field\":\"" << m_field << "\"";
+  }
+  if (m_hasValues) {
+    *output << ",\"value\":[";
+    dumpValuesJson(output);
+    *output << "]";
+  }
+  *output << "}";
+}
+
+
 CombinedCondition* SimpleCondition::combineAnd(Condition* other) {
   CombinedCondition* ret = new CombinedCondition();
   return ret->combineAnd(this)->combineAnd(other);
@@ -1625,6 +1665,17 @@ bool SimpleNumericCondition::checkValue(const Message* message, const string& fi
   return false;
 }
 
+void SimpleNumericCondition::dumpValuesJson(ostream* output) const {
+  bool first = true;
+  for (const auto value : m_valueRanges) {
+    if (!first) {
+      *output << ",";
+    }
+    *output << static_cast<unsigned>(value);
+    first = false;
+  }
+}
+
 
 bool SimpleStringCondition::checkValue(const Message* message, const string& field) {
   ostringstream output;
@@ -1641,11 +1692,35 @@ bool SimpleStringCondition::checkValue(const Message* message, const string& fie
   return false;
 }
 
+void SimpleStringCondition::dumpValuesJson(ostream* output) const {
+  bool first = true;
+  for (const auto value : m_values) {
+    if (!first) {
+      *output << ",";
+    }
+    *output << "\"" << value << "\"";
+    first = false;
+  }
+}
+
 
 void CombinedCondition::dump(bool matched, ostream* output) const {
   for (const auto condition : m_conditions) {
     condition->dump(matched, output);
   }
+}
+
+void CombinedCondition::dumpJson(ostream* output) const {
+  *output << "[";
+  bool first = true;
+  for (const auto condition : m_conditions) {
+    if (!first) {
+      *output << ",";
+    }
+    condition->dumpJson(output);
+    first = false;
+  }
+  *output << "]";
 }
 
 result_t CombinedCondition::resolve(void (*readMessageFunc)(Message* message), MessageMap* messages,
@@ -2817,7 +2892,7 @@ void MessageMap::dump(bool withConditions, OutputFormat outputFormat, ostream* o
   bool first = true;
   bool isJson = (outputFormat & OF_JSON) != 0;
   if (isJson) {
-    *output << (m_addAll ? "[" : "}");
+    *output << (m_addAll ? "[" : "{");
   } else {
     Message::dumpHeader(nullptr, output);
   }

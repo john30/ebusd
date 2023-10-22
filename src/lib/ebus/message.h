@@ -601,6 +601,12 @@ class Message : public AttributedItem {
                           OutputFormat outputFormat, ostringstream* output) const;
 
  protected:
+  /**
+   * Dump the ID(s) to the output in JSON format.
+   * @param output the @a ostringstream to append to.
+  */
+  virtual void dumpIdsJson(ostringstream* output) const;
+
   /** the source filename. */
   const string m_filename;
 
@@ -748,6 +754,8 @@ class ChainedMessage : public Message {
   result_t prepareMasterPart(size_t index, const char separator, istringstream* input,
       MasterSymbolString* master) override;
 
+  // @copydoc
+  void dumpIdsJson(ostringstream* output) const override;
 
  public:
   // @copydoc
@@ -885,6 +893,18 @@ class Condition {
   virtual void dump(bool matched, ostream* output) const = 0;
 
   /**
+   * Write the condition definition in JSON to the @a ostream.
+   * @param output the @a ostream to append to.
+   */
+  virtual void dumpJson(ostream* output) const = 0;
+
+  /**
+   * Write the values part of the condition definition in JSON to the @a ostream.
+   * @param output the @a ostream to append to.
+   */
+  virtual void dumpValuesJson(ostream* output) const { /* empty on top level*/ };
+
+  /**
    * Combine this condition with another instance using a logical and.
    * @param other the @a Condition to combine with.
    * @return the @a CombinedCondition instance.
@@ -950,6 +970,9 @@ class SimpleCondition : public Condition {
 
   // @copydoc
   void dump(bool matched, ostream* output) const override;
+
+  // @copydoc
+  void dumpJson(ostream* output) const override;
 
   // @copydoc
   CombinedCondition* combineAnd(Condition* other) override;
@@ -1043,6 +1066,9 @@ class SimpleNumericCondition : public SimpleCondition {
   // @copydoc
   bool checkValue(const Message* message, const string& field) override;
 
+  // @copydoc
+  void dumpValuesJson(ostream* output) const override;
+
 
  private:
   /** the valid value ranges (pairs of from/to inclusive), empty for @a m_message seen check. */
@@ -1084,6 +1110,9 @@ class SimpleStringCondition : public SimpleCondition {
   // @copydoc
   bool checkValue(const Message* message, const string& field) override;
 
+  // @copydoc
+  void dumpValuesJson(ostream* output) const override;
+
 
  private:
   /** the valid values. */
@@ -1109,6 +1138,9 @@ class CombinedCondition : public Condition {
 
   // @copydoc
   void dump(bool matched, ostream* output) const override;
+
+  // @copydoc
+  void dumpJson(ostream* output) const override;
 
   // @copydoc
   CombinedCondition* combineAnd(Condition* other) override { m_conditions.push_back(other); return this; }

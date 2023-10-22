@@ -202,6 +202,19 @@ bool ScanHelper::readTemplates(const string relPath, const string extension, boo
   return false;
 }
 
+void ScanHelper::dumpTemplates(OutputFormat outputFormat, ostream* output) const {
+  bool prependSeparator = false;
+  for (auto it : m_templatesByPath) {
+    if (prependSeparator) {
+      *output << ",";
+    }
+    const auto templates = it.second;
+    if (templates->dump(outputFormat, output)) {
+      prependSeparator = true;
+    }
+  }
+}
+
 result_t ScanHelper::readConfigFiles(const string& relPath, const string& extension, bool recursive,
   string* errorDescription) {
   vector<string> files, dirs;

@@ -159,6 +159,13 @@ class ScanHelper : public Resolver {
   bool readTemplates(const string relPath, const string extension, bool available);
 
   /**
+   * Dump the loaded @a DataFieldTemplates to the output.
+   * @param outputFormat the @a OutputFormat options.
+   * @param output the @a ostream to dump to.
+   */
+  void dumpTemplates(OutputFormat outputFormat, ostream* output) const;
+
+  /**
    * Read the configuration files from the specified path.
    * @param relPath the relative path from which to read the files (without trailing "/").
    * @param extension the filename extension of the files to read.
