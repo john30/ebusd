@@ -2,6 +2,7 @@
 if [[ "$1" == "-h" ]]; then
   echo "usage: $0 [release|UPLOADHOST]"
   echo "  without arguments: build and push devel docker images"
+  echo "  knxd: build and push devel docker images with knxd support"
   echo "  release: build and push release docker images from latest release binaries"
   echo "  UPLOADHOST: build Debian release packages (with and without MQTT) and upload them to UPLOADHOST"
   exit 1
@@ -27,6 +28,14 @@ if [[ -z "$1" ]]; then
   target=image
   outputFmt='-o type=docker,type=registry'
   tagsuffix=':devel'
+  if [[ -n "$GIT_BRANCH" ]] && [[ "x$GIT_BRANCH" != "xmaster" ]]; then
+    tagsuffix="$tagsuffix-$GIT_BRANCH"
+  fi
+elif [[ "x$1" = "xknxd" ]]; then
+  namesuffix='.knxd'
+  target=image
+  outputFmt='-o type=docker,type=registry'
+  tagsuffix=':knxd'
   if [[ -n "$GIT_BRANCH" ]] && [[ "x$GIT_BRANCH" != "xmaster" ]]; then
     tagsuffix="$tagsuffix-$GIT_BRANCH"
   fi
