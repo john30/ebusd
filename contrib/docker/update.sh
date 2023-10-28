@@ -31,7 +31,7 @@ replaceTemplate
 version_variant='-knxd'
 dev_packages='libmosquitto-dev knxd-dev'
 run_packages='libmosquitto1 knxd-tools'
-mmake='RUNTEST=full GIT_REVISION=\$GIT_REVISION ./make_debian.sh --with-knxd'
+make='RUNTEST=full GIT_REVISION=\$GIT_REVISION ./make_debian.sh --with-knxd'
 upload_lines=''
 copydeb='COPY --from=build /build/ebusd-*_mqtt1.deb ebusd.deb'
 debsrc='ebusd.deb \&\& rm -f ebusd.deb'
