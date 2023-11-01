@@ -65,6 +65,7 @@ static const ebusd::argDef argDefs[] = {
     {nullptr,     0, nullptr, 0, "Tool options:"},
     {"verbose", 'v', nullptr, 0, "enable verbose output"},
     {"slow",    's', nullptr, 0, "low speed mode for transfer (115kBd instead of 921kBd)"},
+    {nullptr, 0x100, "PORT", ebusd::af_optional, "port to connect to"},
     {nullptr,     0, nullptr, 0, nullptr},
 };
 
@@ -88,6 +89,7 @@ static bool setVariantForced = false;
 static char* flashFile = nullptr;
 static bool reset = false;
 static bool lowSpeed = false;
+static const char* portArg = nullptr;
 
 bool parseByte(const char *arg, uint8_t minValue, uint8_t maxValue, uint8_t *result) {
   char* strEnd = nullptr;
@@ -125,7 +127,7 @@ bool parseShort(const char *arg, uint16_t minValue, uint16_t maxValue, uint16_t 
  * @param arg the option argument, or nullptr.
  * @param parseOpt the parse options.
  */
-static int parse_opt(int key, char *arg, const ebusd::argParseOpt *parseOpt) {
+static int parse_opt(int key, char *arg, const ebusd::argParseOpt *parseOpt, void *userArg) {
   char *ip = nullptr, *part = nullptr;
   int pos = 0, sum = 0;
   struct stat st;
@@ -326,6 +328,9 @@ static int parse_opt(int key, char *arg, const ebusd::argParseOpt *parseOpt) {
       break;
     case 's':  // --slow
       lowSpeed = true;
+      break;
+    case 0x100:  // PORT
+      portArg = arg;
       break;
     default:
       return ESRCH;
@@ -1161,10 +1166,8 @@ int run(int fd);
 int main(int argc, char* argv[]) {
   ebusd::argParseOpt parseOpt = {
     argDefs,
-    parse_opt,
+    reinterpret_cast<ebusd::parse_function_t>(parse_opt),
     ebusd::af_noVersion,
-    "ebuspicloader",
-    "[PORT]",
     "A tool for loading firmware to the eBUS adapter PIC and configure adjustable settings.",
     "PORT is either the serial port to use (e.g. "
 #ifdef __CYGWIN__
@@ -1174,11 +1177,9 @@ int main(int argc, char* argv[]) {
 #endif
     ") that also supports a trailing wildcard '*' for testing"
     " multiple ports, or a network port as \"ip:port\" for use with e.g. socat or ebusd-esp in PIC pass-through mode.",
-    nullptr,
     nullptr
   };
-  int arg_index = -1;
-  switch (ebusd::argParse(&parseOpt, argc, argv, &arg_index)) {
+  switch (ebusd::argParse(&parseOpt, argc, argv, nullptr)) {
     case 0:  // OK
       break;
     case '?':  // help printed
@@ -1187,20 +1188,21 @@ int main(int argc, char* argv[]) {
       return EINVAL;
   }
 
+  bool forceHelp = false;
   if (setIp != setMask || (setMacFromIp && !setIp)) {
     std::cerr << "incomplete IP arguments" << std::endl;
-    arg_index = argc;  // force help output
+    forceHelp = true;
   }
-  if (arg_index < 0 || argc-arg_index < 1) {
+  if (forceHelp || !portArg) {
     if (flashFile) {
       printFileChecksum();
       exit(EXIT_SUCCESS);
     } else {
-      ebusd::argHelp(&parseOpt);
+      ebusd::argHelp(argv[0], &parseOpt);
       exit(EXIT_FAILURE);
     }
   }
-  std::string port = argv[arg_index];
+  std::string port = portArg;
   std::string::size_type pos = port.find('*');
   if (pos == std::string::npos || pos != port.length()-1) {
     int fd;

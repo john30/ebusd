@@ -222,8 +222,7 @@ void signalHandler(int sig) {
  * @return the exit code.
  */
 int main(int argc, char* argv[], char* envp[]) {
-  int arg_index = -1;
-  switch (parse_main_args(argc, argv, envp, &s_opt, &arg_index)) {
+  switch (parse_main_args(argc, argv, envp, &s_opt)) {
     case 0:  // OK
       break;
     case '?':  // help printed
@@ -236,9 +235,9 @@ int main(int argc, char* argv[], char* envp[]) {
       return EINVAL;
   }
 
-  if (arg_index >= 0) {
+  if (s_opt.injectCount > 0) {
     if (!s_opt.injectMessages && !(s_opt.checkConfig && s_opt.scanConfig)) {
-      fprintf(stderr, "invalid arguments starting with \"%s\"", argv[arg_index]);
+      fprintf(stderr, "invalid inject arguments");
       return EINVAL;
     }
   }
@@ -302,10 +301,11 @@ int main(int argc, char* argv[], char* envp[]) {
   if (s_opt.checkConfig) {
     logNotice(lf_main, PACKAGE_STRING "." REVISION " performing configuration check...");
 
-    result_t result = s_scanHelper->loadConfigFiles(!s_opt.scanConfig || arg_index >= argc);
+    result_t result = s_scanHelper->loadConfigFiles(!s_opt.scanConfig || s_opt.injectCount <= 0);
     result_t overallResult = s_scanHelper->executeInstructions(nullptr);
     MasterSymbolString master;
     SlaveSymbolString slave;
+    int arg_index = argc - s_opt.injectCount;
     while (result == RESULT_OK && s_opt.scanConfig && arg_index < argc) {
       // check scan config for each passed ident message
       if (!s_scanHelper->parseMessage(argv[arg_index++], true, &master, &slave)) {
@@ -413,11 +413,11 @@ int main(int argc, char* argv[], char* envp[]) {
   if (s_opt.injectMessages) {
     int scanAdrCount = 0;
     bool scanAddresses[256] = {};
-    while (arg_index < argc) {
+    for (int arg_index = argc - s_opt.injectCount; arg_index < argc; arg_index++) {
       // add each passed message
       MasterSymbolString master;
       SlaveSymbolString slave;
-      if (!s_scanHelper->parseMessage(argv[arg_index++], false, &master, &slave)) {
+      if (!s_scanHelper->parseMessage(argv[arg_index], false, &master, &slave)) {
         continue;
       }
       protocol->injectMessage(master, slave);

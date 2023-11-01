@@ -62,6 +62,7 @@ static struct options opt = {
 static const ebusd::argDef argDefs[] = {
   {"device", 'd', "DEV",     0, "Write to DEV (serial device) [/dev/ttyUSB60]"},
   {"time",   't', "USEC",    0, "Delay each byte by USEC us [10000]"},
+  {nullptr, 0x100, "DUMPFILE", af_optional, "Dump file to read [/tmp/ebus_dump.bin]"},
 
   {nullptr,    0, nullptr,   0, nullptr},
 };
@@ -72,8 +73,7 @@ static const ebusd::argDef argDefs[] = {
  * @param arg the option argument, or nullptr.
  * @param parseOpt the parse options.
  */
-static int parse_opt(int key, char *arg, const ebusd::argParseOpt *parseOpt) {
-  struct options *opt = (struct options*)parseOpt->userArg;
+static int parse_opt(int key, char *arg, const ebusd::argParseOpt *parseOpt, struct options *opt) {
   char* strEnd = nullptr;
   switch (key) {
   // Device settings:
@@ -91,6 +91,14 @@ static int parse_opt(int key, char *arg, const ebusd::argParseOpt *parseOpt) {
       return EINVAL;
     }
     break;
+  case 0x100:  // DUMPFILE
+    if (arg[0] == 0 || strcmp("/", arg) == 0) {
+      argParseError(parseOpt, "invalid dumpfile");
+      return EINVAL;
+    }
+    opt->dumpFile = arg;
+    break;
+
   default:
     return ESRCH;
   }
@@ -107,13 +115,9 @@ static int parse_opt(int key, char *arg, const ebusd::argParseOpt *parseOpt) {
 int main(int argc, char* argv[]) {
   ebusd::argParseOpt parseOpt = {
     argDefs,
-    parse_opt,
+    reinterpret_cast<parse_function_t>(parse_opt),
     af_noVersion,
-    "ebusfeed",
-    "[DUMPFILE]",
     "Feed data from an " PACKAGE " DUMPFILE to a serial device.",
-    "With no DUMPFILE, /tmp/ebus_dump.bin is used.\n"
-    "\n"
     "Example for setting up two pseudo terminals with 'socat':\n"
     "  1. 'socat -d -d pty,raw,echo=0 pty,raw,echo=0'\n"
     "  2. create symbol links to appropriate devices, e.g.\n"
@@ -122,10 +126,8 @@ int main(int argc, char* argv[]) {
     "  3. start " PACKAGE ": '" PACKAGE " -f -d /dev/ttyUSB20 --nodevicecheck'\n"
     "  4. start ebusfeed: 'ebusfeed /path/to/ebus_dump.bin'",
     nullptr,
-    &opt
   };
-  int arg_index = -1;
-  switch (ebusd::argParse(&parseOpt, argc, argv, &arg_index)) {
+  switch (ebusd::argParse(&parseOpt, argc, argv, &opt)) {
     case 0:  // OK
       break;
     case '?':  // help printed
@@ -133,20 +135,8 @@ int main(int argc, char* argv[]) {
     default:
       return EINVAL;
   }
-  if (arg_index >= 0) {
-    if (argv[arg_index][0] == 0 || strcmp("/", argv[arg_index]) == 0) {
-      argParseError(parseOpt, "invalid dumpfile");
-      return EINVAL;
-    }
-    if (arg_index != argc -1) {
-      // more than one arg
-      argParseError(parseOpt, "multiple dumpfile");
-      return EINVAL;
-    }
-    opt.dumpFile = argv[arg_index];
-  }
 
-  Device* device = Device::create(opt.device, false, false, false);
+  Device* device = Device::create(opt.device, 0, false);
   if (device == nullptr) {
     cout << "unable to create device " << opt.device << endl;
     return EINVAL;

@@ -140,7 +140,7 @@ void splitFields(const string& str, vector<string>* row);
  * @param arg the option argument, or nullptr.
  * @param state the parsing state.
  */
-static int mqtt_parse_opt(int key, char *arg, const argParseOpt *parseOpt) {
+static int mqtt_parse_opt(int key, char *arg, const argParseOpt *parseOpt, void *userArg) {
   result_t result = RESULT_OK;
   unsigned int value;
   switch (key) {

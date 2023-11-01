@@ -28,50 +28,50 @@ namespace ebusd {
 
 #define isAlpha(c) (((c) >= 'a' && (c) <= 'z') || ((c) >= 'A' && (c) <= 'Z'))
 
-void calcCounts(const argDef *argDefs, int &count, int &shortCharsCount, int &shortOptsCount) {
+void calcCounts(const argDef *argDefs, int *count, int *shortCharsCount, int *shortOptsCount) {
   for (const argDef *arg = argDefs; arg && arg->help; arg++) {
     if (!arg->name) {
       continue;
     }
-    count++;
+    (*count)++;
     if (!isAlpha(arg->key)) {
       continue;
     }
-    shortCharsCount++;
-    shortOptsCount++;
+    (*shortCharsCount)++;
+    (*shortOptsCount)++;
     if (arg->valueName) {
-      shortOptsCount++;
+      (*shortOptsCount)++;
       if (arg->flags & af_optional) {
-        shortOptsCount++;
+        (*shortOptsCount)++;
       }
     }
   }
 }
 
-void buildOpts(const argDef *argDefs, int &count, int &shortCharsCount, int &shortOptsCount,
+void buildOpts(const argDef *argDefs, int *count, int *shortCharsCount, int *shortOptsCount,
   struct option *longOpts, char *shortChars, int *shortIndexes, char *shortOpts, int argDefIdx) {
-  struct option *opt = longOpts+count;
+  struct option *opt = longOpts+(*count);
   for (const argDef *arg = argDefs; arg && arg->help; arg++, argDefIdx++) {
     if (!arg->name) {
       continue;
     }
     opt->name = arg->name;
     opt->has_arg = arg->valueName ? ((arg->flags & af_optional) ? optional_argument : required_argument) : no_argument;
-    opt->flag = nullptr;
+    opt->flag = NULL;
     opt->val = argDefIdx;
     if (isAlpha(arg->key)) {
-      shortChars[shortCharsCount] = static_cast<char>(arg->key);
-      shortIndexes[shortCharsCount++] = count;
-      shortOpts[shortOptsCount++] = static_cast<char>(arg->key);
+      shortChars[(*shortCharsCount)] = static_cast<char>(arg->key);
+      shortIndexes[(*shortCharsCount)++] = *count;
+      shortOpts[(*shortOptsCount)++] = static_cast<char>(arg->key);
       if (arg->valueName) {
-        shortOpts[shortOptsCount++] = ':';
+        shortOpts[(*shortOptsCount)++] = ':';
         if (arg->flags & af_optional) {
-          shortOpts[shortOptsCount++] = ':';
+          shortOpts[(*shortOptsCount)++] = ':';
         }
       }
     }
     opt++;
-    count++;
+    (*count)++;
   }
 }
 
@@ -87,17 +87,17 @@ static const argDef versionArgDefs[] = {
   endArgDef
 };
 
-int argParse(const argParseOpt *parseOpt, int argc, char **argv, int *argIndex) {
+int argParse(const argParseOpt *parseOpt, int argc, char **argv, void* userArg) {
   int count = 0, shortCharsCount = 0, shortOptsCount = 0;
   if (!(parseOpt->flags & af_noHelp)) {
-    calcCounts(helpArgDefs, count, shortCharsCount, shortOptsCount);
+    calcCounts(helpArgDefs, &count, &shortCharsCount, &shortOptsCount);
   }
   if (!(parseOpt->flags & af_noVersion)) {
-    calcCounts(versionArgDefs, count, shortCharsCount, shortOptsCount);
+    calcCounts(versionArgDefs, &count, &shortCharsCount, &shortOptsCount);
   }
-  calcCounts(parseOpt->argDefs, count, shortCharsCount, shortOptsCount);
+  calcCounts(parseOpt->argDefs, &count, &shortCharsCount, &shortOptsCount);
   for (const argParseChildOpt *child = parseOpt->childOpts; child && child->argDefs; child++) {
-    calcCounts(child->argDefs, count, shortCharsCount, shortOptsCount);
+    calcCounts(child->argDefs, &count, &shortCharsCount, &shortOptsCount);
   }
   struct option *longOpts = (struct option*)calloc(count+1, sizeof(struct option));  // room for EOF
   char *shortChars = reinterpret_cast<char*>(calloc(shortCharsCount+1, sizeof(char)));  // room for \0
@@ -109,18 +109,18 @@ int argParse(const argParseOpt *parseOpt, int argc, char **argv, int *argIndex) 
   shortOpts[shortOptsCount++] = '+';  // posix mode to stop at first non-option
   shortOpts[shortOptsCount++] = ':';  // return ':' for missing option
   if (!(parseOpt->flags & af_noHelp)) {
-    buildOpts(helpArgDefs, count, shortCharsCount, shortOptsCount, longOpts, shortChars,
+    buildOpts(helpArgDefs, &count, &shortCharsCount, &shortOptsCount, longOpts, shortChars,
       shortIndexes, shortOpts, 0xff00);
   }
   if (!(parseOpt->flags & af_noVersion)) {
-    buildOpts(versionArgDefs, count, shortCharsCount, shortOptsCount, longOpts, shortChars,
+    buildOpts(versionArgDefs, &count, &shortCharsCount, &shortOptsCount, longOpts, shortChars,
       shortIndexes, shortOpts, 0xff01);
   }
-  buildOpts(parseOpt->argDefs, count, shortCharsCount, shortOptsCount, longOpts, shortChars,
+  buildOpts(parseOpt->argDefs, &count, &shortCharsCount, &shortOptsCount, longOpts, shortChars,
     shortIndexes, shortOpts, 0);
   int children = 0;
   for (const argParseChildOpt *child = parseOpt->childOpts; child && child->argDefs; child++) {
-    buildOpts(child->argDefs, count, shortCharsCount, shortOptsCount, longOpts, shortChars,
+    buildOpts(child->argDefs, &count, &shortCharsCount, &shortOptsCount, longOpts, shortChars,
       shortIndexes, shortOpts, 0x100*(++children));
   }
   optind = 1;  // setting to 0 does not work
@@ -177,16 +177,49 @@ int argParse(const argParseOpt *parseOpt, int argc, char **argv, int *argIndex) 
       parser = parseOpt->parser;
     }
     const argDef *arg = argDefs + (val & 0xff);
-    c = parser(arg->key, optarg, parseOpt);
+    c = parser(arg->key, optarg, parseOpt, userArg);
     if (c != 0) {
       ret = c;
       break;
     }
   }
+  if (ret == 0) {
+    // check for positionals
+    for (const argDef *arg = parseOpt->argDefs; arg && arg->help; arg++) {
+      if (arg->name || !arg->valueName) {
+        continue;  // short/long arg or group
+      }
+      if (optind < argc) {
+        int key = arg->key;
+        do {
+          c = parseOpt->parser(key, argv[optind], parseOpt, userArg);
+          if (c != 0) {
+            ret = c;
+            break;
+          }
+          if (optind+1 >= argc || !(arg->flags & af_multiple)) {
+            break;
+          }
+          key++;
+          optind++;
+        } while (true);
+        if (ret != 0) {
+          break;
+        }
+      } else if (!(arg->flags & af_optional)) {
+        ret = ':';  // missing argument
+        fprintf(stderr, "missing argument\n");
+        break;
+      }
+      optind++;
+    }
+    if (ret == 0 && optind < argc) {
+      ret = '!';  // extra unexpected argument
+      fprintf(stderr, "extra argument %s\n", argv[optind]);
+    }
+  }
   if (ret == '?') {
-    argHelp(parseOpt);
-  } else if (argIndex && optind < argc) {
-    *argIndex = optind;
+    argHelp(argv[0], parseOpt);
   }
   free(longOpts);
   free(shortChars);
@@ -270,7 +303,7 @@ size_t calcIndent(const argDef *argDefs) {
 
 void printArgs(const argDef *argDefs, size_t indent) {
   for (const argDef *arg = argDefs; arg && arg->help; arg++) {
-    if (!arg->name) {
+    if (!arg->name && !arg->valueName) {
       if (*arg->help) {
         printf("\n %s\n", arg->help);
       } else {
@@ -284,15 +317,21 @@ void printArgs(const argDef *argDefs, size_t indent) {
     } else {
       printf("   ");
     }
-    printf(" --%s", arg->name);
-    size_t taken = 2 + 3 + 3 + strlen(arg->name);
+    size_t taken = 2 + 3 + 3;
+    if (arg->name) {
+      printf(" --%s", arg->name);
+      taken += strlen(arg->name);
+    } else {
+      printf("   ");
+    }
     if (arg->valueName) {
-      taken += 1 + strlen(arg->valueName);
+      bool multi = arg->flags & af_multiple;
+      taken += (arg->name ? 1 : 0) + strlen(arg->valueName) + (multi ? 3 : 0);
       if (arg->flags & af_optional) {
-        printf("[=%s]", arg->valueName);
+        printf("[%s%s%s]", arg->name ? "=" : "", arg->valueName, multi ? "..." : "");
         taken += 2;
       } else {
-        printf("=%s", arg->valueName);
+        printf("%s%s%s", arg->name ? "=" : "", arg->valueName, multi ? "..." : "");
       }
     }
     if (taken > indent) {
@@ -305,7 +344,7 @@ void printArgs(const argDef *argDefs, size_t indent) {
   }
 }
 
-void argHelp(const argParseOpt *parseOpt) {
+void argHelp(const char* name, const argParseOpt *parseOpt) {
   size_t indent = calcIndent(parseOpt->argDefs);
   if (indent < MAX_INDENT) {
     for (const argParseChildOpt *child = parseOpt->childOpts; child && child->argDefs; child++) {
@@ -323,9 +362,19 @@ void argHelp(const argParseOpt *parseOpt) {
   } else if (indent < MIN_INDENT) {
     indent = MIN_INDENT;
   }
-  printf("Usage: %s [OPTION...] %s\n",
-    parseOpt->name,
-    parseOpt->positional ? parseOpt->positional : "");
+  printf("Usage: %s [OPTION...]", basename(name));
+  for (const argDef *arg = parseOpt->argDefs; arg && arg->help; arg++) {
+    if (arg->name || !arg->valueName) {
+      continue;
+    }
+    bool multi = arg->flags & af_multiple;
+    if (arg->flags & af_optional) {
+      printf(" [%s%s]", arg->valueName, multi ? "..." : "");
+    } else {
+      printf(" %s%s", arg->valueName, multi ? "..." : "");
+    }
+  }
+  printf("\n");
   wrap(parseOpt->help, 0, 0);
   printArgs(parseOpt->argDefs, indent);
   for (const argParseChildOpt *child = parseOpt->childOpts; child && child->argDefs; child++) {

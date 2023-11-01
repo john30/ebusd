@@ -26,15 +26,16 @@ namespace ebusd {
 /** the available arg flags. */
 enum ArgFlag {
   af_optional = 1<<0,  //!< optional argument value
-  af_noHelp = 1<<1,  //!< do not include -?/--help option
-  af_noVersion = 1<<2,  //!< do not include -V/--version option
+  af_multiple = 1<<1,  //!< may appear multiple times (only allowed for last positional)
+  af_noHelp = 1<<2,  //!< do not include -?/--help option
+  af_noVersion = 1<<3,  //!< do not include -V/--version option
 };
 
 /** Definition of a single argument. */
 typedef struct argDef {
-  const char* name;  //!< the (long) name of the argument, or nullptr for a group header
+  const char* name;  //!< the (long) name of the argument, or nullptr for a group header or positional
   int key;  //!< the argument key, also used as short name if alphabetic or the question mark
-  const char* valueName;  //!< the optional argument value name
+  const char* valueName;  //!< the optional argument value name, or nullptr for group header or argument without value name
   int flags;  //!< flags for the argument, bit combination of @a ArgFlag
   const char* help;  //!< help text (mandatory)
 } argDef;
@@ -43,12 +44,13 @@ struct argParseOpt;
 
 /**
  * Function to be called for each argument.
- * @param key the argument key as defined.
+ * @param key the argument key as defined. for positional arguments with multiple flag this will be increased with each call.
  * @param arg the argument value, or nullptr.
- * @param parseOpt ppointer to the @a argParseOpt structure.
+ * @param parseOpt pointer to the @a argParseOpt structure.
+ * @param userArg pointer to user argument.
  * @return 0 on success, non-zero otherwise.
  */
-typedef int (*parse_function_t)(int key, char *arg, const struct argParseOpt *parseOpt);
+typedef int (*parse_function_t)(int key, char *arg, const struct argParseOpt *parseOpt, void *userArg);
 
 /** Options for child definitions. */
 typedef struct argParseChildOpt {
@@ -61,12 +63,9 @@ typedef struct argParseOpt {
   const argDef *argDefs;  //!< pointer to the argument defintions (last one needs to have nullptr help as end sign)
   parse_function_t parser;  //!< parse function to use
   int flags;  //!< flags for the parser, bit combination of @a ArgFlag
-  const char* name;  //!< name of the program parsed
-  const char* positional;  //!< help text for optional positional argument
   const char* help;  //!< help text for the program (second line of help output)
   const char* suffix;  //!< optional help suffix text
   const argParseChildOpt *childOpts;  //!< optional child definitions
-  void* userArg;  //!< optional user argument
 } argParseOpt;
 
 /**
@@ -74,17 +73,18 @@ typedef struct argParseOpt {
  * @param parseOpt pointer to the @a argParseOpt structure.
  * @param argc the argument count (including the full program name in index 0).
  * @param argv the argument values (including the full program name in index 0).
- * @param argIndex optional pointer for storing the index to the first non-argument found in argv.
+ * @param userArg pointer to user argument to pass to parser.
  * @return 0 on success, '!' for an invalid argument value, ':' for a missing argument value,
  * '?' when "-?" was given, or the result of the parse function if non-zero.
  */
-int argParse(const argParseOpt *parseOpt, int argc, char **argv, int *argIndex);
+int argParse(const argParseOpt *parseOpt, int argc, char **argv, void *userArg);
 
 /**
  * Print the help text.
- * @param parseOpt ppointer to the @a argParseOpt structure.
+ * @param name the name of the program.
+ * @param parseOpt pointer to the @a argParseOpt structure.
  */
-void argHelp(const argParseOpt *parseOpt);
+void argHelp(const char* name, const argParseOpt *parseOpt);
 
 /**
  * Convenience macro to print an error message to stderr.

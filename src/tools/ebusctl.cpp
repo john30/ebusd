@@ -47,7 +47,6 @@ struct options {
   uint16_t timeout;       //!< ebusd connect/send/receive timeout
   bool errorResponse;     //!< non-zero exit on error response
 
-  char* const *args;      //!< arguments to pass to ebusd
   unsigned int argCount;  //!< number of arguments to pass to ebusd
 };
 
@@ -58,7 +57,6 @@ static struct options opt = {
   60,           // timeout
   false,        // non-zero exit on error response
 
-  nullptr,      // args
   0             // argCount
 };
 
@@ -71,6 +69,8 @@ static const argDef argDefs[] = {
                                ", 0 for none [60]"},
   {"error",   'e', nullptr, 0, "Exit non-zero if the connection was fine but the response indicates non-success"},
 
+  {nullptr, 0x100, "COMMAND", af_optional|af_multiple, "COMMAND (and arguments) to send to " PACKAGE "."},
+
   {nullptr,     0, nullptr, 0, nullptr},
 };
 
@@ -80,8 +80,7 @@ static const argDef argDefs[] = {
  * @param arg the option argument, or nullptr.
  * @param parseOpt the parse options.
  */
-static int parse_opt(int key, char *arg, const argParseOpt *parseOpt) {
-  struct options *opt = (struct options*)parseOpt->userArg;
+static int parse_opt(int key, char *arg, const argParseOpt *parseOpt, struct options *opt) {
   char* strEnd = nullptr;
   unsigned int value;
   switch (key) {
@@ -113,7 +112,11 @@ static int parse_opt(int key, char *arg, const argParseOpt *parseOpt) {
     opt->errorResponse = true;
     break;
   default:
-    return ESRCH;
+    if (key >= 0x100) {
+      opt->argCount++;
+    } else {
+      return ESRCH;
+    }
   }
   return 0;
 }
@@ -344,18 +347,14 @@ bool connect(const char* host, uint16_t port, uint16_t timeout, char* const *arg
 int main(int argc, char* argv[]) {
   argParseOpt parseOpt = {
     argDefs,
-    parse_opt,
+    reinterpret_cast<parse_function_t>(parse_opt),
     af_noVersion,
-    "ebusctl",
-    "[COMMAND [CMDOPT...]]",
     "Client for accessing " PACKAGE " via TCP.",
-    "If given, send COMMAND together with CMDOPT options to " PACKAGE ".\n"
+    "If given, send COMMAND together with arguments to " PACKAGE ".\n"
     "Use 'help' as COMMAND for help on available " PACKAGE " commands.",
     nullptr,
-    &opt
   };
-  int arg_index = -1;
-  switch (argParse(&parseOpt, argc, argv, &arg_index)) {
+  switch (argParse(&parseOpt, argc, argv, &opt)) {
     case 0:  // OK
       break;
     case '?':  // help printed
@@ -363,12 +362,8 @@ int main(int argc, char* argv[]) {
     default:
       return EINVAL;
   }
-  if (arg_index >= 0) {
-    opt.args = argv + arg_index;
-    opt.argCount = argc - arg_index;
-  }
 
-  bool success = connect(opt.server, opt.port, opt.timeout, opt.args, opt.argCount);
+  bool success = connect(opt.server, opt.port, opt.timeout, argv + argc - opt.argCount, opt.argCount);
 
   exit(success ? EXIT_SUCCESS : EXIT_FAILURE);
 }

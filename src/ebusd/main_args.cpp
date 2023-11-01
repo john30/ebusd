@@ -56,6 +56,7 @@ static const options_t s_default_opt = {
   .pollInterval = 5,
   .injectMessages = false,
   .stopAfterInject = false,
+  .injectCount = 0,
   .caFile = nullptr,
   .caPath = nullptr,
 
@@ -133,6 +134,7 @@ static string s_configPath = CONFIG_PATH;
 #define O_DMPFIL (O_RAWSIZ-1)
 #define O_DMPSIZ (O_DMPFIL-1)
 #define O_DMPFLU (O_DMPSIZ-1)
+#define O_INJPOS 0x100
 
 /** the definition of the known program arguments. */
 static const argDef argDefs[] = {
@@ -169,6 +171,7 @@ static const argDef argDefs[] = {
   {"pollinterval",   O_POLINT, "SEC",      0, "Poll for data every SEC seconds (0=disable) [5]"},
   {"inject",         'i',      "stop", af_optional, "Inject remaining arguments as already seen messages (e.g. "
       "\"FF08070400/0AB5454850303003277201\"), optionally stop afterwards"},
+  {nullptr,          O_INJPOS, "INJECT", af_optional|af_multiple, "Message(s) to inject (if --inject was given)"},
 #ifdef HAVE_SSL
   {"cafile",         O_CAFILE, "FILE",     0, "Use CA FILE for checking certificates (uses defaults,"
                                               " \"#\" for insecure)"},
@@ -229,8 +232,7 @@ static const argDef argDefs[] = {
  * @param arg the option argument, or nullptr.
  * @param parseOpt the parse options.
  */
-static int parse_opt(int key, char *arg, const argParseOpt *parseOpt) {
-  struct options *opt = (struct options*)parseOpt->userArg;
+static int parse_opt(int key, char *arg, const argParseOpt *parseOpt, struct options *opt) {
   result_t result = RESULT_OK;
   unsigned int value;
 
@@ -590,7 +592,14 @@ static int parse_opt(int key, char *arg, const argParseOpt *parseOpt) {
     break;
 
   default:
-    return ESRCH;
+    if (key >= O_INJPOS) {  // INJECT
+      if (!opt->injectMessages || !arg || !arg[0]) {
+        return ESRCH;
+      }
+      opt->injectCount++;
+    } else {
+      return ESRCH;
+    }
   }
 
   // check for invalid arg combinations
@@ -610,18 +619,15 @@ static int parse_opt(int key, char *arg, const argParseOpt *parseOpt) {
   return 0;
 }
 
-int parse_main_args(int argc, char* argv[], char* envp[], options_t *opt, int *arg_index) {
+int parse_main_args(int argc, char* argv[], char* envp[], options_t *opt) {
   *opt = s_default_opt;
   const argParseOpt parseOpt = {
     argDefs,
-    parse_opt,
+    reinterpret_cast<parse_function_t>(parse_opt),
     0,
-    "" PACKAGE_NAME,
-    "[INJECT...]",
     "A daemon for communication with eBUS heating systems.",
     "Report bugs to " PACKAGE_BUGREPORT " .",
-    datahandler_getargs(),
-    opt
+    datahandler_getargs()
   };
 
   char envname[32] = "--";  // needs to cover at least max length of any option name plus "--"
@@ -651,7 +657,7 @@ int parse_main_args(int argc, char* argv[], char* envp[], options_t *opt, int *a
     int cnt = pos[1] ? 2 : 1;
     if (pos[1] && strlen(*env) < sizeof(envname)-3
     && (strcmp(envopt, "scanconfig") == 0 || strcmp(envopt, "lograwdata") == 0)) {
-      // only really special case: OPTION_ARG_OPTIONAL with non-empty arg needs to use "=" syntax
+      // only really special case: af_optional with non-empty arg needs to use "=" syntax
       cnt = 1;
       strcat(envopt, pos);
     }
@@ -666,8 +672,7 @@ int parse_main_args(int argc, char* argv[], char* envp[], options_t *opt, int *a
     }
   }
 
-  *arg_index = -1;
-  int ret = argParse(&parseOpt, argc, argv, arg_index);
+  int ret = argParse(&parseOpt, argc, argv, reinterpret_cast<void*>(opt));
   if (ret != 0) {
     return ret;
   }

@@ -83,7 +83,7 @@ static vector<string>* g_integrationVars = nullptr;  //!< the integration settin
  * @param arg the option argument, or nullptr.
  * @param state the parsing state.
  */
-static int knx_parse_opt(int key, char *arg, const argParseOpt *parseOpt) {
+static int knx_parse_opt(int key, char *arg, const argParseOpt *parseOpt, void *userArg) {
   result_t result;
   unsigned int value;
   switch (key) {
