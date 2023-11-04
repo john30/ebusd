@@ -44,6 +44,10 @@ using std::string;
 using std::map;
 using std::ostream;
 using std::istream;
+using std::hex;
+using std::dec;
+using std::setw;
+using std::setfill;
 
 /** the separator character used between fields. */
 #define FIELD_SEPARATOR ','
@@ -174,7 +178,7 @@ class FileReader {
    * @param stream the @a ostream to write to.
    */
   static void formatHash(size_t hash, ostream* stream) {
-    *stream << std::hex << std::setw(8) << std::setfill('0') << (hash & 0xffffffff) << std::dec << std::setw(0);
+    *stream << hex << setw(8) << setfill('0') << (hash & 0xffffffff) << dec << setw(0);
   }
 
   /**

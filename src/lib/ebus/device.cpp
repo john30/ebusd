@@ -46,6 +46,14 @@
 
 namespace ebusd {
 
+using std::hex;
+using std::dec;
+using std::setfill;
+using std::setw;
+using std::setprecision;
+using std::fixed;
+
+
 #define MTU 1540
 
 #ifndef POLLRDHUP
@@ -728,37 +736,37 @@ bool FileDevice::handleEnhancedBufferedData(symbol_t* value, ArbitrationState* a
               case 0x0200:
               case 0x0500:  // with firmware version and jumper info
               case 0x0800:  // with firmware version, jumper info, and bootloader version
-                stream << std::hex << static_cast<unsigned>(m_infoBuf[1])  // features mask
+                stream << hex << static_cast<unsigned>(m_infoBuf[1])  // features mask
                        << "." << static_cast<unsigned>(m_infoBuf[0]);  // version minor
                 if (m_infoLen >= 5) {
-                  stream << "[" << std::setfill('0') << std::setw(2) << std::hex << static_cast<unsigned>(m_infoBuf[2])
-                         << std::setw(2) << static_cast<unsigned>(m_infoBuf[3]) << "]";
+                  stream << "[" << setfill('0') << setw(2) << hex << static_cast<unsigned>(m_infoBuf[2])
+                         << setw(2) << static_cast<unsigned>(m_infoBuf[3]) << "]";
                 }
                 if (m_infoLen >= 8) {
-                  stream << "." << std::dec << static_cast<unsigned>(m_infoBuf[5]);
-                  stream << "[" << std::setfill('0') << std::setw(2) << std::hex << static_cast<unsigned>(m_infoBuf[6])
-                         << std::setw(2) << static_cast<unsigned>(m_infoBuf[7]) << "]";
+                  stream << "." << dec << static_cast<unsigned>(m_infoBuf[5]);
+                  stream << "[" << setfill('0') << setw(2) << hex << static_cast<unsigned>(m_infoBuf[6])
+                         << setw(2) << static_cast<unsigned>(m_infoBuf[7]) << "]";
                 }
                 m_enhInfoVersion = stream.str();
                 stream.str(" ");
                 stream << "firmware " << m_enhInfoVersion;
                 if (m_infoLen >= 5) {
-                  stream << ", jumpers 0x" << std::setw(2) << static_cast<unsigned>(m_infoBuf[4]);
+                  stream << ", jumpers 0x" << setw(2) << static_cast<unsigned>(m_infoBuf[4]);
                 }
-                stream << std::setfill(' ');  // reset
+                stream << setfill(' ');  // reset
                 break;
               case 0x0901:
               case 0x0802:
               case 0x0302:
                 stream << (m_infoId == 1 ? "ID" : "config");
-                stream << std::hex << std::setfill('0');
+                stream << hex << setfill('0');
                 for (uint8_t pos = 0; pos < m_infoPos; pos++) {
-                  stream << " " << std::setw(2) << static_cast<unsigned>(m_infoBuf[pos]);
+                  stream << " " << setw(2) << static_cast<unsigned>(m_infoBuf[pos]);
                 }
                 if (m_infoId == 2 && (m_infoBuf[2]&0x3f) != 0x3f) {
                   // non-default arbitration delay
                   val = (m_infoBuf[2]&0x3f)*10;  // steps of 10us
-                  stream << ", arbitration delay " << std::dec << static_cast<unsigned>(val) << " us";
+                  stream << ", arbitration delay " << dec << static_cast<unsigned>(val) << " us";
                 }
                 break;
               case 0x0203:
@@ -779,7 +787,7 @@ bool FileDevice::handleEnhancedBufferedData(symbol_t* value, ArbitrationState* a
               case 0x0205:
                 stream << "bus voltage ";
                 if (m_infoBuf[0] | m_infoBuf[1]) {
-                  stream << std::fixed << std::setprecision(1)
+                  stream << fixed << setprecision(1)
                          << static_cast<float>(m_infoBuf[1] / 10.0) << " V - "
                          << static_cast<float>(m_infoBuf[0] / 10.0) << " V";
                 } else {
@@ -807,8 +815,8 @@ bool FileDevice::handleEnhancedBufferedData(symbol_t* value, ArbitrationState* a
                 }
                 break;
               default:
-                stream << "unknown 0x" << std::hex << std::setfill('0') << std::setw(2)
-                       << static_cast<unsigned>(m_infoId) << ", len " << std::dec << std::setw(0)
+                stream << "unknown 0x" << hex << setfill('0') << setw(2)
+                       << static_cast<unsigned>(m_infoId) << ", len " << dec << setw(0)
                        << static_cast<unsigned>(m_infoPos);
                 break;
             }
@@ -834,7 +842,7 @@ bool FileDevice::handleEnhancedBufferedData(symbol_t* value, ArbitrationState* a
               stream << "overrun";
               break;
             default:
-              stream << "unknown 0x" << std::setw(2) << std::setfill('0') << std::hex << static_cast<unsigned>(data);
+              stream << "unknown 0x" << setw(2) << setfill('0') << hex << static_cast<unsigned>(data);
               break;
           }
           string str = stream.str();
@@ -845,7 +853,7 @@ bool FileDevice::handleEnhancedBufferedData(symbol_t* value, ArbitrationState* a
       default:
         if (m_listener != nullptr) {
           ostringstream stream;
-          stream << "unexpected enhanced command 0x" << std::setw(2) << std::setfill('0') << std::hex
+          stream << "unexpected enhanced command 0x" << setw(2) << setfill('0') << hex
                  << static_cast<unsigned>(cmd);
           string str = stream.str();
           m_listener->notifyStatus(true, str.c_str());

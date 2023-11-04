@@ -32,8 +32,6 @@ using std::ifstream;
 using std::ostringstream;
 using std::cout;
 using std::endl;
-using std::setw;
-using std::dec;
 
 
 istream* FileReader::openFile(const string& filename, string* errorDescription, time_t* time) {

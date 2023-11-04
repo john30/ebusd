@@ -499,7 +499,7 @@ bool StringReplacers::set(const string& key, const string& value, bool removeRep
 }
 
 void StringReplacers::set(const string& key, int value) {
-  std::ostringstream str;
+  ostringstream str;
   str << static_cast<signed>(value);
   m_constants[key] = str.str();
 }

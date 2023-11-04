@@ -31,8 +31,6 @@
 
 namespace ebusd {
 
-using std::dec;
-
 
 bool check(int code, const char* method) {
   if (code == MOSQ_ERR_SUCCESS) {

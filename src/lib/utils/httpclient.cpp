@@ -33,7 +33,6 @@ namespace ebusd {
 using std::string;
 using std::ostringstream;
 using std::dec;
-using std::hex;
 
 #ifdef HAVE_SSL
 
@@ -434,7 +433,8 @@ void HttpClient::disconnect() {
   }
 }
 
-bool HttpClient::get(const string& uri, const string& body, string* response, bool* repeatable, time_t* time, bool* jsonString) {
+bool HttpClient::get(const string& uri, const string& body, string* response, bool* repeatable,
+time_t* time, bool* jsonString) {
   return request("GET", uri, body, response, repeatable, time, jsonString);
 }
 

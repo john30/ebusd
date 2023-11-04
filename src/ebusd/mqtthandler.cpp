@@ -954,7 +954,7 @@ void MqttHandler::run() {
               auto vl = (dynamic_cast<const ValueListDataField*>(field))->getList();
               string entryFormat = values["field_values-entry"];
               string::size_type pos = -1;
-              while ((pos = entryFormat.find('$', pos+1)) != std::string::npos) {
+              while ((pos = entryFormat.find('$', pos+1)) != string::npos) {
                 if (entryFormat.substr(pos+1, 4) == "text" || entryFormat.substr(pos+1, 5) == "value") {
                   entryFormat.replace(pos, 1, "%");
                 }

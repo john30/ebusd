@@ -35,7 +35,8 @@ enum ArgFlag {
 typedef struct argDef {
   const char* name;  //!< the (long) name of the argument, or nullptr for a group header or positional
   int key;  //!< the argument key, also used as short name if alphabetic or the question mark
-  const char* valueName;  //!< the optional argument value name, or nullptr for group header or argument without value name
+  // the optional argument value name, or nullptr for group header or argument without value name
+  const char* valueName;
   int flags;  //!< flags for the argument, bit combination of @a ArgFlag
   const char* help;  //!< help text (mandatory)
 } argDef;
