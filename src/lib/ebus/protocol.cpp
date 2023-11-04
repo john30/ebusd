@@ -20,12 +20,17 @@
 #  include <config.h>
 #endif
 
+#include <string>
+#include <iomanip>
 #include "lib/ebus/protocol.h"
 #include "lib/ebus/protocol_direct.h"
-#include <string>
 #include "lib/utils/log.h"
 
 namespace ebusd {
+
+using std::hex;
+using std::setfill;
+using std::setw;
 
 bool ActiveBusRequest::notify(result_t result, const SlaveSymbolString& slave) {
   if (result == RESULT_OK) {
@@ -37,10 +42,23 @@ bool ActiveBusRequest::notify(result_t result, const SlaveSymbolString& slave) {
   return false;
 }
 
-
 ProtocolHandler* ProtocolHandler::create(const ebus_protocol_config_t config,
-  Device* device, ProtocolListener* listener) {
+  ProtocolListener* listener) {
+  Device *device = Device::create(config.device, config.extraLatency, !config.noDeviceCheck);
+  if (device == nullptr) {
+    return nullptr;
+  }
   return new DirectProtocolHandler(config, device, listener);
+}
+
+result_t ProtocolHandler::open() {
+  result_t result = m_device->open();
+  if (result != RESULT_OK) {
+    logError(lf_bus, "unable to open %s: %s", m_device->getName(), getResultCode(result));
+  } else if (!m_device->isValid()) {
+    logError(lf_bus, "device %s not available", m_device->getName());
+  }
+  return result;
 }
 
 void ProtocolHandler::formatInfo(ostringstream* ostream, bool verbose, bool noWait) {
@@ -57,6 +75,63 @@ void ProtocolHandler::formatInfo(ostringstream* ostream, bool verbose, bool noWa
 void ProtocolHandler::formatInfoJson(ostringstream* ostream) {
   m_device->formatInfoJson(ostream);
 }
+
+void ProtocolHandler::notifyDeviceData(symbol_t symbol, bool received) {
+  if (received && m_dumpFile) {
+    m_dumpFile->write(&symbol, 1);
+  }
+  if (!m_logRawFile && !m_logRawEnabled) {
+    return;
+  }
+  if (m_logRawBytes) {
+    if (m_logRawFile) {
+      m_logRawFile->write(&symbol, 1, received);
+    } else if (m_logRawEnabled) {
+      if (received) {
+        logNotice(lf_bus, "<%02x", symbol);
+      } else {
+        logNotice(lf_bus, ">%02x", symbol);
+      }
+    }
+    return;
+  }
+  if (symbol != SYN) {
+    if (received && !m_logRawLastReceived && symbol == m_logRawLastSymbol) {
+      return;  // skip received echo of previously sent symbol
+    }
+    if (m_logRawBuffer.tellp() == 0 || received != m_logRawLastReceived) {
+      m_logRawLastReceived = received;
+      if (m_logRawBuffer.tellp() == 0 && m_logRawLastSymbol != SYN) {
+        m_logRawBuffer << "...";
+      }
+      m_logRawBuffer << (received ? "<" : ">");
+    }
+    m_logRawBuffer << setw(2) << setfill('0') << hex << static_cast<unsigned>(symbol);
+  }
+    m_logRawLastSymbol = symbol;
+  if (m_logRawBuffer.tellp() > (symbol == SYN ? 0 : 64)) {  // flush: direction+5 hdr+24 max data+crc+direction+ack+1
+    if (symbol != SYN) {
+      m_logRawBuffer << "...";
+  }
+    const string bufStr = m_logRawBuffer.str();
+    const char* str = bufStr.c_str();
+    if (m_logRawFile) {
+      m_logRawFile->write((const unsigned char*)str, strlen(str), received, false);
+    } else {
+      logNotice(lf_bus, str);
+    }
+    m_logRawBuffer.str("");
+  }
+}
+
+void ProtocolHandler::notifyStatus(bool error, const char* message) {
+  if (error) {
+    logError(lf_bus, "device status: %s", message);
+  } else {
+    logNotice(lf_bus, "device status: %s", message);
+  }
+}
+
 
 void ProtocolHandler::clear() {
   memset(m_seenAddresses, 0, sizeof(m_seenAddresses));
@@ -159,6 +234,47 @@ bool ProtocolHandler::addSeenAddress(symbol_t address) {
   m_listener->notifyProtocolSeenAddress(address);
   m_seenAddresses[address] = true;
   return ret;
+}
+
+void ProtocolHandler::setDumpFile(const char* dumpFile, unsigned int dumpSize, bool dumpFlush) {
+  if (m_dumpFile) {
+    delete m_dumpFile;
+    m_dumpFile = nullptr;
+  }
+  if (dumpFile && dumpFile[0]) {
+    m_dumpFile = new RotateFile(dumpFile, dumpSize, false, dumpFlush ? 1 : 16);
+  }
+}
+
+bool ProtocolHandler::toggleDump() {
+  if (!m_dumpFile) {
+    return false;
+  }
+  bool enabled = !m_dumpFile->isEnabled();
+  m_dumpFile->setEnabled(enabled);
+  return enabled;
+}
+
+void ProtocolHandler::setLogRawFile(const char* logRawFile, unsigned int logRawSize) {
+  if (logRawFile[0]) {
+    m_logRawFile = new RotateFile(logRawFile, logRawSize, true);
+    m_logRawFile->setEnabled(m_logRawEnabled);
+  } else {
+    m_logRawFile = nullptr;
+  }
+}
+
+bool ProtocolHandler::toggleLogRaw(bool bytes) {
+  bool enabled;
+  m_logRawBytes = bytes;
+  if (m_logRawFile) {
+    enabled = !m_logRawFile->isEnabled();
+    m_logRawFile->setEnabled(enabled);
+  } else {
+    enabled = !m_logRawEnabled;
+    m_logRawEnabled = enabled;
+  }
+  return enabled;
 }
 
 }  // namespace ebusd

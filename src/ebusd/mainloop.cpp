@@ -32,8 +32,6 @@
 namespace ebusd {
 
 using std::dec;
-using std::hex;
-using std::setfill;
 using std::setw;
 using std::endl;
 using std::ifstream;
@@ -105,41 +103,19 @@ result_t UserList::addFromFile(const string& filename, unsigned int lineNo, map<
 #define VERBOSITY_4 (VERBOSITY_3 | OF_ALL_ATTRS)
 
 
-MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messages, ScanHelper* scanHelper,
-  Queue<Request*>* requestQueue)
-  : Thread(), m_device(device), m_reconnectCount(0), m_userList(opt.accessLevel), m_messages(messages),
+MainLoop::MainLoop(const struct options& opt, BusHandler* busHandler,
+    MessageMap* messages, ScanHelper* scanHelper, Queue<Request*>* requestQueue)
+  : Thread(), m_busHandler(busHandler), m_protocol(busHandler->getProtocol()), m_reconnectCount(0),
+    m_userList(opt.accessLevel), m_messages(messages),
     m_scanHelper(scanHelper), m_address(opt.address), m_scanConfig(opt.scanConfig),
     m_initialScan(opt.readOnly ? ESC : opt.initialScan), m_scanRetries(opt.scanRetries),
     m_scanStatus(SCAN_STATUS_NONE), m_polling(opt.pollInterval > 0), m_enableHex(opt.enableHex),
     m_shutdown(false), m_runUpdateCheck(opt.updateCheck), m_httpClient(), m_requestQueue(requestQueue) {
-  m_device->setListener(this);
-  // open Device
-  result_t result = m_device->open();
-  if (result != RESULT_OK) {
-    logError(lf_bus, "unable to open %s: %s", m_device->getName(), getResultCode(result));
-  } else if (!m_device->isValid()) {
-    logError(lf_bus, "device %s not available", m_device->getName());
-  }
-  if (opt.dumpFile[0]) {
-    m_dumpFile = new RotateFile(opt.dumpFile, opt.dumpSize, false, opt.dumpFlush ? 1 : 16);
-    m_dumpFile->setEnabled(opt.dump);
-  } else {
-    m_dumpFile = nullptr;
-  }
-  m_logRawEnabled = opt.logRaw != 0;
-  if (opt.logRawFile[0] && strcmp(opt.logRawFile, opt.logFile) != 0) {
-    m_logRawFile = new RotateFile(opt.logRawFile, opt.logRawSize, true);
-    m_logRawFile->setEnabled(m_logRawEnabled);
-  } else {
-    m_logRawFile = nullptr;
-  }
-  m_logRawBytes = opt.logRaw == 2;
-  m_logRawLastReceived = true;
-  m_logRawLastSymbol = SYN;
   if (opt.aclFile[0]) {
     string errorDescription;
     time_t mtime = 0;
     istream* stream = FileReader::openFile(opt.aclFile, &errorDescription, &mtime);
+    result_t result;
     if (stream) {
       result = m_userList.readFromStream(stream, opt.aclFile, mtime, false, nullptr, &errorDescription);
       delete(stream);
@@ -150,24 +126,7 @@ MainLoop::MainLoop(const struct options& opt, Device *device, MessageMap* messag
       logError(lf_main, "error reading ACL file \"%s\": %s", opt.aclFile, getResultCode(result));
     }
   }
-  // create BusHandler
-  ebus_protocol_config_t config = {
-    .readOnly = opt.readOnly,
-    .ownAddress = m_address,
-    .answer = opt.answer,
-    .busLostRetries = opt.acquireRetries,
-    .failedSendRetries = opt.sendRetries,
-    .busAcquireTimeout = opt.acquireTimeout,
-    .slaveRecvTimeout = opt.receiveTimeout,
-    .lockCount = opt.masterCount,
-    .generateSyn = opt.generateSyn,
-    .initialSend = opt.initialSend,
-  };
-  m_busHandler = new BusHandler(m_device, m_messages, scanHelper,
-      config, opt.pollInterval);
-  m_protocol = m_busHandler->getProtocol();
 
-  // create network
   m_htmlPath = opt.htmlPath;
   logInfo(lf_main, "registering data handlers");
   if (datahandler_register(&m_userList, m_busHandler, messages, &m_dataHandlers)) {
@@ -191,23 +150,6 @@ MainLoop::~MainLoop() {
     delete dataHandler;
   }
   m_dataHandlers.clear();
-  if (m_dumpFile) {
-    delete m_dumpFile;
-    m_dumpFile = nullptr;
-  }
-  if (m_logRawFile) {
-    delete m_logRawFile;
-    m_logRawFile = nullptr;
-  }
-  if (m_busHandler != nullptr) {
-    delete m_busHandler;
-    m_busHandler = nullptr;
-    m_protocol = nullptr;  // ProtocolHandler is freed by BusHandler
-  }
-  if (m_device != nullptr) {
-    delete m_device;
-    m_device = nullptr;
-  }
   if (m_newlyDefinedMessages) {
     delete m_newlyDefinedMessages;
     m_newlyDefinedMessages = nullptr;
@@ -477,62 +419,6 @@ void MainLoop::run() {
     }
     // send result to client
     req->setResult(ostream.str(), user, &reqMode, now, !connected);
-  }
-}
-
-void MainLoop::notifyDeviceData(symbol_t symbol, bool received) {
-  if (received && m_dumpFile) {
-    m_dumpFile->write(&symbol, 1);
-  }
-  if (!m_logRawFile && !m_logRawEnabled) {
-    return;
-  }
-  if (m_logRawBytes) {
-    if (m_logRawFile) {
-      m_logRawFile->write(&symbol, 1, received);
-    } else if (m_logRawEnabled) {
-      if (received) {
-        logNotice(lf_bus, "<%02x", symbol);
-      } else {
-        logNotice(lf_bus, ">%02x", symbol);
-      }
-    }
-    return;
-  }
-  if (symbol != SYN) {
-    if (received && !m_logRawLastReceived && symbol == m_logRawLastSymbol) {
-      return;  // skip received echo of previously sent symbol
-    }
-    if (m_logRawBuffer.tellp() == 0 || received != m_logRawLastReceived) {
-      m_logRawLastReceived = received;
-      if (m_logRawBuffer.tellp() == 0 && m_logRawLastSymbol != SYN) {
-        m_logRawBuffer << "...";
-      }
-      m_logRawBuffer << (received ? "<" : ">");
-    }
-    m_logRawBuffer << setw(2) << setfill('0') << hex << static_cast<unsigned>(symbol);
-  }
-    m_logRawLastSymbol = symbol;
-  if (m_logRawBuffer.tellp() > (symbol == SYN ? 0 : 64)) {  // flush: direction+5 hdr+24 max data+crc+direction+ack+1
-    if (symbol != SYN) {
-      m_logRawBuffer << "...";
-  }
-    const string bufStr = m_logRawBuffer.str();
-    const char* str = bufStr.c_str();
-    if (m_logRawFile) {
-      m_logRawFile->write((const unsigned char*)str, strlen(str), received, false);
-    } else {
-      logNotice(lf_bus, str);
-    }
-    m_logRawBuffer.str("");
-  }
-}
-
-void MainLoop::notifyStatus(bool error, const char* message) {
-  if (error) {
-    logError(lf_bus, "device status: %s", message);
-  } else {
-    logNotice(lf_bus, "device status: %s", message);
   }
 }
 
@@ -1886,15 +1772,7 @@ result_t MainLoop::executeRaw(const vector<string>& args, ostringstream* ostream
                 " Toggle logging of messages or each byte.";
     return RESULT_OK;
   }
-  bool enabled;
-  m_logRawBytes = bytes;
-  if (m_logRawFile) {
-    enabled = !m_logRawFile->isEnabled();
-    m_logRawFile->setEnabled(enabled);
-  } else {
-    enabled = !m_logRawEnabled;
-    m_logRawEnabled = enabled;
-  }
+  bool enabled = m_protocol->toggleLogRaw(bytes);
   *ostream << (enabled ? "raw logging enabled" : "raw logging disabled");
   return RESULT_OK;
 }
@@ -1905,12 +1783,11 @@ result_t MainLoop::executeDump(const vector<string>& args, ostringstream* ostrea
                 " Toggle binary dump of received bytes.";
     return RESULT_OK;
   }
-  if (!m_dumpFile) {
+  if (!m_protocol->hasDumpFile()) {
     *ostream << "dump not configured";
     return RESULT_OK;
   }
-  bool enabled = !m_dumpFile->isEnabled();
-  m_dumpFile->setEnabled(enabled);
+  bool enabled = m_protocol->toggleDump();
   *ostream << (enabled ? "dump enabled" : "dump disabled");
   return RESULT_OK;
 }

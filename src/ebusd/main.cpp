@@ -29,6 +29,7 @@
 #include <iomanip>
 #include <map>
 #include <vector>
+#include "ebusd/bushandler.h"
 #include "ebusd/mainloop.h"
 #include "ebusd/network.h"
 #include "lib/utils/log.h"
@@ -37,15 +38,13 @@
 
 namespace ebusd {
 
-using std::dec;
-using std::hex;
-using std::setfill;
-using std::setw;
-using std::nouppercase;
 using std::cout;
 
 /** the previous config path part to rewrite to the current one. */
 #define PREVIOUS_CONFIG_PATH_SUFFIX "://ebusd.eu/config/"
+
+/** the second previous config path part to rewrite to the current one. */
+#define PREVIOUS_CONFIG_PATH_SUFFIX2 "://cfg.ebusd.eu/"
 
 /** the opened PID file, or nullptr. */
 static FILE* s_pidFile = nullptr;
@@ -58,6 +57,12 @@ static MessageMap* s_messageMap = nullptr;
 
 /** the @a ScanHelper instance, or nullptr. */
 static ScanHelper* s_scanHelper = nullptr;
+
+/** the @a ProtocolHandler instance, or nullptr. */
+static ProtocolHandler* s_protocol = nullptr;
+
+/** the @a BusHandler instance, or nullptr. */
+static BusHandler* s_busHandler = nullptr;
 
 /** the @a Request @a Queue instance, or nullptr. */
 static Queue<Request*>* s_requestQueue = nullptr;
@@ -142,6 +147,14 @@ void cleanup() {
     }
     delete s_requestQueue;
     s_requestQueue = nullptr;
+  }
+  if (s_protocol != nullptr) {
+    delete s_protocol;
+    s_protocol = nullptr;
+  }
+  if (s_busHandler != nullptr) {
+    delete s_busHandler;
+    s_busHandler = nullptr;
   }
   if (s_messageMap != nullptr) {
     delete s_messageMap;
@@ -369,13 +382,31 @@ int main(int argc, char* argv[], char* envp[]) {
     return overallResult == RESULT_OK ? EXIT_SUCCESS : EXIT_FAILURE;
   }
 
-  // open the device
-  Device *device = Device::create(s_opt.device, s_opt.extraLatency, !s_opt.noDeviceCheck);
-  if (device == nullptr) {
-    logWrite(lf_main, ll_error, "unable to create device %s", s_opt.device);  // force logging on exit
+  s_busHandler = new BusHandler(s_messageMap, s_scanHelper, s_opt.pollInterval);
+
+  // create the protocol and open the device
+  ebus_protocol_config_t config = {
+    .device = s_opt.device,
+    .noDeviceCheck = s_opt.noDeviceCheck,
+    .readOnly = s_opt.readOnly,
+    .extraLatency = s_opt.extraLatency,
+    .ownAddress = s_opt.address,
+    .answer = s_opt.answer,
+    .busLostRetries = s_opt.acquireRetries,
+    .failedSendRetries = s_opt.sendRetries,
+    .busAcquireTimeout = s_opt.acquireTimeout,
+    .slaveRecvTimeout = s_opt.receiveTimeout,
+    .lockCount = s_opt.masterCount,
+    .generateSyn = s_opt.generateSyn,
+    .initialSend = s_opt.initialSend,
+  };
+  s_protocol = ProtocolHandler::create(config, s_busHandler);
+  if (s_protocol == nullptr) {
+    logWrite(lf_main, ll_error, "unable to create protocol/device %s", s_opt.device);  // force logging on exit
     cleanup();
     return EINVAL;
   }
+  s_busHandler->setProtocol(s_protocol);
 
   if (!s_opt.foreground) {
     if (!setLogFile(s_opt.logFile)) {
@@ -391,14 +422,28 @@ int main(int argc, char* argv[], char* envp[]) {
   signal(SIGINT, signalHandler);
   signal(SIGTERM, signalHandler);
 
+  if (s_opt.dumpFile[0]) {
+    s_protocol->setDumpFile(s_opt.dumpFile, s_opt.dumpSize, s_opt.dumpFlush);
+    if (s_opt.dump) {
+      s_protocol->toggleDump();
+    }
+  }
+  if (s_opt.logRawFile[0] && strcmp(s_opt.logRawFile, s_opt.logFile) != 0) {
+    s_protocol->setLogRawFile(s_opt.logRawFile, s_opt.logRawSize);
+  }
+  if (s_opt.logRaw != 0) {
+    s_protocol->toggleLogRaw(s_opt.logRaw == 2);
+  }
+
+  // open Device
+  s_protocol->open();
+
   // create the MainLoop
   s_requestQueue = new Queue<Request*>();
-  s_mainLoop = new MainLoop(s_opt, device, s_messageMap, s_scanHelper, s_requestQueue);
-  BusHandler* busHandler = s_mainLoop->getBusHandler();
-  ProtocolHandler* protocol = busHandler->getProtocol();
+  s_mainLoop = new MainLoop(s_opt, s_busHandler, s_messageMap, s_scanHelper, s_requestQueue);
 
   ostringstream ostream;
-  protocol->formatInfo(&ostream, false, true);
+  s_protocol->formatInfo(&ostream, false, true);
   string deviceInfoStr = ostream.str();
   logNotice(lf_main, PACKAGE_STRING "." REVISION " started%s on device: %s",
       s_opt.scanConfig ? s_opt.initialScan == ESC ? " with auto scan"
@@ -420,7 +465,7 @@ int main(int argc, char* argv[], char* envp[]) {
       if (!s_scanHelper->parseMessage(argv[arg_index], false, &master, &slave)) {
         continue;
       }
-      protocol->injectMessage(master, slave);
+      s_protocol->injectMessage(master, slave);
       if (s_opt.scanConfig && master.size() >= 5 && master[4] == 0 && master[2] == 0x07 && master[3] == 0x04
         && isValidAddress(master[1], false) && !isMaster(master[1]) && !scanAddresses[master[1]]) {
         // scan message, simulate scanning
@@ -428,11 +473,11 @@ int main(int argc, char* argv[], char* envp[]) {
         scanAdrCount++;
       }
     }
-    protocol->start("bushandler");
+    s_protocol->start("bushandler");
     for (symbol_t address = 0; scanAdrCount > 0; address++) {
       if (scanAddresses[address]) {
         scanAdrCount--;
-        busHandler->scanAndWait(address, true);
+        s_busHandler->scanAndWait(address, true);
       }
     }
     if (s_opt.stopAfterInject) {
@@ -440,7 +485,7 @@ int main(int argc, char* argv[], char* envp[]) {
       return 0;
     }
   } else {
-    protocol->start("bushandler");
+    s_protocol->start("bushandler");
   }
   s_mainLoop->start("mainloop");
 

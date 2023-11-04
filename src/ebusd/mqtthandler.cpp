@@ -775,7 +775,7 @@ void MqttHandler::run() {
           publishDefinition(m_replacers, "def_global_uptime-", uptimeTopic, "global", "uptime", "def_global-");
           publishDefinition(m_replacers, "def_global_updatecheck-", m_globalTopic.get("", "updatecheck"), "global",
                             "updatecheck", "def_global-");
-          if (m_busHandler->getDevice()->supportsUpdateCheck()) {
+          if (m_busHandler->getProtocol()->supportsUpdateCheck()) {
             publishDefinition(m_replacers, "def_global_updatecheck_device-", m_globalTopic.get("", "updatecheck"),
                               "global", "updatecheck_device", "");
           }

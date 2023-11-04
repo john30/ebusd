@@ -30,7 +30,7 @@
 #include "ebusd/scan.h"
 #include "lib/ebus/filereader.h"
 #include "lib/ebus/message.h"
-#include "lib/utils/rotatefile.h"
+#include "lib/ebus/protocol.h"
 #include "lib/utils/httpclient.h"
 
 namespace ebusd {
@@ -99,18 +99,18 @@ class UserList : public UserInfo, public MappedFileReader {
 /**
  * The main loop handling requests from connected clients.
  */
-class MainLoop : public Thread, DeviceListener {
+class MainLoop : public Thread {
  public:
   /**
    * Construct the main loop and create bus handling components.
    * @param opt the program options.
-   * @param device the @a Device instance.
+   * @param busHandler @a BusHandler instance.
    * @param messages the @a MessageMap instance.
    * @param scanHelper the @a ScanHelper instance.
    * @param requestQueue the reference to the @a Request @a Queue.
    */
-  MainLoop(const struct options& opt, Device *device, MessageMap* messages, ScanHelper* scanHelper,
-      Queue<Request*>* requestQueue);
+  MainLoop(const struct options& opt, BusHandler* busHandler,
+      MessageMap* messages, ScanHelper* scanHelper, Queue<Request*>* requestQueue);
 
   /**
    * Destructor.
@@ -121,18 +121,6 @@ class MainLoop : public Thread, DeviceListener {
    * Shutdown the main loop.
    */
   void shutdown();
-
-  /**
-   * Get the @a BusHandler instance.
-   * @return the created @a BusHandler instance.
-   */
-  BusHandler* getBusHandler() { return m_busHandler; }
-
-  // @copydoc
-  void notifyDeviceData(symbol_t symbol, bool received) override;
-
-  // @copydoc
-  void notifyStatus(bool error, const char* message) override;
 
 
  protected:
@@ -370,32 +358,14 @@ class MainLoop : public Thread, DeviceListener {
    */
   result_t formatHttpResult(result_t ret, int type, ostringstream* ostream);
 
-  /** the @a Device instance. */
-  Device* m_device;
+  /** the @a BusHandler instance. */
+  BusHandler* m_busHandler;
+
+  /** the @a ProtocolHandler instance. */
+  ProtocolHandler* m_protocol;
 
   /** the number of reconnects requested from the @a Device. */
   unsigned int m_reconnectCount;
-
-  /** the @a RotateFile for writing sent/received bytes in log format, or nullptr. */
-  RotateFile* m_logRawFile;
-
-  /** whether raw logging to @p logNotice is enabled (only relevant if m_logRawFile is nullptr). */
-  bool m_logRawEnabled;
-
-  /** whether to log raw bytes instead of messages with @a m_logRawEnabled. */
-  bool m_logRawBytes;
-
-  /** the buffer for building log raw message. */
-  ostringstream m_logRawBuffer;
-
-  /** true when the last byte in @a m_logRawBuffer was receive, false if it was sent. */
-  bool m_logRawLastReceived;
-
-  /** the last sent/received symbol.*/
-  symbol_t m_logRawLastSymbol;
-
-  /** the @a RotateFile for dumping received data, or nullptr. */
-  RotateFile* m_dumpFile;
 
   /** the @a UserList instance. */
   UserList m_userList;
@@ -439,12 +409,6 @@ class MainLoop : public Thread, DeviceListener {
 
   /** the @a HttpClient for performing the update check. */
   HttpClient m_httpClient;
-
-  /** the created @a BusHandler instance. */
-  BusHandler* m_busHandler;
-
-  /** the created @a ProtocolHandler instance. */
-  ProtocolHandler* m_protocol;
 
   /** the reference to the @a Request @a Queue. */
   Queue<Request*>* m_requestQueue;

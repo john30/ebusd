@@ -33,8 +33,6 @@ namespace ebusd {
  */
 
 /** the config path part behind the scheme (scheme without "://"). */
-//#define CONFIG_PATH_SUFFIX "://ebus.github.io/cfg/de/"
-
 #define CONFIG_PATH_SUFFIX "://cfg.ebusd.eu/"
 
 /** A structure holding all program options. */
