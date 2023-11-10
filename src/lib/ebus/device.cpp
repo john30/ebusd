@@ -219,7 +219,7 @@ result_t FileDevice::afterOpen() {
       return RESULT_ERR_SEND;
     }
     if (m_listener != nullptr) {
-      m_listener->notifyStatus(false, "resetting");
+      m_listener->notifyDeviceStatus(false, "resetting");
     }
     m_resetRequested = true;
   }
@@ -259,7 +259,7 @@ result_t FileDevice::requestEnhancedInfo(symbol_t infoId) {
     if (m_infoReqTime > 0 && time(NULL) > m_infoReqTime+5) {
       // request timed out
       if (m_listener != nullptr) {
-        m_listener->notifyStatus(false, "info request timed out");
+        m_listener->notifyDeviceStatus(false, "info request timed out");
       }
       m_infoId = 0xff;
       m_infoReqTime = 0;
@@ -546,7 +546,7 @@ bool FileDevice::available() {
         DEBUG_RAW_TRAFFIC("avail enhanced following bad @%d+%d %2.2x %2.2x", m_bufPos, pos,
           m_buffer[(pos+m_bufPos)%m_bufSize], ch);
         if (m_listener != nullptr) {
-          m_listener->notifyStatus(true, "unexpected available enhanced following byte 1");
+          m_listener->notifyDeviceStatus(true, "unexpected available enhanced following byte 1");
         }
         // drop first byte of invalid sequence
         m_bufPos = (m_bufPos + 1) % m_bufSize;
@@ -565,7 +565,7 @@ bool FileDevice::available() {
     }
     DEBUG_RAW_TRAFFIC("avail enhanced bad @%d+%d %2.2x", m_bufPos, pos, ch);
     if (m_listener != nullptr) {
-      m_listener->notifyStatus(true, "unexpected available enhanced byte 2");
+      m_listener->notifyDeviceStatus(true, "unexpected available enhanced byte 2");
     }
     // skip byte from erroneous protocol
     m_bufPos = (m_bufPos+1)%m_bufSize;
@@ -582,7 +582,7 @@ bool FileDevice::read(symbol_t* value, bool isAvailable, ArbitrationState* arbit
         // more than half of input buffer consumed is taken as signal that ebusd is too slow
         m_bufLen = 0;
         if (m_listener != nullptr) {
-          m_listener->notifyStatus(true, "buffer overflow");
+          m_listener->notifyDeviceStatus(true, "buffer overflow");
         }
       } else {
         size_t tail;
@@ -652,7 +652,7 @@ bool FileDevice::handleEnhancedBufferedData(symbol_t* value, ArbitrationState* a
     m_bufLen--;
     if (kind == ENH_BYTE2) {
       if (m_listener != nullptr) {
-        m_listener->notifyStatus(true, "unexpected enhanced byte 2");
+        m_listener->notifyDeviceStatus(true, "unexpected enhanced byte 2");
       }
       return false;
     }
@@ -662,7 +662,7 @@ bool FileDevice::handleEnhancedBufferedData(symbol_t* value, ArbitrationState* a
     m_bufLen--;
     if ((ch2 & ENH_BYTE_MASK) != ENH_BYTE2) {
       if (m_listener != nullptr) {
-        m_listener->notifyStatus(true, "missing enhanced byte 2");
+        m_listener->notifyDeviceStatus(true, "missing enhanced byte 2");
       }
       return false;
     }
@@ -720,7 +720,7 @@ bool FileDevice::handleEnhancedBufferedData(symbol_t* value, ArbitrationState* a
           cancelRunningArbitration(arbitrationState);
         }
         if (m_listener != nullptr) {
-          m_listener->notifyStatus(false, (m_extraFatures&0x01) ? "reset, supports info" : "reset");
+          m_listener->notifyDeviceStatus(false, (m_extraFatures&0x01) ? "reset, supports info" : "reset");
         }
         break;
       case ENH_RES_INFO:
@@ -820,7 +820,7 @@ bool FileDevice::handleEnhancedBufferedData(symbol_t* value, ArbitrationState* a
                        << static_cast<unsigned>(m_infoPos);
                 break;
             }
-            m_listener->notifyStatus(false, ("extra info: "+stream.str()).c_str());
+            m_listener->notifyDeviceStatus(false, ("extra info: "+stream.str()).c_str());
             m_infoLen = 0;
             m_infoId = 0xff;
           }
@@ -846,7 +846,7 @@ bool FileDevice::handleEnhancedBufferedData(symbol_t* value, ArbitrationState* a
               break;
           }
           string str = stream.str();
-          m_listener->notifyStatus(true, str.c_str());
+          m_listener->notifyDeviceStatus(true, str.c_str());
         }
         cancelRunningArbitration(arbitrationState);
         break;
@@ -856,7 +856,7 @@ bool FileDevice::handleEnhancedBufferedData(symbol_t* value, ArbitrationState* a
           stream << "unexpected enhanced command 0x" << setw(2) << setfill('0') << hex
                  << static_cast<unsigned>(cmd);
           string str = stream.str();
-          m_listener->notifyStatus(true, str.c_str());
+          m_listener->notifyDeviceStatus(true, str.c_str());
         }
         return false;
     }

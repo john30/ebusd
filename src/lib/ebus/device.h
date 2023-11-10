@@ -87,7 +87,7 @@ class DeviceListener {
    * @param error true for an error message, false for an info message.
    * @param message the message string.
    */
-  virtual void notifyStatus(bool error, const char* message) = 0;  // abstract
+  virtual void notifyDeviceStatus(bool error, const char* message) = 0;  // abstract
 };
 
 

@@ -124,7 +124,7 @@ void ProtocolHandler::notifyDeviceData(symbol_t symbol, bool received) {
   }
 }
 
-void ProtocolHandler::notifyStatus(bool error, const char* message) {
+void ProtocolHandler::notifyDeviceStatus(bool error, const char* message) {
   if (error) {
     logError(lf_bus, "device status: %s", message);
   } else {

@@ -260,7 +260,7 @@ class ProtocolHandler : public WaitThread, DeviceListener {
       m_logRawFile(nullptr), m_logRawEnabled(false), m_logRawBytes(false),
       m_logRawLastSymbol(SYN), m_dumpFile(nullptr) {
     memset(m_seenAddresses, 0, sizeof(m_seenAddresses));
-    m_device->setListener(this);
+    device->setListener(this);
     m_logRawLastReceived = true;
     m_logRawLastSymbol = SYN;
   }
@@ -371,7 +371,7 @@ class ProtocolHandler : public WaitThread, DeviceListener {
   void notifyDeviceData(symbol_t symbol, bool received) override;
 
   // @copydoc
-  void notifyStatus(bool error, const char* message) override;
+  void notifyDeviceStatus(bool error, const char* message) override;
 
   /**
    * Clear stored values (e.g. scan results).
