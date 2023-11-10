@@ -35,6 +35,9 @@ namespace ebusd {
 /** the default time [ms] for retrieving a symbol from an addressed slave. */
 #define SLAVE_RECV_TIMEOUT 15
 
+/** the desired delay time [ms] for sending the AUTO-SYN symbol after last seen symbol. */
+#define SYN_INTERVAL 40
+
 /** the maximum allowed time [ms] for retrieving the AUTO-SYN symbol (45ms + 2*1,2% + 1 Symbol). */
 #define SYN_TIMEOUT 51
 

@@ -69,7 +69,7 @@ class DirectProtocolHandler : public ProtocolHandler {
     : ProtocolHandler(config, device, listener),
       m_lockCount(config.lockCount <= 3 ? 3 : config.lockCount),
       m_remainLockCount(config.lockCount == 0 ? 1 : 0),
-      m_generateSynInterval(config.generateSyn ? SYN_TIMEOUT*getMasterNumber(config.ownAddress)+SYMBOL_DURATION : 0),
+      m_generateSynInterval(config.generateSyn ? 10*getMasterNumber(config.ownAddress)+SYN_TIMEOUT : 0),
       m_currentRequest(nullptr), m_currentAnswering(false), m_nextSendPos(0),
       m_state(bs_noSignal), m_escape(0), m_crc(0), m_crcValid(false), m_repeat(false) {
     m_lastSynReceiveTime.tv_sec = 0;

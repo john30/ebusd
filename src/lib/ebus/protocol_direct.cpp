@@ -281,9 +281,9 @@ result_t DirectProtocolHandler::handleSymbol() {
       return setState(bs_noSignal, result);
     }
     measureLatency(&sentTime, &recvTime);
-    if (m_generateSynInterval != SYN_TIMEOUT) {
+    if (m_generateSynInterval != SYN_INTERVAL) {
       // received own AUTO-SYN symbol back again: act as AUTO-SYN generator now
-      m_generateSynInterval = SYN_TIMEOUT;
+      m_generateSynInterval = SYN_INTERVAL;
       logNotice(lf_bus, "acting as AUTO-SYN generator");
     }
     m_remainLockCount = 0;
@@ -344,7 +344,7 @@ result_t DirectProtocolHandler::handleSymbol() {
   time_t now;
   time(&now);
   if (result != RESULT_OK) {
-    if ((m_generateSynInterval != SYN_TIMEOUT && difftime(now, m_lastReceive) > 1)
+    if ((m_generateSynInterval != SYN_INTERVAL && difftime(now, m_lastReceive) > 1)
       // at least one full second has passed since last received symbol
       || m_state == bs_noSignal) {
       return setState(bs_noSignal, result);
