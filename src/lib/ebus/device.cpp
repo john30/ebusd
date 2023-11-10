@@ -81,7 +81,9 @@ using std::fixed;
 #define ENH_BYTE_MASK ((uint8_t)0xc0)
 #define ENH_BYTE1 ((uint8_t)0xc0)
 #define ENH_BYTE2 ((uint8_t)0x80)
-#define makeEnhancedSequence(cmd, data) {(uint8_t)(ENH_BYTE1 | ((cmd)<<2) | (((data)&0xc0)>>6)), (uint8_t)(ENH_BYTE2 | ((data)&0x3f))}
+#define makeEnhancedByte1(cmd, data) (uint8_t)(ENH_BYTE1 | ((cmd)<<2) | (((data)&0xc0)>>6))
+#define makeEnhancedByte2(cmd, data) (uint8_t)(ENH_BYTE2 | ((data)&0x3f))
+#define makeEnhancedSequence(cmd, data) {makeEnhancedByte1(cmd, data), makeEnhancedByte2(cmd, data)}
 
 #ifdef DEBUG_RAW_TRAFFIC
   #define DEBUG_RAW_TRAFFIC_HEAD(format, args...) fprintf(stdout, "%lld raw: " format, clockGetMillis(), args)
@@ -101,24 +103,26 @@ Device::Device(const char* name)
 }
 
 Device* Device::create(const char* name, unsigned int extraLatency, bool checkDevice) {
-  bool highSpeed = strncmp(name, "ens:", 4) == 0;
-  bool enhanced = highSpeed || strncmp(name, "enh:", 4) == 0;
-  if (enhanced) {
-    name += 4;
+  EnhancedLevel enhanced = el_none;
+  if (strncmp(name, "en", 2) == 0 && name[2] && name[3] == ':') {
+    switch (name[2]) {
+      case 's':
+        enhanced = el_speed;
+        break;
+      case 'h':
+        enhanced = el_basic;
+        break;
+    }
+    if (enhanced) {
+      name += 4;
+    }
   }
   if (strchr(name, '/') == nullptr && strchr(name, ':') != nullptr) {
     char* in = strdup(name);
     bool udp = false;
     char* addrpos = in;
     char* portpos = strchr(addrpos, ':');
-    if (!enhanced && portpos >= addrpos+3 && strncmp(addrpos, "enh", 3) == 0) {
-      enhanced = true;  // support enhtcp:<ip>:<port> and enhudp:<ip>:<port>
-      addrpos += 3;
-      if (portpos == addrpos) {
-        addrpos++;
-        portpos = strchr(addrpos, ':');
-      }
-    }  // else: support enh:<ip>:<port> defaulting to TCP
+    // support tcp:<ip>:<port> and udp:<ip>:<port>
     if (portpos == addrpos+3 && (strncmp(addrpos, "tcp", 3) == 0 || (udp=(strncmp(addrpos, "udp", 3) == 0)))) {
       addrpos += 4;
       portpos = strchr(addrpos, ':');
@@ -139,17 +143,17 @@ Device* Device::create(const char* name, unsigned int extraLatency, bool checkDe
     return new NetworkDevice(name, hostOrIp, port, extraLatency, udp, enhanced);
   }
   // support enh:/dev/<device>, ens:/dev/<device>, and /dev/<device>
-  return new SerialDevice(name, checkDevice, extraLatency, enhanced, highSpeed);
+  return new SerialDevice(name, checkDevice, extraLatency, enhanced);
 }
 
 
 
 FileDevice::FileDevice(const char* name, bool checkDevice, unsigned int latency,
-    bool enhancedProto)
+    EnhancedLevel enhancedLevel)
   : Device(name),
     m_checkDevice(checkDevice),
-    m_latency(HOST_LATENCY_MS+(enhancedProto?ENHANCED_LATENCY_MS:0)+latency),
-    m_enhancedProto(enhancedProto), m_fd(-1), m_resetRequested(false),
+    m_latency(HOST_LATENCY_MS+(enhancedLevel?ENHANCED_LATENCY_MS:0)+latency),
+    m_enhancedLevel(enhancedLevel), m_fd(-1), m_resetRequested(false),
     m_arbitrationMaster(SYN),
     m_arbitrationCheck(0), m_bufSize(((MAX_LEN+1+3)/4)*4), m_bufLen(0), m_bufPos(0),
     m_extraFatures(0), m_infoId(0xff), m_infoReqTime(0), m_infoLen(0), m_infoPos(0) {
@@ -163,6 +167,7 @@ FileDevice::~FileDevice() {
   close();
   if (m_buffer) {
     free(m_buffer);
+    m_buffer = nullptr;
   }
 }
 
@@ -178,7 +183,7 @@ void FileDevice::formatInfo(ostringstream* ostream, bool verbose, bool prefix) {
   if (!isValid()) {
     *ostream << ", invalid";
   }
-  if (!m_enhancedProto) {
+  if (!m_enhancedLevel) {
     return;
   }
   bool infoAdded = false;
@@ -198,7 +203,7 @@ void FileDevice::formatInfo(ostringstream* ostream, bool verbose, bool prefix) {
 }
 
 void FileDevice::formatInfoJson(ostringstream* ostream) {
-  if (m_enhancedProto) {
+  if (m_enhancedLevel) {
     string ver = getEnhancedVersion();
     if (!ver.empty()) {
       *ostream << ",\"dv\":\"" << ver << "\"";
@@ -212,7 +217,7 @@ result_t FileDevice::open() {
 }
 
 result_t FileDevice::afterOpen() {
-  if (m_enhancedProto) {
+  if (m_enhancedLevel) {
     symbol_t buf[2] = makeEnhancedSequence(ENH_REQ_INIT, 0x01);  // extra feature: info
     DEBUG_RAW_TRAFFIC("enhanced > %2.2x %2.2x", buf[0], buf[1]);
     if (::write(m_fd, buf, 2) != 2) {
@@ -246,7 +251,7 @@ bool FileDevice::isValid() {
 }
 
 result_t FileDevice::requestEnhancedInfo(symbol_t infoId) {
-  if (!m_enhancedProto || m_extraFatures == 0) {
+  if (!m_enhancedLevel || m_extraFatures == 0) {
     return RESULT_ERR_INVALID_ARG;
   }
   for (unsigned int i = 0; i < 4; i++) {
@@ -287,7 +292,7 @@ result_t FileDevice::sendEnhancedInfoRequest(symbol_t infoId) {
 }
 
 string FileDevice::getEnhancedInfos() {
-  if (!m_enhancedProto || m_extraFatures == 0) {
+  if (!m_enhancedLevel || m_extraFatures == 0) {
     return "";
   }
   result_t res;
@@ -356,14 +361,14 @@ result_t FileDevice::send(symbol_t value) {
 
 
 bool FileDevice::cancelRunningArbitration(ArbitrationState* arbitrationState) {
-  if (m_enhancedProto && m_arbitrationMaster != SYN) {
+  if (m_enhancedLevel && m_arbitrationMaster != SYN) {
     *arbitrationState = as_error;
     m_arbitrationMaster = SYN;
     m_arbitrationCheck = 0;
     write(SYN, true);
     return true;
   }
-  if (m_enhancedProto || m_arbitrationMaster == SYN) {
+  if (m_enhancedLevel || m_arbitrationMaster == SYN) {
     return false;
   }
   *arbitrationState = as_error;
@@ -449,11 +454,11 @@ result_t FileDevice::recv(unsigned int timeout, symbol_t* value, ArbitrationStat
     }
     timeout = static_cast<unsigned>(until - now);
   } while (true);
-  if (m_enhancedProto || *value != SYN || m_arbitrationMaster == SYN || m_arbitrationCheck) {
+  if (m_enhancedLevel || *value != SYN || m_arbitrationMaster == SYN || m_arbitrationCheck) {
     if (m_listener != nullptr) {
       m_listener->notifyDeviceData(*value, true);
     }
-    if (!m_enhancedProto && m_arbitrationMaster != SYN) {
+    if (!m_enhancedLevel && m_arbitrationMaster != SYN) {
       if (m_arbitrationCheck) {
         *arbitrationState = *value == m_arbitrationMaster ? as_won : as_lost;
         m_arbitrationMaster = SYN;
@@ -488,7 +493,7 @@ result_t FileDevice::startArbitration(symbol_t masterAddress) {
     }
     m_arbitrationCheck = 0;
     m_arbitrationMaster = SYN;
-    if (m_enhancedProto) {
+    if (m_enhancedLevel) {
       // cancel running arbitration
       if (!write(SYN, true)) {
         return RESULT_ERR_SEND;
@@ -497,7 +502,7 @@ result_t FileDevice::startArbitration(symbol_t masterAddress) {
     return RESULT_OK;
   }
   m_arbitrationMaster = masterAddress;
-  if (m_enhancedProto && masterAddress != SYN) {
+  if (m_enhancedLevel && masterAddress != SYN) {
     if (!write(masterAddress, true)) {
       m_arbitrationMaster = SYN;
       return RESULT_ERR_SEND;
@@ -508,7 +513,7 @@ result_t FileDevice::startArbitration(symbol_t masterAddress) {
 }
 
 bool FileDevice::write(symbol_t value, bool startArbitration) {
-  if (m_enhancedProto) {
+  if (m_enhancedLevel) {
     symbol_t buf[2] = makeEnhancedSequence(startArbitration ? ENH_REQ_START : ENH_REQ_SEND, value);
     DEBUG_RAW_TRAFFIC("enhanced > %2.2x %2.2x", buf[0], buf[1]);
     return ::write(m_fd, buf, 2) == 2;
@@ -525,7 +530,7 @@ bool FileDevice::available() {
   if (m_bufLen <= 0) {
     return false;
   }
-  if (!m_enhancedProto) {
+  if (!m_enhancedLevel) {
     return true;
   }
   // peek into the received enhanced proto bytes to determine received bus symbol availability
@@ -615,18 +620,18 @@ bool FileDevice::read(symbol_t* value, bool isAvailable, ArbitrationState* arbit
 #endif
     m_bufLen += size;
   }
-  if (m_enhancedProto) {
+  if (m_enhancedLevel) {
     if (handleEnhancedBufferedData(value, arbitrationState)) {
       return true;
     }
   }
   if (!available()) {
     if (incomplete) {
-      *incomplete = m_enhancedProto && m_bufLen > 0;
+      *incomplete = m_enhancedLevel && m_bufLen > 0;
     }
     return false;
   }
-  if (!m_enhancedProto) {
+  if (!m_enhancedLevel) {
     *value = m_buffer[m_bufPos];
     m_bufPos = (m_bufPos+1)%m_bufSize;
     m_bufLen--;
@@ -785,7 +790,7 @@ void FileDevice::notifyInfoRetrieved() {
     case 0x0500:  // with firmware version and jumper info
     case 0x0800:  // with firmware version, jumper info, and bootloader version
       stream << hex << static_cast<unsigned>(data[1])  // features mask
-              << "." << static_cast<unsigned>(data[0]);  // version minor
+             << "." << static_cast<unsigned>(data[0]);  // version minor
       if (len >= 5) {
         stream << "[" << setfill('0') << setw(2) << hex << static_cast<unsigned>(data[2])
                 << setw(2) << static_cast<unsigned>(data[3]) << "]";
@@ -793,7 +798,7 @@ void FileDevice::notifyInfoRetrieved() {
       if (len >= 8) {
         stream << "." << dec << static_cast<unsigned>(data[5]);
         stream << "[" << setfill('0') << setw(2) << hex << static_cast<unsigned>(data[6])
-                << setw(2) << static_cast<unsigned>(data[7]) << "]";
+               << setw(2) << static_cast<unsigned>(data[7]) << "]";
       }
       m_enhInfoVersion = stream.str();
       stream.str(" ");
@@ -836,8 +841,8 @@ void FileDevice::notifyInfoRetrieved() {
       stream << "bus voltage ";
       if (data[0] | data[1]) {
         stream << fixed << setprecision(1)
-                << static_cast<float>(data[1] / 10.0) << " V - "
-                << static_cast<float>(data[0] / 10.0) << " V";
+               << static_cast<float>(data[1] / 10.0) << " V - "
+               << static_cast<float>(data[0] / 10.0) << " V";
       } else {
         stream << "unknown";
       }
@@ -864,8 +869,8 @@ void FileDevice::notifyInfoRetrieved() {
       break;
     default:
       stream << "unknown 0x" << hex << setfill('0') << setw(2)
-              << static_cast<unsigned>(id) << ", len " << dec << setw(0)
-              << static_cast<unsigned>(len);
+             << static_cast<unsigned>(id) << ", len " << dec << setw(0)
+             << static_cast<unsigned>(len);
       break;
   }
   if (m_listener != nullptr) {
@@ -922,10 +927,10 @@ result_t SerialDevice::open() {
   memset(&newSettings, 0, sizeof(newSettings));
 
 #ifdef HAVE_CFSETSPEED
-  cfsetspeed(&newSettings, m_enhancedProto ? (m_enhancedHighSpeed ? B115200 : B9600) : B2400);
+  cfsetspeed(&newSettings, m_enhancedLevel ? (m_enhancedLevel >= el_speed ? B115200 : B9600) : B2400);
 #else
-  cfsetispeed(&newSettings, m_enhancedProto ? (m_enhancedHighSpeed ? B115200 : B9600) : B2400);
-  cfsetospeed(&newSettings, m_enhancedProto ? (m_enhancedHighSpeed ? B115200 : B9600) : B2400);
+  cfsetispeed(&newSettings, m_enhancedLevel ? (m_enhancedLevel >= el_speed ? B115200 : B9600) : B2400);
+  cfsetospeed(&newSettings, m_enhancedLevel ? (m_enhancedLevel >= el_speed ? B115200 : B9600) : B2400);
 #endif
   newSettings.c_cflag |= (CS8 | CLOCAL | CREAD);
   newSettings.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);  // non-canonical mode

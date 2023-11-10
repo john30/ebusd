@@ -76,7 +76,7 @@ class DeviceListener {
   virtual ~DeviceListener() {}
 
   /**
-   * Listener method that is called when a symbol was received/sent.
+   * Listener method that is called when a symbol was received from/sent to eBUS.
    * @param symbol the received/sent symbol.
    * @param received @a true on reception, @a false on sending.
    */
@@ -212,6 +212,14 @@ class Device {
 };
 
 
+/** the possible enhanced protocol levels. */
+enum EnhancedLevel {
+  el_none = 0,   //!< non-enhanced
+  el_basic = 1,  //!< enhanced basic
+  el_speed = 2,  //!< enhanced high-speed
+};
+
+
 /**
  * The common base class for devices using a file descriptor.
  */
@@ -222,10 +230,10 @@ class FileDevice : public Device {
    * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
    * @param checkDevice whether to regularly check the device availability.
    * @param latency the bus transfer latency in milliseconds.
-   * @param enhancedProto whether to use the ebusd enhanced protocol.
+   * @param enhancedLevel whether to use the ebusd enhanced protocol.
    */
   FileDevice(const char* name, bool checkDevice, unsigned int latency,
-      bool enhancedProto = false);
+      EnhancedLevel enhancedLevel);
 
  public:
   /**
@@ -273,21 +281,21 @@ class FileDevice : public Device {
    * Return whether the device supports the ebusd enhanced protocol.
    * @return whether the device supports the ebusd enhanced protocol.
    */
-  bool isEnhancedProto() const { return m_enhancedProto; }
+  bool isEnhancedProto() const { return m_enhancedLevel != el_none; }
 
   /**
    * Get info about enhanced protocol support as string.
    * @return a @a string describing level of enhanced protocol support, or the empty string.
    */
-  virtual string getEnhancedProtoInfo() const { return m_enhancedProto ? "enhanced" : ""; }
+  virtual string getEnhancedProtoInfo() const { return m_enhancedLevel ? "enhanced" : ""; }
 
   // @copydoc
-  bool supportsUpdateCheck() const override { return m_enhancedProto && m_extraFatures & 0x01; }
+  bool supportsUpdateCheck() const override { return m_enhancedLevel && m_extraFatures & 0x01; }
 
   /**
    * @return whether the device supports the ebusd enhanced protocol and supports querying extra infos.
    */
-  bool supportsEnhancedInfos() const { return m_enhancedProto && m_extraFatures & 0x01; }
+  bool supportsEnhancedInfos() const { return m_enhancedLevel && m_extraFatures & 0x01; }
 
   /**
    * Check for a running extra infos request, wait for it to complete,
@@ -361,7 +369,7 @@ class FileDevice : public Device {
   const unsigned int m_latency;
 
   /** whether the device supports the ebusd enhanced protocol. */
-  const bool m_enhancedProto;
+  const EnhancedLevel m_enhancedLevel;
 
   /** the opened file descriptor, or -1. */
   int m_fd;
@@ -444,18 +452,16 @@ class SerialDevice : public FileDevice {
    * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
    * @param checkDevice whether to regularly check the device availability.
    * @param extraLatency the extra bus transfer latency in milliseconds.
-   * @param enhancedProto whether to use the ebusd enhanced protocol.
-   * @param enhancedHighSpeed whether to use ebusd enhanced protocol in high speed mode.
+   * @param enhancedLevel whether to use the ebusd enhanced protocol.
    */
   SerialDevice(const char* name, bool checkDevice, unsigned int extraLatency,
-               bool enhancedProto = false, bool enhancedHighSpeed = false)
-    : FileDevice(name, checkDevice, extraLatency, enhancedProto),
-    m_enhancedHighSpeed(enhancedHighSpeed) {
+               EnhancedLevel enhancedLevel)
+    : FileDevice(name, checkDevice, extraLatency, enhancedLevel) {
   }
 
   // @copydoc
   string getEnhancedProtoInfo() const override {
-    return m_enhancedProto ? (m_enhancedHighSpeed ? "enhanced high speed" : "enhanced") : "";
+    return m_enhancedLevel == el_speed ? "enhanced high speed" : FileDevice::getEnhancedProtoInfo();
   }
 
   // @copydoc
@@ -471,9 +477,6 @@ class SerialDevice : public FileDevice {
 
 
  private:
-  /** whether to use ebusd enhanced protocol in high speed mode. */
-  bool m_enhancedHighSpeed;
-
   /** the previous settings of the device for restoring. */
   termios m_oldSettings;
 };
@@ -491,11 +494,11 @@ class NetworkDevice : public FileDevice {
    * @param port the TCP or UDP port of the device.
    * @param extraLatency the extra bus transfer latency in milliseconds.
    * @param udp true for UDP, false to TCP.
-   * @param enhancedProto whether to use the ebusd enhanced protocol.
+   * @param enhancedLevel whether to use the ebusd enhanced protocol.
    */
   NetworkDevice(const char* name, const char* hostOrIp, uint16_t port, unsigned int extraLatency,
-      bool udp, bool enhancedProto = false)
-    : FileDevice(name, true, NETWORK_LATENCY_MS+extraLatency, enhancedProto),
+      bool udp, EnhancedLevel enhancedLevel)
+    : FileDevice(name, true, NETWORK_LATENCY_MS+extraLatency, enhancedLevel),
     m_hostOrIp(hostOrIp), m_port(port), m_udp(udp) {}
 
   /**
