@@ -378,6 +378,11 @@ class FileDevice : public Device {
    */
   bool handleEnhancedBufferedData(symbol_t* value, ArbitrationState* arbitrationState);
 
+  /**
+   * Called when reception of an info ID was completed.
+   */
+  void notifyInfoRetrieved();
+
   /** the arbitration master address to send when in arbitration, or @a SYN. */
   symbol_t m_arbitrationMaster;
 

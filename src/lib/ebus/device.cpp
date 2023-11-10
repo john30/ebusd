@@ -730,97 +730,7 @@ bool FileDevice::handleEnhancedBufferedData(symbol_t* value, ArbitrationState* a
         } else if (m_infoPos < m_infoLen && m_infoPos < sizeof(m_infoBuf)) {
           m_infoBuf[m_infoPos++] = data;
           if (m_infoPos >= m_infoLen) {
-            unsigned int val;
-            ostringstream stream;
-            switch ((m_infoLen << 8) | m_infoId) {
-              case 0x0200:
-              case 0x0500:  // with firmware version and jumper info
-              case 0x0800:  // with firmware version, jumper info, and bootloader version
-                stream << hex << static_cast<unsigned>(m_infoBuf[1])  // features mask
-                       << "." << static_cast<unsigned>(m_infoBuf[0]);  // version minor
-                if (m_infoLen >= 5) {
-                  stream << "[" << setfill('0') << setw(2) << hex << static_cast<unsigned>(m_infoBuf[2])
-                         << setw(2) << static_cast<unsigned>(m_infoBuf[3]) << "]";
-                }
-                if (m_infoLen >= 8) {
-                  stream << "." << dec << static_cast<unsigned>(m_infoBuf[5]);
-                  stream << "[" << setfill('0') << setw(2) << hex << static_cast<unsigned>(m_infoBuf[6])
-                         << setw(2) << static_cast<unsigned>(m_infoBuf[7]) << "]";
-                }
-                m_enhInfoVersion = stream.str();
-                stream.str(" ");
-                stream << "firmware " << m_enhInfoVersion;
-                if (m_infoLen >= 5) {
-                  stream << ", jumpers 0x" << setw(2) << static_cast<unsigned>(m_infoBuf[4]);
-                }
-                stream << setfill(' ');  // reset
-                break;
-              case 0x0901:
-              case 0x0802:
-              case 0x0302:
-                stream << (m_infoId == 1 ? "ID" : "config");
-                stream << hex << setfill('0');
-                for (uint8_t pos = 0; pos < m_infoPos; pos++) {
-                  stream << " " << setw(2) << static_cast<unsigned>(m_infoBuf[pos]);
-                }
-                if (m_infoId == 2 && (m_infoBuf[2]&0x3f) != 0x3f) {
-                  // non-default arbitration delay
-                  val = (m_infoBuf[2]&0x3f)*10;  // steps of 10us
-                  stream << ", arbitration delay " << dec << static_cast<unsigned>(val) << " us";
-                }
-                break;
-              case 0x0203:
-                val = (static_cast<unsigned>(m_infoBuf[0]) << 8) | static_cast<unsigned>(m_infoBuf[1]);
-                stream << "temperature " << static_cast<unsigned>(val) << " °C";
-                m_enhInfoTemperature = stream.str();
-                break;
-              case 0x0204:
-                stream << "supply voltage ";
-                if (m_infoBuf[0] | m_infoBuf[1]) {
-                  val = (static_cast<unsigned>(m_infoBuf[0]) << 8) | static_cast<unsigned>(m_infoBuf[1]);
-                  stream << static_cast<unsigned>(val) << " mV";
-                } else {
-                  stream << "unknown";
-                }
-                m_enhInfoSupplyVoltage = stream.str();
-                break;
-              case 0x0205:
-                stream << "bus voltage ";
-                if (m_infoBuf[0] | m_infoBuf[1]) {
-                  stream << fixed << setprecision(1)
-                         << static_cast<float>(m_infoBuf[1] / 10.0) << " V - "
-                         << static_cast<float>(m_infoBuf[0] / 10.0) << " V";
-                } else {
-                  stream << "unknown";
-                }
-                m_enhInfoBusVoltage = stream.str();
-                break;
-              case 0x0206:
-                stream << "reset cause ";
-                if (m_infoBuf[0]) {
-                  stream << static_cast<unsigned>(m_infoBuf[0]) << "=";
-                  switch (m_infoBuf[0]) {
-                    case 1: stream << "power-on"; break;
-                    case 2: stream << "brown-out"; break;
-                    case 3: stream << "watchdog"; break;
-                    case 4: stream << "clear"; break;
-                    case 5: stream << "reset"; break;
-                    case 6: stream << "stack"; break;
-                    case 7: stream << "memory"; break;
-                    default: stream << "other"; break;
-                  }
-                  stream << ", restart count " << static_cast<unsigned>(m_infoBuf[1]);
-                } else {
-                  stream << "unknown";
-                }
-                break;
-              default:
-                stream << "unknown 0x" << hex << setfill('0') << setw(2)
-                       << static_cast<unsigned>(m_infoId) << ", len " << dec << setw(0)
-                       << static_cast<unsigned>(m_infoPos);
-                break;
-            }
-            m_listener->notifyDeviceStatus(false, ("extra info: "+stream.str()).c_str());
+            notifyInfoRetrieved();
             m_infoLen = 0;
             m_infoId = 0xff;
           }
@@ -862,6 +772,105 @@ bool FileDevice::handleEnhancedBufferedData(symbol_t* value, ArbitrationState* a
     }
   }
   return false;
+}
+
+void FileDevice::notifyInfoRetrieved() {
+  symbol_t* data = m_infoBuf;
+  size_t len = m_infoLen;
+  symbol_t id = m_infoId;
+  unsigned int val;
+  ostringstream stream;
+  switch ((len << 8) | id) {
+    case 0x0200:
+    case 0x0500:  // with firmware version and jumper info
+    case 0x0800:  // with firmware version, jumper info, and bootloader version
+      stream << hex << static_cast<unsigned>(data[1])  // features mask
+              << "." << static_cast<unsigned>(data[0]);  // version minor
+      if (len >= 5) {
+        stream << "[" << setfill('0') << setw(2) << hex << static_cast<unsigned>(data[2])
+                << setw(2) << static_cast<unsigned>(data[3]) << "]";
+      }
+      if (len >= 8) {
+        stream << "." << dec << static_cast<unsigned>(data[5]);
+        stream << "[" << setfill('0') << setw(2) << hex << static_cast<unsigned>(data[6])
+                << setw(2) << static_cast<unsigned>(data[7]) << "]";
+      }
+      m_enhInfoVersion = stream.str();
+      stream.str(" ");
+      stream << "firmware " << m_enhInfoVersion;
+      if (len >= 5) {
+        stream << ", jumpers 0x" << setw(2) << static_cast<unsigned>(data[4]);
+      }
+      stream << setfill(' ');  // reset
+      break;
+    case 0x0901:
+    case 0x0802:
+    case 0x0302:
+      stream << (id == 1 ? "ID" : "config");
+      stream << hex << setfill('0');
+      for (uint8_t pos = 0; pos < len; pos++) {
+        stream << " " << setw(2) << static_cast<unsigned>(data[pos]);
+      }
+      if (id == 2 && (data[2]&0x3f) != 0x3f) {
+        // non-default arbitration delay
+        val = (data[2]&0x3f)*10;  // steps of 10us
+        stream << ", arbitration delay " << dec << static_cast<unsigned>(val) << " us";
+      }
+      break;
+    case 0x0203:
+      val = (static_cast<unsigned>(data[0]) << 8) | static_cast<unsigned>(data[1]);
+      stream << "temperature " << static_cast<unsigned>(val) << " °C";
+      m_enhInfoTemperature = stream.str();
+      break;
+    case 0x0204:
+      stream << "supply voltage ";
+      if (data[0] | data[1]) {
+        val = (static_cast<unsigned>(data[0]) << 8) | static_cast<unsigned>(data[1]);
+        stream << static_cast<unsigned>(val) << " mV";
+      } else {
+        stream << "unknown";
+      }
+      m_enhInfoSupplyVoltage = stream.str();
+      break;
+    case 0x0205:
+      stream << "bus voltage ";
+      if (data[0] | data[1]) {
+        stream << fixed << setprecision(1)
+                << static_cast<float>(data[1] / 10.0) << " V - "
+                << static_cast<float>(data[0] / 10.0) << " V";
+      } else {
+        stream << "unknown";
+      }
+      m_enhInfoBusVoltage = stream.str();
+      break;
+    case 0x0206:
+      stream << "reset cause ";
+      if (data[0]) {
+        stream << static_cast<unsigned>(data[0]) << "=";
+        switch (data[0]) {
+          case 1: stream << "power-on"; break;
+          case 2: stream << "brown-out"; break;
+          case 3: stream << "watchdog"; break;
+          case 4: stream << "clear"; break;
+          case 5: stream << "reset"; break;
+          case 6: stream << "stack"; break;
+          case 7: stream << "memory"; break;
+          default: stream << "other"; break;
+        }
+        stream << ", restart count " << static_cast<unsigned>(data[1]);
+      } else {
+        stream << "unknown";
+      }
+      break;
+    default:
+      stream << "unknown 0x" << hex << setfill('0') << setw(2)
+              << static_cast<unsigned>(id) << ", len " << dec << setw(0)
+              << static_cast<unsigned>(len);
+      break;
+  }
+  if (m_listener != nullptr) {
+    m_listener->notifyDeviceStatus(false, ("extra info: "+stream.str()).c_str());
+  }
 }
 
 
