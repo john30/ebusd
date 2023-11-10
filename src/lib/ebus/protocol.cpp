@@ -44,9 +44,49 @@ bool ActiveBusRequest::notify(result_t result, const SlaveSymbolString& slave) {
 
 ProtocolHandler* ProtocolHandler::create(const ebus_protocol_config_t config,
   ProtocolListener* listener) {
-  Device *device = Device::create(config.device, config.extraLatency, !config.noDeviceCheck);
-  if (device == nullptr) {
-    return nullptr;
+  const char* name = config.device;
+  EnhancedLevel enhanced = el_none;
+  if (strncmp(name, "en", 2) == 0 && name[2] && name[3] == ':') {
+    switch (name[2]) {
+      case 's':
+        enhanced = el_speed;
+        break;
+      case 'h':
+        enhanced = el_basic;
+        break;
+    }
+    if (enhanced) {
+      name += 4;
+    }
+  }
+  FileDevice* device = nullptr;
+  if (strchr(name, '/') == nullptr && strchr(name, ':') != nullptr) {
+    char* in = strdup(name);
+    bool udp = false;
+    char* addrpos = in;
+    char* portpos = strchr(addrpos, ':');
+    // support tcp:<ip>:<port> and udp:<ip>:<port>
+    if (portpos == addrpos+3 && (strncmp(addrpos, "tcp", 3) == 0 || (udp=(strncmp(addrpos, "udp", 3) == 0)))) {
+      addrpos += 4;
+      portpos = strchr(addrpos, ':');
+    }
+    if (portpos == nullptr) {
+      free(in);
+      return nullptr;  // invalid protocol or missing port
+    }
+    result_t result = RESULT_OK;
+    uint16_t port = (uint16_t)parseInt(portpos+1, 10, 1, 65535, &result);
+    if (result != RESULT_OK) {
+      free(in);
+      return nullptr;  // invalid port
+    }
+    *portpos = 0;
+    char* hostOrIp = strdup(addrpos);
+    free(in);
+    device = new NetworkDevice(name, hostOrIp, port, config.extraLatency, udp, enhanced);
+  } else {
+    // support enx:/dev/<device>, ens:/dev/<device>, enh:/dev/<device>, and /dev/<device>
+    device = new SerialDevice(name, !config.noDeviceCheck, config.extraLatency, enhanced);
   }
   return new DirectProtocolHandler(config, device, listener);
 }

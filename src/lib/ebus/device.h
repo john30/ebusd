@@ -109,16 +109,6 @@ class Device {
   virtual ~Device() { }
 
   /**
-   * Factory method for creating a new instance.
-   * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
-   * @param extraLatency the extra bus transfer latency in milliseconds.
-   * @param checkDevice whether to regularly check the device availability (only for serial devices).
-   * @return the new @a Device, or nullptr on error.
-   * Note: the caller needs to free the created instance.
-   */
-  static Device* create(const char* name, unsigned int extraLatency = 0, bool checkDevice = true);
-
-  /**
    * Get the device name.
    * @return the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
    */

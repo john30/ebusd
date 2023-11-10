@@ -102,50 +102,6 @@ Device::Device(const char* name)
   : m_name(name), m_listener(nullptr) {
 }
 
-Device* Device::create(const char* name, unsigned int extraLatency, bool checkDevice) {
-  EnhancedLevel enhanced = el_none;
-  if (strncmp(name, "en", 2) == 0 && name[2] && name[3] == ':') {
-    switch (name[2]) {
-      case 's':
-        enhanced = el_speed;
-        break;
-      case 'h':
-        enhanced = el_basic;
-        break;
-    }
-    if (enhanced) {
-      name += 4;
-    }
-  }
-  if (strchr(name, '/') == nullptr && strchr(name, ':') != nullptr) {
-    char* in = strdup(name);
-    bool udp = false;
-    char* addrpos = in;
-    char* portpos = strchr(addrpos, ':');
-    // support tcp:<ip>:<port> and udp:<ip>:<port>
-    if (portpos == addrpos+3 && (strncmp(addrpos, "tcp", 3) == 0 || (udp=(strncmp(addrpos, "udp", 3) == 0)))) {
-      addrpos += 4;
-      portpos = strchr(addrpos, ':');
-    }
-    if (portpos == nullptr) {
-      free(in);
-      return nullptr;  // invalid protocol or missing port
-    }
-    result_t result = RESULT_OK;
-    uint16_t port = (uint16_t)parseInt(portpos+1, 10, 1, 65535, &result);
-    if (result != RESULT_OK) {
-      free(in);
-      return nullptr;  // invalid port
-    }
-    *portpos = 0;
-    char* hostOrIp = strdup(addrpos);
-    free(in);
-    return new NetworkDevice(name, hostOrIp, port, extraLatency, udp, enhanced);
-  }
-  // support enh:/dev/<device>, ens:/dev/<device>, and /dev/<device>
-  return new SerialDevice(name, checkDevice, extraLatency, enhanced);
-}
-
 
 
 FileDevice::FileDevice(const char* name, bool checkDevice, unsigned int latency,
