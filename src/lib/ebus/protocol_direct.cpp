@@ -467,6 +467,10 @@ result_t DirectProtocolHandler::handleSymbol() {
     return setState(bs_recvCmd, RESULT_OK);
 
   case bs_recvCmd:
+    if ((m_command.size() == 0 && !isMaster(recvSymbol))
+    || (m_command.size() == 1 && !isValidAddress(recvSymbol))) {
+      return setState(bs_skip, RESULT_ERR_INVALID_ADDR);
+    }
     m_command.push_back(recvSymbol);
     if (m_command.isComplete()) {  // all data received
       return setState(bs_recvCmdCrc, RESULT_OK);
@@ -701,11 +705,8 @@ result_t DirectProtocolHandler::setState(BusState state, result_t result, bool f
   if (state == bs_noSignal) {  // notify all requests
     m_response.clear();  // notify with empty response
     while ((m_currentRequest = m_nextRequests.pop()) != nullptr) {
-      bool restart = m_currentRequest->notify(RESULT_ERR_NO_SIGNAL, m_response);
-      if (restart) {  // should not occur with no signal
-        m_currentRequest->resetBusLostRetries();
-        m_nextRequests.push(m_currentRequest);
-      } else if (m_currentRequest->deleteOnFinish()) {
+      m_currentRequest->notify(RESULT_ERR_NO_SIGNAL, m_response);
+      if (m_currentRequest->deleteOnFinish()) {
         delete m_currentRequest;
       } else {
         m_finishedRequests.push(m_currentRequest);
