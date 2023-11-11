@@ -135,7 +135,7 @@ result_t DirectProtocolHandler::handleSymbol() {
     if (!m_device->isArbitrating() && m_currentRequest == nullptr && m_remainLockCount == 0) {
       BusRequest* startRequest = m_nextRequests.peek();
       if (startRequest == nullptr) {
-        m_listener->notifyProtocolStatus(ps_empty);
+        m_listener->notifyProtocolStatus(ps_empty, RESULT_OK);
         startRequest = m_nextRequests.peek();
       }
       if (startRequest != nullptr) {  // initiate arbitration
@@ -677,9 +677,6 @@ result_t DirectProtocolHandler::setState(BusState state, result_t result, bool f
   }
 
   if (state == bs_noSignal) {  // notify all requests
-    if (m_state != bs_noSignal) {
-      m_listener->notifyProtocolStatus(ps_idle);
-    }
     m_response.clear();  // notify with empty response
     while ((m_currentRequest = m_nextRequests.pop()) != nullptr) {
       bool restart = m_currentRequest->notify(RESULT_ERR_NO_SIGNAL, m_response);
@@ -692,12 +689,13 @@ result_t DirectProtocolHandler::setState(BusState state, result_t result, bool f
         m_finishedRequests.push(m_currentRequest);
       }
     }
-  } else if (m_state == bs_noSignal) {
-    m_listener->notifyProtocolStatus(ps_noSignal);
   }
 
   m_escape = 0;
   if (state == m_state) {
+    if (m_listener && result != RESULT_OK) {
+      m_listener->notifyProtocolStatus(m_listenerState, result);
+    }
     return result;
   }
   if ((result < RESULT_OK && !(result == RESULT_ERR_TIMEOUT && state == bs_skip && m_state == bs_ready))
@@ -716,6 +714,16 @@ result_t DirectProtocolHandler::setState(BusState state, result_t result, bool f
   } else if (m_state == bs_noSignal) {
     if (m_generateSynInterval == 0 || state != bs_skip) {
       logNotice(lf_bus, "signal acquired");
+    }
+  }
+  if (m_listener) {
+    ProtocolState pstate = protocolStateByBusState[state];
+    if (pstate == ps_idle && m_generateSynInterval == SYN_INTERVAL) {
+      pstate = ps_idleSYN;
+    }
+    if (result != RESULT_OK || pstate != m_listenerState) {
+      m_listener->notifyProtocolStatus(pstate, result);
+      m_listenerState = pstate;
     }
   }
   m_state = state;

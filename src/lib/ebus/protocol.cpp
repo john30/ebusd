@@ -32,6 +32,18 @@ using std::hex;
 using std::setfill;
 using std::setw;
 
+const char* getProtocolStateCode(ProtocolState state) {
+  switch (state) {
+    case ps_noSignal: return "no signal";
+    case ps_idle:     return "idle";
+    case ps_idleSYN:  return "idle, SYN generator";
+    case ps_recv:     return "receive";
+    case ps_send:     return "send";
+    case ps_empty:    return "idle, empty";
+    default:          return "unknown";
+  }
+}
+
 bool ActiveBusRequest::notify(result_t result, const SlaveSymbolString& slave) {
   if (result == RESULT_OK) {
     string str = slave.getStr();

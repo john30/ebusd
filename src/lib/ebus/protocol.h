@@ -89,9 +89,18 @@ typedef struct ebus_protocol_config {
 enum ProtocolState {
   ps_noSignal,   //!< no signal on the bus
   ps_idle,       //!< idle (after @a SYN symbol)
+  ps_idleSYN,    //!< idle (after sent SYN symbol in acting as SYN generator)
+  ps_recv,       //!< receiving
+  ps_send,       //!< sending
   ps_empty,      //!< idle, no more lock remaining, and no other request queued
 };
 
+/**
+ * Return the string corresponding to the @a ProtocolState.
+ * @param state the @a ProtocolState.
+ * @return the string corresponding to the @a ProtocolState.
+ */
+const char* getProtocolStateCode(ProtocolState state);
 
 class ProtocolHandler;
 
@@ -208,8 +217,9 @@ class ProtocolListener {
   /**
    * Called to notify a status update from the protocol.
    * @param state the current protocol state.
+   * @param result the error code reason for the state change, or @a RESULT_OK.
    */
-  virtual void notifyProtocolStatus(ProtocolState state) = 0;  // abstract
+  virtual void notifyProtocolStatus(ProtocolState state, result_t result) = 0;  // abstract
 
   /**
    * Called to notify a new valid seen address on the bus.
@@ -253,7 +263,7 @@ class ProtocolHandler : public WaitThread, DeviceListener {
   ProtocolHandler(const ebus_protocol_config_t config,
       Device* device, ProtocolListener* listener)
     : WaitThread(), m_config(config), m_device(device), m_listener(listener),
-      m_reconnect(false),
+      m_listenerState(ps_noSignal), m_reconnect(false),
       m_ownMasterAddress(config.ownAddress), m_ownSlaveAddress(getSlaveAddress(config.ownAddress)),
       m_addressConflict(false),
       m_masterCount(config.readOnly ? 0 : 1),
@@ -518,6 +528,9 @@ class ProtocolHandler : public WaitThread, DeviceListener {
 
   /** the @a ProtocolListener. */
   ProtocolListener *m_listener;
+
+  /** the last state the listener was informed with. */
+  ProtocolState m_listenerState;
 
   /** set to @p true when the device shall be reconnected. */
   bool m_reconnect;
