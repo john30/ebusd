@@ -65,6 +65,11 @@ enum ArbitrationState {
   as_won,      //!< arbitration won
 };
 
+/** the sequence IDs as handled by @a FileDevice. */
+enum SequenceId {
+  sid_info,     //!< send/receive info
+};
+
 /**
  * Interface for listening to data received on/sent to a device.
  */
@@ -296,11 +301,13 @@ class FileDevice : public Device {
   result_t requestEnhancedInfo(symbol_t infoId);
 
   /**
-   * Send a request for extra infos to enhanced device.
-   * @param infoId the ID of the info to request.
-   * @return @a RESULT_OK on success, or an error code otherwise.
+   * Write a sequence of bytes to the device.
+   * @param id the ID of the sequence.
+   * @param data the buffer with the data to send.
+   * @param len the length of the buffer.
+   * @return the @a result_t code.
    */
-  result_t sendEnhancedInfoRequest(symbol_t infoId);
+  virtual result_t sendSequence(SequenceId id, const uint8_t* data = nullptr, size_t len = 0);
 
   /**
    * Get the enhanced device version.
@@ -399,12 +406,14 @@ class FileDevice : public Device {
 
   /** the read buffer read position. */
   size_t m_bufPos;
+  /** the send buffer. */
+  uint8_t* m_sendBuf;
+
+  /** the send buffer size. */
+  size_t m_sendBufSize;
 
   /** the extra features supported by the device. */
   symbol_t m_extraFatures;
-
-  /** the ID of the last requested info. */
-  symbol_t m_infoId;
 
   /** the time of the last info request. */
   time_t m_infoReqTime;
@@ -416,7 +425,7 @@ class FileDevice : public Device {
   size_t m_infoPos;
 
   /** the info buffer. */
-  symbol_t m_infoBuf[16];
+  symbol_t m_infoBuf[16+1];
 
   /** a string describing the enhanced device version. */
   string m_enhInfoVersion;

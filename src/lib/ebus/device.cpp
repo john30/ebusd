@@ -110,9 +110,10 @@ FileDevice::FileDevice(const char* name, bool checkDevice, unsigned int latency,
     m_checkDevice(checkDevice),
     m_latency(HOST_LATENCY_MS+(enhancedLevel?ENHANCED_LATENCY_MS:0)+latency),
     m_enhancedLevel(enhancedLevel), m_fd(-1), m_resetRequested(false),
-    m_arbitrationMaster(SYN),
-    m_arbitrationCheck(0), m_bufSize(((MAX_LEN+1+3)/4)*4), m_bufLen(0), m_bufPos(0),
-    m_extraFatures(0), m_infoId(0xff), m_infoReqTime(0), m_infoLen(0), m_infoPos(0) {
+    m_arbitrationMaster(SYN), m_arbitrationCheck(0),
+    m_bufSize(((MAX_LEN+1+3)/4)*4), m_bufLen(0), m_bufPos(0),
+    m_sendBuf(nullptr), m_sendBufSize(0),
+    m_extraFatures(0), m_infoReqTime(0), m_infoLen(0), m_infoPos(0) {
   m_buffer = reinterpret_cast<symbol_t*>(malloc(m_bufSize));
   if (!m_buffer) {
     m_bufSize = 0;
@@ -124,6 +125,10 @@ FileDevice::~FileDevice() {
   if (m_buffer) {
     free(m_buffer);
     m_buffer = nullptr;
+  }
+  if (m_sendBuf) {
+    free(m_sendBuf);
+    m_sendBuf = nullptr;
   }
 }
 
@@ -211,18 +216,18 @@ result_t FileDevice::requestEnhancedInfo(symbol_t infoId) {
     return RESULT_ERR_INVALID_ARG;
   }
   for (unsigned int i = 0; i < 4; i++) {
-    if (m_infoId == 0xff) {
+    if (m_infoLen == 0) {
       break;
     }
     usleep(40000 + i*40000);
   }
-  if (m_infoId != 0xff) {
+  if (m_infoLen > 0) {
     if (m_infoReqTime > 0 && time(NULL) > m_infoReqTime+5) {
       // request timed out
       if (m_listener != nullptr) {
         m_listener->notifyDeviceStatus(false, "info request timed out");
       }
-      m_infoId = 0xff;
+      m_infoLen = 0;
       m_infoReqTime = 0;
     } else {
       return RESULT_ERR_DUPLICATE;
@@ -232,19 +237,67 @@ result_t FileDevice::requestEnhancedInfo(symbol_t infoId) {
     // just waited for completion
     return RESULT_OK;
   }
-  return sendEnhancedInfoRequest(infoId);
+  return sendSequence(sid_info, &infoId, 1);
 }
 
-result_t FileDevice::sendEnhancedInfoRequest(symbol_t infoId) {
-  symbol_t buf[2] = makeEnhancedSequence(ENH_REQ_INFO, infoId);
-  DEBUG_RAW_TRAFFIC("enhanced > %2.2x %2.2x", buf[0], buf[1]);
-  if (::write(m_fd, buf, 2) != 2) {
+result_t FileDevice::sendSequence(SequenceId id, const uint8_t* data, size_t len) {
+  if (!isValid()) {
     return RESULT_ERR_DEVICE;
   }
-  m_infoPos = 0;
-  m_infoId = infoId;
-  time(&m_infoReqTime);
-  return RESULT_OK;
+  if (m_enhancedLevel >= el_basic && id==sid_info && (m_extraFatures&0x01) != 0) {
+    // request is supported
+  } else {
+    return RESULT_ERR_NOTFOUND;  // not supported
+  }
+  size_t pos = (1+len)*2;
+  if (pos > m_sendBufSize) {
+    m_sendBuf = static_cast<uint8_t*>(realloc(m_sendBuf, pos));
+    if (!m_sendBuf) {
+      m_sendBufSize = 0;
+      return RESULT_ERR_DEVICE;
+    }
+    m_sendBufSize = pos;
+  }
+  pos = 0;
+  uint8_t cmd = id==sid_info ? ENH_REQ_INFO : 0;
+  if (cmd == 0) {
+    return RESULT_ERR_NOTFOUND;  // not supported
+  }
+  if (cmd & 0x8) {
+    // sequence-encoded
+    m_sendBuf[pos++] = makeEnhancedByte1(cmd, len);
+    m_sendBuf[pos++] = makeEnhancedByte2(cmd, len);
+    cmd = static_cast<uint8_t>(cmd & ~0x8);
+  } else {
+    // direct-encoded
+    uint8_t val = data ? *data : 0;
+    m_sendBuf[pos++] = makeEnhancedByte1(cmd, val);
+    m_sendBuf[pos++] = makeEnhancedByte2(cmd, val);
+    if (id==sid_info) {
+      m_infoBuf[0] = val;
+      m_infoLen = 0;
+    }
+    if (len > 0) {
+      len--;
+      data++;
+    }
+  }
+  while (len > 0) {
+    m_sendBuf[pos++] = makeEnhancedByte1(cmd, *data);
+    m_sendBuf[pos++] = makeEnhancedByte2(cmd, *data);
+    data++;
+    len--;
+  }
+  // DEBUG_RAW_TRAFFIC("enhanced > %2.2x %2.2x", buf[0], buf[1]);
+  if (::write(m_fd, m_sendBuf, pos) == pos) {
+    if (id==sid_info) {
+      m_infoLen = 1;
+      m_infoPos = 1;
+      time(&m_infoReqTime);
+    }
+    return RESULT_OK;
+  }
+  return RESULT_ERR_DEVICE;
 }
 
 string FileDevice::getEnhancedInfos() {
@@ -266,8 +319,7 @@ string FileDevice::getEnhancedInfos() {
     if (res != RESULT_OK) {
       fails += ", cannot request config";
       requestEnhancedInfo(0xff);  // wait for completion
-      m_infoPos = 0;
-      m_infoId = 0xff;
+      m_infoLen = 0;  // cancel anyway
     }
   }
   res = requestEnhancedInfo(6);
@@ -289,8 +341,7 @@ string FileDevice::getEnhancedInfos() {
   res = requestEnhancedInfo(0xff);  // wait for completion
   if (res != RESULT_OK) {
     m_enhInfoBusVoltage = "bus voltage unknown";
-    m_infoPos = 0;
-    m_infoId = 0xff;
+    m_infoLen = 0;  // cancel anyway
   }
   return "firmware " + m_enhInfoVersion + ", " + m_enhInfoTemperature + ", " + m_enhInfoSupplyVoltage + ", "
   + m_enhInfoBusVoltage;
@@ -669,12 +720,12 @@ bool FileDevice::handleEnhancedBufferedData(symbol_t* value, ArbitrationState* a
         m_enhInfoTemperature = "";
         m_enhInfoSupplyVoltage = "";
         m_enhInfoBusVoltage = "";
-        m_infoId = 0xff;
+        m_infoLen = 0;
         m_extraFatures = data;
         if (m_resetRequested) {
           m_resetRequested = false;
           if (m_extraFatures&0x01) {
-            sendEnhancedInfoRequest(0);  // request version, ignore result
+            sendSequence(sid_info);  // request version, ignore result
           }
         } else {
           close();  // on self-reset of device close and reopen it to have a clean startup
@@ -685,19 +736,16 @@ bool FileDevice::handleEnhancedBufferedData(symbol_t* value, ArbitrationState* a
         }
         break;
       case ENH_RES_INFO:
-        if (m_infoLen == 0) {
-          m_infoLen = data;
-          m_infoPos = 0;
+        if (m_infoLen == 1) {
+          m_infoLen = data+1;
         } else if (m_infoPos < m_infoLen && m_infoPos < sizeof(m_infoBuf)) {
           m_infoBuf[m_infoPos++] = data;
           if (m_infoPos >= m_infoLen) {
             notifyInfoRetrieved();
             m_infoLen = 0;
-            m_infoId = 0xff;
           }
         } else {
           m_infoLen = 0;  // reset on invalid response
-          m_infoId = 0xff;
         }
         break;
       case ENH_RES_ERROR_EBUS:
@@ -736,9 +784,9 @@ bool FileDevice::handleEnhancedBufferedData(symbol_t* value, ArbitrationState* a
 }
 
 void FileDevice::notifyInfoRetrieved() {
-  symbol_t* data = m_infoBuf;
-  size_t len = m_infoLen;
-  symbol_t id = m_infoId;
+  symbol_t id = m_infoBuf[0];
+  symbol_t* data = m_infoBuf+1;
+  size_t len = m_infoLen-1;
   unsigned int val;
   ostringstream stream;
   switch ((len << 8) | id) {

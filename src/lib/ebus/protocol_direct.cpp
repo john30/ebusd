@@ -52,6 +52,28 @@ const char* getStateCode(BusState state) {
   }
 }
 
+/**
+ * The @a ProtocolState value by internal @a BusState value index.
+ */
+static const ProtocolState protocolStateByBusState[] = {
+  ps_noSignal,  // bs_noSignal
+  ps_idle,      // bs_skip
+  ps_idle,      // bs_ready
+  ps_recv,      // bs_recvCmd
+  ps_recv,      // bs_recvCmdCrc
+  ps_recv,      // bs_recvCmdAck
+  ps_recv,      // bs_recvRes
+  ps_recv,      // bs_recvResCrc
+  ps_recv,      // bs_recvResAck
+  ps_send,      // bs_sendCmd
+  ps_send,      // bs_sendCmdCrc
+  ps_send,      // bs_sendResAck
+  ps_send,      // bs_sendCmdAck
+  ps_send,      // bs_sendRes
+  ps_send,      // bs_sendResCrc
+  ps_send,      // bs_sendSyn
+};
+
 
 void DirectProtocolHandler::run() {
   unsigned int symCount = 0;
