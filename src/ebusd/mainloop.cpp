@@ -298,9 +298,9 @@ void MainLoop::run() {
         if (!m_httpClient.connect("upd.ebusd.eu",
 #ifdef HAVE_SSL
                             443, true,
-#else
+#else  // HAVE_SSL
                             80, false,
-#endif
+#endif  // HAVE_SSL
                             PACKAGE_NAME "/" PACKAGE_VERSION)) {
           logError(lf_main, "update check connect error");
           nextCheckRun = now + CHECK_INITIAL_DELAY;

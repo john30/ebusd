@@ -63,9 +63,10 @@ typedef struct options {
   bool injectMessages;  //!< inject remaining arguments as already seen messages
   bool stopAfterInject;  //!< only inject messages once, then stop
   int injectCount;  //!< number of message arguments to inject, or 0
+#ifdef HAVE_SSL
   const char* caFile;  //!< the CA file to use (uses defaults if neither caFile nor caPath are set), or "#" for insecure
   const char* caPath;  //!< the path with CA files to use (uses defaults if neither caFile nor caPath are set)
-
+#endif  // HAVE_SSL
   symbol_t address;  //!< own bus address [31]
   bool answer;  //!< answer to requests from other masters
   unsigned int acquireTimeout;  //!< bus acquisition timeout in ms [10]

@@ -32,9 +32,9 @@ namespace ebusd {
 /** the default path of the configuration files. */
 #ifdef HAVE_SSL
 #define CONFIG_PATH "https" CONFIG_PATH_SUFFIX
-#else
+#else  // HAVE_SSL
 #define CONFIG_PATH "http" CONFIG_PATH_SUFFIX
-#endif
+#endif  // HAVE_SSL
 
 /** the default program options. */
 static const options_t s_default_opt = {
@@ -57,9 +57,10 @@ static const options_t s_default_opt = {
   .injectMessages = false,
   .stopAfterInject = false,
   .injectCount = 0,
+#ifdef HAVE_SSL
   .caFile = nullptr,
   .caPath = nullptr,
-
+#endif  // HAVE_SSL
   .address = 0x31,
   .answer = false,
   .acquireTimeout = 10,
@@ -345,13 +346,14 @@ static int parse_opt(int key, char *arg, const argParseOpt *parseOpt, struct opt
     opt->injectMessages = true;
     opt->stopAfterInject = arg && strcmp("stop", arg) == 0;
     break;
+#ifdef HAVE_SSL
   case O_CAFILE:  // --cafile=FILE
     opt->caFile = arg;
     break;
   case O_CAPATH:  // --capath=PATH
     opt->caPath = arg;
     break;
-
+#endif  // HAVE_SSL
   // eBUS options:
   case 'a':  // --address=31
   {

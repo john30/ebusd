@@ -32,7 +32,7 @@
 #  include <openssl/ssl.h>
 #  include <openssl/bio.h>
 #  include <openssl/err.h>
-#endif
+#endif  // HAVE_SSL
 
 /** typedef for referencing @a sockaddr_in within namespace. */
 typedef struct sockaddr_in socketaddress;
@@ -122,7 +122,7 @@ class HttpClient {
   HttpClient() :
 #ifdef HAVE_SSL
     m_https(false),
-#endif
+#endif  // HAVE_SSL
     m_socket(nullptr), m_port(0), m_timeout(0), m_bufferSize(0), m_buffer(nullptr) {
   }
 
@@ -250,7 +250,7 @@ class HttpClient {
 
   /** the path with CA files to use. */
   static const char* s_caPath;
-#endif
+#endif  // HAVE_SSL
 
   /** the currently connected socket. */
   SocketClass* m_socket;

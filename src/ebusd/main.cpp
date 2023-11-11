@@ -263,7 +263,11 @@ int main(int argc, char* argv[], char* envp[]) {
   const string lang = MappedFileReader::normalizeLanguage(
     s_opt.preferLanguage == nullptr || !s_opt.preferLanguage[0] ? "" : s_opt.preferLanguage);
   string configLocalPrefix, configUriPrefix;
+#ifdef HAVE_SSL
   HttpClient::initialize(s_opt.caFile, s_opt.caPath);
+#else  // HAVE_SSL
+  HttpClient::initialize(nullptr, nullptr);
+#endif  // HAVE_SSL
   HttpClient* configHttpClient = nullptr;
   string configPath = s_opt.configPath;
   if (configPath.find("://") == string::npos) {
@@ -288,7 +292,7 @@ int main(int argc, char* argv[], char* envp[]) {
         logWrite(lf_main, ll_error, "invalid configPath URL (HTTPS not supported)");  // force logging on exit
         return EINVAL;
       }
-#endif
+#endif  // HAVE_SSL
       logWrite(lf_main, ll_error, "invalid configPath URL");  // force logging on exit
       return EINVAL;
     }
