@@ -244,7 +244,7 @@ result_t FileDevice::sendSequence(SequenceId id, const uint8_t* data, size_t len
   if (!isValid()) {
     return RESULT_ERR_DEVICE;
   }
-  if (m_enhancedLevel >= el_basic && id==sid_info && (m_extraFatures&0x01) != 0) {
+  if (m_enhancedLevel >= el_basic && id == sid_info && (m_extraFatures&0x01) != 0) {
     // request is supported
   } else {
     return RESULT_ERR_NOTFOUND;  // not supported
@@ -259,7 +259,7 @@ result_t FileDevice::sendSequence(SequenceId id, const uint8_t* data, size_t len
     m_sendBufSize = pos;
   }
   pos = 0;
-  uint8_t cmd = id==sid_info ? ENH_REQ_INFO : 0;
+  uint8_t cmd = id == sid_info ? ENH_REQ_INFO : 0;
   if (cmd == 0) {
     return RESULT_ERR_NOTFOUND;  // not supported
   }
@@ -273,7 +273,7 @@ result_t FileDevice::sendSequence(SequenceId id, const uint8_t* data, size_t len
     uint8_t val = data ? *data : 0;
     m_sendBuf[pos++] = makeEnhancedByte1(cmd, val);
     m_sendBuf[pos++] = makeEnhancedByte2(cmd, val);
-    if (id==sid_info) {
+    if (id == sid_info) {
       m_infoBuf[0] = val;
       m_infoLen = 0;
     }
@@ -289,15 +289,16 @@ result_t FileDevice::sendSequence(SequenceId id, const uint8_t* data, size_t len
     len--;
   }
   // DEBUG_RAW_TRAFFIC("enhanced > %2.2x %2.2x", buf[0], buf[1]);
-  if (::write(m_fd, m_sendBuf, pos) == pos) {
-    if (id==sid_info) {
-      m_infoLen = 1;
-      m_infoPos = 1;
-      time(&m_infoReqTime);
-    }
-    return RESULT_OK;
+  ssize_t sent = ::write(m_fd, m_sendBuf, pos);
+  if (sent < 0 || static_cast<unsigned>(sent) != pos) {
+    return RESULT_ERR_DEVICE;
   }
-  return RESULT_ERR_DEVICE;
+  if (id == sid_info) {
+    m_infoLen = 1;
+    m_infoPos = 1;
+    time(&m_infoReqTime);
+  }
+  return RESULT_OK;
 }
 
 string FileDevice::getEnhancedInfos() {
