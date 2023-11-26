@@ -405,7 +405,7 @@ struct timespec* sentTime) {
         m_remainLockCount = 1;  // wait for next AUTO-SYN after SYN / address / SYN (bus locked for own priority)
       }
     }
-    m_lastSynReceiveTime = recvTime;
+    clockGettime(&m_lastSynReceiveTime);
     return setState(bs_ready, m_state == bs_skip || m_remainLockCount > 0 ? result : RESULT_ERR_SYN);
   }
 
