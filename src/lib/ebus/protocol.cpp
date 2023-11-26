@@ -57,21 +57,18 @@ bool ActiveBusRequest::notify(result_t result, const SlaveSymbolString& slave) {
 ProtocolHandler* ProtocolHandler::create(const ebus_protocol_config_t config,
   ProtocolListener* listener) {
   const char* name = config.device;
-  EnhancedLevel enhanced = el_none;
-  if (strncmp(name, "en", 2) == 0 && name[2] && name[3] == ':') {
-    switch (name[2]) {
-      case 's':
-        enhanced = el_speed;
-        break;
-      case 'h':
-        enhanced = el_basic;
-        break;
-    }
+  bool enhanced = false;
+  uint8_t speed = 0;
+  if (name[0] == 'e' && name[1] && name[2] && name[3] == ':') {
+    speed = name[2] == 's' ? 2 : name[2] == 'h' ? 1 : 0;
+    enhanced = speed > 0 && name[1] == 'n';
     if (enhanced) {
       name += 4;
+    } else {
+      speed = 0;
     }
   }
-  FileDevice* device = nullptr;
+  Transport* transport;
   if (strchr(name, '/') == nullptr && strchr(name, ':') != nullptr) {
     char* in = strdup(name);
     bool udp = false;
@@ -95,10 +92,16 @@ ProtocolHandler* ProtocolHandler::create(const ebus_protocol_config_t config,
     *portpos = 0;
     char* hostOrIp = strdup(addrpos);
     free(in);
-    device = new NetworkDevice(name, hostOrIp, port, config.extraLatency, udp, enhanced);
+    transport = new NetworkTransport(name, config.extraLatency, hostOrIp, port, udp);
   } else {
-    // support enx:/dev/<device>, ens:/dev/<device>, enh:/dev/<device>, and /dev/<device>
-    device = new SerialDevice(name, !config.noDeviceCheck, config.extraLatency, enhanced);
+    // support ens:/dev/<device>, enh:/dev/<device>, and /dev/<device>
+    transport = new SerialTransport(name, config.extraLatency, !config.noDeviceCheck, speed);
+  }
+  CharDevice* device;
+  if (enhanced) {
+    device = new EnhancedCharDevice(transport);
+  } else {
+    device = new PlainCharDevice(transport);
   }
   return new DirectProtocolHandler(config, device, listener);
 }
@@ -124,55 +127,56 @@ void ProtocolHandler::formatInfo(ostringstream* ostream, bool verbose, bool noWa
   m_device->formatInfo(ostream, verbose, false);
 }
 
-void ProtocolHandler::formatInfoJson(ostringstream* ostream) {
+void ProtocolHandler::formatInfoJson(ostringstream* ostream) const {
   m_device->formatInfoJson(ostream);
 }
 
-void ProtocolHandler::notifyDeviceData(symbol_t symbol, bool received) {
+void ProtocolHandler::notifyDeviceData(symbol_t* data, size_t len, bool received) {
   if (received && m_dumpFile) {
-    m_dumpFile->write(&symbol, 1);
+    m_dumpFile->write(data, len);
   }
   if (!m_logRawFile && !m_logRawEnabled) {
     return;
   }
   if (m_logRawBytes) {
     if (m_logRawFile) {
-      m_logRawFile->write(&symbol, 1, received);
+      m_logRawFile->write(data, len, received);
     } else if (m_logRawEnabled) {
-      if (received) {
-        logNotice(lf_bus, "<%02x", symbol);
-      } else {
-        logNotice(lf_bus, ">%02x", symbol);
+      for (size_t pos = 0; pos < len; pos++) {
+        logNotice(lf_bus, "%c%02x", received ? '<' : '>', data[pos]);
       }
     }
     return;
   }
-  if (symbol != SYN) {
-    if (received && !m_logRawLastReceived && symbol == m_logRawLastSymbol) {
-      return;  // skip received echo of previously sent symbol
+  for (size_t pos = 0; pos < len; pos++) {
+    symbol_t symbol = data[pos];
+    if (symbol != SYN) {
+      if (received && !m_logRawLastReceived && symbol == m_logRawLastSymbol) {
+        continue;  // skip received echo of previously sent symbol
+      }
+      if (m_logRawBuffer.tellp() == 0 || received != m_logRawLastReceived) {
+        m_logRawLastReceived = received;
+        if (m_logRawBuffer.tellp() == 0 && m_logRawLastSymbol != SYN) {
+          m_logRawBuffer << "...";
+        }
+        m_logRawBuffer << (received ? "<" : ">");
+      }
+      m_logRawBuffer << setw(2) << setfill('0') << hex << static_cast<unsigned>(symbol);
     }
-    if (m_logRawBuffer.tellp() == 0 || received != m_logRawLastReceived) {
-      m_logRawLastReceived = received;
-      if (m_logRawBuffer.tellp() == 0 && m_logRawLastSymbol != SYN) {
+    m_logRawLastSymbol = symbol;
+    if (m_logRawBuffer.tellp() > (symbol == SYN ? 0 : 64)) {  // flush: direction+5 hdr+24 max data+crc+direction+ack+1
+      if (symbol != SYN) {
         m_logRawBuffer << "...";
       }
-      m_logRawBuffer << (received ? "<" : ">");
+      const string bufStr = m_logRawBuffer.str();
+      const char* str = bufStr.c_str();
+      if (m_logRawFile) {
+        m_logRawFile->write((const unsigned char*)str, strlen(str), received, false);
+      } else {
+        logNotice(lf_bus, str);
+      }
+      m_logRawBuffer.str("");
     }
-    m_logRawBuffer << setw(2) << setfill('0') << hex << static_cast<unsigned>(symbol);
-  }
-    m_logRawLastSymbol = symbol;
-  if (m_logRawBuffer.tellp() > (symbol == SYN ? 0 : 64)) {  // flush: direction+5 hdr+24 max data+crc+direction+ack+1
-    if (symbol != SYN) {
-      m_logRawBuffer << "...";
-  }
-    const string bufStr = m_logRawBuffer.str();
-    const char* str = bufStr.c_str();
-    if (m_logRawFile) {
-      m_logRawFile->write((const unsigned char*)str, strlen(str), received, false);
-    } else {
-      logNotice(lf_bus, str);
-    }
-    m_logRawBuffer.str("");
   }
 }
 

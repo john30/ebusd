@@ -82,27 +82,38 @@ void DirectProtocolHandler::run() {
   lastTime += 2;
   logNotice(lf_bus, "bus started with own address %2.2x/%2.2x%s", m_ownMasterAddress, m_ownSlaveAddress,
       m_config.answer?" in answer mode":"");
-
   do {
-    if (m_device->isValid() && !m_reconnect) {
-      result_t result = handleSymbol();
-      time(&now);
-      if (result != RESULT_ERR_TIMEOUT && now >= lastTime) {
-        symCount++;
-      }
-      if (now > lastTime) {
-        m_symPerSec = symCount / (unsigned int)(now-lastTime);
-        if (m_symPerSec > m_maxSymPerSec) {
-          m_maxSymPerSec = m_symPerSec;
-          if (m_maxSymPerSec > 100) {
-            logNotice(lf_bus, "max. symbols per second: %d", m_maxSymPerSec);
-          }
+    bool valid = m_device->isValid();
+    if (valid && !m_reconnect) {
+      unsigned int recvTimeout = 0;
+      symbol_t sentSymbol = ESC;
+      struct timespec sentTime;
+      result_t result = handleSend(&recvTimeout, &sentSymbol, &sentTime);
+      bool sent = result == RESULT_CONTINUE;
+      do {
+        if (result >= RESULT_OK) {
+          result = handleReceive(recvTimeout, sent, sentSymbol, &sentTime);
         }
-        lastTime = now;
-        symCount = 0;
-      }
+        time(&now);
+        if (result != RESULT_ERR_TIMEOUT && now >= lastTime) {
+          symCount++;
+        }
+        if (now > lastTime) {
+          m_symPerSec = symCount / (unsigned int)(now-lastTime);
+          if (m_symPerSec > m_maxSymPerSec) {
+            m_maxSymPerSec = m_symPerSec;
+            if (m_maxSymPerSec > 100) {
+              logNotice(lf_bus, "max. symbols per second: %d", m_maxSymPerSec);
+            }
+          }
+          lastTime = now;
+          symCount = 0;
+        }
+        recvTimeout = 0;  // for further buffered bytes
+        sent = false;
+      } while (result == RESULT_CONTINUE);
     } else {
-      if (!m_device->isValid()) {
+      if (!valid) {
         logNotice(lf_bus, "device invalid");
         setState(bs_noSignal, RESULT_ERR_DEVICE);
       }
@@ -136,7 +147,8 @@ void DirectProtocolHandler::run() {
 #endif
 #endif
 
-result_t DirectProtocolHandler::handleSymbol() {
+result_t DirectProtocolHandler::handleSend(unsigned int* recvTimeout, symbol_t* sentSymbol,
+struct timespec* sentTime) {
   unsigned int timeout = SYN_TIMEOUT;
   symbol_t sendSymbol = ESC;
   bool sending = false;
@@ -247,8 +259,6 @@ result_t DirectProtocolHandler::handleSymbol() {
   }
 
   // send symbol if necessary
-  result_t result;
-  struct timespec sentTime, recvTime;
   if (sending && !m_config.readOnly) {
     if (m_state != bs_sendSyn && (sendSymbol == ESC || sendSymbol == SYN)) {
       if (m_escape) {
@@ -258,43 +268,51 @@ result_t DirectProtocolHandler::handleSymbol() {
         sendSymbol = ESC;
       }
     }
-    result = m_device->send(sendSymbol);
-    clockGettime(&sentTime);
+    result_t result = m_device->send(sendSymbol);
+    clockGettime(sentTime);
     if (result == RESULT_OK) {
       if (m_state == bs_ready) {
         timeout = m_config.busAcquireTimeout;
       } else {
         timeout = SEND_TIMEOUT;
       }
+      *sentSymbol = sendSymbol;
     } else {
       sending = false;
       timeout = SYN_TIMEOUT;
       setState(bs_skip, result);
     }
+    *recvTimeout = timeout;
+    return sending ? RESULT_CONTINUE : result;
   } else {
-    clockGettime(&sentTime);  // for measuring arbitration delay in enhanced protocol
+    clockGettime(sentTime);  // for measuring arbitration delay in enhanced protocol
   }
+  *recvTimeout = timeout;
+  return RESULT_OK;
+}
 
+result_t DirectProtocolHandler::handleReceive(unsigned int timeout, bool sending, symbol_t sentSymbol,
+struct timespec* sentTime) {
   // receive next symbol (optionally check reception of sent symbol)
   symbol_t recvSymbol;
+  struct timespec recvTime;
   ArbitrationState arbitrationState = as_none;
-  result = m_device->recv(timeout, &recvSymbol, &arbitrationState);
+  result_t result = m_device->recv(timeout, &recvSymbol, &arbitrationState);
+  bool sentAutoSyn = false;
   if (sending) {
     clockGettime(&recvTime);
-  }
-  bool sentAutoSyn = false;
-  if (!sending && !m_config.readOnly && result == RESULT_ERR_TIMEOUT && m_generateSynInterval > 0
+  } else if (!m_config.readOnly && result == RESULT_ERR_TIMEOUT && m_generateSynInterval > 0
       && timeout >= m_generateSynInterval && (m_state == bs_noSignal || m_state == bs_skip)) {
     // check if acting as AUTO-SYN generator is required
     result = m_device->send(SYN);
     if (result != RESULT_OK) {
       return setState(bs_skip, result);
     }
-    clockGettime(&sentTime);
+    clockGettime(sentTime);
     recvSymbol = ESC;
     result = m_device->recv(SEND_TIMEOUT, &recvSymbol, &arbitrationState);
     clockGettime(&recvTime);
-    if (result != RESULT_OK) {
+    if (result < RESULT_OK) {
       logError(lf_bus, "unable to receive sent AUTO-SYN symbol: %s", getResultCode(result));
       return setState(bs_noSignal, result);
     }
@@ -302,7 +320,7 @@ result_t DirectProtocolHandler::handleSymbol() {
       logError(lf_bus, "received %2.2x instead of AUTO-SYN symbol", recvSymbol);
       return setState(bs_noSignal, result);
     }
-    measureLatency(&sentTime, &recvTime);
+    measureLatency(sentTime, &recvTime);
     if (m_generateSynInterval != SYN_INTERVAL) {
       // received own AUTO-SYN symbol back again: act as AUTO-SYN generator now
       m_generateSynInterval = SYN_INTERVAL;
@@ -337,7 +355,7 @@ result_t DirectProtocolHandler::handleSymbol() {
         } else {
           logDebug(lf_bus, "arbitration won");
           m_currentRequest = startRequest;
-          sendSymbol = m_currentRequest->getMaster()[0];
+          sentSymbol = m_currentRequest->getMaster()[0];
           sending = true;
         }
       }
@@ -361,11 +379,11 @@ result_t DirectProtocolHandler::handleSymbol() {
       break;
   }
   if (sentAutoSyn && !sending) {
-    return RESULT_OK;
+    return result;
   }
   time_t now;
   time(&now);
-  if (result != RESULT_OK) {
+  if (result < RESULT_OK) {
     if ((m_generateSynInterval != SYN_INTERVAL && difftime(now, m_lastReceive) > 1)
       // at least one full second has passed since last received symbol
       || m_state == bs_noSignal) {
@@ -376,20 +394,26 @@ result_t DirectProtocolHandler::handleSymbol() {
 
   m_lastReceive = now;
   if ((recvSymbol == SYN) && (m_state != bs_sendSyn)) {
-    if (!sending && m_remainLockCount > 0 && m_command.size() != 1) {
-      m_remainLockCount--;
-    } else if (!sending && m_remainLockCount == 0 && m_command.size() == 1) {
-      m_remainLockCount = 1;  // wait for next AUTO-SYN after SYN / address / SYN (bus locked for own priority)
+    if (result == RESULT_CONTINUE) {
+      if (m_remainLockCount == 0) {
+        m_remainLockCount = 1;  // avoid starting arbitration when more data is already buffered
+      }
+    } else if (!sending) {
+      if (m_remainLockCount > 0 && m_command.size() != 1) {
+        m_remainLockCount--;
+      } else if (m_remainLockCount == 0 && m_command.size() == 1) {
+        m_remainLockCount = 1;  // wait for next AUTO-SYN after SYN / address / SYN (bus locked for own priority)
+      }
     }
-    clockGettime(&m_lastSynReceiveTime);
-    return setState(bs_ready, m_state == bs_skip ? RESULT_OK : RESULT_ERR_SYN);
+    m_lastSynReceiveTime = recvTime;
+    return setState(bs_ready, m_state == bs_skip || m_remainLockCount > 0 ? result : RESULT_ERR_SYN);
   }
 
   if (sending && m_state != bs_ready) {  // check received symbol for equality if not in arbitration
-    if (recvSymbol != sendSymbol) {
+    if (recvSymbol != sentSymbol) {
       return setState(bs_skip, RESULT_ERR_SYMBOL);
     }
-    measureLatency(&sentTime, &recvTime);
+    measureLatency(sentTime, &recvTime);
   }
 
   switch (m_state) {
@@ -407,10 +431,10 @@ result_t DirectProtocolHandler::handleSymbol() {
   if (m_escape) {
     // check escape/unescape state
     if (sending) {
-      if (sendSymbol == ESC) {
-        return RESULT_OK;
+      if (sentSymbol == ESC) {
+        return result;
       }
-      sendSymbol = recvSymbol = m_escape;
+      sentSymbol = recvSymbol = m_escape;
     } else {
       if (recvSymbol > 0x01) {
         return setState(bs_skip, RESULT_ERR_ESC);
@@ -420,23 +444,23 @@ result_t DirectProtocolHandler::handleSymbol() {
     m_escape = 0;
   } else if (!sending && recvSymbol == ESC) {
     m_escape = ESC;
-    return RESULT_OK;
+    return result;
   }
 
   switch (m_state) {
   case bs_noSignal:
-    return setState(bs_skip, RESULT_OK);
+    return setState(bs_skip, result);
 
   case bs_skip:
-    return RESULT_OK;
+    return result;
 
   case bs_ready:
     if (m_currentRequest != nullptr && sending) {
       // check arbitration
-      if (recvSymbol == sendSymbol) {  // arbitration successful
+      if (recvSymbol == sentSymbol) {  // arbitration successful
         // measure arbitration delay
-        int64_t latencyLong = (sentTime.tv_sec*1000000000 + sentTime.tv_nsec
-        - m_lastSynReceiveTime.tv_sec*1000000000 - m_lastSynReceiveTime.tv_nsec)/1000;
+        int64_t latencyLong = (sentTime->tv_sec*1000000000LL + sentTime->tv_nsec
+        - m_lastSynReceiveTime.tv_sec*1000000000LL - m_lastSynReceiveTime.tv_nsec)/1000;
         if (latencyLong >= 0 && latencyLong <= 10000) {  // skip clock skew or out of reasonable range
           auto latency = static_cast<int>(latencyLong);
           logDebug(lf_bus, "arbitration delay %d micros", latency);
@@ -452,11 +476,11 @@ result_t DirectProtocolHandler::handleSymbol() {
         }
         m_nextSendPos = 1;
         m_repeat = false;
-        return setState(bs_sendCmd, RESULT_OK);
+        return setState(bs_sendCmd, result);
       }
       // arbitration lost. if same priority class found, try again after next AUTO-SYN
       m_remainLockCount = isMaster(recvSymbol) ? 2 : 1;  // number of SYN to wait for before next send try
-      if ((recvSymbol & 0x0f) != (sendSymbol & 0x0f) && m_lockCount > m_remainLockCount) {
+      if ((recvSymbol & 0x0f) != (sentSymbol & 0x0f) && m_lockCount > m_remainLockCount) {
         // if different priority class found, try again after N AUTO-SYN symbols (at least next AUTO-SYN)
         m_remainLockCount = m_lockCount;
       }
@@ -464,7 +488,7 @@ result_t DirectProtocolHandler::handleSymbol() {
     }
     m_command.push_back(recvSymbol);
     m_repeat = false;
-    return setState(bs_recvCmd, RESULT_OK);
+    return setState(bs_recvCmd, result);
 
   case bs_recvCmd:
     if ((m_command.size() == 0 && !isMaster(recvSymbol))
@@ -473,9 +497,9 @@ result_t DirectProtocolHandler::handleSymbol() {
     }
     m_command.push_back(recvSymbol);
     if (m_command.isComplete()) {  // all data received
-      return setState(bs_recvCmdCrc, RESULT_OK);
+      return setState(bs_recvCmdCrc, result);
     }
-    return RESULT_OK;
+    return result;
 
   case bs_recvCmdCrc:
     m_crcValid = recvSymbol == m_crc;
@@ -483,7 +507,7 @@ result_t DirectProtocolHandler::handleSymbol() {
       if (m_crcValid) {
         addSeenAddress(m_command[0]);
         messageCompleted();
-        return setState(bs_skip, RESULT_OK);
+        return setState(bs_skip, result);
       }
       return setState(bs_skip, RESULT_ERR_CRC);
     }
@@ -493,14 +517,14 @@ result_t DirectProtocolHandler::handleSymbol() {
         if (m_crcValid) {
           addSeenAddress(m_command[0]);
           m_currentAnswering = true;
-          return setState(bs_sendCmdAck, RESULT_OK);
+          return setState(bs_sendCmdAck, result);
         }
         return setState(bs_sendCmdAck, RESULT_ERR_CRC);
       }
     }
     if (m_crcValid) {
       addSeenAddress(m_command[0]);
-      return setState(bs_recvCmdAck, RESULT_OK);
+      return setState(bs_recvCmdAck, result);
     }
     if (m_repeat) {
       return setState(bs_skip, RESULT_ERR_CRC);
@@ -515,15 +539,15 @@ result_t DirectProtocolHandler::handleSymbol() {
       if (m_currentRequest != nullptr) {
         if (isMaster(m_currentRequest->getMaster()[1])) {
           messageCompleted();
-          return setState(bs_sendSyn, RESULT_OK);
+          return setState(bs_sendSyn, result);
         }
       } else if (isMaster(m_command[1])) {
         messageCompleted();
-        return setState(bs_skip, RESULT_OK);
+        return setState(bs_skip, result);
       }
 
       m_repeat = false;
-      return setState(bs_recvRes, RESULT_OK);
+      return setState(bs_recvRes, result);
     }
     if (recvSymbol == NAK) {
       if (!m_repeat) {
@@ -543,17 +567,17 @@ result_t DirectProtocolHandler::handleSymbol() {
   case bs_recvRes:
     m_response.push_back(recvSymbol);
     if (m_response.isComplete()) {  // all data received
-      return setState(bs_recvResCrc, RESULT_OK);
+      return setState(bs_recvResCrc, result);
     }
-    return RESULT_OK;
+    return result;
 
   case bs_recvResCrc:
     m_crcValid = recvSymbol == m_crc;
     if (m_crcValid) {
       if (m_currentRequest != nullptr) {
-        return setState(bs_sendResAck, RESULT_OK);
+        return setState(bs_sendResAck, result);
       }
-      return setState(bs_recvResAck, RESULT_OK);
+      return setState(bs_recvResAck, result);
     }
     if (m_repeat) {
       if (m_currentRequest != nullptr) {
@@ -572,7 +596,7 @@ result_t DirectProtocolHandler::handleSymbol() {
         return setState(bs_skip, RESULT_ERR_ACK);
       }
       messageCompleted();
-      return setState(bs_skip, RESULT_OK);
+      return setState(bs_skip, result);
     }
     if (recvSymbol == NAK) {
       if (!m_repeat) {
@@ -594,17 +618,17 @@ result_t DirectProtocolHandler::handleSymbol() {
     }
     m_nextSendPos++;
     if (m_nextSendPos >= m_currentRequest->getMaster().size()) {
-      return setState(bs_sendCmdCrc, RESULT_OK);
+      return setState(bs_sendCmdCrc, result);
     }
-    return RESULT_OK;
+    return result;
 
   case bs_sendCmdCrc:
     if (m_currentRequest->getMaster()[1] == BROADCAST) {
       messageCompleted();
-      return setState(bs_sendSyn, RESULT_OK);
+      return setState(bs_sendSyn, result);
     }
     m_crcValid = true;
-    return setState(bs_recvCmdAck, RESULT_OK);
+    return setState(bs_recvCmdAck, result);
 
   case bs_sendResAck:
     if (!sending || m_currentRequest == nullptr) {
@@ -619,7 +643,7 @@ result_t DirectProtocolHandler::handleSymbol() {
       return setState(bs_sendSyn, RESULT_ERR_ACK);
     }
     messageCompleted();
-    return setState(bs_sendSyn, RESULT_OK);
+    return setState(bs_sendSyn, result);
 
   case bs_sendCmdAck:
     if (!sending || !m_config.answer) {
@@ -636,18 +660,20 @@ result_t DirectProtocolHandler::handleSymbol() {
     }
     if (isMaster(m_command[1])) {
       messageCompleted();  // TODO decode command and store value into database of internal variables
-      return setState(bs_skip, RESULT_OK);
+      return setState(bs_skip, result);
     }
 
     m_nextSendPos = 0;
     m_repeat = false;
     // build response and store in m_response for sending back to requesting master
     m_response.clear();
-    result = m_listener->notifyProtocolAnswer(m_command, &m_response);
-    if (result != RESULT_OK) {
-      return setState(bs_skip, result);
+    {
+      result_t result = m_listener->notifyProtocolAnswer(m_command, &m_response);
+      if (result != RESULT_OK) {
+        return setState(bs_skip, result);
+      }
     }
-    return setState(bs_sendRes, RESULT_OK);
+    return setState(bs_sendRes, result);
 
   case bs_sendRes:
     if (!sending || !m_config.answer) {
@@ -656,23 +682,23 @@ result_t DirectProtocolHandler::handleSymbol() {
     m_nextSendPos++;
     if (m_nextSendPos >= m_response.size()) {
       // slave data completely sent
-      return setState(bs_sendResCrc, RESULT_OK);
+      return setState(bs_sendResCrc, result);
     }
-    return RESULT_OK;
+    return result;
 
   case bs_sendResCrc:
     if (!sending || !m_config.answer) {
       return setState(bs_skip, RESULT_ERR_INVALID_ARG);
     }
-    return setState(bs_recvResAck, RESULT_OK);
+    return setState(bs_recvResAck, result);
 
   case bs_sendSyn:
     if (!sending) {
       return setState(bs_ready, RESULT_ERR_INVALID_ARG);
     }
-    return setState(bs_ready, RESULT_OK);
+    return setState(bs_ready, result);
   }
-  return RESULT_OK;
+  return result;
 }
 
 result_t DirectProtocolHandler::setState(BusState state, result_t result, bool firstRepetition) {
@@ -682,7 +708,7 @@ result_t DirectProtocolHandler::setState(BusState state, result_t result, bool f
       m_currentRequest->incrementBusLostRetries();
       m_nextRequests.push(m_currentRequest);  // repeat
       m_currentRequest = nullptr;
-    } else if (state == bs_sendSyn || (result != RESULT_OK && !firstRepetition)) {
+    } else if (state == bs_sendSyn || (result < RESULT_OK && !firstRepetition)) {
       logDebug(lf_bus, "notify request: %s", getResultCode(result));
       bool restart = m_currentRequest->notify(
         result == RESULT_ERR_SYN && (m_state == bs_recvCmdAck || m_state == bs_recvRes)
@@ -716,13 +742,13 @@ result_t DirectProtocolHandler::setState(BusState state, result_t result, bool f
 
   m_escape = 0;
   if (state == m_state) {
-    if (m_listener && result != RESULT_OK) {
+    if (m_listener && result < RESULT_OK && state != bs_noSignal) {
       m_listener->notifyProtocolStatus(m_listenerState, result);
     }
     return result;
   }
   if ((result < RESULT_OK && !(result == RESULT_ERR_TIMEOUT && state == bs_skip && m_state == bs_ready))
-      || (result != RESULT_OK && state == bs_skip && m_state != bs_ready)) {
+      || (result < RESULT_OK && state == bs_skip && m_state != bs_ready)) {
     logDebug(lf_bus, "%s during %s, switching to %s", getResultCode(result), getStateCode(m_state),
         getStateCode(state));
   } else if (m_currentRequest != nullptr || state == bs_sendCmd || state == bs_sendCmdCrc || state == bs_sendCmdAck
@@ -744,7 +770,7 @@ result_t DirectProtocolHandler::setState(BusState state, result_t result, bool f
     if (pstate == ps_idle && m_generateSynInterval == SYN_INTERVAL) {
       pstate = ps_idleSYN;
     }
-    if (result != RESULT_OK || pstate != m_listenerState) {
+    if (result < RESULT_OK || pstate != m_listenerState) {
       m_listener->notifyProtocolStatus(pstate, result);
       m_listenerState = pstate;
     }

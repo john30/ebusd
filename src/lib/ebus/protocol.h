@@ -332,7 +332,7 @@ class ProtocolHandler : public WaitThread, DeviceListener {
    * Format device/protocol infos in JSON format.
    * @param output the @a ostringstream to append the infos to.
    */
-  virtual void formatInfoJson(ostringstream* output);
+  virtual void formatInfoJson(ostringstream* output) const;
 
   /**
    * @return whether to allow read access to the device only.
@@ -381,7 +381,7 @@ class ProtocolHandler : public WaitThread, DeviceListener {
   virtual bool supportsUpdateCheck() const { return m_device->supportsUpdateCheck(); }
 
   // @copydoc
-  void notifyDeviceData(symbol_t symbol, bool received) override;
+  virtual void notifyDeviceData(symbol_t* symbols, size_t len, bool received);
 
   // @copydoc
   void notifyDeviceStatus(bool error, const char* message) override;
