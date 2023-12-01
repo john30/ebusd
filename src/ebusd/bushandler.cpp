@@ -130,7 +130,7 @@ bool ScanRequest::notify(result_t result, const SlaveSymbolString& slave) {
     }
   }
   m_result = result;
-  if (m_slaves.empty()) {
+  if (m_slaves.empty() || result == RESULT_ERR_NO_SIGNAL) {
     if (m_deleteOnFinish) {
       logNotice(lf_bus, "scan finished");
     }
