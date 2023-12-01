@@ -252,7 +252,7 @@ class ProtocolListener {
 /**
  * Handles input from and output to eBUS with respect to the eBUS protocol.
  */
-class ProtocolHandler : public WaitThread, DeviceListener {
+class ProtocolHandler : public WaitThread, public DeviceListener {
  public:
   /**
    * Construct a new instance.
@@ -381,7 +381,7 @@ class ProtocolHandler : public WaitThread, DeviceListener {
   virtual bool supportsUpdateCheck() const { return m_device->supportsUpdateCheck(); }
 
   // @copydoc
-  virtual void notifyDeviceData(symbol_t* symbols, size_t len, bool received);
+  virtual void notifyDeviceData(const symbol_t* data, size_t len, bool received);
 
   // @copydoc
   void notifyDeviceStatus(bool error, const char* message) override;

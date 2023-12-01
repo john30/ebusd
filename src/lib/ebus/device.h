@@ -35,7 +35,7 @@ namespace ebusd {
  * The data transport itself is handled by a @a Transport instance.
  */
 
-/** the arbitration state handled by @a Device. */
+/** the arbitration state handled by @a CharDevice. */
 enum ArbitrationState {
   as_none,     //!< no arbitration in process
   as_start,    //!< arbitration start requested
@@ -62,7 +62,7 @@ class DeviceListener {
    * @param len the length of received/sent data.
    * @param received @a true on reception, @a false on sending.
    */
-  virtual void notifyDeviceData(symbol_t* data, size_t len, bool received) = 0;  // abstract
+  virtual void notifyDeviceData(const symbol_t* data, size_t len, bool received) = 0;  // abstract
 
   /**
    * Called to notify a status message from the device.

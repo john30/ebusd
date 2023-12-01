@@ -131,7 +131,7 @@ void ProtocolHandler::formatInfoJson(ostringstream* ostream) const {
   m_device->formatInfoJson(ostream);
 }
 
-void ProtocolHandler::notifyDeviceData(symbol_t* data, size_t len, bool received) {
+void ProtocolHandler::notifyDeviceData(const symbol_t* data, size_t len, bool received) {
   if (received && m_dumpFile) {
     m_dumpFile->write(data, len);
   }

@@ -48,7 +48,7 @@ using std::fixed;
 #define ENH_RES_ERROR_EBUS ((uint8_t)0xb)
 #define ENH_RES_ERROR_HOST ((uint8_t)0xc)
 
-// ebusd enhanced error codes for the ERROR_* responses
+// ebusd enhanced error codes for the ENH_RES_ERROR_* responses
 #define ENH_ERR_FRAMING ((uint8_t)0x00)
 #define ENH_ERR_OVERRUN ((uint8_t)0x01)
 
@@ -70,7 +70,7 @@ result_t PlainCharDevice::send(symbol_t value) {
 }
 
 result_t PlainCharDevice::recv(unsigned int timeout, symbol_t* value, ArbitrationState* arbitrationState) {
-  if (m_arbitrationMaster != SYN) {
+  if (m_arbitrationMaster != SYN && arbitrationState) {
     *arbitrationState = as_running;
   }
   uint64_t until = timeout == 0 ? 0 : clockGetMillis() + timeout + m_transport->getLatency();
@@ -105,7 +105,7 @@ result_t PlainCharDevice::recv(unsigned int timeout, symbol_t* value, Arbitratio
       result = RESULT_CONTINUE;
     }
     if (*value != SYN || m_arbitrationMaster == SYN || m_arbitrationCheck) {
-      if (m_arbitrationMaster != SYN) {
+      if (m_arbitrationMaster != SYN && arbitrationState) {
         if (m_arbitrationCheck) {
           *arbitrationState = *value == m_arbitrationMaster ? as_won : as_lost;
           m_arbitrationMaster = SYN;
@@ -116,7 +116,7 @@ result_t PlainCharDevice::recv(unsigned int timeout, symbol_t* value, Arbitratio
       }
       return result;
     }
-    if (len == 1) {
+    if (len == 1 && arbitrationState) {
       // arbitration executed by ebusd itself
       bool wrote = m_transport->write(&m_arbitrationMaster, 1) == RESULT_OK;  // send as fast as possible
       if (!wrote) {
@@ -285,7 +285,7 @@ result_t EnhancedCharDevice::send(symbol_t value) {
 }
 
 result_t EnhancedCharDevice::recv(unsigned int timeout, symbol_t* value, ArbitrationState* arbitrationState) {
-  if (m_arbitrationMaster != SYN) {
+  if (arbitrationState && m_arbitrationMaster != SYN) {
     *arbitrationState = as_running;
   }
   uint64_t until = timeout == 0 ? 0 : clockGetMillis() + timeout + m_transport->getLatency();
@@ -366,7 +366,6 @@ result_t EnhancedCharDevice::notifyTransportStatus(bool opened) {
   return result;
 }
 
-
 result_t EnhancedCharDevice::handleEnhancedBufferedData(const uint8_t* data, size_t len,
 symbol_t* value, ArbitrationState* arbitrationState) {
   bool valueSet = false;
@@ -415,7 +414,9 @@ symbol_t* value, ArbitrationState* arbitrationState) {
           break;
         }
         sent = cmd == ENH_RES_STARTED;
-        *arbitrationState = sent ? as_won : as_lost;
+        if (arbitrationState) {
+          *arbitrationState = sent ? as_won : as_lost;
+        }
         m_arbitrationMaster = SYN;
         m_arbitrationCheck = 0;
         *value = data;
@@ -429,7 +430,7 @@ symbol_t* value, ArbitrationState* arbitrationState) {
           break;
         }
         *value = data;
-        if (data == SYN && *arbitrationState == as_running && m_arbitrationCheck) {
+        if (data == SYN && arbitrationState && *arbitrationState == as_running && m_arbitrationCheck) {
           if (m_arbitrationCheck < 3) {  // wait for three SYN symbols before switching to timeout
             m_arbitrationCheck++;
           } else {
@@ -441,7 +442,7 @@ symbol_t* value, ArbitrationState* arbitrationState) {
         valueSet = true;
         break;
       case ENH_RES_RESETTED:
-        if (*arbitrationState != as_none) {
+        if (arbitrationState && *arbitrationState != as_none) {
           *arbitrationState = as_error;
           m_arbitrationMaster = SYN;
           m_arbitrationCheck = 0;
