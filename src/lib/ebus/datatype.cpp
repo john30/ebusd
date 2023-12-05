@@ -34,13 +34,11 @@
 namespace ebusd {
 
 using std::dec;
-using std::defaultfloat;
 using std::hex;
 using std::fixed;
 using std::setfill;
 using std::setprecision;
 using std::setw;
-using std::endl;
 using std::isfinite;
 
 

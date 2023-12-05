@@ -23,6 +23,7 @@
 #include "lib/ebus/result.h"
 #include "lib/ebus/device.h"
 #include "lib/utils/queue.h"
+#include "lib/utils/rotatefile.h"
 #include "lib/utils/thread.h"
 
 namespace ebusd {
@@ -33,6 +34,9 @@ namespace ebusd {
 
 /** the default time [ms] for retrieving a symbol from an addressed slave. */
 #define SLAVE_RECV_TIMEOUT 15
+
+/** the desired delay time [ms] for sending the AUTO-SYN symbol after last seen symbol. */
+#define SYN_INTERVAL 40
 
 /** the maximum allowed time [ms] for retrieving the AUTO-SYN symbol (45ms + 2*1,2% + 1 Symbol). */
 #define SYN_TIMEOUT 51
@@ -52,8 +56,14 @@ namespace ebusd {
 
 /** settings for the eBUS protocol handler. */
 typedef struct ebus_protocol_config {
+  /** eBUS device string (serial device or [udp:]ip:port) with optional protocol prefix (enh: or ens:). */
+  const char* device;
+  /** whether to skip serial eBUS device test. */
+  bool noDeviceCheck;
   /** whether to allow read access to the device only. */
   bool readOnly;
+  /** extra transfer latency in ms. */
+  unsigned int extraLatency;
   /** the own master address. */
   symbol_t ownAddress;
   /** whether to answer queries for the own master/slave address. */
@@ -79,9 +89,18 @@ typedef struct ebus_protocol_config {
 enum ProtocolState {
   ps_noSignal,   //!< no signal on the bus
   ps_idle,       //!< idle (after @a SYN symbol)
+  ps_idleSYN,    //!< idle (after sent SYN symbol in acting as SYN generator)
+  ps_recv,       //!< receiving
+  ps_send,       //!< sending
   ps_empty,      //!< idle, no more lock remaining, and no other request queued
 };
 
+/**
+ * Return the string corresponding to the @a ProtocolState.
+ * @param state the @a ProtocolState.
+ * @return the string corresponding to the @a ProtocolState.
+ */
+const char* getProtocolStateCode(ProtocolState state);
 
 class ProtocolHandler;
 
@@ -198,8 +217,9 @@ class ProtocolListener {
   /**
    * Called to notify a status update from the protocol.
    * @param state the current protocol state.
+   * @param result the error code reason for the state change, or @a RESULT_OK.
    */
-  virtual void notifyProtocolStatus(ProtocolState state) = 0;  // abstract
+  virtual void notifyProtocolStatus(ProtocolState state, result_t result) = 0;  // abstract
 
   /**
    * Called to notify a new valid seen address on the bus.
@@ -232,7 +252,7 @@ class ProtocolListener {
 /**
  * Handles input from and output to eBUS with respect to the eBUS protocol.
  */
-class ProtocolHandler : public WaitThread {
+class ProtocolHandler : public WaitThread, public DeviceListener {
  public:
   /**
    * Construct a new instance.
@@ -243,14 +263,19 @@ class ProtocolHandler : public WaitThread {
   ProtocolHandler(const ebus_protocol_config_t config,
       Device* device, ProtocolListener* listener)
     : WaitThread(), m_config(config), m_device(device), m_listener(listener),
-      m_reconnect(false),
+      m_listenerState(ps_noSignal), m_reconnect(false),
       m_ownMasterAddress(config.ownAddress), m_ownSlaveAddress(getSlaveAddress(config.ownAddress)),
       m_addressConflict(false),
       m_masterCount(config.readOnly ? 0 : 1),
       m_symbolLatencyMin(-1), m_symbolLatencyMax(-1), m_arbitrationDelayMin(-1),
       m_arbitrationDelayMax(-1), m_lastReceive(0),
-      m_symPerSec(0), m_maxSymPerSec(0) {
+      m_symPerSec(0), m_maxSymPerSec(0),
+      m_logRawFile(nullptr), m_logRawEnabled(false), m_logRawBytes(false),
+      m_logRawLastSymbol(SYN), m_dumpFile(nullptr) {
     memset(m_seenAddresses, 0, sizeof(m_seenAddresses));
+    device->setListener(this);
+    m_logRawLastReceived = true;
+    m_logRawLastSymbol = SYN;
   }
 
   /**
@@ -267,16 +292,33 @@ class ProtocolHandler : public WaitThread {
         delete req;
       }
     }
+    if (m_dumpFile) {
+      delete m_dumpFile;
+      m_dumpFile = nullptr;
+    }
+    if (m_logRawFile) {
+      delete m_logRawFile;
+      m_logRawFile = nullptr;
+    }
+    if (m_device != nullptr) {
+      delete m_device;
+      m_device = nullptr;
+    }
   }
 
   /**
    * Create a new instance.
    * @param config the configuration to use.
-   * @param device the @a Device instance for accessing the bus.
    * @param listener the @a ProtocolListener.
    * @return the new ProtocolHandler, or @a nullptr on error.
    */
-  static ProtocolHandler* create(const ebus_protocol_config_t config, Device* device, ProtocolListener* listener);
+  static ProtocolHandler* create(const ebus_protocol_config_t config, ProtocolListener* listener);
+
+  /**
+   * Open the device.
+   * @return the @a result_t code.
+   */
+  virtual result_t open();
 
   /**
    * Format device/protocol infos in plain text.
@@ -290,7 +332,7 @@ class ProtocolHandler : public WaitThread {
    * Format device/protocol infos in JSON format.
    * @param output the @a ostringstream to append the infos to.
    */
-  virtual void formatInfoJson(ostringstream* output);
+  virtual void formatInfoJson(ostringstream* output) const;
 
   /**
    * @return whether to allow read access to the device only.
@@ -334,9 +376,15 @@ class ProtocolHandler : public WaitThread {
   unsigned int getMaxSymPerSec() const { return m_maxSymPerSec; }
 
   /**
-   * @return the @a Device instance for accessing the bus.
+   * @return whether the device supports checking for version updates.
    */
-  const Device* getDevice() const { return m_device; }
+  virtual bool supportsUpdateCheck() const { return m_device->supportsUpdateCheck(); }
+
+  // @copydoc
+  virtual void notifyDeviceData(const symbol_t* data, size_t len, bool received);
+
+  // @copydoc
+  void notifyDeviceStatus(bool error, const char* message) override;
 
   /**
    * Clear stored values (e.g. scan results).
@@ -425,6 +473,37 @@ class ProtocolHandler : public WaitThread {
    */
   unsigned int getMasterCount() const { return m_masterCount; }
 
+  /**
+   * Set the dump file to use.
+   * @param dumpFile the dump file to use, or nullptr.
+   * @param dumpSize the maximum file size.
+   * @param dumpFlush true to early flush the file.
+   */
+  void setDumpFile(const char* dumpFile, unsigned int dumpSize, bool dumpFlush);
+
+  /**
+   * @return whether a dump file is set.
+   */
+  bool hasDumpFile() const { return m_dumpFile; }
+
+  /**
+   * Toggle dumping to file.
+   * @return true if dumping is now enabled.
+   */
+  bool toggleDump();
+
+  /**
+   * Set the log raw data file to use.
+   * @param logRawFile the log raw file to use, or nullptr.
+   * @param logRawSize the maximum file size.
+   */
+  void setLogRawFile(const char* logRawFile, unsigned int logRawSize);
+
+  /**
+   * Toggle logging raw data.
+   * @return true if logging raw data is now enabled.
+   */
+  bool toggleLogRaw(bool bytes);
 
  protected:
   /**
@@ -449,6 +528,9 @@ class ProtocolHandler : public WaitThread {
 
   /** the @a ProtocolListener. */
   ProtocolListener *m_listener;
+
+  /** the last state the listener was informed with. */
+  ProtocolState m_listenerState;
 
   /** set to @p true when the device shall be reconnected. */
   bool m_reconnect;
@@ -500,6 +582,27 @@ class ProtocolHandler : public WaitThread {
 
   /** the participating bus addresses seen so far. */
   bool m_seenAddresses[256];
+
+  /** the @a RotateFile for writing sent/received bytes in log format, or nullptr. */
+  RotateFile* m_logRawFile;
+
+  /** whether raw logging to @p logNotice is enabled (only relevant if m_logRawFile is nullptr). */
+  bool m_logRawEnabled;
+
+  /** whether to log raw bytes instead of messages with @a m_logRawEnabled. */
+  bool m_logRawBytes;
+
+  /** the buffer for building log raw message. */
+  ostringstream m_logRawBuffer;
+
+  /** true when the last byte in @a m_logRawBuffer was receive, false if it was sent. */
+  bool m_logRawLastReceived;
+
+  /** the last sent/received symbol.*/
+  symbol_t m_logRawLastSymbol;
+
+  /** the @a RotateFile for dumping received data, or nullptr. */
+  RotateFile* m_dumpFile;
 };
 
 }  // namespace ebusd

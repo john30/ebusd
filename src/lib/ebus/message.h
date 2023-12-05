@@ -902,7 +902,7 @@ class Condition {
    * Write the values part of the condition definition in JSON to the @a ostream.
    * @param output the @a ostream to append to.
    */
-  virtual void dumpValuesJson(ostream* output) const { /* empty on top level*/ };
+  virtual void dumpValuesJson(ostream* output) const { /* empty on top level*/ }
 
   /**
    * Combine this condition with another instance using a logical and.

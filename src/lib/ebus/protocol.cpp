@@ -20,12 +20,29 @@
 #  include <config.h>
 #endif
 
+#include <string>
+#include <iomanip>
 #include "lib/ebus/protocol.h"
 #include "lib/ebus/protocol_direct.h"
-#include <string>
 #include "lib/utils/log.h"
 
 namespace ebusd {
+
+using std::hex;
+using std::setfill;
+using std::setw;
+
+const char* getProtocolStateCode(ProtocolState state) {
+  switch (state) {
+    case ps_noSignal: return "no signal";
+    case ps_idle:     return "idle";
+    case ps_idleSYN:  return "idle, SYN generator";
+    case ps_recv:     return "receive";
+    case ps_send:     return "send";
+    case ps_empty:    return "idle, empty";
+    default:          return "unknown";
+  }
+}
 
 bool ActiveBusRequest::notify(result_t result, const SlaveSymbolString& slave) {
   if (result == RESULT_OK) {
@@ -37,10 +54,66 @@ bool ActiveBusRequest::notify(result_t result, const SlaveSymbolString& slave) {
   return false;
 }
 
-
 ProtocolHandler* ProtocolHandler::create(const ebus_protocol_config_t config,
-  Device* device, ProtocolListener* listener) {
+  ProtocolListener* listener) {
+  const char* name = config.device;
+  bool enhanced = false;
+  uint8_t speed = 0;
+  if (name[0] == 'e' && name[1] && name[2] && name[3] == ':') {
+    speed = name[2] == 's' ? 2 : name[2] == 'h' ? 1 : 0;
+    enhanced = speed > 0 && name[1] == 'n';
+    if (enhanced) {
+      name += 4;
+    } else {
+      speed = 0;
+    }
+  }
+  Transport* transport;
+  if (strchr(name, '/') == nullptr && strchr(name, ':') != nullptr) {
+    char* in = strdup(name);
+    bool udp = false;
+    char* addrpos = in;
+    char* portpos = strchr(addrpos, ':');
+    // support tcp:<ip>:<port> and udp:<ip>:<port>
+    if (portpos == addrpos+3 && (strncmp(addrpos, "tcp", 3) == 0 || (udp=(strncmp(addrpos, "udp", 3) == 0)))) {
+      addrpos += 4;
+      portpos = strchr(addrpos, ':');
+    }
+    if (portpos == nullptr) {
+      free(in);
+      return nullptr;  // invalid protocol or missing port
+    }
+    result_t result = RESULT_OK;
+    uint16_t port = (uint16_t)parseInt(portpos+1, 10, 1, 65535, &result);
+    if (result != RESULT_OK) {
+      free(in);
+      return nullptr;  // invalid port
+    }
+    *portpos = 0;
+    char* hostOrIp = strdup(addrpos);
+    free(in);
+    transport = new NetworkTransport(name, config.extraLatency, hostOrIp, port, udp);
+  } else {
+    // support ens:/dev/<device>, enh:/dev/<device>, and /dev/<device>
+    transport = new SerialTransport(name, config.extraLatency, !config.noDeviceCheck, speed);
+  }
+  CharDevice* device;
+  if (enhanced) {
+    device = new EnhancedCharDevice(transport);
+  } else {
+    device = new PlainCharDevice(transport);
+  }
   return new DirectProtocolHandler(config, device, listener);
+}
+
+result_t ProtocolHandler::open() {
+  result_t result = m_device->open();
+  if (result != RESULT_OK) {
+    logError(lf_bus, "unable to open %s: %s", m_device->getName(), getResultCode(result));
+  } else if (!m_device->isValid()) {
+    logError(lf_bus, "device %s not available", m_device->getName());
+  }
+  return result;
 }
 
 void ProtocolHandler::formatInfo(ostringstream* ostream, bool verbose, bool noWait) {
@@ -54,9 +127,67 @@ void ProtocolHandler::formatInfo(ostringstream* ostream, bool verbose, bool noWa
   m_device->formatInfo(ostream, verbose, false);
 }
 
-void ProtocolHandler::formatInfoJson(ostringstream* ostream) {
+void ProtocolHandler::formatInfoJson(ostringstream* ostream) const {
   m_device->formatInfoJson(ostream);
 }
+
+void ProtocolHandler::notifyDeviceData(const symbol_t* data, size_t len, bool received) {
+  if (received && m_dumpFile) {
+    m_dumpFile->write(data, len);
+  }
+  if (!m_logRawFile && !m_logRawEnabled) {
+    return;
+  }
+  if (m_logRawBytes) {
+    if (m_logRawFile) {
+      m_logRawFile->write(data, len, received);
+    } else if (m_logRawEnabled) {
+      for (size_t pos = 0; pos < len; pos++) {
+        logNotice(lf_bus, "%c%02x", received ? '<' : '>', data[pos]);
+      }
+    }
+    return;
+  }
+  for (size_t pos = 0; pos < len; pos++) {
+    symbol_t symbol = data[pos];
+    if (symbol != SYN) {
+      if (received && !m_logRawLastReceived && symbol == m_logRawLastSymbol) {
+        continue;  // skip received echo of previously sent symbol
+      }
+      if (m_logRawBuffer.tellp() == 0 || received != m_logRawLastReceived) {
+        m_logRawLastReceived = received;
+        if (m_logRawBuffer.tellp() == 0 && m_logRawLastSymbol != SYN) {
+          m_logRawBuffer << "...";
+        }
+        m_logRawBuffer << (received ? "<" : ">");
+      }
+      m_logRawBuffer << setw(2) << setfill('0') << hex << static_cast<unsigned>(symbol);
+    }
+    m_logRawLastSymbol = symbol;
+    if (m_logRawBuffer.tellp() > (symbol == SYN ? 0 : 64)) {  // flush: direction+5 hdr+24 max data+crc+direction+ack+1
+      if (symbol != SYN) {
+        m_logRawBuffer << "...";
+      }
+      const string bufStr = m_logRawBuffer.str();
+      const char* str = bufStr.c_str();
+      if (m_logRawFile) {
+        m_logRawFile->write((const unsigned char*)str, strlen(str), received, false);
+      } else {
+        logNotice(lf_bus, str);
+      }
+      m_logRawBuffer.str("");
+    }
+  }
+}
+
+void ProtocolHandler::notifyDeviceStatus(bool error, const char* message) {
+  if (error) {
+    logError(lf_bus, "device status: %s", message);
+  } else {
+    logNotice(lf_bus, "device status: %s", message);
+  }
+}
+
 
 void ProtocolHandler::clear() {
   memset(m_seenAddresses, 0, sizeof(m_seenAddresses));
@@ -159,6 +290,47 @@ bool ProtocolHandler::addSeenAddress(symbol_t address) {
   m_listener->notifyProtocolSeenAddress(address);
   m_seenAddresses[address] = true;
   return ret;
+}
+
+void ProtocolHandler::setDumpFile(const char* dumpFile, unsigned int dumpSize, bool dumpFlush) {
+  if (m_dumpFile) {
+    delete m_dumpFile;
+    m_dumpFile = nullptr;
+  }
+  if (dumpFile && dumpFile[0]) {
+    m_dumpFile = new RotateFile(dumpFile, dumpSize, false, dumpFlush ? 1 : 16);
+  }
+}
+
+bool ProtocolHandler::toggleDump() {
+  if (!m_dumpFile) {
+    return false;
+  }
+  bool enabled = !m_dumpFile->isEnabled();
+  m_dumpFile->setEnabled(enabled);
+  return enabled;
+}
+
+void ProtocolHandler::setLogRawFile(const char* logRawFile, unsigned int logRawSize) {
+  if (logRawFile[0]) {
+    m_logRawFile = new RotateFile(logRawFile, logRawSize, true);
+    m_logRawFile->setEnabled(m_logRawEnabled);
+  } else {
+    m_logRawFile = nullptr;
+  }
+}
+
+bool ProtocolHandler::toggleLogRaw(bool bytes) {
+  bool enabled;
+  m_logRawBytes = bytes;
+  if (m_logRawFile) {
+    enabled = !m_logRawFile->isEnabled();
+    m_logRawFile->setEnabled(enabled);
+  } else {
+    enabled = !m_logRawEnabled;
+    m_logRawEnabled = enabled;
+  }
+  return enabled;
 }
 
 }  // namespace ebusd

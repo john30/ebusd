@@ -14,8 +14,8 @@ ebusd_SOURCES = \
 		main.h main.cpp main_args.cpp
 
 
-ebusd_LDADD = ../lib/utils/libutils.a \
-              ../lib/ebus/libebus.a \
+ebusd_LDADD = ../lib/ebus/libebus.a \
+              ../lib/utils/libutils.a \
 	      -lpthread \
 	      @EXTRA_LIBS@
 

@@ -32,7 +32,6 @@
 namespace ebusd {
 
 using std::dec;
-using std::hex;
 using std::setw;
 
 /** the week day names. */
@@ -1469,7 +1468,7 @@ bool DataFieldTemplates::dump(OutputFormat outputFormat, ostream* output) const 
     if (outputFormat & OF_JSON) {
       if (dataField->isSet()) {
         if (prependFieldSeparator) {
-          *output << ",\n";  
+          *output << ",\n";
         }
         *output << "{\"name\":\"" << dataField->getName(-1) << "\", \"sequence\": [";
         dataField->dump(false, outputFormat, output);

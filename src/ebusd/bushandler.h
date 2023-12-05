@@ -29,7 +29,6 @@
 #include "lib/ebus/data.h"
 #include "lib/ebus/symbol.h"
 #include "lib/ebus/result.h"
-#include "lib/ebus/device.h"
 #include "lib/ebus/protocol.h"
 
 namespace ebusd {
@@ -248,25 +247,15 @@ class BusHandler : public ProtocolListener {
  public:
   /**
    * Construct a new instance.
-   * @param device the @a Device instance for accessing the bus.
    * @param messages the @a MessageMap instance with all known @a Message instances.
    * @param scanHelper the @a ScanHelper instance.
-   * @param ownAddress the own master address.
-   * @param answer whether to answer queries for the own master/slave address.
-   * @param busLostRetries the number of times a send is repeated due to lost arbitration.
-   * @param failedSendRetries the number of times a failed send is repeated (other than lost arbitration).
-   * @param busAcquireTimeout the maximum time in milliseconds for bus acquisition.
-   * @param slaveRecvTimeout the maximum time in milliseconds an addressed slave is expected to acknowledge.
-   * @param lockCount the number of AUTO-SYN symbols before sending is allowed after lost arbitration, or 0 for auto detection.
-   * @param generateSyn whether to enable AUTO-SYN symbol generation.
    * @param pollInterval the interval in seconds in which poll messages are cycled, or 0 if disabled.
    */
-  BusHandler(Device* device, MessageMap* messages, ScanHelper* scanHelper,
-      const ebus_protocol_config_t config, unsigned int pollInterval)
-    : m_messages(messages), m_scanHelper(scanHelper),
+  BusHandler(MessageMap* messages, ScanHelper* scanHelper,
+      unsigned int pollInterval)
+    : m_protocol(nullptr), m_messages(messages), m_scanHelper(scanHelper),
       m_pollInterval(pollInterval), m_lastPoll(0), m_runningScans(0),
       m_grabMessages(true) {
-    m_protocol = ProtocolHandler::create(config, device, this);
     memset(m_seenAddresses, 0, sizeof(m_seenAddresses));
   }
 
@@ -274,21 +263,18 @@ class BusHandler : public ProtocolListener {
    * Destructor.
    */
   virtual ~BusHandler() {
-    if (m_protocol) {
-      delete m_protocol;
-      m_protocol = nullptr;
-    }
   }
+
+  /**
+   * Set the @a ProtocolHandler instance for accessing the bus.
+   * @param protocol the @a ProtocolHandler instance for accessing the bus.
+   */
+  void setProtocol(ProtocolHandler* protocol) { m_protocol = protocol; }
 
   /**
    * @return the @a ProtocolHandler instance for accessing the bus.
    */
   ProtocolHandler* getProtocol() const { return m_protocol; }
-
-  /**
-   * @return the @a Device instance for accessing the bus.
-   */
-  const Device* getDevice() const { return m_protocol->getDevice(); }
 
   /**
    * Clear stored values (e.g. scan results).
@@ -410,7 +396,7 @@ class BusHandler : public ProtocolListener {
   void setScanConfigLoaded(symbol_t address, const string& file);
 
   // @copydoc
-  void notifyProtocolStatus(ProtocolState state) override;
+  void notifyProtocolStatus(ProtocolState state, result_t result) override;
 
   // @copydoc
   result_t notifyProtocolAnswer(const MasterSymbolString& master, SlaveSymbolString* slave) override;
@@ -433,7 +419,7 @@ class BusHandler : public ProtocolListener {
    */
   result_t prepareScan(symbol_t slave, bool full, const string& levels, bool* reload, ScanRequest** request);
 
-  /** the @a ProtocolHandler instance for accessing the bus. */
+  /** the @a ProtocolHandler instance for accessing the bus (loosely coupled but set quickly after construction). */
   ProtocolHandler* m_protocol;
 
   /** the @a MessageMap instance with all known @a Message instances. */

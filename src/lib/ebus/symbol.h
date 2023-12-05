@@ -295,6 +295,12 @@ class SymbolString {
   }
 
   /**
+   * Return a pointer to the data bytes.
+   * @return a pointer to the data bytes.
+   */
+  const symbol_t* data() const { return m_data.data(); }
+
+  /**
    * Return the data byte at the specified index (within DD).
    * @param index the index of the data byte (within DD) to return.
    * @return the data byte at the specified index, or 0 if not available.

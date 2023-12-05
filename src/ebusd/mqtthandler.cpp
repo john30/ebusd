@@ -140,7 +140,7 @@ void splitFields(const string& str, vector<string>* row);
  * @param arg the option argument, or nullptr.
  * @param state the parsing state.
  */
-static int mqtt_parse_opt(int key, char *arg, const argParseOpt *parseOpt) {
+static int mqtt_parse_opt(int key, char *arg, const argParseOpt *parseOpt, void *userArg) {
   result_t result = RESULT_OK;
   unsigned int value;
   switch (key) {
@@ -775,7 +775,7 @@ void MqttHandler::run() {
           publishDefinition(m_replacers, "def_global_uptime-", uptimeTopic, "global", "uptime", "def_global-");
           publishDefinition(m_replacers, "def_global_updatecheck-", m_globalTopic.get("", "updatecheck"), "global",
                             "updatecheck", "def_global-");
-          if (m_busHandler->getDevice()->supportsUpdateCheck()) {
+          if (m_busHandler->getProtocol()->supportsUpdateCheck()) {
             publishDefinition(m_replacers, "def_global_updatecheck_device-", m_globalTopic.get("", "updatecheck"),
                               "global", "updatecheck_device", "");
           }
@@ -954,7 +954,7 @@ void MqttHandler::run() {
               auto vl = (dynamic_cast<const ValueListDataField*>(field))->getList();
               string entryFormat = values["field_values-entry"];
               string::size_type pos = -1;
-              while ((pos = entryFormat.find('$', pos+1)) != std::string::npos) {
+              while ((pos = entryFormat.find('$', pos+1)) != string::npos) {
                 if (entryFormat.substr(pos+1, 4) == "text" || entryFormat.substr(pos+1, 5) == "value") {
                   entryFormat.replace(pos, 1, "%");
                 }

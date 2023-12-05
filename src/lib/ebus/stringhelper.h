@@ -162,7 +162,7 @@ class StringReplacer {
    * the number is negative for plain strings, the index to @a knownFieldNames for a known field, or the size of
    * @a knownFieldNames for an unknown field.
    */
-  vector<std::pair<string, int>> m_parts;
+  vector<pair<string, int>> m_parts;
 
   /** true when the complete result is supposed to be empty when at least one referenced variable
    * is empty or not defined. */

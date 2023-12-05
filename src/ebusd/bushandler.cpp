@@ -350,7 +350,7 @@ result_t BusHandler::readFromBus(Message* message, const string& inputStr, symbo
   return ret;
 }
 
-void BusHandler::notifyProtocolStatus(ProtocolState state) {
+void BusHandler::notifyProtocolStatus(ProtocolState state, result_t result) {
   if (state == ps_empty && m_pollInterval > 0) {  // check for poll/scan
     time_t now;
     time(&now);

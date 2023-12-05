@@ -62,9 +62,11 @@ typedef struct options {
   unsigned int pollInterval;  //!< poll interval in seconds, 0 to disable [5]
   bool injectMessages;  //!< inject remaining arguments as already seen messages
   bool stopAfterInject;  //!< only inject messages once, then stop
+  int injectCount;  //!< number of message arguments to inject, or 0
+#ifdef HAVE_SSL
   const char* caFile;  //!< the CA file to use (uses defaults if neither caFile nor caPath are set), or "#" for insecure
   const char* caPath;  //!< the path with CA files to use (uses defaults if neither caFile nor caPath are set)
-
+#endif  // HAVE_SSL
   symbol_t address;  //!< own bus address [31]
   bool answer;  //!< answer to requests from other masters
   unsigned int acquireTimeout;  //!< bus acquisition timeout in ms [10]
@@ -107,11 +109,10 @@ typedef struct options {
  * @param argv the command line arguments.
  * @param envp the environment variables to parse before the args, or nullptr.
  * @param opt pointer to the parsed arguments (will be initialized to defaults first).
- * @param argIndex optional pointer for storing the index to the first non-argument found in argv.
  * @return 0 on success, '!' for an invalid argument value, ':' for a missing argument value,
  * '?' when "-?" was given, or the result of the parse function if non-zero.
  */
-int parse_main_args(int argc, char* argv[], char* envp[], options_t* opt, int* argIndex);
+int parse_main_args(int argc, char* argv[], char* envp[], options_t* opt);
 
 }  // namespace ebusd
 

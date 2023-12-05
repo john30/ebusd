@@ -65,11 +65,11 @@ class DirectProtocolHandler : public ProtocolHandler {
    * @param listener the @a ProtocolListener.
    */
   DirectProtocolHandler(const ebus_protocol_config_t config,
-      Device* device, ProtocolListener* listener)
-    : ProtocolHandler(config, device, listener),
+      CharDevice* device, ProtocolListener* listener)
+    : ProtocolHandler(config, device, listener), m_device(device),
       m_lockCount(config.lockCount <= 3 ? 3 : config.lockCount),
       m_remainLockCount(config.lockCount == 0 ? 1 : 0),
-      m_generateSynInterval(config.generateSyn ? SYN_TIMEOUT*getMasterNumber(config.ownAddress)+SYMBOL_DURATION : 0),
+      m_generateSynInterval(config.generateSyn ? 10*getMasterNumber(config.ownAddress)+SYN_TIMEOUT : 0),
       m_currentRequest(nullptr), m_currentAnswering(false), m_nextSendPos(0),
       m_state(bs_noSignal), m_escape(0), m_crc(0), m_crcValid(false), m_repeat(false) {
     m_lastSynReceiveTime.tv_sec = 0;
@@ -110,10 +110,24 @@ class DirectProtocolHandler : public ProtocolHandler {
 
  private:
   /**
-   * Handle the next symbol on the bus.
-   * @return RESULT_OK on success, or an error code.
+   * Handle sending the next symbol to the bus.
+   * @param recvTimeout pointer to a variable in which to put the timeout for the receive.
+   * @param sentSymbol pointer to a variable in which to put the sent symbol.
+   * @param sentTime pointer to a variable in which to put the system time when the symbol was sent.
+   * @return RESULT_OK on success, RESULT_CONTINUE when a symbol was sent, or an error code.
    */
-  result_t handleSymbol();
+  result_t handleSend(unsigned int* recvTimeout, symbol_t* sentSymbol, struct timespec* sentTime);
+
+  /**
+   * Handle receiving the next symbol from the bus.
+   * @param timeout the timeout for the receive.
+   * @param sending whether a symbol was sent before entry.
+   * @param sentSymbol the sent symbol to verify (if sending).
+   * @param sentTime pointer to a variable with the system time when the symbol was sent.
+   * @return RESULT_OK on success, RESULT_CONTINUE when further received symbols are buffered,
+   * or an error code.
+   */
+  result_t handleReceive(unsigned int timeout, bool sending, symbol_t sentSymbol, struct timespec* sentTime);
 
   /**
    * Set a new @a BusState and add a log message if necessary.
@@ -131,6 +145,9 @@ class DirectProtocolHandler : public ProtocolHandler {
    * Called when a message sending or reception was successfully completed.
    */
   void messageCompleted();
+
+  /** the @a CharDevice instance for accessing the bus. */
+  CharDevice* m_device;
 
   /** the number of AUTO-SYN symbols before sending is allowed after lost arbitration. */
   unsigned int m_lockCount;

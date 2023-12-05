@@ -6,12 +6,19 @@
 * fix MacOS build
 * fix name prefix warnings in Home Assistant MQTT discovery integration
 * fix impossible usage of multi-field writes in MQTT integration
+* fix initial broadcast scan
+* fix potentially unusable SSL context
+* fix SYN generator timing
+* fix missing check for PB/SB validity
+* fix non-SSL build
 
 ## Features
 * add temperatures in Kelvin and ... to Home Assistant MQTT discovery integration
 * add options to turn off scanconfig and limit number of retries
 * remove dependency on argp
 * add time fields to Home Assistant MQTT discovery integration
+* add templates endpoint to HTTP JSON
+* add reworked eBUS protocol engine that is especially useful for slow network issues
 
 
 # 23.2 (2023-07-08)

@@ -33,7 +33,6 @@ namespace ebusd {
 using std::string;
 using std::ostringstream;
 using std::dec;
-using std::hex;
 
 #ifdef HAVE_SSL
 
@@ -345,11 +344,11 @@ bool HttpClient::parseUrl(const string& url, string* proto, string* host, uint16
   if (!isSsl && *proto != "http") {
     return false;
   }
-#else
+#else  // HAVE_SSL
   if (*proto != "http") {
     return false;
   }
-#endif
+#endif  // HAVE_SSL
   size_t pos = url.find('/', hostPos);
   if (pos == hostPos) {
     return false;
@@ -388,12 +387,12 @@ bool HttpClient::connect(const string& host, const uint16_t port, bool https, co
 #ifdef HAVE_SSL
   m_socket = SSLSocket::connect(host, port, https, timeout, s_caFile, s_caPath);
   m_https = https;
-#else
+#else  // HAVE_SSL
   if (https) {
     return false;
   }
   m_socket = TCPSocket::connect(host, port, timeout);
-#endif
+#endif  // HAVE_SSL
   if (!m_socket) {
     return false;
   }
@@ -411,9 +410,9 @@ bool HttpClient::reconnect() {
   }
 #ifdef HAVE_SSL
   m_socket = SSLSocket::connect(m_host, m_port, m_https, m_timeout, s_caFile, s_caPath);
-#else
+#else  // HAVE_SSL
   m_socket = TCPSocket::connect(m_host, m_port, m_timeout);
-#endif
+#endif  // HAVE_SSL
   if (!m_socket) {
     return false;
   }
@@ -434,7 +433,8 @@ void HttpClient::disconnect() {
   }
 }
 
-bool HttpClient::get(const string& uri, const string& body, string* response, bool* repeatable, time_t* time, bool* jsonString) {
+bool HttpClient::get(const string& uri, const string& body, string* response, bool* repeatable,
+time_t* time, bool* jsonString) {
   return request("GET", uri, body, response, repeatable, time, jsonString);
 }
 

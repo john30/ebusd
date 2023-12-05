@@ -40,7 +40,6 @@ using std::hex;
 using std::setfill;
 using std::setw;
 using std::nouppercase;
-using std::cout;
 
 
 ScanHelper::~ScanHelper() {
