@@ -317,40 +317,37 @@ result_t getFieldLength(const SingleDataField *field, dtlf_t *length) {
   return RESULT_OK;
 }
 
+/**
+ * Translates a float value into KNX data type 9 (2-byte float). Algiruthm adapted from Calimero 2, 
+ * see method io.calimero.dptxlator.DPTXlator2ByteFloat::toDPT(double, short[], int).
+*/
 uint32_t floatToInt16(float val) {
-  // (0.01*m)(2^e) format with sign, 12 bits mantissa (incl. sign), 4 bits exponent
-  if (val == 0) {
-    return 0;
-  }
-  bool negative = val < 0;
-  if (negative) {
-    val = -val;
-  }
-  val *= 100;
-  int exp = ilogb(val)-10;
-  if (exp < -10 || exp > 15) {
-    return 0x7fff;  // invalid value DPT 9
-  }
-  auto shift = exp > 0 ? exp : 0;
-  auto sig = static_cast<uint32_t>(val * exp2(-shift));
-  uint32_t value = static_cast<uint32_t>(shift << 11) | sig;
-  if (negative) {
-    return value | 0x8000;
-  }
-  return value;
+  // encoding: val = (0.01*M)*2^E
+  double v = val * 100.0f;
+  int e = 0;
+  for (; v < -2048.0f; v /= 2)
+    e++;
+  for (; v > 2047.0f; v /= 2)
+    e++;
+  int m = (int) round(v) & 0x7FF;
+  short msb = (short) (e << 3 | m >> 8);
+  if (val < 0.0)
+    msb |= 0x80;
+  return msb << 8 | m;
 }
 
+/**
+ * Translates KNX data type 9 (2-byte float) into a float value. Algiruthm adapted from Calimero 2, 
+ * see method io.calimero.dptxlator.DPTXlator2ByteFloat::fromDPT(int).
+*/
 float int16ToFloat(uint16_t val) {
-  if (val == 0) {
-    return 0;
-  }
-  if (val == 0x7fff) {
-    return static_cast<float>(0xffffffff);  // NaN
-  }
-  bool negative = val&0x8000;
-  int exp = (val>>11)&0xf;
-  int sig = val&0x7ff;
-  return static_cast<float>(sig * exp2(exp) * (negative ? -0.01 : 0.01));
+  // DPT bits high byte: MEEEEMMM, low byte: MMMMMMMM
+  // left align all mantissa bits
+  int v = (((val >> 8) & 0x80) << 24) | (((val >> 8) & 0x7) << 28) | ((val & 0x00FF) << 20);
+  // normalize
+  v >>= 20;
+  int exp = ((val >> 8) & 0x78) >> 3;
+  return static_cast<float>((1 << exp) * v) * 0.01f;
 }
 
 result_t KnxHandler::sendGroupValue(knx_addr_t dest, apci_t apci, dtlf_t& lengthFlag, unsigned int value,
