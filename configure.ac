@@ -134,6 +134,7 @@ AC_CONFIG_FILES([Makefile
 		src/lib/utils/Makefile
 		src/lib/ebus/Makefile
 		src/lib/ebus/test/Makefile
+		src/lib/knx/test/Makefile
 		src/ebusd/Makefile
 		src/tools/Makefile])
 AM_CONDITIONAL([CONTRIB], [test "x$with_contrib" != "xno"])
