@@ -663,9 +663,8 @@ int parse_main_args(int argc, char* argv[], char* envp[], options_t *opt) {
       cnt = 1;
       strcat(envopt, pos);
     }
-    int idx = -1;
-    int err = argParse(&parseOpt, 1+cnt, envargv, &idx);
-    if (err != 0 && idx == -1) {  // ignore args for non-arg boolean options
+    int err = argParse(&parseOpt, 1+cnt, envargv, reinterpret_cast<void*>(opt));
+    if (err != 0) {
       if (err == ESRCH) {  // special value to abort immediately
         logWrite(lf_main, ll_error, "invalid argument in env: %s", *env);  // force logging on exit
         return EINVAL;
