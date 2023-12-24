@@ -95,6 +95,34 @@ uint32_t floatToUint(float val) {
 #endif
 }
 
+float uint16ToFloat(uint16_t val) {
+  if (val == 0) {
+    return 0;
+  }
+  if (val == 0x7fff) {
+    return static_cast<float>(0xffffffff);  // NaN
+  }
+  bool negative = val&0x8000;
+  int exp = (val>>11)&0xf;
+  int sig = val&0x7ff;
+  return static_cast<float>((negative ? sig-0x800 : sig) * exp2(exp) * 0.01);
+}
+
+uint16_t floatToUint16(float value) {
+  // (0.01*m)(2^e) format with sign, 12 bits mantissa (incl. sign), 4 bits exponent
+  if (value == 0) {
+    return 0;
+  }
+  bool negative = value < 0;
+  double val = round(value*(negative ? -100.0 : 100.0));
+  int exp = ilogb(val)-10;
+  if (exp < -10 || exp > 15) {
+    return 0x7fff;  // invalid value DPT 9
+  }
+  auto shift = exp > 0 ? exp : 0;
+  auto sig = static_cast<uint16_t>(val * exp2(-shift));
+  return static_cast<uint16_t>((shift << 11) | (negative ? 0x8000 | (0x800-sig) : sig));
+}
 
 bool DataType::dump(OutputFormat outputFormat, size_t length, bool appendDivisor, ostream* output) const {
   if (outputFormat & OF_JSON) {

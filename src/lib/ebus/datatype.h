@@ -194,10 +194,26 @@ float uintToFloat(unsigned int value, bool negative);
 
 /**
  * Format a float value to the 32 bit representation (IEEE 754).
- * @param val the float value.
+ * @param value the float value.
  * @return the 32 bit representation of the float value, or 0xffffffff if NaN.
  */
-uint32_t floatToUint(float val);
+uint32_t floatToUint(float value);
+
+/**
+ * Parse a float value with precision of 2 decimal from 16 bit format with
+ * sign, 11 bit mantissa, 4 bit exponent as (0.01*m)(2^e).
+ * @param value the 16 bit representation of the float value.
+ * @return the float value.
+ */
+float uint16ToFloat(uint16_t value);
+
+/**
+ * Format a float value with precision of 2 decimal from 16 bit format with
+ * sign, 11 bit mantissa, 4 bit exponent as (0.01*m)(2^e).
+ * @param value the float value.
+ * @return the 16 bit representation of the float value, or 0xffff if NaN.
+ */
+uint16_t floatToUint16(float value);
 
 /**
  * Base class for all kinds of data types.

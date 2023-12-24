@@ -317,42 +317,6 @@ result_t getFieldLength(const SingleDataField *field, dtlf_t *length) {
   return RESULT_OK;
 }
 
-uint32_t floatToInt16(float val) {
-  // (0.01*m)(2^e) format with sign, 12 bits mantissa (incl. sign), 4 bits exponent
-  if (val == 0) {
-    return 0;
-  }
-  bool negative = val < 0;
-  if (negative) {
-    val = -val;
-  }
-  val = roundf(val*100.0f);
-  int exp = ilogb(val)-10;
-  if (exp < -10 || exp > 15) {
-    return 0x7fff;  // invalid value DPT 9
-  }
-  auto shift = exp > 0 ? exp : 0;
-  auto sig = static_cast<uint32_t>(val * exp2(-shift));
-  uint32_t value = static_cast<uint32_t>(shift << 11) | (negative ? 0x800-sig : sig);
-  if (negative) {
-    return value | 0x8000;
-  }
-  return value;
-}
-
-float int16ToFloat(uint16_t val) {
-  if (val == 0) {
-    return 0;
-  }
-  if (val == 0x7fff) {
-    return static_cast<float>(0xffffffff);  // NaN
-  }
-  bool negative = val&0x8000;
-  int exp = (val>>11)&0xf;
-  int sig = val&0x7ff;
-  return static_cast<float>((negative ? sig-0x800 : sig) * exp2(exp) * 0.01);
-}
-
 result_t KnxHandler::sendGroupValue(knx_addr_t dest, apci_t apci, dtlf_t& lengthFlag, unsigned int value,
 const SingleDataField *field) const {
   if (!m_con || !m_con->isConnected() || !m_con->getAddress()) {
@@ -382,7 +346,7 @@ const SingleDataField *field) const {
       return ret;
     } else if (lengthFlag.length == 2) {
       // convert to (0.01*m)(2^e) format with sign, 12 bits mantissa (incl. sign), 4 bits exponent
-      value = floatToInt16(fval);
+      value = floatToUint16(fval);
     } else if (lengthFlag.length == 4) {
       // convert to IEEE 754
       value = floatToUint(fval);
@@ -686,8 +650,8 @@ void KnxHandler::handleGroupTelegram(knx_addr_t src, knx_addr_t dest, int len, c
     if (lengthFlag.isFloat || lengthFlag.hasDivisor) {
       float fval;
       if (lengthFlag.length == 2) {
-        // convert from (0.01*m)(2^e) format with sign, 12 bits mantissa (incl. sign), 4 bits exponent
-        fval = int16ToFloat(static_cast<uint16_t>(value));
+        // convert from (0.01*m)(2^e) format
+        fval = uint16ToFloat(static_cast<uint16_t>(value));
       } else if (lengthFlag.length == 4) {
         // convert from IEEE 754
         bool negative = (value & (1u << 31)) != 0;
