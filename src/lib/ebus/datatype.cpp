@@ -100,7 +100,7 @@ float uint16ToFloat(uint16_t val) {
     return 0;
   }
   if (val == 0x7fff) {
-    return static_cast<float>(0xffffffff);  // NaN
+    return NAN;
   }
   bool negative = val&0x8000;
   int exp = (val>>11)&0xf;
@@ -1275,9 +1275,9 @@ DataTypeList::DataTypeList() {
   // signed number (fraction 1/1000), -32.767 - +32.767, big endian
   add(new NumberDataType("FLR", 16, SIG|REV, 0x8000, 0x8001, 0x7fff, 1000));
   // signed number (IEEE 754 binary32: 1 bit sign, 8 bits exponent, 23 bits significand), little endian
-  add(new NumberDataType("EXP", 32, SIG|EXP, 0x7f800000, 0xfeffffff, 0x7effffff, 1));
+  add(new NumberDataType("EXP", 32, SIG|EXP, 0x7fc00000, 0xfeffffff, 0x7effffff, 1));
   // signed number (IEEE 754 binary32: 1 bit sign, 8 bits exponent, 23 bits significand), big endian
-  add(new NumberDataType("EXR", 32, SIG|EXP|REV, 0x7f800000, 0xfeffffff, 0x7effffff, 1));
+  add(new NumberDataType("EXR", 32, SIG|EXP|REV, 0x7fc00000, 0xfeffffff, 0x7effffff, 1));
   // unsigned integer, 0 - 65534, little endian
   add(new NumberDataType("UIN", 16, 0, 0xffff, 0, 0xfffe, 1));
   // unsigned integer, 0 - 65534, big endian

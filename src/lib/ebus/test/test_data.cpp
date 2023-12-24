@@ -18,6 +18,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <cmath>
 #include <string>
 #include <vector>
 #include "lib/ebus/data.h"
@@ -25,6 +26,8 @@
 using namespace ebusd;
 using std::cout;
 using std::endl;
+using std::isnan;
+using std::setprecision;
 
 static bool error = false;
 
@@ -86,6 +89,12 @@ class TestReader : public MappedFileReader {
  public:
   const DataField* m_fields;
 };
+
+typedef struct floatCheck_t {
+  float encval;
+  float decval;
+  uint16_t ival;
+} floatCheck_t;
 
 
 int main() {
@@ -421,18 +430,17 @@ int main() {
       {"x,,exp", "-0.09",  "10feffff04ec51b8bd", "00", ""},
       {"x,,exp", "0.0",    "10feffff0400000000", "00", ""},
       {"x,,exp", "-0.001", "10feffff046f1283ba", "00", ""},
-      {"x,,exp", "-",      "10feffff040000807f", "00", ""},
+      {"x,,exp", "-",      "10feffff040000c07f", "00", ""},
       {"x,,exp", "-32.767", "10feffff04681103c2", "00", ""},
       {"x,,exp,1000", "-0.000090000",  "10feffff04ec51b8bd", "00", ""},
       {"x,,exp,-100", "-9",  "10feffff04ec51b8bd", "00", ""},
       {"x,,exp", "0.25",  "10feffff040000803e", "00", ""},
-      {"x,,exp", "-",      "10feffff040000c07f", "00", "W"},
       {"x,,exp", "0.95",  "10feffff043333733f", "00", ""},
       {"x,,exp", "0.65",  "10feffff046666263f", "00", ""},
       {"x,,exr", "-0.09",  "10feffff04bdb851ec", "00", ""},
       {"x,,exr", "0.0",    "10feffff0400000000", "00", ""},
       {"x,,exr", "-0.001", "10feffff04ba83126f", "00", ""},
-      {"x,,exr", "-",      "10feffff047f800000", "00", ""},
+      {"x,,exr", "-",      "10feffff047fc00000", "00", ""},
       {"x,,exr", "-32.767", "10feffff04c2031168", "00", ""},
       {"x,,exr,1000", "-0.000090000", "10feffff04bdb851ec", "00", ""},
       {"x,,exr,-100", "-9",  "10feffff04bdb851ec", "00", ""},
@@ -750,5 +758,43 @@ int main() {
 
   delete templates;
 
+  const floatCheck_t floatChecks[] = {
+    {0.0f, 0.0f, 0},
+    {0.01f, 0.01f, 1},
+    {-0.01f, -0.01f, 0x8000|(0x800-1)},
+    {0.09f, 0.09f, 9},
+    {-0.09f, -0.09f, 0x8000|(0x800-9)},
+    {0.99f, 0.99f, 99},
+    {-0.99f, -0.99f, 0x8000|(0x800-99)},
+    {1.0f, 1.0f, 100},
+    {-1.0f, -1.0f, 0x8000|(0x800-100)},
+    {670433.25f, 670433.5f, 0x7ffe},
+    {-670760.94f, -671088.62f, 0xf801},
+    {NAN, NAN, 0x7fff},
+    // some extra tests:
+    {-30.0f, -30.0f, 0x8A24},
+    {-327.68f, -327.68f, 0xAC00},
+    {46039.04f, 46039.04f, 0x6464},
+    {-9461.76f, -9461.76f, 0xC8C8},
+  };
+  for (unsigned int i = 0; i < sizeof(floatChecks) / sizeof(floatChecks[0]); i++) {
+    floatCheck_t check = floatChecks[i];
+    float value = uint16ToFloat(check.ival);
+    cout << "  parse 0x" << hex << check.ival;
+    if (isnan(value) ? !isnan(check.encval) : value != check.encval) {
+      cout << " invalid: " << setprecision(8) << value << " instead of " << setprecision(8) << check.encval << endl;
+      error = true;
+    } else {
+      cout << ": OK" << endl;
+    }
+    uint32_t ivalue = floatToUint16(check.decval);
+    cout << "  format " << setprecision(8) << check.decval;
+    if (ivalue != check.ival) {
+      cout << " invalid: " << ivalue << " instead of " << check.ival << endl;
+      error = true;
+    } else {
+      cout << ": OK" << endl;
+    }
+  }
   return error ? 1 : 0;
 }
