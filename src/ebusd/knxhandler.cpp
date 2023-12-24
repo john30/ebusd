@@ -326,14 +326,14 @@ uint32_t floatToInt16(float val) {
   if (negative) {
     val = -val;
   }
-  val *= 100;
+  val = roundf(val*100.0f);
   int exp = ilogb(val)-10;
   if (exp < -10 || exp > 15) {
     return 0x7fff;  // invalid value DPT 9
   }
   auto shift = exp > 0 ? exp : 0;
   auto sig = static_cast<uint32_t>(val * exp2(-shift));
-  uint32_t value = static_cast<uint32_t>(shift << 11) | sig;
+  uint32_t value = static_cast<uint32_t>(shift << 11) | (negative ? 0x800-sig : sig);
   if (negative) {
     return value | 0x8000;
   }
@@ -350,7 +350,7 @@ float int16ToFloat(uint16_t val) {
   bool negative = val&0x8000;
   int exp = (val>>11)&0xf;
   int sig = val&0x7ff;
-  return static_cast<float>(sig * exp2(exp) * (negative ? -0.01 : 0.01));
+  return static_cast<float>((negative ? sig-0x800 : sig) * exp2(exp) * 0.01);
 }
 
 result_t KnxHandler::sendGroupValue(knx_addr_t dest, apci_t apci, dtlf_t& lengthFlag, unsigned int value,
