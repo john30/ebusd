@@ -66,12 +66,14 @@ if [ -n "$reusebuilddir" ] || [ -z "$keepbuilddir" ]; then
 fi
 make DESTDIR="$PWD/$RELEASE" install-strip || exit 1
 extralibs=
-mqtt=
+ldd $RELEASE/usr/bin/ebusd | egrep -q libeibclient.so.0
+if [ $? -eq 0 ]; then
+  extralibs="$extralibs, knxd-tools"
+fi
 ldd $RELEASE/usr/bin/ebusd | egrep -q libmosquitto.so.1
 if [ $? -eq 0 ]; then
-  extralibs=', libmosquitto1'
+  extralibs="$extralibs, libmosquitto1"
   PACKAGE="${PACKAGE}_mqtt1"
-  mqtt=1
 fi
 ldd $RELEASE/usr/bin/ebusd | egrep -q libssl.so.3
 if [ $? -eq 0 ]; then
