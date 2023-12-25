@@ -362,7 +362,9 @@ void argHelp(const char* name, const argParseOpt *parseOpt) {
   } else if (indent < MIN_INDENT) {
     indent = MIN_INDENT;
   }
-  printf("Usage: %s [OPTION...]", basename(name));
+  const char* basename = strrchr(name, '/');
+  basename = basename ? basename+1 : name;
+  printf("Usage: %s [OPTION...]", basename);
   for (const argDef *arg = parseOpt->argDefs; arg && arg->help; arg++) {
     if (arg->name || !arg->valueName) {
       continue;
