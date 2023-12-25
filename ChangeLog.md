@@ -11,6 +11,8 @@
 * fix SYN generator timing
 * fix missing check for PB/SB validity
 * fix non-SSL build
+* fix scan when no signal
++ fix negative float values in KNX integration
 
 ## Features
 * add temperatures in Kelvin and ... to Home Assistant MQTT discovery integration
@@ -19,6 +21,7 @@
 * add time fields to Home Assistant MQTT discovery integration
 * add templates endpoint to HTTP JSON
 * add reworked eBUS protocol engine that is especially useful for slow network issues
+* add knxd support to devel docker image
 
 
 # 23.2 (2023-07-08)
