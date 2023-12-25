@@ -5,6 +5,7 @@ function replaceTemplate () {
   sed \
     -e "s#%EBUSD_MAKE%#${make}#g" \
     -e "s#%EBUSD_VERSION_VARIANT%#${version_variant}#g" \
+    -e "s#%EBUSD_EXTRAPKGS%#${extrapkgs}#g" \
     -e "s#%EBUSD_UPLOAD_LINES%#${upload_lines}#g" \
     -e "s#%EBUSD_COPYDEB%#${copydeb}#g" \
     -e "s#%EBUSD_DEBSRC%#${debsrc}#g" \
@@ -15,8 +16,8 @@ function replaceTemplate () {
 
 # devel update
 version_variant='-devel'
-make='RUNTEST=full GIT_REVISION=\$GIT_REVISION ./make_debian.sh'
-upload_lines=''
+make='RUNTEST=full GIT_REVISION=\$GIT_REVISION ./make_debian.sh --with-knxd'
+extrapkgs='knxd-dev knxd- '
 copydeb='COPY --from=build /build/ebusd-*_mqtt1.deb ebusd.deb'
 debsrc='ebusd.deb \&\& rm -f ebusd.deb'
 copyentry='COPY --from=build /build/contrib/docker/docker-entrypoint.sh /'
@@ -26,6 +27,7 @@ replaceTemplate
 # release update
 version_variant=''
 make='GIT_REVISION=\$GIT_REVISION ./make_debian.sh'
+extrapkgs=''
 copydeb="ADD https://github.com/john30/ebusd/releases/download/\${EBUSD_VERSION}/ebusd-\${EBUSD_VERSION}_\${TARGETARCH}\${TARGETVARIANT}-\${EBUSD_IMAGE}_mqtt1.deb ebusd.deb"
 copyentry='COPY contrib/docker/docker-entrypoint.sh /'
 namesuffix='.release'
