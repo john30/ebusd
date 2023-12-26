@@ -266,6 +266,12 @@ string EnhancedCharDevice::getEnhancedInfos() {
   if (res != RESULT_OK) {
     fails += ", cannot request bus voltage";
   }
+  if (m_enhInfoIsWifi) {
+    res = requestEnhancedInfo(7);
+    if (res != RESULT_OK) {
+      fails += ", cannot request rssi";
+    }
+  }
   res = requestEnhancedInfo(0xff);  // wait for completion
   if (res != RESULT_OK) {
     m_enhInfoBusVoltage = "bus voltage unknown";
@@ -360,6 +366,11 @@ result_t EnhancedCharDevice::notifyTransportStatus(bool opened) {
     // reset state
     m_extraFatures = 0;
     m_infoLen = 0;
+    m_enhInfoVersion = "";
+    m_enhInfoIsWifi = false;
+    m_enhInfoTemperature = "";
+    m_enhInfoSupplyVoltage = "";
+    m_enhInfoBusVoltage = "";
     m_arbitrationMaster = SYN;
     m_arbitrationCheck = 0;
   }
@@ -548,6 +559,7 @@ void EnhancedCharDevice::notifyInfoRetrieved() {
       stream << "firmware " << m_enhInfoVersion;
       if (len >= 5) {
         stream << ", jumpers 0x" << setw(2) << static_cast<unsigned>(data[4]);
+        m_enhInfoIsWifi = (data[4]&0x08)!=0;
       }
       stream << setfill(' ');  // reset
       break;
@@ -606,6 +618,14 @@ void EnhancedCharDevice::notifyInfoRetrieved() {
           default: stream << "other"; break;
         }
         stream << ", restart count " << static_cast<unsigned>(data[1]);
+      } else {
+        stream << "unknown";
+      }
+      break;
+    case 0x0107:
+      stream << "rssi ";
+      if (data[0]) {
+        stream << static_cast<signed>(((int8_t*)data)[0]) << " dBm";
       } else {
         stream << "unknown";
       }

@@ -252,7 +252,7 @@ class EnhancedCharDevice : public CharDevice {
    */
   explicit EnhancedCharDevice(Transport* transport)
   : CharDevice(transport), m_resetRequested(false),
-    m_extraFatures(0), m_infoReqTime(0), m_infoLen(0), m_infoPos(0) {
+    m_extraFatures(0), m_infoReqTime(0), m_infoLen(0), m_infoPos(0), m_enhInfoIsWifi(false) {
   }
 
   // @copydoc
@@ -339,6 +339,9 @@ class EnhancedCharDevice : public CharDevice {
 
   /** a string describing the enhanced device version. */
   string m_enhInfoVersion;
+
+  /** whether the device is known to be connected via WIFI. */
+  bool m_enhInfoIsWifi;
 
   /** a string describing the enhanced device temperature. */
   string m_enhInfoTemperature;

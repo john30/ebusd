@@ -139,3 +139,6 @@ The first byte transferred in response is always the number of data bytes to be 
    * `length`: =2
    * `reset_cause`: reset cause (1=power-on, 2=brown-out, 3=watchdog, 4=clear, 5=reset, 6=stack, 7=memory)
    * `restart_count`: restart count (within same power cycle)
+ * 0x07: WIFI status (since 20231226)
+   * `length`: =2
+   * `rssi`: signal strength in dBm (rssi, usually negative), 0 if unknown
