@@ -36,7 +36,7 @@ jobs:
         uses: proudust/gh-describe@v1.4.6
       -
         name: set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
       -
         name: set up buildx
         id: buildx
