@@ -40,7 +40,7 @@ jobs:
       -
         name: gh-describe
         id: gittag
-        uses: proudust/gh-describe@v1.4.6
+        uses: proudust/gh-describe@v1.6.0
       -
         name: set up QEMU
         uses: docker/setup-qemu-action@v3
