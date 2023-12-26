@@ -1694,7 +1694,7 @@ bool SimpleStringCondition::checkValue(const Message* message, const string& fie
 
 void SimpleStringCondition::dumpValuesJson(ostream* output) const {
   bool first = true;
-  for (const auto value : m_values) {
+  for (const auto& value : m_values) {
     if (!first) {
       *output << ",";
     }
@@ -2806,7 +2806,6 @@ void MessageMap::clear() {
   m_loadedFileInfos.clear();
   // clear poll messages
   while (!m_pollMessages.empty()) {
-    m_pollMessages.top();
     m_pollMessages.pop();
   }
   // free message instances by name
