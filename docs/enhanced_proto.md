@@ -1,6 +1,6 @@
 ## Transfer speed
 
-In order to compensate potential overhead of transfer encoding, the transfer speed is set to 9600 Baud or 115200 Baud
+In order to compensate potential overhead of transfer encoding, the transfer speed is set to 115200 Baud (or 9600 Baud)
 with 8 bits, no parity, and 1 stop bit.
 
 
@@ -73,7 +73,7 @@ first    second
     The data byte in `d` contains the error message.
   * host communication error  
     `<ERROR_HOST> <error>`  
-    Indicates an error in the host UART.  
+    Indicates an error in the host receiver/transmitter.  
     The data byte in `d` contains the error message.
 
 
@@ -106,7 +106,7 @@ These are the predefined symbols as used above.
 ### Feature bits (both directions)
  * bit 7-2: tbd
  * // planned: bit 1: full message sending (complete sequence instead of single bytes)
- * bit 0: additional infos (version, PIC ID, etc.)
+ * bit 0: additional infos (version, HW ID, etc.)
 
 ### Information IDs (both directions)
 The first level below is the `info_id` value and the second level describes the response data byte sequence.
@@ -119,22 +119,22 @@ The first byte transferred in response is always the number of data bytes to be 
    * `jumpers`: jumper settings (0x01=enhanced, 0x02=high speed, 0x04=Ethernet, 0x08=WIFI, 0x10=v3.1, 0x20=ignore hard jumpers)
    * `bootloader_version`: bootloader version (since 20220831)
    * `bootloader_checksum_H` `bootloader_checksum_L`: bootloader checksum
- * 0x01: PIC ID
+ * 0x01: HW ID
    * `length`: =9
-   * 9*`mui`: PIC MUI
- * 0x02: PIC config
+   * 9*`hwid`: hardware identifier
+ * 0x02: HW config
    * `length`: =8
-   * 8*`config_H` `config_L`: PIC config
- * 0x03: PIC temperature
+   * `config_H` `config_L`: hardware config (chip specific)
+ * 0x03: HW temperature
    * `length`: =2
-   * `temp_H` `temp_L`: temperature in degrees Celsius
- * 0x04: PIC supply voltage
+   * `temp_H` `temp_L`: hardware temperature in degrees Celsius
+ * 0x04: HW supply voltage
    * `length`: =2
-   * `millivolt_H` `millivolt_L`: voltage value in mV
+   * `millivolt_H` `millivolt_L`: supply voltage in mV, or 0 if unknown
  * 0x05: bus voltage
    * `length`: =2
-   * `voltage_max`: maximum bus voltage in 10th volts
-   * `voltage_min`: minimum bus voltage in 10th volts
+   * `voltage_max`: maximum eBUS voltage in 10th volts, or 0 if unknown
+   * `voltage_min`: minimum eBUS voltage in 10th volts, or 0 if unknown
  * 0x06: reset info (since 20220831)
    * `length`: =2
    * `reset_cause`: reset cause (1=power-on, 2=brown-out, 3=watchdog, 4=clear, 5=reset, 6=stack, 7=memory)
