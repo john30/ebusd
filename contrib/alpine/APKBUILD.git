@@ -1,7 +1,7 @@
 # Maintainer: John <ebusd@ebusd.eu>
 pkgname=ebusd-git
 _gitname=ebusd
-pkgver=23.2
+pkgver=23.3
 pkgrel=0
 pkgdesc="Daemon for communication with eBUS heating systems"
 url="https://github.com/john30/ebusd"
