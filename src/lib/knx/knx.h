@@ -22,6 +22,12 @@
 #include <string>
 #include <cstdint>
 
+#if defined(__GNUC__)
+#define MAYBE_UNUSED __attribute__((unused))
+#else
+#define MAYBE_UNUSED
+#endif
+
 namespace ebusd {
 
 /** @file lib/knx/knx.h
@@ -160,7 +166,7 @@ class KnxConnection {
   /**
    * @param address the individual address to set.
    */
-  virtual void setAddress(knx_addr_t address) {
+  virtual void setAddress(MAYBE_UNUSED knx_addr_t address) {
     // default implementation does nothing
   }
 
@@ -176,7 +182,7 @@ class KnxConnection {
    * Set the programming mode.
    * @param on true to start programming mode, false to stop it.
    */
-  virtual void setProgrammingMode(bool on) {
+  virtual void setProgrammingMode(MAYBE_UNUSED bool on) {
     // default implementation does nothing
   }
 };

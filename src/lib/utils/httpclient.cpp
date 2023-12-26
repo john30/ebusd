@@ -28,6 +28,12 @@
 #endif  // HAVE_SSL
 #include "lib/utils/log.h"
 
+#if defined(__GNUC__)
+#define MAYBE_UNUSED __attribute__((unused))
+#else
+#define MAYBE_UNUSED
+#endif
+
 namespace ebusd {
 
 using std::string;
@@ -171,7 +177,7 @@ void sslInfoCallback(const SSL *ssl, int type, int val) {
     (type & SSL_CB_ALERT) ? SSL_alert_desc_string_long(val) : "?");
 }
 
-int bioInfoCallback(BIO *bio, int state, int res) {
+int bioInfoCallback(MAYBE_UNUSED BIO *bio, int state, int res) {
   logDebug(lf_network,
     "SSL BIO state %d res %d",
     state,
