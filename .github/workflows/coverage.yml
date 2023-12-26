@@ -15,7 +15,7 @@ jobs:
     steps:
       -
         name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       -
         name: packages
         run: sudo apt-get update && sudo apt-get install -y libmosquitto1 libmosquitto-dev libssl1.1 libssl-dev
