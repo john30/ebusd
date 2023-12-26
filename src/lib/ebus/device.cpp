@@ -556,7 +556,7 @@ void EnhancedCharDevice::notifyInfoRetrieved() {
     case 0x0302:
       stream << (id == 1 ? "ID" : "config");
       stream << hex << setfill('0');
-      for (uint8_t pos = 0; pos < len; pos++) {
+      for (size_t pos = 0; pos < len; pos++) {
         stream << " " << setw(2) << static_cast<unsigned>(data[pos]);
       }
       if (id == 2 && (data[2]&0x3f) != 0x3f) {
