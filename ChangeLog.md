@@ -1,4 +1,4 @@
-# next (tbd)
+# 23.3 (2023-12-26)
 ## Bug Fixes
 * fix MQTT topic string validation
 * fix lost scanconfig default behaviour

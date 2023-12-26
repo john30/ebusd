@@ -3,7 +3,7 @@
 # Usage: makepkg -p PKGBUILD.git
 pkgname=ebusd-git
 _gitname=ebusd
-pkgver=23.2
+pkgver=23.3
 pkgrel=1
 pkgdesc="ebusd, the daemon for communication with eBUS heating systems."
 arch=('i686' 'x86_64' 'armv6h' 'armv7h' 'aarch64')
