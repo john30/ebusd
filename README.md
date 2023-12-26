@@ -5,6 +5,7 @@ ebusd is a daemon for handling communication with eBUS devices connected to a
 2-wire bus system ("energy bus" used by numerous heating systems).
 
 [![Build](https://github.com/john30/ebusd/actions/workflows/build.yml/badge.svg)](https://github.com/john30/ebusd/actions/workflows/build.yml)
+![CodeQL](https://github.com/john30/ebusd/workflows/CodeQL/badge.svg)
 [![codecov](https://codecov.io/gh/john30/ebusd/branch/master/graph/badge.svg)](https://codecov.io/gh/john30/ebusd)
 [![Release Downloads](https://img.shields.io/github/downloads/john30/ebusd/total)](https://github.com/john30/ebusd/releases/latest)
 [![Docker Downloads](https://img.shields.io/docker/pulls/john30/ebusd)](https://hub.docker.com/repository/docker/john30/ebusd)
@@ -62,6 +63,7 @@ Building ebusd from the source requires the following packages and/or features:
  * make
  * kernel with pselect or ppoll support
  * glibc with getopt_long support
+ * optional: knxd-dev for knxd support (KNXnet/IP support is always included)
  * libmosquitto-dev for MQTT support
  * libssl-dev for SSL support
 
