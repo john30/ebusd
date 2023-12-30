@@ -19,6 +19,7 @@
 #ifndef LIB_EBUS_DEVICE_H_
 #define LIB_EBUS_DEVICE_H_
 
+#include <cstdint>
 #include <string>
 #include "lib/ebus/result.h"
 #include "lib/ebus/transport.h"

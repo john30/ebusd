@@ -21,6 +21,7 @@
 
 #include "ebusd/mqttclient.h"
 #include <mosquitto.h>
+#include <ctime>
 #include <list>
 #include <map>
 #include <string>

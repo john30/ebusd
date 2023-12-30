@@ -21,6 +21,7 @@
 
 #include <unistd.h>
 #include <termios.h>
+#include <cstdint>
 #include <string>
 #include "lib/ebus/result.h"
 #include "lib/ebus/symbol.h"

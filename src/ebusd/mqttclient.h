@@ -19,6 +19,7 @@
 #ifndef EBUSD_MQTTCLIENT_H_
 #define EBUSD_MQTTCLIENT_H_
 
+#include <cstdint>
 #include <list>
 #include <map>
 #include <string>
