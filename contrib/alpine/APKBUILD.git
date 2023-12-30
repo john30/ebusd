@@ -1,6 +1,5 @@
 # Maintainer: John <ebusd@ebusd.eu>
 pkgname=ebusd-git
-_gitname=ebusd
 pkgver=23.3
 pkgrel=0
 pkgdesc="Daemon for communication with eBUS heating systems"
@@ -8,7 +7,7 @@ url="https://github.com/john30/ebusd"
 # Upstream only supports these archs.
 arch="x86 x86_64 aarch64 armhf armv7"
 license="GPL-3.0-only"
-makedepends="cmake mosquitto-dev openssl-dev"
+makedepends="cmake mosquitto-dev openssl-dev samurai"
 source="$pkgname-$pkgver.tar.gz::https://codeload.github.com/john30/${_gitname}/legacy.tar.gz/refs/heads/master"
 
 unpack() {
@@ -18,11 +17,10 @@ unpack() {
 }
 
 build() {
-	cmake -B build \
-		-DCMAKE_INSTALL_PREFIX=/usr \
+	cmake -B build -G Ninja \
 		-DCMAKE_BUILD_TYPE=MinSizeRel \
 		-DBUILD_TESTING=ON \
-		"$srcdir" 
+		"$srcdir"
 	cmake --build build
 }
 
