@@ -9,7 +9,7 @@ url="https://github.com/john30/ebusd"
 arch="x86 x86_64 aarch64 armhf armv7"
 license="GPL-3.0-only"
 makedepends="cmake mosquitto-dev openssl-dev samurai"
-source="$pkgname-$pkgver.tar.gz::https://github.com/john30/${pkgname}/archive/refs/tags/${pkgver}.tar.gz"
+source="$pkgname-$pkgver.tar.gz::https://github.com/john30/ebusd/archive/refs/tags/$pkgver.tar.gz"
 
 build() {
 	cmake -B build -G Ninja \

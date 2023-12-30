@@ -8,7 +8,7 @@ url="https://github.com/john30/ebusd"
 arch="x86 x86_64 aarch64 armhf armv7"
 license="GPL-3.0-only"
 makedepends="cmake mosquitto-dev openssl-dev samurai"
-source="$pkgname-$pkgver.tar.gz::https://codeload.github.com/john30/${_gitname}/legacy.tar.gz/refs/heads/master"
+source="$pkgname-$pkgver.tar.gz::https://codeload.github.com/john30/ebusd/legacy.tar.gz/refs/heads/master"
 
 unpack() {
 	mkdir -p "$srcdir"
