@@ -47,8 +47,6 @@ AC_ARG_WITH(contrib, AS_HELP_STRING([--without-contrib], [disable inclusion of c
 if test "x$with_contrib" != "xno"; then
 	AC_DEFINE_UNQUOTED(HAVE_CONTRIB, [1], [Defined if contributed sources are enabled.])
 fi
-AC_ARG_WITH(ebusfeed, AS_HELP_STRING([--with-ebusfeed], [enable inclusion of ebusfeed tool]), [with_ebusfeed=yes], [])
-AM_CONDITIONAL([WITH_EBUSFEED], [test "x$with_ebusfeed" == "xyes"])
 AC_ARG_WITH(mqtt, AS_HELP_STRING([--without-mqtt], [disable support for MQTT handling]), [], [with_mqtt=yes])
 if test "x$with_mqtt" != "xno"; then
 	AC_CHECK_LIB([mosquitto], [mosquitto_lib_init],
