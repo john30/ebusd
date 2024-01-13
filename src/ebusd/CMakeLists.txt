@@ -36,5 +36,5 @@ include_directories(../lib/utils)
 add_executable(ebusd ${ebusd_SOURCES})
 target_link_libraries(ebusd utils ebus pthread rt ${ebusd_LIBS})
 
-install(TARGETS ebusd EXPORT ebusd DESTINATION usr/bin)
+install(TARGETS ebusd EXPORT ebusd DESTINATION bin)
 
