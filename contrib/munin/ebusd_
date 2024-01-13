@@ -57,9 +57,9 @@ if [ -n "$find2" ]; then
   fi
   result="$result\n$result2"
 fi
-sensors=`echo "$result"|sed -e 's# =.*$##' -e 's# #:#'|egrep "$match"`
+sensors=`echo "$result"|sed -e 's# =.*$##' -e 's# #:#'|grep -E "$match"`
 if [ -n "$skip" ]; then
-  sensors=`echo "$sensors"|egrep -v "$skip"`
+  sensors=`echo "$sensors"|grep -E -v "$skip"`
 fi
 sensors=`echo "$sensors"|sort -u`
 if [ "$1" = "config" ]; then
