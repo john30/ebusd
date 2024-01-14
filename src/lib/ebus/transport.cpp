@@ -35,6 +35,9 @@
 #endif
 #include "lib/ebus/data.h"
 #include "lib/utils/tcpsocket.h"
+#ifdef DEBUG_RAW_TRAFFIC
+#  include "lib/utils/clock.h"
+#endif
 
 namespace ebusd {
 
