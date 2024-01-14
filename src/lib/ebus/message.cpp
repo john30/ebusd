@@ -109,7 +109,7 @@ Message::Message(const string& filename, const string& circuit, const string& le
       m_id(id), m_key(createKey(id, isWrite, isPassive, srcAddress, dstAddress)),
       m_data(data), m_deleteData(deleteData),
       m_pollPriority(pollPriority),
-      m_usedByCondition(false), m_isScanMessage(false), m_condition(condition),
+      m_usedByCondition(false), m_isScanMessage(false), m_condition(condition), m_availableSinceTime(0),
       m_dataHandlerState(0), m_lastUpdateTime(0), m_lastChangeTime(0), m_pollOrder(0), m_lastPollTime(0) {
   if (circuit == "scan") {
     setScanMessage();
@@ -129,7 +129,7 @@ Message::Message(const string& circuit, const string& level, const string& name,
       m_id({pb, sb}), m_key(createKey(pb, sb, broadcast)),
       m_data(data), m_deleteData(deleteData),
       m_pollPriority(0),
-      m_usedByCondition(false), m_isScanMessage(true), m_condition(nullptr),
+      m_usedByCondition(false), m_isScanMessage(true), m_condition(nullptr), m_availableSinceTime(0),
       m_lastUpdateTime(0), m_lastChangeTime(0), m_pollOrder(0), m_lastPollTime(0) {
   time(&m_createTime);
 }
@@ -650,6 +650,19 @@ void Message::setUsedByCondition() {
 
 bool Message::isAvailable() {
   return (m_condition == nullptr) || m_condition->isTrue();
+}
+
+time_t Message::getAvailableSinceTime() {
+  if (m_condition == nullptr) {
+    return m_createTime;
+  }
+  if (!m_condition->isTrue()) {
+    return 0;
+  }
+  if (m_availableSinceTime == 0) {  // was not yet available
+    m_availableSinceTime = m_condition->getLastCheckTime();
+  }
+  return m_availableSinceTime;
 }
 
 bool Message::hasField(const char* fieldName, bool numeric) const {

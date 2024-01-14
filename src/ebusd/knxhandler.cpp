@@ -760,7 +760,7 @@ void KnxHandler::run() {
       }
       if (m_con->isConnected()) {
         deque<Message*> messages;
-        m_messages->findAll("", "", m_levels, false, true, true, true, true, true, 0, 0, true, &messages);
+        m_messages->findAll("", "", m_levels, false, true, true, true, true, true, 0, 0, false, &messages);
         int addCnt = 0;
         for (const auto& message : messages) {
           const auto mit = m_subscribedMessages.find(message->getKey());
@@ -770,10 +770,12 @@ void KnxHandler::run() {
           if (message->getDstAddress() == SYN) {
             continue;  // not usable in absence of destination address
           }
-          bool isWrite = message->isWrite() && !message->isPassive();  // from KNX perspective
-          if (message->getCreateTime() <= definitionsSince) {  // only newer defined
+          if (message->getCreateTime() <= definitionsSince  // only newer defined
+          && (!message->isConditional() || message->getAvailableSinceTime() <= definitionsSince)) {  // unless conditional
             continue;
           }
+          logOtherDebug("knx", "checking association to %s %s", message->getCircuit().c_str(), message->getName().c_str());
+          bool isWrite = message->isWrite() && !message->isPassive();  // from KNX perspective
           ssize_t fieldCount = static_cast<signed>(message->getFieldCount());
           if (isWrite && fieldCount > 1) {
             // impossible with more than one field
