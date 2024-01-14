@@ -9,7 +9,7 @@ $ebusd -r -f -x >/dev/null 2>/dev/null
 $ebusd -f -d "" >/dev/null 2>/dev/null
 $ebusd -f -d "tcp:192.168.999.999:1" --log bad >/dev/null 2>/dev/null
 $ebusd -f -d "enh:192.168.999.999:1" --log bad >/dev/null 2>/dev/null
-$ebusd -f -d "/dev/ttyUSBx9" --log bad >/dev/null 2>/dev/null
+$ebusd -f -d "/dev/ttyACMx9" --log bad >/dev/null 2>/dev/null
 $ebusd -f --nodevicecheck --log bad >/dev/null 2>/dev/null
 $ebusd -f --readonly >/dev/null 2>/dev/null
 $ebusd -f --scanconfig=full -r >/dev/null 2>/dev/null

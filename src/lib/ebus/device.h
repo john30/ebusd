@@ -100,7 +100,7 @@ class Device : public TransportListener {
 
   /**
    * Get the device name.
-   * @return the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
+   * @return the device name (e.g. "/dev/ttyACM0" for serial, "127.0.0.1:1234" for network).
    */
   const char* getName() const { return m_transport->getName(); }
 

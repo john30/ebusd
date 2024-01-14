@@ -79,7 +79,7 @@ class Transport {
  protected:
   /**
    * Construct a new instance.
-   * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
+   * @param name the device name (e.g. "/dev/ttyACM0" for serial, "127.0.0.1:1234" for network).
    */
   Transport(const char* name, unsigned int latency)
   : m_name(name), m_latency(latency), m_listener(nullptr) {}
@@ -92,7 +92,7 @@ class Transport {
 
   /**
    * Get the device name.
-   * @return the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
+   * @return the device name (e.g. "/dev/ttyACM0" for serial, "127.0.0.1:1234" for network).
    */
   const char* getName() const { return m_name; }
 
@@ -162,7 +162,7 @@ class Transport {
    */
   virtual result_t openInternal() = 0;  // abstract
 
-  /** the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network). */
+  /** the device name (e.g. "/dev/ttyACM0" for serial, "127.0.0.1:1234" for network). */
   const char* m_name;
 
   /** the bus transfer latency in milliseconds. */
@@ -180,7 +180,7 @@ class FileTransport : public Transport {
  protected:
   /**
    * Construct a new instance.
-   * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
+   * @param name the device name (e.g. "/dev/ttyACM0" for serial, "127.0.0.1:1234" for network).
    * @param latency the bus transfer latency in milliseconds.
    * @param checkDevice whether to regularly check the device availability.
    */
@@ -241,7 +241,7 @@ class SerialTransport : public FileTransport {
  public:
   /**
    * Construct a new instance.
-   * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
+   * @param name the device name (e.g. "/dev/ttyACM0" for serial, "127.0.0.1:1234" for network).
    * @param extraLatency the extra bus transfer latency in milliseconds.
    * @param checkDevice whether to regularly check the device availability.
    * @param speed 0 for normal speed, 1 for 4x speed, or 2 for 48x speed.
@@ -283,7 +283,7 @@ class NetworkTransport : public FileTransport {
  public:
   /**
    * Construct a new instance.
-   * @param name the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
+   * @param name the device name (e.g. "/dev/ttyACM0" for serial, "127.0.0.1:1234" for network).
    * @param extraLatency the extra bus transfer latency in milliseconds.
    * @param address the socket address of the device.
    * @param hostOrIp the host name or IP address of the device.
