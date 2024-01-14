@@ -1,3 +1,10 @@
+# next (tbd)
+## Bug Fixes
+* fix conditional messages not being sent to message definition in MQTT integration and not being used in KNX group association
+## Features
+* add "inject" command
+
+
 # 23.3 (2023-12-26)
 ## Bug Fixes
 * fix MQTT topic string validation

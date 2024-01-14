@@ -208,6 +208,14 @@ class MainLoop : public Thread {
   result_t executeHex(const vector<string>& args, ostringstream* ostream);
 
   /**
+   * Execute the inject command.
+   * @param args the arguments passed to the command (starting with the command itself), or empty for help.
+   * @param ostream the @a ostringstream to format the result string to.
+   * @return the result code.
+   */
+  result_t executeInject(const vector<string>& args, ostringstream* ostream);
+
+  /**
    * Execute the direct command.
    * @param args the arguments passed to the command (starting with the command itself), or empty for help.
    * @param reqMode the @a RequestMode to use and update.

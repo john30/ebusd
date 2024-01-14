@@ -477,6 +477,13 @@ result_t MainLoop::decodeRequest(Request* req, bool* connected, RequestMode* req
     *ostream << "ERR: command not enabled";
     return RESULT_OK;
   }
+  if (cmd == "INJECT") {
+    if (m_enableHex) {
+      return executeInject(args, ostream);
+    }
+    *ostream << "ERR: command not enabled";
+    return RESULT_OK;
+  }
   if (cmd == "F" || cmd == "FIND") {
     return executeFind(args, getUserLevels(*user), ostream);
   }
@@ -1152,6 +1159,27 @@ result_t MainLoop::executeHex(const vector<string>& args, ostringstream* ostream
               "  PB SB  primary/secondary command byte\n"
               "  NN     number of following data bytes\n"
               "  DD     data byte(s) to send";
+  return RESULT_OK;
+}
+
+result_t MainLoop::executeInject(const vector<string>& args, ostringstream* ostream) {
+  size_t argPos = 1;
+  if (argPos < args.size()) {
+    MasterSymbolString master;
+    SlaveSymbolString slave;
+    if (!m_scanHelper->parseMessage(args[argPos++], false, &master, &slave)) {
+      return RESULT_ERR_INVALID_ARG;
+    }
+    m_busHandler->notifyProtocolMessage(false, master, slave);
+    return RESULT_OK;
+  }
+  *ostream << "usage: inject QQZZPBSBNN[DD]*/[NN[DD]*]\n"
+              " Inject hex data (without sending to bus).\n"
+              "  QQ     source address\n"
+              "  ZZ     destination address\n"
+              "  PB SB  primary/secondary command byte\n"
+              "  NN     number of following data bytes\n"
+              "  DD     data byte(s)";
   return RESULT_OK;
 }
 
@@ -1879,10 +1907,11 @@ result_t MainLoop::executeHelp(ostringstream* ostream) {
       "           Write by new def.:     write [-s QQ] [-d ZZ] -def DEFINITION [VALUE[;VALUE]*] (if enabled)\n"
       "           Write hex message:     write [-s QQ] [-c CIRCUIT] -h ZZPBSBNN[DD]*\n"
       " auth|a    Authenticate user:     auth USER SECRET\n"
-      " hex       Send hex data:         hex [-s QQ] [-n] ZZPBSB[NN][DD]* (if enabled)\n"
       " find|f    Find message(s):       find [-v|-V] [-r] [-w] [-p] [-a] [-d] [-h] [-i ID] [-f] [-F COL[,COL]*] [-e]"
       " [-c CIRCUIT] [-l LEVEL] [NAME]\n"
       " listen|l  Listen for updates:    listen [-v|-V] [-n|-N] [-u|-U] [stop]\n"
+      " hex       Send hex data:         hex [-s QQ] [-n] ZZPBSB[NN][DD]* (if enabled)\n"
+      " inject    Inject hex data:       inject QQZZPBSBNN[DD]*/[NN[DD]*] (if enabled)\n"
       " direct    Enter direct mode\n"
       " state|s   Report bus state\n"
       " info|i    Report information about the daemon, configuration, seen participants, and the device.\n"
