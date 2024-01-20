@@ -8,7 +8,7 @@ AC_CONFIG_AUX_DIR([build])
 AC_CONFIG_MACRO_DIR([m4])
 AC_GNU_SOURCE
 
-if test -z $CXXFLAGS; then
+if test -z "${CXXFLAGS}"; then
 	CXXFLAGS="-fpic -Wall -Wno-unused-function -Wextra -g -O2"
 fi
 AC_PROG_CXX([g++-6 g++-5 g++-4.9 g++-4.8 g++])
