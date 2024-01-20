@@ -95,10 +95,10 @@ the latest configuration files** that are reflected by the configuration reposit
 Docker image
 ------------
 
-A multi-architecture Docker image using the config web service for retrieving the latest message configuration files is  available on the hub.
+A multi-architecture Docker image using the config web service for retrieving the latest message configuration files is available on the hub.
 You can use it like this:  
 > docker pull john30/ebusd  
-> docker run -it --rm --device=ens:/dev/ttyUSB0 -p 8888 john30/ebusd
+> docker run -it --rm --device=/dev/ttyUSB0 -p 8888 john30/ebusd -d ens:/dev/ttyUSB0
 
 For more details, see [Docker Readme](https://github.com/john30/ebusd/blob/master/contrib/docker/README.md).
 
