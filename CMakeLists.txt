@@ -53,6 +53,8 @@ endif()
 
 add_definitions(-fpic -Wall -Wno-unused-function -Wextra)
 
+set(BUILD_SHARED_LIBS OFF)
+
 check_include_file(arpa/inet.h HAVE_ARPA_INET_H)
 check_include_file(dirent.h HAVE_DIRENT_H)
 check_include_file(fcntl.h HAVE_FCNTL_H)
