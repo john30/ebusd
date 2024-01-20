@@ -12,4 +12,4 @@ add_executable(ebuspicloader ${ebuspicloader_SOURCES})
 target_link_libraries(ebusctl utils ebus ${ebusctl_LIBS})
 target_link_libraries(ebuspicloader utils ${ebuspicloader_LIBS})
 
-install(TARGETS ebusctl ebuspicloader EXPORT ebusd DESTINATION usr/bin)
+install(TARGETS ebusctl ebuspicloader EXPORT ebusd DESTINATION bin)
