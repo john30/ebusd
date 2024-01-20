@@ -66,20 +66,20 @@ if [ -n "$reusebuilddir" ] || [ -z "$keepbuilddir" ]; then
 fi
 make DESTDIR="$PWD/$RELEASE" install-strip || exit 1
 extralibs=
-ldd $RELEASE/usr/bin/ebusd | egrep -q libeibclient.so.0
+ldd $RELEASE/usr/bin/ebusd | grep -q libeibclient.so.0
 if [ $? -eq 0 ]; then
   extralibs="$extralibs, knxd-tools"
 fi
-ldd $RELEASE/usr/bin/ebusd | egrep -q libmosquitto.so.1
+ldd $RELEASE/usr/bin/ebusd | grep -q libmosquitto.so.1
 if [ $? -eq 0 ]; then
   extralibs="$extralibs, libmosquitto1"
   PACKAGE="${PACKAGE}_mqtt1"
 fi
-ldd $RELEASE/usr/bin/ebusd | egrep -q libssl.so.3
+ldd $RELEASE/usr/bin/ebusd | grep -q libssl.so.3
 if [ $? -eq 0 ]; then
   extralibs="$extralibs, libssl3 (>= 3.0.0), ca-certificates"
 else
-  ldd $RELEASE/usr/bin/ebusd | egrep -q libssl.so.1.1
+  ldd $RELEASE/usr/bin/ebusd | grep -q libssl.so.1.1
   if [ $? -eq 0 ]; then
     extralibs="$extralibs, libssl1.1 (>= 1.1.0), ca-certificates"
   fi
@@ -104,7 +104,7 @@ if [ -n "$RUNTEST" ]; then
   fi
   # note: this can't run on file system base when using qemu for arm 32bit and host is 64bit due to glibc readdir() inode 32 bit values (see https://bugs.launchpad.net/qemu/+bug/1805913), thus using test end point instead:
   ("$RELEASE/usr/bin/ebusd" -f -s --configlang=tt -d /dev/null --log=all:debug --inject=stop 10fe0900040000803e/ > test.txt) || testdie "float conversion"
-  egrep "received update-read broadcast test QQ=10: 0\.25$" test.txt || testdie "float result"
+  grep -E "received update-read broadcast test QQ=10: 0\.25$" test.txt || testdie "float result"
 fi
 
 echo
