@@ -47,13 +47,13 @@ AC_ARG_WITH(contrib, AS_HELP_STRING([--without-contrib], [disable inclusion of c
 if test "x$with_contrib" != "xno"; then
 	AC_DEFINE_UNQUOTED(HAVE_CONTRIB, [1], [Defined if contributed sources are enabled.])
 fi
-AC_ARG_WITH(docs, AS_HELP_STRING([--without-docs], [disable generation of docs]), [], [with_docs=yes])
-if test "x$with_docs" != "xno"; then
+AC_ARG_WITH(docs, AS_HELP_STRING([--with-docs], [generate documentation]), [
 	AC_CHECK_PROGS([HAVE_DOXYGEN], [doxygen], [])
-	if test -z "${HAVE_DOXYGEN}"; then
-        	AC_MSG_WARN([Doxygen not found - continuing without Doxygen support.])
+	if test -z "$HAVE_DOXYGEN"; then
+		AC_MSG_ERROR([Could not find doxygen.])
 	fi
-fi
+], [])
+
 AC_ARG_WITH(mqtt, AS_HELP_STRING([--without-mqtt], [disable support for MQTT handling]), [], [with_mqtt=yes])
 if test "x$with_mqtt" != "xno"; then
 	AC_CHECK_LIB([mosquitto], [mosquitto_lib_init],
@@ -162,7 +162,7 @@ else
 	AC_DEFINE(REVISION, "[m4_esyscmd_s([git describe --always 2>/dev/null || (date +p%Y%m%d)])]", [The revision of the package.])
 fi
 
-AM_CONDITIONAL([HAVE_DOXYGEN], [test -n "${HAVE_DOXYGEN}"])
+AM_CONDITIONAL([HAVE_DOXYGEN], [test -n "$HAVE_DOXYGEN"])
 AM_COND_IF([HAVE_DOXYGEN], [AC_CONFIG_FILES([docs/Doxyfile])])
 
 AM_INIT_AUTOMAKE([1.11 -Wall -Werror foreign subdir-objects])
