@@ -24,7 +24,7 @@ using namespace std;
 using namespace ebusd;
 
 int main() {
-  Device* device = Device::create("/dev/ttyUSB20", true, false, false);
+  Device* device = Device::create("/dev/ttyACM20", true, false, false);
   if (device == nullptr) {
     cout << "unable to create device" << endl;
     return -1;

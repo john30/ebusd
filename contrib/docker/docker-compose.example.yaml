@@ -10,13 +10,13 @@ services:
       #- 8080:8080
     devices:
       # when using an USB device, make sure to hand it in to the container like this:
-      - /dev/ttyUSB0:/dev/ttyUSB0
+      - /dev/ttyACM0:/dev/ttyACM0
     environment:
       # Device options:
 
       # Use DEV as eBUS device ("enh:DEVICE" or "enh:IP:PORT" for enhanced device, "ens:DEVICE" for enhanced high speed
       # serial device, "DEVICE" for serial device, or "[udp:]IP:PORT" for network device)
-      EBUSD_DEVICE: "/dev/ttyUSB0"
+      EBUSD_DEVICE: "/dev/ttyACM0"
       # Skip serial eBUS device test
       #EBUSD_NODEVICECHECK: ""
       # Only read from device, never write to it

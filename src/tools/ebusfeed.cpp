@@ -44,7 +44,7 @@ using ebusd::Device;
 
 /** A structure holding all program options. */
 struct options {
-  const char* device;  //!< device to write to [/dev/ttyUSB60]
+  const char* device;  //!< device to write to [/dev/ttyACM60]
   unsigned int time;  //!< delay between bytes in us [10000]
 
   const char* dumpFile;  //!< dump file to read
@@ -52,7 +52,7 @@ struct options {
 
 /** the program options. */
 static struct options opt = {
-  "/dev/ttyUSB60",  // device
+  "/dev/ttyACM60",  // device
   10000,  // time
 
   "/tmp/ebus_dump.bin",  // dumpFile
@@ -60,7 +60,7 @@ static struct options opt = {
 
 /** the definition of the known program arguments. */
 static const ebusd::argDef argDefs[] = {
-  {"device", 'd', "DEV",     0, "Write to DEV (serial device) [/dev/ttyUSB60]"},
+  {"device", 'd', "DEV",     0, "Write to DEV (serial device) [/dev/ttyACM60]"},
   {"time",   't', "USEC",    0, "Delay each byte by USEC us [10000]"},
   {nullptr, 0x100, "DUMPFILE", af_optional, "Dump file to read [/tmp/ebus_dump.bin]"},
 
@@ -77,7 +77,7 @@ static int parse_opt(int key, char *arg, const ebusd::argParseOpt *parseOpt, str
   char* strEnd = nullptr;
   switch (key) {
   // Device settings:
-  case 'd':  // --device=/dev/ttyUSB60
+  case 'd':  // --device=/dev/ttyACM60
     if (arg == nullptr || arg[0] == 0) {
       argParseError(parseOpt, "invalid device");
       return EINVAL;
@@ -121,9 +121,9 @@ int main(int argc, char* argv[]) {
     "Example for setting up two pseudo terminals with 'socat':\n"
     "  1. 'socat -d -d pty,raw,echo=0 pty,raw,echo=0'\n"
     "  2. create symbol links to appropriate devices, e.g.\n"
-    "     'ln -s /dev/pts/2 /dev/ttyUSB60'\n"
-    "     'ln -s /dev/pts/3 /dev/ttyUSB20'\n"
-    "  3. start " PACKAGE ": '" PACKAGE " -f -d /dev/ttyUSB20 --nodevicecheck'\n"
+    "     'ln -s /dev/pts/2 /dev/ttyACM60'\n"
+    "     'ln -s /dev/pts/3 /dev/ttyACM20'\n"
+    "  3. start " PACKAGE ": '" PACKAGE " -f -d /dev/ttyACM20 --nodevicecheck'\n"
     "  4. start ebusfeed: 'ebusfeed /path/to/ebus_dump.bin'",
     nullptr,
   };

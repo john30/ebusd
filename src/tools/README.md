@@ -64,7 +64,7 @@ settings.
       --usage                give a short usage message
   -V, --version              print program version
 
-PORT is either the serial port to use (e.g. /dev/ttyUSB0) that also supports a
+PORT is either the serial port to use (e.g. /dev/ttyACM0) that also supports a
 trailing wildcard '*' for testing multiple ports, or a network port as
 "ip:port" for use with e.g. socat or ebusd-esp in PIC pass-through mode.
 ```
@@ -72,7 +72,7 @@ trailing wildcard '*' for testing multiple ports, or a network port as
 Flash firmware
 --------------
 For flashing a new firmware, you would typically do something like this:  
-`ebuspicloader -f firmware.hex /dev/ttyUSB0`
+`ebuspicloader -f firmware.hex /dev/ttyACM0`
 
 On success, the output looks similar to this:
 ```
@@ -101,7 +101,7 @@ flashing succeeded.
 Configure IP
 ------------
 Changing the IP address of an Ethernet enabled adapter, would be done like this:
-`ebuspicloader -i 192.168.1.10 -m 24 /dev/ttyUSB0`
+`ebuspicloader -i 192.168.1.10 -m 24 /dev/ttyACM0`
 
 On success, the output looks similar to this:
 ```

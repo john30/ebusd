@@ -29,16 +29,16 @@ automatically from the latest source on the git repository. Run the following co
 
 Running interactively
 ---------------------
-To run an ebusd container interactively, e.g. on serial device /dev/ttyUSB1, use the following command:
-> docker run --rm -it --device=/dev/ttyUSB1:/dev/ttyUSB0 -p 8888 john30/ebusd
+To run an ebusd container interactively, e.g. on serial device /dev/ttyACM1, use the following command:
+> docker run --rm -it --device=/dev/ttyACM1:/dev/ttyACM0 -p 8888 john30/ebusd
 
 This will show the ebusd output directly in the terminal.
 
 
 Running in background
 ---------------------
-To start an ebusd container and have it run in the background, e.g. on serial device /dev/ttyUSB1, use the following command:
-> docker run -d --name=ebusd --device=/dev/ttyUSB1:/dev/ttyUSB0 -p 8888 john30/ebusd
+To start an ebusd container and have it run in the background, e.g. on serial device /dev/ttyACM1, use the following command:
+> docker run -d --name=ebusd --device=/dev/ttyACM1:/dev/ttyACM0 -p 8888 john30/ebusd
 
 The container has the name "ebusd", so you can use that when querying docker about the container.
 
@@ -62,14 +62,14 @@ Running with MQTT broker
 ------------------------
 To start an ebusd container in the background and have it connect to your MQTT broker, use the following command while
 replacing "BROKERHOST" with your MQTT broker host name or IP address:
-> docker run -d --name=ebusd --device=/dev/ttyUSB0 -p 8888 john30/ebusd --scanconfig -d /dev/ttyUSB0 --mqttport=1883 --mqtthost=BROKERHOST
+> docker run -d --name=ebusd --device=/dev/ttyACM0 -p 8888 john30/ebusd --scanconfig -d /dev/ttyACM0 --mqttport=1883 --mqtthost=BROKERHOST
 
 
 Use of environment variables
 ----------------------------
 Instead of passing arguments (at the end of docker run) to ebusd, almost all (long) arguments can also be passed as
 environment variables with the prefix `EBUSD_`, e.g. the following line can be used instead of the last example above:
-> docker run -d --name=ebusd --device=/dev/ttyUSB0 -p 8888 -e EBUSD_SCANCONFIG= -e EBUSD_DEVICE=/dev/ttyUSB0 -e EBUSD_MQTTPORT=1883 -e EBUSD_MQTTHOST=BROKERHOST john30/ebusd
+> docker run -d --name=ebusd --device=/dev/ttyACM0 -p 8888 -e EBUSD_SCANCONFIG= -e EBUSD_DEVICE=/dev/ttyACM0 -e EBUSD_MQTTPORT=1883 -e EBUSD_MQTTHOST=BROKERHOST john30/ebusd
 
 This eases use of e.g. "docker-compose.yaml" files like [the example docker-compose file](https://github.com/john30/ebusd/blob/master/contrib/docker/docker-compose.example.yaml) also describing each available environment variable in it.
 

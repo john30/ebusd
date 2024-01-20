@@ -1173,7 +1173,7 @@ int main(int argc, char* argv[]) {
 #ifdef __CYGWIN__
     "/dev/ttyS0 for COM1 on Windows"
 #else
-    "/dev/ttyUSB0"
+    "/dev/ttyACM0"
 #endif
     ") that also supports a trailing wildcard '*' for testing"
     " multiple ports, or a network port as \"ip:port\" for use with e.g. socat or ebusd-esp in PIC pass-through mode.",
