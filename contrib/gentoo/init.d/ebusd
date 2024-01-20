@@ -5,7 +5,7 @@
 command="/usr/bin/ebusd"
 command_args="${EBUSD_OPTS}"
 logfile_path="/var/log/ebusd"
-logfile="${pidfile_path}/ebusd.log"
+logfile="${logfile_path}/ebusd.log"
 name="eBUS daemon"
 pidfile_path="/run/ebusd"
 pidfile="${pidfile_path}/ebusd.pid"
