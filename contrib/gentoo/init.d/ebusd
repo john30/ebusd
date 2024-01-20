@@ -1,14 +1,17 @@
-#!/sbin/runscript
-# Copyright 1999-2013 Gentoo Foundation
+#!/sbin/openrc-run
+# Copyright 1999-2024 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: $
 
 command="/usr/bin/ebusd"
 command_args="${EBUSD_OPTS}"
-start_stop_daemon_args="--quiet"
-description="ebusd, the daemon for communication with eBUS heating systems."
+logfile_path="/var/log/ebusd"
+logfile="${pidfile_path}/ebusd.log"
+name="eBUS daemon"
+pidfile_path="/run/ebusd"
+pidfile="${pidfile_path}/ebusd.pid"
 
-depend() {
-	need localmount
-	use logger
+start_pre() {
+	checkpath -d -q "${logfile_path}"
+	checkpath -d -q "${pidfile_path}"
+	checkpath -f -q "${logfile}"
 }
