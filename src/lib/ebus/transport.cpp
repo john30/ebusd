@@ -280,7 +280,6 @@ result_t SerialTransport::openInternal() {
   cfsetspeed(&newSettings, m_speed ? (m_speed > 1 ? B115200 : B9600) : B2400);
 #else
   cfsetispeed(&newSettings, m_speed ? (m_speed > 1 ? B115200 : B9600) : B2400);
-  cfsetospeed(&newSettings, m_enhancedLevel ? (m_enhancedLevel >= el_speed ? B115200 : B9600) : B2400);
 #endif
   newSettings.c_cflag |= (CS8 | CLOCAL | CREAD);
   newSettings.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);  // non-canonical mode
