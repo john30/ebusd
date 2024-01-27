@@ -1881,6 +1881,9 @@ result_t MainLoop::executeInfo(const vector<string>& args, const string& user, o
            << "conditional: " << m_messages->sizeConditional() << "\n"
            << "poll: " << m_messages->sizePoll() << "\n"
            << "update: " << m_messages->sizePassive();
+  if (verbose) {
+    *ostream << "\nconfig path: " << m_scanHelper->getConfigPath();
+  }
   m_busHandler->formatSeenInfo(ostream);
   return RESULT_OK;
 }

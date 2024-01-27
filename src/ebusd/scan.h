@@ -67,6 +67,11 @@ class ScanHelper : public Resolver {
   virtual ~ScanHelper();
 
   /**
+   * @return the (optionally corrected) config path for retrieving configuration files from.
+   */
+  const string getConfigPath() const { return m_configPath; }
+
+  /**
    * Try to connect to the specified server.
    * @param host the host name to connect to.
    * @param port the port to connect to.
