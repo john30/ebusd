@@ -591,7 +591,8 @@ result_t DateTimeDataType::writeSymbols(size_t offset, size_t length, istringstr
         if (result != RESULT_OK) {
           return result;  // invalid time part
         }
-        if ((i == 0 && value > 24) || (i > 0 && (last == 24 && value > 0) )) {
+        if ((i == (m_hasDate ? 2 : 0) && value > 24)
+        || (i > (m_hasDate ? 2 : 0) && (last == 24 && value > 0) )) {
           return RESULT_ERR_OUT_OF_RANGE;  // invalid time part
         }
         if (hasFlag(SPE)) {  // minutes since midnight

@@ -1,6 +1,8 @@
 # next (tbd)
 ## Bug Fixes
 * fix conditional messages not being sent to message definition in MQTT integration and not being used in KNX group association
+* fix CSV dump of config files on command line
+* fix DTM type with recent dates
 ## Features
 * add "inject" command
 
