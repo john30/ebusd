@@ -22,6 +22,7 @@
 
 #include <string>
 #include <iomanip>
+#include "lib/ebus/device_trans.h"
 #include "lib/ebus/protocol.h"
 #include "lib/ebus/protocol_direct.h"
 #include "lib/utils/log.h"
@@ -97,11 +98,11 @@ ProtocolHandler* ProtocolHandler::create(const ebus_protocol_config_t config,
     // support ens:/dev/<device>, enh:/dev/<device>, and /dev/<device>
     transport = new SerialTransport(name, config.extraLatency, !config.noDeviceCheck, speed);
   }
-  CharDevice* device;
+  Device* device;
   if (enhanced) {
-    device = new EnhancedCharDevice(transport);
+    device = new EnhancedDevice(transport);
   } else {
-    device = new PlainCharDevice(transport);
+    device = new PlainDevice(transport);
   }
   return new DirectProtocolHandler(config, device, listener);
 }

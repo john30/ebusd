@@ -6,7 +6,8 @@ set(libebus_a_SOURCES
     filereader.h filereader.cpp
     datatype.h datatype.cpp
     data.h data.cpp
-    device.h device.cpp
+    device.h device_enhanced.h
+    device_trans.h device_trans.cpp
     transport.h transport.cpp
     protocol.h protocol.cpp
     protocol_direct.h protocol_direct.cpp
