@@ -8,7 +8,7 @@ AC_CONFIG_AUX_DIR([build])
 AC_CONFIG_MACRO_DIR([m4])
 AC_GNU_SOURCE
 
-if test -z $CXXFLAGS; then
+if test -z "${CXXFLAGS}"; then
 	CXXFLAGS="-fpic -Wall -Wno-unused-function -Wextra -g -O2"
 fi
 AC_PROG_CXX([g++-6 g++-5 g++-4.9 g++-4.8 g++])
@@ -47,6 +47,13 @@ AC_ARG_WITH(contrib, AS_HELP_STRING([--without-contrib], [disable inclusion of c
 if test "x$with_contrib" != "xno"; then
 	AC_DEFINE_UNQUOTED(HAVE_CONTRIB, [1], [Defined if contributed sources are enabled.])
 fi
+AC_ARG_WITH(docs, AS_HELP_STRING([--with-docs], [generate documentation]), [
+	AC_CHECK_PROGS([HAVE_DOXYGEN], [doxygen], [])
+	if test -z "$HAVE_DOXYGEN"; then
+		AC_MSG_ERROR([Could not find doxygen.])
+	fi
+], [])
+
 AC_ARG_WITH(mqtt, AS_HELP_STRING([--without-mqtt], [disable support for MQTT handling]), [], [with_mqtt=yes])
 if test "x$with_mqtt" != "xno"; then
 	AC_CHECK_LIB([mosquitto], [mosquitto_lib_init],
@@ -153,10 +160,6 @@ if test -n "$GIT_REVISION"; then
 	AC_DEFINE(REVISION, "[m4_esyscmd_s([echo "$GIT_REVISION"])]", [The revision of the package.])
 else
 	AC_DEFINE(REVISION, "[m4_esyscmd_s([git describe --always 2>/dev/null || (date +p%Y%m%d)])]", [The revision of the package.])
-fi
-AC_CHECK_PROGS([HAVE_DOXYGEN], [doxygen], [])
-if test -z "$HAVE_DOXYGEN"; then
-	AC_MSG_WARN([Doxygen not found - continuing without Doxygen support.])
 fi
 
 AM_CONDITIONAL([HAVE_DOXYGEN], [test -n "$HAVE_DOXYGEN"])

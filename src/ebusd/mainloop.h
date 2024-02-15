@@ -1,6 +1,6 @@
 /*
  * ebusd - daemon for communication with eBUS heating systems.
- * Copyright (C) 2014-2023 John Baier <ebusd@ebusd.eu>
+ * Copyright (C) 2014-2024 John Baier <ebusd@ebusd.eu>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -206,6 +206,14 @@ class MainLoop : public Thread {
    * @return the result code.
    */
   result_t executeHex(const vector<string>& args, ostringstream* ostream);
+
+  /**
+   * Execute the inject command.
+   * @param args the arguments passed to the command (starting with the command itself), or empty for help.
+   * @param ostream the @a ostringstream to format the result string to.
+   * @return the result code.
+   */
+  result_t executeInject(const vector<string>& args, ostringstream* ostream);
 
   /**
    * Execute the direct command.

@@ -1,6 +1,6 @@
 /*
  * ebusd - daemon for communication with eBUS heating systems.
- * Copyright (C) 2016-2023 John Baier <ebusd@ebusd.eu>
+ * Copyright (C) 2016-2024 John Baier <ebusd@ebusd.eu>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -816,7 +816,8 @@ void MqttHandler::run() {
               }
             }
             message->setDataHandlerState(1, true);
-          } else if (message->getCreateTime() <= m_definitionsSince) {  // only newer defined
+          } else if (message->getCreateTime() <= m_definitionsSince  // only newer defined
+          && (!message->isConditional() || message->getAvailableSinceTime() <= m_definitionsSince)) {  // unless conditional
             continue;
           }
           if (!FileReader::matches(message->getCircuit(), filterCircuit, true, true)

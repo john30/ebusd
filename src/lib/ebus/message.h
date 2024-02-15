@@ -1,6 +1,6 @@
 /*
  * ebusd - daemon for communication with eBUS heating systems.
- * Copyright (C) 2014-2023 John Baier <ebusd@ebusd.eu>
+ * Copyright (C) 2014-2024 John Baier <ebusd@ebusd.eu>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -400,6 +400,12 @@ class Message : public AttributedItem {
   bool isAvailable();
 
   /**
+   * Get the time when this (potentially conditional) message first became available.
+   * @return the time when this message first became available, or 0 if it is not available.
+   */
+  time_t getAvailableSinceTime();
+
+  /**
    * Return whether the field is available.
    * @param fieldName the name of the field to find, or nullptr for any.
    * @param numeric true for a numeric field, false for a string field.
@@ -673,6 +679,9 @@ class Message : public AttributedItem {
   /** the @a Condition for this message, or nullptr. */
   Condition* m_condition;
 
+  /** the time when the @a Condition first became available, or 0. */
+  time_t m_availableSinceTime;
+
   /** the last seen @a MasterSymbolString. */
   MasterSymbolString m_lastMasterData;
 
@@ -926,6 +935,12 @@ class Condition {
    * @return whether this condition is fulfilled.
    */
   virtual bool isTrue() = 0;
+
+  /**
+   * Get the system time when the condition was last checked.
+   * @return the system time when the condition was last checked, 0 for never.
+   */
+  time_t getLastCheckTime() const { return m_lastCheckTime; }
 
 
  protected:

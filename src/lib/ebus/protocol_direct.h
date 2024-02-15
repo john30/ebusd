@@ -1,6 +1,6 @@
 /*
  * ebusd - daemon for communication with eBUS heating systems.
- * Copyright (C) 2014-2023 John Baier <ebusd@ebusd.eu>
+ * Copyright (C) 2014-2024 John Baier <ebusd@ebusd.eu>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -65,8 +65,8 @@ class DirectProtocolHandler : public ProtocolHandler {
    * @param listener the @a ProtocolListener.
    */
   DirectProtocolHandler(const ebus_protocol_config_t config,
-      CharDevice* device, ProtocolListener* listener)
-    : ProtocolHandler(config, device, listener), m_device(device),
+      Device* device, ProtocolListener* listener)
+    : ProtocolHandler(config, device, listener),
       m_lockCount(config.lockCount <= 3 ? 3 : config.lockCount),
       m_remainLockCount(config.lockCount == 0 ? 1 : 0),
       m_generateSynInterval(config.generateSyn ? 10*getMasterNumber(config.ownAddress)+SYN_TIMEOUT : 0),
@@ -145,9 +145,6 @@ class DirectProtocolHandler : public ProtocolHandler {
    * Called when a message sending or reception was successfully completed.
    */
   void messageCompleted();
-
-  /** the @a CharDevice instance for accessing the bus. */
-  CharDevice* m_device;
 
   /** the number of AUTO-SYN symbols before sending is allowed after lost arbitration. */
   unsigned int m_lockCount;

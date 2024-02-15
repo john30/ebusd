@@ -1,6 +1,6 @@
 /*
  * ebusd - daemon for communication with eBUS heating systems.
- * Copyright (C) 2015-2023 John Baier <ebusd@ebusd.eu>
+ * Copyright (C) 2015-2024 John Baier <ebusd@ebusd.eu>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 #  include <config.h>
 #endif
 
-#include "lib/ebus/device.h"
+#include "lib/ebus/device_trans.h"
 #include <cstdlib>
 #include <string>
 #include <iomanip>
@@ -35,33 +35,33 @@ using std::setw;
 using std::setprecision;
 using std::fixed;
 
-// ebusd enhanced protocol IDs:
-#define ENH_REQ_INIT ((uint8_t)0x0)
-#define ENH_RES_RESETTED ((uint8_t)0x0)
-#define ENH_REQ_SEND ((uint8_t)0x1)
-#define ENH_RES_RECEIVED ((uint8_t)0x1)
-#define ENH_REQ_START ((uint8_t)0x2)
-#define ENH_RES_STARTED ((uint8_t)0x2)
-#define ENH_REQ_INFO ((uint8_t)0x3)
-#define ENH_RES_INFO ((uint8_t)0x3)
-#define ENH_RES_FAILED ((uint8_t)0xa)
-#define ENH_RES_ERROR_EBUS ((uint8_t)0xb)
-#define ENH_RES_ERROR_HOST ((uint8_t)0xc)
-
-// ebusd enhanced error codes for the ENH_RES_ERROR_* responses
-#define ENH_ERR_FRAMING ((uint8_t)0x00)
-#define ENH_ERR_OVERRUN ((uint8_t)0x01)
-
-#define ENH_BYTE_FLAG ((uint8_t)0x80)
-#define ENH_BYTE_MASK ((uint8_t)0xc0)
-#define ENH_BYTE1 ((uint8_t)0xc0)
-#define ENH_BYTE2 ((uint8_t)0x80)
-#define makeEnhancedByte1(cmd, data) (uint8_t)(ENH_BYTE1 | ((cmd) << 2) | (((data)&0xc0) >> 6))
-#define makeEnhancedByte2(cmd, data) (uint8_t)(ENH_BYTE2 | ((data)&0x3f))
-#define makeEnhancedSequence(cmd, data) {makeEnhancedByte1(cmd, data), makeEnhancedByte2(cmd, data)}
 
 
-result_t PlainCharDevice::send(symbol_t value) {
+result_t BaseDevice::startArbitration(symbol_t masterAddress) {
+  if (m_arbitrationCheck) {
+    if (masterAddress != SYN) {
+      return RESULT_ERR_ARB_RUNNING;  // should not occur
+    }
+    return RESULT_OK;
+  }
+  m_arbitrationMaster = masterAddress;
+  return RESULT_OK;
+}
+
+bool BaseDevice::cancelRunningArbitration(ArbitrationState* arbitrationState) {
+  if (m_arbitrationMaster == SYN) {
+    return false;
+  }
+  if (arbitrationState) {
+    *arbitrationState = as_error;
+  }
+  m_arbitrationMaster = SYN;
+  m_arbitrationCheck = 0;
+  return true;
+}
+
+
+result_t PlainDevice::send(symbol_t value) {
   result_t result = m_transport->write(&value, 1);
   if (result == RESULT_OK && m_listener != nullptr) {
     m_listener->notifyDeviceData(&value, 1, false);
@@ -69,7 +69,7 @@ result_t PlainCharDevice::send(symbol_t value) {
   return result;
 }
 
-result_t PlainCharDevice::recv(unsigned int timeout, symbol_t* value, ArbitrationState* arbitrationState) {
+result_t PlainDevice::recv(unsigned int timeout, symbol_t* value, ArbitrationState* arbitrationState) {
   if (m_arbitrationMaster != SYN && arbitrationState) {
     *arbitrationState = as_running;
   }
@@ -133,32 +133,9 @@ result_t PlainCharDevice::recv(unsigned int timeout, symbol_t* value, Arbitratio
   return result;
 }
 
-result_t CharDevice::startArbitration(symbol_t masterAddress) {
-  if (m_arbitrationCheck) {
-    if (masterAddress != SYN) {
-      return RESULT_ERR_ARB_RUNNING;  // should not occur
-    }
-    return RESULT_OK;
-  }
-  m_arbitrationMaster = masterAddress;
-  return RESULT_OK;
-}
 
-bool CharDevice::cancelRunningArbitration(ArbitrationState* arbitrationState) {
-  if (m_arbitrationMaster == SYN) {
-    return false;
-  }
-  if (arbitrationState) {
-    *arbitrationState = as_error;
-  }
-  m_arbitrationMaster = SYN;
-  m_arbitrationCheck = 0;
-  return true;
-}
-
-
-void EnhancedCharDevice::formatInfo(ostringstream* ostream, bool verbose, bool prefix) {
-  CharDevice::formatInfo(ostream, verbose, prefix);
+void EnhancedDevice::formatInfo(ostringstream* ostream, bool verbose, bool prefix) {
+  BaseDevice::formatInfo(ostream, verbose, prefix);
   if (prefix) {
     *ostream << ", enhanced";
     return;
@@ -179,14 +156,14 @@ void EnhancedCharDevice::formatInfo(ostringstream* ostream, bool verbose, bool p
   }
 }
 
-void EnhancedCharDevice::formatInfoJson(ostringstream* ostream) const {
+void EnhancedDevice::formatInfoJson(ostringstream* ostream) const {
   string ver = getEnhancedVersion();
   if (!ver.empty()) {
     *ostream << ",\"dv\":\"" << ver << "\"";
   }
 }
 
-result_t EnhancedCharDevice::requestEnhancedInfo(symbol_t infoId, bool wait) {
+result_t EnhancedDevice::requestEnhancedInfo(symbol_t infoId, bool wait) {
   if (m_extraFatures == 0) {
     return RESULT_ERR_INVALID_ARG;
   }
@@ -228,7 +205,7 @@ result_t EnhancedCharDevice::requestEnhancedInfo(symbol_t infoId, bool wait) {
   return result;
 }
 
-string EnhancedCharDevice::getEnhancedInfos() {
+string EnhancedDevice::getEnhancedInfos() {
   if (m_extraFatures == 0) {
     return "";
   }
@@ -281,7 +258,7 @@ string EnhancedCharDevice::getEnhancedInfos() {
   + m_enhInfoBusVoltage;
 }
 
-result_t EnhancedCharDevice::send(symbol_t value) {
+result_t EnhancedDevice::send(symbol_t value) {
   uint8_t buf[] = makeEnhancedSequence(ENH_REQ_SEND, value);
   result_t result = m_transport->write(buf, 2);
   if (result == RESULT_OK && m_listener != nullptr) {
@@ -290,7 +267,7 @@ result_t EnhancedCharDevice::send(symbol_t value) {
   return result;
 }
 
-result_t EnhancedCharDevice::recv(unsigned int timeout, symbol_t* value, ArbitrationState* arbitrationState) {
+result_t EnhancedDevice::recv(unsigned int timeout, symbol_t* value, ArbitrationState* arbitrationState) {
   if (arbitrationState && m_arbitrationMaster != SYN) {
     *arbitrationState = as_running;
   }
@@ -322,7 +299,7 @@ result_t EnhancedCharDevice::recv(unsigned int timeout, symbol_t* value, Arbitra
   return result;
 }
 
-result_t EnhancedCharDevice::startArbitration(symbol_t masterAddress) {
+result_t EnhancedDevice::startArbitration(symbol_t masterAddress) {
   if (m_arbitrationCheck) {
     if (masterAddress != SYN) {
       return RESULT_ERR_ARB_RUNNING;  // should not occur
@@ -345,16 +322,16 @@ result_t EnhancedCharDevice::startArbitration(symbol_t masterAddress) {
   return RESULT_OK;
 }
 
-bool EnhancedCharDevice::cancelRunningArbitration(ArbitrationState* arbitrationState) {
-  if (!CharDevice::cancelRunningArbitration(arbitrationState)) {
+bool EnhancedDevice::cancelRunningArbitration(ArbitrationState* arbitrationState) {
+  if (!BaseDevice::cancelRunningArbitration(arbitrationState)) {
     return false;
   }
   symbol_t buf[2] = makeEnhancedSequence(ENH_REQ_START, SYN);
   return m_transport->write(buf, 2) == RESULT_OK;
 }
 
-result_t EnhancedCharDevice::notifyTransportStatus(bool opened) {
-  result_t result = CharDevice::notifyTransportStatus(opened);  // always OK
+result_t EnhancedDevice::notifyTransportStatus(bool opened) {
+  result_t result = BaseDevice::notifyTransportStatus(opened);  // always OK
   if (opened) {
     symbol_t buf[2] = makeEnhancedSequence(ENH_REQ_INIT, 0x01);  // extra feature: info
     result = m_transport->write(buf, 2);
@@ -377,7 +354,7 @@ result_t EnhancedCharDevice::notifyTransportStatus(bool opened) {
   return result;
 }
 
-result_t EnhancedCharDevice::handleEnhancedBufferedData(const uint8_t* data, size_t len,
+result_t EnhancedDevice::handleEnhancedBufferedData(const uint8_t* data, size_t len,
 symbol_t* value, ArbitrationState* arbitrationState) {
   bool valueSet = false;
   bool sent = false;
@@ -533,7 +510,7 @@ symbol_t* value, ArbitrationState* arbitrationState) {
   return more ? RESULT_CONTINUE : valueSet ? RESULT_OK : RESULT_ERR_TIMEOUT;
 }
 
-void EnhancedCharDevice::notifyInfoRetrieved() {
+void EnhancedDevice::notifyInfoRetrieved() {
   symbol_t id = m_infoBuf[0];
   symbol_t* data = m_infoBuf+1;
   size_t len = m_infoLen-1;
@@ -559,7 +536,7 @@ void EnhancedCharDevice::notifyInfoRetrieved() {
       stream << "firmware " << m_enhInfoVersion;
       if (len >= 5) {
         stream << ", jumpers 0x" << setw(2) << static_cast<unsigned>(data[4]);
-        m_enhInfoIsWifi = (data[4]&0x08)!=0;
+        m_enhInfoIsWifi = (data[4]&0x08) != 0;
       }
       stream << setfill(' ');  // reset
       break;

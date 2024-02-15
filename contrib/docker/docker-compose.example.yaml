@@ -16,7 +16,7 @@ services:
 
       # Use DEV as eBUS device ("enh:DEVICE" or "enh:IP:PORT" for enhanced device, "ens:DEVICE" for enhanced high speed
       # serial device, "DEVICE" for serial device, or "[udp:]IP:PORT" for network device)
-      EBUSD_DEVICE: "/dev/ttyUSB0"
+      EBUSD_DEVICE: "ens:/dev/ttyUSB0"
       # Skip serial eBUS device test
       #EBUSD_NODEVICECHECK: ""
       # Only read from device, never write to it

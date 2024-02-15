@@ -1,6 +1,6 @@
 /*
  * ebusd - daemon for communication with eBUS heating systems.
- * Copyright (C) 2014-2023 John Baier <ebusd@ebusd.eu>
+ * Copyright (C) 2014-2024 John Baier <ebusd@ebusd.eu>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -330,7 +330,7 @@ class SymbolString {
    * Return whether the byte sequence is complete with regard to the header and length field.
    * @return true if the sequence is complete.
    */
-  bool isComplete() {
+  bool isComplete() const {
     size_t lengthOffset = (m_isMaster ? 4 : 0);
     if (m_data.size() < lengthOffset + 1) {
       return false;

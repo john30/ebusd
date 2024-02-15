@@ -1,6 +1,6 @@
 /*
  * ebusd - daemon for communication with eBUS heating systems.
- * Copyright (C) 2014-2023 John Baier <ebusd@ebusd.eu>
+ * Copyright (C) 2014-2024 John Baier <ebusd@ebusd.eu>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -369,14 +369,18 @@ int main(int argc, char* argv[], char* envp[]) {
       } else {
         logNotice(lf_main, "configuration dump:");
       }
-      *out << "{\"datatypes\":[";
-      DataTypeList::getInstance()->dump(s_opt.dumpConfig, true, out);
-      *out << "],\"templates\":[";
-      const auto tmpl = s_scanHelper->getTemplates("");
-      tmpl->dump(s_opt.dumpConfig, out);
-      *out << "],\"messages\":";
-      s_messageMap->dump(true, s_opt.dumpConfig, out);
-      *out << "}";
+      if (s_opt.dumpConfig & OF_JSON) {
+        *out << "{\"datatypes\":[";
+        DataTypeList::getInstance()->dump(s_opt.dumpConfig, true, out);
+        *out << "],\"templates\":[";
+        const auto tmpl = s_scanHelper->getTemplates("");
+        tmpl->dump(s_opt.dumpConfig, out);
+        *out << "],\"messages\":";
+        s_messageMap->dump(true, s_opt.dumpConfig, out);
+        *out << "}";
+      } else {
+        s_messageMap->dump(true, s_opt.dumpConfig, out);
+      }
       if (fout.is_open()) {
         fout.close();
       }

@@ -107,7 +107,7 @@ $ebuspicloader -f x >/dev/null 2>/dev/null
 echo -e ':100800008431542CAE3401347E1484314E01961E52\n:00000001FF' > firmware.hex
 $ebuspicloader -f firmware.hex >/dev/null
 #server:
-php -r 'echo "php is available";'|egrep 'php is available'
+php -r 'echo "php is available";'|grep 'php is available'
 if [ ! "$?" = 0 ]; then
   echo `date` "php is not available"
   exit 1
@@ -370,7 +370,7 @@ function send() {
 while [[ ! "$status" = 0 ]] && [[ $cnt -gt 0 ]]; do
   sleep 5
   echo `date` "check signal"
-  send state | egrep -q "signal acquired"
+  send state | grep -q "signal acquired"
   status=$?
   cnt=$((cnt - 1))
 done
@@ -411,7 +411,7 @@ while [ "$status" = 0 ]; do
     failed=1
     break
   fi
-  echo $output | egrep -q "still running"
+  echo $output | grep -q "still running"
   status=$?
   scancnt=$(( scancnt + 1 ))
 done
@@ -434,7 +434,7 @@ curl -s "http://localhost:8878/data/mc.5/installparam?poll=1&user=test&secret=te
 curl -s -T test_coverage.sh http://localhost:8878/data/
 echo `date` "commands done"
 kill $lstpid
-verify=`send info|egrep "^address 04:"`
+verify=`send info|grep -E "^address 04:"`
 expect='address 04: slave #25, scanned "MF=153;ID=BBBBB;SW=3031;HW=3031"'
 if [ "x$verify" != "x$expect" ]; then
   echo -e `date` "error unexpected result from info command:\n  expected: >$expect<\n  got: >$verify<"

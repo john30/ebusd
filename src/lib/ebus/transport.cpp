@@ -1,6 +1,6 @@
 /*
  * ebusd - daemon for communication with eBUS heating systems.
- * Copyright (C) 2023 John Baier <ebusd@ebusd.eu>
+ * Copyright (C) 2023-2024 John Baier <ebusd@ebusd.eu>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,6 +35,9 @@
 #endif
 #include "lib/ebus/data.h"
 #include "lib/utils/tcpsocket.h"
+#ifdef DEBUG_RAW_TRAFFIC
+#  include "lib/utils/clock.h"
+#endif
 
 namespace ebusd {
 
@@ -277,7 +280,6 @@ result_t SerialTransport::openInternal() {
   cfsetspeed(&newSettings, m_speed ? (m_speed > 1 ? B115200 : B9600) : B2400);
 #else
   cfsetispeed(&newSettings, m_speed ? (m_speed > 1 ? B115200 : B9600) : B2400);
-  cfsetospeed(&newSettings, m_enhancedLevel ? (m_enhancedLevel >= el_speed ? B115200 : B9600) : B2400);
 #endif
   newSettings.c_cflag |= (CS8 | CLOCAL | CREAD);
   newSettings.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);  // non-canonical mode

@@ -8,7 +8,7 @@ body:
     id: description
     attributes:
       label: Description
-      description: A clear and concise description of what the bug is. Anything related to actual message definitions in [ebusd-configuration](https://github.com/john30/ebusd-configuration), serial bridge in [ebusd-esp](https://github.com/john30/ebusd-esp), or [eBUS adapter v3/v2](https://github.com/eBUS/adapter) do not belong here! Use the appropriate repository for those.
+      description: A clear and concise description of what the bug is. Anything related to actual message definitions in [ebusd-configuration](https://github.com/john30/ebusd-configuration), [eBUS Adapter Shield v5](https://github.com/john30/ebusd-esp32), serial bridge in [ebusd-esp](https://github.com/john30/ebusd-esp), or [eBUS adapter v3/v2](https://github.com/eBUS/adapter) do not belong here! Use the appropriate repository for those.
       placeholder: e.g. during startup, an error message as described below is reported instead of...
     validations:
       required: true
@@ -97,19 +97,15 @@ body:
       label: Hardware interface
       description: the eBUS hardware interface in use
       options:
-        - adapter 5 via USB
-        - adapter 5 via WiFi
-        - adapter 5 via Ethernet
-        - adapter 5 via Raspberry GPIO
-        - adapter 3.1 USB
-        - adapter 3.1 WiFi
-        - adapter 3.1 Ethernet
-        - adapter 3.1 RPi
-        - adapter 3.0 USB
-        - adapter 3.0 WiFi
-        - adapter 3.0 Ethernet
-        - adapter 3.0 RPi
-        - adapter 2
+        - Adapter Shield v5 via USB
+        - Adapter Shield v5 via WiFi
+        - Adapter Shield v5 via Ethernet
+        - Adapter Shield v5 via Raspberry GPIO
+        - Adapter v3 USB
+        - Adapter v3 WiFi
+        - Adapter v3 Ethernet
+        - Adapter v3 RPi
+        - Adapter v2
         - other
     validations:
       required: true

@@ -24,7 +24,7 @@ The main features of the daemon are:
    * TCP
    * UDP
    * enhanced ebusd protocol allowing arbitration to be done directly by the hardware, e.g. for recent
-     * [ebus adapter 5](https://adapter.ebusd.eu/v5/), or
+     * [eBUS Adapter Shield](https://adapter.ebusd.eu/v5/), or
      * [ebusd-esp firmware](https://github.com/john30/ebusd-esp/)
  * actively send messages to and receive answers from the eBUS
  * passively listen to messages sent on the eBUS
@@ -35,6 +35,7 @@ The main features of the daemon are:
  * automatically check for updates of daemon and configuration files
  * pick preferred language for translatable message configuration parts
  * grab all messages on the eBUS and provide decoding hints
+ * send arbitrary messages from hex input or inject those
  * log messages and problems to a log file
  * capture messages or sent/received bytes to a log file as text
  * dump received bytes to binary files for later playback/analysis
@@ -94,10 +95,10 @@ the latest configuration files** that are reflected by the configuration reposit
 Docker image
 ------------
 
-A multi-architecture Docker image using the config web service for retrieving the latest message configuration files is  available on the hub.
+A multi-architecture Docker image using the config web service for retrieving the latest message configuration files is available on the hub.
 You can use it like this:  
 > docker pull john30/ebusd  
-> docker run -it --rm --device=/dev/ttyUSB0 -p 8888 john30/ebusd
+> docker run -it --rm --device=/dev/ttyUSB0 -p 8888 john30/ebusd -d ens:/dev/ttyUSB0
 
 For more details, see [Docker Readme](https://github.com/john30/ebusd/blob/master/contrib/docker/README.md).
 

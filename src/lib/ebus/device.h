@@ -1,6 +1,6 @@
 /*
  * ebusd - daemon for communication with eBUS heating systems.
- * Copyright (C) 2015-2023 John Baier <ebusd@ebusd.eu>
+ * Copyright (C) 2015-2024 John Baier <ebusd@ebusd.eu>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@
 #include <cstdint>
 #include <string>
 #include "lib/ebus/result.h"
-#include "lib/ebus/transport.h"
 #include "lib/ebus/symbol.h"
 
 namespace ebusd {
@@ -33,10 +32,9 @@ namespace ebusd {
  * A @a Device allows to send and receive data to/from a local or remote eBUS
  * device while optionally dumping the data to a file and/or forwarding it to
  * a logging function.
- * The data transport itself is handled by a @a Transport instance.
  */
 
-/** the arbitration state handled by @a CharDevice. */
+/** the arbitration state handled by @a Device. */
 enum ArbitrationState {
   as_none,     //!< no arbitration in process
   as_start,    //!< arbitration start requested
@@ -77,14 +75,13 @@ class DeviceListener {
 /**
  * The base class for accessing an eBUS.
  */
-class Device : public TransportListener {
+class Device {
  protected:
   /**
    * Construct a new instance.
-   * @param transport the @a Transport to use.
    */
-  explicit Device(Transport* transport)
-  : m_transport(transport), m_listener(nullptr) {
+  Device()
+  : m_listener(nullptr) {
   }
 
  public:
@@ -92,17 +89,13 @@ class Device : public TransportListener {
    * Destructor.
    */
   virtual ~Device() {
-    if (m_transport) {
-      delete m_transport;
-      m_transport = nullptr;
-    }
   }
 
   /**
    * Get the device name.
    * @return the device name (e.g. "/dev/ttyUSB0" for serial, "127.0.0.1:1234" for network).
    */
-  const char* getName() const { return m_transport->getName(); }
+  virtual const char* getName() const = 0;  // abstract
 
   /**
    * Set the @a DeviceListener.
@@ -116,13 +109,7 @@ class Device : public TransportListener {
    * @param verbose whether to add verbose infos.
    * @param prefix true for the synchronously retrievable prefix, false for the potentially asynchronous suffix.
    */
-  virtual void formatInfo(ostringstream* output, bool verbose, bool prefix) {
-    if (prefix) {
-      *output << m_transport->getName() << ", " << m_transport->getTransportInfo();
-    } else if (!m_transport->isValid()) {
-      *output << ", invalid";
-    }
-  }
+  virtual void formatInfo(ostringstream* output, bool verbose, bool prefix) = 0;  // abstract
 
   /**
    * Format device infos in JSON format.
@@ -135,50 +122,18 @@ class Device : public TransportListener {
    */
   virtual bool supportsUpdateCheck() const { return false; }
 
-  // @copydoc
-  virtual result_t notifyTransportStatus(bool opened) {
-    m_listener->notifyDeviceStatus(!opened, opened ? "transport opened" : "transport closed");
-    return RESULT_OK;
-  }
-
-  // @copydoc
-  virtual void notifyTransportMessage(bool error, const char* message) {
-    m_listener->notifyDeviceStatus(error, message);
-  }
-
   /**
    * Open the file descriptor.
    * @return the @a result_t code.
    */
-  virtual result_t open() { return m_transport->open(); }
+  virtual result_t open() = 0;  // abstract
 
   /**
    * Return whether the device is opened and available.
    * @return whether the device is opened and available.
    */
-  virtual bool isValid() { return m_transport->isValid(); }
+  virtual bool isValid() = 0;  // abstract
 
- protected:
-  /** the @a Transport to use. */
-  Transport* m_transport;
-
-  /** the @a DeviceListener, or nullptr. */
-  DeviceListener* m_listener;
-};
-
-
-class CharDevice : public Device {
- protected:
-  /**
-   * Construct a new instance.
-   * @param transport the @a Transport to use.
-   */
-  explicit CharDevice(Transport* transport)
-  : Device(transport), m_arbitrationMaster(SYN), m_arbitrationCheck(0) {
-    transport->setListener(this);
-  }
-
- public:
   /**
    * Write a single byte to the device.
    * @param value the byte value to write.
@@ -202,156 +157,24 @@ class CharDevice : public Device {
    * @param masterAddress the master address, or @a SYN to cancel a previous arbitration request.
    * @return the result_t code.
    */
-  virtual result_t startArbitration(symbol_t masterAddress);
+  virtual result_t startArbitration(symbol_t masterAddress) = 0;  // abstract
 
   /**
    * Return whether the device is currently in arbitration.
    * @return true when the device is currently in arbitration.
    */
-  virtual bool isArbitrating() const { return m_arbitrationMaster != SYN; }
+  virtual bool isArbitrating() const = 0;  // abstract
 
   /**
    * Cancel a running arbitration.
    * @param arbitrationState the reference in which @a as_error is stored when cancelled.
    * @return true if it was cancelled, false if not.
    */
-  virtual bool cancelRunningArbitration(ArbitrationState* arbitrationState);
+  virtual bool cancelRunningArbitration(ArbitrationState* arbitrationState) = 0;  // abstract
 
  protected:
-  /** the arbitration master address to send when in arbitration, or @a SYN. */
-  symbol_t m_arbitrationMaster;
-
-  /** >0 when in arbitration and the next received symbol needs to be checked against the sent master address,
-   * incremented with each received SYN when arbitration was not performed as expected and needs to be stopped. */
-  size_t m_arbitrationCheck;
-};
-
-
-class PlainCharDevice : public CharDevice {
- public:
-  /**
-   * Construct a new instance.
-   * @param transport the @a Transport to use.
-   */
-  explicit PlainCharDevice(Transport* transport)
-  : CharDevice(transport) {
-  }
-
-  // @copydoc
-  result_t send(symbol_t value) override;
-
-  // @copydoc
-  result_t recv(unsigned int timeout, symbol_t* value, ArbitrationState* arbitrationState) override;
-};
-
-
-class EnhancedCharDevice : public CharDevice {
- public:
-  /**
-   * Construct a new instance.
-   * @param transport the @a Transport to use.
-   */
-  explicit EnhancedCharDevice(Transport* transport)
-  : CharDevice(transport), m_resetRequested(false),
-    m_extraFatures(0), m_infoReqTime(0), m_infoLen(0), m_infoPos(0), m_enhInfoIsWifi(false) {
-  }
-
-  // @copydoc
-  void formatInfo(ostringstream* output, bool verbose, bool prefix) override;
-
-  // @copydoc
-  void formatInfoJson(ostringstream* output) const override;
-
-  // @copydoc
-  result_t send(symbol_t value) override;
-
-  // @copydoc
-  result_t recv(unsigned int timeout, symbol_t* value, ArbitrationState* arbitrationState) override;
-
-  // @copydoc
-  result_t startArbitration(symbol_t masterAddress) override;
-
-  // @copydoc
-  virtual result_t notifyTransportStatus(bool opened);
-
-  // @copydoc
-  bool supportsUpdateCheck() const override { return m_extraFatures & 0x01; }
-
-  /**
-   * Check for a running extra infos request, wait for it to complete,
-   * and then send a new request for extra infos to enhanced device.
-   * @param infoId the ID of the info to request.
-   * @param wait true to wait for a running request to complete, false to send right away.
-   * @return @a RESULT_OK on success, or an error code otherwise.
-   */
-  result_t requestEnhancedInfo(symbol_t infoId, bool wait = true);
-
-  /**
-   * Get the enhanced device version.
-   * @return @a a string with the version infos, or empty.
-   */
-  string getEnhancedVersion() const { return m_enhInfoVersion; }
-
-  /**
-   * Retrieve/update all extra infos from an enhanced device.
-   * @return @a a string with the extra infos, or empty.
-   */
-  string getEnhancedInfos();
-
- private:
-  /**
-   * Cancel a running arbitration.
-   * @param arbitrationState the reference in which @a as_error is stored when cancelled.
-   * @return true if it was cancelled, false if not.
-   */
-  bool cancelRunningArbitration(ArbitrationState* arbitrationState);
-
-  /**
-   * Handle the already buffered enhanced data.
-   * @param value the reference in which the read byte value is stored.
-   * @param arbitrationState the variable in which to store the current/received arbitration state.
-   * @return the @a result_t code, especially RESULT_CONTINE if the value was set and more data is available immediately.
-   */
-  result_t handleEnhancedBufferedData(const uint8_t* data, size_t len, symbol_t* value,
-  ArbitrationState* arbitrationState);
-
-  /**
-   * Called when reception of an info ID was completed.
-   */
-  void notifyInfoRetrieved();
-
-  /** whether the reset of the device was already requested. */
-  bool m_resetRequested;
-
-  /** the extra features supported by the device. */
-  symbol_t m_extraFatures;
-
-  /** the time of the last info request. */
-  time_t m_infoReqTime;
-
-  /** the info buffer expected length. */
-  size_t m_infoLen;
-
-  /** the info buffer write position. */
-  size_t m_infoPos;
-
-  /** the info buffer. */
-  symbol_t m_infoBuf[16+1];
-
-  /** a string describing the enhanced device version. */
-  string m_enhInfoVersion;
-
-  /** whether the device is known to be connected via WIFI. */
-  bool m_enhInfoIsWifi;
-
-  /** a string describing the enhanced device temperature. */
-  string m_enhInfoTemperature;
-
-  /** a string describing the enhanced device supply voltage. */
-  string m_enhInfoSupplyVoltage;
-
-  /** a string describing the enhanced device bus voltage. */
-  string m_enhInfoBusVoltage;
+  /** the @a DeviceListener, or nullptr. */
+  DeviceListener* m_listener;
 };
 
 }  // namespace ebusd
