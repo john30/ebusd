@@ -45,6 +45,7 @@ class BaseDevice : public Device, public TransportListener {
   explicit BaseDevice(Transport* transport)
   : Device(), m_transport(transport),
     m_arbitrationMaster(SYN), m_arbitrationCheck(0) {
+    transport->setListener(this);
   }
 
  public:
