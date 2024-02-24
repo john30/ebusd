@@ -30,11 +30,8 @@ enum LogFacility {
   lf_bus,       //!< eBUS related
   lf_update,    //!< updates found while listening to the bus
   lf_other,     //!< all other log facilities
-  lf_COUNT = 5  //!< number of available log facilities
+  lf_COUNT = 5  //!< number of available log facilities and flag for setting all
 };
-
-/** macro for all log facilities. */
-#define LF_ALL ((1 << lf_main) | (1 << lf_network) | (1 << lf_bus) | (1 << lf_update) | (1 << lf_other))
 
 /** the available log levels. */
 enum LogLevel {

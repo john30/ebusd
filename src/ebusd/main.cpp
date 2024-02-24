@@ -256,7 +256,7 @@ int main(int argc, char* argv[], char* envp[]) {
   }
 
   if (s_opt.logAreas != -1 || s_opt.logLevel != ll_COUNT) {
-    setFacilitiesLogLevel(LF_ALL, ll_none);
+    setFacilitiesLogLevel(1<<ll_COUNT, ll_none);
     setFacilitiesLogLevel(s_opt.logAreas, s_opt.logLevel);
   }
 

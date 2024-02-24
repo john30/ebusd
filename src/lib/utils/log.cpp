@@ -103,11 +103,7 @@ int parseLogFacilities(const char* facilities) {
       free(input);
       return -1;
     }
-    if (val == lf_COUNT) {
-      newFacilites = LF_ALL;
-    } else {
-      newFacilites |= 1 << val;
-    }
+    newFacilites |= 1 << val;
   }
   free(input);
   return newFacilites;
@@ -139,7 +135,7 @@ const char* getLogLevelStr(LogLevel level) {
 bool setFacilitiesLogLevel(int facilities, LogLevel level) {
   bool changed = false;
   for (int val = 0; val < lf_COUNT && facilities != 0; val++) {
-    if ((facilities & (1 << val)) != 0 && s_facilityLogLevel[(LogFacility)val] != level) {
+    if ((facilities & ((1 << val)|(1 << lf_COUNT))) != 0 && s_facilityLogLevel[(LogFacility)val] != level) {
       s_facilityLogLevel[(LogFacility)val] = level;
       changed = true;
     }
