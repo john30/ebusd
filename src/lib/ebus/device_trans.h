@@ -138,8 +138,8 @@ class EnhancedDevice : public BaseDevice, public EnhancedDeviceInterface {
    * @param transport the @a Transport to use.
    */
   explicit EnhancedDevice(Transport* transport)
-  : BaseDevice(transport), EnhancedDeviceInterface(), m_resetRequested(false),
-    m_extraFatures(0), m_infoReqTime(0), m_infoLen(0), m_infoPos(0), m_enhInfoIsWifi(false) {
+  : BaseDevice(transport), EnhancedDeviceInterface(), m_resetTime(0), m_resetRequested(false),
+    m_extraFeatures(0), m_infoReqTime(0), m_infoLen(0), m_infoPos(0), m_enhInfoIsWifi(false) {
   }
 
   // @copydoc
@@ -161,7 +161,7 @@ class EnhancedDevice : public BaseDevice, public EnhancedDeviceInterface {
   virtual result_t notifyTransportStatus(bool opened);
 
   // @copydoc
-  bool supportsUpdateCheck() const override { return m_extraFatures & 0x01; }
+  bool supportsUpdateCheck() const override { return m_extraFeatures & 0x01; }
 
   // @copydoc
   virtual result_t requestEnhancedInfo(symbol_t infoId, bool wait = true);
@@ -190,11 +190,14 @@ class EnhancedDevice : public BaseDevice, public EnhancedDeviceInterface {
    */
   void notifyInfoRetrieved();
 
+  /** the time when the transport was resetted. */
+  time_t m_resetTime;
+
   /** whether the reset of the device was already requested. */
   bool m_resetRequested;
 
   /** the extra features supported by the device. */
-  symbol_t m_extraFatures;
+  symbol_t m_extraFeatures;
 
   /** the time of the last info request. */
   time_t m_infoReqTime;

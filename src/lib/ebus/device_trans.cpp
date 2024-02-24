@@ -134,6 +134,9 @@ result_t PlainDevice::recv(unsigned int timeout, symbol_t* value, ArbitrationSta
 }
 
 
+/** the features requested. */
+#define REQUEST_FEATURES 0x01
+
 void EnhancedDevice::formatInfo(ostringstream* ostream, bool verbose, bool prefix) {
   BaseDevice::formatInfo(ostream, verbose, prefix);
   if (prefix) {
@@ -164,7 +167,7 @@ void EnhancedDevice::formatInfoJson(ostringstream* ostream) const {
 }
 
 result_t EnhancedDevice::requestEnhancedInfo(symbol_t infoId, bool wait) {
-  if (m_extraFatures == 0) {
+  if (m_extraFeatures == 0) {
     return RESULT_ERR_INVALID_ARG;
   }
   if (wait) {
@@ -206,7 +209,7 @@ result_t EnhancedDevice::requestEnhancedInfo(symbol_t infoId, bool wait) {
 }
 
 string EnhancedDevice::getEnhancedInfos() {
-  if (m_extraFatures == 0) {
+  if (m_extraFeatures == 0) {
     return "";
   }
   result_t res;
@@ -333,15 +336,17 @@ bool EnhancedDevice::cancelRunningArbitration(ArbitrationState* arbitrationState
 result_t EnhancedDevice::notifyTransportStatus(bool opened) {
   result_t result = BaseDevice::notifyTransportStatus(opened);  // always OK
   if (opened) {
-    symbol_t buf[2] = makeEnhancedSequence(ENH_REQ_INIT, 0x01);  // extra feature: info
+    symbol_t buf[2] = makeEnhancedSequence(ENH_REQ_INIT, REQUEST_FEATURES);  // extra feature: info
     result = m_transport->write(buf, 2);
     if (result != RESULT_OK) {
       return result;
     }
+    m_resetTime = time(NULL);
     m_resetRequested = true;
   } else {
     // reset state
-    m_extraFatures = 0;
+    m_resetTime = 0;
+    m_extraFeatures = 0;
     m_infoLen = 0;
     m_enhInfoVersion = "";
     m_enhInfoIsWifi = false;
@@ -439,13 +444,22 @@ symbol_t* value, ArbitrationState* arbitrationState) {
         m_enhInfoSupplyVoltage = "";
         m_enhInfoBusVoltage = "";
         m_infoLen = 0;
-        m_extraFatures = data;
+        if (!m_resetRequested && m_resetTime+3 >= time(NULL)) {
+          if (data == m_extraFeatures) {
+            // skip explicit response to init request
+            valueSet = false;
+            break;
+          }
+          // response to init request had different feature flags
+          m_resetRequested = true;
+        }
+        m_extraFeatures = data;
         if (m_listener != nullptr) {
-          m_listener->notifyDeviceStatus(false, (m_extraFatures&0x01) ? "reset, supports info" : "reset");
+          m_listener->notifyDeviceStatus(false, (m_extraFeatures&0x01) ? "reset, supports info" : "reset");
         }
         if (m_resetRequested) {
           m_resetRequested = false;
-          if (m_extraFatures&0x01) {
+          if (m_extraFeatures&0x01) {
             requestEnhancedInfo(0, false);  // request version, ignore result
           }
           valueSet = false;
