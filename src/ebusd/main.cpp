@@ -415,6 +415,16 @@ int main(int argc, char* argv[], char* envp[]) {
     return EINVAL;
   }
   s_busHandler->setProtocol(s_protocol);
+  if (s_opt.answer) {
+    istringstream input;
+    input.str("ebusd.eu;" PACKAGE_NAME ";" SCAN_VERSION ";100");
+    Message* message = s_messageMap->getScanMessage();
+    SlaveSymbolString response;
+    if (message && message->prepareSlave(&input, &response) == RESULT_OK) {
+      s_protocol->setAnswer(SYN, s_protocol->getOwnSlaveAddress(), message->getPrimaryCommand(),
+      message->getSecondaryCommand(), nullptr, 0, response);
+    }
+  }
 
   if (!s_opt.foreground) {
     if (!setLogFile(s_opt.logFile)) {

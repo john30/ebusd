@@ -204,6 +204,13 @@ class ActiveBusRequest : public BusRequest {
 };
 
 
+/** the possible message directions. */
+enum MessageDirection {
+  md_recv,    //!< message received from bus
+  md_send,    //!< message sent to bus
+  md_answer,  //!< answered to a message received from bus
+};
+
 /**
  * Interface for listening to eBUS protocol data.
  */
@@ -229,22 +236,13 @@ class ProtocolListener {
 
   /**
    * Listener method that is called when a message was sent or received.
-   * @param sent true when the master part was actively sent, false if the whole message
-   * was received only.
-   * @param master the @a MasterSymbolString received.
-   * @param slave the @a SlaveSymbolString received.
+   * @param direction the message direction.
+   * @param master the @a MasterSymbolString received/sent.
+   * @param slave the @a SlaveSymbolString received/sent or the answer passed to @a ProtocolHandler::setAnswer() with
+   * the the length of the data part following the ID as master.
    */
-  virtual void notifyProtocolMessage(bool sent, const MasterSymbolString& master,
+  virtual void notifyProtocolMessage(MessageDirection direction, const MasterSymbolString& master,
     const SlaveSymbolString& slave) = 0;  // abstract
-
-  /**
-   * Listener method that is called when in answer mode and a message targeting ourself was received.
-   * @param master the @a MasterSymbolString received.
-   * @param slave the @a SlaveSymbolString for writing the response to.
-   * @return @a RESULT_OK on success, or an error code.
-   */
-  virtual result_t notifyProtocolAnswer(const MasterSymbolString& master,
-    SlaveSymbolString* slave) = 0;  // abstract
 };
 
 
@@ -350,9 +348,28 @@ class ProtocolHandler : public WaitThread, public DeviceListener {
   symbol_t getOwnSlaveAddress() const { return m_ownSlaveAddress; }
 
   /**
-   * @return @p true if answering queries for the own master/slave address (if not readonly).
+   * @return @p true if answering queries (if not readonly).
    */
-  bool isAnswering() const { return m_config.answer; }
+  virtual bool isAnswering() const { return false; }
+
+  /**
+   * Add a message to be answered.
+   * @param srcAddress the source address to limit to, or @a SYN for any.
+   * @param dstAddress the destination address (either master or slave address).
+   * @param pb the primary ID byte.
+   * @param sb the secondary ID byte.
+   * @param id optional further ID bytes.
+   * @param idLen the length of the further ID bytes (maximum 4).
+   * @param answer the sequence to respond when addressed as slave or the length of the data part following the ID as master.
+   * @return @p true on success, @p false on error (e.g. invalid address, read only, or too long id).
+   */
+  virtual bool setAnswer(symbol_t srcAddress, symbol_t dstAddress, symbol_t pb, symbol_t sb, const symbol_t* id,
+      size_t idLen, const SlaveSymbolString& answer) { return false; }
+
+  /**
+   * @return @p true if an answer was set for the destination address.
+   */
+  virtual bool hasAnswer(symbol_t dstAddress) const { return false; }
 
   /**
    * @param address the address to check.
@@ -520,7 +537,7 @@ class ProtocolHandler : public WaitThread, public DeviceListener {
    */
   virtual bool addSeenAddress(symbol_t address);
 
-  /** the client configuration to use. */
+  /** the configuration to use. */
   const ebus_protocol_config_t m_config;
 
   /** the @a Device instance for accessing the bus. */

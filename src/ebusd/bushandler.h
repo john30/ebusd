@@ -399,13 +399,11 @@ class BusHandler : public ProtocolListener {
   void notifyProtocolStatus(ProtocolState state, result_t result) override;
 
   // @copydoc
-  result_t notifyProtocolAnswer(const MasterSymbolString& master, SlaveSymbolString* slave) override;
-
-  // @copydoc
   void notifyProtocolSeenAddress(symbol_t address) override;
 
   // @copydoc
-  void notifyProtocolMessage(bool sent, const MasterSymbolString& master, const SlaveSymbolString& slave) override;
+  void notifyProtocolMessage(MessageDirection direction, const MasterSymbolString& master,
+      const SlaveSymbolString& slave) override;
 
  private:
   /**
