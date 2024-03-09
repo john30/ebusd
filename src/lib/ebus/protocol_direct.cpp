@@ -872,7 +872,7 @@ bool DirectProtocolHandler::getAnswer() {
     if (it != m_answerByKey.end()) {
       // found the answer
       if (master) {
-        if (len+it->second.size() == m_command[4]) {
+        if (len+it->second.getDataSize() == m_command[4]) {
           m_response = it->second;  // copied for having the data size only
           return true;
         }
@@ -881,7 +881,6 @@ bool DirectProtocolHandler::getAnswer() {
         m_response = it->second;
         return true;
       }
-      break;
     }
     if (len == 0) {
       break;

@@ -1240,7 +1240,7 @@ result_t MainLoop::executeAnswer(const vector<string>& args, ostringstream* ostr
     if (answer.size() > 16) {
       return RESULT_ERR_INVALID_POS;
     }
-    answer[0] = (symbol_t)(answer.size()-1);
+    answer.adjustHeader();
   }
   if (argPos < args.size()) {
     argPos = 0;  // print usage

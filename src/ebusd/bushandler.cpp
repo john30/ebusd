@@ -442,15 +442,17 @@ void BusHandler::notifyProtocolMessage(MessageDirection direction, const MasterS
   }
   if (direction == md_answer) {
     size_t idLen = command.getDataSize();
-    if (master && idLen >= response.size()) {
+    size_t resLen = response.getDataSize();
+    if (master && idLen >= resLen) {
       // build MS auto-answer from MM with same ID
       SlaveSymbolString answer;
       answer.push_back(0);  // room for length
-      idLen -= response.size();
-      for (size_t pos = idLen; pos < response.size(); pos++) {
+      idLen -= resLen;
+      for (size_t pos = idLen; pos < resLen; pos++) {
         answer.push_back(command.dataAt(pos));
       }
-      m_protocol->setAnswer(SYN, command[1], command[2], command[3], command.data() + 5, idLen, answer);
+      answer.adjustHeader();
+      m_protocol->setAnswer(SYN, getSlaveAddress(dstAddress), command[2], command[3], command.data() + 5, idLen, answer);
       // TODO could use loaded messages for identifying MM/MS message pair
     }
   }
