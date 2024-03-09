@@ -247,7 +247,7 @@ elif [[ -n "$1" ]]; then
     pid=$(ps -C ebusd -o pid=)
   done
 else
-  $ebusd -d tcp:127.0.0.1:8876 --initsend --latency 10 -n -c "$PWD/contrib/etc/ebusd" --pollinterval=10 -s --scanretries=0 -a 31 --acquireretries 3 --answer --generatesyn --receivetimeout 40000 --sendretries 1 --enablehex --htmlpath "$PWD/contrib/html" --httpport 8878 --pidfile "$PWD/ebusd.pid" --localhost -p 8877 -l "$PWD/ebusd.log" --logareas all --loglevel debug --lograwdata=bytes --lograwdatafile "$PWD/ebusd.raw" --lograwdatasize 1 --dumpfile "$PWD/ebusd.dump" --dumpsize 100 -D --scanconfig --aclfile="$PWD/acl.csv" --mqttport=1883 --enablehex --enabledefine
+  $ebusd -d tcp:127.0.0.1:8876 --initsend --latency 10 -n -c "$PWD/contrib/etc/ebusd" --pollinterval=10 -s --scanretries=0 -a 31 --acquireretries 3 --answer --generatesyn --receivetimeout 40000 --sendretries 1 --enablehex --htmlpath "$PWD/contrib/html" --httpport 8878 --pidfile "$PWD/ebusd.pid" --localhost -p 8877 -l "$PWD/ebusd.log" --logareas all --loglevel debug --lograwdata=bytes --lograwdatafile "$PWD/ebusd.raw" --lograwdatasize 1 --dumpfile "$PWD/ebusd.dump" --dumpsize 100 -D --scanconfig --aclfile="$PWD/acl.csv" --mqttport=1883 --enablehex --enabledefine --answer
   sleep 3
   pid=`head -n 1 "$PWD/ebusd.pid"`
 fi
@@ -336,6 +336,11 @@ a test testpass
 w -c mc.5 -d 53 installparam 123
 hex fe070400
 hex 53070400
+hex -s f0 -n fe07fe0102
+inject 3115b509030d1e00/02a85b
+answer -d 50 0704 b5454850303003277201
+answer 0705 010203
+answer -s ff -m 0706 ab
 dump
 grab result
 grab result all

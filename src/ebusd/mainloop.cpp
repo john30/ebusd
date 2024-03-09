@@ -485,7 +485,7 @@ result_t MainLoop::decodeRequest(Request* req, bool* connected, RequestMode* req
     return RESULT_OK;
   }
   if (cmd == "ANSWER") {
-    if (m_enableHex && !m_protocol->isReadOnly()) {
+    if (m_enableHex && m_protocol->isAnswering()) {
       return executeAnswer(args, ostream);
     }
     *ostream << "ERR: command not enabled";
@@ -1231,8 +1231,8 @@ result_t MainLoop::executeAnswer(const vector<string>& args, ostringstream* ostr
     }
   }
   SlaveSymbolString answer;
+  answer.push_back(0);  // room for length byte
   if (argPos > 0 && argPos < args.size()) {
-    answer.push_back(0);  // room for length byte
     result_t ret = answer.parseHex(args[argPos++]);
     if (ret != RESULT_OK) {
       return ret;
@@ -1240,8 +1240,8 @@ result_t MainLoop::executeAnswer(const vector<string>& args, ostringstream* ostr
     if (answer.size() > 16) {
       return RESULT_ERR_INVALID_POS;
     }
-    answer.adjustHeader();
   }
+  answer.adjustHeader();
   if (argPos < args.size()) {
     argPos = 0;  // print usage
   }
