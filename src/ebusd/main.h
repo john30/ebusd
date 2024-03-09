@@ -37,7 +37,7 @@ namespace ebusd {
 
 /** A structure holding all program options. */
 typedef struct options {
-  const char* device;  //!< eBUS device (serial device or [udp:]ip:port) [/dev/ttyUSB0]
+  const char* device;  //!< eBUS device (serial device or [udp:]ip[:port]) [/dev/ttyUSB0]
   bool noDeviceCheck;  //!< skip serial eBUS device test
   bool readOnly;  //!< read-only access to the device
   bool initialSend;  //!< send an initial escape symbol after connecting device
@@ -79,7 +79,7 @@ typedef struct options {
   const char* accessLevel;  //!< default access level
   const char* aclFile;  //!< ACL file name
   bool foreground;  //!< run in foreground
-  bool enableHex;  //!< enable hex command
+  bool enableHex;  //!< enable hex/inject/answer commands
   bool enableDefine;  //!< enable define command
   const char* pidFile;  //!< PID file name [/var/run/ebusd.pid]
   uint16_t port;  //!< port to listen for command line connections [8888]

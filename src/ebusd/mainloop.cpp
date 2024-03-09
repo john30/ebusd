@@ -1261,8 +1261,7 @@ result_t MainLoop::executeAnswer(const vector<string>& args, ostringstream* ostr
   } else if (dstAddress == SYN) {
     dstAddress = master ? m_address : getSlaveAddress(m_address);
   }
-  if (!m_protocol->setAnswer(srcAddress, dstAddress, id[0], id[1], id.data()+2
-  , id.size()-2, answer)) {
+  if (!m_protocol->setAnswer(srcAddress, dstAddress, id[0], id[1], id.data()+2, id.size()-2, answer)) {
     return RESULT_ERR_INVALID_ARG;
   }
   return RESULT_OK;

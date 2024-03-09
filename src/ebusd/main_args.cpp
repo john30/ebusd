@@ -143,7 +143,7 @@ static const argDef argDefs[] = {
   {"device",         'd',      "DEV",      0, "Use DEV as eBUS device ("
       "prefix \"ens:\" for enhanced high speed device or "
       "\"enh:\" for enhanced device, with "
-      "\"IP:PORT\" for network device or "
+      "\"IP[:PORT]\" for network device or "
       "\"DEVICE\" for serial device"
       ") [/dev/ttyUSB0]"},
   {"nodevicecheck",  'n',      nullptr,    0, "Skip serial eBUS device test"},
@@ -193,7 +193,7 @@ static const argDef argDefs[] = {
   {"accesslevel",    O_ACLDEF, "LEVEL",    0, "Set default access level to LEVEL (\"*\" for everything) [\"\"]"},
   {"aclfile",        O_ACLFIL, "FILE",     0, "Read access control list from FILE"},
   {"foreground",     'f',      nullptr,    0, "Run in foreground"},
-  {"enablehex",      O_HEXCMD, nullptr,    0, "Enable hex command"},
+  {"enablehex",      O_HEXCMD, nullptr,    0, "Enable hex/inject/answer commands"},
   {"enabledefine",   O_DEFCMD, nullptr,    0, "Enable define command"},
   {"pidfile",        O_PIDFIL, "FILE",     0, "PID file name (only for daemon) [" PACKAGE_PIDFILE "]"},
   {"port",           'p',      "PORT",     0, "Listen for command line connections on PORT [8888]"},
@@ -205,11 +205,11 @@ static const argDef argDefs[] = {
   {nullptr,          0,        nullptr,    0, "Log options:"},
   {"logfile",        'l',      "FILE",     0, "Write log to FILE (only for daemon, empty string for using syslog) ["
       PACKAGE_LOGFILE "]"},
-  {"log",            O_LOG, "AREAS:LEVEL", 0, "Only write log for matching AREA(S) below or equal to LEVEL"
+  {"log",            O_LOG, "AREAS:LEVEL", 0, "Only write log for matching AREA(S) up to LEVEL"
       " (alternative to --logareas/--logevel, may be used multiple times) [all:notice]"},
   {"logareas",       O_LOGARE, "AREAS",    0, "Only write log for matching AREA(S): main|network|bus|update|other"
       "|all [all]"},
-  {"loglevel",       O_LOGLEV, "LEVEL",    0, "Only write log below or equal to LEVEL: error|notice|info|debug"
+  {"loglevel",       O_LOGLEV, "LEVEL",    0, "Only write log up to LEVEL: error|notice|info|debug"
       " [notice]"},
 
   {nullptr,          0,        nullptr,    0, "Raw logging options:"},

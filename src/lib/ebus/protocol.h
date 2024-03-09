@@ -56,7 +56,7 @@ namespace ebusd {
 
 /** settings for the eBUS protocol handler. */
 typedef struct ebus_protocol_config {
-  /** eBUS device string (serial device or [udp:]ip:port) with optional protocol prefix (enh: or ens:). */
+  /** eBUS device string (serial device or [udp:]ip[:port]) with optional protocol prefix (enh: or ens:). */
   const char* device;
   /** whether to skip serial eBUS device test. */
   bool noDeviceCheck;
