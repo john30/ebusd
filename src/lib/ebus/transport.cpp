@@ -176,6 +176,7 @@ result_t FileTransport::read(unsigned int timeout, const uint8_t** data, size_t*
     FD_ZERO(&readfds);
     FD_ZERO(&exceptfds);
     FD_SET(m_fd, &readfds);
+    FD_SET(m_fd, &exceptfds);
 
     ret = pselect(m_fd + 1, &readfds, nullptr, &exceptfds, &tdiff, nullptr);
     if (ret >= 1 && FD_ISSET(m_fd, &exceptfds)) {
