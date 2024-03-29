@@ -1411,8 +1411,10 @@ result_t splitValues(const string& valueList, vector<unsigned int>* valueRanges)
         valueRanges->push_back(0);
       }
       bool inclusive = str[1] == '=';
-      unsigned int val = parseInt(str.substr(inclusive?2:1).c_str(), 10, inclusive?0:1,
-          inclusive?UINT_MAX:(UINT_MAX-1), &result);
+      unsigned int val = parseInt(str.substr(inclusive?2:1).c_str(), 10,
+        inclusive || !upto ? 0 : 1,
+        inclusive || upto ? UINT_MAX : (UINT_MAX-1),
+        &result);
       if (result != RESULT_OK) {
         return result;
       }
