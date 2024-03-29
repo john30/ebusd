@@ -899,6 +899,7 @@ void KnxHandler::run() {
     if (!m_updatedMessages.empty()) {
       m_messages->lock();
       if (m_con->isConnected()) {
+        time_t maxUpdates = 0;
         for (auto it = m_updatedMessages.begin(); it != m_updatedMessages.end(); ) {
           const vector<Message*>* messages = m_messages->getByKey(it->first);
           if (!messages) {
@@ -906,8 +907,12 @@ void KnxHandler::run() {
             continue;
           }
           for (const auto& message : *messages) {
-            if (message->getLastChangeTime() <= 0) {
+            time_t changeTime = message->getLastChangeTime();
+            if (changeTime <= 0) {
               continue;
+            }
+            if (changeTime > lastUpdates && changeTime > maxUpdates) {
+              maxUpdates = changeTime;
             }
             const auto mit = m_subscribedMessages.find(message->getKey());
             if (mit == m_subscribedMessages.cend()) {
@@ -915,7 +920,7 @@ void KnxHandler::run() {
             }
             if (!(message->getDataHandlerState()&2)) {
               message->setDataHandlerState(2, true);  // first update still needed
-            } else if (message->getLastChangeTime() <= lastUpdates) {
+            } else if (changeTime <= lastUpdates) {
               continue;
             }
             for (auto destFlags : mit->second) {
@@ -936,7 +941,7 @@ void KnxHandler::run() {
           }
           it = m_updatedMessages.erase(it);
         }
-        time(&lastUpdates);
+        lastUpdates = maxUpdates == 0 || lastUpdates > maxUpdates ? now : maxUpdates + 1;
       } else {
         m_updatedMessages.clear();
       }

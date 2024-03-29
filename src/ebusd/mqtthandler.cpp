@@ -1068,22 +1068,27 @@ void MqttHandler::run() {
     if (!m_updatedMessages.empty()) {
       m_messages->lock();
       if (m_connected) {
+        time_t maxUpdates = 0;
         for (auto it = m_updatedMessages.begin(); it != m_updatedMessages.end(); ) {
           const vector<Message*>* messages = m_messages->getByKey(it->first);
           if (messages) {
             for (const auto& message : *messages) {
-              if (message->getLastChangeTime() > 0 && message->isAvailable()
-              && (!g_onlyChanges || message->getLastChangeTime() > lastUpdates)) {
+              time_t changeTime = message->getLastChangeTime();
+              if (changeTime > 0 && message->isAvailable()
+              && (!g_onlyChanges || changeTime > lastUpdates)) {
                 updates.str("");
                 updates.clear();
                 updates << dec;
                 publishMessage(message, &updates);
               }
+              if (changeTime > lastUpdates && changeTime > maxUpdates) {
+                maxUpdates = changeTime;
+              }
             }
           }
           it = m_updatedMessages.erase(it);
         }
-        time(&lastUpdates);
+        lastUpdates = maxUpdates == 0 || lastUpdates > maxUpdates ? now : maxUpdates + 1;
       } else {
         m_updatedMessages.clear();
       }
