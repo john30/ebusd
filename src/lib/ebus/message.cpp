@@ -70,11 +70,11 @@ using std::endl;
 #define POLL_PRIORITY_CONDITION 5
 
 /** the field name constant for the message level. */
-static const char* FIELNAME_LEVEL = "level";
+static const char* FIELDNAME_LEVEL = "level";//
 
 /** the known full length field names. */
 static const char* knownFieldNamesFull[] = {
-    "type", "circuit", FIELNAME_LEVEL, "name", "comment", "qq", "zz", "pbsb", "id", "fields",
+    "type", "circuit", FIELDNAME_LEVEL, "name", "comment", "qq", "zz", "pbsb", "id", "fields",
 };
 
 /** the known full length field names. */
@@ -867,7 +867,7 @@ void Message::dump(const vector<string>* fieldNames, bool withConditions, Output
   bool first = true;
   if (fieldNames == nullptr) {
     for (const auto& fieldName : knownFieldNamesFull) {
-      if (fieldName == FIELNAME_LEVEL) {
+      if (fieldName == FIELDNAME_LEVEL) {
         continue;  // access level not included in default dump format
       }
       if (first) {
