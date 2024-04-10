@@ -163,7 +163,7 @@ bool knxhandler_register(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
 }
 
 KnxHandler::KnxHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages)
-  : DataSink(userInfo, "knx"), DataSource(busHandler), WaitThread(), m_messages(messages),
+  : DataSink(userInfo, "knx", true), DataSource(busHandler), WaitThread(), m_messages(messages),
     m_start(0), m_lastUpdateCheckResult("."),
     m_lastScanStatus(SCAN_STATUS_NONE), m_scanFinishReceived(false), m_lastErrorLogTime(0) {
   m_con = KnxConnection::create(g_url);
@@ -709,7 +709,7 @@ void KnxHandler::handleGroupTelegram(knx_addr_t src, knx_addr_t dest, int len, c
 #define UPTIME_INTERVAL 3600
 
 void KnxHandler::run() {
-  time_t lastTaskRun, now, lastSignal = 0, lastUptime = 0, lastUpdates = 0;
+  time_t lastTaskRun, now, lastSignal = 0, lastUptime = 0;
   bool signal = false;
   result_t result = RESULT_OK;
   time(&now);
@@ -899,7 +899,6 @@ void KnxHandler::run() {
     if (!m_updatedMessages.empty()) {
       m_messages->lock();
       if (m_con->isConnected()) {
-        time_t maxUpdates = 0;
         for (auto it = m_updatedMessages.begin(); it != m_updatedMessages.end(); ) {
           const vector<Message*>* messages = m_messages->getByKey(it->first);
           if (!messages) {
@@ -911,16 +910,8 @@ void KnxHandler::run() {
             if (changeTime <= 0) {
               continue;
             }
-            if (changeTime > lastUpdates && changeTime > maxUpdates) {
-              maxUpdates = changeTime;
-            }
             const auto mit = m_subscribedMessages.find(message->getKey());
             if (mit == m_subscribedMessages.cend()) {
-              continue;
-            }
-            if (!(message->getDataHandlerState()&2)) {
-              message->setDataHandlerState(2, true);  // first update still needed
-            } else if (changeTime <= lastUpdates) {
               continue;
             }
             for (auto destFlags : mit->second) {
@@ -941,7 +932,6 @@ void KnxHandler::run() {
           }
           it = m_updatedMessages.erase(it);
         }
-        lastUpdates = maxUpdates == 0 || lastUpdates > maxUpdates ? now : maxUpdates + 1;
       } else {
         m_updatedMessages.clear();
       }

@@ -368,7 +368,8 @@ string removeTrailingNonTopicPart(const string& str) {
 }
 
 MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages)
-  : DataSink(userInfo, "mqtt"), DataSource(busHandler), WaitThread(), m_messages(messages), m_connected(false),
+  : DataSink(userInfo, "mqtt", g_onlyChanges), DataSource(busHandler), WaitThread(),
+    m_messages(messages), m_connected(false),
     m_lastUpdateCheckResult("."), m_lastScanStatus(SCAN_STATUS_NONE) {
   m_definitionsSince = 0;
   m_client = nullptr;
@@ -696,7 +697,7 @@ void splitFields(const string& str, vector<string>* row) {
 }
 
 void MqttHandler::run() {
-  time_t lastTaskRun, now, start, lastSignal = 0, lastUpdates = 0;
+  time_t lastTaskRun, now, start, lastSignal = 0;
   bool signal = false;
   bool globalHasName = m_globalTopic.has("name");
   string signalTopic = m_globalTopic.get("", "signal");
@@ -1068,27 +1069,21 @@ void MqttHandler::run() {
     if (!m_updatedMessages.empty()) {
       m_messages->lock();
       if (m_connected) {
-        time_t maxUpdates = 0;
         for (auto it = m_updatedMessages.begin(); it != m_updatedMessages.end(); ) {
           const vector<Message*>* messages = m_messages->getByKey(it->first);
           if (messages) {
             for (const auto& message : *messages) {
               time_t changeTime = message->getLastChangeTime();
-              if (changeTime > 0 && message->isAvailable()
-              && (!g_onlyChanges || changeTime > lastUpdates)) {
+              if (changeTime > 0 && message->isAvailable()) {
                 updates.str("");
                 updates.clear();
                 updates << dec;
                 publishMessage(message, &updates);
               }
-              if (changeTime > lastUpdates && changeTime > maxUpdates) {
-                maxUpdates = changeTime;
-              }
             }
           }
           it = m_updatedMessages.erase(it);
         }
-        lastUpdates = maxUpdates == 0 || lastUpdates > maxUpdates ? now : maxUpdates + 1;
       } else {
         m_updatedMessages.clear();
       }
