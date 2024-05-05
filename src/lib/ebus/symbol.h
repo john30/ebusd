@@ -72,20 +72,21 @@ using std::ostringstream;
 /** the base type for symbols sent to/from the eBUS. */
 typedef unsigned char symbol_t;
 
-/** escape symbol, either followed by 0x00 for the value 0xA9, or 0x01 for the value 0xAA. */
-#define ESC ((symbol_t)0xA9)
-
-/** synchronization symbol. */
-#define SYN ((symbol_t)0xAA)
-
-/** positive acknowledge symbol. */
-#define ACK ((symbol_t)0x00)
-
-/** negative acknowledge symbol. */
-#define NAK ((symbol_t)0xFF)
-
-/** the broadcast destination address. */
-#define BROADCAST ((symbol_t)0xFE)
+/**
+ * List of predefined eBUS symbols.
+ */
+enum PredefinedSymbol : symbol_t {
+  /** escape symbol, either followed by 0x00 for the value 0xA9, or 0x01 for the value 0xAA. */
+  ESC = 0xA9,
+  /** synchronization symbol. */
+  SYN = 0xAA,
+  /** positive acknowledge symbol. */
+  ACK = 0x00,
+  /** negative acknowledge symbol. */
+  NAK = 0xFF,
+  /** the broadcast destination address. */
+  BROADCAST = 0xFE,
+};
 
 /**
  * Parse an unsigned int value.
@@ -156,9 +157,11 @@ class SymbolString {
   /**
    * Return the symbols as hex string.
    * @param skipFirstSymbols the number of first symbols to skip.
+   * @param maxLength the maximum number of symbols to include (or 0 for all).
+   * @param withLength whether to include the NN length field.
    * @return the symbols as hex string.
    */
-  const string getStr(size_t skipFirstSymbols = 0) const;
+  const string getStr(size_t skipFirstSymbols = 0, size_t maxLength = 0, bool withLength = true) const;
 
   /**
    * Dump the data in JSON format to the output.

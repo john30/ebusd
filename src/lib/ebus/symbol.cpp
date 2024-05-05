@@ -145,14 +145,21 @@ result_t SymbolString::parseHexEscaped(const string& str) {
   return inEscape ? RESULT_ERR_ESC : RESULT_OK;
 }
 
-const string SymbolString::getStr(size_t skipFirstSymbols) const {
+const string SymbolString::getStr(size_t skipFirstSymbols, size_t maxLength, bool withLength) const {
   ostringstream sstr;
+  if (maxLength == 0) {
+    maxLength = m_data.size();
+  }
+  size_t lengthOffset = withLength ? 254 : (m_isMaster ? 4 : 0);
   for (size_t i = 0; i < m_data.size(); i++) {
     if (skipFirstSymbols > 0) {
       skipFirstSymbols--;
-    } else {
+    } else if (i != lengthOffset) {
       sstr << nouppercase << setw(2) << hex
           << setfill('0') << static_cast<unsigned>(m_data[i]);
+          if (--maxLength == 0) {
+            break;
+          }
     }
   }
   return sstr.str();

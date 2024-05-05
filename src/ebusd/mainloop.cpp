@@ -108,7 +108,7 @@ MainLoop::MainLoop(const struct options& opt, BusHandler* busHandler,
   : Thread(), m_busHandler(busHandler), m_protocol(busHandler->getProtocol()), m_reconnectCount(0),
     m_userList(opt.accessLevel), m_messages(messages),
     m_scanHelper(scanHelper), m_address(opt.address), m_scanConfig(opt.scanConfig),
-    m_initialScan(opt.readOnly ? ESC : opt.initialScan), m_scanRetries(opt.scanRetries),
+    m_initialScan(opt.readOnly ? (symbol_t)ESC : opt.initialScan), m_scanRetries(opt.scanRetries),
     m_scanStatus(SCAN_STATUS_NONE), m_polling(opt.pollInterval > 0), m_enableHex(opt.enableHex),
     m_shutdown(false), m_runUpdateCheck(opt.updateCheck), m_httpClient(), m_requestQueue(requestQueue) {
   if (opt.aclFile[0]) {
@@ -676,7 +676,7 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
       if (dest) {
         dstAddress = address;
       } else {
-        srcAddress = address == m_address ? SYN : address;
+        srcAddress = address == m_address ? (symbol_t)SYN : address;
       }
     } else if (args[argPos] == "-p") {
       argPos++;
@@ -933,7 +933,7 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
       if (dest) {
         dstAddress = address;
       } else {
-        srcAddress = address == m_address ? SYN : address;
+        srcAddress = address == m_address ? (symbol_t)SYN : address;
       }
     } else if (args[argPos] == "-c") {
       argPos++;
@@ -1110,7 +1110,7 @@ result_t MainLoop::parseHexAndSend(const vector<string>& args, size_t& argPos, b
       if (ret != RESULT_OK || !isValidAddress(address, false) || !isMaster(address)) {
         return RESULT_ERR_INVALID_ADDR;
       }
-      srcAddress = address == m_address ? SYN : address;
+      srcAddress = address == m_address ? (symbol_t)SYN : address;
     } else if (args[argPos] == "-n") {
       autoLength = true;
     } else {

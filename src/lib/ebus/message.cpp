@@ -200,7 +200,7 @@ uint64_t Message::createKey(const MasterSymbolString& master, size_t maxIdLength
   }
   uint64_t key = (uint64_t)idLength << (8 * 7 + 5);
   key |= (uint64_t)getMasterNumber(master[0]) << (8 * 7);  // QQ address for passive message
-  key |= (uint64_t)(anyDestination ? SYN : master[1]) << (8 * 6);  // ZZ address
+  key |= (uint64_t)(anyDestination ? (symbol_t)SYN : master[1]) << (8 * 6);  // ZZ address
   key |= (uint64_t)master[2] << (8 * 5);  // PB
   key |= (uint64_t)master[3] << (8 * 4);  // SB
   int exp = 3;
