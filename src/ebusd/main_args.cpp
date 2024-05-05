@@ -54,7 +54,7 @@ static const options_t s_default_opt = {
   .dumpConfig = OF_NONE,
   .dumpConfigTo = nullptr,
   .pollInterval = 5,
-  .injectMessages = false,
+  .injectCommands = false,
   .stopAfterInject = false,
   .injectCount = 0,
 #ifdef HAVE_SSL
@@ -170,9 +170,9 @@ static const argDef argDefs[] = {
       "Check and dump config files in FORMAT (\"json\" or \"csv\"), then stop"},
   {"dumpconfigto",   O_DMPCTO, "FILE",     0, "Dump config files to FILE"},
   {"pollinterval",   O_POLINT, "SEC",      0, "Poll for data every SEC seconds (0=disable) [5]"},
-  {"inject",         'i',      "stop", af_optional, "Inject remaining arguments as already seen messages (e.g. "
+  {"inject",         'i',      "stop", af_optional, "Inject remaining arguments as commands or already seen messages (e.g. "
       "\"FF08070400/0AB5454850303003277201\"), optionally stop afterwards"},
-  {nullptr,          O_INJPOS, "INJECT", af_optional|af_multiple, "Message(s) to inject (if --inject was given)"},
+  {nullptr,          O_INJPOS, "INJECT", af_optional|af_multiple, "Commands and/or messages to inject (if --inject was given)"},
 #ifdef HAVE_SSL
   {"cafile",         O_CAFILE, "FILE",     0, "Use CA FILE for checking certificates (uses defaults,"
                                               " \"#\" for insecure)"},
@@ -343,7 +343,7 @@ static int parse_opt(int key, char *arg, const argParseOpt *parseOpt, struct opt
     opt->pollInterval = value;
     break;
   case 'i':  // --inject[=stop]
-    opt->injectMessages = true;
+    opt->injectCommands = true;
     opt->stopAfterInject = arg && strcmp("stop", arg) == 0;
     break;
 #ifdef HAVE_SSL
@@ -595,7 +595,7 @@ static int parse_opt(int key, char *arg, const argParseOpt *parseOpt, struct opt
 
   default:
     if (key >= O_INJPOS) {  // INJECT
-      if (!opt->injectMessages || !arg || !arg[0]) {
+      if (!opt->injectCommands || !arg || !arg[0]) {
         return ESRCH;
       }
       opt->injectCount++;
@@ -612,10 +612,6 @@ static int parse_opt(int key, char *arg, const argParseOpt *parseOpt, struct opt
   }
   if (opt->scanConfig && opt->pollInterval == 0) {
     argParseError(parseOpt, "scanconfig without polling may lead to invalid files included for certain products!");
-    return EINVAL;
-  }
-  if (opt->injectMessages && (opt->checkConfig || opt->dumpConfig)) {
-    argParseError(parseOpt, "cannot combine inject with checkconfig/dumpconfig");
     return EINVAL;
   }
   return 0;

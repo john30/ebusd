@@ -60,9 +60,9 @@ typedef struct options {
   OutputFormat dumpConfig;  //!< dump config files, then stop
   const char* dumpConfigTo;  //!< file to dump config to
   unsigned int pollInterval;  //!< poll interval in seconds, 0 to disable [5]
-  bool injectMessages;  //!< inject remaining arguments as already seen messages
-  bool stopAfterInject;  //!< only inject messages once, then stop
-  int injectCount;  //!< number of message arguments to inject, or 0
+  bool injectCommands;  //!< inject remaining arguments as commands or already seen messages
+  bool stopAfterInject;  //!< only inject arguments once, then stop
+  int injectCount;  //!< number of arguments to inject, or 0
 #ifdef HAVE_SSL
   const char* caFile;  //!< the CA file to use (uses defaults if neither caFile nor caPath are set), or "#" for insecure
   const char* caPath;  //!< the path with CA files to use (uses defaults if neither caFile nor caPath are set)

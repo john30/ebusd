@@ -248,13 +248,6 @@ int main(int argc, char* argv[], char* envp[]) {
       return EINVAL;
   }
 
-  if (s_opt.injectCount > 0) {
-    if (!s_opt.injectMessages && !(s_opt.checkConfig && s_opt.scanConfig)) {
-      fprintf(stderr, "invalid inject arguments");
-      return EINVAL;
-    }
-  }
-
   if (s_opt.logAreas != -1 || s_opt.logLevel != ll_COUNT) {
     setFacilitiesLogLevel(1 << lf_COUNT, ll_none);
     setFacilitiesLogLevel(s_opt.logAreas, s_opt.logLevel);
@@ -473,14 +466,33 @@ int main(int argc, char* argv[], char* envp[]) {
   s_scanHelper->loadConfigFiles(!s_opt.scanConfig);
 
   // start the MainLoop
-  if (s_opt.injectMessages) {
+  if (s_opt.injectCommands) {
     int scanAdrCount = 0;
     bool scanAddresses[256] = {};
     for (int arg_index = argc - s_opt.injectCount; arg_index < argc; arg_index++) {
-      // add each passed message
+      string arg = argv[arg_index];
+      if (arg.empty()) {
+        continue;
+      }
+      if (arg.find_first_of(' ') != string::npos || arg.find_first_of('/') == string::npos) {
+        RequestImpl req(false);
+        req.add(argv[arg_index]);
+        bool connected;
+        RequestMode reqMode;
+        string user;
+        bool reload;
+        ostringstream ostream;
+        result_t ret = s_mainLoop->decodeRequest(&req, &connected, &reqMode, &user, &reload, &ostream);
+        if (ret != RESULT_OK) {
+          string output = ostream.str();
+          logError(lf_main, "executing command %s failed: %d", argv[arg_index], output.c_str());
+        }
+        continue;
+      }
+      // old style inject message
       MasterSymbolString master;
       SlaveSymbolString slave;
-      if (!s_scanHelper->parseMessage(argv[arg_index], false, &master, &slave)) {
+      if (!s_scanHelper->parseMessage(arg, false, &master, &slave)) {
         continue;
       }
       s_protocol->injectMessage(master, slave);
