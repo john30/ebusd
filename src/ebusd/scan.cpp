@@ -82,6 +82,13 @@ result_t ScanHelper::collectConfigFiles(const string& relPath, const string& pre
       if (!m_configHttpClient->get(uri, "", &names)) {
         return RESULT_ERR_NOTFOUND;
       }
+    } else if (!json && names[0]=='<') {  // html
+      uri = m_configUriPrefix + relPathWithSlash + "index.json";
+      json = true;
+      logDebug(lf_main, "trying index.json");
+      if (!m_configHttpClient->get(uri, "", &names, nullptr, nullptr, &json)) {
+        return RESULT_ERR_NOTFOUND;
+      }
     }
     istringstream stream(names);
     string name;
