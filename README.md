@@ -24,16 +24,18 @@ The main features of the daemon are:
    * TCP
    * UDP
    * enhanced ebusd protocol allowing arbitration to be done directly by the hardware, e.g. for recent
-     * [eBUS Adapter Shield](https://adapter.ebusd.eu/v5/), or
+     * [eBUS Adapter Shield](https://adapter.ebusd.eu/v5/),
+     * [adapter v3.1](https://adapter.ebusd.eu/v31)/[v3.0](https://adapter.ebusd.eu/v3), or
      * [ebusd-esp firmware](https://github.com/john30/ebusd-esp/)
- * actively send messages to and receive answers from the eBUS
+  * actively send messages to and receive answers from the eBUS
  * passively listen to messages sent on the eBUS
+ * answer to messages received from the eBUS
  * regularly poll for messages
  * cache all messages
- * scan for bus participants and automatically pick matching message configuration files from config web service at ebusd.eu (or alternatively local files)
- * parse messages to human readable values and vice versa via message configuration files
- * automatically check for updates of daemon and configuration files
- * pick preferred language for translatable message configuration parts
+ * scan for bus participants and automatically pick matching message definition files from config web service at ebusd.eu (or alternatively local files)
+ * parse messages to human readable values and vice versa via message definition files
+ * automatically check for updates of daemon and message definition files
+ * pick preferred language for translatable message definition parts
  * grab all messages on the eBUS and provide decoding hints
  * send arbitrary messages from hex input or inject those
  * log messages and problems to a log file
@@ -43,7 +45,7 @@ The main features of the daemon are:
  * provide a rudimentary HTML interface
  * format messages and data in [JSON on dedicated HTTP port](https://github.com/john30/ebusd/wiki/3.2.-HTTP-client)
  * publish received data to [MQTT topics](https://github.com/john30/ebusd/wiki/3.3.-MQTT-client) and vice versa (if authorized)
- * announce [message definitions and status by MQTT](https://github.com/john30/ebusd/wiki/MQTT-integration) to e.g. integrate with [Home Assistant](https://www.home-assistant.io/) using [MQTT Discovery](https://www.home-assistant.io/docs/mqtt/discovery/)
+ * announce [message definitions and status by MQTT](https://github.com/john30/ebusd/wiki/MQTT-integration) to e.g. integrate with [Home Assistant](https://www.home-assistant.io/) using [MQTT Discovery](https://www.home-assistant.io/integrations/mqtt#mqtt-discovery)
  * support MQTT publish to [Azure IoT hub](https://docs.microsoft.com/en-us/azure/iot-hub/) (see [MQTT integration](https://github.com/john30/ebusd/wiki/MQTT-integration))
  * act as a [KNX device](https://github.com/john30/ebusd/wiki/3.4.-KNX-device) by publishing received data to KNX groups and answer to read/write requests from KNX, i.e. build an eBUS-KNX bridge
  * [user authentication](https://github.com/john30/ebusd/wiki/3.1.-TCP-client-commands#auth) via [ACL file](https://github.com/john30/ebusd/wiki/2.-Run#daemon-options) for access control to certain messages

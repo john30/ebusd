@@ -143,8 +143,9 @@ class DataSink : virtual public DataHandler {
    * Constructor.
    * @param userInfo the @a UserInfo instance.
    * @param user the user name for determining the allowed access levels (fall back to default levels).
+   * @param changedOnly whether to handle changed messages only in the updates.
    */
-  DataSink(const UserInfo* userInfo, const string& user) {
+  DataSink(const UserInfo* userInfo, const string& user, bool changedOnly) : m_changedOnly(changedOnly) {
     m_levels = userInfo->getLevels(userInfo->hasUser(user) ? user : "");
   }
 
@@ -159,8 +160,9 @@ class DataSink : virtual public DataHandler {
   /**
    * Notify the sink of an updated @a Message (not necessarily changed though).
    * @param message the updated @a Message.
+   * @param changed whether the message data changed since the last notification.
    */
-  virtual void notifyUpdate(Message* message);
+  virtual void notifyUpdate(Message* message, bool changed);
 
   /**
    * Notify the sink of the latest update check result.
@@ -177,6 +179,9 @@ class DataSink : virtual public DataHandler {
  protected:
   /** the allowed access levels. */
   string m_levels;
+
+  /** whether to handle changed messages only in the updates. */
+  bool m_changedOnly;
 
   /** a map of updated @p Message keys. */
   map<uint64_t, int> m_updatedMessages;

@@ -19,6 +19,7 @@
 #ifndef LIB_EBUS_PROTOCOL_DIRECT_H_
 #define LIB_EBUS_PROTOCOL_DIRECT_H_
 
+#include <map>
 #include "lib/ebus/protocol.h"
 
 namespace ebusd {
@@ -107,6 +108,15 @@ class DirectProtocolHandler : public ProtocolHandler {
   // @copydoc
   bool hasSignal() const override { return m_state != bs_noSignal; }
 
+  // @copydoc
+  bool isAnswering() const override { return !m_answerByKey.empty(); }
+
+  // @copydoc
+  bool setAnswer(symbol_t srcAddress, symbol_t dstAddress, symbol_t pb, symbol_t sb,
+      const symbol_t* id, size_t idLen, const SlaveSymbolString& answer) override;
+
+  // @copydoc
+  bool hasAnswer(symbol_t dstAddress) const override;
 
  private:
   /**
@@ -146,6 +156,25 @@ class DirectProtocolHandler : public ProtocolHandler {
    */
   void messageCompleted();
 
+  /**
+   * Create a key for storing an answer.
+   * @param srcAddress the source address, or @a SYN for any.
+   * @param dstAddress the destination address.
+   * @param pb the primary ID byte.
+   * @param sb the secondary ID byte.
+   * @param id optional further ID bytes.
+   * @param idLen the length of the further ID bytes.
+   * @return a key for storing an answer.
+   */
+  uint64_t createAnswerKey(symbol_t srcAddress, symbol_t dstAddress, symbol_t pb, symbol_t sb,
+      const symbol_t* id, size_t idLen);
+
+  /**
+   * Build the answer to the currently received message and store in @a m_response for sending back to requestor.
+   * @return @p true on success, @p false if the message is not supposed to be answered.
+   */
+  bool getAnswer();
+
   /** the number of AUTO-SYN symbols before sending is allowed after lost arbitration. */
   unsigned int m_lockCount;
 
@@ -160,6 +189,9 @@ class DirectProtocolHandler : public ProtocolHandler {
 
   /** the currently handled BusRequest, or nullptr. */
   BusRequest* m_currentRequest;
+
+  /** the answers to give by key. */
+  std::map<uint64_t, SlaveSymbolString > m_answerByKey;
 
   /** whether currently answering a request from another participant. */
   bool m_currentAnswering;

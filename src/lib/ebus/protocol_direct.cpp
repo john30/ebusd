@@ -232,21 +232,21 @@ struct timespec* sentTime) {
     break;
 
   case bs_sendCmdAck:
-    if (m_config.answer) {
+    if (m_currentAnswering) {
       sendSymbol = m_crcValid ? ACK : NAK;
       sending = true;
     }
     break;
 
   case bs_sendRes:
-    if (m_config.answer) {
+    if (m_currentAnswering) {
       sendSymbol = m_response[m_nextSendPos];  // unescaped response
       sending = true;
     }
     break;
 
   case bs_sendResCrc:
-    if (m_config.answer) {
+    if (m_currentAnswering) {
       sendSymbol = m_crc;
       sending = true;
     }
@@ -511,20 +511,10 @@ struct timespec* sentTime) {
       }
       return setState(bs_skip, RESULT_ERR_CRC);
     }
-    if (m_config.answer) {
-      symbol_t dstAddress = m_command[1];
-      if (dstAddress == m_ownMasterAddress || dstAddress == m_ownSlaveAddress) {
-        if (m_crcValid) {
-          addSeenAddress(m_command[0]);
-          m_currentAnswering = true;
-          return setState(bs_sendCmdAck, result);
-        }
-        return setState(bs_sendCmdAck, RESULT_ERR_CRC);
-      }
-    }
     if (m_crcValid) {
       addSeenAddress(m_command[0]);
-      return setState(bs_recvCmdAck, result);
+      m_currentAnswering = getAnswer();
+      return setState(m_currentAnswering ? bs_sendCmdAck : bs_recvCmdAck, result);
     }
     if (m_repeat) {
       return setState(bs_skip, RESULT_ERR_CRC);
@@ -646,7 +636,7 @@ struct timespec* sentTime) {
     return setState(bs_sendSyn, result);
 
   case bs_sendCmdAck:
-    if (!sending || !m_config.answer) {
+    if (!sending || !m_currentAnswering) {
       return setState(bs_skip, RESULT_ERR_INVALID_ARG);
     }
     if (!m_crcValid) {
@@ -658,25 +648,18 @@ struct timespec* sentTime) {
       }
       return setState(bs_skip, RESULT_ERR_ACK);
     }
+    // response to send was already prepared during bs_recvCmdCrc in m_response
     if (isMaster(m_command[1])) {
-      messageCompleted();  // TODO decode command and store value into database of internal variables
+      messageCompleted();
       return setState(bs_skip, result);
     }
 
     m_nextSendPos = 0;
     m_repeat = false;
-    // build response and store in m_response for sending back to requesting master
-    m_response.clear();
-    {
-      result_t result = m_listener->notifyProtocolAnswer(m_command, &m_response);
-      if (result != RESULT_OK) {
-        return setState(bs_skip, result);
-      }
-    }
     return setState(bs_sendRes, result);
 
   case bs_sendRes:
-    if (!sending || !m_config.answer) {
+    if (!sending || !m_currentAnswering) {
       return setState(bs_skip, RESULT_ERR_INVALID_ARG);
     }
     m_nextSendPos++;
@@ -687,7 +670,7 @@ struct timespec* sentTime) {
     return result;
 
   case bs_sendResCrc:
-    if (!sending || !m_config.answer) {
+    if (!sending || !m_currentAnswering) {
       return setState(bs_skip, RESULT_ERR_INVALID_ARG);
     }
     return setState(bs_recvResAck, result);
@@ -801,7 +784,6 @@ bool DirectProtocolHandler::addSeenAddress(symbol_t address) {
 }
 
 void DirectProtocolHandler::messageCompleted() {
-  const char* prefix = m_currentRequest ? "sent" : "received";
   // do an explicit copy here in case being called by another thread
   const MasterSymbolString command(m_currentRequest ? m_currentRequest->getMaster() : m_command);
   const SlaveSymbolString response(m_response);
@@ -810,17 +792,104 @@ void DirectProtocolHandler::messageCompleted() {
     logError(lf_bus, "invalid self-addressed message from %2.2x", srcAddress);
     return;
   }
-  if (!m_currentAnswering) {
+  if (!m_currentAnswering || (dstAddress != m_ownMasterAddress && dstAddress != m_ownSlaveAddress)) {
+    // also add given answers to list of seen addresses
     addSeenAddress(dstAddress);
   }
 
+  const char* prefix = m_currentAnswering ? "answered" : m_currentRequest ? "sent" : "received";
+  MessageDirection direction = m_currentAnswering ? md_answer : m_currentRequest ? md_send : md_recv;
   bool master = isMaster(dstAddress);
   if (dstAddress == BROADCAST || master) {
     logInfo(lf_update, "%s %s cmd: %s", prefix, master ? "MM" : "BC", command.getStr().c_str());
   } else {
     logInfo(lf_update, "%s MS cmd: %s / %s", prefix, command.getStr().c_str(), response.getStr().c_str());
   }
-  m_listener->notifyProtocolMessage(m_currentRequest != nullptr, command, response);
+  m_listener->notifyProtocolMessage(direction, command, response);
+}
+
+uint64_t DirectProtocolHandler::createAnswerKey(symbol_t srcAddress, symbol_t dstAddress, symbol_t pb, symbol_t sb,
+    const symbol_t* id, size_t idLen) {
+  uint64_t key = (uint64_t)idLen << (8 * 7 + 5);
+  key |= (uint64_t)getMasterNumber(srcAddress) << (8 * 7);  // 0..25
+  key |= (uint64_t)dstAddress << (8 * 6);
+  key |= (uint64_t)pb << (8 * 5);
+  key |= (uint64_t)sb << (8 * 4);
+  int exp = 3;
+  for (size_t pos = 0; pos < idLen; pos++) {
+    key |= (uint64_t)id[pos] << (8 * exp--);
+  }
+  return key;
+}
+
+bool DirectProtocolHandler::setAnswer(symbol_t srcAddress, symbol_t dstAddress, symbol_t pb, symbol_t sb,
+    const symbol_t* id, size_t idLen, const SlaveSymbolString& answer) {
+  if (!m_config.answer || (!id && idLen > 0) || idLen > 4 || !isValidAddress(dstAddress, false)
+  || (srcAddress != SYN && !isMaster(srcAddress))) {
+    return false;
+  }
+  if (isMaster(dstAddress)) {
+    if (answer.size() > 7) {
+      return false;
+    }
+    // answer used here only for having the expected length of the MM data tail
+  } else {
+    if (!answer.isComplete()) {
+      return false;
+    }
+  }
+  uint64_t key = createAnswerKey(srcAddress, dstAddress, pb, sb, id, idLen);
+  m_answerByKey[key] = answer;
+  return true;
+}
+
+bool DirectProtocolHandler::hasAnswer(symbol_t dstAddress) const {
+  if (m_answerByKey.empty()) {
+    return false;
+  }
+  for (auto const &answer : m_answerByKey) {
+    if ((answer.first >> (8 * 6)) == dstAddress) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool DirectProtocolHandler::getAnswer() {
+  if (m_answerByKey.empty()) {
+    return false;
+  }
+  // walk through the stored answers to find the longest match
+  m_response.clear();
+  size_t len = m_command[4];
+  bool master = isMaster(m_command[1]);
+  uint64_t key = createAnswerKey(m_command[0], m_command[1], m_command[2], m_command[3], m_command.data()+5, len);
+  do {
+    auto it = m_answerByKey.find(key);
+    if (it == m_answerByKey.end()) {
+      it = m_answerByKey.find(key&~(0x1fLL << (8 * 7)));  // without specific src
+    }
+    if (it != m_answerByKey.end()) {
+      // found the answer
+      if (master) {
+        if (len+it->second.getDataSize() == m_command[4]) {
+          m_response = it->second;  // copied for having the data size only
+          return true;
+        }
+        // data length mismatch, find shorter one
+      } else {
+        m_response = it->second;
+        return true;
+      }
+    }
+    if (len == 0) {
+      break;
+    }
+    // reduce the key
+    len--;
+    key = (key&~(0x07LL << (8 * 7 + 5))&~(0xffLL << (8 * (3-len)))) | (len << (8 * 7 + 5));
+  } while (true);
+  return false;
 }
 
 }  // namespace ebusd

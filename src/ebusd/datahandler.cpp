@@ -75,8 +75,11 @@ bool datahandler_register(UserInfo* userInfo, BusHandler* busHandler, MessageMap
   return success;
 }
 
-void DataSink::notifyUpdate(Message* message) {
+void DataSink::notifyUpdate(Message* message, bool changed) {
   if (message && message->hasLevel(m_levels)) {
+    if (m_changedOnly && !changed) {
+      return;
+    }
     m_updatedMessages[message->getKey()]++;
   }
 }

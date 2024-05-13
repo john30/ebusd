@@ -21,6 +21,7 @@
 #include <cstdlib>
 #include <sstream>
 #include <csignal>
+#include <algorithm>
 #ifdef HAVE_SSL
 #if OPENSSL_VERSION_NUMBER < 0x10101000L
 #include <sys/stat.h>
@@ -301,10 +302,12 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool htt
       break;
     }
     if (strcmp(peerName, hostname) != 0) {
-      char* dotpos = NULL;
-      if (peerName[0] == '*' && peerName[1] == '.' && (dotpos=strchr((char*)hostname, '.'))
+      char* dotpos = strchr((char*)hostname, '.');
+      if (peerName[0] == '*' && peerName[1] == '.' && dotpos
         && strcmp(peerName+2, dotpos+1) == 0) {
         // wildcard matches
+      } else if (dotpos && strcmp(peerName, dotpos+1) == 0) {
+        // hostname matches
       } else if (isError("subject", 1, 0)) {
         break;
       }
@@ -513,15 +516,16 @@ bool* repeatable, time_t* time, bool* jsonString) {
     return false;
   }
   string headers = result.substr(0, pos+2);  // including final \r\n
+  transform(headers.begin(), headers.end(), headers.begin(), ::tolower);
   const char* hdrs = headers.c_str();
   *response = result.substr(pos+4);
 #if defined(HAVE_TIME_H) && defined(HAVE_TIMEGM)
   if (time) {
-    pos = headers.find("\r\nLast-Modified: ");
-    if (pos != string::npos && headers.substr(pos+42, 4) == " GMT") {
+    pos = headers.find("\r\nlast-modified: ");
+    if (pos != string::npos && headers.substr(pos+42, 4) == " gmt") {
       // Last-Modified: Wed, 21 Oct 2015 07:28:00 GMT
       struct tm t;
-      pos += strlen("\r\nLast-Modified: ") + 5;
+      pos += strlen("\r\nlast-modified: ") + 5;
       char* strEnd = nullptr;
       t.tm_mday = static_cast<int>(strtol(hdrs + pos, &strEnd, 10));
       if (strEnd != hdrs + pos + 2 || t.tm_mday < 1 || t.tm_mday > 31) {
@@ -556,27 +560,33 @@ bool* repeatable, time_t* time, bool* jsonString) {
     }
   }
 #endif
-  pos = headers.find("\r\nContent-Length: ");
-  if (pos == string::npos) {
+  bool isJson = headers.find("\r\ncontent-type: application/json") != string::npos;
+  pos = headers.find("\r\ncontent-length: ");
+  bool noLength = pos == string::npos;
+  if (noLength && !isJson) {
     disconnect();
+    if (jsonString) {
+      *jsonString = false;
+    }
     return true;
   }
   char* strEnd = nullptr;
-  unsigned long length = strtoul(hdrs + pos + strlen("\r\nContent-Length: "), &strEnd, 10);
-  if (strEnd == nullptr || *strEnd != '\r') {
-    disconnect();
-    *response = "invalid content length ";
-    return false;
-  }
-  bool isJson = headers.find("\r\nContent-Type: application/json") != string::npos;
-  if (pos == string::npos) {
-    disconnect();
-    return true;
+  unsigned long length = 4*1024;  // default max length
+  if (!noLength) {
+    length = strtoul(hdrs + pos + strlen("\r\ncontent-length: "), &strEnd, 10);
+    if (strEnd == nullptr || *strEnd != '\r') {
+      disconnect();
+      *response = "invalid content length ";
+      return false;
+    }
   }
   pos = readUntil("", length, response);
   disconnect();
-  if (pos != length) {
+  if (noLength ? pos<1 : pos != length) {
     return false;
+  }
+  if (noLength) {
+    length = pos;
   }
   if (jsonString && isJson && *jsonString && length >= 2 && response->at(0) == '"') {
     // check for inline conversion of JSON to string expecting a single string to de-escape

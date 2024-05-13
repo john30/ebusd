@@ -163,7 +163,7 @@ bool knxhandler_register(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
 }
 
 KnxHandler::KnxHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages)
-  : DataSink(userInfo, "knx"), DataSource(busHandler), WaitThread(), m_messages(messages),
+  : DataSink(userInfo, "knx", true), DataSource(busHandler), WaitThread(), m_messages(messages),
     m_start(0), m_lastUpdateCheckResult("."),
     m_lastScanStatus(SCAN_STATUS_NONE), m_scanFinishReceived(false), m_lastErrorLogTime(0) {
   m_con = KnxConnection::create(g_url);
@@ -709,7 +709,7 @@ void KnxHandler::handleGroupTelegram(knx_addr_t src, knx_addr_t dest, int len, c
 #define UPTIME_INTERVAL 3600
 
 void KnxHandler::run() {
-  time_t lastTaskRun, now, lastSignal = 0, lastUptime = 0, lastUpdates = 0;
+  time_t lastTaskRun, now, lastSignal = 0, lastUptime = 0;
   bool signal = false;
   result_t result = RESULT_OK;
   time(&now);
@@ -906,16 +906,12 @@ void KnxHandler::run() {
             continue;
           }
           for (const auto& message : *messages) {
-            if (message->getLastChangeTime() <= 0) {
+            time_t changeTime = message->getLastChangeTime();
+            if (changeTime <= 0) {
               continue;
             }
             const auto mit = m_subscribedMessages.find(message->getKey());
             if (mit == m_subscribedMessages.cend()) {
-              continue;
-            }
-            if (!(message->getDataHandlerState()&2)) {
-              message->setDataHandlerState(2, true);  // first update still needed
-            } else if (message->getLastChangeTime() <= lastUpdates) {
               continue;
             }
             for (auto destFlags : mit->second) {
@@ -936,7 +932,6 @@ void KnxHandler::run() {
           }
           it = m_updatedMessages.erase(it);
         }
-        time(&lastUpdates);
       } else {
         m_updatedMessages.clear();
       }

@@ -70,11 +70,11 @@ using std::endl;
 #define POLL_PRIORITY_CONDITION 5
 
 /** the field name constant for the message level. */
-static const char* FIELNAME_LEVEL = "level";
+static const char* FIELDNAME_LEVEL = "level";//
 
 /** the known full length field names. */
 static const char* knownFieldNamesFull[] = {
-    "type", "circuit", FIELNAME_LEVEL, "name", "comment", "qq", "zz", "pbsb", "id", "fields",
+    "type", "circuit", FIELDNAME_LEVEL, "name", "comment", "qq", "zz", "pbsb", "id", "fields",
 };
 
 /** the known full length field names. */
@@ -200,7 +200,7 @@ uint64_t Message::createKey(const MasterSymbolString& master, size_t maxIdLength
   }
   uint64_t key = (uint64_t)idLength << (8 * 7 + 5);
   key |= (uint64_t)getMasterNumber(master[0]) << (8 * 7);  // QQ address for passive message
-  key |= (uint64_t)(anyDestination ? SYN : master[1]) << (8 * 6);  // ZZ address
+  key |= (uint64_t)(anyDestination ? (symbol_t)SYN : master[1]) << (8 * 6);  // ZZ address
   key |= (uint64_t)master[2] << (8 * 5);  // PB
   key |= (uint64_t)master[3] << (8 * 4);  // SB
   int exp = 3;
@@ -867,7 +867,7 @@ void Message::dump(const vector<string>* fieldNames, bool withConditions, Output
   bool first = true;
   if (fieldNames == nullptr) {
     for (const auto& fieldName : knownFieldNamesFull) {
-      if (fieldName == FIELNAME_LEVEL) {
+      if (fieldName == FIELDNAME_LEVEL) {
         continue;  // access level not included in default dump format
       }
       if (first) {
@@ -1411,8 +1411,10 @@ result_t splitValues(const string& valueList, vector<unsigned int>* valueRanges)
         valueRanges->push_back(0);
       }
       bool inclusive = str[1] == '=';
-      unsigned int val = parseInt(str.substr(inclusive?2:1).c_str(), 10, inclusive?0:1,
-          inclusive?UINT_MAX:(UINT_MAX-1), &result);
+      unsigned int val = parseInt(str.substr(inclusive?2:1).c_str(), 10,
+        inclusive || !upto ? 0 : 1,
+        inclusive || upto ? UINT_MAX : (UINT_MAX-1),
+        &result);
       if (result != RESULT_OK) {
         return result;
       }

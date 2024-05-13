@@ -32,9 +32,6 @@ using std::setfill;
 using std::setw;
 using std::endl;
 
-// the string used for answering to a scan request (07h 04h)
-#define SCAN_ANSWER ("ebusd.eu;" PACKAGE_NAME ";" SCAN_VERSION ";100")
-
 
 result_t PollRequest::prepare(symbol_t ownMasterAddress) {
   istringstream input;
@@ -378,33 +375,11 @@ void BusHandler::notifyProtocolStatus(ProtocolState state, result_t result) {
   }
 }
 
-result_t BusHandler::notifyProtocolAnswer(const MasterSymbolString& command, SlaveSymbolString* response) {
-  Message* message = m_messages->find(command);
-  if (message == nullptr) {
-    message = m_messages->find(command, true);
-    if (message != nullptr && message->getSrcAddress() != SYN) {
-      message = nullptr;
-    }
-  }
-  if (message == nullptr || message->isWrite()) {
-    // don't know this request or definition has wrong direction, deny
-    return RESULT_ERR_INVALID_ARG;
-  }
-  istringstream input;  // TODO create input from database of internal variables
-  if (message == m_messages->getScanMessage()
-  || message == m_messages->getScanMessage(m_protocol->getOwnMasterAddress())) {
-    input.str(SCAN_ANSWER);
-  }
-  // build response and store in m_response for sending back to requesting master
-  return message->prepareSlave(&input, response);
-}
-
-
 void BusHandler::notifyProtocolSeenAddress(symbol_t address) {
   m_seenAddresses[address] |= SEEN;
 }
 
-void BusHandler::notifyProtocolMessage(bool sent, const MasterSymbolString& command,
+void BusHandler::notifyProtocolMessage(MessageDirection direction, const MasterSymbolString& command,
   const SlaveSymbolString& response) {
   symbol_t srcAddress = command[0], dstAddress = command[1];
   bool master = isMaster(dstAddress);
@@ -465,7 +440,23 @@ void BusHandler::notifyProtocolMessage(bool sent, const MasterSymbolString& comm
     }
     m_grabbedMessages[key].setLastData(command, response);
   }
-  const char* prefix = sent ? "sent" : "received";
+  if (direction == md_answer) {
+    size_t idLen = command.getDataSize();
+    size_t resLen = response.getDataSize();
+    if (master && idLen >= resLen) {
+      // build MS auto-answer from MM with same ID
+      SlaveSymbolString answer;
+      answer.push_back(0);  // room for length
+      idLen -= resLen;
+      for (size_t pos = idLen; pos < resLen; pos++) {
+        answer.push_back(command.dataAt(pos));
+      }
+      answer.adjustHeader();
+      m_protocol->setAnswer(SYN, getSlaveAddress(dstAddress), command[2], command[3], command.data() + 5, idLen, answer);
+      // TODO could use loaded messages for identifying MM/MS message pair
+    }
+  }
+  const char* prefix = direction == md_answer ? "answered" : direction == md_send ? "sent" : "received";
   if (message == nullptr) {
     if (dstAddress == BROADCAST || master) {
       logNotice(lf_update, "%s unknown %s cmd: %s", prefix, master ? "MM" : "BC", command.getStr().c_str());
@@ -493,7 +484,7 @@ void BusHandler::notifyProtocolMessage(bool sent, const MasterSymbolString& comm
       string data = output.str();
       if (m_protocol->isOwnAddress(dstAddress)) {
         logNotice(lf_update, "%s %s self-update %s %s QQ=%2.2x: %s", prefix, mode, circuit.c_str(), name.c_str(),
-            srcAddress, data.c_str());  // TODO store in database of internal variables
+            srcAddress, data.c_str());
       } else if (message->getDstAddress() == SYN) {  // any destination
         if (message->getSrcAddress() == SYN) {  // any destination and any source
           logNotice(lf_update, "%s %s %s %s QQ=%2.2x ZZ=%2.2x: %s", prefix, mode, circuit.c_str(), name.c_str(),
@@ -676,12 +667,12 @@ void BusHandler::formatSeenInfo(ostringstream* output) const {
     }
     if (ownAddress) {
       *output << ", ebusd";
-      if (m_protocol->isAnswering()) {
-        *output << " (answering)";
-      }
-      if (m_protocol->isAddressConflict(address)) {
-        *output << ", conflict";
-      }
+    }
+    if (m_protocol->hasAnswer(address)) {
+      *output << " (answering)";
+    }
+    if (ownAddress && m_protocol->isAddressConflict(address)) {
+      *output << ", conflict";
     }
     if ((m_seenAddresses[address]&SCAN_DONE) != 0) {
       *output << ", scanned";

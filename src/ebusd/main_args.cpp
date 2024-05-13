@@ -54,7 +54,7 @@ static const options_t s_default_opt = {
   .dumpConfig = OF_NONE,
   .dumpConfigTo = nullptr,
   .pollInterval = 5,
-  .injectMessages = false,
+  .injectCommands = false,
   .stopAfterInject = false,
   .injectCount = 0,
 #ifdef HAVE_SSL
@@ -143,7 +143,7 @@ static const argDef argDefs[] = {
   {"device",         'd',      "DEV",      0, "Use DEV as eBUS device ("
       "prefix \"ens:\" for enhanced high speed device or "
       "\"enh:\" for enhanced device, with "
-      "\"IP:PORT\" for network device or "
+      "\"IP[:PORT]\" for network device or "
       "\"DEVICE\" for serial device"
       ") [/dev/ttyUSB0]"},
   {"nodevicecheck",  'n',      nullptr,    0, "Skip serial eBUS device test"},
@@ -170,9 +170,9 @@ static const argDef argDefs[] = {
       "Check and dump config files in FORMAT (\"json\" or \"csv\"), then stop"},
   {"dumpconfigto",   O_DMPCTO, "FILE",     0, "Dump config files to FILE"},
   {"pollinterval",   O_POLINT, "SEC",      0, "Poll for data every SEC seconds (0=disable) [5]"},
-  {"inject",         'i',      "stop", af_optional, "Inject remaining arguments as already seen messages (e.g. "
+  {"inject",         'i',      "stop", af_optional, "Inject remaining arguments as commands or already seen messages (e.g. "
       "\"FF08070400/0AB5454850303003277201\"), optionally stop afterwards"},
-  {nullptr,          O_INJPOS, "INJECT", af_optional|af_multiple, "Message(s) to inject (if --inject was given)"},
+  {nullptr,          O_INJPOS, "INJECT", af_optional|af_multiple, "Commands and/or messages to inject (if --inject was given)"},
 #ifdef HAVE_SSL
   {"cafile",         O_CAFILE, "FILE",     0, "Use CA FILE for checking certificates (uses defaults,"
                                               " \"#\" for insecure)"},
@@ -193,7 +193,7 @@ static const argDef argDefs[] = {
   {"accesslevel",    O_ACLDEF, "LEVEL",    0, "Set default access level to LEVEL (\"*\" for everything) [\"\"]"},
   {"aclfile",        O_ACLFIL, "FILE",     0, "Read access control list from FILE"},
   {"foreground",     'f',      nullptr,    0, "Run in foreground"},
-  {"enablehex",      O_HEXCMD, nullptr,    0, "Enable hex command"},
+  {"enablehex",      O_HEXCMD, nullptr,    0, "Enable hex/inject/answer commands"},
   {"enabledefine",   O_DEFCMD, nullptr,    0, "Enable define command"},
   {"pidfile",        O_PIDFIL, "FILE",     0, "PID file name (only for daemon) [" PACKAGE_PIDFILE "]"},
   {"port",           'p',      "PORT",     0, "Listen for command line connections on PORT [8888]"},
@@ -205,11 +205,11 @@ static const argDef argDefs[] = {
   {nullptr,          0,        nullptr,    0, "Log options:"},
   {"logfile",        'l',      "FILE",     0, "Write log to FILE (only for daemon, empty string for using syslog) ["
       PACKAGE_LOGFILE "]"},
-  {"log",            O_LOG, "AREAS:LEVEL", 0, "Only write log for matching AREA(S) below or equal to LEVEL"
+  {"log",            O_LOG, "AREAS:LEVEL", 0, "Only write log for matching AREA(S) up to LEVEL"
       " (alternative to --logareas/--logevel, may be used multiple times) [all:notice]"},
   {"logareas",       O_LOGARE, "AREAS",    0, "Only write log for matching AREA(S): main|network|bus|update|other"
       "|all [all]"},
-  {"loglevel",       O_LOGLEV, "LEVEL",    0, "Only write log below or equal to LEVEL: error|notice|info|debug"
+  {"loglevel",       O_LOGLEV, "LEVEL",    0, "Only write log up to LEVEL: error|notice|info|debug"
       " [notice]"},
 
   {nullptr,          0,        nullptr,    0, "Raw logging options:"},
@@ -343,7 +343,7 @@ static int parse_opt(int key, char *arg, const argParseOpt *parseOpt, struct opt
     opt->pollInterval = value;
     break;
   case 'i':  // --inject[=stop]
-    opt->injectMessages = true;
+    opt->injectCommands = true;
     opt->stopAfterInject = arg && strcmp("stop", arg) == 0;
     break;
 #ifdef HAVE_SSL
@@ -595,7 +595,7 @@ static int parse_opt(int key, char *arg, const argParseOpt *parseOpt, struct opt
 
   default:
     if (key >= O_INJPOS) {  // INJECT
-      if (!opt->injectMessages || !arg || !arg[0]) {
+      if (!opt->injectCommands || !arg || !arg[0]) {
         return ESRCH;
       }
       opt->injectCount++;
@@ -612,10 +612,6 @@ static int parse_opt(int key, char *arg, const argParseOpt *parseOpt, struct opt
   }
   if (opt->scanConfig && opt->pollInterval == 0) {
     argParseError(parseOpt, "scanconfig without polling may lead to invalid files included for certain products!");
-    return EINVAL;
-  }
-  if (opt->injectMessages && (opt->checkConfig || opt->dumpConfig)) {
-    argParseError(parseOpt, "cannot combine inject with checkconfig/dumpconfig");
     return EINVAL;
   }
   return 0;

@@ -5,6 +5,8 @@
 * fix DTM type with recent dates
 ## Features
 * add "inject" command
+* add config path to verbose "info" command
+* add "answer" command
 
 
 # 23.3 (2023-12-26)

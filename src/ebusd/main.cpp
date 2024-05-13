@@ -248,15 +248,8 @@ int main(int argc, char* argv[], char* envp[]) {
       return EINVAL;
   }
 
-  if (s_opt.injectCount > 0) {
-    if (!s_opt.injectMessages && !(s_opt.checkConfig && s_opt.scanConfig)) {
-      fprintf(stderr, "invalid inject arguments");
-      return EINVAL;
-    }
-  }
-
   if (s_opt.logAreas != -1 || s_opt.logLevel != ll_COUNT) {
-    setFacilitiesLogLevel(LF_ALL, ll_none);
+    setFacilitiesLogLevel(1 << lf_COUNT, ll_none);
     setFacilitiesLogLevel(s_opt.logAreas, s_opt.logLevel);
   }
 
@@ -415,6 +408,16 @@ int main(int argc, char* argv[], char* envp[]) {
     return EINVAL;
   }
   s_busHandler->setProtocol(s_protocol);
+  if (s_opt.answer) {
+    istringstream input;
+    input.str("ebusd.eu;" PACKAGE_NAME ";" SCAN_VERSION ";100");
+    Message* message = s_messageMap->getScanMessage();
+    SlaveSymbolString response;
+    if (message && message->prepareSlave(&input, &response) == RESULT_OK) {
+      s_protocol->setAnswer(SYN, s_protocol->getOwnSlaveAddress(), message->getPrimaryCommand(),
+      message->getSecondaryCommand(), nullptr, 0, response);
+    }
+  }
 
   if (!s_opt.foreground) {
     if (!setLogFile(s_opt.logFile)) {
@@ -463,14 +466,33 @@ int main(int argc, char* argv[], char* envp[]) {
   s_scanHelper->loadConfigFiles(!s_opt.scanConfig);
 
   // start the MainLoop
-  if (s_opt.injectMessages) {
+  if (s_opt.injectCommands) {
     int scanAdrCount = 0;
     bool scanAddresses[256] = {};
     for (int arg_index = argc - s_opt.injectCount; arg_index < argc; arg_index++) {
-      // add each passed message
+      string arg = argv[arg_index];
+      if (arg.empty()) {
+        continue;
+      }
+      if (arg.find_first_of(' ') != string::npos || arg.find_first_of('/') == string::npos) {
+        RequestImpl req(false);
+        req.add(argv[arg_index]);
+        bool connected;
+        RequestMode reqMode;
+        string user;
+        bool reload;
+        ostringstream ostream;
+        result_t ret = s_mainLoop->decodeRequest(&req, &connected, &reqMode, &user, &reload, &ostream);
+        if (ret != RESULT_OK) {
+          string output = ostream.str();
+          logError(lf_main, "executing command %s failed: %d", argv[arg_index], output.c_str());
+        }
+        continue;
+      }
+      // old style inject message
       MasterSymbolString master;
       SlaveSymbolString slave;
-      if (!s_scanHelper->parseMessage(argv[arg_index], false, &master, &slave)) {
+      if (!s_scanHelper->parseMessage(arg, false, &master, &slave)) {
         continue;
       }
       s_protocol->injectMessage(master, slave);

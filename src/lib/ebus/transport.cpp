@@ -176,6 +176,7 @@ result_t FileTransport::read(unsigned int timeout, const uint8_t** data, size_t*
     FD_ZERO(&readfds);
     FD_ZERO(&exceptfds);
     FD_SET(m_fd, &readfds);
+    FD_SET(m_fd, &exceptfds);
 
     ret = pselect(m_fd + 1, &readfds, nullptr, &exceptfds, &tdiff, nullptr);
     if (ret >= 1 && FD_ISSET(m_fd, &exceptfds)) {
@@ -328,13 +329,13 @@ result_t NetworkTransport::openInternal() {
   if (m_fd < 0) {
     return RESULT_ERR_GENERIC_IO;
   }
-  if (!m_udp) {
-    usleep(25000);  // wait 25ms for potential initial garbage
-  }
   int cnt;
   symbol_t buf[MTU];
   int ioerr;
   while ((ioerr=ioctl(m_fd, FIONREAD, &cnt)) >= 0 && cnt > 1) {
+    if (!m_udp) {
+      break;  // no need to skip anything on a fresh TCP connection
+    }
     // skip buffered input
     ssize_t read = ::read(m_fd, &buf, MTU);
     if (read <= 0) {

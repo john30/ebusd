@@ -128,7 +128,7 @@ class MainLoop : public Thread {
   void run() override;
 
 
- private:
+ public:
   /**
    * Decode and execute client request.
    * @param req the @a Request to decode.
@@ -142,6 +142,7 @@ class MainLoop : public Thread {
   result_t decodeRequest(Request* req, bool* connected, RequestMode* reqMode,
       string* user, bool* reload, ostringstream* ostream);
 
+ private:
   /**
    * Parse the hex master message from the remaining arguments.
    * @param args the arguments passed to the command.
@@ -223,6 +224,15 @@ class MainLoop : public Thread {
    * @return the result code.
    */
   result_t executeDirect(const vector<string>& args, RequestMode* reqMode, ostringstream* ostream);
+
+  /**
+   * Execute the answer command.
+   * @param args the arguments passed to the command (starting with the command itself), or empty for help.
+   * @param reqMode the @a RequestMode to use and update.
+   * @param ostream the @a ostringstream to format the result string to.
+   * @return the result code.
+   */
+  result_t executeAnswer(const vector<string>& args, ostringstream* ostream);
 
   /**
    * Execute the find command.
@@ -403,7 +413,7 @@ class MainLoop : public Thread {
   /** true when the poll interval is non zero. */
   const bool m_polling;
 
-  /** whether to enable the hex command. */
+  /** whether to enable the hex, inject, and answer commands. */
   const bool m_enableHex;
 
   /** the MessageMap for handling newly defined messages for testing (if enabled), or nullptr. */

@@ -160,6 +160,8 @@ int tcpKeepAliveInterval) {
       FD_ZERO(&writefds);
       FD_ZERO(&exceptfds);
       FD_SET(sfd, &readfds);
+      FD_SET(sfd, &writefds);
+      FD_SET(sfd, &exceptfds);
 #ifdef HAVE_PSELECT
       ret = pselect(sfd + 1, &readfds, &writefds, &exceptfds, &tdiff, nullptr);
 #else

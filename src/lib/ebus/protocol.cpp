@@ -70,27 +70,28 @@ ProtocolHandler* ProtocolHandler::create(const ebus_protocol_config_t config,
     }
   }
   Transport* transport;
-  if (strchr(name, '/') == nullptr && strchr(name, ':') != nullptr) {
+  if (strchr(name, '/') == nullptr || strchr(name, ':') != nullptr) {
     char* in = strdup(name);
     bool udp = false;
     char* addrpos = in;
     char* portpos = strchr(addrpos, ':');
-    // support tcp:<ip>:<port> and udp:<ip>:<port>
+    // support tcp:<ip>[:<port>] and udp:<ip>[:<port>]
     if (portpos == addrpos+3 && (strncmp(addrpos, "tcp", 3) == 0 || (udp=(strncmp(addrpos, "udp", 3) == 0)))) {
       addrpos += 4;
       portpos = strchr(addrpos, ':');
     }
+    uint16_t port;
     if (portpos == nullptr) {
-      free(in);
-      return nullptr;  // invalid protocol or missing port
+      port = 9999;
+    } else {
+      result_t result = RESULT_OK;
+      port = (uint16_t)parseInt(portpos+1, 10, 1, 65535, &result);
+      if (result != RESULT_OK) {
+        free(in);
+        return nullptr;  // invalid port
+      }
+      *portpos = 0;
     }
-    result_t result = RESULT_OK;
-    uint16_t port = (uint16_t)parseInt(portpos+1, 10, 1, 65535, &result);
-    if (result != RESULT_OK) {
-      free(in);
-      return nullptr;  // invalid port
-    }
-    *portpos = 0;
     char* hostOrIp = strdup(addrpos);
     free(in);
     transport = new NetworkTransport(name, config.extraLatency, hostOrIp, port, udp);
