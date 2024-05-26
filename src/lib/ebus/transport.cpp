@@ -91,8 +91,8 @@ result_t FileTransport::open() {
   } else {
     result = openInternal();
   }
-  if (m_listener != nullptr) {
-    result = m_listener->notifyTransportStatus(result == RESULT_OK);
+  if (m_listener != nullptr && result == RESULT_OK) {
+    result = m_listener->notifyTransportStatus(true);
   }
   if (result != RESULT_OK) {
     close();
