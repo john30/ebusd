@@ -286,7 +286,7 @@ class SymbolString {
   }
 
   /**
-   * Return the calculated number of data bytes DD (nnot yet revealed in the length field).
+   * Return the calculated number of data bytes DD (not yet revealed in the length field).
    * @return the calculated number of data bytes DD.
    */
   size_t getCalculatedDataSize() const {
