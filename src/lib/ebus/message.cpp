@@ -769,36 +769,25 @@ result_t Message::storeLastData(size_t index, const SlaveSymbolString& data) {
   return RESULT_OK;
 }
 
-result_t Message::decodeLastData(bool master, bool leadingSeparator, const char* fieldName,
-    ssize_t fieldIndex, OutputFormat outputFormat, ostream* output) const {
-  result_t result;
-  if (master) {
+result_t Message::decodeLastData(PartType part, bool leadingSeparator, const char* fieldName,
+    ssize_t fieldIndex, const OutputFormat outputFormat, ostream* output) const {
+  if ((outputFormat & OF_RAWDATA) && !(outputFormat & OF_JSON)) {
+    *output << "[" << m_lastMasterData.getStr(2, 0, false)
+            << "/" << m_lastSlaveData.getStr(0, 0, false)
+            << "] ";
+  }
+  ostream::pos_type startPos = output->tellp();
+  result_t result = RESULT_EMPTY;
+  bool skipSlaveData = part == pt_masterData;
+  if (part == pt_any || skipSlaveData) {
     result = m_data->read(m_lastMasterData, getIdLength(), leadingSeparator, fieldName, fieldIndex,
         outputFormat, -1, output);
-  } else {
-    result = m_data->read(m_lastSlaveData, 0, leadingSeparator, fieldName, fieldIndex,
-        outputFormat, -1, output);
-  }
-  if (result < RESULT_OK) {
-    return result;
-  }
-  if (result == RESULT_EMPTY && (fieldName != nullptr || fieldIndex >= 0)) {
-    return RESULT_ERR_NOTFOUND;
-  }
-  return result;
-}
-
-result_t Message::decodeLastData(bool leadingSeparator, const char* fieldName,
-    ssize_t fieldIndex, const OutputFormat outputFormat, ostream* output) const {
-  ostream::pos_type startPos = output->tellp();
-  result_t result = m_data->read(m_lastMasterData, getIdLength(), leadingSeparator, fieldName, fieldIndex,
-      outputFormat, -1, output);
-  if (result < RESULT_OK) {
-    return result;
+    if (result < RESULT_OK) {
+      return result;
+    }
   }
   bool empty = result == RESULT_EMPTY;
-  bool skipSlaveData = false;
-  if (fieldIndex >= 0) {
+  if (!skipSlaveData && fieldIndex >= 0) {
     fieldIndex -= m_data->getCount(pt_masterData, fieldName);
     if (fieldIndex < 0) {
       skipSlaveData = true;
@@ -953,7 +942,7 @@ void Message::dumpField(const string& fieldName, bool withConditions, OutputForm
   dumpAttribute(false, outputFormat, fieldName, output);
 }
 
-void Message::decodeJson(bool leadingSeparator, bool appendDirectionCondition, bool withData, bool addRaw,
+void Message::decodeJson(bool leadingSeparator, bool appendDirectionCondition, bool withData,
                          OutputFormat outputFormat, ostringstream* output) const {
   outputFormat |= OF_JSON;
   if (leadingSeparator) {
@@ -1003,14 +992,14 @@ void Message::decodeJson(bool leadingSeparator, bool appendDirectionCondition, b
     }
     appendAttributes(outputFormat, output);
     if (hasData) {
-      if (addRaw) {
+      if (outputFormat & OF_RAWDATA) {
         m_lastMasterData.dumpJson(true, output);
         m_lastSlaveData.dumpJson(true, output);
         *output << dec;
       }
       size_t pos = (size_t)output->tellp();
       *output << ",\n    \"fields\": {";
-      result_t dret = decodeLastData(false, nullptr, -1, outputFormat, output);
+      result_t dret = decodeLastData(pt_any, false, nullptr, -1, outputFormat, output);
       if (dret == RESULT_OK) {
         *output << "\n    }";
       } else {
@@ -1694,7 +1683,7 @@ void SimpleNumericCondition::dumpValuesJson(ostream* output) const {
 
 bool SimpleStringCondition::checkValue(const Message* message, const string& field) {
   ostringstream output;
-  result_t result = message->decodeLastData(false, field.length() == 0 ? nullptr : field.c_str(), -1, OF_NONE, &output);
+  result_t result = message->decodeLastData(pt_any, false, field.length() == 0 ? nullptr : field.c_str(), -1, OF_NONE, &output);
   if (result == RESULT_OK) {
     string value = output.str();
     for (size_t i = 0; i < m_values.size(); i++) {
@@ -2931,7 +2920,7 @@ void MessageMap::dump(bool withConditions, OutputFormat outputFormat, ostream* o
         }
         if (isJson) {
           ostringstream str;
-          message->decodeJson(false, false, false, false, outputFormat, &str);
+          message->decodeJson(false, false, false, outputFormat, &str);
           string add = str.str();
           size_t pos = add.find('{');
           *output << "   {\n    \"circuit\": \"" << message->getCircuit() << "\", " << add.substr(pos+1);
@@ -2952,7 +2941,7 @@ void MessageMap::dump(bool withConditions, OutputFormat outputFormat, ostream* o
       }
       if (isJson) {
         ostringstream str;
-        message->decodeJson(!wasFirst, true, false, false, outputFormat, &str);
+        message->decodeJson(!wasFirst, true, false, outputFormat, &str);
         *output << str.str();
       } else {
         message->dump(nullptr, withConditions, outputFormat, output);

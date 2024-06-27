@@ -110,6 +110,9 @@ enum OutputFormat : OutputFormatBaseType {
 
   /** bit flag for @a OutputFormat: include message/field definition. */
   OF_DEFINITION = 1 << 8,
+
+  /** bit flag for @a OutputFormat: include raw data. */
+  OF_RAWDATA = 1 << 9,
 };
 
 constexpr inline enum OutputFormat operator| (enum OutputFormat self, enum OutputFormat other) {

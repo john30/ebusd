@@ -412,6 +412,31 @@ const char* DataField::getDayName(int day) {
   return dayNames[day];
 }
 
+bool DataField::addRaw(size_t offset, size_t length, const SymbolString& input, bool isJson, ostream* output) {
+  size_t size = input.getDataSize();
+  if (offset >= size) {
+    return false;
+  }
+  if (isJson) {
+    *output << ", \"raw\": [";
+    for (size_t pos = 0; pos < length && offset+pos < size; pos++) {
+      if (pos > 0) {
+        *output << ", ";
+      }
+      *output << dec << static_cast<unsigned>(input.dataAt(offset+pos));
+    }
+    *output << "]";
+  } else {
+    *output << "[";
+    for (size_t pos = 0; pos < length && offset+pos < size; pos++) {
+      *output << setw(2) << hex
+        << setfill('0') << static_cast<unsigned>(input.dataAt(offset+pos));
+    }
+    *output << "]";
+  }
+  return true;
+}
+
 
 result_t SingleDataField::create(const string& name, const map<string, string>& attributes, const DataType* dataType,
     PartType partType, size_t length, int divisor, const string& constantValue,
@@ -547,7 +572,8 @@ result_t SingleDataField::read(const SymbolString& data, size_t offset,
     return RESULT_EMPTY;
   }
   bool shortFormat = outputFormat & OF_SHORT;
-  if (outputFormat & OF_JSON) {
+  bool isJson = outputFormat & OF_JSON;
+  if (isJson) {
     if (leadingSeparator) {
       *output << ",";
     }
@@ -578,6 +604,9 @@ result_t SingleDataField::read(const SymbolString& data, size_t offset,
     }
   }
 
+  if (!shortFormat && (outputFormat & OF_RAWDATA) && !isJson) {
+    addRaw(offset, m_length, data, isJson, output);
+  }
   result_t result = readSymbols(data, offset, outputFormat, output);
   if (result != RESULT_OK) {
     return result;
@@ -585,7 +614,10 @@ result_t SingleDataField::read(const SymbolString& data, size_t offset,
   if (!shortFormat) {
     appendAttributes(outputFormat, output);
   }
-  if (!shortFormat && (outputFormat & OF_JSON)) {
+  if (!shortFormat && isJson) {
+    if (outputFormat & OF_RAWDATA) {
+      addRaw(offset, m_length, data, isJson, output);
+    }
     *output << "}";
   }
   return RESULT_OK;

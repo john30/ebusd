@@ -478,8 +478,8 @@ class Message : public AttributedItem {
   virtual result_t storeLastData(size_t index, const SlaveSymbolString& data);
 
   /**
-   * Decode the value from the last stored master or slave data.
-   * @param master true for decoding the master data, false for slave.
+   * Decode value(s) from the last stored data.
+   * @param part the part to decode.
    * @param leadingSeparator whether to prepend a separator before the formatted value.
    * @param fieldName the optional name of a field to limit the output to.
    * @param fieldIndex the optional index of the field to limit the output to (either named or overall), or -1.
@@ -487,20 +487,8 @@ class Message : public AttributedItem {
    * @param output the @a ostream to append the formatted value to.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t decodeLastData(bool master, bool leadingSeparator, const char* fieldName,
-      ssize_t fieldIndex, OutputFormat outputFormat, ostream* output) const;
-
-  /**
-   * Decode the value from the last stored master and slave data.
-   * @param leadingSeparator whether to prepend a separator before the formatted value.
-   * @param fieldName the optional name of a field to limit the output to.
-   * @param fieldIndex the optional index of the field to limit the output to (either named or overall), or -1.
-   * @param outputFormat the @a OutputFormat options to use.
-   * @param output the @a ostream to append the formatted value to.
-   * @return @a RESULT_OK on success, or an error code.
-   */
-  virtual result_t decodeLastData(bool leadingSeparator, const char* fieldName,
-      ssize_t fieldIndex, OutputFormat outputFormat, ostream* output) const;
+  virtual result_t decodeLastData(PartType part, bool leadingSeparator, const char* fieldName,
+      ssize_t fieldIndex, const OutputFormat outputFormat, ostream* output) const;
 
   /**
    * Decode a particular numeric field value from the last stored data.
@@ -599,11 +587,10 @@ class Message : public AttributedItem {
    * @param leadingSeparator whether to prepend a separator before the first value.
    * @param appendDirectionCondition whether to append the direction and condition to the name key.
    * @param withData whether to add the last data as well.
-   * @param addRaw whether to add the raw symbols as well.
    * @param outputFormat the @a OutputFormat options to use.
    * @param output the @a ostringstream to append the decoded value(s) to.
    */
-  virtual void decodeJson(bool leadingSeparator, bool appendDirectionCondition, bool withData, bool addRaw,
+  virtual void decodeJson(bool leadingSeparator, bool appendDirectionCondition, bool withData,
                           OutputFormat outputFormat, ostringstream* output) const;
 
  protected:

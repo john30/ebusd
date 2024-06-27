@@ -402,7 +402,7 @@ void MainLoop::run() {
         m_messages->findAll("", "", levels, false, true, true, true, true, true, since, now, true, &messages);
         for (const auto message : messages) {
           ostream << message->getCircuit() << " " << message->getName() << " = " << dec;
-          message->decodeLastData(false, nullptr, -1, reqMode.format, &ostream);
+          message->decodeLastData(pt_any, false, nullptr, -1, reqMode.format, &ostream);
           ostream << endl;
         }
       }
@@ -648,8 +648,15 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
       }
     } else if (args[argPos] == "-vv") {
       verbosity |= VERBOSITY_2;
-    } else if (args[argPos] == "-vvv" || args[argPos] == "-V") {
+    } else if (args[argPos] == "-vvv") {
       verbosity |= VERBOSITY_3;
+    } else if (args[argPos] == "-V") {
+      if ((verbosity & VERBOSITY_4) == VERBOSITY_4) {
+        verbosity |= OF_RAWDATA;
+      }
+      verbosity |= VERBOSITY_4;
+    } else if (args[argPos] == "-VV") {
+      verbosity |= VERBOSITY_4 | OF_RAWDATA;
     } else if (args[argPos] == "-n") {
       verbosity = (verbosity & ~OF_VALUENAME) | OF_NUMERIC;
     } else if (args[argPos] == "-N") {
@@ -723,7 +730,7 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
         "  -d ZZ        override destination address ZZ\n"
         "  -p PRIO      set the message poll priority (1-9)\n"
         "  -v           increase verbosity (include names/units/comments)\n"
-        "  -V           be very verbose (include names, units, and comments)\n"
+        "  -V           be very verbose (all attributes, plus raw data if given more than once)\n"
         "  -n           use numeric value of value=name pairs\n"
         "  -N           use numeric and named value of value=name pairs\n"
         "  -i VALUE     read additional message parameters from VALUE\n"
@@ -785,7 +792,7 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
       ret = message->storeLastData(master, slave);
       ostringstream result;
       if (ret == RESULT_OK) {
-        ret = message->decodeLastData(false, nullptr, -1, OF_NONE, &result);
+        ret = message->decodeLastData(pt_any, false, nullptr, -1, OF_NONE, &result);
       }
       if (ret >= RESULT_OK) {
         logInfo(lf_main, "read hex %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(),
@@ -855,7 +862,7 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
     if (verbosity & OF_NAMES) {
       *ostream << cacheMessage->getCircuit() << " " << cacheMessage->getName() << " ";
     }
-    ret = cacheMessage->decodeLastData(false, fieldIndex == -2 ? nullptr : fieldName.c_str(), fieldIndex, verbosity,
+    ret = cacheMessage->decodeLastData(pt_any, false, fieldIndex == -2 ? nullptr : fieldName.c_str(), fieldIndex, verbosity,
         ostream);
     if (ret != RESULT_OK) {
       if (ret < RESULT_OK) {
@@ -888,7 +895,7 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
   if (verbosity & OF_NAMES) {
     *ostream << message->getCircuit() << " " << message->getName() << " ";
   }
-  ret = message->decodeLastData(false, false, fieldIndex == -2 ? nullptr : fieldName.c_str(), fieldIndex, verbosity,
+  ret = message->decodeLastData(pt_any, false, fieldIndex == -2 ? nullptr : fieldName.c_str(), fieldIndex, verbosity,
       ostream);
   if (ret < RESULT_OK) {
     logError(lf_main, "read %s %s: decode %s", message->getCircuit().c_str(), message->getName().c_str(),
@@ -1009,7 +1016,7 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
       ret = message->storeLastData(master, slave);
       ostringstream result;
       if (ret == RESULT_OK) {
-        ret = message->decodeLastData(false, nullptr, -1, OF_NONE, &result);
+        ret = message->decodeLastData(pt_any, false, nullptr, -1, OF_NONE, &result);
       }
       if (ret >= RESULT_OK) {
         logInfo(lf_main, "write hex %s %s cache update: %s", message->getCircuit().c_str(),
@@ -1080,7 +1087,7 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
     return RESULT_OK;
   }
 
-  ret = message->decodeLastData(false, false, nullptr, -1, OF_NONE, ostream);  // decode data
+  ret = message->decodeLastData(pt_any, false, nullptr, -1, OF_NONE, ostream);  // decode data
   if (ret >= RESULT_OK && ostream->str().empty()) {
     logNotice(lf_main, "write %s %s: decode %s", message->getCircuit().c_str(), message->getName().c_str(),
         getResultCode(ret));
@@ -1487,7 +1494,7 @@ result_t MainLoop::executeFind(const vector<string>& args, const string& levels,
       } else if (hexFormat) {
         *ostream << message->getLastMasterData().getStr() << " / " << message->getLastSlaveData().getStr();
       } else {
-        result_t ret = message->decodeLastData(false, nullptr, -1, verbosity, ostream);
+        result_t ret = message->decodeLastData(pt_any, false, nullptr, -1, verbosity, ostream);
         if (ret != RESULT_OK) {
           *ostream << " (" << getResultCode(ret)
                    << " for " << message->getLastMasterData().getStr()
@@ -2045,7 +2052,7 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
       circuit = uri.substr(6, pos - 6);
       name = uri.substr(pos + 1);
     }
-    bool required = false, full = false, withWrite = false, raw = false;
+    bool required = false, full = false, withWrite = false;
     bool withDefinition = false;
     string newDefinition;
     OutputFormat verbosity = OF_NAMES;
@@ -2099,7 +2106,9 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
         } else if (qname == "write") {
           withWrite = parseBoolQuery(value);
         } else if (qname == "raw") {
-          raw = parseBoolQuery(value);
+          if (parseBoolQuery(value)) {
+            verbosity |= OF_RAWDATA;
+          }
         } else if (qname == "def") {
           withDefinition = parseBoolQuery(value);
         } else if (qname == "define") {
@@ -2191,7 +2200,7 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
           Message* next = *(it+1);
           same = next->getCircuit() == lastCircuit && next->getName() == name;
         }
-        message->decodeJson(!first, same, true, raw, verbosity, ostream);
+        message->decodeJson(!first, same, true, verbosity, ostream);
         lastName = name;
         first = false;
       }

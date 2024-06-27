@@ -184,6 +184,7 @@ int main() {
     {"", "19:00", "3110b51503000272", "00", "kd"},
     {"*r,cir*cuit#level,na*me,com*ment,ff,75,b509,0d", "", "", "", ""},
     {"r,CIRCUIT,NAME,COMMENT,,,,0100,field,,UCH", "r,cirCIRCUITcuit,naNAMEme,comCOMMENTment,ff,75,b509,0d0100,field,s,UCH,,,: field=42", "ff75b509030d0100", "012a", "DN"},
+    {"r,CIRCUIT,NAME,COMMENT,,,,0100,field,,UCH", "r,cirCIRCUITcuit,naNAMEme,comCOMMENTment,ff,75,b509,0d0100,field,s,UCH,,,: [b5090d0100/2a] field=[2a]42", "ff75b509030d0100", "012a", "DNr"},
     {"r,CIRCUIT,NAME,COMMENT,,,,0100,field,,UCH",
       "   \"naNAMEme\": {\n"
       "    \"name\": \"naNAMEme\",\n"
@@ -194,13 +195,32 @@ int main() {
       "    \"zz\": 117,\n"
       "    \"id\": [181, 9, 13, 1, 0],\n"
       "    \"fields\": {\n"
-      "     \"0\": {\"name\": \"field\", \"value\": 42}\n"
+      "     \"field\": {\"value\": 42}\n"
       "    },\n"
       "    \"fielddefs\": [\n"
       "     { \"name\": \"field\", \"slave\": true, \"type\": \"UCH\", \"isbits\": false, \"length\": 1, \"unit\": \"\", \"comment\": \"\"}\n"
       "    ]\n"
       "   }: \n"
       "     \"field\": {\"value\": 42}", "ff75b509030d0100", "012a", "jN"},
+    {"r,CIRCUIT,NAME,COMMENT,,,,0100,field,,UCH",
+      "   \"naNAMEme\": {\n"
+      "    \"name\": \"naNAMEme\",\n"
+      "    \"passive\": false,\n"
+      "    \"write\": false,\n"
+      "    \"lastup\": *,\n"
+      "    \"qq\": 255,\n"
+      "    \"zz\": 117,\n"
+      "    \"id\": [181, 9, 13, 1, 0],\n"
+      "    \"master\": [255, 117, 181, 9, 3, 13, 1, 0],\n"
+      "    \"slave\": [1, 42],\n"
+      "    \"fields\": {\n"
+      "     \"field\": {\"value\": 42, \"raw\": [42]}\n"
+      "    },\n"
+      "    \"fielddefs\": [\n"
+      "     { \"name\": \"field\", \"slave\": true, \"type\": \"UCH\", \"isbits\": false, \"length\": 1, \"unit\": \"\", \"comment\": \"\"}\n"
+      "    ]\n"
+      "   }: \n"
+      "     \"field\": {\"value\": 42, \"raw\": [42]}", "ff75b509030d0100", "012a", "jNr"},
   };
   templates = new DataFieldTemplates();
   unsigned int lineNo = 0;
@@ -235,6 +255,10 @@ int main() {
     bool decodeVerbose = flags.find('D') != string::npos || flags.find('J') != string::npos;
     bool withMessageDump = flags.find('N') != string::npos;
     bool decode = decodeJson || decodeVerbose || (flags.find('d') != string::npos);
+    OutputFormat verbosity = (decodeVerbose?OF_NAMES|OF_UNITS|OF_COMMENTS:OF_NONE)|(decodeJson?OF_NAMES|OF_JSON:OF_NONE);
+    if (flags.find('r') != string::npos) {
+      verbosity |= OF_RAWDATA;
+    }
     bool failedPrepare = flags.find('p') != string::npos;
     bool failedPrepareMatch = flags.find('P') != string::npos;
     bool multi = flags.find('*') != string::npos;
@@ -408,7 +432,7 @@ int main() {
       ostringstream output;
       if (withMessageDump) {
         if (decodeJson) {
-          message->decodeJson(false, false, true, false, OF_JSON|OF_DEFINITION, &output);
+          message->decodeJson(false, false, true, verbosity|OF_DEFINITION, &output);
           string str = output.str();
           size_t start = str.find("\"lastup\": ");
           if (start != string::npos) {
@@ -425,8 +449,7 @@ int main() {
         }
         output << ": ";
       }
-      result = message->decodeLastData(false, nullptr, -1,
-          (decodeVerbose?OF_NAMES|OF_UNITS|OF_COMMENTS:OF_NONE)|(decodeJson?OF_NAMES|OF_JSON:OF_NONE), &output);
+      result = message->decodeLastData(pt_any, false, nullptr, -1, verbosity, &output);
       if (result != RESULT_OK) {
         cout << "  \"" << check[2] << "\" / \"" << check[3] << "\": decode error " << (message->isWrite() ? "write: " : "read: ")
             << getResultCode(result) << endl;

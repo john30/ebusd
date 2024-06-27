@@ -1178,7 +1178,7 @@ void MqttHandler::publishMessage(const Message* message, ostringstream* updates,
     } else if (m_staticTopic) {
       *updates << message->getCircuit() << UI_FIELD_SEPARATOR << message->getName() << UI_FIELD_SEPARATOR;
     }
-    result_t result = message->decodeLastData(false, nullptr, -1, outputFormat, updates);
+    result_t result = message->decodeLastData(pt_any, false, nullptr, -1, outputFormat, updates);
     if (result == RESULT_EMPTY) {
       publishEmptyTopic(getTopic(message));  // alternatively: , json ? "null" : "");
       return;
@@ -1206,7 +1206,7 @@ void MqttHandler::publishMessage(const Message* message, ostringstream* updates,
       publishEmptyTopic(getTopic(message, "", name));  // alternatively: , json ? "null" : "");
       continue;
     }
-    result_t result = message->decodeLastData(false, nullptr, index, outputFormat, updates);
+    result_t result = message->decodeLastData(pt_any, false, nullptr, index, outputFormat, updates);
     if (result != RESULT_OK) {
       logOtherError("mqtt", "decode %s %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(),
           name.c_str(), getResultCode(result));

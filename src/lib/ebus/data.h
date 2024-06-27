@@ -240,6 +240,17 @@ class DataField : public AttributedItem {
   static const char* getDayName(int day);
 
   /**
+   * Add raw data to the output (excluding the length field).
+   * @param offset the offset in the data part of the @a SymbolString.
+   * @param length the maximum number of symbols to dump.
+   * @param input the @a SymbolString to dump from.
+   * @param isJson true for JSON format, false for text.
+   * @param output the ostream to append the raw data to.
+   * @return true when something was added to the output.
+   */
+  static bool addRaw(size_t offset, size_t length, const SymbolString& input, bool isJson, ostream* output);
+
+  /**
    * Returns the length of this field (or contained fields) in bytes.
    * @param partType the message part of the contained fields to limit the length calculation to.
    * @param maxLength the maximum length for calculating remainder of input (e.g. @a MAX_LEN).
