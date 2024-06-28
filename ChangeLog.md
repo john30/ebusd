@@ -3,10 +3,15 @@
 * fix conditional messages not being sent to message definition in MQTT integration and not being used in KNX group association
 * fix CSV dump of config files on command line
 * fix DTM type with recent dates
+* fix for some updated messages not appearing on KNX or MQTT
+* fix for parsing certain condition ranges
 ## Features
 * add "inject" command
 * add config path to verbose "info" command
 * add "answer" command
+* add option to inject start-up commands
+* add verbose raw data option to "read" and "write" commands
+* add option to allow write direction in "read" command when inline defining a new message
 
 
 # 23.3 (2023-12-26)
