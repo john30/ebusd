@@ -317,6 +317,7 @@ bool GrabbedMessage::dump(bool unknown, MessageMap* messages, bool first, Output
 void BusHandler::clear() {
   m_protocol->clear();
   m_scanResults.clear();
+  memset(m_seenAddresses, 0, sizeof(m_seenAddresses));
 }
 
 result_t BusHandler::readFromBus(Message* message, const string& inputStr, symbol_t dstAddress,
