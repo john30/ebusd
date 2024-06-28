@@ -613,7 +613,7 @@ result_t MainLoop::executeAuth(const vector<string>& args, string* user, ostring
 
 result_t MainLoop::executeRead(const vector<string>& args, const string& levels, ostringstream* ostream) {
   size_t argPos = 1;
-  bool hex = false, newDefinition = false;
+  bool hex = false, newDefinition = false, writeDirection = false;
   OutputFormat verbosity = OF_NONE;
   time_t maxAge = 5*60;
   string circuit, params;
@@ -626,6 +626,9 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
       if (!m_newlyDefinedMessages) {
         *ostream << "ERR: option not enabled";
         return RESULT_OK;
+      }
+      if (newDefinition) {
+        writeDirection = true;
       }
       newDefinition = true;
     } else if (args[argPos] == "-f") {
@@ -742,7 +745,7 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
         "  NAME         NAME of the message to send\n"
         "  FIELD        only retrieve the field named FIELD\n"
         "  N            only retrieve the N'th field named FIELD (0-based)\n"
-        "  -def         read with explicit message definition (only if enabled):\n"
+        "  -def         read with explicit message definition (only if enabled, allow write direction if given more than once):\n"
         "    DEFINITION message definition to use instead of known definition\n"
         "  -h           send hex read message (or answer from cache):\n"
         "    ZZ         destination address\n"
@@ -842,9 +845,9 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
       return RESULT_OK;
     }
     deque<Message*> messages;
-    m_newlyDefinedMessages->findAll("", "", levels, false, true, false, false, true, false, 0, 0, false, &messages);
+    m_newlyDefinedMessages->findAll("", "", levels, false, true, writeDirection, false, true, false, 0, 0, false, &messages);
     if (messages.empty()) {
-      *ostream << "ERR: bad definition: no read message";
+      *ostream << "ERR: bad definition: no read" << (writeDirection?"/write":"") << " message";
       return RESULT_OK;
     }
     message = *messages.begin();
