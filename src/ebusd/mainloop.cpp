@@ -864,11 +864,18 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
     }
     ret = cacheMessage->decodeLastData(pt_any, false, fieldIndex == -2 ? nullptr : fieldName.c_str(), fieldIndex, verbosity,
         ostream);
-    if (ret != RESULT_OK) {
-      if (ret < RESULT_OK) {
-        logError(lf_main, "read %s %s cached: %s", cacheMessage->getCircuit().c_str(),
-            cacheMessage->getName().c_str(), getResultCode(ret));
+    if (ret < RESULT_OK) {
+      logError(lf_main, "read %s %s cached: decode %s", cacheMessage->getCircuit().c_str(),
+          cacheMessage->getName().c_str(), getResultCode(ret));
+      const auto str = ostream->str();
+      ostream->str("");
+      *ostream << getResultCode(ret) << " in decode";
+      if (!str.empty()) {
+        *ostream << ": " << str;
       }
+      return RESULT_OK;
+    }
+    if (ret > RESULT_OK) {
       return ret;
     }
     logInfo(lf_main, "read %s %s cached: %s", cacheMessage->getCircuit().c_str(), cacheMessage->getName().c_str(),
@@ -900,8 +907,12 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
   if (ret < RESULT_OK) {
     logError(lf_main, "read %s %s: decode %s", message->getCircuit().c_str(), message->getName().c_str(),
         getResultCode(ret));
+    const auto str = ostream->str();
     ostream->str("");
     *ostream << getResultCode(ret) << " in decode";
+    if (!str.empty()) {
+      *ostream << ": " << str;
+    }
     return RESULT_OK;
   }
   if (ret > RESULT_OK) {
@@ -1077,32 +1088,26 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
         getResultCode(ret));
     return ret;
   }
-  dstAddress = message->getLastMasterData().dataAt(1);
-  if (dstAddress == BROADCAST || isMaster(dstAddress)) {
-    logNotice(lf_main, "write %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(),
-        getResultCode(ret));
-    if (dstAddress == BROADCAST) {
-      *ostream << "done broadcast";
-    }
-    return RESULT_OK;
-  }
+  dstAddress = message->getLastMasterData()[1];
 
   ret = message->decodeLastData(pt_any, false, nullptr, -1, OF_NONE, ostream);  // decode data
-  if (ret >= RESULT_OK && ostream->str().empty()) {
-    logNotice(lf_main, "write %s %s: decode %s", message->getCircuit().c_str(), message->getName().c_str(),
-        getResultCode(ret));
-    return RESULT_OK;
-  }
-  if (ret != RESULT_OK) {
+  if (ret < RESULT_OK) {
     logError(lf_main, "write %s %s: decode %s", message->getCircuit().c_str(), message->getName().c_str(),
         getResultCode(ret));
     ostream->str("");
     *ostream << getResultCode(ret) << " in decode";
     return RESULT_OK;
   }
-  logNotice(lf_main, "write %s %s: %s", message->getCircuit().c_str(), message->getName().c_str(),
-      ostream->str().c_str());
-  return RESULT_OK;
+  if (dstAddress == BROADCAST && ostream->tellp() == 0) {
+    if (ret == RESULT_OK) {
+      *ostream << getResultCode(ret) << " ";
+    }
+    *ostream << "broadcast";
+  }
+  string code = ret == RESULT_OK ? "" : (string(getResultCode(ret)) + " ");
+  logNotice(lf_main, "write %s %s: %s%s", message->getCircuit().c_str(), message->getName().c_str(),
+      code.c_str(), ostream->str().c_str());
+  return ret;
 }
 
 result_t MainLoop::parseHexAndSend(const vector<string>& args, size_t& argPos, bool isDirectMode,
