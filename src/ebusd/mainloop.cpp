@@ -925,11 +925,19 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
 result_t MainLoop::executeWrite(const vector<string>& args, const string levels, ostringstream* ostream) {
   size_t argPos = 1;
   bool hex = false, newDefinition = false;
+  OutputFormat verbosity = OF_NONE;
   string circuit;
   symbol_t srcAddress = SYN, dstAddress = SYN;
   while (args.size() > argPos && args[argPos][0] == '-') {
     if (args[argPos] == "-h") {
       hex = true;
+    } else if (args[argPos] == "-V") {
+      if ((verbosity & VERBOSITY_4) == VERBOSITY_4) {
+        verbosity |= OF_RAWDATA;
+      }
+      verbosity |= VERBOSITY_4;
+    } else if (args[argPos] == "-VV") {
+      verbosity |= VERBOSITY_4 | OF_RAWDATA;
     } else if (args[argPos] == "-def") {
       if (!m_newlyDefinedMessages) {
         *ostream << "ERR: option not enabled";
@@ -982,6 +990,7 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
         "  -s QQ        override source address QQ\n"
         "  -d ZZ        override destination address ZZ\n"
         "  -c CIRCUIT   CIRCUIT of the message to send\n"
+        "  -V           be very verbose (all attributes, plus raw data if given more than once)\n"
         "  NAME         NAME of the message to send\n"
         "  VALUE        a single field VALUE\n"
         "  -def         write with explicit message definition (only if enabled):\n"
@@ -1027,7 +1036,7 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
       ret = message->storeLastData(master, slave);
       ostringstream result;
       if (ret == RESULT_OK) {
-        ret = message->decodeLastData(pt_any, false, nullptr, -1, OF_NONE, &result);
+        ret = message->decodeLastData(pt_any, false, nullptr, -1, verbosity, &result);
       }
       if (ret >= RESULT_OK) {
         logInfo(lf_main, "write hex %s %s cache update: %s", message->getCircuit().c_str(),
@@ -1090,7 +1099,7 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
   }
   dstAddress = message->getLastMasterData()[1];
 
-  ret = message->decodeLastData(pt_any, false, nullptr, -1, OF_NONE, ostream);  // decode data
+  ret = message->decodeLastData(pt_any, false, nullptr, -1, verbosity, ostream);  // decode data
   if (ret < RESULT_OK) {
     logError(lf_main, "write %s %s: decode %s", message->getCircuit().c_str(), message->getName().c_str(),
         getResultCode(ret));
