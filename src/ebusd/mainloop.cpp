@@ -382,10 +382,15 @@ void MainLoop::run() {
         scanRetry = 0;  // restart scan counting
       }
       if (!req->isHttp() && (ostream.tellp() == 0 || result != RESULT_OK)) {
-        if (reqMode.listenMode != lm_direct) {
-          ostream.str("");
+        string suffix;
+        if (result == RESULT_EMPTY && ostream.tellp() > 0) {
+          suffix = ostream.str();
         }
+        ostream.str("");
         ostream << getResultCode(result);
+        if (!suffix.empty()) {
+          ostream << " " << suffix;
+        }
       }
       const auto resp = ostream.str();
       req->log(&resp);
