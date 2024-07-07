@@ -32,8 +32,11 @@ namespace ebusd {
  * The main entry method doing all the startup handling.
  */
 
-/** the config path part behind the scheme (scheme without "://"). */
-#define CONFIG_PATH_SUFFIX "://cfg.ebusd.eu/"
+/** the default host of the configuration files. */
+#define CONFIG_HOST "ebus.github.io"
+
+/** the default location of the configuration files (without language suffix). */
+#define CONFIG_PATH "https://" CONFIG_HOST "/"
 
 /** A structure holding all program options. */
 typedef struct options {

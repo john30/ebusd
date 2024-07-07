@@ -29,13 +29,6 @@
 
 namespace ebusd {
 
-/** the default path of the configuration files. */
-#ifdef HAVE_SSL
-#define CONFIG_PATH "https" CONFIG_PATH_SUFFIX
-#else  // HAVE_SSL
-#define CONFIG_PATH "http" CONFIG_PATH_SUFFIX
-#endif  // HAVE_SSL
-
 /** the default program options. */
 static const options_t s_default_opt = {
   .device = "/dev/ttyUSB0",

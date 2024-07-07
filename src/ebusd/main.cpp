@@ -40,11 +40,8 @@ namespace ebusd {
 
 using std::cout;
 
-/** the previous config path part to rewrite to the current one. */
-#define PREVIOUS_CONFIG_PATH_SUFFIX "://ebusd.eu/config/"
-
-/** the second previous config path part to rewrite to the current one. */
-#define PREVIOUS_CONFIG_PATH_SUFFIX2 "://cfg.ebusd.eu/"
+/** the previous config path suffixes to rewrite to the current one. */
+#define PREVIOUS_CONFIG_PATH_SUFFIXES {"ebusd.eu/config/", "cfg.ebusd.eu/"}
 
 /** the opened PID file, or nullptr. */
 static FILE* s_pidFile = nullptr;
@@ -255,7 +252,7 @@ int main(int argc, char* argv[], char* envp[]) {
 
   const string lang = MappedFileReader::normalizeLanguage(
     s_opt.preferLanguage == nullptr || !s_opt.preferLanguage[0] ? "" : s_opt.preferLanguage);
-  string configLocalPrefix, configUriPrefix;
+  string configLocalPrefix, configUriPrefix, configLangQuery;
 #ifdef HAVE_SSL
   HttpClient::initialize(s_opt.caFile, s_opt.caPath);
 #else  // HAVE_SSL
@@ -270,14 +267,16 @@ int main(int argc, char* argv[], char* envp[]) {
       logWrite(lf_main, ll_error, "invalid configpath without scanconfig");  // force logging on exit
       return EINVAL;
     }
-    size_t pos = configPath.find(PREVIOUS_CONFIG_PATH_SUFFIX);
-    if (pos != string::npos) {
-      string newPath = configPath.substr(0, pos) + CONFIG_PATH_SUFFIX
-        + configPath.substr(pos+strlen(PREVIOUS_CONFIG_PATH_SUFFIX));
-      logNotice(lf_main, "replaced old configPath %s with new one: %s", s_opt.configPath, newPath.c_str());
-      configPath = newPath;
+    for (auto prevSuffix : PREVIOUS_CONFIG_PATH_SUFFIXES) {
+      size_t pos = configPath.find(prevSuffix);
+      if (pos == string::npos || (pos >= 3 && configPath.substr(pos-3, 3) != "://")) {
+        continue;
+      }
+      configPath = CONFIG_PATH;
+      logNotice(lf_main, "replaced old configPath %s with new one: %s", s_opt.configPath, configPath.c_str());
+      break;
     }
-    uint16_t configPort = 80;
+    uint16_t configPort = 443;
     string proto, configHost;
     if (!HttpClient::parseUrl(configPath, &proto, &configHost, &configPort, &configUriPrefix)) {
 #ifndef HAVE_SSL
@@ -288,6 +287,13 @@ int main(int argc, char* argv[], char* envp[]) {
 #endif  // HAVE_SSL
       logWrite(lf_main, ll_error, "invalid configPath URL");  // force logging on exit
       return EINVAL;
+    }
+    if (configHost == CONFIG_HOST) {
+      string suffix = (lang != "en" ? "de" : lang) + "/";
+      configUriPrefix += suffix;
+      configPath += suffix;  // only for informational purposes
+    } else {
+      configLangQuery = lang.empty() ? lang : "?l=" + lang;
     }
     configHttpClient = new HttpClient();
     if (
@@ -306,7 +312,7 @@ int main(int argc, char* argv[], char* envp[]) {
 
   s_messageMap = new MessageMap(s_opt.checkConfig, lang);
   s_scanHelper = new ScanHelper(s_messageMap, configPath, configLocalPrefix, configUriPrefix,
-    lang.empty() ? lang : "?l=" + lang, configHttpClient, s_opt.checkConfig);
+    configLangQuery, configHttpClient, s_opt.checkConfig);
   s_messageMap->setResolver(s_scanHelper);
   if (s_opt.checkConfig) {
     logNotice(lf_main, PACKAGE_STRING "." REVISION " performing configuration check...");
