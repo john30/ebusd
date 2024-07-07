@@ -102,6 +102,13 @@ result_t ScanHelper::collectConfigFiles(const string& relPath, const string& pre
         }
         continue;
       }
+      if (name.back() == '/') {
+        // directory
+        if (dirs != nullptr) {
+          dirs->push_back(relPathWithSlash + name.substr(0, name.length() - 1));
+        }
+        continue;
+      }
       if (prefix.length() == 0 ? (!ignoreAddressPrefix || name.length() < 3 || name.find_first_of('.') != 2)
       : (name.length() >= prefix.length() && name.substr(0, prefix.length()) == prefix)) {
         files->push_back(relPathWithSlash + name);

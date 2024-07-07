@@ -148,7 +148,7 @@ static const argDef argDefs[] = {
   {"configpath",     'c',      "PATH",     0, "Read CSV config files from PATH (local folder or HTTPS URL) ["
       CONFIG_PATH "]"},
   {"scanconfig",     's',      "ADDR", af_optional, "Pick CSV config files matching initial scan ADDR: "
-      "empty for broadcast ident message (default when configpath is not given), "
+      "empty for broadcast ident message (default when neither configpath nor dumpconfig is not given), "
       "\"none\" for no initial scan message, "
       "\"full\" for full scan, "
       "a single hex address to scan, or "
@@ -667,7 +667,7 @@ int parse_main_args(int argc, char* argv[], char* envp[], options_t *opt) {
     return ret;
   }
 
-  if (!opt->readOnly && !opt->scanConfigOrPathSet) {
+  if (!opt->readOnly && !opt->scanConfigOrPathSet && opt->dumpConfig == OF_NONE) {
     opt->scanConfig = true;
     opt->initialScan = BROADCAST;
   }

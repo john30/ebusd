@@ -263,7 +263,7 @@ int main(int argc, char* argv[], char* envp[]) {
   if (configPath.find("://") == string::npos) {
     configLocalPrefix = s_opt.configPath;
   } else {
-    if (!s_opt.scanConfig) {
+    if (!s_opt.scanConfig && s_opt.dumpConfig == OF_NONE) {
       logWrite(lf_main, ll_error, "invalid configpath without scanconfig");  // force logging on exit
       return EINVAL;
     }
