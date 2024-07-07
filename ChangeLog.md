@@ -5,6 +5,8 @@
 * fix DTM type with recent dates
 * fix for some updated messages not appearing on KNX or MQTT
 * fix for parsing certain condition ranges
+* fix for "reload" command not starting the scan again
+
 ## Features
 * add "inject" command
 * add config path to verbose "info" command
@@ -12,6 +14,9 @@
 * add option to inject start-up commands
 * add verbose raw data option to "read" and "write" commands
 * add option to allow write direction in "read" command when inline defining a new message
+
+## Breaking Changes
+* change default config path to https://ebus.github.io/ serving files generated from new TypeSpec message definition sources
 
 
 # 23.3 (2023-12-26)
