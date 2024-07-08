@@ -321,6 +321,10 @@ void MainLoop::run() {
                << ",\"a\":\"other\""
 #endif
                << ",\"u\":" << (now-start);
+          const string configPathCDN = m_scanHelper->getConfigPathCDN();
+          if (!configPathCDN.empty()) {
+            ostr << ",\"cp\":\"" << configPathCDN << "\"";
+          }
           m_protocol->formatInfoJson(&ostr);
           if (m_reconnectCount) {
             ostr << ",\"rc\":" << m_reconnectCount;

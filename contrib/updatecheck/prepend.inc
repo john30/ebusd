@@ -1,31 +1,34 @@
 <?php
 $versions = array();
-function readVersions($old=false) {
+function readVersions($prefix='') {
   global $versions;
   $versions = array();
-  $v = @file_get_contents(($old?'old':'').'versions.txt');
-  if ($v) {
-    $v = explode("\n", $v);
-    $func = function($val, $k) {
-      global $versions;
-      $val = explode('=', $val);
-      if (count($val)>1) {
-        $key = $val[0];
-        $val = explode(',', $val[1]);
-        if ($key==='device' && count($val)===2 && $val[0]===$val[1]) {
-          $key = 'devicesame';
-        }
-        $versions[$key] = $val;
-      }
-    };
-    array_walk($v, $func);
+  $v = @file_get_contents($prefix.'versions.txt');
+  if (!$v) {
+    return false;
   }
+  $v = explode("\n", $v);
+  $func = function($val, $k) {
+    global $versions;
+    $val = explode('=', $val);
+    if (count($val)>1) {
+      $key = $val[0];
+      $val = explode(',', $val[1]);
+      if ($key==='device' && count($val)===2 && $val[0]===$val[1]) {
+        $key = 'devicesame';
+      }
+      $versions[$key] = $val;
+    }
+  };
+  array_walk($v, $func);
+  return true;
 }
-function checkUpdate($ebusdVersion, $ebusdRelease, $architecture, $deviceVersion, $loadedFiles, $language) {
+function checkUpdate($ebusdVersion, $ebusdRelease, $architecture, $deviceVersion, $loadedFiles, $language, $cdnPath) {
   if (!$ebusdVersion) {
     return 'invalid request';
   }
-  readVersions($architecture && substr($architecture, 0, 3)!=='arm' && (((float)$ebusdVersion)<3.3 || ($ebusdVersion==='3.3' && ($ebusdRelease==='v3.3' || (strtok($ebusdRelease, '-')==='v3.3') && strtok('-')<18))));
+  $old = $architecture && substr($architecture, 0, 3)!=='arm' && (((float)$ebusdVersion)<3.3 || ($ebusdVersion==='3.3' && ($ebusdRelease==='v3.3' || (strtok($ebusdRelease, '-')==='v3.3') && strtok('-')<18)));
+  readVersions($cdnPath ? 'cdn' : ($old ? 'old' : '')) || ($cdnPath && readVersions());
   global $versions;
   $ret = 'unknown';
   if ($ebusdVersion==$versions['ebusd'][0] && $ebusdRelease==$versions['ebusd'][1]) {

@@ -72,6 +72,11 @@ class ScanHelper : public Resolver {
   const string getConfigPath() const { return m_configPath; }
 
   /**
+   * @return the config path when pointing to CDN, empty otherwise.
+   */
+  const string getConfigPathCDN() const { return m_configUriPrefix.empty() ? "" : m_configPath; }
+
+  /**
    * Try to connect to the specified server.
    * @param host the host name to connect to.
    * @param port the port to connect to.

@@ -288,8 +288,10 @@ int main(int argc, char* argv[], char* envp[]) {
       logWrite(lf_main, ll_error, "invalid configPath URL");  // force logging on exit
       return EINVAL;
     }
-    if (configHost == CONFIG_HOST) {
-      string suffix = (lang != "en" ? "de" : lang) + "/";
+    bool isCdn = configHost == CONFIG_HOST;
+    string suffix;
+    if (isCdn) {
+      suffix = (lang != "en" ? "de" : lang) + "/";
       configUriPrefix += suffix;
       configPath += suffix;  // only for informational purposes
     } else {
@@ -305,6 +307,27 @@ int main(int argc, char* argv[], char* envp[]) {
       delete configHttpClient;
       cleanup();
       return EINVAL;
+    }
+    if (isCdn) {
+      // check load balancing redirection
+      string redirPath;
+      uint16_t redirPort = 443;
+      string redirProto, redirHost, redirUriPrefix;
+      bool repeat = false;
+      bool json = true;
+      if (configHttpClient->get("/redirect.json", "", &redirPath, nullptr, nullptr, &json) && !json
+      && HttpClient::parseUrl(redirPath, &redirProto, &redirHost, &redirPort, &redirUriPrefix)
+      && redirHost != configHost) {
+        configHttpClient->disconnect();
+        ebusd::HttpClient* redirClient = new HttpClient();
+        if (redirClient->connect(redirHost, redirPort, redirProto == "https", PACKAGE_NAME "/" PACKAGE_VERSION)) {
+          configUriPrefix = redirUriPrefix + suffix;
+          configPath = redirPath + suffix;  // only for informational purposes
+          delete configHttpClient;
+          configHttpClient = redirClient;
+          logNotice(lf_main, "configPath URL redirected to %s", configPath.c_str());
+        }
+      }
     }
     logInfo(lf_main, "configPath URL is valid");
     configHttpClient->disconnect();

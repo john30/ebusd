@@ -157,7 +157,7 @@ static const argDef argDefs[] = {
       "arguments for checking a particular scan configuration, e.g. \"FF08070400/0AB5454850303003277201\"."},
   {"scanretries",    O_SCNRET, "COUNT",    0, "Retry scanning devices COUNT times [5]"},
   {"configlang",     O_CFGLNG, "LANG",     0,
-      "Prefer LANG in multilingual configuration files [system default language]"},
+      "Prefer LANG in multilingual configuration files [system default language, DE as fallback]"},
   {"checkconfig",    O_CHKCFG, nullptr,    0, "Check config files, then stop"},
   {"dumpconfig",     O_DMPCFG, "FORMAT", af_optional,
       "Check and dump config files in FORMAT (\"json\" or \"csv\"), then stop"},

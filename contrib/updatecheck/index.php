@@ -5,7 +5,7 @@ if (substr($agent, 0, 5)==='ebusd') {
   $r = @file_get_contents('php://input');
   header('Content-Type: text/plain');
   $r = @json_decode($r, true);
-  echo checkUpdate(@$r['v'], @$r['r'], @$r['a'], @$r['dv'], @$r['l'], @$r['lc']);
+  echo checkUpdate(@$r['v'], @$r['r'], @$r['a'], @$r['dv'], @$r['l'], @$r['lc'], @$r['cp']);
   exit;
 }
 readVersions();

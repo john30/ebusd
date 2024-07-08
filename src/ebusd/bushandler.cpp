@@ -742,7 +742,7 @@ void BusHandler::formatUpdateInfo(ostringstream* output) const {
   }
   unsigned char address = 0;
   for (int index = 0; index < 256; index++, address++) {
-    bool ownAddress = !m_protocol->isOwnAddress(address);
+    bool ownAddress = m_protocol->isOwnAddress(address);
     if (!isValidAddress(address, false) || ((m_seenAddresses[address]&SEEN) == 0 && !ownAddress)) {
       continue;
     }
