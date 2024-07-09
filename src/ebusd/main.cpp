@@ -291,7 +291,7 @@ int main(int argc, char* argv[], char* envp[]) {
     bool isCdn = configHost == CONFIG_HOST;
     string suffix;
     if (isCdn) {
-      suffix = (lang != "en" ? "de" : lang) + "/";
+      suffix = (lang != "en" && lang != "tt" ? "de" : lang) + "/";
       configUriPrefix += suffix;
       configPath += suffix;  // only for informational purposes
     } else {
@@ -313,7 +313,6 @@ int main(int argc, char* argv[], char* envp[]) {
       string redirPath;
       uint16_t redirPort = 443;
       string redirProto, redirHost, redirUriPrefix;
-      bool repeat = false;
       bool json = true;
       if (configHttpClient->get("/redirect.json", "", &redirPath, nullptr, nullptr, &json) && !json
       && HttpClient::parseUrl(redirPath, &redirProto, &redirHost, &redirPort, &redirUriPrefix)
