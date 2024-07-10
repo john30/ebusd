@@ -20,4 +20,4 @@ done
 #./oldtest_filereader $files|sed -e 's#^config/##' -e 's#^\([^ ]*\) #\1=#' -e 's# #,#g'|sort >> oldversions.txt
 curl -sS https://ebus.github.io/en/versions.json -o veren.json
 curl -sS https://ebus.github.io/de/versions.json -o verde.json
-node -e 'fs=require("fs");e=JSON.parse(fs.readFileSync("veren.json","utf-8"));d=JSON.parse(fs.readFileSync("verde.json","utf-8"));console.log(Object.entries(e).map(([k,v])=>{w=d[k];return `${k}=${v.hash},${v.size},${v.mtime},${w.hash},${w.size},${w.mtime}`;}).join("\n"))' >> cdnversions.txt
+node -e 'fs=require("fs");e=JSON.parse(fs.readFileSync("veren.json","utf-8"));d=JSON.parse(fs.readFileSync("verde.json","utf-8"));console.log(Object.entries(d).map(([k,de])=>{en=e[k];return `${k}=${de.hash},${de.size},${de.mtime},${en.hash},${en.size},${en.mtime}`;}).join("\n"))'|sort >> cdnversions.txt
