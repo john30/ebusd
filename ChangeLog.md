@@ -17,6 +17,7 @@
 
 ## Breaking Changes
 * change default config path to https://ebus.github.io/ serving files generated from new TypeSpec message definition sources
+* change validation of identifiers to no longer accept unusual characters
 
 
 # 23.3 (2023-12-26)
