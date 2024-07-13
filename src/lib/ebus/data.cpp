@@ -191,6 +191,34 @@ string AttributedItem::getAttribute(const string& name) const {
 }
 
 
+bool isValidIdentifierChar(char ch, bool first, bool allowFirstDigit) {
+  return ((ch >= '0' && ch <= '9') && (!first || allowFirstDigit))
+    || (ch >= 'a' && ch <= 'z')
+    || (ch >= 'A' && ch <= 'Z')
+    || ch == '_' || ch == '$'
+    // todo '.' is the only excuse for now and should be removed some day
+    || (ch == '.'  && !first);
+}
+
+bool DataField::checkIdentifier(const string& name, bool allowFirstDigit) {
+  for (size_t i = 0; i < name.size(); i++) {
+    char ch = name[i];
+    if (!isValidIdentifierChar(ch, i==0, allowFirstDigit)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+void DataField::normalizeIdentifier(string& name, bool allowFirstDigit) {
+  for (size_t i = 0; i < name.size(); i++) {
+    char ch = name[i];
+    if (!isValidIdentifierChar(ch, i==0, allowFirstDigit)) {
+      name[i] = '_';
+    }
+  }
+}
+
 result_t DataField::create(bool isWriteMessage, bool isTemplate, bool isBroadcastOrMasterDestination,
     size_t maxFieldLength, const DataFieldTemplates* templates, vector< map<string, string> >* rows,
     string* errorDescription, const DataField** returnField) {
@@ -345,6 +373,9 @@ result_t DataField::create(bool isWriteMessage, bool isTemplate, bool isBroadcas
         if (!dataType) {
           result = RESULT_ERR_NOTFOUND;
           *errorDescription = "field type "+typeName+" in field "+formatInt(fieldIndex);
+        } else if (firstType && !name.empty() && !DataField::checkIdentifier(name)) {
+          *errorDescription = "field name "+name;
+          result = RESULT_ERR_INVALID_ARG;
         } else {
           SingleDataField* add = nullptr;
           result = SingleDataField::create(firstType ? name : "", row, dataType, partType, length, divisor,
@@ -370,14 +401,19 @@ result_t DataField::create(bool isWriteMessage, bool isTemplate, bool isBroadcas
         } else {
           fieldName = (firstType && lastType) ? name : "";
         }
-        if (lastType) {
-          result = templ->derive(fieldName, partType, divisor, values, &row, &fields);
+        if (!fieldName.empty() && !DataField::checkIdentifier(fieldName)) {
+          *errorDescription = "field name "+fieldName;
+          result = RESULT_ERR_INVALID_ARG;
         } else {
-          map<string, string> attrs = row;  // don't let DataField::derive() consume the row
-          result = templ->derive(fieldName, partType, divisor, values, &attrs, &fields);
-        }
-        if (result != RESULT_OK) {
-          *errorDescription = "derive field "+fieldName+" in field "+formatInt(fieldIndex);
+          if (lastType) {
+            result = templ->derive(fieldName, partType, divisor, values, &row, &fields);
+          } else {
+            map<string, string> attrs = row;  // don't let DataField::derive() consume the row
+            result = templ->derive(fieldName, partType, divisor, values, &attrs, &fields);
+          }
+          if (result != RESULT_OK) {
+            *errorDescription = "derive field "+fieldName+" in field "+formatInt(fieldIndex);
+          }
         }
       }
       if (firstType && !lastType) {

@@ -216,6 +216,22 @@ class DataField : public AttributedItem {
   virtual bool isList() const { return false; }
 
   /**
+   * Check if the given name is a valid identifier.
+   * @param name the name to check (and optionally normalize).
+   * @param allowFirstDigit whether to additionally allow the name to start with a digit.
+   * @param normalize whether to replace invalid characters with an underscore.
+   * @return true if the name is valid (or was normalized), false if invalid.
+   */
+  static bool checkIdentifier(const string& name, bool allowFirstDigit = false);
+
+  /**
+   * Normalize the given name to be a valid identifier.
+   * @param name the name to check and normalize.
+   * @param allowFirstDigit whether to additionally allow the name to start with a digit.
+   */
+  static void normalizeIdentifier(string& name, bool allowFirstDigit = false);
+
+  /**
    * Factory method for creating new instances.
    * @param isWriteMessage whether the field is part of a write message (default false).
    * @param isTemplate true for creating a template @a DataField.

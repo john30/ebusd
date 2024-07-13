@@ -301,10 +301,18 @@ result_t Message::create(const string& filename, const DataFieldTemplates* templ
     *errorDescription = "circuit";
     return RESULT_ERR_MISSING_ARG;  // empty circuit
   }
+  if (!DataField::checkIdentifier(circuit, true)) {
+    *errorDescription = "circuit name "+circuit;
+    return RESULT_ERR_INVALID_ARG;  // invalid circuit name
+  }
   string name = getDefault(pluck("name", row), defaults, "name", true, true);  // name
   if (name.empty()) {
     *errorDescription = "name";
     return RESULT_ERR_MISSING_ARG;  // empty name
+  }
+  if (!DataField::checkIdentifier(name)) {
+    *errorDescription = "name "+name;
+    return RESULT_ERR_INVALID_ARG;  // invalid message name
   }
   string comment = getDefault(pluck("comment", row), defaults, "comment", true);  // [comment]
   if (!comment.empty()) {
