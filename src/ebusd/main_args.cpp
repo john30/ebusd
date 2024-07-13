@@ -658,7 +658,7 @@ int parse_main_args(int argc, char* argv[], char* envp[], options_t *opt) {
         logWrite(lf_main, ll_error, "invalid argument in env: %s", *env);  // force logging on exit
         return EINVAL;
       }
-      logWrite(lf_main, ll_error, "invalid/unknown argument in env (ignored): %s", *env);  // force logging
+      logWrite(lf_main, ll_notice, "invalid/unknown argument in env (ignored): %s", *env);  // force logging
     }
   }
 
