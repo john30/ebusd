@@ -40,7 +40,7 @@ namespace ebusd {
 
 /** A structure holding all program options. */
 typedef struct options {
-  const char* device;  //!< eBUS device (serial device or [udp:]ip[:port]) [/dev/ttyUSB0]
+  const char* device;  //!< eBUS device (serial device or mdns:[id] or [udp:]ip[:port]) [mdns:]
   bool noDeviceCheck;  //!< skip serial eBUS device test
   bool readOnly;  //!< read-only access to the device
   bool initialSend;  //!< send an initial escape symbol after connecting device

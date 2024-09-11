@@ -23,6 +23,7 @@
 #include "ebusd/main.h"
 #include <dirent.h>
 #include <sys/stat.h>
+#include <arpa/inet.h>
 #include <csignal>
 #include <iostream>
 #include <algorithm>
@@ -34,6 +35,7 @@
 #include "ebusd/network.h"
 #include "lib/utils/log.h"
 #include "lib/utils/httpclient.h"
+#include "lib/utils/tcpsocket.h"
 #include "ebusd/scan.h"
 
 namespace ebusd {
@@ -411,11 +413,52 @@ int main(int argc, char* argv[], char* envp[]) {
     return overallResult == RESULT_OK ? EXIT_SUCCESS : EXIT_FAILURE;
   }
 
+  const char* device = s_opt.device;
+  if (!s_opt.checkConfig && strncmp(device, "mdns:", 5) == 0) {
+    // auto discovery
+    mdns_oneshot_t address;
+    #define MAX_ADDRESSES 10
+    mdns_oneshot_t addresses[MAX_ADDRESSES];
+    size_t otherCount = MAX_ADDRESSES;
+    logWrite(lf_main, ll_notice, "discovering device from \"%s\"", device);
+    int ret = 0;
+    for (int i=0; i < 3 && ret == 0; i++) {  // 3*up to 5 seconds = 15 seconds max
+      ret = resolveMdnsOneShot(device+5, &address, addresses, &otherCount);
+    }
+    if (ret < 0) {
+      logWrite(lf_main, ll_error, "unable to discover device \"%s\", error %d", device, ret);
+      cleanup();
+      return EINVAL;
+    }
+    const char *ip;
+    for (size_t pos=0; pos < otherCount; pos++) {
+      mdns_oneshot_t *addr = addresses+pos;
+      ip = inet_ntoa(addr->address);
+      logWrite(lf_main, ll_info, "discovered another device with ID %s and device string %s:%s",
+        addr->id, addr->proto, ip);
+    }
+    if (ret == 0) {
+      logWrite(lf_main, ll_error, "unable to discover device \"%s\", %s found", device, otherCount ? "ID not" : "none");
+      cleanup();
+      return EINVAL;
+    }
+    if (ret > 1) {
+      logWrite(lf_main, ll_notice,
+        "found several devices from \"%s\", better limit to the desired one using e.g. \"mdns:%s\"", device,
+        address.id);
+    }
+    ip = inet_ntoa(address.address);
+    char *mdnsDevice = reinterpret_cast<char*>(malloc(4*4+3+1));  // ens:xxx.xxx.xxx.xxx
+    snprintf(mdnsDevice, 4*4+3+1, "%s:%s", address.proto, ip);
+    device = mdnsDevice;
+    logWrite(lf_main, ll_notice, "using discovered device with ID %s and device string %s", address.id, device);
+  }
+
   s_busHandler = new BusHandler(s_messageMap, s_scanHelper, s_opt.pollInterval);
 
   // create the protocol and open the device
   ebus_protocol_config_t config = {
-    .device = s_opt.device,
+    .device = device,
     .noDeviceCheck = s_opt.noDeviceCheck,
     .readOnly = s_opt.readOnly,
     .extraLatency = s_opt.extraLatency,
@@ -431,7 +474,7 @@ int main(int argc, char* argv[], char* envp[]) {
   };
   s_protocol = ProtocolHandler::create(config, s_busHandler);
   if (s_protocol == nullptr) {
-    logWrite(lf_main, ll_error, "unable to create protocol/device %s", s_opt.device);  // force logging on exit
+    logWrite(lf_main, ll_error, "unable to create protocol/device %s", config.device);  // force logging on exit
     cleanup();
     return EINVAL;
   }

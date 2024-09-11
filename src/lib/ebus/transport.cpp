@@ -325,7 +325,7 @@ void SerialTransport::checkDevice() {
 }
 
 result_t NetworkTransport::openInternal() {
-  m_fd = socketConnect(m_hostOrIp, m_port, m_udp, nullptr, 5, 2);  // wait up to 5 seconds for established connection
+  m_fd = socketConnect(m_hostOrIp, m_port, m_udp ? IPPROTO_UDP : 0, nullptr, 5, 2);  // wait up to 5 seconds for established connection
   if (m_fd < 0) {
     return RESULT_ERR_GENERIC_IO;
   }

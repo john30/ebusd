@@ -14,9 +14,11 @@
 * add option to inject start-up commands
 * add verbose raw data option to "read" and "write" commands
 * add option to allow write direction in "read" command when inline defining a new message
+* add option to discover device via mDNS
 
 ## Breaking Changes
 * change default config path to https://ebus.github.io/ serving files generated from new TypeSpec message definition sources
+* change default device connection to be resolved automatically via mDNS
 
 
 # 23.3 (2023-12-26)

@@ -31,7 +31,7 @@ namespace ebusd {
 
 /** the default program options. */
 static const options_t s_default_opt = {
-  .device = "/dev/ttyUSB0",
+  .device = "mdns:",
   .noDeviceCheck = false,
   .readOnly = false,
   .initialSend = false,
@@ -134,11 +134,14 @@ static string s_configPath = CONFIG_PATH;
 static const argDef argDefs[] = {
   {nullptr,          0,        nullptr,    0, "Device options:"},
   {"device",         'd',      "DEV",      0, "Use DEV as eBUS device ("
+      "\"mdns:\" for auto discovery via mDNS ("
+      "optional suffix with specific HW ID as well as specific IP interface after '@', "
+      "otherwise: "
       "prefix \"ens:\" for enhanced high speed device or "
       "\"enh:\" for enhanced device, with "
       "\"IP[:PORT]\" for network device or "
       "\"DEVICE\" for serial device"
-      ") [/dev/ttyUSB0]"},
+      ") [mdns:]"},
   {"nodevicecheck",  'n',      nullptr,    0, "Skip serial eBUS device test"},
   {"readonly",       'r',      nullptr,    0, "Only read from device, never write to it"},
   {"initsend",       O_INISND, nullptr,    0, "Send an initial escape symbol after connecting device"},
@@ -232,7 +235,7 @@ static int parse_opt(int key, char *arg, const argParseOpt *parseOpt, struct opt
 
   switch (key) {
   // Device options:
-  case 'd':  // --device=/dev/ttyUSB0
+  case 'd':  // --device=mdns:
     if (arg == nullptr || arg[0] == 0) {
       argParseError(parseOpt, "invalid device");
       return EINVAL;
