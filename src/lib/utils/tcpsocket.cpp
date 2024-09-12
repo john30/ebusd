@@ -611,9 +611,6 @@ int resolveMdnsOneShot(const char* url, mdns_oneshot_t *result, mdns_oneshot_t *
       if (!found && (!limitId.length() || limitId.compare(id) == 0)) {
         storeTo = result;
         found = true;
-        if (limitId.length()) {
-          break;  // found the desired one, no need to wait for another
-        }
       } else if (found && strcmp(id, result->id) == 0) {
         // skip duplicate answer
         continue;
@@ -632,8 +629,8 @@ int resolveMdnsOneShot(const char* url, mdns_oneshot_t *result, mdns_oneshot_t *
       storeTo->address = validAddress;
       strncpy(storeTo->id, id, sizeof(mdns_oneshot_t::id));
       strncpy(storeTo->proto, proto, sizeof(mdns_oneshot_t::proto));
-      if (found && moreRemain == 0) {
-        break;
+      if (found && (limitId.length() || !moreRemain)) {
+        break;  // found the desired one or no more space left for others
       }
     }
   }
