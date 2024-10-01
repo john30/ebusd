@@ -302,7 +302,7 @@ SSLSocket* SSLSocket::connect(const string& host, const uint16_t& port, bool htt
       break;
     }
     if (strcmp(peerName, hostname) != 0) {
-      char* dotpos = strchr((char*)hostname, '.');
+      char* dotpos = strchr(const_cast<char*>(hostname), '.');
       if (peerName[0] == '*' && peerName[1] == '.' && dotpos
         && strcmp(peerName+2, dotpos+1) == 0) {
         // wildcard matches
@@ -582,7 +582,7 @@ bool* repeatable, time_t* time, bool* jsonString) {
   }
   pos = readUntil("", length, response);
   disconnect();
-  if (noLength ? pos<1 : pos != length) {
+  if (noLength ? pos < 1 : pos != length) {
     return false;
   }
   if (noLength) {

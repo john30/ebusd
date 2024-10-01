@@ -749,7 +749,8 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
         "  NAME         NAME of the message to send\n"
         "  FIELD        only retrieve the field named FIELD\n"
         "  N            only retrieve the N'th field named FIELD (0-based)\n"
-        "  -def         read with explicit message definition (only if enabled, allow write direction if given more than once):\n"
+        "  -def         read with explicit message definition (only if enabled, allow write direction if given more"
+        " than once):\n"
         "    DEFINITION message definition to use instead of known definition\n"
         "  -h           send hex read message (or answer from cache):\n"
         "    ZZ         destination address\n"
@@ -849,7 +850,8 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
       return RESULT_OK;
     }
     deque<Message*> messages;
-    m_newlyDefinedMessages->findAll("", "", levels, false, true, writeDirection, writeDirection, true, false, 0, 0, false, &messages);
+    m_newlyDefinedMessages->findAll("", "", levels, false, true, writeDirection, writeDirection, true, false, 0, 0,
+        false, &messages);
     if (messages.empty()) {
       *ostream << "ERR: bad definition: no read" << (writeDirection?"/write":"") << " message";
       return RESULT_OK;
@@ -874,8 +876,8 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
     if (verbosity & OF_NAMES) {
       *ostream << cacheMessage->getCircuit() << " " << cacheMessage->getName() << " ";
     }
-    ret = cacheMessage->decodeLastData(pt_any, false, fieldIndex == -2 ? nullptr : fieldName.c_str(), fieldIndex, verbosity,
-        ostream);
+    ret = cacheMessage->decodeLastData(pt_any, false, fieldIndex == -2 ? nullptr : fieldName.c_str(), fieldIndex,
+        verbosity, ostream);
     if (ret < RESULT_OK) {
       logError(lf_main, "read %s %s cached: decode %s", cacheMessage->getCircuit().c_str(),
           cacheMessage->getName().c_str(), getResultCode(ret));

@@ -453,7 +453,8 @@ void BusHandler::notifyProtocolMessage(MessageDirection direction, const MasterS
         answer.push_back(command.dataAt(pos));
       }
       answer.adjustHeader();
-      m_protocol->setAnswer(SYN, getSlaveAddress(dstAddress), command[2], command[3], command.data() + 5, idLen, answer);
+      m_protocol->setAnswer(SYN, getSlaveAddress(dstAddress), command[2], command[3], command.data() + 5, idLen,
+          answer);
       // TODO could use loaded messages for identifying MM/MS message pair
     }
   }

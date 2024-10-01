@@ -771,10 +771,12 @@ void KnxHandler::run() {
             continue;  // not usable in absence of destination address
           }
           if (message->getCreateTime() <= definitionsSince  // only newer defined
-          && (!message->isConditional() || message->getAvailableSinceTime() <= definitionsSince)) {  // unless conditional
+          && (!message->isConditional()  // unless conditional
+            || message->getAvailableSinceTime() <= definitionsSince)) {
             continue;
           }
-          logOtherDebug("knx", "checking association to %s %s", message->getCircuit().c_str(), message->getName().c_str());
+          logOtherDebug("knx", "checking association to %s %s", message->getCircuit().c_str(),
+              message->getName().c_str());
           bool isWrite = message->isWrite() && !message->isPassive();  // from KNX perspective
           ssize_t fieldCount = static_cast<signed>(message->getFieldCount());
           if (isWrite && fieldCount > 1) {

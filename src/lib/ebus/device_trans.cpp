@@ -616,7 +616,7 @@ void EnhancedDevice::notifyInfoRetrieved() {
     case 0x0107:
       stream << "rssi ";
       if (data[0]) {
-        stream << static_cast<signed>(((int8_t*)data)[0]) << " dBm";
+        stream << static_cast<signed>(reinterpret_cast<int8_t*>(data)[0]) << " dBm";
       } else {
         stream << "unknown";
       }

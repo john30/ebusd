@@ -300,7 +300,7 @@ class NetworkTransport : public FileTransport {
    */
   ~NetworkTransport() override {
     if (m_hostOrIp) {
-      free((void*)m_hostOrIp);
+      free(const_cast<char*>(m_hostOrIp));
       m_hostOrIp = nullptr;
     }
   }

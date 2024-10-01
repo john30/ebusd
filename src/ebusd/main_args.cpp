@@ -165,12 +165,13 @@ static const argDef argDefs[] = {
       "Check and dump config files in FORMAT (\"json\" or \"csv\"), then stop"},
   {"dumpconfigto",   O_DMPCTO, "FILE",     0, "Dump config files to FILE"},
   {"pollinterval",   O_POLINT, "SEC",      0, "Poll for data every SEC seconds (0=disable) [5]"},
-  {"inject",         'i',      "stop", af_optional, "Inject remaining arguments as commands or already seen messages (e.g. "
-      "\"FF08070400/0AB5454850303003277201\"), optionally stop afterwards"},
-  {nullptr,          O_INJPOS, "INJECT", af_optional|af_multiple, "Commands and/or messages to inject (if --inject was given)"},
+  {"inject",         'i',      "stop", af_optional, "Inject remaining arguments as commands or already seen messages "
+      "(e.g. \"FF08070400/0AB5454850303003277201\"), optionally stop afterwards"},
+  {nullptr,          O_INJPOS, "INJECT", af_optional|af_multiple, "Commands and/or messages to inject "
+      "(if --inject was given)"},
 #ifdef HAVE_SSL
   {"cafile",         O_CAFILE, "FILE",     0, "Use CA FILE for checking certificates (uses defaults,"
-                                              " \"#\" for insecure)"},
+      " \"#\" for insecure)"},
   {"capath",         O_CAPATH, "PATH",     0, "Use CA PATH for checking certificates (uses defaults)"},
 #endif  // HAVE_SSL
 

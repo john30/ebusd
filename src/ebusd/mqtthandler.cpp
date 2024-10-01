@@ -818,7 +818,8 @@ void MqttHandler::run() {
             }
             message->setDataHandlerState(1, true);
           } else if (message->getCreateTime() <= m_definitionsSince  // only newer defined
-          && (!message->isConditional() || message->getAvailableSinceTime() <= m_definitionsSince)) {  // unless conditional
+          && (!message->isConditional()  // unless conditional
+            || message->getAvailableSinceTime() <= m_definitionsSince)) {
             continue;
           }
           if (!FileReader::matches(message->getCircuit(), filterCircuit, true, true)

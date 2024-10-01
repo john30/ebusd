@@ -203,7 +203,7 @@ bool isValidIdentifierChar(char ch, bool first, bool allowFirstDigit) {
 bool DataField::checkIdentifier(const string& name, bool allowFirstDigit) {
   for (size_t i = 0; i < name.size(); i++) {
     char ch = name[i];
-    if (!isValidIdentifierChar(ch, i==0, allowFirstDigit)) {
+    if (!isValidIdentifierChar(ch, i == 0, allowFirstDigit)) {
       return false;
     }
   }
@@ -213,7 +213,7 @@ bool DataField::checkIdentifier(const string& name, bool allowFirstDigit) {
 void DataField::normalizeIdentifier(string& name, bool allowFirstDigit) {
   for (size_t i = 0; i < name.size(); i++) {
     char ch = name[i];
-    if (!isValidIdentifierChar(ch, i==0, allowFirstDigit)) {
+    if (!isValidIdentifierChar(ch, i == 0, allowFirstDigit)) {
       name[i] = '_';
     }
   }

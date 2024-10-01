@@ -70,7 +70,7 @@ using std::endl;
 #define POLL_PRIORITY_CONDITION 5
 
 /** the field name constant for the message level. */
-static const char* FIELDNAME_LEVEL = "level";//
+static const char* FIELDNAME_LEVEL = "level";
 
 /** the known full length field names. */
 static const char* knownFieldNamesFull[] = {
@@ -1691,7 +1691,8 @@ void SimpleNumericCondition::dumpValuesJson(ostream* output) const {
 
 bool SimpleStringCondition::checkValue(const Message* message, const string& field) {
   ostringstream output;
-  result_t result = message->decodeLastData(pt_any, false, field.length() == 0 ? nullptr : field.c_str(), -1, OF_NONE, &output);
+  result_t result = message->decodeLastData(pt_any, false, field.length() == 0 ? nullptr : field.c_str(), -1,
+      OF_NONE, &output);
   if (result == RESULT_OK) {
     string value = output.str();
     for (size_t i = 0; i < m_values.size(); i++) {
