@@ -203,8 +203,8 @@ static const argDef argDefs[] = {
       PACKAGE_LOGFILE "]"},
   {"log",            O_LOG, "AREAS:LEVEL", 0, "Only write log for matching AREA(S) up to LEVEL"
       " (alternative to --logareas/--logevel, may be used multiple times) [all:notice]"},
-  {"logareas",       O_LOGARE, "AREAS",    0, "Only write log for matching AREA(S): main|network|bus|update|other"
-      "|all [all]"},
+  {"logareas",       O_LOGARE, "AREAS",    0, "Only write log for matching AREA(S): main|network|bus|device|update"
+      "|other|all [all]"},
   {"loglevel",       O_LOGLEV, "LEVEL",    0, "Only write log up to LEVEL: error|notice|info|debug"
       " [notice]"},
 

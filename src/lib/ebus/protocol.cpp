@@ -184,9 +184,9 @@ void ProtocolHandler::notifyDeviceData(const symbol_t* data, size_t len, bool re
 
 void ProtocolHandler::notifyDeviceStatus(bool error, const char* message) {
   if (error) {
-    logError(lf_bus, "device status: %s", message);
+    logError(lf_device, message);
   } else {
-    logNotice(lf_bus, "device status: %s", message);
+    logNotice(lf_device, message);
   }
 }
 
