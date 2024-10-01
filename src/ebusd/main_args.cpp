@@ -133,15 +133,14 @@ static string s_configPath = CONFIG_PATH;
 /** the definition of the known program arguments. */
 static const argDef argDefs[] = {
   {nullptr,          0,        nullptr,    0, "Device options:"},
-  {"device",         'd',      "DEV",      0, "Use DEV as eBUS device ("
-      "\"mdns:\" for auto discovery via mDNS ("
-      "optional suffix with specific HW ID as well as specific IP interface after '@', "
-      "otherwise: "
-      "prefix \"ens:\" for enhanced high speed device or "
-      "\"enh:\" for enhanced device, with "
-      "\"IP[:PORT]\" for network device or "
-      "\"DEVICE\" for serial device"
-      ") [mdns:]"},
+  {"device",         'd',      "DEV",      0, "Use DEV as eBUS device [mdns:]\n"
+      "- \"mdns:\" for auto discovery via mDNS with optional suffix \"[ID][@INTF]\" for using a specific"
+      " hardware ID and/or IP interface INTF for the discovery (only for eBUS Adapter Shield), or\n"
+      "- prefix \"ens:\" for enhanced high speed device,\n"
+      "- prefix \"enh:\" for enhanced device, or\n"
+      "- no prefix for plain device, and\n"
+      "- suffix \"IP[:PORT]\" for network device, or\n"
+      "- suffix \"DEVICE\" for serial device"},
   {"nodevicecheck",  'n',      nullptr,    0, "Skip serial eBUS device test"},
   {"readonly",       'r',      nullptr,    0, "Only read from device, never write to it"},
   {"initsend",       O_INISND, nullptr,    0, "Send an initial escape symbol after connecting device"},
