@@ -849,7 +849,7 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
       return RESULT_OK;
     }
     deque<Message*> messages;
-    m_newlyDefinedMessages->findAll("", "", levels, false, true, writeDirection, false, true, false, 0, 0, false, &messages);
+    m_newlyDefinedMessages->findAll("", "", levels, false, true, writeDirection, writeDirection, true, false, 0, 0, false, &messages);
     if (messages.empty()) {
       *ostream << "ERR: bad definition: no read" << (writeDirection?"/write":"") << " message";
       return RESULT_OK;
@@ -1086,7 +1086,7 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
       return RESULT_OK;
     }
     deque<Message*> messages;
-    m_newlyDefinedMessages->findAll("", "", levels, false, false, true, false, true, false, 0, 0, false, &messages);
+    m_newlyDefinedMessages->findAll("", "", levels, false, false, true, true, true, false, 0, 0, false, &messages);
     if (messages.empty()) {
       *ostream << "ERR: bad definition: no write message";
       return RESULT_OK;
