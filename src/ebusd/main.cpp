@@ -420,9 +420,10 @@ int main(int argc, char* argv[], char* envp[]) {
     #define MAX_ADDRESSES 10
     mdns_oneshot_t addresses[MAX_ADDRESSES];
     size_t otherCount = MAX_ADDRESSES;
-    logWrite(lf_main, ll_notice, "discovering device from \"%s\"", device);
     int ret = 0;
-    for (int i=0; i < 3 && ret == 0; i++) {  // 3*up to 5 seconds = 15 seconds max
+    #define MAX_MDNS_RUNS 3
+    for (int i=0; i < MAX_MDNS_RUNS && ret == 0; i++) {  // 3*up to 5 seconds = 15 seconds max
+      logWrite(lf_main, ll_notice, "discovering device from \"%s\", try %d/%d", device, i+1, MAX_MDNS_RUNS);
       ret = resolveMdnsOneShot(device+5, &address, addresses, &otherCount);
     }
     if (ret < 0) {
