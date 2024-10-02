@@ -71,7 +71,8 @@ static const argDef g_mqtt_argDefs[] = {
   {"mqttretain",   O_RETA, nullptr,      0, "Retain all topics instead of only selected global ones"},
   {"mqttqos",      O_PQOS, "QOS",        0, "Set the QoS value for all topics (0-2) [0]"},
   {"mqttint",      O_INTF, "FILE",       0, "Read MQTT integration settings from FILE (no default)"},
-  {"mqttvar",      O_IVAR, "NAME=VALUE[,...]", 0, "Add variable(s) to the read MQTT integration settings"},
+  {"mqttvar",      O_IVAR, "NAME[+]=VALUE[,...]", 0, "Add variable(s) to the read MQTT integration settings "
+   "(append to already existing value with \"NAME+=VALUE\")"},
   {"mqttjson",     O_JSON, "short", af_optional,
    "Publish in JSON format instead of strings, optionally in short (value directly below field key)"},
   {"mqttverbose",  O_VERB, nullptr,      0, "Publish all available attributes"},
