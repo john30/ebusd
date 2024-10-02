@@ -902,7 +902,7 @@ void MqttHandler::run() {
             } else if (dataType->hasFlag(DAT)) {
               auto dt = dynamic_cast<const DateTimeDataType*>(dataType);
               if (dt->hasDate()) {
-                typeStr = dt->hasDate() ? "datetime" : "date";
+                typeStr = dt->hasTime() ? "datetime" : "date";
               } else {
                 typeStr = "time";
               }
