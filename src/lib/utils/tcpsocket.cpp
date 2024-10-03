@@ -69,7 +69,7 @@ int tcpConnToUdpOptions, int tcpKeepAliveInterval, struct in_addr* storeIntf) {
   struct in_addr intf;
   intf.s_addr = INADDR_ANY;
   if (pos) {
-    char* str = strdupa(server);
+    char* str = (char*)strdupa(server);  // (char*) needed for wrong return type on e.g. Alpine
     char* ifa = strchr(str, '@');
     ifa[0] = 0;
     ifa++;
