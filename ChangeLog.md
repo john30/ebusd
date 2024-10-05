@@ -18,7 +18,7 @@
 * add option to discover device via mDNS
 * add dedicated log level for device messages
 * add option to extend MQTT variables from env/cmdline
-* add date+datetime to Home Assistant MQTT discovery integration
+* add date+datetime mapping and better device update check to Home Assistant MQTT discovery integration
 
 ## Breaking Changes
 * change default config path to https://ebus.github.io/ serving files generated from new TypeSpec message definition sources
