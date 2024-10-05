@@ -6,6 +6,7 @@
 * fix for some updated messages not appearing on KNX or MQTT
 * fix for parsing certain condition ranges
 * fix for "reload" command not starting the scan again
+* fix datetime type mapping in MQTT
 
 ## Features
 * add "inject" command
@@ -15,6 +16,9 @@
 * add verbose raw data option to "read" and "write" commands
 * add option to allow write direction in "read" command when inline defining a new message
 * add option to discover device via mDNS
+* add dedicated log level for device messages
+* add option to extend MQTT variables from env/cmdline
+* add date+datetime to Home Assistant MQTT discovery integration
 
 ## Breaking Changes
 * change default config path to https://ebus.github.io/ serving files generated from new TypeSpec message definition sources
