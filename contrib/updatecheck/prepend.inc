@@ -14,7 +14,7 @@ function readVersions($prefix='') {
     if (count($val)>1) {
       $key = $val[0];
       $val = explode(',', $val[1]);
-      if ($key==='device' && count($val)===2 && $val[0]===$val[1]) {
+      if ($key==='device' && count($val)>=2 && $val[0]===$val[1]) {
         $key = 'devicesame';
       }
       $versions[$key] = $val;
@@ -23,7 +23,7 @@ function readVersions($prefix='') {
   array_walk($v, $func);
   return true;
 }
-function checkUpdate($ebusdVersion, $ebusdRelease, $architecture, $deviceVersion, $loadedFiles, $language, $cdnPath) {
+function checkUpdate($ebusdVersion, $ebusdRelease, $architecture, $deviceVersion, $deviceId, $loadedFiles, $language, $cdnPath) {
   if (!$ebusdVersion) {
     return 'invalid request';
   }
@@ -43,7 +43,12 @@ function checkUpdate($ebusdVersion, $ebusdRelease, $architecture, $deviceVersion
     $ver = strtok('.');
     if ($ver) {
       $key = ($ver===strtok('.')) ? 'devicesame' : 'device';
-      if ($ver!==$versions[$key][0]) {
+      $devTypes = array('00'=>'v5', '01'=>'v5-c6', '00n'=>'v5', '01n'=>'');
+      $devType = $key==='devicesame' && strlen($deviceId)===9*2 && substr($deviceId,-2)==='00' ? $devTypes[substr($deviceId,-4,2).(substr($deviceId,-6,2)==='00'?'n':'')] : '';
+      if ($devType) {
+        $devVer = $versions[$key][0];
+        $ret .= ', device firmware '.$devType.' '.$devVer.($ver===$devVer ? ' up to date' : ' available');
+      } else if ($ver!==$versions[$key][0]) {
         $ret .= ', device firmware '.$versions[$key][0].' available';
       }
     }
