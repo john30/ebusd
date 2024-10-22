@@ -453,9 +453,9 @@ int resolveMdnsOneShot(const char* url, mdns_oneshot_t *result, mdns_oneshot_t *
     0x8000 |  // unicast response bit
     DNS_CLASS_AA);
   len += sizeof(dns_question_t);
-  ssize_t done = sendto(sock, record, len, 0, reinterpret_cast<sockaddr*>(&address), sizeof(address));
+  ssize_t ret = sendto(sock, record, len, 0, reinterpret_cast<sockaddr*>(&address), sizeof(address));
 #ifdef DEBUG_MDNS
-  printf("mdns: sent %ld, err %d\n", done, errno);
+  printf("mdns: sent %ld, err %d\n", ret, errno);
 #endif
   fcntl(sock, F_SETFL, O_NONBLOCK);
   bool found = false, foundMore = false;
@@ -463,22 +463,31 @@ int resolveMdnsOneShot(const char* url, mdns_oneshot_t *result, mdns_oneshot_t *
   if (moreRemain > 0) {
     *moreCount = 0;
   }
+  size_t done = 0;
 #ifdef DEBUG_MDNS
   socketaddress aaddr;
   socklen_t aaddrlen = 0;
 #endif
   for (int i=0; i < (found ? 3 : 5); i++) {  // up to 5 seconds, at least 3 seconds
-    int ret = socketPoll(sock, POLLIN, 1);
+    ret = socketPoll(sock, POLLIN, 1);
     done = 0;
     if (ret > 0 && (ret&POLLIN)) {
 #ifdef DEBUG_MDNS
       aaddrlen = sizeof(aaddr);
-      done = recvfrom(sock, record, sizeof(record), 0, reinterpret_cast<sockaddr*>(&aaddr), &aaddrlen);
+      ret = recvfrom(sock, record, sizeof(record), 0, reinterpret_cast<sockaddr*>(&aaddr), &aaddrlen);
 #else
-      done = recv(sock, record, sizeof(record), 0);
+      ret = recv(sock, record, sizeof(record), 0);
 #endif
     }
-    if (done == 0 || (done < 0 && errno == EAGAIN) || done < sizeof(dns_query_t)) {
+    if (ret < 0) {
+      if (errno == EAGAIN) {
+        continue;
+      }
+      close(sock);
+      return -1;
+    }
+    done = (size_t)ret;
+    if (done < sizeof(dns_query_t)) {
       continue;
     }
     dnsr = reinterpret_cast<dns_query_t*>(record);
@@ -494,8 +503,8 @@ int resolveMdnsOneShot(const char* url, mdns_oneshot_t *result, mdns_oneshot_t *
     ) {
       continue;
     }
-    int anCnt = ntohs(dnsr->anCount);
-    int arCnt = ntohs(dnsr->arCount);
+    uint16_t anCnt = ntohs(dnsr->anCount);
+    uint16_t arCnt = ntohs(dnsr->arCount);
     if (anCnt < 1 || dnsr->nsCount || arCnt < 1) {
       continue;
     }
@@ -546,7 +555,7 @@ int resolveMdnsOneShot(const char* url, mdns_oneshot_t *result, mdns_oneshot_t *
         break;  // skip this one
       }
       len += sizeof(dns_answer_t);
-      int rdLen = ntohs(a->rdLength);
+      uint16_t rdLen = ntohs(a->rdLength);
 #ifdef DEBUG_MDNS
       printf("  rd %d @%2.2x = ", rdLen, len);
       for (int i=0; i < rdLen && len+i < done; i++) {
@@ -577,7 +586,7 @@ int resolveMdnsOneShot(const char* url, mdns_oneshot_t *result, mdns_oneshot_t *
             sep = sep ? strchr(sep2+1, '=') : nullptr;
           }
           if (sep && strncmp(sep2+1, "proto", sep-sep2-1) == 0 && (
-            pos == sep+1+sizeof(mdns_oneshot_t::proto)-1-name
+            pos == (size_t)(sep-name)+1+sizeof(mdns_oneshot_t::proto)-1
             || strchr(sep+1, '.') == sep+1+sizeof(mdns_oneshot_t::proto)-1)) {
             memcpy(proto, sep+1, sizeof(mdns_oneshot_t::proto)-1);
           }

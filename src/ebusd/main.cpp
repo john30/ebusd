@@ -444,9 +444,14 @@ int main(int argc, char* argv[], char* envp[]) {
       return EINVAL;
     }
     if (ret > 1) {
-      logWrite(lf_main, ll_notice,
-        "found several devices from \"%s\", better limit to the desired one using e.g. \"mdns:%s\"", device,
+      ip = inet_ntoa(address.address);
+      logWrite(lf_main, ll_info, "discovered another device with ID %s and device string %s:%s",
+        address.id, address.proto, ip);
+      logWrite(lf_main, ll_error,
+        "found several devices from \"%s\". use e.g. \"--device=mdns:%s\" to limit it to the desired one", device,
         address.id);
+      cleanup();
+      return EINVAL;
     }
     ip = inet_ntoa(address.address);
     char *mdnsDevice = reinterpret_cast<char*>(malloc(4*4+3+1));  // ens:xxx.xxx.xxx.xxx
