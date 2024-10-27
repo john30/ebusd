@@ -150,7 +150,7 @@ static const argDef argDefs[] = {
   {"configpath",     'c',      "PATH",     0, "Read CSV config files from PATH (local folder or HTTPS URL) ["
       CONFIG_PATH "]"},
   {"scanconfig",     's',      "ADDR", af_optional, "Pick CSV config files matching initial scan ADDR: "
-      "empty for broadcast ident message (default when neither configpath nor dumpconfig is not given), "
+      "empty for broadcast ident message (default when neither configpath nor dumpconfig is given), "
       "\"none\" for no initial scan message, "
       "\"full\" for full scan, "
       "a single hex address to scan, or "
