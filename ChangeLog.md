@@ -1,4 +1,4 @@
-# next (tbd)
+# 24.1 (2024-10-27)
 ## Bug Fixes
 * fix conditional messages not being sent to message definition in MQTT integration and not being used in KNX group association
 * fix CSV dump of config files on command line
@@ -18,7 +18,7 @@
 * add option to discover device via mDNS
 * add dedicated log level for device messages
 * add option to extend MQTT variables from env/cmdline
-* add date+datetime mapping, better device update check, and removed single-field-message field names to Home Assistant MQTT discovery integration
+* add date+datetime mapping, better device update check, and remove single-field-message field names in Home Assistant MQTT discovery integration
 
 ## Breaking Changes
 * change default config path to https://ebus.github.io/ serving files generated from new TypeSpec message definition sources
