@@ -41,4 +41,4 @@ package() {
   install -m 0644 contrib/etc/ebusd/mqtt-integration.cfg  "${pkgdir}/etc/ebusd/mqtt-integration.cfg"
 }
 # update md5sums: updpkgsums
-md5sums=('4702250aff5be67ac38ba81e1acae231')
+md5sums=('ec614447defed756e586fdf4fd73647a')
