@@ -69,16 +69,21 @@ int tcpConnToUdpOptions, int tcpKeepAliveInterval, struct in_addr* storeIntf) {
   struct in_addr intf;
   intf.s_addr = INADDR_ANY;
   if (pos) {
-    char* str = reinterpret_cast<char*>(strdupa(server));  // (char*) needed for wrong return type on e.g. Alpine
+    size_t len = strlen(server)+1;  // workaround for e.g. Alpine with wrong return type on strdupa()
+    char* str = reinterpret_cast<char*>(malloc(len));
+    strcpy(str, server);
     char* ifa = strchr(str, '@');
     ifa[0] = 0;
     ifa++;
     if (!str[0] || !parseIp(str, &address->sin_addr)) {
+      free(str);
       return -1;
     }
     if (!parseIp(ifa, &intf)) {
+      free(str);
       return -1;
     }
+    free(str);
   } else if (!parseIp(server, &address->sin_addr)) {
     return -1;
   }
