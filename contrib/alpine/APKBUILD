@@ -23,7 +23,7 @@ check() {
 }
 
 package() {
-	DESTDIR="$pkgdir" cmake --install build
+	DESTDIR="$pkgdir" cmake --install build --prefix /usr
 }
 
 sha512sums="
