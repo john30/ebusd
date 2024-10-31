@@ -62,7 +62,7 @@ static const argDef g_knx_argDefs[] = {
   {"knxrage", O_AGR, "SEC",       0, "Maximum age in seconds for using the last value of read messages (0=disable)"
                                      " [5]"},
   {"knxwage", O_AGW, "SEC",       0, "Maximum age in seconds for using the last value for reads on write messages"
-                                     " (0=disable), [99999999]"},
+                                     " (0=disable) [99999999]"},
   {"knxint", O_INT, "FILE",       0, "Read KNX integration settings from FILE [/etc/ebusd/knx.cfg]"},
   {"knxvar", O_VAR, "NAME=VALUE[,...]", 0, "Add variable(s) to the read KNX integration settings"},
 
