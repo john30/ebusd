@@ -135,7 +135,8 @@ static const argDef argDefs[] = {
   {nullptr,          0,        nullptr,    0, "Device options:"},
   {"device",         'd',      "DEV",      0, "Use DEV as eBUS device [mdns:]\n"
       "- \"mdns:\" for auto discovery via mDNS with optional suffix \"[ID][@INTF]\" for using a specific"
-      " hardware ID and/or IP interface INTF for the discovery (only for eBUS Adapter Shield), or\n"
+      " hardware ID and/or IP interface INTF for the discovery (only for eBUS Adapter Shield;"
+      " on docker, the network device needs to support multicast routing e.g. like the host network), or\n"
       "- prefix \"ens:\" for enhanced high speed device,\n"
       "- prefix \"enh:\" for enhanced device, or\n"
       "- no prefix for plain device, and\n"
@@ -650,7 +651,9 @@ int parse_main_args(int argc, char* argv[], char* envp[], options_t *opt) {
     char* envargv[] = {argv[0], envname, pos+1};
     int cnt = pos[1] ? 2 : 1;
     if (pos[1] && strlen(*env) < sizeof(envname)-3
-    && (strcmp(envopt, "scanconfig") == 0 || strcmp(envopt, "lograwdata") == 0)) {
+    && (strcmp(envopt, "scanconfig") == 0 || strcmp(envopt, "lograwdata") == 0
+      || strcmp(envopt, "mqttjson") == 0 || strcmp(envopt, "knxurl") == 0
+    )) {
       // only really special case: af_optional with non-empty arg needs to use "=" syntax
       cnt = 1;
       strcat(envopt, pos);
