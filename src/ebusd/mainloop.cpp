@@ -805,7 +805,7 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
       ret = message->storeLastData(master, slave);
       ostringstream result;
       if (ret == RESULT_OK) {
-        ret = message->decodeLastData(pt_any, false, nullptr, -1, OF_NONE, &result);
+        ret = message->decodeLastData(pt_slaveData, false, nullptr, -1, OF_NONE, &result);
       }
       if (ret >= RESULT_OK) {
         logInfo(lf_main, "read hex %s %s cache update: %s", message->getCircuit().c_str(), message->getName().c_str(),
@@ -876,7 +876,7 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
     if (verbosity & OF_NAMES) {
       *ostream << cacheMessage->getCircuit() << " " << cacheMessage->getName() << " ";
     }
-    ret = cacheMessage->decodeLastData(pt_any, false, fieldIndex == -2 ? nullptr : fieldName.c_str(), fieldIndex,
+    ret = cacheMessage->decodeLastData(pt_slaveData, false, fieldIndex == -2 ? nullptr : fieldName.c_str(), fieldIndex,
         verbosity, ostream);
     if (ret < RESULT_OK) {
       logError(lf_main, "read %s %s cached: decode %s", cacheMessage->getCircuit().c_str(),
@@ -916,7 +916,7 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
   if (verbosity & OF_NAMES) {
     *ostream << message->getCircuit() << " " << message->getName() << " ";
   }
-  ret = message->decodeLastData(pt_any, false, fieldIndex == -2 ? nullptr : fieldName.c_str(), fieldIndex, verbosity,
+  ret = message->decodeLastData(pt_slaveData, false, fieldIndex == -2 ? nullptr : fieldName.c_str(), fieldIndex, verbosity,
       ostream);
   if (ret < RESULT_OK) {
     logError(lf_main, "read %s %s: decode %s", message->getCircuit().c_str(), message->getName().c_str(),
@@ -1050,7 +1050,7 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
       ret = message->storeLastData(master, slave);
       ostringstream result;
       if (ret == RESULT_OK) {
-        ret = message->decodeLastData(pt_any, false, nullptr, -1, verbosity, &result);
+        ret = message->decodeLastData(pt_slaveData, false, nullptr, -1, verbosity, &result);
       }
       if (ret >= RESULT_OK) {
         logInfo(lf_main, "write hex %s %s cache update: %s", message->getCircuit().c_str(),
@@ -1113,7 +1113,7 @@ result_t MainLoop::executeWrite(const vector<string>& args, const string levels,
   }
   dstAddress = message->getLastMasterData()[1];
 
-  ret = message->decodeLastData(pt_any, false, nullptr, -1, verbosity, ostream);  // decode data
+  ret = message->decodeLastData(pt_slaveData, false, nullptr, -1, verbosity, ostream);  // decode data
   if (ret < RESULT_OK) {
     logError(lf_main, "write %s %s: decode %s", message->getCircuit().c_str(), message->getName().c_str(),
         getResultCode(ret));
