@@ -374,9 +374,16 @@ result_t DateTimeDataType::readSymbols(size_t offset, size_t length, const Symbo
                   << setw(2) << static_cast<unsigned>(m) << "." << static_cast<unsigned>(y + 1900);
           break;
         }
-        if (i + 1 == length) {
-          *output << (2000 + symbol);
-        } else if (symbol < 1 || (i == 0 && symbol > 31) || (i == 1 && symbol > 12)) {
+        // Either a valid date or 00.00.0000 (observed eg. in 0700 broadcast by Wolf BM1)
+        if (i > 0 && ((symbol == 0 && last != 0) || (symbol != 0 && last == 0))) {
+          return RESULT_ERR_OUT_OF_RANGE;  // invalid date
+        } else if (i + 1 == length) {
+          if (symbol == 0) {
+            *output << "0000";
+          } else {
+            *output << (2000 + symbol);
+          }
+        } else if ((i == 0 && symbol > 31) || (i == 1 && symbol > 12)) {
           return RESULT_ERR_OUT_OF_RANGE;  // invalid date
         } else {
           *output << setw(2) << dec << setfill('0') << static_cast<unsigned>(symbol) << ".";
