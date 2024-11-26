@@ -1,3 +1,9 @@
+# next (tbd)
+## Bug Fixes
+* fix for device string symlink with colon
+* fix "read" and "write" command response
+
+
 # 24.1 (2024-10-27)
 ## Bug Fixes
 * fix conditional messages not being sent to message definition in MQTT integration and not being used in KNX group association
