@@ -394,7 +394,7 @@ int main(int argc, char* argv[], char* envp[]) {
       }
       if (s_opt.dumpConfig & OF_JSON) {
         *out << "{\"datatypes\":[";
-        DataTypeList::getInstance()->dump(s_opt.dumpConfig, true, out);
+        DataTypeList::getInstance()->dump(s_opt.dumpConfig, out);
         *out << "],\"templates\":[";
         const auto tmpl = s_scanHelper->getTemplates("");
         tmpl->dump(s_opt.dumpConfig, out);

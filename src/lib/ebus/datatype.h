@@ -137,6 +137,13 @@ constexpr inline enum OutputFormat operator~ (enum OutputFormat self) {
   return (enum OutputFormat)(~(OutputFormatBaseType)self);
 }
 
+/** whether divisor should be appended to a dump. */
+enum AppendDivisor {
+  ad_none,      //!< no dump of divisor
+  ad_normal,    //!< regular dump of divisor (i.e. not for base types)
+  ad_full,  //!< full dump of divisor (i.e. also for base types)
+};
+
 /** the message part in which a data field is stored. */
 enum PartType {
   pt_any,          //!< stored in any data (master or slave)
@@ -286,7 +293,7 @@ class DataType {
    * @param output the @a ostream to dump to.
    * @return true when a non-default divisor was written to the output.
    */
-  virtual bool dump(OutputFormat outputFormat, size_t length, bool appendDivisor, ostream* output) const;
+  virtual bool dump(OutputFormat outputFormat, size_t length, AppendDivisor appendDivisor, ostream* output) const;
 
   /**
    * Internal method for reading the numeric raw value from a @a SymbolString.
@@ -363,7 +370,7 @@ class StringDataType : public DataType {
   virtual ~StringDataType() {}
 
   // @copydoc
-  bool dump(OutputFormat outputFormat, size_t length, bool appendDivisor, ostream* output) const override;
+  bool dump(OutputFormat outputFormat, size_t length, AppendDivisor appendDivisor, ostream* output) const override;
 
   // @copydoc
   result_t readRawValue(size_t offset, size_t length, const SymbolString& input,
@@ -410,7 +417,7 @@ class DateTimeDataType : public DataType {
   virtual ~DateTimeDataType() {}
 
   // @copydoc
-  bool dump(OutputFormat outputFormat, size_t length, bool appendDivisor, ostream* output) const override;
+  bool dump(OutputFormat outputFormat, size_t length, AppendDivisor appendDivisor, ostream* output) const override;
 
   /**
    * @return true if date part is present.
@@ -503,7 +510,7 @@ class NumberDataType : public DataType {
   static size_t calcPrecision(int divisor);
 
   // @copydoc
-  bool dump(OutputFormat outputFormat, size_t length, bool appendDivisor, ostream* output) const override;
+  bool dump(OutputFormat outputFormat, size_t length, AppendDivisor appendDivisor, ostream* output) const override;
 
   /**
    * Derive a new @a NumberDataType from this.
@@ -658,10 +665,9 @@ class DataTypeList {
   /**
    * Dump the type list optionally including the divisor to the output.
    * @param outputFormat the @a OutputFormat options.
-   * @param appendDivisor whether to append the divisor (if available).
    * @param output the @a ostream to dump to.
    */
-  void dump(OutputFormat outputFormat, bool appendDivisor, ostream* output) const;
+  void dump(OutputFormat outputFormat, ostream* output) const;
 
   /**
    * Removes all @a DataType instances.

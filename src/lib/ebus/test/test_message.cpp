@@ -221,6 +221,8 @@ int main() {
       "    ]\n"
       "   }: \n"
       "     \"field\": {\"value\": 42, \"raw\": [42]}", "ff75b509030d0100", "012a", "jNr"},
+    {"r,CIRCUIT,NAME,COMMENT,,,,0100,field,,temp", "r,cirCIRCUITcuit,naNAMEme,comCOMMENTment,ff,75,b509,0d0100,field,s,D2C,,°C,Temperatur: field=42.00 °C [Temperatur]", "ff75b509030d0100", "02a002", "DN"},
+    {"r,CIRCUIT,NAME,COMMENT,,,,0100,field,,D2C,,°C,Temperatur", "r,cirCIRCUITcuit,naNAMEme,comCOMMENTment,ff,75,b509,0d0100,field,s,D2C,,°C,Temperatur: field=42.00 °C [Temperatur]", "ff75b509030d0100", "02a002", "DN"},
   };
   templates = new DataFieldTemplates();
   unsigned int lineNo = 0;

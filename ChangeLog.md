@@ -2,6 +2,7 @@
 ## Bug Fixes
 * fix for device string symlink with colon
 * fix "read" and "write" command response
+* fix dump of divisor
 
 
 # 24.1 (2024-10-27)

@@ -555,7 +555,7 @@ void SingleDataField::dumpPrefix(bool prependFieldSeparator, OutputFormat output
     }
     *output << FIELD_SEPARATOR;
   }
-  m_dataType->dump(outputFormat, m_length, true, output);
+  m_dataType->dump(outputFormat, m_length, ad_normal, output);
 }
 
 void SingleDataField::dumpSuffix(OutputFormat outputFormat, ostream* output) const {

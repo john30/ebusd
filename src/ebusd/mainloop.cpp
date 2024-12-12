@@ -2279,7 +2279,7 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
   if (uri == "/datatypes") {
     *ostream << "[";
     OutputFormat verbosity = OF_NAMES|OF_JSON|OF_ALL_ATTRS;
-    DataTypeList::getInstance()->dump(verbosity, true, ostream);
+    DataTypeList::getInstance()->dump(verbosity, ostream);
     *ostream << "\n]";
     type = 6;
     *connected = false;

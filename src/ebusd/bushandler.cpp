@@ -191,7 +191,7 @@ bool decodeType(const DataType* type, const SymbolString& input, size_t length,
       first = false;
       *output << endl << " ";
       ostringstream::pos_type cnt = output->tellp();
-      type->dump(OF_NONE, length, false, output);
+      type->dump(OF_NONE, length, ad_none, output);
       cnt = output->tellp() - cnt;
       while (cnt < 5) {
         *output << " ";

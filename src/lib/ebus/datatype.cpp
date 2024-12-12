@@ -124,7 +124,7 @@ uint16_t floatToUint16(float value) {
   return static_cast<uint16_t>((shift << 11) | (negative ? 0x8000 | (0x800-sig) : sig));
 }
 
-bool DataType::dump(OutputFormat outputFormat, size_t length, bool appendDivisor, ostream* output) const {
+bool DataType::dump(OutputFormat outputFormat, size_t length, AppendDivisor appendDivisor, ostream* output) const {
   if (outputFormat & OF_JSON) {
     *output << "\"type\": \"" << m_id << "\", \"isbits\": "
             << (getBitCount() < 8 ? "true" : "false");
@@ -149,7 +149,7 @@ bool DataType::dump(OutputFormat outputFormat, size_t length, bool appendDivisor
         *output << static_cast<unsigned>(length);
       }
     }
-    if (appendDivisor) {
+    if (appendDivisor != ad_none) {
       *output << FIELD_SEPARATOR;
     }
   }
@@ -157,7 +157,7 @@ bool DataType::dump(OutputFormat outputFormat, size_t length, bool appendDivisor
 }
 
 
-bool StringDataType::dump(OutputFormat outputFormat, size_t length, bool appendDivisor, ostream* output) const {
+bool StringDataType::dump(OutputFormat outputFormat, size_t length, AppendDivisor appendDivisor, ostream* output) const {
   DataType::dump(outputFormat, length, appendDivisor, output);
   if ((outputFormat & OF_JSON) && (outputFormat & OF_ALL_ATTRS)) {
     *output << ", \"result\": \"" << (isIgnored() ? "void" : "string") << "\"";
@@ -300,7 +300,7 @@ result_t StringDataType::writeSymbols(size_t offset, size_t length, istringstrea
 }
 
 
-bool DateTimeDataType::dump(OutputFormat outputFormat, size_t length, bool appendDivisor, ostream* output) const {
+bool DateTimeDataType::dump(OutputFormat outputFormat, size_t length, AppendDivisor appendDivisor, ostream* output) const {
   DataType::dump(outputFormat, length, appendDivisor, output);
   if ((outputFormat & OF_JSON) && (outputFormat & OF_ALL_ATTRS)) {
     *output << ", \"result\": \"" << (hasDate() ? hasTime() ? "datetime" : "date" : "time") << "\"";
@@ -672,7 +672,7 @@ size_t NumberDataType::calcPrecision(int divisor) {
   return precision;
 }
 
-bool NumberDataType::dump(OutputFormat outputFormat, size_t length, bool appendDivisor, ostream* output) const {
+bool NumberDataType::dump(OutputFormat outputFormat, size_t length, AppendDivisor appendDivisor, ostream* output) const {
   if (m_bitCount < 8) {
     DataType::dump(outputFormat, m_bitCount, appendDivisor, output);
   } else {
@@ -681,11 +681,17 @@ bool NumberDataType::dump(OutputFormat outputFormat, size_t length, bool appendD
   if ((outputFormat & OF_JSON) && (outputFormat & OF_ALL_ATTRS)) {
     *output << ", \"result\": \"number\"";
   }
-  if (!appendDivisor) {
+  if (appendDivisor == ad_none) {
     return false;
   }
   bool ret = false;
-  if (m_baseType) {
+  if (appendDivisor == ad_full && m_divisor != 1) {
+    if (outputFormat & OF_JSON) {
+      *output << ", \"divisor\": ";
+    }
+    *output << m_divisor;
+    ret = true;
+  } else if (m_baseType) {
     if (m_baseType->m_divisor != m_divisor) {
       if (outputFormat & OF_JSON) {
         *output << ", \"divisor\": ";
@@ -693,12 +699,6 @@ bool NumberDataType::dump(OutputFormat outputFormat, size_t length, bool appendD
       *output << (m_divisor / m_baseType->m_divisor);
       ret = true;
     }
-  } else if (m_divisor != 1) {
-    if (outputFormat & OF_JSON) {
-      *output << ", \"divisor\": ";
-    }
-    *output << m_divisor;
-    ret = true;
   }
   if (ret && (outputFormat & OF_JSON) && (outputFormat & OF_ALL_ATTRS)) {
     *output << ", \"precision\": " << static_cast<unsigned>(getPrecision());
@@ -1317,7 +1317,7 @@ DataTypeList* DataTypeList::getInstance() {
   return &s_instance;
 }
 
-void DataTypeList::dump(OutputFormat outputFormat, bool appendDivisor, ostream* output) const {
+void DataTypeList::dump(OutputFormat outputFormat, ostream* output) const {
   bool json = outputFormat & OF_JSON;
   string sep = "\n";
   for (const auto &it : m_typesById) {
@@ -1329,9 +1329,9 @@ void DataTypeList::dump(OutputFormat outputFormat, bool appendDivisor, ostream* 
       *output << sep << "  {";
     }
     if ((dataType->getBitCount() % 8) != 0) {
-      dataType->dump(outputFormat, dataType->getBitCount(), appendDivisor, output);
+      dataType->dump(outputFormat, dataType->getBitCount(), ad_full, output);
     } else {
-      dataType->dump(outputFormat, dataType->getBitCount() / 8, appendDivisor, output);
+      dataType->dump(outputFormat, dataType->getBitCount() / 8, ad_full, output);
     }
     if (json) {
       *output << "}";
