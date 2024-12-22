@@ -72,9 +72,11 @@ result_t TemParamDataType::readSymbols(size_t offset, size_t length, const Symbo
   }
   int grp = 0, num = 0;
   if (input.isMaster()) {
-    grp = (value & 0x1f);  // grp in bits 0...5
-    num = ((value >> 8) & 0x7f);  // num in bits 8...13
+    // bits are distributed like this in 2 bytes: xNNN NNNN xxxG GGGG
+    grp = (value & 0x1f);  // grp in bits 0...4
+    num = ((value >> 8) & 0x7f);  // num in bits 8...14
   } else {
+    // bits are distributed like this in 2 bytes: xxxx GGGG GNNN NNNN
     grp = ((value >> 7) & 0x1f);  // grp in bits 7...11
     num = (value & 0x7f);  // num in bits 0...6
   }
@@ -126,8 +128,10 @@ result_t TemParamDataType::writeSymbols(const size_t offset, const size_t length
       return RESULT_ERR_OUT_OF_RANGE;  // value out of range
     }
     if (output->isMaster()) {
-      value = grp | (num << 8);  // grp in bits 0...5, num in bits 8...13
+      // bits are distributed like this in 2 bytes: xNNN NNNN xxxG GGGG
+      value = grp | (num << 8);  // grp in bits 0...4, num in bits 8...14
     } else {
+      // bits are distributed like this in 2 bytes: xxxx GGGG GNNN NNNN
       value = (grp << 7) | num;  // grp in bits 7...11, num in bits 0...6
     }
   }
