@@ -1719,6 +1719,7 @@ result_t MainLoop::executeDefine(const vector<string>& args, ostringstream* ostr
 result_t MainLoop::executeDecode(const vector<string>& args, ostringstream* ostream) {
   size_t argPos = 1;
   OutputFormat verbosity = OF_NONE;
+  bool toMaster = false;
   while (args.size() > argPos && args[argPos][0] == '-') {
     if (args[argPos] == "-v") {
       if ((verbosity & VERBOSITY_3) == VERBOSITY_0) {
@@ -1732,6 +1733,8 @@ result_t MainLoop::executeDecode(const vector<string>& args, ostringstream* ostr
       verbosity |= VERBOSITY_2;
     } else if (args[argPos] == "-vvv" || args[argPos] == "-V") {
       verbosity |= VERBOSITY_3;
+    } else if (args[argPos] == "-m") {
+      toMaster = true;
     } else if (args[argPos] == "-n") {
       verbosity = (verbosity & ~OF_VALUENAME) | OF_NUMERIC;
     } else if (args[argPos] == "-N") {
@@ -1748,10 +1751,11 @@ result_t MainLoop::executeDecode(const vector<string>& args, ostringstream* ostr
 
   if (argPos == 0 || args.size() != argPos + 2) {
     *ostream <<
-        "usage: decode [-v|-V] [-n|-N] DEFINITION DD[DD]*\n"
+        "usage: decode [-v|-V] [-m] [-n|-N] DEFINITION DD[DD]*\n"
         " Decode field(s) by definition and hex data.\n"
         "  -v          increase verbosity (include names/units/comments)\n"
         "  -V          be very verbose (include names, units, and comments)\n"
+        "  -m          target a master instead of a slave\n"
         "  -n          use numeric value of value=name pairs\n"
         "  -N          use numeric and named value of value=name pairs\n"
         "  DEFINITION  field definition (type,divisor/values,unit,comment,...)\n"
@@ -1764,28 +1768,45 @@ result_t MainLoop::executeDecode(const vector<string>& args, ostringstream* ostr
   istringstream defstr("#\n" + args[argPos]);  // ensure first line is not used for determining col names
   string errorDescription;
   DataFieldTemplates* templates = m_scanHelper->getTemplates("*");
-  LoadableDataFieldSet fields("", templates);
+  LoadableDataFieldSet fields("", templates, toMaster);
   result_t ret = fields.readFromStream(&defstr, "temporary", now, true, nullptr, &errorDescription);
   if (ret != RESULT_OK) {
     return ret;
   }
-  SlaveSymbolString slave;
-  slave.push_back(0);  // dummy length
-  ret = slave.parseHex(args[argPos+1]);
+  SlaveSymbolString sdata;
+  MasterSymbolString mdata;
+  SymbolString* data = toMaster ? &mdata : (SymbolString*)&sdata;
+  data->adjustHeader();
+  ret = data->parseHex(args[argPos+1]);
   if (ret != RESULT_OK) {
     return ret;
   }
-  slave.adjustHeader();
-  return fields.read(slave, 0, false, nullptr, -1, verbosity, -1, ostream);
+  data->adjustHeader();
+  return fields.read(*data, 0, false, nullptr, -1, verbosity, -1, ostream);
 }
 
 
 result_t MainLoop::executeEncode(const vector<string>& args, ostringstream* ostream) {
   size_t argPos = 1;
-  if (argPos == 0 || args.size() != argPos + 2) {
+  bool toMaster = false;
+  while (args.size() > argPos && args[argPos][0] == '-') {
+    if (args[argPos] == "-m") {
+      toMaster = true;
+    } else {
+      argPos = 0;  // print usage
+      break;
+    }
+    argPos++;
+  }
+  if (args.size() != argPos + 2) {
+    argPos = 0;  // print usage
+  }
+
+  if (argPos == 0) {
     *ostream <<
-        "usage: encode DEFINITION VALUE[;VALUE]*\n"
+        "usage: encode [-m] DEFINITION VALUE[;VALUE]*\n"
         " Encode field(s) by definition and decoded value(s).\n"
+        "  -m          target a master instead of a slave\n"
         "  DEFINITION  field definition (type,divisor/values,unit,comment,...)\n"
         "  VALUE       single field VALUE to encode";
     return RESULT_OK;
@@ -1796,18 +1817,21 @@ result_t MainLoop::executeEncode(const vector<string>& args, ostringstream* ostr
   istringstream defstr("#\n" + args[argPos]);  // ensure first line is not used for determining col names
   string errorDescription;
   DataFieldTemplates* templates = m_scanHelper->getTemplates("*");
-  LoadableDataFieldSet fields("", templates);
+  LoadableDataFieldSet fields("", templates, toMaster);
   result_t ret = fields.readFromStream(&defstr, "temporary", now, true, nullptr, &errorDescription);
   if (ret != RESULT_OK) {
     return ret;
   }
   istringstream datastr(args[argPos+1]);
-  SlaveSymbolString slave;
-  ret = fields.write(UI_FIELD_SEPARATOR, 0, &datastr, &slave, nullptr);
+  SlaveSymbolString sdata;
+  MasterSymbolString mdata;
+  SymbolString* data = toMaster ? &mdata : (SymbolString*)&sdata;
+  data->adjustHeader();
+  ret = fields.write(UI_FIELD_SEPARATOR, 0, &datastr, data, nullptr);
   if (ret != RESULT_OK) {
     return ret;
   }
-  *ostream << slave.getStr(1);
+  *ostream << data->getStr(toMaster ? 5 : 1);
   return ret;
 }
 
@@ -2375,7 +2399,7 @@ result_t MainLoop::executeGet(const vector<string>& args, bool* connected, ostri
       istringstream defstr("#\n" + def);  // ensure first line is not used for determining col names
       string errorDescription;
       DataFieldTemplates* templates = m_scanHelper->getTemplates("*");
-      LoadableDataFieldSet fields("", templates);
+      LoadableDataFieldSet fields("", templates, false);
       ret = fields.readFromStream(&defstr, "temporary", now, true, nullptr, &errorDescription);
       if (ret == RESULT_OK && fields.size()) {
         SlaveSymbolString slave;

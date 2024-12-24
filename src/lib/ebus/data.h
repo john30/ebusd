@@ -792,9 +792,10 @@ class LoadableDataFieldSet : public DataFieldSet, public MappedFileReader {
    * Constructs a new instance.
    * @param name the field name.
    * @param templates the @a DataFieldTemplates instance to use.
+   * @param isWrite true for a write message, false for read.
    */
-  LoadableDataFieldSet(const string& name, DataFieldTemplates* templates)
-    : DataFieldSet(name, vector<const SingleDataField*>()), MappedFileReader(false), m_templates(templates) {
+  LoadableDataFieldSet(const string& name, DataFieldTemplates* templates, bool isWrite)
+    : DataFieldSet(name, vector<const SingleDataField*>()), MappedFileReader(false), m_templates(templates), m_isWrite(isWrite) {
   }
 
   // @copydoc
@@ -807,6 +808,9 @@ class LoadableDataFieldSet : public DataFieldSet, public MappedFileReader {
  private:
   /** the @a DataFieldTemplates instance to use. */
   DataFieldTemplates* m_templates;
+
+  /** true for a write message, false for read. */
+  bool m_isWrite;
 };
 
 
