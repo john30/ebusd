@@ -1319,7 +1319,7 @@ result_t LoadableDataFieldSet::getFieldMap(const string& preferLanguage, vector<
 result_t LoadableDataFieldSet::addFromFile(const string& filename, unsigned int lineNo, map<string, string>* row,
     vector< map<string, string> >* subRows, string* errorDescription, bool replace) {
   const DataField* field = nullptr;
-  result_t result = DataField::create(false, false, false, MAX_POS, m_templates, subRows, errorDescription, &field);
+  result_t result = DataField::create(m_isWrite, false, false, MAX_POS, m_templates, subRows, errorDescription, &field);
   if (result != RESULT_OK) {
     return result;
   }
