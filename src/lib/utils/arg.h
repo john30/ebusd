@@ -25,10 +25,11 @@ namespace ebusd {
 
 /** the available arg flags. */
 enum ArgFlag {
-  af_optional = 1<<0,  //!< optional argument value
-  af_multiple = 1<<1,  //!< may appear multiple times (only allowed for last positional)
-  af_noHelp = 1<<2,  //!< do not include -?/--help option
+  af_optional = 1<<0,   //!< optional argument value
+  af_multiple = 1<<1,   //!< may appear multiple times (only allowed for last positional)
+  af_noHelp = 1<<2,     //!< do not include -?/--help option
   af_noVersion = 1<<3,  //!< do not include -V/--version option
+  af_max = 1<<3,        //!< maximum defined flag value
 };
 
 /** Definition of a single argument. */
@@ -86,6 +87,14 @@ int argParse(const argParseOpt *parseOpt, int argc, char **argv, void *userArg);
  * @param parseOpt pointer to the @a argParseOpt structure.
  */
 void argHelp(const char* name, const argParseOpt *parseOpt);
+
+/**
+ * Find the argument with the given name.
+ * @param parseOpt pointer to the @a argParseOpt structure.
+ * @param name the name of the argument, either short or long.
+ * @return a pointer to the found @a argDef, or nullptr.
+ */
+const argDef* argFind(const argParseOpt *parseOpt, const char* name);
 
 /**
  * Convenience macro to print an error message to stderr.

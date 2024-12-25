@@ -130,6 +130,8 @@ static string s_configPath = CONFIG_PATH;
 #define O_DMPFLU (O_DMPSIZ-1)
 #define O_INJPOS 0x100
 
+#define ARG_NO_ENV (af_max << 1)
+
 /** the definition of the known program arguments. */
 static const argDef argDefs[] = {
   {nullptr,          0,        nullptr,    0, "Device options:"},
@@ -156,17 +158,17 @@ static const argDef argDefs[] = {
       "\"full\" for full scan, "
       "a single hex address to scan, or "
       "\"off\" for not picking CSV files by scan result (default when configpath is given).\n"
-      "If combined with --checkconfig, you can add scan message data as "
+      "If combined with --checkconfig and --inject, you can add scan message data as "
       "arguments for checking a particular scan configuration, e.g. \"FF08070400/0AB5454850303003277201\"."},
   {"scanretries",    O_SCNRET, "COUNT",    0, "Retry scanning devices COUNT times [5]"},
   {"configlang",     O_CFGLNG, "LANG",     0,
       "Prefer LANG in multilingual configuration files [system default language, DE as fallback]"},
-  {"checkconfig",    O_CHKCFG, nullptr,    0, "Check config files, then stop"},
-  {"dumpconfig",     O_DMPCFG, "FORMAT", af_optional,
+  {"checkconfig",    O_CHKCFG, nullptr, ARG_NO_ENV, "Check config files, then stop"},
+  {"dumpconfig",     O_DMPCFG, "FORMAT", af_optional|ARG_NO_ENV,
       "Check and dump config files in FORMAT (\"json\" or \"csv\"), then stop"},
   {"dumpconfigto",   O_DMPCTO, "FILE",     0, "Dump config files to FILE"},
   {"pollinterval",   O_POLINT, "SEC",      0, "Poll for data every SEC seconds (0=disable) [5]"},
-  {"inject",         'i',      "stop", af_optional, "Inject remaining arguments as commands or already seen messages "
+  {"inject",         'i',      "stop", af_optional|ARG_NO_ENV, "Inject remaining arguments as commands or already seen messages "
       "(e.g. \"FF08070400/0AB5454850303003277201\"), optionally stop afterwards"},
   {nullptr,          O_INJPOS, "INJECT", af_optional|af_multiple, "Commands and/or messages to inject "
       "(if --inject was given)"},
@@ -642,18 +644,21 @@ int parse_main_args(int argc, char* argv[], char* envp[], options_t *opt) {
     }
     envopt[len] = 0;
     if (strcmp(envopt, "version") == 0 || strcmp(envopt, "image") == 0 || strcmp(envopt, "arch") == 0
-       || strcmp(envopt, "opts") == 0 || strcmp(envopt, "inject") == 0
-       || strcmp(envopt, "checkconfig") == 0 || strncmp(envopt, "dumpconfig", 10) == 0
+       || strcmp(envopt, "opts") == 0
     ) {
-      // ignore those defined in Dockerfile, EBUSD_OPTS, those with final args, and interactive ones
+      // ignore those defined in Dockerfile, EBUSD_OPTS
+      continue;
+    }
+    const argDef* found = argFind(&parseOpt, envopt);
+    if (found && found->flags & ARG_NO_ENV) {
+      // ignore those with final args and interactive ones
       continue;
     }
     char* envargv[] = {argv[0], envname, pos+1};
     int cnt = pos[1] ? 2 : 1;
     if (pos[1] && strlen(*env) < sizeof(envname)-3
-    && (strcmp(envopt, "scanconfig") == 0 || strcmp(envopt, "lograwdata") == 0
-      || strcmp(envopt, "mqttjson") == 0 || strcmp(envopt, "knxurl") == 0
-    )) {
+    && found && found->flags & af_optional
+    ) {
       // only really special case: af_optional with non-empty arg needs to use "=" syntax
       cnt = 1;
       strcat(envopt, pos);
