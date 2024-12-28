@@ -1292,17 +1292,17 @@ DataTypeList::DataTypeList() {
   // unsigned 3 bytes int, 0 - 16777214, big endian
   add(new NumberDataType("U3R", 24, REV, 0xffffff, 0, 0xfffffe, 1));
   // signed 3 bytes int, -8388607 - +8388607, little endian
-  add(new NumberDataType("S3N", 24, SIG, 0x800000, 0x800001, 0xffffff, 1));
+  add(new NumberDataType("S3N", 24, SIG, 0x800000, 0x800001, 0x7fffff, 1));
   // signed 3 bytes int, -8388607 - +8388607, big endian
-  add(new NumberDataType("S3R", 24, SIG|REV, 0x800000, 0x800001, 0xffffff, 1));
+  add(new NumberDataType("S3R", 24, SIG|REV, 0x800000, 0x800001, 0x7fffff, 1));
   // unsigned integer, 0 - 4294967294, little endian
   add(new NumberDataType("ULG", 32, 0, 0xffffffff, 0, 0xfffffffe, 1));
   // unsigned integer, 0 - 4294967294, big endian
   add(new NumberDataType("ULR", 32, REV, 0xffffffff, 0, 0xfffffffe, 1));
   // signed integer, -2147483647 - +2147483647, little endian
-  add(new NumberDataType("SLG", 32, SIG, 0x80000000, 0x80000001, 0xffffffff, 1));
+  add(new NumberDataType("SLG", 32, SIG, 0x80000000, 0x80000001, 0x7fffffff, 1));
   // signed integer, -2147483647 - +2147483647, big endian
-  add(new NumberDataType("SLR", 32, SIG|REV, 0x80000000, 0x80000001, 0xffffffff, 1));
+  add(new NumberDataType("SLR", 32, SIG|REV, 0x80000000, 0x80000001, 0x7fffffff, 1));
   add(new NumberDataType("BI0", 7, ADJ|REQ, 0, 0, 1));  // bit 0 (up to 7 bits until bit 6)
   add(new NumberDataType("BI1", 7, ADJ|REQ, 0, 1, 1));  // bit 1 (up to 7 bits until bit 7)
   add(new NumberDataType("BI2", 6, ADJ|REQ, 0, 2, 1));  // bit 2 (up to 6 bits until bit 7)
