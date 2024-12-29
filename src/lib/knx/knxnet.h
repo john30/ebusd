@@ -402,7 +402,9 @@ class KnxNetConnection : public KnxConnection {
   const char* open() override {
     close();
     int fd = socketConnect(m_url && m_url[0] ? m_url : SYSTEM_MULTICAST_IP_STR,
-      SYSTEM_MULTICAST_PORT, IPPROTO_UDP, nullptr, 0x02);
+      SYSTEM_MULTICAST_PORT, IPPROTO_UDP, &m_multicast,
+      // do not use connect() as it will limit incoming to the mcast src which is not the case
+      0x01);
     if (fd < 0) {
       return "create socket";
     }
@@ -596,7 +598,7 @@ class KnxNetConnection : public KnxConnection {
     }
     d[0] = tpci;
     logTelegram(true, c, l, d);
-    ssize_t sent = ::send(m_sock, buf, totalLen, MSG_NOSIGNAL);
+    ssize_t sent = sendto(m_sock, buf, totalLen, MSG_NOSIGNAL, (sockaddr*)&m_multicast, sizeof(m_multicast));
     if (sent < 0) {
       return "send error";
     }
@@ -632,6 +634,9 @@ class KnxNetConnection : public KnxConnection {
  private:
   /** the URL to connect to. */
   const char* m_url;
+
+  /** the multicast address to send to. */
+  struct sockaddr_in m_multicast;
 
   /** the socket if connected, or 0. */
   int m_sock;
