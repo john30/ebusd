@@ -401,7 +401,11 @@ class KnxNetConnection : public KnxConnection {
   // @copydoc
   const char* open() override {
     close();
-    int fd = socketConnect(m_url && m_url[0] ? m_url : SYSTEM_MULTICAST_IP_STR,
+    string url = m_url && m_url[0] ? m_url : SYSTEM_MULTICAST_IP_STR;
+    if (m_url[0] == '@') {
+      url = SYSTEM_MULTICAST_IP_STR+url;
+    }
+    int fd = socketConnect(url.c_str(),
       SYSTEM_MULTICAST_PORT, IPPROTO_UDP, &m_multicast,
       // do not use connect() as it will limit incoming to the mcast src which is not the case
       0x01);
