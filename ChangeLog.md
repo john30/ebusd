@@ -8,6 +8,7 @@
 
 ## Features
 * add "-m" option to "encode" and "decode" commands
+* add output for commands executed with "--inject=stop"
 
 
 # 24.1 (2024-10-27)

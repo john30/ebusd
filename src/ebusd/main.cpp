@@ -554,15 +554,20 @@ int main(int argc, char* argv[], char* envp[]) {
       if (arg.find_first_of(' ') != string::npos || arg.find_first_of('/') == string::npos) {
         RequestImpl req(false);
         req.add(argv[arg_index]);
-        bool connected;
-        RequestMode reqMode;
+        bool connected = true;
+        RequestMode reqMode = {};
         string user;
-        bool reload;
+        bool reload = false;
         ostringstream ostream;
         result_t ret = s_mainLoop->decodeRequest(&req, &connected, &reqMode, &user, &reload, &ostream);
-        if (ret != RESULT_OK) {
-          string output = ostream.str();
-          logError(lf_main, "executing command %s failed: %d", argv[arg_index], output.c_str());
+        string output = ostream.str();
+        if (ret != RESULT_OK || output.substr(0, 3) == "ERR" || output.substr(0, 5) == "usage") {
+          if (output.empty()) {
+            output = getResultCode(ret);
+          }
+          logError(lf_main, "executing command \"%s\" failed: %s", argv[arg_index], output.c_str());
+        } else if (s_opt.stopAfterInject) {
+          logNotice(lf_main, "executed command \"%s\": %s", argv[arg_index], output.c_str());
         }
         continue;
       }
