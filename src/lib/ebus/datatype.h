@@ -194,6 +194,9 @@ enum PartType {
 /** bit flag for @a DataType: stored duplicate for backwards compatibility, not to be traversed in lists any more. */
 #define DUP 0x2000
 
+/** bit flag for @a DataType: special marker for non-tolerated secondary replacement value of zero (date only). */
+#define REZ 0x4000
+
 /**
  * Parse a float value from the 32 bit representation (IEEE 754).
  * @param value the 32 bit representation of the float value.

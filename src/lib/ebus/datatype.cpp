@@ -345,11 +345,11 @@ result_t DateTimeDataType::readSymbols(size_t offset, size_t length, const Symbo
     }
     switch (type) {
       case 2:  // date only
-        if (!hasFlag(REQ) && symbol == m_replacement) {
+        if (!hasFlag(REQ) && (symbol == m_replacement || (!hasFlag(REZ) && symbol == 0))) {
           if (i + 1 != length) {
             *output << NULL_VALUE << ".";
             break;
-          } else if (last == m_replacement) {
+          } else if (last == m_replacement || (!hasFlag(REZ) && last == 0)) {
             if (length == 2) {  // number of days since 01.01.1900
               *output << NULL_VALUE << ".";
             }
@@ -1228,7 +1228,7 @@ DataTypeList::DataTypeList() {
   // date, 01.01.2000 - 31.12.2099 (0x01,0x01,0x00 - 0x1f,0x0c,0x63, replacement 0xff)
   add(new DateTimeDataType("HDA:3", 24, 0, 0xff, true, false, 0));
   // date, days since 01.01.1900, 01.01.1900 - 06.06.2079 (0x00,0x00 - 0xff,0xff)
-  add(new DateTimeDataType("DAY", 16, 0, 0xff, true, false, 0));
+  add(new DateTimeDataType("DAY", 16, REZ, 0xff, true, false, 0));
   // date+time in minutes since 01.01.2009, 01.01.2009 - 31.12.2099 (0x00,0x00,0x00,0x00 - 0x02,0xda,0x4e,0x1f)
   add(new DateTimeDataType("DTM", 32, REQ, 0x100, true, true, 0));
   // time in BCD, 00:00:00 - 23:59:59 (0x00,0x00,0x00 - 0x59,0x59,0x23)
