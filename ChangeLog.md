@@ -3,6 +3,11 @@
 * fix for device string symlink with colon
 * fix "read" and "write" command response
 * fix dump of divisor
+* fix max value for S3N, S3N, SLG, and SLR types
+* fix socket options for KNXnet/IP integration
+
+## Features
+* add "-m" option to "encode" and "decode" commands
 
 
 # 24.1 (2024-10-27)
