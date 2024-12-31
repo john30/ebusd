@@ -56,12 +56,12 @@ static const symbol_t CRC_LOOKUP_TABLE[] = {
 
 
 unsigned int parseInt(const char* str, int base, unsigned int minValue, unsigned int maxValue,
-    result_t* result, size_t* length) {
+    result_t* result, size_t* length, bool allowIncomplete) {
   char* strEnd = nullptr;
 
   unsigned long ret = strtoul(str, &strEnd, base);
 
-  if (strEnd == nullptr || strEnd == str || *strEnd != 0) {
+  if (strEnd == nullptr || strEnd == str || (!allowIncomplete && *strEnd != 0)) {
     *result = RESULT_ERR_INVALID_NUM;  // invalid value
     return 0;
   }
@@ -83,7 +83,7 @@ int parseSignedInt(const char* str, int base, int minValue, int maxValue,
 
   long ret = strtol(str, &strEnd, base);
 
-  if (strEnd == nullptr || (!allowIncomplete && *strEnd != 0)) {
+  if (strEnd == nullptr || strEnd == str || (!allowIncomplete && *strEnd != 0)) {
     *result = RESULT_ERR_INVALID_NUM;  // invalid value
     return 0;
   }

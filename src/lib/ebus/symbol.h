@@ -91,20 +91,21 @@ enum PredefinedSymbol : symbol_t {
 /**
  * Parse an unsigned int value.
  * @param str the string to parse.
- * @param base the numerical base.
+ * @param base the numerical base (or 0 to determine from the prefix).
  * @param minValue the minimum resulting value.
  * @param maxValue the maximum resulting value.
  * @param result the variable in which to store an error code when parsing failed or the value is out of bounds.
  * @param length the optional variable in which to store the number of read characters.
+ * @param allowIncomplete true to allow parsing less than the complete string.
  * @return the parsed value.
  */
 unsigned int parseInt(const char* str, int base, unsigned int minValue, unsigned int maxValue,
-    result_t* result, size_t* length = nullptr);
+    result_t* result, size_t* length = nullptr, bool allowIncomplete = false);
 
 /**
  * Parse a signed int value.
  * @param str the string to parse.
- * @param base the numerical base.
+ * @param base the numerical base (or 0 to determine from the prefix).
  * @param minValue the minimum resulting value.
  * @param maxValue the maximum resulting value.
  * @param result the variable in which to store an error code when parsing failed or the value is out of bounds.
