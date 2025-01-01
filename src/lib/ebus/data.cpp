@@ -927,12 +927,15 @@ result_t ConstantDataField::readSymbols(const SymbolString& input, size_t offset
   if (result != RESULT_OK) {
     return result;
   }
-  if (m_verify) {
     string value = coutput.str();
     FileReader::trim(&value);
+  if (m_verify) {
     if (value != m_value) {
       return RESULT_ERR_OUT_OF_RANGE;
     }
+  }
+  if (outputFormat & OF_JSON) {
+    *output << value;
   }
   return RESULT_OK;
 }
