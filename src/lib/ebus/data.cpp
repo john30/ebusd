@@ -309,27 +309,22 @@ result_t DataField::create(bool isWriteMessage, bool isTemplate, bool isBroadcas
         while (getline(stream, token, VALUE_SEPARATOR)) {
           FileReader::trim(&token);
           const char* str = token.c_str();
-          char* strEnd = nullptr;
-          unsigned long id;
-          if (strncasecmp(str, "0x", 2) == 0) {
-            str += 2;
-            id = strtoul(str, &strEnd, 16);  // hexadecimal
-          } else {
-            id = strtoul(str, &strEnd, 10);  // decimal
-          }
-          if (strEnd == nullptr || strEnd == str || id > MAX_VALUE) {
+          size_t len = 0;
+          unsigned int id = parseInt(str, 0, 0, MAX_VALUE, &result, &len, true);
+          if (result != RESULT_OK) {
             *errorDescription = "value "+token+" in field "+formatInt(fieldIndex);
             result = RESULT_ERR_INVALID_LIST;
             break;
           }
+          str += len;
           // remove blanks around '=' sign
-          while (*strEnd == ' ') strEnd++;
-          if (*strEnd != '=') {
+          while (*str == ' ') str++;
+          if (*str != '=') {
             *errorDescription = "value "+token+" in field "+formatInt(fieldIndex);
             result = RESULT_ERR_INVALID_LIST;
             break;
           }
-          token = string(strEnd + 1);
+          token = string(str + 1);
           FileReader::trim(&token);
           values[(unsigned int)id] = token;
         }
