@@ -135,8 +135,9 @@ result_t TemParamDataType::writeSymbols(const size_t offset, const size_t length
       value = (grp << 7) | num;  // grp in bits 7...11, num in bits 0...6
     }
   }
-  if (value < getMinValue() || value > getMaxValue()) {
-    return RESULT_ERR_OUT_OF_RANGE;  // value out of range
+  result_t ret = checkValueRange(value);
+  if (ret != RESULT_OK) {
+    return ret;
   }
   return writeRawValue(value, offset, length, output, usedLength);
 }

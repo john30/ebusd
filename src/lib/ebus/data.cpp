@@ -273,6 +273,7 @@ result_t DataField::create(bool isWriteMessage, bool isTemplate, bool isBroadcas
 
     string divisorStr = pluck("divisor", &row);
     string valuesStr = pluck("values", &row);
+    string rangeStr = pluck("range", &row);
     if (divisorStr.empty() && valuesStr.empty()) {
       divisorStr = pluck("divisor/values", &row);  // [divisor|values]
       if (divisorStr.find('=') != string::npos) {
@@ -365,6 +366,57 @@ result_t DataField::create(bool isWriteMessage, bool isTemplate, bool isBroadcas
         }
         transform(typeName.begin(), typeName.end(), typeName.begin(), ::toupper);
         const DataType* dataType = DataTypeList::getInstance()->get(typeName, length == REMAIN_LEN ? 0 : length);
+        if (dataType && dataType->isNumeric() && !rangeStr.empty()) {
+          const NumberDataType* numType = reinterpret_cast<const NumberDataType*>(dataType);
+          if (divisor != 1 && divisor != 0) {
+            result = numType->derive(divisor, numType->getBitCount(), &numType);
+            divisor = 1;
+          }
+          // either from-to or from-to:step
+          size_t sepPos = rangeStr.find('-', 1);
+          string part = rangeStr.substr(0, sepPos);
+          FileReader::trim(&part);
+          unsigned int from;
+          if (result == RESULT_OK) {
+            result = numType->parseInput(part, &from);
+          }
+          unsigned int to = from;
+          unsigned int inc = 0;
+          if (result == RESULT_OK) {
+            part = rangeStr.substr(sepPos+1);
+            FileReader::trim(&part);
+            sepPos = part.find(':');
+            if (sepPos != string::npos) {
+              string incStr = part.substr(sepPos + 1);
+              FileReader::trim(&incStr);
+              part = part.substr(0, sepPos);
+              FileReader::trim(&part);
+              result = numType->parseInput(incStr, &inc);
+            }
+            if (result == RESULT_OK) {
+              result = numType->parseInput(part, &to);
+            }
+          }
+          float ffrom = 0, fto = 0;
+          if (result == RESULT_OK) {
+            result = numType->getFloatFromRawValue(from, &ffrom);
+          }
+          if (result == RESULT_OK) {
+            result = numType->getFloatFromRawValue(to, &fto);
+          }
+          if (result == RESULT_OK && ffrom > fto) {
+            result = RESULT_ERR_INVALID_LIST;
+          }
+          if (result == RESULT_OK) {
+            result = numType->derive(from, to, inc, &numType);
+          };
+          if (result != RESULT_OK) {
+            *errorDescription = "\""+rangeStr+"\" in field "+formatInt(fieldIndex);
+            result = RESULT_ERR_OUT_OF_RANGE;
+            break;
+          }
+          dataType = numType;
+        }
         if (!dataType) {
           result = RESULT_ERR_NOTFOUND;
           *errorDescription = "field type "+typeName+" in field "+formatInt(fieldIndex);
@@ -512,8 +564,11 @@ result_t SingleDataField::create(const string& name, const map<string, string>& 
       *returnField = new SingleDataField(name, attributes, numType, partType, byteCount);
       return RESULT_OK;
     }
-    if (values->begin()->first < numType->getMinValue() || values->rbegin()->first > numType->getMaxValue()) {
-      return RESULT_ERR_OUT_OF_RANGE;
+    for (auto& it : *values) {
+      result_t ret = numType->checkValueRange(it.first);
+      if (ret != RESULT_OK) {
+        return ret;
+      }
     }
     *returnField = new ValueListDataField(name, attributes, numType, partType, byteCount, *values);
     return RESULT_OK;
@@ -775,8 +830,11 @@ result_t ValueListDataField::derive(const string& name, PartType partType, int d
   }
   const NumberDataType* num = reinterpret_cast<const NumberDataType*>(m_dataType);
   if (!values.empty()) {
-    if (values.begin()->first < num->getMinValue() || values.rbegin()->first > num->getMaxValue()) {
-      return RESULT_ERR_INVALID_ARG;  // cannot use divisor != 1 for value list field
+    for (auto& it : values) {
+      result_t ret = num->checkValueRange(it.first);
+      if (ret != RESULT_OK) {
+        return RESULT_ERR_INVALID_ARG;
+      }
     }
     fields->push_back(new ValueListDataField(useName, *attributes,
         num, partType, m_length, values));
@@ -922,8 +980,8 @@ result_t ConstantDataField::readSymbols(const SymbolString& input, size_t offset
   if (result != RESULT_OK) {
     return result;
   }
-    string value = coutput.str();
-    FileReader::trim(&value);
+  string value = coutput.str();
+  FileReader::trim(&value);
   if (m_verify) {
     if (value != m_value) {
       return RESULT_ERR_OUT_OF_RANGE;

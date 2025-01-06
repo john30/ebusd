@@ -53,15 +53,18 @@ void verify(bool expectFailMatch, string type, string input,
 
 class TestReader : public MappedFileReader {
  public:
-  TestReader(DataFieldTemplates* templates, bool isSet, bool isMasterDest)
+  TestReader(DataFieldTemplates* templates, bool isSet, bool isMasterDest, bool withRange)
       : MappedFileReader::MappedFileReader(true), m_templates(templates), m_isSet(isSet), m_isMasterDest(isMasterDest),
-        m_fields(nullptr) {}
+        m_withRange(withRange), m_fields(nullptr) {}
   result_t getFieldMap(const string& preferLanguage, vector<string>* row, string* errorDescription) const override {
     if (row->empty()) {
       row->push_back("*name");
       row->push_back("part");
       row->push_back("type");
       row->push_back("divisor/values");
+      if (m_withRange) {
+        row->push_back("range");
+      }
       row->push_back("unit");
       row->push_back("comment");
       return RESULT_OK;
@@ -86,6 +89,7 @@ class TestReader : public MappedFileReader {
   const DataFieldTemplates* m_templates;
   const bool m_isSet;
   const bool m_isMasterDest;
+  const bool m_withRange;
  public:
   const DataField* m_fields;
 };
@@ -101,7 +105,7 @@ int main() {
   // entry: definition, decoded value, master data, slave data, flags
   // definition: name,part,type[:len][,[divisor|values][,[unit][,[comment]]]]
   unsigned int baseLine = __LINE__+1;
-  string checks[][5] = {
+  string checks[][6] = {
       {"x,,ign:10",  "",                              "10fe07000a00000000000000000000", "00", ""},
       {"x,,ign:*",   "",                              "10fe07000a00000000000000000000", "00", "W"},
       {"x,,ign,2",   "",                              "",                               "",   "c"},
@@ -344,6 +348,13 @@ int main() {
       {"x,,uch,==48", "",    "10feffff01ab", "00", "rW"},
       {"x,,uch,=48", "",     "10feffff0130", "00", ""},
       {"x,,uch,==48", "",    "10feffff0130", "00", ""},
+      {"x,,uch,,1-3", "2",    "10feffff0102", "00", "-"},
+      {"x,,uch,,1-3", "4",    "10feffff0102", "00", "-Rw:ERR: argument value out of valid range"},
+      {"x,,uch,,1-3", "2",    "10feffff0104", "00", "-rW:ERR: argument value out of valid range"},
+      {"x,,uch,,0x1-0x3", "4","10feffff0102", "00", "-Rw:ERR: argument value out of valid range"},
+      {"x,,uch,,0x1-0x3", "2","10feffff0104", "00", "-rW:ERR: argument value out of valid range"},
+      {"x,,uch", "\n     \"x\": {\"value\": 2}",    "10feffff0102", "00", "-jV", "\n     { \"name\": \"x\", \"slave\": false, \"type\": \"UCH\", \"isbits\": false, \"isadjustable\": false, \"isignored\": false, \"isreverse\": false, \"length\": 1, \"result\": \"number\", \"min\": 0, \"max\": 254, \"step\": 1, \"unit\": \"\", \"comment\": \"\"}"},
+      {"x,,uch,,1-3:2", "\n     \"x\": {\"value\": 2}",    "10feffff0102", "00", "-jV", "\n     { \"name\": \"x\", \"slave\": false, \"type\": \"UCH\", \"isbits\": false, \"isadjustable\": false, \"isignored\": false, \"isreverse\": false, \"length\": 1, \"result\": \"number\", \"min\": 1, \"max\": 3, \"step\": 2, \"unit\": \"\", \"comment\": \"\"}"},
       {"x,,sch", "-90",      "10feffff01a6", "00", ""},
       {"x,,sch", "0",        "10feffff0100", "00", ""},
       {"x,,sch", "-1",       "10feffff01ff", "00", ""},
@@ -352,6 +363,15 @@ int main() {
       {"x,,sch", "127",      "10feffff017f", "00", ""},
       {"x,,sch,10", "-9.0",  "10feffff01a6", "00", ""},
       {"x,,sch,-10", "-900", "10feffff01a6", "00", ""},
+      {"x,,sch,,1-3", "2",    "10feffff0102", "00", "-"},
+      {"x,,sch,,1-500", "-",    "10feffff0180", "00", "-c"},
+      {"x,,sch,,-130-1", "-",   "10feffff0180", "00", "-c"},
+      {"x,,sch,,-127-127", "-",   "10feffff0180", "00", "-"},
+      {"x,,sch,,-127-128", "-",   "10feffff0180", "00", "-c"},
+      {"x,,sch,,-128-127", "-",   "10feffff0180", "00", "-c"},
+      {"x,,sch,,1-3", "4",    "10feffff0102", "00", "-Rw:ERR: argument value out of valid range"},
+      {"x,,sch,,1-3", "2",    "10feffff0104", "00", "-rW:ERR: argument value out of valid range"},
+      {"x,,sch,,-3--1", "-4", "10feffff01fe", "00", "-Rw:ERR: argument value out of valid range"},
       {"x,,d1b", "-90",      "10feffff01a6", "00", ""},
       {"x,,d1b", "0",        "10feffff0100", "00", ""},
       {"x,,d1b", "-1",       "10feffff01ff", "00", ""},
@@ -429,6 +449,12 @@ int main() {
       {"x,,flt", "-",      "10feffff020080", "00", ""},
       {"x,,flt", "-32.767", "10feffff020180", "00", ""},
       {"x,,flt", "32.767", "10feffff02ff7f", "00", ""},
+      {"x,,flt,,1-3", "2.000",    "10feffff02d007", "00", "-"},
+      {"x,,flt,,1-3", "4.000",    "10feffff02d007", "00", "-Rw:ERR: argument value out of valid range"},
+      {"x,,flt,,1-3", "2.000",    "10feffff02a00f", "00", "-rW:ERR: argument value out of valid range"},
+      {"x,,flt,,-3--1", "-4", "10feffff0230f8", "00", "-Rw:ERR: argument value out of valid range"}, // -4:60f0, -2:30f8
+      {"x,,flt,,-3.1--1.0", "-4", "10feffff0230f8", "00", "-Rw:ERR: argument value out of valid range"},
+      {"x,,flt,,-3.1--1.0", "-2", "10feffff0260f0", "00", "-rW:ERR: argument value out of valid range"},
       {"x,,flr", "-0.090", "10feffff02ffa6", "00", ""},
       {"x,,flr", "0.000",  "10feffff020000", "00", ""},
       {"x,,flr", "-0.001", "10feffff02ffff", "00", ""},
@@ -445,6 +471,11 @@ int main() {
       {"x,,exp", "0.25",  "10feffff040000803e", "00", ""},
       {"x,,exp", "0.95",  "10feffff043333733f", "00", ""},
       {"x,,exp", "0.65",  "10feffff046666263f", "00", ""},
+      {"x,,exp", "0.065", "10feffff04b81e853d", "00", ""},
+      {"x,,exp,,0-0.65", "0.65",  "10feffff046666263f", "00", "-"},
+      {"x,,exp,,0-0.5", "0.65",  "10feffff046666263f", "00", "-rw:ERR: argument value out of valid range"},
+      {"x,,exp,10,0-0.065", "0.0650000",  "10feffff046666263f", "00", "-"},
+      {"x,,exp,10,0-0.05", "0.0650000",  "10feffff046666263f", "00", "-rw:ERR: argument value out of valid range"},
       {"x,,exr", "-0.09",  "10feffff04bdb851ec", "00", ""},
       {"x,,exr", "0.0",    "10feffff0400000000", "00", ""},
       {"x,,exr", "-0.001", "10feffff04ba83126f", "00", ""},
@@ -577,6 +608,12 @@ int main() {
       continue;
     }
     string flags = check[4];
+    size_t colon = flags.find(':');
+    string errStr;
+    if (colon != string::npos) {
+      errStr = flags.substr(colon+1);
+      flags = flags.substr(0, colon);
+    }
     bool isSet = flags.find('s') != string::npos;
     bool testFields = flags.find('F') != string::npos;
     bool failedCreate = flags.find('c') != string::npos;
@@ -584,6 +621,7 @@ int main() {
     bool failedReadMatch = flags.find('R') != string::npos;
     bool failedWrite = flags.find('w') != string::npos;
     bool failedWriteMatch = flags.find('W') != string::npos;
+    string withDump = check[5];  // optional
     const char* findName = flags.find('I') == string::npos ? nullptr : "x";
     ssize_t findIndex = -1;
     if (flags.find('i') != string::npos) {
@@ -598,6 +636,9 @@ int main() {
     }
     if (flags.find("vvv") != string::npos) {
       verbosity |= OF_COMMENTS;
+    }
+    if (flags.find("V") != string::npos) {
+      verbosity |= OF_NAMES|OF_UNITS|OF_COMMENTS|OF_ALL_ATTRS;
     }
     if (flags.find('j') != string::npos) {
       verbosity |= OF_JSON;
@@ -620,7 +661,8 @@ int main() {
       }
       continue;
     }
-    TestReader reader{templates, isSet, mstr[1] == BROADCAST || isMaster(mstr[1])};
+    bool withRange = flags.find('-') != string::npos;
+    TestReader reader{templates, isSet, mstr[1] == BROADCAST || isMaster(mstr[1]), withRange};
     lineNo = 0;
     dummystr.clear();
     dummystr.str("#");
@@ -637,6 +679,9 @@ int main() {
     if (failedCreate) {
       if (result == RESULT_OK) {
         cout << "\"" << check[0] << "\": failed create error: unexpectedly succeeded" << endl;
+        error = true;
+      } else if (!errStr.empty() && errorDescription != errStr) {
+        cout << "\"" << check[0] << "\": failed create error: unexpected result \"" << errorDescription << "\" instead of \"" << errStr << "\"" << endl;
         error = true;
       } else {
         cout << "\"" << check[0] << "\": failed create OK" << endl;
@@ -680,6 +725,10 @@ int main() {
           cout << "  failed read " << fields->getName(-1) << " >" << check[2] << " " << check[3]
                << "< error: unexpectedly succeeded" << endl;
           error = true;
+        } else if (!errStr.empty() && getResultCode(result) != errStr) {
+          cout << "  failed read " << fields->getName(-1) << " >" << check[2] << " " << check[3]
+               << "< error: unexpected result \"";
+          cout << getResultCode(result) << "\" instead of \"" << errStr << "\"" << endl;
         } else {
           cout << "  failed read " << fields->getName(-1) << " >" << check[2] << " " << check[3]
                << "< OK" << endl;
@@ -744,6 +793,10 @@ int main() {
           cout << "  failed write " << fields->getName(-1) << " >"
                << expectStr << "< error: unexpectedly succeeded" << endl;
           error = true;
+        } else if (!errStr.empty() && getResultCode(result) != errStr) {
+          cout << "  failed write " << fields->getName(-1) << " >"
+               << "< error: unexpected result \"";
+          cout << getResultCode(result) << "\" instead of \"" << errStr << "\"" << endl;
         } else {
           cout << "  failed write " << fields->getName(-1) << " >"
                << expectStr << "< OK" << endl;
@@ -759,6 +812,13 @@ int main() {
         verify(failedWriteMatch, "write", expectStr, match, mstr.getStr() + " " + sstr.getStr(),
                writeMstr.getStr() + " " + writeSstr.getStr());
       }
+    }
+    if (!withDump.empty()) {
+      output.clear();
+      output.str("");
+      fields->dump(false, verbosity, &output);
+      bool match = output.str() == withDump;
+      verify(false, "dump", withDump, match, withDump, output.str());
     }
     delete fields;
     fields = nullptr;

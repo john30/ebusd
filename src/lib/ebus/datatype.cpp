@@ -700,8 +700,16 @@ bool NumberDataType::dump(OutputFormat outputFormat, size_t length, AppendDiviso
       ret = true;
     }
   }
-  if (ret && (outputFormat & OF_JSON) && (outputFormat & OF_ALL_ATTRS)) {
-    *output << ", \"precision\": " << static_cast<unsigned>(getPrecision());
+  if ((outputFormat & OF_JSON) && (outputFormat & OF_ALL_ATTRS)) {
+    if (ret) {
+      *output << ", \"precision\": " << static_cast<unsigned>(getPrecision());
+    }
+    *output << ", \"min\": ";
+    getMinMax(false, OF_JSON, output);
+    *output << ", \"max\": ";
+    getMinMax(true, OF_JSON, output);
+    *output << ", \"step\": ";
+    getStep(OF_JSON, output);
   }
   return ret;
 }
@@ -747,23 +755,119 @@ result_t NumberDataType::derive(int divisor, size_t bitCount, const NumberDataTy
   } else {
     return RESULT_ERR_INVALID_ARG;
   }
-  if (m_bitCount < 8) {
-    *derived = new NumberDataType(m_id, bitCount, m_flags, m_replacement,
-                                  m_firstBit, divisor, m_baseType ? m_baseType : this);
-  } else {
-    *derived = new NumberDataType(m_id, bitCount, m_flags, m_replacement,
-                                  m_minValue, m_maxValue, divisor, m_baseType ? m_baseType : this);
+  ostringstream str;
+  str << m_id << ',' << static_cast<unsigned>(bitCount) << ',' << static_cast<signed>(divisor);
+  string key = str.str();
+  *derived = static_cast<const NumberDataType*>(DataTypeList::getInstance()->get(key));
+  if (*derived == nullptr) {
+    if (m_bitCount < 8) {
+      *derived = new NumberDataType(m_id, bitCount, m_flags, m_replacement,
+                                    m_firstBit, divisor, m_baseType ? m_baseType : this);
+    } else {
+      *derived = new NumberDataType(m_id, bitCount, m_flags, m_replacement,
+                                    m_minValue, m_maxValue, divisor, m_baseType ? m_baseType : this);
+    }
+    DataTypeList::getInstance()->add(*derived, key);
   }
-  DataTypeList::getInstance()->addCleanup(*derived);
+  return RESULT_OK;
+}
+
+result_t NumberDataType::derive(unsigned int min, unsigned int max, unsigned int inc, const NumberDataType** derived)
+const {
+  if (m_bitCount < 8) {
+    return RESULT_ERR_INVALID_ARG;
+  }
+  if (min == m_minValue && max == m_maxValue && (inc == 0 || inc == m_incValue)) {
+    *derived = this;
+    return RESULT_OK;
+  }
+  if (checkValueRange(min) != RESULT_OK || checkValueRange(max) != RESULT_OK) {
+    return RESULT_ERR_OUT_OF_RANGE;
+  }
+  ostringstream str;
+  str << m_id << ',' << static_cast<unsigned>(m_bitCount) << ',' << static_cast<signed>(m_divisor)
+  << ',' << static_cast<unsigned>(min)<< ',' << static_cast<unsigned>(max)<< ',' << static_cast<unsigned>(inc);
+  string key = str.str();
+  *derived = static_cast<const NumberDataType*>(DataTypeList::getInstance()->get(key));
+  if (*derived == nullptr) {
+    *derived = new NumberDataType(m_id, m_bitCount, m_flags, m_replacement,
+                                  min, max, inc, m_divisor, m_baseType ? m_baseType : this);
+    DataTypeList::getInstance()->add(*derived, key);
+  }
   return RESULT_OK;
 }
 
 result_t NumberDataType::getMinMax(bool getMax, const OutputFormat outputFormat, ostream* output) const {
-  return readFromRawValue(getMax ? m_maxValue : m_minValue, outputFormat, output);
+  return readFromRawValue(getMax ? m_maxValue : m_minValue, outputFormat, output, true);
 }
 
 result_t NumberDataType::getStep(const OutputFormat outputFormat, ostream* output) const {
-  return readFromRawValue(hasFlag(EXP) ? floatToUint(1.0f) : 1, outputFormat, output);
+  return readFromRawValue(m_incValue ? m_incValue : hasFlag(EXP) ? floatToUint(1.0f) : 1, outputFormat, output, true);
+}
+
+result_t NumberDataType::checkValueRange(unsigned int value, bool* pnegative) const {
+  bool negative;
+  if (hasFlag(SIG)) {  // signed value
+    unsigned int negBit = 1 << (m_bitCount - 1);
+    negative = (value & negBit) != 0;
+    if (hasFlag(EXP)) {
+      float fval = uintToFloat(value, negative);
+      if (!isfinite(fval)) {
+        return RESULT_EMPTY;
+      }
+      float cval = uintToFloat(m_minValue, (m_minValue & negBit) != 0);
+      if (!isfinite(cval)) {
+        return RESULT_EMPTY;
+      }
+      if (fval < cval) {
+        return RESULT_ERR_OUT_OF_RANGE;
+      }
+      cval = uintToFloat(m_maxValue, (m_maxValue & negBit) != 0);
+      if (!isfinite(cval)) {
+        return RESULT_EMPTY;
+      }
+      if (fval > cval) {
+        return RESULT_ERR_OUT_OF_RANGE;
+      }
+    } else {
+      if (m_minValue & negBit) {
+        // negative min
+        if (negative && value < m_minValue) {
+          // e.g. SCH val=0xfc=-4 min=0xff=-1
+          return RESULT_ERR_OUT_OF_RANGE;
+        }
+      } else {
+        // positive min
+        if (negative || value < m_minValue) {
+          // e.g. SCH val=0xfc=-4 min=0x01=+1
+          // e.g. SCH val=0x00=0 min=0x01=+1
+          return RESULT_ERR_OUT_OF_RANGE;
+        }
+      }
+      if (m_maxValue & negBit) {
+        // negative max
+        if (!negative || value > m_maxValue) {
+          // e.g. SCH val=0x00=0 max=0xff=-1
+          // e.g. SCH val=0xff=-1 max=0xfe=-2
+          return RESULT_ERR_OUT_OF_RANGE;
+        }
+      } else {
+        // positive max
+        if (!negative && value > m_maxValue) {
+          // e.g. SCH val=0x04=+4 max=0x01=+1
+          return RESULT_ERR_OUT_OF_RANGE;
+        }
+      }
+    }
+  } else if (value < m_minValue || value > m_maxValue) {
+    return RESULT_ERR_OUT_OF_RANGE;
+  } else {
+    negative = false;
+  }
+  if (pnegative) {
+    *pnegative = negative;
+  }
+  return RESULT_OK;
 }
 
 result_t NumberDataType::readRawValue(size_t offset, size_t length, const SymbolString& input,
@@ -830,22 +934,10 @@ result_t NumberDataType::getFloatFromRawValue(unsigned int value, float* output)
     return RESULT_EMPTY;
   }
 
-  bool negative;
-  if (hasFlag(SIG)) {  // signed value
-    negative = (value & (1 << (m_bitCount - 1))) != 0;
-    if (!hasFlag(EXP)) {
-      if (negative) {  // negative signed value
-        if (value < m_minValue) {
-          return RESULT_ERR_OUT_OF_RANGE;  // value out of range
-        }
-      } else if (value > m_maxValue) {
-        return RESULT_ERR_OUT_OF_RANGE;  // value out of range
-      }
-    }
-  } else if (value < m_minValue || value > m_maxValue) {
-    return RESULT_ERR_OUT_OF_RANGE;  // value out of range
-  } else {
-    negative = false;
+  bool negative = false;
+  result_t ret = checkValueRange(value, &negative);
+  if (ret != RESULT_OK) {
+    return ret;
   }
   int signedValue;
   if (m_bitCount == 32) {
@@ -865,7 +957,7 @@ result_t NumberDataType::getFloatFromRawValue(unsigned int value, float* output)
           val /= static_cast<float>(m_divisor);
         }
       }
-      *output = static_cast<float>(val);
+      *output = val;
       return RESULT_OK;
     }
     if (!negative) {
@@ -895,7 +987,7 @@ result_t NumberDataType::getFloatFromRawValue(unsigned int value, float* output)
 }
 
 result_t NumberDataType::readFromRawValue(unsigned int value,
-                                          OutputFormat outputFormat, ostream* output) const {
+                                          OutputFormat outputFormat, ostream* output, bool skipRangeCheck) const {
   size_t length = (m_bitCount < 8) ? 1 : (m_bitCount/8);
   // initialize output
   *output << setw(0) << std::resetiosflags(output->flags()) << dec << std::skipws << setprecision(6);
@@ -909,22 +1001,10 @@ result_t NumberDataType::readFromRawValue(unsigned int value,
     return RESULT_OK;
   }
 
-  bool negative;
-  if (hasFlag(SIG)) {  // signed value
-    negative = (value & (1 << (m_bitCount - 1))) != 0;
-    if (!hasFlag(EXP)) {
-      if (negative) {  // negative signed value
-        if (value < m_minValue) {
-          return RESULT_ERR_OUT_OF_RANGE;  // value out of range
-        }
-      } else if (value > m_maxValue) {
-        return RESULT_ERR_OUT_OF_RANGE;  // value out of range
-      }
-    }
-  } else if (value < m_minValue || value > m_maxValue) {
-    return RESULT_ERR_OUT_OF_RANGE;  // value out of range
-  } else {
-    negative = false;
+  bool negative = false;
+  result_t ret = checkValueRange(value, &negative);
+  if (!skipRangeCheck && ret != RESULT_OK) {
+    return ret;
   }
   int signedValue;
   if (m_bitCount == 32) {
@@ -1055,7 +1135,7 @@ result_t NumberDataType::getRawValueFromFloat(float val, unsigned int* output) c
   } else {
     if (m_divisor == 1) {
       if (hasFlag(SIG)) {
-        long signedValue = static_cast<long>(val);  // TODO static_c?
+        long signedValue = static_cast<long>(val);
         if (signedValue < 0 && m_bitCount != 32) {
           value = (unsigned int)(signedValue + (1 << m_bitCount));
         } else {
@@ -1091,106 +1171,108 @@ result_t NumberDataType::getRawValueFromFloat(float val, unsigned int* output) c
         value = (unsigned int)dvalue;
       }
     }
-
-    if (hasFlag(SIG)) {  // signed value
-      if ((value & (1 << (m_bitCount - 1))) != 0) {  // negative signed value
-        if (value < m_minValue) {
-          return RESULT_ERR_OUT_OF_RANGE;  // value out of range
-        }
-      } else if (value > m_maxValue) {
-        return RESULT_ERR_OUT_OF_RANGE;  // value out of range
-      }
-    } else if (value < m_minValue || value > m_maxValue) {
-      return RESULT_ERR_OUT_OF_RANGE;  // value out of range
-    }
+  }
+  result_t ret = checkValueRange(value);
+  if (ret != RESULT_OK) {
+    return ret;
   }
   *output = value;
+  return RESULT_OK;
+}
+
+result_t NumberDataType::parseInput(const string inputStr, unsigned int* parsedValue) const {
+  unsigned int value;
+
+  if (!hasFlag(REQ) && (isIgnored() || inputStr == NULL_VALUE)) {
+    value = m_replacement;  // replacement value
+  } else if (inputStr.empty()) {
+    return RESULT_ERR_EOF;  // input too short
+  } else {
+    if (hasFlag(EXP)) {  // IEEE 754 binary32
+      const char* str = inputStr.c_str();
+      char* strEnd = nullptr;
+      double dvalue = strtod(str, &strEnd);
+      if (errno == ERANGE || strEnd == nullptr || strEnd == str || *strEnd != 0) {
+        return RESULT_ERR_INVALID_NUM;  // invalid value
+      }
+      if (m_divisor < 0) {
+        dvalue /= -m_divisor;
+      } else if (m_divisor > 1) {
+        dvalue *= m_divisor;
+      }
+      value = floatToUint(static_cast<float>(dvalue));
+      if (value == 0xffffffff) {
+        return RESULT_ERR_INVALID_NUM;
+      }
+    } else {
+      unsigned int maxBit = m_bitCount != 32 ? 1 << m_bitCount : 0;
+      const char* str = inputStr.c_str();
+      char* strEnd = nullptr;
+      if (m_divisor == 1) {
+        if (hasFlag(SIG)) {
+          long signedValue = strtol(str, &strEnd, 0);
+          if (errno == ERANGE || (maxBit && (signedValue < -(maxBit/2L) || signedValue >= maxBit/2L))) {
+            return RESULT_ERR_OUT_OF_RANGE;  // value out of range
+          }
+          if (signedValue < 0 && m_bitCount != 32) {
+            value = (unsigned int)(signedValue + maxBit);
+          } else {
+            value = (unsigned int)signedValue;
+          }
+        } else {
+          value = (unsigned int)strtoul(str, &strEnd, 0);
+          if (errno == ERANGE || (maxBit && value >= maxBit)) {
+            return RESULT_ERR_OUT_OF_RANGE;
+          }
+        }
+        if (strEnd == nullptr || strEnd == str || (*strEnd != 0 && *strEnd != '.')) {
+          return RESULT_ERR_INVALID_NUM;  // invalid value
+        }
+      } else {
+        double dvalue = strtod(str, &strEnd);
+        if (errno == ERANGE || strEnd == nullptr || strEnd == str || *strEnd != 0) {
+          return RESULT_ERR_INVALID_NUM;  // invalid value
+        }
+        if (m_divisor < 0) {
+          dvalue = round(dvalue / -m_divisor);
+        } else {
+          dvalue = round(dvalue * m_divisor);
+        }
+        if (hasFlag(SIG)) {
+          double max = exp2(m_bitCount - 1);
+          if (dvalue < -max || dvalue >= max) {
+            return RESULT_ERR_OUT_OF_RANGE;  // value out of range
+          }
+          if (dvalue < 0 && m_bitCount != 32) {
+            value = static_cast<int>(dvalue + (1 << m_bitCount));
+          } else {
+            value = static_cast<int>(dvalue);
+          }
+        } else {
+          if (dvalue < 0.0 || dvalue >= exp2(m_bitCount)) {
+            return RESULT_ERR_OUT_OF_RANGE;  // value out of range
+          }
+          value = (unsigned int)dvalue;
+        }
+      }
+    }
+    result_t ret = checkValueRange(value);
+    if (ret != RESULT_OK) {
+      return ret;
+    }
+  }
+  *parsedValue = value;
   return RESULT_OK;
 }
 
 result_t NumberDataType::writeSymbols(size_t offset, size_t length, istringstream* input,
                                       SymbolString* output, size_t* usedLength) const {
   unsigned int value;
-
   const string inputStr = input->str();
-  if (!hasFlag(REQ) && (isIgnored() || inputStr == NULL_VALUE)) {
-    value = m_replacement;  // replacement value
-  } else if (inputStr.empty()) {
-    return RESULT_ERR_EOF;  // input too short
-  } else if (hasFlag(EXP)) {  // IEEE 754 binary32
-    const char* str = inputStr.c_str();
-    char* strEnd = nullptr;
-    double dvalue = strtod(str, &strEnd);
-    if (strEnd == nullptr || strEnd == str || *strEnd != 0) {
-      return RESULT_ERR_INVALID_NUM;  // invalid value
-    }
-    if (m_divisor < 0) {
-      dvalue /= -m_divisor;
-    } else if (m_divisor > 1) {
-      dvalue *= m_divisor;
-    }
-    value = floatToUint(static_cast<float>(dvalue));
-    if (value == 0xffffffff) {
-      return RESULT_ERR_INVALID_NUM;
-    }
-  } else {
-    const char* str = inputStr.c_str();
-    char* strEnd = nullptr;
-    if (m_divisor == 1) {
-      if (hasFlag(SIG)) {
-        long signedValue = strtol(str, &strEnd, 10);
-        if (signedValue < 0 && m_bitCount != 32) {
-          value = (unsigned int)(signedValue + (1 << m_bitCount));
-        } else {
-          value = (unsigned int)signedValue;
-        }
-      } else {
-        value = (unsigned int)strtoul(str, &strEnd, 10);
-      }
-      if (strEnd == nullptr || strEnd == str || (*strEnd != 0 && *strEnd != '.')) {
-        return RESULT_ERR_INVALID_NUM;  // invalid value
-      }
-    } else {
-      double dvalue = strtod(str, &strEnd);
-      if (strEnd == nullptr || strEnd == str || *strEnd != 0) {
-        return RESULT_ERR_INVALID_NUM;  // invalid value
-      }
-      if (m_divisor < 0) {
-        dvalue = round(dvalue / -m_divisor);
-      } else {
-        dvalue = round(dvalue * m_divisor);
-      }
-      if (hasFlag(SIG)) {
-        if (dvalue < -exp2((8 * static_cast<double>(length)) - 1)
-            || dvalue >= exp2((8 * static_cast<double>(length)) - 1)) {
-          return RESULT_ERR_OUT_OF_RANGE;  // value out of range
-        }
-        if (dvalue < 0 && m_bitCount != 32) {
-          value = static_cast<int>(dvalue + (1 << m_bitCount));
-        } else {
-          value = static_cast<int>(dvalue);
-        }
-      } else {
-        if (dvalue < 0.0 || dvalue >= exp2(8 * static_cast<double>(length))) {
-          return RESULT_ERR_OUT_OF_RANGE;  // value out of range
-        }
-        value = (unsigned int)dvalue;
-      }
-    }
-
-    if (hasFlag(SIG)) {  // signed value
-      if ((value & (1 << (m_bitCount - 1))) != 0) {  // negative signed value
-        if (value < m_minValue) {
-          return RESULT_ERR_OUT_OF_RANGE;  // value out of range
-        }
-      } else if (value > m_maxValue) {
-        return RESULT_ERR_OUT_OF_RANGE;  // value out of range
-      }
-    } else if (value < m_minValue || value > m_maxValue) {
-      return RESULT_ERR_OUT_OF_RANGE;  // value out of range
-    }
+  result_t ret = parseInput(inputStr, &value);
+  if (ret != RESULT_OK) {
+    return ret;
   }
-
   return writeRawValue(value, offset, length, output, usedLength);
 }
 
@@ -1207,6 +1289,7 @@ DataTypeList::DataTypeList() {
   // unsigned decimal in BCD, 0000 - 9999 (fixed length)
   add(new NumberDataType("PIN", 16, FIX|BCD|REV, 0xffff, 0, 0x9999, 1));
   add(new NumberDataType("UCH", 8, 0, 0xff, 0, 0xfe, 1));  // unsigned integer, 0 - 254
+  add(new NumberDataType("U1L", 8, REQ, 0, 0, 0xff, 1));  // unsigned 1-byte, 0 - 255 (no replacement)
   add(new StringDataType("IGN", MAX_LEN*8, IGN|ADJ, 0));  // >= 1 byte ignored data
   // >= 1 byte character string filled up with 0x00 (null terminated string)
   add(new StringDataType("NTS", MAX_LEN*8, ADJ, 0));
@@ -1264,6 +1347,7 @@ DataTypeList::DataTypeList() {
   add(new NumberDataType("HCD:2", 16, HCD|BCD|REQ, 0, 0, 9999, 1));  // unsigned decimal in HCD, 0 - 9999
   add(new NumberDataType("HCD:3", 24, HCD|BCD|REQ, 0, 0, 999999, 1));  // unsigned decimal in HCD, 0 - 999999
   add(new NumberDataType("SCH", 8, SIG, 0x80, 0x81, 0x7f, 1));  // signed integer, -127 - +127
+  add(new NumberDataType("S1L", 8, SIG|REQ, 0, 0x80, 0x7f, 1));  // signed integer, -128 - +127 (no replacement)
   add(new NumberDataType("D1B", 8, SIG, 0x80, 0x81, 0x7f, 1));  // signed integer, -127 - +127
   // unsigned number (fraction 1/2), 0 - 100 (0x00 - 0xc8, replacement 0xff)
   add(new NumberDataType("D1C", 8, 0, 0xff, 0x00, 0xc8, 2));
@@ -1283,26 +1367,50 @@ DataTypeList::DataTypeList() {
   add(new NumberDataType("UIN", 16, 0, 0xffff, 0, 0xfffe, 1));
   // unsigned integer, 0 - 65534, big endian
   add(new NumberDataType("UIR", 16, REV, 0xffff, 0, 0xfffe, 1));
+  // unsigned integer, 0 - 65535, little endian (no replacement)
+  add(new NumberDataType("U2L", 16, REQ, 0, 0, 0xffff, 1));
+  // unsigned integer, 0 - 65535, big endian (no replacement)
+  add(new NumberDataType("U2B", 16, REQ|REV, 0, 0, 0xffff, 1));
   // signed integer, -32767 - +32767, little endian
   add(new NumberDataType("SIN", 16, SIG, 0x8000, 0x8001, 0x7fff, 1));
   // signed integer, -32767 - +32767, big endian
   add(new NumberDataType("SIR", 16, SIG|REV, 0x8000, 0x8001, 0x7fff, 1));
+  // signed integer, -32768 - +32767, little endian (no replacement)
+  add(new NumberDataType("S2L", 16, SIG|REQ, 0, 0x8000, 0x7fff, 1));
+  // signed integer, -32768 - +32767, big endian (no replacement)
+  add(new NumberDataType("S2B", 16, SIG|REQ|REV, 0, 0x8000, 0x7fff, 1));
   // unsigned 3 bytes int, 0 - 16777214, little endian
   add(new NumberDataType("U3N", 24, 0, 0xffffff, 0, 0xfffffe, 1));
   // unsigned 3 bytes int, 0 - 16777214, big endian
   add(new NumberDataType("U3R", 24, REV, 0xffffff, 0, 0xfffffe, 1));
+  // unsigned 3 bytes int, 0 - 16777215, little endian (no replacement)
+  add(new NumberDataType("U3L", 24, REQ, 0, 0, 0xffffff, 1));
+  // unsigned 3 bytes int, 0 - 16777215, big endian (no replacement)
+  add(new NumberDataType("U3B", 24, REQ|REV, 0, 0, 0xffffff, 1));
   // signed 3 bytes int, -8388607 - +8388607, little endian
   add(new NumberDataType("S3N", 24, SIG, 0x800000, 0x800001, 0x7fffff, 1));
   // signed 3 bytes int, -8388607 - +8388607, big endian
   add(new NumberDataType("S3R", 24, SIG|REV, 0x800000, 0x800001, 0x7fffff, 1));
+  // signed 3 bytes int, -8388608 - +8388607, little endian (no replacement)
+  add(new NumberDataType("S3L", 24, SIG|REQ, 0, 0x800000, 0x7fffff, 1));
+  // signed 3 bytes int, -8388608 - +8388607, big endian (no replacement)
+  add(new NumberDataType("S3B", 24, SIG|REQ|REV, 0, 0x800000, 0x7fffff, 1));
   // unsigned integer, 0 - 4294967294, little endian
   add(new NumberDataType("ULG", 32, 0, 0xffffffff, 0, 0xfffffffe, 1));
   // unsigned integer, 0 - 4294967294, big endian
   add(new NumberDataType("ULR", 32, REV, 0xffffffff, 0, 0xfffffffe, 1));
   // signed integer, -2147483647 - +2147483647, little endian
+  // unsigned integer, 0 - 4294967295, little endian (no replacement)
+  add(new NumberDataType("U4L", 32, REQ, 0, 0, 0xffffffff, 1));
+  // unsigned integer, 0 - 4294967295, big endian (no replacement)
+  add(new NumberDataType("U4B", 32, REQ|REV, 0, 0, 0xffffffff, 1));
   add(new NumberDataType("SLG", 32, SIG, 0x80000000, 0x80000001, 0x7fffffff, 1));
   // signed integer, -2147483647 - +2147483647, big endian
   add(new NumberDataType("SLR", 32, SIG|REV, 0x80000000, 0x80000001, 0x7fffffff, 1));
+  // signed integer, -2147483648 - +2147483647, little endian (no replacement)
+  add(new NumberDataType("S4L", 32, SIG|REQ, 0, 0x80000000, 0x7fffffff, 1));
+  // signed integer, -2147483648 - +2147483647, big endian (no replacement)
+  add(new NumberDataType("S4B", 32, SIG|REQ|REV, 0, 0x80000000, 0x7fffffff, 1));
   add(new NumberDataType("BI0", 7, ADJ|REQ, 0, 0, 1));  // bit 0 (up to 7 bits until bit 6)
   add(new NumberDataType("BI1", 7, ADJ|REQ, 0, 1, 1));  // bit 1 (up to 7 bits until bit 7)
   add(new NumberDataType("BI2", 6, ADJ|REQ, 0, 2, 1));  // bit 2 (up to 6 bits until bit 7)
@@ -1350,11 +1458,12 @@ void DataTypeList::clear() {
   m_typesById.clear();
 }
 
-result_t DataTypeList::add(const DataType* dataType) {
-  if (m_typesById.find(dataType->getId()) != m_typesById.end()) {
+result_t DataTypeList::add(const DataType* dataType, const string derivedKey) {
+  string key = derivedKey.empty() ? dataType->getId() : derivedKey;
+  if (m_typesById.find(key) != m_typesById.end()) {
     return RESULT_ERR_DUPLICATE_NAME;  // duplicate key
   }
-  m_typesById[dataType->getId()] = dataType;
+  m_typesById[key] = dataType;
   m_cleanupTypes.push_back(dataType);
   return RESULT_OK;
 }
