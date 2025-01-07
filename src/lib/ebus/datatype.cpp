@@ -1205,23 +1205,24 @@ result_t NumberDataType::parseInput(const string inputStr, unsigned int* parsedV
         return RESULT_ERR_INVALID_NUM;
       }
     } else {
-      unsigned int maxBit = m_bitCount != 32 ? 1 << m_bitCount : 0;
       const char* str = inputStr.c_str();
       char* strEnd = nullptr;
       if (m_divisor == 1) {
         if (hasFlag(SIG)) {
           long signedValue = strtol(str, &strEnd, 0);
-          if (errno == ERANGE || (maxBit && (signedValue < -(maxBit/2L) || signedValue >= maxBit/2L))) {
+          if (errno == ERANGE
+          || (m_bitCount != 32 && (signedValue < 0L ? (signedValue < -(1L << (m_bitCount - 1))) : (signedValue >= (1L << (m_bitCount - 1)))))
+          ) {
             return RESULT_ERR_OUT_OF_RANGE;  // value out of range
           }
           if (signedValue < 0 && m_bitCount != 32) {
-            value = (unsigned int)(signedValue + maxBit);
+            value = (unsigned int)(signedValue + (1L << m_bitCount));
           } else {
             value = (unsigned int)signedValue;
           }
         } else {
           value = (unsigned int)strtoul(str, &strEnd, 0);
-          if (errno == ERANGE || (maxBit && value >= maxBit)) {
+          if (errno == ERANGE || (m_bitCount != 32 && value >= (1U << m_bitCount))) {
             return RESULT_ERR_OUT_OF_RANGE;
           }
         }
@@ -1240,10 +1241,10 @@ result_t NumberDataType::parseInput(const string inputStr, unsigned int* parsedV
         }
         if (hasFlag(SIG)) {
           double max = exp2(m_bitCount - 1);
-          if (dvalue < -max || dvalue >= max) {
+          if (dvalue < 0.0 ? (dvalue < -max) : (dvalue >= max)) {
             return RESULT_ERR_OUT_OF_RANGE;  // value out of range
           }
-          if (dvalue < 0 && m_bitCount != 32) {
+          if (dvalue < 0.0 && m_bitCount != 32) {
             value = static_cast<int>(dvalue + (1 << m_bitCount));
           } else {
             value = static_cast<int>(dvalue);
