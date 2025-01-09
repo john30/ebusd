@@ -579,21 +579,31 @@ int resolveMdnsOneShot(const char* url, mdns_oneshot_t *result, mdns_oneshot_t *
         printf("  %s=%s\n", (atype == DNS_TYPE_TXT) ? "txt" : "ptr", name);
 #endif
         if (atype == DNS_TYPE_TXT && name[0]) {
+          // parse id=xxxxxxxxxxxx[.proto=xxx]
           char* sep = strchr(name, '=');
           char* sep2;
-          if (sep && strncmp(name, "id", sep-name) == 0) {
-            sep2 = strchr(name, '.');
+          if (sep && sep-name == 2 && strncmp(name, "id", 2) == 0) {
+            sep2 = strchr(sep+1, '.');
+            if (!sep2) {
+              sep2 = name + pos;
+            }
             if (sep2-sep-1 == sizeof(mdns_oneshot_t::id)-1) {
               memcpy(id, sep+1, sizeof(mdns_oneshot_t::id)-1);
             } else {
               sep = nullptr;
             }
-            sep = sep ? strchr(sep2+1, '=') : nullptr;
+            sep = sep && sep2 < name + pos ? strchr(sep2+1, '=') : nullptr;
+          } else {
+            sep2 = name - 1;
           }
-          if (sep && strncmp(sep2+1, "proto", sep-sep2-1) == 0 && (
-            pos == (size_t)(sep-name)+1+sizeof(mdns_oneshot_t::proto)-1
-            || strchr(sep+1, '.') == sep+1+sizeof(mdns_oneshot_t::proto)-1)) {
-            memcpy(proto, sep+1, sizeof(mdns_oneshot_t::proto)-1);
+          if (sep && sep-sep2-1 == 5 && strncmp(sep2+1, "proto", 5) == 0) {
+            sep2 = strchr(sep+1, '.');
+            if (!sep2) {
+              sep2 = name + pos;
+            }
+            if (sep2-sep-1 == sizeof(mdns_oneshot_t::proto)-1) {
+              memcpy(proto, sep+1, sizeof(mdns_oneshot_t::proto)-1);
+            }
           }
         }
       } else if (atype == DNS_TYPE_SRV && rdLen >= sizeof(dns_rr_srv_t)) {
