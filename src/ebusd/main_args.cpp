@@ -165,7 +165,7 @@ static const argDef argDefs[] = {
       "Prefer LANG in multilingual configuration files [system default language, DE as fallback]"},
   {"checkconfig",    O_CHKCFG, nullptr, ARG_NO_ENV, "Check config files, then stop"},
   {"dumpconfig",     O_DMPCFG, "FORMAT", af_optional|ARG_NO_ENV,
-      "Check and dump config files in FORMAT (\"json\" or \"csv\"), then stop"},
+      "Check and dump config files in FORMAT (\"json\", \"csv\", or \"csvall\" for CSV with all attributes), then stop"},
   {"dumpconfigto",   O_DMPCTO, "FILE",     0, "Dump config files to FILE"},
   {"pollinterval",   O_POLINT, "SEC",      0, "Poll for data every SEC seconds (0=disable) [5]"},
   {"inject",         'i',      "stop", af_optional|ARG_NO_ENV, "Inject remaining arguments as commands or already seen messages "
@@ -314,10 +314,12 @@ static int parse_opt(int key, char *arg, const argParseOpt *parseOpt, struct opt
   case O_CHKCFG:  // --checkconfig
     opt->checkConfig = true;
     break;
-  case O_DMPCFG:  // --dumpconfig[=json|csv]
+  case O_DMPCFG:  // --dumpconfig[=json|csv|csvall]
     if (!arg || arg[0] == 0 || strcmp("csv", arg) == 0) {
       // no further flags
       opt->dumpConfig = OF_DEFINITION;
+    } else if (strcmp("csvall", arg) == 0) {
+      opt->dumpConfig = OF_DEFINITION | OF_ALL_ATTRS;
     } else if (strcmp("json", arg) == 0) {
       opt->dumpConfig = OF_DEFINITION | OF_NAMES | OF_UNITS | OF_COMMENTS | OF_VALUENAME | OF_ALL_ATTRS | OF_JSON;
     } else {

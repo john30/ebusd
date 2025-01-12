@@ -941,6 +941,9 @@ void Message::dumpField(const string& fieldName, bool withConditions, OutputForm
     for (auto it = m_id.begin()+2; it < m_id.end(); it++) {
       *output << hex << setw(2) << setfill('0') << static_cast<unsigned>(*it);
     }
+    if (outputFormat & OF_ALL_ATTRS) {
+      *output << "=" << hex << setw(0) << setfill('0') << static_cast<uint64_t>(m_key);
+    }
     return;
   }
   if (fieldName == "fields") {
