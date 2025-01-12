@@ -159,13 +159,6 @@ class Message : public AttributedItem {
   static uint64_t createKey(symbol_t pb, symbol_t sb, bool broadcast);
 
   /**
-   * Get the length field from the key.
-   * @param key the key.
-   * @return the length field from the key.
-   */
-  static size_t getKeyLength(uint64_t key) { return (size_t)(key >> (8 * 7 + 5)); }
-
-  /**
    * Parse an ID part from the input @a string.
    * @param input the input @a string, hex digits optionally separated by space.
    * @param id the vector to which to add the parsed values.
@@ -1651,6 +1644,10 @@ class MessageMap : public MappedFileReader {
    */
   void dump(bool withConditions, OutputFormat outputFormat, ostream* output) const;
 
+  /**
+   * @return the maximum ID length used by any of the known @a Message instances.
+   */
+  size_t getMaxIdLength() const { return m_maxIdLength; }
 
  private:
   /** empty vector for @a getLoadedFiles(). */

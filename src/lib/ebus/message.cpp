@@ -180,7 +180,7 @@ uint64_t Message::createKey(const vector<symbol_t>& id, bool isWrite, bool isPas
   int exp = 5;
   for (const auto it : id) {
     key ^= (uint64_t)it << (8 * exp--);
-    if (exp == 0) {
+    if (exp < 0) {
       exp = 3;
     }
   }
@@ -206,7 +206,7 @@ uint64_t Message::createKey(const MasterSymbolString& master, size_t maxIdLength
   int exp = 3;
   for (size_t i = 0; i < idLength; i++) {
     key ^= (uint64_t)master.dataAt(i) << (8 * exp--);
-    if (exp == 0) {
+    if (exp < 0) {
       exp = 3;
     }
   }
@@ -2712,13 +2712,12 @@ Message* MessageMap::find(const MasterSymbolString& master, bool anyDestination,
   if (anyDestination && master.size() >= 5 && master[4] == 0 && master[2] == 0x07 && master[3] == 0x04) {
     return m_scanMessage;
   }
-  uint64_t baseKey = Message::createKey(master,
-      anyDestination || master[1] != BROADCAST ? m_maxIdLength : m_maxBroadcastIdLength, anyDestination);
+  size_t maxIdLength = anyDestination || master[1] != BROADCAST ? m_maxIdLength : m_maxBroadcastIdLength;
+  uint64_t baseKey = Message::createKey(master, maxIdLength, anyDestination);
   if (baseKey == INVALID_KEY) {
     return nullptr;
   }
   bool isWriteDest = isMaster(master[1]) || master[1] == BROADCAST;
-  size_t maxIdLength = Message::getKeyLength(baseKey);
   for (size_t idLength = maxIdLength; true; idLength--) {
     uint64_t key = baseKey;
     if (idLength == maxIdLength) {
@@ -2728,7 +2727,7 @@ Message* MessageMap::find(const MasterSymbolString& master, bool anyDestination,
       int exp = 3;
       for (size_t i = 0; i < idLength; i++) {
         key ^= (uint64_t)master.dataAt(i) << (8 * exp--);
-        if (exp == 0) {
+        if (exp < 0) {
           exp = 3;
         }
       }
@@ -2907,6 +2906,10 @@ void MessageMap::dump(bool withConditions, OutputFormat outputFormat, ostream* o
     *output << (m_addAll ? "[" : "{");
   } else {
     Message::dumpHeader(nullptr, output);
+    if (m_addAll) {
+      *output << endl << "# max ID length: " << static_cast<unsigned>(m_maxIdLength)
+      << " (broadcast only: " << static_cast<unsigned>(m_maxBroadcastIdLength) << ")";
+    }
   }
   if (!(outputFormat & OF_SHORT)) {
     *output << endl;

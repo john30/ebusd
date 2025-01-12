@@ -408,7 +408,10 @@ int main(int argc, char* argv[], char* envp[]) {
         fout.close();
       }
     }
-
+    if (overallResult == RESULT_OK && s_messageMap->getMaxIdLength() > 7) {
+      logNotice(lf_main, "max message ID length exceeded");
+      overallResult = RESULT_CONTINUE;
+    }
     cleanup();
     return overallResult == RESULT_OK ? EXIT_SUCCESS : EXIT_FAILURE;
   }
