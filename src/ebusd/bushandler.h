@@ -212,6 +212,12 @@ class GrabbedMessage {
   MasterSymbolString& getLastMasterData() { return m_lastMaster; }
 
   /**
+   * Get the last @a SlaveSymbolString.
+   * @return the last @a SlaveSymbolString.
+   */
+  SlaveSymbolString& getLastSlaveData() { return m_lastSlave; }
+
+  /**
    * Dump the last received data and message count to the output.
    * @param unknown whether to dump only if this message is unknown.
    * @param messages the @a MessageMap instance for resolving known @a Message instances.
