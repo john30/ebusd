@@ -111,7 +111,7 @@ Message::Message(const string& filename, const string& circuit, const string& le
       m_pollPriority(pollPriority),
       m_usedByCondition(false), m_isScanMessage(false), m_condition(condition), m_availableSinceTime(0),
       m_dataHandlerState(0), m_lastUpdateTime(0), m_lastChangeTime(0), m_pollOrder(0), m_lastPollTime(0) {
-  if (circuit == "scan") {
+  if (strcasecmp(circuit.c_str(), "scan") == 0) {
     setScanMessage();
     m_pollPriority = 0;
   }
