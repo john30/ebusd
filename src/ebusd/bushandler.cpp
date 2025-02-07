@@ -101,7 +101,7 @@ bool ScanRequest::notify(result_t result, const SlaveSymbolString& slave) {
     }
     if (result == RESULT_OK) {
       ostringstream output;
-      result = m_message->decodeLastData(true, nullptr, -1, OF_NONE, &output);  // decode data
+      result = m_message->decodeLastData(pt_any, true, nullptr, -1, OF_NONE, &output);  // decode data
       string str = output.str();
       m_busHandler->setScanResult(dstAddress, m_notifyIndex+m_index, str);
     }
@@ -191,7 +191,7 @@ bool decodeType(const DataType* type, const SymbolString& input, size_t length,
       first = false;
       *output << endl << " ";
       ostringstream::pos_type cnt = output->tellp();
-      type->dump(OF_NONE, length, false, output);
+      type->dump(OF_NONE, length, ad_none, output);
       cnt = output->tellp() - cnt;
       while (cnt < 5) {
         *output << " ";
@@ -317,6 +317,7 @@ bool GrabbedMessage::dump(bool unknown, MessageMap* messages, bool first, Output
 void BusHandler::clear() {
   m_protocol->clear();
   m_scanResults.clear();
+  memset(m_seenAddresses, 0, sizeof(m_seenAddresses));
 }
 
 result_t BusHandler::readFromBus(Message* message, const string& inputStr, symbol_t dstAddress,
@@ -403,7 +404,7 @@ void BusHandler::notifyProtocolMessage(MessageDirection direction, const MasterS
           result = message->storeLastData(0, idData);
           if (result == RESULT_OK) {
             ostringstream output;
-            result = message->decodeLastData(true, nullptr, -1, OF_NONE, &output);
+            result = message->decodeLastData(pt_any, true, nullptr, -1, OF_NONE, &output);
             if (result == RESULT_OK) {
               string str = output.str();
               setScanResult(slaveAddress, 0, str);
@@ -420,7 +421,7 @@ void BusHandler::notifyProtocolMessage(MessageDirection direction, const MasterS
         result_t result = message->storeLastData(command, response);
         if (result == RESULT_OK) {
           ostringstream output;
-          result = message->decodeLastData(true, nullptr, -1, OF_NONE, &output);
+          result = message->decodeLastData(pt_any, true, nullptr, -1, OF_NONE, &output);
           if (result == RESULT_OK) {
             string str = output.str();
             setScanResult(dstAddress, 0, str);
@@ -452,7 +453,8 @@ void BusHandler::notifyProtocolMessage(MessageDirection direction, const MasterS
         answer.push_back(command.dataAt(pos));
       }
       answer.adjustHeader();
-      m_protocol->setAnswer(SYN, getSlaveAddress(dstAddress), command[2], command[3], command.data() + 5, idLen, answer);
+      m_protocol->setAnswer(SYN, getSlaveAddress(dstAddress), command[2], command[3], command.data() + 5, idLen,
+          answer);
       // TODO could use loaded messages for identifying MM/MS message pair
     }
   }
@@ -475,7 +477,7 @@ void BusHandler::notifyProtocolMessage(MessageDirection direction, const MasterS
     result_t result = message->storeLastData(command, response);
     ostringstream output;
     if (result == RESULT_OK) {
-      result = message->decodeLastData(false, nullptr, -1, OF_NONE, &output);
+      result = message->decodeLastData(pt_any, false, nullptr, -1, OF_NONE, &output);
     }
     if (result < RESULT_OK) {
       logError(lf_update, "unable to parse %s %s %s from %s / %s: %s", mode, circuit.c_str(), name.c_str(),
@@ -639,7 +641,7 @@ void BusHandler::formatScanResult(ostringstream* output) const {
             *output << endl;
           }
           *output << hex << setw(2) << setfill('0') << static_cast<unsigned>(slave);
-          message->decodeLastData(true, nullptr, -1, OF_NONE, output);
+          message->decodeLastData(pt_any, true, nullptr, -1, OF_NONE, output);
         }
       }
     }
@@ -680,7 +682,7 @@ void BusHandler::formatSeenInfo(ostringstream* output) const {
       if (message != nullptr && message->getLastUpdateTime() > 0) {
         // add detailed scan info: Manufacturer ID SW HW
         *output << " \"";
-        result_t result = message->decodeLastData(false, nullptr, -1, OF_NAMES, output);
+        result_t result = message->decodeLastData(pt_any, false, nullptr, -1, OF_NAMES, output);
         if (result != RESULT_OK) {
           *output << "\" error: " << getResultCode(result);
         } else {
@@ -741,7 +743,7 @@ void BusHandler::formatUpdateInfo(ostringstream* output) const {
   }
   unsigned char address = 0;
   for (int index = 0; index < 256; index++, address++) {
-    bool ownAddress = !m_protocol->isOwnAddress(address);
+    bool ownAddress = m_protocol->isOwnAddress(address);
     if (!isValidAddress(address, false) || ((m_seenAddresses[address]&SEEN) == 0 && !ownAddress)) {
       continue;
     }
@@ -759,7 +761,7 @@ void BusHandler::formatUpdateInfo(ostringstream* output) const {
       Message* message = m_messages->getScanMessage(address);
       if (message != nullptr && message->getLastUpdateTime() > 0) {
         // add detailed scan info: Manufacturer ID SW HW
-        message->decodeLastData(true, nullptr, -1, OF_NAMES|OF_NUMERIC|OF_JSON|OF_SHORT, output);
+        message->decodeLastData(pt_any, true, nullptr, -1, OF_NAMES|OF_NUMERIC|OF_JSON|OF_SHORT, output);
       }
     }
     const vector<string>& loadedFiles = m_messages->getLoadedFiles(address);

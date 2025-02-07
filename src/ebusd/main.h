@@ -32,12 +32,15 @@ namespace ebusd {
  * The main entry method doing all the startup handling.
  */
 
-/** the config path part behind the scheme (scheme without "://"). */
-#define CONFIG_PATH_SUFFIX "://cfg.ebusd.eu/"
+/** the default host of the configuration files. */
+#define CONFIG_HOST "ebus.github.io"
+
+/** the default location of the configuration files (without language suffix). */
+#define CONFIG_PATH "https://" CONFIG_HOST "/"
 
 /** A structure holding all program options. */
 typedef struct options {
-  const char* device;  //!< eBUS device (serial device or [udp:]ip[:port]) [/dev/ttyUSB0]
+  const char* device;  //!< eBUS device (serial device or mdns:[id] or [udp:]ip[:port]) [mdns:]
   bool noDeviceCheck;  //!< skip serial eBUS device test
   bool readOnly;  //!< read-only access to the device
   bool initialSend;  //!< send an initial escape symbol after connecting device
@@ -60,9 +63,9 @@ typedef struct options {
   OutputFormat dumpConfig;  //!< dump config files, then stop
   const char* dumpConfigTo;  //!< file to dump config to
   unsigned int pollInterval;  //!< poll interval in seconds, 0 to disable [5]
-  bool injectMessages;  //!< inject remaining arguments as already seen messages
-  bool stopAfterInject;  //!< only inject messages once, then stop
-  int injectCount;  //!< number of message arguments to inject, or 0
+  bool injectCommands;  //!< inject remaining arguments as commands or already seen messages
+  bool stopAfterInject;  //!< only inject arguments once, then stop
+  int injectCount;  //!< number of arguments to inject, or 0
 #ifdef HAVE_SSL
   const char* caFile;  //!< the CA file to use (uses defaults if neither caFile nor caPath are set), or "#" for insecure
   const char* caPath;  //!< the path with CA files to use (uses defaults if neither caFile nor caPath are set)

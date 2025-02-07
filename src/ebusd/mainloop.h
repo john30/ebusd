@@ -128,7 +128,7 @@ class MainLoop : public Thread {
   void run() override;
 
 
- private:
+ public:
   /**
    * Decode and execute client request.
    * @param req the @a Request to decode.
@@ -142,6 +142,7 @@ class MainLoop : public Thread {
   result_t decodeRequest(Request* req, bool* connected, RequestMode* reqMode,
       string* user, bool* reload, ostringstream* ostream);
 
+ private:
   /**
    * Parse the hex master message from the remaining arguments.
    * @param args the arguments passed to the command.

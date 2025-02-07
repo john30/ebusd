@@ -25,6 +25,11 @@
 #include <sys/time.h>
 #include <stdint.h>
 #include <string>
+#ifdef __FreeBSD__
+  #include <machine/endian.h>
+#else
+  #include <endian.h>
+#endif
 
 /** typedef for referencing @a sockaddr_in within namespace. */
 typedef struct sockaddr_in socketaddress;
@@ -43,16 +48,29 @@ using std::string;
 
 /**
  * Connect a TCP or UDP socket.
- * @param server the server name or ip address to connect to.
+ * @param server the server name or ip address to connect to, optionally
+ * followed by "@intf" to bind to a certain interface address.
  * @param port the port number.
- * @param udp true for UDP, false for TCP.
+ * @param udpProto the protocol to use for UDP (e.g. IPPROTO_UDP), or 0 for TCP.
  * @param storeAddress optional pointer to where the socket address will be stored.
- * @param tcpConnectTimeout the TCP connect timeout in seconds, or 0.
+ * @param tcpConnectTimeoutUdpOptions the connect timeout in seconds for TCP (or 0),
+ * or a bit set of options for UDP (0x01 for binding to the same source port,
+ * 0x02 for connecting to the target address).
  * @param tcpKeepAliveInterval optional interval in seconds for sending TCP keepalive.
+ * @param storeIntf optional pointer to where the interface address will be stored.
  * @return the connected socket file descriptor on success, or -1 on error.
  */
-int socketConnect(const char* server, uint16_t port, bool udp, socketaddress* storeAddress = nullptr,
-int tcpConnectTimeout = 0, int tcpKeepAliveInterval = 0);
+int socketConnect(const char* server, uint16_t port, int udpProto, socketaddress* storeAddress = nullptr,
+int tcpConnectTimeoutUdpOptions = 0, int tcpKeepAliveInterval = 0, struct in_addr* storeIntf = nullptr);
+
+/**
+ * Poll a socket.
+ * @param sfd the socket file descriptor.
+ * @param which the set of bits of the event(s) to wait for (e.g. POLLIN and/or POLLOUT).
+ * @param timeoutSeconds the poll timeout in seconds.
+ * @return a set of bits indicating the received event (e.g. POLLIN and/or POLLOUT), or -1 on error.
+ */
+int socketPoll(int sfd, int which, int timeoutSeconds);
 
 
 /**
@@ -197,6 +215,31 @@ class TCPServer {
   /** true if object is already listening */
   bool m_listening;
 };
+
+/**
+ * Structure for resolving device address via mDNS one-shot query.
+ */
+typedef struct __attribute__ ((packed)) {
+  /** the device IP address. */
+  struct in_addr address;
+  /** the device ID. */
+  char id[6*2+1];
+  /** the announced ebusd protocol. */
+  char proto[3+1];
+} mdns_oneshot_t;
+
+/**
+ * Use an mDNS one-shot query to resolve an eBUS device.
+ * @param url the desired ID (or empty) followed by an optional host interface IP to use after an '@' sign.
+ * @param result pointer to an mdns_oneshot_t structure to store the result in.
+ * @param moreRequests optional pointer to further results not matching the desired ID.
+ * @param moreCount optional pointer to the size of the moreRequests argument that will be updated with the number of
+ * further results found upon success.
+ * @return 1 on success, 2 when another device was found, 0 when no device was found or no found device matched the
+ * desired ID, or less than 0 on error.
+ */
+int resolveMdnsOneShot(const char* url, mdns_oneshot_t *result,
+  mdns_oneshot_t *moreResults = nullptr, size_t *moreCount = nullptr);
 
 }  // namespace ebusd
 

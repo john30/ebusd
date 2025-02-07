@@ -373,16 +373,14 @@ void StringReplacers::parseLine(const string& line) {
   if (pos == string::npos || pos == 0) {
     return;
   }
-  bool emptyIfMissing = false;
-  string key;
-  if (line[pos-1] == '?') {
-    emptyIfMissing = true;
-    key = line.substr(0, pos-1);
-  } else {
-    key = line.substr(0, pos);
-  }
+  bool emptyIfMissing = line[pos-1] == '?';
+  bool append = !emptyIfMissing && line[pos-1] == '+';
+  string key = line.substr(0, (emptyIfMissing || append) ? pos-1 : pos);
   FileReader::trim(&key);
   string value = line.substr(pos+1);
+  if (append) {
+    value = get(key).str() + value;
+  }
   FileReader::trim(&value);
   if (value.find('%') == string::npos) {
     set(key, value);  // constant value

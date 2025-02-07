@@ -39,6 +39,7 @@ static const char *s_facilityNames[] = {
   "main",
   "network",
   "bus",
+  "device",
   "update",
   "other",
   "all",
@@ -68,7 +69,7 @@ static const int s_syslogLevels[] = {
 #endif
 
 /** the current log level by log facility. */
-static LogLevel s_facilityLogLevel[] = { ll_notice, ll_notice, ll_notice, ll_notice, ll_notice, };
+static LogLevel s_facilityLogLevel[] = { ll_notice, ll_notice, ll_notice, ll_notice, ll_notice, ll_notice, };
 
 /** the current log FILE, or nullptr if closed or syslog is used. */
 static FILE* s_logFile = stdout;

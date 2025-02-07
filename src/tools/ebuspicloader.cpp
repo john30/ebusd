@@ -807,7 +807,7 @@ int openSerial(std::string port) {
 
 int openNet(std::string host, uint16_t port) {
   // open network port
-  int fd = socketConnect(host.c_str(), port, false, nullptr, 5);
+  int fd = socketConnect(host.c_str(), port, 0, nullptr, 5);
   if (fd < 0) {
     std::cerr << "unable to open " << host << std::endl;
     return -1;

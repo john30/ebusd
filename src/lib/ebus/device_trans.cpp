@@ -159,10 +159,21 @@ void EnhancedDevice::formatInfo(ostringstream* ostream, bool verbose, bool prefi
   }
 }
 
-void EnhancedDevice::formatInfoJson(ostringstream* ostream) const {
+void EnhancedDevice::formatInfoJson(ostringstream* ostream) {
   string ver = getEnhancedVersion();
   if (!ver.empty()) {
     *ostream << ",\"dv\":\"" << ver << "\"";
+    if (m_enhInfoIdRequestNeeded) {
+      if (!m_enhInfoIdRequested) {
+        result_t ret = requestEnhancedInfo(1);
+        if (ret == RESULT_OK) {
+          requestEnhancedInfo(0xff);
+        }
+      }
+      if (!m_enhInfoId.empty()) {
+        *ostream << ",\"di\":\"" << m_enhInfoId << "\"";
+      }
+    }
   }
 }
 
@@ -197,6 +208,7 @@ result_t EnhancedDevice::requestEnhancedInfo(symbol_t infoId, bool wait) {
   uint8_t buf[] = makeEnhancedSequence(ENH_REQ_INFO, infoId);
   result_t result = m_transport->write(buf, 2);
   if (result == RESULT_OK) {
+    m_enhInfoIdRequested = m_enhInfoIdRequested || (infoId == 1);
     m_infoBuf[0] = infoId;
     m_infoLen = 1;
     m_infoPos = 1;
@@ -350,6 +362,9 @@ result_t EnhancedDevice::notifyTransportStatus(bool opened) {
     m_infoLen = 0;
     m_enhInfoVersion = "";
     m_enhInfoIsWifi = false;
+    m_enhInfoIdRequestNeeded = false;
+    m_enhInfoIdRequested = false;
+    m_enhInfoId = "";
     m_enhInfoTemperature = "";
     m_enhInfoSupplyVoltage = "";
     m_enhInfoBusVoltage = "";
@@ -545,6 +560,7 @@ void EnhancedDevice::notifyInfoRetrieved() {
         stream << "[" << setfill('0') << setw(2) << hex << static_cast<unsigned>(data[6])
                << setw(2) << static_cast<unsigned>(data[7]) << "]";
       }
+      m_enhInfoIdRequestNeeded = len >= 8 && data[0] == data[5] && data[2] == data[6] && data[3] == data[7];
       m_enhInfoVersion = stream.str();
       stream.str(" ");
       stream << "firmware " << m_enhInfoVersion;
@@ -557,10 +573,13 @@ void EnhancedDevice::notifyInfoRetrieved() {
     case 0x0901:
     case 0x0802:
     case 0x0302:
-      stream << (id == 1 ? "ID" : "config");
+      stream << (id == 1 ? "ID " : "config ");
       stream << hex << setfill('0');
       for (size_t pos = 0; pos < len; pos++) {
-        stream << " " << setw(2) << static_cast<unsigned>(data[pos]);
+        stream << setw(2) << static_cast<unsigned>(data[pos]);
+      }
+      if (id == 1 && data[8] == 0) {
+        m_enhInfoId = stream.str().substr(3);
       }
       if (id == 2 && (data[2]&0x3f) != 0x3f) {
         // non-default arbitration delay
@@ -616,7 +635,7 @@ void EnhancedDevice::notifyInfoRetrieved() {
     case 0x0107:
       stream << "rssi ";
       if (data[0]) {
-        stream << static_cast<signed>(((int8_t*)data)[0]) << " dBm";
+        stream << static_cast<signed>(reinterpret_cast<int8_t*>(data)[0]) << " dBm";
       } else {
         stream << "unknown";
       }

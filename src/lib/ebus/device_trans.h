@@ -72,7 +72,7 @@ class BaseDevice : public Device, public TransportListener {
   }
 
   // @copydoc
-  virtual void formatInfoJson(ostringstream* output) const {}
+  virtual void formatInfoJson(ostringstream* output) {}
 
   // @copydoc
   virtual result_t notifyTransportStatus(bool opened) {
@@ -139,14 +139,15 @@ class EnhancedDevice : public BaseDevice, public EnhancedDeviceInterface {
    */
   explicit EnhancedDevice(Transport* transport)
   : BaseDevice(transport), EnhancedDeviceInterface(), m_resetTime(0), m_resetRequested(false),
-    m_extraFeatures(0), m_infoReqTime(0), m_infoLen(0), m_infoPos(0), m_enhInfoIsWifi(false) {
+    m_extraFeatures(0), m_infoReqTime(0), m_infoLen(0), m_infoPos(0), m_enhInfoIsWifi(false),
+    m_enhInfoIdRequestNeeded(false), m_enhInfoIdRequested(false) {
   }
 
   // @copydoc
   void formatInfo(ostringstream* output, bool verbose, bool prefix) override;
 
   // @copydoc
-  void formatInfoJson(ostringstream* output) const override;
+  void formatInfoJson(ostringstream* output) override;
 
   // @copydoc
   result_t send(symbol_t value) override;
@@ -216,6 +217,15 @@ class EnhancedDevice : public BaseDevice, public EnhancedDeviceInterface {
 
   /** whether the device is known to be connected via WIFI. */
   bool m_enhInfoIsWifi;
+
+  /** whether the device ID request is needed. */
+  bool m_enhInfoIdRequestNeeded;
+
+  /** whether the device ID was already requested. */
+  bool m_enhInfoIdRequested;
+
+  /** a string with the ID of the enhanced device. */
+  string m_enhInfoId;
 
   /** a string describing the enhanced device temperature. */
   string m_enhInfoTemperature;

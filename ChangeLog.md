@@ -1,12 +1,42 @@
 # next (tbd)
 ## Bug Fixes
+* fix for device string symlink with colon
+* fix "read" and "write" command response
+* fix dump of divisor
+* fix max value for S3N, S3N, SLG, and SLR types
+* fix socket options for KNXnet/IP integration
+
+## Features
+* add "-m" option to "encode" and "decode" commands
+* add output for commands executed with "--inject=stop"
+
+
+# 24.1 (2024-10-27)
+## Bug Fixes
 * fix conditional messages not being sent to message definition in MQTT integration and not being used in KNX group association
 * fix CSV dump of config files on command line
 * fix DTM type with recent dates
+* fix for some updated messages not appearing on KNX or MQTT
+* fix for parsing certain condition ranges
+* fix for "reload" command not starting the scan again
+* fix datetime type mapping in MQTT
+
 ## Features
 * add "inject" command
 * add config path to verbose "info" command
 * add "answer" command
+* add option to inject start-up commands
+* add verbose raw data option to "read" and "write" commands
+* add option to allow write direction in "read" command when inline defining a new message
+* add option to discover device via mDNS
+* add dedicated log level for device messages
+* add option to extend MQTT variables from env/cmdline
+* add date+datetime mapping, better device update check, and remove single-field-message field names in Home Assistant MQTT discovery integration
+
+## Breaking Changes
+* change default config path to https://ebus.github.io/ serving files generated from new TypeSpec message definition sources
+* change validation of identifiers to no longer accept unusual characters
+* change default device connection to be resolved automatically via mDNS
 
 
 # 23.3 (2023-12-26)

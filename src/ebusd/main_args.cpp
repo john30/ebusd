@@ -29,16 +29,9 @@
 
 namespace ebusd {
 
-/** the default path of the configuration files. */
-#ifdef HAVE_SSL
-#define CONFIG_PATH "https" CONFIG_PATH_SUFFIX
-#else  // HAVE_SSL
-#define CONFIG_PATH "http" CONFIG_PATH_SUFFIX
-#endif  // HAVE_SSL
-
 /** the default program options. */
 static const options_t s_default_opt = {
-  .device = "/dev/ttyUSB0",
+  .device = "mdns:",
   .noDeviceCheck = false,
   .readOnly = false,
   .initialSend = false,
@@ -54,7 +47,7 @@ static const options_t s_default_opt = {
   .dumpConfig = OF_NONE,
   .dumpConfigTo = nullptr,
   .pollInterval = 5,
-  .injectMessages = false,
+  .injectCommands = false,
   .stopAfterInject = false,
   .injectCount = 0,
 #ifdef HAVE_SSL
@@ -137,15 +130,20 @@ static string s_configPath = CONFIG_PATH;
 #define O_DMPFLU (O_DMPSIZ-1)
 #define O_INJPOS 0x100
 
+#define ARG_NO_ENV (af_max << 1)
+
 /** the definition of the known program arguments. */
 static const argDef argDefs[] = {
   {nullptr,          0,        nullptr,    0, "Device options:"},
-  {"device",         'd',      "DEV",      0, "Use DEV as eBUS device ("
-      "prefix \"ens:\" for enhanced high speed device or "
-      "\"enh:\" for enhanced device, with "
-      "\"IP[:PORT]\" for network device or "
-      "\"DEVICE\" for serial device"
-      ") [/dev/ttyUSB0]"},
+  {"device",         'd',      "DEV",      0, "Use DEV as eBUS device [mdns:]\n"
+      "- \"mdns:\" for auto discovery via mDNS with optional suffix \"[ID][@INTF]\" for using a specific"
+      " hardware ID and/or IP interface INTF for the discovery (only for eBUS Adapter Shield;"
+      " on docker, the network device needs to support multicast routing e.g. like the host network), or\n"
+      "- prefix \"ens:\" for enhanced high speed device,\n"
+      "- prefix \"enh:\" for enhanced device, or\n"
+      "- no prefix for plain device, and\n"
+      "- suffix \"IP[:PORT]\" for network device, or\n"
+      "- suffix \"DEVICE\" for serial device"},
   {"nodevicecheck",  'n',      nullptr,    0, "Skip serial eBUS device test"},
   {"readonly",       'r',      nullptr,    0, "Only read from device, never write to it"},
   {"initsend",       O_INISND, nullptr,    0, "Send an initial escape symbol after connecting device"},
@@ -155,27 +153,28 @@ static const argDef argDefs[] = {
   {"configpath",     'c',      "PATH",     0, "Read CSV config files from PATH (local folder or HTTPS URL) ["
       CONFIG_PATH "]"},
   {"scanconfig",     's',      "ADDR", af_optional, "Pick CSV config files matching initial scan ADDR: "
-      "empty for broadcast ident message (default when configpath is not given), "
+      "empty for broadcast ident message (default when neither configpath nor dumpconfig is given), "
       "\"none\" for no initial scan message, "
       "\"full\" for full scan, "
       "a single hex address to scan, or "
       "\"off\" for not picking CSV files by scan result (default when configpath is given).\n"
-      "If combined with --checkconfig, you can add scan message data as "
+      "If combined with --checkconfig and --inject, you can add scan message data as "
       "arguments for checking a particular scan configuration, e.g. \"FF08070400/0AB5454850303003277201\"."},
   {"scanretries",    O_SCNRET, "COUNT",    0, "Retry scanning devices COUNT times [5]"},
   {"configlang",     O_CFGLNG, "LANG",     0,
-      "Prefer LANG in multilingual configuration files [system default language]"},
-  {"checkconfig",    O_CHKCFG, nullptr,    0, "Check config files, then stop"},
-  {"dumpconfig",     O_DMPCFG, "FORMAT", af_optional,
-      "Check and dump config files in FORMAT (\"json\" or \"csv\"), then stop"},
+      "Prefer LANG in multilingual configuration files [system default language, DE as fallback]"},
+  {"checkconfig",    O_CHKCFG, nullptr, ARG_NO_ENV, "Check config files, then stop"},
+  {"dumpconfig",     O_DMPCFG, "FORMAT", af_optional|ARG_NO_ENV,
+      "Check and dump config files in FORMAT (\"json\", \"csv\", or \"csvall\" for CSV with all attributes), then stop"},
   {"dumpconfigto",   O_DMPCTO, "FILE",     0, "Dump config files to FILE"},
   {"pollinterval",   O_POLINT, "SEC",      0, "Poll for data every SEC seconds (0=disable) [5]"},
-  {"inject",         'i',      "stop", af_optional, "Inject remaining arguments as already seen messages (e.g. "
-      "\"FF08070400/0AB5454850303003277201\"), optionally stop afterwards"},
-  {nullptr,          O_INJPOS, "INJECT", af_optional|af_multiple, "Message(s) to inject (if --inject was given)"},
+  {"inject",         'i',      "stop", af_optional|ARG_NO_ENV, "Inject remaining arguments as commands or already seen messages "
+      "(e.g. \"FF08070400/0AB5454850303003277201\"), optionally stop afterwards"},
+  {nullptr,          O_INJPOS, "INJECT", af_optional|af_multiple, "Commands and/or messages to inject "
+      "(if --inject was given)"},
 #ifdef HAVE_SSL
   {"cafile",         O_CAFILE, "FILE",     0, "Use CA FILE for checking certificates (uses defaults,"
-                                              " \"#\" for insecure)"},
+      " \"#\" for insecure)"},
   {"capath",         O_CAPATH, "PATH",     0, "Use CA PATH for checking certificates (uses defaults)"},
 #endif  // HAVE_SSL
 
@@ -207,8 +206,8 @@ static const argDef argDefs[] = {
       PACKAGE_LOGFILE "]"},
   {"log",            O_LOG, "AREAS:LEVEL", 0, "Only write log for matching AREA(S) up to LEVEL"
       " (alternative to --logareas/--logevel, may be used multiple times) [all:notice]"},
-  {"logareas",       O_LOGARE, "AREAS",    0, "Only write log for matching AREA(S): main|network|bus|update|other"
-      "|all [all]"},
+  {"logareas",       O_LOGARE, "AREAS",    0, "Only write log for matching AREA(S): main|network|bus|device|update"
+      "|other|all [all]"},
   {"loglevel",       O_LOGLEV, "LEVEL",    0, "Only write log up to LEVEL: error|notice|info|debug"
       " [notice]"},
 
@@ -239,7 +238,7 @@ static int parse_opt(int key, char *arg, const argParseOpt *parseOpt, struct opt
 
   switch (key) {
   // Device options:
-  case 'd':  // --device=/dev/ttyUSB0
+  case 'd':  // --device=mdns:
     if (arg == nullptr || arg[0] == 0) {
       argParseError(parseOpt, "invalid device");
       return EINVAL;
@@ -315,10 +314,12 @@ static int parse_opt(int key, char *arg, const argParseOpt *parseOpt, struct opt
   case O_CHKCFG:  // --checkconfig
     opt->checkConfig = true;
     break;
-  case O_DMPCFG:  // --dumpconfig[=json|csv]
+  case O_DMPCFG:  // --dumpconfig[=json|csv|csvall]
     if (!arg || arg[0] == 0 || strcmp("csv", arg) == 0) {
       // no further flags
       opt->dumpConfig = OF_DEFINITION;
+    } else if (strcmp("csvall", arg) == 0) {
+      opt->dumpConfig = OF_DEFINITION | OF_ALL_ATTRS;
     } else if (strcmp("json", arg) == 0) {
       opt->dumpConfig = OF_DEFINITION | OF_NAMES | OF_UNITS | OF_COMMENTS | OF_VALUENAME | OF_ALL_ATTRS | OF_JSON;
     } else {
@@ -343,7 +344,7 @@ static int parse_opt(int key, char *arg, const argParseOpt *parseOpt, struct opt
     opt->pollInterval = value;
     break;
   case 'i':  // --inject[=stop]
-    opt->injectMessages = true;
+    opt->injectCommands = true;
     opt->stopAfterInject = arg && strcmp("stop", arg) == 0;
     break;
 #ifdef HAVE_SSL
@@ -595,7 +596,7 @@ static int parse_opt(int key, char *arg, const argParseOpt *parseOpt, struct opt
 
   default:
     if (key >= O_INJPOS) {  // INJECT
-      if (!opt->injectMessages || !arg || !arg[0]) {
+      if (!opt->injectCommands || !arg || !arg[0]) {
         return ESRCH;
       }
       opt->injectCount++;
@@ -612,10 +613,6 @@ static int parse_opt(int key, char *arg, const argParseOpt *parseOpt, struct opt
   }
   if (opt->scanConfig && opt->pollInterval == 0) {
     argParseError(parseOpt, "scanconfig without polling may lead to invalid files included for certain products!");
-    return EINVAL;
-  }
-  if (opt->injectMessages && (opt->checkConfig || opt->dumpConfig)) {
-    argParseError(parseOpt, "cannot combine inject with checkconfig/dumpconfig");
     return EINVAL;
   }
   return 0;
@@ -649,16 +646,21 @@ int parse_main_args(int argc, char* argv[], char* envp[], options_t *opt) {
     }
     envopt[len] = 0;
     if (strcmp(envopt, "version") == 0 || strcmp(envopt, "image") == 0 || strcmp(envopt, "arch") == 0
-       || strcmp(envopt, "opts") == 0 || strcmp(envopt, "inject") == 0
-       || strcmp(envopt, "checkconfig") == 0 || strncmp(envopt, "dumpconfig", 10) == 0
+       || strcmp(envopt, "opts") == 0
     ) {
-      // ignore those defined in Dockerfile, EBUSD_OPTS, those with final args, and interactive ones
+      // ignore those defined in Dockerfile, EBUSD_OPTS
+      continue;
+    }
+    const argDef* found = argFind(&parseOpt, envopt);
+    if (found && found->flags & ARG_NO_ENV) {
+      // ignore those with final args and interactive ones
       continue;
     }
     char* envargv[] = {argv[0], envname, pos+1};
     int cnt = pos[1] ? 2 : 1;
     if (pos[1] && strlen(*env) < sizeof(envname)-3
-    && (strcmp(envopt, "scanconfig") == 0 || strcmp(envopt, "lograwdata") == 0)) {
+    && found && found->flags & af_optional
+    ) {
       // only really special case: af_optional with non-empty arg needs to use "=" syntax
       cnt = 1;
       strcat(envopt, pos);
@@ -669,7 +671,7 @@ int parse_main_args(int argc, char* argv[], char* envp[], options_t *opt) {
         logWrite(lf_main, ll_error, "invalid argument in env: %s", *env);  // force logging on exit
         return EINVAL;
       }
-      logWrite(lf_main, ll_error, "invalid/unknown argument in env (ignored): %s", *env);  // force logging
+      logWrite(lf_main, ll_notice, "invalid/unknown argument in env (ignored): %s", *env);  // force logging
     }
   }
 
@@ -678,7 +680,7 @@ int parse_main_args(int argc, char* argv[], char* envp[], options_t *opt) {
     return ret;
   }
 
-  if (!opt->readOnly && !opt->scanConfigOrPathSet) {
+  if (!opt->readOnly && !opt->scanConfigOrPathSet && opt->dumpConfig == OF_NONE) {
     opt->scanConfig = true;
     opt->initialScan = BROADCAST;
   }

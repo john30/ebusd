@@ -5,7 +5,7 @@ if (substr($agent, 0, 5)==='ebusd') {
   $r = @file_get_contents('php://input');
   header('Content-Type: text/plain');
   $r = @json_decode($r, true);
-  echo checkUpdate(@$r['v'], @$r['r'], @$r['a'], @$r['dv'], @$r['l'], @$r['lc']);
+  echo checkUpdate(@$r['v'], @$r['r'], @$r['a'], @$r['dv'], @$r['di'], @$r['l'], @$r['lc'], @$r['cp']);
   exit;
 }
 readVersions();
@@ -23,7 +23,7 @@ $ref = @file_get_contents('ebusd-configuration/.git/refs/heads/master');
   }
 ?>
   <p>latest ebusd version: <?=$versions['ebusd'][0]?></p>
-  <p>latest device firmware: v5=<?=$versions['devicesame'][0]?>, v3*=<?=$versions['device'][0]?></p>
+  <p>latest device firmware: v5*=<?=$versions['devicesame'][0]?>, v3*=<?=$versions['device'][0]?></p>
   <p>config files:<table><thead><th>File</th><th>German</th><th>English</th></thead><tbody>
 <?php
   $func = function($v, $k) {

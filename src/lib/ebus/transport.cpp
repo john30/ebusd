@@ -91,8 +91,8 @@ result_t FileTransport::open() {
   } else {
     result = openInternal();
   }
-  if (m_listener != nullptr) {
-    result = m_listener->notifyTransportStatus(result == RESULT_OK);
+  if (m_listener != nullptr && result == RESULT_OK) {
+    result = m_listener->notifyTransportStatus(true);
   }
   if (result != RESULT_OK) {
     close();
@@ -325,7 +325,8 @@ void SerialTransport::checkDevice() {
 }
 
 result_t NetworkTransport::openInternal() {
-  m_fd = socketConnect(m_hostOrIp, m_port, m_udp, nullptr, 5, 2);  // wait up to 5 seconds for established connection
+  // wait up to 5 seconds for established connection
+  m_fd = socketConnect(m_hostOrIp, m_port, m_udp ? IPPROTO_UDP : 0, nullptr, 5, 2);
   if (m_fd < 0) {
     return RESULT_ERR_GENERIC_IO;
   }

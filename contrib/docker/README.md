@@ -50,7 +50,12 @@ Using a network device
 ----------------------
 When using a network device, the "--device" argument to docker can be omitted, but the device information has to be
 passed on to ebusd:
-> docker run --rm -it -p 8888 john30/ebusd --scanconfig -d 192.168.178.123:10000 --latency=20
+> docker run --rm -it -p 8888 john30/ebusd --scanconfig -d ens:192.168.178.123 --latency=20
+
+If mDNS device discovery is supposed to be used, then the container needs to run on the host network instead of the default bridge network,
+as multicast traffic is usually only routed via the host network, i.e. use "--network=host" as additional argument.
+Then the device argument can be omitted (as long as there is only one mDNS discoverable device on the net), e.g.:
+> docker run --rm -it -p 8888 --network=host john30/ebusd --scanconfig --latency=20
 
 Note: the required "-f" (foreground) argument is passed as environment variable and does not need to be specified anymore.
 

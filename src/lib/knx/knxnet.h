@@ -40,6 +40,7 @@
 #include <cstdio>
 #include <ctime>
 #include "lib/knx/knx.h"
+#include "lib/utils/tcpsocket.h"
 
 namespace ebusd {
 
@@ -228,7 +229,7 @@ typedef struct __attribute__ ((packed)) {
 #define SYSTEM_MULTICAST_PORT 3671
 
 // the default system multicast address 224.0.23.12
-#define SYSTEM_MULTICAST_IP 0xe000170c
+#define SYSTEM_MULTICAST_IP_STR "224.0.23.12"
 
 #define LAST_FRAME_TIMEOUT 2
 
@@ -400,94 +401,21 @@ class KnxNetConnection : public KnxConnection {
   // @copydoc
   const char* open() override {
     close();
-    int ret;
-    struct in_addr mcast = {};
-    mcast.s_addr = htonl(SYSTEM_MULTICAST_IP);
-    m_interface.s_addr = INADDR_ANY;
-    m_port = SYSTEM_MULTICAST_PORT;
-    if (m_url && m_url[0]) {  // non-empty
-      string urlStr = m_url;  // "[mcast][@intf]" for non-default 224.0.23.12:3671)
-      if (!urlStr.empty()) {
-        auto pos = urlStr.find('@');
-        if (pos != string::npos) {
-          string intfStr = urlStr.substr(pos+1);
-          const char* intfCstr = intfStr.c_str();
-          ret = inet_aton(intfCstr, &m_interface);
-          if (ret == 0) {
-            return "intf addr";
-          }
-          urlStr = urlStr.substr(0, pos);
-        }
-      }
-      if (!urlStr.empty()) {
-        const char *mcastStr = urlStr.c_str();
-        ret = inet_aton(mcastStr, &mcast);
-        if (ret == 0) {
-          return "multicast addr";
-        }
-      }
+    string url = m_url && m_url[0] ? m_url : SYSTEM_MULTICAST_IP_STR;
+    if (m_url[0] == '@') {
+      url = SYSTEM_MULTICAST_IP_STR+url;
     }
-
-    sockaddr_in address = {};
-    address.sin_family = AF_INET;
-    address.sin_port = htons(m_port);
-    address.sin_addr.s_addr = INADDR_ANY;
-
-    int fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    int fd = socketConnect(url.c_str(),
+      SYSTEM_MULTICAST_PORT, IPPROTO_UDP, &m_multicast,
+      // do not use connect() as it will limit incoming to the mcast src which is not the case
+      0x01);
     if (fd < 0) {
       return "create socket";
     }
-
     // set non-blocking
-    ret = fcntl(fd, F_SETFL, O_NONBLOCK);
-    if (ret != 0) {
+    if (fcntl(fd, F_SETFL, O_NONBLOCK) != 0) {
       ::close(fd);
       return "non-blocking";
-    }
-
-    // set reuse address option
-    int optint = 1;
-    ret = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &optint, sizeof(optint));
-    if (ret != 0) {
-      ::close(fd);
-      return "reuse";
-    }
-
-    // allow multiple processes using the same port for multicast on the same host
-    unsigned char optchar = 1;
-    ret = setsockopt(fd, IPPROTO_IP, IP_MULTICAST_LOOP, &optchar, sizeof(optchar));
-    if (ret != 0) {
-      ::close(fd);
-      return "mcast loop";
-    }
-
-    if (m_interface.s_addr != INADDR_ANY) {
-      // set outgoing interface to other than default (determined by routing table)
-      ret = setsockopt(fd, IPPROTO_IP, IP_MULTICAST_IF, &m_interface, sizeof(m_interface));
-      if (ret != 0) {
-        ::close(fd);
-        return "mcast intf";
-      }
-    }
-
-    // bind for incoming multicast
-    ret = bind(fd, (struct sockaddr*) &address, sizeof(address));
-    if (ret != 0) {
-      ::close(fd);
-      return "bind socket";
-    }
-
-    // set the target address for later use by sendto()
-    m_multicast = address;
-    m_multicast.sin_addr = mcast;
-
-    // join the multicast inbound
-    ip_mreq req = {};
-    req.imr_multiaddr = mcast;
-    req.imr_interface = m_interface;
-    if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &req, sizeof(req)) < 0) {
-      ::close(fd);
-      return "join multicast";
     }
 
     m_sock = fd;
@@ -711,14 +639,8 @@ class KnxNetConnection : public KnxConnection {
   /** the URL to connect to. */
   const char* m_url;
 
-  /** the multicast address to join. */
+  /** the multicast address to send to. */
   struct sockaddr_in m_multicast;
-
-  /** the port to listen to. */
-  in_port_t m_port;
-
-  /** the optional interface address to bind to. */
-  struct in_addr m_interface;
 
   /** the socket if connected, or 0. */
   int m_sock;

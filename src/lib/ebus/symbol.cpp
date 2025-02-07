@@ -56,12 +56,12 @@ static const symbol_t CRC_LOOKUP_TABLE[] = {
 
 
 unsigned int parseInt(const char* str, int base, unsigned int minValue, unsigned int maxValue,
-    result_t* result, size_t* length) {
+    result_t* result, size_t* length, bool allowIncomplete) {
   char* strEnd = nullptr;
 
   unsigned long ret = strtoul(str, &strEnd, base);
 
-  if (strEnd == nullptr || strEnd == str || *strEnd != 0) {
+  if (strEnd == nullptr || strEnd == str || (!allowIncomplete && *strEnd != 0)) {
     *result = RESULT_ERR_INVALID_NUM;  // invalid value
     return 0;
   }
@@ -83,7 +83,7 @@ int parseSignedInt(const char* str, int base, int minValue, int maxValue,
 
   long ret = strtol(str, &strEnd, base);
 
-  if (strEnd == nullptr || (!allowIncomplete && *strEnd != 0)) {
+  if (strEnd == nullptr || strEnd == str || (!allowIncomplete && *strEnd != 0)) {
     *result = RESULT_ERR_INVALID_NUM;  // invalid value
     return 0;
   }
@@ -145,14 +145,21 @@ result_t SymbolString::parseHexEscaped(const string& str) {
   return inEscape ? RESULT_ERR_ESC : RESULT_OK;
 }
 
-const string SymbolString::getStr(size_t skipFirstSymbols) const {
+const string SymbolString::getStr(size_t skipFirstSymbols, size_t maxLength, bool withLength) const {
   ostringstream sstr;
+  if (maxLength == 0) {
+    maxLength = m_data.size();
+  }
+  size_t lengthOffset = withLength ? 254 : (m_isMaster ? 4 : 0);
   for (size_t i = 0; i < m_data.size(); i++) {
     if (skipFirstSymbols > 0) {
       skipFirstSymbols--;
-    } else {
+    } else if (i != lengthOffset) {
       sstr << nouppercase << setw(2) << hex
           << setfill('0') << static_cast<unsigned>(m_data[i]);
+          if (--maxLength == 0) {
+            break;
+          }
     }
   }
   return sstr.str();

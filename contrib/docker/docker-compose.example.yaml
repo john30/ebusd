@@ -14,8 +14,15 @@ services:
     environment:
       # Device options:
 
-      # Use DEV as eBUS device ("enh:DEVICE" or "enh:IP:PORT" for enhanced device, "ens:DEVICE" for enhanced high speed
-      # serial device, "DEVICE" for serial device, or "[udp:]IP:PORT" for network device)
+      # Use DEV as eBUS device:
+      # - "mdns:" for auto discovery via mDNS with optional suffix "[ID][@INTF]" for using a specific hardware ID
+      #   and/or IP interface INTF for the discovery (only for eBUS Adapter Shield; on docker, the network device
+      #   needs to support multicast routing e.g. like the host network), or
+      # - prefix "ens:" for enhanced high speed device,
+      # - prefix "enh:" for enhanced device, or
+      # - no prefix for plain device, and
+      # - suffix "IP[:PORT]" for network device, or
+      # - suffix "DEVICE" for serial device
       EBUSD_DEVICE: "ens:/dev/ttyUSB0"
       # Skip serial eBUS device test
       #EBUSD_NODEVICECHECK: ""
@@ -30,9 +37,15 @@ services:
 
       # Read CSV config files from PATH (local folder or HTTPS URL)
       #EBUSD_CONFIGPATH: "/path/to/local/configs"
-      # Pick CSV config files matching initial scan (ADDR="none" or empty for no initial scan message, "full" for full
-      # scan, or a single hex address to scan, default is broadcast ident message).
+      # Pick CSV config files matching initial scan.
+      # - empty for broadcast ident message (default when EBUSD_CONFIGPATH is not given),
+      # - "none" for no initial scan message,
+      # - "full" for full scan,
+      # - a single hex address to scan, or
+      # - "off" for not picking CSV files by scan result (default when EBUSD_CONFIGPATH is given).
       EBUSD_SCANCONFIG: ""
+      # Retry scanning devices COUNT times
+      #EBUSD_SCANRETRIES: 5
       # Prefer LANG in multilingual configuration files
       #EBUSD_CONFIGLANG: "en"
       # Poll for data every SEC seconds (0=disable)
@@ -44,8 +57,8 @@ services:
 
       # eBUS options:
 
-      # Use ADDR as own bus address
-      #EBUSD_ADDRESS: ff
+      # Use hex ADDR as own master bus address
+      #EBUSD_ADDRESS: "ff"
       # Actively answer to requests from other masters
       #EBUSD_ANSWER: ""
       # Stop bus acquisition after MSEC ms
@@ -67,7 +80,7 @@ services:
       #EBUSD_ACCESSLEVEL: "*"
       # Read access control list from FILE
       #EBUSD_ACLFILE: "/path/to/aclfile"
-      # Enable hex command
+      # Enable hex/inject/answer commands
       #EBUSD_ENABLEHEX: ""
       # Enable define command
       #EBUSD_ENABLEDEFINE: ""
@@ -88,12 +101,12 @@ services:
 
       # Write log to FILE (only for daemon, empty string for using syslog)
       #EBUSD_LOGFILE: "/var/log/ebusd.log"
-      # Only write log for matching AREA(S) below or equal to LEVEL (alternative to EBUSD_LOGAREAS/EBUSD_LOGLEVEL, may
-      # be used multiple times)
+      # Only write log for matching AREA(S) up to LEVEL (alternative to EBUSD_LOGAREAS/EBUSD_LOGLEVEL, may be used
+      # multiple times)
       #EBUSD_LOG: "all:notice"
-      # Only write log for matching AREA(S): main|network|bus|update|other|all
+      # Only write log for matching AREA(S): main|network|bus|device|update|other|all
       #EBUSD_LOGAREAS: "all"
-      # Only write log below or equal to LEVEL: error|notice|info|debug
+      # Only write log up to LEVEL: error|notice|info|debug
       #EBUSD_LOGLEVEL: "notice"
 
       # Raw logging options:
@@ -138,8 +151,8 @@ services:
       #EBUSD_MQTTQOS: 0
       # Read MQTT integration settings from FILE (no default)
       #EBUSD_MQTTINT: "/etc/ebusd/mqtt-hassio.cfg"
-      # Add variable(s) to the read MQTT integration settings
-      #EBUSD_MQTTVAR: "key=value"
+      # Add variable(s) to the read MQTT integration settings (append to already existing value with "NAME+=VALUE")
+      #EBUSD_MQTTVAR: "key[+]=value[,...]"
       # Publish in JSON format instead of strings, optionally in short (value directly below field key)
       #EBUSD_MQTTJSON: ""
       # Publish all available attributes
@@ -169,7 +182,7 @@ services:
       #EBUSD_KNXURL: ""
       # Maximum age in seconds for using the last value of read messages (0=disable)
       #EBUSD_KNXRAGE: 30
-      # Maximum age in seconds for using the last value for reads on write messages (0=disable),
+      # Maximum age in seconds for using the last value for reads on write messages (0=disable)
       #EBUSD_KNXWAGE: 7200
       # Read KNX integration settings from FILE
       #EBUSD_KNXINT: "/etc/ebusd/knx.cfg"

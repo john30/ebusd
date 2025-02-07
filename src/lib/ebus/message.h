@@ -159,13 +159,6 @@ class Message : public AttributedItem {
   static uint64_t createKey(symbol_t pb, symbol_t sb, bool broadcast);
 
   /**
-   * Get the length field from the key.
-   * @param key the key.
-   * @return the length field from the key.
-   */
-  static size_t getKeyLength(uint64_t key) { return (size_t)(key >> (8 * 7 + 5)); }
-
-  /**
    * Parse an ID part from the input @a string.
    * @param input the input @a string, hex digits optionally separated by space.
    * @param id the vector to which to add the parsed values.
@@ -478,8 +471,8 @@ class Message : public AttributedItem {
   virtual result_t storeLastData(size_t index, const SlaveSymbolString& data);
 
   /**
-   * Decode the value from the last stored master or slave data.
-   * @param master true for decoding the master data, false for slave.
+   * Decode value(s) from the last stored data.
+   * @param part the part to decode.
    * @param leadingSeparator whether to prepend a separator before the formatted value.
    * @param fieldName the optional name of a field to limit the output to.
    * @param fieldIndex the optional index of the field to limit the output to (either named or overall), or -1.
@@ -487,20 +480,8 @@ class Message : public AttributedItem {
    * @param output the @a ostream to append the formatted value to.
    * @return @a RESULT_OK on success, or an error code.
    */
-  virtual result_t decodeLastData(bool master, bool leadingSeparator, const char* fieldName,
-      ssize_t fieldIndex, OutputFormat outputFormat, ostream* output) const;
-
-  /**
-   * Decode the value from the last stored master and slave data.
-   * @param leadingSeparator whether to prepend a separator before the formatted value.
-   * @param fieldName the optional name of a field to limit the output to.
-   * @param fieldIndex the optional index of the field to limit the output to (either named or overall), or -1.
-   * @param outputFormat the @a OutputFormat options to use.
-   * @param output the @a ostream to append the formatted value to.
-   * @return @a RESULT_OK on success, or an error code.
-   */
-  virtual result_t decodeLastData(bool leadingSeparator, const char* fieldName,
-      ssize_t fieldIndex, OutputFormat outputFormat, ostream* output) const;
+  virtual result_t decodeLastData(PartType part, bool leadingSeparator, const char* fieldName,
+      ssize_t fieldIndex, const OutputFormat outputFormat, ostream* output) const;
 
   /**
    * Decode a particular numeric field value from the last stored data.
@@ -599,11 +580,10 @@ class Message : public AttributedItem {
    * @param leadingSeparator whether to prepend a separator before the first value.
    * @param appendDirectionCondition whether to append the direction and condition to the name key.
    * @param withData whether to add the last data as well.
-   * @param addRaw whether to add the raw symbols as well.
    * @param outputFormat the @a OutputFormat options to use.
    * @param output the @a ostringstream to append the decoded value(s) to.
    */
-  virtual void decodeJson(bool leadingSeparator, bool appendDirectionCondition, bool withData, bool addRaw,
+  virtual void decodeJson(bool leadingSeparator, bool appendDirectionCondition, bool withData,
                           OutputFormat outputFormat, ostringstream* output) const;
 
  protected:
@@ -1664,6 +1644,10 @@ class MessageMap : public MappedFileReader {
    */
   void dump(bool withConditions, OutputFormat outputFormat, ostream* output) const;
 
+  /**
+   * @return the maximum ID length used by any of the known @a Message instances.
+   */
+  size_t getMaxIdLength() const { return m_maxIdLength; }
 
  private:
   /** empty vector for @a getLoadedFiles(). */

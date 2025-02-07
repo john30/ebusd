@@ -110,6 +110,9 @@ enum OutputFormat : OutputFormatBaseType {
 
   /** bit flag for @a OutputFormat: include message/field definition. */
   OF_DEFINITION = 1 << 8,
+
+  /** bit flag for @a OutputFormat: include raw data. */
+  OF_RAWDATA = 1 << 9,
 };
 
 constexpr inline enum OutputFormat operator| (enum OutputFormat self, enum OutputFormat other) {
@@ -133,6 +136,13 @@ inline enum OutputFormat& operator&= (enum OutputFormat& self, enum OutputFormat
 constexpr inline enum OutputFormat operator~ (enum OutputFormat self) {
   return (enum OutputFormat)(~(OutputFormatBaseType)self);
 }
+
+/** whether divisor should be appended to a dump. */
+enum AppendDivisor {
+  ad_none,      //!< no dump of divisor
+  ad_normal,    //!< regular dump of divisor (i.e. not for base types)
+  ad_full,  //!< full dump of divisor (i.e. also for base types)
+};
 
 /** the message part in which a data field is stored. */
 enum PartType {
@@ -183,6 +193,9 @@ enum PartType {
 
 /** bit flag for @a DataType: stored duplicate for backwards compatibility, not to be traversed in lists any more. */
 #define DUP 0x2000
+
+/** bit flag for @a DataType: special marker for non-tolerated secondary replacement value of zero (date only). */
+#define REZ 0x4000
 
 /**
  * Parse a float value from the 32 bit representation (IEEE 754).
@@ -283,7 +296,7 @@ class DataType {
    * @param output the @a ostream to dump to.
    * @return true when a non-default divisor was written to the output.
    */
-  virtual bool dump(OutputFormat outputFormat, size_t length, bool appendDivisor, ostream* output) const;
+  virtual bool dump(OutputFormat outputFormat, size_t length, AppendDivisor appendDivisor, ostream* output) const;
 
   /**
    * Internal method for reading the numeric raw value from a @a SymbolString.
@@ -360,7 +373,7 @@ class StringDataType : public DataType {
   virtual ~StringDataType() {}
 
   // @copydoc
-  bool dump(OutputFormat outputFormat, size_t length, bool appendDivisor, ostream* output) const override;
+  bool dump(OutputFormat outputFormat, size_t length, AppendDivisor appendDivisor, ostream* output) const override;
 
   // @copydoc
   result_t readRawValue(size_t offset, size_t length, const SymbolString& input,
@@ -407,7 +420,7 @@ class DateTimeDataType : public DataType {
   virtual ~DateTimeDataType() {}
 
   // @copydoc
-  bool dump(OutputFormat outputFormat, size_t length, bool appendDivisor, ostream* output) const override;
+  bool dump(OutputFormat outputFormat, size_t length, AppendDivisor appendDivisor, ostream* output) const override;
 
   /**
    * @return true if date part is present.
@@ -468,7 +481,25 @@ class NumberDataType : public DataType {
   NumberDataType(const string& id, size_t bitCount, uint16_t flags, unsigned int replacement,
       unsigned int minValue, unsigned int maxValue, int divisor,
       const NumberDataType* baseType = nullptr)
-    : DataType(id, bitCount, flags|NUM, replacement), m_minValue(minValue), m_maxValue(maxValue),
+    : DataType(id, bitCount, flags|NUM, replacement), m_minValue(minValue), m_maxValue(maxValue), m_incValue(0),
+      m_divisor(divisor == 0 ? 1 : divisor), m_precision(calcPrecision(divisor)), m_firstBit(0), m_baseType(baseType) {}
+
+  /**
+   * Constructs a new instance for multiple of 8 bits with increment value.
+   * @param id the type identifier.
+   * @param bitCount the number of bits (maximum length if #ADJ flag is set).
+   * @param flags the combination of flags (like #BCD).
+   * @param replacement the replacement value (no replacement if equal to minValue).
+   * @param minValue the minimum raw value.
+   * @param maxValue the maximum raw value.
+   * @param incValue the smallest step value for increment/decrement, or 0 for auto.
+   * @param divisor the divisor (negative for reciprocal).
+   * @param baseType the base @a NumberDataType for derived instances, or nullptr.
+   */
+  NumberDataType(const string& id, size_t bitCount, uint16_t flags, unsigned int replacement,
+      unsigned int minValue, unsigned int maxValue, unsigned int incValue, int divisor,
+      const NumberDataType* baseType = nullptr)
+    : DataType(id, bitCount, flags|NUM, replacement), m_minValue(minValue), m_maxValue(maxValue), m_incValue(incValue),
       m_divisor(divisor == 0 ? 1 : divisor), m_precision(calcPrecision(divisor)), m_firstBit(0), m_baseType(baseType) {}
 
   /**
@@ -483,7 +514,7 @@ class NumberDataType : public DataType {
    */
   NumberDataType(const string& id, size_t bitCount, uint16_t flags, unsigned int replacement,
       int16_t firstBit, int divisor, const NumberDataType* baseType = nullptr)
-    : DataType(id, bitCount, flags|NUM, replacement), m_minValue(0), m_maxValue((1 << bitCount)-1),
+    : DataType(id, bitCount, flags|NUM, replacement), m_minValue(0), m_maxValue((1 << bitCount)-1), m_incValue(0),
       m_divisor(divisor == 0 ? 1 : divisor), m_precision(0), m_firstBit(firstBit), m_baseType(baseType) {}
 
   /**
@@ -500,7 +531,7 @@ class NumberDataType : public DataType {
   static size_t calcPrecision(int divisor);
 
   // @copydoc
-  bool dump(OutputFormat outputFormat, size_t length, bool appendDivisor, ostream* output) const override;
+  bool dump(OutputFormat outputFormat, size_t length, AppendDivisor appendDivisor, ostream* output) const override;
 
   /**
    * Derive a new @a NumberDataType from this.
@@ -513,6 +544,18 @@ class NumberDataType : public DataType {
    * @return @a RESULT_OK on success, or an error code.
    */
   virtual result_t derive(int divisor, size_t bitCount, const NumberDataType** derived) const;
+
+  /**
+   * Derive a new @a NumberDataType from this.
+   * @param min the minimum raw value.
+   * @param max the minimum raw value.
+   * @param inc the smallest step value for increment/decrement, or 0 to keep the current increment (or calculate
+   * automatically).
+   * @param derived the derived @a NumberDataType, or this if derivation is
+   * not necessary.
+   * @return @a RESULT_OK on success, or an error code.
+   */
+  virtual result_t derive(unsigned int min, unsigned int max, unsigned int inc, const NumberDataType** derived) const;
 
   /**
    * @return the minimum raw value.
@@ -532,6 +575,14 @@ class NumberDataType : public DataType {
    * @return @a RESULT_OK on success, or an error code.
    */
   result_t getMinMax(bool getMax, const OutputFormat outputFormat, ostream* output) const;
+
+  /**
+   * Check the value against the minimum and maximum value.
+   * @param value the raw value.
+   * @param negative optional variable in which to store the negative flag.
+   * @return @a RESULT_OK on success, or an error code.
+   */
+  result_t checkValueRange(unsigned int value, bool* negative = nullptr) const;
 
   /**
    * Get the smallest step value for increment/decrement.
@@ -585,10 +636,19 @@ class NumberDataType : public DataType {
    * @param value the numeric raw value.
    * @param outputFormat the @a OutputFormat options to use.
    * @param output the ostream to append the formatted value to.
+   * @param skipRangeCheck whether to skip the value range check.
    * @return @a RESULT_OK on success, or an error code.
    */
   result_t readFromRawValue(unsigned int value,
-                            OutputFormat outputFormat, ostream* output) const;
+                            OutputFormat outputFormat, ostream* output, bool skipRangeCheck = false) const;
+
+  /**
+   * Internal method for parsing an input string to the coorresponding raw value.
+   * @param inputStr the input string to parse the formatted value from.
+   * @param parsedValue the variable in which to store the parsed raw value.
+   * @return @a RESULT_OK on success, or an error code.
+   */
+  result_t parseInput(const string inputStr, unsigned int* parsedValue) const;
 
   /**
    * Internal method for writing the numeric raw value to a @a SymbolString.
@@ -614,6 +674,9 @@ class NumberDataType : public DataType {
 
   /** the maximum raw value. */
   const unsigned int m_maxValue;
+
+  /** the smallest step value for increment/decrement, or 0 for auto. */
+  const unsigned int m_incValue;
 
   /** the divisor (negative for reciprocal). */
   const int m_divisor;
@@ -655,10 +718,9 @@ class DataTypeList {
   /**
    * Dump the type list optionally including the divisor to the output.
    * @param outputFormat the @a OutputFormat options.
-   * @param appendDivisor whether to append the divisor (if available).
    * @param output the @a ostream to dump to.
    */
-  void dump(OutputFormat outputFormat, bool appendDivisor, ostream* output) const;
+  void dump(OutputFormat outputFormat, ostream* output) const;
 
   /**
    * Removes all @a DataType instances.
@@ -668,10 +730,11 @@ class DataTypeList {
   /**
    * Adds a @a DataType instance to this map.
    * @param dataType the @a DataType instance to add.
+   * @param derivedKey optional speicla key for derived instances.
    * @return @a RESULT_OK on success, or an error code.
    * Note: the caller may not free the added instance on success.
    */
-  result_t add(const DataType* dataType);
+  result_t add(const DataType* dataType, const string derivedKey = "");
 
   /**
    * Adds a @a DataType instance for later cleanup.

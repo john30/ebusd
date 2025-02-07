@@ -70,7 +70,8 @@ ProtocolHandler* ProtocolHandler::create(const ebus_protocol_config_t config,
     }
   }
   Transport* transport;
-  if (strchr(name, '/') == nullptr || strchr(name, ':') != nullptr) {
+  // symlink device name may contain colon, so only check for absence of slash only
+  if (strchr(name, '/') == nullptr) {
     char* in = strdup(name);
     bool udp = false;
     char* addrpos = in;
@@ -97,6 +98,7 @@ ProtocolHandler* ProtocolHandler::create(const ebus_protocol_config_t config,
     transport = new NetworkTransport(name, config.extraLatency, hostOrIp, port, udp);
   } else {
     // support ens:/dev/<device>, enh:/dev/<device>, and /dev/<device>
+    // as well as symlinks like /dev/serial/by-id/...Espressif_00:01:02:03...
     transport = new SerialTransport(name, config.extraLatency, !config.noDeviceCheck, speed);
   }
   Device* device;
@@ -184,9 +186,9 @@ void ProtocolHandler::notifyDeviceData(const symbol_t* data, size_t len, bool re
 
 void ProtocolHandler::notifyDeviceStatus(bool error, const char* message) {
   if (error) {
-    logError(lf_bus, "device status: %s", message);
+    logError(lf_device, message);
   } else {
-    logNotice(lf_bus, "device status: %s", message);
+    logNotice(lf_device, message);
   }
 }
 

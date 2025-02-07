@@ -103,15 +103,15 @@ int main() {
     {"tempsensor,temp;sensor,,Temperatursensor", "", "", "", "template"},
     {"tempsensorc,temp;sensorc,,Temperatursensor", "", "", "", "template"},
     {"r,cir,Status01,VL/RL/AussenTemp/VLWW/SpeicherTemp/Status,,08,B511,01,,,temp1;temp1;temp2;temp1;temp1;pumpstate", "28.0;24.0;4.938;35.0;41.0;4", "ff08b5110101", "093830f00446520400ff", "d"},
-    {"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor", "temp=-14.00 Temperatursensor [Temperatur];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "D"},
-    {"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment", "temp=-14.00 field unit [field comment];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "D"},
-    {"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment", "\n     \"temp\": {\"value\": -14.00},\n     \"sensor\": {\"value\": \"ok\"}", "ff25b509030d2800", "0320ff00", "j"},
-    {"r,message circuit,message name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment", "\n     \"temp\": {\"value\": -14.00, \"unit\": \"field unit\", \"comment\": \"field comment\"},\n" "     \"sensor\": {\"value\": \"ok\", \"comment\": \"Fühlerstatus\"}", "ff25b509030d2800", "0320ff00", "J"},
-    {"r,message circuit,message name,\"message, comment\",,25,B509,0d2800,,,tempsensor,,field unit,\"field, comment\"", "\n     \"temp\": {\"value\": -14.00, \"unit\": \"field unit\", \"comment\": \"field, comment\"},\n" "     \"sensor\": {\"value\": \"ok\", \"comment\": \"Fühlerstatus\"}", "ff25b509030d2800", "0320ff00", "J"},
-    {"r,message circuit,message name,\"message\"\",\"\" comment\",,25,B509,0d2800,,,tempsensor,,field unit,\"field\"\",\"\" comment\"", "\n     \"temp\": {\"value\": -14.00, \"unit\": \"field unit\", \"comment\": \"field',' comment\"},\n" "     \"sensor\": {\"value\": \"ok\", \"comment\": \"Fühlerstatus\"}", "ff25b509030d2800", "0320ff00", "J"},
-    {"r,message circuit,message name,message comment,,25,B509,0d2800,,,temp,,field unit,field comment,,,sensor", "temp=-14.00 field unit [field comment];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "D"},
-    {"r,message circuit,message name,message comment,,25,B509,0d2800,,,temp,,field unit,\"field\"\",\"\" comment\",,,sensor", "temp=-14.00 field unit [field\",\" comment];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "D"},
-    {"r,message circuit,message name,message comment,,25,B509,0d2800,,,D2C,,°C,Temperatur,,,sensor", "\n     \"0\": {\"name\": \"\", \"value\": -14.00},\n     \"1\": {\"name\": \"sensor\", \"value\": \"ok\"}", "ff25b509030d2800", "0320ff00", "j"},
+    {"r,message_circuit,message_name,message comment,,25,B509,0d2800,,,tempsensor", "temp=-14.00 Temperatursensor [Temperatur];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "D"},
+    {"r,message_circuit,message_name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment", "temp=-14.00 field unit [field comment];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "D"},
+    {"r,message_circuit,message_name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment", "\n     \"temp\": {\"value\": -14.00},\n     \"sensor\": {\"value\": \"ok\"}", "ff25b509030d2800", "0320ff00", "j"},
+    {"r,message_circuit,message_name,message comment,,25,B509,0d2800,,,tempsensor,,field unit,field comment", "\n     \"temp\": {\"value\": -14.00, \"unit\": \"field unit\", \"comment\": \"field comment\"},\n" "     \"sensor\": {\"value\": \"ok\", \"comment\": \"Fühlerstatus\"}", "ff25b509030d2800", "0320ff00", "J"},
+    {"r,message_circuit,message_name,\"message, comment\",,25,B509,0d2800,,,tempsensor,,field unit,\"field, comment\"", "\n     \"temp\": {\"value\": -14.00, \"unit\": \"field unit\", \"comment\": \"field, comment\"},\n" "     \"sensor\": {\"value\": \"ok\", \"comment\": \"Fühlerstatus\"}", "ff25b509030d2800", "0320ff00", "J"},
+    {"r,message_circuit,message_name,\"message\"\",\"\" comment\",,25,B509,0d2800,,,tempsensor,,field unit,\"field\"\",\"\" comment\"", "\n     \"temp\": {\"value\": -14.00, \"unit\": \"field unit\", \"comment\": \"field',' comment\"},\n" "     \"sensor\": {\"value\": \"ok\", \"comment\": \"Fühlerstatus\"}", "ff25b509030d2800", "0320ff00", "J"},
+    {"r,message_circuit,message_name,message comment,,25,B509,0d2800,,,temp,,field unit,field comment,,,sensor", "temp=-14.00 field unit [field comment];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "D"},
+    {"r,message_circuit,message_name,message comment,,25,B509,0d2800,,,temp,,field unit,\"field\"\",\"\" comment\",,,sensor", "temp=-14.00 field unit [field\",\" comment];sensor=ok [Fühlerstatus]", "ff25b509030d2800", "0320ff00", "D"},
+    {"r,message_circuit,message_name,message comment,,25,B509,0d2800,,,D2C,,°C,Temperatur,,,sensor", "\n     \"0\": {\"name\": \"\", \"value\": -14.00},\n     \"1\": {\"name\": \"sensor\", \"value\": \"ok\"}", "ff25b509030d2800", "0320ff00", "j"},
     {"r,cir,name,,,25,B509,0d2800,,,tempsensorc", "-14.00", "ff25b509030d2800", "0320ff55", ""},
     {"r,cir,name,,,25,B509,0d28,,m,sensorc,,,,,,temp", "-14.00", "ff25b509030d2855", "0220ff", ""},
     {"u,cir,first,,,fe,0700,,x,,bda", "26.10.2014", "fffe07000426100714", "00", "p"},
@@ -184,6 +184,7 @@ int main() {
     {"", "19:00", "3110b51503000272", "00", "kd"},
     {"*r,cir*cuit#level,na*me,com*ment,ff,75,b509,0d", "", "", "", ""},
     {"r,CIRCUIT,NAME,COMMENT,,,,0100,field,,UCH", "r,cirCIRCUITcuit,naNAMEme,comCOMMENTment,ff,75,b509,0d0100,field,s,UCH,,,: field=42", "ff75b509030d0100", "012a", "DN"},
+    {"r,CIRCUIT,NAME,COMMENT,,,,0100,field,,UCH", "r,cirCIRCUITcuit,naNAMEme,comCOMMENTment,ff,75,b509,0d0100,field,s,UCH,,,: [b5090d0100/2a] field=[2a]42", "ff75b509030d0100", "012a", "DNr"},
     {"r,CIRCUIT,NAME,COMMENT,,,,0100,field,,UCH",
       "   \"naNAMEme\": {\n"
       "    \"name\": \"naNAMEme\",\n"
@@ -194,13 +195,34 @@ int main() {
       "    \"zz\": 117,\n"
       "    \"id\": [181, 9, 13, 1, 0],\n"
       "    \"fields\": {\n"
-      "     \"0\": {\"name\": \"field\", \"value\": 42}\n"
+      "     \"field\": {\"value\": 42}\n"
       "    },\n"
       "    \"fielddefs\": [\n"
       "     { \"name\": \"field\", \"slave\": true, \"type\": \"UCH\", \"isbits\": false, \"length\": 1, \"unit\": \"\", \"comment\": \"\"}\n"
       "    ]\n"
       "   }: \n"
       "     \"field\": {\"value\": 42}", "ff75b509030d0100", "012a", "jN"},
+    {"r,CIRCUIT,NAME,COMMENT,,,,0100,field,,UCH",
+      "   \"naNAMEme\": {\n"
+      "    \"name\": \"naNAMEme\",\n"
+      "    \"passive\": false,\n"
+      "    \"write\": false,\n"
+      "    \"lastup\": *,\n"
+      "    \"qq\": 255,\n"
+      "    \"zz\": 117,\n"
+      "    \"id\": [181, 9, 13, 1, 0],\n"
+      "    \"master\": [255, 117, 181, 9, 3, 13, 1, 0],\n"
+      "    \"slave\": [1, 42],\n"
+      "    \"fields\": {\n"
+      "     \"field\": {\"value\": 42, \"raw\": [42]}\n"
+      "    },\n"
+      "    \"fielddefs\": [\n"
+      "     { \"name\": \"field\", \"slave\": true, \"type\": \"UCH\", \"isbits\": false, \"length\": 1, \"unit\": \"\", \"comment\": \"\"}\n"
+      "    ]\n"
+      "   }: \n"
+      "     \"field\": {\"value\": 42, \"raw\": [42]}", "ff75b509030d0100", "012a", "jNr"},
+    {"r,CIRCUIT,NAME,COMMENT,,,,0100,field,,temp", "r,cirCIRCUITcuit,naNAMEme,comCOMMENTment,ff,75,b509,0d0100,field,s,D2C,,°C,Temperatur: field=42.00 °C [Temperatur]", "ff75b509030d0100", "02a002", "DN"},
+    {"r,CIRCUIT,NAME,COMMENT,,,,0100,field,,D2C,,°C,Temperatur", "r,cirCIRCUITcuit,naNAMEme,comCOMMENTment,ff,75,b509,0d0100,field,s,D2C,,°C,Temperatur: field=42.00 °C [Temperatur]", "ff75b509030d0100", "02a002", "DN"},
   };
   templates = new DataFieldTemplates();
   unsigned int lineNo = 0;
@@ -235,6 +257,10 @@ int main() {
     bool decodeVerbose = flags.find('D') != string::npos || flags.find('J') != string::npos;
     bool withMessageDump = flags.find('N') != string::npos;
     bool decode = decodeJson || decodeVerbose || (flags.find('d') != string::npos);
+    OutputFormat verbosity = (decodeVerbose?OF_NAMES|OF_UNITS|OF_COMMENTS:OF_NONE)|(decodeJson?OF_NAMES|OF_JSON:OF_NONE);
+    if (flags.find('r') != string::npos) {
+      verbosity |= OF_RAWDATA;
+    }
     bool failedPrepare = flags.find('p') != string::npos;
     bool failedPrepareMatch = flags.find('P') != string::npos;
     bool multi = flags.find('*') != string::npos;
@@ -408,7 +434,7 @@ int main() {
       ostringstream output;
       if (withMessageDump) {
         if (decodeJson) {
-          message->decodeJson(false, false, true, false, OF_JSON|OF_DEFINITION, &output);
+          message->decodeJson(false, false, true, verbosity|OF_DEFINITION, &output);
           string str = output.str();
           size_t start = str.find("\"lastup\": ");
           if (start != string::npos) {
@@ -425,8 +451,7 @@ int main() {
         }
         output << ": ";
       }
-      result = message->decodeLastData(false, nullptr, -1,
-          (decodeVerbose?OF_NAMES|OF_UNITS|OF_COMMENTS:OF_NONE)|(decodeJson?OF_NAMES|OF_JSON:OF_NONE), &output);
+      result = message->decodeLastData(pt_any, false, nullptr, -1, verbosity, &output);
       if (result != RESULT_OK) {
         cout << "  \"" << check[2] << "\" / \"" << check[3] << "\": decode error " << (message->isWrite() ? "write: " : "read: ")
             << getResultCode(result) << endl;

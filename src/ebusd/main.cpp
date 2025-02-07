@@ -23,6 +23,7 @@
 #include "ebusd/main.h"
 #include <dirent.h>
 #include <sys/stat.h>
+#include <arpa/inet.h>
 #include <csignal>
 #include <iostream>
 #include <algorithm>
@@ -34,17 +35,15 @@
 #include "ebusd/network.h"
 #include "lib/utils/log.h"
 #include "lib/utils/httpclient.h"
+#include "lib/utils/tcpsocket.h"
 #include "ebusd/scan.h"
 
 namespace ebusd {
 
 using std::cout;
 
-/** the previous config path part to rewrite to the current one. */
-#define PREVIOUS_CONFIG_PATH_SUFFIX "://ebusd.eu/config/"
-
-/** the second previous config path part to rewrite to the current one. */
-#define PREVIOUS_CONFIG_PATH_SUFFIX2 "://cfg.ebusd.eu/"
+/** the previous config path suffixes to rewrite to the current one. */
+#define PREVIOUS_CONFIG_PATH_SUFFIXES {"ebusd.eu/config/", "cfg.ebusd.eu/"}
 
 /** the opened PID file, or nullptr. */
 static FILE* s_pidFile = nullptr;
@@ -248,13 +247,6 @@ int main(int argc, char* argv[], char* envp[]) {
       return EINVAL;
   }
 
-  if (s_opt.injectCount > 0) {
-    if (!s_opt.injectMessages && !(s_opt.checkConfig && s_opt.scanConfig)) {
-      fprintf(stderr, "invalid inject arguments");
-      return EINVAL;
-    }
-  }
-
   if (s_opt.logAreas != -1 || s_opt.logLevel != ll_COUNT) {
     setFacilitiesLogLevel(1 << lf_COUNT, ll_none);
     setFacilitiesLogLevel(s_opt.logAreas, s_opt.logLevel);
@@ -262,7 +254,7 @@ int main(int argc, char* argv[], char* envp[]) {
 
   const string lang = MappedFileReader::normalizeLanguage(
     s_opt.preferLanguage == nullptr || !s_opt.preferLanguage[0] ? "" : s_opt.preferLanguage);
-  string configLocalPrefix, configUriPrefix;
+  string configLocalPrefix, configUriPrefix, configLangQuery;
 #ifdef HAVE_SSL
   HttpClient::initialize(s_opt.caFile, s_opt.caPath);
 #else  // HAVE_SSL
@@ -273,18 +265,20 @@ int main(int argc, char* argv[], char* envp[]) {
   if (configPath.find("://") == string::npos) {
     configLocalPrefix = s_opt.configPath;
   } else {
-    if (!s_opt.scanConfig) {
+    if (!s_opt.scanConfig && s_opt.dumpConfig == OF_NONE) {
       logWrite(lf_main, ll_error, "invalid configpath without scanconfig");  // force logging on exit
       return EINVAL;
     }
-    size_t pos = configPath.find(PREVIOUS_CONFIG_PATH_SUFFIX);
-    if (pos != string::npos) {
-      string newPath = configPath.substr(0, pos) + CONFIG_PATH_SUFFIX
-        + configPath.substr(pos+strlen(PREVIOUS_CONFIG_PATH_SUFFIX));
-      logNotice(lf_main, "replaced old configPath %s with new one: %s", s_opt.configPath, newPath.c_str());
-      configPath = newPath;
+    for (auto prevSuffix : PREVIOUS_CONFIG_PATH_SUFFIXES) {
+      size_t pos = configPath.find(prevSuffix);
+      if (pos == string::npos || (pos >= 3 && configPath.substr(pos-3, 3) != "://")) {
+        continue;
+      }
+      configPath = CONFIG_PATH;
+      logNotice(lf_main, "replaced old configPath %s with new one: %s", s_opt.configPath, configPath.c_str());
+      break;
     }
-    uint16_t configPort = 80;
+    uint16_t configPort = 443;
     string proto, configHost;
     if (!HttpClient::parseUrl(configPath, &proto, &configHost, &configPort, &configUriPrefix)) {
 #ifndef HAVE_SSL
@@ -295,6 +289,15 @@ int main(int argc, char* argv[], char* envp[]) {
 #endif  // HAVE_SSL
       logWrite(lf_main, ll_error, "invalid configPath URL");  // force logging on exit
       return EINVAL;
+    }
+    bool isCdn = configHost == CONFIG_HOST;
+    string suffix;
+    if (isCdn) {
+      suffix = (lang != "en" && lang != "tt" ? "de" : lang) + "/";
+      configUriPrefix += suffix;
+      configPath += suffix;  // only for informational purposes
+    } else {
+      configLangQuery = lang.empty() ? lang : "?l=" + lang;
     }
     configHttpClient = new HttpClient();
     if (
@@ -307,13 +310,33 @@ int main(int argc, char* argv[], char* envp[]) {
       cleanup();
       return EINVAL;
     }
+    if (isCdn) {
+      // check load balancing redirection
+      string redirPath;
+      uint16_t redirPort = 443;
+      string redirProto, redirHost, redirUriPrefix;
+      bool json = true;
+      if (configHttpClient->get("/redirect.json", "", &redirPath, nullptr, nullptr, &json) && !json
+      && HttpClient::parseUrl(redirPath, &redirProto, &redirHost, &redirPort, &redirUriPrefix)
+      && redirHost != configHost) {
+        configHttpClient->disconnect();
+        ebusd::HttpClient* redirClient = new HttpClient();
+        if (redirClient->connect(redirHost, redirPort, redirProto == "https", PACKAGE_NAME "/" PACKAGE_VERSION)) {
+          configUriPrefix = redirUriPrefix + suffix;
+          configPath = redirPath + suffix;  // only for informational purposes
+          delete configHttpClient;
+          configHttpClient = redirClient;
+          logNotice(lf_main, "configPath URL redirected to %s", configPath.c_str());
+        }
+      }
+    }
     logInfo(lf_main, "configPath URL is valid");
     configHttpClient->disconnect();
   }
 
   s_messageMap = new MessageMap(s_opt.checkConfig, lang);
   s_scanHelper = new ScanHelper(s_messageMap, configPath, configLocalPrefix, configUriPrefix,
-    lang.empty() ? lang : "?l=" + lang, configHttpClient, s_opt.checkConfig);
+    configLangQuery, configHttpClient, s_opt.checkConfig);
   s_messageMap->setResolver(s_scanHelper);
   if (s_opt.checkConfig) {
     logNotice(lf_main, PACKAGE_STRING "." REVISION " performing configuration check...");
@@ -371,7 +394,7 @@ int main(int argc, char* argv[], char* envp[]) {
       }
       if (s_opt.dumpConfig & OF_JSON) {
         *out << "{\"datatypes\":[";
-        DataTypeList::getInstance()->dump(s_opt.dumpConfig, true, out);
+        DataTypeList::getInstance()->dump(s_opt.dumpConfig, out);
         *out << "],\"templates\":[";
         const auto tmpl = s_scanHelper->getTemplates("");
         tmpl->dump(s_opt.dumpConfig, out);
@@ -385,16 +408,66 @@ int main(int argc, char* argv[], char* envp[]) {
         fout.close();
       }
     }
-
+    if (overallResult == RESULT_OK && s_messageMap->getMaxIdLength() > 7) {
+      logNotice(lf_main, "max message ID length exceeded");
+      overallResult = RESULT_CONTINUE;
+    }
     cleanup();
     return overallResult == RESULT_OK ? EXIT_SUCCESS : EXIT_FAILURE;
+  }
+
+  const char* device = s_opt.device;
+  if (!s_opt.checkConfig && strncmp(device, "mdns:", 5) == 0) {
+    // auto discovery
+    mdns_oneshot_t address;
+    #define MAX_ADDRESSES 10
+    mdns_oneshot_t addresses[MAX_ADDRESSES];
+    size_t otherCount = MAX_ADDRESSES;
+    int ret = 0;
+    #define MAX_MDNS_RUNS 3
+    for (int i=0; i < MAX_MDNS_RUNS && ret == 0; i++) {  // 3*up to 5 seconds = 15 seconds max
+      logWrite(lf_main, ll_notice, "discovering device from \"%s\", try %d/%d", device, i+1, MAX_MDNS_RUNS);
+      ret = resolveMdnsOneShot(device+5, &address, addresses, &otherCount);
+    }
+    if (ret < 0) {
+      logWrite(lf_main, ll_error, "unable to discover device \"%s\", error %d", device, ret);
+      cleanup();
+      return EINVAL;
+    }
+    const char *ip;
+    for (size_t pos=0; pos < otherCount; pos++) {
+      mdns_oneshot_t *addr = addresses+pos;
+      ip = inet_ntoa(addr->address);
+      logWrite(lf_main, ll_info, "discovered another device with ID %s and device string %s:%s",
+        addr->id, addr->proto, ip);
+    }
+    if (ret == 0) {
+      logWrite(lf_main, ll_error, "unable to discover device \"%s\", %s found", device, otherCount ? "ID not" : "none");
+      cleanup();
+      return EINVAL;
+    }
+    if (ret > 1) {
+      ip = inet_ntoa(address.address);
+      logWrite(lf_main, ll_info, "discovered another device with ID %s and device string %s:%s",
+        address.id, address.proto, ip);
+      logWrite(lf_main, ll_error,
+        "found several devices from \"%s\". use e.g. \"--device=mdns:%s\" to limit it to the desired one", device,
+        address.id);
+      cleanup();
+      return EINVAL;
+    }
+    ip = inet_ntoa(address.address);
+    char *mdnsDevice = reinterpret_cast<char*>(malloc(4*4+3+1));  // ens:xxx.xxx.xxx.xxx
+    snprintf(mdnsDevice, 4*4+3+1, "%s:%s", address.proto, ip);
+    device = mdnsDevice;
+    logWrite(lf_main, ll_notice, "using discovered device with ID %s and device string %s", address.id, device);
   }
 
   s_busHandler = new BusHandler(s_messageMap, s_scanHelper, s_opt.pollInterval);
 
   // create the protocol and open the device
   ebus_protocol_config_t config = {
-    .device = s_opt.device,
+    .device = device,
     .noDeviceCheck = s_opt.noDeviceCheck,
     .readOnly = s_opt.readOnly,
     .extraLatency = s_opt.extraLatency,
@@ -410,7 +483,7 @@ int main(int argc, char* argv[], char* envp[]) {
   };
   s_protocol = ProtocolHandler::create(config, s_busHandler);
   if (s_protocol == nullptr) {
-    logWrite(lf_main, ll_error, "unable to create protocol/device %s", s_opt.device);  // force logging on exit
+    logWrite(lf_main, ll_error, "unable to create protocol/device %s", config.device);  // force logging on exit
     cleanup();
     return EINVAL;
   }
@@ -473,14 +546,38 @@ int main(int argc, char* argv[], char* envp[]) {
   s_scanHelper->loadConfigFiles(!s_opt.scanConfig);
 
   // start the MainLoop
-  if (s_opt.injectMessages) {
+  if (s_opt.injectCommands) {
     int scanAdrCount = 0;
     bool scanAddresses[256] = {};
     for (int arg_index = argc - s_opt.injectCount; arg_index < argc; arg_index++) {
-      // add each passed message
+      string arg = argv[arg_index];
+      if (arg.empty()) {
+        continue;
+      }
+      if (arg.find_first_of(' ') != string::npos || arg.find_first_of('/') == string::npos) {
+        RequestImpl req(false);
+        req.add(argv[arg_index]);
+        bool connected = true;
+        RequestMode reqMode = {};
+        string user;
+        bool reload = false;
+        ostringstream ostream;
+        result_t ret = s_mainLoop->decodeRequest(&req, &connected, &reqMode, &user, &reload, &ostream);
+        string output = ostream.str();
+        if (ret != RESULT_OK || output.substr(0, 3) == "ERR" || output.substr(0, 5) == "usage") {
+          if (output.empty()) {
+            output = getResultCode(ret);
+          }
+          logError(lf_main, "executing command \"%s\" failed: %s", argv[arg_index], output.c_str());
+        } else if (s_opt.stopAfterInject) {
+          logNotice(lf_main, "executed command \"%s\": %s", argv[arg_index], output.c_str());
+        }
+        continue;
+      }
+      // old style inject message
       MasterSymbolString master;
       SlaveSymbolString slave;
-      if (!s_scanHelper->parseMessage(argv[arg_index], false, &master, &slave)) {
+      if (!s_scanHelper->parseMessage(arg, false, &master, &slave)) {
         continue;
       }
       s_protocol->injectMessage(master, slave);

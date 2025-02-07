@@ -398,4 +398,30 @@ void argHelp(const char* name, const argParseOpt *parseOpt) {
   fflush(stdout);
 }
 
+const argDef* argFindIn(const argDef *argDefs, const char* name) {
+  for (const argDef *arg = argDefs; arg && arg->help; arg++) {
+    if (arg->name && strcmp(name, arg->name) == 0) {  // long option
+      return arg;
+    }
+    if (name[2] == 0 && arg->key >= '?' && name[0] == arg->key) {  // short option
+      return arg;
+    }
+  }
+  return nullptr;
+}
+
+const argDef* argFind(const argParseOpt *parseOpt, const char* name) {
+  const argDef* found = argFindIn(parseOpt->argDefs, name);
+  if (found) {
+    return found;
+  }
+  for (const argParseChildOpt *child = parseOpt->childOpts; child && child->argDefs; child++) {
+    found = argFindIn(child->argDefs, name);
+    if (found) {
+      return found;
+    }
+  }
+  return nullptr;
+}
+
 }  // namespace ebusd

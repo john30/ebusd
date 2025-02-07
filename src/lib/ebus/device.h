@@ -115,7 +115,7 @@ class Device {
    * Format device infos in JSON format.
    * @param output the @a ostringstream to append the infos to.
    */
-  virtual void formatInfoJson(ostringstream* output) const {}
+  virtual void formatInfoJson(ostringstream* output) {}
 
   /**
    * @return whether the device supports checking for version updates.

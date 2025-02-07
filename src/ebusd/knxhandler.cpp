@@ -62,7 +62,7 @@ static const argDef g_knx_argDefs[] = {
   {"knxrage", O_AGR, "SEC",       0, "Maximum age in seconds for using the last value of read messages (0=disable)"
                                      " [5]"},
   {"knxwage", O_AGW, "SEC",       0, "Maximum age in seconds for using the last value for reads on write messages"
-                                     " (0=disable), [99999999]"},
+                                     " (0=disable) [99999999]"},
   {"knxint", O_INT, "FILE",       0, "Read KNX integration settings from FILE [/etc/ebusd/knx.cfg]"},
   {"knxvar", O_VAR, "NAME=VALUE[,...]", 0, "Add variable(s) to the read KNX integration settings"},
 
@@ -163,7 +163,7 @@ bool knxhandler_register(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
 }
 
 KnxHandler::KnxHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap* messages)
-  : DataSink(userInfo, "knx"), DataSource(busHandler), WaitThread(), m_messages(messages),
+  : DataSink(userInfo, "knx", true), DataSource(busHandler), WaitThread(), m_messages(messages),
     m_start(0), m_lastUpdateCheckResult("."),
     m_lastScanStatus(SCAN_STATUS_NONE), m_scanFinishReceived(false), m_lastErrorLogTime(0) {
   m_con = KnxConnection::create(g_url);
@@ -709,7 +709,7 @@ void KnxHandler::handleGroupTelegram(knx_addr_t src, knx_addr_t dest, int len, c
 #define UPTIME_INTERVAL 3600
 
 void KnxHandler::run() {
-  time_t lastTaskRun, now, lastSignal = 0, lastUptime = 0, lastUpdates = 0;
+  time_t lastTaskRun, now, lastSignal = 0, lastUptime = 0;
   bool signal = false;
   result_t result = RESULT_OK;
   time(&now);
@@ -771,10 +771,12 @@ void KnxHandler::run() {
             continue;  // not usable in absence of destination address
           }
           if (message->getCreateTime() <= definitionsSince  // only newer defined
-          && (!message->isConditional() || message->getAvailableSinceTime() <= definitionsSince)) {  // unless conditional
+          && (!message->isConditional()  // unless conditional
+            || message->getAvailableSinceTime() <= definitionsSince)) {
             continue;
           }
-          logOtherDebug("knx", "checking association to %s %s", message->getCircuit().c_str(), message->getName().c_str());
+          logOtherDebug("knx", "checking association to %s %s", message->getCircuit().c_str(),
+              message->getName().c_str());
           bool isWrite = message->isWrite() && !message->isPassive();  // from KNX perspective
           ssize_t fieldCount = static_cast<signed>(message->getFieldCount());
           if (isWrite && fieldCount > 1) {
@@ -906,16 +908,12 @@ void KnxHandler::run() {
             continue;
           }
           for (const auto& message : *messages) {
-            if (message->getLastChangeTime() <= 0) {
+            time_t changeTime = message->getLastChangeTime();
+            if (changeTime <= 0) {
               continue;
             }
             const auto mit = m_subscribedMessages.find(message->getKey());
             if (mit == m_subscribedMessages.cend()) {
-              continue;
-            }
-            if (!(message->getDataHandlerState()&2)) {
-              message->setDataHandlerState(2, true);  // first update still needed
-            } else if (message->getLastChangeTime() <= lastUpdates) {
               continue;
             }
             for (auto destFlags : mit->second) {
@@ -936,7 +934,6 @@ void KnxHandler::run() {
           }
           it = m_updatedMessages.erase(it);
         }
-        time(&lastUpdates);
       } else {
         m_updatedMessages.clear();
       }

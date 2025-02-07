@@ -72,38 +72,40 @@ using std::ostringstream;
 /** the base type for symbols sent to/from the eBUS. */
 typedef unsigned char symbol_t;
 
-/** escape symbol, either followed by 0x00 for the value 0xA9, or 0x01 for the value 0xAA. */
-#define ESC ((symbol_t)0xA9)
-
-/** synchronization symbol. */
-#define SYN ((symbol_t)0xAA)
-
-/** positive acknowledge symbol. */
-#define ACK ((symbol_t)0x00)
-
-/** negative acknowledge symbol. */
-#define NAK ((symbol_t)0xFF)
-
-/** the broadcast destination address. */
-#define BROADCAST ((symbol_t)0xFE)
+/**
+ * List of predefined eBUS symbols.
+ */
+enum PredefinedSymbol : symbol_t {
+  /** escape symbol, either followed by 0x00 for the value 0xA9, or 0x01 for the value 0xAA. */
+  ESC = 0xA9,
+  /** synchronization symbol. */
+  SYN = 0xAA,
+  /** positive acknowledge symbol. */
+  ACK = 0x00,
+  /** negative acknowledge symbol. */
+  NAK = 0xFF,
+  /** the broadcast destination address. */
+  BROADCAST = 0xFE,
+};
 
 /**
  * Parse an unsigned int value.
  * @param str the string to parse.
- * @param base the numerical base.
+ * @param base the numerical base (or 0 to determine from the prefix).
  * @param minValue the minimum resulting value.
  * @param maxValue the maximum resulting value.
  * @param result the variable in which to store an error code when parsing failed or the value is out of bounds.
  * @param length the optional variable in which to store the number of read characters.
+ * @param allowIncomplete true to allow parsing less than the complete string.
  * @return the parsed value.
  */
 unsigned int parseInt(const char* str, int base, unsigned int minValue, unsigned int maxValue,
-    result_t* result, size_t* length = nullptr);
+    result_t* result, size_t* length = nullptr, bool allowIncomplete = false);
 
 /**
  * Parse a signed int value.
  * @param str the string to parse.
- * @param base the numerical base.
+ * @param base the numerical base (or 0 to determine from the prefix).
  * @param minValue the minimum resulting value.
  * @param maxValue the maximum resulting value.
  * @param result the variable in which to store an error code when parsing failed or the value is out of bounds.
@@ -156,9 +158,11 @@ class SymbolString {
   /**
    * Return the symbols as hex string.
    * @param skipFirstSymbols the number of first symbols to skip.
+   * @param maxLength the maximum number of symbols to include (or 0 for all).
+   * @param withLength whether to include the NN length field.
    * @return the symbols as hex string.
    */
-  const string getStr(size_t skipFirstSymbols = 0) const;
+  const string getStr(size_t skipFirstSymbols = 0, size_t maxLength = 0, bool withLength = true) const;
 
   /**
    * Dump the data in JSON format to the output.
@@ -283,7 +287,7 @@ class SymbolString {
   }
 
   /**
-   * Return the calculated number of data bytes DD (nnot yet revealed in the length field).
+   * Return the calculated number of data bytes DD (not yet revealed in the length field).
    * @return the calculated number of data bytes DD.
    */
   size_t getCalculatedDataSize() const {

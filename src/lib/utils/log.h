@@ -28,9 +28,10 @@ enum LogFacility {
   lf_main = 0,  //!< main loop
   lf_network,   //!< network related
   lf_bus,       //!< eBUS related
+  lf_device,    //!< device related
   lf_update,    //!< updates found while listening to the bus
   lf_other,     //!< all other log facilities
-  lf_COUNT = 5  //!< number of available log facilities and flag for setting all
+  lf_COUNT = 6  //!< number of available log facilities and flag for setting all
 };
 
 /** the available log levels. */
