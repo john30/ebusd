@@ -965,7 +965,7 @@ void ConstantDataField::dump(bool prependFieldSeparator, OutputFormat outputForm
   dumpPrefix(prependFieldSeparator, outputFormat, output);
   // no divisor appended since it is not allowed for ConstantDataField
   if (outputFormat & OF_JSON) {
-    appendJson(false, "value", m_value, true, output);
+    appendJson(true, "value", m_value, true, output);
     *output << ", \"verify\": " << (m_verify ? "true" : "false");
   } else {
     *output << (m_verify?"==":"=") << m_value;
