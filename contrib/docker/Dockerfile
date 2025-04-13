@@ -3,7 +3,7 @@ ARG BASE_IMAGE
 FROM $BASE_IMAGE AS build
 
 RUN apt-get update && apt-get install -y \
-    knxd-dev knxd- libmosquitto-dev libssl-dev libstdc++6 libc6 libgcc1 \
+    knxd-dev knxd libmosquitto-dev libssl-dev libstdc++6 libc6 libgcc1 \
     curl \
     autoconf automake g++ make git \
     && rm -rf /var/lib/apt/lists/*
@@ -28,7 +28,7 @@ RUN RUNTEST=full GIT_REVISION=$GIT_REVISION ./make_debian.sh --with-knxd
 FROM $BASE_IMAGE-slim AS image
 
 RUN apt-get update && apt-get install -y \
-    knxd-dev knxd- libmosquitto1 libssl1.1 ca-certificates libstdc++6 libc6 libgcc1 \
+    knxd-dev knxd libmosquitto1 libssl1.1 ca-certificates libstdc++6 libc6 libgcc1 \
     && rm -rf /var/lib/apt/lists/*
 
 LABEL maintainer="ebusd@ebusd.eu"

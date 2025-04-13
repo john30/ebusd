@@ -17,7 +17,7 @@ function replaceTemplate () {
 # devel update
 version_variant='-devel'
 make='RUNTEST=full GIT_REVISION=\$GIT_REVISION ./make_debian.sh --with-knxd'
-extrapkgs='knxd-dev knxd- '
+extrapkgs='knxd-dev knxd '
 copydeb='COPY --from=build /build/ebusd-*_mqtt1.deb ebusd.deb'
 debsrc='ebusd.deb \&\& rm -f ebusd.deb'
 copyentry='COPY --from=build /build/contrib/docker/docker-entrypoint.sh /'
