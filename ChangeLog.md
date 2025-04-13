@@ -1,4 +1,4 @@
-# next (tbd)
+# 25.1 (2025-04-13)
 ## Bug Fixes
 * fix for device string symlink with colon
 * fix "read" and "write" command response

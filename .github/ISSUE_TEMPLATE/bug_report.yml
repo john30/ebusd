@@ -35,6 +35,7 @@ body:
       description: the ebusd version in use
       options:
         - current source from git
+        - '25.1'
         - '24.1'
         - '23.3'
         - '23.2'
