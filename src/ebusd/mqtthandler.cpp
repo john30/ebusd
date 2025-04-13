@@ -793,13 +793,17 @@ void MqttHandler::run() {
         bool includeActiveWrite = FileReader::matches("w", filterDirection, true, true);
         for (const auto& message : messages) {
           bool checkPollAdjust = false;
+          bool isWrite = message->isWrite();
+          bool isPassive = message->isPassive();
+          // at least treat as passive read if write direction is excluded
+          bool treatAsPassiveRead = !includeActiveWrite && isWrite;
           if (filterSeen > 0) {
             if (message->getLastUpdateTime() == 0) {
-              if (message->isPassive()) {
+              if (isPassive || treatAsPassiveRead) {
                 // only wait for data on passive messages
                 continue;  // no data ever
               }
-              if (!message->isWrite()) {
+              if (!isWrite) {
                 // only wait for data on read messages or set their poll prio
                 if (filterSeen > 1 && (!message->getPollPriority() || message->getPollPriority() > filterSeen)
                   && (filterPriority == 0 || filterSeen <= filterPriority)
@@ -830,7 +834,7 @@ void MqttHandler::run() {
           || !FileReader::matches(message->getLevel(), filterLevel, true, true)) {
             continue;
           }
-          const string direction = directionNames[(message->isWrite() ? 2 : 0) + (message->isPassive() ? 1 : 0)];
+          const string direction = treatAsPassiveRead ? "uw" : directionNames[(isWrite ? 2 : 0) + (isPassive ? 1 : 0)];
           if (!FileReader::matches(direction, filterDirection, true, true)) {
             continue;
           }
@@ -844,9 +848,9 @@ void MqttHandler::run() {
             continue;
           }
           if (includeActiveWrite) {
-            if (message->isWrite()) {
+            if (isWrite) {
               bool skipMultiFieldWrite = (!m_hasDefinitionFieldsPayload || m_publishByField)
-              && !message->isPassive() && message->getFieldCount() > 1;
+              && !isPassive && message->getFieldCount() > 1;
               if (skipMultiFieldWrite) {
                 // multi-field message is not writable when publishing by field or combining
                 // multiple fields in one definition, so skip it
