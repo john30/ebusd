@@ -154,7 +154,8 @@ class StringReplacer {
    * @param ignoreCase true to ignore case.
    * @return the index of the last unmatched part, or the negative index minus one for extra non-matched non-field parts.
    */
-  ssize_t match(const string& str, string* circuit, string* name, string* field, const string& separator = "/", bool ignoreCase = false) const;
+  ssize_t match(const string& str, string* circuit, string* name, string* field, const string& separator = "/",
+    bool ignoreCase = false) const;
 
  private:
   /**

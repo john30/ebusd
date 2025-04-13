@@ -409,7 +409,7 @@ result_t DataField::create(bool isWriteMessage, bool isTemplate, bool isBroadcas
           }
           if (result == RESULT_OK) {
             result = numType->derive(from, to, inc, &numType);
-          };
+          }
           if (result != RESULT_OK) {
             *errorDescription = "\""+rangeStr+"\" in field "+formatInt(fieldIndex);
             result = RESULT_ERR_OUT_OF_RANGE;

@@ -916,8 +916,8 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
   if (verbosity & OF_NAMES) {
     *ostream << message->getCircuit() << " " << message->getName() << " ";
   }
-  ret = message->decodeLastData(pt_slaveData, false, fieldIndex == -2 ? nullptr : fieldName.c_str(), fieldIndex, verbosity,
-      ostream);
+  ret = message->decodeLastData(pt_slaveData, false, fieldIndex == -2 ? nullptr : fieldName.c_str(), fieldIndex,
+      verbosity, ostream);
   if (ret < RESULT_OK) {
     logError(lf_main, "read %s %s: decode %s", message->getCircuit().c_str(), message->getName().c_str(),
         getResultCode(ret));

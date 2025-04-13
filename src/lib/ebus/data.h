@@ -795,8 +795,8 @@ class LoadableDataFieldSet : public DataFieldSet, public MappedFileReader {
    * @param isWrite true for a write message, false for read.
    */
   LoadableDataFieldSet(const string& name, DataFieldTemplates* templates, bool isWrite)
-    : DataFieldSet(name, vector<const SingleDataField*>()), MappedFileReader(false), m_templates(templates), m_isWrite(isWrite) {
-  }
+    : DataFieldSet(name, vector<const SingleDataField*>()), MappedFileReader(false), m_templates(templates),
+    m_isWrite(isWrite) {}
 
   // @copydoc
   result_t getFieldMap(const string& preferLanguage, vector<string>* row, string* errorDescription) const override;

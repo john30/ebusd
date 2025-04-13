@@ -157,7 +157,8 @@ bool DataType::dump(OutputFormat outputFormat, size_t length, AppendDivisor appe
 }
 
 
-bool StringDataType::dump(OutputFormat outputFormat, size_t length, AppendDivisor appendDivisor, ostream* output) const {
+bool StringDataType::dump(OutputFormat outputFormat, size_t length, AppendDivisor appendDivisor, ostream* output
+) const {
   DataType::dump(outputFormat, length, appendDivisor, output);
   if ((outputFormat & OF_JSON) && (outputFormat & OF_ALL_ATTRS)) {
     *output << ", \"result\": \"" << (isIgnored() ? "void" : "string") << "\"";
@@ -300,7 +301,8 @@ result_t StringDataType::writeSymbols(size_t offset, size_t length, istringstrea
 }
 
 
-bool DateTimeDataType::dump(OutputFormat outputFormat, size_t length, AppendDivisor appendDivisor, ostream* output) const {
+bool DateTimeDataType::dump(OutputFormat outputFormat, size_t length, AppendDivisor appendDivisor, ostream* output
+) const {
   DataType::dump(outputFormat, length, appendDivisor, output);
   if ((outputFormat & OF_JSON) && (outputFormat & OF_ALL_ATTRS)) {
     *output << ", \"result\": \"" << (hasDate() ? hasTime() ? "datetime" : "date" : "time") << "\"";
@@ -672,7 +674,8 @@ size_t NumberDataType::calcPrecision(int divisor) {
   return precision;
 }
 
-bool NumberDataType::dump(OutputFormat outputFormat, size_t length, AppendDivisor appendDivisor, ostream* output) const {
+bool NumberDataType::dump(OutputFormat outputFormat, size_t length, AppendDivisor appendDivisor, ostream* output
+) const {
   if (m_bitCount < 8) {
     DataType::dump(outputFormat, m_bitCount, appendDivisor, output);
   } else {
@@ -1211,8 +1214,9 @@ result_t NumberDataType::parseInput(const string inputStr, unsigned int* parsedV
         if (hasFlag(SIG)) {
           long signedValue = strtol(str, &strEnd, 0);
           if (errno == ERANGE
-          || (m_bitCount != 32 && (signedValue < 0L ? (signedValue < -(1L << (m_bitCount - 1))) : (signedValue >= (1L << (m_bitCount - 1)))))
-          ) {
+          || (m_bitCount != 32 && (signedValue < 0L ? (signedValue < -(1L << (m_bitCount - 1)))
+            : (signedValue >= (1L << (m_bitCount - 1)))
+          ))) {
             return RESULT_ERR_OUT_OF_RANGE;  // value out of range
           }
           if (signedValue < 0 && m_bitCount != 32) {
