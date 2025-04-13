@@ -5,10 +5,18 @@
 * fix dump of divisor
 * fix max value for S3N, S3N, SLG, and SLR types
 * fix socket options for KNXnet/IP integration
+* fix constant encoding in json
+* fix parsing unexpected mDNS response
+* fix longer message key and check
+* fix unnecessary poll on scan messages
 
 ## Features
 * add "-m" option to "encode" and "decode" commands
 * add output for commands executed with "--inject=stop"
+* add secondary replacement value for date types
+* add value range and step support for numeric types
+* add numeric base types without replacement value (e.g. "U1L", "S1L", "U2L", "S2L", "U2B", "S2B", etc.)
+* add also include write messages as read-only ones in MQTT definition topic if writes are excluded
 
 
 # 24.1 (2024-10-27)
