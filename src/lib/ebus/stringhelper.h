@@ -151,9 +151,10 @@ class StringReplacer {
    * @param name pointer to the string receiving the message name if present.
    * @param field pointer to the string receiving the field name if present.
    * @param separator the separator expected in the extra non-matched non-field parts (default slash).
+   * @param ignoreCase true to ignore case.
    * @return the index of the last unmatched part, or the negative index minus one for extra non-matched non-field parts.
    */
-  ssize_t match(const string& str, string* circuit, string* name, string* field, const string& separator = "/") const;
+  ssize_t match(const string& str, string* circuit, string* name, string* field, const string& separator = "/", bool ignoreCase = false) const;
 
  private:
   /**

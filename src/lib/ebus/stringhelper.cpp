@@ -306,8 +306,12 @@ bool StringReplacer::checkMatchability() const {
   return true;
 }
 
-ssize_t StringReplacer::match(const string& str, string* circuit, string* name, string* field,
-  const string& separator) const {
+ssize_t StringReplacer::match(const string& strIn, string* circuit, string* name, string* field,
+  const string& separator, bool ignoreCase) const {
+  string str = strIn;
+  if (ignoreCase) {
+    FileReader::tolower(&str);
+  }
   size_t last = 0;
   size_t count = m_parts.size();
   size_t idx;
@@ -323,7 +327,11 @@ ssize_t StringReplacer::match(const string& str, string* circuit, string* name, 
     }
     string value;
     if (idx+1 < count) {
-      size_t pos = str.find(m_parts[idx+1].first, last);
+      string chk = m_parts[idx+1].first;
+      if (ignoreCase) {
+        FileReader::tolower(&chk);
+      }
+      size_t pos = str.find(chk, last);
       if (pos == string::npos) {
         // next part not found, consume the rest and mark incomplete
         value = str.substr(last);
