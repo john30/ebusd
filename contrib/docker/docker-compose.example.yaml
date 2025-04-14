@@ -152,7 +152,7 @@ services:
       # Read MQTT integration settings from FILE (no default)
       #EBUSD_MQTTINT: "/etc/ebusd/mqtt-hassio.cfg"
       # Add variable(s) to the read MQTT integration settings (append to already existing value with "NAME+=VALUE")
-      #EBUSD_MQTTVAR: "key[+]=value[,...]"
+      #EBUSD_MQTTVAR: "name[+]=value[,...]"
       # Publish in JSON format instead of strings, optionally in short (value directly below field key)
       #EBUSD_MQTTJSON: ""
       # Publish all available attributes
