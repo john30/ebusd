@@ -24,7 +24,7 @@ The main features of the daemon are:
    * TCP
    * UDP
    * enhanced ebusd protocol allowing arbitration to be done directly by the hardware, e.g. for recent
-     * [eBUS Adapter Shields C6](https://adapter.ebusd.eu/v5-c6/) and [v5](https://adapter.ebusd.eu/v5/),
+     * [eBUS Adapter Shields C6](https://adapter.ebusd.eu/v5-c6/), [Stick](https://adapter.ebusd.eu/v5-c6/stick.en.html), and [v5](https://adapter.ebusd.eu/v5/),
      * [adapter v3.1](https://adapter.ebusd.eu/v31)/[v3.0](https://adapter.ebusd.eu/v3), or
      * [ebusd-esp firmware](https://github.com/john30/ebusd-esp/)
  * auto-discover device connection via mDNS
