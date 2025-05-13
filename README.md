@@ -80,7 +80,7 @@ Or alternatively with cmake:
 > make install/strip 
 
 On macos install with:
-make DESTDIR=/usr/local/bin install/strip 
+> make DESTDIR=/usr/local/bin install/strip 
 
 Documentation
 -------------
