@@ -31,7 +31,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(APPLE)
   #include <machine/endian.h>
 #else
   #include <endian.h>
