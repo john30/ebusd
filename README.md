@@ -77,7 +77,10 @@ To start the build process, run these commands:
 
 Or alternatively with cmake:  
 > cmake .  
-> make install/strip  
+> make install/strip 
+
+On macos install with:
+make DESTDIR=/usr/local/bin install/strip 
 
 Documentation
 -------------
