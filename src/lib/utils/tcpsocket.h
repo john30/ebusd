@@ -25,11 +25,7 @@
 #include <sys/time.h>
 #include <stdint.h>
 #include <string>
-#ifdef __FreeBSD__
   #include <machine/endian.h>
-#else
-  #include <endian.h>
-#endif
 
 /** typedef for referencing @a sockaddr_in within namespace. */
 typedef struct sockaddr_in socketaddress;
