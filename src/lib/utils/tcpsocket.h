@@ -25,7 +25,7 @@
 #include <sys/time.h>
 #include <stdint.h>
 #include <string>
-#if defined(__FREE_BSD__) || defined(APPLE)
+#if defined(__FreeBSD__) || defined(APPLE)
   #include <machine/endian.h>
 #else
  #include <endian.h>
