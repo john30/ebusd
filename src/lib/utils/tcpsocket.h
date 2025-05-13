@@ -25,7 +25,11 @@
 #include <sys/time.h>
 #include <stdint.h>
 #include <string>
+#if defined(__FREE_BSD__) || defined(APPLE)
   #include <machine/endian.h>
+#else
+ #include <endian.h>
+#endif
 
 /** typedef for referencing @a sockaddr_in within namespace. */
 typedef struct sockaddr_in socketaddress;
