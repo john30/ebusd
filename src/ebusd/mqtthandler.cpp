@@ -473,6 +473,9 @@ MqttHandler::MqttHandler(UserInfo* userInfo, BusHandler* busHandler, MessageMap*
       }
     }
   }
+  if (!m_typeSwitches.empty()) {
+    splitFields(m_replacers["type_switch-names"], &m_typeSwitchNames);
+  }
   m_hasDefinitionTopic = !m_replacers.get("definition-topic", true, false).empty();
   m_hasDefinitionFieldsPayload = m_replacers.uses("fields_payload");
   m_subscribeConfigRestartTopic = m_replacers.get("config_restart-topic", false, false);
@@ -708,7 +711,6 @@ void MqttHandler::run() {
   unsigned int filterSeen = 0;
   string filterCircuit, filterNonCircuit, filterName, filterNonName, filterField, filterNonField,
       filterLevel, filterDirection;
-  vector<string> typeSwitchNames;
   if (m_hasDefinitionTopic) {
     result_t result = RESULT_OK;
     filterPriority = parseInt(m_replacers["filter-priority"].c_str(), 10, 0, 9, &result);
@@ -735,9 +737,6 @@ void MqttHandler::run() {
     FileReader::tolower(&filterLevel);
     filterDirection = m_replacers["filter-direction"];
     FileReader::tolower(&filterDirection);
-    if (!m_typeSwitches.empty()) {
-      splitFields(m_replacers["type_switch-names"], &typeSwitchNames);
-    }
   }
   time(&now);
   start = lastTaskRun = now;
@@ -871,16 +870,7 @@ void MqttHandler::run() {
             }
           }
           StringReplacers msgValues = m_replacers;  // need a copy here as the contents are manipulated
-          msgValues.set("circuit", message->getCircuit());
-          msgValues.set("name", message->getName());
-          msgValues.set("priority", static_cast<int>(message->getPollPriority()));
-          msgValues.set("level", message->getLevel());
-          msgValues.set("direction", direction);
-          msgValues.set("messagecomment", message->getAttribute("comment"));
-          msgValues.reduce(true);
-          string str = msgValues.get("direction_map-"+direction, false, false);
-          msgValues.set("direction_map", str);
-          msgValues.reduce(true);
+          prepareDefinition(message, direction, &msgValues);
           ostringstream fields;
           size_t fieldCount = message->getFieldCount();
           for (size_t index = 0; index < fieldCount; index++) {
@@ -896,134 +886,10 @@ void MqttHandler::run() {
             || (!filterNonField.empty() && FileReader::matches(fieldName, filterNonField, true, true))) {
               continue;
             }
-            const DataType* dataType = field->getDataType();
-            string typeStr;
-            if (dataType->isNumeric()) {
-              if (field->isList()) {
-                typeStr = "list";
-              } else {
-                typeStr = "number";
-              }
-            } else if (dataType->hasFlag(DAT)) {
-              auto dt = dynamic_cast<const DateTimeDataType*>(dataType);
-              if (dt->hasDate()) {
-                typeStr = dt->hasTime() ? "datetime" : "date";
-              } else {
-                typeStr = "time";
-              }
-            } else {
-              typeStr = "string";
-            }
-            ostr.str("");
-            ostr << "type_map-" << direction << "-" << typeStr;
-            str = msgValues.get(ostr.str(), false, false);
-            if (str.empty()) {
-              ostr.str("");
-              ostr << "type_map-" << typeStr;
-              str = msgValues.get(ostr.str(), false, false);
-            }
-            if (str.empty()) {
+            StringReplacers values;
+            if (!prepareDefinition(direction, msgValues, fieldCount, index, fieldName, field, &values)) {
               continue;
             }
-            StringReplacers values = msgValues;  // need a copy here as the contents are manipulated
-            values.set("index", static_cast<signed>(index));
-            values.set("field", fieldName);
-            string fieldNameNonUnique = field->getName(-1);
-            values.set("fieldname", fieldNameNonUnique);
-            values.set("fieldnamemult", fieldCount == 1 ? "" : fieldNameNonUnique);
-            values.set("type", typeStr);
-            values.set("type_map", str);
-            values.set("basetype", dataType->getId());
-            values.set("comment", field->getAttribute("comment"));
-            values.set("unit", field->getAttribute("unit"));
-            if (dataType->isNumeric() && !dataType->hasFlag(EXP)) {
-              auto dt = dynamic_cast<const NumberDataType*>(dataType);
-              ostr.str("");
-              if (dt->getMinMax(false, g_publishFormat, &ostr) == RESULT_OK) {
-                values.set("min", ostr.str());
-                ostr.str("");
-              }
-              if (dt->getMinMax(true, g_publishFormat, &ostr) == RESULT_OK) {
-                values.set("max", ostr.str());
-                ostr.str("");
-              }
-              if (dt->getStep(g_publishFormat, &ostr) != RESULT_OK) {
-                // fallback method, when smallest number didn't work
-                int divisor = dt->getDivisor();
-                float step = 1.0f;
-                if (divisor > 1) {
-                  step /= static_cast<float>(divisor);
-                } else if (divisor < 0) {
-                  step *= static_cast<float>(-divisor);
-                }
-                ostr << static_cast<float>(step);
-              }
-              values.set("step", ostr.str());
-            }
-            if (dataType->isNumeric() && field->isList() && !values["field_values-entry"].empty()) {
-              auto vl = (dynamic_cast<const ValueListDataField*>(field))->getList();
-              string entryFormat = values["field_values-entry"];
-              string::size_type pos = -1;
-              while ((pos = entryFormat.find('$', pos+1)) != string::npos) {
-                if (entryFormat.substr(pos+1, 4) == "text" || entryFormat.substr(pos+1, 5) == "value") {
-                  entryFormat.replace(pos, 1, "%");
-                }
-              }
-              entryFormat.replace(0, 0, "entry = ");
-              string result = values["field_values-prefix"];
-              bool first = true;
-              for (const auto& it : vl) {
-                StringReplacers entry;
-                entry.parseLine(entryFormat);
-                entry.set("value", it.first);
-                entry.set("text", it.second);
-                entry.reduce();
-                if (first) {
-                  first = false;
-                } else {
-                  result += values["field_values-separator"];
-                }
-                result += entry.get("entry", false, false);
-              }
-              result += values["field_values-suffix"];
-              values.set("field_values", result);
-            }
-            if (!m_typeSwitches.empty()) {
-              values.reduce(true);
-              str = values.get("type_switch-by", false, false);
-              string typeSwitch;
-              for (int i = 0; i < 2; i++) {
-                ostr.str("");
-                if (i == 0) {
-                  ostr << direction << '-';
-                }
-                ostr << typeStr;
-                const string key = ostr.str();
-                for (auto const &check : m_typeSwitches[key]) {
-                  if (FileReader::matches(str, check.second, true, true)) {
-                    typeSwitch = check.first;
-                    i = 2;  // early exit
-                    break;
-                  }
-                }
-              }
-              values.set("type_switch", typeSwitch);
-              if (!typeSwitchNames.empty()) {
-                vector<string> strs;
-                splitFields(typeSwitch, &strs);
-                for (size_t pos = 0; pos < typeSwitchNames.size(); pos++) {
-                  values.set(typeSwitchNames[pos], pos < strs.size() ? strs[pos] : "");
-                }
-              }
-            }
-            values.reduce(true);
-            string typePartSuffix = values["type_part-by"];
-            if (typePartSuffix.empty()) {
-              typePartSuffix = typeStr;
-            }
-            str = values.get("type_part-" + typePartSuffix, false, false);
-            values.set("type_part", str);
-            values.reduce();
             if (m_hasDefinitionFieldsPayload) {
               string value = values["field_payload"];
               if (!value.empty()) {
@@ -1106,6 +972,155 @@ void MqttHandler::run() {
     publishTopic(m_globalTopic.get("", "scan"), "", true);  // clear retain of scan status
   }
 }
+
+void MqttHandler::prepareDefinition(const Message* message, const string& direction, StringReplacers* msgValues) const {
+  msgValues->set("circuit", message->getCircuit());
+  msgValues->set("name", message->getName());
+  msgValues->set("priority", static_cast<int>(message->getPollPriority()));
+  msgValues->set("level", message->getLevel());
+  msgValues->set("direction", direction);
+  msgValues->set("messagecomment", message->getAttribute("comment"));
+  msgValues->reduce(true);
+  string str = msgValues->get("direction_map-"+direction, false, false);
+  msgValues->set("direction_map", str);
+  msgValues->reduce(true);
+}
+
+bool MqttHandler::prepareDefinition(const string& direction, const StringReplacers& msgValues, size_t fieldCount, size_t index, const string& fieldName, const SingleDataField* field, StringReplacers* values) const {
+  const DataType* dataType = field->getDataType();
+  string typeStr;
+  if (dataType->isNumeric()) {
+    if (field->isList()) {
+      typeStr = "list";
+    } else {
+      typeStr = "number";
+    }
+  } else if (dataType->hasFlag(DAT)) {
+    auto dt = dynamic_cast<const DateTimeDataType*>(dataType);
+    if (dt->hasDate()) {
+      typeStr = dt->hasTime() ? "datetime" : "date";
+    } else {
+      typeStr = "time";
+    }
+  } else {
+    typeStr = "string";
+  }
+  ostringstream ostr;
+  ostr << "type_map-" << direction << "-" << typeStr;
+  string str = msgValues.get(ostr.str(), false, false);
+  if (str.empty()) {
+    ostr.str("");
+    ostr << "type_map-" << typeStr;
+    str = msgValues.get(ostr.str(), false, false);
+  }
+  if (str.empty()) {
+    return false;
+  }
+  *values = msgValues;  // need a copy here as the contents are manipulated
+  values->set("index", static_cast<signed>(index));
+  values->set("field", fieldName);
+  string fieldNameNonUnique = field->getName(-1);
+  values->set("fieldname", fieldNameNonUnique);
+  values->set("fieldnamemult", fieldCount == 1 ? "" : fieldNameNonUnique);
+  values->set("type", typeStr);
+  values->set("type_map", str);
+  values->set("basetype", dataType->getId());
+  values->set("comment", field->getAttribute("comment"));
+  values->set("unit", field->getAttribute("unit"));
+  if (dataType->isNumeric() && !dataType->hasFlag(EXP)) {
+    auto dt = dynamic_cast<const NumberDataType*>(dataType);
+    ostr.str("");
+    if (dt->getMinMax(false, g_publishFormat, &ostr) == RESULT_OK) {
+      values->set("min", ostr.str());
+      ostr.str("");
+    }
+    if (dt->getMinMax(true, g_publishFormat, &ostr) == RESULT_OK) {
+      values->set("max", ostr.str());
+      ostr.str("");
+    }
+    if (dt->getStep(g_publishFormat, &ostr) != RESULT_OK) {
+      // fallback method, when smallest number didn't work
+      int divisor = dt->getDivisor();
+      float step = 1.0f;
+      if (divisor > 1) {
+        step /= static_cast<float>(divisor);
+      } else if (divisor < 0) {
+        step *= static_cast<float>(-divisor);
+      }
+      ostr << static_cast<float>(step);
+    }
+    values->set("step", ostr.str());
+  }
+  if (dataType->isNumeric() && field->isList() && !(*values)["field_values-entry"].empty()) {
+    auto vl = (dynamic_cast<const ValueListDataField*>(field))->getList();
+    string entryFormat = (*values)["field_values-entry"];
+    string::size_type pos = -1;
+    while ((pos = entryFormat.find('$', pos+1)) != string::npos) {
+      if (entryFormat.substr(pos+1, 4) == "text" || entryFormat.substr(pos+1, 5) == "value") {
+        entryFormat.replace(pos, 1, "%");
+      }
+    }
+    entryFormat.replace(0, 0, "entry = ");
+    string result = (*values)["field_values-prefix"];
+    bool first = true;
+    for (const auto& it : vl) {
+      StringReplacers entry;
+      entry.parseLine(entryFormat);
+      entry.set("value", it.first);
+      entry.set("text", it.second);
+      entry.reduce();
+      if (first) {
+        first = false;
+      } else {
+        result += (*values)["field_values-separator"];
+      }
+      result += entry.get("entry", false, false);
+    }
+    result += (*values)["field_values-suffix"];
+    values->set("field_values", result);
+  }
+  if (!m_typeSwitches.empty()) {
+    values->reduce(true);
+    str = values->get("type_switch-by", false, false);
+    string typeSwitch;
+    for (int i = 0; i < 2; i++) {
+      ostr.str("");
+      if (i == 0) {
+        ostr << direction << '-';
+      }
+      ostr << typeStr;
+      const string key = ostr.str();
+      auto const tsIt = m_typeSwitches.find(key);
+      if (tsIt != m_typeSwitches.cend()) {
+        for (auto const &check : tsIt->second) {
+          if (FileReader::matches(str, check.second, true, true)) {
+            typeSwitch = check.first;
+            i = 2;  // early exit
+            break;
+          }
+        }
+      }
+    }
+    values->set("type_switch", typeSwitch);
+    if (!m_typeSwitchNames.empty()) {
+      vector<string> strs;
+      splitFields(typeSwitch, &strs);
+      for (size_t pos = 0; pos < m_typeSwitchNames.size(); pos++) {
+        values->set(m_typeSwitchNames[pos], pos < strs.size() ? strs[pos] : "");
+      }
+    }
+  }
+  values->reduce(true);
+  string typePartSuffix = (*values)["type_part-by"];
+  if (typePartSuffix.empty()) {
+    typePartSuffix = typeStr;
+  }
+  str = values->get("type_part-" + typePartSuffix, false, false);
+  values->set("type_part", str);
+  values->reduce();
+  return true;
+}
+
 
 void MqttHandler::publishDefinition(StringReplacers values, const string& prefix, const string& topic,
                                     const string& circuit, const string& name, const string& fallbackPrefix) {

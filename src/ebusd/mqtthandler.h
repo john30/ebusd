@@ -95,6 +95,26 @@ class MqttHandler : public DataSink, public DataSource, public WaitThread, publi
   void notifyScanStatus(scanStatus_t scanStatus) override;
 
  protected:
+  /**
+   * Prepare the message part of a definition topic.
+   * @param message the @a Message instance to prepare for.
+   * @param direction the direction string.
+   * @param msgValues the values with the message specification.
+   */
+  void prepareDefinition(const Message* message, const string& direction, StringReplacers* msgValues) const;
+
+  /**
+   * Prepare the field part of a definition topic.
+   * @param direction the direction string.
+   * @param msgValues the prepared values from the message specification.
+   * @param fieldCount the total field count (non-ignored only).
+   * @param index the field index.
+   * @param field the @a SingleDataField instance.
+   * @param values the values to update on success.
+   * @return true if the values were updated successfully, false otherwise.
+   */
+  bool prepareDefinition(const string& direction, const StringReplacers& msgValues, size_t fieldCount, size_t index, const string& fieldName, const SingleDataField* field, StringReplacers* values) const;
+
   // @copydoc
   void run() override;
 
@@ -183,6 +203,9 @@ class MqttHandler : public DataSink, public DataSource, public WaitThread, publi
 
   /** map of type name to a list of pairs of wildcard string and mapped value. */
   map<string, vector<pair<string, string>>> m_typeSwitches;
+
+  /** prepared list of type switch names. */
+  vector<string> m_typeSwitchNames;
 
   /** the subscribed configuration restart topic, or empty. */
   string m_subscribeConfigRestartTopic;
