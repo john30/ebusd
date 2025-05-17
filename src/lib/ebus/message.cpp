@@ -954,7 +954,8 @@ void Message::dumpField(const string& fieldName, bool withConditions, OutputForm
 }
 
 void Message::decodeJson(bool leadingSeparator, bool appendDirectionCondition, bool withData,
-                         OutputFormat outputFormat, ostringstream* output) const {
+                         OutputFormat outputFormat, ostringstream* output,
+                         AddAttributes* addAttrs) const {
   outputFormat |= OF_JSON;
   if (leadingSeparator) {
     *output << ",\n";
@@ -985,6 +986,9 @@ void Message::decodeJson(bool leadingSeparator, bool appendDirectionCondition, b
     if (isConditional()) {
       *output << ",\n    \"condition\": ";
       m_condition->dumpJson(output);
+    }
+    if (addAttrs) {
+      addAttrs->addAttrsTo(this, output);
     }
   }
   if (withData) {
@@ -2902,7 +2906,7 @@ Message* MessageMap::getNextPoll() {
   return ret;
 }
 
-void MessageMap::dump(bool withConditions, OutputFormat outputFormat, ostream* output) const {
+void MessageMap::dump(bool withConditions, OutputFormat outputFormat, ostream* output, AddAttributes* addAttrs) const {
   bool first = true;
   bool isJson = (outputFormat & OF_JSON) != 0;
   if (isJson) {
@@ -2935,7 +2939,7 @@ void MessageMap::dump(bool withConditions, OutputFormat outputFormat, ostream* o
         }
         if (isJson) {
           ostringstream str;
-          message->decodeJson(false, false, false, outputFormat, &str);
+          message->decodeJson(false, false, false, outputFormat, &str, addAttrs);
           string add = str.str();
           size_t pos = add.find('{');
           *output << "   {\n    \"circuit\": \"" << message->getCircuit() << "\", " << add.substr(pos+1);

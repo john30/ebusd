@@ -64,6 +64,7 @@ using std::deque;
 class Condition;
 class SimpleCondition;
 class CombinedCondition;
+class AddAttributes;
 class MessageMap;
 
 
@@ -582,9 +583,11 @@ class Message : public AttributedItem {
    * @param withData whether to add the last data as well.
    * @param outputFormat the @a OutputFormat options to use.
    * @param output the @a ostringstream to append the decoded value(s) to.
+   * @param addAttrs an @a AddAttributes instance to use as well, or nullptr.
    */
   virtual void decodeJson(bool leadingSeparator, bool appendDirectionCondition, bool withData,
-                          OutputFormat outputFormat, ostringstream* output) const;
+                          OutputFormat outputFormat, ostringstream* output,
+                          AddAttributes* addAttrs = nullptr) const;
 
  protected:
   /**
@@ -1319,6 +1322,30 @@ class Resolver {
 
 
 /**
+ * Interface for adding instance specific message attributes.
+ */
+class AddAttributes {
+ public:
+  /**
+   * Constructor.
+   */
+  AddAttributes() {}
+
+  /**
+   * Destructor.
+   */
+  virtual ~AddAttributes() {}
+
+  /**
+   * Append attributes for the @a Message specific to this instance as JSON to the output.
+   * @param message the @a Message instance.
+   * @param output the @a ostream to append the attributes to.
+   */
+  virtual void addAttrsTo(const Message* message, ostream* output) const { }
+};
+
+
+/**
  * Holds a map of all known @a Message instances.
  */
 class MessageMap : public MappedFileReader {
@@ -1641,8 +1668,10 @@ class MessageMap : public MappedFileReader {
    * @param withConditions whether to include the optional conditions prefix.
    * @param outputFormat the @a OutputFormat options.
    * @param output the @a ostream to append the formatted messages to.
+   * @param addAttrs an @a AddAttributes instance to use as well, or nullptr.
    */
-  void dump(bool withConditions, OutputFormat outputFormat, ostream* output) const;
+  void dump(bool withConditions, OutputFormat outputFormat, ostream* output,
+            AddAttributes* addAttrs = nullptr) const;
 
   /**
    * @return the maximum ID length used by any of the known @a Message instances.
