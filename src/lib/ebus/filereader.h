@@ -84,9 +84,10 @@ class FileReader {
    * @param filename the name of the file being read.
    * @param errorDescription a string in which to store the error description in case of error.
    * @param time optional pointer to a @a time_t value for storing the modification time of the file, or nullptr.
+   * @param isLink optional pointer for strong whether the file is a link, or nullptr.
    * @return the opened @a istream on success, or nullptr on error.
    */
-  static istream* openFile(const string& filename, string* errorDescription, time_t* time = nullptr);
+  static istream* openFile(const string& filename, string* errorDescription, time_t* time = nullptr, bool *isLink = nullptr);
 
   /**
    * Read the definitions from a stream.

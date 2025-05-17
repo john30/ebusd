@@ -34,7 +34,7 @@ using std::cout;
 using std::endl;
 
 
-istream* FileReader::openFile(const string& filename, string* errorDescription, time_t* time) {
+istream* FileReader::openFile(const string& filename, string* errorDescription, time_t* time, bool *isLink) {
   struct stat st;
   if (stat(filename.c_str(), &st) != 0) {
     *errorDescription = filename;
@@ -53,6 +53,9 @@ istream* FileReader::openFile(const string& filename, string* errorDescription, 
   }
   if (time) {
     *time = st.st_mtime;
+  }
+  if (isLink) {
+    *isLink = lstat(filename.c_str(), &st) == 0 && S_ISLNK(st.st_mode);
   }
   return stream;
 }
