@@ -664,6 +664,15 @@ components:
         precision:
           type: number
           description: the precision (number of fraction digits) when divisor is >1.
+        min:
+          type: number
+          description: the minimum allowed value.
+        max:
+          type: number
+          description: the maximum allowed value.
+        step:
+          type: number
+          description: the smallest step value.
       required:
         - type
         - isbits
