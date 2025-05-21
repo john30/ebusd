@@ -1404,11 +1404,11 @@ DataTypeList::DataTypeList() {
   add(new NumberDataType("ULG", 32, 0, 0xffffffff, 0, 0xfffffffe, 1));
   // unsigned integer, 0 - 4294967294, big endian
   add(new NumberDataType("ULR", 32, REV, 0xffffffff, 0, 0xfffffffe, 1));
-  // signed integer, -2147483647 - +2147483647, little endian
   // unsigned integer, 0 - 4294967295, little endian (no replacement)
   add(new NumberDataType("U4L", 32, REQ, 0, 0, 0xffffffff, 1));
   // unsigned integer, 0 - 4294967295, big endian (no replacement)
   add(new NumberDataType("U4B", 32, REQ|REV, 0, 0, 0xffffffff, 1));
+  // signed integer, -2147483647 - +2147483647, little endian
   add(new NumberDataType("SLG", 32, SIG, 0x80000000, 0x80000001, 0x7fffffff, 1));
   // signed integer, -2147483647 - +2147483647, big endian
   add(new NumberDataType("SLR", 32, SIG|REV, 0x80000000, 0x80000001, 0x7fffffff, 1));
@@ -1469,7 +1469,9 @@ result_t DataTypeList::add(const DataType* dataType, const string derivedKey) {
     return RESULT_ERR_DUPLICATE_NAME;  // duplicate key
   }
   m_typesById[key] = dataType;
-  m_cleanupTypes.push_back(dataType);
+  if (std::find(m_cleanupTypes.begin(), m_cleanupTypes.end(), dataType) == m_cleanupTypes.end()) {
+    m_cleanupTypes.push_back(dataType);
+  }
   return RESULT_OK;
 }
 
