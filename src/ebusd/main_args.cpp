@@ -264,7 +264,7 @@ static int parse_opt(int key, char *arg, const argParseOpt *parseOpt, struct opt
     break;
 
   // Message configuration options:
-  case 'c':  // --configpath=https://cfg.ebusd.eu/
+  case 'c':  // --configpath=https://ebus.github.io/
     if (arg == nullptr || arg[0] == 0 || strcmp("/", arg) == 0) {
       argParseError(parseOpt, "invalid configpath");
       return EINVAL;

@@ -3,7 +3,7 @@ ebusd Docker image
 
 An [ebusd](https://github.com/john30/ebusd/) Docker image is available on the
 [Docker Hub](https://hub.docker.com/r/john30/ebusd/) and is able to download the latest released
-[configuration files](https://github.com/john30/ebusd-configuration/) from a [dedicated webservice](https://cfg.ebusd.eu/).
+[configuration files](https://github.com/john30/ebusd-configuration/) from a [dedicated webservice](https://ebus.github.io/).
 
 It allows running ebusd without actually installing (or even building) it on the host.
 You might even be able to run it on a non-Linux operating system, which is at least known to

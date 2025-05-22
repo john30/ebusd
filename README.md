@@ -33,7 +33,7 @@ The main features of the daemon are:
  * answer to messages received from the eBUS
  * regularly poll for messages
  * cache all messages
- * scan for bus participants and automatically pick matching message definition files from config web service at ebusd.eu (or alternatively local files)
+ * scan for bus participants and automatically pick matching message definition files from config CDN at [ebus.github.io](https://ebus.github.io/) or from local files
  * parse messages to human readable values and vice versa via message definition files
  * automatically check for updates of daemon and message definition files
  * pick preferred language for translatable message definition parts
@@ -90,8 +90,8 @@ Configuration
 -------------
 
 The most important part of each ebusd installation is the message configuration.
-Starting with version 3.2, **ebusd by default uses the config web service at ebusd.eu to retrieve
-the latest configuration files** that are reflected by the configuration repository (follow the "latest" symlink there):
+Starting with version 3.2, **ebusd by default uses the config web service to retrieve
+the latest configuration files** that are reflected by the configuration repository:
 > https://github.com/john30/ebusd-configuration
 
 
