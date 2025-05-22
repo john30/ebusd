@@ -29,7 +29,7 @@
 #include <netinet/tcp.h>
 #include <string.h>
 #include <errno.h>
-#ifdef HAVE_PPOLL
+#if defined(HAVE_PPOLL) || defined(APPLE)
 #  include <poll.h>
 #endif
 

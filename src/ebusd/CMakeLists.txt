@@ -34,7 +34,12 @@ include_directories(../lib/ebus)
 include_directories(../lib/utils)
 
 add_executable(ebusd ${ebusd_SOURCES})
+if(NOT APPLE)
 target_link_libraries(ebusd utils ebus pthread rt ${ebusd_LIBS})
-
+else()
+target_link_libraries(ebusd utils ebus pthread ${ebusd_LIBS})
+endif()
 install(TARGETS ebusd EXPORT ebusd DESTINATION bin)
-
+if(APPLE)
+    add_custom_command(TARGET ebusd POST_BUILD COMMAND rm ${CMAKE_SOURCE_DIR}/VERSION_FILE)  
+endif()

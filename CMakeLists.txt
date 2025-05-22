@@ -1,14 +1,29 @@
 cmake_minimum_required(VERSION 3.7.1 FATAL_ERROR)
 
+function(print_all_variables)
+  message(STATUS "CMake Variables:")
+  get_cmake_property(_variableNames VARIABLES)
+  list(SORT _variableNames)
+  foreach (_variableName ${_variableNames})
+    message(STATUS "${_variableName}=${${_variableName}}")
+  endforeach()
+endfunction()
+
 # CMP0075 Include file check macros honor CMAKE_REQUIRED_LIBRARIES
 # For more information see: https://cmake.org/cmake/help/latest/policy/CMP0075.html
 if(POLICY CMP0075)
     cmake_policy(SET CMP0075 NEW)
 endif()
 
-file(STRINGS "VERSION" VERSION)
-
 project(ebusd)
+
+if(APPLE)
+  add_compile_definitions(APPLE)
+	file(COPY_FILE "VERSION" "VERSION_FILE")  
+	file(STRINGS "VERSION_FILE" VERSION)
+else()
+  file(STRINGS "VERSION" VERSION)
+endif()
 
 include(GNUInstallDirs)
 include(CheckFunctionExists)
@@ -68,8 +83,12 @@ check_include_file(syslog.h HAVE_SYSLOG_H)
 check_include_file(time.h HAVE_TIME_H)
 check_include_file(termios.h HAVE_TERMIOS_H)
 check_function_exists(cfsetspeed HAVE_CFSETSPEED)
-
+if(NOT APPLE)
 set(CMAKE_REQUIRED_LIBRARIES pthread rt)
+else()
+set(CMAKE_REQUIRED_LIBRARIES pthread)
+endif()
+
 check_function_exists(pthread_setname_np HAVE_PTHREAD_SETNAME_NP)
 check_function_exists(pselect HAVE_PSELECT)
 check_function_exists(ppoll HAVE_PPOLL)
@@ -192,3 +211,5 @@ if(HAVE_KNX)
   FILE(GLOB KNX_CFG_FILES "${CMAKE_SOURCE_DIR}/contrib/etc/ebusd/knx*.cfg")
   install(FILES ${KNX_CFG_FILES} DESTINATION /etc/ebusd/)
 endif(HAVE_KNX)
+
+print_all_variables()
