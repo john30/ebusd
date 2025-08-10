@@ -223,6 +223,7 @@ int argParse(const argParseOpt *parseOpt, int argc, char **argv, void* userArg) 
   }
   free(longOpts);
   free(shortChars);
+  free(shortIndexes);
   free(shortOpts);
   return ret;
 }
