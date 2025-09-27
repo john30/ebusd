@@ -481,7 +481,7 @@ result_t ScanHelper::loadScanConfigFile(symbol_t address, string* relativeFile) 
       }
       match += remain.length();
     }
-    if (match >= bestMatch) {
+    if (match > bestMatch || (match == bestMatch && name.length() > best.length())) {
       bestMatch = match;
       best = name;
       bestDefaults = defaults;
