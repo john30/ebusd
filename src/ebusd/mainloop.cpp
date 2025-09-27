@@ -876,8 +876,9 @@ result_t MainLoop::executeRead(const vector<string>& args, const string& levels,
     if (verbosity & OF_NAMES) {
       *ostream << cacheMessage->getCircuit() << " " << cacheMessage->getName() << " ";
     }
-    ret = cacheMessage->decodeLastData(pt_slaveData, false, fieldIndex == -2 ? nullptr : fieldName.c_str(), fieldIndex,
-        verbosity, ostream);
+    ret = cacheMessage->decodeLastData(
+      hasCache && (cacheMessage->isWrite() || cacheMessage->isPassive()) ? pt_any : pt_slaveData,
+      false, fieldIndex == -2 ? nullptr : fieldName.c_str(), fieldIndex, verbosity, ostream);
     if (ret < RESULT_OK) {
       logError(lf_main, "read %s %s cached: decode %s", cacheMessage->getCircuit().c_str(),
           cacheMessage->getName().c_str(), getResultCode(ret));
