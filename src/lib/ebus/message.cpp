@@ -2490,67 +2490,72 @@ result_t MessageMap::resolveCondition(void (*readMessageFunc)(Message* message),
 
 result_t MessageMap::executeInstructions(void (*readMessageFunc)(Message* message), ostringstream* log) {
   result_t overallResult = RESULT_OK;
-  vector<string> remove;
-  for (auto& it : m_instructions) {
-    auto instructions = it.second;
-    bool removeSingletons = false;
-    vector<Instruction*> remain;
-    for (const auto instruction : instructions) {
-      if (!m_addAll && removeSingletons && instruction->isSingleton()) {
-        delete instruction;
-        continue;
-      }
-      Condition* condition = instruction->getCondition();
-      bool execute = m_addAll || condition == nullptr;
-      if (!execute) {
-        string errorDescription;
-        result_t result = resolveCondition(instruction->isSingleton()?readMessageFunc:nullptr, condition,
-            &errorDescription);
-        if (result != RESULT_OK) {
-          overallResult = result;
-          *log << "error resolving condition for \"";
-          instruction->getDestination(log);
-          *log << "\": " << getResultCode(result);
-          if (!errorDescription.empty()) {
-            *log << " " << errorDescription;
-          }
-        } else if (condition->isTrue()) {
-          execute = true;
-        }
-      }
-      if (execute) {
-        if (!m_addAll && instruction->isSingleton()) {
-          removeSingletons = true;
-        }
-        result_t result = instruction->execute(this, log);
-        if (result != RESULT_OK) {
-          overallResult = result;
-        }
-        delete instruction;
-      } else {
-        remain.push_back(instruction);
-      }
-    }
-    if (removeSingletons && !remain.empty()) {
-      instructions = remain;
-      remain.clear();
+  size_t maxRounds = 3, cntBefore, cntAfter;
+  do {
+    cntBefore = cntAfter = m_instructions.size();
+    vector<string> remove;
+    for (auto& it : m_instructions) {
+      auto instructions = it.second;
+      bool removeSingletons = false;
+      vector<Instruction*> remain;
       for (const auto instruction : instructions) {
-        if (!instruction->isSingleton()) {
-          remain.push_back(instruction);
+        if (!m_addAll && removeSingletons && instruction->isSingleton()) {
+          delete instruction;
           continue;
         }
-        delete instruction;
+        Condition* condition = instruction->getCondition();
+        bool execute = m_addAll || condition == nullptr;
+        if (!execute) {
+          string errorDescription;
+          result_t result = resolveCondition(instruction->isSingleton()?readMessageFunc:nullptr, condition,
+              &errorDescription);
+          if (result != RESULT_OK) {
+            overallResult = result;
+            *log << "error resolving condition for \"";
+            instruction->getDestination(log);
+            *log << "\": " << getResultCode(result);
+            if (!errorDescription.empty()) {
+              *log << " " << errorDescription;
+            }
+          } else if (condition->isTrue()) {
+            execute = true;
+          }
+        }
+        if (execute) {
+          if (!m_addAll && instruction->isSingleton()) {
+            removeSingletons = true;
+          }
+          result_t result = instruction->execute(this, log);
+          if (result != RESULT_OK) {
+            overallResult = result;
+          }
+          delete instruction;
+        } else {
+          remain.push_back(instruction);
+        }
+      }
+      if (removeSingletons && !remain.empty()) {
+        instructions = remain;
+        remain.clear();
+        for (const auto instruction : instructions) {
+          if (!instruction->isSingleton()) {
+            remain.push_back(instruction);
+            continue;
+          }
+          delete instruction;
+        }
+      }
+      if (remain.empty()) {
+        remove.push_back(it.first);
+      } else {
+        it.second = remain;
       }
     }
-    if (remain.empty()) {
-      remove.push_back(it.first);
-    } else {
-      it.second = remain;
+    cntAfter = m_instructions.size();
+    for (const auto& it : remove) {
+      m_instructions.erase(it);
     }
-  }
-  for (const auto& it : remove) {
-    m_instructions.erase(it);
-  }
+  } while (overallResult == RESULT_OK && cntAfter>cntBefore && --maxRounds>0);
   return overallResult;
 }
 
