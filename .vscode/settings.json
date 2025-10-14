@@ -1,9 +1,0 @@
-{
-    "files.associations": {
-        "utility": "cpp",
-        "csignal": "cpp",
-        "map": "cpp",
-        "vector": "cpp",
-        "iostream": "cpp"
-    }
-}
