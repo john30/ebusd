@@ -50,12 +50,18 @@ fi
 
 for image in $images; do
   output=$(echo "$outputFmt"|sed -e "s#%IMAGE%#$image#g")
+  if [[ "${image%%:*}" = "trixie" ]]; then
+    sslversion='3'
+  else
+    sslversion='1.1'
+  fi
   docker buildx build \
     --target $target \
     --progress plain \
     --platform $archs \
     -f Dockerfile${namesuffix} \
     --build-arg "BASE_IMAGE=debian:$image" \
+    --build-arg "SSL_VERSION=$sslversion" \
     --build-arg "EBUSD_VERSION=$version" \
     --build-arg "EBUSD_IMAGE=$image" \
     --build-arg "UPLOAD_URL=$UPLOAD_URL" \
