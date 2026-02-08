@@ -49,6 +49,7 @@ typedef struct mqtt_client_config {
   bool ignoreInvalidParams;  //!< ignore invalid parameters during init
   const char* cafile;    //!< optional CA file for TLS
   const char* capath;    //!< optional CA path for TLS
+  bool caos;             //!< use OS certitificates for TLS
   const char* certfile;  //!< optional client certificate file for TLS
   const char* keyfile;   //!< optional client key file for TLS
   const char* keypass;   //!< optional client key file password for TLS

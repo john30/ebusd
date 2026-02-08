@@ -180,12 +180,23 @@ MqttClientMosquitto::MqttClientMosquitto(mqtt_client_config_t config, MqttClient
 #endif
     }
 
-    if (config.cafile || config.capath) {
+    if (config.cafile || config.capath
+#if (LIBMOSQUITTO_MAJOR >= 2)
+      || config.caos
+#endif
+    ) {
 #if (LIBMOSQUITTO_MAJOR >= 1)
       mosquitto_user_data_set(m_mosquitto, this);
       int ret;
-      ret = mosquitto_tls_set(m_mosquitto, config.cafile, config.capath, config.certfile, config.keyfile,
-        on_keypassword);
+#if (LIBMOSQUITTO_MAJOR >= 2)
+      if (config.caos) {
+        ret = mosquitto_int_option(m_mosquitto, MOSQ_OPT_TLS_USE_OS_CERTS, 1);
+      } else
+#endif
+      {
+        ret = mosquitto_tls_set(m_mosquitto, config.cafile, config.capath, config.certfile, config.keyfile,
+          on_keypassword);
+      }
       if (ret != MOSQ_ERR_SUCCESS) {
         logOtherError("mqtt", "unable to set TLS: %d", ret);
       } else if (config.insecure) {

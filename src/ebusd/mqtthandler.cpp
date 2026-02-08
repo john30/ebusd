@@ -49,7 +49,8 @@ using std::dec;
 #define O_IGIN (O_VERS+1)
 #define O_CHGS (O_IGIN+1)
 #define O_CAFI (O_CHGS+1)
-#define O_CERT (O_CAFI+1)
+#define O_CAOS (O_CAFI+1)
+#define O_CERT (O_CAOS+1)
 #define O_KEYF (O_CERT+1)
 #define O_KEPA (O_KEYF+1)
 #define O_INSE (O_KEPA+1)
@@ -83,6 +84,7 @@ static const argDef g_mqtt_argDefs[] = {
   {"mqttchanges",  O_CHGS, nullptr,      0, "Whether to only publish changed messages instead of all received"},
 
   {"mqttca",       O_CAFI, "CA",         0, "Use CA file or dir (ending with '/') for MQTT TLS (no default)"},
+  {"mqttcaos",     O_CAOS, nullptr,      0, "Use OS CA certificate for MQTT TLS"},
   {"mqttcert",     O_CERT, "CERTFILE",   0, "Use CERTFILE for MQTT TLS client certificate (no default)"},
   {"mqttkey",      O_KEYF, "KEYFILE",    0, "Use KEYFILE for MQTT TLS client certificate (no default)"},
   {"mqttkeypass",  O_KEPA, "PASSWORD",   0, "Use PASSWORD for the encrypted KEYFILE (no default)"},
@@ -103,6 +105,7 @@ static mqtt_client_config_t g_opt = {
   .ignoreInvalidParams = false,
   .cafile = nullptr,
   .capath = nullptr,
+  .caos = false,
   .certfile = nullptr,
   .keyfile = nullptr,
   .keypass = nullptr,
@@ -293,6 +296,10 @@ static int mqtt_parse_opt(int key, char *arg, const argParseOpt *parseOpt, void 
       g_opt.cafile = arg;
       g_opt.capath = nullptr;
     }
+    break;
+
+  case O_CAOS:  // --mqttcaos
+    g_opt.caos = true;
     break;
 
   case O_CERT:  // --mqttcert=CERTFILE
