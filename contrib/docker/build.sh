@@ -51,7 +51,7 @@ fi
 for image in $images; do
   output=$(echo "$outputFmt"|sed -e "s#%IMAGE%#$image#g")
   if [[ "${image%%:*}" = "trixie" ]]; then
-    sslversion='3'
+    sslversion='3t64'
   else
     sslversion='1.1'
   fi
