@@ -1,6 +1,9 @@
-# 26.1 tbd
+# 26.1 (2026-02-08)
+## Bug Fixes
 * fix potential memory leak
 * fix reading write only and broadcast messages from cache
+
+## Features
 * add support for more than one level of load instructions
 * add "--mqttcaos" option
 
