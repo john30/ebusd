@@ -1,3 +1,10 @@
+# 26.1 tbd
+* fix potential memory leak
+* fix reading write only and broadcast messages from cache
+* add support for more than one level of load instructions
+* add "--mqttcaos" option
+
+
 # 25.1 (2025-04-13)
 ## Bug Fixes
 * fix for device string symlink with colon
