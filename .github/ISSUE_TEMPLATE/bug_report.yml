@@ -63,6 +63,7 @@ body:
       label: Operating system
       description: the operating system in use
       options:
+        - Debian 13 (Trixie) / Ubuntu 24-25 / Raspberry Pi OS 13
         - Debian 12 (Bookworm) / Ubuntu 22-23 / Raspberry Pi OS 12 (including lite)
         - Debian 11 (Bullseye) / Ubuntu 20-21 / Raspbian 11 / Raspberry Pi OS 11 (including lite)
         - Debian 10 (Buster) / Ubuntu 18-19 / Raspbian 10 / Raspberry Pi OS 10 (including lite)

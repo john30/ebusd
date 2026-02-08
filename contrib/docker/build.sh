@@ -18,7 +18,7 @@ else
 fi
 version=`cat ../../VERSION`
 source='../..'
-images='bullseye'
+images='trixie'
 tagprefix=docker.io/john30/ebusd
 extratag=
 
@@ -39,7 +39,7 @@ elif [[ "x$1" = "xrelease" ]]; then
 else
   namesuffix='.build'
   target=deb
-  images='bookworm bullseye buster'
+  images='trixie bookworm bullseye'
   if [[ -n "$LIMITIMG" ]]; then
     images=$(echo " $images " | sed -e "s#.* \($LIMITIMG\) .*#\1#")
     echo "limiting to image $images"

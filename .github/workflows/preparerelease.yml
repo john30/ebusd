@@ -26,9 +26,9 @@ on:
         type: choice
         options:
           - ''
+          - trixie
           - bookworm
           - bullseye
-          - buster
 
 jobs:
   prepare-release:
