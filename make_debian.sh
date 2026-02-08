@@ -77,7 +77,12 @@ if [ $? -eq 0 ]; then
 fi
 ldd $RELEASE/usr/bin/ebusd | grep -q libssl.so.3
 if [ $? -eq 0 ]; then
-  extralibs="$extralibs, libssl3 (>= 3.0.0), ca-certificates"
+  apt-cache show libssl3t64 >/dev/null 2>&1
+  if [ $? -eq 0 ]; then
+    extralibs="$extralibs, libssl3t64 (>= 3.0.0), ca-certificates"
+  else
+    extralibs="$extralibs, libssl3 (>= 3.0.0), ca-certificates"
+  fi
 else
   ldd $RELEASE/usr/bin/ebusd | grep -q libssl.so.1.1
   if [ $? -eq 0 ]; then
