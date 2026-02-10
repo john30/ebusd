@@ -56,9 +56,7 @@ Installation
 ------------
 
 Either pick the [latest release package](https://github.com/john30/ebusd/releases/latest) suitable for your system,
-use the Debian repository as [described here](https://github.com/john30/ebusd-debian/blob/master/README.md),
-use `makepkg` for [Archlinux](https://github.com/john30/ebusd/tree/master/contrib/archlinux)
-or pick the [package from the Alpine Linux repository](https://pkgs.alpinelinux.org/package/edge/community/x86/ebusd),
+use `makepkg` for [Archlinux](https://github.com/john30/ebusd/tree/master/contrib/archlinux),
 build it yourself, or use a docker image (see below).
 
 Building ebusd from the source requires the following packages and/or features:
