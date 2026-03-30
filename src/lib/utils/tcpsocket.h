@@ -25,10 +25,10 @@
 #include <sys/time.h>
 #include <stdint.h>
 #include <string>
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(APPLE)
   #include <machine/endian.h>
 #else
-  #include <endian.h>
+ #include <endian.h>
 #endif
 
 /** typedef for referencing @a sockaddr_in within namespace. */
