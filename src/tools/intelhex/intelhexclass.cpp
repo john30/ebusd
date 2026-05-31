@@ -478,7 +478,7 @@ istream& operator>>(istream& dataIn, intelhex& ihLocal)
                                      ihLineIterator);
             if (ihLocal.verbose == true)
             {
-              cout << "Data Record begining @ 0x" <<
+              cout << "Data Record beginning @ 0x" <<
                    ihLocal.ulToHexString(loadOffset) << endl;
             }
             break;
