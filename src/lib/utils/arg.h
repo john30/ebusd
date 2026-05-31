@@ -56,13 +56,13 @@ typedef int (*parse_function_t)(int key, char *arg, const struct argParseOpt *pa
 
 /** Options for child definitions. */
 typedef struct argParseChildOpt {
-  const argDef *argDefs;  //!< pointer to the argument defintions (last one needs to have nullptr help as end sign)
+  const argDef *argDefs;  //!< pointer to the argument definitions (last one needs to have nullptr help as end sign)
   parse_function_t parser;  //!< parse function to use
 } argParseChildOpt;
 
 /** Options to pass to @a argParse(). */
 typedef struct argParseOpt {
-  const argDef *argDefs;  //!< pointer to the argument defintions (last one needs to have nullptr help as end sign)
+  const argDef *argDefs;  //!< pointer to the argument definitions (last one needs to have nullptr help as end sign)
   parse_function_t parser;  //!< parse function to use
   int flags;  //!< flags for the parser, bit combination of @a ArgFlag
   const char* help;  //!< help text for the program (second line of help output)

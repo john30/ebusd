@@ -2048,7 +2048,7 @@ result_t MainLoop::executeHelp(ostringstream* ostream) {
   *ostream << "usage:\n"
       " read|r    Read value(s):         read [-f] [-m SECONDS] [-s QQ] [-d ZZ] [-c CIRCUIT] [-p PRIO] [-v|-V] [-n|-N]"
       " [-i VALUE[;VALUE]*] NAME [FIELD[.N]]\n"
-      "           Read by new defintion: read [-f] [-m SECONDS] [-s QQ] [-d ZZ] [-v|-V] [-n|-N]"
+      "           Read by new definition: read [-f] [-m SECONDS] [-s QQ] [-d ZZ] [-v|-V] [-n|-N]"
       " [-i VALUE[;VALUE]*] -def DEFINITION (if enabled)\n"
       "           Read hex message:      read [-f] [-m SECONDS] [-s QQ] [-c CIRCUIT] -h ZZPBSBNN[DD]*\n"
       " write|w   Write value(s):        write [-s QQ] [-d ZZ] -c CIRCUIT NAME [VALUE[;VALUE]*]\n"
