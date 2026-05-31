@@ -2077,7 +2077,7 @@ result_t MainLoop::executeHelp(ostringstream* ostream) {
       " dump      Toggle binary dump of received bytes\n"
       " reload    Reload CSV config files\n"
       " quit|q    Close connection\n"
-      " help|?    Print help             help [COMMAND], COMMMAND ?";
+      " help|?    Print help             help [COMMAND], COMMAND ?";
   return RESULT_OK;
 }
 
