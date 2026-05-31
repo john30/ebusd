@@ -2048,7 +2048,7 @@ result_t MainLoop::executeHelp(ostringstream* ostream) {
   *ostream << "usage:\n"
       " read|r    Read value(s):         read [-f] [-m SECONDS] [-s QQ] [-d ZZ] [-c CIRCUIT] [-p PRIO] [-v|-V] [-n|-N]"
       " [-i VALUE[;VALUE]*] NAME [FIELD[.N]]\n"
-      "           Read by new defintion: read [-f] [-m SECONDS] [-s QQ] [-d ZZ] [-v|-V] [-n|-N]"
+      "           Read by new definition: read [-f] [-m SECONDS] [-s QQ] [-d ZZ] [-v|-V] [-n|-N]"
       " [-i VALUE[;VALUE]*] -def DEFINITION (if enabled)\n"
       "           Read hex message:      read [-f] [-m SECONDS] [-s QQ] [-c CIRCUIT] -h ZZPBSBNN[DD]*\n"
       " write|w   Write value(s):        write [-s QQ] [-d ZZ] -c CIRCUIT NAME [VALUE[;VALUE]*]\n"
@@ -2077,7 +2077,7 @@ result_t MainLoop::executeHelp(ostringstream* ostream) {
       " dump      Toggle binary dump of received bytes\n"
       " reload    Reload CSV config files\n"
       " quit|q    Close connection\n"
-      " help|?    Print help             help [COMMAND], COMMMAND ?";
+      " help|?    Print help             help [COMMAND], COMMAND ?";
   return RESULT_OK;
 }
 

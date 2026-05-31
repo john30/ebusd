@@ -320,7 +320,7 @@
 * changed logging for messages from "updated" to "received" and "sent" depending on who initiated the request and added message direction/scan/poll/update info
 * added support for serving .csv files and new argument maxage to HTTP/JSON port
 * added timeout argument and error result code to ebusctl
-* added "-def" option to "read" and "write" commands and "define" command to test message defintions and add new definitions during runtime and disabled all by default (use "--enabledefine" command line option).
+* added "-def" option to "read" and "write" commands and "define" command to test message definitions and add new definitions during runtime and disabled all by default (use "--enabledefine" command line option).
 * added "encode" and "decode" commands for testing field definitions
 * added option to ignore failed host name resolution during initialization of MQTT
 * added logging when device became invalid and close it on error

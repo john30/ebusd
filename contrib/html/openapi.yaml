@@ -203,7 +203,7 @@ paths:
                 $ref: '#/components/schemas/RawMessages'
   /decode:
     get:
-      summary: Decode raw data with the specified field defintion.
+      summary: Decode raw data with the specified field definition.
       parameters:
         - name: def
           in: query
