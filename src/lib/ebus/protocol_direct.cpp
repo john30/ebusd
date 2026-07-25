@@ -20,6 +20,8 @@
 #  include <config.h>
 #endif
 
+#include <algorithm>
+#include "lib/ebus/message.h"
 #include "lib/ebus/protocol_direct.h"
 #include "lib/utils/log.h"
 
@@ -824,7 +826,7 @@ uint64_t DirectProtocolHandler::createAnswerKey(symbol_t srcAddress, symbol_t ds
 
 bool DirectProtocolHandler::setAnswer(symbol_t srcAddress, symbol_t dstAddress, symbol_t pb, symbol_t sb,
     const symbol_t* id, size_t idLen, const SlaveSymbolString& answer) {
-  if (!m_config.answer || (!id && idLen > 0) || idLen > 4 || !isValidAddress(dstAddress, false)
+  if (!m_config.answer || (!id && idLen > 0) || idLen > MAX_ID_KEYLEN || !isValidAddress(dstAddress, false)
   || (srcAddress != SYN && !isMaster(srcAddress))) {
     return false;
   }
@@ -861,7 +863,7 @@ bool DirectProtocolHandler::getAnswer() {
   }
   // walk through the stored answers to find the longest match
   m_response.clear();
-  size_t len = m_command[4];
+  size_t len = std::min<size_t>(m_command[4], MAX_ID_KEYLEN);
   bool master = isMaster(m_command[1]);
   uint64_t key = createAnswerKey(m_command[0], m_command[1], m_command[2], m_command[3], m_command.data()+5, len);
   do {

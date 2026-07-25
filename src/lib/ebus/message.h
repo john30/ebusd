@@ -31,6 +31,9 @@
 
 namespace ebusd {
 
+/** the maximum length of the command ID bytes (in addition to PB/SB) for which the key is distinct. */
+#define MAX_ID_KEYLEN 4
+
 /** @file lib/ebus/message.h
  * Classes and functions for decoding and encoding of complete messages on the
  * eBUS to and from readable values.

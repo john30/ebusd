@@ -36,9 +36,6 @@ using std::setfill;
 using std::setw;
 using std::endl;
 
-/** the maximum length of the command ID bytes (in addition to PB/SB) for which the key is distinct. */
-#define MAX_ID_KEYLEN 4
-
 /** the bit mask of the source master number in the message key. */
 #define ID_SOURCE_MASK (0x1fLL << (8 * 7))
 
