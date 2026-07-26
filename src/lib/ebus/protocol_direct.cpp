@@ -843,6 +843,12 @@ bool DirectProtocolHandler::setAnswer(symbol_t srcAddress, symbol_t dstAddress, 
   return true;
 }
 
+size_t DirectProtocolHandler::clearAnswers() {
+  size_t count = m_answerByKey.size();
+  m_answerByKey.clear();
+  return count;
+}
+
 bool DirectProtocolHandler::hasAnswer(symbol_t dstAddress) const {
   if (m_answerByKey.empty()) {
     return false;
