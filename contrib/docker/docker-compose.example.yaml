@@ -24,6 +24,7 @@ services:
       # - suffix "IP[:PORT]" for network device, or
       # - suffix "DEVICE" for serial device
       EBUSD_DEVICE: "ens:/dev/ttyUSB0"
+      #EBUSD_DEVICE: "ens:192.168.4.1:9999" # example for C6 stick edition 
       # Skip serial eBUS device test
       #EBUSD_NODEVICECHECK: ""
       # Only read from device, never write to it
@@ -76,7 +77,7 @@ services:
 
       # Daemon options:
 
-      # Set default access level to LEVEL ("*" for everything)
+      # Set default access level to LEVEL ("*" for everything); you will need this for home assistant 
       #EBUSD_ACCESSLEVEL: "*"
       # Read access control list from FILE
       #EBUSD_ACLFILE: "/path/to/aclfile"
@@ -153,6 +154,7 @@ services:
       #EBUSD_MQTTINT: "/etc/ebusd/mqtt-hassio.cfg"
       # Add variable(s) to the read MQTT integration settings (append to already existing value with "NAME+=VALUE")
       #EBUSD_MQTTVAR: "name[+]=value[,...]"
+      #EBUSD_MQTTVAR: "filter-direction=r|u|^w" # use this if you want to have write access to the bus for home assistant
       # Publish in JSON format instead of strings, optionally in short (value directly below field key)
       #EBUSD_MQTTJSON: ""
       # Publish all available attributes
