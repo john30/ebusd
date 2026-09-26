@@ -568,6 +568,14 @@ class NumberDataType : public DataType {
   unsigned int getMaxValue() const { return m_maxValue; }
 
   /**
+   * @return whether the minimum or maximum raw value was explicitly narrowed
+   * compared to the base type (e.g. via a range in the definition).
+   */
+  bool hasExplicitRange() const {
+    return m_baseType && (m_minValue != m_baseType->m_minValue || m_maxValue != m_baseType->m_maxValue);
+  }
+
+  /**
    * Get the minimum or maximum value.
    * @param getMax true for the maximum, false for the minimum.
    * @param outputFormat the @a OutputFormat options to use.

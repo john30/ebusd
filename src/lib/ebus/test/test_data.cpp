@@ -849,6 +849,61 @@ int main() {
 
   delete templates;
 
+  // explicit range detection (e.g. for publishing min/max of EXP types)
+  const struct {
+    const char* type;
+    int divisor;
+    const char* min;
+    const char* max;
+    bool expectRange;
+    const char* expectMin;
+    const char* expectMax;
+  } rangeChecks[] = {
+    {"EXP", 0, nullptr, nullptr, false, "", ""},
+    {"EXP", 10, nullptr, nullptr, false, "", ""},
+    {"EXP", 0, "-20", "30", true, "-20", "30"},
+    {"EXP", 10, "0", "0.5", true, "0.0000000", "0.5000000"},
+    {"UCH", 0, nullptr, nullptr, false, "0", "254"},
+    {"SCH", 0, "-3", "-1", true, "-3", "-1"},
+  };
+  for (const auto& check : rangeChecks) {
+    const NumberDataType* numType = dynamic_cast<const NumberDataType*>(DataTypeList::getInstance()->get(check.type));
+    result_t result = numType ? RESULT_OK : RESULT_ERR_NOTFOUND;
+    if (result == RESULT_OK && check.divisor != 0) {
+      result = numType->derive(check.divisor, numType->getBitCount(), &numType);
+    }
+    if (result == RESULT_OK && check.min) {
+      unsigned int from, to;
+      result = numType->parseInput(check.min, &from);
+      if (result == RESULT_OK) {
+        result = numType->parseInput(check.max, &to);
+      }
+      if (result == RESULT_OK) {
+        result = numType->derive(from, to, 0, &numType);
+      }
+    }
+    cout << "  range " << check.type << "," << check.divisor << "," << (check.min ? check.min : "") << "-"
+         << (check.max ? check.max : "");
+    if (result != RESULT_OK) {
+      cout << " error: " << getResultCode(result) << endl;
+      error = true;
+      continue;
+    }
+    ostringstream min, max;
+    if (check.expectRange || !numType->hasFlag(EXP)) {
+      numType->getMinMax(false, OF_NONE, &min);
+      numType->getMinMax(true, OF_NONE, &max);
+    }
+    if (numType->hasExplicitRange() != check.expectRange || min.str() != check.expectMin
+        || max.str() != check.expectMax) {
+      cout << " invalid: range=" << numType->hasExplicitRange() << " min=" << min.str() << " max=" << max.str()
+           << endl;
+      error = true;
+    } else {
+      cout << ": OK" << endl;
+    }
+  }
+
   const floatCheck_t floatChecks[] = {
     {0.0f, 0.0f, 0},
     {0.01f, 0.01f, 1},

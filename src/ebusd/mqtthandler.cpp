@@ -1034,8 +1034,9 @@ bool MqttHandler::prepareDefinition(const string& direction, const StringReplace
   values->set("basetype", dataType->getId());
   values->set("comment", field->getAttribute("comment"));
   values->set("unit", field->getAttribute("unit"));
-  if (dataType->isNumeric() && !dataType->hasFlag(EXP)) {
-    auto dt = dynamic_cast<const NumberDataType*>(dataType);
+  auto dt = dataType->isNumeric() ? dynamic_cast<const NumberDataType*>(dataType) : nullptr;
+  // min/max of EXP types are only meaningful when narrowed down by an explicit range
+  if (dt && (!dt->hasFlag(EXP) || dt->hasExplicitRange())) {
     ostr.str("");
     if (dt->getMinMax(false, g_publishFormat, &ostr) == RESULT_OK) {
       values->set("min", ostr.str());
