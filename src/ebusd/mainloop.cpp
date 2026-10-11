@@ -1263,7 +1263,7 @@ result_t MainLoop::executeAnswer(const vector<string>& args, ostringstream* ostr
     if (ret != RESULT_OK) {
       return ret;
     }
-    if (id.size() < 2 || id.size() > 6) {
+    if (id.size() < 2 || id.size() > MAX_ID_KEYLEN + 2 /* PB/SB */) {
       return RESULT_ERR_INVALID_POS;
     }
   }
