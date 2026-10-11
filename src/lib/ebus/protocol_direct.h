@@ -109,11 +109,14 @@ class DirectProtocolHandler : public ProtocolHandler {
   bool hasSignal() const override { return m_state != bs_noSignal; }
 
   // @copydoc
-  bool isAnswering() const override { return !m_answerByKey.empty(); }
+  bool isAnswering() const override { return m_config.answer; }
 
   // @copydoc
   bool setAnswer(symbol_t srcAddress, symbol_t dstAddress, symbol_t pb, symbol_t sb,
       const symbol_t* id, size_t idLen, const SlaveSymbolString& answer) override;
+
+  // @copydoc
+  size_t clearAnswers() override;
 
   // @copydoc
   bool hasAnswer(symbol_t dstAddress) const override;

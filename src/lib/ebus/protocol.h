@@ -367,6 +367,12 @@ class ProtocolHandler : public WaitThread, public DeviceListener {
       size_t idLen, const SlaveSymbolString& answer) { return false; }
 
   /**
+   * Remove all registered answers.
+   * @return the number of removed answers.
+   */
+  virtual size_t clearAnswers() { return 0; }
+
+  /**
    * @return @p true if an answer was set for the destination address.
    */
   virtual bool hasAnswer(symbol_t dstAddress) const { return false; }

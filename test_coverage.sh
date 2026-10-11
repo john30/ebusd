@@ -341,6 +341,8 @@ inject 3115b509030d1e00/02a85b
 answer -d 50 0704 b5454850303003277201
 answer 0705 010203
 answer -s ff -m 0706 ab
+answer clear
+answer 0705 010203
 dump
 grab result
 grab result all

@@ -1228,6 +1228,10 @@ result_t MainLoop::executeInject(const vector<string>& args, ostringstream* ostr
 }
 
 result_t MainLoop::executeAnswer(const vector<string>& args, ostringstream* ostream) {
+  if (args.size() == 2 && args[1] == "clear") {
+    *ostream << "cleared " << m_protocol->clearAnswers();
+    return RESULT_OK;
+  }
   size_t argPos = 1;
   symbol_t srcAddress = SYN;
   symbol_t dstAddress = SYN;
@@ -1283,8 +1287,10 @@ result_t MainLoop::executeAnswer(const vector<string>& args, ostringstream* ostr
     argPos = 0;  // print usage
   }
   if (argPos <= 1) {
-    *ostream << "usage: answer [-m] [-s QQ] [-d ZZ] PBSB[ID]* [DD]*\n"
+    *ostream << "usage: answer clear\n"
+                "  or: answer [-m] [-s QQ] [-d ZZ] PBSB[ID]* [DD]*\n"
                 " Answer to a message from the bus.\n"
+                "  clear  remove all registered answers\n"
                 "  -m     destination is a master\n"
                 "  -s QQ  source address to limit to\n"
                 "  -d ZZ  override destination address (instead of own address)\n"
