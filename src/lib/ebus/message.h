@@ -336,6 +336,14 @@ class Message : public AttributedItem {
   bool checkIdPrefix(const vector<symbol_t>& id) const;
 
   /**
+   * Return whether the first ID byte after PB and SB is a CRC calculated at runtime (CRC-8 with polynomial 0x5C as
+   * used by Weishaupt), as enabled by the attribute "wcrc" set to "1" or by the marker "[WCRC]" in the comment.
+   * @return true if the first ID byte is a placeholder replaced by the CRC over the rest of the ID and the data
+   * when sending, and checked against that CRC when receiving.
+   */
+  bool hasDynamicCrc() const { return m_hasDynamicCrc; }
+
+  /**
    * Check the ID against the master @a SymbolString data.
    * @param master the @a MasterSymbolString to check against.
    * @param index the variable in which to store the message part index, or nullptr to ignore.
@@ -620,6 +628,9 @@ class Message : public AttributedItem {
 
   /** the primary, secondary, and optionally further command ID bytes. */
   const vector<symbol_t> m_id;
+
+  /** whether the first ID byte after PB and SB is a CRC calculated at runtime. */
+  const bool m_hasDynamicCrc;
 
   /**
    * the key for storing in @a MessageMap.
@@ -1359,7 +1370,7 @@ class MessageMap : public MappedFileReader {
   explicit MessageMap(bool addAll = false, const string& preferLanguage = "", bool deleteData = true)
   : MappedFileReader::MappedFileReader(true, preferLanguage), m_resolver(nullptr),
     m_addAll(addAll), m_additionalScanMessages(false), m_maxIdLength(0), m_maxBroadcastIdLength(0),
-    m_messageCount(0), m_conditionalMessageCount(0), m_passiveMessageCount(0) {
+    m_hasDynamicCrc(false), m_messageCount(0), m_conditionalMessageCount(0), m_passiveMessageCount(0) {
     m_scanMessage = Message::createScanMessage(false, deleteData);
     m_broadcastScanMessage = Message::createScanMessage(true, false);
   }
@@ -1583,6 +1594,22 @@ class MessageMap : public MappedFileReader {
   Message* find(const MasterSymbolString& master, bool anyDestination = false, bool withRead = true,
       bool withWrite = true, bool withPassive = true, bool onlyAvailable = true) const;
 
+ private:
+  /**
+   * Find the @a Message instance for the key of the specified master data.
+   * @param keyMaster the @a MasterSymbolString for building the key.
+   * @param master the @a MasterSymbolString for checking the ID of the @a Message.
+   * @param anyDestination true to only return messages without a particular destination.
+   * @param withRead true to include read messages.
+   * @param withWrite true to include write messages.
+   * @param withPassive true to include passive messages.
+   * @param onlyAvailable true to include only available messages.
+   * @return the @a Message instance, or nullptr.
+   */
+  Message* findByKeyOf(const MasterSymbolString& keyMaster, const MasterSymbolString& master, bool anyDestination,
+      bool withRead, bool withWrite, bool withPassive, bool onlyAvailable) const;
+
+ public:
   /**
    * Invalidate cached data of the @a Message and all other instances with a matching name key.
    * @param message the @a Message to invalidate.
@@ -1708,6 +1735,9 @@ class MessageMap : public MappedFileReader {
 
   /** the maximum ID length used by any of the known @a Message instances with destination @a BROADCAST. */
   size_t m_maxBroadcastIdLength;
+
+  /** whether any of the known @a Message instances has a CRC calculated at runtime. */
+  bool m_hasDynamicCrc;
 
   /** the number of distinct @a Message instances stored in @a m_messagesByName. */
   size_t m_messageCount;

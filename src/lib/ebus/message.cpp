@@ -94,6 +94,83 @@ static const char* defaultMessageFieldMap[] = {  // access level not included in
 /** the m_pollOrder of the last polled message. */
 static unsigned int g_lastPollOrder = 0;
 
+/** the marker in the comment enabling the CRC calculated at runtime (e.g. for TypeSpec generated definitions). */
+static const char* DYNAMIC_CRC_MARKER = "[WCRC]";
+
+/**
+ * Return whether a message uses the CRC calculated at runtime (Weishaupt).
+ * @param id the message ID (PB, SB, further ID bytes).
+ * @param attributes the message attributes.
+ * @return true when the first ID byte after PB and SB is a CRC placeholder.
+ */
+static bool isDynamicCrc(const vector<symbol_t>& id, const map<string, string>& attributes) {
+  if (id.size() <= 2) {
+    return false;
+  }
+  auto it = attributes.find("wcrc");
+  if (it != attributes.end() && it->second == "1") {
+    return true;
+  }
+  it = attributes.find("comment");
+  return it != attributes.end() && it->second.find(DYNAMIC_CRC_MARKER) != string::npos;
+}
+
+/**
+ * Return the ID to use for the message key, with the CRC placeholder cleared when calculated at runtime.
+ * @param id the message ID (PB, SB, further ID bytes).
+ * @param dynamicCrc whether the message uses the CRC calculated at runtime.
+ * @return the ID for the key.
+ */
+static vector<symbol_t> keyId(const vector<symbol_t>& id, bool dynamicCrc) {
+  if (!dynamicCrc) {
+    return id;
+  }
+  vector<symbol_t> ret = id;
+  ret[2] = 0;
+  return ret;
+}
+
+/**
+ * Calculate the CRC-8 (polynomial 0x5C) used by Weishaupt over the master data bytes following the first data byte
+ * (the CRC), starting with the second data byte as initial value.
+ * @param master the @a MasterSymbolString with at least two data bytes.
+ * @return the calculated CRC.
+ */
+static symbol_t calcDynamicCrc(const MasterSymbolString& master) {
+  size_t dataSize = master.getDataSize();
+  uint8_t crc = master.dataAt(1);
+  for (size_t pos = 2; pos < dataSize; pos++) {
+    for (int bit = 0; bit < 8; bit++) {
+      crc = (crc & 0x80) ? static_cast<uint8_t>((crc << 1) ^ 0x5C) : static_cast<uint8_t>(crc << 1);
+    }
+    crc ^= master.dataAt(pos);
+  }
+  return crc;
+}
+
+/**
+ * Check the CRC calculated at runtime in the first data byte of the master data.
+ * @param master the @a MasterSymbolString to check.
+ * @return true if the CRC matches or there is not enough data to calculate it.
+ */
+static bool checkDynamicCrc(const MasterSymbolString& master) {
+  return master.getDataSize() < 2 || master.dataAt(0) == calcDynamicCrc(master);
+}
+
+/**
+ * Return the ID of a message with the CRC placeholder replaced by the one of another message.
+ * @param id the message ID (PB, SB, further ID bytes) with the CRC placeholder.
+ * @param other the ID of the other message.
+ * @return the ID for comparing with the other one.
+ */
+static vector<symbol_t> idWithCrcOf(const vector<symbol_t>& id, const vector<symbol_t>& other) {
+  vector<symbol_t> ret = id;
+  if (ret.size() > 2 && other.size() > 2) {
+    ret[2] = other[2];
+  }
+  return ret;
+}
+
 
 Message::Message(const string& filename, const string& circuit, const string& level, const string& name,
     bool isWrite, bool isPassive, const map<string, string>& attributes,
@@ -106,7 +183,8 @@ Message::Message(const string& filename, const string& circuit, const string& le
       m_filename(filename), m_circuit(circuit), m_level(level), m_isWrite(isWrite),
       m_isPassive(isPassive),
       m_srcAddress(srcAddress), m_dstAddress(dstAddress),
-      m_id(id), m_key(createKey(id, isWrite, isPassive, srcAddress, dstAddress)),
+      m_id(id), m_hasDynamicCrc(isDynamicCrc(id, attributes)),
+      m_key(createKey(keyId(id, m_hasDynamicCrc), isWrite, isPassive, srcAddress, dstAddress)),
       m_data(data), m_deleteData(deleteData),
       m_pollPriority(pollPriority),
       m_usedByCondition(false), m_isScanMessage(false), m_condition(condition), m_availableSinceTime(0),
@@ -126,7 +204,7 @@ Message::Message(const string& circuit, const string& level, const string& name,
       m_circuit(circuit), m_level(level), m_isWrite(broadcast),
       m_isPassive(false),
       m_srcAddress(SYN), m_dstAddress(broadcast ? BROADCAST : SYN),
-      m_id({pb, sb}), m_key(createKey(pb, sb, broadcast)),
+      m_id({pb, sb}), m_hasDynamicCrc(false), m_key(createKey(pb, sb, broadcast)),
       m_data(data), m_deleteData(deleteData),
       m_pollPriority(0),
       m_usedByCondition(false), m_isScanMessage(true), m_condition(nullptr), m_availableSinceTime(0),
@@ -587,10 +665,14 @@ bool Message::checkId(const MasterSymbolString& master, size_t* index) const {
   if (master.getDataSize() < idLen) {
     return false;
   }
-  for (size_t pos = 0; pos < idLen; pos++) {
+  // the first ID byte of a message with dynamic CRC depends on the rest of the data and is checked separately
+  for (size_t pos = m_hasDynamicCrc ? 1 : 0; pos < idLen; pos++) {
     if (m_id[2+pos] != master.dataAt(pos)) {
       return false;
     }
+  }
+  if (m_hasDynamicCrc && !checkDynamicCrc(master)) {
+    return false;
   }
   if (index) {
     *index = 0;
@@ -602,6 +684,9 @@ bool Message::checkId(const Message& other) const {
   size_t idLen = getIdLength();
   if (idLen != other.getIdLength() || getCount() > 1) {  // only equal for non-chained messages
     return false;
+  }
+  if (m_hasDynamicCrc && other.m_hasDynamicCrc) {
+    return other.checkIdPrefix(idWithCrcOf(m_id, other.m_id));
   }
   return other.checkIdPrefix(m_id);
 }
@@ -697,6 +782,10 @@ result_t Message::prepareMaster(size_t index, symbol_t srcAddress, symbol_t dstA
   result_t result = prepareMasterPart(index, separator, input, master);
   if (result != RESULT_OK) {
     return result;
+  }
+  if (m_hasDynamicCrc && master->getDataSize() >= 2) {
+    // replace the placeholder with the CRC over the rest of the ID and the data to send
+    (*master)[5] = calcDynamicCrc(*master);
   }
   result = storeLastData(index, *master);
   if (result < RESULT_OK) {
@@ -1106,10 +1195,14 @@ bool ChainedMessage::checkId(const MasterSymbolString& master, size_t* index) co
     return false;
   }
   size_t chainPrefixLength = Message::getIdLength();
-  for (size_t pos = 0; pos < chainPrefixLength; pos++) {
+  // the first ID byte of a message with dynamic CRC depends on the rest of the data and is checked separately
+  for (size_t pos = m_hasDynamicCrc ? 1 : 0; pos < chainPrefixLength; pos++) {
     if (m_id[2+pos] != master.dataAt(pos)) {
       return false;  // chain prefix mismatch
     }
+  }
+  if (m_hasDynamicCrc && !checkDynamicCrc(master)) {
+    return false;
   }
   for (size_t checkIndex = 0; checkIndex < m_ids.size(); checkIndex++) {  // check suffix for each part
     vector<symbol_t> id = m_ids[checkIndex];
@@ -1136,10 +1229,12 @@ bool ChainedMessage::checkId(const Message& other) const {
   if (idLen != other.getIdLength() || other.getCount() == 1) {  // only equal for chained messages
     return false;
   }
-  if (!other.checkIdPrefix(m_id)) {
+  const ChainedMessage& otherChained = (const ChainedMessage&)other;
+  if (!other.checkIdPrefix(m_hasDynamicCrc && otherChained.m_hasDynamicCrc ? idWithCrcOf(m_id, otherChained.m_id)
+      : m_id)) {
     return false;  // chain prefix mismatch
   }
-  vector< vector<symbol_t> > otherIds = ((ChainedMessage&)other).m_ids;
+  vector< vector<symbol_t> > otherIds = otherChained.m_ids;
   size_t chainPrefixLength = Message::getIdLength();
   for (size_t checkIndex = 0; checkIndex < m_ids.size(); checkIndex++) {  // check suffix for each part
     vector<symbol_t> id = m_ids[checkIndex];
@@ -1968,6 +2063,9 @@ result_t MessageMap::add(bool storeByName, Message* message, bool replace) {
   if (idLength > m_maxIdLength) {
     m_maxIdLength = idLength;
   }
+  if (message->hasDynamicCrc()) {
+    m_hasDynamicCrc = true;
+  }
   m_messagesByKey[key].push_back(message);
   return RESULT_OK;
 }
@@ -2724,8 +2822,20 @@ Message* MessageMap::find(const MasterSymbolString& master, bool anyDestination,
   if (anyDestination && master.size() >= 5 && master[4] == 0 && master[2] == 0x07 && master[3] == 0x04) {
     return m_scanMessage;
   }
+  Message* message = findByKeyOf(master, master, anyDestination, withRead, withWrite, withPassive, onlyAvailable);
+  if (message || !m_hasDynamicCrc || master.getDataSize() == 0 || master.dataAt(0) == 0) {
+    return message;
+  }
+  // try again with the key of messages with CRC calculated at runtime, i.e. with the CRC replaced by the placeholder
+  MasterSymbolString keyMaster(master);
+  keyMaster[5] = 0;
+  return findByKeyOf(keyMaster, master, anyDestination, withRead, withWrite, withPassive, onlyAvailable);
+}
+
+Message* MessageMap::findByKeyOf(const MasterSymbolString& keyMaster, const MasterSymbolString& master,
+  bool anyDestination, bool withRead, bool withWrite, bool withPassive, bool onlyAvailable) const {
   size_t maxIdLength = anyDestination || master[1] != BROADCAST ? m_maxIdLength : m_maxBroadcastIdLength;
-  uint64_t baseKey = Message::createKey(master, maxIdLength, anyDestination);
+  uint64_t baseKey = Message::createKey(keyMaster, maxIdLength, anyDestination);
   if (baseKey == INVALID_KEY) {
     return nullptr;
   }
@@ -2738,7 +2848,7 @@ Message* MessageMap::find(const MasterSymbolString& master, bool anyDestination,
       key |= (uint64_t)idLength << (8 * 7 + 5);
       int exp = 3;
       for (size_t i = 0; i < idLength; i++) {
-        key ^= (uint64_t)master.dataAt(i) << (8 * exp--);
+        key ^= (uint64_t)keyMaster.dataAt(i) << (8 * exp--);
         if (exp < 0) {
           exp = 3;
         }
@@ -2783,7 +2893,6 @@ Message* MessageMap::find(const MasterSymbolString& master, bool anyDestination,
       break;
     }
   }
-
   return nullptr;
 }
 
@@ -2891,6 +3000,7 @@ void MessageMap::clear() {
   }
   m_circuitData.clear();
   m_maxIdLength = m_maxBroadcastIdLength = 0;
+  m_hasDynamicCrc = false;
   m_additionalScanMessages = false;
 }
 

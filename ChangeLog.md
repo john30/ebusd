@@ -1,3 +1,8 @@
+# next
+## Features
+* add CRC calculated at runtime for Weishaupt memory and register messages (attribute "wcrc" or "[WCRC]" in comment)
+
+
 # 26.1 (2026-02-08)
 ## Bug Fixes
 * fix potential memory leak
