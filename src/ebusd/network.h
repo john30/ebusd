@@ -23,6 +23,7 @@
 #include <cstdio>
 #include <algorithm>
 #include <list>
+#include "ebusd/messagestream.h"
 #include "ebusd/request.h"
 #include "lib/ebus/datatype.h"
 #include "lib/utils/tcpsocket.h"
@@ -47,9 +48,11 @@ class Connection : public Thread {
    * @param socket the @a TCPSocket for communication.
    * @param isHttp whether this is a HTTP message.
    * @param requestQueue the reference to the @a Request @a Queue.
+   * @param messageStream the @a MessageStream for direct stream mode.
    */
-  Connection(TCPSocket* socket, const bool isHttp, Queue<Request*>* requestQueue)
-    : Thread(), m_isHttp(isHttp), m_socket(socket), m_requestQueue(requestQueue), m_endedAt(0) {
+  Connection(TCPSocket* socket, const bool isHttp, Queue<Request*>* requestQueue, MessageStream* messageStream)
+    : Thread(), m_isHttp(isHttp), m_socket(socket), m_requestQueue(requestQueue), m_messageStream(messageStream),
+      m_endedAt(0) {
     m_id = ++m_ids;
   }
 
@@ -95,6 +98,12 @@ class Connection : public Thread {
   /** notification object for shutdown procedure. */
   Notify m_notify;
 
+  /** the @a MessageStream for direct stream mode. */
+  MessageStream* m_messageStream;
+
+  /** notification object for new messages in direct stream mode. */
+  Notify m_streamNotify;
+
   /** the ID of this connection. */
   int m_id;
 
@@ -116,8 +125,10 @@ class Network : public Thread {
    * @param port the port to listen for command line connections.
    * @param httpPort the port to listen for HTTP connections, or 0.
    * @param requestQueue the reference to the @a Request @a Queue.
+   * @param messageStream the @a MessageStream for direct stream mode.
    */
-  Network(const bool local, const uint16_t port, const uint16_t httpPort, Queue<Request*>* requestQueue);
+  Network(const bool local, const uint16_t port, const uint16_t httpPort, Queue<Request*>* requestQueue,
+      MessageStream* messageStream);
 
   /**
    * destructor.
@@ -141,6 +152,9 @@ class Network : public Thread {
 
   /** the reference to the @a Request @a Queue. */
   Queue<Request*>* m_requestQueue;
+
+  /** the @a MessageStream for direct stream mode. */
+  MessageStream* m_messageStream;
 
   /** the command line @a TCPServer instance. */
   TCPServer* m_tcpServer;

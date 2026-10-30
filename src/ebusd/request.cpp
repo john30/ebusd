@@ -34,6 +34,7 @@ RequestImpl::RequestImpl(bool isHttp)
   m_mode.format = OF_NONE;
   m_mode.listenWithUnknown = false;
   m_mode.listenOnlyUnknown = false;
+  m_mode.directStream = false;
   pthread_mutex_init(&m_mutex, nullptr);
   pthread_cond_init(&m_cond, nullptr);
 }

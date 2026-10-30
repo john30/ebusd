@@ -24,6 +24,7 @@
 #include <vector>
 #include <map>
 #include <deque>
+#include "ebusd/messagestream.h"
 #include "ebusd/scan.h"
 #include "lib/ebus/message.h"
 #include "lib/ebus/data.h"
@@ -283,6 +284,11 @@ class BusHandler : public ProtocolListener {
   ProtocolHandler* getProtocol() const { return m_protocol; }
 
   /**
+   * @return the @a MessageStream of all messages seen on the bus.
+   */
+  MessageStream* getMessageStream() { return &m_messageStream; }
+
+  /**
    * Clear stored values (e.g. scan results).
    */
   void clear();
@@ -452,6 +458,9 @@ class BusHandler : public ProtocolListener {
 
   /** the grabbed messages by key.*/
   map<uint64_t, GrabbedMessage> m_grabbedMessages;
+
+  /** the @a MessageStream of all messages seen on the bus. */
+  MessageStream m_messageStream;
 };
 
 }  // namespace ebusd

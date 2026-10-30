@@ -26,6 +26,7 @@
 #endif
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <unistd.h>
 #include <cstring>
 #include "lib/utils/log.h"
 
@@ -47,9 +48,10 @@ void Connection::run() {
   tdiff.tv_nsec = 0;
   int notifyFD = m_notify.notifyFD();
   int sockFD = m_socket->getFD();
+  int streamFD = m_streamNotify.notifyFD();
 
 #ifdef HAVE_PPOLL
-  nfds_t nfds = 2;
+  nfds_t nfds = 3;
   struct pollfd fds[nfds];
 
   memset(fds, 0, sizeof(fds));
@@ -59,14 +61,21 @@ void Connection::run() {
 
   fds[1].fd = sockFD;
   fds[1].events = POLLIN | POLLERR | POLLHUP | POLLRDHUP;
+
+  fds[2].fd = streamFD;
+  fds[2].events = POLLIN;
 #else
 #ifdef HAVE_PSELECT
   int maxfd = (notifyFD > sockFD) ? notifyFD : sockFD;
+  if (streamFD > maxfd) {
+    maxfd = streamFD;
+  }
   fd_set checkfds, exceptfds;
 
   FD_ZERO(&checkfds);
   FD_SET(notifyFD, &checkfds);
   FD_SET(sockFD, &checkfds);
+  FD_SET(streamFD, &checkfds);
 
   FD_ZERO(&exceptfds);
   FD_SET(notifyFD, &exceptfds);
@@ -76,6 +85,8 @@ void Connection::run() {
 
   bool closed = false;
   RequestImpl req(m_isHttp);
+  bool streaming = false;
+  uint64_t streamSeq = 0;
 
   while (!closed) {
 #ifdef HAVE_PPOLL
@@ -89,7 +100,7 @@ void Connection::run() {
     ret = pselect(maxfd + 1, &readfds, nullptr, &exceptfds, &tdiff, nullptr);
 #endif
 #endif
-    bool newData = false;
+    bool newData = false, newMessages = false;
     if (ret != 0) {
 #ifdef HAVE_PPOLL
       // new data from notify
@@ -100,6 +111,7 @@ void Connection::run() {
       // new data from socket
       newData = fds[1].revents & POLLIN;
       closed = fds[1].revents & POLLRDHUP;
+      newMessages = fds[2].revents & POLLIN;
 #else
 #ifdef HAVE_PSELECT
       // new data from notify
@@ -109,11 +121,27 @@ void Connection::run() {
       // new data from socket
       newData = FD_ISSET(sockFD, &readfds);
       closed = FD_ISSET(sockFD, &exceptfds);
+      newMessages = FD_ISSET(streamFD, &readfds);
 #endif
 #endif
     }
 
-    if (newData || req.getMode().listenMode != lm_none) {
+    if (newMessages) {
+      char drain[64];
+      if (read(streamFD, drain, sizeof(drain)) < 0) {
+        break;
+      }
+      string lines;
+      uint64_t lost = m_messageStream->read(&streamSeq, &lines);
+      if (lost > 0) {
+        lines = "ERR: " + std::to_string(lost) + " messages lost\n" + lines;
+      }
+      if (!lines.empty()) {
+        m_socket->send(lines.c_str(), lines.size());
+      }
+    }
+
+    if (newData || (req.getMode().listenMode != lm_none && !streaming)) {
       char data[256];
 
       if (!m_socket->isValid()) {
@@ -143,6 +171,14 @@ void Connection::run() {
         if (!m_socket->isValid()) {
           break;
         }
+        if (req.getMode().directStream != streaming) {
+          streaming = !streaming;
+          if (streaming) {
+            streamSeq = m_messageStream->subscribe(&m_streamNotify);
+          } else {
+            m_messageStream->unsubscribe(&m_streamNotify);
+          }
+        }
         m_socket->send(result.c_str(), result.size());
         if (disconnect) {
           break;
@@ -155,6 +191,9 @@ void Connection::run() {
     }
   }
 
+  if (streaming) {
+    m_messageStream->unsubscribe(&m_streamNotify);
+  }
   if (m_socket) {
     shutdown(sockFD, SHUT_RD);
   }
@@ -163,8 +202,9 @@ void Connection::run() {
 }
 
 
-Network::Network(const bool local, const uint16_t port, const uint16_t httpPort, Queue<Request*>* requestQueue)
-  : Thread(), m_requestQueue(requestQueue), m_listening(false) {
+Network::Network(const bool local, const uint16_t port, const uint16_t httpPort, Queue<Request*>* requestQueue,
+    MessageStream* messageStream)
+  : Thread(), m_requestQueue(requestQueue), m_messageStream(messageStream), m_listening(false) {
   m_tcpServer = new TCPServer(port, local ? "127.0.0.1" : "0.0.0.0");
 
   if (m_tcpServer != nullptr && m_tcpServer->start() == 0) {
@@ -303,7 +343,7 @@ void Network::run() {
       if (socket == nullptr) {
         continue;
       }
-      Connection* connection = new Connection(socket, isHttp, m_requestQueue);
+      Connection* connection = new Connection(socket, isHttp, m_requestQueue, m_messageStream);
       string ip = socket->getIP();
       connection->start("connection");
       m_connections.push_back(connection);

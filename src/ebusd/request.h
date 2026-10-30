@@ -50,6 +50,7 @@ struct RequestMode {
   OutputFormat format;     //!< the output format settings for listen mode
   bool listenWithUnknown;  //!< include unknown messages in listen/direct mode
   bool listenOnlyUnknown;  //!< only print unknown messages in listen/direct mode
+  bool directStream;       //!< in direct mode, print each message as soon as it is seen
 };
 
 /**

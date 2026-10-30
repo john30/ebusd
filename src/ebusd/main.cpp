@@ -604,7 +604,8 @@ int main(int argc, char* argv[], char* envp[]) {
   }
   s_mainLoop->start("mainloop");
 
-  s_network = new Network(s_opt.localOnly, s_opt.port, s_opt.httpPort, s_requestQueue);
+  s_network = new Network(s_opt.localOnly, s_opt.port, s_opt.httpPort, s_requestQueue,
+      s_busHandler->getMessageStream());
   s_network->start("network");
 
   // wait for end of MainLoop

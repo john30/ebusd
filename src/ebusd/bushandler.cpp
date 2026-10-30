@@ -384,6 +384,8 @@ void BusHandler::notifyProtocolMessage(MessageDirection direction, const MasterS
   const SlaveSymbolString& response) {
   symbol_t srcAddress = command[0], dstAddress = command[1];
   bool master = isMaster(dstAddress);
+  m_messageStream.add(dstAddress == BROADCAST || master ? command.getStr()
+      : command.getStr() + " " + response.getStr());
   if (dstAddress == BROADCAST) {
     if (command.getDataSize() >= 10 && command[2] == 0x07 && command[3] == 0x04) {
       symbol_t slaveAddress = getSlaveAddress(srcAddress);

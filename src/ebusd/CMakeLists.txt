@@ -4,6 +4,7 @@ set(ebusd_SOURCES
     bushandler.h bushandler.cpp
     datahandler.h datahandler.cpp
     request.h request.cpp
+    messagestream.h messagestream.cpp
     network.h network.cpp
     mainloop.h mainloop.cpp
     scan.h scan.cpp

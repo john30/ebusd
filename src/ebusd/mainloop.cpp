@@ -422,7 +422,7 @@ void MainLoop::run() {
           m_busHandler->enableGrab(true);  // needed for listening to all messages
         }
       }
-    } else if (reqMode.listenMode == lm_direct) {
+    } else if (reqMode.listenMode == lm_direct && !reqMode.directStream) {
       if (m_busHandler->isGrabEnabled()) {
         m_busHandler->formatGrabResult(false, OF_NONE, &ostream, true, since, now);
       }
@@ -1306,20 +1306,25 @@ result_t MainLoop::executeAnswer(const vector<string>& args, ostringstream* ostr
 
 result_t MainLoop::executeDirect(const vector<string>& args, RequestMode* reqMode, ostringstream* ostream) {
   if (reqMode->listenMode != lm_direct) {
-    if (args.size() == 1) {
+    if (args.size() == 1 || (args.size() == 2 && args[1] == "-s")) {
       reqMode->listenMode = lm_direct;
-      m_busHandler->enableGrab(true);  // needed for listening to all messages
+      reqMode->directStream = args.size() == 2;
+      if (!reqMode->directStream) {
+        m_busHandler->enableGrab(true);  // needed for listening to all messages
+      }
       *ostream << "direct mode started";
       return RESULT_OK;
     }
-    *ostream << "usage: direct\n"
-                " Enter direct mode.";
+    *ostream << "usage: direct [-s]\n"
+                " Enter direct mode.\n"
+                "  -s  print each message as soon as it is seen, instead of the last one of each kind every 2 seconds";
     return RESULT_OK;
   }
   if (args.size() > 0) {
     string firstArg = args[0];
     if (firstArg == "stop") {
       reqMode->listenMode = lm_none;
+      reqMode->directStream = false;
       *ostream << "direct mode stopped";
       return RESULT_OK;
     }
@@ -2061,7 +2066,7 @@ result_t MainLoop::executeHelp(ostringstream* ostream) {
       " hex       Send hex data:         hex [-s QQ] [-n] ZZPBSB[NN][DD]* (if enabled)\n"
       " inject    Inject hex data:       inject QQZZPBSBNN[DD]*/[NN[DD]*] (if enabled)\n"
       " answer    Answer a message:      answer [-m] [-s QQ] [-d ZZ] PBSB[ID]* [DD]* (if enabled)\n"
-      " direct    Enter direct mode\n"
+      " direct    Enter direct mode:     direct [-s]\n"
       " state|s   Report bus state\n"
       " info|i    Report information about the daemon, configuration, seen participants, and the device.\n"
       " grab|g    Grab messages:         grab [stop]\n"
