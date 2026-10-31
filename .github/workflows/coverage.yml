@@ -24,7 +24,7 @@ jobs:
         run: cmake -Dcoverage=1 -DBUILD_TESTING=1 . && make
       -
         name: test regular
-        run: cd src/lib/ebus/test && ./test_symbol && ./test_filereader && ./test_data && ./test_message
+        run: cd src/lib/ebus/test && ./test_symbol && ./test_filereader && ./test_data && ./test_message && ./test_protocol
       -
         name: test contrib
         run: cd src/lib/ebus/contrib/test && ./test_contrib
