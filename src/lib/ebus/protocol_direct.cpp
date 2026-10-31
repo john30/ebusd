@@ -685,6 +685,12 @@ struct timespec* sentTime) {
 }
 
 result_t DirectProtocolHandler::setState(BusState state, result_t result, bool firstRepetition) {
+  // Returning to passive reception aborts any outstanding active transaction.
+  // A buffered SYN must not leave the request attached to the next master's
+  // response merely because the receive result is CONTINUE/OK.
+  if (m_currentRequest != nullptr && (state == bs_ready || state == bs_skip) && result >= RESULT_OK) {
+    result = RESULT_ERR_TIMEOUT;
+  }
   if (m_currentRequest != nullptr) {
     if (result == RESULT_ERR_BUS_LOST && m_currentRequest->getBusLostRetries() < m_config.busLostRetries) {
       logDebug(lf_bus, "%s during %s, retry", getResultCode(result), getStateCode(m_state));
