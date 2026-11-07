@@ -587,7 +587,18 @@ bool Message::checkId(const MasterSymbolString& master, size_t* index) const {
   if (master.getDataSize() < idLen) {
     return false;
   }
-  for (size_t pos = 0; pos < idLen; pos++) {
+  
+  // ==== DYNAMIC CRC MATCHING ====
+  bool useDynamicCrc = false;
+  auto itWcrc = m_attributes.find("wcrc");
+  if (itWcrc != m_attributes.end() && itWcrc->second == "1") useDynamicCrc = true;
+  auto itComment = m_attributes.find("comment");
+  if (itComment != m_attributes.end() && itComment->second.find("WCRC") != std::string::npos) useDynamicCrc = true;
+
+  size_t startPos = useDynamicCrc ? 1 : 0;
+  // ===============================
+
+  for (size_t pos = startPos; pos < idLen; pos++) {
     if (m_id[2+pos] != master.dataAt(pos)) {
       return false;
     }
@@ -698,6 +709,34 @@ result_t Message::prepareMaster(size_t index, symbol_t srcAddress, symbol_t dstA
   if (result != RESULT_OK) {
     return result;
   }
+
+// ==== DYNAMIC CRC INJECTION ====
+  bool useDynamicCrc = false;
+  
+  // Check if the user added a custom 'wcrc' column in the CSV set to '1'
+  auto itWcrc = m_attributes.find("wcrc");
+  if (itWcrc != m_attributes.end() && itWcrc->second == "1") useDynamicCrc = true;
+  
+  // Or check if the user put the flag "WCRC" anywhere in the comment field
+  auto itComment = m_attributes.find("comment");
+  if (itComment != m_attributes.end() && itComment->second.find("WCRC") != std::string::npos) useDynamicCrc = true;
+
+  // The 'master' array looks like this:
+  // [0]=SRC, [1]=DST, [2]=PB, [3]=SB, [4]=NN (Len), [5]=Placeholder CRC, [6+]=ID & Payload
+  if (useDynamicCrc && master->size() > 6) {
+      uint8_t crc = (*master)[6] & 0xFF; 
+      for (size_t i = 7; i < master->size(); i++) {
+          uint8_t nextByte = (*master)[i] & 0xFF;
+          for (int j = 0; j < 8; j++) {
+              if (crc & 0x80) crc = (crc << 1) ^ 0x5C;
+              else crc = (crc << 1);
+          }
+          crc ^= nextByte;
+      }
+      (*master)[5] = static_cast<symbol_t>(crc);
+  }
+  // ===============================
+
   result = storeLastData(index, *master);
   if (result < RESULT_OK) {
     return result;
@@ -1106,7 +1145,23 @@ bool ChainedMessage::checkId(const MasterSymbolString& master, size_t* index) co
     return false;
   }
   size_t chainPrefixLength = Message::getIdLength();
-  for (size_t pos = 0; pos < chainPrefixLength; pos++) {
+
+  // ==== WEISHAUPT DYNAMIC CRC MATCHING ====
+  bool useDynamicCrc = false;
+  
+  // Check if the user added a custom 'wcrc' column in the CSV set to '1'
+  auto itWcrc = m_attributes.find("wcrc");
+  if (itWcrc != m_attributes.end() && itWcrc->second == "1") useDynamicCrc = true;
+  
+  // Or check if the user put the flag "WCRC" anywhere in the comment field
+  auto itComment = m_attributes.find("comment");
+  if (itComment != m_attributes.end() && itComment->second.find("WCRC") != std::string::npos) useDynamicCrc = true;
+
+  // Skip the first byte if this is a Weishaupt CRC message
+  size_t startPos = useDynamicCrc ? 1 : 0;
+  // ========================================
+
+  for (size_t pos = startPos; pos < chainPrefixLength; pos++) {
     if (m_id[2+pos] != master.dataAt(pos)) {
       return false;  // chain prefix mismatch
     }

@@ -78,9 +78,88 @@ class TestResolver : public Resolver {
   }
 };
 
+// ==== DYNAMIC CRC TESTS ====
+void testDynamicCrc() {
+  cout << "Running Dynamic CRC tests..." << endl;
+  bool localError = false;
+
+  // 1. Setup an empty DataField (no payload needed to test ID CRC)
+  vector<const SingleDataField*> fields;
+  DataFieldSet data("", fields);
+
+  // 2. Setup Message attributes with 'wcrc'
+  map<string, string> attrs;
+  attrs["wcrc"] = "1";
+
+  // m_id = PB(0x50), SB(0x22), PlaceholderCRC(0x00), ID1(0x05), ID2(0x0A)
+  vector<symbol_t> id;
+  id.push_back(0x50);
+  id.push_back(0x22);
+  id.push_back(0x00);
+  id.push_back(0x05);
+  id.push_back(0x0A);
+
+  // 3. Create message: isWrite=true, isPassive=false
+  Message msg("test.csv", "hw", "", "RoomTemp", true, false, attrs, SYN, 0x15, id, &data, false);
+
+  // 4. Test Encoder (prepareMaster)
+  istringstream input("");
+  MasterSymbolString master;
+  result_t res = msg.prepareMaster(0, 0x00, 0x15, ';', &input, &master);
+
+  if (res != RESULT_OK) {
+    cout << "  encoder test FAILED: prepareMaster returned " << getResultCode(res) << endl;
+    localError = true;
+  } else {
+    // Expected master: SRC(00) DST(15) PB(50) SB(22) NN(03) CRC(xx) ID1(05) ID2(0A)
+    if (master.size() >= 6 && master[5] != 0x00) {
+       cout << "  encoder test OK (Placeholder overwritten with 0x" << hex << (int)master[5] << dec << ")" << endl;
+    } else {
+       cout << "  encoder test FAILED: CRC not overwritten. Value is 0x" << hex << (int)master[5] << dec << endl;
+       localError = true;
+    }
+  }
+
+  // 5. Test Matcher (checkId)
+  // Simulate bus message with a REAL CRC (0x99) instead of the Placeholder (0x00)
+  MasterSymbolString busMaster;
+  busMaster.push_back(0x00); // SRC
+  busMaster.push_back(0x15); // DST
+  busMaster.push_back(0x50); // PB
+  busMaster.push_back(0x22); // SB
+  busMaster.push_back(0x03); // NN
+  busMaster.push_back(0x99); // REAL CRC
+  busMaster.push_back(0x05); // ID1
+  busMaster.push_back(0x0A); // ID2
+  busMaster.adjustHeader();  // Tell ebusd to parse the header length
+
+  size_t idx = 0;
+  if (msg.checkId(busMaster, &idx)) {
+     cout << "  matcher test OK (Ignored dynamic CRC byte)" << endl;
+  } else {
+     cout << "  matcher test FAILED (Rejected valid message due to CRC mismatch)" << endl;
+     localError = true;
+  }
+
+  // 6. Test Negative Matcher (Without wcrc=1 attribute)
+  map<string, string> noAttrs;
+  Message msgNoCrc("test.csv", "hw", "", "RoomTemp", true, false, noAttrs, SYN, 0x15, id, &data, false);
+  if (msgNoCrc.checkId(busMaster, &idx)) {
+     cout << "  negative matcher FAILED (Should have rejected strict CRC mismatch)" << endl;
+     localError = true;
+  } else {
+     cout << "  negative matcher OK (Properly rejected strict CRC mismatch)" << endl;
+  }
+
+  if (localError) error = true;
+}
+// =====================================
+
 }  // namespace ebusd
 
 int main() {
+
+  testDynamicCrc();
   // message:   [type],[circuit],name,[comment],[QQ[;QQ]*],[ZZ],[PBSB],[ID],fields...
   // field:     name,part,type[:len][,[divisor|values][,[unit][,[comment]]]]
   // template:  name,type[:len][,[divisor|values][,[unit][,[comment]]]]
