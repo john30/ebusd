@@ -78,9 +78,98 @@ class TestResolver : public Resolver {
   }
 };
 
+/** Test the CRC calculated at runtime (attribute "wcrc"). */
+void testDynamicCrc() {
+  cout << "Running dynamic CRC tests..." << endl;
+  bool localError = false;
+  vector<const SingleDataField*> fields;
+  DataFieldSet data("", fields);
+  map<string, string> attrs;
+  attrs["wcrc"] = "1";
+  map<string, string> noAttrs;
+  // PB, SB, CRC placeholder, further ID bytes
+  vector<symbol_t> id = {0x50, 0x22, 0x00, 0x05, 0x0a};
+
+  // encoder: the placeholder is replaced by the CRC over the following ID bytes
+  Message msg("test.csv", "hw", "", "crc", true, false, attrs, SYN, 0x15, id, &data, false);
+  istringstream input("");
+  MasterSymbolString master;
+  result_t res = msg.prepareMaster(0, 0x00, 0x15, ';', &input, &master);
+  if (res != RESULT_OK || master.getDataSize() != 3 || master.dataAt(0) != 0x7a) {
+    cout << "  encoder FAILED: " << getResultCode(res) << " " << master.getStr() << endl;
+    localError = true;
+  } else {
+    cout << "  encoder OK" << endl;
+  }
+
+  // matcher: the correct CRC is accepted, a wrong one rejected, and only with the attribute
+  MasterSymbolString good, bad;
+  good.parseHex("0015502203""7a050a");
+  bad.parseHex("0015502203""99050a");
+  Message plain("test.csv", "hw", "", "plain", true, false, noAttrs, SYN, 0x15, id, &data, false);
+  size_t idx = 0;
+  if (!msg.hasDynamicCrc() || plain.hasDynamicCrc()) {
+    cout << "  attribute FAILED" << endl;
+    localError = true;
+  } else if (!msg.checkId(good, &idx)) {
+    cout << "  matcher FAILED: correct CRC rejected" << endl;
+    localError = true;
+  } else if (msg.checkId(bad, &idx)) {
+    cout << "  matcher FAILED: wrong CRC accepted" << endl;
+    localError = true;
+  } else if (plain.checkId(good, &idx)) {
+    cout << "  matcher FAILED: CRC byte ignored without attribute" << endl;
+    localError = true;
+  } else {
+    cout << "  matcher OK" << endl;
+  }
+
+  // lookup: a telegram with the correct CRC is found, one with a wrong CRC is not
+  MessageMap messages(false, "", false);  // the shared scan data is deleted by the map of main()
+  Message* stored = new Message("test.csv", "hw", "", "crc", true, false, attrs, SYN, 0x15, id, &data, false);
+  messages.add(true, stored);
+  if (messages.find(good) != stored) {
+    cout << "  lookup FAILED: correct CRC not found" << endl;
+    localError = true;
+  } else if (messages.find(bad) != nullptr) {
+    cout << "  lookup FAILED: wrong CRC found" << endl;
+    localError = true;
+  } else {
+    cout << "  lookup OK" << endl;
+  }
+
+  // encoder against telegrams answered by a Weishaupt WTC burner control on a live bus
+  struct {
+    symbol_t pb, sb, id[5], crc;
+  } vectors[] = {
+    {0x50, 0x00, {0x00, 0x06, 0x02, 0x12, 0x00}, 0x1c},  // EEPROM read of 2 bytes at 0x0200
+    {0x50, 0x22, {0x00, 0x01, 0x00, 0x9a, 0x01}, 0xa9},  // register read, CRC equals the escape symbol
+  };
+  for (const auto& vec : vectors) {
+    vector<symbol_t> vid = {vec.pb, vec.sb};
+    vid.insert(vid.end(), vec.id, vec.id + 5);
+    Message vmsg("test.csv", "bc", "", "vector", false, false, attrs, SYN, 0x08, vid, &data, false);
+    istringstream vinput("");
+    MasterSymbolString vmaster;
+    res = vmsg.prepareMaster(0, 0x31, 0x08, ';', &vinput, &vmaster);
+    if (res != RESULT_OK || vmaster.getDataSize() < 1 || vmaster.dataAt(0) != vec.crc) {
+      cout << "  vector FAILED: expected 0x" << hex << static_cast<int>(vec.crc) << dec << " in " << vmaster.getStr()
+           << endl;
+      localError = true;
+    } else {
+      cout << "  vector OK (0x" << hex << static_cast<int>(vec.crc) << dec << ")" << endl;
+    }
+  }
+
+  if (localError) {
+    error = true;
+  }
+}
+
 }  // namespace ebusd
 
 int main() {
+  testDynamicCrc();
   // message:   [type],[circuit],name,[comment],[QQ[;QQ]*],[ZZ],[PBSB],[ID],fields...
   // field:     name,part,type[:len][,[divisor|values][,[unit][,[comment]]]]
   // template:  name,type[:len][,[divisor|values][,[unit][,[comment]]]]
@@ -155,6 +244,18 @@ int main() {
     {"r,ehp,multi,,,,,01;02;03,longname,,STR:15", "ABCDEFGHIJKLMNO", "ff08b509020d01;ff08b509020d03;ff08b509020d02", "084142434445464748;054b4c4d4e4f;02494a", "dC" },
     {"w,ehp,multi,,,,,01:8;02:2;03,longname,,STR:15", "ABCDEFGHIJKLMNO", "ff08b5090a0e014142434445464748;ff08b509040e02494a;ff08b509070e034b4c4d4e4f", "00;00;00", "dC" },
     {"w,ehp,multi,,,,,01:8;02:2;0304,longname,,STR:15", "ABCDEFGHIJKLMNO", "ff08b5090a0e014142434445464748;ff08b509040e02494a;ff08b509070e034b4c4d4e4f", "00;00;00", "cC" },
+    // CRC calculated at runtime ([WCRC]), telegrams of Weishaupt WCM-Diagnose and a WTC burner control
+    {"w,wtc,write1,[WCRC],,13,5001,0005f003b8,value,,UCH", "16", "ff135001068005f003b810", "00", ""},
+    {"w,wtc,write2,[WCRC],,13,5001,000200,value,,HEX:1", "ff", "ff13500104db0200ff", "00", ""},
+    {"w,wtc,ram,[WCRC],,03,5001,00010a,value,,UCH", "0", "ff035001045c010a00", "00", ""},
+    {"r,wtc,ptr,[WCRC],,08,5000,0006021200,,s,IGN:1,,,,v,s,UIN", "561", "ff085000051c06021200", "03003102", ""},
+    {"r,wtc,ptr,[WCRC],,08,5000,0006021200,,s,IGN:1,,,,v,s,UIN", "561", "ff085000051c06021200", "03003102", "d"},
+    {"r,wtc,ptr,[WCRC],,08,5000,ff06021200,,s,IGN:1,,,,v,s,UIN", "561", "ff085000051c06021200", "03003102", ""},
+    {"w,wtc,short,[WCRC],,13,5001,00,value,,UCH", "16", "ff135001021010", "00", ""},
+    {"r,wtc,ptr,[WCRC],,08,5000,0006021200:3;0006021202:3,,,IGN:1,,,,a,,UIN,,,,,,IGN:1,,,,b,,UIN", "561;48042",
+     "ff085000051c06021200;ff085000051e06021202", "03003102;0300aabb", "dC"},
+    {"r,wtc,ptr,no marker WCRC,,08,5000,0006021200,,s,IGN:1,,,,v,s,UIN", "561", "ff085000050006021200", "03003102",
+     ""},
     {"r,ehp,scan,chained scan,,08,B509,24:9;25;26;27,,,IGN,,,,id4,,STR:28", "21074500100027790000000000N8", "ff08b5090124;ff08b5090125;ff08b5090126;ff08b5090127", "09003231303734353030;09313030303237373930;09303030303030303030;024E38", "dC" },
     {"r,,x,,,,,6900,,,UCH,10,bar,,Bit7,,BI7,0=B70;1=B71,,,Bit6,,BI6:1,0=B60;1=B61", "1.9;B71;B61", "ff08b509030d6900", "03138040", "d" },
     {"r,,x,,,,,6900,,,UCH,10,bar,,Bit7,,BI7,0=B70;1=B71,,,Bit6,,BI6:1,0=B60;1=B61", "1.9;B71;B60", "ff08b509030d6900", "0313ffbf", "d" },
